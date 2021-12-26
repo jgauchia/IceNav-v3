@@ -9,7 +9,7 @@
        Pinout:
        HCM5883L      ILI9341        MICRO SD       VBAT        GPS
        --------------------------------------------------------------------
-       VCC 3,3v      VCC  3,3v      VCC  3,3v      GPIO034     VCC  3,3v
+       VCC 3,3v      VCC  3,3v      VCC  3,3v      GPIO34      VCC  3,3v
        GND GND       GND  GND       GND  GND                   GND  GND
        SDA GPIO21    LED  GPIO33    CS   GPIO04                RX   GPIO17
        SCL GPIO22    MISO GPIO27    MISO GPIO27                TX   GPIO16
