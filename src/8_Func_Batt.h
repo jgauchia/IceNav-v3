@@ -31,7 +31,7 @@ void show_battery(int x, int y)
     average = average + batt;
   }
   average = average / 1000.0;
-  sprintf(s_buf, "%03f%%", average);
+  sprintf(s_buf, "%03f%%", batt);
   tft.drawString(s_buf, x, y + 24, 1);
   if (average != batt_old)
   {
