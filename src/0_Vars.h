@@ -39,6 +39,7 @@ TinyGPSCustom snr[4];
 #define ADC_BATT_PIN  34
 #define CONVERSION_FACTOR 1.79
 #define READS 50
+#define BATT_UPDATE_TIME 10000
 Battery18650Stats batt(ADC_BATT_PIN,CONVERSION_FACTOR,READS);
 int batt_level = 0;
 int old_batt_level = 0;

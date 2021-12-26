@@ -12,7 +12,11 @@
 // *********************************************
 int Read_Battery()
 {
- return batt.getBatteryChargeLevel(true);
+  unsigned long start = millis();
+  do
+  {
+    return batt.getBatteryChargeLevel(true);
+  } while (millis() - start < BATT_UPDATE_TIME);
 }
 
 // *********************************************
