@@ -24,6 +24,11 @@
        GPS:       https://github.com/mikalhart/TinyGPSPlus
        PCF8574:   https://github.com/RobTillaart/PCF8574
        Batería:   https://github.com/danilopinotti/Battery18650Stats
+
+       Archivos necesarios para leer PNG:
+       miniz.c / miniz.h
+       pngle.c / pingle.h
+       suport_functions.h
 */
 
 #define DEBUG 1
@@ -54,6 +59,7 @@
 #include "8_Func_Batt.h"
 #include "A_Pantallas.h"
 #include "ZZ_Core_Funcs.h"
+#include "support_functions.h"
 
 void setup()
 {
