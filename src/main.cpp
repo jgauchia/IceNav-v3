@@ -26,9 +26,12 @@
        Batería:   https://github.com/danilopinotti/Battery18650Stats
 
        Archivos necesarios para leer PNG:
-       miniz.c / miniz.h
-       pngle.c / pingle.h
-       suport_functions.h
+       include
+          |__________ miniz.c
+          |__________ miniz.h
+          |__________ pngle.c
+          |__________ pngle.h
+          |__________ support_functions.h
 */
 
 #define DEBUG 1

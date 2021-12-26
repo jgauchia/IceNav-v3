@@ -103,4 +103,3 @@ void load_file(fs::FS &fs, const char *path)
   file.close();
 }
 
-
