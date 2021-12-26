@@ -13,7 +13,7 @@
 #define GPS_TX  16
 #define GPS_RX  17
 HardwareSerial *gps = &Serial2;
-#define GPS_UPDATE_TIME 1000
+#define GPS_UPDATE_TIME  1500
 #define MAX_SATELLITES   40
 
 TinyGPSPlus GPS;
