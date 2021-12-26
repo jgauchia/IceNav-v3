@@ -34,6 +34,16 @@ TinyGPSCustom snr[4];
 #define SD_CLK  14
 
 // **********************************************
+//  Declaración para lectura batería
+// **********************************************
+#define ADC_BATT_PIN  34
+#define CONVERSION_FACTOR 1.79
+#define READS 50
+Battery18650Stats batt(ADC_BATT_PIN,CONVERSION_FACTOR,READS);
+int batt_level = 0;
+int old_batt_level = 0;
+
+// **********************************************
 //  Declaración para el puerto serie de Debug
 // **********************************************
 HardwareSerial *debug = &Serial;
@@ -95,8 +105,6 @@ float f_rumbo = 0;                // Variables para la brújula
 float f_rumbo_temp = 0;
 float declinationAngle = 0.2200;
 
-float batt = 0;                     // Variables % batería
-float batt_old = 0;
 #define Icon_Notify_Width  24
 #define Icon_Notify_Height 24
 
@@ -117,7 +125,7 @@ uint16_t read16(fs::File &f);
 uint32_t read32(fs::File &f);
 void drawBmp(const char *filename, int16_t x, int16_t y, bool microsd);
 void read_NMEA(unsigned long ms);
-float Read_Battery();
+int Read_Battery();
 void show_battery(int x, int y);
 void search_init_sat();
 void show_sat_icon(int x, int y);

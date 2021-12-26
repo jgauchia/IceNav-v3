@@ -39,7 +39,7 @@ void Main_prog( void * pvParameters ) {
   debug->println(xPortGetCoreID());
   for (;;)
   {
-    batt = Read_Battery();
+    batt_level = Read_Battery();
     key_pressed = Read_Keys();
     Check_keys(key_pressed);
     if (is_menu_screen)

@@ -23,6 +23,7 @@
        ILI9341 :  https://github.com/Bodmer/TFT_eSPI
        GPS:       https://github.com/mikalhart/TinyGPSPlus
        PCF8574:   https://github.com/RobTillaart/PCF8574
+       Batería:   https://github.com/danilopinotti/Battery18650Stats
 */
 
 #define DEBUG 1
@@ -40,6 +41,7 @@
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_HMC5883_U.h>
+#include <Battery18650Stats.h>
 #include "Z_Bitmaps.h"
 #include "0_Vars.h"
 #include "1_Func.h"
