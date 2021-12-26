@@ -14,15 +14,9 @@
 // *********************************************
 void show_sat_icon(int x, int y)
 {
-  /* No Fix */
-  if (GPS.location.age() == 4294967295)
-    tft.drawBitmap(x, y, sat_bmp, 32, 30, TFT_RED);
-  /* Prediction */
-  else if (GPS.location.age() > 2000)
-    tft.drawBitmap(x, y, sat_bmp, 32, 30, TFT_ORANGE);
-  /* Fix */
-  else
-    tft.drawBitmap(x, y, sat_bmp, 32, 30, TFT_DARKGREEN);
+  tft.setSwapBytes(true);
+  tft.pushImage(x,y , Icon_Notify_Width, Icon_Notify_Height, Satellite_icon);
+  tft.setSwapBytes(false);
 }
 
 // *********************************************
@@ -58,9 +52,8 @@ void show_sat_hour(int x, int y, int font)
 void show_notify_bar(int x, int y)
 {
   show_sat_hour(x, y, 4);
-  show_sat_icon(x + 120, y - 5);
-  show_battery(x + 200, y - 5);
-  tft.drawNumber(GPS.satellites.value(), x+155, y, 4);
+  show_battery(x + 200, y-10);
+  tft.drawNumber(GPS.satellites.value(), x+180, y+10, 2);
 }
 
 // *********************************************

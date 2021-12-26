@@ -27,7 +27,7 @@
 
 #define DEBUG 1
 //#define OUTPUT_NMEA 1
-#define SEARCH_SAT_ON_INIT 1
+//#define SEARCH_SAT_ON_INIT 1
 
 #include <Arduino.h>
 #include <TFT_eSPI.h>

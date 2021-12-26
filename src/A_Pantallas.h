@@ -22,6 +22,9 @@ void show_main_screen()
     drawBmp("/GFX/ALTURA.BMP", 7, 73, true);
     drawBmp("/GFX/COMPAS.BMP", 17, 107, true);
     tft.writecommand(0x29);
+    tft.setSwapBytes(true);
+    show_sat_icon(180,0);
+    tft.setSwapBytes(false);
     is_draw = true;
   } 
   tft.startWrite();
@@ -81,14 +84,15 @@ void show_menu_screen()
   {
     tft.writecommand(0x28);
     tft.fillScreen(TFT_WHITE);
-    drawBmp("/GFX/BOT_TRAC.BMP", 20, 20, true);
-    drawBmp("/GFX/BOT_NAV.BMP", 20, 65, true);
-    drawBmp("/GFX/BOT_MAPA.BMP", 20, 110, true);
-    drawBmp("/GFX/BOT_BRUJ.BMP", 20, 155, true);
-    drawBmp("/GFX/BOT_LOG.BMP", 20, 200, true);
-    drawBmp("/GFX/BOT_CFG.BMP", 20, 245, true);
+    drawBmp("/GFX/BOT_TRAC.BMP", 20, 15, true);
+    drawBmp("/GFX/BOT_NAV.BMP", 20, 60, true);
+    drawBmp("/GFX/BOT_MAPA.BMP", 20, 105, true);
+    drawBmp("/GFX/BOT_BRUJ.BMP", 20, 150, true);
+    drawBmp("/GFX/BOT_LOG.BMP", 20, 195, true);
+    drawBmp("/GFX/BOT_CFG.BMP", 20, 240, true);
     tft.writecommand(0x29);
     tft.setTextColor(TFT_BLACK, TFT_WHITE);
+    show_sat_icon(180,282);
     is_draw = true;
   }
   show_notify_bar(10, 292);
