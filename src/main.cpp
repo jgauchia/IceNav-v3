@@ -11,7 +11,7 @@
        --------------------------------------------------------------------
        VCC 3,3v      VCC  3,3v      VCC  3,3v      GPIO34      VCC  3,3v
        GND GND       GND  GND       GND  GND                   GND  GND
-       SDA GPIO21    LED  GPIO33    CS   GPIO 4                RX   GPIO17
+       SDA GPIO21    LED  GPIO33    CS   GPIO4                 RX   GPIO17
        SCL GPIO22    MISO GPIO27    MISO GPIO27                TX   GPIO16
                      SCK  GPIO14    SCK  GPIO14
                      MOSI GPIO13    MOSI GPIO13
