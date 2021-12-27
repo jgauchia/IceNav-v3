@@ -77,6 +77,8 @@ void init_sd()
 // **********************************************
 void init_icenav()
 {
+  WiFi.mode(WIFI_MODE_NULL);
+  btStop();
   keyboard.begin();
   mag.begin();
   millis_actual = millis();

@@ -50,6 +50,7 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_HMC5883_U.h>
 #include <Battery18650Stats.h>
+#include <WiFi.h>
 #include "Z_Bitmaps.h"
 #include "0_Vars.h"
 #include "1_Func.h"
