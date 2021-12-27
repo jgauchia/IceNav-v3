@@ -41,7 +41,7 @@ void show_battery(int x, int y)
       tft.pushImage(x, y , Icon_Notify_Width, Icon_Notify_Height, battery_1_icon);
     old_batt_level = batt_level;
     tft.setSwapBytes(false);
-    sprintf(s_buf, "%d%%", old_batt_level);
+    sprintf(s_buf, "%3d%%", old_batt_level);
     tft.drawString(s_buf, x, y + 24, 1);
   }
 }
