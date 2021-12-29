@@ -160,14 +160,18 @@ void show_map(int posx, int posy, double lon, double lat)
   {
     x = lon2tilex(lon, zoom);
     y = lat2tiley(lat, zoom);
-    if ( x != tilex || y != tiley )
+    if ( zoom != zoom_old)
     {
-      tilex = x;
-      tiley = y;
-      sprintf(s_fichmap, "/MAP/%d/%d/%d.png", zoom, tilex, tiley);
-      setPngPosition(posx, posy);
-      load_file(SD, s_fichmap);
-      debug->println(s_fichmap);
+      if ( x != tilex || y != tiley )
+      {
+       tilex = x;
+       tiley = y;
+       sprintf(s_fichmap, "/MAP/%d/%d/%d.png", zoom, tilex, tiley);
+       setPngPosition(posx, posy);
+       load_file(SD, s_fichmap);
+       debug->println(s_fichmap);
+      }
+      zoom_old = zoom;
     }
   }
 

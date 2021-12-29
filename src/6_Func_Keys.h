@@ -55,10 +55,24 @@ void Check_keys(int read_key)
   {
     is_draw = false;
     is_menu_screen = true;
+    is_map_screen = false;
   }
   else if (read_key == BLEFT && is_menu_screen)
   {
     is_draw = false;
     is_menu_screen = false;
+  }
+
+  if (read_key == UP && is_map_screen)
+  {
+    zoom++;
+    if (zoom > MAX_ZOOM)
+       zoom = MAX_ZOOM;
+  }
+  else if (read_key == DOWN && is_map_screen)
+  {
+    zoom--;
+    if (zoom < MIN_ZOOM)
+       zoom = MIN_ZOOM;
   }
 }

@@ -88,6 +88,7 @@ void show_map_screen()
     show_sat_icon(180,0);
     tft.setSwapBytes(false);
     is_draw = true;
+    is_map_screen = true;
   } 
   show_map(0,64,GPS.location.lng(),GPS.location.lat());
   show_notify_bar(10, 10);

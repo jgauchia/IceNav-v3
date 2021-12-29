@@ -100,6 +100,7 @@ enum Keys { NONE, UP, DOWN, LEFT, RIGHT, PUSH, BLEFT, BRIGHT };
 int key_pressed = NONE;
 
 bool is_menu_screen = false;
+bool is_map_screen = false;
 char s_buf[64];                   // Buffer para sprintf
 
 float f_rumbo = 0;                // Variables para la brújula
@@ -115,6 +116,9 @@ char s_fichmap[40];
 int x = 0;
 int y = 0;
 int zoom = 16;                    // Zoom por defecto del mapa
+int zoom_old = 0;
+#define MIN_ZOOM  6
+#define MAX_ZOOM  16
 
 // **********************************************
 //  Declaración funciones
