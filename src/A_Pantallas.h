@@ -84,6 +84,7 @@ void show_map_screen()
     tft.fillScreen(TFT_WHITE);
     tft.drawLine(0, 40, 240, 40, TFT_BLACK);
     tft.setTextColor(TFT_BLACK, TFT_WHITE);  
+    tft.drawString("ZOOM:", 5, 45, 2);
     tft.setSwapBytes(true);
     show_sat_icon(180,0);
     tft.setSwapBytes(false);
@@ -92,6 +93,8 @@ void show_map_screen()
   } 
   show_map(0,64,GPS.location.lng(),GPS.location.lat());
   show_notify_bar(10, 10);
+  sprintf(s_buf, "%2d", zoom);
+  tft.drawString(s_buf,45,45,2);
 }
 
 // **********************************************
