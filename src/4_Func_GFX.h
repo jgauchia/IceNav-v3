@@ -147,7 +147,6 @@ void show_sat_tracking()
   }
 }
 
-
 // *********************************************
 //  Función que dibuja mapa para la posición
 //  actual

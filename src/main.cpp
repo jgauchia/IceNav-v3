@@ -38,7 +38,7 @@
 
 #define DEBUG 1
 //#define OUTPUT_NMEA 1
-//#define SEARCH_SAT_ON_INIT 1
+#define SEARCH_SAT_ON_INIT 1
 #define USE_LINE_BUFFER 1
 
 #include <Arduino.h>
@@ -66,7 +66,6 @@
 #include "8_Func_Batt.h"
 #include "A_Pantallas.h"
 #include "ZZ_Core_Funcs.h"
-
 
 void setup()
 {
