@@ -18,8 +18,9 @@ void read_NMEA(unsigned long ms)
   do
   {
     while (gps->available())
+    {
       GPS.encode(gps->read());
-    gps_out_monitor();
+    }
   } while (millis() - start < ms);
 }
 
@@ -38,7 +39,7 @@ void search_init_sat()
     for (int i = 0; i < 11; i++ )
     {
       tft.drawString("o ", 12 + (20 * i), 150, 4);
-      read_NMEA(GPS_UPDATE_TIME); 
+      read_NMEA(1000); 
       if (GPS.location.isValid())
       {
         is_gps_fixed = true;

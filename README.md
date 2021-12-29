@@ -24,9 +24,11 @@ Programa receptor y navegador GPS con ESP32 + GPS + ILI9341 + HCM5883L
 
 
        Archivos necesarios para leer PNG:
+
        include
           |__________ miniz.c
           |__________ miniz.h
-          |__________ pngle.c
-          |__________ pngle.h
           |__________ support_functions.h
+
+       pngle.c
+       pngle.h

@@ -2,7 +2,7 @@
 
 #include "pngle.h"
 
-#define LINE_BUF_SIZE 64  // pixel = 524, 16 = 406, 32 = 386, 64 = 375, 128 = 368, 240 = 367, no draw = 324 (51ms v 200ms)
+#define LINE_BUF_SIZE 240  // pixel = 524, 16 = 406, 32 = 386, 64 = 375, 128 = 368, 240 = 367, no draw = 324 (51ms v 200ms)
 int16_t px = 0, sx = 0;
 int16_t py = 0, sy = 0;
 uint8_t pc = 0;
@@ -77,7 +77,8 @@ void load_file(fs::FS &fs, const char *path)
 
   while ((len = file.read(buf + remain, sizeof(buf) - remain)) > 0) {
     int fed = pngle_feed(pngle, buf, remain + len);
-    if (fed < 0) {
+    if (fed < 0) 
+    {
       Serial.printf("ERROR: %s\n", pngle_error(pngle));
       break;
     }

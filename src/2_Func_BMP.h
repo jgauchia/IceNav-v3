@@ -77,6 +77,7 @@ void drawBmp(const char *filename, int16_t x, int16_t y, bool microsd)
       }
       tft.setSwapBytes(oldSwapBytes);
     }
+    else debug->println("BMP format not recognized.");
   }
   bmpFS.close();
 }

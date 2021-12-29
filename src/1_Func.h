@@ -22,7 +22,7 @@ void init_serial()
 // **********************************************
 void init_gps()
 {
-  gps->begin(115200);
+  gps->begin(9600);
 
   // Inicializar parse custom para tracking satelites
   for (int i = 0; i < 4; ++i)

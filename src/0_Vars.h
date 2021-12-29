@@ -13,7 +13,7 @@
 #define GPS_TX  16
 #define GPS_RX  17
 HardwareSerial *gps = &Serial2;
-#define GPS_UPDATE_TIME  1500
+#define GPS_UPDATE_TIME  0
 #define MAX_SATELLITES   40
 
 TinyGPSPlus GPS;
@@ -113,6 +113,8 @@ float declinationAngle = 0.2200;
 //  Declaración funciones
 // **********************************************
 
+#include "pngle.h"
+#include "support_functions.h"
 void init_tasks();
 void Read_GPS( void * pvParameters );
 void Main_prog( void * pvParameters );
@@ -125,6 +127,9 @@ void init_icenav();
 uint16_t read16(fs::File &f);
 uint32_t read32(fs::File &f);
 void drawBmp(const char *filename, int16_t x, int16_t y, bool microsd);
+void load_file(fs::FS &fs, const char *path);
+void setPngPosition(int16_t x, int16_t y);
+void pngle_on_draw(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint8_t rgba[4]);
 void read_NMEA(unsigned long ms);
 int Read_Battery();
 void show_battery(int x, int y);

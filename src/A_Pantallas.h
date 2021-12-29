@@ -18,8 +18,8 @@ void show_main_screen()
     tft.drawLine(0, 40, 240, 40, TFT_BLACK);
     tft.setTextColor(TFT_BLACK, TFT_WHITE);
     tft.writecommand(0x28);
-    drawBmp("/GFX/POSICION.BMP", 15, 44, true);
     drawBmp("/GFX/ALTURA.BMP", 7, 73, true);
+    drawBmp("/GFX/POSICION.BMP", 5, 44, true);
     drawBmp("/GFX/COMPAS.BMP", 17, 107, true);
     tft.writecommand(0x29);
     tft.setSwapBytes(true);
@@ -74,6 +74,27 @@ void show_sat_track_screen()
   show_sat_tracking();
 }
 
+// **********************************************
+//  Muestra layout pantalla mapa
+// **********************************************
+void show_map_screen()
+{
+  if (!is_draw)
+  {
+    tft.fillScreen(TFT_WHITE);
+    tft.drawLine(0, 40, 240, 40, TFT_BLACK);
+    tft.setTextColor(TFT_BLACK, TFT_WHITE);
+
+    setPngPosition(0, 64);
+    load_file(SD, "/MAP/16/33080/24486.png");
+      
+    tft.setSwapBytes(true);
+    show_sat_icon(180,0);
+    tft.setSwapBytes(false);
+    is_draw = true;
+  } 
+  show_notify_bar(10, 10);
+}
 
 // **********************************************
 //  Muestra layout pantalla menus

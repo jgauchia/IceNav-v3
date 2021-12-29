@@ -48,8 +48,9 @@ void Main_prog( void * pvParameters ) {
     }
     else
     {
-      show_main_screen();
+      //show_main_screen();
       //show_sat_track_screen();
+      show_map_screen();
     }
     delay(1);
   }
