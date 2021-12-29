@@ -146,3 +146,30 @@ void show_sat_tracking()
     }
   }
 }
+
+
+// *********************************************
+//  Función que dibuja mapa para la posición
+//  actual
+//
+//  posx,posy:      posición en pantalla
+//  lon,lat:  coordenadas GPS
+// *********************************************
+void show_map(int posx, int posy, double lon, double lat)
+{
+  {
+    x = lon2tilex(lon, zoom);
+    y = lat2tiley(lat, zoom);
+    if ( x != tilex || y != tiley )
+    {
+      tilex = x;
+      tiley = y;
+      sprintf(s_fichmap, "/MAP/%d/%d/%d.png", zoom, tilex, tiley);
+      setPngPosition(posx, posy);
+      load_file(SD, s_fichmap);
+      debug->println(s_fichmap);
+    }
+  }
+
+  tft.fillCircle(lon2posx(lon, zoom)+posx, lat2posy(lat, zoom)+posy, 2, TFT_RED);
+}

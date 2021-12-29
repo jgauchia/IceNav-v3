@@ -83,16 +83,13 @@ void show_map_screen()
   {
     tft.fillScreen(TFT_WHITE);
     tft.drawLine(0, 40, 240, 40, TFT_BLACK);
-    tft.setTextColor(TFT_BLACK, TFT_WHITE);
-
-    setPngPosition(0, 64);
-    load_file(SD, "/MAP/16/33080/24486.png");
-      
+    tft.setTextColor(TFT_BLACK, TFT_WHITE);  
     tft.setSwapBytes(true);
     show_sat_icon(180,0);
     tft.setSwapBytes(false);
     is_draw = true;
   } 
+  show_map(0,64,GPS.location.lng(),GPS.location.lat());
   show_notify_bar(10, 10);
 }
 

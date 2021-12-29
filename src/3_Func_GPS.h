@@ -53,3 +53,51 @@ void search_init_sat()
     tft.fillRect(12, 150, 320, 180, TFT_BLACK);
   }
 }
+
+// *********************************************
+//  Función para obtener tileX de los mapas
+//  Openstreetmap
+//
+//  f_lon:    longitud
+//  zoom:     zoom
+// *********************************************
+int lon2tilex(double f_lon, int zoom)
+{
+   return (int)(floor((f_lon + 180.0) / 360.0 * pow(2.0, zoom))); 
+}
+
+// *********************************************
+//  Función para obtener tileY de los mapas
+//  Openstreetmap
+//
+//  f_lat:    latitud
+//  zoom:     zoom
+// *********************************************
+int lat2tiley(double f_lat, int zoom)
+{
+  return (int)(floor((1.0 - log( tan(f_lat * M_PI/180.0) + 1.0 / cos(f_lat * M_PI/180.0)) / M_PI) / 2.0 * pow(2.0, zoom))); 
+}
+
+// *********************************************
+//  Función para obtener posX de los mapas
+//  Openstreetmap
+//
+//  f_lon:  longitud
+//  zoom:   zoom
+// *********************************************
+int lon2posx(float f_lon, int zoom)
+{
+   return ((int)(((f_lon + 180.0) / 360.0 * (pow(2.0, zoom))*256)) % 256); 
+}
+
+// *********************************************
+//  Función para obtener posY de los mapas
+//  Openstreetmap
+//
+//  f_lat:  latitud
+//  zoom:   zoom
+// *********************************************
+int lat2posy(float f_lat, int zoom)
+{
+   return ((int)(((1.0 - log( tan(f_lat * M_PI/180.0) + 1.0 / cos(f_lat * M_PI/180.0)) / M_PI) / 2.0 * (pow(2.0, zoom))*256)) % 256); 
+}

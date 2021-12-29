@@ -109,6 +109,13 @@ float declinationAngle = 0.2200;
 #define Icon_Notify_Width  24
 #define Icon_Notify_Height 24
 
+int tilex = 0;                    // Tile para archivo mapa
+int tiley = 0;
+char s_fichmap[40];
+int x = 0;
+int y = 0;
+int zoom = 16;                    // Zoom por defecto del mapa
+
 // **********************************************
 //  Declaración funciones
 // **********************************************
@@ -134,6 +141,8 @@ void read_NMEA(unsigned long ms);
 int Read_Battery();
 void show_battery(int x, int y);
 void search_init_sat();
+int lon2tilex(double f_lon, int zoom);
+int lat2tiley(double f_lat, int zoom);
 void show_sat_icon(int x, int y);
 void show_sat_hour(int x, int y, int font);
 void show_sat_tracking();
