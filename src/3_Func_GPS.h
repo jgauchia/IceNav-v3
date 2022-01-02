@@ -20,6 +20,8 @@ void read_NMEA(unsigned long ms)
     while (gps->available())
     {
       GPS.encode(gps->read());
+      if (GPS.location.isValid())
+        is_gps_fixed = true;
     }
   } while (millis() - start < ms);
 }
@@ -29,7 +31,6 @@ void read_NMEA(unsigned long ms)
 // **********************************************
 void search_init_sat()
 {
-  tft.setTextSize(1);
   tft.fillScreen(TFT_BLACK);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.drawString("Buscando Satelites", 10, 100, 4);

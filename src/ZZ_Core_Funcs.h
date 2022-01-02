@@ -39,8 +39,11 @@ void Main_prog( void * pvParameters ) {
   debug->println(xPortGetCoreID());
   for (;;)
   {
-    batt_level = Read_Battery();
-    key_pressed = Read_Keys();
+    if ( BATTtime.update() ) 
+      batt_level = Read_Battery();
+    if ( KEYStime.update() )
+      key_pressed = Read_Keys();
+
     Check_keys(key_pressed);
     if (is_menu_screen)
     {
@@ -48,9 +51,9 @@ void Main_prog( void * pvParameters ) {
     }
     else
     {
-      //show_main_screen();
+      show_main_screen();
       //show_sat_track_screen();
-      show_map_screen();
+      //show_map_screen();
     }
     delay(1);
   }

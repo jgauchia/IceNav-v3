@@ -37,12 +37,10 @@ TinyGPSCustom snr[4];
 //  Declaración para lectura batería
 // **********************************************
 #define ADC_BATT_PIN  34
-#define CONVERSION_FACTOR 1.90
+#define CONVERSION_FACTOR 1.81
 #define READS 50
-#define BATT_UPDATE_TIME 10000
 Battery18650Stats batt(ADC_BATT_PIN,CONVERSION_FACTOR,READS);
 int batt_level = 0;
-int old_batt_level = 0;
 
 // **********************************************
 //  Declaración para el puerto serie de Debug
@@ -54,6 +52,7 @@ HardwareSerial *debug = &Serial;
 // **********************************************
 TFT_eSPI tft = TFT_eSPI();
 TFT_eSprite sat_sprite = TFT_eSprite(&tft);
+TFT_eSprite compass_sprite = TFT_eSprite(&tft); 
 
 // **********************************************
 //  Declaración para la microSD
@@ -69,6 +68,14 @@ PCF8574 keyboard(0x38);
 //  Declaración para la brújula
 // **********************************************
 Adafruit_HMC5883_Unified mag = Adafruit_HMC5883_Unified(12345);
+
+// **********************************************
+//  Declaración para Delay con Millis
+// **********************************************
+#define KEYS_UPDATE_TIME  85
+#define BATT_UPDATE_TIME 10000
+MyDelay KEYStime(KEYS_UPDATE_TIME);
+MyDelay BATTtime(BATT_UPDATE_TIME);
 
 // **********************************************
 //  Declaración de variables
@@ -101,10 +108,12 @@ int key_pressed = NONE;
 
 bool is_menu_screen = false;
 bool is_map_screen = false;
+bool is_sat_screen = false;
+bool is_compass_screen = false;
+bool is_show_degree = true;
 char s_buf[64];                   // Buffer para sprintf
 
-float f_rumbo = 0;                // Variables para la brújula
-float f_rumbo_temp = 0;
+int rumbo = 0;                  // Variables para la brújula
 float declinationAngle = 0.2200;
 
 #define Icon_Notify_Width  24
@@ -118,7 +127,7 @@ int y = 0;
 int zoom = 16;                    // Zoom por defecto del mapa
 int zoom_old = 0;
 #define MIN_ZOOM  6
-#define MAX_ZOOM  16
+#define MAX_ZOOM  18
 
 // **********************************************
 //  Declaración funciones

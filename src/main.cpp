@@ -24,6 +24,7 @@
        GPS:       https://github.com/mikalhart/TinyGPSPlus
        PCF8574:   https://github.com/RobTillaart/PCF8574
        Batería:   https://github.com/danilopinotti/Battery18650Stats
+       MyDelay:   https://github.com/mggates39/MyDelay
 
        Archivos necesarios para leer PNG:
        
@@ -38,7 +39,7 @@
 
 #define DEBUG 1
 //#define OUTPUT_NMEA 1
-#define SEARCH_SAT_ON_INIT 1
+//#define SEARCH_SAT_ON_INIT 1
 #define USE_LINE_BUFFER 1
 
 #include <Arduino.h>
@@ -54,6 +55,7 @@
 #include <Adafruit_HMC5883_U.h>
 #include <Battery18650Stats.h>
 #include <WiFi.h>
+#include <MyDelay.h>
 #include "Z_Bitmaps.h"
 #include "0_Vars.h"
 #include "1_Func.h"

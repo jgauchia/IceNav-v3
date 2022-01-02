@@ -28,6 +28,7 @@ void show_sat_icon(int x, int y)
 void show_sat_hour(int x, int y, int font)
 {
   tft.startWrite();
+  tft.setTextFont(font);
   tft.setCursor(x, y, font);
   if (hour() < 10) {
     tft.print('0');
@@ -175,4 +176,25 @@ void show_map(int posx, int posy, double lon, double lat)
   }
 
   tft.fillCircle(lon2posx(lon, zoom)+posx, lat2posy(lat, zoom)+posy, 2, TFT_RED);
+}
+
+// *********************************************
+//  Función que crea el sprite para la brújula
+// *********************************************
+void create_compass_sprite()
+{
+  compass_sprite.deleteSprite();
+  compass_sprite.setColorDepth(8);
+  compass_sprite.createSprite(205,205);
+  compass_sprite.fillScreen(TFT_BLACK);
+  compass_sprite.fillCircle(102,102,105,TFT_WHITE);
+  compass_sprite.fillCircle(102,102,98,TFT_DARKCYAN);
+  compass_sprite.fillCircle(102,102,90,TFT_WHITE);
+  compass_sprite.fillCircle(102,102,80,TFT_BLACK);
+  compass_sprite.setTextColor(TFT_DARKCYAN,TFT_WHITE);
+  compass_sprite.drawString("N",95,0,4);
+  compass_sprite.drawString("S",95,185,4);
+  compass_sprite.drawString("W",0,95,4);
+  compass_sprite.drawString("E",185,95,4);
+  tft.setPivot(118,207);
 }

@@ -21,6 +21,7 @@ Programa receptor y navegador GPS con ESP32 + GPS + ILI9341 + HCM5883L
        GPS:       https://github.com/mikalhart/TinyGPSPlus
        PCF8574:   https://github.com/RobTillaart/PCF8574
        Batería:   https://github.com/danilopinotti/Battery18650Stats
+       MyDelay:   https://github.com/mggates39/MyDelay
 
 
        Archivos necesarios para leer PNG:

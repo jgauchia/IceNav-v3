@@ -64,6 +64,7 @@ void Latitude_formatString(int x, int y, int font,  double lat)
   absLatitude = (absLatitude - deg) * 60;
   min = (uint8_t) absLatitude;
   absLatitude = (absLatitude - min) * 60;
+  tft.setTextFont(font);
   tft.setCursor(x, y, font);
   sprintf(s_buf, "%03d ", deg);
   tft.print(s_buf);
@@ -94,6 +95,7 @@ void Longitude_formatString(int x, int y, int font,  double lon)
   absLongitude = (absLongitude - deg) * 60;
   min = (uint8_t) absLongitude;
   absLongitude = (absLongitude - min) * 60;
+  tft.setTextFont(font);
   tft.setCursor(x, y, font);
   sprintf(s_buf, "%03d ", deg);
   tft.print(s_buf);

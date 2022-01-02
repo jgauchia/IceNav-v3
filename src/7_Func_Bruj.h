@@ -10,7 +10,7 @@
 // *********************************************
 //  Función que lee la brújula
 // *********************************************
-float Read_Mag_data()
+int Read_Mag_data()
 {
   sensors_event_t event;
   mag.getEvent(&event);
@@ -20,23 +20,49 @@ float Read_Mag_data()
     heading += 2 * PI;
   if (heading > 2 * PI)
     heading -= 2 * PI;
-  return heading;// * 180 / M_PI;
+  return heading * 180 / M_PI;
 }
-
 
 // **********************************************
 //  Función principal que muestra la brujula
 // **********************************************
 void show_Compass()
 {
-  f_rumbo = Read_Mag_data();
-  if (f_rumbo_temp != f_rumbo)
+  rumbo = Read_Mag_data();
+  compass_sprite.pushRotated(360-rumbo,TFT_BLACK); 
+  tft.setTextColor(TFT_BLACK,TFT_WHITE);
+  tft.fillRect(55,207,130,40,TFT_WHITE);
+  
+  if ( key_pressed == PUSH && is_show_degree)
+      is_show_degree = false;
+  else if ( key_pressed == PUSH && !is_show_degree)
+      is_show_degree = true;
+
+  if ( !is_show_degree )
   {
-    tft.drawLine(118, 207, 118 - (int)(45 * sin(f_rumbo_temp)), 207 - (int)(45 * cos(f_rumbo_temp)), TFT_WHITE);
-    tft.drawLine(118, 207, 118 + (int)(45 * sin(f_rumbo_temp)), 207 + (int)(45 * cos(f_rumbo_temp)), TFT_WHITE);
-    f_rumbo_temp = f_rumbo;
+    int altura = (int)GPS.altitude.meters();
+    if (altura < 10)
+      sprintf(s_buf, "%s%1d","      " , altura);
+    else if (altura < 100)
+      sprintf(s_buf, "%s%2d","    " , altura);
+    else if (altura < 1000)
+      sprintf(s_buf, "%s%3d","  " , altura);
+    else
+      sprintf(s_buf, "%4d", altura);
+    tft.drawString(s_buf, 55, 207, 6);
+    tft.drawString("m",165, 225, 4);
   }
-  tft.drawLine(118, 207, 118 - (int)(45 * sin(f_rumbo)), 207 - (int)(45 * cos(f_rumbo)), TFT_RED);
-  tft.drawLine(118, 207, 118 + (int)(45 * sin(f_rumbo)), 207 + (int)(45 * cos(f_rumbo)), TFT_BLACK);
-  tft.fillCircle(118, 207, 5, TFT_DARKGREY);
+  else
+  {
+    if (rumbo < 10)
+     sprintf(s_buf,"%s%1d","    ", rumbo);
+    else if (rumbo < 100)
+     sprintf(s_buf,"%s%2d","  ", rumbo);
+    else
+     sprintf(s_buf, "%3d", rumbo);
+    tft.drawString(s_buf,75,207,6);
+    tft.setTextFont(4);
+    tft.setCursor(165, 207);
+    tft.print("`");
+  }
 }

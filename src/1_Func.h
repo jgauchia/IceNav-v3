@@ -81,6 +81,9 @@ void init_icenav()
   btStop();
   keyboard.begin();
   mag.begin();
+  KEYStime.start();
+  BATTtime.start();
+  batt_level = Read_Battery();
   millis_actual = millis();
   tft.writecommand(0x28);
   drawBmp("/INIT.BMP", 0, 0, true);

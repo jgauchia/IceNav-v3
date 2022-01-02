@@ -8,7 +8,7 @@
 */
 
 // **********************************************
-//  Muestra layout pantalla principal
+//  Muestra pantalla principal
 // **********************************************
 void show_main_screen()
 {
@@ -18,27 +18,27 @@ void show_main_screen()
     tft.drawLine(0, 40, 240, 40, TFT_BLACK);
     tft.setTextColor(TFT_BLACK, TFT_WHITE);
     tft.writecommand(0x28);
-    drawBmp("/GFX/ALTURA.BMP", 7, 73, true);
     drawBmp("/GFX/POSICION.BMP", 5, 44, true);
-    drawBmp("/GFX/COMPAS.BMP", 17, 107, true);
     tft.writecommand(0x29);
     tft.setSwapBytes(true);
     show_sat_icon(180,0);
+    tft.pushImage(95,135 , 50, 58, compass_arrow);
     tft.setSwapBytes(false);
+    create_compass_sprite();
+    is_compass_screen = true;
     is_draw = true;
   } 
-  tft.startWrite();
+
   show_Compass();
+  tft.startWrite();
   Latitude_formatString(50, 45, 2, GPS.location.lat());
   Longitude_formatString(50, 60, 2, GPS.location.lng());
-  sprintf(s_buf, "%4d m", (int)GPS.altitude.meters());
-  tft.drawString(s_buf, 47, 85, 2);
   tft.endWrite(); 
   show_notify_bar(10, 10);
 }
 
 // **********************************************
-//  Muestra layout pantalla tracking satelites
+//  Muestra pantalla tracking satelites
 // **********************************************
 void show_sat_track_screen()
 {
@@ -69,13 +69,14 @@ void show_sat_track_screen()
     tft.drawString("HDOP", 5, 75, 2);
     tft.drawString("Sat:", 5, 50, 2);
     tft.endWrite();
+    is_sat_screen = true;
     is_draw = true;
   }
   show_sat_tracking();
 }
 
 // **********************************************
-//  Muestra layout pantalla mapa
+//  Muestra pantalla mapa
 // **********************************************
 void show_map_screen()
 {
@@ -88,17 +89,20 @@ void show_map_screen()
     tft.setSwapBytes(true);
     show_sat_icon(180,0);
     tft.setSwapBytes(false);
-    is_draw = true;
     is_map_screen = true;
+    is_draw = true;
   } 
-  show_map(0,64,GPS.location.lng(),GPS.location.lat());
   show_notify_bar(10, 10);
-  sprintf(s_buf, "%2d", zoom);
-  tft.drawString(s_buf,45,45,2);
+  if (is_gps_fixed)
+  {
+    show_map(0,64,GPS.location.lng(),GPS.location.lat());
+    sprintf(s_buf, "%2d", zoom);
+    tft.drawString(s_buf,45,45,2);
+  }
 }
 
 // **********************************************
-//  Muestra layout pantalla menus
+//  Muestra pantalla menus
 // **********************************************
 void show_menu_screen()
 {
@@ -115,6 +119,7 @@ void show_menu_screen()
     tft.writecommand(0x29);
     tft.setTextColor(TFT_BLACK, TFT_WHITE);
     show_sat_icon(180,282);
+    is_menu_screen = true;
     is_draw = true;
   }
   show_notify_bar(10, 292);
