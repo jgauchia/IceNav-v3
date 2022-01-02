@@ -83,6 +83,7 @@ void init_icenav()
   mag.begin();
   KEYStime.start();
   BATTtime.start();
+  COMPASStime.start();
   batt_level = Read_Battery();
   millis_actual = millis();
   tft.writecommand(0x28);

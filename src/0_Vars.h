@@ -72,10 +72,12 @@ Adafruit_HMC5883_Unified mag = Adafruit_HMC5883_Unified(12345);
 // **********************************************
 //  Declaración para Delay con Millis
 // **********************************************
-#define KEYS_UPDATE_TIME  85
+#define KEYS_UPDATE_TIME  100
 #define BATT_UPDATE_TIME 10000
+#define COMPASS_UPDATE_TIME 1000
 MyDelay KEYStime(KEYS_UPDATE_TIME);
 MyDelay BATTtime(BATT_UPDATE_TIME);
+MyDelay COMPASStime(COMPASS_UPDATE_TIME);
 
 // **********************************************
 //  Declaración de variables

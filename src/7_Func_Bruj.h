@@ -12,15 +12,20 @@
 // *********************************************
 int Read_Mag_data()
 {
-  sensors_event_t event;
-  mag.getEvent(&event);
-  float heading = atan2(event.magnetic.y, event.magnetic.x);
-  heading += declinationAngle;
-  if (heading < 0)
-    heading += 2 * PI;
-  if (heading > 2 * PI)
-    heading -= 2 * PI;
-  return heading * 180 / M_PI;
+  float heading;
+  if (COMPASStime.update())
+  {
+    sensors_event_t event;
+    mag.getEvent(&event);
+    heading = atan2(event.magnetic.y, event.magnetic.x);
+    heading += declinationAngle;
+    if (heading < 0)
+      heading += 2 * PI;
+    if (heading > 2 * PI)
+      heading -= 2 * PI;
+}
+    return heading * 180 / M_PI;
+  
 }
 
 // **********************************************
