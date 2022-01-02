@@ -160,6 +160,7 @@ void show_map(int posx, int posy, double lon, double lat)
   {
     x = lon2tilex(lon, zoom);
     y = lat2tiley(lat, zoom);
+    tft.fillCircle(lon2posx(lon, zoom)+posx, lat2posy(lat, zoom)+posy, 2, TFT_RED);
     if ( zoom != zoom_old)
     {
       if ( x != tilex || y != tiley )
@@ -172,7 +173,6 @@ void show_map(int posx, int posy, double lon, double lat)
        debug->println(s_fichmap);
       }
       zoom_old = zoom;
-      tft.fillCircle(lon2posx(lon, zoom)+posx, lat2posy(lat, zoom)+posy, 2, TFT_RED);
     }
   }
 
