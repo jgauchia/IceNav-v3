@@ -79,6 +79,8 @@ void init_icenav()
 {
   WiFi.mode(WIFI_MODE_NULL);
   btStop();
+  is_menu_screen = false;
+  is_main_screen = true;
   keyboard.begin();
   mag.begin();
   KEYStime.start();

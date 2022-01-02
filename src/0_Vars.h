@@ -72,9 +72,9 @@ Adafruit_HMC5883_Unified mag = Adafruit_HMC5883_Unified(12345);
 // **********************************************
 //  Declaración para Delay con Millis
 // **********************************************
-#define KEYS_UPDATE_TIME  100
-#define BATT_UPDATE_TIME 10000
-#define COMPASS_UPDATE_TIME 1000
+#define KEYS_UPDATE_TIME  175
+#define BATT_UPDATE_TIME 1000
+#define COMPASS_UPDATE_TIME 10
 MyDelay KEYStime(KEYS_UPDATE_TIME);
 MyDelay BATTtime(BATT_UPDATE_TIME);
 MyDelay COMPASStime(COMPASS_UPDATE_TIME);
@@ -109,6 +109,7 @@ enum Keys { NONE, UP, DOWN, LEFT, RIGHT, PUSH, BLEFT, BRIGHT };
 int key_pressed = NONE;
 
 bool is_menu_screen = false;
+bool is_main_screen = false;
 bool is_map_screen = false;
 bool is_sat_screen = false;
 bool is_compass_screen = false;
@@ -166,3 +167,14 @@ double RADtoDEG(double rad);
 double DEGtoRAD(double deg);
 void Latitude_formatString(int x, int y, int font,  double lat);
 void Longitude_formatString(int x, int y, int font,  double lon);
+void show_main_screen();
+void show_sat_track_screen();
+void show_map_screen();
+
+// **********************************************
+//  Declaración vectores a funciones
+// **********************************************
+#define MAX_MAIN_SCREEN 3
+typedef void ( *MainScreenFunc) ();
+MainScreenFunc MainScreen[] = { 0, show_main_screen, show_sat_track_screen, show_map_screen };
+int sel_MainScreen = 1;

@@ -55,12 +55,13 @@ void Check_keys(int read_key)
   {
     is_draw = false;
     is_menu_screen = true;
-    is_map_screen = false;
+    is_main_screen = false;
   }
   else if (read_key == BLEFT && is_menu_screen)
   {
     is_draw = false;
     is_menu_screen = false;
+    is_main_screen = true;
   }
 
   if (read_key == UP && is_map_screen)
@@ -74,5 +75,20 @@ void Check_keys(int read_key)
     zoom--;
     if (zoom < MIN_ZOOM)
        zoom = MIN_ZOOM;
+  }
+
+  if (read_key == RIGHT && is_main_screen)
+  {
+    is_draw = false;
+    sel_MainScreen++;
+    if (sel_MainScreen > MAX_MAIN_SCREEN)
+      sel_MainScreen = MAX_MAIN_SCREEN;
+  }
+  else if (read_key == LEFT && is_main_screen)
+  {
+    is_draw = false;
+    sel_MainScreen--;
+    if (sel_MainScreen < 1)
+      sel_MainScreen = 1;
   }
 }

@@ -28,7 +28,6 @@ void show_main_screen()
     is_compass_screen = true;
     is_draw = true;
   } 
-
   show_Compass();
   tft.startWrite();
   Latitude_formatString(50, 45, 2, GPS.location.lat());
