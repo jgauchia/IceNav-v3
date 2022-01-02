@@ -13,8 +13,7 @@
 #define GPS_TX  16
 #define GPS_RX  17
 HardwareSerial *gps = &Serial2;
-#define GPS_UPDATE_TIME  0
-#define MAX_SATELLITES   40
+#define MAX_SATELLITES   60
 
 TinyGPSPlus GPS;
 TinyGPSCustom totalGPGSVMessages(GPS, "GPGSV", 1); // $GPGSV sentence, first element
@@ -75,9 +74,11 @@ Adafruit_HMC5883_Unified mag = Adafruit_HMC5883_Unified(12345);
 #define KEYS_UPDATE_TIME  175
 #define BATT_UPDATE_TIME 1000
 #define COMPASS_UPDATE_TIME 10
+#define GPS_UPDATE_TIME 1000
 MyDelay KEYStime(KEYS_UPDATE_TIME);
 MyDelay BATTtime(BATT_UPDATE_TIME);
 MyDelay COMPASStime(COMPASS_UPDATE_TIME);
+MyDelay GPStime(GPS_UPDATE_TIME);
 
 // **********************************************
 //  Declaración de variables

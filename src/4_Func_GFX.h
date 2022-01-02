@@ -72,7 +72,7 @@ void show_sat_tracking()
   sprintf(s_buf, "%2.1f", (double)GPS.hdop.hdop());
   tft.drawString(s_buf, 5, 90, 4);
 
- if (totalGPGSVMessages.isUpdated())
+  if (totalGPGSVMessages.isUpdated())
   {
     for (int i = 0; i < 4; ++i)
     {
@@ -172,10 +172,11 @@ void show_map(int posx, int posy, double lon, double lat)
        debug->println(s_fichmap);
       }
       zoom_old = zoom;
+      tft.fillCircle(lon2posx(lon, zoom)+posx, lat2posy(lat, zoom)+posy, 2, TFT_RED);
     }
   }
 
-  tft.fillCircle(lon2posx(lon, zoom)+posx, lat2posy(lat, zoom)+posy, 2, TFT_RED);
+ 
 }
 
 // *********************************************

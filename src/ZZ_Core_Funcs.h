@@ -12,7 +12,7 @@
 // **********************************************
 void init_tasks()
 {
-  xTaskCreatePinnedToCore(Read_GPS, "Read GPS"    ,  8192, NULL, 1, &Task1, 0);
+  xTaskCreatePinnedToCore(Read_GPS, "Read GPS"    , 16384, NULL, 1, &Task1, 0);
   delay(500);
   xTaskCreatePinnedToCore(Main_prog,"Main Program", 16384, NULL, 1, &Task2, 1);
   delay(500);
@@ -26,7 +26,8 @@ void Read_GPS( void * pvParameters ) {
   debug->println(xPortGetCoreID());
   for (;;)
   {
-    read_NMEA(GPS_UPDATE_TIME);
+    if ( GPStime.update() )
+      read_NMEA(0);
     delay(1);
   }
 }
@@ -50,8 +51,10 @@ void Main_prog( void * pvParameters ) {
     {
       show_menu_screen();
     }
-    else if (is_main_screen)
+    else if (!is_menu_screen)
     {
+      if (!is_map_screen)
+        zoom_old = tilex = tiley = 0;
       MainScreen[sel_MainScreen]();
     }
     delay(1);

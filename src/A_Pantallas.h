@@ -26,6 +26,9 @@ void show_main_screen()
     tft.setSwapBytes(false);
     create_compass_sprite();
     is_compass_screen = true;
+    is_map_screen = false;
+    is_menu_screen = false;
+    is_sat_screen = false;
     is_draw = true;
   } 
   show_Compass();
@@ -69,6 +72,9 @@ void show_sat_track_screen()
     tft.drawString("Sat:", 5, 50, 2);
     tft.endWrite();
     is_sat_screen = true;
+    is_menu_screen = false;
+    is_map_screen = false;
+    is_compass_screen = false;
     is_draw = true;
   }
   show_sat_tracking();
@@ -89,6 +95,9 @@ void show_map_screen()
     show_sat_icon(180,0);
     tft.setSwapBytes(false);
     is_map_screen = true;
+    is_menu_screen = false;
+    is_sat_screen = false;
+    is_compass_screen = false;
     is_draw = true;
   } 
   show_notify_bar(10, 10);
@@ -119,6 +128,9 @@ void show_menu_screen()
     tft.setTextColor(TFT_BLACK, TFT_WHITE);
     show_sat_icon(180,282);
     is_menu_screen = true;
+    is_map_screen = false;
+    is_sat_screen = false;
+    is_compass_screen = false;
     is_draw = true;
   }
   show_notify_bar(10, 292);

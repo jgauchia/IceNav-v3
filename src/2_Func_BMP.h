@@ -24,7 +24,7 @@ void drawBmp(const char *filename, int16_t x, int16_t y, bool microsd)
   if (microsd)
     bmpFS = SD.open(filename);
   else
-    SPIFFS.open(filename, "r");
+    bmpFS = SPIFFS.open(filename, "r");
 
 
   if (!bmpFS)

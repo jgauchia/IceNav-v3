@@ -82,13 +82,13 @@ void Check_keys(int read_key)
     is_draw = false;
     sel_MainScreen++;
     if (sel_MainScreen > MAX_MAIN_SCREEN)
-      sel_MainScreen = MAX_MAIN_SCREEN;
+      sel_MainScreen = 1;
   }
   else if (read_key == LEFT && is_main_screen)
   {
     is_draw = false;
     sel_MainScreen--;
     if (sel_MainScreen < 1)
-      sel_MainScreen = 1;
+      sel_MainScreen = MAX_MAIN_SCREEN;
   }
 }
