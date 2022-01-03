@@ -56,6 +56,8 @@
 #include <Battery18650Stats.h>
 #include <WiFi.h>
 #include <MyDelay.h>
+#include <esp_wifi.h>
+#include <esp_bt.h>
 #include "Z_Bitmaps.h"
 #include "0_Vars.h"
 #include "1_Func.h"

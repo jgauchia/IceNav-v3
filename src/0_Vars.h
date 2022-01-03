@@ -74,11 +74,9 @@ Adafruit_HMC5883_Unified mag = Adafruit_HMC5883_Unified(12345);
 #define KEYS_UPDATE_TIME  175
 #define BATT_UPDATE_TIME 1000
 #define COMPASS_UPDATE_TIME 10
-#define GPS_UPDATE_TIME 1000
 MyDelay KEYStime(KEYS_UPDATE_TIME);
 MyDelay BATTtime(BATT_UPDATE_TIME);
 MyDelay COMPASStime(COMPASS_UPDATE_TIME);
-MyDelay GPStime(GPS_UPDATE_TIME);
 
 // **********************************************
 //  Declaración de variables
@@ -177,5 +175,6 @@ void show_map_screen();
 // **********************************************
 #define MAX_MAIN_SCREEN 3
 typedef void ( *MainScreenFunc) ();
-MainScreenFunc MainScreen[] = { 0, show_main_screen, show_sat_track_screen, show_map_screen };
+MainScreenFunc MainScreen[] = { 0, show_main_screen, show_map_screen, show_sat_track_screen };
 int sel_MainScreen = 1;
+

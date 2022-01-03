@@ -12,9 +12,9 @@
 // **********************************************
 void init_tasks()
 {
-  xTaskCreatePinnedToCore(Read_GPS, "Read GPS"    , 16384, NULL, 1, &Task1, 0);
+  xTaskCreatePinnedToCore(Read_GPS, "Read GPS"    , 16384, NULL, 2, NULL, 0);
   delay(500);
-  xTaskCreatePinnedToCore(Main_prog,"Main Program", 16384, NULL, 1, &Task2, 1);
+  xTaskCreatePinnedToCore(Main_prog,"Main Program", 16384, NULL, 1, NULL, 1);
   delay(500);
 }
 
@@ -26,9 +26,13 @@ void Read_GPS( void * pvParameters ) {
   debug->println(xPortGetCoreID());
   for (;;)
   {
-    if ( GPStime.update() )
-      read_NMEA(0);
-    delay(1);
+    if ( gps->available() > 1 )
+    {
+     GPS.encode(gps->read());
+     if (GPS.location.isValid())
+      is_gps_fixed = true;
+    }
+    vTaskDelay(10 / portTICK_PERIOD_MS);
   }
 }
 
@@ -57,6 +61,6 @@ void Main_prog( void * pvParameters ) {
         zoom_old = tilex = tiley = 0;
       MainScreen[sel_MainScreen]();
     }
-    delay(1);
+    vTaskDelay(10 / portTICK_PERIOD_MS);
   }
 }

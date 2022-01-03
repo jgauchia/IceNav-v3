@@ -22,7 +22,7 @@ void init_serial()
 // **********************************************
 void init_gps()
 {
-  gps->begin(9600);
+  gps->begin(9600, SERIAL_8N1);
 
   // Inicializar parse custom para tracking satelites
   for (int i = 0; i < 4; ++i)
@@ -77,8 +77,11 @@ void init_sd()
 // **********************************************
 void init_icenav()
 {
-  WiFi.mode(WIFI_MODE_NULL);
+  WiFi.disconnect(true);
+  WiFi.mode(WIFI_OFF);
   btStop();
+  esp_wifi_stop();
+  esp_bt_controller_disable();
   is_menu_screen = false;
   is_main_screen = true;
   keyboard.begin();
@@ -86,7 +89,6 @@ void init_icenav()
   KEYStime.start();
   BATTtime.start();
   COMPASStime.start();
-  GPStime.start();
   batt_level = Read_Battery();
   millis_actual = millis();
   tft.writecommand(0x28);

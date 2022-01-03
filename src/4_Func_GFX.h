@@ -62,7 +62,6 @@ void show_notify_bar(int x, int y)
 // *********************************************
 void show_sat_tracking()
 {
-
   Latitude_formatString(5, 5, 2, GPS.location.lat());
   Longitude_formatString(5, 20, 2, GPS.location.lng());
   tft.drawNumber(GPS.satellites.value(), 35, 50 );
@@ -161,17 +160,14 @@ void show_map(int posx, int posy, double lon, double lat)
     x = lon2tilex(lon, zoom);
     y = lat2tiley(lat, zoom);
     tft.fillCircle(lon2posx(lon, zoom)+posx, lat2posy(lat, zoom)+posy, 2, TFT_RED);
-    if ( zoom != zoom_old)
+    if ( zoom != zoom_old || ( x != tilex || y != tiley ) )
     {
-      if ( x != tilex || y != tiley )
-      {
-       tilex = x;
-       tiley = y;
-       sprintf(s_fichmap, "/MAP/%d/%d/%d.png", zoom, tilex, tiley);
-       setPngPosition(posx, posy);
-       load_file(SD, s_fichmap);
-       debug->println(s_fichmap);
-      }
+      tilex = x;
+      tiley = y;
+      sprintf(s_fichmap, "/MAP/%d/%d/%d.png", zoom, tilex, tiley);
+      setPngPosition(posx, posy);
+      load_file(SD, s_fichmap);
+      debug->println(s_fichmap);
       zoom_old = zoom;
     }
   }
