@@ -24,6 +24,8 @@ int Read_Mag_data()
       heading -= 2 * PI; 
     return (int)(heading * 180 / M_PI);
   }
+  else
+  return 0;
 }
 
 // **********************************************
