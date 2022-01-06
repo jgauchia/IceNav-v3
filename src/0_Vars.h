@@ -27,7 +27,7 @@ TinyGPSCustom snr[4];
 // **********************************************
 //  Definición pines microSD
 // **********************************************
-#define SD_CS   5
+#define SD_CS   4
 #define SD_MISO 27
 #define SD_MOSI 13
 #define SD_CLK  14
@@ -104,7 +104,7 @@ TaskHandle_t Task2;
 //uint16_t* snr_bkg = (uint16_t*) malloc( ((SNR_BAR_W) + 2) * ((SNR_BAR_H) + 2) * 2 );
 uint16_t snr_bkg[4428] = {0};
 
-enum Keys { NONE, UP, DOWN, LEFT, RIGHT, PUSH, BLEFT, BRIGHT };
+enum Keys { NONE, UP, DOWN, LEFT, RIGHT, PUSH, LUP, LBUT, LDOWN, BLEFT, BRIGHT };
 int key_pressed = NONE;
 
 bool is_menu_screen = false;

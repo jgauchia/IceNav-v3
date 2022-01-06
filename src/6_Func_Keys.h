@@ -13,28 +13,32 @@
 int Read_Keys()
 {
   keyboard.read8();
+  //debug->println(keyboard.value());
   switch (keyboard.value())
   {
+    case 223:
+      return LUP;
+      break;
+    case 191:
+      return LBUT;
+      break;
+    case 127:
+      return LDOWN;
+      break;
+    case 239:
+      return UP;
+      break;
     case 254:
+      return DOWN;
+      break;
+    case 251:
       return LEFT;
       break;
     case 253:
-      return PUSH;
-      break;
-    case 251:
-      return UP;
-      break;
-    case 247:
       return RIGHT;
       break;
-    case 239:
-      return DOWN;
-      break;
-    case 191:
-      return BLEFT;
-      break;
-    case 223:
-      return BRIGHT;
+    case 247:
+      return PUSH;
       break;
     default:
       return NONE;
@@ -51,26 +55,26 @@ int Read_Keys()
 // *********************************************
 void Check_keys(int read_key)
 {
-  if (read_key == BLEFT && !is_menu_screen)
+  if (read_key == PUSH && !is_menu_screen)
   {
     is_draw = false;
     is_menu_screen = true;
     is_main_screen = false;
   }
-  else if (read_key == BLEFT && is_menu_screen)
+  else if (read_key == PUSH && is_menu_screen)
   {
     is_draw = false;
     is_menu_screen = false;
     is_main_screen = true;
   }
 
-  if (read_key == UP && is_map_screen)
+  if (read_key == LUP && is_map_screen)
   {
     zoom++;
     if (zoom > MAX_ZOOM)
        zoom = MAX_ZOOM;
   }
-  else if (read_key == DOWN && is_map_screen)
+  else if (read_key == LDOWN && is_map_screen)
   {
     zoom--;
     if (zoom < MIN_ZOOM)
