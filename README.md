@@ -1,5 +1,5 @@
 # IceNav-v3
-ES32 GPS Navigator 
+ESP32 GPS Navigator 
 Programa receptor y navegador GPS con ESP32 + GPS + ILI9341 + HCM5883L
 
 
