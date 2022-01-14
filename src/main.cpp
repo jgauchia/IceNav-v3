@@ -1,5 +1,5 @@
 /*
-       @file       IceNav3.ino
+       @file       main.cpp
        @brief      Programa receptor y navegador GPS con ESP32 + GPS + ILI9341 + HCM5883L
 
        @author     Jordi Gauchia
