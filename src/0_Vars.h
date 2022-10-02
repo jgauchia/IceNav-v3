@@ -10,8 +10,8 @@
 // **********************************************
 //  Definición pines GPS y GPS
 // **********************************************
-#define GPS_TX  16
-#define GPS_RX  17
+#define GPS_TX  12
+#define GPS_RX  13
 HardwareSerial *gps = &Serial2;
 #define MAX_SATELLITES   60
 

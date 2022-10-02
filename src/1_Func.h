@@ -53,7 +53,7 @@ void gps_out_monitor()
 void init_ili9341()
 {
   tft.init();
-  tft.setRotation(2);
+  tft.setRotation(0);
   tft.fillScreen(TFT_BLACK);
   tft.initDMA();
 }
