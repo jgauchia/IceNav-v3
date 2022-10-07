@@ -63,7 +63,6 @@ void init_ili9341()
 // **********************************************
 void init_sd()
 {
-  SPI.end();
   spiSD.begin(SD_CLK, SD_MISO, SD_MOSI, SD_CS);
   if (!SD.begin(SD_CS, spiSD, 100000000))
   {

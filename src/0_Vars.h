@@ -56,7 +56,7 @@ TFT_eSprite compass_sprite = TFT_eSprite(&tft);
 // **********************************************
 //  Declaración para la microSD
 // **********************************************
-SPIClass spiSD(HSPI);
+SPIClass spiSD = SPIClass(HSPI);
 
 // **********************************************
 //  Declaración para el teclado
