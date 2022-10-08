@@ -10,10 +10,12 @@
 // **********************************************
 //  Definición pines GPS y GPS
 // **********************************************
-#define GPS_TX  12
-#define GPS_RX  13
+#define GPS_TX  25
+#define GPS_RX  26
 HardwareSerial *gps = &Serial2;
 #define MAX_SATELLITES   60
+
+#define GPSSPD 38400
 
 TinyGPSPlus GPS;
 TinyGPSCustom totalGPGSVMessages(GPS, "GPGSV", 1); // $GPGSV sentence, first element
@@ -27,10 +29,10 @@ TinyGPSCustom snr[4];
 // **********************************************
 //  Definición pines microSD
 // **********************************************
-#define SD_CS   4
+#define SD_CS   2
 #define SD_MISO 27
-#define SD_MOSI 13
-#define SD_CLK  14
+#define SD_MOSI 15
+#define SD_CLK  13
 
 // **********************************************
 //  Declaración para lectura batería
@@ -40,6 +42,8 @@ TinyGPSCustom snr[4];
 #define READS 50
 Battery18650Stats batt(ADC_BATT_PIN,CONVERSION_FACTOR,READS);
 int batt_level = 0;
+
+#define HW_EN   33
 
 // **********************************************
 //  Declaración para el puerto serie de Debug

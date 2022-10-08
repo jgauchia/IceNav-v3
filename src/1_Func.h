@@ -22,7 +22,7 @@ void init_serial()
 // **********************************************
 void init_gps()
 {
-  gps->begin(9600, SERIAL_8N1);
+  gps->begin(GPSSPD, SERIAL_8N1);
 
   // Inicializar parse custom para tracking satelites
   for (int i = 0; i < 4; ++i)
@@ -63,6 +63,10 @@ void init_ili9341()
 // **********************************************
 void init_sd()
 {
+  pinMode(HW_EN, OUTPUT);
+  digitalWrite(HW_EN, HIGH);  // step-up on
+  pinMode(SD_CS, OUTPUT);
+  delay(100);
   SPI.end();
   spiSD.begin(SD_CLK, SD_MISO, SD_MOSI, SD_CS);
   if (!SD.begin(SD_CS, spiSD, 100000000))
