@@ -22,15 +22,15 @@ void init_serial()
 // **********************************************
 void init_gps()
 {
-  gps->begin(9600, SERIAL_8N1);
+  gps->begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
 
   // Inicializar parse custom para tracking satelites
   for (int i = 0; i < 4; ++i)
   {
     satNumber[i].begin(GPS, "GPGSV", 4 + 4 * i); // offsets 4, 8, 12, 16
     elevation[i].begin(GPS, "GPGSV", 5 + 4 * i); // offsets 5, 9, 13, 17
-    azimuth[i].begin(  GPS, "GPGSV", 6 + 4 * i); // offsets 6, 10, 14, 18
-    snr[i].begin(      GPS, "GPGSV", 7 + 4 * i); // offsets 7, 11, 15, 19
+    azimuth[i].begin(GPS, "GPGSV", 6 + 4 * i);   // offsets 6, 10, 14, 18
+    snr[i].begin(GPS, "GPGSV", 7 + 4 * i);       // offsets 7, 11, 15, 19
   }
 }
 
@@ -39,12 +39,12 @@ void init_gps()
 // **********************************************
 void gps_out_monitor()
 {
-  #ifdef OUTPUT_NMEA
+#ifdef OUTPUT_NMEA
   if (gps->available())
   {
     debug->println(GPS.location.lat());
   }
-  #endif
+#endif
 }
 
 // **********************************************
@@ -53,7 +53,14 @@ void gps_out_monitor()
 void init_ili9341()
 {
   tft.init();
+#ifdef ILI9341
   tft.setRotation(2);
+#endif
+
+#ifdef TDISPLAY
+  tft.setRotation(4);
+#endif
+
   tft.fillScreen(TFT_BLACK);
   tft.initDMA();
 }

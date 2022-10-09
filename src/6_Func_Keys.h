@@ -13,7 +13,6 @@
 int Read_Keys()
 {
   keyboard.read8();
-  //debug->println(keyboard.value());
   switch (keyboard.value())
   {
     case 223:
