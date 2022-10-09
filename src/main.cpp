@@ -9,19 +9,12 @@
        Pinout & Info view README.md:
 */
 
-#define DEBUG 
-//#define OUTPUT_NMEA 
-//#define SEARCH_SAT_ON_INIT 
-#define USE_LINE_BUFFER 
-//#define TDISPLAY
-#define ILI9341
-
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 #include <SPI.h>
 #include <TinyGPS++.h>
-#include <FS.h>
-#include <SD.h>
+//#include <FS.h>
+//#include <SD.h>
 #include <TimeLib.h>
 #include <PCF8574.h>
 #include <Wire.h>
@@ -32,7 +25,16 @@
 #include <MyDelay.h>
 #include <esp_wifi.h>
 #include <esp_bt.h>
+
+
 #include "Z_Bitmaps.h"
+
+// new
+#include "config.h"
+#include "hal.h"
+#include "serial.h"
+#include "sdcard.h"
+
 #include "0_Vars.h"
 #include "1_Func.h"
 #include "2_Func_BMP.h"

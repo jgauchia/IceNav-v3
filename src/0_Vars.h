@@ -1,24 +1,14 @@
-/*
-       @file       0_Vars.h
-       @brief      Declaración de variables y elementos usados en el programa
-
-       @author     Jordi Gauchia
-
-       @date       08/12/2021
-*/
+/**
+ * @file 0_Vars.h
+ * @author Jordi Gauchía
+ * @brief  Variables and functions declaration
+ * @version 0.1
+ * @date 2022-10-09
+ */
 
 // **********************************************
-//  Definición pines GPS y GPS
+//  Definición GPS
 // **********************************************
-#ifdef ILI9341
-  #define GPS_TX 16
-  #define GPS_RX 17
-#endif
-
-#ifdef TDISPLAY
-  #define GPS_TX 25
-  #define GPS_RX 26
-#endif
 
 HardwareSerial *gps = &Serial2;
 #define MAX_SATELLITES 60
@@ -33,35 +23,12 @@ TinyGPSCustom azimuth[4];
 TinyGPSCustom snr[4];
 
 // **********************************************
-//  Definición pines microSD
-// **********************************************
-#ifdef ILI9341
-  #define SD_CS 4
-  #define SD_MISO 27
-  #define SD_MOSI 13
-  #define SD_CLK 14
-#endif
-
-#ifdef TDISPLAY
-  #define SD_CS 2
-  #define SD_MISO 27
-  #define SD_MOSI 15
-  #define SD_CLK 13
-#endif
-
-// **********************************************
 //  Declaración para lectura batería
 // **********************************************
-#define ADC_BATT_PIN 34
 #define CONVERSION_FACTOR 1.81
 #define READS 50
 Battery18650Stats batt(ADC_BATT_PIN, CONVERSION_FACTOR, READS);
 int batt_level = 0;
-
-// **********************************************
-//  Declaración para el puerto serie de Debug
-// **********************************************
-HardwareSerial *debug = &Serial;
 
 // **********************************************
 //  Declaración para el TFT ILI9341
@@ -69,11 +36,6 @@ HardwareSerial *debug = &Serial;
 TFT_eSPI tft = TFT_eSPI();
 TFT_eSprite sat_sprite = TFT_eSprite(&tft);
 TFT_eSprite compass_sprite = TFT_eSprite(&tft);
-
-// **********************************************
-//  Declaración para la microSD
-// **********************************************
-SPIClass spiSD = SPIClass(HSPI);
 
 // **********************************************
 //  Declaración para el teclado

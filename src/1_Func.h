@@ -8,16 +8,6 @@
 */
 
 // **********************************************
-//  Función para inicializar puertos Serie Debug
-// **********************************************
-void init_serial()
-{
-#ifdef DEBUG
-  debug->begin(115200);
-#endif
-}
-
-// **********************************************
 //  Función para inicializar GPS
 // **********************************************
 void init_gps()
@@ -53,7 +43,7 @@ void gps_out_monitor()
 void init_ili9341()
 {
   tft.init();
-#ifdef ILI9341
+#ifdef CUSTOMBOARD
   tft.setRotation(2);
 #endif
 
@@ -63,19 +53,6 @@ void init_ili9341()
 
   tft.fillScreen(TFT_BLACK);
   tft.initDMA();
-}
-
-// **********************************************
-//  Función para inicializar la microSD
-// **********************************************
-void init_sd()
-{
-  spiSD.begin(SD_CLK, SD_MISO, SD_MOSI, SD_CS);
-  if (!SD.begin(SD_CS, spiSD, 100000000))
-  {
-    debug->println("Card Mount Failed");
-    return;
-  }
 }
 
 // **********************************************

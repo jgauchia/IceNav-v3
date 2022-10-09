@@ -46,6 +46,6 @@ Programa receptor y navegador GPS con ESP32 + GPS + ILI9341 + HCM5883L
        pngle.c
        pngle.h
 
-For Using TTGO T-Display uncomment 
+For Using TTGO T-Display uncomment (config.h)
    #define TDISPLAY
    
