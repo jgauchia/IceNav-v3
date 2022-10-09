@@ -46,6 +46,7 @@ void Main_prog( void * pvParameters ) {
   {
     
     key_pressed = Read_Keys();
+    debug->println(key_pressed);
     if ( KEYStime.update() )
       Check_keys(key_pressed);
     if ( BATTtime.update() ) 

@@ -61,7 +61,7 @@ SPIClass spiSD = SPIClass(HSPI);
 // **********************************************
 //  Declaración para el teclado
 // **********************************************
-PCF8574 keyboard(0x38);
+PCF8574 keyboard(0x20);
 
 // **********************************************
 //  Declaración para la brújula
