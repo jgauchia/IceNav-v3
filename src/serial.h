@@ -14,7 +14,5 @@ HardwareSerial *debug = &Serial;
  */
 void init_serial()
 {
-#ifdef DEBUG
     debug->begin(BAUDRATE);
-#endif
 }

@@ -24,15 +24,15 @@ void show_battery(int x, int y)
 {
     tft.setSwapBytes(true);
     if (batt_level > 80 && batt_level <= 100 )
-      tft.pushImage(x, y , Icon_Notify_Width, Icon_Notify_Height, battery_full_icon);
+      tft.pushImage(x, y , Icon_Notify_Width, Icon_Notify_Height, batt_100_icon);
     else if (batt_level <= 80 && batt_level > 60 )
-      tft.pushImage(x, y , Icon_Notify_Width, Icon_Notify_Height, battery_3_icon);
+      tft.pushImage(x, y , Icon_Notify_Width, Icon_Notify_Height, batt_75_icon);
     else if (batt_level <= 60 && batt_level > 40 )
-      tft.pushImage(x, y , Icon_Notify_Width, Icon_Notify_Height, battery_half_icon);
+      tft.pushImage(x, y , Icon_Notify_Width, Icon_Notify_Height, batt_50_icon);
     else if (batt_level <= 40 && batt_level > 20 )
-      tft.pushImage(x, y , Icon_Notify_Width, Icon_Notify_Height, battery_2_icon);
+      tft.pushImage(x, y , Icon_Notify_Width, Icon_Notify_Height, batt_25_icon);
     else if (batt_level <= 20 )
-      tft.pushImage(x, y , Icon_Notify_Width, Icon_Notify_Height, battery_1_icon);
+      tft.pushImage(x, y , Icon_Notify_Width, Icon_Notify_Height, batt_0_icon);
     tft.setSwapBytes(false);
     sprintf(s_buf, "%3d%%", batt_level);
     tft.drawString(s_buf, x, y + 24, 1);

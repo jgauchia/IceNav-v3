@@ -17,23 +17,24 @@
 //#include <SD.h>
 #include <TimeLib.h>
 #include <PCF8574.h>
+
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_HMC5883_U.h>
+
 #include <Battery18650Stats.h>
 #include <WiFi.h>
 #include <MyDelay.h>
 #include <esp_wifi.h>
 #include <esp_bt.h>
 
-
-#include "Z_Bitmaps.h"
-
 // new
 #include "config.h"
+#include "gui/icons.h"
 #include "hal.h"
 #include "serial.h"
 #include "sdcard.h"
+
 
 #include "0_Vars.h"
 #include "1_Func.h"
@@ -49,7 +50,9 @@
 
 void setup()
 {
+#ifdef DEBUG
   init_serial();
+#endif
   init_ili9341();
   init_sd();
   init_gps();

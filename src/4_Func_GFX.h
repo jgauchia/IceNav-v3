@@ -15,7 +15,7 @@
 void show_sat_icon(int x, int y)
 {
   tft.setSwapBytes(true);
-  tft.pushImage(x,y , Icon_Notify_Width, Icon_Notify_Height, Satellite_icon);
+  tft.pushImage(x,y , Icon_Notify_Width, Icon_Notify_Height, sat_icon);
   tft.setSwapBytes(false);
 }
 
