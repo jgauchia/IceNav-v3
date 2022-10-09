@@ -8,36 +8,6 @@
 */
 
 // **********************************************
-//  Función para inicializar GPS
-// **********************************************
-void init_gps()
-{
-  gps->begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
-
-  // Inicializar parse custom para tracking satelites
-  for (int i = 0; i < 4; ++i)
-  {
-    satNumber[i].begin(GPS, "GPGSV", 4 + 4 * i); // offsets 4, 8, 12, 16
-    elevation[i].begin(GPS, "GPGSV", 5 + 4 * i); // offsets 5, 9, 13, 17
-    azimuth[i].begin(GPS, "GPGSV", 6 + 4 * i);   // offsets 6, 10, 14, 18
-    snr[i].begin(GPS, "GPGSV", 7 + 4 * i);       // offsets 7, 11, 15, 19
-  }
-}
-
-// **********************************************
-//  Función para salida monitor GPS
-// **********************************************
-void gps_out_monitor()
-{
-#ifdef OUTPUT_NMEA
-  if (gps->available())
-  {
-    debug->println(GPS.location.lat());
-  }
-#endif
-}
-
-// **********************************************
 //  Función para inicializar el LCD
 // **********************************************
 void init_tft()

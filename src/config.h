@@ -19,6 +19,12 @@
 #define BAUDRATE 115200
 
 /**
+ * @brief GPS baudrate
+ * 
+ */
+#define GPS_BAUDRATE 9600
+
+/**
  * @brief Enable serial port NMEA sentences output 
  * 
  */

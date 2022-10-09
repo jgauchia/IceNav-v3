@@ -32,6 +32,13 @@ void Read_GPS(void *pvParameters)
       GPS.encode(gps->read());
       if (GPS.location.isValid())
         is_gps_fixed = true;
+
+#ifdef OUTPUT_NMEA
+      if (gps->available())
+      {
+        debug->println(GPS.location.lat());
+      }
+#endif
     }
     delay(1);
   }

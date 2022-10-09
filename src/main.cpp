@@ -12,8 +12,7 @@
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 #include <SPI.h>
-#include <TinyGPS++.h>
-#include <TimeLib.h>
+//
 
 #include <WiFi.h>
 #include <MyDelay.h>
@@ -32,6 +31,7 @@
 #include "hardware/compass.h"
 #include "hardware/battery.h"
 #include "hardware/keys.h"
+#include "hardware/gps.h"
 
 
 

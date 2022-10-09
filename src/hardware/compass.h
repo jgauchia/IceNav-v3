@@ -26,7 +26,7 @@ MyDelay COMPASStime(COMPASS_UPDATE_TIME);
 /**
  * @brief Read compass data
  * 
- * @return int 
+ * @return int -> compass heading
  */
 int Read_Mag_data()
 {

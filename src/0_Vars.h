@@ -1,28 +1,3 @@
-/**
- * @file 0_Vars.h
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief  Variables and functions declaration
- * @version 0.1
- * @date 2022-10-09
- */
-
-// **********************************************
-//  Definición GPS
-// **********************************************
-
-HardwareSerial *gps = &Serial2;
-#define MAX_SATELLITES 60
-
-TinyGPSPlus GPS;
-TinyGPSCustom totalGPGSVMessages(GPS, "GPGSV", 1); // $GPGSV sentence, first element
-TinyGPSCustom messageNumber(GPS, "GPGSV", 2);      // $GPGSV sentence, second element
-TinyGPSCustom satsInView(GPS, "GPGSV", 3);         // $GPGSV sentence, third element
-TinyGPSCustom satNumber[4];                        // to be initialized later
-TinyGPSCustom elevation[4];
-TinyGPSCustom azimuth[4];
-TinyGPSCustom snr[4];
-
-
 // **********************************************
 //  Declaración para el TFT ILI9341
 // **********************************************
@@ -37,17 +12,7 @@ TFT_eSprite compass_sprite = TFT_eSprite(&tft);
 unsigned long millis_actual = 0; // Para almacenar tiempo para delay con millis()
 bool is_gps_fixed = false;       // indica si la señal GPS está fijada
 bool is_draw = false;            // Controlar el "pintado" en pantalla.
-#define TIME_OFFSET 1            // Zona horaria
 
-struct // Estructura para mostrar el tracking de satélites
-{
-  bool active;
-  int elevation;
-  int azimuth;
-  int snr;
-  int pos_x;
-  int pos_y;
-} sat_tracker[MAX_SATELLITES];
 
 TaskHandle_t Task1; // Tareas para los cores del ESP32
 TaskHandle_t Task2;

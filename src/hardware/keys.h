@@ -5,6 +5,7 @@
  * @version 0.1
  * @date 2022-10-09
  */
+
 #ifdef ENABLE_PCF8574
 
 #include <PCF8574.h>
@@ -36,7 +37,7 @@ MyDelay KEYStime(KEYS_UPDATE_TIME);
 /**
  * @brief Read keys
  * 
- * @return int 
+ * @return int -> enum structure keys index
  */
 int Read_Keys()
 {
@@ -76,7 +77,7 @@ int Read_Keys()
 /**
  * @brief Keys actions
  * 
- * @param read_key 
+ * @param read_key -> enum strucrure keys indesx
  * @return * void 
  */
 void Check_keys(int read_key)

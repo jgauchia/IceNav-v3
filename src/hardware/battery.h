@@ -22,7 +22,7 @@ MyDelay BATTtime(BATT_UPDATE_TIME);
 /**
  * @brief Read battery level
  * 
- * @return int 
+ * @return int ->battery level
  */
 int Read_Battery()
 {
