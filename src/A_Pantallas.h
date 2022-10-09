@@ -21,21 +21,27 @@ void show_main_screen()
     drawBmp("/GFX/POSICION.BMP", 5, 44, true);
     tft.writecommand(0x29);
     tft.setSwapBytes(true);
-    show_sat_icon(180,0);
-    tft.pushImage(95,135 , 50, 58, compass_arrow);
+    show_sat_icon(180, 0);
+#ifdef ENABLE_COMPASS
+    tft.pushImage(95, 135, 50, 58, compass_arrow);
+#endif
     tft.setSwapBytes(false);
+#ifdef ENABLE_COMPASS
     create_compass_sprite();
+#endif
     is_compass_screen = true;
     is_map_screen = false;
     is_menu_screen = false;
     is_sat_screen = false;
     is_draw = true;
-  } 
+  }
+#ifdef ENABLE_COMPASS
   show_Compass();
+#endif
   tft.startWrite();
   Latitude_formatString(50, 45, 2, GPS.location.lat());
   Longitude_formatString(50, 60, 2, GPS.location.lng());
-  tft.endWrite(); 
+  tft.endWrite();
   show_notify_bar(10, 10);
 }
 
@@ -89,23 +95,23 @@ void show_map_screen()
   {
     tft.fillScreen(TFT_WHITE);
     tft.drawLine(0, 40, 240, 40, TFT_BLACK);
-    tft.setTextColor(TFT_BLACK, TFT_WHITE);  
+    tft.setTextColor(TFT_BLACK, TFT_WHITE);
     tft.drawString("ZOOM:", 5, 45, 2);
     tft.setSwapBytes(true);
-    show_sat_icon(180,0);
+    show_sat_icon(180, 0);
     tft.setSwapBytes(false);
     is_map_screen = true;
     is_menu_screen = false;
     is_sat_screen = false;
     is_compass_screen = false;
     is_draw = true;
-  } 
+  }
   show_notify_bar(10, 10);
   if (is_gps_fixed)
   {
-    show_map(0,64,GPS.location.lng(),GPS.location.lat());
+    show_map(0, 64, GPS.location.lng(), GPS.location.lat());
     sprintf(s_buf, "%2d", zoom);
-    tft.drawString(s_buf,45,45,2);
+    tft.drawString(s_buf, 45, 45, 2);
   }
 }
 
@@ -126,7 +132,7 @@ void show_menu_screen()
     drawBmp("/GFX/BOT_CFG.BMP", 20, 240, true);
     tft.writecommand(0x29);
     tft.setTextColor(TFT_BLACK, TFT_WHITE);
-    show_sat_icon(180,282);
+    show_sat_icon(180, 282);
     is_menu_screen = true;
     is_map_screen = false;
     is_sat_screen = false;

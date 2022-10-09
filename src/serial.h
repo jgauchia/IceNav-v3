@@ -1,6 +1,6 @@
 /**
  * @file serial.h
- * @author Jordi Gauchía
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief Serial output functions (debug)
  * @version 0.1
  * @date 2022-10-09

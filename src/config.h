@@ -1,6 +1,6 @@
 /**
  * @file config.h
- * @author Jordi Gauchía
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Device configuration and debug
  * @version 0.1
  * @date 2022-10-09
@@ -10,7 +10,7 @@
  * @brief Enable serial port debug output
  *  
  */
-//#define DEBUG 
+#define DEBUG 
 
 /**
  * @brief serial port baudrate
@@ -45,3 +45,15 @@
  */
 //#define TDISPLAY
 #define CUSTOMBOARD
+
+/**
+ * @brief Enable compass
+ * 
+ */
+#define ENABLE_COMPASS
+
+/**
+ * @brief Disable WiFi and Bluetooth
+ * 
+ */
+#define DISABLE_RADIO

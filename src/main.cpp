@@ -18,9 +18,7 @@
 #include <TimeLib.h>
 #include <PCF8574.h>
 
-#include <Wire.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_HMC5883_U.h>
+
 
 #include <Battery18650Stats.h>
 #include <WiFi.h>
@@ -28,12 +26,15 @@
 #include <esp_wifi.h>
 #include <esp_bt.h>
 
+#include <Wire.h>
+
 // new
 #include "config.h"
 #include "gui/icons.h"
 #include "hal.h"
 #include "serial.h"
 #include "sdcard.h"
+#include "compass.h"
 
 
 #include "0_Vars.h"

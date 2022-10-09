@@ -1,6 +1,6 @@
 /**
  * @file icons.h
- * @author Jordi Gauchía
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Bitmaps and icons
  * @version 0.1
  * @date 2022-10-09

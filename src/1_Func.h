@@ -60,24 +60,29 @@ void init_ili9341()
 // **********************************************
 void init_icenav()
 {
+#ifdef DISABLE_RADIO
   WiFi.disconnect(true);
   WiFi.mode(WIFI_OFF);
   btStop();
   esp_wifi_stop();
   esp_bt_controller_disable();
+#endif
   is_menu_screen = false;
   is_main_screen = true;
   keyboard.begin();
-  mag.begin();
+#ifdef ENABLE_COMPASS
+  compass.begin();
+  COMPASStime.start();
+#endif
   KEYStime.start();
   BATTtime.start();
-  COMPASStime.start();
   batt_level = Read_Battery();
   millis_actual = millis();
   tft.writecommand(0x28);
   drawBmp("/INIT.BMP", 0, 0, true);
   tft.writecommand(0x29);
-  while (millis() < millis_actual + 4000);
+  while (millis() < millis_actual + 4000)
+    ;
   tft.fillScreen(TFT_BLACK);
 #ifdef SEARCH_SAT_ON_INIT
   search_init_sat();

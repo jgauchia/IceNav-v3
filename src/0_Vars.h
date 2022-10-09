@@ -1,6 +1,6 @@
 /**
  * @file 0_Vars.h
- * @author Jordi Gauchía
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Variables and functions declaration
  * @version 0.1
  * @date 2022-10-09
@@ -43,19 +43,13 @@ TFT_eSprite compass_sprite = TFT_eSprite(&tft);
 PCF8574 keyboard(0x20);
 
 // **********************************************
-//  Declaración para la brújula
-// **********************************************
-Adafruit_HMC5883_Unified mag = Adafruit_HMC5883_Unified(12345);
-
-// **********************************************
 //  Declaración para Delay con Millis
 // **********************************************
 #define KEYS_UPDATE_TIME 175
 #define BATT_UPDATE_TIME 1000
-#define COMPASS_UPDATE_TIME 10
 MyDelay KEYStime(KEYS_UPDATE_TIME);
 MyDelay BATTtime(BATT_UPDATE_TIME);
-MyDelay COMPASStime(COMPASS_UPDATE_TIME);
+
 
 // **********************************************
 //  Declaración de variables
@@ -108,7 +102,6 @@ bool is_show_degree = true;
 char s_buf[64]; // Buffer para sprintf
 
 int rumbo = 0; // Variables para la brújula
-float declinationAngle = 0.2200;
 
 #define Icon_Notify_Width 24
 #define Icon_Notify_Height 24

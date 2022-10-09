@@ -7,27 +7,6 @@
        @date       08/12/2021
 */
 
-// *********************************************
-//  Función que lee la brújula
-// *********************************************
-int Read_Mag_data()
-{
-  if (COMPASStime.update())
-  {
-    sensors_event_t event;
-    mag.getEvent(&event);
-    float heading = atan2(event.magnetic.y, event.magnetic.x);
-    heading += declinationAngle;
-    if (heading < 0)
-      heading += 2 * PI;
-    if (heading > 2 * PI)
-      heading -= 2 * PI; 
-    return (int)(heading * 180 / M_PI);
-  }
-  else
-  return 0;
-}
-
 // **********************************************
 //  Función principal que muestra la brujula
 // **********************************************
