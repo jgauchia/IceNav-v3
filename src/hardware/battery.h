@@ -13,7 +13,7 @@
 Battery18650Stats batt(ADC_BATT_PIN, CONVERSION_FACTOR, READS);
 
 /**
- * @brief Battery refresh delay
+ * @brief Battery read delay
  *
  */
 #define BATT_UPDATE_TIME 1000

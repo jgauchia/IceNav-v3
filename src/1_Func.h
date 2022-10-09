@@ -1,12 +1,3 @@
-/*
-       @file       1_Func.h
-       @brief      Funciones necesarias para el programa
-
-       @author     Jordi Gauchia
-
-       @date       08/12/2021
-*/
-
 // **********************************************
 //  Función para inicializar el LCD
 // **********************************************
@@ -58,6 +49,6 @@ void init_icenav()
     ;
   tft.fillScreen(TFT_BLACK);
 #ifdef SEARCH_SAT_ON_INIT
-  search_init_sat();
+  search_sat_scr();
 #endif
 }

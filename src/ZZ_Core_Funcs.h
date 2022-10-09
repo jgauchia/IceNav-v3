@@ -1,12 +1,3 @@
-/*
-       @file       ZZ_Core_Funcs.h
-       @brief      Funciones necesarias el tratamiento de tareas y cores del ESP32
-
-       @author     Jordi Gauchia
-
-       @date       08/12/2021
-*/
-
 // **********************************************
 //  Función para inicializar tareas del ESP32
 // **********************************************

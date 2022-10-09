@@ -57,3 +57,22 @@ void init_gps()
   }
 }
 
+/**
+ * @brief Read and parse NMEA sentences
+ * 
+ * @param ms -> delay between readings
+ */
+void read_NMEA(unsigned long ms)
+{
+  unsigned long start = millis();
+  do
+  {
+    while (gps->available())
+    {
+      GPS.encode(gps->read());
+      if (GPS.location.isValid())
+        is_gps_fixed = true;
+    }
+  } while (millis() - start < ms);
+}
+

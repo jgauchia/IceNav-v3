@@ -17,7 +17,7 @@ Adafruit_HMC5883_Unified compass = Adafruit_HMC5883_Unified(12345);
 float declinationAngle = 0.2200;
 
 /**
- * @brief Compass refresh delay
+ * @brief Compass read delay
  *
  */
 #define COMPASS_UPDATE_TIME 10

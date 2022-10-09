@@ -2,7 +2,7 @@
 ESP32 GPS Navigator 
 
        Pinout:
-       HCM5883L      ILI9341        MICRO SD       VBAT        GPS
+       HCM5883L      ILI9341        SD CARD        VBAT        GPS
        --------------------------------------------------------------------
        VCC 3,3v      VCC  3,3v      VCC  3,3v      GPIO34      VCC  3,3v
        GND GND       GND  GND       GND  GND                   GND  GND
@@ -16,7 +16,7 @@ ESP32 GPS Navigator
 
 
        Pinout TDISPLAY:
-       HCM5883L      ST7789         MICRO SD       VBAT        GPS
+       HCM5883L      ST7789         SD CARD        VBAT        GPS
        --------------------------------------------------------------------
        VCC 3,3v      LED  GPIO4     VCC  3,3v      GPIO34      VCC  3,3v
        GND GND       SCK  GPIO18    GND  GND                   GND  GND
@@ -26,7 +26,7 @@ ESP32 GPS Navigator
                      CS   GPIO5     MOSI GPIO13
                      
                      
-       Librerías:
+       Libraries:
        ILI9341 :  https://github.com/Bodmer/TFT_eSPI
        GPS:       https://github.com/mikalhart/TinyGPSPlus
        PCF8574:   https://github.com/RobTillaart/PCF8574
@@ -34,16 +34,18 @@ ESP32 GPS Navigator
        MyDelay:   https://github.com/mggates39/MyDelay
 
 
-       Archivos necesarios para leer PNG:
-
+       Files needed for PNG decoding and reading
        include
           |__________ miniz.c
           |__________ miniz.h
           |__________ support_functions.h
-
        pngle.c
        pngle.h
 
       For Using TTGO T-Display uncomment (config.h)
         #define TDISPLAY
+
+
+      TODO:
+         * Language dependent texts
    

@@ -1,30 +1,25 @@
-/*
-       @file       main.cpp
-       @brief      Programa receptor y navegador GPS con ESP32 + GPS + ILI9341 + HCM5883L
-
-       @author     Jordi Gauchia
-
-       @date       08/12/2021
-
-       Pinout & Info view README.md:
-*/
+/**
+ * @file main.cpp
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @brief  ESP32 GPS Naviation main code
+ * @version 0.1
+ * @date 2022-10-09
+ */
 
 #include <Arduino.h>
-#include <TFT_eSPI.h>
-#include <SPI.h>
-//
-
+#include <Wire.h>
 #include <WiFi.h>
 #include <MyDelay.h>
 #include <esp_wifi.h>
 #include <esp_bt.h>
 
-#include <Wire.h>
-
+// Old - TO-DO -> REMOVE THESE INCLUDES
+#include <TFT_eSPI.h>
+#include <SPI.h>
 #include "0_Vars.h"
-// new
+
+// New - TO-DO -> NEW INCLUDES MIGRATED
 #include "config.h"
-#include "gui/icons.h"
 #include "hardware/hal.h"
 #include "hardware/serial.h"
 #include "hardware/sdcard.h"
@@ -32,18 +27,24 @@
 #include "hardware/battery.h"
 #include "hardware/keys.h"
 #include "hardware/gps.h"
+#include "utils/math.h"
+#include "utils/bmp.h"
+#include "gui/icons.h"
 
-
-
+// Old - TO-DO -> REMOVE THESE INCLUDES
 #include "1_Func.h"
-#include "2_Func_BMP.h"
-#include "3_Func_GPS.h"
 #include "4_Func_GFX.h"
 #include "5_Func_Math.h"
-#include "7_Func_Bruj.h"
 #include "A_Pantallas.h"
 #include "ZZ_Core_Funcs.h"
 
+// New - TO-DO -> NEW INCLUDES MIGRATED
+#include "gui/screens/search_sat.h"
+
+/**
+ * @brief Setup
+ * 
+ */
 void setup()
 {
 #ifdef DEBUG
@@ -56,6 +57,10 @@ void setup()
   init_tasks();
 }
 
+/**
+ * @brief Main Loop
+ * 
+ */
 void loop()
 {
 }

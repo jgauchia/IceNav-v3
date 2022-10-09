@@ -28,7 +28,7 @@ enum Keys
 int key_pressed = NONE;
 
 /**
- * @brief Keyboard refresh delay
+ * @brief Keyboard read delay
  *
  */
 #define KEYS_UPDATE_TIME 175

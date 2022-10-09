@@ -1,12 +1,3 @@
-/*
-       @file       A_Pantallas.h
-       @brief      Mostrar diferentes pantallas
-
-       @author     Jordi Gauchia
-
-       @date       08/12/2021
-*/
-
 // **********************************************
 //  Muestra pantalla principal
 // **********************************************

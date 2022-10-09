@@ -74,7 +74,7 @@ void pngle_on_draw(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t 
 void read_NMEA(unsigned long ms);
 int Read_Battery();
 void show_battery(int x, int y);
-void search_init_sat();
+void search_sat_scr();
 int lon2tilex(double f_lon, int zoom);
 int lat2tiley(double f_lat, int zoom);
 void show_sat_icon(int x, int y);
