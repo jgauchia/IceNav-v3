@@ -69,12 +69,15 @@ void init_icenav()
 #endif
   is_menu_screen = false;
   is_main_screen = true;
+#ifdef ENABLE_PCF8574
   keyboard.begin();
+  KEYStime.start();
+#endif
 #ifdef ENABLE_COMPASS
   compass.begin();
   COMPASStime.start();
 #endif
-  KEYStime.start();
+
   BATTtime.start();
   batt_level = Read_Battery();
   millis_actual = millis();

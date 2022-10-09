@@ -57,3 +57,9 @@
  * 
  */
 #define DISABLE_RADIO
+
+/**
+ * @brief Enable PCF8574 key input
+ * 
+ */
+#define ENABLE_PCF8574

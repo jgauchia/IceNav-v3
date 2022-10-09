@@ -1,15 +1,43 @@
-/*
-       @file       6_Func_Keys.h
-       @brief      Funciones para las teclas
+/**
+ * @file keys.h
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @brief  key inputs definition and functions
+ * @version 0.1
+ * @date 2022-10-09
+ */
+#ifdef ENABLE_PCF8574
 
-       @author     Jordi Gauchia
+#include <PCF8574.h>
 
-       @date       08/12/2021
-*/
+PCF8574 keyboard(0x20);
+enum Keys
+{
+    NONE,
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT,
+    PUSH,
+    LUP,
+    LBUT,
+    LDOWN,
+    BLEFT,
+    BRIGHT
+};
+int key_pressed = NONE;
 
-// *********************************************
-//  Función que lee las teclas del PCF8574
-// *********************************************
+/**
+ * @brief Keyboard refresh delay
+ *
+ */
+#define KEYS_UPDATE_TIME 175
+MyDelay KEYStime(KEYS_UPDATE_TIME);
+
+/**
+ * @brief Read keys
+ * 
+ * @return int 
+ */
 int Read_Keys()
 {
   keyboard.read8();
@@ -45,13 +73,12 @@ int Read_Keys()
   }
 }
 
-// *********************************************
-//  Función que comprueba las pulsaciones del
-//  teclado y en función de la opción de menú
-//  realiza acciones
-//
-//  key:     tecla leída
-// *********************************************
+/**
+ * @brief Keys actions
+ * 
+ * @param read_key 
+ * @return * void 
+ */
 void Check_keys(int read_key)
 {
   if (read_key == PUSH && !is_menu_screen)
@@ -95,3 +122,5 @@ void Check_keys(int read_key)
       sel_MainScreen = MAX_MAIN_SCREEN;
   }
 }
+
+#endif

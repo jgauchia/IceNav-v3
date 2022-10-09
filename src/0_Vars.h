@@ -30,19 +30,6 @@ TFT_eSPI tft = TFT_eSPI();
 TFT_eSprite sat_sprite = TFT_eSprite(&tft);
 TFT_eSprite compass_sprite = TFT_eSprite(&tft);
 
-// **********************************************
-//  Declaración para el teclado
-// **********************************************
-PCF8574 keyboard(0x20);
-
-// **********************************************
-//  Declaración para Delay con Millis
-// **********************************************
-#define KEYS_UPDATE_TIME 175
-
-MyDelay KEYStime(KEYS_UPDATE_TIME);
-
-
 
 // **********************************************
 //  Declaración de variables
@@ -70,21 +57,7 @@ TaskHandle_t Task2;
 // uint16_t* snr_bkg = (uint16_t*) malloc( ((SNR_BAR_W) + 2) * ((SNR_BAR_H) + 2) * 2 );
 uint16_t snr_bkg[4428] = {0};
 
-enum Keys
-{
-  NONE,
-  UP,
-  DOWN,
-  LEFT,
-  RIGHT,
-  PUSH,
-  LUP,
-  LBUT,
-  LDOWN,
-  BLEFT,
-  BRIGHT
-};
-int key_pressed = NONE;
+
 
 bool is_menu_screen = false;
 bool is_main_screen = false;
