@@ -40,7 +40,7 @@ void gps_out_monitor()
 // **********************************************
 //  Función para inicializar el LCD
 // **********************************************
-void init_ili9341()
+void init_tft()
 {
   tft.init();
 #ifdef CUSTOMBOARD

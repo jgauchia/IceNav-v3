@@ -22,13 +22,6 @@ TinyGPSCustom elevation[4];
 TinyGPSCustom azimuth[4];
 TinyGPSCustom snr[4];
 
-// **********************************************
-//  Declaración para lectura batería
-// **********************************************
-#define CONVERSION_FACTOR 1.81
-#define READS 50
-Battery18650Stats batt(ADC_BATT_PIN, CONVERSION_FACTOR, READS);
-int batt_level = 0;
 
 // **********************************************
 //  Declaración para el TFT ILI9341
@@ -46,9 +39,9 @@ PCF8574 keyboard(0x20);
 //  Declaración para Delay con Millis
 // **********************************************
 #define KEYS_UPDATE_TIME 175
-#define BATT_UPDATE_TIME 1000
+
 MyDelay KEYStime(KEYS_UPDATE_TIME);
-MyDelay BATTtime(BATT_UPDATE_TIME);
+
 
 
 // **********************************************
@@ -115,6 +108,9 @@ int zoom = 16; // Zoom por defecto del mapa
 int zoom_old = 0;
 #define MIN_ZOOM 6
 #define MAX_ZOOM 18
+
+
+int batt_level = 0;
 
 // **********************************************
 //  Declaración funciones

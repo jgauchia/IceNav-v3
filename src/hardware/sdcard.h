@@ -1,6 +1,6 @@
 /**
  * @file sdcard.h
- * @author Jordi Gauchia
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  SD Card definition and functions
  * @version 0.1
  * @date 2022-10-09
