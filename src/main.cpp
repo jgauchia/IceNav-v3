@@ -39,7 +39,7 @@
 #include "ZZ_Core_Funcs.h"
 
 // New - TO-DO -> NEW INCLUDES MIGRATED
-#include "gui/screens/search_sat.h"
+#include "gui/screens.h"
 
 /**
  * @brief Setup
