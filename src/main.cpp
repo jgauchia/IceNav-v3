@@ -25,6 +25,7 @@ unsigned long millis_actual = 0;
 #include "hardware/gps.h"
 #include "hardware/tft.h"
 #include "hardware/keys_def.h"
+#include "hardware/power.h"
 #include "utils/math.h"
 #include "utils/bmp.h"
 #include "utils/png.h"
@@ -32,13 +33,6 @@ unsigned long millis_actual = 0;
 #include "gui/screens.h"
 #include "hardware/keys.h"
 #include "tasks.h"
-
-
-void powerPeripheralsOn() {
-  Serial.println("-->[POWR] Power on peripherals..");
-  pinMode(HW_EN, OUTPUT);
-  digitalWrite(HW_EN, HIGH);  // step-up on
-}
 
 /**
  * @brief Setup
@@ -49,18 +43,10 @@ void setup()
 #ifdef DEBUG
   init_serial();
 #endif
-  powerPeripheralsOn(); // Enable
+  powerOn();
   init_tft();
   init_sd();
   init_gps();
-
-#ifdef DISABLE_RADIO
-  WiFi.disconnect(true);
-  WiFi.mode(WIFI_OFF);
-  btStop();
-  esp_wifi_stop();
-  esp_bt_controller_disable();
-#endif
 
 #ifdef ENABLE_PCF8574
   keyboard.begin();
