@@ -18,15 +18,13 @@
 // **********************************************
 //  Declaración funciones
 // **********************************************
-void setPngPosition(int16_t x, int16_t y);
-void show_battery(int x, int y);
+//void setPngPosition(int16_t x, int16_t y);
 void show_sat_hour(int x, int y, int font);
 void show_sat_tracking();
 void show_sat_track_screen();
 void show_main_screen();
 void show_sat_track_screen();
 void show_map_screen();
-
 //******************************************************
 
 // New - TO-DO -> NEW INCLUDES MIGRATED
@@ -39,21 +37,18 @@ unsigned long millis_actual = 0;
 #include "hardware/battery.h"
 #include "hardware/gps.h"
 #include "hardware/tft.h"
+#include "hardware/keys_def.h"
 #include "utils/math.h"
 #include "utils/bmp.h"
+#include "utils/png.h"
 #include "gui/icons.h"
 #include "gui/screens.h"
 #include "hardware/keys.h"
 
 // Old - TO-DO -> REMOVE THESE INCLUDES
-void load_file(fs::FS &fs, const char *path);
-#include "pngle.h"
-#include "support_functions.h"
-void pngle_on_draw(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint8_t rgba[4]);
-#include "4_Func_GFX.h"
 #include "A_Pantallas.h"
 
-
+// New - TO-DO -> NEW INCLUDES MIGRATED
 #include "tasks.h"
 
 /**

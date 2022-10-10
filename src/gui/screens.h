@@ -59,3 +59,8 @@ int sel_MainScreen = 1;
 #include "gui/screens/search_sat.h"
 #include "gui/screens/splash.h"
 #include "gui/widgets/sat_icon.h"
+#include "gui/widgets/batt_icon.h"
+#include "gui/widgets/compass.h"
+#include "gui/widgets/map.h"
+#include "gui/widgets/hour.h"
+#include "gui/widgets/notify_bar.h"

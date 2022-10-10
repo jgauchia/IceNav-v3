@@ -12,7 +12,7 @@ void show_main_screen()
     drawBmp("/GFX/POSICION.BMP", 5, 44, true);
     tft.writecommand(0x29);
     tft.setSwapBytes(true);
-    show_sat_icon(180, 0);
+    // show_sat_icon(180, 0);
 #ifdef ENABLE_COMPASS
     tft.pushImage(95, 135, 50, 58, compass_arrow);
 #endif
@@ -34,6 +34,97 @@ void show_main_screen()
   Longitude_formatString(50, 60, 2, GPS.location.lng());
   tft.endWrite();
   show_notify_bar(10, 10);
+}
+
+// *********************************************
+//  Función que dibuja tracking satélites
+// *********************************************
+void show_sat_tracking()
+{
+  char s_buf[64];
+  Latitude_formatString(5, 5, 2, GPS.location.lat());
+  Longitude_formatString(5, 20, 2, GPS.location.lng());
+  tft.drawNumber(GPS.satellites.value(), 35, 50);
+
+  sprintf(s_buf, "%4d m", (int)GPS.altitude.meters());
+  tft.drawString(s_buf, 0, 130, 4);
+  sprintf(s_buf, "%2.1f", (double)GPS.hdop.hdop());
+  tft.drawString(s_buf, 5, 90, 4);
+
+  if (totalGPGSVMessages.isUpdated())
+  {
+    for (int i = 0; i < 4; ++i)
+    {
+      int no = atoi(satNumber[i].value());
+      if (no >= 1 && no <= MAX_SATELLITES)
+      {
+        sat_tracker[no - 1].elevation = atoi(elevation[i].value());
+        sat_tracker[no - 1].azimuth = atoi(azimuth[i].value());
+        sat_tracker[no - 1].snr = atoi(snr[i].value());
+        sat_tracker[no - 1].active = true;
+      }
+    }
+
+    int totalMessages = atoi(totalGPGSVMessages.value());
+    int currentMessage = atoi(messageNumber.value());
+    if (totalMessages == currentMessage)
+    {
+      for (int i = 0; i < MAX_SATELLITES; ++i)
+      {
+        if (sat_tracker[i].pos_x != 0 && sat_tracker[i].pos_y != 0)
+        {
+          sat_sprite.fillCircle(4, 4, 4, TFT_WHITE);
+          sat_sprite.pushSprite(sat_tracker[i].pos_x, sat_tracker[i].pos_y);
+          tft.startWrite();
+          tft.setCursor(sat_tracker[i].pos_x, sat_tracker[i].pos_y + 5, 1);
+          tft.print("  ");
+          tft.endWrite();
+        }
+      }
+      tft.startWrite();
+      tft.drawCircle(165, 80, 60, TFT_BLACK);
+      tft.drawCircle(165, 80, 30, TFT_BLACK);
+      tft.drawCircle(165, 80, 1, TFT_BLACK);
+      tft.drawString("N", 162, 12, 2);
+      tft.drawString("S", 162, 132, 2);
+      tft.drawString("O", 102, 72, 2);
+      tft.drawString("E", 222, 72, 2);
+      tft.endWrite();
+
+      int active_sat = 0;
+      for (int i = 0; i < MAX_SATELLITES; ++i)
+      {
+        if (i < 12)
+          tft.pushRect((i * 20), 159, 25, 80, snr_bkg);
+        else
+          tft.pushRect(((i - 12) * 20), 240, 25, 80, snr_bkg);
+        if (sat_tracker[i].active)
+        {
+          if (active_sat < 12)
+          {
+            tft.setCursor((active_sat * 20) + 8, 229, 1);
+            tft.fillRect((active_sat * 20) + 5, 224 - (sat_tracker[i].snr), 15, (sat_tracker[i].snr), TFT_DARKCYAN);
+          }
+          else
+          {
+            tft.setCursor(((active_sat - 12) * 20) + 8, 310, 1);
+            tft.fillRect(((active_sat - 12) * 20) + 5, 305 - (sat_tracker[i].snr), 15, (sat_tracker[i].snr), TFT_DARKCYAN);
+          }
+          tft.print(i + 1);
+          active_sat++;
+          int H = (60 * cos(DEGtoRAD(sat_tracker[i].elevation)));
+          int sat_pos_x = 165 + (H * sin(DEGtoRAD(sat_tracker[i].azimuth)));
+          int sat_pos_y = 80 - (H * cos(DEGtoRAD(sat_tracker[i].azimuth)));
+          sat_tracker[i].pos_x = sat_pos_x;
+          sat_tracker[i].pos_y = sat_pos_y;
+          sat_sprite.fillCircle(4, 4, 4, TFT_GREEN);
+          sat_sprite.pushSprite(sat_pos_x, sat_pos_y);
+          tft.setCursor(sat_pos_x, sat_pos_y + 5, 1);
+          tft.print(i + 1);
+        }
+      }
+    }
+  }
 }
 
 // **********************************************
@@ -90,7 +181,7 @@ void show_map_screen()
     tft.setTextColor(TFT_BLACK, TFT_WHITE);
     tft.drawString("ZOOM:", 5, 45, 2);
     tft.setSwapBytes(true);
-    show_sat_icon(180, 0);
+   // show_sat_icon(180, 0);
     tft.setSwapBytes(false);
     is_map_screen = true;
     is_menu_screen = false;
@@ -124,7 +215,7 @@ void show_menu_screen()
     drawBmp("/GFX/BOT_CFG.BMP", 20, 240, true);
     tft.writecommand(0x29);
     tft.setTextColor(TFT_BLACK, TFT_WHITE);
-    show_sat_icon(180, 282);
+   // show_sat_icon(180, 282);
     is_menu_screen = true;
     is_map_screen = false;
     is_sat_screen = false;
