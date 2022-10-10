@@ -58,3 +58,4 @@ int sel_MainScreen = 1;
  */
 #include "gui/screens/search_sat.h"
 #include "gui/screens/splash.h"
+#include "gui/widgets/sat_icon.h"

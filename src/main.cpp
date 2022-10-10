@@ -20,7 +20,6 @@
 // **********************************************
 void setPngPosition(int16_t x, int16_t y);
 void show_battery(int x, int y);
-void show_sat_icon(int x, int y);
 void show_sat_hour(int x, int y, int font);
 void show_sat_tracking();
 void show_sat_track_screen();

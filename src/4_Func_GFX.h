@@ -1,14 +1,3 @@
-// *********************************************
-//  Función que dibuja icono de satélite fijado
-//
-//  x,y:      posición en pantalla
-// *********************************************
-void show_sat_icon(int x, int y)
-{
-  tft.setSwapBytes(true);
-  tft.pushImage(x, y, Icon_Notify_Width, Icon_Notify_Height, sat_icon);
-  tft.setSwapBytes(false);
-}
 
 // *********************************************
 //  Función que dibuja hora
@@ -219,15 +208,6 @@ void show_battery(int x, int y)
 // **********************************************
 void show_Compass()
 {
-  char s_buf[64];
-
-#ifdef ENABLE_COMPASS
-  int rumbo = Read_Mag_data();
-  compass_sprite.pushRotated(360 - rumbo, TFT_BLACK);
-  tft.setTextColor(TFT_BLACK, TFT_WHITE);
-  tft.fillRect(55, 207, 130, 40, TFT_WHITE);
-#endif
-
 #ifdef ENABLE_PCF8574
   if (key_pressed == LBUT && is_show_degree)
     is_show_degree = false;
@@ -235,6 +215,12 @@ void show_Compass()
     is_show_degree = true;
 #endif
 
+#ifdef ENABLE_COMPASS
+  char s_buf[64];
+  int rumbo = Read_Mag_data();
+  compass_sprite.pushRotated(360 - rumbo, TFT_BLACK);
+  tft.setTextColor(TFT_BLACK, TFT_WHITE);
+  tft.fillRect(55, 207, 130, 40, TFT_WHITE);
   if (!is_show_degree)
   {
     int altura = (int)GPS.altitude.meters();
@@ -262,4 +248,5 @@ void show_Compass()
     tft.setCursor(165, 207);
     tft.print("`");
   }
+#endif
 }
