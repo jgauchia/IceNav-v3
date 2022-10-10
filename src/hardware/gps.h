@@ -13,6 +13,7 @@
 #define TIME_OFFSET 1 
 HardwareSerial *gps = &Serial2;
 TinyGPSPlus GPS;
+bool is_gps_fixed = false; 
 
 /**
  * @brief Custom NMEA sentences

@@ -82,6 +82,7 @@ void show_sat_track_screen()
 // **********************************************
 void show_map_screen()
 {
+  char s_buf[64];
   if (!is_draw)
   {
     tft.fillScreen(TFT_WHITE);

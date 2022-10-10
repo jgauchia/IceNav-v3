@@ -11,6 +11,7 @@
 #define CONVERSION_FACTOR 1.81
 #define READS 50
 Battery18650Stats batt(ADC_BATT_PIN, CONVERSION_FACTOR, READS);
+int batt_level = 0;
 
 /**
  * @brief Battery read delay

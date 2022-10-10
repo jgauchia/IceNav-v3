@@ -53,6 +53,7 @@ void show_notify_bar(int x, int y)
 // *********************************************
 void show_sat_tracking()
 {
+  char s_buf[64];
   Latitude_formatString(5, 5, 2, GPS.location.lat());
   Longitude_formatString(5, 20, 2, GPS.location.lng());
   tft.drawNumber(GPS.satellites.value(), 35, 50 );
@@ -194,6 +195,7 @@ void create_compass_sprite()
 // *********************************************
 void show_battery(int x, int y)
 {
+    char s_buf[64];
     tft.setSwapBytes(true);
     if (batt_level > 80 && batt_level <= 100 )
       tft.pushImage(x, y , Icon_Notify_Width, Icon_Notify_Height, batt_100_icon);
@@ -216,8 +218,10 @@ void show_battery(int x, int y)
 // **********************************************
 void show_Compass()
 {
+  char s_buf[64];
+  
 #ifdef ENABLE_COMPASS  
-  rumbo = Read_Mag_data();
+  int rumbo = Read_Mag_data();
   compass_sprite.pushRotated(360 - rumbo, TFT_BLACK);
   tft.setTextColor(TFT_BLACK, TFT_WHITE);
   tft.fillRect(55, 207, 130, 40, TFT_WHITE);

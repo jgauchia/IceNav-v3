@@ -105,6 +105,7 @@ void Latitude_formatString(int x, int y, int font,  double lat)
   double absLatitude = lat;
   uint16_t deg;
   uint8_t min;
+  char s_buf[64];
   if (lat < 0)
   {
     N_S = 'S';
@@ -137,6 +138,7 @@ void Longitude_formatString(int x, int y, int font,  double lon)
   double absLongitude = lon;
   uint16_t deg;
   uint8_t min;
+  char s_buf[64];
   if (lon < 0)
   {
     E_W = 'W';
