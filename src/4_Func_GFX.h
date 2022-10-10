@@ -1,12 +1,3 @@
-/*
-       @file       4_Func_GFX.h
-       @brief      Funciones para tratamiento de gráficos
-
-       @author     Jordi Gauchia
-
-       @date       08/12/2021
-*/
-
 // *********************************************
 //  Función que dibuja icono de satélite fijado
 //
@@ -15,7 +6,7 @@
 void show_sat_icon(int x, int y)
 {
   tft.setSwapBytes(true);
-  tft.pushImage(x,y , Icon_Notify_Width, Icon_Notify_Height, Satellite_icon);
+  tft.pushImage(x,y , Icon_Notify_Width, Icon_Notify_Height, sat_icon);
   tft.setSwapBytes(false);
 }
 
@@ -194,4 +185,76 @@ void create_compass_sprite()
   compass_sprite.drawString("W",0,95,4);
   compass_sprite.drawString("E",185,95,4);
   tft.setPivot(118,207);
+}
+
+// *********************************************
+//  Función que muestra icono batería y %
+//
+//  x,y:  Posición del indicador
+// *********************************************
+void show_battery(int x, int y)
+{
+    tft.setSwapBytes(true);
+    if (batt_level > 80 && batt_level <= 100 )
+      tft.pushImage(x, y , Icon_Notify_Width, Icon_Notify_Height, batt_100_icon);
+    else if (batt_level <= 80 && batt_level > 60 )
+      tft.pushImage(x, y , Icon_Notify_Width, Icon_Notify_Height, batt_75_icon);
+    else if (batt_level <= 60 && batt_level > 40 )
+      tft.pushImage(x, y , Icon_Notify_Width, Icon_Notify_Height, batt_50_icon);
+    else if (batt_level <= 40 && batt_level > 20 )
+      tft.pushImage(x, y , Icon_Notify_Width, Icon_Notify_Height, batt_25_icon);
+    else if (batt_level <= 20 )
+      tft.pushImage(x, y , Icon_Notify_Width, Icon_Notify_Height, batt_0_icon);
+    tft.setSwapBytes(false);
+    sprintf(s_buf, "%3d%%", batt_level);
+    tft.drawString(s_buf, x, y + 24, 1);
+}
+
+
+// **********************************************
+//  Función principal que muestra la brujula
+// **********************************************
+void show_Compass()
+{
+#ifdef ENABLE_COMPASS  
+  rumbo = Read_Mag_data();
+  compass_sprite.pushRotated(360 - rumbo, TFT_BLACK);
+  tft.setTextColor(TFT_BLACK, TFT_WHITE);
+  tft.fillRect(55, 207, 130, 40, TFT_WHITE);
+#endif
+
+#ifdef ENABLE_PCF8574
+  if (key_pressed == LBUT && is_show_degree)
+    is_show_degree = false;
+  else if (key_pressed == LBUT && !is_show_degree)
+    is_show_degree = true;
+#endif
+
+  if (!is_show_degree)
+  {
+    int altura = (int)GPS.altitude.meters();
+    if (altura < 10)
+      sprintf(s_buf, "%s%1d", "      ", altura);
+    else if (altura < 100)
+      sprintf(s_buf, "%s%2d", "    ", altura);
+    else if (altura < 1000)
+      sprintf(s_buf, "%s%3d", "  ", altura);
+    else
+      sprintf(s_buf, "%4d", altura);
+    tft.drawString(s_buf, 55, 207, 6);
+    tft.drawString("m", 165, 225, 4);
+  }
+  else
+  {
+    if (rumbo < 10)
+      sprintf(s_buf, "%s%1d", "    ", rumbo);
+    else if (rumbo < 100)
+      sprintf(s_buf, "%s%2d", "  ", rumbo);
+    else
+      sprintf(s_buf, "%3d", rumbo);
+    tft.drawString(s_buf, 75, 207, 6);
+    tft.setTextFont(4);
+    tft.setCursor(165, 207);
+    tft.print("`");
+  }
 }

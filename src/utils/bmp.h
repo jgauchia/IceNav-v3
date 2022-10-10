@@ -1,27 +1,57 @@
-/*
-       @file       2_Func_BMP.h
-       @brief      Funciones necesarias para cargar imagens BMP desde tarjeta SD o SPIFFS
+/**
+ * @file bmp.h
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @brief  BMP manipulation functions
+ * @version 0.1
+ * @date 2022-10-09
+ */
 
-       @author     Jordi Gauchia
+/**
+ * @brief Read 16 Bytes from file
+ * 
+ * @param f -> file
+ * @return uint16_t 
+ */
+uint16_t read16(fs::File &f)
+{
+  uint16_t result;
+  ((uint8_t *)&result)[0] = f.read(); // LSB
+  ((uint8_t *)&result)[1] = f.read(); // MSB
+  return result;
+}
 
-       @date       08/12/2021
-*/
+/**
+ * @brief Read 32 Bytes from file
+ * 
+ * @param f -> file
+ * @return uint32_t 
+ */
+uint32_t read32(fs::File &f)
+{
+  uint32_t result;
+  ((uint8_t *)&result)[0] = f.read(); // LSB
+  ((uint8_t *)&result)[1] = f.read();
+  ((uint8_t *)&result)[2] = f.read();
+  ((uint8_t *)&result)[3] = f.read(); // MSB
+  return result;
+}
 
-// **********************************************
-//  Función para leer BMP y mostrar en pantalla
-//
-//  filename: Archivo BMP
-//  x,y:      posición en pantalla
-//  microsd:  bool, true = SD, false = SPIFFS
-// **********************************************
-void drawBmp(const char *filename, int16_t x, int16_t y, bool microsd)
+/**
+ * @brief BMP file reading and screen drawing
+ * 
+ * @param filename -> filename
+ * @param x -> X screen position
+ * @param y -> Y screen position
+ * @param sdcard -> true = SD, false = SPIFFS
+ */
+void drawBmp(const char *filename, int16_t x, int16_t y, bool sdcard)
 {
   if ((x >= tft.width()) || (y >= tft.height())) return;
 
   File bmpFS;
 
   // Open requested file on SD card
-  if (microsd)
+  if (sdcard)
     bmpFS = SD.open(filename);
   else
     bmpFS = SPIFFS.open(filename, "r");
@@ -82,22 +112,4 @@ void drawBmp(const char *filename, int16_t x, int16_t y, bool microsd)
   bmpFS.close();
 }
 
-// **********************************************
-//  Funciones para leer 16 o 32 Bytes de la SD
-// **********************************************
-uint16_t read16(fs::File &f)
-{
-  uint16_t result;
-  ((uint8_t *)&result)[0] = f.read(); // LSB
-  ((uint8_t *)&result)[1] = f.read(); // MSB
-  return result;
-}
-uint32_t read32(fs::File &f)
-{
-  uint32_t result;
-  ((uint8_t *)&result)[0] = f.read(); // LSB
-  ((uint8_t *)&result)[1] = f.read();
-  ((uint8_t *)&result)[2] = f.read();
-  ((uint8_t *)&result)[3] = f.read(); // MSB
-  return result;
-}
+

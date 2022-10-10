@@ -1,10 +1,8 @@
 # IceNav-v3
 ESP32 GPS Navigator 
-Programa receptor y navegador GPS con ESP32 + GPS + ILI9341 + HCM5883L
-
 
        Pinout:
-       HCM5883L      ILI9341        MICRO SD       VBAT        GPS
+       HCM5883L      ILI9341        SD CARD        VBAT        GPS
        --------------------------------------------------------------------
        VCC 3,3v      VCC  3,3v      VCC  3,3v      GPIO34      VCC  3,3v
        GND GND       GND  GND       GND  GND                   GND  GND
@@ -16,7 +14,19 @@ Programa receptor y navegador GPS con ESP32 + GPS + ILI9341 + HCM5883L
                      RST  GPIO32
                      CS   GPIO2
 
-       Librerías:
+
+       Pinout TDISPLAY:
+       HCM5883L      ST7789         SD CARD        VBAT        GPS
+       --------------------------------------------------------------------
+       VCC 3,3v      LED  GPIO4     VCC  3,3v      GPIO34      VCC  3,3v
+       GND GND       SCK  GPIO18    GND  GND                   GND  GND
+       SDA GPIO21    MOSI GPIO19    CS   GPIO2                 RX   GPIO26
+       SCL GPIO22    DC   GPIO16    MISO GPIO27                TX   GPIO25
+                     RST  GPIO23    SCK  GPIO13
+                     CS   GPIO5     MOSI GPIO15
+                     
+                     
+       Libraries:
        ILI9341 :  https://github.com/Bodmer/TFT_eSPI
        GPS:       https://github.com/mikalhart/TinyGPSPlus
        PCF8574:   https://github.com/RobTillaart/PCF8574
@@ -24,12 +34,18 @@ Programa receptor y navegador GPS con ESP32 + GPS + ILI9341 + HCM5883L
        MyDelay:   https://github.com/mggates39/MyDelay
 
 
-       Archivos necesarios para leer PNG:
-
+       Files needed for PNG decoding and reading
        include
           |__________ miniz.c
           |__________ miniz.h
           |__________ support_functions.h
-
        pngle.c
        pngle.h
+
+      For Using TTGO T-Display uncomment (config.h)
+        #define TDISPLAY
+
+
+      TODO:
+         * Language dependent texts
+   

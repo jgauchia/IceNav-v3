@@ -1,86 +1,96 @@
-/*
-       @file       main.cpp
-       @brief      Programa receptor y navegador GPS con ESP32 + GPS + ILI9341 + HCM5883L
-
-       @author     Jordi Gauchia
-
-       @date       08/12/2021
-
-       Pinout:
-       HCM5883L      ILI9341        MICRO SD       VBAT        GPS
-       --------------------------------------------------------------------
-       VCC 3,3v      VCC  3,3v      VCC  3,3v      GPIO34      VCC  3,3v
-       GND GND       GND  GND       GND  GND                   GND  GND
-       SDA GPIO21    LED  GPIO33    CS   GPIO4                 RX   GPIO17
-       SCL GPIO22    MISO GPIO27    MISO GPIO27                TX   GPIO16
-                     SCK  GPIO14    SCK  GPIO14
-                     MOSI GPIO13    MOSI GPIO13
-                     DC   GPIO15
-                     RST  GPIO32
-                     CS   GPIO2
-
-       Librerías:
-       ILI9341 :  https://github.com/Bodmer/TFT_eSPI
-       GPS:       https://github.com/mikalhart/TinyGPSPlus
-       PCF8574:   https://github.com/RobTillaart/PCF8574
-       Batería:   https://github.com/danilopinotti/Battery18650Stats
-       MyDelay:   https://github.com/mggates39/MyDelay
-
-       Archivos necesarios para leer PNG:
-       
-       include
-          |__________ miniz.c
-          |__________ miniz.h
-          |__________ support_functions.h
-
-        pngle.c
-        pngle.h
-*/
-
-#define DEBUG 1
-//#define OUTPUT_NMEA 1
-//#define SEARCH_SAT_ON_INIT 1
-#define USE_LINE_BUFFER 1
+/**
+ * @file main.cpp
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @brief  ESP32 GPS Naviation main code
+ * @version 0.1
+ * @date 2022-10-09
+ */
 
 #include <Arduino.h>
-#include <TFT_eSPI.h>
-#include <SPI.h>
-#include <TinyGPS++.h>
-#include <FS.h>
-#include <SD.h>
-#include <TimeLib.h>
-#include <PCF8574.h>
 #include <Wire.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_HMC5883_U.h>
-#include <Battery18650Stats.h>
+#include <SPI.h>
 #include <WiFi.h>
 #include <MyDelay.h>
 #include <esp_wifi.h>
 #include <esp_bt.h>
-#include "Z_Bitmaps.h"
+
+// Old - TO-DO -> REMOVE THESE INCLUDES
 #include "0_Vars.h"
-#include "1_Func.h"
-#include "2_Func_BMP.h"
-#include "3_Func_GPS.h"
+
+// New - TO-DO -> NEW INCLUDES MIGRATED
+#include "config.h"
+#include "hardware/hal.h"
+#include "hardware/serial.h"
+#include "hardware/sdcard.h"
+#include "hardware/compass.h"
+#include "hardware/battery.h"
+#include "hardware/keys.h"
+#include "hardware/gps.h"
+#include "hardware/tft.h"
+#include "utils/math.h"
+#include "utils/bmp.h"
+#include "gui/icons.h"
+#include "gui/screens.h"
+
+
+// Old - TO-DO -> REMOVE THESE INCLUDES
+void load_file(fs::FS &fs, const char *path);
+#include "pngle.h"
+#include "support_functions.h"
+void pngle_on_draw(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint8_t rgba[4]);
 #include "4_Func_GFX.h"
-#include "5_Func_Math.h"
-#include "6_Func_Keys.h"
-#include "7_Func_Bruj.h"
-#include "8_Func_Batt.h"
 #include "A_Pantallas.h"
 #include "ZZ_Core_Funcs.h"
 
+
+/**
+ * @brief Setup
+ *
+ */
 void setup()
 {
+#ifdef DEBUG
   init_serial();
-  init_ili9341();
+#endif
+  init_tft();
   init_sd();
   init_gps();
-  init_icenav();
+
+#ifdef DISABLE_RADIO
+  WiFi.disconnect(true);
+  WiFi.mode(WIFI_OFF);
+  btStop();
+  esp_wifi_stop();
+  esp_bt_controller_disable();
+#endif
+  is_menu_screen = false;
+  is_main_screen = true;
+#ifdef ENABLE_PCF8574
+  keyboard.begin();
+  KEYStime.start();
+#endif
+#ifdef ENABLE_COMPASS
+  compass.begin();
+  COMPASStime.start();
+#endif
+  BATTtime.start();
+  batt_level = Read_Battery();
+  millis_actual = millis();
+  splash_scr();
+  while (millis() < millis_actual + 4000)
+    ;
+  tft.fillScreen(TFT_BLACK);
+#ifdef SEARCH_SAT_ON_INIT
+  search_sat_scr();
+#endif
+
   init_tasks();
 }
 
+/**
+ * @brief Main Loop
+ *
+ */
 void loop()
 {
 }
