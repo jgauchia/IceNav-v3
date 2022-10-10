@@ -43,6 +43,13 @@ void pngle_on_draw(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t 
 
 #include "tasks.h"
 
+
+void powerPeripheralsOn() {
+  Serial.println("-->[POWR] Power on peripherals..");
+  pinMode(HW_EN, OUTPUT);
+  digitalWrite(HW_EN, HIGH);  // step-up on
+}
+
 /**
  * @brief Setup
  *
@@ -52,7 +59,7 @@ void setup()
 #ifdef DEBUG
   init_serial();
 #endif
-
+  powerPeripheralsOn(); // Enable
   init_tft();
   init_sd();
   init_gps();

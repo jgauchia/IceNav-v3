@@ -38,6 +38,8 @@
   #define SD_CLK 13
 #endif
 
+#define HW_EN   33
+
 /**
  * @brief Battery monitor pin
  * 

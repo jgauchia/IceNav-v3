@@ -49,14 +49,14 @@
  * CUSTOMBOARD: ESP32 CUSTOM PCB
  * 
  */
-//#define TDISPLAY
-#define CUSTOMBOARD
+#define TDISPLAY
+// #define CUSTOMBOARD
 
 /**
  * @brief Enable compass
  * 
  */
-#define ENABLE_COMPASS
+// #define ENABLE_COMPASS
 
 /**
  * @brief Disable WiFi and Bluetooth
@@ -68,4 +68,4 @@
  * @brief Enable PCF8574 key input
  * 
  */
-#define ENABLE_PCF8574
+// #define ENABLE_PCF8574
