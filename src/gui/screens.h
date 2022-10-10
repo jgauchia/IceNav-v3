@@ -14,11 +14,12 @@
 #define Icon_Notify_Height 24
 
 /**
- * @brief Satellite signal bar size 
+ * @brief Satellite signal bar size and memory buffer
  * 
  */
 #define SNR_BAR_W 25
 #define SNR_BAR_H 80
+uint16_t snr_bkg[4428] = {0};
 
 /**
  * @brief Map Zoom variables

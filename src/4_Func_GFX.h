@@ -6,7 +6,7 @@
 void show_sat_icon(int x, int y)
 {
   tft.setSwapBytes(true);
-  tft.pushImage(x,y , Icon_Notify_Width, Icon_Notify_Height, sat_icon);
+  tft.pushImage(x, y, Icon_Notify_Width, Icon_Notify_Height, sat_icon);
   tft.setSwapBytes(false);
 }
 
@@ -21,15 +21,20 @@ void show_sat_hour(int x, int y, int font)
   tft.startWrite();
   tft.setTextFont(font);
   tft.setCursor(x, y, font);
-  if (hour() < 10) {
+  if (hour() < 10)
+  {
     tft.print('0');
   }
-  tft.print(hour(), DEC); tft.print(':');
-  if (minute() < 10) {
+  tft.print(hour(), DEC);
+  tft.print(':');
+  if (minute() < 10)
+  {
     tft.print('0');
   }
-  tft.print(minute(), DEC); tft.print(':');
-  if (second() < 10) {
+  tft.print(minute(), DEC);
+  tft.print(':');
+  if (second() < 10)
+  {
     tft.print('0');
   }
   tft.print(second(), DEC);
@@ -44,8 +49,8 @@ void show_sat_hour(int x, int y, int font)
 void show_notify_bar(int x, int y)
 {
   show_sat_hour(x, y, 4);
-  show_battery(x + 200, y-10);
-  tft.drawNumber(GPS.satellites.value(), x+180, y+10, 2);
+  show_battery(x + 200, y - 10);
+  tft.drawNumber(GPS.satellites.value(), x + 180, y + 10, 2);
 }
 
 // *********************************************
@@ -56,7 +61,7 @@ void show_sat_tracking()
   char s_buf[64];
   Latitude_formatString(5, 5, 2, GPS.location.lat());
   Longitude_formatString(5, 20, 2, GPS.location.lng());
-  tft.drawNumber(GPS.satellites.value(), 35, 50 );
+  tft.drawNumber(GPS.satellites.value(), 35, 50);
 
   sprintf(s_buf, "%4d m", (int)GPS.altitude.meters());
   tft.drawString(s_buf, 0, 130, 4);
@@ -83,7 +88,7 @@ void show_sat_tracking()
     {
       for (int i = 0; i < MAX_SATELLITES; ++i)
       {
-        if (sat_tracker[i].pos_x != 0 && sat_tracker[i].pos_y != 0 )
+        if (sat_tracker[i].pos_x != 0 && sat_tracker[i].pos_y != 0)
         {
           sat_sprite.fillCircle(4, 4, 4, TFT_WHITE);
           sat_sprite.pushSprite(sat_tracker[i].pos_x, sat_tracker[i].pos_y);
@@ -106,21 +111,21 @@ void show_sat_tracking()
       int active_sat = 0;
       for (int i = 0; i < MAX_SATELLITES; ++i)
       {
-        if ( i < 12)
-          tft.pushRect((i *  20), 159, 25, 80, snr_bkg);
+        if (i < 12)
+          tft.pushRect((i * 20), 159, 25, 80, snr_bkg);
         else
           tft.pushRect(((i - 12) * 20), 240, 25, 80, snr_bkg);
         if (sat_tracker[i].active)
         {
-          if ( active_sat < 12 )
+          if (active_sat < 12)
           {
             tft.setCursor((active_sat * 20) + 8, 229, 1);
             tft.fillRect((active_sat * 20) + 5, 224 - (sat_tracker[i].snr), 15, (sat_tracker[i].snr), TFT_DARKCYAN);
           }
           else
           {
-            tft.setCursor(((active_sat - 12 ) * 20) + 8, 310, 1);
-            tft.fillRect(((active_sat - 12 ) * 20) + 5, 305 - (sat_tracker[i].snr), 15, (sat_tracker[i].snr), TFT_DARKCYAN);
+            tft.setCursor(((active_sat - 12) * 20) + 8, 310, 1);
+            tft.fillRect(((active_sat - 12) * 20) + 5, 305 - (sat_tracker[i].snr), 15, (sat_tracker[i].snr), TFT_DARKCYAN);
           }
           tft.print(i + 1);
           active_sat++;
@@ -148,23 +153,20 @@ void show_sat_tracking()
 // *********************************************
 void show_map(int posx, int posy, double lon, double lat)
 {
+  char s_fichmap[40];
+  int x = lon2tilex(lon, zoom);
+  int y = lat2tiley(lat, zoom);
+  tft.fillCircle(lon2posx(lon, zoom) + posx, lat2posy(lat, zoom) + posy, 2, TFT_RED);
+  if (zoom != zoom_old || (x != tilex || y != tiley))
   {
-    x = lon2tilex(lon, zoom);
-    y = lat2tiley(lat, zoom);
-    tft.fillCircle(lon2posx(lon, zoom)+posx, lat2posy(lat, zoom)+posy, 2, TFT_RED);
-    if ( zoom != zoom_old || ( x != tilex || y != tiley ) )
-    {
-      tilex = x;
-      tiley = y;
-      sprintf(s_fichmap, "/MAP/%d/%d/%d.png", zoom, tilex, tiley);
-      setPngPosition(posx, posy);
-      load_file(SD, s_fichmap);
-      debug->println(s_fichmap);
-      zoom_old = zoom;
-    }
+    tilex = x;
+    tiley = y;
+    sprintf(s_fichmap, "/MAP/%d/%d/%d.png", zoom, tilex, tiley);
+    setPngPosition(posx, posy);
+    load_file(SD, s_fichmap);
+    debug->println(s_fichmap);
+    zoom_old = zoom;
   }
-
- 
 }
 
 // *********************************************
@@ -174,18 +176,18 @@ void create_compass_sprite()
 {
   compass_sprite.deleteSprite();
   compass_sprite.setColorDepth(8);
-  compass_sprite.createSprite(205,205);
+  compass_sprite.createSprite(205, 205);
   compass_sprite.fillScreen(TFT_BLACK);
-  compass_sprite.fillCircle(102,102,105,TFT_WHITE);
-  compass_sprite.fillCircle(102,102,98,TFT_DARKCYAN);
-  compass_sprite.fillCircle(102,102,90,TFT_WHITE);
-  compass_sprite.fillCircle(102,102,80,TFT_BLACK);
-  compass_sprite.setTextColor(TFT_DARKCYAN,TFT_WHITE);
-  compass_sprite.drawString("N",95,0,4);
-  compass_sprite.drawString("S",95,185,4);
-  compass_sprite.drawString("W",0,95,4);
-  compass_sprite.drawString("E",185,95,4);
-  tft.setPivot(118,207);
+  compass_sprite.fillCircle(102, 102, 105, TFT_WHITE);
+  compass_sprite.fillCircle(102, 102, 98, TFT_DARKCYAN);
+  compass_sprite.fillCircle(102, 102, 90, TFT_WHITE);
+  compass_sprite.fillCircle(102, 102, 80, TFT_BLACK);
+  compass_sprite.setTextColor(TFT_DARKCYAN, TFT_WHITE);
+  compass_sprite.drawString("N", 95, 0, 4);
+  compass_sprite.drawString("S", 95, 185, 4);
+  compass_sprite.drawString("W", 0, 95, 4);
+  compass_sprite.drawString("E", 185, 95, 4);
+  tft.setPivot(118, 207);
 }
 
 // *********************************************
@@ -195,23 +197,22 @@ void create_compass_sprite()
 // *********************************************
 void show_battery(int x, int y)
 {
-    char s_buf[64];
-    tft.setSwapBytes(true);
-    if (batt_level > 80 && batt_level <= 100 )
-      tft.pushImage(x, y , Icon_Notify_Width, Icon_Notify_Height, batt_100_icon);
-    else if (batt_level <= 80 && batt_level > 60 )
-      tft.pushImage(x, y , Icon_Notify_Width, Icon_Notify_Height, batt_75_icon);
-    else if (batt_level <= 60 && batt_level > 40 )
-      tft.pushImage(x, y , Icon_Notify_Width, Icon_Notify_Height, batt_50_icon);
-    else if (batt_level <= 40 && batt_level > 20 )
-      tft.pushImage(x, y , Icon_Notify_Width, Icon_Notify_Height, batt_25_icon);
-    else if (batt_level <= 20 )
-      tft.pushImage(x, y , Icon_Notify_Width, Icon_Notify_Height, batt_0_icon);
-    tft.setSwapBytes(false);
-    sprintf(s_buf, "%3d%%", batt_level);
-    tft.drawString(s_buf, x, y + 24, 1);
+  char s_buf[64];
+  tft.setSwapBytes(true);
+  if (batt_level > 80 && batt_level <= 100)
+    tft.pushImage(x, y, Icon_Notify_Width, Icon_Notify_Height, batt_100_icon);
+  else if (batt_level <= 80 && batt_level > 60)
+    tft.pushImage(x, y, Icon_Notify_Width, Icon_Notify_Height, batt_75_icon);
+  else if (batt_level <= 60 && batt_level > 40)
+    tft.pushImage(x, y, Icon_Notify_Width, Icon_Notify_Height, batt_50_icon);
+  else if (batt_level <= 40 && batt_level > 20)
+    tft.pushImage(x, y, Icon_Notify_Width, Icon_Notify_Height, batt_25_icon);
+  else if (batt_level <= 20)
+    tft.pushImage(x, y, Icon_Notify_Width, Icon_Notify_Height, batt_0_icon);
+  tft.setSwapBytes(false);
+  sprintf(s_buf, "%3d%%", batt_level);
+  tft.drawString(s_buf, x, y + 24, 1);
 }
-
 
 // **********************************************
 //  Función principal que muestra la brujula
@@ -219,8 +220,8 @@ void show_battery(int x, int y)
 void show_Compass()
 {
   char s_buf[64];
-  
-#ifdef ENABLE_COMPASS  
+
+#ifdef ENABLE_COMPASS
   int rumbo = Read_Mag_data();
   compass_sprite.pushRotated(360 - rumbo, TFT_BLACK);
   tft.setTextColor(TFT_BLACK, TFT_WHITE);
