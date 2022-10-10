@@ -6,6 +6,14 @@
  * @date 2022-10-09
  */
 
+
+/**
+ * @brief X,Y Tile index
+ * 
+ */
+int tilex = 0; 
+int tiley = 0;
+
 /**
  * @brief float MAP
  * 
