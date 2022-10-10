@@ -91,3 +91,67 @@ int lat2posy(float f_lat, int zoom)
    return ((int)(((1.0 - log( tan(f_lat * M_PI/180.0) + 1.0 / cos(f_lat * M_PI/180.0)) / M_PI) / 2.0 * (pow(2.0, zoom))*256)) % 256); 
 }
 
+/**
+ * @brief Latitude GGºMM'SS" to string conversion and draw on screen in X,Y position and font type
+ * 
+ * @param x -> X Position
+ * @param y -> Y Position
+ * @param font -> Font type
+ * @param lat  -> Latitude
+ */
+void Latitude_formatString(int x, int y, int font,  double lat)
+{
+  char N_S = 'N';
+  double absLatitude = lat;
+  uint16_t deg;
+  uint8_t min;
+  if (lat < 0)
+  {
+    N_S = 'S';
+    absLatitude = fabs(lat);
+  }
+  deg = (uint16_t) absLatitude;
+  absLatitude = (absLatitude - deg) * 60;
+  min = (uint8_t) absLatitude;
+  absLatitude = (absLatitude - min) * 60;
+  tft.setTextFont(font);
+  tft.setCursor(x, y, font);
+  sprintf(s_buf, "%03d ", deg);
+  tft.print(s_buf);
+  tft.print("`");
+  sprintf(s_buf, "%02d\' %.2f\" %c", min, absLatitude, N_S);
+  tft.print(s_buf);
+}
+
+/**
+ * @brief Longitude GGºMM'SS" to string conversion and draw on screen in X,Y position and font type
+ * 
+ * @param x -> X Position
+ * @param y -> Y Position
+ * @param font -> Font type
+ * @param lat  -> Latitude
+ */
+void Longitude_formatString(int x, int y, int font,  double lon)
+{
+  char E_W = 'E';
+  double absLongitude = lon;
+  uint16_t deg;
+  uint8_t min;
+  if (lon < 0)
+  {
+    E_W = 'W';
+    absLongitude = fabs(lon);
+  }
+  deg = (uint16_t) absLongitude;
+  absLongitude = (absLongitude - deg) * 60;
+  min = (uint8_t) absLongitude;
+  absLongitude = (absLongitude - min) * 60;
+  tft.setTextFont(font);
+  tft.setCursor(x, y, font);
+  sprintf(s_buf, "%03d ", deg);
+  tft.print(s_buf);
+  tft.print("`");
+  sprintf(s_buf, "%02d\' %.2f\" %c", min, absLongitude, E_W);
+  tft.print(s_buf);
+}
+

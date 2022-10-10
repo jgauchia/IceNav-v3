@@ -47,7 +47,6 @@ void Main_prog(void *pvParameters)
 
 #ifdef ENABLE_PCF8574
     key_pressed = Read_Keys();
-    debug->println(key_pressed);
     if (KEYStime.update())
       Check_keys(key_pressed);
 #endif

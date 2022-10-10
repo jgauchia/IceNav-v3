@@ -7,3 +7,4 @@
  */
 
 #include "gui/screens/search_sat.h"
+#include "gui/screens/splash.h"

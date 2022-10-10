@@ -6,8 +6,6 @@
  * @date 2022-10-09
  */
 
-int Read_Mag_data();
-
 #ifdef ENABLE_COMPASS
 
 #include <Adafruit_Sensor.h>

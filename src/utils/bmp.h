@@ -7,6 +7,36 @@
  */
 
 /**
+ * @brief Read 16 Bytes from file
+ * 
+ * @param f -> file
+ * @return uint16_t 
+ */
+uint16_t read16(fs::File &f)
+{
+  uint16_t result;
+  ((uint8_t *)&result)[0] = f.read(); // LSB
+  ((uint8_t *)&result)[1] = f.read(); // MSB
+  return result;
+}
+
+/**
+ * @brief Read 32 Bytes from file
+ * 
+ * @param f -> file
+ * @return uint32_t 
+ */
+uint32_t read32(fs::File &f)
+{
+  uint32_t result;
+  ((uint8_t *)&result)[0] = f.read(); // LSB
+  ((uint8_t *)&result)[1] = f.read();
+  ((uint8_t *)&result)[2] = f.read();
+  ((uint8_t *)&result)[3] = f.read(); // MSB
+  return result;
+}
+
+/**
  * @brief BMP file reading and screen drawing
  * 
  * @param filename -> filename
@@ -82,32 +112,4 @@ void drawBmp(const char *filename, int16_t x, int16_t y, bool sdcard)
   bmpFS.close();
 }
 
-/**
- * @brief Read 16 Bytes from file
- * 
- * @param f -> file
- * @return uint16_t 
- */
-uint16_t read16(fs::File &f)
-{
-  uint16_t result;
-  ((uint8_t *)&result)[0] = f.read(); // LSB
-  ((uint8_t *)&result)[1] = f.read(); // MSB
-  return result;
-}
 
-/**
- * @brief Read 32 Bytes from file
- * 
- * @param f -> file
- * @return uint32_t 
- */
-uint32_t read32(fs::File &f)
-{
-  uint32_t result;
-  ((uint8_t *)&result)[0] = f.read(); // LSB
-  ((uint8_t *)&result)[1] = f.read();
-  ((uint8_t *)&result)[2] = f.read();
-  ((uint8_t *)&result)[3] = f.read(); // MSB
-  return result;
-}

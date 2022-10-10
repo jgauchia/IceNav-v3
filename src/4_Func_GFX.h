@@ -216,10 +216,12 @@ void show_battery(int x, int y)
 // **********************************************
 void show_Compass()
 {
+#ifdef ENABLE_COMPASS  
   rumbo = Read_Mag_data();
   compass_sprite.pushRotated(360 - rumbo, TFT_BLACK);
   tft.setTextColor(TFT_BLACK, TFT_WHITE);
   tft.fillRect(55, 207, 130, 40, TFT_WHITE);
+#endif
 
 #ifdef ENABLE_PCF8574
   if (key_pressed == LBUT && is_show_degree)
