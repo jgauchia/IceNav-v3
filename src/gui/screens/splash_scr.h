@@ -1,5 +1,5 @@
 /**
- * @file splash.h
+ * @file splash_scr.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Splash screen
  * @version 0.1

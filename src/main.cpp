@@ -14,21 +14,8 @@
 #include <esp_wifi.h>
 #include <esp_bt.h>
 
-// Old - TO-DO -> REMOVE THESE INCLUDES
-// **********************************************
-//  Declaración funciones
-// **********************************************
-//void setPngPosition(int16_t x, int16_t y);
-void show_sat_hour(int x, int y, int font);
-void show_sat_tracking();
-void show_sat_track_screen();
-void show_main_screen();
-void show_sat_track_screen();
-void show_map_screen();
-//******************************************************
-
-// New - TO-DO -> NEW INCLUDES MIGRATED
 unsigned long millis_actual = 0;
+
 #include "config.h"
 #include "hardware/hal.h"
 #include "hardware/serial.h"
@@ -44,11 +31,6 @@ unsigned long millis_actual = 0;
 #include "gui/icons.h"
 #include "gui/screens.h"
 #include "hardware/keys.h"
-
-// Old - TO-DO -> REMOVE THESE INCLUDES
-#include "A_Pantallas.h"
-
-// New - TO-DO -> NEW INCLUDES MIGRATED
 #include "tasks.h"
 
 /**

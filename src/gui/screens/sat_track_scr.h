@@ -1,45 +1,16 @@
-// **********************************************
-//  Muestra pantalla principal
-// **********************************************
-void show_main_screen()
-{
-  if (!is_draw)
-  {
-    tft.fillScreen(TFT_WHITE);
-    tft.drawLine(0, 40, 240, 40, TFT_BLACK);
-    tft.setTextColor(TFT_BLACK, TFT_WHITE);
-    tft.writecommand(0x28);
-    drawBmp("/GFX/POSICION.BMP", 5, 44, true);
-    tft.writecommand(0x29);
-    tft.setSwapBytes(true);
-    // show_sat_icon(180, 0);
-#ifdef ENABLE_COMPASS
-    tft.pushImage(95, 135, 50, 58, compass_arrow);
-#endif
-    tft.setSwapBytes(false);
-#ifdef ENABLE_COMPASS
-    create_compass_sprite();
-#endif
-    is_compass_screen = true;
-    is_map_screen = false;
-    is_menu_screen = false;
-    is_sat_screen = false;
-    is_draw = true;
-  }
-#ifdef ENABLE_COMPASS
-  show_Compass();
-#endif
-  tft.startWrite();
-  Latitude_formatString(50, 45, 2, GPS.location.lat());
-  Longitude_formatString(50, 60, 2, GPS.location.lng());
-  tft.endWrite();
-  show_notify_bar(10, 10);
-}
+/**
+ * @file sat_track_scr.h
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @brief  Satellite tracking screen
+ * @version 0.1
+ * @date 2022-10-10
+ */
 
-// *********************************************
-//  Función que dibuja tracking satélites
-// *********************************************
-void show_sat_tracking()
+/**
+ * @brief Get the sat tracking info (elevation, azimunt, snr, active,...)
+ * 
+ */
+void get_sat_tracking()
 {
   char s_buf[64];
   Latitude_formatString(5, 5, 2, GPS.location.lat());
@@ -127,9 +98,10 @@ void show_sat_tracking()
   }
 }
 
-// **********************************************
-//  Muestra pantalla tracking satelites
-// **********************************************
+/**
+ * @brief Display satellite track screen, GPS Position, number satellites, location
+ * 
+ */
 void show_sat_track_screen()
 {
   if (!is_draw)
@@ -165,62 +137,5 @@ void show_sat_track_screen()
     is_compass_screen = false;
     is_draw = true;
   }
-  show_sat_tracking();
-}
-
-// **********************************************
-//  Muestra pantalla mapa
-// **********************************************
-void show_map_screen()
-{
-  char s_buf[64];
-  if (!is_draw)
-  {
-    tft.fillScreen(TFT_WHITE);
-    tft.drawLine(0, 40, 240, 40, TFT_BLACK);
-    tft.setTextColor(TFT_BLACK, TFT_WHITE);
-    tft.drawString("ZOOM:", 5, 45, 2);
-    tft.setSwapBytes(true);
-   // show_sat_icon(180, 0);
-    tft.setSwapBytes(false);
-    is_map_screen = true;
-    is_menu_screen = false;
-    is_sat_screen = false;
-    is_compass_screen = false;
-    is_draw = true;
-  }
-  show_notify_bar(10, 10);
-  if (is_gps_fixed)
-  {
-    show_map(0, 64, GPS.location.lng(), GPS.location.lat());
-    sprintf(s_buf, "%2d", zoom);
-    tft.drawString(s_buf, 45, 45, 2);
-  }
-}
-
-// **********************************************
-//  Muestra pantalla menus
-// **********************************************
-void show_menu_screen()
-{
-  if (!is_draw)
-  {
-    tft.writecommand(0x28);
-    tft.fillScreen(TFT_WHITE);
-    drawBmp("/GFX/BOT_TRAC.BMP", 20, 15, true);
-    drawBmp("/GFX/BOT_NAV.BMP", 20, 60, true);
-    drawBmp("/GFX/BOT_MAPA.BMP", 20, 105, true);
-    drawBmp("/GFX/BOT_BRUJ.BMP", 20, 150, true);
-    drawBmp("/GFX/BOT_LOG.BMP", 20, 195, true);
-    drawBmp("/GFX/BOT_CFG.BMP", 20, 240, true);
-    tft.writecommand(0x29);
-    tft.setTextColor(TFT_BLACK, TFT_WHITE);
-   // show_sat_icon(180, 282);
-    is_menu_screen = true;
-    is_map_screen = false;
-    is_sat_screen = false;
-    is_compass_screen = false;
-    is_draw = true;
-  }
-  show_notify_bar(10, 292);
+  get_sat_tracking();
 }
