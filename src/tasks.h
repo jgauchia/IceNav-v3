@@ -1,17 +1,16 @@
-// **********************************************
-//  Función para inicializar tareas del ESP32
-// **********************************************
-void init_tasks()
-{
-  xTaskCreatePinnedToCore(Read_GPS, "Read GPS", 16384, NULL, 4, NULL, 0);
-  delay(500);
-  xTaskCreatePinnedToCore(Main_prog, "Main Program", 16384, NULL, 1, NULL, 1);
-  delay(500);
-}
+/**
+ * @file tasks.h
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @brief  Core Tasks functions
+ * @version 0.1
+ * @date 2022-10-10
+ */
 
-// **********************************************
-//  Función para tarea de lectura GPS
-// **********************************************
+/**
+ * @brief Task 1 - Read GPS data
+ * 
+ * @param pvParameters 
+ */
 void Read_GPS(void *pvParameters)
 {
   debug->print("Task1 - Read GPS - running on core ");
@@ -35,9 +34,11 @@ void Read_GPS(void *pvParameters)
   }
 }
 
-// **********************************************
-//  Función para tarea del navegador
-// **********************************************
+/**
+ * @brief Task 2 - Main program 
+ * 
+ * @param pvParameters 
+ */
 void Main_prog(void *pvParameters)
 {
   debug->print("Task2 - Main Program - running on core ");
@@ -65,4 +66,16 @@ void Main_prog(void *pvParameters)
     }
     delay(1);
   }
+}
+
+/**
+ * @brief Init Core tasks
+ * 
+ */
+void init_tasks()
+{
+  xTaskCreatePinnedToCore(Read_GPS, "Read GPS", 16384, NULL, 4, NULL, 0);
+  delay(500);
+  xTaskCreatePinnedToCore(Main_prog, "Main Program", 16384, NULL, 1, NULL, 1);
+  delay(500);
 }
