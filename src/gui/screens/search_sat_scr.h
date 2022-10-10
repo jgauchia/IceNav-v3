@@ -1,5 +1,5 @@
 /**
- * @file search_sat.h
+ * @file search_sat_scr.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  GPS satellite search screen
  * @version 0.1

@@ -39,9 +39,13 @@ ESP32 GPS Navigator
           |__________ miniz.c
           |__________ miniz.h
           |__________ support_functions.h
-       pngle.c
-       pngle.h
+       
+       utils
+          |__________ pngle.c
+          |__________ pngle.h
 
+      
+      
       For Using TTGO T-Display uncomment (config.h)
         #define TDISPLAY
 

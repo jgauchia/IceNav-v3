@@ -11,21 +11,6 @@
 #include <PCF8574.h>
 
 PCF8574 keyboard(0x20);
-enum Keys
-{
-    NONE,
-    UP,
-    DOWN,
-    LEFT,
-    RIGHT,
-    PUSH,
-    LUP,
-    LBUT,
-    LDOWN,
-    BLEFT,
-    BRIGHT
-};
-int key_pressed = NONE;
 
 /**
  * @brief Keyboard read delay

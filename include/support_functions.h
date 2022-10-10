@@ -1,6 +1,6 @@
 #include <math.h>
 
-#include "pngle.h"
+#include "utils/pngle.h"
 
 #define LINE_BUF_SIZE 240  // pixel = 524, 16 = 406, 32 = 386, 64 = 375, 128 = 368, 240 = 367, no draw = 324 (51ms v 200ms)
 int16_t px = 0, sx = 0;

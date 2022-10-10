@@ -44,7 +44,24 @@ bool is_compass_screen = false;
 bool is_show_degree = true;
 
 /**
- * @brief Vectors to a screen functions
+ * @brief Screens
+ * 
+ */
+#include "gui/widgets/sat_icon.h"
+#include "gui/widgets/batt_icon.h"
+#include "gui/widgets/compass.h"
+#include "gui/widgets/map.h"
+#include "gui/widgets/hour.h"
+#include "gui/widgets/notify_bar.h"
+#include "gui/screens/search_sat_scr.h"
+#include "gui/screens/splash_scr.h"
+#include "gui/screens/main_scr.h"
+#include "gui/screens/menu_scr.h"
+#include "gui/screens/map_scr.h"
+#include "gui/screens/sat_track_scr.h"
+
+/**
+ * @brief Vectors to a main screen functions
  * 
  */
 #define MAX_MAIN_SCREEN 3
@@ -52,9 +69,3 @@ typedef void (*MainScreenFunc)();
 MainScreenFunc MainScreen[] = {0, show_main_screen, show_map_screen, show_sat_track_screen};
 int sel_MainScreen = 1;
 
-/**
- * @brief Screens
- * 
- */
-#include "gui/screens/search_sat.h"
-#include "gui/screens/splash.h"
