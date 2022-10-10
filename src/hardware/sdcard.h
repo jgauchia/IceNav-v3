@@ -9,7 +9,7 @@
 #include <FS.h>
 #include <SD.h>
 
-SPIClass spiSD = SPIClass(HSPI);
+SPIClass spiSD = SPIClass();
 
 /**
  * @brief SD Card init
@@ -18,7 +18,7 @@ SPIClass spiSD = SPIClass(HSPI);
 void init_sd()
 {
   spiSD.begin(SD_CLK, SD_MISO, SD_MOSI, SD_CS);
-  if (!SD.begin(SD_CS, spiSD, 100000000))
+  if (!SD.begin(SD_CS, spiSD, 10000000))
   {
     debug->println("Card Mount Failed");
     return;

@@ -22,8 +22,8 @@ ESP32 GPS Navigator
        GND GND       SCK  GPIO18    GND  GND                   GND  GND
        SDA GPIO21    MOSI GPIO19    CS   GPIO2                 RX   GPIO26
        SCL GPIO22    DC   GPIO16    MISO GPIO27                TX   GPIO25
-                     RST  GPIO23    SCK  GPIO15
-                     CS   GPIO5     MOSI GPIO13
+                     RST  GPIO23    SCK  GPIO13
+                     CS   GPIO5     MOSI GPIO15
                      
                      
        Libraries:
