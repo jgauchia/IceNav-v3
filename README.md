@@ -44,12 +44,9 @@ ESP32 GPS Navigator
           |__________ pngle.c
           |__________ pngle.h
 
-      
-      
-      For Using TTGO T-Display uncomment (config.h)
-        #define TDISPLAY
-
-
       TODO:
          * Language dependent texts
-   
+
+SD Map Tile File structure
+
+On SD Card map tiles are stored in these folders:
