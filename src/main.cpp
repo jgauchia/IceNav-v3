@@ -16,7 +16,6 @@
 
 unsigned long millis_actual = 0;
 
-#include "config.h"
 #include "hardware/hal.h"
 #include "hardware/serial.h"
 #include "hardware/sdcard.h"
