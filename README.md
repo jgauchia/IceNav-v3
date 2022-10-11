@@ -49,4 +49,9 @@ ESP32 GPS Navigator
 
 SD Map Tile File structure
 
-On SD Card map tiles are stored in these folders:
+On SD Card map tiles (PNG Format) are stored in these folders structure:
+
+      [ MAP ]
+         |________ [ zoom folder (number)]
+                              |__________________ [ tile X folder (number)]
+                                                             |_______________________ tile y file.png
