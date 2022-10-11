@@ -8,8 +8,8 @@
 
 /**
  * @brief Task 1 - Read GPS data
- * 
- * @param pvParameters 
+ *
+ * @param pvParameters
  */
 void Read_GPS(void *pvParameters)
 {
@@ -17,16 +17,15 @@ void Read_GPS(void *pvParameters)
   debug->println(xPortGetCoreID());
   for (;;)
   {
-    if (gps->available() > 1)
+    if (gps->available())
     {
       GPS.encode(gps->read());
       if (GPS.location.isValid())
         is_gps_fixed = true;
 
 #ifdef OUTPUT_NMEA
-      if (gps->available())
       {
-        debug->println(GPS.location.lat());
+        debug->write(gps->read());
       }
 #endif
     }
@@ -35,9 +34,9 @@ void Read_GPS(void *pvParameters)
 }
 
 /**
- * @brief Task 2 - Main program 
- * 
- * @param pvParameters 
+ * @brief Task 2 - Main program
+ *
+ * @param pvParameters
  */
 void Main_prog(void *pvParameters)
 {
@@ -70,7 +69,7 @@ void Main_prog(void *pvParameters)
 
 /**
  * @brief Init Core tasks
- * 
+ *
  */
 void init_tasks()
 {
