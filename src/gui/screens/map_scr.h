@@ -15,12 +15,10 @@ void show_map_screen()
   char s_buf[64];
   if (!is_draw)
   {
-    tft.fillScreen(TFT_WHITE);
-    tft.drawLine(0, 40, 240, 40, TFT_BLACK);
-    tft.setTextColor(TFT_BLACK, TFT_WHITE);
+    tft.fillScreen(TFT_BLACK);
+    tft.drawLine(0, 40, 240, 40, TFT_WHITE);
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
     tft.drawString("ZOOM:", 5, 45, 2);
-    tft.setSwapBytes(true);
-    tft.setSwapBytes(false);
     is_map_screen = true;
     is_menu_screen = false;
     is_sat_screen = false;
