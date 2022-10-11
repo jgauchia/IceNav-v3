@@ -16,7 +16,7 @@ PCF8574 keyboard(0x20);
  * @brief Keyboard read delay
  *
  */
-#define KEYS_UPDATE_TIME 175
+#define KEYS_UPDATE_TIME 200
 MyDelay KEYStime(KEYS_UPDATE_TIME);
 
 /**

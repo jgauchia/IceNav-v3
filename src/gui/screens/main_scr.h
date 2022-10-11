@@ -8,26 +8,23 @@
 
 /**
  * @brief Display main screen, GPS Position, hour, satellites, battery and compass
- * 
+ *
  */
 void show_main_screen()
 {
   if (!is_draw)
   {
-    tft.fillScreen(TFT_WHITE);
-    tft.drawLine(0, 40, 240, 40, TFT_BLACK);
-    tft.setTextColor(TFT_BLACK, TFT_WHITE);
     tft.writecommand(0x28);
-    drawBmp("/GFX/POSICION.BMP", 5, 44, true);
+    drawBmp("/GFX/POSICION.bmp", 5, 44, true);
     tft.writecommand(0x29);
+    tft.fillScreen(TFT_BLACK);
+    tft.drawLine(0, 40, 240, 40, TFT_WHITE);
     tft.setSwapBytes(true);
 #ifdef ENABLE_COMPASS
     tft.pushImage(95, 135, 50, 58, compass_arrow);
-#endif
-    tft.setSwapBytes(false);
-#ifdef ENABLE_COMPASS
     create_compass_sprite();
 #endif
+    tft.setSwapBytes(false);
     is_compass_screen = true;
     is_map_screen = false;
     is_menu_screen = false;
@@ -37,9 +34,10 @@ void show_main_screen()
 #ifdef ENABLE_COMPASS
   show_Compass();
 #endif
+
   tft.startWrite();
   Latitude_formatString(50, 45, 2, GPS.location.lat());
   Longitude_formatString(50, 60, 2, GPS.location.lng());
-  tft.endWrite();
   show_notify_bar(10, 10);
+  tft.endWrite();
 }

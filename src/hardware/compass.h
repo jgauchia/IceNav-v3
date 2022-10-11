@@ -18,7 +18,7 @@ float declinationAngle = 0.2200;
  * @brief Compass read delay
  *
  */
-#define COMPASS_UPDATE_TIME 10
+#define COMPASS_UPDATE_TIME 50
 MyDelay COMPASStime(COMPASS_UPDATE_TIME);
 
 /**
