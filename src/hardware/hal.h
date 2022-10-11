@@ -36,6 +36,10 @@
   #define SD_MISO 27
   #define SD_MOSI 15
   #define SD_CLK 13
+  #define ADC_EN 14
+  #define BUTTON_R 35
+  #define BUTTON_L 0
+  #define HW_EN 33
 #endif
 
 /**

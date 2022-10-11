@@ -43,29 +43,7 @@
 #define USE_LINE_BUFFER
 
 /**
- * @brief Define board type
- * 
- * TDISPLAY:  TTGO T-DISPLAY ESP32 MODULE
- * CUSTOMBOARD: ESP32 CUSTOM PCB
- * 
- */
-//#define TDISPLAY
-#define CUSTOMBOARD
-
-/**
- * @brief Enable compass
- * 
- */
-#define ENABLE_COMPASS
-
-/**
  * @brief Disable WiFi and Bluetooth
  * 
  */
 #define DISABLE_RADIO
-
-/**
- * @brief Enable PCF8574 key input
- * 
- */
-#define ENABLE_PCF8574
