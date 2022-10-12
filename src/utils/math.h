@@ -15,6 +15,52 @@ int tilex = 0;
 int tiley = 0;
 
 /**
+ * @brief Variables to store mid point between 2 coordinates
+ * 
+ */
+double d_midlat = 0;
+double d_midlon = 0;
+
+/**
+ * @brief FFunction to calculate the distance in meters given 2 coordinates (latitude and longitude)
+ * 
+ * @param f_lat1 -> Latitude 1
+ * @param f_lon1 -> Longitude 1
+ * @param f_lat2 -> Latitude 2
+ * @param f_lon2 -> Longitude 2
+ * @return float -> Distance in meters
+ */
+float calc_dist(float f_lat1, float f_lon1, float f_lat2, float f_lon2)
+{
+  float f_x = 69.1 * (f_lat2 - f_lat1); 
+  float f_y = 69.1 * (f_lon2 - f_lon1) * cos(f_lat1/57.3);
+  return (float)sqrt((float)(f_x*f_x) + (float)(f_y*f_y))*1609.344; 
+}
+
+/**
+ * @brief Function to calculate the midpoint given 2 coordinates (latitude and longitude)
+ * 
+ * @param f_lat1 -> Latitude 1
+ * @param f_lon1 -> Longitude 1
+ * @param f_lat2 -> Latitude 2
+ * @param f_lon2 -> Longitude 2
+ */
+void calc_mid_point(float f_lat1, float f_lon1, float f_lat2, float f_lon2)
+{
+
+  float dLon = (radians(f_lon2)-radians(f_lon1));
+  float cosLat1 = cos(radians(f_lat1));
+  float cosLat2 = cos(radians(f_lat2));
+  float sinLat1 = sin(radians(f_lat1));
+  float sinLat2 = sin(radians(f_lat2));
+  float Bx = cosLat2*cos(dLon);
+  float By = cosLat2*sin(dLon);
+  
+  d_midlat = degrees(atan2(sinLat1+sinLat2,sqrt((cosLat1+Bx)*(cosLat1+Bx)+By*By)));
+  d_midlon = degrees(radians(f_lon1)+atan2(By,cosLat1+Bx));
+}
+
+/**
  * @brief float MAP
  * 
  * @param x -> input value
