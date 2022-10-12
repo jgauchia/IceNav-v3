@@ -15,7 +15,7 @@ void show_menu_screen()
   if (!is_draw)
   {
     tft.writecommand(0x28);
-    tft.fillScreen(TFT_WHITE);
+    tft.fillScreen(TFT_BLACK);
     drawBmp("/GFX/BOT_TRAC.BMP", 20, 15, true);
     drawBmp("/GFX/BOT_NAV.BMP", 20, 60, true);
     drawBmp("/GFX/BOT_MAPA.BMP", 20, 105, true);
@@ -23,7 +23,7 @@ void show_menu_screen()
     drawBmp("/GFX/BOT_LOG.BMP", 20, 195, true);
     drawBmp("/GFX/BOT_CFG.BMP", 20, 240, true);
     tft.writecommand(0x29);
-    tft.setTextColor(TFT_BLACK, TFT_WHITE);
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
     is_menu_screen = true;
     is_map_screen = false;
     is_sat_screen = false;
