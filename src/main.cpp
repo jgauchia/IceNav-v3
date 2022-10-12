@@ -45,6 +45,7 @@ void setup()
   init_serial();
 #endif
   powerOn();
+  init_LVGL();
   init_tft();
   init_sd();
   init_gps();
@@ -71,10 +72,20 @@ void setup()
   search_sat_scr();
 #endif
 
-  is_menu_screen = false;
-  is_main_screen = true;
+//********TEST LVGL
+  static lv_obj_t *label;
+  searchSat = lv_obj_create(NULL);
+  label = lv_label_create(searchSat);
+  lv_label_set_text(label, "Press a button");
+  lv_obj_set_size(label, 240, 40);
+  lv_obj_set_pos(label, 0, 15);
+  lv_scr_load(searchSat);
+/**********/
 
-  init_tasks();
+  // is_menu_screen = false;
+  // is_main_screen = true;
+
+  // init_tasks();
 }
 
 /**
