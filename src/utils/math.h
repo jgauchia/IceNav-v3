@@ -22,7 +22,7 @@ double d_midlat = 0;
 double d_midlon = 0;
 
 /**
- * @brief FFunction to calculate the distance in meters given 2 coordinates (latitude and longitude)
+ * @brief Function to calculate the distance in meters given 2 coordinates (latitude and longitude)
  * 
  * @param f_lat1 -> Latitude 1
  * @param f_lon1 -> Longitude 1

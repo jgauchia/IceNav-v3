@@ -49,6 +49,8 @@ void get_sat_tracking()
       {
         if (sat_tracker[i].pos_x != 0 && sat_tracker[i].pos_y != 0)
         {
+          sat_sprite.fillCircle(2, 2, 2, TFT_BLACK);
+          sat_sprite.pushSprite(sat_tracker[i].pos_x, sat_tracker[i].pos_y,TFT_TRANSPARENT);
           tft.startWrite();
           tft.setCursor(sat_tracker[i].pos_x, sat_tracker[i].pos_y + 5, 1);
           tft.print("  ");

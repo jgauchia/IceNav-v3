@@ -28,6 +28,7 @@ unsigned long millis_actual = 0;
 #include "utils/math.h"
 #include "utils/bmp.h"
 #include "utils/png.h"
+#include "utils/wpt.h"
 #include "gui/icons.h"
 #include "gui/screens.h"
 #include "hardware/keys.h"
