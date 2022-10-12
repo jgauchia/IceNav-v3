@@ -31,6 +31,7 @@ unsigned long millis_actual = 0;
 #include "utils/wpt.h"
 #include "gui/icons.h"
 #include "gui/screens.h"
+#include "gui/lvgl.h"
 #include "hardware/keys.h"
 #include "tasks.h"
 
