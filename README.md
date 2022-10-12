@@ -46,6 +46,7 @@ ESP32 GPS Navigator
 
       TODO:
          * Language dependent texts
+         * LVGL 
 
 SD Map Tile File structure
 
