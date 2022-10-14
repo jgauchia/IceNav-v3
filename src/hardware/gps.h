@@ -10,14 +10,14 @@
 #include <TinyGPS++.h>
 
 #define MAX_SATELLITES 60
-#define TIME_OFFSET 1 
+#define TIME_OFFSET 1
 HardwareSerial *gps = &Serial2;
 TinyGPSPlus GPS;
-bool is_gps_fixed = false; 
+bool is_gps_fixed = false;
 
 /**
  * @brief Custom NMEA sentences
- * 
+ *
  */
 TinyGPSCustom totalGPGSVMessages(GPS, "GPGSV", 1); // $GPGSV sentence, first element
 TinyGPSCustom messageNumber(GPS, "GPGSV", 2);      // $GPGSV sentence, second element
@@ -29,9 +29,9 @@ TinyGPSCustom snr[4];
 
 /**
  * @brief Structure for satellite position (elevation, azimut,...)
- * 
+ *
  */
-struct 
+struct
 {
   bool active;
   int elevation;
@@ -43,7 +43,7 @@ struct
 
 /**
  * @brief Init GPS and custon NMEA parsing
- * 
+ *
  */
 void init_gps()
 {
@@ -59,21 +59,23 @@ void init_gps()
 }
 
 /**
- * @brief Read and parse NMEA sentences
- * 
- * @param ms -> delay between readings
+ * @brief Get the gps fix signal and set time.
+ *
  */
-void read_NMEA(unsigned long ms)
+void get_gps_fix()
 {
-  unsigned long start = millis();
-  do
+  while (!GPS.location.isValid())
   {
-    while (gps->available())
+    if (GPS.location.isValid())
     {
-      GPS.encode(gps->read());
-      if (GPS.location.isValid())
-        is_gps_fixed = true;
+      is_gps_fixed = true;
+      setTime(GPS.time.hour(), GPS.time.minute(), GPS.time.second(), GPS.date.day(), GPS.date.month(), GPS.date.year());
+      delay(50);
+      adjustTime(TIME_OFFSET * SECS_PER_HOUR);
+      delay(500);
+      break;
     }
-  } while (millis() - start < ms);
+  }
+  lv_timer_handler();
+  delay(5);
 }
-

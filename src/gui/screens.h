@@ -53,7 +53,6 @@ bool is_show_degree = true;
 #include "gui/widgets/map.h"
 #include "gui/widgets/hour.h"
 #include "gui/widgets/notify_bar.h"
-#include "gui/screens/search_sat_scr.h"
 #include "gui/screens/splash_scr.h"
 #include "gui/screens/main_scr.h"
 #include "gui/screens/menu_scr.h"

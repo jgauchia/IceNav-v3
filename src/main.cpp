@@ -8,6 +8,7 @@
 
 #include <Arduino.h>
 #include <Wire.h>
+#include <Ticker.h>
 #include <SPI.h>
 #include <WiFi.h>
 #include <MyDelay.h>
@@ -16,23 +17,24 @@
 
 unsigned long millis_actual = 0;
 
+#include "hardware/tft.h"
+#include "gui/lvgl.h"
 #include "hardware/hal.h"
 #include "hardware/serial.h"
 #include "hardware/sdcard.h"
 #include "hardware/compass.h"
 #include "hardware/battery.h"
 #include "hardware/gps.h"
-#include "hardware/tft.h"
-#include "hardware/keys_def.h"
+#include "hardware/keys.h"
 #include "hardware/power.h"
 #include "utils/math.h"
 #include "utils/bmp.h"
 #include "utils/png.h"
 #include "utils/wpt.h"
-#include "gui/icons.h"
-#include "gui/screens.h"
-#include "gui/lvgl.h"
-#include "hardware/keys.h"
+
+#include "gui/screens/splash_scr.h"
+//#include "gui/icons.h"
+//#include "gui/screens.h"
 #include "tasks.h"
 
 /**
@@ -67,25 +69,20 @@ void setup()
   splash_scr();
   while (millis() < millis_actual + 4000)
     ;
-  tft.fillScreen(TFT_BLACK);
-#ifdef SEARCH_SAT_ON_INIT
-  search_sat_scr();
-#endif
 
-//********TEST LVGL
-  static lv_obj_t *label;
-  searchSat = lv_obj_create(NULL);
-  label = lv_label_create(searchSat);
-  lv_label_set_text(label, "Press a button");
-  lv_obj_set_size(label, 240, 40);
-  lv_obj_set_pos(label, 0, 15);
+  init_tasks();
+
   lv_scr_load(searchSat);
-/**********/
+  get_gps_fix();
 
-  // is_menu_screen = false;
-  // is_main_screen = true;
+  lv_obj_t *tv = lv_tileview_create(NULL);
+  lv_obj_t *tile1 = lv_tileview_add_tile(tv, 0, 0, LV_DIR_LEFT);
+  lv_obj_t *tile2 = lv_tileview_add_tile(tv, 1, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
+  lv_obj_t *tile3 = lv_tileview_add_tile(tv, 2, 0, LV_DIR_LEFT);
 
-  // init_tasks();
+  lv_scr_load(tv);
+
+  // lv_obj_t *currentScreen = lv_scr_act();
 }
 
 /**
@@ -94,4 +91,9 @@ void setup()
  */
 void loop()
 {
+
+  xSemaphoreTake(xSemaphore, portMAX_DELAY);
+  lv_task_handler();
+  xSemaphoreGive(xSemaphore);
+  delay(5);
 }
