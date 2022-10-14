@@ -75,7 +75,7 @@ void get_gps_fix()
       delay(500);
       break;
     }
+    lv_timer_handler();
+    delay(5);
   }
-  lv_timer_handler();
-  delay(5);
 }

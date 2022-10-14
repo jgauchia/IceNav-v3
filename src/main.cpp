@@ -15,8 +15,6 @@
 #include <esp_wifi.h>
 #include <esp_bt.h>
 
-unsigned long millis_actual = 0;
-
 #include "hardware/tft.h"
 #include "gui/lvgl.h"
 #include "hardware/hal.h"
@@ -65,10 +63,8 @@ void setup()
   BATTtime.start();
   batt_level = Read_Battery();
 
-  millis_actual = millis();
   splash_scr();
-  while (millis() < millis_actual + 4000)
-    ;
+  delay(3000);
 
   init_tasks();
 
@@ -91,7 +87,6 @@ void setup()
  */
 void loop()
 {
-
   xSemaphoreTake(xSemaphore, portMAX_DELAY);
   lv_task_handler();
   xSemaphoreGive(xSemaphore);

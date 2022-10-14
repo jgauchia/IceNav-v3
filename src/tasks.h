@@ -44,11 +44,11 @@ void Main_prog(void *pvParameters)
   debug->println(xPortGetCoreID());
   for (;;)
   {
-    currentScreen = lv_scr_act();
+    //currentScreen = lv_scr_act();
 
-    key_pressed = Read_Keys();
-    if (KEYStime.update())
-      Check_keys(key_pressed);
+    //key_pressed = Read_Keys();
+    //if (KEYStime.update())
+     // Check_keys(key_pressed);
 
     if (BATTtime.update())
       batt_level = Read_Battery();

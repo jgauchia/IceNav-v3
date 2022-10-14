@@ -10,8 +10,8 @@
 #include <lvgl.h>
 #include "gui/screens-lvgl/search_sat_scr.h"
 
-static const uint16_t screenWidth = TFT_HEIGHT; 
-static const uint16_t screenHeight = TFT_WIDTH;
+static const uint16_t screenWidth = TFT_WIDTH;
+static const uint16_t screenHeight = TFT_HEIGHT;
 static lv_disp_draw_buf_t draw_buf;
 static lv_color_t buf[screenWidth * 10];
 static lv_obj_t *currentScreen;
@@ -64,11 +64,11 @@ void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
 
 /**
  * @brief LVGL Keypad read
- * 
+ *
  */
-void my_keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data) 
+void my_keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
 {
-   
+    //key_pressed = Read_Keys();
     // if(btn_pr >= 0) {
     //     //printf("Premut boto amb id = %d\n", btn_pr);
     //     data->state = LV_INDEV_STATE_PRESSED;
@@ -112,8 +112,6 @@ void my_keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
     // }
 }
 
-
-
 /**
  * @brief Init LVGL
  *
@@ -142,7 +140,7 @@ void init_LVGL()
     lv_indev_drv_register(&indev_drv);
 
     create_search_sat_scr();
-    
+
     tick.attach_ms(LVGL_TICK_PERIOD, lv_tick_handler);
     xSemaphore = xSemaphoreCreateMutex();
 }
