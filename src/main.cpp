@@ -15,15 +15,19 @@
 #include <esp_wifi.h>
 #include <esp_bt.h>
 
-#include "hardware/tft.h"
-#include "gui/lvgl.h"
+unsigned long millis_actual = 0;
+
 #include "hardware/hal.h"
 #include "hardware/serial.h"
 #include "hardware/sdcard.h"
+#include "hardware/tft.h"
+#include "hardware/keys.h"
+#include "gui/lvgl.h"
+
 #include "hardware/compass.h"
 #include "hardware/battery.h"
 #include "hardware/gps.h"
-#include "hardware/keys.h"
+
 #include "hardware/power.h"
 #include "utils/math.h"
 #include "utils/bmp.h"
@@ -41,19 +45,18 @@
  */
 void setup()
 {
+#ifdef ENABLE_PCF8574
+  keyboard.begin();
+#endif
+
 #ifdef DEBUG
   init_serial();
 #endif
   powerOn();
+  init_sd();
   init_LVGL();
   init_tft();
-  init_sd();
   init_gps();
-
-#ifdef ENABLE_PCF8574
-  keyboard.begin();
-  KEYStime.start();
-#endif
 
 #ifdef ENABLE_COMPASS
   compass.begin();
@@ -63,22 +66,17 @@ void setup()
   BATTtime.start();
   batt_level = Read_Battery();
 
+  millis_actual = millis();
   splash_scr();
-  delay(3000);
+  while (millis() < millis_actual + 4000)
+    ;
 
   init_tasks();
 
-  lv_scr_load(searchSat);
-  get_gps_fix();
+  // lv_scr_load(searchSat);
+  // get_gps_fix();
 
-  lv_obj_t *tv = lv_tileview_create(NULL);
-  lv_obj_t *tile1 = lv_tileview_add_tile(tv, 0, 0, LV_DIR_LEFT);
-  lv_obj_t *tile2 = lv_tileview_add_tile(tv, 1, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
-  lv_obj_t *tile3 = lv_tileview_add_tile(tv, 2, 0, LV_DIR_LEFT);
-
-  lv_scr_load(tv);
-
-  // lv_obj_t *currentScreen = lv_scr_act();
+  lv_scr_load(mainScreen);    
 }
 
 /**

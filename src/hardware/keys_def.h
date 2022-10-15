@@ -24,7 +24,5 @@ enum Keys
     LUP,
     LBUT,
     LDOWN,
-    BLEFT,
-    BRIGHT
 };
 int key_pressed = NONE;

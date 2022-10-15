@@ -14,18 +14,11 @@ PCF8574 keyboard(0x20);
 #include "hardware/keys_def.h"
 
 /**
- * @brief Keyboard read delay
- *
- */
-#define KEYS_UPDATE_TIME 200
-MyDelay KEYStime(KEYS_UPDATE_TIME);
-
-/**
  * @brief Read keys
  *
  * @return int -> enum structure keys index
  */
-int Read_Keys()
+static int Read_Keys()
 {
 #ifdef ENABLE_PCF8574
   keyboard.read8();
@@ -62,52 +55,3 @@ int Read_Keys()
 #endif
 }
 
-/**
- * @brief Keys actions
- *
- * @param read_key -> enum strucrure keys indesx
- * @return * void
- */
-void Check_keys(int read_key)
-{
-  // if (read_key == PUSH && !is_menu_screen)
-  // {
-  //   is_draw = false;
-  //   is_menu_screen = true;
-  //   is_main_screen = false;
-  // }
-  // else if (read_key == PUSH && is_menu_screen)
-  // {
-  //   is_draw = false;
-  //   is_menu_screen = false;
-  //   is_main_screen = true;
-  // }
-
-  // if (read_key == LUP && is_map_screen)
-  // {
-  //   zoom++;
-  //   if (zoom > MAX_ZOOM)
-  //      zoom = MAX_ZOOM;
-  // }
-  // else if (read_key == LDOWN && is_map_screen)
-  // {
-  //   zoom--;
-  //   if (zoom < MIN_ZOOM)
-  //      zoom = MIN_ZOOM;
-  // }
-
-  // if (read_key == RIGHT && is_main_screen)
-  // {
-  //   is_draw = false;
-  //   sel_MainScreen++;
-  //   if (sel_MainScreen > MAX_MAIN_SCREEN)
-  //     sel_MainScreen = 1;
-  // }
-  // else if (read_key == LEFT && is_main_screen)
-  // {
-  //   is_draw = false;
-  //   sel_MainScreen--;
-  //   if (sel_MainScreen < 1)
-  //     sel_MainScreen = MAX_MAIN_SCREEN;
-  // }
-}

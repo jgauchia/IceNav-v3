@@ -44,29 +44,12 @@ void Main_prog(void *pvParameters)
   debug->println(xPortGetCoreID());
   for (;;)
   {
-    //currentScreen = lv_scr_act();
+    currentScreen = lv_scr_act();
 
-    //key_pressed = Read_Keys();
-    //if (KEYStime.update())
-     // Check_keys(key_pressed);
+    // if (BATTtime.update())
+    //   batt_level = Read_Battery();
 
-    if (BATTtime.update())
-      batt_level = Read_Battery();
-
-    //   if (is_gps_fixed)
-    //   {
-    //     if (is_menu_screen)
-    //     {
-    //       show_menu_screen();
-    //     }
-    //     else if (!is_menu_screen)
-    //     {
-    //       if (!is_map_screen)
-    //         zoom_old = tilex = tiley = 0;
-    //       MainScreen[sel_MainScreen]();
-    //     }
-    //     delay(1);
-    //   }
+   delay(1);
   }
 }
 

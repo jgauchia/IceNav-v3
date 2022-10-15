@@ -8,13 +8,18 @@
 
 //#include "../lvgl/src/lvgl.h"
 #include <lvgl.h>
-#include "gui/screens-lvgl/search_sat_scr.h"
 
 static const uint16_t screenWidth = TFT_WIDTH;
 static const uint16_t screenHeight = TFT_HEIGHT;
 static lv_disp_draw_buf_t draw_buf;
 static lv_color_t buf[screenWidth * 10];
 static lv_obj_t *currentScreen;
+static lv_group_t *group;
+static lv_indev_t *my_indev;
+
+#include "gui/screens-lvgl/search_sat_scr.h"
+#include "gui/screens-lvgl/splash_scr.h"
+#include "gui/screens-lvgl/main_scr.h"
 
 #define LVGL_TICK_PERIOD 10
 Ticker tick;
@@ -49,7 +54,7 @@ void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
 {
     uint16_t touchX, touchY;
 
-    bool touched = tft.getTouch(&touchX, &touchY, 100);
+    bool touched; // = tft.getTouch(&touchX, &touchY, 100);
 
     if (!touched)
         data->state = LV_INDEV_STATE_REL;
@@ -68,48 +73,45 @@ void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
  */
 void my_keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
 {
-    //key_pressed = Read_Keys();
-    // if(btn_pr >= 0) {
-    //     //printf("Premut boto amb id = %d\n", btn_pr);
-    //     data->state = LV_INDEV_STATE_PRESSED;
-    // } else {
-    //     data->state = LV_INDEV_STATE_RELEASED;
-    // }
+    key_pressed = Read_Keys();
+    debug->println(key_pressed);
+    if (key_pressed >= 0)
+        data->state = LV_INDEV_STATE_PRESSED;
+    else
+        data->state = LV_INDEV_STATE_RELEASED;
+    switch (key_pressed)
+    {
+    case LEFT:
+        if (currentScreen == mainScreen)
+        {
+            act_tile++;
+            if (act_tile == MAX_TILES)
+                act_tile = 0;
+            lv_obj_set_tile_id(mainScreen, act_tile, 0, LV_ANIM_OFF);
+        }
 
-    // switch (btn_pr)
-    // {
-    //     case 0:
-    //         if (currentScreen == scrMain) {
-    //             data->key = LV_KEY_PREV;
-    //         } else {
-    //             data->key = LV_KEY_UP;
-    //         }
-    //         break;
-
-    //     case 1:
-    //         if (currentScreen == scrMain) {
-    //             data->key = LV_KEY_NEXT;
-    //         } else {
-    //             data->key = LV_KEY_DOWN;
-    //         }
-    //         break;
-
-    //     case 2:
-    //         data->key = LV_KEY_ENTER;
-    //         break;
-
-    //     case 3:
-    //         data->key = LV_KEY_ESC;
-    //         break;
-
-    //     default:
-    //         data->key = 0;
-    //         break;
-    // }
-
-    // if ((currentScreen == scrClock || currentScreen == scrCurrentPower) && data->key != 0 && data->key != LV_KEY_ENTER) {
-    //     data->key = LV_KEY_ENTER;
-    // }
+        data->key = LV_KEY_NEXT;
+        break;
+    case RIGHT:
+        if (currentScreen == mainScreen)
+        {
+            act_tile--;
+            if (act_tile < 0)
+                act_tile = MAX_TILES - 1;
+            lv_obj_set_tile_id(mainScreen, act_tile, 0, LV_ANIM_OFF);
+        }
+        data->key = LV_KEY_PREV;
+        break;
+    case UP:
+        data->key = LV_KEY_UP;
+        break;
+    case DOWN:
+        data->key = LV_KEY_DOWN;
+        break;
+    default:
+        data->key = 0;
+        break;
+    }
 }
 
 /**
@@ -119,6 +121,7 @@ void my_keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
 void init_LVGL()
 {
     lv_init();
+    // lv_fs_fatfs_init();
 
     lv_disp_draw_buf_init(&draw_buf, buf, NULL, screenWidth * 10);
 
@@ -134,12 +137,19 @@ void init_LVGL()
 
     //  Init input device //
     static lv_indev_drv_t indev_drv;
+
     lv_indev_drv_init(&indev_drv);
-    indev_drv.type = LV_INDEV_TYPE_POINTER;
-    indev_drv.read_cb = my_touchpad_read;
-    lv_indev_drv_register(&indev_drv);
+    indev_drv.type = LV_INDEV_TYPE_KEYPAD;
+    indev_drv.read_cb = my_keypad_read;
+    my_indev = lv_indev_drv_register(&indev_drv);
 
     create_search_sat_scr();
+    create_splash_scr();
+    create_main_scr();
+
+    group = lv_group_create();
+    lv_group_set_default(group);
+    lv_indev_set_group(my_indev, group);
 
     tick.attach_ms(LVGL_TICK_PERIOD, lv_tick_handler);
     xSemaphore = xSemaphoreCreateMutex();
