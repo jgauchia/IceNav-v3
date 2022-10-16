@@ -22,21 +22,18 @@ unsigned long millis_actual = 0;
 #include "hardware/sdcard.h"
 #include "hardware/tft.h"
 #include "hardware/keys.h"
-#include "gui/lvgl.h"
-
 #include "hardware/compass.h"
 #include "hardware/battery.h"
 #include "hardware/gps.h"
-
 #include "hardware/power.h"
+#include "gui/lvgl.h"
+
 #include "utils/math.h"
 #include "utils/bmp.h"
 #include "utils/png.h"
 #include "utils/wpt.h"
 
 #include "gui/screens/splash_scr.h"
-//#include "gui/icons.h"
-//#include "gui/screens.h"
 #include "tasks.h"
 
 /**
@@ -73,10 +70,10 @@ void setup()
 
   init_tasks();
 
-  // lv_scr_load(searchSat);
-  // get_gps_fix();
+  lv_scr_load(searchSat);
 
-  lv_scr_load(mainScreen);    
+  // lv_scr_load(mainScreen);
+  // create_notify_bar();
 }
 
 /**

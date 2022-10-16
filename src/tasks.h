@@ -20,8 +20,6 @@ void Read_GPS(void *pvParameters)
     if (gps->available())
     {
       GPS.encode(gps->read());
-      if (GPS.location.isValid())
-        is_gps_fixed = true;
 
 #ifdef OUTPUT_NMEA
       {

@@ -17,11 +17,21 @@ static lv_obj_t *currentScreen;
 static lv_group_t *group;
 static lv_indev_t *my_indev;
 
+
+static lv_obj_t *searchSat;
+static lv_obj_t *gps_time;
+static lv_obj_t *gps_count;
+static lv_obj_t *battery;
+static lv_obj_t *splash;
+static lv_obj_t *mainScreen;
+static lv_obj_t *tiles;
+
+#include "gui/screens-lvgl/notify_bar.h"
 #include "gui/screens-lvgl/search_sat_scr.h"
 #include "gui/screens-lvgl/splash_scr.h"
 #include "gui/screens-lvgl/main_scr.h"
 
-#define LVGL_TICK_PERIOD 10
+#define LVGL_TICK_PERIOD 15
 Ticker tick;
 SemaphoreHandle_t xSemaphore = NULL;
 static void lv_tick_handler(void)
@@ -84,23 +94,23 @@ void my_keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
     case LEFT:
         if (currentScreen == mainScreen)
         {
-            act_tile++;
-            if (act_tile == MAX_TILES)
+            act_tile--;
+            if (act_tile < 0)
                 act_tile = 0;
-            lv_obj_set_tile_id(mainScreen, act_tile, 0, LV_ANIM_OFF);
+            lv_obj_set_tile_id(tiles, act_tile, 0, LV_ANIM_ON);
         }
 
-        data->key = LV_KEY_NEXT;
+        // data->key = LV_KEY_NEXT;
         break;
     case RIGHT:
         if (currentScreen == mainScreen)
         {
-            act_tile--;
-            if (act_tile < 0)
-                act_tile = MAX_TILES - 1;
-            lv_obj_set_tile_id(mainScreen, act_tile, 0, LV_ANIM_OFF);
+            act_tile++;
+            if (act_tile > MAX_TILES - 1)
+                act_tile = MAX_TILES;
+            lv_obj_set_tile_id(tiles, act_tile, 0, LV_ANIM_ON);
         }
-        data->key = LV_KEY_PREV;
+        // data->key = LV_KEY_PREV;
         break;
     case UP:
         data->key = LV_KEY_UP;

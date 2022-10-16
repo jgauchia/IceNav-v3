@@ -10,6 +10,7 @@
 #include <SD.h>
 
 SPIClass spiSD = SPIClass();
+bool sdloaded = false;
 
 /**
  * @brief SD Card init
@@ -23,4 +24,5 @@ void init_sd()
     debug->println("Card Mount Failed");
     return;
   }
+  else sdloaded = true;
 }

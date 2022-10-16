@@ -10,7 +10,7 @@
 #include <TinyGPS++.h>
 
 #define MAX_SATELLITES 60
-#define TIME_OFFSET 1
+int TIME_OFFSET = 2;
 HardwareSerial *gps = &Serial2;
 TinyGPSPlus GPS;
 bool is_gps_fixed = false;
@@ -55,27 +55,5 @@ void init_gps()
     elevation[i].begin(GPS, "GPGSV", 5 + 4 * i); // offsets 5, 9, 13, 17
     azimuth[i].begin(GPS, "GPGSV", 6 + 4 * i);   // offsets 6, 10, 14, 18
     snr[i].begin(GPS, "GPGSV", 7 + 4 * i);       // offsets 7, 11, 15, 19
-  }
-}
-
-/**
- * @brief Get the gps fix signal and set time.
- *
- */
-void get_gps_fix()
-{
-  while (!GPS.location.isValid())
-  {
-    if (GPS.location.isValid())
-    {
-      is_gps_fixed = true;
-      setTime(GPS.time.hour(), GPS.time.minute(), GPS.time.second(), GPS.date.day(), GPS.date.month(), GPS.date.year());
-      delay(50);
-      adjustTime(TIME_OFFSET * SECS_PER_HOUR);
-      delay(500);
-      break;
-    }
-    lv_timer_handler();
-    delay(5);
   }
 }
