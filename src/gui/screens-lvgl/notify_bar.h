@@ -6,7 +6,7 @@
  * @date 2022-10-16
  */
 
-#define UPDATE_NOTIFY_PERIOD 10
+#define UPDATE_NOTIFY_PERIOD 1000
 static lv_obj_t *gps_time;
 static lv_obj_t *gps_count;
 static lv_obj_t *battery;
@@ -21,7 +21,7 @@ void create_notify_bar()
 {
     battery = lv_label_create(lv_scr_act());
     lv_obj_set_size(battery, 20, 20);
-    lv_obj_set_pos(battery, TFT_WIDTH - 25, 0);
+    lv_obj_set_pos(battery, TFT_WIDTH - 25, 2);
     lv_label_set_text(battery, LV_SYMBOL_BATTERY_EMPTY);
 
     gps_time = lv_label_create(lv_scr_act());
@@ -32,12 +32,12 @@ void create_notify_bar()
 
     gps_count = lv_label_create(lv_scr_act());
     lv_obj_set_size(gps_count, 50, 20);
-    lv_obj_set_pos(gps_count, TFT_WIDTH - 60, 0);
+    lv_obj_set_pos(gps_count, TFT_WIDTH - 60, 2);
     lv_label_set_text_fmt(gps_count, LV_SYMBOL_GPS "%2d", GPS.satellites.value());
 
     sdcard = lv_label_create(lv_scr_act());
     lv_obj_set_size(sdcard, 20, 20);
-    lv_obj_set_pos(sdcard, TFT_WIDTH - 75, 0);
+    lv_obj_set_pos(sdcard, TFT_WIDTH - 75, 2);
     if (sdloaded)
         lv_label_set_text(sdcard, LV_SYMBOL_SD_CARD);
     else

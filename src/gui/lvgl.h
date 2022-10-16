@@ -19,6 +19,7 @@ static lv_indev_t *my_indev;
 static lv_obj_t *mainScreen;
 static lv_obj_t *tiles;
 
+#include "gui/img/arrow.c"
 #include "gui/screens-lvgl/notify_bar.h"
 #include "gui/screens-lvgl/search_sat_scr.h"
 #include "gui/screens-lvgl/splash_scr.h"
@@ -77,11 +78,6 @@ void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
 void my_keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
 {
     key_pressed = Read_Keys();
-    debug->println(key_pressed);
-    if (key_pressed >= 0)
-        data->state = LV_INDEV_STATE_PRESSED;
-    else
-        data->state = LV_INDEV_STATE_RELEASED;
     switch (key_pressed)
     {
     case LEFT:

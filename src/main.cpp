@@ -46,6 +46,10 @@ void setup()
   keyboard.begin();
 #endif
 
+#ifdef ENABLE_COMPASS
+  compass.begin();
+#endif
+
 #ifdef DEBUG
   init_serial();
 #endif
@@ -54,11 +58,6 @@ void setup()
   init_LVGL();
   init_tft();
   init_gps();
-
-#ifdef ENABLE_COMPASS
-  compass.begin();
-  COMPASStime.start();
-#endif
 
   BATTtime.start();
   batt_level = Read_Battery();
