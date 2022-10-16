@@ -6,7 +6,7 @@
  * @date 2022-10-16
  */
 
-#define UPDATE_NOTIFY_PERIOD 1000
+#define UPDATE_NOTIFY_PERIOD 1
 static lv_obj_t *gps_time;
 static lv_obj_t *gps_count;
 static lv_obj_t *battery;

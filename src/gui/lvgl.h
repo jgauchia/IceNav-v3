@@ -21,12 +21,13 @@ static lv_obj_t *tiles;
 
 #include "gui/img/arrow.c"
 #include "gui/img/position.c"
+#include "gui/img/bruj.c"
 #include "gui/screens-lvgl/notify_bar.h"
 #include "gui/screens-lvgl/search_sat_scr.h"
 #include "gui/screens-lvgl/splash_scr.h"
 #include "gui/screens-lvgl/main_scr.h"
 
-#define LVGL_TICK_PERIOD 15
+#define LVGL_TICK_PERIOD 5
 Ticker tick;
 SemaphoreHandle_t xSemaphore = NULL;
 static void lv_tick_handler(void)
@@ -82,22 +83,32 @@ void my_keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
     switch (key_pressed)
     {
     case LEFT:
+        currentScreen = lv_scr_act();
         if (currentScreen == mainScreen)
         {
             act_tile--;
             if (act_tile < 0)
                 act_tile = 0;
+            if (act_tile != 0)
+                lv_timer_pause(timer_main_scr);
+            else
+                lv_timer_resume(timer_main_scr);
             lv_obj_set_tile_id(tiles, act_tile, 0, LV_ANIM_ON);
         }
 
         // data->key = LV_KEY_NEXT;
         break;
     case RIGHT:
+        currentScreen = lv_scr_act();
         if (currentScreen == mainScreen)
         {
             act_tile++;
             if (act_tile > MAX_TILES - 1)
                 act_tile = MAX_TILES;
+            if (act_tile != 0)
+                lv_timer_pause(timer_main_scr);
+            else
+                lv_timer_resume(timer_main_scr);
             lv_obj_set_tile_id(tiles, act_tile, 0, LV_ANIM_ON);
         }
         // data->key = LV_KEY_PREV;

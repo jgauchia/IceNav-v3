@@ -15,7 +15,7 @@ PCF8574 keyboard(0x20);
 int buttonState;
 int lastButtonState = 0;
 unsigned long lastDebounceTime = 0;
-unsigned long debounceDelay = 50;
+unsigned long debounceDelay = 10;
 
 /**
  * @brief Read keys

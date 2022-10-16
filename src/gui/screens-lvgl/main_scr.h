@@ -11,12 +11,15 @@ int act_tile = 0;
 int heading = 0;
 int last_heading = 0;
 
-#define UPDATE_MAINSCR_PERIOD 10
+#define UPDATE_MAINSCR_PERIOD 1
 void update_main_screen(lv_timer_t *t);
 
 static lv_obj_t *compass_heading;
+static lv_obj_t *compass_img;
 static lv_obj_t *latitude;
 static lv_obj_t *longitude;
+static lv_obj_t *label;
+static lv_timer_t *timer_main_scr;
 
 /**
  * @brief Create a main screen
@@ -44,6 +47,12 @@ void create_main_scr()
     lv_obj_t *img1 = lv_img_create(compass);
     lv_img_set_src(img1, &arrow);
     lv_obj_align(img1, LV_ALIGN_CENTER, 0, -20);
+
+    LV_IMG_DECLARE(bruj);
+    compass_img = lv_img_create(compass);
+    lv_img_set_src(compass_img, &bruj);
+    lv_obj_align(compass_img, LV_ALIGN_CENTER, 0, 15);
+    lv_img_set_pivot(compass_img, 100, 100);
 #endif
 
     LV_IMG_DECLARE(position);
@@ -60,12 +69,12 @@ void create_main_scr()
     lv_obj_set_size(longitude, 200, 20);
     lv_obj_set_style_text_font(longitude, &lv_font_montserrat_16, 0);
     lv_obj_set_pos(longitude, 45, 23);
-    
+
     lv_group_add_obj(group, tiles);
     lv_group_add_obj(group, mainScreen);
 
-    lv_timer_t *t = lv_timer_create(update_main_screen, UPDATE_MAINSCR_PERIOD, NULL);
-    lv_timer_ready(t);
+    timer_main_scr = lv_timer_create(update_main_screen, UPDATE_MAINSCR_PERIOD, NULL);
+    lv_timer_ready(timer_main_scr);
 }
 
 /**
@@ -76,6 +85,7 @@ void update_main_screen(lv_timer_t *t)
 {
 #ifdef ENABLE_COMPASS
     lv_label_set_text_fmt(compass_heading, "%5d\xC2\xB0", heading);
+    lv_img_set_angle(compass_img, heading * 10);
 #endif
     lv_label_set_text(latitude, Latitude_formatString(GPS.location.lat()));
     lv_label_set_text(longitude, Longitude_formatString(GPS.location.lng()));

@@ -42,10 +42,9 @@ void Main_prog(void *pvParameters)
   debug->println(xPortGetCoreID());
   for (;;)
   {
-    currentScreen = lv_scr_act();
     heading = read_compass();
-    // if (BATTtime.update())
-    //   batt_level = Read_Battery();
+    //  if (BATTtime.update())
+    //    batt_level = Read_Battery();
 
     delay(1);
   }
