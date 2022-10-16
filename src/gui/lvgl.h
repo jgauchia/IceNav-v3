@@ -22,6 +22,7 @@ static lv_obj_t *searchSat;
 static lv_obj_t *gps_time;
 static lv_obj_t *gps_count;
 static lv_obj_t *battery;
+static lv_obj_t *sdcard;
 static lv_obj_t *splash;
 static lv_obj_t *mainScreen;
 static lv_obj_t *tiles;
