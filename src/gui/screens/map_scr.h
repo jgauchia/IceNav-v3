@@ -7,6 +7,16 @@
  */
 
 /**
+ * @brief Map Zoom variables
+ * 
+ */
+#define MIN_ZOOM 6
+#define MAX_ZOOM 18
+#define DEF_ZOOM 16
+int zoom = DEF_ZOOM;
+int zoom_old = 0;
+
+/**
  * @brief  Display map screen, GPS Ubication on map, hour, satellites, battery
  * 
  */

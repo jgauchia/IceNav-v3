@@ -26,13 +26,11 @@ unsigned long millis_actual = 0;
 #include "hardware/battery.h"
 #include "hardware/gps.h"
 #include "hardware/power.h"
-#include "gui/lvgl.h"
-
 #include "utils/math.h"
 #include "utils/bmp.h"
 #include "utils/png.h"
 #include "utils/wpt.h"
-
+#include "gui/lvgl.h"
 #include "gui/screens/splash_scr.h"
 #include "tasks.h"
 

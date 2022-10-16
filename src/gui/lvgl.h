@@ -20,6 +20,7 @@ static lv_obj_t *mainScreen;
 static lv_obj_t *tiles;
 
 #include "gui/img/arrow.c"
+#include "gui/img/position.c"
 #include "gui/screens-lvgl/notify_bar.h"
 #include "gui/screens-lvgl/search_sat_scr.h"
 #include "gui/screens-lvgl/splash_scr.h"
