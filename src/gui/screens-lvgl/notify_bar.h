@@ -6,8 +6,11 @@
  * @date 2022-10-16
  */
 
-#define UPDATE_PERIOD 10
-
+#define UPDATE_NOTIFY_PERIOD 10
+static lv_obj_t *gps_time;
+static lv_obj_t *gps_count;
+static lv_obj_t *battery;
+static lv_obj_t *sdcard;
 void update_notify_bar(lv_timer_t *t);
 
 /**
@@ -40,7 +43,7 @@ void create_notify_bar()
     else
         lv_label_set_text(sdcard, " ");
 
-    lv_timer_t *t = lv_timer_create(update_notify_bar, UPDATE_PERIOD, NULL);
+    lv_timer_t *t = lv_timer_create(update_notify_bar, UPDATE_NOTIFY_PERIOD, NULL);
     lv_timer_ready(t);
 }
 

@@ -16,14 +16,6 @@ static lv_color_t buf[screenWidth * 10];
 static lv_obj_t *currentScreen;
 static lv_group_t *group;
 static lv_indev_t *my_indev;
-
-
-static lv_obj_t *searchSat;
-static lv_obj_t *gps_time;
-static lv_obj_t *gps_count;
-static lv_obj_t *battery;
-static lv_obj_t *sdcard;
-static lv_obj_t *splash;
 static lv_obj_t *mainScreen;
 static lv_obj_t *tiles;
 

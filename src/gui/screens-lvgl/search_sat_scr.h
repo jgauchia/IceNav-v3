@@ -6,6 +6,9 @@
  * @date 2022-10-13
  */
 
+#define UPDATE_SEARCH_PERIOD 1000
+static lv_obj_t *searchSat;
+
 lv_timer_t *t;
 void search_gps(lv_timer_t *t);
 
@@ -31,7 +34,7 @@ void create_search_sat_scr()
     lv_obj_set_size(spinner, 130, 130);
     lv_obj_center(spinner);
 
-    t = lv_timer_create(search_gps, UPDATE_PERIOD, NULL);
+    t = lv_timer_create(search_gps, UPDATE_SEARCH_PERIOD, NULL);
     lv_timer_ready(t);
 }
 

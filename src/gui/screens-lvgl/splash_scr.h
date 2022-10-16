@@ -6,6 +6,8 @@
  * @date 2022-10-14
  */
 
+static lv_obj_t *splash;
+
 /**
  * @brief Create a splash screen
  *
