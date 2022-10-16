@@ -82,5 +82,5 @@ void loop()
   xSemaphoreTake(xSemaphore, portMAX_DELAY);
   lv_task_handler();
   xSemaphoreGive(xSemaphore);
-  delay(5);
+  delay(2);
 }

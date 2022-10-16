@@ -27,7 +27,7 @@ static lv_obj_t *tiles;
 #include "gui/screens-lvgl/splash_scr.h"
 #include "gui/screens-lvgl/main_scr.h"
 
-#define LVGL_TICK_PERIOD 5
+#define LVGL_TICK_PERIOD 1
 Ticker tick;
 SemaphoreHandle_t xSemaphore = NULL;
 static void lv_tick_handler(void)
