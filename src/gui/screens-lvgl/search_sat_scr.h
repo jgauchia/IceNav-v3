@@ -46,11 +46,9 @@ void search_gps(lv_timer_t *t)
         is_gps_fixed = true;
         setTime(GPS.time.hour(), GPS.time.minute(), GPS.time.second(), GPS.date.day(), GPS.date.month(), GPS.date.year());
         adjustTime(TIME_OFFSET * SECS_PER_HOUR);
-        delay(1000);
-    }
-
-    if (is_gps_fixed)
-    {
+        millis_actual = millis();
+        while (millis() < millis_actual + 2000)
+            ;
         lv_timer_del(t);
         lv_scr_load(mainScreen);
         create_notify_bar();
