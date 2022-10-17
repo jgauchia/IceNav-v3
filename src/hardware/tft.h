@@ -8,13 +8,15 @@
 
 #include <TFT_eSPI.h>
 
+int brightness_level = 255;
+
 TFT_eSPI tft = TFT_eSPI();
 TFT_eSprite sat_sprite = TFT_eSprite(&tft);
 TFT_eSprite compass_sprite = TFT_eSprite(&tft);
 
 /**
  * @brief Init tft display
- * 
+ *
  */
 void init_tft()
 {
@@ -29,4 +31,32 @@ void init_tft()
 
   tft.fillScreen(TFT_BLACK);
   tft.initDMA();
+
+  ledcAttachPin(TFT_BL, 0);
+  ledcSetup(0, 8000, 8);
+  ledcWrite(0, 255);
+}
+
+/**
+ * @brief Set the TFT brightness
+ * 
+ * @param brightness -> 0..255
+ */
+void set_brightness(int brightness)
+{
+  if (brightness<=255)
+  {
+    ledcWrite(0,brightness);
+    brightness_level = brightness;
+  }
+}
+
+/**
+ * @brief Get the TFT brightness 
+ * 
+ * @return int -> brightness value 0..255
+ */
+int get_brightness()
+{
+  return brightness_level;
 }
