@@ -2,8 +2,9 @@
 # Author: @hpsaturn
 # pre-build script, setting up build environment
 
-import sys
+import os.path
 from platformio import util
+import shutil
 from SCons.Script import DefaultEnvironment
 
 try:
@@ -32,3 +33,9 @@ env.Append(BUILD_FLAGS=[
     u'-DFLAVOR=\\"' + flavor + '\\"',
     u'-D'+ flavor + '=1'
     ])
+
+config_path = "lib/lv_"+ flavor + "_conf.h"
+output_path =  ".pio/libdeps/" + flavor 
+target_path = output_path + "/lv_conf.h"
+os.makedirs(output_path, 0o755, True)
+shutil.copy(config_path , target_path)
