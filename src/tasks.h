@@ -42,7 +42,6 @@ void Main_prog(void *pvParameters)
   debug->println(xPortGetCoreID());
   for (;;)
   {
-    heading = read_compass();
     //  if (BATTtime.update())
     //    batt_level = Read_Battery();
 

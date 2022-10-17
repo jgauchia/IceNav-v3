@@ -13,6 +13,7 @@ ESP32 GPS Navigator
                      DC   GPIO15
                      RST  GPIO32
                      CS   GPIO2
+                     LED  GPIO33
 
 
        Pinout TDISPLAY:

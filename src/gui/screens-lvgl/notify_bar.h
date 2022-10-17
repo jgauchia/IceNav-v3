@@ -60,6 +60,7 @@ void update_notify_bar(lv_timer_t *t)
     else
         lv_label_set_text(sdcard, " ");
 
+    batt_level = Read_Battery();
     if (batt_level <= 100 && batt_level > 80)
         lv_label_set_text(battery, LV_SYMBOL_BATTERY_FULL);
     else if (batt_level <= 80 && batt_level > 60)

@@ -84,6 +84,7 @@ void create_main_scr()
 void update_main_screen(lv_timer_t *t)
 {
 #ifdef ENABLE_COMPASS
+    heading = read_compass();
     lv_label_set_text_fmt(compass_heading, "%5d\xC2\xB0", heading);
     lv_img_set_angle(compass_img, heading * 10);
 #endif

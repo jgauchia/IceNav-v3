@@ -8,7 +8,7 @@
 
 /**
  * @brief GPS pin definition
- * 
+ *
  */
 #ifdef CUSTOMBOARD
   #define GPS_TX 16
@@ -22,7 +22,7 @@
 
 /**
  * @brief SD pin definition
- * 
+ *
  */
 #ifdef CUSTOMBOARD
   #define SD_CS 4
@@ -44,6 +44,8 @@
 
 /**
  * @brief Battery monitor pin
- * 
+ *
  */
-#define ADC_BATT_PIN 34
+#ifdef CUSTOMBOARD
+  #define ADC_BATT_PIN 34
+#endif
