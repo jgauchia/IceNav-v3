@@ -42,8 +42,8 @@ float battery_read()
 
   voltage = roundf(voltage * 100) / 100;
   output = ((voltage - battery_min) / (battery_max - battery_min)) * 100;
-  if (output < 100)
+  if (output <= 100)
     return output;
   else
-    return 100.0f;
+    return 0.0f;
 }

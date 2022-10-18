@@ -89,13 +89,8 @@ void my_keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
             act_tile--;
             if (act_tile < 0)
                 act_tile = 0;
-            if (act_tile != 0)
-                lv_timer_pause(timer_main_scr);
-            else
-                lv_timer_resume(timer_main_scr);
             lv_obj_set_tile_id(tiles, act_tile, 0, LV_ANIM_ON);
         }
-
         // data->key = LV_KEY_NEXT;
         break;
     case RIGHT:
@@ -105,10 +100,6 @@ void my_keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
             act_tile++;
             if (act_tile > MAX_TILES - 1)
                 act_tile = MAX_TILES;
-            if (act_tile != 0)
-                lv_timer_pause(timer_main_scr);
-            else
-                lv_timer_resume(timer_main_scr);
             lv_obj_set_tile_id(tiles, act_tile, 0, LV_ANIM_ON);
         }
         // data->key = LV_KEY_PREV;
