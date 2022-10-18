@@ -11,7 +11,6 @@
 #include <Ticker.h>
 #include <SPI.h>
 #include <WiFi.h>
-#include <MyDelay.h>
 #include <esp_wifi.h>
 #include <esp_bt.h>
 
@@ -57,8 +56,7 @@ void setup()
   init_tft();
   init_gps();
 
-  BATTtime.start();
-  batt_level = Read_Battery();
+  batt_level = battery_read();
 
   millis_actual = millis();
   splash_scr();
