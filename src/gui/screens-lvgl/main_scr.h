@@ -11,14 +11,21 @@ int act_tile = 0;
 int heading = 0;
 int last_heading = 0;
 
-#define UPDATE_MAINSCR_PERIOD 1
+#define MIN_ZOOM 6
+#define MAX_ZOOM 18
+#define DEF_ZOOM 16
+int zoom = DEF_ZOOM;
+int zoom_old = 0;
+
+#define UPDATE_MAINSCR_PERIOD 10
 void update_main_screen(lv_timer_t *t);
 
 static lv_obj_t *compass_heading;
 static lv_obj_t *compass_img;
 static lv_obj_t *latitude;
 static lv_obj_t *longitude;
-static lv_obj_t *label;
+static lv_obj_t *zoom_label;
+
 static lv_timer_t *timer_main_scr;
 
 /**
@@ -29,6 +36,7 @@ void create_main_scr()
 {
     mainScreen = lv_obj_create(NULL);
 
+    // Main Screen Tiles
     tiles = lv_tileview_create(mainScreen);
     lv_obj_t *compass = lv_tileview_add_tile(tiles, 0, 0, LV_DIR_RIGHT);
     lv_obj_t *map = lv_tileview_add_tile(tiles, 1, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
@@ -36,6 +44,7 @@ void create_main_scr()
     lv_obj_set_size(tiles, 240, 300);
     lv_obj_set_pos(tiles, 0, 20);
 
+    // Compass Tile
 #ifdef ENABLE_COMPASS
     compass_heading = lv_label_create(compass);
     lv_obj_set_size(compass_heading, 150, 48);
@@ -48,11 +57,11 @@ void create_main_scr()
     lv_img_set_src(img1, &arrow);
     lv_obj_align(img1, LV_ALIGN_CENTER, 0, -20);
 
-    LV_IMG_DECLARE(bruj);
-    compass_img = lv_img_create(compass);
-    lv_img_set_src(compass_img, &bruj);
-    lv_obj_align(compass_img, LV_ALIGN_CENTER, 0, 15);
-    lv_img_set_pivot(compass_img, 100, 100);
+    // LV_IMG_DECLARE(bruj);
+    // compass_img = lv_img_create(compass);
+    // lv_img_set_src(compass_img, &bruj);
+    // lv_obj_align(compass_img, LV_ALIGN_CENTER, 0, 15);
+    // lv_img_set_pivot(compass_img, 100, 100);
 #endif
 
     LV_IMG_DECLARE(position);
@@ -69,6 +78,41 @@ void create_main_scr()
     lv_obj_set_size(longitude, 200, 20);
     lv_obj_set_style_text_font(longitude, &lv_font_montserrat_16, 0);
     lv_obj_set_pos(longitude, 45, 23);
+
+    // Map Tile Test
+
+
+
+    // LV_IMG_DECLARE(png_decoder_test);
+
+    // lv_img_dsc_t png_dsc;
+    // png_dsc.header.always_zero = 0;                          /*It must be zero*/
+    // png_dsc.header.cf = LV_IMG_CF_TRUE_COLOR_ALPHA;      /*Set the color format*/
+    // png_dsc.header.w = png_width;
+    // png_dsc.header.h = png_height;
+    // png_dsc.data_size = png_width * png_height * 4;
+    // png_dsc.data = png_decoded;
+
+    // /*Create an image object and set the decoded PNG image as it's source*/
+    // lv_obj_t * img_obj = lv_img_create(lv_scr_act(), NULL);     /*Create the an image object in LittlevGL*/
+    // lv_img_set_src(img_obj, &png_dsc);                          /*Set the image source to the decoded PNG*/
+    // lv_obj_set_drag(img_obj, true);                             /*Make to image dragable*/
+
+    // /* INITIALIZE AN ANIMATION
+    //  *-----------------------*/
+    // lv_anim_t a;
+    // lv_anim_init(&a);
+    // /* MANDATORY SETTINGS
+    //  *------------------*/
+    // /*Set the "animator" function*/
+    // lv_anim_set_exec_cb(&a, (lv_anim_exec_xcb_t)lv_obj_set_x);
+    // /*Set the variable to animate*/
+    // lv_anim_set_var(&a, latitude);
+    // /*Length of the animation [ms]*/
+    // lv_anim_set_time(&a, 500);
+    // /*Set start and end values. E.g. 0, 150*/
+    // lv_anim_set_values(&a, 240, 240 + 45);
+    // lv_anim_start(&a);
 
     lv_group_add_obj(group, tiles);
     lv_group_add_obj(group, mainScreen);
@@ -89,7 +133,7 @@ void update_main_screen(lv_timer_t *t)
 #ifdef ENABLE_COMPASS
         heading = read_compass();
         lv_label_set_text_fmt(compass_heading, "%5d\xC2\xB0", heading);
-        lv_img_set_angle(compass_img, heading * 10);
+        // lv_img_set_angle(compass_img, heading * 10);
 #endif
         lv_label_set_text(latitude, Latitude_formatString(GPS.location.lat()));
         lv_label_set_text(longitude, Longitude_formatString(GPS.location.lng()));

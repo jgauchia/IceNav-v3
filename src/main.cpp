@@ -65,10 +65,13 @@ void setup()
 
   init_tasks();
 
-  //lv_scr_load(searchSat);
+  // lv_scr_load(searchSat);
 
-  lv_scr_load(mainScreen);
-  create_notify_bar();
+  // lv_scr_load(mainScreen);
+  // create_notify_bar();
+
+  setPngPosition(0, 50);
+  load_file(SD, "/MAP/17/66147/48885.png");
 }
 
 /**
@@ -77,8 +80,8 @@ void setup()
  */
 void loop()
 {
-  xSemaphoreTake(xSemaphore, portMAX_DELAY);
-  lv_task_handler();
-  xSemaphoreGive(xSemaphore);
-  delay(2);
+  // xSemaphoreTake(xSemaphore, portMAX_DELAY);
+  // lv_task_handler();
+  // xSemaphoreGive(xSemaphore);
+  // delay(5);
 }

@@ -27,7 +27,7 @@ static lv_obj_t *tiles;
 #include "gui/screens-lvgl/splash_scr.h"
 #include "gui/screens-lvgl/main_scr.h"
 
-#define LVGL_TICK_PERIOD 1
+#define LVGL_TICK_PERIOD 10
 Ticker tick;
 SemaphoreHandle_t xSemaphore = NULL;
 static void lv_tick_handler(void)
@@ -60,7 +60,7 @@ void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
 {
     uint16_t touchX, touchY;
 
-    bool touched; // = tft.getTouch(&touchX, &touchY, 100);
+    bool touched;// = tft.getTouch(&touchX, &touchY, 100);
 
     if (!touched)
         data->state = LV_INDEV_STATE_REL;
@@ -79,11 +79,11 @@ void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
  */
 void my_keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
 {
+    currentScreen = lv_scr_act();
     key_pressed = Read_Keys();
     switch (key_pressed)
     {
     case LEFT:
-        currentScreen = lv_scr_act();
         if (currentScreen == mainScreen)
         {
             act_tile--;
@@ -94,7 +94,6 @@ void my_keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
         // data->key = LV_KEY_NEXT;
         break;
     case RIGHT:
-        currentScreen = lv_scr_act();
         if (currentScreen == mainScreen)
         {
             act_tile++;
@@ -102,13 +101,32 @@ void my_keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
                 act_tile = MAX_TILES;
             lv_obj_set_tile_id(tiles, act_tile, 0, LV_ANIM_ON);
         }
-        // data->key = LV_KEY_PREV;
         break;
     case UP:
         data->key = LV_KEY_UP;
         break;
     case DOWN:
         data->key = LV_KEY_DOWN;
+        break;
+    case PUSH:
+        break;
+    case LUP:
+        if (currentScreen == mainScreen && act_tile == 1)
+        {
+            zoom++;
+            if (zoom > MAX_ZOOM)
+                zoom = MAX_ZOOM;
+        }
+        break;
+    case LDOWN:
+        if (currentScreen == mainScreen && act_tile == 1)
+        {
+            zoom--;
+            if (zoom < MIN_ZOOM)
+                zoom = MIN_ZOOM;
+        }
+        break;
+    case LBUT:
         break;
     default:
         data->key = 0;
@@ -123,7 +141,6 @@ void my_keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
 void init_LVGL()
 {
     lv_init();
-    // lv_fs_fatfs_init();
 
     lv_disp_draw_buf_init(&draw_buf, buf, NULL, screenWidth * 10);
 

@@ -32,17 +32,6 @@ ESP32 GPS Navigator
        GPS:       https://github.com/mikalhart/TinyGPSPlus
        PCF8574:   https://github.com/RobTillaart/PCF8574
 
-
-       Files needed for PNG decoding and reading
-       include
-          |__________ miniz.c
-          |__________ miniz.h
-          |__________ support_functions.h
-       
-       utils
-          |__________ pngle.c
-          |__________ pngle.h
-
       TODO:
          * Language dependent texts
          * LVGL - optimization
