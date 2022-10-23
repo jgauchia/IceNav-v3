@@ -27,9 +27,13 @@ unsigned long millis_actual = 0;
 #include "hardware/power.h"
 #include "utils/math.h"
 #include "utils/bmp.h"
-#include "utils/png.h"
 #include "utils/wpt.h"
+#include "utils/png_decoder/lv_pngle.h"
+#include "utils/lv_sd_fs.h"
 #include "gui/lvgl.h"
+
+
+
 #include "gui/screens/splash_scr.h"
 #include "tasks.h"
 
@@ -67,11 +71,11 @@ void setup()
 
   // lv_scr_load(searchSat);
 
-  // lv_scr_load(mainScreen);
-  // create_notify_bar();
+  lv_scr_load(mainScreen);
+  create_notify_bar();
 
-  setPngPosition(0, 50);
-  load_file(SD, "/MAP/17/66147/48885.png");
+  // setPngPosition(0, 50);
+  // load_file(SD, "/MAP/17/66147/48885.png");
 }
 
 /**
@@ -80,8 +84,8 @@ void setup()
  */
 void loop()
 {
-  // xSemaphoreTake(xSemaphore, portMAX_DELAY);
-  // lv_task_handler();
-  // xSemaphoreGive(xSemaphore);
-  // delay(5);
+  xSemaphoreTake(xSemaphore, portMAX_DELAY);
+  lv_task_handler();
+  xSemaphoreGive(xSemaphore);
+  delay(5);
 }

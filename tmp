@@ -1,19 +1,7 @@
-/**
- * @file png.h
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief  PNG manipulation functions
- * @version 0.1
- * @date 2022-10-10
- */
-
-#include <math.h>
-#include "utils/png_decoder/pngle.h"
-
-
-#define LINE_BUF_SIZE 240 // pixel = 524, 16 = 406, 32 = 386, 64 = 375, 128 = 368, 240 = 367, no draw = 324 (51ms v 200ms)
 int16_t px = 0, sx = 0;
 int16_t py = 0, sy = 0;
 uint8_t pc = 0;
+#define LINE_BUF_SIZE 128 // pixel = 524, 16 = 406, 32 = 386, 64 = 375, 128 = 368, 240 = 367, no draw = 324 (51ms v 200ms)
 uint16_t lbuf[LINE_BUF_SIZE];
 
 int16_t png_dx = 0, png_dy = 0;
@@ -40,11 +28,7 @@ void pngle_on_draw(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t 
 #ifdef USE_LINE_BUFFER // This must handle skipped pixels in transparent PNGs
     if (pc >= LINE_BUF_SIZE)
     {
-#ifdef USE_ADAFRUIT_GFX
-      tft.drawRGBBitmap(png_dx + sx, png_dy + sy, lbuf, LINE_BUF_SIZE, 1);
-#else
       tft.pushImage(png_dx + sx, png_dy + sy, LINE_BUF_SIZE, 1, lbuf);
-#endif
       px = x;
       sx = x;
       sy = y;
@@ -58,11 +42,7 @@ void pngle_on_draw(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t 
     }
     else
     {
-#ifdef USE_ADAFRUIT_GFX
-      tft.drawRGBBitmap(png_dx + sx, png_dy + sy, lbuf, pc, 1);
-#else
       tft.pushImage(png_dx + sx, png_dy + sy, pc, 1, lbuf);
-#endif
       px = x;
       sx = x;
       sy = y;

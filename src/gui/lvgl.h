@@ -60,7 +60,7 @@ void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
 {
     uint16_t touchX, touchY;
 
-    bool touched;// = tft.getTouch(&touchX, &touchY, 100);
+    bool touched; // = tft.getTouch(&touchX, &touchY, 100);
 
     if (!touched)
         data->state = LV_INDEV_STATE_REL;
@@ -141,6 +141,8 @@ void my_keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
 void init_LVGL()
 {
     lv_init();
+    lv_port_sd_fs_init();
+    lv_pngle_init();
 
     lv_disp_draw_buf_init(&draw_buf, buf, NULL, screenWidth * 10);
 
