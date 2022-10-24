@@ -66,6 +66,8 @@ void setup()
   splash_scr();
   while (millis() < millis_actual + 4000)
     ;
+  
+  tft.initDMA(true);
 
   init_tasks();
 

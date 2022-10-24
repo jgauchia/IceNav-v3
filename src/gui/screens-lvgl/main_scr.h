@@ -57,11 +57,11 @@ void create_main_scr()
     lv_img_set_src(img1, &arrow);
     lv_obj_align(img1, LV_ALIGN_CENTER, 0, -20);
 
-    // LV_IMG_DECLARE(bruj);
-    // compass_img = lv_img_create(compass);
-    // lv_img_set_src(compass_img, &bruj);
-    // lv_obj_align(compass_img, LV_ALIGN_CENTER, 0, 15);
-    // lv_img_set_pivot(compass_img, 100, 100);
+    LV_IMG_DECLARE(bruj);
+    compass_img = lv_img_create(compass);
+    lv_img_set_src(compass_img, &bruj);
+    lv_obj_align(compass_img, LV_ALIGN_CENTER, 0, 15);
+    lv_img_set_pivot(compass_img, 100, 100);
 #endif
 
     LV_IMG_DECLARE(position);
@@ -133,7 +133,7 @@ void update_main_screen(lv_timer_t *t)
 #ifdef ENABLE_COMPASS
         heading = read_compass();
         lv_label_set_text_fmt(compass_heading, "%5d\xC2\xB0", heading);
-        // lv_img_set_angle(compass_img, heading * 10);
+        lv_img_set_angle(compass_img, heading * 10);
 #endif
         lv_label_set_text(latitude, Latitude_formatString(GPS.location.lat()));
         lv_label_set_text(longitude, Longitude_formatString(GPS.location.lng()));
