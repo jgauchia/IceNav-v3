@@ -1,7 +1,7 @@
 /**
  * @file gps_math.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief  Math routines
+ * @brief  Math and various functions
  * @version 0.1
  * @date 2022-10-09
  */
@@ -19,6 +19,16 @@ int tiley = 0;
  */
 double d_midlat = 0;
 double d_midlon = 0;
+
+/**
+ * @brief Structure to store position on screen (tile) of GPS Coordinates
+ * 
+ */
+struct ScreenCoord
+{
+   int posx;
+   int posy;
+};
 
 /**
  * @brief Function to calculate the distance in meters given 2 coordinates (latitude and longitude)
@@ -194,4 +204,39 @@ char* Longitude_formatString(double lon)
   absLongitude = (absLongitude - min) * 60;
   sprintf(s_buf, "%03d\xC2\xB0 %02d\' %.2f\" %c", deg, min, absLongitude, E_W);
   return s_buf;
+}
+
+/**
+ * @brief Get the map tile file from GPS Coordinates
+ * 
+ * @param lon -> Longitude
+ * @param lat -> Latitude
+ * @param zoom_level -> zoom level
+ * @return char* -> Map file path and name
+ */
+char* get_map_tile(double lon, double lat, int zoom_level)
+{
+  char s_file[40];
+  int x = lon2tilex(lon, zoom_level);
+  int y = lat2tiley(lat, zoom_level);
+  sprintf(s_file, "/MAP/%d/%d/%d.png", zoom_level, x, y);
+  return s_file;
+}
+
+/**
+ * @brief Convert GPS Coordinates to screen position (with offsets)
+ * 
+ * @param offset_x -> Offset x position
+ * @param offset_y -> Offset y position
+ * @param lon -> Longitude
+ * @param lat -> Latitude
+ * @param zoom_level -> Zoom level
+ * @return ScreenCoord -> Screen position
+ */
+ScreenCoord coord_to_screen_pos(int offset_x, int offset_y, double lon, double lat, int zoom_level) 
+{
+   ScreenCoord data;
+   data.posx = lon2posx(lon, zoom_level) + offset_x;
+   data.posy = lat2posy(lat, zoom_level) + offset_y;
+   return data;
 }

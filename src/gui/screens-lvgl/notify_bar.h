@@ -18,7 +18,7 @@ static void drawmap(lv_event_t *event)
 {
     if (!is_map_draw)
     {
-        draw_png(SD, "/MAP/17/66147/48885.png",0,63);
+        draw_png(SD, "/MAP/17/66147/48885.png",0,64);
         is_map_draw = true;
     }
 }
