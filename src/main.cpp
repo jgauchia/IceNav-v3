@@ -73,14 +73,8 @@ void setup()
   // lv_scr_load(searchSat);
   // lv_scr_load(splash);
   // lv_scr_load(mainScreen);
-  // create_notify_bar();
 
-  lv_disp_t *def_disp;
-  def_disp = lv_disp_get_default();
- 	lv_disp_drv_t *lv_disp_drv;
-  lv_disp_drv = def_disp->driver;
-  lv_disp_drv->ver_res = 64;
-  lv_disp_drv_update(def_disp, lv_disp_drv);
+  lvgl_set_resolution(240, 60);
   lv_scr_load(notifybar);
 
   // if (!is_map_draw)
