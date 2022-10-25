@@ -25,7 +25,7 @@ unsigned long millis_actual = 0;
 #include "hardware/battery.h"
 #include "hardware/gps.h"
 #include "hardware/power.h"
-#include "utils/math.h"
+#include "utils/gps_math.h"
 #include "utils/bmp.h"
 #include "utils/wpt.h"
 

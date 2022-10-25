@@ -5,8 +5,6 @@
  * @version 0.1
  * @date 2022-10-12
  */
-
-//#include "../lvgl/src/lvgl.h"
 #include <lvgl.h>
 
 /**

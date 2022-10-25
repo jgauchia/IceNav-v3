@@ -6,8 +6,6 @@
  * @date 2022-10-16
  */
 
-//#include "utils/png.h"
-
 #define UPDATE_NOTIFY_PERIOD 1000
 static lv_obj_t *notifybar;
 static lv_obj_t *gps_time;
@@ -18,12 +16,9 @@ void update_notify_bar(lv_timer_t *t);
 
 static void drawmap(lv_event_t *event)
 {
-
     if (!is_map_draw)
     {
-        setPngPosition(0, 63);
-        load_file(SD, "/MAP/17/66147/48885.png");
-        debug->println("leyendo sd");
+        draw_png(SD, "/MAP/17/66147/48885.png",0,63);
         is_map_draw = true;
     }
 }
