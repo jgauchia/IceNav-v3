@@ -1,5 +1,5 @@
 /**
- * @file math.h
+ * @file gps_math.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Math routines
  * @version 0.1
