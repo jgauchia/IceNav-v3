@@ -33,8 +33,8 @@ bool is_map_draw = false;
 #include "gui/img/bruj.c"
 #include "gui/screens-lvgl/notify_bar.h"
 #include "gui/screens-lvgl/search_sat_scr.h"
-#include "gui/screens-lvgl/splash_scr.h"
 #include "gui/screens-lvgl/main_scr.h"
+#include "gui/screens-lvgl/splash_scr.h"
 
 /**
  * @brief Task timer for LVGL screen update
@@ -175,7 +175,6 @@ void init_LVGL()
     //  Create Screens //
     create_notify_bar();
     create_search_sat_scr();
-    create_splash_scr();
     create_main_scr();
 
     group = lv_group_create();

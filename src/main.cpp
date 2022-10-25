@@ -32,7 +32,6 @@ unsigned long millis_actual = 0;
 #include "utils/png.h"
 #include "gui/lvgl.h"
 
-#include "gui/screens/splash_scr.h"
 #include "tasks.h"
 
 /**
