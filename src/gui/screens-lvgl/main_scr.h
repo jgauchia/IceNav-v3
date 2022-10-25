@@ -5,9 +5,6 @@
  * @version 0.1
  * @date 2022-10-16
  */
-
-#define MAX_TILES 3
-int act_tile = 0;
 int heading = 0;
 int last_heading = 0;
 
@@ -26,6 +23,21 @@ static lv_obj_t *longitude;
 static lv_obj_t *zoom_label;
 
 static lv_timer_t *timer_main_scr;
+
+/**
+ * @brief Draw map event
+ * 
+ * @param event 
+ */
+static void drawmap(lv_event_t *event)
+{
+    if (!is_map_draw && act_tile == 1)
+    {
+        draw_png(SD, "/MAP/17/66147/48885.png",0,64);
+        debug->println("read map");
+        is_map_draw = true;
+    }
+}
 
 /**
  * @brief Create a main screen
@@ -85,6 +97,8 @@ void create_main_scr()
 
     timer_main_scr = lv_timer_create(update_main_screen, UPDATE_MAINSCR_PERIOD, NULL);
     lv_timer_ready(timer_main_scr);
+
+    lv_obj_add_event_cb(map, drawmap, LV_EVENT_DRAW_MAIN_END, NULL);
 }
 
 /**

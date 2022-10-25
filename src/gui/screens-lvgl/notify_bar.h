@@ -14,15 +14,6 @@ static lv_obj_t *battery;
 static lv_obj_t *sdcard;
 void update_notify_bar(lv_timer_t *t);
 
-// static void drawmap(lv_event_t *event)
-// {
-//     if (!is_map_draw)
-//     {
-//         draw_png(SD, "/MAP/17/66147/48885.png",0,64);
-//         is_map_draw = true;
-//     }
-// }
-
 /**
  * @brief Create a notify bar
  *

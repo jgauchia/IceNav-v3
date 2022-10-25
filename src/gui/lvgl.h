@@ -8,6 +8,13 @@
 #include <lvgl.h>
 
 /**
+ * @brief Active Tile in TileView control
+ * 
+ */
+#define MAX_TILES 3
+int act_tile = 0;
+
+/**
  * @brief Default display driver definition
  *
  */
@@ -125,7 +132,10 @@ void keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
                 tft.fillScreen(TFT_BLACK);
             }
             else
+            {
                 lvgl_set_resolution(TFT_WIDTH, TFT_HEIGHT);
+                is_map_draw = false;
+            }
             lv_obj_set_tile_id(tiles, act_tile, 0, LV_ANIM_ON);
         }
         data->key = LV_KEY_PREV;
@@ -142,7 +152,10 @@ void keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
                 tft.fillScreen(TFT_BLACK);
             }
             else
+            {
                 lvgl_set_resolution(TFT_WIDTH, TFT_HEIGHT);
+                is_map_draw = false;
+            }
             lv_obj_set_tile_id(tiles, act_tile, 0, LV_ANIM_ON);
         }
         data->key = LV_KEY_NEXT;
@@ -205,7 +218,6 @@ void init_LVGL()
     my_indev = lv_indev_drv_register(&indev_drv);
 
     //  Create Screens //
-//    create_notify_bar();
     create_search_sat_scr();
     create_main_scr();
 
