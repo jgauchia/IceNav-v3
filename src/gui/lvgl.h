@@ -9,15 +9,26 @@
 //#include "../lvgl/src/lvgl.h"
 #include <lvgl.h>
 
+/**
+ * @brief Default display driver definition
+ *
+ */
 static const uint16_t screenWidth = TFT_WIDTH;
-static const uint16_t screenHeight = TFT_HEIGHT;
+static const uint16_t screenHeight =  TFT_HEIGHT;
 static lv_disp_draw_buf_t draw_buf;
 static lv_color_t buf[screenWidth * 10];
+
 static lv_obj_t *currentScreen;
 static lv_group_t *group;
 static lv_indev_t *my_indev;
 static lv_obj_t *mainScreen;
 static lv_obj_t *tiles;
+
+/**
+ * @brief Flag to indicate when maps needs to be draw
+ *
+ */
+bool is_map_draw = false;
 
 #include "gui/img/arrow.c"
 #include "gui/img/position.c"
@@ -27,6 +38,10 @@ static lv_obj_t *tiles;
 #include "gui/screens-lvgl/splash_scr.h"
 #include "gui/screens-lvgl/main_scr.h"
 
+/**
+ * @brief Task timer for LVGL screen update
+ *
+ */
 #define LVGL_TICK_PERIOD 10
 Ticker tick;
 SemaphoreHandle_t xSemaphore = NULL;
@@ -48,7 +63,7 @@ void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color
     tft.setAddrWindow(area->x1, area->y1, w, h);
     tft.pushColors((uint16_t *)&color_p->full, w * h, true);
     tft.endWrite();
-
+    
     lv_disp_flush_ready(disp);
 }
 
@@ -141,29 +156,26 @@ void my_keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
 void init_LVGL()
 {
     lv_init();
-    lv_port_sd_fs_init();
-    lv_pngle_init();
 
+    //  Init Default Screen driver //
     lv_disp_draw_buf_init(&draw_buf, buf, NULL, screenWidth * 10);
-
-    static lv_disp_drv_t disp_drv;
-    lv_disp_drv_init(&disp_drv);
-
-    //  Init Screen  //
-    disp_drv.hor_res = screenWidth;
-    disp_drv.ver_res = screenHeight;
-    disp_drv.flush_cb = my_disp_flush;
-    disp_drv.draw_buf = &draw_buf;
-    lv_disp_drv_register(&disp_drv);
+    static lv_disp_drv_t def_drv;
+    lv_disp_drv_init(&def_drv);
+    def_drv.hor_res = screenWidth;
+    def_drv.ver_res = screenHeight;
+    def_drv.flush_cb = my_disp_flush;
+    def_drv.draw_buf = &draw_buf;
+    lv_disp_drv_register(&def_drv);
 
     //  Init input device //
     static lv_indev_drv_t indev_drv;
-
     lv_indev_drv_init(&indev_drv);
     indev_drv.type = LV_INDEV_TYPE_KEYPAD;
     indev_drv.read_cb = my_keypad_read;
     my_indev = lv_indev_drv_register(&indev_drv);
 
+    //  Create Screens //
+    create_notify_bar();
     create_search_sat_scr();
     create_splash_scr();
     create_main_scr();

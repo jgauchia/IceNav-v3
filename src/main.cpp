@@ -28,11 +28,9 @@ unsigned long millis_actual = 0;
 #include "utils/math.h"
 #include "utils/bmp.h"
 #include "utils/wpt.h"
-#include "utils/png_decoder/lv_pngle.h"
-#include "utils/lv_sd_fs.h"
+
+#include "utils/png.h"
 #include "gui/lvgl.h"
-
-
 
 #include "gui/screens/splash_scr.h"
 #include "tasks.h"
@@ -66,18 +64,31 @@ void setup()
   splash_scr();
   while (millis() < millis_actual + 4000)
     ;
-  
+
   tft.initDMA(true);
+  tft.fillScreen(TFT_BLACK);
 
   init_tasks();
 
   // lv_scr_load(searchSat);
+  // lv_scr_load(splash);
+  // lv_scr_load(mainScreen);
+  // create_notify_bar();
 
-  lv_scr_load(mainScreen);
-  create_notify_bar();
+  lv_disp_t *def_disp;
+  def_disp = lv_disp_get_default();
+ 	lv_disp_drv_t *lv_disp_drv;
+  lv_disp_drv = def_disp->driver;
+  lv_disp_drv->ver_res = 64;
+  lv_disp_drv_update(def_disp, lv_disp_drv);
+  lv_scr_load(notifybar);
 
-  // setPngPosition(0, 50);
-  // load_file(SD, "/MAP/17/66147/48885.png");
+  // if (!is_map_draw)
+  // {
+  //   setPngPosition(0, 63);
+  //   load_file(SD, "/MAP/17/66147/48885.png");
+  //   is_map_draw = true;
+  // }
 }
 
 /**

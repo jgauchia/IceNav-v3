@@ -14,8 +14,13 @@ static lv_obj_t *splash;
  */
 void create_splash_scr()
 {
-    splash = lv_img_create(lv_scr_act());
-    lv_img_set_src(splash, "S:/INIT.BMP");
-    // #endif
-    //lv_obj_set_pos(splash, 0, 0);
+    //splash = lv_obj_create(lv_scr_act());
+    // tft.initDMA(false);
+    // lv_timer_enable(false);
+    //  lv_img_set_src(splash, "S:/MAP/17/66147/48885.png");
+    //  lv_obj_set_pos(splash, 0, 0);
+    //load_file(SD, "/MAP/17/66147/48885.png");
+    // lv_timer_enable(true);
+    // tft.initDMA(true);
+    //  lv_task_handler();
 }
