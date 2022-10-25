@@ -15,7 +15,6 @@ int last_heading = 0;
 #define MAX_ZOOM 18
 #define DEF_ZOOM 16
 int zoom = DEF_ZOOM;
-int zoom_old = 0;
 
 #define UPDATE_MAINSCR_PERIOD 10
 void update_main_screen(lv_timer_t *t);

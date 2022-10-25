@@ -7,11 +7,12 @@
  */
 
 /**
- * @brief X,Y Tile index
+ * @brief X,Y and zoom Tile old index
  *
  */
-int tilex = 0;
-int tiley = 0;
+int tilex_old = 0;
+int tiley_old = 0;
+int zoom_old = 0;
 
 /**
  * @brief Variables to store mid point between 2 coordinates
@@ -22,12 +23,24 @@ double d_midlon = 0;
 
 /**
  * @brief Structure to store position on screen (tile) of GPS Coordinates
- * 
+ *
  */
 struct ScreenCoord
 {
-   int posx;
-   int posy;
+  int posx;
+  int posy;
+};
+
+/**
+ * @brief Structure to store Map tile filename, actual tileX, tileY and zoom level
+ * 
+ */
+struct MapTile
+{
+  char* file;
+  int tilex;
+  int tiley;
+  int zoom;
 };
 
 /**
@@ -186,7 +199,7 @@ char *Latitude_formatString(double lat)
  * @param lon  -> Longitude
  * @return char* -> String
  */
-char* Longitude_formatString(double lon)
+char *Longitude_formatString(double lon)
 {
   char E_W = 'E';
   double absLongitude = lon;
@@ -207,25 +220,30 @@ char* Longitude_formatString(double lon)
 }
 
 /**
- * @brief Get the map tile file from GPS Coordinates
- * 
+ * @brief Get the map tile structure from GPS Coordinates
+ *
  * @param lon -> Longitude
  * @param lat -> Latitude
  * @param zoom_level -> zoom level
- * @return char* -> Map file path and name
+ * @return MapTile -> Map Tile structure
  */
-char* get_map_tile(double lon, double lat, int zoom_level)
+MapTile get_map_tile(double lon, double lat, int zoom_level)
 {
-  char s_file[40];
+  static char s_file[40] = "";
   int x = lon2tilex(lon, zoom_level);
   int y = lat2tiley(lat, zoom_level);
   sprintf(s_file, "/MAP/%d/%d/%d.png", zoom_level, x, y);
-  return s_file;
+  MapTile data;
+  data.file = s_file;
+  data.tilex = x;
+  data.tiley = y;
+  data.zoom = zoom_level;
+  return data;
 }
 
 /**
  * @brief Convert GPS Coordinates to screen position (with offsets)
- * 
+ *
  * @param offset_x -> Offset x position
  * @param offset_y -> Offset y position
  * @param lon -> Longitude
@@ -233,10 +251,10 @@ char* get_map_tile(double lon, double lat, int zoom_level)
  * @param zoom_level -> Zoom level
  * @return ScreenCoord -> Screen position
  */
-ScreenCoord coord_to_screen_pos(int offset_x, int offset_y, double lon, double lat, int zoom_level) 
+ScreenCoord coord_to_scr_pos(int offset_x, int offset_y, double lon, double lat, int zoom_level)
 {
-   ScreenCoord data;
-   data.posx = lon2posx(lon, zoom_level) + offset_x;
-   data.posy = lat2posy(lat, zoom_level) + offset_y;
-   return data;
+  ScreenCoord data;
+  data.posx = lon2posx(lon, zoom_level) + offset_x;
+  data.posy = lat2posy(lat, zoom_level) + offset_y;
+  return data;
 }
