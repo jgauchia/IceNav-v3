@@ -71,17 +71,9 @@ void setup()
 
   // lv_scr_load(searchSat);
   // lv_scr_load(splash);
-  // lv_scr_load(mainScreen);
 
-  lvgl_set_resolution(240, 60);
-  lv_scr_load(notifybar);
-
-  // if (!is_map_draw)
-  // {
-  //   setPngPosition(0, 63);
-  //   load_file(SD, "/MAP/17/66147/48885.png");
-  //   is_map_draw = true;
-  // }
+  lv_scr_load(mainScreen);
+  create_notify_bar();
 }
 
 /**

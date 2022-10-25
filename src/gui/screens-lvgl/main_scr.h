@@ -80,39 +80,6 @@ void create_main_scr()
 
     // Map Tile Test
 
-
-
-    // LV_IMG_DECLARE(png_decoder_test);
-
-    // lv_img_dsc_t png_dsc;
-    // png_dsc.header.always_zero = 0;                          /*It must be zero*/
-    // png_dsc.header.cf = LV_IMG_CF_TRUE_COLOR_ALPHA;      /*Set the color format*/
-    // png_dsc.header.w = png_width;
-    // png_dsc.header.h = png_height;
-    // png_dsc.data_size = png_width * png_height * 4;
-    // png_dsc.data = png_decoded;
-
-    // /*Create an image object and set the decoded PNG image as it's source*/
-    // lv_obj_t * img_obj = lv_img_create(lv_scr_act(), NULL);     /*Create the an image object in LittlevGL*/
-    // lv_img_set_src(img_obj, &png_dsc);                          /*Set the image source to the decoded PNG*/
-    // lv_obj_set_drag(img_obj, true);                             /*Make to image dragable*/
-
-    // /* INITIALIZE AN ANIMATION
-    //  *-----------------------*/
-    // lv_anim_t a;
-    // lv_anim_init(&a);
-    // /* MANDATORY SETTINGS
-    //  *------------------*/
-    // /*Set the "animator" function*/
-    // lv_anim_set_exec_cb(&a, (lv_anim_exec_xcb_t)lv_obj_set_x);
-    // /*Set the variable to animate*/
-    // lv_anim_set_var(&a, latitude);
-    // /*Length of the animation [ms]*/
-    // lv_anim_set_time(&a, 500);
-    // /*Set start and end values. E.g. 0, 150*/
-    // lv_anim_set_values(&a, 240, 240 + 45);
-    // lv_anim_start(&a);
-
     lv_group_add_obj(group, tiles);
     lv_group_add_obj(group, mainScreen);
 

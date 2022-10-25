@@ -49,6 +49,23 @@ static void lv_tick_handler(void)
 }
 
 /**
+ * @brief Runtime change LVGL screen resolution
+ *
+ * @param width
+ * @param height
+ */
+void lvgl_set_resolution(int width, int height)
+{
+    lv_disp_t *def_disp;
+    def_disp = lv_disp_get_default();
+    lv_disp_drv_t *lv_disp_drv;
+    lv_disp_drv = def_disp->driver;
+    lv_disp_drv->hor_res = width;
+    lv_disp_drv->ver_res = height;
+    lv_disp_drv_update(def_disp, lv_disp_drv);
+}
+
+/**
  * @brief LVGL display update
  *
  */
@@ -102,9 +119,16 @@ void keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
             act_tile--;
             if (act_tile < 0)
                 act_tile = 0;
+            if (act_tile == 1)
+            {
+                lvgl_set_resolution(TFT_WIDTH, 60);
+                tft.fillScreen(TFT_BLACK);
+            }
+            else
+                lvgl_set_resolution(TFT_WIDTH, TFT_HEIGHT);
             lv_obj_set_tile_id(tiles, act_tile, 0, LV_ANIM_ON);
         }
-        // data->key = LV_KEY_NEXT;
+        data->key = LV_KEY_PREV;
         break;
     case RIGHT:
         if (currentScreen == mainScreen)
@@ -112,8 +136,16 @@ void keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
             act_tile++;
             if (act_tile > MAX_TILES - 1)
                 act_tile = MAX_TILES;
+            if (act_tile == 1)
+            {
+                lvgl_set_resolution(TFT_WIDTH, 60);
+                tft.fillScreen(TFT_BLACK);
+            }
+            else
+                lvgl_set_resolution(TFT_WIDTH, TFT_HEIGHT);
             lv_obj_set_tile_id(tiles, act_tile, 0, LV_ANIM_ON);
         }
+        data->key = LV_KEY_NEXT;
         break;
     case UP:
         data->key = LV_KEY_UP;
@@ -173,7 +205,7 @@ void init_LVGL()
     my_indev = lv_indev_drv_register(&indev_drv);
 
     //  Create Screens //
-    create_notify_bar();
+//    create_notify_bar();
     create_search_sat_scr();
     create_main_scr();
 
@@ -183,21 +215,4 @@ void init_LVGL()
 
     tick.attach_ms(LVGL_TICK_PERIOD, lv_tick_handler);
     xSemaphore = xSemaphoreCreateMutex();
-}
-
-/**
- * @brief Runtime change LVGL screen resolution
- * 
- * @param width 
- * @param height 
- */
-void lvgl_set_resolution(int width, int height)
-{
-    lv_disp_t *def_disp;
-    def_disp = lv_disp_get_default();
-    lv_disp_drv_t *lv_disp_drv;
-    lv_disp_drv = def_disp->driver;
-    lv_disp_drv->hor_res = width;
-    lv_disp_drv->ver_res = height;
-    lv_disp_drv_update(def_disp, lv_disp_drv);
 }
