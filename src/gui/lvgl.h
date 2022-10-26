@@ -44,6 +44,7 @@ bool is_map_draw = false;
 #include "gui/img/arrow.c"
 #include "gui/img/position.c"
 #include "gui/img/bruj.c"
+#include "gui/img/zoom.c"
 #include "gui/screens-lvgl/notify_bar.h"
 #include "gui/screens-lvgl/search_sat_scr.h"
 #include "gui/screens-lvgl/main_scr.h"

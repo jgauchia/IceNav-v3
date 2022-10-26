@@ -125,10 +125,17 @@ void create_main_scr()
     lv_style_set_text_align(&style_zoom, LV_TEXT_ALIGN_RIGHT);
     lv_obj_add_style(zoombox, &style_zoom, LV_STATE_FOCUSED);
 
+    LV_IMG_DECLARE(magnify);
+    lv_obj_t *zoom_img = lv_img_create(map);
+    lv_img_set_src(zoom_img, &magnify);
+    lv_obj_set_pos(zoom_img, 10, 13);
+
     lv_obj_set_width(zoombox, 60);
     lv_obj_set_pos(zoombox, 2, 5);
     lv_group_focus_obj(zoombox);
     lv_obj_add_event_cb(zoombox, get_zoom_value, LV_EVENT_VALUE_CHANGED, NULL);
+
+    // Satellite Tracking Tile
 
     timer_main_scr = lv_timer_create(update_main_screen, UPDATE_MAINSCR_PERIOD, NULL);
     lv_timer_ready(timer_main_scr);
