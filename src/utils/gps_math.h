@@ -7,14 +7,6 @@
  */
 
 /**
- * @brief X,Y and zoom Tile old index
- *
- */
-int tilex_old = 0;
-int tiley_old = 0;
-int zoom_old = 0;
-
-/**
  * @brief Variables to store mid point between 2 coordinates
  *
  */

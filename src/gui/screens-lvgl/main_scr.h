@@ -12,6 +12,10 @@ int last_heading = 0;
 #define MAX_ZOOM 18
 #define DEF_ZOOM 16
 int zoom = DEF_ZOOM;
+MapTile CurrentMapTile;
+int tilex_old = 0;
+int tiley_old = 0;
+int zoom_old = 0;
 
 #define UPDATE_MAINSCR_PERIOD 10
 void update_main_screen(lv_timer_t *t);
@@ -35,8 +39,15 @@ static void drawmap(lv_event_t *event)
 {
     if (!is_map_draw && act_tile == MAP)
     {
-        draw_png(SD, "/MAP/17/66147/48885.png", 0, 64);
-        is_map_draw = true;
+        CurrentMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom);
+        if (CurrentMapTile.zoom != zoom_old || (CurrentMapTile.tiley != tilex_old || CurrentMapTile.tiley != tiley_old))
+        {
+            draw_png(SD, CurrentMapTile.file, 0, 64);
+            is_map_draw = true;
+            zoom_old = CurrentMapTile.zoom;
+            tilex_old = CurrentMapTile.tilex;
+            tiley_old = CurrentMapTile.tiley;
+        }
     }
 }
 
@@ -111,7 +122,7 @@ void create_main_scr()
     lv_style_set_outline_color(&style_zoom, lv_color_black());
     lv_style_set_outline_opa(&style_zoom, LV_OPA_20);
     lv_style_set_outline_width(&style_zoom, 2);
-    lv_style_set_text_align(&style_zoom,LV_TEXT_ALIGN_RIGHT);
+    lv_style_set_text_align(&style_zoom, LV_TEXT_ALIGN_RIGHT);
     lv_obj_add_style(zoombox, &style_zoom, LV_STATE_FOCUSED);
 
     lv_obj_set_width(zoombox, 60);
@@ -143,6 +154,14 @@ void update_main_screen(lv_timer_t *t)
         lv_label_set_text(longitude, Longitude_formatString(GPS.location.lng()));
         break;
     case MAP:
+        CurrentMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom);
+        if (CurrentMapTile.zoom != zoom_old || (CurrentMapTile.tiley != tilex_old || CurrentMapTile.tiley != tiley_old))
+        {
+            draw_png(SD, CurrentMapTile.file, 0, 64);
+            zoom_old = CurrentMapTile.zoom;
+            tilex_old = CurrentMapTile.tilex;
+            tiley_old = CurrentMapTile.tiley;
+        }
         break;
     case SATTRACK:
         break;
