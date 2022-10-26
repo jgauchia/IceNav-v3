@@ -64,9 +64,9 @@ void create_main_scr()
     lv_obj_set_style_text_font(compass_heading, &lv_font_montserrat_48, 0);
 
     LV_IMG_DECLARE(arrow);
-    lv_obj_t *img1 = lv_img_create(compass);
-    lv_img_set_src(img1, &arrow);
-    lv_obj_align(img1, LV_ALIGN_CENTER, 0, -20);
+    lv_obj_t *arrow_img = lv_img_create(compass);
+    lv_img_set_src(arrow_img, &arrow);
+    lv_obj_align(arrow_img, LV_ALIGN_CENTER, 0, -20);
 
     LV_IMG_DECLARE(bruj);
     compass_img = lv_img_create(compass);
@@ -76,9 +76,9 @@ void create_main_scr()
 #endif
 
     LV_IMG_DECLARE(position);
-    lv_obj_t *img2 = lv_img_create(tiles);
-    lv_img_set_src(img2, &position);
-    lv_obj_set_pos(img2, 5, 10);
+    lv_obj_t *pos_img = lv_img_create(tiles);
+    lv_img_set_src(pos_img, &position);
+    lv_obj_set_pos(pos_img, 5, 10);
 
     latitude = lv_label_create(tiles);
     lv_obj_set_size(latitude, 200, 20);
@@ -90,7 +90,8 @@ void create_main_scr()
     lv_obj_set_style_text_font(longitude, &lv_font_montserrat_16, 0);
     lv_obj_set_pos(longitude, 45, 23);
 
-    // Map Tile Test
+    // Map Tile 
+    
 
     lv_group_add_obj(group, tiles);
     lv_group_add_obj(group, mainScreen);
