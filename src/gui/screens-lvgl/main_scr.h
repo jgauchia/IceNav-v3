@@ -23,7 +23,8 @@ static lv_obj_t *longitude;
 static lv_obj_t *zoom_label;
 
 static lv_timer_t *timer_main_scr;
-static lv_obj_t * zoombox;
+static lv_obj_t *zoombox;
+static lv_style_t style_zoom;
 
 /**
  * @brief Draw map event
@@ -40,11 +41,11 @@ static void drawmap(lv_event_t *event)
 }
 
 /**
- * @brief Get the zoom value 
- * 
- * @param event 
+ * @brief Get the zoom value
+ *
+ * @param event
  */
-static void  get_zoom_value(lv_event_t *event)
+static void get_zoom_value(lv_event_t *event)
 {
     zoom = lv_spinbox_get_value(zoombox);
 }
@@ -104,10 +105,17 @@ void create_main_scr()
     zoombox = lv_spinbox_create(map);
     lv_spinbox_set_range(zoombox, MIN_ZOOM, MAX_ZOOM);
     lv_spinbox_set_digit_format(zoombox, 2, 0);
-    lv_spinbox_set_value(zoombox,DEF_ZOOM);
-    lv_spinbox_set_cursor_pos(zoombox,0);
-    lv_obj_set_width(zoombox, 35);
-    lv_obj_set_pos(zoombox, 30, 5);
+    lv_spinbox_set_value(zoombox, DEF_ZOOM);
+
+    lv_style_init(&style_zoom);
+    lv_style_set_outline_color(&style_zoom, lv_color_black());
+    lv_style_set_outline_opa(&style_zoom, LV_OPA_20);
+    lv_style_set_outline_width(&style_zoom, 2);
+    lv_style_set_text_align(&style_zoom,LV_TEXT_ALIGN_RIGHT);
+    lv_obj_add_style(zoombox, &style_zoom, LV_STATE_FOCUSED);
+
+    lv_obj_set_width(zoombox, 60);
+    lv_obj_set_pos(zoombox, 2, 5);
     lv_group_focus_obj(zoombox);
     lv_obj_add_event_cb(zoombox, get_zoom_value, LV_EVENT_VALUE_CHANGED, NULL);
 
