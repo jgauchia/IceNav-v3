@@ -11,11 +11,11 @@ int batt_level = 0;
 
 float battery_max = 4.2;     // maximum voltage of battery
 float battery_min = 3.6;     // minimum voltage of battery before shutdown
-float battery_offset = 1.31; // offset battery to full charge (divder circuit)
+float battery_offset = 1.325; // offset battery to full charge (divder circuit)
 
 /**
  * @brief Read battery charge and return %
- * 
+ *
  * @return float -> % Charge
  */
 float battery_read()
@@ -26,11 +26,11 @@ float battery_read()
   for (int i = 0; i < 500; i++)
   {
     sum += (long)adc1_get_raw(ADC1_CHANNEL_6);
-    delayMicroseconds(100);
+    delayMicroseconds(300);
   }
   voltage = sum / (float)500;
   voltage = adc1_get_raw(ADC1_CHANNEL_6);
-  voltage = (voltage * 1.1) / 4096.0; 
+  voltage = (voltage * 1.1) / 4096.0;
 
 #ifdef CUSTOMBOARD
   // custom board has a divider circuit
@@ -39,10 +39,9 @@ float battery_read()
   voltage = voltage / (R2 / (R1 + R2));
   voltage = (voltage * battery_max) / battery_offset;
 #endif
-
   voltage = roundf(voltage * 100) / 100;
   output = ((voltage - battery_min) / (battery_max - battery_min)) * 100;
-  if (output <= 100)
+  if (output <= 120)
     return output;
   else
     return 0.0f;
