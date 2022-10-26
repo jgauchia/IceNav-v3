@@ -13,6 +13,12 @@
  */
 #define MAX_TILES 3
 int act_tile = 0;
+enum tilename
+{
+    COMPASS,
+    MAP,
+    SATTRACK,
+};
 
 /**
  * @brief Default display driver definition
@@ -126,7 +132,7 @@ void keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
             act_tile--;
             if (act_tile < 0)
                 act_tile = 0;
-            if (act_tile == 1)
+            if (act_tile == MAP)
             {
                 lvgl_set_resolution(TFT_WIDTH, 60);
                 tft.fillScreen(TFT_BLACK);
@@ -146,7 +152,7 @@ void keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
             act_tile++;
             if (act_tile > MAX_TILES - 1)
                 act_tile = MAX_TILES;
-            if (act_tile == 1)
+            if (act_tile == MAP)
             {
                 lvgl_set_resolution(TFT_WIDTH, 60);
                 tft.fillScreen(TFT_BLACK);
@@ -169,7 +175,7 @@ void keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
     case PUSH:
         break;
     case LUP:
-        if (currentScreen == mainScreen && act_tile == 1)
+        if (currentScreen == mainScreen && act_tile == MAP)
         {
             zoom++;
             if (zoom > MAX_ZOOM)
@@ -177,7 +183,7 @@ void keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
         }
         break;
     case LDOWN:
-        if (currentScreen == mainScreen && act_tile == 1)
+        if (currentScreen == mainScreen && act_tile == MAP)
         {
             zoom--;
             if (zoom < MIN_ZOOM)

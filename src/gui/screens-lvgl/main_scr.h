@@ -31,7 +31,7 @@ static lv_timer_t *timer_main_scr;
  */
 static void drawmap(lv_event_t *event)
 {
-    if (!is_map_draw && act_tile == 1)
+    if (!is_map_draw && act_tile == MAP)
     {
         draw_png(SD, "/MAP/17/66147/48885.png",0,64);
         debug->println("read map");
@@ -109,7 +109,7 @@ void update_main_screen(lv_timer_t *t)
 {
     switch (act_tile)
     {
-    case 0:
+    case COMPASS:
 #ifdef ENABLE_COMPASS
         heading = read_compass();
         lv_label_set_text_fmt(compass_heading, "%5d\xC2\xB0", heading);
@@ -118,9 +118,9 @@ void update_main_screen(lv_timer_t *t)
         lv_label_set_text(latitude, Latitude_formatString(GPS.location.lat()));
         lv_label_set_text(longitude, Longitude_formatString(GPS.location.lng()));
         break;
-    case 1:
+    case MAP:
         break;
-    case 2:
+    case SATTRACK:
         break;
     default:
         break;
