@@ -23,20 +23,30 @@ static lv_obj_t *longitude;
 static lv_obj_t *zoom_label;
 
 static lv_timer_t *timer_main_scr;
+static lv_obj_t * zoombox;
 
 /**
  * @brief Draw map event
- * 
- * @param event 
+ *
+ * @param event
  */
 static void drawmap(lv_event_t *event)
 {
     if (!is_map_draw && act_tile == MAP)
     {
-        draw_png(SD, "/MAP/17/66147/48885.png",0,64);
-        debug->println("read map");
+        draw_png(SD, "/MAP/17/66147/48885.png", 0, 64);
         is_map_draw = true;
     }
+}
+
+/**
+ * @brief Get the zoom value 
+ * 
+ * @param event 
+ */
+static void  get_zoom_value(lv_event_t *event)
+{
+    zoom = lv_spinbox_get_value(zoombox);
 }
 
 /**
@@ -90,11 +100,16 @@ void create_main_scr()
     lv_obj_set_style_text_font(longitude, &lv_font_montserrat_16, 0);
     lv_obj_set_pos(longitude, 45, 23);
 
-    // Map Tile 
-    
-
-    lv_group_add_obj(group, tiles);
-    lv_group_add_obj(group, mainScreen);
+    // Map Tile
+    zoombox = lv_spinbox_create(map);
+    lv_spinbox_set_range(zoombox, MIN_ZOOM, MAX_ZOOM);
+    lv_spinbox_set_digit_format(zoombox, 2, 0);
+    lv_spinbox_set_value(zoombox,DEF_ZOOM);
+    lv_spinbox_set_cursor_pos(zoombox,0);
+    lv_obj_set_width(zoombox, 35);
+    lv_obj_set_pos(zoombox, 30, 5);
+    lv_group_focus_obj(zoombox);
+    lv_obj_add_event_cb(zoombox, get_zoom_value, LV_EVENT_VALUE_CHANGED, NULL);
 
     timer_main_scr = lv_timer_create(update_main_screen, UPDATE_MAINSCR_PERIOD, NULL);
     lv_timer_ready(timer_main_scr);

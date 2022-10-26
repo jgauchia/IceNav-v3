@@ -9,7 +9,7 @@
 
 /**
  * @brief Active Tile in TileView control
- * 
+ *
  */
 #define MAX_TILES 3
 int act_tile = 0;
@@ -124,6 +124,12 @@ void keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
 {
     currentScreen = lv_scr_act();
     key_pressed = Read_Keys();
+
+    if (key_pressed > 0)
+        data->state = LV_INDEV_STATE_PRESSED;
+    else
+        data->state = LV_INDEV_STATE_RELEASED;
+
     switch (key_pressed)
     {
     case LEFT:
@@ -134,7 +140,7 @@ void keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
                 act_tile = 0;
             if (act_tile == MAP)
             {
-                lvgl_set_resolution(TFT_WIDTH, 60);
+                lvgl_set_resolution(TFT_WIDTH, 63);
                 tft.fillScreen(TFT_BLACK);
             }
             else
@@ -144,7 +150,7 @@ void keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
             }
             lv_obj_set_tile_id(tiles, act_tile, 0, LV_ANIM_ON);
         }
-        data->key = LV_KEY_PREV;
+        // data->key = LV_KEY_PREV;
         break;
     case RIGHT:
         if (currentScreen == mainScreen)
@@ -154,7 +160,7 @@ void keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
                 act_tile = MAX_TILES;
             if (act_tile == MAP)
             {
-                lvgl_set_resolution(TFT_WIDTH, 60);
+                lvgl_set_resolution(TFT_WIDTH, 63);
                 tft.fillScreen(TFT_BLACK);
             }
             else
@@ -164,33 +170,30 @@ void keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
             }
             lv_obj_set_tile_id(tiles, act_tile, 0, LV_ANIM_ON);
         }
-        data->key = LV_KEY_NEXT;
+        // data->key = LV_KEY_NEXT;
         break;
     case UP:
-        data->key = LV_KEY_UP;
+        // data->key = LV_KEY_UP;
         break;
     case DOWN:
-        data->key = LV_KEY_DOWN;
+        // data->key = LV_KEY_DOWN;
         break;
     case PUSH:
         break;
     case LUP:
         if (currentScreen == mainScreen && act_tile == MAP)
         {
-            zoom++;
-            if (zoom > MAX_ZOOM)
-                zoom = MAX_ZOOM;
+            data->key = LV_KEY_UP;
         }
         break;
     case LDOWN:
         if (currentScreen == mainScreen && act_tile == MAP)
         {
-            zoom--;
-            if (zoom < MIN_ZOOM)
-                zoom = MIN_ZOOM;
+            data->key = LV_KEY_DOWN;
         }
         break;
     case LBUT:
+        data->key = 0;
         break;
     default:
         data->key = 0;
@@ -228,8 +231,9 @@ void init_LVGL()
     create_main_scr();
 
     group = lv_group_create();
-    lv_group_set_default(group);
+    lv_group_add_obj(group, zoombox);
     lv_indev_set_group(my_indev, group);
+    lv_group_set_default(group);
 
     tick.attach_ms(LVGL_TICK_PERIOD, lv_tick_handler);
     xSemaphore = xSemaphoreCreateMutex();
