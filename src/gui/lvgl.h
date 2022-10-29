@@ -45,6 +45,7 @@ bool is_map_draw = false;
 #include "gui/img/position.c"
 #include "gui/img/bruj.c"
 #include "gui/img/zoom.c"
+#include "gui/img/navigation.c"
 #include "gui/screens-lvgl/notify_bar.h"
 #include "gui/screens-lvgl/search_sat_scr.h"
 #include "gui/screens-lvgl/main_scr.h"
@@ -54,7 +55,7 @@ bool is_map_draw = false;
  * @brief Task timer for LVGL screen update
  *
  */
-#define LVGL_TICK_PERIOD 10
+#define LVGL_TICK_PERIOD 2
 Ticker tick;
 SemaphoreHandle_t xSemaphore = NULL;
 static void lv_tick_handler(void)
@@ -149,7 +150,7 @@ void keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
                 lvgl_set_resolution(TFT_WIDTH, TFT_HEIGHT);
                 is_map_draw = false;
             }
-            lv_obj_set_tile_id(tiles, act_tile, 0, LV_ANIM_ON);
+            lv_obj_set_tile_id(tiles, act_tile, 0, LV_ANIM_OFF);
         }
         // data->key = LV_KEY_PREV;
         break;
@@ -169,7 +170,7 @@ void keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
                 lvgl_set_resolution(TFT_WIDTH, TFT_HEIGHT);
                 is_map_draw = false;
             }
-            lv_obj_set_tile_id(tiles, act_tile, 0, LV_ANIM_ON);
+            lv_obj_set_tile_id(tiles, act_tile, 0, LV_ANIM_OFF);
         }
         // data->key = LV_KEY_NEXT;
         break;

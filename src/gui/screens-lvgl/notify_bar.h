@@ -33,7 +33,7 @@ void create_notify_bar()
 
     gps_count = lv_label_create(lv_scr_act());
     lv_obj_set_size(gps_count, 50, 20);
-    lv_obj_set_pos(gps_count, TFT_WIDTH - 60, 2);
+    lv_obj_set_pos(gps_count, TFT_WIDTH - 58, 2);
     lv_label_set_text_fmt(gps_count, LV_SYMBOL_GPS "%2d", GPS.satellites.value());
 
     sdcard = lv_label_create(lv_scr_act());
@@ -62,7 +62,7 @@ void update_notify_bar(lv_timer_t *t)
         lv_label_set_text(sdcard, " ");
 
     batt_level = battery_read();
-    if (batt_level <= 120 && batt_level > 80)
+    if (batt_level <= 140 && batt_level > 80)
         lv_label_set_text(battery, LV_SYMBOL_BATTERY_FULL);
     else if (batt_level <= 80 && batt_level > 60)
         lv_label_set_text(battery, LV_SYMBOL_BATTERY_3);

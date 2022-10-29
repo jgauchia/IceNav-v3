@@ -10,12 +10,13 @@ int last_heading = 0;
 
 #define MIN_ZOOM 6
 #define MAX_ZOOM 18
-#define DEF_ZOOM 16
+#define DEF_ZOOM 7 //17
 int zoom = DEF_ZOOM;
 MapTile CurrentMapTile;
 int tilex_old = 0;
 int tiley_old = 0;
 int zoom_old = 0;
+ScreenCoord NavArrow;
 
 #define UPDATE_MAINSCR_PERIOD 10
 void update_main_screen(lv_timer_t *t);
@@ -29,6 +30,7 @@ static lv_obj_t *zoom_label;
 static lv_timer_t *timer_main_scr;
 static lv_obj_t *zoombox;
 static lv_style_t style_zoom;
+TFT_eSprite sprArrow = TFT_eSprite(&tft);
 
 /**
  * @brief Draw map event
@@ -48,6 +50,10 @@ static void drawmap(lv_event_t *event)
             tilex_old = CurrentMapTile.tilex;
             tiley_old = CurrentMapTile.tiley;
         }
+        NavArrow = coord_to_scr_pos(0, 64, GPS.location.lng(), GPS.location.lat(), zoom);
+        tft.startWrite();
+        sprArrow.pushSprite(NavArrow.posx, NavArrow.posy, TFT_BLACK);
+        tft.endWrite();
     }
 }
 
@@ -135,6 +141,11 @@ void create_main_scr()
     lv_group_focus_obj(zoombox);
     lv_obj_add_event_cb(zoombox, get_zoom_value, LV_EVENT_VALUE_CHANGED, NULL);
 
+    sprArrow.createSprite(16, 16);
+    sprArrow.setColorDepth(16);
+    sprArrow.fillSprite(TFT_BLACK);
+    sprArrow.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
+
     // Satellite Tracking Tile
 
     timer_main_scr = lv_timer_create(update_main_screen, UPDATE_MAINSCR_PERIOD, NULL);
@@ -169,6 +180,12 @@ void update_main_screen(lv_timer_t *t)
             tilex_old = CurrentMapTile.tilex;
             tiley_old = CurrentMapTile.tiley;
         }
+
+        NavArrow = coord_to_scr_pos(0, 64, GPS.location.lng(), GPS.location.lat(), zoom);
+        tft.startWrite();
+        sprArrow.pushSprite(NavArrow.posx, NavArrow.posy, TFT_BLACK);
+        tft.endWrite();
+
         break;
     case SATTRACK:
         break;

@@ -9,8 +9,8 @@
 
 int batt_level = 0;
 
-float battery_max = 4.2;     // maximum voltage of battery
-float battery_min = 3.6;     // minimum voltage of battery before shutdown
+float battery_max = 4.2;      // maximum voltage of battery
+float battery_min = 3.6;      // minimum voltage of battery before shutdown
 float battery_offset = 1.325; // offset battery to full charge (divder circuit)
 
 /**
@@ -29,6 +29,7 @@ float battery_read()
     delayMicroseconds(300);
   }
   voltage = sum / (float)500;
+  debug->println(voltage);
   voltage = adc1_get_raw(ADC1_CHANNEL_6);
   voltage = (voltage * 1.1) / 4096.0;
 
@@ -37,11 +38,14 @@ float battery_read()
   float R1 = 100000.0; // resistance of R1 (100K)
   float R2 = 100000.0; // resistance of R2 (100K)
   voltage = voltage / (R2 / (R1 + R2));
+
   voltage = (voltage * battery_max) / battery_offset;
+
 #endif
   voltage = roundf(voltage * 100) / 100;
   output = ((voltage - battery_min) / (battery_max - battery_min)) * 100;
-  if (output <= 120)
+
+  if (output <= 140)
     return output;
   else
     return 0.0f;
