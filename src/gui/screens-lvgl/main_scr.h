@@ -10,13 +10,14 @@ int last_heading = 0;
 
 #define MIN_ZOOM 6
 #define MAX_ZOOM 18
-#define DEF_ZOOM 7 //17
+#define DEF_ZOOM 7 // 17
 int zoom = DEF_ZOOM;
 MapTile CurrentMapTile;
 int tilex_old = 0;
 int tiley_old = 0;
 int zoom_old = 0;
 ScreenCoord NavArrow;
+bool map_found = false;
 
 #define UPDATE_MAINSCR_PERIOD 10
 void update_main_screen(lv_timer_t *t);
@@ -44,16 +45,19 @@ static void drawmap(lv_event_t *event)
         CurrentMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom);
         if (CurrentMapTile.zoom != zoom_old || (CurrentMapTile.tiley != tilex_old || CurrentMapTile.tiley != tiley_old))
         {
-            draw_png(SD, CurrentMapTile.file, 0, 64);
+            map_found = draw_png(SD, CurrentMapTile.file, 0, 64);
             is_map_draw = true;
             zoom_old = CurrentMapTile.zoom;
             tilex_old = CurrentMapTile.tilex;
             tiley_old = CurrentMapTile.tiley;
         }
-        NavArrow = coord_to_scr_pos(0, 64, GPS.location.lng(), GPS.location.lat(), zoom);
-        tft.startWrite();
-        sprArrow.pushSprite(NavArrow.posx, NavArrow.posy, TFT_BLACK);
-        tft.endWrite();
+        if (map_found)
+        {
+            NavArrow = coord_to_scr_pos(0, 64, GPS.location.lng(), GPS.location.lat(), zoom);
+            tft.startWrite();
+            sprArrow.pushSprite(NavArrow.posx, NavArrow.posy, TFT_BLACK);
+            tft.endWrite();
+        }
     }
 }
 
@@ -175,17 +179,18 @@ void update_main_screen(lv_timer_t *t)
         CurrentMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom);
         if (CurrentMapTile.zoom != zoom_old || (CurrentMapTile.tiley != tilex_old || CurrentMapTile.tiley != tiley_old))
         {
-            draw_png(SD, CurrentMapTile.file, 0, 64);
             zoom_old = CurrentMapTile.zoom;
             tilex_old = CurrentMapTile.tilex;
             tiley_old = CurrentMapTile.tiley;
+            map_found = draw_png(SD, CurrentMapTile.file, 0, 64);
         }
-
-        NavArrow = coord_to_scr_pos(0, 64, GPS.location.lng(), GPS.location.lat(), zoom);
-        tft.startWrite();
-        sprArrow.pushSprite(NavArrow.posx, NavArrow.posy, TFT_BLACK);
-        tft.endWrite();
-
+        if (map_found)
+        {
+            NavArrow = coord_to_scr_pos(0, 64, GPS.location.lng(), GPS.location.lat(), zoom);
+            tft.startWrite();
+            sprArrow.pushSprite(NavArrow.posx, NavArrow.posy, TFT_BLACK);
+            tft.endWrite();
+        }
         break;
     case SATTRACK:
         break;

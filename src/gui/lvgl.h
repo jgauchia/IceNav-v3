@@ -149,6 +149,9 @@ void keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
             {
                 lvgl_set_resolution(TFT_WIDTH, TFT_HEIGHT);
                 is_map_draw = false;
+                zoom_old = 0;
+                tilex_old = 0;
+                tiley_old = 0;
             }
             lv_obj_set_tile_id(tiles, act_tile, 0, LV_ANIM_OFF);
         }
@@ -169,6 +172,9 @@ void keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
             {
                 lvgl_set_resolution(TFT_WIDTH, TFT_HEIGHT);
                 is_map_draw = false;
+                zoom_old = 0;
+                tilex_old = 0;
+                tiley_old = 0;
             }
             lv_obj_set_tile_id(tiles, act_tile, 0, LV_ANIM_OFF);
         }

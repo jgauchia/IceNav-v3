@@ -10,7 +10,7 @@
 #include <TinyGPS++.h>
 
 #define MAX_SATELLITES 60
-int TIME_OFFSET = 2;
+int TIME_OFFSET = 1;
 HardwareSerial *gps = &Serial2;
 TinyGPSPlus GPS;
 bool is_gps_fixed = false;
