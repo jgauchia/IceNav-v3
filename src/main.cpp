@@ -56,6 +56,7 @@ void setup()
   init_LVGL();
   init_tft();
   init_gps();
+  init_ADC();
 
   batt_level = battery_read();
 
@@ -69,7 +70,7 @@ void setup()
 
   init_tasks();
 
-  //lv_scr_load(searchSat);
+  // lv_scr_load(searchSat);
 
   lv_scr_load(mainScreen);
   create_notify_bar();

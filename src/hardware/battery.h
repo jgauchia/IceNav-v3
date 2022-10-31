@@ -6,12 +6,30 @@
  * @date 2022-10-09
  */
 #include <driver/adc.h>
+#include <esp_adc_cal.h>
 
 int batt_level = 0;
+esp_adc_cal_characteristics_t characteristics;
+#define V_REF 2.2 // ADC reference voltage
 
 float battery_max = 4.2;     // 4.2;      // maximum voltage of battery
 float battery_min = 3.6;     // 3.6;      // minimum voltage of battery before shutdown
-float battery_offset = 0.23; // offset battery to full charge (divder circuit)
+float battery_offset = 0.80; // offset battery to full charge (divder circuit)
+
+/**
+ * @brief Configurate ADC Channel for battery reading
+ *
+ */
+void init_ADC()
+{
+  // When VDD_A is 3.3V:
+  //     0dB attenuaton (ADC_ATTEN_DB_0) gives full-scale voltage 1.1V
+  //     2.5dB attenuation (ADC_ATTEN_DB_2_5) gives full-scale voltage 1.5V
+  //     6dB attenuation (ADC_ATTEN_DB_6) gives full-scale voltage 2.2V
+  //     11dB attenuation (ADC_ATTEN_DB_11) gives full-scale voltage 3.9V
+  adc1_config_width(ADC_WIDTH_BIT_12);
+  adc1_config_channel_atten(ADC1_CHANNEL_6, ADC_ATTEN_DB_6);
+}
 
 /**
  * @brief Read battery charge and return %
@@ -29,19 +47,16 @@ float battery_read()
     delayMicroseconds(300);
   }
   voltage = sum / (float)500;
-  debug->println(voltage);
-  voltage = (voltage * 3.3) / 4096.0;
-
 #ifdef CUSTOMBOARD
   // custom board has a divider circuit
   float R1 = 100000.0; // resistance of R1 (100K)
   float R2 = 100000.0; // resistance of R2 (100K)
+  voltage = (voltage * V_REF) / 4096.0;
   voltage = voltage / (R2 / (R1 + R2));
   voltage = voltage + battery_offset;
+  debug->println(voltage);
 #endif
-
   voltage = roundf(voltage * 100) / 100;
-
   output = ((voltage - battery_min) / (battery_max - battery_min)) * 100;
 
   if (output <= 140)
