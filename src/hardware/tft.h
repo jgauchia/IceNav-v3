@@ -31,7 +31,7 @@ void init_tft()
 
   tft.fillScreen(TFT_BLACK);
   tft.initDMA();
-
+  gpio_set_drive_capability(GPIO_NUM_33, GPIO_DRIVE_CAP_3);
   ledcAttachPin(TFT_BL, 0);
   ledcSetup(0, 8000, 8);
   ledcWrite(0, 255);
@@ -39,21 +39,21 @@ void init_tft()
 
 /**
  * @brief Set the TFT brightness
- * 
+ *
  * @param brightness -> 0..255
  */
 void set_brightness(int brightness)
 {
-  if (brightness<=255)
+  if (brightness <= 255)
   {
-    ledcWrite(0,brightness);
+    ledcWrite(0, brightness);
     brightness_level = brightness;
   }
 }
 
 /**
- * @brief Get the TFT brightness 
- * 
+ * @brief Get the TFT brightness
+ *
  * @return int -> brightness value 0..255
  */
 int get_brightness()

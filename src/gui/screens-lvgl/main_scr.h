@@ -9,8 +9,8 @@ int heading = 0;
 int last_heading = 0;
 
 #define MIN_ZOOM 6
-#define MAX_ZOOM 18
-#define DEF_ZOOM 7 // 17
+#define MAX_ZOOM 17
+#define DEF_ZOOM 17 
 int zoom = DEF_ZOOM;
 MapTile CurrentMapTile;
 int tilex_old = 0;
@@ -27,6 +27,10 @@ static lv_obj_t *compass_img;
 static lv_obj_t *latitude;
 static lv_obj_t *longitude;
 static lv_obj_t *zoom_label;
+lv_obj_t *satbar_1;
+lv_obj_t *satbar_2;
+lv_chart_series_t *satbar_ser1;
+lv_chart_series_t *satbar_ser2;
 
 static lv_timer_t *timer_main_scr;
 static lv_obj_t *zoombox;
@@ -151,6 +155,24 @@ void create_main_scr()
     sprArrow.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
 
     // Satellite Tracking Tile
+    satbar_1 = lv_chart_create(sat_track);
+    lv_obj_set_size(satbar_1, 240, 60);
+    lv_obj_set_pos(satbar_1, 0, 160);
+    lv_chart_set_div_line_count(satbar_1, 6, 0);
+    lv_chart_set_range(satbar_1, LV_CHART_AXIS_PRIMARY_Y, 0, 60);
+    // lv_chart_set_axis_tick(satbar_1, LV_CHART_AXIS_PRIMARY_X, 5, 2, 30, 1, false, 40);
+    satbar_ser1 = lv_chart_add_series(satbar_1, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
+    lv_chart_set_type(satbar_1, LV_CHART_TYPE_BAR);
+    lv_chart_set_point_count(satbar_1, 12);
+
+    satbar_2 = lv_chart_create(sat_track);
+    lv_obj_set_size(satbar_2, 240, 60);
+    lv_obj_set_pos(satbar_2, 0, 220);
+    lv_chart_set_div_line_count(satbar_2, 6, 0);
+    lv_chart_set_range(satbar_2, LV_CHART_AXIS_PRIMARY_Y, 0, 60);
+    satbar_ser2 = lv_chart_add_series(satbar_2, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
+    lv_chart_set_type(satbar_2, LV_CHART_TYPE_BAR);
+    lv_chart_set_point_count(satbar_2, 12);
 
     timer_main_scr = lv_timer_create(update_main_screen, UPDATE_MAINSCR_PERIOD, NULL);
     lv_timer_ready(timer_main_scr);
@@ -164,13 +186,15 @@ void create_main_scr()
  */
 void update_main_screen(lv_timer_t *t)
 {
+    int totalMessages = 0;
+    int currentMessage = 0;
     switch (act_tile)
     {
     case COMPASS:
 #ifdef ENABLE_COMPASS
         heading = read_compass();
         lv_label_set_text_fmt(compass_heading, "%5d\xC2\xB0", heading);
-        lv_img_set_angle(compass_img, heading * 10);
+        lv_img_set_angle(compass_img, -(heading * 10));
 #endif
         lv_label_set_text(latitude, Latitude_formatString(GPS.location.lat()));
         lv_label_set_text(longitude, Longitude_formatString(GPS.location.lng()));
@@ -193,6 +217,49 @@ void update_main_screen(lv_timer_t *t)
         }
         break;
     case SATTRACK:
+        if (totalGPGSVMessages.isUpdated())
+        {
+            for (int i = 0; i < 4; ++i)
+            {
+                int no = atoi(satNumber[i].value());
+                if (no >= 1 && no <= MAX_SATELLITES)
+                {
+                    sat_tracker[no - 1].elevation = atoi(elevation[i].value());
+                    sat_tracker[no - 1].azimuth = atoi(azimuth[i].value());
+                    sat_tracker[no - 1].snr = atoi(snr[i].value());
+                    sat_tracker[no - 1].active = true;
+                }
+            }
+        }
+
+        lv_chart_set_x_start_point(satbar_1, satbar_ser1, 0);
+
+        totalMessages = atoi(totalGPGSVMessages.value());
+        currentMessage = atoi(messageNumber.value());
+        if (totalMessages == currentMessage)
+        {
+            // ESFERA SATELITE TO-DO
+            // SNR
+            int active_sat = 0;
+            for (int i = 0; i < MAX_SATELLITES; ++i)
+            {
+                if (sat_tracker[i].active)
+                {
+                    if (active_sat < 13)
+                    {
+                        satbar_ser1->y_points[active_sat] = sat_tracker[i].snr;
+                    }
+                    else
+                    {
+                        satbar_ser2->y_points[active_sat] = sat_tracker[i].snr;
+                    }
+                    active_sat++;
+                }
+                
+            }
+        }
+        lv_chart_refresh(satbar_1);
+        lv_chart_refresh(satbar_2);
         break;
     default:
         break;
