@@ -13,7 +13,7 @@ esp_adc_cal_characteristics_t characteristics;
 #define V_REF 2.2 // ADC reference voltage
 
 float battery_max = 4.20;     // 4.2;      // maximum voltage of battery
-float battery_min = 3.75;     // 3.6;      // minimum voltage of battery before shutdown
+float battery_min = 3.70;     // 3.6;      // minimum voltage of battery before shutdown
 float battery_offset = 0.80; // offset battery to full charge (divder circuit)
 
 /**
