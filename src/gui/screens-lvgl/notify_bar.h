@@ -55,7 +55,10 @@ void create_notify_bar()
 void update_notify_bar(lv_timer_t *t)
 {
     lv_label_set_text_fmt(gps_time, "%02d:%02d:%02d", hour(), minute(), second());
-    lv_label_set_text_fmt(gps_count, LV_SYMBOL_GPS "%2d", GPS.satellites.value());
+    if (GPS.satellites.isUpdated())
+    {
+        lv_label_set_text_fmt(gps_count, LV_SYMBOL_GPS "%2d", GPS.satellites.value());
+    }
     if (sdloaded)
         lv_label_set_text(sdcard, LV_SYMBOL_SD_CARD);
     else

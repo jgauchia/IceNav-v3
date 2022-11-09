@@ -162,7 +162,7 @@ void keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
         {
             act_tile++;
             if (act_tile > MAX_TILES - 1)
-                act_tile = MAX_TILES;
+                act_tile = MAX_TILES - 1;
             if (act_tile == MAP)
             {
                 lvgl_set_resolution(TFT_WIDTH, 63);

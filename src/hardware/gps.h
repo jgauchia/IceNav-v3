@@ -26,6 +26,9 @@ TinyGPSCustom satNumber[4];                        // to be initialized later
 TinyGPSCustom elevation[4];
 TinyGPSCustom azimuth[4];
 TinyGPSCustom snr[4];
+TinyGPSCustom pdop(GPS, "GPGSA", 15); // $GPGSA sentence, 15th element
+TinyGPSCustom hdop(GPS, "GPGSA", 16); // $GPGSA sentence, 16th element
+TinyGPSCustom vdop(GPS, "GPGSA", 17); // $GPGSA sentence, 17th element
 
 /**
  * @brief Structure for satellite position (elevation, azimut,...)

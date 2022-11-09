@@ -42,7 +42,6 @@ void Main_prog(void *pvParameters)
   debug->println(xPortGetCoreID());
   for (;;)
   {
-    //heading = read_compass();
     delay(1);
   }
 }
@@ -55,6 +54,6 @@ void init_tasks()
 {
   xTaskCreatePinnedToCore(Read_GPS, "Read GPS", 16384, NULL, 4, NULL, 0);
   delay(500);
-  xTaskCreatePinnedToCore(Main_prog, "Main Program", 16384, NULL, 1, NULL, 1);
-  delay(500);
+  // xTaskCreatePinnedToCore(Main_prog, "Main Program", 16384, NULL, 1, NULL, 1);
+  // delay(500);
 }
