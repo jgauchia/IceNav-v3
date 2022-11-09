@@ -25,12 +25,7 @@ ESP32 GPS Navigator
        SCL GPIO22    DC   GPIO16    MISO GPIO27                     TX   GPIO25
                      RST  GPIO23    SCK  GPIO13
                      CS   GPIO5     MOSI GPIO15
-                     
-                     
-       Libraries:
-       ILI9341 :  https://github.com/Bodmer/TFT_eSPI
-       GPS:       https://github.com/mikalhart/TinyGPSPlus
-       PCF8574:   https://github.com/RobTillaart/PCF8574
+                                      
 
       TODO:
          * Language dependent texts

@@ -222,7 +222,19 @@ void update_main_screen(lv_timer_t *t)
     case COMPASS:
 #ifdef ENABLE_COMPASS
         heading = read_compass();
-        lv_label_set_text_fmt(compass_heading, "%5d\xC2\xB0", heading);
+        if (show_degree)
+        {
+            lv_obj_set_style_text_font(compass_heading, &lv_font_montserrat_48, 0);
+            lv_label_set_text_fmt(compass_heading, "%5d\xC2\xB0", heading);
+        }
+        else
+        {
+            if (GPS.altitude.isUpdated())
+            {
+                lv_obj_set_style_text_font(compass_heading, &lv_font_montserrat_38, 0);
+                lv_label_set_text_fmt(compass_heading, " %4dm", (int)GPS.altitude.meters());
+            }
+        }
         lv_img_set_angle(compass_img, -(heading * 10));
 #endif
         if (GPS.location.isUpdated())
@@ -279,9 +291,7 @@ void update_main_screen(lv_timer_t *t)
         }
 
         if (GPS.altitude.isUpdated())
-        {
             lv_label_set_text_fmt(alt_label, "ALT:\n%4dm.", (int)GPS.altitude.meters());
-        }
 
         if (totalGPGSVMessages.isUpdated())
         {

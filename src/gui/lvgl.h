@@ -41,6 +41,12 @@ static lv_obj_t *tiles;
  */
 bool is_map_draw = false;
 
+/**
+ * @brief Flag to switch between degrees and meters in compass screen
+ *
+ */
+bool show_degree = true;
+
 #include "gui/img/arrow.c"
 #include "gui/img/position.c"
 #include "gui/img/bruj.c"
@@ -187,6 +193,11 @@ void keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
         // data->key = LV_KEY_DOWN;
         break;
     case PUSH:
+        if (currentScreen == mainScreen)
+        {
+            if (act_tile == COMPASS)
+                show_degree = !show_degree;
+        }
         break;
     case LUP:
         if (currentScreen == mainScreen && act_tile == MAP)
