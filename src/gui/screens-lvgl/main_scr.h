@@ -10,7 +10,7 @@ int last_heading = 0;
 
 #define MIN_ZOOM 6
 #define MAX_ZOOM 17
-#define DEF_ZOOM 17 
+#define DEF_ZOOM 17
 int zoom = DEF_ZOOM;
 MapTile CurrentMapTile;
 int tilex_old = 0;
@@ -211,9 +211,17 @@ void update_main_screen(lv_timer_t *t)
         if (map_found)
         {
             NavArrow = coord_to_scr_pos(0, 64, GPS.location.lng(), GPS.location.lat(), zoom);
+#ifdef ENABLE_COMPASS
+            heading = read_compass();
+            tft.startWrite();
+            tft.setPivot(NavArrow.posx, NavArrow.posy);
+            sprArrow.pushRotated(heading,TFT_BLACK);
+            tft.endWrite();
+#else
             tft.startWrite();
             sprArrow.pushSprite(NavArrow.posx, NavArrow.posy, TFT_BLACK);
             tft.endWrite();
+#endif
         }
         break;
     case SATTRACK:
@@ -255,7 +263,6 @@ void update_main_screen(lv_timer_t *t)
                     }
                     active_sat++;
                 }
-                
             }
         }
         lv_chart_refresh(satbar_1);
