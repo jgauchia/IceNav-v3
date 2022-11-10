@@ -60,3 +60,23 @@ int get_brightness()
 {
   return brightness_level;
 }
+
+/**
+ * @brief Turn on TFT Sleep Mode for ILI9341
+ *
+ */
+void tft_on()
+{
+  tft.writecommand(0x11);
+  set_brightness(255);
+}
+
+/**
+ * @brief Turn off TFT Wake up Mode for ILI9341
+ *
+ */
+void tft_off()
+{
+  tft.writecommand(0x10);
+  set_brightness(0);
+}
