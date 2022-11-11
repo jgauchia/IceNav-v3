@@ -346,7 +346,7 @@ void update_main_screen(lv_timer_t *t)
                     }
                     else
                     {
-                        lv_chart_get_point_pos_by_id(satbar_2, satbar_ser2, active_sat, &p);
+                        lv_chart_get_point_pos_by_id(satbar_2, satbar_ser2, (active_sat - 12), &p);
 
                         lv_draw_rect_dsc_t draw_rect_dsc;
                         lv_draw_rect_dsc_init(&draw_rect_dsc);
