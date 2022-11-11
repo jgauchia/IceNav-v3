@@ -9,7 +9,7 @@
 #include <TimeLib.h>
 #include <TinyGPS++.h>
 
-#define MAX_SATELLITES 24
+#define MAX_SATELLITES 60
 int TIME_OFFSET = 1;
 HardwareSerial *gps = &Serial2;
 TinyGPSPlus GPS;
@@ -37,6 +37,7 @@ TinyGPSCustom vdop(GPS, "GPGSA", 17); // $GPGSA sentence, 17th element
 struct
 {
   bool active;
+  int satnumber;
   int elevation;
   int azimuth;
   int snr;

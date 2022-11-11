@@ -301,6 +301,7 @@ void update_main_screen(lv_timer_t *t)
                 int no = atoi(satNumber[i].value());
                 if (no >= 1 && no <= MAX_SATELLITES)
                 {
+                    sat_tracker[no - 1].satnumber = atoi(satNumber[i].value());
                     sat_tracker[no - 1].elevation = atoi(elevation[i].value());
                     sat_tracker[no - 1].azimuth = atoi(azimuth[i].value());
                     sat_tracker[no - 1].snr = atoi(snr[i].value());
@@ -313,17 +314,26 @@ void update_main_screen(lv_timer_t *t)
         currentMessage = atoi(messageNumber.value());
         if (totalMessages == currentMessage)
         {
+            for (int i = 0; i < 12; i++)
+            {
+                satbar_ser1->y_points[i] = LV_CHART_POINT_NONE;
+                satbar_ser2->y_points[i] = LV_CHART_POINT_NONE;
+            }
+            lv_chart_refresh(satbar_1);
+            lv_chart_refresh(satbar_2);
+
             // ESFERA SATELITE TO-DO
             // SNR
             int active_sat = 0;
             for (int i = 0; i < MAX_SATELLITES; ++i)
             {
-                if (sat_tracker[i].active)
+                if (sat_tracker[i].active && (sat_tracker[i].snr > 0))
                 {
                     lv_point_t p;
                     lv_area_t a;
                     if (active_sat < 12)
                     {
+                        satbar_ser1->y_points[active_sat] = sat_tracker[i].snr;
                         lv_chart_get_point_pos_by_id(satbar_1, satbar_ser1, active_sat, &p);
 
                         lv_draw_rect_dsc_t draw_rect_dsc;
@@ -340,12 +350,11 @@ void update_main_screen(lv_timer_t *t)
                         a.y2 = satbar_1->coords.y1 + p.y - 10;
 
                         tft.setCursor(p.x - 2, a.y2);
-                        tft.print(i);
-
-                        satbar_ser1->y_points[active_sat] = sat_tracker[i].snr;
+                        tft.print(sat_tracker[i].satnumber);
                     }
                     else
                     {
+                        satbar_ser2->y_points[active_sat - 12] = sat_tracker[i].snr;
                         lv_chart_get_point_pos_by_id(satbar_2, satbar_ser2, (active_sat - 12), &p);
 
                         lv_draw_rect_dsc_t draw_rect_dsc;
@@ -362,9 +371,7 @@ void update_main_screen(lv_timer_t *t)
                         a.y2 = satbar_2->coords.y1 + p.y - 10;
 
                         tft.setCursor(p.x - 2, a.y2);
-                        tft.print(i);
-
-                        satbar_ser2->y_points[active_sat - 12] = sat_tracker[i].snr;
+                        tft.print(sat_tracker[i].satnumber);
                     }
                     active_sat++;
                 }
