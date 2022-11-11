@@ -149,7 +149,7 @@ void create_main_scr()
     LV_IMG_DECLARE(magnify);
     lv_obj_t *zoom_img = lv_img_create(map);
     lv_img_set_src(zoom_img, &magnify);
-    lv_obj_set_pos(zoom_img, 10, 13);
+    lv_obj_set_pos(zoom_img, 10, 8);
 
     lv_obj_set_width(zoombox, 60);
     lv_obj_set_pos(zoombox, 2, 5);
@@ -349,7 +349,7 @@ void update_main_screen(lv_timer_t *t)
                         // a.y1 = satbar_1->coords.y1 + p.y - 30;
                         // a.y2 = satbar_1->coords.y1 + p.y - 10;
 
-                        tft.setCursor(p.x - 2, (satbar_1->coords.y1)+2);
+                        tft.setCursor(p.x - 2, (satbar_1->coords.y2)+2);
                         tft.print(sat_tracker[i].satnumber);
                     }
                     else
@@ -370,7 +370,7 @@ void update_main_screen(lv_timer_t *t)
                         // a.y1 = satbar_2->coords.y1 + p.y - 30;
                         // a.y2 = satbar_2->coords.y1 + p.y - 10;
 
-                        tft.setCursor(p.x - 2, (satbar_2->coords.y1)+2);
+                        tft.setCursor(p.x - 2, (satbar_2->coords.y2)+2);
                         tft.print(sat_tracker[i].satnumber);
                     }
                     active_sat++;
