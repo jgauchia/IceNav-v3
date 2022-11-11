@@ -54,7 +54,6 @@ float battery_read()
   voltage = (voltage * V_REF) / 4096.0;
   voltage = voltage / (R2 / (R1 + R2));
   voltage = voltage + battery_offset;
-  debug->println(voltage);
 #endif
   voltage = roundf(voltage * 100) / 100;
   output = ((voltage - battery_min) / (battery_max - battery_min)) * 100;
