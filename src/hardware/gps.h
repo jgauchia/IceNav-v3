@@ -10,6 +10,7 @@
 #include <TinyGPS++.h>
 
 #define MAX_SATELLITES 60
+#define MAX_SATELLLITES_IN_VIEW 32
 int TIME_OFFSET = 1;
 HardwareSerial *gps = &Serial2;
 TinyGPSPlus GPS;

@@ -187,22 +187,22 @@ void create_main_scr()
     lv_obj_set_pos(alt_label, 5, 110);
 
     satbar_1 = lv_chart_create(sat_track);
-    lv_obj_set_size(satbar_1, 240, 60);
+    lv_obj_set_size(satbar_1, 240, 55);
     lv_chart_set_div_line_count(satbar_1, 6, 0);
     lv_chart_set_range(satbar_1, LV_CHART_AXIS_PRIMARY_Y, 0, 60);
     satbar_ser1 = lv_chart_add_series(satbar_1, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
     lv_chart_set_type(satbar_1, LV_CHART_TYPE_BAR);
-    lv_chart_set_point_count(satbar_1, 12);
+    lv_chart_set_point_count(satbar_1, (MAX_SATELLLITES_IN_VIEW / 2));
     lv_obj_set_pos(satbar_1, 0, 160);
 
     satbar_2 = lv_chart_create(sat_track);
-    lv_obj_set_size(satbar_2, 240, 60);
+    lv_obj_set_size(satbar_2, 240, 55);
     lv_chart_set_div_line_count(satbar_2, 6, 0);
     lv_chart_set_range(satbar_2, LV_CHART_AXIS_PRIMARY_Y, 0, 60);
     satbar_ser2 = lv_chart_add_series(satbar_2, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
     lv_chart_set_type(satbar_2, LV_CHART_TYPE_BAR);
-    lv_chart_set_point_count(satbar_2, 12);
-    lv_obj_set_pos(satbar_2, 0, 220);
+    lv_chart_set_point_count(satbar_2, (MAX_SATELLLITES_IN_VIEW / 2));
+    lv_obj_set_pos(satbar_2, 0, 225);
 
     timer_main_scr = lv_timer_create(update_main_screen, UPDATE_MAINSCR_PERIOD, NULL);
     lv_timer_ready(timer_main_scr);
@@ -314,7 +314,7 @@ void update_main_screen(lv_timer_t *t)
         currentMessage = atoi(messageNumber.value());
         if (totalMessages == currentMessage)
         {
-            for (int i = 0; i < 12; i++)
+            for (int i = 0; i < (MAX_SATELLLITES_IN_VIEW / 2); i++)
             {
                 satbar_ser1->y_points[i] = LV_CHART_POINT_NONE;
                 satbar_ser2->y_points[i] = LV_CHART_POINT_NONE;
@@ -325,52 +325,52 @@ void update_main_screen(lv_timer_t *t)
             // ESFERA SATELITE TO-DO
             // SNR
             int active_sat = 0;
-            for (int i = 0; i < MAX_SATELLITES; ++i)
+            for (int i = 0; i < MAX_SATELLLITES_IN_VIEW; ++i)
             {
                 if (sat_tracker[i].active && (sat_tracker[i].snr > 0))
                 {
                     lv_point_t p;
                     lv_area_t a;
-                    if (active_sat < 12)
+                    if (active_sat < (MAX_SATELLLITES_IN_VIEW / 2))
                     {
                         satbar_ser1->y_points[active_sat] = sat_tracker[i].snr;
                         lv_chart_get_point_pos_by_id(satbar_1, satbar_ser1, active_sat, &p);
 
-                        lv_draw_rect_dsc_t draw_rect_dsc;
-                        lv_draw_rect_dsc_init(&draw_rect_dsc);
-                        draw_rect_dsc.bg_color = lv_color_black();
-                        draw_rect_dsc.bg_opa = LV_OPA_50;
-                        // draw_rect_dsc.radius = 3;
-                        draw_rect_dsc.bg_img_src = buf;
-                        draw_rect_dsc.bg_img_recolor = lv_color_white();
+                        // lv_draw_rect_dsc_t draw_rect_dsc;
+                        // lv_draw_rect_dsc_init(&draw_rect_dsc);
+                        // draw_rect_dsc.bg_color = lv_color_black();
+                        // draw_rect_dsc.bg_opa = LV_OPA_50;
+                        // // draw_rect_dsc.radius = 3;
+                        // draw_rect_dsc.bg_img_src = buf;
+                        // draw_rect_dsc.bg_img_recolor = lv_color_white();
 
-                        a.x1 = satbar_1->coords.x1 + p.x - 20;
-                        a.x2 = satbar_1->coords.x1 + p.x + 20;
-                        a.y1 = satbar_1->coords.y1 + p.y - 30;
-                        a.y2 = satbar_1->coords.y1 + p.y - 10;
+                        // a.x1 = satbar_1->coords.x1 + p.x - 20;
+                        // a.x2 = satbar_1->coords.x1 + p.x + 20;
+                        // a.y1 = satbar_1->coords.y1 + p.y - 30;
+                        // a.y2 = satbar_1->coords.y1 + p.y - 10;
 
-                        tft.setCursor(p.x - 2, a.y2);
+                        tft.setCursor(p.x - 2, (satbar_1->coords.y1)+2);
                         tft.print(sat_tracker[i].satnumber);
                     }
                     else
                     {
-                        satbar_ser2->y_points[active_sat - 12] = sat_tracker[i].snr;
-                        lv_chart_get_point_pos_by_id(satbar_2, satbar_ser2, (active_sat - 12), &p);
+                        satbar_ser2->y_points[active_sat - (MAX_SATELLLITES_IN_VIEW / 2)] = sat_tracker[i].snr;
+                        lv_chart_get_point_pos_by_id(satbar_2, satbar_ser2, (active_sat - (MAX_SATELLLITES_IN_VIEW / 2)), &p);
 
-                        lv_draw_rect_dsc_t draw_rect_dsc;
-                        lv_draw_rect_dsc_init(&draw_rect_dsc);
-                        draw_rect_dsc.bg_color = lv_color_black();
-                        draw_rect_dsc.bg_opa = LV_OPA_50;
-                        // draw_rect_dsc.radius = 3;
-                        draw_rect_dsc.bg_img_src = buf;
-                        draw_rect_dsc.bg_img_recolor = lv_color_white();
+                        // lv_draw_rect_dsc_t draw_rect_dsc;
+                        // lv_draw_rect_dsc_init(&draw_rect_dsc);
+                        // draw_rect_dsc.bg_color = lv_color_black();
+                        // draw_rect_dsc.bg_opa = LV_OPA_50;
+                        // // draw_rect_dsc.radius = 3;
+                        // draw_rect_dsc.bg_img_src = buf;
+                        // draw_rect_dsc.bg_img_recolor = lv_color_white();
 
-                        a.x1 = satbar_2->coords.x1 + p.x - 20;
-                        a.x2 = satbar_2->coords.x1 + p.x + 20;
-                        a.y1 = satbar_2->coords.y1 + p.y - 30;
-                        a.y2 = satbar_2->coords.y1 + p.y - 10;
+                        // a.x1 = satbar_2->coords.x1 + p.x - 20;
+                        // a.x2 = satbar_2->coords.x1 + p.x + 20;
+                        // a.y1 = satbar_2->coords.y1 + p.y - 30;
+                        // a.y2 = satbar_2->coords.y1 + p.y - 10;
 
-                        tft.setCursor(p.x - 2, a.y2);
+                        tft.setCursor(p.x - 2, (satbar_2->coords.y1)+2);
                         tft.print(sat_tracker[i].satnumber);
                     }
                     active_sat++;
