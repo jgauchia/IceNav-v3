@@ -12,7 +12,7 @@
 #include <Adafruit_HMC5883_U.h>
 
 Adafruit_HMC5883_Unified compass = Adafruit_HMC5883_Unified(12345);
-float declinationAngle = -0.0184532925; //0.2200;
+float declinationAngle = 0.22;
 
 
 /**

@@ -6,21 +6,10 @@
  * @date 2022-10-16
  */
 int heading = 0;
-int last_heading = 0;
 
-#define MIN_ZOOM 6
-#define MAX_ZOOM 17
-#define DEF_ZOOM 17
-int zoom = DEF_ZOOM;
-MapTile CurrentMapTile;
-int tilex_old = 0;
-int tiley_old = 0;
-int zoom_old = 0;
-ScreenCoord NavArrow;
-bool map_found = false;
-
-#define UPDATE_MAINSCR_PERIOD 10
+#define UPDATE_MAINSCR_PERIOD 30
 void update_main_screen(lv_timer_t *t);
+void lvgl_set_resolution(int width, int height);
 
 static lv_obj_t *compass_heading;
 static lv_obj_t *compass_img;
@@ -31,6 +20,7 @@ static lv_obj_t *pdop_label;
 static lv_obj_t *hdop_label;
 static lv_obj_t *vdop_label;
 static lv_obj_t *alt_label;
+static lv_obj_t *map_tile;
 lv_obj_t *satbar_1;
 lv_obj_t *satbar_2;
 lv_chart_series_t *satbar_ser1;
@@ -38,47 +28,24 @@ lv_chart_series_t *satbar_ser2;
 
 static lv_timer_t *timer_main_scr;
 static lv_obj_t *zoombox;
-static lv_style_t style_zoom;
 TFT_eSprite sprArrow = TFT_eSprite(&tft);
 TFT_eSprite sprSat = TFT_eSprite(&tft);
 
 /**
- * @brief Draw map event
+ * @brief Active Tile in TileView control
  *
- * @param event
  */
-static void drawmap(lv_event_t *event)
+uint16_t act_tile = 0;
+enum tilename
 {
-    if (!is_map_draw && act_tile == MAP)
-    {
-        CurrentMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom);
-        if (CurrentMapTile.zoom != zoom_old || (CurrentMapTile.tiley != tilex_old || CurrentMapTile.tiley != tiley_old))
-        {
-            map_found = draw_png(SD, CurrentMapTile.file, 0, 64);
-            is_map_draw = true;
-            zoom_old = CurrentMapTile.zoom;
-            tilex_old = CurrentMapTile.tilex;
-            tiley_old = CurrentMapTile.tiley;
-        }
-        if (map_found)
-        {
-            NavArrow = coord_to_scr_pos(0, 64, GPS.location.lng(), GPS.location.lat(), zoom);
-            tft.startWrite();
-            sprArrow.pushSprite(NavArrow.posx, NavArrow.posy, TFT_BLACK);
-            tft.endWrite();
-        }
-    }
-}
+    COMPASS,
+    MAP,
+    SATTRACK,
+};
 
-/**
- * @brief Get the zoom value
- *
- * @param event
- */
-static void get_zoom_value(lv_event_t *event)
-{
-    zoom = lv_spinbox_get_value(zoombox);
-}
+#include "gui/events/compass_scr.h"
+#include "gui/events/map_scr.h"
+#include "gui/events/main_scr.h"
 
 /**
  * @brief Create a main screen
@@ -90,27 +57,29 @@ void create_main_scr()
 
     // Main Screen Tiles
     tiles = lv_tileview_create(mainScreen);
-    lv_obj_t *compass = lv_tileview_add_tile(tiles, 0, 0, LV_DIR_RIGHT);
-    lv_obj_t *map = lv_tileview_add_tile(tiles, 1, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
+    lv_obj_t *compass_tile = lv_tileview_add_tile(tiles, 0, 0, LV_DIR_RIGHT);
+    map_tile = lv_tileview_add_tile(tiles, 1, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
     lv_obj_t *sat_track = lv_tileview_add_tile(tiles, 2, 0, LV_DIR_LEFT);
-    lv_obj_set_size(tiles, 240, 300);
+    lv_obj_set_size(tiles, TFT_WIDTH, TFT_HEIGHT - 84);
     lv_obj_set_pos(tiles, 0, 20);
+    lv_obj_add_event_cb(tiles, get_act_tile, LV_EVENT_SCROLL_END, NULL);
 
     // Compass Tile
 #ifdef ENABLE_COMPASS
-    compass_heading = lv_label_create(compass);
+    compass_heading = lv_label_create(compass_tile);
     lv_obj_set_size(compass_heading, 150, 48);
     lv_obj_set_align(compass_heading, LV_ALIGN_CENTER);
     lv_obj_set_y(compass_heading, 35);
     lv_obj_set_style_text_font(compass_heading, &lv_font_montserrat_48, 0);
+    lv_obj_add_event_cb(compass_heading, update_heading, LV_EVENT_VALUE_CHANGED, NULL);
 
     LV_IMG_DECLARE(arrow);
-    lv_obj_t *arrow_img = lv_img_create(compass);
+    lv_obj_t *arrow_img = lv_img_create(compass_tile);
     lv_img_set_src(arrow_img, &arrow);
     lv_obj_align(arrow_img, LV_ALIGN_CENTER, 0, -20);
 
     LV_IMG_DECLARE(bruj);
-    compass_img = lv_img_create(compass);
+    compass_img = lv_img_create(compass_tile);
     lv_img_set_src(compass_img, &bruj);
     lv_obj_align(compass_img, LV_ALIGN_CENTER, 0, 15);
     lv_img_set_pivot(compass_img, 100, 100);
@@ -126,30 +95,20 @@ void create_main_scr()
     lv_obj_set_style_text_font(latitude, &lv_font_montserrat_16, 0);
     lv_label_set_text(latitude, Latitude_formatString(GPS.location.lat()));
     lv_obj_set_pos(latitude, 45, 7);
+    lv_obj_add_event_cb(latitude, update_latitude, LV_EVENT_VALUE_CHANGED, NULL);
 
     longitude = lv_label_create(tiles);
     lv_obj_set_size(longitude, 200, 20);
     lv_obj_set_style_text_font(longitude, &lv_font_montserrat_16, 0);
     lv_label_set_text(longitude, Longitude_formatString(GPS.location.lng()));
     lv_obj_set_pos(longitude, 45, 23);
+    lv_obj_add_event_cb(longitude, update_longitude, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Map Tile
-    zoombox = lv_spinbox_create(map);
+    zoombox = lv_spinbox_create(map_tile);
     lv_spinbox_set_range(zoombox, MIN_ZOOM, MAX_ZOOM);
     lv_spinbox_set_digit_format(zoombox, 2, 0);
     lv_spinbox_set_value(zoombox, DEF_ZOOM);
-
-    lv_style_init(&style_zoom);
-    lv_style_set_outline_color(&style_zoom, lv_color_black());
-    lv_style_set_outline_opa(&style_zoom, LV_OPA_20);
-    lv_style_set_outline_width(&style_zoom, 2);
-    lv_style_set_text_align(&style_zoom, LV_TEXT_ALIGN_RIGHT);
-    lv_obj_add_style(zoombox, &style_zoom, LV_STATE_FOCUSED);
-
-    LV_IMG_DECLARE(magnify);
-    lv_obj_t *zoom_img = lv_img_create(map);
-    lv_img_set_src(zoom_img, &magnify);
-    lv_obj_set_pos(zoom_img, 10, 8);
 
     lv_obj_set_width(zoombox, 60);
     lv_obj_set_pos(zoombox, 2, 5);
@@ -160,6 +119,8 @@ void create_main_scr()
     sprArrow.setColorDepth(16);
     sprArrow.fillSprite(TFT_BLACK);
     sprArrow.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
+    lv_obj_add_event_cb(map_tile, draw_map, LV_EVENT_DRAW_MAIN_END, NULL);
+    lv_obj_add_event_cb(map_tile, update_map, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Satellite Tracking Tile
     pdop_label = lv_label_create(sat_track);
@@ -187,7 +148,7 @@ void create_main_scr()
     lv_obj_set_pos(alt_label, 5, 110);
 
     satbar_1 = lv_chart_create(sat_track);
-    lv_obj_set_size(satbar_1, 240, 55);
+    lv_obj_set_size(satbar_1, TFT_WIDTH, 55);
     lv_chart_set_div_line_count(satbar_1, 6, 0);
     lv_chart_set_range(satbar_1, LV_CHART_AXIS_PRIMARY_Y, 0, 60);
     satbar_ser1 = lv_chart_add_series(satbar_1, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
@@ -196,7 +157,7 @@ void create_main_scr()
     lv_obj_set_pos(satbar_1, 0, 160);
 
     satbar_2 = lv_chart_create(sat_track);
-    lv_obj_set_size(satbar_2, 240, 55);
+    lv_obj_set_size(satbar_2, TFT_WIDTH, 55);
     lv_chart_set_div_line_count(satbar_2, 6, 0);
     lv_chart_set_range(satbar_2, LV_CHART_AXIS_PRIMARY_Y, 0, 60);
     satbar_ser2 = lv_chart_add_series(satbar_2, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
@@ -206,8 +167,6 @@ void create_main_scr()
 
     timer_main_scr = lv_timer_create(update_main_screen, UPDATE_MAINSCR_PERIOD, NULL);
     lv_timer_ready(timer_main_scr);
-
-    lv_obj_add_event_cb(map, drawmap, LV_EVENT_DRAW_MAIN_END, NULL);
 }
 
 /**
@@ -223,65 +182,29 @@ void update_main_screen(lv_timer_t *t)
     case COMPASS:
 #ifdef ENABLE_COMPASS
         heading = read_compass();
-        if (show_degree)
-        {
-            lv_obj_set_style_text_font(compass_heading, &lv_font_montserrat_48, 0);
-            lv_label_set_text_fmt(compass_heading, "%5d\xC2\xB0", heading);
-        }
-        else
-        {
-            if (GPS.altitude.isUpdated())
-            {
-                lv_obj_set_style_text_font(compass_heading, &lv_font_montserrat_38, 0);
-                lv_label_set_text_fmt(compass_heading, " %4dm", (int)GPS.altitude.meters());
-            }
-        }
-        lv_img_set_angle(compass_img, -(heading * 10));
+        lv_event_send(compass_heading, LV_EVENT_VALUE_CHANGED, NULL);
 #endif
         if (GPS.location.isUpdated())
         {
-            lv_label_set_text(latitude, Latitude_formatString(GPS.location.lat()));
-            lv_label_set_text(longitude, Longitude_formatString(GPS.location.lng()));
+            lv_event_send(latitude, LV_EVENT_VALUE_CHANGED, NULL);
+            lv_event_send(longitude, LV_EVENT_VALUE_CHANGED, NULL);
         }
         break;
     case MAP:
         if (GPS.location.isUpdated())
-        {
-            CurrentMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom);
-            if (CurrentMapTile.zoom != zoom_old || (CurrentMapTile.tiley != tilex_old || CurrentMapTile.tiley != tiley_old))
-            {
-                zoom_old = CurrentMapTile.zoom;
-                tilex_old = CurrentMapTile.tilex;
-                tiley_old = CurrentMapTile.tiley;
-                map_found = draw_png(SD, CurrentMapTile.file, 0, 64);
-            }
-            if (map_found)
-            {
-                NavArrow = coord_to_scr_pos(0, 64, GPS.location.lng(), GPS.location.lat(), zoom);
-#ifdef ENABLE_COMPASS
-                heading = read_compass();
-                tft.startWrite();
-                tft.setPivot(NavArrow.posx, NavArrow.posy);
-                sprArrow.pushRotated(heading, TFT_BLACK);
-                tft.endWrite();
-#else
-                tft.startWrite();
-                sprArrow.pushSprite(NavArrow.posx, NavArrow.posy, TFT_BLACK);
-                tft.endWrite();
-#endif
-            }
-        }
+            lv_event_send(map_tile, LV_EVENT_VALUE_CHANGED, NULL);
         break;
     case SATTRACK:
-
         tft.startWrite();
         tft.drawCircle(165, 100, 60, TFT_WHITE);
         tft.drawCircle(165, 100, 30, TFT_WHITE);
         tft.drawCircle(165, 100, 1, TFT_WHITE);
-        tft.drawString("N", 162, 32, 2);
-        tft.drawString("S", 162, 152, 2);
-        tft.drawString("W", 102, 92, 2);
-        tft.drawString("E", 222, 92, 2);
+        tft.setTextFont(2);
+        tft.drawString("N", 162, 32);
+        tft.drawString("S", 162, 152);
+        tft.drawString("W", 102, 92);
+        tft.drawString("E", 222, 92);
+        tft.setTextFont(1);
         tft.endWrite();
 
         if (pdop.isUpdated() || hdop.isUpdated() || vdop.isUpdated())
@@ -336,20 +259,7 @@ void update_main_screen(lv_timer_t *t)
                         satbar_ser1->y_points[active_sat] = sat_tracker[i].snr;
                         lv_chart_get_point_pos_by_id(satbar_1, satbar_ser1, active_sat, &p);
 
-                        // lv_draw_rect_dsc_t draw_rect_dsc;
-                        // lv_draw_rect_dsc_init(&draw_rect_dsc);
-                        // draw_rect_dsc.bg_color = lv_color_black();
-                        // draw_rect_dsc.bg_opa = LV_OPA_50;
-                        // // draw_rect_dsc.radius = 3;
-                        // draw_rect_dsc.bg_img_src = buf;
-                        // draw_rect_dsc.bg_img_recolor = lv_color_white();
-
-                        // a.x1 = satbar_1->coords.x1 + p.x - 20;
-                        // a.x2 = satbar_1->coords.x1 + p.x + 20;
-                        // a.y1 = satbar_1->coords.y1 + p.y - 30;
-                        // a.y2 = satbar_1->coords.y1 + p.y - 10;
-
-                        tft.setCursor(p.x - 2, (satbar_1->coords.y2)+2);
+                        tft.setCursor(p.x - 2, (satbar_1->coords.y2) + 2);
                         tft.print(sat_tracker[i].satnumber);
                     }
                     else
@@ -357,23 +267,16 @@ void update_main_screen(lv_timer_t *t)
                         satbar_ser2->y_points[active_sat - (MAX_SATELLLITES_IN_VIEW / 2)] = sat_tracker[i].snr;
                         lv_chart_get_point_pos_by_id(satbar_2, satbar_ser2, (active_sat - (MAX_SATELLLITES_IN_VIEW / 2)), &p);
 
-                        // lv_draw_rect_dsc_t draw_rect_dsc;
-                        // lv_draw_rect_dsc_init(&draw_rect_dsc);
-                        // draw_rect_dsc.bg_color = lv_color_black();
-                        // draw_rect_dsc.bg_opa = LV_OPA_50;
-                        // // draw_rect_dsc.radius = 3;
-                        // draw_rect_dsc.bg_img_src = buf;
-                        // draw_rect_dsc.bg_img_recolor = lv_color_white();
-
-                        // a.x1 = satbar_2->coords.x1 + p.x - 20;
-                        // a.x2 = satbar_2->coords.x1 + p.x + 20;
-                        // a.y1 = satbar_2->coords.y1 + p.y - 30;
-                        // a.y2 = satbar_2->coords.y1 + p.y - 10;
-
-                        tft.setCursor(p.x - 2, (satbar_2->coords.y2)+2);
+                        tft.setCursor(p.x - 2, (satbar_2->coords.y2) + 2);
                         tft.print(sat_tracker[i].satnumber);
                     }
                     active_sat++;
+
+                    int H = (60 * cos(DEGtoRAD(sat_tracker[i].elevation)));
+                    int sat_pos_x = 165 + (H * sin(DEGtoRAD(sat_tracker[i].azimuth)));
+                    int sat_pos_y = 100 - (H * cos(DEGtoRAD(sat_tracker[i].azimuth)));
+                    sat_tracker[i].pos_x = sat_pos_x;
+                    sat_tracker[i].pos_y = sat_pos_y;
                 }
             }
         }

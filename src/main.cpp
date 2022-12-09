@@ -6,9 +6,13 @@
  * @date 2022-10-09
  */
 
+#define CALIBRATION_FILE "/TouchCalData1"
+#define REPEAT_CAL false
+
 #include <Arduino.h>
 #include <Wire.h>
 #include <Ticker.h>
+#include <SPIFFS.h>
 #include <SPI.h>
 #include <WiFi.h>
 #include <esp_wifi.h>
@@ -20,16 +24,12 @@ unsigned long millis_actual = 0;
 #include "hardware/serial.h"
 #include "hardware/sdcard.h"
 #include "hardware/tft.h"
-#include "hardware/keys.h"
 #include "hardware/compass.h"
 #include "hardware/battery.h"
 #include "hardware/gps.h"
 #include "hardware/power.h"
 #include "utils/gps_math.h"
-#include "utils/bmp.h"
 #include "utils/wpt.h"
-
-#include "utils/png.h"
 #include "gui/lvgl.h"
 
 #include "tasks.h"
@@ -40,10 +40,6 @@ unsigned long millis_actual = 0;
  */
 void setup()
 {
-#ifdef ENABLE_PCF8574
-  keyboard.begin();
-#endif
-
 #ifdef ENABLE_COMPASS
   compass.begin();
 #endif
@@ -53,24 +49,17 @@ void setup()
 #endif
   powerOn();
   init_sd();
+  init_SPIFFS();
   init_LVGL();
   init_tft();
   init_gps();
   init_ADC();
 
   batt_level = battery_read();
-
-  millis_actual = millis();
   splash_scr();
-  while (millis() < millis_actual + 4000)
-    ;
-
-  tft.initDMA(true);
-  tft.fillScreen(TFT_BLACK);
-
   init_tasks();
 
-  //lv_scr_load(searchSat);
+  // // lv_scr_load(searchSat);
 
   lv_scr_load(mainScreen);
   create_notify_bar();
@@ -82,8 +71,6 @@ void setup()
  */
 void loop()
 {
-  xSemaphoreTake(xSemaphore, portMAX_DELAY);
-  lv_task_handler();
-  xSemaphoreGive(xSemaphore);
+  lv_timer_handler();
   delay(5);
 }

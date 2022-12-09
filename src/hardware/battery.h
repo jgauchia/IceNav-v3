@@ -12,8 +12,8 @@ int batt_level = 0;
 esp_adc_cal_characteristics_t characteristics;
 #define V_REF 2.2 // ADC reference voltage
 
-float battery_max = 4.20;     // 4.2;      // maximum voltage of battery
-float battery_min = 3.70;     // 3.6;      // minimum voltage of battery before shutdown
+float battery_max = 4.04;     // 4.2;      // maximum voltage of battery
+float battery_min = 3.40;     // 3.6;      // minimum voltage of battery before shutdown
 float battery_offset = 0.80; // offset battery to full charge (divder circuit)
 
 /**
@@ -54,6 +54,7 @@ float battery_read()
   voltage = (voltage * V_REF) / 4096.0;
   voltage = voltage / (R2 / (R1 + R2));
   voltage = voltage + battery_offset;
+  //debug->println(voltage);
 #endif
   voltage = roundf(voltage * 100) / 100;
   output = ((voltage - battery_min) / (battery_max - battery_min)) * 100;

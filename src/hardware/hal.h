@@ -10,15 +10,8 @@
  * @brief GPS pin definition
  *
  */
-#ifdef CUSTOMBOARD
-  #define GPS_TX 16
-  #define GPS_RX 17
-#endif
-
-#ifdef TDISPLAY
   #define GPS_TX 25
   #define GPS_RX 26
-#endif
 
 /**
  * @brief SD pin definition

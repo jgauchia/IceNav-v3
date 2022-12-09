@@ -2,18 +2,19 @@
 ESP32 GPS Navigator 
 
        Pinout:
-       HCM5883L      ILI9341        SD CARD        VBAT             GPS
-       ------------------------------------------------------------------------
-       VCC 3,3v      VCC  3,3v      VCC  3,3v      GPIO34           VCC  3,3v
-       GND GND       GND  GND       GND  GND       ADC1_CHANNEL_6   GND  GND
-       SDA GPIO21    LED  GPIO33    CS   GPIO4                      RX   GPIO17
-       SCL GPIO22    MISO GPIO27    MISO GPIO27                     TX   GPIO16
-                     SCK  GPIO14    SCK  GPIO14
-                     MOSI GPIO13    MOSI GPIO13
-                     DC   GPIO15
-                     RST  GPIO32
-                     CS   GPIO2
-                     LED  GPIO33
+       HCM5883L      MPU6050       ILI9488        SD CARD        VBAT             GPS
+       --------------------------------------------------------------------------------------
+       VCC 3,3v      VCC 3.3v      VCC  3,3v      VCC  3,3v      GPIO34           VCC  3,3v
+       GND GND       GND GND       GND  GND       GND  GND       ADC1_CHANNEL_6   GND  GND
+       SDA GPIO21    SDA GPIO21    LED  GPIO33    CS   GPIO4                      RX   GPIO26
+       SCL GPIO22    SCL GPIO22    MISO GPIO27    MISO GPIO27                     TX   GPIO25
+                                   SCK  GPIO14    SCK  GPIO14
+                                   MOSI GPIO13    MOSI GPIO13
+                                   DC   GPIO15
+                                   RST  GPIO32
+                                   CS   GPIO2
+                                   LED  GPIO33
+                                   TCH  GPIO18
 
 
        Pinout TDISPLAY:
@@ -33,9 +34,36 @@ ESP32 GPS Navigator
 
 SD Map Tile File structure
 
-On SD Card map tiles (PNG Format) are stored in these folders structure:
+On SD Card map tiles (256x256 PNG Format) are stored in these folders structure:
 
-      [ MAP ]
+      [ MAPS ]
          |________ [ zoom folder (number)]
                               |__________________ [ tile X folder (number)]
                                                              |_______________________ tile y file.png
+
+[UPDATE 09.12.2022]                                                             
+   * Switch to LovyanGfx instead of TFT_eSPI 
+   * Delete PNG Decoder (use LovyanGfx instead)
+   * Delete BMP Decoder (use LovyanGfx instead)
+   * Optimize events
+   * Optimize draw map
+   * Optimize LVGL tick (custom Tick in lv_conf)
+   * Clean compile warnings
+   * Fix Compass image
+   * Change MAPS directory name
+   * New Boot Logo and Splash Screen
+   * CUSTOMBOARD:
+         - Switch ILI9341 to ILI9488 
+         - GPS serial GPIO changed (same as TDISPLAY)
+         - Add Touch Support (Fix calibration)
+         - Delete PCF8574 and external buttons
+         - Fix Compass
+         - Fix tile view
+         - Fix Battery voltage
+         - Added MPU6050
+         - Fix touch update response
+         - Fix LVGL redraw update
+         - Disable widgets not used
+         - Fix Serial Monitor with auto-upload wiring
+      
+

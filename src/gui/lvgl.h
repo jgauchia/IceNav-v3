@@ -8,19 +8,6 @@
 #include <lvgl.h>
 
 /**
- * @brief Active Tile in TileView control
- *
- */
-#define MAX_TILES 3
-int act_tile = 0;
-enum tilename
-{
-    COMPASS,
-    MAP,
-    SATTRACK,
-};
-
-/**
  * @brief Default display driver definition
  *
  */
@@ -35,39 +22,14 @@ static lv_indev_t *my_indev;
 static lv_obj_t *mainScreen;
 static lv_obj_t *tiles;
 
-/**
- * @brief Flag to indicate when maps needs to be draw
- *
- */
-bool is_map_draw = false;
-
-/**
- * @brief Flag to switch between degrees and meters in compass screen
- *
- */
-bool show_degree = true;
-
 #include "gui/img/arrow.c"
 #include "gui/img/position.c"
 #include "gui/img/bruj.c"
-#include "gui/img/zoom.c"
 #include "gui/img/navigation.c"
 #include "gui/screens-lvgl/notify_bar.h"
 #include "gui/screens-lvgl/search_sat_scr.h"
 #include "gui/screens-lvgl/main_scr.h"
 #include "gui/screens-lvgl/splash_scr.h"
-
-/**
- * @brief Task timer for LVGL screen update
- *
- */
-#define LVGL_TICK_PERIOD 2
-Ticker tick;
-SemaphoreHandle_t xSemaphore = NULL;
-static void lv_tick_handler(void)
-{
-    lv_tick_inc(LVGL_TICK_PERIOD);
-}
 
 /**
  * @brief Runtime change LVGL screen resolution
@@ -92,15 +54,13 @@ void lvgl_set_resolution(int width, int height)
  */
 void disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p)
 {
-    uint32_t w = (area->x2 - area->x1 + 1);
-    uint32_t h = (area->y2 - area->y1 + 1);
-
-    tft.startWrite();
-    tft.setAddrWindow(area->x1, area->y1, w, h);
-    tft.pushColors((uint16_t *)&color_p->full, w * h, true);
-    tft.endWrite();
-
-    lv_disp_flush_ready(disp);
+    if (tft.getStartCount() == 0)
+    {
+        tft.startWrite();
+//        tft.endWrite();
+    }
+    tft.pushImageDMA(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t *)&color_p->full);
+    lv_disp_flush_ready(disp); 
 }
 
 /**
@@ -111,112 +71,14 @@ void touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
 {
     uint16_t touchX, touchY;
 
-    bool touched; // = tft.getTouch(&touchX, &touchY, 100);
-
+    bool touched = tft.getTouch(&touchX, &touchY);
     if (!touched)
         data->state = LV_INDEV_STATE_REL;
     else
     {
         data->state = LV_INDEV_STATE_PR;
-
         data->point.x = touchX;
         data->point.y = touchY;
-    }
-}
-
-/**
- * @brief LVGL Keypad read
- *
- */
-void keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
-{
-    currentScreen = lv_scr_act();
-    key_pressed = Read_Keys();
-
-    if (key_pressed > 0)
-        data->state = LV_INDEV_STATE_PRESSED;
-    else
-        data->state = LV_INDEV_STATE_RELEASED;
-
-    switch (key_pressed)
-    {
-    case LEFT:
-        if (currentScreen == mainScreen)
-        {
-            act_tile--;
-            if (act_tile < 0)
-                act_tile = 0;
-            if (act_tile == MAP)
-            {
-                lvgl_set_resolution(TFT_WIDTH, 63);
-                tft.fillScreen(TFT_BLACK);
-                is_map_draw = false;
-                zoom_old = 0;
-                tilex_old = 0;
-                tiley_old = 0;
-            }
-            else
-            {
-                lvgl_set_resolution(TFT_WIDTH, TFT_HEIGHT);
-            }
-            lv_obj_set_tile_id(tiles, act_tile, 0, LV_ANIM_OFF);
-        }
-        // data->key = LV_KEY_PREV;
-        break;
-    case RIGHT:
-        if (currentScreen == mainScreen)
-        {
-            act_tile++;
-            if (act_tile > MAX_TILES - 1)
-                act_tile = MAX_TILES - 1;
-            if (act_tile == MAP)
-            {
-                lvgl_set_resolution(TFT_WIDTH, 63);
-                tft.fillScreen(TFT_BLACK);
-                is_map_draw = false;
-                zoom_old = 0;
-                tilex_old = 0;
-                tiley_old = 0;
-            }
-            else
-            {
-                lvgl_set_resolution(TFT_WIDTH, TFT_HEIGHT);
-            }
-            lv_obj_set_tile_id(tiles, act_tile, 0, LV_ANIM_OFF);
-        }
-        // data->key = LV_KEY_NEXT;
-        break;
-    case UP:
-        // data->key = LV_KEY_UP;
-        break;
-    case DOWN:
-        // data->key = LV_KEY_DOWN;
-        break;
-    case PUSH:
-        if (currentScreen == mainScreen)
-        {
-            if (act_tile == COMPASS)
-                show_degree = !show_degree;
-        }
-        break;
-    case LUP:
-        if (currentScreen == mainScreen && act_tile == MAP)
-        {
-            data->key = LV_KEY_UP;
-        }
-        break;
-    case LDOWN:
-        if (currentScreen == mainScreen && act_tile == MAP)
-        {
-            data->key = LV_KEY_DOWN;
-        }
-        break;
-    case LBUT:
-        data->key = 0;
-        break;
-    default:
-        data->key = 0;
-        break;
     }
 }
 
@@ -241,8 +103,8 @@ void init_LVGL()
     //  Init input device //
     static lv_indev_drv_t indev_drv;
     lv_indev_drv_init(&indev_drv);
-    indev_drv.type = LV_INDEV_TYPE_KEYPAD;
-    indev_drv.read_cb = keypad_read;
+    indev_drv.type = LV_INDEV_TYPE_POINTER;
+    indev_drv.read_cb = touchpad_read;
     my_indev = lv_indev_drv_register(&indev_drv);
 
     //  Create Screens //
@@ -253,7 +115,4 @@ void init_LVGL()
     lv_group_add_obj(group, zoombox);
     lv_indev_set_group(my_indev, group);
     lv_group_set_default(group);
-
-    tick.attach_ms(LVGL_TICK_PERIOD, lv_tick_handler);
-    xSemaphore = xSemaphoreCreateMutex();
 }

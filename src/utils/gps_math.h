@@ -224,7 +224,7 @@ MapTile get_map_tile(double lon, double lat, int zoom_level)
   static char s_file[40] = "";
   int x = lon2tilex(lon, zoom_level);
   int y = lat2tiley(lat, zoom_level);
-  sprintf(s_file, "/MAP/%d/%d/%d.png", zoom_level, x, y);
+  sprintf(s_file, "/MAPS/%d/%d/%d.png", zoom_level, x, y);
   MapTile data;
   data.file = s_file;
   data.tilex = x;
