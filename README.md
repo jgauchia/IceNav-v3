@@ -41,29 +41,33 @@ On SD Card map tiles (256x256 PNG Format) are stored in these folders structure:
                               |__________________ [ tile X folder (number)]
                                                              |_______________________ tile y file.png
 
-[UPDATE 09.12.2022]                                                             
-   * Switch to LovyanGfx instead of TFT_eSPI 
-   * Delete PNG Decoder (use LovyanGfx instead)
-   * Delete BMP Decoder (use LovyanGfx instead)
-   * Optimize events
-   * Optimize draw map
-   * Optimize LVGL tick (custom Tick in lv_conf)
-   * Clean compile warnings
-   * Fix Compass image
-   * Change MAPS directory name
-   * New Boot Logo and Splash Screen
-   * CUSTOMBOARD:
-         - Switch ILI9341 to ILI9488 
-         - GPS serial GPIO changed (same as TDISPLAY)
-         - Add Touch Support (Fix calibration)
-         - Delete PCF8574 and external buttons
-         - Fix Compass
-         - Fix tile view
-         - Fix Battery voltage
-         - Added MPU6050
-         - Fix touch update response
-         - Fix LVGL redraw update
-         - Disable widgets not used
-         - Fix Serial Monitor with auto-upload wiring
+      [UPDATE 09.12.2022]                                                             
+         * Switch to LovyanGfx instead of TFT_eSPI 
+         * Delete PNG Decoder (use LovyanGfx instead)
+         * Delete BMP Decoder (use LovyanGfx instead)
+         * Optimize events
+         * Optimize draw map
+         * Optimize LVGL tick (custom Tick in lv_conf)
+         * Clean compile warnings
+         * Fix Compass image
+         * Change MAPS directory name
+         * New Boot Logo and Splash Screen
+         * CUSTOMBOARD:
+               * Switch ILI9341 to ILI9488 
+               * GPS serial GPIO changed (same as TDISPLAY)
+               * Add Touch Support (Fix calibration)
+               * Delete PCF8574 and external buttons
+               * Fix Compass
+               * Fix tile view
+               * Fix Battery voltage
+               * Added MPU6050
+               * Fix touch update response
+               * Fix LVGL redraw update
+               * Disable widgets not used
+               * Fix Serial Monitor with auto-upload wiring
+
+      [UPDATE 12.12.2022]
+         * Change Zoom box to slider
+         
       
 

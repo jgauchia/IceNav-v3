@@ -31,7 +31,8 @@ bool is_map_draw = false;
  */
 static void get_zoom_value(lv_event_t *event)
 {
-    zoom = lv_spinbox_get_value(zoombox);
+    zoom = (int)lv_slider_get_value(zoom_slider);
+    lv_event_send(map_tile, LV_EVENT_VALUE_CHANGED, NULL);
 }
 
 /**
@@ -41,31 +42,12 @@ static void get_zoom_value(lv_event_t *event)
  */
 static void draw_map(lv_event_t *event)
 {
-    // if (!is_map_draw && act_tile == MAP)
-    // {
-    //     CurrentMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom);
-    //     if (CurrentMapTile.zoom != zoom_old || (CurrentMapTile.tiley != tilex_old || CurrentMapTile.tiley != tiley_old))
-    //     {
-    //         map_found = tft.drawPngFile(SD, CurrentMapTile.file, 0, 64);
-    //         is_map_draw = true;
-    //         zoom_old = CurrentMapTile.zoom;
-    //         tilex_old = CurrentMapTile.tilex;
-    //         tiley_old = CurrentMapTile.tiley;
-    //     }
-    //     if (map_found)
-    //     {
-    //         NavArrow = coord_to_scr_pos(0, 64, GPS.location.lng(), GPS.location.lat(), zoom);
-    //         tft.startWrite();
-    //         sprArrow.pushSprite(NavArrow.posx, NavArrow.posy, TFT_BLACK);
-    //         tft.endWrite();
-    //     }
-    // }
     if (!is_map_draw)
     {
         OldMapTile.zoom = 0;
         OldMapTile.tilex = 0;
         OldMapTile.tiley = 0;
-        delete OldMapTile.file;
+        OldMapTile.file = "";
         is_map_draw = true;
         map_found = false;
     }
@@ -88,7 +70,7 @@ static void update_map(lv_event_t *event)
             OldMapTile.tiley = CurrentMapTile.tiley;
             OldMapTile.file = CurrentMapTile.file;
             map_found = tft.drawPngFile(SD, CurrentMapTile.file, 0, 64);
-            //debug->println("leyendo sd");
+            //debug->println(CurrentMapTile.file);
         }
     }
     if (map_found)

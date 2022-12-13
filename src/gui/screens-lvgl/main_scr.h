@@ -21,13 +21,13 @@ static lv_obj_t *hdop_label;
 static lv_obj_t *vdop_label;
 static lv_obj_t *alt_label;
 static lv_obj_t *map_tile;
+static lv_obj_t *zoom_slider;
 lv_obj_t *satbar_1;
 lv_obj_t *satbar_2;
 lv_chart_series_t *satbar_ser1;
 lv_chart_series_t *satbar_ser2;
 
 static lv_timer_t *timer_main_scr;
-static lv_obj_t *zoombox;
 TFT_eSprite sprArrow = TFT_eSprite(&tft);
 TFT_eSprite sprSat = TFT_eSprite(&tft);
 
@@ -86,18 +86,18 @@ void create_main_scr()
 #endif
 
     LV_IMG_DECLARE(position);
-    lv_obj_t *pos_img = lv_img_create(tiles);
+    lv_obj_t *pos_img = lv_img_create(compass_tile);
     lv_img_set_src(pos_img, &position);
     lv_obj_set_pos(pos_img, 5, 10);
 
-    latitude = lv_label_create(tiles);
+    latitude = lv_label_create(compass_tile);
     lv_obj_set_size(latitude, 200, 20);
     lv_obj_set_style_text_font(latitude, &lv_font_montserrat_16, 0);
     lv_label_set_text(latitude, Latitude_formatString(GPS.location.lat()));
     lv_obj_set_pos(latitude, 45, 7);
     lv_obj_add_event_cb(latitude, update_latitude, LV_EVENT_VALUE_CHANGED, NULL);
 
-    longitude = lv_label_create(tiles);
+    longitude = lv_label_create(compass_tile);
     lv_obj_set_size(longitude, 200, 20);
     lv_obj_set_style_text_font(longitude, &lv_font_montserrat_16, 0);
     lv_label_set_text(longitude, Longitude_formatString(GPS.location.lng()));
@@ -105,16 +105,15 @@ void create_main_scr()
     lv_obj_add_event_cb(longitude, update_longitude, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Map Tile
-    zoombox = lv_spinbox_create(map_tile);
-    lv_spinbox_set_range(zoombox, MIN_ZOOM, MAX_ZOOM);
-    lv_spinbox_set_digit_format(zoombox, 2, 0);
-    lv_spinbox_set_value(zoombox, DEF_ZOOM);
-
-    lv_obj_set_width(zoombox, 60);
-    lv_obj_set_pos(zoombox, 2, 5);
-    lv_group_focus_obj(zoombox);
-    lv_obj_add_event_cb(zoombox, get_zoom_value, LV_EVENT_VALUE_CHANGED, NULL);
-
+    zoom_slider = lv_slider_create(map_tile);
+    lv_slider_set_range(zoom_slider, MIN_ZOOM, MAX_ZOOM);
+    lv_obj_set_size(zoom_slider, 150, 20);
+    lv_slider_set_value(zoom_slider, DEF_ZOOM, LV_ANIM_ON);
+    lv_obj_set_style_bg_color(zoom_slider, lv_color_darken(lv_palette_main(LV_PALETTE_GREY), LV_OPA_40), LV_PART_INDICATOR);
+    // lv_label_set_text_fmt(zoom_slider, "ZOOM: %2d", DEF_ZOOM);
+    lv_obj_align(zoom_slider, LV_ALIGN_BOTTOM_MID, 0, -40);
+    lv_obj_add_event_cb(zoom_slider, get_zoom_value, LV_EVENT_VALUE_CHANGED, NULL);
+ 
     sprArrow.createSprite(16, 16);
     sprArrow.setColorDepth(16);
     sprArrow.fillSprite(TFT_BLACK);

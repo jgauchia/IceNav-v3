@@ -18,7 +18,6 @@ static lv_color_t buf[screenWidth * 10];
 
 static lv_obj_t *currentScreen;
 static lv_group_t *group;
-static lv_indev_t *my_indev;
 static lv_obj_t *mainScreen;
 static lv_obj_t *tiles;
 
@@ -73,10 +72,10 @@ void touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
 
     bool touched = tft.getTouch(&touchX, &touchY);
     if (!touched)
-        data->state = LV_INDEV_STATE_REL;
+        data->state = LV_INDEV_STATE_RELEASED;
     else
     {
-        data->state = LV_INDEV_STATE_PR;
+        data->state = LV_INDEV_STATE_PRESSED;
         data->point.x = touchX;
         data->point.y = touchY;
     }
@@ -105,14 +104,9 @@ void init_LVGL()
     lv_indev_drv_init(&indev_drv);
     indev_drv.type = LV_INDEV_TYPE_POINTER;
     indev_drv.read_cb = touchpad_read;
-    my_indev = lv_indev_drv_register(&indev_drv);
-
+    lv_indev_drv_register(&indev_drv);
+    
     //  Create Screens //
     create_search_sat_scr();
     create_main_scr();
-
-    group = lv_group_create();
-    lv_group_add_obj(group, zoombox);
-    lv_indev_set_group(my_indev, group);
-    lv_group_set_default(group);
 }
