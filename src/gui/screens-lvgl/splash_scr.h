@@ -14,7 +14,7 @@ void splash_scr()
 {
     millis_actual = millis();
     set_brightness(0);
-    tft.drawPngFile(SD, "/GFX/BOOTLOGO.png", (tft.width() / 2) - 85, (tft.height() / 2) - 70);
+    tft.drawPngFile(SD, PSTR("/GFX/BOOTLOGO.png"), (tft.width() / 2) - 85, (tft.height() / 2) - 70);
     delay(100);
     for (int fadein = 0; fadein <= 255; fadein++)
     {

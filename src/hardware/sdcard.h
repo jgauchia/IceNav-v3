@@ -9,7 +9,7 @@
 #include <FS.h>
 #include <SD.h>
 
-SPIClass spiSD = SPIClass();
+SPIClass spiSD = SPIClass(VSPI);
 bool sdloaded = false;
 
 /**
@@ -19,13 +19,18 @@ bool sdloaded = false;
 void init_sd()
 {
   spiSD.begin(SD_CLK, SD_MISO, SD_MOSI, SD_CS);
-  if (!SD.begin(SD_CS, spiSD, 80000000))
+  pinMode(SD_CS,OUTPUT);
+  digitalWrite(SD_CS,LOW);
+  if (!SD.begin(SD_CS, spiSD, 8000000))
   {
-    debug->println("Card Mount Failed");
+    debug->println(PSTR("SD Card Mount Failed"));
     return;
   }
   else
+  {
+    debug->println(PSTR("SD Card Mounted"));
     sdloaded = true;
+  }
 }
 
 /**
@@ -35,7 +40,7 @@ void init_sd()
 void init_SPIFFS()
 {
   if (!SPIFFS.begin(true))
-    debug->println("SPIFFS Mount Failed");
+    debug->println(PSTR("SPIFFS Mount Failed"));
   else
-    debug->println("SPIFFS Mounted");
+    debug->println(PSTR("SPIFFS Mounted"));
 }

@@ -128,3 +128,4 @@ void init_tft()
   ledcWrite(0, 255);
   touch_calibrate();
 }
+

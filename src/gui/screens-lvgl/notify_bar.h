@@ -12,6 +12,7 @@ static lv_obj_t *gps_time;
 static lv_obj_t *gps_count;
 static lv_obj_t *battery;
 static lv_obj_t *sdcard;
+static lv_obj_t *temp;
 void update_notify_bar(lv_timer_t *t);
 
 /**
@@ -44,6 +45,13 @@ void create_notify_bar()
     else
         lv_label_set_text(sdcard, " ");
 
+#if ENABLE_BME
+    temp = lv_label_create(lv_scr_act());
+    lv_obj_set_size(temp, 50, 20);
+    lv_obj_set_pos(temp, TFT_WIDTH - 105, 2);
+    lv_label_set_text_fmt(temp, "%02d\xC2\xB0", int(bme.readTemperature()));
+#endif
+
     lv_timer_t *t = lv_timer_create(update_notify_bar, UPDATE_NOTIFY_PERIOD, NULL);
     lv_timer_ready(t);
 }
@@ -75,4 +83,8 @@ void update_notify_bar(lv_timer_t *t)
         lv_label_set_text(battery, LV_SYMBOL_BATTERY_1);
     else if (batt_level <= 20)
         lv_label_set_text(battery, LV_SYMBOL_BATTERY_EMPTY);
+
+#ifdef ENABLE_BME
+    lv_label_set_text_fmt(temp, "%02d\xC2\xB0", int(bme.readTemperature()));
+#endif
 }

@@ -23,7 +23,7 @@ void create_search_sat_scr()
     lv_obj_t *sat_label = lv_label_create(searchSat);
 
     lv_obj_set_style_text_font(label, &lv_font_montserrat_18, 0);
-    lv_label_set_text(label, "Searching for satellites");
+    lv_label_set_text(label, PSTR("Searching for satellites"));
     lv_obj_set_align(label, LV_ALIGN_CENTER);
     lv_obj_set_y(label, -100);
 

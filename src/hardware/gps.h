@@ -20,16 +20,16 @@ bool is_gps_fixed = false;
  * @brief Custom NMEA sentences
  *
  */
-TinyGPSCustom totalGPGSVMessages(GPS, "GPGSV", 1); // $GPGSV sentence, first element
-TinyGPSCustom messageNumber(GPS, "GPGSV", 2);      // $GPGSV sentence, second element
-TinyGPSCustom satsInView(GPS, "GPGSV", 3);         // $GPGSV sentence, third element
+TinyGPSCustom totalGPGSVMessages(GPS, PSTR("GPGSV"), 1); // $GPGSV sentence, first element
+TinyGPSCustom messageNumber(GPS, PSTR("GPGSV"), 2);      // $GPGSV sentence, second element
+TinyGPSCustom satsInView(GPS, PSTR("GPGSV"), 3);         // $GPGSV sentence, third element
 TinyGPSCustom satNumber[4];                        // to be initialized later
 TinyGPSCustom elevation[4];
 TinyGPSCustom azimuth[4];
 TinyGPSCustom snr[4];
-TinyGPSCustom pdop(GPS, "GPGSA", 15); // $GPGSA sentence, 15th element
-TinyGPSCustom hdop(GPS, "GPGSA", 16); // $GPGSA sentence, 16th element
-TinyGPSCustom vdop(GPS, "GPGSA", 17); // $GPGSA sentence, 17th element
+TinyGPSCustom pdop(GPS, PSTR("GPGSA"), 15); // $GPGSA sentence, 15th element
+TinyGPSCustom hdop(GPS, PSTR("GPGSA"), 16); // $GPGSA sentence, 16th element
+TinyGPSCustom vdop(GPS, PSTR("GPGSA"), 17); // $GPGSA sentence, 17th element
 
 /**
  * @brief Structure for satellite position (elevation, azimut,...)
@@ -56,9 +56,9 @@ void init_gps()
 
   for (int i = 0; i < 4; ++i)
   {
-    satNumber[i].begin(GPS, "GPGSV", 4 + 4 * i); // offsets 4, 8, 12, 16
-    elevation[i].begin(GPS, "GPGSV", 5 + 4 * i); // offsets 5, 9, 13, 17
-    azimuth[i].begin(GPS, "GPGSV", 6 + 4 * i);   // offsets 6, 10, 14, 18
-    snr[i].begin(GPS, "GPGSV", 7 + 4 * i);       // offsets 7, 11, 15, 19
+    satNumber[i].begin(GPS, PSTR("GPGSV"), 4 + 4 * i); // offsets 4, 8, 12, 16
+    elevation[i].begin(GPS, PSTR("GPGSV"), 5 + 4 * i); // offsets 5, 9, 13, 17
+    azimuth[i].begin(GPS, PSTR("GPGSV"), 6 + 4 * i);   // offsets 6, 10, 14, 18
+    snr[i].begin(GPS, PSTR("GPGSV"), 7 + 4 * i);       // offsets 7, 11, 15, 19
   }
 }

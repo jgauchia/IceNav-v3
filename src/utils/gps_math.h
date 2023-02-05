@@ -167,21 +167,21 @@ int lat2posy(float f_lat, int zoom)
  */
 char *Latitude_formatString(double lat)
 {
-  char N_S = 'N';
+  char N_S = PSTR('N');
   double absLatitude = lat;
   uint16_t deg;
   uint8_t min;
   static char s_buf[64];
   if (lat < 0)
   {
-    N_S = 'S';
+    N_S = PSTR('S');
     absLatitude = fabs(lat);
   }
   deg = (uint16_t)absLatitude;
   absLatitude = (absLatitude - deg) * 60;
   min = (uint8_t)absLatitude;
   absLatitude = (absLatitude - min) * 60;
-  sprintf(s_buf, "%03d\xC2\xB0 %02d\' %.2f\" %c", deg, min, absLatitude, N_S);
+  sprintf(s_buf, PSTR("%03d\xC2\xB0 %02d\' %.2f\" %c"), deg, min, absLatitude, N_S);
   return s_buf;
 }
 
@@ -193,21 +193,21 @@ char *Latitude_formatString(double lat)
  */
 char *Longitude_formatString(double lon)
 {
-  char E_W = 'E';
+  char E_W = PSTR('E');
   double absLongitude = lon;
   uint16_t deg;
   uint8_t min;
   static char s_buf[64];
   if (lon < 0)
   {
-    E_W = 'W';
+    E_W = PSTR('W');
     absLongitude = fabs(lon);
   }
   deg = (uint16_t)absLongitude;
   absLongitude = (absLongitude - deg) * 60;
   min = (uint8_t)absLongitude;
   absLongitude = (absLongitude - min) * 60;
-  sprintf(s_buf, "%03d\xC2\xB0 %02d\' %.2f\" %c", deg, min, absLongitude, E_W);
+  sprintf(s_buf, PSTR("%03d\xC2\xB0 %02d\' %.2f\" %c"), deg, min, absLongitude, E_W);
   return s_buf;
 }
 
@@ -224,7 +224,7 @@ MapTile get_map_tile(double lon, double lat, int zoom_level)
   static char s_file[40] = "";
   int x = lon2tilex(lon, zoom_level);
   int y = lat2tiley(lat, zoom_level);
-  sprintf(s_file, "/MAP/%d/%d/%d.png", zoom_level, x, y);
+  sprintf(s_file, PSTR("/MAP/%d/%d/%d.png"), zoom_level, x, y);
   MapTile data;
   data.file = s_file;
   data.tilex = x;

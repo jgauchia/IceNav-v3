@@ -25,9 +25,9 @@ public:
             cfg.spi_host = HSPI_HOST;
             cfg.spi_mode = 0;
             cfg.freq_write = 79000000;
-            cfg.freq_read = 27000000;
+            cfg.freq_read = 16000000;
             cfg.spi_3wire = true;
-            cfg.use_lock = true;
+            cfg.use_lock = false;
             cfg.dma_channel = SPI_DMA_CH_AUTO;
             cfg.pin_sclk = 14;
             cfg.pin_mosi = 13;
@@ -55,7 +55,7 @@ public:
             cfg.invert = false;
             cfg.rgb_order = false;
             cfg.dlen_16bit = false;
-            cfg.bus_shared = true;
+            cfg.bus_shared = false;
             _panel_instance.config(cfg);
         }
 
@@ -79,7 +79,7 @@ public:
             cfg.bus_shared = true;
             cfg.offset_rotation = 0;
             cfg.spi_host = HSPI_HOST;
-            cfg.freq = 1000000;
+            cfg.freq = 2000000;
             cfg.pin_sclk = 14;
             cfg.pin_mosi = 13;
             cfg.pin_miso = 27;

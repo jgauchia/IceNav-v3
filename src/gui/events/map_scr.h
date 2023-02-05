@@ -18,6 +18,10 @@ MapTile OldMapTile;
 ScreenCoord NavArrow;
 bool map_found = false;
 
+
+uint16_t bg[400] = {0};
+
+
 /**
  * @brief Flag to indicate when maps needs to be draw
  *
@@ -32,6 +36,7 @@ bool is_map_draw = false;
 static void get_zoom_value(lv_event_t *event)
 {
     zoom = (int)lv_slider_get_value(zoom_slider);
+    lv_label_set_text_fmt(zoom_label, "ZOOM: %2d", zoom);
     lv_event_send(map_tile, LV_EVENT_VALUE_CHANGED, NULL);
 }
 
@@ -63,24 +68,34 @@ static void update_map(lv_event_t *event)
     CurrentMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom);
     if (strcmp(CurrentMapTile.file, OldMapTile.file) != 0 || CurrentMapTile.zoom != OldMapTile.zoom)
     {
-        // if (CurrentMapTile.zoom != zoom_old || (CurrentMapTile.tiley != tilex_old || CurrentMapTile.tiley != tiley_old))
+        if (CurrentMapTile.zoom != zoom_old || (CurrentMapTile.tiley != tilex_old || CurrentMapTile.tiley != tiley_old))
         {
             OldMapTile.zoom = CurrentMapTile.zoom;
             OldMapTile.tilex = CurrentMapTile.tilex;
             OldMapTile.tiley = CurrentMapTile.tiley;
             OldMapTile.file = CurrentMapTile.file;
-            map_found = tft.drawPngFile(SD, CurrentMapTile.file, 0, 64);
-            //debug->println(CurrentMapTile.file);
+            tft.startWrite();
+            map_found = tft.drawPngFile(SD, CurrentMapTile.file, 32, 64);
+            tft.endWrite();
+            // debug->println(CurrentMapTile.file);
         }
     }
     if (map_found)
     {
-        NavArrow = coord_to_scr_pos(0, 64, GPS.location.lng(), GPS.location.lat(), zoom);
+        NavArrow = coord_to_scr_pos(32, 64, GPS.location.lng(), GPS.location.lat(), zoom);
 #ifdef ENABLE_COMPASS
         heading = read_compass();
         tft.startWrite();
-        tft.setPivot(NavArrow.posx, NavArrow.posy);
-        sprArrow.pushRotated(heading, TFT_BLACK);
+        //tft.setPivot(NavArrow.posx, NavArrow.posy);
+        tft.readRect(NavArrow.posx,NavArrow.posy,16,16,bg);
+        sprArrow.createSprite(16, 16);
+        sprArrow.setColorDepth(8);
+        sprArrow.fillSprite(TFT_BLACK);
+        sprArrow.drawCircle(8, 8, 5, TFT_RED);
+        //sprArrow.pushRotated(heading, TFT_TRANSPARENT);
+        sprArrow.pushSprite(NavArrow.posx,NavArrow.posy,TFT_BLACK);
+        sprArrow.deleteSprite();
+        tft.pushRect(NavArrow.posx,NavArrow.posy,16,16,bg);
         tft.endWrite();
 #else
         tft.startWrite();

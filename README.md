@@ -1,20 +1,20 @@
 # IceNav-v3
 ESP32 GPS Navigator 
 
-       Pinout:
-       HCM5883L      MPU6050       ILI9488        SD CARD        VBAT             GPS
-       --------------------------------------------------------------------------------------
-       VCC 3,3v      VCC 3.3v      VCC  3,3v      VCC  3,3v      GPIO34           VCC  3,3v
-       GND GND       GND GND       GND  GND       GND  GND       ADC1_CHANNEL_6   GND  GND
-       SDA GPIO21    SDA GPIO21    LED  GPIO33    CS   GPIO4                      RX   GPIO26
-       SCL GPIO22    SCL GPIO22    MISO GPIO27    MISO GPIO27                     TX   GPIO25
-                                   SCK  GPIO14    SCK  GPIO14
-                                   MOSI GPIO13    MOSI GPIO13
-                                   DC   GPIO15
-                                   RST  GPIO32
-                                   CS   GPIO2
-                                   LED  GPIO33
-                                   TCH  GPIO18
+       Pinout CUSTOMBOARD:
+       HCM5883L      BME280        MPU6050       ILI9488        SD CARD        VBAT             GPS
+       -----------------------------------------------------------------------------------------------------
+       VCC 3,3v      VCC 5v        VCC 3.3v      VCC  3,3v      VCC  3,3v      GPIO34           VCC  3,3v
+       GND GND       GND GND       GND GND       GND  GND       GND  GND       ADC1_CHANNEL_6   GND  GND
+       SDA GPIO21    SDA GPIO21    SDA GPIO21    LED  GPIO33    CS   GPIO4                      RX   GPIO26
+       SCL GPIO22    SCL GPIO22    SCL GPIO22    MISO GPIO27    MISO GPIO19                     TX   GPIO25
+                                                 SCK  GPIO14    SCK  GPIO17
+                                                 MOSI GPIO13    MOSI GPIO23
+                                                 DC   GPIO15
+                                                 RST  GPIO32
+                                                 CS   GPIO2
+                                                 LED  GPIO33
+                                                 TCH  GPIO18
 
 
        Pinout TDISPLAY:
@@ -68,6 +68,24 @@ On SD Card map tiles (256x256 PNG Format) are stored in these folders structure:
 
       [UPDATE 12.12.2022]
          * Change Zoom box to slider
+
+      [UPDATE 19.12.2022]
+         * Store fixed texts in Flash (NOT RAM)
+         * Add (again) LVGL Filesystem SD port
+         * Fix LVGL display flush callback
+         * Fix OSM Map position on screen
+         * Add zoom label
+         * Change GPS Reading to core 1
+         * CUSTOBOARD:
+               * Change SD SPI to VSPI 
+               * Change LovyanGFX screen config
+         
+      [UPDATE 05.02.2023]
+         * Upload port fixed to /dev/ttyUSB0
+         * Fix Adafruit Sensor Libraries
+         * CUSTOMBOARD:
+               * Added BME280 temp/press/hum. sensor
+      
          
       
 

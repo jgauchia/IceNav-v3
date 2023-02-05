@@ -53,13 +53,10 @@ void lvgl_set_resolution(int width, int height)
  */
 void disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p)
 {
-    if (tft.getStartCount() == 0)
-    {
-        tft.startWrite();
-//        tft.endWrite();
-    }
+    tft.startWrite();
     tft.pushImageDMA(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t *)&color_p->full);
-    lv_disp_flush_ready(disp); 
+    lv_disp_flush_ready(disp);
+    tft.endWrite();
 }
 
 /**
@@ -89,6 +86,8 @@ void init_LVGL()
 {
     lv_init();
 
+    lv_port_sd_fs_init();
+
     //  Init Default Screen driver //
     lv_disp_draw_buf_init(&draw_buf, buf, NULL, screenWidth * 10);
     static lv_disp_drv_t def_drv;
@@ -105,7 +104,7 @@ void init_LVGL()
     indev_drv.type = LV_INDEV_TYPE_POINTER;
     indev_drv.read_cb = touchpad_read;
     lv_indev_drv_register(&indev_drv);
-    
+
     //  Create Screens //
     create_search_sat_scr();
     create_main_scr();

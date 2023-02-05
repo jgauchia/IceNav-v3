@@ -39,7 +39,7 @@ int read_wpt_file(const char *filename)
 
     if (!wptFS)
     {
-        debug->println("File not found");
+        debug->println(PSTR("WPT File not found"));
         return 0;
     }
 

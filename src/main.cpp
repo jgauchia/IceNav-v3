@@ -25,11 +25,13 @@ unsigned long millis_actual = 0;
 #include "hardware/sdcard.h"
 #include "hardware/tft.h"
 #include "hardware/compass.h"
+#include "hardware/bme.h"
 #include "hardware/battery.h"
 #include "hardware/gps.h"
 #include "hardware/power.h"
 #include "utils/gps_math.h"
 #include "utils/wpt.h"
+#include "utils/lv_sd_fs.h"
 #include "gui/lvgl.h"
 
 #include "tasks.h"
@@ -40,6 +42,10 @@ unsigned long millis_actual = 0;
  */
 void setup()
 {
+#ifdef ENABLE_BME
+  bme.begin(BME_ADDRESS);
+#endif
+
 #ifdef ENABLE_COMPASS
   compass.begin();
 #endif
@@ -59,8 +65,7 @@ void setup()
   splash_scr();
   init_tasks();
 
-  // // lv_scr_load(searchSat);
-
+  // lv_scr_load(searchSat);
   lv_scr_load(mainScreen);
   create_notify_bar();
 }

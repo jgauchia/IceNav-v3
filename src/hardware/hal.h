@@ -19,9 +19,9 @@
  */
 #ifdef CUSTOMBOARD
   #define SD_CS 4
-  #define SD_MISO 27
-  #define SD_MOSI 13
-  #define SD_CLK 14
+  #define SD_MISO 19 
+  #define SD_MOSI 23 
+  #define SD_CLK 17
 #endif
 
 #ifdef TDISPLAY
@@ -41,4 +41,12 @@
  */
 #ifdef CUSTOMBOARD
   #define ADC_BATT_PIN 34
+#endif
+
+/**
+ * @brief BME280 Address
+ * 
+ */
+#ifdef CUSTOMBOARD
+  #define BME_ADDRESS 0x76
 #endif

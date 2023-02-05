@@ -4,7 +4,8 @@
 #include <esp_bt_main.h>
 #include <esp_wifi.h>
 
-void powerDeepSeep() {
+void powerDeepSeep()
+{
 #ifdef TDISPLAY
   digitalWrite(ADC_EN, LOW);
   delay(10);
@@ -20,13 +21,15 @@ void powerDeepSeep() {
   esp_deep_sleep_start();
 }
 
-void powerLightSleepTimer(int millis) {
+void powerLightSleepTimer(int millis)
+{
   esp_sleep_enable_timer_wakeup(millis * 1000);
   esp_err_t rtc_gpio_hold_en(gpio_num_t GPIO_NUM_5);
   esp_light_sleep_start();
 }
 
-void powerOn() {
+void powerOn()
+{
 #ifdef DISABLE_RADIO
   WiFi.disconnect(true);
   WiFi.mode(WIFI_OFF);
@@ -36,6 +39,6 @@ void powerOn() {
 #endif
 #ifdef TDISPLAY
   pinMode(HW_EN, OUTPUT);
-  digitalWrite(HW_EN, HIGH);  // step-up on
+  digitalWrite(HW_EN, HIGH); // step-up on
 #endif
 }
