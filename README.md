@@ -83,6 +83,7 @@ On SD Card map tiles (256x256 PNG Format) are stored in these folders structure:
       [UPDATE 05.02.2023]
          * Upload port fixed to /dev/ttyUSB0
          * Fix Adafruit Sensor Libraries
+         * Updated LovyanGFX Library
          * CUSTOMBOARD:
                * Added BME280 temp/press/hum. sensor
       

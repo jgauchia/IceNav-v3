@@ -6,7 +6,7 @@
  * @date 2022-11-19
  */
 
-#define LGFX_USE_V1
+//#define LGFX_USE_V1
 
 #include <LovyanGFX.hpp>
 
