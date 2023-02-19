@@ -18,9 +18,7 @@ MapTile OldMapTile;
 ScreenCoord NavArrow;
 bool map_found = false;
 
-
 uint16_t bg[400] = {0};
-
 
 /**
  * @brief Flag to indicate when maps needs to be draw
@@ -76,8 +74,8 @@ static void update_map(lv_event_t *event)
             OldMapTile.file = CurrentMapTile.file;
             tft.startWrite();
             map_found = tft.drawPngFile(SD, CurrentMapTile.file, 32, 64);
+            // map_found = tft.drawPngFile(SD, "/MAP/6/32/23.png", 32, 64);
             tft.endWrite();
-            // debug->println(CurrentMapTile.file);
         }
     }
     if (map_found)
@@ -86,16 +84,14 @@ static void update_map(lv_event_t *event)
 #ifdef ENABLE_COMPASS
         heading = read_compass();
         tft.startWrite();
-        //tft.setPivot(NavArrow.posx, NavArrow.posy);
-        tft.readRect(NavArrow.posx,NavArrow.posy,16,16,bg);
-        sprArrow.createSprite(16, 16);
-        sprArrow.setColorDepth(8);
-        sprArrow.fillSprite(TFT_BLACK);
-        sprArrow.drawCircle(8, 8, 5, TFT_RED);
+        // tft.readRect(NavArrow.posx, NavArrow.posy, 16, 16, bg);
+        // sprArrow.drawCircle(8, 8, 5, TFT_RED);
+        tft.drawPngFile(SD, CurrentMapTile.file, NavArrow.posx, NavArrow.posy, 16, 16, NavArrow.posx, NavArrow.posy);
+        tft.setPivot(NavArrow.posx, NavArrow.posy);
+        sprArrow.pushRotated(heading,TFT_BLACK);
         //sprArrow.pushRotated(heading, TFT_TRANSPARENT);
-        sprArrow.pushSprite(NavArrow.posx,NavArrow.posy,TFT_BLACK);
-        sprArrow.deleteSprite();
-        tft.pushRect(NavArrow.posx,NavArrow.posy,16,16,bg);
+        // sprArrow.pushSprite(NavArrow.posx, NavArrow.posy, TFT_BLACK);
+        //  tft.pushRect(NavArrow.posx, NavArrow.posy, 16, 16, bg);
         tft.endWrite();
 #else
         tft.startWrite();

@@ -30,6 +30,7 @@ lv_chart_series_t *satbar_ser2;
 static lv_timer_t *timer_main_scr;
 TFT_eSprite sprArrow = TFT_eSprite(&tft);
 TFT_eSprite sprSat = TFT_eSprite(&tft);
+TFT_eSprite sprTile = TFT_eSprite(&tft);
 
 /**
  * @brief Active Tile in TileView control
@@ -112,18 +113,17 @@ void create_main_scr()
     lv_obj_set_style_bg_color(zoom_slider, lv_color_darken(lv_palette_main(LV_PALETTE_GREY), LV_OPA_40), LV_PART_INDICATOR);
     lv_obj_align(zoom_slider, LV_ALIGN_BOTTOM_MID, 0, -40);
     lv_obj_add_event_cb(zoom_slider, get_zoom_value, LV_EVENT_VALUE_CHANGED, NULL);
-    
+
     zoom_label = lv_label_create(map_tile);
     lv_obj_set_style_text_font(zoom_label, &lv_font_montserrat_20, 0);
     lv_label_set_text_fmt(zoom_label, "ZOOM: %2d", DEF_ZOOM);
-    lv_obj_align(zoom_label, LV_ALIGN_TOP_MID,0,10);
+    lv_obj_align(zoom_label, LV_ALIGN_TOP_MID, 0, 10);
 
-
-    // sprArrow.createSprite(16, 16);
-    // sprArrow.setColorDepth(8);
-    // sprArrow.fillSprite(TFT_TRANSPARENT);
+    sprArrow.createSprite(16, 16);
+    //sprArrow.setColorDepth(16);
+    sprArrow.fillSprite(TFT_BLACK);
     // sprArrow.drawCircle(8,8,5,TFT_RED);
-    //sprArrow.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
+    sprArrow.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
     lv_obj_add_event_cb(map_tile, draw_map, LV_EVENT_DRAW_POST_END, NULL);
     lv_obj_add_event_cb(map_tile, update_map, LV_EVENT_VALUE_CHANGED, NULL);
 

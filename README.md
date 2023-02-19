@@ -6,8 +6,8 @@ ESP32 GPS Navigator
        -----------------------------------------------------------------------------------------------------
        VCC 3,3v      VCC 5v        VCC 3.3v      VCC  3,3v      VCC  3,3v      GPIO34           VCC  3,3v
        GND GND       GND GND       GND GND       GND  GND       GND  GND       ADC1_CHANNEL_6   GND  GND
-       SDA GPIO21    SDA GPIO21    SDA GPIO21    LED  GPIO33    CS   GPIO4                      RX   GPIO26
-       SCL GPIO22    SCL GPIO22    SCL GPIO22    MISO GPIO27    MISO GPIO19                     TX   GPIO25
+       SDA GPIO21    SDA GPIO21    SDA GPIO21    LED  GPIO33    CS   GPIO4                      RX   GPIO25
+       SCL GPIO22    SCL GPIO22    SCL GPIO22    MISO GPIO27    MISO GPIO19                     TX   GPIO26
                                                  SCK  GPIO14    SCK  GPIO17
                                                  MOSI GPIO13    MOSI GPIO23
                                                  DC   GPIO15
@@ -22,8 +22,8 @@ ESP32 GPS Navigator
        ------------------------------------------------------------------------
        VCC 3,3v      LED  GPIO4     VCC  3,3v      GPIO34           VCC  3,3v
        GND GND       SCK  GPIO18    GND  GND       ADC1_CHANNEL_6   GND  GND
-       SDA GPIO21    MOSI GPIO19    CS   GPIO2                      RX   GPIO26
-       SCL GPIO22    DC   GPIO16    MISO GPIO27                     TX   GPIO25
+       SDA GPIO21    MOSI GPIO19    CS   GPIO2                      RX   GPIO25
+       SCL GPIO22    DC   GPIO16    MISO GPIO27                     TX   GPIO26
                      RST  GPIO23    SCK  GPIO13
                      CS   GPIO5     MOSI GPIO15
                                       
@@ -87,6 +87,15 @@ On SD Card map tiles (256x256 PNG Format) are stored in these folders structure:
          * CUSTOMBOARD:
                * Added BME280 temp/press/hum. sensor
       
-         
+      [UPDATE 16.02.2023]
+         * Number of satellites coloured is GPS signal is fixed
+
+      [UPDATE 17.02.2023]
+         * Fix Battery Reading
+         * Fix GPS pinout in README.md
+
+      [UPDATE 19.02.2023]   
+         * Fix GPS satellites number (fix signal)
+         * Add Charge Icon
       
 
