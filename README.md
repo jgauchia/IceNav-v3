@@ -107,5 +107,8 @@ On SD Card map tiles (256x256 PNG Format) are stored in these folders structure:
          * Fix Main Screen Update event
          * Add Event for Notify Bar
 
+      [UPDATE 23.02.2023]         
+         * Fix Some Compiling Warnings
+
       
 

@@ -68,7 +68,7 @@ static void draw_map(lv_event_t *event)
         OldMapTile.zoom = 0;
         OldMapTile.tilex = 0;
         OldMapTile.tiley = 0;
-        OldMapTile.file = "";
+        OldMapTile.file = "";  // TODO - Delete Warning 
         is_map_draw = true;
         map_found = false;
     }
@@ -84,7 +84,7 @@ static void update_map(lv_event_t *event)
     CurrentMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom);
     if (strcmp(CurrentMapTile.file, OldMapTile.file) != 0 || CurrentMapTile.zoom != OldMapTile.zoom)
     {
-        //if (CurrentMapTile.zoom != zoom_old || (CurrentMapTile.tiley != tilex_old || CurrentMapTile.tiley != tiley_old))
+        // if (CurrentMapTile.zoom != zoom_old || (CurrentMapTile.tiley != tilex_old || CurrentMapTile.tiley != tiley_old))
         {
             OldMapTile.zoom = CurrentMapTile.zoom;
             OldMapTile.tilex = CurrentMapTile.tilex;
