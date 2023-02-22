@@ -97,5 +97,15 @@ On SD Card map tiles (256x256 PNG Format) are stored in these folders structure:
       [UPDATE 19.02.2023]   
          * Fix GPS satellites number (fix signal)
          * Add Charge Icon
+
+      [UPDATE 22.02.2023]
+         * Clean Code
+         * Update Splash Screen (MCU Info)
+         * Fix Battery Reading delay
+         * Change Satellite Tracking screen (SNR Bars)
+         * Add Event for Satellite Tracking
+         * Fix Main Screen Update event
+         * Add Event for Notify Bar
+
       
 

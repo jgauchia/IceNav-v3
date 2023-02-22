@@ -1,5 +1,5 @@
 /**
- * @file compass_scr.h
+ * @file compass.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Compass screen events
  * @version 0.1

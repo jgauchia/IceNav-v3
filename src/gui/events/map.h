@@ -1,30 +1,48 @@
 /**
- * @file map_scr.h
+ * @file map.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Map screen events
  * @version 0.1
  * @date 2022-11-20
  */
 
+/**
+ * @brief Zoom Levels and Default zoom
+ *
+ */
 #define MIN_ZOOM 6
 #define MAX_ZOOM 17
 #define DEF_ZOOM 17
 int zoom = DEF_ZOOM;
-int tilex_old = 0;
-int tiley_old = 0;
-int zoom_old = 0;
-MapTile CurrentMapTile;
-MapTile OldMapTile;
-ScreenCoord NavArrow;
-bool map_found = false;
-
-uint16_t bg[400] = {0};
 
 /**
- * @brief Flag to indicate when maps needs to be draw
+ * @brief Old tile coordinates and zoom
  *
  */
-bool is_map_draw = false;
+// int tilex_old = 0;
+// int tiley_old = 0;
+// int zoom_old = 0;
+
+MapTile CurrentMapTile;
+MapTile OldMapTile;
+
+/**
+ * @brief Navitagion Arrow position on screen
+ *
+ */
+ScreenCoord NavArrow_position;
+
+/**
+ * @brief Flag to indicate when tile map is found on SD
+ *
+ */
+bool map_found = false;
+
+/**
+ * @brief Sprite for Navigation Arrow in map tile
+ *
+ */
+TFT_eSprite sprArrow = TFT_eSprite(&tft);
 
 /**
  * @brief Update zoom value
@@ -66,7 +84,7 @@ static void update_map(lv_event_t *event)
     CurrentMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom);
     if (strcmp(CurrentMapTile.file, OldMapTile.file) != 0 || CurrentMapTile.zoom != OldMapTile.zoom)
     {
-        if (CurrentMapTile.zoom != zoom_old || (CurrentMapTile.tiley != tilex_old || CurrentMapTile.tiley != tiley_old))
+        //if (CurrentMapTile.zoom != zoom_old || (CurrentMapTile.tiley != tilex_old || CurrentMapTile.tiley != tiley_old))
         {
             OldMapTile.zoom = CurrentMapTile.zoom;
             OldMapTile.tilex = CurrentMapTile.tilex;
@@ -80,18 +98,23 @@ static void update_map(lv_event_t *event)
     }
     if (map_found)
     {
-        NavArrow = coord_to_scr_pos(32, 64, GPS.location.lng(), GPS.location.lat(), zoom);
+        sprArrow.deleteSprite();
+        sprArrow.createSprite(16, 16);
+        // sprArrow.setColorDepth(16);
+        sprArrow.fillSprite(TFT_BLACK);
+        // sprArrow.drawCircle(8,8,5,TFT_RED);
+        sprArrow.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
+
+        NavArrow_position = coord_to_scr_pos(32, 64, GPS.location.lng(), GPS.location.lat(), zoom);
 #ifdef ENABLE_COMPASS
         heading = read_compass();
         tft.startWrite();
-        // tft.readRect(NavArrow.posx, NavArrow.posy, 16, 16, bg);
         // sprArrow.drawCircle(8, 8, 5, TFT_RED);
-        tft.drawPngFile(SD, CurrentMapTile.file, NavArrow.posx, NavArrow.posy, 16, 16, NavArrow.posx, NavArrow.posy);
-        tft.setPivot(NavArrow.posx, NavArrow.posy);
-        sprArrow.pushRotated(heading,TFT_BLACK);
-        //sprArrow.pushRotated(heading, TFT_TRANSPARENT);
-        // sprArrow.pushSprite(NavArrow.posx, NavArrow.posy, TFT_BLACK);
-        //  tft.pushRect(NavArrow.posx, NavArrow.posy, 16, 16, bg);
+        // tft.drawPngFile(SD, CurrentMapTile.file, NavArrow.posx, NavArrow.posy, 16, 16, NavArrow.posx, NavArrow.posy);
+        tft.setPivot(NavArrow_position.posx, NavArrow_position.posy);
+        sprArrow.pushRotated(heading, TFT_BLACK);
+        // sprArrow.pushRotated(heading, TFT_TRANSPARENT);
+        //  sprArrow.pushSprite(NavArrow.posx, NavArrow.posy, TFT_BLACK);
         tft.endWrite();
 #else
         tft.startWrite();

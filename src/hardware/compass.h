@@ -12,7 +12,19 @@
 #include <Adafruit_HMC5883_U.h>
 
 Adafruit_HMC5883_Unified compass = Adafruit_HMC5883_Unified(12345);
+
+/**
+ * @brief Magnetic declination
+ * 
+ */
 float declinationAngle = 0.22;
+
+
+/**
+ * @brief Compass Heading Angle
+ * 
+ */
+int heading = 0;
 
 
 /**

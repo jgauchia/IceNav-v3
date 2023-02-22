@@ -40,12 +40,12 @@ float battery_read()
   long sum = 0;        // sum of samples taken
   float voltage = 0.0; // calculated voltage
   float output = 0.0;  // output value
-  for (int i = 0; i < 200; i++)
+  for (int i = 0; i < 100; i++)
   {
     sum += (long)adc1_get_raw(ADC1_CHANNEL_6);
-    delayMicroseconds(300);
+    delayMicroseconds(150);
   }
-  voltage = sum / (float)200;
+  voltage = sum / (float)100;
 #ifdef CUSTOMBOARD
   // custom board has a divider circuit
   float R1 = 100000.0; // resistance of R1 (100K)

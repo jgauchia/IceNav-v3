@@ -15,8 +15,8 @@
 int brightness_level = 255;
 
 static TFT_eSPI tft;
-static TFT_eSprite sat_sprite = TFT_eSprite(&tft);
-static TFT_eSprite compass_sprite = TFT_eSprite(&tft);
+#define LVGL_BKG  0x10A2
+
 
 /**
  * @brief Set the TFT brightness
