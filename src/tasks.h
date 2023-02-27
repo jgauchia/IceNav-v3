@@ -17,7 +17,7 @@ void Read_GPS(void *pvParameters)
   debug->println(xPortGetCoreID());
   for (;;)
   {
-    if (gps->available())
+    while (gps->available() > 0)
     {
       GPS.encode(gps->read());
 
@@ -27,7 +27,7 @@ void Read_GPS(void *pvParameters)
       }
 #endif
     }
-    delay(1);
+    vTaskDelay(1);
   }
 }
 
@@ -52,7 +52,7 @@ void Main_prog(void *pvParameters)
  */
 void init_tasks()
 {
-  xTaskCreatePinnedToCore(Read_GPS, PSTR("Read GPS"), 16384, NULL, 1, NULL, 1);
+  xTaskCreatePinnedToCore(Read_GPS, PSTR("Read GPS"), 1000, NULL, 1, NULL, 1);
   delay(500);
   // xTaskCreatePinnedToCore(Main_prog, PSTR("Main Program"), 16384, NULL, 4, NULL, 1);
   // delay(500);

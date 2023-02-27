@@ -8,7 +8,7 @@
 
 /**
  * @brief Main Screen Tiles
- * 
+ *
  */
 static lv_obj_t *compass_tile;
 static lv_obj_t *map_tile;
@@ -16,7 +16,7 @@ static lv_obj_t *sat_track_tile;
 
 /**
  * @brief Compass Tile screen objects
- * 
+ *
  */
 static lv_obj_t *compass_heading;
 static lv_obj_t *compass_img;
@@ -25,14 +25,14 @@ static lv_obj_t *longitude;
 
 /**
  * @brief Map View Tile screen objects
- * 
+ *
  */
 static lv_obj_t *zoom_label;
 static lv_obj_t *zoom_slider;
 
 /**
  * @brief Satellite Tracking Tile screen objects
- * 
+ *
  */
 static lv_obj_t *pdop_label;
 static lv_obj_t *hdop_label;
@@ -41,7 +41,7 @@ static lv_obj_t *alt_label;
 
 /**
  * @brief Main screen events include
- * 
+ *
  */
 #include "gui/events/main_screen.h"
 #include "gui/events/compass.h"
@@ -172,4 +172,3 @@ void create_main_scr()
     // Satellite Tracking Event
     lv_obj_add_event_cb(sat_track_tile, update_sattrack, LV_EVENT_VALUE_CHANGED, NULL);
 }
-
