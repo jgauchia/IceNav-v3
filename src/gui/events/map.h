@@ -68,7 +68,7 @@ static void draw_map(lv_event_t *event)
         OldMapTile.zoom = 0;
         OldMapTile.tilex = 0;
         OldMapTile.tiley = 0;
-        OldMapTile.file = "";  // TODO - Delete Warning 
+        OldMapTile.file = ""; // TODO - Delete Warning
         is_map_draw = true;
         map_found = false;
     }
@@ -82,42 +82,40 @@ static void draw_map(lv_event_t *event)
 static void update_map(lv_event_t *event)
 {
     CurrentMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom);
-    if (strcmp(CurrentMapTile.file, OldMapTile.file) != 0 || CurrentMapTile.zoom != OldMapTile.zoom)
+    if (strcmp(CurrentMapTile.file, OldMapTile.file) != 0 || CurrentMapTile.zoom != OldMapTile.zoom || CurrentMapTile.tilex != OldMapTile.tilex || CurrentMapTile.tiley != OldMapTile.tiley)
     {
-        // if (CurrentMapTile.zoom != zoom_old || (CurrentMapTile.tiley != tilex_old || CurrentMapTile.tiley != tiley_old))
-        {
-            OldMapTile.zoom = CurrentMapTile.zoom;
-            OldMapTile.tilex = CurrentMapTile.tilex;
-            OldMapTile.tiley = CurrentMapTile.tiley;
-            OldMapTile.file = CurrentMapTile.file;
-            tft.startWrite();
-            map_found = tft.drawPngFile(SD, CurrentMapTile.file, 32, 64);
-            // map_found = tft.drawPngFile(SD, "/MAP/6/32/23.png", 32, 64);
-            tft.endWrite();
-        }
+        OldMapTile.zoom = CurrentMapTile.zoom;
+        OldMapTile.tilex = CurrentMapTile.tilex;
+        OldMapTile.tiley = CurrentMapTile.tiley;
+        OldMapTile.file = CurrentMapTile.file;
+        tft.startWrite();
+        map_found = tft.drawPngFile(SD, CurrentMapTile.file, 32, 64);
+        // map_found = tft.drawPngFile(SD, "/MAP/6/32/23.png", 32, 64);
+        tft.endWrite();
     }
     if (map_found)
     {
         sprArrow.deleteSprite();
         sprArrow.createSprite(16, 16);
-        // sprArrow.setColorDepth(16);
         sprArrow.fillSprite(TFT_BLACK);
-        // sprArrow.drawCircle(8,8,5,TFT_RED);
         sprArrow.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
 
         NavArrow_position = coord_to_scr_pos(32, 64, GPS.location.lng(), GPS.location.lat(), zoom);
 #ifdef ENABLE_COMPASS
         heading = read_compass();
         tft.startWrite();
-        // sprArrow.drawCircle(8, 8, 5, TFT_RED);
-        // tft.drawPngFile(SD, CurrentMapTile.file, NavArrow.posx, NavArrow.posy, 16, 16, NavArrow.posx, NavArrow.posy);
+        // tft.drawPngFile(SD, "/MAP/6/32/23.png", 120-12, 260-12,
+        //                    24,24 , 120-12-32,260-12-64);
+        tft.drawPngFile(SD, CurrentMapTile.file, NavArrow_position.posx - 12, NavArrow_position.posy - 12,
+                        24, 24, NavArrow_position.posx - 12 - 32, NavArrow_position.posy - 12 - 64);
         tft.setPivot(NavArrow_position.posx, NavArrow_position.posy);
+        // tft.setPivot(NavArrow_position.posx, NavArrow_position.posy);
         sprArrow.pushRotated(heading, TFT_BLACK);
-        // sprArrow.pushRotated(heading, TFT_TRANSPARENT);
-        //  sprArrow.pushSprite(NavArrow.posx, NavArrow.posy, TFT_BLACK);
         tft.endWrite();
 #else
         tft.startWrite();
+        tft.drawPngFile(SD, CurrentMapTile.file, NavArrow_position.posx - 12, NavArrow_position.posy - 12,
+                        24, 24, NavArrow_position.posx - 12 - 32, NavArrow_position.posy - 12 - 64);
         sprArrow.pushSprite(NavArrow.posx, NavArrow.posy, TFT_BLACK);
         tft.endWrite();
 #endif

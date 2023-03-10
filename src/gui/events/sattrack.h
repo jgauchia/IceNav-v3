@@ -138,12 +138,13 @@ static void update_sattrack(lv_event_t *event)
                     int H = (60 * cos(DEGtoRAD(sat_tracker[i].elevation)));
                     int sat_pos_x = 195 + (H * sin(DEGtoRAD(sat_tracker[i].azimuth)));
                     int sat_pos_y = 100 - (H * cos(DEGtoRAD(sat_tracker[i].azimuth)));
-                    sat_tracker[i].pos_x = sat_pos_x;
-                    sat_tracker[i].pos_y = sat_pos_y;
+
                     sprSat.fillCircle(7, 2, 2, TFT_GREEN);
                     sprSat.pushSprite(sat_pos_x, sat_pos_y, TFT_TRANSPARENT);
                     tft.setCursor(sat_pos_x, sat_pos_y + 5);
                     tft.print(i + 1);
+                    sat_tracker[i].pos_x = sat_pos_x;
+                    sat_tracker[i].pos_y = sat_pos_y;
                 }
             }
         }

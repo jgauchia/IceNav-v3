@@ -114,3 +114,10 @@ On SD Card map tiles (256x256 PNG Format) are stored in these folders structure:
          * Change GPS speed to 38400 baud
          * Finished Satellite Tracking screen
 
+      [UPDATE 10.03.2023]   
+         * Fix zoom slider
+         * Fix main screen update time
+         * "Fake" navigation arrow background update in map screen
+         * CUSTOMBOARD:
+               * Fix touch response (ms)
+               * Fix DPI

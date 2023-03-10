@@ -10,7 +10,7 @@
  * @brief  Main Screen update time
  *
  */
-#define UPDATE_MAINSCR_PERIOD 30
+#define UPDATE_MAINSCR_PERIOD 60
 
 /**
  * @brief Flag to indicate when maps needs to be draw

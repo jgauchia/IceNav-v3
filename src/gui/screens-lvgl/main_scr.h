@@ -113,15 +113,17 @@ void create_main_scr()
     // Map Tile
     zoom_slider = lv_slider_create(map_tile);
     lv_slider_set_range(zoom_slider, MIN_ZOOM, MAX_ZOOM);
-    lv_obj_set_size(zoom_slider, 150, 30);
-    lv_slider_set_value(zoom_slider, DEF_ZOOM, LV_ANIM_ON);
+    lv_obj_set_size(zoom_slider, 200, 30);
+    lv_slider_set_value(zoom_slider, DEF_ZOOM, LV_ANIM_OFF);
     lv_obj_set_style_bg_color(zoom_slider, lv_color_darken(lv_palette_main(LV_PALETTE_GREY), LV_OPA_40), LV_PART_INDICATOR);
-    lv_obj_align(zoom_slider, LV_ALIGN_BOTTOM_MID, 0, -40);
+    lv_obj_add_flag(zoom_slider, LV_OBJ_FLAG_ADV_HITTEST);
+    lv_obj_align(zoom_slider, LV_ALIGN_BOTTOM_MID, 0, -30);
 
     zoom_label = lv_label_create(map_tile);
     lv_obj_set_style_text_font(zoom_label, &lv_font_montserrat_20, 0);
     lv_label_set_text_fmt(zoom_label, "ZOOM: %2d", DEF_ZOOM);
     lv_obj_align(zoom_label, LV_ALIGN_TOP_MID, 0, 10);
+
     // Map Tile Events
     lv_obj_add_event_cb(zoom_slider, get_zoom_value, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(map_tile, draw_map, LV_EVENT_DRAW_POST_END, NULL);
