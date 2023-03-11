@@ -121,3 +121,10 @@ On SD Card map tiles (256x256 PNG Format) are stored in these folders structure:
          * CUSTOMBOARD:
                * Fix touch response (ms)
                * Fix DPI
+
+      [UPDATE 11.03.2023]
+         * Clean code
+         * Finished Map screen
+         * Add GPS Fix custom field
+         * Add GPS Fix mode custom field
+         * Add GPS Fix LED & Fix mode label in notify bar

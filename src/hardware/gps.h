@@ -23,13 +23,15 @@ bool is_gps_fixed = false;
 TinyGPSCustom totalGPGSVMessages(GPS, PSTR("GPGSV"), 1); // $GPGSV sentence, first element
 TinyGPSCustom messageNumber(GPS, PSTR("GPGSV"), 2);      // $GPGSV sentence, second element
 TinyGPSCustom satsInView(GPS, PSTR("GPGSV"), 3);         // $GPGSV sentence, third element
-TinyGPSCustom satNumber[4];                        // to be initialized later
+TinyGPSCustom satNumber[4];                              // to be initialized later
 TinyGPSCustom elevation[4];
 TinyGPSCustom azimuth[4];
 TinyGPSCustom snr[4];
 TinyGPSCustom pdop(GPS, PSTR("GPGSA"), 15); // $GPGSA sentence, 15th element
 TinyGPSCustom hdop(GPS, PSTR("GPGSA"), 16); // $GPGSA sentence, 16th element
 TinyGPSCustom vdop(GPS, PSTR("GPGSA"), 17); // $GPGSA sentence, 17th element
+TinyGPSCustom fix(GPS, PSTR("GPGGA"), 6);
+TinyGPSCustom fix_mode(GPS, PSTR("GPGSA"),2);
 
 /**
  * @brief Structure for satellite position (elevation, azimut,...)
