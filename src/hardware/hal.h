@@ -21,7 +21,7 @@
   #define SD_CS 4
   #define SD_MISO 19 
   #define SD_MOSI 23 
-  #define SD_CLK 17
+  #define SD_CLK 12
 #endif
 
 #ifdef TDISPLAY

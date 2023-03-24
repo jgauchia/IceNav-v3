@@ -84,6 +84,8 @@ void touch_calibrate()
           calDataOK = 1;
         f.close();
       }
+          else 
+    Serial.println("Error");
     }
   }
 
@@ -99,6 +101,7 @@ void touch_calibrate()
       f.write((const unsigned char *)calData, 14);
       f.close();
     }
+
   }
 }
 

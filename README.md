@@ -1,14 +1,14 @@
 # IceNav-v3
 ESP32 GPS Navigator 
 
-       Pinout CUSTOMBOARD:
+       Pinout CUSTOMBOARD: (ESP32-WROVER)
        HCM5883L      BME280        MPU6050       ILI9488        SD CARD        VBAT             GPS
        -----------------------------------------------------------------------------------------------------
        VCC 3,3v      VCC 5v        VCC 3.3v      VCC  3,3v      VCC  3,3v      GPIO34           VCC  3,3v
        GND GND       GND GND       GND GND       GND  GND       GND  GND       ADC1_CHANNEL_6   GND  GND
        SDA GPIO21    SDA GPIO21    SDA GPIO21    LED  GPIO33    CS   GPIO4                      RX   GPIO25
        SCL GPIO22    SCL GPIO22    SCL GPIO22    MISO GPIO27    MISO GPIO19                     TX   GPIO26
-                                                 SCK  GPIO14    SCK  GPIO17
+                                                 SCK  GPIO14    SCK  GPIO12
                                                  MOSI GPIO13    MOSI GPIO23
                                                  DC   GPIO15
                                                  RST  GPIO32
@@ -128,3 +128,18 @@ On SD Card map tiles (256x256 PNG Format) are stored in these folders structure:
          * Add GPS Fix custom field
          * Add GPS Fix mode custom field
          * Add GPS Fix LED & Fix mode label in notify bar
+
+      [UPDATE 22.03.2023]
+         * CUSTOMBOARD:
+               * Change ESP32 to a 16Mb Flash 8Mb PSRAM (new ESP32 Module)
+               * Change SD CLK GPIO
+
+      [UPDATE 24.03.2023]               
+         * GPS Speed 9600 baud (new GPS Module)
+         * no upload port in platformio.ini
+         * Fix notify bar screen
+         * CUSTOMBOARD:
+               * Add new GN sentence por multisystem GPS 
+               * Add PCAS04 Sentence for enable GPS+GLONASS+BDS
+               * Add PCAS02 Sentence for 5hz update
+               * Add PSRAM to LVGL

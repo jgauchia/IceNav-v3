@@ -42,7 +42,7 @@ void create_notify_bar()
     lv_label_set_text(battery, LV_SYMBOL_BATTERY_EMPTY);
 
     gps_fix_mode = lv_label_create(lv_scr_act());
-    lv_obj_set_size(gps_fix_mode, 50, 20);
+    lv_obj_set_size(gps_fix_mode, 40, 20);
     lv_obj_set_pos(gps_fix_mode, TFT_WIDTH - 45, 5);
     lv_obj_set_style_text_font(gps_fix_mode, &lv_font_montserrat_10, 0);
 
