@@ -80,7 +80,7 @@ void touch_calibrate()
       File f = SPIFFS.open(CALIBRATION_FILE, "r");
       if (f)
       {
-        if (f.readBytes((char *)calData, 14) == 14)
+        if (f.readBytes((char *)calData, 16) == 16)
           calDataOK = 1;
         f.close();
       }
@@ -98,7 +98,7 @@ void touch_calibrate()
     File f = SPIFFS.open(CALIBRATION_FILE, "w");
     if (f)
     {
-      f.write((const unsigned char *)calData, 14);
+      f.write((const unsigned char *)calData, 16);
       f.close();
     }
 

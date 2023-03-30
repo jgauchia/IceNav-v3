@@ -19,12 +19,12 @@ void Read_GPS(void *pvParameters)
   {
     while (gps->available() > 0)
     {
-      GPS.encode(gps->read());
-
 #ifdef OUTPUT_NMEA
       {
         debug->write(gps->read());
       }
+#else
+      GPS.encode(gps->read());
 #endif
     }
     vTaskDelay(1);

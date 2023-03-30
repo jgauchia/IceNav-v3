@@ -17,6 +17,7 @@
 #include <WiFi.h>
 #include <esp_wifi.h>
 #include <esp_bt.h>
+#include <Timezone.h>
 
 unsigned long millis_actual = 0;
 
@@ -31,7 +32,9 @@ unsigned long millis_actual = 0;
 #include "hardware/power.h"
 #include "utils/gps_math.h"
 #include "utils/wpt.h"
+#include "utils/lv_spiffs_fs.h"
 #include "utils/lv_sd_fs.h"
+#include "utils/time_zone.h"
 #include "gui/lvgl.h"
 
 #include "tasks.h"
@@ -66,8 +69,9 @@ void setup()
   init_tasks();
 
   lv_scr_load(searchSat);
-  //lv_scr_load(mainScreen);
-  //create_notify_bar();
+  // lv_scr_load(mainScreen);
+  // create_notify_bar();
+  // create_button_bar();
 }
 
 /**

@@ -102,7 +102,7 @@ On SD Card map tiles (256x256 PNG Format) are stored in these folders structure:
          * Clean Code
          * Update Splash Screen (MCU Info)
          * Fix Battery Reading delay
-         * Change Satellite Tracking screen (SNR Bars)
+         * Change Satellite Tracking screen (snrGPS Bars)
          * Add Event for Satellite Tracking
          * Fix Main Screen Update event
          * Add Event for Notify Bar
@@ -142,4 +142,16 @@ On SD Card map tiles (256x256 PNG Format) are stored in these folders structure:
                * Add new GN sentence por multisystem GPS 
                * Add PCAS04 Sentence for enable GPS+GLONASS+BDS
                * Add PCAS02 Sentence for 5hz update
+               * Add PCAS01 Sentence for 38400 baud
                * Add PSRAM to LVGL
+
+      [UPDATE 25.03.2023]         
+         * Fix touch calibration        
+
+      [UPDATE 28.03.2023]
+         * Add LVGL file system for SPIFFS (Letter F)
+         * Add timezone library for daylight saving
+         * Migrate Gfx & Icons to SPIFFS
+         * Update Satellite Search screen
+         * Improve display flush 
+         * Display buffer in PSRAM if available

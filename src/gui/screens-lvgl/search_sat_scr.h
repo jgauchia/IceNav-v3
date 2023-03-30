@@ -20,19 +20,19 @@ void create_search_sat_scr()
 {
     searchSat = lv_obj_create(NULL);
     lv_obj_t *label = lv_label_create(searchSat);
-    lv_obj_t *sat_label = lv_label_create(searchSat);
 
     lv_obj_set_style_text_font(label, &lv_font_montserrat_18, 0);
     lv_label_set_text(label, PSTR("Searching for satellites"));
     lv_obj_set_align(label, LV_ALIGN_CENTER);
     lv_obj_set_y(label, -100);
 
-    lv_label_set_text(sat_label, LV_SYMBOL_GPS);
-    lv_obj_set_align(sat_label, LV_ALIGN_CENTER);
-
     lv_obj_t *spinner = lv_spinner_create(searchSat, 1000, 60);
     lv_obj_set_size(spinner, 130, 130);
     lv_obj_center(spinner);
+
+    lv_obj_t *satimg = lv_img_create(searchSat);
+    lv_img_set_src(satimg, "F:/sat.bin");
+    lv_obj_set_align(satimg, LV_ALIGN_CENTER);
 
     t = lv_timer_create(search_gps, UPDATE_SEARCH_PERIOD, NULL);
     lv_timer_ready(t);
@@ -48,12 +48,17 @@ void search_gps(lv_timer_t *t)
     {
         is_gps_fixed = true;
         setTime(GPS.time.hour(), GPS.time.minute(), GPS.time.second(), GPS.date.day(), GPS.date.month(), GPS.date.year());
-        adjustTime(TIME_OFFSET * SECS_PER_HOUR);
+        // UTC Time
+        utc = now();
+        // Local Time
+        local = CE.toLocal(utc);
+
         millis_actual = millis();
         while (millis() < millis_actual + 2000)
             ;
         lv_timer_del(t);
         lv_scr_load(mainScreen);
         create_notify_bar();
+        create_button_bar();
     }
 }

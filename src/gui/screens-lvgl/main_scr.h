@@ -77,9 +77,8 @@ void create_main_scr()
     lv_obj_set_y(compass_heading, 35);
     lv_obj_set_style_text_font(compass_heading, &lv_font_montserrat_48, 0);
 
-    LV_IMG_DECLARE(arrow);
     lv_obj_t *arrow_img = lv_img_create(compass_tile);
-    lv_img_set_src(arrow_img, &arrow);
+    lv_img_set_src(arrow_img, "F:/arrow.bin"); 
     lv_obj_align(arrow_img, LV_ALIGN_CENTER, 0, -20);
 
     LV_IMG_DECLARE(bruj);
@@ -89,9 +88,8 @@ void create_main_scr()
     lv_img_set_pivot(compass_img, 100, 100);
 #endif
 
-    LV_IMG_DECLARE(position);
     lv_obj_t *pos_img = lv_img_create(compass_tile);
-    lv_img_set_src(pos_img, &position);
+    lv_img_set_src(pos_img, "F:/pin.bin");
     lv_obj_set_pos(pos_img, 5, 10);
 
     latitude = lv_label_create(compass_tile);
@@ -113,7 +111,7 @@ void create_main_scr()
     // Map Tile
     zoom_slider = lv_slider_create(map_tile);
     lv_slider_set_range(zoom_slider, MIN_ZOOM, MAX_ZOOM);
-    lv_obj_set_size(zoom_slider, 200, 30);
+    lv_obj_set_size(zoom_slider, 140, 30);
     lv_slider_set_value(zoom_slider, DEF_ZOOM, LV_ANIM_OFF);
     lv_obj_set_style_bg_color(zoom_slider, lv_color_darken(lv_palette_main(LV_PALETTE_GREY), LV_OPA_40), LV_PART_INDICATOR);
     lv_obj_add_flag(zoom_slider, LV_OBJ_FLAG_ADV_HITTEST);

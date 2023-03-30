@@ -1,22 +1,22 @@
 /**
- * @file lv_sd_fs.h
+ * @file lv_spiffs_fs.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief  SD file functions for LVGL
+ * @brief  SPIFFS file functions for LVGL
  * @version 0.1
- * @date 2022-10-23
+ * @date 2022-12-14
  */
 
 #include "lvgl.h"
 
 /**
- * @brief SD Open LVGL CallBack
+ * @brief SPIFFS Open LVGL CallBack
  *
  * @param drv
  * @param path
  * @param mode
  * @return void*
  */
-static void *sd_fs_open(lv_fs_drv_t *drv, const char *path, lv_fs_mode_t mode)
+static void *spiffs_fs_open(lv_fs_drv_t *drv, const char *path, lv_fs_mode_t mode)
 {
     LV_UNUSED(drv);
 
@@ -29,15 +29,16 @@ static void *sd_fs_open(lv_fs_drv_t *drv, const char *path, lv_fs_mode_t mode)
     else if (mode == (LV_FS_MODE_WR | LV_FS_MODE_RD))
         flags = FILE_WRITE;
 
-    File f = SD.open(path, flags);
+    File f = SPIFFS.open(path, flags);
     if (!f)
     {
         debug->println("Failed to open file!");
+        debug->println(path);
         return NULL;
     }
 
     File *lf = new File{f};
-
+   
     // make sure at the beginning
     // fp->seek(0);
 
@@ -45,13 +46,13 @@ static void *sd_fs_open(lv_fs_drv_t *drv, const char *path, lv_fs_mode_t mode)
 }
 
 /**
- * @brief SD Close LVGL CallBack
+ * @brief SPIFFS Close LVGL CallBack
  *
  * @param drv
  * @param file_p
  * @return lv_fs_res_t
  */
-static lv_fs_res_t sd_fs_close(lv_fs_drv_t *drv, void *file_p)
+static lv_fs_res_t spiffs_fs_close(lv_fs_drv_t *drv, void *file_p)
 {
     LV_UNUSED(drv);
 
@@ -64,7 +65,7 @@ static lv_fs_res_t sd_fs_close(lv_fs_drv_t *drv, void *file_p)
 }
 
 /**
- * @brief SD Read LVGL CallBack
+ * @brief SPIFFS Read LVGL CallBack
  *
  * @param drv
  * @param file_p
@@ -73,7 +74,7 @@ static lv_fs_res_t sd_fs_close(lv_fs_drv_t *drv, void *file_p)
  * @param br
  * @return lv_fs_res_t
  */
-static lv_fs_res_t sd_fs_read(lv_fs_drv_t *drv, void *file_p, void *fileBuf, uint32_t btr, uint32_t *br)
+static lv_fs_res_t spiffs_fs_read(lv_fs_drv_t *drv, void *file_p, void *fileBuf, uint32_t btr, uint32_t *br)
 {
     LV_UNUSED(drv);
 
@@ -85,7 +86,7 @@ static lv_fs_res_t sd_fs_read(lv_fs_drv_t *drv, void *file_p, void *fileBuf, uin
 }
 
 /**
- * @brief SD Write LVGL CallBack
+ * @brief SPIFFS Write LVGL CallBack
  *
  * @param drv
  * @param file_p
@@ -94,7 +95,7 @@ static lv_fs_res_t sd_fs_read(lv_fs_drv_t *drv, void *file_p, void *fileBuf, uin
  * @param bw
  * @return lv_fs_res_t
  */
-static lv_fs_res_t sd_fs_write(lv_fs_drv_t *drv, void *file_p, const void *buf, uint32_t btw, uint32_t *bw)
+static lv_fs_res_t spiffs_fs_write(lv_fs_drv_t *drv, void *file_p, const void *buf, uint32_t btw, uint32_t *bw)
 {
     LV_UNUSED(drv);
 
@@ -106,7 +107,7 @@ static lv_fs_res_t sd_fs_write(lv_fs_drv_t *drv, void *file_p, const void *buf, 
 }
 
 /**
- * @brief SD Seek LVGL CallBack
+ * @brief SPIFFS Seek LVGL CallBack
  *
  * @param drv
  * @param file_p
@@ -114,7 +115,7 @@ static lv_fs_res_t sd_fs_write(lv_fs_drv_t *drv, void *file_p, const void *buf, 
  * @param whence
  * @return lv_fs_res_t
  */
-static lv_fs_res_t sd_fs_seek(lv_fs_drv_t *drv, void *file_p, uint32_t pos, lv_fs_whence_t whence)
+static lv_fs_res_t spiffs_fs_seek(lv_fs_drv_t *drv, void *file_p, uint32_t pos, lv_fs_whence_t whence)
 {
     LV_UNUSED(drv);
 
@@ -134,14 +135,14 @@ static lv_fs_res_t sd_fs_seek(lv_fs_drv_t *drv, void *file_p, uint32_t pos, lv_f
 }
 
 /**
- * @brief SD Tell LVGL CallBack
+ * @brief SPIFFS Tell LVGL CallBack
  *
  * @param drv
  * @param file_p
  * @param pos_p
  * @return lv_fs_res_t
  */
-static lv_fs_res_t sd_fs_tell(lv_fs_drv_t *drv, void *file_p, uint32_t *pos_p)
+static lv_fs_res_t spiffs_fs_tell(lv_fs_drv_t *drv, void *file_p, uint32_t *pos_p)
 {
     LV_UNUSED(drv);
 
@@ -153,17 +154,17 @@ static lv_fs_res_t sd_fs_tell(lv_fs_drv_t *drv, void *file_p, uint32_t *pos_p)
 }
 
 /**
- * @brief SD Dir Open LVGL CallBack
+ * @brief SPIFFS Dir Open LVGL CallBack
  *
  * @param drv
  * @param dirpath
  * @return void*
  */
-static void *sd_dir_open(lv_fs_drv_t *drv, const char *dirpath)
+static void *spiffs_dir_open(lv_fs_drv_t *drv, const char *dirpath)
 {
     LV_UNUSED(drv);
 
-    File root = SD.open(dirpath);
+    File root = SPIFFS.open(dirpath);
     if (!root)
     {
         Serial.println("Failed to open directory!");
@@ -182,14 +183,14 @@ static void *sd_dir_open(lv_fs_drv_t *drv, const char *dirpath)
 }
 
 /**
- * @brief SD Dir Read LVGL CallBack
+ * @brief SPIFFS Dir Read LVGL CallBack
  *
  * @param drv
  * @param dir_p
  * @param fn
  * @return lv_fs_res_t
  */
-static lv_fs_res_t sd_dir_read(lv_fs_drv_t *drv, void *dir_p, char *fn)
+static lv_fs_res_t spiffs_dir_read(lv_fs_drv_t *drv, void *dir_p, char *fn)
 {
     LV_UNUSED(drv);
 
@@ -230,13 +231,13 @@ static lv_fs_res_t sd_dir_read(lv_fs_drv_t *drv, void *dir_p, char *fn)
 }
 
 /**
- * @brief SD Dir Close LVGL CallBack
+ * @brief SPIFFS Dir Close LVGL CallBack
  *
  * @param drv
  * @param dir_p
  * @return lv_fs_res_t
  */
-static lv_fs_res_t sd_dir_close(lv_fs_drv_t *drv, void *dir_p)
+static lv_fs_res_t spiffs_dir_close(lv_fs_drv_t *drv, void *dir_p)
 {
     LV_UNUSED(drv);
 
@@ -250,10 +251,10 @@ static lv_fs_res_t sd_dir_close(lv_fs_drv_t *drv, void *dir_p)
 }
 
 /**
- * @brief Init LVGL SD Filesystem
+ * @brief Init LVGL SPIFFS Filesystem
  *
  */
-static void lv_port_sd_fs_init(void)
+static void lv_port_spiffs_fs_init(void)
 {
     /*---------------------------------------------------
      * Register the file system interface in LVGL
@@ -264,19 +265,19 @@ static void lv_port_sd_fs_init(void)
     lv_fs_drv_init(&fs_drv);
 
     /*Set up fields...*/
-    fs_drv.letter = 'S';
-    fs_drv.cache_size = 0;
+    fs_drv.letter = 'F';
+    fs_drv.cache_size = sizeof(File);
 
-    fs_drv.open_cb = sd_fs_open;
-    fs_drv.close_cb = sd_fs_close;
-    fs_drv.read_cb = sd_fs_read;
-    fs_drv.write_cb = sd_fs_write;
-    fs_drv.seek_cb = sd_fs_seek;
-    fs_drv.tell_cb = sd_fs_tell;
+    fs_drv.open_cb = spiffs_fs_open;
+    fs_drv.close_cb = spiffs_fs_close;
+    fs_drv.read_cb = spiffs_fs_read;
+    fs_drv.write_cb = spiffs_fs_write;
+    fs_drv.seek_cb = spiffs_fs_seek;
+    fs_drv.tell_cb = spiffs_fs_tell;
 
-    fs_drv.dir_close_cb = sd_dir_close;
-    fs_drv.dir_open_cb = sd_dir_open;
-    fs_drv.dir_read_cb = sd_dir_read;
+    fs_drv.dir_close_cb = spiffs_dir_close;
+    fs_drv.dir_open_cb = spiffs_dir_open;
+    fs_drv.dir_read_cb = spiffs_dir_read;
 
     lv_fs_drv_register(&fs_drv);
 }

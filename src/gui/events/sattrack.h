@@ -16,7 +16,7 @@ lv_chart_series_t *satbar_ser1;
 lv_chart_series_t *satbar_ser2;
 
 /**
- * @brief Sprite for SNR Satellite Labels
+ * @brief Sprite for snrGPS Satellite Labels
  *
  */
 TFT_eSprite sprSNR1 = TFT_eSprite(&tft);
@@ -53,23 +53,23 @@ static void update_sattrack(lv_event_t *event)
     lv_chart_refresh(satbar_1);
     lv_chart_refresh(satbar_2);
 
-    if (totalGPGSVMessages.isUpdated())
+    if (totalGPSMsg.isUpdated())
     {
         for (int i = 0; i < 4; ++i)
         {
-            int no = atoi(satNumber[i].value());
+            int no = atoi(satGPSNum[i].value());
             if (no >= 1 && no <= MAX_SATELLITES)
             {
-                sat_tracker[no - 1].satnumber = atoi(satNumber[i].value());
-                sat_tracker[no - 1].elevation = atoi(elevation[i].value());
-                sat_tracker[no - 1].azimuth = atoi(azimuth[i].value());
-                sat_tracker[no - 1].snr = atoi(snr[i].value());
+                sat_tracker[no - 1].satGPSNum = atoi(satGPSNum[i].value());
+                sat_tracker[no - 1].elevGPS = atoi(elevGPS[i].value());
+                sat_tracker[no - 1].aziGPS = atoi(aziGPS[i].value());
+                sat_tracker[no - 1].snrGPS = atoi(snrGPS[i].value());
                 sat_tracker[no - 1].active = true;
             }
         }
 
-        int totalMessages = atoi(totalGPGSVMessages.value());
-        int currentMessage = atoi(messageNumber.value());
+        int totalMessages = atoi(totalGPSMsg.value());
+        int currentMessage = atoi(msgGPSNum.value());
         if (totalMessages == currentMessage)
         {
 
@@ -115,29 +115,29 @@ static void update_sattrack(lv_event_t *event)
             int active_sat = 0;
             for (int i = 0; i < MAX_SATELLITES; ++i)
             {
-                if (sat_tracker[i].active && (sat_tracker[i].snr > 0))
+                if (sat_tracker[i].active && (sat_tracker[i].snrGPS > 0))
                 {
                     lv_point_t p;
                     lv_area_t a;
                     if (active_sat < (MAX_SATELLLITES_IN_VIEW / 2))
                     {
-                        satbar_ser1->y_points[active_sat] = sat_tracker[i].snr;
+                        satbar_ser1->y_points[active_sat] = sat_tracker[i].snrGPS;
                         lv_chart_get_point_pos_by_id(satbar_1, satbar_ser1, active_sat, &p);
                         sprSNR1.setCursor(p.x - 2, 0);
-                        sprSNR1.print(sat_tracker[i].satnumber);
+                        sprSNR1.print(sat_tracker[i].satGPSNum);
                     }
                     else
                     {
-                        satbar_ser2->y_points[active_sat - (MAX_SATELLLITES_IN_VIEW / 2)] = sat_tracker[i].snr;
+                        satbar_ser2->y_points[active_sat - (MAX_SATELLLITES_IN_VIEW / 2)] = sat_tracker[i].snrGPS;
                         lv_chart_get_point_pos_by_id(satbar_2, satbar_ser2, (active_sat - (MAX_SATELLLITES_IN_VIEW / 2)), &p);
                         sprSNR2.setCursor(p.x - 2, 0);
-                        sprSNR2.print(sat_tracker[i].satnumber);
+                        sprSNR2.print(sat_tracker[i].satGPSNum);
                     }
                     active_sat++;
 
-                    int H = (60 * cos(DEGtoRAD(sat_tracker[i].elevation)));
-                    int sat_pos_x = 195 + (H * sin(DEGtoRAD(sat_tracker[i].azimuth)));
-                    int sat_pos_y = 100 - (H * cos(DEGtoRAD(sat_tracker[i].azimuth)));
+                    int H = (60 * cos(DEGtoRAD(sat_tracker[i].elevGPS)));
+                    int sat_pos_x = 195 + (H * sin(DEGtoRAD(sat_tracker[i].aziGPS)));
+                    int sat_pos_y = 100 - (H * cos(DEGtoRAD(sat_tracker[i].aziGPS)));
 
                     sprSat.fillCircle(7, 2, 2, TFT_GREEN);
                     sprSat.pushSprite(sat_pos_x, sat_pos_y, TFT_TRANSPARENT);
