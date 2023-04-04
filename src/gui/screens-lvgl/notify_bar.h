@@ -40,11 +40,14 @@ void create_notify_bar()
     lv_obj_set_size(battery, 20, 20);
     lv_obj_set_pos(battery, TFT_WIDTH - 25, 2);
     lv_label_set_text(battery, LV_SYMBOL_BATTERY_EMPTY);
+    lv_obj_add_event_cb(battery, update_batt, LV_EVENT_VALUE_CHANGED, NULL);
 
     gps_fix_mode = lv_label_create(lv_scr_act());
     lv_obj_set_size(gps_fix_mode, 40, 20);
     lv_obj_set_pos(gps_fix_mode, TFT_WIDTH - 45, 5);
     lv_obj_set_style_text_font(gps_fix_mode, &lv_font_montserrat_10, 0);
+    lv_label_set_text(gps_fix_mode, "--");
+    lv_obj_add_event_cb(gps_fix_mode, update_fix_mode, LV_EVENT_VALUE_CHANGED, NULL);
 
     gps_fix = lv_led_create(lv_scr_act());
     lv_led_set_color(gps_fix, lv_palette_main(LV_PALETTE_RED));
@@ -59,6 +62,10 @@ void create_notify_bar()
     sdcard = lv_label_create(lv_scr_act());
     lv_obj_set_size(sdcard, 20, 20);
     lv_obj_set_pos(sdcard, TFT_WIDTH - 115, 2);
+    if (sdloaded)
+        lv_label_set_text(sdcard, LV_SYMBOL_SD_CARD);
+    else
+        lv_label_set_text(sdcard, " ");
 
 #if ENABLE_BME
     temp = lv_label_create(lv_scr_act());

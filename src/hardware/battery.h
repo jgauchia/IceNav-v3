@@ -8,7 +8,9 @@
 #include <driver/adc.h>
 #include <esp_adc_cal.h>
 
-int batt_level = 0;
+uint8_t batt_level = 0;
+uint8_t batt_level_old = 0;
+
 esp_adc_cal_characteristics_t characteristics;
 #define V_REF 3.9 // ADC reference voltage
 

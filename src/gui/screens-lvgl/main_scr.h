@@ -78,7 +78,7 @@ void create_main_scr()
     lv_obj_set_style_text_font(compass_heading, &lv_font_montserrat_48, 0);
 
     lv_obj_t *arrow_img = lv_img_create(compass_tile);
-    lv_img_set_src(arrow_img, "F:/arrow.bin"); 
+    lv_img_set_src(arrow_img, "F:/arrow.bin");
     lv_obj_align(arrow_img, LV_ALIGN_CENTER, 0, -20);
 
     LV_IMG_DECLARE(bruj);
@@ -109,23 +109,15 @@ void create_main_scr()
     lv_obj_add_event_cb(longitude, update_longitude, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Map Tile
-    zoom_slider = lv_slider_create(map_tile);
-    lv_slider_set_range(zoom_slider, MIN_ZOOM, MAX_ZOOM);
-    lv_obj_set_size(zoom_slider, 140, 30);
-    lv_slider_set_value(zoom_slider, DEF_ZOOM, LV_ANIM_OFF);
-    lv_obj_set_style_bg_color(zoom_slider, lv_color_darken(lv_palette_main(LV_PALETTE_GREY), LV_OPA_40), LV_PART_INDICATOR);
-    lv_obj_add_flag(zoom_slider, LV_OBJ_FLAG_ADV_HITTEST);
-    lv_obj_align(zoom_slider, LV_ALIGN_BOTTOM_MID, 0, -30);
-
     zoom_label = lv_label_create(map_tile);
     lv_obj_set_style_text_font(zoom_label, &lv_font_montserrat_20, 0);
     lv_label_set_text_fmt(zoom_label, "ZOOM: %2d", DEF_ZOOM);
     lv_obj_align(zoom_label, LV_ALIGN_TOP_MID, 0, 10);
 
     // Map Tile Events
-    lv_obj_add_event_cb(zoom_slider, get_zoom_value, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(map_tile, draw_map, LV_EVENT_DRAW_POST_END, NULL);
     lv_obj_add_event_cb(map_tile, update_map, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(mainScreen, get_zoom_value, LV_EVENT_GESTURE, NULL);
 
     // Satellite Tracking Tile
     pdop_label = lv_label_create(sat_track_tile);

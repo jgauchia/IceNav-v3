@@ -127,7 +127,7 @@ void init_tft()
   
   gpio_set_drive_capability(GPIO_NUM_33, GPIO_DRIVE_CAP_3);
   ledcAttachPin(TFT_BL, 0);
-  ledcSetup(0, 8000, 8);
+  ledcSetup(0, 5000, 8);
   ledcWrite(0, 255);
   touch_calibrate();
 }

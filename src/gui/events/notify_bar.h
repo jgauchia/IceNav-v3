@@ -13,19 +13,31 @@
 #define UPDATE_NOTIFY_PERIOD 1000
 
 /**
- * @brief Update notify bar info event
+ * @brief Battery update envent
  *
  */
-void update_notify_bar(lv_timer_t *t)
+static void update_batt(lv_event_t *event)
 {
-    // UTC Time
-    utc = now();
-    // Local Time
-    local = CE.toLocal(utc);
-    lv_label_set_text_fmt(gps_time, "%02d:%02d:%02d", hour(local), minute(local), second(local));
+    if (batt_level <= 160 && batt_level > 140)
+        lv_label_set_text(battery, "  " LV_SYMBOL_CHARGE);
+    else if (batt_level <= 140 && batt_level > 80)
+        lv_label_set_text(battery, LV_SYMBOL_BATTERY_FULL);
+    else if (batt_level <= 80 && batt_level > 60)
+        lv_label_set_text(battery, LV_SYMBOL_BATTERY_3);
+    else if (batt_level <= 60 && batt_level > 40)
+        lv_label_set_text(battery, LV_SYMBOL_BATTERY_2);
+    else if (batt_level <= 40 && batt_level > 20)
+        lv_label_set_text(battery, LV_SYMBOL_BATTERY_1);
+    else if (batt_level <= 20)
+        lv_label_set_text(battery, LV_SYMBOL_BATTERY_EMPTY);
+}
 
-    lv_label_set_text_fmt(gps_count, LV_SYMBOL_GPS "%2d", GPS.satellites.value());
-
+/**
+ * @brief GPS Fix Mode update event
+ *
+ */
+static void update_fix_mode(lv_event_t *event)
+{
     switch (atoi(fix_mode.value()))
     {
     case 1:
@@ -42,6 +54,25 @@ void update_notify_bar(lv_timer_t *t)
         lv_label_set_text(gps_fix_mode, "--");
         lv_label_set_text_fmt(gps_count, LV_SYMBOL_GPS "%2d", 0);
         break;
+    }
+}
+
+/**
+ * @brief Update notify bar info timer
+ *
+ */
+void update_notify_bar(lv_timer_t *t)
+{
+    // UTC Time
+    utc = now();
+    // Local Time
+    local = CE.toLocal(utc);
+    lv_label_set_text_fmt(gps_time, "%02d:%02d:%02d", hour(local), minute(local), second(local));
+
+    if (atoi(fix_mode.value()) != fix_mode_old)
+    {
+        lv_event_send(gps_fix_mode, LV_EVENT_VALUE_CHANGED, NULL);
+        fix_mode_old = atoi(fix_mode.value());
     }
 
     switch (atoi(fix.value()))
@@ -62,27 +93,24 @@ void update_notify_bar(lv_timer_t *t)
         break;
     }
 
-    if (sdloaded)
-        lv_label_set_text(sdcard, LV_SYMBOL_SD_CARD);
-    else
-        lv_label_set_text(sdcard, " ");
-
     batt_level = battery_read();
+    if (batt_level != batt_level_old)
+    {
+        lv_event_send(battery, LV_EVENT_VALUE_CHANGED, NULL);
+        batt_level_old = batt_level;
+    }
 
-    if (batt_level <= 150 && batt_level > 140)
-        lv_label_set_text(battery, "  " LV_SYMBOL_CHARGE);
-    else if (batt_level <= 140 && batt_level > 80)
-        lv_label_set_text(battery, LV_SYMBOL_BATTERY_FULL);
-    else if (batt_level <= 80 && batt_level > 60)
-        lv_label_set_text(battery, LV_SYMBOL_BATTERY_3);
-    else if (batt_level <= 60 && batt_level > 40)
-        lv_label_set_text(battery, LV_SYMBOL_BATTERY_2);
-    else if (batt_level <= 40 && batt_level > 20)
-        lv_label_set_text(battery, LV_SYMBOL_BATTERY_1);
-    else if (batt_level <= 20)
-        lv_label_set_text(battery, LV_SYMBOL_BATTERY_EMPTY);
+    if (GPS.satellites.value() != sat_count_old)
+    {
+        lv_label_set_text_fmt(gps_count, LV_SYMBOL_GPS "%2d", GPS.satellites.value());
+        sat_count_old = GPS.satellites.value();
+    }
 
 #ifdef ENABLE_BME
-    lv_label_set_text_fmt(temp, "%02d\xC2\xB0", int(bme.readTemperature()));
+    if (int(bme.readTemperature()) != temp_old)
+    {
+        lv_label_set_text_fmt(temp, "%02d\xC2\xB0", int(bme.readTemperature()));
+        temp_old = int(bme.readTemperature());
+    }
 #endif
 }

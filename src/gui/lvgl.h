@@ -51,19 +51,19 @@ void lvgl_set_resolution(int width, int height)
  */
 void disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p)
 {
-    // tft.startWrite();
-    // tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t *)&color_p->full);
-    // tft.endWrite();
-    // lv_disp_flush_ready(disp);
-    uint32_t w = (area->x2 - area->x1 + 1);
-    uint32_t h = (area->y2 - area->y1 + 1);
-
     tft.startWrite();
-    tft.setAddrWindow(area->x1, area->y1, w, h);
-    tft.pushPixels((uint16_t *)&color_p->full, w * h, false);
+    tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t *)&color_p->full);
     tft.endWrite();
-
     lv_disp_flush_ready(disp);
+    // uint32_t w = (area->x2 - area->x1 + 1);
+    // uint32_t h = (area->y2 - area->y1 + 1);
+
+    // tft.startWrite();
+    // tft.setAddrWindow(area->x1, area->y1, w, h);
+    // tft.pushPixels((uint16_t *)&color_p->full, w * h, false);
+    // tft.endWrite();
+
+    // lv_disp_flush_ready(disp);
 }
 
 /**
@@ -98,13 +98,14 @@ void init_LVGL()
 
     if (psramFound())
     {
-        static lv_color_t *buf = (lv_color_t *)ps_malloc((TFT_WIDTH * TFT_HEIGHT) * sizeof(lv_color_t));
-        lv_disp_draw_buf_init(&draw_buf, buf, NULL, TFT_WIDTH * TFT_HEIGHT);
+        static lv_color_t *buf1 = (lv_color_t *)ps_malloc((TFT_WIDTH * TFT_HEIGHT) * sizeof(lv_color_t));
+        static lv_color_t *buf2 = (lv_color_t *)ps_malloc((TFT_WIDTH * TFT_HEIGHT) * sizeof(lv_color_t));
+        lv_disp_draw_buf_init(&draw_buf, buf1, buf2, TFT_WIDTH * TFT_HEIGHT);
     }
     else
     {
-        static lv_color_t buf2[TFT_WIDTH * TFT_HEIGHT / 10];
-        lv_disp_draw_buf_init(&draw_buf, buf2, NULL, TFT_WIDTH * TFT_HEIGHT / 10);
+        static lv_color_t buf_norm[TFT_WIDTH * TFT_HEIGHT / 10];
+        lv_disp_draw_buf_init(&draw_buf, buf_norm, NULL, TFT_WIDTH * TFT_HEIGHT / 10);
     }
 
     static lv_disp_drv_t def_drv;

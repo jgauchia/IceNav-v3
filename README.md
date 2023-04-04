@@ -155,3 +155,14 @@ On SD Card map tiles (256x256 PNG Format) are stored in these folders structure:
          * Update Satellite Search screen
          * Improve display flush 
          * Display buffer in PSRAM if available
+
+      [UPDATE 30.03.2023]   
+         * Add button bar (main screen)
+
+      [UPDATE 01.04.2023]
+         * Modify Notify bar events
+         * Modify PWM Freq for backlight
+
+      [UPDATE 03.04.2023]    
+         * Add up/down gesture for change map zoom (instead of slider)    
+         * Add display double buffer is PSRAM is present 

@@ -15,6 +15,9 @@ HardwareSerial *gps = &Serial2;
 TinyGPSPlus GPS;
 bool is_gps_fixed = false;
 int upd_rate = 500;
+uint8_t fix_mode_old = 0;
+uint8_t fix_old = 0;
+uint8_t sat_count_old = 0;
 
 /**
  * @brief Custom NMEA sentences

@@ -9,4 +9,4 @@
 #include <Adafruit_BME280.h>
 
 Adafruit_BME280 bme;
-
+uint8_t temp_old = 0;
