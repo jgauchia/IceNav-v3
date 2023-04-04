@@ -1,4 +1,4 @@
-# IceNav-v3
+# IceNav-v3 - TFT_eSPI
 ESP32 GPS Navigator 
 
        Pinout:
