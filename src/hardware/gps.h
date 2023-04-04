@@ -66,7 +66,6 @@ struct
 void init_gps()
 {
   gps->begin(GPS_BAUDRATE, SERIAL_8N1, GPS_RX, GPS_TX);
-#ifdef CUSTOMBOARD
   gps->println("$PCAS01,3*1F\r\n");
   delay(100);
   gps->flush();
@@ -74,7 +73,6 @@ void init_gps()
   gps->begin(38400, SERIAL_8N1, GPS_RX, GPS_TX);
   gps->println("$PCAS04,7*1E\r\n");
   gps->println("$PCAS02,200*1D\r\n");
-#endif
 
   for (int i = 0; i < 4; ++i)
   {

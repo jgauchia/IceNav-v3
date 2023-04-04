@@ -48,13 +48,11 @@ float battery_read()
     delayMicroseconds(150);
   }
   voltage = sum / (float)100;
-#ifdef CUSTOMBOARD
   // custom board has a divider circuit
   float R1 = 100000.0; // resistance of R1 (100K)
   float R2 = 100000.0; // resistance of R2 (100K)
   voltage = (voltage * V_REF) / 4096.0;
   voltage = voltage / (R2 / (R1 + R2));
-#endif
   voltage = roundf(voltage * 100) / 100;
   output = ((voltage - battery_min) / (battery_max - battery_min)) * 100;
   if (output <= 160)

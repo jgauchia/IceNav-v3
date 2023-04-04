@@ -1,12 +1,12 @@
 # IceNav-v3
 ESP32 GPS Navigator 
 
-       Pinout CUSTOMBOARD: (ESP32-WROVER)
+       Pinout (ESP32-WROVER)
        HCM5883L      BME280        MPU6050       ILI9488        SD CARD        VBAT             GPS
        -----------------------------------------------------------------------------------------------------
        VCC 3,3v      VCC 5v        VCC 3.3v      VCC  3,3v      VCC  3,3v      GPIO34           VCC  3,3v
        GND GND       GND GND       GND GND       GND  GND       GND  GND       ADC1_CHANNEL_6   GND  GND
-       SDA GPIO21    SDA GPIO21    SDA GPIO21    LED  GPIO33    CS   GPIO4                      RX   GPIO25
+       SDA GPIO21    SDA GPIO21    SDA GPIO21    LED  GPIO33    CS   GPIO4     (Resist. div)    RX   GPIO25
        SCL GPIO22    SCL GPIO22    SCL GPIO22    MISO GPIO27    MISO GPIO19                     TX   GPIO26
                                                  SCK  GPIO14    SCK  GPIO12
                                                  MOSI GPIO13    MOSI GPIO23
@@ -15,22 +15,7 @@ ESP32 GPS Navigator
                                                  CS   GPIO2
                                                  LED  GPIO33
                                                  TCH  GPIO18
-
-
-       Pinout TDISPLAY:
-       HCM5883L      ST7789         SD CARD        VBAT             GPS
-       ------------------------------------------------------------------------
-       VCC 3,3v      LED  GPIO4     VCC  3,3v      GPIO34           VCC  3,3v
-       GND GND       SCK  GPIO18    GND  GND       ADC1_CHANNEL_6   GND  GND
-       SDA GPIO21    MOSI GPIO19    CS   GPIO2                      RX   GPIO25
-       SCL GPIO22    DC   GPIO16    MISO GPIO27                     TX   GPIO26
-                     RST  GPIO23    SCK  GPIO13
-                     CS   GPIO5     MOSI GPIO15
-                                      
-
-      TODO:
-         * Language dependent texts
-         * LVGL - optimization
+                                                 TIRQ GPIO5
 
 SD Map Tile File structure
 
@@ -41,128 +26,14 @@ On SD Card map tiles (256x256 PNG Format) are stored in these folders structure:
                               |__________________ [ tile X folder (number)]
                                                              |_______________________ tile y file.png
 
-      [UPDATE 09.12.2022]                                                             
-         * Switch to LovyanGfx instead of TFT_eSPI 
-         * Delete PNG Decoder (use LovyanGfx instead)
-         * Delete BMP Decoder (use LovyanGfx instead)
-         * Optimize events
-         * Optimize draw map
-         * Optimize LVGL tick (custom Tick in lv_conf)
-         * Clean compile warnings
-         * Fix Compass image
-         * Change MAPS directory name
-         * New Boot Logo and Splash Screen
-         * CUSTOMBOARD:
-               * Switch ILI9341 to ILI9488 
-               * GPS serial GPIO changed (same as TDISPLAY)
-               * Add Touch Support (Fix calibration)
-               * Delete PCF8574 and external buttons
-               * Fix Compass
-               * Fix tile view
-               * Fix Battery voltage
-               * Added MPU6050
-               * Fix touch update response
-               * Fix LVGL redraw update
-               * Disable widgets not used
-               * Fix Serial Monitor with auto-upload wiring
 
-      [UPDATE 12.12.2022]
-         * Change Zoom box to slider
+Specifications:
 
-      [UPDATE 19.12.2022]
-         * Store fixed texts in Flash (NOT RAM)
-         * Add (again) LVGL Filesystem SD port
-         * Fix LVGL display flush callback
-         * Fix OSM Map position on screen
-         * Add zoom label
-         * Change GPS Reading to core 1
-         * CUSTOBOARD:
-               * Change SD SPI to VSPI 
-               * Change LovyanGFX screen config
-         
-      [UPDATE 05.02.2023]
-         * Upload port fixed to /dev/ttyUSB0
-         * Fix Adafruit Sensor Libraries
-         * Updated LovyanGFX Library
-         * CUSTOMBOARD:
-               * Added BME280 temp/press/hum. sensor
-      
-      [UPDATE 16.02.2023]
-         * Number of satellites coloured is GPS signal is fixed
-
-      [UPDATE 17.02.2023]
-         * Fix Battery Reading
-         * Fix GPS pinout in README.md
-
-      [UPDATE 19.02.2023]   
-         * Fix GPS satellites number (fix signal)
-         * Add Charge Icon
-
-      [UPDATE 22.02.2023]
-         * Clean Code
-         * Update Splash Screen (MCU Info)
-         * Fix Battery Reading delay
-         * Change Satellite Tracking screen (snrGPS Bars)
-         * Add Event for Satellite Tracking
-         * Fix Main Screen Update event
-         * Add Event for Notify Bar
-
-      [UPDATE 23.02.2023]         
-         * Fix Some Compiling Warnings
-
-      [UPDATE 27.02.2023]   
-         * Change GPS speed to 38400 baud
-         * Finished Satellite Tracking screen
-
-      [UPDATE 10.03.2023]   
-         * Fix zoom slider
-         * Fix main screen update time
-         * "Fake" navigation arrow background update in map screen
-         * CUSTOMBOARD:
-               * Fix touch response (ms)
-               * Fix DPI
-
-      [UPDATE 11.03.2023]
-         * Clean code
-         * Finished Map screen
-         * Add GPS Fix custom field
-         * Add GPS Fix mode custom field
-         * Add GPS Fix LED & Fix mode label in notify bar
-
-      [UPDATE 22.03.2023]
-         * CUSTOMBOARD:
-               * Change ESP32 to a 16Mb Flash 8Mb PSRAM (new ESP32 Module)
-               * Change SD CLK GPIO
-
-      [UPDATE 24.03.2023]               
-         * GPS Speed 9600 baud (new GPS Module)
-         * no upload port in platformio.ini
-         * Fix notify bar screen
-         * CUSTOMBOARD:
-               * Add new GN sentence por multisystem GPS 
-               * Add PCAS04 Sentence for enable GPS+GLONASS+BDS
-               * Add PCAS02 Sentence for 5hz update
-               * Add PCAS01 Sentence for 38400 baud
-               * Add PSRAM to LVGL
-
-      [UPDATE 25.03.2023]         
-         * Fix touch calibration        
-
-      [UPDATE 28.03.2023]
-         * Add LVGL file system for SPIFFS (Letter F)
-         * Add timezone library for daylight saving
-         * Migrate Gfx & Icons to SPIFFS
-         * Update Satellite Search screen
-         * Improve display flush 
-         * Display buffer in PSRAM if available
-
-      [UPDATE 30.03.2023]   
-         * Add button bar (main screen)
-
-      [UPDATE 01.04.2023]
-         * Modify Notify bar events
-         * Modify PWM Freq for backlight
-
-      [UPDATE 03.04.2023]    
-         * Add up/down gesture for change map zoom (instead of slider)    
-         * Add display double buffer is PSRAM is present 
+   * ESP32 WROVER with 4Mb PSRAM / 16 Mb Flash
+   * ILI9488 TFT (320x480)
+   * SD/MicroSD reader
+   * HCM5883L Magnetometer
+   * BME280   Temperature / Humidity sensor
+   * MPU6050  Accelerometer and Gyroscope IMU
+   * HT1818Z3G5L GPS Module
+   * LVGL UI + LovyanGFX

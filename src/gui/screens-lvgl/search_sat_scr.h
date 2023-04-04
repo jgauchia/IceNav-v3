@@ -59,6 +59,5 @@ void search_gps(lv_timer_t *t)
         lv_timer_del(t);
         lv_scr_load(mainScreen);
         create_notify_bar();
-        create_button_bar();
     }
 }

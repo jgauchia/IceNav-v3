@@ -6,11 +6,8 @@
  * @date 2022-10-10
  */
 
-#ifdef CUSTOMBOARD
 #include "../lib/lovyangfx_CUSTOMBOARD_conf.h"
 #include <LGFX_TFT_eSPI.hpp>
-#else
-#endif
 
 int brightness_level = 255;
 
@@ -112,14 +109,7 @@ void touch_calibrate()
 void init_tft()
 {
   tft.init();
-#ifdef CUSTOMBOARD
   tft.setRotation(8);
-#endif
-
-#ifdef TDISPLAY
-  tft.setRotation(8);
-#endif
-
   tft.initDMA();
   tft.startWrite();
   tft.fillScreen(TFT_BLACK);

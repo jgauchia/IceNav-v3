@@ -128,12 +128,9 @@ static void update_map(lv_event_t *event)
 
     tft.drawPngFile(SD, CurrentMapTile.file, NavArrow_position.posx - 12, NavArrow_position.posy - 12,
                     24, 24, NavArrow_position.posx - 12 - 32, NavArrow_position.posy - 12 - 64);
-#ifdef ENABLE_COMPASS
+
     heading = read_compass();
     tft.setPivot(NavArrow_position.posx, NavArrow_position.posy);
     sprArrow.pushRotated(heading, TFT_BLACK);
-#else
-    sprArrow.pushSprite(NavArrow.posx, NavArrow.posy, TFT_BLACK);
-#endif
   }
 }

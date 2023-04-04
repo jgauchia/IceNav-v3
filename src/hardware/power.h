@@ -6,13 +6,6 @@
 
 void powerDeepSeep()
 {
-#ifdef TDISPLAY
-  digitalWrite(ADC_EN, LOW);
-  delay(10);
-  rtc_gpio_init(GPIO_NUM_14);
-  rtc_gpio_set_direction(GPIO_NUM_14, RTC_GPIO_MODE_OUTPUT_ONLY);
-  rtc_gpio_set_level(GPIO_NUM_14, 1);
-#endif
   esp_bluedroid_disable();
   esp_bt_controller_disable();
   esp_wifi_stop();
@@ -36,9 +29,5 @@ void powerOn()
   btStop();
   esp_wifi_stop();
   esp_bt_controller_disable();
-#endif
-#ifdef TDISPLAY
-  pinMode(HW_EN, OUTPUT);
-  digitalWrite(HW_EN, HIGH); // step-up on
 #endif
 }
