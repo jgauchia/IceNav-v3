@@ -21,7 +21,7 @@ SD Map Tile File structure
 
 On SD Card map tiles (256x256 PNG Format) are stored in these folders structure:
 
-      [ MAPS ]
+      [ MAP ]
          |________ [ zoom folder (number)]
                               |__________________ [ tile X folder (number)]
                                                              |_______________________ tile y file.png

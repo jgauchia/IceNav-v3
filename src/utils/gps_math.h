@@ -219,7 +219,7 @@ char *Longitude_formatString(double lon)
  * @param zoom_level -> zoom level
  * @return MapTile -> Map Tile structure
  */
-MapTile get_map_tile(double lon, double lat, int zoom_level)
+MapTile get_map_tile(double lon, double lat, uint8_t zoom_level)
 {
   static char s_file[40] = "";
   int x = lon2tilex(lon, zoom_level);
