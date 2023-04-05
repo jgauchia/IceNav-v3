@@ -217,13 +217,15 @@ char *Longitude_formatString(double lon)
  * @param lon -> Longitude
  * @param lat -> Latitude
  * @param zoom_level -> zoom level
+ * @param off_x -> Tile Offset X
+ * @param off_y -> Tile Offset Y
  * @return MapTile -> Map Tile structure
  */
-MapTile get_map_tile(double lon, double lat, uint8_t zoom_level)
+MapTile get_map_tile(double lon, double lat, uint8_t zoom_level, uint8_t off_x, uint8_t off_y)
 {
   static char s_file[40] = "";
-  int x = lon2tilex(lon, zoom_level);
-  int y = lat2tiley(lat, zoom_level);
+  int x = lon2tilex(lon, zoom_level) + off_x;
+  int y = lat2tiley(lat, zoom_level) + off_y;
   sprintf(s_file, PSTR("/MAP/%d/%d/%d.png"), zoom_level, x, y);
   MapTile data;
   data.file = s_file;

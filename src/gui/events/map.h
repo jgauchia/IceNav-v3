@@ -115,7 +115,7 @@ static void draw_map(lv_event_t *event)
  */
 static void update_map(lv_event_t *event)
 {
-  CurrentMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom);
+  CurrentMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, 0, 0);
   if (strcmp(CurrentMapTile.file, OldMapTile.file) != 0 || CurrentMapTile.zoom != OldMapTile.zoom || CurrentMapTile.tilex != OldMapTile.tilex || CurrentMapTile.tiley != OldMapTile.tiley)
   {
     OldMapTile.zoom = CurrentMapTile.zoom;
