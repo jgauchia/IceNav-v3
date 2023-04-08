@@ -173,7 +173,7 @@ static void update_map(lv_event_t *event)
     map_spr.setPivot(NavArrow_position.posx, NavArrow_position.posy);
     sprArrow.pushRotated(&map_spr, heading, TFT_BLACK);
 #else
-    sprArrow.pushSprite(NavArrow.posx, NavArrow.posy, TFT_BLACK);
+    sprArrow.pushSprite(&map_spr, NavArrow_position.posx, NavArrow_position.posy, TFT_BLACK);
 #endif
     map_spr.pushSprite(0, 64);
   }
