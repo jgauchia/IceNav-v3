@@ -6,8 +6,10 @@
  * @date 2022-10-10
  */
 
+#ifdef CUSTOMBOARD
 #include "../lib/lovyangfx_CUSTOMBOARD_conf.h"
 #include <LGFX_TFT_eSPI.hpp>
+#endif
 
 int brightness_level = 255;
 
