@@ -23,7 +23,6 @@ static lv_obj_t *tiles;
 #include "gui/img/bruj.c"
 #include "gui/img/navigation.c"
 #include "gui/screens-lvgl/notify_bar.h"
-#include "gui/screens-lvgl/button_bar.h"
 #include "gui/screens-lvgl/search_sat_scr.h"
 #include "gui/screens-lvgl/main_scr.h"
 #include "gui/screens-lvgl/splash_scr.h"

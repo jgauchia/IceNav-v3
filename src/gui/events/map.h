@@ -25,6 +25,7 @@ int zoom = DEF_ZOOM;
 
 MapTile CurrentMapTile;
 MapTile OldMapTile;
+MapTile RoundMapTile;
 
 /**
  * @brief Navitagion Arrow position on screen
@@ -43,6 +44,13 @@ bool map_found = false;
  *
  */
 TFT_eSprite sprArrow = TFT_eSprite(&tft);
+
+/**
+ * @brief Double Buffering Sprites for Map Tile
+ *
+ */
+TFT_eSprite map_spr = TFT_eSprite(&tft);
+TFT_eSprite map_buf = TFT_eSprite(&tft);
 
 /**
  * @brief Update zoom value
@@ -108,32 +116,63 @@ static void draw_map(lv_event_t *event)
  */
 static void update_map(lv_event_t *event)
 {
-  CurrentMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom);
+  CurrentMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, 0, 0);
   if (strcmp(CurrentMapTile.file, OldMapTile.file) != 0 || CurrentMapTile.zoom != OldMapTile.zoom || CurrentMapTile.tilex != OldMapTile.tilex || CurrentMapTile.tiley != OldMapTile.tiley)
   {
     OldMapTile.zoom = CurrentMapTile.zoom;
     OldMapTile.tilex = CurrentMapTile.tilex;
     OldMapTile.tiley = CurrentMapTile.tiley;
     OldMapTile.file = CurrentMapTile.file;
-    map_found = tft.drawPngFile(SD, CurrentMapTile.file, 32, 64);
+
+    map_spr.deleteSprite();
+    map_spr.createSprite(320, 335);
+    map_buf.deleteSprite();
+    map_buf.createSprite(320, 335);
+
+    // Center Tile
+    map_found = map_spr.drawPngFile(SD, CurrentMapTile.file, 32, 0);
+    map_buf.drawPngFile(SD, CurrentMapTile.file, 32, 0);
+    // Left Center Tile
+    RoundMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, -1, 0);
+    map_spr.drawPngFile(SD, RoundMapTile.file, 0, 0, 32, 256, 224, 0);
+    map_buf.drawPngFile(SD, RoundMapTile.file, 0, 0, 32, 256, 224, 0);
+    // Right Center Tile
+    RoundMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, 1, 0);
+    map_spr.drawPngFile(SD, RoundMapTile.file, 287, 0, 32, 256, 0, 0);
+    map_buf.drawPngFile(SD, RoundMapTile.file, 287, 0, 32, 256, 0, 0);
+    // Bottom Center Tile
+    RoundMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, 0, 1);
+    map_spr.drawPngFile(SD, RoundMapTile.file, 32, 256, 256, 79, 0, 0);
+    map_buf.drawPngFile(SD, RoundMapTile.file, 32, 256, 256, 79, 0, 0);
+    // Left Bottom Center Tile
+    RoundMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, -1, 1);
+    map_spr.drawPngFile(SD, RoundMapTile.file, 0, 256, 32, 79, 224, 0);
+    map_buf.drawPngFile(SD, RoundMapTile.file, 0, 256, 32, 79, 224, 0);
+    // Right Bottom Center Tile
+    RoundMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, 1, 1);
+    map_spr.drawPngFile(SD, RoundMapTile.file, 287, 256, 32, 79, 0, 0);
+    map_buf.drawPngFile(SD, RoundMapTile.file, 287, 256, 32, 79, 0, 0);
+
+    map_spr.pushSprite(0, 64);
   }
   if (map_found)
   {
+    uint8_t data[1800];
     sprArrow.deleteSprite();
     sprArrow.createSprite(16, 16);
+
     sprArrow.fillSprite(TFT_BLACK);
     sprArrow.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
 
-    NavArrow_position = coord_to_scr_pos(32, 64, GPS.location.lng(), GPS.location.lat(), zoom);
+    NavArrow_position = coord_to_scr_pos(32, 0, GPS.location.lng(), GPS.location.lat(), zoom);
 
-    tft.drawPngFile(SD, CurrentMapTile.file, NavArrow_position.posx - 12, NavArrow_position.posy - 12,
-                    24, 24, NavArrow_position.posx - 12 - 32, NavArrow_position.posy - 12 - 64);
-#ifdef ENABLE_COMPASS
+    map_buf.readRect(NavArrow_position.posx - 12, NavArrow_position.posy - 12, 24, 24, (uint16_t *)data);
+    map_spr.setPivot(NavArrow_position.posx, NavArrow_position.posy);
+    map_spr.pushImage(NavArrow_position.posx - 12, NavArrow_position.posy - 12, 24, 24, (uint16_t *)data);
+
     heading = read_compass();
-    tft.setPivot(NavArrow_position.posx, NavArrow_position.posy);
-    sprArrow.pushRotated(heading, TFT_BLACK);
-#else
-    // sprArrow.pushSprite(NavArrow.posx, NavArrow.posy, TFT_BLACK); // TODO: we need the NavArrow object here? on COMPASS disable?
-#endif
+    sprArrow.pushRotated(&map_spr, heading, TFT_BLACK);
+
+    map_spr.pushSprite(0, 64);
   }
 }

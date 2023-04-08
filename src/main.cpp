@@ -45,13 +45,8 @@ unsigned long millis_actual = 0;
  */
 void setup()
 {
-#ifdef ENABLE_BME
   bme.begin(BME_ADDRESS);
-#endif
-
-#ifdef ENABLE_COMPASS
   compass.begin();
-#endif
 
 #ifdef DEBUG
   init_serial();
@@ -68,10 +63,9 @@ void setup()
   splash_scr();
   init_tasks();
 
-// lv_scr_load(searchSat);
-  lv_scr_load(mainScreen);
-  create_notify_bar();
-  create_button_bar();
+  lv_scr_load(searchSat);
+  // lv_scr_load(mainScreen);
+  // create_notify_bar();
 }
 
 /**

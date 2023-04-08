@@ -32,21 +32,6 @@ void Read_GPS(void *pvParameters)
 }
 
 /**
- * @brief Task 2 - Main program
- *
- * @param pvParameters
- */
-void Main_prog(void *pvParameters)
-{
-  debug->print(PSTR("Task2 - Main Program - running on core "));
-  debug->println(xPortGetCoreID());
-  for (;;)
-  {
-    delay(1);
-  }
-}
-
-/**
  * @brief Init Core tasks
  *
  */
@@ -54,6 +39,4 @@ void init_tasks()
 {
   xTaskCreatePinnedToCore(Read_GPS, PSTR("Read GPS"), 1000, NULL, 1, NULL, 1);
   delay(500);
-  // xTaskCreatePinnedToCore(Main_prog, PSTR("Main Program"), 16384, NULL, 4, NULL, 1);
-  // delay(500);
 }

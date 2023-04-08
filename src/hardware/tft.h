@@ -8,13 +8,13 @@
 
 #ifdef CUSTOMBOARD
 #include "../lib/lovyangfx_CUSTOMBOARD_conf.h"
-#include <LGFX_TFT_eSPI.hpp>
 #endif
 
 #ifdef MAKERF_ESP32S3
 #include "../lib/S3_Parallel16_ili9488.h"
-#include <LGFX_TFT_eSPI.hpp>  // TODO: maybe this should be global ?
 #endif
+
+#include <LGFX_TFT_eSPI.hpp>
 
 int brightness_level = 255;
 
@@ -116,14 +116,7 @@ void touch_calibrate()
 void init_tft()
 {
   tft.init();
-#ifdef CUSTOMBOARD
   tft.setRotation(8);
-#endif
-
-#ifdef TDISPLAY
-  tft.setRotation(8);
-#endif
-
   tft.initDMA();
   tft.startWrite();
   tft.fillScreen(TFT_BLACK);

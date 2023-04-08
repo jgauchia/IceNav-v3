@@ -70,7 +70,6 @@ void create_main_scr()
     lv_timer_ready(timer_main_scr);
 
     // Compass Tile
-#ifdef ENABLE_COMPASS
     compass_heading = lv_label_create(compass_tile);
     lv_obj_set_size(compass_heading, 150, 48);
     lv_obj_set_align(compass_heading, LV_ALIGN_CENTER);
@@ -86,7 +85,6 @@ void create_main_scr()
     lv_img_set_src(compass_img, &bruj);
     lv_obj_align(compass_img, LV_ALIGN_CENTER, 0, 15);
     lv_img_set_pivot(compass_img, 100, 100);
-#endif
 
     lv_obj_t *pos_img = lv_img_create(compass_tile);
     lv_img_set_src(pos_img, "F:/pin.bin");

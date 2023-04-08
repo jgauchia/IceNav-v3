@@ -30,19 +30,11 @@ TinyGPSCustom elevGPS[4];
 TinyGPSCustom aziGPS[4];
 TinyGPSCustom snrGPS[4];
 
-#ifdef CUSTOMBOARD
 TinyGPSCustom pdop(GPS, PSTR("GNGSA"), 15); // $GNGSA sentence, 15th element
 TinyGPSCustom hdop(GPS, PSTR("GNGSA"), 16); // $GNGSA sentence, 16th element
 TinyGPSCustom vdop(GPS, PSTR("GNGSA"), 17); // $GNGSA sentence, 17th element
 TinyGPSCustom fix(GPS, PSTR("GNGGA"), 6);
 TinyGPSCustom fix_mode(GPS, PSTR("GNGSA"), 2);
-#else
-TinyGPSCustom pdop(GPS, PSTR("GPGSA"), 15); // $GPGSA sentence, 15th element
-TinyGPSCustom hdop(GPS, PSTR("GPGSA"), 16); // $GPGSA sentence, 16th element
-TinyGPSCustom vdop(GPS, PSTR("GPGSA"), 17); // $GPGSA sentence, 17th element
-TinyGPSCustom fix(GPS, PSTR("GPGGA"), 6);
-TinyGPSCustom fix_mode(GPS, PSTR("GPGSA"), 2);
-#endif
 
 /**
  * @brief Structure for satellite position (elevGPS, azimut,...)
@@ -66,7 +58,6 @@ struct
 void init_gps()
 {
   gps->begin(GPS_BAUDRATE, SERIAL_8N1, GPS_RX, GPS_TX);
-#ifdef CUSTOMBOARD
   gps->println("$PCAS01,3*1F\r\n");
   delay(100);
   gps->flush();
@@ -74,7 +65,6 @@ void init_gps()
   gps->begin(38400, SERIAL_8N1, GPS_RX, GPS_TX);
   gps->println("$PCAS04,7*1E\r\n");
   gps->println("$PCAS02,200*1D\r\n");
-#endif
 
   for (int i = 0; i < 4; ++i)
   {
