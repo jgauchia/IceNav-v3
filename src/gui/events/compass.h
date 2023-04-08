@@ -13,9 +13,11 @@
  */
 static void update_heading(lv_event_t *event)
 {
+    #ifdef ENABLE_COMPASS
     lv_obj_t *compass = lv_event_get_target(event);
     lv_label_set_text_fmt(compass, "%5d\xC2\xB0", heading);
     lv_img_set_angle(compass_img, -(heading * 10));
+    #endif
 }
 
 /**

@@ -22,6 +22,13 @@
   #define SD_MOSI 23 
   #define SD_CLK 12
 
+#ifdef MAKERF_ESP32S3  // TODO: we need find the right pins for this board
+  #define SD_CS 4
+  #define SD_MISO 19 
+  #define SD_MOSI 23 
+  #define SD_CLK 12
+#endif
+
 /**
  * @brief Battery monitor pin
  *

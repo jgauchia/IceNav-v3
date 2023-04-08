@@ -8,8 +8,13 @@
 
 #ifdef CUSTOMBOARD
 #include "../lib/lovyangfx_CUSTOMBOARD_conf.h"
-#include <LGFX_TFT_eSPI.hpp>
 #endif
+
+#ifdef MAKERF_ESP32S3
+#include "../lib/S3_Parallel16_ili9488.h"
+#endif
+
+#include <LGFX_TFT_eSPI.hpp>
 
 int brightness_level = 255;
 

@@ -9,7 +9,11 @@
 #include <FS.h>
 #include <SD.h>
 
+#ifdef MAKERF_ESP32S3
+SPIClass spiSD = SPIClass(HSPI); // TODO: Untested
+#else
 SPIClass spiSD = SPIClass(VSPI);
+#endif
 bool sdloaded = false;
 
 /**
