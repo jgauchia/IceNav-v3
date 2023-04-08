@@ -133,7 +133,7 @@ static void update_map(lv_event_t *event)
     tft.setPivot(NavArrow_position.posx, NavArrow_position.posy);
     sprArrow.pushRotated(heading, TFT_BLACK);
 #else
-    sprArrow.pushSprite(NavArrow.posx, NavArrow.posy, TFT_BLACK);
+    // sprArrow.pushSprite(NavArrow.posx, NavArrow.posy, TFT_BLACK); // TODO: we need the NavArrow object here? on COMPASS disable?
 #endif
   }
 }
