@@ -165,14 +165,16 @@ static void update_map(lv_event_t *event)
     sprArrow.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
 
     NavArrow_position = coord_to_scr_pos(32, 0, GPS.location.lng(), GPS.location.lat(), zoom);
-
     map_buf.readRect(NavArrow_position.posx - 12, NavArrow_position.posy - 12, 24, 24, (uint16_t *)data);
-    map_spr.setPivot(NavArrow_position.posx, NavArrow_position.posy);
     map_spr.pushImage(NavArrow_position.posx - 12, NavArrow_position.posy - 12, 24, 24, (uint16_t *)data);
 
+#ifdef ENABLE_COMPASS
     heading = read_compass();
+    map_spr.setPivot(NavArrow_position.posx, NavArrow_position.posy);
     sprArrow.pushRotated(&map_spr, heading, TFT_BLACK);
-
+#else
+    sprArrow.pushSprite(NavArrow.posx, NavArrow.posy, TFT_BLACK);
+#endif
     map_spr.pushSprite(0, 64);
   }
 }
