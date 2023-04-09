@@ -126,6 +126,8 @@ void init_tft()
   ledcAttachPin(TFT_BL, 0);
   ledcSetup(0, 5000, 8);
   ledcWrite(0, 255);
+#ifndef MAKERF_ESP32S3
   touch_calibrate();
+#endif
 }
 
