@@ -5,29 +5,35 @@
 #include "SPI.h"
 #include <LovyanGFX.hpp>
 
-#define I2C_SCL 39
-#define I2C_SDA 38
+// #define I2C_SCL 39
+// #define I2C_SDA 38
 
-//#define NS2009_TOUCH  //Resistive screen driver
-#define FT6236_TOUCH //Capacitive screen driver
+// // #define NS2009_TOUCH  //Resistive screen driver
+// #define FT6236_TOUCH // Capacitive screen driver
 
-#ifdef NS2009_TOUCH
-#include "NS2009.h"
-const int i2c_touch_addr = NS2009_ADDR;
-#define get_pos ns2009_pos
-#endif
+// #ifdef NS2009_TOUCH
+// #include "NS2009.h"
+// const int i2c_touch_addr = NS2009_ADDR;
+// #define get_pos ns2009_pos
+// #endif
 
-#ifdef FT6236_TOUCH
-#include "FT6236.h"
-const int i2c_touch_addr = TOUCH_I2C_ADD;
-#define get_pos ft6236_pos
-#endif
+// #ifdef FT6236_TOUCH
+// #include "FT6236.h"
+// const int i2c_touch_addr = TOUCH_I2C_ADD;
+// #define get_pos ft6236_pos
+// #endif
 
 class LGFX : public lgfx::LGFX_Device
 {
+    static constexpr int I2C_PORT_NUM = 0;
+    static constexpr int I2C_PIN_SDA = 38;
+    static constexpr int I2C_PIN_SCL = 39;
+    static constexpr int I2C_PIN_INT = 40;
+
     // lgfx::Panel_ILI9341 _panel_instance;
     lgfx::Panel_ILI9488 _panel_instance;
     lgfx::Bus_Parallel16 _bus_instance; // 8ビットパラレルバスのインスタンス (ESP32のみ)
+    lgfx::Touch_FT5x06 _touch_instance;
 
 public:
     // コンストラクタを作成し、ここで各種設定を行います。
@@ -93,5 +99,27 @@ public:
         }
 
         setPanel(&_panel_instance); // 使用するパネルをセットします。
+
+        {
+            auto cfg = _touch_instance.config();
+
+            cfg.x_min = 0;
+            cfg.x_max = 320;
+            cfg.y_min = 0;
+            cfg.y_max = 480;
+            cfg.pin_int = I2C_PIN_INT;
+            cfg.bus_shared = true;
+            cfg.offset_rotation = 0;
+
+            cfg.i2c_port = I2C_PORT_NUM;
+            cfg.i2c_addr = 0x38;
+            cfg.pin_sda = I2C_PIN_SDA;
+            cfg.pin_scl = I2C_PIN_SCL;
+            cfg.freq = 400000;
+
+            _touch_instance.config(cfg);
+            _panel_instance.setTouch(&_touch_instance);
+        }
+        setPanel(&_panel_instance);
     }
 };

@@ -73,19 +73,19 @@ void touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
 {
     uint16_t touchX, touchY;
 
-#ifndef MAKERF_ESP32S3
+//#ifndef MAKERF_ESP32S3
     bool touched = tft.getTouch(&touchX, &touchY);
-#else
-    int pos[2] = {0, 0};
-    bool touched = false;
-    get_pos(pos);
-    if (pos[0]!=0 && pos[1]!=0)
-    {
-        touched = true;
-        touchX = pos[0];
-        touchY = pos[1];
-    }
-#endif
+//#else
+    // int pos[2] = {0, 0};
+    // bool touched = false;
+    // get_pos(pos);
+    // if (pos[0]!=0 && pos[1]!=0)
+    // {
+    //     touched = true;
+    //     touchX = pos[0];
+    //     touchY = pos[1];
+    // }
+//#endif
     if (!touched)
         data->state = LV_INDEV_STATE_RELEASED;
     else
