@@ -65,6 +65,7 @@ void setup()
   init_SPIFFS();
 #ifdef MAKERF_ESP32S3
   Wire.end();
+  Wire.begin(38,39);
 #endif
   init_LVGL();
   init_tft();
