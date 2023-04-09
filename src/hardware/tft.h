@@ -11,8 +11,7 @@
 #endif
 
 #ifdef MAKERF_ESP32S3
-// #include "../lib/S3_Parallel16_ili9488.h"
-#include "../lib/LGFX_MakerFabs_Parallel_S3.hpp"
+#include <LGFX_MakerFabs_Parallel_S3.hpp>
 #endif
 
 #include <LGFX_TFT_eSPI.hpp>

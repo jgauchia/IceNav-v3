@@ -32,17 +32,16 @@
   #define GPS_TX 17
   #define GPS_RX 18
 
-
   #define LCD_CS 37
   #define LCD_BLK 45
 
   #define I2C_SDA_PIN 38
   #define I2C_SCL_PIN 39
 
-  #define SD_CS 1
-  #define SD_MISO 41
   #define SD_MOSI 2
+  #define SD_MISO 41
   #define SD_CLK 42
+  #define SD_CS 1
 #endif
 
 /**
