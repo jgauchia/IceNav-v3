@@ -11,7 +11,6 @@
 
 #include <Arduino.h>
 #include <Wire.h>
-#include <Ticker.h>
 #include <SPIFFS.h>
 #include <SPI.h>
 #include <WiFi.h>
