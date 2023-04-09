@@ -75,6 +75,7 @@ void create_main_scr()
     lv_obj_set_align(compass_heading, LV_ALIGN_CENTER);
     lv_obj_set_y(compass_heading, 35);
     lv_obj_set_style_text_font(compass_heading, &lv_font_montserrat_48, 0);
+    lv_label_set_text(compass_heading, "  ---\xC2\xB0");
 
     lv_obj_t *arrow_img = lv_img_create(compass_tile);
     lv_img_set_src(arrow_img, "F:/arrow.bin");
