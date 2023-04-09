@@ -1,7 +1,27 @@
 #define LGFX_USE_V1
 
+#include "FS.h"
+#include "SD.h"
+#include "SPI.h"
 #include <LovyanGFX.hpp>
 
+#define I2C_SCL 39
+#define I2C_SDA 38
+
+//#define NS2009_TOUCH  //Resistive screen driver
+#define FT6236_TOUCH //Capacitive screen driver
+
+#ifdef NS2009_TOUCH
+#include "NS2009.h"
+const int i2c_touch_addr = NS2009_ADDR;
+#define get_pos ns2009_pos
+#endif
+
+#ifdef FT6236_TOUCH
+#include "FT6236.h"
+const int i2c_touch_addr = TOUCH_I2C_ADD;
+#define get_pos ft6236_pos
+#endif
 
 class LGFX : public lgfx::LGFX_Device
 {

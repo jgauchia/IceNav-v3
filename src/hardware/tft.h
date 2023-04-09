@@ -11,7 +11,7 @@
 #endif
 
 #ifdef MAKERF_ESP32S3
-#include "../lib/S3_Parallel16_ili9488.h"
+#include <LGFX_MakerFabs_Parallel_S3.hpp>
 #endif
 
 #include <LGFX_TFT_eSPI.hpp>
@@ -126,6 +126,8 @@ void init_tft()
   ledcAttachPin(TFT_BL, 0);
   ledcSetup(0, 5000, 8);
   ledcWrite(0, 255);
+#ifndef MAKERF_ESP32S3
   touch_calibrate();
+#endif
 }
 

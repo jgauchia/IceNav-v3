@@ -65,7 +65,7 @@ struct
  */
 void init_gps()
 {
-  gps->begin(GPS_BAUDRATE, SERIAL_8N1, GPS_RX, GPS_TX);
+  gps->begin(GPS_BAUDRATE, SERIAL_8N1, GPS_RX, GPS_TX);  // TODO: maybe should put into GPS ENABLE/DISABLE
 #ifdef CUSTOMBOARD
   gps->println("$PCAS01,3*1F\r\n");
   delay(100);
