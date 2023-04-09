@@ -63,6 +63,9 @@ void setup()
   powerOn();
   init_sd();
   init_SPIFFS();
+#ifdef MAKERF_ESP32S3
+  Wire.end();
+#endif
   init_LVGL();
   init_tft();
   init_gps();
