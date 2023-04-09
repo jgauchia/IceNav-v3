@@ -7,7 +7,7 @@
 
 class LGFX : public lgfx::LGFX_Device
 {
-    static constexpr int I2C_PORT_NUM = 1;
+    static constexpr int I2C_PORT_NUM = 0;
     static constexpr int I2C_PIN_SDA = 38;
     static constexpr int I2C_PIN_SCL = 39;
     static constexpr int I2C_PIN_INT = 40;
