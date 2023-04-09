@@ -11,7 +11,6 @@
 
 #include <Arduino.h>
 #include <Wire.h>
-#include <Ticker.h>
 #include <SPIFFS.h>
 #include <SPI.h>
 #include <WiFi.h>
@@ -25,8 +24,12 @@ unsigned long millis_actual = 0;
 #include "hardware/serial.h"
 #include "hardware/sdcard.h"
 #include "hardware/tft.h"
+#ifdef ENABLE_COMPASS
 #include "hardware/compass.h"
+#endif
+#ifdef ENABLE_BME
 #include "hardware/bme.h"
+#endif
 #include "hardware/battery.h"
 #include "hardware/gps.h"
 #include "hardware/power.h"
@@ -45,8 +48,13 @@ unsigned long millis_actual = 0;
  */
 void setup()
 {
+
+#ifdef ENABLE_BME
   bme.begin(BME_ADDRESS);
+#endif
+#ifdef ENABLE_COMPASS
   compass.begin();
+#endif
 
 #ifdef DEBUG
   init_serial();
@@ -54,6 +62,10 @@ void setup()
   powerOn();
   init_sd();
   init_SPIFFS();
+#ifdef MAKERF_ESP32S3
+  Wire.end();
+//  Wire.begin(38,39);
+#endif
   init_LVGL();
   init_tft();
   init_gps();
@@ -74,6 +86,9 @@ void setup()
  */
 void loop()
 {
+#ifdef MAKERF_ESP32S3
+  lv_tick_inc(5);
+#endif
   lv_timer_handler();
-  delay(5);
+  delayMicroseconds(5);
 }

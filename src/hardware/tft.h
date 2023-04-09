@@ -16,7 +16,7 @@
 
 #include <LGFX_TFT_eSPI.hpp>
 
-int brightness_level = 255;
+uint8_t brightness_level = 255;
 
 static TFT_eSPI tft;
 #define LVGL_BKG  0x10A2
@@ -27,7 +27,7 @@ static TFT_eSPI tft;
  *
  * @param brightness -> 0..255
  */
-void set_brightness(int brightness)
+void set_brightness(uint8_t brightness)
 {
   if (brightness <= 255)
   {
@@ -41,7 +41,7 @@ void set_brightness(int brightness)
  *
  * @return int -> brightness value 0..255
  */
-int get_brightness()
+uint8_t get_brightness()
 {
   return brightness_level;
 }

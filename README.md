@@ -37,3 +37,7 @@ Specifications:
    * MPU6050  Accelerometer and Gyroscope IMU
    * HT1818Z3G5L GPS Module
    * LVGL UI + LovyanGFX
+
+Added support to Makerfabs ESP32-S3 Parallel TFT with Touch 3.5" ILI9488 (thanks to @hpsaturn)
+   
+

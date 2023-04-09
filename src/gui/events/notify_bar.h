@@ -106,9 +106,11 @@ void update_notify_bar(lv_timer_t *t)
         sat_count_old = GPS.satellites.value();
     }
 
+#ifdef ENABLE_BME
     if (int(bme.readTemperature()) != temp_old)
     {
         lv_label_set_text_fmt(temp, "%02d\xC2\xB0", int(bme.readTemperature()));
         temp_old = int(bme.readTemperature());
     }
+#endif
 }
