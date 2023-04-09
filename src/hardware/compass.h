@@ -6,6 +6,7 @@
  * @date 2022-10-09
  */
 
+#ifdef ENABLE_COMPASS
 
 #include <Adafruit_Sensor.h>
 #include <Adafruit_HMC5883_U.h>
@@ -43,4 +44,4 @@ int read_compass()
         heading -= 2 * PI;
     return (int)(heading * 180 / M_PI);
 }
-
+#endif

@@ -25,8 +25,12 @@ unsigned long millis_actual = 0;
 #include "hardware/serial.h"
 #include "hardware/sdcard.h"
 #include "hardware/tft.h"
+#ifdef ENABLE_COMPASS
 #include "hardware/compass.h"
+#endif
+#ifdef ENABLE_BME
 #include "hardware/bme.h"
+#endif
 #include "hardware/battery.h"
 #include "hardware/gps.h"
 #include "hardware/power.h"
@@ -45,8 +49,13 @@ unsigned long millis_actual = 0;
  */
 void setup()
 {
+
+#ifdef ENABLE_BME
   bme.begin(BME_ADDRESS);
+#endif
+#ifdef ENABLE_COMPASS
   compass.begin();
+#endif
 
 #ifdef DEBUG
   init_serial();

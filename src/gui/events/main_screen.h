@@ -53,8 +53,10 @@ void update_main_screen(lv_timer_t *t)
     switch (act_tile)
     {
     case COMPASS:
+#ifdef ENABLE_COMPASS
         heading = read_compass();
         lv_event_send(compass_heading, LV_EVENT_VALUE_CHANGED, NULL);
+#endif
 
         if (GPS.location.isUpdated())
         {
