@@ -2,9 +2,10 @@
  * @file lvgl.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Screen implementation
- * @version 0.1
- * @date 2022-10-12
+ * @version 0.1.2
+ * @date 2023-04-15
  */
+
 #include <lvgl.h>
 
 /**
@@ -33,7 +34,7 @@ static lv_obj_t *tiles;
  * @param width
  * @param height
  */
-void lvgl_set_resolution(int width, int height)
+void lvgl_set_resolution(uint16_t  width, uint16_t  height)
 {
     lv_disp_t *def_disp;
     def_disp = lv_disp_get_default();

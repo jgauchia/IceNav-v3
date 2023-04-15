@@ -2,8 +2,8 @@
  * @file time_zone.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Timezone Library (Daylight Saving)
- * @version 0.1
- * @date 2023-03-28
+ * @version 0.1.2
+ * @date 2023-04-15
  */
 
 /**

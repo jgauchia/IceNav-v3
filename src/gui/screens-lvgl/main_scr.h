@@ -2,8 +2,8 @@
  * @file main_scr.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Main Screen
- * @version 0.1
- * @date 2022-10-16
+ * @version 0.1.2
+ * @date 2023-04-15
  */
 
 /**

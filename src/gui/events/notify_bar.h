@@ -2,8 +2,8 @@
  * @file notify_bar.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief Notify Bar Events
- * @version 0.1
- * @date 2023-02-22
+ * @version 0.1.2
+ * @date 2023-04-15
  */
 
 /**
@@ -107,10 +107,10 @@ void update_notify_bar(lv_timer_t *t)
     }
 
 #ifdef ENABLE_BME
-    if (int(bme.readTemperature()) != temp_old)
+    if ((uint8_t)(bme.readTemperature()) != temp_old)
     {
-        lv_label_set_text_fmt(temp, "%02d\xC2\xB0", int(bme.readTemperature()));
-        temp_old = int(bme.readTemperature());
+        lv_label_set_text_fmt(temp, "%02d\xC2\xB0", (uint8_t)(bme.readTemperature()));
+        temp_old = (uint8_t)(bme.readTemperature());
     }
 #endif
 }

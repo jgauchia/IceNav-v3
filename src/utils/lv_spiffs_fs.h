@@ -2,8 +2,8 @@
  * @file lv_spiffs_fs.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  SPIFFS file functions for LVGL
- * @version 0.1
- * @date 2022-12-14
+ * @version 0.1.2
+ * @date 2023-04-15
  */
 
 #include "lvgl.h"

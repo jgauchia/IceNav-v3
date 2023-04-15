@@ -2,14 +2,15 @@
  * @file main.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ESP32 GPS Naviation main code
- * @version 0.1
- * @date 2022-10-09
+ * @version 0.1.2
+ * @date 2023-04-15
  */
 
 #define CALIBRATION_FILE "/TouchCalData1"
 #define REPEAT_CAL false
 
 #include <Arduino.h>
+#include <stdint.h>
 #include <Wire.h>
 #include <SPIFFS.h>
 #include <SPI.h>
@@ -69,7 +70,6 @@ void setup()
   init_gps();
   init_ADC();
 
-  batt_level = battery_read();
   splash_scr();
   init_tasks();
 

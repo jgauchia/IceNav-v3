@@ -2,8 +2,8 @@
  * @file map.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Map screen events
- * @version 0.1
- * @date 2022-11-20
+ * @version 0.1.2
+ * @date 2023-04-15
  */
 
 /**
@@ -13,7 +13,7 @@
 #define MIN_ZOOM 6
 #define MAX_ZOOM 17
 #define DEF_ZOOM 17
-int zoom = DEF_ZOOM;
+uint8_t zoom = DEF_ZOOM;
 
 /**
  * @brief Old tile coordinates and zoom

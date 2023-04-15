@@ -2,8 +2,8 @@
  * @file main_screen.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Main screen events
- * @version 0.1
- * @date 2022-12-06
+ * @version 0.1.2
+ * @date 2023-04-15
  */
 
 /**
@@ -22,7 +22,7 @@ bool is_map_draw = false;
  * @brief Active Tile in TileView control
  *
  */
-uint16_t act_tile = 0;
+uint8_t act_tile = 0;
 enum tilename
 {
     COMPASS,

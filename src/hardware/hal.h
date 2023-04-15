@@ -2,8 +2,8 @@
  * @file hal.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Pin definitions
- * @version 0.1
- * @date 2022-10-09
+ * @version 0.1.2
+ * @date 2023-04-15
  */
 
 #ifdef CUSTOMBOARD

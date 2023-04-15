@@ -2,8 +2,8 @@
  * @file compass.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Compass definition and functions
- * @version 0.1
- * @date 2022-10-09
+ * @version 0.1.2
+ * @date 2023-04-15
  */
 
 
@@ -23,13 +23,13 @@ float declinationAngle = 0.22;
  * @brief Compass Heading Angle
  * 
  */
-int heading = 0;
+uint16_t heading = 0;
 
 
 /**
  * @brief Read compass data
  *
- * @return int -> compass heading
+ * @return compass heading
  */
 int read_compass()
 {
@@ -41,6 +41,6 @@ int read_compass()
         heading += 2 * PI;
     if (heading > 2 * PI)
         heading -= 2 * PI;
-    return (int)(heading * 180 / M_PI);
+    return (uint16_t)(heading * 180 / M_PI);
 }
 

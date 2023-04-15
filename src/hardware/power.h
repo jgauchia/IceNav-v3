@@ -1,3 +1,11 @@
+/**
+ * @file power.h
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @brief  ESP32 Power Management functions
+ * @version 0.1.2
+ * @date 2023-04-15
+ */
+
 #include <WiFi.h>
 #include <driver/rtc_io.h>
 #include <esp_bt.h>

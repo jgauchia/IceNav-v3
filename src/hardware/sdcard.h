@@ -2,15 +2,15 @@
  * @file sdcard.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  SD Card definition and functions
- * @version 0.1
- * @date 2022-10-09
+ * @version 0.1.2
+ * @date 2023-04-15
  */
 
 #include <FS.h>
 #include <SD.h>
 
 #ifdef MAKERF_ESP32S3
-SPIClass spiSD = SPIClass(HSPI); // TODO: Untested
+SPIClass spiSD = SPIClass(HSPI); 
 #else
 SPIClass spiSD = SPIClass(VSPI);
 #endif

@@ -2,8 +2,8 @@
  * @file gps_math.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Math and various functions
- * @version 0.1
- * @date 2022-10-09
+ * @version 0.1.2
+ * @date 2023-04-15
  */
 
 /**
@@ -19,8 +19,8 @@ double d_midlon = 0;
  */
 struct ScreenCoord
 {
-  int posx;
-  int posy;
+  uint16_t posx;
+  uint16_t posy;
 };
 
 /**
@@ -30,9 +30,9 @@ struct ScreenCoord
 struct MapTile
 {
   char *file;
-  int tilex;
-  int tiley;
-  int zoom;
+  uint32_t tilex;
+  uint32_t tiley;
+  uint8_t zoom;
 };
 
 /**
@@ -116,11 +116,11 @@ double DEGtoRAD(double deg)
  *
  * @param f_lon -> longitude
  * @param zoom -> zoom
- * @return int -> X value (folder)
+ * @return X value (folder)
  */
-int lon2tilex(double f_lon, int zoom)
+uint32_t lon2tilex(double f_lon, uint8_t zoom)
 {
-  return (int)(floor((f_lon + 180.0) / 360.0 * pow(2.0, zoom)));
+  return (uint32_t)(floor((f_lon + 180.0) / 360.0 * pow(2.0, zoom)));
 }
 
 /**
@@ -128,11 +128,11 @@ int lon2tilex(double f_lon, int zoom)
  *
  * @param f_lat -> latitude
  * @param zoom  -> zoom
- * @return int -> Y value (file)
+ * @return Y value (file)
  */
-int lat2tiley(double f_lat, int zoom)
+uint32_t lat2tiley(double f_lat, uint8_t zoom)
 {
-  return (int)(floor((1.0 - log(tan(f_lat * M_PI / 180.0) + 1.0 / cos(f_lat * M_PI / 180.0)) / M_PI) / 2.0 * pow(2.0, zoom)));
+  return (uint32_t)(floor((1.0 - log(tan(f_lat * M_PI / 180.0) + 1.0 / cos(f_lat * M_PI / 180.0)) / M_PI) / 2.0 * pow(2.0, zoom)));
 }
 
 /**
@@ -140,11 +140,11 @@ int lat2tiley(double f_lat, int zoom)
  *
  * @param f_lon -> longitude
  * @param zoom -> zoom
- * @return int -> X position
+ * @return X position
  */
-int lon2posx(float f_lon, int zoom)
+uint16_t lon2posx(float f_lon, uint8_t zoom)
 {
-  return ((int)(((f_lon + 180.0) / 360.0 * (pow(2.0, zoom)) * 256)) % 256);
+  return ((uint16_t)(((f_lon + 180.0) / 360.0 * (pow(2.0, zoom)) * 256)) % 256);
 }
 
 /**
@@ -152,11 +152,11 @@ int lon2posx(float f_lon, int zoom)
  *
  * @param f_lat -> latitude
  * @param zoom -> zoom
- * @return int -> Y position
+ * @return Y position
  */
-int lat2posy(float f_lat, int zoom)
+uint16_t lat2posy(float f_lat, uint8_t zoom)
 {
-  return ((int)(((1.0 - log(tan(f_lat * M_PI / 180.0) + 1.0 / cos(f_lat * M_PI / 180.0)) / M_PI) / 2.0 * (pow(2.0, zoom)) * 256)) % 256);
+  return ((uint16_t)(((1.0 - log(tan(f_lat * M_PI / 180.0) + 1.0 / cos(f_lat * M_PI / 180.0)) / M_PI) / 2.0 * (pow(2.0, zoom)) * 256)) % 256);
 }
 
 /**
@@ -221,11 +221,11 @@ char *Longitude_formatString(double lon)
  * @param off_y -> Tile Offset Y
  * @return MapTile -> Map Tile structure
  */
-MapTile get_map_tile(double lon, double lat, uint8_t zoom_level, int8_t off_x, int8_t off_y)
+MapTile get_map_tile(double lon, double lat, uint8_t zoom_level, int16_t off_x, int16_t off_y)
 {
   static char s_file[40] = "";
-  int x = lon2tilex(lon, zoom_level) + off_x;
-  int y = lat2tiley(lat, zoom_level) + off_y;
+  uint32_t x = lon2tilex(lon, zoom_level) + off_x;
+  uint32_t y = lat2tiley(lat, zoom_level) + off_y;
 
   sprintf(s_file, PSTR("/MAP/%d/%d/%d.png"), zoom_level, x, y);
   MapTile data;
@@ -246,7 +246,7 @@ MapTile get_map_tile(double lon, double lat, uint8_t zoom_level, int8_t off_x, i
  * @param zoom_level -> Zoom level
  * @return ScreenCoord -> Screen position
  */
-ScreenCoord coord_to_scr_pos(int offset_x, int offset_y, double lon, double lat, int zoom_level)
+ScreenCoord coord_to_scr_pos(uint16_t offset_x, uint16_t offset_y, double lon, double lat, uint8_t zoom_level)
 {
   ScreenCoord data;
   data.posx = lon2posx(lon, zoom_level) + offset_x;

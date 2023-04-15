@@ -2,9 +2,10 @@
  * @file battery.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Battery monitor definition and functions
- * @version 0.1
- * @date 2022-10-09
+ * @version 0.1.2
+ * @date 2023-04-15
  */
+
 #include <driver/adc.h>
 #include <esp_adc_cal.h>
 

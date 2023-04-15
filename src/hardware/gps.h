@@ -2,8 +2,8 @@
  * @file gps.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  GPS definition and functions
- * @version 0.1
- * @date 2022-10-09
+ * @version 0.1.2
+ * @date 2023-04-15
  */
 
 #include <TimeLib.h>
@@ -14,7 +14,7 @@
 HardwareSerial *gps = &Serial2;
 TinyGPSPlus GPS;
 bool is_gps_fixed = false;
-int upd_rate = 500;
+uint16_t upd_rate = 500;
 uint8_t fix_mode_old = 0;
 uint8_t fix_old = 0;
 uint8_t sat_count_old = 0;
@@ -51,12 +51,12 @@ TinyGPSCustom fix_mode(GPS, PSTR("GPGSA"), 2);
 struct
 {
   bool active;
-  int satGPSNum;
-  int elevGPS;
-  int aziGPS;
-  int snrGPS;
-  int pos_x;
-  int pos_y;
+  uint8_t satGPSNum;
+  uint8_t elevGPS;
+  uint8_t aziGPS;
+  uint8_t snrGPS;
+  uint16_t pos_x;
+  uint16_t pos_y;
 } sat_tracker[MAX_SATELLITES];
 
 /**

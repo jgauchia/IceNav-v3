@@ -2,8 +2,8 @@
  * @file sattrack.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Satellite Tracking events
- * @version 0.1
- * @date 2023-02-22
+ * @version 0.1.2
+ * @date 2023-04-15
  */
 
 /**
@@ -68,8 +68,8 @@ static void update_sattrack(lv_event_t *event)
             }
         }
 
-        int totalMessages = atoi(totalGPSMsg.value());
-        int currentMessage = atoi(msgGPSNum.value());
+        uint8_t totalMessages = atoi(totalGPSMsg.value());
+        uint8_t currentMessage = atoi(msgGPSNum.value());
         if (totalMessages == currentMessage)
         {
 
@@ -112,7 +112,7 @@ static void update_sattrack(lv_event_t *event)
                 satbar_ser2->y_points[i] = LV_CHART_POINT_NONE;
             }
 
-            int active_sat = 0;
+            uint8_t active_sat = 0;
             for (int i = 0; i < MAX_SATELLITES; ++i)
             {
                 if (sat_tracker[i].active && (sat_tracker[i].snrGPS > 0))
