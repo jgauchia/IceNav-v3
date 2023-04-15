@@ -34,7 +34,6 @@ unsigned long millis_actual = 0;
 #include "hardware/gps.h"
 #include "hardware/power.h"
 #include "utils/gps_math.h"
-#include "utils/wpt.h"
 #include "utils/lv_spiffs_fs.h"
 #include "utils/lv_sd_fs.h"
 #include "utils/time_zone.h"
@@ -64,7 +63,6 @@ void setup()
   init_SPIFFS();
 #ifdef MAKERF_ESP32S3
   Wire.end();
-//  Wire.begin(38,39);
 #endif
   init_LVGL();
   init_tft();
@@ -75,9 +73,9 @@ void setup()
   splash_scr();
   init_tasks();
 
-  lv_scr_load(searchSat);
-  // lv_scr_load(mainScreen);
-  // create_notify_bar();
+  //lv_scr_load(searchSat);
+  lv_scr_load(mainScreen);
+  create_notify_bar();
 }
 
 /**
