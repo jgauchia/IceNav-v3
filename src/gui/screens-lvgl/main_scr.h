@@ -112,7 +112,7 @@ void create_main_scr()
     altitude = lv_label_create(compass_tile);
     lv_obj_set_size(altitude, 200, 20);
     lv_obj_set_style_text_font(altitude, &lv_font_montserrat_24, 0);
-    lv_label_set_text(longitude, "0000 m.");
+    lv_label_set_text(altitude, "0000 m.");
     lv_obj_set_pos(altitude, 60, 73);
 
     // Compass Tile Events

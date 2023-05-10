@@ -73,9 +73,9 @@ void setup()
   splash_scr();
   init_tasks();
 
-  lv_scr_load(searchSat);
+  //lv_scr_load(searchSat);
   lv_scr_load(mainScreen);
-  //create_notify_bar();
+  create_notify_bar();
 }
 
 /**
