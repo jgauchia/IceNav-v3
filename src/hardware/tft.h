@@ -2,8 +2,8 @@
  * @file tft.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief TFT definition and functions
- * @version 0.1.2
- * @date 2023-04-15
+ * @version 0.1.3
+ * @date 2023-05-10
  */
 
 #ifdef CUSTOMBOARD

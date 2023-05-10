@@ -2,8 +2,8 @@
  * @file notify_bar.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief Notify Bar Events
- * @version 0.1.2
- * @date 2023-04-15
+ * @version 0.1.3
+ * @date 2023-05-10
  */
 
 /**

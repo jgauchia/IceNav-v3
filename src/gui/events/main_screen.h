@@ -2,8 +2,8 @@
  * @file main_screen.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Main screen events
- * @version 0.1.2
- * @date 2023-04-15
+ * @version 0.1.3
+ * @date 2023-05-10
  */
 
 /**

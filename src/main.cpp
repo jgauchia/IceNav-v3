@@ -2,8 +2,8 @@
  * @file main.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ESP32 GPS Naviation main code
- * @version 0.1.2
- * @date 2023-04-15
+ * @version 0.1.3
+ * @date 2023-05-10
  */
 
 #define CALIBRATION_FILE "/TouchCalData1"
