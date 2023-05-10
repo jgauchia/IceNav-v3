@@ -41,3 +41,14 @@ static void update_longitude(lv_event_t *event)
     lv_obj_t *lon = lv_event_get_target(event);
     lv_label_set_text(lon, Longitude_formatString(GPS.location.lng()));
 }
+
+/**
+ * @brief Upate altitude label
+ * 
+ * @param event 
+ */
+static void update_altitude(lv_event_t *event)
+{
+    lv_obj_t *alt = lv_event_get_target(event);
+    lv_label_set_text_fmt(altitude, "%4d m.", (int)GPS.altitude.meters());
+}

@@ -26,7 +26,7 @@ bool map_found = false;
 
 /**
  * @brief Flag to indicate when tileview was scrolled
- * 
+ *
  */
 bool is_scrolled = true;
 
@@ -62,8 +62,8 @@ static void get_act_tile(lv_event_t *event)
 
 /**
  * @brief Tile start scrolling event
- * 
- * @param event 
+ *
+ * @param event
  */
 static void scroll_tile(lv_event_t *event)
 {
@@ -90,6 +90,10 @@ void update_main_screen(lv_timer_t *t)
             {
                 lv_event_send(latitude, LV_EVENT_VALUE_CHANGED, NULL);
                 lv_event_send(longitude, LV_EVENT_VALUE_CHANGED, NULL);
+            }
+            if (GPS.altitude.isUpdated())
+            {
+                lv_event_send(altitude,LV_EVENT_VALUE_CHANGED,NULL);
             }
             break;
 

@@ -22,6 +22,7 @@ static lv_obj_t *compass_heading;
 static lv_obj_t *compass_img;
 static lv_obj_t *latitude;
 static lv_obj_t *longitude;
+static lv_obj_t *altitude;
 
 /**
  * @brief Map View Tile screen objects
@@ -90,23 +91,35 @@ void create_main_scr()
 
     lv_obj_t *pos_img = lv_img_create(compass_tile);
     lv_img_set_src(pos_img, "F:/pin.bin");
-    lv_obj_set_pos(pos_img, 5, 10);
+    lv_obj_set_pos(pos_img, 15, 15);
+
+    lv_obj_t *altit_img = lv_img_create(compass_tile);
+    lv_img_set_src(altit_img, "F:/altit.bin");
+    lv_obj_set_pos(altit_img, 5, 54);
 
     latitude = lv_label_create(compass_tile);
     lv_obj_set_size(latitude, 200, 20);
     lv_obj_set_style_text_font(latitude, &lv_font_montserrat_16, 0);
     lv_label_set_text(latitude, Latitude_formatString(GPS.location.lat()));
-    lv_obj_set_pos(latitude, 45, 7);
+    lv_obj_set_pos(latitude, 55, 12);
 
     longitude = lv_label_create(compass_tile);
     lv_obj_set_size(longitude, 200, 20);
     lv_obj_set_style_text_font(longitude, &lv_font_montserrat_16, 0);
     lv_label_set_text(longitude, Longitude_formatString(GPS.location.lng()));
-    lv_obj_set_pos(longitude, 45, 23);
+    lv_obj_set_pos(longitude, 55, 28);
+
+    altitude = lv_label_create(compass_tile);
+    lv_obj_set_size(altitude, 200, 20);
+    lv_obj_set_style_text_font(altitude, &lv_font_montserrat_24, 0);
+    lv_label_set_text(longitude, "0000 m.");
+    lv_obj_set_pos(altitude, 60, 73);
+
     // Compass Tile Events
     lv_obj_add_event_cb(compass_heading, update_heading, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(latitude, update_latitude, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(longitude, update_longitude, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(altitude,update_altitude,LV_EVENT_VALUE_CHANGED,NULL);
 
     // Map Tile
     zoom_label = lv_label_create(map_tile);
