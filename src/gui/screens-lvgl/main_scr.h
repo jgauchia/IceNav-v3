@@ -2,8 +2,8 @@
  * @file main_scr.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Main Screen
- * @version 0.1.3
- * @date 2023-05-10
+ * @version 0.1.4
+ * @date 2023-05-23
  */
 
 /**
@@ -119,7 +119,7 @@ void create_main_scr()
     lv_obj_add_event_cb(compass_heading, update_heading, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(latitude, update_latitude, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(longitude, update_longitude, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_obj_add_event_cb(altitude,update_altitude,LV_EVENT_VALUE_CHANGED,NULL);
+    lv_obj_add_event_cb(altitude, update_altitude, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Map Tile
     zoom_label = lv_label_create(map_tile);
@@ -174,6 +174,11 @@ void create_main_scr()
     lv_chart_set_type(satbar_2, LV_CHART_TYPE_BAR);
     lv_chart_set_point_count(satbar_2, (MAX_SATELLLITES_IN_VIEW / 2));
     lv_obj_set_pos(satbar_2, 0, 265);
+
+    // Satellite Tracking map sprite & buffer copy
+    create_sat_map();
+    create_sat_map_bkg();
+
     // Satellite Tracking Event
     lv_obj_add_event_cb(sat_track_tile, update_sattrack, LV_EVENT_VALUE_CHANGED, NULL);
 }

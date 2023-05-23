@@ -2,8 +2,8 @@
  * @file compass.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Compass screen events
- * @version 0.1.3
- * @date 2023-05-10
+ * @version 0.1.4
+ * @date 2023-05-23
  */
 
 /**

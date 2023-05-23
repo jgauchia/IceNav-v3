@@ -2,8 +2,8 @@
  * @file lv_sd_fs.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  SD file functions for LVGL
- * @version 0.1.3
- * @date 2023-05-10
+ * @version 0.1.4
+ * @date 2023-05-23
  */
 
 #include "lvgl.h"

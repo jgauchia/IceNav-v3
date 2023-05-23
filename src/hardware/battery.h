@@ -2,8 +2,8 @@
  * @file battery.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Battery monitor definition and functions
- * @version 0.1.3
- * @date 2023-05-10
+ * @version 0.1.4
+ * @date 2023-05-23
  */
 
 #include <driver/adc.h>

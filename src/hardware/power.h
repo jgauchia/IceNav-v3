@@ -2,8 +2,8 @@
  * @file power.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ESP32 Power Management functions
- * @version 0.1.3
- * @date 2023-05-10
+ * @version 0.1.4
+ * @date 2023-05-23
  */
 
 #include <WiFi.h>
