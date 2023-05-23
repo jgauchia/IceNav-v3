@@ -58,7 +58,7 @@ public:
         }
 
         {                                        
-            auto cfg = _panel_instance.config();。
+            auto cfg = _panel_instance.config();
 
             cfg.pin_cs = -1;   
             cfg.pin_rst = -1;  
