@@ -1,4 +1,8 @@
+[![PlatformIO](https://github.com/jgauchia/IceNav-v3/workflows/PlatformIO/badge.svg)](https://github.com/jgauchia/IceNav-v3/actions/) ![ViewCount](https://views.whatilearened.today/views/github/jgauchia/IceNav-v3.svg)
+
+
 # IceNav-v3
+
 ESP32 GPS Navigator 
 
        Pinout (ESP32-WROVER)
@@ -17,7 +21,7 @@ ESP32 GPS Navigator
                                                  TCH  GPIO18
                                                  TIRQ GPIO5
 
-SD Map Tile File structure
+## SD Map Tile File structure
 
 On SD Card map tiles (256x256 PNG Format) are stored in these folders structure:
 
@@ -27,7 +31,7 @@ On SD Card map tiles (256x256 PNG Format) are stored in these folders structure:
                                                              |_______________________ tile y file.png
 
 
-Specifications:
+## Specifications
 
    * ESP32 WROVER with 4Mb PSRAM / 16 Mb Flash
    * ILI9488 TFT (320x480)
@@ -37,6 +41,9 @@ Specifications:
    * MPU6050  Accelerometer and Gyroscope IMU
    * HT1818Z3G5L GPS Module
    * LVGL UI + LovyanGFX
+
+
+## Credits
 
 Added support to Makerfabs ESP32-S3 Parallel TFT with Touch 3.5" ILI9488 (thanks to @hpsaturn)
    
