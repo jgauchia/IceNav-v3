@@ -7,7 +7,7 @@
  */
 
 #ifdef CUSTOMBOARD
-#include "../lib/lovyangfx_CUSTOMBOARD_conf.h"
+#include <LGFX_CUSTOMBOARD.hpp>
 #endif
 
 #ifdef MAKERF_ESP32S3
@@ -19,7 +19,7 @@
 uint8_t brightness_level = 255;
 
 static TFT_eSPI tft;
-#define LVGL_BKG  0x10A2
+#define LVGL_BKG  0x10A3
 
 
 /**

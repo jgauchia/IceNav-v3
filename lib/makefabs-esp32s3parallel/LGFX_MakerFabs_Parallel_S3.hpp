@@ -1,5 +1,5 @@
 /**
- * @file lovyangfx_CUSTOMBOARD_conf.h
+ * @file LGFX_MakerFabs_Parallel_S3.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LOVYANGFX TFT driver for MAKERF_ESP32S3
  * @version 0.1.4
@@ -8,9 +8,6 @@
 
 #define LGFX_USE_V1
 
-#include "FS.h"
-#include "SD.h"
-#include "SPI.h"
 #include <LovyanGFX.hpp>
 
 class LGFX : public lgfx::LGFX_Device

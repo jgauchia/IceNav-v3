@@ -1,12 +1,12 @@
 /**
- * @file lovyangfx_CUSTOMBOARD_conf.h
+ * @file LGFX_CUSTOMBOARD.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LOVYANGFX TFT driver for CUSTOMBOARD
  * @version 0.1.4
  * @date 2023-05-23
  */
 
-//#define LGFX_USE_V1
+#define LGFX_USE_V1
 
 #include <LovyanGFX.hpp>
 
