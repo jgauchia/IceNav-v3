@@ -39,7 +39,7 @@ On SD Card map tiles (256x256 PNG Format) are stored in these folders structure:
    * HCM5883L Magnetometer
    * BME280   Temperature / Humidity sensor
    * MPU6050  Accelerometer and Gyroscope IMU
-   * HT1818Z3G5L GPS Module
+   * HT1818Z3G5L GPS Module (AT6558D)
    * LVGL UI + LovyanGFX
 
 

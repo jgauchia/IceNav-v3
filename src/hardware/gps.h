@@ -30,7 +30,7 @@ TinyGPSCustom elevGPS[4];
 TinyGPSCustom aziGPS[4];
 TinyGPSCustom snrGPS[4];
 
-#ifdef CUSTOMBOARD
+#ifdef AT6558D_GPS
 TinyGPSCustom pdop(GPS, PSTR("GNGSA"), 15); // $GNGSA sentence, 15th element
 TinyGPSCustom hdop(GPS, PSTR("GNGSA"), 16); // $GNGSA sentence, 16th element
 TinyGPSCustom vdop(GPS, PSTR("GNGSA"), 17); // $GNGSA sentence, 17th element
@@ -65,14 +65,13 @@ struct
  */
 void init_gps()
 {
-  gps->begin(GPS_BAUDRATE, SERIAL_8N1, GPS_RX, GPS_TX);  // TODO: maybe should put into GPS ENABLE/DISABLE
-#ifdef CUSTOMBOARD
-  gps->println("$PCAS01,3*1F\r\n");
-  delay(100);
-  gps->flush();
-  gps->end();
-  gps->begin(38400, SERIAL_8N1, GPS_RX, GPS_TX);
-  gps->println("$PCAS04,7*1E\r\n");
+  gps->begin(GPS_BAUDRATE, SERIAL_8N1, GPS_RX, GPS_TX); 
+#ifdef AT6558D_GPS
+  // GPS+BDS+GLONASS
+  gps->println("$PCAS04,7*1E\r\n");   
+  // 1Hz Update
+  // gps->println("$PCAS02,1000*2E\r\n");
+  // 5Hz Update
   gps->println("$PCAS02,200*1D\r\n");
 #endif
 

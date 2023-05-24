@@ -27,7 +27,8 @@ void Read_GPS(void *pvParameters)
       GPS.encode(gps->read());
 #endif
     }
-    vTaskDelay(1);
+    yield();
+    vTaskDelay(20);
   }
 }
 
@@ -37,6 +38,6 @@ void Read_GPS(void *pvParameters)
  */
 void init_tasks()
 {
-  xTaskCreatePinnedToCore(Read_GPS, PSTR("Read GPS"), 1000, NULL, 1, NULL, 1);
+  xTaskCreatePinnedToCore(Read_GPS, PSTR("Read GPS"), 20000, NULL, 1, NULL, 1);
   delay(500);
 }

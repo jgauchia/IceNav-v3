@@ -71,9 +71,9 @@ void setup()
   init_ADC();
 
   splash_scr();
-  // init_tasks();
+  init_tasks();
 
-  //lv_scr_load(searchSat);
+  // lv_scr_load(searchSat);
   lv_scr_load(mainScreen);
   create_notify_bar();
 }
@@ -82,19 +82,21 @@ void setup()
  * @brief Main Loop
  *
  */
-void loop() {
+void loop()
+{
 #ifdef MAKERF_ESP32S3
   lv_tick_inc(5);
 #endif
   lv_timer_handler();
   delayMicroseconds(5);
-  while (gps->available() > 0) {
-#ifdef OUTPUT_NMEA
-    {
-      debug->write(gps->read());
-    }
-#else
-    GPS.encode(gps->read());
-#endif
-  }
+//   while (gps->available() > 0)
+//   {
+// #ifdef OUTPUT_NMEA
+//     {
+//       debug->write(gps->read());
+//     }
+// #else
+//     GPS.encode(gps->read());
+// #endif
+//  }
 }
