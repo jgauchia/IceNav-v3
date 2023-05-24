@@ -14,7 +14,6 @@
 HardwareSerial *gps = &Serial2;
 TinyGPSPlus GPS;
 bool is_gps_fixed = false;
-uint16_t upd_rate = 500;
 uint8_t fix_mode_old = 0;
 uint8_t fix_old = 0;
 uint8_t sat_count_old = 0;
@@ -53,7 +52,7 @@ struct
   bool active;
   uint8_t satGPSNum;
   uint8_t elevGPS;
-  uint8_t aziGPS;
+  uint16_t aziGPS;
   uint8_t snrGPS;
   uint16_t pos_x;
   uint16_t pos_y;
@@ -65,14 +64,29 @@ struct
  */
 void init_gps()
 {
-  gps->begin(GPS_BAUDRATE, SERIAL_8N1, GPS_RX, GPS_TX); 
+  gps->begin(GPS_BAUDRATE, SERIAL_8N1, GPS_RX, GPS_TX);
 #ifdef AT6558D_GPS
+  // GPS
+  //gps->println("$PCAS04,1*18\r\n");
+  // GPS+GLONASS
+  //gps->println("$PCAS04,5*1C\r\n");
   // GPS+BDS+GLONASS
-  gps->println("$PCAS04,7*1E\r\n");   
+  gps->println("$PCAS04,7*1E\r\n");
+  gps->flush();
+  delay(100);
+
   // 1Hz Update
-  // gps->println("$PCAS02,1000*2E\r\n");
+  gps->println("$PCAS02,1000*2E\r\n");
   // 5Hz Update
-  gps->println("$PCAS02,200*1D\r\n");
+  // gps->println("$PCAS02,200*1D\r\n");
+  gps->flush();
+  delay(100);
+
+  // Set NMEA 4.1 
+  gps->println("$PCAS05,2*1A\r\n");
+  gps->flush();
+  delay(100);
+
 #endif
 
   for (int i = 0; i < 4; ++i)
