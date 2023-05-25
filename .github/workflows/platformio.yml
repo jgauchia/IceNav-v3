@@ -31,12 +31,12 @@ jobs:
         run: |
           pio run
         env: |
-          export ICENAV3_LON=13.4049
-          export ICENAV3_LAT=52.5200
+          ICENAV3_LON: 13.4049
+          ICENAV3_LAT: 52.5200
       - name: Testing ESP32S3 Board
         run: |
           pio run
         env: |
-          export ICENAV3_LON=13.4049
-          export ICENAV3_LAT=52.5200
+          ICENAV3_LON: 13.4049
+          ICENAV3_LAT: 52.5200
  
