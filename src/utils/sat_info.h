@@ -105,3 +105,20 @@ void create_snr_spr(TFT_eSprite &spr)
   spr.fillScreen(LVGL_BKG);
   spr.setTextColor(TFT_WHITE, LVGL_BKG);
 }
+
+void fill_sat_in_view(GSV &gsv)
+{
+
+  for (int i = 0; i < 4; ++i)
+  {
+    int no = atoi(gsv.satNum[i].value());
+    if (no >= 1 && no <= MAX_SATELLITES)
+    {
+      sat_tracker[no - 1].sat_num = atoi(gsv.satNum[i].value());
+      sat_tracker[no - 1].elev = atoi(gsv.elev[i].value());
+      sat_tracker[no - 1].azim = atoi(gsv.azim[i].value());
+      sat_tracker[no - 1].snr = atoi(gsv.snr[i].value());
+      sat_tracker[no - 1].active = true;
+    }
+  }
+}

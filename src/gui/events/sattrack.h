@@ -7,15 +7,6 @@
  */
 
 /**
- * @brief Satellite Signal Graphics Bars Definitions
- *
- */
-lv_obj_t *satbar_1;
-lv_obj_t *satbar_2;
-lv_chart_series_t *satbar_ser1;
-lv_chart_series_t *satbar_ser2;
-
-/**
  * @brief Update Satellite Tracking
  *
  * @param event
@@ -37,26 +28,15 @@ static void update_sattrack(lv_event_t *event)
     create_const_spr(constel_spr_bkg);
 
     /*********************************************************************************************/
-    if (totalGPSMsg.isUpdated())
+    if (GPS_GSV.totalMsg.isUpdated())
     {
         lv_chart_refresh(satbar_1);
         lv_chart_refresh(satbar_2);
 
-        for (int i = 0; i < 4; ++i)
-        {
-            int no = atoi(satGPSNum[i].value());
-            if (no >= 1 && no <= MAX_SATELLITES)
-            {
-                sat_tracker[no - 1].sat_num = atoi(satGPSNum[i].value());
-                sat_tracker[no - 1].elev = atoi(elevGPS[i].value());
-                sat_tracker[no - 1].azim = atoi(azimGPS[i].value());
-                sat_tracker[no - 1].snr = atoi(snrGPS[i].value());
-                sat_tracker[no - 1].active = true;
-            }
-        }
+        fill_sat_in_view(GPS_GSV);
 
-        uint8_t totalMessages = atoi(totalGPSMsg.value());
-        uint8_t currentMessage = atoi(msgGPSNum.value());
+        uint8_t totalMessages = atoi(GPS_GSV.totalMsg.value());
+        uint8_t currentMessage = atoi(GPS_GSV.msgNum.value());
         if (totalMessages == currentMessage)
         {
             create_snr_spr(spr_SNR1);

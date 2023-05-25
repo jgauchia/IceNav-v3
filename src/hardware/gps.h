@@ -19,6 +19,20 @@ uint8_t fix_old = 0;
 uint8_t sat_count_old = 0;
 
 /**
+ * @brief Common Structure for satellites in view NMEA sentence
+ *
+ */
+struct GSV
+{
+  TinyGPSCustom totalMsg;
+  TinyGPSCustom msgNum;
+  TinyGPSCustom satNum[4];
+  TinyGPSCustom elev[4];
+  TinyGPSCustom azim[4];
+  TinyGPSCustom snr[4];
+};
+
+/**
  * @brief Custom NMEA sentences
  *
  */
@@ -32,28 +46,13 @@ TinyGPSCustom fix(GPS, PSTR("GNGGA"), 6);
 TinyGPSCustom fix_mode(GPS, PSTR("GNGSA"), 2);
 
 // GPS Satellites in view
-TinyGPSCustom totalGPSMsg(GPS, PSTR("GPGSV"), 1); // $GPGSV sentence, first element
-TinyGPSCustom msgGPSNum(GPS, PSTR("GPGSV"), 2);   // $GPGSV sentence, second element
-TinyGPSCustom satGPSNum[4];                       // to be initialized later
-TinyGPSCustom elevGPS[4];
-TinyGPSCustom azimGPS[4];
-TinyGPSCustom snrGPS[4];
+GSV GPS_GSV;
 
 // GLONASS Satellites in view
-TinyGPSCustom totalGLMsg(GPS, PSTR("GLGSV"), 1); // $GLGSV sentence, first element
-TinyGPSCustom msgGLNum(GPS, PSTR("GLGSV"), 2);   // $GLGSV sentence, second element
-TinyGPSCustom satGLNum[4];                       // to be initialized later
-TinyGPSCustom elevGL[4];
-TinyGPSCustom azimGL[4];
-TinyGPSCustom snrGL[4];
+GSV GL_GSV;
 
 // BEIDOU Satellites in view
-TinyGPSCustom totalBDMsg(GPS, PSTR("BDGSV"), 1); // $BDGSV sentence, first element
-TinyGPSCustom msgBDNum(GPS, PSTR("BDGSV"), 2);   // $BDGSV sentence, second element
-TinyGPSCustom satBDNum[4];                       // to be initialized later
-TinyGPSCustom elevBD[4];
-TinyGPSCustom azimBD[4];
-TinyGPSCustom snrBD[4];
+GSV BD_GSV;
 
 #else
 
@@ -65,12 +64,7 @@ TinyGPSCustom fix(GPS, PSTR("GPGGA"), 6);
 TinyGPSCustom fix_mode(GPS, PSTR("GPGSA"), 2);
 
 // GPS Satellites in view
-TinyGPSCustom totalGPSMsg(GPS, PSTR("GPGSV"), 1); // $GPGSV sentence, first element
-TinyGPSCustom msgGPSNum(GPS, PSTR("GPGSV"), 2);   // $GPGSV sentence, second element
-TinyGPSCustom satGPSNum[4];                       // to be initialized later
-TinyGPSCustom elevGPS[4];
-TinyGPSCustom azimGPS[4];
-TinyGPSCustom snrGPS[4];
+GSV GPS_GSV;
 
 #endif
 
@@ -121,24 +115,38 @@ void init_gps()
 #endif
 
   // Initialize satellites in view custom NMEA structure
-  for (int i = 0; i < 4; ++i)
-  {
-    satGPSNum[i].begin(GPS, PSTR("GPGSV"), 4 + 4 * i); // offsets 4, 8, 12, 16
-    elevGPS[i].begin(GPS, PSTR("GPGSV"), 5 + 4 * i);   // offsets 5, 9, 13, 17
-    azimGPS[i].begin(GPS, PSTR("GPGSV"), 6 + 4 * i);   // offsets 6, 10, 14, 18
-    snrGPS[i].begin(GPS, PSTR("GPGSV"), 7 + 4 * i);    // offsets 7, 11, 15, 19
+
+  GPS_GSV.totalMsg.begin(GPS, PSTR("GPGSV"), 1);
+  GPS_GSV.msgNum.begin(GPS, PSTR("GPGSV"), 2);
 
 #ifdef MULTI_GNSS
 
-    satGLNum[i].begin(GPS, PSTR("GLGSV"), 4 + 4 * i); // offsets 4, 8, 12, 16
-    elevGL[i].begin(GPS, PSTR("GLGSV"), 5 + 4 * i);   // offsets 5, 9, 13, 17
-    azimGL[i].begin(GPS, PSTR("GLGSV"), 6 + 4 * i);   // offsets 6, 10, 14, 18
-    snrGL[i].begin(GPS, PSTR("GLGSV"), 7 + 4 * i);    // offsets 7, 11, 15, 19
+  GL_GSV.totalMsg.begin(GPS, PSTR("GLGSV"), 1);
+  GL_GSV.msgNum.begin(GPS, PSTR("GLGSV"), 2);
 
-    satBDNum[i].begin(GPS, PSTR("BDGSV"), 4 + 4 * i); // offsets 4, 8, 12, 16
-    elevBD[i].begin(GPS, PSTR("BDGSV"), 5 + 4 * i);   // offsets 5, 9, 13, 17
-    azimBD[i].begin(GPS, PSTR("BDGSV"), 6 + 4 * i);   // offsets 6, 10, 14, 18
-    snrBD[i].begin(GPS, PSTR("BDGSV"), 7 + 4 * i);    // offsets 7, 11, 15, 19
+  BD_GSV.totalMsg.begin(GPS, PSTR("BDGSV"), 1);
+  BD_GSV.msgNum.begin(GPS, PSTR("BDGSV"), 2);
+
+#endif
+
+  for (int i = 0; i < 4; ++i)
+  {
+    GPS_GSV.satNum[i].begin(GPS, PSTR("GPGSV"), 4 + 4 * i); // offsets 4, 8, 12, 16
+    GPS_GSV.elev[i].begin(GPS, PSTR("GPGSV"), 5 + 4 * i);   // offsets 5, 9, 13, 17
+    GPS_GSV.azim[i].begin(GPS, PSTR("GPGSV"), 6 + 4 * i);   // offsets 6, 10, 14, 18
+    GPS_GSV.snr[i].begin(GPS, PSTR("GPGSV"), 7 + 4 * i);    // offsets 7, 11, 15, 19
+
+#ifdef MULTI_GNSS
+
+    GL_GSV.satNum[i].begin(GPS, PSTR("GLGSV"), 4 + 4 * i); // offsets 4, 8, 12, 16
+    GL_GSV.elev[i].begin(GPS, PSTR("GLGSV"), 5 + 4 * i);   // offsets 5, 9, 13, 17
+    GL_GSV.azim[i].begin(GPS, PSTR("GLGSV"), 6 + 4 * i);   // offsets 6, 10, 14, 18
+    GL_GSV.snr[i].begin(GPS, PSTR("GLGSV"), 7 + 4 * i);    // offsets 7, 11, 15, 19
+
+    BD_GSV.satNum[i].begin(GPS, PSTR("BDGSV"), 4 + 4 * i); // offsets 4, 8, 12, 16
+    BD_GSV.elev[i].begin(GPS, PSTR("BDGSV"), 5 + 4 * i);   // offsets 5, 9, 13, 17
+    BD_GSV.azim[i].begin(GPS, PSTR("BDGSV"), 6 + 4 * i);   // offsets 6, 10, 14, 18
+    BD_GSV.snr[i].begin(GPS, PSTR("BDGSV"), 7 + 4 * i);    // offsets 7, 11, 15, 19
 
 #endif
   }
