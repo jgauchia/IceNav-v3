@@ -168,33 +168,3 @@ ScreenCoord coord_to_scr_pos(uint16_t offset_x, uint16_t offset_y, double lon, d
   data.posy = lat2posy(lat, zoom_level) + offset_y;
   return data;
 }
-
-
-
-
-
-/**
- * @brief Structure to store satellite position in constelation map
- *
- */
-struct SatPos
-{
-  uint16_t x;
-  uint16_t y;
-};
-
-/**
- * @brief Get the Satellite position for constelation map
- *
- * @param elev -> elevation
- * @param azim -> Azimut
- * @return SatPos -> Satellite position
- */
-SatPos get_sat_pos(uint8_t elev, uint16_t azim)
-{
-  SatPos pos;
-  int H = (60 * cos(DEGtoRAD(elev)));
-  pos.x = 100 + (H * sin(DEGtoRAD(azim)));
-  pos.y = 75 - (H * cos(DEGtoRAD(azim)));
-  return pos;
-}

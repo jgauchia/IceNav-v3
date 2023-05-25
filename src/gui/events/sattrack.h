@@ -16,86 +16,12 @@ lv_chart_series_t *satbar_ser1;
 lv_chart_series_t *satbar_ser2;
 
 /**
- * @brief Sprite for snrGPS Satellite Labels
- *
- */
-TFT_eSprite sprSNR1 = TFT_eSprite(&tft);
-TFT_eSprite sprSNR2 = TFT_eSprite(&tft);
-
-/**
- * @brief Sprite for satellite position in map
- *
- */
-TFT_eSprite sprSat = TFT_eSprite(&tft);
-
-/**
- * @brief Double Buffering Sprites for Satellite Position
- *
- */
-TFT_eSprite sat_spr = TFT_eSprite(&tft);
-TFT_eSprite sat_buf = TFT_eSprite(&tft);
-
-/**
- * @brief Satellite position X,Y
- * 
- */
-SatPos sat_pos;
-
-/**
- * @brief Create Satellite Tracking Map
- *
- */
-void create_sat_map()
-{
-    sat_spr.deleteSprite();
-    sat_spr.createSprite(200, 150);
-    sat_spr.fillScreen(LVGL_BKG);
-    sat_spr.drawCircle(100, 75, 60, TFT_WHITE);
-    sat_spr.drawCircle(100, 75, 30, TFT_WHITE);
-    sat_spr.drawCircle(100, 75, 1, TFT_WHITE);
-    sat_spr.setTextFont(2);
-    sat_spr.setTextColor(TFT_WHITE, LVGL_BKG);
-    sat_spr.drawString("N", 97, 7);
-    sat_spr.drawString("S", 97, 127);
-    sat_spr.drawString("W", 37, 67);
-    sat_spr.drawString("E", 157, 67);
-    sat_spr.setTextFont(1);
-}
-
-/**
- * @brief Create Satellite Tracking Map Background
- *
- */
-void create_sat_map_bkg()
-{
-    sat_buf.deleteSprite();
-    sat_buf.createSprite(200, 150);
-    sat_buf.fillScreen(LVGL_BKG);
-    sat_buf.drawCircle(100, 75, 60, TFT_WHITE);
-    sat_buf.drawCircle(100, 75, 30, TFT_WHITE);
-    sat_buf.drawCircle(100, 75, 1, TFT_WHITE);
-    sat_buf.setTextFont(2);
-    sat_buf.setTextColor(TFT_WHITE, LVGL_BKG);
-    sat_buf.drawString("N", 97, 7);
-    sat_buf.drawString("S", 97, 127);
-    sat_buf.drawString("W", 37, 67);
-    sat_buf.drawString("E", 157, 67);
-    sat_buf.setTextFont(1);
-}
-
-/**
  * @brief Update Satellite Tracking
  *
  * @param event
  */
 static void update_sattrack(lv_event_t *event)
 {
-    sprSat.deleteSprite();
-    sprSat.createSprite(8, 8);
-    sprSat.setColorDepth(16);
-    sprSat.fillScreen(LVGL_BKG);
-    create_sat_map();
-
     if (pdop.isUpdated() || hdop.isUpdated() || vdop.isUpdated())
     {
         lv_label_set_text_fmt(pdop_label, "PDOP:\n%s", pdop.value());
@@ -106,6 +32,11 @@ static void update_sattrack(lv_event_t *event)
     if (GPS.altitude.isUpdated())
         lv_label_set_text_fmt(alt_label, "ALT:\n%4dm.", (int)GPS.altitude.meters());
 
+    create_sat_spr(spr_Sat);
+    create_const_spr(constel_spr);
+    create_const_spr(constel_spr_bkg);
+
+    /*********************************************************************************************/
     if (totalGPSMsg.isUpdated())
     {
         lv_chart_refresh(satbar_1);
@@ -128,14 +59,8 @@ static void update_sattrack(lv_event_t *event)
         uint8_t currentMessage = atoi(msgGPSNum.value());
         if (totalMessages == currentMessage)
         {
-            sprSNR1.deleteSprite();
-            sprSNR1.createSprite(TFT_WIDTH, 10);
-            sprSNR1.fillScreen(LVGL_BKG);
-            sprSNR1.setTextColor(TFT_WHITE, LVGL_BKG);
-            sprSNR2.deleteSprite();
-            sprSNR2.createSprite(TFT_WIDTH, 10);
-            sprSNR2.fillScreen(LVGL_BKG);
-            sprSNR2.setTextColor(TFT_WHITE, LVGL_BKG);
+            create_snr_spr(spr_SNR1);
+            create_snr_spr(spr_SNR2);
 
             for (int i = 0; i < (MAX_SATELLLITES_IN_VIEW / 2); i++)
             {
@@ -154,40 +79,40 @@ static void update_sattrack(lv_event_t *event)
                     {
                         satbar_ser1->y_points[active_sat] = sat_tracker[i].snr;
                         lv_chart_get_point_pos_by_id(satbar_1, satbar_ser1, active_sat, &p);
-                        sprSNR1.setCursor(p.x - 2, 0);
-                        sprSNR1.print(sat_tracker[i].sat_num);
+                        spr_SNR1.setCursor(p.x - 2, 0);
+                        spr_SNR1.print(sat_tracker[i].sat_num);
                     }
                     else
                     {
                         satbar_ser2->y_points[active_sat - (MAX_SATELLLITES_IN_VIEW / 2)] = sat_tracker[i].snr;
                         lv_chart_get_point_pos_by_id(satbar_2, satbar_ser2, (active_sat - (MAX_SATELLLITES_IN_VIEW / 2)), &p);
-                        sprSNR2.setCursor(p.x - 2, 0);
-                        sprSNR2.print(sat_tracker[i].sat_num);
+                        spr_SNR2.setCursor(p.x - 2, 0);
+                        spr_SNR2.print(sat_tracker[i].sat_num);
                     }
                     active_sat++;
 
                     sat_pos = get_sat_pos(sat_tracker[i].elev, sat_tracker[i].azim);
 
-                    sprSat.fillCircle(4, 4, 2, TFT_GREEN);
-                    sprSat.pushSprite(&sat_spr, sat_pos.x, sat_pos.y, TFT_TRANSPARENT);
-                    sat_spr.setCursor(sat_pos.x, sat_pos.y + 8);
-                    sat_spr.print(i + 1);
+                    spr_Sat.fillCircle(4, 4, 2, TFT_GREEN);
+                    spr_Sat.pushSprite(&constel_spr, sat_pos.x, sat_pos.y, TFT_TRANSPARENT);
+                    constel_spr.setCursor(sat_pos.x, sat_pos.y + 8);
+                    constel_spr.print(i + 1);
 
                     if (sat_tracker[i].pos_x != sat_pos.x || sat_tracker[i].pos_y != sat_pos.y)
                     {
-                        sat_buf.pushSprite(120, 30);
+                        constel_spr_bkg.pushSprite(120, 30);
                     }
 
                     sat_tracker[i].pos_x = sat_pos.x;
                     sat_tracker[i].pos_y = sat_pos.y;
                 }
             }
-            sat_spr.pushSprite(120, 30);
+            constel_spr.pushSprite(120, 30);
         }
 
         lv_chart_refresh(satbar_1);
-        sprSNR1.pushSprite(0, 260);
+        spr_SNR1.pushSprite(0, 260);
         lv_chart_refresh(satbar_2);
-        sprSNR2.pushSprite(0, 345);
+        spr_SNR2.pushSprite(0, 345);
     }
 }

@@ -36,6 +36,7 @@ unsigned long millis_actual = 0;
 #include "hardware/power.h"
 #include "utils/gps_maps.h"
 #include "utils/gps_math.h"
+#include "utils/sat_info.h"
 #include "utils/lv_spiffs_fs.h"
 #include "utils/lv_sd_fs.h"
 #include "utils/time_zone.h"

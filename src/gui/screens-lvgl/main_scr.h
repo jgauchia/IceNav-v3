@@ -175,10 +175,6 @@ void create_main_scr()
     lv_chart_set_point_count(satbar_2, (MAX_SATELLLITES_IN_VIEW / 2));
     lv_obj_set_pos(satbar_2, 0, 265);
 
-    // Satellite Tracking map sprite & buffer copy
-    create_sat_map();
-    create_sat_map_bkg();
-
     // Satellite Tracking Event
     lv_obj_add_event_cb(sat_track_tile, update_sattrack, LV_EVENT_VALUE_CHANGED, NULL);
 }
