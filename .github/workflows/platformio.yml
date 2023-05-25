@@ -29,14 +29,12 @@ jobs:
           pio pkg update 
       - name: Testing ESP32 Board
         run: |
+          export ICENAV3_LON=13.404
+          export ICENAV3_LAT=52.520
           pio run
-        env: |
-          export ICENAV3_LON=13.4049
-          export ICENAV3_LAT=52.5200
       - name: Testing ESP32S3 Board
         run: |
+          export ICENAV3_LON=13.404
+          export ICENAV3_LAT=52.520
           pio run
-        env: |
-          export ICENAV3_LON=13.4049
-          export ICENAV3_LAT=52.5200
  
