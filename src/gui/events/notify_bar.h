@@ -58,22 +58,46 @@ static void update_fix_mode(lv_event_t *event)
 }
 
 /**
+ * @brief Temperature update event
+ *
+ */
+static void update_temp(lv_event_t *event)
+{
+    lv_obj_t *temp = lv_event_get_target(event);
+    lv_label_set_text_fmt(temp, "%02d\xC2\xB0", (uint8_t)(bme.readTemperature()));
+}
+
+/**
+ * @brief Time update event
+ *
+ */
+static void update_time(lv_event_t *event)
+{
+    lv_obj_t *time = lv_event_get_target(event);
+    // UTC Time
+    utc = now();
+    // Local Time
+    local = CE.toLocal(utc);
+    lv_label_set_text_fmt(time, "%02d:%02d:%02d", hour(local), minute(local), second(local));
+}
+
+/**
+ * @brief Update satellite count event
+ *
+ */
+static void update_gps_count(lv_event_t *event)
+{
+    lv_obj_t *count = lv_event_get_target(event);
+    lv_label_set_text_fmt(count, LV_SYMBOL_GPS "%2d", GPS.satellites.value());
+}
+
+/**
  * @brief Update notify bar info timer
  *
  */
 void update_notify_bar(lv_timer_t *t)
 {
-    // UTC Time
-    utc = now();
-    // Local Time
-    local = CE.toLocal(utc);
-    lv_label_set_text_fmt(gps_time, "%02d:%02d:%02d", hour(local), minute(local), second(local));
-
-    if (atoi(fix_mode.value()) != fix_mode_old)
-    {
-        lv_event_send(gps_fix_mode, LV_EVENT_VALUE_CHANGED, NULL);
-        fix_mode_old = atoi(fix_mode.value());
-    }
+    lv_event_send(gps_time, LV_EVENT_VALUE_CHANGED, NULL);
 
     switch (atoi(fix.value()))
     {
@@ -93,6 +117,12 @@ void update_notify_bar(lv_timer_t *t)
         break;
     }
 
+    if (atoi(fix_mode.value()) != fix_mode_old)
+    {
+        lv_event_send(gps_fix_mode, LV_EVENT_VALUE_CHANGED, NULL);
+        fix_mode_old = atoi(fix_mode.value());
+    }
+
     batt_level = battery_read();
     if (batt_level != batt_level_old)
     {
@@ -102,14 +132,14 @@ void update_notify_bar(lv_timer_t *t)
 
     if (GPS.satellites.value() != sat_count_old)
     {
-        lv_label_set_text_fmt(gps_count, LV_SYMBOL_GPS "%2d", GPS.satellites.value());
+        lv_event_send(gps_count, LV_EVENT_VALUE_CHANGED, NULL);
         sat_count_old = GPS.satellites.value();
     }
 
 #ifdef ENABLE_BME
     if ((uint8_t)(bme.readTemperature()) != temp_old)
     {
-        lv_label_set_text_fmt(temp, "%02d\xC2\xB0", (uint8_t)(bme.readTemperature()));
+        lv_event_send(temp, LV_EVENT_VALUE_CHANGED, NULL);
         temp_old = (uint8_t)(bme.readTemperature());
     }
 #endif

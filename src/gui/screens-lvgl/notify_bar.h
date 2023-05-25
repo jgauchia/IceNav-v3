@@ -58,6 +58,7 @@ void create_notify_bar()
     gps_count = lv_label_create(lv_scr_act());
     lv_obj_set_size(gps_count, 50, 20);
     lv_obj_set_pos(gps_count, TFT_WIDTH - 98, 2);
+    lv_obj_add_event_cb(gps_count, update_gps_count, LV_EVENT_VALUE_CHANGED, NULL);
 
     sdcard = lv_label_create(lv_scr_act());
     lv_obj_set_size(sdcard, 20, 20);
@@ -67,15 +68,20 @@ void create_notify_bar()
     else
         lv_label_set_text(sdcard, " ");
 
+#ifdef ENABLE_BME
     temp = lv_label_create(lv_scr_act());
     lv_obj_set_size(temp, 50, 20);
     lv_obj_set_pos(temp, TFT_WIDTH - 145, 2);
     lv_label_set_text(temp, "--\xC2\xB0");
+    lv_obj_add_event_cb(temp, update_temp, LV_EVENT_VALUE_CHANGED, NULL);
+#endif
 
     gps_time = lv_label_create(lv_scr_act());
     lv_obj_set_size(gps_time, 100, 20);
     lv_obj_set_pos(gps_time, 0, 0);
     lv_obj_set_style_text_font(gps_time, &lv_font_montserrat_20, 0);
+    lv_label_set_text_fmt(gps_time, "%02d:%02d:%02d", hour(local), minute(local), second(local));
+    lv_obj_add_event_cb(gps_time, update_time, LV_EVENT_VALUE_CHANGED, NULL);
 
     lv_timer_t *timer_notify_bar = lv_timer_create(update_notify_bar, UPDATE_NOTIFY_PERIOD, NULL);
     lv_timer_ready(timer_notify_bar);
