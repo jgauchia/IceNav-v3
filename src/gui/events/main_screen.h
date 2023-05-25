@@ -98,8 +98,8 @@ void update_main_screen(lv_timer_t *t)
             break;
 
         case MAP:
-            if (GPS.location.isUpdated())
-                lv_event_send(map_tile, LV_EVENT_VALUE_CHANGED, NULL);
+            // if (GPS.location.isUpdated())
+            lv_event_send(map_tile, LV_EVENT_VALUE_CHANGED, NULL);
             break;
 
         case SATTRACK:
