@@ -58,16 +58,6 @@ static void update_fix_mode(lv_event_t *event)
 }
 
 /**
- * @brief Temperature update event
- *
- */
-static void update_temp(lv_event_t *event)
-{
-    lv_obj_t *temp = lv_event_get_target(event);
-    lv_label_set_text_fmt(temp, "%02d\xC2\xB0", (uint8_t)(bme.readTemperature()));
-}
-
-/**
  * @brief Time update event
  *
  */
@@ -139,7 +129,7 @@ void update_notify_bar(lv_timer_t *t)
 #ifdef ENABLE_BME
     if ((uint8_t)(bme.readTemperature()) != temp_old)
     {
-        lv_event_send(temp, LV_EVENT_VALUE_CHANGED, NULL);
+        lv_label_set_text_fmt(temp, "%02d\xC2\xB0", (uint8_t)(bme.readTemperature()));
         temp_old = (uint8_t)(bme.readTemperature());
     }
 #endif
