@@ -67,10 +67,12 @@ void create_notify_bar()
     else
         lv_label_set_text(sdcard, " ");
 
+#ifdef ENABLE_BME
     temp = lv_label_create(lv_scr_act());
     lv_obj_set_size(temp, 50, 20);
     lv_obj_set_pos(temp, TFT_WIDTH - 145, 2);
     lv_label_set_text(temp, "--\xC2\xB0");
+#endif
 
     gps_time = lv_label_create(lv_scr_act());
     lv_obj_set_size(gps_time, 100, 20);
