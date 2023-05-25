@@ -36,6 +36,12 @@ TFT_eSprite sat_spr = TFT_eSprite(&tft);
 TFT_eSprite sat_buf = TFT_eSprite(&tft);
 
 /**
+ * @brief Satellite position X,Y
+ * 
+ */
+SatPos sat_pos;
+
+/**
  * @brief Create Satellite Tracking Map
  *
  */
@@ -87,7 +93,7 @@ static void update_sattrack(lv_event_t *event)
     sprSat.deleteSprite();
     sprSat.createSprite(8, 8);
     sprSat.setColorDepth(16);
-    sprSat.fillScreen(LVGL_BKG);     
+    sprSat.fillScreen(LVGL_BKG);
     create_sat_map();
 
     if (pdop.isUpdated() || hdop.isUpdated() || vdop.isUpdated())
@@ -160,22 +166,20 @@ static void update_sattrack(lv_event_t *event)
                     }
                     active_sat++;
 
-                    int H = (60 * cos(DEGtoRAD(sat_tracker[i].elev)));
-                    int sat_pos_x = 100 + (H * sin(DEGtoRAD(sat_tracker[i].azim)));
-                    int sat_pos_y = 75 - (H * cos(DEGtoRAD(sat_tracker[i].azim)));
+                    sat_pos = get_sat_pos(sat_tracker[i].elev, sat_tracker[i].azim);
 
                     sprSat.fillCircle(4, 4, 2, TFT_GREEN);
-                    sprSat.pushSprite(&sat_spr, sat_pos_x, sat_pos_y, TFT_TRANSPARENT);
-                    sat_spr.setCursor(sat_pos_x, sat_pos_y + 8);
+                    sprSat.pushSprite(&sat_spr, sat_pos.x, sat_pos.y, TFT_TRANSPARENT);
+                    sat_spr.setCursor(sat_pos.x, sat_pos.y + 8);
                     sat_spr.print(i + 1);
 
-                    if (sat_tracker[i].pos_x != sat_pos_x || sat_tracker[i].pos_y != sat_pos_y)
+                    if (sat_tracker[i].pos_x != sat_pos.x || sat_tracker[i].pos_y != sat_pos.y)
                     {
                         sat_buf.pushSprite(120, 30);
                     }
 
-                    sat_tracker[i].pos_x = sat_pos_x;
-                    sat_tracker[i].pos_y = sat_pos_y;
+                    sat_tracker[i].pos_x = sat_pos.x;
+                    sat_tracker[i].pos_y = sat_pos.y;
                 }
             }
             sat_spr.pushSprite(120, 30);
