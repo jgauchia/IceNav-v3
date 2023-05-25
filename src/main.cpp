@@ -89,14 +89,4 @@ void loop()
 #endif
   lv_timer_handler();
   delayMicroseconds(5);
-//   while (gps->available() > 0)
-//   {
-// #ifdef OUTPUT_NMEA
-//     {
-//       debug->write(gps->read());
-//     }
-// #else
-//     GPS.encode(gps->read());
-// #endif
-  // }
 }
