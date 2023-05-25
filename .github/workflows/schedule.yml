@@ -22,12 +22,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -U platformio
           pio pkg update
+          export ICENAV3_LON=13.404
+          export ICENAV3_LAT=52.520
       - name: Testing all
         run: |
           pio run
-        env:
-          ICENAV3_LON: 13.4049
-          ICENAV3_LAT: 52.5200
  
  
 
