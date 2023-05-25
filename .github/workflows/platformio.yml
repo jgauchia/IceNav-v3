@@ -26,13 +26,15 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -U platformio
-          pio pkg update
-          export ICENAV3_LON=13.404
-          export ICENAV3_LAT=52.520
+          pio pkg update 
       - name: Testing ESP32 Board
         run: |
+          export ICENAV3_LON=13.404
+          export ICENAV3_LAT=52.520
           pio run
       - name: Testing ESP32S3 Board
         run: |
+          export ICENAV3_LON=13.404
+          export ICENAV3_LAT=52.520
           pio run
  
