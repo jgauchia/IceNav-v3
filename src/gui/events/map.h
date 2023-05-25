@@ -60,8 +60,10 @@ static void get_zoom_value(lv_event_t *event)
     switch (dir)
     {
     case LV_DIR_LEFT:
+      debug->println("LEFT");
       break;
     case LV_DIR_RIGHT:
+      debug->println("RIGHT");
       break;
     case LV_DIR_TOP:
       if (zoom >= MIN_ZOOM && zoom < MAX_ZOOM)
@@ -71,7 +73,7 @@ static void get_zoom_value(lv_event_t *event)
         lv_event_send(map_tile, LV_EVENT_VALUE_CHANGED, NULL);
         debug->println("UP");
       }
-      lv_indev_wait_release(lv_indev_get_act());
+      // lv_indev_wait_release(lv_indev_get_act());
       break;
     case LV_DIR_BOTTOM:
       if (zoom <= MAX_ZOOM && zoom > MIN_ZOOM)
@@ -81,7 +83,7 @@ static void get_zoom_value(lv_event_t *event)
         lv_event_send(map_tile, LV_EVENT_VALUE_CHANGED, NULL);
         debug->println("DOWN");
       }
-      lv_indev_wait_release(lv_indev_get_act());
+      // lv_indev_wait_release(lv_indev_get_act());
       break;
     }
   }
@@ -110,8 +112,8 @@ static void draw_map(lv_event_t *event)
  * @param event
  */
 static void update_map(lv_event_t *event)
-{
-  if (is_scrolled)
+{ 
+  if (is_scrolled && GPS.location.isValid())
   {
     CurrentMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, 0, 0);
     if (strcmp(CurrentMapTile.file, OldMapTile.file) != 0 || CurrentMapTile.zoom != OldMapTile.zoom || CurrentMapTile.tilex != OldMapTile.tilex || CurrentMapTile.tiley != OldMapTile.tiley)
