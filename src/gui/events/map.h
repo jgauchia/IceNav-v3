@@ -73,7 +73,7 @@ static void get_zoom_value(lv_event_t *event)
         lv_event_send(map_tile, LV_EVENT_VALUE_CHANGED, NULL);
         debug->println("UP");
       }
-      // lv_indev_wait_release(lv_indev_get_act());
+      lv_indev_wait_release(lv_indev_get_act());
       break;
     case LV_DIR_BOTTOM:
       if (zoom <= MAX_ZOOM && zoom > MIN_ZOOM)
@@ -83,7 +83,7 @@ static void get_zoom_value(lv_event_t *event)
         lv_event_send(map_tile, LV_EVENT_VALUE_CHANGED, NULL);
         debug->println("DOWN");
       }
-      // lv_indev_wait_release(lv_indev_get_act());
+      lv_indev_wait_release(lv_indev_get_act());
       break;
     }
   }
