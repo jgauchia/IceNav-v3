@@ -28,5 +28,5 @@ static void update_sattrack(lv_event_t *event)
     create_const_spr(constel_spr_bkg);
 
     /*********************************************************************************************/
-    fill_sat_in_view(GPS_GSV);
+    fill_sat_in_view(GPS_GSV,TFT_GREEN);
 }

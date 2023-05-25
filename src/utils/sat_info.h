@@ -136,7 +136,13 @@ void draw_snr_bar(lv_obj_t *bar, lv_chart_series_t *bar_ser, uint8_t id, uint8_t
   spr.print(sat_num);
 }
 
-void fill_sat_in_view(GSV &gsv)
+/**
+ * @brief Display satellite in view info
+ * 
+ * @param gsv -> GSV NMEA sentence
+ * @param color -> Satellite color in constellation
+ */
+void fill_sat_in_view(GSV &gsv, int color)
 {
 
   if (GPS_GSV.totalMsg.isUpdated())
@@ -185,7 +191,7 @@ void fill_sat_in_view(GSV &gsv)
 
           sat_pos = get_sat_pos(sat_tracker[i].elev, sat_tracker[i].azim);
 
-          spr_Sat.fillCircle(4, 4, 2, TFT_GREEN);
+          spr_Sat.fillCircle(4, 4, 2, color);
           spr_Sat.pushSprite(&constel_spr, sat_pos.x, sat_pos.y, TFT_TRANSPARENT);
           constel_spr.setCursor(sat_pos.x, sat_pos.y + 8);
           constel_spr.print(i + 1);
