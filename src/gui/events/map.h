@@ -69,6 +69,7 @@ static void get_zoom_value(lv_event_t *event)
         zoom++;
         lv_label_set_text_fmt(zoom_label, "ZOOM: %2d", zoom);
         lv_event_send(map_tile, LV_EVENT_VALUE_CHANGED, NULL);
+        debug->println("UP");
       }
       lv_indev_wait_release(lv_indev_get_act());
       break;
@@ -78,6 +79,7 @@ static void get_zoom_value(lv_event_t *event)
         zoom--;
         lv_label_set_text_fmt(zoom_label, "ZOOM: %2d", zoom);
         lv_event_send(map_tile, LV_EVENT_VALUE_CHANGED, NULL);
+        debug->println("DOWN");
       }
       lv_indev_wait_release(lv_indev_get_act());
       break;
