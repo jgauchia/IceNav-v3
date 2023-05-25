@@ -36,7 +36,7 @@ jobs:
       - name: Testing ESP32S3 Board
         run: |
           pio run
-        env: |
+        env:
           ICENAV3_LON: 13.4049
           ICENAV3_LAT: 52.5200
  

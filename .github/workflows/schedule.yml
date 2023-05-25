@@ -25,7 +25,7 @@ jobs:
       - name: Testing all
         run: |
           pio run
-        env: |
+        env:
           ICENAV3_LON: 13.4049
           ICENAV3_LAT: 52.5200
  
