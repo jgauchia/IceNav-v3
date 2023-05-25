@@ -41,15 +41,6 @@ static lv_obj_t *vdop_label;
 static lv_obj_t *alt_label;
 
 /**
- * @brief Satellite Signal Graphics Bars Definitions
- *
- */
-static lv_obj_t *satbar_1;
-static lv_obj_t *satbar_2;
-static lv_chart_series_t *satbar_ser1;
-static lv_chart_series_t *satbar_ser2;
-
-/**
  * @brief Main screen events include
  *
  */
