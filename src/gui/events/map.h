@@ -7,24 +7,10 @@
  */
 
 /**
- * @brief Zoom Levels and Default zoom
+ * @brief Map tile coordinates and zoom
  *
  */
-#define MIN_ZOOM 6
-#define MAX_ZOOM 17
-#define DEF_ZOOM 17
-uint8_t zoom = DEF_ZOOM;
-
-/**
- * @brief Old tile coordinates and zoom
- *
- */
-// int tilex_old = 0;
-// int tiley_old = 0;
-// int zoom_old = 0;
-
 MapTile CurrentMapTile;
-MapTile OldMapTile;
 MapTile RoundMapTile;
 
 /**
@@ -60,18 +46,15 @@ static void get_zoom_value(lv_event_t *event)
     switch (dir)
     {
     case LV_DIR_LEFT:
-      debug->println("LEFT");
       break;
     case LV_DIR_RIGHT:
-      debug->println("RIGHT");
       break;
     case LV_DIR_TOP:
       if (zoom >= MIN_ZOOM && zoom < MAX_ZOOM)
       {
         zoom++;
         lv_label_set_text_fmt(zoom_label, "ZOOM: %2d", zoom);
-        lv_event_send(map_tile, LV_EVENT_VALUE_CHANGED, NULL);
-        debug->println("UP");
+        lv_event_send(map_tile, LV_EVENT_REFRESH, NULL);
       }
       break;
     case LV_DIR_BOTTOM:
@@ -79,28 +62,10 @@ static void get_zoom_value(lv_event_t *event)
       {
         zoom--;
         lv_label_set_text_fmt(zoom_label, "ZOOM: %2d", zoom);
-        lv_event_send(map_tile, LV_EVENT_VALUE_CHANGED, NULL);
-        debug->println("DOWN");
+        lv_event_send(map_tile, LV_EVENT_REFRESH, NULL);
       }
       break;
     }
-  }
-}
-
-/**
- * @brief Draw map event
- *
- * @param event
- */
-static void draw_map(lv_event_t *event)
-{
-  if (!is_map_draw)
-  {
-    OldMapTile.zoom = 0;
-    OldMapTile.tilex = 0;
-    OldMapTile.tiley = 0;
-    OldMapTile.file = ""; // TODO - Delete Warning
-    map_found = false;
   }
 }
 
@@ -111,88 +76,99 @@ static void draw_map(lv_event_t *event)
  */
 static void update_map(lv_event_t *event)
 {
-  if (is_scrolled)
+  if (GPS.location.isValid())
+    CurrentMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, 0, 0);
+  else
+    CurrentMapTile = get_map_tile(DEFAULT_LON, DEFAULT_LAT, zoom, 0, 0);
+
+  if (strcmp(CurrentMapTile.file, OldMapTile.file) != 0 || CurrentMapTile.zoom != OldMapTile.zoom ||
+      CurrentMapTile.tilex != OldMapTile.tilex || CurrentMapTile.tiley != OldMapTile.tiley)
+  {
+    is_map_draw = false;
+    map_found = false;
+  }
+
+  if (!is_map_draw)
+  {
+    OldMapTile.zoom = CurrentMapTile.zoom;
+    OldMapTile.tilex = CurrentMapTile.tilex;
+    OldMapTile.tiley = CurrentMapTile.tiley;
+    OldMapTile.file = CurrentMapTile.file;
+
+    map_spr.deleteSprite();
+    map_spr.createSprite(320, 335);
+    map_buf.deleteSprite();
+    map_buf.createSprite(320, 335);
+
+    log_v("%s", CurrentMapTile.file);
+
+    // Center Tile
+    map_found = map_spr.drawPngFile(SD, CurrentMapTile.file, 32, 0);
+    map_buf.drawPngFile(SD, CurrentMapTile.file, 32, 0);
+    // Left Center Tile
+    if (GPS.location.isValid())
+      RoundMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, -1, 0);
+    else
+      RoundMapTile = get_map_tile(DEFAULT_LON, DEFAULT_LAT, zoom, -1, 0);
+    map_spr.drawPngFile(SD, RoundMapTile.file, 0, 0, 32, 256, 224, 0);
+    map_buf.drawPngFile(SD, RoundMapTile.file, 0, 0, 32, 256, 224, 0);
+    // Right Center Tile
+    if (GPS.location.isValid())
+      RoundMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, 1, 0);
+    else
+      RoundMapTile = get_map_tile(DEFAULT_LON, DEFAULT_LAT, zoom, 1, 0);
+    map_spr.drawPngFile(SD, RoundMapTile.file, 287, 0, 32, 256, 0, 0);
+    map_buf.drawPngFile(SD, RoundMapTile.file, 287, 0, 32, 256, 0, 0);
+    // Bottom Center Tile
+    if (GPS.location.isValid())
+      RoundMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, 0, 1);
+    else
+      RoundMapTile = get_map_tile(DEFAULT_LON, DEFAULT_LAT, zoom, 0, 1);
+    map_spr.drawPngFile(SD, RoundMapTile.file, 32, 256, 256, 79, 0, 0);
+    map_buf.drawPngFile(SD, RoundMapTile.file, 32, 256, 256, 79, 0, 0);
+    // Left Bottom Center Tile
+    if (GPS.location.isValid())
+      RoundMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, -1, 1);
+    else
+      RoundMapTile = get_map_tile(DEFAULT_LON, DEFAULT_LAT, zoom, -1, 1);
+    map_spr.drawPngFile(SD, RoundMapTile.file, 0, 256, 32, 79, 224, 0);
+    map_buf.drawPngFile(SD, RoundMapTile.file, 0, 256, 32, 79, 224, 0);
+    // Right Bottom Center Tile
+    if (GPS.location.isValid())
+      RoundMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, 1, 1);
+    else
+      RoundMapTile = get_map_tile(DEFAULT_LON, DEFAULT_LAT, zoom, 1, 1);
+    map_spr.drawPngFile(SD, RoundMapTile.file, 287, 256, 32, 79, 0, 0);
+    map_buf.drawPngFile(SD, RoundMapTile.file, 287, 256, 32, 79, 0, 0);
+
+    // Arrow Sprite
+    sprArrow.deleteSprite();
+    sprArrow.createSprite(16, 16);
+    sprArrow.fillSprite(TFT_BLACK);
+    sprArrow.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
+
+    is_map_draw = true;
+  }
+
+  if (map_found)
   {
     if (GPS.location.isValid())
-      CurrentMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, 0, 0);
+      NavArrow_position = coord_to_scr_pos(32, 0, GPS.location.lng(), GPS.location.lat(), zoom);
     else
-      CurrentMapTile = get_map_tile(DEFAULT_LON, DEFAULT_LAT, zoom, 0, 0);
-    if (strcmp(CurrentMapTile.file, OldMapTile.file) != 0 || CurrentMapTile.zoom != OldMapTile.zoom || CurrentMapTile.tilex != OldMapTile.tilex || CurrentMapTile.tiley != OldMapTile.tiley)
-    {
-      OldMapTile.zoom = CurrentMapTile.zoom;
-      OldMapTile.tilex = CurrentMapTile.tilex;
-      OldMapTile.tiley = CurrentMapTile.tiley;
-      OldMapTile.file = CurrentMapTile.file;
+      NavArrow_position = coord_to_scr_pos(32, 0, DEFAULT_LON, DEFAULT_LAT, zoom);
 
-      map_spr.deleteSprite();
-      map_spr.createSprite(320, 335);
-      map_buf.deleteSprite();
-      map_buf.createSprite(320, 335);
-
-      // Center Tile
-      map_found = map_spr.drawPngFile(SD, CurrentMapTile.file, 32, 0);
-      map_buf.drawPngFile(SD, CurrentMapTile.file, 32, 0);
-      // Left Center Tile
-      if (GPS.location.isValid())
-        RoundMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, -1, 0);
-      else
-        RoundMapTile = get_map_tile(DEFAULT_LON, DEFAULT_LAT, zoom, -1, 0);
-      map_spr.drawPngFile(SD, RoundMapTile.file, 0, 0, 32, 256, 224, 0);
-      map_buf.drawPngFile(SD, RoundMapTile.file, 0, 0, 32, 256, 224, 0);
-      // Right Center Tile
-      if (GPS.location.isValid())
-        RoundMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, 1, 0);
-      else
-        RoundMapTile = get_map_tile(DEFAULT_LON, DEFAULT_LAT, zoom, 1, 0);
-      map_spr.drawPngFile(SD, RoundMapTile.file, 287, 0, 32, 256, 0, 0);
-      map_buf.drawPngFile(SD, RoundMapTile.file, 287, 0, 32, 256, 0, 0);
-      // Bottom Center Tile
-      if (GPS.location.isValid())
-        RoundMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, 0, 1);
-      else
-        RoundMapTile = get_map_tile(DEFAULT_LON, DEFAULT_LAT, zoom, 0, 1);
-      map_spr.drawPngFile(SD, RoundMapTile.file, 32, 256, 256, 79, 0, 0);
-      map_buf.drawPngFile(SD, RoundMapTile.file, 32, 256, 256, 79, 0, 0);
-      // Left Bottom Center Tile
-      if (GPS.location.isValid())
-        RoundMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, -1, 1);
-      else
-        RoundMapTile = get_map_tile(DEFAULT_LON, DEFAULT_LAT, zoom, -1, 1);
-      map_spr.drawPngFile(SD, RoundMapTile.file, 0, 256, 32, 79, 224, 0);
-      map_buf.drawPngFile(SD, RoundMapTile.file, 0, 256, 32, 79, 224, 0);
-      // Right Bottom Center Tile
-      if (GPS.location.isValid())
-        RoundMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, 1, 1);
-      else
-        RoundMapTile = get_map_tile(DEFAULT_LON, DEFAULT_LAT, zoom, 1, 1);
-      map_spr.drawPngFile(SD, RoundMapTile.file, 287, 256, 32, 79, 0, 0);
-      map_buf.drawPngFile(SD, RoundMapTile.file, 287, 256, 32, 79, 0, 0);
-
-      is_map_draw = true;
-    }
-    if (map_found)
-    {
-      uint8_t arrow_bkg[1800];
-      sprArrow.deleteSprite();
-      sprArrow.createSprite(16, 16);
-
-      sprArrow.fillSprite(TFT_BLACK);
-      sprArrow.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
-      if (GPS.location.isValid())
-        NavArrow_position = coord_to_scr_pos(32, 0, GPS.location.lng(), GPS.location.lat(), zoom);
-      else
-        NavArrow_position = coord_to_scr_pos(32, 0, DEFAULT_LON, DEFAULT_LAT, zoom);
-      map_buf.readRect(NavArrow_position.posx - 12, NavArrow_position.posy - 12, 24, 24, (uint16_t *)arrow_bkg);
-      map_spr.pushImage(NavArrow_position.posx - 12, NavArrow_position.posy - 12, 24, 24, (uint16_t *)arrow_bkg);
+    uint8_t arrow_bkg[1800];
+    map_buf.readRect(NavArrow_position.posx - 12, NavArrow_position.posy - 12, 24, 24, (uint16_t *)arrow_bkg);
+    map_spr.pushImage(NavArrow_position.posx - 12, NavArrow_position.posy - 12, 24, 24, (uint16_t *)arrow_bkg);
 
 #ifdef ENABLE_COMPASS
-      heading = read_compass();
-      map_spr.setPivot(NavArrow_position.posx, NavArrow_position.posy);
-      sprArrow.pushRotated(&map_spr, heading, TFT_BLACK);
+    heading = read_compass();
+    map_spr.setPivot(NavArrow_position.posx, NavArrow_position.posy);
+    sprArrow.pushRotated(&map_spr, heading, TFT_BLACK);
 #else
-      sprArrow.pushSprite(&map_spr, NavArrow_position.posx, NavArrow_position.posy, TFT_BLACK);
+    sprArrow.pushSprite(&map_spr, NavArrow_position.posx, NavArrow_position.posy, TFT_BLACK);
 #endif
-      map_spr.pushSprite(0, 64);
-    }
   }
+
+  map_spr.pushSprite(0, 64);
 }

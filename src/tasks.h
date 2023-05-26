@@ -13,8 +13,7 @@
  */
 void Read_GPS(void *pvParameters)
 {
-  debug->print(PSTR("Task1 - Read GPS - running on core "));
-  debug->println(xPortGetCoreID());
+  log_v("Task1 - Read GPS - running on core %d", xPortGetCoreID());
   for (;;)
   {
     while (gps->available() > 0)
@@ -33,11 +32,28 @@ void Read_GPS(void *pvParameters)
 }
 
 /**
+ * @brief Task2 - LVGL Task
+ * 
+ * @param pvParameters 
+ */
+void LVGL_Task(void *pvParameters)
+{
+  log_v("Task2 - LVGL Task - running on core %d", xPortGetCoreID());
+  for (;;)
+  {
+    vTaskDelay(5); 
+    lv_tick_inc(5);
+  }
+}
+
+/**
  * @brief Init Core tasks
  *
  */
 void init_tasks()
 {
-  xTaskCreatePinnedToCore(Read_GPS, PSTR("Read GPS"), 20000, NULL, 1, NULL, 1);
+  xTaskCreatePinnedToCore(Read_GPS, PSTR("Read GPS"), 20000, NULL, 2, NULL, 1);
+  delay(500);
+  xTaskCreatePinnedToCore(LVGL_Task, PSTR("LVGL Task"), 20000, NULL, 1, NULL, 1);
   delay(500);
 }

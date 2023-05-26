@@ -21,6 +21,18 @@ static lv_group_t *group;
 static lv_obj_t *mainScreen;
 static lv_obj_t *tiles;
 
+/**
+ * @brief Main Timer
+ *
+ */
+static lv_timer_t *timer_main;
+
+/**
+ * @brief  Main Screen update time
+ *
+ */
+#define UPDATE_MAINSCR_PERIOD 30
+
 #include "gui/img/bruj.c"
 #include "gui/img/navigation.c"
 #include "gui/screens-lvgl/notify_bar.h"
@@ -34,7 +46,7 @@ static lv_obj_t *tiles;
  * @param width
  * @param height
  */
-void lvgl_set_resolution(uint16_t  width, uint16_t  height)
+void lvgl_set_resolution(uint16_t width, uint16_t height)
 {
     lv_disp_t *def_disp;
     def_disp = lv_disp_get_default();
@@ -51,19 +63,19 @@ void lvgl_set_resolution(uint16_t  width, uint16_t  height)
  */
 void disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p)
 {
+    // tft.startWrite();
+    // tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t *)&color_p->full);
+    // tft.endWrite();
+    // lv_disp_flush_ready(disp);
+    uint32_t w = (area->x2 - area->x1 + 1);
+    uint32_t h = (area->y2 - area->y1 + 1);
+
     tft.startWrite();
-    tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t *)&color_p->full);
+    tft.setAddrWindow(area->x1, area->y1, w, h);
+    tft.pushPixelsDMA((uint16_t *)&color_p->full, w * h, false);
+    tft.waitDMA();
     tft.endWrite();
     lv_disp_flush_ready(disp);
-    // uint32_t w = (area->x2 - area->x1 + 1);
-    // uint32_t h = (area->y2 - area->y1 + 1);
-
-    // tft.startWrite();
-    // tft.setAddrWindow(area->x1, area->y1, w, h);
-    // tft.pushPixels((uint16_t *)&color_p->full, w * h, false);
-    // tft.endWrite();
-
-    // lv_disp_flush_ready(disp);
 }
 
 /**
@@ -81,7 +93,7 @@ void touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
         data->state = LV_INDEV_STATE_PRESSED;
         data->point.x = touchX;
         data->point.y = touchY;
-        debug->printf("X: %04i, Y: %04i\r\n",touchX, touchY);
+        // log_v("X: %04i, Y: %04i",touchX, touchY);
     }
 }
 
@@ -99,8 +111,7 @@ void init_LVGL()
     if (psramFound())
     {
         static lv_color_t *buf1 = (lv_color_t *)ps_malloc((TFT_WIDTH * TFT_HEIGHT) * sizeof(lv_color_t));
-        static lv_color_t *buf2 = (lv_color_t *)ps_malloc((TFT_WIDTH * TFT_HEIGHT) * sizeof(lv_color_t));
-        lv_disp_draw_buf_init(&draw_buf, buf1, buf2, TFT_WIDTH * TFT_HEIGHT);
+        lv_disp_draw_buf_init(&draw_buf, buf1, NULL, (TFT_WIDTH * TFT_HEIGHT) * sizeof(lv_color_t));
     }
     else
     {
@@ -113,6 +124,7 @@ void init_LVGL()
     def_drv.hor_res = screenWidth;
     def_drv.ver_res = screenHeight;
     def_drv.flush_cb = disp_flush;
+    def_drv.full_refresh = 0;
     def_drv.draw_buf = &draw_buf;
     lv_disp_drv_register(&def_drv);
 
@@ -122,6 +134,10 @@ void init_LVGL()
     indev_drv.type = LV_INDEV_TYPE_POINTER;
     indev_drv.read_cb = touchpad_read;
     lv_indev_drv_register(&indev_drv);
+
+    //  Create Main Timer
+    timer_main = lv_timer_create(update_main_screen, UPDATE_MAINSCR_PERIOD, NULL);
+    lv_timer_ready(timer_main);
 
     //  Create Screens //
     create_search_sat_scr();
