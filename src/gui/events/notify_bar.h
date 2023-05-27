@@ -10,7 +10,7 @@
  * @brief  Notify Bar update time
  *
  */
-#define UPDATE_NOTIFY_PERIOD 500
+#define UPDATE_NOTIFY_PERIOD 30
 
 /**
  * @brief Battery update envent
