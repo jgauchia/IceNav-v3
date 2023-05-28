@@ -123,7 +123,7 @@ void create_main_scr()
     lv_obj_set_style_text_font(zoom_label, &lv_font_montserrat_20, 0);
     lv_label_set_text_fmt(zoom_label, "ZOOM: %2d", DEF_ZOOM);
     lv_obj_align(zoom_label, LV_ALIGN_TOP_MID, 0, 10);
- 
+
     // Map Tile Events
     lv_obj_add_event_cb(map_tile, update_map, LV_EVENT_REFRESH, NULL);
     lv_obj_add_event_cb(mainScreen, get_zoom_value, LV_EVENT_GESTURE, NULL);

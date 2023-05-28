@@ -84,10 +84,9 @@ void setup()
  */
 void loop()
 {
-  vTaskDelay(5);
+  vTaskDelay(1);
   #ifdef MAKERF_ESP32S3
-  lv_tick_inc(5);
+  lv_tick_inc(1);
   #endif
-  //lv_timer_handler_run_in_period(5);
   lv_timer_handler();
 }

@@ -50,6 +50,7 @@ void disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p)
     // if (!lv_disp_is_invalidation_enabled(disp_ctrl))
     {
         tft.startWrite();
+        // Map Tile, refresh partial screen to avoid flickering when scroll tile view
         if (act_tile == MAP && is_scrolled)
         {
             if ((area->y2 - area->y1 + 1) < 64)
@@ -106,7 +107,7 @@ void init_LVGL()
     if (psramFound())
     {
         static lv_color_t *buf1 = (lv_color_t *)ps_malloc((TFT_WIDTH * TFT_HEIGHT) * sizeof(lv_color_t));
-        //static lv_color_t *buf2 = (lv_color_t *)ps_malloc((TFT_WIDTH * TFT_HEIGHT) * sizeof(lv_color_t));
+        // static lv_color_t *buf2 = (lv_color_t *)ps_malloc((TFT_WIDTH * TFT_HEIGHT) * sizeof(lv_color_t));
         lv_disp_draw_buf_init(&draw_buf, buf1, NULL, (TFT_WIDTH * TFT_HEIGHT) * sizeof(lv_color_t));
     }
     else
