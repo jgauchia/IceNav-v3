@@ -21,7 +21,6 @@ static lv_group_t *group;
 static lv_obj_t *mainScreen;
 static lv_obj_t *tiles;
 static lv_disp_drv_t def_drv;
-static lv_disp_t *disp_ctrl;
 
 /**
  * @brief Main Timer
@@ -122,8 +121,7 @@ void init_LVGL()
     def_drv.flush_cb = disp_flush;
     def_drv.draw_buf = &draw_buf;
     def_drv.full_refresh = 0;
-    disp_ctrl = lv_disp_drv_register(&def_drv);
-    // lv_disp_enable_invalidation(disp_ctrl,false);
+    lv_disp_drv_register(&def_drv);
 
     //  Init input device //
     static lv_indev_drv_t indev_drv;
