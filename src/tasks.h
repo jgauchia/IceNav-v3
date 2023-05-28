@@ -42,7 +42,7 @@ void LVGL_Task(void *pvParameters)
   for (;;)
   {
     vTaskDelay(5); 
-    lv_tick_inc(5);
+   // lv_tick_inc(5);
   }
 }
 
@@ -54,6 +54,6 @@ void init_tasks()
 {
   xTaskCreatePinnedToCore(Read_GPS, PSTR("Read GPS"), 20000, NULL, 2, NULL, 1);
   delay(500);
-  xTaskCreatePinnedToCore(LVGL_Task, PSTR("LVGL Task"), 20000, NULL, 1, NULL, 1);
-  delay(500);
+  //xTaskCreatePinnedToCore(LVGL_Task, PSTR("LVGL Task"), 20000, NULL, 1, NULL, 1);
+  //delay(500);
 }

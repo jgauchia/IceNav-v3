@@ -66,7 +66,6 @@ static void get_act_tile(lv_event_t *event)
 {
     if (is_ready)
     {
-        lv_timer_resume(timer_main);
         is_scrolled = true;
     }
     else
@@ -75,14 +74,6 @@ static void get_act_tile(lv_event_t *event)
     lv_obj_t *acttile = lv_tileview_get_tile_act(tiles);
     lv_coord_t tile_x = lv_obj_get_x(acttile) / TFT_WIDTH;
     act_tile = tile_x;
-    // if (act_tile == MAP)
-    // {
-    //     if (is_ready)
-    //     {
-    //         lv_label_set_text_fmt(zoom_label, "ZOOM: %2d", zoom);
-    //         lv_event_send(map_tile, LV_EVENT_REFRESH, NULL);
-    //     }
-    // }
 }
 
 /**
@@ -92,7 +83,6 @@ static void get_act_tile(lv_event_t *event)
  */
 static void scroll_tile(lv_event_t *event)
 {
-    lv_timer_pause(timer_main);
     is_scrolled = false;
     is_ready = false;
 }

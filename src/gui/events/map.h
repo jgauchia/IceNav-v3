@@ -169,6 +169,5 @@ static void update_map(lv_event_t *event)
     sprArrow.pushSprite(&map_spr, NavArrow_position.posx, NavArrow_position.posy, TFT_BLACK);
 #endif
   }
-
   map_spr.pushSprite(0, 64);
 }
