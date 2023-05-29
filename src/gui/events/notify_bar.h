@@ -10,7 +10,7 @@
  * @brief  Notify Bar update time
  *
  */
-#define UPDATE_NOTIFY_PERIOD 30
+#define UPDATE_NOTIFY_PERIOD 1000
 
 /**
  * @brief Battery update envent
@@ -77,8 +77,7 @@ static void update_time(lv_event_t *event)
  */
 static void update_gps_count(lv_event_t *event)
 {
-    lv_obj_t *count = lv_event_get_target(event);
-    lv_label_set_text_fmt(count, LV_SYMBOL_GPS "%2d", GPS.satellites.value());
+    lv_label_set_text_fmt(gps_count, LV_SYMBOL_GPS "%2d", GPS.satellites.value());
 }
 
 /**
@@ -88,6 +87,8 @@ static void update_gps_count(lv_event_t *event)
 void update_notify_bar(lv_timer_t *t)
 {
     lv_event_send(gps_time, LV_EVENT_VALUE_CHANGED, NULL);
+
+    lv_label_set_text_fmt(gps_count, LV_SYMBOL_GPS "%2d", GPS.satellites.value());
 
     switch (atoi(fix.value()))
     {
@@ -118,12 +119,6 @@ void update_notify_bar(lv_timer_t *t)
     {
         lv_event_send(battery, LV_EVENT_VALUE_CHANGED, NULL);
         batt_level_old = batt_level;
-    }
-
-    if (GPS.satellites.value() != sat_count_old)
-    {
-        lv_event_send(gps_count, LV_EVENT_VALUE_CHANGED, NULL);
-        sat_count_old = GPS.satellites.value();
     }
 
 #ifdef ENABLE_BME
