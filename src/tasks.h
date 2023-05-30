@@ -24,10 +24,10 @@ void Read_GPS(void *pvParameters)
       }
 #else
       GPS.encode(gps->read());
+      vTaskDelay(10);
 #endif
     }
-    yield();
-    vTaskDelay(20);
+    
   }
 }
 
