@@ -19,7 +19,6 @@
 static void *sd_fs_open(lv_fs_drv_t *drv, const char *path, lv_fs_mode_t mode)
 {
     LV_UNUSED(drv);
-
     const char *flags = "";
 
     if (mode == LV_FS_MODE_WR)
@@ -265,7 +264,7 @@ static void lv_port_sd_fs_init(void)
 
     /*Set up fields...*/
     fs_drv.letter = 'S';
-    fs_drv.cache_size = 0;
+    fs_drv.cache_size = sizeof(File);
 
     fs_drv.open_cb = sd_fs_open;
     fs_drv.close_cb = sd_fs_close;

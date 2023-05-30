@@ -89,7 +89,7 @@ void touch_calibrate()
         f.close();
       }
       else
-        Serial.println("Error");
+        log_v("Error opening touch configuration");
     }
   }
 
