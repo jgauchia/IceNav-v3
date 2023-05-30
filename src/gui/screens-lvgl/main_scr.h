@@ -67,9 +67,6 @@ void create_main_scr()
     // Main Screen Events
     lv_obj_add_event_cb(tiles, get_act_tile, LV_EVENT_SCROLL_END, NULL);
     lv_obj_add_event_cb(tiles, scroll_tile, LV_EVENT_SCROLL_BEGIN, NULL);
-    // Main Screen update
-    lv_timer_t *timer_main_scr = lv_timer_create(update_main_screen, UPDATE_MAINSCR_PERIOD, NULL);
-    lv_timer_ready(timer_main_scr);
 
     // Compass Tile
     compass_heading = lv_label_create(compass_tile);
@@ -128,8 +125,7 @@ void create_main_scr()
     lv_obj_align(zoom_label, LV_ALIGN_TOP_MID, 0, 10);
 
     // Map Tile Events
-    lv_obj_add_event_cb(map_tile, draw_map, LV_EVENT_DRAW_POST, NULL);
-    lv_obj_add_event_cb(map_tile, update_map, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(map_tile, update_map, LV_EVENT_REFRESH, NULL);
     lv_obj_add_event_cb(mainScreen, get_zoom_value, LV_EVENT_GESTURE, NULL);
 
     // Satellite Tracking Tile

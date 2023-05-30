@@ -19,7 +19,7 @@
 uint8_t brightness_level = 255;
 
 static TFT_eSPI tft;
-#define LVGL_BKG  0x10A3
+#define LVGL_BKG 0x10A3
 
 
 /**
@@ -88,8 +88,8 @@ void touch_calibrate()
           calDataOK = 1;
         f.close();
       }
-          else 
-    Serial.println("Error");
+      else
+        log_v("Error opening touch configuration");
     }
   }
 
@@ -105,7 +105,6 @@ void touch_calibrate()
       f.write((const unsigned char *)calData, 16);
       f.close();
     }
-
   }
 }
 
@@ -121,7 +120,7 @@ void init_tft()
   tft.startWrite();
   tft.fillScreen(TFT_BLACK);
   tft.endWrite();
-  
+
   gpio_set_drive_capability(GPIO_NUM_33, GPIO_DRIVE_CAP_3);
   ledcAttachPin(TFT_BL, 0);
   ledcSetup(0, 5000, 8);
@@ -130,4 +129,3 @@ void init_tft()
   touch_calibrate();
 #endif
 }
-

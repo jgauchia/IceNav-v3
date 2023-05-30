@@ -7,12 +7,6 @@
  */
 
 /**
- * @brief  Main Screen update time
- *
- */
-#define UPDATE_MAINSCR_PERIOD 30
-
-/**
  * @brief Flag to indicate when maps needs to be draw
  *
  */
@@ -29,6 +23,27 @@ bool map_found = false;
  *
  */
 bool is_scrolled = true;
+
+/**
+ * @brief Flag to indicate when tileview scroll was finished
+ *
+ */
+bool is_ready = false;
+
+/**
+ * @brief Old Map tile coordinates and zoom
+ *
+ */
+MapTile OldMapTile = {"", 0, 0, 0};
+
+/**
+ * @brief Zoom Levels and Default zoom
+ *
+ */
+#define MIN_ZOOM 6
+#define MAX_ZOOM 17
+#define DEF_ZOOM 17
+uint8_t zoom = DEF_ZOOM;
 
 /**
  * @brief Active Tile in TileView control
@@ -49,15 +64,16 @@ enum tilename
  */
 static void get_act_tile(lv_event_t *event)
 {
-    is_scrolled = true;
+    if (is_ready)
+    {
+        is_scrolled = true;
+    }
+    else
+        is_ready = true;
+
     lv_obj_t *acttile = lv_tileview_get_tile_act(tiles);
     lv_coord_t tile_x = lv_obj_get_x(acttile) / TFT_WIDTH;
     act_tile = tile_x;
-    if (act_tile == MAP)
-        if (!map_found)
-            is_map_draw = false;
-        else
-            is_map_draw = true;
 }
 
 /**
@@ -68,6 +84,7 @@ static void get_act_tile(lv_event_t *event)
 static void scroll_tile(lv_event_t *event)
 {
     is_scrolled = false;
+    is_ready = false;
 }
 
 /**
@@ -93,13 +110,13 @@ void update_main_screen(lv_timer_t *t)
             }
             if (GPS.altitude.isUpdated())
             {
-                lv_event_send(altitude,LV_EVENT_VALUE_CHANGED,NULL);
+                lv_event_send(altitude, LV_EVENT_VALUE_CHANGED, NULL);
             }
             break;
 
         case MAP:
-            if (GPS.location.isUpdated())
-                lv_event_send(map_tile, LV_EVENT_VALUE_CHANGED, NULL);
+            // if (GPS.location.isUpdated())
+            lv_event_send(map_tile, LV_EVENT_REFRESH, NULL);
             break;
 
         case SATTRACK:

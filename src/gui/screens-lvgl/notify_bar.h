@@ -73,7 +73,6 @@ void create_notify_bar()
     lv_obj_set_size(temp, 50, 20);
     lv_obj_set_pos(temp, TFT_WIDTH - 145, 2);
     lv_label_set_text(temp, "--\xC2\xB0");
-    lv_obj_add_event_cb(temp, update_temp, LV_EVENT_VALUE_CHANGED, NULL);
 #endif
 
     gps_time = lv_label_create(lv_scr_act());
