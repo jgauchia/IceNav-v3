@@ -60,14 +60,19 @@ For ESP32S3 Makerfab board:
 pio run -e MAKERF_ESP32S3 --target upload
 ```
 
-For debug map version in specific coordinates, build and install the firmware with the next environment variables, like this:
+After the first run, load the icons and assets with:
+
+```bash
+pio run --target uploadfs
+```
+
+Optional, for map debugging version with specific coordinates, build and install the firmware with the next environment variables, like this:
 
 ```bash
 export ICENAV3_LAT=52.5200
 export ICENAV3_LON=13.4049
 pio run --target upload
 ```
-
 
 ## Specifications
 
