@@ -44,6 +44,31 @@ On SD Card map tiles (256x256 PNG Format) should be stored, in these folders str
                               |__________________ [ tile X folder (number) ]
                                                              |_______________________ tile Y file.png
 
+## Firmware install
+
+Please install first [PlatformIO](http://platformio.org/) open source ecosystem for IoT development compatible with **Arduino** IDE and its command line tools (Windows, MacOs and Linux). Also, you may need to install [git](http://git-scm.com/) in your system. 
+
+For custom ESP32 board run:
+
+```bash
+pio run --target upload
+```
+
+For ESP32S3 Makerfab board:
+
+```bash
+pio run -e MAKERF_ESP32S3 --target upload
+```
+
+For debug map version in specific coordinates, build and install the firmware with the next environment variables, like this:
+
+```bash
+export ICENAV3_LAT=52.5200
+export ICENAV3_LON=13.4049
+pio run --target upload
+```
+
+
 ## Specifications
 
 * ESP32 WROVER with 4Mb PSRAM / 16 Mb Flash
