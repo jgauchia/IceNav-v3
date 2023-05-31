@@ -39,6 +39,9 @@ static lv_obj_t *pdop_label;
 static lv_obj_t *hdop_label;
 static lv_obj_t *vdop_label;
 static lv_obj_t *alt_label;
+static lv_style_t style_radio;
+static lv_style_t style_radio_chk;
+static uint32_t active_gnss = 0;
 
 /**
  * @brief Main screen events include
@@ -169,7 +172,43 @@ void create_main_scr()
     satbar_ser2 = lv_chart_add_series(satbar_2, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
     lv_chart_set_type(satbar_2, LV_CHART_TYPE_BAR);
     lv_chart_set_point_count(satbar_2, (MAX_SATELLLITES_IN_VIEW / 2));
-    lv_obj_set_pos(satbar_2, 0, 265);
+    lv_obj_set_pos(satbar_2, 0, 260);
+
+#ifdef MULTI_GNSS
+    lv_style_init(&style_radio);
+    lv_style_set_radius(&style_radio, LV_RADIUS_CIRCLE);
+
+    lv_style_init(&style_radio_chk);
+    lv_style_set_bg_img_src(&style_radio_chk, NULL);
+
+    lv_obj_t *gnss_sel = lv_obj_create(sat_track_tile);
+    lv_obj_set_flex_flow(gnss_sel, LV_FLEX_FLOW_ROW);
+    lv_obj_set_size(gnss_sel, TFT_WIDTH, 50);
+    lv_obj_set_pos(gnss_sel, 0, 335);
+
+    lv_obj_t *gps = lv_checkbox_create(gnss_sel);
+    lv_checkbox_set_text(gps, "GPS     ");
+    lv_obj_add_flag(gps, LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_add_style(gps, &style_radio, LV_PART_INDICATOR);
+    lv_obj_add_style(gps, &style_radio_chk, LV_PART_INDICATOR | LV_STATE_CHECKED);
+
+    lv_obj_t *glonass = lv_checkbox_create(gnss_sel);
+    lv_checkbox_set_text(glonass, "GLONASS  ");
+    lv_obj_add_flag(glonass, LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_add_style(glonass, &style_radio, LV_PART_INDICATOR);
+    lv_obj_add_style(glonass, &style_radio_chk, LV_PART_INDICATOR | LV_STATE_CHECKED);
+
+    lv_obj_t *beidou = lv_checkbox_create(gnss_sel);
+    lv_checkbox_set_text(beidou, "BEIDOU");
+    lv_obj_add_flag(beidou, LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_add_style(beidou, &style_radio, LV_PART_INDICATOR);
+    lv_obj_add_style(beidou, &style_radio_chk, LV_PART_INDICATOR | LV_STATE_CHECKED);
+
+    lv_obj_add_state(lv_obj_get_child(gnss_sel, 0), LV_STATE_CHECKED);
+
+    // GNSS Selection Event
+    lv_obj_add_event_cb(gnss_sel, active_gnss_event, LV_EVENT_CLICKED, &active_gnss);
+#endif
 
     // Satellite Tracking Event
     lv_obj_add_event_cb(sat_track_tile, update_sattrack, LV_EVENT_VALUE_CHANGED, NULL);

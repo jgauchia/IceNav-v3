@@ -119,7 +119,7 @@ void create_snr_spr(TFT_eSprite &spr)
 
 /**
  * @brief Draw SNR bar and satellite number
- * 
+ *
  * @param bar -> Bar Control
  * @param bar_ser -> Bar Control Serie
  * @param id -> Active Sat
@@ -137,15 +137,30 @@ void draw_snr_bar(lv_obj_t *bar, lv_chart_series_t *bar_ser, uint8_t id, uint8_t
 }
 
 /**
- * @brief Display satellite in view info
+ * @brief Clear Satellite in View found
  * 
+ */
+void clear_sat_in_view()
+{
+  for (int clear = 0; clear < MAX_SATELLITES; clear++)
+  {
+    sat_tracker[clear].sat_num = 0;
+    sat_tracker[clear].elev = 0;
+    sat_tracker[clear].azim = 0;
+    sat_tracker[clear].snr = 0;
+    sat_tracker[clear].active = false;
+  }
+}
+
+/**
+ * @brief Display satellite in view info
+ *
  * @param gsv -> GSV NMEA sentence
  * @param color -> Satellite color in constellation
  */
 void fill_sat_in_view(GSV &gsv, int color)
 {
-
-  if (GPS_GSV.totalMsg.isUpdated())
+  if (gsv.totalMsg.isUpdated())
   {
     lv_chart_refresh(satbar_1);
     lv_chart_refresh(satbar_2);
@@ -163,8 +178,8 @@ void fill_sat_in_view(GSV &gsv, int color)
       }
     }
 
-    uint8_t totalMessages = atoi(GPS_GSV.totalMsg.value());
-    uint8_t currentMessage = atoi(GPS_GSV.msgNum.value());
+    uint8_t totalMessages = atoi(gsv.totalMsg.value());
+    uint8_t currentMessage = atoi(gsv.msgNum.value());
 
     if (totalMessages == currentMessage)
     {
@@ -180,7 +195,7 @@ void fill_sat_in_view(GSV &gsv, int color)
       uint8_t active_sat = 0;
       for (int i = 0; i < MAX_SATELLITES; ++i)
       {
-        if (sat_tracker[i].active && (sat_tracker[i].snr > 0))
+        if (sat_tracker[i].active) // && sat_tracker[i].snr > 0)
         {
           if (active_sat < (MAX_SATELLLITES_IN_VIEW / 2))
             draw_snr_bar(satbar_1, satbar_ser1, active_sat, sat_tracker[i].sat_num, sat_tracker[i].snr, spr_SNR1);

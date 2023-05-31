@@ -9,7 +9,7 @@
 #include <TimeLib.h>
 #include <TinyGPS++.h>
 
-#define MAX_SATELLITES 60
+#define MAX_SATELLITES 120
 #define MAX_SATELLLITES_IN_VIEW 32
 HardwareSerial *gps = &Serial2;
 TinyGPSPlus GPS;
@@ -25,6 +25,7 @@ struct GSV
 {
   TinyGPSCustom totalMsg;
   TinyGPSCustom msgNum;
+  TinyGPSCustom satsInView;
   TinyGPSCustom satNum[4];
   TinyGPSCustom elev[4];
   TinyGPSCustom azim[4];
@@ -117,35 +118,38 @@ void init_gps()
 
   GPS_GSV.totalMsg.begin(GPS, PSTR("GPGSV"), 1);
   GPS_GSV.msgNum.begin(GPS, PSTR("GPGSV"), 2);
+  GPS_GSV.satsInView.begin(GPS, PSTR("GPGSV") ,3);
 
 #ifdef MULTI_GNSS
 
   GL_GSV.totalMsg.begin(GPS, PSTR("GLGSV"), 1);
   GL_GSV.msgNum.begin(GPS, PSTR("GLGSV"), 2);
+  GL_GSV.satsInView.begin(GPS, PSTR("GLGSV") ,3);
 
   BD_GSV.totalMsg.begin(GPS, PSTR("BDGSV"), 1);
   BD_GSV.msgNum.begin(GPS, PSTR("BDGSV"), 2);
+  BD_GSV.satsInView.begin(GPS, PSTR("BDGSV") ,3);
 
 #endif
 
   for (int i = 0; i < 4; ++i)
   {
-    GPS_GSV.satNum[i].begin(GPS, PSTR("GPGSV"), 4 + 4 * i); // offsets 4, 8, 12, 16
-    GPS_GSV.elev[i].begin(GPS, PSTR("GPGSV"), 5 + 4 * i);   // offsets 5, 9, 13, 17
-    GPS_GSV.azim[i].begin(GPS, PSTR("GPGSV"), 6 + 4 * i);   // offsets 6, 10, 14, 18
-    GPS_GSV.snr[i].begin(GPS, PSTR("GPGSV"), 7 + 4 * i);    // offsets 7, 11, 15, 19
+    GPS_GSV.satNum[i].begin(GPS, PSTR("GPGSV"), 4 + (4 * i)); // offsets 4, 8, 12, 16
+    GPS_GSV.elev[i].begin(GPS, PSTR("GPGSV"), 5 + (4 * i));   // offsets 5, 9, 13, 17
+    GPS_GSV.azim[i].begin(GPS, PSTR("GPGSV"), 6 + (4 * i));   // offsets 6, 10, 14, 18
+    GPS_GSV.snr[i].begin(GPS, PSTR("GPGSV"), 7 + (4 * i));    // offsets 7, 11, 15, 19
 
 #ifdef MULTI_GNSS
 
-    GL_GSV.satNum[i].begin(GPS, PSTR("GLGSV"), 4 + 4 * i); // offsets 4, 8, 12, 16
-    GL_GSV.elev[i].begin(GPS, PSTR("GLGSV"), 5 + 4 * i);   // offsets 5, 9, 13, 17
-    GL_GSV.azim[i].begin(GPS, PSTR("GLGSV"), 6 + 4 * i);   // offsets 6, 10, 14, 18
-    GL_GSV.snr[i].begin(GPS, PSTR("GLGSV"), 7 + 4 * i);    // offsets 7, 11, 15, 19
+    GL_GSV.satNum[i].begin(GPS, PSTR("GLGSV"), 4 + (4 * i)); // offsets 4, 8, 12, 16
+    GL_GSV.elev[i].begin(GPS, PSTR("GLGSV"), 5 + (4 * i));   // offsets 5, 9, 13, 17
+    GL_GSV.azim[i].begin(GPS, PSTR("GLGSV"), 6 + (4 * i));   // offsets 6, 10, 14, 18
+    GL_GSV.snr[i].begin(GPS, PSTR("GLGSV"), 7 + (4 * i));    // offsets 7, 11, 15, 19
 
-    BD_GSV.satNum[i].begin(GPS, PSTR("BDGSV"), 4 + 4 * i); // offsets 4, 8, 12, 16
-    BD_GSV.elev[i].begin(GPS, PSTR("BDGSV"), 5 + 4 * i);   // offsets 5, 9, 13, 17
-    BD_GSV.azim[i].begin(GPS, PSTR("BDGSV"), 6 + 4 * i);   // offsets 6, 10, 14, 18
-    BD_GSV.snr[i].begin(GPS, PSTR("BDGSV"), 7 + 4 * i);    // offsets 7, 11, 15, 19
+    BD_GSV.satNum[i].begin(GPS, PSTR("BDGSV"), 4 + (4 * i)); // offsets 4, 8, 12, 16
+    BD_GSV.elev[i].begin(GPS, PSTR("BDGSV"), 5 + (4 * i));   // offsets 5, 9, 13, 17
+    BD_GSV.azim[i].begin(GPS, PSTR("BDGSV"), 6 + (4 * i));   // offsets 6, 10, 14, 18
+    BD_GSV.snr[i].begin(GPS, PSTR("BDGSV"), 7 + (4 * i));    // offsets 7, 11, 15, 19
 
 #endif
   }
