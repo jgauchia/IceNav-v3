@@ -70,16 +70,43 @@ static void get_zoom_value(lv_event_t *event)
 }
 
 /**
+ * @brief return latitude from GPS or sys env pre-built variable
+ * @return latitude or 0.0 if not defined
+*/
+static double getLat() {
+  if (GPS.location.isValid()) return GPS.location.lat();
+  else {
+#ifdef DEFAULT_LAT
+    return DEFAULT_LAT;
+#else
+    return 0.0;
+#endif
+  }
+}
+
+/**
+ * @brief return longitude from GPS or sys env pre-built variable
+ * @return longitude or 0.0 if not defined
+*/
+static double getLon() {
+  if (GPS.location.isValid()) return GPS.location.lng();
+  else {
+#ifdef DEFAULT_LON
+    return DEFAULT_LON;
+#else
+    return 0.0;
+#endif
+  }
+}
+
+/**
  * @brief Update map event
  *
  * @param event
  */
 static void update_map(lv_event_t *event)
 {
-  if (GPS.location.isValid())
-    CurrentMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, 0, 0);
-  else
-    CurrentMapTile = get_map_tile(DEFAULT_LON, DEFAULT_LAT, zoom, 0, 0);
+  CurrentMapTile = get_map_tile(getLon(), getLat(), zoom, 0, 0);
 
   if (strcmp(CurrentMapTile.file, OldMapTile.file) != 0 || CurrentMapTile.zoom != OldMapTile.zoom ||
       CurrentMapTile.tilex != OldMapTile.tilex || CurrentMapTile.tiley != OldMapTile.tiley)
@@ -106,38 +133,23 @@ static void update_map(lv_event_t *event)
     map_found = map_spr.drawPngFile(SD, CurrentMapTile.file, 32, 0);
     map_buf.drawPngFile(SD, CurrentMapTile.file, 32, 0);
     // Left Center Tile
-    if (GPS.location.isValid())
-      RoundMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, -1, 0);
-    else
-      RoundMapTile = get_map_tile(DEFAULT_LON, DEFAULT_LAT, zoom, -1, 0);
+    RoundMapTile = get_map_tile(getLon(), getLat(), zoom, -1, 0);
     map_spr.drawPngFile(SD, RoundMapTile.file, 0, 0, 32, 256, 224, 0);
     map_buf.drawPngFile(SD, RoundMapTile.file, 0, 0, 32, 256, 224, 0);
     // Right Center Tile
-    if (GPS.location.isValid())
-      RoundMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, 1, 0);
-    else
-      RoundMapTile = get_map_tile(DEFAULT_LON, DEFAULT_LAT, zoom, 1, 0);
+    RoundMapTile = get_map_tile(getLon(), getLat(), zoom, 1, 0);
     map_spr.drawPngFile(SD, RoundMapTile.file, 287, 0, 32, 256, 0, 0);
     map_buf.drawPngFile(SD, RoundMapTile.file, 287, 0, 32, 256, 0, 0);
     // Bottom Center Tile
-    if (GPS.location.isValid())
-      RoundMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, 0, 1);
-    else
-      RoundMapTile = get_map_tile(DEFAULT_LON, DEFAULT_LAT, zoom, 0, 1);
+    RoundMapTile = get_map_tile(getLon(), getLat(), zoom, 0, 1);
     map_spr.drawPngFile(SD, RoundMapTile.file, 32, 256, 256, 79, 0, 0);
     map_buf.drawPngFile(SD, RoundMapTile.file, 32, 256, 256, 79, 0, 0);
     // Left Bottom Center Tile
-    if (GPS.location.isValid())
-      RoundMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, -1, 1);
-    else
-      RoundMapTile = get_map_tile(DEFAULT_LON, DEFAULT_LAT, zoom, -1, 1);
+    RoundMapTile = get_map_tile(getLon(), getLat(), zoom, -1, 1);
     map_spr.drawPngFile(SD, RoundMapTile.file, 0, 256, 32, 79, 224, 0);
     map_buf.drawPngFile(SD, RoundMapTile.file, 0, 256, 32, 79, 224, 0);
     // Right Bottom Center Tile
-    if (GPS.location.isValid())
-      RoundMapTile = get_map_tile(GPS.location.lng(), GPS.location.lat(), zoom, 1, 1);
-    else
-      RoundMapTile = get_map_tile(DEFAULT_LON, DEFAULT_LAT, zoom, 1, 1);
+    RoundMapTile = get_map_tile(getLon(), getLat(), zoom, 1, 1);
     map_spr.drawPngFile(SD, RoundMapTile.file, 287, 256, 32, 79, 0, 0);
     map_buf.drawPngFile(SD, RoundMapTile.file, 287, 256, 32, 79, 0, 0);
 
@@ -152,11 +164,7 @@ static void update_map(lv_event_t *event)
 
   if (map_found)
   {
-    if (GPS.location.isValid())
-      NavArrow_position = coord_to_scr_pos(32, 0, GPS.location.lng(), GPS.location.lat(), zoom);
-    else
-      NavArrow_position = coord_to_scr_pos(32, 0, DEFAULT_LON, DEFAULT_LAT, zoom);
-
+    NavArrow_position = coord_to_scr_pos(32, 0, getLon(), getLat(), zoom);
     uint8_t arrow_bkg[1800];
     map_buf.readRect(NavArrow_position.posx - 12, NavArrow_position.posy - 12, 24, 24, (uint16_t *)arrow_bkg);
     map_spr.pushImage(NavArrow_position.posx - 12, NavArrow_position.posy - 12, 24, 24, (uint16_t *)arrow_bkg);
