@@ -58,3 +58,6 @@ On SD Card map tiles (256x256 PNG Format) should be stored, in these folders str
 ## Credits
 
 Added support to Makerfabs ESP32-S3 Parallel TFT with Touch 3.5" ILI9488 (thanks to @hpsaturn)
+Improved documentation (thanks to @hpsaturn)
+Improved auto mainScreen selection from env variable preset (thanks to @hpsaturn)
+Improved getLat getLon from environment variables (thanks to @hpsaturn)
