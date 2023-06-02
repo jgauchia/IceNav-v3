@@ -50,12 +50,17 @@ unsigned long millis_actual = 0;
  */
 void setup()
 {
+#ifdef MAKERF_ESP32S3
+  Wire.setPins(I2C_SDA_PIN,I2C_SCL_PIN);
+  Wire.begin();
+#endif
 
 #ifdef ENABLE_BME
   bme.begin(BME_ADDRESS);
 #endif
+
 #ifdef ENABLE_COMPASS
-  compass.begin();
+  init_compass();
 #endif
 
 #ifdef DEBUG
@@ -64,9 +69,6 @@ void setup()
   powerOn();
   init_sd();
   init_SPIFFS();
-#ifdef MAKERF_ESP32S3
-  Wire.end();
-#endif
   init_LVGL();
   init_tft();
   init_gps();
