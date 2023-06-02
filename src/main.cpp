@@ -75,9 +75,12 @@ void setup()
   splash_scr();
   //init_tasks();
 
-  // lv_scr_load(searchSat);
+#ifdef DEFAULT_LAT
   lv_scr_load(mainScreen);
   create_notify_bar();
+#else
+  lv_scr_load(searchSat);
+#endif
 }
 
 /**
