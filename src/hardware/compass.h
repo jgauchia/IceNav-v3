@@ -23,7 +23,10 @@ MPU9250 IMU(Wire,0x68);
  * @brief Magnetic declination
  * 
  */
-// The declination angle depends on the zone or country, perhaps it needs to be added in the future configuration option.
+//  Obtain your magnetic declination from http://www.magnetic-declination.com/
+//  By convention, declination is positive when magnetic north
+//  is east of true north, and negative when it is to the west.
+//  Substitute your magnetic declination for the "declinationAngle" shown below.
 float declinationAngle = 0.22;    
 
 
