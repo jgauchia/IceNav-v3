@@ -23,7 +23,8 @@ MPU9250 IMU(Wire,0x68);
  * @brief Magnetic declination
  * 
  */
-float declinationAngle = 0.22;
+// The declination angle depends on the zone or country, perhaps it needs to be added in the future configuration option.
+float declinationAngle = 0.22;    
 
 
 /**
@@ -60,8 +61,6 @@ int read_compass()
 #endif
     float heading = atan2(y,x);
 
-    // Serial.printf("x: %.5f y: %.5f\r\n", x, y);
-
     heading += declinationAngle;
     if (heading < 0)
         heading += 2 * PI;
@@ -79,10 +78,9 @@ void init_compass(){
 #ifdef MAKERF_ESP32S3
   int status = IMU.begin();
   if (status < 0) {
-    Serial.println("IMU initialization unsuccessful");
-    Serial.println("Check IMU wiring or try cycling power");
-    Serial.print("Status: ");
-    Serial.println(status);
+    log_e("IMU initialization unsuccessful");
+    log_e("Check IMU wiring or try cycling power");
+    log_e("Status: %i",status);
   }
 #endif
 }
