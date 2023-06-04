@@ -30,7 +30,7 @@ TFT_eSprite sprArrow = TFT_eSprite(&tft);
  *
  */
 TFT_eSprite map_spr = TFT_eSprite(&tft);
-TFT_eSprite map_buf = TFT_eSprite(&tft);
+// TFT_eSprite map_buf = TFT_eSprite(&tft);
 TFT_eSprite map_rot = TFT_eSprite(&tft);
 
 /**
@@ -120,6 +120,12 @@ static void update_map(lv_event_t *event)
   {
     is_map_draw = false;
     map_found = false;
+    map_spr.deleteSprite();
+    map_spr.createSprite(768, 768);
+    // map_buf.deleteSprite();
+    // map_buf.createSprite(768, 768);
+    map_rot.deleteSprite();
+    map_rot.createSprite(320, 335);
   }
 
   if (!is_map_draw)
@@ -129,52 +135,56 @@ static void update_map(lv_event_t *event)
     OldMapTile.tiley = CurrentMapTile.tiley;
     OldMapTile.file = CurrentMapTile.file;
 
-    map_spr.deleteSprite();
-    map_spr.createSprite(768, 768);
-    map_buf.deleteSprite();
-    map_buf.createSprite(768, 768);
-    map_rot.deleteSprite();
-    map_rot.createSprite(320, 335);
+    // vTaskDelay(50);
 
-    log_v("%s", CurrentMapTile.file);
+    log_v("TILE: %s", CurrentMapTile.file);
+    log_v("ZOOM: %d", zoom);
+
+    // Middle Center Tile
+    map_found = map_spr.drawPngFile(SD, CurrentMapTile.file, 256, 256);
+    // map_buf.drawPngFile(SD, CurrentMapTile.file, 256, 256);
+
+    log_v("%d", map_found);
 
     // Left Top FIle
     RoundMapTile = get_map_tile(getLon(), getLat(), zoom, -1, -1);
     map_spr.drawPngFile(SD, RoundMapTile.file, 0, 0);
-    map_buf.drawPngFile(SD, RoundMapTile.file, 0, 0);
-    // Middle Top File
+    // map_buf.drawPngFile(SD, RoundMapTile.file, 0, 0);
+    //  Middle Top File
     RoundMapTile = get_map_tile(getLon(), getLat(), zoom, 0, -1);
     map_spr.drawPngFile(SD, RoundMapTile.file, 256, 0);
-    map_buf.drawPngFile(SD, RoundMapTile.file, 256, 0);
-    // Rigth Top File
+    // map_buf.drawPngFile(SD, RoundMapTile.file, 256, 0);
+    //  Rigth Top File
     RoundMapTile = get_map_tile(getLon(), getLat(), zoom, 1, -1);
     map_spr.drawPngFile(SD, RoundMapTile.file, 512, 0);
-    map_buf.drawPngFile(SD, RoundMapTile.file, 512, 0);
+    // map_buf.drawPngFile(SD, RoundMapTile.file, 512, 0);
 
     // Left Center Tile
     RoundMapTile = get_map_tile(getLon(), getLat(), zoom, -1, 0);
     map_spr.drawPngFile(SD, RoundMapTile.file, 0, 256);
-    map_buf.drawPngFile(SD, RoundMapTile.file, 0, 256);
-    // Middle Center Tile
-    map_found = map_spr.drawPngFile(SD, CurrentMapTile.file, 256, 256);
-    map_buf.drawPngFile(SD, CurrentMapTile.file, 256, 256);
-    // Right Center Tile
+    // map_buf.drawPngFile(SD, RoundMapTile.file, 0, 256);
+    //  Right Center Tile
     RoundMapTile = get_map_tile(getLon(), getLat(), zoom, 1, 0);
     map_spr.drawPngFile(SD, RoundMapTile.file, 512, 256);
-    map_buf.drawPngFile(SD, RoundMapTile.file, 512, 256);
-    
+    // map_buf.drawPngFile(SD, RoundMapTile.file, 512, 256);
+
     // Left Bottom Tile
     RoundMapTile = get_map_tile(getLon(), getLat(), zoom, -1, 1);
     map_spr.drawPngFile(SD, RoundMapTile.file, 0, 512);
-    map_buf.drawPngFile(SD, RoundMapTile.file, 0, 512);
-    // Bottom Center Tile
+    // map_buf.drawPngFile(SD, RoundMapTile.file, 0, 512);
+    //  Bottom Center Tile
     RoundMapTile = get_map_tile(getLon(), getLat(), zoom, 0, 1);
     map_spr.drawPngFile(SD, RoundMapTile.file, 256, 512);
-    map_buf.drawPngFile(SD, RoundMapTile.file, 256, 512);
-    // Right Bottom Center Tile
+    // map_buf.drawPngFile(SD, RoundMapTile.file, 256, 512);
+    //  Right Bottom Center Tile
     RoundMapTile = get_map_tile(getLon(), getLat(), zoom, 1, 1);
     map_spr.drawPngFile(SD, RoundMapTile.file, 512, 512);
-    map_buf.drawPngFile(SD, RoundMapTile.file, 512, 512);
+    // map_buf.drawPngFile(SD, RoundMapTile.file, 512, 512);
+
+    // Copy current map to buffer map (2 buffers)
+    // map_buf.deleteSprite();
+    // map_buf.createSprite(768, 768);
+    // memcpy(&map_buf, &map_spr, sizeof(map_spr));
 
     // Arrow Sprite
     sprArrow.deleteSprite();
@@ -194,15 +204,15 @@ static void update_map(lv_event_t *event)
 
 #ifdef ENABLE_COMPASS
     heading = read_compass();
-    // map_spr.setPivot(NavArrow_position.posx, NavArrow_position.posy);
-    // sprArrow.pushRotated(&map_spr, heading, TFT_BLACK);
+    map_spr.setPivot(256+NavArrow_position.posx, 256 + NavArrow_position.posy);
+    sprArrow.pushRotated(&map_spr, heading, TFT_BLACK);
 #else
-    //sprArrow.pushSprite(&map_spr, NavArrow_position.posx, NavArrow_position.posy, TFT_BLACK);
+    sprArrow.pushSprite(&map_spr, NavArrow_position.posx, NavArrow_position.posy, TFT_BLACK);
 #endif
   }
   // map_spr.pushSprite(0, 64);
   //map_rot.setPivot(160, 161);
-  //map_spr.pushRotated(&map_rot, 0, TFT_BLACK);
-  map_spr.pushSprite(&map_rot,-300,0);
-  map_rot.pushSprite(0,64);
+
+  map_rot.pushSprite(0, 64);
+  map_spr.pushRotated(&map_rot, 360 - heading, TFT_BLACK);
 }
