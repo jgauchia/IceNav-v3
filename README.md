@@ -1,6 +1,7 @@
 [![PlatformIO](https://github.com/jgauchia/IceNav-v3/workflows/PlatformIO/badge.svg)](https://github.com/jgauchia/IceNav-v3/actions/) ![ViewCount](https://views.whatilearened.today/views/github/jgauchia/IceNav-v3.svg)
 
-# IceNav-v3
+
+![icenav_logo](images/icenav_logo.png)
 
 ESP32 GPS Navigator.
 
