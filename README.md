@@ -5,6 +5,20 @@
 
 ESP32 Based GPS Navigator.
 
+## Specifications
+
+* ESP32 WROVER with 4Mb PSRAM / 16 Mb Flash
+* ILI9488 TFT (320x480)
+* SD/MicroSD reader
+* HCM5883L Magnetometer
+* BME280   Temperature / Humidity sensor
+* MPU6050  Accelerometer and Gyroscope IMU
+* HT1818Z3G5L GPS Module (AT6558D)
+* LVGL UI + LovyanGFX
+
+
+#
+
 # Wiring
 
        Pinout (ESP32-WROVER)
@@ -80,17 +94,6 @@ If the GPS module supports multiple GNSS, uncomment the following flag in the pl
 ```bash
 -D MULTI_GNSS=1
 ```
-
-## Specifications
-
-* ESP32 WROVER with 4Mb PSRAM / 16 Mb Flash
-* ILI9488 TFT (320x480)
-* SD/MicroSD reader
-* HCM5883L Magnetometer
-* BME280   Temperature / Humidity sensor
-* MPU6050  Accelerometer and Gyroscope IMU
-* HT1818Z3G5L GPS Module (AT6558D)
-* LVGL UI + LovyanGFX
 
 ## Credits
 
