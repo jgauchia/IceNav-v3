@@ -2,8 +2,8 @@
  * @file search_sat_scr.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - GPS satellite search screen
- * @version 0.1.4
- * @date 2023-05-23
+ * @version 0.1.5
+ * @date 2023-06-04
  */
 
 #define UPDATE_SEARCH_PERIOD 1000

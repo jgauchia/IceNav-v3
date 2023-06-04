@@ -75,6 +75,12 @@ export ICENAV3_LON=13.4049
 pio run --target upload
 ```
 
+If the GPS module supports multiple GNSS, uncomment the following flag in the platformio.ini file under the build_flags section
+
+```bash
+-D MULTI_GNSS=1
+```
+
 ## Specifications
 
 * ESP32 WROVER with 4Mb PSRAM / 16 Mb Flash
