@@ -3,7 +3,7 @@
 
 ![icenav_logo](images/icenav_logo.png)
 
-ESP32 GPS Navigator.
+ESP32 Based GPS Navigator.
 
 # Wiring
 
