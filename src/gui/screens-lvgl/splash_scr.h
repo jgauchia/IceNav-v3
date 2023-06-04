@@ -14,7 +14,7 @@ void splash_scr()
 {
     millis_actual = millis();
     set_brightness(0);
-    tft.drawPngFile(SD, PSTR("/GFX/BOOTLOGO.png"), (tft.width() / 2) - 85, (tft.height() / 2) - 70);
+    tft.drawPngFile(SPIFFS, PSTR("/BOOTLOGO.png"), (tft.width() / 2) - 150 , (tft.height() / 2) - 70);
     char status_str[200] = "";
     tft.setTextSize(1);
     tft.setTextColor(TFT_YELLOW, TFT_BLACK);
