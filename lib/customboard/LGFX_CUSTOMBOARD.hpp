@@ -2,8 +2,8 @@
  * @file LGFX_CUSTOMBOARD.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LOVYANGFX TFT driver for CUSTOMBOARD
- * @version 0.1.4
- * @date 2023-05-23
+ * @version 0.1.5
+ * @date 2023-06-04
  */
 
 #define LGFX_USE_V1

@@ -2,8 +2,8 @@
  * @file tasks.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Core Tasks functions
- * @version 0.1.4
- * @date 2023-05-23
+ * @version 0.1.5
+ * @date 2023-06-04
  */
 
 /**
