@@ -140,46 +140,31 @@ static void update_map(lv_event_t *event)
     log_v("TILE: %s", CurrentMapTile.file);
     log_v("ZOOM: %d", zoom);
 
-    // Middle Center Tile
+    // Center Tile
     map_found = map_spr.drawPngFile(SD, CurrentMapTile.file, 256, 256);
     // map_buf.drawPngFile(SD, CurrentMapTile.file, 256, 256);
 
     log_v("%d", map_found);
 
-    // Left Top FIle
-    RoundMapTile = get_map_tile(getLon(), getLat(), zoom, -1, -1);
-    map_spr.drawPngFile(SD, RoundMapTile.file, 0, 0);
-    // map_buf.drawPngFile(SD, RoundMapTile.file, 0, 0);
-    //  Middle Top File
-    RoundMapTile = get_map_tile(getLon(), getLat(), zoom, 0, -1);
-    map_spr.drawPngFile(SD, RoundMapTile.file, 256, 0);
-    // map_buf.drawPngFile(SD, RoundMapTile.file, 256, 0);
-    //  Rigth Top File
-    RoundMapTile = get_map_tile(getLon(), getLat(), zoom, 1, -1);
-    map_spr.drawPngFile(SD, RoundMapTile.file, 512, 0);
-    // map_buf.drawPngFile(SD, RoundMapTile.file, 512, 0);
+    uint8_t centerX = 0;
+    uint8_t centerY = 0;
+    int8_t startX = centerX - 1;
+    int8_t startY = centerY - 1;
 
-    // Left Center Tile
-    RoundMapTile = get_map_tile(getLon(), getLat(), zoom, -1, 0);
-    map_spr.drawPngFile(SD, RoundMapTile.file, 0, 256);
-    // map_buf.drawPngFile(SD, RoundMapTile.file, 0, 256);
-    //  Right Center Tile
-    RoundMapTile = get_map_tile(getLon(), getLat(), zoom, 1, 0);
-    map_spr.drawPngFile(SD, RoundMapTile.file, 512, 256);
-    // map_buf.drawPngFile(SD, RoundMapTile.file, 512, 256);
-
-    // Left Bottom Tile
-    RoundMapTile = get_map_tile(getLon(), getLat(), zoom, -1, 1);
-    map_spr.drawPngFile(SD, RoundMapTile.file, 0, 512);
-    // map_buf.drawPngFile(SD, RoundMapTile.file, 0, 512);
-    //  Bottom Center Tile
-    RoundMapTile = get_map_tile(getLon(), getLat(), zoom, 0, 1);
-    map_spr.drawPngFile(SD, RoundMapTile.file, 256, 512);
-    // map_buf.drawPngFile(SD, RoundMapTile.file, 256, 512);
-    //  Right Bottom Center Tile
-    RoundMapTile = get_map_tile(getLon(), getLat(), zoom, 1, 1);
-    map_spr.drawPngFile(SD, RoundMapTile.file, 512, 512);
-    // map_buf.drawPngFile(SD, RoundMapTile.file, 512, 512);
+    for (int y = startY; y <= startY + 2; y++)
+    {
+      for (int x = startX; x <= startX + 2; x++)
+      {
+        if (x == centerX && y == centerY)
+        {
+          // Skip Center Tile
+          continue;
+        }
+        RoundMapTile = get_map_tile(getLon(), getLat(), zoom, x, y);
+        map_spr.drawPngFile(SD, RoundMapTile.file, (x - startX) * 256, (y - startY) * 256);
+        // map_buf.drawPngFile(SD, RoundMapTile.file, (x - startX) * 256, (y - startY) * 256);
+      }
+    }
 
     // Copy current map to buffer map (2 buffers)
     // map_buf.deleteSprite();
@@ -201,17 +186,18 @@ static void update_map(lv_event_t *event)
     uint8_t arrow_bkg[1800];
     // map_buf.readRect(NavArrow_position.posx - 12, NavArrow_position.posy - 12, 24, 24, (uint16_t *)arrow_bkg);
     // map_spr.pushImage(NavArrow_position.posx - 12, NavArrow_position.posy - 12, 24, 24, (uint16_t *)arrow_bkg);
+    //map_spr.pushImage(256 + NavArrow_position.posx - 12, 256 + NavArrow_position.posy - 12, 24, 24, (uint16_t *)navigation);
 
 #ifdef ENABLE_COMPASS
     heading = read_compass();
-    map_spr.setPivot(256+NavArrow_position.posx, 256 + NavArrow_position.posy);
+    map_spr.setPivot(256 + NavArrow_position.posx, 256 + NavArrow_position.posy);
     sprArrow.pushRotated(&map_spr, heading, TFT_BLACK);
 #else
     sprArrow.pushSprite(&map_spr, NavArrow_position.posx, NavArrow_position.posy, TFT_BLACK);
 #endif
   }
   // map_spr.pushSprite(0, 64);
-  //map_rot.setPivot(160, 161);
+  // map_rot.setPivot(160, 161);
 
   map_rot.pushSprite(0, 64);
   map_spr.pushRotated(&map_rot, 360 - heading, TFT_BLACK);
