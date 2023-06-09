@@ -30,7 +30,6 @@ TFT_eSprite sprArrow = TFT_eSprite(&tft);
  *
  */
 TFT_eSprite map_spr = TFT_eSprite(&tft);
-// TFT_eSprite map_buf = TFT_eSprite(&tft);
 TFT_eSprite map_rot = TFT_eSprite(&tft);
 
 /**
@@ -122,8 +121,6 @@ static void update_map(lv_event_t *event)
     map_found = false;
     map_spr.deleteSprite();
     map_spr.createSprite(768, 768);
-    // map_buf.deleteSprite();
-    // map_buf.createSprite(768, 768);
     map_rot.deleteSprite();
     map_rot.createSprite(320, 335);
   }
@@ -135,16 +132,11 @@ static void update_map(lv_event_t *event)
     OldMapTile.tiley = CurrentMapTile.tiley;
     OldMapTile.file = CurrentMapTile.file;
 
-    // vTaskDelay(50);
-
     log_v("TILE: %s", CurrentMapTile.file);
     log_v("ZOOM: %d", zoom);
 
     // Center Tile
     map_found = map_spr.drawPngFile(SD, CurrentMapTile.file, 256, 256);
-    // map_buf.drawPngFile(SD, CurrentMapTile.file, 256, 256);
-
-    log_v("%d", map_found);
 
     uint8_t centerX = 0;
     uint8_t centerY = 0;
@@ -152,32 +144,29 @@ static void update_map(lv_event_t *event)
     int8_t startY = centerY - 1;
     bool tileFound = false;
 
-    for (int y = startY; y <= startY + 2; y++)
+    if (map_found)
     {
-      for (int x = startX; x <= startX + 2; x++)
+      for (int y = startY; y <= startY + 2; y++)
       {
-        if (x == centerX && y == centerY)
+        for (int x = startX; x <= startX + 2; x++)
         {
-          // Skip Center Tile
-          continue;
+          if (x == centerX && y == centerY)
+          {
+            // Skip Center Tile
+            continue;
+          }
+          RoundMapTile = get_map_tile(getLon(), getLat(), zoom, x, y);
+          tileFound = map_spr.drawPngFile(SD, RoundMapTile.file, (x - startX) * tileSize, (y - startY) * tileSize);
+          if (!tileFound)
+            map_spr.fillRect((x - startX) * tileSize, (y - startY) * tileSize, tileSize, tileSize, LVGL_BKG);
         }
-        RoundMapTile = get_map_tile(getLon(), getLat(), zoom, x, y);
-        tileFound = map_spr.drawPngFile(SD, RoundMapTile.file, (x - startX) * tileSize, (y - startY) * tileSize);
-        if (!tileFound)
-          map_spr.fillRect((x - startX) * tileSize, (y - startY) * tileSize, tileSize, tileSize, LVGL_BKG);
-        // map_buf.drawPngFile(SD, RoundMapTile.file, (x - startX) * 256, (y - startY) * 256);
       }
     }
-
-    // Copy current map to buffer map (2 buffers)
-    // map_buf.deleteSprite();
-    // map_buf.createSprite(768, 768);
-    // memcpy(&map_buf, &map_spr, sizeof(map_spr));
 
     // Arrow Sprite
     sprArrow.deleteSprite();
     sprArrow.createSprite(16, 16);
-    sprArrow.fillSprite(TFT_BLACK);
+    sprArrow.setColorDepth(16);
     sprArrow.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
 
     is_map_draw = true;
@@ -186,26 +175,17 @@ static void update_map(lv_event_t *event)
   if (map_found)
   {
     NavArrow_position = coord_to_scr_pos(getLon(), getLat(), zoom);
-    uint8_t arrow_bkg[1800];
-
-    // map_spr.readRect(256 + NavArrow_position.posx - 12, 256 + NavArrow_position.posy - 12, 24, 24, (uint16_t *)arrow_bkg);
-    // map_spr.pushImage(256 + NavArrow_position.posx - 12, 256 + NavArrow_position.posy - 12, 24, 24, (uint16_t *)arrow_bkg);
-    // map_spr.pushImage(256 + NavArrow_position.posx - 12, 256 + NavArrow_position.posy - 12, 24, 24, (uint16_t *)navigation);
-
 #ifdef ENABLE_COMPASS
+    uint8_t arrow_bkg[1800];
     heading = read_compass();
     map_spr.setPivot(tileSize + NavArrow_position.posx, tileSize + NavArrow_position.posy);
-    log_v("%d %d", NavArrow_position.posx, NavArrow_position.posy);
-    // map_spr.readRect(NavArrow_position.posx - 12, NavArrow_position.posy - 12, 24, 24, (uint16_t *)arrow_bkg);
-    // map_spr.pushImage(NavArrow_position.posx - 12, NavArrow_position.posy - 12, 24, 24, (uint16_t *)arrow_bkg);
-    sprArrow.pushRotated(&map_spr, heading, TFT_TRANSPARENT);
+    map_rot.pushSprite(0, 64);
+    map_spr.pushRotated(&map_rot, 360 - heading, TFT_TRANSPARENT);
+    sprArrow.setPivot(8, 8);
+    sprArrow.pushRotated(&map_rot, 0, TFT_BLACK);
 #else
-    sprArrow.pushSprite(&map_spr, NavArrow_position.posx, NavArrow_position.posy, TFT_BLACK);
+    map_rot.pushSprite(0, 64);
+    sprArrow.pushSprite(&map_rot, tileSize + NavArrow_position.posx, tileSize + NavArrow_position.posy, TFT_BLACK);
 #endif
   }
-  // map_spr.pushSprite(0, 64);
-  // map_rot.setPivot(160, 161);
-
-  map_rot.pushSprite(0, 64);
-  map_spr.pushRotated(&map_rot, 360 - heading, TFT_BLACK);
 }
