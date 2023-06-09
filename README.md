@@ -97,7 +97,7 @@ If the GPS module supports multiple GNSS, uncomment the following flag in the pl
 
 ## Credits
 
-* Added support to Makerfabs ESP32-S3 Parallel TFT with Touch 3.5" ILI9488 (thanks to @hpsaturn)
+* Added support to [Makerfabs ESP32-S3 Parallel TFT with Touch 3.5" ILI9488](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) (thanks to @hpsaturn)
 * Improved documentation (thanks to @hpsaturn)
 * Improved auto mainScreen selection from env variable preset (thanks to @hpsaturn)
 * Improved getLat getLon from environment variables (thanks to @hpsaturn)
