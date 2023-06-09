@@ -67,6 +67,7 @@ static void get_act_tile(lv_event_t *event)
     if (is_ready)
     {
         is_scrolled = true;
+        log_d("Free PSRAM: %d", ESP.getFreePsram());
     }
     else
         is_ready = true;
