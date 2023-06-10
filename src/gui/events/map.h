@@ -175,17 +175,17 @@ static void update_map(lv_event_t *event)
   if (map_found)
   {
     NavArrow_position = coord_to_scr_pos(getLon(), getLat(), zoom);
-#ifdef ENABLE_COMPASS
-    uint8_t arrow_bkg[1800];
-    heading = read_compass();
     map_spr.setPivot(tileSize + NavArrow_position.posx, tileSize + NavArrow_position.posy);
     map_rot.pushSprite(0, 64);
+
+#ifdef ENABLE_COMPASS
+    heading = read_compass();
     map_spr.pushRotated(&map_rot, 360 - heading, TFT_TRANSPARENT);
+#else
+    map_spr.pushRotated(&map_rot, 0, TFT_TRANSPARENT);
+#endif
+
     sprArrow.setPivot(8, 8);
     sprArrow.pushRotated(&map_rot, 0, TFT_BLACK);
-#else
-    map_rot.pushSprite(0, 64);
-    sprArrow.pushSprite(&map_rot, tileSize + NavArrow_position.posx, tileSize + NavArrow_position.posy, TFT_BLACK);
-#endif
   }
 }
