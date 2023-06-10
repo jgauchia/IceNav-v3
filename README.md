@@ -4,6 +4,10 @@
 ![icenav_logo](images/icenav_logo.png)
 
 ESP32 Based GPS Navigator.
+* Note: Under development
+
+## Screenshots
+<img src="images/screenshot_1.png" width="20%" height="20%"><img src="images/screenshot_2.png" width="20%" height="20%"><img src="images/screenshot_3.png" width="20%" height="20%"><img src="images/screenshot_4.png" width="20%" height="20%">
 
 ## Specifications
 
@@ -19,7 +23,7 @@ ESP32 Based GPS Navigator.
 
 #
 
-# Wiring
+## Wiring
 
        Pinout (ESP32-WROVER)
        HCM5883L      BME280        MPU6050       ILI9488        SD CARD        VBAT             GPS
