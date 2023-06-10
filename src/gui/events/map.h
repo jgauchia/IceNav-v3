@@ -178,9 +178,9 @@ static void update_map(lv_event_t *event)
 
 #ifdef ENABLE_COMPASS
     compass_spr.deleteSprite();
-    compass_spr.createSprite(32, 32);
+    compass_spr.createSprite(48, 48);
     compass_spr.setColorDepth(16);
-    compass_spr.pushImage(0, 0, 32, 32, (uint16_t *)mini_compass);
+    compass_spr.pushImage(0, 0, 48, 48, (uint16_t *)mini_compass);
 #endif
 
     is_map_draw = true;
@@ -199,10 +199,10 @@ static void update_map(lv_event_t *event)
     sprArrow.pushRotated(&map_rot, 0, TFT_BLACK);
 
     compass_rot.deleteSprite();
-    compass_rot.createSprite(32, 32);
+    compass_rot.createSprite(48, 48);
     compass_rot.setColorDepth(16);
     compass_spr.pushRotated(&compass_rot, 360 - heading, TFT_BLACK);
-    compass_rot.pushSprite(&map_rot, 280, 10, TFT_BLACK);
+    compass_rot.pushSprite(&map_rot, 264, 10, TFT_BLACK);
 #else
     map_spr.pushRotated(&map_rot, 0, TFT_TRANSPARENT);
 #endif
