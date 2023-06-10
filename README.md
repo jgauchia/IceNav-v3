@@ -22,7 +22,7 @@ ESP32 Based GPS Navigator.
 
 #
 
-# Wiring
+## Wiring
 
        Pinout (ESP32-WROVER)
        HCM5883L      BME280        MPU6050       ILI9488        SD CARD        VBAT             GPS
