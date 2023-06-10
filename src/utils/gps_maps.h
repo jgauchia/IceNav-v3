@@ -19,6 +19,12 @@ struct MapTile
 };
 
 /**
+ * @brief Tile size for position calculation
+ * 
+ */
+uint16_t tileSize = 256;
+
+/**
  * @brief Get TileY for OpenStreeMap files
  *
  * @param f_lon -> longitude
@@ -51,7 +57,7 @@ uint32_t lat2tiley(double f_lat, uint8_t zoom)
  */
 uint16_t lon2posx(float f_lon, uint8_t zoom)
 {
-  return ((uint16_t)(((f_lon + 180.0) / 360.0 * (pow(2.0, zoom)) * 256)) % 256);
+  return ((uint16_t)(((f_lon + 180.0) / 360.0 * (pow(2.0, zoom)) * tileSize)) % tileSize);
 }
 
 /**
@@ -63,7 +69,7 @@ uint16_t lon2posx(float f_lon, uint8_t zoom)
  */
 uint16_t lat2posy(float f_lat, uint8_t zoom)
 {
-  return ((uint16_t)(((1.0 - log(tan(f_lat * M_PI / 180.0) + 1.0 / cos(f_lat * M_PI / 180.0)) / M_PI) / 2.0 * (pow(2.0, zoom)) * 256)) % 256);
+  return ((uint16_t)(((1.0 - log(tan(f_lat * M_PI / 180.0) + 1.0 / cos(f_lat * M_PI / 180.0)) / M_PI) / 2.0 * (pow(2.0, zoom)) * tileSize)) % tileSize);
 }
 
 /**
