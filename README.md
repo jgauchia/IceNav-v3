@@ -6,8 +6,7 @@
 ESP32 Based GPS Navigator.
 
 ## Screenshots
-![](images/screenshot_1.png)![](images/screenshot_2.png)![](images/screenshot_3.png)![](images/screenshot_4.png)
-
+<img src="images/screenshot_1.png" width="20%" height="20%"><img src="images/screenshot_2.png" width="20%" height="20%"><img src="images/screenshot_3.png" width="20%" height="20%"><img src="images/screenshot_4.png" width="20%" height="20%">
 
 ## Specifications
 
