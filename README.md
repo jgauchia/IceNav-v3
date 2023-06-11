@@ -9,7 +9,7 @@ ESP32 Based GPS Navigator.
 ## Screenshots
 <img src="images/screenshot_1.png" width="25%" height="25%"><img src="images/screenshot_2.png" width="25%" height="25%"><img src="images/screenshot_3.png" width="25%" height="25%"><img src="images/screenshot_4.png" width="25%" height="25%">
 
-## Specifications CUSTOMBOARD
+## Specifications Customboard ESP32
 
 * ESP32 WROVER with 4Mb PSRAM / 16 Mb Flash
 * ILI9488 TFT (320x480) - SPI Mode
