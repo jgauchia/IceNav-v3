@@ -68,18 +68,18 @@ void create_main_scr()
     compass_heading = lv_label_create(compass_tile);
     lv_obj_set_size(compass_heading, 150, 48);
     lv_obj_set_align(compass_heading, LV_ALIGN_CENTER);
-    lv_obj_set_y(compass_heading, 35);
+    lv_obj_set_y(compass_heading, 95);
     lv_obj_set_style_text_font(compass_heading, &lv_font_montserrat_48, 0);
     lv_label_set_text(compass_heading, "-----\xC2\xB0");
 
     lv_obj_t *arrow_img = lv_img_create(compass_tile);
     lv_img_set_src(arrow_img, "F:/arrow.bin");
-    lv_obj_align(arrow_img, LV_ALIGN_CENTER, 0, -20);
+    lv_obj_align(arrow_img, LV_ALIGN_CENTER, 0, 40);
 
     LV_IMG_DECLARE(bruj);
     compass_img = lv_img_create(compass_tile);
     lv_img_set_src(compass_img, &bruj);
-    lv_obj_align(compass_img, LV_ALIGN_CENTER, 0, 15);
+    lv_obj_align(compass_img, LV_ALIGN_CENTER, 0, 75);
     lv_img_set_pivot(compass_img, 100, 100);
 
     lv_obj_t *pos_img = lv_img_create(compass_tile);
