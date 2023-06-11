@@ -37,6 +37,8 @@ static lv_timer_t *timer_main;
 #include "gui/img/bruj.c"
 #include "gui/img/navigation.c"
 #include "gui/img/compass.c"
+#include "gui/img/zoom.c"
+#include "gui/img/speed.c"
 #include "gui/screens-lvgl/notify_bar.h"
 #include "gui/screens-lvgl/search_sat_scr.h"
 #include "gui/screens-lvgl/main_scr.h"
@@ -52,12 +54,12 @@ void disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p)
     {
         tft.startWrite();
         // Map Tile, refresh partial screen to avoid flickering when scroll tile view
-        if (act_tile == MAP && is_scrolled)
-        {
-            if ((area->y2 - area->y1 + 1) < 64)
-                tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t *)&color_p->full);
-        }
-        else
+        // if (act_tile == MAP && is_scrolled)
+        // {
+        //     if ((area->y2 - area->y1 + 1) < 20)
+        //         tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t *)&color_p->full);
+        // }
+        // else
         {
             tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t *)&color_p->full);
         }
@@ -105,17 +107,8 @@ void init_LVGL()
     lv_port_spiffs_fs_init();
     // lv_port_sd_fs_init();
 
-    if (psramFound())
-    {
-        static lv_color_t *buf1 = (lv_color_t *)ps_malloc((TFT_WIDTH * TFT_HEIGHT) * sizeof(lv_color_t));
-        // static lv_color_t *buf2 = (lv_color_t *)ps_malloc((TFT_WIDTH * TFT_HEIGHT) * sizeof(lv_color_t));
-        lv_disp_draw_buf_init(&draw_buf, buf1, NULL, (TFT_WIDTH * TFT_HEIGHT) * sizeof(lv_color_t));
-    }
-    else
-    {
-        static lv_color_t buf_norm[TFT_WIDTH * TFT_HEIGHT / 10];
-        lv_disp_draw_buf_init(&draw_buf, buf_norm, NULL, TFT_WIDTH * TFT_HEIGHT / 10);
-    }
+    static lv_color_t *buf1 = (lv_color_t *)ps_malloc((TFT_WIDTH * TFT_HEIGHT) * 2);
+    lv_disp_draw_buf_init(&draw_buf, buf1, NULL, (TFT_WIDTH * TFT_HEIGHT) * 2);
 
     lv_disp_drv_init(&def_drv);
     def_drv.hor_res = screenWidth;
