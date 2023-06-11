@@ -19,7 +19,6 @@ MapTile RoundMapTile;
  */
 ScreenCoord NavArrow_position;
 
-/**
  * @brief Update zoom value
  *
  * @param event
@@ -171,22 +170,45 @@ static void update_map(lv_event_t *event)
         }
       }
     }
+
+    // Arrow Sprite
+    sprArrow.deleteSprite();
+    sprArrow.createSprite(16, 16);
+    sprArrow.setColorDepth(16);
+    sprArrow.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
+
+#ifdef ENABLE_COMPASS
+    compass_spr.deleteSprite();
+    compass_spr.createSprite(48, 48);
+    compass_spr.setColorDepth(16);
+    compass_spr.pushImage(0, 0, 48, 48, (uint16_t *)mini_compass);
+#endif
+
     is_map_draw = true;
   }
 
   if (map_found)
   {
     NavArrow_position = coord_to_scr_pos(getLon(), getLat(), zoom);
-#ifdef ENABLE_COMPASS
-    heading = read_compass();
     map_spr.setPivot(tileSize + NavArrow_position.posx, tileSize + NavArrow_position.posy);
     map_rot.pushSprite(0, 64);
+
+#ifdef ENABLE_COMPASS
+    heading = read_compass();
     map_spr.pushRotated(&map_rot, 360 - heading, TFT_TRANSPARENT);
     sprArrow.setPivot(8, 8);
     sprArrow.pushRotated(&map_rot, 0, TFT_BLACK);
+
+    compass_rot.deleteSprite();
+    compass_rot.createSprite(48, 48);
+    compass_rot.setColorDepth(16);
+    compass_spr.pushRotated(&compass_rot, 360 - heading, TFT_BLACK);
+    compass_rot.pushSprite(&map_rot, 264, 10, TFT_BLACK);
 #else
-    map_rot.pushSprite(0, 64);
-    sprArrow.pushSprite(&map_rot, tileSize + NavArrow_position.posx, tileSize + NavArrow_position.posy, TFT_BLACK);
+    map_spr.pushRotated(&map_rot, 0, TFT_TRANSPARENT);
 #endif
+
+    sprArrow.setPivot(8, 8);
+    sprArrow.pushRotated(&map_rot, 0, TFT_BLACK);
   }
 }
