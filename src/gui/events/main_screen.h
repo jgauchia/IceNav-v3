@@ -53,13 +53,6 @@ TFT_eSprite map_spr = TFT_eSprite(&tft);
 TFT_eSprite map_rot = TFT_eSprite(&tft);
 
 /**
- * @brief Mini Compass sprite
- *
- */
-TFT_eSprite compass_spr = TFT_eSprite(&tft);
-TFT_eSprite compass_rot = TFT_eSprite(&tft);
-
-/**
  * @brief Zoom sprite
  * 
  */
