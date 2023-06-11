@@ -19,27 +19,6 @@ MapTile RoundMapTile;
  */
 ScreenCoord NavArrow_position;
 
-/**
- * @brief Sprite for Navigation Arrow in map tile
- *
- */
-TFT_eSprite sprArrow = TFT_eSprite(&tft);
-
-/**
- * @brief Double Buffering Sprites for Map Tile
- *
- */
-TFT_eSprite map_spr = TFT_eSprite(&tft);
-TFT_eSprite map_rot = TFT_eSprite(&tft);
-
-/**
- * @brief Compass sprite
- *
- */
-TFT_eSprite compass_spr = TFT_eSprite(&tft);
-TFT_eSprite compass_rot = TFT_eSprite(&tft);
-
-/**
  * @brief Update zoom value
  *
  * @param event
@@ -113,6 +92,30 @@ static double getLon()
 }
 
 /**
+ * @brief Delete map screen sprites and release PSRAM
+ *
+ */
+static void delete_map_scr_sprites()
+{
+  sprArrow.deleteSprite();
+  map_rot.deleteSprite();
+}
+
+/**
+ * @brief Create a map screen sprites
+ *
+ */
+static void create_map_scr_sprites()
+{
+  // Map Sprite
+  map_rot.createSprite(320, 335);
+  // Arrow Sprite
+  sprArrow.createSprite(16, 16);
+  sprArrow.setColorDepth(16);
+  sprArrow.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
+}
+
+/**
  * @brief Update map event
  *
  * @param event
@@ -128,8 +131,6 @@ static void update_map(lv_event_t *event)
     map_found = false;
     map_spr.deleteSprite();
     map_spr.createSprite(768, 768);
-    map_rot.deleteSprite();
-    map_rot.createSprite(320, 335);
   }
 
   if (!is_map_draw)

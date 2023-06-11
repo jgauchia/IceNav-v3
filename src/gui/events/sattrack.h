@@ -50,7 +50,6 @@ static void update_sattrack(lv_event_t *event)
     create_const_spr(constel_spr);
     create_const_spr(constel_spr_bkg);
 
-/*********************************************************************************************/
 #ifdef MULTI_GNSS
     switch ((int)active_gnss)
     {
