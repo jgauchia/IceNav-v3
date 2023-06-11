@@ -193,13 +193,16 @@ static void update_map(lv_event_t *event)
 #else
     map_spr.pushRotated(&map_rot, 0, TFT_TRANSPARENT);
 #endif
+    map_rot.setTextColor(TFT_WHITE, TFT_WHITE);
 
     map_rot.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
     map_rot.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
-    map_rot.setTextColor(TFT_WHITE, TFT_WHITE);
     map_rot.drawNumber(zoom, 26, 8, &fonts::FreeSansBold9pt7b);
-//    sprArrow.setPivot(8, 8);
+
+    map_rot.fillRectAlpha(0, 342, 70, 32, 95, TFT_BLACK);
+    map_rot.pushImage(0, 346, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
+    map_rot.drawNumber((uint16_t)GPS.speed.kmph(),26,350,&fonts::FreeSansBold9pt7b);
+
     sprArrow.pushRotated(&map_rot, 0, TFT_BLACK);
-   
   }
 }
