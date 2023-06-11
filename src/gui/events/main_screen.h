@@ -92,14 +92,15 @@ static void get_act_tile(lv_event_t *event)
         is_scrolled = true;
         log_d("Free PSRAM: %d", ESP.getFreePsram());
         log_d("Used PSRAM: %d", ESP.getPsramSize() - ESP.getFreePsram());
+    }
+    else
+    {
         if (act_tile == MAP)
         {
             create_map_scr_sprites();
         }
-    }
-
-    else
         is_ready = true;
+    }
 
     lv_obj_t *acttile = lv_tileview_get_tile_act(tiles);
     lv_coord_t tile_x = lv_obj_get_x(acttile) / TFT_WIDTH;
