@@ -97,9 +97,10 @@ static void get_act_tile(lv_event_t *event)
             create_map_scr_sprites();
         }
     }
-
     else
+    {
         is_ready = true;
+    }
 
     lv_obj_t *acttile = lv_tileview_get_tile_act(tiles);
     lv_coord_t tile_x = lv_obj_get_x(acttile) / TFT_WIDTH;

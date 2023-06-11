@@ -112,6 +112,7 @@ static void create_map_scr_sprites()
 {
   // Map Sprite
   map_rot.createSprite(320, 335);
+  map_rot.pushSprite(0, 64);
   // Arrow Sprite
   sprArrow.createSprite(16, 16);
   sprArrow.setColorDepth(16);
