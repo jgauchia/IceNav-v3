@@ -100,6 +100,7 @@ static void delete_map_scr_sprites()
   compass_spr.deleteSprite();
   compass_rot.deleteSprite();
   map_rot.deleteSprite();
+  zoom_spr.deleteSprite();
 }
 
 /**
@@ -115,8 +116,12 @@ static void create_map_scr_sprites()
   sprArrow.createSprite(16, 16);
   sprArrow.setColorDepth(16);
   sprArrow.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
-  // Mini Compass
+  // Zoom Sprite
+  zoom_spr.createSprite(48, 28);
+  zoom_spr.setColorDepth(16);
+  zoom_spr.pushImage(0, 0, 24, 24, (uint16_t *)zoom_ico);
 #ifdef ENABLE_COMPASS
+  // Mini Compass
   compass_spr.createSprite(48, 48);
   compass_spr.setColorDepth(16);
   compass_spr.pushImage(0, 0, 48, 48, (uint16_t *)mini_compass);
@@ -203,6 +208,10 @@ static void update_map(lv_event_t *event)
     map_spr.pushRotated(&map_rot, 0, TFT_TRANSPARENT);
 #endif
 
+    map_rot.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
+    map_rot.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
+    map_rot.setTextColor(TFT_WHITE,TFT_WHITE);
+    map_rot.drawNumber(zoom,26,8,&fonts::FreeSansBold9pt7b);
     sprArrow.setPivot(8, 8);
     sprArrow.pushRotated(&map_rot, 0, TFT_BLACK);
   }

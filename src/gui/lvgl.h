@@ -37,6 +37,7 @@ static lv_timer_t *timer_main;
 #include "gui/img/bruj.c"
 #include "gui/img/navigation.c"
 #include "gui/img/compass.c"
+#include "gui/img/zoom.c"
 #include "gui/screens-lvgl/notify_bar.h"
 #include "gui/screens-lvgl/search_sat_scr.h"
 #include "gui/screens-lvgl/main_scr.h"
