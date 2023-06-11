@@ -188,10 +188,6 @@ static void update_map(lv_event_t *event)
 #ifdef ENABLE_COMPASS
     heading = read_compass();
     map_spr.pushRotated(&map_rot, 360 - heading, TFT_TRANSPARENT);
-
-    sprArrow.setPivot(8, 8);
-    sprArrow.pushRotated(&map_rot, 0, TFT_BLACK);
-    
     map_rot.fillRectAlpha(TFT_WIDTH - 48, 0, 48, 48, 95, TFT_BLACK);
     map_rot.pushImageRotateZoom(TFT_WIDTH - 24, 24, 24, 24, 360 - heading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
 #else
@@ -202,8 +198,8 @@ static void update_map(lv_event_t *event)
     map_rot.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
     map_rot.setTextColor(TFT_WHITE, TFT_WHITE);
     map_rot.drawNumber(zoom, 26, 8, &fonts::FreeSansBold9pt7b);
-    
-    sprArrow.setPivot(8, 8);
+//    sprArrow.setPivot(8, 8);
     sprArrow.pushRotated(&map_rot, 0, TFT_BLACK);
+   
   }
 }
