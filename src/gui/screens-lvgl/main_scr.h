@@ -25,13 +25,6 @@ static lv_obj_t *longitude;
 static lv_obj_t *altitude;
 
 /**
- * @brief Map View Tile screen objects
- *
- */
-static lv_obj_t *zoom_label;
-static lv_obj_t *zoom_slider;
-
-/**
  * @brief Satellite Tracking Tile screen objects
  *
  */
@@ -65,8 +58,8 @@ void create_main_scr()
     compass_tile = lv_tileview_add_tile(tiles, 0, 0, LV_DIR_RIGHT);
     map_tile = lv_tileview_add_tile(tiles, 1, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
     sat_track_tile = lv_tileview_add_tile(tiles, 2, 0, LV_DIR_LEFT);
-    lv_obj_set_size(tiles, TFT_WIDTH, TFT_HEIGHT - 84);
-    lv_obj_set_pos(tiles, 0, 20);
+    lv_obj_set_size(tiles, TFT_WIDTH, TFT_HEIGHT - 89);
+    lv_obj_set_pos(tiles, 0, 25);
     // Main Screen Events
     lv_obj_add_event_cb(tiles, get_act_tile, LV_EVENT_SCROLL_END, NULL);
     lv_obj_add_event_cb(tiles, scroll_tile, LV_EVENT_SCROLL_BEGIN, NULL);
@@ -120,12 +113,6 @@ void create_main_scr()
     lv_obj_add_event_cb(latitude, update_latitude, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(longitude, update_longitude, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(altitude, update_altitude, LV_EVENT_VALUE_CHANGED, NULL);
-
-    // Map Tile
-    zoom_label = lv_label_create(map_tile);
-    lv_obj_set_style_text_font(zoom_label, &lv_font_montserrat_20, 0);
-    lv_label_set_text_fmt(zoom_label, "ZOOM: %2d", DEF_ZOOM);
-    lv_obj_align(zoom_label, LV_ALIGN_TOP_MID, 0, 10);
 
     // Map Tile Events
     lv_obj_add_event_cb(map_tile, update_map, LV_EVENT_REFRESH, NULL);

@@ -52,12 +52,12 @@ void disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p)
     {
         tft.startWrite();
         // Map Tile, refresh partial screen to avoid flickering when scroll tile view
-        if (act_tile == MAP && is_scrolled)
-        {
-            if ((area->y2 - area->y1 + 1) < 64)
-                tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t *)&color_p->full);
-        }
-        else
+        // if (act_tile == MAP && is_scrolled)
+        // {
+        //     if ((area->y2 - area->y1 + 1) < 20)
+        //         tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t *)&color_p->full);
+        // }
+        // else
         {
             tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t *)&color_p->full);
         }
