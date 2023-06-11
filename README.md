@@ -4,11 +4,15 @@
 ![icenav_logo](images/icenav_logo.png)
 
 ESP32 Based GPS Navigator.
+* Note: Under development
 
-## Specifications
+## Screenshots
+<img src="images/screenshot_1.png" width="25%" height="25%"><img src="images/screenshot_2.png" width="25%" height="25%"><img src="images/screenshot_3.png" width="25%" height="25%"><img src="images/screenshot_4.png" width="25%" height="25%">
+
+## Specifications Customboard ESP32
 
 * ESP32 WROVER with 4Mb PSRAM / 16 Mb Flash
-* ILI9488 TFT (320x480)
+* ILI9488 TFT (320x480) - SPI Mode
 * SD/MicroSD reader
 * HCM5883L Magnetometer
 * BME280   Temperature / Humidity sensor
@@ -16,10 +20,17 @@ ESP32 Based GPS Navigator.
 * HT1818Z3G5L GPS Module (AT6558D)
 * LVGL UI + LovyanGFX
 
+## Specifications Makerfabs ESP32-S3
+
+* ESP32-S3-WROOM-1 with 2Mb PSRAM / 16 Mb Flash
+* ILI9488 TFT (320x480) - 16bit Parallel Mode
+* MicroSD reader
+* FT6236 Capactive Touch Panel Driver
+* LVGL UI + LovyanGFX
 
 #
 
-# Wiring
+## Wiring
 
        Pinout (ESP32-WROVER)
        HCM5883L      BME280        MPU6050       ILI9488        SD CARD        VBAT             GPS
@@ -97,7 +108,7 @@ If the GPS module supports multiple GNSS, uncomment the following flag in the pl
 
 ## Credits
 
-* Added support to Makerfabs ESP32-S3 Parallel TFT with Touch 3.5" ILI9488 (thanks to @hpsaturn)
+* Added support to [Makerfabs ESP32-S3 Parallel TFT with Touch 3.5" ILI9488](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) (thanks to @hpsaturn)
 * Improved documentation (thanks to @hpsaturn)
 * Improved auto mainScreen selection from env variable preset (thanks to @hpsaturn)
 * Improved getLat getLon from environment variables (thanks to @hpsaturn)
