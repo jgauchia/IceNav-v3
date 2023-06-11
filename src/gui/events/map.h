@@ -19,6 +19,7 @@ MapTile RoundMapTile;
  */
 ScreenCoord NavArrow_position;
 
+/**
  * @brief Update zoom value
  *
  * @param event
@@ -98,6 +99,8 @@ static double getLon()
 static void delete_map_scr_sprites()
 {
   sprArrow.deleteSprite();
+  compass_spr.deleteSprite();
+  compass_rot.deleteSprite();
   map_rot.deleteSprite();
 }
 
@@ -113,6 +116,12 @@ static void create_map_scr_sprites()
   sprArrow.createSprite(16, 16);
   sprArrow.setColorDepth(16);
   sprArrow.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
+  // Mini Compass
+#ifdef ENABLE_COMPASS
+  compass_spr.createSprite(48, 48);
+  compass_spr.setColorDepth(16);
+  compass_spr.pushImage(0, 0, 48, 48, (uint16_t *)mini_compass);
+#endif
 }
 
 /**
@@ -170,19 +179,6 @@ static void update_map(lv_event_t *event)
         }
       }
     }
-
-    // Arrow Sprite
-    sprArrow.deleteSprite();
-    sprArrow.createSprite(16, 16);
-    sprArrow.setColorDepth(16);
-    sprArrow.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
-
-#ifdef ENABLE_COMPASS
-    compass_spr.deleteSprite();
-    compass_spr.createSprite(48, 48);
-    compass_spr.setColorDepth(16);
-    compass_spr.pushImage(0, 0, 48, 48, (uint16_t *)mini_compass);
-#endif
 
     is_map_draw = true;
   }
