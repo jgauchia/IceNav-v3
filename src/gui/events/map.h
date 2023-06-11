@@ -20,19 +20,6 @@ MapTile RoundMapTile;
 ScreenCoord NavArrow_position;
 
 /**
- * @brief Sprite for Navigation Arrow in map tile
- *
- */
-TFT_eSprite sprArrow = TFT_eSprite(&tft);
-
-/**
- * @brief Double Buffering Sprites for Map Tile
- *
- */
-TFT_eSprite map_spr = TFT_eSprite(&tft);
-TFT_eSprite map_rot = TFT_eSprite(&tft);
-
-/**
  * @brief Update zoom value
  *
  * @param event
@@ -53,7 +40,6 @@ static void get_zoom_value(lv_event_t *event)
       if (zoom >= MIN_ZOOM && zoom < MAX_ZOOM)
       {
         zoom++;
-        lv_label_set_text_fmt(zoom_label, "ZOOM: %2d", zoom);
         lv_event_send(map_tile, LV_EVENT_REFRESH, NULL);
       }
       break;
@@ -61,7 +47,6 @@ static void get_zoom_value(lv_event_t *event)
       if (zoom <= MAX_ZOOM && zoom > MIN_ZOOM)
       {
         zoom--;
-        lv_label_set_text_fmt(zoom_label, "ZOOM: %2d", zoom);
         lv_event_send(map_tile, LV_EVENT_REFRESH, NULL);
       }
       break;
@@ -106,6 +91,39 @@ static double getLon()
 }
 
 /**
+ * @brief Delete map screen sprites and release PSRAM
+ *
+ */
+static void delete_map_scr_sprites()
+{
+  sprArrow.deleteSprite();
+  compass_spr.deleteSprite();
+  compass_rot.deleteSprite();
+  map_rot.deleteSprite();
+}
+
+/**
+ * @brief Create a map screen sprites
+ *
+ */
+static void create_map_scr_sprites()
+{
+  // Map Sprite
+  map_rot.createSprite(320, 374);
+  map_rot.pushSprite(0, 25);
+  // Arrow Sprite
+  sprArrow.createSprite(16, 16);
+  sprArrow.setColorDepth(16);
+  sprArrow.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
+  // Mini Compass
+#ifdef ENABLE_COMPASS
+  compass_spr.createSprite(48, 48);
+  compass_spr.setColorDepth(16);
+  compass_spr.pushImage(0, 0, 48, 48, (uint16_t *)mini_compass);
+#endif
+}
+
+/**
  * @brief Update map event
  *
  * @param event
@@ -119,10 +137,8 @@ static void update_map(lv_event_t *event)
   {
     is_map_draw = false;
     map_found = false;
-    map_spr.deleteSprite();
-    map_spr.createSprite(768, 768);
-    map_rot.deleteSprite();
-    map_rot.createSprite(320, 335);
+    // map_spr.deleteSprite();
+    // map_spr.createSprite(768, 768);
   }
 
   if (!is_map_draw)
@@ -135,8 +151,6 @@ static void update_map(lv_event_t *event)
     log_v("TILE: %s", CurrentMapTile.file);
     log_v("ZOOM: %d", zoom);
 
-    //vTaskDelay(10);
-    
     // Center Tile
     map_found = map_spr.drawPngFile(SD, CurrentMapTile.file, 256, 256);
 
@@ -165,12 +179,6 @@ static void update_map(lv_event_t *event)
       }
     }
 
-    // Arrow Sprite
-    sprArrow.deleteSprite();
-    sprArrow.createSprite(16, 16);
-    sprArrow.setColorDepth(16);
-    sprArrow.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
-
     is_map_draw = true;
   }
 
@@ -178,11 +186,19 @@ static void update_map(lv_event_t *event)
   {
     NavArrow_position = coord_to_scr_pos(getLon(), getLat(), zoom);
     map_spr.setPivot(tileSize + NavArrow_position.posx, tileSize + NavArrow_position.posy);
-    map_rot.pushSprite(0, 64);
+    map_rot.pushSprite(0, 25);
 
 #ifdef ENABLE_COMPASS
     heading = read_compass();
     map_spr.pushRotated(&map_rot, 360 - heading, TFT_TRANSPARENT);
+    sprArrow.setPivot(8, 8);
+    sprArrow.pushRotated(&map_rot, 0, TFT_BLACK);
+
+    compass_rot.deleteSprite();
+    compass_rot.createSprite(48, 48);
+    compass_rot.setColorDepth(16);
+    compass_spr.pushRotated(&compass_rot, 360 - heading, TFT_BLACK);
+    compass_rot.pushSprite(&map_rot, 264, 10, TFT_BLACK);
 #else
     map_spr.pushRotated(&map_rot, 0, TFT_TRANSPARENT);
 #endif
