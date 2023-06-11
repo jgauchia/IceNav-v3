@@ -72,8 +72,11 @@ void setup()
   init_gps();
   init_ADC();
 
+  map_spr.deleteSprite();
+  map_spr.createSprite(768, 768);
+  
   splash_scr();
-  //init_tasks();
+  // init_tasks();
 
 #ifdef DEFAULT_LAT
   lv_scr_load(mainScreen);

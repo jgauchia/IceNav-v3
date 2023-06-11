@@ -139,8 +139,8 @@ static void update_map(lv_event_t *event)
   {
     is_map_draw = false;
     map_found = false;
-    map_spr.deleteSprite();
-    map_spr.createSprite(768, 768);
+    // map_spr.deleteSprite();
+    // map_spr.createSprite(768, 768);
   }
 
   if (!is_map_draw)
