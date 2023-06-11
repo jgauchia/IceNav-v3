@@ -37,13 +37,13 @@ static lv_obj_t *temp;
 void create_notify_bar()
 {
     battery = lv_label_create(lv_scr_act());
-    lv_obj_set_size(battery, 20, 15);
+    lv_obj_set_size(battery, 20, 10);
     lv_obj_set_pos(battery, TFT_WIDTH - 25, 2);
     lv_label_set_text(battery, LV_SYMBOL_BATTERY_EMPTY);
     lv_obj_add_event_cb(battery, update_batt, LV_EVENT_VALUE_CHANGED, NULL);
 
     gps_fix_mode = lv_label_create(lv_scr_act());
-    lv_obj_set_size(gps_fix_mode, 40, 15);
+    lv_obj_set_size(gps_fix_mode, 40, 10);
     lv_obj_set_pos(gps_fix_mode, TFT_WIDTH - 45, 5);
     lv_obj_set_style_text_font(gps_fix_mode, &lv_font_montserrat_10, 0);
     lv_label_set_text(gps_fix_mode, "--");
@@ -51,7 +51,7 @@ void create_notify_bar()
 
     gps_fix = lv_led_create(lv_scr_act());
     lv_led_set_color(gps_fix, lv_palette_main(LV_PALETTE_RED));
-    lv_obj_set_size(gps_fix, 10, 10);
+    lv_obj_set_size(gps_fix, 7, 7);
     lv_obj_set_pos(gps_fix, TFT_WIDTH - 60, 5);
     lv_led_off(gps_fix);
 
@@ -70,7 +70,7 @@ void create_notify_bar()
 
 #ifdef ENABLE_BME
     temp = lv_label_create(lv_scr_act());
-    lv_obj_set_size(temp, 50, 15);
+    lv_obj_set_size(temp, 50, 10);
     lv_obj_set_pos(temp, TFT_WIDTH - 145, 2);
     lv_label_set_text(temp, "--\xC2\xB0");
 #endif
