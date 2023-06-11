@@ -105,17 +105,8 @@ void init_LVGL()
     lv_port_spiffs_fs_init();
     // lv_port_sd_fs_init();
 
-    if (psramFound())
-    {
-        static lv_color_t *buf1 = (lv_color_t *)ps_malloc((TFT_WIDTH * TFT_HEIGHT) * sizeof(lv_color_t));
-        // static lv_color_t *buf2 = (lv_color_t *)ps_malloc((TFT_WIDTH * TFT_HEIGHT) * sizeof(lv_color_t));
-        lv_disp_draw_buf_init(&draw_buf, buf1, NULL, (TFT_WIDTH * TFT_HEIGHT) * sizeof(lv_color_t));
-    }
-    else
-    {
-        static lv_color_t buf_norm[TFT_WIDTH * TFT_HEIGHT / 10];
-        lv_disp_draw_buf_init(&draw_buf, buf_norm, NULL, TFT_WIDTH * TFT_HEIGHT / 10);
-    }
+    static lv_color_t *buf1 = (lv_color_t *)ps_malloc((TFT_WIDTH * TFT_HEIGHT) * 2);
+    lv_disp_draw_buf_init(&draw_buf, buf1, NULL, (TFT_WIDTH * TFT_HEIGHT) * 2);
 
     lv_disp_drv_init(&def_drv);
     def_drv.hor_res = screenWidth;

@@ -6,6 +6,9 @@
  * @date 2023-06-04
  */
 
+static void delete_map_scr_sprites();
+static void create_map_scr_sprites();
+
 /**
  * @brief Flag to indicate when maps needs to be draw
  *
@@ -35,6 +38,26 @@ bool is_ready = false;
  *
  */
 MapTile OldMapTile = {"", 0, 0, 0};
+
+/**
+ * @brief Sprite for Navigation Arrow in map tile
+ *
+ */
+TFT_eSprite sprArrow = TFT_eSprite(&tft);
+
+/**
+ * @brief Double Buffering Sprites for Map Tile
+ *
+ */
+TFT_eSprite map_spr = TFT_eSprite(&tft);
+TFT_eSprite map_rot = TFT_eSprite(&tft);
+
+/**
+ * @brief Mini Compass sprite
+ *
+ */
+TFT_eSprite compass_spr = TFT_eSprite(&tft);
+TFT_eSprite compass_rot = TFT_eSprite(&tft);
 
 /**
  * @brief Zoom Levels and Default zoom
@@ -68,7 +91,13 @@ static void get_act_tile(lv_event_t *event)
     {
         is_scrolled = true;
         log_d("Free PSRAM: %d", ESP.getFreePsram());
+        log_d("Used PSRAM: %d", ESP.getPsramSize() - ESP.getFreePsram());
+        if (act_tile == MAP)
+        {
+            create_map_scr_sprites();
+        }
     }
+
     else
         is_ready = true;
 
@@ -86,13 +115,16 @@ static void scroll_tile(lv_event_t *event)
 {
     is_scrolled = false;
     is_ready = false;
+
+    delete_map_scr_sprites();
+    delete_sat_info_sprites();
 }
 
 /**
  * @brief Update Main Screen
  *
  */
-void update_main_screen(lv_timer_t *t)
+static void update_main_screen(lv_timer_t *t)
 {
     if (is_scrolled)
     {
