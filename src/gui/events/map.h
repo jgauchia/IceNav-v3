@@ -135,7 +135,7 @@ static void update_map(lv_event_t *event)
     log_v("TILE: %s", CurrentMapTile.file);
     log_v("ZOOM: %d", zoom);
 
-    vTaskDelay(10);
+    //vTaskDelay(10);
     
     // Center Tile
     map_found = map_spr.drawPngFile(SD, CurrentMapTile.file, 256, 256);
