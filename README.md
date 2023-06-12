@@ -9,10 +9,10 @@ ESP32 Based GPS Navigator.
 ## Screenshots
 <img src="images/screenshot_1.png" width="25%" height="25%"><img src="images/screenshot_2.png" width="25%" height="25%"><img src="images/screenshot_3.png" width="25%" height="25%"><img src="images/screenshot_4.png" width="25%" height="25%">
 
-## Specifications
+## Specifications Customboard ESP32
 
 * ESP32 WROVER with 4Mb PSRAM / 16 Mb Flash
-* ILI9488 TFT (320x480)
+* ILI9488 TFT (320x480) - SPI Mode
 * SD/MicroSD reader
 * HCM5883L Magnetometer
 * BME280   Temperature / Humidity sensor
@@ -20,6 +20,13 @@ ESP32 Based GPS Navigator.
 * HT1818Z3G5L GPS Module (AT6558D)
 * LVGL UI + LovyanGFX
 
+## Specifications Makerfabs ESP32-S3
+
+* ESP32-S3-WROOM-1 with 2Mb PSRAM / 16 Mb Flash
+* ILI9488 TFT (320x480) - 16bit Parallel Mode
+* MicroSD reader
+* FT6236 Capactive Touch Panel Driver
+* LVGL UI + LovyanGFX
 
 #
 

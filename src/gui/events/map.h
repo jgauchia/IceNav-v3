@@ -97,9 +97,8 @@ static double getLon()
 static void delete_map_scr_sprites()
 {
   sprArrow.deleteSprite();
-  compass_spr.deleteSprite();
-  compass_rot.deleteSprite();
   map_rot.deleteSprite();
+  zoom_spr.deleteSprite();
 }
 
 /**
@@ -115,12 +114,10 @@ static void create_map_scr_sprites()
   sprArrow.createSprite(16, 16);
   sprArrow.setColorDepth(16);
   sprArrow.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
-  // Mini Compass
-#ifdef ENABLE_COMPASS
-  compass_spr.createSprite(48, 48);
-  compass_spr.setColorDepth(16);
-  compass_spr.pushImage(0, 0, 48, 48, (uint16_t *)mini_compass);
-#endif
+  // Zoom Sprite
+  zoom_spr.createSprite(48, 28);
+  zoom_spr.setColorDepth(16);
+  zoom_spr.pushImage(0, 0, 24, 24, (uint16_t *)zoom_ico);
 }
 
 /**
@@ -191,19 +188,21 @@ static void update_map(lv_event_t *event)
 #ifdef ENABLE_COMPASS
     heading = read_compass();
     map_spr.pushRotated(&map_rot, 360 - heading, TFT_TRANSPARENT);
-    sprArrow.setPivot(8, 8);
-    sprArrow.pushRotated(&map_rot, 0, TFT_BLACK);
-
-    compass_rot.deleteSprite();
-    compass_rot.createSprite(48, 48);
-    compass_rot.setColorDepth(16);
-    compass_spr.pushRotated(&compass_rot, 360 - heading, TFT_BLACK);
-    compass_rot.pushSprite(&map_rot, 264, 10, TFT_BLACK);
+    map_rot.fillRectAlpha(TFT_WIDTH - 48, 0, 48, 48, 95, TFT_BLACK);
+    map_rot.pushImageRotateZoom(TFT_WIDTH - 24, 24, 24, 24, 360 - heading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
 #else
     map_spr.pushRotated(&map_rot, 0, TFT_TRANSPARENT);
 #endif
+    map_rot.setTextColor(TFT_WHITE, TFT_WHITE);
 
-    sprArrow.setPivot(8, 8);
+    map_rot.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
+    map_rot.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
+    map_rot.drawNumber(zoom, 26, 8, &fonts::FreeSansBold9pt7b);
+
+    map_rot.fillRectAlpha(0, 342, 70, 32, 95, TFT_BLACK);
+    map_rot.pushImage(0, 346, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
+    map_rot.drawNumber((uint16_t)GPS.speed.kmph(),26,350,&fonts::FreeSansBold9pt7b);
+
     sprArrow.pushRotated(&map_rot, 0, TFT_BLACK);
   }
 }
