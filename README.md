@@ -1,6 +1,5 @@
 [![PlatformIO](https://github.com/jgauchia/IceNav-v3/workflows/PlatformIO/badge.svg)](https://github.com/jgauchia/IceNav-v3/actions/) ![ViewCount](https://views.whatilearened.today/views/github/jgauchia/IceNav-v3.svg)
 
-
 ![icenav_logo](images/icenav_logo.png)
 
 ESP32 Based GPS Navigator.
@@ -9,7 +8,11 @@ ESP32 Based GPS Navigator.
 ## Screenshots
 <img src="images/screenshot_1.png" width="25%" height="25%"><img src="images/screenshot_2.png" width="25%" height="25%"><img src="images/screenshot_3.png" width="25%" height="25%"><img src="images/screenshot_4.png" width="25%" height="25%">
 
-## Specifications Customboard ESP32
+## Specifications
+
+For the moment we have two Icenav models, with the next hardware setup and specs:
+
+### Customboard ESP32 setup
 
 * ESP32 WROVER with 4Mb PSRAM / 16 Mb Flash
 * ILI9488 TFT (320x480) - SPI Mode
@@ -20,15 +23,17 @@ ESP32 Based GPS Navigator.
 * HT1818Z3G5L GPS Module (AT6558D)
 * LVGL UI + LovyanGFX
 
-## Specifications Makerfabs ESP32-S3
+### Makerfabs ESP32-S3 setup
 
 * ESP32-S3-WROOM-1 with 2Mb PSRAM / 16 Mb Flash
 * ILI9488 TFT (320x480) - 16bit Parallel Mode
 * MicroSD reader
 * FT6236 Capactive Touch Panel Driver
+* HT1818Z3G5L GPS Module (AT6558D)
+* MPU9250 (Compass+IMU)
 * LVGL UI + LovyanGFX
 
-#
+---
 
 ## Wiring
 
@@ -47,13 +52,14 @@ ESP32 Based GPS Navigator.
                                                  LED  GPIO33
                                                  TCH  GPIO18
                                                  TIRQ GPIO5
+
        Pinout (ESP32S3-MakerFabs)
-       GPS (HT1612Z3M3L)
+       GPS (HT1612Z3M3L)  MPU9250
        -----------------------------------------------------------------------------------------------------
-       VCC 3,3v
-       GND GND
-       TX  GPIO17
-       RX  GPIO18
+       VCC 3,3v           VCC 3.3v
+       GND GND            GND GND
+       TX  GPIO17         SDA GPIO38
+       RX  GPIO18         SCL GPIO39
 
 ## SD Map Tile File structure
 
@@ -100,6 +106,8 @@ export ICENAV3_LON=13.4049
 pio run --target upload
 ```
 
+Note: For production version don't forget unset these environment variables.  
+
 If the GPS module supports multiple GNSS, uncomment the following flag in the platformio.ini file under the build_flags section
 
 ```bash
@@ -108,8 +116,7 @@ If the GPS module supports multiple GNSS, uncomment the following flag in the pl
 
 ## Credits
 
-* Added support to [Makerfabs ESP32-S3 Parallel TFT with Touch 3.5" ILI9488](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) (thanks to @hpsaturn)
-* Added initial suport for IMU MPU9250 (thanks to @hpsaturn)
-* Improved documentation (thanks to @hpsaturn)
-* Improved auto mainScreen selection from env variable preset (thanks to @hpsaturn)
+* Added support to [Makerfabs ESP32-S3 Parallel TFT with Touch 3.5" ILI9488](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) (thanks to [@hpsaturn](https://github.com/hpsaturn))
+* Improved documentation (thanks to [@hpsaturn](https://github.com/hpsaturn))
+* Improved auto mainScreen selection from env variable preset (thanks to [@hpsaturn](https://github.com/hpsaturn))
 * Improved getLat getLon from environment variables (thanks to @hpsaturn)
