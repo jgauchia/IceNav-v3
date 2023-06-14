@@ -36,8 +36,8 @@ float declinationAngle = 0.22;
 int heading = 0;
 float heading_smooth = 0.0;
 float heading_previous = 0.0;
-#define SMOOTH_FACTOR 0.35
-#define SMOOTH_PREVIOUS_FACTOR 0.65
+#define SMOOTH_FACTOR 0.40
+#define SMOOTH_PREVIOUS_FACTOR 0.60
 
 /**
  * @brief Read compass data
