@@ -2,8 +2,8 @@
  * @file main_screen.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Main screen events
- * @version 0.1.5
- * @date 2023-06-04
+ * @version 0.1.6
+ * @date 2023-06-14
  */
 
 static void delete_map_scr_sprites();
