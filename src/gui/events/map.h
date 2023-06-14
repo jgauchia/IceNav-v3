@@ -109,7 +109,7 @@ static void create_map_scr_sprites()
 {
   // Map Sprite
   map_rot.createSprite(320, 374);
-  map_rot.pushSprite(0, 25);
+  map_rot.pushSprite(0, 27);
   // Arrow Sprite
   sprArrow.createSprite(16, 16);
   sprArrow.setColorDepth(16);
@@ -183,7 +183,7 @@ static void update_map(lv_event_t *event)
   {
     NavArrow_position = coord_to_scr_pos(getLon(), getLat(), zoom);
     map_spr.setPivot(tileSize + NavArrow_position.posx, tileSize + NavArrow_position.posy);
-    map_rot.pushSprite(0, 25);
+    map_rot.pushSprite(0, 27);
 
 #ifdef ENABLE_COMPASS
     heading = read_compass();
@@ -201,7 +201,7 @@ static void update_map(lv_event_t *event)
 
     map_rot.fillRectAlpha(0, 342, 70, 32, 95, TFT_BLACK);
     map_rot.pushImage(0, 346, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
-    map_rot.drawNumber((uint16_t)GPS.speed.kmph(),26,350,&fonts::FreeSansBold9pt7b);
+    map_rot.drawNumber((uint16_t)GPS.speed.kmph(), 26, 350, &fonts::FreeSansBold9pt7b);
 
     sprArrow.pushRotated(&map_rot, 0, TFT_BLACK);
   }
