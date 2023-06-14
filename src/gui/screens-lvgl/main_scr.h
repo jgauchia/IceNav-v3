@@ -23,6 +23,7 @@ static lv_obj_t *compass_img;
 static lv_obj_t *latitude;
 static lv_obj_t *longitude;
 static lv_obj_t *altitude;
+static lv_obj_t *speed_label;
 
 /**
  * @brief Satellite Tracking Tile screen objects
@@ -90,6 +91,16 @@ void create_main_scr()
     lv_img_set_src(altit_img, "F:/altit.bin");
     lv_obj_set_pos(altit_img, 5, 50);
 
+    lv_obj_t *speed_img = lv_img_create(compass_tile);
+    lv_img_set_src(speed_img, "F:/speed.bin");
+    lv_obj_set_pos(speed_img, 15, 95);
+
+    speed_label = lv_label_create(compass_tile);
+    lv_obj_set_size(speed_label, 200, 20);
+    lv_obj_set_style_text_font(speed_label, &lv_font_montserrat_24, 0);
+    lv_label_set_text(speed_label, "0 Km/h");
+    lv_obj_set_pos(speed_label, 60, 100);
+
     latitude = lv_label_create(compass_tile);
     lv_obj_set_size(latitude, 200, 20);
     lv_obj_set_style_text_font(latitude, &lv_font_montserrat_16, 0);
@@ -113,6 +124,7 @@ void create_main_scr()
     lv_obj_add_event_cb(latitude, update_latitude, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(longitude, update_longitude, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(altitude, update_altitude, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(speed_label,update_speed, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Map Tile Events
     lv_obj_add_event_cb(map_tile, update_map, LV_EVENT_REFRESH, NULL);

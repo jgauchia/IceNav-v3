@@ -54,7 +54,7 @@ TFT_eSprite map_rot = TFT_eSprite(&tft);
 
 /**
  * @brief Zoom sprite
- * 
+ *
  */
 TFT_eSprite zoom_spr = TFT_eSprite(&tft);
 
@@ -145,6 +145,10 @@ static void update_main_screen(lv_timer_t *t)
             {
                 lv_event_send(altitude, LV_EVENT_VALUE_CHANGED, NULL);
             }
+
+            if (GPS.speed.isUpdated())
+                lv_event_send(speed_label, LV_EVENT_VALUE_CHANGED, NULL);
+
             break;
 
         case MAP:
