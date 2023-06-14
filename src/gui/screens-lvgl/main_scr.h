@@ -89,7 +89,7 @@ void create_main_scr()
 
     lv_obj_t *altit_img = lv_img_create(compass_tile);
     lv_img_set_src(altit_img, "F:/altit.bin");
-    lv_obj_set_pos(altit_img, 5, 50);
+    lv_obj_set_pos(altit_img, 15, 55);
 
     lv_obj_t *speed_img = lv_img_create(compass_tile);
     lv_img_set_src(speed_img, "F:/speed.bin");
@@ -117,7 +117,7 @@ void create_main_scr()
     lv_obj_set_size(altitude, 200, 20);
     lv_obj_set_style_text_font(altitude, &lv_font_montserrat_24, 0);
     lv_label_set_text(altitude, "0000 m.");
-    lv_obj_set_pos(altitude, 60, 70);
+    lv_obj_set_pos(altitude, 60, 62);
 
     // Compass Tile Events
     lv_obj_add_event_cb(compass_heading, update_heading, LV_EVENT_VALUE_CHANGED, NULL);
