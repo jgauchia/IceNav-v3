@@ -29,7 +29,7 @@ For the moment we have two Icenav models, with the next hardware setup and specs
 * ILI9488 TFT (320x480) - 16bit Parallel Mode
 * MicroSD reader
 * FT6236 Capactive Touch Panel Driver
-* HT1818Z3G5L GPS Module (AT6558D)
+* HT1612Z3M3L GPS Module (AT6558D)
 * MPU9250 (Compass+IMU)
 * LVGL UI + LovyanGFX
 
