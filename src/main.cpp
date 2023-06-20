@@ -81,8 +81,7 @@ void setup()
   // init_tasks();
 
 #ifdef DEFAULT_LAT
-  lv_scr_load(mainScreen);
-  create_notify_bar();
+  load_main_screen();
 #else
   lv_scr_load(searchSat);
 #endif

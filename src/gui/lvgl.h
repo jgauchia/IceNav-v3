@@ -40,6 +40,7 @@ static lv_timer_t *timer_main;
 #include "gui/img/zoom.c"
 #include "gui/img/speed.c"
 #include "gui/screens-lvgl/notify_bar.h"
+#include "gui/screens-lvgl/button_bar.h"
 #include "gui/screens-lvgl/search_sat_scr.h"
 #include "gui/screens-lvgl/main_scr.h"
 #include "gui/screens-lvgl/splash_scr.h"
@@ -132,4 +133,15 @@ void init_LVGL()
     //  Create Screens //
     create_search_sat_scr();
     create_main_scr();
+}
+
+/**
+ * @brief Load GPS Main Screen
+ * 
+ */
+void load_main_screen()
+{
+    lv_scr_load(mainScreen);
+    create_button_bar_scr();
+    create_notify_bar();
 }
