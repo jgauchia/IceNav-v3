@@ -61,6 +61,10 @@ void create_main_scr()
     sat_track_tile = lv_tileview_add_tile(tiles, 2, 0, LV_DIR_LEFT);
     lv_obj_set_size(tiles, TFT_WIDTH, TFT_HEIGHT - 89);
     lv_obj_set_pos(tiles, 0, 25);
+    static lv_style_t style_scroll;
+    lv_style_init(&style_scroll);
+    lv_style_set_bg_color(&style_scroll, lv_color_hex(0xFFFFFF));
+    lv_obj_add_style(tiles, &style_scroll, LV_PART_SCROLLBAR);
     // Main Screen Events
     lv_obj_add_event_cb(tiles, get_act_tile, LV_EVENT_SCROLL_END, NULL);
     lv_obj_add_event_cb(tiles, scroll_tile, LV_EVENT_SCROLL_BEGIN, NULL);
@@ -124,7 +128,7 @@ void create_main_scr()
     lv_obj_add_event_cb(latitude, update_latitude, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(longitude, update_longitude, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(altitude, update_altitude, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_obj_add_event_cb(speed_label,update_speed, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(speed_label, update_speed, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Map Tile Events
     lv_obj_add_event_cb(map_tile, update_map, LV_EVENT_REFRESH, NULL);
