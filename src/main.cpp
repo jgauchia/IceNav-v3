@@ -2,12 +2,12 @@
  * @file main.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ESP32 GPS Naviation main code
- * @version 0.1.5
- * @date 2023-06-04
+ * @version 0.1.6
+ * @date 2023-06-14
  */
 
 #define CALIBRATION_FILE "/TouchCalData1"
-#define REPEAT_CAL false
+bool REPEAT_CAL = false;
 
 #include <Arduino.h>
 #include <stdint.h>
@@ -50,12 +50,17 @@ unsigned long millis_actual = 0;
  */
 void setup()
 {
+#ifdef MAKERF_ESP32S3
+  Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
+  Wire.begin();
+#endif
 
 #ifdef ENABLE_BME
   bme.begin(BME_ADDRESS);
 #endif
+
 #ifdef ENABLE_COMPASS
-  compass.begin();
+  init_compass();
 #endif
 
 #ifdef DEBUG
@@ -64,16 +69,16 @@ void setup()
   powerOn();
   init_sd();
   init_SPIFFS();
-#ifdef MAKERF_ESP32S3
-  Wire.end();
-#endif
   init_LVGL();
   init_tft();
   init_gps();
   init_ADC();
 
+  map_spr.deleteSprite();
+  map_spr.createSprite(768, 768);
+
   splash_scr();
-  //init_tasks();
+  // init_tasks();
 
 #ifdef DEFAULT_LAT
   lv_scr_load(mainScreen);

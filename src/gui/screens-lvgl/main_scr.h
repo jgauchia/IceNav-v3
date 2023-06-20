@@ -2,8 +2,8 @@
  * @file main_scr.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Main Screen
- * @version 0.1.5
- * @date 2023-06-04
+ * @version 0.1.6
+ * @date 2023-06-14
  */
 
 /**
@@ -23,13 +23,7 @@ static lv_obj_t *compass_img;
 static lv_obj_t *latitude;
 static lv_obj_t *longitude;
 static lv_obj_t *altitude;
-
-/**
- * @brief Map View Tile screen objects
- *
- */
-static lv_obj_t *zoom_label;
-static lv_obj_t *zoom_slider;
+static lv_obj_t *speed_label;
 
 /**
  * @brief Satellite Tracking Tile screen objects
@@ -65,8 +59,8 @@ void create_main_scr()
     compass_tile = lv_tileview_add_tile(tiles, 0, 0, LV_DIR_RIGHT);
     map_tile = lv_tileview_add_tile(tiles, 1, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
     sat_track_tile = lv_tileview_add_tile(tiles, 2, 0, LV_DIR_LEFT);
-    lv_obj_set_size(tiles, TFT_WIDTH, TFT_HEIGHT - 84);
-    lv_obj_set_pos(tiles, 0, 20);
+    lv_obj_set_size(tiles, TFT_WIDTH, TFT_HEIGHT - 89);
+    lv_obj_set_pos(tiles, 0, 25);
     // Main Screen Events
     lv_obj_add_event_cb(tiles, get_act_tile, LV_EVENT_SCROLL_END, NULL);
     lv_obj_add_event_cb(tiles, scroll_tile, LV_EVENT_SCROLL_BEGIN, NULL);
@@ -75,18 +69,18 @@ void create_main_scr()
     compass_heading = lv_label_create(compass_tile);
     lv_obj_set_size(compass_heading, 150, 48);
     lv_obj_set_align(compass_heading, LV_ALIGN_CENTER);
-    lv_obj_set_y(compass_heading, 35);
+    lv_obj_set_y(compass_heading, 95);
     lv_obj_set_style_text_font(compass_heading, &lv_font_montserrat_48, 0);
     lv_label_set_text(compass_heading, "-----\xC2\xB0");
 
     lv_obj_t *arrow_img = lv_img_create(compass_tile);
     lv_img_set_src(arrow_img, "F:/arrow.bin");
-    lv_obj_align(arrow_img, LV_ALIGN_CENTER, 0, -20);
+    lv_obj_align(arrow_img, LV_ALIGN_CENTER, 0, 40);
 
     LV_IMG_DECLARE(bruj);
     compass_img = lv_img_create(compass_tile);
     lv_img_set_src(compass_img, &bruj);
-    lv_obj_align(compass_img, LV_ALIGN_CENTER, 0, 15);
+    lv_obj_align(compass_img, LV_ALIGN_CENTER, 0, 75);
     lv_img_set_pivot(compass_img, 100, 100);
 
     lv_obj_t *pos_img = lv_img_create(compass_tile);
@@ -95,7 +89,17 @@ void create_main_scr()
 
     lv_obj_t *altit_img = lv_img_create(compass_tile);
     lv_img_set_src(altit_img, "F:/altit.bin");
-    lv_obj_set_pos(altit_img, 5, 54);
+    lv_obj_set_pos(altit_img, 15, 55);
+
+    lv_obj_t *speed_img = lv_img_create(compass_tile);
+    lv_img_set_src(speed_img, "F:/speed.bin");
+    lv_obj_set_pos(speed_img, 15, 95);
+
+    speed_label = lv_label_create(compass_tile);
+    lv_obj_set_size(speed_label, 200, 20);
+    lv_obj_set_style_text_font(speed_label, &lv_font_montserrat_24, 0);
+    lv_label_set_text(speed_label, "0 Km/h");
+    lv_obj_set_pos(speed_label, 60, 100);
 
     latitude = lv_label_create(compass_tile);
     lv_obj_set_size(latitude, 200, 20);
@@ -113,19 +117,14 @@ void create_main_scr()
     lv_obj_set_size(altitude, 200, 20);
     lv_obj_set_style_text_font(altitude, &lv_font_montserrat_24, 0);
     lv_label_set_text(altitude, "0000 m.");
-    lv_obj_set_pos(altitude, 60, 73);
+    lv_obj_set_pos(altitude, 60, 62);
 
     // Compass Tile Events
     lv_obj_add_event_cb(compass_heading, update_heading, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(latitude, update_latitude, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(longitude, update_longitude, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(altitude, update_altitude, LV_EVENT_VALUE_CHANGED, NULL);
-
-    // Map Tile
-    zoom_label = lv_label_create(map_tile);
-    lv_obj_set_style_text_font(zoom_label, &lv_font_montserrat_20, 0);
-    lv_label_set_text_fmt(zoom_label, "ZOOM: %2d", DEF_ZOOM);
-    lv_obj_align(zoom_label, LV_ALIGN_TOP_MID, 0, 10);
+    lv_obj_add_event_cb(speed_label,update_speed, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Map Tile Events
     lv_obj_add_event_cb(map_tile, update_map, LV_EVENT_REFRESH, NULL);
@@ -163,7 +162,7 @@ void create_main_scr()
     satbar_ser1 = lv_chart_add_series(satbar_1, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
     lv_chart_set_type(satbar_1, LV_CHART_TYPE_BAR);
     lv_chart_set_point_count(satbar_1, (MAX_SATELLLITES_IN_VIEW / 2));
-    lv_obj_set_pos(satbar_1, 0, 180);
+    lv_obj_set_pos(satbar_1, 0, 175);
 
     satbar_2 = lv_chart_create(sat_track_tile);
     lv_obj_set_size(satbar_2, TFT_WIDTH, 55);
@@ -172,7 +171,7 @@ void create_main_scr()
     satbar_ser2 = lv_chart_add_series(satbar_2, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
     lv_chart_set_type(satbar_2, LV_CHART_TYPE_BAR);
     lv_chart_set_point_count(satbar_2, (MAX_SATELLLITES_IN_VIEW / 2));
-    lv_obj_set_pos(satbar_2, 0, 260);
+    lv_obj_set_pos(satbar_2, 0, 250);
 
 #ifdef MULTI_GNSS
     lv_style_init(&style_radio);
@@ -184,7 +183,7 @@ void create_main_scr()
     lv_obj_t *gnss_sel = lv_obj_create(sat_track_tile);
     lv_obj_set_flex_flow(gnss_sel, LV_FLEX_FLOW_ROW);
     lv_obj_set_size(gnss_sel, TFT_WIDTH, 50);
-    lv_obj_set_pos(gnss_sel, 0, 335);
+    lv_obj_set_pos(gnss_sel, 0, 330);
 
     lv_obj_t *gps = lv_checkbox_create(gnss_sel);
     lv_checkbox_set_text(gps, "GPS     ");

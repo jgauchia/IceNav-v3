@@ -2,8 +2,8 @@
  * @file LGFX_CUSTOMBOARD.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LOVYANGFX TFT driver for CUSTOMBOARD
- * @version 0.1.5
- * @date 2023-06-04
+ * @version 0.1.6
+ * @date 2023-06-14
  */
 
 #define LGFX_USE_V1
@@ -79,7 +79,7 @@ public:
             cfg.bus_shared = true;
             cfg.offset_rotation = 0;
             cfg.spi_host = HSPI_HOST;
-            cfg.freq = 1600000;
+            cfg.freq = 400000;
             cfg.pin_sclk = 14;
             cfg.pin_mosi = 13;
             cfg.pin_miso = 27;
