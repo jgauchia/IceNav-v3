@@ -7,7 +7,7 @@
  */
 
 #define CALIBRATION_FILE "/TouchCalData1"
-#define REPEAT_CAL false
+bool REPEAT_CAL = false;
 
 #include <Arduino.h>
 #include <stdint.h>
@@ -51,7 +51,7 @@ unsigned long millis_actual = 0;
 void setup()
 {
 #ifdef MAKERF_ESP32S3
-  Wire.setPins(I2C_SDA_PIN,I2C_SCL_PIN);
+  Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
   Wire.begin();
 #endif
 
