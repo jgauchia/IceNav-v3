@@ -2,8 +2,8 @@
  * @file sdcard.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  SD Card definition and functions
- * @version 0.1.5
- * @date 2023-06-04
+ * @version 0.1.6
+ * @date 2023-06-14
  */
 
 #include <FS.h>
@@ -25,7 +25,7 @@ void init_sd()
   spiSD.begin(SD_CLK, SD_MISO, SD_MOSI, SD_CS);
   pinMode(SD_CS,OUTPUT);
   digitalWrite(SD_CS,LOW);
-  if (!SD.begin(SD_CS, spiSD, 8000000))
+  if (!SD.begin(SD_CS, spiSD, 10000000))
   {
     log_v("SD Card Mount Failed");
     return;

@@ -2,8 +2,8 @@
  * @file sattrack.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Satellite Tracking events
- * @version 0.1.5
- * @date 2023-06-04
+ * @version 0.1.6
+ * @date 2023-06-14
  */
 
 /**
@@ -50,7 +50,6 @@ static void update_sattrack(lv_event_t *event)
     create_const_spr(constel_spr);
     create_const_spr(constel_spr_bkg);
 
-/*********************************************************************************************/
 #ifdef MULTI_GNSS
     switch ((int)active_gnss)
     {

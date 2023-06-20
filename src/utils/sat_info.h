@@ -2,8 +2,8 @@
  * @file sat_info.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Satellites info screen functions
- * @version 0.1.5
- * @date 2023-06-04
+ * @version 0.1.6
+ * @date 2023-06-14
  */
 
 #include <lvgl.h>
@@ -70,11 +70,24 @@ SatPos get_sat_pos(uint8_t elev, uint16_t azim)
 }
 
 /**
+ * @brief Delete sat info screen sprites and release PSRAM
+ *
+ */
+static void delete_sat_info_sprites()
+{
+  spr_SNR1.deleteSprite();
+  spr_SNR2.deleteSprite();
+  spr_Sat.deleteSprite();
+  constel_spr.deleteSprite();
+  constel_spr_bkg.deleteSprite();
+}
+
+/**
  * @brief Create Constellation sprite
  *
  * @param spr -> Sprite
  */
-void create_const_spr(TFT_eSprite &spr)
+static void create_const_spr(TFT_eSprite &spr)
 {
   spr.deleteSprite();
   spr.createSprite(200, 150);
@@ -96,11 +109,11 @@ void create_const_spr(TFT_eSprite &spr)
  *
  * @param spr -> Sprite
  */
-void create_sat_spr(TFT_eSprite &spr)
+static void create_sat_spr(TFT_eSprite &spr)
 {
   spr.deleteSprite();
   spr.createSprite(8, 8);
-  spr.setColorDepth(16);
+  spr.setColorDepth(8);
   spr.fillScreen(LVGL_BKG);
 }
 
@@ -109,10 +122,11 @@ void create_sat_spr(TFT_eSprite &spr)
  *
  * @param spr -> Sprite
  */
-void create_snr_spr(TFT_eSprite &spr)
+static void create_snr_spr(TFT_eSprite &spr)
 {
   spr.deleteSprite();
   spr.createSprite(TFT_WIDTH, 10);
+  spr.setColorDepth(8);
   spr.fillScreen(LVGL_BKG);
   spr.setTextColor(TFT_WHITE, LVGL_BKG);
 }
@@ -127,7 +141,7 @@ void create_snr_spr(TFT_eSprite &spr)
  * @param snr -> Sat SNR
  * @param spr -> Sat number sprite
  */
-void draw_snr_bar(lv_obj_t *bar, lv_chart_series_t *bar_ser, uint8_t id, uint8_t sat_num, uint8_t snr, TFT_eSprite &spr)
+static void draw_snr_bar(lv_obj_t *bar, lv_chart_series_t *bar_ser, uint8_t id, uint8_t sat_num, uint8_t snr, TFT_eSprite &spr)
 {
   lv_point_t p;
   bar_ser->y_points[id] = snr;
@@ -138,9 +152,9 @@ void draw_snr_bar(lv_obj_t *bar, lv_chart_series_t *bar_ser, uint8_t id, uint8_t
 
 /**
  * @brief Clear Satellite in View found
- * 
+ *
  */
-void clear_sat_in_view()
+static void clear_sat_in_view()
 {
   for (int clear = 0; clear < MAX_SATELLITES; clear++)
   {
@@ -158,7 +172,7 @@ void clear_sat_in_view()
  * @param gsv -> GSV NMEA sentence
  * @param color -> Satellite color in constellation
  */
-void fill_sat_in_view(GSV &gsv, int color)
+static void fill_sat_in_view(GSV &gsv, int color)
 {
   if (gsv.totalMsg.isUpdated())
   {
