@@ -30,7 +30,6 @@ void create_button_bar_scr()
     static lv_style_t style_bar;
     lv_style_init(&style_bar);
     lv_style_set_bg_opa(&style_bar, LV_OPA_0);
-    //lv_style_set_border_color(&style_bar, lv_color_black());
     lv_style_set_border_opa(&style_bar, LV_OPA_0);
     lv_obj_add_style(buttonBar, &style_bar, LV_PART_MAIN);
 

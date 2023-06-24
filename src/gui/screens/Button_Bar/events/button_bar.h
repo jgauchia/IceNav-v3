@@ -12,7 +12,8 @@
  * 
  * @param event 
  */
-void settings(lv_event_t *event)
+static void settings(lv_event_t *event)
 {
     log_v("Settings");
+    //lv_scr_load(settingsScreen);
 }

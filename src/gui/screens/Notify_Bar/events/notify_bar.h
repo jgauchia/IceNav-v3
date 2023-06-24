@@ -13,7 +13,7 @@
 #define UPDATE_NOTIFY_PERIOD 1000
 
 /**
- * @brief Battery update envent
+ * @brief Battery update event
  *
  */
 static void update_batt(lv_event_t *event)

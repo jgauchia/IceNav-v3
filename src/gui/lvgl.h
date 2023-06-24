@@ -42,6 +42,7 @@ static lv_timer_t *timer_main;
 
 #include "gui/screens/Notify_Bar/notify_bar.h"
 #include "gui/screens/Button_Bar/button_bar.h"
+#include "gui/screens/Settings/settings_scr.h"
 #include "gui/screens/Search_Satellite/search_sat_scr.h"
 #include "gui/screens/Main/main_scr.h"
 #include "gui/screens/Splash/splash_scr.h"
@@ -131,9 +132,10 @@ void init_LVGL()
     timer_main = lv_timer_create(update_main_screen, UPDATE_MAINSCR_PERIOD, NULL);
     lv_timer_ready(timer_main);
 
-    //  Create Screens //
+    //  Create Screens /
+    //create_settings_scr();
     create_search_sat_scr();
-    create_main_scr();
+    create_main_scr(); 
 }
 
 /**
@@ -146,3 +148,4 @@ void load_main_screen()
     create_button_bar_scr();
     create_notify_bar();
 }
+

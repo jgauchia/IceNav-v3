@@ -14,7 +14,7 @@ void search_gps(lv_timer_t *t);
 void load_main_screen();
 
 /**
- * @brief Create a search sat screen
+ * @brief Create search sat screen
  *
  */
 void create_search_sat_scr()
