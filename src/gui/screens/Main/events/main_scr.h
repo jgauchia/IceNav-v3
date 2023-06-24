@@ -1,5 +1,5 @@
 /**
- * @file main_screen.h
+ * @file main_scr.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Main screen events
  * @version 0.1.6

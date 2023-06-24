@@ -34,16 +34,17 @@ static lv_timer_t *timer_main;
  */
 #define UPDATE_MAINSCR_PERIOD 30
 
-#include "gui/img/bruj.c"
-#include "gui/img/navigation.c"
-#include "gui/img/compass.c"
-#include "gui/img/zoom.c"
-#include "gui/img/speed.c"
-#include "gui/screens-lvgl/notify_bar.h"
-#include "gui/screens-lvgl/button_bar.h"
-#include "gui/screens-lvgl/search_sat_scr.h"
-#include "gui/screens-lvgl/main_scr.h"
-#include "gui/screens-lvgl/splash_scr.h"
+#include "gui/images/bruj.c"
+#include "gui/images/navigation.c"
+#include "gui/images/compass.c"
+#include "gui/images/zoom.c"
+#include "gui/images/speed.c"
+
+#include "gui/screens/Notify_Bar/notify_bar.h"
+#include "gui/screens/Button_Bar/button_bar.h"
+#include "gui/screens/Search_Satellite/search_sat_scr.h"
+#include "gui/screens/Main/main_scr.h"
+#include "gui/screens/Splash/splash_scr.h"
 
 /**
  * @brief LVGL display update

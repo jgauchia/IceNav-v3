@@ -41,10 +41,10 @@ static uint32_t active_gnss = 0;
  * @brief Main screen events include
  *
  */
-#include "gui/events/main_screen.h"
-#include "gui/events/compass.h"
-#include "gui/events/map.h"
-#include "gui/events/sattrack.h"
+#include "gui/screens/Main/events/main_scr.h"
+#include "gui/screens/Main/events/compass.h"
+#include "gui/screens/Main/events/map.h"
+#include "gui/screens/Main/events/sattrack.h"
 
 /**
  * @brief Create Main Screen

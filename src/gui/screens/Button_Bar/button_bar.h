@@ -8,7 +8,11 @@
 
 static lv_obj_t *buttonBar;
 
-void test_cb(lv_event_t *event);
+/**
+ * @brief Main screen events include
+ *
+ */
+#include "gui/screens/Button_Bar/events/button_bar.h"
 
 /**
  * @brief Create button bar screen
@@ -16,6 +20,7 @@ void test_cb(lv_event_t *event);
  */
 void create_button_bar_scr()
 {
+    // Button Bar
     buttonBar = lv_obj_create(lv_scr_act());
     lv_obj_set_size(buttonBar, TFT_WIDTH, 68);
     lv_obj_set_pos(buttonBar, 0, TFT_HEIGHT - 68);
@@ -25,17 +30,14 @@ void create_button_bar_scr()
     static lv_style_t style_bar;
     lv_style_init(&style_bar);
     lv_style_set_bg_opa(&style_bar, LV_OPA_0);
-    lv_style_set_border_color(&style_bar, lv_color_black());
+    //lv_style_set_border_color(&style_bar, lv_color_black());
+    lv_style_set_border_opa(&style_bar, LV_OPA_0);
     lv_obj_add_style(buttonBar, &style_bar, LV_PART_MAIN);
 
     // Settings Button
     lv_obj_t *settingsBtn = lv_img_create(buttonBar);
     lv_img_set_src(settingsBtn, "F:/settings.bin");
     lv_obj_add_flag(settingsBtn, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(settingsBtn, test_cb, LV_EVENT_PRESSED, NULL);
+    lv_obj_add_event_cb(settingsBtn, settings, LV_EVENT_PRESSED, NULL);
 }
 
-void test_cb(lv_event_t *event)
-{
-    log_v("Settings");
-}
