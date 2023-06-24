@@ -34,9 +34,9 @@ void create_button_bar_scr()
     lv_obj_add_style(buttonBar, &style_bar, LV_PART_MAIN);
 
     // Settings Button
-    lv_obj_t *settingsBtn = lv_img_create(buttonBar);
-    lv_img_set_src(settingsBtn, "F:/settings.bin");
-    lv_obj_add_flag(settingsBtn, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(settingsBtn, settings, LV_EVENT_PRESSED, NULL);
+    // lv_obj_t *settingsBtn = lv_img_create(buttonBar);
+    // lv_img_set_src(settingsBtn, "F:/settings.bin");
+    // lv_obj_add_flag(settingsBtn, LV_OBJ_FLAG_CLICKABLE);
+    //lv_obj_add_event_cb(settingsBtn, settings, LV_EVENT_PRESSED, NULL);
 }
 
