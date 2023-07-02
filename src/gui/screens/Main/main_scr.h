@@ -59,7 +59,7 @@ void create_main_scr()
     compass_tile = lv_tileview_add_tile(tiles, 0, 0, LV_DIR_RIGHT);
     map_tile = lv_tileview_add_tile(tiles, 1, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
     sat_track_tile = lv_tileview_add_tile(tiles, 2, 0, LV_DIR_LEFT);
-    lv_obj_set_size(tiles, TFT_WIDTH, TFT_HEIGHT - 25); 
+    lv_obj_set_size(tiles, TFT_WIDTH, TFT_HEIGHT - 25);
     lv_obj_set_pos(tiles, 0, 25);
     static lv_style_t style_scroll;
     lv_style_init(&style_scroll);
@@ -175,7 +175,7 @@ void create_main_scr()
     satbar_ser2 = lv_chart_add_series(satbar_2, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
     lv_chart_set_type(satbar_2, LV_CHART_TYPE_BAR);
     lv_chart_set_point_count(satbar_2, (MAX_SATELLLITES_IN_VIEW / 2));
-    lv_obj_set_pos(satbar_2, 0, 250);
+    lv_obj_set_pos(satbar_2, 0, 260);
 
 #ifdef MULTI_GNSS
     lv_style_init(&style_radio);
@@ -188,6 +188,11 @@ void create_main_scr()
     lv_obj_set_flex_flow(gnss_sel, LV_FLEX_FLOW_ROW);
     lv_obj_set_size(gnss_sel, TFT_WIDTH, 50);
     lv_obj_set_pos(gnss_sel, 0, 330);
+    static lv_style_t style_sel;
+    lv_style_init(&style_sel);
+    lv_style_set_bg_opa(&style_sel, LV_OPA_0);
+    lv_style_set_border_opa(&style_sel, LV_OPA_0);
+    lv_obj_add_style(gnss_sel, &style_sel, LV_PART_MAIN);
 
     lv_obj_t *gps = lv_checkbox_create(gnss_sel);
     lv_checkbox_set_text(gps, "GPS     ");
