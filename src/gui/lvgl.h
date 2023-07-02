@@ -133,7 +133,7 @@ void init_LVGL()
     lv_timer_ready(timer_main);
 
     //  Create Screens /
-    //create_settings_scr();
+    create_settings_scr();
     create_search_sat_scr();
     create_main_scr(); 
 }
