@@ -41,10 +41,10 @@ static uint32_t active_gnss = 0;
  * @brief Main screen events include
  *
  */
-#include "gui/events/main_screen.h"
-#include "gui/events/compass.h"
-#include "gui/events/map.h"
-#include "gui/events/sattrack.h"
+#include "gui/screens/Main/events/main_scr.h"
+#include "gui/screens/Main/events/compass.h"
+#include "gui/screens/Main/events/map.h"
+#include "gui/screens/Main/events/sattrack.h"
 
 /**
  * @brief Create Main Screen
@@ -59,28 +59,32 @@ void create_main_scr()
     compass_tile = lv_tileview_add_tile(tiles, 0, 0, LV_DIR_RIGHT);
     map_tile = lv_tileview_add_tile(tiles, 1, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
     sat_track_tile = lv_tileview_add_tile(tiles, 2, 0, LV_DIR_LEFT);
-    lv_obj_set_size(tiles, TFT_WIDTH, TFT_HEIGHT - 89);
+    lv_obj_set_size(tiles, TFT_WIDTH, TFT_HEIGHT - 25); 
     lv_obj_set_pos(tiles, 0, 25);
+    static lv_style_t style_scroll;
+    lv_style_init(&style_scroll);
+    lv_style_set_bg_color(&style_scroll, lv_color_hex(0xFFFFFF));
+    lv_obj_add_style(tiles, &style_scroll, LV_PART_SCROLLBAR);
     // Main Screen Events
     lv_obj_add_event_cb(tiles, get_act_tile, LV_EVENT_SCROLL_END, NULL);
     lv_obj_add_event_cb(tiles, scroll_tile, LV_EVENT_SCROLL_BEGIN, NULL);
 
     // Compass Tile
     compass_heading = lv_label_create(compass_tile);
-    lv_obj_set_size(compass_heading, 150, 48);
+    lv_obj_set_size(compass_heading, 150, 38);
     lv_obj_set_align(compass_heading, LV_ALIGN_CENTER);
-    lv_obj_set_y(compass_heading, 95);
+    lv_obj_set_y(compass_heading, 75);
     lv_obj_set_style_text_font(compass_heading, &lv_font_montserrat_48, 0);
     lv_label_set_text(compass_heading, "-----\xC2\xB0");
 
     lv_obj_t *arrow_img = lv_img_create(compass_tile);
     lv_img_set_src(arrow_img, "F:/arrow.bin");
-    lv_obj_align(arrow_img, LV_ALIGN_CENTER, 0, 40);
+    lv_obj_align(arrow_img, LV_ALIGN_CENTER, 0, 10);
 
     LV_IMG_DECLARE(bruj);
     compass_img = lv_img_create(compass_tile);
     lv_img_set_src(compass_img, &bruj);
-    lv_obj_align(compass_img, LV_ALIGN_CENTER, 0, 75);
+    lv_obj_align(compass_img, LV_ALIGN_CENTER, 0, 45);
     lv_img_set_pivot(compass_img, 100, 100);
 
     lv_obj_t *pos_img = lv_img_create(compass_tile);
@@ -124,7 +128,7 @@ void create_main_scr()
     lv_obj_add_event_cb(latitude, update_latitude, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(longitude, update_longitude, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(altitude, update_altitude, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_obj_add_event_cb(speed_label,update_speed, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(speed_label, update_speed, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Map Tile Events
     lv_obj_add_event_cb(map_tile, update_map, LV_EVENT_REFRESH, NULL);
