@@ -66,6 +66,7 @@ int read_compass()
 #endif
   float heading_no_filter = atan2(y, x);
   heading_no_filter += declinationAngle;
+  //heading_smooth = heading_no_filter;
   heading_smooth = (heading_no_filter * SMOOTH_FACTOR) + (heading_previous * SMOOTH_PREVIOUS_FACTOR);
   heading_previous = heading_smooth;
 

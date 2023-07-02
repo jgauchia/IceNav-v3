@@ -11,9 +11,10 @@ static lv_obj_t *searchSat;
 
 lv_timer_t *t;
 void search_gps(lv_timer_t *t);
+void load_main_screen();
 
 /**
- * @brief Create a search sat screen
+ * @brief Create search sat screen
  *
  */
 void create_search_sat_scr()
@@ -57,7 +58,6 @@ void search_gps(lv_timer_t *t)
         while (millis() < millis_actual + 2000)
             ;
         lv_timer_del(t);
-        lv_scr_load(mainScreen);
-        create_notify_bar();
+        load_main_screen();
     }
 }

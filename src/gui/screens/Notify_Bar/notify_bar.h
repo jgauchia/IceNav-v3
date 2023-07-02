@@ -28,7 +28,7 @@ static lv_obj_t *temp;
  * @brief Notify Bar events include
  *
  */
-#include "gui/events/notify_bar.h"
+#include "gui/screens/Notify_Bar/events/notify_bar.h"
 
 /**
  * @brief Create a notify bar
