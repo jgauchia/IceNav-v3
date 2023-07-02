@@ -23,6 +23,12 @@ static lv_obj_t *tiles;
 static lv_disp_drv_t def_drv;
 
 /**
+ * @brief Flag to indicate main screen is selected
+ * 
+ */
+bool is_main_screen = false;
+
+/**
  * @brief Main Timer
  *
  */
@@ -41,8 +47,8 @@ static lv_timer_t *timer_main;
 #include "gui/images/speed.c"
 
 #include "gui/screens/Notify_Bar/notify_bar.h"
-#include "gui/screens/Button_Bar/button_bar.h"
 #include "gui/screens/Settings/settings_scr.h"
+#include "gui/screens/Button_Bar/button_bar.h"
 #include "gui/screens/Search_Satellite/search_sat_scr.h"
 #include "gui/screens/Main/main_scr.h"
 #include "gui/screens/Splash/splash_scr.h"
@@ -144,6 +150,7 @@ void init_LVGL()
  */
 void load_main_screen()
 {
+    is_main_screen = true;
     lv_scr_load(mainScreen);
     create_button_bar_scr();
     create_notify_bar();

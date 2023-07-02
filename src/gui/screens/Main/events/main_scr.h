@@ -126,7 +126,7 @@ static void scroll_tile(lv_event_t *event)
  */
 static void update_main_screen(lv_timer_t *t)
 {
-    if (is_scrolled)
+    if (is_scrolled && is_main_screen)
     {
         switch (act_tile)
         {

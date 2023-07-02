@@ -14,5 +14,6 @@ void load_main_screen();
  */
 static void back(lv_event_t *event)
 {
-    //load_main_screen();
+    is_main_screen = true;
+    lv_scr_load(mainScreen);
 }
