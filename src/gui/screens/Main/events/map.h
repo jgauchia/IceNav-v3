@@ -28,7 +28,7 @@ static void get_zoom_value(lv_event_t *event)
 {
   lv_obj_t *screen = lv_event_get_current_target(event);
   lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
-  if (act_tile == MAP)
+  if (act_tile == MAP && is_main_screen)
   {
     switch (dir)
     {
