@@ -14,6 +14,7 @@
 void Read_GPS(void *pvParameters)
 {
   log_v("Task1 - Read GPS - running on core %d", xPortGetCoreID());
+  log_v("Stack size: %d",uxTaskGetStackHighWaterMark(NULL));
   for (;;)
   {
     while (gps->available() > 0)
@@ -52,7 +53,7 @@ void LVGL_Task(void *pvParameters)
  */
 void init_tasks()
 {
-  xTaskCreatePinnedToCore(Read_GPS, PSTR("Read GPS"), 20000, NULL, 2, NULL, 1);
+  xTaskCreatePinnedToCore(Read_GPS, PSTR("Read GPS"), 19000, NULL, 2, NULL, 1);
   delay(500);
   //xTaskCreatePinnedToCore(LVGL_Task, PSTR("LVGL Task"), 20000, NULL, 1, NULL, 1);
   //delay(500);
