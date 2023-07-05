@@ -24,7 +24,7 @@ static lv_disp_drv_t def_drv;
 
 /**
  * @brief Flag to indicate main screen is selected
- * 
+ *
  */
 bool is_main_screen = false;
 
@@ -60,21 +60,21 @@ static lv_timer_t *timer_main;
 void disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p)
 {
     // if (!lv_disp_is_invalidation_enabled(disp_ctrl))
-    {
-        tft.startWrite();
-        // Map Tile, refresh partial screen to avoid flickering when scroll tile view
-        // if (act_tile == MAP && is_scrolled)
-        // {
-        //     if ((area->y2 - area->y1 + 1) < 20)
-        //         tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t *)&color_p->full);
-        // }
-        // else
-        {
-            tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t *)&color_p->full);
-        }
-        tft.endWrite();
-        lv_disp_flush_ready(disp);
-    }
+    //{
+    tft.startWrite();
+
+    // Map Tile, refresh partial screen to avoid flickering when scroll tile view
+    // if (act_tile == MAP && is_scrolled)
+    // {
+    //     if ((area->y2 - area->y1 + 1) < 20)
+    //         tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t *)&color_p->full);
+    // }
+    // else
+    tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t *)&color_p->full);
+
+    tft.endWrite();
+    lv_disp_flush_ready(disp);
+    //}
     // uint32_t w = (area->x2 - area->x1 + 1);
     // uint32_t h = (area->y2 - area->y1 + 1);
 
@@ -141,18 +141,17 @@ void init_LVGL()
     //  Create Screens /
     create_settings_scr();
     create_search_sat_scr();
-    create_main_scr(); 
+    create_main_scr();
+    create_button_bar_scr();
+    create_notify_bar();
 }
 
 /**
  * @brief Load GPS Main Screen
- * 
+ *
  */
 void load_main_screen()
 {
     is_main_screen = true;
     lv_scr_load(mainScreen);
-    create_button_bar_scr();
-    create_notify_bar();
 }
-

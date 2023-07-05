@@ -97,7 +97,11 @@ void touch_calibrate()
     tft.setTouchCalibrate(calData);
   else
   {
+    tft.setTextSize(2);
+    tft.drawString("TOUCH THE ARROW MARKER.", 20, tft.height()>>1);
     tft.calibrateTouch(calData, TFT_WHITE, TFT_BLACK, std::max(tft.width(), tft.height()) >> 3);
+    tft.setTextSize(5);
+    tft.drawString("DONE!",90, (tft.height()>>1)+30);
 
     File f = SPIFFS.open(CALIBRATION_FILE, "w");
     if (f)

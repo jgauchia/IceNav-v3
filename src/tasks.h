@@ -24,7 +24,7 @@ void Read_GPS(void *pvParameters)
       }
 #else
       GPS.encode(gps->read());
-      vTaskDelay(10);
+      vTaskDelay(5);
 #endif
     }
     

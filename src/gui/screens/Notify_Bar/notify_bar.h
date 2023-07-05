@@ -36,7 +36,7 @@ static lv_obj_t *temp;
  */
 void create_notify_bar()
 {
-    notifyBar = lv_obj_create(lv_scr_act());
+    notifyBar = lv_obj_create(mainScreen);
     lv_obj_set_size(notifyBar, TFT_WIDTH, 22);
     lv_obj_set_pos(notifyBar, 0, 0);
     lv_obj_set_flex_flow(notifyBar, LV_FLEX_FLOW_ROW);
