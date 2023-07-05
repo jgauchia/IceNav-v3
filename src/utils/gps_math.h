@@ -6,6 +6,8 @@
  * @date 2023-06-14
  */
 
+#define EARTH_RADIUS 6378137
+
 /**
  * @brief Variables to store mid point between 2 coordinates
  *

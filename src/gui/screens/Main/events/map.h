@@ -203,6 +203,9 @@ static void update_map(lv_event_t *event)
     map_rot.pushImage(0, 346, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
     map_rot.drawNumber((uint16_t)GPS.speed.kmph(), 26, 350, &fonts::FreeSansBold9pt7b);
 
+    map_rot.fillRectAlpha(250, 342, 70, 32, 95, TFT_BLACK);
+    map_rot.drawNumber(map_scale, 285, 350, &fonts::FreeSansBold9pt7b);
+
     sprArrow.pushRotated(&map_rot, 0, TFT_BLACK);
   }
 }
