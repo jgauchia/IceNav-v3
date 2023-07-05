@@ -11,9 +11,24 @@ void load_main_screen();
 /**
  * @brief Back button event
  *
+ * @param event
  */
 static void back(lv_event_t *event)
 {
-    is_main_screen = true;
-    lv_scr_load(mainScreen);
+   load_main_screen();
+}
+
+/**
+ * @brief Touch Calibration
+ *
+ * @param event
+ */
+static void touch_calib(lv_event_t *event)
+{
+    REPEAT_CAL = true;
+    tft.fillScreen(TFT_BLACK);
+    touch_calibrate();
+    REPEAT_CAL = false;
+    is_main_screen = false;
+    lv_scr_load(settingsScreen);
 }

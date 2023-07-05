@@ -21,7 +21,7 @@ static lv_obj_t *buttonBar;
 void create_button_bar_scr()
 {
     // Button Bar
-    buttonBar = lv_obj_create(lv_scr_act());
+    buttonBar = lv_obj_create(mainScreen);
     lv_obj_set_size(buttonBar, TFT_WIDTH, 68);
     lv_obj_set_pos(buttonBar, 0, TFT_HEIGHT - 80);
     lv_obj_set_flex_flow(buttonBar, LV_FLEX_FLOW_ROW);
