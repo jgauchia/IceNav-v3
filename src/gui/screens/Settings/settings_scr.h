@@ -29,6 +29,15 @@ void create_settings_scr()
 
     lv_obj_t *but_label;
 
+    // Compass Calibration
+    lv_obj_t *compass_calib_but = lv_btn_create(settingsScreen);
+    lv_obj_set_size(compass_calib_but, TFT_WIDTH - 30, 40);
+    but_label = lv_label_create(compass_calib_but);
+    lv_obj_set_style_text_font(but_label, &lv_font_montserrat_20, 0);
+    lv_label_set_text(but_label, "Compass Calibration");
+    lv_obj_center(but_label);
+    lv_obj_add_event_cb(compass_calib_but, compass_calib, LV_EVENT_CLICKED, NULL);
+
     // Touch Calibration
     lv_obj_t *touch_calib_but = lv_btn_create(settingsScreen);
     lv_obj_set_size(touch_calib_but, TFT_WIDTH - 30, 40);
