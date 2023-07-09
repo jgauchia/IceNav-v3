@@ -19,7 +19,8 @@ Adafruit_HMC5883_Unified compass = Adafruit_HMC5883_Unified(12345);
 MPU9250 IMU(Wire, 0x68);
 #endif
 
-#define COMPASS_CAL_TIME 10000
+#define COMPASS_CAL_TIME 16000
+static void save_compass_cal(float offset_x, float offset_y);
 
 /**
  * @brief Magnetic declination
@@ -125,18 +126,25 @@ int get_heading()
  */
 static void compass_calibrate()
 {
-  unsigned long calTimeWas = millis();
-  byte cal = 1;
+  bool cal = 1;
   float y = 0.0;
   float x = 0.0;
   float z = 0.0;
+  uint16_t touchX, touchY;
+
+  tft.drawCenterString("ROTATE THE DEVICE", 160, 10, &fonts::DejaVu18);
+  tft.drawPngFile(SPIFFS, PSTR("/turn.png"), (tft.width() / 2) - 50, 60);
+  tft.drawCenterString("TOUCH TO START", 160, 200, &fonts::DejaVu18);
+  tft.drawCenterString("COMPASS CALIBRATION", 160, 230, &fonts::DejaVu18);
+
+  while (!tft.getTouch(&touchX, &touchY))
+  {
+  };
+  delay(1000);
+
+  unsigned long calTimeWas = millis();
 
   read_compass(x, y, z);
-
-  //  tft.drawString("TOUCH THE ARROW MARKER.", 10, tft.height() >> 1, &fonts::DejaVu18);
-  //   tft.drawString("DONE!", 90, (tft.height() >> 1) + 30, &fonts::DejaVu40);
-  //   delay(500);
-  //   tft.drawString("TOUCH TO CONTINUE.", 50, (tft.height() >> 1) + 100, &fonts::DejaVu18);
 
   maxx = minx = x; // Set initial values to current magnetometer readings.
   maxy = miny = y;
@@ -157,8 +165,10 @@ static void compass_calibrate()
 
     int secmillis = millis() - calTimeWas;
     int secs = (int)((COMPASS_CAL_TIME - secmillis + 1000) / 1000);
-    Serial.print("--> ");
-    Serial.println((COMPASS_CAL_TIME - secmillis) / 1000);
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.setTextSize(3);
+    tft.setTextPadding(tft.textWidth("88"));
+    tft.drawNumber((COMPASS_CAL_TIME - secmillis) / 1000, (tft.width() >> 1), 280);
 
     if (secs == 0)
     {
@@ -167,4 +177,14 @@ static void compass_calibrate()
       cal = 0;
     }
   }
+
+  tft.setTextSize(1);
+  tft.drawCenterString("DONE!", 160, 340, &fonts::DejaVu40);
+  tft.drawCenterString("TOUCH TO CONTINUE.", 160, 380, &fonts::DejaVu18);
+
+  while (!tft.getTouch(&touchX, &touchY))
+  {
+  };
+
+  save_compass_cal(offx,offy);
 }

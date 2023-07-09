@@ -41,4 +41,7 @@ static void touch_calib(lv_event_t *event)
 static void compass_calib(lv_event_t *event)
 {
     tft.fillScreen(TFT_BLACK);
+    compass_calibrate();
+    is_main_screen = false;
+    lv_scr_load(settingsScreen);
 }
