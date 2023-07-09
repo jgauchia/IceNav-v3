@@ -23,6 +23,12 @@ static lv_obj_t *tiles;
 static lv_disp_drv_t def_drv;
 
 /**
+ * @brief Flag to indicate main screen is selected
+ *
+ */
+bool is_main_screen = false;
+
+/**
  * @brief Main Timer
  *
  */
@@ -34,15 +40,18 @@ static lv_timer_t *timer_main;
  */
 #define UPDATE_MAINSCR_PERIOD 30
 
-#include "gui/img/bruj.c"
-#include "gui/img/navigation.c"
-#include "gui/img/compass.c"
-#include "gui/img/zoom.c"
-#include "gui/img/speed.c"
-#include "gui/screens-lvgl/notify_bar.h"
-#include "gui/screens-lvgl/search_sat_scr.h"
-#include "gui/screens-lvgl/main_scr.h"
-#include "gui/screens-lvgl/splash_scr.h"
+#include "gui/images/bruj.c"
+#include "gui/images/navigation.c"
+#include "gui/images/compass.c"
+#include "gui/images/zoom.c"
+#include "gui/images/speed.c"
+
+#include "gui/screens/Notify_Bar/notify_bar.h"
+#include "gui/screens/Settings/settings_scr.h"
+#include "gui/screens/Button_Bar/button_bar.h"
+#include "gui/screens/Search_Satellite/search_sat_scr.h"
+#include "gui/screens/Main/main_scr.h"
+#include "gui/screens/Splash/splash_scr.h"
 
 /**
  * @brief LVGL display update
@@ -51,21 +60,21 @@ static lv_timer_t *timer_main;
 void disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p)
 {
     // if (!lv_disp_is_invalidation_enabled(disp_ctrl))
-    {
-        tft.startWrite();
-        // Map Tile, refresh partial screen to avoid flickering when scroll tile view
-        // if (act_tile == MAP && is_scrolled)
-        // {
-        //     if ((area->y2 - area->y1 + 1) < 20)
-        //         tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t *)&color_p->full);
-        // }
-        // else
-        {
-            tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t *)&color_p->full);
-        }
-        tft.endWrite();
-        lv_disp_flush_ready(disp);
-    }
+    //{
+    tft.startWrite();
+
+    // Map Tile, refresh partial screen to avoid flickering when scroll tile view
+    // if (act_tile == MAP && is_scrolled)
+    // {
+    //     if ((area->y2 - area->y1 + 1) < 20)
+    //         tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t *)&color_p->full);
+    // }
+    // else
+    tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t *)&color_p->full);
+
+    tft.endWrite();
+    lv_disp_flush_ready(disp);
+    //}
     // uint32_t w = (area->x2 - area->x1 + 1);
     // uint32_t h = (area->y2 - area->y1 + 1);
 
@@ -129,7 +138,20 @@ void init_LVGL()
     timer_main = lv_timer_create(update_main_screen, UPDATE_MAINSCR_PERIOD, NULL);
     lv_timer_ready(timer_main);
 
-    //  Create Screens //
+    //  Create Screens /
+    create_settings_scr();
     create_search_sat_scr();
     create_main_scr();
+    create_button_bar_scr();
+    create_notify_bar();
+}
+
+/**
+ * @brief Load GPS Main Screen
+ *
+ */
+void load_main_screen()
+{
+    is_main_screen = true;
+    lv_scr_load(mainScreen);
 }

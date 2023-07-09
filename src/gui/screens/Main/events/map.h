@@ -19,40 +19,10 @@ MapTile RoundMapTile;
  */
 ScreenCoord NavArrow_position;
 
-/**
- * @brief Update zoom value
- *
- * @param event
- */
-static void get_zoom_value(lv_event_t *event)
-{
-  lv_obj_t *screen = lv_event_get_current_target(event);
-  lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
-  if (act_tile == MAP)
-  {
-    switch (dir)
-    {
-    case LV_DIR_LEFT:
-      break;
-    case LV_DIR_RIGHT:
-      break;
-    case LV_DIR_TOP:
-      if (zoom >= MIN_ZOOM && zoom < MAX_ZOOM)
-      {
-        zoom++;
-        lv_event_send(map_tile, LV_EVENT_REFRESH, NULL);
-      }
-      break;
-    case LV_DIR_BOTTOM:
-      if (zoom <= MAX_ZOOM && zoom > MIN_ZOOM)
-      {
-        zoom--;
-        lv_event_send(map_tile, LV_EVENT_REFRESH, NULL);
-      }
-      break;
-    }
-  }
-}
+static const char *map_scale[] = {"5000 Km","2500 Km","1500 Km","700 Km","350 Km",
+                                   "150 Km","100 Km","40 Km","20 Km","10 Km","5 Km",
+                                   "2,5 Km","1,5 Km","700 m","350 m","150 m","80 m",
+                                   "40 m","20 m","10 m"};
 
 /**
  * @brief return latitude from GPS or sys env pre-built variable
@@ -87,6 +57,41 @@ static double getLon()
 #else
     return 0.0;
 #endif
+  }
+}
+
+/**
+ * @brief Update zoom value
+ *
+ * @param event
+ */
+static void get_zoom_value(lv_event_t *event)
+{
+  lv_obj_t *screen = lv_event_get_current_target(event);
+  lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
+  if (act_tile == MAP && is_main_screen)
+  {
+    switch (dir)
+    {
+    case LV_DIR_LEFT:
+      break;
+    case LV_DIR_RIGHT:
+      break;
+    case LV_DIR_TOP:
+      if (zoom >= MIN_ZOOM && zoom < MAX_ZOOM)
+      {
+        zoom++;
+        lv_event_send(map_tile, LV_EVENT_REFRESH, NULL);
+      }
+      break;
+    case LV_DIR_BOTTOM:
+      if (zoom <= MAX_ZOOM && zoom > MIN_ZOOM)
+      {
+        zoom--;
+        lv_event_send(map_tile, LV_EVENT_REFRESH, NULL);
+      }
+      break;
+    }
   }
 }
 
@@ -202,6 +207,13 @@ static void update_map(lv_event_t *event)
     map_rot.fillRectAlpha(0, 342, 70, 32, 95, TFT_BLACK);
     map_rot.pushImage(0, 346, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
     map_rot.drawNumber((uint16_t)GPS.speed.kmph(), 26, 350, &fonts::FreeSansBold9pt7b);
+
+    map_rot.fillRectAlpha(250, 342, 70, TFT_WIDTH - 245, 95, TFT_BLACK);
+    map_rot.setTextSize(1);
+    map_rot.drawFastHLine(255,360,60);
+    map_rot.drawFastVLine(255,355,10);
+    map_rot.drawFastVLine(315,355,10);
+    map_rot.drawCenterString(map_scale[zoom], 285, 350);
 
     sprArrow.pushRotated(&map_rot, 0, TFT_BLACK);
   }

@@ -78,11 +78,10 @@ void setup()
   map_spr.createSprite(768, 768);
 
   splash_scr();
-  // init_tasks();
+  init_tasks();
 
 #ifdef DEFAULT_LAT
-  lv_scr_load(mainScreen);
-  create_notify_bar();
+  load_main_screen();
 #else
   lv_scr_load(searchSat);
 #endif
@@ -94,19 +93,20 @@ void setup()
  */
 void loop()
 {
-  vTaskDelay(10);
+  vTaskDelay(5);
 #ifdef MAKERF_ESP32S3
   lv_tick_inc(5);
 #endif
   lv_timer_handler();
-  while (gps->available() > 0)
-  {
-#ifdef OUTPUT_NMEA
-    {
-      debug->write(gps->read());
-    }
-#else
-    GPS.encode(gps->read());
-#endif
-  }
+//   while (gps->available() > 0)
+//   {
+// #ifdef OUTPUT_NMEA
+//     {
+//       debug->write(gps->read());
+//     }
+// #else
+//     GPS.encode(gps->read());
+//     vTaskDelay(10);
+// #endif
+//  }
 }

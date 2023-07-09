@@ -79,7 +79,7 @@ public:
             cfg.bus_shared = true;
             cfg.offset_rotation = 0;
             cfg.spi_host = HSPI_HOST;
-            cfg.freq = 400000;
+            cfg.freq = 1600000;
             cfg.pin_sclk = 14;
             cfg.pin_mosi = 13;
             cfg.pin_miso = 27;
