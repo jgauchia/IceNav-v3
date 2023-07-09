@@ -30,7 +30,7 @@ MPU9250 IMU(Wire, 0x68);
 float declinationAngle = 0.22;
 
 /**
- * @brief Compass Heading Angle
+ * @brief Compass Heading Angle and Smooth factors
  *
  */
 int heading = 0;
@@ -38,6 +38,12 @@ float heading_smooth = 0.0;
 float heading_previous = 0.0;
 #define SMOOTH_FACTOR 0.40
 #define SMOOTH_PREVIOUS_FACTOR 0.60
+
+/**
+ * @brief Calibration variables
+ * 
+ */
+static int minx,maxx,miny,maxy,offx=0,offy=0;
 
 /**
  * @brief Read compass data
@@ -64,7 +70,7 @@ int read_compass()
   y = IMU.getMagY_uT();
   z = IMU.getMagZ_uT();
 #endif
-  float heading_no_filter = atan2(y, x);
+  float heading_no_filter = atan2(y-offy, x-offx);
   heading_no_filter += declinationAngle;
   heading_smooth = heading_no_filter;
   //heading_smooth = (heading_no_filter * SMOOTH_FACTOR) + (heading_previous * SMOOTH_PREVIOUS_FACTOR);
