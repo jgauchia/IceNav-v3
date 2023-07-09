@@ -133,6 +133,11 @@ static void compass_calibrate()
 
   read_compass(x, y, z);
 
+  //  tft.drawString("TOUCH THE ARROW MARKER.", 10, tft.height() >> 1, &fonts::DejaVu18);
+  //   tft.drawString("DONE!", 90, (tft.height() >> 1) + 30, &fonts::DejaVu40);
+  //   delay(500);
+  //   tft.drawString("TOUCH TO CONTINUE.", 50, (tft.height() >> 1) + 100, &fonts::DejaVu18);
+
   maxx = minx = x; // Set initial values to current magnetometer readings.
   maxy = miny = y;
 
