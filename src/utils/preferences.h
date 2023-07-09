@@ -17,7 +17,23 @@ Preferences preferences;
 static void load_preferences()
 {
     preferences.begin("ICENAV",false);
-    offx = preferences.getInt("Compass_offset_x",0);
-    offy = preferences.getInt("Compass_offset_y",0);
+    offx = preferences.getFloat("Compass_offset_x",0.0);
+    offy = preferences.getFloat("Compass_offset_y",0.0);
+    log_v("OFFSET X  %f",offx);
+    log_v("OFFSET Y  %f",offy);
+    preferences.end();
+}
+
+/**
+ * @brief Save current compass calibration in preferences
+ * 
+ * @param offset_x 
+ * @param offset_y 
+ */
+static void save_compass_cal(float offset_x, float offset_y)
+{
+    preferences.begin("ICENAV",false);
+    preferences.putFloat("Compass_offset_x",offset_x);
+    preferences.putFloat("Compass_offset_y",offset_y);
     preferences.end();
 }
