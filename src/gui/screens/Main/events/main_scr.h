@@ -66,7 +66,6 @@ TFT_eSprite zoom_spr = TFT_eSprite(&tft);
 #define MAX_ZOOM 17
 #define DEF_ZOOM 17
 uint8_t zoom = DEF_ZOOM;
-uint8_t map_scale = 0;
 
 /**
  * @brief Active Tile in TileView control
