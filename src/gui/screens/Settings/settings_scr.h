@@ -34,7 +34,7 @@ void create_settings_scr()
     lv_obj_set_size(compass_calib_but, TFT_WIDTH - 30, 40);
     but_label = lv_label_create(compass_calib_but);
     lv_obj_set_style_text_font(but_label, &lv_font_montserrat_20, 0);
-    lv_label_set_text(but_label, "Compass Calibration");
+    lv_label_set_text_static(but_label, "Compass Calibration");
     lv_obj_center(but_label);
     lv_obj_add_event_cb(compass_calib_but, compass_calib, LV_EVENT_CLICKED, NULL);
 
@@ -43,7 +43,7 @@ void create_settings_scr()
     lv_obj_set_size(touch_calib_but, TFT_WIDTH - 30, 40);
     but_label = lv_label_create(touch_calib_but);
     lv_obj_set_style_text_font(but_label, &lv_font_montserrat_20, 0);
-    lv_label_set_text(but_label, "Touch Calibration");
+    lv_label_set_text_static(but_label, "Touch Calibration");
     lv_obj_center(but_label);
     lv_obj_add_event_cb(touch_calib_but, touch_calib, LV_EVENT_CLICKED, NULL);
 
@@ -52,7 +52,7 @@ void create_settings_scr()
     lv_obj_set_size(back_but, TFT_WIDTH - 30, 40);
     but_label = lv_label_create(back_but);
     lv_obj_set_style_text_font(but_label, &lv_font_montserrat_20, 0);
-    lv_label_set_text(but_label, "Back");
+    lv_label_set_text_static(but_label, "Back");
     lv_obj_center(but_label);
     lv_obj_add_event_cb(back_but, back, LV_EVENT_CLICKED, NULL);
 }

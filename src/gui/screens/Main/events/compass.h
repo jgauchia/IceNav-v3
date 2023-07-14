@@ -28,7 +28,7 @@ static void update_heading(lv_event_t *event)
 static void update_latitude(lv_event_t *event)
 {
     lv_obj_t *lat = lv_event_get_target(event);
-    lv_label_set_text(lat, Latitude_formatString(GPS.location.lat()));
+    lv_label_set_text_static(lat, Latitude_formatString(GPS.location.lat()));
 }
 
 /**
@@ -39,7 +39,7 @@ static void update_latitude(lv_event_t *event)
 static void update_longitude(lv_event_t *event)
 {
     lv_obj_t *lon = lv_event_get_target(event);
-    lv_label_set_text(lon, Longitude_formatString(GPS.location.lng()));
+    lv_label_set_text_static(lon, Longitude_formatString(GPS.location.lng()));
 }
 
 /**
