@@ -49,7 +49,7 @@ void create_notify_bar()
     lv_obj_add_style(notifyBar, &style_bar, LV_PART_MAIN);
 
     gps_time = lv_label_create(notifyBar);
-    lv_obj_set_width(gps_time, 145);
+    lv_obj_set_width(gps_time, 140);
     lv_obj_set_style_text_font(gps_time, &lv_font_montserrat_20, 0);
     lv_label_set_text_fmt(gps_time, "%02d:%02d:%02d", hour(local), minute(local), second(local));
     lv_obj_add_event_cb(gps_time, update_time, LV_EVENT_VALUE_CHANGED, NULL);
