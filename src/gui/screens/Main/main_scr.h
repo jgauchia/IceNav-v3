@@ -75,7 +75,7 @@ void create_main_scr()
     lv_obj_set_align(compass_heading, LV_ALIGN_CENTER);
     lv_obj_set_y(compass_heading, 75);
     lv_obj_set_style_text_font(compass_heading, &lv_font_montserrat_48, 0);
-    lv_label_set_text(compass_heading, "-----\xC2\xB0");
+    lv_label_set_text_static(compass_heading, "-----\xC2\xB0");
 
     lv_obj_t *arrow_img = lv_img_create(compass_tile);
     lv_img_set_src(arrow_img, "F:/arrow.bin");
@@ -102,25 +102,25 @@ void create_main_scr()
     speed_label = lv_label_create(compass_tile);
     lv_obj_set_size(speed_label, 200, 20);
     lv_obj_set_style_text_font(speed_label, &lv_font_montserrat_24, 0);
-    lv_label_set_text(speed_label, "0 Km/h");
+    lv_label_set_text_static(speed_label, "0 Km/h");
     lv_obj_set_pos(speed_label, 60, 100);
 
     latitude = lv_label_create(compass_tile);
     lv_obj_set_size(latitude, 200, 20);
     lv_obj_set_style_text_font(latitude, &lv_font_montserrat_16, 0);
-    lv_label_set_text(latitude, Latitude_formatString(GPS.location.lat()));
+    lv_label_set_text_static(latitude, Latitude_formatString(GPS.location.lat()));
     lv_obj_set_pos(latitude, 55, 12);
 
     longitude = lv_label_create(compass_tile);
     lv_obj_set_size(longitude, 200, 20);
     lv_obj_set_style_text_font(longitude, &lv_font_montserrat_16, 0);
-    lv_label_set_text(longitude, Longitude_formatString(GPS.location.lng()));
+    lv_label_set_text_static(longitude, Longitude_formatString(GPS.location.lng()));
     lv_obj_set_pos(longitude, 55, 28);
 
     altitude = lv_label_create(compass_tile);
     lv_obj_set_size(altitude, 200, 20);
     lv_obj_set_style_text_font(altitude, &lv_font_montserrat_24, 0);
-    lv_label_set_text(altitude, "0000 m.");
+    lv_label_set_text_static(altitude, "0000 m.");
     lv_obj_set_pos(altitude, 60, 62);
 
     // Compass Tile Events
