@@ -39,7 +39,7 @@ static void update_batt(lv_event_t *event)
 static void update_fix_mode(lv_event_t *event)
 {
     lv_obj_t *mode = lv_event_get_target(event);
-    if (fix_mode.isValid())
+    if (fix_mode.isValid() && fix_old != atoi(fix_mode.value()))
     {
         switch (atoi(fix_mode.value()))
         {
@@ -56,6 +56,7 @@ static void update_fix_mode(lv_event_t *event)
             lv_label_set_text(mode, "--");
             break;
         }
+        fix_old = atoi(fix_mode.value());
     }
 }
 
