@@ -15,7 +15,7 @@ void load_main_screen();
  */
 static void back(lv_event_t *event)
 {
-   load_main_screen();
+    load_main_screen();
 }
 
 /**
@@ -29,6 +29,19 @@ static void touch_calib(lv_event_t *event)
     tft.fillScreen(TFT_BLACK);
     touch_calibrate();
     REPEAT_CAL = false;
+    is_main_screen = false;
+    lv_scr_load(settingsScreen);
+}
+
+/**
+ * @brief Compass Calibration
+ *
+ * @param event
+ */
+static void compass_calib(lv_event_t *event)
+{
+    tft.fillScreen(TFT_BLACK);
+    compass_calibrate();
     is_main_screen = false;
     lv_scr_load(settingsScreen);
 }

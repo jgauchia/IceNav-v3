@@ -21,7 +21,6 @@ uint8_t brightness_level = 255;
 static TFT_eSPI tft;
 #define LVGL_BKG 0x10A3
 
-
 /**
  * @brief Set the TFT brightness
  *
@@ -97,10 +96,11 @@ void touch_calibrate()
     tft.setTouchCalibrate(calData);
   else
   {
-    tft.drawString("TOUCH THE ARROW MARKER.", 10, tft.height()>>1, &fonts::DejaVu18);
+    tft.drawCenterString("TOUCH THE ARROW MARKER.", 160, tft.height() >> 1, &fonts::DejaVu18);
     tft.calibrateTouch(calData, TFT_WHITE, TFT_BLACK, std::max(tft.width(), tft.height()) >> 3);
-    tft.drawString("DONE!",90, (tft.height()>>1)+30,&fonts::DejaVu40);
+    tft.drawCenterString("DONE!", 160, (tft.height() >> 1) + 30, &fonts::DejaVu40);
     delay(500);
+    tft.drawCenterString("TOUCH TO CONTINUE.", 160, (tft.height() >> 1) + 100, &fonts::DejaVu18);
 
     File f = SPIFFS.open(CALIBRATION_FILE, "w");
     if (f)
@@ -108,6 +108,11 @@ void touch_calibrate()
       f.write((const unsigned char *)calData, 16);
       f.close();
     }
+
+    uint16_t touchX, touchY;
+    while (!tft.getTouch(&touchX, &touchY))
+    {
+    };
   }
 }
 

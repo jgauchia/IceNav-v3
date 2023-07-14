@@ -132,7 +132,7 @@ static void update_main_screen(lv_timer_t *t)
         {
         case COMPASS:
 #ifdef ENABLE_COMPASS
-            heading = read_compass();
+            heading = get_heading();
             lv_event_send(compass_heading, LV_EVENT_VALUE_CHANGED, NULL);
 #endif
 

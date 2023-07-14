@@ -12,6 +12,7 @@
  */
 void splash_scr()
 {
+    tft.fillScreen(TFT_BLACK);
     millis_actual = millis();
     set_brightness(0);
     tft.drawPngFile(SPIFFS, PSTR("/BOOTLOGO.png"), (tft.width() / 2) - 150 , (tft.height() / 2) - 70);

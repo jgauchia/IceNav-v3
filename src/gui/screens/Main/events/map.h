@@ -191,7 +191,7 @@ static void update_map(lv_event_t *event)
     map_rot.pushSprite(0, 27);
 
 #ifdef ENABLE_COMPASS
-    heading = read_compass();
+    heading = get_heading();
     map_spr.pushRotated(&map_rot, 360 - heading, TFT_TRANSPARENT);
     map_rot.fillRectAlpha(TFT_WIDTH - 48, 0, 48, 48, 95, TFT_BLACK);
     map_rot.pushImageRotateZoom(TFT_WIDTH - 24, 24, 24, 24, 360 - heading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);

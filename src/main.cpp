@@ -40,6 +40,7 @@ unsigned long millis_actual = 0;
 #include "utils/lv_spiffs_fs.h"
 #include "utils/lv_sd_fs.h"
 #include "utils/time_zone.h"
+#include "utils/preferences.h"
 #include "gui/lvgl.h"
 
 #include "tasks.h"
@@ -67,6 +68,7 @@ void setup()
   init_serial();
 #endif
   powerOn();
+  load_preferences();
   init_sd();
   init_SPIFFS();
   init_LVGL();
@@ -78,7 +80,7 @@ void setup()
   map_spr.createSprite(768, 768);
 
   splash_scr();
-  init_tasks();
+  // init_tasks();
 
 #ifdef DEFAULT_LAT
   load_main_screen();
@@ -98,15 +100,14 @@ void loop()
   lv_tick_inc(5);
 #endif
   lv_timer_handler();
-//   while (gps->available() > 0)
-//   {
-// #ifdef OUTPUT_NMEA
-//     {
-//       debug->write(gps->read());
-//     }
-// #else
-//     GPS.encode(gps->read());
-//     vTaskDelay(10);
-// #endif
-//  }
+  while (gps->available()>0)
+  {
+#ifdef OUTPUT_NMEA
+    {
+      debug->write(gps->read());
+    }
+#else
+    GPS.encode(gps->read());
+#endif
+  }
 }

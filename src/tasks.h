@@ -25,7 +25,7 @@ void Read_GPS(void *pvParameters)
       }
 #else
       GPS.encode(gps->read());
-      vTaskDelay(5);
+      vTaskDelay(10);
 #endif
     }
     
@@ -42,7 +42,7 @@ void LVGL_Task(void *pvParameters)
   log_v("Task2 - LVGL Task - running on core %d", xPortGetCoreID());
   for (;;)
   {
-    vTaskDelay(5); 
+    vTaskDelay(10); 
    // lv_tick_inc(5);
   }
 }
@@ -53,7 +53,7 @@ void LVGL_Task(void *pvParameters)
  */
 void init_tasks()
 {
-  xTaskCreatePinnedToCore(Read_GPS, PSTR("Read GPS"), 19000, NULL, 2, NULL, 1);
+  xTaskCreatePinnedToCore(Read_GPS, PSTR("Read GPS"), 20000, NULL, 3, NULL, 1);
   delay(500);
   //xTaskCreatePinnedToCore(LVGL_Task, PSTR("LVGL Task"), 20000, NULL, 1, NULL, 1);
   //delay(500);

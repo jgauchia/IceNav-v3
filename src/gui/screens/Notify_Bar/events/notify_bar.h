@@ -38,22 +38,24 @@ static void update_batt(lv_event_t *event)
  */
 static void update_fix_mode(lv_event_t *event)
 {
-    switch (atoi(fix_mode.value()))
+    lv_obj_t *mode = lv_event_get_target(event);
+    if (fix_mode.isValid())
     {
-    case 1:
-        lv_label_set_text(gps_fix_mode, "--");
-        lv_label_set_text_fmt(gps_count, LV_SYMBOL_GPS "%2d", 0);
-        break;
-    case 2:
-        lv_label_set_text(gps_fix_mode, "2D");
-        break;
-    case 3:
-        lv_label_set_text(gps_fix_mode, "3D");
-        break;
-    default:
-        lv_label_set_text(gps_fix_mode, "--");
-        lv_label_set_text_fmt(gps_count, LV_SYMBOL_GPS "%2d", 0);
-        break;
+        switch (atoi(fix_mode.value()))
+        {
+        case 1:
+            lv_label_set_text(mode, "--");
+            break;
+        case 2:
+            lv_label_set_text(mode, "2D");
+            break;
+        case 3:
+            lv_label_set_text(mode, "3D");
+            break;
+        default:
+            lv_label_set_text(mode, "--");
+            break;
+        }
     }
 }
 
@@ -77,7 +79,11 @@ static void update_time(lv_event_t *event)
  */
 static void update_gps_count(lv_event_t *event)
 {
-    lv_label_set_text_fmt(gps_count, LV_SYMBOL_GPS "%2d", GPS.satellites.value());
+    lv_obj_t *gps_num = lv_event_get_target(event);
+    if (GPS.satellites.isValid())
+        lv_label_set_text_fmt(gps_num, LV_SYMBOL_GPS "%2d", GPS.satellites.value());
+    else
+        lv_label_set_text_fmt(gps_num, LV_SYMBOL_GPS "%2d", 0);
 }
 
 /**
@@ -87,32 +93,8 @@ static void update_gps_count(lv_event_t *event)
 void update_notify_bar(lv_timer_t *t)
 {
     lv_event_send(gps_time, LV_EVENT_VALUE_CHANGED, NULL);
-
-    lv_label_set_text_fmt(gps_count, LV_SYMBOL_GPS "%2d", GPS.satellites.value());
-
-    switch (atoi(fix.value()))
-    {
-    case 0:
-        lv_led_off(gps_fix);
-        lv_label_set_text_fmt(gps_count, LV_SYMBOL_GPS "%2d", 0);
-        break;
-    case 1:
-        lv_led_toggle(gps_fix);
-        break;
-    case 2:
-        lv_led_toggle(gps_fix);
-        break;
-    default:
-        lv_led_off(gps_fix);
-        lv_label_set_text_fmt(gps_count, LV_SYMBOL_GPS "%2d", 0);
-        break;
-    }
-
-    if (atoi(fix_mode.value()) != fix_mode_old)
-    {
-        lv_event_send(gps_fix_mode, LV_EVENT_VALUE_CHANGED, NULL);
-        fix_mode_old = atoi(fix_mode.value());
-    }
+    lv_event_send(gps_count, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_event_send(gps_fix_mode, LV_EVENT_VALUE_CHANGED, NULL);
 
     batt_level = battery_read();
     if (batt_level != batt_level_old)

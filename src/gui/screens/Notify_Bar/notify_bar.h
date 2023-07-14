@@ -65,12 +65,8 @@ void create_notify_bar()
 
     gps_count = lv_label_create(notifyBar);
     lv_label_set_text_fmt(gps_count, LV_SYMBOL_GPS "%2d", 0);
+    lv_obj_set_width(gps_count,40);
     lv_obj_add_event_cb(gps_count, update_gps_count, LV_EVENT_VALUE_CHANGED, NULL);
-
-    gps_fix = lv_led_create(notifyBar);
-    lv_led_set_color(gps_fix, lv_palette_main(LV_PALETTE_RED));
-    lv_obj_set_size(gps_fix, 7, 7);
-    lv_led_off(gps_fix);
 
     gps_fix_mode = lv_label_create(notifyBar);
     lv_obj_set_style_text_font(gps_fix_mode, &lv_font_montserrat_10, 0);
