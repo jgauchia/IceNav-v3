@@ -195,19 +195,19 @@ void create_main_scr()
     lv_obj_add_style(gnss_sel, &style_sel, LV_PART_MAIN);
 
     lv_obj_t *gps = lv_checkbox_create(gnss_sel);
-    lv_checkbox_set_text(gps, "GPS     ");
+    lv_checkbox_set_text_static(gps, "GPS     ");
     lv_obj_add_flag(gps, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_add_style(gps, &style_radio, LV_PART_INDICATOR);
     lv_obj_add_style(gps, &style_radio_chk, LV_PART_INDICATOR | LV_STATE_CHECKED);
 
     lv_obj_t *glonass = lv_checkbox_create(gnss_sel);
-    lv_checkbox_set_text(glonass, "GLONASS  ");
+    lv_checkbox_set_text_static(glonass, "GLONASS  ");
     lv_obj_add_flag(glonass, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_add_style(glonass, &style_radio, LV_PART_INDICATOR);
     lv_obj_add_style(glonass, &style_radio_chk, LV_PART_INDICATOR | LV_STATE_CHECKED);
 
     lv_obj_t *beidou = lv_checkbox_create(gnss_sel);
-    lv_checkbox_set_text(beidou, "BEIDOU");
+    lv_checkbox_set_text_static(beidou, "BEIDOU");
     lv_obj_add_flag(beidou, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_add_style(beidou, &style_radio, LV_PART_INDICATOR);
     lv_obj_add_style(beidou, &style_radio_chk, LV_PART_INDICATOR | LV_STATE_CHECKED);

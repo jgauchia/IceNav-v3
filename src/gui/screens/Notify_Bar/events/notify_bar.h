@@ -19,15 +19,15 @@
 static void update_batt(lv_event_t *event)
 {
     if (batt_level <= 160 && batt_level > 140)
-        lv_label_set_text(battery, "  " LV_SYMBOL_CHARGE);
+        lv_label_set_text_static(battery, "  " LV_SYMBOL_CHARGE);
     else if (batt_level <= 140 && batt_level > 80)
-        lv_label_set_text(battery, LV_SYMBOL_BATTERY_FULL);
+        lv_label_set_text_static(battery, LV_SYMBOL_BATTERY_FULL);
     else if (batt_level <= 80 && batt_level > 60)
-        lv_label_set_text(battery, LV_SYMBOL_BATTERY_3);
+        lv_label_set_text_static(battery, LV_SYMBOL_BATTERY_3);
     else if (batt_level <= 60 && batt_level > 40)
-        lv_label_set_text(battery, LV_SYMBOL_BATTERY_2);
+        lv_label_set_text_static(battery, LV_SYMBOL_BATTERY_2);
     else if (batt_level <= 40 && batt_level > 20)
-        lv_label_set_text(battery, LV_SYMBOL_BATTERY_1);
+        lv_label_set_text_static(battery, LV_SYMBOL_BATTERY_1);
     else if (batt_level <= 20)
         lv_label_set_text(battery, LV_SYMBOL_BATTERY_EMPTY);
 }
@@ -44,16 +44,16 @@ static void update_fix_mode(lv_event_t *event)
         switch (atoi(fix_mode.value()))
         {
         case 1:
-            lv_label_set_text(mode, "--");
+            lv_label_set_text_static(mode, "--");
             break;
         case 2:
-            lv_label_set_text(mode, "2D");
+            lv_label_set_text_static(mode, "2D");
             break;
         case 3:
-            lv_label_set_text(mode, "3D");
+            lv_label_set_text_static(mode, "3D");
             break;
         default:
-            lv_label_set_text(mode, "--");
+            lv_label_set_text_static(mode, "--");
             break;
         }
         fix_old = atoi(fix_mode.value());

@@ -55,13 +55,13 @@ void create_notify_bar()
     lv_obj_add_event_cb(gps_time, update_time, LV_EVENT_VALUE_CHANGED, NULL);
 
     temp = lv_label_create(notifyBar);
-    lv_label_set_text(temp, "--\xC2\xB0");
+    lv_label_set_text_static(temp, "--\xC2\xB0");
 
     sdcard = lv_label_create(notifyBar);
     if (sdloaded)
-        lv_label_set_text(sdcard, LV_SYMBOL_SD_CARD);
+        lv_label_set_text_static(sdcard, LV_SYMBOL_SD_CARD);
     else
-        lv_label_set_text(sdcard, " ");
+        lv_label_set_text_static(sdcard, " ");
 
     gps_count = lv_label_create(notifyBar);
     lv_label_set_text_fmt(gps_count, LV_SYMBOL_GPS "%2d", 0);
@@ -70,11 +70,11 @@ void create_notify_bar()
 
     gps_fix_mode = lv_label_create(notifyBar);
     lv_obj_set_style_text_font(gps_fix_mode, &lv_font_montserrat_10, 0);
-    lv_label_set_text(gps_fix_mode, "--");
+    lv_label_set_text_static(gps_fix_mode, "--");
     lv_obj_add_event_cb(gps_fix_mode, update_fix_mode, LV_EVENT_VALUE_CHANGED, NULL);
 
     battery = lv_label_create(notifyBar);
-    lv_label_set_text(battery, LV_SYMBOL_BATTERY_EMPTY);
+    lv_label_set_text_static(battery, LV_SYMBOL_BATTERY_EMPTY);
     lv_obj_add_event_cb(battery, update_batt, LV_EVENT_VALUE_CHANGED, NULL);
 
     lv_timer_t *timer_notify_bar = lv_timer_create(update_notify_bar, UPDATE_NOTIFY_PERIOD, NULL);

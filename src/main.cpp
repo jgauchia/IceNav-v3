@@ -100,6 +100,7 @@ void loop()
   lv_tick_inc(5);
 #endif
   lv_timer_handler();
+  lv_task_handler();
   
   while (gps->available()>0)
   {
