@@ -41,7 +41,6 @@ struct GSV
 TinyGPSCustom pdop(GPS, PSTR("GNGSA"), 15); // $GNGSA sentence, 15th element
 TinyGPSCustom hdop(GPS, PSTR("GNGSA"), 16); // $GNGSA sentence, 16th element
 TinyGPSCustom vdop(GPS, PSTR("GNGSA"), 17); // $GNGSA sentence, 17th element
-TinyGPSCustom fix(GPS, PSTR("GNGGA"), 6);
 TinyGPSCustom fix_mode(GPS, PSTR("GNGSA"), 2);
 
 // GPS Satellites in view
@@ -59,7 +58,6 @@ GSV BD_GSV;
 TinyGPSCustom pdop(GPS, PSTR("GPGSA"), 15); // $GPGSA sentence, 15th element
 TinyGPSCustom hdop(GPS, PSTR("GPGSA"), 16); // $GPGSA sentence, 16th element
 TinyGPSCustom vdop(GPS, PSTR("GPGSA"), 17); // $GPGSA sentence, 17th element
-TinyGPSCustom fix(GPS, PSTR("GPGGA"), 6);
 TinyGPSCustom fix_mode(GPS, PSTR("GPGSA"), 2);
 
 // GPS Satellites in view

@@ -65,7 +65,7 @@ void create_notify_bar()
 
     gps_count = lv_label_create(notifyBar);
     lv_label_set_text_fmt(gps_count, LV_SYMBOL_GPS "%2d", 0);
-    lv_obj_set_width(gps_count,75);
+    lv_obj_set_width(gps_count,40);
     lv_obj_add_event_cb(gps_count, update_gps_count, LV_EVENT_VALUE_CHANGED, NULL);
 
     gps_fix_mode = lv_label_create(notifyBar);
