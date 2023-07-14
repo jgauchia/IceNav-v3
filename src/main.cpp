@@ -80,7 +80,7 @@ void setup()
   map_spr.createSprite(768, 768);
 
   splash_scr();
-  init_tasks();
+  // init_tasks();
 
 #ifdef DEFAULT_LAT
   load_main_screen();
@@ -100,15 +100,14 @@ void loop()
   lv_tick_inc(5);
 #endif
   lv_timer_handler();
-//   while (gps->available() > 0)
-//   {
-// #ifdef OUTPUT_NMEA
-//     {
-//       debug->write(gps->read());
-//     }
-// #else
-//     GPS.encode(gps->read());
-//     vTaskDelay(10);
-// #endif
-//  }
+  while (gps->available()>0)
+  {
+#ifdef OUTPUT_NMEA
+    {
+      debug->write(gps->read());
+    }
+#else
+    GPS.encode(gps->read());
+#endif
+  }
 }

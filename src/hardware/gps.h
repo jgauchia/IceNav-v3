@@ -14,7 +14,6 @@
 HardwareSerial *gps = &Serial2;
 TinyGPSPlus GPS;
 bool is_gps_fixed = false;
-uint8_t fix_mode_old = 0;
 uint8_t fix_old = 0;
 
 /**
