@@ -7,6 +7,7 @@
  */
 
 static lv_obj_t *buttonBar;
+static lv_obj_t *option;
 
 /**
  * @brief Main screen events include
@@ -59,7 +60,6 @@ void create_button_bar_scr()
  */
 static void load_options()
 {
-    lv_obj_t *option = NULL;
     if (is_waypoint)
         option = lv_msgbox_create(lv_scr_act(), "Waypoint Options", NULL, NULL, true);
     else if (is_track)
