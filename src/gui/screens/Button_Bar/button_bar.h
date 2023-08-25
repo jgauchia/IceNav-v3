@@ -13,6 +13,7 @@ static lv_obj_t *buttonBar;
  *
  */
 #include "gui/screens/Button_Bar/events/button_bar.h"
+#include "gui/screens/Button_Bar/events/options.h"
 
 /**
  * @brief Create button bar screen
@@ -52,3 +53,20 @@ void create_button_bar_scr()
     lv_obj_add_event_cb(settingsBtn, settings, LV_EVENT_PRESSED, NULL);
 }
 
+/**
+ * @brief Load waypoint, track options modal dialog.
+ *
+ */
+static void load_options()
+{
+    lv_obj_t *option = NULL;
+    if (is_waypoint)
+        option = lv_msgbox_create(lv_scr_act(), "Waypoint Options", NULL, NULL, true);
+    else if (is_track)
+        option = lv_msgbox_create(lv_scr_act(), "Track Options", NULL, NULL, true);
+
+    lv_obj_set_size(option, TFT_WIDTH, 168);
+    lv_obj_set_pos(option, 0, TFT_HEIGHT - 240);
+    lv_obj_clear_flag(option, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_event_cb(((lv_msgbox_t *)option)->close_btn, close_option, LV_EVENT_PRESSED, NULL);
+}
