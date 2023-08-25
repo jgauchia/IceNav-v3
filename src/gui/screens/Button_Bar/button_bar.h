@@ -65,8 +65,26 @@ static void load_options()
     else if (is_track)
         option = lv_msgbox_create(lv_scr_act(), "Track Options", NULL, NULL, true);
 
-    lv_obj_set_size(option, TFT_WIDTH, 168);
-    lv_obj_set_pos(option, 0, TFT_HEIGHT - 240);
+    lv_obj_set_size(option, TFT_WIDTH, 128);
+    lv_obj_set_pos(option, 0, TFT_HEIGHT - 200);
     lv_obj_clear_flag(option, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_event_cb(((lv_msgbox_t *)option)->close_btn, close_option, LV_EVENT_PRESSED, NULL);
+
+    // Save Button
+    lv_obj_t *saveBtn = lv_img_create(option);
+    lv_img_set_src(saveBtn, "F:/save.bin");
+    lv_obj_add_flag(saveBtn, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(saveBtn, save_option, LV_EVENT_PRESSED, NULL);
+
+    // Load Button
+    lv_obj_t *loadBtn = lv_img_create(option);
+    lv_img_set_src(loadBtn, "F:/load.bin");
+    lv_obj_add_flag(loadBtn, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(loadBtn, load_option, LV_EVENT_PRESSED, NULL);
+
+    // Delete Button
+    lv_obj_t *deleteBtn = lv_img_create(option);
+    lv_img_set_src(deleteBtn, "F:/delete.bin");
+    lv_obj_add_flag(deleteBtn, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(deleteBtn, delete_option, LV_EVENT_PRESSED, NULL);
 }
