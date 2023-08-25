@@ -29,3 +29,14 @@ static void waypoint(lv_event_t *event)
     log_v("Waypoint");
     is_main_screen = false;
 }
+
+/**
+ * @brief Track Button event
+ * 
+ * @param event 
+ */
+static void track(lv_event_t *event)
+{
+    log_v("Track");
+    is_main_screen = false;
+}

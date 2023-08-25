@@ -33,16 +33,22 @@ void create_button_bar_scr()
     lv_style_set_border_opa(&style_bar, LV_OPA_0);
     lv_obj_add_style(buttonBar, &style_bar, LV_PART_MAIN);
 
-    // Settings Button
-    lv_obj_t *settingsBtn = lv_img_create(buttonBar);
-    lv_img_set_src(settingsBtn, "F:/settings.bin");
-    lv_obj_add_flag(settingsBtn, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(settingsBtn, settings, LV_EVENT_PRESSED, NULL);
-
     // Waypoint Button
     lv_obj_t *waypointBtn = lv_img_create(buttonBar);
     lv_img_set_src(waypointBtn, "F:/wpt.bin");
     lv_obj_add_flag(waypointBtn, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(waypointBtn, waypoint, LV_EVENT_PRESSED, NULL);
+
+    // Track Button
+    lv_obj_t *trackBtn = lv_img_create(buttonBar);
+    lv_img_set_src(trackBtn, "F:/track.bin");
+    lv_obj_add_flag(trackBtn, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(trackBtn, track, LV_EVENT_PRESSED, NULL);
+
+    // Settings Button
+    lv_obj_t *settingsBtn = lv_img_create(buttonBar);
+    lv_img_set_src(settingsBtn, "F:/settings.bin");
+    lv_obj_add_flag(settingsBtn, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(settingsBtn, settings, LV_EVENT_PRESSED, NULL);
 }
 
