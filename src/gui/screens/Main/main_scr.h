@@ -11,6 +11,7 @@
  *
  */
 static lv_obj_t *compass_tile;
+static lv_obj_t *nav_tile;
 static lv_obj_t *map_tile;
 static lv_obj_t *sat_track_tile;
 
@@ -58,7 +59,8 @@ void create_main_scr()
     tiles = lv_tileview_create(mainScreen);
     compass_tile = lv_tileview_add_tile(tiles, 0, 0, LV_DIR_RIGHT);
     map_tile = lv_tileview_add_tile(tiles, 1, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
-    sat_track_tile = lv_tileview_add_tile(tiles, 2, 0, LV_DIR_LEFT);
+    nav_tile = lv_tileview_add_tile(tiles, 2, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
+    sat_track_tile = lv_tileview_add_tile(tiles, 3, 0, LV_DIR_LEFT);
     lv_obj_set_size(tiles, TFT_WIDTH, TFT_HEIGHT - 25);
     lv_obj_set_pos(tiles, 0, 25);
     static lv_style_t style_scroll;
@@ -133,6 +135,12 @@ void create_main_scr()
     // Map Tile Events
     lv_obj_add_event_cb(map_tile, update_map, LV_EVENT_REFRESH, NULL);
     lv_obj_add_event_cb(mainScreen, get_zoom_value, LV_EVENT_GESTURE, NULL);
+
+    // Navigation Tile
+    // TODO
+    
+    // Navitagion Tile Events
+    // TODO
 
     // Satellite Tracking Tile
     pdop_label = lv_label_create(sat_track_tile);

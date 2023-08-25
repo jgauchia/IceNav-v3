@@ -76,6 +76,7 @@ enum tilename
 {
     COMPASS,
     MAP,
+    NAV,
     SATTRACK,
 };
 
@@ -160,6 +161,8 @@ static void update_main_screen(lv_timer_t *t)
             lv_event_send(sat_track_tile, LV_EVENT_VALUE_CHANGED, NULL);
             break;
 
+        case NAV:
+             break;
         default:
             break;
         }
