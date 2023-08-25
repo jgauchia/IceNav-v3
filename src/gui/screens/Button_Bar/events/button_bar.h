@@ -18,3 +18,14 @@ static void settings(lv_event_t *event)
     is_main_screen = false;
     lv_scr_load(settingsScreen);
 }
+
+/**
+ * @brief Waypoint Button event
+ * 
+ * @param event 
+ */
+static void waypoint(lv_event_t *event)
+{
+    log_v("Waypoint");
+    is_main_screen = false;
+}
