@@ -6,7 +6,6 @@
  * @date 2023-06-14
  */
 
-static lv_obj_t *settingsScreen;
 static lv_obj_t *settingsButtons;
 
 /**
@@ -19,7 +18,7 @@ static lv_obj_t *settingsButtons;
  * @brief Create Settings screen
  *
  */
-void create_settings_scr()
+static void create_settings_scr()
 {
     // Settings Screen
     settingsScreen = lv_obj_create(NULL);
@@ -33,7 +32,6 @@ void create_settings_scr()
     lv_style_set_bg_opa(&style_settings, LV_OPA_0);
     lv_style_set_border_opa(&style_settings, LV_OPA_0);
     lv_obj_add_style(settingsButtons, &style_settings, LV_PART_MAIN);
-
 
     lv_obj_t *but_label;
 
@@ -54,6 +52,15 @@ void create_settings_scr()
     lv_label_set_text_static(but_label, "Touch Calibration");
     lv_obj_center(but_label);
     lv_obj_add_event_cb(touch_calib_but, touch_calib, LV_EVENT_CLICKED, NULL);
+
+    // Settings
+    lv_obj_t *device_config_but = lv_btn_create(settingsButtons);
+    lv_obj_set_size(device_config_but, TFT_WIDTH - 30, 40);
+    but_label = lv_label_create(device_config_but);
+    lv_obj_set_style_text_font(but_label, &lv_font_montserrat_20, 0);
+    lv_label_set_text_static(but_label, "Device Config");
+    lv_obj_center(but_label);
+    lv_obj_add_event_cb(device_config_but, device_config, LV_EVENT_CLICKED, NULL);
 
     // Back button
     lv_obj_t *back_but = lv_btn_create(settingsButtons);

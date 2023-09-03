@@ -45,3 +45,14 @@ static void compass_calib(lv_event_t *event)
     is_main_screen = false;
     lv_scr_load(settingsScreen);
 }
+
+/**
+ * @brief Device Config
+ * 
+ * @param event 
+ */
+static void device_config(lv_event_t *event)
+{
+    // is_main_screen = false;
+    lv_scr_load(devconfigScreen);
+}
