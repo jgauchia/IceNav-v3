@@ -29,9 +29,12 @@ static void create_device_config_scr()
     lv_obj_t *label;
 
     // Map Rotation
-    lv_obj_t *map_rot_cfg = lv_list_add_btn(devconfigOptions, NULL, "Map Rotation\nHEADING/COMPASS");
+    lv_obj_t *map_rot_cfg = lv_list_add_btn(devconfigOptions, NULL, "Map Rotation mode\nHEADING/COMPASS");
     lv_obj_set_align(map_rot_cfg, LV_ALIGN_LEFT_MID);
     map_switch = lv_switch_create(map_rot_cfg);
+    label = lv_label_create(map_switch);
+    lv_label_set_text_static(label, "C   H");
+    lv_obj_center(label);
     if (map_rotation)
         lv_obj_add_state(map_switch, LV_STATE_CHECKED);
     else
