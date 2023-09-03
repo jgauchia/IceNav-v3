@@ -11,6 +11,14 @@
 Preferences preferences;
 
 /**
+ * @brief Global Variables definition for device preferences & config.
+ * 
+ */
+float offx = 0.0, offy = 0.0; // Compass offset calibration
+bool map_rotation = true;     // Map Compass Rotation
+
+
+/**
  * @brief Load stored preferences
  * 
  */
@@ -19,8 +27,12 @@ static void load_preferences()
     preferences.begin("ICENAV",false);
     offx = preferences.getFloat("C_offset_x",0.0);
     offy = preferences.getFloat("C_offset_y",0.0);
+    map_rotation = preferences.getBool("Map_rot",true);
+    
     log_v("OFFSET X  %f",offx);
     log_v("OFFSET Y  %f",offy);
+    log_v("MAP ROTATION %d",map_rotation);
+
     preferences.end();
 }
 

@@ -24,6 +24,11 @@ static void create_device_config_scr()
     devconfigScreen = lv_obj_create(NULL);
     devconfigOptions = lv_obj_create(devconfigScreen);
     lv_obj_set_size(devconfigOptions, TFT_WIDTH, TFT_HEIGHT - 60);
+    static lv_style_t style_devconfig;
+    lv_style_init(&style_devconfig);
+    lv_style_set_bg_opa(&style_devconfig, LV_OPA_0);
+    lv_style_set_border_opa(&style_devconfig, LV_OPA_0);
+    lv_obj_add_style(devconfigOptions, &style_devconfig, LV_PART_MAIN);
 
     lv_obj_t *but_label;
 

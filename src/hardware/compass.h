@@ -46,7 +46,7 @@ float heading_previous = 0.0;
  * @brief Calibration variables
  *
  */
-float minx, maxx, miny, maxy, offx = 0.0, offy = 0.0;
+float minx, maxx, miny, maxy;
 
 /**
  * @brief Init Compass
