@@ -19,10 +19,10 @@ MapTile RoundMapTile;
  */
 ScreenCoord NavArrow_position;
 
-static const char *map_scale[] = {"5000 Km","2500 Km","1500 Km","700 Km","350 Km",
-                                   "150 Km","100 Km","40 Km","20 Km","10 Km","5 Km",
-                                   "2,5 Km","1,5 Km","700 m","350 m","150 m","80 m",
-                                   "40 m","20 m","10 m"};
+static const char *map_scale[] = {"5000 Km", "2500 Km", "1500 Km", "700 Km", "350 Km",
+                                  "150 Km", "100 Km", "40 Km", "20 Km", "10 Km", "5 Km",
+                                  "2,5 Km", "1,5 Km", "700 m", "350 m", "150 m", "80 m",
+                                  "40 m", "20 m", "10 m"};
 
 /**
  * @brief return latitude from GPS or sys env pre-built variable
@@ -192,11 +192,17 @@ static void update_map(lv_event_t *event)
 
 #ifdef ENABLE_COMPASS
     heading = get_heading();
-    map_spr.pushRotated(&map_rot, 360 - heading, TFT_TRANSPARENT);
+    if (map_rotation)
+      map_heading = get_heading();
+    else
+      map_heading = GPS.course.deg();
+    map_spr.pushRotated(&map_rot, 360 - map_heading, TFT_TRANSPARENT);
     map_rot.fillRectAlpha(TFT_WIDTH - 48, 0, 48, 48, 95, TFT_BLACK);
     map_rot.pushImageRotateZoom(TFT_WIDTH - 24, 24, 24, 24, 360 - heading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
 #else
-    map_spr.pushRotated(&map_rot, 0, TFT_TRANSPARENT);
+    map_heading = GPS.course.deg();
+    map_spr.pushRotated(&map_rot, 360 - map_heading, TFT_TRANSPARENT);
+    // map_spr.pushRotated(&map_rot, 0, TFT_TRANSPARENT);
 #endif
     map_rot.setTextColor(TFT_WHITE, TFT_WHITE);
 
@@ -210,9 +216,9 @@ static void update_map(lv_event_t *event)
 
     map_rot.fillRectAlpha(250, 342, 70, TFT_WIDTH - 245, 95, TFT_BLACK);
     map_rot.setTextSize(1);
-    map_rot.drawFastHLine(255,360,60);
-    map_rot.drawFastVLine(255,355,10);
-    map_rot.drawFastVLine(315,355,10);
+    map_rot.drawFastHLine(255, 360, 60);
+    map_rot.drawFastVLine(255, 355, 10);
+    map_rot.drawFastVLine(315, 355, 10);
     map_rot.drawCenterString(map_scale[zoom], 285, 350);
 
     sprArrow.pushRotated(&map_rot, 0, TFT_BLACK);

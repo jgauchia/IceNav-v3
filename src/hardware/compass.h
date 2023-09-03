@@ -37,6 +37,7 @@ float declinationAngle = 0.22;
  *
  */
 int heading = 0;
+int map_heading = 0;
 float heading_smooth = 0.0;
 float heading_previous = 0.0;
 #define SMOOTH_FACTOR 0.40
@@ -46,7 +47,7 @@ float heading_previous = 0.0;
  * @brief Calibration variables
  *
  */
-float minx, maxx, miny, maxy, offx = 0.0, offy = 0.0;
+float minx, maxx, miny, maxy;
 
 /**
  * @brief Init Compass

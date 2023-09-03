@@ -21,6 +21,7 @@ bool REPEAT_CAL = false;
 
 unsigned long millis_actual = 0;
 
+#include "utils/preferences.h"
 #include "hardware/hal.h"
 #include "hardware/serial.h"
 #include "hardware/sdcard.h"
@@ -40,7 +41,6 @@ unsigned long millis_actual = 0;
 #include "utils/lv_spiffs_fs.h"
 #include "utils/lv_sd_fs.h"
 #include "utils/time_zone.h"
-#include "utils/preferences.h"
 #include "gui/lvgl.h"
 
 #include "tasks.h"
