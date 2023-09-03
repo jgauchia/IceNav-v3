@@ -35,23 +35,25 @@ void create_button_bar_scr()
     lv_style_set_border_opa(&style_bar, LV_OPA_0);
     lv_obj_add_style(buttonBar, &style_bar, LV_PART_MAIN);
 
+    lv_obj_t *imgBtn;
+
     // Waypoint Button
-    lv_obj_t *waypointBtn = lv_img_create(buttonBar);
-    lv_img_set_src(waypointBtn, "F:/wpt.bin");
-    lv_obj_add_flag(waypointBtn, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(waypointBtn, waypoint, LV_EVENT_PRESSED, NULL);
+    imgBtn = lv_img_create(buttonBar);
+    lv_img_set_src(imgBtn, "F:/wpt.bin");
+    lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(imgBtn, waypoint, LV_EVENT_PRESSED, NULL);
 
     // Track Button
-    lv_obj_t *trackBtn = lv_img_create(buttonBar);
-    lv_img_set_src(trackBtn, "F:/track.bin");
-    lv_obj_add_flag(trackBtn, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(trackBtn, track, LV_EVENT_PRESSED, NULL);
+    imgBtn = lv_img_create(buttonBar);
+    lv_img_set_src(imgBtn, "F:/track.bin");
+    lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(imgBtn, track, LV_EVENT_PRESSED, NULL);
 
     // Settings Button
-    lv_obj_t *settingsBtn = lv_img_create(buttonBar);
-    lv_img_set_src(settingsBtn, "F:/settings.bin");
-    lv_obj_add_flag(settingsBtn, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(settingsBtn, settings, LV_EVENT_PRESSED, NULL);
+    imgBtn = lv_img_create(buttonBar);
+    lv_img_set_src(imgBtn, "F:/settings.bin");
+    lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(imgBtn, settings, LV_EVENT_PRESSED, NULL);
 }
 
 /**
@@ -70,21 +72,23 @@ static void load_options()
     lv_obj_clear_flag(option, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_event_cb(((lv_msgbox_t *)option)->close_btn, close_option, LV_EVENT_PRESSED, NULL);
 
+    lv_obj_t *imgBtn;
+
     // Save Button
-    lv_obj_t *saveBtn = lv_img_create(option);
-    lv_img_set_src(saveBtn, "F:/save.bin");
-    lv_obj_add_flag(saveBtn, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(saveBtn, save_option, LV_EVENT_PRESSED, NULL);
+    imgBtn = lv_img_create(option);
+    lv_img_set_src(imgBtn, "F:/save.bin");
+    lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(imgBtn, save_option, LV_EVENT_PRESSED, NULL);
 
     // Load Button
-    lv_obj_t *loadBtn = lv_img_create(option);
-    lv_img_set_src(loadBtn, "F:/load.bin");
-    lv_obj_add_flag(loadBtn, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(loadBtn, load_option, LV_EVENT_PRESSED, NULL);
+    imgBtn = lv_img_create(option);
+    lv_img_set_src(imgBtn, "F:/load.bin");
+    lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(imgBtn, load_option, LV_EVENT_PRESSED, NULL);
 
     // Delete Button
-    lv_obj_t *deleteBtn = lv_img_create(option);
-    lv_img_set_src(deleteBtn, "F:/delete.bin");
-    lv_obj_add_flag(deleteBtn, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(deleteBtn, delete_option, LV_EVENT_PRESSED, NULL);
+    imgBtn = lv_img_create(option);
+    lv_img_set_src(imgBtn, "F:/delete.bin");
+    lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(imgBtn, delete_option, LV_EVENT_PRESSED, NULL);
 }

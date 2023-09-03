@@ -48,6 +48,8 @@ void create_notify_bar()
     lv_style_set_border_opa(&style_bar, LV_OPA_0);
     lv_obj_add_style(notifyBar, &style_bar, LV_PART_MAIN);
 
+    lv_obj_t *label;
+    
     gps_time = lv_label_create(notifyBar);
     lv_obj_set_width(gps_time, 140);
     lv_obj_set_style_text_font(gps_time, &lv_font_montserrat_20, 0);
