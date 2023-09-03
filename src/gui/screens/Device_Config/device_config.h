@@ -65,6 +65,21 @@ static void create_device_config_scr()
     lv_spinbox_set_value(zoom_level, def_zoom);
     lv_spinbox_set_digit_format(zoom_level, 2, 0);
     lv_obj_align_to(zoom_level, list, LV_ALIGN_RIGHT_MID, 0, 0);
+    //********************************************************************
+    //****************** HIDE SPINBOX CURSOR -> TODO FUNCTION ************
+    static lv_style_t style1;
+    lv_style_init(&style1);
+    lv_style_set_bg_opa(&style1, LV_OPA_TRANSP);
+    lv_style_set_text_opa(&style1, LV_OPA_TRANSP);
+    lv_obj_add_style(zoom_level, &style1, LV_PART_CURSOR);
+
+    static lv_style_t style2;
+    lv_style_init(&style2);
+    lv_style_set_bg_opa(&style2, LV_OPA_100);
+    lv_style_set_text_opa(&style2, LV_OPA_100);
+    lv_obj_add_style(zoom_level, &style2, LV_PART_CURSOR | LV_STATE_FOCUS_KEY);
+    lv_obj_add_style(zoom_level, &style2, LV_PART_CURSOR | LV_STATE_FOCUSED);
+    //********************************************************************
 
     btn = lv_btn_create(list);
     lv_obj_set_size(btn, 40, 40);
