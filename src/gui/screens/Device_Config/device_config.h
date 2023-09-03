@@ -7,6 +7,7 @@
  */
 
 static lv_obj_t *devconfigOptions;
+static lv_obj_t *map_switch;
 
 /**
  * @brief Device Config events include
@@ -22,23 +23,29 @@ static void create_device_config_scr()
 {
     // Device Config Screen
     devconfigScreen = lv_obj_create(NULL);
-    devconfigOptions = lv_obj_create(devconfigScreen);
+    devconfigOptions = lv_list_create(devconfigScreen);
     lv_obj_set_size(devconfigOptions, TFT_WIDTH, TFT_HEIGHT - 60);
-    static lv_style_t style_devconfig;
-    lv_style_init(&style_devconfig);
-    lv_style_set_bg_opa(&style_devconfig, LV_OPA_0);
-    lv_style_set_border_opa(&style_devconfig, LV_OPA_0);
-    lv_obj_add_style(devconfigOptions, &style_devconfig, LV_PART_MAIN);
 
-    lv_obj_t *but_label;
+    lv_obj_t *label;
+
+    // Map Rotation
+    lv_obj_t *map_rot_cfg = lv_list_add_btn(devconfigOptions, NULL, "Map Rotation\nHEADING/COMPASS");
+    lv_obj_set_align(map_rot_cfg, LV_ALIGN_LEFT_MID);
+    map_switch = lv_switch_create(map_rot_cfg);
+    if (map_rotation)
+        lv_obj_add_state(map_switch, LV_STATE_CHECKED);
+    else
+        lv_obj_clear_state(map_switch, LV_STATE_CHECKED);
+    lv_obj_align_to(map_switch, map_rot_cfg, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_obj_add_event_cb(map_switch, configure_map_rotation, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Back button
     lv_obj_t *back_but = lv_btn_create(devconfigScreen);
     lv_obj_set_size(back_but, TFT_WIDTH - 30, 40);
-    but_label = lv_label_create(back_but);
-    lv_obj_set_style_text_font(but_label, &lv_font_montserrat_20, 0);
-    lv_label_set_text_static(but_label, "Back");
-    lv_obj_center(but_label);
+    label = lv_label_create(back_but);
+    lv_obj_set_style_text_font(label, &lv_font_montserrat_20, 0);
+    lv_label_set_text_static(label, "Back");
+    lv_obj_center(label);
     lv_obj_align(back_but, LV_ALIGN_BOTTOM_MID, 0, -10);
     lv_obj_add_event_cb(back_but, device_conf_back, LV_EVENT_CLICKED, NULL);
 }

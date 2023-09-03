@@ -27,7 +27,7 @@ static void load_preferences()
     preferences.begin("ICENAV",false);
     offx = preferences.getFloat("C_offset_x",0.0);
     offy = preferences.getFloat("C_offset_y",0.0);
-    map_rotation = preferences.getBool("Map_rot",true);
+    map_rotation = preferences.getBool("Map_rot",false);
     
     log_v("OFFSET X  %f",offx);
     log_v("OFFSET Y  %f",offy);
