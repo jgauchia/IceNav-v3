@@ -143,30 +143,30 @@ void create_main_scr()
     // TODO
 
     // Satellite Tracking Tile
-    pdop_label = lv_label_create(sat_track_tile);
-    lv_obj_set_size(pdop_label, 55, 40);
-    lv_obj_set_style_text_font(pdop_label, &lv_font_montserrat_14, 0);
+    lv_obj_t *info_grid = lv_obj_create(sat_track_tile);
+    lv_obj_set_size(info_grid,90,175);
+    lv_obj_set_flex_align(info_grid, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_row(info_grid, 5, 0);
+    lv_obj_clear_flag(info_grid, LV_OBJ_FLAG_SCROLLABLE); 
+    lv_obj_set_flex_flow(info_grid,LV_FLEX_FLOW_COLUMN);
+    static lv_style_t style_grid;
+    lv_style_init(&style_grid);
+    lv_style_set_bg_opa(&style_grid, LV_OPA_0);
+    lv_style_set_border_opa(&style_grid, LV_OPA_0);
+    lv_obj_add_style(info_grid, &style_grid, LV_PART_MAIN);
+
+    pdop_label = lv_label_create(info_grid);
     lv_label_set_text_fmt(pdop_label, "PDOP:\n%s", pdop.value());
-    lv_obj_set_pos(pdop_label, 5, 15);
-
-    hdop_label = lv_label_create(sat_track_tile);
-    lv_obj_set_size(hdop_label, 55, 40);
-    lv_obj_set_style_text_font(hdop_label, &lv_font_montserrat_14, 0);
+   
+    hdop_label = lv_label_create(info_grid);
     lv_label_set_text_fmt(hdop_label, "HDOP:\n%s", hdop.value());
-    lv_obj_set_pos(hdop_label, 5, 50);
-
-    vdop_label = lv_label_create(sat_track_tile);
-    lv_obj_set_size(vdop_label, 55, 40);
-    lv_obj_set_style_text_font(vdop_label, &lv_font_montserrat_14, 0);
+   
+    vdop_label = lv_label_create(info_grid);
     lv_label_set_text_fmt(vdop_label, "VDOP:\n%s", vdop.value());
-    lv_obj_set_pos(vdop_label, 5, 85);
-
-    alt_label = lv_label_create(sat_track_tile);
-    lv_obj_set_size(alt_label, 55, 80);
-    lv_obj_set_style_text_font(alt_label, &lv_font_montserrat_14, 0);
+   
+    alt_label = lv_label_create(info_grid);
     lv_label_set_text_fmt(alt_label, "ALT:\n%4dm.", (int)GPS.altitude.meters());
-    lv_obj_set_pos(alt_label, 5, 120);
-
+   
     satbar_1 = lv_chart_create(sat_track_tile);
     lv_obj_set_size(satbar_1, TFT_WIDTH, 55);
     lv_chart_set_div_line_count(satbar_1, 6, 0);
