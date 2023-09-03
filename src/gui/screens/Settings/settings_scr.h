@@ -7,6 +7,7 @@
  */
 
 static lv_obj_t *settingsScreen;
+static lv_obj_t *settingsButtons;
 
 /**
  * @brief Settings Screen events include
@@ -22,15 +23,22 @@ void create_settings_scr()
 {
     // Settings Screen
     settingsScreen = lv_obj_create(NULL);
-    lv_obj_set_size(settingsScreen, TFT_WIDTH, TFT_HEIGHT);
-    lv_obj_set_pos(settingsScreen, 0, 0);
-    lv_obj_set_flex_flow(settingsScreen, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_flex_align(settingsScreen, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    settingsButtons = lv_obj_create(settingsScreen);
+    lv_obj_set_size(settingsButtons, TFT_WIDTH, TFT_HEIGHT);
+    lv_obj_set_flex_align(settingsButtons, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_row(settingsButtons, 20, 0);
+    lv_obj_set_flex_flow(settingsButtons, LV_FLEX_FLOW_COLUMN);
+    static lv_style_t style_settings;
+    lv_style_init(&style_settings);
+    lv_style_set_bg_opa(&style_settings, LV_OPA_0);
+    lv_style_set_border_opa(&style_settings, LV_OPA_0);
+    lv_obj_add_style(settingsButtons, &style_settings, LV_PART_MAIN);
+
 
     lv_obj_t *but_label;
 
     // Compass Calibration
-    lv_obj_t *compass_calib_but = lv_btn_create(settingsScreen);
+    lv_obj_t *compass_calib_but = lv_btn_create(settingsButtons);
     lv_obj_set_size(compass_calib_but, TFT_WIDTH - 30, 40);
     but_label = lv_label_create(compass_calib_but);
     lv_obj_set_style_text_font(but_label, &lv_font_montserrat_20, 0);
@@ -39,7 +47,7 @@ void create_settings_scr()
     lv_obj_add_event_cb(compass_calib_but, compass_calib, LV_EVENT_CLICKED, NULL);
 
     // Touch Calibration
-    lv_obj_t *touch_calib_but = lv_btn_create(settingsScreen);
+    lv_obj_t *touch_calib_but = lv_btn_create(settingsButtons);
     lv_obj_set_size(touch_calib_but, TFT_WIDTH - 30, 40);
     but_label = lv_label_create(touch_calib_but);
     lv_obj_set_style_text_font(but_label, &lv_font_montserrat_20, 0);
@@ -48,7 +56,7 @@ void create_settings_scr()
     lv_obj_add_event_cb(touch_calib_but, touch_calib, LV_EVENT_CLICKED, NULL);
 
     // Back button
-    lv_obj_t *back_but = lv_btn_create(settingsScreen);
+    lv_obj_t *back_but = lv_btn_create(settingsButtons);
     lv_obj_set_size(back_but, TFT_WIDTH - 30, 40);
     but_label = lv_label_create(back_but);
     lv_obj_set_style_text_font(but_label, &lv_font_montserrat_20, 0);
