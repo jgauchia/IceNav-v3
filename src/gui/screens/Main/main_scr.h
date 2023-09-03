@@ -138,7 +138,11 @@ void create_main_scr()
 
     // Navigation Tile
     // TODO
-    
+    lv_obj_t *todolabel = lv_label_create(nav_tile);
+    lv_obj_set_style_text_font(todolabel, &lv_font_montserrat_20, 0);
+    lv_label_set_text_static(todolabel, "NAVIGATION SCREEN -> TODO");
+    lv_obj_center(todolabel);
+
     // Navitagion Tile Events
     // TODO
 
