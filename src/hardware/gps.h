@@ -88,18 +88,20 @@ struct
  */
 void init_gps()
 {
-  gps->begin(GPS_BAUDRATE, SERIAL_8N1, GPS_RX, GPS_TX);
+  gps->begin(38400, SERIAL_8N1, GPS_RX, GPS_TX);
 
 #ifdef AT6558D_GPS
   // 9600 BAUD
   // gps->println("$PCAS01,1*1D\r\n");
+  // 19200 BAUD
+  gps->println("$PCAS01,2*1E\r\n");
   // 38400 BAUD
-  gps->println("$PCAS01,3*1F\r\n");
+  //gps->println("$PCAS01,3*1F\r\n");
   gps->flush();
   delay(100);
   gps->end();
   delay(100);
-  gps->begin(38400, SERIAL_8N1, GPS_RX, GPS_TX);
+  gps->begin(19200, SERIAL_8N1, GPS_RX, GPS_TX);
   delay(100);
 
   // GPS
