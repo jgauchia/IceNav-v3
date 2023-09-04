@@ -92,14 +92,14 @@ void init_gps()
 
 #ifdef AT6558D_GPS
   // 9600 BAUD
-  //gps->println("$PCAS01,1*39\r\n");
+  // gps->println("$PCAS01,1*1D\r\n");
   // 38400 BAUD
-  gps->println("$PCAS01,3*3B\r\n");
+  gps->println("$PCAS01,3*1F\r\n");
   gps->flush();
   delay(100);
   gps->end();
   delay(100);
-  gps->begin(38400,SERIAL_8N1,GPS_RX,GPS_TX);
+  gps->begin(38400, SERIAL_8N1, GPS_RX, GPS_TX);
   delay(100);
 
   // GPS
@@ -128,17 +128,17 @@ void init_gps()
 
   GPS_GSV.totalMsg.begin(GPS, PSTR("GPGSV"), 1);
   GPS_GSV.msgNum.begin(GPS, PSTR("GPGSV"), 2);
-  GPS_GSV.satsInView.begin(GPS, PSTR("GPGSV") ,3);
+  GPS_GSV.satsInView.begin(GPS, PSTR("GPGSV"), 3);
 
 #ifdef MULTI_GNSS
 
   GL_GSV.totalMsg.begin(GPS, PSTR("GLGSV"), 1);
   GL_GSV.msgNum.begin(GPS, PSTR("GLGSV"), 2);
-  GL_GSV.satsInView.begin(GPS, PSTR("GLGSV") ,3);
+  GL_GSV.satsInView.begin(GPS, PSTR("GLGSV"), 3);
 
   BD_GSV.totalMsg.begin(GPS, PSTR("BDGSV"), 1);
   BD_GSV.msgNum.begin(GPS, PSTR("BDGSV"), 2);
-  BD_GSV.satsInView.begin(GPS, PSTR("BDGSV") ,3);
+  BD_GSV.satsInView.begin(GPS, PSTR("BDGSV"), 3);
 
 #endif
 
