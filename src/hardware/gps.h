@@ -88,7 +88,7 @@ struct
  */
 void init_gps()
 {
-  gps->begin(38400, SERIAL_8N1, GPS_RX, GPS_TX);
+  gps->begin(GPS_BAUDRATE, SERIAL_8N1, GPS_RX, GPS_TX);
 
 #ifdef AT6558D_GPS
   // 9600 BAUD
