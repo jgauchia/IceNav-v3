@@ -95,21 +95,18 @@ void setup()
  */
 void loop()
 {
-  //vTaskDelay(5);
-#ifdef MAKERF_ESP32S3
-  lv_tick_inc(5);
-#endif
-  lv_timer_handler();
-  //lv_task_handler();
-  
-  while (gps->available()>0)
+  while (gps->available() > 0)
   {
 #ifdef OUTPUT_NMEA
-    {
-      debug->write(gps->read());
-    }
+    debug->write(gps->read());
 #else
     GPS.encode(gps->read());
 #endif
   }
+  // vTaskDelay(5);
+#ifdef MAKERF_ESP32S3
+  lv_tick_inc(5);
+#endif
+  lv_timer_handler();
+  // lv_task_handler();
 }
