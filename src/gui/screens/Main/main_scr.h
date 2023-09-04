@@ -30,10 +30,10 @@ static lv_obj_t *speed_label;
  * @brief Satellite Tracking Tile screen objects
  *
  */
-static lv_obj_t *pdop_label;
-static lv_obj_t *hdop_label;
-static lv_obj_t *vdop_label;
-static lv_obj_t *alt_label;
+lv_obj_t *pdop_label;
+lv_obj_t *hdop_label;
+lv_obj_t *vdop_label;
+lv_obj_t *alt_label;
 static lv_style_t style_radio;
 static lv_style_t style_radio_chk;
 static uint32_t active_gnss = 0;
