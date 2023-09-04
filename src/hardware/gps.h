@@ -101,9 +101,9 @@ void init_gps()
   delay(100);
 
   // 1Hz Update
-  gps->println("$PCAS02,1000*2E\r\n");
+  // gps->println("$PCAS02,1000*2E\r\n");
   // 5Hz Update
-  // gps->println("$PCAS02,200*1D\r\n");
+  gps->println("$PCAS02,200*1D\r\n");
   gps->flush();
   delay(100);
 
