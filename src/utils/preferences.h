@@ -26,6 +26,7 @@ uint8_t zoom = 0;
 float offx = 0.0, offy = 0.0; // Compass offset calibration
 bool map_rotation = true;     // Map Compass Rotation
 uint8_t def_zoom = 0;         // Default Zoom Value
+bool show_map_compass = true; // Compass in map screen
 
 /**
  * @brief Load stored preferences
@@ -39,11 +40,13 @@ static void load_preferences()
     map_rotation = preferences.getBool("Map_rot", false);
     def_zoom = preferences.getUInt("Def_zoom", DEF_ZOOM);
     zoom = def_zoom;
+    show_map_compass = preferences.getBool("Map_compass",true);
 
     log_v("COMPASS OFFSET X  %f", offx);
     log_v("COMPASS OFFSET Y  %f", offy);
     log_v("MAP ROTATION %d", map_rotation);
     log_v("DEFAULT ZOOM LEVEL %d", zoom);
+    log_v("SHOW MAP COMPASS %d",show_map_compass);
 
     preferences.end();
 }

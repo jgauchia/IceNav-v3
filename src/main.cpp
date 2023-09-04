@@ -42,6 +42,7 @@ unsigned long millis_actual = 0;
 #include "utils/lv_sd_fs.h"
 #include "utils/time_zone.h"
 #include "gui/lvgl.h"
+#include "gui/lvgl_funcs.h"
 
 #include "tasks.h"
 
