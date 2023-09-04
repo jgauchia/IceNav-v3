@@ -40,13 +40,12 @@ static lv_timer_t *timer_main;
  */
 #define UPDATE_MAINSCR_PERIOD 30
 
-
 /**
  * @brief Extra screen definitions
- * 
+ *
  */
 static lv_obj_t *settingsScreen;
-static lv_obj_t *devconfigScreen;
+static lv_obj_t *mapsettingsScreen;
 
 #include "gui/images/bruj.c"
 #include "gui/images/navigation.c"
@@ -55,8 +54,8 @@ static lv_obj_t *devconfigScreen;
 #include "gui/images/speed.c"
 
 #include "gui/screens/Notify_Bar/notify_bar.h"
-#include "gui/screens/Device_Config/device_config.h"
-#include "gui/screens/Settings/settings_scr.h"
+#include "gui/screens/Map_Settings/map_settings.h"
+#include "gui/screens/Settings_Menu/settings_scr.h"
 #include "gui/screens/Button_Bar/button_bar.h"
 #include "gui/screens/Search_Satellite/search_sat_scr.h"
 #include "gui/screens/Main/main_scr.h"
@@ -149,7 +148,7 @@ void init_LVGL()
 
     //  Create Screens /
     create_settings_scr();
-    create_device_config_scr();
+    create_map_settings_scr();
     create_search_sat_scr();
     create_main_scr();
     create_button_bar_scr();

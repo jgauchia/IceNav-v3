@@ -12,7 +12,7 @@ static lv_obj_t *settingsButtons;
  * @brief Settings Screen events include
  *
  */
-#include "gui/screens/Settings/events/settings_scr.h"
+#include "gui/screens/Settings_Menu/events/settings_scr.h"
 
 /**
  * @brief Create Settings screen
@@ -59,9 +59,9 @@ static void create_settings_scr()
     lv_obj_set_size(btn, TFT_WIDTH - 30, 40);
     but_label = lv_label_create(btn);
     lv_obj_set_style_text_font(but_label, &lv_font_montserrat_20, 0);
-    lv_label_set_text_static(but_label, "Device Config");
+    lv_label_set_text_static(but_label, "Map Settings");
     lv_obj_center(but_label);
-    lv_obj_add_event_cb(btn, device_config, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(btn, map_settings, LV_EVENT_CLICKED, NULL);
 
     // Back button
     btn = lv_btn_create(settingsButtons);

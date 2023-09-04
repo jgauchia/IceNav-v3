@@ -1,12 +1,12 @@
 /**
- * @file device_config.h
+ * @file map_settings.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief  LVGL - Device Config
+ * @brief  LVGL - Map Settings
  * @version 0.1.6
  * @date 2023-06-14
  */
 
-static lv_obj_t *devconfigOptions;
+static lv_obj_t *mapsettingsOptions;
 static lv_obj_t *map_switch;
 static lv_obj_t *zoom_level;
 
@@ -14,25 +14,25 @@ static lv_obj_t *zoom_level;
  * @brief Device Config events include
  *
  */
-#include "gui/screens/Device_Config/events/device_config.h"
+#include "gui/screens/Map_Settings/events/map_settings.h"
 
 /**
  * @brief Create a device config screen
  *
  */
-static void create_device_config_scr()
+static void create_map_settings_scr()
 {
     // Device Config Screen
-    devconfigScreen = lv_obj_create(NULL);
-    devconfigOptions = lv_list_create(devconfigScreen);
-    lv_obj_set_size(devconfigOptions, TFT_WIDTH, TFT_HEIGHT - 60);
+    mapsettingsScreen = lv_obj_create(NULL);
+    mapsettingsOptions = lv_list_create(mapsettingsScreen);
+    lv_obj_set_size(mapsettingsOptions, TFT_WIDTH, TFT_HEIGHT - 60);
 
     lv_obj_t *label;
     lv_obj_t *list;
     lv_obj_t *btn;
 
     // Map Rotation
-    list = lv_list_add_btn(devconfigOptions, NULL, "Map Rotation Mode\nHEADING/COMPASS");
+    list = lv_list_add_btn(mapsettingsOptions, NULL, "Map Rotation Mode\nHEADING/COMPASS");
     lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
     map_switch = lv_switch_create(list);
@@ -47,7 +47,7 @@ static void create_device_config_scr()
     lv_obj_add_event_cb(map_switch, configure_map_rotation, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Default zoom level
-    list = lv_list_add_btn(devconfigOptions, NULL, "Default\nZoom Level");
+    list = lv_list_add_btn(mapsettingsOptions, NULL, "Default\nZoom Level");
     lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
 
@@ -88,7 +88,7 @@ static void create_device_config_scr()
     lv_obj_add_event_cb(btn, decrement_zoom, LV_EVENT_ALL, NULL);
 
     // Back button
-    btn = lv_btn_create(devconfigScreen);
+    btn = lv_btn_create(mapsettingsScreen);
     lv_obj_set_size(btn, TFT_WIDTH - 30, 40);
     label = lv_label_create(btn);
     lv_obj_set_style_text_font(label, &lv_font_montserrat_20, 0);

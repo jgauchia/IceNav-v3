@@ -51,8 +51,8 @@ static void compass_calib(lv_event_t *event)
  * 
  * @param event 
  */
-static void device_config(lv_event_t *event)
+static void map_settings(lv_event_t *event)
 {
     // is_main_screen = false;
-    lv_scr_load(devconfigScreen);
+    lv_scr_load(mapsettingsScreen);
 }
