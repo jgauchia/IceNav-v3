@@ -91,7 +91,10 @@ void init_gps()
   gps->begin(GPS_BAUDRATE, SERIAL_8N1, GPS_RX, GPS_TX);
 
 #ifdef AT6558D_GPS
-  gps->println("$PCAS01,1*39\r\n");
+  // 9600 BAUD
+  //gps->println("$PCAS01,1*39\r\n");
+  // 38400 BAUD
+  gps->println("$PCAS01,3*3B\r\n");
   gps->flush();
   delay(100);
   gps->end();
