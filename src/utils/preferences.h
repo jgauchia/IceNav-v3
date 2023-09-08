@@ -29,8 +29,8 @@ uint8_t def_zoom = 0;         // Default Zoom Value
 bool show_map_compass = true; // Compass in map screen
 bool show_map_speed = true;   // Speed in map screen
 bool show_map_scale = true;   // Scale in map screen
-uint16_t gps_speed = 0;       // GPS Speed
-uint16_t gps_update = 0;      // GPS Update rate
+// uint16_t gps_speed = 0;       // GPS Speed (see gps.h)
+// uint16_t gps_update = 0;      // GPS Update rate (see gps.h)
 
 /**
  * @brief Load stored preferences
@@ -48,7 +48,7 @@ static void load_preferences()
     show_map_speed = preferences.getBool("Map_speed", false);
     show_map_scale = preferences.getBool("Map_scale", false);
     gps_speed = preferences.getShort("GPS_speed", 2);
-    gps_update = preferences.getShort("GPS_rate", 0);
+    gps_update = preferences.getShort("GPS_rate", 3);
 
     log_v("COMPASS OFFSET X  %f", offx);
     log_v("COMPASS OFFSET Y  %f", offy);
@@ -58,7 +58,7 @@ static void load_preferences()
     log_v("SHOW MAP SPEED %d", show_map_speed);
     log_v("SHOW MAP SCALE %d", show_map_scale);
     log_v("GPS SPEED %d", gps_speed);
-    log_v("GPS UPDATE RATE %d",gps_update);
+    log_v("GPS UPDATE RATE %d", gps_update);
 
     preferences.end();
 }
@@ -135,4 +135,27 @@ static void save_show_scale(bool show_scale)
     preferences.begin("ICENAV", false);
     preferences.putBool("Map_scale", show_scale);
     preferences.end();
+}
+
+/**
+ * @brief Save GPS speed
+ *
+ * @param gps_speed
+ */
+static void save_gps_speed(uint16_t gps_speed)
+{
+    preferences.begin("ICENAV", false);
+    preferences.putShort("GPS_speed", gps_speed);
+    preferences.end();
+#ifdef AT6558D_GPS
+    gps->flush();
+    gps->println(GPS_BAUD_PCAS[gps_speed]);
+    gps->flush();
+    delay(500);
+#endif
+    gps->flush();
+    gps->end();
+    delay(500);
+    gps->begin(GPS_BAUD[gps_speed], SERIAL_8N1, GPS_RX, GPS_TX);
+    delay(500);
 }

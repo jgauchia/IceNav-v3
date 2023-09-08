@@ -16,12 +16,23 @@ static void device_settings_back(lv_event_t *event)
     lv_scr_load(settingsScreen);
 }
 
+/**
+ * @brief GPS Speed event
+ * 
+ * @param event 
+ */
 static void set_gps_speed(lv_event_t *event)
 {
     lv_obj_t *obj = lv_event_get_target(event);
     gps_speed = lv_dropdown_get_selected(obj);
+    save_gps_speed(gps_speed);
 }
 
+/**
+ * @brief GPS Update Rate event
+ * 
+ * @param event 
+ */
 static void set_gps_update_rate(lv_event_t *event)
 {
     lv_obj_t *obj = lv_event_get_target(event);

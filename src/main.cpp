@@ -21,8 +21,9 @@ bool REPEAT_CAL = false;
 
 unsigned long millis_actual = 0;
 
-#include "utils/preferences.h"
 #include "hardware/hal.h"
+#include "hardware/gps.h"
+#include "utils/preferences.h"
 #include "hardware/serial.h"
 #include "hardware/sdcard.h"
 #include "hardware/tft.h"
@@ -33,7 +34,6 @@ unsigned long millis_actual = 0;
 #include "hardware/bme.h"
 #endif
 #include "hardware/battery.h"
-#include "hardware/gps.h"
 #include "hardware/power.h"
 #include "utils/gps_maps.h"
 #include "utils/gps_math.h"
@@ -103,7 +103,7 @@ void loop()
     GPS.encode(gps->read());
 #endif
   }
-  // vTaskDelay(5);
+
 #ifdef MAKERF_ESP32S3
   lv_tick_inc(10);
 #endif
