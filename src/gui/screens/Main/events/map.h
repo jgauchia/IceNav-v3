@@ -197,8 +197,11 @@ static void update_map(lv_event_t *event)
     else
       map_heading = GPS.course.deg();
     map_spr.pushRotated(&map_rot, 360 - map_heading, TFT_TRANSPARENT);
-    map_rot.fillRectAlpha(TFT_WIDTH - 48, 0, 48, 48, 95, TFT_BLACK);
-    map_rot.pushImageRotateZoom(TFT_WIDTH - 24, 24, 24, 24, 360 - heading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
+    if (show_map_compass)
+    {
+      map_rot.fillRectAlpha(TFT_WIDTH - 48, 0, 48, 48, 95, TFT_BLACK);
+      map_rot.pushImageRotateZoom(TFT_WIDTH - 24, 24, 24, 24, 360 - heading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
+    }
 #else
     map_heading = GPS.course.deg();
     map_spr.pushRotated(&map_rot, 360 - map_heading, TFT_TRANSPARENT);
@@ -210,16 +213,22 @@ static void update_map(lv_event_t *event)
     map_rot.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
     map_rot.drawNumber(zoom, 26, 8, &fonts::FreeSansBold9pt7b);
 
-    map_rot.fillRectAlpha(0, 342, 70, 32, 95, TFT_BLACK);
-    map_rot.pushImage(0, 346, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
-    map_rot.drawNumber((uint16_t)GPS.speed.kmph(), 26, 350, &fonts::FreeSansBold9pt7b);
+    if (show_map_speed)
+    {
+      map_rot.fillRectAlpha(0, 342, 70, 32, 95, TFT_BLACK);
+      map_rot.pushImage(0, 346, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
+      map_rot.drawNumber((uint16_t)GPS.speed.kmph(), 26, 350, &fonts::FreeSansBold9pt7b);
+    }
 
-    map_rot.fillRectAlpha(250, 342, 70, TFT_WIDTH - 245, 95, TFT_BLACK);
-    map_rot.setTextSize(1);
-    map_rot.drawFastHLine(255, 360, 60);
-    map_rot.drawFastVLine(255, 355, 10);
-    map_rot.drawFastVLine(315, 355, 10);
-    map_rot.drawCenterString(map_scale[zoom], 285, 350);
+    if (show_map_scale)
+    {
+      map_rot.fillRectAlpha(250, 342, 70, TFT_WIDTH - 245, 95, TFT_BLACK);
+      map_rot.setTextSize(1);
+      map_rot.drawFastHLine(255, 360, 60);
+      map_rot.drawFastVLine(255, 355, 10);
+      map_rot.drawFastVLine(315, 355, 10);
+      map_rot.drawCenterString(map_scale[zoom], 285, 350);
+    }
 
     sprArrow.pushRotated(&map_rot, 0, TFT_BLACK);
   }

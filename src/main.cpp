@@ -103,7 +103,6 @@ void loop()
     GPS.encode(gps->read());
 #endif
   }
-
   // vTaskDelay(5);
 #ifdef MAKERF_ESP32S3
   lv_tick_inc(10);

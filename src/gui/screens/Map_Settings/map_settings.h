@@ -11,18 +11,18 @@ static lv_obj_t *map_switch;
 static lv_obj_t *zoom_level;
 
 /**
- * @brief Device Config events include
+ * @brief Map Settings events include
  *
  */
 #include "gui/screens/Map_Settings/events/map_settings.h"
 
 /**
- * @brief Create a device config screen
+ * @brief Create Map Settings screen
  *
  */
 static void create_map_settings_scr()
 {
-    // Device Config Screen
+    // Map Settings Screen
     mapsettingsScreen = lv_obj_create(NULL);
     mapsettingsOptions = lv_list_create(mapsettingsScreen);
     lv_obj_set_size(mapsettingsOptions, TFT_WIDTH, TFT_HEIGHT - 60);
@@ -30,6 +30,7 @@ static void create_map_settings_scr()
     lv_obj_t *label;
     lv_obj_t *list;
     lv_obj_t *btn;
+    lv_obj_t *check;
 
     // Map Rotation
     list = lv_list_add_btn(mapsettingsOptions, NULL, "Map Rotation Mode\nHEADING/COMPASS");
@@ -65,27 +66,46 @@ static void create_map_settings_scr()
     lv_spinbox_set_value(zoom_level, def_zoom);
     lv_spinbox_set_digit_format(zoom_level, 2, 0);
     lv_obj_align_to(zoom_level, list, LV_ALIGN_RIGHT_MID, 0, 0);
-    //********************************************************************
-    //****************** HIDE SPINBOX CURSOR -> TODO FUNCTION ************
-    static lv_style_t style1;
-    lv_style_init(&style1);
-    lv_style_set_bg_opa(&style1, LV_OPA_TRANSP);
-    lv_style_set_text_opa(&style1, LV_OPA_TRANSP);
-    lv_obj_add_style(zoom_level, &style1, LV_PART_CURSOR);
-
-    static lv_style_t style2;
-    lv_style_init(&style2);
-    lv_style_set_bg_opa(&style2, LV_OPA_100);
-    lv_style_set_text_opa(&style2, LV_OPA_100);
-    lv_obj_add_style(zoom_level, &style2, LV_PART_CURSOR | LV_STATE_FOCUS_KEY);
-    lv_obj_add_style(zoom_level, &style2, LV_PART_CURSOR | LV_STATE_FOCUSED);
-    //********************************************************************
+    lv_obj_hide_cursor(zoom_level);
 
     btn = lv_btn_create(list);
     lv_obj_set_size(btn, 40, 40);
     lv_obj_align_to(btn, list, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_obj_set_style_bg_img_src(btn, LV_SYMBOL_MINUS, 0);
     lv_obj_add_event_cb(btn, decrement_zoom, LV_EVENT_ALL, NULL);
+
+    // Show Compass
+    list = lv_list_add_btn(mapsettingsOptions, NULL, "Show Compass");
+    lv_obj_set_style_text_font(list, &lv_font_montserrat_18, 0);
+    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
+    check = lv_checkbox_create(list);
+    lv_obj_align_to(check, list, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_checkbox_set_text_static(check, "");
+    lv_obj_add_state(check, show_map_compass);
+    lv_obj_add_event_cb(check, show_compass, LV_EVENT_VALUE_CHANGED, NULL);
+
+    // Show Speed
+    list = lv_list_add_btn(mapsettingsOptions, NULL, "Show Speed");
+    lv_obj_set_style_text_font(list, &lv_font_montserrat_18, 0);
+    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
+    lv_obj_align_to(check, list, LV_ALIGN_RIGHT_MID, 0, 0);
+    check = lv_checkbox_create(list);
+    lv_checkbox_set_text_static(check, "");
+    lv_obj_add_state(check, show_map_speed);
+    lv_obj_add_event_cb(check, show_speed, LV_EVENT_VALUE_CHANGED, NULL);
+
+    // Show Map Scale
+    list = lv_list_add_btn(mapsettingsOptions, NULL, "Show Map Scale");
+    lv_obj_set_style_text_font(list, &lv_font_montserrat_18, 0);
+    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
+    lv_obj_align_to(check, list, LV_ALIGN_RIGHT_MID, 0, 0);
+    check = lv_checkbox_create(list);
+    lv_checkbox_set_text_static(check, "");
+    lv_obj_add_state(check, show_map_scale);
+    lv_obj_add_event_cb(check, show_scale, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Back button
     btn = lv_btn_create(mapsettingsScreen);
@@ -95,5 +115,5 @@ static void create_map_settings_scr()
     lv_label_set_text_static(label, "Back");
     lv_obj_center(label);
     lv_obj_align(btn, LV_ALIGN_BOTTOM_MID, 0, -10);
-    lv_obj_add_event_cb(btn, device_conf_back, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(btn, map_settings_back, LV_EVENT_CLICKED, NULL);
 }
