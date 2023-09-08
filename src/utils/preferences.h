@@ -159,3 +159,21 @@ static void save_gps_speed(uint16_t gps_speed)
     gps->begin(GPS_BAUD[gps_speed], SERIAL_8N1, GPS_RX, GPS_TX);
     delay(500);
 }
+
+/**
+ * @brief Save GPS Update rate
+ * 
+ * @param gps_update_rate 
+ */
+static void save_gps_update_rate(uint16_t gps_update_rate)
+{
+    preferences.begin("ICENAV", false);
+    preferences.putShort("GPS_rate", gps_update_rate);
+    preferences.end();
+#ifdef AT6558D_GPS
+    gps->flush();
+    gps->println(GPS_RATE_PCAS[gps_update_rate]);
+    gps->flush();
+    delay(500);
+#endif
+}

@@ -17,9 +17,9 @@ bool is_gps_fixed = false;
 uint8_t fix_old = 0;
 unsigned long GPS_BAUD[] = {4800, 9600, 19200, 38400};
 const char *GPS_BAUD_PCAS[] = {"$PCAS01,0*1C\r\n", "$PCAS01,1*1D\r\n", "$PCAS01,2*1E\r\n", "$PCAS01,3*1F\r\n"};
-const char *GPS_RATE_PCAS[] = {"$PCAS02,1000*2E\r\n","$PCAS02,500*1A\r\n","$PCAS02,250*18\r\n","$PCAS02,200*1D\r\n","$PCAS02,100*1E\r\n"};
-uint16_t gps_speed = 0;       // GPS Speed
-uint16_t gps_update = 0;      // GPS Update rate
+const char *GPS_RATE_PCAS[] = {"$PCAS02,1000*2E\r\n", "$PCAS02,500*1A\r\n", "$PCAS02,250*18\r\n", "$PCAS02,200*1D\r\n", "$PCAS02,100*1E\r\n"};
+uint16_t gps_speed = 0;  // GPS Speed
+uint16_t gps_update = 0; // GPS Update rate
 
 /**
  * @brief Common Structure for satellites in view NMEA sentence
@@ -96,21 +96,18 @@ void init_gps()
   gps->begin(GPS_BAUD[gps_speed], SERIAL_8N1, GPS_RX, GPS_TX);
 
 #ifdef AT6558D_GPS
-  // // GPS
-  // // gps->println("$PCAS04,1*18\r\n");
-  // // GPS+GLONASS
-  // // gps->println("$PCAS04,5*1C\r\n");
-  // // GPS+BDS+GLONASS
-  // gps->println("$PCAS04,7*1E\r\n");
-  // gps->flush();
-  // delay(100);
+  // GPS
+  // gps->println("$PCAS04,1*18\r\n");
+  // GPS+GLONASS
+  // gps->println("$PCAS04,5*1C\r\n");
+  // GPS+BDS+GLONASS
+  gps->println("$PCAS04,7*1E\r\n");
+  gps->flush();
+  delay(100);
 
-  // // 1Hz Update
-  // // gps->println("$PCAS02,1000*2E\r\n");
-  // // 5Hz Update
-  // gps->println("$PCAS02,200*1D\r\n");
-  // gps->flush();
-  // delay(100);
+  gps->println(GPS_RATE_PCAS[gps_update]);
+  gps->flush();
+  delay(100);
 
   // Set NMEA 4.1
   gps->println("$PCAS05,2*1A\r\n");

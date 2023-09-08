@@ -37,4 +37,5 @@ static void set_gps_update_rate(lv_event_t *event)
 {
     lv_obj_t *obj = lv_event_get_target(event);
     gps_update = lv_dropdown_get_selected(obj);
+    save_gps_update_rate(gps_update);
 }
