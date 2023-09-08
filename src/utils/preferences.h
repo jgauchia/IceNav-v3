@@ -29,6 +29,8 @@ uint8_t def_zoom = 0;         // Default Zoom Value
 bool show_map_compass = true; // Compass in map screen
 bool show_map_speed = true;   // Speed in map screen
 bool show_map_scale = true;   // Scale in map screen
+uint16_t gps_speed = 0;       // GPS Speed
+uint16_t gps_update = 0;      // GPS Update rate
 
 /**
  * @brief Load stored preferences
@@ -45,6 +47,8 @@ static void load_preferences()
     show_map_compass = preferences.getBool("Map_compass", false);
     show_map_speed = preferences.getBool("Map_speed", false);
     show_map_scale = preferences.getBool("Map_scale", false);
+    gps_speed = preferences.getShort("GPS_speed", 2);
+    gps_update = preferences.getShort("GPS_rate", 0);
 
     log_v("COMPASS OFFSET X  %f", offx);
     log_v("COMPASS OFFSET Y  %f", offy);
@@ -53,6 +57,8 @@ static void load_preferences()
     log_v("SHOW MAP COMPASS %d", show_map_compass);
     log_v("SHOW MAP SPEED %d", show_map_speed);
     log_v("SHOW MAP SCALE %d", show_map_scale);
+    log_v("GPS SPEED %d", gps_speed);
+    log_v("GPS UPDATE RATE %d",gps_update);
 
     preferences.end();
 }
@@ -121,8 +127,8 @@ static void save_show_speed(bool show_speed)
 
 /**
  * @brief Save show scale in map
- * 
- * @param show_scale 
+ *
+ * @param show_scale
  */
 static void save_show_scale(bool show_scale)
 {

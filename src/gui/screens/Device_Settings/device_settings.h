@@ -37,7 +37,9 @@ static void create_device_settings_scr()
     lv_obj_set_align(list, LV_ALIGN_OUT_LEFT_BOTTOM);
     dropdown = lv_dropdown_create(list);
     lv_dropdown_set_options(dropdown, "4800\n9600\n19200\n38400");
-    lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, -40);
+    lv_dropdown_set_selected(dropdown, gps_speed);
+    lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
+    lv_obj_add_event_cb(dropdown, set_gps_speed, LV_EVENT_VALUE_CHANGED, NULL);
 
     // GPS Update rate
     list = lv_list_add_btn(devicesettingsOptions, NULL, "GPS\nUpdate rate");
@@ -46,7 +48,9 @@ static void create_device_settings_scr()
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
     dropdown = lv_dropdown_create(list);
     lv_dropdown_set_options(dropdown, "1 Hz\n2 Hz\n4 Hz\n5 Hz\n10 Hz");
-    lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, -40);
+    lv_dropdown_set_selected(dropdown, gps_update);
+    lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
+    lv_obj_add_event_cb(dropdown, set_gps_update_rate, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Back button
     btn = lv_btn_create(devicesettingsScreen);
