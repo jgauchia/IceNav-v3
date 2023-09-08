@@ -57,3 +57,15 @@ static void decrement_zoom(lv_event_t *event)
         save_default_zoom(def_zoom);
     }
 }
+
+/**
+ * @brief Show Compass option event
+ * 
+ * @param event 
+ */
+static void show_compass(lv_event_t *event)
+{
+    lv_obj_t * obj = lv_event_get_target(event);
+    show_map_compass = lv_obj_has_state(obj, LV_STATE_CHECKED);
+    save_show_compass(show_map_compass);
+}

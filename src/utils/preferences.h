@@ -40,21 +40,21 @@ static void load_preferences()
     map_rotation = preferences.getBool("Map_rot", false);
     def_zoom = preferences.getUInt("Def_zoom", DEF_ZOOM);
     zoom = def_zoom;
-    show_map_compass = preferences.getBool("Map_compass",true);
+    show_map_compass = preferences.getBool("Map_compass", false);
 
     log_v("COMPASS OFFSET X  %f", offx);
     log_v("COMPASS OFFSET Y  %f", offy);
     log_v("MAP ROTATION %d", map_rotation);
     log_v("DEFAULT ZOOM LEVEL %d", zoom);
-    log_v("SHOW MAP COMPASS %d",show_map_compass);
+    log_v("SHOW MAP COMPASS %d", show_map_compass);
 
     preferences.end();
 }
 
 /**
  * @brief Save Map Rotation Type
- * 
- * @param zoom_rotation 
+ *
+ * @param zoom_rotation
  */
 static void save_map_rotation(bool zoom_rotation)
 {
@@ -86,5 +86,17 @@ static void save_default_zoom(uint8_t default_zoom)
 {
     preferences.begin("ICENAV", false);
     preferences.putUInt("Def_zoom", def_zoom);
+    preferences.end();
+}
+
+/**
+ * @brief Save show compass in map
+ *
+ * @param show_compass
+ */
+static void save_show_compass(bool show_compass)
+{
+    preferences.begin("ICENAV", false);
+    preferences.putBool("Map_compass", show_compass);
     preferences.end();
 }
