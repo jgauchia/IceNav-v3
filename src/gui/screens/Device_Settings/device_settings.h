@@ -31,7 +31,7 @@ static void create_device_settings_scr()
     lv_obj_t *check;
 
     // GPS Speed
-    list = lv_list_add_btn(devicsettingsOptions, NULL, "GPS Speed");
+    list = lv_list_add_btn(devicesettingsOptions, NULL, "GPS Speed");
     lv_obj_set_style_text_font(list, &lv_font_montserrat_18, 0);
     lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
