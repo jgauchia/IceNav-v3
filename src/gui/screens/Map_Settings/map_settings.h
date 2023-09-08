@@ -11,18 +11,18 @@ static lv_obj_t *map_switch;
 static lv_obj_t *zoom_level;
 
 /**
- * @brief Device Config events include
+ * @brief Map Settings events include
  *
  */
 #include "gui/screens/Map_Settings/events/map_settings.h"
 
 /**
- * @brief Create a device config screen
+ * @brief Create Map Settings screen
  *
  */
 static void create_map_settings_scr()
 {
-    // Device Config Screen
+    // Map Settings Screen
     mapsettingsScreen = lv_obj_create(NULL);
     mapsettingsOptions = lv_list_create(mapsettingsScreen);
     lv_obj_set_size(mapsettingsOptions, TFT_WIDTH, TFT_HEIGHT - 60);
@@ -115,5 +115,5 @@ static void create_map_settings_scr()
     lv_label_set_text_static(label, "Back");
     lv_obj_center(label);
     lv_obj_align(btn, LV_ALIGN_BOTTOM_MID, 0, -10);
-    lv_obj_add_event_cb(btn, device_conf_back, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(btn, map_settings_back, LV_EVENT_CLICKED, NULL);
 }
