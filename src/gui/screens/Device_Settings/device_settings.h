@@ -28,20 +28,26 @@ static void create_device_settings_scr()
     lv_obj_t *label;
     lv_obj_t *list;
     lv_obj_t *btn;
-    lv_obj_t *check;
+    lv_obj_t *dropdown;
 
     // GPS Speed
-    list = lv_list_add_btn(devicesettingsOptions, NULL, "GPS Speed");
+    list = lv_list_add_btn(devicesettingsOptions, NULL, "GPS\nSpeed");
     lv_obj_set_style_text_font(list, &lv_font_montserrat_18, 0);
     lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
+    lv_obj_set_align(list, LV_ALIGN_OUT_LEFT_BOTTOM);
+    dropdown = lv_dropdown_create(list);
+    lv_dropdown_set_options(dropdown, "4800\n9600\n19200\n38400");
+    lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, -40);
 
     // GPS Update rate
-    list = lv_list_add_btn(devicesettingsOptions, NULL, "GPS Update rate");
+    list = lv_list_add_btn(devicesettingsOptions, NULL, "GPS\nUpdate rate");
     lv_obj_set_style_text_font(list, &lv_font_montserrat_18, 0);
     lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
-    
+    dropdown = lv_dropdown_create(list);
+    lv_dropdown_set_options(dropdown, "1 Hz\n2 Hz\n4 Hz\n5 Hz\n10 Hz");
+    lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, -40);
+
     // Back button
     btn = lv_btn_create(devicesettingsScreen);
     lv_obj_set_size(btn, TFT_WIDTH - 30, 40);
