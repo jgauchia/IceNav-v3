@@ -121,3 +121,4 @@ If the GPS module supports multiple GNSS, uncomment the following flag in the pl
 * Improved documentation (thanks to [@hpsaturn](https://github.com/hpsaturn))
 * Improved auto mainScreen selection from env variable preset (thanks to [@hpsaturn](https://github.com/hpsaturn))
 * Improved getLat getLon from environment variables (thanks to [@hpsaturn](https://github.com/hpsaturn))
+* 3DPrint case for an ESP32S3 Makerfabs Parallel board (thanks to [@hpsaturn](https://github.com/hpsaturn))
