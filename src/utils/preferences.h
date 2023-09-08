@@ -27,6 +27,7 @@ float offx = 0.0, offy = 0.0; // Compass offset calibration
 bool map_rotation = true;     // Map Compass Rotation
 uint8_t def_zoom = 0;         // Default Zoom Value
 bool show_map_compass = true; // Compass in map screen
+bool show_map_speed = true;   // Speed in map screen
 
 /**
  * @brief Load stored preferences
@@ -41,12 +42,14 @@ static void load_preferences()
     def_zoom = preferences.getUInt("Def_zoom", DEF_ZOOM);
     zoom = def_zoom;
     show_map_compass = preferences.getBool("Map_compass", false);
+    show_map_speed = preferences.getBool("Map_speed", false);
 
     log_v("COMPASS OFFSET X  %f", offx);
     log_v("COMPASS OFFSET Y  %f", offy);
     log_v("MAP ROTATION %d", map_rotation);
     log_v("DEFAULT ZOOM LEVEL %d", zoom);
     log_v("SHOW MAP COMPASS %d", show_map_compass);
+    log_v("SHOW MAP SPEED %d",show_map_speed);
 
     preferences.end();
 }
@@ -98,5 +101,17 @@ static void save_show_compass(bool show_compass)
 {
     preferences.begin("ICENAV", false);
     preferences.putBool("Map_compass", show_compass);
+    preferences.end();
+}
+
+/**
+ * @brief Save show speed in map
+ * 
+ * @param show_speed 
+ */
+static void save_show_speed(bool show_speed)
+{
+    preferences.begin("ICENAV", false);
+    preferences.putBool("Map_speed", show_speed);
     preferences.end();
 }

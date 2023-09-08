@@ -85,6 +85,17 @@ static void create_map_settings_scr()
     lv_obj_add_state(check, show_map_compass);
     lv_obj_add_event_cb(check, show_compass, LV_EVENT_VALUE_CHANGED, NULL);
 
+    // Show Speed
+    list = lv_list_add_btn(mapsettingsOptions, NULL, "Show Speed");
+    lv_obj_set_style_text_font(list, &lv_font_montserrat_18, 0);
+    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
+    lv_obj_align_to(check, list, LV_ALIGN_RIGHT_MID, 0, 0);
+    check = lv_checkbox_create(list);
+    lv_checkbox_set_text_static(check, "");
+    lv_obj_add_state(check, show_map_speed);
+    lv_obj_add_event_cb(check, show_speed, LV_EVENT_VALUE_CHANGED, NULL);
+
     // Back button
     btn = lv_btn_create(mapsettingsScreen);
     lv_obj_set_size(btn, TFT_WIDTH - 30, 40);
