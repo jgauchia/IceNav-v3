@@ -92,19 +92,16 @@ void init_gps()
 
 #ifdef AT6558D_GPS
   // 9600 BAUD
-  gps->end();
-  gps->begin(19200, SERIAL_8N1, GPS_RX, GPS_TX);
-  gps->println("$PCAS01,1*1D\r\n");
+  // gps->println("$PCAS01,1*1D\r\n");
   // 19200 BAUD
-  // gps->println("$PCAS01,2*1E\r\n");
-  //  38400 BAUD
-  //  gps->println("$PCAS01,3*1F\r\n");
+  gps->println("$PCAS01,2*1E\r\n");
+  // 38400 BAUD
+  //gps->println("$PCAS01,3*1F\r\n");
   gps->flush();
   delay(100);
   gps->end();
-
   delay(100);
-  gps->begin(GPS_BAUDRATE, SERIAL_8N1, GPS_RX, GPS_TX);
+  gps->begin(19200, SERIAL_8N1, GPS_RX, GPS_TX);
   delay(100);
 
   // GPS
@@ -117,9 +114,9 @@ void init_gps()
   delay(100);
 
   // 1Hz Update
-  gps->println("$PCAS02,1000*2E\r\n");
+  // gps->println("$PCAS02,1000*2E\r\n");
   // 5Hz Update
-  // gps->println("$PCAS02,200*1D\r\n");
+  gps->println("$PCAS02,200*1D\r\n");
   gps->flush();
   delay(100);
 
