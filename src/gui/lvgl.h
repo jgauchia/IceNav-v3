@@ -47,6 +47,7 @@ static lv_timer_t *timer_main;
 static lv_obj_t *settingsScreen;
 static lv_obj_t *mapsettingsScreen;
 
+#include "gui/lvgl_funcs.h"
 #include "gui/images/bruj.c"
 #include "gui/images/navigation.c"
 #include "gui/images/compass.c"
