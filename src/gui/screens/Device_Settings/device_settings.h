@@ -49,6 +49,12 @@ static void create_device_settings_scr()
     dropdown = lv_dropdown_create(list);
     lv_dropdown_set_options(dropdown, "1 Hz\n2 Hz\n4 Hz\n5 Hz\n10 Hz");
     lv_dropdown_set_selected(dropdown, gps_update);
+#ifndef AT6558D_GPS
+    lv_obj_set_style_text_color(list, lv_palette_darken(LV_PALETTE_GREY, 2), 0);
+    lv_obj_add_state(list, LV_STATE_DISABLED);
+    lv_obj_set_style_text_color(dropdown, lv_palette_darken(LV_PALETTE_GREY, 2), 0);
+    lv_obj_add_state(dropdown, LV_STATE_DISABLED);
+#endif
     lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
     lv_obj_add_event_cb(dropdown, set_gps_update_rate, LV_EVENT_VALUE_CHANGED, NULL);
 
