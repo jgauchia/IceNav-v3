@@ -81,3 +81,15 @@ static void show_speed(lv_event_t *event)
     show_map_speed = lv_obj_has_state(obj, LV_STATE_CHECKED);
     save_show_speed(show_map_speed);
 }
+
+/**
+ * @brief Show Map Scale option event
+ * 
+ * @param event 
+ */
+static void show_scale(lv_event_t *event)
+{
+    lv_obj_t *obj = lv_event_get_target(event);
+    show_map_scale = lv_obj_has_state(obj, LV_STATE_CHECKED);
+    save_show_scale(show_map_scale);
+}
