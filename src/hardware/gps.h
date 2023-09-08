@@ -95,8 +95,10 @@ void init_gps()
   gps->end();
   gps->begin(19200, SERIAL_8N1, GPS_RX, GPS_TX);
   gps->println("$PCAS01,1*1D\r\n");
-  // 38400 BAUD
-  // gps->println("$PCAS01,3*1F\r\n");
+  // 19200 BAUD
+  // gps->println("$PCAS01,2*1E\r\n");
+  //  38400 BAUD
+  //  gps->println("$PCAS01,3*1F\r\n");
   gps->flush();
   delay(100);
   gps->end();
