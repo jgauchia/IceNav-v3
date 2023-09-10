@@ -151,6 +151,8 @@ static void save_gps_speed(uint16_t gps_speed)
     gps->flush();
     gps->println(GPS_BAUD_PCAS[gps_speed]);
     gps->flush();
+    gps->println("$PCAS00*01\r\n");
+    gps->flush();
     delay(500);
 #endif
     gps->flush();
@@ -162,8 +164,8 @@ static void save_gps_speed(uint16_t gps_speed)
 
 /**
  * @brief Save GPS Update rate
- * 
- * @param gps_update_rate 
+ *
+ * @param gps_update_rate
  */
 static void save_gps_update_rate(uint16_t gps_update_rate)
 {
@@ -173,6 +175,8 @@ static void save_gps_update_rate(uint16_t gps_update_rate)
 #ifdef AT6558D_GPS
     gps->flush();
     gps->println(GPS_RATE_PCAS[gps_update_rate]);
+    gps->flush();
+    gps->println("$PCAS00*01\r\n");
     gps->flush();
     delay(500);
 #endif
