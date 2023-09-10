@@ -105,7 +105,7 @@ void loop()
   }
 
 #ifdef MAKERF_ESP32S3
-  lv_tick_inc(10);
+  lv_tick_inc(5);
 #endif
   lv_timer_handler();
   // lv_task_handler();
