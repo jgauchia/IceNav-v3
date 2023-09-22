@@ -72,22 +72,29 @@ void create_main_scr()
     lv_obj_add_event_cb(tiles, scroll_tile, LV_EVENT_SCROLL_BEGIN, NULL);
 
     // Compass Tile
-    compass_heading = lv_label_create(compass_tile);
+    lv_obj_t *compass = lv_obj_create(compass_tile);
+    lv_obj_set_size(compass, 200, 200);
+    lv_obj_set_pos(compass, (TFT_WIDTH / 2)-100, (TFT_HEIGHT / 2) -60);
+    lv_obj_clear_flag(compass, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t *arrow_img = lv_img_create(compass);
+    lv_img_set_src(arrow_img, "F:/arrow.bin");
+    lv_obj_align(arrow_img, LV_ALIGN_CENTER, 0, -30);
+
+    LV_IMG_DECLARE(bruj);
+    compass_img = lv_img_create(compass);
+    lv_img_set_src(compass_img, &bruj);
+    lv_obj_align(compass_img, LV_ALIGN_CENTER, 0, 0);
+    lv_img_set_pivot(compass_img, 100, 100);
+
+    compass_heading = lv_label_create(compass);
     lv_obj_set_size(compass_heading, 150, 38);
-    lv_obj_set_align(compass_heading, LV_ALIGN_CENTER);
-    lv_obj_set_y(compass_heading, 75);
+    lv_obj_align(compass_heading, LV_ALIGN_CENTER, 0, 20);
     lv_obj_set_style_text_font(compass_heading, &lv_font_montserrat_48, 0);
     lv_label_set_text_static(compass_heading, "-----\xC2\xB0");
 
-    lv_obj_t *arrow_img = lv_img_create(compass_tile);
-    lv_img_set_src(arrow_img, "F:/arrow.bin");
-    lv_obj_align(arrow_img, LV_ALIGN_CENTER, 0, 10);
 
-    LV_IMG_DECLARE(bruj);
-    compass_img = lv_img_create(compass_tile);
-    lv_img_set_src(compass_img, &bruj);
-    lv_obj_align(compass_img, LV_ALIGN_CENTER, 0, 45);
-    lv_img_set_pivot(compass_img, 100, 100);
+
 
     lv_obj_t *pos_img = lv_img_create(compass_tile);
     lv_img_set_src(pos_img, "F:/pin.bin");
@@ -148,11 +155,11 @@ void create_main_scr()
 
     // Satellite Tracking Tile
     lv_obj_t *info_grid = lv_obj_create(sat_track_tile);
-    lv_obj_set_size(info_grid,90,175);
+    lv_obj_set_size(info_grid, 90, 175);
     lv_obj_set_flex_align(info_grid, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_row(info_grid, 5, 0);
-    lv_obj_clear_flag(info_grid, LV_OBJ_FLAG_SCROLLABLE); 
-    lv_obj_set_flex_flow(info_grid,LV_FLEX_FLOW_COLUMN);
+    lv_obj_clear_flag(info_grid, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_flex_flow(info_grid, LV_FLEX_FLOW_COLUMN);
     static lv_style_t style_grid;
     lv_style_init(&style_grid);
     lv_style_set_bg_opa(&style_grid, LV_OPA_0);
@@ -161,16 +168,16 @@ void create_main_scr()
 
     pdop_label = lv_label_create(info_grid);
     lv_label_set_text_fmt(pdop_label, "PDOP:\n%s", pdop.value());
-   
+
     hdop_label = lv_label_create(info_grid);
     lv_label_set_text_fmt(hdop_label, "HDOP:\n%s", hdop.value());
-   
+
     vdop_label = lv_label_create(info_grid);
     lv_label_set_text_fmt(vdop_label, "VDOP:\n%s", vdop.value());
-   
+
     alt_label = lv_label_create(info_grid);
     lv_label_set_text_fmt(alt_label, "ALT:\n%4dm.", (int)GPS.altitude.meters());
-   
+
     satbar_1 = lv_chart_create(sat_track_tile);
     lv_obj_set_size(satbar_1, TFT_WIDTH, 55);
     lv_chart_set_div_line_count(satbar_1, 6, 0);
