@@ -78,27 +78,39 @@ void create_main_scr()
     lv_obj_set_size(compass, 200, 200);
     lv_obj_set_pos(compass, compass_pos_x, compass_pos_y);
     lv_obj_clear_flag(compass, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_event_cb(compass, drag_compass, LV_EVENT_PRESSING, NULL);
-
     lv_obj_t *arrow_img = lv_img_create(compass);
     lv_img_set_src(arrow_img, "F:/arrow.bin");
     lv_obj_align(arrow_img, LV_ALIGN_CENTER, 0, -30);
-
     LV_IMG_DECLARE(bruj);
     compass_img = lv_img_create(compass);
     lv_img_set_src(compass_img, &bruj);
     lv_obj_align(compass_img, LV_ALIGN_CENTER, 0, 0);
     lv_img_set_pivot(compass_img, 100, 100);
-
     compass_heading = lv_label_create(compass);
     lv_obj_set_size(compass_heading, 150, 38);
     lv_obj_align(compass_heading, LV_ALIGN_CENTER, 0, 20);
     lv_obj_set_style_text_font(compass_heading, &lv_font_montserrat_48, 0);
     lv_label_set_text_static(compass_heading, "-----\xC2\xB0");
+    lv_obj_add_event_cb(compass, drag_compass, LV_EVENT_PRESSING, NULL);
 
-    lv_obj_t *pos_img = lv_img_create(compass_tile);
+    // Position widget
+    lv_obj_t *position = lv_obj_create(compass_tile);
+    lv_obj_set_size(position, 190, 40);
+    lv_obj_set_pos(position, 15, 10);
+    lv_obj_clear_flag(position, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_t *pos_img = lv_img_create(position);
     lv_img_set_src(pos_img, "F:/pin.bin");
-    lv_obj_set_pos(pos_img, 15, 15);
+    lv_obj_align(pos_img, LV_ALIGN_LEFT_MID, -15, 0);
+    latitude = lv_label_create(position);
+    lv_obj_set_style_text_font(latitude, &lv_font_montserrat_16, 0);
+    lv_label_set_text_static(latitude, Latitude_formatString(GPS.location.lat()));
+    lv_obj_align(latitude, LV_ALIGN_TOP_LEFT, 25, -12);
+    longitude = lv_label_create(position);
+    lv_obj_set_style_text_font(longitude, &lv_font_montserrat_16, 0);
+    lv_label_set_text_static(longitude, Longitude_formatString(GPS.location.lng()));
+    lv_obj_align(longitude, LV_ALIGN_TOP_LEFT, 25, 3);
+
+
 
     lv_obj_t *altit_img = lv_img_create(compass_tile);
     lv_img_set_src(altit_img, "F:/altit.bin");
@@ -113,18 +125,6 @@ void create_main_scr()
     lv_obj_set_style_text_font(speed_label, &lv_font_montserrat_24, 0);
     lv_label_set_text_static(speed_label, "0 Km/h");
     lv_obj_set_pos(speed_label, 60, 100);
-
-    latitude = lv_label_create(compass_tile);
-    lv_obj_set_size(latitude, 200, 20);
-    lv_obj_set_style_text_font(latitude, &lv_font_montserrat_16, 0);
-    lv_label_set_text_static(latitude, Latitude_formatString(GPS.location.lat()));
-    lv_obj_set_pos(latitude, 55, 12);
-
-    longitude = lv_label_create(compass_tile);
-    lv_obj_set_size(longitude, 200, 20);
-    lv_obj_set_style_text_font(longitude, &lv_font_montserrat_16, 0);
-    lv_label_set_text_static(longitude, Longitude_formatString(GPS.location.lng()));
-    lv_obj_set_pos(longitude, 55, 28);
 
     altitude = lv_label_create(compass_tile);
     lv_obj_set_size(altitude, 200, 20);
