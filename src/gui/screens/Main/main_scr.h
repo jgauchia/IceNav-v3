@@ -91,24 +91,29 @@ void create_main_scr()
     lv_obj_align(compass_heading, LV_ALIGN_CENTER, 0, 20);
     lv_obj_set_style_text_font(compass_heading, &lv_font_montserrat_48, 0);
     lv_label_set_text_static(compass_heading, "-----\xC2\xB0");
-    lv_obj_add_event_cb(compass_widget, drag_compass, LV_EVENT_PRESSING, NULL);
+    unselect_obj(compass_widget);
+    lv_obj_add_event_cb(compass_widget, drag_compass_widget, LV_EVENT_PRESSING, NULL);
+    lv_obj_add_event_cb(compass_widget, unselect_widget, LV_EVENT_RELEASED, NULL);
 
     // Position widget
-    lv_obj_t *position = lv_obj_create(compass_tile);
-    lv_obj_set_size(position, 190, 40);
-    lv_obj_set_pos(position, coord_pos_x, coord_pos_y);
-    lv_obj_clear_flag(position, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_t *pos_img = lv_img_create(position);
+    lv_obj_t *position_widget = lv_obj_create(compass_tile);
+    lv_obj_set_size(position_widget, 190, 40);
+    lv_obj_set_pos(position_widget, coord_pos_x, coord_pos_y);
+    lv_obj_clear_flag(position_widget, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_t *pos_img = lv_img_create(position_widget);
     lv_img_set_src(pos_img, "F:/pin.bin");
     lv_obj_align(pos_img, LV_ALIGN_LEFT_MID, -15, 0);
-    latitude = lv_label_create(position);
+    latitude = lv_label_create(position_widget);
     lv_obj_set_style_text_font(latitude, &lv_font_montserrat_16, 0);
     lv_label_set_text_static(latitude, Latitude_formatString(GPS.location.lat()));
     lv_obj_align(latitude, LV_ALIGN_TOP_LEFT, 25, -12);
-    longitude = lv_label_create(position);
+    longitude = lv_label_create(position_widget);
     lv_obj_set_style_text_font(longitude, &lv_font_montserrat_16, 0);
     lv_label_set_text_static(longitude, Longitude_formatString(GPS.location.lng()));
     lv_obj_align(longitude, LV_ALIGN_TOP_LEFT, 25, 3);
+    unselect_obj(position_widget);
+    lv_obj_add_event_cb(position_widget, drag_position_widget, LV_EVENT_PRESSING, NULL);
+    lv_obj_add_event_cb(position_widget, unselect_widget, LV_EVENT_RELEASED, NULL);
 
     // Altitude widget
     lv_obj_t *altitude_widget = lv_obj_create(compass_tile);
@@ -122,6 +127,9 @@ void create_main_scr()
     lv_obj_set_style_text_font(altitude, &lv_font_montserrat_24, 0);
     lv_label_set_text_static(altitude, "0000 m.");
     lv_obj_align(altitude, LV_ALIGN_CENTER, -10, 0);
+    unselect_obj(altitude_widget);
+    lv_obj_add_event_cb(altitude_widget, drag_altitude_widget, LV_EVENT_PRESSING, NULL);
+    lv_obj_add_event_cb(altitude_widget, unselect_widget, LV_EVENT_RELEASED, NULL);
 
     // Speed widget
     lv_obj_t *speed_widget = lv_obj_create(compass_tile);
@@ -135,6 +143,9 @@ void create_main_scr()
     lv_obj_set_style_text_font(speed_label, &lv_font_montserrat_24, 0);
     lv_label_set_text_static(speed_label, "0 Km/h");
     lv_obj_align(speed_label, LV_ALIGN_CENTER, 0, 0);
+    unselect_obj(speed_widget);
+    lv_obj_add_event_cb(speed_widget, drag_speed_widget, LV_EVENT_PRESSING, NULL);
+    lv_obj_add_event_cb(speed_widget, unselect_widget, LV_EVENT_RELEASED, NULL);
 
     // Compass Tile Events
     lv_obj_add_event_cb(compass_heading, update_heading, LV_EVENT_VALUE_CHANGED, NULL);

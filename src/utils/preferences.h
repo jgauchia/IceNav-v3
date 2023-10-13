@@ -59,8 +59,8 @@ static void load_preferences()
     gps_update = preferences.getShort("GPS_rate", 3);
     compass_pos_x = preferences.getInt("Compass_X", (TFT_WIDTH / 2) - 100);
     compass_pos_y = preferences.getInt("Compass_Y", (TFT_HEIGHT / 2) - 60);
-    coord_pos_x = preferences.getInt("Position_X",15);
-    coord_pos_y = preferences.getInt("Position_Y",10);
+    coord_pos_x = preferences.getInt("Coords_X",15);
+    coord_pos_y = preferences.getInt("Coords_Y",10);
     alt_pos_x = preferences.getInt("Altitude_X",15);
     alt_pos_y = preferences.getInt("Altitude_Y",55);
     speed_pos_x = preferences.getInt("Speed_X",15);
@@ -215,5 +215,47 @@ static void save_compass_pos(int pos_x, int pos_y)
     preferences.begin("ICENAV", false);
     preferences.putInt("Compass_X", pos_x);
     preferences.putInt("Compass_Y", pos_y);
+    preferences.end();
+}
+
+/**
+ * @brief Save Coord Widget position
+ *
+ * @param pos_x
+ * @param pos_y
+ */
+static void save_coord_pos(int pos_x, int pos_y)
+{
+    preferences.begin("ICENAV", false);
+    preferences.putInt("Coords_X", pos_x);
+    preferences.putInt("Coords_Y", pos_y);
+    preferences.end();
+}
+
+/**
+ * @brief Save Altitude Widget position
+ *
+ * @param pos_x
+ * @param pos_y
+ */
+static void save_altitude_pos(int pos_x, int pos_y)
+{
+    preferences.begin("ICENAV", false);
+    preferences.putInt("Altitude_X", pos_x);
+    preferences.putInt("Altitude_Y", pos_y);
+    preferences.end();
+}
+
+/**
+ * @brief Save Altitude Widget position
+ *
+ * @param pos_x
+ * @param pos_y
+ */
+static void save_speed_pos(int pos_x, int pos_y)
+{
+    preferences.begin("ICENAV", false);
+    preferences.putInt("Speed_X", pos_x);
+    preferences.putInt("Speed_Y", pos_y);
     preferences.end();
 }

@@ -6,6 +6,8 @@
  * @date 2023-06-14
  */
 
+bool widget_selected = false;
+
 /**
  * @brief Update compass heading label
  *
@@ -65,15 +67,35 @@ static void update_speed(lv_event_t *event)
 }
 
 /**
- * @brief Drag compass event
+ * @brief Unselect widget
  *
  * @param event
  */
-static void drag_compass(lv_event_t *event)
+static void unselect_widget(lv_event_t *event)
+{
+    lv_obj_t *obj = lv_event_get_target(event);
+    if (widget_selected)
+    {
+        unselect_obj(obj);
+        widget_selected = false;
+    }
+}
+
+/**
+ * @brief Drag compass widget event
+ *
+ * @param event
+ */
+static void drag_compass_widget(lv_event_t *event)
 {
     // lv_obj_clear_flag(tiles, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t *obj = lv_event_get_target(event);
+    if (!widget_selected)
+    {
+        select_obj(obj);
+        widget_selected = true;
+    }
 
     lv_indev_t *indev = lv_indev_get_act();
     if (indev == NULL)
@@ -86,4 +108,91 @@ static void drag_compass(lv_event_t *event)
     lv_coord_t y = lv_obj_get_y(obj) + vect.y;
     lv_obj_set_pos(obj, x, y);
     save_compass_pos(x, y);
+}
+
+/**
+ * @brief Drag position widget event
+ *
+ * @param event
+ */
+static void drag_position_widget(lv_event_t *event)
+{
+    // lv_obj_clear_flag(tiles, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t *obj = lv_event_get_target(event);
+    if (!widget_selected)
+    {
+        select_obj(obj);
+        widget_selected = true;
+    }
+
+    lv_indev_t *indev = lv_indev_get_act();
+    if (indev == NULL)
+        return;
+
+    lv_point_t vect;
+    lv_indev_get_vect(indev, &vect);
+
+    lv_coord_t x = lv_obj_get_x(obj) + vect.x;
+    lv_coord_t y = lv_obj_get_y(obj) + vect.y;
+    lv_obj_set_pos(obj, x, y);
+  save_coord_pos(x, y);
+}
+
+/**
+ * @brief Drag altitude widget event
+ *
+ * @param event
+ */
+static void drag_altitude_widget(lv_event_t *event)
+{
+    // lv_obj_clear_flag(tiles, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t *obj = lv_event_get_target(event);
+    if (!widget_selected)
+    {
+        select_obj(obj);
+        widget_selected = true;
+    }
+
+    lv_indev_t *indev = lv_indev_get_act();
+    if (indev == NULL)
+        return;
+
+    lv_point_t vect;
+    lv_indev_get_vect(indev, &vect);
+
+    lv_coord_t x = lv_obj_get_x(obj) + vect.x;
+    lv_coord_t y = lv_obj_get_y(obj) + vect.y;
+    lv_obj_set_pos(obj, x, y);
+    save_altitude_pos(x, y);
+}
+
+/**
+ * @brief Drag speed widget event
+ *
+ * @param event
+ */
+static void drag_speed_widget(lv_event_t *event)
+{
+    // lv_obj_clear_flag(tiles, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t *obj = lv_event_get_target(event);
+    if (!widget_selected)
+    {
+        select_obj(obj);
+        widget_selected = true;
+    }
+
+    lv_indev_t *indev = lv_indev_get_act();
+    if (indev == NULL)
+        return;
+
+    lv_point_t vect;
+    lv_indev_get_vect(indev, &vect);
+
+    lv_coord_t x = lv_obj_get_x(obj) + vect.x;
+    lv_coord_t y = lv_obj_get_y(obj) + vect.y;
+    lv_obj_set_pos(obj, x, y);
+    save_speed_pos(x, y);
 }
