@@ -77,6 +77,7 @@ static void unselect_widget(lv_event_t *event)
     if (widget_selected)
     {
         unselect_obj(obj);
+        lv_obj_add_flag(tiles, LV_OBJ_FLAG_SCROLLABLE);
         widget_selected = false;
     }
 }
@@ -94,6 +95,7 @@ static void drag_widget(lv_event_t *event)
     if (!widget_selected)
     {
         select_obj(obj);
+        lv_obj_clear_flag(tiles, LV_OBJ_FLAG_SCROLLABLE);
         widget_selected = true;
     }
 
@@ -106,8 +108,15 @@ static void drag_widget(lv_event_t *event)
 
     lv_coord_t x = lv_obj_get_x(obj) + vect.x;
     lv_coord_t y = lv_obj_get_y(obj) + vect.y;
-    lv_obj_set_pos(obj, x, y);
+    lv_coord_t width = lv_obj_get_width(obj);
+    lv_coord_t height = lv_obj_get_height(obj);
 
-    char *widget = (char *)lv_event_get_user_data(event);
-    save_widget_pos(widget, x, y);
+    // Limit drag area
+    if (x > 0 && y > 0 && (x + width) < 320 && (y+height) < 380)
+    {
+        lv_obj_set_pos(obj, x, y);
+
+        char *widget = (char *)lv_event_get_user_data(event);
+        save_widget_pos(widget, x, y);
+    }
 }

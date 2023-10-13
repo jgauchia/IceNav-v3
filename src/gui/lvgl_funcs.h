@@ -36,7 +36,7 @@ static void select_obj(_lv_obj_t *obj)
 {
     static lv_style_t style_widget;
     lv_style_init(&style_widget);
-    lv_style_set_bg_opa(&style_widget, LV_OPA_50);
+    lv_style_set_bg_opa(&style_widget, LV_OPA_80);
     lv_style_set_border_opa(&style_widget, LV_OPA_100);
     lv_obj_add_style(obj, &style_widget, LV_PART_MAIN);
 }

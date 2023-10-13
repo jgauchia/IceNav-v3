@@ -66,6 +66,16 @@ static void load_preferences()
     speed_pos_x = preferences.getInt("Speed_X", 15);
     speed_pos_y = preferences.getInt("Speed_Y", 100);
 
+    // // Default Widgets positions
+    // compass_pos_x = (TFT_WIDTH / 2) - 100;
+    // compass_pos_y = (TFT_HEIGHT / 2) - 60;
+    // coord_pos_x = 15;
+    // coord_pos_y = 10;
+    // alt_pos_x = 15;
+    // alt_pos_y = 55;
+    // speed_pos_x = 15;
+    // speed_pos_y = 100;
+
     log_v("COMPASS OFFSET X  %f", offx);
     log_v("COMPASS OFFSET Y  %f", offy);
     log_v("MAP ROTATION %d", map_rotation);

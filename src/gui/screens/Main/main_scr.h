@@ -61,6 +61,7 @@ void create_main_scr()
     map_tile = lv_tileview_add_tile(tiles, 1, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
     nav_tile = lv_tileview_add_tile(tiles, 2, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
     sat_track_tile = lv_tileview_add_tile(tiles, 3, 0, LV_DIR_LEFT);
+    lv_obj_set_size(compass_tile, TFT_WIDTH, TFT_HEIGHT - 25);
     lv_obj_set_size(tiles, TFT_WIDTH, TFT_HEIGHT - 25);
     lv_obj_set_pos(tiles, 0, 25);
     static lv_style_t style_scroll;
@@ -117,7 +118,7 @@ void create_main_scr()
 
     // Altitude widget
     lv_obj_t *altitude_widget = lv_obj_create(compass_tile);
-    lv_obj_set_size(altitude_widget, 190, 40);
+    lv_obj_set_size(altitude_widget, 140, 40);
     lv_obj_set_pos(altitude_widget, alt_pos_x, alt_pos_y);
     lv_obj_clear_flag(altitude_widget, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_t *altit_img = lv_img_create(altitude_widget);
@@ -126,7 +127,7 @@ void create_main_scr()
     altitude = lv_label_create(altitude_widget);
     lv_obj_set_style_text_font(altitude, &lv_font_montserrat_24, 0);
     lv_label_set_text_static(altitude, "0000 m.");
-    lv_obj_align(altitude, LV_ALIGN_CENTER, -10, 0);
+    lv_obj_align(altitude, LV_ALIGN_CENTER, 10, 0);
     unselect_obj(altitude_widget);
     lv_obj_add_event_cb(altitude_widget, drag_widget, LV_EVENT_PRESSING, (char*)"Altitude_");
     lv_obj_add_event_cb(altitude_widget, unselect_widget, LV_EVENT_RELEASED, NULL);
