@@ -63,3 +63,27 @@ static void update_speed(lv_event_t *event)
     lv_obj_t *speed = lv_event_get_target(event);
     lv_label_set_text_fmt(speed, "%3d Km/h", (int)GPS.speed.kmph());
 }
+
+/**
+ * @brief Drag compass event
+ *
+ * @param event
+ */
+static void drag_compass(lv_event_t *event)
+{
+    // lv_obj_clear_flag(tiles, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t *obj = lv_event_get_target(event);
+
+    lv_indev_t *indev = lv_indev_get_act();
+    if (indev == NULL)
+        return;
+
+    lv_point_t vect;
+    lv_indev_get_vect(indev, &vect);
+
+    lv_coord_t x = lv_obj_get_x(obj) + vect.x;
+    lv_coord_t y = lv_obj_get_y(obj) + vect.y;
+    lv_obj_set_pos(obj, x, y);
+    save_compass_pos(x, y);
+}

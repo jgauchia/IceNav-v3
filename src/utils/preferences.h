@@ -31,6 +31,8 @@ bool show_map_speed = true;   // Speed in map screen
 bool show_map_scale = true;   // Scale in map screen
 // uint16_t gps_speed = 0;       // GPS Speed (see gps.h)
 // uint16_t gps_update = 0;      // GPS Update rate (see gps.h)
+int compass_pos_x = 0;
+int compass_pos_y = 0;
 
 /**
  * @brief Load stored preferences
@@ -49,6 +51,8 @@ static void load_preferences()
     show_map_scale = preferences.getBool("Map_scale", false);
     gps_speed = preferences.getShort("GPS_speed", 2);
     gps_update = preferences.getShort("GPS_rate", 3);
+    compass_pos_x = preferences.getInt("Compass_X", (TFT_WIDTH / 2) - 100);
+    compass_pos_y = preferences.getInt("Compass_Y", (TFT_HEIGHT / 2) - 60);
 
     log_v("COMPASS OFFSET X  %f", offx);
     log_v("COMPASS OFFSET Y  %f", offy);
@@ -59,6 +63,8 @@ static void load_preferences()
     log_v("SHOW MAP SCALE %d", show_map_scale);
     log_v("GPS SPEED %d", gps_speed);
     log_v("GPS UPDATE RATE %d", gps_update);
+    log_v("COMPASS POS X %d", compass_pos_x);
+    log_v("COMPASS POS Y %d", compass_pos_y);
 
     preferences.end();
 }
@@ -180,4 +186,18 @@ static void save_gps_update_rate(uint16_t gps_update_rate)
     gps->flush();
     delay(500);
 #endif
+}
+
+/**
+ * @brief Save Compass Widget position
+ *
+ * @param pos_x
+ * @param pos_y
+ */
+static void save_compass_pos(int pos_x, int pos_y)
+{
+    preferences.begin("ICENAV", false);
+    preferences.putInt("Compass_X", pos_x);
+    preferences.putInt("Compass_Y", pos_y);
+    preferences.end();
 }

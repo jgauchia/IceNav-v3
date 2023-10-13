@@ -72,10 +72,13 @@ void create_main_scr()
     lv_obj_add_event_cb(tiles, scroll_tile, LV_EVENT_SCROLL_BEGIN, NULL);
 
     // Compass Tile
+
+    // Compass Widget
     lv_obj_t *compass = lv_obj_create(compass_tile);
     lv_obj_set_size(compass, 200, 200);
-    lv_obj_set_pos(compass, (TFT_WIDTH / 2)-100, (TFT_HEIGHT / 2) -60);
+    lv_obj_set_pos(compass, compass_pos_x, compass_pos_y);
     lv_obj_clear_flag(compass, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_event_cb(compass, drag_compass, LV_EVENT_PRESSING, NULL);
 
     lv_obj_t *arrow_img = lv_img_create(compass);
     lv_img_set_src(arrow_img, "F:/arrow.bin");
@@ -92,9 +95,6 @@ void create_main_scr()
     lv_obj_align(compass_heading, LV_ALIGN_CENTER, 0, 20);
     lv_obj_set_style_text_font(compass_heading, &lv_font_montserrat_48, 0);
     lv_label_set_text_static(compass_heading, "-----\xC2\xB0");
-
-
-
 
     lv_obj_t *pos_img = lv_img_create(compass_tile);
     lv_img_set_src(pos_img, "F:/pin.bin");
