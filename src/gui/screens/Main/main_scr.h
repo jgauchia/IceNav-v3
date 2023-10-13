@@ -96,7 +96,7 @@ void create_main_scr()
     // Position widget
     lv_obj_t *position = lv_obj_create(compass_tile);
     lv_obj_set_size(position, 190, 40);
-    lv_obj_set_pos(position, 15, 10);
+    lv_obj_set_pos(position, coord_pos_x, coord_pos_y);
     lv_obj_clear_flag(position, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_t *pos_img = lv_img_create(position);
     lv_img_set_src(pos_img, "F:/pin.bin");
@@ -113,7 +113,7 @@ void create_main_scr()
     // Altitude widget
     lv_obj_t *altitude_widget = lv_obj_create(compass_tile);
     lv_obj_set_size(altitude_widget, 190, 40);
-    lv_obj_set_pos(altitude_widget, 15, 55);
+    lv_obj_set_pos(altitude_widget, alt_pos_x, alt_pos_y);
     lv_obj_clear_flag(altitude_widget, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_t *altit_img = lv_img_create(altitude_widget);
     lv_img_set_src(altit_img, "F:/altit.bin");
@@ -126,7 +126,7 @@ void create_main_scr()
     // Speed widget
     lv_obj_t *speed_widget = lv_obj_create(compass_tile);
     lv_obj_set_size(speed_widget, 190, 40);
-    lv_obj_set_pos(speed_widget, 12, 100);
+    lv_obj_set_pos(speed_widget, speed_pos_x, speed_pos_y);
     lv_obj_clear_flag(speed_widget, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_t *speed_img = lv_img_create(speed_widget);
     lv_img_set_src(speed_img, "F:/speed.bin");
