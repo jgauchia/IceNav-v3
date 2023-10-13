@@ -74,24 +74,24 @@ void create_main_scr()
     // Compass Tile
 
     // Compass Widget
-    lv_obj_t *compass = lv_obj_create(compass_tile);
-    lv_obj_set_size(compass, 200, 200);
-    lv_obj_set_pos(compass, compass_pos_x, compass_pos_y);
-    lv_obj_clear_flag(compass, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_t *arrow_img = lv_img_create(compass);
+    lv_obj_t *compass_widget = lv_obj_create(compass_tile);
+    lv_obj_set_size(compass_widget, 200, 200);
+    lv_obj_set_pos(compass_widget, compass_pos_x, compass_pos_y);
+    lv_obj_clear_flag(compass_widget, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_t *arrow_img = lv_img_create(compass_widget);
     lv_img_set_src(arrow_img, "F:/arrow.bin");
     lv_obj_align(arrow_img, LV_ALIGN_CENTER, 0, -30);
     LV_IMG_DECLARE(bruj);
-    compass_img = lv_img_create(compass);
+    compass_img = lv_img_create(compass_widget);
     lv_img_set_src(compass_img, &bruj);
     lv_obj_align(compass_img, LV_ALIGN_CENTER, 0, 0);
     lv_img_set_pivot(compass_img, 100, 100);
-    compass_heading = lv_label_create(compass);
+    compass_heading = lv_label_create(compass_widget);
     lv_obj_set_size(compass_heading, 150, 38);
     lv_obj_align(compass_heading, LV_ALIGN_CENTER, 0, 20);
     lv_obj_set_style_text_font(compass_heading, &lv_font_montserrat_48, 0);
     lv_label_set_text_static(compass_heading, "-----\xC2\xB0");
-    lv_obj_add_event_cb(compass, drag_compass, LV_EVENT_PRESSING, NULL);
+    lv_obj_add_event_cb(compass_widget, drag_compass, LV_EVENT_PRESSING, NULL);
 
     // Position widget
     lv_obj_t *position = lv_obj_create(compass_tile);
@@ -111,29 +111,30 @@ void create_main_scr()
     lv_obj_align(longitude, LV_ALIGN_TOP_LEFT, 25, 3);
 
     // Altitude widget
-    lv_obj_t *altit = lv_obj_create(compass_tile);
-    lv_obj_set_size(altit, 160, 40);
-    lv_obj_set_pos(altit, 15, 55);
-    lv_obj_clear_flag(altit, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_t *altit_img = lv_img_create(altit);
+    lv_obj_t *altitude_widget = lv_obj_create(compass_tile);
+    lv_obj_set_size(altitude_widget, 190, 40);
+    lv_obj_set_pos(altitude_widget, 15, 55);
+    lv_obj_clear_flag(altitude_widget, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_t *altit_img = lv_img_create(altitude_widget);
     lv_img_set_src(altit_img, "F:/altit.bin");
     lv_obj_align(altit_img, LV_ALIGN_LEFT_MID, -15, 0);
-    altitude = lv_label_create(altit);
+    altitude = lv_label_create(altitude_widget);
     lv_obj_set_style_text_font(altitude, &lv_font_montserrat_24, 0);
     lv_label_set_text_static(altitude, "0000 m.");
-    lv_obj_align(altitude, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_align(altitude, LV_ALIGN_CENTER, -10, 0);
 
-
-
-    lv_obj_t *speed_img = lv_img_create(compass_tile);
+    // Speed widget
+    lv_obj_t *speed_widget = lv_obj_create(compass_tile);
+    lv_obj_set_size(speed_widget, 190, 40);
+    lv_obj_set_pos(speed_widget, 12, 100);
+    lv_obj_clear_flag(speed_widget, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_t *speed_img = lv_img_create(speed_widget);
     lv_img_set_src(speed_img, "F:/speed.bin");
-    lv_obj_set_pos(speed_img, 15, 95);
-
-    speed_label = lv_label_create(compass_tile);
-    lv_obj_set_size(speed_label, 200, 20);
+    lv_obj_align(speed_img, LV_ALIGN_LEFT_MID, -10, 0);
+    speed_label = lv_label_create(speed_widget);
     lv_obj_set_style_text_font(speed_label, &lv_font_montserrat_24, 0);
     lv_label_set_text_static(speed_label, "0 Km/h");
-    lv_obj_set_pos(speed_label, 60, 100);
+    lv_obj_align(speed_label, LV_ALIGN_CENTER, 0, 0);
 
     // Compass Tile Events
     lv_obj_add_event_cb(compass_heading, update_heading, LV_EVENT_VALUE_CHANGED, NULL);
