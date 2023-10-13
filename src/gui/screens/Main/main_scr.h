@@ -92,7 +92,7 @@ void create_main_scr()
     lv_obj_set_style_text_font(compass_heading, &lv_font_montserrat_48, 0);
     lv_label_set_text_static(compass_heading, "-----\xC2\xB0");
     unselect_obj(compass_widget);
-    lv_obj_add_event_cb(compass_widget, drag_compass_widget, LV_EVENT_PRESSING, NULL);
+    lv_obj_add_event_cb(compass_widget, drag_widget, LV_EVENT_PRESSING, (char*)"Compass_");
     lv_obj_add_event_cb(compass_widget, unselect_widget, LV_EVENT_RELEASED, NULL);
 
     // Position widget
@@ -112,7 +112,7 @@ void create_main_scr()
     lv_label_set_text_static(longitude, Longitude_formatString(GPS.location.lng()));
     lv_obj_align(longitude, LV_ALIGN_TOP_LEFT, 25, 3);
     unselect_obj(position_widget);
-    lv_obj_add_event_cb(position_widget, drag_position_widget, LV_EVENT_PRESSING, NULL);
+    lv_obj_add_event_cb(position_widget, drag_widget, LV_EVENT_PRESSING, (char*)"Coords_");
     lv_obj_add_event_cb(position_widget, unselect_widget, LV_EVENT_RELEASED, NULL);
 
     // Altitude widget
@@ -128,7 +128,7 @@ void create_main_scr()
     lv_label_set_text_static(altitude, "0000 m.");
     lv_obj_align(altitude, LV_ALIGN_CENTER, -10, 0);
     unselect_obj(altitude_widget);
-    lv_obj_add_event_cb(altitude_widget, drag_altitude_widget, LV_EVENT_PRESSING, NULL);
+    lv_obj_add_event_cb(altitude_widget, drag_widget, LV_EVENT_PRESSING, (char*)"Altitude_");
     lv_obj_add_event_cb(altitude_widget, unselect_widget, LV_EVENT_RELEASED, NULL);
 
     // Speed widget
@@ -144,7 +144,7 @@ void create_main_scr()
     lv_label_set_text_static(speed_label, "0 Km/h");
     lv_obj_align(speed_label, LV_ALIGN_CENTER, 0, 0);
     unselect_obj(speed_widget);
-    lv_obj_add_event_cb(speed_widget, drag_speed_widget, LV_EVENT_PRESSING, NULL);
+    lv_obj_add_event_cb(speed_widget, drag_widget, LV_EVENT_PRESSING, (char*)"Speed_");
     lv_obj_add_event_cb(speed_widget, unselect_widget, LV_EVENT_RELEASED, NULL);
 
     // Compass Tile Events

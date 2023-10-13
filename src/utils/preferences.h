@@ -59,12 +59,12 @@ static void load_preferences()
     gps_update = preferences.getShort("GPS_rate", 3);
     compass_pos_x = preferences.getInt("Compass_X", (TFT_WIDTH / 2) - 100);
     compass_pos_y = preferences.getInt("Compass_Y", (TFT_HEIGHT / 2) - 60);
-    coord_pos_x = preferences.getInt("Coords_X",15);
-    coord_pos_y = preferences.getInt("Coords_Y",10);
-    alt_pos_x = preferences.getInt("Altitude_X",15);
-    alt_pos_y = preferences.getInt("Altitude_Y",55);
-    speed_pos_x = preferences.getInt("Speed_X",15);
-    speed_pos_y = preferences.getInt("Speed_Y",100);
+    coord_pos_x = preferences.getInt("Coords_X", 15);
+    coord_pos_y = preferences.getInt("Coords_Y", 10);
+    alt_pos_x = preferences.getInt("Altitude_X", 15);
+    alt_pos_y = preferences.getInt("Altitude_Y", 55);
+    speed_pos_x = preferences.getInt("Speed_X", 15);
+    speed_pos_y = preferences.getInt("Speed_Y", 100);
 
     log_v("COMPASS OFFSET X  %f", offx);
     log_v("COMPASS OFFSET Y  %f", offy);
@@ -77,10 +77,10 @@ static void load_preferences()
     log_v("GPS UPDATE RATE %d", gps_update);
     log_v("COMPASS POS X %d", compass_pos_x);
     log_v("COMPASS POS Y %d", compass_pos_y);
-    log_v("COORDINATE POS X %d",coord_pos_x);
-    log_v("COORDINATE POS Y %d",coord_pos_y);
-    log_v("SPEED POS X %d",speed_pos_x);
-    log_v("SPEED POS Y %d",speed_pos_y);
+    log_v("COORDINATE POS X %d", coord_pos_x);
+    log_v("COORDINATE POS Y %d", coord_pos_y);
+    log_v("SPEED POS X %d", speed_pos_x);
+    log_v("SPEED POS Y %d", speed_pos_y);
 
     preferences.end();
 }
@@ -210,52 +210,19 @@ static void save_gps_update_rate(uint16_t gps_update_rate)
  * @param pos_x
  * @param pos_y
  */
-static void save_compass_pos(int pos_x, int pos_y)
+static void save_widget_pos(char *widget, int pos_x, int pos_y)
 {
-    preferences.begin("ICENAV", false);
-    preferences.putInt("Compass_X", pos_x);
-    preferences.putInt("Compass_Y", pos_y);
-    preferences.end();
-}
+    const char *str_x = "X";
+    const char *str_y = "Y";
+    char widget_x[30] = "";
+    char widget_y[30] = "";
+    strcat(widget_x, widget);
+    strcat(widget_x, str_x);
+    strcat(widget_y, widget);
+    strcat(widget_y, str_y);
 
-/**
- * @brief Save Coord Widget position
- *
- * @param pos_x
- * @param pos_y
- */
-static void save_coord_pos(int pos_x, int pos_y)
-{
     preferences.begin("ICENAV", false);
-    preferences.putInt("Coords_X", pos_x);
-    preferences.putInt("Coords_Y", pos_y);
-    preferences.end();
-}
-
-/**
- * @brief Save Altitude Widget position
- *
- * @param pos_x
- * @param pos_y
- */
-static void save_altitude_pos(int pos_x, int pos_y)
-{
-    preferences.begin("ICENAV", false);
-    preferences.putInt("Altitude_X", pos_x);
-    preferences.putInt("Altitude_Y", pos_y);
-    preferences.end();
-}
-
-/**
- * @brief Save Altitude Widget position
- *
- * @param pos_x
- * @param pos_y
- */
-static void save_speed_pos(int pos_x, int pos_y)
-{
-    preferences.begin("ICENAV", false);
-    preferences.putInt("Speed_X", pos_x);
-    preferences.putInt("Speed_Y", pos_y);
+    preferences.putInt(widget_x, pos_x);
+    preferences.putInt(widget_y, pos_y);
     preferences.end();
 }
