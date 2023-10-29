@@ -39,7 +39,7 @@ int alt_pos_x = 0;
 int alt_pos_y = 0;
 int speed_pos_x = 0;
 int speed_pos_y = 0;
-bool vector_map = false;
+bool vector_map = true;
 
 /**
  * @brief Load stored preferences

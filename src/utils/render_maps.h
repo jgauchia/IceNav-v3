@@ -38,6 +38,39 @@ MapTile RoundMapTile;
 uint16_t tileSize = 256;
 
 /**
+ * @brief Flag to indicate when maps needs to be draw
+ *
+ */
+bool is_map_draw = false;
+
+/**
+ * @brief Flag to indicate when tile map is found on SD
+ *
+ */
+bool map_found = false;
+
+/**
+ * @brief Sprite for Navigation Arrow in map tile
+ *
+ */
+TFT_eSprite sprArrow = TFT_eSprite(&tft);
+
+/**
+ * @brief Double Buffering Sprites for Map Tile
+ *
+ */
+TFT_eSprite map_spr = TFT_eSprite(&tft);
+TFT_eSprite map_rot = TFT_eSprite(&tft);
+
+/**
+ * @brief Navitagion Arrow position on screen
+ *
+ */
+ScreenCoord NavArrow_position;
+
+void draw_map_widgets();
+
+/**
  * @brief Get TileY for OpenStreeMap files
  *
  * @param f_lon -> longitude

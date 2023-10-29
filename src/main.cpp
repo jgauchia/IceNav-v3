@@ -38,15 +38,12 @@ unsigned long millis_actual = 0;
 #include "utils/lv_spiffs_fs.h"
 #include "utils/lv_sd_fs.h"
 #include "utils/time_zone.h"
-
-#include "gui/lvgl.h"
 #include "utils/render_maps.h"
 #include "utils/vector_maps.h"
+#include "gui/lvgl.h"
+
 
 #include "tasks.h"
-
-MemBlocks memBlocks;
-ViewPort viewPort;
 
 /**
  * @brief Setup

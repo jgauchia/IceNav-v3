@@ -8,53 +8,13 @@
 
 void generate_render_map();
 void generate_vector_map();
-
-/**
- * @brief Navitagion Arrow position on screen
- *
- */
-ScreenCoord NavArrow_position;
+MemBlocks memBlocks;
+ViewPort viewPort;
 
 static const char *map_scale[] = {"5000 Km", "2500 Km", "1500 Km", "700 Km", "350 Km",
                                   "150 Km", "100 Km", "40 Km", "20 Km", "10 Km", "5 Km",
                                   "2,5 Km", "1,5 Km", "700 m", "350 m", "150 m", "80 m",
                                   "40 m", "20 m", "10 m"};
-
-/**
- * @brief return latitude from GPS or sys env pre-built variable
- * @return latitude or 0.0 if not defined
- */
-static double getLat()
-{
-  if (GPS.location.isValid())
-    return GPS.location.lat();
-  else
-  {
-#ifdef DEFAULT_LAT
-    return DEFAULT_LAT;
-#else
-    return 0.0;
-#endif
-  }
-}
-
-/**
- * @brief return longitude from GPS or sys env pre-built variable
- * @return longitude or 0.0 if not defined
- */
-static double getLon()
-{
-  if (GPS.location.isValid())
-    return GPS.location.lng();
-  else
-  {
-#ifdef DEFAULT_LON
-    return DEFAULT_LON;
-#else
-    return 0.0;
-#endif
-  }
-}
 
 /**
  * @brief Update zoom value
@@ -125,7 +85,7 @@ static void create_map_scr_sprites()
  * @brief Draw map widgets
  *
  */
-static void draw_map_widgets()
+void draw_map_widgets()
 {
   map_rot.setTextColor(TFT_WHITE, TFT_WHITE);
 
@@ -142,9 +102,12 @@ static void draw_map_widgets()
   }
 #endif
 
-  map_rot.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
-  map_rot.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
-  map_rot.drawNumber(zoom, 26, 8, &fonts::FreeSansBold9pt7b);
+  if (!vector_map)
+  {
+    map_rot.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
+    map_rot.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
+    map_rot.drawNumber(zoom, 26, 8, &fonts::FreeSansBold9pt7b);
+  }
 
   if (show_map_speed)
   {
@@ -174,13 +137,17 @@ static void update_map(lv_event_t *event)
 {
   if (vector_map)
   {
-    // Point32 map_center(225680.32, 5084950.61);
-    // viewPort.setCenter(map_center);
-    // get_map_blocks(memBlocks, viewPort.bbox);
-    // map_rot.deleteSprite();
-    // map_rot.createSprite(320, 374);
-    // generate_vector_map(viewPort, memBlocks, map_rot);
-    // map_rot.pushSprite(0, 27);
+    Point32 map_center(225680.32, 5084950.61);
+    viewPort.setCenter(map_center);
+    get_map_blocks(memBlocks, viewPort.bbox);
+    
+    map_rot.deleteSprite();
+    map_rot.createSprite(320, 374);
+
+    generate_vector_map(viewPort, memBlocks, map_rot);
+    draw_map_widgets();
+
+    map_rot.pushSprite(0, 27);
   }
   else
     generate_render_map();

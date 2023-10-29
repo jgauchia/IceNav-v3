@@ -154,3 +154,40 @@ void init_gps()
 #endif
   }
 }
+
+
+/**
+ * @brief return latitude from GPS or sys env pre-built variable
+ * @return latitude or 0.0 if not defined
+ */
+static double getLat()
+{
+  if (GPS.location.isValid())
+    return GPS.location.lat();
+  else
+  {
+#ifdef DEFAULT_LAT
+    return DEFAULT_LAT;
+#else
+    return 0.0;
+#endif
+  }
+}
+
+/**
+ * @brief return longitude from GPS or sys env pre-built variable
+ * @return longitude or 0.0 if not defined
+ */
+static double getLon()
+{
+  if (GPS.location.isValid())
+    return GPS.location.lng();
+  else
+  {
+#ifdef DEFAULT_LON
+    return DEFAULT_LON;
+#else
+    return 0.0;
+#endif
+  }
+}

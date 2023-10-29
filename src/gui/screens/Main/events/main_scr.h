@@ -10,18 +10,6 @@ static void delete_map_scr_sprites();
 static void create_map_scr_sprites();
 
 /**
- * @brief Flag to indicate when maps needs to be draw
- *
- */
-bool is_map_draw = false;
-
-/**
- * @brief Flag to indicate when tile map is found on SD
- *
- */
-bool map_found = false;
-
-/**
  * @brief Flag to indicate when tileview was scrolled
  *
  */
@@ -32,19 +20,6 @@ bool is_scrolled = true;
  *
  */
 bool is_ready = false;
-
-/**
- * @brief Sprite for Navigation Arrow in map tile
- *
- */
-TFT_eSprite sprArrow = TFT_eSprite(&tft);
-
-/**
- * @brief Double Buffering Sprites for Map Tile
- *
- */
-TFT_eSprite map_spr = TFT_eSprite(&tft);
-TFT_eSprite map_rot = TFT_eSprite(&tft);
 
 /**
  * @brief Zoom sprite
