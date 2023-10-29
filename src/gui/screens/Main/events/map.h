@@ -161,7 +161,6 @@ static void update_map(lv_event_t *event)
     {
       pos.lat = GPS.location.lat();
       pos.lng = GPS.location.lng();
-      log_v("%f %f", lon2x(GPS.location.lng()), lat2y(GPS.location.lat()));
 
       if (abs(pos.lat - prev_lat) > 0.00005 &&
           abs(pos.lng - prev_lng) > 0.00005)
