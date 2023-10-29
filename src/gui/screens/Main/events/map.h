@@ -10,6 +10,8 @@ void generate_render_map();
 void generate_vector_map();
 MemBlocks memBlocks;
 ViewPort viewPort;
+double prev_lat = 500, prev_lng = 500;
+Coord pos;
 
 static const char *map_scale[] = {"5000 Km", "2500 Km", "1500 Km", "700 Km", "350 Km",
                                   "150 Km", "100 Km", "40 Km", "20 Km", "10 Km", "5 Km",
@@ -137,17 +139,63 @@ static void update_map(lv_event_t *event)
 {
   if (vector_map)
   {
-    Point32 map_center(225680.32, 5084950.61);
-    viewPort.setCenter(map_center);
-    get_map_blocks(memBlocks, viewPort.bbox);
-    
-    map_rot.deleteSprite();
-    map_rot.createSprite(320, 374);
+    // Point32 map_center(225680.32, 5084950.61);
+    // if (!moved)
+    // {
+    //   viewPort.setCenter(map_center);
+    //   get_map_blocks(memBlocks, viewPort.bbox);
 
-    generate_vector_map(viewPort, memBlocks, map_rot);
-    draw_map_widgets();
+    //   map_rot.deleteSprite();
+    //   map_rot.createSprite(320, 374);
 
-    map_rot.pushSprite(0, 27);
+    //   generate_vector_map(viewPort, memBlocks, map_rot);
+    //   draw_map_widgets();
+
+    //   map_rot.pushSprite(0, 27);
+    //   moved = true;
+    // }
+    // moved = false;
+
+    Point32 p = viewPort.center;
+    bool moved = false;
+    {
+      pos.lat = GPS.location.lat();
+      pos.lng = GPS.location.lng();
+      log_v("%f %f", lon2x(GPS.location.lng()), lat2y(GPS.location.lat()));
+
+      if (abs(pos.lat - prev_lat) > 0.00005 &&
+          abs(pos.lng - prev_lng) > 0.00005)
+      {
+        p.x = lon2x(pos.lng);
+        p.y = lat2y(pos.lat);
+        // p.x = 224672.31;
+        // p.y = 5107378.91;
+        // p.x = 225680.32;
+        // p.y = 5084950.61;
+        prev_lat = pos.lat;
+        prev_lng = pos.lng;
+        moved = true;
+        map_found = true;
+        map_rot.deleteSprite();
+        map_rot.createSprite(320, 374);
+      }
+    }
+
+    if (moved && map_found)
+    {
+      viewPort.setCenter(p);
+      get_map_blocks(memBlocks, viewPort.bbox);
+      generate_vector_map(viewPort, memBlocks, map_rot);
+      draw_map_widgets();
+      map_rot.pushSprite(0, 27);
+      map_found = true;
+    }
+
+    if (map_found)
+    {
+      draw_map_widgets();
+      map_rot.pushSprite(0, 27);
+    }
   }
   else
     generate_render_map();

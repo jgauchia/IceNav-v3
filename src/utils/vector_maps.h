@@ -60,6 +60,12 @@ const uint16_t BACKGROUND_COLOR = 0xEF5D;
 const int32_t mapblock_mask = pow(2, MAPBLOCK_SIZE_BITS) - 1;   // ...00000000111111111111
 const int32_t mapfolder_mask = pow(2, MAPFOLDER_SIZE_BITS) - 1; // ...00001111
 
+#define DEG2RAD(a)   ((a) / (180 / M_PI))
+#define RAD2DEG(a)   ((a) * (180 / M_PI))
+#define EARTH_RADIUS 6378137
+double lat2y(double lat) { return log(tan( DEG2RAD(lat) / 2 + M_PI/4 )) * EARTH_RADIUS; }
+double lon2x(double lon) { return          DEG2RAD(lon)                 * EARTH_RADIUS; }
+
 /**
  * @brief Point in 32 bits projected coordinates (x,y)
  *
@@ -230,6 +236,22 @@ Point16 toScreenCoords(Point16 p, Point16 screen_center)
 }
 
 /**
+ * @brief Point in geografic (lat,lon) coordinates and other gps data
+ *
+ */
+struct Coord
+{
+    Point32 getPoint32();
+    double lat = 0;
+    double lng = 0;
+    int16_t altitude = 0;
+    int16_t direction = 0;
+    int16_t satellites = 0;
+    bool isValid = false;
+    bool isUpdated = false;
+};
+
+/**
  * @brief Parse vector file to coords
  *
  * @param file
@@ -278,6 +300,7 @@ MapBlock *read_map_block(String file_name)
     if (feature_type != "Polygons")
         log_e("Map error. Expected Polygons instead of: %s", feature_type);
     u_int32_t count = bufferedFile.readStringUntil('\n').toInt();
+
     if (count <= 0)
     {
         while (true)
@@ -309,6 +332,8 @@ MapBlock *read_map_block(String file_name)
     if (feature_type != "Polylines")
         log_e("Map error. Expected Polylines instead of: %s", feature_type);
     count = bufferedFile.readStringUntil('\n').toInt();
+
+    log_v("%d", count);
     if (count <= 0)
     {
         while (true)
@@ -361,6 +386,8 @@ void get_map_blocks(MemBlocks &memBlocks, BBox &bbox)
         int32_t folder_name_x = min_x >> (MAPFOLDER_SIZE_BITS + MAPBLOCK_SIZE_BITS);
         int32_t folder_name_y = min_y >> (MAPFOLDER_SIZE_BITS + MAPBLOCK_SIZE_BITS);
         String file_name = base_folder + folder_name_x + "_" + folder_name_y + "/" + block_x + "_" + block_y; //  /maps/123_456/777_888
+    
+        log_v("%d %d",block_x,block_y);
 
         if (memBlocks.blocks_map.count(file_name))
         { // if contains

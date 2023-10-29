@@ -54,7 +54,8 @@ static void get_act_tile(lv_event_t *event)
         log_d("Used PSRAM: %d", ESP.getPsramSize() - ESP.getFreePsram());
         if (act_tile == MAP)
         {
-            create_map_scr_sprites();
+            if (!vector_map)
+                create_map_scr_sprites();
         }
     }
     else
@@ -77,7 +78,8 @@ static void scroll_tile(lv_event_t *event)
     is_scrolled = false;
     is_ready = false;
 
-    delete_map_scr_sprites();
+    if (!vector_map)
+        delete_map_scr_sprites();
     delete_sat_info_sprites();
 }
 
@@ -122,7 +124,7 @@ static void update_main_screen(lv_timer_t *t)
             break;
 
         case NAV:
-             break;
+            break;
         default:
             break;
         }
