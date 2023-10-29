@@ -61,7 +61,6 @@ void create_main_scr()
     map_tile = lv_tileview_add_tile(tiles, 1, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
     nav_tile = lv_tileview_add_tile(tiles, 2, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
     sat_track_tile = lv_tileview_add_tile(tiles, 3, 0, LV_DIR_LEFT);
-    lv_obj_set_size(compass_tile, TFT_WIDTH, TFT_HEIGHT - 25);
     lv_obj_set_size(tiles, TFT_WIDTH, TFT_HEIGHT - 25);
     lv_obj_set_pos(tiles, 0, 25);
     static lv_style_t style_scroll;
