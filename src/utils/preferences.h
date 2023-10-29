@@ -39,7 +39,7 @@ int alt_pos_x = 0;
 int alt_pos_y = 0;
 int speed_pos_x = 0;
 int speed_pos_y = 0;
-bool vector_map = true;
+bool vector_map = false;
 
 /**
  * @brief Load stored preferences
@@ -66,6 +66,7 @@ static void load_preferences()
     alt_pos_y = preferences.getInt("Altitude_Y", 55);
     speed_pos_x = preferences.getInt("Speed_X", 15);
     speed_pos_y = preferences.getInt("Speed_Y", 100);
+    vector_map = preferences.getBool("Map_vector", true);
 
     // // Default Widgets positions
     // compass_pos_x = (TFT_WIDTH / 2) - 100;
@@ -92,6 +93,7 @@ static void load_preferences()
     log_v("COORDINATE POS Y %d", coord_pos_y);
     log_v("SPEED POS X %d", speed_pos_x);
     log_v("SPEED POS Y %d", speed_pos_y);
+    log_v("VECTOR MAP %d", vector_map);
 
     preferences.end();
 }
@@ -235,5 +237,17 @@ static void save_widget_pos(char *widget, int pos_x, int pos_y)
     preferences.begin("ICENAV", false);
     preferences.putInt(widget_x, pos_x);
     preferences.putInt(widget_y, pos_y);
+    preferences.end();
+}
+
+/**
+ * @brief Save Map Type
+ * 
+ * @param vector 
+ */
+static void save_map_type(bool vector)
+{
+    preferences.begin("ICENAV", false);
+    preferences.putBool("Map_vector", vector);
     preferences.end();
 }

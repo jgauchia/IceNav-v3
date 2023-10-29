@@ -17,6 +17,18 @@ static void map_settings_back(lv_event_t *event)
 }
 
 /**
+ * @brief Configure Map type event
+ *
+ * @param event
+ */
+static void configure_map_type(lv_event_t *event)
+{
+    vector_map = lv_obj_has_state(map_type, LV_STATE_CHECKED);
+    save_map_type(vector_map);
+    log_v("%d",vector_map);
+}
+
+/**
  * @brief Configure Map rotation event
  *
  * @param event
