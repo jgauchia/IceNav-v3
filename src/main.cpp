@@ -34,14 +34,12 @@ unsigned long millis_actual = 0;
 #include "hardware/battery.h"
 #include "hardware/power.h"
 #include "utils/render_maps.h"
+#include "utils/vector_maps.h"
 #include "utils/gps_math.h"
 #include "utils/sat_info.h"
 #include "utils/lv_spiffs_fs.h"
 #include "utils/lv_sd_fs.h"
 #include "utils/time_zone.h"
-
-#include "utils/graphics/graphics.h"
-#include "utils/vector_maps.h"
 
 #include "gui/lvgl.h"
 
@@ -49,11 +47,11 @@ unsigned long millis_actual = 0;
 
 MemBlocks memBlocks;
 ViewPort viewPort;
-#define DEG2RAD(a) ((a) / (180 / M_PI))
-#define RAD2DEG(a) ((a) * (180 / M_PI))
-#define EARTH_RADIUS 6378137
-double lat2y(double lat) { return log(tan(DEG2RAD(lat) / 2 + M_PI / 4)) * EARTH_RADIUS; }
-double lon2x(double lon) { return DEG2RAD(lon) * EARTH_RADIUS; }
+// #define DEG2RAD(a) ((a) / (180 / M_PI))
+// #define RAD2DEG(a) ((a) * (180 / M_PI))
+// #define EARTH_RADIUS 6378137
+// double lat2y(double lat) { return log(tan(DEG2RAD(lat) / 2 + M_PI / 4)) * EARTH_RADIUS; }
+// double lon2x(double lon) { return DEG2RAD(lon) * EARTH_RADIUS; }
 
 /**
  * @brief Setup
@@ -99,7 +97,7 @@ void setup()
   map_rot.deleteSprite();
   map_rot.createSprite(320, 374);
 
-  draw_vector_map(viewPort, memBlocks, map_rot);
+  generate_vector_map(viewPort, memBlocks, map_rot);
 
   map_rot.pushSprite(0, 27);
 

@@ -18,33 +18,172 @@
 
 /**
  * @brief Vector Map folder
- * 
+ *
  */
 const String base_folder = "/mymap/"; // TODO: folder selection
 
 /**
  * @brief Vectorized map size
- * 
+ *
  */
-#define MAP_HEIGHT  374
-#define MAP_WIDTH   320
+#define MAP_HEIGHT 374
+#define MAP_WIDTH 320
 int pixel_size = 2;
 
 /**
- * @brief Vector maps memory definition
- * 
+ * @brief Vector map object colours
+ *
  */
-#define MAPBLOCKS_MAX 6         // max blocks in memory
-#define MAPBLOCK_SIZE_BITS 12   // 4096 x 4096 coords (~meters) per block  
-#define MAPFOLDER_SIZE_BITS 4   // 16 x 16 map blocks per folder
-const int32_t mapblock_mask  = pow( 2, MAPBLOCK_SIZE_BITS) - 1;     // ...00000000111111111111
-const int32_t mapfolder_mask = pow( 2, MAPFOLDER_SIZE_BITS) - 1;    // ...00001111
+const uint16_t WHITE = 0xFFFF;
+const uint16_t BLACK = 0x0000;
+const uint16_t GREEN = 0x76EE;
+const uint16_t GREENCLEAR = 0x9F93;
+const uint16_t GREENCLEAR2 = 0xCF6E;
+const uint16_t BLUE = 0x227E;
+const uint16_t BLUECLEAR = 0x6D3E;
+const uint16_t CYAN = 0xAA1F;
+const uint16_t ORANGE = 0xFCC2;
+const uint16_t GRAY = 0x94B2;
+const uint16_t GRAYCLEAR = 0xAD55;
+const uint16_t GRAYCLEAR2 = 0xD69A;
+const uint16_t BROWN = 0xAB00;
+const uint16_t YELLOWCLEAR = 0xFFF5;
+const uint16_t BACKGROUND_COLOR = 0xEF5D;
+
+/**
+ * @brief Vector maps memory definition
+ *
+ */
+#define MAPBLOCKS_MAX 6                                         // max blocks in memory
+#define MAPBLOCK_SIZE_BITS 12                                   // 4096 x 4096 coords (~meters) per block
+#define MAPFOLDER_SIZE_BITS 4                                   // 16 x 16 map blocks per folder
+const int32_t mapblock_mask = pow(2, MAPBLOCK_SIZE_BITS) - 1;   // ...00000000111111111111
+const int32_t mapfolder_mask = pow(2, MAPFOLDER_SIZE_BITS) - 1; // ...00001111
+
+/**
+ * @brief Point in 32 bits projected coordinates (x,y)
+ *
+ */
+struct Point32
+{
+    Point32(){};
+    Point32(int32_t x, int32_t y) : x(x), y(y){};
+    Point32 operator-(const Point32 p) { return Point32(x - p.x, y - p.y); };
+    Point32 operator+(const Point32 p) { return Point32(x + p.x, y + p.y); };
+
+    /// @brief Parse char array with the coordinates
+    /// @param coords_pair char array like:  11.222,333.44
+    Point32(char *coords_pair); // char array like:  11.222,333.44
+
+    int32_t x;
+    int32_t y;
+};
+
+/**
+ * @brief Point in 16 bits projected coordinates (x,y)
+ *
+ */
+struct Point16
+{
+    Point16(){};
+    Point16(int16_t x, int16_t y) : x(x), y(y){};
+    Point16(Point32 p) : x(p.x), y(p.y){};
+    // Point16 operator-(const Point16 p){ return Point16( x-p.x, y-p.y);};
+    // Point16 operator+(const Point16 p){ return Point16( x+p.x, y+p.y);};
+    int16_t x;
+    int16_t y;
+};
+
+/**
+ * @brief Polyline
+ *
+ */
+struct Polyline
+{
+    std::vector<Point16> points;
+    uint16_t color;
+    uint8_t width;
+};
+
+/**
+ * @brief Poligon
+ *
+ */
+struct Polygon
+{
+    std::vector<Point16> points;
+    uint16_t color;
+};
+
+/**
+ * @brief Bounding Box
+ *
+ */
+struct BBox
+{
+    BBox(){};
+    /// @brief Bounding Box
+    /// @param min top left corner
+    /// @param max bottim right corner
+    BBox(Point32 min, Point32 max) : min(min), max(max){};
+    BBox operator-(const Point32 p) { return BBox(min - p, max - p); };
+    bool contains_point(const Point16 p) { return p.x > min.x && p.x < max.x && p.y > min.y && p.y < max.y; }
+    Point32 min;
+    Point32 max;
+};
+
+std::vector<Point16> clip_polygon(BBox bbox, std::vector<Point16> points)
+{
+    std::vector<Point16> clipped;
+    int16_t dx, dy, bbpx;
+    for (int i = 0; i < (points.size() - 1); i++)
+    {
+        Point16 p1 = points[i];
+        Point16 p2 = points[i + 1];
+        // cut vert left side
+        if (p1.x < bbox.min.x && p2.x > bbox.min.x)
+        {
+            dx = p2.x - p1.x;
+            dy = abs(p2.y - p1.y);
+            bbpx = bbox.min.x - p1.x;
+            assert(dx > 0);
+            assert(dy > 0);
+            assert(bbpx > 0);
+            p1.y = double(bbpx * dy) / dx;
+            p1.x = bbox.min.x;
+        }
+
+        if (p1.x > bbox.min.x && p2.x < bbox.min.x)
+        {
+        }
+    }
+    return clipped;
+}
+
+Point32::Point32(char *coords_pair)
+{
+    char *next;
+    x = round(strtod(coords_pair, &next)); // 1st coord
+    y = round(strtod(++next, NULL));       // 2nd coord
+}
+
+/**
+ * @brief Vector map viewport
+ *
+ */
+struct ViewPort
+{
+    void setCenter(Point32 pcenter);
+    Point32 center;
+    BBox bbox;
+};
 
 /**
  * @brief Map square area of aprox 4096 meters side. Correspond to one single map file.
- * 
+ *
  */
-struct MapBlock {
+struct MapBlock
+{
     Point32 offset;
     BBox bbox;
     bool inView = false;
@@ -54,18 +193,47 @@ struct MapBlock {
 
 /**
  * @brief MapBlocks stored in memory
- * 
+ *
  */
-struct MemBlocks {
-    std::map<String, u_int16_t> blocks_map;     // block offset -> block index
-    std::array<MapBlock*, MAPBLOCKS_MAX> blocks;
+struct MemBlocks
+{
+    std::map<String, u_int16_t> blocks_map; // block offset -> block index
+    std::array<MapBlock *, MAPBLOCKS_MAX> blocks;
 };
 
 /**
+ * @brief Set center coordinates of viewport
+ *
+ * @param pcenter
+ */
+void ViewPort::setCenter(Point32 pcenter)
+{
+    center = pcenter;
+    bbox.min.x = pcenter.x - MAP_WIDTH * pixel_size / 2;
+    bbox.min.y = pcenter.y - MAP_HEIGHT * pixel_size / 2;
+    bbox.max.x = pcenter.x + MAP_WIDTH * pixel_size / 2;
+    bbox.max.y = pcenter.y + MAP_HEIGHT * pixel_size / 2;
+}
+
+/**
+ * @brief Points to screen coordinates
+ *
+ * @param p
+ * @param screen_center
+ * @return Point16
+ */
+Point16 toScreenCoords(Point16 p, Point16 screen_center)
+{
+    return Point16(
+        ((p.x - screen_center.x) / pixel_size) + MAP_WIDTH / 2,
+        ((p.y - screen_center.y) / pixel_size) + MAP_HEIGHT / 2);
+}
+
+/**
  * @brief Parse vector file to coords
- * 
- * @param file 
- * @param points 
+ *
+ * @param file
+ * @param points
  */
 void parse_coords(ReadBufferingStream &file, std::vector<Point16> &points)
 {
@@ -90,9 +258,9 @@ void parse_coords(ReadBufferingStream &file, std::vector<Point16> &points)
 
 /**
  * @brief Read vector map file to memory block
- * 
- * @param file_name 
- * @return MapBlock* 
+ *
+ * @param file_name
+ * @return MapBlock*
  */
 MapBlock *read_map_block(String file_name)
 {
@@ -172,9 +340,9 @@ MapBlock *read_map_block(String file_name)
 
 /**
  * @brief Get bounding objects in memory block
- * 
- * @param memBlocks 
- * @param bbox 
+ *
+ * @param memBlocks
+ * @param bbox
  */
 void get_map_blocks(MemBlocks &memBlocks, BBox &bbox)
 {
@@ -226,149 +394,183 @@ void get_map_blocks(MemBlocks &memBlocks, BBox &bbox)
 
 /**
  * @brief Fill polygon routine
- * 
- * @param points 
- * @param color 
+ *
+ * @param points
+ * @param color
  */
-void fill_polygon( std::vector<Point16> points, int color, TFT_eSprite &tft) // scanline fill algorithm
+void fill_polygon(std::vector<Point16> points, int color, TFT_eSprite &tft) // scanline fill algorithm
 {
     int16_t maxy = INT16_MIN, miny = INT16_MAX;
 
-    for( Point16 p : points) { // TODO: precalculate at map file creation
-        maxy = max( maxy, p.y);
-        miny = min( miny, p.y);
+    for (Point16 p : points)
+    { // TODO: precalculate at map file creation
+        maxy = max(maxy, p.y);
+        miny = min(miny, p.y);
     }
-    if( maxy > MAP_HEIGHT) maxy = MAP_HEIGHT;
-    if( miny < 0) miny = 0;
-    assert( miny < maxy);
+    if (maxy > MAP_HEIGHT)
+        maxy = MAP_HEIGHT;
+    if (miny < 0)
+        miny = 0;
+    assert(miny < maxy);
 
     int16_t nodeX[points.size()], pixelY;
 
     //  Loop through the rows of the image.
-    for( pixelY=miny; pixelY < maxy; pixelY++) {
+    for (pixelY = miny; pixelY < maxy; pixelY++)
+    {
         //  Build a list of nodes.
-        int16_t nodes=0;
-        for( int i=0; i < (points.size() - 1); i++) {
-            if( (points[i].y < pixelY && points[i+1].y >= pixelY) ||
-                (points[i].y >= pixelY && points[i+1].y < pixelY)) {
-                    nodeX[nodes++] = 
-                        points[i].x + double(pixelY-points[i].y)/double(points[i+1].y-points[i].y) * 
-                        double(points[i+1].x-points[i].x);
-                }
+        int16_t nodes = 0;
+        for (int i = 0; i < (points.size() - 1); i++)
+        {
+            if ((points[i].y < pixelY && points[i + 1].y >= pixelY) ||
+                (points[i].y >= pixelY && points[i + 1].y < pixelY))
+            {
+                nodeX[nodes++] =
+                    points[i].x + double(pixelY - points[i].y) / double(points[i + 1].y - points[i].y) *
+                                      double(points[i + 1].x - points[i].x);
+            }
         }
-        assert( nodes < points.size());
+        assert(nodes < points.size());
 
         //  Sort the nodes, via a simple “Bubble” sort.
-        int16_t i=0, swap;
-        while( i < nodes-1) {   // TODO: rework
-            if( nodeX[i] > nodeX[i+1]) {
-                swap=nodeX[i]; nodeX[i]=nodeX[i+1]; nodeX[i+1]=swap; 
-                i=0;  
+        int16_t i = 0, swap;
+        while (i < nodes - 1)
+        { // TODO: rework
+            if (nodeX[i] > nodeX[i + 1])
+            {
+                swap = nodeX[i];
+                nodeX[i] = nodeX[i + 1];
+                nodeX[i + 1] = swap;
+                i = 0;
             }
-            else { i++; }
+            else
+            {
+                i++;
+            }
         }
 
         //  Fill the pixels between node pairs.
-        for (i=0; i <= nodes-2; i+=2) {
-            if( nodeX[i] >= MAP_WIDTH) break;
-            if( nodeX[i+1] <= 0 ) continue;
-            if (nodeX[i] < 0 ) nodeX[i] = 0;
-            if (nodeX[i+1] > MAP_WIDTH) nodeX[i+1]=MAP_WIDTH;
-            tft.drawLine( nodeX[i], MAP_HEIGHT - pixelY, nodeX[i+1], MAP_HEIGHT - pixelY, color);
+        for (i = 0; i <= nodes - 2; i += 2)
+        {
+            if (nodeX[i] >= MAP_WIDTH)
+                break;
+            if (nodeX[i + 1] <= 0)
+                continue;
+            if (nodeX[i] < 0)
+                nodeX[i] = 0;
+            if (nodeX[i + 1] > MAP_WIDTH)
+                nodeX[i + 1] = MAP_WIDTH;
+            tft.drawLine(nodeX[i], MAP_HEIGHT - pixelY, nodeX[i + 1], MAP_HEIGHT - pixelY, color);
         }
     }
 }
 
 /**
  * @brief Draw vectorized map
- * 
- * @param viewPort 
- * @param memblocks 
+ *
+ * @param viewPort
+ * @param memblocks
  * @param tft -> Map Sprite
  */
-void draw_vector_map(ViewPort& viewPort, MemBlocks& memblocks, TFT_eSprite &tft)
+void generate_vector_map(ViewPort &viewPort, MemBlocks &memblocks, TFT_eSprite &tft)
 {
     std::vector<Polygon> polygons_to_draw;
     std::vector<Polyline> lines_to_draw;
-    for( MapBlock* mblock: memblocks.blocks){
-        if( !mblock || !mblock->inView) continue;
-        Point16 screen_center_mc = viewPort.center - mblock->offset;  // screen center with features coordinates
-        BBox screen_bbox_mc = viewPort.bbox - mblock->offset;  // screen boundaries with features coordinates
-        
-        ////// Polygons 
-        for( Polygon polygon : mblock->polygons){
-            if( polygon.color == YELLOW) log_w("Polygon type unknown");
+    for (MapBlock *mblock : memblocks.blocks)
+    {
+        if (!mblock || !mblock->inView)
+            continue;
+        Point16 screen_center_mc = viewPort.center - mblock->offset; // screen center with features coordinates
+        BBox screen_bbox_mc = viewPort.bbox - mblock->offset;        // screen boundaries with features coordinates
+
+        ////// Polygons
+        for (Polygon polygon : mblock->polygons)
+        {
+            if (polygon.color == YELLOW)
+                log_w("Polygon type unknown");
             Polygon new_polygon;
             bool hit = false;
-            for( Point16 p : polygon.points){
-                if( screen_bbox_mc.contains_point( p)) hit = true;
-                new_polygon.points.push_back( toScreenCoords( p, screen_center_mc));
+            for (Point16 p : polygon.points)
+            {
+                if (screen_bbox_mc.contains_point(p))
+                    hit = true;
+                new_polygon.points.push_back(toScreenCoords(p, screen_center_mc));
             }
-            if( hit){
+            if (hit)
+            {
                 new_polygon.color = polygon.color;
-                polygons_to_draw.push_back( new_polygon);
+                polygons_to_draw.push_back(new_polygon);
             }
         }
-        
-        ////// Lines 
-        for( Polyline line : mblock->polylines){
+
+        ////// Lines
+        for (Polyline line : mblock->polylines)
+        {
             Polyline new_line;
             new_line.color = line.color;
             new_line.width = line.width;
             bool prev_in_screen = false;
-            for( int i=0; i < (line.points.size()); i++) {
-                bool curr_in_screen = screen_bbox_mc.contains_point( line.points[i]);
-                if( !prev_in_screen && !curr_in_screen){  // TODO: clip, the segment could still intersect the screen area!
+            for (int i = 0; i < (line.points.size()); i++)
+            {
+                bool curr_in_screen = screen_bbox_mc.contains_point(line.points[i]);
+                if (!prev_in_screen && !curr_in_screen)
+                { // TODO: clip, the segment could still intersect the screen area!
                     prev_in_screen = false;
                     continue;
-                    }
-                if( prev_in_screen && !curr_in_screen){  // split polyline: end and start new polyline. Driver does the clipping of the segment.
-                    new_line.points.push_back( toScreenCoords( line.points[i], screen_center_mc));  
-                    lines_to_draw.push_back( new_line);
+                }
+                if (prev_in_screen && !curr_in_screen)
+                { // split polyline: end and start new polyline. Driver does the clipping of the segment.
+                    new_line.points.push_back(toScreenCoords(line.points[i], screen_center_mc));
+                    lines_to_draw.push_back(new_line);
                     new_line.points.clear();
                     prev_in_screen = false;
                     continue;
                 }
-                if( !prev_in_screen && curr_in_screen && i > 0){  // reenter screen.  Driver does the clipping
-                    new_line.points.push_back( toScreenCoords( line.points[i-1], screen_center_mc));
+                if (!prev_in_screen && curr_in_screen && i > 0)
+                { // reenter screen.  Driver does the clipping
+                    new_line.points.push_back(toScreenCoords(line.points[i - 1], screen_center_mc));
                 }
-                new_line.points.push_back( toScreenCoords( line.points[i], screen_center_mc));
+                new_line.points.push_back(toScreenCoords(line.points[i], screen_center_mc));
                 prev_in_screen = curr_in_screen;
             }
-            assert( new_line.points.size() != 1);
-            if( new_line.points.size() >= 2){
-                lines_to_draw.push_back( new_line);
+            assert(new_line.points.size() != 1);
+            if (new_line.points.size() >= 2)
+            {
+                lines_to_draw.push_back(new_line);
             }
         }
-        tft.fillScreen( BACKGROUND_COLOR);
+        tft.fillScreen(BACKGROUND_COLOR);
     }
 
-    for( Polygon pol: polygons_to_draw){
-        fill_polygon( pol.points, pol.color, tft);
+    for (Polygon pol : polygons_to_draw)
+    {
+        fill_polygon(pol.points, pol.color, tft);
     }
-    for( Polyline line: lines_to_draw){
-        for( int i=0; i < (line.points.size() - 1); i++) {
-            if( line.points[i].x < 0 || line.points[i+1].x < 0 ||
-                line.points[i].x > MAP_WIDTH || line.points[i+1].x > MAP_WIDTH ||
+    for (Polyline line : lines_to_draw)
+    {
+        for (int i = 0; i < (line.points.size() - 1); i++)
+        {
+            if (line.points[i].x < 0 || line.points[i + 1].x < 0 ||
+                line.points[i].x > MAP_WIDTH || line.points[i + 1].x > MAP_WIDTH ||
                 line.points[i].y < 0 || line.points[i].y > 374 ||
-                line.points[i+1].y < 0 || line.points[i+1].y > 374 ){
-                    log_d("Error: point out of screen: %i, %i, %i, %i", line.points[i].x, line.points[i].y, line.points[i+1].x, line.points[i+1].y);
-                    // continue;
-                }
-            //tft.drawWideLine(             
-                tft.drawLine(
+                line.points[i + 1].y < 0 || line.points[i + 1].y > 374)
+            {
+                log_d("Error: point out of screen: %i, %i, %i, %i", line.points[i].x, line.points[i].y, line.points[i + 1].x, line.points[i + 1].y);
+                // continue;
+            }
+            // tft.drawWideLine(
+            tft.drawLine(
                 line.points[i].x, MAP_HEIGHT - line.points[i].y,
-                line.points[i+1].x, MAP_HEIGHT - line.points[i+1].y,
-                //line.width/pixel_size ?: 1, line.color, line.color);
-                 line.color);
-                
-        }      
+                line.points[i + 1].x, MAP_HEIGHT - line.points[i + 1].y,
+                // line.width/pixel_size ?: 1, line.color, line.color);
+                line.color);
+        }
     }
 
-    tft.fillTriangle( 
-        MAP_WIDTH/2 - 4, MAP_HEIGHT/2 + 5, 
-        MAP_WIDTH/2 + 4, MAP_HEIGHT/2 + 5, 
-        MAP_WIDTH/2,     MAP_HEIGHT/2 - 6, 
+    tft.fillTriangle(
+        MAP_WIDTH / 2 - 4, MAP_HEIGHT / 2 + 5,
+        MAP_WIDTH / 2 + 4, MAP_HEIGHT / 2 + 5,
+        MAP_WIDTH / 2, MAP_HEIGHT / 2 - 6,
         RED);
     log_v("Draw done!");
 }
