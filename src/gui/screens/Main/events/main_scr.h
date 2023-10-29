@@ -34,12 +34,6 @@ bool is_scrolled = true;
 bool is_ready = false;
 
 /**
- * @brief Old Map tile coordinates and zoom
- *
- */
-MapTile OldMapTile = {"", 0, 0, 0};
-
-/**
  * @brief Sprite for Navigation Arrow in map tile
  *
  */

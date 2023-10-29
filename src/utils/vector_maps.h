@@ -466,7 +466,7 @@ void fill_polygon(std::vector<Point16> points, int color, TFT_eSprite &tft) // s
 }
 
 /**
- * @brief Draw vectorized map
+ * @brief Generate vectorized map
  *
  * @param viewPort
  * @param memblocks

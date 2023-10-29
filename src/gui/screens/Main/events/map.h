@@ -6,12 +6,8 @@
  * @date 2023-06-14
  */
 
-/**
- * @brief Map tile coordinates and zoom
- *
- */
-MapTile CurrentMapTile;
-MapTile RoundMapTile;
+void generate_render_map();
+void generate_vector_map();
 
 /**
  * @brief Navitagion Arrow position on screen
@@ -126,100 +122,38 @@ static void create_map_scr_sprites()
 }
 
 /**
- * @brief Update map event
+ * @brief Draw map widgets
  *
- * @param event
  */
-static void update_map(lv_event_t *event)
+static void draw_map_widgets()
 {
-  CurrentMapTile = get_map_tile(getLon(), getLat(), zoom, 0, 0);
-
-  if (strcmp(CurrentMapTile.file, OldMapTile.file) != 0 || CurrentMapTile.zoom != OldMapTile.zoom ||
-      CurrentMapTile.tilex != OldMapTile.tilex || CurrentMapTile.tiley != OldMapTile.tiley)
-  {
-    is_map_draw = false;
-    map_found = false;
-    // map_spr.deleteSprite();
-    // map_spr.createSprite(768, 768);
-  }
-
-  if (!is_map_draw)
-  {
-    OldMapTile.zoom = CurrentMapTile.zoom;
-    OldMapTile.tilex = CurrentMapTile.tilex;
-    OldMapTile.tiley = CurrentMapTile.tiley;
-    OldMapTile.file = CurrentMapTile.file;
-
-    log_v("TILE: %s", CurrentMapTile.file);
-    log_v("ZOOM: %d", zoom);
-
-    // Center Tile
-    map_found = map_spr.drawPngFile(SD, CurrentMapTile.file, 256, 256);
-
-    uint8_t centerX = 0;
-    uint8_t centerY = 0;
-    int8_t startX = centerX - 1;
-    int8_t startY = centerY - 1;
-    bool tileFound = false;
-
-    if (map_found)
-    {
-      for (int y = startY; y <= startY + 2; y++)
-      {
-        for (int x = startX; x <= startX + 2; x++)
-        {
-          if (x == centerX && y == centerY)
-          {
-            // Skip Center Tile
-            continue;
-          }
-          RoundMapTile = get_map_tile(getLon(), getLat(), zoom, x, y);
-          tileFound = map_spr.drawPngFile(SD, RoundMapTile.file, (x - startX) * tileSize, (y - startY) * tileSize);
-          if (!tileFound)
-            map_spr.fillRect((x - startX) * tileSize, (y - startY) * tileSize, tileSize, tileSize, LVGL_BKG);
-        }
-      }
-    }
-
-    is_map_draw = true;
-  }
-
-  if (map_found)
-  {
-    NavArrow_position = coord_to_scr_pos(getLon(), getLat(), zoom);
-    map_spr.setPivot(tileSize + NavArrow_position.posx, tileSize + NavArrow_position.posy);
-    map_rot.pushSprite(0, 27);
+  map_rot.setTextColor(TFT_WHITE, TFT_WHITE);
 
 #ifdef ENABLE_COMPASS
-    heading = get_heading();
-    if (map_rotation)
-      map_heading = get_heading();
-    else
-      map_heading = GPS.course.deg();
-    map_spr.pushRotated(&map_rot, 360 - map_heading, TFT_TRANSPARENT);
-    if (show_map_compass)
-    {
-      map_rot.fillRectAlpha(TFT_WIDTH - 48, 0, 48, 48, 95, TFT_BLACK);
-      map_rot.pushImageRotateZoom(TFT_WIDTH - 24, 24, 24, 24, 360 - heading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
-    }
-#else
+  heading = get_heading();
+  if (map_rotation)
+    map_heading = get_heading();
+  else
     map_heading = GPS.course.deg();
-    map_spr.pushRotated(&map_rot, 360 - map_heading, TFT_TRANSPARENT);
-    // map_spr.pushRotated(&map_rot, 0, TFT_TRANSPARENT);
+  if (show_map_compass)
+  {
+    map_rot.fillRectAlpha(TFT_WIDTH - 48, 0, 48, 48, 95, TFT_BLACK);
+    map_rot.pushImageRotateZoom(TFT_WIDTH - 24, 24, 24, 24, 360 - heading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
+  }
 #endif
-    map_rot.setTextColor(TFT_WHITE, TFT_WHITE);
 
-    map_rot.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
-    map_rot.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
-    map_rot.drawNumber(zoom, 26, 8, &fonts::FreeSansBold9pt7b);
+  map_rot.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
+  map_rot.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
+  map_rot.drawNumber(zoom, 26, 8, &fonts::FreeSansBold9pt7b);
 
-    if (show_map_speed)
-    {
-      map_rot.fillRectAlpha(0, 342, 70, 32, 95, TFT_BLACK);
-      map_rot.pushImage(0, 346, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
-      map_rot.drawNumber((uint16_t)GPS.speed.kmph(), 26, 350, &fonts::FreeSansBold9pt7b);
-    }
+  if (show_map_speed)
+  {
+    map_rot.fillRectAlpha(0, 342, 70, 32, 95, TFT_BLACK);
+    map_rot.pushImage(0, 346, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
+    map_rot.drawNumber((uint16_t)GPS.speed.kmph(), 26, 350, &fonts::FreeSansBold9pt7b);
+  }
 
+  if (!vector_map)
     if (show_map_scale)
     {
       map_rot.fillRectAlpha(250, 342, 70, TFT_WIDTH - 245, 95, TFT_BLACK);
@@ -229,7 +163,25 @@ static void update_map(lv_event_t *event)
       map_rot.drawFastVLine(315, 355, 10);
       map_rot.drawCenterString(map_scale[zoom], 285, 350);
     }
+}
 
-    sprArrow.pushRotated(&map_rot, 0, TFT_BLACK);
+/**
+ * @brief Update map event
+ *
+ * @param event
+ */
+static void update_map(lv_event_t *event)
+{
+  if (vector_map)
+  {
+    // Point32 map_center(225680.32, 5084950.61);
+    // viewPort.setCenter(map_center);
+    // get_map_blocks(memBlocks, viewPort.bbox);
+    // map_rot.deleteSprite();
+    // map_rot.createSprite(320, 374);
+    // generate_vector_map(viewPort, memBlocks, map_rot);
+    // map_rot.pushSprite(0, 27);
   }
+  else
+    generate_render_map();
 }

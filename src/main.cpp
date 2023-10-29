@@ -33,8 +33,6 @@ unsigned long millis_actual = 0;
 #endif
 #include "hardware/battery.h"
 #include "hardware/power.h"
-#include "utils/render_maps.h"
-#include "utils/vector_maps.h"
 #include "utils/gps_math.h"
 #include "utils/sat_info.h"
 #include "utils/lv_spiffs_fs.h"
@@ -42,16 +40,13 @@ unsigned long millis_actual = 0;
 #include "utils/time_zone.h"
 
 #include "gui/lvgl.h"
+#include "utils/render_maps.h"
+#include "utils/vector_maps.h"
 
 #include "tasks.h"
 
 MemBlocks memBlocks;
 ViewPort viewPort;
-// #define DEG2RAD(a) ((a) / (180 / M_PI))
-// #define RAD2DEG(a) ((a) * (180 / M_PI))
-// #define EARTH_RADIUS 6378137
-// double lat2y(double lat) { return log(tan(DEG2RAD(lat) / 2 + M_PI / 4)) * EARTH_RADIUS; }
-// double lon2x(double lon) { return DEG2RAD(lon) * EARTH_RADIUS; }
 
 /**
  * @brief Setup
@@ -90,22 +85,11 @@ void setup()
   splash_scr();
   // init_tasks();
 
-  Point32 map_center(225680.32, 5084950.61);
-  viewPort.setCenter(map_center);
-  get_map_blocks(memBlocks, viewPort.bbox);
-
-  map_rot.deleteSprite();
-  map_rot.createSprite(320, 374);
-
-  generate_vector_map(viewPort, memBlocks, map_rot);
-
-  map_rot.pushSprite(0, 27);
-
-  // #ifdef DEFAULT_LAT
-  //   load_main_screen();
-  // #else
-  //   lv_scr_load(searchSat);
-  // #endif
+  #ifdef DEFAULT_LAT
+    load_main_screen();
+  #else
+    lv_scr_load(searchSat);
+  #endif
 }
 
 /**
@@ -126,5 +110,5 @@ void loop()
 #ifdef MAKERF_ESP32S3
   lv_tick_inc(5);
 #endif
-  // lv_timer_handler();
+  lv_timer_handler();
 }

@@ -19,8 +19,21 @@ struct MapTile
 };
 
 /**
+ * @brief Old Map tile coordinates and zoom
+ *
+ */
+MapTile OldMapTile = {"", 0, 0, 0};
+
+/**
+ * @brief Map tile coordinates and zoom
+ *
+ */
+MapTile CurrentMapTile;
+MapTile RoundMapTile;
+
+/**
  * @brief Tile size for position calculation
- * 
+ *
  */
 uint16_t tileSize = 256;
 
@@ -73,6 +86,22 @@ uint16_t lat2posy(float f_lat, uint8_t zoom)
 }
 
 /**
+ * @brief Convert GPS Coordinates to screen position (with offsets)
+ *
+ * @param lon -> Longitude
+ * @param lat -> Latitude
+ * @param zoom_level -> Zoom level
+ * @return ScreenCoord -> Screen position
+ */
+ScreenCoord coord_to_scr_pos(double lon, double lat, uint8_t zoom_level)
+{
+  ScreenCoord data;
+  data.posx = lon2posx(lon, zoom_level);
+  data.posy = lat2posy(lat, zoom_level);
+  return data;
+}
+
+/**
  * @brief Get the map tile structure from GPS Coordinates
  *
  * @param lon -> Longitude
@@ -95,4 +124,84 @@ MapTile get_map_tile(double lon, double lat, uint8_t zoom_level, int16_t off_x, 
   data.tiley = y;
   data.zoom = zoom_level;
   return data;
+}
+
+/**
+ * @brief Generate render map
+ *
+ */
+void generate_render_map()
+{
+  CurrentMapTile = get_map_tile(getLon(), getLat(), zoom, 0, 0);
+
+  if (strcmp(CurrentMapTile.file, OldMapTile.file) != 0 || CurrentMapTile.zoom != OldMapTile.zoom ||
+      CurrentMapTile.tilex != OldMapTile.tilex || CurrentMapTile.tiley != OldMapTile.tiley)
+  {
+    is_map_draw = false;
+    map_found = false;
+  }
+
+  if (!is_map_draw)
+  {
+    OldMapTile.zoom = CurrentMapTile.zoom;
+    OldMapTile.tilex = CurrentMapTile.tilex;
+    OldMapTile.tiley = CurrentMapTile.tiley;
+    OldMapTile.file = CurrentMapTile.file;
+
+    log_v("TILE: %s", CurrentMapTile.file);
+    log_v("ZOOM: %d", zoom);
+
+    // Center Tile
+    map_found = map_spr.drawPngFile(SD, CurrentMapTile.file, 256, 256);
+
+    uint8_t centerX = 0;
+    uint8_t centerY = 0;
+    int8_t startX = centerX - 1;
+    int8_t startY = centerY - 1;
+    bool tileFound = false;
+
+    if (map_found)
+    {
+      for (int y = startY; y <= startY + 2; y++)
+      {
+        for (int x = startX; x <= startX + 2; x++)
+        {
+          if (x == centerX && y == centerY)
+          {
+            // Skip Center Tile
+            continue;
+          }
+          RoundMapTile = get_map_tile(getLon(), getLat(), zoom, x, y);
+          tileFound = map_spr.drawPngFile(SD, RoundMapTile.file, (x - startX) * tileSize, (y - startY) * tileSize);
+          if (!tileFound)
+            map_spr.fillRect((x - startX) * tileSize, (y - startY) * tileSize, tileSize, tileSize, LVGL_BKG);
+        }
+      }
+    }
+
+    is_map_draw = true;
+  }
+
+  if (map_found)
+  {
+    NavArrow_position = coord_to_scr_pos(getLon(), getLat(), zoom);
+    map_spr.setPivot(tileSize + NavArrow_position.posx, tileSize + NavArrow_position.posy);
+    map_rot.pushSprite(0, 27);
+
+#ifdef ENABLE_COMPASS
+    heading = get_heading();
+    if (map_rotation)
+      map_heading = get_heading();
+    else
+      map_heading = GPS.course.deg();
+    map_spr.pushRotated(&map_rot, 360 - map_heading, TFT_TRANSPARENT);
+#else
+    map_heading = GPS.course.deg();
+    map_spr.pushRotated(&map_rot, 360 - map_heading, TFT_TRANSPARENT);
+    // map_spr.pushRotated(&map_rot, 0, TFT_TRANSPARENT);
+#endif
+    draw_map_widgets();
+
+    sprArrow.pushRotated(&map_rot, 0, TFT_BLACK);
+  }
 }
