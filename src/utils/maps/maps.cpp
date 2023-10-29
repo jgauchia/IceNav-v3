@@ -35,7 +35,6 @@ MapBlock *read_map_block(String file_name)
     File file = SD.open(file_name + ".fmp");
     if (!file)
     {
-        header_msg("Map file not found in folder: " + base_folder);
         while (true)
             ;
     }
@@ -48,7 +47,6 @@ MapBlock *read_map_block(String file_name)
     u_int32_t count = bufferedFile.readStringUntil('\n').toInt();
     if (count <= 0)
     {
-        header_msg("Error: wrong number of poligons: " + count);
         while (true)
             ;
     }
@@ -68,7 +66,6 @@ MapBlock *read_map_block(String file_name)
     }
     if (count != 0)
     {
-        header_msg("ERROR: Polygons count don't match");
         while (true)
             ;
     }
@@ -81,7 +78,6 @@ MapBlock *read_map_block(String file_name)
     count = bufferedFile.readStringUntil('\n').toInt();
     if (count <= 0)
     {
-        header_msg("Error: wrong number of lines: " + count);
         while (true)
             ;
     }
@@ -101,7 +97,6 @@ MapBlock *read_map_block(String file_name)
     }
     if (count != 0)
     {
-        header_msg("ERROR: Lines count don't match");
         while (true)
             ;
     }

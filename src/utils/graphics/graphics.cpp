@@ -56,36 +56,3 @@ Point32::Point32( char *coords_pair)
     y = round( strtod( ++next, NULL));  // 2nd coord
 }
 
-// void header_msg( String msg)
-// {
-//     tft.fillRect(0, 0, 240, 25, TFT_YELLOW);
-//     tft.setCursor(5,5,2);
-//     tft.print( msg);
-// }
-
-
-
-// Point16 clip_segment( Point16 p_in, Point16 p_out, BBox bbox)
-// {
-//     Point16 res;
-//     if( p_out.x < bbox.min.x){
-//         res.x = bbox.min.x;
-//         // res.y =  
-//     } else if( p_out.x > bbox.max.x){
-//         res.x = bbox.max.x;
-//         // res.y =  
-//     } else{
-//         res.x = p_out.x;
-//     }
-
-//     if( p_out.y < bbox.min.y){
-//         res.y = bbox.min.y;
-//         // res.x =
-//     } else if( p_out.y > bbox.max.y){
-//         res.y = bbox.max.y;
-//         // res.x =  
-//     } else {
-//         res.y = p_out.y;
-//     }
-//     // WIP
-// }

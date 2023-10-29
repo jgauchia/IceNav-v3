@@ -42,6 +42,7 @@ unsigned long millis_actual = 0;
 #include "utils/lv_spiffs_fs.h"
 #include "utils/lv_sd_fs.h"
 #include "utils/time_zone.h"
+#include "utils/vector_maps.h"
 #include "gui/lvgl.h"
 
 #include "tasks.h"
@@ -91,8 +92,6 @@ void setup()
   // splash_scr();
 
   // init_tasks();
-
-  header_msg("Reading map...");
 
   // Point32 map_center(lon2x(2.01439), lat2y(41.57353));
    Point32 map_center( 225680.32, 5084950.61);

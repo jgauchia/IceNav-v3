@@ -22,20 +22,6 @@ const uint16_t BROWN        =   0xAB00;
 const uint16_t YELLOWCLEAR  =   0xFFF5;
 const uint16_t BACKGROUND_COLOR = 0xEF5D;
 
-
-#ifdef CUSTOMBOARD
-#include <LGFX_CUSTOMBOARD.hpp>
-#endif
-
-#ifdef MAKERF_ESP32S3
-#include <LGFX_MakerFabs_Parallel_S3.hpp>
-#endif
-
-#include <LGFX_TFT_eSPI.hpp>
-
-static TFT_eSPI tft;
-
-
 /// @brief Point in 32 bits projected coordinates (x,y) 
 struct Point32 {
     Point32(){};
@@ -107,7 +93,6 @@ void draw( ViewPort& viewPort, MemBlocks& memblocks);
 Point16 toScreenCoords( Point16 p, Point16 screen_center);
 std::vector<Point16> clip_polygon( BBox bbox, std::vector<Point16>  points);
 void stats( ViewPort& viewPort, MapBlock* mblock);
-void header_msg( String msg);
 
 /// @brief Clips a segment against a bbox and returns the intersection point. 
 /// You should know in advance which point in inside and which outside.

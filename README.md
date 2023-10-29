@@ -121,3 +121,5 @@ If the GPS module supports multiple GNSS, uncomment the following flag in the pl
 * Improved documentation (thanks to [@hpsaturn](https://github.com/hpsaturn))
 * Improved auto mainScreen selection from env variable preset (thanks to [@hpsaturn](https://github.com/hpsaturn))
 * Improved getLat getLon from environment variables (thanks to [@hpsaturn](https://github.com/hpsaturn))
+* Vectorial Maps routines [ESP32_GPS](https://github.com/aresta/ESP32_GPS) (thanks to [@aresta](https://github.com/aresta))
+* OSM to binary vectorial maps [OSM_Extract](https://github.com/aresta/OSM_Extract) (thanks to [@aresta](https://github.com/aresta))
