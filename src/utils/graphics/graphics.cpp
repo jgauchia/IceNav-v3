@@ -4,22 +4,27 @@
 #include "utils/graphics/graphics.h"
 //#include "../conf.h"
 
-
+/**
+ * @brief Vectorized map size
+ * 
+ */
+#define MAP_HEIGHT  374
+#define MAP_WIDTH   320
 int pixel_size = 2;
- 
+
 void ViewPort::setCenter(Point32 pcenter) {
     center = pcenter;
-    bbox.min.x = pcenter.x - TFT_WIDTH  * pixel_size / 2;
-    bbox.min.y = pcenter.y - TFT_HEIGHT * pixel_size / 2;
-    bbox.max.x = pcenter.x + TFT_WIDTH  * pixel_size / 2;
-    bbox.max.y = pcenter.y + TFT_HEIGHT * pixel_size / 2;
+    bbox.min.x = pcenter.x - MAP_WIDTH  * pixel_size / 2;
+    bbox.min.y = pcenter.y - MAP_HEIGHT * pixel_size / 2;
+    bbox.max.x = pcenter.x + MAP_WIDTH  * pixel_size / 2;
+    bbox.max.y = pcenter.y + MAP_HEIGHT * pixel_size / 2;
 }
 
 Point16 toScreenCoords( Point16 p, Point16 screen_center)
 {
     return Point16(
-        ((p.x - screen_center.x) / pixel_size) + TFT_WIDTH / 2,
-        ((p.y - screen_center.y) / pixel_size) + TFT_HEIGHT/ 2
+        ((p.x - screen_center.x) / pixel_size) + MAP_WIDTH / 2,
+        ((p.y - screen_center.y) / pixel_size) + MAP_HEIGHT/ 2
     );
 }
 

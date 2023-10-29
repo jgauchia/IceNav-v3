@@ -1,5 +1,5 @@
 /**
- * @file gps_maps.h
+ * @file render_maps.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  GPS Maps functions
  * @version 0.1.6

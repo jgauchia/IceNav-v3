@@ -23,9 +23,6 @@ unsigned long millis_actual = 0;
 #include "utils/preferences.h"
 #include "hardware/serial.h"
 #include "hardware/sdcard.h"
-
-#include "utils/maps/maps.h"
-#include "utils/graphics/graphics.h"
 #include "hardware/tft.h"
 
 #ifdef ENABLE_COMPASS
@@ -36,13 +33,16 @@ unsigned long millis_actual = 0;
 #endif
 #include "hardware/battery.h"
 #include "hardware/power.h"
-#include "utils/gps_maps.h"
+#include "utils/render_maps.h"
 #include "utils/gps_math.h"
 #include "utils/sat_info.h"
 #include "utils/lv_spiffs_fs.h"
 #include "utils/lv_sd_fs.h"
 #include "utils/time_zone.h"
+
+#include "utils/graphics/graphics.h"
 #include "utils/vector_maps.h"
+
 #include "gui/lvgl.h"
 
 #include "tasks.h"
@@ -89,18 +89,19 @@ void setup()
   map_spr.deleteSprite();
   map_spr.createSprite(768, 768);
 
-  // splash_scr();
-
+  splash_scr();
   // init_tasks();
 
-  // Point32 map_center(lon2x(2.01439), lat2y(41.57353));
-   Point32 map_center( 225680.32, 5084950.61);
-  // Point32 map_center( 224672.31, 5107378.91); // La Mola
-  //Point32 map_center(235664.91, 5074788.07); // Tibidabo
-  //Point32 map_center( 244808.69, 5070020.31); // bcn
+  Point32 map_center(225680.32, 5084950.61);
   viewPort.setCenter(map_center);
   get_map_blocks(memBlocks, viewPort.bbox);
-  draw(viewPort, memBlocks);
+
+  map_rot.deleteSprite();
+  map_rot.createSprite(320, 374);
+
+  draw_vector_map(viewPort, memBlocks, map_rot);
+
+  map_rot.pushSprite(0, 27);
 
   // #ifdef DEFAULT_LAT
   //   load_main_screen();
@@ -127,5 +128,5 @@ void loop()
 #ifdef MAKERF_ESP32S3
   lv_tick_inc(5);
 #endif
-  //lv_timer_handler();
+  // lv_timer_handler();
 }
