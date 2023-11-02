@@ -39,10 +39,7 @@ static void get_zoom_value(lv_event_t *event)
       if (!vector_map)
       {
         if (zoom >= MIN_ZOOM && zoom < MAX_ZOOM)
-        {
           zoom++;
-          // lv_event_send(map_tile, LV_EVENT_REFRESH, NULL);
-        }
       }
       else
       {
@@ -65,9 +62,7 @@ static void get_zoom_value(lv_event_t *event)
       if (!vector_map)
       {
         if (zoom <= MAX_ZOOM && zoom > MIN_ZOOM)
-        {
           zoom--;
-        }
       }
       else
       {
@@ -187,18 +182,18 @@ static void update_map(lv_event_t *event)
       prev_lat = pos.lat;
       prev_lng = pos.lng;
       moved = true;
-      refresh_map = true;
+      refresh_map = false;
       map_rot.deleteSprite();
       map_rot.createSprite(MAP_WIDTH, MAP_HEIGHT);
     }
 
-    if (moved && refresh_map)
+    if (moved)
     {
       viewPort.setCenter(p);
       get_map_blocks(memBlocks, viewPort.bbox);
       generate_vector_map(viewPort, memBlocks, map_rot);
-      draw_map_widgets();
-      map_rot.pushSprite(0, 27);
+      // draw_map_widgets();
+      //map_rot.pushSprite(0, 27);
       refresh_map = true;
       moved = false;
     }
@@ -208,6 +203,7 @@ static void update_map(lv_event_t *event)
       draw_map_widgets();
       map_rot.pushSprite(0, 27);
     }
+    tft.endWrite();
   }
   else
     generate_render_map();

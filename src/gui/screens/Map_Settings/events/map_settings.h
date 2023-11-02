@@ -29,6 +29,18 @@ static void configure_map_type(lv_event_t *event)
     map_rot.deleteSprite();
     if (!vector_map)
         map_spr.createSprite(768, 768);
+
+    if (vector_map)
+    {
+        MIN_ZOOM = 1;
+        MAX_ZOOM = 4;
+    }
+    else
+    {
+        MIN_ZOOM = 6;
+        MAX_ZOOM = 17;
+    }
+    lv_spinbox_set_range(zoom_level, MIN_ZOOM, MAX_ZOOM);
 }
 
 /**
