@@ -36,18 +36,55 @@ static void get_zoom_value(lv_event_t *event)
     case LV_DIR_RIGHT:
       break;
     case LV_DIR_TOP:
-      if (zoom >= MIN_ZOOM && zoom < MAX_ZOOM)
+      if (!vector_map)
       {
-        zoom++;
-        lv_event_send(map_tile, LV_EVENT_REFRESH, NULL);
+        if (zoom >= MIN_ZOOM && zoom < MAX_ZOOM)
+        {
+          zoom++;
+          // lv_event_send(map_tile, LV_EVENT_REFRESH, NULL);
+        }
       }
-      break;
-    case LV_DIR_BOTTOM:
-      if (zoom <= MAX_ZOOM && zoom > MIN_ZOOM)
+      else
       {
         zoom--;
-        lv_event_send(map_tile, LV_EVENT_REFRESH, NULL);
+        moved = true;
+        if (zoom < 1)
+        {
+          zoom = 1;
+          moved = false;
+        }
+        if (zoom > 4)
+        {
+          zoom = 4;
+          moved = false;
+        }
       }
+      lv_event_send(map_tile, LV_EVENT_REFRESH, NULL);
+      break;
+    case LV_DIR_BOTTOM:
+      if (!vector_map)
+      {
+        if (zoom <= MAX_ZOOM && zoom > MIN_ZOOM)
+        {
+          zoom--;
+        }
+      }
+      else
+      {
+        zoom++;
+        moved = true;
+        if (zoom < 1)
+        {
+          zoom = 1;
+          moved = false;
+        }
+        if (zoom > 4)
+        {
+          zoom = 4;
+          moved = false;
+        }
+      }
+      lv_event_send(map_tile, LV_EVENT_REFRESH, NULL);
       break;
     }
   }
@@ -104,12 +141,9 @@ void draw_map_widgets()
   }
 #endif
 
-  if (!vector_map)
-  {
-    map_rot.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
-    map_rot.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
-    map_rot.drawNumber(zoom, 26, 8, &fonts::FreeSansBold9pt7b);
-  }
+  map_rot.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
+  map_rot.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
+  map_rot.drawNumber(zoom, 26, 8, &fonts::FreeSansBold9pt7b);
 
   if (show_map_speed)
   {
@@ -139,58 +173,37 @@ static void update_map(lv_event_t *event)
 {
   if (vector_map)
   {
-    // Point32 map_center(225680.32, 5084950.61);
-    // if (!moved)
-    // {
-    //   viewPort.setCenter(map_center);
-    //   get_map_blocks(memBlocks, viewPort.bbox);
-
-    //   map_rot.deleteSprite();
-    //   map_rot.createSprite(320, 374);
-
-    //   generate_vector_map(viewPort, memBlocks, map_rot);
-    //   draw_map_widgets();
-
-    //   map_rot.pushSprite(0, 27);
-    //   moved = true;
-    // }
-    // moved = false;
+    tft.startWrite();
 
     Point32 p = viewPort.center;
-    bool moved = false;
-    {
-      pos.lat = GPS.location.lat();
-      pos.lng = GPS.location.lng();
+    pos.lat = getLat();
+    pos.lng = getLon();
 
-      if (abs(pos.lat - prev_lat) > 0.00005 &&
-          abs(pos.lng - prev_lng) > 0.00005)
-      {
-        p.x = lon2x(pos.lng);
-        p.y = lat2y(pos.lat);
-        // p.x = 224672.31;
-        // p.y = 5107378.91;
-        // p.x = 225680.32;
-        // p.y = 5084950.61;
-        prev_lat = pos.lat;
-        prev_lng = pos.lng;
-        moved = true;
-        map_found = true;
-        map_rot.deleteSprite();
-        map_rot.createSprite(320, 374);
-      }
+    if (abs(pos.lat - prev_lat) > 0.00005 &&
+        abs(pos.lng - prev_lng) > 0.00005)
+    {
+      p.x = lon2x(pos.lng);
+      p.y = lat2y(pos.lat);
+      prev_lat = pos.lat;
+      prev_lng = pos.lng;
+      moved = true;
+      refresh_map = true;
+      map_rot.deleteSprite();
+      map_rot.createSprite(MAP_WIDTH, MAP_HEIGHT);
     }
 
-    if (moved && map_found)
+    if (moved && refresh_map)
     {
       viewPort.setCenter(p);
       get_map_blocks(memBlocks, viewPort.bbox);
       generate_vector_map(viewPort, memBlocks, map_rot);
       draw_map_widgets();
       map_rot.pushSprite(0, 27);
-      map_found = true;
+      refresh_map = true;
+      moved = false;
     }
 
-    if (map_found)
+    if (refresh_map)
     {
       draw_map_widgets();
       map_rot.pushSprite(0, 27);

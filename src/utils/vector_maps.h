@@ -28,7 +28,8 @@ const String base_folder = "/mymap/"; // TODO: folder selection
  */
 #define MAP_HEIGHT 374
 #define MAP_WIDTH 320
-int pixel_size = 2;
+
+bool moved = false;
 
 /**
  * @brief Vector map object colours
@@ -60,11 +61,11 @@ const uint16_t BACKGROUND_COLOR = 0xEF5D;
 const int32_t mapblock_mask = pow(2, MAPBLOCK_SIZE_BITS) - 1;   // ...00000000111111111111
 const int32_t mapfolder_mask = pow(2, MAPFOLDER_SIZE_BITS) - 1; // ...00001111
 
-#define DEG2RAD(a)   ((a) / (180 / M_PI))
-#define RAD2DEG(a)   ((a) * (180 / M_PI))
+#define DEG2RAD(a) ((a) / (180 / M_PI))
+#define RAD2DEG(a) ((a) * (180 / M_PI))
 #define EARTH_RADIUS 6378137
-double lat2y(double lat) { return log(tan( DEG2RAD(lat) / 2 + M_PI/4 )) * EARTH_RADIUS; }
-double lon2x(double lon) { return          DEG2RAD(lon)                 * EARTH_RADIUS; }
+double lat2y(double lat) { return log(tan(DEG2RAD(lat) / 2 + M_PI / 4)) * EARTH_RADIUS; }
+double lon2x(double lon) { return DEG2RAD(lon) * EARTH_RADIUS; }
 
 /**
  * @brief Point in 32 bits projected coordinates (x,y)
@@ -215,10 +216,10 @@ struct MemBlocks
 void ViewPort::setCenter(Point32 pcenter)
 {
     center = pcenter;
-    bbox.min.x = pcenter.x - MAP_WIDTH * pixel_size / 2;
-    bbox.min.y = pcenter.y - MAP_HEIGHT * pixel_size / 2;
-    bbox.max.x = pcenter.x + MAP_WIDTH * pixel_size / 2;
-    bbox.max.y = pcenter.y + MAP_HEIGHT * pixel_size / 2;
+    bbox.min.x = pcenter.x - MAP_WIDTH * zoom / 2;
+    bbox.min.y = pcenter.y - MAP_HEIGHT * zoom / 2;
+    bbox.max.x = pcenter.x + MAP_WIDTH * zoom / 2;
+    bbox.max.y = pcenter.y + MAP_HEIGHT * zoom / 2;
 }
 
 /**
@@ -231,8 +232,8 @@ void ViewPort::setCenter(Point32 pcenter)
 Point16 toScreenCoords(Point16 p, Point16 screen_center)
 {
     return Point16(
-        ((p.x - screen_center.x) / pixel_size) + MAP_WIDTH / 2,
-        ((p.y - screen_center.y) / pixel_size) + MAP_HEIGHT / 2);
+        ((p.x - screen_center.x) / zoom) + MAP_WIDTH / 2,
+        ((p.y - screen_center.y) / zoom) + MAP_HEIGHT / 2);
 }
 
 /**
@@ -293,7 +294,7 @@ MapBlock *read_map_block(String file_name)
         while (true)
             ;
     }
-    ReadBufferingStream bufferedFile{file, 1000};
+    ReadBufferingStream bufferedFile{file, 1024};
 
     // read polygons
     String feature_type = bufferedFile.readStringUntil(':');
@@ -386,8 +387,8 @@ void get_map_blocks(MemBlocks &memBlocks, BBox &bbox)
         int32_t folder_name_x = min_x >> (MAPFOLDER_SIZE_BITS + MAPBLOCK_SIZE_BITS);
         int32_t folder_name_y = min_y >> (MAPFOLDER_SIZE_BITS + MAPBLOCK_SIZE_BITS);
         String file_name = base_folder + folder_name_x + "_" + folder_name_y + "/" + block_x + "_" + block_y; //  /maps/123_456/777_888
-    
-        log_v("%d %d",block_x,block_y);
+
+        log_v("%d %d", block_x, block_y);
 
         if (memBlocks.blocks_map.count(file_name))
         { // if contains
@@ -501,6 +502,8 @@ void fill_polygon(std::vector<Point16> points, int color, TFT_eSprite &tft) // s
  */
 void generate_vector_map(ViewPort &viewPort, MemBlocks &memblocks, TFT_eSprite &tft)
 {
+    tft.fillScreen(BACKGROUND_COLOR);
+
     std::vector<Polygon> polygons_to_draw;
     std::vector<Polyline> lines_to_draw;
     for (MapBlock *mblock : memblocks.blocks)
@@ -566,7 +569,7 @@ void generate_vector_map(ViewPort &viewPort, MemBlocks &memblocks, TFT_eSprite &
                 lines_to_draw.push_back(new_line);
             }
         }
-        tft.fillScreen(BACKGROUND_COLOR);
+        // tft.fillScreen(BACKGROUND_COLOR);
     }
 
     for (Polygon pol : polygons_to_draw)
@@ -579,17 +582,17 @@ void generate_vector_map(ViewPort &viewPort, MemBlocks &memblocks, TFT_eSprite &
         {
             if (line.points[i].x < 0 || line.points[i + 1].x < 0 ||
                 line.points[i].x > MAP_WIDTH || line.points[i + 1].x > MAP_WIDTH ||
-                line.points[i].y < 0 || line.points[i].y > 374 ||
-                line.points[i + 1].y < 0 || line.points[i + 1].y > 374)
+                line.points[i].y < 0 || line.points[i].y > MAP_HEIGHT ||
+                line.points[i + 1].y < 0 || line.points[i + 1].y > MAP_HEIGHT)
             {
                 log_d("Error: point out of screen: %i, %i, %i, %i", line.points[i].x, line.points[i].y, line.points[i + 1].x, line.points[i + 1].y);
-                // continue;
             }
+
             // tft.drawWideLine(
             tft.drawLine(
                 line.points[i].x, MAP_HEIGHT - line.points[i].y,
                 line.points[i + 1].x, MAP_HEIGHT - line.points[i + 1].y,
-                // line.width/pixel_size ?: 1, line.color, line.color);
+                // line.width/zoom ?: 1, line.color, line.color);
                 line.color);
         }
     }

@@ -25,7 +25,10 @@ static void configure_map_type(lv_event_t *event)
 {
     vector_map = lv_obj_has_state(map_type, LV_STATE_CHECKED);
     save_map_type(vector_map);
-    log_v("%d",vector_map);
+    map_spr.deleteSprite();
+    map_rot.deleteSprite();
+    if (!vector_map)
+        map_spr.createSprite(768, 768);
 }
 
 /**
@@ -96,8 +99,8 @@ static void show_speed(lv_event_t *event)
 
 /**
  * @brief Show Map Scale option event
- * 
- * @param event 
+ *
+ * @param event
  */
 static void show_scale(lv_event_t *event)
 {

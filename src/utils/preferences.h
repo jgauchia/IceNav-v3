@@ -14,9 +14,9 @@ Preferences preferences;
  * @brief Zoom Levels and Default zoom
  *
  */
-#define MIN_ZOOM 6
-#define MAX_ZOOM 17
-#define DEF_ZOOM 17
+uint8_t MIN_ZOOM = 0;
+uint8_t MAX_ZOOM = 0;
+uint8_t DEF_ZOOM = 2;
 uint8_t zoom = 0;
 
 /**
@@ -67,6 +67,16 @@ static void load_preferences()
     speed_pos_x = preferences.getInt("Speed_X", 15);
     speed_pos_y = preferences.getInt("Speed_Y", 100);
     vector_map = preferences.getBool("Map_vector", true);
+    if (vector_map)
+    {
+        MIN_ZOOM = 1;
+        MAX_ZOOM = 4;
+    }
+    else
+    {
+        MIN_ZOOM = 6;
+        MAX_ZOOM = 17;
+    }
 
     // // Default Widgets positions
     // compass_pos_x = (TFT_WIDTH / 2) - 100;
@@ -242,8 +252,8 @@ static void save_widget_pos(char *widget, int pos_x, int pos_y)
 
 /**
  * @brief Save Map Type
- * 
- * @param vector 
+ *
+ * @param vector
  */
 static void save_map_type(bool vector)
 {

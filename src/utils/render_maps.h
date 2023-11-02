@@ -47,7 +47,7 @@ bool is_map_draw = false;
  * @brief Flag to indicate when tile map is found on SD
  *
  */
-bool map_found = false;
+bool refresh_map = false;
 
 /**
  * @brief Sprite for Navigation Arrow in map tile
@@ -171,7 +171,7 @@ void generate_render_map()
       CurrentMapTile.tilex != OldMapTile.tilex || CurrentMapTile.tiley != OldMapTile.tiley)
   {
     is_map_draw = false;
-    map_found = false;
+    refresh_map = false;
   }
 
   if (!is_map_draw)
@@ -185,7 +185,7 @@ void generate_render_map()
     log_v("ZOOM: %d", zoom);
 
     // Center Tile
-    map_found = map_spr.drawPngFile(SD, CurrentMapTile.file, 256, 256);
+    refresh_map = map_spr.drawPngFile(SD, CurrentMapTile.file, 256, 256);
 
     uint8_t centerX = 0;
     uint8_t centerY = 0;
@@ -193,7 +193,7 @@ void generate_render_map()
     int8_t startY = centerY - 1;
     bool tileFound = false;
 
-    if (map_found)
+    if (refresh_map)
     {
       for (int y = startY; y <= startY + 2; y++)
       {
@@ -215,7 +215,7 @@ void generate_render_map()
     is_map_draw = true;
   }
 
-  if (map_found)
+  if (refresh_map)
   {
     NavArrow_position = coord_to_scr_pos(getLon(), getLat(), zoom);
     map_spr.setPivot(tileSize + NavArrow_position.posx, tileSize + NavArrow_position.posy);
@@ -234,7 +234,6 @@ void generate_render_map()
     // map_spr.pushRotated(&map_rot, 0, TFT_TRANSPARENT);
 #endif
     draw_map_widgets();
-
     sprArrow.pushRotated(&map_rot, 0, TFT_BLACK);
   }
 }

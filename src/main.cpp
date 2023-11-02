@@ -42,7 +42,6 @@ unsigned long millis_actual = 0;
 #include "utils/vector_maps.h"
 #include "gui/lvgl.h"
 
-
 #include "tasks.h"
 
 /**
@@ -76,17 +75,20 @@ void setup()
   init_gps();
   init_ADC();
 
-  map_spr.deleteSprite();
-  map_spr.createSprite(768, 768);
+  if (!vector_map)
+  {
+    map_spr.deleteSprite();
+    map_spr.createSprite(768, 768);
+  }
 
   splash_scr();
   // init_tasks();
 
-  #ifdef DEFAULT_LAT
-    load_main_screen();
-  #else
-    lv_scr_load(searchSat);
-  #endif
+#ifdef DEFAULT_LAT
+  load_main_screen();
+#else
+  lv_scr_load(searchSat);
+#endif
 }
 
 /**
