@@ -103,6 +103,8 @@ static void load_preferences()
     log_v("COORDINATE POS Y %d", coord_pos_y);
     log_v("SPEED POS X %d", speed_pos_x);
     log_v("SPEED POS Y %d", speed_pos_y);
+    log_v("ALTITUDE POS X %d", alt_pos_x);
+    log_v("ALTITUDE POS Y %d", alt_pos_y);
     log_v("VECTOR MAP %d", vector_map);
 
     preferences.end();
