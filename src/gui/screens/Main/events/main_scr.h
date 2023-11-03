@@ -56,6 +56,7 @@ static void get_act_tile(lv_event_t *event)
         {
             if (!vector_map)
                 create_map_scr_sprites();
+            refresh_map = true;
         }
     }
     else
@@ -80,6 +81,7 @@ static void scroll_tile(lv_event_t *event)
 
     if (!vector_map)
         delete_map_scr_sprites();
+
     delete_sat_info_sprites();
 }
 

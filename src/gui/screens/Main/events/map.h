@@ -8,10 +8,6 @@
 
 void generate_render_map();
 void generate_vector_map();
-MemBlocks memBlocks;
-ViewPort viewPort;
-double prev_lat = 500, prev_lng = 500;
-Coord pos;
 
 static const char *map_scale[] = {"5000 Km", "2500 Km", "1500 Km", "700 Km", "350 Km",
                                   "150 Km", "100 Km", "40 Km", "20 Km", "10 Km", "5 Km",
@@ -44,16 +40,16 @@ static void get_zoom_value(lv_event_t *event)
       else
       {
         zoom--;
-        moved = true;
+        position_moved = true;
         if (zoom < 1)
         {
           zoom = 1;
-          moved = false;
+          position_moved = false;
         }
         if (zoom > 4)
         {
           zoom = 4;
-          moved = false;
+          position_moved = false;
         }
       }
       lv_event_send(map_tile, LV_EVENT_REFRESH, NULL);
@@ -67,16 +63,16 @@ static void get_zoom_value(lv_event_t *event)
       else
       {
         zoom++;
-        moved = true;
+        position_moved = true;
         if (zoom < 1)
         {
           zoom = 1;
-          moved = false;
+          position_moved = false;
         }
         if (zoom > 4)
         {
           zoom = 4;
-          moved = false;
+          position_moved = false;
         }
       }
       lv_event_send(map_tile, LV_EVENT_REFRESH, NULL);
@@ -93,7 +89,6 @@ static void delete_map_scr_sprites()
 {
   sprArrow.deleteSprite();
   map_rot.deleteSprite();
-  zoom_spr.deleteSprite();
 }
 
 /**
@@ -103,16 +98,12 @@ static void delete_map_scr_sprites()
 static void create_map_scr_sprites()
 {
   // Map Sprite
-  map_rot.createSprite(320, 374);
+  map_rot.createSprite(MAP_WIDTH, MAP_HEIGHT);
   map_rot.pushSprite(0, 27);
   // Arrow Sprite
   sprArrow.createSprite(16, 16);
   sprArrow.setColorDepth(16);
   sprArrow.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
-  // Zoom Sprite
-  zoom_spr.createSprite(48, 28);
-  zoom_spr.setColorDepth(16);
-  zoom_spr.pushImage(0, 0, 24, 24, (uint16_t *)zoom_ico);
 }
 
 /**
@@ -169,38 +160,27 @@ static void update_map(lv_event_t *event)
   if (vector_map)
   {
     tft.startWrite();
+    get_position(getLat(), getLon());
 
-    Point32 p = viewPort.center;
-    pos.lat = getLat();
-    pos.lng = getLon();
-
-    if (abs(pos.lat - prev_lat) > 0.00005 &&
-        abs(pos.lng - prev_lng) > 0.00005)
+    if (position_moved)
     {
-      p.x = lon2x(pos.lng);
-      p.y = lat2y(pos.lat);
-      prev_lat = pos.lat;
-      prev_lng = pos.lng;
-      moved = true;
-      refresh_map = false;
       map_rot.deleteSprite();
       map_rot.createSprite(MAP_WIDTH, MAP_HEIGHT);
-    }
-
-    if (moved)
-    {
-      viewPort.setCenter(p);
+      viewPort.setCenter(point);
       get_map_blocks(memBlocks, viewPort.bbox);
+      //draw_map_widgets();
       generate_vector_map(viewPort, memBlocks, map_rot);
-      // draw_map_widgets();
       //map_rot.pushSprite(0, 27);
+      draw_map_widgets();
+      // map_rot.pushSprite(0, 27);
+
       refresh_map = true;
-      moved = false;
+      position_moved = false;
     }
 
     if (refresh_map)
     {
-      draw_map_widgets();
+      //draw_map_widgets();
       map_rot.pushSprite(0, 27);
     }
     tft.endWrite();

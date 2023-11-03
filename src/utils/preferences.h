@@ -66,7 +66,7 @@ static void load_preferences()
     alt_pos_y = preferences.getInt("Altitude_Y", 55);
     speed_pos_x = preferences.getInt("Speed_X", 15);
     speed_pos_y = preferences.getInt("Speed_Y", 100);
-    vector_map = preferences.getBool("Map_vector", true);
+    vector_map = preferences.getBool("Map_vector", false);
     if (vector_map)
     {
         MIN_ZOOM = 1;

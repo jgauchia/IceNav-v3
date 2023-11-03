@@ -29,7 +29,7 @@ const String base_folder = "/mymap/"; // TODO: folder selection
 #define MAP_HEIGHT 374
 #define MAP_WIDTH 320
 
-bool moved = false;
+bool position_moved = false;
 
 /**
  * @brief Vector map object colours
@@ -253,6 +253,49 @@ struct Coord
 };
 
 /**
+ * @brief Vector file map memory blocks
+ * 
+ */
+MemBlocks memBlocks;
+
+/**
+ * @brief Vector map viewport
+ * 
+ */
+ViewPort viewPort;
+
+/**
+ * @brief Vector map GPS position point
+ * 
+ */
+Point32 point = viewPort.center;
+
+/**
+ * @brief Get vector map Position from GPS position and check if is moved
+ * 
+ * @param lat 
+ * @param lon 
+ */
+double prev_lat = 0, prev_lng = 0;
+void get_position(double lat, double lon)
+{
+    Coord pos;
+    pos.lat = lat;
+    pos.lng = lon;
+
+    if (abs(pos.lat - prev_lat) > 0.00005 &&
+        abs(pos.lng - prev_lng) > 0.00005)
+    {
+      point.x = lon2x(pos.lng);
+      point.y = lat2y(pos.lat);
+      prev_lat = pos.lat;
+      prev_lng = pos.lng;
+      position_moved = true;
+      refresh_map = false;
+    }
+}
+
+/**
  * @brief Parse vector file to coords
  *
  * @param file
@@ -426,7 +469,7 @@ void get_map_blocks(MemBlocks &memBlocks, BBox &bbox)
  * @param points
  * @param color
  */
-void fill_polygon(std::vector<Point16> points, int color, TFT_eSprite &tft) // scanline fill algorithm
+void fill_polygon(std::vector<Point16> points, int color, TFT_eSprite &map) // scanline fill algorithm
 {
     int16_t maxy = INT16_MIN, miny = INT16_MAX;
 
@@ -488,7 +531,7 @@ void fill_polygon(std::vector<Point16> points, int color, TFT_eSprite &tft) // s
                 nodeX[i] = 0;
             if (nodeX[i + 1] > MAP_WIDTH)
                 nodeX[i + 1] = MAP_WIDTH;
-            tft.drawLine(nodeX[i], MAP_HEIGHT - pixelY, nodeX[i + 1], MAP_HEIGHT - pixelY, color);
+            map.drawLine(nodeX[i], MAP_HEIGHT - pixelY, nodeX[i + 1], MAP_HEIGHT - pixelY, color);
         }
     }
 }
@@ -498,11 +541,11 @@ void fill_polygon(std::vector<Point16> points, int color, TFT_eSprite &tft) // s
  *
  * @param viewPort
  * @param memblocks
- * @param tft -> Map Sprite
+ * @param map -> Map Sprite
  */
-void generate_vector_map(ViewPort &viewPort, MemBlocks &memblocks, TFT_eSprite &tft)
+void generate_vector_map(ViewPort &viewPort, MemBlocks &memblocks, TFT_eSprite &map)
 {
-    tft.fillScreen(BACKGROUND_COLOR);
+    map.fillScreen(BACKGROUND_COLOR);
 
     std::vector<Polygon> polygons_to_draw;
     std::vector<Polyline> lines_to_draw;
@@ -569,12 +612,12 @@ void generate_vector_map(ViewPort &viewPort, MemBlocks &memblocks, TFT_eSprite &
                 lines_to_draw.push_back(new_line);
             }
         }
-        // tft.fillScreen(BACKGROUND_COLOR);
+        // map.fillScreen(BACKGROUND_COLOR);
     }
 
     for (Polygon pol : polygons_to_draw)
     {
-        fill_polygon(pol.points, pol.color, tft);
+        fill_polygon(pol.points, pol.color, map);
     }
     for (Polyline line : lines_to_draw)
     {
@@ -588,8 +631,8 @@ void generate_vector_map(ViewPort &viewPort, MemBlocks &memblocks, TFT_eSprite &
                 log_d("Error: point out of screen: %i, %i, %i, %i", line.points[i].x, line.points[i].y, line.points[i + 1].x, line.points[i + 1].y);
             }
 
-            // tft.drawWideLine(
-            tft.drawLine(
+            // map.drawWideLine(
+            map.drawLine(
                 line.points[i].x, MAP_HEIGHT - line.points[i].y,
                 line.points[i + 1].x, MAP_HEIGHT - line.points[i + 1].y,
                 // line.width/zoom ?: 1, line.color, line.color);
@@ -597,7 +640,7 @@ void generate_vector_map(ViewPort &viewPort, MemBlocks &memblocks, TFT_eSprite &
         }
     }
 
-    tft.fillTriangle(
+    map.fillTriangle(
         MAP_WIDTH / 2 - 4, MAP_HEIGHT / 2 + 5,
         MAP_WIDTH / 2 + 4, MAP_HEIGHT / 2 + 5,
         MAP_WIDTH / 2, MAP_HEIGHT / 2 - 6,
