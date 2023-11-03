@@ -4,6 +4,7 @@
 
 ESP32 Based GPS Navigator.
 * Note: Under development
+* There is the possibility to use two types of maps: Rendered Maps or Tiles (large files), and Vector Maps (small files).
 
 ## Screenshots
 <img src="images/screenshot_1.png" width="25%" height="25%"><img src="images/screenshot_2.png" width="25%" height="25%"><img src="images/screenshot_3.png" width="25%" height="25%"><img src="images/screenshot_4.png" width="25%" height="25%">
@@ -77,6 +78,39 @@ On SD Card map tiles (256x256 PNG Format) should be stored, in these folders str
                               |__________________ [ tile X folder (number) ]
                                                              |_______________________ tile Y file.png
 
+## SD Vectorized Map File structure          
+
+Using [OSM_Extract](https://github.com/aresta/OSM_Extract) you can generate binary map files to later create vector maps. Once generated, these files should be saved in the `mymap` folder on the SD card.
+
+The PBF files can be downloaded from the [geofabrik](https://download.geofabrik.de/) website.
+
+The PBF files should be saved in the `maps` directory. Once saved, you should select the region or boundaries for which the GeoJSON files will be generated.
+
+To obtain the boundaries, please check the [geojson.io](http://geojson.io) website.
+
+For generate GeoJSON files run inside `maps` directory:
+
+```bash
+ogr2ogr -t_srs EPSG:3857 -clipsrc min_lon min_lat max_lon max_lat lines.geojson /pbf/downloaded.pbf lines
+
+ogr2ogr -t_srs EPSG:3857 -clipsrc min_lon min_lat max_lon max_lat polygons.geojson /pbf/downloaded.pbf multipolygons
+```
+
+Edit `extract_features.py` script located inside `scripts` directory and modify map boundaries in the following lines:
+
+```bash
+min_lat, min_lon = 40.56, -0.08
+max_lat, max_lon = 42.95, 3.74
+```
+
+For generate binary map files run inside `scripts` directory.
+```bash
+./extract_features.py
+```
+Once the process is completed, the maps will be inside the `maps/mymap` directory. Copy all folders to the SD card except the `test_imgs` directory.
+
+Please follow the instructions provided by [OSM_Extract](https://github.com/aresta/OSM_Extract) for any further questions.
+
 ## Firmware install
 
 Please install first [PlatformIO](http://platformio.org/) open source ecosystem for IoT development compatible with **Arduino** IDE and its command line tools (Windows, MacOs and Linux). Also, you may need to install [git](http://git-scm.com/) in your system. 
@@ -121,3 +155,5 @@ If the GPS module supports multiple GNSS, uncomment the following flag in the pl
 * Improved documentation (thanks to [@hpsaturn](https://github.com/hpsaturn))
 * Improved auto mainScreen selection from env variable preset (thanks to [@hpsaturn](https://github.com/hpsaturn))
 * Improved getLat getLon from environment variables (thanks to [@hpsaturn](https://github.com/hpsaturn))
+* Vectorial Maps routines [ESP32_GPS](https://github.com/aresta/ESP32_GPS) (thanks to [@aresta](https://github.com/aresta))
+* OSM to binary vectorial maps [OSM_Extract](https://github.com/aresta/OSM_Extract) (thanks to [@aresta](https://github.com/aresta))

@@ -6,9 +6,6 @@
  * @date 2023-06-14
  */
 
-#define CALIBRATION_FILE "/TouchCalData1"
-bool REPEAT_CAL = false;
-
 #include <Arduino.h>
 #include <stdint.h>
 #include <Wire.h>
@@ -27,6 +24,7 @@ unsigned long millis_actual = 0;
 #include "hardware/serial.h"
 #include "hardware/sdcard.h"
 #include "hardware/tft.h"
+
 #ifdef ENABLE_COMPASS
 #include "hardware/compass.h"
 #endif
@@ -35,12 +33,13 @@ unsigned long millis_actual = 0;
 #endif
 #include "hardware/battery.h"
 #include "hardware/power.h"
-#include "utils/gps_maps.h"
 #include "utils/gps_math.h"
 #include "utils/sat_info.h"
 #include "utils/lv_spiffs_fs.h"
 #include "utils/lv_sd_fs.h"
 #include "utils/time_zone.h"
+#include "utils/render_maps.h"
+#include "utils/vector_maps.h"
 #include "gui/lvgl.h"
 
 #include "tasks.h"
@@ -76,8 +75,11 @@ void setup()
   init_gps();
   init_ADC();
 
-  map_spr.deleteSprite();
-  map_spr.createSprite(768, 768);
+  if (!vector_map)
+  {
+    map_spr.deleteSprite();
+    map_spr.createSprite(768, 768);
+  }
 
   splash_scr();
   // init_tasks();
@@ -108,5 +110,4 @@ void loop()
   lv_tick_inc(5);
 #endif
   lv_timer_handler();
-  // lv_task_handler();
 }

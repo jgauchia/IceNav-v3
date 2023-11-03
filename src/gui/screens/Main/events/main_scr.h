@@ -10,18 +10,6 @@ static void delete_map_scr_sprites();
 static void create_map_scr_sprites();
 
 /**
- * @brief Flag to indicate when maps needs to be draw
- *
- */
-bool is_map_draw = false;
-
-/**
- * @brief Flag to indicate when tile map is found on SD
- *
- */
-bool map_found = false;
-
-/**
  * @brief Flag to indicate when tileview was scrolled
  *
  */
@@ -32,25 +20,6 @@ bool is_scrolled = true;
  *
  */
 bool is_ready = false;
-
-/**
- * @brief Old Map tile coordinates and zoom
- *
- */
-MapTile OldMapTile = {"", 0, 0, 0};
-
-/**
- * @brief Sprite for Navigation Arrow in map tile
- *
- */
-TFT_eSprite sprArrow = TFT_eSprite(&tft);
-
-/**
- * @brief Double Buffering Sprites for Map Tile
- *
- */
-TFT_eSprite map_spr = TFT_eSprite(&tft);
-TFT_eSprite map_rot = TFT_eSprite(&tft);
 
 /**
  * @brief Zoom sprite
@@ -85,7 +54,8 @@ static void get_act_tile(lv_event_t *event)
         log_d("Used PSRAM: %d", ESP.getPsramSize() - ESP.getFreePsram());
         if (act_tile == MAP)
         {
-            create_map_scr_sprites();
+            if (!vector_map)
+                create_map_scr_sprites();
         }
     }
     else
@@ -108,7 +78,8 @@ static void scroll_tile(lv_event_t *event)
     is_scrolled = false;
     is_ready = false;
 
-    delete_map_scr_sprites();
+    if (!vector_map)
+        delete_map_scr_sprites();
     delete_sat_info_sprites();
 }
 
@@ -153,7 +124,7 @@ static void update_main_screen(lv_timer_t *t)
             break;
 
         case NAV:
-             break;
+            break;
         default:
             break;
         }

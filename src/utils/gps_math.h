@@ -154,18 +154,3 @@ char *Longitude_formatString(double lon)
   return s_buf;
 }
 
-/**
- * @brief Convert GPS Coordinates to screen position (with offsets)
- *
- * @param lon -> Longitude
- * @param lat -> Latitude
- * @param zoom_level -> Zoom level
- * @return ScreenCoord -> Screen position
- */
-ScreenCoord coord_to_scr_pos(double lon, double lat, uint8_t zoom_level)
-{
-  ScreenCoord data;
-  data.posx = lon2posx(lon, zoom_level);
-  data.posy = lat2posy(lat, zoom_level);
-  return data;
-}

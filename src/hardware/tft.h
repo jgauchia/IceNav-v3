@@ -6,6 +6,11 @@
  * @date 2023-06-14
  */
 
+#define CALIBRATION_FILE "/TouchCalData1"
+bool REPEAT_CAL = false;
+uint8_t brightness_level = 255;
+#define LVGL_BKG 0x10A3
+
 #ifdef CUSTOMBOARD
 #include <LGFX_CUSTOMBOARD.hpp>
 #endif
@@ -16,10 +21,8 @@
 
 #include <LGFX_TFT_eSPI.hpp>
 
-uint8_t brightness_level = 255;
-
 static TFT_eSPI tft;
-#define LVGL_BKG 0x10A3
+
 
 /**
  * @brief Set the TFT brightness

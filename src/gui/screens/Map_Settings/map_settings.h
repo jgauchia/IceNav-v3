@@ -8,6 +8,7 @@
 
 static lv_obj_t *mapsettingsOptions;
 static lv_obj_t *map_switch;
+static lv_obj_t *map_type;
 static lv_obj_t *zoom_level;
 
 /**
@@ -31,6 +32,21 @@ static void create_map_settings_scr()
     lv_obj_t *list;
     lv_obj_t *btn;
     lv_obj_t *check;
+
+    // Map Type
+    list = lv_list_add_btn(mapsettingsOptions, NULL, "Map Type\nRENDER/VECTOR");
+    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
+    map_type = lv_switch_create(list);
+    label = lv_label_create(map_type);
+    lv_label_set_text_static(label, "V   R");
+    lv_obj_center(label);
+    if (vector_map)
+        lv_obj_add_state(map_type, LV_STATE_CHECKED);
+    else
+        lv_obj_clear_state(map_type, LV_STATE_CHECKED);
+    lv_obj_align_to(map_type, list, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_obj_add_event_cb(map_type, configure_map_type, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Map Rotation
     list = lv_list_add_btn(mapsettingsOptions, NULL, "Map Rotation Mode\nHEADING/COMPASS");
