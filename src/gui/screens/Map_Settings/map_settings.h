@@ -31,7 +31,9 @@ static void create_map_settings_scr()
     lv_obj_t *label;
     lv_obj_t *list;
     lv_obj_t *btn;
-    lv_obj_t *check;
+    lv_obj_t *check_compass;
+    lv_obj_t *check_speed;
+    lv_obj_t *check_scale;
 
     // Map Type
     list = lv_list_add_btn(mapsettingsOptions, NULL, "Map Type\nRENDER/VECTOR");
@@ -95,33 +97,33 @@ static void create_map_settings_scr()
     lv_obj_set_style_text_font(list, &lv_font_montserrat_18, 0);
     lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
-    check = lv_checkbox_create(list);
-    lv_obj_align_to(check, list, LV_ALIGN_RIGHT_MID, 0, 0);
-    lv_checkbox_set_text_static(check, "");
-    lv_obj_add_state(check, show_map_compass);
-    lv_obj_add_event_cb(check, show_compass, LV_EVENT_VALUE_CHANGED, NULL);
+    check_compass = lv_checkbox_create(list);
+    lv_obj_align_to(check_compass, list, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_checkbox_set_text_static(check_compass, "");
+    lv_obj_add_state(check_compass, show_map_compass);
+    lv_obj_add_event_cb(check_compass, show_compass, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Show Speed
     list = lv_list_add_btn(mapsettingsOptions, NULL, "Show Speed");
     lv_obj_set_style_text_font(list, &lv_font_montserrat_18, 0);
     lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
-    lv_obj_align_to(check, list, LV_ALIGN_RIGHT_MID, 0, 0);
-    check = lv_checkbox_create(list);
-    lv_checkbox_set_text_static(check, "");
-    lv_obj_add_state(check, show_map_speed);
-    lv_obj_add_event_cb(check, show_speed, LV_EVENT_VALUE_CHANGED, NULL);
+    check_speed = lv_checkbox_create(list);
+    lv_obj_align_to(check_speed, list, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_checkbox_set_text_static(check_speed, "");
+    lv_obj_add_state(check_speed, show_map_speed);
+    lv_obj_add_event_cb(check_speed, show_speed, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Show Map Scale
     list = lv_list_add_btn(mapsettingsOptions, NULL, "Show Map Scale");
     lv_obj_set_style_text_font(list, &lv_font_montserrat_18, 0);
     lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
-    lv_obj_align_to(check, list, LV_ALIGN_RIGHT_MID, 0, 0);
-    check = lv_checkbox_create(list);
-    lv_checkbox_set_text_static(check, "");
-    lv_obj_add_state(check, show_map_scale);
-    lv_obj_add_event_cb(check, show_scale, LV_EVENT_VALUE_CHANGED, NULL);
+    check_scale = lv_checkbox_create(list);
+    lv_obj_align_to(check_scale, list, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_checkbox_set_text_static(check_scale, "");
+    lv_obj_add_state(check_scale, show_map_scale);
+    lv_obj_add_event_cb(check_scale, show_scale, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Back button
     btn = lv_btn_create(mapsettingsScreen);
