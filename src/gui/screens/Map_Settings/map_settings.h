@@ -99,7 +99,6 @@ static void create_map_settings_scr()
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
     check_compass = lv_checkbox_create(list);
     lv_obj_align_to(check_compass, list, LV_ALIGN_RIGHT_MID, 0, 0);
-    // lv_checkbox_set_text_static(check_compass, "");
     lv_checkbox_set_text(check_compass, " ");
     lv_obj_add_state(check_compass, show_map_compass);
     lv_obj_add_event_cb(check_compass, show_compass, LV_EVENT_VALUE_CHANGED, NULL);
@@ -111,7 +110,6 @@ static void create_map_settings_scr()
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
     check_speed = lv_checkbox_create(list);
     lv_obj_align_to(check_speed, list, LV_ALIGN_RIGHT_MID, 0, 0);
-    // lv_checkbox_set_text_static(check_speed, "");
     lv_checkbox_set_text(check_speed, " ");
     lv_obj_add_state(check_speed, show_map_speed);
     lv_obj_add_event_cb(check_speed, show_speed, LV_EVENT_VALUE_CHANGED, NULL);
@@ -123,7 +121,6 @@ static void create_map_settings_scr()
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
     check_scale = lv_checkbox_create(list);
     lv_obj_align_to(check_scale, list, LV_ALIGN_RIGHT_MID, 0, 0);
-    //lv_checkbox_set_text_static(check_scale, "");
     lv_checkbox_set_text(check_scale, " ");
     lv_obj_add_state(check_scale, show_map_scale);
     lv_obj_add_event_cb(check_scale, show_scale, LV_EVENT_VALUE_CHANGED, NULL);
