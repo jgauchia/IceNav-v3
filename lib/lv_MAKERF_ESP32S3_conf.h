@@ -58,11 +58,8 @@
     #if LV_MEM_ADR == 0
         //#undef LV_MEM_POOL_INCLUDE
         //#undef LV_MEM_POOL_ALLOC      
-        //#define LV_MEM_POOL_INCLUDE <esp32-hal-psram.h>
-        //#define LV_MEM_POOL_ALLOC ps_malloc
-        
-        #define LV_MEM_POOL_INCLUDE "esp_heap_caps.h"
-        #define LV_MEM_POOL_ALLOC(size) heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA)
+        #define LV_MEM_POOL_INCLUDE <esp32-hal-psram.h>
+        #define LV_MEM_POOL_ALLOC ps_malloc
     #endif
 
 #else       /*LV_MEM_CUSTOM*/
