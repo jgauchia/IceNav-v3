@@ -70,31 +70,17 @@ static lv_obj_t *devicesettingsScreen;
  */
 void disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p)
 {
-    // if (!lv_disp_is_invalidation_enabled(disp_ctrl))
-    //{
-    tft.startWrite();
-
-    // Map Tile, refresh partial screen to avoid flickering when scroll tile view
-    // if (act_tile == MAP && is_scrolled)
-    // {
-    //     if ((area->y2 - area->y1 + 1) < 20)
-    //         tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t *)&color_p->full);
-    // }
-    // else
-    tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t *)&color_p->full);
-
-    tft.endWrite();
-    lv_disp_flush_ready(disp);
-    //}
-    // uint32_t w = (area->x2 - area->x1 + 1);
-    // uint32_t h = (area->y2 - area->y1 + 1);
-
     // tft.startWrite();
-    // tft.setAddrWindow(area->x1, area->y1, w, h);
-    // tft.pushPixelsDMA((uint16_t *)&color_p->full, w * h, false);
-    // tft.waitDMA();
+    // tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t *)&color_p->full);
     // tft.endWrite();
     // lv_disp_flush_ready(disp);
+
+    if (tft.getStartCount() == 0)
+        tft.startWrite();
+
+    tft.pushImageDMA(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (lgfx::swap565_t *)&color_p->full);
+
+    lv_disp_flush_ready(disp);
 }
 
 /**
