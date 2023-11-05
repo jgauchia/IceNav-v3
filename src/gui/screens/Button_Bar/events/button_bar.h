@@ -35,8 +35,6 @@ static void settings(lv_event_t *event)
  */
 static void waypoint(lv_event_t *event)
 {
-    if (act_tile != MAP)
-    {
         log_v("Waypoint");
         is_main_screen = false;
         is_waypoint = true;
@@ -46,7 +44,6 @@ static void waypoint(lv_event_t *event)
             is_option_loaded = true;
             load_options();
         }
-    }
 }
 
 /**
@@ -56,8 +53,6 @@ static void waypoint(lv_event_t *event)
  */
 static void track(lv_event_t *event)
 {
-    if (act_tile != MAP)
-    {
         log_v("Track");
         is_main_screen = false;
         is_track = true;
@@ -67,5 +62,4 @@ static void track(lv_event_t *event)
             is_option_loaded = true;
             load_options();
         }
-    }
 }

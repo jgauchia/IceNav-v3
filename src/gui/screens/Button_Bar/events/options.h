@@ -15,6 +15,7 @@ static void close_option(lv_event_t *event)
 {
     is_main_screen = true;
     is_option_loaded = false;
+    refresh_map=true;
 }
 
 /**
