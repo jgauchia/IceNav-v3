@@ -168,20 +168,15 @@ static void update_map(lv_event_t *event)
       map_rot.createSprite(MAP_WIDTH, MAP_HEIGHT);
       viewPort.setCenter(point);
       get_map_blocks(memBlocks, viewPort.bbox);
-      //draw_map_widgets();
       generate_vector_map(viewPort, memBlocks, map_rot);
-      //map_rot.pushSprite(0, 27);
-      draw_map_widgets();
-      // map_rot.pushSprite(0, 27);
-
       refresh_map = true;
       position_moved = false;
     }
 
     if (refresh_map)
     {
-      //draw_map_widgets();
       map_rot.pushSprite(0, 27);
+      draw_map_widgets();
     }
     tft.endWrite();
   }

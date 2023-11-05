@@ -35,14 +35,17 @@ static void settings(lv_event_t *event)
  */
 static void waypoint(lv_event_t *event)
 {
-    log_v("Waypoint");
-    is_main_screen = false;
-    is_waypoint = true;
-    is_track = false;
-    if (!is_option_loaded)
+    if (act_tile != MAP)
     {
-        is_option_loaded = true;
-        load_options();
+        log_v("Waypoint");
+        is_main_screen = false;
+        is_waypoint = true;
+        is_track = false;
+        if (!is_option_loaded)
+        {
+            is_option_loaded = true;
+            load_options();
+        }
     }
 }
 
@@ -53,13 +56,16 @@ static void waypoint(lv_event_t *event)
  */
 static void track(lv_event_t *event)
 {
-    log_v("Track");
-    is_main_screen = false;
-    is_track = true;
-    is_waypoint = false;
-    if (!is_option_loaded)
+    if (act_tile != MAP)
     {
-        is_option_loaded = true;
-        load_options();
+        log_v("Track");
+        is_main_screen = false;
+        is_track = true;
+        is_waypoint = false;
+        if (!is_option_loaded)
+        {
+            is_option_loaded = true;
+            load_options();
+        }
     }
 }

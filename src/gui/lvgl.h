@@ -59,9 +59,10 @@ static lv_obj_t *devicesettingsScreen;
 #include "gui/screens/Map_Settings/map_settings.h"
 #include "gui/screens/Device_Settings/device_settings.h"
 #include "gui/screens/Settings_Menu/settings_scr.h"
+#include "gui/screens/Main/main_scr.h"
 #include "gui/screens/Button_Bar/button_bar.h"
 #include "gui/screens/Search_Satellite/search_sat_scr.h"
-#include "gui/screens/Main/main_scr.h"
+// #include "gui/screens/Main/main_scr.h"
 #include "gui/screens/Splash/splash_scr.h"
 
 /**
