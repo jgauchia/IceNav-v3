@@ -11,8 +11,10 @@
 
 #ifdef MAKERF_ESP32S3
 SPIClass spiSD = SPIClass(HSPI); 
+uint32_t sd_freq = 10000000;
 #else
 SPIClass spiSD = SPIClass(VSPI);
+uint32_t sd_freq = 40000000;
 #endif
 bool sdloaded = false;
 
@@ -25,7 +27,7 @@ void init_sd()
   spiSD.begin(SD_CLK, SD_MISO, SD_MOSI, SD_CS);
   pinMode(SD_CS,OUTPUT);
   digitalWrite(SD_CS,LOW);
-  if (!SD.begin(SD_CS, spiSD, 10000000))
+  if (!SD.begin(SD_CS, spiSD, sd_freq))
   {
     log_v("SD Card Mount Failed");
     return;

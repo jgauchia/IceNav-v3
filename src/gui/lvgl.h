@@ -78,8 +78,12 @@ void disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p)
 
     if (tft.getStartCount() == 0)
         tft.startWrite();
-    tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (lgfx::swap565_t *)&color_p->full);
-    tft.endWrite();
+
+    tft.pushImageDMA(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (lgfx::swap565_t *)&color_p->full);
+
+    if (tft.getStartCount() > 0)
+        tft.endWrite();
+
     lv_disp_flush_ready(disp);
 }
 

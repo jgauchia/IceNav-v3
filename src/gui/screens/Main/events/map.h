@@ -159,7 +159,8 @@ static void update_map(lv_event_t *event)
 {
   if (vector_map)
   {
-    tft.startWrite();
+    if (tft.getStartCount() == 0)
+      tft.startWrite();
     get_position(getLat(), getLon());
 
     if (position_moved)
@@ -175,10 +176,11 @@ static void update_map(lv_event_t *event)
 
     if (refresh_map)
     {
-      map_rot.pushSprite(0, 27);
+      map_rot.pushSprite(0, 27, TFT_TRANSPARENT);
       draw_map_widgets();
     }
-    tft.endWrite();
+    if (tft.getStartCount() > 0)
+      tft.endWrite();
   }
   else
     generate_render_map();
