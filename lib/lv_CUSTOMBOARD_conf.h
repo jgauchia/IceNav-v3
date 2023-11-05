@@ -59,7 +59,7 @@
         //#undef LV_MEM_POOL_INCLUDE
         //#undef LV_MEM_POOL_ALLOC      
         #define LV_MEM_POOL_INCLUDE <esp32-hal-psram.h>
-        #define LV_MEM_POOL_ALLOC ps_malloc
+        #define LV_MEM_POOL_ALLOC ps_malloc     
     #endif
 
 #else       /*LV_MEM_CUSTOM*/
