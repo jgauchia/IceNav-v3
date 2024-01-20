@@ -11,6 +11,8 @@
 
 #ifdef MAKERF_ESP32S3
 SPIClass spiSD = SPIClass(HSPI); 
+#elif ESP32S3
+SPIClass spiSD = SPIClass(HSPI); 
 #else
 SPIClass spiSD = SPIClass(VSPI);
 #endif

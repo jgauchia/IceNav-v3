@@ -34,11 +34,12 @@ For the moment we have two Icenav models, with the next hardware setup and specs
 * MPU9250 (Compass+IMU)
 * LVGL UI + LovyanGFX
 
+### ESP32-S3 DEV KIT untested
 ---
 
 ## Wiring
 
-       Pinout (ESP32-WROVER)
+       Pinout (ESP32-WROVER) / (ESP32-S3 Dev Kit **** UNTESTED ****) 
        HCM5883L      BME280        MPU6050       ILI9488        SD CARD        VBAT             GPS
        -----------------------------------------------------------------------------------------------------
        VCC 3,3v      VCC 5v        VCC 3.3v      VCC  3,3v      VCC  3,3v      GPIO34           VCC  3,3v

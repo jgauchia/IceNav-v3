@@ -10,6 +10,10 @@
 #include <LGFX_CUSTOMBOARD.hpp>
 #endif
 
+#ifdef ESP32S3
+#include <LGFX_ESP32S3.hpp>
+#endif
+
 #ifdef MAKERF_ESP32S3
 #include <LGFX_MakerFabs_Parallel_S3.hpp>
 #endif
