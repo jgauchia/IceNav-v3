@@ -84,19 +84,21 @@ Using [OSM_Extract](https://github.com/aresta/OSM_Extract) you can generate bina
 
 The PBF files can be downloaded from the [geofabrik](https://download.geofabrik.de/) website.
 
-The PBF files should be saved in the `maps` directory. Once saved, you should select the region or boundaries for which the GeoJSON files will be generated.
+The PBF files should be saved in the `pbf` directory. Once saved, you should select the region or boundaries for which the GeoJSON files will be generated.
 
 To obtain the boundaries, please check the [geojson.io](http://geojson.io) website.
 
 For generate GeoJSON files run inside `maps` directory:
 
 ```bash
-/scripts/./pbf_to_geojson.sh
+ogr2ogr -t_srs EPSG:3857 -spat min_lon min_lat max_lon max_lat map_lines.geojson /pbf/downloaded.pbf lines
+
+ogr2ogr -t_srs EPSG:3857 -spat min_lon min_lat max_lon max_lat map_polygons.geojson /pbf/downloaded.pbf multipolygons
 ```
 
 For generate binary map files run inside `maps` directory.
 ```bash
-/scripts/./extract_features.py
+/scripts/./extract_features.py min_lon min_lat max_lon max_lat map
 ```
 Once the process is completed, the maps will be inside the `maps/mymap` directory. Copy all folders to the SD card except the `test_imgs` directory.
 

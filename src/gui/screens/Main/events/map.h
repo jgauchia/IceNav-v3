@@ -168,8 +168,8 @@ static void update_map(lv_event_t *event)
       map_rot.deleteSprite();
       map_rot.createSprite(MAP_WIDTH, MAP_HEIGHT);
       viewPort.setCenter(point);
-      get_map_blocks(memBlocks, viewPort.bbox);
-      generate_vector_map(viewPort, memBlocks, map_rot);
+      get_map_blocks(viewPort.bbox, memCache);
+      generate_vector_map(viewPort, memCache, map_rot);
       refresh_map = true;
       position_moved = false;
     }
