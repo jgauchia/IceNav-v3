@@ -91,21 +91,12 @@ To obtain the boundaries, please check the [geojson.io](http://geojson.io) websi
 For generate GeoJSON files run inside `maps` directory:
 
 ```bash
-ogr2ogr -t_srs EPSG:3857 -clipsrc min_lon min_lat max_lon max_lat lines.geojson /pbf/downloaded.pbf lines
-
-ogr2ogr -t_srs EPSG:3857 -clipsrc min_lon min_lat max_lon max_lat polygons.geojson /pbf/downloaded.pbf multipolygons
+/scripts/./pbf_to_geojson.sh
 ```
 
-Edit `extract_features.py` script located inside `scripts` directory and modify map boundaries in the following lines:
-
+For generate binary map files run inside `maps` directory.
 ```bash
-min_lat, min_lon = 40.56, -0.08
-max_lat, max_lon = 42.95, 3.74
-```
-
-For generate binary map files run inside `scripts` directory.
-```bash
-./extract_features.py
+/scripts/./extract_features.py
 ```
 Once the process is completed, the maps will be inside the `maps/mymap` directory. Copy all folders to the SD card except the `test_imgs` directory.
 
