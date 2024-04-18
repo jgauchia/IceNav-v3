@@ -17,6 +17,7 @@
 #include <Timezone.h>
 
 unsigned long millis_actual = 0;
+static ulong lvgl_tick_millis = millis();
 
 #include "hardware/hal.h"
 #include "hardware/gps.h"
@@ -70,8 +71,8 @@ void setup()
   load_preferences();
   init_sd();
   init_SPIFFS();
-  init_LVGL();
   init_tft();
+  init_LVGL();
   init_gps();
   init_ADC();
 
@@ -87,7 +88,7 @@ void setup()
 #ifdef DEFAULT_LAT
   load_main_screen();
 #else
-  lv_scr_load(searchSat);
+  lv_screen_load(searchSat);
 #endif
 }
 
@@ -106,8 +107,10 @@ void loop()
 #endif
   }
 
-// #ifdef MAKERF_ESP32S3
-//   lv_tick_inc(5);
-// #endif
   lv_timer_handler();
+  unsigned long tick_millis = millis() - lvgl_tick_millis;
+  lvgl_tick_millis = millis();
+  lv_tick_inc(tick_millis);
+  yield();
+  delay(5);
 }

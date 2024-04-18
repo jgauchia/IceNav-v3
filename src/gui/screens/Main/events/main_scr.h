@@ -98,31 +98,31 @@ static void update_main_screen(lv_timer_t *t)
         case COMPASS:
 #ifdef ENABLE_COMPASS
             heading = get_heading();
-            lv_event_send(compass_heading, LV_EVENT_VALUE_CHANGED, NULL);
+            lv_obj_send_event(compass_heading, LV_EVENT_VALUE_CHANGED, NULL);
 #endif
 
             if (GPS.location.isUpdated())
             {
-                lv_event_send(latitude, LV_EVENT_VALUE_CHANGED, NULL);
-                lv_event_send(longitude, LV_EVENT_VALUE_CHANGED, NULL);
+                lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
+               lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
             }
             if (GPS.altitude.isUpdated())
             {
-                lv_event_send(altitude, LV_EVENT_VALUE_CHANGED, NULL);
+                lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
             }
 
             if (GPS.speed.isUpdated())
-                lv_event_send(speed_label, LV_EVENT_VALUE_CHANGED, NULL);
+                lv_obj_send_event(speed_label, LV_EVENT_VALUE_CHANGED, NULL);
 
             break;
 
         case MAP:
             // if (GPS.location.isUpdated())
-            lv_event_send(map_tile, LV_EVENT_REFRESH, NULL);
+           lv_obj_send_event(map_tile, LV_EVENT_REFRESH, NULL);
             break;
 
         case SATTRACK:
-            lv_event_send(sat_track_tile, LV_EVENT_VALUE_CHANGED, NULL);
+            lv_obj_send_event(sat_track_tile, LV_EVENT_VALUE_CHANGED, NULL);
             break;
 
         case NAV:

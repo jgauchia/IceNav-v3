@@ -16,7 +16,7 @@ bool widget_selected = false;
 static void update_heading(lv_event_t *event)
 {
 #ifdef ENABLE_COMPASS
-    lv_obj_t *compass = lv_event_get_target(event);
+    lv_obj_t *compass = (lv_obj_t*)lv_event_get_current_target(event);
     lv_label_set_text_fmt(compass, "%5d\xC2\xB0", heading);
     lv_img_set_angle(compass_img, -(heading * 10));
 #endif
@@ -29,7 +29,7 @@ static void update_heading(lv_event_t *event)
  */
 static void update_latitude(lv_event_t *event)
 {
-    lv_obj_t *lat = lv_event_get_target(event);
+    lv_obj_t *lat = (lv_obj_t*)lv_event_get_target(event);
     lv_label_set_text_static(lat, Latitude_formatString(GPS.location.lat()));
 }
 
@@ -40,7 +40,7 @@ static void update_latitude(lv_event_t *event)
  */
 static void update_longitude(lv_event_t *event)
 {
-    lv_obj_t *lon = lv_event_get_target(event);
+    lv_obj_t *lon = (lv_obj_t*)lv_event_get_target(event);
     lv_label_set_text_static(lon, Longitude_formatString(GPS.location.lng()));
 }
 
@@ -51,7 +51,7 @@ static void update_longitude(lv_event_t *event)
  */
 static void update_altitude(lv_event_t *event)
 {
-    lv_obj_t *alt = lv_event_get_target(event);
+    lv_obj_t *alt = (lv_obj_t*)lv_event_get_target(event);
     lv_label_set_text_fmt(altitude, "%4d m.", (int)GPS.altitude.meters());
 }
 
@@ -62,7 +62,7 @@ static void update_altitude(lv_event_t *event)
  */
 static void update_speed(lv_event_t *event)
 {
-    lv_obj_t *speed = lv_event_get_target(event);
+    lv_obj_t *speed = (lv_obj_t*)lv_event_get_target(event);
     lv_label_set_text_fmt(speed, "%3d Km/h", (int)GPS.speed.kmph());
 }
 
@@ -73,7 +73,7 @@ static void update_speed(lv_event_t *event)
  */
 static void unselect_widget(lv_event_t *event)
 {
-    lv_obj_t *obj = lv_event_get_target(event);
+    lv_obj_t *obj = (lv_obj_t*)lv_event_get_target(event);
     if (widget_selected)
     {
         unselect_obj(obj);
@@ -91,7 +91,7 @@ static void drag_widget(lv_event_t *event)
 {
     // lv_obj_clear_flag(tiles, LV_OBJ_FLAG_SCROLLABLE);
 
-    lv_obj_t *obj = lv_event_get_target(event);
+    lv_obj_t *obj = (lv_obj_t*)lv_event_get_target(event);
     if (!widget_selected)
     {
         select_obj(obj);

@@ -54,6 +54,7 @@ static uint32_t active_gnss = 0;
 void create_main_scr()
 {
     mainScreen = lv_obj_create(NULL);
+    // lv_obj_set_size(mainScreen, TFT_WIDTH, TFT_HEIGHT);
 
     // Main Screen Tiles
     tiles = lv_tileview_create(mainScreen);
@@ -68,8 +69,8 @@ void create_main_scr()
     lv_style_set_bg_color(&style_scroll, lv_color_hex(0xFFFFFF));
     lv_obj_add_style(tiles, &style_scroll, LV_PART_SCROLLBAR);
     // Main Screen Events
-    lv_obj_add_event_cb(tiles, get_act_tile, LV_EVENT_SCROLL_END, NULL);
-    lv_obj_add_event_cb(tiles, scroll_tile, LV_EVENT_SCROLL_BEGIN, NULL);
+    // lv_obj_add_event_cb(tiles, get_act_tile, LV_EVENT_SCROLL_END, NULL);
+    // lv_obj_add_event_cb(tiles, scroll_tile, LV_EVENT_SCROLL_BEGIN, NULL);
 
     // Compass Tile
 
@@ -81,6 +82,7 @@ void create_main_scr()
     lv_obj_t *arrow_img = lv_img_create(compass_widget);
     lv_img_set_src(arrow_img, "F:/arrow.bin");
     lv_obj_align(arrow_img, LV_ALIGN_CENTER, 0, -30);
+
     LV_IMG_DECLARE(bruj);
     compass_img = lv_img_create(compass_widget);
     lv_img_set_src(compass_img, &bruj);
@@ -92,8 +94,8 @@ void create_main_scr()
     lv_obj_set_style_text_font(compass_heading, &lv_font_montserrat_48, 0);
     lv_label_set_text_static(compass_heading, "-----\xC2\xB0");
     unselect_obj(compass_widget);
-    lv_obj_add_event_cb(compass_widget, drag_widget, LV_EVENT_PRESSING, (char*)"Compass_");
-    lv_obj_add_event_cb(compass_widget, unselect_widget, LV_EVENT_RELEASED, NULL);
+    // lv_obj_add_event_cb(compass_widget, drag_widget, LV_EVENT_PRESSING, (char*)"Compass_");
+    // lv_obj_add_event_cb(compass_widget, unselect_widget, LV_EVENT_RELEASED, NULL);
 
     // Position widget
     lv_obj_t *position_widget = lv_obj_create(compass_tile);
@@ -112,8 +114,8 @@ void create_main_scr()
     lv_label_set_text_static(longitude, Longitude_formatString(GPS.location.lng()));
     lv_obj_align(longitude, LV_ALIGN_TOP_LEFT, 25, 3);
     unselect_obj(position_widget);
-    lv_obj_add_event_cb(position_widget, drag_widget, LV_EVENT_PRESSING, (char*)"Coords_");
-    lv_obj_add_event_cb(position_widget, unselect_widget, LV_EVENT_RELEASED, NULL);
+    // lv_obj_add_event_cb(position_widget, drag_widget, LV_EVENT_PRESSING, (char*)"Coords_");
+    // lv_obj_add_event_cb(position_widget, unselect_widget, LV_EVENT_RELEASED, NULL);
 
     // Altitude widget
     lv_obj_t *altitude_widget = lv_obj_create(compass_tile);
@@ -128,8 +130,8 @@ void create_main_scr()
     lv_label_set_text_static(altitude, "0000 m.");
     lv_obj_align(altitude, LV_ALIGN_CENTER, 10, 0);
     unselect_obj(altitude_widget);
-    lv_obj_add_event_cb(altitude_widget, drag_widget, LV_EVENT_PRESSING, (char*)"Altitude_");
-    lv_obj_add_event_cb(altitude_widget, unselect_widget, LV_EVENT_RELEASED, NULL);
+    // lv_obj_add_event_cb(altitude_widget, drag_widget, LV_EVENT_PRESSING, (char*)"Altitude_");
+    // lv_obj_add_event_cb(altitude_widget, unselect_widget, LV_EVENT_RELEASED, NULL);
 
     // Speed widget
     lv_obj_t *speed_widget = lv_obj_create(compass_tile);
@@ -144,19 +146,19 @@ void create_main_scr()
     lv_label_set_text_static(speed_label, "0 Km/h");
     lv_obj_align(speed_label, LV_ALIGN_CENTER, 0, 0);
     unselect_obj(speed_widget);
-    lv_obj_add_event_cb(speed_widget, drag_widget, LV_EVENT_PRESSING, (char*)"Speed_");
-    lv_obj_add_event_cb(speed_widget, unselect_widget, LV_EVENT_RELEASED, NULL);
+    // lv_obj_add_event_cb(speed_widget, drag_widget, LV_EVENT_PRESSING, (char*)"Speed_");
+    // lv_obj_add_event_cb(speed_widget, unselect_widget, LV_EVENT_RELEASED, NULL);
 
-    // Compass Tile Events
-    lv_obj_add_event_cb(compass_heading, update_heading, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_obj_add_event_cb(latitude, update_latitude, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_obj_add_event_cb(longitude, update_longitude, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_obj_add_event_cb(altitude, update_altitude, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_obj_add_event_cb(speed_label, update_speed, LV_EVENT_VALUE_CHANGED, NULL);
+    //     // Compass Tile Events
+    //     // lv_obj_add_event_cb(compass_heading, update_heading, LV_EVENT_VALUE_CHANGED, NULL);
+    //     // lv_obj_add_event_cb(latitude, update_latitude, LV_EVENT_VALUE_CHANGED, NULL);
+    //     // lv_obj_add_event_cb(longitude, update_longitude, LV_EVENT_VALUE_CHANGED, NULL);
+    //     // lv_obj_add_event_cb(altitude, update_altitude, LV_EVENT_VALUE_CHANGED, NULL);
+    //     // lv_obj_add_event_cb(speed_label, update_speed, LV_EVENT_VALUE_CHANGED, NULL);
 
-    // Map Tile Events
-    lv_obj_add_event_cb(map_tile, update_map, LV_EVENT_REFRESH, NULL);
-    lv_obj_add_event_cb(mainScreen, get_zoom_value, LV_EVENT_GESTURE, NULL);
+    //     // Map Tile Events
+    //     // lv_obj_add_event_cb(map_tile, update_map, LV_EVENT_REFRESH, NULL);
+    //     // lv_obj_add_event_cb(mainScreen, get_zoom_value, LV_EVENT_GESTURE, NULL);
 
     // Navigation Tile
     // TODO
@@ -216,7 +218,7 @@ void create_main_scr()
     lv_style_set_radius(&style_radio, LV_RADIUS_CIRCLE);
 
     lv_style_init(&style_radio_chk);
-    lv_style_set_bg_img_src(&style_radio_chk, NULL);
+    lv_style_set_bg_image_src(&style_radio_chk, NULL);
 
     lv_obj_t *gnss_sel = lv_obj_create(sat_track_tile);
     lv_obj_set_flex_flow(gnss_sel, LV_FLEX_FLOW_ROW);
@@ -249,9 +251,9 @@ void create_main_scr()
     lv_obj_add_state(lv_obj_get_child(gnss_sel, 0), LV_STATE_CHECKED);
 
     // GNSS Selection Event
-    lv_obj_add_event_cb(gnss_sel, active_gnss_event, LV_EVENT_CLICKED, &active_gnss);
+    // lv_obj_add_event_cb(gnss_sel, active_gnss_event, LV_EVENT_CLICKED, &active_gnss);
 #endif
 
     // Satellite Tracking Event
-    lv_obj_add_event_cb(sat_track_tile, update_sattrack, LV_EVENT_VALUE_CHANGED, NULL);
+    // lv_obj_add_event_cb(sat_track_tile, update_sattrack, LV_EVENT_VALUE_CHANGED, NULL);
 }

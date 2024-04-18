@@ -73,7 +73,7 @@ static void create_map_settings_scr()
     btn = lv_btn_create(list);
     lv_obj_set_size(btn, 40, 40);
     lv_obj_align_to(btn, list, LV_ALIGN_LEFT_MID, 0, 0);
-    lv_obj_set_style_bg_img_src(btn, LV_SYMBOL_PLUS, 0);
+    lv_obj_set_style_bg_image_src(btn, LV_SYMBOL_PLUS, 0);
     lv_obj_add_event_cb(btn, increment_zoom, LV_EVENT_ALL, NULL);
 
     zoom_level = lv_spinbox_create(list);
@@ -89,7 +89,7 @@ static void create_map_settings_scr()
     btn = lv_btn_create(list);
     lv_obj_set_size(btn, 40, 40);
     lv_obj_align_to(btn, list, LV_ALIGN_RIGHT_MID, 0, 0);
-    lv_obj_set_style_bg_img_src(btn, LV_SYMBOL_MINUS, 0);
+    lv_obj_set_style_bg_image_src(btn, LV_SYMBOL_MINUS, 0);
     lv_obj_add_event_cb(btn, decrement_zoom, LV_EVENT_ALL, NULL);
 
     // Show Compass

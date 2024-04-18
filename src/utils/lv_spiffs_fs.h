@@ -34,7 +34,7 @@ static void *spiffs_fs_open(lv_fs_drv_t *drv, const char *path, lv_fs_mode_t mod
     {
         debug->println("Failed to open file!");
         debug->println(path);
-        return NULL;
+        return NULL;      
     }
 
     File *lf = new File{f};
@@ -188,9 +188,10 @@ static void *spiffs_dir_open(lv_fs_drv_t *drv, const char *dirpath)
  * @param drv
  * @param dir_p
  * @param fn
+ * @param fn_len
  * @return lv_fs_res_t
  */
-static lv_fs_res_t spiffs_dir_read(lv_fs_drv_t *drv, void *dir_p, char *fn)
+static lv_fs_res_t spiffs_dir_read(lv_fs_drv_t *drv, void *dir_p, char *fn, uint32_t fn_len)
 {
     LV_UNUSED(drv);
 

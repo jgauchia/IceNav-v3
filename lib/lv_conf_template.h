@@ -12,35 +12,17 @@
  */
 
 /* clang-format off */
-#if 1 /*Set it to "1" to enable content*/
+#if 0 /*Set it to "1" to enable content*/
 
 #ifndef LV_CONF_H
 #define LV_CONF_H
 
-
-//#define LV_VDB_DOUBLE 1
 /*====================
    COLOR SETTINGS
  *====================*/
 
-/*Color depth: 1 (1 byte per pixel), 8 (RGB332), 16 (RGB565), 32 (ARGB8888)*/
+/*Color depth: 8 (A8), 16 (RGB565), 24 (RGB888), 32 (XRGB8888)*/
 #define LV_COLOR_DEPTH 16
-
-
-// /*Swap the 2 bytes of RGB565 color. Useful if the display has an 8-bit interface (e.g. SPI)*/
-// #define LV_COLOR_16_SWAP 1
-
-// /*Enable features to draw on transparent background.
-//  *It's required if opa, and transform_* style properties are used.
-//  *Can be also used if the UI is above another layer, e.g. an OSD menu or video player.*/
-// #define LV_COLOR_SCREEN_TRANSP 0
-
-// /* Adjust color mix functions rounding. GPUs might calculate color mix (blending) differently.
-//  * 0: round down, 64: round up from x.75, 128: round up from half, 192: round up from x.25, 254: round up */
-// #define LV_COLOR_MIX_ROUND_OFS 0
-
-// /*Images pixels with this color will not be drawn if they are chroma keyed)*/
-// #define LV_COLOR_CHROMA_KEY lv_color_hex(0x00ff00)         /*pure green*/
 
 /*=========================
    STDLIB WRAPPER SETTINGS
@@ -57,22 +39,20 @@
 #define LV_USE_STDLIB_STRING    LV_STDLIB_BUILTIN
 #define LV_USE_STDLIB_SPRINTF   LV_STDLIB_BUILTIN
 
+
 #if LV_USE_STDLIB_MALLOC == LV_STDLIB_BUILTIN
     /*Size of the memory available for `lv_malloc()` in bytes (>= 2kB)*/
-    //#define LV_MEM_SIZE (64 * 1024U)          /*[bytes]*/
-    #define LV_MEM_SIZE (128 * 1024U) 
+    #define LV_MEM_SIZE (64 * 1024U)          /*[bytes]*/
 
     /*Size of the memory expand for `lv_malloc()` in bytes*/
-    #define LV_MEM_POOL_EXPAND_SIZE (64 * 1024U) 
+    #define LV_MEM_POOL_EXPAND_SIZE 0
 
     /*Set an address for the memory pool instead of allocating it as a normal array. Can be in external SRAM too.*/
     #define LV_MEM_ADR 0     /*0: unused*/
     /*Instead of an address give a memory allocator that will be called to get a memory pool for LVGL. E.g. my_malloc*/
     #if LV_MEM_ADR == 0
-        //#undef LV_MEM_POOL_INCLUDE
-        //#undef LV_MEM_POOL_ALLOC      
-        #define LV_MEM_POOL_INCLUDE <esp32-hal-psram.h>
-        #define LV_MEM_POOL_ALLOC ps_malloc     
+        #undef LV_MEM_POOL_INCLUDE
+        #undef LV_MEM_POOL_ALLOC
     #endif
 #endif  /*LV_USE_MALLOC == LV_STDLIB_BUILTIN*/
 
@@ -80,12 +60,12 @@
    HAL SETTINGS
  *====================*/
 
-/*Default display refresh period. LVG will redraw changed areas with this period time*/
-#define LV_DEF_REFR_PERIOD  16    /*[ms]*/
+/*Default display refresh, input device read and animation step period.*/
+#define LV_DEF_REFR_PERIOD  33      /*[ms]*/
 
 /*Default Dot Per Inch. Used to initialize default sizes such as widgets sized, style paddings.
  *(Not so important, you can adjust it to modify default sizes and spaces)*/
-#define LV_DPI_DEF 130    /*[px/inch]*/
+#define LV_DPI_DEF 130     /*[px/inch]*/
 
 /*=================
  * OPERATING SYSTEM
@@ -130,7 +110,7 @@
      * and can't be drawn in chunks. */
 
     /*The target buffer size for simple layer chunks.*/
-    #define LV_DRAW_SW_LAYER_SIMPLE_BUF_SIZE    (64 * 1024)   /*[bytes]*/
+    #define LV_DRAW_SW_LAYER_SIMPLE_BUF_SIZE    (24 * 1024)   /*[bytes]*/
 
     /* 0: use a simple renderer capable of drawing only simple rectangles with gradient, images, texts, and straight lines only
      * 1: use a complex renderer capable of drawing rounded corners, shadow, skew lines, and arcs too */
@@ -202,13 +182,12 @@
  * FEATURE CONFIGURATION
  *=======================*/
 
-
 /*-------------
  * Logging
  *-----------*/
 
 /*Enable the log module*/
-#define LV_USE_LOG 1
+#define LV_USE_LOG 0
 #if LV_USE_LOG
 
     /*How important log should be added:
@@ -218,11 +197,15 @@
     *LV_LOG_LEVEL_ERROR       Only critical issue, when the system may fail
     *LV_LOG_LEVEL_USER        Only logs added by the user
     *LV_LOG_LEVEL_NONE        Do not log anything*/
-    #define LV_LOG_LEVEL LV_LOG_LEVEL_ERROR
+    #define LV_LOG_LEVEL LV_LOG_LEVEL_WARN
 
     /*1: Print the log with 'printf';
     *0: User need to register a callback with `lv_log_register_print_cb()`*/
-    #define LV_LOG_PRINTF 1
+    #define LV_LOG_PRINTF 0
+
+    /*1: Enable print timestamp;
+     *0: Disable print timestamp*/
+    #define LV_LOG_USE_TIMESTAMP 1
 
     /*1: Print file and line number of the log;
      *0: Do not print file and line number of the log*/
@@ -249,9 +232,9 @@
  *If LV_USE_LOG is enabled an error message will be printed on failure*/
 #define LV_USE_ASSERT_NULL          1   /*Check if the parameter is NULL. (Very fast, recommended)*/
 #define LV_USE_ASSERT_MALLOC        1   /*Checks is the memory is successfully allocated or no. (Very fast, recommended)*/
-#define LV_USE_ASSERT_STYLE         1   /*Check if the styles are properly initialized. (Very fast, recommended)*/
-#define LV_USE_ASSERT_MEM_INTEGRITY 1   /*Check the integrity of `lv_mem` after critical operations. (Slow)*/
-#define LV_USE_ASSERT_OBJ           1   /*Check the object's type and existence (e.g. not deleted). (Slow)*/
+#define LV_USE_ASSERT_STYLE         0   /*Check if the styles are properly initialized. (Very fast, recommended)*/
+#define LV_USE_ASSERT_MEM_INTEGRITY 0   /*Check the integrity of `lv_mem` after critical operations. (Slow)*/
+#define LV_USE_ASSERT_OBJ           0   /*Check the object's type and existence (e.g. not deleted). (Slow)*/
 
 /*Add a custom handler when assert happens e.g. to restart the MCU*/
 #define LV_ASSERT_HANDLER_INCLUDE <stdint.h>
@@ -286,11 +269,11 @@
  *Used by image decoders such as `lv_lodepng` to keep the decoded image in the memory.
  *If size is not set to 0, the decoder will fail to decode when the cache is full.
  *If size is 0, the cache function is not enabled and the decoded mem will be released immediately after use.*/
-#define LV_CACHE_DEF_SIZE   (32 * 1024)
+#define LV_CACHE_DEF_SIZE       0
 
 /*Default number of image header cache entries. The cache is used to store the headers of images
  *The main logic is like `LV_CACHE_DEF_SIZE` but for image headers.*/
-#define LV_IMAGE_HEADER_CACHE_DEF_CNT 5
+#define LV_IMAGE_HEADER_CACHE_DEF_CNT 0
 
 /*Number of stops allowed per gradient. Increase this to allow more stops.
  *This adds (sizeof(lv_color_t) + 1) bytes per additional stop*/
@@ -345,7 +328,7 @@
 /*Define a custom attribute to `lv_timer_handler` function*/
 #define LV_ATTRIBUTE_TIMER_HANDLER
 
-/*Define a custom attribute to `lv_disp_flush_ready` function*/
+/*Define a custom attribute to `lv_display_flush_ready` function*/
 #define LV_ATTRIBUTE_FLUSH_READY
 
 /*Required alignment size for buffers*/
@@ -364,7 +347,6 @@
 /*Place performance critical functions into a faster memory (e.g RAM)*/
 #define LV_ATTRIBUTE_FAST_MEM
 
-
 /*Export integer constant to binding. This macro is used with constants in the form of LV_<CONST> that
  *should also appear on LVGL binding API such as Micropython.*/
 #define LV_EXPORT_CONST_INT(int_value) struct _silence_gcc_warning /*The default value just prevents GCC warning*/
@@ -375,34 +357,33 @@
 /* Use `float` as `lv_value_precise_t` */
 #define LV_USE_FLOAT            0
 
-
 /*==================
  *   FONT USAGE
  *===================*/
 
 /*Montserrat fonts with ASCII range and some symbols using bpp = 4
  *https://fonts.google.com/specimen/Montserrat*/
-#define LV_FONT_MONTSERRAT_8  1
-#define LV_FONT_MONTSERRAT_10 1
-#define LV_FONT_MONTSERRAT_12 1
+#define LV_FONT_MONTSERRAT_8  0
+#define LV_FONT_MONTSERRAT_10 0
+#define LV_FONT_MONTSERRAT_12 0
 #define LV_FONT_MONTSERRAT_14 1
-#define LV_FONT_MONTSERRAT_16 1
-#define LV_FONT_MONTSERRAT_18 1
-#define LV_FONT_MONTSERRAT_20 1
+#define LV_FONT_MONTSERRAT_16 0
+#define LV_FONT_MONTSERRAT_18 0
+#define LV_FONT_MONTSERRAT_20 0
 #define LV_FONT_MONTSERRAT_22 0
-#define LV_FONT_MONTSERRAT_24 1
+#define LV_FONT_MONTSERRAT_24 0
 #define LV_FONT_MONTSERRAT_26 0
 #define LV_FONT_MONTSERRAT_28 0
 #define LV_FONT_MONTSERRAT_30 0
 #define LV_FONT_MONTSERRAT_32 0
 #define LV_FONT_MONTSERRAT_34 0
 #define LV_FONT_MONTSERRAT_36 0
-#define LV_FONT_MONTSERRAT_38 1
+#define LV_FONT_MONTSERRAT_38 0
 #define LV_FONT_MONTSERRAT_40 0
 #define LV_FONT_MONTSERRAT_42 0
 #define LV_FONT_MONTSERRAT_44 0
 #define LV_FONT_MONTSERRAT_46 0
-#define LV_FONT_MONTSERRAT_48 1
+#define LV_FONT_MONTSERRAT_48 0
 
 /*Demonstrate special features*/
 #define LV_FONT_MONTSERRAT_28_COMPRESSED 0  /*bpp = 3*/
@@ -569,33 +550,33 @@
 
 #define LV_USE_WIN        1
 
-/*-----------
- * Themes
- *----------*/
+/*==================
+ * THEMES
+ *==================*/
 
 /*A simple, impressive and very complete theme*/
 #define LV_USE_THEME_DEFAULT 1
 #if LV_USE_THEME_DEFAULT
 
     /*0: Light mode; 1: Dark mode*/
-    #define LV_THEME_DEFAULT_DARK 1
+    #define LV_THEME_DEFAULT_DARK 0
 
     /*1: Enable grow on press*/
     #define LV_THEME_DEFAULT_GROW 1
 
     /*Default transition time in [ms]*/
-    #define LV_THEME_DEFAULT_TRANSITION_TIME 40
+    #define LV_THEME_DEFAULT_TRANSITION_TIME 80
 #endif /*LV_USE_THEME_DEFAULT*/
 
 /*A very simple theme that is a good starting point for a custom theme*/
 #define LV_USE_THEME_SIMPLE 1
 
 /*A theme designed for monochrome displays*/
-#define LV_USE_THEME_MONO 0
+#define LV_USE_THEME_MONO 1
 
-/*-----------
- * Layouts
- *----------*/
+/*==================
+ * LAYOUTS
+ *==================*/
 
 /*A layout similar to Flexbox in CSS.*/
 #define LV_USE_FLEX 1
@@ -603,9 +584,9 @@
 /*A layout similar to Grid in CSS.*/
 #define LV_USE_GRID 1
 
-/*---------------------
- * 3rd party libraries
- *--------------------*/
+/*====================
+ * 3RD PARTS LIBRARIES
+ *====================*/
 
 /*File system interfaces for common APIs */
 
@@ -636,12 +617,18 @@
 /*API for FATFS (needs to be added separately). Uses f_open, f_read, etc*/
 #define LV_USE_FS_FATFS 0
 #if LV_USE_FS_FATFS
-    #define LV_FS_FATFS_LETTER 'S'     /*Set an upper cased letter on which the drive will accessible (e.g. 'A')*/
+    #define LV_FS_FATFS_LETTER '\0'     /*Set an upper cased letter on which the drive will accessible (e.g. 'A')*/
     #define LV_FS_FATFS_CACHE_SIZE 0    /*>0 to cache this number of bytes in lv_fs_read()*/
 #endif
 
+/*API for memory-mapped file access. */
+#define LV_USE_FS_MEMFS 0
+#if LV_USE_FS_MEMFS
+    #define LV_FS_MEMFS_LETTER '\0'     /*Set an upper cased letter on which the drive will accessible (e.g. 'A')*/
+#endif
+
 /*LODEPNG decoder library*/
-#define LV_USE_LODEPNG 1
+#define LV_USE_LODEPNG 0
 
 /*PNG decoder(libpng) library*/
 #define LV_USE_LIBPNG 0
@@ -666,7 +653,7 @@
 
 
 /*Decode bin images to RAM*/
-#define LV_BIN_DECODER_RAM_LOAD 1
+#define LV_BIN_DECODER_RAM_LOAD 0
 
 /*RLE decompress library*/
 #define LV_USE_RLE 0
@@ -702,7 +689,6 @@
 
 /*Rlottie library*/
 #define LV_USE_RLOTTIE 0
-
 
 /*Enable Vector Graphic APIs*/
 #define LV_USE_VECTOR_GRAPHIC  0
@@ -913,7 +899,7 @@
 *==================*/
 
 /*Enable the examples to be built with the library*/
-#define LV_BUILD_EXAMPLES 0
+#define LV_BUILD_EXAMPLES 1
 
 /*===================
  * DEMO USAGE
@@ -966,4 +952,3 @@
 #endif /*LV_CONF_H*/
 
 #endif /*End of "Content enable"*/
-

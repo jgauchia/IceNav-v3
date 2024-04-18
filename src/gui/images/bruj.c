@@ -822,11 +822,12 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_BRUJ uint
 };
 
 const lv_img_dsc_t bruj = {
-    { LV_IMG_CF_TRUE_COLOR_ALPHA,
+    { LV_COLOR_FORMAT_NATIVE_WITH_ALPHA,
      0,
      2,
      200,
      200},
-    40000 * LV_IMG_PX_SIZE_ALPHA_BYTE,
+     80 * 60 * LV_COLOR_DEPTH / 8,
+    //40000 * LV_IMG_PX_SIZE_ALPHA_BYTE,
     bruj_map,
 };

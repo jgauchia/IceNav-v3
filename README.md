@@ -52,7 +52,7 @@ For the moment we have two Icenav models, with the next hardware setup and specs
                                                  RST  GPIO32
                                                  CS   GPIO2
                                                  LED  GPIO33
-                                                 TCH  GPIO18
+                                                 TCS  GPIO18
                                                  TIRQ GPIO5
 
        Pinout (ESP32S3-MakerFabs)

@@ -20,15 +20,16 @@ void load_main_screen();
 void create_search_sat_scr()
 {
     searchSat = lv_obj_create(NULL);
-    lv_obj_t *label = lv_label_create(searchSat);
 
+    lv_obj_t *label = lv_label_create(searchSat);
     lv_obj_set_style_text_font(label, &lv_font_montserrat_18, 0);
     lv_label_set_text(label, PSTR("Searching for satellites"));
     lv_obj_set_align(label, LV_ALIGN_CENTER);
     lv_obj_set_y(label, -100);
 
-    lv_obj_t *spinner = lv_spinner_create(searchSat, 1000, 60);
+    lv_obj_t *spinner = lv_spinner_create(searchSat);
     lv_obj_set_size(spinner, 130, 130);
+    lv_spinner_set_anim_params(spinner, 2000, 200);
     lv_obj_center(spinner);
 
     lv_obj_t *satimg = lv_img_create(searchSat);

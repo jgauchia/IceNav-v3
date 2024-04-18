@@ -38,7 +38,7 @@ static void update_batt(lv_event_t *event)
  */
 static void update_fix_mode(lv_event_t *event)
 {
-    lv_obj_t *mode = lv_event_get_target(event);
+    lv_obj_t *mode = lv_event_get_target_obj(event);
     if (fix_mode.isValid() && fix_old != atoi(fix_mode.value()))
     {
         switch (atoi(fix_mode.value()))
@@ -66,7 +66,7 @@ static void update_fix_mode(lv_event_t *event)
  */
 static void update_time(lv_event_t *event)
 {
-    lv_obj_t *time = lv_event_get_target(event);
+    lv_obj_t *time = lv_event_get_target_obj(event);
     // UTC Time
     utc = now();
     // Local Time
@@ -80,7 +80,7 @@ static void update_time(lv_event_t *event)
  */
 static void update_gps_count(lv_event_t *event)
 {
-    lv_obj_t *gps_num = lv_event_get_target(event);
+    lv_obj_t *gps_num = lv_event_get_target_obj(event);
     if (GPS.satellites.isValid())
         lv_label_set_text_fmt(gps_num, LV_SYMBOL_GPS "%2d", GPS.satellites.value());
     else
@@ -93,9 +93,9 @@ static void update_gps_count(lv_event_t *event)
  */
 void update_notify_bar(lv_timer_t *t)
 {
-    lv_event_send(gps_time, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_event_send(gps_count, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_event_send(gps_fix_mode, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_send_event(gps_time, LV_EVENT_VALUE_CHANGED,NULL);
+    lv_obj_send_event(gps_count, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_send_event(gps_fix_mode, LV_EVENT_VALUE_CHANGED, NULL);
 
     switch (atoi(fix.value()))
     {
@@ -116,7 +116,7 @@ void update_notify_bar(lv_timer_t *t)
     batt_level = battery_read();
     if (batt_level != batt_level_old)
     {
-        lv_event_send(battery, LV_EVENT_VALUE_CHANGED, NULL);
+        lv_obj_send_event(battery, LV_EVENT_VALUE_CHANGED, NULL);
         batt_level_old = batt_level;
     }
 

@@ -62,15 +62,23 @@ void create_button_bar_scr()
  */
 static void load_options()
 {
+    option = lv_msgbox_create(lv_scr_act());
     if (is_waypoint)
-        option = lv_msgbox_create(lv_scr_act(), "Waypoint Options", NULL, NULL, true);
+    {
+        lv_msgbox_add_title(option,"Waypoint Options");
+        // option = lv_msgbox_create(lv_scr_act(), "Waypoint Options", NULL, NULL, true);
+    }
     else if (is_track)
-        option = lv_msgbox_create(lv_scr_act(), "Track Options", NULL, NULL, true);
+    {
+        lv_msgbox_add_title(option,"Track Options");
+        //option = lv_msgbox_create(lv_scr_act(), "Track Options", NULL, NULL, true);
+    }
+    lv_msgbox_add_close_button(option);
 
     lv_obj_set_size(option, TFT_WIDTH, 128);
     lv_obj_set_pos(option, 0, TFT_HEIGHT - 200);
     lv_obj_clear_flag(option, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_event_cb(((lv_msgbox_t *)option)->close_btn, close_option, LV_EVENT_PRESSED, NULL);
+    //lv_obj_add_event_cb(lv_msgbox_get_close_btn(option), close_option, LV_EVENT_PRESSED, NULL);
 
     lv_obj_t *imgBtn;
 

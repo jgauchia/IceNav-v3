@@ -186,9 +186,10 @@ static void *sd_dir_open(lv_fs_drv_t *drv, const char *dirpath)
  * @param drv
  * @param dir_p
  * @param fn
+ * @param fn_lem
  * @return lv_fs_res_t
  */
-static lv_fs_res_t sd_dir_read(lv_fs_drv_t *drv, void *dir_p, char *fn)
+static lv_fs_res_t sd_dir_read(lv_fs_drv_t *drv, void *dir_p, char *fn, uint32_t fn_len)
 {
     LV_UNUSED(drv);
 

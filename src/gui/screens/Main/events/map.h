@@ -21,7 +21,7 @@ static const char *map_scale[] = {"5000 Km", "2500 Km", "1500 Km", "700 Km", "35
  */
 static void get_zoom_value(lv_event_t *event)
 {
-  lv_obj_t *screen = lv_event_get_current_target(event);
+  lv_obj_t *screen = (lv_obj_t*)lv_event_get_current_target(event);
   lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
   if (act_tile == MAP && is_main_screen)
   {
@@ -52,7 +52,7 @@ static void get_zoom_value(lv_event_t *event)
           position_moved = false;
         }
       }
-      lv_event_send(map_tile, LV_EVENT_REFRESH, NULL);
+      lv_obj_send_event(map_tile, LV_EVENT_REFRESH, NULL);
       break;
     case LV_DIR_BOTTOM:
       if (!vector_map)
@@ -75,7 +75,7 @@ static void get_zoom_value(lv_event_t *event)
           position_moved = false;
         }
       }
-      lv_event_send(map_tile, LV_EVENT_REFRESH, NULL);
+      lv_obj_send_event(map_tile, LV_EVENT_REFRESH, NULL);
       break;
     }
   }

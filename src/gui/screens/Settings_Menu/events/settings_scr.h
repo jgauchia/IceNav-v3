@@ -30,7 +30,7 @@ static void touch_calib(lv_event_t *event)
     touch_calibrate();
     REPEAT_CAL = false;
     is_main_screen = false;
-    lv_scr_load(settingsScreen);
+    lv_screen_load(settingsScreen);
 }
 
 /**
@@ -43,7 +43,7 @@ static void compass_calib(lv_event_t *event)
     tft.fillScreen(TFT_BLACK);
     compass_calibrate();
     is_main_screen = false;
-    lv_scr_load(settingsScreen);
+    lv_screen_load(settingsScreen);
 }
 
 /**
@@ -53,7 +53,7 @@ static void compass_calib(lv_event_t *event)
  */
 static void map_settings(lv_event_t *event)
 {
-    lv_scr_load(mapsettingsScreen);
+    lv_screen_load(mapsettingsScreen);
 }
 
 /**
@@ -63,5 +63,5 @@ static void map_settings(lv_event_t *event)
  */
 static void device_settings(lv_event_t *event)
 {
-    lv_scr_load(devicesettingsScreen);
+    lv_screen_load(devicesettingsScreen);
 }
