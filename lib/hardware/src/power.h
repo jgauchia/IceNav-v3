@@ -6,6 +6,9 @@
  * @date 2024-04
  */
 
+#ifndef POWER_H
+#define POWER_H
+
 #include <WiFi.h>
 #include <driver/rtc_io.h>
 #include <esp_bt.h>
@@ -39,3 +42,5 @@ void powerOn()
   esp_bt_controller_disable();
 #endif
 }
+
+#endif

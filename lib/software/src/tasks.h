@@ -6,6 +6,9 @@
  * @date 2024-04
  */
 
+#ifndef TASKS_H
+#define TASKS_H
+
 /**
  * @brief Task 1 - Read GPS data
  *
@@ -58,3 +61,5 @@ void initTasks()
   //xTaskCreatePinnedToCore(lvglTask, PSTR("LVGL Task"), 20000, NULL, 1, NULL, 1);
   //delay(500);
 }
+
+#endif

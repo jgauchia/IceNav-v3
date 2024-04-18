@@ -6,6 +6,9 @@
  * @date 2024-04
  */
 
+#ifndef COMPASS_H
+#define COMPASS_H
+
 #ifdef CUSTOMBOARD
 #include <Adafruit_Sensor.h>
 #include <Adafruit_HMC5883_U.h>
@@ -189,3 +192,5 @@ static void compassCalibrate()
 
   saveCompassCal(offX,offY);
 }
+
+#endif

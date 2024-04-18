@@ -6,8 +6,13 @@
  * @date 2024-04
  */
 
+#ifndef BME_H
+#define BME_H
+
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 
 Adafruit_BME280 bme;
 uint8_t tempOld = 0;
+
+#endif

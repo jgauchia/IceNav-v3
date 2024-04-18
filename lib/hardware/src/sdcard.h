@@ -6,6 +6,9 @@
  * @date 2024-04
  */
 
+#ifndef SDCARD_H
+#define SDCARD_H
+
 #include <FS.h>
 #include <SD.h>
 
@@ -50,3 +53,5 @@ void initSPIFFS()
   else
     log_v("SPIFFS Mounted");
 }
+
+#endif

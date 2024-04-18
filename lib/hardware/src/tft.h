@@ -6,6 +6,9 @@
  * @date 2024-04
  */
 
+#ifndef TFT_H
+#define TFT_H
+
 #define CALIBRATION_FILE "/TouchCalData1"
 bool repeatCalib = false;
 uint8_t brightnessLevel = 255;
@@ -140,3 +143,5 @@ void initTFT()
   touchCalibrate();
 #endif
 }
+
+#endif

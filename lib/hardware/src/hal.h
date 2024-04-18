@@ -6,6 +6,9 @@
  * @date 2024-04
  */
 
+#ifndef HAL_H
+#define HAL_H
+
 #ifdef CUSTOMBOARD
 /**
  * @brief GPS pin definition
@@ -55,3 +58,5 @@
  * 
  */
   #define BME_ADDRESS 0x76
+
+#endif

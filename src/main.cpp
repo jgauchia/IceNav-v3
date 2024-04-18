@@ -19,20 +19,27 @@
 unsigned long millisActual = 0;
 static ulong lvglTickMillis = millis();
 
-#include "hardware/hal.h"
-#include "hardware/gps.h"
-#include "utils/preferences.h"
-#include "hardware/sdcard.h"
-#include "hardware/tft.h"
+// Software includes
+#include "settings.h"
+#include "tasks.h"
 
+// Hardware includes
+#include "hal.h"
+#include "gps.h"
+#include "sdcard.h"
+#include "tft.h"
 #ifdef ENABLE_COMPASS
-#include "hardware/compass.h"
+#include "compass.h"
 #endif
 #ifdef ENABLE_BME
-#include "hardware/bme.h"
+#include "bme.h"
 #endif
-#include "hardware/battery.h"
-#include "hardware/power.h"
+#include "battery.h"
+#include "power.h"
+
+
+
+
 #include "utils/gps_math.h"
 #include "utils/sat_info.h"
 #include "utils/lv_spiffs_fs.h"
@@ -42,7 +49,7 @@ static ulong lvglTickMillis = millis();
 #include "utils/vector_maps.h"
 #include "gui/lvgl.h"
 
-#include "tasks.h"
+
 
 /**
  * @brief Setup
@@ -81,11 +88,11 @@ void setup()
   splashScreen();
   initTasks();
 
-//#ifdef DEFAULT_LAT
+#ifdef DEFAULT_LAT
   loadMainScreen();
-//#else
-//  lv_screen_load(searchSat);
-//#endif
+#else
+  lv_screen_load(searchSat);
+#endif
 }
 
 /**
@@ -97,7 +104,7 @@ void loop()
   while (gps->available() > 0)
   {
 #ifdef OUTPUT_NMEA
-    log_v("%s",gps->read());
+    log_v("%s", gps->read());
 #else
     GPS.encode(gps->read());
 #endif

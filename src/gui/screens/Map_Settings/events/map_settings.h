@@ -41,6 +41,8 @@ static void configureMapType(lv_event_t *event)
         MAX_ZOOM = 17;
     }
     lv_spinbox_set_range(zoomLevel, MIN_ZOOM, MAX_ZOOM);
+    defaultZoom = (uint8_t)lv_spinbox_get_value(zoomLevel);
+    saveDefaultZoom(defaultZoom);
 }
 
 /**

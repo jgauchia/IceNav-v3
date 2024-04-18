@@ -6,8 +6,12 @@
  * @date 2024-04
  */
 
+#ifndef GPS_H
+#define GPS_H
+
 #include <TimeLib.h>
 #include <TinyGPS++.h>
+#include "hal.h"
 
 #define MAX_SATELLITES 120
 #define MAX_SATELLLITES_IN_VIEW 32
@@ -191,3 +195,5 @@ static double getLon()
 #endif
   }
 }
+
+#endif

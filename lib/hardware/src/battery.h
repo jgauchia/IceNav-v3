@@ -6,6 +6,9 @@
  * @date 2024-04
  */
 
+#ifndef BATTERY_H
+#define BATTERY_H
+
 #include <driver/adc.h>
 #include <esp_adc_cal.h>
 
@@ -61,3 +64,5 @@ float batteryRead()
   else
     return 0.0f;
 }
+
+#endif

@@ -1,12 +1,17 @@
 /**
- * @file preferences.h
+ * @file settings.h
  * @author Jordi Gauchía (jgauchia@gmx.es)
- * @brief  Preferences functions
+ * @brief  Settings functions
  * @version 0.1.8
  * @date 2024-04
  */
 
+#ifndef SETTINGS_H
+#define SETTINGS_H
+
 #include <Preferences.h>
+#include "gps.h"
+#include "hal.h"
 
 Preferences preferences;
 
@@ -263,3 +268,5 @@ static void saveMapType(bool vector)
     preferences.putBool("Map_vector", vector);
     preferences.end();
 }
+
+#endif
