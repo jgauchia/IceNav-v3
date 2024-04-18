@@ -120,6 +120,8 @@ If the GPS module supports multiple GNSS, uncomment the following flag in the pl
 ```
 
 ### TO DO
+
+- [ ] LVGL 9 Integration
 - [ ] Multiple IMU's and Compass module implementation
 - [ ] Power saving
 - [ ] Vector maps
