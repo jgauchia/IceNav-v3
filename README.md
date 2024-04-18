@@ -13,6 +13,8 @@ ESP32 Based GPS Navigator.
 
 For the moment we have two Icenav models, with the next hardware setup and specs:
 
+(other setups like another sensors, etc... not listed in the specs,  now **They are not included**)
+
 ### Customboard ESP32 setup
 
 * ESP32 WROVER with 4Mb PSRAM / 16 Mb Flash
