@@ -1,9 +1,9 @@
 /**
  * @file lv_sd_fs.h
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  SD file functions for LVGL
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-04
  */
 
 #include "lvgl.h"
@@ -16,7 +16,7 @@
  * @param mode
  * @return void*
  */
-static void *sd_fs_open(lv_fs_drv_t *drv, const char *path, lv_fs_mode_t mode)
+static void *sdFsOpen(lv_fs_drv_t *drv, const char *path, lv_fs_mode_t mode)
 {
     LV_UNUSED(drv);
     const char *flags = "";
@@ -31,7 +31,7 @@ static void *sd_fs_open(lv_fs_drv_t *drv, const char *path, lv_fs_mode_t mode)
     File f = SD.open(path, flags);
     if (!f)
     {
-        debug->println("Failed to open file!");
+        log_e("Failed to open file!");
         return NULL;
     }
 
@@ -50,7 +50,7 @@ static void *sd_fs_open(lv_fs_drv_t *drv, const char *path, lv_fs_mode_t mode)
  * @param file_p
  * @return lv_fs_res_t
  */
-static lv_fs_res_t sd_fs_close(lv_fs_drv_t *drv, void *file_p)
+static lv_fs_res_t sdFsClose(lv_fs_drv_t *drv, void *file_p)
 {
     LV_UNUSED(drv);
 
@@ -72,7 +72,7 @@ static lv_fs_res_t sd_fs_close(lv_fs_drv_t *drv, void *file_p)
  * @param br
  * @return lv_fs_res_t
  */
-static lv_fs_res_t sd_fs_read(lv_fs_drv_t *drv, void *file_p, void *fileBuf, uint32_t btr, uint32_t *br)
+static lv_fs_res_t sdFsRead(lv_fs_drv_t *drv, void *file_p, void *fileBuf, uint32_t btr, uint32_t *br)
 {
     LV_UNUSED(drv);
 
@@ -93,7 +93,7 @@ static lv_fs_res_t sd_fs_read(lv_fs_drv_t *drv, void *file_p, void *fileBuf, uin
  * @param bw
  * @return lv_fs_res_t
  */
-static lv_fs_res_t sd_fs_write(lv_fs_drv_t *drv, void *file_p, const void *buf, uint32_t btw, uint32_t *bw)
+static lv_fs_res_t sdFsWrite(lv_fs_drv_t *drv, void *file_p, const void *buf, uint32_t btw, uint32_t *bw)
 {
     LV_UNUSED(drv);
 
@@ -113,7 +113,7 @@ static lv_fs_res_t sd_fs_write(lv_fs_drv_t *drv, void *file_p, const void *buf, 
  * @param whence
  * @return lv_fs_res_t
  */
-static lv_fs_res_t sd_fs_seek(lv_fs_drv_t *drv, void *file_p, uint32_t pos, lv_fs_whence_t whence)
+static lv_fs_res_t sdFsSeek(lv_fs_drv_t *drv, void *file_p, uint32_t pos, lv_fs_whence_t whence)
 {
     LV_UNUSED(drv);
 
@@ -140,7 +140,7 @@ static lv_fs_res_t sd_fs_seek(lv_fs_drv_t *drv, void *file_p, uint32_t pos, lv_f
  * @param pos_p
  * @return lv_fs_res_t
  */
-static lv_fs_res_t sd_fs_tell(lv_fs_drv_t *drv, void *file_p, uint32_t *pos_p)
+static lv_fs_res_t sdFsTell(lv_fs_drv_t *drv, void *file_p, uint32_t *pos_p)
 {
     LV_UNUSED(drv);
 
@@ -155,23 +155,23 @@ static lv_fs_res_t sd_fs_tell(lv_fs_drv_t *drv, void *file_p, uint32_t *pos_p)
  * @brief SD Dir Open LVGL CallBack
  *
  * @param drv
- * @param dirpath
+ * @param dirPath
  * @return void*
  */
-static void *sd_dir_open(lv_fs_drv_t *drv, const char *dirpath)
+static void *sdDirOpen(lv_fs_drv_t *drv, const char *dirPath)
 {
     LV_UNUSED(drv);
 
-    File root = SD.open(dirpath);
+    File root = SD.open(dirPath);
     if (!root)
     {
-        Serial.println("Failed to open directory!");
+        log_e("Failed to open directory!");
         return NULL;
     }
 
     if (!root.isDirectory())
     {
-        Serial.println("Not a directory!");
+        log_e("Not a directory!");
         return NULL;
     }
 
@@ -189,7 +189,7 @@ static void *sd_dir_open(lv_fs_drv_t *drv, const char *dirpath)
  * @param fn_lem
  * @return lv_fs_res_t
  */
-static lv_fs_res_t sd_dir_read(lv_fs_drv_t *drv, void *dir_p, char *fn, uint32_t fn_len)
+static lv_fs_res_t sdDirRead(lv_fs_drv_t *drv, void *dir_p, char *fn, uint32_t fn_len)
 {
     LV_UNUSED(drv);
 
@@ -207,18 +207,14 @@ static lv_fs_res_t sd_dir_read(lv_fs_drv_t *drv, void *dir_p, char *fn, uint32_t
         {
             if (file.isDirectory())
             {
-                Serial.print("  DIR : ");
-                Serial.println(file.name());
+                log_v("  DIR : %s",file.name());
                 fn[0] = '/';
                 strcpy(&fn[1], file.name());
             }
             else
             {
-                Serial.print("  FILE: ");
-                Serial.print(file.name());
-                Serial.print("  SIZE: ");
-                Serial.println(file.size());
-
+                log_v("  FILE: %s",file.name());
+                log_v("  SIZE: %d",file.size());
                 strcpy(fn, file.name());
             }
             break;
@@ -236,7 +232,7 @@ static lv_fs_res_t sd_dir_read(lv_fs_drv_t *drv, void *dir_p, char *fn, uint32_t
  * @param dir_p
  * @return lv_fs_res_t
  */
-static lv_fs_res_t sd_dir_close(lv_fs_drv_t *drv, void *dir_p)
+static lv_fs_res_t sdDirClose(lv_fs_drv_t *drv, void *dir_p)
 {
     LV_UNUSED(drv);
 
@@ -253,7 +249,7 @@ static lv_fs_res_t sd_dir_close(lv_fs_drv_t *drv, void *dir_p)
  * @brief Init LVGL SD Filesystem
  *
  */
-static void lv_port_sd_fs_init(void)
+static void lv_port_sdFsInit(void)
 {
     /*---------------------------------------------------
      * Register the file system interface in LVGL
@@ -267,16 +263,16 @@ static void lv_port_sd_fs_init(void)
     fs_drv.letter = 'S';
     fs_drv.cache_size = sizeof(File);
 
-    fs_drv.open_cb = sd_fs_open;
-    fs_drv.close_cb = sd_fs_close;
-    fs_drv.read_cb = sd_fs_read;
-    fs_drv.write_cb = sd_fs_write;
-    fs_drv.seek_cb = sd_fs_seek;
-    fs_drv.tell_cb = sd_fs_tell;
+    fs_drv.open_cb = sdFsOpen;
+    fs_drv.close_cb = sdFsClose;
+    fs_drv.read_cb = sdFsRead;
+    fs_drv.write_cb = sdFsWrite;
+    fs_drv.seek_cb = sdFsSeek;
+    fs_drv.tell_cb = sdFsTell;
 
-    fs_drv.dir_close_cb = sd_dir_close;
-    fs_drv.dir_open_cb = sd_dir_open;
-    fs_drv.dir_read_cb = sd_dir_read;
+    fs_drv.dir_close_cb = sdDirClose;
+    fs_drv.dir_open_cb = sdDirOpen;
+    fs_drv.dir_read_cb = sdDirRead;
 
     lv_fs_drv_register(&fs_drv);
 }

@@ -2,8 +2,8 @@
  * @file vector_maps.h
  * @author @aresta
  * @brief  Vector maps draw functions
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-04
  */
 
 #include <SPI.h>
@@ -20,7 +20,7 @@
  * @brief Vector Map folder
  *
  */
-const String base_folder = "/mymap/"; // TODO: folder selection
+const String baseFolder = "/mymap/"; // TODO: folder selection
 
 /**
  * @brief Vectorized map size
@@ -29,7 +29,7 @@ const String base_folder = "/mymap/"; // TODO: folder selection
 #define MAP_HEIGHT 374
 #define MAP_WIDTH 320
 
-bool position_moved = false;
+bool isPosMoved = false;
 
 /**
  * @brief Vector map object colours
@@ -80,7 +80,7 @@ struct Point16
     Point16(int16_t x, int16_t y) : x(x), y(y){};
     Point16 operator-(const Point16 p) { return Point16(x - p.x, y - p.y); };
     Point16 operator+(const Point16 p) { return Point16(x + p.x, y + p.y); };
-    Point16(char *coords_pair); // char array like:  11.222,333.44
+    Point16(char *coordsPair); // char array like:  11.222,333.44
     int16_t x;
     int16_t y;
 };
@@ -100,7 +100,7 @@ struct Point32
     bool operator==(const Point32 p) { return x == p.x && y == p.y; };
 
     /// @brief Parse char array with the coordinates
-    /// @param coords_pair char array like:  11.222,333.44
+    /// @param coordsPair char array like:  11.222,333.44
 
     int32_t x;
     int32_t y;
@@ -118,7 +118,7 @@ struct BBox
     // @param max bottim right corner
     BBox(Point32 min, Point32 max) : min(min), max(max){};
     BBox operator-(const Point32 p) { return BBox(min - p, max - p); };
-    bool contains_point(const Point32 p);
+    bool containsPoint(const Point32 p);
     bool intersects(const BBox b);
     Point32 min;
     Point32 max;
@@ -134,7 +134,7 @@ struct Polyline
     BBox bbox;
     uint16_t color;
     uint8_t width;
-    uint8_t maxzoom;
+    uint8_t maxZoom;
 };
 
 /**
@@ -146,7 +146,7 @@ struct Polygon
     std::vector<Point16> points;
     BBox bbox;
     uint16_t color;
-    uint8_t maxzoom;
+    uint8_t maxZoom;
 };
 
 /**
@@ -177,23 +177,23 @@ void ViewPort::setCenter(Point32 pcenter)
 /**
  * @brief Points to screen coordinates
  *
- * @param p
- * @param screen_center
+ * @param pxy
+ * @param screenCenterxy
  * @return int16_t
  */
-int16_t toScreenCoord( const int32_t pxy, const int32_t screen_centerxy)
+int16_t toScreenCoord( const int32_t pxy, const int32_t screenCenterxy)
 {
-    return round((double)(pxy - screen_centerxy) / zoom) + (double)MAP_WIDTH / 2;
+    return round((double)(pxy - screenCenterxy) / zoom) + (double)MAP_WIDTH / 2;
 }
 
-Point16::Point16(char *coords_pair)
+Point16::Point16(char *coordsPair)
 {
     char *next;
-    x = (int16_t)round(strtod(coords_pair, &next)); // 1st coord // TODO: change by strtol and test
+    x = (int16_t)round(strtod(coordsPair, &next)); // 1st coord // TODO: change by strtol and test
     y = (int16_t)round(strtod(++next, NULL));       // 2nd coord
 }
 
-bool BBox::contains_point(const Point32 p) { return p.x >= min.x && p.x <= max.x && p.y >= min.y && p.y <= max.y; }
+bool BBox::containsPoint(const Point32 p) { return p.x >= min.x && p.x <= max.x && p.y >= min.y && p.y <= max.y; }
 
 bool BBox::intersects(BBox b)
 {
@@ -283,22 +283,22 @@ Point32 point = viewPort.center;
  * @param lat
  * @param lon
  */
-double prev_lat = 0, prev_lng = 0;
-void get_position(double lat, double lon)
+double prevLat = 0, prevLng = 0;
+void getPosition(double lat, double lon)
 {
     Coord pos;
     pos.lat = lat;
     pos.lng = lon;
 
-    if (abs(pos.lat - prev_lat) > 0.00005 &&
-        abs(pos.lng - prev_lng) > 0.00005)
+    if (abs(pos.lat - prevLat) > 0.00005 &&
+        abs(pos.lng - prevLng) > 0.00005)
     {
         point.x = lon2x(pos.lng);
         point.y = lat2y(pos.lat);
-        prev_lat = pos.lat;
-        prev_lng = pos.lng;
-        position_moved = true;
-        refresh_map = false;
+        prevLat = pos.lat;
+        prevLng = pos.lng;
+        isPosMoved = true;
+        refreshMap = false;
     }
 }
 
@@ -308,7 +308,7 @@ void get_position(double lat, double lon)
  * @param file
  * @return int16_t
  */
-int16_t parse_int16(ReadBufferingStream &file)
+int16_t parseInt16(ReadBufferingStream &file)
 {
     char num[16];
     uint8_t i;
@@ -326,7 +326,7 @@ int16_t parse_int16(ReadBufferingStream &file)
     num[i] = '\0';
     if (c != ';' && c != ',' && c != '\n')
     {
-        log_e("parse_int16 error: %c %i", c, c);
+        log_e("parseInt16 error: %c %i", c, c);
         log_e("Num: [%s]", num);
         while (1)
             ;
@@ -337,11 +337,11 @@ int16_t parse_int16(ReadBufferingStream &file)
     }
     catch (std::invalid_argument)
     {
-        log_e("parse_int16 invalid_argument: [%c] [%s]", c, num);
+        log_e("parseInt16 invalid_argument: [%c] [%s]", c, num);
     }
     catch (std::out_of_range)
     {
-        log_e("parse_int16 out_of_range: [%c] [%s]", c, num);
+        log_e("parseInt16 out_of_range: [%c] [%s]", c, num);
     }
     return -1;
 }
@@ -353,7 +353,7 @@ int16_t parse_int16(ReadBufferingStream &file)
  * @param terminator
  * @param str
  */
-void parse_str_until(ReadBufferingStream &file, char terminator, char *str)
+void parseStrUntil(ReadBufferingStream &file, char terminator, char *str)
 {
     uint8_t i;
     char c;
@@ -374,7 +374,7 @@ void parse_str_until(ReadBufferingStream &file, char terminator, char *str)
  * @param file
  * @param points
  */
-void parse_coords(ReadBufferingStream &file, std::vector<Point16> &points)
+void parseCoords(ReadBufferingStream &file, std::vector<Point16> &points)
 {
     char str[30];
     assert(points.size() == 0);
@@ -383,22 +383,22 @@ void parse_coords(ReadBufferingStream &file, std::vector<Point16> &points)
     {
         try
         {
-            parse_str_until(file, ',', str);
+            parseStrUntil(file, ',', str);
             if (str[0] == '\0')
                 break;
             point.x = (int16_t)std::stoi(str);
-            parse_str_until(file, ';', str);
+            parseStrUntil(file, ';', str);
             assert(str[0] != '\0');
             point.y = (int16_t)std::stoi(str);
             // log_d("point: %i %i", point.x, point.y);
         }
         catch (std::invalid_argument)
         {
-            log_e("parse_coords invalid_argument: %s", str);
+            log_e("parseCoords invalid_argument: %s", str);
         }
         catch (std::out_of_range)
         {
-            log_e("parse_coords out_of_range: %s", str);
+            log_e("parseCoords out_of_range: %s", str);
         }
         points.push_back(point);
     }
@@ -411,7 +411,7 @@ void parse_coords(ReadBufferingStream &file, std::vector<Point16> &points)
  * @param str
  * @return BBox
  */
-BBox parse_bbox(String str)
+BBox parseBbox(String str)
 {
     char *next;
     int32_t x1 = (int32_t)strtol(str.c_str(), &next, 10);
@@ -424,19 +424,19 @@ BBox parse_bbox(String str)
 /**
  * @brief Read vector map file to memory block
  *
- * @param file_name
+ * @param fileName
  * @return MapBlock*
  */
-MapBlock *read_map_block(String file_name)
+MapBlock *readMapBlock(String fileName)
 {
-    log_d("read_map_block: %s", file_name.c_str());
+    log_d("readMapBlock: %s", fileName.c_str());
     char c;
     char str[30];
     MapBlock *mblock = new MapBlock();
-    fs::File file_ = SD.open(file_name + ".fmp");
+    fs::File file_ = SD.open(fileName + ".fmp");
     if (!file_)
     {
- //       header_msg("Map file not found in folder: " + base_folder);
+ //       header_msg("Map file not found in folder: " + baseFolder);
         while (true)
             ;
     }
@@ -444,69 +444,69 @@ MapBlock *read_map_block(String file_name)
     uint32_t line = 0;
 
     // read polygons
-    parse_str_until(file, ':', str);
+    parseStrUntil(file, ':', str);
     if (strcmp(str, "Polygons") != 0)
     {
         log_e("Map error. Expected Polygons instead of: %s", str);
         while (0)
             ;
     }
-    int16_t count = parse_int16(file);
+    int16_t count = parseInt16(file);
     assert(count > 0);
     line++;
     log_d("count: %i", count);
 
-    uint32_t total_points = 0;
+    uint32_t totalPoints = 0;
     Polygon polygon;
     Point16 p;
-    int16_t maxzoom;
+    int16_t maxZoom;
     while (count > 0)
     {
         // log_d("line: %i", line);
-        parse_str_until(file, '\n', str); // color
+        parseStrUntil(file, '\n', str); // color
         assert(str[0] == '0' && str[1] == 'x');
         polygon.color = (uint16_t)std::stoul(str, nullptr, 16);
         // log_d("polygon.color: %i", polygon.color);
         line++;
-        parse_str_until(file, '\n', str); // maxzoom
-        polygon.maxzoom = str[0] ? (uint8_t)std::stoi(str) : MAX_ZOOM;
-        // log_d("polygon.maxzoom: %i", polygon.maxzoom);
+        parseStrUntil(file, '\n', str); // maxZoom
+        polygon.maxZoom = str[0] ? (uint8_t)std::stoi(str) : MAX_ZOOM;
+        // log_d("polygon.maxZoom: %i", polygon.maxZoom);
         line++;
 
-        parse_str_until(file, ':', str);
+        parseStrUntil(file, ':', str);
         if (strcmp(str, "bbox") != 0)
         {
             log_e("bbox error tag. Line %i : %s", line, str);
             while (true)
                 ;
         }
-        polygon.bbox.min.x = parse_int16(file);
-        polygon.bbox.min.y = parse_int16(file);
-        polygon.bbox.max.x = parse_int16(file);
-        polygon.bbox.max.y = parse_int16(file);
+        polygon.bbox.min.x = parseInt16(file);
+        polygon.bbox.min.y = parseInt16(file);
+        polygon.bbox.max.x = parseInt16(file);
+        polygon.bbox.max.y = parseInt16(file);
 
         line++;
         polygon.points.clear();
-        parse_str_until(file, ':', str);
+        parseStrUntil(file, ':', str);
         if (strcmp(str, "coords") != 0)
         {
             log_e("coords error tag. Line %i : %s", line, str);
             while (true)
                 ;
         }
-        parse_coords(file, polygon.points);
+        parseCoords(file, polygon.points);
         line++;
         mblock->polygons.push_back(polygon);
-        total_points += polygon.points.size();
+        totalPoints += polygon.points.size();
         count--;
     }
     assert(count == 0);
 
     // read lines
-    parse_str_until(file, ':', str);
+    parseStrUntil(file, ':', str);
     if (strcmp(str, "Polylines") != 0)
         log_e("Map error. Expected Polylines instead of: %s", str);
-    count = parse_int16(file);
+    count = parseInt16(file);
     assert(count > 0);
     line++;
     log_d("count: %i", count);
@@ -515,18 +515,18 @@ MapBlock *read_map_block(String file_name)
     while (count > 0)
     {
         // log_d("line: %i", line);
-        parse_str_until(file, '\n', str); // color
+        parseStrUntil(file, '\n', str); // color
         assert(str[0] == '0' && str[1] == 'x');
         polyline.color = (uint16_t)std::stoul(str, nullptr, 16);
         line++;
-        parse_str_until(file, '\n', str); // width
+        parseStrUntil(file, '\n', str); // width
         polyline.width = str[0] ? (uint8_t)std::stoi(str) : 1;
         line++;
-        parse_str_until(file, '\n', str); // maxzoom
-        polyline.maxzoom = str[0] ? (uint8_t)std::stoi(str) : MAX_ZOOM;
+        parseStrUntil(file, '\n', str); // maxZoom
+        polyline.maxZoom = str[0] ? (uint8_t)std::stoi(str) : MAX_ZOOM;
         line++;
 
-        parse_str_until(file, ':', str);
+        parseStrUntil(file, ':', str);
         if (strcmp(str, "bbox") != 0)
         {
             log_e("bbox error tag. Line %i : %s", line, str);
@@ -534,10 +534,10 @@ MapBlock *read_map_block(String file_name)
                 ;
         }
 
-        polyline.bbox.min.x = parse_int16(file);
-        polyline.bbox.min.y = parse_int16(file);
-        polyline.bbox.max.x = parse_int16(file);
-        polyline.bbox.max.y = parse_int16(file);
+        polyline.bbox.min.x = parseInt16(file);
+        polyline.bbox.min.y = parseInt16(file);
+        polyline.bbox.max.x = parseInt16(file);
+        polyline.bbox.max.y = parseInt16(file);
 
         // if( line > 4050){
         //     log_e("polyline.bbox %i %i %i %i", polyline.bbox.min.x, polyline.bbox.min.y,polyline.bbox.max.x, polyline.bbox.max.y);
@@ -545,22 +545,22 @@ MapBlock *read_map_block(String file_name)
         line++;
 
         polyline.points.clear();
-        parse_str_until(file, ':', str);
+        parseStrUntil(file, ':', str);
         if (strcmp(str, "coords") != 0)
         {
             log_d("coords tag. Line %i : %s", line, str);
             while (true)
                 ;
         }
-        parse_coords(file, polyline.points);
+        parseCoords(file, polyline.points);
         line++;
-        // if( line > 4050 && file_name == "/mymap/3_77/6_9"){
+        // if( line > 4050 && fileName == "/mymap/3_77/6_9"){
         //     for( Point16 p: polyline.points){
         //         log_d("p.x, p.y %i %i", p.x, p.y);
         //     }
         // }
         mblock->polylines.push_back(polyline);
-        total_points += polyline.points.size();
+        totalPoints += polyline.points.size();
         count--;
     }
     assert(count == 0);
@@ -574,9 +574,9 @@ MapBlock *read_map_block(String file_name)
  * @param memBlocks
  * @param bbox
  */
-void get_map_blocks( BBox& bbox, MemCache& memCache)
+void getMapBlocks( BBox& bbox, MemCache& memCache)
 {
-    log_d("get_map_blocks %i", millis());
+    log_d("getMapBlocks %i", millis());
     for (MapBlock *block : memCache.blocks)
     {
         block->inView = false;
@@ -585,13 +585,13 @@ void get_map_blocks( BBox& bbox, MemCache& memCache)
     for (Point32 point : {bbox.min, bbox.max, Point32(bbox.min.x, bbox.max.y), Point32(bbox.max.x, bbox.min.y)})
     {
         bool found = false;
-        int32_t block_min_x = point.x & (~MAPBLOCK_MASK);
-        int32_t block_min_y = point.y & (~MAPBLOCK_MASK);
+        int32_t blockMinX = point.x & (~MAPBLOCK_MASK);
+        int32_t blockMinY = point.y & (~MAPBLOCK_MASK);
 
         // check if the needed block is already in memory
         for (MapBlock *memblock : memCache.blocks)
         {
-            if (block_min_x == memblock->offset.x && block_min_y == memblock->offset.y)
+            if (blockMinX == memblock->offset.x && blockMinY == memblock->offset.y)
             {
                 memblock->inView = true;
                 found = true;
@@ -601,34 +601,34 @@ void get_map_blocks( BBox& bbox, MemCache& memCache)
         if (found)
             continue;
 
-        log_d("load from disk (%i, %i) %i", block_min_x, block_min_y, millis());
+        log_d("load from disk (%i, %i) %i", blockMinX, blockMinY, millis());
         // block is not in memory => load from disk
-        int32_t block_x = (block_min_x >> MAPBLOCK_SIZE_BITS) & MAPFOLDER_MASK;
-        int32_t block_y = (block_min_y >> MAPBLOCK_SIZE_BITS) & MAPFOLDER_MASK;
-        int32_t folder_name_x = block_min_x >> (MAPFOLDER_SIZE_BITS + MAPBLOCK_SIZE_BITS);
-        int32_t folder_name_y = block_min_y >> (MAPFOLDER_SIZE_BITS + MAPBLOCK_SIZE_BITS);
-        char folder_name[12];
-        snprintf(folder_name, 9, "%+04d%+04d", folder_name_x, folder_name_y);         // force sign and 4 chars per number
-        String file_name = base_folder + folder_name + "/" + block_x + "_" + block_y; //  /maps/123_456/777_888
+        int32_t blockX = (blockMinX >> MAPBLOCK_SIZE_BITS) & MAPFOLDER_MASK;
+        int32_t blockY = (blockMinY >> MAPBLOCK_SIZE_BITS) & MAPFOLDER_MASK;
+        int32_t folderNameX = blockMinX >> (MAPFOLDER_SIZE_BITS + MAPBLOCK_SIZE_BITS);
+        int32_t folderNameY = blockMinY >> (MAPFOLDER_SIZE_BITS + MAPBLOCK_SIZE_BITS);
+        char folderName[12];
+        snprintf(folderName, 9, "%+04d%+04d", folderNameX, folderNameY);         // force sign and 4 chars per number
+        String fileName = baseFolder + folderName + "/" + blockX + "_" + blockY; //  /maps/123_456/777_888
 
         // check if cache is full
         if (memCache.blocks.size() >= MAPBLOCKS_MAX)
         {
             // remove first one, the oldest
             log_v("Deleteing freeHeap: %i", esp_get_free_heap_size());
-            MapBlock *first_block = memCache.blocks.front();
-            delete first_block;                             // free memory
+            MapBlock *firstBlock = memCache.blocks.front();
+            delete firstBlock;                             // free memory
             memCache.blocks.erase(memCache.blocks.begin()); // remove pointer from the vector
             log_v("Deleted freeHeap: %i", esp_get_free_heap_size());
         }
 
-        MapBlock *new_block = read_map_block(file_name);
-        new_block->inView = true;
-        new_block->offset = Point32(block_min_x, block_min_y);
-        memCache.blocks.push_back(new_block); // add the block to the memory cache
+        MapBlock *newBlock = readMapBlock(fileName);
+        newBlock->inView = true;
+        newBlock->offset = Point32(blockMinX, blockMinY);
+        memCache.blocks.push_back(newBlock); // add the block to the memory cache
         assert(memCache.blocks.size() <= MAPBLOCKS_MAX);
 
-        log_d("Block readed from SD card: %p", new_block);
+        log_d("Block readed from SD card: %p", newBlock);
         log_d("FreeHeap: %i", esp_get_free_heap_size());
     }
     log_d("memCache size: %i %i", memCache.blocks.size(), millis());
@@ -640,16 +640,16 @@ void get_map_blocks( BBox& bbox, MemCache& memCache)
  * @param points
  * @param color
  */
-void fill_polygon( Polygon p, TFT_eSprite &map) // scanline fill algorithm
+void fillPoligon( Polygon p, TFT_eSprite &map) // scanline fill algorithm
 {
-    int16_t maxy = p.bbox.max.y;
-    int16_t miny = p.bbox.min.y;
+    int16_t maxY = p.bbox.max.y;
+    int16_t minY = p.bbox.min.y;
 
-    if (maxy >= MAP_HEIGHT)
-        maxy = MAP_HEIGHT - 1;
-    if (miny < 0)
-        miny = 0;
-    if (miny >= maxy)
+    if (maxY >= MAP_HEIGHT)
+        maxY = MAP_HEIGHT - 1;
+    if (minY < 0)
+        minY = 0;
+    if (minY >= maxY)
     {
         return;
     }
@@ -657,7 +657,7 @@ void fill_polygon( Polygon p, TFT_eSprite &map) // scanline fill algorithm
 
     //  Loop through the rows of the image.
     int16_t nodes, i, swap;
-    for (pixelY = miny; pixelY <= maxy; pixelY++)
+    for (pixelY = minY; pixelY <= maxY; pixelY++)
     { //  Build a list of nodes.
         nodes = 0;
         for (int i = 0; i < (p.points.size() - 1); i++)
@@ -712,16 +712,16 @@ void fill_polygon( Polygon p, TFT_eSprite &map) // scanline fill algorithm
  * @param memblocks
  * @param map -> Map Sprite
  */
-void generate_vector_map(ViewPort &viewPort, MemCache& memCache, TFT_eSprite &map)
+void generateVectorMap(ViewPort &viewPort, MemCache& memCache, TFT_eSprite &map)
 {
-    Polygon new_polygon;
+    Polygon newPolygon;
     map.fillScreen(BACKGROUND_COLOR);
-    uint32_t total_time = millis();
-    log_d("Draw start %i", total_time);
+    uint32_t totalTime = millis();
+    log_d("Draw start %i", totalTime);
     int16_t p1x, p1y, p2x, p2y;
     for (MapBlock *mblock : memCache.blocks)
     {
-        uint32_t block_time = millis();
+        uint32_t blockTime = millis();
         if (!mblock->inView)
             continue;
 
@@ -732,32 +732,32 @@ void generate_vector_map(ViewPort &viewPort, MemCache& memCache, TFT_eSprite &ma
         ////// Polygons
         for (Polygon polygon : mblock->polygons)
         {
-            if (zoom > polygon.maxzoom)
+            if (zoom > polygon.maxZoom)
                 continue;
             if (!polygon.bbox.intersects(screen_bbox_mc))
                 continue;
-            new_polygon.color = polygon.color;
-            new_polygon.bbox.min.x = toScreenCoord(polygon.bbox.min.x, screen_center_mc.x);
-            new_polygon.bbox.min.y = toScreenCoord(polygon.bbox.min.y, screen_center_mc.y);
-            new_polygon.bbox.max.x = toScreenCoord(polygon.bbox.max.x, screen_center_mc.x);
-            new_polygon.bbox.max.y = toScreenCoord(polygon.bbox.max.y, screen_center_mc.y);
+            newPolygon.color = polygon.color;
+            newPolygon.bbox.min.x = toScreenCoord(polygon.bbox.min.x, screen_center_mc.x);
+            newPolygon.bbox.min.y = toScreenCoord(polygon.bbox.min.y, screen_center_mc.y);
+            newPolygon.bbox.max.x = toScreenCoord(polygon.bbox.max.x, screen_center_mc.x);
+            newPolygon.bbox.max.y = toScreenCoord(polygon.bbox.max.y, screen_center_mc.y);
 
-            new_polygon.points.clear();
+            newPolygon.points.clear();
             for (Point16 p : polygon.points)
-            { // TODO: move to fill_polygon
-                new_polygon.points.push_back(Point16(
+            { // TODO: move to fillPoligon
+                newPolygon.points.push_back(Point16(
                     toScreenCoord(p.x, screen_center_mc.x),
                     toScreenCoord(p.y, screen_center_mc.y)));
             }
-            fill_polygon(new_polygon, map);
+            fillPoligon(newPolygon, map);
         }
-        log_d("Block polygons done %i ms", millis() - block_time);
-        block_time = millis();
+        log_d("Block polygons done %i ms", millis() - blockTime);
+        blockTime = millis();
 
         ////// Lines
         for (Polyline line : mblock->polylines)
         {
-            if (zoom > line.maxzoom)
+            if (zoom > line.maxZoom)
                 continue;
             if (!line.bbox.intersects(screen_bbox_mc))
                 continue;
@@ -772,7 +772,7 @@ void generate_vector_map(ViewPort &viewPort, MemCache& memCache, TFT_eSprite &ma
                 // <                tft.drawWideLine(
                 //                     p1x, SCREEN_HEIGHT - p1y,
                 //                     p2x, SCREEN_HEIGHT - p2y,
-                //                     line.width / zoom_level ?: 1, line.color, line.color);>
+                //                     line.width / zoomLevel ?: 1, line.color, line.color);>
                 map.drawLine(
                     p1x, MAP_HEIGHT - p1y,
                     p2x, MAP_HEIGHT - p2y,
@@ -780,9 +780,9 @@ void generate_vector_map(ViewPort &viewPort, MemCache& memCache, TFT_eSprite &ma
                     line.color);
             }
         }
-        log_d("Block lines done %i ms", millis() - block_time);
+        log_d("Block lines done %i ms", millis() - blockTime);
     }
-    log_d("Total %i ms", millis() - total_time);
+    log_d("Total %i ms", millis() - totalTime);
 
     // TODO: paint only in NAV mode
     map.fillTriangle(

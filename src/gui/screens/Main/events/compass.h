@@ -1,9 +1,9 @@
 /**
  * @file compass.h
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Compass screen events
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-04
  */
 
 bool widget_selected = false;
@@ -13,12 +13,12 @@ bool widget_selected = false;
  *
  * @param event
  */
-static void update_heading(lv_event_t *event)
+static void updateHeading(lv_event_t *event)
 {
 #ifdef ENABLE_COMPASS
     lv_obj_t *compass = (lv_obj_t*)lv_event_get_current_target(event);
     lv_label_set_text_fmt(compass, "%5d\xC2\xB0", heading);
-    lv_img_set_angle(compass_img, -(heading * 10));
+    lv_img_set_angle(compassImg, -(heading * 10));
 #endif
 }
 
@@ -27,10 +27,10 @@ static void update_heading(lv_event_t *event)
  *
  * @param event
  */
-static void update_latitude(lv_event_t *event)
+static void updateLatitude(lv_event_t *event)
 {
     lv_obj_t *lat = (lv_obj_t*)lv_event_get_target(event);
-    lv_label_set_text_static(lat, Latitude_formatString(GPS.location.lat()));
+    lv_label_set_text_static(lat, latitudeFormatString(GPS.location.lat()));
 }
 
 /**
@@ -38,10 +38,10 @@ static void update_latitude(lv_event_t *event)
  *
  * @param event
  */
-static void update_longitude(lv_event_t *event)
+static void updateLongitude(lv_event_t *event)
 {
     lv_obj_t *lon = (lv_obj_t*)lv_event_get_target(event);
-    lv_label_set_text_static(lon, Longitude_formatString(GPS.location.lng()));
+    lv_label_set_text_static(lon, longitudeFormatString(GPS.location.lng()));
 }
 
 /**
@@ -49,10 +49,10 @@ static void update_longitude(lv_event_t *event)
  *
  * @param event
  */
-static void update_altitude(lv_event_t *event)
+static void updateAltitude(lv_event_t *event)
 {
     lv_obj_t *alt = (lv_obj_t*)lv_event_get_target(event);
-    lv_label_set_text_fmt(altitude, "%4d m.", (int)GPS.altitude.meters());
+    lv_label_set_text_fmt(alt, "%4d m.", (int)GPS.altitude.meters());
 }
 
 /**
@@ -60,7 +60,7 @@ static void update_altitude(lv_event_t *event)
  *
  * @param event
  */
-static void update_speed(lv_event_t *event)
+static void updateSpeed(lv_event_t *event)
 {
     lv_obj_t *speed = (lv_obj_t*)lv_event_get_target(event);
     lv_label_set_text_fmt(speed, "%3d Km/h", (int)GPS.speed.kmph());
@@ -71,12 +71,12 @@ static void update_speed(lv_event_t *event)
  *
  * @param event
  */
-static void unselect_widget(lv_event_t *event)
+static void unselectWidget(lv_event_t *event)
 {
     lv_obj_t *obj = (lv_obj_t*)lv_event_get_target(event);
     if (widget_selected)
     {
-        unselect_obj(obj);
+        objUnselect(obj);
         lv_obj_add_flag(tiles, LV_OBJ_FLAG_SCROLLABLE);
         widget_selected = false;
     }
@@ -87,14 +87,14 @@ static void unselect_widget(lv_event_t *event)
  *
  * @param event
  */
-static void drag_widget(lv_event_t *event)
+static void dragWidget(lv_event_t *event)
 {
     // lv_obj_clear_flag(tiles, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t *obj = (lv_obj_t*)lv_event_get_target(event);
     if (!widget_selected)
     {
-        select_obj(obj);
+        objSelect(obj);
         lv_obj_clear_flag(tiles, LV_OBJ_FLAG_SCROLLABLE);
         widget_selected = true;
     }
@@ -117,6 +117,6 @@ static void drag_widget(lv_event_t *event)
         lv_obj_set_pos(obj, x, y);
 
         char *widget = (char *)lv_event_get_user_data(event);
-        save_widget_pos(widget, x, y);
+        saveWidgetPos(widget, x, y);
     }
 }

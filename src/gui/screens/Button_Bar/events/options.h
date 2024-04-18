@@ -1,9 +1,9 @@
 /**
  * @file options.h
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Waypoint, track events
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-04
  */
 
 // /**
@@ -13,9 +13,9 @@
 //  */
 // static void close_option(lv_event_t *event)
 // {
-//     is_main_screen = true;
-//     is_option_loaded = false;
-//     refresh_map=true;
+//     isMainScreen = true;
+//     isOptionLoaded = false;
+//     refreshMap=true;
 // }
 
 /**
@@ -23,11 +23,11 @@
  *
  * @param event
  */
-static void save_option(lv_event_t *event)
+static void saveOption(lv_event_t *event)
 {
     log_v("Save Option");
-    is_main_screen = true;
-    is_option_loaded = false;
+    isMainScreen = true;
+    isOptionLoaded = false;
     lv_msgbox_close(option);
 }
 
@@ -36,11 +36,11 @@ static void save_option(lv_event_t *event)
  *
  * @param event
  */
-static void load_option(lv_event_t *event)
+static void loadOption(lv_event_t *event)
 {
     log_v("Load Option");
-    is_main_screen = true;
-    is_option_loaded = false;
+    isMainScreen = true;
+    isOptionLoaded = false;
     lv_msgbox_close(option);
 }
 
@@ -49,10 +49,10 @@ static void load_option(lv_event_t *event)
  *
  * @param event
  */
-static void delete_option(lv_event_t *event)
+static void deleteOption(lv_event_t *event)
 {
     log_v("Delete Option");
-    is_main_screen = true;
-    is_option_loaded = false;
+    isMainScreen = true;
+    isOptionLoaded = false;
     lv_msgbox_close(option);
 }

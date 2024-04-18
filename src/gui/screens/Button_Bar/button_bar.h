@@ -1,9 +1,9 @@
 /**
  * @file button_bar.h
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL Button bar screen
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-04
  */
 
 static lv_obj_t *buttonBar;
@@ -20,7 +20,7 @@ static lv_obj_t *option;
  * @brief Create button bar screen
  *
  */
-void create_button_bar_scr()
+void createButtonBarScr()
 {
     // Button Bar
     buttonBar = lv_obj_create(mainScreen);
@@ -29,11 +29,11 @@ void create_button_bar_scr()
     lv_obj_set_flex_flow(buttonBar, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(buttonBar, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_SCROLLABLE);
-    static lv_style_t style_bar;
-    lv_style_init(&style_bar);
-    lv_style_set_bg_opa(&style_bar, LV_OPA_0);
-    lv_style_set_border_opa(&style_bar, LV_OPA_0);
-    lv_obj_add_style(buttonBar, &style_bar, LV_PART_MAIN);
+    static lv_style_t styleBar;
+    lv_style_init(&styleBar);
+    lv_style_set_bg_opa(&styleBar, LV_OPA_0);
+    lv_style_set_border_opa(&styleBar, LV_OPA_0);
+    lv_obj_add_style(buttonBar, &styleBar, LV_PART_MAIN);
 
     lv_obj_t *imgBtn;
 
@@ -60,17 +60,17 @@ void create_button_bar_scr()
  * @brief Load waypoint, track options modal dialog.
  *
  */
-static void load_options()
+static void loadOptions()
 {
     option = lv_msgbox_create(lv_scr_act());
-    if (is_waypoint)
+    if (isWaypointOpt)
     {
-        lv_msgbox_add_title(option,"Waypoint Options");
+        //lv_msgbox_add_title(option,"Waypoint Options");
         // option = lv_msgbox_create(lv_scr_act(), "Waypoint Options", NULL, NULL, true);
     }
-    else if (is_track)
+    else if (isTrackOpt)
     {
-        lv_msgbox_add_title(option,"Track Options");
+        //lv_msgbox_add_title(option,"Track Options");
         //option = lv_msgbox_create(lv_scr_act(), "Track Options", NULL, NULL, true);
     }
     lv_msgbox_add_close_button(option);
@@ -86,17 +86,17 @@ static void load_options()
     imgBtn = lv_img_create(option);
     lv_img_set_src(imgBtn, "F:/save.bin");
     lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(imgBtn, save_option, LV_EVENT_PRESSED, NULL);
+    lv_obj_add_event_cb(imgBtn, saveOption, LV_EVENT_PRESSED, NULL);
 
     // Load Button
     imgBtn = lv_img_create(option);
     lv_img_set_src(imgBtn, "F:/load.bin");
     lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(imgBtn, load_option, LV_EVENT_PRESSED, NULL);
+    lv_obj_add_event_cb(imgBtn, loadOption, LV_EVENT_PRESSED, NULL);
 
     // Delete Button
     imgBtn = lv_img_create(option);
     lv_img_set_src(imgBtn, "F:/delete.bin");
     lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(imgBtn, delete_option, LV_EVENT_PRESSED, NULL);
+    lv_obj_add_event_cb(imgBtn, deleteOption, LV_EVENT_PRESSED, NULL);
 }

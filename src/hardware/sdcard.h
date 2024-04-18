@@ -1,9 +1,9 @@
 /**
  * @file sdcard.h
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  SD Card definition and functions
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-04
  */
 
 #include <FS.h>
@@ -11,10 +11,10 @@
 
 #ifdef MAKERF_ESP32S3
 SPIClass spiSD = SPIClass(HSPI); 
-uint32_t sd_freq = 10000000;
+uint32_t sdFreq = 10000000;
 #else
 SPIClass spiSD = SPIClass(VSPI);
-uint32_t sd_freq = 40000000;
+uint32_t sdFreq = 40000000;
 #endif
 bool sdloaded = false;
 
@@ -22,14 +22,14 @@ bool sdloaded = false;
  * @brief SD Card init
  *
  */
-void init_sd()
+void initSD()
 {
   spiSD.begin(SD_CLK, SD_MISO, SD_MOSI, SD_CS);
   pinMode(SD_CS,OUTPUT);
   digitalWrite(SD_CS,LOW);
-  if (!SD.begin(SD_CS, spiSD, sd_freq))
+  if (!SD.begin(SD_CS, spiSD, sdFreq))
   {
-    log_v("SD Card Mount Failed");
+    log_e("SD Card Mount Failed");
     return;
   }
   else
@@ -43,10 +43,10 @@ void init_sd()
  * @brief SPIFFS Init
  *
  */
-void init_SPIFFS()
+void initSPIFFS()
 {
   if (!SPIFFS.begin(true))
-    log_v("SPIFFS Mount Failed");
+    log_e("SPIFFS Mount Failed");
   else
     log_v("SPIFFS Mounted");
 }

@@ -1,9 +1,9 @@
 /**
  * @file tasks.h
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Core Tasks functions
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-04
  */
 
 /**
@@ -11,7 +11,7 @@
  *
  * @param pvParameters
  */
-void Read_GPS(void *pvParameters)
+void readGPS(void *pvParameters)
 {
   log_v("Task1 - Read GPS - running on core %d", xPortGetCoreID());
   log_v("Stack size: %d",uxTaskGetStackHighWaterMark(NULL));
@@ -37,7 +37,7 @@ void Read_GPS(void *pvParameters)
  * 
  * @param pvParameters 
  */
-void LVGL_Task(void *pvParameters)
+void lvglTask(void *pvParameters)
 {
   log_v("Task2 - LVGL Task - running on core %d", xPortGetCoreID());
   for (;;)
@@ -51,10 +51,10 @@ void LVGL_Task(void *pvParameters)
  * @brief Init Core tasks
  *
  */
-void init_tasks()
+void initTasks()
 {
-  xTaskCreatePinnedToCore(Read_GPS, PSTR("Read GPS"), 20000, NULL, 3, NULL, 1);
+  xTaskCreatePinnedToCore(readGPS, PSTR("Read GPS"), 20000, NULL, 3, NULL, 1);
   delay(500);
-  //xTaskCreatePinnedToCore(LVGL_Task, PSTR("LVGL Task"), 20000, NULL, 1, NULL, 1);
+  //xTaskCreatePinnedToCore(lvglTask, PSTR("LVGL Task"), 20000, NULL, 1, NULL, 1);
   //delay(500);
 }

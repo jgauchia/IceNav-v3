@@ -1,9 +1,9 @@
 /**
  * @file lvgl.h
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL Screen implementation
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-04
  */
 
 #include <lvgl.h>
@@ -15,16 +15,13 @@
 
 static lv_display_t *display;
 #define DRAW_BUF_SIZE (TFT_WIDTH * TFT_HEIGHT / 10 * (LV_COLOR_DEPTH / 8))
-//static uint32_t *draw_buf = (uint32_t *)ps_malloc(TFT_WIDTH * TFT_HEIGHT / 10 * (LV_COLOR_DEPTH / 8));
-uint32_t draw_buf[DRAW_BUF_SIZE / 4];
+// static uint32_t *drawBuf = (uint32_t *)ps_malloc(TFT_WIDTH * TFT_HEIGHT / 10 * (LV_COLOR_DEPTH / 8));
+uint32_t drawBuf[DRAW_BUF_SIZE / 4];
 
-// static lv_color_t *buf1 = (lv_color_t *)ps_malloc((TFT_WIDTH * TFT_HEIGHT) * 2);
-// static lv_disp_draw_buf_t draw_buf;
-// static lv_disp_drv_t def_drv;
 
 /**
  * @brief Screens definitions
- * 
+ *
  */
 static lv_obj_t *currentScreen;
 static lv_group_t *group;
@@ -35,13 +32,13 @@ static lv_obj_t *tiles;
  * @brief Flag to indicate main screen is selected
  *
  */
-bool is_main_screen = false;
+bool isMainScreen = false;
 
 /**
  * @brief Main Timer
  *
  */
-static lv_timer_t *timer_main;
+static lv_timer_t *mainTimer;
 
 /**
  * @brief  Main Screen update time
@@ -54,8 +51,8 @@ static lv_timer_t *timer_main;
  *
  */
 static lv_obj_t *settingsScreen;
-static lv_obj_t *mapsettingsScreen;
-static lv_obj_t *devicesettingsScreen;
+static lv_obj_t *mapSettingsScreen;
+static lv_obj_t *deviceSettingsScreen;
 
 #include "gui/lvgl_funcs.h"
 #include "gui/images/bruj.c"
@@ -77,7 +74,7 @@ static lv_obj_t *devicesettingsScreen;
  * @brief LVGL display update
  *
  */
-void disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
+void displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 {
     // tft.startWrite();
     // tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t)px_map);
@@ -117,7 +114,7 @@ void disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
  * @brief LVGL touch read
  *
  */
-void touchpad_read(lv_indev_t *indev_driver, lv_indev_data_t *data)
+void touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 {
     uint16_t touchX, touchY;
     bool touched = tft.getTouch(&touchX, &touchY);
@@ -136,57 +133,41 @@ void touchpad_read(lv_indev_t *indev_driver, lv_indev_data_t *data)
  * @brief Init LVGL
  *
  */
-void init_LVGL()
+void initLVGL()
 {
     lv_init();
 
-    lv_port_spiffs_fs_init();
-    // lv_port_sd_fs_init();
+    lv_port_spiffsFsInit();
+    // lv_port_sdFsInit();
 
     display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
-    lv_display_set_flush_cb(display, disp_flush);
-    lv_display_set_buffers(display, draw_buf, NULL, sizeof(draw_buf), LV_DISPLAY_RENDER_MODE_PARTIAL);
+    lv_display_set_flush_cb(display, displayFlush);
+    lv_display_set_buffers(display, drawBuf, NULL, sizeof(drawBuf), LV_DISPLAY_RENDER_MODE_PARTIAL);
 
-    // static lv_color_t *buf1 = (lv_color_t *)ps_malloc((TFT_WIDTH * TFT_HEIGHT) * 2);
-    // lv_disp_draw_buf_init(&draw_buf, buf1, NULL, (TFT_WIDTH * TFT_HEIGHT) * 2);
-    // lv_disp_drv_init(&def_drv);
-    // def_drv.hor_res = screenWidth;
-    // def_drv.ver_res = screenHeight;
-    // def_drv.flush_cb = disp_flush;
-    // def_drv.draw_buf = &draw_buf;
-    // def_drv.full_refresh = 0;
-    // lv_disp_drv_register(&def_drv);
-
-    //  Init input device //
-    // static lv_indev_drv_t indev_drv;
-    // lv_indev_drv_init(&indev_drv);
-    //     indev_drv.type = LV_INDEV_TYPE_POINTER;
-    // indev_drv.read_cb = touchpad_read;
-    // lv_indev_drv_register(&indev_drv);
     lv_indev_t *indev_drv = lv_indev_create();
     lv_indev_set_type(indev_drv, LV_INDEV_TYPE_POINTER);
-    lv_indev_set_read_cb(indev_drv, touchpad_read);
+    lv_indev_set_read_cb(indev_drv, touchRead);
 
     //  Create Main Timer
-    // timer_main = lv_timer_create(update_main_screen, UPDATE_MAINSCR_PERIOD, NULL);
-    // lv_timer_ready(timer_main);
+    mainTimer = lv_timer_create(updateMainScreen, UPDATE_MAINSCR_PERIOD, NULL);
+    lv_timer_ready(mainTimer);
 
     //  Create Screens
-    create_search_sat_scr();
-    create_main_scr();
-    create_notify_bar();
-}   // create_settings_scr();
-    // create_map_settings_scr();
-    // create_device_settings_scr();
+    createSearchSatScr();
+    createMainScr();
+    createNotifyBar();
+    createSettingsScr();
+    createMapSettingsScr();
+    createDeviceSettingsScr();
+    createButtonBarScr();
+}
 
-    // create_button_bar_scr();
- 
 /**
  * @brief Load GPS Main Screen
  *
  */
-void load_main_screen()
+void loadMainScreen()
 {
-    is_main_screen = true;
+    isMainScreen = true;
     lv_screen_load(mainScreen);
 }

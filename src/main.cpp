@@ -1,9 +1,9 @@
 /**
  * @file main.cpp
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  ESP32 GPS Naviation main code
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-04
  */
 
 #include <Arduino.h>
@@ -16,13 +16,12 @@
 #include <esp_bt.h>
 #include <Timezone.h>
 
-unsigned long millis_actual = 0;
-static ulong lvgl_tick_millis = millis();
+unsigned long millisActual = 0;
+static ulong lvglTickMillis = millis();
 
 #include "hardware/hal.h"
 #include "hardware/gps.h"
 #include "utils/preferences.h"
-#include "hardware/serial.h"
 #include "hardware/sdcard.h"
 #include "hardware/tft.h"
 
@@ -61,35 +60,32 @@ void setup()
 #endif
 
 #ifdef ENABLE_COMPASS
-  init_compass();
+  initCompass();
 #endif
 
-#ifdef DEBUG
-  init_serial();
-#endif
   powerOn();
-  load_preferences();
-  init_sd();
-  init_SPIFFS();
-  init_tft();
-  init_LVGL();
-  init_gps();
-  init_ADC();
+  loadPreferences();
+  initSD();
+  initSPIFFS();
+  initTFT();
+  initLVGL();
+  initGPS();
+  initADC();
 
-  if (!vector_map)
+  if (!isVectorMap)
   {
-    map_spr.deleteSprite();
-    map_spr.createSprite(768, 768);
+    mapSprite.deleteSprite();
+    mapSprite.createSprite(768, 768);
   }
 
-  splash_scr();
-  // init_tasks();
+  splashScreen();
+  initTasks();
 
-#ifdef DEFAULT_LAT
-  load_main_screen();
-#else
-  lv_screen_load(searchSat);
-#endif
+//#ifdef DEFAULT_LAT
+  loadMainScreen();
+//#else
+//  lv_screen_load(searchSat);
+//#endif
 }
 
 /**
@@ -101,15 +97,15 @@ void loop()
   while (gps->available() > 0)
   {
 #ifdef OUTPUT_NMEA
-    debug->write(gps->read());
+    log_v("%s",gps->read());
 #else
     GPS.encode(gps->read());
 #endif
   }
 
   lv_timer_handler();
-  unsigned long tick_millis = millis() - lvgl_tick_millis;
-  lvgl_tick_millis = millis();
+  unsigned long tick_millis = millis() - lvglTickMillis;
+  lvglTickMillis = millis();
   lv_tick_inc(tick_millis);
   yield();
   delay(5);

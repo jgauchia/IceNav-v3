@@ -1,23 +1,23 @@
 /**
  * @file search_sat_scr.h
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - GPS satellite search screen
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-04
  */
 
 #define UPDATE_SEARCH_PERIOD 1000
 static lv_obj_t *searchSat;
 
-lv_timer_t *t;
-void search_gps(lv_timer_t *t);
-void load_main_screen();
+lv_timer_t *searchTimer;
+void searchGPS(lv_timer_t *searchTimer);
+void loadMainScreen();
 
 /**
  * @brief Create search sat screen
  *
  */
-void create_search_sat_scr()
+void createSearchSatScr()
 {
     searchSat = lv_obj_create(NULL);
 
@@ -36,29 +36,29 @@ void create_search_sat_scr()
     lv_img_set_src(satimg, "F:/sat.bin");
     lv_obj_set_align(satimg, LV_ALIGN_CENTER);
 
-    t = lv_timer_create(search_gps, UPDATE_SEARCH_PERIOD, NULL);
-    lv_timer_ready(t);
+    searchTimer = lv_timer_create(searchGPS, UPDATE_SEARCH_PERIOD, NULL);
+    lv_timer_ready(searchTimer);
 }
 
 /**
  * @brief Search valid GPS signal
  *
  */
-void search_gps(lv_timer_t *t)
+void searchGPS(lv_timer_t *searchTimer)
 {
     if (GPS.location.isValid())
     {
-        is_gps_fixed = true;
+        isGpsFixed = true;
         setTime(GPS.time.hour(), GPS.time.minute(), GPS.time.second(), GPS.date.day(), GPS.date.month(), GPS.date.year());
         // UTC Time
         utc = now();
         // Local Time
         local = CE.toLocal(utc);
 
-        millis_actual = millis();
-        while (millis() < millis_actual + 2000)
+        millisActual = millis();
+        while (millis() < millisActual + 2000)
             ;
-        lv_timer_del(t);
-        load_main_screen();
+        lv_timer_del(searchTimer);
+        loadMainScreen();
     }
 }

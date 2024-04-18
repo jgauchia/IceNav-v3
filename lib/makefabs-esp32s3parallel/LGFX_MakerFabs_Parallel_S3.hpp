@@ -1,9 +1,9 @@
 /**
  * @file LGFX_MakerFabs_Parallel_S3.hpp
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LOVYANGFX TFT driver for MAKERF_ESP32S3
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-04
  */
 
 #define LGFX_USE_V1
@@ -65,8 +65,8 @@ public:
             cfg.memory_height = 480;  
             cfg.panel_width = 320;    
             cfg.panel_height = 480;   
-            cfg.offset_x = 0;         
-            cfg.offset_y = 0;         
+            cfg.offsetX = 0;         
+            cfg.offsetY = 0;         
             cfg.offset_rotation = 0;  
             cfg.dummy_read_pixel = 8; 
             cfg.dummy_read_bits = 1;  

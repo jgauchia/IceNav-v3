@@ -1,9 +1,9 @@
 /**
  * @file device_config.h
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Device Settings events
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-04
  */
 
 /**
@@ -11,7 +11,7 @@
  *
  * @param event
  */
-static void device_settings_back(lv_event_t *event)
+static void deviceSettingsBack(lv_event_t *event)
 {
     lv_screen_load(settingsScreen);
 }
@@ -21,11 +21,11 @@ static void device_settings_back(lv_event_t *event)
  * 
  * @param event 
  */
-static void set_gps_speed(lv_event_t *event)
+static void setGpsSpeed(lv_event_t *event)
 {
     lv_obj_t *obj = (lv_obj_t*)lv_event_get_target(event);
-    gps_speed = lv_dropdown_get_selected(obj);
-    save_gps_speed(gps_speed);
+    gpsBaud = lv_dropdown_get_selected(obj);
+    saveGPSBaud(gpsBaud);
 }
 
 /**
@@ -33,9 +33,9 @@ static void set_gps_speed(lv_event_t *event)
  * 
  * @param event 
  */
-static void set_gps_update_rate(lv_event_t *event)
+static void setGpsUpdateRate(lv_event_t *event)
 {
     lv_obj_t *obj = (lv_obj_t*)lv_event_get_target(event);
-    gps_update = lv_dropdown_get_selected(obj);
-    save_gps_update_rate(gps_update);
+    gpsUpdate = lv_dropdown_get_selected(obj);
+    saveGPSUpdateRate(gpsUpdate);
 }

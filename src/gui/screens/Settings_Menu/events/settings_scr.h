@@ -1,12 +1,12 @@
 /**
  * @file settings_scr.h
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Settings Screen events
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-04
  */
 
-void load_main_screen();
+void loadMainScreen();
 
 /**
  * @brief Back button event
@@ -15,7 +15,7 @@ void load_main_screen();
  */
 static void back(lv_event_t *event)
 {
-    load_main_screen();
+    loadMainScreen();
 }
 
 /**
@@ -23,13 +23,14 @@ static void back(lv_event_t *event)
  *
  * @param event
  */
-static void touch_calib(lv_event_t *event)
+static void touchCalib(lv_event_t *event)
 {
-    REPEAT_CAL = true;
+    repeatCalib = true;
     tft.fillScreen(TFT_BLACK);
-    touch_calibrate();
-    REPEAT_CAL = false;
-    is_main_screen = false;
+    touchCalibrate();
+    repeatCalib = false;
+    isMainScreen = false;
+    tft.fillScreen(TFT_BLACK);
     lv_screen_load(settingsScreen);
 }
 
@@ -38,11 +39,12 @@ static void touch_calib(lv_event_t *event)
  *
  * @param event
  */
-static void compass_calib(lv_event_t *event)
+static void compassCalib(lv_event_t *event)
 {
     tft.fillScreen(TFT_BLACK);
-    compass_calibrate();
-    is_main_screen = false;
+    compassCalibrate();
+    isMainScreen = false;
+    tft.fillScreen(TFT_BLACK);
     lv_screen_load(settingsScreen);
 }
 
@@ -51,9 +53,9 @@ static void compass_calib(lv_event_t *event)
  *
  * @param event
  */
-static void map_settings(lv_event_t *event)
+static void mapSettings(lv_event_t *event)
 {
-    lv_screen_load(mapsettingsScreen);
+    lv_screen_load(mapSettingsScreen);
 }
 
 /**
@@ -61,7 +63,7 @@ static void map_settings(lv_event_t *event)
  *
  * @param event
  */
-static void device_settings(lv_event_t *event)
+static void deviceSettings(lv_event_t *event)
 {
-    lv_screen_load(devicesettingsScreen);
+    lv_screen_load(deviceSettingsScreen);
 }

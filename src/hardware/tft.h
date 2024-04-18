@@ -1,14 +1,14 @@
 /**
  * @file tft.h
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief TFT definition and functions
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-04
  */
 
 #define CALIBRATION_FILE "/TouchCalData1"
-bool REPEAT_CAL = false;
-uint8_t brightness_level = 255;
+bool repeatCalib = false;
+uint8_t brightnessLevel = 255;
 #define LVGL_BKG 0x10A3
 
 #ifdef CUSTOMBOARD
@@ -29,12 +29,12 @@ static TFT_eSPI tft;
  *
  * @param brightness -> 0..255
  */
-void set_brightness(uint8_t brightness)
+void setBrightness(uint8_t brightness)
 {
   if (brightness <= 255)
   {
     ledcWrite(0, brightness);
-    brightness_level = brightness;
+    brightnessLevel = brightness;
   }
 }
 
@@ -43,43 +43,43 @@ void set_brightness(uint8_t brightness)
  *
  * @return int -> brightness value 0..255
  */
-uint8_t get_brightness()
+uint8_t getBrightness()
 {
-  return brightness_level;
+  return brightnessLevel;
 }
 
 /**
  * @brief Turn on TFT Sleep Mode for ILI9488
  *
  */
-void tft_on()
+void tftOn()
 {
   tft.writecommand(0x11);
-  set_brightness(255);
+  setBrightness(255);
 }
 
 /**
  * @brief Turn off TFT Wake up Mode for ILI9488
  *
  */
-void tft_off()
+void tftOff()
 {
   tft.writecommand(0x10);
-  set_brightness(0);
+  setBrightness(0);
 }
 
 /**
  * @brief Touch calibrate
  *
  */
-void touch_calibrate()
+void touchCalibrate()
 {
   uint16_t calData[8];
   uint8_t calDataOK = 0;
 
   if (SPIFFS.exists(CALIBRATION_FILE))
   {
-    if (REPEAT_CAL)
+    if (repeatCalib)
       SPIFFS.remove(CALIBRATION_FILE);
     else
     {
@@ -95,7 +95,7 @@ void touch_calibrate()
     }
   }
 
-  if (calDataOK && !REPEAT_CAL)
+  if (calDataOK && !repeatCalib)
     tft.setTouchCalibrate(calData);
   else
   {
@@ -123,7 +123,7 @@ void touch_calibrate()
  * @brief Init tft display
  *
  */
-void init_tft()
+void initTFT()
 {
   tft.init();
   tft.setRotation(8);
@@ -137,6 +137,6 @@ void init_tft()
   ledcSetup(0, 5000, 8);
   ledcWrite(0, 255);
 #ifndef MAKERF_ESP32S3
-  touch_calibrate();
+  touchCalibrate();
 #endif
 }

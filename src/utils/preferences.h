@@ -1,9 +1,9 @@
 /**
  * @file preferences.h
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Preferences functions
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-04
  */
 
 #include <Preferences.h>
@@ -23,51 +23,51 @@ uint8_t zoom = 0;
  * @brief Global Variables definition for device preferences & config.
  *
  */
-float offx = 0.0, offy = 0.0; // Compass offset calibration
-bool map_rotation = true;     // Map Compass Rotation
-uint8_t def_zoom = 0;         // Default Zoom Value
-bool show_map_compass = true; // Compass in map screen
-bool show_map_speed = true;   // Speed in map screen
-bool show_map_scale = true;   // Scale in map screen
-// uint16_t gps_speed = 0;       // GPS Speed (see gps.h)
-// uint16_t gps_update = 0;      // GPS Update rate (see gps.h)
-int compass_pos_x = 0;
-int compass_pos_y = 0;
-int coord_pos_x = 0;
-int coord_pos_y = 0;
-int alt_pos_x = 0;
-int alt_pos_y = 0;
-int speed_pos_x = 0;
-int speed_pos_y = 0;
-bool vector_map = false;
+float offX = 0.0, offY = 0.0; // Compass offset calibration
+bool isMapRotation = true;     // Map Compass Rotation
+uint8_t defaultZoom = 0;         // Default Zoom Value
+bool showMapCompass = true; // Compass in map screen
+bool showMapSpeed = true;   // Speed in map screen
+bool showMapScale = true;   // Scale in map screen
+// uint16_t gpsBaud = 0;       // GPS Speed (see gps.h)
+// uint16_t gpsUpdate = 0;      // GPS Update rate (see gps.h)
+int compassPosX = 0;
+int compassPosY = 0;
+int coordPosX = 0;
+int coordPosY = 0;
+int altitudePosX = 0;
+int altitudePosY = 0;
+int speedPosX = 0;
+int speedPosY = 0;
+bool isVectorMap = false;
 
 /**
  * @brief Load stored preferences
  *
  */
-static void load_preferences()
+static void loadPreferences()
 {
     preferences.begin("ICENAV", false);
-    offx = preferences.getFloat("C_offset_x", 0.0);
-    offy = preferences.getFloat("C_offset_y", 0.0);
-    map_rotation = preferences.getBool("Map_rot", false);
-    def_zoom = preferences.getUInt("Def_zoom", DEF_ZOOM);
-    zoom = def_zoom;
-    show_map_compass = preferences.getBool("Map_compass", false);
-    show_map_speed = preferences.getBool("Map_speed", false);
-    show_map_scale = preferences.getBool("Map_scale", false);
-    gps_speed = preferences.getShort("GPS_speed", 2);
-    gps_update = preferences.getShort("GPS_rate", 3);
-    compass_pos_x = preferences.getInt("Compass_X", (TFT_WIDTH / 2) - 100);
-    compass_pos_y = preferences.getInt("Compass_Y", (TFT_HEIGHT / 2) - 60);
-    coord_pos_x = preferences.getInt("Coords_X", 15);
-    coord_pos_y = preferences.getInt("Coords_Y", 10);
-    alt_pos_x = preferences.getInt("Altitude_X", 15);
-    alt_pos_y = preferences.getInt("Altitude_Y", 55);
-    speed_pos_x = preferences.getInt("Speed_X", 15);
-    speed_pos_y = preferences.getInt("Speed_Y", 100);
-    vector_map = preferences.getBool("Map_vector", false);
-    if (vector_map)
+    offX = preferences.getFloat("C_offset_x", 0.0);
+    offY = preferences.getFloat("C_offset_y", 0.0);
+    isMapRotation = preferences.getBool("Map_rot", false);
+    defaultZoom = preferences.getUInt("Def_zoom", DEF_ZOOM);
+    zoom = defaultZoom;
+    showMapCompass = preferences.getBool("Map_compass", false);
+    showMapSpeed = preferences.getBool("Map_speed", false);
+    showMapScale = preferences.getBool("Map_scale", false);
+    gpsBaud = preferences.getShort("GPS_speed", 2);
+    gpsUpdate = preferences.getShort("GPS_rate", 3);
+    compassPosX = preferences.getInt("Compass_X", (TFT_WIDTH / 2) - 100);
+    compassPosY = preferences.getInt("Compass_Y", (TFT_HEIGHT / 2) - 60);
+    coordPosX = preferences.getInt("Coords_X", 15);
+    coordPosY = preferences.getInt("Coords_Y", 10);
+    altitudePosX = preferences.getInt("Altitude_X", 15);
+    altitudePosY = preferences.getInt("Altitude_Y", 55);
+    speedPosX = preferences.getInt("Speed_X", 15);
+    speedPosY = preferences.getInt("Speed_Y", 100);
+    isVectorMap = preferences.getBool("Map_vector", false);
+    if (isVectorMap)
     {
         MIN_ZOOM = 1;
         MAX_ZOOM = 4;
@@ -79,33 +79,33 @@ static void load_preferences()
     }
 
     // // Default Widgets positions
-    // compass_pos_x = (TFT_WIDTH / 2) - 100;
-    // compass_pos_y = (TFT_HEIGHT / 2) - 60;
-    // coord_pos_x = 15;
-    // coord_pos_y = 10;
-    // alt_pos_x = 15;
-    // alt_pos_y = 55;
-    // speed_pos_x = 15;
-    // speed_pos_y = 100;
+    // compassPosX = (TFT_WIDTH / 2) - 100;
+    // compassPosY = (TFT_HEIGHT / 2) - 60;
+    // coordPosX = 15;
+    // coordPosY = 10;
+    // altitudePosX = 15;
+    // altitudePosY = 55;
+    // speedPosX = 15;
+    // speedPosY = 100;
 
-    log_v("COMPASS OFFSET X  %f", offx);
-    log_v("COMPASS OFFSET Y  %f", offy);
-    log_v("MAP ROTATION %d", map_rotation);
+    log_v("COMPASS OFFSET X  %f", offX);
+    log_v("COMPASS OFFSET Y  %f", offY);
+    log_v("MAP ROTATION %d", isMapRotation);
     log_v("DEFAULT ZOOM LEVEL %d", zoom);
-    log_v("SHOW MAP COMPASS %d", show_map_compass);
-    log_v("SHOW MAP SPEED %d", show_map_speed);
-    log_v("SHOW MAP SCALE %d", show_map_scale);
-    log_v("GPS SPEED %d", gps_speed);
-    log_v("GPS UPDATE RATE %d", gps_update);
-    log_v("COMPASS POS X %d", compass_pos_x);
-    log_v("COMPASS POS Y %d", compass_pos_y);
-    log_v("COORDINATE POS X %d", coord_pos_x);
-    log_v("COORDINATE POS Y %d", coord_pos_y);
-    log_v("SPEED POS X %d", speed_pos_x);
-    log_v("SPEED POS Y %d", speed_pos_y);
-    log_v("ALTITUDE POS X %d", alt_pos_x);
-    log_v("ALTITUDE POS Y %d", alt_pos_y);
-    log_v("VECTOR MAP %d", vector_map);
+    log_v("SHOW MAP COMPASS %d", showMapCompass);
+    log_v("SHOW MAP SPEED %d", showMapSpeed);
+    log_v("SHOW MAP SCALE %d", showMapScale);
+    log_v("GPS SPEED %d", gpsBaud);
+    log_v("GPS UPDATE RATE %d", gpsUpdate);
+    log_v("COMPASS POS X %d", compassPosX);
+    log_v("COMPASS POS Y %d", compassPosY);
+    log_v("COORDINATE POS X %d", coordPosX);
+    log_v("COORDINATE POS Y %d", coordPosY);
+    log_v("SPEED POS X %d", speedPosX);
+    log_v("SPEED POS Y %d", speedPosY);
+    log_v("ALTITUDE POS X %d", altitudePosX);
+    log_v("ALTITUDE POS Y %d", altitudePosY);
+    log_v("VECTOR MAP %d", isVectorMap);
 
     preferences.end();
 }
@@ -113,90 +113,90 @@ static void load_preferences()
 /**
  * @brief Save Map Rotation Type
  *
- * @param zoom_rotation
+ * @param zoomRotation
  */
-static void save_map_rotation(bool zoom_rotation)
+static void saveMapRotation(bool zoomRotation)
 {
     preferences.begin("ICENAV", false);
-    preferences.putBool("Map_rot", zoom_rotation);
+    preferences.putBool("Map_rot", zoomRotation);
     preferences.end();
 }
 
 /**
  * @brief Save current compass calibration in preferences
  *
- * @param offset_x
- * @param offset_y
+ * @param offsetX
+ * @param offsetY
  */
-static void save_compass_cal(float offset_x, float offset_y)
+static void saveCompassCal(float offsetX, float offsetY)
 {
     preferences.begin("ICENAV", false);
-    preferences.putFloat("C_offset_x", offset_x);
-    preferences.putFloat("C_offset_y", offset_y);
+    preferences.putFloat("C_offset_x", offsetX);
+    preferences.putFloat("C_offset_y", offsetY);
     preferences.end();
 }
 
 /**
  * @brief Save default zoom value
  *
- * @param default_zoom
+ * @param defaultZoom
  */
-static void save_default_zoom(uint8_t default_zoom)
+static void saveDefaultZoom(uint8_t defaultZoom)
 {
     preferences.begin("ICENAV", false);
-    preferences.putUInt("Def_zoom", def_zoom);
+    preferences.putUInt("Def_zoom", defaultZoom);
     preferences.end();
 }
 
 /**
  * @brief Save show compass in map
  *
- * @param show_compass
+ * @param showCompass
  */
-static void save_show_compass(bool show_compass)
+static void saveShowCompass(bool showCompass)
 {
     preferences.begin("ICENAV", false);
-    preferences.putBool("Map_compass", show_compass);
+    preferences.putBool("Map_compass", showCompass);
     preferences.end();
 }
 
 /**
  * @brief Save show speed in map
  *
- * @param show_speed
+ * @param showSpeed
  */
-static void save_show_speed(bool show_speed)
+static void saveShowSpeed(bool showSpeed)
 {
     preferences.begin("ICENAV", false);
-    preferences.putBool("Map_speed", show_speed);
+    preferences.putBool("Map_speed", showSpeed);
     preferences.end();
 }
 
 /**
  * @brief Save show scale in map
  *
- * @param show_scale
+ * @param showScale
  */
-static void save_show_scale(bool show_scale)
+static void saveShowScale(bool showScale)
 {
     preferences.begin("ICENAV", false);
-    preferences.putBool("Map_scale", show_scale);
+    preferences.putBool("Map_scale", showScale);
     preferences.end();
 }
 
 /**
  * @brief Save GPS speed
  *
- * @param gps_speed
+ * @param gpsBaud
  */
-static void save_gps_speed(uint16_t gps_speed)
+static void saveGPSBaud(uint16_t gpsBaud)
 {
     preferences.begin("ICENAV", false);
-    preferences.putShort("GPS_speed", gps_speed);
+    preferences.putShort("GPS_speed", gpsBaud);
     preferences.end();
 #ifdef AT6558D_GPS
     gps->flush();
-    gps->println(GPS_BAUD_PCAS[gps_speed]);
+    gps->println(GPS_BAUD_PCAS[gpsBaud]);
     gps->flush();
     gps->println("$PCAS00*01\r\n");
     gps->flush();
@@ -205,23 +205,23 @@ static void save_gps_speed(uint16_t gps_speed)
     gps->flush();
     gps->end();
     delay(500);
-    gps->begin(GPS_BAUD[gps_speed], SERIAL_8N1, GPS_RX, GPS_TX);
+    gps->begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
     delay(500);
 }
 
 /**
  * @brief Save GPS Update rate
  *
- * @param gps_update_rate
+ * @param gpsUpdateRate
  */
-static void save_gps_update_rate(uint16_t gps_update_rate)
+static void saveGPSUpdateRate(uint16_t gpsUpdateRate)
 {
     preferences.begin("ICENAV", false);
-    preferences.putShort("GPS_rate", gps_update_rate);
+    preferences.putShort("GPS_rate", gpsUpdateRate);
     preferences.end();
 #ifdef AT6558D_GPS
     gps->flush();
-    gps->println(GPS_RATE_PCAS[gps_update_rate]);
+    gps->println(GPS_RATE_PCAS[gpsUpdateRate]);
     gps->flush();
     gps->println("$PCAS00*01\r\n");
     gps->flush();
@@ -232,23 +232,23 @@ static void save_gps_update_rate(uint16_t gps_update_rate)
 /**
  * @brief Save Compass Widget position
  *
- * @param pos_x
- * @param pos_y
+ * @param posX
+ * @param posY
  */
-static void save_widget_pos(char *widget, int pos_x, int pos_y)
+static void saveWidgetPos(char *widget, int posX, int posY)
 {
-    const char *str_x = "X";
-    const char *str_y = "Y";
-    char widget_x[30] = "";
-    char widget_y[30] = "";
-    strcat(widget_x, widget);
-    strcat(widget_x, str_x);
-    strcat(widget_y, widget);
-    strcat(widget_y, str_y);
+    const char *strX = "X";
+    const char *strY = "Y";
+    char widgetX[30] = "";
+    char widgetY[30] = "";
+    strcat(widgetX, widget);
+    strcat(widgetX, strX);
+    strcat(widgetY, widget);
+    strcat(widgetY, strY);
 
     preferences.begin("ICENAV", false);
-    preferences.putInt(widget_x, pos_x);
-    preferences.putInt(widget_y, pos_y);
+    preferences.putInt(widgetX, posX);
+    preferences.putInt(widgetY, posY);
     preferences.end();
 }
 
@@ -257,7 +257,7 @@ static void save_widget_pos(char *widget, int pos_x, int pos_y)
  *
  * @param vector
  */
-static void save_map_type(bool vector)
+static void saveMapType(bool vector)
 {
     preferences.begin("ICENAV", false);
     preferences.putBool("Map_vector", vector);

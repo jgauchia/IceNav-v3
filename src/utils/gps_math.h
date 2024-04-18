@@ -1,9 +1,9 @@
 /**
  * @file gps_math.h
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Math and various functions
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-04
  */
 
 #define EARTH_RADIUS 6378137
@@ -13,8 +13,8 @@
  * @brief Variables to store mid point between 2 coordinates
  *
  */
-double d_midlat = 0;
-double d_midlon = 0;
+double midLat = 0;
+double midLon = 0;
 
 /**
  * @brief Structure to store position on screen  of GPS Coordinates
@@ -22,62 +22,62 @@ double d_midlon = 0;
  */
 struct ScreenCoord
 {
-  uint16_t posx;
-  uint16_t posy;
+  uint16_t posX;
+  uint16_t posY;
 };
 
 /**
  * @brief Function to calculate the distance in meters given 2 coordinates (latitude and longitude)
  *
- * @param f_lat1 -> Latitude 1
- * @param f_lon1 -> Longitude 1
- * @param f_lat2 -> Latitude 2
- * @param f_lon2 -> Longitude 2
+ * @param lat1 -> Latitude 1
+ * @param lon1 -> Longitude 1
+ * @param lat2 -> Latitude 2
+ * @param lon2 -> Longitude 2
  * @return float -> Distance in meters
  */
-float calc_dist(float f_lat1, float f_lon1, float f_lat2, float f_lon2)
+float calcDist(float lat1, float lon1, float lat2, float lon2)
 {
-  float f_x = 69.1 * (f_lat2 - f_lat1);
-  float f_y = 69.1 * (f_lon2 - f_lon1) * cos(f_lat1 / 57.3);
+  float f_x = 69.1 * (lat2 - lat1);
+  float f_y = 69.1 * (lon2 - lon1) * cos(lat1 / 57.3);
   return (float)sqrt((float)(f_x * f_x) + (float)(f_y * f_y)) * 1609.344;
 }
 
 /**
  * @brief Function to calculate the midpoint given 2 coordinates (latitude and longitude)
  *
- * @param f_lat1 -> Latitude 1
- * @param f_lon1 -> Longitude 1
- * @param f_lat2 -> Latitude 2
- * @param f_lon2 -> Longitude 2
+ * @param lat1 -> Latitude 1
+ * @param lon1 -> Longitude 1
+ * @param lat2 -> Latitude 2
+ * @param lon2 -> Longitude 2
  */
-void calc_mid_point(float f_lat1, float f_lon1, float f_lat2, float f_lon2)
+void calcMidPoint(float lat1, float lon1, float lat2, float lon2)
 {
 
-  float dLon = (radians(f_lon2) - radians(f_lon1));
-  float cosLat1 = cos(radians(f_lat1));
-  float cosLat2 = cos(radians(f_lat2));
-  float sinLat1 = sin(radians(f_lat1));
-  float sinLat2 = sin(radians(f_lat2));
+  float dLon = (radians(lon2) - radians(lon1));
+  float cosLat1 = cos(radians(lat1));
+  float cosLat2 = cos(radians(lat2));
+  float sinLat1 = sin(radians(lat1));
+  float sinLat2 = sin(radians(lat2));
   float Bx = cosLat2 * cos(dLon);
   float By = cosLat2 * sin(dLon);
 
-  d_midlat = degrees(atan2(sinLat1 + sinLat2, sqrt((cosLat1 + Bx) * (cosLat1 + Bx) + By * By)));
-  d_midlon = degrees(radians(f_lon1) + atan2(By, cosLat1 + Bx));
+  midLat = degrees(atan2(sinLat1 + sinLat2, sqrt((cosLat1 + Bx) * (cosLat1 + Bx) + By * By)));
+  midLon = degrees(radians(lon1) + atan2(By, cosLat1 + Bx));
 }
 
 /**
  * @brief float MAP
  *
  * @param x -> input value
- * @param in_min -> min input value
- * @param in_max -> max input value
- * @param out_min -> min output value
- * @param out_max -> max output value
+ * @param inMin -> min input value
+ * @param inMax -> max input value
+ * @param outMin -> min output value
+ * @param outMax -> max output value
  * @return float -> output value
  */
-float mapfloat(float x, float in_min, float in_max, float out_min, float out_max)
+float mapFloat(float x, float inMin, float inMax, float outMin, float outMax)
 {
-  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+  return (x - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
 }
 
 /**
@@ -108,7 +108,7 @@ double DEGtoRAD(double deg)
  * @param lat  -> Latitude
  * @return char* -> String
  */
-char *Latitude_formatString(double lat)
+char *latitudeFormatString(double lat)
 {
   char N_S = PSTR('N');
   double absLatitude = lat;
@@ -134,7 +134,7 @@ char *Latitude_formatString(double lat)
  * @param lon  -> Longitude
  * @return char* -> String
  */
-char *Longitude_formatString(double lon)
+char *longitudeFormatString(double lon)
 {
   char E_W = PSTR('E');
   double absLongitude = lon;

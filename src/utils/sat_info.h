@@ -1,9 +1,9 @@
 /**
  * @file sat_info.h
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Satellites info screen functions
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-04
  */
 
 #include <lvgl.h>
@@ -22,36 +22,36 @@ struct SatPos
  * @brief Satellite position X,Y
  *
  */
-SatPos sat_pos;
+SatPos satPos;
 
 /**
  * @brief Sprite for snr GPS Satellite Labels
  *
  */
-TFT_eSprite spr_SNR1 = TFT_eSprite(&tft);
-TFT_eSprite spr_SNR2 = TFT_eSprite(&tft);
+TFT_eSprite spriteSNR1 = TFT_eSprite(&tft);
+TFT_eSprite spriteSNR2 = TFT_eSprite(&tft);
 
 /**
  * @brief Sprite for satellite position in map
  *
  */
-TFT_eSprite spr_Sat = TFT_eSprite(&tft);
+TFT_eSprite spriteSat = TFT_eSprite(&tft);
 
 /**
  * @brief Double Buffering Sprites for Satellite Constellation
  *
  */
-TFT_eSprite constel_spr = TFT_eSprite(&tft);
-TFT_eSprite constel_spr_bkg = TFT_eSprite(&tft);
+TFT_eSprite constelSprite = TFT_eSprite(&tft);
+TFT_eSprite constelSpriteBkg = TFT_eSprite(&tft);
 
 /**
  * @brief Satellite Signal Graphics Bars Definitions
  *
  */
-static lv_obj_t *satbar_1;
-static lv_obj_t *satbar_2;
-static lv_chart_series_t *satbar_ser1;
-static lv_chart_series_t *satbar_ser2;
+static lv_obj_t *satelliteBar1;
+static lv_obj_t *satelliteBar2;
+static lv_chart_series_t *satelliteBarSerie1;
+static lv_chart_series_t *satelliteBarSerie2;
 
 /**
  * @brief Get the Satellite position for constelation map
@@ -60,7 +60,7 @@ static lv_chart_series_t *satbar_ser2;
  * @param azim -> Azimut
  * @return SatPos -> Satellite position
  */
-SatPos get_sat_pos(uint8_t elev, uint16_t azim)
+SatPos getSatPos(uint8_t elev, uint16_t azim)
 {
   SatPos pos;
   int H = (60 * cos(DEGtoRAD(elev)));
@@ -73,13 +73,13 @@ SatPos get_sat_pos(uint8_t elev, uint16_t azim)
  * @brief Delete sat info screen sprites and release PSRAM
  *
  */
-static void delete_sat_info_sprites()
+static void deleteSatInfoSprites()
 {
-  spr_SNR1.deleteSprite();
-  spr_SNR2.deleteSprite();
-  spr_Sat.deleteSprite();
-  constel_spr.deleteSprite();
-  constel_spr_bkg.deleteSprite();
+  spriteSNR1.deleteSprite();
+  spriteSNR2.deleteSprite();
+  spriteSat.deleteSprite();
+  constelSprite.deleteSprite();
+  constelSpriteBkg.deleteSprite();
 }
 
 /**
@@ -87,7 +87,7 @@ static void delete_sat_info_sprites()
  *
  * @param spr -> Sprite
  */
-static void create_const_spr(TFT_eSprite &spr)
+static void createConstelSprite(TFT_eSprite &spr)
 {
   spr.deleteSprite();
   spr.createSprite(200, 150);
@@ -109,7 +109,7 @@ static void create_const_spr(TFT_eSprite &spr)
  *
  * @param spr -> Sprite
  */
-static void create_sat_spr(TFT_eSprite &spr)
+static void createSatSprite(TFT_eSprite &spr)
 {
   spr.deleteSprite();
   spr.createSprite(8, 8);
@@ -122,7 +122,7 @@ static void create_sat_spr(TFT_eSprite &spr)
  *
  * @param spr -> Sprite
  */
-static void create_snr_spr(TFT_eSprite &spr)
+static void createSNRSprite(TFT_eSprite &spr)
 {
   spr.deleteSprite();
   spr.createSprite(TFT_WIDTH, 10);
@@ -135,34 +135,34 @@ static void create_snr_spr(TFT_eSprite &spr)
  * @brief Draw SNR bar and satellite number
  *
  * @param bar -> Bar Control
- * @param bar_ser -> Bar Control Serie
+ * @param barSer -> Bar Control Serie
  * @param id -> Active Sat
- * @param sat_num -> Sat ID
+ * @param satNum -> Sat ID
  * @param snr -> Sat SNR
  * @param spr -> Sat number sprite
  */
-static void draw_snr_bar(lv_obj_t *bar, lv_chart_series_t *bar_ser, uint8_t id, uint8_t sat_num, uint8_t snr, TFT_eSprite &spr)
+static void drawSNRBar(lv_obj_t *bar, lv_chart_series_t *barSer, uint8_t id, uint8_t satNum, uint8_t snr, TFT_eSprite &spr)
 {
   lv_point_t p;
-  bar_ser->y_points[id] = snr;
-  lv_chart_get_point_pos_by_id(bar, bar_ser, id, &p);
+  barSer->y_points[id] = snr;
+  lv_chart_get_point_pos_by_id(bar, barSer, id, &p);
   spr.setCursor(p.x - 2, 0);
-  spr.print(sat_num);
+  spr.print(satNum);
 }
 
 /**
  * @brief Clear Satellite in View found
  *
  */
-static void clear_sat_in_view()
+static void clearSatInView()
 {
   for (int clear = 0; clear < MAX_SATELLITES; clear++)
   {
-    sat_tracker[clear].sat_num = 0;
-    sat_tracker[clear].elev = 0;
-    sat_tracker[clear].azim = 0;
-    sat_tracker[clear].snr = 0;
-    sat_tracker[clear].active = false;
+    satTracker[clear].satNum = 0;
+    satTracker[clear].elev = 0;
+    satTracker[clear].azim = 0;
+    satTracker[clear].snr = 0;
+    satTracker[clear].active = false;
   }
 }
 
@@ -172,23 +172,23 @@ static void clear_sat_in_view()
  * @param gsv -> GSV NMEA sentence
  * @param color -> Satellite color in constellation
  */
-static void fill_sat_in_view(GSV &gsv, int color)
+static void fillSatInView(GSV &gsv, int color)
 {
   if (gsv.totalMsg.isUpdated())
   {
-    lv_chart_refresh(satbar_1);
-    lv_chart_refresh(satbar_2);
+    lv_chart_refresh(satelliteBar1);
+    lv_chart_refresh(satelliteBar2);
 
     for (int i = 0; i < 4; ++i)
     {
       int no = atoi(gsv.satNum[i].value());
       if (no >= 1 && no <= MAX_SATELLITES)
       {
-        sat_tracker[no - 1].sat_num = atoi(gsv.satNum[i].value());
-        sat_tracker[no - 1].elev = atoi(gsv.elev[i].value());
-        sat_tracker[no - 1].azim = atoi(gsv.azim[i].value());
-        sat_tracker[no - 1].snr = atoi(gsv.snr[i].value());
-        sat_tracker[no - 1].active = true;
+        satTracker[no - 1].satNum = atoi(gsv.satNum[i].value());
+        satTracker[no - 1].elev = atoi(gsv.elev[i].value());
+        satTracker[no - 1].azim = atoi(gsv.azim[i].value());
+        satTracker[no - 1].snr = atoi(gsv.snr[i].value());
+        satTracker[no - 1].active = true;
       }
     }
 
@@ -197,49 +197,49 @@ static void fill_sat_in_view(GSV &gsv, int color)
 
     if (totalMessages == currentMessage)
     {
-      create_snr_spr(spr_SNR1);
-      create_snr_spr(spr_SNR2);
+      createSNRSprite(spriteSNR1);
+      createSNRSprite(spriteSNR2);
 
       for (int i = 0; i < (MAX_SATELLLITES_IN_VIEW / 2); i++)
       {
-        satbar_ser1->y_points[i] = LV_CHART_POINT_NONE;
-        satbar_ser2->y_points[i] = LV_CHART_POINT_NONE;
+        satelliteBarSerie1->y_points[i] = LV_CHART_POINT_NONE;
+        satelliteBarSerie2->y_points[i] = LV_CHART_POINT_NONE;
       }
 
-      uint8_t active_sat = 0;
+      uint8_t activeSat = 0;
       for (int i = 0; i < MAX_SATELLITES; ++i)
       {
-        if (sat_tracker[i].active) // && sat_tracker[i].snr > 0)
+        if (satTracker[i].active) // && satTracker[i].snr > 0)
         {
-          if (active_sat < (MAX_SATELLLITES_IN_VIEW / 2))
-            draw_snr_bar(satbar_1, satbar_ser1, active_sat, sat_tracker[i].sat_num, sat_tracker[i].snr, spr_SNR1);
+          if (activeSat < (MAX_SATELLLITES_IN_VIEW / 2))
+            drawSNRBar(satelliteBar1, satelliteBarSerie1, activeSat, satTracker[i].satNum, satTracker[i].snr, spriteSNR1);
           else
-            draw_snr_bar(satbar_2, satbar_ser2, (active_sat - (MAX_SATELLLITES_IN_VIEW / 2)), sat_tracker[i].sat_num, sat_tracker[i].snr, spr_SNR2);
+            drawSNRBar(satelliteBar2, satelliteBarSerie2, (activeSat - (MAX_SATELLLITES_IN_VIEW / 2)), satTracker[i].satNum, satTracker[i].snr, spriteSNR2);
 
-          active_sat++;
+          activeSat++;
 
-          sat_pos = get_sat_pos(sat_tracker[i].elev, sat_tracker[i].azim);
+          satPos = getSatPos(satTracker[i].elev, satTracker[i].azim);
 
-          spr_Sat.fillCircle(4, 4, 2, color);
-          spr_Sat.pushSprite(&constel_spr, sat_pos.x, sat_pos.y, TFT_TRANSPARENT);
-          constel_spr.setCursor(sat_pos.x, sat_pos.y + 8);
-          constel_spr.print(i + 1);
+          spriteSat.fillCircle(4, 4, 2, color);
+          spriteSat.pushSprite(&constelSprite, satPos.x, satPos.y, TFT_TRANSPARENT);
+          constelSprite.setCursor(satPos.x, satPos.y + 8);
+          constelSprite.print(i + 1);
 
-          if (sat_tracker[i].pos_x != sat_pos.x || sat_tracker[i].pos_y != sat_pos.y)
+          if (satTracker[i].posX != satPos.x || satTracker[i].posY != satPos.y)
           {
-            constel_spr_bkg.pushSprite(120, 30);
+            constelSpriteBkg.pushSprite(120, 30);
           }
 
-          sat_tracker[i].pos_x = sat_pos.x;
-          sat_tracker[i].pos_y = sat_pos.y;
+          satTracker[i].posX = satPos.x;
+          satTracker[i].posY = satPos.y;
         }
       }
-      constel_spr.pushSprite(120, 30);
+      constelSprite.pushSprite(120, 30);
     }
 
-    lv_chart_refresh(satbar_1);
-    spr_SNR1.pushSprite(0, 260);
-    lv_chart_refresh(satbar_2);
-    spr_SNR2.pushSprite(0, 345);
+    lv_chart_refresh(satelliteBar1);
+    spriteSNR1.pushSprite(0, 260);
+    lv_chart_refresh(satelliteBar2);
+    spriteSNR2.pushSprite(0, 345);
   }
 }

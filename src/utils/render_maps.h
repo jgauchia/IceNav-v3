@@ -1,9 +1,9 @@
 /**
  * @file render_maps.h
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief  GPS Maps functions
- * @version 0.1.6
- * @date 2023-06-14
+ * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @brief  Render maps draw functions
+ * @version 0.1.8
+ * @date 2024-04
  */
 
 /**
@@ -22,14 +22,14 @@ struct MapTile
  * @brief Old Map tile coordinates and zoom
  *
  */
-MapTile OldMapTile = {"", 0, 0, 0};
+MapTile oldMapTile = {"", 0, 0, 0};
 
 /**
  * @brief Map tile coordinates and zoom
  *
  */
-MapTile CurrentMapTile;
-MapTile RoundMapTile;
+MapTile currentMapTile;
+MapTile roundMapTile;
 
 /**
  * @brief Tile size for position calculation
@@ -41,13 +41,13 @@ uint16_t tileSize = 256;
  * @brief Flag to indicate when maps needs to be draw
  *
  */
-bool is_map_draw = false;
+bool isMapDraw = false;
 
 /**
  * @brief Flag to indicate when tile map is found on SD
  *
  */
-bool refresh_map = false;
+bool refreshMap = false;
 
 /**
  * @brief Sprite for Navigation Arrow in map tile
@@ -59,16 +59,16 @@ TFT_eSprite sprArrow = TFT_eSprite(&tft);
  * @brief Double Buffering Sprites for Map Tile
  *
  */
-TFT_eSprite map_spr = TFT_eSprite(&tft);
-TFT_eSprite map_rot = TFT_eSprite(&tft);
+TFT_eSprite mapSprite = TFT_eSprite(&tft);
+TFT_eSprite mapRotSprite = TFT_eSprite(&tft);
 
 /**
  * @brief Navitagion Arrow position on screen
  *
  */
-ScreenCoord NavArrow_position;
+ScreenCoord navArrowPosition;
 
-void draw_map_widgets();
+void drawMapWidgets();
 
 /**
  * @brief Get TileY for OpenStreeMap files
@@ -123,14 +123,14 @@ uint16_t lat2posy(float f_lat, uint8_t zoom)
  *
  * @param lon -> Longitude
  * @param lat -> Latitude
- * @param zoom_level -> Zoom level
+ * @param zoomLevel -> Zoom level
  * @return ScreenCoord -> Screen position
  */
-ScreenCoord coord_to_scr_pos(double lon, double lat, uint8_t zoom_level)
+ScreenCoord coord2ScreenPos(double lon, double lat, uint8_t zoomLevel)
 {
   ScreenCoord data;
-  data.posx = lon2posx(lon, zoom_level);
-  data.posy = lat2posy(lat, zoom_level);
+  data.posX = lon2posx(lon, zoomLevel);
+  data.posY = lat2posy(lat, zoomLevel);
   return data;
 }
 
@@ -139,23 +139,23 @@ ScreenCoord coord_to_scr_pos(double lon, double lat, uint8_t zoom_level)
  *
  * @param lon -> Longitude
  * @param lat -> Latitude
- * @param zoom_level -> zoom level
- * @param off_x -> Tile Offset X
- * @param off_y -> Tile Offset Y
+ * @param zoomLevel -> zoom level
+ * @param offsetX -> Tile Offset X
+ * @param offsetY -> Tile Offset Y
  * @return MapTile -> Map Tile structure
  */
-MapTile get_map_tile(double lon, double lat, uint8_t zoom_level, int16_t off_x, int16_t off_y)
+MapTile getMapTile(double lon, double lat, uint8_t zoomLevel, int16_t offsetX, int16_t offsetY)
 {
-  static char s_file[40] = "";
-  uint32_t x = lon2tilex(lon, zoom_level) + off_x;
-  uint32_t y = lat2tiley(lat, zoom_level) + off_y;
+  static char tileFile[40] = "";
+  uint32_t x = lon2tilex(lon, zoomLevel) + offsetX;
+  uint32_t y = lat2tiley(lat, zoomLevel) + offsetY;
 
-  sprintf(s_file, PSTR("/MAP/%d/%d/%d.png"), zoom_level, x, y);
+  sprintf(tileFile, PSTR("/MAP/%d/%d/%d.png"), zoomLevel, x, y);
   MapTile data;
-  data.file = s_file;
+  data.file = tileFile;
   data.tilex = x;
   data.tiley = y;
-  data.zoom = zoom_level;
+  data.zoom = zoomLevel;
   return data;
 }
 
@@ -163,29 +163,29 @@ MapTile get_map_tile(double lon, double lat, uint8_t zoom_level, int16_t off_x, 
  * @brief Generate render map
  *
  */
-void generate_render_map()
+void generateRenderMap()
 {
-  CurrentMapTile = get_map_tile(getLon(), getLat(), zoom, 0, 0);
+  currentMapTile = getMapTile(getLon(), getLat(), zoom, 0, 0);
 
-  if (strcmp(CurrentMapTile.file, OldMapTile.file) != 0 || CurrentMapTile.zoom != OldMapTile.zoom ||
-      CurrentMapTile.tilex != OldMapTile.tilex || CurrentMapTile.tiley != OldMapTile.tiley)
+  if (strcmp(currentMapTile.file, oldMapTile.file) != 0 || currentMapTile.zoom != oldMapTile.zoom ||
+      currentMapTile.tilex != oldMapTile.tilex || currentMapTile.tiley != oldMapTile.tiley)
   {
-    is_map_draw = false;
-    refresh_map = false;
+    isMapDraw = false;
+    refreshMap = false;
   }
 
-  if (!is_map_draw)
+  if (!isMapDraw)
   {
-    OldMapTile.zoom = CurrentMapTile.zoom;
-    OldMapTile.tilex = CurrentMapTile.tilex;
-    OldMapTile.tiley = CurrentMapTile.tiley;
-    OldMapTile.file = CurrentMapTile.file;
+    oldMapTile.zoom = currentMapTile.zoom;
+    oldMapTile.tilex = currentMapTile.tilex;
+    oldMapTile.tiley = currentMapTile.tiley;
+    oldMapTile.file = currentMapTile.file;
 
-    log_v("TILE: %s", CurrentMapTile.file);
+    log_v("TILE: %s", currentMapTile.file);
     log_v("ZOOM: %d", zoom);
 
     // Center Tile
-    refresh_map = map_spr.drawPngFile(SD, CurrentMapTile.file, 256, 256);
+    refreshMap = mapSprite.drawPngFile(SD, currentMapTile.file, 256, 256);
 
     uint8_t centerX = 0;
     uint8_t centerY = 0;
@@ -193,7 +193,7 @@ void generate_render_map()
     int8_t startY = centerY - 1;
     bool tileFound = false;
 
-    if (refresh_map)
+    if (refreshMap)
     {
       for (int y = startY; y <= startY + 2; y++)
       {
@@ -204,36 +204,36 @@ void generate_render_map()
             // Skip Center Tile
             continue;
           }
-          RoundMapTile = get_map_tile(getLon(), getLat(), zoom, x, y);
-          tileFound = map_spr.drawPngFile(SD, RoundMapTile.file, (x - startX) * tileSize, (y - startY) * tileSize);
+          roundMapTile = getMapTile(getLon(), getLat(), zoom, x, y);
+          tileFound = mapSprite.drawPngFile(SD, roundMapTile.file, (x - startX) * tileSize, (y - startY) * tileSize);
           if (!tileFound)
-            map_spr.fillRect((x - startX) * tileSize, (y - startY) * tileSize, tileSize, tileSize, LVGL_BKG);
+            mapSprite.fillRect((x - startX) * tileSize, (y - startY) * tileSize, tileSize, tileSize, LVGL_BKG);
         }
       }
     }
 
-    is_map_draw = true;
+    isMapDraw = true;
   }
 
-  if (refresh_map)
+  if (refreshMap)
   {
-    NavArrow_position = coord_to_scr_pos(getLon(), getLat(), zoom);
-    map_spr.setPivot(tileSize + NavArrow_position.posx, tileSize + NavArrow_position.posy);
-    map_rot.pushSprite(0, 27);
+    navArrowPosition = coord2ScreenPos(getLon(), getLat(), zoom);
+    mapSprite.setPivot(tileSize + navArrowPosition.posX, tileSize + navArrowPosition.posY);
+    mapRotSprite.pushSprite(0, 27);
 
 #ifdef ENABLE_COMPASS
-    heading = get_heading();
-    if (map_rotation)
-      map_heading = get_heading();
+    heading = getHeading();
+    if (isMapRotation)
+      mapHeading = getHeading();
     else
-      map_heading = GPS.course.deg();
-    map_spr.pushRotated(&map_rot, 360 - map_heading, TFT_TRANSPARENT);
+      mapHeading = GPS.course.deg();
+    mapSprite.pushRotated(&mapRotSprite, 360 - mapHeading, TFT_TRANSPARENT);
 #else
-    map_heading = GPS.course.deg();
-    map_spr.pushRotated(&map_rot, 360 - map_heading, TFT_TRANSPARENT);
-    // map_spr.pushRotated(&map_rot, 0, TFT_TRANSPARENT);
+    mapHeading = GPS.course.deg();
+    mapSprite.pushRotated(&mapRotSprite, 360 - mapHeading, TFT_TRANSPARENT);
+    // mapSprite.pushRotated(&mapRotSprite, 0, TFT_TRANSPARENT);
 #endif
-    draw_map_widgets();
-    sprArrow.pushRotated(&map_rot, 0, TFT_BLACK);
+    drawMapWidgets();
+    sprArrow.pushRotated(&mapRotSprite, 0, TFT_BLACK);
   }
 }

@@ -1,9 +1,9 @@
 /**
  * @file gps.h
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  GPS definition and functions
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-04
  */
 
 #include <TimeLib.h>
@@ -13,13 +13,13 @@
 #define MAX_SATELLLITES_IN_VIEW 32
 HardwareSerial *gps = &Serial2;
 TinyGPSPlus GPS;
-bool is_gps_fixed = false;
+bool isGpsFixed = false;
 uint8_t fix_old = 0;
 unsigned long GPS_BAUD[] = {4800, 9600, 19200, 38400};
 const char *GPS_BAUD_PCAS[] = {"$PCAS01,0*1C\r\n", "$PCAS01,1*1D\r\n", "$PCAS01,2*1E\r\n", "$PCAS01,3*1F\r\n"};
 const char *GPS_RATE_PCAS[] = {"$PCAS02,1000*2E\r\n", "$PCAS02,500*1A\r\n", "$PCAS02,250*18\r\n", "$PCAS02,200*1D\r\n", "$PCAS02,100*1E\r\n"};
-uint16_t gps_speed = 0;  // GPS Speed
-uint16_t gps_update = 0; // GPS Update rate
+uint16_t gpsBaud = 0;  // GPS Speed
+uint16_t gpsUpdate = 0; // GPS Update rate
 
 /**
  * @brief Common Structure for satellites in view NMEA sentence
@@ -47,7 +47,7 @@ TinyGPSCustom pdop(GPS, PSTR("GNGSA"), 15); // $GNGSA sentence, 15th element
 TinyGPSCustom hdop(GPS, PSTR("GNGSA"), 16); // $GNGSA sentence, 16th element
 TinyGPSCustom vdop(GPS, PSTR("GNGSA"), 17); // $GNGSA sentence, 17th element
 TinyGPSCustom fix(GPS, PSTR("GNGGA"), 6);
-TinyGPSCustom fix_mode(GPS, PSTR("GNGSA"), 2);
+TinyGPSCustom fixMode(GPS, PSTR("GNGSA"), 2);
 
 // GPS Satellites in view
 GSV GPS_GSV;
@@ -65,7 +65,7 @@ TinyGPSCustom pdop(GPS, PSTR("GPGSA"), 15); // $GPGSA sentence, 15th element
 TinyGPSCustom hdop(GPS, PSTR("GPGSA"), 16); // $GPGSA sentence, 16th element
 TinyGPSCustom vdop(GPS, PSTR("GPGSA"), 17); // $GPGSA sentence, 17th element
 TinyGPSCustom fix(GPS, PSTR("GPGGA"), 6);
-TinyGPSCustom fix_mode(GPS, PSTR("GPGSA"), 2);
+TinyGPSCustom fixMode(GPS, PSTR("GPGSA"), 2);
 
 // GPS Satellites in view
 GSV GPS_GSV;
@@ -79,21 +79,21 @@ GSV GPS_GSV;
 struct
 {
   bool active;
-  uint8_t sat_num;
+  uint8_t satNum;
   uint8_t elev;
   uint16_t azim;
   uint8_t snr;
-  uint16_t pos_x;
-  uint16_t pos_y;
-} sat_tracker[MAX_SATELLITES];
+  uint16_t posX;
+  uint16_t posY;
+} satTracker[MAX_SATELLITES];
 
 /**
  * @brief Init GPS and custon NMEA parsing
  *
  */
-void init_gps()
+void initGPS()
 {
-  gps->begin(GPS_BAUD[gps_speed], SERIAL_8N1, GPS_RX, GPS_TX);
+  gps->begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
 
 #ifdef AT6558D_GPS
   // GPS
@@ -105,7 +105,7 @@ void init_gps()
   gps->flush();
   delay(100);
 
-  gps->println(GPS_RATE_PCAS[gps_update]);
+  gps->println(GPS_RATE_PCAS[gpsUpdate]);
   gps->flush();
   delay(100);
 

@@ -1,9 +1,9 @@
 /**
  * @file compass.h
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Compass definition and functions
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-04
  */
 
 #ifdef CUSTOMBOARD
@@ -20,7 +20,7 @@ MPU9250 IMU(Wire, 0x68);
 #endif
 
 #define COMPASS_CAL_TIME 16000
-static void save_compass_cal(float offset_x, float offset_y);
+static void saveCompassCal(float offsetX, float offsetY);
 
 /**
  * @brief Magnetic declination
@@ -37,9 +37,9 @@ float declinationAngle = 0.22;
  *
  */
 int heading = 0;
-int map_heading = 0;
-float heading_smooth = 0.0;
-float heading_previous = 0.0;
+int mapHeading = 0;
+float headingSmooth = 0.0;
+float headingPrevious = 0.0;
 #define SMOOTH_FACTOR 0.40
 #define SMOOTH_PREVIOUS_FACTOR 0.60
 
@@ -47,13 +47,13 @@ float heading_previous = 0.0;
  * @brief Calibration variables
  *
  */
-float minx, maxx, miny, maxy;
+float minX, maxX, minY, maxY;
 
 /**
  * @brief Init Compass
  *
  */
-void init_compass()
+void initCompass()
 {
 
 #ifdef CUSTOMBOARD
@@ -77,7 +77,7 @@ void init_compass()
  * @param y
  * @param z
  */
-static void read_compass(float &x, float &y, float &z)
+static void readCompass(float &x, float &y, float &z)
 {
 #ifdef CUSTOMBOARD
   sensors_event_t event;
@@ -100,32 +100,32 @@ static void read_compass(float &x, float &y, float &z)
  *
  * @return compass heading
  */
-int get_heading()
+int getHeading()
 {
   float y = 0.0;
   float x = 0.0;
   float z = 0.0;
 
-  read_compass(x, y, z);
+  readCompass(x, y, z);
 
-  float heading_no_filter = atan2(y - offy, x - offx);
-  heading_no_filter += declinationAngle;
-  heading_smooth = heading_no_filter;
-  // heading_smooth = (heading_no_filter * SMOOTH_FACTOR) + (heading_previous * SMOOTH_PREVIOUS_FACTOR);
-  // heading_previous = heading_smooth;
+  float headingNoFilter = atan2(y - offY, x - offX);
+  headingNoFilter += declinationAngle;
+  headingSmooth = headingNoFilter;
+  // headingSmooth = (headingNoFilter * SMOOTH_FACTOR) + (headingPrevious * SMOOTH_PREVIOUS_FACTOR);
+  // headingPrevious = headingSmooth;
 
-  if (heading_smooth < 0)
-    heading_smooth += 2 * M_PI;
-  if (heading_smooth > 2 * M_PI)
-    heading_smooth -= 2 * M_PI;
-  return (int)(heading_smooth * 180 / M_PI);
+  if (headingSmooth < 0)
+    headingSmooth += 2 * M_PI;
+  if (headingSmooth > 2 * M_PI)
+    headingSmooth -= 2 * M_PI;
+  return (int)(headingSmooth * 180 / M_PI);
 }
 
 /**
  * @brief Compass calibration
  *
  */
-static void compass_calibrate()
+static void compassCalibrate()
 {
   bool cal = 1;
   float y = 0.0;
@@ -145,24 +145,24 @@ static void compass_calibrate()
 
   unsigned long calTimeWas = millis();
 
-  read_compass(x, y, z);
+  readCompass(x, y, z);
 
-  maxx = minx = x; // Set initial values to current magnetometer readings.
-  maxy = miny = y;
+  maxX = minX = x; // Set initial values to current magnetometer readings.
+  maxY = minY = y;
 
   while (cal)
   {
 
-    read_compass(x, y, z);
+    readCompass(x, y, z);
 
-    if (x > maxx)
-      maxx = x;
-    if (x < minx)
-      minx = x;
-    if (y > maxy)
-      maxy = y;
-    if (y < miny)
-      miny = y;
+    if (x > maxX)
+      maxX = x;
+    if (x < minX)
+      minX = x;
+    if (y > maxY)
+      maxY = y;
+    if (y < minY)
+      minY = y;
 
     int secmillis = millis() - calTimeWas;
     int secs = (int)((COMPASS_CAL_TIME - secmillis + 1000) / 1000);
@@ -173,8 +173,8 @@ static void compass_calibrate()
 
     if (secs == 0)
     {
-      offx = (maxx + minx) / 2;
-      offy = (maxy + miny) / 2;
+      offX = (maxX + minX) / 2;
+      offY = (maxY + minY) / 2;
       cal = 0;
     }
   }
@@ -187,5 +187,5 @@ static void compass_calibrate()
   {
   };
 
-  save_compass_cal(offx,offy);
+  saveCompassCal(offX,offY);
 }

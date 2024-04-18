@@ -28,19 +28,19 @@
 
 
 // /*Swap the 2 bytes of RGB565 color. Useful if the display has an 8-bit interface (e.g. SPI)*/
-// #define LV_COLOR_16_SWAP 1
+#define LV_COLOR_16_SWAP 1
 
 // /*Enable features to draw on transparent background.
 //  *It's required if opa, and transform_* style properties are used.
 //  *Can be also used if the UI is above another layer, e.g. an OSD menu or video player.*/
-// #define LV_COLOR_SCREEN_TRANSP 0
+#define LV_COLOR_SCREEN_TRANSP 0
 
 // /* Adjust color mix functions rounding. GPUs might calculate color mix (blending) differently.
 //  * 0: round down, 64: round up from x.75, 128: round up from half, 192: round up from x.25, 254: round up */
-// #define LV_COLOR_MIX_ROUND_OFS 0
+#define LV_COLOR_MIX_ROUND_OFS 0
 
 // /*Images pixels with this color will not be drawn if they are chroma keyed)*/
-// #define LV_COLOR_CHROMA_KEY lv_color_hex(0x00ff00)         /*pure green*/
+#define LV_COLOR_CHROMA_KEY lv_color_hex(0x00ff00)         /*pure green*/
 
 /*=========================
    STDLIB WRAPPER SETTINGS
@@ -81,7 +81,7 @@
  *====================*/
 
 /*Default display refresh period. LVG will redraw changed areas with this period time*/
-#define LV_DEF_REFR_PERIOD  16    /*[ms]*/
+#define LV_DEF_REFR_PERIOD  30    /*[ms]*/
 
 /*Default Dot Per Inch. Used to initialize default sizes such as widgets sized, style paddings.
  *(Not so important, you can adjust it to modify default sizes and spaces)*/
@@ -290,7 +290,7 @@
 
 /*Default number of image header cache entries. The cache is used to store the headers of images
  *The main logic is like `LV_CACHE_DEF_SIZE` but for image headers.*/
-#define LV_IMAGE_HEADER_CACHE_DEF_CNT 5
+#define LV_IMAGE_HEADER_CACHE_DEF_CNT 10
 
 /*Number of stops allowed per gradient. Increase this to allow more stops.
  *This adds (sizeof(lv_color_t) + 1) bytes per additional stop*/
@@ -824,7 +824,7 @@
 
 /*1: Enable file explorer*/
 /*Requires: lv_table*/
-#define LV_USE_FILE_EXPLORER                     0
+#define LV_USE_FILE_EXPLORER                     1
 #if LV_USE_FILE_EXPLORER
     /*Maximum length of path*/
     #define LV_FILE_EXPLORER_PATH_MAX_LEN        (128)

@@ -1,9 +1,9 @@
 /**
  * @file notify_bar.h
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief Notify Bar Events
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-04
  */
 
 /**
@@ -16,19 +16,19 @@
  * @brief Battery update event
  *
  */
-static void update_batt(lv_event_t *event)
+static void updateBatt(lv_event_t *event)
 {
-    if (batt_level <= 160 && batt_level > 140)
+    if (battLevel <= 160 && battLevel > 140)
         lv_label_set_text_static(battery, "  " LV_SYMBOL_CHARGE);
-    else if (batt_level <= 140 && batt_level > 80)
+    else if (battLevel <= 140 && battLevel > 80)
         lv_label_set_text_static(battery, LV_SYMBOL_BATTERY_FULL);
-    else if (batt_level <= 80 && batt_level > 60)
+    else if (battLevel <= 80 && battLevel > 60)
         lv_label_set_text_static(battery, LV_SYMBOL_BATTERY_3);
-    else if (batt_level <= 60 && batt_level > 40)
+    else if (battLevel <= 60 && battLevel > 40)
         lv_label_set_text_static(battery, LV_SYMBOL_BATTERY_2);
-    else if (batt_level <= 40 && batt_level > 20)
+    else if (battLevel <= 40 && battLevel > 20)
         lv_label_set_text_static(battery, LV_SYMBOL_BATTERY_1);
-    else if (batt_level <= 20)
+    else if (battLevel <= 20)
         lv_label_set_text(battery, LV_SYMBOL_BATTERY_EMPTY);
 }
 
@@ -36,12 +36,12 @@ static void update_batt(lv_event_t *event)
  * @brief GPS Fix Mode update event
  *
  */
-static void update_fix_mode(lv_event_t *event)
+static void updateFixMode(lv_event_t *event)
 {
     lv_obj_t *mode = lv_event_get_target_obj(event);
-    if (fix_mode.isValid() && fix_old != atoi(fix_mode.value()))
+    if (fixMode.isValid() && fix_old != atoi(fixMode.value()))
     {
-        switch (atoi(fix_mode.value()))
+        switch (atoi(fixMode.value()))
         {
         case 1:
             lv_label_set_text_static(mode, "--");
@@ -56,7 +56,7 @@ static void update_fix_mode(lv_event_t *event)
             lv_label_set_text_static(mode, "--");
             break;
         }
-        fix_old = atoi(fix_mode.value());
+        fix_old = atoi(fixMode.value());
     }
 }
 
@@ -64,7 +64,7 @@ static void update_fix_mode(lv_event_t *event)
  * @brief Time update event
  *
  */
-static void update_time(lv_event_t *event)
+static void updateTime(lv_event_t *event)
 {
     lv_obj_t *time = lv_event_get_target_obj(event);
     // UTC Time
@@ -78,7 +78,7 @@ static void update_time(lv_event_t *event)
  * @brief Update satellite count event
  *
  */
-static void update_gps_count(lv_event_t *event)
+static void updateGpsCount(lv_event_t *event)
 {
     lv_obj_t *gps_num = lv_event_get_target_obj(event);
     if (GPS.satellites.isValid())
@@ -91,40 +91,40 @@ static void update_gps_count(lv_event_t *event)
  * @brief Update notify bar info timer
  *
  */
-void update_notify_bar(lv_timer_t *t)
+void updateNotifyBar(lv_timer_t *t)
 {
-    lv_obj_send_event(gps_time, LV_EVENT_VALUE_CHANGED,NULL);
-    lv_obj_send_event(gps_count, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_obj_send_event(gps_fix_mode, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_send_event(gpsTime, LV_EVENT_VALUE_CHANGED,NULL);
+    lv_obj_send_event(gpsCount, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_send_event(gpsFixMode, LV_EVENT_VALUE_CHANGED, NULL);
 
     switch (atoi(fix.value()))
     {
     case 0:
-        lv_led_off(gps_fix);
+        lv_led_off(gpsFix);
         break;
     case 1:
-        lv_led_toggle(gps_fix);
+        lv_led_toggle(gpsFix);
         break;
     case 2:
-        lv_led_toggle(gps_fix);
+        lv_led_toggle(gpsFix);
         break;
     default:
-        lv_led_off(gps_fix);
+        lv_led_off(gpsFix);
         break;
     }
 
-    batt_level = battery_read();
-    if (batt_level != batt_level_old)
+    battLevel = batteryRead();
+    if (battLevel != battLevelOld)
     {
         lv_obj_send_event(battery, LV_EVENT_VALUE_CHANGED, NULL);
-        batt_level_old = batt_level;
+        battLevelOld = battLevel;
     }
 
 #ifdef ENABLE_BME
-    if ((uint8_t)(bme.readTemperature()) != temp_old)
+    if ((uint8_t)(bme.readTemperature()) != tempOld)
     {
         lv_label_set_text_fmt(temp, "%02d\xC2\xB0", (uint8_t)(bme.readTemperature()));
-        temp_old = (uint8_t)(bme.readTemperature());
+        tempOld = (uint8_t)(bme.readTemperature());
     }
 #endif
 }

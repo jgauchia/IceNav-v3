@@ -1,38 +1,38 @@
 /**
  * @file main_scr.h
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Main screen events
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-04
  */
 
-static void delete_map_scr_sprites();
-static void create_map_scr_sprites();
+static void deleteMapScrSprites();
+static void createMapScrSprites();
 
 /**
  * @brief Flag to indicate when tileview was scrolled
  *
  */
-bool is_scrolled = true;
+bool isScrolled = true;
 
 /**
  * @brief Flag to indicate when tileview scroll was finished
  *
  */
-bool is_ready = false;
+bool isReady = false;
 
 /**
  * @brief Zoom sprite
  *
  */
-TFT_eSprite zoom_spr = TFT_eSprite(&tft);
+TFT_eSprite zoomSprite = TFT_eSprite(&tft);
 
 /**
  * @brief Active Tile in TileView control
  *
  */
-uint8_t act_tile = 0;
-enum tilename
+uint8_t activeTile = 0;
+enum tileName
 {
     COMPASS,
     MAP,
@@ -45,28 +45,28 @@ enum tilename
  *
  * @param event
  */
-static void get_act_tile(lv_event_t *event)
+static void getActTile(lv_event_t *event)
 {
-    if (is_ready)
+    if (isReady)
     {
-        is_scrolled = true;
+        isScrolled = true;
         log_d("Free PSRAM: %d", ESP.getFreePsram());
         log_d("Used PSRAM: %d", ESP.getPsramSize() - ESP.getFreePsram());
-        if (act_tile == MAP)
+        if (activeTile == MAP)
         {
-            if (!vector_map)
-                create_map_scr_sprites();
-            refresh_map = true;
+            if (!isVectorMap)
+                createMapScrSprites();
+            refreshMap = true;
         }
     }
     else
     {
-        is_ready = true;
+        isReady = true;
     }
 
-    lv_obj_t *acttile = lv_tileview_get_tile_act(tiles);
-    lv_coord_t tile_x = lv_obj_get_x(acttile) / TFT_WIDTH;
-    act_tile = tile_x;
+    lv_obj_t *actTile = lv_tileview_get_tile_act(tiles);
+    lv_coord_t tileX = lv_obj_get_x(actTile) / TFT_WIDTH;
+    activeTile = tileX;
 }
 
 /**
@@ -74,31 +74,31 @@ static void get_act_tile(lv_event_t *event)
  *
  * @param event
  */
-static void scroll_tile(lv_event_t *event)
+static void scrollTile(lv_event_t *event)
 {
-    is_scrolled = false;
-    is_ready = false;
+    isScrolled = false;
+    isReady = false;
 
-    if (!vector_map)
-        delete_map_scr_sprites();
+    if (!isVectorMap)
+        deleteMapScrSprites();
 
-    delete_sat_info_sprites();
+    deleteSatInfoSprites();
 }
 
 /**
  * @brief Update Main Screen
  *
  */
-static void update_main_screen(lv_timer_t *t)
+static void updateMainScreen(lv_timer_t *t)
 {
-    if (is_scrolled && is_main_screen)
+    if (isScrolled && isMainScreen)
     {
-        switch (act_tile)
+        switch (activeTile)
         {
         case COMPASS:
 #ifdef ENABLE_COMPASS
-            heading = get_heading();
-            lv_obj_send_event(compass_heading, LV_EVENT_VALUE_CHANGED, NULL);
+            heading = getHeading();
+            lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
 #endif
 
             if (GPS.location.isUpdated())
@@ -112,17 +112,17 @@ static void update_main_screen(lv_timer_t *t)
             }
 
             if (GPS.speed.isUpdated())
-                lv_obj_send_event(speed_label, LV_EVENT_VALUE_CHANGED, NULL);
+                lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
 
             break;
 
         case MAP:
             // if (GPS.location.isUpdated())
-           lv_obj_send_event(map_tile, LV_EVENT_REFRESH, NULL);
+            lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
             break;
 
         case SATTRACK:
-            lv_obj_send_event(sat_track_tile, LV_EVENT_VALUE_CHANGED, NULL);
+            lv_obj_send_event(satTrackTile, LV_EVENT_VALUE_CHANGED, NULL);
             break;
 
         case NAV:

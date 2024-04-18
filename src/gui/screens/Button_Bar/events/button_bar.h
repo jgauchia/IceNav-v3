@@ -1,20 +1,20 @@
 /**
  * @file button_bar.h
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Button Bar events
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-04
  */
 
-static void load_options();
+static void loadOptions();
 
 /**
  * @brief Flag for button activated
  *
  */
-bool is_waypoint = false;
-bool is_track = false;
-bool is_option_loaded = false;
+bool isWaypointOpt = false;
+bool isTrackOpt = false;
+bool isOptionLoaded = false;
 
 /**
  * @brief Settings Button event
@@ -24,7 +24,7 @@ bool is_option_loaded = false;
 static void settings(lv_event_t *event)
 {
     log_v("Settings");
-    is_main_screen = false;
+    isMainScreen = false;
     lv_screen_load(settingsScreen);
 }
 
@@ -36,13 +36,13 @@ static void settings(lv_event_t *event)
 static void waypoint(lv_event_t *event)
 {
     log_v("Waypoint");
-    is_main_screen = false;
-    is_waypoint = true;
-    is_track = false;
-    if (!is_option_loaded)
+    isMainScreen = false;
+    isWaypointOpt = true;
+    isTrackOpt = false;
+    if (!isOptionLoaded)
     {
-        is_option_loaded = true;
-        load_options();
+        isOptionLoaded = true;
+        //loadOptions();
     }
 }
 
@@ -54,12 +54,12 @@ static void waypoint(lv_event_t *event)
 static void track(lv_event_t *event)
 {
     log_v("Track");
-    is_main_screen = false;
-    is_track = true;
-    is_waypoint = false;
-    if (!is_option_loaded)
+    isMainScreen = false;
+    isTrackOpt = true;
+    isWaypointOpt = false;
+    if (!isOptionLoaded)
     {
-        is_option_loaded = true;
-        load_options();
+        isOptionLoaded = true;
+        //loadOptions();
     }
 }

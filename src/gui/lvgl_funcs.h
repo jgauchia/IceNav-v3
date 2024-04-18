@@ -1,9 +1,9 @@
 /**
  * @file lvgl_funcs.h
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL custom functions
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-04
  */
 
 /**
@@ -11,7 +11,7 @@
  *
  * @param LVGL object
  */
-static void lv_obj_hide_cursor(_lv_obj_t *obj)
+static void objHideCursor(_lv_obj_t *obj)
 {
     static lv_style_t style1;
     lv_style_init(&style1);
@@ -32,13 +32,13 @@ static void lv_obj_hide_cursor(_lv_obj_t *obj)
  *
  * @param obj
  */
-static void select_obj(_lv_obj_t *obj)
+static void objSelect(_lv_obj_t *obj)
 {
-    static lv_style_t style_widget;
-    lv_style_init(&style_widget);
-    lv_style_set_bg_opa(&style_widget, LV_OPA_80);
-    lv_style_set_border_opa(&style_widget, LV_OPA_100);
-    lv_obj_add_style(obj, &style_widget, LV_PART_MAIN);
+    static lv_style_t styleWidget;
+    lv_style_init(&styleWidget);
+    lv_style_set_bg_opa(&styleWidget, LV_OPA_80);
+    lv_style_set_border_opa(&styleWidget, LV_OPA_100);
+    lv_obj_add_style(obj, &styleWidget, LV_PART_MAIN);
 }
 
 /**
@@ -46,11 +46,11 @@ static void select_obj(_lv_obj_t *obj)
  * 
  * @param obj 
  */
-static void unselect_obj(_lv_obj_t *obj)
+static void objUnselect(_lv_obj_t *obj)
 {
-    static lv_style_t style_widget;
-    lv_style_init(&style_widget);
-    lv_style_set_bg_opa(&style_widget, LV_OPA_0);
-    lv_style_set_border_opa(&style_widget, LV_OPA_0);
-    lv_obj_add_style(obj, &style_widget, LV_PART_MAIN);
+    static lv_style_t styleWidget;
+    lv_style_init(&styleWidget);
+    lv_style_set_bg_opa(&styleWidget, LV_OPA_0);
+    lv_style_set_border_opa(&styleWidget, LV_OPA_0);
+    lv_obj_add_style(obj, &styleWidget, LV_PART_MAIN);
 }

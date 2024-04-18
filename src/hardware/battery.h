@@ -1,28 +1,28 @@
 /**
  * @file battery.h
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Battery monitor definition and functions
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-04
  */
 
 #include <driver/adc.h>
 #include <esp_adc_cal.h>
 
-uint8_t batt_level = 0;
-uint8_t batt_level_old = 0;
+uint8_t battLevel = 0;
+uint8_t battLevelOld = 0;
 
 esp_adc_cal_characteristics_t characteristics;
 #define V_REF 3.9 // ADC reference voltage
 
-float battery_max = 4.20;     // 4.2;      // maximum voltage of battery
-float battery_min = 3.40;     // 3.6;      // minimum voltage of battery before shutdown
+float batteryMax = 4.20;     // 4.2;      // maximum voltage of battery
+float batteryMin = 3.40;     // 3.6;      // minimum voltage of battery before shutdown
 
 /**
  * @brief Configurate ADC Channel for battery reading
  *
  */
-void init_ADC()
+void initADC()
 {
   // When VDD_A is 3.3V:
   //     0dB attenuaton (ADC_ATTEN_DB_0) gives full-scale voltage 1.1V
@@ -38,7 +38,7 @@ void init_ADC()
  *
  * @return float -> % Charge
  */
-float battery_read()
+float batteryRead()
 {
   long sum = 0;        // sum of samples taken
   float voltage = 0.0; // calculated voltage
@@ -55,7 +55,7 @@ float battery_read()
   voltage = (voltage * V_REF) / 4096.0;
   voltage = voltage / (R2 / (R1 + R2));
   voltage = roundf(voltage * 100) / 100;
-  output = ((voltage - battery_min) / (battery_max - battery_min)) * 100;
+  output = ((voltage - batteryMin) / (batteryMax - batteryMin)) * 100;
   if (output <= 160)
     return output;
   else
