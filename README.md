@@ -125,6 +125,7 @@ If the GPS module supports multiple GNSS, uncomment the following flag in the pl
 - [ ] Multiple IMU's and Compass module implementation
 - [ ] Power saving
 - [ ] Vector maps
+- [ ] Google Maps navigation style
       
 ## Credits
 
