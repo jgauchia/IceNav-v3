@@ -142,6 +142,17 @@ If the GPS module supports multiple GNSS, uncomment the following flag in the pl
 -D MULTI_GNSS=1
 ```
 
+### TO DO
+
+- [ ] LVGL 9 Integration
+- [ ] GPX Integration
+- [ ] Multiple IMU's and Compass module implementation
+- [ ] Power saving
+- [ ] Vector maps
+- [ ] Google Maps navigation style
+- [ ] Optimize code
+- [ ] Fix bugs!
+
 ## Credits
 
 * Added support to [Makerfabs ESP32-S3 Parallel TFT with Touch 3.5" ILI9488](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) (thanks to [@hpsaturn](https://github.com/hpsaturn))

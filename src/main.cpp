@@ -9,6 +9,8 @@
 #include <Arduino.h>
 #include <stdint.h>
 #include <Wire.h>
+#include <FS.h>
+#include <SD.h>
 #include <SPIFFS.h>
 #include <SPI.h>
 #include <WiFi.h>
@@ -16,40 +18,30 @@
 #include <esp_bt.h>
 #include <Timezone.h>
 
-unsigned long millisActual = 0;
 static ulong lvglTickMillis = millis();
 
-// Software includes
-#include "settings.h"
-#include "tasks.h"
-
 // Hardware includes
-#include "hal.h"
-#include "gps.h"
-#include "sdcard.h"
-#include "tft.h"
+#include "hal.hpp"
+#include "gps.hpp"
+#include "storage.hpp"
+#include "tft.hpp"
 #ifdef ENABLE_COMPASS
-#include "compass.h"
+#include "compass.hpp"
 #endif
 #ifdef ENABLE_BME
-#include "bme.h"
+#include "bme.hpp"
 #endif
-#include "battery.h"
-#include "power.h"
+#include "battery.hpp"
+#include "power.hpp"
+#include "settings.hpp"
 
+#include "tasks.hpp"
+#include "satInfo.hpp"
+#include "gpsMath.hpp"
+#include "vectorMaps.hpp"
+#include "renderMaps.hpp"
 
-
-
-#include "utils/gps_math.h"
-#include "utils/sat_info.h"
-#include "utils/lv_spiffs_fs.h"
-#include "utils/lv_sd_fs.h"
-#include "utils/time_zone.h"
-#include "utils/render_maps.h"
-#include "utils/vector_maps.h"
-#include "gui/lvgl.h"
-
-
+#include "lvglSetup.hpp"
 
 /**
  * @brief Setup
@@ -75,8 +67,8 @@ void setup()
   initSD();
   initSPIFFS();
   initTFT();
-  initLVGL();
   initGPS();
+  initLVGL();
   initADC();
 
   if (!isVectorMap)
@@ -88,11 +80,11 @@ void setup()
   splashScreen();
   initTasks();
 
-#ifdef DEFAULT_LAT
+  // #ifdef DEFAULT_LAT
   loadMainScreen();
-#else
-  lv_screen_load(searchSat);
-#endif
+  // #else
+  //   lv_screen_load(searchSatScreen);
+  // #endif
 }
 
 /**
@@ -101,15 +93,6 @@ void setup()
  */
 void loop()
 {
-  while (gps->available() > 0)
-  {
-#ifdef OUTPUT_NMEA
-    log_v("%s", gps->read());
-#else
-    GPS.encode(gps->read());
-#endif
-  }
-
   lv_timer_handler();
   unsigned long tick_millis = millis() - lvglTickMillis;
   lvglTickMillis = millis();

@@ -1,0 +1,40 @@
+/**
+ * @file buttonBar.hpp
+ * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @brief  LVGL - Button Bar
+ * @version 0.1.8
+ * @date 2024-04
+ */
+
+#ifndef BUTTONBAR_HPP
+#define BUTTONBAR_HPP
+
+#include "globalGuiDef.h"
+#include "mainScr.hpp"
+
+static const char *waypointIconFile PROGMEM = "F:/wpt.bin";      // Waypoint icon
+static const char *trackIconFile PROGMEM = "F:/track.bin";       // Track icon
+static const char *settingsIconFile PROGMEM = "F:/settings.bin"; // Settings icon
+static const char *saveIconFile PROGMEM = "F:/save.bin";         // Save icon
+static const char *loadIconFile PROGMEM = "F:/load.bin";         // Load icon
+static const char *deleteIconFile PROGMEM = "F:/delete.bin";     // Delete icon
+
+static lv_obj_t *buttonBar;
+static lv_obj_t *option;
+
+extern bool isWaypointOpt;  // Waypoint Option selected
+extern bool isTrackOpt;     // Track Option selected
+extern bool isOptionLoaded; // Option selected & loaded
+
+void settings(lv_event_t *event);
+void waypoint(lv_event_t *event);
+void track(lv_event_t *event);
+
+void saveOption(lv_event_t *event);
+void loadOption(lv_event_t *event);
+void deleteOption(lv_event_t *event);
+
+void createButtonBarScr();
+void loadOptions();
+
+#endif
