@@ -127,6 +127,8 @@ If the GPS module supports multiple GNSS, uncomment the following flag in the pl
 - [ ] Power saving
 - [ ] Vector maps
 - [ ] Google Maps navigation style
+- [ ] Optimize code
+- [ ] Fix bugs!
       
 ## Credits
 
