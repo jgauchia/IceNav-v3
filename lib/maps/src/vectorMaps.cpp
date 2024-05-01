@@ -239,18 +239,18 @@ MapBlock *readMapBlock(String fileName)
     uint32_t totalPoints = 0;
     Polygon polygon;
     Point16 p;
-    int16_t maxZoom;
+    int16_t maxZoom = 7;
     while (count > 0)
     {
         // log_d("line: %i", line);
         parseStrUntil(file, '\n', str); // color
         assert(str[0] == '0' && str[1] == 'x');
         polygon.color = (uint16_t)std::stoul(str, nullptr, 16);
-        // log_d("polygon.color: %i", polygon.color);
+        log_d("polygon.color: %i", polygon.color);
         line++;
         parseStrUntil(file, '\n', str); // maxZoom
         polygon.maxZoom = str[0] ? (uint8_t)std::stoi(str) : maxZoom;
-        // log_d("polygon.maxZoom: %i", polygon.maxZoom);
+        log_d("polygon.maxZoom: %i", polygon.maxZoom);
         line++;
 
         parseStrUntil(file, ':', str);
@@ -549,15 +549,14 @@ void generateVectorMap(ViewPort &viewPort, MemCache &memCache, TFT_eSprite &map)
                 p1y = toScreenCoord(line.points[i].y, screen_center_mc.y);
                 p2x = toScreenCoord(line.points[i + 1].x, screen_center_mc.x);
                 p2y = toScreenCoord(line.points[i + 1].y, screen_center_mc.y);
-                // <                tft.drawWideLine(
-                //                     p1x, SCREEN_HEIGHT - p1y,
-                //                     p2x, SCREEN_HEIGHT - p2y,
-                //                     line.width / zoomLevel ?: 1, line.color, line.color);>
+                // map.drawWideLine(
+                //                     p1x, MAP_HEIGHT - p1y,
+                //                     p2x, MAP_HEIGHT - p2y,
+                //                     line.width / zoom ?: 1, line.color);
                 map.drawLine(
                     p1x, MAP_HEIGHT - p1y,
                     p2x, MAP_HEIGHT - p2y,
-                    // line.width/zoom ?: 1, line.color, line.color);
-                    line.color);
+                    line.color);              
             }
         }
         log_d("Block lines done %i ms", millis() - blockTime);
