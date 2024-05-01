@@ -239,18 +239,18 @@ MapBlock *readMapBlock(String fileName)
     uint32_t totalPoints = 0;
     Polygon polygon;
     Point16 p;
-    int16_t maxZoom = 7;
+    int16_t maxVectorZoom = 4;
     while (count > 0)
     {
         // log_d("line: %i", line);
         parseStrUntil(file, '\n', str); // color
         assert(str[0] == '0' && str[1] == 'x');
         polygon.color = (uint16_t)std::stoul(str, nullptr, 16);
-        log_d("polygon.color: %i", polygon.color);
+        //log_d("polygon.color: %i", polygon.color);
         line++;
         parseStrUntil(file, '\n', str); // maxZoom
-        polygon.maxZoom = str[0] ? (uint8_t)std::stoi(str) : maxZoom;
-        log_d("polygon.maxZoom: %i", polygon.maxZoom);
+        polygon.maxZoom = str[0] ? (uint8_t)std::stoi(str) : maxVectorZoom;
+        //log_d("polygon.maxZoom: %i", polygon.maxZoom);
         line++;
 
         parseStrUntil(file, ':', str);
@@ -303,7 +303,7 @@ MapBlock *readMapBlock(String fileName)
         polyline.width = str[0] ? (uint8_t)std::stoi(str) : 1;
         line++;
         parseStrUntil(file, '\n', str); // maxZoom
-        polyline.maxZoom = str[0] ? (uint8_t)std::stoi(str) : maxZoom;
+        polyline.maxZoom = str[0] ? (uint8_t)std::stoi(str) : maxVectorZoom;
         line++;
 
         parseStrUntil(file, ':', str);

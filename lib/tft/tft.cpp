@@ -127,4 +127,3 @@ void initTFT()
     touchCalibrate();
 #endif
 }
-
