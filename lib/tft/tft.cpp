@@ -113,7 +113,7 @@ void touchCalibrate()
 void initTFT()
 {
     tft.init();
-    tft.setRotation(8);
+    //tft.setRotation(8);
     tft.initDMA();
     tft.startWrite();
     tft.fillScreen(TFT_BLACK);

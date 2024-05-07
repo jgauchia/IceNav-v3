@@ -58,7 +58,7 @@ public:
             cfg.invert = false;
             cfg.rgb_order = false;
             cfg.dlen_16bit = false;
-            cfg.bus_shared = false;
+            cfg.bus_shared = true;
             _panel_instance.config(cfg);
         }
 
@@ -75,14 +75,14 @@ public:
         {
             auto cfg = _touch_instance.config();
             cfg.x_min = 0;
-            cfg.x_max = 319;
+            cfg.x_max = 330;
             cfg.y_min = 0;
-            cfg.y_max = 479;
+            cfg.y_max = 500;
             cfg.pin_int = 5;
             cfg.bus_shared = true;
             cfg.offset_rotation = 0;
             cfg.spi_host = HSPI_HOST;
-            cfg.freq = 1600000;
+            cfg.freq = 1000000;
             cfg.pin_sclk = 14;
             cfg.pin_mosi = 13;
             cfg.pin_miso = 27;

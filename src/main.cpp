@@ -61,7 +61,7 @@ void setup()
 #ifdef ENABLE_COMPASS
   initCompass();
 #endif
-
+  repeatCalib = true;
   powerOn();
   loadPreferences();
   initSD();

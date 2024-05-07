@@ -144,7 +144,7 @@ If the GPS module supports multiple GNSS, uncomment the following flag in the pl
 
 ### TO DO
 
-- [ ] LVGL 9 Integration
+- [X] LVGL 9 Integration
 - [ ] GPX Integration
 - [ ] Multiple IMU's and Compass module implementation
 - [ ] Power saving
@@ -152,6 +152,7 @@ If the GPS module supports multiple GNSS, uncomment the following flag in the pl
 - [ ] Google Maps navigation style
 - [ ] Optimize code
 - [ ] Fix bugs!
+- [ ] Web file server
 
 ## Credits
 

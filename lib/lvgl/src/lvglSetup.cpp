@@ -68,7 +68,7 @@ void touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
         data->state = LV_INDEV_STATE_PRESSED;
         data->point.x = touchX;
         data->point.y = touchY;
-        // log_v("X: %04i, Y: %04i",touchX, touchY);
+        log_v("X: %04i, Y: %04i",touchX, touchY);
     }
 }
 
