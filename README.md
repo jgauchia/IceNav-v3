@@ -129,6 +129,7 @@ If the GPS module supports multiple GNSS, uncomment the following flag in the pl
 - [ ] Google Maps navigation style
 - [ ] Optimize code
 - [ ] Fix bugs!
+- [ ] Web file server
       
 ## Credits
 
