@@ -68,8 +68,8 @@ public:
             cfg.memory_height = 480;  
             cfg.panel_width = 320;    
             cfg.panel_height = 480;   
-            cfg.offsetX = 0;         
-            cfg.offsetY = 0;         
+            cfg.offset_x = 0;         
+            cfg.offset_y = 0;         
             cfg.offset_rotation = 0;  
             cfg.dummy_read_pixel = 8; 
             cfg.dummy_read_bits = 1;  
