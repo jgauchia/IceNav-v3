@@ -11,8 +11,13 @@ ESP32 Based GPS Navigator.
 > Do not use in production.
 
 ## Screenshots
-<img src="images/screenshot_1.png" width="25%" height="25%"><img src="images/screenshot_2.png" width="25%" height="25%"><img src="images/screenshot_3.png" width="25%" height="25%"><img src="images/screenshot_4.png" width="25%" height="25%">
-<img src="images/screenshot_5.png" width="25%" height="25%"><img src="images/screenshot_6.png" width="25%" height="25%"><img src="images/screenshot_7.png" width="25%" height="25%">
+|<img src="images/dev/splash.jpg">|<img src="images/dev/compass.jpg">|<img src="images/dev/rendermap.jpg">|<img src="images/dev/vectormap.jpg">|<img src="images/dev/satinfo.jpg">|
+|:-:|:-:|:-:|:-:|:-:|
+| Splash Screen | Compass | Rendered Map | Vectorized Map | Satellite Info |
+
+|<img src="images/dev/settings.jpg">|<img src="images/dev/compasscal.jpg">|<img src="images/dev/touchcal.jpg">|<img src="images/dev/mapsettings.jpg">|<img src="images/dev/devicesettings.jpg">|
+|:-:|:-:|:-:|:-:|:-:|
+| Settings | Compass Calibration | Touch Calibration | Map Settings | Device Settings |
 
 ## Specifications
 
