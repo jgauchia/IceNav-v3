@@ -24,6 +24,7 @@ extern uint8_t zoom;    // Actual Zoom Level
 extern bool isMapRotation;    // Map Compass Rotation
 extern uint8_t defaultZoom;   // Default Zoom Value
 extern bool showMapCompass;   // Compass in map screen
+extern bool isCompassRot;     // Compass rotation in map screen
 extern bool showMapSpeed;     // Speed in map screen
 extern bool showMapScale;     // Scale in map screen
 extern bool isVectorMap;      // Map type
@@ -43,6 +44,7 @@ void saveMapRotation(bool zoomRotation);
 void saveCompassCal(float offsetX, float offsetY);
 void saveDefaultZoom(uint8_t defaultZoom);
 void saveShowCompass(bool showCompass);
+void saveCompassRot(bool compassRot);
 void saveShowSpeed(bool showSpeed);
 void saveShowScale(bool showScale);
 void saveGPSBaud(uint16_t gpsBaud);

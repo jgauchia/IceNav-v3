@@ -86,7 +86,6 @@ void editScreen(lv_event_t *event)
         else
             canMoveWidget = false;
     }
-    log_v("%d", canMoveWidget);
 }
 
 /**
@@ -350,7 +349,10 @@ void drawMapWidgets()
     if (showMapCompass)
     {
         mapRotSprite.fillRectAlpha(TFT_WIDTH - 48, 0, 48, 48, 95, TFT_BLACK);
-        mapRotSprite.pushImageRotateZoom(TFT_WIDTH - 24, 24, 24, 24, 360 - heading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
+        if (isCompassRot)
+            mapRotSprite.pushImageRotateZoom(TFT_WIDTH - 24, 24, 24, 24, 360 - heading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
+        else
+            mapRotSprite.pushImage(TFT_WIDTH - 48, 0, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
     }
 #endif
 

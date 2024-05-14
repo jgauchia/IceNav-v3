@@ -24,6 +24,7 @@ uint8_t zoom = 0;    // Actual Zoom Level
 bool isMapRotation = true;  // Map Compass Rotation
 uint8_t defaultZoom = 0;    // Default Zoom Value
 bool showMapCompass = true; // Compass in map screen
+bool isCompassRot = true;   // Compass rotation in map screen
 bool showMapSpeed = true;   // Speed in map screen
 bool showMapScale = true;   // Scale in map screen
 bool isVectorMap = false;   // Map Type
@@ -51,6 +52,7 @@ void loadPreferences()
     defaultZoom = preferences.getUInt("Def_zoom", defZoom);
     zoom = defaultZoom;
     showMapCompass = preferences.getBool("Map_compass", false);
+    isCompassRot = preferences.getBool("Compass_rot", true);
     showMapSpeed = preferences.getBool("Map_speed", false);
     showMapScale = preferences.getBool("Map_scale", false);
     gpsBaud = preferences.getShort("GPS_speed", 2);
@@ -90,6 +92,7 @@ void loadPreferences()
     log_v("MAP ROTATION %d", isMapRotation);
     log_v("DEFAULT ZOOM LEVEL %d", zoom);
     log_v("SHOW MAP COMPASS %d", showMapCompass);
+    log_v("MAP COMPASS ROT. %d", isCompassRot);
     log_v("SHOW MAP SPEED %d", showMapSpeed);
     log_v("SHOW MAP SCALE %d", showMapScale);
     log_v("GPS SPEED %d", gpsBaud);
@@ -154,6 +157,18 @@ void saveShowCompass(bool showCompass)
 {
     preferences.begin("ICENAV", false);
     preferences.putBool("Map_compass", showCompass);
+    preferences.end();
+}
+
+/**
+ * @brief Save compass rotation in map
+ * 
+ * @param compassRot 
+ */
+void saveCompassRot(bool compassRot)
+{
+    preferences.begin("ICENAV", false);
+    preferences.putBool("Compass_rot", compassRot);
     preferences.end();
 }
 

@@ -26,6 +26,7 @@ static void configureMapRotation(lv_event_t *event);
 static void incrementZoom(lv_event_t *event);
 static void decrementZoom(lv_event_t *event);
 static void showCompass(lv_event_t *event);
+static void compassRotation(lv_event_t *event);
 static void showSpeed(lv_event_t *event);
 static void showScale(lv_event_t *event);
 
