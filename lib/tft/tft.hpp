@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief TFT definition and functions
  * @version 0.1.8
- * @date 2024-04
+ * @date 2024-05
  */
 
 #ifndef TFT_HPP
@@ -28,7 +28,6 @@ extern TFT_eSPI tft;
 static const char* calibrationFile PROGMEM = "/TouchCalData1";
 extern bool repeatCalib;
 static uint8_t brightnessLevel = 255;
-#define LVGL_BKG 0x10A3
 
 void setBrightness(uint8_t brightness);
 uint8_t getBrightness();

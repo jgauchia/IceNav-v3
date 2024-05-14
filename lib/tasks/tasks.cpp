@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Core Tasks functions
  * @version 0.1.8
- * @date 2024-04
+ * @date 2024-05
  */
 
 #include "tasks.hpp"

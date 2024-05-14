@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  ESP32 GPS Naviation main code
  * @version 0.1.8
- * @date 2024-04
+ * @date 2024-05
  */
 
 #include <Arduino.h>
@@ -61,7 +61,6 @@ void setup()
 #ifdef ENABLE_COMPASS
   initCompass();
 #endif
-  repeatCalib = true;
   powerOn();
   loadPreferences();
   initSD();
@@ -83,7 +82,7 @@ void setup()
   // #ifdef DEFAULT_LAT
   loadMainScreen();
   // #else
-  //   lv_screen_load(searchSatScreen);
+  //lv_screen_load(searchSatScreen);
   // #endif
 }
 

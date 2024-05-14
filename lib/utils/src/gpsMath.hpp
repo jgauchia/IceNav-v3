@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Math and various functions
  * @version 0.1.8
- * @date 2024-04
+ * @date 2024-05
  */
 
 #ifndef GPSMATH_HPP

@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL Screen implementation
  * @version 0.1.8
- * @date 2024-04
+ * @date 2024-05
  */
 
 #include "lvglSetup.hpp"
@@ -12,6 +12,9 @@ ViewPort viewPort; // Vector map viewport
 MemCache memCache; // Vector map Memory Cache
 
 lv_obj_t *searchSatScreen; // Search Satellite Screen
+lv_style_t styleThemeBkg;  // New Main Background Style
+lv_style_t styleObjectBkg; // New Objects Background Color
+lv_style_t styleObjectSel; // New Objects Selected Color
 
 /**
  * @brief LVGL display update
@@ -68,8 +71,64 @@ void touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
         data->state = LV_INDEV_STATE_PRESSED;
         data->point.x = touchX;
         data->point.y = touchY;
-        log_v("X: %04i, Y: %04i",touchX, touchY);
     }
+}
+
+/**
+ * @brief Apply Custom Dark theme
+ *
+ * @param th
+ * @param obj
+ */
+void applyModifyTheme(lv_theme_t *th, lv_obj_t *obj)
+{
+    LV_UNUSED(th);
+    if (!lv_obj_check_type(obj, &lv_led_class))
+    {
+        if (!lv_obj_check_type(obj, &lv_button_class))
+            lv_obj_add_style(obj, &styleThemeBkg, 0);
+        if (lv_obj_check_type(obj, &lv_button_class))
+            lv_obj_add_style(obj, &styleObjectBkg, 0);
+        if (lv_obj_check_type(obj, &lv_switch_class))
+        {
+            lv_obj_add_style(obj, &styleObjectBkg, 0);
+            lv_obj_add_style(obj, &styleObjectBkg, LV_PART_INDICATOR | LV_STATE_CHECKED);
+        }
+        if (lv_obj_check_type(obj, &lv_checkbox_class))
+        {
+            lv_obj_add_style(obj, &styleThemeBkg, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+            lv_obj_add_style(obj, &styleObjectBkg, LV_PART_INDICATOR | LV_STATE_CHECKED);
+        }
+    }
+}
+
+/**
+ * @brief Custom Dark theme
+ *
+ */
+void modifyTheme()
+{
+    /*Initialize the styles*/
+    lv_style_init(&styleThemeBkg);
+    lv_style_set_bg_color(&styleThemeBkg, lv_color_black());
+    lv_style_set_border_color(&styleThemeBkg, lv_color_hex(objectColor));
+    lv_style_init(&styleObjectBkg);
+    lv_style_set_bg_color(&styleObjectBkg, lv_color_hex(objectColor));
+    lv_style_set_border_color(&styleObjectBkg, lv_color_hex(objectColor));
+    lv_style_init(&styleObjectSel);
+    lv_style_set_bg_color(&styleObjectSel, lv_color_hex(0x757575));
+
+    /*Initialize the new theme from the current theme*/
+    lv_theme_t *th_act = lv_disp_get_theme(NULL);
+    static lv_theme_t th_new;
+    th_new = *th_act;
+
+    /*Set the parent theme and the style apply callback for the new theme*/
+    lv_theme_set_parent(&th_new, th_act);
+    lv_theme_set_apply_cb(&th_new, applyModifyTheme);
+
+    /*Assign the new theme to the current display*/
+    lv_disp_set_theme(NULL, &th_new);
 }
 
 /**
@@ -94,6 +153,8 @@ void initLVGL()
     //  Create Main Timer
     mainTimer = lv_timer_create(updateMainScreen, UPDATE_MAINSCR_PERIOD, NULL);
     lv_timer_ready(mainTimer);
+
+    modifyTheme();
 
     //  Create Screens
     createSearchSatScr();

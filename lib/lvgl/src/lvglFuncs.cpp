@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL custom functions
  * @version 0.1.8
- * @date 2024-04
+ * @date 2024-05
  */
 
 #include "lvglFuncs.hpp"
@@ -38,7 +38,8 @@ void objSelect(_lv_obj_t *obj)
 {
     static lv_style_t styleWidget;
     lv_style_init(&styleWidget);
-    lv_style_set_bg_opa(&styleWidget, LV_OPA_80);
+    lv_style_set_bg_color(&styleWidget, lv_color_hex(0xB8B8B8));
+    lv_style_set_bg_opa(&styleWidget, LV_OPA_20);
     lv_style_set_border_opa(&styleWidget, LV_OPA_100);
     lv_obj_add_style(obj, &styleWidget, LV_PART_MAIN);
 }
@@ -52,6 +53,7 @@ void objUnselect(_lv_obj_t *obj)
 {
     static lv_style_t styleWidget;
     lv_style_init(&styleWidget);
+    lv_style_set_bg_color(&styleWidget, lv_color_black());
     lv_style_set_bg_opa(&styleWidget, LV_OPA_0);
     lv_style_set_border_opa(&styleWidget, LV_OPA_0);
     lv_obj_add_style(obj, &styleWidget, LV_PART_MAIN);

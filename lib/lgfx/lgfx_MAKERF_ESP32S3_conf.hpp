@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LOVYANGFX TFT driver for MAKERF_ESP32S3
  * @version 0.1.8
- * @date 2024-04
+ * @date 2024-05
  */
 
 #ifndef LGFX_MAKERF_ESP32S3_CONF_HPP

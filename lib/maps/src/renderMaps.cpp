@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Render maps draw functions
  * @version 0.1.8
- * @date 2024-04
+ * @date 2024-05
  */
 
 #include "renderMaps.hpp"
@@ -165,7 +165,7 @@ void generateRenderMap()
           roundMapTile = getMapTile(getLon(), getLat(), zoom, x, y);
           tileFound = mapSprite.drawPngFile(SD, roundMapTile.file, (x - startX) * tileSize, (y - startY) * tileSize);
           if (!tileFound)
-            mapSprite.fillRect((x - startX) * tileSize, (y - startY) * tileSize, tileSize, tileSize, LVGL_BKG);
+            mapSprite.fillRect((x - startX) * tileSize, (y - startY) * tileSize, tileSize, tileSize, TFT_BLACK);
         }
       }
     }
@@ -189,7 +189,7 @@ void generateRenderMap()
 #else
     mapHeading = GPS.course.deg();
     mapSprite.pushRotated(&mapRotSprite, 360 - mapHeading, TFT_TRANSPARENT);
-    // mapSprite.pushRotated(&mapRotSprite, 0, TFT_TRANSPARENT);
+    //mapSprite.pushRotated(&mapRotSprite, 0, TFT_TRANSPARENT);
 #endif
     // drawMapWidgets();
     sprArrow.pushRotated(&mapRotSprite, 0, TFT_BLACK);

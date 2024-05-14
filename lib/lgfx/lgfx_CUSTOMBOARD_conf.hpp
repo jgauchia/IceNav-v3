@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LOVYANGFX TFT driver for CUSTOMBOARD
  * @version 0.1.8
- * @date 2024-04
+ * @date 2024-05
  */
 
 #ifndef LGFX_CUSTOMBOARD_CONF_HPP
@@ -55,7 +55,7 @@ public:
             cfg.dummy_read_pixel = 8;
             cfg.dummy_read_bits = 1;
             cfg.readable = true;
-            cfg.invert = false;
+            cfg.invert = true;
             cfg.rgb_order = false;
             cfg.dlen_16bit = false;
             cfg.bus_shared = true;

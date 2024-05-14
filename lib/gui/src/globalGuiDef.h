@@ -2,7 +2,7 @@
  * @file globalGuiDef.h
  * @brief  Global GUI Variables
  * @version 0.1.8
- * @date 2024-04
+ * @date 2024-05
  */
 
 #ifndef GLOBALGUIDEF_HPP

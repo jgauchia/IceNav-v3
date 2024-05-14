@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Satellites info screen functions
  * @version 0.1.8
- * @date 2024-04
+ * @date 2024-05
  */
 
 #include "satInfo.hpp"
@@ -36,7 +36,7 @@ SatPos getSatPos(uint8_t elev, uint16_t azim)
 {
   SatPos pos;
   int H = (60 * cos(DEG2RAD(elev)));
-  pos.x = 100 + (H * sin(DEG2RAD(azim)));
+  pos.x = 75  + (H * sin(DEG2RAD(azim)));
   pos.y = 75 - (H * cos(DEG2RAD(azim)));
   return pos;
 }
@@ -62,17 +62,17 @@ void deleteSatInfoSprites()
 void createConstelSprite(TFT_eSprite &spr)
 {
   spr.deleteSprite();
-  spr.createSprite(200, 150);
-  spr.fillScreen(LVGL_BKG);
-  spr.drawCircle(100, 75, 60, TFT_WHITE);
-  spr.drawCircle(100, 75, 30, TFT_WHITE);
-  spr.drawCircle(100, 75, 1, TFT_WHITE);
+  spr.createSprite(150, 150);
+  spr.fillScreen(TFT_BLACK);
+  spr.drawCircle(75, 75, 60, TFT_WHITE);
+  spr.drawCircle(75, 75, 30, TFT_WHITE);
+  spr.drawCircle(75, 75, 1, TFT_WHITE);
   spr.setTextFont(2);
-  spr.setTextColor(TFT_WHITE, LVGL_BKG);
-  spr.drawString("N", 97, 7);
-  spr.drawString("S", 97, 127);
-  spr.drawString("W", 37, 67);
-  spr.drawString("E", 157, 67);
+  spr.setTextColor(TFT_WHITE, TFT_BLACK);
+  spr.drawString("N", 72, 7);
+  spr.drawString("S", 72, 127);
+  spr.drawString("W", 12, 67);
+  spr.drawString("E", 132, 67);
   spr.setTextFont(1);
 }
 
@@ -86,7 +86,7 @@ void createSatSprite(TFT_eSprite &spr)
   spr.deleteSprite();
   spr.createSprite(8, 8);
   spr.setColorDepth(8);
-  spr.fillScreen(LVGL_BKG);
+  spr.fillScreen(TFT_BLACK);
 }
 
 /**
@@ -99,8 +99,8 @@ void createSNRSprite(TFT_eSprite &spr)
   spr.deleteSprite();
   spr.createSprite(TFT_WIDTH, 10);
   spr.setColorDepth(8);
-  spr.fillScreen(LVGL_BKG);
-  spr.setTextColor(TFT_WHITE, LVGL_BKG);
+  spr.fillScreen(TFT_BLACK);
+  spr.setTextColor(TFT_WHITE, TFT_BLACK);
 }
 
 /**
@@ -199,14 +199,14 @@ void fillSatInView(GSV &gsv, int color)
 
           if (satTracker[i].posX != satPos.x || satTracker[i].posY != satPos.y)
           {
-            constelSpriteBkg.pushSprite(120, 30);
+            constelSpriteBkg.pushSprite(150, 30);
           }
 
           satTracker[i].posX = satPos.x;
           satTracker[i].posY = satPos.y;
         }
       }
-      constelSprite.pushSprite(120, 30);
+      constelSprite.pushSprite(150, 30);
     }
 
     lv_chart_refresh(satelliteBar1);

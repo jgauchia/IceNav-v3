@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Device Settings Screen
  * @version 0.1.8
- * @date 2024-04
+ * @date 2024-05
  */
 
 #include "deviceSettingsScr.hpp"
@@ -68,6 +68,8 @@ void createDeviceSettingsScr()
     dropdown = lv_dropdown_create(list);
     lv_dropdown_set_options(dropdown, "4800\n9600\n19200\n38400");
     lv_dropdown_set_selected(dropdown, gpsBaud);
+    lv_obj_t* item = lv_dropdown_get_list(dropdown);
+    lv_obj_set_style_bg_color(item, lv_color_hex(objectColor), LV_PART_SELECTED | LV_STATE_CHECKED);
     lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
     lv_obj_add_event_cb(dropdown, setGpsSpeed, LV_EVENT_VALUE_CHANGED, NULL);
 
@@ -79,6 +81,8 @@ void createDeviceSettingsScr()
     dropdown = lv_dropdown_create(list);
     lv_dropdown_set_options(dropdown, "1 Hz\n2 Hz\n4 Hz\n5 Hz\n10 Hz");
     lv_dropdown_set_selected(dropdown, gpsUpdate);
+    item = lv_dropdown_get_list(dropdown);
+    lv_obj_set_style_bg_color(item, lv_color_hex(objectColor), LV_PART_SELECTED | LV_STATE_CHECKED);
 #ifndef AT6558D_GPS
     lv_obj_set_style_text_color(list, lv_palette_darken(LV_PALETTE_GREY, 2), 0);
     lv_obj_add_state(list, LV_STATE_DISABLED);
