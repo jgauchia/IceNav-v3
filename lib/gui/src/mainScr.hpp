@@ -45,7 +45,8 @@ enum tileName
   SATTRACK,
 };
 
-static bool widget_selected = false;
+static bool widgetSelected = false;
+static bool canMoveWidget = false;
 
 /**
  * @brief Main Screen Tiles
@@ -84,6 +85,7 @@ void updateLatitude(lv_event_t *event);
 void updateLongitude(lv_event_t *event);
 void updateAltitude(lv_event_t *event);
 void updateSpeed(lv_event_t *event);
+void editScreen(lv_event_t *event);
 void unselectWidget(lv_event_t *event);
 void dragWidget(lv_event_t *event);
 

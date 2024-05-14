@@ -71,18 +71,40 @@ void updateSpeed(lv_event_t *event)
 }
 
 /**
+ * @brief Edit Screen Event (drag widgets)
+ *
+ * @param event
+ */
+void editScreen(lv_event_t *event)
+{
+    lv_event_code_t code = lv_event_get_code(event);
+
+    if (code == LV_EVENT_VALUE_CHANGED)
+    {
+        if (!canMoveWidget)
+            canMoveWidget = true;
+        else
+            canMoveWidget = false;
+    }
+    log_v("%d", canMoveWidget);
+}
+
+/**
  * @brief Unselect widget
  *
  * @param event
  */
 void unselectWidget(lv_event_t *event)
 {
-    lv_obj_t *obj = (lv_obj_t *)lv_event_get_target(event);
-    if (widget_selected)
+    if (canMoveWidget)
     {
-        objUnselect(obj);
-        lv_obj_add_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
-        widget_selected = false;
+        lv_obj_t *obj = (lv_obj_t *)lv_event_get_target(event);
+        if (widgetSelected)
+        {
+            objUnselect(obj);
+            lv_obj_add_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
+            widgetSelected = false;
+        }
     }
 }
 
@@ -93,35 +115,36 @@ void unselectWidget(lv_event_t *event)
  */
 void dragWidget(lv_event_t *event)
 {
-    // lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
-
-    lv_obj_t *obj = (lv_obj_t *)lv_event_get_target(event);
-    if (!widget_selected)
+    if (canMoveWidget)
     {
-        objSelect(obj);
-        lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
-        widget_selected = true;
-    }
+        lv_obj_t *obj = (lv_obj_t *)lv_event_get_target(event);
+        if (!widgetSelected)
+        {
+            objSelect(obj);
+            lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
+            widgetSelected = true;
+        }
 
-    lv_indev_t *indev = lv_indev_get_act();
-    if (indev == NULL)
-        return;
+        lv_indev_t *indev = lv_indev_get_act();
+        if (indev == NULL)
+            return;
 
-    lv_point_t vect;
-    lv_indev_get_vect(indev, &vect);
+        lv_point_t vect;
+        lv_indev_get_vect(indev, &vect);
 
-    lv_coord_t x = lv_obj_get_x(obj) + vect.x;
-    lv_coord_t y = lv_obj_get_y(obj) + vect.y;
-    lv_coord_t width = lv_obj_get_width(obj);
-    lv_coord_t height = lv_obj_get_height(obj);
+        lv_coord_t x = lv_obj_get_x(obj) + vect.x;
+        lv_coord_t y = lv_obj_get_y(obj) + vect.y;
+        lv_coord_t width = lv_obj_get_width(obj);
+        lv_coord_t height = lv_obj_get_height(obj);
 
-    // Limit drag area
-    if (x > 0 && y > 0 && (x + width) < 320 && (y + height) < 380)
-    {
-        lv_obj_set_pos(obj, x, y);
+        // Limit drag area
+        if (x > 0 && y > 0 && (x + width) < 320 && (y + height) < 380)
+        {
+            lv_obj_set_pos(obj, x, y);
 
-        char *widget = (char *)lv_event_get_user_data(event);
-        saveWidgetPos(widget, x, y);
+            char *widget = (char *)lv_event_get_user_data(event);
+            saveWidgetPos(widget, x, y);
+        }
     }
 }
 
@@ -473,15 +496,36 @@ void createMainScr()
     satTrackTile = lv_tileview_add_tile(tilesScreen, 3, 0, LV_DIR_LEFT);
     lv_obj_set_size(tilesScreen, TFT_WIDTH, TFT_HEIGHT - 25);
     lv_obj_set_pos(tilesScreen, 0, 25);
-    static lv_style_t style_scroll;
-    lv_style_init(&style_scroll);
-    lv_style_set_bg_color(&style_scroll, lv_color_hex(0xFFFFFF));
-    lv_obj_add_style(tilesScreen, &style_scroll, LV_PART_SCROLLBAR);
+    static lv_style_t styleScroll;
+    lv_style_init(&styleScroll);
+    lv_style_set_bg_color(&styleScroll, lv_color_hex(0xFFFFFF));
+    lv_obj_add_style(tilesScreen, &styleScroll, LV_PART_SCROLLBAR);
     // Main Screen Events
     lv_obj_add_event_cb(tilesScreen, getActTile, LV_EVENT_SCROLL_END, NULL);
     lv_obj_add_event_cb(tilesScreen, scrollTile, LV_EVENT_SCROLL_BEGIN, NULL);
 
     // Compass Tile
+
+    // Pin drag widget
+    static lv_style_t editBtnStyleOff;
+    lv_style_init(&editBtnStyleOff);
+    lv_style_set_bg_color(&editBtnStyleOff, lv_color_black());
+    lv_style_set_text_color(&editBtnStyleOff, lv_color_hex(0x303030));
+    static lv_style_t editBtnStyleOn;
+    lv_style_init(&editBtnStyleOn);
+    lv_style_set_bg_color(&editBtnStyleOn, lv_color_black());
+    lv_style_set_text_color(&editBtnStyleOn, lv_color_white());
+    lv_obj_t *editScreenBtn = lv_button_create(compassTile);
+    lv_obj_add_style(editScreenBtn, &editBtnStyleOff, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_style(editScreenBtn, &editBtnStyleOn, LV_PART_MAIN | LV_STATE_CHECKED);
+    lv_obj_set_pos(editScreenBtn, 5, 5);
+    lv_obj_add_flag(editScreenBtn, LV_OBJ_FLAG_CHECKABLE);
+    lv_obj_add_event_cb(editScreenBtn, editScreen, LV_EVENT_ALL, NULL);
+
+    lv_obj_t *editScreenLbl;
+    editScreenLbl = lv_label_create(editScreenBtn);
+    lv_label_set_text(editScreenLbl, LV_SYMBOL_EDIT);
+    lv_obj_center(editScreenLbl);
 
     // Compass Widget
     lv_obj_t *compassWidget = lv_obj_create(compassTile);
