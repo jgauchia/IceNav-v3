@@ -8,7 +8,7 @@
 
 #include "mapSettingsScr.hpp"
 
-lv_obj_t *mapSettingsScreen;    // Map Settings Screen
+lv_obj_t *mapSettingsScreen; // Map Settings Screen
 
 /**
  * @brief Back button event
@@ -104,6 +104,18 @@ static void showCompass(lv_event_t *event)
 }
 
 /**
+ * @brief Enable/Disable Compass rotation
+ *
+ * @param event
+ */
+static void compassRotation(lv_event_t *event)
+{
+    lv_obj_t *obj = lv_event_get_target_obj(event);
+    isCompassRot = lv_obj_has_state(obj, LV_STATE_CHECKED);
+    saveCompassRot(isCompassRot);
+}
+
+/**
  * @brief Show Speed option event
  *
  * @param event
@@ -142,6 +154,7 @@ void createMapSettingsScr()
     lv_obj_t *list;
     lv_obj_t *btn;
     lv_obj_t *checkCompass;
+    lv_obj_t *checkCompassRot;
     lv_obj_t *checkSpeed;
     lv_obj_t *checkScale;
 
@@ -212,6 +225,17 @@ void createMapSettingsScr()
     lv_checkbox_set_text(checkCompass, " ");
     lv_obj_add_state(checkCompass, showMapCompass);
     lv_obj_add_event_cb(checkCompass, showCompass, LV_EVENT_VALUE_CHANGED, NULL);
+
+    // Compass Rotation
+    list = lv_list_add_btn(mapSettingsOptions, NULL, "Compass Rotation");
+    lv_obj_set_style_text_font(list, &lv_font_montserrat_18, 0);
+    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
+    checkCompassRot = lv_checkbox_create(list);
+    lv_obj_align_to(checkCompassRot, list, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_checkbox_set_text(checkCompassRot, " ");
+    lv_obj_add_state(checkCompassRot, isCompassRot);
+    lv_obj_add_event_cb(checkCompassRot, compassRotation, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Show Speed
     list = lv_list_add_btn(mapSettingsOptions, NULL, "Show Speed");
