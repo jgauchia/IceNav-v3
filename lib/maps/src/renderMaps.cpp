@@ -170,6 +170,8 @@ void generateRenderMap()
     else
     {
       isMapFound = false;
+      showNoMap(mapRotSprite);
+      mapRotSprite.pushSprite(0, 27);
       log_v("Map doesn't exist");
     }
 
@@ -184,10 +186,12 @@ void generateRenderMap()
 
 #ifdef ENABLE_COMPASS
     heading = getHeading();
+
     if (isMapRotation)
       mapHeading = getHeading();
     else
       mapHeading = GPS.course.deg();
+      
     mapSprite.pushRotated(&mapRotSprite, 360 - mapHeading, TFT_TRANSPARENT);
 #else
     mapHeading = GPS.course.deg();

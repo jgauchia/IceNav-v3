@@ -1,3 +1,4 @@
+![Static Badge](https://img.shields.io/badge/PlatformIO-PlatformIO?logo=platformio&labelColor=auto&color=white)
 [![PlatformIO](https://github.com/jgauchia/IceNav-v3/workflows/PlatformIO/badge.svg)](https://github.com/jgauchia/IceNav-v3/actions/) ![ViewCount](https://views.whatilearened.today/views/github/jgauchia/IceNav-v3.svg)
 
 ![icenav_logo](images/icenav_logo.png)
@@ -5,6 +6,9 @@
 ESP32 Based GPS Navigator.
 * Note: Under development
 * There is the possibility to use two types of maps: Rendered Maps or Tiles (large files), and Vector Maps (small files).
+
+> [!CAUTION]
+> Do not use in production.
 
 ## Screenshots
 <img src="images/screenshot_1.png" width="25%" height="25%"><img src="images/screenshot_2.png" width="25%" height="25%"><img src="images/screenshot_3.png" width="25%" height="25%"><img src="images/screenshot_4.png" width="25%" height="25%">
@@ -120,19 +124,21 @@ For ESP32S3 Makerfab board:
 pio run -e MAKERF_ESP32S3 --target upload
 ```
 
-After the first run, load the icons and assets with:
+> [!IMPORTANT]
+> After the first run, load the icons and assets with:
 
-```bash
-pio run --target uploadfs
-```
+> ```bash
+> pio run --target uploadfs
+> ```
 
-Optional, for map debugging version with specific coordinates, build and install the firmware with the next environment variables, like this:
+> [!TIP]
+> Optional, for map debugging version with specific coordinates, build and install the firmware with the next environment variables, like this:
 
-```bash
-export ICENAV3_LAT=52.5200
-export ICENAV3_LON=13.4049
-pio run --target upload
-```
+> ```bash
+> export ICENAV3_LAT=52.5200
+> export ICENAV3_LON=13.4049
+> pio run --target upload
+> ```
 
 Note: For production version don't forget unset these environment variables.  
 
