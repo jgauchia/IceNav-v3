@@ -9,7 +9,7 @@
 #include "vectorMaps.hpp"
 
 double prevLat = 0, prevLng = 0; // Previous Latitude and Longitude
-bool isPosMoved = false;         // Flag when current position changes
+bool isPosMoved = true;         // Flag when current position changes
 
 /**
  * @brief Set center coordinates of viewport
@@ -217,9 +217,9 @@ MapBlock *readMapBlock(String fileName)
     if (!file_)
     {
         isMapFound = false;
-        log_v("Map doesn't exist");
-        // while (true)
-        //     ;
+        // log_v("Map doesn't exist");
+        //  while (true)
+        //      ;
         mblock->inView = false;
         return mblock;
     }
@@ -411,14 +411,24 @@ void getMapBlocks(BBox &bbox, MemCache &memCache)
         }
 
         MapBlock *newBlock = readMapBlock(fileName);
-        newBlock->inView = true;
-        newBlock->offset = Point32(blockMinX, blockMinY);
-        memCache.blocks.push_back(newBlock); // add the block to the memory cache
-        assert(memCache.blocks.size() <= MAPBLOCKS_MAX);
+        if (isMapFound)
+        {
+            newBlock->inView = true;
+            newBlock->offset = Point32(blockMinX, blockMinY);
+            memCache.blocks.push_back(newBlock); // add the block to the memory cache
+            assert(memCache.blocks.size() <= MAPBLOCKS_MAX);
 
-        log_d("Block readed from SD card: %p", newBlock);
-        log_d("FreeHeap: %i", esp_get_free_heap_size());
+            log_d("Block readed from SD card: %p", newBlock);
+            log_d("FreeHeap: %i", esp_get_free_heap_size());
+        }
+        else
+        {
+            newBlock->inView = false;
+            newBlock->offset = Point32(blockMinX, blockMinY);
+            memCache.blocks.push_back(newBlock); // add the block to the memory cache
+        }
     }
+
     log_d("memCache size: %i %i", memCache.blocks.size(), millis());
 }
 
@@ -582,5 +592,8 @@ void generateVectorMap(ViewPort &viewPort, MemCache &memCache, TFT_eSprite &map)
         log_d("Draw done! %i", millis());
     }
     else
-        map.fillScreen(TFT_BLACK);
+    {
+        showNoMap(map);
+        log_v("Map doesn't exist");
+    }
 }
