@@ -9,9 +9,13 @@
 #ifndef BME_HPP
 #define BME_HPP
 
+#ifdef CUSTOMBOARD
+
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 
 extern Adafruit_BME280 bme;
+
+#endif
 
 #endif

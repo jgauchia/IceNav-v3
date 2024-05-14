@@ -148,9 +148,9 @@ If the GPS module supports multiple GNSS, uncomment the following flag in the pl
 - [ ] GPX Integration
 - [ ] Multiple IMU's and Compass module implementation
 - [ ] Power saving
-- [ ] Vector maps
+- [X] Vector maps
 - [ ] Google Maps navigation style
-- [ ] Optimize code
+- [x] Optimize code
 - [ ] Fix bugs!
 - [ ] Web file server
 

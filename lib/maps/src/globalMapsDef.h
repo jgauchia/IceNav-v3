@@ -13,5 +13,6 @@
 
 static bool refreshMap = false; // Flag to indicate when tile map is found on SD
 static bool isMapDraw = false;  // Flag to indicate when maps needs to be draw
+static bool isMapFound = true; // Flag to indicate if map is found
 
 #endif

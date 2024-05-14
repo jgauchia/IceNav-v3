@@ -12,9 +12,9 @@
 Adafruit_HMC5883_Unified compass = Adafruit_HMC5883_Unified(12345);
 #endif
 
-// #ifdef MAKERF_ESP32S3
-// MPU9250 IMU(Wire, 0x68);
-// #endif
+#ifdef MAKERF_ESP32S3
+MPU9250 IMU = MPU9250(Wire, 0x68);
+#endif
 
 /**
  * @brief Magnetic declination

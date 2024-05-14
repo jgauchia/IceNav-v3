@@ -122,7 +122,7 @@ double getLat()
 #ifdef DEFAULT_LAT
     return DEFAULT_LAT;
 #else
-    return 0.0;
+    return 52.5200; //0.0;
 #endif
   }
 }
@@ -140,7 +140,7 @@ double getLon()
 #ifdef DEFAULT_LON
     return DEFAULT_LON;
 #else
-    return 0.0;
+    return 13.4049; //0.0;
 #endif
   }
 }

@@ -8,4 +8,8 @@
 
 #include "bme.hpp"
 
+#ifdef CUSTOMBOARD
+
 Adafruit_BME280 bme = Adafruit_BME280();
+
+#endif

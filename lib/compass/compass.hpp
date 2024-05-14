@@ -19,7 +19,7 @@ extern Adafruit_HMC5883_Unified compass;
 
 #ifdef MAKERF_ESP32S3
 #include <MPU9250.h>
-MPU9250 IMU(Wire, 0x68);
+extern MPU9250 IMU;
 #endif
 
 #define COMPASS_CAL_TIME 16000

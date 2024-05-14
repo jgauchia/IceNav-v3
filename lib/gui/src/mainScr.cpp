@@ -367,12 +367,15 @@ void updateMap(lv_event_t *event)
             tft.startWrite();
         getPosition(getLat(), getLon());
 
+        viewPort.setCenter(point);
+        getMapBlocks(viewPort.bbox, memCache);
+
         if (isPosMoved)
         {
             mapRotSprite.deleteSprite();
             mapRotSprite.createSprite(MAP_WIDTH, MAP_HEIGHT);
-            viewPort.setCenter(point);
-            getMapBlocks(viewPort.bbox, memCache);
+            // viewPort.setCenter(point);
+            // getMapBlocks(viewPort.bbox, memCache);
             generateVectorMap(viewPort, memCache, mapRotSprite);
             refreshMap = true;
             isPosMoved = false;

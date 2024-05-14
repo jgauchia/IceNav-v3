@@ -149,10 +149,10 @@ void generateRenderMap()
     uint8_t centerY = 0;
     int8_t startX = centerX - 1;
     int8_t startY = centerY - 1;
-    bool tileFound = false;
 
     if (refreshMap)
     {
+      isMapFound = true;
       for (int y = startY; y <= startY + 2; y++)
       {
         for (int x = startX; x <= startX + 2; x++)
@@ -163,11 +163,14 @@ void generateRenderMap()
             continue;
           }
           roundMapTile = getMapTile(getLon(), getLat(), zoom, x, y);
-          tileFound = mapSprite.drawPngFile(SD, roundMapTile.file, (x - startX) * tileSize, (y - startY) * tileSize);
-          if (!tileFound)
-            mapSprite.fillRect((x - startX) * tileSize, (y - startY) * tileSize, tileSize, tileSize, TFT_BLACK);
+          isMapFound = mapSprite.drawPngFile(SD, roundMapTile.file, (x - startX) * tileSize, (y - startY) * tileSize);
         }
       }
+    }
+    else
+    {
+      isMapFound = false;
+      log_v("Map doesn't exist");
     }
 
     isMapDraw = true;
@@ -189,7 +192,7 @@ void generateRenderMap()
 #else
     mapHeading = GPS.course.deg();
     mapSprite.pushRotated(&mapRotSprite, 360 - mapHeading, TFT_TRANSPARENT);
-    //mapSprite.pushRotated(&mapRotSprite, 0, TFT_TRANSPARENT);
+    // mapSprite.pushRotated(&mapRotSprite, 0, TFT_TRANSPARENT);
 #endif
     // drawMapWidgets();
     sprArrow.pushRotated(&mapRotSprite, 0, TFT_BLACK);
