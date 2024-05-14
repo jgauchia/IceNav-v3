@@ -110,37 +110,41 @@ Please follow the instructions provided by [OSM_Extract](https://github.com/ares
 
 ## Firmware install
 
-Please install first [PlatformIO](http://platformio.org/) open source ecosystem for IoT development compatible with **Arduino** IDE and its command line tools (Windows, MacOs and Linux). Also, you may need to install [git](http://git-scm.com/) in your system. 
-
-For custom ESP32 board run:
-
-```bash
-pio run --target upload
-```
-
-For ESP32S3 Makerfab board:
-
-```bash
-pio run -e MAKERF_ESP32S3 --target upload
-```
 
 > [!IMPORTANT]
+>Please install first [PlatformIO](http://platformio.org/) open source ecosystem for IoT development compatible with **Arduino** IDE and its command line tools (Windows, MacOs and Linux). Also, you may need to install [git](http://git-scm.com/) in your system.
+> 
+>For custom ESP32 board run:
+> 
+>```bash
+>pio run --target upload
+>```
+>
+>For ESP32S3 Makerfab board:
+> 
+>```bash
+>pio run -e MAKERF_ESP32S3 --target upload
+>```
+>
 > After the first run, load the icons and assets with:
-
+> 
 > ```bash
 > pio run --target uploadfs
 > ```
 
+
 > [!TIP]
 > Optional, for map debugging version with specific coordinates, build and install the firmware with the next environment variables, like this:
-
+> 
 > ```bash
 > export ICENAV3_LAT=52.5200
 > export ICENAV3_LON=13.4049
 > pio run --target upload
 > ```
 
-Note: For production version don't forget unset these environment variables.  
+
+> [!NOTE]
+> For production version don't forget unset these environment variables.  
 
 If the GPS module supports multiple GNSS, uncomment the following flag in the platformio.ini file under the build_flags section
 
