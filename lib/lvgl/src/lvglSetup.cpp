@@ -131,6 +131,13 @@ void modifyTheme()
     lv_disp_set_theme(NULL, &th_new);
 }
 
+/* Setting up tick task for lvgl */
+void lv_tick_task(void *arg)
+{
+    (void)arg;
+    lv_tick_inc(LV_TICK_PERIOD_MS);
+}
+
 /**
  * @brief Init LVGL
  *
@@ -166,11 +173,19 @@ void initLVGL()
     createButtonBarScr();
 
     // LVGL refresh tick
-    auto tick_get_cb = []() -> uint32_t
-    {
-        return esp_timer_get_time() / 1000ULL;
-    };
-    lv_tick_set_cb(tick_get_cb);
+    // auto tick_get_cb = []() -> uint32_t
+    // {
+    //     return esp_timer_get_time() / 1000ULL;
+    // };
+    // lv_tick_set_cb(tick_get_cb);
+
+    /* Create and start a periodic timer interrupt to call lv_tick_inc */
+    const esp_timer_create_args_t periodic_timer_args = {
+        .callback = &lv_tick_task,
+        .name = "periodic_gui"};
+    esp_timer_handle_t periodic_timer;
+    ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
+    ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer, LV_TICK_PERIOD_MS * 1000));
 }
 
 /**

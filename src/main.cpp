@@ -43,6 +43,10 @@ static ulong lvglTickMillis = millis();
 
 #include "lvglSetup.hpp"
 
+
+#define TASK_SLEEP_PERIOD_MS 4
+
+
 /**
  * @brief Setup
  *
@@ -104,5 +108,8 @@ void loop()
   // lvglTickMillis = millis();
   // lv_tick_inc(tick_millis);
   // yield();
-  vTaskDelay(pdMS_TO_TICKS(lv_timer_handler()));
+
+  // vTaskDelay(pdMS_TO_TICKS(lv_timer_handler()));
+  lv_timer_handler(); /* let the GUI do its work */
+  vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
 }
