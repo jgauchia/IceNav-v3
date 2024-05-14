@@ -164,6 +164,13 @@ void initLVGL()
     createMapSettingsScr();
     createDeviceSettingsScr();
     createButtonBarScr();
+
+    // LVGL refresh tick
+    auto tick_get_cb = []() -> uint32_t
+    {
+        return esp_timer_get_time() / 1000ULL;
+    };
+    lv_tick_set_cb(tick_get_cb);
 }
 
 /**
