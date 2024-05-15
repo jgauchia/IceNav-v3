@@ -18,8 +18,6 @@
 #include <esp_bt.h>
 #include <Timezone.h>
 
-static ulong lvglTickMillis = millis();
-
 // Hardware includes
 #include "hal.hpp"
 #include "gps.hpp"
@@ -42,10 +40,6 @@ static ulong lvglTickMillis = millis();
 #include "renderMaps.hpp"
 
 #include "lvglSetup.hpp"
-
-
-#define TASK_SLEEP_PERIOD_MS 4
-
 
 /**
  * @brief Setup
@@ -80,21 +74,14 @@ void setup()
     mapSprite.createSprite(768, 768);
   }
 
-  // auto tick_get_cb = []() -> uint32_t
-  // {
-  //   return esp_timer_get_time() / 1000ULL;
-  // };
-
-  // lv_tick_set_cb(tick_get_cb);
-
   splashScreen();
   initTasks();
 
-  // #ifdef DEFAULT_LAT
+#ifdef DEFAULT_LAT
   loadMainScreen();
-  // #else
-  // lv_screen_load(searchSatScreen);
-  // #endif
+#else
+  lv_screen_load(searchSatScreen);
+#endif
 }
 
 /**
@@ -104,12 +91,7 @@ void setup()
 void loop()
 {
   // lv_timer_handler();
-  // unsigned long tick_millis = millis() - lvglTickMillis;
-  // lvglTickMillis = millis();
-  // lv_tick_inc(tick_millis);
-  // yield();
-
-  // vTaskDelay(pdMS_TO_TICKS(lv_timer_handler()));
-  lv_timer_handler(); /* let the GUI do its work */
-  vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
+  // lv_tick_inc(5);
+  // lv_timer_handler(); /* let the GUI do its work */
+  // vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
 }

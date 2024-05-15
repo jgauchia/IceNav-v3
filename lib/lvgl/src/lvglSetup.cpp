@@ -131,7 +131,11 @@ void modifyTheme()
     lv_disp_set_theme(NULL, &th_new);
 }
 
-/* Setting up tick task for lvgl */
+/**
+ * @brief Setting up tick task for lvgl
+ * 
+ * @param arg 
+ */
 void lv_tick_task(void *arg)
 {
     (void)arg;
@@ -172,14 +176,7 @@ void initLVGL()
     createDeviceSettingsScr();
     createButtonBarScr();
 
-    // LVGL refresh tick
-    // auto tick_get_cb = []() -> uint32_t
-    // {
-    //     return esp_timer_get_time() / 1000ULL;
-    // };
-    // lv_tick_set_cb(tick_get_cb);
-
-    /* Create and start a periodic timer interrupt to call lv_tick_inc */
+    // Create and start a periodic timer interrupt to call lv_tick_inc 
     const esp_timer_create_args_t periodic_timer_args = {
         .callback = &lv_tick_task,
         .name = "periodic_gui"};

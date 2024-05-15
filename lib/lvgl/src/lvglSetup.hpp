@@ -13,7 +13,8 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#define LV_TICK_PERIOD_MS 1
+
+#define LV_TICK_PERIOD_MS 4
 
 #include "lvglFuncs.hpp"
 #include "lvglSpiffsFs.hpp"
@@ -35,7 +36,7 @@
 static lv_display_t *display;
 #define DRAW_BUF_SIZE (((TFT_WIDTH * TFT_HEIGHT) / 10) * (LV_COLOR_DEPTH / 8))
 // static uint32_t *drawBuf = (uint32_t *)ps_malloc(TFT_WIDTH * TFT_HEIGHT / 10 * (LV_COLOR_DEPTH / 8));
-static uint32_t drawBuf[DRAW_BUF_SIZE / 4];
+static uint32_t drawBuf[DRAW_BUF_SIZE / 2];
 static uint32_t objectColor = 0x303030; 
 
 
@@ -43,9 +44,7 @@ void displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map);
 void touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data);
 void applyModifyTheme(lv_theme_t *th, lv_obj_t *obj);
 void modifyTheme();
-
 void lv_tick_task(void *arg);
-
 void initLVGL();
 void loadMainScreen();
 

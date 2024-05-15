@@ -57,14 +57,14 @@ void loadPreferences()
     showMapScale = preferences.getBool("Map_scale", false);
     gpsBaud = preferences.getShort("GPS_speed", 2);
     gpsUpdate = preferences.getShort("GPS_rate", 3);
-    compassPosX = preferences.getInt("Compass_X", (TFT_WIDTH / 2) - 100);
-    compassPosY = preferences.getInt("Compass_Y", (TFT_HEIGHT / 2) - 60);
-    coordPosX = preferences.getInt("Coords_X", 15);
-    coordPosY = preferences.getInt("Coords_Y", 10);
-    altitudePosX = preferences.getInt("Altitude_X", 15);
-    altitudePosY = preferences.getInt("Altitude_Y", 55);
-    speedPosX = preferences.getInt("Speed_X", 15);
-    speedPosY = preferences.getInt("Speed_Y", 100);
+    compassPosX = preferences.getInt("Compass_X", 60);
+    compassPosY = preferences.getInt("Compass_Y", 82);
+    coordPosX = preferences.getInt("Coords_X", 66);
+    coordPosY = preferences.getInt("Coords_Y", 29);
+    altitudePosX = preferences.getInt("Altitude_X", 8);
+    altitudePosY = preferences.getInt("Altitude_Y", 293);
+    speedPosX = preferences.getInt("Speed_X", 1);
+    speedPosY = preferences.getInt("Speed_Y", 337);
     isVectorMap = preferences.getBool("Map_vector", false);
     if (isVectorMap)
     {
@@ -78,14 +78,14 @@ void loadPreferences()
     }
 
     // // Default Widgets positions
-    // compassPosX = (TFT_WIDTH / 2) - 100;
-    // compassPosY = (TFT_HEIGHT / 2) - 60;
-    // coordPosX = 15;
-    // coordPosY = 10;
-    // altitudePosX = 15;
-    // altitudePosY = 55;
-    // speedPosX = 15;
-    // speedPosY = 100;
+    // compassPosX = 60;
+    // compassPosY = 82;
+    // coordPosX = 66;
+    // coordPosY = 29;
+    // altitudePosX = 8;
+    // altitudePosY = 293;
+    // speedPosX = 1;
+    // speedPosY = 337;
 
     log_v("COMPASS OFFSET X  %f", offX);
     log_v("COMPASS OFFSET Y  %f", offY);

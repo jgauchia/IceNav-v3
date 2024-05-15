@@ -113,13 +113,19 @@ void touchCalibrate()
 void initTFT()
 {
     tft.init();
-    //tft.setRotation(8);
+    // tft.setRotation(8);
     tft.initDMA();
     tft.startWrite();
     tft.fillScreen(TFT_BLACK);
     tft.endWrite();
 
+#ifdef CUSTOMBOARD
     gpio_set_drive_capability(GPIO_NUM_33, GPIO_DRIVE_CAP_3);
+#endif
+#ifdef MAKERF_ESP32S3
+    gpio_set_drive_capability(GPIO_NUM_45, GPIO_DRIVE_CAP_3);
+#endif
+
     ledcAttachPin(TFT_BL, 0);
     ledcSetup(0, 5000, 8);
     ledcWrite(0, 255);
