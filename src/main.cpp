@@ -91,9 +91,9 @@ void setup()
   initTasks();
 
   // #ifdef DEFAULT_LAT
-  loadMainScreen();
+  //loadMainScreen();
   // #else
-  // lv_screen_load(searchSatScreen);
+   lv_screen_load(searchSatScreen);
   // #endif
 }
 
