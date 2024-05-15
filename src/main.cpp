@@ -18,8 +18,6 @@
 #include <esp_bt.h>
 #include <Timezone.h>
 
-static ulong lvglTickMillis = millis();
-
 // Hardware includes
 #include "hal.hpp"
 #include "gps.hpp"
@@ -79,11 +77,11 @@ void setup()
   splashScreen();
   initTasks();
 
-  // #ifdef DEFAULT_LAT
+#ifdef DEFAULT_LAT
   loadMainScreen();
-  // #else
-  //lv_screen_load(searchSatScreen);
-  // #endif
+#else
+  lv_screen_load(searchSatScreen);
+#endif
 }
 
 /**
@@ -92,10 +90,8 @@ void setup()
  */
 void loop()
 {
-  lv_timer_handler();
-  unsigned long tick_millis = millis() - lvglTickMillis;
-  lvglTickMillis = millis();
-  lv_tick_inc(tick_millis);
-  yield();
-  delay(5);
+  // lv_timer_handler();
+  // lv_tick_inc(5);
+  // lv_timer_handler(); /* let the GUI do its work */
+  // vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
 }

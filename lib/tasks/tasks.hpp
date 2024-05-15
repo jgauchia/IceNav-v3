@@ -12,6 +12,9 @@
 #include <Timezone.h>
 #include <TimeLib.h>
 #include "gps.hpp"
+#include "lvgl.h"
+
+#define TASK_SLEEP_PERIOD_MS 4
 
 /**
  * @brief Central European Time (daylight saving time)

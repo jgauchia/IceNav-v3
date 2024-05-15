@@ -44,9 +44,9 @@ void readGPS(void *pvParameters)
       }
       if (!GPS.time.isValid() && isTimeFixed)
         isTimeFixed = false;
-      vTaskDelay(10);
 #endif
     }
+    vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
   }
 }
 
@@ -58,10 +58,11 @@ void readGPS(void *pvParameters)
 void lvglTask(void *pvParameters)
 {
   log_v("Task2 - LVGL Task - running on core %d", xPortGetCoreID());
+  log_v("Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
   for (;;)
   {
-    vTaskDelay(10);
-    // lv_tick_inc(5);
+    lv_timer_handler(); 
+    vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
   }
 }
 
@@ -71,8 +72,8 @@ void lvglTask(void *pvParameters)
  */
 void initTasks()
 {
-  xTaskCreatePinnedToCore(readGPS, PSTR("Read GPS"), 20000, NULL, 3, NULL, 1);
+  xTaskCreatePinnedToCore(readGPS, PSTR("Read GPS"), 20000, NULL, 1, NULL, 1);
   delay(500);
-  // xTaskCreatePinnedToCore(lvglTask, PSTR("LVGL Task"), 20000, NULL, 1, NULL, 1);
-  // delay(500);
+  xTaskCreatePinnedToCore(lvglTask, PSTR("LVGL Task"), 20000, NULL, 2, NULL, 1);
+  delay(500);
 }

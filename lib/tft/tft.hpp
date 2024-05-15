@@ -20,6 +20,7 @@
 
 #ifdef MAKERF_ESP32S3
 #include <lgfx_MAKERF_ESP32S3_conf.hpp>
+//#include <lgfx_ESP32S3_TEST_conf.hpp>
 #endif
 
 #include <LGFX_TFT_eSPI.hpp>
