@@ -9,6 +9,7 @@ ESP32 Based GPS Navigator.
 
 > [!CAUTION]
 > Do not use in production.
+* Note: Under development (experimental features under dev branch)
 
 ## Screenshots
 |<img src="images/dev/splash.jpg">|<img src="images/dev/compass.jpg">|<img src="images/dev/rendermap.jpg">|<img src="images/dev/vectormap.jpg">|<img src="images/dev/satinfo.jpg">|
@@ -172,7 +173,7 @@ If the GPS module supports multiple GNSS, uncomment the following flag in the pl
 - [x] Optimize code
 - [ ] Fix bugs!
 - [ ] Web file server
-
+      
 ## Credits
 
 * Added support to [Makerfabs ESP32-S3 Parallel TFT with Touch 3.5" ILI9488](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) (thanks to [@hpsaturn](https://github.com/hpsaturn))
