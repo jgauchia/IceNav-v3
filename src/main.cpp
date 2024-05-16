@@ -59,6 +59,7 @@ void setup()
 #ifdef ENABLE_COMPASS
   initCompass();
 #endif
+
   powerOn();
   loadPreferences();
   initSD();
@@ -67,15 +68,17 @@ void setup()
   initGPS();
   initLVGL();
   initADC();
+  initTasks();
 
+  // Reserve PSRAM if rendered map is selected
+  // Create a Sprite por temporary 9x9 tile map
   if (!isVectorMap)
   {
-    mapSprite.deleteSprite();
-    mapSprite.createSprite(768, 768);
+    mapTempSprite.deleteSprite();
+    mapTempSprite.createSprite(768, 768);
   }
 
   splashScreen();
-  initTasks();
 
 #ifdef DEFAULT_LAT
   loadMainScreen();

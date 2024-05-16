@@ -9,10 +9,13 @@
 #ifndef LVGLFUNCS_HPP
 #define LVGLFUNCS_HPP
 
+#include <Arduino.h>
 #include "lvgl.h"
 
 void objHideCursor(_lv_obj_t *obj);
 void objSelect(_lv_obj_t *obj);
 void objUnselect(_lv_obj_t *obj);
+void restartTimerCb(lv_timer_t *timer);
+void showRestartScr();
 
 #endif

@@ -162,8 +162,8 @@ void saveShowCompass(bool showCompass)
 
 /**
  * @brief Save compass rotation in map
- * 
- * @param compassRot 
+ *
+ * @param compassRot
  */
 void saveCompassRot(bool compassRot)
 {

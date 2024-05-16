@@ -58,3 +58,30 @@ void objUnselect(_lv_obj_t *obj)
     lv_style_set_border_opa(&styleWidget, LV_OPA_0);
     lv_obj_add_style(obj, &styleWidget, LV_PART_MAIN);
 }
+
+/**
+ * @brief Restart timer callback
+ * 
+ * @param timer 
+ */
+void restartTimerCb(lv_timer_t *timer)
+{
+    if (lv_timer_get_idle() != 0)
+        ESP.restart();
+}
+
+/**
+ * @brief Show restart Screen
+ * 
+ */
+void showRestartScr()
+{
+        lv_obj_t *restartScr = lv_obj_create(NULL);
+        lv_obj_set_size(restartScr, TFT_WIDTH, TFT_HEIGHT);
+        lv_obj_t *restartMsg = lv_msgbox_create(restartScr);
+        lv_msgbox_add_text(restartMsg, LV_SYMBOL_WARNING " This device will restart shortly");
+        lv_screen_load(restartScr);
+        lv_timer_t *restartTimer;
+        restartTimer = lv_timer_create(restartTimerCb, 3000, NULL);
+        lv_timer_reset(restartTimer);
+}

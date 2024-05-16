@@ -28,5 +28,6 @@ extern lv_obj_t *notifyBar;            // Notify Bar
 extern lv_obj_t *settingsScreen;       // Settings Screen
 extern lv_obj_t *mapSettingsScreen;    // Map Settings Screen
 extern lv_obj_t *deviceSettingsScreen; // Device Settings Screen
+extern bool needReboot;                // Flag to force device reboot
 
 #endif
