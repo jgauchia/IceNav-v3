@@ -4,12 +4,11 @@
 ![icenav_logo](images/icenav_logo.png)
 
 ESP32 Based GPS Navigator.
-* Note: Under development
+* Note: Under development (experimental features under devel branch)
 * There is the possibility to use two types of maps: Rendered Maps or Tiles (large files), and Vector Maps (small files).
 
 > [!CAUTION]
 > Do not use in production.
-* Note: Under development (experimental features under dev branch)
 
 ## Screenshots
 |<img src="images/dev/splash.jpg">|<img src="images/dev/compass.jpg">|<img src="images/dev/rendermap.jpg">|<img src="images/dev/vectormap.jpg">|<img src="images/dev/satinfo.jpg">|
