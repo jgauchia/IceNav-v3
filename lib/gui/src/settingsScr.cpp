@@ -32,6 +32,7 @@ static void touchCalib(lv_event_t *event)
     isMainScreen = false;
     tft.fillScreen(TFT_BLACK);
     lv_screen_load(settingsScreen);
+    lv_obj_invalidate(lv_scr_act());
 }
 
 /**
@@ -42,10 +43,11 @@ static void touchCalib(lv_event_t *event)
 static void compassCalib(lv_event_t *event)
 {
     tft.fillScreen(TFT_BLACK);
-    compassCalibrate(); 
+    compassCalibrate();
     tft.fillScreen(TFT_BLACK);
     isMainScreen = false;
     lv_screen_load(settingsScreen);
+    lv_obj_invalidate(lv_scr_act());
 }
 
 /**
