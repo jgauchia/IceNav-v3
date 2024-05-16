@@ -17,7 +17,15 @@ lv_obj_t *mapSettingsScreen; // Map Settings Screen
  */
 static void mapSettingsBack(lv_event_t *event)
 {
-    lv_screen_load(settingsScreen);
+    if (needReboot)
+    {
+        saveMapType(isVectorMap);
+        saveDefaultZoom(defaultZoom);
+        lv_obj_delete(mapSettingsScreen);
+        showRestartScr();
+    }
+    else
+        lv_screen_load(settingsScreen);
 }
 
 /**
@@ -28,25 +36,20 @@ static void mapSettingsBack(lv_event_t *event)
 static void configureMapType(lv_event_t *event)
 {
     isVectorMap = lv_obj_has_state(mapType, LV_STATE_CHECKED);
-    saveMapType(isVectorMap);
-    mapSprite.deleteSprite();
-    mapRotSprite.deleteSprite();
     if (!isVectorMap)
-        mapSprite.createSprite(768, 768);
-
-    if (isVectorMap)
-    {
-        minZoom = 1;
-        maxZoom = 4;
-    }
-    else
     {
         minZoom = 6;
         maxZoom = 17;
     }
+    else
+    {
+        minZoom = 1;
+        maxZoom = 4;
+    }
     lv_spinbox_set_range(zoomLevel, minZoom, maxZoom);
     defaultZoom = (uint8_t)lv_spinbox_get_value(zoomLevel);
-    saveDefaultZoom(defaultZoom);
+    zoom = defaultZoom;
+    needReboot = true;
 }
 
 /**
@@ -72,6 +75,7 @@ static void incrementZoom(lv_event_t *event)
     {
         lv_spinbox_increment(zoomLevel);
         defaultZoom = (uint8_t)lv_spinbox_get_value(zoomLevel);
+        zoom = defaultZoom;
         saveDefaultZoom(defaultZoom);
     }
 }
@@ -87,6 +91,7 @@ static void decrementZoom(lv_event_t *event)
     {
         lv_spinbox_decrement(zoomLevel);
         defaultZoom = (uint8_t)lv_spinbox_get_value(zoomLevel);
+        zoom = defaultZoom;
         saveDefaultZoom(defaultZoom);
     }
 }

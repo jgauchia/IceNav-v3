@@ -314,7 +314,7 @@ void getZoomValue(lv_event_t *event)
 void deleteMapScrSprites()
 {
     sprArrow.deleteSprite();
-    mapRotSprite.deleteSprite();
+    mapSprite.deleteSprite();
 }
 
 /**
@@ -324,8 +324,8 @@ void deleteMapScrSprites()
 void createMapScrSprites()
 {
     // Map Sprite
-    mapRotSprite.createSprite(MAP_WIDTH, MAP_HEIGHT);
-    mapRotSprite.pushSprite(0, 27);
+    mapSprite.createSprite(MAP_WIDTH, MAP_HEIGHT);
+    mapSprite.pushSprite(0, 27);
     // Arrow Sprite
     sprArrow.createSprite(16, 16);
     sprArrow.setColorDepth(16);
@@ -338,7 +338,7 @@ void createMapScrSprites()
  */
 void drawMapWidgets()
 {
-    mapRotSprite.setTextColor(TFT_WHITE, TFT_WHITE);
+    mapSprite.setTextColor(TFT_WHITE, TFT_WHITE);
 
 #ifdef ENABLE_COMPASS
     heading = getHeading();
@@ -348,34 +348,34 @@ void drawMapWidgets()
         mapHeading = GPS.course.deg();
     if (showMapCompass)
     {
-        mapRotSprite.fillRectAlpha(TFT_WIDTH - 48, 0, 48, 48, 95, TFT_BLACK);
+        mapSprite.fillRectAlpha(TFT_WIDTH - 48, 0, 48, 48, 95, TFT_BLACK);
         if (isCompassRot)
-            mapRotSprite.pushImageRotateZoom(TFT_WIDTH - 24, 24, 24, 24, 360 - heading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
+            mapSprite.pushImageRotateZoom(TFT_WIDTH - 24, 24, 24, 24, 360 - heading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
         else
-            mapRotSprite.pushImage(TFT_WIDTH - 48, 0, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
+            mapSprite.pushImage(TFT_WIDTH - 48, 0, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
     }
 #endif
 
-    mapRotSprite.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
-    mapRotSprite.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
-    mapRotSprite.drawNumber(zoom, 26, 8, &fonts::FreeSansBold9pt7b);
+    mapSprite.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
+    mapSprite.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
+    mapSprite.drawNumber(zoom, 26, 8, &fonts::FreeSansBold9pt7b);
 
     if (showMapSpeed)
     {
-        mapRotSprite.fillRectAlpha(0, 342, 70, 32, 95, TFT_BLACK);
-        mapRotSprite.pushImage(0, 346, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
-        mapRotSprite.drawNumber((uint16_t)GPS.speed.kmph(), 26, 350, &fonts::FreeSansBold9pt7b);
+        mapSprite.fillRectAlpha(0, 342, 70, 32, 95, TFT_BLACK);
+        mapSprite.pushImage(0, 346, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
+        mapSprite.drawNumber((uint16_t)GPS.speed.kmph(), 26, 350, &fonts::FreeSansBold9pt7b);
     }
 
     if (!isVectorMap)
         if (showMapScale)
         {
-            mapRotSprite.fillRectAlpha(250, 342, 70, TFT_WIDTH - 245, 95, TFT_BLACK);
-            mapRotSprite.setTextSize(1);
-            mapRotSprite.drawFastHLine(255, 360, 60);
-            mapRotSprite.drawFastVLine(255, 355, 10);
-            mapRotSprite.drawFastVLine(315, 355, 10);
-            mapRotSprite.drawCenterString(map_scale[zoom], 285, 350);
+            mapSprite.fillRectAlpha(250, 342, 70, TFT_WIDTH - 245, 95, TFT_BLACK);
+            mapSprite.setTextSize(1);
+            mapSprite.drawFastHLine(255, 360, 60);
+            mapSprite.drawFastVLine(255, 355, 10);
+            mapSprite.drawFastVLine(315, 355, 10);
+            mapSprite.drawCenterString(map_scale[zoom], 285, 350);
         }
 }
 
@@ -394,18 +394,18 @@ void updateMap(lv_event_t *event)
 
         if (isPosMoved)
         {
-            mapRotSprite.deleteSprite();
-            mapRotSprite.createSprite(MAP_WIDTH, MAP_HEIGHT);
+            mapSprite.deleteSprite();
+            mapSprite.createSprite(MAP_WIDTH, MAP_HEIGHT);
             viewPort.setCenter(point);
             getMapBlocks(viewPort.bbox, memCache);
-            generateVectorMap(viewPort, memCache, mapRotSprite);
+            generateVectorMap(viewPort, memCache, mapSprite);
             refreshMap = true;
             isPosMoved = false;
         }
 
         if (refreshMap)
         {
-            mapRotSprite.pushSprite(0, 27, TFT_TRANSPARENT);
+            mapSprite.pushSprite(0, 27, TFT_TRANSPARENT);
             drawMapWidgets();
         }
         if (tft.getStartCount() > 0)

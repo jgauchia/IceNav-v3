@@ -8,6 +8,8 @@
 
 #include "settingsScr.hpp"
 
+bool needReboot = false;
+
 /**
  * @brief Back button event
  *

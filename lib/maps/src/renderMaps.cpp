@@ -18,9 +18,9 @@ MapTile roundMapTile = {"", 0, 0, 0};   // Boundaries Map tiles
  */
 uint16_t tileSize = 256;
 
-TFT_eSprite sprArrow = TFT_eSprite(&tft);     // Sprite for Navigation Arrow in map tile
-TFT_eSprite mapSprite = TFT_eSprite(&tft);    // Double Buffering Sprites for Map Tile
-TFT_eSprite mapRotSprite = TFT_eSprite(&tft); // Double Buffering Sprites for Map Tile
+TFT_eSprite sprArrow = TFT_eSprite(&tft);      // Sprite for Navigation Arrow in map tile
+TFT_eSprite mapTempSprite = TFT_eSprite(&tft); // Temporary Map Sprite 9x9 tiles 768x768 pixels
+TFT_eSprite mapSprite = TFT_eSprite(&tft);     // Screen Map Sprite (Viewed in LVGL Tile)
 
 /**
  * @brief Navitagion Arrow position on screen
@@ -143,7 +143,7 @@ void generateRenderMap()
     log_v("ZOOM: %d", zoom);
 
     // Center Tile
-    refreshMap = mapSprite.drawPngFile(SD, currentMapTile.file, 256, 256);
+    refreshMap = mapTempSprite.drawPngFile(SD, currentMapTile.file, 256, 256);
 
     uint8_t centerX = 0;
     uint8_t centerY = 0;
@@ -163,15 +163,15 @@ void generateRenderMap()
             continue;
           }
           roundMapTile = getMapTile(getLon(), getLat(), zoom, x, y);
-          isMapFound = mapSprite.drawPngFile(SD, roundMapTile.file, (x - startX) * tileSize, (y - startY) * tileSize);
+          isMapFound = mapTempSprite.drawPngFile(SD, roundMapTile.file, (x - startX) * tileSize, (y - startY) * tileSize);
         }
       }
     }
     else
     {
       isMapFound = false;
-      showNoMap(mapRotSprite);
-      mapRotSprite.pushSprite(0, 27);
+      showNoMap(mapSprite);
+      mapSprite.pushSprite(0, 27);
       log_v("Map doesn't exist");
     }
 
@@ -180,9 +180,12 @@ void generateRenderMap()
 
   if (refreshMap)
   {
+
+    // Draw Map in screen
+    mapSprite.pushSprite(0, 27);
+
     navArrowPosition = coord2ScreenPos(getLon(), getLat(), zoom);
-    mapSprite.setPivot(tileSize + navArrowPosition.posX, tileSize + navArrowPosition.posY);
-    mapRotSprite.pushSprite(0, 27);
+    mapTempSprite.setPivot(tileSize + navArrowPosition.posX, tileSize + navArrowPosition.posY);
 
 #ifdef ENABLE_COMPASS
     heading = getHeading();
@@ -191,14 +194,14 @@ void generateRenderMap()
       mapHeading = getHeading();
     else
       mapHeading = GPS.course.deg();
-      
-    mapSprite.pushRotated(&mapRotSprite, 360 - mapHeading, TFT_TRANSPARENT);
+
+    mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
 #else
     mapHeading = GPS.course.deg();
-    mapSprite.pushRotated(&mapRotSprite, 360 - mapHeading, TFT_TRANSPARENT);
-    // mapSprite.pushRotated(&mapRotSprite, 0, TFT_TRANSPARENT);
+    mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
+    // mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
 #endif
     // drawMapWidgets();
-    sprArrow.pushRotated(&mapRotSprite, 0, TFT_BLACK);
+    sprArrow.pushRotated(&mapSprite, 0, TFT_BLACK);
   }
 }

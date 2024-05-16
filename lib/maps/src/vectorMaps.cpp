@@ -9,7 +9,7 @@
 #include "vectorMaps.hpp"
 
 double prevLat = 0, prevLng = 0; // Previous Latitude and Longitude
-bool isPosMoved = true;         // Flag when current position changes
+bool isPosMoved = true;          // Flag when current position changes
 
 /**
  * @brief Set center coordinates of viewport
@@ -512,6 +512,8 @@ void fillPoligon(Polygon p, TFT_eSprite &map) // scanline fill algorithm
  */
 void generateVectorMap(ViewPort &viewPort, MemCache &memCache, TFT_eSprite &map)
 {
+    map.deleteSprite();
+    map.createSprite(MAP_WIDTH, MAP_HEIGHT);
     Polygon newPolygon;
     map.fillScreen(BACKGROUND_COLOR);
     uint32_t totalTime = millis();

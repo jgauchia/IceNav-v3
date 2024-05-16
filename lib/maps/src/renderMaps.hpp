@@ -45,8 +45,8 @@ extern MapTile roundMapTile;   // Boundaries Map tiles
 
 extern uint16_t tileSize;
 extern TFT_eSprite sprArrow;     // Sprite for Navigation Arrow in map tile
-extern TFT_eSprite mapSprite;    // Double Buffering Sprites for Map Tile
-extern TFT_eSprite mapRotSprite; // Double Buffering Sprites for Map Tile
+extern TFT_eSprite mapTempSprite;    // Double Buffering Sprites for Map Tile
+extern TFT_eSprite mapSprite; // Double Buffering Sprites for Map Tile
 
 uint32_t lon2tilex(double f_lon, uint8_t zoom);
 uint32_t lat2tiley(double f_lat, uint8_t zoom);
