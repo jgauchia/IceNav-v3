@@ -13,12 +13,12 @@
 
 #ifdef ENABLE_COMPASS
 
-#ifdef HMC5883L
+#ifdef IMU_HMC5883L
 #include <DFRobot_QMC5883.h>
 extern DFRobot_QMC5883 compass;
 #endif
 
-#ifdef MPU9250
+#ifdef IMU_MPU9250
 #include <MPU9250.h>
 extern MPU9250 IMU;
 #endif

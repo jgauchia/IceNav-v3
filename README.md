@@ -170,12 +170,12 @@ First enable the compass
 
 IMU HMC5883L
 ```bash
--D HMC5883L=1
+-D IMU_HMC5883L=1
 ```
 
 IMU MPU9250
 ```bash
--D MPU9250=1
+-D IMU_MPU9250=1
 ```
 
 ### TO DO

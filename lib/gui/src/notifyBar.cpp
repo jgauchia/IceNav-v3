@@ -22,8 +22,10 @@ void updateNotifyBar(lv_event_t *event)
 
     if (obj == gpsTime)
         lv_label_set_text_fmt(obj, timeFormat, hour(now()), minute(now()), second(now()));
+#ifdef ENABLE_BME
     if (obj == temp)
         lv_label_set_text_fmt(obj, "%02d\xC2\xB0", tempValue);
+#endif
     if (obj == gpsCount)
     {
         if (GPS.satellites.isValid())
@@ -96,11 +98,13 @@ void updateNotifyBarTimer(lv_timer_t *t)
         break;
     }
 
+#ifdef ENABLE_BME
     if (tempValue != tempOld)
     {
         lv_obj_send_event(temp, LV_EVENT_VALUE_CHANGED, NULL);
         tempOld = tempValue;
     }
+#endif
     
     if (battLevel != battLevelOld)
     {
@@ -135,9 +139,11 @@ void createNotifyBar()
     lv_label_set_text_fmt(gpsTime, timeFormat, hour(local), minute(local), second(local));
     lv_obj_add_event_cb(gpsTime, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
 
+#ifdef ENABLE_BME
     temp = lv_label_create(notifyBar);
     lv_label_set_text_static(temp, "--\xC2\xB0");
     lv_obj_add_event_cb(temp, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
+#endif
 
     sdCard = lv_label_create(notifyBar);
     if (isSdLoaded)

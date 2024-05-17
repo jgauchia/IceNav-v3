@@ -10,11 +10,11 @@
 
 #ifdef ENABLE_COMPASS
 
-#ifdef HMC5883L
+#ifdef IMU_HMC5883L
 DFRobot_QMC5883 compass = DFRobot_QMC5883(&Wire, HMC5883L_ADDRESS);
 #endif
 
-#ifdef MPU9250
+#ifdef IMU_MPU9250
 MPU9250 IMU = MPU9250(Wire, 0x68);
 #endif
 
@@ -50,14 +50,14 @@ float offX = 0.0, offY = 0.0;
  */
 void initCompass()
 {
-#ifdef HMC5883L
+#ifdef IMU_HMC5883L
   if (!compass.begin())
     log_e("Compass initialization unsuccessful");
   compass.setMeasurementMode(HMC5883L_CONTINOUS);
   compass.setDataRate(HMC5883L_DATARATE_7_5HZ);
   compass.setSamples(HMC5883L_SAMPLES_1);
 #endif
-#ifdef MPU9250
+#ifdef IMU_MPU9250
   int status = IMU.begin();
   if (status < 0)
   {
