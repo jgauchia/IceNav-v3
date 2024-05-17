@@ -188,10 +188,10 @@ void generateRenderMap()
     mapTempSprite.setPivot(tileSize + navArrowPosition.posX, tileSize + navArrowPosition.posY);
 
 #ifdef ENABLE_COMPASS
-    heading = getHeading();
+    //heading = getHeading();
 
     if (isMapRotation)
-      mapHeading = getHeading();
+      mapHeading = heading;
     else
       mapHeading = GPS.course.deg();
 

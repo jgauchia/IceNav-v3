@@ -10,6 +10,13 @@
 #include "battery.hpp"
 
 /**
+ * @brief Battery values
+ *
+ */
+uint8_t battLevel = 0;
+uint8_t battLevelOld = 0;
+
+/**
  * @brief Configurate ADC Channel for battery reading
  *
  */

@@ -19,6 +19,9 @@ static esp_adc_cal_characteristics_t characteristics;
 static float batteryMax = 4.20;     // 4.2;      // maximum voltage of battery
 static float batteryMin = 3.40;     // 3.6;      // minimum voltage of battery before shutdown
 
+extern uint8_t battLevel;
+extern uint8_t battLevelOld;
+
 void initADC();
 float batteryRead();
 

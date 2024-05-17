@@ -13,6 +13,13 @@
 Adafruit_BME280 bme = Adafruit_BME280();
 
 /**
+ * @brief Temperature reading values
+ *
+ */
+uint8_t tempValue = 0;
+uint8_t tempOld = 0;
+
+/**
  * @brief Init BME sensor
  *
  */

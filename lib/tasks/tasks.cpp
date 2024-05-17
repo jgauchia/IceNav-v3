@@ -9,10 +9,6 @@
 #include "tasks.hpp"
 
 time_t local, utc = 0;
-uint8_t tempValue = 0;
-uint8_t tempOld = 0;
-uint8_t battLevel = 0;
-uint8_t battLevelOld = 0;
 
 /**
  * @brief Task 1 - Read GPS data
@@ -57,6 +53,8 @@ void sensorsTask(void *pvParameters)
 #endif
 
     battLevel = batteryRead();
+
+   // heading = getHeading();
 
     vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
   }

@@ -8,11 +8,13 @@
 
 #include "compass.hpp"
 
-#ifdef CUSTOMBOARD
-Adafruit_HMC5883_Unified compass = Adafruit_HMC5883_Unified(12345);
+#ifdef ENABLE_COMPASS
+
+#ifdef HMC5883L
+DFRobot_QMC5883 compass = DFRobot_QMC5883(&Wire, HMC5883L_ADDRESS);
 #endif
 
-#ifdef MAKERF_ESP32S3
+#ifdef MPU9250
 MPU9250 IMU = MPU9250(Wire, 0x68);
 #endif
 
@@ -48,11 +50,14 @@ float offX = 0.0, offY = 0.0;
  */
 void initCompass()
 {
-
-#ifdef CUSTOMBOARD
-  compass.begin();
+#ifdef HMC5883L
+  if (!compass.begin())
+    log_e("Compass initialization unsuccessful");
+  compass.setMeasurementMode(HMC5883L_CONTINOUS);
+  compass.setDataRate(HMC5883L_DATARATE_7_5HZ);
+  compass.setSamples(HMC5883L_SAMPLES_1);
 #endif
-#ifdef MAKERF_ESP32S3
+#ifdef MPU9250
   int status = IMU.begin();
   if (status < 0)
   {
@@ -72,15 +77,14 @@ void initCompass()
  */
 void readCompass(float &x, float &y, float &z)
 {
-#ifdef CUSTOMBOARD
-  sensors_event_t event;
-  compass.getEvent(&event);
-  y = event.magnetic.y;
-  x = event.magnetic.x;
-  z = event.magnetic.z;
+#ifdef HMC5883L
+ sVector_t mag = compass.readRaw();
+ y = mag.YAxis;
+ x = mag.XAxis;
+ z = mag.ZAxis;
 #endif
 
-#ifdef MAKERF_ESP32S3
+#ifdef MPU9250
   IMU.readSensor();
   x = IMU.getMagX_uT();
   y = IMU.getMagY_uT();
@@ -182,3 +186,5 @@ void compassCalibrate()
 
   saveCompassCal(offX,offY);
 }
+
+#endif

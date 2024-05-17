@@ -225,6 +225,9 @@ void updateMainScreen(lv_timer_t *t)
 
         case MAP:
             // if (GPS.location.isUpdated())
+#ifdef ENABLE_COMPASS
+            heading = getHeading();
+#endif
             lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
             break;
 
@@ -341,9 +344,9 @@ void drawMapWidgets()
     mapSprite.setTextColor(TFT_WHITE, TFT_WHITE);
 
 #ifdef ENABLE_COMPASS
-    heading = getHeading();
+    //heading = getHeading();
     if (isMapRotation)
-        mapHeading = getHeading();
+        mapHeading = heading;
     else
         mapHeading = GPS.course.deg();
     if (showMapCompass)
