@@ -53,10 +53,4 @@ extern const uint8_t SD_CLK = 42;
  */
 #define ADC_BATT_PIN 34
 
-/**
- * @brief BME280 Address
- *
- */
-#define BME_ADDRESS 0x76
-
 #endif

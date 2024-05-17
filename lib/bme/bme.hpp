@@ -9,12 +9,20 @@
 #ifndef BME_HPP
 #define BME_HPP
 
-#ifdef CUSTOMBOARD
+#ifdef ENABLE_BME
 
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 
+/**
+ * @brief BME280 Address
+ *
+ */
+#define BME_ADDRESS 0x76
+
 extern Adafruit_BME280 bme;
+
+void initBME();
 
 #endif
 

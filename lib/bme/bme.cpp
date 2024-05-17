@@ -8,8 +8,23 @@
 
 #include "bme.hpp"
 
-#ifdef CUSTOMBOARD
+#ifdef ENABLE_BME
 
 Adafruit_BME280 bme = Adafruit_BME280();
+
+/**
+ * @brief Init BME sensor
+ *
+ */
+void initBME()
+{
+    bme.begin(BME_ADDRESS);
+    bme.setSampling(Adafruit_BME280::MODE_FORCED,
+                    Adafruit_BME280::SAMPLING_X1,   // temperature
+                    Adafruit_BME280::SAMPLING_NONE, // pressure
+                    Adafruit_BME280::SAMPLING_NONE, // humidity
+                    Adafruit_BME280::FILTER_OFF,
+                    Adafruit_BME280::STANDBY_MS_1000);
+}
 
 #endif

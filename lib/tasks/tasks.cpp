@@ -9,15 +9,19 @@
 #include "tasks.hpp"
 
 time_t local, utc = 0;
+uint8_t tempValue = 0;
+uint8_t tempOld = 0;
+uint8_t battLevel = 0;
+uint8_t battLevelOld = 0;
 
 /**
  * @brief Task 1 - Read GPS data
  *
  * @param pvParameters
  */
-void readGPS(void *pvParameters)
+void sensorsTask(void *pvParameters)
 {
-  log_v("Task1 - Read GPS - running on core %d", xPortGetCoreID());
+  log_v("Task1 - Sensors Task - running on core %d", xPortGetCoreID());
   log_v("Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
   for (;;)
   {
@@ -46,6 +50,14 @@ void readGPS(void *pvParameters)
         isTimeFixed = false;
 #endif
     }
+
+#ifdef ENABLE_BME
+    bme.takeForcedMeasurement();
+    tempValue = (uint8_t)(bme.readTemperature());
+#endif
+
+    battLevel = batteryRead();
+
     vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
   }
 }
@@ -61,7 +73,7 @@ void lvglTask(void *pvParameters)
   log_v("Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
   for (;;)
   {
-    lv_timer_handler(); 
+    lv_timer_handler();
     vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
   }
 }
@@ -72,7 +84,7 @@ void lvglTask(void *pvParameters)
  */
 void initTasks()
 {
-  xTaskCreatePinnedToCore(readGPS, PSTR("Read GPS"), 20000, NULL, 1, NULL, 1);
+  xTaskCreatePinnedToCore(sensorsTask, PSTR("Sensors Task"), 20000, NULL, 1, NULL, 1);
   delay(500);
   xTaskCreatePinnedToCore(lvglTask, PSTR("LVGL Task"), 20000, NULL, 2, NULL, 1);
   delay(500);

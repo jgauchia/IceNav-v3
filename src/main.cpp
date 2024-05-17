@@ -53,7 +53,7 @@ void setup()
 #endif
 
 #ifdef ENABLE_BME
-  bme.begin(BME_ADDRESS);
+  initBME();
 #endif
 
 #ifdef ENABLE_COMPASS
