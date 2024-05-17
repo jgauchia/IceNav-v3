@@ -56,7 +56,7 @@ void sensorsTask(void *pvParameters)
 
    // heading = getHeading();
 
-    vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
+    vTaskDelay(10);
   }
 }
 

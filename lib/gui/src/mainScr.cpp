@@ -13,61 +13,28 @@ bool isScrolled = true;    // Flag to indicate when tileview was scrolled
 bool isReady = false;      // Flag to indicate when tileview scroll was finished
 
 /**
- * @brief Update compass heading label
+ * @brief Update compass screen event
  *
  * @param event
  */
-void updateHeading(lv_event_t *event)
+void updateCompassScr(lv_event_t * event)
 {
-#ifdef ENABLE_COMPASS
-    lv_obj_t *compass = (lv_obj_t *)lv_event_get_current_target(event);
-    lv_label_set_text_fmt(compass, "%5d\xC2\xB0", heading);
-    lv_img_set_angle(compassImg, -(heading * 10));
-#endif
-}
-
-/**
- * @brief Update latitude label
- *
- * @param event
- */
-void updateLatitude(lv_event_t *event)
-{
-    lv_obj_t *lat = (lv_obj_t *)lv_event_get_target(event);
-    lv_label_set_text_static(lat, latFormatString(GPS.location.lat()));
-}
-
-/**
- * @brief Update longitude label
- *
- * @param event
- */
-void updateLongitude(lv_event_t *event)
-{
-    lv_obj_t *lon = (lv_obj_t *)lv_event_get_target(event);
-    lv_label_set_text_static(lon, lonFormatString(GPS.location.lng()));
-}
-
-/**
- * @brief Upate altitude label
- *
- * @param event
- */
-void updateAltitude(lv_event_t *event)
-{
-    lv_obj_t *alt = (lv_obj_t *)lv_event_get_target(event);
-    lv_label_set_text_fmt(alt, "%4d m.", (int)GPS.altitude.meters());
-}
-
-/**
- * @brief Update speed label
- *
- * @param event
- */
-void updateSpeed(lv_event_t *event)
-{
-    lv_obj_t *speed = (lv_obj_t *)lv_event_get_target(event);
-    lv_label_set_text_fmt(speed, "%3d Km/h", (int)GPS.speed.kmph());
+    lv_obj_t *obj = (lv_obj_t *)lv_event_get_current_target(event);
+    if (obj==compassHeading)
+    {
+        #ifdef ENABLE_COMPASS
+        lv_label_set_text_fmt(compassHeading, "%5d\xC2\xB0", heading);
+        lv_img_set_angle(compassImg, -(heading * 10));
+        #endif
+    }
+    if (obj==latitude)
+        lv_label_set_text_static(obj, latFormatString(GPS.location.lat()));
+    if (obj==longitude)
+        lv_label_set_text_static(obj, lonFormatString(GPS.location.lng()));
+    if (obj==altitude)
+        lv_label_set_text_fmt(obj, "%4d m.", (int)GPS.altitude.meters());
+    if (obj==speedLabel)
+        lv_label_set_text_fmt(obj, "%3d Km/h", (int)GPS.speed.kmph());
 }
 
 /**
@@ -525,8 +492,6 @@ void createMainScr()
     lv_obj_add_style(editScreenBtn, &editBtnStyleOn, LV_PART_MAIN | LV_STATE_CHECKED);
     lv_obj_set_pos(editScreenBtn, 5, 5);
     lv_obj_add_flag(editScreenBtn, LV_OBJ_FLAG_CHECKABLE);
-    lv_obj_add_event_cb(editScreenBtn, editScreen, LV_EVENT_ALL, NULL);
-
     lv_obj_t *editScreenLbl;
     editScreenLbl = lv_label_create(editScreenBtn);
     lv_label_set_text(editScreenLbl, LV_SYMBOL_EDIT);
@@ -608,11 +573,12 @@ void createMainScr()
     lv_obj_add_event_cb(speedWidget, unselectWidget, LV_EVENT_RELEASED, NULL);
 
     // Compass Tile Events
-    lv_obj_add_event_cb(compassHeading, updateHeading, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_obj_add_event_cb(latitude, updateLatitude, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_obj_add_event_cb(longitude, updateLongitude, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_obj_add_event_cb(altitude, updateAltitude, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_obj_add_event_cb(speedLabel, updateSpeed, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(compassHeading, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(latitude, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(longitude, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(altitude, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(speedLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(editScreenBtn, editScreen, LV_EVENT_ALL, NULL);
 
     // Map Tile Events
     lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_REFRESH, NULL);

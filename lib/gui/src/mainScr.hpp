@@ -80,11 +80,8 @@ static lv_style_t styleRadio;
 static lv_style_t styleRadioChk;
 static uint32_t activeGnss = 0;
 
-void updateHeading(lv_event_t *event);
-void updateLatitude(lv_event_t *event);
-void updateLongitude(lv_event_t *event);
-void updateAltitude(lv_event_t *event);
-void updateSpeed(lv_event_t *event);
+void updateCompassScr(lv_event_t * event);
+
 void editScreen(lv_event_t *event);
 void unselectWidget(lv_event_t *event);
 void dragWidget(lv_event_t *event);
