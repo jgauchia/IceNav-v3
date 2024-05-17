@@ -77,14 +77,14 @@ void initCompass()
  */
 void readCompass(float &x, float &y, float &z)
 {
-#ifdef HMC5883L
+#ifdef IMU_HMC5883L
  sVector_t mag = compass.readRaw();
  y = mag.YAxis;
  x = mag.XAxis;
  z = mag.ZAxis;
 #endif
 
-#ifdef MPU9250
+#ifdef IMU_MPU9250
   IMU.readSensor();
   x = IMU.getMagX_uT();
   y = IMU.getMagY_uT();
