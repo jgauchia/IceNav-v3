@@ -165,7 +165,7 @@ Depending on the IMU used, it will be necessary to indicate the following flags 
 
 First enable the compass
 ```bash
--D ENABLE_COMPAS=1
+-D ENABLE_COMPASS=1
 ```
 
 IMU HMC5883L
