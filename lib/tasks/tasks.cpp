@@ -23,11 +23,11 @@ void sensorsTask(void *pvParameters)
   {
     while (gps->available() > 0)
     {
-#ifdef OUTPUT_NMEA
+      #ifdef OUTPUT_NMEA
       {
         // Serial.write(gps->read());
       }
-#else
+      #else
       GPS.encode(gps->read());
       if (GPS.time.isValid() && !isTimeFixed)
       {
@@ -44,18 +44,17 @@ void sensorsTask(void *pvParameters)
       }
       if (!GPS.time.isValid() && isTimeFixed)
         isTimeFixed = false;
-#endif
+      #endif
     }
-
-#ifdef ENABLE_BME
+    
+    #ifdef ENABLE_BME
     bme.takeForcedMeasurement();
     tempValue = (uint8_t)(bme.readTemperature());
-#endif
-
+    #endif
     battLevel = batteryRead();
-
-   // heading = getHeading();
-
+    
+    // heading = getHeading();
+    
     vTaskDelay(10);
   }
 }

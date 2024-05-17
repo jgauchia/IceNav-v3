@@ -68,7 +68,6 @@ void setup()
   initGPS();
   initLVGL();
   initADC();
-  initTasks();
 
   // Reserve PSRAM if rendered map is selected
   // Create a Sprite por temporary 9x9 tile map
@@ -79,7 +78,8 @@ void setup()
   }
 
   splashScreen();
-
+  initTasks();
+  
 #ifdef DEFAULT_LAT
   loadMainScreen();
 #else
@@ -95,6 +95,6 @@ void loop()
 {
   // lv_timer_handler();
   // lv_tick_inc(5);
-  // lv_timer_handler(); /* let the GUI do its work */
+  // lv_timer_handler(); 
   // vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
 }

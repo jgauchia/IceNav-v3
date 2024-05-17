@@ -45,7 +45,7 @@ void updateCompassScr(lv_event_t * event)
 void editScreen(lv_event_t *event)
 {
     lv_event_code_t code = lv_event_get_code(event);
-
+    
     if (code == LV_EVENT_VALUE_CHANGED)
     {
         if (!canMoveWidget)
@@ -90,24 +90,24 @@ void dragWidget(lv_event_t *event)
             lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
             widgetSelected = true;
         }
-
+        
         lv_indev_t *indev = lv_indev_get_act();
         if (indev == NULL)
             return;
-
+        
         lv_point_t vect;
         lv_indev_get_vect(indev, &vect);
-
+        
         lv_coord_t x = lv_obj_get_x(obj) + vect.x;
         lv_coord_t y = lv_obj_get_y(obj) + vect.y;
         lv_coord_t width = lv_obj_get_width(obj);
         lv_coord_t height = lv_obj_get_height(obj);
-
+        
         // Limit drag area
         if (x > 0 && y > 0 && (x + width) < 320 && (y + height) < 380)
         {
             lv_obj_set_pos(obj, x, y);
-
+            
             char *widget = (char *)lv_event_get_user_data(event);
             saveWidgetPos(widget, x, y);
         }
@@ -137,7 +137,7 @@ void getActTile(lv_event_t *event)
     {
         isReady = true;
     }
-
+    
     lv_obj_t *actTile = lv_tileview_get_tile_act(tilesScreen);
     lv_coord_t tileX = lv_obj_get_x(actTile) / TFT_WIDTH;
     activeTile = tileX;
@@ -152,10 +152,10 @@ void scrollTile(lv_event_t *event)
 {
     isScrolled = false;
     isReady = false;
-
+    
     if (!isVectorMap)
         deleteMapScrSprites();
-
+    
     deleteSatInfoSprites();
 }
 
@@ -169,43 +169,44 @@ void updateMainScreen(lv_timer_t *t)
     {
         switch (activeTile)
         {
-        case COMPASS:
-#ifdef ENABLE_COMPASS
-            heading = getHeading();
-            lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
-#endif
-
-            if (GPS.location.isUpdated())
-            {
-                lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
-                lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
-            }
-            if (GPS.altitude.isUpdated())
-            {
-                lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
-            }
-
-            if (GPS.speed.isUpdated())
-                lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
-
+            case COMPASS:
+                #ifdef ENABLE_COMPASS
+                heading = getHeading();
+                #endif
+                lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
+                
+                
+                if (GPS.location.isUpdated())
+                {
+                    lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
+                    lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
+                }
+                if (GPS.altitude.isUpdated())
+                {
+                    lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
+                }
+                
+                if (GPS.speed.isUpdated())
+                    lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
+            
             break;
-
-        case MAP:
-            // if (GPS.location.isUpdated())
-#ifdef ENABLE_COMPASS
-            heading = getHeading();
-#endif
-            lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
-            break;
-
-        case SATTRACK:
-            lv_obj_send_event(satTrackTile, LV_EVENT_VALUE_CHANGED, NULL);
-            break;
-
-        case NAV:
-            break;
-        default:
-            break;
+            
+            case MAP:
+                // if (GPS.location.isUpdated())
+                #ifdef ENABLE_COMPASS
+                heading = getHeading();
+                #endif
+                lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+                break;
+                
+            case SATTRACK:
+                lv_obj_send_event(satTrackTile, LV_EVENT_VALUE_CHANGED, NULL);
+                break;
+                
+            case NAV:
+                break;
+            default:
+                break;
         }
     }
 }
@@ -223,56 +224,56 @@ void getZoomValue(lv_event_t *event)
     {
         switch (dir)
         {
-        case LV_DIR_LEFT:
-            break;
-        case LV_DIR_RIGHT:
-            break;
-        case LV_DIR_TOP:
-            if (!isVectorMap)
-            {
-                if (zoom >= minZoom && zoom < maxZoom)
-                    zoom++;
-            }
-            else
-            {
-                zoom--;
-                isPosMoved = true;
-                if (zoom < 1)
+            case LV_DIR_LEFT:
+                break;
+            case LV_DIR_RIGHT:
+                break;
+            case LV_DIR_TOP:
+                if (!isVectorMap)
                 {
-                    zoom = 1;
-                    isPosMoved = false;
+                    if (zoom >= minZoom && zoom < maxZoom)
+                        zoom++;
                 }
-                if (zoom > 4)
+                else
                 {
-                    zoom = 4;
-                    isPosMoved = false;
-                }
-            }
-            lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
-            break;
-        case LV_DIR_BOTTOM:
-            if (!isVectorMap)
-            {
-                if (zoom <= maxZoom && zoom > minZoom)
                     zoom--;
-            }
-            else
-            {
-                zoom++;
-                isPosMoved = true;
-                if (zoom < 1)
-                {
-                    zoom = 1;
-                    isPosMoved = false;
+                    isPosMoved = true;
+                    if (zoom < 1)
+                    {
+                        zoom = 1;
+                        isPosMoved = false;
+                    }
+                    if (zoom > 4)
+                    {
+                        zoom = 4;
+                        isPosMoved = false;
+                    }
                 }
-                if (zoom > 4)
+                lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+                break;
+            case LV_DIR_BOTTOM:
+                if (!isVectorMap)
                 {
-                    zoom = 4;
-                    isPosMoved = false;
+                    if (zoom <= maxZoom && zoom > minZoom)
+                        zoom--;
                 }
-            }
-            lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
-            break;
+                else
+                {
+                    zoom++;
+                    isPosMoved = true;
+                    if (zoom < 1)
+                    {
+                        zoom = 1;
+                        isPosMoved = false;
+                    }
+                    if (zoom > 4)
+                    {
+                        zoom = 4;
+                        isPosMoved = false;
+                    }
+                }
+                lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+                break;
         }
     }
 }
@@ -309,8 +310,8 @@ void createMapScrSprites()
 void drawMapWidgets()
 {
     mapSprite.setTextColor(TFT_WHITE, TFT_WHITE);
-
-#ifdef ENABLE_COMPASS
+    
+    #ifdef ENABLE_COMPASS
     //heading = getHeading();
     if (isMapRotation)
         mapHeading = heading;
@@ -324,19 +325,19 @@ void drawMapWidgets()
         else
             mapSprite.pushImage(TFT_WIDTH - 48, 0, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
     }
-#endif
-
+    #endif
+    
     mapSprite.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
     mapSprite.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
     mapSprite.drawNumber(zoom, 26, 8, &fonts::FreeSansBold9pt7b);
-
+    
     if (showMapSpeed)
     {
         mapSprite.fillRectAlpha(0, 342, 70, 32, 95, TFT_BLACK);
         mapSprite.pushImage(0, 346, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
         mapSprite.drawNumber((uint16_t)GPS.speed.kmph(), 26, 350, &fonts::FreeSansBold9pt7b);
     }
-
+    
     if (!isVectorMap)
         if (showMapScale)
         {
@@ -361,7 +362,7 @@ void updateMap(lv_event_t *event)
         if (tft.getStartCount() == 0)
             tft.startWrite();
         getPosition(getLat(), getLon());
-
+        
         if (isPosMoved)
         {
             mapSprite.deleteSprite();
@@ -372,7 +373,7 @@ void updateMap(lv_event_t *event)
             refreshMap = true;
             isPosMoved = false;
         }
-
+        
         if (refreshMap)
         {
             mapSprite.pushSprite(0, 27, TFT_TRANSPARENT);
@@ -384,7 +385,7 @@ void updateMap(lv_event_t *event)
     else
     {
         generateRenderMap();
-
+        
         if (refreshMap)
             drawMapWidgets();
     }
@@ -401,15 +402,15 @@ void activeGnssEvent(lv_event_t *event)
     lv_obj_t *cont = (lv_obj_t *)lv_event_get_current_target(event);
     lv_obj_t *activeCheckBox = (lv_obj_t *)lv_event_get_target(event);
     lv_obj_t *oldCheckBox = lv_obj_get_child(cont, *activeId);
-
+    
     if (activeCheckBox == cont)
         return;
-
+    
     lv_obj_clear_state(oldCheckBox, LV_STATE_CHECKED);
     lv_obj_add_state(activeCheckBox, LV_STATE_CHECKED);
-
+    
     clearSatInView();
-
+    
     *activeId = lv_obj_get_index(activeCheckBox);
 }
 
@@ -426,30 +427,30 @@ void updateSatTrack(lv_event_t *event)
         lv_label_set_text_fmt(hdopLabel, "HDOP:\n%s", hdop.value());
         lv_label_set_text_fmt(vdopLabel, "VDOP:\n%s", vdop.value());
     }
-
+    
     if (GPS.altitude.isUpdated())
         lv_label_set_text_fmt(altLabel, "ALT:\n%4dm.", (int)GPS.altitude.meters());
-
+    
     createSatSprite(spriteSat);
     createConstelSprite(constelSprite);
     createConstelSprite(constelSpriteBkg);
-
-#ifdef MULTI_GNSS
+    
+    #ifdef MULTI_GNSS
     switch ((int)activeGnss)
     {
-    case 0:
-        fillSatInView(GPS_GSV, TFT_GREEN);
-        break;
-    case 1:
-        fillSatInView(GL_GSV, TFT_BLUE);
-        break;
-    case 2:
-        fillSatInView(BD_GSV, TFT_RED);
-        break;
+        case 0:
+            fillSatInView(GPS_GSV, TFT_GREEN);
+            break;
+        case 1:
+            fillSatInView(GL_GSV, TFT_BLUE);
+            break;
+        case 2:
+            fillSatInView(BD_GSV, TFT_RED);
+            break;
     }
-#else
+    #else
     fillSatInView(GPS_GSV, TFT_GREEN);
-#endif
+    #endif
 }
 
 /**
@@ -459,7 +460,7 @@ void updateSatTrack(lv_event_t *event)
 void createMainScr()
 {
     mainScreen = lv_obj_create(NULL);
-
+    
     // Main Screen Tiles
     tilesScreen = lv_tileview_create(mainScreen);
     compassTile = lv_tileview_add_tile(tilesScreen, 0, 0, LV_DIR_RIGHT);
@@ -475,9 +476,9 @@ void createMainScr()
     // Main Screen Events
     lv_obj_add_event_cb(tilesScreen, getActTile, LV_EVENT_SCROLL_END, NULL);
     lv_obj_add_event_cb(tilesScreen, scrollTile, LV_EVENT_SCROLL_BEGIN, NULL);
-
+    
     // Compass Tile
-
+    
     // Pin drag widget
     static lv_style_t editBtnStyleOff;
     lv_style_init(&editBtnStyleOff);
@@ -496,7 +497,7 @@ void createMainScr()
     editScreenLbl = lv_label_create(editScreenBtn);
     lv_label_set_text(editScreenLbl, LV_SYMBOL_EDIT);
     lv_obj_center(editScreenLbl);
-
+    
     // Compass Widget
     lv_obj_t *compassWidget = lv_obj_create(compassTile);
     lv_obj_set_size(compassWidget, 200, 200);
@@ -505,7 +506,7 @@ void createMainScr()
     lv_obj_t *arrowImg = lv_img_create(compassWidget);
     lv_img_set_src(arrowImg, arrowIconFile);
     lv_obj_align(arrowImg, LV_ALIGN_CENTER, 0, -30);
-
+    
     LV_IMG_DECLARE(bruj);
     compassImg = lv_img_create(compassWidget);
     lv_img_set_src(compassImg, &bruj);
@@ -519,7 +520,7 @@ void createMainScr()
     objUnselect(compassWidget);
     lv_obj_add_event_cb(compassWidget, dragWidget, LV_EVENT_PRESSING, (char *)"Compass_");
     lv_obj_add_event_cb(compassWidget, unselectWidget, LV_EVENT_RELEASED, NULL);
-
+    
     // Position widget
     lv_obj_t *positionWidget = lv_obj_create(compassTile);
     lv_obj_set_size(positionWidget, 190, 40);
@@ -539,7 +540,7 @@ void createMainScr()
     objUnselect(positionWidget);
     lv_obj_add_event_cb(positionWidget, dragWidget, LV_EVENT_PRESSING, (char *)"Coords_");
     lv_obj_add_event_cb(positionWidget, unselectWidget, LV_EVENT_RELEASED, NULL);
-
+    
     // Altitude widget
     lv_obj_t *altitudeWidget = lv_obj_create(compassTile);
     lv_obj_set_size(altitudeWidget, 140, 40);
@@ -555,7 +556,7 @@ void createMainScr()
     objUnselect(altitudeWidget);
     lv_obj_add_event_cb(altitudeWidget, dragWidget, LV_EVENT_PRESSING, (char *)"Altitude_");
     lv_obj_add_event_cb(altitudeWidget, unselectWidget, LV_EVENT_RELEASED, NULL);
-
+    
     // Speed widget
     lv_obj_t *speedWidget = lv_obj_create(compassTile);
     lv_obj_set_size(speedWidget, 190, 40);
@@ -571,7 +572,7 @@ void createMainScr()
     objUnselect(speedWidget);
     lv_obj_add_event_cb(speedWidget, dragWidget, LV_EVENT_PRESSING, (char *)"Speed_");
     lv_obj_add_event_cb(speedWidget, unselectWidget, LV_EVENT_RELEASED, NULL);
-
+    
     // Compass Tile Events
     lv_obj_add_event_cb(compassHeading, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(latitude, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
@@ -579,21 +580,21 @@ void createMainScr()
     lv_obj_add_event_cb(altitude, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(speedLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(editScreenBtn, editScreen, LV_EVENT_ALL, NULL);
-
+    
     // Map Tile Events
     lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_REFRESH, NULL);
     lv_obj_add_event_cb(mainScreen, getZoomValue, LV_EVENT_GESTURE, NULL);
-
+    
     // Navigation Tile
     // TODO
     lv_obj_t *todolabel = lv_label_create(navTile);
     lv_obj_set_style_text_font(todolabel, &lv_font_montserrat_20, 0);
     lv_label_set_text_static(todolabel, "NAVIGATION SCREEN -> TODO");
     lv_obj_center(todolabel);
-
+    
     // Navitagion Tile Events
     // TODO
-
+    
     // Satellite Tracking Tile
     lv_obj_t *infoGrid = lv_obj_create(satTrackTile);
     lv_obj_set_size(infoGrid, 90, 175);
@@ -606,19 +607,19 @@ void createMainScr()
     lv_style_set_bg_opa(&styleGrid, LV_OPA_0);
     lv_style_set_border_opa(&styleGrid, LV_OPA_0);
     lv_obj_add_style(infoGrid, &styleGrid, LV_PART_MAIN);
-
+    
     pdopLabel = lv_label_create(infoGrid);
     lv_label_set_text_fmt(pdopLabel, "PDOP:\n%s", pdop.value());
-
+    
     hdopLabel = lv_label_create(infoGrid);
     lv_label_set_text_fmt(hdopLabel, "HDOP:\n%s", hdop.value());
-
+    
     vdopLabel = lv_label_create(infoGrid);
     lv_label_set_text_fmt(vdopLabel, "VDOP:\n%s", vdop.value());
-
+    
     altLabel = lv_label_create(infoGrid);
     lv_label_set_text_fmt(altLabel, "ALT:\n%4dm.", (int)GPS.altitude.meters());
-
+    
     satelliteBar1 = lv_chart_create(satTrackTile);
     lv_obj_set_size(satelliteBar1, TFT_WIDTH, 55);
     lv_chart_set_div_line_count(satelliteBar1, 6, 0);
@@ -627,7 +628,7 @@ void createMainScr()
     lv_chart_set_type(satelliteBar1, LV_CHART_TYPE_BAR);
     lv_chart_set_point_count(satelliteBar1, (MAX_SATELLLITES_IN_VIEW / 2));
     lv_obj_set_pos(satelliteBar1, 0, 175);
-
+    
     satelliteBar2 = lv_chart_create(satTrackTile);
     lv_obj_set_size(satelliteBar2, TFT_WIDTH, 55);
     lv_chart_set_div_line_count(satelliteBar2, 6, 0);
@@ -636,14 +637,14 @@ void createMainScr()
     lv_chart_set_type(satelliteBar2, LV_CHART_TYPE_BAR);
     lv_chart_set_point_count(satelliteBar2, (MAX_SATELLLITES_IN_VIEW / 2));
     lv_obj_set_pos(satelliteBar2, 0, 260);
-
-#ifdef MULTI_GNSS
+    
+    #ifdef MULTI_GNSS
     lv_style_init(&styleRadio);
     lv_style_set_radius(&styleRadio, LV_RADIUS_CIRCLE);
-
+    
     lv_style_init(&styleRadioChk);
     lv_style_set_bg_image_src(&styleRadioChk, NULL);
-
+    
     lv_obj_t *gnssSel = lv_obj_create(satTrackTile);
     lv_obj_set_flex_flow(gnssSel, LV_FLEX_FLOW_ROW);
     lv_obj_set_size(gnssSel, TFT_WIDTH, 50);
@@ -653,31 +654,31 @@ void createMainScr()
     lv_style_set_bg_opa(&styleSel, LV_OPA_0);
     lv_style_set_border_opa(&styleSel, LV_OPA_0);
     lv_obj_add_style(gnssSel, &styleSel, LV_PART_MAIN);
-
+    
     lv_obj_t *gps = lv_checkbox_create(gnssSel);
     lv_checkbox_set_text_static(gps, "GPS     ");
     lv_obj_add_flag(gps, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_add_style(gps, &styleRadio, LV_PART_INDICATOR);
     lv_obj_add_style(gps, &styleRadioChk, LV_PART_INDICATOR | LV_STATE_CHECKED);
-
+    
     lv_obj_t *glonass = lv_checkbox_create(gnssSel);
     lv_checkbox_set_text_static(glonass, "GLONASS  ");
     lv_obj_add_flag(glonass, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_add_style(glonass, &styleRadio, LV_PART_INDICATOR);
     lv_obj_add_style(glonass, &styleRadioChk, LV_PART_INDICATOR | LV_STATE_CHECKED);
-
+    
     lv_obj_t *beidou = lv_checkbox_create(gnssSel);
     lv_checkbox_set_text_static(beidou, "BEIDOU");
     lv_obj_add_flag(beidou, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_add_style(beidou, &styleRadio, LV_PART_INDICATOR);
     lv_obj_add_style(beidou, &styleRadioChk, LV_PART_INDICATOR | LV_STATE_CHECKED);
-
+    
     lv_obj_add_state(lv_obj_get_child(gnssSel, 0), LV_STATE_CHECKED);
-
+    
     // GNSS Selection Event
     lv_obj_add_event_cb(gnssSel, activeGnssEvent, LV_EVENT_CLICKED, &activeGnss);
-#endif
-
+    #endif
+    
     // Satellite Tracking Event
     lv_obj_add_event_cb(satTrackTile, updateSatTrack, LV_EVENT_VALUE_CHANGED, NULL);
 }

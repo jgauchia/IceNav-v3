@@ -17,7 +17,7 @@
 #include "compass.hpp"
 #include "lvgl.h"
 
-#define TASK_SLEEP_PERIOD_MS 4
+#define TASK_SLEEP_PERIOD_MS 5
 
 /**
  * @brief Central European Time (daylight saving time)
