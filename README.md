@@ -192,10 +192,11 @@ IMU MPU9250
       
 ## Credits
 
-* Added support to [Makerfabs ESP32-S3 Parallel TFT with Touch 3.5" ILI9488](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) (thanks to [@hpsaturn](https://github.com/hpsaturn))
-* Improved documentation (thanks to [@hpsaturn](https://github.com/hpsaturn))
-* Improved auto mainScreen selection from env variable preset (thanks to [@hpsaturn](https://github.com/hpsaturn))
-* Improved getLat getLon from environment variables (thanks to [@hpsaturn](https://github.com/hpsaturn))
-* 3DPrint case for an ESP32S3 Makerfabs Parallel board (thanks to [@hpsaturn](https://github.com/hpsaturn))
-* Vectorial Maps routines [ESP32_GPS](https://github.com/aresta/ESP32_GPS) (thanks to [@aresta](https://github.com/aresta))
-* OSM to binary vectorial maps [OSM_Extract](https://github.com/aresta/OSM_Extract) (thanks to [@aresta](https://github.com/aresta))
+* Added support to [Makerfabs ESP32-S3 Parallel TFT with Touch 3.5" ILI9488](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) thanks to [@hpsaturn](https://github.com/hpsaturn)
+* Improved documentation thanks to [@hpsaturn](https://github.com/hpsaturn)
+* Improved auto mainScreen selection from env variable preset thanks to [@hpsaturn](https://github.com/hpsaturn)
+* Improved getLat getLon from environment variables thanks to [@hpsaturn](https://github.com/hpsaturn)
+* 3DPrint case for an ESP32S3 Makerfabs Parallel board thanks to [@hpsaturn](https://github.com/hpsaturn)
+* Vectorial Maps routines [ESP32_GPS](https://github.com/aresta/ESP32_GPS) thanks to [@aresta](https://github.com/aresta)
+* OSM to binary vectorial maps [OSM_Extract](https://github.com/aresta/OSM_Extract) thanks to [@aresta](https://github.com/aresta)
+* Preferences Library [Easy Preferences](https://github.com/hpsaturn/easy-preferences) thanks to [@hpsaturn](https://github.com/hpsaturn)

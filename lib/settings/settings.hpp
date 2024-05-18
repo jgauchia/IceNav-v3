@@ -9,12 +9,10 @@
 #ifndef SETTINGS_HPP
 #define SETTINGS_HPP
 
-#include <Preferences.h>
+#include <EasyPreferences.hpp>
 #include <TinyGPS++.h>
 #include "gps.hpp"
 #include "compass.hpp"
-
-static Preferences preferences;
 
 extern uint8_t minZoom; // Min Zoom Level
 extern uint8_t maxZoom; // Max Zoom Level
@@ -51,5 +49,6 @@ void saveGPSBaud(uint16_t gpsBaud);
 void saveGPSUpdateRate(uint16_t gpsUpdateRate);
 void saveWidgetPos(char *widget, uint16_t posX, uint16_t posY);
 void saveMapType(bool vector);
+void printSettings();
 
 #endif
