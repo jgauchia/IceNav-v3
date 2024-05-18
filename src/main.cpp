@@ -76,9 +76,10 @@ void setup()
     mapTempSprite.deleteSprite();
     mapTempSprite.createSprite(768, 768);
   }
-
-  splashScreen();
+  
   initTasks();
+  splashScreen();
+
   
 #ifdef DEFAULT_LAT
   loadMainScreen();
@@ -95,6 +96,6 @@ void loop()
 {
   // lv_timer_handler();
   // lv_tick_inc(5);
-  // lv_timer_handler(); 
-  // vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
+  //lv_timer_handler(); 
+  //vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
 }

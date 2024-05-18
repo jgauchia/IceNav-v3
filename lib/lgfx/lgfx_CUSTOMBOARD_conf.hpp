@@ -17,7 +17,6 @@ class LGFX : public lgfx::LGFX_Device
 {
     lgfx::Panel_ILI9488 _panel_instance;
     lgfx::Bus_SPI _bus_instance;
-    lgfx::Light_PWM _light_instance;
     lgfx::Touch_XPT2046 _touch_instance;
 
 public:
@@ -27,8 +26,10 @@ public:
             auto cfg = _bus_instance.config();
             cfg.spi_host = HSPI_HOST;
             cfg.spi_mode = 0;
-            cfg.freq_write = 79999999;
-            cfg.freq_read = 16000000;
+            //cfg.freq_write = 79999999;
+            cfg.freq_write = 40000000;
+            //cfg.freq_read = 16000000;
+            cfg.freq_read = 27000000;
             cfg.spi_3wire = true;
             cfg.use_lock = false;
             cfg.dma_channel = SPI_DMA_CH_AUTO;
@@ -63,21 +64,11 @@ public:
         }
 
         {
-            auto cfg = _light_instance.config();
-            cfg.pin_bl = 33;
-            cfg.invert = false;
-            cfg.freq = 44100;
-            cfg.pwm_channel = 7;
-            _light_instance.config(cfg);
-            _panel_instance.setLight(&_light_instance);
-        }
-
-        {
             auto cfg = _touch_instance.config();
             cfg.x_min = 0;
-            cfg.x_max = 330;
+            cfg.x_max = 320;
             cfg.y_min = 0;
-            cfg.y_max = 500;
+            cfg.y_max = 480;
             cfg.pin_int = 5;
             cfg.bus_shared = true;
             cfg.offset_rotation = 0;
