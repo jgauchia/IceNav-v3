@@ -45,27 +45,27 @@ uint16_t speedPosY = 0;     // Speed widget position Y
  */
 void loadPreferences()
 {
-    preferences.begin("ICENAV", false);
-    offX = preferences.getFloat("C_offset_x", 0.0);
-    offY = preferences.getFloat("C_offset_y", 0.0);
-    isMapRotation = preferences.getBool("Map_rot", false);
-    defaultZoom = preferences.getUInt("Def_zoom", defZoom);
+    cfg.init("ICENAV");
+    offX = cfg.getFloat(PKEYS::KCOMP_OFFSET_X, 0.0);
+    offY = cfg.getFloat(PKEYS::KCOMP_OFFSET_Y, 0.0);
+    isMapRotation = cfg.getBool(PKEYS::KMAP_ROT, false);
+    defaultZoom = cfg.getUInt(PKEYS::KDEF_ZOOM, defZoom);
     zoom = defaultZoom;
-    showMapCompass = preferences.getBool("Map_compass", false);
-    isCompassRot = preferences.getBool("Compass_rot", true);
-    showMapSpeed = preferences.getBool("Map_speed", false);
-    showMapScale = preferences.getBool("Map_scale", false);
-    gpsBaud = preferences.getShort("GPS_speed", 2);
-    gpsUpdate = preferences.getShort("GPS_rate", 3);
-    compassPosX = preferences.getInt("Compass_X", 60);
-    compassPosY = preferences.getInt("Compass_Y", 82);
-    coordPosX = preferences.getInt("Coords_X", 66);
-    coordPosY = preferences.getInt("Coords_Y", 29);
-    altitudePosX = preferences.getInt("Altitude_X", 8);
-    altitudePosY = preferences.getInt("Altitude_Y", 293);
-    speedPosX = preferences.getInt("Speed_X", 1);
-    speedPosY = preferences.getInt("Speed_Y", 337);
-    isVectorMap = preferences.getBool("Map_vector", false);
+    showMapCompass = cfg.getBool(PKEYS::KMAP_COMPASS, false);
+    isCompassRot = cfg.getBool(PKEYS::KCOMP_ROT, true);
+    showMapSpeed = cfg.getBool(PKEYS::KMAP_SPEED, false);
+    showMapScale = cfg.getBool(PKEYS::KMAP_SCALE, false);
+    gpsBaud = cfg.getShort(PKEYS::KGPS_SPEED, 2);
+    gpsUpdate = cfg.getShort(PKEYS::KGPS_RATE, 3);
+    compassPosX = cfg.getInt(PKEYS::KCOMP_X, 60);
+    compassPosY = cfg.getInt(PKEYS::KCOMP_Y, 82);
+    coordPosX = cfg.getInt(PKEYS::KCOORD_X, 66);
+    coordPosY = cfg.getInt(PKEYS::KCOORD_Y, 29);
+    altitudePosX = cfg.getInt(PKEYS::KALTITUDE_X, 8);
+    altitudePosY = cfg.getInt(PKEYS::KALTITUDE_Y, 293);
+    speedPosX = cfg.getInt(PKEYS::KSPEED_X, 1);
+    speedPosY = cfg.getInt(PKEYS::KSPEED_Y, 337);
+    isVectorMap = cfg.getBool(PKEYS::KMAP_VECTOR, false);
     if (isVectorMap)
     {
         minZoom = 1;
@@ -87,27 +87,7 @@ void loadPreferences()
     // speedPosX = 1;
     // speedPosY = 337;
 
-    log_v("COMPASS OFFSET X  %f", offX);
-    log_v("COMPASS OFFSET Y  %f", offY);
-    log_v("MAP ROTATION %d", isMapRotation);
-    log_v("DEFAULT ZOOM LEVEL %d", zoom);
-    log_v("SHOW MAP COMPASS %d", showMapCompass);
-    log_v("MAP COMPASS ROT. %d", isCompassRot);
-    log_v("SHOW MAP SPEED %d", showMapSpeed);
-    log_v("SHOW MAP SCALE %d", showMapScale);
-    log_v("GPS SPEED %d", gpsBaud);
-    log_v("GPS UPDATE RATE %d", gpsUpdate);
-    log_v("COMPASS POS X %d", compassPosX);
-    log_v("COMPASS POS Y %d", compassPosY);
-    log_v("COORDINATE POS X %d", coordPosX);
-    log_v("COORDINATE POS Y %d", coordPosY);
-    log_v("SPEED POS X %d", speedPosX);
-    log_v("SPEED POS Y %d", speedPosY);
-    log_v("ALTITUDE POS X %d", altitudePosX);
-    log_v("ALTITUDE POS Y %d", altitudePosY);
-    log_v("VECTOR MAP %d", isVectorMap);
-
-    preferences.end();
+    printSettings();
 }
 
 /**
@@ -117,9 +97,7 @@ void loadPreferences()
  */
 void saveMapRotation(bool zoomRotation)
 {
-    preferences.begin("ICENAV", false);
-    preferences.putBool("Map_rot", zoomRotation);
-    preferences.end();
+    cfg.saveBool(PKEYS::KMAP_ROT, zoomRotation);
 }
 
 /**
@@ -130,10 +108,8 @@ void saveMapRotation(bool zoomRotation)
  */
 void saveCompassCal(float offsetX, float offsetY)
 {
-    preferences.begin("ICENAV", false);
-    preferences.putFloat("C_offset_x", offsetX);
-    preferences.putFloat("C_offset_y", offsetY);
-    preferences.end();
+    cfg.saveFloat(PKEYS::KCOMP_OFFSET_X, offsetX);
+    cfg.saveFloat(PKEYS::KCOMP_OFFSET_Y, offsetY);
 }
 
 /**
@@ -143,9 +119,7 @@ void saveCompassCal(float offsetX, float offsetY)
  */
 void saveDefaultZoom(uint8_t defaultZoom)
 {
-    preferences.begin("ICENAV", false);
-    preferences.putUInt("Def_zoom", defaultZoom);
-    preferences.end();
+    cfg.saveUInt(PKEYS::KDEF_ZOOM, defaultZoom);
 }
 
 /**
@@ -155,9 +129,7 @@ void saveDefaultZoom(uint8_t defaultZoom)
  */
 void saveShowCompass(bool showCompass)
 {
-    preferences.begin("ICENAV", false);
-    preferences.putBool("Map_compass", showCompass);
-    preferences.end();
+    cfg.saveBool(PKEYS::KMAP_COMPASS, showCompass);
 }
 
 /**
@@ -167,9 +139,7 @@ void saveShowCompass(bool showCompass)
  */
 void saveCompassRot(bool compassRot)
 {
-    preferences.begin("ICENAV", false);
-    preferences.putBool("Compass_rot", compassRot);
-    preferences.end();
+    cfg.saveBool(PKEYS::KCOMP_ROT, compassRot);
 }
 
 /**
@@ -179,9 +149,7 @@ void saveCompassRot(bool compassRot)
  */
 void saveShowSpeed(bool showSpeed)
 {
-    preferences.begin("ICENAV", false);
-    preferences.putBool("Map_speed", showSpeed);
-    preferences.end();
+    cfg.saveBool(PKEYS::KMAP_SPEED, showSpeed);
 }
 
 /**
@@ -191,9 +159,7 @@ void saveShowSpeed(bool showSpeed)
  */
 void saveShowScale(bool showScale)
 {
-    preferences.begin("ICENAV", false);
-    preferences.putBool("Map_scale", showScale);
-    preferences.end();
+    cfg.saveBool(PKEYS::KMAP_SCALE, showScale);
 }
 
 /**
@@ -203,9 +169,7 @@ void saveShowScale(bool showScale)
  */
 void saveGPSBaud(uint16_t gpsBaud)
 {
-    preferences.begin("ICENAV", false);
-    preferences.putShort("GPS_speed", gpsBaud);
-    preferences.end();
+    cfg.saveShort(PKEYS::KGPS_SPEED, gpsBaud);
 #ifdef AT6558D_GPS
     gps->flush();
     gps->println(GPS_BAUD_PCAS[gpsBaud]);
@@ -228,9 +192,7 @@ void saveGPSBaud(uint16_t gpsBaud)
  */
 void saveGPSUpdateRate(uint16_t gpsUpdateRate)
 {
-    preferences.begin("ICENAV", false);
-    preferences.putShort("GPS_rate", gpsUpdateRate);
-    preferences.end();
+    cfg.saveShort(PKEYS::KGPS_RATE, gpsUpdateRate);
 #ifdef AT6558D_GPS
     gps->flush();
     gps->println(GPS_RATE_PCAS[gpsUpdateRate]);
@@ -258,10 +220,8 @@ void saveWidgetPos(char *widget, uint16_t posX, uint16_t posY)
     strcat(widgetY, widget);
     strcat(widgetY, strY);
 
-    preferences.begin("ICENAV", false);
-    preferences.putInt(widgetX, posX);
-    preferences.putInt(widgetY, posY);
-    preferences.end();
+    cfg.saveInt(widgetX, posX);
+    cfg.saveInt(widgetY, posY);
 }
 
 /**
@@ -271,7 +231,23 @@ void saveWidgetPos(char *widget, uint16_t posX, uint16_t posY)
  */
 void saveMapType(bool vector)
 {
-    preferences.begin("ICENAV", false);
-    preferences.putBool("Map_vector", vector);
-    preferences.end();
+    cfg.saveBool(PKEYS::KMAP_VECTOR, vector);
+}
+
+/**
+ * @brief Utility to show all settings
+ */
+void printSettings() 
+{
+  log_v("%11s \t%s \t%s", "KEYNAME", "DEFINED", "VALUE");
+  log_v("%11s \t%s \t%s", "=======", "=======", "=====");
+
+  for (int i = 0; i < KCOUNT; i++) {
+    String key = cfg.getKey((CONFKEYS)i);
+    bool isDefined = cfg.isKey(key);
+    String defined = isDefined ? "custom " : "default";
+    String value = "";
+    if (isDefined) value = cfg.getValue(key);
+    log_v("%11s \t%s \t%s", key.c_str(), defined.c_str(), value.c_str());
+  }
 }
