@@ -95,9 +95,12 @@ void touchCalibrate()
         File f = SPIFFS.open(calibrationFile, "w");
         if (f)
         {
+            log_v("Calibration saved");
             f.write((const unsigned char *)calData, 16);
             f.close();
         }
+        else
+            log_e("Calibration not saved!");
 
         uint16_t touchX, touchY;
         while (!tft.getTouch(&touchX, &touchY))
@@ -129,7 +132,5 @@ void initTFT()
     ledcAttachPin(TFT_BL, 0);
     ledcSetup(0, 5000, 8);
     ledcWrite(0, 255);
-#ifndef MAKERF_ESP32S3
     touchCalibrate();
-#endif
 }
