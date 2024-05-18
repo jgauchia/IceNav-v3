@@ -87,26 +87,6 @@ void loadPreferences()
     // speedPosX = 1;
     // speedPosY = 337;
 
-    log_v("COMPASS OFFSET X  %f", offX);
-    log_v("COMPASS OFFSET Y  %f", offY);
-    log_v("MAP ROTATION %d", isMapRotation);
-    log_v("DEFAULT ZOOM LEVEL %d", zoom);
-    log_v("SHOW MAP COMPASS %d", showMapCompass);
-    log_v("MAP COMPASS ROT. %d", isCompassRot);
-    log_v("SHOW MAP SPEED %d", showMapSpeed);
-    log_v("SHOW MAP SCALE %d", showMapScale);
-    log_v("GPS SPEED %d", gpsBaud);
-    log_v("GPS UPDATE RATE %d", gpsUpdate);
-    log_v("COMPASS POS X %d", compassPosX);
-    log_v("COMPASS POS Y %d", compassPosY);
-    log_v("COORDINATE POS X %d", coordPosX);
-    log_v("COORDINATE POS Y %d", coordPosY);
-    log_v("SPEED POS X %d", speedPosX);
-    log_v("SPEED POS Y %d", speedPosY);
-    log_v("ALTITUDE POS X %d", altitudePosX);
-    log_v("ALTITUDE POS Y %d", altitudePosY);
-    log_v("VECTOR MAP %d", isVectorMap);
-
     printSettings();
 }
 
