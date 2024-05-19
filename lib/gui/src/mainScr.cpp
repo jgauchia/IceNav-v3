@@ -204,6 +204,7 @@ void updateMainScreen(lv_timer_t *t)
                 break;
                 
             case NAV:
+                tft.drawPngFile(SPIFFS, "/TODO.png", (MAP_WIDTH / 2) - 50, (MAP_HEIGHT / 2) - 50);
                 break;
             default:
                 break;
@@ -589,7 +590,7 @@ void createMainScr()
     // TODO
     lv_obj_t *todolabel = lv_label_create(navTile);
     lv_obj_set_style_text_font(todolabel, &lv_font_montserrat_20, 0);
-    lv_label_set_text_static(todolabel, "NAVIGATION SCREEN -> TODO");
+    lv_label_set_text_static(todolabel, "NAVIGATION SCREEN");
     lv_obj_center(todolabel);
     
     // Navitagion Tile Events
