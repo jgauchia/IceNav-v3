@@ -21,7 +21,7 @@ ESP32 Based GPS Navigator.
 
 ## Specifications
 
-For the moment we have two Icenav models, with the next hardware setup and specs (Highly recommended an ESP32 with PSRAM) :
+For the moment we have two Icenav models, with the next hardware setup and specs (**Highly recommended an ESP32 with PSRAM**) :
 
 Other setups like another sensors, etc... not listed in the specs,  now **They are not included**
 
