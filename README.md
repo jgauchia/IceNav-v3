@@ -8,7 +8,7 @@ ESP32 Based GPS Navigator.
 * There is the possibility to use two types of maps: Rendered Maps or Tiles (large files), and Vector Maps (small files).
 
 > [!CAUTION]
-> Do not use in production.
+> Do not use in production (Experimental features).
 
 ## Screenshots
 |<img src="images/dev/splash.jpg">|<img src="images/dev/compass.jpg">|<img src="images/dev/rendermap.jpg">|<img src="images/dev/vectormap.jpg">|<img src="images/dev/satinfo.jpg">|
@@ -21,7 +21,7 @@ ESP32 Based GPS Navigator.
 
 ## Specifications
 
-For the moment we have two Icenav models, with the next hardware setup and specs:
+For the moment we have two Icenav models, with the next hardware setup and specs (Highly recommended an ESP32 with PSRAM) :
 
 Other setups like another sensors, etc... not listed in the specs,  now **They are not included**
 
