@@ -120,21 +120,25 @@ void createButtonBarScr()
     lv_style_set_bg_opa(&styleBar, LV_OPA_0);
     lv_style_set_border_opa(&styleBar, LV_OPA_0);
     lv_obj_add_style(buttonBar, &styleBar, LV_PART_MAIN);
-
+    
     lv_obj_t *imgBtn;
-
+    
     // Waypoint Button
     imgBtn = lv_img_create(buttonBar);
     lv_img_set_src(imgBtn, waypointIconFile);
+    lv_obj_set_style_img_recolor_opa(imgBtn, 230, 0);
+    lv_obj_set_style_img_recolor(imgBtn, lv_color_black(), 0);
     lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(imgBtn, waypoint, LV_EVENT_PRESSED, NULL);
-
+    
     // Track Button
     imgBtn = lv_img_create(buttonBar);
     lv_img_set_src(imgBtn, trackIconFile);
+    lv_obj_set_style_img_recolor_opa(imgBtn, 230, 0);
+    lv_obj_set_style_img_recolor(imgBtn, lv_color_black(), 0);
     lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(imgBtn, track, LV_EVENT_PRESSED, NULL);
-
+    
     // Settings Button
     imgBtn = lv_img_create(buttonBar);
     lv_img_set_src(imgBtn, settingsIconFile);
@@ -160,26 +164,26 @@ void loadOptions()
         // option = lv_msgbox_create(lv_scr_act(), "Track Options", NULL, NULL, true);
     }
     lv_msgbox_add_close_button(option);
-
+    
     lv_obj_set_size(option, TFT_WIDTH, 128);
     lv_obj_set_pos(option, 0, TFT_HEIGHT - 200);
     lv_obj_clear_flag(option, LV_OBJ_FLAG_SCROLLABLE);
     // lv_obj_add_event_cb(lv_msgbox_get_close_btn(option), close_option, LV_EVENT_PRESSED, NULL);
-
+    
     lv_obj_t *imgBtn;
-
+    
     // Save Button
     imgBtn = lv_img_create(option);
     lv_img_set_src(imgBtn, saveIconFile);
     lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(imgBtn, saveOption, LV_EVENT_PRESSED, NULL);
-
+    
     // Load Button
     imgBtn = lv_img_create(option);
     lv_img_set_src(imgBtn, loadIconFile);
     lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(imgBtn, loadOption, LV_EVENT_PRESSED, NULL);
-
+    
     // Delete Button
     imgBtn = lv_img_create(option);
     lv_img_set_src(imgBtn, deleteIconFile);
