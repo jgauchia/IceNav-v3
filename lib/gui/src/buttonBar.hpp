@@ -26,13 +26,8 @@ extern bool isWaypointOpt;  // Waypoint Option selected
 extern bool isTrackOpt;     // Track Option selected
 extern bool isOptionLoaded; // Option selected & loaded
 
-void settings(lv_event_t *event);
-void waypoint(lv_event_t *event);
-void track(lv_event_t *event);
-
-void saveOption(lv_event_t *event);
-void loadOption(lv_event_t *event);
-void deleteOption(lv_event_t *event);
+void buttonBarEvent(lv_event_t *event);
+void optionEvent(lv_event_t *event);
 
 void createButtonBarScr();
 void loadOptions();
