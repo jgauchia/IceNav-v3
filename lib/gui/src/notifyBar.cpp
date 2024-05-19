@@ -18,14 +18,23 @@ lv_obj_t *notifyBar;
  */
 void updateNotifyBar(lv_event_t *event)
 {
+    
+    battLevel = batteryRead();
+    
+    #ifdef ENABLE_BME
+    //bme.takeForcedMeasurement();
+    tempValue = (uint8_t)(bme.readTemperature());
+    #endif
+    
+    
     lv_obj_t *obj = (lv_obj_t *)lv_event_get_target(event);
-
+    
     if (obj == gpsTime)
         lv_label_set_text_fmt(obj, timeFormat, hour(now()), minute(now()), second(now()));
-#ifdef ENABLE_BME
+    #ifdef ENABLE_BME
     if (obj == temp)
         lv_label_set_text_fmt(obj, "%02d\xC2\xB0", tempValue);
-#endif
+    #endif
     if (obj == gpsCount)
     {
         if (GPS.satellites.isValid())
@@ -54,18 +63,18 @@ void updateNotifyBar(lv_event_t *event)
         {
             switch (atoi(fixMode.value()))
             {
-            case 1:
-                lv_label_set_text_static(obj, "--");
-                break;
-            case 2:
-                lv_label_set_text_static(obj, "2D");
-                break;
-            case 3:
-                lv_label_set_text_static(obj, "3D");
-                break;
-            default:
-                lv_label_set_text_static(obj, "--");
-                break;
+                case 1:
+                    lv_label_set_text_static(obj, "--");
+                    break;
+                case 2:
+                    lv_label_set_text_static(obj, "2D");
+                    break;
+                case 3:
+                    lv_label_set_text_static(obj, "3D");
+                    break;
+                default:
+                    lv_label_set_text_static(obj, "--");
+                    break;
             }
             fix_old = atoi(fixMode.value());
         }
@@ -81,30 +90,30 @@ void updateNotifyBarTimer(lv_timer_t *t)
     lv_obj_send_event(gpsTime, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_send_event(gpsCount, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_send_event(gpsFixMode, LV_EVENT_VALUE_CHANGED, NULL);
-
+    
     switch (atoi(fix.value()))
     {
-    case 0:
-        lv_led_off(gpsFix);
-        break;
-    case 1:
-        lv_led_toggle(gpsFix);
-        break;
-    case 2:
-        lv_led_toggle(gpsFix);
-        break;
-    default:
-        lv_led_off(gpsFix);
-        break;
+        case 0:
+            lv_led_off(gpsFix);
+            break;
+        case 1:
+            lv_led_toggle(gpsFix);
+            break;
+        case 2:
+            lv_led_toggle(gpsFix);
+            break;
+        default:
+            lv_led_off(gpsFix);
+            break;
     }
-
-#ifdef ENABLE_BME
+    
+    #ifdef ENABLE_BME
     if (tempValue != tempOld)
     {
         lv_obj_send_event(temp, LV_EVENT_VALUE_CHANGED, NULL);
         tempOld = tempValue;
     }
-#endif
+    #endif
     
     if (battLevel != battLevelOld)
     {
@@ -130,45 +139,45 @@ void createNotifyBar()
     lv_style_set_bg_opa(&styleBar, LV_OPA_0);
     lv_style_set_border_opa(&styleBar, LV_OPA_0);
     lv_obj_add_style(notifyBar, &styleBar, LV_PART_MAIN);
-
+    
     lv_obj_t *label;
-
+    
     gpsTime = lv_label_create(notifyBar);
     lv_obj_set_width(gpsTime, 140);
     lv_obj_set_style_text_font(gpsTime, &lv_font_montserrat_20, 0);
     lv_label_set_text_fmt(gpsTime, timeFormat, hour(local), minute(local), second(local));
     lv_obj_add_event_cb(gpsTime, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
-
-#ifdef ENABLE_BME
+    
+    #ifdef ENABLE_BME
     temp = lv_label_create(notifyBar);
     lv_label_set_text_static(temp, "--\xC2\xB0");
     lv_obj_add_event_cb(temp, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
-#endif
-
+    #endif
+    
     sdCard = lv_label_create(notifyBar);
     if (isSdLoaded)
         lv_label_set_text_static(sdCard, LV_SYMBOL_SD_CARD);
     else
         lv_label_set_text_static(sdCard, " ");
-
+    
     gpsCount = lv_label_create(notifyBar);
     lv_label_set_text_fmt(gpsCount, LV_SYMBOL_GPS "%2d", 0);
     lv_obj_add_event_cb(gpsCount, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
-
+    
     gpsFix = lv_led_create(notifyBar);
     lv_led_set_color(gpsFix, lv_palette_main(LV_PALETTE_RED));
     lv_obj_set_size(gpsFix, 7, 7);
     lv_led_off(gpsFix);
-
+    
     gpsFixMode = lv_label_create(notifyBar);
     lv_obj_set_style_text_font(gpsFixMode, &lv_font_montserrat_10, 0);
     lv_label_set_text_static(gpsFixMode, "--");
     lv_obj_add_event_cb(gpsFixMode, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
-
+    
     battery = lv_label_create(notifyBar);
     lv_label_set_text_static(battery, LV_SYMBOL_BATTERY_EMPTY);
     lv_obj_add_event_cb(battery, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
-
+    
     lv_timer_t *timerNotifyBar = lv_timer_create(updateNotifyBarTimer, UPDATE_NOTIFY_PERIOD, NULL);
     lv_timer_ready(timerNotifyBar);
 }

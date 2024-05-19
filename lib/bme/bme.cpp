@@ -26,8 +26,8 @@ uint8_t tempOld = 0;
 void initBME()
 {
     bme.begin(BME_ADDRESS);
-    bme.setSampling(Adafruit_BME280::MODE_FORCED,
-                    Adafruit_BME280::SAMPLING_X1,   // temperature
+    bme.setSampling(Adafruit_BME280::MODE_NORMAL,
+                    Adafruit_BME280::SAMPLING_X8,   // temperature
                     Adafruit_BME280::SAMPLING_NONE, // pressure
                     Adafruit_BME280::SAMPLING_NONE, // humidity
                     Adafruit_BME280::FILTER_OFF,

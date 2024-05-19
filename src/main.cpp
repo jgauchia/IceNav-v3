@@ -47,19 +47,19 @@
  */
 void setup()
 {
-#ifdef MAKERF_ESP32S3
+  #ifdef MAKERF_ESP32S3
   Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
   Wire.begin();
-#endif
-
-#ifdef ENABLE_BME
+  #endif
+  
+  #ifdef ENABLE_BME
   initBME();
-#endif
-
-#ifdef ENABLE_COMPASS
+  #endif
+  
+  #ifdef ENABLE_COMPASS
   initCompass();
-#endif
-
+  #endif
+  
   powerOn();
   loadPreferences();
   initSD();
@@ -68,7 +68,7 @@ void setup()
   initGPS();
   initLVGL();
   initADC();
-
+  
   // Reserve PSRAM if rendered map is selected
   // Create a Sprite por temporary 9x9 tile map
   if (!isVectorMap)
@@ -77,15 +77,17 @@ void setup()
     mapTempSprite.createSprite(768, 768);
   }
   
-  initTasks();
   splashScreen();
-
+  initLvglTask();
   
-#ifdef DEFAULT_LAT
+  #ifdef DEFAULT_LAT
   loadMainScreen();
-#else
+  #else
   lv_screen_load(searchSatScreen);
-#endif
+  #endif
+  
+  initGpsTask();
+  
 }
 
 /**

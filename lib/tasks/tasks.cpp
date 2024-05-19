@@ -11,16 +11,42 @@
 time_t local, utc = 0;
 
 /**
- * @brief Task 1 - Read GPS data
+ * @brief Task1 - LVGL Task
  *
  * @param pvParameters
  */
-void sensorsTask(void *pvParameters)
+void lvglTask(void *pvParameters)
 {
-  log_v("Task1 - Sensors Task - running on core %d", xPortGetCoreID());
+  log_v("Task1 - LVGL Task - running on core %d", xPortGetCoreID());
   log_v("Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
   for (;;)
   {
+    lv_timer_handler();
+    vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
+  }
+}
+
+/**
+ * @brief Init Task1 LVGL Task
+ * 
+ */
+void initLvglTask()
+{
+  xTaskCreatePinnedToCore(lvglTask, PSTR("LVGL Task"), 8192, NULL, 2, NULL, 1);
+  delay(500);
+}
+
+/**
+ * @brief Task 2 - Read GPS data
+ *
+ * @param pvParameters
+ */
+void gpsTask(void *pvParameters)
+{
+  log_v("Task 2 - GPS Task - running on core %d", xPortGetCoreID());
+  log_v("Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
+  for (;;)
+  {  
     while (gps->available() > 0)
     {
       #ifdef OUTPUT_NMEA
@@ -45,44 +71,19 @@ void sensorsTask(void *pvParameters)
       if (!GPS.time.isValid() && isTimeFixed)
         isTimeFixed = false;
       #endif
+      
+      vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
     }
-    
-    #ifdef ENABLE_BME
-    bme.takeForcedMeasurement();
-    tempValue = (uint8_t)(bme.readTemperature());
-    #endif
-    battLevel = batteryRead();
-    
-    // heading = getHeading();
-    
-    vTaskDelay(10);
   }
 }
 
 /**
- * @brief Task2 - LVGL Task
+ * @brief Init Task 2 Sensors task
  *
- * @param pvParameters
  */
-void lvglTask(void *pvParameters)
+void initGpsTask()
 {
-  log_v("Task2 - LVGL Task - running on core %d", xPortGetCoreID());
-  log_v("Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
-  for (;;)
-  {
-    lv_timer_handler();
-    vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
-  }
+  xTaskCreatePinnedToCore(gpsTask, PSTR("GPS Task"), 8192, NULL, 1, NULL, 1);
+  delay(500);
 }
 
-/**
- * @brief Init Core tasks
- *
- */
-void initTasks()
-{
-  xTaskCreatePinnedToCore(sensorsTask, PSTR("Sensors Task"), 20000, NULL, 1, NULL, 1);
-  delay(500);
-  xTaskCreatePinnedToCore(lvglTask, PSTR("LVGL Task"), 20000, NULL, 2, NULL, 1);
-  delay(500);
-}
