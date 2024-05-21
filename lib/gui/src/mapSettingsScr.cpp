@@ -11,137 +11,97 @@
 lv_obj_t *mapSettingsScreen; // Map Settings Screen
 
 /**
- * @brief Back button event
+ * @brief Map Settings Events
  *
  * @param event
  */
-static void mapSettingsBack(lv_event_t *event)
+static void mapSettingsEvents(lv_event_t *event)
 {
-    if (needReboot)
-    {
-        saveMapType(isVectorMap);
-        saveDefaultZoom(defaultZoom);
-        lv_obj_delete(mapSettingsScreen);
-        showRestartScr();
-    }
-    else
-        lv_screen_load(settingsScreen);
-}
-
-/**
- * @brief Configure Map type event
- *
- * @param event
- */
-static void configureMapType(lv_event_t *event)
-{
-    isVectorMap = lv_obj_has_state(mapType, LV_STATE_CHECKED);
-    if (!isVectorMap)
-    {
-        minZoom = 6;
-        maxZoom = 17;
-    }
-    else
-    {
-        minZoom = 1;
-        maxZoom = 4;
-    }
-    lv_spinbox_set_range(zoomLevel, minZoom, maxZoom);
-    defaultZoom = (uint8_t)lv_spinbox_get_value(zoomLevel);
-    zoom = defaultZoom;
-    needReboot = true;
-}
-
-/**
- * @brief Configure Map rotation event
- *
- * @param event
- */
-static void configureMapRotation(lv_event_t *event)
-{
-    isMapRotation = lv_obj_has_state(mapSwitch, LV_STATE_CHECKED);
-    saveMapRotation(isMapRotation);
-}
-
-/**
- * @brief Increment default zoom value event
- *
- * @param event
- */
-static void incrementZoom(lv_event_t *event)
-{
+    lv_obj_t *obj = lv_event_get_target_obj(event);
     lv_event_code_t code = lv_event_get_code(event);
-    if (code == LV_EVENT_SHORT_CLICKED || code == LV_EVENT_LONG_PRESSED_REPEAT)
+
+    if (obj == btnBack)
     {
-        lv_spinbox_increment(zoomLevel);
+        if (needReboot)
+        {   saveMapType(isVectorMap);
+            saveDefaultZoom(defaultZoom);
+            lv_obj_delete(mapSettingsScreen);
+            showRestartScr();
+        }
+        else
+            lv_screen_load(settingsScreen);
+    }
+
+    if (obj == zoomBtnUp)
+    {
+        if (code == LV_EVENT_SHORT_CLICKED || code == LV_EVENT_LONG_PRESSED_REPEAT)
+        {
+            lv_spinbox_increment(zoomLevel);
+            defaultZoom = (uint8_t)lv_spinbox_get_value(zoomLevel);
+            zoom = defaultZoom;
+            saveDefaultZoom(defaultZoom);
+        }
+    }
+
+    if (obj == zoomBtnDown)
+    {
+        if (code == LV_EVENT_SHORT_CLICKED || code == LV_EVENT_LONG_PRESSED_REPEAT)
+        {
+            lv_spinbox_decrement(zoomLevel);
+            defaultZoom = (uint8_t)lv_spinbox_get_value(zoomLevel);
+            zoom = defaultZoom;
+            saveDefaultZoom(defaultZoom);
+        }
+    }
+
+    if (obj == mapType)
+    {
+        isVectorMap = lv_obj_has_state(obj, LV_STATE_CHECKED);
+        if (!isVectorMap)
+        {
+            minZoom = 6;
+            maxZoom = 17;
+        }
+        else
+        {
+            minZoom = 1;
+            maxZoom = 4;
+        }
+        lv_spinbox_set_range(zoomLevel, minZoom, maxZoom);
         defaultZoom = (uint8_t)lv_spinbox_get_value(zoomLevel);
         zoom = defaultZoom;
-        saveDefaultZoom(defaultZoom);
+        needReboot = true;
     }
-}
 
-/**
- * @brief Decrement default zoom value event
- *
- */
-static void decrementZoom(lv_event_t *event)
-{
-    lv_event_code_t code = lv_event_get_code(event);
-    if (code == LV_EVENT_SHORT_CLICKED || code == LV_EVENT_LONG_PRESSED_REPEAT)
+    if (obj == mapSwitch)
     {
-        lv_spinbox_decrement(zoomLevel);
-        defaultZoom = (uint8_t)lv_spinbox_get_value(zoomLevel);
-        zoom = defaultZoom;
-        saveDefaultZoom(defaultZoom);
+        isMapRotation = lv_obj_has_state(obj, LV_STATE_CHECKED);
+        saveMapRotation(isMapRotation);
     }
-}
 
-/**
- * @brief Show Compass option event
- *
- * @param event
- */
-static void showCompass(lv_event_t *event)
-{
-    lv_obj_t *obj = lv_event_get_target_obj(event);
-    showMapCompass = lv_obj_has_state(obj, LV_STATE_CHECKED);
-    saveShowCompass(showMapCompass);
-}
+    if (obj == checkCompass)
+    {
+        showMapCompass = lv_obj_has_state(obj, LV_STATE_CHECKED);
+        saveShowCompass(showMapCompass);
+    }
 
-/**
- * @brief Enable/Disable Compass rotation
- *
- * @param event
- */
-static void compassRotation(lv_event_t *event)
-{
-    lv_obj_t *obj = lv_event_get_target_obj(event);
-    isCompassRot = lv_obj_has_state(obj, LV_STATE_CHECKED);
-    saveCompassRot(isCompassRot);
-}
+    if (obj == checkCompassRot)
+    {
+        isCompassRot = lv_obj_has_state(obj, LV_STATE_CHECKED);
+        saveCompassRot(isCompassRot);
+    }
 
-/**
- * @brief Show Speed option event
- *
- * @param event
- */
-static void showSpeed(lv_event_t *event)
-{
-    lv_obj_t *obj = lv_event_get_target_obj(event);
-    showMapSpeed = lv_obj_has_state(obj, LV_STATE_CHECKED);
-    saveShowSpeed(showMapSpeed);
-}
+    if (obj == checkSpeed)
+    {
+        showMapSpeed = lv_obj_has_state(obj, LV_STATE_CHECKED);
+        saveShowSpeed(showMapSpeed);
+    }
 
-/**
- * @brief Show Map Scale option event
- *
- * @param event
- */
-static void showScale(lv_event_t *event)
-{
-    lv_obj_t *obj = lv_event_get_target_obj(event);
-    showMapScale = lv_obj_has_state(obj, LV_STATE_CHECKED);
-    saveShowScale(showMapScale);
+    if (obj == checkScale)
+    {
+        showMapScale = lv_obj_has_state(obj, LV_STATE_CHECKED);
+        saveShowScale(showMapScale);
+    }
 }
 
 /**
@@ -156,12 +116,6 @@ void createMapSettingsScr()
     lv_obj_set_size(mapSettingsOptions, TFT_WIDTH, TFT_HEIGHT - 60);
 
     lv_obj_t *label;
-    lv_obj_t *list;
-    lv_obj_t *btn;
-    lv_obj_t *checkCompass;
-    lv_obj_t *checkCompassRot;
-    lv_obj_t *checkSpeed;
-    lv_obj_t *checkScale;
 
     // Map Type
     list = lv_list_add_btn(mapSettingsOptions, NULL, "Map Type\nRENDER/VECTOR");
@@ -176,7 +130,7 @@ void createMapSettingsScr()
     else
         lv_obj_clear_state(mapType, LV_STATE_CHECKED);
     lv_obj_align_to(mapType, list, LV_ALIGN_RIGHT_MID, 0, 0);
-    lv_obj_add_event_cb(mapType, configureMapType, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(mapType, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Map Rotation
     list = lv_list_add_btn(mapSettingsOptions, NULL, "Map Rotation Mode\nHEADING/COMPASS");
@@ -191,18 +145,18 @@ void createMapSettingsScr()
     else
         lv_obj_clear_state(mapSwitch, LV_STATE_CHECKED);
     lv_obj_align_to(mapSwitch, list, LV_ALIGN_RIGHT_MID, 0, 0);
-    lv_obj_add_event_cb(mapSwitch, configureMapRotation, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(mapSwitch, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Default zoom level
     list = lv_list_add_btn(mapSettingsOptions, NULL, "Default\nZoom Level");
     lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
 
-    btn = lv_btn_create(list);
-    lv_obj_set_size(btn, 40, 40);
-    lv_obj_align_to(btn, list, LV_ALIGN_LEFT_MID, 0, 0);
-    lv_obj_set_style_bg_image_src(btn, LV_SYMBOL_PLUS, 0);
-    lv_obj_add_event_cb(btn, incrementZoom, LV_EVENT_ALL, NULL);
+    zoomBtnUp = lv_btn_create(list);
+    lv_obj_set_size(zoomBtnUp, 40, 40);
+    lv_obj_align_to(zoomBtnUp, list, LV_ALIGN_LEFT_MID, 0, 0);
+    lv_obj_set_style_bg_image_src(zoomBtnUp, LV_SYMBOL_PLUS, 0);
+    lv_obj_add_event_cb(zoomBtnUp, mapSettingsEvents, LV_EVENT_ALL, NULL);
 
     zoomLevel = lv_spinbox_create(list);
     lv_spinbox_set_range(zoomLevel, minZoom, maxZoom);
@@ -214,11 +168,11 @@ void createMapSettingsScr()
     lv_obj_align_to(zoomLevel, list, LV_ALIGN_RIGHT_MID, 0, 0);
     objHideCursor(zoomLevel);
 
-    btn = lv_btn_create(list);
-    lv_obj_set_size(btn, 40, 40);
-    lv_obj_align_to(btn, list, LV_ALIGN_RIGHT_MID, 0, 0);
-    lv_obj_set_style_bg_image_src(btn, LV_SYMBOL_MINUS, 0);
-    lv_obj_add_event_cb(btn, decrementZoom, LV_EVENT_ALL, NULL);
+    zoomBtnDown = lv_btn_create(list);
+    lv_obj_set_size(zoomBtnDown, 40, 40);
+    lv_obj_align_to(zoomBtnDown, list, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_obj_set_style_bg_image_src(zoomBtnDown, LV_SYMBOL_MINUS, 0);
+    lv_obj_add_event_cb(zoomBtnDown, mapSettingsEvents, LV_EVENT_ALL, NULL);
 
     // Show Compass
     list = lv_list_add_btn(mapSettingsOptions, NULL, "Show Compass");
@@ -229,7 +183,7 @@ void createMapSettingsScr()
     lv_obj_align_to(checkCompass, list, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_checkbox_set_text(checkCompass, " ");
     lv_obj_add_state(checkCompass, showMapCompass);
-    lv_obj_add_event_cb(checkCompass, showCompass, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(checkCompass, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Compass Rotation
     list = lv_list_add_btn(mapSettingsOptions, NULL, "Compass Rotation");
@@ -240,7 +194,7 @@ void createMapSettingsScr()
     lv_obj_align_to(checkCompassRot, list, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_checkbox_set_text(checkCompassRot, " ");
     lv_obj_add_state(checkCompassRot, isCompassRot);
-    lv_obj_add_event_cb(checkCompassRot, compassRotation, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(checkCompassRot, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Show Speed
     list = lv_list_add_btn(mapSettingsOptions, NULL, "Show Speed");
@@ -251,7 +205,7 @@ void createMapSettingsScr()
     lv_obj_align_to(checkSpeed, list, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_checkbox_set_text(checkSpeed, " ");
     lv_obj_add_state(checkSpeed, showMapSpeed);
-    lv_obj_add_event_cb(checkSpeed, showSpeed, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(checkSpeed, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Show Map Scale
     list = lv_list_add_btn(mapSettingsOptions, NULL, "Show Map Scale");
@@ -262,15 +216,15 @@ void createMapSettingsScr()
     lv_obj_align_to(checkScale, list, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_checkbox_set_text(checkScale, " ");
     lv_obj_add_state(checkScale, showMapScale);
-    lv_obj_add_event_cb(checkScale, showScale, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(checkScale, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Back button
-    btn = lv_btn_create(mapSettingsScreen);
-    lv_obj_set_size(btn, TFT_WIDTH - 30, 40);
-    label = lv_label_create(btn);
+    btnBack = lv_btn_create(mapSettingsScreen);
+    lv_obj_set_size(btnBack, TFT_WIDTH - 30, 40);
+    label = lv_label_create(btnBack);
     lv_obj_set_style_text_font(label, &lv_font_montserrat_20, 0);
     lv_label_set_text_static(label, "Back");
     lv_obj_center(label);
-    lv_obj_align(btn, LV_ALIGN_BOTTOM_MID, 0, -10);
-    lv_obj_add_event_cb(btn, mapSettingsBack, LV_EVENT_CLICKED, NULL);
+    lv_obj_align(btnBack, LV_ALIGN_BOTTOM_MID, 0, -10);
+    lv_obj_add_event_cb(btnBack, mapSettingsEvents, LV_EVENT_CLICKED, NULL);
 }

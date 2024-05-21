@@ -19,17 +19,16 @@ static lv_obj_t *mapSettingsOptions;
 static lv_obj_t *mapSwitch;
 static lv_obj_t *mapType;
 static lv_obj_t *zoomLevel;
+static lv_obj_t *btnBack;
+static lv_obj_t *zoomBtnUp;
+static lv_obj_t *zoomBtnDown;
+static lv_obj_t *list;
+static lv_obj_t *checkCompass;
+static lv_obj_t *checkCompassRot;
+static lv_obj_t *checkSpeed;
+static lv_obj_t *checkScale;
 
-static void mapSettingsBack(lv_event_t *event);
-static void configureMapType(lv_event_t *event);
-static void configureMapRotation(lv_event_t *event);
-static void incrementZoom(lv_event_t *event);
-static void decrementZoom(lv_event_t *event);
-static void showCompass(lv_event_t *event);
-static void compassRotation(lv_event_t *event);
-static void showSpeed(lv_event_t *event);
-static void showScale(lv_event_t *event);
-
+static void mapSettingsEvents(lv_event_t *event);
 void createMapSettingsScr();
 
 #endif
