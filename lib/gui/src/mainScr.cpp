@@ -90,7 +90,7 @@ void dragWidget(lv_event_t *event)
             lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
             widgetSelected = true;
         }
-        
+
         lv_indev_t *indev = lv_indev_get_act();
         if (indev == NULL)
             return;
@@ -128,16 +128,17 @@ void getActTile(lv_event_t *event)
         log_d("Used PSRAM: %d", ESP.getPsramSize() - ESP.getFreePsram());
         if (activeTile == MAP)
         {
-            if (!isVectorMap)
-                createMapScrSprites();
-            refreshMap = true;
+            //if (!isVectorMap)
+            createMapScrSprites();
+            // isMapDraw = true;
         }
     }
     else
     {
         isReady = true;
+        // isDisplayRefresh = false;
     }
-    
+
     lv_obj_t *actTile = lv_tileview_get_tile_act(tilesScreen);
     lv_coord_t tileX = lv_obj_get_x(actTile) / TFT_WIDTH;
     activeTile = tileX;
@@ -152,10 +153,8 @@ void scrollTile(lv_event_t *event)
 {
     isScrolled = false;
     isReady = false;
-    
-    if (!isVectorMap)
-        deleteMapScrSprites();
-    
+
+    deleteMapScrSprites();
     deleteSatInfoSprites();
 }
 
@@ -185,7 +184,7 @@ void updateMainScreen(lv_timer_t *t)
                 {
                     lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
                 }
-                
+
                 if (GPS.speed.isUpdated())
                     lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
             
@@ -297,7 +296,6 @@ void createMapScrSprites()
 {
     // Map Sprite
     mapSprite.createSprite(MAP_WIDTH, MAP_HEIGHT);
-    mapSprite.pushSprite(0, 27);
     // Arrow Sprite
     sprArrow.createSprite(16, 16);
     sprArrow.setColorDepth(16);
@@ -327,7 +325,7 @@ void drawMapWidgets()
             mapSprite.pushImage(TFT_WIDTH - 48, 0, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
     }
     #endif
-    
+
     mapSprite.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
     mapSprite.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
     mapSprite.drawNumber(zoom, 26, 8, &fonts::FreeSansBold9pt7b);
@@ -338,7 +336,7 @@ void drawMapWidgets()
         mapSprite.pushImage(0, 346, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
         mapSprite.drawNumber((uint16_t)GPS.speed.kmph(), 26, 350, &fonts::FreeSansBold9pt7b);
     }
-    
+
     if (!isVectorMap)
         if (showMapScale)
         {
@@ -360,6 +358,8 @@ void updateMap(lv_event_t *event)
 {
     if (isVectorMap)
     {
+        log_v("%d",isMapFound);
+
         if (tft.getStartCount() == 0)
             tft.startWrite();
         getPosition(getLat(), getLon());
@@ -374,21 +374,21 @@ void updateMap(lv_event_t *event)
             refreshMap = true;
             isPosMoved = false;
         }
-        
+
         if (refreshMap)
         {
             mapSprite.pushSprite(0, 27, TFT_TRANSPARENT);
-            drawMapWidgets();
+            if (isMapFound)
+                drawMapWidgets();
         }
         if (tft.getStartCount() > 0)
             tft.endWrite();
     }
     else
     {
+        tft.startWrite();
         generateRenderMap();
-        
-        if (refreshMap)
-            drawMapWidgets();
+        tft.endWrite();
     }
 }
 
@@ -428,7 +428,7 @@ void updateSatTrack(lv_event_t *event)
         lv_label_set_text_fmt(hdopLabel, "HDOP:\n%s", hdop.value());
         lv_label_set_text_fmt(vdopLabel, "VDOP:\n%s", vdop.value());
     }
-    
+
     if (GPS.altitude.isUpdated())
         lv_label_set_text_fmt(altLabel, "ALT:\n%4dm.", (int)GPS.altitude.meters());
     

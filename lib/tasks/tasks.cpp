@@ -32,8 +32,8 @@ void lvglTask(void *pvParameters)
  */
 void initLvglTask()
 {
-  xTaskCreatePinnedToCore(lvglTask, PSTR("LVGL Task"), 8192, NULL, 2, NULL, 1);
-  delay(500);
+ // xTaskCreatePinnedToCore(lvglTask, PSTR("LVGL Task"), 20000, NULL, 2, NULL, 1);
+ // delay(500);
 }
 
 /**
@@ -72,18 +72,18 @@ void gpsTask(void *pvParameters)
         isTimeFixed = false;
       #endif
       
-      vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
+      vTaskDelay(10);
     }
   }
 }
 
 /**
- * @brief Init Task 2 Sensors task
+ * @brief Init Task 2 GPS task
  *
  */
 void initGpsTask()
 {
-  xTaskCreatePinnedToCore(gpsTask, PSTR("GPS Task"), 8192, NULL, 1, NULL, 1);
+  xTaskCreatePinnedToCore(gpsTask, PSTR("GPS Task"), 20000, NULL, 1, NULL, 1);
   delay(500);
 }
 

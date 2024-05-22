@@ -54,6 +54,7 @@ uint16_t lon2posx(float f_lon, uint8_t zoom);
 uint16_t lat2posy(float f_lat, uint8_t zoom);
 ScreenCoord coord2ScreenPos(double lon, double lat, uint8_t zoomLevel);
 MapTile getMapTile(double lon, double lat, uint8_t zoomLevel, int16_t offsetX, int16_t offsetY);
+void drawMapWidgets();
 void generateRenderMap();
 
 #endif

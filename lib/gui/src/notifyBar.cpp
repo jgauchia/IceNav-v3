@@ -19,13 +19,13 @@ lv_obj_t *notifyBar;
 void updateNotifyBar(lv_event_t *event)
 {
     
-    battLevel = batteryRead();
-    
-    #ifdef ENABLE_BME
-    //bme.takeForcedMeasurement();
-    tempValue = (uint8_t)(bme.readTemperature());
-    #endif
-    
+//     battLevel = batteryRead();
+//
+//     #ifdef ENABLE_BME
+//     //bme.takeForcedMeasurement();
+//     tempValue = (uint8_t)(bme.readTemperature());
+//     #endif
+//
     
     lv_obj_t *obj = (lv_obj_t *)lv_event_get_target(event);
     

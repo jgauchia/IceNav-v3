@@ -217,9 +217,6 @@ MapBlock *readMapBlock(String fileName)
     if (!file_)
     {
         isMapFound = false;
-        // log_v("Map doesn't exist");
-        //  while (true)
-        //      ;
         mblock->inView = false;
         return mblock;
     }
@@ -595,6 +592,7 @@ void generateVectorMap(ViewPort &viewPort, MemCache &memCache, TFT_eSprite &map)
     }
     else
     {
+        isMapFound = false;
         showNoMap(map);
         log_v("Map doesn't exist");
     }

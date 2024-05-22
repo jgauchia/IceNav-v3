@@ -47,47 +47,48 @@
  */
 void setup()
 {
-  #ifdef MAKERF_ESP32S3
-  Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
-  Wire.begin();
-  #endif
-  
-  #ifdef ENABLE_BME
-  initBME();
-  #endif
-  
-  #ifdef ENABLE_COMPASS
-  initCompass();
-  #endif
-  
-  powerOn();
-  loadPreferences();
-  initSD();
-  initSPIFFS();
-  initTFT();
-  initGPS();
-  initLVGL();
-  initADC();
-  
-  // Reserve PSRAM if rendered map is selected
-  // Create a Sprite por temporary 9x9 tile map
-  if (!isVectorMap)
-  {
-    mapTempSprite.deleteSprite();
-    mapTempSprite.createSprite(768, 768);
-  }
-  
-  splashScreen();
-  initLvglTask();
-  
-  #ifdef DEFAULT_LAT
-  loadMainScreen();
-  #else
-  lv_screen_load(searchSatScreen);
-  #endif
-  
-  initGpsTask();
-  
+    #ifdef MAKERF_ESP32S3
+    Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
+    Wire.begin();
+    #endif
+
+    #ifdef ENABLE_BME
+    //initBME();
+    #endif
+
+    #ifdef ENABLE_COMPASS
+    //initCompass();
+    #endif
+
+    powerOn();
+    loadPreferences();
+    initSD();
+    initSPIFFS();
+    initTFT();
+    initGPS();
+    initLVGL();
+    initADC();
+
+    // Reserve PSRAM if rendered map is selected
+    // Create a Sprite por temporary 9x9 tile map
+    if (!isVectorMap)
+    {
+        mapTempSprite.deleteSprite();
+        mapTempSprite.createSprite(TILE_WIDTH, TILE_HEIGHT);
+    }
+
+    splashScreen();
+    //initLvglTask();
+    initGpsTask();
+
+    #ifdef DEFAULT_LAT
+    loadMainScreen();
+    #else
+    lv_screen_load(searchSatScreen);
+    #endif
+
+
+
 }
 
 /**
@@ -96,8 +97,8 @@ void setup()
  */
 void loop()
 {
-  // lv_timer_handler();
-  // lv_tick_inc(5);
-  //lv_timer_handler(); 
-  //vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
+    // lv_timer_handler();
+    // lv_tick_inc(5);
+    lv_timer_handler();
+    vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
 }

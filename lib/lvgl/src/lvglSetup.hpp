@@ -14,7 +14,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#define LV_TICK_PERIOD_MS 4
+#define LV_TICK_PERIOD_MS 5
 
 #include "lvglFuncs.hpp"
 #include "lvglSpiffsFs.hpp"

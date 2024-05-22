@@ -12,6 +12,10 @@ MapTile oldMapTile = {"", 0, 0, 0};     // Old Map tile coordinates and zoom
 MapTile currentMapTile = {"", 0, 0, 0}; // Curreng Map tile coordinates and zoom
 MapTile roundMapTile = {"", 0, 0, 0};   // Boundaries Map tiles
 
+bool isMapFound = false;
+bool refreshMap = false;
+bool isMapDraw = false;
+
 /**
  * @brief Tile size for position calculation
  *
@@ -37,7 +41,7 @@ ScreenCoord navArrowPosition;
  */
 uint32_t lon2tilex(double f_lon, uint8_t zoom)
 {
-  return (uint32_t)(floor((f_lon + 180.0) / 360.0 * pow(2.0, zoom)));
+    return (uint32_t)(floor((f_lon + 180.0) / 360.0 * pow(2.0, zoom)));
 }
 
 /**
@@ -49,7 +53,7 @@ uint32_t lon2tilex(double f_lon, uint8_t zoom)
  */
 uint32_t lat2tiley(double f_lat, uint8_t zoom)
 {
-  return (uint32_t)(floor((1.0 - log(tan(f_lat * M_PI / 180.0) + 1.0 / cos(f_lat * M_PI / 180.0)) / M_PI) / 2.0 * pow(2.0, zoom)));
+    return (uint32_t)(floor((1.0 - log(tan(f_lat * M_PI / 180.0) + 1.0 / cos(f_lat * M_PI / 180.0)) / M_PI) / 2.0 * pow(2.0, zoom)));
 }
 
 /**
@@ -61,7 +65,7 @@ uint32_t lat2tiley(double f_lat, uint8_t zoom)
  */
 uint16_t lon2posx(float f_lon, uint8_t zoom)
 {
-  return ((uint16_t)(((f_lon + 180.0) / 360.0 * (pow(2.0, zoom)) * tileSize)) % tileSize);
+    return ((uint16_t)(((f_lon + 180.0) / 360.0 * (pow(2.0, zoom)) * tileSize)) % tileSize);
 }
 
 /**
@@ -73,7 +77,7 @@ uint16_t lon2posx(float f_lon, uint8_t zoom)
  */
 uint16_t lat2posy(float f_lat, uint8_t zoom)
 {
-  return ((uint16_t)(((1.0 - log(tan(f_lat * M_PI / 180.0) + 1.0 / cos(f_lat * M_PI / 180.0)) / M_PI) / 2.0 * (pow(2.0, zoom)) * tileSize)) % tileSize);
+    return ((uint16_t)(((1.0 - log(tan(f_lat * M_PI / 180.0) + 1.0 / cos(f_lat * M_PI / 180.0)) / M_PI) / 2.0 * (pow(2.0, zoom)) * tileSize)) % tileSize);
 }
 
 /**
@@ -86,10 +90,10 @@ uint16_t lat2posy(float f_lat, uint8_t zoom)
  */
 ScreenCoord coord2ScreenPos(double lon, double lat, uint8_t zoomLevel)
 {
-  ScreenCoord data;
-  data.posX = lon2posx(lon, zoomLevel);
-  data.posY = lat2posy(lat, zoomLevel);
-  return data;
+    ScreenCoord data;
+    data.posX = lon2posx(lon, zoomLevel);
+    data.posY = lat2posy(lat, zoomLevel);
+    return data;
 }
 
 /**
@@ -104,17 +108,17 @@ ScreenCoord coord2ScreenPos(double lon, double lat, uint8_t zoomLevel)
  */
 MapTile getMapTile(double lon, double lat, uint8_t zoomLevel, int16_t offsetX, int16_t offsetY)
 {
-  static char tileFile[40] = "";
-  uint32_t x = lon2tilex(lon, zoomLevel) + offsetX;
-  uint32_t y = lat2tiley(lat, zoomLevel) + offsetY;
+    static char tileFile[40] = "";
+    uint32_t x = lon2tilex(lon, zoomLevel) + offsetX;
+    uint32_t y = lat2tiley(lat, zoomLevel) + offsetY;
 
-  sprintf(tileFile, mapFolder, zoomLevel, x, y);
-  MapTile data;
-  data.file = tileFile;
-  data.tilex = x;
-  data.tiley = y;
-  data.zoom = zoomLevel;
-  return data;
+    sprintf(tileFile, mapFolder, zoomLevel, x, y);
+    MapTile data;
+    data.file = tileFile;
+    data.tilex = x;
+    data.tiley = y;
+    data.zoom = zoomLevel;
+    return data;
 }
 
 /**
@@ -123,85 +127,85 @@ MapTile getMapTile(double lon, double lat, uint8_t zoomLevel, int16_t offsetX, i
  */
 void generateRenderMap()
 {
-  currentMapTile = getMapTile(getLon(), getLat(), zoom, 0, 0);
+    currentMapTile = getMapTile(getLon(), getLat(), zoom, 0, 0);
 
-  if (strcmp(currentMapTile.file, oldMapTile.file) != 0 || currentMapTile.zoom != oldMapTile.zoom ||
-      currentMapTile.tilex != oldMapTile.tilex || currentMapTile.tiley != oldMapTile.tiley)
-  {
-    isMapDraw = false;
-    refreshMap = false;
-  }
-
-  if (!isMapDraw)
-  {
-    oldMapTile.zoom = currentMapTile.zoom;
-    oldMapTile.tilex = currentMapTile.tilex;
-    oldMapTile.tiley = currentMapTile.tiley;
-    oldMapTile.file = currentMapTile.file;
-
-    log_v("TILE: %s", currentMapTile.file);
-    log_v("ZOOM: %d", zoom);
-
-    // Center Tile
-    refreshMap = mapTempSprite.drawPngFile(SD, currentMapTile.file, 256, 256);
-
-    uint8_t centerX = 0;
-    uint8_t centerY = 0;
-    int8_t startX = centerX - 1;
-    int8_t startY = centerY - 1;
-
-    if (refreshMap)
+    // Detects if tile changes from actual GPS position
+    if (strcmp(currentMapTile.file, oldMapTile.file) != 0 ||
+        currentMapTile.zoom != oldMapTile.zoom ||
+        currentMapTile.tilex != oldMapTile.tilex ||
+        currentMapTile.tiley != oldMapTile.tiley)
     {
-      isMapFound = true;
-      for (int y = startY; y <= startY + 2; y++)
-      {
-        for (int x = startX; x <= startX + 2; x++)
+        isMapFound  = mapTempSprite.drawPngFile(SD, currentMapTile.file, tileSize, tileSize);
+
+        if (!isMapFound)
         {
-          if (x == centerX && y == centerY)
-          {
-            // Skip Center Tile
-            continue;
-          }
-          roundMapTile = getMapTile(getLon(), getLat(), zoom, x, y);
-          isMapFound = mapTempSprite.drawPngFile(SD, roundMapTile.file, (x - startX) * tileSize, (y - startY) * tileSize);
+            log_v("No Map Found!");
+            oldMapTile.file = (char*)noMapFile;
+            showNoMap(mapTempSprite);
         }
-      }
+        else
+        {
+            log_v("Map Found!");
+            oldMapTile.file = currentMapTile.file;
+
+            static const uint8_t centerX = 0;
+            static const uint8_t centerY = 0;
+            int8_t startX = centerX - 1;
+            int8_t startY = centerY - 1;
+
+            for (int y = startY; y <= startY + 2; y++)
+            {
+                for (int x = startX; x <= startX + 2; x++)
+                {
+                    if (x == centerX && y == centerY)
+                    {
+                        // Skip Center Tile
+                        continue;
+                    }
+                    roundMapTile = getMapTile(getLon(), getLat(), zoom, x, y);
+                    mapTempSprite.drawPngFile(SD, roundMapTile.file, (x - startX) * tileSize, (y - startY) * tileSize);
+                }
+
+            }
+
+            oldMapTile.zoom = currentMapTile.zoom;
+            oldMapTile.tilex = currentMapTile.tilex;
+            oldMapTile.tiley = currentMapTile.tiley;
+        }
+
+        log_v("TILE: %s", oldMapTile.file);
     }
-    else
-    {
-      isMapFound = false;
-      showNoMap(mapSprite);
-      mapSprite.pushSprite(0, 27);
-      log_v("Map doesn't exist");
-    }
 
-    isMapDraw = true;
-  }
-
-  if (refreshMap)
-  {
-
-    // Draw Map in screen
+    // Display
     mapSprite.pushSprite(0, 27);
 
-    navArrowPosition = coord2ScreenPos(getLon(), getLat(), zoom);
-    mapTempSprite.setPivot(tileSize + navArrowPosition.posX, tileSize + navArrowPosition.posY);
+    if (isMapFound)
+    {
+        // Draw Map in screen
+        mapSprite.pushSprite(0, 27);
 
-#ifdef ENABLE_COMPASS
-    //heading = getHeading();
+        navArrowPosition = coord2ScreenPos(getLon(), getLat(), zoom);
+        mapTempSprite.setPivot(tileSize + navArrowPosition.posX, tileSize + navArrowPosition.posY);
 
-    if (isMapRotation)
-      mapHeading = heading;
+        #ifdef ENABLE_COMPASS
+
+        if (isMapRotation)
+            mapHeading = heading;
+        else
+            mapHeading = GPS.course.deg();
+
+        mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
+        #else
+
+        mapHeading = GPS.course.deg();
+        mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
+        // mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
+
+        #endif
+
+        sprArrow.pushRotated(&mapSprite, 0, TFT_BLACK);
+        drawMapWidgets();
+    }
     else
-      mapHeading = GPS.course.deg();
-
-    mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
-#else
-    mapHeading = GPS.course.deg();
-    mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
-    // mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
-#endif
-    // drawMapWidgets();
-    sprArrow.pushRotated(&mapSprite, 0, TFT_BLACK);
-  }
+        mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
 }

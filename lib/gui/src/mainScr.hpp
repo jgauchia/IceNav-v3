@@ -22,7 +22,6 @@ static lv_timer_t *mainTimer;    // Main Screen Timer
 #define UPDATE_MAINSCR_PERIOD 30 // Main Screen update time
 
 extern bool isMainScreen;                          // Flag to indicate main screen is selected
-extern bool isScrolled;                            // Flag to indicate when tileview was scrolled
 extern bool isReady;                               // Flag to indicate when tileview scroll was finished
 static TFT_eSprite zoomSprite = TFT_eSprite(&tft); // Zoom sprite
 

@@ -54,8 +54,8 @@ void initCompass()
   if (!compass.begin())
     log_e("Compass initialization unsuccessful");
   compass.setMeasurementMode(HMC5883L_CONTINOUS);
-  compass.setDataRate(HMC5883L_DATARATE_7_5HZ);
-  compass.setSamples(HMC5883L_SAMPLES_1);
+  compass.setDataRate(HMC5883L_DATARATE_30HZ);
+  compass.setSamples(HMC5883L_SAMPLES_8);
 #endif
 #ifdef IMU_MPU9250
   int status = IMU.begin();
