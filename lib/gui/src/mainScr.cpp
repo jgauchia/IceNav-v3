@@ -128,15 +128,12 @@ void getActTile(lv_event_t *event)
         log_d("Used PSRAM: %d", ESP.getPsramSize() - ESP.getFreePsram());
         if (activeTile == MAP)
         {
-            //if (!isVectorMap)
             createMapScrSprites();
-            // isMapDraw = true;
         }
     }
     else
     {
         isReady = true;
-        // isDisplayRefresh = false;
     }
 
     lv_obj_t *actTile = lv_tileview_get_tile_act(tilesScreen);
@@ -180,7 +177,7 @@ void updateMainScreen(lv_timer_t *t)
                     lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
                     lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
                 }
-               if (GPS.altitude.isValid())
+                if (GPS.altitude.isValid())
                 {
                     lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
                 }
@@ -356,40 +353,61 @@ void drawMapWidgets()
  */
 void updateMap(lv_event_t *event)
 {
+    if (tft.getStartCount() == 0)
+        tft.startWrite();
+
     if (isVectorMap)
     {
-        log_v("%d",isMapFound);
-
-        if (tft.getStartCount() == 0)
-            tft.startWrite();
         getPosition(getLat(), getLon());
         
         if (isPosMoved)
         {
-            mapSprite.deleteSprite();
-            mapSprite.createSprite(MAP_WIDTH, MAP_HEIGHT);
             viewPort.setCenter(point);
             getMapBlocks(viewPort.bbox, memCache);
-            generateVectorMap(viewPort, memCache, mapSprite);
-            refreshMap = true;
+            generateVectorMap(viewPort, memCache, mapTempSprite);
             isPosMoved = false;
         }
 
-        if (refreshMap)
+        // Draw Map in screen
+        mapSprite.pushSprite(0, 27);
+
+        if (isMapFound)
         {
-            mapSprite.pushSprite(0, 27, TFT_TRANSPARENT);
-            if (isMapFound)
-                drawMapWidgets();
+            tileSize = TILE_WIDTH / 2 ;
+
+            navArrowPosition = coord2ScreenPos(getLon(), getLat(), zoom);
+
+            mapTempSprite.setPivot(tileSize,tileSize);
+
+            #ifdef ENABLE_COMPASS
+
+            if (isMapRotation)
+                mapHeading = heading;
+            else
+                mapHeading = GPS.course.deg();
+
+            #else
+
+            mapHeading = GPS.course.deg();
+
+            #endif
+
+            mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
+            //mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
+            sprArrow.pushRotated(&mapSprite, 0, TFT_BLACK);
+            drawMapWidgets();
         }
-        if (tft.getStartCount() > 0)
-            tft.endWrite();
+        else
+            mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
+
     }
     else
     {
-        tft.startWrite();
         generateRenderMap();
-        tft.endWrite();
     }
+
+    if (tft.getStartCount() > 0)
+        tft.endWrite();
 }
 
 /**

@@ -39,6 +39,7 @@ static void mapSettingsEvents(lv_event_t *event)
             lv_spinbox_increment(zoomLevel);
             defaultZoom = (uint8_t)lv_spinbox_get_value(zoomLevel);
             zoom = defaultZoom;
+            isPosMoved = true;
             saveDefaultZoom(defaultZoom);
         }
     }
@@ -50,6 +51,7 @@ static void mapSettingsEvents(lv_event_t *event)
             lv_spinbox_decrement(zoomLevel);
             defaultZoom = (uint8_t)lv_spinbox_get_value(zoomLevel);
             zoom = defaultZoom;
+            isPosMoved = true;
             saveDefaultZoom(defaultZoom);
         }
     }

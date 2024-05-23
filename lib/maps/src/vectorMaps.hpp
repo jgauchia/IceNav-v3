@@ -206,6 +206,7 @@ extern MemCache memCache;       // Memory Cache
 extern Point32 point;           // Vector map GPS position point
 extern double prevLat, prevLng; // Previous Latitude and Longitude
 
+void drawMapWidgets();
 void getPosition(double lat, double lon);
 int16_t parseInt16(ReadBufferingStream &file);
 void parseStrUntil(ReadBufferingStream &file, char terminator, char *str);
@@ -215,5 +216,7 @@ MapBlock *readMapBlock(String fileName);
 void getMapBlocks(BBox &bbox, MemCache &memCache);
 void fillPoligon(Polygon p, TFT_eSprite &map); // scanline fill algorithm
 void generateVectorMap(ViewPort &viewPort, MemCache &memCache, TFT_eSprite &map);
+
+
 
 #endif

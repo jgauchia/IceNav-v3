@@ -11,10 +11,9 @@
 MapTile oldMapTile = {"", 0, 0, 0};     // Old Map tile coordinates and zoom
 MapTile currentMapTile = {"", 0, 0, 0}; // Curreng Map tile coordinates and zoom
 MapTile roundMapTile = {"", 0, 0, 0};   // Boundaries Map tiles
+ScreenCoord navArrowPosition = {0,0};  // Map Arrow position
 
 bool isMapFound = false;
-bool refreshMap = false;
-bool isMapDraw = false;
 
 /**
  * @brief Tile size for position calculation
@@ -30,7 +29,7 @@ TFT_eSprite mapSprite = TFT_eSprite(&tft);     // Screen Map Sprite (Viewed in L
  * @brief Navitagion Arrow position on screen
  *
  */
-ScreenCoord navArrowPosition;
+// ScreenCoord navArrowPosition;
 
 /**
  * @brief Get TileY for OpenStreeMap files
@@ -194,15 +193,14 @@ void generateRenderMap()
         else
             mapHeading = GPS.course.deg();
 
-        mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
         #else
 
         mapHeading = GPS.course.deg();
-        mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
-        // mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
 
         #endif
 
+        mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
+        //mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
         sprArrow.pushRotated(&mapSprite, 0, TFT_BLACK);
         drawMapWidgets();
     }

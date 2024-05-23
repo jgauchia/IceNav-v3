@@ -19,10 +19,10 @@ bool isPosMoved = true;          // Flag when current position changes
 void ViewPort::setCenter(Point32 pcenter)
 {
     center = pcenter;
-    bbox.min.x = pcenter.x - MAP_WIDTH * zoom / 2;
-    bbox.min.y = pcenter.y - MAP_HEIGHT * zoom / 2;
-    bbox.max.x = pcenter.x + MAP_WIDTH * zoom / 2;
-    bbox.max.y = pcenter.y + MAP_HEIGHT * zoom / 2;
+    bbox.min.x = pcenter.x - TILE_WIDTH * zoom / 2;
+    bbox.min.y = pcenter.y - TILE_HEIGHT * zoom / 2;
+    bbox.max.x = pcenter.x + TILE_WIDTH * zoom / 2;
+    bbox.max.y = pcenter.y + TILE_HEIGHT * zoom / 2;
 }
 
 /**
@@ -34,7 +34,7 @@ void ViewPort::setCenter(Point32 pcenter)
  */
 int16_t toScreenCoord(const int32_t pxy, const int32_t screenCenterxy)
 {
-    return round((double)(pxy - screenCenterxy) / zoom) + (double)MAP_WIDTH / 2;
+    return round((double)(pxy - screenCenterxy) / zoom) + (double)TILE_WIDTH / 2;
 }
 
 Point16::Point16(char *coordsPair)
@@ -78,7 +78,6 @@ void getPosition(double lat, double lon)
         prevLat = pos.lat;
         prevLng = pos.lng;
         isPosMoved = true;
-        refreshMap = false;
     }
 }
 
@@ -440,8 +439,8 @@ void fillPoligon(Polygon p, TFT_eSprite &map) // scanline fill algorithm
     int16_t maxY = p.bbox.max.y;
     int16_t minY = p.bbox.min.y;
 
-    if (maxY >= MAP_HEIGHT)
-        maxY = MAP_HEIGHT - 1;
+    if (maxY >= TILE_HEIGHT)
+        maxY = TILE_HEIGHT - 1;
     if (minY < 0)
         minY = 0;
     if (minY >= maxY)
@@ -461,8 +460,8 @@ void fillPoligon(Polygon p, TFT_eSprite &map) // scanline fill algorithm
                 (p.points[i].y >= pixelY && p.points[i + 1].y < pixelY))
             {
                 nodeX[nodes++] =
-                    p.points[i].x + double(pixelY - p.points[i].y) / double(p.points[i + 1].y - p.points[i].y) *
-                                        double(p.points[i + 1].x - p.points[i].x);
+                p.points[i].x + double(pixelY - p.points[i].y) / double(p.points[i + 1].y - p.points[i].y) *
+                double(p.points[i + 1].x - p.points[i].x);
             }
         }
         assert(nodes < p.points.size());
@@ -487,15 +486,15 @@ void fillPoligon(Polygon p, TFT_eSprite &map) // scanline fill algorithm
         //  Fill the pixels between node pairs.
         for (i = 0; i <= nodes - 2; i += 2)
         {
-            if (nodeX[i] > MAP_WIDTH)
+            if (nodeX[i] > TILE_WIDTH)
                 break;
             if (nodeX[i + 1] < 0)
                 continue;
             if (nodeX[i] < 0)
                 nodeX[i] = 0;
-            if (nodeX[i + 1] > MAP_WIDTH)
-                nodeX[i + 1] = MAP_WIDTH;
-            map.drawLine(nodeX[i], MAP_HEIGHT - pixelY, nodeX[i + 1], MAP_HEIGHT - pixelY, p.color);
+            if (nodeX[i + 1] > TILE_WIDTH)
+                nodeX[i + 1] = TILE_WIDTH;
+            map.drawLine(nodeX[i], TILE_HEIGHT - pixelY, nodeX[i + 1], TILE_HEIGHT - pixelY, p.color);
         }
     }
 }
@@ -509,8 +508,8 @@ void fillPoligon(Polygon p, TFT_eSprite &map) // scanline fill algorithm
  */
 void generateVectorMap(ViewPort &viewPort, MemCache &memCache, TFT_eSprite &map)
 {
-    map.deleteSprite();
-    map.createSprite(MAP_WIDTH, MAP_HEIGHT);
+    // map.deleteSprite();
+    // map.createSprite(TILE_WIDTH, TILE_HEIGHT);
     Polygon newPolygon;
     map.fillScreen(BACKGROUND_COLOR);
     uint32_t totalTime = millis();
@@ -546,7 +545,7 @@ void generateVectorMap(ViewPort &viewPort, MemCache &memCache, TFT_eSprite &map)
                 { // TODO: move to fillPoligon
                     newPolygon.points.push_back(Point16(
                         toScreenCoord(p.x, screen_center_mc.x),
-                        toScreenCoord(p.y, screen_center_mc.y)));
+                                                        toScreenCoord(p.y, screen_center_mc.y)));
                 }
                 fillPoligon(newPolygon, map);
             }
@@ -569,13 +568,10 @@ void generateVectorMap(ViewPort &viewPort, MemCache &memCache, TFT_eSprite &map)
                     p2x = toScreenCoord(line.points[i + 1].x, screen_center_mc.x);
                     p2y = toScreenCoord(line.points[i + 1].y, screen_center_mc.y);
                     // map.drawWideLine(
-                    //                     p1x, MAP_HEIGHT - p1y,
-                    //                     p2x, MAP_HEIGHT - p2y,
+                    //                     p1x, TILE_HEIGHT - p1y,
+                    //                     p2x, TILE_HEIGHT - p2y,
                     //                     line.width / zoom ?: 1, line.color);
-                    map.drawLine(
-                        p1x, MAP_HEIGHT - p1y,
-                        p2x, MAP_HEIGHT - p2y,
-                        line.color);
+                    map.drawLine(p1x, TILE_HEIGHT - p1y,p2x, TILE_HEIGHT - p2y,                        line.color);
                 }
             }
             log_d("Block lines done %i ms", millis() - blockTime);
@@ -583,16 +579,17 @@ void generateVectorMap(ViewPort &viewPort, MemCache &memCache, TFT_eSprite &map)
         log_d("Total %i ms", millis() - totalTime);
 
         // TODO: paint only in NAV mode
-        map.fillTriangle(
-            MAP_WIDTH / 2 - 4, MAP_HEIGHT / 2 + 5,
-            MAP_WIDTH / 2 + 4, MAP_HEIGHT / 2 + 5,
-            MAP_WIDTH / 2, MAP_HEIGHT / 2 - 6,
-            RED);
+        // map.fillTriangle(
+        //     TILE_WIDTH / 2 - 4, TILE_HEIGHT / 2 + 5,
+        //     TILE_WIDTH / 2 + 4, TILE_HEIGHT / 2 + 5,
+        //     TILE_WIDTH / 2, TILE_HEIGHT / 2 - 6,
+        //     RED);
         log_d("Draw done! %i", millis());
     }
     else
     {
         isMapFound = false;
+        map.fillScreen(TFT_BLACK);
         showNoMap(map);
         log_v("Map doesn't exist");
     }

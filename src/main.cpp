@@ -70,12 +70,8 @@ void setup()
     initADC();
 
     // Reserve PSRAM for buffer map
-    // Create a Sprite por temporary 9x9 tile map
-    if (!isVectorMap)
-    {
-        mapTempSprite.deleteSprite();
-        mapTempSprite.createSprite(TILE_WIDTH, TILE_HEIGHT);
-    }
+    mapTempSprite.deleteSprite();
+    mapTempSprite.createSprite(TILE_WIDTH, TILE_HEIGHT);
 
     splashScreen();
     //initLvglTask();
@@ -86,9 +82,6 @@ void setup()
     #else
     lv_screen_load(searchSatScreen);
     #endif
-
-
-
 }
 
 /**

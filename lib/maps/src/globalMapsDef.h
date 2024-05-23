@@ -16,13 +16,35 @@
 #define TILE_HEIGHT 768 // Tile 9x9 Height Size
 #define TILE_WIDTH 768  // Tile 9x9 Width Size
 
-extern bool refreshMap;         // Flag to indicate when maps needs to be refresh
-extern bool isMapDraw;          // Flag to indicate when maps needs to be draw
-extern bool isMapFound;         // Flag to indicate when tile map is found on SD
-extern bool isScrolled;         // Flag to indicate when tileview was scrolled
+extern bool isMapFound;              // Flag to indicate when tile map is found on SD
+extern bool isScrolled;              // Flag to indicate when tileview was scrolled+
+extern TFT_eSprite sprArrow;         // Sprite for Navigation Arrow in map tile
+extern TFT_eSprite mapTempSprite;    // Double Buffering Sprites for Map Tile
+extern TFT_eSprite mapSprite;        // Double Buffering Sprites for Map Tile
+
+/**
+ * @brief Structure to store position on screen  of GPS Coordinates
+ *
+ */
+struct ScreenCoord
+{
+  uint16_t posX;
+  uint16_t posY;
+};
+
+/**
+ * @brief Navitagion Arrow position on screen
+ *
+ */
+extern ScreenCoord navArrowPosition;
+
 
 static const char *noMapFile PROGMEM = "/NOMAP.png";
 
+/**
+ * @brief Load No Map Image
+ *
+ */
 static void showNoMap(TFT_eSprite &map)
 {
     map.drawPngFile(SPIFFS, noMapFile, (MAP_WIDTH / 2) - 50, (MAP_HEIGHT / 2) - 50);
