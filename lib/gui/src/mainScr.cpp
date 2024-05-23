@@ -175,17 +175,17 @@ void updateMainScreen(lv_timer_t *t)
                 lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
                 
                 
-                if (GPS.location.isUpdated())
+                if(GPS.location.isValid())
                 {
                     lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
                     lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
                 }
-                if (GPS.altitude.isUpdated())
+               if (GPS.altitude.isValid())
                 {
                     lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
                 }
 
-                if (GPS.speed.isUpdated())
+                if (GPS.speed.isValid())
                     lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
             
             break;

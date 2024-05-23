@@ -14,8 +14,9 @@
 #ifdef ENABLE_COMPASS
 
 #ifdef IMU_HMC5883L
-#include <DFRobot_QMC5883.h>
-extern DFRobot_QMC5883 compass;
+#include <Adafruit_Sensor.h>
+#include <Adafruit_HMC5883_U.h>
+extern Adafruit_HMC5883_Unified compass;
 #endif
 
 #ifdef IMU_MPU9250

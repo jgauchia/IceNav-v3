@@ -18,15 +18,6 @@ lv_obj_t *notifyBar;
  */
 void updateNotifyBar(lv_event_t *event)
 {
-    
-//     battLevel = batteryRead();
-//
-//     #ifdef ENABLE_BME
-//     //bme.takeForcedMeasurement();
-//     tempValue = (uint8_t)(bme.readTemperature());
-//     #endif
-//
-    
     lv_obj_t *obj = (lv_obj_t *)lv_event_get_target(event);
     
     if (obj == gpsTime)
@@ -106,15 +97,19 @@ void updateNotifyBarTimer(lv_timer_t *t)
             lv_led_off(gpsFix);
             break;
     }
-    
+
+
+
     #ifdef ENABLE_BME
+    tempValue = (uint8_t)(bme.readTemperature());
     if (tempValue != tempOld)
     {
         lv_obj_send_event(temp, LV_EVENT_VALUE_CHANGED, NULL);
         tempOld = tempValue;
     }
     #endif
-    
+
+    battLevel = batteryRead();
     if (battLevel != battLevelOld)
     {
         lv_obj_send_event(battery, LV_EVENT_VALUE_CHANGED, NULL);

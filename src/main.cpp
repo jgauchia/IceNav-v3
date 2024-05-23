@@ -53,11 +53,11 @@ void setup()
     #endif
 
     #ifdef ENABLE_BME
-    //initBME();
+    initBME();
     #endif
 
     #ifdef ENABLE_COMPASS
-    //initCompass();
+    initCompass();
     #endif
 
     powerOn();
@@ -69,7 +69,7 @@ void setup()
     initLVGL();
     initADC();
 
-    // Reserve PSRAM if rendered map is selected
+    // Reserve PSRAM for buffer map
     // Create a Sprite por temporary 9x9 tile map
     if (!isVectorMap)
     {
