@@ -98,8 +98,6 @@ void updateNotifyBarTimer(lv_timer_t *t)
             break;
     }
 
-
-
     #ifdef ENABLE_BME
     tempValue = (uint8_t)(bme.readTemperature());
     if (tempValue != tempOld)

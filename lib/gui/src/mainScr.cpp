@@ -240,11 +240,6 @@ void getZoomValue(lv_event_t *event)
                         zoom = 1;
                         isPosMoved = false;
                     }
-                    if (zoom > 4)
-                    {
-                        zoom = 4;
-                        isPosMoved = false;
-                    }
                 }
                 lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
                 break;
@@ -258,14 +253,9 @@ void getZoomValue(lv_event_t *event)
                 {
                     zoom++;
                     isPosMoved = true;
-                    if (zoom < 1)
+                    if (zoom > MAX_ZOOM)
                     {
-                        zoom = 1;
-                        isPosMoved = false;
-                    }
-                    if (zoom > 4)
-                    {
-                        zoom = 4;
+                        zoom = MAX_ZOOM;
                         isPosMoved = false;
                     }
                 }

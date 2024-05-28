@@ -13,8 +13,6 @@
 #include "globalGuiDef.h"
 #include "tasks.hpp"
 #include "storage.hpp"
-// #include "battery.hpp"
-// #include "bme.hpp"
 
 /**
  * @brief Notify Bar screen objects
@@ -34,7 +32,6 @@ static lv_obj_t *temp;       // Temperature
  * @brief Temperature values
  *
  */
-//static uint8_t tempOld = 0;
 static const char* timeFormat PROGMEM = "%02d:%02d:%02d";
 
 void updateNotifyBar(lv_event_t *event);
