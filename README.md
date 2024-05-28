@@ -164,6 +164,7 @@ If the GPS module supports multiple GNSS, uncomment the following flag in the pl
 ### TO DO
 
 - [X] LVGL 9 Integration
+- [ ] Support other resolutions and TFT models
 - [ ] GPX Integration
 - [ ] Multiple IMU's and Compass module implementation
 - [ ] Power saving
