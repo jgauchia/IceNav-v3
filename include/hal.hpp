@@ -27,11 +27,11 @@ extern const uint8_t SD_MOSI = 23;
 extern const uint8_t SD_CLK = 12;
 #endif
 
-#ifdef MAKERF_ESP32S3 // TODO: we need find the right pins for this board
+#ifdef MAKERF_ESP32S3
 /**
-* @brief GPS pin definition
-*
-*/
+ * @brief GPS pin definition
+ *
+ */
 extern const uint8_t GPS_TX = 17;
 extern const uint8_t GPS_RX = 18;
 
@@ -65,6 +65,30 @@ extern const uint8_t TFT_SPI_CS   = 2;
 extern const uint8_t TFT_SPI_RST  = 32;
 
 /**
+ * @brief TFT 16 Bits parallel pin definition
+ *
+ */
+extern const uint8_t TFT_WR  = 35;
+extern const uint8_t TFT_RD  = 48;
+extern const uint8_t TFT_RS  = 36;
+extern const uint8_t TFT_D0  = 47;
+extern const uint8_t TFT_D1  = 21;
+extern const uint8_t TFT_D2  = 14;
+extern const uint8_t TFT_D3  = 13;
+extern const uint8_t TFT_D4  = 12;
+extern const uint8_t TFT_D5  = 11;
+extern const uint8_t TFT_D6  = 10;
+extern const uint8_t TFT_D7  = 9;
+extern const uint8_t TFT_D8  = 3;
+extern const uint8_t TFT_D9  = 8;
+extern const uint8_t TFT_D10 = 16;
+extern const uint8_t TFT_D11 = 15;
+extern const uint8_t TFT_D12 = 7;
+extern const uint8_t TFT_D13 = 6;
+extern const uint8_t TFT_D14 = 5;
+extern const uint8_t TFT_D15 = 4;
+
+/**
  * @brief TOUCH SPI pin definition
  *
  */
@@ -73,5 +97,14 @@ extern const uint8_t TCH_SPI_MOSI = 13;
 extern const uint8_t TCH_SPI_MISO = 27;
 extern const uint8_t TCH_SPI_INT  = 5;
 extern const uint8_t TCH_SPI_CS   = 18;
+
+/**
+ * @brief TOUCH I2C pin definition
+ *
+ */
+extern const uint8_t TCH_I2C_PORT = 0;
+extern const uint8_t TCH_I2C_SDA  = 38;
+extern const uint8_t TCH_I2C_SCL  = 39;
+extern const uint8_t TCH_I2C_INT  = 40;
 
 #endif

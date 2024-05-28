@@ -13,13 +13,32 @@
 
 #include <LovyanGFX.hpp>
 
+extern const uint8_t TCH_I2C_PORT;
+extern const uint8_t TCH_I2C_SDA;
+extern const uint8_t TCH_I2C_SCL;
+extern const uint8_t TCH_I2C_INT;
+extern const uint8_t TFT_WR;
+extern const uint8_t TFT_RD;
+extern const uint8_t TFT_RS;
+extern const uint8_t TFT_D0;
+extern const uint8_t TFT_D1;
+extern const uint8_t TFT_D2;
+extern const uint8_t TFT_D3;
+extern const uint8_t TFT_D4;
+extern const uint8_t TFT_D5;
+extern const uint8_t TFT_D6;
+extern const uint8_t TFT_D7;
+extern const uint8_t TFT_D8;
+extern const uint8_t TFT_D9;
+extern const uint8_t TFT_D10;
+extern const uint8_t TFT_D11;
+extern const uint8_t TFT_D12;
+extern const uint8_t TFT_D13;
+extern const uint8_t TFT_D14;
+extern const uint8_t TFT_D15;
+
 class LGFX : public lgfx::LGFX_Device
 {
-    static constexpr int I2C_PORT_NUM = 0;
-    static constexpr int I2C_PIN_SDA = 38;
-    static constexpr int I2C_PIN_SCL = 39;
-    static constexpr int I2C_PIN_INT = 40;
-
     lgfx::Panel_ILI9488 _panel_instance;
     lgfx::Bus_Parallel16 _bus_instance;
     lgfx::Touch_FT5x06 _touch_instance;
@@ -32,26 +51,26 @@ public:
 
             cfg.port = 0;              
             cfg.freq_write = 20000000; 
-            cfg.pin_wr = 35;           
-            cfg.pin_rd = 48;           
-            cfg.pin_rs = 36;          
+            cfg.pin_wr = TFT_WR;
+            cfg.pin_rd = TFT_RD;
+            cfg.pin_rs = TFT_RS;
 
-            cfg.pin_d0 = 47;
-            cfg.pin_d1 = 21;
-            cfg.pin_d2 = 14;
-            cfg.pin_d3 = 13;
-            cfg.pin_d4 = 12;
-            cfg.pin_d5 = 11;
-            cfg.pin_d6 = 10;
-            cfg.pin_d7 = 9;
-            cfg.pin_d8 = 3;
-            cfg.pin_d9 = 8;
-            cfg.pin_d10 = 16;
-            cfg.pin_d11 = 15;
-            cfg.pin_d12 = 7;
-            cfg.pin_d13 = 6;
-            cfg.pin_d14 = 5;
-            cfg.pin_d15 = 4;
+            cfg.pin_d0 = TFT_D0;
+            cfg.pin_d1 = TFT_D1;
+            cfg.pin_d2 = TFT_D2;
+            cfg.pin_d3 = TFT_D3;
+            cfg.pin_d4 = TFT_D4;
+            cfg.pin_d5 = TFT_D5;
+            cfg.pin_d6 = TFT_D6;
+            cfg.pin_d7 = TFT_D7;
+            cfg.pin_d8 = TFT_D8;
+            cfg.pin_d9 = TFT_D9;
+            cfg.pin_d10 = TFT_D10;
+            cfg.pin_d11 = TFT_D11;
+            cfg.pin_d12 = TFT_D12;
+            cfg.pin_d13 = TFT_D13;
+            cfg.pin_d14 = TFT_D14;
+            cfg.pin_d15 = TFT_D15;
 
             _bus_instance.config(cfg);              
             _panel_instance.setBus(&_bus_instance); 
@@ -91,14 +110,14 @@ public:
             cfg.x_max = 320;
             cfg.y_min = 0;
             cfg.y_max = 480;
-            cfg.pin_int = I2C_PIN_INT;
+            cfg.pin_int = TCH_I2C_INT;
             cfg.bus_shared = true;
             cfg.offset_rotation = 0;
 
-            cfg.i2c_port = I2C_PORT_NUM;
+            cfg.i2c_port = TCH_I2C_PORT;
             cfg.i2c_addr = 0x38;
-            cfg.pin_sda = I2C_PIN_SDA;
-            cfg.pin_scl = I2C_PIN_SCL;
+            cfg.pin_sda = TCH_I2C_SDA;
+            cfg.pin_scl = TCH_I2C_SCL;
             cfg.freq = 400000;
 
             _touch_instance.config(cfg);
