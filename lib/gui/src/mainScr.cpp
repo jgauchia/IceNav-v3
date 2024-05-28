@@ -300,53 +300,6 @@ void createMapScrSprites()
 }
 
 /**
- * @brief Draw map widgets
- *
- */
-void drawMapWidgets()
-{
-    mapSprite.setTextColor(TFT_WHITE, TFT_WHITE);
-    
-    #ifdef ENABLE_COMPASS
-    //heading = getHeading();
-    if (isMapRotation)
-        mapHeading = heading;
-    else
-        mapHeading = GPS.course.deg();
-    if (showMapCompass)
-    {
-        mapSprite.fillRectAlpha(TFT_WIDTH - 48, 0, 48, 48, 95, TFT_BLACK);
-        if (isCompassRot)
-            mapSprite.pushImageRotateZoom(TFT_WIDTH - 24, 24, 24, 24, 360 - heading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
-        else
-            mapSprite.pushImage(TFT_WIDTH - 48, 0, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
-    }
-    #endif
-
-    mapSprite.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
-    mapSprite.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
-    mapSprite.drawNumber(zoom, 26, 8, &fonts::FreeSansBold9pt7b);
-    
-    if (showMapSpeed)
-    {
-        mapSprite.fillRectAlpha(0, 342, 70, 32, 95, TFT_BLACK);
-        mapSprite.pushImage(0, 346, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
-        mapSprite.drawNumber((uint16_t)GPS.speed.kmph(), 26, 350, &fonts::FreeSansBold9pt7b);
-    }
-
-    if (!isVectorMap)
-        if (showMapScale)
-        {
-            mapSprite.fillRectAlpha(250, 342, 70, TFT_WIDTH - 245, 95, TFT_BLACK);
-            mapSprite.setTextSize(1);
-            mapSprite.drawFastHLine(255, 360, 60);
-            mapSprite.drawFastVLine(255, 355, 10);
-            mapSprite.drawFastVLine(315, 355, 10);
-            mapSprite.drawCenterString(map_scale[zoom], 285, 350);
-        }
-}
-
-/**
  * @brief Update map event
  *
  * @param event
@@ -362,49 +315,20 @@ void updateMap(lv_event_t *event)
         
         if (isPosMoved)
         {
+            tileSize = VECTOR_TILE_SIZE;
             viewPort.setCenter(point);
             getMapBlocks(viewPort.bbox, memCache);
             generateVectorMap(viewPort, memCache, mapTempSprite);
             isPosMoved = false;
         }
-
-        // Draw Map in screen
-        mapSprite.pushSprite(0, 27);
-
-        if (isMapFound)
-        {
-            tileSize = TILE_WIDTH / 2 ;
-
-            navArrowPosition = coord2ScreenPos(getLon(), getLat(), zoom);
-
-            mapTempSprite.setPivot(tileSize,tileSize);
-
-            #ifdef ENABLE_COMPASS
-
-            if (isMapRotation)
-                mapHeading = heading;
-            else
-                mapHeading = GPS.course.deg();
-
-            #else
-
-            mapHeading = GPS.course.deg();
-
-            #endif
-
-            mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
-            //mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
-            sprArrow.pushRotated(&mapSprite, 0, TFT_BLACK);
-            drawMapWidgets();
-        }
-        else
-            mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
-
     }
     else
     {
+        tileSize = RENDER_TILE_SIZE;
         generateRenderMap();
     }
+
+    displayMap(tileSize);
 
     if (tft.getStartCount() > 0)
         tft.endWrite();

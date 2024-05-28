@@ -11,13 +11,6 @@
 #include <lvgl.h>
 #include "tft.hpp"
 
-// Images
-#include "bruj.c"
-#include "navigation.c"
-#include "compass.c"
-#include "zoom.c"
-#include "speed.c"
-
 /**
  * @brief Screens definitions
  *

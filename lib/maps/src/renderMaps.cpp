@@ -26,12 +26,6 @@ TFT_eSprite mapTempSprite = TFT_eSprite(&tft); // Temporary Map Sprite 9x9 tiles
 TFT_eSprite mapSprite = TFT_eSprite(&tft);     // Screen Map Sprite (Viewed in LVGL Tile)
 
 /**
- * @brief Navitagion Arrow position on screen
- *
- */
-// ScreenCoord navArrowPosition;
-
-/**
  * @brief Get TileY for OpenStreeMap files
  *
  * @param f_lon -> longitude
@@ -53,46 +47,6 @@ uint32_t lon2tilex(double f_lon, uint8_t zoom)
 uint32_t lat2tiley(double f_lat, uint8_t zoom)
 {
     return (uint32_t)(floor((1.0 - log(tan(f_lat * M_PI / 180.0) + 1.0 / cos(f_lat * M_PI / 180.0)) / M_PI) / 2.0 * pow(2.0, zoom)));
-}
-
-/**
- * @brief Get pixel X position from OpenStreetMap
- *
- * @param f_lon -> longitude
- * @param zoom -> zoom
- * @return X position
- */
-uint16_t lon2posx(float f_lon, uint8_t zoom)
-{
-    return ((uint16_t)(((f_lon + 180.0) / 360.0 * (pow(2.0, zoom)) * tileSize)) % tileSize);
-}
-
-/**
- * @brief Get pixel Y position from OpenStreetMap
- *
- * @param f_lat -> latitude
- * @param zoom -> zoom
- * @return Y position
- */
-uint16_t lat2posy(float f_lat, uint8_t zoom)
-{
-    return ((uint16_t)(((1.0 - log(tan(f_lat * M_PI / 180.0) + 1.0 / cos(f_lat * M_PI / 180.0)) / M_PI) / 2.0 * (pow(2.0, zoom)) * tileSize)) % tileSize);
-}
-
-/**
- * @brief Convert GPS Coordinates to screen position (with offsets)
- *
- * @param lon -> Longitude
- * @param lat -> Latitude
- * @param zoomLevel -> Zoom level
- * @return ScreenCoord -> Screen position
- */
-ScreenCoord coord2ScreenPos(double lon, double lat, uint8_t zoomLevel)
-{
-    ScreenCoord data;
-    data.posX = lon2posx(lon, zoomLevel);
-    data.posY = lat2posy(lat, zoomLevel);
-    return data;
 }
 
 /**
@@ -134,6 +88,7 @@ void generateRenderMap()
         currentMapTile.tilex != oldMapTile.tilex ||
         currentMapTile.tiley != oldMapTile.tiley)
     {
+        mapTempSprite.fillScreen(TFT_BLACK);
         isMapFound  = mapTempSprite.drawPngFile(SD, currentMapTile.file, tileSize, tileSize);
 
         if (!isMapFound)
@@ -174,36 +129,4 @@ void generateRenderMap()
 
         log_v("TILE: %s", oldMapTile.file);
     }
-
-    // Display
-    mapSprite.pushSprite(0, 27);
-
-    if (isMapFound)
-    {
-        // Draw Map in screen
-        mapSprite.pushSprite(0, 27);
-
-        navArrowPosition = coord2ScreenPos(getLon(), getLat(), zoom);
-        mapTempSprite.setPivot(tileSize + navArrowPosition.posX, tileSize + navArrowPosition.posY);
-
-        #ifdef ENABLE_COMPASS
-
-        if (isMapRotation)
-            mapHeading = heading;
-        else
-            mapHeading = GPS.course.deg();
-
-        #else
-
-        mapHeading = GPS.course.deg();
-
-        #endif
-
-        mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
-        //mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
-        sprArrow.pushRotated(&mapSprite, 0, TFT_BLACK);
-        drawMapWidgets();
-    }
-    else
-        mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
 }

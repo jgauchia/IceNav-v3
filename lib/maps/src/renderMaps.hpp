@@ -14,16 +14,7 @@
 #include "compass.hpp"
 #include "settings.hpp"
 #include "globalMapsDef.h"
-
-/**
- * @brief Structure to store position on screen  of GPS Coordinates
- *
- */
-// struct ScreenCoord
-// {
-//   uint16_t posX;
-//   uint16_t posY;
-// };
+#include "mapsDrawFunc.h"
 
 /**
  * @brief Structure to store Map tile filename, actual tileX, tileY and zoom level
@@ -43,13 +34,8 @@ extern MapTile oldMapTile;     // Old Map tile coordinates and zoom
 extern MapTile currentMapTile; // Curreng Map tile coordinates and zoom
 extern MapTile roundMapTile;   // Boundaries Map tiles
 
-extern uint16_t tileSize;
-
 uint32_t lon2tilex(double f_lon, uint8_t zoom);
 uint32_t lat2tiley(double f_lat, uint8_t zoom);
-uint16_t lon2posx(float f_lon, uint8_t zoom);
-uint16_t lat2posy(float f_lat, uint8_t zoom);
-ScreenCoord coord2ScreenPos(double lon, double lat, uint8_t zoomLevel);
 MapTile getMapTile(double lon, double lat, uint8_t zoomLevel, int16_t offsetX, int16_t offsetY);
 void drawMapWidgets();
 void generateRenderMap();
