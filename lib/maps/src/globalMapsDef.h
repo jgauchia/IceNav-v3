@@ -20,7 +20,9 @@
 #define VECTOR_TILE_SIZE TILE_WIDTH / 2 // Vector Tile Size
 
 extern bool isMapFound;              // Flag to indicate when tile map is found on SD
-extern bool isScrolled;              // Flag to indicate when tileview was scrolled+
+extern bool isScrolled;              // Flag to indicate when tileview was scrolled
+extern bool redrawMap;               // Flag to indicate need redraw Map
+
 extern TFT_eSprite sprArrow;         // Sprite for Navigation Arrow in map tile
 extern TFT_eSprite mapTempSprite;    // Double Buffering Sprites for Map Tile
 extern TFT_eSprite mapSprite;        // Double Buffering Sprites for Map Tile

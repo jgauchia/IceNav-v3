@@ -86,7 +86,7 @@ void generateRenderMap()
     if (strcmp(currentMapTile.file, oldMapTile.file) != 0 ||
         currentMapTile.zoom != oldMapTile.zoom ||
         currentMapTile.tilex != oldMapTile.tilex ||
-        currentMapTile.tiley != oldMapTile.tiley)
+        currentMapTile.tiley != oldMapTile.tiley || redrawMap)
     {
         mapTempSprite.fillScreen(TFT_BLACK);
         isMapFound  = mapTempSprite.drawPngFile(SD, currentMapTile.file, tileSize, tileSize);
@@ -125,6 +125,7 @@ void generateRenderMap()
             oldMapTile.zoom = currentMapTile.zoom;
             oldMapTile.tilex = currentMapTile.tilex;
             oldMapTile.tiley = currentMapTile.tiley;
+            redrawMap = false;
         }
 
         log_v("TILE: %s", oldMapTile.file);

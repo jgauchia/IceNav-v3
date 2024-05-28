@@ -11,6 +11,7 @@
 bool isMainScreen = false; // Flag to indicate main screen is selected
 bool isScrolled = true;    // Flag to indicate when tileview was scrolled
 bool isReady = false;      // Flag to indicate when tileview scroll was finished
+bool redrawMap = false;    // Flag to indicate when needs to redraw Map
 
 /**
  * @brief Update compass screen event
@@ -130,6 +131,7 @@ void getActTile(lv_event_t *event)
         {
             createMapScrSprites();
             isPosMoved = true;
+            redrawMap = true;
         }
     }
     else
