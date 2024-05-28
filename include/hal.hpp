@@ -53,4 +53,25 @@ extern const uint8_t SD_CLK = 42;
  */
 #define ADC_BATT_PIN 34
 
+/**
+ * @brief TFT SPI pin definition
+ *
+ */
+extern const uint8_t TFT_SPI_SCLK = 14;
+extern const uint8_t TFT_SPI_MOSI = 13;
+extern const uint8_t TFT_SPI_MISO = 27;
+extern const uint8_t TFT_SPI_DC   = 15;
+extern const uint8_t TFT_SPI_CS   = 2;
+extern const uint8_t TFT_SPI_RST  = 32;
+
+/**
+ * @brief TOUCH SPI pin definition
+ *
+ */
+extern const uint8_t TCH_SPI_SCLK = 14;
+extern const uint8_t TCH_SPI_MOSI = 13;
+extern const uint8_t TCH_SPI_MISO = 27;
+extern const uint8_t TCH_SPI_INT  = 5;
+extern const uint8_t TCH_SPI_CS   = 18;
+
 #endif

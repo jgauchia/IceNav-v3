@@ -13,6 +13,18 @@
 
 #include "LovyanGFX.hpp"
 
+extern const uint8_t TFT_SPI_SCLK;
+extern const uint8_t TFT_SPI_MOSI;
+extern const uint8_t TFT_SPI_MISO;
+extern const uint8_t TFT_SPI_DC;
+extern const uint8_t TFT_SPI_CS;
+extern const uint8_t TFT_SPI_RST;
+extern const uint8_t TCH_SPI_SCLK;
+extern const uint8_t TCH_SPI_MOSI;
+extern const uint8_t TCH_SPI_MISO;
+extern const uint8_t TCH_SPI_INT;
+extern const uint8_t TCH_SPI_CS;
+
 class LGFX : public lgfx::LGFX_Device
 {
     lgfx::Panel_ILI9488 _panel_instance;
@@ -33,18 +45,18 @@ public:
             cfg.spi_3wire = true;
             cfg.use_lock = false;
             cfg.dma_channel = SPI_DMA_CH_AUTO;
-            cfg.pin_sclk = 14;
-            cfg.pin_mosi = 13;
-            cfg.pin_miso = 27;
-            cfg.pin_dc = 15;
+            cfg.pin_sclk = TFT_SPI_SCLK;
+            cfg.pin_mosi = TFT_SPI_MOSI;
+            cfg.pin_miso = TFT_SPI_MISO;
+            cfg.pin_dc = TFT_SPI_DC;
             _bus_instance.config(cfg);
             _panel_instance.setBus(&_bus_instance);
         }
 
         {
             auto cfg = _panel_instance.config();
-            cfg.pin_cs = 2;
-            cfg.pin_rst = 32;
+            cfg.pin_cs = TFT_SPI_CS;
+            cfg.pin_rst = TFT_SPI_RST;
             cfg.pin_busy = -1;
             cfg.panel_width = 320;
             cfg.panel_height = 480;
@@ -74,10 +86,10 @@ public:
             cfg.offset_rotation = 0;
             cfg.spi_host = HSPI_HOST;
             cfg.freq = 1000000;
-            cfg.pin_sclk = 14;
-            cfg.pin_mosi = 13;
-            cfg.pin_miso = 27;
-            cfg.pin_cs = 18;
+            cfg.pin_sclk = TCH_SPI_SCLK;
+            cfg.pin_mosi = TCH_SPI_MOSI;
+            cfg.pin_miso = TCH_SPI_MISO;
+            cfg.pin_cs = TCH_SPI_CS;
             _touch_instance.config(cfg);
             _panel_instance.setTouch(&_touch_instance);
         }
