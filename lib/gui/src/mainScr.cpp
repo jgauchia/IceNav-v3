@@ -126,9 +126,10 @@ void getActTile(lv_event_t *event)
         isScrolled = true;
         log_d("Free PSRAM: %d", ESP.getFreePsram());
         log_d("Used PSRAM: %d", ESP.getPsramSize() - ESP.getFreePsram());
-        if (activeTile == MAP)
+        if (activeTile == MAP || activeTile == NAV)
         {
             createMapScrSprites();
+            isPosMoved = true;
         }
     }
     else
@@ -200,7 +201,11 @@ void updateMainScreen(lv_timer_t *t)
                 break;
                 
             case NAV:
-                tft.drawPngFile(SPIFFS, "/TODO.png", (MAP_WIDTH / 2) - 50, (MAP_HEIGHT / 2) - 50);
+                mapTempSprite.fillScreen(TFT_BLACK);
+                mapTempSprite.drawPngFile(SPIFFS, "/TODO.png", (MAP_WIDTH / 2) - 50, (MAP_HEIGHT / 2) - 50);
+                mapTempSprite.drawCenterString("NAVIGATION SCREEN", (MAP_WIDTH / 2), (MAP_HEIGHT >> 1) + 65, &fonts::DejaVu18);
+                mapSprite.pushSprite(0, 27);
+                mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
                 break;
             default:
                 break;
@@ -520,10 +525,6 @@ void createMainScr()
     
     // Navigation Tile
     // TODO
-    lv_obj_t *todolabel = lv_label_create(navTile);
-    lv_obj_set_style_text_font(todolabel, &lv_font_montserrat_20, 0);
-    lv_label_set_text_static(todolabel, "NAVIGATION SCREEN");
-    lv_obj_center(todolabel);
     
     // Navitagion Tile Events
     // TODO

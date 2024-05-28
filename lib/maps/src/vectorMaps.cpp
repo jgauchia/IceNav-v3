@@ -508,8 +508,7 @@ void fillPoligon(Polygon p, TFT_eSprite &map) // scanline fill algorithm
  */
 void generateVectorMap(ViewPort &viewPort, MemCache &memCache, TFT_eSprite &map)
 {
-    // map.deleteSprite();
-    // map.createSprite(TILE_WIDTH, TILE_HEIGHT);
+    map.fillScreen(TFT_BLACK);
     Polygon newPolygon;
     map.fillScreen(BACKGROUND_COLOR);
     uint32_t totalTime = millis();

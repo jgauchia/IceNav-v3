@@ -70,8 +70,8 @@ void gpsTask(void *pvParameters)
             setTime(local);
             isTimeFixed = true;
         }
-        if (!GPS.time.isValid() && isTimeFixed)
-            isTimeFixed = false;
+        // if (!GPS.time.isValid() && isTimeFixed)
+        //     isTimeFixed = false;
 
         vTaskDelay(10);
 
