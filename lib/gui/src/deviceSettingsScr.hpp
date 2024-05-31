@@ -16,9 +16,7 @@
 
 static lv_obj_t *deviceSettingsOptions;
 
-static void deviceSettingsBack(lv_event_t *event);
-static void setGpsSpeed(lv_event_t *event);
-static void setGpsUpdateRate(lv_event_t *event);
+static void deviceSettingsEvent(lv_event_t *event);
 void createDeviceSettingsScr();
 
 #endif

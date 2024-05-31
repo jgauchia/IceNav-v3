@@ -72,7 +72,9 @@
         //#undef LV_MEM_POOL_INCLUDE
         //#undef LV_MEM_POOL_ALLOC      
         #define LV_MEM_POOL_INCLUDE <esp32-hal-psram.h>
-        #define LV_MEM_POOL_ALLOC ps_malloc     
+        #define LV_MEM_POOL_ALLOC ps_malloc  
+        #define LV_MEM_POOL_FREE free
+        #define LV_MEM_POOL_REALLOC ps_realloc  
     #endif
 #endif  /*LV_USE_MALLOC == LV_STDLIB_BUILTIN*/
 

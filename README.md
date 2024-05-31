@@ -161,6 +161,23 @@ If the GPS module supports multiple GNSS, uncomment the following flag in the pl
 -D MULTI_GNSS=1
 ```
 
+Depending on the IMU used, it will be necessary to indicate the following flags in the platformio.ini file.
+
+First enable the compass
+```bash
+-D ENABLE_COMPASS=1
+```
+
+IMU HMC5883L
+```bash
+-D IMU_HMC5883L=1
+```
+
+IMU MPU9250
+```bash
+-D IMU_MPU9250=1
+```
+
 ### TO DO
 
 - [X] LVGL 9 Integration

@@ -22,14 +22,8 @@ static lv_timer_t *mainTimer;    // Main Screen Timer
 #define UPDATE_MAINSCR_PERIOD 30 // Main Screen update time
 
 extern bool isMainScreen;                          // Flag to indicate main screen is selected
-extern bool isScrolled;                            // Flag to indicate when tileview was scrolled
 extern bool isReady;                               // Flag to indicate when tileview scroll was finished
 static TFT_eSprite zoomSprite = TFT_eSprite(&tft); // Zoom sprite
-
-static const char *map_scale[] PROGMEM = {"5000 Km", "2500 Km", "1500 Km", "700 Km", "350 Km",
-                                          "150 Km", "100 Km", "40 Km", "20 Km", "10 Km", "5 Km",
-                                          "2,5 Km", "1,5 Km", "700 m", "350 m", "150 m", "80 m",
-                                          "40 m", "20 m", "10 m"}; // Scale for map
 
 static const char *arrowIconFile PROGMEM = "F:/arrow.bin";    // Compass Arrow Icon
 static const char *positionIconFile PROGMEM = "F:/pin.bin";   // Position Icon
@@ -80,14 +74,10 @@ static lv_style_t styleRadio;
 static lv_style_t styleRadioChk;
 static uint32_t activeGnss = 0;
 
-void updateHeading(lv_event_t *event);
-void updateLatitude(lv_event_t *event);
-void updateLongitude(lv_event_t *event);
-void updateAltitude(lv_event_t *event);
-void updateSpeed(lv_event_t *event);
+void updateCompassScr(lv_event_t * event);
+
 void editScreen(lv_event_t *event);
 void unselectWidget(lv_event_t *event);
-void dragWidget(lv_event_t *event);
 
 void deleteMapScrSprites();
 void createMapScrSprites();

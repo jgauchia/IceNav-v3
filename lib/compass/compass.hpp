@@ -11,13 +11,15 @@
 
 #include "tft.hpp"
 
-#ifdef CUSTOMBOARD
+#ifdef ENABLE_COMPASS
+
+#ifdef IMU_HMC5883L
 #include <Adafruit_Sensor.h>
 #include <Adafruit_HMC5883_U.h>
 extern Adafruit_HMC5883_Unified compass;
 #endif
 
-#ifdef MAKERF_ESP32S3
+#ifdef IMU_MPU9250
 #include <MPU9250.h>
 extern MPU9250 IMU;
 #endif
@@ -37,5 +39,7 @@ void initCompass();
 void readCompass(float &x, float &y, float &z);
 int getHeading();
 void compassCalibrate();
+
+#endif
 
 #endif
