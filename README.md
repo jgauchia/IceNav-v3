@@ -21,16 +21,11 @@ ESP32 Based GPS Navigator.
 
 ## Specifications
 
-For the moment we have two Icenav models, with the next hardware setup and specs **Highly recommended an ESP32 with PSRAM** :
-
-Other setups like another sensors, etc... not listed in the specs,  now **They are not included**
-
-If you wish to add any other type of sensor, module, etc., you can create a PR without any problem, and we will try to implement it. Thank you!
+For the moment Icenav works with the next hardware setup and specs **Highly recommended an ESP32 with PSRAM** :
 
 ### Customboard ESP32 setup
 
 * ESP32 WROVER with 4Mb PSRAM / 16 Mb Flash
-* ILI9488 TFT (320x480) - SPI Mode
 * SD/MicroSD reader
 * HCM5883L Magnetometer
 * BME280   Temperature / Humidity sensor
@@ -41,12 +36,26 @@ If you wish to add any other type of sensor, module, etc., you can create a PR w
 ### Makerfabs ESP32-S3 setup
 
 * ESP32-S3-WROOM-1 with 2Mb PSRAM / 16 Mb Flash
-* ILI9488 TFT (320x480) - 16bit Parallel Mode
 * MicroSD reader
 * FT6236 Capactive Touch Panel Driver
 * HT1612Z3M3L GPS Module (AT6558D)
 * MPU9250 (Compass+IMU)
 * LVGL UI + LovyanGFX
+
+### Screens
+
+|             | Resolution | SPI | 8bit Para | 16bit Para | Touch     | Build Flags [^2]         |
+|:-----------:|:----------:|:---:|:---------:|:----------:|:---------:|:------------------------:|
+| ILI9488[^1] | 320x480    | yes | ---       | ---        | XPT2046   | -D ILI9488_XPT2046_SPI=1 |
+| ILI9488[^1] | 320x480    | --- | ---       | yes        | FT5x06    | -D ILI9488_FT5x06_16B=1  |
+
+[^1]: See hal.hpp for pinouts configuration
+[^2]: In the platformio.ini file under the build_flags section
+
+
+Other setups like another sensors, etc... not listed in the specs,  now **They are not included**
+
+If you wish to add any other type of sensor, module, etc., you can create a PR without any problem, and we will try to implement it. Thank you!
 
 ---
 

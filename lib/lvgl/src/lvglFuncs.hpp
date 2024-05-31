@@ -10,6 +10,7 @@
 #define LVGLFUNCS_HPP
 
 #include <Arduino.h>
+#include "tft.hpp"
 #include "lvgl.h"
 
 void objHideCursor(_lv_obj_t *obj);

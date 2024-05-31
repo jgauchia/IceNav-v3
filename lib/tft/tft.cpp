@@ -10,6 +10,8 @@
 
 TFT_eSPI tft = TFT_eSPI();
 bool repeatCalib = false;
+uint16_t TFT_WIDTH = 0;
+uint16_t TFT_HEIGHT = 0;
 
 /**
  * @brief Set the TFT brightness
@@ -116,6 +118,10 @@ void touchCalibrate()
 void initTFT()
 {
     tft.init();
+
+    TFT_HEIGHT = tft.height();
+    TFT_WIDTH = tft.width();
+
     // tft.setRotation(8);
     tft.initDMA();
     tft.startWrite();

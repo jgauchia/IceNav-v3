@@ -54,6 +54,12 @@ extern const uint8_t SD_CLK = 42;
 #define ADC_BATT_PIN 34
 
 /**
+ * @brief TFT Invert color
+ *
+ */
+extern const bool TFT_INVERT = true;
+
+/**
  * @brief TFT SPI pin definition
  *
  */
