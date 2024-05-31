@@ -44,14 +44,13 @@ For the moment Icenav works with the next hardware setup and specs **Highly reco
 
 ### Screens
 
-|             | Resolution | SPI | 8bit Para | 16bit Para | Touch     | Build Flags [^2]         |
-|:-----------:|:----------:|:---:|:---------:|:----------:|:---------:|:------------------------:|
-| ILI9488[^1] | 320x480    | yes | ---       | ---        | XPT2046   | -D ILI9488_XPT2046_SPI=1 |
-| ILI9488[^1] | 320x480    | --- | ---       | yes        | FT5x06    | -D ILI9488_FT5x06_16B=1  |
+| Driver [^1] | Resolution | SPI | 8bit | 16bit | Touch     | Build Flags [^2]                 |
+|:-----------:|:----------:|:---:|:----:|:-----:|:---------:|:--------------------------------:|
+| ILI9488     | 320x480    | yes | ---  | ---   | XPT2046   | ```-D ILI9488_XPT2046_SPI = 1``` |
+| ILI9488     | 320x480    | --- | ---  | yes   | FT5x06    | ```-D ILI9488_FT5x06_16B = 1```  |
 
 [^1]: See hal.hpp for pinouts configuration
 [^2]: In the platformio.ini file under the build_flags section
-
 
 Other setups like another sensors, etc... not listed in the specs,  now **They are not included**
 
