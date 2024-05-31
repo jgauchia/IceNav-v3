@@ -133,6 +133,11 @@ void getActTile(lv_event_t *event)
             isPosMoved = true;
             redrawMap = true;
         }
+        if (activeTile == SATTRACK)
+        {
+            createSatSprite(spriteSat);
+            createConstelSprite(constelSprite);
+        }
     }
     else
     {
@@ -187,8 +192,7 @@ void updateMainScreen(lv_timer_t *t)
 
                 if (GPS.speed.isValid())
                     lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
-            
-            break;
+                break;
             
             case MAP:
                 // if (GPS.location.isUpdated())
@@ -198,10 +202,6 @@ void updateMainScreen(lv_timer_t *t)
                 lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
                 break;
                 
-            case SATTRACK:
-                lv_obj_send_event(satTrackTile, LV_EVENT_VALUE_CHANGED, NULL);
-                break;
-                
             case NAV:
                 mapTempSprite.fillScreen(TFT_BLACK);
                 mapTempSprite.drawPngFile(SPIFFS, "/TODO.png", (MAP_WIDTH / 2) - 50, (MAP_HEIGHT / 2) - 50);
@@ -209,6 +209,13 @@ void updateMainScreen(lv_timer_t *t)
                 mapSprite.pushSprite(0, 27);
                 mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
                 break;
+
+            case SATTRACK:
+                constelSprite.pushSprite(150, 40);
+                lv_obj_send_event(satTrackTile, LV_EVENT_VALUE_CHANGED, NULL);
+                break;
+                
+
             default:
                 break;
         }
@@ -270,30 +277,6 @@ void getZoomValue(lv_event_t *event)
                 break;
         }
     }
-}
-
-/**
- * @brief Delete map screen sprites and release PSRAM
- *
- */
-void deleteMapScrSprites()
-{
-    sprArrow.deleteSprite();
-    mapSprite.deleteSprite();
-}
-
-/**
- * @brief Create a map screen sprites
- *
- */
-void createMapScrSprites()
-{
-    // Map Sprite
-    mapSprite.createSprite(MAP_WIDTH, MAP_HEIGHT);
-    // Arrow Sprite
-    sprArrow.createSprite(16, 16);
-    sprArrow.setColorDepth(16);
-    sprArrow.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
 }
 
 /**
@@ -370,11 +353,7 @@ void updateSatTrack(lv_event_t *event)
 
     if (GPS.altitude.isUpdated())
         lv_label_set_text_fmt(altLabel, "ALT:\n%4dm.", (int)GPS.altitude.meters());
-    
-    createSatSprite(spriteSat);
-    createConstelSprite(constelSprite);
-    createConstelSprite(constelSpriteBkg);
-    
+
     #ifdef MULTI_GNSS
     switch ((int)activeGnss)
     {
@@ -391,6 +370,8 @@ void updateSatTrack(lv_event_t *event)
     #else
     fillSatInView(GPS_GSV, TFT_GREEN);
     #endif
+
+
 }
 
 /**

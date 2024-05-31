@@ -26,8 +26,7 @@ extern SatPos satPos; // Satellite position X,Y in constelation map
 extern TFT_eSprite spriteSNR1;       // Sprite for snr GPS Satellite Labels
 extern TFT_eSprite spriteSNR2;       // Sprite for snr GPS Satellite Labels
 extern TFT_eSprite spriteSat;        // Sprite for satellite position in map
-extern TFT_eSprite constelSprite;    // Double Buffering Sprites for Satellite Constellation
-extern TFT_eSprite constelSpriteBkg; // Double Buffering Sprites for Satellite Constellation
+extern TFT_eSprite constelSprite;    // Sprite for Satellite Constellation
 
 extern lv_obj_t *satelliteBar1;               // Satellite Signal Graphics Bars
 extern lv_obj_t *satelliteBar2;               // Satellite Signal Graphics Bars
