@@ -19,19 +19,37 @@ void splashScreen()
     tft.fillScreen(TFT_BLACK);
     millisActual = millis();
     setBrightness(0);
-    tft.drawPngFile(SPIFFS, logoFile, (tft.width() / 2) - 150, (tft.height() / 2) - 70, 0 ,0 , 0.5f, 0.5f);
-    char statusString[100] = "";
+
+    static uint16_t pngHeight = 0;
+    static uint16_t pngWidth = 0;
+
+    getPngSize(SPIFFS, logoFile,&pngWidth,&pngHeight);
+    tft.drawPngFile(SPIFFS, logoFile, (tft.width() / 2) - (pngWidth/2), (tft.height() / 2) - pngHeight);
+
+    char statusString[50] = "";
     tft.setTextSize(1);
     tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+
     memset(&statusString[0], 0, sizeof(statusString));
-    sprintf(statusString, statusLine1, ESP.getChipModel(), ESP.getCpuFreqMHz(), (ESP.getFreeHeap() / 1024), (ESP.getFreeHeap() * 100) / ESP.getHeapSize());
-    tft.drawString(statusString, 10, TFT_HEIGHT - 30 );
+    sprintf(statusString, statusLine1, ESP.getChipModel(), ESP.getCpuFreqMHz());
+    tft.drawString(statusString, 0, TFT_HEIGHT - 50 );
+
+    memset(&statusString[0],0, sizeof(statusString));
+    sprintf(statusString, statusLine2, (ESP.getFreeHeap() / 1024), (ESP.getFreeHeap() * 100) / ESP.getHeapSize());
+    tft.drawString(statusString, 0, TFT_HEIGHT - 40 );
+
     memset(&statusString[0], 0, sizeof(statusString));
-    sprintf(statusString, statusLine2, ESP.getPsramSize(), ESP.getPsramSize() - ESP.getFreePsram());
-    tft.drawString(statusString, 10, TFT_HEIGHT - 20);
+    sprintf(statusString, statusLine3, ESP.getPsramSize(), ESP.getPsramSize() - ESP.getFreePsram());
+    tft.drawString(statusString, 0, TFT_HEIGHT - 30);
+
     memset(&statusString[0], 0, sizeof(statusString));
-    sprintf(statusString, statusLine3, String(VERSION), String(REVISION), String(FLAVOR));
-    tft.drawString(statusString, 10, TFT_HEIGHT - 10 );
+    sprintf(statusString, statusLine4, String(VERSION), String(REVISION));
+    tft.drawString(statusString, 0, TFT_HEIGHT - 20 );
+
+    memset(&statusString[0], 0, sizeof(statusString));
+    sprintf(statusString, statusLine5,String(FLAVOR));
+    tft.drawString(statusString, 0, TFT_HEIGHT - 10 );
+
     memset(&statusString[0], 0, sizeof(statusString));
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
 

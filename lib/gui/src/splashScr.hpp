@@ -10,11 +10,18 @@
 #define SPLASHSCR_HPP
 
 #include "tft.hpp"
+#include "globalGuiDef.h"
 
-static const char* logoFile PROGMEM = "/BOOTLOGO.png";
-static const char* statusLine1 PROGMEM = "Model:%s %dMhz - Free mem:%dK %d%%";
-static const char* statusLine2 PROGMEM = "PSRAM: %d - Used PSRAM: %d";
-static const char* statusLine3 PROGMEM = "Firmware v.%s rev.%s - %s";
+#ifdef LARGE_SCREEN
+static const char* logoFile PROGMEM = "/LOGO_LARGE.png";
+#else
+static const char* logoFile PROGMEM = "/LOGO_SMALL.png";
+#endif
+static const char* statusLine1 PROGMEM = "Model:%s %dMhz";
+static const char* statusLine2 PROGMEM = "Free mem:%dK %d%%";
+static const char* statusLine3 PROGMEM = "PSRAM: %d - Used PSRAM: %d";
+static const char* statusLine4 PROGMEM = "Firmware v.%s rev.%s";
+static const char* statusLine5 PROGMEM = "ENV: %s";
 
 void splashScreen();
 
