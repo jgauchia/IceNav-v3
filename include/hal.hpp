@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Pin definitions
  * @version 0.1.8
- * @date 2024-05
+ * @date 2024-06
  */
 
 #ifndef HAL_HPP
@@ -63,12 +63,22 @@ extern const bool TFT_INVERT = true;
  * @brief TFT SPI pin definition
  *
  */
+#ifndef ESP32S3_N16R8
 extern const uint8_t TFT_SPI_SCLK = 14;
 extern const uint8_t TFT_SPI_MOSI = 13;
 extern const uint8_t TFT_SPI_MISO = 27;
 extern const uint8_t TFT_SPI_DC   = 15;
 extern const uint8_t TFT_SPI_CS   = 2;
 extern const uint8_t TFT_SPI_RST  = 32;
+#else
+extern const uint8_t TFT_SPI_SCLK = 12;
+extern const uint8_t TFT_SPI_MOSI = 11;
+extern const uint8_t TFT_SPI_MISO = 13;
+extern const uint8_t TFT_SPI_DC   = 7;
+extern const uint8_t TFT_SPI_CS   = 10;
+extern const uint8_t TFT_SPI_RST  = 6;
+#endif
+
 
 /**
  * @brief TFT 16 Bits parallel pin definition
@@ -98,11 +108,20 @@ extern const uint8_t TFT_D15 = 4;
  * @brief TOUCH SPI pin definition
  *
  */
+
+#ifndef ESP32S3_N16R8
 extern const uint8_t TCH_SPI_SCLK = 14;
 extern const uint8_t TCH_SPI_MOSI = 13;
 extern const uint8_t TCH_SPI_MISO = 27;
 extern const uint8_t TCH_SPI_INT  = 5;
 extern const uint8_t TCH_SPI_CS   = 18;
+#else
+extern const uint8_t TCH_SPI_SCLK = 12;
+extern const uint8_t TCH_SPI_MOSI = 11;
+extern const uint8_t TCH_SPI_MISO = 13;
+extern const uint8_t TCH_SPI_INT  = 5;
+extern const uint8_t TCH_SPI_CS   = 4;
+#endif
 
 /**
  * @brief TOUCH I2C pin definition

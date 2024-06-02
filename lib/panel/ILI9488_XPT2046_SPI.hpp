@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LOVYANGFX TFT driver for ILI9488 SPI With XPT2046 Touch controller
  * @version 0.1.8
- * @date 2024-05
+ * @date 2024-06
  */
 
 #ifndef ILI9488_XPT2046_SPI_HPP
@@ -26,6 +26,7 @@ extern const uint8_t TCH_SPI_INT;
 extern const uint8_t TCH_SPI_CS;
 extern const bool TFT_INVERT;
 
+#define LARGE_SCREEN = 1
 
 class LGFX : public lgfx::LGFX_Device
 {

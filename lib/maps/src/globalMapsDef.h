@@ -2,7 +2,7 @@
  * @file globalMapsDef.h
  * @brief  Global Maps Variables
  * @version 0.1.8
- * @date 2024-05
+ * @date 2024-06
  */
 
 #ifndef GLOBALMAPSDEF_H

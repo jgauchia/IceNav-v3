@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief TFT definition and functions
  * @version 0.1.8
- * @date 2024-05
+ * @date 2024-06
  */
 
 #include "tft.hpp"
@@ -88,11 +88,22 @@ void touchCalibrate()
         tft.setTouchCalibrate(calData);
     else
     {
-        tft.drawCenterString("TOUCH THE ARROW MARKER.", 160, tft.height() >> 1, &fonts::DejaVu18);
+        static const lgfx::v1::GFXfont* fontsmall;
+        static const lgfx::v1::GFXfont* fontlarge;
+
+        #ifdef LARGE_SCREEN
+        fontsmall = &fonts::DejaVu18;
+        fontlarge = &fonts::DejaVu40;
+        #else
+        fontsmall = &fonts::DejaVu12;
+        fontlarge = &fonts::DejaVu24;
+        #endif
+
+        tft.drawCenterString("TOUCH THE ARROW MARKER.", tft.width() >> 1, tft.height() >> 1, fontsmall);
         tft.calibrateTouch(calData, TFT_WHITE, TFT_BLACK, std::max(tft.width(), tft.height()) >> 3);
-        tft.drawCenterString("DONE!", 160, (tft.height() >> 1) + 30, &fonts::DejaVu40);
+        tft.drawCenterString("DONE!", tft.width() >> 1, (tft.height() >> 1) + (tft.fontHeight(fontsmall) * 2), fontlarge);
         delay(500);
-        tft.drawCenterString("TOUCH TO CONTINUE.", 160, (tft.height() >> 1) + 100, &fonts::DejaVu18);
+        tft.drawCenterString("TOUCH TO CONTINUE.", tft.width() >> 1, (tft.height() >> 1) + (tft.fontHeight(fontlarge) * 2), fontsmall);
 
         File f = SPIFFS.open(calibrationFile, "w");
         if (f)

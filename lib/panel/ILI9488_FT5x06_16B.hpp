@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LOVYANGFX TFT driver for ILI9488 16 Bits parallel  With FT5x06 Touch controller
  * @version 0.1.8
- * @date 2024-05
+ * @date 2024-06
  */
 
 #ifndef ILI9488_FT5x06_16B_HPP
@@ -36,6 +36,8 @@ extern const uint8_t TFT_D12;
 extern const uint8_t TFT_D13;
 extern const uint8_t TFT_D14;
 extern const uint8_t TFT_D15;
+
+#define LARGE_SCREEN = 1
 
 class LGFX : public lgfx::LGFX_Device
 {

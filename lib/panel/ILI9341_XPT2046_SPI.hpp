@@ -3,7 +3,7 @@
 //  * @author Jordi Gauchía (jgauchia@gmx.es)
 //  * @brief  LOVYANGFX TFT driver for ILI9341 SPI With XPT2046 Touch controller
 //  * @version 0.1.8
-//  * @date 2024-05
+//  * @date 2024-06
 //  */
 
 #ifndef ILI9341_XPT2046_SPI_HPP
@@ -49,18 +49,18 @@ public:
             cfg.spi_3wire = false;
             cfg.use_lock = false;
             cfg.dma_channel = SPI_DMA_CH_AUTO;
-            cfg.pin_sclk = 12;
-            cfg.pin_mosi = 11;
-            cfg.pin_miso = 13;
-            cfg.pin_dc = 7;
+            cfg.pin_sclk = TFT_SPI_SCLK;
+            cfg.pin_mosi = TFT_SPI_MOSI;
+            cfg.pin_miso = TFT_SPI_MISO;
+            cfg.pin_dc = TFT_SPI_DC;
             _bus_instance.config(cfg);
             _panel_instance.setBus(&_bus_instance);
         }
 
         {
             auto cfg = _panel_instance.config();
-            cfg.pin_cs = 10;
-            cfg.pin_rst = 6;
+            cfg.pin_cs = TFT_SPI_CS;
+            cfg.pin_rst = TFT_SPI_RST;
             cfg.pin_busy = -1;
             cfg.panel_width = 240;
             cfg.panel_height = 320;
@@ -85,7 +85,7 @@ public:
             cfg.x_max = 240;
             cfg.y_min = 0;
             cfg.y_max = 320;
-            cfg.pin_int = 5;
+            cfg.pin_int = TCH_SPI_INT;
             cfg.bus_shared = true;
             cfg.offset_rotation = 0;
             #ifdef ARDUINO_ESP32S3_DEV
@@ -95,10 +95,10 @@ public:
             cfg.spi_host = HSPI_HOST;
             #endif
             cfg.freq = 1000000;
-            cfg.pin_sclk = 12;
-            cfg.pin_mosi = 11;
-            cfg.pin_miso = 13;
-            cfg.pin_cs = 4;
+            cfg.pin_sclk = TCH_SPI_SCLK;
+            cfg.pin_mosi = TCH_SPI_MOSI;
+            cfg.pin_miso = TCH_SPI_MISO;
+            cfg.pin_cs = TCH_SPI_CS;
             _touch_instance.config(cfg);
             _panel_instance.setTouch(&_touch_instance);
         }

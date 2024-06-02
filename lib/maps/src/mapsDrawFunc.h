@@ -2,7 +2,7 @@
  * @file mapsDrawFunc.h
  * @brief  Extra Draw functions for maps
  * @version 0.1.8
- * @date 2024-05
+ * @date 2024-06
  */
 
 #ifndef MAPSDRAWFUNC_H
