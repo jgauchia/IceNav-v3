@@ -46,8 +46,10 @@ uint16_t speedPosY = 0;     // Speed widget position Y
 void loadPreferences()
 {
     cfg.init("ICENAV");
+#ifdef ENABLE_COMPASS
     offX = cfg.getFloat(PKEYS::KCOMP_OFFSET_X, 0.0);
     offY = cfg.getFloat(PKEYS::KCOMP_OFFSET_Y, 0.0);
+#endif
     isMapRotation = cfg.getBool(PKEYS::KMAP_ROT, false);
     defaultZoom = cfg.getUInt(PKEYS::KDEF_ZOOM, defZoom);
     zoom = defaultZoom;

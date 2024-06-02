@@ -11,6 +11,8 @@
 
 #include "tft.hpp"
 
+extern int mapHeading;
+
 #ifdef ENABLE_COMPASS
 
 #ifdef IMU_HMC5883L
@@ -28,7 +30,7 @@ extern MPU9250 IMU;
 void saveCompassCal(float offsetX, float offsetY);
 extern float declinationAngle;
 extern int heading;
-extern int mapHeading;
+
 extern float offX;
 extern float offY; 
 static float headingSmooth = 0.0;

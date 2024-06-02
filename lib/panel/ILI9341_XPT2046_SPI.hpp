@@ -1,21 +1,34 @@
 // /**
-//  * @file lgfx_ESP32S3_TEST_conf.hpp
+//  * @file ILI9341_XPT2046_SPI.hpp
 //  * @author Jordi Gauchía (jgauchia@gmx.es)
-//  * @brief  LOVYANGFX TFT driver for ESP32S3-DEVKIT SPI
+//  * @brief  LOVYANGFX TFT driver for ILI9341 SPI With XPT2046 Touch controller
 //  * @version 0.1.8
 //  * @date 2024-05
 //  */
 
-#ifndef LGFX_CUSTOMBOARD_CONF_HPP
-#define LGFX_CUSTOMBOARD_CONF_HPP
+#ifndef ILI9341_XPT2046_SPI_HPP
+#define ILI9341_XPT2046_SPI_HPP
 
 #define LGFX_USE_V1
 
 #include "LovyanGFX.hpp"
 
+extern const uint8_t TFT_SPI_SCLK;
+extern const uint8_t TFT_SPI_MOSI;
+extern const uint8_t TFT_SPI_MISO;
+extern const uint8_t TFT_SPI_DC;
+extern const uint8_t TFT_SPI_CS;
+extern const uint8_t TFT_SPI_RST;
+extern const uint8_t TCH_SPI_SCLK;
+extern const uint8_t TCH_SPI_MOSI;
+extern const uint8_t TCH_SPI_MISO;
+extern const uint8_t TCH_SPI_INT;
+extern const uint8_t TCH_SPI_CS;
+extern const bool TFT_INVERT;
+
 class LGFX : public lgfx::LGFX_Device
 {
-    lgfx::Panel_ILI9488 _panel_instance;
+    lgfx::Panel_ILI9341 _panel_instance;
     lgfx::Bus_SPI _bus_instance;
     lgfx::Touch_XPT2046 _touch_instance;
 
@@ -24,11 +37,16 @@ public:
     {
         {
             auto cfg = _bus_instance.config();
+            #ifdef ARDUINO_ESP32S3_DEV
             cfg.spi_host = SPI2_HOST;
+            #endif
+            #ifdef ARDUINO_ESP32_DEV
+            cfg.spi_host = HSPI_HOST;
+            #endif
             cfg.spi_mode = 0;
             cfg.freq_write = 79999999;
-            cfg.freq_read = 16000000;
-            cfg.spi_3wire = true;
+            cfg.freq_read = 27000000;
+            cfg.spi_3wire = false;
             cfg.use_lock = false;
             cfg.dma_channel = SPI_DMA_CH_AUTO;
             cfg.pin_sclk = 12;
@@ -44,10 +62,10 @@ public:
             cfg.pin_cs = 10;
             cfg.pin_rst = 6;
             cfg.pin_busy = -1;
-            cfg.panel_width = 320;
-            cfg.panel_height = 480;
-            cfg.memory_width = 320;
-            cfg.memory_height = 480;
+            cfg.panel_width = 240;
+            cfg.panel_height = 320;
+            cfg.memory_width = 240;
+            cfg.memory_height = 320;
             cfg.offset_x = 0;
             cfg.offset_y = 0;
             cfg.offset_rotation = 0;
@@ -57,20 +75,25 @@ public:
             cfg.invert = false;
             cfg.rgb_order = false;
             cfg.dlen_16bit = false;
-            cfg.bus_shared = true;
+            cfg.bus_shared = false;
             _panel_instance.config(cfg);
         }
 
         {
             auto cfg = _touch_instance.config();
             cfg.x_min = 0;
-            cfg.x_max = 330;
+            cfg.x_max = 240;
             cfg.y_min = 0;
-            cfg.y_max = 500;
+            cfg.y_max = 320;
             cfg.pin_int = 5;
             cfg.bus_shared = true;
             cfg.offset_rotation = 0;
+            #ifdef ARDUINO_ESP32S3_DEV
             cfg.spi_host = SPI2_HOST;
+            #endif
+            #ifdef ARDUINO_ESP32_DEV
+            cfg.spi_host = HSPI_HOST;
+            #endif
             cfg.freq = 1000000;
             cfg.pin_sclk = 12;
             cfg.pin_mosi = 11;

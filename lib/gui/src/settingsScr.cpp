@@ -42,6 +42,7 @@ static void touchCalib(lv_event_t *event)
  *
  * @param event
  */
+#ifdef ENABLE_COMPASS
 static void compassCalib(lv_event_t *event)
 {
     tft.fillScreen(TFT_BLACK);
@@ -51,6 +52,7 @@ static void compassCalib(lv_event_t *event)
     lv_screen_load(settingsScreen);
     lv_obj_invalidate(lv_scr_act());
 }
+#endif
 
 /**
  * @brief Map Setting
@@ -94,6 +96,7 @@ void createSettingsScr()
     lv_obj_t *btnLabel;
     lv_obj_t *btn;
 
+    #ifdef ENABLE_COMPASS
     // Compass Calibration
     btn = lv_btn_create(settingsButtons);
     lv_obj_set_size(btn, TFT_WIDTH - 30, 40);
@@ -102,6 +105,7 @@ void createSettingsScr()
     lv_label_set_text_static(btnLabel, "Compass Calibration");
     lv_obj_center(btnLabel);
     lv_obj_add_event_cb(btn, compassCalib, LV_EVENT_CLICKED, NULL);
+    #endif
 
     // Touch Calibration
     btn = lv_btn_create(settingsButtons);

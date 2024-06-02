@@ -122,7 +122,6 @@ void initTFT()
     TFT_HEIGHT = tft.height();
     TFT_WIDTH = tft.width();
 
-    // tft.setRotation(8);
     tft.initDMA();
     tft.startWrite();
     tft.fillScreen(TFT_BLACK);

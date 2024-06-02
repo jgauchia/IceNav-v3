@@ -9,7 +9,7 @@
 #ifndef HAL_HPP
 #define HAL_HPP
 
-#ifdef CUSTOMBOARD
+#ifdef ARDUINO_ESP32_DEV
 /**
  * @brief GPS pin definition
  *
@@ -27,7 +27,7 @@ extern const uint8_t SD_MOSI = 23;
 extern const uint8_t SD_CLK = 12;
 #endif
 
-#ifdef MAKERF_ESP32S3
+#ifdef ARDUINO_ESP32S3_DEV
 /**
  * @brief GPS pin definition
  *

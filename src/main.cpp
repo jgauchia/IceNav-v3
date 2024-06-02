@@ -67,7 +67,9 @@ void setup()
     initTFT();
     initGPS();
     initLVGL();
+#ifndef ESP32S3_N16R8
     initADC();
+#endif
 
     // Reserve PSRAM for buffer map
     mapTempSprite.deleteSprite();

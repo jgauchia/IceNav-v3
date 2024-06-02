@@ -8,6 +8,8 @@
 
 #include "compass.hpp"
 
+int mapHeading = 0;
+
 #ifdef ENABLE_COMPASS
 
 #ifdef IMU_HMC5883L
@@ -34,7 +36,6 @@ float declinationAngle = 0.22;
  *
  */
 int heading = 0;
-int mapHeading = 0;
 #define SMOOTH_FACTOR 0.40
 #define SMOOTH_PREVIOUS_FACTOR 0.60
 

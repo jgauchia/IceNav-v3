@@ -38,7 +38,12 @@ public:
     {
         {
             auto cfg = _bus_instance.config();
+            #ifdef ARDUINO_ESP32S3_DEV
+            cfg.spi_host = SPI2_HOST;
+            #endif
+            #ifdef ARDUINO_ESP32_DEV
             cfg.spi_host = HSPI_HOST;
+            #endif
             cfg.spi_mode = 0;
             cfg.freq_write = 79999999;
             //cfg.freq_write = 40000000;
@@ -85,7 +90,12 @@ public:
             cfg.pin_int = 5;
             cfg.bus_shared = true;
             cfg.offset_rotation = 0;
+            #ifdef ARDUINO_ESP32S3_DEV
+            cfg.spi_host = SPI2_HOST;
+            #endif
+            #ifdef ARDUINO_ESP32_DEV
             cfg.spi_host = HSPI_HOST;
+            #endif
             cfg.freq = 1000000;
             cfg.pin_sclk = TCH_SPI_SCLK;
             cfg.pin_mosi = TCH_SPI_MOSI;
