@@ -17,11 +17,24 @@
  */
 extern lv_obj_t *mainScreen;           // Main Screen
 static lv_obj_t *tilesScreen;          // Tiles Screen
-extern lv_obj_t *notifyBar;            // Notify Bar
+extern lv_obj_t *notifyBarIcons;       // Notify Bar Icons
+extern lv_obj_t *notifyBarHour;        // Notify Bar Hour
 extern lv_obj_t *settingsScreen;       // Settings Screen
 extern lv_obj_t *mapSettingsScreen;    // Map Settings Screen
 extern lv_obj_t *deviceSettingsScreen; // Device Settings Screen
 extern bool needReboot;                // Flag to force device reboot
+
+#ifdef LARGE_SCREEN
+    static const lv_font_t *fontDefault = &lv_font_montserrat_14;
+    static const lv_font_t *fontSmall = &lv_font_montserrat_10;
+    static const lv_font_t *fontMedium = &lv_font_montserrat_14;
+    static const lv_font_t *fontLarge = &lv_font_montserrat_20;
+#else
+    static const lv_font_t *fontDefault = &lv_font_montserrat_12;
+    static const lv_font_t *fontSmall = &lv_font_montserrat_8;
+    static const lv_font_t *fontMedium = &lv_font_montserrat_10;
+    static const lv_font_t *fontLarge = &lv_font_montserrat_12;
+#endif
 
 /**
  * @brief Get PNG width and height

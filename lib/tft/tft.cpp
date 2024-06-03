@@ -88,22 +88,22 @@ void touchCalibrate()
         tft.setTouchCalibrate(calData);
     else
     {
-        static const lgfx::v1::GFXfont* fontsmall;
-        static const lgfx::v1::GFXfont* fontlarge;
+        static const lgfx::v1::GFXfont* fontSmall;
+        static const lgfx::v1::GFXfont* fontLarge;
 
         #ifdef LARGE_SCREEN
-        fontsmall = &fonts::DejaVu18;
-        fontlarge = &fonts::DejaVu40;
+        fontSmall = &fonts::DejaVu18;
+        fontLarge = &fonts::DejaVu40;
         #else
-        fontsmall = &fonts::DejaVu12;
-        fontlarge = &fonts::DejaVu24;
+        fontSmall = &fonts::DejaVu12;
+        fontLarge = &fonts::DejaVu24;
         #endif
 
-        tft.drawCenterString("TOUCH THE ARROW MARKER.", tft.width() >> 1, tft.height() >> 1, fontsmall);
+        tft.drawCenterString("TOUCH THE ARROW MARKER.", tft.width() >> 1, tft.height() >> 1, fontSmall);
         tft.calibrateTouch(calData, TFT_WHITE, TFT_BLACK, std::max(tft.width(), tft.height()) >> 3);
-        tft.drawCenterString("DONE!", tft.width() >> 1, (tft.height() >> 1) + (tft.fontHeight(fontsmall) * 2), fontlarge);
+        tft.drawCenterString("DONE!", tft.width() >> 1, (tft.height() >> 1) + (tft.fontHeight(fontSmall) * 2), fontLarge);
         delay(500);
-        tft.drawCenterString("TOUCH TO CONTINUE.", tft.width() >> 1, (tft.height() >> 1) + (tft.fontHeight(fontlarge) * 2), fontsmall);
+        tft.drawCenterString("TOUCH TO CONTINUE.", tft.width() >> 1, (tft.height() >> 1) + (tft.fontHeight(fontLarge) * 2), fontSmall);
 
         File f = SPIFFS.open(calibrationFile, "w");
         if (f)
