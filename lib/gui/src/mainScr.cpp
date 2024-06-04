@@ -105,7 +105,7 @@ void dragWidget(lv_event_t *event)
         lv_coord_t height = lv_obj_get_height(obj);
         
         // Limit drag area
-        if (x > 0 && y > 0 && (x + width) < 320 && (y + height) < 380)
+        if (x > 0 && y > 0 && (x + width) < TFT_WIDTH && (y + height) < (TFT_HEIGHT - 100))
         {
             lv_obj_set_pos(obj, x, y);
             
@@ -444,20 +444,25 @@ void createMainScr()
     
     // Position widget
     lv_obj_t *positionWidget = lv_obj_create(compassTile);
-    lv_obj_set_size(positionWidget, 190, 40);
+    lv_obj_set_height(positionWidget,40);
     lv_obj_set_pos(positionWidget, coordPosX, coordPosY);
     lv_obj_clear_flag(positionWidget, LV_OBJ_FLAG_SCROLLABLE);
+    latitude = lv_label_create(positionWidget);
+    lv_obj_set_style_text_font(latitude, fontMedium, 0);
+    lv_label_set_text_static(latitude, latFormatString(GPS.location.lat()));
+    longitude = lv_label_create(positionWidget);
+    lv_obj_set_style_text_font(longitude, fontMedium, 0);
+    lv_label_set_text_static(longitude, lonFormatString(GPS.location.lng()));
     lv_obj_t *posImg = lv_img_create(positionWidget);
     lv_img_set_src(posImg, positionIconFile);
-    lv_obj_align(posImg, LV_ALIGN_LEFT_MID, -15, 0);
-    latitude = lv_label_create(positionWidget);
-    lv_obj_set_style_text_font(latitude, &lv_font_montserrat_16, 0);
-    lv_label_set_text_static(latitude, latFormatString(GPS.location.lat()));
-    lv_obj_align(latitude, LV_ALIGN_TOP_LEFT, 25, -12);
-    longitude = lv_label_create(positionWidget);
-    lv_obj_set_style_text_font(longitude, &lv_font_montserrat_16, 0);
-    lv_label_set_text_static(longitude, lonFormatString(GPS.location.lng()));
-    lv_obj_align(longitude, LV_ALIGN_TOP_LEFT, 25, 3);
+    lv_image_set_scale(posImg,iconScale);
+    lv_obj_update_layout(latitude);
+    lv_obj_update_layout(posImg);
+    lv_obj_set_width(positionWidget, lv_obj_get_width(latitude) + 40);
+    log_v("%d",lv_obj_get_width(posImg));
+    lv_obj_align(latitude, LV_ALIGN_TOP_LEFT, 15, -12);
+    lv_obj_align(longitude, LV_ALIGN_TOP_LEFT, 15, 3);
+    lv_obj_align_to(posImg, latitude, LV_ALIGN_OUT_LEFT_MID, 0, 8);
     objUnselect(positionWidget);
     lv_obj_add_event_cb(positionWidget, dragWidget, LV_EVENT_PRESSING, (char *)"Coords_");
     lv_obj_add_event_cb(positionWidget, unselectWidget, LV_EVENT_RELEASED, NULL);

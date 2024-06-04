@@ -7,6 +7,15 @@ ESP32 Based GPS Navigator.
 * Note: Under development (experimental features under devel branch)
 * There is the possibility to use two types of maps: Rendered Maps or Tiles (large files), and Vector Maps (small files).
 
+<table>
+  <tr>
+    <td>
+      Don't forget to star ⭐️ this repository
+    </td>
+   <a href="https://www.buymeacoffee.com/jgauchia" target="_blank" title="buymeacoffee"><img src="https://iili.io/JIYMmUN.gif"  alt="buymeacoffee-animated-badge" style="width: 160px;"></a>
+  </tr>
+</table>
+
 > [!CAUTION]
 > Do not use in production (Experimental features).
 
