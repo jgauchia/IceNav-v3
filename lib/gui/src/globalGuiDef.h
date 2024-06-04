@@ -31,6 +31,7 @@ extern bool needReboot;                // Flag to force device reboot
     static const lv_font_t *fontLarge = &lv_font_montserrat_20;
     static const lv_font_t *fontVeryLarge = &lv_font_montserrat_48;
     static const float scale = 1.0f;
+    static const float scaleBut = 1.0f;
 #else
     static const lv_font_t *fontDefault = &lv_font_montserrat_12;
     static const lv_font_t *fontSmall = &lv_font_montserrat_8;
@@ -38,8 +39,10 @@ extern bool needReboot;                // Flag to force device reboot
     static const lv_font_t *fontLarge = &lv_font_montserrat_12;
     static const lv_font_t *fontVeryLarge = &lv_font_montserrat_38;
     static const float scale = 0.75f;
+    static const float scaleBut = 0.60f;
 #endif
     static const int iconScale = LV_SCALE_NONE * scale;
+    static const int buttonScale = LV_SCALE_NONE * scaleBut;
 
 /**
  * @brief Get PNG width and height

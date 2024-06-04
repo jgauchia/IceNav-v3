@@ -93,8 +93,8 @@ void createButtonBarScr()
 {
     // Button Bar
     buttonBar = lv_obj_create(mainScreen);
-    lv_obj_set_size(buttonBar, TFT_WIDTH, 68);
-    lv_obj_set_pos(buttonBar, 0, TFT_HEIGHT - 80);
+    lv_obj_set_size(buttonBar, TFT_WIDTH, 68 * scaleBut);
+    lv_obj_set_pos(buttonBar, 0, TFT_HEIGHT - 80 * scaleBut);
     lv_obj_set_flex_flow(buttonBar, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(buttonBar, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_SCROLLABLE);
@@ -103,7 +103,7 @@ void createButtonBarScr()
     lv_style_set_bg_opa(&styleBar, LV_OPA_0);
     lv_style_set_border_opa(&styleBar, LV_OPA_0);
     lv_obj_add_style(buttonBar, &styleBar, LV_PART_MAIN);
-    
+
     lv_obj_t *imgBtn;
     
     // Waypoint Button
@@ -111,6 +111,9 @@ void createButtonBarScr()
     lv_img_set_src(imgBtn, waypointIconFile);
     lv_obj_set_style_img_recolor_opa(imgBtn, 230, 0);
     lv_obj_set_style_img_recolor(imgBtn, lv_color_black(), 0);
+    lv_img_set_zoom(imgBtn,buttonScale);
+    lv_obj_update_layout(imgBtn);
+    lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
     lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(imgBtn, buttonBarEvent, LV_EVENT_PRESSED, (char*)"waypoint");
     
@@ -119,6 +122,9 @@ void createButtonBarScr()
     lv_img_set_src(imgBtn, trackIconFile);
     lv_obj_set_style_img_recolor_opa(imgBtn, 230, 0);
     lv_obj_set_style_img_recolor(imgBtn, lv_color_black(), 0);
+    lv_img_set_zoom(imgBtn,buttonScale);
+    lv_obj_update_layout(imgBtn);
+    lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
     lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(imgBtn, buttonBarEvent, LV_EVENT_PRESSED, (char*)"track");
     
@@ -126,6 +132,9 @@ void createButtonBarScr()
     imgBtn = lv_img_create(buttonBar);
     lv_img_set_src(imgBtn, settingsIconFile);
     lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
+    lv_img_set_zoom(imgBtn,buttonScale);
+    lv_obj_update_layout(imgBtn);
+    lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
     lv_obj_add_event_cb(imgBtn, buttonBarEvent, LV_EVENT_PRESSED, (char*)"settings");
 }
 
