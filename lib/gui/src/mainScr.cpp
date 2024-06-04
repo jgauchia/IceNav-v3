@@ -421,23 +421,25 @@ void createMainScr()
     
     // Compass Widget
     lv_obj_t *compassWidget = lv_obj_create(compassTile);
-    lv_obj_set_size(compassWidget, 200, 200);
+    lv_obj_set_size(compassWidget, 200 * scale, 200 * scale);
     lv_obj_set_pos(compassWidget, compassPosX, compassPosY);
     lv_obj_clear_flag(compassWidget, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_t *arrowImg = lv_img_create(compassWidget);
     lv_img_set_src(arrowImg, arrowIconFile);
     lv_obj_align(arrowImg, LV_ALIGN_CENTER, 0, -30);
-    
+    lv_img_set_zoom(arrowImg,iconScale);
+    lv_obj_update_layout(arrowImg);
     LV_IMG_DECLARE(bruj);
     compassImg = lv_img_create(compassWidget);
     lv_img_set_src(compassImg, &bruj);
-    lv_obj_align(compassImg, LV_ALIGN_CENTER, 0, 0);
-    lv_img_set_pivot(compassImg, 100, 100);
+    lv_img_set_zoom(compassImg,iconScale);
+    lv_obj_update_layout(compassImg);
+    lv_obj_align_to(compassImg, compassWidget, LV_ALIGN_CENTER, 0, 0);    lv_img_set_pivot(compassImg, 100, 100) ;
     compassHeading = lv_label_create(compassWidget);
-    lv_obj_set_size(compassHeading, 150, 38);
+    lv_obj_set_height(compassHeading,38);
     lv_obj_align(compassHeading, LV_ALIGN_CENTER, 0, 20);
-    lv_obj_set_style_text_font(compassHeading, &lv_font_montserrat_48, 0);
-    lv_label_set_text_static(compassHeading, "-----\xC2\xB0");
+    lv_obj_set_style_text_font(compassHeading, fontVeryLarge, 0);
+    lv_label_set_text_static(compassHeading, "---\xC2\xB0");
     objUnselect(compassWidget);
     lv_obj_add_event_cb(compassWidget, dragWidget, LV_EVENT_PRESSING, (char *)"Compass_");
     lv_obj_add_event_cb(compassWidget, unselectWidget, LV_EVENT_RELEASED, NULL);
@@ -455,14 +457,13 @@ void createMainScr()
     lv_label_set_text_static(longitude, lonFormatString(GPS.location.lng()));
     lv_obj_t *posImg = lv_img_create(positionWidget);
     lv_img_set_src(posImg, positionIconFile);
-    lv_image_set_scale(posImg,iconScale);
+    lv_img_set_zoom(posImg,iconScale);
     lv_obj_update_layout(latitude);
     lv_obj_update_layout(posImg);
     lv_obj_set_width(positionWidget, lv_obj_get_width(latitude) + 40);
-    log_v("%d",lv_obj_get_width(posImg));
     lv_obj_align(latitude, LV_ALIGN_TOP_LEFT, 15, -12);
     lv_obj_align(longitude, LV_ALIGN_TOP_LEFT, 15, 3);
-    lv_obj_align_to(posImg, latitude, LV_ALIGN_OUT_LEFT_MID, 0, 8);
+    lv_obj_align(posImg, LV_ALIGN_TOP_LEFT, -15, -10);
     objUnselect(positionWidget);
     lv_obj_add_event_cb(positionWidget, dragWidget, LV_EVENT_PRESSING, (char *)"Coords_");
     lv_obj_add_event_cb(positionWidget, unselectWidget, LV_EVENT_RELEASED, NULL);
