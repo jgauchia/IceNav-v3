@@ -470,15 +470,19 @@ void createMainScr()
     
     // Altitude widget
     lv_obj_t *altitudeWidget = lv_obj_create(compassTile);
-    lv_obj_set_size(altitudeWidget, 140, 40);
+    lv_obj_set_height(altitudeWidget, 40 * scale);
     lv_obj_set_pos(altitudeWidget, altitudePosX, altitudePosY);
     lv_obj_clear_flag(altitudeWidget, LV_OBJ_FLAG_SCROLLABLE);
+    altitude = lv_label_create(altitudeWidget);
+    lv_obj_set_style_text_font(altitude, fontLargeMedium, 0);
+    lv_label_set_text_static(altitude, "0000 m.");
     lv_obj_t *altitImg = lv_img_create(altitudeWidget);
     lv_img_set_src(altitImg, altitudeIconFile);
+    lv_img_set_zoom(altitImg,iconScale);
+    lv_obj_update_layout(altitude);
+    lv_obj_update_layout(altitImg);
+    lv_obj_set_width(altitudeWidget, lv_obj_get_width(altitude) + 40);
     lv_obj_align(altitImg, LV_ALIGN_LEFT_MID, -15, 0);
-    altitude = lv_label_create(altitudeWidget);
-    lv_obj_set_style_text_font(altitude, &lv_font_montserrat_24, 0);
-    lv_label_set_text_static(altitude, "0000 m.");
     lv_obj_align(altitude, LV_ALIGN_CENTER, 10, 0);
     objUnselect(altitudeWidget);
     lv_obj_add_event_cb(altitudeWidget, dragWidget, LV_EVENT_PRESSING, (char *)"Altitude_");
@@ -486,16 +490,20 @@ void createMainScr()
     
     // Speed widget
     lv_obj_t *speedWidget = lv_obj_create(compassTile);
-    lv_obj_set_size(speedWidget, 190, 40);
+    lv_obj_set_height(speedWidget, 40 * scale);
     lv_obj_set_pos(speedWidget, speedPosX, speedPosY);
     lv_obj_clear_flag(speedWidget, LV_OBJ_FLAG_SCROLLABLE);
+    speedLabel = lv_label_create(speedWidget);
+    lv_obj_set_style_text_font(speedLabel, fontLargeMedium, 0);
+    lv_label_set_text_static(speedLabel, "   0 Km/h");
     lv_obj_t *speedImg = lv_img_create(speedWidget);
     lv_img_set_src(speedImg, speedIconFile);
+    lv_img_set_zoom(speedImg,iconScale);
+    lv_obj_update_layout(speedLabel);
+    lv_obj_update_layout(speedImg);
+    lv_obj_set_width(speedWidget, lv_obj_get_width(speedLabel) + 40);
     lv_obj_align(speedImg, LV_ALIGN_LEFT_MID, -10, 0);
-    speedLabel = lv_label_create(speedWidget);
-    lv_obj_set_style_text_font(speedLabel, &lv_font_montserrat_24, 0);
-    lv_label_set_text_static(speedLabel, "0 Km/h");
-    lv_obj_align(speedLabel, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_align(speedLabel, LV_ALIGN_CENTER, 10, 0);
     objUnselect(speedWidget);
     lv_obj_add_event_cb(speedWidget, dragWidget, LV_EVENT_PRESSING, (char *)"Speed_");
     lv_obj_add_event_cb(speedWidget, unselectWidget, LV_EVENT_RELEASED, NULL);
