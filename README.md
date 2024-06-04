@@ -6,6 +6,15 @@
 ESP32 Based GPS Navigator.
 * Note: Under development (experimental features under dev branch)
 
+<table>
+  <tr>
+    <td>
+      Don't forget to star ⭐ this repository 
+    </td>
+   <a href="https://www.buymeacoffee.com/jgauchia" target="_blank" title="buymeacoffee"><img src="https://iili.io/JIYMmUN.gif"  alt="buymeacoffee-animated-badge" style="width: 160px;"></a>
+  </tr>
+</table>
+
 ## Screenshots
 <img src="images/screenshot_1.png" width="25%" height="25%"><img src="images/screenshot_2.png" width="25%" height="25%"><img src="images/screenshot_3.png" width="25%" height="25%"><img src="images/screenshot_4.png" width="25%" height="25%">
 <img src="images/screenshot_5.png" width="25%" height="25%"><img src="images/screenshot_6.png" width="25%" height="25%"><img src="images/screenshot_7.png" width="25%" height="25%">
