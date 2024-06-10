@@ -51,19 +51,19 @@ float offX = 0.0, offY = 0.0;
  */
 void initCompass()
 {
-    #ifdef IMU_HMC5883L
-    if (!compass.begin())
-        compass.begin();
-    #endif
-    #ifdef IMU_MPU9250
-    int status = IMU.begin();
-    if (status < 0)
-    {
-        log_e("IMU initialization unsuccessful");
-        log_e("Check IMU wiring or try cycling power");
-        log_e("Status: %i", status);
-    }
-    #endif
+  #ifdef IMU_HMC5883L
+  if (!compass.begin())
+    compass.begin();
+  #endif
+  #ifdef IMU_MPU9250
+  int status = IMU.begin();
+  if (status < 0)
+  {
+    log_e("IMU initialization unsuccessful");
+    log_e("Check IMU wiring or try cycling power");
+    log_e("Status: %i", status);
+  }
+  #endif
 }
 
 /**
@@ -75,20 +75,20 @@ void initCompass()
  */
 void readCompass(float &x, float &y, float &z)
 {
-    #ifdef IMU_HMC5883L
-    sensors_event_t event;
-    compass.getEvent(&event);
-    y = event.magnetic.y;
-    x = event.magnetic.x;
-    z = event.magnetic.z;
-    #endif
+  #ifdef IMU_HMC5883L
+  sensors_event_t event;
+  compass.getEvent(&event);
+  y = event.magnetic.y;
+  x = event.magnetic.x;
+  z = event.magnetic.z;
+  #endif
 
-    #ifdef IMU_MPU9250
-    IMU.readSensor();
-    x = IMU.getMagX_uT();
-    y = IMU.getMagY_uT();
-    z = IMU.getMagZ_uT();
-    #endif
+  #ifdef IMU_MPU9250
+  IMU.readSensor();
+  x = IMU.getMagX_uT();
+  y = IMU.getMagY_uT();
+  z = IMU.getMagZ_uT();
+  #endif
 }
 
 /**
@@ -98,23 +98,23 @@ void readCompass(float &x, float &y, float &z)
  */
 int getHeading()
 {
-    float y = 0.0;
-    float x = 0.0;
-    float z = 0.0;
+  float y = 0.0;
+  float x = 0.0;
+  float z = 0.0;
 
-    readCompass(x, y, z);
+  readCompass(x, y, z);
 
-    float headingNoFilter = atan2(y - offY, x - offX);
-    headingNoFilter += declinationAngle;
-    headingSmooth = headingNoFilter;
-    // headingSmooth = (headingNoFilter * SMOOTH_FACTOR) + (headingPrevious * SMOOTH_PREVIOUS_FACTOR);
-    // headingPrevious = headingSmooth;
+  float headingNoFilter = atan2(y - offY, x - offX);
+  headingNoFilter += declinationAngle;
+  headingSmooth = headingNoFilter;
+  // headingSmooth = (headingNoFilter * SMOOTH_FACTOR) + (headingPrevious * SMOOTH_PREVIOUS_FACTOR);
+  // headingPrevious = headingSmooth;
 
-    if (headingSmooth < 0)
-        headingSmooth += 2 * M_PI;
-    if (headingSmooth > 2 * M_PI)
-        headingSmooth -= 2 * M_PI;
-    return (int)(headingSmooth * 180 / M_PI);
+  if (headingSmooth < 0)
+    headingSmooth += 2 * M_PI;
+  if (headingSmooth > 2 * M_PI)
+    headingSmooth -= 2 * M_PI;
+  return (int)(headingSmooth * 180 / M_PI);
 }
 
 /**
@@ -123,67 +123,67 @@ int getHeading()
  */
 void compassCalibrate()
 {
-    bool cal = 1;
-    float y = 0.0;
-    float x = 0.0;
-    float z = 0.0;
-    uint16_t touchX, touchY;
+  bool cal = 1;
+  float y = 0.0;
+  float x = 0.0;
+  float z = 0.0;
+  uint16_t touchX, touchY;
 
-    tft.drawCenterString("ROTATE THE DEVICE", 160, 10, &fonts::DejaVu18);
-    tft.drawPngFile(SPIFFS, PSTR("/turn.png"), (tft.width() / 2) - 50, 60);
-    tft.drawCenterString("TOUCH TO START", 160, 200, &fonts::DejaVu18);
-    tft.drawCenterString("COMPASS CALIBRATION", 160, 230, &fonts::DejaVu18);
+  tft.drawCenterString("ROTATE THE DEVICE", 160, 10, &fonts::DejaVu18);
+  tft.drawPngFile(SPIFFS, PSTR("/turn.png"), (tft.width() / 2) - 50, 60);
+  tft.drawCenterString("TOUCH TO START", 160, 200, &fonts::DejaVu18);
+  tft.drawCenterString("COMPASS CALIBRATION", 160, 230, &fonts::DejaVu18);
 
-    while (!tft.getTouch(&touchX, &touchY))
-    {
-    };
-    delay(1000);
+  while (!tft.getTouch(&touchX, &touchY))
+  {
+  };
+  delay(1000);
 
-    unsigned long calTimeWas = millis();
+  unsigned long calTimeWas = millis();
+
+  readCompass(x, y, z);
+
+  maxX = minX = x; // Set initial values to current magnetometer readings.
+  maxY = minY = y;
+
+  while (cal)
+  {
 
     readCompass(x, y, z);
 
-    maxX = minX = x; // Set initial values to current magnetometer readings.
-    maxY = minY = y;
+    if (x > maxX)
+      maxX = x;
+    if (x < minX)
+      minX = x;
+    if (y > maxY)
+      maxY = y;
+    if (y < minY)
+      minY = y;
 
-    while (cal)
+    int secmillis = millis() - calTimeWas;
+    int secs = (int)((COMPASS_CAL_TIME - secmillis + 1000) / 1000);
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.setTextSize(3);
+    tft.setTextPadding(tft.textWidth("88"));
+    tft.drawNumber((COMPASS_CAL_TIME - secmillis) / 1000, (tft.width() >> 1), 280);
+
+    if (secs == 0)
     {
-
-        readCompass(x, y, z);
-
-        if (x > maxX)
-            maxX = x;
-        if (x < minX)
-            minX = x;
-        if (y > maxY)
-            maxY = y;
-        if (y < minY)
-            minY = y;
-
-        int secmillis = millis() - calTimeWas;
-        int secs = (int)((COMPASS_CAL_TIME - secmillis + 1000) / 1000);
-        tft.setTextColor(TFT_WHITE, TFT_BLACK);
-        tft.setTextSize(3);
-        tft.setTextPadding(tft.textWidth("88"));
-        tft.drawNumber((COMPASS_CAL_TIME - secmillis) / 1000, (tft.width() >> 1), 280);
-
-        if (secs == 0)
-        {
-            offX = (maxX + minX) / 2;
-            offY = (maxY + minY) / 2;
-            cal = 0;
-        }
+      offX = (maxX + minX) / 2;
+      offY = (maxY + minY) / 2;
+      cal = 0;
     }
+  }
 
-    tft.setTextSize(1);
-    tft.drawCenterString("DONE!", 160, 340, &fonts::DejaVu40);
-    tft.drawCenterString("TOUCH TO CONTINUE.", 160, 380, &fonts::DejaVu18);
+  tft.setTextSize(1);
+  tft.drawCenterString("DONE!", 160, 340, &fonts::DejaVu40);
+  tft.drawCenterString("TOUCH TO CONTINUE.", 160, 380, &fonts::DejaVu18);
 
-    while (!tft.getTouch(&touchX, &touchY))
-    {
-    };
+  while (!tft.getTouch(&touchX, &touchY))
+  {
+  };
 
-    saveCompassCal(offX,offY);
+  saveCompassCal(offX,offY);
 }
 
 #endif

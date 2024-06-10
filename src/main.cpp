@@ -23,22 +23,19 @@
 #include "gps.hpp"
 #include "storage.hpp"
 #include "tft.hpp"
+
 #ifdef ENABLE_COMPASS
 #include "compass.hpp"
 #endif
+
 #ifdef ENABLE_BME
 #include "bme.hpp"
 #endif
+
 #include "battery.hpp"
 #include "power.hpp"
 #include "settings.hpp"
-
 #include "tasks.hpp"
-#include "satInfo.hpp"
-#include "gpsMath.hpp"
-#include "vectorMaps.hpp"
-#include "renderMaps.hpp"
-
 #include "lvglSetup.hpp"
 
 /**
@@ -47,43 +44,44 @@
  */
 void setup()
 {
-    #ifdef MAKERF_ESP32S3
-    Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
-    Wire.begin();
-    #endif
+  #ifdef MAKERF_ESP32S3
+   Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
+   Wire.begin();
+  #endif
 
-    #ifdef ENABLE_BME
-    initBME();
-    #endif
+  #ifdef ENABLE_BME
+   initBME();
+  #endif
 
-    #ifdef ENABLE_COMPASS
-    initCompass();
-    #endif
+  #ifdef ENABLE_COMPASS
+   initCompass();
+  #endif
 
-    powerOn();
-    loadPreferences();
-    initSD();
-    initSPIFFS();
-    initTFT();
-    initGPS();
-    initLVGL();
-#ifndef ESP32S3_N16R8
-    initADC();
-#endif
+  powerOn();
+  loadPreferences();
+  initSD();
+  initSPIFFS();
+  initTFT();
+  initGPS();
+  initLVGL();
+  
+  #ifndef ESP32S3_N16R8
+   initADC();
+  #endif
 
-    // Reserve PSRAM for buffer map
-    mapTempSprite.deleteSprite();
-    mapTempSprite.createSprite(TILE_WIDTH, TILE_HEIGHT);
+  // Reserve PSRAM for buffer map
+  mapTempSprite.deleteSprite();
+  mapTempSprite.createSprite(TILE_WIDTH, TILE_HEIGHT);
 
-    splashScreen();
-    //initLvglTask();
-    initGpsTask();
+  splashScreen();
+  //initLvglTask();
+  initGpsTask();
 
-    #ifdef DEFAULT_LAT
-    loadMainScreen();
-    #else
-    lv_screen_load(searchSatScreen);
-    #endif
+  #ifdef DEFAULT_LAT
+   loadMainScreen();
+  #else
+   lv_screen_load(searchSatScreen);
+  #endif
 }
 
 /**
@@ -92,8 +90,8 @@ void setup()
  */
 void loop()
 {
-    // lv_timer_handler();
-    // lv_tick_inc(5);
-    lv_timer_handler();
-    vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
+  // lv_timer_handler();
+  // lv_tick_inc(5);
+  lv_timer_handler();
+  vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
 }

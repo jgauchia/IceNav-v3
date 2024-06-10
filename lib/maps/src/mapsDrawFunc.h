@@ -32,8 +32,8 @@ static const char *map_scale[] PROGMEM = {"5000 Km", "2500 Km", "1500 Km",
  */
 static void deleteMapScrSprites()
 {
-    sprArrow.deleteSprite();
-    mapSprite.deleteSprite();
+  sprArrow.deleteSprite();
+  mapSprite.deleteSprite();
 }
 
 /**
@@ -42,12 +42,12 @@ static void deleteMapScrSprites()
  */
 static void createMapScrSprites()
 {
-    // Map Sprite
-    mapSprite.createSprite(MAP_WIDTH, MAP_HEIGHT);
-    // Arrow Sprite
-    sprArrow.createSprite(16, 16);
-    sprArrow.setColorDepth(16);
-    sprArrow.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
+  // Map Sprite
+  mapSprite.createSprite(MAP_WIDTH, MAP_HEIGHT);
+  // Arrow Sprite
+  sprArrow.createSprite(16, 16);
+  sprArrow.setColorDepth(16);
+  sprArrow.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
 }
 
 /**
@@ -56,45 +56,45 @@ static void createMapScrSprites()
  */
 static void drawMapWidgets()
 {
-    mapSprite.setTextColor(TFT_WHITE, TFT_WHITE);
+  mapSprite.setTextColor(TFT_WHITE, TFT_WHITE);
 
-    #ifdef ENABLE_COMPASS
-    //heading = getHeading();
-    if (isMapRotation)
-        mapHeading = heading;
+  #ifdef ENABLE_COMPASS
+  //heading = getHeading();
+  if (isMapRotation)
+    mapHeading = heading;
+  else
+    mapHeading = GPS.course.deg();
+  if (showMapCompass)
+  {
+    mapSprite.fillRectAlpha(TFT_WIDTH - 48, 0, 48, 48, 95, TFT_BLACK);
+    if (isCompassRot)
+      mapSprite.pushImageRotateZoom(TFT_WIDTH - 24, 24, 24, 24, 360 - heading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
     else
-        mapHeading = GPS.course.deg();
-    if (showMapCompass)
+      mapSprite.pushImage(TFT_WIDTH - 48, 0, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
+  }
+  #endif
+
+  mapSprite.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
+  mapSprite.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
+  mapSprite.drawNumber(zoom, 26, 8, &fonts::FreeSansBold9pt7b);
+
+  if (showMapSpeed)
+  {
+    mapSprite.fillRectAlpha(0, 342, 70, 32, 95, TFT_BLACK);
+    mapSprite.pushImage(0, 346, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
+    mapSprite.drawNumber((uint16_t)GPS.speed.kmph(), 26, 350, &fonts::FreeSansBold9pt7b);
+  }
+
+  if (!isVectorMap)
+    if (showMapScale)
     {
-        mapSprite.fillRectAlpha(TFT_WIDTH - 48, 0, 48, 48, 95, TFT_BLACK);
-        if (isCompassRot)
-            mapSprite.pushImageRotateZoom(TFT_WIDTH - 24, 24, 24, 24, 360 - heading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
-        else
-            mapSprite.pushImage(TFT_WIDTH - 48, 0, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
+      mapSprite.fillRectAlpha(250, 342, 70, TFT_WIDTH - 245, 95, TFT_BLACK);
+      mapSprite.setTextSize(1);
+      mapSprite.drawFastHLine(255, 360, 60);
+      mapSprite.drawFastVLine(255, 355, 10);
+      mapSprite.drawFastVLine(315, 355, 10);
+      mapSprite.drawCenterString(map_scale[zoom], 285, 350);
     }
-    #endif
-
-    mapSprite.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
-    mapSprite.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
-    mapSprite.drawNumber(zoom, 26, 8, &fonts::FreeSansBold9pt7b);
-
-    if (showMapSpeed)
-    {
-        mapSprite.fillRectAlpha(0, 342, 70, 32, 95, TFT_BLACK);
-        mapSprite.pushImage(0, 346, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
-        mapSprite.drawNumber((uint16_t)GPS.speed.kmph(), 26, 350, &fonts::FreeSansBold9pt7b);
-    }
-
-    if (!isVectorMap)
-        if (showMapScale)
-        {
-            mapSprite.fillRectAlpha(250, 342, 70, TFT_WIDTH - 245, 95, TFT_BLACK);
-            mapSprite.setTextSize(1);
-            mapSprite.drawFastHLine(255, 360, 60);
-            mapSprite.drawFastVLine(255, 355, 10);
-            mapSprite.drawFastVLine(315, 355, 10);
-            mapSprite.drawCenterString(map_scale[zoom], 285, 350);
-        }
 }
 
 /**
@@ -104,40 +104,38 @@ static void drawMapWidgets()
  */
 static void displayMap(uint16_t tileSize)
 {
+  mapSprite.pushSprite(0, 27);
 
-    mapSprite.pushSprite(0, 27);
+  if (isMapFound)
+  {
+    navArrowPosition = coord2ScreenPos(getLon(), getLat(), zoom, tileSize);
 
-    if (isMapFound)
-    {
+    if (tileSize == RENDER_TILE_SIZE)
+      mapTempSprite.setPivot(tileSize + navArrowPosition.posX, tileSize + navArrowPosition.posY);
 
-        navArrowPosition = coord2ScreenPos(getLon(), getLat(), zoom, tileSize);
+    if (tileSize == VECTOR_TILE_SIZE)
+      mapTempSprite.setPivot(tileSize , tileSize );
 
-        if (tileSize == RENDER_TILE_SIZE)
-            mapTempSprite.setPivot(tileSize + navArrowPosition.posX, tileSize + navArrowPosition.posY);
+    #ifdef ENABLE_COMPASS
 
-        if (tileSize == VECTOR_TILE_SIZE)
-            mapTempSprite.setPivot(tileSize , tileSize );
-
-        #ifdef ENABLE_COMPASS
-
-        if (isMapRotation)
-            mapHeading = heading;
-        else
-            mapHeading = GPS.course.deg();
-
-        #else
-
-        mapHeading = GPS.course.deg();
-
-        #endif
-
-        mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
-        //mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
-        sprArrow.pushRotated(&mapSprite, 0, TFT_BLACK);
-        drawMapWidgets();
-    }
+    if (isMapRotation)
+      mapHeading = heading;
     else
-        mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
+      mapHeading = GPS.course.deg();
+
+    #else
+
+    mapHeading = GPS.course.deg();
+
+    #endif
+
+    mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
+    //mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
+    sprArrow.pushRotated(&mapSprite, 0, TFT_BLACK);
+    drawMapWidgets();
+  }
+  else
+    mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
 }
 
 #endif
