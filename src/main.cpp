@@ -49,6 +49,11 @@ void setup()
    Wire.begin();
   #endif
 
+  #ifdef ARDUINO_ESP32S3_DEV
+   Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
+   Wire.begin();
+  #endif
+
   #ifdef ENABLE_BME
    initBME();
   #endif
@@ -65,9 +70,8 @@ void setup()
   initGPS();
   initLVGL();
   
-  #ifndef ESP32S3_N16R8
-   initADC();
-  #endif
+  initADC();
+  
 
   // Reserve PSRAM for buffer map
   mapTempSprite.deleteSprite();

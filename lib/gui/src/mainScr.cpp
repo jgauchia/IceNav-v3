@@ -528,7 +528,7 @@ void createMainScr()
   lv_obj_t *infoGrid = lv_obj_create(satTrackTile);
   lv_obj_set_size(infoGrid, 90, 175);
   lv_obj_set_flex_align(infoGrid, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_pad_row(infoGrid, 5, 0);
+  lv_obj_set_style_pad_row(infoGrid, 5 * scale, 0);
   lv_obj_clear_flag(infoGrid, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_flex_flow(infoGrid, LV_FLEX_FLOW_COLUMN);
   static lv_style_t styleGrid;
@@ -536,21 +536,26 @@ void createMainScr()
   lv_style_set_bg_opa(&styleGrid, LV_OPA_0);
   lv_style_set_border_opa(&styleGrid, LV_OPA_0);
   lv_obj_add_style(infoGrid, &styleGrid, LV_PART_MAIN);
+  lv_obj_set_y(infoGrid,0);
   
   pdopLabel = lv_label_create(infoGrid);
-  lv_label_set_text_fmt(pdopLabel, "PDOP:\n%s", pdop.value());
+  lv_obj_set_style_text_font(pdopLabel, fontSatInfo, 0);
+  lv_label_set_text_fmt(pdopLabel, "PDOP:\n%s", "0.0");
   
   hdopLabel = lv_label_create(infoGrid);
-  lv_label_set_text_fmt(hdopLabel, "HDOP:\n%s", hdop.value());
+  lv_obj_set_style_text_font(hdopLabel, fontSatInfo, 0);
+  lv_label_set_text_fmt(hdopLabel, "HDOP:\n%s", "0.0");
   
   vdopLabel = lv_label_create(infoGrid);
-  lv_label_set_text_fmt(vdopLabel, "VDOP:\n%s", vdop.value());
+  lv_obj_set_style_text_font(vdopLabel, fontSatInfo, 0);
+  lv_label_set_text_fmt(vdopLabel, "VDOP:\n%s", "0.0");
   
   altLabel = lv_label_create(infoGrid);
-  lv_label_set_text_fmt(altLabel, "ALT:\n%4dm.", (int)GPS.altitude.meters());
+  lv_obj_set_style_text_font(altLabel, fontSatInfo, 0);
+  lv_label_set_text_fmt(altLabel, "ALT:\n%4dm.", 0); 
   
   satelliteBar1 = lv_chart_create(satTrackTile);
-  lv_obj_set_size(satelliteBar1, TFT_WIDTH, 55);
+  lv_obj_set_size(satelliteBar1, TFT_WIDTH, 55 * scale);
   lv_chart_set_div_line_count(satelliteBar1, 6, 0);
   lv_chart_set_range(satelliteBar1, LV_CHART_AXIS_PRIMARY_Y, 0, 60);
   satelliteBarSerie1 = lv_chart_add_series(satelliteBar1, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
@@ -559,7 +564,7 @@ void createMainScr()
   lv_obj_set_pos(satelliteBar1, 0, 175);
   
   satelliteBar2 = lv_chart_create(satTrackTile);
-  lv_obj_set_size(satelliteBar2, TFT_WIDTH, 55);
+  lv_obj_set_size(satelliteBar2, TFT_WIDTH, 55 * scale);
   lv_chart_set_div_line_count(satelliteBar2, 6, 0);
   lv_chart_set_range(satelliteBar2, LV_CHART_AXIS_PRIMARY_Y, 0, 60);
   satelliteBarSerie2 = lv_chart_add_series(satelliteBar2, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);

@@ -78,7 +78,7 @@ extern const bool TFT_INVERT = true;
     extern const uint8_t TFT_SPI_SCLK = 12;
     extern const uint8_t TFT_SPI_MOSI = 11;
     extern const uint8_t TFT_SPI_MISO = 13;
-    extern const uint8_t TFT_SPI_DC   = 7;
+    extern const uint8_t TFT_SPI_DC   = 3;
     extern const uint8_t TFT_SPI_CS   = 10;
     extern const uint8_t TFT_SPI_RST  = 6;
 #endif

@@ -27,6 +27,7 @@ extern bool needReboot;                // Flag to force device reboot
 #ifdef LARGE_SCREEN
   static const lv_font_t *fontDefault = &lv_font_montserrat_14;
   static const lv_font_t *fontSmall = &lv_font_montserrat_10;
+  static const lv_font_t *fontSatInfo = &lv_font_montserrat_16;
   static const lv_font_t *fontMedium = &lv_font_montserrat_16;
   static const lv_font_t *fontLarge = &lv_font_montserrat_20;
   static const lv_font_t *fontLargeMedium = &lv_font_montserrat_24;
@@ -36,6 +37,7 @@ extern bool needReboot;                // Flag to force device reboot
 #else
   static const lv_font_t *fontDefault = &lv_font_montserrat_12;
   static const lv_font_t *fontSmall = &lv_font_montserrat_8;
+  static const lv_font_t *fontSatInfo = &lv_font_montserrat_12;
   static const lv_font_t *fontMedium = &lv_font_montserrat_14;
   static const lv_font_t *fontLarge = &lv_font_montserrat_12;
   static const lv_font_t *fontLargeMedium = &lv_font_montserrat_16;
