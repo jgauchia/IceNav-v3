@@ -49,7 +49,7 @@ public:
       cfg.freq_write = 79999999;
       //cfg.freq_write = 40000000;
       cfg.freq_read = 27000000;
-      cfg.spi_3wire = true;
+      cfg.spi_3wire = false;
       cfg.use_lock = false;
       cfg.dma_channel = SPI_DMA_CH_AUTO;
       cfg.pin_sclk = TFT_SPI_SCLK;
@@ -78,7 +78,7 @@ public:
       cfg.invert = TFT_INVERT;
       cfg.rgb_order = false;
       cfg.dlen_16bit = false;
-      cfg.bus_shared = true;
+      cfg.bus_shared = false;
       _panel_instance.config(cfg);
     }
 
@@ -88,7 +88,7 @@ public:
       cfg.x_max = 320;
       cfg.y_min = 0;
       cfg.y_max = 480;
-      cfg.pin_int = 5;
+      cfg.pin_int = TCH_SPI_INT;
       cfg.bus_shared = true;
       cfg.offset_rotation = 0;
       #ifdef ARDUINO_ESP32S3_DEV
