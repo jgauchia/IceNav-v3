@@ -7,6 +7,7 @@
  */
 
 #include "satInfo.hpp"
+#include "globalGuiDef.h"
 
 // GSV GPS_GSV; // GPS Satellites in view
 // GSV GL_GSV;  // GLONASS Satellites in view
@@ -59,17 +60,21 @@ void deleteSatInfoSprites()
  */
 void createConstelSprite(TFT_eSprite &spr)
 {
-  spr.createSprite(150, 150);
+  spr.createSprite(150 * scale, 150 * scale);
   spr.fillScreen(TFT_BLACK);
-  spr.drawCircle(75, 75, 60, TFT_WHITE);
-  spr.drawCircle(75, 75, 30, TFT_WHITE);
-  spr.drawCircle(75, 75, 1, TFT_WHITE);
-  spr.setTextFont(2);
+  spr.drawCircle(75 * scale, 75 * scale, 60 * scale, TFT_WHITE);
+  spr.drawCircle(75 * scale, 75 * scale, 30 * scale, TFT_WHITE);
+  spr.drawCircle(75 * scale, 75 * scale, 1, TFT_WHITE);
+  #ifdef LARGE_SCREEN
+    spr.setTextFont(2);
+  #else
+    spr.setTextFont(1);
+  #endif
   spr.setTextColor(TFT_WHITE, TFT_BLACK);
-  spr.drawString("N", 72, 7);
-  spr.drawString("S", 72, 127);
-  spr.drawString("W", 12, 67);
-  spr.drawString("E", 132, 67);
+  spr.drawString("N", 72 * scale, 7);
+  spr.drawString("S", 72 * scale, 127 * scale);
+  spr.drawString("W", 12 * scale, 67 * scale);
+  spr.drawString("E", 132 * scale, 67 * scale);
   spr.setTextFont(1);
 }
 
@@ -134,7 +139,7 @@ void clearSatInView()
     satTracker[clear].active = false;
   }
   createConstelSprite(constelSprite);
-  constelSprite.pushSprite(150, 40);
+  constelSprite.pushSprite(150 * scale, 40 * scale);
 }
 
 /**
@@ -214,9 +219,9 @@ void fillSatInView(GSV &gsv, int color)
     }
 
     lv_chart_refresh(satelliteBar1);
-    spriteSNR1.pushSprite(0, 260);
+    spriteSNR1.pushSprite(0, 260 * scale);
 
     lv_chart_refresh(satelliteBar2);
-    spriteSNR2.pushSprite(0, 345);
+    spriteSNR2.pushSprite(0, 345 * scale);
   }
 }

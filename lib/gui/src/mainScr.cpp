@@ -211,7 +211,7 @@ void updateMainScreen(lv_timer_t *t)
         break;
 
       case SATTRACK:
-        constelSprite.pushSprite(150, 40);
+        constelSprite.pushSprite(150 * scale, 40 * scale);
         lv_obj_send_event(satTrackTile, LV_EVENT_VALUE_CHANGED, NULL);
         break;
           
@@ -561,7 +561,7 @@ void createMainScr()
   satelliteBarSerie1 = lv_chart_add_series(satelliteBar1, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
   lv_chart_set_type(satelliteBar1, LV_CHART_TYPE_BAR);
   lv_chart_set_point_count(satelliteBar1, (MAX_SATELLLITES_IN_VIEW / 2));
-  lv_obj_set_pos(satelliteBar1, 0, 175);
+  lv_obj_set_pos(satelliteBar1, 0, 175 * scale);
   
   satelliteBar2 = lv_chart_create(satTrackTile);
   lv_obj_set_size(satelliteBar2, TFT_WIDTH, 55 * scale);
@@ -570,8 +570,10 @@ void createMainScr()
   satelliteBarSerie2 = lv_chart_add_series(satelliteBar2, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
   lv_chart_set_type(satelliteBar2, LV_CHART_TYPE_BAR);
   lv_chart_set_point_count(satelliteBar2, (MAX_SATELLLITES_IN_VIEW / 2));
-  lv_obj_set_pos(satelliteBar2, 0, 260);
-  
+  lv_obj_set_pos(satelliteBar2, 0, 260 * scale);
+ 
+  #ifdef LARGE_SCREEN
+
   #ifdef MULTI_GNSS
   lv_style_init(&styleRadio);
   lv_style_set_radius(&styleRadio, LV_RADIUS_CIRCLE);
@@ -613,6 +615,8 @@ void createMainScr()
   lv_obj_add_event_cb(gnssSel, activeGnssEvent, LV_EVENT_CLICKED, &activeGnss);
   #endif
   
+  #endif
+
   // Satellite Tracking Event
   lv_obj_add_event_cb(satTrackTile, updateSatTrack, LV_EVENT_VALUE_CHANGED, NULL);
 }

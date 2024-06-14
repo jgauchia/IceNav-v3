@@ -3,7 +3,7 @@
 
 ![icenav_logo](images/icenav_logo.png)
 
-ESP32 Based GPS Navigator.
+ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 * Note: Under development (experimental features under devel branch)
 * There is the possibility to use two types of maps: Rendered Maps or Tiles (large files), and Vector Maps (small files).
 
@@ -40,7 +40,6 @@ For the moment Icenav works with the next hardware setup and specs **Highly reco
 * BME280   Temperature / Humidity sensor
 * MPU6050  Accelerometer and Gyroscope IMU
 * HT1818Z3G5L GPS Module (AT6558D)
-* LVGL UI + LovyanGFX
 
 ### Makerfabs ESP32-S3 setup
 
@@ -49,7 +48,6 @@ For the moment Icenav works with the next hardware setup and specs **Highly reco
 * FT6236 Capactive Touch Panel Driver
 * HT1612Z3M3L GPS Module (AT6558D)
 * MPU9250 (Compass+IMU)
-* LVGL UI + LovyanGFX
 
 ### Screens
 
