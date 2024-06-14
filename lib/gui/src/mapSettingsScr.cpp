@@ -124,6 +124,7 @@ void createMapSettingsScr()
   list = lv_list_add_btn(mapSettingsOptions, NULL, "Map Type\nRENDER/VECTOR");
   lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
+  lv_obj_set_style_text_font(list, fontOptions, 0);
   mapType = lv_switch_create(list);
   label = lv_label_create(mapType);
   lv_label_set_text_static(label, "V   R");
@@ -139,6 +140,7 @@ void createMapSettingsScr()
   list = lv_list_add_btn(mapSettingsOptions, NULL, "Map Rotation Mode\nHEADING/COMPASS");
   lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
+  lv_obj_set_style_text_font(list, fontOptions, 0);
   mapSwitch = lv_switch_create(list);
   label = lv_label_create(mapSwitch);
   lv_label_set_text_static(label, "C   H");
@@ -154,34 +156,36 @@ void createMapSettingsScr()
   list = lv_list_add_btn(mapSettingsOptions, NULL, "Default\nZoom Level");
   lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
-
+  lv_obj_set_style_text_font(list, fontOptions, 0);
+  
   zoomBtnUp = lv_btn_create(list);
-  lv_obj_set_size(zoomBtnUp, 40, 40);
+  lv_obj_set_size(zoomBtnUp, 40 * scale, 40 * scale);
   lv_obj_align_to(zoomBtnUp, list, LV_ALIGN_LEFT_MID, 0, 0);
   lv_obj_set_style_bg_image_src(zoomBtnUp, LV_SYMBOL_PLUS, 0);
   lv_obj_add_event_cb(zoomBtnUp, mapSettingsEvents, LV_EVENT_ALL, NULL);
 
   zoomLevel = lv_spinbox_create(list);
   lv_spinbox_set_range(zoomLevel, minZoom, maxZoom);
-  lv_obj_set_width(zoomLevel, 40);
+  lv_obj_set_width(zoomLevel, 40 * scale);
   lv_obj_clear_flag(zoomLevel, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_set_style_text_font(zoomLevel, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_font(zoomLevel, fontLarge, 0);
   lv_spinbox_set_value(zoomLevel, defaultZoom);
   lv_spinbox_set_digit_format(zoomLevel, 2, 0);
   lv_obj_align_to(zoomLevel, list, LV_ALIGN_RIGHT_MID, 0, 0);
   objHideCursor(zoomLevel);
 
   zoomBtnDown = lv_btn_create(list);
-  lv_obj_set_size(zoomBtnDown, 40, 40);
+  lv_obj_set_size(zoomBtnDown, 40 * scale, 40 * scale);
   lv_obj_align_to(zoomBtnDown, list, LV_ALIGN_RIGHT_MID, 0, 0);
   lv_obj_set_style_bg_image_src(zoomBtnDown, LV_SYMBOL_MINUS, 0);
   lv_obj_add_event_cb(zoomBtnDown, mapSettingsEvents, LV_EVENT_ALL, NULL);
 
   // Show Compass
   list = lv_list_add_btn(mapSettingsOptions, NULL, "Show Compass");
-  lv_obj_set_style_text_font(list, &lv_font_montserrat_18, 0);
+  lv_obj_set_style_text_font(list, fontOptions, 0);
   lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
+  
   checkCompass = lv_checkbox_create(list);
   lv_obj_align_to(checkCompass, list, LV_ALIGN_RIGHT_MID, 0, 0);
   lv_checkbox_set_text(checkCompass, " ");
@@ -190,7 +194,7 @@ void createMapSettingsScr()
 
   // Compass Rotation
   list = lv_list_add_btn(mapSettingsOptions, NULL, "Compass Rotation");
-  lv_obj_set_style_text_font(list, &lv_font_montserrat_18, 0);
+  lv_obj_set_style_text_font(list, fontOptions, 0);
   lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
   checkCompassRot = lv_checkbox_create(list);
@@ -201,7 +205,7 @@ void createMapSettingsScr()
 
   // Show Speed
   list = lv_list_add_btn(mapSettingsOptions, NULL, "Show Speed");
-  lv_obj_set_style_text_font(list, &lv_font_montserrat_18, 0);
+  lv_obj_set_style_text_font(list, fontOptions, 0);
   lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
   checkSpeed = lv_checkbox_create(list);
@@ -212,7 +216,7 @@ void createMapSettingsScr()
 
   // Show Map Scale
   list = lv_list_add_btn(mapSettingsOptions, NULL, "Show Map Scale");
-  lv_obj_set_style_text_font(list, &lv_font_montserrat_18, 0);
+  lv_obj_set_style_text_font(list, fontOptions, 0);
   lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
   checkScale = lv_checkbox_create(list);
@@ -223,9 +227,9 @@ void createMapSettingsScr()
 
   // Back button
   btnBack = lv_btn_create(mapSettingsScreen);
-  lv_obj_set_size(btnBack, TFT_WIDTH - 30, 40);
+  lv_obj_set_size(btnBack, TFT_WIDTH - 30, 40 * scale);
   label = lv_label_create(btnBack);
-  lv_obj_set_style_text_font(label, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_font(label, fontLarge, 0);
   lv_label_set_text_static(label, "Back");
   lv_obj_center(label);
   lv_obj_align(btnBack, LV_ALIGN_BOTTOM_MID, 0, -10);
