@@ -7,6 +7,7 @@
  */
 
 #include "settingsScr.hpp"
+#include "globalGuiDef.h"
 
 bool needReboot = false;
 
@@ -99,9 +100,9 @@ void createSettingsScr()
   #ifdef ENABLE_COMPASS
   // Compass Calibration
   btn = lv_btn_create(settingsButtons);
-  lv_obj_set_size(btn, TFT_WIDTH - 30, 40);
+  lv_obj_set_size(btn, TFT_WIDTH - 30, 40 * scale);
   btnLabel = lv_label_create(btn);
-  lv_obj_set_style_text_font(btnLabel, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_font(btnLabel, fontLarge, 0);
   lv_label_set_text_static(btnLabel, "Compass Calibration");
   lv_obj_center(btnLabel);
   lv_obj_add_event_cb(btn, compassCalib, LV_EVENT_CLICKED, NULL);
@@ -109,36 +110,36 @@ void createSettingsScr()
 
   // Touch Calibration
   btn = lv_btn_create(settingsButtons);
-  lv_obj_set_size(btn, TFT_WIDTH - 30, 40);
+  lv_obj_set_size(btn, TFT_WIDTH - 30, 40 * scale);
   btnLabel = lv_label_create(btn);
-  lv_obj_set_style_text_font(btnLabel, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_font(btnLabel, fontLarge, 0);
   lv_label_set_text_static(btnLabel, "Touch Calibration");
   lv_obj_center(btnLabel);
   lv_obj_add_event_cb(btn, touchCalib, LV_EVENT_CLICKED, NULL);
 
   // Map Settings
   btn = lv_btn_create(settingsButtons);
-  lv_obj_set_size(btn, TFT_WIDTH - 30, 40);
+  lv_obj_set_size(btn, TFT_WIDTH - 30, 40 * scale);
   btnLabel = lv_label_create(btn);
-  lv_obj_set_style_text_font(btnLabel, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_font(btnLabel, fontLarge, 0);
   lv_label_set_text_static(btnLabel, "Map Settings");
   lv_obj_center(btnLabel);
   lv_obj_add_event_cb(btn, mapSettings, LV_EVENT_CLICKED, NULL);
 
   // Device Settings
   btn = lv_btn_create(settingsButtons);
-  lv_obj_set_size(btn, TFT_WIDTH - 30, 40);
+  lv_obj_set_size(btn, TFT_WIDTH - 30, 40 * scale);
   btnLabel = lv_label_create(btn);
-  lv_obj_set_style_text_font(btnLabel, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_font(btnLabel, fontLarge, 0);
   lv_label_set_text_static(btnLabel, "Device Settings");
   lv_obj_center(btnLabel);
   lv_obj_add_event_cb(btn, deviceSettings, LV_EVENT_CLICKED, NULL);
 
   // Back button
   btn = lv_btn_create(settingsButtons);
-  lv_obj_set_size(btn, TFT_WIDTH - 30, 40);
+  lv_obj_set_size(btn, TFT_WIDTH - 30, 40 * scale);
   btnLabel = lv_label_create(btn);
-  lv_obj_set_style_text_font(btnLabel, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_font(btnLabel, fontLarge, 0);
   lv_label_set_text_static(btnLabel, "Back");
   lv_obj_center(btnLabel);
   lv_obj_add_event_cb(btn, back, LV_EVENT_CLICKED, NULL);
