@@ -58,8 +58,7 @@ static void drawMapWidgets()
 {
   mapSprite.setTextColor(TFT_WHITE, TFT_WHITE);
 
-  //#ifdef ENABLE_COMPASS
-  //heading = getHeading();
+  #ifdef ENABLE_COMPASS
   if (isMapRotation)
     mapHeading = heading;
   else
@@ -72,7 +71,7 @@ static void drawMapWidgets()
     else
       mapSprite.pushImage(MAP_WIDTH - 48, 0, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
   }
-  //#endif
+  #endif
 
   mapSprite.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
   mapSprite.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);

@@ -12,6 +12,7 @@
 #include <Arduino.h>
 #include "tft.hpp"
 #include "lvgl.h"
+#include "globalGuiDef.h"
 
 void objHideCursor(_lv_obj_t *obj);
 void objSelect(_lv_obj_t *obj);

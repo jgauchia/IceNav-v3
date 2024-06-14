@@ -79,6 +79,11 @@ void showRestartScr()
   lv_obj_t *restartScr = lv_obj_create(NULL);
   lv_obj_set_size(restartScr, TFT_WIDTH, TFT_HEIGHT);
   lv_obj_t *restartMsg = lv_msgbox_create(restartScr);
+  lv_obj_set_width(restartMsg,TFT_WIDTH - 20);
+  lv_obj_set_align(restartMsg,LV_ALIGN_CENTER);
+  lv_obj_set_style_text_font(restartMsg, fontDefault, 0);
+  lv_obj_t *labelText = lv_msgbox_get_content(restartMsg);
+  lv_obj_set_style_text_align(labelText, LV_TEXT_ALIGN_CENTER, 0);
   lv_msgbox_add_text(restartMsg, LV_SYMBOL_WARNING " This device will restart shortly");
   lv_screen_load(restartScr);
   lv_timer_t *restartTimer;
