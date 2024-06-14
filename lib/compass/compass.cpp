@@ -129,10 +129,23 @@ void compassCalibrate()
   float z = 0.0;
   uint16_t touchX, touchY;
 
-  tft.drawCenterString("ROTATE THE DEVICE", 160, 10, &fonts::DejaVu18);
-  tft.drawPngFile(SPIFFS, PSTR("/turn.png"), (tft.width() / 2) - 50, 60);
-  tft.drawCenterString("TOUCH TO START", 160, 200, &fonts::DejaVu18);
-  tft.drawCenterString("COMPASS CALIBRATION", 160, 230, &fonts::DejaVu18);
+  static const lgfx::v1::GFXfont* fontSmall;
+  static const lgfx::v1::GFXfont* fontLarge;
+
+  #ifdef LARGE_SCREEN
+    fontSmall = &fonts::DejaVu18;
+    fontLarge = &fonts::DejaVu40;
+    static const float scale = 1.0f;
+  #else
+    fontSmall = &fonts::DejaVu12;
+    fontLarge = &fonts::DejaVu24;
+    static const float scale = 0.75f;
+  #endif
+
+  tft.drawCenterString("ROTATE THE DEVICE", tft.width() >> 1, 10 * scale, fontSmall);
+  tft.drawPngFile(SPIFFS, PSTR("/turn.png"), (tft.width() / 2) - 50, 60 * scale);
+  tft.drawCenterString("TOUCH TO START", tft.width() >> 1, 200 * scale, fontSmall);
+  tft.drawCenterString("COMPASS CALIBRATION", tft.width() >> 1, 230 * scale, fontSmall);
 
   while (!tft.getTouch(&touchX, &touchY))
   {
@@ -165,7 +178,7 @@ void compassCalibrate()
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
     tft.setTextSize(3);
     tft.setTextPadding(tft.textWidth("88"));
-    tft.drawNumber((COMPASS_CAL_TIME - secmillis) / 1000, (tft.width() >> 1), 280);
+    tft.drawNumber((COMPASS_CAL_TIME - secmillis) / 1000, (tft.width() >> 1), 280 * scale);
 
     if (secs == 0)
     {
@@ -176,8 +189,8 @@ void compassCalibrate()
   }
 
   tft.setTextSize(1);
-  tft.drawCenterString("DONE!", 160, 340, &fonts::DejaVu40);
-  tft.drawCenterString("TOUCH TO CONTINUE.", 160, 380, &fonts::DejaVu18);
+  tft.drawCenterString("DONE!", tft.width() >> 1, 340 * scale, fontLarge);
+  tft.drawCenterString("TOUCH TO CONTINUE.", tft.width() >> 1, 380 * scale, fontSmall);
 
   while (!tft.getTouch(&touchX, &touchY))
   {

@@ -92,11 +92,11 @@ void touchCalibrate()
     static const lgfx::v1::GFXfont* fontLarge;
 
     #ifdef LARGE_SCREEN
-    fontSmall = &fonts::DejaVu18;
-    fontLarge = &fonts::DejaVu40;
+      fontSmall = &fonts::DejaVu18;
+      fontLarge = &fonts::DejaVu40;
     #else
-    fontSmall = &fonts::DejaVu12;
-    fontLarge = &fonts::DejaVu24;
+      fontSmall = &fonts::DejaVu12;
+      fontLarge = &fonts::DejaVu24;
     #endif
 
     tft.drawCenterString("TOUCH THE ARROW MARKER.", tft.width() >> 1, tft.height() >> 1, fontSmall);

@@ -199,7 +199,7 @@ IMU MPU9250
 ### TO DO
 
 - [X] LVGL 9 Integration
-- [ ] Support other resolutions and TFT models
+- [X] Support other resolutions and TFT models
 - [ ] GPX Integration
 - [ ] Multiple IMU's and Compass module implementation
 - [ ] Power saving
