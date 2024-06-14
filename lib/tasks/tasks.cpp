@@ -73,13 +73,7 @@ void gpsTask(void *pvParameters)
     // if (!GPS.time.isValid() && isTimeFixed)
     //     isTimeFixed = false;
 
-<<<<<<< HEAD
         vTaskDelay(10 / portTICK_PERIOD_MS);
-||||||| aa51812
-        vTaskDelay(10);
-=======
-    vTaskDelay(10);
->>>>>>> 8908861fa32e6331cad68a5079d75a04da1bf326
 
   }
 }
