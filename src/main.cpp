@@ -68,7 +68,7 @@ void setup()
     initGPS();
     initLVGL();
     initADC();
-
+    
     // Reserve PSRAM for buffer map
     mapTempSprite.deleteSprite();
     mapTempSprite.createSprite(TILE_WIDTH, TILE_HEIGHT);
@@ -82,6 +82,10 @@ void setup()
     #else
     lv_screen_load(searchSatScreen);
     #endif
+    initCLI();
+    initCLITask();
+
+
 }
 
 /**
