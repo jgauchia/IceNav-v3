@@ -58,7 +58,7 @@ static void drawMapWidgets()
 {
   mapSprite.setTextColor(TFT_WHITE, TFT_WHITE);
 
-  #ifdef ENABLE_COMPASS
+  //#ifdef ENABLE_COMPASS
   //heading = getHeading();
   if (isMapRotation)
     mapHeading = heading;
@@ -66,13 +66,13 @@ static void drawMapWidgets()
     mapHeading = GPS.course.deg();
   if (showMapCompass)
   {
-    mapSprite.fillRectAlpha(TFT_WIDTH - 48, 0, 48, 48, 95, TFT_BLACK);
+    mapSprite.fillRectAlpha(MAP_WIDTH - 48, 0, 48, 48, 95, TFT_BLACK);
     if (isCompassRot)
-      mapSprite.pushImageRotateZoom(TFT_WIDTH - 24, 24, 24, 24, 360 - heading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
+      mapSprite.pushImageRotateZoom(MAP_WIDTH - 24, 24, 24, 24, 360 - heading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
     else
-      mapSprite.pushImage(TFT_WIDTH - 48, 0, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
+      mapSprite.pushImage(MAP_WIDTH - 48, 0, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
   }
-  #endif
+  //#endif
 
   mapSprite.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
   mapSprite.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
@@ -80,20 +80,20 @@ static void drawMapWidgets()
 
   if (showMapSpeed)
   {
-    mapSprite.fillRectAlpha(0, 342, 70, 32, 95, TFT_BLACK);
-    mapSprite.pushImage(0, 346, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
-    mapSprite.drawNumber((uint16_t)GPS.speed.kmph(), 26, 350, &fonts::FreeSansBold9pt7b);
+    mapSprite.fillRectAlpha(0, MAP_HEIGHT - 32, 70, 32, 95, TFT_BLACK);
+    mapSprite.pushImage(0, MAP_HEIGHT - 28, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
+    mapSprite.drawNumber((uint16_t)GPS.speed.kmph(), 26, MAP_HEIGHT - 24 , &fonts::FreeSansBold9pt7b);
   }
 
   if (!isVectorMap)
     if (showMapScale)
     {
-      mapSprite.fillRectAlpha(250, 342, 70, TFT_WIDTH - 245, 95, TFT_BLACK);
+      mapSprite.fillRectAlpha(MAP_WIDTH - 70, MAP_HEIGHT - 32 , 70, MAP_WIDTH - 75, 95, TFT_BLACK);
       mapSprite.setTextSize(1);
-      mapSprite.drawFastHLine(255, 360, 60);
-      mapSprite.drawFastVLine(255, 355, 10);
-      mapSprite.drawFastVLine(315, 355, 10);
-      mapSprite.drawCenterString(map_scale[zoom], 285, 350);
+      mapSprite.drawFastHLine(MAP_WIDTH - 65 , MAP_HEIGHT - 14 , 60);
+      mapSprite.drawFastVLine(MAP_WIDTH - 65  , MAP_HEIGHT - 19 , 10);
+      mapSprite.drawFastVLine(MAP_WIDTH - 5, MAP_HEIGHT - 19 , 10);
+      mapSprite.drawCenterString(map_scale[zoom], MAP_WIDTH - 35 , MAP_HEIGHT - 24);
     }
 }
 
@@ -123,7 +123,7 @@ static void displayMap(uint16_t tileSize)
     else
       mapHeading = GPS.course.deg();
 
-    #else
+    #else 
 
     mapHeading = GPS.course.deg();
 
