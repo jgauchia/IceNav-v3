@@ -32,6 +32,7 @@ extern bool needReboot;                // Flag to force device reboot
   static const lv_font_t *fontLarge = &lv_font_montserrat_20;
   static const lv_font_t *fontLargeMedium = &lv_font_montserrat_24;
   static const lv_font_t *fontVeryLarge = &lv_font_montserrat_48;
+  static const lv_font_t *fontOptions = &lv_font_montserrat_18;
   static const float scale = 1.0f;
   static const float scaleBut = 1.0f;
 #else
@@ -42,6 +43,7 @@ extern bool needReboot;                // Flag to force device reboot
   static const lv_font_t *fontLarge = &lv_font_montserrat_12;
   static const lv_font_t *fontLargeMedium = &lv_font_montserrat_16;
   static const lv_font_t *fontVeryLarge = &lv_font_montserrat_38;
+  static const lv_font_t *fontOptions = &lv_font_montserrat_12;
   static const float scale = 0.75f;
   static const float scaleBut = 0.60f;
 #endif

@@ -7,6 +7,7 @@
  */
 
 #include "deviceSettingsScr.hpp"
+#include "globalGuiDef.h"
 
 lv_obj_t *deviceSettingsScreen; // Device Settings Screen
 
@@ -51,7 +52,7 @@ void createDeviceSettingsScr()
   
   // GPS Speed
   list = lv_list_add_btn(deviceSettingsOptions, NULL, "GPS\nSpeed");
-  lv_obj_set_style_text_font(list, &lv_font_montserrat_18, 0);
+  lv_obj_set_style_text_font(list, fontOptions, 0);
   lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_set_align(list, LV_ALIGN_OUT_LEFT_BOTTOM);
   dropdown = lv_dropdown_create(list);
@@ -60,11 +61,12 @@ void createDeviceSettingsScr()
   lv_obj_t* item = lv_dropdown_get_list(dropdown);
   lv_obj_set_style_bg_color(item, lv_color_hex(objectColor), LV_PART_SELECTED | LV_STATE_CHECKED);
   lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
+  lv_obj_set_width(dropdown,TFT_WIDTH / 3);
   lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"speed");
   
   // GPS Update rate
   list = lv_list_add_btn(deviceSettingsOptions, NULL, "GPS\nUpdate rate");
-  lv_obj_set_style_text_font(list, &lv_font_montserrat_18, 0);
+  lv_obj_set_style_text_font(list, fontOptions, 0);
   lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
   dropdown = lv_dropdown_create(list);
@@ -78,14 +80,15 @@ void createDeviceSettingsScr()
     lv_obj_set_style_text_color(dropdown, lv_palette_darken(LV_PALETTE_GREY, 2), 0);
     lv_obj_add_state(dropdown, LV_STATE_DISABLED);
   #endif
+  lv_obj_set_width(dropdown,TFT_WIDTH / 3);
   lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
   lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"rate");
   
   // Back button
   btn = lv_btn_create(deviceSettingsScreen);
-  lv_obj_set_size(btn, TFT_WIDTH - 30, 40);
+  lv_obj_set_size(btn, TFT_WIDTH - 30, 40 * scale);
   label = lv_label_create(btn);
-  lv_obj_set_style_text_font(label, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_font(label, fontLarge, 0);
   lv_label_set_text_static(label, "Back");
   lv_obj_center(label);
   lv_obj_align(btn, LV_ALIGN_BOTTOM_MID, 0, -10);
