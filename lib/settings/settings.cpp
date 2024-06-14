@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Settings functions
  * @version 0.1.8
- * @date 2024-05
+ * @date 2024-06
  */
 
 #include "settings.hpp"
@@ -45,49 +45,51 @@ uint16_t speedPosY = 0;     // Speed widget position Y
  */
 void loadPreferences()
 {
-    cfg.init("ICENAV");
-    offX = cfg.getFloat(PKEYS::KCOMP_OFFSET_X, 0.0);
-    offY = cfg.getFloat(PKEYS::KCOMP_OFFSET_Y, 0.0);
-    isMapRotation = cfg.getBool(PKEYS::KMAP_ROT, false);
-    defaultZoom = cfg.getUInt(PKEYS::KDEF_ZOOM, defZoom);
-    zoom = defaultZoom;
-    showMapCompass = cfg.getBool(PKEYS::KMAP_COMPASS, false);
-    isCompassRot = cfg.getBool(PKEYS::KCOMP_ROT, true);
-    showMapSpeed = cfg.getBool(PKEYS::KMAP_SPEED, false);
-    showMapScale = cfg.getBool(PKEYS::KMAP_SCALE, false);
-    gpsBaud = cfg.getShort(PKEYS::KGPS_SPEED, 2);
-    gpsUpdate = cfg.getShort(PKEYS::KGPS_RATE, 3);
-    compassPosX = cfg.getInt(PKEYS::KCOMP_X, 60);
-    compassPosY = cfg.getInt(PKEYS::KCOMP_Y, 82);
-    coordPosX = cfg.getInt(PKEYS::KCOORD_X, 66);
-    coordPosY = cfg.getInt(PKEYS::KCOORD_Y, 29);
-    altitudePosX = cfg.getInt(PKEYS::KALTITUDE_X, 8);
-    altitudePosY = cfg.getInt(PKEYS::KALTITUDE_Y, 293);
-    speedPosX = cfg.getInt(PKEYS::KSPEED_X, 1);
-    speedPosY = cfg.getInt(PKEYS::KSPEED_Y, 337);
-    isVectorMap = cfg.getBool(PKEYS::KMAP_VECTOR, false);
-    if (isVectorMap)
-    {
-        minZoom = 1;
-        maxZoom = 4;
-    }
-    else
-    {
-        minZoom = 6;
-        maxZoom = 17;
-    }
+  cfg.init("ICENAV");
+#ifdef ENABLE_COMPASS
+  offX = cfg.getFloat(PKEYS::KCOMP_OFFSET_X, 0.0);
+  offY = cfg.getFloat(PKEYS::KCOMP_OFFSET_Y, 0.0);
+#endif
+  isMapRotation = cfg.getBool(PKEYS::KMAP_ROT, false);
+  defaultZoom = cfg.getUInt(PKEYS::KDEF_ZOOM, defZoom);
+  zoom = defaultZoom;
+  showMapCompass = cfg.getBool(PKEYS::KMAP_COMPASS, false);
+  isCompassRot = cfg.getBool(PKEYS::KCOMP_ROT, true);
+  showMapSpeed = cfg.getBool(PKEYS::KMAP_SPEED, false);
+  showMapScale = cfg.getBool(PKEYS::KMAP_SCALE, false);
+  gpsBaud = cfg.getShort(PKEYS::KGPS_SPEED, 2);
+  gpsUpdate = cfg.getShort(PKEYS::KGPS_RATE, 3);
+  compassPosX = cfg.getInt(PKEYS::KCOMP_X, 60);
+  compassPosY = cfg.getInt(PKEYS::KCOMP_Y, 80);
+  coordPosX = cfg.getInt(PKEYS::KCOORD_X, 66);
+  coordPosY = cfg.getInt(PKEYS::KCOORD_Y, 30);
+  altitudePosX = cfg.getInt(PKEYS::KALTITUDE_X, 8);
+  altitudePosY = cfg.getInt(PKEYS::KALTITUDE_Y, 170);
+  speedPosX = cfg.getInt(PKEYS::KSPEED_X, 1);
+  speedPosY = cfg.getInt(PKEYS::KSPEED_Y, 210);
+  isVectorMap = cfg.getBool(PKEYS::KMAP_VECTOR, false);
+  if (isVectorMap)
+  {
+    minZoom = 1;
+    maxZoom = 4;
+  }
+  else
+  {
+    minZoom = 6;
+    maxZoom = 17;
+  }
 
-    // // Default Widgets positions
-    // compassPosX = 60;
-    // compassPosY = 82;
-    // coordPosX = 66;
-    // coordPosY = 29;
-    // altitudePosX = 8;
-    // altitudePosY = 293;
-    // speedPosX = 1;
-    // speedPosY = 337;
+  // // Default Widgets positions
+  // compassPosX = 60;
+  // compassPosY = 82;
+  // coordPosX = 66;
+  // coordPosY = 29;
+  // altitudePosX = 8;
+  // altitudePosY = 293;
+  // speedPosX = 1;
+  // speedPosY = 337;
 
-    printSettings();
+  printSettings();
 }
 
 /**
@@ -97,7 +99,7 @@ void loadPreferences()
  */
 void saveMapRotation(bool zoomRotation)
 {
-    cfg.saveBool(PKEYS::KMAP_ROT, zoomRotation);
+  cfg.saveBool(PKEYS::KMAP_ROT, zoomRotation);
 }
 
 /**
@@ -108,8 +110,8 @@ void saveMapRotation(bool zoomRotation)
  */
 void saveCompassCal(float offsetX, float offsetY)
 {
-    cfg.saveFloat(PKEYS::KCOMP_OFFSET_X, offsetX);
-    cfg.saveFloat(PKEYS::KCOMP_OFFSET_Y, offsetY);
+  cfg.saveFloat(PKEYS::KCOMP_OFFSET_X, offsetX);
+  cfg.saveFloat(PKEYS::KCOMP_OFFSET_Y, offsetY);
 }
 
 /**
@@ -119,7 +121,7 @@ void saveCompassCal(float offsetX, float offsetY)
  */
 void saveDefaultZoom(uint8_t defaultZoom)
 {
-    cfg.saveUInt(PKEYS::KDEF_ZOOM, defaultZoom);
+  cfg.saveUInt(PKEYS::KDEF_ZOOM, defaultZoom);
 }
 
 /**
@@ -129,7 +131,7 @@ void saveDefaultZoom(uint8_t defaultZoom)
  */
 void saveShowCompass(bool showCompass)
 {
-    cfg.saveBool(PKEYS::KMAP_COMPASS, showCompass);
+  cfg.saveBool(PKEYS::KMAP_COMPASS, showCompass);
 }
 
 /**
@@ -139,7 +141,7 @@ void saveShowCompass(bool showCompass)
  */
 void saveCompassRot(bool compassRot)
 {
-    cfg.saveBool(PKEYS::KCOMP_ROT, compassRot);
+  cfg.saveBool(PKEYS::KCOMP_ROT, compassRot);
 }
 
 /**
@@ -149,7 +151,7 @@ void saveCompassRot(bool compassRot)
  */
 void saveShowSpeed(bool showSpeed)
 {
-    cfg.saveBool(PKEYS::KMAP_SPEED, showSpeed);
+  cfg.saveBool(PKEYS::KMAP_SPEED, showSpeed);
 }
 
 /**
@@ -159,7 +161,7 @@ void saveShowSpeed(bool showSpeed)
  */
 void saveShowScale(bool showScale)
 {
-    cfg.saveBool(PKEYS::KMAP_SCALE, showScale);
+  cfg.saveBool(PKEYS::KMAP_SCALE, showScale);
 }
 
 /**
@@ -169,20 +171,20 @@ void saveShowScale(bool showScale)
  */
 void saveGPSBaud(uint16_t gpsBaud)
 {
-    cfg.saveShort(PKEYS::KGPS_SPEED, gpsBaud);
+  cfg.saveShort(PKEYS::KGPS_SPEED, gpsBaud);
 #ifdef AT6558D_GPS
-    gps->flush();
-    gps->println(GPS_BAUD_PCAS[gpsBaud]);
-    gps->flush();
-    gps->println("$PCAS00*01\r\n");
-    gps->flush();
-    delay(500);
+  gps->flush();
+  gps->println(GPS_BAUD_PCAS[gpsBaud]);
+  gps->flush();
+  gps->println("$PCAS00*01\r\n");
+  gps->flush();
+  delay(500);
 #endif
-    gps->flush();
-    gps->end();
-    delay(500);
-    gps->begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
-    delay(500);
+  gps->flush();
+  gps->end();
+  delay(500);
+  gps->begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
+  delay(500);
 }
 
 /**
@@ -192,14 +194,14 @@ void saveGPSBaud(uint16_t gpsBaud)
  */
 void saveGPSUpdateRate(uint16_t gpsUpdateRate)
 {
-    cfg.saveShort(PKEYS::KGPS_RATE, gpsUpdateRate);
+  cfg.saveShort(PKEYS::KGPS_RATE, gpsUpdateRate);
 #ifdef AT6558D_GPS
-    gps->flush();
-    gps->println(GPS_RATE_PCAS[gpsUpdateRate]);
-    gps->flush();
-    gps->println("$PCAS00*01\r\n");
-    gps->flush();
-    delay(500);
+  gps->flush();
+  gps->println(GPS_RATE_PCAS[gpsUpdateRate]);
+  gps->flush();
+  gps->println("$PCAS00*01\r\n");
+  gps->flush();
+  delay(500);
 #endif
 }
 
@@ -211,17 +213,17 @@ void saveGPSUpdateRate(uint16_t gpsUpdateRate)
  */
 void saveWidgetPos(char *widget, uint16_t posX, uint16_t posY)
 {
-    const char *strX = "X";
-    const char *strY = "Y";
-    char widgetX[30] = "";
-    char widgetY[30] = "";
-    strcat(widgetX, widget);
-    strcat(widgetX, strX);
-    strcat(widgetY, widget);
-    strcat(widgetY, strY);
+  const char *strX = "X";
+  const char *strY = "Y";
+  char widgetX[30] = "";
+  char widgetY[30] = "";
+  strcat(widgetX, widget);
+  strcat(widgetX, strX);
+  strcat(widgetY, widget);
+  strcat(widgetY, strY);
 
-    cfg.saveInt(widgetX, posX);
-    cfg.saveInt(widgetY, posY);
+  cfg.saveInt(widgetX, posX);
+  cfg.saveInt(widgetY, posY);
 }
 
 /**
@@ -231,7 +233,7 @@ void saveWidgetPos(char *widget, uint16_t posX, uint16_t posY)
  */
 void saveMapType(bool vector)
 {
-    cfg.saveBool(PKEYS::KMAP_VECTOR, vector);
+  cfg.saveBool(PKEYS::KMAP_VECTOR, vector);
 }
 
 /**

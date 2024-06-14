@@ -3,13 +3,15 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Compass definition and functions
  * @version 0.1.8
- * @date 2024-05
+ * @date 2024-06
  */
 
 #ifndef COMPASS_HPP
 #define COMPASS_HPP
 
 #include "tft.hpp"
+
+extern int mapHeading;
 
 #ifdef ENABLE_COMPASS
 
@@ -28,7 +30,7 @@ extern MPU9250 IMU;
 void saveCompassCal(float offsetX, float offsetY);
 extern float declinationAngle;
 extern int heading;
-extern int mapHeading;
+
 extern float offX;
 extern float offY; 
 static float headingSmooth = 0.0;

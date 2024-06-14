@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  ESP32 GPS Naviation main code
  * @version 0.1.8
- * @date 2024-05
+ * @date 2024-06
  */
 
 #include <Arduino.h>
@@ -23,22 +23,19 @@
 #include "gps.hpp"
 #include "storage.hpp"
 #include "tft.hpp"
+
 #ifdef ENABLE_COMPASS
 #include "compass.hpp"
 #endif
+
 #ifdef ENABLE_BME
 #include "bme.hpp"
 #endif
+
 #include "battery.hpp"
 #include "power.hpp"
 #include "settings.hpp"
-
 #include "tasks.hpp"
-#include "satInfo.hpp"
-#include "gpsMath.hpp"
-#include "vectorMaps.hpp"
-#include "renderMaps.hpp"
-
 #include "lvglSetup.hpp"
 
 /**
@@ -47,41 +44,48 @@
  */
 void setup()
 {
-    #ifdef MAKERF_ESP32S3
-    Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
-    Wire.begin();
-    #endif
+  #ifdef MAKERF_ESP32S3
+   Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
+   Wire.begin();
+  #endif
 
-    #ifdef ENABLE_BME
-    initBME();
-    #endif
+  #ifdef ARDUINO_ESP32S3_DEV
+   Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
+   Wire.begin();
+  #endif
 
-    #ifdef ENABLE_COMPASS
-    initCompass();
-    #endif
+  #ifdef ENABLE_BME
+   initBME();
+  #endif
 
-    powerOn();
-    loadPreferences();
-    initSD();
-    initSPIFFS();
-    initTFT();
-    initGPS();
-    initLVGL();
-    initADC();
+  #ifdef ENABLE_COMPASS
+   initCompass();
+  #endif
 
-    // Reserve PSRAM for buffer map
-    mapTempSprite.deleteSprite();
-    mapTempSprite.createSprite(TILE_WIDTH, TILE_HEIGHT);
+  powerOn();
+  loadPreferences();
+  initSD();
+  initSPIFFS();
+  initTFT();
+  initGPS();
+  initLVGL();
+  
+  initADC();
+  
 
-    splashScreen();
-    //initLvglTask();
-    initGpsTask();
+  // Reserve PSRAM for buffer map
+  mapTempSprite.deleteSprite();
+  mapTempSprite.createSprite(TILE_WIDTH, TILE_HEIGHT);
 
-    #ifdef DEFAULT_LAT
-    loadMainScreen();
-    #else
-    lv_screen_load(searchSatScreen);
-    #endif
+  splashScreen();
+  //initLvglTask();
+  initGpsTask();
+
+  #ifdef DEFAULT_LAT
+   loadMainScreen();
+  #else
+   lv_screen_load(searchSatScreen);
+  #endif
 }
 
 /**
@@ -90,8 +94,8 @@ void setup()
  */
 void loop()
 {
-    // lv_timer_handler();
-    // lv_tick_inc(5);
-    lv_timer_handler();
-    vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
+  // lv_timer_handler();
+  // lv_tick_inc(5);
+  lv_timer_handler();
+  vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
 }
