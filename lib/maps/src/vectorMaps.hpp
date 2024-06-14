@@ -3,7 +3,7 @@
  * @author @aresta - https://github.com/aresta/ESP32_GPS
  * @brief  Vector maps draw functions
  * @version 0.1.8
- * @date 2024-05
+ * @date 2024-06
  */
 
 #ifndef VECTORMAPS_HPP
@@ -68,13 +68,13 @@ static double lon2x(double lon) { return DEG2RAD(lon) * EARTH_RADIUS; }
  */
 struct Point16
 {
-    Point16(){};
-    Point16(int16_t x, int16_t y) : x(x), y(y){};
-    Point16 operator-(const Point16 p) { return Point16(x - p.x, y - p.y); };
-    Point16 operator+(const Point16 p) { return Point16(x + p.x, y + p.y); };
-    Point16(char *coordsPair); // char array like:  11.222,333.44
-    int16_t x;
-    int16_t y;
+  Point16(){};
+  Point16(int16_t x, int16_t y) : x(x), y(y){};
+  Point16 operator-(const Point16 p) { return Point16(x - p.x, y - p.y); };
+  Point16 operator+(const Point16 p) { return Point16(x + p.x, y + p.y); };
+  Point16(char *coordsPair); // char array like:  11.222,333.44
+  int16_t x;
+  int16_t y;
 };
 
 /**
@@ -83,19 +83,19 @@ struct Point16
  */
 struct Point32
 {
-    Point32(){};
-    Point32(int32_t x, int32_t y) : x(x), y(y){};
-    Point32(Point16 p) : x(p.x), y(p.y){};
-    Point32 operator-(const Point32 p) { return Point32(x - p.x, y - p.y); };
-    Point32 operator+(const Point32 p) { return Point32(x + p.x, y + p.y); };
-    Point16 toPoint16() { return Point16(x, y); }; // TODO: check limits
-    bool operator==(const Point32 p) { return x == p.x && y == p.y; };
+  Point32(){};
+  Point32(int32_t x, int32_t y) : x(x), y(y){};
+  Point32(Point16 p) : x(p.x), y(p.y){};
+  Point32 operator-(const Point32 p) { return Point32(x - p.x, y - p.y); };
+  Point32 operator+(const Point32 p) { return Point32(x + p.x, y + p.y); };
+  Point16 toPoint16() { return Point16(x, y); }; // TODO: check limits
+  bool operator==(const Point32 p) { return x == p.x && y == p.y; };
 
-    /// @brief Parse char array with the coordinates
-    /// @param coordsPair char array like:  11.222,333.44
+  /// @brief Parse char array with the coordinates
+  /// @param coordsPair char array like:  11.222,333.44
 
-    int32_t x;
-    int32_t y;
+  int32_t x;
+  int32_t y;
 };
 
 /**
@@ -104,16 +104,16 @@ struct Point32
  */
 struct BBox
 {
-    BBox(){};
-    // @brief Bounding Box
-    // @param min top left corner
-    // @param max bottim right corner
-    BBox(Point32 min, Point32 max) : min(min), max(max){};
-    BBox operator-(const Point32 p) { return BBox(min - p, max - p); };
-    bool containsPoint(const Point32 p);
-    bool intersects(const BBox b);
-    Point32 min;
-    Point32 max;
+  BBox(){};
+  // @brief Bounding Box
+  // @param min top left corner
+  // @param max bottim right corner
+  BBox(Point32 min, Point32 max) : min(min), max(max){};
+  BBox operator-(const Point32 p) { return BBox(min - p, max - p); };
+  bool containsPoint(const Point32 p);
+  bool intersects(const BBox b);
+  Point32 min;
+  Point32 max;
 };
 
 /**
@@ -122,11 +122,11 @@ struct BBox
  */
 struct Polyline
 {
-    std::vector<Point16> points;
-    BBox bbox;
-    uint16_t color;
-    uint8_t width;
-    uint8_t maxZoom;
+  std::vector<Point16> points;
+  BBox bbox;
+  uint16_t color;
+  uint8_t width;
+  uint8_t maxZoom;
 };
 
 /**
@@ -135,10 +135,10 @@ struct Polyline
  */
 struct Polygon
 {
-    std::vector<Point16> points;
-    BBox bbox;
-    uint16_t color;
-    uint8_t maxZoom;
+  std::vector<Point16> points;
+  BBox bbox;
+  uint16_t color;
+  uint8_t maxZoom;
 };
 
 /**
@@ -147,9 +147,9 @@ struct Polygon
  */
 struct ViewPort
 {
-    void setCenter(Point32 pcenter);
-    Point32 center;
-    BBox bbox;
+  void setCenter(Point32 pcenter);
+  Point32 center;
+  BBox bbox;
 };
 
 int16_t toScreenCoord(const int32_t pxy, const int32_t screenCenterxy);
@@ -160,11 +160,11 @@ int16_t toScreenCoord(const int32_t pxy, const int32_t screenCenterxy);
  */
 struct MapBlock
 {
-    Point32 offset;
-    // BBox bbox;
-    bool inView = false;
-    std::vector<Polyline> polylines;
-    std::vector<Polygon> polygons;
+  Point32 offset;
+  // BBox bbox;
+  bool inView = false;
+  std::vector<Polyline> polylines;
+  std::vector<Polygon> polygons;
 };
 
 /**
@@ -173,7 +173,7 @@ struct MapBlock
  */
 struct MemCache
 {
-    std::vector<MapBlock *> blocks;
+  std::vector<MapBlock *> blocks;
 };
 
 /**
@@ -182,8 +182,8 @@ struct MemCache
  */
 struct MemBlocks
 {
-    std::map<String, u_int16_t> blocks_map; // block offset -> block index
-    std::array<MapBlock *, MAPBLOCKS_MAX> blocks;
+  std::map<String, u_int16_t> blocks_map; // block offset -> block index
+  std::array<MapBlock *, MAPBLOCKS_MAX> blocks;
 };
 
 /**
@@ -192,14 +192,14 @@ struct MemBlocks
  */
 struct Coord
 {
-    Point32 getPoint32();
-    double lat = 0;
-    double lng = 0;
-    int16_t altitude = 0;
-    int16_t direction = 0;
-    int16_t satellites = 0;
-    bool isValid = false;
-    bool isUpdated = false;
+  Point32 getPoint32();
+  double lat = 0;
+  double lng = 0;
+  int16_t altitude = 0;
+  int16_t direction = 0;
+  int16_t satellites = 0;
+  bool isValid = false;
+  bool isUpdated = false;
 };
 
 extern MemBlocks memBlocks;     // Vector file map memory blocks

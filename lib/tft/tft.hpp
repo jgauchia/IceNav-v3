@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief TFT definition and functions
  * @version 0.1.8
- * @date 2024-05
+ * @date 2024-06
  */
 
 #ifndef TFT_HPP
@@ -14,13 +14,16 @@
 #include <SD.h>
 #include <SPIFFS.h>
 
-#ifdef CUSTOMBOARD
-#include <lgfx_CUSTOMBOARD_conf.hpp>
+#ifdef ILI9488_XPT2046_SPI
+#include "ILI9488_XPT2046_SPI.hpp"
 #endif
 
-#ifdef MAKERF_ESP32S3
-#include <lgfx_MAKERF_ESP32S3_conf.hpp>
-//#include <lgfx_ESP32S3_TEST_conf.hpp>
+#ifdef ILI9488_FT5x06_16B
+#include "ILI9488_FT5x06_16B.hpp"
+#endif
+
+#ifdef ILI9341_XPT2046_SPI
+#include "ILI9341_XPT2046_SPI.hpp"
 #endif
 
 #include <LGFX_TFT_eSPI.hpp>
@@ -29,6 +32,8 @@ extern TFT_eSPI tft;
 static const char* calibrationFile PROGMEM = "/TouchCalData1";
 extern bool repeatCalib;
 static uint8_t brightnessLevel = 255;
+extern uint16_t TFT_WIDTH;
+extern uint16_t TFT_HEIGHT;
 
 void setBrightness(uint8_t brightness);
 uint8_t getBrightness();

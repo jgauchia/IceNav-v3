@@ -2,7 +2,7 @@
  * @file globalMapsDef.h
  * @brief  Global Maps Variables
  * @version 0.1.8
- * @date 2024-05
+ * @date 2024-06
  */
 
 #ifndef GLOBALMAPSDEF_H
@@ -11,8 +11,14 @@
 #include "SPIFFS.h"
 #include "tft.hpp"
 
+#ifdef LARGE_SCREEN
 #define MAP_HEIGHT 374  // Map Height Size
 #define MAP_WIDTH 320   // Map Width Size
+#else
+#define MAP_HEIGHT 240 // Map Height Size
+#define MAP_WIDTH 240  // Map Width Size
+#endif
+
 #define TILE_HEIGHT 768 // Tile 9x9 Height Size
 #define TILE_WIDTH 768  // Tile 9x9 Width Size
 
@@ -38,7 +44,7 @@ extern uint16_t tileSize;
  */
 static uint16_t lon2posx(float f_lon, uint8_t zoom, uint16_t tileSize)
 {
-    return ((uint16_t)(((f_lon + 180.0) / 360.0 * (pow(2.0, zoom)) * tileSize)) % tileSize);
+  return ((uint16_t)(((f_lon + 180.0) / 360.0 * (pow(2.0, zoom)) * tileSize)) % tileSize);
 }
 
 /**
@@ -51,7 +57,7 @@ static uint16_t lon2posx(float f_lon, uint8_t zoom, uint16_t tileSize)
  */
 static uint16_t lat2posy(float f_lat, uint8_t zoom, uint16_t tileSize)
 {
-    return ((uint16_t)(((1.0 - log(tan(f_lat * M_PI / 180.0) + 1.0 / cos(f_lat * M_PI / 180.0)) / M_PI) / 2.0 * (pow(2.0, zoom)) * tileSize)) % tileSize);
+  return ((uint16_t)(((1.0 - log(tan(f_lat * M_PI / 180.0) + 1.0 / cos(f_lat * M_PI / 180.0)) / M_PI) / 2.0 * (pow(2.0, zoom)) * tileSize)) % tileSize);
 }
 
 /**
@@ -81,10 +87,10 @@ extern ScreenCoord navArrowPosition;
  */
 static ScreenCoord coord2ScreenPos(double lon, double lat, uint8_t zoomLevel, uint16_t tileSize)
 {
-    ScreenCoord data;
-    data.posX = lon2posx(lon, zoomLevel, tileSize);
-    data.posY = lat2posy(lat, zoomLevel, tileSize);
-    return data;
+  ScreenCoord data;
+  data.posX = lon2posx(lon, zoomLevel, tileSize);
+  data.posY = lat2posy(lat, zoomLevel, tileSize);
+  return data;
 }
 
 static const char *noMapFile PROGMEM = "/NOMAP.png";
@@ -95,8 +101,8 @@ static const char *noMapFile PROGMEM = "/NOMAP.png";
  */
 static void showNoMap(TFT_eSprite &map)
 {
-    map.drawPngFile(SPIFFS, noMapFile, (MAP_WIDTH / 2) - 50, (MAP_HEIGHT / 2) - 50);
-    map.drawCenterString("NO MAP FOUND", (MAP_WIDTH / 2), (MAP_HEIGHT >> 1) + 65, &fonts::DejaVu18);
+  map.drawPngFile(SPIFFS, noMapFile, (MAP_WIDTH / 2) - 50, (MAP_HEIGHT / 2) - 50);
+  map.drawCenterString("NO MAP FOUND", (MAP_WIDTH / 2), (MAP_HEIGHT >> 1) + 65, &fonts::DejaVu18);
 }
 
 #endif

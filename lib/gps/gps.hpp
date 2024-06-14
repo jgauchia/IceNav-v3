@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  GPS definition and functions
  * @version 0.1.8
- * @date 2024-05
+ * @date 2024-06
  */
 
 #ifndef GPS_HPP
@@ -49,26 +49,26 @@ struct GSV
 #ifdef MULTI_GNSS
 
 // DOP and fix mode
-extern TinyGPSCustom pdop; // $GNGSA sentence, 15th element
-extern TinyGPSCustom hdop; // $GNGSA sentence, 16th element
-extern TinyGPSCustom vdop; // $GNGSA sentence, 17th element
-extern TinyGPSCustom fix;
-extern TinyGPSCustom fixMode;
+  extern TinyGPSCustom pdop; // $GNGSA sentence, 15th element
+  extern TinyGPSCustom hdop; // $GNGSA sentence, 16th element
+  extern TinyGPSCustom vdop; // $GNGSA sentence, 17th element
+  extern TinyGPSCustom fix;
+  extern TinyGPSCustom fixMode;
 
-extern GSV GPS_GSV; // GPS Satellites in view
-extern GSV GL_GSV;  // GLONASS Satellites in view
-extern GSV BD_GSV;  // BEIDOU Satellites in view
+  extern GSV GPS_GSV; // GPS Satellites in view
+  extern GSV GL_GSV;  // GLONASS Satellites in view
+  extern GSV BD_GSV;  // BEIDOU Satellites in view
 
 #else
 
-// DOP and fix mode
-extern TinyGPSCustom pdop; // $GPGSA sentence, 15th element
-extern TinyGPSCustom hdop; // $GPGSA sentence, 16th element
-extern TinyGPSCustom vdop; // $GPGSA sentence, 17th element
-extern TinyGPSCustom fix;
-extern TinyGPSCustom fixMode;
+  // DOP and fix mode
+  extern TinyGPSCustom pdop; // $GPGSA sentence, 15th element
+  extern TinyGPSCustom hdop; // $GPGSA sentence, 16th element
+  extern TinyGPSCustom vdop; // $GPGSA sentence, 17th element
+  extern TinyGPSCustom fix;
+  extern TinyGPSCustom fixMode;
 
-extern GSV GPS_GSV; // GPS Satellites in view
+  extern GSV GPS_GSV; // GPS Satellites in view
 
 #endif
 
