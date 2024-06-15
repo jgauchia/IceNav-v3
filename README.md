@@ -28,6 +28,10 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 |:-:|:-:|:-:|:-:|:-:|
 | Settings | Compass Calibration | Touch Calibration | Map Settings | Device Settings |
 
+### WiFi CLI Manager
+![WifiCLI](https://github.com/jgauchia/IceNav-v3/assets/1075178/a7f8af18-2c34-436d-8fef-995540312cb2)
+
+
 ## Specifications
 
 For the moment Icenav works with the next hardware setup and specs **Highly recommended an ESP32 with PSRAM** :
