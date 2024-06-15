@@ -24,11 +24,15 @@
 #include "storage.hpp"
 #include "tft.hpp"
 
-#ifdef ENABLE_COMPASS
+#ifdef HMC5883L
 #include "compass.hpp"
 #endif
 
-#ifdef ENABLE_BME
+#ifdef IMU_MPU9250
+#include "compass.hpp"
+#endif
+
+#ifdef BME280
 #include "bme.hpp"
 #endif
 
@@ -44,17 +48,12 @@
  */
 void setup()
 {
-  #ifdef MAKERF_ESP32S3
-   Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
-   Wire.begin();
-  #endif
-
   #ifdef ARDUINO_ESP32S3_DEV
    Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
    Wire.begin();
   #endif
 
-  #ifdef ENABLE_BME
+  #ifdef BME280
    initBME();
   #endif
 

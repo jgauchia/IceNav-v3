@@ -8,7 +8,7 @@
 
 #include "bme.hpp"
 
-#ifdef ENABLE_BME
+#ifdef BME280
 
 Adafruit_BME280 bme = Adafruit_BME280();
 
