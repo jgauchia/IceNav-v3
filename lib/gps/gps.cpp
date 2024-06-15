@@ -13,7 +13,7 @@ bool isTimeFixed = false;
 HardwareSerial *gps = &Serial2;
 TinyGPSPlus GPS = TinyGPSPlus();
 
-#ifdef MULTI_GNSS
+#ifdef AT6558D_GPS
 
 // DOP and fix mode
 TinyGPSCustom pdop(GPS, PSTR("GNGSA"), 15); // $GNGSA sentence, 15th element
@@ -72,7 +72,7 @@ void initGPS()
   GPS_GSV.msgNum.begin(GPS, PSTR("GPGSV"), 2);
   GPS_GSV.satsInView.begin(GPS, PSTR("GPGSV"), 3);
 
-#ifdef MULTI_GNSS
+#ifdef AT6558D_GPS
 
   GL_GSV.totalMsg.begin(GPS, PSTR("GLGSV"), 1);
   GL_GSV.msgNum.begin(GPS, PSTR("GLGSV"), 2);
@@ -91,7 +91,7 @@ void initGPS()
     GPS_GSV.azim[i].begin(GPS, PSTR("GPGSV"), 6 + (4 * i));   // offsets 6, 10, 14, 18
     GPS_GSV.snr[i].begin(GPS, PSTR("GPGSV"), 7 + (4 * i));    // offsets 7, 11, 15, 19
 
-#ifdef MULTI_GNSS
+#ifdef AT6558D_GPS
 
     GL_GSV.satNum[i].begin(GPS, PSTR("GLGSV"), 4 + (4 * i)); // offsets 4, 8, 12, 16
     GL_GSV.elev[i].begin(GPS, PSTR("GLGSV"), 5 + (4 * i));   // offsets 5, 9, 13, 17

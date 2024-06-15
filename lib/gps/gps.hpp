@@ -46,7 +46,7 @@ struct GSV
  * @brief Custom NMEA sentences
  *
  */
-#ifdef MULTI_GNSS
+#ifdef AT6558D_GPS
 
 // DOP and fix mode
   extern TinyGPSCustom pdop; // $GNGSA sentence, 15th element
