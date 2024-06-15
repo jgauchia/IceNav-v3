@@ -12,7 +12,7 @@
 #include <Arduino.h>
 #include <stdint.h>
 
-#define EARTH_RADIUS 6378137       // Earth Radius
+#define EARTH_RADIUS 6371009 //6378137       // Earth Radius
 #define METER_PER_PIXELS 156543.03 // Meters per pixels
 
 #define DEG2RAD(a) ((a) / (180 / M_PI)) // Convert degrees to radians

@@ -52,7 +52,6 @@ struct GSV
   extern TinyGPSCustom pdop; // $GNGSA sentence, 15th element
   extern TinyGPSCustom hdop; // $GNGSA sentence, 16th element
   extern TinyGPSCustom vdop; // $GNGSA sentence, 17th element
-  extern TinyGPSCustom fix;
   extern TinyGPSCustom fixMode;
 
   extern GSV GPS_GSV; // GPS Satellites in view
@@ -65,7 +64,6 @@ struct GSV
   extern TinyGPSCustom pdop; // $GPGSA sentence, 15th element
   extern TinyGPSCustom hdop; // $GPGSA sentence, 16th element
   extern TinyGPSCustom vdop; // $GPGSA sentence, 17th element
-  extern TinyGPSCustom fix;
   extern TinyGPSCustom fixMode;
 
   extern GSV GPS_GSV; // GPS Satellites in view

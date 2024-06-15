@@ -82,22 +82,27 @@ void updateNotifyBarTimer(lv_timer_t *t)
   lv_obj_send_event(gpsTime, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_send_event(gpsCount, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_send_event(gpsFixMode, LV_EVENT_VALUE_CHANGED, NULL);
-  
-  switch (atoi(fix.value()))
+ 
+  if (GPS.location.isValid())
   {
-    case 0:
-      lv_led_off(gpsFix);
-      break;
-    case 1:
-      lv_led_toggle(gpsFix);
-      break;
-    case 2:
-      lv_led_toggle(gpsFix);
-      break;
-    default:
-      lv_led_off(gpsFix);
-      break;
+    switch (GPS.location.FixQuality()) 
+    {
+      case '0':
+        lv_led_off(gpsFix);
+        break;
+      case '1':
+        lv_led_toggle(gpsFix);
+        break;
+      case '2':
+        lv_led_toggle(gpsFix);
+        break;
+      default:
+        lv_led_off(gpsFix);
+        break;
+    }
   }
+  else
+   lv_led_off(gpsFix);
 
   #ifdef ENABLE_BME
   tempValue = (uint8_t)(bme.readTemperature());
@@ -173,7 +178,7 @@ void createNotifyBar()
   lv_led_off(gpsFix);
   
   gpsFixMode = lv_label_create(notifyBarIcons);
-  lv_obj_set_style_text_font(gpsFixMode, &lv_font_montserrat_10, 0);
+  lv_obj_set_style_text_font(gpsFixMode, fontSmall, 0);
   lv_label_set_text_static(gpsFixMode, "--");
   lv_obj_add_event_cb(gpsFixMode, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
   
