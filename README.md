@@ -59,7 +59,7 @@ Currently, IceNav works with the following hardware setups and specs
 
 ### Modules
 
-|             | Type          | Build Flags [^2]                 | lib_deps [^3]                                         |
+|             | Type          | Build Flags [^2]                 | lib_deps [^3] (**no common environment**)              |
 |:------------|:--------------|:---------------------------------|:-------------------------------------------------------|
 | AT6558D     | GPS           | ```-D AT6558D_GPS = 1```         |                                                        |
 | HMC5883L    | Compass       | ```-D HMC5883L = 1```            | ```adafruit/Adafruit Unified Sensor@^1.1.14``` <br> ```adafruit/Adafruit BusIO@^1.16.1``` <br> ```adafruit/Adafruit HMC5883 Unified@^1.2.3```|
