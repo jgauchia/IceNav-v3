@@ -63,10 +63,17 @@ void loadPreferences()
   compassPosY = cfg.getInt(PKEYS::KCOMP_Y, 80);
   coordPosX = cfg.getInt(PKEYS::KCOORD_X, 66);
   coordPosY = cfg.getInt(PKEYS::KCOORD_Y, 30);
+#ifdef LARGE_SCREEN
+  altitudePosX = cfg.getInt(PKEYS::KALTITUDE_X, 8);
+  altitudePosY = cfg.getInt(PKEYS::KALTITUDE_Y, 293);
+  speedPosX = cfg.getInt(PKEYS::KSPEED_X, 1);
+  speedPosY = cfg.getInt(PKEYS::KSPEED_Y, 337);
+#else
   altitudePosX = cfg.getInt(PKEYS::KALTITUDE_X, 8);
   altitudePosY = cfg.getInt(PKEYS::KALTITUDE_Y, 170);
   speedPosX = cfg.getInt(PKEYS::KSPEED_X, 1);
   speedPosY = cfg.getInt(PKEYS::KSPEED_Y, 210);
+#endif
   isVectorMap = cfg.getBool(PKEYS::KMAP_VECTOR, false);
   if (isVectorMap)
   {
