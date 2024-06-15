@@ -34,37 +34,34 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 
 ## Specifications
 
-For the moment Icenav works with the next hardware setup and specs **Highly recommended an ESP32 with PSRAM** :
+Currently, IceNav works with the following hardware setups and specs 
 
-### Customboard ESP32 setup
+**Highly recommended an ESP32 with PSRAM** 
+ 
+> [!IMPORTANT]
+> Please review the platformio.ini file to choose the appropriate environment as well as the different build flags for your correct setup.
 
-* ESP32 WROVER with 4Mb PSRAM / 16 Mb Flash
-* SD/MicroSD reader
-* HCM5883L Magnetometer
-* BME280   Temperature / Humidity sensor
-* MPU6050  Accelerometer and Gyroscope IMU
-* HT1818Z3G5L GPS Module (AT6558D)
+### Boards
 
-### Makerfabs ESP32-S3 setup
+|                  | FLASH | PSRAM | Environment                  |
+|:-----------------|:-----:|:-----:|:-----------------------------|
+| ESP32            |  16M  |  4M   | ``` [env:ESP32_N16R4] ```    |
+| ESP32S3          |  16M  |  8M   | ``` [env:ESP32S3_N16R8] ```  |
+| MAKERFAB ESP32S3 |  16M  |  2M   | ``` [env:MAKERF_ESP32S3] ``` |
 
-* ESP32-S3-WROOM-1 with 2Mb PSRAM / 16 Mb Flash
-* MicroSD reader
-* FT6236 Capactive Touch Panel Driver
-* HT1612Z3M3L GPS Module (AT6558D)
-* MPU9250 (Compass+IMU)
 
 ### Screens
 
 | Driver [^1] | Resolution | SPI | 8bit | 16bit | Touch     | Build Flags [^2]                 |
-|:-----------:|:----------:|:---:|:----:|:-----:|:---------:|:--------------------------------:|
+|:------------|:----------:|:---:|:----:|:-----:|:---------:|:---------------------------------|
 | ILI9488     | 320x480    | yes | ---  | ---   | XPT2046   | ```-D ILI9488_XPT2046_SPI = 1``` |
 | ILI9488     | 320x480    | --- | ---  | yes   | FT5x06    | ```-D ILI9488_FT5x06_16B = 1```  |
 | ILI9341     | 320x240    | yes | ---  | ---   | XPT2046   | ```-D ILI9341_XPT2046_SPI = 1``` |
 
-[^1]: See hal.hpp for pinouts configuration
-[^2]: In the platformio.ini file under the build_flags section
+[^1]: See **hal.hpp** for pinouts configuration
+[^2]: **platformio.ini** file under the build_flags section
 
-Other setups like another sensors, etc... not listed in the specs,  now **They are not included**
+Other setups like another sensors types, etc... not listed in the specs, now **They are not included**
 
 If you wish to add any other type of sensor, module, etc., you can create a PR without any problem, and we will try to implement it. Thank you!
 
@@ -72,29 +69,7 @@ If you wish to add any other type of sensor, module, etc., you can create a PR w
 
 ## Wiring
 
-       Pinout (ESP32-WROVER)
-       HCM5883L      BME280        MPU6050       ILI9488        SD CARD        VBAT             GPS
-       -----------------------------------------------------------------------------------------------------
-       VCC 3,3v      VCC 5v        VCC 3.3v      VCC  3,3v      VCC  3,3v      GPIO34           VCC  3,3v
-       GND GND       GND GND       GND GND       GND  GND       GND  GND       ADC1_CHANNEL_6   GND  GND
-       SDA GPIO21    SDA GPIO21    SDA GPIO21    LED  GPIO33    CS   GPIO4     (Resist. div)    RX   GPIO25
-       SCL GPIO22    SCL GPIO22    SCL GPIO22    MISO GPIO27    MISO GPIO19                     TX   GPIO26
-                                                 SCK  GPIO14    SCK  GPIO12
-                                                 MOSI GPIO13    MOSI GPIO23
-                                                 DC   GPIO15
-                                                 RST  GPIO32
-                                                 CS   GPIO2
-                                                 LED  GPIO33
-                                                 TCS  GPIO18
-                                                 TIRQ GPIO5
-
-       Pinout (ESP32S3-MakerFabs)
-       GPS (HT1612Z3M3L)  MPU9250
-       -----------------------------------------------------------------------------------------------------
-       VCC 3,3v           VCC 3.3v
-       GND GND            GND GND
-       TX  GPIO17         SDA GPIO38
-       RX  GPIO18         SCL GPIO39
+See **hal.hpp** for pinouts configuration
 
 ## SD Map Tile File structure
 
