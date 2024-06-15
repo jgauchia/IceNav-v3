@@ -49,7 +49,6 @@ Currently, IceNav works with the following hardware setups and specs
 | ESP32S3          |  16M  |  8M   | ``` [env:ESP32S3_N16R8] ```  |
 | MAKERFAB ESP32S3 |  16M  |  2M   | ``` [env:MAKERF_ESP32S3] ``` |
 
-
 ### Screens
 
 | Driver [^1] | Resolution | SPI | 8bit | 16bit | Touch     | Build Flags [^2]                 |
@@ -57,6 +56,13 @@ Currently, IceNav works with the following hardware setups and specs
 | ILI9488     | 320x480    | yes | ---  | ---   | XPT2046   | ```-D ILI9488_XPT2046_SPI = 1``` |
 | ILI9488     | 320x480    | --- | ---  | yes   | FT5x06    | ```-D ILI9488_FT5x06_16B = 1```  |
 | ILI9341     | 320x240    | yes | ---  | ---   | XPT2046   | ```-D ILI9341_XPT2046_SPI = 1``` |
+
+### Modules
+
+|             | Type       | Build Flags [^2]                 |
+|:------------|:-----------|:---------------------------------|
+| AT6558D     | GPS        | ```-D AT6558D_GPS = 1```         |
+
 
 [^1]: See **hal.hpp** for pinouts configuration
 [^2]: **platformio.ini** file under the build_flags section
