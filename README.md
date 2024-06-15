@@ -59,15 +59,17 @@ Currently, IceNav works with the following hardware setups and specs
 
 ### Modules
 
-|             | Type          | Build Flags [^2]                 |
-|:------------|:--------------|:---------------------------------|
-| AT6558D     | GPS           | ```-D AT6558D_GPS = 1```         |
-| HMC5883L    | COMPASS       | ```-D HMC5883L = 1```            |
-| MPU9250     | IMU (compass) | ```-D MPU9250 = 1 ```            |
+|             | Type          | Build Flags [^2]                 | lib_deps [^3]                                         |
+|:------------|:--------------|:---------------------------------|:-------------------------------------------------------|
+| AT6558D     | GPS           | ```-D AT6558D_GPS = 1```         |                                                        |
+| HMC5883L    | Compass       | ```-D HMC5883L = 1```            | ```adafruit/Adafruit Unified Sensor@^1.1.14``` <br> ```adafruit/Adafruit BusIO@^1.16.1``` <br> ```adafruit/Adafruit HMC5883 Unified@^1.2.3```|
+| MPU9250     | IMU (Compass) | ```-D MPU9250 = 1 ```            | ```bolderflight/Bolder Flight Systems MPU9250@^1.0.2```|
+| BME280      | Temp/Pres/Hum | ```-D BME280 = 1```              | ```adafruit/Adafruit Unified Sensor@^1.1.14``` <br> ```adafruit/Adafruit BusIO@^1.16.1``` <br> ```adafruit/Adafruit BME280 Library@^2.2.4```|
 
 
 [^1]: See **hal.hpp** for pinouts configuration
 [^2]: **platformio.ini** file under the build_flags section
+[^3]: You need to add libraries dependencies if the buid flag requires
 
 Other setups like another sensors types, etc... not listed in the specs, now **They are not included**
 
