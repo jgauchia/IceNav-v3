@@ -93,7 +93,7 @@ void updateNotifyBarTimer(lv_timer_t *t)
   lv_obj_send_event(gpsFixMode, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_send_event(wifi, LV_EVENT_VALUE_CHANGED, NULL);
  
-  if (GPS.location.isValid())
+  if (GPS.location.isUpdated())
   {
     switch (GPS.location.FixQuality()) 
     {

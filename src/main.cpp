@@ -44,11 +44,6 @@
  */
 void setup()
 {
-  #ifdef MAKERF_ESP32S3
-   Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
-   Wire.begin();
-  #endif
-
   #ifdef ARDUINO_ESP32S3_DEV
    Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
    Wire.begin();

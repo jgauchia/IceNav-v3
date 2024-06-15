@@ -13,17 +13,17 @@
 
 extern int mapHeading;
 
-#ifdef ENABLE_COMPASS
-
-#ifdef IMU_HMC5883L
+#ifdef HMC5883L
 #include <Adafruit_Sensor.h>
 #include <Adafruit_HMC5883_U.h>
 extern Adafruit_HMC5883_Unified compass;
+#define ENABLE_COMPASS
 #endif
 
-#ifdef IMU_MPU9250
+#ifdef MPU9250
 #include <MPU9250.h>
 extern MPU9250 IMU;
+#define ENABLE_COMPASS
 #endif
 
 #define COMPASS_CAL_TIME 16000
@@ -44,4 +44,4 @@ void compassCalibrate();
 
 #endif
 
-#endif
+
