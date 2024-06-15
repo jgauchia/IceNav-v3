@@ -59,9 +59,11 @@ Currently, IceNav works with the following hardware setups and specs
 
 ### Modules
 
-|             | Type       | Build Flags [^2]                 |
-|:------------|:-----------|:---------------------------------|
-| AT6558D     | GPS        | ```-D AT6558D_GPS = 1```         |
+|             | Type          | Build Flags [^2]                 |
+|:------------|:--------------|:---------------------------------|
+| AT6558D     | GPS           | ```-D AT6558D_GPS = 1```         |
+| HMC5883L    | COMPASS       | ```-D HMC5883L = 1```            |
+| MPU9250     | IMU (compass) | ```-D MPU9250 = 1 ```            |
 
 
 [^1]: See **hal.hpp** for pinouts configuration
@@ -152,32 +154,8 @@ Please follow the instructions provided by [OSM_Extract](https://github.com/ares
 > pio run --target upload
 > ```
 
-
 > [!NOTE]
 > For production version don't forget unset these environment variables.  
-
-If the GPS module supports multiple GNSS, uncomment the following flag in the platformio.ini file under the build_flags section
-
-```bash
--D MULTI_GNSS=1
-```
-
-Depending on the IMU used, it will be necessary to indicate the following flags in the platformio.ini file.
-
-First enable the compass
-```bash
--D ENABLE_COMPASS=1
-```
-
-IMU HMC5883L
-```bash
--D IMU_HMC5883L=1
-```
-
-IMU MPU9250
-```bash
--D IMU_MPU9250=1
-```
 
 ### TO DO
 
