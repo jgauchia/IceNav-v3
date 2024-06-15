@@ -128,7 +128,7 @@ Please follow the instructions provided by [OSM_Extract](https://github.com/ares
 > [!IMPORTANT]
 >Please install first [PlatformIO](http://platformio.org/) open source ecosystem for IoT development compatible with **Arduino** IDE and its command line tools (Windows, MacOs and Linux). Also, you may need to install [git](http://git-scm.com/) in your system.
 > 
->For custom ESP32 board run:
+>For ESP32 board run:
 > 
 >```bash
 >pio run --target upload
@@ -140,6 +140,12 @@ Please follow the instructions provided by [OSM_Extract](https://github.com/ares
 >pio run -e MAKERF_ESP32S3 --target upload
 >```
 >
+> For Other boards:
+>
+> ```bash
+> pio run -e environment --target upload
+> ```
+> 
 > After the first run, load the icons and assets with:
 > 
 > ```bash
