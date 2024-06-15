@@ -198,6 +198,7 @@ IMU MPU9250
 
 - [X] LVGL 9 Integration
 - [X] Support other resolutions and TFT models
+- [X] Wifi CLI Manager
 - [ ] GPX Integration
 - [ ] Multiple IMU's and Compass module implementation
 - [ ] Power saving
@@ -217,4 +218,4 @@ IMU MPU9250
 * Vectorial Maps routines [ESP32_GPS](https://github.com/aresta/ESP32_GPS) thanks to [@aresta](https://github.com/aresta)
 * OSM to binary vectorial maps [OSM_Extract](https://github.com/aresta/OSM_Extract) thanks to [@aresta](https://github.com/aresta)
 * Preferences Library [Easy Preferences](https://github.com/hpsaturn/easy-preferences) thanks to [@hpsaturn](https://github.com/hpsaturn)
-* Wifi CLI manager [esp32-wifi-cli](https://github.com/hpsaturn/esp32-wifi-cli) thanks to [@hpsturn].(https://github.com/hpsaturn)
+* Wifi CLI manager [esp32-wifi-cli](https://github.com/hpsaturn/esp32-wifi-cli) thanks to [@hpsturn](https://github.com/hpsaturn)
