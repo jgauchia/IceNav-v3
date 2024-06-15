@@ -14,7 +14,7 @@ int mapHeading = 0;
 Adafruit_HMC5883_Unified compass = Adafruit_HMC5883_Unified(12345);
 #endif
 
-#ifdef MPU9250
+#ifdef IMU_MPU9250
 MPU9250 IMU = MPU9250(Wire, 0x68);
 #endif
 
@@ -54,7 +54,7 @@ void initCompass()
   if (!compass.begin())
     compass.begin();
   #endif
-  #ifdef MPU9250
+  #ifdef IMU_MPU9250
   int status = IMU.begin();
   if (status < 0)
   {
@@ -82,7 +82,7 @@ void readCompass(float &x, float &y, float &z)
   z = event.magnetic.z;
   #endif
 
-  #ifdef MPU9250
+  #ifdef IMU_MPU9250
   IMU.readSensor();
   x = IMU.getMagX_uT();
   y = IMU.getMagY_uT();

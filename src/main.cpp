@@ -24,11 +24,15 @@
 #include "storage.hpp"
 #include "tft.hpp"
 
-#ifdef ENABLE_COMPASS
+#ifdef HMC5883L
 #include "compass.hpp"
 #endif
 
-#ifdef ENABLE_BME
+#ifdef IMU_MPU9250
+#include "compass.hpp"
+#endif
+
+#ifdef BME280
 #include "bme.hpp"
 #endif
 
@@ -49,7 +53,7 @@ void setup()
    Wire.begin();
   #endif
 
-  #ifdef ENABLE_BME
+  #ifdef BME280
    initBME();
   #endif
 

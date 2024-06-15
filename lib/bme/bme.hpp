@@ -9,7 +9,9 @@
 #ifndef BME_HPP
 #define BME_HPP
 
-#ifdef ENABLE_BME
+#ifdef BME280
+
+#define ENABLE_TEMP
 
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>

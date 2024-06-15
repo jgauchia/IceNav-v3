@@ -20,7 +20,7 @@ extern Adafruit_HMC5883_Unified compass;
 #define ENABLE_COMPASS
 #endif
 
-#ifdef MPU9250
+#ifdef IMU_MPU9250
 #include <MPU9250.h>
 extern MPU9250 IMU;
 #define ENABLE_COMPASS

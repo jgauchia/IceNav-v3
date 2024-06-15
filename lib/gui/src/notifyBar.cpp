@@ -25,7 +25,7 @@ void updateNotifyBar(lv_event_t *event)
   
   if (obj == gpsTime)
     lv_label_set_text_fmt(obj, timeFormat, hour(now()), minute(now()), second(now()));
-  #ifdef ENABLE_BME
+  #ifdef ENABLE_TEMP
   if (obj == temp)
     lv_label_set_text_fmt(obj, "%02d\xC2\xB0", tempValue);
   #endif
@@ -114,7 +114,7 @@ void updateNotifyBarTimer(lv_timer_t *t)
   else
    lv_led_off(gpsFix);
 
-  #ifdef ENABLE_BME
+  #ifdef ENABLE_TEMP
   tempValue = (uint8_t)(bme.readTemperature());
   if (tempValue != tempOld)
   {
@@ -170,7 +170,7 @@ void createNotifyBar()
   lv_label_set_text_static(wifi, " ");
   lv_obj_add_event_cb(wifi, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
 
-  #ifdef ENABLE_BME
+  #ifdef ENABLE_TEMP
   temp = lv_label_create(notifyBarIcons);
   lv_label_set_text_static(temp, "--\xC2\xB0");
   lv_obj_add_event_cb(temp, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
