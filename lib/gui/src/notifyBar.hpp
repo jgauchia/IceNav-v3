@@ -25,6 +25,7 @@ static lv_obj_t *gpsFixMode; // Satellite fix mode
 static lv_obj_t *battery;    // Battery level
 static lv_obj_t *sdCard;     // SD card icon
 static lv_obj_t *temp;       // Temperature
+static lv_obj_t *wifi;       // Wifi 
 
 #define UPDATE_NOTIFY_PERIOD 1000 // Notify Bar update time
 

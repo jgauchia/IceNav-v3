@@ -7,6 +7,8 @@
  */
 
 #include "notifyBar.hpp"
+#include "font/lv_symbol_def.h"
+#include "misc/lv_event.h"
 
 lv_obj_t *mainScreen;
 lv_obj_t *notifyBarIcons;
@@ -71,6 +73,13 @@ void updateNotifyBar(lv_event_t *event)
       fix_old = atoi(fixMode.value());
     }
   }
+  if (obj == wifi)
+  {
+    if (WiFi.status() == WL_CONNECTED)
+      lv_label_set_text_static(obj, LV_SYMBOL_WIFI);
+    else
+      lv_label_set_text_static(obj," ");
+  }
 }
 
 /**
@@ -82,6 +91,7 @@ void updateNotifyBarTimer(lv_timer_t *t)
   lv_obj_send_event(gpsTime, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_send_event(gpsCount, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_send_event(gpsFixMode, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_send_event(wifi, LV_EVENT_VALUE_CHANGED, NULL);
  
   if (GPS.location.isValid())
   {
@@ -155,7 +165,11 @@ void createNotifyBar()
   lv_obj_set_style_text_font(gpsTime, fontLarge, 0);
   lv_label_set_text_fmt(gpsTime, timeFormat, hour(local), minute(local), second(local));
   lv_obj_add_event_cb(gpsTime, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
-  
+ 
+  wifi = lv_label_create(notifyBarIcons);
+  lv_label_set_text_static(wifi, " ");
+  lv_obj_add_event_cb(wifi, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
+
   #ifdef ENABLE_BME
   temp = lv_label_create(notifyBarIcons);
   lv_label_set_text_static(temp, "--\xC2\xB0");
