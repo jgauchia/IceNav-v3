@@ -86,6 +86,11 @@ void setup()
   #else
    lv_screen_load(searchSatScreen);
   #endif
+
+#ifndef DISABLE_CLI
+  initCLI();
+  initCLITask();
+#endif
 }
 
 /**

@@ -16,6 +16,7 @@
 #include "battery.hpp"
 #include "compass.hpp"
 #include "lvgl.h"
+#include "cli.hpp"
 
 #define TASK_SLEEP_PERIOD_MS 5
 
@@ -37,5 +38,6 @@ void lvglTask(void *pvParameters);
 void initLvglTask();
 void gpsTask(void *pvParameters);
 void initGpsTask();
+void initCLITask();
 
 #endif

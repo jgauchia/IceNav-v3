@@ -73,7 +73,7 @@ void gpsTask(void *pvParameters)
     // if (!GPS.time.isValid() && isTimeFixed)
     //     isTimeFixed = false;
 
-    vTaskDelay(10);
+        vTaskDelay(10 / portTICK_PERIOD_MS);
 
   }
 }
@@ -88,3 +88,14 @@ void initGpsTask()
   delay(500);
 }
 
+#ifndef DISABLE_CLI
+void cliTask(void *param) {
+  for (;;) {
+    wcli.loop();
+    vTaskDelay(60 / portTICK_PERIOD_MS);
+  }
+  vTaskDelete(NULL);
+}
+
+void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 4000, NULL, 1, NULL, 1); }
+#endif
