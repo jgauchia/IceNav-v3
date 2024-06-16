@@ -1,17 +1,16 @@
 /**
  * @file main.cpp
- * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  ESP32 GPS Naviation main code
- * @version 0.1.6
- * @date 2023-06-14
+ * @version 0.1.8
+ * @date 2024-06
  */
-
-#define CALIBRATION_FILE "/TouchCalData1"
-bool REPEAT_CAL = false;
 
 #include <Arduino.h>
 #include <stdint.h>
 #include <Wire.h>
+#include <FS.h>
+#include <SD.h>
 #include <SPIFFS.h>
 #include <SPI.h>
 #include <WiFi.h>
@@ -19,31 +18,29 @@ bool REPEAT_CAL = false;
 #include <esp_bt.h>
 #include <Timezone.h>
 
-unsigned long millis_actual = 0;
+// Hardware includes
+#include "hal.hpp"
+#include "gps.hpp"
+#include "storage.hpp"
+#include "tft.hpp"
 
-#include "hardware/hal.h"
-#include "hardware/serial.h"
-#include "hardware/sdcard.h"
-#include "hardware/tft.h"
-#ifdef ENABLE_COMPASS
-#include "hardware/compass.h"
+#ifdef HMC5883L
+#include "compass.hpp"
 #endif
-#ifdef ENABLE_BME
-#include "hardware/bme.h"
-#endif
-#include "hardware/battery.h"
-#include "hardware/gps.h"
-#include "hardware/power.h"
-#include "utils/gps_maps.h"
-#include "utils/gps_math.h"
-#include "utils/sat_info.h"
-#include "utils/lv_spiffs_fs.h"
-#include "utils/lv_sd_fs.h"
-#include "utils/time_zone.h"
-#include "utils/preferences.h"
-#include "gui/lvgl.h"
 
-#include "tasks.h"
+#ifdef IMU_MPU9250
+#include "compass.hpp"
+#endif
+
+#ifdef BME280
+#include "bme.hpp"
+#endif
+
+#include "battery.hpp"
+#include "power.hpp"
+#include "settings.hpp"
+#include "tasks.hpp"
+#include "lvglSetup.hpp"
 
 /**
  * @brief Setup
@@ -51,41 +48,47 @@ unsigned long millis_actual = 0;
  */
 void setup()
 {
-#ifdef MAKERF_ESP32S3
-  Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
-  Wire.begin();
-#endif
+  #ifdef ARDUINO_ESP32S3_DEV
+   Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
+   Wire.begin();
+  #endif
 
-#ifdef ENABLE_BME
-  bme.begin(BME_ADDRESS);
-#endif
+  #ifdef BME280
+   initBME();
+  #endif
 
-#ifdef ENABLE_COMPASS
-  init_compass();
-#endif
+  #ifdef ENABLE_COMPASS
+   initCompass();
+  #endif
 
-#ifdef DEBUG
-  init_serial();
-#endif
   powerOn();
-  load_preferences();
-  init_sd();
-  init_SPIFFS();
-  init_LVGL();
-  init_tft();
-  init_gps();
-  init_ADC();
+  loadPreferences();
+  initSD();
+  initSPIFFS();
+  initTFT();
+  initGPS();
+  initLVGL();
+  
+  initADC();
+  
 
-  map_spr.deleteSprite();
-  map_spr.createSprite(768, 768);
+  // Reserve PSRAM for buffer map
+  mapTempSprite.deleteSprite();
+  mapTempSprite.createSprite(TILE_WIDTH, TILE_HEIGHT);
 
-  splash_scr();
-  // init_tasks();
+  splashScreen();
+  //initLvglTask();
+  initGpsTask();
 
-#ifdef DEFAULT_LAT
-  load_main_screen();
-#else
-  lv_scr_load(searchSat);
+  #ifdef DEFAULT_LAT
+   loadMainScreen();
+  #else
+   lv_screen_load(searchSatScreen);
+  #endif
+
+#ifndef DISABLE_CLI
+  initCLI();
+  initCLITask();
 #endif
 }
 
@@ -95,21 +98,8 @@ void setup()
  */
 void loop()
 {
-  //vTaskDelay(5);
-#ifdef MAKERF_ESP32S3
-  lv_tick_inc(5);
-#endif
+  // lv_timer_handler();
+  // lv_tick_inc(5);
   lv_timer_handler();
-  //lv_task_handler();
-  
-  while (gps->available()>0)
-  {
-#ifdef OUTPUT_NMEA
-    {
-      debug->write(gps->read());
-    }
-#else
-    GPS.encode(gps->read());
-#endif
-  }
+  vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
 }
