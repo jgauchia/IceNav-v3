@@ -19,15 +19,6 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 > [!CAUTION]
 > Do not use in production (Experimental features).
 
-<table>
-  <tr>
-    <td>
-      Don't forget to star ⭐ this repository 
-    </td>
-   <a href="https://www.buymeacoffee.com/jgauchia" target="_blank" title="buymeacoffee"><img src="https://iili.io/JIYMmUN.gif"  alt="buymeacoffee-animated-badge" style="width: 160px;"></a>
-  </tr>
-</table>
-
 ## Screenshots
 |<img src="images/dev/splash.jpg">|<img src="images/dev/compass.jpg">|<img src="images/dev/rendermap.jpg">|<img src="images/dev/vectormap.jpg">|<img src="images/dev/satinfo.jpg">|
 |:-:|:-:|:-:|:-:|:-:|
