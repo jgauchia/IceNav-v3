@@ -34,7 +34,7 @@ void captureScreenshot(const char* filename, Stream *response) {
 
   // Allocate memory to store the screen data
   response->printf("Allocating memory for: %ix%i image\r\n",tft.width(),tft.height());
-  uint8_t* buffer = (uint8_t*)ps_malloc(tft.width() * tft.height() * sizeof(uint8_t));
+  uint16_t* buffer = (uint16_t*)ps_malloc(tft.width() * tft.height() * sizeof(uint8_t));
   if (!buffer) {
     response->println("Failed to allocate memory for buffer");
     file.close();
@@ -75,6 +75,24 @@ void wcli_scshot(char *args, Stream *response){
   captureScreenshot("/screenshot.raw",response);
 }
 
+void initRemoteShell(){
+#ifndef DISABLE_CLI_TELNET 
+  if (wcli.isTelnetEnable()) wcli.shellTelnet->attachLogo(logo);
+#endif
+}
+
+void initShell(){
+  wcli.shell->attachLogo(logo);
+  wcli.setSilentMode(true);
+  wcli.disableConnectInBoot();
+  // Main Commands:
+  wcli.add("reboot", &wcli_reboot, "\tperform a ESP32 reboot");
+  wcli.add("info", &wcli_info, "\t\tget device information");
+  wcli.add("clear", &wcli_clear, "\t\tclear shell");
+  wcli.add("scshot", &wcli_scshot, "\ttake screen shot");
+  wcli.begin("IceNav");
+}
+
 /**
  * @brief WiFi CLI init and IceNav custom commands
  **/
@@ -84,22 +102,9 @@ void initCLI() {
     while (!Serial){};
     delay(1000);
   #endif
-  Serial.println("init CLI");
-  wcli.shell->attachLogo(logo);
-  wcli.setSilentMode(true);
-  wcli.disableConnectInBoot();
-  // Main Commands:
-  wcli.add("reboot", &wcli_reboot, "\tperform a ESP32 reboot");
-  wcli.add("info", &wcli_info, "\t\tget device information");
-  wcli.add("clear", &wcli_clear, "\t\tclear shell");
-  wcli.add("scshot", &wcli_scshot, "\ttake screen shot");
-  
-  wcli.begin("IceNav");
-
-#ifndef DISABLE_CLI_TELNET 
-  wcli.enableTelnet();
-  wcli.shellTelnet->attachLogo(logo);
-#endif
+  log_v("init CLI");
+  initShell(); 
+  initRemoteShell();
 }
 
 #endif
