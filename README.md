@@ -63,7 +63,7 @@ Currently, IceNav works with the following hardware setups and specs
 |:------------|:--------------|:---------------------------------|:-------------------------------------------------------|
 | AT6558D     | GPS           | ```-D AT6558D_GPS = 1```         |                                                        |
 | HMC5883L    | Compass       | ```-D HMC5883L = 1```            | ```adafruit/Adafruit Unified Sensor@^1.1.14``` <br> ```adafruit/Adafruit BusIO@^1.16.1``` <br> ```adafruit/Adafruit HMC5883 Unified@^1.2.3```|
-| MPU9250     | IMU (Compass) | ```-D MPU9250 = 1 ```            | ```bolderflight/Bolder Flight Systems MPU9250@^1.0.2```|
+| MPU9250     | IMU (Compass) | ```-D IMU_MPU9250 = 1 ```        | ```bolderflight/Bolder Flight Systems MPU9250@^1.0.2```|
 | BME280      | Temp/Pres/Hum | ```-D BME280 = 1```              | ```adafruit/Adafruit Unified Sensor@^1.1.14``` <br> ```adafruit/Adafruit BusIO@^1.16.1``` <br> ```adafruit/Adafruit BME280 Library@^2.2.4```|
 
 
