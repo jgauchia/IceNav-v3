@@ -46,7 +46,7 @@ void wcli_scshot(char *args, Stream *response){
   if (ip.isEmpty()){
     response->println("Saving to SD..");
     captureScreenshot(SCREENSHOT_TEMP_FILE, response);
-    response->println("Note: is possible to send it a PC using: scshot ip port");
+    response->println("Note: is possible to send it to a PC using: scshot ip port");
   }
   else {
     response->printf("Sending screenshot to %s:%i..\r\n", ip.c_str(), port);

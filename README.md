@@ -182,7 +182,7 @@ Some extra details:
 
 **nmcli**: IceNav use a `wcli` network manager library. For more details of this command and its sub commands please refer to [here](https://github.com/hpsaturn/esp32-wifi-cli?tab=readme-ov-file#readme)
 
-**schot**: This utility can save a screenshot to the root of you SD, with the name: `screenshot00.raw`. You can convert it to png using the `convert.py` script in the `tools` folder.
+**schot**: This utility can save a screenshot to the root of your SD, with the name: `screenshot.raw`. You can convert it to png using the `convert.py` script in the `tools` folder.
 
 Additionally, this screenshot command can send the screenshot over WiFi using the following syntax:
 
