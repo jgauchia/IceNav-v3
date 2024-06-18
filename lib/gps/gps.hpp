@@ -24,7 +24,7 @@ extern bool isTimeFixed;
 extern long gpsBaudDetected;
 
 static uint8_t fix_old = 0;
-static unsigned long GPS_BAUD[] = {4800, 9600, 19200, 38400};
+static unsigned long GPS_BAUD[] = {4800, 9600, 19200, 38400, 0};
 static const char *GPS_BAUD_PCAS[] = {"$PCAS01,0*1C\r\n", "$PCAS01,1*1D\r\n", "$PCAS01,2*1E\r\n", "$PCAS01,3*1F\r\n"};
 static const char *GPS_RATE_PCAS[] = {"$PCAS02,1000*2E\r\n", "$PCAS02,500*1A\r\n", "$PCAS02,250*18\r\n", "$PCAS02,200*1D\r\n", "$PCAS02,100*1E\r\n"};
 

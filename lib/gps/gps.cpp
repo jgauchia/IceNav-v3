@@ -44,36 +44,38 @@ GSV GPS_GSV; // GPS Satellites in view
  */
 void initGPS()
 {
-  gpsBaudDetected = autoBaudGPS();
-
-  if (gpsBaudDetected != 0)
+  if (gpsBaud != 4)
+    gps->begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
+  else
   {
-  //gps->begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
-    gps->begin(gpsBaudDetected, SERIAL_8N1, GPS_RX, GPS_TX);
+    gpsBaudDetected = autoBaudGPS();
 
-
-#ifdef AT6558D_GPS
-    // GPS
-    // gps->println("$PCAS04,1*18\r\n");
-
-    // GPS+GLONASS
-    // gps->println("$PCAS04,5*1C\r\n");
-
-    // GPS+BDS+GLONASS
-    gps->println("$PCAS04,7*1E\r\n");
-    gps->flush();
-    delay(100);
-
-    gps->println(GPS_RATE_PCAS[gpsUpdate]);
-    gps->flush();
-    delay(100);
-
-    // Set NMEA 4.1
-    gps->println("$PCAS05,2*1A\r\n");
-    gps->flush();
-    delay(100);
-#endif
+    if (gpsBaudDetected != 0)
+    {
+      gps->begin(gpsBaudDetected, SERIAL_8N1, GPS_RX, GPS_TX);
+    }
   }
+#ifdef AT6558D_GPS
+      // GPS
+      // gps->println("$PCAS04,1*18\r\n");
+
+      // GPS+GLONASS
+      // gps->println("$PCAS04,5*1C\r\n");
+
+      // GPS+BDS+GLONASS
+      gps->println("$PCAS04,7*1E\r\n");
+      gps->flush();
+      delay(100);
+
+      gps->println(GPS_RATE_PCAS[gpsUpdate]);
+      gps->flush();
+      delay(100);
+
+      // Set NMEA 4.1
+      gps->println("$PCAS05,2*1A\r\n");
+      gps->flush();
+      delay(100);
+#endif
 
   // Initialize satellites in view custom NMEA structure
   GPS_GSV.totalMsg.begin(GPS, PSTR("GPGSV"), 1);

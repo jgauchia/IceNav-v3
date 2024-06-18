@@ -57,7 +57,7 @@ void loadPreferences()
   isCompassRot = cfg.getBool(PKEYS::KCOMP_ROT, true);
   showMapSpeed = cfg.getBool(PKEYS::KMAP_SPEED, false);
   showMapScale = cfg.getBool(PKEYS::KMAP_SCALE, false);
-  gpsBaud = cfg.getShort(PKEYS::KGPS_SPEED, 2);
+  gpsBaud = cfg.getShort(PKEYS::KGPS_SPEED, 4);
   gpsUpdate = cfg.getShort(PKEYS::KGPS_RATE, 3);
   compassPosX = cfg.getInt(PKEYS::KCOMP_X, 60);
   compassPosY = cfg.getInt(PKEYS::KCOMP_Y, 80);
@@ -179,19 +179,35 @@ void saveShowScale(bool showScale)
 void saveGPSBaud(uint16_t gpsBaud)
 {
   cfg.saveShort(PKEYS::KGPS_SPEED, gpsBaud);
+  if (gpsBaud != 4)
+  {
 #ifdef AT6558D_GPS
-  gps->flush();
-  gps->println(GPS_BAUD_PCAS[gpsBaud]);
-  gps->flush();
-  gps->println("$PCAS00*01\r\n");
-  gps->flush();
-  delay(500);
+    gps->flush();
+    gps->println(GPS_BAUD_PCAS[gpsBaud]);
+    gps->flush();
+    gps->println("$PCAS00*01\r\n");
+    gps->flush();
+    delay(500);
 #endif
-  gps->flush();
-  gps->end();
-  delay(500);
-  gps->begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
-  delay(500);
+    gps->flush();
+    gps->end();
+    delay(500);
+    gps->begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
+    delay(500);
+  }
+  else
+  {
+    gpsBaudDetected = autoBaudGPS();
+
+    if (gpsBaudDetected != 0)
+    {
+      gps->flush();
+      gps->end();
+      delay(500);
+      gps->begin(gpsBaudDetected, SERIAL_8N1, GPS_RX, GPS_TX);
+      delay(500);
+    }
+  }
 }
 
 /**
