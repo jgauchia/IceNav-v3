@@ -165,6 +165,37 @@ Please follow the instructions provided by [OSM_Extract](https://github.com/ares
 > [!NOTE]
 > For production version don't forget unset these environment variables.  
 
+## CLI
+
+IceNav has a basic CLI accessible via Serial and optionally via Telnet if enabled. When you access the CLI and type `help`, you should see the following commands:
+
+
+```bash
+clear:          clear shell
+info:           get device information
+nmcli:          network manager CLI.
+reboot:         perform a ESP32 reboot
+scshot:         screenshot to SD or sending a PC
+```
+
+Some extra details:
+
+**nmcli**: IceNav use a `wcli` network manager library. For more details of this command and its sub commands please refer to [here](https://github.com/hpsaturn/esp32-wifi-cli?tab=readme-ov-file#readme)
+
+**schot**: This utility can save a screenshot to the root of your SD, with the name: `screenshot.raw`. You can convert it to png using the `convert.py` script in the `tools` folder.
+
+Additionally, this screenshot command can send the screenshot over WiFi using the following syntax:
+
+```bash
+scshot 192.168.1.10 8123
+```
+
+Ensure your PC has the specified port open and firewall access enabled to receive the screenshot via the `netcat` command, like this:
+
+```bash
+nc -l -p 8123 > screenshot.raw
+```
+
 ### TO DO
 
 - [X] LVGL 9 Integration
