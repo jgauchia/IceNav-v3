@@ -21,6 +21,7 @@ extern HardwareSerial *gps;
 extern TinyGPSPlus GPS;
 extern bool isGpsFixed;
 extern bool isTimeFixed;
+extern long gpsBaudDetected;
 
 static uint8_t fix_old = 0;
 static unsigned long GPS_BAUD[] = {4800, 9600, 19200, 38400};
@@ -88,5 +89,7 @@ struct
 void initGPS();
 double getLat();
 double getLon();
+long detectRate(int rxPin);
+long autoBaudGPS();
 
 #endif

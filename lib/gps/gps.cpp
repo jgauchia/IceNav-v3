@@ -12,6 +12,7 @@ bool isGpsFixed = false;
 bool isTimeFixed = false;
 HardwareSerial *gps = &Serial2;
 TinyGPSPlus GPS = TinyGPSPlus();
+long gpsBaudDetected = 0;
 
 #ifdef AT6558D_GPS
 
@@ -43,7 +44,11 @@ GSV GPS_GSV; // GPS Satellites in view
  */
 void initGPS()
 {
-  gps->begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
+  gpsBaudDetected = autoBaudGPS();
+
+  //gps->begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
+  gps->begin(gpsBaudDetected, SERIAL_8N1, GPS_RX, GPS_TX);
+
 
 #ifdef AT6558D_GPS
   // GPS
@@ -141,4 +146,73 @@ double getLon()
     return 0.0;
 #endif
   }
+}
+
+/**
+ *  @brief return pulse rate from RX GPS pin
+ *  @return pulse rate
+ */
+long detectRate(int rxPin)  
+{
+  long  rate = 10000, x=2000;
+  pinMode(rxPin, INPUT);      // make sure serial in is a input pin
+  digitalWrite (rxPin, HIGH); // pull up enabled just for noise protection
+
+  for (int i = 0; i < 5; i++)
+  {
+    x = pulseIn(rxPin,LOW, 125000);   // measure the next zero bit width
+    if(x<1)continue;
+      rate = x < rate ? x : rate;
+  }
+  return rate;
+}
+
+/**
+ *  @brief Detect GPS Baudrate
+ *  @return baudrate
+ */
+long autoBaudGPS()
+{
+	long rate = detectRate(GPS_RX)+detectRate(GPS_RX)+detectRate(GPS_RX);
+	rate = rate/3l;
+	long baud = 0;
+	/*
+	 	 Time	Baud Rate
+		3333µs (3.3ms)300
+		833µs 	1200
+		416µs 	2400
+		208µs 	4800
+		104µs 	9600
+		69µs 	14400
+		52µs 	19200
+		34µs 	28800
+		26µs 	38400
+		17.3µs 	57600
+		8µs 	115200
+		Megas min is about 10uS? so there may be some inaccuracy
+	 */
+	  if (rate < 12)
+      baud = 115200;
+    else if (rate < 20)
+      baud = 57600;
+    else if (rate < 30)
+      baud = 38400;
+    else if (rate < 40)
+      baud = 28800;
+    else if (rate < 60)
+      baud = 19200;
+    else if (rate < 80)
+      baud = 14400;
+    else if (rate < 150)
+      baud = 9600;
+    else if (rate < 300)
+      baud = 4800;
+    else if (rate < 600)
+      baud = 2400;
+    else if (rate < 1200)
+      baud = 1200;
+    else
+      baud = 0;
+
+		return baud;
 }
