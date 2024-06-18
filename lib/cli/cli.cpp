@@ -79,10 +79,8 @@ void wcli_scshot(char *args, Stream *response){
  * @brief WiFi CLI init and IceNav custom commands
  **/
 void initCLI() {
-  Serial.begin(115200);
-  #ifdef ARDUINO_USB_CDC_ON_BOOT
-    while (!Serial){};
-    delay(1000);
+  #ifndef ARDUINO_USB_CDC_ON_BOOT
+    Serial.begin(115200);
   #endif
   Serial.println("init CLI");
   wcli.shell->attachLogo(logo);
