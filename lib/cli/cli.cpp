@@ -9,6 +9,7 @@
 #ifndef DISABLE_CLI
 #include "cli.hpp"
 #include "utils.h"
+#include "gps.hpp"
 
 const char logo[] =
 "\r\n"
@@ -32,6 +33,8 @@ void wcli_reboot(char *args, Stream *response) {
 void wcli_info(char *args, Stream *response) {
   response->println();
   wcli.status(response);
+  response->print("GPS Baud rate\t: ");
+  response->println(gpsBaudDetected);
 }
 
 void wcli_clear(char *args, Stream *response){
