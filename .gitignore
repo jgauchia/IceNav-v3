@@ -4,4 +4,6 @@
 .vscode/launch.json
 .vscode/ipch
 .vscode/settings.json
-
+assets
+tools/*.raw
+tools/*.png
