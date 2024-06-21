@@ -136,15 +136,15 @@ void initTFT()
   tft.fillScreen(TFT_BLACK);
   tft.endWrite();
 
-#ifdef CUSTOMBOARD
+#ifdef ARDUINO_ESP32_DEV
   gpio_set_drive_capability(GPIO_NUM_33, GPIO_DRIVE_CAP_3);
 #endif
-#ifdef MAKERF_ESP32S3
+#ifdef ARDUINO_ESP32S3_DEV
   gpio_set_drive_capability(GPIO_NUM_45, GPIO_DRIVE_CAP_3);
 #endif
 
-  ledcAttachPin(TFT_BL, 0);
   ledcSetup(0, 5000, 8);
+  ledcAttachPin(TFT_BL, 0);
   ledcWrite(0, 255);
   touchCalibrate();
 }
