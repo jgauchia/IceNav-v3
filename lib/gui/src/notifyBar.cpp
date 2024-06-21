@@ -24,8 +24,22 @@ void updateNotifyBar(lv_event_t *event)
   lv_obj_t *obj = (lv_obj_t *)lv_event_get_target(event);
   
   if (obj == gpsTime)
+  {
+    if(hour(now()) != GPS.time.hour())
+    {
+      setTime(GPS.time.hour(),
+              GPS.time.minute(),
+              GPS.time.second(),
+              GPS.date.day(),
+              GPS.date.month(),
+              GPS.date.year());
+      utc = now();
+      local = CE.toLocal(utc);
+      setTime(local);
+    }
     lv_label_set_text_fmt(obj, timeFormat, hour(now()), minute(now()), second(now()));
-  #ifdef ENABLE_TEMP
+  }  
+#ifdef ENABLE_TEMP
   if (obj == temp)
     lv_label_set_text_fmt(obj, "%02d\xC2\xB0", tempValue);
   #endif
