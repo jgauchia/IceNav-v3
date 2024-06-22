@@ -7,6 +7,7 @@
  */
 
 #include "mainScr.hpp"
+#include "utils.h"
 
 bool isMainScreen = false; // Flag to indicate main screen is selected
 bool isScrolled = true;    // Flag to indicate when tileview was scrolled
@@ -169,7 +170,7 @@ void scrollTile(lv_event_t *event)
  */
 void updateMainScreen(lv_timer_t *t)
 {
-  if (isScrolled && isMainScreen)
+  if (isScrolled && isMainScreen && !waitScreenRefresh)
   {
     switch (activeTile)
     {

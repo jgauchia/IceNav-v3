@@ -47,8 +47,7 @@ public:
       #endif
       cfg.spi_mode = 0;
       cfg.freq_write = 79999999;
-      //cfg.freq_write = 40000000;
-      cfg.freq_read = 2000000;
+      cfg.freq_read = 30000000;
       cfg.spi_3wire = false;
       cfg.use_lock = false;
       cfg.dma_channel = SPI_DMA_CH_AUTO;

@@ -21,6 +21,8 @@ void captureScreenshot(const char* filename, Stream *response) {
     return;
   }
 
+  waitScreenRefresh = true;
+
   // Read the screen data into the buffer using readRect
   tft.readRect(0, 0, tft.width(), tft.height(), (uint16_t*)buffer);
 
@@ -39,6 +41,7 @@ void captureScreenshot(const char* filename, Stream *response) {
   free(buffer);
   file.close();
   response->println("Screenshot saved");
+  waitScreenRefresh = false;
 }
 
 // WiFi client
