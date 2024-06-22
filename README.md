@@ -20,7 +20,7 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 > Do not use in production (Experimental features).
 
 ## Screenshots
-|<img src="images/dev/splash.jpg">|<img src="images/dev/compass.jpg">|<img src="images/dev/rendermap.jpg">|<img src="images/dev/vectormap.jpg">|<img src="images/dev/satinfo.jpg">|
+|<img src="images/dev/splash.jpg">|<img src="images/dev/compass.jpg">|<img src="images/dev/rendermap.jpg">|<img src="images/dev/vectormap.jpg">|<img src="images/dev/satelliteinfo.jpg">|
 |:-:|:-:|:-:|:-:|:-:|
 | Splash Screen | Compass | Rendered Map | Vectorized Map | Satellite Info |
 
