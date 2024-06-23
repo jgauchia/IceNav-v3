@@ -63,8 +63,8 @@ void wcli_scshot(char *args, Stream *response)
 
     waitScreenRefresh = true;
     captureScreenshot(SCREENSHOT_TEMP_FILE, response);
-    waitScreenRefresh = false;
     captureScreenshot(SCREENSHOT_TEMP_FILE, ip.c_str(), port);
+    waitScreenRefresh = false;
   }
 }
 

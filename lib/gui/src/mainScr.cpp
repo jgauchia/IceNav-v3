@@ -580,7 +580,7 @@ void createMainScr()
  
   #ifdef LARGE_SCREEN
 
-  #ifdef MULTI_GNSS
+  #ifdef AT6558D_GPS
   lv_style_init(&styleRadio);
   lv_style_set_radius(&styleRadio, LV_RADIUS_CIRCLE);
   
