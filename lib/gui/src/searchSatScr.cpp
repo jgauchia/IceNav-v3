@@ -10,6 +10,7 @@
 
 static unsigned long millisActual = 0;
 static bool skipSearch = false;
+bool isSearchingSat = true;
 
 /**
  * @brief Button events
@@ -22,6 +23,11 @@ void buttonEvent(lv_event_t *event)
   if (strcmp(option,"skip") == 0)
   {
     skipSearch = true;
+  }
+  if (strcmp(option,"settings") == 0)
+  {
+    //isMainScreen = false;
+    lv_screen_load(settingsScreen); 
   }
 }
 
@@ -39,11 +45,13 @@ void searchGPS(lv_timer_t *searchTimer)
     while (millis() < millisActual + 2000)
       ;
     lv_timer_del(searchTimer);
+    isSearchingSat = false;
     loadMainScreen();
   }
   if (skipSearch)
   {
     lv_timer_del(searchTimer);
+    isSearchingSat = false;
     loadMainScreen();
   }
 }
@@ -54,6 +62,9 @@ void searchGPS(lv_timer_t *searchTimer)
  */
 void createSearchSatScr()
 {
+  searchTimer = lv_timer_create(searchGPS, 1000, NULL);
+  lv_timer_ready(searchTimer);
+
   searchSatScreen = lv_obj_create(NULL);
 
   lv_obj_t *label = lv_label_create(searchSatScreen);
@@ -71,9 +82,6 @@ void createSearchSatScr()
   lv_img_set_src(satImg, satIconFile);
   lv_obj_set_align(satImg, LV_ALIGN_CENTER);
 
-  searchTimer = lv_timer_create(searchGPS, 1000, NULL);
-  lv_timer_ready(searchTimer);
-  
   // Button Bar
   lv_obj_t *buttonBar = lv_obj_create(searchSatScreen);
   lv_obj_set_size(buttonBar, TFT_WIDTH, 68 * scaleBut);
@@ -88,6 +96,15 @@ void createSearchSatScr()
   lv_obj_add_style(buttonBar, &styleBar, LV_PART_MAIN);
 
   lv_obj_t *imgBtn;
+ 
+  // Settings Button
+  imgBtn = lv_img_create(buttonBar);
+  lv_img_set_src(imgBtn, confIconFile);
+  lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
+  lv_img_set_zoom(imgBtn,buttonScale);
+  lv_obj_update_layout(imgBtn);
+  lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
+  lv_obj_add_event_cb(imgBtn, buttonEvent, LV_EVENT_PRESSED, (char*)"settings");
   
   // Skip Button
   imgBtn = lv_img_create(buttonBar);
@@ -97,5 +114,6 @@ void createSearchSatScr()
   lv_obj_update_layout(imgBtn);
   lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
   lv_obj_add_event_cb(imgBtn, buttonEvent, LV_EVENT_PRESSED, (char*)"skip");
+
 
 }
