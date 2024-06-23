@@ -23,6 +23,7 @@ extern lv_obj_t *settingsScreen;       // Settings Screen
 extern lv_obj_t *mapSettingsScreen;    // Map Settings Screen
 extern lv_obj_t *deviceSettingsScreen; // Device Settings Screen
 extern bool needReboot;                // Flag to force device reboot
+extern bool isSearchingSat;            // Flag to indicate that is searching satellites
 
 static lv_timer_t *mainTimer;    // Main Screen Timer
 #define UPDATE_MAINSCR_PERIOD 30 // Main Screen update time
