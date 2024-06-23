@@ -20,13 +20,13 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 > Do not use in production (Experimental features).
 
 ## Screenshots
-|<img src="images/dev/splash.jpg">|<img src="images/dev/compass.jpg">|<img src="images/dev/rendermap.jpg">|<img src="images/dev/vectormap.jpg">|<img src="images/dev/satinfo.jpg">|
+|<img src="images/dev/splash.jpg">|<img src="images/dev/searchsat.jpg">|<img src="images/dev/compass.jpg">|<img src="images/dev/rendermap.jpg">|<img src="images/dev/vectormap.jpg">|
 |:-:|:-:|:-:|:-:|:-:|
-| Splash Screen | Compass | Rendered Map | Vectorized Map | Satellite Info |
+| Splash Screen | Search Satellite | Compass | Rendered Map | Vectorized Map | 
 
-|<img src="images/dev/settings.jpg">|<img src="images/dev/compasscal.jpg">|<img src="images/dev/touchcal.jpg">|<img src="images/dev/mapsettings.jpg">|<img src="images/dev/devicesettings.jpg">|
-|:-:|:-:|:-:|:-:|:-:|
-| Settings | Compass Calibration | Touch Calibration | Map Settings | Device Settings |
+|<img src="images/dev/satelliteinfo.jpg">|<img src="images/dev/settings.jpg">|<img src="images/dev/compasscal.jpg">|<img src="images/dev/touchcal.jpg">|<img src="images/dev/mapsettings.jpg">|<img src="images/dev/devicesettings.jpg">|
+|:-:|:-:|:-:|:-:|:-:|:-:|
+| Satellite Info | Settings | Compass Calibration | Touch Calibration | Map Settings | Device Settings |
 
 ### WiFi CLI Manager
 ![WifiCLI](https://github.com/jgauchia/IceNav-v3/assets/1075178/a7f8af18-2c34-436d-8fef-995540312cb2)
