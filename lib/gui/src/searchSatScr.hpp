@@ -11,14 +11,18 @@
 
 #include <lvgl.h>
 #include "gps.hpp"
+#include "globalGuiDef.h"
 
 extern lv_obj_t *searchSatScreen;     // Search Satellite Screen
 static lv_timer_t *searchTimer;
 static const char* textSearch PROGMEM = "Searching for satellites";
 static const char* satIconFile PROGMEM = "F:/sat.bin";
+static const char *skipIconFile PROGMEM = "F:/skip.bin"; // Skip icon
+
 
 void loadMainScreen();
 void searchGPS(lv_timer_t *searchTimer);
+void buttonEvent(lv_event_t *event);
 void createSearchSatScr();
 
 #endif
