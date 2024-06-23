@@ -39,10 +39,9 @@
 #include "battery.hpp"
 #include "power.hpp"
 #include "settings.hpp"
-#include "tasks.hpp"
 #include "lvglSetup.hpp"
+#include "tasks.hpp"
 
-bool waitScreenRefresh = false;
 
 /**
  * @brief Setup

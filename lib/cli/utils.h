@@ -1,3 +1,14 @@
+/**
+ * @file utils.h
+ * @author @Hpsaturn
+ * @brief  Network CLI and custom internal commands
+ * @version 0.1.8
+ * @date 2024-06
+ */
+
+#ifndef UTILS_H
+#define UTILS_H
+
 #ifndef DISABLE_CLI
 #include "cli.hpp"
 #include "storage.hpp"
@@ -6,7 +17,8 @@
 #define SCREENSHOT_TEMP_FILE "/screenshot.raw"
 
 // Capture the screenshot and save it to the SD card
-void captureScreenshot(const char* filename, Stream *response) {
+static void captureScreenshot(const char* filename, Stream *response)
+{
   File file = SD.open(filename, FILE_WRITE);
   if (!file) {
     response->println("Failed to open file for writing");
@@ -20,8 +32,6 @@ void captureScreenshot(const char* filename, Stream *response) {
     file.close();
     return;
   }
-
-  waitScreenRefresh = true;
 
   // Read the screen data into the buffer using readRect
   tft.readRect(0, 0, tft.width(), tft.height(), (uint16_t*)buffer);
@@ -41,13 +51,13 @@ void captureScreenshot(const char* filename, Stream *response) {
   free(buffer);
   file.close();
   response->println("Screenshot saved");
-  waitScreenRefresh = false;
 }
 
 // WiFi client
-WiFiClient client;
+static WiFiClient client;
 
-void captureScreenshot(const char* filename, const char* pc_ip, uint16_t pc_port) {
+static void captureScreenshot(const char* filename, const char* pc_ip, uint16_t pc_port) 
+{
   if (!client.connect(pc_ip, pc_port)) {
     Serial.println("Connection to server failed");
     return;
@@ -76,4 +86,6 @@ void captureScreenshot(const char* filename, const char* pc_ip, uint16_t pc_port
   client.stop();
   Serial.println("Screenshot sent over WiFi");
 }
+#endif
+
 #endif

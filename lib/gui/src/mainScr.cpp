@@ -7,7 +7,7 @@
  */
 
 #include "mainScr.hpp"
-#include "utils.h"
+#include "tft.hpp"
 
 bool isMainScreen = false; // Flag to indicate main screen is selected
 bool isScrolled = true;    // Flag to indicate when tileview was scrolled
@@ -170,12 +170,13 @@ void scrollTile(lv_event_t *event)
  */
 void updateMainScreen(lv_timer_t *t)
 {
-  if (isScrolled && isMainScreen && !waitScreenRefresh)
+  if (isScrolled && isMainScreen)
   {
     switch (activeTile)
     {
       case COMPASS:
         #ifdef ENABLE_COMPASS
+        if (!waitScreenRefresh)
           heading = getHeading();
         #endif
         lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
@@ -198,6 +199,7 @@ void updateMainScreen(lv_timer_t *t)
       case MAP:
         // if (GPS.location.isUpdated())
         #ifdef ENABLE_COMPASS
+        if (!waitScreenRefresh)
           heading = getHeading();
         #endif
         lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
@@ -287,32 +289,35 @@ void getZoomValue(lv_event_t *event)
  */
 void updateMap(lv_event_t *event)
 {
-  if (tft.getStartCount() == 0)
-    tft.startWrite();
-
-  if (isVectorMap)
+  if (!waitScreenRefresh)
   {
-    getPosition(getLat(), getLon());
-    
-    if (isPosMoved)
+    if (tft.getStartCount() == 0)
+      tft.startWrite();
+
+    if (isVectorMap)
     {
-      tileSize = VECTOR_TILE_SIZE;
-      viewPort.setCenter(point);
-      getMapBlocks(viewPort.bbox, memCache);
-      generateVectorMap(viewPort, memCache, mapTempSprite);
-      isPosMoved = false;
+      getPosition(getLat(), getLon());
+      
+      if (isPosMoved)
+      {
+        tileSize = VECTOR_TILE_SIZE;
+        viewPort.setCenter(point);
+        getMapBlocks(viewPort.bbox, memCache);
+        generateVectorMap(viewPort, memCache, mapTempSprite);
+        isPosMoved = false;
+      }
     }
-  }
-  else
-  {
-    tileSize = RENDER_TILE_SIZE;
-    generateRenderMap();
-  }
+    else
+    {
+      tileSize = RENDER_TILE_SIZE;
+      generateRenderMap();
+    }
 
-  displayMap(tileSize);
+    displayMap(tileSize);
 
-  if (tft.getStartCount() > 0)
-    tft.endWrite();
+    if (tft.getStartCount() > 0)
+      tft.endWrite();
+  }
 }
 
 /**
@@ -575,7 +580,7 @@ void createMainScr()
  
   #ifdef LARGE_SCREEN
 
-  #ifdef AT6558D_GPS
+  #ifdef MULTI_GNSS
   lv_style_init(&styleRadio);
   lv_style_set_radius(&styleRadio, LV_RADIUS_CIRCLE);
   
