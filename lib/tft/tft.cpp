@@ -12,6 +12,7 @@ TFT_eSPI tft = TFT_eSPI();
 bool repeatCalib = false;
 uint16_t TFT_WIDTH = 0;
 uint16_t TFT_HEIGHT = 0;
+bool waitScreenRefresh = false;
 
 /**
  * @brief Set the TFT brightness

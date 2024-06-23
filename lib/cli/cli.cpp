@@ -8,8 +8,7 @@
 
 #ifndef DISABLE_CLI
 #include "cli.hpp"
-#include "utils.h"
-#include "gps.hpp"
+
 
 const char logo[] =
 "\r\n"
@@ -26,39 +25,51 @@ const char logo[] =
 
 
 
-void wcli_reboot(char *args, Stream *response) {
+void wcli_reboot(char *args, Stream *response)
+{
   ESP.restart();
 } 
 
-void wcli_info(char *args, Stream *response) {
+void wcli_info(char *args, Stream *response)
+{
   response->println();
   wcli.status(response);
   response->print("GPS Baud rate\t: ");
   response->println(gpsBaudDetected);
 }
 
-void wcli_clear(char *args, Stream *response){
+void wcli_clear(char *args, Stream *response)
+{
   wcli.shell->clear();
 }
 
-void wcli_scshot(char *args, Stream *response){
+void wcli_scshot(char *args, Stream *response)
+{
   Pair<String, String> operands = wcli.parseCommand(args);
   String ip = operands.first();
   uint16_t port = operands.second().toInt();
  
   if (ip.isEmpty()){
     response->println("Saving to SD..");
+
+    waitScreenRefresh = true;
     captureScreenshot(SCREENSHOT_TEMP_FILE, response);
+    waitScreenRefresh = false;
+    
     response->println("Note: is possible to send it to a PC using: scshot ip port");
   }
   else {
     response->printf("Sending screenshot to %s:%i..\r\n", ip.c_str(), port);
+
+    waitScreenRefresh = true;
     captureScreenshot(SCREENSHOT_TEMP_FILE, response);
     captureScreenshot(SCREENSHOT_TEMP_FILE, ip.c_str(), port);
+    waitScreenRefresh = false;
   }
 }
 
-void initRemoteShell(){
+void initRemoteShell()
+{
 #ifndef DISABLE_CLI_TELNET 
   if (wcli.isTelnetEnable()) wcli.shellTelnet->attachLogo(logo);
 #endif
@@ -79,7 +90,8 @@ void initShell(){
 /**
  * @brief WiFi CLI init and IceNav custom commands
  **/
-void initCLI() {
+void initCLI() 
+{
   #ifndef ARDUINO_USB_CDC_ON_BOOT
     Serial.begin(115200);
   #endif

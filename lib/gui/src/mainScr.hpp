@@ -18,8 +18,8 @@
 #include "renderMaps.hpp"
 #include "vectorMaps.hpp"
 
-static lv_timer_t *mainTimer;    // Main Screen Timer
-#define UPDATE_MAINSCR_PERIOD 30 // Main Screen update time
+//extern lv_timer_t *mainTimer;    // Main Screen Timer
+//#define UPDATE_MAINSCR_PERIOD 30 // Main Screen update time
 
 extern bool isMainScreen;                          // Flag to indicate main screen is selected
 extern bool isReady;                               // Flag to indicate when tileview scroll was finished
