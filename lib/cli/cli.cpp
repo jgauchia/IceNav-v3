@@ -77,7 +77,7 @@ void initRemoteShell()
 void initShell(){
   wcli.shell->attachLogo(logo);
   wcli.setSilentMode(true);
-  // wcli.disableConnectInBoot();
+  wcli.disableConnectInBoot();
   // Main Commands:
   wcli.add("reboot", &wcli_reboot, "\tperform a ESP32 reboot");
   wcli.add("info", &wcli_info, "\t\tget device information");
