@@ -45,7 +45,7 @@ void buttonBarEvent(lv_event_t *event)
     if (!isOptionLoaded)
     {
       isOptionLoaded = true;
-      //loadOptions();
+      loadOptions();
     }
   }
   if (strcmp(option,"track") == 0)
@@ -57,7 +57,7 @@ void buttonBarEvent(lv_event_t *event)
     if (!isOptionLoaded)
     {
       isOptionLoaded = true;
-      //loadOptions();
+      loadOptions();
     } 
   }
   if (strcmp(option,"settings") == 0)
@@ -132,6 +132,7 @@ void hideShowEvent(lv_event_t * e)
       lv_anim_set_values(&a, 0, 256);
       lv_anim_set_duration(&a, 400);
       lv_anim_start(&a);
+      lv_obj_set_style_pad_left(buttonBar, LV_DPX(10) * scaleBut, 0);
     }
     else 
     {
@@ -142,6 +143,7 @@ void hideShowEvent(lv_event_t * e)
       lv_anim_set_values(&a, 256, 0);
       lv_anim_set_duration(&a, 400);
       lv_anim_start(&a);
+      lv_obj_set_style_pad_left(buttonBar, 0, 0);
     }
   }
 }
@@ -156,6 +158,7 @@ void createButtonBarScr()
   buttonBar = lv_obj_create(mainScreen);
   lv_obj_remove_style_all(buttonBar);
   lv_obj_set_flex_flow(buttonBar, LV_FLEX_FLOW_ROW);
+  //lv_obj_set_style_pad_left(buttonBar, LV_DPX(10) * scaleBut, 0);
   lv_obj_set_flex_align(buttonBar, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
   lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_FLOATING);
   lv_obj_set_style_radius(buttonBar, LV_RADIUS_CIRCLE, 0);
@@ -218,13 +221,13 @@ void loadOptions()
   option = lv_msgbox_create(lv_scr_act());
   if (isWaypointOpt)
   {
-    // lv_msgbox_add_title(option,"Waypoint Options");
-    //  option = lv_msgbox_create(lv_scr_act(), "Waypoint Options", NULL, NULL, true);
+    //lv_msgbox_add_title(option,"Waypoint Options");
+    //option = lv_msgbox_create(lv_scr_act(), "Waypoint Options", NULL, NULL, true);
   }
   else if (isTrackOpt)
   {
-    // lv_msgbox_add_title(option,"Track Options");
-    // option = lv_msgbox_create(lv_scr_act(), "Track Options", NULL, NULL, true);
+    //lv_msgbox_add_title(option,"Track Options");
+    //option = lv_msgbox_create(lv_scr_act(), "Track Options", NULL, NULL, true);
   }
   lv_msgbox_add_close_button(option);
   
