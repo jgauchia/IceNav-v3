@@ -23,16 +23,17 @@ lv_obj_t *settingsScreen;
 void buttonBarEvent(lv_event_t *event)
 {
   lv_obj_t * obj = (lv_obj_t*)lv_event_get_target(event);
-        lv_obj_t * buttonBar = lv_obj_get_parent(obj);
-          if(lv_obj_get_width(buttonBar) > LV_HOR_RES / 2) {
-            lv_anim_t a;
-            lv_anim_init(&a);
-            lv_anim_set_var(&a, buttonBar);
-            lv_anim_set_exec_cb(&a, hideShowAnim);
-            lv_anim_set_values(&a, 256, 0);
-            lv_anim_set_duration(&a, 400);
-            lv_anim_start(&a);
-        }
+  lv_obj_t * buttonBar = lv_obj_get_parent(obj);
+  if(lv_obj_get_width(buttonBar) > LV_HOR_RES / 2)
+  {
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, buttonBar);
+    lv_anim_set_exec_cb(&a, hideShowAnim);
+    lv_anim_set_values(&a, 256, 0);
+    lv_anim_set_duration(&a, 400);
+    lv_anim_start(&a);
+  }
 
   char *option = (char *)lv_event_get_user_data(event);
   if (strcmp(option,"waypoint") == 0)
@@ -106,7 +107,7 @@ void optionEvent(lv_event_t *event)
 void hideShowAnim(void * var, int32_t v)
 {
     lv_obj_t * obj = (lv_obj_t*)var;
-    int32_t max_w = lv_obj_get_width(lv_obj_get_parent(obj)) - LV_DPX(5);
+    int32_t max_w = lv_obj_get_width(lv_obj_get_parent(obj)) - LV_DPX(4);
     int32_t w;
     w = lv_map(v, 0, 256, LV_DPX(60), max_w);
     lv_obj_set_width(obj, w);
@@ -158,11 +159,12 @@ void createButtonBarScr()
   lv_obj_set_flex_align(buttonBar, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
   lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_FLOATING);
   lv_obj_set_style_radius(buttonBar, LV_RADIUS_CIRCLE, 0);
+  lv_obj_set_style_border_color(buttonBar, lv_color_white(), 0);
+  lv_obj_set_style_border_width(buttonBar, 1, 0);
+  lv_obj_set_style_border_opa(buttonBar,LV_OPA_20,0);
   lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_FLOATING);
-  lv_obj_set_size(buttonBar, 48 * scaleBut, 48 * scaleBut);
-  lv_obj_align(buttonBar, LV_ALIGN_BOTTOM_RIGHT, -LV_DPX(5),  -LV_DPX(15) );
-  lv_obj_set_style_bg_color(buttonBar, lv_color_white(), 0);
-  lv_obj_set_style_bg_opa(buttonBar, LV_OPA_10, 0);
+  lv_obj_set_size(buttonBar, 50 * scaleBut, 50 * scaleBut);
+  lv_obj_align(buttonBar, LV_ALIGN_BOTTOM_RIGHT, -LV_DPX(4),  -LV_DPX(14) );
 
   lv_obj_t *menuBtn = lv_img_create(mainScreen);
   lv_img_set_src(menuBtn, menuIconFile);
