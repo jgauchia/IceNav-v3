@@ -22,6 +22,18 @@ lv_obj_t *settingsScreen;
  */
 void buttonBarEvent(lv_event_t *event)
 {
+  lv_obj_t * obj = (lv_obj_t*)lv_event_get_target(event);
+        lv_obj_t * buttonBar = lv_obj_get_parent(obj);
+          if(lv_obj_get_width(buttonBar) > LV_HOR_RES / 2) {
+            lv_anim_t a;
+            lv_anim_init(&a);
+            lv_anim_set_var(&a, buttonBar);
+            lv_anim_set_exec_cb(&a, hideShowAnim);
+            lv_anim_set_values(&a, 256, 0);
+            lv_anim_set_duration(&a, 400);
+            lv_anim_start(&a);
+        }
+
   char *option = (char *)lv_event_get_user_data(event);
   if (strcmp(option,"waypoint") == 0)
   {
@@ -172,7 +184,7 @@ void createButtonBarScr()
   lv_obj_update_layout(imgBtn);
   lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
   lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_add_event_cb(imgBtn, buttonBarEvent, LV_EVENT_PRESSED, (char*)"waypoint");
+  //lv_obj_add_event_cb(imgBtn, buttonBarEvent, LV_EVENT_PRESSED, (char*)"waypoint");
   
   // Track Button
   imgBtn = lv_img_create(buttonBar);
@@ -183,7 +195,7 @@ void createButtonBarScr()
   lv_obj_update_layout(imgBtn);
   lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
   lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_add_event_cb(imgBtn, buttonBarEvent, LV_EVENT_PRESSED, (char*)"track");
+  //lv_obj_add_event_cb(imgBtn, buttonBarEvent, LV_EVENT_PRESSED, (char*)"track");
   
   // Settings Button
   imgBtn = lv_img_create(buttonBar);
