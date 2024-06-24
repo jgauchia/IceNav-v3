@@ -44,17 +44,17 @@ void captureScreenshot(const char* filename, Stream *response) {
 // WiFi client
 WiFiClient client;
 
-void captureScreenshot(const char* filename, const char* pc_ip, uint16_t pc_port) {
+void captureScreenshot(const char* filename, const char* pc_ip, uint16_t pc_port, Stream *response) {
   if (!client.connect(pc_ip, pc_port)) {
-    Serial.println("Connection to server failed");
+    response->println("Connection to server failed");
     return;
   }
 
-  Serial.println("Connected to server");
+  response->println("Connected to server");
 
   File file = SD.open(filename, FILE_READ);
   if (!file) {
-    Serial.println("Failed to open file for reading");
+    response->println("Failed to open file for reading");
     client.stop();
     return;
   }
@@ -71,6 +71,6 @@ void captureScreenshot(const char* filename, const char* pc_ip, uint16_t pc_port
 
   file.close();
   client.stop();
-  Serial.println("Screenshot sent over WiFi");
+  response->println("Screenshot sent over WiFi");
 }
 #endif
