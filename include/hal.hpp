@@ -32,8 +32,8 @@
      * @brief GPS pin definition
      *
      */
-    extern const uint8_t GPS_TX = 17;
-    extern const uint8_t GPS_RX = 18;
+    extern const uint8_t GPS_TX = 18;
+    extern const uint8_t GPS_RX = 17;
 
 #define LCD_CS 37
 #define LCD_BLK 45
