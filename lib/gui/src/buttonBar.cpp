@@ -160,7 +160,7 @@ void hideShowEvent(lv_event_t * e)
       lv_anim_set_completed_cb(&a, endHideShowAnim);
       lv_anim_set_exec_cb(&a, hideShowAnim);
       lv_anim_set_values(&a, 0, 256);
-      lv_anim_set_duration(&a, 400);
+      lv_anim_set_duration(&a, 250);
       lv_anim_start(&a);
     }
     else 
@@ -172,7 +172,7 @@ void hideShowEvent(lv_event_t * e)
       lv_anim_set_start_cb(&a, startHideShowAnim);
       lv_anim_set_completed_cb(&a, endHideShowAnim);
       lv_anim_set_values(&a, 256, 0);
-      lv_anim_set_duration(&a, 400);
+      lv_anim_set_duration(&a, 250);
       lv_anim_start(&a);
     }
   }
