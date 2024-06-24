@@ -9,6 +9,27 @@
 #include "searchSatScr.hpp"
 
 static unsigned long millisActual = 0;
+static bool skipSearch = false;
+bool isSearchingSat = true;
+
+/**
+ * @brief Button events
+ *
+ * @param event
+ */
+void buttonEvent(lv_event_t *event)
+{
+  char *option = (char *)lv_event_get_user_data(event);
+  if (strcmp(option,"skip") == 0)
+  {
+    skipSearch = true;
+  }
+  if (strcmp(option,"settings") == 0)
+  {
+    //isMainScreen = false;
+    lv_screen_load(settingsScreen); 
+  }
+}
 
 /**
  * @brief Search valid GPS signal
@@ -24,6 +45,13 @@ void searchGPS(lv_timer_t *searchTimer)
     while (millis() < millisActual + 2000)
       ;
     lv_timer_del(searchTimer);
+    isSearchingSat = false;
+    loadMainScreen();
+  }
+  if (skipSearch)
+  {
+    lv_timer_del(searchTimer);
+    isSearchingSat = false;
     loadMainScreen();
   }
 }
@@ -34,6 +62,9 @@ void searchGPS(lv_timer_t *searchTimer)
  */
 void createSearchSatScr()
 {
+  searchTimer = lv_timer_create(searchGPS, 1000, NULL);
+  lv_timer_ready(searchTimer);
+
   searchSatScreen = lv_obj_create(NULL);
 
   lv_obj_t *label = lv_label_create(searchSatScreen);
@@ -51,6 +82,38 @@ void createSearchSatScr()
   lv_img_set_src(satImg, satIconFile);
   lv_obj_set_align(satImg, LV_ALIGN_CENTER);
 
-  searchTimer = lv_timer_create(searchGPS, 1000, NULL);
-  lv_timer_ready(searchTimer);
+  // Button Bar
+  lv_obj_t *buttonBar = lv_obj_create(searchSatScreen);
+  lv_obj_set_size(buttonBar, TFT_WIDTH, 68 * scaleBut);
+  lv_obj_set_pos(buttonBar, 0, TFT_HEIGHT - 80 * scaleBut);
+  lv_obj_set_flex_flow(buttonBar, LV_FLEX_FLOW_ROW);
+  lv_obj_set_flex_align(buttonBar, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_SCROLLABLE);
+  static lv_style_t styleBar;
+  lv_style_init(&styleBar);
+  lv_style_set_bg_opa(&styleBar, LV_OPA_0);
+  lv_style_set_border_opa(&styleBar, LV_OPA_0);
+  lv_obj_add_style(buttonBar, &styleBar, LV_PART_MAIN);
+
+  lv_obj_t *imgBtn;
+ 
+  // Settings Button
+  imgBtn = lv_img_create(buttonBar);
+  lv_img_set_src(imgBtn, confIconFile);
+  lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
+  lv_img_set_zoom(imgBtn,buttonScale);
+  lv_obj_update_layout(imgBtn);
+  lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
+  lv_obj_add_event_cb(imgBtn, buttonEvent, LV_EVENT_PRESSED, (char*)"settings");
+  
+  // Skip Button
+  imgBtn = lv_img_create(buttonBar);
+  lv_img_set_src(imgBtn, skipIconFile);
+  lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
+  lv_img_set_zoom(imgBtn,buttonScale);
+  lv_obj_update_layout(imgBtn);
+  lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
+  lv_obj_add_event_cb(imgBtn, buttonEvent, LV_EVENT_PRESSED, (char*)"skip");
+
+
 }
