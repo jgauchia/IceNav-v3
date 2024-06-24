@@ -7,6 +7,7 @@
  */
 
 #include "buttonBar.hpp"
+#include "globalGuiDef.h"
 
 bool isWaypointOpt = false;
 bool isTrackOpt = false;
@@ -86,6 +87,53 @@ void optionEvent(lv_event_t *event)
 }
 
 /**
+ * @brief Hide/Show Animation
+ *
+ * @param event
+ */
+void hideShowAnim(void * var, int32_t v)
+{
+    lv_obj_t * obj = (lv_obj_t*)var;
+    int32_t max_w = lv_obj_get_width(lv_obj_get_parent(obj)) - LV_DPX(5);
+    int32_t w;
+    w = lv_map(v, 0, 256, LV_DPX(60), max_w);
+    lv_obj_set_width(obj, w);
+}
+
+/**
+ * @brief Hide/Show buttons event
+ *
+ * @param event
+ */
+void hideShowEvent(lv_event_t * e)
+{
+  if(lv_event_get_code(e) == LV_EVENT_CLICKED) 
+  {
+    lv_obj_t * buttonBar = (lv_obj_t *)lv_event_get_user_data(e);
+    if(lv_obj_get_width(buttonBar) < LV_HOR_RES / 2)
+    {
+      lv_anim_t a;
+      lv_anim_init(&a);
+      lv_anim_set_var(&a, buttonBar);
+      lv_anim_set_exec_cb(&a, hideShowAnim);
+      lv_anim_set_values(&a, 0, 256);
+      lv_anim_set_duration(&a, 400);
+      lv_anim_start(&a);
+    }
+    else 
+    {
+      lv_anim_t a;
+      lv_anim_init(&a);
+      lv_anim_set_var(&a, buttonBar);
+      lv_anim_set_exec_cb(&a, hideShowAnim);
+      lv_anim_set_values(&a, 256, 0);
+      lv_anim_set_duration(&a, 400);
+      lv_anim_start(&a);
+    }
+  }
+}
+
+/**
  * @brief Create button bar screen
  *
  */
@@ -93,16 +141,25 @@ void createButtonBarScr()
 {
   // Button Bar
   buttonBar = lv_obj_create(mainScreen);
-  lv_obj_set_size(buttonBar, TFT_WIDTH, 68 * scaleBut);
-  lv_obj_set_pos(buttonBar, 0, TFT_HEIGHT - 80 * scaleBut);
+  lv_obj_remove_style_all(buttonBar);
   lv_obj_set_flex_flow(buttonBar, LV_FLEX_FLOW_ROW);
   lv_obj_set_flex_align(buttonBar, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-  lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_SCROLLABLE);
-  static lv_style_t styleBar;
-  lv_style_init(&styleBar);
-  lv_style_set_bg_opa(&styleBar, LV_OPA_0);
-  lv_style_set_border_opa(&styleBar, LV_OPA_0);
-  lv_obj_add_style(buttonBar, &styleBar, LV_PART_MAIN);
+  lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_FLOATING);
+  lv_obj_set_style_radius(buttonBar, LV_RADIUS_CIRCLE, 0);
+  lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_FLOATING);
+  lv_obj_set_size(buttonBar, 48 * scaleBut, 48 * scaleBut);
+  lv_obj_align(buttonBar, LV_ALIGN_BOTTOM_RIGHT, -LV_DPX(5),  -LV_DPX(15) );
+  lv_obj_set_style_bg_color(buttonBar, lv_color_white(), 0);
+  lv_obj_set_style_bg_opa(buttonBar, LV_OPA_10, 0);
+
+  lv_obj_t *menuBtn = lv_img_create(mainScreen);
+  lv_img_set_src(menuBtn, menuIconFile);
+  lv_obj_add_flag(menuBtn, LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE);
+  lv_img_set_zoom(menuBtn,buttonScale);
+  lv_obj_update_layout(menuBtn);
+  lv_obj_add_event_cb(menuBtn, hideShowEvent, LV_EVENT_ALL, buttonBar);
+  lv_obj_set_size(menuBtn, 48 * scaleBut, 48 * scaleBut);
+  lv_obj_align(menuBtn, LV_ALIGN_BOTTOM_RIGHT, -LV_DPX(5), -LV_DPX(15));
 
   lv_obj_t *imgBtn;
   
