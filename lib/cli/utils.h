@@ -1,3 +1,14 @@
+/**
+ * @file utils.h
+ * @author @Hpsaturn
+ * @brief  Network CLI and custom internal commands
+ * @version 0.1.8
+ * @date 2024-06
+ */
+
+#ifndef UTILS_H
+#define UTILS_H
+
 #ifndef DISABLE_CLI
 #include "cli.hpp"
 #include "storage.hpp"
@@ -6,7 +17,8 @@
 #define SCREENSHOT_TEMP_FILE "/screenshot.raw"
 
 // Capture the screenshot and save it to the SD card
-void captureScreenshot(const char* filename, Stream *response) {
+static void captureScreenshot(const char* filename, Stream *response)
+{
   File file = SD.open(filename, FILE_WRITE);
   if (!file) {
     response->println("Failed to open file for writing");
@@ -42,9 +54,9 @@ void captureScreenshot(const char* filename, Stream *response) {
 }
 
 // WiFi client
-WiFiClient client;
+static WiFiClient client;
 
-void captureScreenshot(const char* filename, const char* pc_ip, uint16_t pc_port, Stream *response) {
+static void captureScreenshot(const char* filename, const char* pc_ip, uint16_t pc_port, Stream *response) {
   if (!client.connect(pc_ip, pc_port)) {
     response->println("Connection to server failed");
     return;
@@ -73,4 +85,6 @@ void captureScreenshot(const char* filename, const char* pc_ip, uint16_t pc_port
   client.stop();
   response->println("Screenshot sent over WiFi");
 }
+#endif
+
 #endif

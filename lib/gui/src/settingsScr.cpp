@@ -18,7 +18,10 @@ bool needReboot = false;
  */
 static void back(lv_event_t *event)
 {
-  loadMainScreen();
+  if (isSearchingSat)
+    lv_screen_load(searchSatScreen);
+  else
+    loadMainScreen();
 }
 
 /**
