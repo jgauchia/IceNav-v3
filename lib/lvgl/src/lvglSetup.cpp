@@ -7,6 +7,7 @@
  */
 
 #include "lvglSetup.hpp"
+#include "globalGuiDef.h"
 
 ViewPort viewPort; // Vector map viewport
 MemCache memCache; // Vector map Memory Cache
@@ -190,5 +191,6 @@ void initLVGL()
 void loadMainScreen()
 {
   isMainScreen = true;
+  isSearchingSat = false;
   lv_screen_load(mainScreen);
 }
