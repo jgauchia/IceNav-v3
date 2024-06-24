@@ -34,6 +34,8 @@ extern bool repeatCalib;
 static uint8_t brightnessLevel = 255;
 extern uint16_t TFT_WIDTH;
 extern uint16_t TFT_HEIGHT;
+extern bool waitScreenRefresh;                  // Wait for refres screen (screenshoot issues)
+
 
 void setBrightness(uint8_t brightness);
 uint8_t getBrightness();
