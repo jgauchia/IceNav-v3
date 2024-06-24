@@ -114,6 +114,34 @@ void hideShowAnim(void * var, int32_t v)
 }
 
 /**
+ * @brief Hide/Show start animation callback
+ *
+ * @param anim
+ */
+void startHideShowAnim(lv_anim_t * anim)
+{
+  isScrolled = false;
+  if (lv_obj_get_width(buttonBar) == LV_HOR_RES /2)
+    lv_obj_set_style_pad_left(buttonBar, 0, 0);
+  else
+    lv_obj_set_style_pad_left(buttonBar, LV_DPX(10) * scaleBut, 0);
+}
+
+/**
+ * @brief Hide/Show finish animation callback
+ *
+ * @param anim
+ */
+void endHideShowAnim(lv_anim_t *anim)
+{
+  isScrolled = true;
+  if (lv_obj_get_width(buttonBar) == LV_HOR_RES /2)
+    lv_obj_set_style_pad_left(buttonBar, LV_DPX(10) * scaleBut, 0);
+  else
+    lv_obj_set_style_pad_left(buttonBar, 0, 0);
+}
+
+/**
  * @brief Hide/Show buttons event
  *
  * @param event
@@ -128,11 +156,12 @@ void hideShowEvent(lv_event_t * e)
       lv_anim_t a;
       lv_anim_init(&a);
       lv_anim_set_var(&a, buttonBar);
+      lv_anim_set_start_cb(&a, startHideShowAnim);
+      lv_anim_set_completed_cb(&a, endHideShowAnim);
       lv_anim_set_exec_cb(&a, hideShowAnim);
       lv_anim_set_values(&a, 0, 256);
       lv_anim_set_duration(&a, 400);
       lv_anim_start(&a);
-      lv_obj_set_style_pad_left(buttonBar, LV_DPX(10) * scaleBut, 0);
     }
     else 
     {
@@ -140,10 +169,11 @@ void hideShowEvent(lv_event_t * e)
       lv_anim_init(&a);
       lv_anim_set_var(&a, buttonBar);
       lv_anim_set_exec_cb(&a, hideShowAnim);
+      lv_anim_set_start_cb(&a, startHideShowAnim);
+      lv_anim_set_completed_cb(&a, endHideShowAnim);
       lv_anim_set_values(&a, 256, 0);
       lv_anim_set_duration(&a, 400);
       lv_anim_start(&a);
-      lv_obj_set_style_pad_left(buttonBar, 0, 0);
     }
   }
 }
@@ -158,7 +188,6 @@ void createButtonBarScr()
   buttonBar = lv_obj_create(mainScreen);
   lv_obj_remove_style_all(buttonBar);
   lv_obj_set_flex_flow(buttonBar, LV_FLEX_FLOW_ROW);
-  //lv_obj_set_style_pad_left(buttonBar, LV_DPX(10) * scaleBut, 0);
   lv_obj_set_flex_align(buttonBar, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
   lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_FLOATING);
   lv_obj_set_style_radius(buttonBar, LV_RADIUS_CIRCLE, 0);
