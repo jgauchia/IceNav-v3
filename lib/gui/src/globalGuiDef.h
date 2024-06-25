@@ -26,7 +26,7 @@ extern bool needReboot;                // Flag to force device reboot
 extern bool isSearchingSat;            // Flag to indicate that is searching satellites
 
 static lv_timer_t *mainTimer;    // Main Screen Timer
-#define UPDATE_MAINSCR_PERIOD 30 // Main Screen update time
+#define UPDATE_MAINSCR_PERIOD 100 // Main Screen update time
 
 #ifdef LARGE_SCREEN
   static const lv_font_t *fontDefault = &lv_font_montserrat_14;

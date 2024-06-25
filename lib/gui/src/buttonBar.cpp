@@ -30,6 +30,8 @@ void buttonBarEvent(lv_event_t *event)
     lv_anim_init(&a);
     lv_anim_set_var(&a, buttonBar);
     lv_anim_set_exec_cb(&a, hideShowAnim);
+    lv_anim_set_start_cb(&a, startHideShowAnim);
+    lv_anim_set_completed_cb(&a, endHideShowAnim);
     lv_anim_set_values(&a, 256, 0);
     lv_anim_set_duration(&a, 400);
     lv_anim_start(&a);
@@ -106,11 +108,11 @@ void optionEvent(lv_event_t *event)
  */
 void hideShowAnim(void * var, int32_t v)
 {
-    lv_obj_t * obj = (lv_obj_t*)var;
-    int32_t max_w = lv_obj_get_width(lv_obj_get_parent(obj)) - LV_DPX(4);
-    int32_t w;
-    w = lv_map(v, 0, 256, LV_DPX(60), max_w);
-    lv_obj_set_width(obj, w);
+  lv_obj_t * obj = (lv_obj_t*)var;
+  int32_t max_w = lv_obj_get_width(lv_obj_get_parent(obj)) - LV_DPX(4);
+  int32_t w;
+  w = lv_map(v, 0, 256, LV_DPX(60) * scaleBut, max_w);
+  lv_obj_set_width(obj, w);
 }
 
 /**
@@ -120,11 +122,7 @@ void hideShowAnim(void * var, int32_t v)
  */
 void startHideShowAnim(lv_anim_t * anim)
 {
-  isScrolled = false;
-  if (lv_obj_get_width(buttonBar) == LV_HOR_RES /2)
-    lv_obj_set_style_pad_left(buttonBar, 0, 0);
-  else
-    lv_obj_set_style_pad_left(buttonBar, LV_DPX(10) * scaleBut, 0);
+ isScrolled = false;
 }
 
 /**
@@ -135,10 +133,6 @@ void startHideShowAnim(lv_anim_t * anim)
 void endHideShowAnim(lv_anim_t *anim)
 {
   isScrolled = true;
-  if (lv_obj_get_width(buttonBar) == LV_HOR_RES /2)
-    lv_obj_set_style_pad_left(buttonBar, LV_DPX(10) * scaleBut, 0);
-  else
-    lv_obj_set_style_pad_left(buttonBar, 0, 0);
 }
 
 /**
@@ -188,7 +182,7 @@ void createButtonBarScr()
   buttonBar = lv_obj_create(mainScreen);
   lv_obj_remove_style_all(buttonBar);
   lv_obj_set_flex_flow(buttonBar, LV_FLEX_FLOW_ROW);
-  lv_obj_set_flex_align(buttonBar, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_set_flex_align(buttonBar, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
   lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_FLOATING);
   lv_obj_set_style_radius(buttonBar, LV_RADIUS_CIRCLE, 0);
   lv_obj_set_style_border_color(buttonBar, lv_color_white(), 0);
@@ -196,7 +190,7 @@ void createButtonBarScr()
   lv_obj_set_style_border_opa(buttonBar,LV_OPA_20,0);
   lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_FLOATING);
   lv_obj_set_size(buttonBar, 50 * scaleBut, 50 * scaleBut);
-  lv_obj_align(buttonBar, LV_ALIGN_BOTTOM_RIGHT, -LV_DPX(4),  -LV_DPX(14) );
+  lv_obj_align(buttonBar, LV_ALIGN_BOTTOM_RIGHT, 0,  -LV_DPX(14) );
 
   lv_obj_t *menuBtn = lv_img_create(mainScreen);
   lv_img_set_src(menuBtn, menuIconFile);
@@ -205,7 +199,7 @@ void createButtonBarScr()
   lv_obj_update_layout(menuBtn);
   lv_obj_add_event_cb(menuBtn, hideShowEvent, LV_EVENT_ALL, buttonBar);
   lv_obj_set_size(menuBtn, 48 * scaleBut, 48 * scaleBut);
-  lv_obj_align(menuBtn, LV_ALIGN_BOTTOM_RIGHT, -LV_DPX(5), -LV_DPX(15));
+  lv_obj_align(menuBtn, LV_ALIGN_BOTTOM_RIGHT, 0, -LV_DPX(15));
 
   lv_obj_t *imgBtn;
   
