@@ -18,6 +18,7 @@ static const char *settingsIconFile PROGMEM = "F:/settings.bin"; // Settings ico
 static const char *saveIconFile PROGMEM = "F:/save.bin";         // Save icon
 static const char *loadIconFile PROGMEM = "F:/load.bin";         // Load icon
 static const char *deleteIconFile PROGMEM = "F:/delete.bin";     // Delete icon
+static const char *menuIconFile PROGMEM = "F/menu.bin";          // Menu icon
 
 static lv_obj_t *buttonBar;
 static lv_obj_t *option;
@@ -28,7 +29,10 @@ extern bool isOptionLoaded; // Option selected & loaded
 
 void buttonBarEvent(lv_event_t *event);
 void optionEvent(lv_event_t *event);
-
+void hideShowEvent(lv_event_t * e);
+void hideShowAnim(void * var, int32_t v);
+void startHideShowAnim(lv_anim_t * anim);
+void endHideShowAnim(lv_anim_t *anim);
 void createButtonBarScr();
 void loadOptions();
 
