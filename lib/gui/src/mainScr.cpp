@@ -73,6 +73,7 @@ void unselectWidget(lv_event_t *event)
       lv_obj_add_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
       widgetSelected = false;
     }
+    isScrolled = true;
   }
 }
 
@@ -85,6 +86,7 @@ void dragWidget(lv_event_t *event)
 {
   if (canMoveWidget)
   {
+    isScrolled = false;
     lv_obj_t *obj = (lv_obj_t *)lv_event_get_target(event);
     if (!widgetSelected)
     {
