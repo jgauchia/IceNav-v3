@@ -188,6 +188,8 @@ void createButtonBarScr()
   lv_obj_set_style_border_color(buttonBar, lv_color_white(), 0);
   lv_obj_set_style_border_width(buttonBar, 1, 0);
   lv_obj_set_style_border_opa(buttonBar,LV_OPA_20,0);
+  lv_obj_set_style_bg_color(buttonBar, lv_color_black(), 0);
+  lv_obj_set_style_bg_opa(buttonBar, 250, 0);
   lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_FLOATING);
   lv_obj_set_size(buttonBar, 50 * scaleBut, 50 * scaleBut);
   lv_obj_align(buttonBar, LV_ALIGN_BOTTOM_RIGHT, 0,  -LV_DPX(14) );
