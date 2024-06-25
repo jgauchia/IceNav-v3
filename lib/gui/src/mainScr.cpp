@@ -108,7 +108,7 @@ void dragWidget(lv_event_t *event)
     lv_coord_t height = lv_obj_get_height(obj);
     
     // Limit drag area
-    if (x > 0 && y > 0 && (x + width) < TFT_WIDTH && (y + height) < (TFT_HEIGHT - 100 * scaleBut))
+    if (x > 0 && y > 0 && (x + width) < TFT_WIDTH && (y + height) < TFT_HEIGHT - 25)
     {
       lv_obj_set_pos(obj, x, y);
       
