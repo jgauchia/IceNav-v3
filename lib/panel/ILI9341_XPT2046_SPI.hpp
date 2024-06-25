@@ -89,7 +89,7 @@ public:
       cfg.bus_shared = true;
       cfg.offset_rotation = 0;
       #ifdef ARDUINO_ESP32S3_DEV
-      cfg.spi_host = SPI2_HOST;
+      cfg.spi_host = SPI3_HOST;
       #endif
       #ifdef ARDUINO_ESP32_DEV
       cfg.spi_host = HSPI_HOST;
