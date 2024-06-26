@@ -26,11 +26,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install -U platformio
           pio pkg update
-      - name: Testing all
+      - name: Testing ESP32 Custom Board
         run: |
           export ICENAV3_LON=13.404
           export ICENAV3_LAT=52.520
-          pio run -e CUSTOMBOARD -e MAKERF_ESP32S3
+          pio run
+      - name: Testing ESP32S3 MakerFabs Board
+        run: |
+          export ICENAV3_LON=13.404
+          export ICENAV3_LAT=52.520
+          pio run -e MAKERF_ESP32S3
  
  
 
