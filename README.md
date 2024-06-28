@@ -53,13 +53,13 @@ Currently, IceNav works with the following hardware setups and specs
 
 | Driver [^1] | Resolution | SPI | 8bit | 16bit | Touch     | Build Flags [^2]                 |
 |:------------|:----------:|:---:|:----:|:-----:|:---------:|:---------------------------------|
-| ILI9488     | 320x480    | yes | ---  | ---   | XPT2046   | ```-D ILI9488_XPT2046_SPI = 1``` |
+| ILI9488 [^3]| 320x480    | yes | ---  | ---   | XPT2046   | ```-D ILI9488_XPT2046_SPI = 1``` |
 | ILI9488     | 320x480    | --- | ---  | yes   | FT5x06    | ```-D ILI9488_FT5x06_16B = 1```  |
 | ILI9341     | 320x240    | yes | ---  | ---   | XPT2046   | ```-D ILI9341_XPT2046_SPI = 1``` |
 
 ### Modules
 
-|             | Type          | Build Flags [^2]                 | lib_deps [^3] (**no common environment**)              |
+|             | Type          | Build Flags [^2]                 | lib_deps [^4] (**no common environment**)              |
 |:------------|:--------------|:---------------------------------|:-------------------------------------------------------|
 | AT6558D     | GPS           | ```-D AT6558D_GPS = 1```         |                                                        |
 | HMC5883L    | Compass       | ```-D HMC5883L = 1```            | ```adafruit/Adafruit Unified Sensor@^1.1.14``` <br> ```adafruit/Adafruit BusIO@^1.16.1``` <br> ```adafruit/Adafruit HMC5883 Unified@^1.2.3```|
@@ -69,7 +69,8 @@ Currently, IceNav works with the following hardware setups and specs
 
 [^1]: See **hal.hpp** for pinouts configuration
 [^2]: **platformio.ini** file under the build_flags section
-[^3]: You need to add libraries dependencies if the buid flag requires
+[^3]: If Touch SPI is wired to the same SPI of ILI9488 ensure that TFT MISO line has 3-STATE for screenshots (read GRAM) or leave out 
+[^4]: You need to add libraries dependencies if the buid flag requires
 
 Other setups like another sensors types, etc... not listed in the specs, now **They are not included**
 
