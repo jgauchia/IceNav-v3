@@ -7,6 +7,7 @@
  */
 
 #include "mainScr.hpp"
+#include "core/lv_obj.h"
 #include "tft.hpp"
 
 bool isMainScreen = false; // Flag to indicate main screen is selected
@@ -141,6 +142,10 @@ void getActTile(lv_event_t *event)
       createSatSprite(spriteSat);
       createConstelSprite(constelSprite);
     }
+ //   if (activeTile == MAP)
+ //      lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+ //   else
+ //     lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
   }
   else
   {

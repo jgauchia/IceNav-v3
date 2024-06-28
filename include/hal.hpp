@@ -91,9 +91,9 @@ extern const bool TFT_INVERT = true;
   extern const uint8_t TCH_SPI_CS   = 18;
 #endif
 #ifdef ARDUINO_ESP32S3_DEV
-  extern const uint8_t TCH_SPI_SCLK = 39;
-  extern const uint8_t TCH_SPI_MOSI = 41;
-  extern const uint8_t TCH_SPI_MISO = 40;
+  extern const uint8_t TCH_SPI_SCLK = 12;
+  extern const uint8_t TCH_SPI_MOSI = 11;
+  extern const uint8_t TCH_SPI_MISO = 13;
   extern const uint8_t TCH_SPI_INT  = 5;
   extern const uint8_t TCH_SPI_CS   = 4;
 #endif
