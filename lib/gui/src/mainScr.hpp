@@ -10,7 +10,9 @@
 #define MAINSCR_HPP
 
 #include "globalGuiDef.h"
+#include "globalMapsDef.h"
 #include "lvglFuncs.hpp"
+#include "misc/lv_color.h"
 #include "satInfo.hpp"
 #include "vectorMaps.hpp"
 #include "notifyBar.hpp"
@@ -41,6 +43,8 @@ enum tileName
 
 static bool widgetSelected = false;
 static bool canMoveWidget = false;
+
+static lv_obj_t *canvasMap;
 
 /**
  * @brief Main Screen Tiles

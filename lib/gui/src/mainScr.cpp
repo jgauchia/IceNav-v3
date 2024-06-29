@@ -8,7 +8,12 @@
 
 #include "mainScr.hpp"
 #include "core/lv_obj.h"
+#include "core/lv_obj_pos.h"
+#include "core/lv_obj_style.h"
+#include "globalMapsDef.h"
+#include "misc/lv_color.h"
 #include "tft.hpp"
+#include "widgets/canvas/lv_canvas.h"
 
 bool isMainScreen = false; // Flag to indicate main screen is selected
 bool isScrolled = true;    // Flag to indicate when tileview was scrolled
@@ -298,8 +303,8 @@ void updateMap(lv_event_t *event)
 {
   if (!waitScreenRefresh)
   {
-    if (tft.getStartCount() == 0)
-      tft.startWrite();
+   // if (tft.getStartCount() == 0)
+   //   tft.startWrite();
 
     if (isVectorMap)
     {
@@ -322,8 +327,12 @@ void updateMap(lv_event_t *event)
 
     displayMap(tileSize);
 
-    if (tft.getStartCount() > 0)
-      tft.endWrite();
+    lv_draw_sw_rgb565_swap(mapPtr,MAP_WIDTH*MAP_HEIGHT);
+    lv_canvas_set_buffer(canvasMap,mapPtr,MAP_WIDTH, MAP_HEIGHT, LV_COLOR_FORMAT_RGB565);
+   
+
+   // if (tft.getStartCount() > 0)
+   //   tft.endWrite();
   }
 }
 
@@ -526,7 +535,13 @@ void createMainScr()
   lv_obj_add_event_cb(altitude, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(speedLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(editScreenBtn, editScreen, LV_EVENT_ALL, NULL);
-  
+ 
+  // Map Tile
+  canvasMap = lv_canvas_create(mapTile);
+  lv_obj_remove_style_all(canvasMap);
+  lv_obj_set_size(canvasMap, MAP_WIDTH , MAP_HEIGHT );
+  lv_obj_set_pos(canvasMap,0,0);
+
   // Map Tile Events
   lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_REFRESH, NULL);
   lv_obj_add_event_cb(mainScreen, getZoomValue, LV_EVENT_GESTURE, NULL);
