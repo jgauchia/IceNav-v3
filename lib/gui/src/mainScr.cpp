@@ -147,10 +147,10 @@ void getActTile(lv_event_t *event)
       createSatSprite(spriteSat);
       createConstelSprite(constelSprite);
     }
- //   if (activeTile == MAP)
- //      lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
- //   else
- //     lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+   if (activeTile == MAP)
+      lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+   else
+     lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
   }
   else
   {
@@ -303,8 +303,8 @@ void updateMap(lv_event_t *event)
 {
   if (!waitScreenRefresh)
   {
-   // if (tft.getStartCount() == 0)
-   //   tft.startWrite();
+   if (tft.getStartCount() == 0)
+     tft.startWrite();
 
     if (isVectorMap)
     {
@@ -327,12 +327,8 @@ void updateMap(lv_event_t *event)
 
     displayMap(tileSize);
 
-    lv_draw_sw_rgb565_swap(mapPtr,MAP_WIDTH*MAP_HEIGHT);
-    lv_canvas_set_buffer(canvasMap,mapPtr,MAP_WIDTH, MAP_HEIGHT, LV_COLOR_FORMAT_RGB565);
-   
-
-   // if (tft.getStartCount() > 0)
-   //   tft.endWrite();
+   if (tft.getStartCount() > 0)
+     tft.endWrite();
   }
 }
 
@@ -537,10 +533,6 @@ void createMainScr()
   lv_obj_add_event_cb(editScreenBtn, editScreen, LV_EVENT_ALL, NULL);
  
   // Map Tile
-  canvasMap = lv_canvas_create(mapTile);
-  lv_obj_remove_style_all(canvasMap);
-  lv_obj_set_size(canvasMap, MAP_WIDTH , MAP_HEIGHT );
-  lv_obj_set_pos(canvasMap,0,0);
 
   // Map Tile Events
   lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_REFRESH, NULL);

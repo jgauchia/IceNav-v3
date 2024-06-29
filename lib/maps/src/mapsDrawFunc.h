@@ -105,7 +105,7 @@ static void drawMapWidgets()
  */
 static void displayMap(uint16_t tileSize)
 {
-  //mapSprite.pushSprite(0, 27);
+  mapSprite.pushSprite(0, 27); 
 
   if (isMapFound)
   {
@@ -134,7 +134,7 @@ static void displayMap(uint16_t tileSize)
     //mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
    
     sprArrow.pushRotated(&mapSprite, 0, TFT_BLACK);
-    //drawMapWidgets();
+    drawMapWidgets();
   }
   else
     mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);

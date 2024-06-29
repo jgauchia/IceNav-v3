@@ -44,8 +44,6 @@ enum tileName
 static bool widgetSelected = false;
 static bool canMoveWidget = false;
 
-static lv_obj_t *canvasMap;
-
 /**
  * @brief Main Screen Tiles
  *
