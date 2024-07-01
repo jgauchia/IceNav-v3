@@ -36,12 +36,13 @@
 #include "bme.hpp"
 #endif
 
+extern xSemaphoreHandle guiMutex;
+
 #include "battery.hpp"
 #include "power.hpp"
 #include "settings.hpp"
 #include "lvglSetup.hpp"
 #include "tasks.hpp"
-
 
 /**
  * @brief Setup
@@ -76,6 +77,7 @@ void setup()
   
   initADC();
   
+  guiMutex = xSemaphoreCreateMutex();
 
   // Reserve PSRAM for buffer map
   mapTempSprite.deleteSprite();
@@ -89,6 +91,7 @@ void setup()
   #else
    lv_screen_load(searchSatScreen);
   #endif
+
   initLvglTask();
   initCompassTask();
 

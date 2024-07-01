@@ -17,6 +17,7 @@ lv_style_t styleThemeBkg;  // New Main Background Style
 lv_style_t styleObjectBkg; // New Objects Background Color
 lv_style_t styleObjectSel; // New Objects Selected Color
 
+
 /**
  * @brief LVGL display update
  *
@@ -133,6 +134,7 @@ void initLVGL()
   
   display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
   lv_display_set_flush_cb(display, displayFlush);
+  lv_display_set_flush_wait_cb(display, NULL);
   
   size_t DRAW_BUF_SIZE = 0;
   
@@ -163,10 +165,6 @@ void initLVGL()
   lv_indev_t *indev_drv = lv_indev_create();
   lv_indev_set_type(indev_drv, LV_INDEV_TYPE_POINTER);
   lv_indev_set_read_cb(indev_drv, touchRead);
-  
-  //  Create Main Timer
-  mainTimer = lv_timer_create(updateMainScreen, UPDATE_MAINSCR_PERIOD, NULL);
-  lv_timer_ready(mainTimer);
   
   modifyTheme();
   

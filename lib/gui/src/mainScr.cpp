@@ -14,6 +14,18 @@ bool isMainScreen = false; // Flag to indicate main screen is selected
 bool isScrolled = true;    // Flag to indicate when tileview was scrolled
 bool isReady = false;      // Flag to indicate when tileview scroll was finished
 bool redrawMap = false;    // Flag to indicate when needs to redraw Map
+uint8_t activeTile = 0;    // Current active tile
+
+lv_obj_t *compassHeading;
+lv_obj_t *compassImg;
+lv_obj_t *latitude;
+lv_obj_t *longitude;
+lv_obj_t *altitude;
+lv_obj_t *speedLabel;
+lv_obj_t *compassTile;
+lv_obj_t *navTile;
+lv_obj_t *mapTile;
+lv_obj_t *satTrackTile;
 
 /**
  * @brief Update compass screen event
@@ -143,10 +155,16 @@ void getActTile(lv_event_t *event)
       createSatSprite(spriteSat);
       createConstelSprite(constelSprite);
     }
-   if (activeTile == MAP)
+    if (activeTile == MAP)
+    {
       lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
-   else
-     lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+    }
+    else
+    {
+      lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+      lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+    }
   }
   else
   {
@@ -170,58 +188,6 @@ void scrollTile(lv_event_t *event)
 
   deleteMapScrSprites();
   deleteSatInfoSprites();
-}
-
-/**
- * @brief Update Main Screen
- *
- */
-void updateMainScreen(lv_timer_t *t)
-{
-  if (isScrolled && isMainScreen)
-  {
-    switch (activeTile)
-    {
-      case COMPASS:
-        lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
-        
-        
-        if(GPS.location.isValid())
-        {
-          lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
-          lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
-        }
-        if (GPS.altitude.isValid())
-        {
-          lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
-        }
-
-        if (GPS.speed.isValid())
-          lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
-        break;
-      
-      case MAP:
-        lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
-        break;
-          
-      //case NAV:
-        // mapTempSprite.fillScreen(TFT_BLACK);
-        // mapTempSprite.drawPngFile(SPIFFS, "/TODO.png", (MAP_WIDTH / 2) - 50, (MAP_HEIGHT / 2) - 50);
-        // mapTempSprite.drawCenterString("NAVIGATION SCREEN", (MAP_WIDTH / 2), (MAP_HEIGHT >> 1) + 65, &fonts::DejaVu18);
-        // mapSprite.pushSprite(0, 27);
-        // mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
-        // break;
-
-      case SATTRACK:
-        constelSprite.pushSprite(150 * scale, 40 * scale);
-        lv_obj_send_event(satTrackTile, LV_EVENT_VALUE_CHANGED, NULL);
-        break;
-          
-
-      default:
-        break;
-    }
-  }
 }
 
 /**
