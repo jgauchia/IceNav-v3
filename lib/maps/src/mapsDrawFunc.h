@@ -26,8 +26,6 @@ static const char *map_scale[] PROGMEM = {"5000 Km", "2500 Km", "1500 Km",
                                           "150 m", "80 m", "40 m",
                                           "20 m", "10 m"};
 
-static uint16_t *mapPtr;
-
 /**
  * @brief Delete map screen sprites and release PSRAM
  *
@@ -45,7 +43,7 @@ static void deleteMapScrSprites()
 static void createMapScrSprites()
 {
   // Map Sprite
-  mapPtr = (uint16_t*)mapSprite.createSprite(MAP_WIDTH, MAP_HEIGHT);
+  mapSprite.createSprite(MAP_WIDTH, MAP_HEIGHT);
   // Arrow Sprite
   sprArrow.createSprite(16, 16);
   sprArrow.setColorDepth(16);

@@ -254,17 +254,17 @@ void getZoomValue(lv_event_t *event)
  */
 void updateMap(lv_event_t *event)
 {
-  if (!waitScreenRefresh)
-  {
-   if (tft.getStartCount() == 0)
-     tft.startWrite();
+  // if (!waitScreenRefresh)
+  // {
+  //  if (tft.getStartCount() == 0)
+  //    tft.startWrite();
 
     if (isVectorMap)
     {
       getPosition(getLat(), getLon());
-      
       if (isPosMoved)
       {
+       
         tileSize = VECTOR_TILE_SIZE;
         viewPort.setCenter(point);
         getMapBlocks(viewPort.bbox, memCache);
@@ -280,9 +280,9 @@ void updateMap(lv_event_t *event)
 
     displayMap(tileSize);
 
-   if (tft.getStartCount() > 0)
-     tft.endWrite();
-  }
+   // if (tft.getStartCount() > 0)
+   //   tft.endWrite();
+/*   } */
 }
 
 /**
