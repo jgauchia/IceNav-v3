@@ -202,6 +202,7 @@ nc -l -p 8123 > screenshot.raw
 - [X] LVGL 9 Integration
 - [X] Support other resolutions and TFT models
 - [X] Wifi CLI Manager
+- [ ] LVGL Optimization 
 - [ ] GPX Integration
 - [ ] Multiple IMU's and Compass module implementation
 - [ ] Power saving
