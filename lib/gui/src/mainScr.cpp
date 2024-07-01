@@ -488,7 +488,7 @@ void createMainScr()
   // Map Tile
 
   // Map Tile Events
-  lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_REFRESH, NULL);
+  lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(mainScreen, getZoomValue, LV_EVENT_GESTURE, NULL);
   
   // Navigation Tile

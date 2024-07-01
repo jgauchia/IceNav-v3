@@ -45,7 +45,7 @@ void lvglTask(void *pvParameters)
         break;
           break;
         case MAP:
-          lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+          lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
           break;
         case SATTRACK: 
           constelSprite.pushSprite(150 * scale, 40 * scale);
@@ -146,7 +146,6 @@ void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 4000, NULL, 1,
 
 #endif
 
-#ifdef ENABLE_COMPASS
 /**
  * @brief Read Compass data task
  *
@@ -174,4 +173,4 @@ void initCompassTask()
   xTaskCreatePinnedToCore(compassTask, PSTR("Compass Task"), 8192, NULL, 2, NULL, 0);
   delay(500);
 }
-#endif
+

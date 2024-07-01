@@ -65,6 +65,7 @@ void setup()
 
   #ifdef ENABLE_COMPASS
    initCompass();
+   initCompassTask();
   #endif
 
   powerOn();
@@ -91,9 +92,8 @@ void setup()
   #else
    lv_screen_load(searchSatScreen);
   #endif
-
   initLvglTask();
-  initCompassTask();
+
 
 #ifndef DISABLE_CLI
   initCLI();
