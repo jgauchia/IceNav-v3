@@ -36,7 +36,7 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 
 Currently, IceNav works with the following hardware setups and specs 
 
-**Highly recommended an ESP32 with PSRAM** 
+**Highly recommended an ESP32S3 with PSRAM** 
  
 > [!IMPORTANT]
 > Please review the platformio.ini file to choose the appropriate environment as well as the different build flags for your correct setup.
