@@ -9,6 +9,7 @@
 #include "mainScr.hpp"
 #include "tft.hpp"
 
+
 bool isMainScreen = false; // Flag to indicate main screen is selected
 bool isScrolled = true;    // Flag to indicate when tileview was scrolled
 bool isReady = false;      // Flag to indicate when tileview scroll was finished
@@ -108,7 +109,7 @@ void dragWidget(lv_event_t *event)
     lv_coord_t height = lv_obj_get_height(obj);
     
     // Limit drag area
-    if (x > 0 && y > 0 && (x + width) < TFT_WIDTH && (y + height) < (TFT_HEIGHT - 100 * scaleBut))
+    if (x > 0 && y > 0 && (x + width) < TFT_WIDTH && (y + height) < TFT_HEIGHT - 25)
     {
       lv_obj_set_pos(obj, x, y);
       
@@ -130,7 +131,8 @@ void getActTile(lv_event_t *event)
     isScrolled = true;
     log_d("Free PSRAM: %d", ESP.getFreePsram());
     log_d("Used PSRAM: %d", ESP.getPsramSize() - ESP.getFreePsram());
-    if (activeTile == MAP || activeTile == NAV)
+  //  if (activeTile == MAP || activeTile == NAV)
+    if (activeTile == MAP)
     {
       createMapScrSprites();
       isPosMoved = true;
@@ -141,6 +143,10 @@ void getActTile(lv_event_t *event)
       createSatSprite(spriteSat);
       createConstelSprite(constelSprite);
     }
+   if (activeTile == MAP)
+      lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+   else
+     lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
   }
   else
   {
@@ -207,13 +213,13 @@ void updateMainScreen(lv_timer_t *t)
         lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
         break;
           
-      case NAV:
-        mapTempSprite.fillScreen(TFT_BLACK);
-        mapTempSprite.drawPngFile(SPIFFS, "/TODO.png", (MAP_WIDTH / 2) - 50, (MAP_HEIGHT / 2) - 50);
-        mapTempSprite.drawCenterString("NAVIGATION SCREEN", (MAP_WIDTH / 2), (MAP_HEIGHT >> 1) + 65, &fonts::DejaVu18);
-        mapSprite.pushSprite(0, 27);
-        mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
-        break;
+      //case NAV:
+        // mapTempSprite.fillScreen(TFT_BLACK);
+        // mapTempSprite.drawPngFile(SPIFFS, "/TODO.png", (MAP_WIDTH / 2) - 50, (MAP_HEIGHT / 2) - 50);
+        // mapTempSprite.drawCenterString("NAVIGATION SCREEN", (MAP_WIDTH / 2), (MAP_HEIGHT >> 1) + 65, &fonts::DejaVu18);
+        // mapSprite.pushSprite(0, 27);
+        // mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
+        // break;
 
       case SATTRACK:
         constelSprite.pushSprite(150 * scale, 40 * scale);
@@ -293,8 +299,8 @@ void updateMap(lv_event_t *event)
 {
   if (!waitScreenRefresh)
   {
-    if (tft.getStartCount() == 0)
-      tft.startWrite();
+   if (tft.getStartCount() == 0)
+     tft.startWrite();
 
     if (isVectorMap)
     {
@@ -317,8 +323,8 @@ void updateMap(lv_event_t *event)
 
     displayMap(tileSize);
 
-    if (tft.getStartCount() > 0)
-      tft.endWrite();
+   if (tft.getStartCount() > 0)
+     tft.endWrite();
   }
 }
 
@@ -392,8 +398,8 @@ void createMainScr()
   tilesScreen = lv_tileview_create(mainScreen);
   compassTile = lv_tileview_add_tile(tilesScreen, 0, 0, LV_DIR_RIGHT);
   mapTile = lv_tileview_add_tile(tilesScreen, 1, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
-  navTile = lv_tileview_add_tile(tilesScreen, 2, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
-  satTrackTile = lv_tileview_add_tile(tilesScreen, 3, 0, LV_DIR_LEFT);
+ /*  navTile = lv_tileview_add_tile(tilesScreen, 2, 0, LV_DIR_LEFT | LV_DIR_RIGHT); */
+  satTrackTile = lv_tileview_add_tile(tilesScreen, 2, 0, LV_DIR_LEFT);
   lv_obj_set_size(tilesScreen, TFT_WIDTH, TFT_HEIGHT - 25);
   lv_obj_set_pos(tilesScreen, 0, 25);
   static lv_style_t styleScroll;
@@ -521,7 +527,9 @@ void createMainScr()
   lv_obj_add_event_cb(altitude, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(speedLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(editScreenBtn, editScreen, LV_EVENT_ALL, NULL);
-  
+ 
+  // Map Tile
+
   // Map Tile Events
   lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_REFRESH, NULL);
   lv_obj_add_event_cb(mainScreen, getZoomValue, LV_EVENT_GESTURE, NULL);

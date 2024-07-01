@@ -26,6 +26,8 @@ static const char *map_scale[] PROGMEM = {"5000 Km", "2500 Km", "1500 Km",
                                           "150 m", "80 m", "40 m",
                                           "20 m", "10 m"};
 
+static uint16_t *mapPtr;
+
 /**
  * @brief Delete map screen sprites and release PSRAM
  *
@@ -43,7 +45,7 @@ static void deleteMapScrSprites()
 static void createMapScrSprites()
 {
   // Map Sprite
-  mapSprite.createSprite(MAP_WIDTH, MAP_HEIGHT);
+  mapPtr = (uint16_t*)mapSprite.createSprite(MAP_WIDTH, MAP_HEIGHT);
   // Arrow Sprite
   sprArrow.createSprite(16, 16);
   sprArrow.setColorDepth(16);
@@ -103,7 +105,7 @@ static void drawMapWidgets()
  */
 static void displayMap(uint16_t tileSize)
 {
-  mapSprite.pushSprite(0, 27);
+  mapSprite.pushSprite(0, 27); 
 
   if (isMapFound)
   {
@@ -130,11 +132,32 @@ static void displayMap(uint16_t tileSize)
 
     mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
     //mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
+   
     sprArrow.pushRotated(&mapSprite, 0, TFT_BLACK);
     drawMapWidgets();
   }
   else
     mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
+}
+
+/**
+ * @brief crop buffer image
+ *
+ * @param origBuff -> Original buffer
+ * @param cropBuff -> Buffer cropped
+ * @param xOffset -> X offset
+ * @param yOffset -> Y offset
+ * @param width -> Width crop
+ * @param height -> Height crop
+ */
+static void cropImage(const uint16_t *origBuff, uint16_t *cropBuff, int xOffset, int yOffset, int width, int height)
+{
+  for (int y = 0; y < height; y++)
+  {
+    int yOrigin = y + yOffset;
+    int xOrigin = xOffset;
+    memcpy(cropBuff + y * width, origBuff + yOrigin * MAP_WIDTH + xOrigin, width * sizeof(uint16_t));
+  }
 }
 
 #endif

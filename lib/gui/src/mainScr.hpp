@@ -10,7 +10,9 @@
 #define MAINSCR_HPP
 
 #include "globalGuiDef.h"
+#include "globalMapsDef.h"
 #include "lvglFuncs.hpp"
+#include "misc/lv_color.h"
 #include "satInfo.hpp"
 #include "vectorMaps.hpp"
 #include "notifyBar.hpp"
@@ -35,7 +37,7 @@ enum tileName
 {
   COMPASS,
   MAP,
-  NAV,
+ /*  NAV, */
   SATTRACK,
 };
 
