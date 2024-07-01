@@ -90,7 +90,7 @@ void initShell(){
   wcli.setSilentMode(true);
   // Main Commands:
   wcli.add("reboot", &wcli_reboot, "\tperform a ESP32 reboot");
-  wcli.add("wipe", &wcli_swipe, "\t\tget device information");
+  wcli.add("wipe", &wcli_swipe, "\t\twipe preferences to factory default");
   wcli.add("info", &wcli_info, "\t\tget device information");
   wcli.add("clear", &wcli_clear, "\t\tclear shell");
   wcli.add("scshot", &wcli_scshot, "\tscreenshot to SD or sending a PC");
