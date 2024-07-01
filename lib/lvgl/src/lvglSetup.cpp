@@ -47,11 +47,10 @@ void displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
  * @brief LVGL touch read
  *
  */
-void touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
+void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 {
   uint16_t touchX, touchY;
-  bool touched = tft.getTouch(&touchX, &touchY);
-  if (!touched)
+  if (!tft.getTouch(&touchX, &touchY))
     data->state = LV_INDEV_STATE_RELEASED;
   else
   {
