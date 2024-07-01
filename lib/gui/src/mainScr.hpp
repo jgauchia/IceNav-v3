@@ -20,9 +20,6 @@
 #include "renderMaps.hpp"
 #include "vectorMaps.hpp"
 
-//extern lv_timer_t *mainTimer;    // Main Screen Timer
-//#define UPDATE_MAINSCR_PERIOD 30 // Main Screen update time
-
 extern bool isMainScreen;                          // Flag to indicate main screen is selected
 extern bool isReady;                               // Flag to indicate when tileview scroll was finished
 static TFT_eSprite zoomSprite = TFT_eSprite(&tft); // Zoom sprite
@@ -32,7 +29,7 @@ static const char *positionIconFile PROGMEM = "F:/pin.bin";   // Position Icon
 static const char *altitudeIconFile PROGMEM = "F:/altit.bin"; // Altitude Icon
 static const char *speedIconFile PROGMEM = "F:/speed.bin";    // Speed Icon
 
-static uint8_t activeTile = 0; // Active Tile in TileView control
+extern uint8_t activeTile; // Active Tile in TileView control
 enum tileName
 {
   COMPASS,
@@ -48,21 +45,21 @@ static bool canMoveWidget = false;
  * @brief Main Screen Tiles
  *
  */
-static lv_obj_t *compassTile;
-static lv_obj_t *navTile;
-static lv_obj_t *mapTile;
-static lv_obj_t *satTrackTile;
+extern lv_obj_t *compassTile;
+extern lv_obj_t *navTile;
+extern lv_obj_t *mapTile;
+extern lv_obj_t *satTrackTile;
 
 /**
  * @brief Compass Tile screen objects
  *
  */
-static lv_obj_t *compassHeading;
-static lv_obj_t *compassImg;
-static lv_obj_t *latitude;
-static lv_obj_t *longitude;
-static lv_obj_t *altitude;
-static lv_obj_t *speedLabel;
+extern lv_obj_t *compassHeading;
+extern lv_obj_t *compassImg;
+extern lv_obj_t *latitude;
+extern lv_obj_t *longitude;
+extern lv_obj_t *altitude;
+extern lv_obj_t *speedLabel;
 
 /**
  * @brief Satellite Tracking Tile screen objects
@@ -86,7 +83,6 @@ void createMapScrSprites();
 
 void getActTile(lv_event_t *event);
 void scrollTile(lv_event_t *event);
-void updateMainScreen(lv_timer_t *t);
 
 void generateRenderMap();
 void generateVectorMap();

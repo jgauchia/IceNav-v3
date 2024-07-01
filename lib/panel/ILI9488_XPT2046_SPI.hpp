@@ -77,7 +77,7 @@ public:
       cfg.invert = TFT_INVERT;
       cfg.rgb_order = false;
       cfg.dlen_16bit = false;
-      cfg.bus_shared = true;
+      cfg.bus_shared = false;
       _panel_instance.config(cfg);
     }
 
