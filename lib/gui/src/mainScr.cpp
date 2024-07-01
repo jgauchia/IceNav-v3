@@ -7,13 +7,8 @@
  */
 
 #include "mainScr.hpp"
-#include "core/lv_obj.h"
-#include "core/lv_obj_pos.h"
-#include "core/lv_obj_style.h"
-#include "globalMapsDef.h"
-#include "misc/lv_color.h"
 #include "tft.hpp"
-#include "widgets/canvas/lv_canvas.h"
+
 
 bool isMainScreen = false; // Flag to indicate main screen is selected
 bool isScrolled = true;    // Flag to indicate when tileview was scrolled
@@ -136,7 +131,8 @@ void getActTile(lv_event_t *event)
     isScrolled = true;
     log_d("Free PSRAM: %d", ESP.getFreePsram());
     log_d("Used PSRAM: %d", ESP.getPsramSize() - ESP.getFreePsram());
-    if (activeTile == MAP || activeTile == NAV)
+  //  if (activeTile == MAP || activeTile == NAV)
+    if (activeTile == MAP)
     {
       createMapScrSprites();
       isPosMoved = true;
@@ -217,13 +213,13 @@ void updateMainScreen(lv_timer_t *t)
         lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
         break;
           
-      case NAV:
-        mapTempSprite.fillScreen(TFT_BLACK);
-        mapTempSprite.drawPngFile(SPIFFS, "/TODO.png", (MAP_WIDTH / 2) - 50, (MAP_HEIGHT / 2) - 50);
-        mapTempSprite.drawCenterString("NAVIGATION SCREEN", (MAP_WIDTH / 2), (MAP_HEIGHT >> 1) + 65, &fonts::DejaVu18);
-        mapSprite.pushSprite(0, 27);
-        mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
-        break;
+      //case NAV:
+        // mapTempSprite.fillScreen(TFT_BLACK);
+        // mapTempSprite.drawPngFile(SPIFFS, "/TODO.png", (MAP_WIDTH / 2) - 50, (MAP_HEIGHT / 2) - 50);
+        // mapTempSprite.drawCenterString("NAVIGATION SCREEN", (MAP_WIDTH / 2), (MAP_HEIGHT >> 1) + 65, &fonts::DejaVu18);
+        // mapSprite.pushSprite(0, 27);
+        // mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
+        // break;
 
       case SATTRACK:
         constelSprite.pushSprite(150 * scale, 40 * scale);
@@ -402,8 +398,8 @@ void createMainScr()
   tilesScreen = lv_tileview_create(mainScreen);
   compassTile = lv_tileview_add_tile(tilesScreen, 0, 0, LV_DIR_RIGHT);
   mapTile = lv_tileview_add_tile(tilesScreen, 1, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
-  navTile = lv_tileview_add_tile(tilesScreen, 2, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
-  satTrackTile = lv_tileview_add_tile(tilesScreen, 3, 0, LV_DIR_LEFT);
+ /*  navTile = lv_tileview_add_tile(tilesScreen, 2, 0, LV_DIR_LEFT | LV_DIR_RIGHT); */
+  satTrackTile = lv_tileview_add_tile(tilesScreen, 2, 0, LV_DIR_LEFT);
   lv_obj_set_size(tilesScreen, TFT_WIDTH, TFT_HEIGHT - 25);
   lv_obj_set_pos(tilesScreen, 0, 25);
   static lv_style_t styleScroll;

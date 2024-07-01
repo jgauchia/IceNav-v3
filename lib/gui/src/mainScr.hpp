@@ -37,7 +37,7 @@ enum tileName
 {
   COMPASS,
   MAP,
-  NAV,
+ /*  NAV, */
   SATTRACK,
 };
 

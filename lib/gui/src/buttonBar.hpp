@@ -20,7 +20,6 @@ static const char *loadIconFile PROGMEM = "F:/load.bin";         // Load icon
 static const char *deleteIconFile PROGMEM = "F:/delete.bin";     // Delete icon
 static const char *menuIconFile PROGMEM = "F/menu.bin";          // Menu icon
 
-//static lv_obj_t *buttonBar;
 static lv_obj_t *option;
 
 extern bool isWaypointOpt;  // Waypoint Option selected
