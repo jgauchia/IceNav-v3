@@ -90,6 +90,7 @@ void setup()
    lv_screen_load(searchSatScreen);
   #endif
   initLvglTask();
+  initCompassTask();
 
 #ifndef DISABLE_CLI
   initCLI();

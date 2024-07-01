@@ -39,5 +39,7 @@ void initLvglTask();
 void gpsTask(void *pvParameters);
 void initGpsTask();
 void initCLITask();
+void compassTask(void *pvParameters);
+void initCompassTask();
 
 #endif
