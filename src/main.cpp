@@ -82,7 +82,6 @@ void setup()
   mapTempSprite.createSprite(TILE_WIDTH, TILE_HEIGHT);
 
   splashScreen();
-  //initLvglTask();
   initGpsTask();
 
   #ifdef DEFAULT_LAT
@@ -90,6 +89,7 @@ void setup()
   #else
    lv_screen_load(searchSatScreen);
   #endif
+  initLvglTask();
 
 #ifndef DISABLE_CLI
   initCLI();
@@ -103,11 +103,5 @@ void setup()
  */
 void loop()
 {
-  // lv_timer_handler();
-  // lv_tick_inc(5);
-  if (!waitScreenRefresh)
-  {
-    lv_timer_handler();
-    vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
-  }
+  vTaskSuspend(NULL);
 }

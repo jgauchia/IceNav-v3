@@ -10,6 +10,8 @@
 
 time_t local, utc = 0;
 
+TaskHandle_t LVGLTaskHandler;
+
 /**
  * @brief Task1 - LVGL Task
  *
@@ -19,10 +21,10 @@ void lvglTask(void *pvParameters)
 {
   log_v("Task1 - LVGL Task - running on core %d", xPortGetCoreID());
   log_v("Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
-  for (;;)
+  while (1)
   {
     lv_timer_handler();
-    vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
+    vTaskDelay(5);
   }
 }
 
@@ -32,7 +34,7 @@ void lvglTask(void *pvParameters)
  */
 void initLvglTask()
 {
-  xTaskCreatePinnedToCore(lvglTask, PSTR("LVGL Task"), 20000, NULL, 2, NULL, 1);
+  xTaskCreatePinnedToCore(lvglTask, PSTR("LVGL Task"), 20000, NULL, 1, &LVGLTaskHandler, 0);
   delay(500);
 }
 
