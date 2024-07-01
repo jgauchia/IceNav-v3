@@ -23,22 +23,14 @@ lv_style_t styleObjectSel; // New Objects Selected Color
  */
 void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 { 
-  uint32_t w = (area->x2 - area->x1 + 1);
-  uint32_t h = (area->y2 - area->y1 + 1);
-  tft.startWrite();
-  //if (tft.getStartCount() == 0)
-  //  tft.startWrite();
-  
-   tft.setSwapBytes(true);
-   tft.pushImageDMA(area->x1, area->y1, w, h, (uint16_t*)px_map);
-   tft.setSwapBytes(false);
-
-  //tft.setAddrWindow(area->x1, area->y1, w, h);
-  //tft.pushPixels((uint16_t *)px_map, w * h, true);
-  
-  tft.endWrite();
-  //if (tft.getStartCount() > 0)
-  //  tft.endWrite();
+  if (tft.getStartCount() == 0) 
+  {
+    tft.startWrite();  
+  }
+  tft.waitDMA(); 
+  tft.setSwapBytes(true);
+  tft.pushImageDMA(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t*)px_map);
+  tft.setSwapBytes(false);
 
   lv_display_flush_ready(disp);
 }
