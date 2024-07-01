@@ -50,6 +50,8 @@ extern xSemaphoreHandle guiMutex;
  */
 void setup()
 {
+  guiMutex = xSemaphoreCreateMutex();
+
   #ifdef ARDUINO_USB_CDC_ON_BOOT
     Serial.begin(115200);  
   #endif
@@ -78,8 +80,6 @@ void setup()
   
   initADC();
   
-  guiMutex = xSemaphoreCreateMutex();
-
   // Reserve PSRAM for buffer map
   mapTempSprite.deleteSprite();
   mapTempSprite.createSprite(TILE_WIDTH, TILE_HEIGHT);

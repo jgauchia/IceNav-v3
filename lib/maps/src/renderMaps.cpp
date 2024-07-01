@@ -7,6 +7,7 @@
  */
 
 #include "renderMaps.hpp"
+#include "mapsDrawFunc.h"
 
 MapTile oldMapTile = {"", 0, 0, 0};     // Old Map tile coordinates and zoom
 MapTile currentMapTile = {"", 0, 0, 0}; // Curreng Map tile coordinates and zoom
@@ -86,8 +87,11 @@ void generateRenderMap()
   if (strcmp(currentMapTile.file, oldMapTile.file) != 0 ||
       currentMapTile.zoom != oldMapTile.zoom ||
       currentMapTile.tilex != oldMapTile.tilex ||
-      currentMapTile.tiley != oldMapTile.tiley || redrawMap)
+      currentMapTile.tiley != oldMapTile.tiley)
   {
+    deleteMapScrSprites();
+    createMapScrSprites();
+
     mapTempSprite.fillScreen(TFT_BLACK);
     isMapFound  = mapTempSprite.drawPngFile(SD, currentMapTile.file, tileSize, tileSize);
 
@@ -124,7 +128,7 @@ void generateRenderMap()
       oldMapTile.zoom = currentMapTile.zoom;
       oldMapTile.tilex = currentMapTile.tilex;
       oldMapTile.tiley = currentMapTile.tiley;
-      redrawMap = false;
+      redrawMap = true;
     }
 
     log_v("TILE: %s", oldMapTile.file);

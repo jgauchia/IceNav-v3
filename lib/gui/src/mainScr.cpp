@@ -13,7 +13,7 @@
 bool isMainScreen = false; // Flag to indicate main screen is selected
 bool isScrolled = true;    // Flag to indicate when tileview was scrolled
 bool isReady = false;      // Flag to indicate when tileview scroll was finished
-bool redrawMap = false;    // Flag to indicate when needs to redraw Map
+bool redrawMap = true;     // Flag to indicate when needs to redraw Map
 uint8_t activeTile = 0;    // Current active tile
 
 lv_obj_t *compassHeading;
@@ -146,7 +146,6 @@ void getActTile(lv_event_t *event)
   //  if (activeTile == MAP || activeTile == NAV)
     if (activeTile == MAP)
     {
-      createMapScrSprites();
       isPosMoved = true;
       redrawMap = true;
     }
@@ -169,6 +168,8 @@ void getActTile(lv_event_t *event)
   else
   {
     isReady = true;
+    redrawMap = false;
+    isPosMoved = false;
   }
 
   lv_obj_t *actTile = lv_tileview_get_tile_act(tilesScreen);
@@ -185,8 +186,9 @@ void scrollTile(lv_event_t *event)
 {
   isScrolled = false;
   isReady = false;
+  redrawMap = false;
 
-  deleteMapScrSprites();
+  //deleteMapScrSprites();
   deleteSatInfoSprites();
 }
 
@@ -254,35 +256,27 @@ void getZoomValue(lv_event_t *event)
  */
 void updateMap(lv_event_t *event)
 {
-  // if (!waitScreenRefresh)
-  // {
-  //  if (tft.getStartCount() == 0)
-  //    tft.startWrite();
-
-    if (isVectorMap)
+  if (isVectorMap)
+  {
+    getPosition(getLat(), getLon());
+    if (isPosMoved)
     {
-      getPosition(getLat(), getLon());
-      if (isPosMoved)
-      {
-       
-        tileSize = VECTOR_TILE_SIZE;
-        viewPort.setCenter(point);
-        getMapBlocks(viewPort.bbox, memCache);
-        generateVectorMap(viewPort, memCache, mapTempSprite);
-        isPosMoved = false;
-      }
+     
+      tileSize = VECTOR_TILE_SIZE;
+      viewPort.setCenter(point);
+      getMapBlocks(viewPort.bbox, memCache);
+      generateVectorMap(viewPort, memCache, mapTempSprite);
+      isPosMoved = false;
     }
-    else
-    {
-      tileSize = RENDER_TILE_SIZE;
+  }
+  else
+  {
+    tileSize = RENDER_TILE_SIZE;
       generateRenderMap();
-    }
+  }
 
+  if (redrawMap)
     displayMap(tileSize);
-
-   // if (tft.getStartCount() > 0)
-   //   tft.endWrite();
-/*   } */
 }
 
 /**
