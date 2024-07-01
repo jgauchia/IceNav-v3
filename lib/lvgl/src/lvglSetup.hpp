@@ -37,7 +37,7 @@
 static lv_display_t *display;
 static uint32_t objectColor = 0x303030; 
 
-void displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map);
+void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map);
 void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data);
 void applyModifyTheme(lv_theme_t *th, lv_obj_t *obj);
 void modifyTheme();

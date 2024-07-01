@@ -21,7 +21,7 @@ lv_style_t styleObjectSel; // New Objects Selected Color
  * @brief LVGL display update
  *
  */
-void displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
+void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 { 
   uint32_t w = (area->x2 - area->x1 + 1);
   uint32_t h = (area->y2 - area->y1 + 1);
