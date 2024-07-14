@@ -54,6 +54,7 @@ Currently, IceNav works with the following hardware setups and specs
 | Driver [^1] | Resolution | SPI | 8bit | 16bit | Touch     | Build Flags [^2]                 |
 |:------------|:----------:|:---:|:----:|:-----:|:---------:|:---------------------------------|
 | ILI9488 [^3]| 320x480    | yes | ---  | ---   | XPT2046   | ```-D ILI9488_XPT2046_SPI = 1``` |
+| ILI9488     | 320x480    | yes | ---  | ---   | FT5x06    | ```-D ILI9488_FT5x06_SPI = 1 ``` |
 | ILI9488     | 320x480    | --- | ---  | yes   | FT5x06    | ```-D ILI9488_FT5x06_16B = 1```  |
 | ILI9341     | 320x240    | yes | ---  | ---   | XPT2046   | ```-D ILI9341_XPT2046_SPI = 1``` |
 

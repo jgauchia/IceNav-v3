@@ -160,7 +160,7 @@ void compassTask(void *pvParameters)
     xSemaphoreTake(guiMutex, portMAX_DELAY);
     heading = getHeading();
     xSemaphoreGive(guiMutex);
-    vTaskDelay(10);
+    vTaskDelay(50);
   }
 }
 

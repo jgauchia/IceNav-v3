@@ -33,7 +33,7 @@ void initSD()
     log_v("SD Card Mounted");
     isSdLoaded = true;
   }
-}
+ }
 
 /**
  * @brief SPIFFS Init

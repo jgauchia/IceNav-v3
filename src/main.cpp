@@ -88,7 +88,7 @@ void setup()
   initGpsTask();
 
   #ifdef DEFAULT_LAT
-   loadMainScreen();
+  loadMainScreen();
   #else
    lv_screen_load(searchSatScreen);
   #endif
@@ -107,5 +107,5 @@ void setup()
  */
 void loop()
 {
-  vTaskSuspend(NULL);
+ vTaskSuspend(NULL);
 }
