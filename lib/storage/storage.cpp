@@ -23,7 +23,7 @@ void initSD()
   spiSD.begin(SD_CLK, SD_MISO, SD_MOSI, SD_CS);
   pinMode(SD_CS,OUTPUT);
   digitalWrite(SD_CS,LOW);
-  if (!SD.begin(SD_CS, spiSD, sdFreq))
+  if (!SD.begin(SD_CS, spiSD)) //, sdFreq))
   {
     log_e("SD Card Mount Failed");
     return;

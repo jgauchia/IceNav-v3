@@ -7,6 +7,7 @@
  */
 
 #include "renderMaps.hpp"
+#include "esp32-hal-gpio.h"
 #include "mapsDrawFunc.h"
 
 MapTile oldMapTile = {"", 0, 0, 0};     // Old Map tile coordinates and zoom

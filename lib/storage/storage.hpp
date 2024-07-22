@@ -13,16 +13,8 @@
 #include <SD.h>
 #include <SPIFFS.h>
 
-// #ifdef MAKERF_ESP32S3
-// static SPIClass spiSD = SPIClass(HSPI);
-// static uint32_t sdFreq = 10000000;
-// #else
-// static SPIClass spiSD = SPIClass(VSPI);
-// static uint32_t sdFreq = 40000000;
-// #endif
-
 #ifdef ARDUINO_ESP32S3_DEV
-static SPIClass spiSD = SPIClass(HSPI);
+static SPIClass spiSD = SPIClass();
 static uint32_t sdFreq = 10000000;
 #endif
 #ifdef ARDUINO_ESP32_DEV

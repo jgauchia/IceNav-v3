@@ -104,17 +104,17 @@ extern const bool TFT_INVERT = true;
   extern const uint8_t SD_CLK = 12;
 #endif
 #ifdef ARDUINO_ESP32S3_DEV
-/*   #ifdef MAKERF_ESP32S3 */
+  #ifdef MAKERF_ESP32S3
     extern const uint8_t SD_CS = 1;
-    extern const uint8_t SD_MISO = 21;
-    extern const uint8_t SD_MOSI = 42;
-    extern const uint8_t SD_CLK = 39;
-  // #else
-  //   extern const uint8_t SD_CS = 2;
-  //   extern const uint8_t SD_MISO = 13;
-  //   extern const uint8_t SD_MOSI = 11;
-  //   extern const uint8_t SD_CLK = 12;
-  // #endif
+    extern const uint8_t SD_MISO = 41;
+    extern const uint8_t SD_MOSI = 2;
+    extern const uint8_t SD_CLK = 42;
+  #else
+    extern const uint8_t SD_CS = 21;
+    extern const uint8_t SD_MISO = 13;
+    extern const uint8_t SD_MOSI = 11;
+    extern const uint8_t SD_CLK = 12;
+  #endif
 #endif
 
 /**
