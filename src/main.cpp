@@ -83,7 +83,6 @@ void setup()
   // Reserve PSRAM for buffer map
   mapTempSprite.deleteSprite();
   mapTempSprite.createSprite(TILE_WIDTH, TILE_HEIGHT);
-
   splashScreen();
   initGpsTask();
 
@@ -92,7 +91,21 @@ void setup()
   #else
    lv_screen_load(searchSatScreen);
   #endif
+
+  // Preload Map
+  if (isVectorMap)
+  {
+
+  }
+  else
+  {
+    tileSize = RENDER_TILE_SIZE;
+    generateRenderMap();
+  }
+  
   initLvglTask();
+
+
 
 #ifndef DISABLE_CLI
   initCLI();

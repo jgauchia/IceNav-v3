@@ -57,7 +57,7 @@ void lvglTask(void *pvParameters)
     }
     xSemaphoreGive(guiMutex);
     lv_timer_handler();
-    vTaskDelay(1);
+    vTaskDelay(5);
   }
 }
 
