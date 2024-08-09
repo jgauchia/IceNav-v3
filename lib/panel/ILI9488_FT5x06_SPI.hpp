@@ -39,17 +39,17 @@ public:
     {
       auto cfg = _bus_instance.config();
       #ifdef ARDUINO_ESP32S3_DEV
-      cfg.spi_host = SPI3_HOST;
+      cfg.spi_host = SPI2_HOST;
       #endif
       #ifdef ARDUINO_ESP32_DEV
       cfg.spi_host = HSPI_HOST;
       #endif
       cfg.spi_mode = 0;
       cfg.freq_write = 79999999;
-      cfg.freq_read = 15000000;
+      cfg.freq_read = 40000000;
       cfg.spi_3wire = false;
       cfg.use_lock = false;
-      cfg.dma_channel = SPI_DMA_CH_AUTO;
+      cfg.dma_channel = 2;
       cfg.pin_sclk = TFT_SPI_SCLK;
       cfg.pin_mosi = TFT_SPI_MOSI;
       cfg.pin_miso = TFT_SPI_MISO;

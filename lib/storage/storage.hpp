@@ -12,9 +12,11 @@
 #include <FS.h>
 #include <SD.h>
 #include <SPIFFS.h>
+#include <LovyanGFX.hpp>
+#include <tft.hpp>
 
 #ifdef ARDUINO_ESP32S3_DEV
-static SPIClass spiSD = SPIClass();
+static SPIClass spiSD = SPIClass(HSPI);
 static uint32_t sdFreq = 10000000;
 #endif
 #ifdef ARDUINO_ESP32_DEV
@@ -23,6 +25,7 @@ static uint32_t sdFreq = 40000000;
 #endif
 
 extern bool isSdLoaded;
+
 
 void initSD();
 void initSPIFFS();

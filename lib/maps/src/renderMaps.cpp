@@ -93,6 +93,13 @@ void generateRenderMap()
     deleteMapScrSprites();
     createMapScrSprites();
 
+    #ifdef SPI_SHARED
+    tft.endTransaction();
+    tft.waitDisplay();
+    tft.releaseBus();
+    initSD();
+    #endif
+
     mapTempSprite.fillScreen(TFT_BLACK);
     isMapFound  = mapTempSprite.drawPngFile(SD, currentMapTile.file, tileSize, tileSize);
 
@@ -131,6 +138,12 @@ void generateRenderMap()
       oldMapTile.tiley = currentMapTile.tiley;
       redrawMap = true;
     }
+
+    #ifdef SPI_SHARED
+    SD.end();
+    tft.initBus();
+    tft.beginTransaction();
+    #endif
 
     log_v("TILE: %s", oldMapTile.file);
   }

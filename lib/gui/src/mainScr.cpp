@@ -210,7 +210,6 @@ void getZoomValue(lv_event_t *event)
       case LV_DIR_RIGHT:
         break;
       case LV_DIR_TOP:
-        tft.endTransaction();
         if (!isVectorMap)
         {
             if (zoom >= minZoom && zoom < maxZoom)
@@ -229,7 +228,6 @@ void getZoomValue(lv_event_t *event)
         lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
         break;
       case LV_DIR_BOTTOM:
-        tft.endTransaction();
         if (!isVectorMap)
         {
           if (zoom <= maxZoom && zoom > minZoom)
