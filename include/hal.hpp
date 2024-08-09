@@ -28,13 +28,8 @@
  *
  */
 #ifdef ARDUINO_ESP32S3_DEV
-  #ifdef MAKERF_ESP32S3
-    #define I2C_SDA_PIN 38
-    #define I2C_SCL_PIN 39
-  #else
-    #define I2C_SDA_PIN 8
-    #define I2C_SCL_PIN 9
-  #endif
+  #define I2C_SDA_PIN 38
+  #define I2C_SCL_PIN 39
 #endif
 
 /**
@@ -115,10 +110,10 @@ extern const bool TFT_INVERT = true;
     extern const uint8_t SD_MOSI = 2;
     extern const uint8_t SD_CLK = 42;
   #else
-    extern const uint8_t SD_CS = 1;
-    extern const uint8_t SD_MISO = 40;
-    extern const uint8_t SD_MOSI = 41;
-    extern const uint8_t SD_CLK = 39;
+    extern const uint8_t SD_CS = 21;
+    extern const uint8_t SD_MISO = 13;
+    extern const uint8_t SD_MOSI = 11;
+    extern const uint8_t SD_CLK = 12;
   #endif
 #endif
 

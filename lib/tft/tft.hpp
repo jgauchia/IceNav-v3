@@ -26,6 +26,10 @@
 #include "ILI9341_XPT2046_SPI.hpp"
 #endif
 
+#ifdef ILI9488_FT5x06_SPI
+#include "ILI9488_FT5x06_SPI.hpp"
+#endif
+
 #include <LGFX_TFT_eSPI.hpp>
 
 extern TFT_eSPI tft;

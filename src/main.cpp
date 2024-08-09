@@ -36,12 +36,13 @@
 #include "bme.hpp"
 #endif
 
+extern xSemaphoreHandle guiMutex;
+
 #include "battery.hpp"
 #include "power.hpp"
 #include "settings.hpp"
 #include "lvglSetup.hpp"
 #include "tasks.hpp"
-
 
 /**
  * @brief Setup
@@ -49,6 +50,8 @@
  */
 void setup()
 {
+  guiMutex = xSemaphoreCreateMutex();
+
   #ifdef ARDUINO_USB_CDC_ON_BOOT
     Serial.begin(115200);  
   #endif
@@ -64,6 +67,7 @@ void setup()
 
   #ifdef ENABLE_COMPASS
    initCompass();
+   initCompassTask();
   #endif
 
   powerOn();
@@ -76,17 +80,14 @@ void setup()
   
   initADC();
   
-
   // Reserve PSRAM for buffer map
   mapTempSprite.deleteSprite();
   mapTempSprite.createSprite(TILE_WIDTH, TILE_HEIGHT);
-
   splashScreen();
-  //initLvglTask();
   initGpsTask();
 
   #ifdef DEFAULT_LAT
-   loadMainScreen();
+  loadMainScreen();
   #else
    lv_screen_load(searchSatScreen);
   #endif
@@ -95,6 +96,18 @@ void setup()
   initCLI();
   initCLITask();
 #endif
+
+  // Preload Map
+  if (isVectorMap)
+  {
+  }
+  else
+  {
+    tileSize = RENDER_TILE_SIZE;
+    generateRenderMap();
+  }
+  
+  initLvglTask();
 }
 
 /**
@@ -103,11 +116,5 @@ void setup()
  */
 void loop()
 {
-  // lv_timer_handler();
-  // lv_tick_inc(5);
-  if (!waitScreenRefresh)
-  {
-    lv_timer_handler();
-    vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
-  }
+ vTaskSuspend(NULL);
 }

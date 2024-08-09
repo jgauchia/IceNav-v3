@@ -17,6 +17,9 @@
 #include "compass.hpp"
 #include "lvgl.h"
 #include "cli.hpp"
+#include "mainScr.hpp"
+#include "globalMapsDef.h"
+#include "lvglFuncs.hpp"
 
 #define TASK_SLEEP_PERIOD_MS 5
 
@@ -39,5 +42,7 @@ void initLvglTask();
 void gpsTask(void *pvParameters);
 void initGpsTask();
 void initCLITask();
+void compassTask(void *pvParameters);
+void initCompassTask();
 
 #endif
