@@ -14,7 +14,7 @@ bool isMainScreen = false; // Flag to indicate main screen is selected
 bool isScrolled = true;    // Flag to indicate when tileview was scrolled
 bool isReady = false;      // Flag to indicate when tileview scroll was finished
 bool redrawMap = true;     // Flag to indicate when needs to redraw Map
-uint8_t activeTile = 1;    // Current active tile
+uint8_t activeTile = 0;    // Current active tile
 
 lv_obj_t *compassHeading;
 lv_obj_t *compassImg;
@@ -210,6 +210,7 @@ void getZoomValue(lv_event_t *event)
       case LV_DIR_RIGHT:
         break;
       case LV_DIR_TOP:
+        tft.endTransaction();
         if (!isVectorMap)
         {
             if (zoom >= minZoom && zoom < maxZoom)
@@ -228,6 +229,7 @@ void getZoomValue(lv_event_t *event)
         lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
         break;
       case LV_DIR_BOTTOM:
+        tft.endTransaction();
         if (!isVectorMap)
         {
           if (zoom <= maxZoom && zoom > minZoom)
