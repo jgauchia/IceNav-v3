@@ -25,6 +25,7 @@ void initSD()
   digitalWrite(SD_CS,LOW);
 
   #ifdef SPI_SHARED
+  SD.end();
   SDInitOk = SD.begin(SD_CS);
   #endif
   #ifndef SPI_SHARED

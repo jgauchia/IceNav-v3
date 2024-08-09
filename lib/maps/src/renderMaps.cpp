@@ -94,8 +94,8 @@ void generateRenderMap()
     createMapScrSprites();
 
     #ifdef SPI_SHARED
+    //tft.waitDisplay();
     tft.endTransaction();
-    tft.waitDisplay();
     tft.releaseBus();
     initSD();
     #endif
@@ -136,13 +136,11 @@ void generateRenderMap()
       oldMapTile.zoom = currentMapTile.zoom;
       oldMapTile.tilex = currentMapTile.tilex;
       oldMapTile.tiley = currentMapTile.tiley;
-      redrawMap = true;
     }
 
     #ifdef SPI_SHARED
     SD.end();
     tft.initBus();
-    tft.beginTransaction();
     #endif
 
     log_v("TILE: %s", oldMapTile.file);

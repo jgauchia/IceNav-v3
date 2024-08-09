@@ -94,7 +94,6 @@ void setup()
   #endif
   initLvglTask();
 
-
 #ifndef DISABLE_CLI
   initCLI();
   initCLITask();

@@ -143,12 +143,7 @@ void getActTile(lv_event_t *event)
     isScrolled = true;
     log_d("Free PSRAM: %d", ESP.getFreePsram());
     log_d("Used PSRAM: %d", ESP.getPsramSize() - ESP.getFreePsram());
-  //  if (activeTile == MAP || activeTile == NAV)
-    if (activeTile == MAP)
-    {
-      isPosMoved = true;
-      redrawMap = true;
-    }
+
     if (activeTile == SATTRACK)
     {
       createSatSprite(spriteSat);
@@ -168,8 +163,6 @@ void getActTile(lv_event_t *event)
   else
   {
     isReady = true;
-    redrawMap = false;
-    isPosMoved = false;
   }
 
   lv_obj_t *actTile = lv_tileview_get_tile_act(tilesScreen);
@@ -261,22 +254,35 @@ void updateMap(lv_event_t *event)
     getPosition(getLat(), getLon());
     if (isPosMoved)
     {
-     
       tileSize = VECTOR_TILE_SIZE;
       viewPort.setCenter(point);
+
+      #ifdef SPI_SHARED
+      tft.endTransaction();
+      tft.releaseBus();
+      initSD();
+      #endif
+      
       getMapBlocks(viewPort.bbox, memCache);
-      generateVectorMap(viewPort, memCache, mapTempSprite);
+      
+      #ifdef SPI_SHARED
+      SD.end();
+      tft.initBus();
+      #endif  
+
+      deleteMapScrSprites();
+      createMapScrSprites();
+      generateVectorMap(viewPort, memCache, mapTempSprite); 
+      
       isPosMoved = false;
     }
   }
   else
   {
     tileSize = RENDER_TILE_SIZE;
-      generateRenderMap();
+    generateRenderMap();
   }
-
-  if (redrawMap)
-    displayMap(tileSize);
+  displayMap(tileSize);
 }
 
 /**
