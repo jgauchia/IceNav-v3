@@ -39,5 +39,6 @@ uint32_t lat2tiley(double f_lat, uint8_t zoom);
 MapTile getMapTile(double lon, double lat, uint8_t zoomLevel, int16_t offsetX, int16_t offsetY);
 void drawMapWidgets();
 void generateRenderMap();
+void initSD();
 
 #endif

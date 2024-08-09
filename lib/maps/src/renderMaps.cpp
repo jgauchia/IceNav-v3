@@ -7,6 +7,8 @@
  */
 
 #include "renderMaps.hpp"
+#include "esp32-hal-gpio.h"
+#include "mapsDrawFunc.h"
 
 MapTile oldMapTile = {"", 0, 0, 0};     // Old Map tile coordinates and zoom
 MapTile currentMapTile = {"", 0, 0, 0}; // Curreng Map tile coordinates and zoom
@@ -86,8 +88,18 @@ void generateRenderMap()
   if (strcmp(currentMapTile.file, oldMapTile.file) != 0 ||
       currentMapTile.zoom != oldMapTile.zoom ||
       currentMapTile.tilex != oldMapTile.tilex ||
-      currentMapTile.tiley != oldMapTile.tiley || redrawMap)
+      currentMapTile.tiley != oldMapTile.tiley)
   {
+    deleteMapScrSprites();
+    createMapScrSprites();
+
+    #ifdef SPI_SHARED
+    tft.endTransaction();
+    tft.waitDisplay();
+    tft.releaseBus();
+    initSD();
+    #endif
+
     mapTempSprite.fillScreen(TFT_BLACK);
     isMapFound  = mapTempSprite.drawPngFile(SD, currentMapTile.file, tileSize, tileSize);
 
@@ -124,8 +136,14 @@ void generateRenderMap()
       oldMapTile.zoom = currentMapTile.zoom;
       oldMapTile.tilex = currentMapTile.tilex;
       oldMapTile.tiley = currentMapTile.tiley;
-      redrawMap = false;
+      redrawMap = true;
     }
+
+    #ifdef SPI_SHARED
+    SD.end();
+    tft.initBus();
+    tft.beginTransaction();
+    #endif
 
     log_v("TILE: %s", oldMapTile.file);
   }

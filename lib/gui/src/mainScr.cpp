@@ -13,7 +13,19 @@
 bool isMainScreen = false; // Flag to indicate main screen is selected
 bool isScrolled = true;    // Flag to indicate when tileview was scrolled
 bool isReady = false;      // Flag to indicate when tileview scroll was finished
-bool redrawMap = false;    // Flag to indicate when needs to redraw Map
+bool redrawMap = true;     // Flag to indicate when needs to redraw Map
+uint8_t activeTile = 0;    // Current active tile
+
+lv_obj_t *compassHeading;
+lv_obj_t *compassImg;
+lv_obj_t *latitude;
+lv_obj_t *longitude;
+lv_obj_t *altitude;
+lv_obj_t *speedLabel;
+lv_obj_t *compassTile;
+lv_obj_t *navTile;
+lv_obj_t *mapTile;
+lv_obj_t *satTrackTile;
 
 /**
  * @brief Update compass screen event
@@ -134,7 +146,6 @@ void getActTile(lv_event_t *event)
   //  if (activeTile == MAP || activeTile == NAV)
     if (activeTile == MAP)
     {
-      createMapScrSprites();
       isPosMoved = true;
       redrawMap = true;
     }
@@ -143,14 +154,22 @@ void getActTile(lv_event_t *event)
       createSatSprite(spriteSat);
       createConstelSprite(constelSprite);
     }
-   if (activeTile == MAP)
+    if (activeTile == MAP)
+    {
       lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
-   else
-     lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+    }
+    else
+    {
+      lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+      lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+    }
   }
   else
   {
     isReady = true;
+    redrawMap = false;
+    isPosMoved = false;
   }
 
   lv_obj_t *actTile = lv_tileview_get_tile_act(tilesScreen);
@@ -167,70 +186,10 @@ void scrollTile(lv_event_t *event)
 {
   isScrolled = false;
   isReady = false;
+  redrawMap = false;
 
-  deleteMapScrSprites();
+  //deleteMapScrSprites();
   deleteSatInfoSprites();
-}
-
-/**
- * @brief Update Main Screen
- *
- */
-void updateMainScreen(lv_timer_t *t)
-{
-  if (isScrolled && isMainScreen)
-  {
-    switch (activeTile)
-    {
-      case COMPASS:
-        #ifdef ENABLE_COMPASS
-        if (!waitScreenRefresh)
-          heading = getHeading();
-        #endif
-        lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
-        
-        
-        if(GPS.location.isValid())
-        {
-          lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
-          lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
-        }
-        if (GPS.altitude.isValid())
-        {
-          lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
-        }
-
-        if (GPS.speed.isValid())
-          lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
-        break;
-      
-      case MAP:
-        // if (GPS.location.isUpdated())
-        #ifdef ENABLE_COMPASS
-        if (!waitScreenRefresh)
-          heading = getHeading();
-        #endif
-        lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
-        break;
-          
-      //case NAV:
-        // mapTempSprite.fillScreen(TFT_BLACK);
-        // mapTempSprite.drawPngFile(SPIFFS, "/TODO.png", (MAP_WIDTH / 2) - 50, (MAP_HEIGHT / 2) - 50);
-        // mapTempSprite.drawCenterString("NAVIGATION SCREEN", (MAP_WIDTH / 2), (MAP_HEIGHT >> 1) + 65, &fonts::DejaVu18);
-        // mapSprite.pushSprite(0, 27);
-        // mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
-        // break;
-
-      case SATTRACK:
-        constelSprite.pushSprite(150 * scale, 40 * scale);
-        lv_obj_send_event(satTrackTile, LV_EVENT_VALUE_CHANGED, NULL);
-        break;
-          
-
-      default:
-        break;
-    }
-  }
 }
 
 /**
@@ -297,35 +256,27 @@ void getZoomValue(lv_event_t *event)
  */
 void updateMap(lv_event_t *event)
 {
-  if (!waitScreenRefresh)
+  if (isVectorMap)
   {
-   if (tft.getStartCount() == 0)
-     tft.startWrite();
-
-    if (isVectorMap)
+    getPosition(getLat(), getLon());
+    if (isPosMoved)
     {
-      getPosition(getLat(), getLon());
-      
-      if (isPosMoved)
-      {
-        tileSize = VECTOR_TILE_SIZE;
-        viewPort.setCenter(point);
-        getMapBlocks(viewPort.bbox, memCache);
-        generateVectorMap(viewPort, memCache, mapTempSprite);
-        isPosMoved = false;
-      }
+     
+      tileSize = VECTOR_TILE_SIZE;
+      viewPort.setCenter(point);
+      getMapBlocks(viewPort.bbox, memCache);
+      generateVectorMap(viewPort, memCache, mapTempSprite);
+      isPosMoved = false;
     }
-    else
-    {
-      tileSize = RENDER_TILE_SIZE;
-      generateRenderMap();
-    }
-
-    displayMap(tileSize);
-
-   if (tft.getStartCount() > 0)
-     tft.endWrite();
   }
+  else
+  {
+    tileSize = RENDER_TILE_SIZE;
+      generateRenderMap();
+  }
+
+  if (redrawMap)
+    displayMap(tileSize);
 }
 
 /**
@@ -531,7 +482,7 @@ void createMainScr()
   // Map Tile
 
   // Map Tile Events
-  lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_REFRESH, NULL);
+  lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(mainScreen, getZoomValue, LV_EVENT_GESTURE, NULL);
   
   // Navigation Tile

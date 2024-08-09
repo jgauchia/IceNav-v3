@@ -12,14 +12,8 @@
 #include <FS.h>
 #include <SD.h>
 #include <SPIFFS.h>
-
-// #ifdef MAKERF_ESP32S3
-// static SPIClass spiSD = SPIClass(HSPI);
-// static uint32_t sdFreq = 10000000;
-// #else
-// static SPIClass spiSD = SPIClass(VSPI);
-// static uint32_t sdFreq = 40000000;
-// #endif
+#include <LovyanGFX.hpp>
+#include <tft.hpp>
 
 #ifdef ARDUINO_ESP32S3_DEV
 static SPIClass spiSD = SPIClass(HSPI);
@@ -31,6 +25,7 @@ static uint32_t sdFreq = 40000000;
 #endif
 
 extern bool isSdLoaded;
+
 
 void initSD();
 void initSPIFFS();

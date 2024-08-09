@@ -15,6 +15,7 @@ bool isOptionLoaded = false;
 
 lv_obj_t *settingsScreen;
 lv_obj_t *buttonBar;
+lv_obj_t *menuBtn;
 
 /**
  * @brief Button events
@@ -195,7 +196,7 @@ void createButtonBarScr()
   lv_obj_set_size(buttonBar, 50 * scaleBut, 50 * scaleBut);
   lv_obj_align(buttonBar, LV_ALIGN_BOTTOM_RIGHT, 0,  -LV_DPX(14) );
 
-  lv_obj_t *menuBtn = lv_img_create(mainScreen);
+  menuBtn = lv_img_create(mainScreen);
   lv_img_set_src(menuBtn, menuIconFile);
   lv_obj_add_flag(menuBtn, LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE);
   lv_img_set_zoom(menuBtn,buttonScale);
