@@ -58,6 +58,10 @@ Currently, IceNav works with the following hardware setups and specs
 | ILI9488     | 320x480    | --- | ---  | yes   | FT5x06    | ```-D ILI9488_FT5x06_16B = 1```  |
 | ILI9341     | 320x240    | yes | ---  | ---   | XPT2046   | ```-D ILI9341_XPT2046_SPI = 1``` |
 
+If TFT shares SPI bus with SD card add the following Build Flag to platformio.ini
+
+```-D SPI_SHARED = 1```
+
 ### Modules
 
 |             | Type          | Build Flags [^2]                 | lib_deps [^4] (**no common environment**)              |

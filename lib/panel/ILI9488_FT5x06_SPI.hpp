@@ -48,7 +48,7 @@ public:
       cfg.freq_write = 79999999;
       cfg.freq_read = 15000000;
       cfg.spi_3wire = false;
-      cfg.use_lock = true;
+      cfg.use_lock = false;
       cfg.dma_channel = SPI_DMA_CH_AUTO;
       cfg.pin_sclk = TFT_SPI_SCLK;
       cfg.pin_mosi = TFT_SPI_MOSI;
