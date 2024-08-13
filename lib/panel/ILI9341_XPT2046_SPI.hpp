@@ -11,6 +11,8 @@
 
 #define LGFX_USE_V1
 
+#define TOUCH_INPUT
+
 #include "LovyanGFX.hpp"
 
 extern const uint8_t TFT_SPI_SCLK;

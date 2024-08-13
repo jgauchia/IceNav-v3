@@ -38,6 +38,7 @@ extern const uint8_t TFT_D14;
 extern const uint8_t TFT_D15;
 
 #define LARGE_SCREEN
+#define TOUCH_INPUT
 
 class LGFX : public lgfx::LGFX_Device
 {
