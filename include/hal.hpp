@@ -118,12 +118,16 @@ extern const bool TFT_INVERT = true;
 #endif
 
 /**
- * @brief TFT 16 Bits parallel pin definition
+ * @brief TFT 8/16 Bits parallel pin definition
  *
  */
 extern const uint8_t TFT_WR  = 35;
 extern const uint8_t TFT_RD  = 48;
 extern const uint8_t TFT_RS  = 36;
+extern const uint8_t TFT_RST = -1;
+extern const uint8_t TFT_CS  = 5;
+
+// 8 bit Mode
 extern const uint8_t TFT_D0  = 47;
 extern const uint8_t TFT_D1  = 21;
 extern const uint8_t TFT_D2  = 14;
@@ -132,6 +136,8 @@ extern const uint8_t TFT_D4  = 12;
 extern const uint8_t TFT_D5  = 11;
 extern const uint8_t TFT_D6  = 10;
 extern const uint8_t TFT_D7  = 9;
+
+// Extra 16 bit Mode
 extern const uint8_t TFT_D8  = 3;
 extern const uint8_t TFT_D9  = 8;
 extern const uint8_t TFT_D10 = 16;
