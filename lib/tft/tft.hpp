@@ -30,6 +30,10 @@
 #include "ILI9488_FT5x06_SPI.hpp"
 #endif
 
+#ifdef ILI9488_NOTOUCH_8B
+#include "ILI9488_NOTOUCH_8B.hpp"
+#endif
+
 #include <LGFX_TFT_eSPI.hpp>
 
 extern TFT_eSPI tft;
