@@ -45,7 +45,7 @@ void lvglTask(void *pvParameters)
         break;
           break;
         case MAP:
-          lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
+            lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED,NULL);
           break;
         case SATTRACK: 
           constelSprite.pushSprite(150 * scale, 40 * scale);

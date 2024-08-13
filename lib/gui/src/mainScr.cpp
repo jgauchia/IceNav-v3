@@ -141,6 +141,8 @@ void getActTile(lv_event_t *event)
   if (isReady)
   {
     isScrolled = true;
+    redrawMap = true;
+
     log_d("Free PSRAM: %d", ESP.getFreePsram());
     log_d("Used PSRAM: %d", ESP.getPsramSize() - ESP.getFreePsram());
 
@@ -151,6 +153,7 @@ void getActTile(lv_event_t *event)
     }
     if (activeTile == MAP)
     {
+      createMapScrSprites();
       lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
       lv_obj_add_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
     }
@@ -181,7 +184,7 @@ void scrollTile(lv_event_t *event)
   isReady = false;
   redrawMap = false;
 
-  //deleteMapScrSprites();
+  deleteMapScrSprites();
   deleteSatInfoSprites();
 }
 
@@ -283,7 +286,8 @@ void updateMap(lv_event_t *event)
     tileSize = RENDER_TILE_SIZE;
     generateRenderMap();
   }
-  displayMap(tileSize);
+  if (redrawMap)
+    displayMap(tileSize);
 }
 
 /**
