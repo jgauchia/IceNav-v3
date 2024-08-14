@@ -141,6 +141,8 @@ void getActTile(lv_event_t *event)
   if (isReady)
   {
     isScrolled = true;
+    redrawMap = true;
+
     log_d("Free PSRAM: %d", ESP.getFreePsram());
     log_d("Used PSRAM: %d", ESP.getPsramSize() - ESP.getFreePsram());
 
@@ -151,6 +153,7 @@ void getActTile(lv_event_t *event)
     }
     if (activeTile == MAP)
     {
+      createMapScrSprites();
       lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
       lv_obj_add_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
     }
@@ -181,8 +184,62 @@ void scrollTile(lv_event_t *event)
   isReady = false;
   redrawMap = false;
 
-  //deleteMapScrSprites();
+  deleteMapScrSprites();
   deleteSatInfoSprites();
+}
+
+/**
+ * @brief Update Main Screen
+ *
+ */
+void updateMainScreen(lv_timer_t *t)
+{
+  if (isScrolled && isMainScreen)
+  {
+    switch (activeTile)
+    {
+      case COMPASS:
+        #ifdef ENABLE_COMPASS
+          heading = getHeading();
+        #endif
+        lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
+        
+        
+        if(GPS.location.isValid())
+        {
+          lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
+          lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
+        }
+        if (GPS.altitude.isValid())
+        {
+          lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
+        }
+
+        if (GPS.speed.isValid())
+          lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
+        break;
+      
+      case MAP:
+        // if (GPS.location.isUpdated())
+        #ifdef ENABLE_COMPASS
+          heading = getHeading();
+        #endif
+        lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
+        break;
+          
+      // case NAV:
+      //   break;
+
+      case SATTRACK:
+        constelSprite.pushSprite(150 * scale, 40 * scale);
+        lv_obj_send_event(satTrackTile, LV_EVENT_VALUE_CHANGED, NULL);
+        break;
+          
+
+      default:
+        break;
+    }
+  }
 }
 
 /**
@@ -283,7 +340,8 @@ void updateMap(lv_event_t *event)
     tileSize = RENDER_TILE_SIZE;
     generateRenderMap();
   }
-  displayMap(tileSize);
+  if (redrawMap)
+    displayMap(tileSize);
 }
 
 /**

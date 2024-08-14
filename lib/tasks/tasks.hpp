@@ -37,12 +37,8 @@ static Timezone CE(CEST,CET);
  */
 extern time_t local, utc;
 
-void lvglTask(void *pvParameters);
-void initLvglTask();
 void gpsTask(void *pvParameters);
 void initGpsTask();
 void initCLITask();
-void compassTask(void *pvParameters);
-void initCompassTask();
 
 #endif
