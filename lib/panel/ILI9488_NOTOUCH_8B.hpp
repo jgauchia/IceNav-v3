@@ -6,8 +6,8 @@
  * @date 2024-06
  */
 
-#ifndef ILI9488_FT5x06_16B_HPP
-#define ILI9488_FT5x06_16B_HPP
+#ifndef ILI9488_NOTOUCH_8B_HPP
+#define ILI9488_NOTOUCH_8B_HPP
 
 #define LGFX_USE_V1
 
