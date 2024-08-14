@@ -57,8 +57,8 @@ void setup()
   #endif
 
   #ifdef ARDUINO_ESP32S3_DEV
-   Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
-   Wire.begin();
+    Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
+    Wire.begin();
   #endif
 
   #ifdef BME280
@@ -67,7 +67,7 @@ void setup()
 
   #ifdef ENABLE_COMPASS
    initCompass();
-   initCompassTask();
+   //initCompassTask();
   #endif
 
   powerOn();
@@ -107,7 +107,7 @@ void setup()
     generateRenderMap();
   }
   
-  initLvglTask();
+  //initLvglTask();
 }
 
 /**
@@ -116,5 +116,6 @@ void setup()
  */
 void loop()
 {
- vTaskSuspend(NULL);
+  lv_timer_handler();
+  vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
 }

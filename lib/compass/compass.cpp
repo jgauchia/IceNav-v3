@@ -11,7 +11,11 @@
 int mapHeading = 0;
 
 #ifdef HMC5883L
-Adafruit_HMC5883_Unified compass = Adafruit_HMC5883_Unified(12345);
+DFRobot_QMC5883 compass = DFRobot_QMC5883(&Wire,HMC5883L_ADDRESS);
+#endif
+
+#ifdef QMC5883
+DFRobot_QMC5883 compass = DFRobot_QMC5883(&Wire,QMC5883_ADDRESS);
 #endif
 
 #ifdef IMU_MPU9250
@@ -54,6 +58,12 @@ void initCompass()
   if (!compass.begin())
     compass.begin();
   #endif
+
+  #ifdef QMC5883
+  if (!compass.begin())
+    compass.begin();
+  #endif
+
   #ifdef IMU_MPU9250
   int status = IMU.begin();
   if (status < 0)
@@ -75,14 +85,20 @@ void initCompass()
 void readCompass(float &x, float &y, float &z)
 {
   #ifdef HMC5883L
-  sensors_event_t event;
-  compass.getEvent(&event);
-  y = event.magnetic.y;
-  x = event.magnetic.x;
-  z = event.magnetic.z;
+  sVector_t mag = compass.readRaw();
+  y = mag.YAxis;
+  x = mag.XAxis;
+  z = mag.ZAxis;
   #endif
 
-  #ifdef IMU_MPU9250
+  #ifdef QMC5883 
+  sVector_t mag = compass.readRaw();
+  y = mag.YAxis;
+  x = mag.XAxis;
+  z = mag.ZAxis;
+  #endif
+
+   #ifdef IMU_MPU9250
   IMU.readSensor();
   x = IMU.getMagX_uT();
   y = IMU.getMagY_uT();

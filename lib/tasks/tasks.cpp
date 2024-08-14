@@ -158,9 +158,9 @@ void compassTask(void *pvParameters)
   while (1)
   {
     xSemaphoreTake(guiMutex, portMAX_DELAY);
-    heading = getHeading();
+    //heading = getHeading();
     xSemaphoreGive(guiMutex);
-    vTaskDelay(50);
+    vTaskDelay(500);
   }
 }
 
@@ -170,7 +170,7 @@ void compassTask(void *pvParameters)
  */
 void initCompassTask()
 {
-  xTaskCreatePinnedToCore(compassTask, PSTR("Compass Task"), 8192, NULL, 2, NULL, 0);
+  xTaskCreatePinnedToCore(compassTask, PSTR("Compass Task"), 8192, NULL, 1, NULL, 0);
   delay(500);
 }
 
