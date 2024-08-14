@@ -58,12 +58,14 @@ void initCompass()
   if (!compass.begin())
     compass.begin();
   compass.setDataRate(HMC5883L_DATARATE_15HZ);
+  compass.setSamples(HMC5883L_SAMPLES_2);
   #endif
 
   #ifdef QMC5883
   if (!compass.begin())
     compass.begin();
   compass.setDataRate(QMC5883_DATARATE_10HZ);
+  compass.setSamples(QMC5883_SAMPLES_2);
   #endif
 
   #ifdef IMU_MPU9250
