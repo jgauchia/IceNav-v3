@@ -143,9 +143,6 @@ void updateNotifyBarTimer(lv_timer_t *t)
     lv_obj_send_event(battery, LV_EVENT_VALUE_CHANGED, NULL);
     battLevelOld = battLevel;
   }
-
-  //heading = getHeading();
-  
 }
 
 /**
