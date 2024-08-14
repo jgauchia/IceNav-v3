@@ -103,7 +103,13 @@ static void drawMapWidgets()
  */
 static void displayMap(uint16_t tileSize)
 {
-  mapSprite.pushSprite(0, 27);
+  if (tft.getStartCount() == 0) 
+  {
+    tft.startWrite();  
+  }
+  tft.waitDMA(); 
+
+  mapSprite.pushSprite(0, 27); 
 
   if (isMapFound)
   {
@@ -130,11 +136,32 @@ static void displayMap(uint16_t tileSize)
 
     mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
     //mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
+   
     sprArrow.pushRotated(&mapSprite, 0, TFT_BLACK);
     drawMapWidgets();
   }
   else
     mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
+}
+
+/**
+ * @brief crop buffer image
+ *
+ * @param origBuff -> Original buffer
+ * @param cropBuff -> Buffer cropped
+ * @param xOffset -> X offset
+ * @param yOffset -> Y offset
+ * @param width -> Width crop
+ * @param height -> Height crop
+ */
+static void cropImage(const uint16_t *origBuff, uint16_t *cropBuff, int xOffset, int yOffset, int width, int height)
+{
+  for (int y = 0; y < height; y++)
+  {
+    int yOrigin = y + yOffset;
+    int xOrigin = xOffset;
+    memcpy(cropBuff + y * width, origBuff + yOrigin * MAP_WIDTH + xOrigin, width * sizeof(uint16_t));
+  }
 }
 
 #endif

@@ -12,10 +12,10 @@
 #include "tft.hpp"
 
 #ifdef LARGE_SCREEN
-#define MAP_HEIGHT 374  // Map Height Size
+#define MAP_HEIGHT 440 //374  // Map Height Size
 #define MAP_WIDTH 320   // Map Width Size
 #else
-#define MAP_HEIGHT 240 // Map Height Size
+#define MAP_HEIGHT 280 // Map Height Size
 #define MAP_WIDTH 240  // Map Width Size
 #endif
 

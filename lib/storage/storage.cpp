@@ -20,10 +20,20 @@ extern const int SD_CLK;
  */
 void initSD()
 {
-  spiSD.begin(SD_CLK, SD_MISO, SD_MOSI, SD_CS);
+  bool SDInitOk = false;
   pinMode(SD_CS,OUTPUT);
   digitalWrite(SD_CS,LOW);
-  if (!SD.begin(SD_CS, spiSD, sdFreq))
+
+  #ifdef SPI_SHARED
+  SD.end();
+  SDInitOk = SD.begin(SD_CS);
+  #endif
+  #ifndef SPI_SHARED
+  spiSD.begin(SD_CLK, SD_MISO, SD_MOSI, SD_CS);
+  SDInitOk = SD.begin(SD_CS, spiSD, sdFreq);
+  #endif
+  
+  if (!SDInitOk)
   {
     log_e("SD Card Mount Failed");
     return;
@@ -33,7 +43,7 @@ void initSD()
     log_v("SD Card Mounted");
     isSdLoaded = true;
   }
-}
+ }
 
 /**
  * @brief SPIFFS Init

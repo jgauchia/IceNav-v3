@@ -14,9 +14,14 @@
 extern int mapHeading;
 
 #ifdef HMC5883L
-#include <Adafruit_Sensor.h>
-#include <Adafruit_HMC5883_U.h>
-extern Adafruit_HMC5883_Unified compass;
+#include <DFRobot_QMC5883.h>
+extern DFRobot_QMC5883 compass;
+#define ENABLE_COMPASS
+#endif
+
+#ifdef QMC5883
+#include <DFRobot_QMC5883.h>
+extern DFRobot_QMC5883 compass;
 #define ENABLE_COMPASS
 #endif
 

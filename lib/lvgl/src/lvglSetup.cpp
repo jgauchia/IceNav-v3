@@ -17,25 +17,22 @@ lv_style_t styleThemeBkg;  // New Main Background Style
 lv_style_t styleObjectBkg; // New Objects Background Color
 lv_style_t styleObjectSel; // New Objects Selected Color
 
+
 /**
  * @brief LVGL display update
  *
  */
-void displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
+void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 { 
-  uint32_t w = (area->x2 - area->x1 + 1);
-  uint32_t h = (area->y2 - area->y1 + 1);
-  //tft.startWrite();
-  if (tft.getStartCount() == 0)
-    tft.startWrite();
-
-
-  tft.setAddrWindow(area->x1, area->y1, w, h);
-  tft.pushPixels((uint16_t *)px_map, w * h, true);
-  
-  //tft.endWrite();
-  if (tft.getStartCount() > 0)
-    tft.endWrite();
+  if (tft.getStartCount() == 0) 
+  {
+    tft.startWrite();  
+  }
+  tft.waitDMA(); 
+  tft.setSwapBytes(true);
+  tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t*)px_map);
+  tft.setSwapBytes(false);
+  tft.display(); 
 
   lv_display_flush_ready(disp);
 }
@@ -44,11 +41,10 @@ void displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
  * @brief LVGL touch read
  *
  */
-void touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
+void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 {
   uint16_t touchX, touchY;
-  bool touched = tft.getTouch(&touchX, &touchY);
-  if (!touched)
+  if (!tft.getTouch(&touchX, &touchY))
     data->state = LV_INDEV_STATE_RELEASED;
   else
   {
@@ -139,6 +135,7 @@ void initLVGL()
   
   display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
   lv_display_set_flush_cb(display, displayFlush);
+  lv_display_set_flush_wait_cb(display, NULL);
   
   size_t DRAW_BUF_SIZE = 0;
   
@@ -146,7 +143,7 @@ void initLVGL()
   assert(ESP.getFreePsram());
 
   if ( ESP.getPsramSize() >= 4000000 )
-    // 4Mb PSRAM
+    // >4Mb PSRAM
     DRAW_BUF_SIZE = TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t);
   else
     // 2Mb PSRAM
@@ -169,11 +166,11 @@ void initLVGL()
   lv_indev_t *indev_drv = lv_indev_create();
   lv_indev_set_type(indev_drv, LV_INDEV_TYPE_POINTER);
   lv_indev_set_read_cb(indev_drv, touchRead);
-  
+ 
   //  Create Main Timer
   mainTimer = lv_timer_create(updateMainScreen, UPDATE_MAINSCR_PERIOD, NULL);
   lv_timer_ready(mainTimer);
-  
+
   modifyTheme();
   
   //  Create Screens
