@@ -4,6 +4,7 @@
   X(KMAP_SCALE, "Map_scale", BOOL)       \
   X(KMAP_COMPASS, "Map_compass", BOOL)   \
   X(KMAP_VECTOR, "Map_vector", BOOL)     \
+  X(KMAP_MODE, "Map_mode", BOOL)         \
   X(KCOMP_X, "Compass_X", INT) \
   X(KCOMP_Y, "Compass_Y", INT) \
   X(KCOORD_X, "Coords_X", INT) \

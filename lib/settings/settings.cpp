@@ -86,6 +86,7 @@ void loadPreferences()
     minZoom = 6;
     maxZoom = 17;
   }
+  isMapFullScreen = cfg.getBool(PKEYS::KMAP_MODE, false);
 
   // // Default Widgets positions
   // compassPosX = 60;
@@ -258,6 +259,16 @@ void saveWidgetPos(char *widget, uint16_t posX, uint16_t posY)
 void saveMapType(bool vector)
 {
   cfg.saveBool(PKEYS::KMAP_VECTOR, vector);
+}
+
+/**
+ * @brief Save Map Mode
+ *
+ * @param mapMOde
+ */
+void saveShowMap(bool mapMode)
+{
+  cfg.saveBool(PKEYS::KMAP_MODE, mapMode);
 }
 
 /**

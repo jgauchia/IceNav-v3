@@ -50,6 +50,7 @@ void saveGPSBaud(uint16_t gpsBaud);
 void saveGPSUpdateRate(uint16_t gpsUpdateRate);
 void saveWidgetPos(char *widget, uint16_t posX, uint16_t posY);
 void saveMapType(bool vector);
+void saveShowMap(bool mapMode);
 void printSettings();
 
 #endif
