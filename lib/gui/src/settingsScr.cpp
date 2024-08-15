@@ -111,6 +111,7 @@ void createSettingsScr()
   lv_obj_add_event_cb(btn, compassCalib, LV_EVENT_CLICKED, NULL);
   #endif
 
+  #ifdef TOUCH_INPUT
   // Touch Calibration
   btn = lv_btn_create(settingsButtons);
   lv_obj_set_size(btn, TFT_WIDTH - 30, 40 * scale);
@@ -119,6 +120,7 @@ void createSettingsScr()
   lv_label_set_text_static(btnLabel, "Touch Calibration");
   lv_obj_center(btnLabel);
   lv_obj_add_event_cb(btn, touchCalib, LV_EVENT_CLICKED, NULL);
+  #endif
 
   // Map Settings
   btn = lv_btn_create(settingsButtons);
