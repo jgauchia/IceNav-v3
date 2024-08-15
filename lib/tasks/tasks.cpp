@@ -13,63 +13,7 @@
 time_t local, utc = 0;
 
 TaskHandle_t LVGLTaskHandler;
-xSemaphoreHandle guiMutex;
-
-/**
- * @brief LVGL Task
- *
- * @param pvParameters
- */
-void lvglTask(void *pvParameters)
-{
-  log_v("LVGL Task - running on core %d", xPortGetCoreID());
-  log_v("Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
-  while (1)
-  {
-    xSemaphoreTake(guiMutex, portMAX_DELAY);
-    if (isScrolled && isMainScreen)
-    {
-      switch (activeTile)
-      {
-        case COMPASS:
-          lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
-          if(GPS.location.isUpdated())
-          {
-            lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
-            lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
-          }
-          if (GPS.altitude.isUpdated())
-            lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
-          if (GPS.speed.isUpdated())
-            lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
-        break;
-          break;
-        case MAP:
-          lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
-          break;
-        case SATTRACK: 
-          constelSprite.pushSprite(150 * scale, 40 * scale);
-          lv_obj_send_event(satTrackTile, LV_EVENT_VALUE_CHANGED, NULL);
-          break;
-        default:
-          break;
-      }
-    }
-    xSemaphoreGive(guiMutex);
-    lv_timer_handler();
-    vTaskDelay(5);
-  }
-}
-
-/**
- * @brief Init LVGL Task
- * 
- */
-void initLvglTask()
-{
-  xTaskCreatePinnedToCore(lvglTask, PSTR("LVGL Task"), 20000, NULL, 2, &LVGLTaskHandler, 1);
-  delay(500);
-}
+xSemaphoreHandle gpsMutex;
 
 /**
  * @brief Read GPS data
@@ -82,6 +26,7 @@ void gpsTask(void *pvParameters)
   log_v("Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
   while (1)
   {
+    xSemaphoreTake(gpsMutex, portMAX_DELAY);
     while (gps->available() > 0)
     {
       #ifdef OUTPUT_NMEA
@@ -107,7 +52,7 @@ void gpsTask(void *pvParameters)
     }
     // if (!GPS.time.isValid() && isTimeFixed)
     //     isTimeFixed = false;
-    
+    xSemaphoreTake(gpsMutex, portMAX_DELAY); 
     vTaskDelay(10 / portTICK_PERIOD_MS);
   }
 }
@@ -146,31 +91,4 @@ void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 4000, NULL, 1,
 
 #endif
 
-/**
- * @brief Read Compass data task
- *
- * @param pvParameters
- */
-void compassTask(void *pvParameters)
-{
-  log_v("Compass Task - running on core %d", xPortGetCoreID());
-  log_v("Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
-  while (1)
-  {
-    xSemaphoreTake(guiMutex, portMAX_DELAY);
-    heading = getHeading();
-    xSemaphoreGive(guiMutex);
-    vTaskDelay(50);
-  }
-}
-
-/**
- * @brief Init Compass data task
- *
- */
-void initCompassTask()
-{
-  xTaskCreatePinnedToCore(compassTask, PSTR("Compass Task"), 8192, NULL, 2, NULL, 0);
-  delay(500);
-}
 

@@ -143,7 +143,7 @@ void initLVGL()
   assert(ESP.getFreePsram());
 
   if ( ESP.getPsramSize() >= 4000000 )
-    // 4Mb PSRAM
+    // >4Mb PSRAM
     DRAW_BUF_SIZE = TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t);
   else
     // 2Mb PSRAM
@@ -169,6 +169,10 @@ void initLVGL()
   lv_indev_set_read_cb(indev_drv, touchRead);
   #endif
   
+  //  Create Main Timer
+  mainTimer = lv_timer_create(updateMainScreen, UPDATE_MAINSCR_PERIOD, NULL);
+  lv_timer_ready(mainTimer);
+
   modifyTheme();
   
   //  Create Screens

@@ -20,6 +20,9 @@
 #include "renderMaps.hpp"
 #include "vectorMaps.hpp"
 
+static lv_timer_t *mainTimer;    // Main Screen Timer
+#define UPDATE_MAINSCR_PERIOD 30 // Main Screen update time
+
 extern bool isMainScreen;                          // Flag to indicate main screen is selected
 extern bool isReady;                               // Flag to indicate when tileview scroll was finished
 static TFT_eSprite zoomSprite = TFT_eSprite(&tft); // Zoom sprite
@@ -86,7 +89,7 @@ void scrollTile(lv_event_t *event);
 
 void generateRenderMap();
 void generateVectorMap();
-
+void updateMainScreen(lv_timer_t *t);
 void getZoomValue(lv_event_t *event);
 void deleteMapScrSprites();
 void createMapScrSprites();
