@@ -7,6 +7,7 @@
  */
 
 #include "buttonBar.hpp"
+#include "addWaypointScr.hpp"
 #include "globalGuiDef.h"
 
 bool isWaypointOpt = false;
@@ -45,6 +46,8 @@ void buttonBarEvent(lv_event_t *event)
   {
     log_v("Add Waypoint");
     isMainScreen = false;
+    lv_textarea_set_text(waypointName, "");
+    lv_screen_load(addWaypointScreen);
   }
   if (strcmp(option,"waypoint") == 0)
   {

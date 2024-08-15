@@ -29,6 +29,7 @@
 #include "settingsScr.hpp"
 #include "deviceSettingsScr.hpp"
 #include "mapSettingsScr.hpp"
+#include "addWaypointScr.hpp"
 
 /**
  * @brief Default display driver definition
