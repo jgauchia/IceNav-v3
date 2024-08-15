@@ -97,6 +97,7 @@ void drawMapWidgets();
 void updateMap(lv_event_t *event);
 void activeGnssEvent(lv_event_t *event);
 void updateSatTrack(lv_event_t *event);
+void toolBarEvent(lv_event_t *event);
 
 void createMainScr();
 

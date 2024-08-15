@@ -8,6 +8,7 @@
 
 #include "mainScr.hpp"
 #include "globalGuiDef.h"
+#include "settings.hpp"
 #include "tft.hpp"
 
 
@@ -420,6 +421,17 @@ void updateSatTrack(lv_event_t *event)
 }
 
 /**
+ * @brief Tool Bar Event
+ *
+ * @param event
+ */
+void toolBarEvent(lv_event_t *event)
+{
+  showToolBar = !showToolBar;
+  lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+}
+
+/**
  * @brief Create Main Screen
  *
  */
@@ -566,6 +578,7 @@ void createMainScr()
   // Map Tile Events
   lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(mainScreen, getZoomValue, LV_EVENT_GESTURE, NULL);
+  lv_obj_add_event_cb(mapTile, toolBarEvent, LV_EVENT_CLICKED, NULL);
   
   // Navigation Tile
   // TODO
