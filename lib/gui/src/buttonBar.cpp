@@ -40,6 +40,10 @@ void buttonBarEvent(lv_event_t *event)
   }
 
   char *option = (char *)lv_event_get_user_data(event);
+  if (strcmp(option,"addwpt") == 0)
+  {
+    log_v("Add Waypoint");
+  }
   if (strcmp(option,"waypoint") == 0)
   {
     log_v("Waypoint");
@@ -207,6 +211,14 @@ void createButtonBarScr()
 
   lv_obj_t *imgBtn;
   
+  // Add Waypoint Button
+  imgBtn = lv_img_create(buttonBar);
+  lv_img_set_src(imgBtn,addWptIconFile);
+  lv_obj_update_layout(imgBtn);
+  lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
+  lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_event_cb(imgBtn, buttonBarEvent, LV_EVENT_PRESSED, (char*)"addwpt");
+
   // Waypoint Button
   imgBtn = lv_img_create(buttonBar);
   lv_img_set_src(imgBtn, waypointIconFile);

@@ -19,6 +19,7 @@ static const char *saveIconFile PROGMEM = "F:/save.bin";         // Save icon
 static const char *loadIconFile PROGMEM = "F:/load.bin";         // Load icon
 static const char *deleteIconFile PROGMEM = "F:/delete.bin";     // Delete icon
 static const char *menuIconFile PROGMEM = "F/menu.bin";          // Menu icon
+static const char *addWptIconFile PROGMEM = "F:/addwpt.bin";         // Add Waypoint icon
 
 static lv_obj_t *option;
 
