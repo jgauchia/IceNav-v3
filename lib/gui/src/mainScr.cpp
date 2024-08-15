@@ -8,6 +8,7 @@
 
 #include "mainScr.hpp"
 #include "globalGuiDef.h"
+#include "globalMapsDef.h"
 #include "settings.hpp"
 #include "tft.hpp"
 
@@ -28,6 +29,7 @@ lv_obj_t *compassTile;
 lv_obj_t *navTile;
 lv_obj_t *mapTile;
 lv_obj_t *satTrackTile;
+lv_obj_t *btnFullScreen;
 
 /**
  * @brief Update compass screen event
@@ -428,6 +430,51 @@ void updateSatTrack(lv_event_t *event)
 void toolBarEvent(lv_event_t *event)
 {
   showToolBar = !showToolBar;
+
+  if (!isMapFullScreen)
+    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT - 100);
+  else
+    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT_FULL - 124);
+
+  if (!showToolBar)
+    lv_obj_add_flag(btnFullScreen, LV_OBJ_FLAG_HIDDEN);
+  else
+    lv_obj_clear_flag(btnFullScreen, LV_OBJ_FLAG_HIDDEN);
+
+  lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+}
+
+/**
+ * @brief Full Screen Event Toolbar
+ *
+ * @param event
+ */
+void fullScreenEvent(lv_event_t *event)
+{
+  isMapFullScreen = !isMapFullScreen;
+
+  if (!isMapFullScreen)
+  {
+    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT - 100);
+    lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(notifyBarHour, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_invalidate(tilesScreen);
+  }
+  else
+  {
+    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT_FULL - 124);
+    lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(notifyBarHour, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
+  }
+  
+  deleteMapScrSprites();
+  createMapScrSprites();
+
+  redrawMap = true;
   lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
 }
 
@@ -573,7 +620,21 @@ void createMainScr()
   lv_obj_add_event_cb(speedLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(editScreenBtn, editScreen, LV_EVENT_ALL, NULL);
  
-  // Map Tile
+  // Map Tile Toolbar
+  btnFullScreen = lv_btn_create(mapTile);
+  lv_obj_remove_style_all(btnFullScreen);
+  lv_obj_set_size(btnFullScreen, 48, 48); 
+  if (!isMapFullScreen)
+    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT - 100);
+  else
+    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT_FULL - 124);
+
+  if (!showToolBar)
+    lv_obj_add_flag(btnFullScreen, LV_OBJ_FLAG_HIDDEN);
+  else
+    lv_obj_clear_flag(btnFullScreen, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_event_cb(btnFullScreen, fullScreenEvent, LV_EVENT_CLICKED, NULL);
+
 
   // Map Tile Events
   lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_VALUE_CHANGED, NULL);

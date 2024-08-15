@@ -54,6 +54,12 @@ extern lv_obj_t *mapTile;
 extern lv_obj_t *satTrackTile;
 
 /**
+ * @brief Map Toolbar Buttons
+ *
+ */
+extern lv_obj_t *btnFullScreen;
+
+/**
  * @brief Compass Tile screen objects
  *
  */
@@ -98,6 +104,7 @@ void updateMap(lv_event_t *event);
 void activeGnssEvent(lv_event_t *event);
 void updateSatTrack(lv_event_t *event);
 void toolBarEvent(lv_event_t *event);
+void fullScreenEvent(lv_event_t *event);
 
 void createMainScr();
 
