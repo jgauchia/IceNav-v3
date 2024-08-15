@@ -7,6 +7,7 @@
  */
 
 #include "lvglSetup.hpp"
+#include "core/lv_obj_event.h"
 #include "globalGuiDef.h"
 
 ViewPort viewPort; // Vector map viewport

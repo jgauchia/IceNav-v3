@@ -112,6 +112,7 @@ static void mapSettingsEvents(lv_event_t *event)
   {
     isMapFullScreen = lv_obj_has_state(obj, LV_STATE_CHECKED);
     saveShowMap(isMapFullScreen);
+    needReboot = true;
   }
 }
 
