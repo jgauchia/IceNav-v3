@@ -43,6 +43,7 @@ void buttonBarEvent(lv_event_t *event)
   if (strcmp(option,"addwpt") == 0)
   {
     log_v("Add Waypoint");
+    isMainScreen = false;
   }
   if (strcmp(option,"waypoint") == 0)
   {
@@ -119,6 +120,10 @@ void hideShowAnim(void * var, int32_t v)
   int32_t w;
   w = lv_map(v, 0, 256, LV_DPX(60) * scaleBut, max_w);
   lv_obj_set_width(obj, w);
+  if (v == 0)
+    lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
+  else
+    lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
 }
 
 /**
@@ -199,6 +204,7 @@ void createButtonBarScr()
   lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_FLOATING);
   lv_obj_set_size(buttonBar, 50 * scaleBut, 50 * scaleBut);
   lv_obj_align(buttonBar, LV_ALIGN_BOTTOM_RIGHT, 0,  -LV_DPX(14) );
+  lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
 
   menuBtn = lv_img_create(mainScreen);
   lv_img_set_src(menuBtn, menuIconFile);

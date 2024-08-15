@@ -158,10 +158,7 @@ void getActTile(lv_event_t *event)
       lv_obj_add_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
     }
     else
-    {
-      lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
       lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
-    }
   }
   else
   {
