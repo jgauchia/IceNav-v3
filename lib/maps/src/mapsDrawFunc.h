@@ -16,6 +16,9 @@
 #include "compass.c"
 #include "zoom.c"
 #include "speed.c"
+#include "expand.c"
+#include "collapse.c"
+#include <cstdint>
 
 // Scale for map
 static const char *map_scale[] PROGMEM = {"5000 Km", "2500 Km", "1500 Km",
@@ -79,9 +82,23 @@ static void drawMapWidgets()
   int mapHeight = 0;
 
   if (isMapFullScreen)
-    mapHeight = MAP_HEIGHT_FULL;
+    mapHeight = MAP_HEIGHT_FULL; 
   else
     mapHeight = MAP_HEIGHT;
+
+  if (showToolBar)
+  {
+    if (isMapFullScreen)
+    {
+      mapSprite.pushImage(10,mapHeight - 100, 48, 48,(uint16_t*)collapse,TFT_BLACK);
+    }
+    else
+    {
+      mapSprite.pushImage(10,mapHeight - 100, 48 ,48 ,(uint16_t*)expand,TFT_BLACK);
+    }
+    mapSprite.fillRectAlpha(10, mapHeight - 100, 48, 48, 95, TFT_BLACK);
+
+  }
 
   mapSprite.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
   mapSprite.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
