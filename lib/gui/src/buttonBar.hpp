@@ -26,6 +26,7 @@ static lv_obj_t *option;
 extern bool isWaypointOpt;  // Waypoint Option selected
 extern bool isTrackOpt;     // Track Option selected
 extern bool isOptionLoaded; // Option selected & loaded
+extern bool isBarOpen;      // Flag to determine if Button Bar is open
 
 void buttonBarEvent(lv_event_t *event);
 void optionEvent(lv_event_t *event);

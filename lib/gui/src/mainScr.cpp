@@ -7,6 +7,7 @@
  */
 
 #include "mainScr.hpp"
+#include "buttonBar.hpp"
 #include "tft.hpp"
 
 
@@ -157,8 +158,12 @@ void getActTile(lv_event_t *event)
       lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
       lv_obj_add_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
     }
-    else
+    else if (activeTile != MAP)
+    {
       lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+      if (isBarOpen)
+        lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+    }
   }
   else
   {

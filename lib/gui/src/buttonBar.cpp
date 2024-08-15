@@ -12,6 +12,7 @@
 bool isWaypointOpt = false;
 bool isTrackOpt = false;
 bool isOptionLoaded = false;
+bool isBarOpen = false;
 
 lv_obj_t *settingsScreen;
 lv_obj_t *buttonBar;
@@ -121,9 +122,15 @@ void hideShowAnim(void * var, int32_t v)
   w = lv_map(v, 0, 256, LV_DPX(60) * scaleBut, max_w);
   lv_obj_set_width(obj, w);
   if (v == 0)
+  {
     lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
+    isBarOpen = false;
+  }
   else
+  {
     lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
+    isBarOpen = true;
+  }
 }
 
 /**
