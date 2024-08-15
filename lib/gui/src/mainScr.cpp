@@ -7,14 +7,15 @@
  */
 
 #include "mainScr.hpp"
+#include "globalGuiDef.h"
 #include "tft.hpp"
 
 
-bool isMainScreen = false; // Flag to indicate main screen is selected
-bool isScrolled = true;    // Flag to indicate when tileview was scrolled
-bool isReady = false;      // Flag to indicate when tileview scroll was finished
-bool redrawMap = true;     // Flag to indicate when needs to redraw Map
-uint8_t activeTile = 0;    // Current active tile
+bool isMainScreen = false;    // Flag to indicate main screen is selected
+bool isScrolled = true;       // Flag to indicate when tileview was scrolled
+bool isReady = false;         // Flag to indicate when tileview scroll was finished
+bool redrawMap = true;        // Flag to indicate when needs to redraw Map
+uint8_t activeTile = 0;       // Current active tile
 
 lv_obj_t *compassHeading;
 lv_obj_t *compassImg;
@@ -154,13 +155,23 @@ void getActTile(lv_event_t *event)
     if (activeTile == MAP)
     {
       createMapScrSprites();
-      lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
-      lv_obj_add_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+      if (isMapFullScreen)
+      {
+        lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(notifyBarHour, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
+      }
     }
     else
     {
       lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
       lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+      if (isMapFullScreen)
+      {
+        lv_obj_clear_flag(notifyBarHour,LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
+      }
     }
   }
   else
@@ -183,6 +194,12 @@ void scrollTile(lv_event_t *event)
   isScrolled = false;
   isReady = false;
   redrawMap = false;
+
+  if (isMapFullScreen)
+  {
+    lv_obj_clear_flag(notifyBarHour,LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
+  }
 
   deleteMapScrSprites();
   deleteSatInfoSprites();

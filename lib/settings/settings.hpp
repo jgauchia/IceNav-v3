@@ -26,6 +26,7 @@ extern bool isCompassRot;     // Compass rotation in map screen
 extern bool showMapSpeed;     // Speed in map screen
 extern bool showMapScale;     // Scale in map screen
 extern bool isVectorMap;      // Map type
+extern bool isMapFullScreen;  // Is Map Full Screen
 extern uint16_t gpsBaud;      // GPS Speed
 extern uint16_t gpsUpdate;    // GPS Update rate
 extern uint16_t compassPosX;  // Compass widget position X

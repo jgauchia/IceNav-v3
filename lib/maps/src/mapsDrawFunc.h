@@ -43,7 +43,10 @@ static void deleteMapScrSprites()
 static void createMapScrSprites()
 {
   // Map Sprite
-  mapSprite.createSprite(MAP_WIDTH, MAP_HEIGHT);
+  if (!isMapFullScreen)
+     mapSprite.createSprite(MAP_WIDTH, MAP_HEIGHT);
+  else
+     mapSprite.createSprite(MAP_WIDTH, MAP_HEIGHT_FULL);
   // Arrow Sprite
   sprArrow.createSprite(16, 16);
   sprArrow.setColorDepth(16);
@@ -73,26 +76,33 @@ static void drawMapWidgets()
   }
   #endif
 
+  int mapHeight = 0;
+
+  if (isMapFullScreen)
+    mapHeight = MAP_HEIGHT_FULL;
+  else
+    mapHeight = MAP_HEIGHT;
+
   mapSprite.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
   mapSprite.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
   mapSprite.drawNumber(zoom, 26, 8, &fonts::FreeSansBold9pt7b);
 
   if (showMapSpeed)
   {
-    mapSprite.fillRectAlpha(0, MAP_HEIGHT - 32, 70, 32, 95, TFT_BLACK);
-    mapSprite.pushImage(0, MAP_HEIGHT - 28, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
-    mapSprite.drawNumber((uint16_t)GPS.speed.kmph(), 26, MAP_HEIGHT - 24 , &fonts::FreeSansBold9pt7b);
+    mapSprite.fillRectAlpha(0, mapHeight - 32, 70, 32, 95, TFT_BLACK);
+    mapSprite.pushImage(0, mapHeight - 28, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
+    mapSprite.drawNumber((uint16_t)GPS.speed.kmph(), 26, mapHeight - 24 , &fonts::FreeSansBold9pt7b);
   }
 
   if (!isVectorMap)
     if (showMapScale)
     {
-      mapSprite.fillRectAlpha(MAP_WIDTH - 70, MAP_HEIGHT - 32 , 70, MAP_WIDTH - 75, 95, TFT_BLACK);
+      mapSprite.fillRectAlpha(MAP_WIDTH - 70, mapHeight - 32 , 70, MAP_WIDTH - 75, 95, TFT_BLACK);
       mapSprite.setTextSize(1);
-      mapSprite.drawFastHLine(MAP_WIDTH - 65 , MAP_HEIGHT - 14 , 60);
-      mapSprite.drawFastVLine(MAP_WIDTH - 65  , MAP_HEIGHT - 19 , 10);
-      mapSprite.drawFastVLine(MAP_WIDTH - 5, MAP_HEIGHT - 19 , 10);
-      mapSprite.drawCenterString(map_scale[zoom], MAP_WIDTH - 35 , MAP_HEIGHT - 24);
+      mapSprite.drawFastHLine(MAP_WIDTH - 65 , mapHeight - 14 , 60);
+      mapSprite.drawFastVLine(MAP_WIDTH - 65  , mapHeight - 19 , 10);
+      mapSprite.drawFastVLine(MAP_WIDTH - 5, mapHeight - 19 , 10);
+      mapSprite.drawCenterString(map_scale[zoom], MAP_WIDTH - 35 , mapHeight - 24);
     }
 }
 
@@ -109,7 +119,10 @@ static void displayMap(uint16_t tileSize)
   }
   tft.waitDMA(); 
 
-  mapSprite.pushSprite(0, 27); 
+  if (!isMapFullScreen)
+    mapSprite.pushSprite(0, 27); 
+  else
+    mapSprite.pushSprite(0,0);
 
   if (isMapFound)
   {
