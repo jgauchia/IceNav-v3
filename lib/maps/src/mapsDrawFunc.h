@@ -86,17 +86,26 @@ static void drawMapWidgets()
   else
     mapHeight = MAP_HEIGHT;
 
+
+  int toolBarOffset = 0;
+  #ifdef LARGE_SCREEN
+    toolBarOffset = 100;
+  #endif
+  #ifndef LARGE_SCREEN
+    toolBarOffset = 80;
+  #endif
+
   if (showToolBar)
   {
     if (isMapFullScreen)
     {
-      mapSprite.pushImage(10,mapHeight - 100, 48, 48,(uint16_t*)collapse,TFT_BLACK);
+      mapSprite.pushImage(10,mapHeight - toolBarOffset, 48, 48,(uint16_t*)collapse,TFT_BLACK);
     }
     else
     {
-      mapSprite.pushImage(10,mapHeight - 100, 48 ,48 ,(uint16_t*)expand,TFT_BLACK);
+      mapSprite.pushImage(10,mapHeight - toolBarOffset, 48 ,48 ,(uint16_t*)expand,TFT_BLACK);
     }
-    mapSprite.fillRectAlpha(10, mapHeight - 100, 48, 48, 95, TFT_BLACK);
+    mapSprite.fillRectAlpha(10, mapHeight - toolBarOffset, 48, 48, 95, TFT_BLACK);
 
   }
 

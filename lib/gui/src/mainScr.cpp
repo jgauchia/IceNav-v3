@@ -7,6 +7,7 @@
  */
 
 #include "mainScr.hpp"
+#include "core/lv_obj_pos.h"
 #include "globalGuiDef.h"
 #include "globalMapsDef.h"
 #include "settings.hpp"
@@ -18,6 +19,13 @@ bool isScrolled = true;       // Flag to indicate when tileview was scrolled
 bool isReady = false;         // Flag to indicate when tileview scroll was finished
 bool redrawMap = true;        // Flag to indicate when needs to redraw Map
 uint8_t activeTile = 0;       // Current active tile
+
+#ifdef LARGE_SCREEN
+  int toolBarOffset = 100;
+#endif
+#ifndef LARGE_SCREEN
+  int toolBarOffset = 80;
+#endif
 
 lv_obj_t *compassHeading;
 lv_obj_t *compassImg;
@@ -432,16 +440,15 @@ void toolBarEvent(lv_event_t *event)
   showToolBar = !showToolBar;
 
   if (!isMapFullScreen)
-    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT - 100);
+    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT - toolBarOffset);
   else
-    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT_FULL - 124);
+    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT_FULL - (toolBarOffset+24));
 
   if (!showToolBar)
     lv_obj_add_flag(btnFullScreen, LV_OBJ_FLAG_HIDDEN);
   else
     lv_obj_clear_flag(btnFullScreen, LV_OBJ_FLAG_HIDDEN);
-
-  lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+    lv_obj_invalidate(btnFullScreen);
 }
 
 /**
@@ -455,16 +462,15 @@ void fullScreenEvent(lv_event_t *event)
 
   if (!isMapFullScreen)
   {
-    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT - 100);
+    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT - toolBarOffset);
     lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(notifyBarHour, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_invalidate(tilesScreen);
   }
   else
   {
-    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT_FULL - 124);
+    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT_FULL - (toolBarOffset+24));
     lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(notifyBarHour, LV_OBJ_FLAG_HIDDEN);
@@ -475,6 +481,8 @@ void fullScreenEvent(lv_event_t *event)
   createMapScrSprites();
 
   redrawMap = true;
+
+  lv_obj_invalidate(tilesScreen);   
   lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
 }
 
@@ -624,10 +632,12 @@ void createMainScr()
   btnFullScreen = lv_btn_create(mapTile);
   lv_obj_remove_style_all(btnFullScreen);
   lv_obj_set_size(btnFullScreen, 48, 48); 
+  //lv_obj_set_style_bg_color(btnFullScreen, lv_color_white(), 0);
+  //lv_obj_set_style_bg_opa(btnFullScreen, 1, 0);
   if (!isMapFullScreen)
-    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT - 100);
+    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT - toolBarOffset);
   else
-    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT_FULL - 124);
+    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT_FULL - (toolBarOffset+24));
 
   if (!showToolBar)
     lv_obj_add_flag(btnFullScreen, LV_OBJ_FLAG_HIDDEN);

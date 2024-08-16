@@ -58,6 +58,7 @@ extern lv_obj_t *satTrackTile;
  *
  */
 extern lv_obj_t *btnFullScreen;
+extern int toolBarOffset;
 
 /**
  * @brief Compass Tile screen objects
