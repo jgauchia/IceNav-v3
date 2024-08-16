@@ -18,6 +18,8 @@
 #include "speed.c"
 #include "expand.c"
 #include "collapse.c"
+#include "zoomin.c"
+#include "zoomout.c"
 #include <cstdint>
 
 // Scale for map
@@ -88,11 +90,14 @@ static void drawMapWidgets()
 
 
   int toolBarOffset = 0;
+  int toolBarSpace = 0;
   #ifdef LARGE_SCREEN
     toolBarOffset = 100;
+    toolBarSpace = 60;
   #endif
   #ifndef LARGE_SCREEN
     toolBarOffset = 80;
+    toolBarSpace = 50;
   #endif
 
   if (showToolBar)
@@ -105,8 +110,13 @@ static void drawMapWidgets()
     {
       mapSprite.pushImage(10,mapHeight - toolBarOffset, 48 ,48 ,(uint16_t*)expand,TFT_BLACK);
     }
-    mapSprite.fillRectAlpha(10, mapHeight - toolBarOffset, 48, 48, 95, TFT_BLACK);
+   mapSprite.fillRectAlpha(10, mapHeight - toolBarOffset, 48, 48, 50, TFT_BLACK);
 
+   mapSprite.pushImage(10, mapHeight - (toolBarOffset + toolBarSpace), 48,48,(uint16_t*)zoomout,TFT_BLACK);
+   mapSprite.fillRectAlpha(10, mapHeight - (toolBarOffset + toolBarSpace), 48, 48, 50, TFT_BLACK);
+
+   mapSprite.pushImage(10, mapHeight - (toolBarOffset + (2 * toolBarSpace)), 48,48,(uint16_t*)zoomin,TFT_BLACK);
+   mapSprite.fillRectAlpha(10, mapHeight - (toolBarOffset + (2 * toolBarSpace)), 48, 48, 50, TFT_BLACK);
   }
 
   mapSprite.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);

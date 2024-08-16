@@ -22,9 +22,11 @@ uint8_t activeTile = 0;       // Current active tile
 
 #ifdef LARGE_SCREEN
   int toolBarOffset = 100;
+  int toolBarSpace = 60;
 #endif
 #ifndef LARGE_SCREEN
   int toolBarOffset = 80;
+  int toolBarSpace = 50;
 #endif
 
 lv_obj_t *compassHeading;
@@ -632,8 +634,6 @@ void createMainScr()
   btnFullScreen = lv_btn_create(mapTile);
   lv_obj_remove_style_all(btnFullScreen);
   lv_obj_set_size(btnFullScreen, 48, 48); 
-  //lv_obj_set_style_bg_color(btnFullScreen, lv_color_white(), 0);
-  //lv_obj_set_style_bg_opa(btnFullScreen, 1, 0);
   if (!isMapFullScreen)
     lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT - toolBarOffset);
   else
