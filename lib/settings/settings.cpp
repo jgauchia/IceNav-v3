@@ -21,23 +21,26 @@ uint8_t zoom = 0;    // Actual Zoom Level
  * @brief Global Variables definition for device preferences & config.
  *
  */
-bool isMapRotation = true;  // Map Compass Rotation
-uint8_t defaultZoom = 0;    // Default Zoom Value
-bool showMapCompass = true; // Compass in map screen
-bool isCompassRot = true;   // Compass rotation in map screen
-bool showMapSpeed = true;   // Speed in map screen
-bool showMapScale = true;   // Scale in map screen
-bool isVectorMap = false;   // Map Type
-uint16_t gpsBaud = 0;       // GPS Speed
-uint16_t gpsUpdate = 0;     // GPS Update rate
-uint16_t compassPosX = 0;   // Compass widget position X
-uint16_t compassPosY = 0;   // Compass widget position Y
-uint16_t coordPosX = 0;     // Coordinates widget position X
-uint16_t coordPosY = 0;     // Coordinates widget position Y
-uint16_t altitudePosX = 0;  // Altitude widget position X
-uint16_t altitudePosY = 0;  // Altitude widget position Y
-uint16_t speedPosX = 0;     // Speed widget position X
-uint16_t speedPosY = 0;     // Speed widget position Y
+bool isMapRotation = true;    // Map Compass Rotation
+uint8_t defaultZoom = 0;      // Default Zoom Value
+bool showMapCompass = true;   // Compass in map screen
+bool isCompassRot = true;     // Compass rotation in map screen
+bool showMapSpeed = true;     // Speed in map screen
+bool showMapScale = true;     // Scale in map screen
+bool isVectorMap = false;     // Map Type
+bool isMapFullScreen = false; // Is Map Full Screen
+uint16_t gpsBaud = 0;         // GPS Speed
+uint16_t gpsUpdate = 0;       // GPS Update rate
+uint16_t compassPosX = 0;     // Compass widget position X
+uint16_t compassPosY = 0;     // Compass widget position Y
+uint16_t coordPosX = 0;       // Coordinates widget position X
+uint16_t coordPosY = 0;       // Coordinates widget position Y
+uint16_t altitudePosX = 0;    // Altitude widget position X
+uint16_t altitudePosY = 0;    // Altitude widget position Y
+uint16_t speedPosX = 0;       // Speed widget position X
+uint16_t speedPosY = 0;       // Speed widget position Y
+
+bool showToolBar = false;     // Show Map Toolbar
 
 /**
  * @brief Load stored preferences
@@ -85,6 +88,7 @@ void loadPreferences()
     minZoom = 6;
     maxZoom = 17;
   }
+  isMapFullScreen = cfg.getBool(PKEYS::KMAP_MODE, false);
 
   // // Default Widgets positions
   // compassPosX = 60;
@@ -257,6 +261,16 @@ void saveWidgetPos(char *widget, uint16_t posX, uint16_t posY)
 void saveMapType(bool vector)
 {
   cfg.saveBool(PKEYS::KMAP_VECTOR, vector);
+}
+
+/**
+ * @brief Save Map Mode
+ *
+ * @param mapMOde
+ */
+void saveShowMap(bool mapMode)
+{
+  cfg.saveBool(PKEYS::KMAP_MODE, mapMode);
 }
 
 /**
