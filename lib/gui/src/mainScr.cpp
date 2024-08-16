@@ -7,6 +7,7 @@
  */
 
 #include "mainScr.hpp"
+#include "core/lv_obj.h"
 #include "core/lv_obj_pos.h"
 #include "globalGuiDef.h"
 #include "globalMapsDef.h"
@@ -40,6 +41,8 @@ lv_obj_t *navTile;
 lv_obj_t *mapTile;
 lv_obj_t *satTrackTile;
 lv_obj_t *btnFullScreen;
+lv_obj_t *btnZoomIn;
+lv_obj_t *btnZoomOut;
 
 /**
  * @brief Update compass screen event
@@ -273,11 +276,11 @@ void updateMainScreen(lv_timer_t *t)
 }
 
 /**
- * @brief Update zoom value
+ * @brief Map Gesture Event
  *
  * @param event
  */
-void getZoomValue(lv_event_t *event)
+void gestureEvent(lv_event_t *event)
 {
   lv_obj_t *screen = (lv_obj_t *)lv_event_get_current_target(event);
   lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
@@ -290,40 +293,8 @@ void getZoomValue(lv_event_t *event)
       case LV_DIR_RIGHT:
         break;
       case LV_DIR_TOP:
-        if (!isVectorMap)
-        {
-            if (zoom >= minZoom && zoom < maxZoom)
-                zoom++;
-        }
-        else
-        {
-          zoom--;
-          isPosMoved = true;
-          if (zoom < 1)
-          {
-            zoom = 1;
-            isPosMoved = false;
-          }
-        }
-        lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
         break;
       case LV_DIR_BOTTOM:
-        if (!isVectorMap)
-        {
-          if (zoom <= maxZoom && zoom > minZoom)
-            zoom--;
-        }
-        else
-        {
-          zoom++;
-          isPosMoved = true;
-          if (zoom > MAX_ZOOM)
-          {
-            zoom = MAX_ZOOM;
-            isPosMoved = false;
-          }
-        }
-        lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
         break;
     }
   }
@@ -442,15 +413,31 @@ void toolBarEvent(lv_event_t *event)
   showToolBar = !showToolBar;
 
   if (!isMapFullScreen)
+  {
     lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT - toolBarOffset);
+    lv_obj_set_pos(btnZoomOut, 10 , MAP_HEIGHT - (toolBarOffset + toolBarSpace));
+    lv_obj_set_pos(btnZoomIn, 10, MAP_HEIGHT - (toolBarOffset + (2 * toolBarSpace)));
+  }
   else
-    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT_FULL - (toolBarOffset+24));
+  {
+    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT_FULL - (toolBarOffset + 24));
+    lv_obj_set_pos(btnZoomOut, 10, MAP_HEIGHT_FULL - (toolBarOffset + toolBarSpace + 24));
+    lv_obj_set_pos(btnZoomIn,10, MAP_HEIGHT_FULL - (toolBarOffset + (2 * toolBarSpace) + 24));
+  }
 
   if (!showToolBar)
+  {
     lv_obj_add_flag(btnFullScreen, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
+  }
   else
+  {
     lv_obj_clear_flag(btnFullScreen, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_invalidate(btnFullScreen);
+    lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
+  }
+  //lv_obj_invalidate(btnFullScreen);
 }
 
 /**
@@ -465,6 +452,8 @@ void fullScreenEvent(lv_event_t *event)
   if (!isMapFullScreen)
   {
     lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT - toolBarOffset);
+    lv_obj_set_pos(btnZoomOut, 10, MAP_HEIGHT - (toolBarOffset + toolBarSpace));
+    lv_obj_set_pos(btnZoomIn, 10, MAP_HEIGHT - (toolBarOffset + (2 * toolBarSpace)));
     lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(notifyBarHour, LV_OBJ_FLAG_HIDDEN);
@@ -472,7 +461,9 @@ void fullScreenEvent(lv_event_t *event)
   }
   else
   {
-    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT_FULL - (toolBarOffset+24));
+    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT_FULL - (toolBarOffset + 24));
+    lv_obj_set_pos(btnZoomOut, 10, MAP_HEIGHT_FULL - (toolBarOffset + toolBarSpace + 24));
+    lv_obj_set_pos(btnZoomIn, 10, MAP_HEIGHT_FULL - (toolBarOffset + (2 * toolBarSpace) + 24));
     lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(notifyBarHour, LV_OBJ_FLAG_HIDDEN);
@@ -485,6 +476,56 @@ void fullScreenEvent(lv_event_t *event)
   redrawMap = true;
 
   lv_obj_invalidate(tilesScreen);   
+  lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+}
+
+/**
+ * @brief Zoom In Event Toolbar
+ *
+ * @param event
+ */
+void zoomInEvent(lv_event_t *event)
+{
+  if (!isVectorMap)
+  {
+    if (zoom >= minZoom && zoom < maxZoom)
+      zoom++;
+  }
+  else
+  {
+    zoom--;
+    isPosMoved = true;
+    if (zoom < 1)
+    {
+      zoom = 1;
+      isPosMoved = false;
+    }
+  }
+  lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+}
+
+/**
+ * @brief Zoom Out Event Toolbar
+ *
+ * @param event
+ */
+void zoomOutEvent(lv_event_t *event)
+{
+  if (!isVectorMap)
+  {
+    if (zoom <= maxZoom && zoom > minZoom)
+      zoom--;
+  }
+  else
+  {
+    zoom++;
+    isPosMoved = true;
+    if (zoom > MAX_ZOOM)
+    {
+      zoom = MAX_ZOOM;
+      isPosMoved = false;
+    }
+  }
   lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
 }
 
@@ -634,22 +675,49 @@ void createMainScr()
   btnFullScreen = lv_btn_create(mapTile);
   lv_obj_remove_style_all(btnFullScreen);
   lv_obj_set_size(btnFullScreen, 48, 48); 
-  if (!isMapFullScreen)
-    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT - toolBarOffset);
-  else
-    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT_FULL - (toolBarOffset+24));
-
-  if (!showToolBar)
-    lv_obj_add_flag(btnFullScreen, LV_OBJ_FLAG_HIDDEN);
-  else
-    lv_obj_clear_flag(btnFullScreen, LV_OBJ_FLAG_HIDDEN);
   lv_obj_add_event_cb(btnFullScreen, fullScreenEvent, LV_EVENT_CLICKED, NULL);
 
+  btnZoomOut = lv_btn_create(mapTile);
+  lv_obj_remove_style_all(btnZoomOut);
+  lv_obj_set_size(btnZoomOut, 48, 48);
+  lv_obj_add_event_cb(btnZoomOut, zoomOutEvent, LV_EVENT_CLICKED, NULL);
+
+
+  btnZoomIn = lv_btn_create(mapTile);
+  lv_obj_remove_style_all(btnZoomIn);
+  lv_obj_set_size(btnZoomIn, 48, 48);
+  lv_obj_add_event_cb(btnZoomIn, zoomInEvent, LV_EVENT_CLICKED, NULL);
+
+  if (!isMapFullScreen)
+  {
+    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT - toolBarOffset);
+    lv_obj_set_pos(btnZoomOut, 10, MAP_HEIGHT - (toolBarOffset + toolBarSpace));
+    lv_obj_set_pos(btnZoomIn, 10, MAP_HEIGHT - ( toolBarOffset + (2 * toolBarSpace)));
+  }
+  else
+  {
+    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT_FULL - (toolBarOffset + 24));
+    lv_obj_set_pos(btnZoomOut, 10, MAP_HEIGHT_FULL - (toolBarOffset + toolBarSpace + 24));
+    lv_obj_set_pos(btnZoomIn, 10, MAP_HEIGHT_FULL - (toolBarOffset + (2 * toolBarSpace) + 24));
+  }
+
+  if (!showToolBar)
+  {
+    lv_obj_add_flag(btnFullScreen, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
+  }
+  else
+  {
+    lv_obj_clear_flag(btnFullScreen, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
+  }
 
   // Map Tile Events
   lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_VALUE_CHANGED, NULL);
-  lv_obj_add_event_cb(mainScreen, getZoomValue, LV_EVENT_GESTURE, NULL);
-  lv_obj_add_event_cb(mapTile, toolBarEvent, LV_EVENT_CLICKED, NULL);
+  lv_obj_add_event_cb(mapTile, gestureEvent, LV_EVENT_GESTURE, NULL);
+  lv_obj_add_event_cb(mapTile, toolBarEvent, LV_EVENT_LONG_PRESSED, NULL);
   
   // Navigation Tile
   // TODO

@@ -58,6 +58,8 @@ extern lv_obj_t *satTrackTile;
  *
  */
 extern lv_obj_t *btnFullScreen;
+extern lv_obj_t *btnZoomIn;
+extern lv_obj_t *btnZoomOut;
 extern int toolBarOffset;
 extern int toolBarSpace;
 
@@ -98,7 +100,7 @@ void scrollTile(lv_event_t *event);
 void generateRenderMap();
 void generateVectorMap();
 void updateMainScreen(lv_timer_t *t);
-void getZoomValue(lv_event_t *event);
+void gestureEvent(lv_event_t *event);
 void deleteMapScrSprites();
 void createMapScrSprites();
 void drawMapWidgets();
@@ -107,6 +109,8 @@ void activeGnssEvent(lv_event_t *event);
 void updateSatTrack(lv_event_t *event);
 void toolBarEvent(lv_event_t *event);
 void fullScreenEvent(lv_event_t *event);
+void zoomOutEvent(lv_event_t *event);
+void zoomInEvent(lv_event_t *event);
 
 void createMainScr();
 
