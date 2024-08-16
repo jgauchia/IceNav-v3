@@ -427,17 +427,16 @@ void toolBarEvent(lv_event_t *event)
 
   if (!showToolBar)
   {
-    lv_obj_add_flag(btnFullScreen, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(btnFullScreen, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_CLICKABLE);
   }
   else
   {
-    lv_obj_clear_flag(btnFullScreen, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(btnFullScreen, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(btnZoomOut, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_CLICKABLE);
   }
-  //lv_obj_invalidate(btnFullScreen);
 }
 
 /**
@@ -703,15 +702,15 @@ void createMainScr()
 
   if (!showToolBar)
   {
-    lv_obj_add_flag(btnFullScreen, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(btnFullScreen, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_CLICKABLE);
   }
   else
   {
-    lv_obj_clear_flag(btnFullScreen, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(btnFullScreen, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(btnZoomOut, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_CLICKABLE);
   }
 
   // Map Tile Events
