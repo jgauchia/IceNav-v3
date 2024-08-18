@@ -35,7 +35,7 @@
  * @brief Default display driver definition
  *
  */
-static lv_display_t *display;
+//extern lv_display_t *display;
 static uint32_t objectColor = 0x303030; 
 
 void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map);

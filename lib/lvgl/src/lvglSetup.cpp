@@ -8,10 +8,13 @@
 
 #include "lvglSetup.hpp"
 #include "addWaypointScr.hpp"
+#include "display/lv_display.h"
 #include "globalGuiDef.h"
 
 ViewPort viewPort; // Vector map viewport
-MemCache memCache; // Vector map Memory Cache
+MemCache memCache; // Vector map Memory Cach
+
+lv_display_t *display;
 
 lv_obj_t *searchSatScreen; // Search Satellite Screen
 lv_style_t styleThemeBkg;  // New Main Background Style
@@ -49,9 +52,17 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     data->state = LV_INDEV_STATE_RELEASED;
   else
   {
+    if ( lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_0)
+    {
+      data->point.x = touchX;
+      data->point.y = touchY;
+    }
+    else if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
+    {
+      data->point.x = 320 - touchY;
+      data->point.y = touchX;
+    }
     data->state = LV_INDEV_STATE_PRESSED;
-    data->point.x = touchX;
-    data->point.y = touchY;
   }
 }
 

@@ -63,12 +63,7 @@ void editScreen(lv_event_t *event)
   lv_event_code_t code = lv_event_get_code(event);
   
   if (code == LV_EVENT_VALUE_CHANGED)
-  {
-    if (!canMoveWidget)
-      canMoveWidget = true;
-    else
-      canMoveWidget = false;
-  }
+    canMoveWidget = !canMoveWidget;
 }
 
 /**

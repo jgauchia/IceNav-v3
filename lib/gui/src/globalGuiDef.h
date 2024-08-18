@@ -12,6 +12,12 @@
 #include "tft.hpp"
 
 /**
+ * @Brief LVGL Display Driver
+ * 
+ */
+extern lv_display_t *display;
+
+/**
  * @brief Screens definitions
  *
  */
@@ -27,7 +33,7 @@ extern lv_obj_t *addWaypointScreen;    // Add Waypoint Screen
 extern bool needReboot;                // Flag to force device reboot
 extern bool isSearchingSat;            // Flag to indicate that is searching satellites
 extern lv_obj_t *buttonBar;            // Button Bar
-extern lv_obj_t *menuBtn;
+extern lv_obj_t *menuBtn;              // Button Menu
 
 #ifdef LARGE_SCREEN
   static const lv_font_t *fontDefault = &lv_font_montserrat_14;

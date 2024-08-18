@@ -13,9 +13,13 @@
 #include "mainScr.hpp"
 
 extern lv_obj_t *waypointName;
+extern bool isScreenRotated;
 
 void loadMainScreen();
+
 static void addWaypointEvent(lv_event_t *event);
+static void rotateScreen(lv_event_t *event);
+
 void createAddWaypointScreen();
 
 #endif

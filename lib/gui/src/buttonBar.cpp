@@ -8,6 +8,7 @@
 
 #include "buttonBar.hpp"
 #include "addWaypointScr.hpp"
+#include "display/lv_display.h"
 #include "globalGuiDef.h"
 
 bool isWaypointOpt = false;
@@ -47,8 +48,11 @@ void buttonBarEvent(lv_event_t *event)
     log_v("Add Waypoint");
     isMainScreen = false;
     lv_textarea_set_text(waypointName, "");
+    isScreenRotated = false;
+    lv_obj_set_width(waypointName, tft.width() -10);
     lv_screen_load(addWaypointScreen);
   }
+
   if (strcmp(option,"waypoint") == 0)
   {
     log_v("Waypoint");
@@ -230,6 +234,7 @@ void createButtonBarScr()
   // Add Waypoint Button
   imgBtn = lv_img_create(buttonBar);
   lv_img_set_src(imgBtn,addWptIconFile);
+  lv_img_set_zoom(imgBtn,buttonScale);
   lv_obj_update_layout(imgBtn);
   lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
   lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
