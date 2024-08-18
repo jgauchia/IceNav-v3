@@ -36,7 +36,7 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 
 Currently, IceNav works with the following hardware setups and specs 
 
-**Highly recommended an ESP32 with PSRAM** 
+**Highly recommended an ESP32S3 with PSRAM** 
  
 > [!IMPORTANT]
 > Please review the platformio.ini file to choose the appropriate environment as well as the different build flags for your correct setup.
@@ -53,23 +53,31 @@ Currently, IceNav works with the following hardware setups and specs
 
 | Driver [^1] | Resolution | SPI | 8bit | 16bit | Touch     | Build Flags [^2]                 |
 |:------------|:----------:|:---:|:----:|:-----:|:---------:|:---------------------------------|
-| ILI9488     | 320x480    | yes | ---  | ---   | XPT2046   | ```-D ILI9488_XPT2046_SPI = 1``` |
+| ILI9488 [^3]| 320x480    | yes | ---  | ---   | XPT2046   | ```-D ILI9488_XPT2046_SPI = 1``` |
+| ILI9488     | 320x480    | yes | ---  | ---   | FT5x06    | ```-D ILI9488_FT5x06_SPI = 1 ``` |
+| ILI9488     | 320x480    | --- | yes  | ---   | --------  | ```-D ILI9488_NOTOUCH_8B = 1 ``` |
 | ILI9488     | 320x480    | --- | ---  | yes   | FT5x06    | ```-D ILI9488_FT5x06_16B = 1```  |
 | ILI9341     | 320x240    | yes | ---  | ---   | XPT2046   | ```-D ILI9341_XPT2046_SPI = 1``` |
 
+If TFT shares SPI bus with SD card add the following Build Flag to platformio.ini
+
+```-D SPI_SHARED = 1```
+
 ### Modules
 
-|             | Type          | Build Flags [^2]                 | lib_deps [^3] (**no common environment**)              |
+|             | Type          | Build Flags [^2]                 | lib_deps [^4] (**no common environment**)              |
 |:------------|:--------------|:---------------------------------|:-------------------------------------------------------|
 | AT6558D     | GPS           | ```-D AT6558D_GPS = 1```         |                                                        |
-| HMC5883L    | Compass       | ```-D HMC5883L = 1```            | ```adafruit/Adafruit Unified Sensor@^1.1.14``` <br> ```adafruit/Adafruit BusIO@^1.16.1``` <br> ```adafruit/Adafruit HMC5883 Unified@^1.2.3```|
+| HMC5883L    | Compass       | ```-D HMC5883L = 1```            | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
+| QMC5883     | Compass       | ```-D QMC5883 = 1```             | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
 | MPU9250     | IMU (Compass) | ```-D IMU_MPU9250 = 1 ```        | ```bolderflight/Bolder Flight Systems MPU9250@^1.0.2```|
 | BME280      | Temp/Pres/Hum | ```-D BME280 = 1```              | ```adafruit/Adafruit Unified Sensor@^1.1.14``` <br> ```adafruit/Adafruit BusIO@^1.16.1``` <br> ```adafruit/Adafruit BME280 Library@^2.2.4```|
 
 
 [^1]: See **hal.hpp** for pinouts configuration
 [^2]: **platformio.ini** file under the build_flags section
-[^3]: You need to add libraries dependencies if the buid flag requires
+[^3]: If Touch SPI is wired to the same SPI of ILI9488 ensure that TFT MISO line has 3-STATE for screenshots (read GRAM) or leave out 
+[^4]: You need to add libraries dependencies if the buid flag requires
 
 Other setups like another sensors types, etc... not listed in the specs, now **They are not included**
 
@@ -201,7 +209,7 @@ nc -l -p 8123 > screenshot.raw
 - [X] LVGL 9 Integration
 - [X] Support other resolutions and TFT models
 - [X] Wifi CLI Manager
-- [ ] LVGL Optimization 
+- [X] LVGL Optimization 
 - [ ] GPX Integration
 - [ ] Multiple IMU's and Compass module implementation
 - [ ] Power saving

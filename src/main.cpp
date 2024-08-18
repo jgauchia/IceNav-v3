@@ -28,6 +28,10 @@
 #include "compass.hpp"
 #endif
 
+#ifdef QMC5883
+#include "compass.hpp"
+#endif
+
 #ifdef IMU_MPU9250
 #include "compass.hpp"
 #endif
@@ -36,11 +40,13 @@
 #include "bme.hpp"
 #endif
 
+extern xSemaphoreHandle gpsMutex;
+
 #include "battery.hpp"
 #include "power.hpp"
 #include "settings.hpp"
-#include "tasks.hpp"
 #include "lvglSetup.hpp"
+#include "tasks.hpp"
 
 /**
  * @brief Setup
@@ -48,13 +54,15 @@
  */
 void setup()
 {
+  gpsMutex = xSemaphoreCreateMutex();
+
   #ifdef ARDUINO_USB_CDC_ON_BOOT
     Serial.begin(115200);  
   #endif
 
   #ifdef ARDUINO_ESP32S3_DEV
-   Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
-   Wire.begin();
+    Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
+    Wire.begin();
   #endif
 
   #ifdef BME280
@@ -72,28 +80,35 @@ void setup()
   initTFT();
   initGPS();
   initLVGL();
-  
   initADC();
   
-
   // Reserve PSRAM for buffer map
   mapTempSprite.deleteSprite();
   mapTempSprite.createSprite(TILE_WIDTH, TILE_HEIGHT);
 
   splashScreen();
-  //initLvglTask();
   initGpsTask();
 
   #ifdef DEFAULT_LAT
-   loadMainScreen();
+    loadMainScreen();
   #else
-   lv_screen_load(searchSatScreen);
+    lv_screen_load(searchSatScreen);
   #endif
 
-#ifndef DISABLE_CLI
-  initCLI();
-  initCLITask();
-#endif
+  #ifndef DISABLE_CLI
+    initCLI();
+    initCLITask();
+  #endif
+
+  // Preload Map
+  if (isVectorMap)
+  {
+  }
+  else
+  {
+    tileSize = RENDER_TILE_SIZE;
+    generateRenderMap();
+  }
 }
 
 /**
@@ -102,8 +117,6 @@ void setup()
  */
 void loop()
 {
-  // lv_timer_handler();
-  // lv_tick_inc(5);
   lv_timer_handler();
   vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
 }

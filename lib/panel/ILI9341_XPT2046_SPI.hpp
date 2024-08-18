@@ -11,6 +11,8 @@
 
 #define LGFX_USE_V1
 
+#define TOUCH_INPUT
+
 #include "LovyanGFX.hpp"
 
 extern const uint8_t TFT_SPI_SCLK;
@@ -75,7 +77,12 @@ public:
       cfg.invert = false;
       cfg.rgb_order = false;
       cfg.dlen_16bit = false;
+      #ifdef SPI_SHARED
+      cfg.bus_shared = true;
+      #endif
+      #ifndef SPI_SHARED
       cfg.bus_shared = false;
+      #endif
       _panel_instance.config(cfg);
     }
 
@@ -89,7 +96,7 @@ public:
       cfg.bus_shared = true;
       cfg.offset_rotation = 0;
       #ifdef ARDUINO_ESP32S3_DEV
-      cfg.spi_host = SPI2_HOST;
+      cfg.spi_host = SPI3_HOST;
       #endif
       #ifdef ARDUINO_ESP32_DEV
       cfg.spi_host = HSPI_HOST;

@@ -7,11 +7,42 @@
  */
 
 #include "mainScr.hpp"
+#include "core/lv_obj.h"
+#include "core/lv_obj_pos.h"
+#include "globalGuiDef.h"
+#include "globalMapsDef.h"
+#include "settings.hpp"
+#include "tft.hpp"
 
-bool isMainScreen = false; // Flag to indicate main screen is selected
-bool isScrolled = true;    // Flag to indicate when tileview was scrolled
-bool isReady = false;      // Flag to indicate when tileview scroll was finished
-bool redrawMap = false;    // Flag to indicate when needs to redraw Map
+
+bool isMainScreen = false;    // Flag to indicate main screen is selected
+bool isScrolled = true;       // Flag to indicate when tileview was scrolled
+bool isReady = false;         // Flag to indicate when tileview scroll was finished
+bool redrawMap = true;        // Flag to indicate when needs to redraw Map
+uint8_t activeTile = 0;       // Current active tile
+
+#ifdef LARGE_SCREEN
+  int toolBarOffset = 100;
+  int toolBarSpace = 60;
+#endif
+#ifndef LARGE_SCREEN
+  int toolBarOffset = 80;
+  int toolBarSpace = 50;
+#endif
+
+lv_obj_t *compassHeading;
+lv_obj_t *compassImg;
+lv_obj_t *latitude;
+lv_obj_t *longitude;
+lv_obj_t *altitude;
+lv_obj_t *speedLabel;
+lv_obj_t *compassTile;
+lv_obj_t *navTile;
+lv_obj_t *mapTile;
+lv_obj_t *satTrackTile;
+lv_obj_t *btnFullScreen;
+lv_obj_t *btnZoomIn;
+lv_obj_t *btnZoomOut;
 
 /**
  * @brief Update compass screen event
@@ -72,6 +103,7 @@ void unselectWidget(lv_event_t *event)
       lv_obj_add_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
       widgetSelected = false;
     }
+    isScrolled = true;
   }
 }
 
@@ -84,6 +116,7 @@ void dragWidget(lv_event_t *event)
 {
   if (canMoveWidget)
   {
+    isScrolled = false;
     lv_obj_t *obj = (lv_obj_t *)lv_event_get_target(event);
     if (!widgetSelected)
     {
@@ -105,7 +138,7 @@ void dragWidget(lv_event_t *event)
     lv_coord_t height = lv_obj_get_height(obj);
     
     // Limit drag area
-    if (x > 0 && y > 0 && (x + width) < TFT_WIDTH && (y + height) < (TFT_HEIGHT - 100 * scaleBut))
+    if (x > 0 && y > 0 && (x + width) < TFT_WIDTH && (y + height) < TFT_HEIGHT - 25)
     {
       lv_obj_set_pos(obj, x, y);
       
@@ -125,18 +158,36 @@ void getActTile(lv_event_t *event)
   if (isReady)
   {
     isScrolled = true;
+    redrawMap = true;
+
     log_d("Free PSRAM: %d", ESP.getFreePsram());
     log_d("Used PSRAM: %d", ESP.getPsramSize() - ESP.getFreePsram());
-    if (activeTile == MAP || activeTile == NAV)
-    {
-      createMapScrSprites();
-      isPosMoved = true;
-      redrawMap = true;
-    }
+
     if (activeTile == SATTRACK)
     {
       createSatSprite(spriteSat);
       createConstelSprite(constelSprite);
+    }
+    if (activeTile == MAP)
+    {
+      createMapScrSprites();
+      if (isMapFullScreen)
+      {
+        lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(notifyBarHour, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
+      }
+    }
+    else
+    {
+      lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+      lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+      if (isMapFullScreen)
+      {
+        lv_obj_clear_flag(notifyBarHour,LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
+      }
     }
   }
   else
@@ -158,6 +209,13 @@ void scrollTile(lv_event_t *event)
 {
   isScrolled = false;
   isReady = false;
+  redrawMap = false;
+
+  if (isMapFullScreen)
+  {
+    lv_obj_clear_flag(notifyBarHour,LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
+  }
 
   deleteMapScrSprites();
   deleteSatInfoSprites();
@@ -199,16 +257,11 @@ void updateMainScreen(lv_timer_t *t)
         #ifdef ENABLE_COMPASS
           heading = getHeading();
         #endif
-        lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+        lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
         break;
           
-      case NAV:
-        mapTempSprite.fillScreen(TFT_BLACK);
-        mapTempSprite.drawPngFile(SPIFFS, "/TODO.png", (MAP_WIDTH / 2) - 50, (MAP_HEIGHT / 2) - 50);
-        mapTempSprite.drawCenterString("NAVIGATION SCREEN", (MAP_WIDTH / 2), (MAP_HEIGHT >> 1) + 65, &fonts::DejaVu18);
-        mapSprite.pushSprite(0, 27);
-        mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
-        break;
+      // case NAV:
+      //   break;
 
       case SATTRACK:
         constelSprite.pushSprite(150 * scale, 40 * scale);
@@ -223,11 +276,11 @@ void updateMainScreen(lv_timer_t *t)
 }
 
 /**
- * @brief Update zoom value
+ * @brief Map Gesture Event
  *
  * @param event
  */
-void getZoomValue(lv_event_t *event)
+void gestureEvent(lv_event_t *event)
 {
   lv_obj_t *screen = (lv_obj_t *)lv_event_get_current_target(event);
   lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
@@ -240,40 +293,8 @@ void getZoomValue(lv_event_t *event)
       case LV_DIR_RIGHT:
         break;
       case LV_DIR_TOP:
-        if (!isVectorMap)
-        {
-            if (zoom >= minZoom && zoom < maxZoom)
-                zoom++;
-        }
-        else
-        {
-          zoom--;
-          isPosMoved = true;
-          if (zoom < 1)
-          {
-            zoom = 1;
-            isPosMoved = false;
-          }
-        }
-        lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
         break;
       case LV_DIR_BOTTOM:
-        if (!isVectorMap)
-        {
-          if (zoom <= maxZoom && zoom > minZoom)
-            zoom--;
-        }
-        else
-        {
-          zoom++;
-          isPosMoved = true;
-          if (zoom > MAX_ZOOM)
-          {
-            zoom = MAX_ZOOM;
-            isPosMoved = false;
-          }
-        }
-        lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
         break;
     }
   }
@@ -286,19 +307,32 @@ void getZoomValue(lv_event_t *event)
  */
 void updateMap(lv_event_t *event)
 {
-  if (tft.getStartCount() == 0)
-    tft.startWrite();
-
   if (isVectorMap)
   {
     getPosition(getLat(), getLon());
-    
     if (isPosMoved)
     {
       tileSize = VECTOR_TILE_SIZE;
       viewPort.setCenter(point);
+
+      #ifdef SPI_SHARED
+      tft.waitDisplay();
+      tft.endTransaction();
+      tft.releaseBus();
+      initSD();
+      #endif
+      
       getMapBlocks(viewPort.bbox, memCache);
-      generateVectorMap(viewPort, memCache, mapTempSprite);
+      
+      #ifdef SPI_SHARED
+      SD.end();
+      tft.initBus();
+      #endif  
+
+      deleteMapScrSprites();
+      createMapScrSprites();
+      generateVectorMap(viewPort, memCache, mapTempSprite); 
+      
       isPosMoved = false;
     }
   }
@@ -307,11 +341,8 @@ void updateMap(lv_event_t *event)
     tileSize = RENDER_TILE_SIZE;
     generateRenderMap();
   }
-
-  displayMap(tileSize);
-
-  if (tft.getStartCount() > 0)
-    tft.endWrite();
+  if (redrawMap)
+    displayMap(tileSize);
 }
 
 /**
@@ -373,6 +404,131 @@ void updateSatTrack(lv_event_t *event)
 }
 
 /**
+ * @brief Tool Bar Event
+ *
+ * @param event
+ */
+void toolBarEvent(lv_event_t *event)
+{
+  showToolBar = !showToolBar;
+
+  if (!isMapFullScreen)
+  {
+    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT - toolBarOffset);
+    lv_obj_set_pos(btnZoomOut, 10 , MAP_HEIGHT - (toolBarOffset + toolBarSpace));
+    lv_obj_set_pos(btnZoomIn, 10, MAP_HEIGHT - (toolBarOffset + (2 * toolBarSpace)));
+  }
+  else
+  {
+    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT_FULL - (toolBarOffset + 24));
+    lv_obj_set_pos(btnZoomOut, 10, MAP_HEIGHT_FULL - (toolBarOffset + toolBarSpace + 24));
+    lv_obj_set_pos(btnZoomIn,10, MAP_HEIGHT_FULL - (toolBarOffset + (2 * toolBarSpace) + 24));
+  }
+
+  if (!showToolBar)
+  {
+    lv_obj_clear_flag(btnFullScreen, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_CLICKABLE);
+  }
+  else
+  {
+    lv_obj_add_flag(btnFullScreen, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(btnZoomOut, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_CLICKABLE);
+  }
+}
+
+/**
+ * @brief Full Screen Event Toolbar
+ *
+ * @param event
+ */
+void fullScreenEvent(lv_event_t *event)
+{
+  isMapFullScreen = !isMapFullScreen;
+
+  if (!isMapFullScreen)
+  {
+    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT - toolBarOffset);
+    lv_obj_set_pos(btnZoomOut, 10, MAP_HEIGHT - (toolBarOffset + toolBarSpace));
+    lv_obj_set_pos(btnZoomIn, 10, MAP_HEIGHT - (toolBarOffset + (2 * toolBarSpace)));
+    lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(notifyBarHour, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
+  }
+  else
+  {
+    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT_FULL - (toolBarOffset + 24));
+    lv_obj_set_pos(btnZoomOut, 10, MAP_HEIGHT_FULL - (toolBarOffset + toolBarSpace + 24));
+    lv_obj_set_pos(btnZoomIn, 10, MAP_HEIGHT_FULL - (toolBarOffset + (2 * toolBarSpace) + 24));
+    lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(notifyBarHour, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
+  }
+  
+  deleteMapScrSprites();
+  createMapScrSprites();
+
+  redrawMap = true;
+
+  lv_obj_invalidate(tilesScreen);   
+  lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+}
+
+/**
+ * @brief Zoom In Event Toolbar
+ *
+ * @param event
+ */
+void zoomInEvent(lv_event_t *event)
+{
+  if (!isVectorMap)
+  {
+    if (zoom >= minZoom && zoom < maxZoom)
+      zoom++;
+  }
+  else
+  {
+    zoom--;
+    isPosMoved = true;
+    if (zoom < 1)
+    {
+      zoom = 1;
+      isPosMoved = false;
+    }
+  }
+  lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+}
+
+/**
+ * @brief Zoom Out Event Toolbar
+ *
+ * @param event
+ */
+void zoomOutEvent(lv_event_t *event)
+{
+  if (!isVectorMap)
+  {
+    if (zoom <= maxZoom && zoom > minZoom)
+      zoom--;
+  }
+  else
+  {
+    zoom++;
+    isPosMoved = true;
+    if (zoom > MAX_ZOOM)
+    {
+      zoom = MAX_ZOOM;
+      isPosMoved = false;
+    }
+  }
+  lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+}
+
+/**
  * @brief Create Main Screen
  *
  */
@@ -384,8 +540,8 @@ void createMainScr()
   tilesScreen = lv_tileview_create(mainScreen);
   compassTile = lv_tileview_add_tile(tilesScreen, 0, 0, LV_DIR_RIGHT);
   mapTile = lv_tileview_add_tile(tilesScreen, 1, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
-  navTile = lv_tileview_add_tile(tilesScreen, 2, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
-  satTrackTile = lv_tileview_add_tile(tilesScreen, 3, 0, LV_DIR_LEFT);
+ /*  navTile = lv_tileview_add_tile(tilesScreen, 2, 0, LV_DIR_LEFT | LV_DIR_RIGHT); */
+  satTrackTile = lv_tileview_add_tile(tilesScreen, 2, 0, LV_DIR_LEFT);
   lv_obj_set_size(tilesScreen, TFT_WIDTH, TFT_HEIGHT - 25);
   lv_obj_set_pos(tilesScreen, 0, 25);
   static lv_style_t styleScroll;
@@ -513,10 +669,54 @@ void createMainScr()
   lv_obj_add_event_cb(altitude, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(speedLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(editScreenBtn, editScreen, LV_EVENT_ALL, NULL);
-  
+ 
+  // Map Tile Toolbar
+  btnFullScreen = lv_btn_create(mapTile);
+  lv_obj_remove_style_all(btnFullScreen);
+  lv_obj_set_size(btnFullScreen, 48, 48); 
+  lv_obj_add_event_cb(btnFullScreen, fullScreenEvent, LV_EVENT_CLICKED, NULL);
+
+  btnZoomOut = lv_btn_create(mapTile);
+  lv_obj_remove_style_all(btnZoomOut);
+  lv_obj_set_size(btnZoomOut, 48, 48);
+  lv_obj_add_event_cb(btnZoomOut, zoomOutEvent, LV_EVENT_CLICKED, NULL);
+
+
+  btnZoomIn = lv_btn_create(mapTile);
+  lv_obj_remove_style_all(btnZoomIn);
+  lv_obj_set_size(btnZoomIn, 48, 48);
+  lv_obj_add_event_cb(btnZoomIn, zoomInEvent, LV_EVENT_CLICKED, NULL);
+
+  if (!isMapFullScreen)
+  {
+    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT - toolBarOffset);
+    lv_obj_set_pos(btnZoomOut, 10, MAP_HEIGHT - (toolBarOffset + toolBarSpace));
+    lv_obj_set_pos(btnZoomIn, 10, MAP_HEIGHT - ( toolBarOffset + (2 * toolBarSpace)));
+  }
+  else
+  {
+    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT_FULL - (toolBarOffset + 24));
+    lv_obj_set_pos(btnZoomOut, 10, MAP_HEIGHT_FULL - (toolBarOffset + toolBarSpace + 24));
+    lv_obj_set_pos(btnZoomIn, 10, MAP_HEIGHT_FULL - (toolBarOffset + (2 * toolBarSpace) + 24));
+  }
+
+  if (!showToolBar)
+  {
+    lv_obj_clear_flag(btnFullScreen, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_CLICKABLE);
+  }
+  else
+  {
+    lv_obj_add_flag(btnFullScreen, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(btnZoomOut, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_CLICKABLE);
+  }
+
   // Map Tile Events
-  lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_REFRESH, NULL);
-  lv_obj_add_event_cb(mainScreen, getZoomValue, LV_EVENT_GESTURE, NULL);
+  lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_add_event_cb(mapTile, gestureEvent, LV_EVENT_GESTURE, NULL);
+  lv_obj_add_event_cb(mapTile, toolBarEvent, LV_EVENT_LONG_PRESSED, NULL);
   
   // Navigation Tile
   // TODO

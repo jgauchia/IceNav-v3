@@ -27,6 +27,7 @@ static lv_obj_t *checkCompass;
 static lv_obj_t *checkCompassRot;
 static lv_obj_t *checkSpeed;
 static lv_obj_t *checkScale;
+static lv_obj_t *checkFullScreen;
 
 static void mapSettingsEvents(lv_event_t *event);
 void createMapSettingsScr();

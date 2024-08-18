@@ -5,8 +5,8 @@
  * @date 2024-06
  */
 
-#ifndef GLOBALGUIDEF_HPP
-#define GLOBALGUIDEF_HPP
+#ifndef GLOBALGUIDEF_H
+#define GLOBALGUIDEF_H
 
 #include <lvgl.h>
 #include "tft.hpp"
@@ -23,6 +23,9 @@ extern lv_obj_t *settingsScreen;       // Settings Screen
 extern lv_obj_t *mapSettingsScreen;    // Map Settings Screen
 extern lv_obj_t *deviceSettingsScreen; // Device Settings Screen
 extern bool needReboot;                // Flag to force device reboot
+extern bool isSearchingSat;            // Flag to indicate that is searching satellites
+extern lv_obj_t *buttonBar;            // Button Bar
+extern lv_obj_t *menuBtn;
 
 #ifdef LARGE_SCREEN
   static const lv_font_t *fontDefault = &lv_font_montserrat_14;

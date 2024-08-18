@@ -83,7 +83,7 @@
  *====================*/
 
 /*Default display refresh period. LVG will redraw changed areas with this period time*/
-#define LV_DEF_REFR_PERIOD  30    /*[ms]*/
+#define LV_DEF_REFR_PERIOD  10    /*[ms]*/
 
 /*Default Dot Per Inch. Used to initialize default sizes such as widgets sized, style paddings.
  *(Not so important, you can adjust it to modify default sizes and spaces)*/
@@ -303,7 +303,7 @@
 #define LV_COLOR_MIX_ROUND_OFS  0
 
 /* Add 2 x 32 bit variables to each lv_obj_t to speed up getting style properties */
-#define LV_OBJ_STYLE_CACHE      0
+#define LV_OBJ_STYLE_CACHE      1
 
 /* Add `id` field to `lv_obj_t` */
 #define LV_USE_OBJ_ID           0
@@ -747,9 +747,9 @@
 
     /*1: Show CPU usage and FPS count
      * Requires `LV_USE_SYSMON = 1`*/
-    #define LV_USE_PERF_MONITOR 0
+    #define LV_USE_PERF_MONITOR 1
     #if LV_USE_PERF_MONITOR
-        #define LV_USE_PERF_MONITOR_POS LV_ALIGN_BOTTOM_RIGHT
+        #define LV_USE_PERF_MONITOR_POS LV_ALIGN_TOP_RIGHT
 
         /*0: Displays performance data on the screen, 1: Prints performance data using log.*/
         #define LV_USE_PERF_MONITOR_LOG_MODE 0
@@ -758,9 +758,9 @@
     /*1: Show the used memory and the memory fragmentation
      * Requires `LV_USE_BUILTIN_MALLOC = 1`
      * Requires `LV_USE_SYSMON = 1`*/
-    #define LV_USE_MEM_MONITOR 0
+    #define LV_USE_MEM_MONITOR 1
     #if LV_USE_MEM_MONITOR
-        #define LV_USE_MEM_MONITOR_POS LV_ALIGN_BOTTOM_LEFT
+        #define LV_USE_MEM_MONITOR_POS LV_ALIGN_TOP_LEFT
     #endif
 
 #endif /*LV_USE_SYSMON*/

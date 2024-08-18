@@ -7,46 +7,26 @@
  */
 
 #include "tasks.hpp"
+#include "Arduino.h"
+#include "freertos/FreeRTOS.h"
 
 time_t local, utc = 0;
 
-/**
- * @brief Task1 - LVGL Task
- *
- * @param pvParameters
- */
-void lvglTask(void *pvParameters)
-{
-  log_v("Task1 - LVGL Task - running on core %d", xPortGetCoreID());
-  log_v("Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
-  for (;;)
-  {
-    lv_timer_handler();
-    vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
-  }
-}
+TaskHandle_t LVGLTaskHandler;
+xSemaphoreHandle gpsMutex;
 
 /**
- * @brief Init Task1 LVGL Task
- * 
- */
-void initLvglTask()
-{
-  xTaskCreatePinnedToCore(lvglTask, PSTR("LVGL Task"), 20000, NULL, 2, NULL, 1);
-  delay(500);
-}
-
-/**
- * @brief Task 2 - Read GPS data
+ * @brief Read GPS data
  *
  * @param pvParameters
  */
 void gpsTask(void *pvParameters)
 {
-  log_v("Task 2 - GPS Task - running on core %d", xPortGetCoreID());
+  log_v("GPS Task - running on core %d", xPortGetCoreID());
   log_v("Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
-  for (;;)
+  while (1)
   {
+    xSemaphoreTake(gpsMutex, portMAX_DELAY);
     while (gps->available() > 0)
     {
       #ifdef OUTPUT_NMEA
@@ -72,30 +52,43 @@ void gpsTask(void *pvParameters)
     }
     // if (!GPS.time.isValid() && isTimeFixed)
     //     isTimeFixed = false;
-
-        vTaskDelay(10 / portTICK_PERIOD_MS);
-
+    xSemaphoreTake(gpsMutex, portMAX_DELAY); 
+    vTaskDelay(10 / portTICK_PERIOD_MS);
   }
 }
 
 /**
- * @brief Init Task 2 GPS task
+ * @brief Init GPS task
  *
  */
 void initGpsTask()
 {
-  xTaskCreatePinnedToCore(gpsTask, PSTR("GPS Task"), 8192, NULL, 1, NULL, 1);
+  xTaskCreatePinnedToCore(gpsTask, PSTR("GPS Task"), 8192, NULL, 1, NULL, 0);
   delay(500);
 }
 
+/**
+ * @brief CLI task
+ *
+ * @param param
+ */
 #ifndef DISABLE_CLI
-void cliTask(void *param) {
-  for (;;) {
+void cliTask(void *param) 
+{
+  while(1) 
+  {
     wcli.loop();
     vTaskDelay(60 / portTICK_PERIOD_MS);
   }
   vTaskDelete(NULL);
 }
 
+/**
+ * @brief Init CLI task
+ *
+ */
 void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 4000, NULL, 1, NULL, 1); }
+
 #endif
+
+

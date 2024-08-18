@@ -17,6 +17,9 @@
 #include "compass.hpp"
 #include "lvgl.h"
 #include "cli.hpp"
+#include "mainScr.hpp"
+#include "globalMapsDef.h"
+#include "lvglFuncs.hpp"
 
 #define TASK_SLEEP_PERIOD_MS 5
 
@@ -34,8 +37,6 @@ static Timezone CE(CEST,CET);
  */
 extern time_t local, utc;
 
-void lvglTask(void *pvParameters);
-void initLvglTask();
 void gpsTask(void *pvParameters);
 void initGpsTask();
 void initCLITask();
