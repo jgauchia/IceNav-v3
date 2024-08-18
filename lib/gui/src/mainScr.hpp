@@ -11,14 +11,15 @@
 
 #include "globalGuiDef.h"
 #include "globalMapsDef.h"
+#include "globalWptDef.h"
 #include "lvglFuncs.hpp"
 #include "misc/lv_color.h"
 #include "satInfo.hpp"
-#include "vectorMaps.hpp"
 #include "notifyBar.hpp"
 #include "buttonBar.hpp"
 #include "renderMaps.hpp"
 #include "vectorMaps.hpp"
+#include "addWaypoint.hpp"
 
 static lv_timer_t *mainTimer;    // Main Screen Timer
 #define UPDATE_MAINSCR_PERIOD 30 // Main Screen update time
