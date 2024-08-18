@@ -11,4 +11,6 @@
 
 #include "globalWptDef.h"
 
+extern wayPoint addWpt;
+
 #endif

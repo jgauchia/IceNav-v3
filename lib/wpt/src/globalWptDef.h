@@ -6,8 +6,8 @@
  */
 
 
-#ifndef GLOBALWPTSDEF_H
-#define GLOBALWPTSDEF_H
+#ifndef GLOBALWPTDEF_H
+#define GLOBALWPTDEF_H
 
 /**
  * @brief Waypoint Structure
@@ -16,8 +16,8 @@
 struct wayPoint
 {
   char *name;
-  float latitude;
-  float longitude;
+  double latitude;
+  double longitude;
 };
 
 #endif

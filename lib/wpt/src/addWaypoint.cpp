@@ -7,3 +7,5 @@
  */
 
 #include "addWaypoint.hpp"
+
+wayPoint addWpt = {"", 0, 0};

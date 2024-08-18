@@ -10,8 +10,6 @@
 #define MAINSCR_HPP
 
 #include "globalGuiDef.h"
-#include "globalMapsDef.h"
-#include "globalWptDef.h"
 #include "lvglFuncs.hpp"
 #include "misc/lv_color.h"
 #include "satInfo.hpp"

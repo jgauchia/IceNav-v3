@@ -8,8 +8,9 @@
 
 #include "addWaypointScr.hpp"
 #include "core/lv_obj_pos.h"
+#include "globalGuiDef.h"
 #include "tft.hpp"
-#include "widgets/keyboard/lv_keyboard.h"
+#include "addWaypoint.hpp"
 
 lv_obj_t *addWaypointScreen;  // Add Waypoint Screen
 lv_obj_t *waypointName;
@@ -26,7 +27,10 @@ static void addWaypointEvent(lv_event_t *event)
 
   if (code == LV_EVENT_READY)
   {
-//        fileName = (char *)lv_textarea_get_text(ta);
+    addWpt.name = (char *)lv_textarea_get_text(fileName);
+    log_i("Name %s",addWpt.name);
+    log_i("Lat %f",addWpt.latitude);
+    log_i("Lon %f",addWpt.longitude);
     isMainScreen = true;
     loadMainScreen();
   }
@@ -44,6 +48,10 @@ static void addWaypointEvent(lv_event_t *event)
  */
 void createAddWaypointScreen()
 {
+  addWpt.latitude = getLat();
+  addWpt.longitude = getLon();
+  addWpt.name = "";
+
   addWaypointScreen = lv_obj_create(NULL);
   lv_obj_t *keyboard = lv_keyboard_create(addWaypointScreen);
   waypointName = lv_textarea_create(addWaypointScreen);
@@ -61,4 +69,24 @@ void createAddWaypointScreen()
   lv_label_set_text_static(label, "Waypoint Name:");
   lv_obj_center(label);
   lv_obj_align(label,LV_ALIGN_TOP_LEFT,10,10);
+
+  label = lv_label_create(addWaypointScreen);
+  lv_obj_set_style_text_font(label, fontOptions, 0);
+  lv_label_set_text_static(label, "Lat:");
+  lv_obj_set_pos(label, 10, 90);
+
+  label = lv_label_create(addWaypointScreen);
+  lv_obj_set_style_text_font(label, fontOptions, 0);
+  lv_label_set_text_static(label, "Lon:");
+  lv_obj_set_pos(label, 10, 120);
+
+  lv_obj_t *lat = lv_label_create(addWaypointScreen);
+  lv_obj_set_style_text_font(lat, fontOptions, 0);
+  lv_label_set_text_static(lat, latFormatString(addWpt.latitude));
+  lv_obj_set_pos(lat, 60, 90);
+  
+  lv_obj_t *lon = lv_label_create(addWaypointScreen);
+  lv_obj_set_style_text_font(lon, fontOptions, 0);
+  lv_label_set_text_static(lon, lonFormatString(addWpt.longitude));
+  lv_obj_set_pos(lon, 60, 120);
 }
