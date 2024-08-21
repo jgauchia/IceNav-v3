@@ -35,10 +35,8 @@ void buttonBarEvent(lv_event_t *event)
     lv_anim_init(&a);
     lv_anim_set_var(&a, buttonBar);
     lv_anim_set_exec_cb(&a, hideShowAnim);
-    lv_anim_set_start_cb(&a, startHideShowAnim);
-    lv_anim_set_completed_cb(&a, endHideShowAnim);
     lv_anim_set_values(&a, 256, 0);
-    lv_anim_set_duration(&a, 400);
+    lv_anim_set_duration(&a, 250);
     lv_anim_start(&a);
   }
 
@@ -132,32 +130,14 @@ void hideShowAnim(void * var, int32_t v)
   {
     lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
     isBarOpen = false;
+    isScrolled = true;
   }
   else
   {
     lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
     isBarOpen = true;
+    isScrolled = false;
   }
-}
-
-/**
- * @brief Hide/Show start animation callback
- *
- * @param anim
- */
-void startHideShowAnim(lv_anim_t * anim)
-{
- isScrolled = false;
-}
-
-/**
- * @brief Hide/Show finish animation callback
- *
- * @param anim
- */
-void endHideShowAnim(lv_anim_t *anim)
-{
-  isScrolled = true;
 }
 
 /**
@@ -175,8 +155,6 @@ void hideShowEvent(lv_event_t * e)
       lv_anim_t a;
       lv_anim_init(&a);
       lv_anim_set_var(&a, buttonBar);
-      lv_anim_set_start_cb(&a, startHideShowAnim);
-      lv_anim_set_completed_cb(&a, endHideShowAnim);
       lv_anim_set_exec_cb(&a, hideShowAnim);
       lv_anim_set_values(&a, 0, 256);
       lv_anim_set_duration(&a, 250);
@@ -188,8 +166,6 @@ void hideShowEvent(lv_event_t * e)
       lv_anim_init(&a);
       lv_anim_set_var(&a, buttonBar);
       lv_anim_set_exec_cb(&a, hideShowAnim);
-      lv_anim_set_start_cb(&a, startHideShowAnim);
-      lv_anim_set_completed_cb(&a, endHideShowAnim);
       lv_anim_set_values(&a, 256, 0);
       lv_anim_set_duration(&a, 250);
       lv_anim_start(&a);

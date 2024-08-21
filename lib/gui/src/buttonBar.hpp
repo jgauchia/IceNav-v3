@@ -32,8 +32,6 @@ void buttonBarEvent(lv_event_t *event);
 void optionEvent(lv_event_t *event);
 void hideShowEvent(lv_event_t * e);
 void hideShowAnim(void * var, int32_t v);
-void startHideShowAnim(lv_anim_t * anim);
-void endHideShowAnim(lv_anim_t *anim);
 void createButtonBarScr();
 void loadOptions();
 
