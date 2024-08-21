@@ -147,5 +147,7 @@ void initTFT()
   ledcSetup(0, 5000, 8);
   ledcAttachPin(TFT_BL, 0);
   ledcWrite(0, 255);
+#ifdef TOUCH_INPUT
   touchCalibrate();
+#endif
 }

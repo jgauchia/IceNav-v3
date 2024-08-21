@@ -7,6 +7,8 @@
  */
 
 #include "mapSettingsScr.hpp"
+#include "core/lv_obj.h"
+#include "settings.hpp"
 
 lv_obj_t *mapSettingsScreen; // Map Settings Screen
 
@@ -105,6 +107,13 @@ static void mapSettingsEvents(lv_event_t *event)
     showMapScale = lv_obj_has_state(obj, LV_STATE_CHECKED);
     saveShowScale(showMapScale);
   }
+
+  if (obj == checkFullScreen)
+  {
+    isMapFullScreen = lv_obj_has_state(obj, LV_STATE_CHECKED);
+    saveShowMap(isMapFullScreen);
+    needReboot = true;
+  }
 }
 
 /**
@@ -180,12 +189,22 @@ void createMapSettingsScr()
   lv_obj_set_style_bg_image_src(zoomBtnDown, LV_SYMBOL_MINUS, 0);
   lv_obj_add_event_cb(zoomBtnDown, mapSettingsEvents, LV_EVENT_ALL, NULL);
 
+  // Show Full Screen Map
+  list = lv_list_add_btn(mapSettingsOptions, NULL, "Show Fullscreen Map");
+  lv_obj_set_style_text_font(list, fontOptions, 0);
+  lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
+  checkFullScreen = lv_checkbox_create(list);
+  lv_obj_align_to(checkFullScreen, list, LV_ALIGN_RIGHT_MID, 0, 0);
+  lv_checkbox_set_text(checkFullScreen, " ");
+  lv_obj_add_state(checkFullScreen, isMapFullScreen);
+  lv_obj_add_event_cb(checkFullScreen, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
+
   // Show Compass
   list = lv_list_add_btn(mapSettingsOptions, NULL, "Show Compass");
   lv_obj_set_style_text_font(list, fontOptions, 0);
   lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
-  
   checkCompass = lv_checkbox_create(list);
   lv_obj_align_to(checkCompass, list, LV_ALIGN_RIGHT_MID, 0, 0);
   lv_checkbox_set_text(checkCompass, " ");

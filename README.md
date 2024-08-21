@@ -55,6 +55,7 @@ Currently, IceNav works with the following hardware setups and specs
 |:------------|:----------:|:---:|:----:|:-----:|:---------:|:---------------------------------|
 | ILI9488 [^3]| 320x480    | yes | ---  | ---   | XPT2046   | ```-D ILI9488_XPT2046_SPI = 1``` |
 | ILI9488     | 320x480    | yes | ---  | ---   | FT5x06    | ```-D ILI9488_FT5x06_SPI = 1 ``` |
+| ILI9488     | 320x480    | --- | yes  | ---   | --------  | ```-D ILI9488_NOTOUCH_8B = 1 ``` |
 | ILI9488     | 320x480    | --- | ---  | yes   | FT5x06    | ```-D ILI9488_FT5x06_16B = 1```  |
 | ILI9341     | 320x240    | yes | ---  | ---   | XPT2046   | ```-D ILI9341_XPT2046_SPI = 1``` |
 
@@ -208,7 +209,7 @@ nc -l -p 8123 > screenshot.raw
 - [X] LVGL 9 Integration
 - [X] Support other resolutions and TFT models
 - [X] Wifi CLI Manager
-- [ ] LVGL Optimization 
+- [X] LVGL Optimization 
 - [ ] GPX Integration
 - [ ] Multiple IMU's and Compass module implementation
 - [ ] Power saving

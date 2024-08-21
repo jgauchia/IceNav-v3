@@ -27,6 +27,7 @@ extern const uint8_t TCH_SPI_CS;
 extern const bool TFT_INVERT;
 
 #define LARGE_SCREEN
+#define TOUCH_INPUT
 
 class LGFX : public lgfx::LGFX_Device
 {

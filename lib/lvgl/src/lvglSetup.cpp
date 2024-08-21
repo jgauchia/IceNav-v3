@@ -8,7 +8,6 @@
 
 #include "lvglSetup.hpp"
 #include "addWaypointScr.hpp"
-#include "display/lv_display.h"
 #include "globalGuiDef.h"
 
 ViewPort viewPort; // Vector map viewport
@@ -175,10 +174,12 @@ void initLVGL()
   
   #endif
   
+  #ifdef TOUCH_INPUT
   lv_indev_t *indev_drv = lv_indev_create();
   lv_indev_set_type(indev_drv, LV_INDEV_TYPE_POINTER);
   lv_indev_set_read_cb(indev_drv, touchRead);
- 
+  #endif
+  
   //  Create Main Timer
   mainTimer = lv_timer_create(updateMainScreen, UPDATE_MAINSCR_PERIOD, NULL);
   lv_timer_ready(mainTimer);

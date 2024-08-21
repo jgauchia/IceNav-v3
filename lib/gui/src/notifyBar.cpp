@@ -152,14 +152,14 @@ void updateNotifyBarTimer(lv_timer_t *t)
 void createNotifyBar()
 {
   notifyBarIcons = lv_obj_create(mainScreen);
-  lv_obj_set_size(notifyBarIcons, (TFT_WIDTH / 3) * 2 , 22);
+  lv_obj_set_size(notifyBarIcons, (TFT_WIDTH / 3) * 2 , 24);
   lv_obj_set_pos(notifyBarIcons, TFT_WIDTH / 3, 0);
   lv_obj_set_flex_flow(notifyBarIcons, LV_FLEX_FLOW_ROW);
   lv_obj_set_flex_align(notifyBarIcons, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
   lv_obj_clear_flag(notifyBarIcons, LV_OBJ_FLAG_SCROLLABLE);
 
   notifyBarHour = lv_obj_create(mainScreen);
-  lv_obj_set_size(notifyBarHour, TFT_WIDTH / 3 , 22);
+  lv_obj_set_size(notifyBarHour, TFT_WIDTH / 3 , 24);
   lv_obj_set_pos(notifyBarHour, 0, 0);
   lv_obj_set_flex_flow(notifyBarHour, LV_FLEX_FLOW_ROW);
   lv_obj_set_flex_align(notifyBarHour, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);

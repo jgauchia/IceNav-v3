@@ -12,11 +12,13 @@
 #include "tft.hpp"
 
 #ifdef LARGE_SCREEN
-#define MAP_HEIGHT 440 //374  // Map Height Size
-#define MAP_WIDTH 320   // Map Width Size
+#define MAP_HEIGHT 380       // Map Height Size 380
+#define MAP_WIDTH 320        // Map Width Size
+#define MAP_HEIGHT_FULL 480  // Map Height Full Screen
 #else
-#define MAP_HEIGHT 280 // Map Height Size
-#define MAP_WIDTH 240  // Map Width Size
+#define MAP_HEIGHT 220       // Map Height Size
+#define MAP_WIDTH 240        // Map Width Size
+#define MAP_HEIGHT_FULL 320  // Map Height Full Screen
 #endif
 
 #define TILE_HEIGHT 768 // Tile 9x9 Height Size
@@ -28,6 +30,7 @@
 extern bool isMapFound;              // Flag to indicate when tile map is found on SD
 extern bool isScrolled;              // Flag to indicate when tileview was scrolled
 extern bool redrawMap;               // Flag to indicate need redraw Map
+
 
 extern TFT_eSprite sprArrow;         // Sprite for Navigation Arrow in map tile
 extern TFT_eSprite mapTempSprite;    // Double Buffering Sprites for Map Tile
