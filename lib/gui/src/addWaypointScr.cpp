@@ -31,8 +31,8 @@ static void addWaypointEvent(lv_event_t *event)
   {
     addWpt.name = (char *)lv_textarea_get_text(fileName);
     log_i("Name %s",addWpt.name);
-    log_i("Lat %f",addWpt.latitude);
-    log_i("Lon %f",addWpt.longitude);
+    log_i("Lat %f",addWpt.lat);
+    log_i("Lon %f",addWpt.lon);
     isMainScreen = true;
     if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
     {
@@ -81,8 +81,8 @@ static void rotateScreen(lv_event_t *event)
  */
 void createAddWaypointScreen()
 {
-  addWpt.latitude = getLat();
-  addWpt.longitude = getLon();
+  addWpt.lat = getLat();
+  addWpt.lon = getLon();
   
   addWaypointScreen = lv_obj_create(NULL);
   lv_obj_t *keyboard = lv_keyboard_create(addWaypointScreen);
@@ -128,11 +128,11 @@ void createAddWaypointScreen()
 
   lv_obj_t *lat = lv_label_create(addWaypointScreen);
   lv_obj_set_style_text_font(lat, fontOptions, 0);
-  lv_label_set_text_static(lat, latFormatString(addWpt.latitude));
+  lv_label_set_text_static(lat, latFormatString(addWpt.lat));
   lv_obj_set_pos(lat, 60, 90);
   
   lv_obj_t *lon = lv_label_create(addWaypointScreen);
   lv_obj_set_style_text_font(lon, fontOptions, 0);
-  lv_label_set_text_static(lon, lonFormatString(addWpt.longitude));
+  lv_label_set_text_static(lon, lonFormatString(addWpt.lon));
   lv_obj_set_pos(lon, 60, 120);
 }

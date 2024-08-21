@@ -7,7 +7,6 @@
  */
 
 #include "renderMaps.hpp"
-#include "esp32-hal-gpio.h"
 #include "mapsDrawFunc.h"
 
 MapTile oldMapTile = {"", 0, 0, 0};     // Old Map tile coordinates and zoom
@@ -94,7 +93,7 @@ void generateRenderMap()
     createMapScrSprites();
 
     #ifdef SPI_SHARED
-    //tft.waitDisplay();
+    tft.waitDisplay();
     tft.endTransaction();
     tft.releaseBus();
     initSD();
