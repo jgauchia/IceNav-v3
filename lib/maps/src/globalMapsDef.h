@@ -8,7 +8,6 @@
 #ifndef GLOBALMAPSDEF_H
 #define GLOBALMAPSDEF_H
 
-#include "SPIFFS.h"
 #include "tft.hpp"
 
 #ifdef LARGE_SCREEN
@@ -96,7 +95,7 @@ static ScreenCoord coord2ScreenPos(double lon, double lat, uint8_t zoomLevel, ui
   return data;
 }
 
-static const char *noMapFile PROGMEM = "/NOMAP.png";
+static const char *noMapFile PROGMEM = "/spiffs/NOMAP.png";
 
 /**
  * @brief Load No Map Image
@@ -104,7 +103,7 @@ static const char *noMapFile PROGMEM = "/NOMAP.png";
  */
 static void showNoMap(TFT_eSprite &map)
 {
-  map.drawPngFile(SPIFFS, noMapFile, (MAP_WIDTH / 2) - 50, (MAP_HEIGHT / 2) - 50);
+  map.drawPngFile(noMapFile, (MAP_WIDTH / 2) - 50, (MAP_HEIGHT / 2) - 50);
   map.drawCenterString("NO MAP FOUND", (MAP_WIDTH / 2), (MAP_HEIGHT >> 1) + 65, &fonts::DejaVu18);
 }
 
