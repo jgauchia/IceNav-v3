@@ -1,6 +1,6 @@
 /**
- * @file globalWptDef.h
- * @brief  Global Waypoints Variables
+ * @file globalGpxDef.h
+ * @brief  Global GPX Variables
  * @version 0.1.8
  * @date 2024-06
  */
@@ -10,6 +10,14 @@
 #define GLOBALWPTDEF_H
 
 #include <pgmspace.h>
+#include "FS.h"
+
+/** 
+ * @Brief GPX File
+ *
+ */
+
+extern File gpxFile;
 
 /**
  * @brief Waypoint Structure

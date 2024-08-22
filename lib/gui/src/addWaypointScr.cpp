@@ -30,28 +30,39 @@ static void addWaypointEvent(lv_event_t *event)
   if (code == LV_EVENT_READY)
   {
     addWpt.name = (char *)lv_textarea_get_text(fileName);
-    log_i("Name %s",addWpt.name);
-    log_i("Lat %f",addWpt.lat);
-    log_i("Lon %f",addWpt.lon);
-    isMainScreen = true;
-    if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
+   
+    // if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
+    // {
+    //   tft.setRotation(0);
+    //   lv_display_set_rotation(display,LV_DISPLAY_ROTATION_0);
+    // }
+    
+    if ( strcmp(addWpt.name,"") != 0)
     {
-      tft.setRotation(0);
-      lv_display_set_rotation(display,LV_DISPLAY_ROTATION_0);
+
+      log_i("Name %s",addWpt.name);
+      log_i("Lat %f",addWpt.lat);
+      log_i("Lon %f",addWpt.lon);
+      openGpxFile("/waypoint.gpx");
     }
-    loadMainScreen();
+
+    // isMainScreen = true;
+    // lv_refr_now(display);
+    // loadMainScreen();
   }
 
-  if (code == LV_EVENT_CANCEL)
-  {
+  // if (code == LV_EVENT_CANCEL)
+  // {
+
     isMainScreen = true;
     if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
     {
       tft.setRotation(0);
       lv_display_set_rotation(display,LV_DISPLAY_ROTATION_0);
     }
-    loadMainScreen();
-  }
+
+   // loadMainScreen(); 
+   // }
 }
 
 /**

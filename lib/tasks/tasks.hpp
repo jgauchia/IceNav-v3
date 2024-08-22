@@ -19,7 +19,7 @@
 #include "cli.hpp"
 #include "mainScr.hpp"
 #include "globalMapsDef.h"
-#include "globalWptDef.h"
+#include "globalGpxDef.h"
 #include "lvglFuncs.hpp"
 
 #define TASK_SLEEP_PERIOD_MS 5
