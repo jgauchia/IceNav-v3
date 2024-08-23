@@ -15,6 +15,8 @@
 #include "settings.hpp"
 #include "tft.hpp"
 
+extern const int SD_CS;
+extern const uint8_t TFT_SPI_CS;
 
 bool isMainScreen = false;    // Flag to indicate main screen is selected
 bool isScrolled = true;       // Flag to indicate when tileview was scrolled
@@ -323,15 +325,17 @@ void updateMap(lv_event_t *event)
       #ifdef SPI_SHARED
       tft.waitDisplay();
       tft.endTransaction();
-      tft.releaseBus();
-      initSD();
+      digitalWrite(TFT_SPI_CS,HIGH);
+      digitalWrite(SD_CS,LOW);
       #endif
       
       getMapBlocks(viewPort.bbox, memCache);
       
-      #ifdef SPI_SHARED
-      SD.end();
-      tft.initBus();
+      
+      #ifdef SPI_SHARED   
+      digitalWrite(SD_CS,HIGH);
+      digitalWrite(TFT_SPI_CS,LOW);
+      tft.beginTransaction();
       #endif  
 
       deleteMapScrSprites();
