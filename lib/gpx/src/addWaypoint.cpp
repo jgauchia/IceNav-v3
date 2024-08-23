@@ -8,6 +8,8 @@
 
 #include "addWaypoint.hpp"
 
+extern const int SD_CS;
+
 wayPoint addWpt = {0, 0, 0, "", "", "", "", "", "", 0, 0, 0, 0};
 File gpxFile;
 
@@ -19,10 +21,10 @@ File gpxFile;
 void openGpxFile(const char* gpxFilename)
 {
   #ifdef SPI_SHARED
-  //tft.waitDisplay();
+  tft.waitDisplay();
   tft.endTransaction();
-  tft.releaseBus();
-  initSD();
+  digitalWrite(TFT_SPI_CS, HIGH);
+  digitalWrite(SD_CS, LOW);
   #endif
 
   gpxFile = SD.open(gpxFilename, FILE_READ);
@@ -33,7 +35,8 @@ void openGpxFile(const char* gpxFilename)
     log_v("GPX existe");
 
   #ifdef SPI_SHARED
-  SD.end();
-  tft.initBus();
+  digitalWrite(SD_CS, HIGH);
+  digitalWrite(TFT_SPI_CS, LOW);
+  tft.beginTransaction();
   #endif 
 }
