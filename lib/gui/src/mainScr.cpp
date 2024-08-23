@@ -315,19 +315,19 @@ void updateMap(lv_event_t *event)
       tileSize = VECTOR_TILE_SIZE;
       viewPort.setCenter(point);
 
-      #ifdef SPI_SHARED
-      tft.waitDisplay();
-      tft.endTransaction();
-      tft.releaseBus();
-      initSD();
-      #endif
+      // #ifdef SPI_SHARED
+      // tft.waitDisplay();
+      // tft.endTransaction();
+      // tft.releaseBus();
+      // initSD();
+      // #endif
       
       getMapBlocks(viewPort.bbox, memCache);
       
-      #ifdef SPI_SHARED
-      SD.end();
-      tft.initBus();
-      #endif  
+      // #ifdef SPI_SHARED
+      // SD.end();
+      // tft.initBus();
+      // #endif  
 
       deleteMapScrSprites();
       createMapScrSprites();

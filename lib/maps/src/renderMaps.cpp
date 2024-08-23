@@ -93,20 +93,22 @@ void generateRenderMap()
     deleteMapScrSprites();
     createMapScrSprites();
 
-    #ifdef SPI_SHARED
-    //tft.waitDisplay();
-    tft.endTransaction();
-    tft.releaseBus();
-    initSD();
-    #endif
+    // #ifdef SPI_SHARED
+    // //tft.waitDisplay();
+    // tft.endTransaction();
+    // //tft.releaseBus();
+    // //initSD();
+    // digitalWrite(10,HIGH);
+    // #endif
 
     mapTempSprite.fillScreen(TFT_BLACK);
-    isMapFound  = mapTempSprite.drawPngFile(SD, currentMapTile.file, tileSize, tileSize);
+    isMapFound  = mapTempSprite.drawPngFile(currentMapTile.file, tileSize, tileSize);
 
     if (!isMapFound)
     {
       log_v("No Map Found!");
       oldMapTile.file = (char*)noMapFile;
+      redrawMap = true;
       showNoMap(mapTempSprite);
     }
     else
@@ -129,7 +131,7 @@ void generateRenderMap()
             continue;
           }
           roundMapTile = getMapTile(getLon(), getLat(), zoom, x, y);
-          mapTempSprite.drawPngFile(SD, roundMapTile.file, (x - startX) * tileSize, (y - startY) * tileSize);
+          mapTempSprite.drawPngFile(roundMapTile.file, (x - startX) * tileSize, (y - startY) * tileSize);
         }
       }
 
@@ -138,10 +140,12 @@ void generateRenderMap()
       oldMapTile.tiley = currentMapTile.tiley;
     }
 
-    #ifdef SPI_SHARED
-    SD.end();
-    tft.initBus();
-    #endif
+    // #ifdef SPI_SHARED
+    // //SD.end();
+    // //tft.initBus();
+    // digitalWrite(10,LOW);
+    // tft.beginTransaction();
+    // #endif
 
     log_v("TILE: %s", oldMapTile.file);
   }

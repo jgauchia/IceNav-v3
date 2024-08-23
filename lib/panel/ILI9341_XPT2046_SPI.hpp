@@ -47,13 +47,18 @@ public:
       #endif
       cfg.spi_mode = 0;
       cfg.freq_write = 79999999;
-      cfg.freq_read = 27000000;
+      cfg.freq_read = 16000000;
       cfg.spi_3wire = false;
-      cfg.use_lock = false;
+      cfg.use_lock = true;
       cfg.dma_channel = SPI_DMA_CH_AUTO;
       cfg.pin_sclk = TFT_SPI_SCLK;
       cfg.pin_mosi = TFT_SPI_MOSI;
+      #ifdef SPI_SHARED
+      cfg.pin_miso = -1;
+      #endif
+      #ifndef SPI_SHARED
       cfg.pin_miso = TFT_SPI_MISO;
+      #endif
       cfg.pin_dc = TFT_SPI_DC;
       _bus_instance.config(cfg);
       _panel_instance.setBus(&_bus_instance);

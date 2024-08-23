@@ -98,22 +98,22 @@ extern const bool TFT_INVERT = true;
  *
  */
 #ifdef ARDUINO_ESP32_DEV
-  extern const uint8_t SD_CS = 4;
-  extern const uint8_t SD_MISO = 19;
-  extern const uint8_t SD_MOSI = 23;
-  extern const uint8_t SD_CLK = 12;
+  extern const gpio_num_t SD_CS = GPIO_NUM_4;
+  extern const gpio_num_t SD_MISO = GPIO_NUM_19;
+  extern const gpio_num_t SD_MOSI = GPIO_NUM_23;
+  extern const gpio_num_t SD_CLK = GPIO_NUM_12;
 #endif
 #ifdef ARDUINO_ESP32S3_DEV
   #ifdef MAKERF_ESP32S3
-    extern const uint8_t SD_CS = 1;
-    extern const uint8_t SD_MISO = 41;
-    extern const uint8_t SD_MOSI = 2;
-    extern const uint8_t SD_CLK = 42;
+    extern const gpio_num_t SD_CS = GPIO_NUM_1;
+    extern const gpio_num_t SD_MISO = GPIO_NUM_41;
+    extern const gpio_num_t SD_MOSI = GPIO_NUM_2;
+    extern const gpio_num_t SD_CLK = GPIO_NUM_42;
   #else
-    extern const uint8_t SD_CS = 21;
-    extern const uint8_t SD_MISO = 13;
-    extern const uint8_t SD_MOSI = 11;
-    extern const uint8_t SD_CLK = 12;
+    extern const gpio_num_t SD_CS = GPIO_NUM_21;
+    extern const gpio_num_t SD_MISO = GPIO_NUM_13;
+    extern const gpio_num_t SD_MOSI = GPIO_NUM_11;
+    extern const gpio_num_t SD_CLK = GPIO_NUM_12;
   #endif
 #endif
 

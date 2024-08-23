@@ -9,6 +9,7 @@
 #include "notifyBar.hpp"
 #include "font/lv_symbol_def.h"
 #include "misc/lv_event.h"
+#include "widgets/label/lv_label.h"
 
 lv_obj_t *mainScreen;
 lv_obj_t *notifyBarIcons;
@@ -143,6 +144,11 @@ void updateNotifyBarTimer(lv_timer_t *t)
     lv_obj_send_event(battery, LV_EVENT_VALUE_CHANGED, NULL);
     battLevelOld = battLevel;
   }
+
+  if (isSdLoaded)
+    lv_label_set_text_static(sdCard, LV_SYMBOL_SD_CARD);
+  else
+    lv_label_set_text_static(sdCard,"");
 }
 
 /**

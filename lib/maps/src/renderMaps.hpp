@@ -28,7 +28,7 @@ struct MapTile
   uint8_t zoom;
 };
 
-static const char *mapFolder PROGMEM = "/MAP/%d/%d/%d.png"; // Render Maps file folder
+static const char *mapFolder PROGMEM = "/sdcard/MAP/%d/%d/%d.png"; // Render Maps file folder
 
 extern MapTile oldMapTile;     // Old Map tile coordinates and zoom
 extern MapTile currentMapTile; // Curreng Map tile coordinates and zoom
@@ -39,6 +39,6 @@ uint32_t lat2tiley(double f_lat, uint8_t zoom);
 MapTile getMapTile(double lon, double lat, uint8_t zoomLevel, int16_t offsetX, int16_t offsetY);
 void drawMapWidgets();
 void generateRenderMap();
-void initSD();
+esp_err_t initSD();
 
 #endif

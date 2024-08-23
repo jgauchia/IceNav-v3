@@ -10,23 +10,19 @@
 #define STORAGE_HPP
 
 #include "esp_spiffs.h"
-#include <SD.h>
+#include "esp_err.h"
+#include "sdmmc_cmd.h"
+#include "esp_vfs_fat.h"
+
 #include <LovyanGFX.hpp>
 #include <tft.hpp>
 
-#ifdef ARDUINO_ESP32S3_DEV
-static SPIClass spiSD = SPIClass(HSPI);
-static uint32_t sdFreq = 10000000;
-#endif
-#ifdef ARDUINO_ESP32_DEV
-static SPIClass spiSD = SPIClass(VSPI);
-static uint32_t sdFreq = 40000000;
-#endif
-
+static sdmmc_card_t* sdcard;
 extern bool isSdLoaded;
 
 
-void initSD();
+
+esp_err_t initSD();
 esp_err_t initSPIFFS();
 
 #endif

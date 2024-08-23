@@ -9,11 +9,14 @@
 #include "tasks.hpp"
 #include "Arduino.h"
 #include "freertos/FreeRTOS.h"
+#include "storage.hpp"
 
 time_t local, utc = 0;
 
-TaskHandle_t LVGLTaskHandler;
 xSemaphoreHandle gpsMutex;
+
+ SemaphoreHandle_t  xGuiSemaphore = NULL;
+TaskHandle_t g_lvgl_task_handle;
 
 /**
  * @brief Read GPS data
@@ -91,4 +94,15 @@ void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 4000, NULL, 1,
 
 #endif
 
-
+void guiTask(void *pvParameters)
+{
+  while(1)
+  {
+    vTaskDelay(pdMS_TO_TICKS(10));
+    if (pdTRUE == xSemaphoreTake(xGuiSemaphore, portMAX_DELAY))
+    {
+      lv_task_handler();
+      xSemaphoreGive(xGuiSemaphore);
+    }
+  }
+}

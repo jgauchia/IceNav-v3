@@ -23,6 +23,9 @@
 
 #define TASK_SLEEP_PERIOD_MS 5
 
+extern SemaphoreHandle_t xGuiSemaphore;
+extern TaskHandle_t g_lvgl_task_handle;
+
 /**
  * @brief Central European Time (daylight saving time)
  *
@@ -40,5 +43,6 @@ extern time_t local, utc;
 void gpsTask(void *pvParameters);
 void initGpsTask();
 void initCLITask();
+void guiTask(void *pvParameters);
 
 #endif

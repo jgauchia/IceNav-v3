@@ -128,6 +128,8 @@ void touchCalibrate()
  */
 void initTFT()
 {
+  log_i("Init LCD");
+
   tft.init();
 
   TFT_HEIGHT = tft.height();
