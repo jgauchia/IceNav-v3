@@ -17,6 +17,7 @@
 #include "lvgl.h"
 
 extern wayPoint addWpt;
+static const char* wptFile PROGMEM = "/WPT/waypoint.gpx";
 
 void openGpxFile(const char* gpxFilename);
 

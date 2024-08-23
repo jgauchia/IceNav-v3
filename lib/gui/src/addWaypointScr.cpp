@@ -43,7 +43,7 @@ static void addWaypointEvent(lv_event_t *event)
       log_i("Name %s",addWpt.name);
       log_i("Lat %f",addWpt.lat);
       log_i("Lon %f",addWpt.lon);
-      openGpxFile("/waypoint.gpx");
+      openGpxFile(wptFile);
     }
 
     isMainScreen = true;
