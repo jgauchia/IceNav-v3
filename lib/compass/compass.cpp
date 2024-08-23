@@ -162,7 +162,7 @@ void compassCalibrate()
   #endif
 
   tft.drawCenterString("ROTATE THE DEVICE", tft.width() >> 1, 10 * scale, fontSmall);
-  tft.drawPngFile(SPIFFS, PSTR("/turn.png"), (tft.width() / 2) - 50, 60 * scale);
+  tft.drawPngFile(PSTR("/spiffs/turn.png"), (tft.width() / 2) - 50, 60 * scale);
   tft.drawCenterString("TOUCH TO START", tft.width() >> 1, 200 * scale, fontSmall);
   tft.drawCenterString("COMPASS CALIBRATION", tft.width() >> 1, 230 * scale, fontSmall);
 

@@ -17,9 +17,6 @@
 
 #define LV_TICK_PERIOD_MS 5
 
-#include "lvglFuncs.hpp"
-#include "lvglSpiffsFs.hpp"
-
 #include "globalGuiDef.h"
 #include "splashScr.hpp"
 #include "searchSatScr.hpp"

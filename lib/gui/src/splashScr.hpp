@@ -13,9 +13,9 @@
 #include "globalGuiDef.h"
 
 #ifdef LARGE_SCREEN
-static const char* logoFile PROGMEM = "/LOGO_LARGE.png";
+static const char* logoFile PROGMEM = "/spiffs/LOGO_LARGE.png";
 #else
-static const char* logoFile PROGMEM = "/LOGO_SMALL.png";
+static const char* logoFile PROGMEM = "/spiffs/LOGO_SMALL.png";
 #endif
 static const char* statusLine1 PROGMEM = "Model:%s %dMhz";
 static const char* statusLine2 PROGMEM = "Free mem:%dK %d%%";

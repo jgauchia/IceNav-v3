@@ -10,9 +10,7 @@
 #define TFT_HPP
 
 #include <Arduino.h>
-#include <FS.h>
 #include <SD.h>
-#include <SPIFFS.h>
 
 #ifdef ILI9488_XPT2046_SPI
 #include "ILI9488_XPT2046_SPI.hpp"
@@ -37,7 +35,7 @@
 #include <LGFX_TFT_eSPI.hpp>
 
 extern TFT_eSPI tft;
-static const char* calibrationFile PROGMEM = "/TouchCalData1";
+static const char* calibrationFile PROGMEM = "/spiffs/TouchCal";
 extern bool repeatCalib;
 static uint8_t brightnessLevel = 255;
 extern uint16_t TFT_WIDTH;

@@ -9,9 +9,8 @@
 #ifndef STORAGE_HPP
 #define STORAGE_HPP
 
-#include <FS.h>
+#include "esp_spiffs.h"
 #include <SD.h>
-#include <SPIFFS.h>
 #include <LovyanGFX.hpp>
 #include <tft.hpp>
 
@@ -28,6 +27,6 @@ extern bool isSdLoaded;
 
 
 void initSD();
-void initSPIFFS();
+esp_err_t initSPIFFS();
 
 #endif

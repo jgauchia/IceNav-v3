@@ -141,9 +141,6 @@ void initLVGL()
 {
   lv_init();
   
-  lv_port_spiffsFsInit();
-  // lv_port_sdFsInit();
-  
   display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
   lv_display_set_flush_cb(display, displayFlush);
   lv_display_set_flush_wait_cb(display, NULL);
