@@ -18,5 +18,5 @@
   X(KCOMP_ROT, "Compass_rot", BOOL)      \
   X(KGPS_SPEED, "GPS_speed", SHORT)      \
   X(KGPS_RATE, "GPS_rate", SHORT)        \
-  X(KDEF_ZOOM, "Def_zoom", UINT2)         \
+  X(KDEF_ZOOM, "Def_zoom", UINT)         \
   X(KCOUNT, "KCOUNT", UNKNOWN)
