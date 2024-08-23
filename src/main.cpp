@@ -75,36 +75,20 @@ void setup()
   loadPreferences();
   initSD();
   initSPIFFS();
-   // Preload Map
-  if (isVectorMap)
-  {
-  }
-  else
-  {
-    tileSize = RENDER_TILE_SIZE;
-    generateRenderMap();
-  } 
+
+
 
   initTFT();
   initGPS();
   initGpsTask();
   initLVGL();
-
-
-
   initADC();
   
   // Reserve PSRAM for buffer map
   mapTempSprite.deleteSprite();
   mapTempSprite.createSprite(TILE_WIDTH, TILE_HEIGHT);
 
-  //splashScreen();
-
-  // TaskHandle_t task = xTaskGetCurrentTaskHandle();
-  // if (g_lvgl_task_handle != task)
-  //   xSemaphoreTake(xGuiSemaphore,portMAX_DELAY);
-
-
+  splashScreen();
 
   #ifdef DEFAULT_LAT
     loadMainScreen();
@@ -112,10 +96,15 @@ void setup()
     lv_screen_load(searchSatScreen);
   #endif
 
-
-  // task = xTaskGetCurrentTaskHandle();
-  // if (g_lvgl_task_handle != task)
-  //   xSemaphoreGive(xGuiSemaphore);
+  //  // Preload Map
+  // if (isVectorMap)
+  // {
+  // }
+  // else
+  // {
+  //   tileSize = RENDER_TILE_SIZE;
+  //   generateRenderMap();
+  // } 
 
   #ifndef DISABLE_CLI
     initCLI();

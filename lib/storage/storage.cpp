@@ -50,15 +50,17 @@ esp_err_t initSD()
     .sclk_io_num = SD_CLK,
     .quadwp_io_num = -1,
     .quadhd_io_num = -1,
-    .max_transfer_sz = 4092,
+    .max_transfer_sz = 4000,
   };
-  esp_err_t ret = spi_bus_initialize(SPI2_HOST, &bus_cfg, SDSPI_DEFAULT_DMA);
+  esp_err_t ret = spi_bus_initialize(device_config.host_id, &bus_cfg, SDSPI_DEFAULT_DMA);
 
   if (ret != ESP_OK) 
   {
     log_e("Failed to initialize bus.");
     return ESP_FAIL;
   }
+
+  digitalWrite(10,HIGH);
 
   log_i("Mounting filesystem");
   ret = esp_vfs_fat_sdspi_mount("/sdcard", &host, &device_config, &mount_config, &sdcard);
@@ -81,8 +83,6 @@ esp_err_t initSD()
   host.set_card_clk(host.slot, 10000);
 
   sdmmc_card_print_info(stdout, sdcard);
-  
-  spi_bus_free(SPI2_HOST);
 
   isSdLoaded = true;
   return ESP_OK;

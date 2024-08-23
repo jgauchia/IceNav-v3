@@ -93,13 +93,14 @@ void generateRenderMap()
     deleteMapScrSprites();
     createMapScrSprites();
 
-    // #ifdef SPI_SHARED
-    // //tft.waitDisplay();
+    #ifdef SPI_SHARED
+    // tft.waitDisplay();
     // tft.endTransaction();
-    // //tft.releaseBus();
-    // //initSD();
     // digitalWrite(10,HIGH);
-    // #endif
+    // tft.releaseBus();
+    // initSD();
+    // //digitalWrite(10,HIGH);
+    #endif
 
     mapTempSprite.fillScreen(TFT_BLACK);
     isMapFound  = mapTempSprite.drawPngFile(currentMapTile.file, tileSize, tileSize);
@@ -140,12 +141,12 @@ void generateRenderMap()
       oldMapTile.tiley = currentMapTile.tiley;
     }
 
-    // #ifdef SPI_SHARED
+    #ifdef SPI_SHARED
     // //SD.end();
     // //tft.initBus();
     // digitalWrite(10,LOW);
     // tft.beginTransaction();
-    // #endif
+    #endif
 
     log_v("TILE: %s", oldMapTile.file);
   }
