@@ -10,6 +10,8 @@
 #include "esp32-hal-gpio.h"
 #include "mapsDrawFunc.h"
 
+extern const int SD_CS;
+
 MapTile oldMapTile = {"", 0, 0, 0};     // Old Map tile coordinates and zoom
 MapTile currentMapTile = {"", 0, 0, 0}; // Curreng Map tile coordinates and zoom
 MapTile roundMapTile = {"", 0, 0, 0};   // Boundaries Map tiles
@@ -94,10 +96,10 @@ void generateRenderMap()
     createMapScrSprites();
 
     #ifdef SPI_SHARED
-    //tft.waitDisplay();
+    tft.waitDisplay();
     tft.endTransaction();
-    tft.releaseBus();
-    initSD();
+    digitalWrite(TFT_SPI_CS,HIGH);
+    digitalWrite(SD_CS,LOW);
     #endif
 
     mapTempSprite.fillScreen(TFT_BLACK);
@@ -139,8 +141,9 @@ void generateRenderMap()
     }
 
     #ifdef SPI_SHARED
-    SD.end();
-    tft.initBus();
+    digitalWrite(SD_CS,HIGH);
+    digitalWrite(TFT_SPI_CS,LOW);
+    tft.beginTransaction();
     #endif
 
     log_v("TILE: %s", oldMapTile.file);
