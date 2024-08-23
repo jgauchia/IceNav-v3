@@ -31,11 +31,11 @@ static void addWaypointEvent(lv_event_t *event)
   {
     addWpt.name = (char *)lv_textarea_get_text(fileName);
    
-    // if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
-    // {
-    //   tft.setRotation(0);
-    //   lv_display_set_rotation(display,LV_DISPLAY_ROTATION_0);
-    // }
+    if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
+    {
+      tft.setRotation(0);
+      lv_display_set_rotation(display,LV_DISPLAY_ROTATION_0);
+    }
     
     if ( strcmp(addWpt.name,"") != 0)
     {
@@ -46,23 +46,24 @@ static void addWaypointEvent(lv_event_t *event)
       openGpxFile("/waypoint.gpx");
     }
 
-    // isMainScreen = true;
-    // lv_refr_now(display);
-    // loadMainScreen();
+    isMainScreen = true;
+    redrawMap = true;
+    lv_refr_now(display);
+    loadMainScreen();
   }
 
-  // if (code == LV_EVENT_CANCEL)
-  // {
-
-    isMainScreen = true;
+  if (code == LV_EVENT_CANCEL)
+  {
     if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
     {
       tft.setRotation(0);
       lv_display_set_rotation(display,LV_DISPLAY_ROTATION_0);
     }
-
-   // loadMainScreen(); 
-   // }
+    isMainScreen = true;
+    redrawMap = true;
+    lv_refr_now(display);
+    loadMainScreen();
+  }
 }
 
 /**
@@ -73,6 +74,7 @@ static void addWaypointEvent(lv_event_t *event)
 static void rotateScreen(lv_event_t *event)
 {
   isScreenRotated = !isScreenRotated;
+  log_v("%d",isScreenRotated);
   if (isScreenRotated)
   {
     tft.setRotation(1);
@@ -84,6 +86,7 @@ static void rotateScreen(lv_event_t *event)
     lv_display_set_rotation(display, LV_DISPLAY_ROTATION_0);
   }
   lv_obj_set_width(waypointName, tft.width() -10);
+  lv_refr_now(display);
 }
 
 /**

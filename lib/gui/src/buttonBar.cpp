@@ -45,6 +45,7 @@ void buttonBarEvent(lv_event_t *event)
   {
     log_v("Add Waypoint");
     isMainScreen = false;
+    redrawMap = false;
     lv_textarea_set_text(waypointName, "");
     isScreenRotated = false;
     lv_obj_set_width(waypointName, tft.width() -10);
