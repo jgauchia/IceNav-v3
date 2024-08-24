@@ -54,25 +54,25 @@ Currently, IceNav works with the following hardware setups and specs
 
 | Driver [^1] | Resolution | SPI | 8bit | 16bit | Touch     | Build Flags [^2]                 |
 |:------------|:----------:|:---:|:----:|:-----:|:---------:|:---------------------------------|
-| ILI9488 [^3]| 320x480    | yes | ---  | ---   | XPT2046   | ```-D ILI9488_XPT2046_SPI = 1``` |
-| ILI9488     | 320x480    | yes | ---  | ---   | FT5x06    | ```-D ILI9488_FT5x06_SPI = 1 ``` |
-| ILI9488     | 320x480    | --- | yes  | ---   | --------  | ```-D ILI9488_NOTOUCH_8B = 1 ``` |
-| ILI9488     | 320x480    | --- | ---  | yes   | FT5x06    | ```-D ILI9488_FT5x06_16B = 1```  |
-| ILI9341     | 320x240    | yes | ---  | ---   | XPT2046   | ```-D ILI9341_XPT2046_SPI = 1``` |
+| ILI9488 [^3]| 320x480    | yes | ---  | ---   | XPT2046   | ```-DILI9488_XPT2046_SPI```      |
+| ILI9488     | 320x480    | yes | ---  | ---   | FT5x06    | ```-DILI9488_FT5x06_SPI```       |
+| ILI9488     | 320x480    | --- | yes  | ---   | --------  | ```-DILI9488_NOTOUCH_8B```       |
+| ILI9488     | 320x480    | --- | ---  | yes   | FT5x06    | ```-DILI9488_FT5x06_16B```       |
+| ILI9341     | 320x240    | yes | ---  | ---   | XPT2046   | ```-DILI9341_XPT2046_SPI```      |
 
 If TFT shares SPI bus with SD card add the following Build Flag to platformio.ini
 
-```-D SPI_SHARED = 1```
+```-DSPI_SHARED```
 
 ### Modules
 
 |             | Type          | Build Flags [^2]                 | lib_deps [^4] (**no common environment**)              |
 |:------------|:--------------|:---------------------------------|:-------------------------------------------------------|
-| AT6558D     | GPS           | ```-D AT6558D_GPS = 1```         |                                                        |
-| HMC5883L    | Compass       | ```-D HMC5883L = 1```            | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
-| QMC5883     | Compass       | ```-D QMC5883 = 1```             | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
-| MPU9250     | IMU (Compass) | ```-D IMU_MPU9250 = 1 ```        | ```bolderflight/Bolder Flight Systems MPU9250@^1.0.2```|
-| BME280      | Temp/Pres/Hum | ```-D BME280 = 1```              | ```adafruit/Adafruit Unified Sensor@^1.1.14``` <br> ```adafruit/Adafruit BusIO@^1.16.1``` <br> ```adafruit/Adafruit BME280 Library@^2.2.4```|
+| AT6558D     | GPS           | ```-DAT6558D_GPS```              |                                                        |
+| HMC5883L    | Compass       | ```-DHMC5883L```                 | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
+| QMC5883     | Compass       | ```-DQMC5883```                  | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
+| MPU9250     | IMU (Compass) | ```-DIMU_MPU9250```              | ```bolderflight/Bolder Flight Systems MPU9250@^1.0.2```|
+| BME280      | Temp/Pres/Hum | ```-DBME280```                   | ```adafruit/Adafruit Unified Sensor@^1.1.14``` <br> ```adafruit/Adafruit BusIO@^1.16.1``` <br> ```adafruit/Adafruit BME280 Library@^2.2.4```|
 
 
 [^1]: See **hal.hpp** for pinouts configuration
