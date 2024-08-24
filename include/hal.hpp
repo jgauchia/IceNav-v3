@@ -14,7 +14,7 @@
  * @brief GPS pin definition
  *
  */
-#ifdef ICENAV
+#ifdef ICENAV_BOARD
   extern const uint8_t GPS_TX = 17;
   extern const uint8_t GPS_RX = 18;
 #endif
@@ -31,7 +31,7 @@
  * @brief I2C pin definition
  *
  */
-#ifdef ICENAV
+#ifdef ICENAV_BOARD
   #define I2C_SDA_PIN 38
   #define I2C_SCL_PIN 39
 #endif
@@ -65,7 +65,7 @@ extern const bool TFT_INVERT = true;
  * @brief TFT SPI pin definition
  *
  */
-#ifdef ICENAV
+#ifdef ICENAV_BOARD
   extern const uint8_t TFT_SPI_SCLK = 12;
   extern const uint8_t TFT_SPI_MOSI = 11;
   extern const uint8_t TFT_SPI_MISO = 13;
@@ -113,7 +113,7 @@ extern const bool TFT_INVERT = true;
  * @brief SD Card pin definition
  *
  */
-#ifdef ICENAV
+#ifdef ICENAV_BOARD
   extern const uint8_t SD_CS = 21;
   extern const uint8_t SD_MISO = 13;
   extern const uint8_t SD_MOSI = 11;
@@ -172,7 +172,7 @@ extern const uint8_t TFT_D15 = 4;
  * @brief TOUCH I2C pin definition
  *
  */
-#ifdef ICENAV
+#ifdef ICENAV_BOARD
   extern const uint8_t TCH_I2C_PORT = 0;
   extern const uint8_t TCH_I2C_SDA  = 38;
   extern const uint8_t TCH_I2C_SCL  = 39;

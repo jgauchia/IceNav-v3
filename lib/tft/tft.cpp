@@ -137,7 +137,7 @@ void initTFT()
   tft.fillScreen(TFT_BLACK);
   tft.endWrite();
 
-#ifdef ICENAV
+#ifdef ICENAV_BOARD
   gpio_set_drive_capability(GPIO_NUM_45, GPIO_DRIVE_CAP_3);
 #endif
 #ifdef ARDUINO_ESP32_DEV

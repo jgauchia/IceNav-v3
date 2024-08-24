@@ -39,7 +39,7 @@ public:
   {
     {
       auto cfg = _bus_instance.config();
-      #ifdef ICENAV
+      #ifdef ICENAV_BOARD
       cfg.spi_host = SPI2_HOST;
       #endif
       #ifdef ARDUINO_ESP32S3_DEV

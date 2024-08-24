@@ -60,7 +60,7 @@ void setup()
     Serial.begin(115200);  
   #endif
 
-  #ifdef ICENAV
+  #ifdef ICENAV_BOARD
     Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
     Wire.begin();
   #endif

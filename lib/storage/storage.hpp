@@ -15,7 +15,7 @@
 #include <LovyanGFX.hpp>
 #include <tft.hpp>
 
-#ifdef ICENAV
+#ifdef ICENAV_BOARD
 static SPIClass spiSD = SPIClass(HSPI);
 static uint32_t sdFreq = 10000000;
 #endif
