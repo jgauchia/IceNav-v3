@@ -10,7 +10,13 @@
         "-DICENAV_BOARD",
         "-DBOARD_HAS_PSRAM",
         "-DARDUINO_USB_MODE=1",
-        "-DARDUINO_USB_CDC_ON_BOOT=1"
+        "-DARDUINO_USB_CDC_ON_BOOT=1",
+        "-DILI9488_FT5x06_SPI",
+        "-DTFT_BL=45",
+        "-DSPI_SHARED",
+        "-DAT6558D_GPS",
+        "-DQMC5883",
+        "-DBME280"
       ],
       "f_cpu": "240000000L",
       "f_flash": "80000000L",
@@ -48,6 +54,6 @@
       "require_upload_port": true,
       "speed": 921600
     },
-    "url": "https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/hw-reference/esp32s3/user-guide-devkitc-1.html",
-    "vendor": "Espressif"
+    "url": "https://github.com/jgauchia/IceNav-v3",
+    "vendor": "IceNav"
   }
