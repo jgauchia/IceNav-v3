@@ -2,8 +2,8 @@
  * @file renderMaps.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Render maps draw functions
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #ifndef RENDERMAPS_HPP
@@ -40,5 +40,7 @@ MapTile getMapTile(double lon, double lat, uint8_t zoomLevel, int16_t offsetX, i
 void drawMapWidgets();
 void generateRenderMap();
 void initSD();
+void adquireSdSPI();
+void releaseSdSPI();
 
 #endif

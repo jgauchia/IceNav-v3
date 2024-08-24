@@ -2,8 +2,8 @@
  * @file storage.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Storage definition and functions
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #ifndef STORAGE_HPP
@@ -29,5 +29,7 @@ extern bool isSdLoaded;
 
 void initSD();
 void initSPIFFS();
+void adquireSdSPI();
+void releaseSdSPI();
 
 #endif
