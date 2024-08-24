@@ -60,10 +60,15 @@ void setup()
     Serial.begin(115200);  
   #endif
 
+  #ifdef ICENAV
+    Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
+    Wire.begin();
+  #endif
   #ifdef ARDUINO_ESP32S3_DEV
     Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
     Wire.begin();
   #endif
+
 
   #ifdef BME280
    initBME();
