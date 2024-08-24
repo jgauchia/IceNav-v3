@@ -178,7 +178,7 @@ extern const uint8_t TFT_D15 = 4;
   extern const uint8_t TCH_I2C_SCL  = 39;
   extern const uint8_t TCH_I2C_INT  = 40;
 #endif
-#ifndef ICENAV
+#ifndef ICENAV_BOARD
   extern const uint8_t TCH_I2C_PORT = 0;  
   extern const uint8_t TCH_I2C_SDA  = 38;
   extern const uint8_t TCH_I2C_SCL  = 39;
