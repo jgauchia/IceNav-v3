@@ -31,7 +31,7 @@ jobs:
           pio pkg update 
       - name: Install ICENAV Custom Board json
         run: |
-             cp /tools/esp32-s3-devkitc-1-n16r8v.json ~/.platformio/platforms/espressif32/boards
+             cp ~/tools/esp32-s3-devkitc-1-n16r8v.json ~/.platformio/platforms/espressif32/boards
       - name: Testing ICENAV Custom Board
         run: |
           export ICENAV3_LON=13.404
