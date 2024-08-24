@@ -2,8 +2,8 @@
  * @file utils.h
  * @author @Hpsaturn
  * @brief  Network CLI and custom internal commands
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #ifndef UTILS_H

@@ -2,8 +2,8 @@
  * @file hal.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Pin definitions
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #ifndef HAL_HPP
@@ -14,6 +14,10 @@
  * @brief GPS pin definition
  *
  */
+#ifdef ICENAV_BOARD
+  extern const uint8_t GPS_TX = 17;
+  extern const uint8_t GPS_RX = 18;
+#endif
 #ifdef ARDUINO_ESP32_DEV
   extern const uint8_t GPS_TX = 25;
   extern const uint8_t GPS_RX = 26;
@@ -27,6 +31,10 @@
  * @brief I2C pin definition
  *
  */
+#ifdef ICENAV_BOARD
+  #define I2C_SDA_PIN 38
+  #define I2C_SCL_PIN 39
+#endif
 #ifdef ARDUINO_ESP32S3_DEV
   #define I2C_SDA_PIN 38
   #define I2C_SCL_PIN 39
@@ -57,6 +65,14 @@ extern const bool TFT_INVERT = true;
  * @brief TFT SPI pin definition
  *
  */
+#ifdef ICENAV_BOARD
+  extern const uint8_t TFT_SPI_SCLK = 12;
+  extern const uint8_t TFT_SPI_MOSI = 11;
+  extern const uint8_t TFT_SPI_MISO = 13;
+  extern const uint8_t TFT_SPI_DC   = 3;
+  extern const uint8_t TFT_SPI_CS   = 10;
+  extern const uint8_t TFT_SPI_RST  = 6;
+#endif
 #ifdef ARDUINO_ESP32_DEV
   extern const uint8_t TFT_SPI_SCLK = 14;
   extern const uint8_t TFT_SPI_MOSI = 13;
@@ -97,6 +113,18 @@ extern const bool TFT_INVERT = true;
  * @brief SD Card pin definition
  *
  */
+#ifdef ICENAV_BOARD
+  extern const uint8_t SD_CS = 21;
+  extern const uint8_t SD_MISO = 13;
+  extern const uint8_t SD_MOSI = 11;
+  extern const uint8_t SD_CLK = 12;
+#endif
+#ifdef MAKERF_ESP32S3
+  extern const uint8_t SD_CS = 1;
+  extern const uint8_t SD_MISO = 41;
+  extern const uint8_t SD_MOSI = 2;
+  extern const uint8_t SD_CLK = 42;
+#endif
 #ifdef ARDUINO_ESP32_DEV
   extern const uint8_t SD_CS = 4;
   extern const uint8_t SD_MISO = 19;
@@ -104,17 +132,10 @@ extern const bool TFT_INVERT = true;
   extern const uint8_t SD_CLK = 12;
 #endif
 #ifdef ARDUINO_ESP32S3_DEV
-  #ifdef MAKERF_ESP32S3
-    extern const uint8_t SD_CS = 1;
-    extern const uint8_t SD_MISO = 41;
-    extern const uint8_t SD_MOSI = 2;
-    extern const uint8_t SD_CLK = 42;
-  #else
-    extern const uint8_t SD_CS = 21;
-    extern const uint8_t SD_MISO = 13;
-    extern const uint8_t SD_MOSI = 11;
-    extern const uint8_t SD_CLK = 12;
-  #endif
+  extern const uint8_t SD_CS = 21;
+  extern const uint8_t SD_MISO = 13;
+  extern const uint8_t SD_MOSI = 11;
+  extern const uint8_t SD_CLK = 12;
 #endif
 
 /**
@@ -151,9 +172,17 @@ extern const uint8_t TFT_D15 = 4;
  * @brief TOUCH I2C pin definition
  *
  */
-extern const uint8_t TCH_I2C_PORT = 0;
-extern const uint8_t TCH_I2C_SDA  = 38;
-extern const uint8_t TCH_I2C_SCL  = 39;
-extern const uint8_t TCH_I2C_INT  = 40;
+#ifdef ICENAV_BOARD
+  extern const uint8_t TCH_I2C_PORT = 0;
+  extern const uint8_t TCH_I2C_SDA  = 38;
+  extern const uint8_t TCH_I2C_SCL  = 39;
+  extern const uint8_t TCH_I2C_INT  = 40;
+#endif
+#ifndef ICENAV
+  extern const uint8_t TCH_I2C_PORT = 0;  
+  extern const uint8_t TCH_I2C_SDA  = 38;
+  extern const uint8_t TCH_I2C_SCL  = 39;
+  extern const uint8_t TCH_I2C_INT  = 40;
+#endif
 
 #endif

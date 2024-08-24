@@ -2,8 +2,8 @@
  * @file tasks.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Core Tasks functions
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #ifndef TASKS_HPP

@@ -2,8 +2,8 @@
  * @file ILI9488_XPT2046_SPI.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LOVYANGFX TFT driver for ILI9488 SPI With XPT2046 Touch controller
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #ifndef ILI9488_XPT2046_SPI_HPP
@@ -39,6 +39,9 @@ public:
   {
     {
       auto cfg = _bus_instance.config();
+      #ifdef ICENAV_BOARD
+      cfg.spi_host = SPI2_HOST;
+      #endif
       #ifdef ARDUINO_ESP32S3_DEV
       cfg.spi_host = SPI2_HOST;
       #endif
