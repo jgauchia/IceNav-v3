@@ -2,8 +2,8 @@
  * @file battery.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Battery monitor definition and functions
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 

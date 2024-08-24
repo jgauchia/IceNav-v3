@@ -2,8 +2,8 @@
  * @file buttonBar.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Button Bar
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #ifndef BUTTONBAR_HPP
