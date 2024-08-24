@@ -59,3 +59,30 @@ void initSPIFFS()
   else
     log_v("SPIFFS Mounted");
 }
+
+/**
+ * @brief Adquire SPI Bus for SD operations
+ *
+ */
+ void adquireSdSPI()
+ {
+    #ifdef SPI_SHARED
+    tft.waitDisplay();
+    tft.endTransaction();
+    digitalWrite(TFT_SPI_CS,HIGH);
+    digitalWrite(SD_CS,LOW);
+    #endif
+ }
+
+ /**
+  * @brief Release SPI Bus for other operations
+  *
+  */
+  void releaseSdSPI()
+  {
+    #ifdef SPI_SHARED   
+    digitalWrite(SD_CS,HIGH);
+    digitalWrite(TFT_SPI_CS,LOW);
+    tft.beginTransaction();
+    #endif  
+  }

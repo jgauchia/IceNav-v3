@@ -29,5 +29,7 @@ extern bool isSdLoaded;
 
 void initSD();
 void initSPIFFS();
+void adquireSdSPI();
+void releaseSdSPI();
 
 #endif

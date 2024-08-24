@@ -317,22 +317,12 @@ void updateMap(lv_event_t *event)
       tileSize = VECTOR_TILE_SIZE;
       viewPort.setCenter(point);
 
-      #ifdef SPI_SHARED
-      tft.waitDisplay();
-      tft.endTransaction();
-      digitalWrite(TFT_SPI_CS,HIGH);
-      digitalWrite(SD_CS,LOW);
-      #endif
+      adquireSdSPI();
       
       getMapBlocks(viewPort.bbox, memCache);
       
-      
-      #ifdef SPI_SHARED   
-      digitalWrite(SD_CS,HIGH);
-      digitalWrite(TFT_SPI_CS,LOW);
-      tft.beginTransaction();
-      #endif  
-
+      releaseSdSPI();
+            
       deleteMapScrSprites();
       createMapScrSprites();
       generateVectorMap(viewPort, memCache, mapTempSprite); 

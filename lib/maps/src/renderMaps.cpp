@@ -95,12 +95,7 @@ void generateRenderMap()
     deleteMapScrSprites();
     createMapScrSprites();
 
-    #ifdef SPI_SHARED
-    tft.waitDisplay();
-    tft.endTransaction();
-    digitalWrite(TFT_SPI_CS,HIGH);
-    digitalWrite(SD_CS,LOW);
-    #endif
+    adquireSdSPI();
 
     mapTempSprite.fillScreen(TFT_BLACK);
     isMapFound  = mapTempSprite.drawPngFile(SD, currentMapTile.file, tileSize, tileSize);
@@ -140,11 +135,7 @@ void generateRenderMap()
       oldMapTile.tiley = currentMapTile.tiley;
     }
 
-    #ifdef SPI_SHARED
-    digitalWrite(SD_CS,HIGH);
-    digitalWrite(TFT_SPI_CS,LOW);
-    tft.beginTransaction();
-    #endif
+    releaseSdSPI();
 
     log_v("TILE: %s", oldMapTile.file);
   }
