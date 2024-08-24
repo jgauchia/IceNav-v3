@@ -45,6 +45,7 @@ Currently, IceNav works with the following hardware setups and specs
 
 |                  | FLASH | PSRAM | Environment                  |
 |:-----------------|:-----:|:-----:|:-----------------------------|
+| ICENAV (ESP32S3) |  16M  |  8M   | ``` [env:ICENAV] ```         |
 | ESP32            |  16M  |  4M   | ``` [env:ESP32_N16R4] ```    |
 | ESP32S3          |  16M  |  8M   | ``` [env:ESP32S3_N16R8] ```  |
 | MAKERFAB ESP32S3 |  16M  |  2M   | ``` [env:MAKERF_ESP32S3] ``` |
