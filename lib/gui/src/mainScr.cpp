@@ -322,7 +322,7 @@ void updateMap(lv_event_t *event)
       tileSize = VECTOR_TILE_SIZE;
       viewPort.setCenter(point);
 
-      adquireSdSPI();
+      acquireSdSPI();
       
       getMapBlocks(viewPort.bbox, memCache);
       

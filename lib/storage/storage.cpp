@@ -86,10 +86,10 @@ esp_err_t initSPIFFS()
 }
 
 /**
- * @brief Adquire SPI Bus for SD operations
+ * @brief Acquire SPI Bus for SD operations
  *
  */
- void adquireSdSPI()
+ void acquireSdSPI()
  {
     #ifdef SPI_SHARED
     tft.waitDisplay();

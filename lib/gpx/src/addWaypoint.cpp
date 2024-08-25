@@ -20,7 +20,7 @@ File gpxFile;
  */
 void openGpxFile(const char* gpxFilename)
 {
-  adquireSdSPI();
+  acquireSdSPI();
 
   gpxFile = SD.open(gpxFilename, FILE_READ);
 
@@ -32,7 +32,7 @@ void openGpxFile(const char* gpxFilename)
     {
       log_i("Creating GPX File");
       gpxFile.println(gpxType.header);
-      gpxFile.println(gpxType.footer);
+      gpxFile.print(gpxType.footer);
       gpxFile.close();
     }
     else
@@ -43,6 +43,47 @@ void openGpxFile(const char* gpxFilename)
     log_i("GPX File exists");
     gpxFile.close();
   }
+
+  releaseSdSPI();
+}
+
+/**
+ * @brief Add waypoint to file.
+ * 
+ * @param gpxFilename -> GPX file
+ * @param addWpt -> Waypoint
+ */
+void addWaypointToFile(const char* gpxFilename, wayPoint addWpt)
+{
+  char textFmt[100] = "";
+
+  acquireSdSPI();
+
+  gpxFile = SD.open(gpxFilename, FILE_WRITE);
+
+  if (gpxFile)
+  {
+    log_i("Append Waypoint to file");
+    log_i("Name %s",addWpt.name);
+    log_i("Lat %f",addWpt.lat);
+    log_i("Lon %f",addWpt.lon);
+    gpxFile.seek(gpxFile.size() - 6);
+    gpxFile.write((uint8_t*)gpxWPT.open, sizeof(gpxWPT.open));
+    sprintf(textFmt,wptType.lat,addWpt.lat);
+    gpxFile.println(textFmt);
+    sprintf(textFmt,wptType.lon,addWpt.lon);
+    gpxFile.println(textFmt);
+    sprintf(textFmt,wptType.name,addWpt.name);
+    gpxFile.println(textFmt);
+    gpxFile.println(gpxWPT.close);
+    gpxFile.print(gpxType.footer);
+    gpxFile.close();
+    vTaskDelay(100);
+    gpxFile = SD.open(gpxFilename, FILE_READ);
+    log_i("File Size: %d",gpxFile.size());
+  }
+  else
+    log_e("Waypoint not append to file");
 
   releaseSdSPI();
 }

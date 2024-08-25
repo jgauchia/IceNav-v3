@@ -63,7 +63,7 @@ static const struct
 {
   const char* open;
   const char* close;
-} gpxWPT PROGMEM = { "\t<wpt " , "\t</wpt>\r\n" };
+} gpxWPT PROGMEM = { "<wpt" , "</wpt>" };
 
 /**
  * @Brief wptType definition
@@ -84,18 +84,18 @@ static const struct
   const char* hdop;
   const char* vdop;
   const char* pdop;
-} wptType PROGMEM = { "lat=\"%f\"\r\n"
-                     , "lon=\"%f\"\r\n"
-                     , "\t\t<ele>%f</ele>\r\n"
-                     , "\t\t<time>%s</time>\r\n"
-                     , "\t\t<name>%s</name>\r\n"
-                     , "\t\t<desc>%s</desc>\r\n"
-                     , "\t\t<src>IceNav</src>\r\n"
-                     , "\t\t<sym>%s</sym>\r\n"
-                     , "\t\t<type>%s</type>\r\n"
-                     , "\t\t<sat>%d</sat>\r\n"
-                     , "\t\t<hdop>%f</hdop>\r\n"
-                     , "\t\t<vdop>%f</vdop>\r\n"
-                     , "\t\t<pdop>%f</pdop>\r\n" };
+} wptType PROGMEM = { " lat=\"%f\""
+                     , "lon=\"%f\">"
+                     , " <ele>%f</ele>"
+                     , " <time>%s</time>"
+                     , " <name>%s</name>"
+                     , " <desc>%s</desc>"
+                     , " <src>IceNav</src>"
+                     , " <sym>%s</sym>"
+                     , " <type>%s</type>"
+                     , " <sat>%d</sat>"
+                     , " <hdop>%f</hdop>"
+                     , " <vdop>%f</vdop>"
+                     , " <pdop>%f</pdop>" };
 
 #endif

@@ -39,11 +39,9 @@ static void addWaypointEvent(lv_event_t *event)
     
     if ( strcmp(addWpt.name,"") != 0)
     {
-
-      log_i("Name %s",addWpt.name);
-      log_i("Lat %f",addWpt.lat);
-      log_i("Lon %f",addWpt.lon);
       openGpxFile(wptFile);
+      vTaskDelay(100);
+      addWaypointToFile(wptFile,addWpt);
     }
 
     isMainScreen = true;

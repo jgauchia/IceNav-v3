@@ -14,10 +14,6 @@
 #include <LovyanGFX.hpp>
 #include <tft.hpp>
 
-#ifdef ICENAV_BOARD
-static SPIClass spiSD = SPIClass(HSPI);
-static uint32_t sdFreq = 40000000;
-#endif
 #ifdef ARDUINO_ESP32S3_DEV
 static SPIClass spiSD = SPIClass(HSPI);
 static uint32_t sdFreq = 10000000;
@@ -32,7 +28,7 @@ extern bool isSdLoaded;
 
 void initSD();
 esp_err_t initSPIFFS();
-void adquireSdSPI();
+void acquireSdSPI();
 void releaseSdSPI();
 
 #endif

@@ -94,7 +94,7 @@ void generateRenderMap()
     deleteMapScrSprites();
     createMapScrSprites();
 
-    adquireSdSPI();
+    acquireSdSPI();
 
     mapTempSprite.fillScreen(TFT_BLACK);
     isMapFound  = mapTempSprite.drawPngFile(SD, currentMapTile.file, tileSize, tileSize);
