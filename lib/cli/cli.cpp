@@ -70,7 +70,9 @@ void wcli_scshot(char *args, Stream *response)
 void wcli_waypoint(char *args, Stream *response)
 {
   Pair<String, String> operands = wcli.parseCommand(args);
+  String path = "/WPT";
   String commands = operands.first();
+  String file = operands.second();
 
   if (commands.isEmpty())
   {
@@ -84,9 +86,9 @@ void wcli_waypoint(char *args, Stream *response)
   {
     acquireSdSPI();
 
-    File dir = SD.open("/WPT");
+    File dir = SD.open(path);
 
-    response->println("\r\n\033[4mFile        \tSize\033[0m");
+    response->println(F("\r\n\033[4mFile        \tSize\033[0m"));
 
     while (true) 
     {
@@ -110,7 +112,27 @@ void wcli_waypoint(char *args, Stream *response)
   }
   else if (commands.equals("del"))
   {
+      if (file.isEmpty())
+        response->println(F("File name missing"));
+      else
+      {
+        acquireSdSPI();
 
+        path = path + "/" + file;
+        if (!SD.remove(path))
+        {
+          response->print(F("Error deleting file "));
+          response->println(file);
+        }
+        else
+        {
+          response->print(F("File "));
+          response->print(file);
+          response->println(F(" deleted"));
+        }
+
+        releaseSdSPI();
+      }
   }
 }
 
