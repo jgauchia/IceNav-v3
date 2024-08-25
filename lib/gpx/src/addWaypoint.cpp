@@ -20,23 +20,29 @@ File gpxFile;
  */
 void openGpxFile(const char* gpxFilename)
 {
-  #ifdef SPI_SHARED
-  tft.waitDisplay();
-  tft.endTransaction();
-  digitalWrite(TFT_SPI_CS, HIGH);
-  digitalWrite(SD_CS, LOW);
-  #endif
+  adquireSdSPI();
 
   gpxFile = SD.open(gpxFilename, FILE_READ);
 
   if (!gpxFile)
-    log_v("GPX no existe");
+  {
+    log_i("GPX File not exists");
+    gpxFile = SD.open(gpxFilename, FILE_WRITE);
+    if (gpxFile)
+    {
+      log_i("Creating GPX File");
+      gpxFile.println(gpxType.header);
+      gpxFile.println(gpxType.footer);
+      gpxFile.close();
+    }
+    else
+      log_e("GPX File creation error");
+  }
   else
-    log_v("GPX existe");
+  {
+    log_i("GPX File exists");
+    gpxFile.close();
+  }
 
-  #ifdef SPI_SHARED
-  digitalWrite(SD_CS, HIGH);
-  digitalWrite(TFT_SPI_CS, LOW);
-  tft.beginTransaction();
-  #endif 
+  releaseSdSPI();
 }
