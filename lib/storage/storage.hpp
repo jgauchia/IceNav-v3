@@ -16,7 +16,7 @@
 
 #ifdef ICENAV_BOARD
 static SPIClass spiSD = SPIClass(HSPI);
-static uint32_t sdFreq = 10000000;
+static uint32_t sdFreq = 40000000;
 #endif
 #ifdef ARDUINO_ESP32S3_DEV
 static SPIClass spiSD = SPIClass(HSPI);
