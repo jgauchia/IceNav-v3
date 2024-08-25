@@ -61,7 +61,8 @@ void wcli_scshot(char *args, Stream *response)
     response->printf("Sending screenshot to %s:%i..\r\n", ip.c_str(), port);
 
     waitScreenRefresh = true;
-    captureScreenshot(SCREENSHOT_TEMP_FILE, response);
+    // captureScreenshot(SCREENSHOT_TEMP_FILE, response);
+    // delay(500);
     captureScreenshot(SCREENSHOT_TEMP_FILE, ip.c_str(), port, response);
     waitScreenRefresh = false;
   }
