@@ -72,7 +72,7 @@ struct GSV
 #endif
 
 /**
- * @brief Structure for satellite position (number, elev, azimut,...)
+ * @brief Structure for satellite position (number, elev, azimuth,...)
  *
  */
 struct

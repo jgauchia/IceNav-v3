@@ -9,7 +9,6 @@
 #ifndef DISABLE_CLI
 #include "cli.hpp"
 
-
 const char logo[] =
 "\r\n"
 "░▒▓█▓▒░  ░▒▓██████▓▒░  ░▒▓████████▓▒░ ░▒▓███████▓▒░   ░▒▓██████▓▒░  ░▒▓█▓▒░░▒▓█▓▒░ \r\n"
@@ -68,6 +67,53 @@ void wcli_scshot(char *args, Stream *response)
   }
 }
 
+void wcli_waypoint(char *args, Stream *response)
+{
+  Pair<String, String> operands = wcli.parseCommand(args);
+  String commands = operands.first();
+
+  if (commands.isEmpty())
+  {
+    response->println("");
+    response->println(F( "\033[1;31m----\033[1;32m Available commands \033[1;31m----\033[0;37m\r\n" ));
+    response->println(F( "\033[1;32mlist:\t\033[0;37mlist waypoints files"));
+    response->println(F( "\033[1;32mdown:\t\033[0;37mdownload waypoint file"));
+    response->println(F( "\033[1;32mdel:\t\033[0;37mdelete waypoint file"));
+  }
+  else if (commands.equals("list"))
+  {
+    acquireSdSPI();
+
+    File dir = SD.open("/WPT");
+
+    response->println("\r\n\033[4mFile        \tSize\033[0m");
+
+    while (true) 
+    {
+      File entry =  dir.openNextFile();
+      if (!entry) 
+      {
+        entry.close();
+        break;
+      }
+      response->print(entry.name());
+      response->print("\t");
+      response->println(entry.size());
+    }
+    dir.close();
+
+    releaseSdSPI();
+  }
+  else if (commands.equals("down"))
+  {
+
+  }
+  else if (commands.equals("del"))
+  {
+
+  }
+}
+
 void initRemoteShell()
 {
 #ifndef DISABLE_CLI_TELNET 
@@ -83,6 +129,7 @@ void initShell(){
   wcli.add("info", &wcli_info, "\t\tget device information");
   wcli.add("clear", &wcli_clear, "\t\tclear shell");
   wcli.add("scshot", &wcli_scshot, "\tscreenshot to SD or sending a PC");
+  wcli.add("waypoint", &wcli_waypoint, "\twaypoint utilities");
   wcli.begin("IceNav");
 }
 
