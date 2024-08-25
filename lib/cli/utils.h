@@ -69,6 +69,7 @@ static void captureScreenshot(const char* filename, const char* pc_ip, uint16_t 
   response->println("Connected to server");
 
   acquireSdSPI();
+  vTaskDelay(100);
 
   File file = SD.open(filename, FILE_READ);
   if (!file) {
