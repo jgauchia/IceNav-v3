@@ -70,9 +70,12 @@ void wcli_scshot(char *args, Stream *response)
 void wcli_waypoint(char *args, Stream *response)
 {
   Pair<String, String> operands = wcli.parseCommand(args);
-  String path = "/WPT";
+  String path;
   String commands = operands.first();
-  String file = operands.second();
+  String fileDel = operands.second();
+  String argsStr = args;
+  String downArgs[4];
+  int argsCnt = 0;
 
   if (commands.isEmpty())
   {
@@ -85,6 +88,8 @@ void wcli_waypoint(char *args, Stream *response)
   else if (commands.equals("list"))
   {
     acquireSdSPI();
+
+    path = "/WPT";
 
     File dir = SD.open(path);
 
@@ -108,31 +113,94 @@ void wcli_waypoint(char *args, Stream *response)
   }
   else if (commands.equals("down"))
   {
+    while (argsStr.length() > 0)
+    {
+      int index = argsStr.indexOf(' ');
+      if (index == -1)
+      {
+        downArgs[argsCnt++] = argsStr;
+        break;
+      }
+      else
+      {
+        downArgs[argsCnt++] = argsStr.substring(0, index);
+        argsStr = argsStr.substring(index+1);
+      }
+    }
+    if (downArgs[1].isEmpty())
+      response->println(F("File name missing"));
+    else if (downArgs[2].isEmpty())
+      response->println(F("IP destination missing"));
+    else if (downArgs[3].isEmpty())
+      response->println(F("Port missing"));
+    else
+    {
+      
+      path = "/WPT/" + downArgs[1];
 
+      response->println(path);
+
+      response->printf("Sending screenshot to %s:%i..\r\n", downArgs[2].c_str(), downArgs[3].toInt());
+
+      if (!client.connect(downArgs[2].c_str(), downArgs[3].toInt())) 
+      {
+        response->println("Connection to server failed");
+        return;
+      }
+
+      response->println("Connected to server");
+      
+      acquireSdSPI();
+      
+      File file = SD.open(path, FILE_READ);
+      if (!file)
+      {
+        response->println("Failed to open file for reading");
+        client.stop();
+        releaseSdSPI();
+        return;
+      }
+
+      // Send the file data to the PC
+      while (file.available())
+      {
+        size_t size = 0;
+        uint8_t buffer[512];
+        size = file.read(buffer, sizeof(buffer));
+        if (size > 0)
+          client.write(buffer, size);
+      }
+
+      file.close();
+      client.stop();
+      response->println("Waypoint file sent over WiFi");
+      
+      releaseSdSPI();
+    }
   }
   else if (commands.equals("del"))
   {
-      if (file.isEmpty())
-        response->println(F("File name missing"));
+    if (fileDel.isEmpty())
+      response->println(F("File name missing"));
+    else
+    {
+      acquireSdSPI();
+
+      path = "/WPT/" + fileDel;
+      if (!SD.remove(path))
+      {
+        response->print(F("Error deleting file "));
+        response->println(fileDel);
+      }
       else
       {
-        acquireSdSPI();
-
-        path = path + "/" + file;
-        if (!SD.remove(path))
-        {
-          response->print(F("Error deleting file "));
-          response->println(file);
-        }
-        else
-        {
-          response->print(F("File "));
-          response->print(file);
-          response->println(F(" deleted"));
-        }
-
-        releaseSdSPI();
+        response->print(F("File "));
+        response->print(fileDel);
+        response->println(F(" deleted"));
       }
+
+      releaseSdSPI();
+    }
   }
 }
 

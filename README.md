@@ -194,7 +194,7 @@ Some extra details:
 
 **scshot**: This utility can save a screenshot to the root of your SD, with the name: `screenshot.raw`. You can convert it to png using the `convert.py` script in the `tools` folder.
 
-Additionally, this screenshot command can send the screenshot over WiFi using the following syntax:
+Additionally, this screenshot command can send the screenshot over WiFi using the following syntax (replace IP with your PC IP):
 
 ```bash
 scshot 192.168.1.10 8123
@@ -208,6 +208,17 @@ nc -l -p 8123 > screenshot.raw
 
 **waypoint**: type `waypoint` for detailed options.
 
+Additionally, this waypoint command can send the waypoint over WiFi using the following syntax (replace IP with your PC IP):
+
+```bash
+waypoint down file.gpx 192.168.1.10 8123
+```
+
+Ensure your PC has the specified port open and firewall access enabled to receive the waypoint file via the `netcat` command, like this:
+
+```bash
+nc -l -p 8123 > waypoint.gpx
+```
 
 ### TO DO
 
