@@ -11,7 +11,7 @@
 #include "globalGuiDef.h"
 
 ViewPort viewPort; // Vector map viewport
-MemCache memCache; // Vector map Memory Cach
+MemCache memCache; // Vector map Memory Cache
 
 lv_display_t *display;
 
@@ -27,15 +27,24 @@ lv_style_t styleObjectSel; // New Objects Selected Color
  */
 void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 { 
-  if (tft.getStartCount() == 0) 
-  {
-    tft.startWrite();  
-  }
-  tft.waitDMA(); 
+  // if (tft.getStartCount() == 0) 
+  // {
+  //   tft.startWrite();  
+  // }
+  // tft.waitDMA(); 
+  // tft.setSwapBytes(true);
+  // tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t*)px_map);
+  // tft.setSwapBytes(false);
+  // tft.display(); 
+
+  uint32_t w = (area->x2 - area->x1 + 1);
+  uint32_t h = (area->y2 - area->y1 + 1);
+
+  tft.startWrite();
   tft.setSwapBytes(true);
-  tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t*)px_map);
-  tft.setSwapBytes(false);
-  tft.display(); 
+  tft.setAddrWindow(area->x1, area->y1, w, h);
+  tft.pushImageDMA(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t*)px_map);
+  tft.endWrite();
 
   lv_display_flush_ready(disp);
 }
