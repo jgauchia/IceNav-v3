@@ -29,7 +29,7 @@ TFT_eSprite mapTempSprite = TFT_eSprite(&tft); // Temporary Map Sprite 9x9 tiles
 TFT_eSprite mapSprite = TFT_eSprite(&tft);     // Screen Map Sprite (Viewed in LVGL Tile)
 
 /**
- * @brief Get TileY for OpenStreeMap files
+ * @brief Get TileX for OpenStreetMap files
  *
  * @param f_lon -> longitude
  * @param zoom -> zoom
