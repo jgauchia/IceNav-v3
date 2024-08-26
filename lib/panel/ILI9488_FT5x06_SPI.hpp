@@ -39,6 +39,9 @@ public:
   {
     {
       auto cfg = _bus_instance.config();
+      #ifdef ICENAV_BOARD
+      cfg.spi_host = SPI2_HOST;
+      #endif
       #ifdef ARDUINO_ESP32S3_DEV
       cfg.spi_host = SPI2_HOST;
       #endif
@@ -47,7 +50,7 @@ public:
       #endif
       cfg.spi_mode = 0;
       cfg.freq_write = 79999999;
-      cfg.freq_read = 27000000;
+      cfg.freq_read = 15000000;
       cfg.spi_3wire = false;
       cfg.use_lock = false;
       cfg.dma_channel = SPI_DMA_CH_AUTO;

@@ -36,7 +36,7 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 
 Currently, IceNav works with the following hardware setups and specs 
 
-**Highly recommended an ESP32S3 with PSRAM** 
+**Highly recommended an ESP32S3 with PSRAM and 320x480 Screen** 
  
 > [!IMPORTANT]
 > Please review the platformio.ini file to choose the appropriate environment as well as the different build flags for your correct setup.
@@ -45,6 +45,7 @@ Currently, IceNav works with the following hardware setups and specs
 
 |                  | FLASH | PSRAM | Environment                  |
 |:-----------------|:-----:|:-----:|:-----------------------------|
+| ICENAV (ESP32S3) |  16M  |  8M   | ``` [env:ICENAV] ```         |
 | ESP32            |  16M  |  4M   | ``` [env:ESP32_N16R4] ```    |
 | ESP32S3          |  16M  |  8M   | ``` [env:ESP32S3_N16R8] ```  |
 | MAKERFAB ESP32S3 |  16M  |  2M   | ``` [env:MAKERF_ESP32S3] ``` |
@@ -53,25 +54,25 @@ Currently, IceNav works with the following hardware setups and specs
 
 | Driver [^1] | Resolution | SPI | 8bit | 16bit | Touch     | Build Flags [^2]                 |
 |:------------|:----------:|:---:|:----:|:-----:|:---------:|:---------------------------------|
-| ILI9488 [^3]| 320x480    | yes | ---  | ---   | XPT2046   | ```-D ILI9488_XPT2046_SPI = 1``` |
-| ILI9488     | 320x480    | yes | ---  | ---   | FT5x06    | ```-D ILI9488_FT5x06_SPI = 1 ``` |
-| ILI9488     | 320x480    | --- | yes  | ---   | --------  | ```-D ILI9488_NOTOUCH_8B = 1 ``` |
-| ILI9488     | 320x480    | --- | ---  | yes   | FT5x06    | ```-D ILI9488_FT5x06_16B = 1```  |
-| ILI9341     | 320x240    | yes | ---  | ---   | XPT2046   | ```-D ILI9341_XPT2046_SPI = 1``` |
+| ILI9488 [^3]| 320x480    | yes | ---  | ---   | XPT2046   | ```-DILI9488_XPT2046_SPI```      |
+| ILI9488     | 320x480    | yes | ---  | ---   | FT5x06    | ```-DILI9488_FT5x06_SPI```       |
+| ILI9488     | 320x480    | --- | yes  | ---   | --------  | ```-DILI9488_NOTOUCH_8B```       |
+| ILI9488     | 320x480    | --- | ---  | yes   | FT5x06    | ```-DILI9488_FT5x06_16B```       |
+| ILI9341     | 320x240    | yes | ---  | ---   | XPT2046   | ```-DILI9341_XPT2046_SPI```      |
 
 If TFT shares SPI bus with SD card add the following Build Flag to platformio.ini
 
-```-D SPI_SHARED = 1```
+```-DSPI_SHARED```
 
 ### Modules
 
 |             | Type          | Build Flags [^2]                 | lib_deps [^4] (**no common environment**)              |
 |:------------|:--------------|:---------------------------------|:-------------------------------------------------------|
-| AT6558D     | GPS           | ```-D AT6558D_GPS = 1```         |                                                        |
-| HMC5883L    | Compass       | ```-D HMC5883L = 1```            | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
-| QMC5883     | Compass       | ```-D QMC5883 = 1```             | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
-| MPU9250     | IMU (Compass) | ```-D IMU_MPU9250 = 1 ```        | ```bolderflight/Bolder Flight Systems MPU9250@^1.0.2```|
-| BME280      | Temp/Pres/Hum | ```-D BME280 = 1```              | ```adafruit/Adafruit Unified Sensor@^1.1.14``` <br> ```adafruit/Adafruit BusIO@^1.16.1``` <br> ```adafruit/Adafruit BME280 Library@^2.2.4```|
+| AT6558D     | GPS           | ```-DAT6558D_GPS```              |                                                        |
+| HMC5883L    | Compass       | ```-DHMC5883L```                 | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
+| QMC5883     | Compass       | ```-DQMC5883```                  | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
+| MPU9250     | IMU (Compass) | ```-DIMU_MPU9250```              | ```bolderflight/Bolder Flight Systems MPU9250@^1.0.2```|
+| BME280      | Temp/Pres/Hum | ```-DBME280```                   | ```adafruit/Adafruit Unified Sensor@^1.1.14``` <br> ```adafruit/Adafruit BusIO@^1.16.1``` <br> ```adafruit/Adafruit BME280 Library@^2.2.4```|
 
 
 [^1]: See **hal.hpp** for pinouts configuration
@@ -184,15 +185,16 @@ info:           get device information
 nmcli:          network manager CLI.
 reboot:         perform a ESP32 reboot
 scshot:         screenshot to SD or sending a PC
+waypoint:       waypoint utilities
 ```
 
 Some extra details:
 
 **nmcli**: IceNav use a `wcli` network manager library. For more details of this command and its sub commands please refer to [here](https://github.com/hpsaturn/esp32-wifi-cli?tab=readme-ov-file#readme)
 
-**schot**: This utility can save a screenshot to the root of your SD, with the name: `screenshot.raw`. You can convert it to png using the `convert.py` script in the `tools` folder.
+**scshot**: This utility can save a screenshot to the root of your SD, with the name: `screenshot.raw`. You can convert it to png using the `convert.py` script in the `tools` folder.
 
-Additionally, this screenshot command can send the screenshot over WiFi using the following syntax:
+Additionally, this screenshot command can send the screenshot over WiFi using the following syntax (replace IP with your PC IP):
 
 ```bash
 scshot 192.168.1.10 8123
@@ -202,6 +204,20 @@ Ensure your PC has the specified port open and firewall access enabled to receiv
 
 ```bash
 nc -l -p 8123 > screenshot.raw
+```
+
+**waypoint**: type `waypoint` for detailed options.
+
+Additionally, this waypoint command can send the waypoint over WiFi using the following syntax (replace IP with your PC IP):
+
+```bash
+waypoint down file.gpx 192.168.1.10 8123
+```
+
+Ensure your PC has the specified port open and firewall access enabled to receive the waypoint file via the `netcat` command, like this:
+
+```bash
+nc -l -p 8123 > waypoint.gpx
 ```
 
 ### TO DO

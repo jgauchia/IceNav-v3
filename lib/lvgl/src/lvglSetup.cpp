@@ -7,11 +7,13 @@
  */
 
 #include "lvglSetup.hpp"
-#include "core/lv_obj_event.h"
+#include "addWaypointScr.hpp"
 #include "globalGuiDef.h"
 
 ViewPort viewPort; // Vector map viewport
 MemCache memCache; // Vector map Memory Cache
+
+lv_display_t *display;
 
 lv_obj_t *searchSatScreen; // Search Satellite Screen
 lv_style_t styleThemeBkg;  // New Main Background Style
@@ -25,15 +27,24 @@ lv_style_t styleObjectSel; // New Objects Selected Color
  */
 void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 { 
-  if (tft.getStartCount() == 0) 
-  {
-    tft.startWrite();  
-  }
-  tft.waitDMA(); 
+  // if (tft.getStartCount() == 0) 
+  // {
+  //   tft.startWrite();  
+  // }
+  // tft.waitDMA(); 
+  // tft.setSwapBytes(true);
+  // tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t*)px_map);
+  // tft.setSwapBytes(false);
+  // tft.display(); 
+
+  uint32_t w = (area->x2 - area->x1 + 1);
+  uint32_t h = (area->y2 - area->y1 + 1);
+
+  tft.startWrite();
   tft.setSwapBytes(true);
-  tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t*)px_map);
-  tft.setSwapBytes(false);
-  tft.display(); 
+  tft.setAddrWindow(area->x1, area->y1, w, h);
+  tft.pushImageDMA(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t*)px_map);
+  tft.endWrite();
 
   lv_display_flush_ready(disp);
 }
@@ -49,9 +60,17 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     data->state = LV_INDEV_STATE_RELEASED;
   else
   {
+    if ( lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_0)
+    {
+      data->point.x = touchX;
+      data->point.y = touchY;
+    }
+    else if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
+    {
+      data->point.x = 320 - touchY;
+      data->point.y = touchX;
+    }
     data->state = LV_INDEV_STATE_PRESSED;
-    data->point.x = touchX;
-    data->point.y = touchY;
   }
 }
 
@@ -131,9 +150,6 @@ void initLVGL()
 {
   lv_init();
   
-  lv_port_spiffsFsInit();
-  // lv_port_sdFsInit();
-  
   display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
   lv_display_set_flush_cb(display, displayFlush);
   lv_display_set_flush_wait_cb(display, NULL);
@@ -184,6 +200,7 @@ void initLVGL()
   createMapSettingsScr();
   createDeviceSettingsScr();
   createButtonBarScr();
+  createAddWaypointScreen();
   
   // Create and start a periodic timer interrupt to call lv_tick_inc 
   const esp_timer_create_args_t periodic_timer_args = { .callback = &lv_tick_task, .name = "periodic_gui" };

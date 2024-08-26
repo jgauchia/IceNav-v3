@@ -7,6 +7,8 @@
  */
 
 #include "storage.hpp"
+#include "esp_err.h"
+#include "esp_spiffs.h"
 
 bool isSdLoaded = false;
 extern const int SD_CS;
@@ -49,22 +51,45 @@ void initSD()
  * @brief SPIFFS Init
  *
  */
-void initSPIFFS()
+esp_err_t initSPIFFS()
 {
-  if (!SPIFFS.begin(true))
+  log_i("Initializing SPIFFS");
+
+  esp_vfs_spiffs_conf_t conf = {
+    .base_path = "/spiffs",
+    .partition_label = NULL,
+    .max_files = 5,
+    .format_if_mount_failed = false
+  };
+
+  esp_err_t ret = esp_vfs_spiffs_register(&conf);
+
+  if (ret !=ESP_OK)
   {
-    log_e("SPIFFS Mount Failed");
-    return;
+    if (ret == ESP_FAIL)
+      log_e("Failed to mount or format filesystem");
+    else if (ret == ESP_ERR_NOT_FOUND)
+      log_e("Failed to find SPIFFS partition");
+    else
+      log_e("Failed to initialize SPIFFS (%s)",esp_err_to_name(ret));
+    return ESP_FAIL;
   }
+
+  size_t total = 0, used = 0;
+  ret = esp_spiffs_info(NULL, &total, &used);
+  if (ret!= ESP_OK)
+    log_e("Failed to get SPIFFS partition information (%s)", esp_err_to_name(ret));
   else
-    log_v("SPIFFS Mounted");
+    log_i("Partition size: total: %d used: %d", total, used);
+  
+  return ESP_OK;
 }
 
 /**
- * @brief Adquire SPI Bus for SD operations
+ * @brief Acquire SPI Bus for SD operations
  *
  */
- void adquireSdSPI()
+ void acquireSdSPI()
  {
     #ifdef SPI_SHARED
     tft.waitDisplay();

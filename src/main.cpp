@@ -9,9 +9,7 @@
 #include <Arduino.h>
 #include <stdint.h>
 #include <Wire.h>
-#include <FS.h>
 #include <SD.h>
-#include <SPIFFS.h>
 #include <SPI.h>
 #include <WiFi.h>
 #include <esp_wifi.h>
@@ -60,10 +58,15 @@ void setup()
     Serial.begin(115200);  
   #endif
 
+  #ifdef ICENAV_BOARD
+    Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
+    Wire.begin();
+  #endif
   #ifdef ARDUINO_ESP32S3_DEV
     Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
     Wire.begin();
   #endif
+
 
   #ifdef BME280
    initBME();
