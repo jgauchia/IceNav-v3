@@ -19,22 +19,24 @@
 // Capture the screenshot and save it to the SD card
 static void captureScreenshot(const char* filename, Stream *response)
 {
-  File file = SD.open(filename, FILE_WRITE);
-  if (!file) {
-    response->println("Failed to open file for writing");
-    return;
-  }
-
   // Allocate memory to store the screen data (1 byte per segment)
   uint8_t* buffer = (uint8_t*)malloc(tft.width() * tft.height() * 2); // 2 bytes per pixel
   if (!buffer) {
     response->println("Failed to allocate memory for buffer");
-    file.close();
+  //  file.close();
     return;
   }
 
   // Read the screen data into the buffer using readRect
   tft.readRect(0, 0, tft.width(), tft.height(), (uint16_t*)buffer);
+
+  acquireSdSPI();
+
+  File file = SD.open(filename, FILE_WRITE);
+  if (!file) {
+    response->println("Failed to open file for writing");
+    return;
+  }
 
   // Write the buffer data to the file
   for (int y = 0; y < tft.height(); y++) {
@@ -51,6 +53,8 @@ static void captureScreenshot(const char* filename, Stream *response)
   free(buffer);
   file.close();
   response->println("Screenshot saved");
+
+  releaseSdSPI();
 }
 
 // WiFi client
@@ -64,10 +68,13 @@ static void captureScreenshot(const char* filename, const char* pc_ip, uint16_t 
 
   response->println("Connected to server");
 
+  acquireSdSPI();
+
   File file = SD.open(filename, FILE_READ);
   if (!file) {
     response->println("Failed to open file for reading");
     client.stop();
+    releaseSdSPI();
     return;
   }
 
@@ -84,6 +91,8 @@ static void captureScreenshot(const char* filename, const char* pc_ip, uint16_t 
   file.close();
   client.stop();
   response->println("Screenshot sent over WiFi");
+
+  releaseSdSPI();
 }
 #endif
 

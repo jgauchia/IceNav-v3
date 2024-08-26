@@ -67,23 +67,24 @@ void touchCalibrate()
   uint16_t calData[8];
   uint8_t calDataOK = 0;
 
-  if (SPIFFS.exists(calibrationFile))
+  FILE* f = fopen(calibrationFile, "r");
+
+  if (f != NULL)
   {
     if (repeatCalib)
-      SPIFFS.remove(calibrationFile);
+      remove(calibrationFile);
     else
     {
-      File f = SPIFFS.open(calibrationFile, "r");
-      if (f)
+      if (fread((char *)calData, sizeof(char), 16, f))
       {
-        if (f.readBytes((char *)calData, 16) == 16)
-          calDataOK = 1;
-        f.close();
+        log_i("Touch calibration exists");
+        calDataOK = 1;
+        fclose(f);
       }
-      else
-        log_v("Error opening touch configuration");
     }
   }
+  else
+    log_e("Touch calibration doesn't exists");
 
   if (calDataOK && !repeatCalib)
     tft.setTouchCalibrate(calData);
@@ -106,12 +107,12 @@ void touchCalibrate()
     delay(500);
     tft.drawCenterString("TOUCH TO CONTINUE.", tft.width() >> 1, (tft.height() >> 1) + (tft.fontHeight(fontLarge) * 2), fontSmall);
 
-    File f = SPIFFS.open(calibrationFile, "w");
+    FILE* f = fopen(calibrationFile, "w");
     if (f)
     {
       log_v("Calibration saved");
-      f.write((const unsigned char *)calData, 16);
-      f.close();
+      fwrite((const unsigned char *)calData, sizeof(unsigned char), 16 ,f);
+      fclose(f);
     }
     else
       log_e("Calibration not saved!");

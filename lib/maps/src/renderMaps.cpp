@@ -7,7 +7,6 @@
  */
 
 #include "renderMaps.hpp"
-#include "esp32-hal-gpio.h"
 #include "mapsDrawFunc.h"
 
 extern const int SD_CS;
@@ -30,7 +29,7 @@ TFT_eSprite mapTempSprite = TFT_eSprite(&tft); // Temporary Map Sprite 9x9 tiles
 TFT_eSprite mapSprite = TFT_eSprite(&tft);     // Screen Map Sprite (Viewed in LVGL Tile)
 
 /**
- * @brief Get TileY for OpenStreeMap files
+ * @brief Get TileX for OpenStreetMap files
  *
  * @param f_lon -> longitude
  * @param zoom -> zoom
@@ -95,7 +94,7 @@ void generateRenderMap()
     deleteMapScrSprites();
     createMapScrSprites();
 
-    adquireSdSPI();
+    acquireSdSPI();
 
     mapTempSprite.fillScreen(TFT_BLACK);
     isMapFound  = mapTempSprite.drawPngFile(SD, currentMapTile.file, tileSize, tileSize);

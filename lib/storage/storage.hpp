@@ -9,16 +9,11 @@
 #ifndef STORAGE_HPP
 #define STORAGE_HPP
 
-#include <FS.h>
+#include "esp_spiffs.h"
 #include <SD.h>
-#include <SPIFFS.h>
 #include <LovyanGFX.hpp>
 #include <tft.hpp>
 
-#ifdef ICENAV_BOARD
-static SPIClass spiSD = SPIClass(HSPI);
-static uint32_t sdFreq = 10000000;
-#endif
 #ifdef ARDUINO_ESP32S3_DEV
 static SPIClass spiSD = SPIClass(HSPI);
 static uint32_t sdFreq = 10000000;
@@ -32,8 +27,8 @@ extern bool isSdLoaded;
 
 
 void initSD();
-void initSPIFFS();
-void adquireSdSPI();
+esp_err_t initSPIFFS();
+void acquireSdSPI();
 void releaseSdSPI();
 
 #endif

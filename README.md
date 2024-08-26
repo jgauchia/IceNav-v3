@@ -36,7 +36,7 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 
 Currently, IceNav works with the following hardware setups and specs 
 
-**Highly recommended an ESP32S3 with PSRAM** 
+**Highly recommended an ESP32S3 with PSRAM and 320x480 Screen** 
  
 > [!IMPORTANT]
 > Please review the platformio.ini file to choose the appropriate environment as well as the different build flags for your correct setup.
@@ -185,15 +185,16 @@ info:           get device information
 nmcli:          network manager CLI.
 reboot:         perform a ESP32 reboot
 scshot:         screenshot to SD or sending a PC
+waypoint:       waypoint utilities
 ```
 
 Some extra details:
 
 **nmcli**: IceNav use a `wcli` network manager library. For more details of this command and its sub commands please refer to [here](https://github.com/hpsaturn/esp32-wifi-cli?tab=readme-ov-file#readme)
 
-**schot**: This utility can save a screenshot to the root of your SD, with the name: `screenshot.raw`. You can convert it to png using the `convert.py` script in the `tools` folder.
+**scshot**: This utility can save a screenshot to the root of your SD, with the name: `screenshot.raw`. You can convert it to png using the `convert.py` script in the `tools` folder.
 
-Additionally, this screenshot command can send the screenshot over WiFi using the following syntax:
+Additionally, this screenshot command can send the screenshot over WiFi using the following syntax (replace IP with your PC IP):
 
 ```bash
 scshot 192.168.1.10 8123
@@ -203,6 +204,20 @@ Ensure your PC has the specified port open and firewall access enabled to receiv
 
 ```bash
 nc -l -p 8123 > screenshot.raw
+```
+
+**waypoint**: type `waypoint` for detailed options.
+
+Additionally, this waypoint command can send the waypoint over WiFi using the following syntax (replace IP with your PC IP):
+
+```bash
+waypoint down file.gpx 192.168.1.10 8123
+```
+
+Ensure your PC has the specified port open and firewall access enabled to receive the waypoint file via the `netcat` command, like this:
+
+```bash
+nc -l -p 8123 > waypoint.gpx
 ```
 
 ### TO DO

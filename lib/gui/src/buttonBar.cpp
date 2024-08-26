@@ -7,11 +7,14 @@
  */
 
 #include "buttonBar.hpp"
+#include "addWaypointScr.hpp"
+#include "display/lv_display.h"
 #include "globalGuiDef.h"
 
 bool isWaypointOpt = false;
 bool isTrackOpt = false;
 bool isOptionLoaded = false;
+bool isBarOpen = false;
 
 lv_obj_t *settingsScreen;
 lv_obj_t *buttonBar;
@@ -32,14 +35,23 @@ void buttonBarEvent(lv_event_t *event)
     lv_anim_init(&a);
     lv_anim_set_var(&a, buttonBar);
     lv_anim_set_exec_cb(&a, hideShowAnim);
-    lv_anim_set_start_cb(&a, startHideShowAnim);
-    lv_anim_set_completed_cb(&a, endHideShowAnim);
     lv_anim_set_values(&a, 256, 0);
-    lv_anim_set_duration(&a, 400);
+    lv_anim_set_duration(&a, 250);
     lv_anim_start(&a);
   }
 
   char *option = (char *)lv_event_get_user_data(event);
+  if (strcmp(option,"addwpt") == 0)
+  {
+    log_v("Add Waypoint");
+    isMainScreen = false;
+    redrawMap = false;
+    lv_textarea_set_text(waypointName, "");
+    isScreenRotated = false;
+    lv_obj_set_width(waypointName, tft.width() -10);
+    lv_screen_load(addWaypointScreen);
+  }
+
   if (strcmp(option,"waypoint") == 0)
   {
     log_v("Waypoint");
@@ -115,26 +127,18 @@ void hideShowAnim(void * var, int32_t v)
   int32_t w;
   w = lv_map(v, 0, 256, LV_DPX(60) * scaleBut, max_w);
   lv_obj_set_width(obj, w);
-}
-
-/**
- * @brief Hide/Show start animation callback
- *
- * @param anim
- */
-void startHideShowAnim(lv_anim_t * anim)
-{
- isScrolled = false;
-}
-
-/**
- * @brief Hide/Show finish animation callback
- *
- * @param anim
- */
-void endHideShowAnim(lv_anim_t *anim)
-{
-  isScrolled = true;
+  if (v == 0)
+  {
+    lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
+    isBarOpen = false;
+    isScrolled = true;
+  }
+  else
+  {
+    lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
+    isBarOpen = true;
+    isScrolled = false;
+  }
 }
 
 /**
@@ -152,8 +156,6 @@ void hideShowEvent(lv_event_t * e)
       lv_anim_t a;
       lv_anim_init(&a);
       lv_anim_set_var(&a, buttonBar);
-      lv_anim_set_start_cb(&a, startHideShowAnim);
-      lv_anim_set_completed_cb(&a, endHideShowAnim);
       lv_anim_set_exec_cb(&a, hideShowAnim);
       lv_anim_set_values(&a, 0, 256);
       lv_anim_set_duration(&a, 250);
@@ -165,8 +167,6 @@ void hideShowEvent(lv_event_t * e)
       lv_anim_init(&a);
       lv_anim_set_var(&a, buttonBar);
       lv_anim_set_exec_cb(&a, hideShowAnim);
-      lv_anim_set_start_cb(&a, startHideShowAnim);
-      lv_anim_set_completed_cb(&a, endHideShowAnim);
       lv_anim_set_values(&a, 256, 0);
       lv_anim_set_duration(&a, 250);
       lv_anim_start(&a);
@@ -195,6 +195,7 @@ void createButtonBarScr()
   lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_FLOATING);
   lv_obj_set_size(buttonBar, 50 * scaleBut, 50 * scaleBut);
   lv_obj_align(buttonBar, LV_ALIGN_BOTTOM_RIGHT, 0,  -LV_DPX(14) );
+  lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
 
   menuBtn = lv_img_create(mainScreen);
   lv_img_set_src(menuBtn, menuIconFile);
@@ -207,6 +208,15 @@ void createButtonBarScr()
 
   lv_obj_t *imgBtn;
   
+  // Add Waypoint Button
+  imgBtn = lv_img_create(buttonBar);
+  lv_img_set_src(imgBtn,addWptIconFile);
+  lv_img_set_zoom(imgBtn,buttonScale);
+  lv_obj_update_layout(imgBtn);
+  lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
+  lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_event_cb(imgBtn, buttonBarEvent, LV_EVENT_PRESSED, (char*)"addwpt");
+
   // Waypoint Button
   imgBtn = lv_img_create(buttonBar);
   lv_img_set_src(imgBtn, waypointIconFile);

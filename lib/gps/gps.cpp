@@ -39,7 +39,7 @@ GSV GPS_GSV; // GPS Satellites in view
 #endif
 
 /**
- * @brief Init GPS and custon NMEA parsing
+ * @brief Init GPS and custom NMEA parsing
  *
  */
 void initGPS()

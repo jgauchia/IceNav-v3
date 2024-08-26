@@ -7,6 +7,7 @@
  */
 
 #include "mainScr.hpp"
+#include "buttonBar.hpp"
 #include "core/lv_obj.h"
 #include "core/lv_obj_pos.h"
 #include "globalGuiDef.h"
@@ -81,12 +82,7 @@ void editScreen(lv_event_t *event)
   lv_event_code_t code = lv_event_get_code(event);
   
   if (code == LV_EVENT_VALUE_CHANGED)
-  {
-    if (!canMoveWidget)
-      canMoveWidget = true;
-    else
-      canMoveWidget = false;
-  }
+    canMoveWidget = !canMoveWidget;
 }
 
 /**
@@ -180,16 +176,25 @@ void getActTile(lv_event_t *event)
         lv_obj_add_flag(notifyBarHour, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
       }
-    }
-    else
-    {
-      lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
-      lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
-      if (isMapFullScreen)
+      else
       {
         lv_obj_clear_flag(notifyBarHour,LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);     
+        lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+
+        if (isBarOpen)
+          lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+        else 
+          lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
       }
+    }
+    else if (activeTile != MAP)
+    {
+      lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+
+      if (isBarOpen)
+         lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+
     }
   }
   else
@@ -317,7 +322,7 @@ void updateMap(lv_event_t *event)
       tileSize = VECTOR_TILE_SIZE;
       viewPort.setCenter(point);
 
-      adquireSdSPI();
+      acquireSdSPI();
       
       getMapBlocks(viewPort.bbox, memCache);
       
@@ -447,7 +452,12 @@ void fullScreenEvent(lv_event_t *event)
     lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT - toolBarOffset);
     lv_obj_set_pos(btnZoomOut, 10, MAP_HEIGHT - (toolBarOffset + toolBarSpace));
     lv_obj_set_pos(btnZoomIn, 10, MAP_HEIGHT - (toolBarOffset + (2 * toolBarSpace)));
-    lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+
+    if (isBarOpen)
+      lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+    else
+      lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+
     lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(notifyBarHour, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
