@@ -124,6 +124,8 @@ void optionEvent(lv_event_t *event)
  {
     isMainScreen = true;
     isOptionLoaded = false;
+    isWaypointOpt = false;
+    isTrackOpt = false;
     redrawMap = true;
  }
 
