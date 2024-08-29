@@ -130,7 +130,7 @@ struct Polyline
 };
 
 /**
- * @brief Poligon
+ * @brief Polygon
  *
  */
 struct Polygon
@@ -215,7 +215,7 @@ void parseCoords(ReadBufferingStream &file, std::vector<Point16> &points);
 BBox parseBbox(String str);
 MapBlock *readMapBlock(String fileName);
 void getMapBlocks(BBox &bbox, MemCache &memCache);
-void fillPoligon(Polygon p, TFT_eSprite &map); // scanline fill algorithm
+void fillPolygon(Polygon p, TFT_eSprite &map); // scanline fill algorithm
 void generateVectorMap(ViewPort &viewPort, MemCache &memCache, TFT_eSprite &map);
 
 

@@ -53,7 +53,7 @@ void gpsTask(void *pvParameters)
     // if (!GPS.time.isValid() && isTimeFixed)
     //     isTimeFixed = false;
     //xSemaphoreTake(gpsMutex, portMAX_DELAY); 
-    vTaskDelay(10 / portTICK_PERIOD_MS);
+    vTaskDelay(10); /// portTICK_PERIOD_MS);
   }
 }
 
