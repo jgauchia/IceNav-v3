@@ -2,8 +2,8 @@
  * @file tft.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief TFT definition and functions
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #ifndef TFT_HPP
@@ -40,7 +40,7 @@ extern bool repeatCalib;
 static uint8_t brightnessLevel = 255;
 extern uint16_t TFT_WIDTH;
 extern uint16_t TFT_HEIGHT;
-extern bool waitScreenRefresh;                  // Wait for refres screen (screenshoot issues)
+extern bool waitScreenRefresh;                  // Wait for refresh screen (screenshot issues)
 
 
 void setBrightness(uint8_t brightness);

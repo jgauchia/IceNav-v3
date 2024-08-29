@@ -26,7 +26,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -U platformio
           pio pkg update
-      - name: Testing ESP32 Custom Board
+      - name: Testing ICENAV Custom Board
         run: |
           export ICENAV3_LON=13.404
           export ICENAV3_LAT=52.520

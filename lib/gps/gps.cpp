@@ -2,8 +2,8 @@
  * @file gps.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  GPS definition and functions
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #include "gps.hpp"
@@ -39,7 +39,7 @@ GSV GPS_GSV; // GPS Satellites in view
 #endif
 
 /**
- * @brief Init GPS and custon NMEA parsing
+ * @brief Init GPS and custom NMEA parsing
  *
  */
 void initGPS()

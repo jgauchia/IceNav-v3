@@ -2,8 +2,8 @@
  * @file tft.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief TFT definition and functions
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #include "tft.hpp"
@@ -140,6 +140,9 @@ void initTFT()
   tft.fillScreen(TFT_BLACK);
   tft.endWrite();
 
+#ifdef ICENAV_BOARD
+  gpio_set_drive_capability(GPIO_NUM_45, GPIO_DRIVE_CAP_3);
+#endif
 #ifdef ARDUINO_ESP32_DEV
   gpio_set_drive_capability(GPIO_NUM_33, GPIO_DRIVE_CAP_3);
 #endif

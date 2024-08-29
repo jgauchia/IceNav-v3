@@ -2,8 +2,8 @@
  * @file lvglSetup.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL Screen implementation
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #ifndef LVGLSETUP_HPP
@@ -26,12 +26,13 @@
 #include "settingsScr.hpp"
 #include "deviceSettingsScr.hpp"
 #include "mapSettingsScr.hpp"
+#include "addWaypointScr.hpp"
 
 /**
  * @brief Default display driver definition
  *
  */
-static lv_display_t *display;
+//extern lv_display_t *display;
 static uint32_t objectColor = 0x303030; 
 
 void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map);

@@ -2,8 +2,8 @@
  * @file notifyBar.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief LVGL - Notify Bar Screen
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #ifndef NOTIFYBAR_HPP

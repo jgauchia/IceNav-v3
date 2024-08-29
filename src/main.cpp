@@ -1,9 +1,9 @@
 /**
  * @file main.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
- * @brief  ESP32 GPS Naviation main code
- * @version 0.1.8
- * @date 2024-06
+ * @brief  ESP32 GPS Navigation main code
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #include <Arduino.h>
@@ -58,10 +58,15 @@ void setup()
     Serial.begin(115200);  
   #endif
 
+  #ifdef ICENAV_BOARD
+    Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
+    Wire.begin();
+  #endif
   #ifdef ARDUINO_ESP32S3_DEV
     Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
     Wire.begin();
   #endif
+
 
   #ifdef BME280
    initBME();

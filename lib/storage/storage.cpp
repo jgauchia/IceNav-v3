@@ -2,8 +2,8 @@
  * @file storage.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Storage definition and functions
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #include "storage.hpp"
@@ -126,3 +126,30 @@ esp_err_t initSPIFFS()
   
   return ESP_OK;
 }
+
+/**
+ * @brief Acquire SPI Bus for SD operations
+ *
+ */
+ void acquireSdSPI()
+ {
+    #ifdef SPI_SHARED
+    tft.waitDisplay();
+    tft.endTransaction();
+    digitalWrite(TFT_SPI_CS,HIGH);
+    digitalWrite(SD_CS,LOW);
+    #endif
+ }
+
+ /**
+  * @brief Release SPI Bus for other operations
+  *
+  */
+  void releaseSdSPI()
+  {
+    #ifdef SPI_SHARED   
+    digitalWrite(SD_CS,HIGH);
+    digitalWrite(TFT_SPI_CS,LOW);
+    tft.beginTransaction();
+    #endif  
+  }

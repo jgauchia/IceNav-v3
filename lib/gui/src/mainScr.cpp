@@ -2,11 +2,12 @@
  * @file mainScr.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Main Screen
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #include "mainScr.hpp"
+#include "buttonBar.hpp"
 #include "core/lv_obj.h"
 #include "core/lv_obj_pos.h"
 #include "globalGuiDef.h"
@@ -14,6 +15,8 @@
 #include "settings.hpp"
 #include "tft.hpp"
 
+extern const int SD_CS;
+extern const uint8_t TFT_SPI_CS;
 
 bool isMainScreen = false;    // Flag to indicate main screen is selected
 bool isScrolled = true;       // Flag to indicate when tileview was scrolled
@@ -79,12 +82,7 @@ void editScreen(lv_event_t *event)
   lv_event_code_t code = lv_event_get_code(event);
   
   if (code == LV_EVENT_VALUE_CHANGED)
-  {
-    if (!canMoveWidget)
-      canMoveWidget = true;
-    else
-      canMoveWidget = false;
-  }
+    canMoveWidget = !canMoveWidget;
 }
 
 /**
@@ -178,16 +176,25 @@ void getActTile(lv_event_t *event)
         lv_obj_add_flag(notifyBarHour, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
       }
-    }
-    else
-    {
-      lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
-      lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
-      if (isMapFullScreen)
+      else
       {
         lv_obj_clear_flag(notifyBarHour,LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);     
+        lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+
+        if (isBarOpen)
+          lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+        else 
+          lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
       }
+    }
+    else if (activeTile != MAP)
+    {
+      lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+
+      if (isBarOpen)
+         lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+
     }
   }
   else
@@ -315,6 +322,7 @@ void updateMap(lv_event_t *event)
       tileSize = VECTOR_TILE_SIZE;
       viewPort.setCenter(point);
 
+<<<<<<< HEAD
       // #ifdef SPI_SHARED
       // tft.waitDisplay();
       // tft.endTransaction();
@@ -329,6 +337,14 @@ void updateMap(lv_event_t *event)
       // tft.initBus();
       // #endif  
 
+=======
+      acquireSdSPI();
+      
+      getMapBlocks(viewPort.bbox, memCache);
+      
+      releaseSdSPI();
+            
+>>>>>>> devel
       deleteMapScrSprites();
       createMapScrSprites();
       generateVectorMap(viewPort, memCache, mapTempSprite); 
@@ -453,7 +469,12 @@ void fullScreenEvent(lv_event_t *event)
     lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT - toolBarOffset);
     lv_obj_set_pos(btnZoomOut, 10, MAP_HEIGHT - (toolBarOffset + toolBarSpace));
     lv_obj_set_pos(btnZoomIn, 10, MAP_HEIGHT - (toolBarOffset + (2 * toolBarSpace)));
-    lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+
+    if (isBarOpen)
+      lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+    else
+      lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
+
     lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(notifyBarHour, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
@@ -721,7 +742,7 @@ void createMainScr()
   // Navigation Tile
   // TODO
   
-  // Navitagion Tile Events
+  // Navigation Tile Events
   // TODO
   
   // Satellite Tracking Tile

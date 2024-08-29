@@ -2,8 +2,8 @@
  * @file battery.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Battery monitor definition and functions
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 
@@ -23,7 +23,7 @@ uint8_t battLevelOld = 0;
 void initADC()
 {
   // When VDD_A is 3.3V:
-  //     0dB attenuaton (ADC_ATTEN_DB_0) gives full-scale voltage 1.1V
+  //     0dB attenuation (ADC_ATTEN_DB_0) gives full-scale voltage 1.1V
   //     2.5dB attenuation (ADC_ATTEN_DB_2_5) gives full-scale voltage 1.5V
   //     6dB attenuation (ADC_ATTEN_DB_6) gives full-scale voltage 2.2V
   //     11dB attenuation (ADC_ATTEN_DB_11) gives full-scale voltage 3.9V

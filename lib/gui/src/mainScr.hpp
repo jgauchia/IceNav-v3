@@ -2,23 +2,22 @@
  * @file mainScr.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Main Screen
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #ifndef MAINSCR_HPP
 #define MAINSCR_HPP
 
 #include "globalGuiDef.h"
-#include "globalMapsDef.h"
 #include "lvglFuncs.hpp"
 #include "misc/lv_color.h"
 #include "satInfo.hpp"
-#include "vectorMaps.hpp"
 #include "notifyBar.hpp"
 #include "buttonBar.hpp"
 #include "renderMaps.hpp"
 #include "vectorMaps.hpp"
+#include "addWaypoint.hpp"
 
 static lv_timer_t *mainTimer;    // Main Screen Timer
 #define UPDATE_MAINSCR_PERIOD 30 // Main Screen update time

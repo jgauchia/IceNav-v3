@@ -2,8 +2,8 @@
  * @file deviceSettingsScr.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Device Settings Screen
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #include "deviceSettingsScr.hpp"
@@ -12,7 +12,7 @@
 lv_obj_t *deviceSettingsScreen; // Device Settings Screen
 
 /**
- * @brief Device Settins Events
+ * @brief Device Settings Events
  * 
  * @param event 
  */

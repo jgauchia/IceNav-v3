@@ -2,8 +2,8 @@
  * @file mapSettingsScr.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Map Settings screen
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #include "mapSettingsScr.hpp"
@@ -190,7 +190,7 @@ void createMapSettingsScr()
   lv_obj_add_event_cb(zoomBtnDown, mapSettingsEvents, LV_EVENT_ALL, NULL);
 
   // Show Full Screen Map
-  list = lv_list_add_btn(mapSettingsOptions, NULL, "Show Fullscreen Map");
+  list = lv_list_add_btn(mapSettingsOptions, NULL, "Show Full Screen Map");
   lv_obj_set_style_text_font(list, fontOptions, 0);
   lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
