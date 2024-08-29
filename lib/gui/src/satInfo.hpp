@@ -15,13 +15,13 @@
 #include "gps.hpp"
 #include <stdint.h>
 
-struct SatPos // Structure to store satellite position in constelation map
+struct SatPos // Structure to store satellite position in constellation map
 {
   uint16_t x;
   uint16_t y;
 };
 
-extern SatPos satPos; // Satellite position X,Y in constelation map
+extern SatPos satPos; // Satellite position X,Y in constellation map
 
 extern TFT_eSprite spriteSNR1;       // Sprite for snr GPS Satellite Labels
 extern TFT_eSprite spriteSNR2;       // Sprite for snr GPS Satellite Labels

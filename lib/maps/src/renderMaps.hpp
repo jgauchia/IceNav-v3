@@ -31,7 +31,7 @@ struct MapTile
 static const char *mapFolder PROGMEM = "/MAP/%d/%d/%d.png"; // Render Maps file folder
 
 extern MapTile oldMapTile;     // Old Map tile coordinates and zoom
-extern MapTile currentMapTile; // Curreng Map tile coordinates and zoom
+extern MapTile currentMapTile; // Current Map tile coordinates and zoom
 extern MapTile roundMapTile;   // Boundaries Map tiles
 
 uint32_t lon2tilex(double f_lon, uint8_t zoom);

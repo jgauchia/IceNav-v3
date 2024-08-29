@@ -725,7 +725,7 @@ void createMainScr()
   // Navigation Tile
   // TODO
   
-  // Navitagion Tile Events
+  // Navigation Tile Events
   // TODO
   
   // Satellite Tracking Tile

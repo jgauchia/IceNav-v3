@@ -73,7 +73,7 @@ struct ScreenCoord
 };
 
 /**
- * @brief Navitagion Arrow position on screen
+ * @brief Navigation Arrow position on screen
  *
  */
 extern ScreenCoord navArrowPosition;
