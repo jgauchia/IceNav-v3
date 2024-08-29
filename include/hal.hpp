@@ -41,7 +41,7 @@
 #endif
 
 /**
- * @brief MAKEFABS specific pin definition
+ * @brief MAKERFABS specific pin definition
  *
  */
 #ifdef MAKERF_ESP32S3

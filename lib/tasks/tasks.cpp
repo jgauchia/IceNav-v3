@@ -26,7 +26,7 @@ void gpsTask(void *pvParameters)
   log_v("Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
   while (1)
   {
-    xSemaphoreTake(gpsMutex, portMAX_DELAY);
+    //xSemaphoreTake(gpsMutex, portMAX_DELAY);
     while (gps->available() > 0)
     {
       #ifdef OUTPUT_NMEA
@@ -52,8 +52,8 @@ void gpsTask(void *pvParameters)
     }
     // if (!GPS.time.isValid() && isTimeFixed)
     //     isTimeFixed = false;
-    xSemaphoreTake(gpsMutex, portMAX_DELAY); 
-    vTaskDelay(10 / portTICK_PERIOD_MS);
+    //xSemaphoreTake(gpsMutex, portMAX_DELAY); 
+    vTaskDelay(10); /// portTICK_PERIOD_MS);
   }
 }
 
