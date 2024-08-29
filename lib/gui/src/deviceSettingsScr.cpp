@@ -12,7 +12,7 @@
 lv_obj_t *deviceSettingsScreen; // Device Settings Screen
 
 /**
- * @brief Device Settins Events
+ * @brief Device Settings Events
  * 
  * @param event 
  */

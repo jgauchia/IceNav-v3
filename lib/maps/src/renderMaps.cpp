@@ -12,7 +12,7 @@
 extern const int SD_CS;
 
 MapTile oldMapTile = {"", 0, 0, 0};     // Old Map tile coordinates and zoom
-MapTile currentMapTile = {"", 0, 0, 0}; // Curreng Map tile coordinates and zoom
+MapTile currentMapTile = {"", 0, 0, 0}; // Current Map tile coordinates and zoom
 MapTile roundMapTile = {"", 0, 0, 0};   // Boundaries Map tiles
 ScreenCoord navArrowPosition = {0,0};  // Map Arrow position
 
@@ -96,7 +96,6 @@ void generateRenderMap()
 
     acquireSdSPI();
 
-    mapTempSprite.fillScreen(TFT_BLACK);
     isMapFound  = mapTempSprite.drawPngFile(SD, currentMapTile.file, tileSize, tileSize);
 
     if (!isMapFound)
