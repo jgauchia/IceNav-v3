@@ -46,6 +46,9 @@ lv_obj_t *satTrackTile;
 lv_obj_t *btnFullScreen;
 lv_obj_t *btnZoomIn;
 lv_obj_t *btnZoomOut;
+lv_obj_t *nameNav;
+lv_obj_t *latNav;
+lv_obj_t *lonNav;
 
 /**
  * @brief Update compass screen event
@@ -267,8 +270,8 @@ void updateMainScreen(lv_timer_t *t)
         lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
         break;
           
-      // case NAV:
-      //   break;
+      case NAV:
+        break;
 
       case SATTRACK:
         constelSprite.pushSprite(150 * scale, 40 * scale);
@@ -544,8 +547,9 @@ void createMainScr()
   tilesScreen = lv_tileview_create(mainScreen);
   compassTile = lv_tileview_add_tile(tilesScreen, 0, 0, LV_DIR_RIGHT);
   mapTile = lv_tileview_add_tile(tilesScreen, 1, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
- /*  navTile = lv_tileview_add_tile(tilesScreen, 2, 0, LV_DIR_LEFT | LV_DIR_RIGHT); */
-  satTrackTile = lv_tileview_add_tile(tilesScreen, 2, 0, LV_DIR_LEFT);
+  navTile = lv_tileview_add_tile(tilesScreen, 2, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
+  lv_obj_add_flag(navTile,LV_OBJ_FLAG_HIDDEN); 
+  satTrackTile = lv_tileview_add_tile(tilesScreen, 3, 0, LV_DIR_LEFT);
   lv_obj_set_size(tilesScreen, TFT_WIDTH, TFT_HEIGHT - 25);
   lv_obj_set_pos(tilesScreen, 0, 25);
   static lv_style_t styleScroll;
@@ -723,10 +727,35 @@ void createMainScr()
   lv_obj_add_event_cb(mapTile, toolBarEvent, LV_EVENT_LONG_PRESSED, NULL);
   
   // Navigation Tile
-  // TODO
+  lv_obj_t * label;
+  label = lv_label_create(navTile);
+  lv_obj_set_style_text_font(label, fontOptions, 0);
+  lv_label_set_text_static(label, "Navigation to:");
+  lv_obj_center(label);
+  lv_obj_align(label,LV_ALIGN_TOP_LEFT,10,30);
+
+  label = lv_label_create(navTile);
+  lv_obj_set_style_text_font(label, fontOptions, 0);
+  lv_label_set_text_static(label, "Lat:");
+  lv_obj_set_pos(label, 10, 90);
+
+  label = lv_label_create(navTile);
+  lv_obj_set_style_text_font(label, fontOptions, 0);
+  lv_label_set_text_static(label, "Lon:");
+  lv_obj_set_pos(label, 10, 120);
+
+  latNav = lv_label_create(navTile);
+  lv_obj_set_style_text_font(latNav, fontOptions, 0);
+  lv_label_set_text_static(latNav, latFormatString(addWpt.lat));
+  lv_obj_set_pos(latNav, 60, 90);
+  
+  lonNav = lv_label_create(navTile);
+  lv_obj_set_style_text_font(lonNav, fontOptions, 0);
+  lv_label_set_text_static(lonNav, lonFormatString(addWpt.lon));
+  lv_obj_set_pos(lonNav, 60, 120);
   
   // Navigation Tile Events
-  // TODO
+  // lv_obj_add_event_cb(navTile, updateNav, LV_EVENT_VALUE_CHANGED, NULL);
   
   // Satellite Tracking Tile
   lv_obj_t *infoGrid = lv_obj_create(satTrackTile);

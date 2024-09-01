@@ -17,6 +17,7 @@
 #include "buttonBar.hpp"
 #include "renderMaps.hpp"
 #include "vectorMaps.hpp"
+#include "navWpt.hpp"
 #include "addWaypoint.hpp"
 
 static lv_timer_t *mainTimer;    // Main Screen Timer
@@ -36,7 +37,7 @@ enum tileName
 {
   COMPASS,
   MAP,
- /*  NAV, */
+  NAV,
   SATTRACK,
 };
 
@@ -72,6 +73,14 @@ extern lv_obj_t *latitude;
 extern lv_obj_t *longitude;
 extern lv_obj_t *altitude;
 extern lv_obj_t *speedLabel;
+
+/**
+ * @brief Navigation Tile screen objects
+ *
+ */
+ extern lv_obj_t *nameNav;
+ extern lv_obj_t *latNav;
+ extern lv_obj_t *lonNav;
 
 /**
  * @brief Satellite Tracking Tile screen objects

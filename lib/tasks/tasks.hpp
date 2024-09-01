@@ -17,6 +17,7 @@
 #include "compass.hpp"
 #include "lvgl.h"
 #include "cli.hpp"
+#include "navWpt.hpp"
 #include "mainScr.hpp"
 #include "globalMapsDef.h"
 #include "globalGpxDef.h"

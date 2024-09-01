@@ -55,7 +55,9 @@ void waypointListEvent(lv_event_t * event)
                     wptSearch = wptFound.suffix().first; 
                 }
                 
-                // TODO Call Edit , Delete screens
+                // TODO Call Edit , Delete screens (identify origin)
+                lv_obj_clear_flag(navTile,LV_OBJ_FLAG_HIDDEN);
+                updateNavScreen();
                 loadMainScreen();
             }
         }   
@@ -81,14 +83,9 @@ void waypointListEvent(lv_event_t * event)
  */
 void updateWaypointListScreen()
 {
-    // if (lv_table_get_row_count(listWaypointScreen) != 1)
-    // for (int i = 1; i < lv_table_get_row_count(listWaypointScreen); i++)
-    //     lv_table_set_cell_value(listWaypointScreen, i, 0, "");
-    // //lv_table_set_cell_value(listWaypointScreen, 0, 0, "Waypoints");
-    // lv_table_set_row_count(listWaypointScreen, 1);
     lv_obj_clean(listWaypointScreen);
     lv_table_set_row_count(listWaypointScreen, 1);
-
+    isMainScreen = false;  
     acquireSdSPI();
 
     File wayPointFile = SD.open(wptFile);

@@ -258,6 +258,7 @@ void createButtonBarScr()
   lv_obj_update_layout(imgBtn);
   lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
   lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_HIDDEN);
   //lv_obj_add_event_cb(imgBtn, buttonBarEvent, LV_EVENT_PRESSED, (char*)"track");
   
   // Settings Button
@@ -318,11 +319,13 @@ void loadOptions()
   imgBtn = lv_img_create(buttons);
   lv_img_set_src(imgBtn, editIconFile);
   lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_HIDDEN);
   lv_obj_add_event_cb(imgBtn, optionEvent, LV_EVENT_PRESSED, (char*)"edit");
   
   // Delete Button
   imgBtn = lv_img_create(buttons);
   lv_img_set_src(imgBtn, deleteIconFile);
   lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_HIDDEN);
   lv_obj_add_event_cb(imgBtn, optionEvent, LV_EVENT_PRESSED, (char*)"delete");
 }
