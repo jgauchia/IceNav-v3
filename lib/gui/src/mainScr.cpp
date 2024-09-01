@@ -732,6 +732,12 @@ void createMainScr()
   lv_obj_center(label);
   lv_obj_align(label,LV_ALIGN_TOP_LEFT,10,30);
 
+  nameNav = lv_label_create(navTile);
+  lv_obj_set_style_text_font(nameNav, fontLargeMedium, 0);
+  lv_label_set_text_fmt(nameNav, "%s","");
+  lv_obj_set_width(nameNav,TFT_WIDTH-10);
+  lv_obj_set_pos(nameNav,10, 55);
+
   label = lv_label_create(navTile);
   lv_obj_set_style_text_font(label, fontOptions, 0);
   lv_label_set_text_static(label, "Lat:");
