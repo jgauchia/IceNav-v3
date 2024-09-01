@@ -35,7 +35,7 @@ void waypointListEvent(lv_event_t * event)
             {
                 std::string wptSelected = sel.substring(6,sel.length()).c_str();
                 log_i("%s",wptSelected.c_str());
-                std::regex wptGet("<wpt\\s+lat=\"([^\"]+)\"\\s+lon=\"([^\"]+)\">\\s*<name>(.*?)</name>\\s*</wpt>");
+                std::regex wptGet("<wpt\\s+lat=\"([^\"]+)\"\\s+lon=\"([^\"]+)\">\\s*<name>([^<]+)</name>\\s*</wpt>");
                 std::smatch wptFound;
                 std::string::const_iterator wptSearch(wptContent.cbegin());
 
@@ -47,7 +47,9 @@ void waypointListEvent(lv_event_t * event)
 
                     if ( name == wptSelected )
                     {
-                        addWpt.name = (char*)name.c_str();
+                        //addWpt.name = (char*)name.c_str();
+                        addWpt.name = new char[name.size() + 1];
+                        std::strcpy(addWpt.name, name.c_str());
                         addWpt.lat = std::stod(lat);
                         addWpt.lon = std::stod(lon);
                         log_i("Waypoint: %s %f %f",addWpt.name, addWpt.lat, addWpt.lon);
@@ -73,6 +75,7 @@ void waypointListEvent(lv_event_t * event)
     listWaypointScreen = lv_table_create(NULL);
     lv_obj_set_size(listWaypointScreen, TFT_WIDTH, TFT_HEIGHT);    
     lv_table_set_cell_value(listWaypointScreen, 0, 0, "Waypoints");
+    lv_table_set_column_width(listWaypointScreen,0,TFT_WIDTH);
     lv_obj_add_event_cb(listWaypointScreen, waypointListEvent, LV_EVENT_ALL, NULL);
     lv_obj_set_style_pad_ver(listWaypointScreen, 10, LV_PART_ITEMS);
 }

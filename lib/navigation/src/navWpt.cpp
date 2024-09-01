@@ -21,4 +21,5 @@ void updateNavScreen()
   lv_label_set_text_static(latNav, latFormatString(addWpt.lat));
   lv_label_set_text_static(lonNav, lonFormatString(addWpt.lon));
   lv_label_set_text_fmt(nameNav, "%s",addWpt.name);
+  delete[] addWpt.name;
 }
