@@ -15,6 +15,8 @@
 
 lv_obj_t *addWaypointScreen;  // Add Waypoint Screen
 lv_obj_t *waypointName;
+lv_obj_t *lat;
+lv_obj_t *lon;
 bool isScreenRotated = false;
 
 /**
@@ -88,14 +90,24 @@ static void rotateScreen(lv_event_t *event)
 }
 
 /**
+ * @brief Update current waypoint postion to add
+ *
+ */
+void updateWaypointPos()
+{
+  addWpt.lat = getLat();
+  addWpt.lon = getLon();
+  lv_label_set_text_static(lat, latFormatString(addWpt.lat));
+  lv_label_set_text_static(lon, lonFormatString(addWpt.lon));
+}
+
+/**
  * @brief Create Add Waypoint screen
  *
  */
 void createAddWaypointScreen()
 {
-  addWpt.lat = getLat();
-  addWpt.lon = getLon();
-  
+
   addWaypointScreen = lv_obj_create(NULL);
   lv_obj_t *keyboard = lv_keyboard_create(addWaypointScreen);
   waypointName = lv_textarea_create(addWaypointScreen);
@@ -138,12 +150,12 @@ void createAddWaypointScreen()
   lv_label_set_text_static(label, "Lon:");
   lv_obj_set_pos(label, 10, 120);
 
-  lv_obj_t *lat = lv_label_create(addWaypointScreen);
+  lat = lv_label_create(addWaypointScreen);
   lv_obj_set_style_text_font(lat, fontOptions, 0);
   lv_label_set_text_static(lat, latFormatString(addWpt.lat));
   lv_obj_set_pos(lat, 60, 90);
   
-  lv_obj_t *lon = lv_label_create(addWaypointScreen);
+  lon = lv_label_create(addWaypointScreen);
   lv_obj_set_style_text_font(lon, fontOptions, 0);
   lv_label_set_text_static(lon, lonFormatString(addWpt.lon));
   lv_obj_set_pos(lon, 60, 120);

@@ -20,6 +20,7 @@ void loadMainScreen();
 static void addWaypointEvent(lv_event_t *event);
 static void rotateScreen(lv_event_t *event);
 
+void updateWaypointPos();
 void createAddWaypointScreen();
 
 #endif
