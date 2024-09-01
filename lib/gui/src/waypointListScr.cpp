@@ -12,8 +12,6 @@ std::string wptContent;
 
 lv_obj_t *listWaypointScreen;  // Add Waypoint Screen
 
-wayPoint selectedWpt = {0, 0, 0, "", "", "", "", "", "", 0, 0, 0, 0};
-
 /**
  * @brief Way point list event
  * 
@@ -49,10 +47,10 @@ void waypointListEvent(lv_event_t * event)
 
                     if ( name == wptSelected )
                     {
-                        selectedWpt.name = (char*)name.c_str();
-                        selectedWpt.lat = std::stod(lat);
-                        selectedWpt.lon = std::stod(lon);
-                        log_i("Waypoint: %s %f %f",selectedWpt.name, selectedWpt.lat, selectedWpt.lon);
+                        addWpt.name = (char*)name.c_str();
+                        addWpt.lat = std::stod(lat);
+                        addWpt.lon = std::stod(lon);
+                        log_i("Waypoint: %s %f %f",addWpt.name, addWpt.lat, addWpt.lon);
                     }
                     wptSearch = wptFound.suffix().first; 
                 }

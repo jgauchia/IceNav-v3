@@ -40,7 +40,6 @@ struct wayPoint
   float  vdop;
   float  pdop;
 };
-extern wayPoint selectedWpt;
 
 /**
  * @Brief gpxType definition

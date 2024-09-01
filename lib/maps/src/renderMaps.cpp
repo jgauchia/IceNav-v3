@@ -86,22 +86,25 @@ void generateRenderMap()
   currentMapTile = getMapTile(getLon(), getLat(), zoom, 0, 0);
 
   // Detects if tile changes from actual GPS position
-  if (strcmp(currentMapTile.file, oldMapTile.file) != 0 ||
-      currentMapTile.zoom != oldMapTile.zoom ||
-      currentMapTile.tilex != oldMapTile.tilex ||
-      currentMapTile.tiley != oldMapTile.tiley)
+  if (strcmp(currentMapTile.file, oldMapTile.file) != 0 || currentMapTile.zoom != oldMapTile.zoom || 
+             currentMapTile.tilex != oldMapTile.tilex || currentMapTile.tiley != oldMapTile.tiley)
   {
+    acquireSdSPI();
+
     deleteMapScrSprites();
     createMapScrSprites();
-
-    acquireSdSPI();
 
     isMapFound  = mapTempSprite.drawPngFile(SD, currentMapTile.file, tileSize, tileSize);
 
     if (!isMapFound)
     {
       log_v("No Map Found!");
-      oldMapTile.file = (char*)noMapFile;
+      isMapFound = false;
+      oldMapTile.file = currentMapTile.file;
+      oldMapTile.zoom = currentMapTile.zoom;
+      oldMapTile.tilex = currentMapTile.tilex;
+      oldMapTile.tiley = currentMapTile.tiley;
+      mapTempSprite.fillScreen(TFT_BLACK);
       showNoMap(mapTempSprite);
     }
     else
@@ -131,6 +134,8 @@ void generateRenderMap()
       oldMapTile.zoom = currentMapTile.zoom;
       oldMapTile.tilex = currentMapTile.tilex;
       oldMapTile.tiley = currentMapTile.tiley;
+
+      redrawMap = true;
     }
 
     releaseSdSPI();
