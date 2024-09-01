@@ -50,6 +50,7 @@ void buttonBarEvent(lv_event_t *event)
     lv_textarea_set_text(waypointName, "");
     isScreenRotated = false;
     lv_obj_set_width(waypointName, tft.width() -10);
+    updateWaypointPos();
     lv_screen_load(addWaypointScreen);
   }
 
