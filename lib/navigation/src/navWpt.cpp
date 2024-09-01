@@ -8,6 +8,10 @@
 
  #include "navWpt.hpp"
 
+lv_obj_t *nameNav;
+lv_obj_t *latNav;
+lv_obj_t *lonNav;
+
  /**
  * @brief Update navigation screen
  *

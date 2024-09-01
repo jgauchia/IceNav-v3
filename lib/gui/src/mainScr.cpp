@@ -46,9 +46,7 @@ lv_obj_t *satTrackTile;
 lv_obj_t *btnFullScreen;
 lv_obj_t *btnZoomIn;
 lv_obj_t *btnZoomOut;
-lv_obj_t *nameNav;
-lv_obj_t *latNav;
-lv_obj_t *lonNav;
+
 
 /**
  * @brief Update compass screen event

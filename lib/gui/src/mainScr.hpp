@@ -17,8 +17,8 @@
 #include "buttonBar.hpp"
 #include "renderMaps.hpp"
 #include "vectorMaps.hpp"
-#include "navWpt.hpp"
 #include "addWaypoint.hpp"
+#include "navWpt.hpp"
 
 static lv_timer_t *mainTimer;    // Main Screen Timer
 #define UPDATE_MAINSCR_PERIOD 30 // Main Screen update time
@@ -73,14 +73,6 @@ extern lv_obj_t *latitude;
 extern lv_obj_t *longitude;
 extern lv_obj_t *altitude;
 extern lv_obj_t *speedLabel;
-
-/**
- * @brief Navigation Tile screen objects
- *
- */
- extern lv_obj_t *nameNav;
- extern lv_obj_t *latNav;
- extern lv_obj_t *lonNav;
 
 /**
  * @brief Satellite Tracking Tile screen objects

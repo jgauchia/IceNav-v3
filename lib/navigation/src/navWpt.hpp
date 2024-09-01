@@ -9,20 +9,20 @@
 #ifndef NAVWPT_HPP
 #define NAVWPT_HPP
 
-// #include "lvgl.h"
-// #include "lvglFuncs.hpp"
-// #include "tft.hpp"
-// #include "gps."
-// #include "globalGuiDef.h"
-// #include "gpsMath.hpp"
-// #include "mainScr.hpp"
+#include "lvgl.h"
+#include "addWaypoint.hpp"
+#include "gpsMath.hpp"
 
-#include <Arduino.h>
-#include "tft.hpp"
-#include "compass.hpp"
-#include "settings.hpp"
-#include "globalMapsDef.h"
-#include "mapsDrawFunc.h"
+char *latFormatString(double lat);
+char *lonFormatString(double lon);
+
+/**
+ * @brief Navigation Tile screen objects
+ *
+ */
+ extern lv_obj_t *nameNav;
+ extern lv_obj_t *latNav;
+ extern lv_obj_t *lonNav;
 
 void updateNavScreen();
 
