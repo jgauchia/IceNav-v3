@@ -1,5 +1,6 @@
 /**
  * @file globalGpxDef.h
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Global GPX Variables
  * @version 0.1.8
  * @date 2024-06
@@ -39,6 +40,7 @@ struct wayPoint
   float  vdop;
   float  pdop;
 };
+extern wayPoint selectedWpt;
 
 /**
  * @Brief gpxType definition

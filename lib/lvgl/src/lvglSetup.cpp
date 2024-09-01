@@ -8,6 +8,7 @@
 
 #include "lvglSetup.hpp"
 #include "addWaypointScr.hpp"
+#include "waypointListScr.hpp"
 #include "globalGuiDef.h"
 
 ViewPort viewPort; // Vector map viewport
@@ -201,6 +202,7 @@ void initLVGL()
   createDeviceSettingsScr();
   createButtonBarScr();
   createAddWaypointScreen();
+  createWaypointListScreen();
   
   // Create and start a periodic timer interrupt to call lv_tick_inc 
   const esp_timer_create_args_t periodic_timer_args = { .callback = &lv_tick_task, .name = "periodic_gui" };

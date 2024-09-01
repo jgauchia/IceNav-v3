@@ -8,6 +8,7 @@
 
 #include "buttonBar.hpp"
 #include "addWaypointScr.hpp"
+#include "waypointListScr.hpp"
 #include "display/lv_display.h"
 #include "globalGuiDef.h"
 
@@ -95,9 +96,11 @@ void optionEvent(lv_event_t *event)
   if (strcmp(action,"load") == 0)
   {
     log_v("Load Option");
-    isMainScreen = true;
-    isOptionLoaded = false;
+    isMainScreen = false;
+    // isOptionLoaded = false;
     lv_msgbox_close(option);
+    updateWaypointListScreen();
+    lv_screen_load(listWaypointScreen);
   }
   if (strcmp(action,"edit") == 0)
   {
@@ -105,6 +108,8 @@ void optionEvent(lv_event_t *event)
     isMainScreen = true;
     isOptionLoaded = false;
     lv_msgbox_close(option);
+    // updateWaypointListScreen();
+    // lv_screen_load(listWaypointScreen);
   }
   if (strcmp(action,"delete") == 0)
   {
@@ -112,6 +117,9 @@ void optionEvent(lv_event_t *event)
     isMainScreen = true;
     isOptionLoaded = false;
     lv_msgbox_close(option);
+    // updateWaypointListScreen();
+    // lv_screen_load(listWaypointScreen);
+    
   }
 }
 
