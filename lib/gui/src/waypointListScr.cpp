@@ -44,7 +44,7 @@ void waypointListEvent(lv_event_t * event)
                     std::string lat = wptFound[1].str();  
                     std::string lon = wptFound[2].str();  
                     std::string name = wptFound[3].str(); 
-
+                    log_i("%s",name.c_str());
                     if ( name == wptSelected )
                     {
                         //addWpt.name = (char*)name.c_str();
@@ -53,6 +53,7 @@ void waypointListEvent(lv_event_t * event)
                         addWpt.lat = std::stod(lat);
                         addWpt.lon = std::stod(lon);
                         log_i("Waypoint: %s %f %f",addWpt.name, addWpt.lat, addWpt.lon);
+                        break;
                     }
                     wptSearch = wptFound.suffix().first; 
                 }
