@@ -43,12 +43,12 @@ Currently, IceNav works with the following hardware setups and specs
 
 ### Boards
 
-|                  | FLASH | PSRAM | Environment                  |
-|:-----------------|:-----:|:-----:|:-----------------------------|
-| ICENAV (ESP32S3) |  16M  |  8M   | ``` [env:ICENAV] ```         |
-| ESP32            |  16M  |  4M   | ``` [env:ESP32_N16R4] ```    |
-| ESP32S3          |  16M  |  8M   | ``` [env:ESP32S3_N16R8] ```  |
-| MAKERFAB ESP32S3 |  16M  |  2M   | ``` [env:MAKERF_ESP32S3] ``` |
+|                  | FLASH | PSRAM | Environment                  | Full Support |
+|:-----------------|:-----:|:-----:|:-----------------------------|--------------|
+| ICENAV (ESP32S3) |  16M  |  8M   | ``` [env:ICENAV] ```         |     YES      |
+| ESP32            |  16M  |  4M   | ``` [env:ESP32_N16R4] ```    |     YES      |
+| ESP32S3          |  16M  |  8M   | ``` [env:ESP32S3_N16R8] ```  |     YES      |
+| [MAKERFABS ESP32S3](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) |  16M  |  2M   | ``` [env:MAKERF_ESP32S3] ``` |   TESTING    |
 
 
 > [!IMPORTANT]
