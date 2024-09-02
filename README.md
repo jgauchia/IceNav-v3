@@ -50,8 +50,10 @@ Currently, IceNav works with the following hardware setups and specs
 | ESP32S3          |  16M  |  8M   | ``` [env:ESP32S3_N16R8] ```  |
 | MAKERFAB ESP32S3 |  16M  |  2M   | ``` [env:MAKERF_ESP32S3] ``` |
 
+
 > [!IMPORTANT]
 > Currently, this project can run on any board with an ESP32S3 and at least a 320x480 TFT screen. The idea is to support all existing boards on the market that I can get to work, so if you don't want to use the specific IceNav board, please feel free to create an issue, and I will look into providing support.
+> Any help or contribution is always welcome
 
 
 ### Screens
