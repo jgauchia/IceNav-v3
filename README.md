@@ -244,7 +244,7 @@ nc -l -p 8123 > waypoint.gpx
       
 ## Credits
 
-* Added support to [Makerfabs ESP32-S3 Parallel TFT with Touch 3.5" ILI9488](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) thanks to [@hpsaturn](https://github.com/hpsaturn)
+* Added support to [Makerfabs ESP32-S3 Parallel TFT with Touch 3.5" ILI9488](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) [@makerfabs](https://github.com/makerfabs) thanks to [@hpsaturn](https://github.com/hpsaturn) to test it!
 * Improved documentation thanks to [@hpsaturn](https://github.com/hpsaturn)
 * Improved auto mainScreen selection from env variable preset thanks to [@hpsaturn](https://github.com/hpsaturn)
 * Improved getLat getLon from environment variables thanks to [@hpsaturn](https://github.com/hpsaturn)
