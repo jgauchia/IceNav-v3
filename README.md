@@ -230,6 +230,7 @@ nc -l -p 8123 > waypoint.gpx
 
 - [X] LVGL 9 Integration
 - [X] Support other resolutions and TFT models
+- [ ] Support for ready-made boards 
 - [X] Wifi CLI Manager
 - [X] LVGL Optimization 
 - [ ] GPX Integration
