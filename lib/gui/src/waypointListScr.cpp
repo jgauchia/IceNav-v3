@@ -34,8 +34,7 @@ void waypointListEvent(lv_event_t * event)
             if (!sel.isEmpty())
             {
                 std::string wptSelected = sel.substring(6,sel.length()).c_str();
-                log_i("%s",wptSelected.c_str());
-                std::regex wptGet("<wpt\\s+lat=\"([^\"]+)\"\\s+lon=\"([^\"]+)\">\\s*<name>([^<]+)</name>\\s*</wpt>");
+                std::regex wptGet("lat=\"([^\"]+)\"\\s+lon=\"([^\"]+)\">\\s*<name>([^<]*?)</name>");
                 std::smatch wptFound;
                 std::string::const_iterator wptSearch(wptContent.cbegin());
 
@@ -44,7 +43,7 @@ void waypointListEvent(lv_event_t * event)
                     std::string lat = wptFound[1].str();  
                     std::string lon = wptFound[2].str();  
                     std::string name = wptFound[3].str(); 
-                    log_i("%s",name.c_str());
+
                     if ( name == wptSelected )
                     {
                         //addWpt.name = (char*)name.c_str();
@@ -52,7 +51,7 @@ void waypointListEvent(lv_event_t * event)
                         std::strcpy(addWpt.name, name.c_str());
                         addWpt.lat = std::stod(lat);
                         addWpt.lon = std::stod(lon);
-                        log_i("Waypoint: %s %f %f",addWpt.name, addWpt.lat, addWpt.lon);
+                        log_i("Waypoint: %s %s %s",name.c_str(), lat.c_str(), lon.c_str());
                         break;
                     }
                     wptSearch = wptFound.suffix().first; 
@@ -90,6 +89,7 @@ void updateWaypointListScreen()
     lv_obj_clean(listWaypointScreen);
     lv_table_set_row_count(listWaypointScreen, 1);
     isMainScreen = false;  
+
     acquireSdSPI();
 
     File wayPointFile = SD.open(wptFile);
