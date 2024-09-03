@@ -2,8 +2,8 @@
  * @file tft.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief TFT definition and functions
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #include "tft.hpp"
@@ -67,23 +67,24 @@ void touchCalibrate()
   uint16_t calData[8];
   uint8_t calDataOK = 0;
 
-  if (SPIFFS.exists(calibrationFile))
+  FILE* f = fopen(calibrationFile, "r");
+
+  if (f != NULL)
   {
     if (repeatCalib)
-      SPIFFS.remove(calibrationFile);
+      remove(calibrationFile);
     else
     {
-      File f = SPIFFS.open(calibrationFile, "r");
-      if (f)
+      if (fread((char *)calData, sizeof(char), 16, f))
       {
-        if (f.readBytes((char *)calData, 16) == 16)
-          calDataOK = 1;
-        f.close();
+        log_i("Touch calibration exists");
+        calDataOK = 1;
+        fclose(f);
       }
-      else
-        log_v("Error opening touch configuration");
     }
   }
+  else
+    log_e("Touch calibration doesn't exists");
 
   if (calDataOK && !repeatCalib)
     tft.setTouchCalibrate(calData);
@@ -106,12 +107,12 @@ void touchCalibrate()
     delay(500);
     tft.drawCenterString("TOUCH TO CONTINUE.", tft.width() >> 1, (tft.height() >> 1) + (tft.fontHeight(fontLarge) * 2), fontSmall);
 
-    File f = SPIFFS.open(calibrationFile, "w");
+    FILE* f = fopen(calibrationFile, "w");
     if (f)
     {
       log_v("Calibration saved");
-      f.write((const unsigned char *)calData, 16);
-      f.close();
+      fwrite((const unsigned char *)calData, sizeof(unsigned char), 16 ,f);
+      fclose(f);
     }
     else
       log_e("Calibration not saved!");
@@ -137,6 +138,9 @@ void initTFT()
   tft.fillScreen(TFT_BLACK);
   tft.endWrite();
 
+#ifdef ICENAV_BOARD
+  gpio_set_drive_capability(GPIO_NUM_45, GPIO_DRIVE_CAP_3);
+#endif
 #ifdef ARDUINO_ESP32_DEV
   gpio_set_drive_capability(GPIO_NUM_33, GPIO_DRIVE_CAP_3);
 #endif
@@ -147,5 +151,7 @@ void initTFT()
   ledcSetup(0, 5000, 8);
   ledcAttachPin(TFT_BL, 0);
   ledcWrite(0, 255);
+#ifdef TOUCH_INPUT
   touchCalibrate();
+#endif
 }

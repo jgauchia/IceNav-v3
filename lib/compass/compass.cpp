@@ -2,8 +2,8 @@
  * @file compass.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Compass definition and functions
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #include "compass.hpp"
@@ -11,7 +11,11 @@
 int mapHeading = 0;
 
 #ifdef HMC5883L
-Adafruit_HMC5883_Unified compass = Adafruit_HMC5883_Unified(12345);
+DFRobot_QMC5883 compass = DFRobot_QMC5883(&Wire,HMC5883L_ADDRESS);
+#endif
+
+#ifdef QMC5883
+DFRobot_QMC5883 compass = DFRobot_QMC5883(&Wire,QMC5883_ADDRESS);
 #endif
 
 #ifdef IMU_MPU9250
@@ -53,7 +57,17 @@ void initCompass()
   #ifdef HMC5883L
   if (!compass.begin())
     compass.begin();
+  compass.setDataRate(HMC5883L_DATARATE_15HZ);
+  compass.setSamples(HMC5883L_SAMPLES_2);
   #endif
+
+  #ifdef QMC5883
+  if (!compass.begin())
+    compass.begin();
+  compass.setDataRate(QMC5883_DATARATE_10HZ);
+  compass.setSamples(QMC5883_SAMPLES_2);
+  #endif
+
   #ifdef IMU_MPU9250
   int status = IMU.begin();
   if (status < 0)
@@ -75,14 +89,20 @@ void initCompass()
 void readCompass(float &x, float &y, float &z)
 {
   #ifdef HMC5883L
-  sensors_event_t event;
-  compass.getEvent(&event);
-  y = event.magnetic.y;
-  x = event.magnetic.x;
-  z = event.magnetic.z;
+  sVector_t mag = compass.readRaw();
+  y = mag.YAxis;
+  x = mag.XAxis;
+  z = mag.ZAxis;
   #endif
 
-  #ifdef IMU_MPU9250
+  #ifdef QMC5883 
+  sVector_t mag = compass.readRaw();
+  y = mag.YAxis;
+  x = mag.XAxis;
+  z = mag.ZAxis;
+  #endif
+
+   #ifdef IMU_MPU9250
   IMU.readSensor();
   x = IMU.getMagX_uT();
   y = IMU.getMagY_uT();
@@ -142,7 +162,7 @@ void compassCalibrate()
   #endif
 
   tft.drawCenterString("ROTATE THE DEVICE", tft.width() >> 1, 10 * scale, fontSmall);
-  tft.drawPngFile(SPIFFS, PSTR("/turn.png"), (tft.width() / 2) - 50, 60 * scale);
+  tft.drawPngFile(PSTR("/spiffs/turn.png"), (tft.width() / 2) - 50, 60 * scale);
   tft.drawCenterString("TOUCH TO START", tft.width() >> 1, 200 * scale, fontSmall);
   tft.drawCenterString("COMPASS CALIBRATION", tft.width() >> 1, 230 * scale, fontSmall);
 

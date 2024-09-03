@@ -2,14 +2,17 @@
  * @file renderMaps.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Render maps draw functions
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #include "renderMaps.hpp"
+#include "mapsDrawFunc.h"
+
+extern const int SD_CS;
 
 MapTile oldMapTile = {"", 0, 0, 0};     // Old Map tile coordinates and zoom
-MapTile currentMapTile = {"", 0, 0, 0}; // Curreng Map tile coordinates and zoom
+MapTile currentMapTile = {"", 0, 0, 0}; // Current Map tile coordinates and zoom
 MapTile roundMapTile = {"", 0, 0, 0};   // Boundaries Map tiles
 ScreenCoord navArrowPosition = {0,0};  // Map Arrow position
 
@@ -26,7 +29,7 @@ TFT_eSprite mapTempSprite = TFT_eSprite(&tft); // Temporary Map Sprite 9x9 tiles
 TFT_eSprite mapSprite = TFT_eSprite(&tft);     // Screen Map Sprite (Viewed in LVGL Tile)
 
 /**
- * @brief Get TileY for OpenStreeMap files
+ * @brief Get TileX for OpenStreetMap files
  *
  * @param f_lon -> longitude
  * @param zoom -> zoom
@@ -86,9 +89,13 @@ void generateRenderMap()
   if (strcmp(currentMapTile.file, oldMapTile.file) != 0 ||
       currentMapTile.zoom != oldMapTile.zoom ||
       currentMapTile.tilex != oldMapTile.tilex ||
-      currentMapTile.tiley != oldMapTile.tiley || redrawMap)
+      currentMapTile.tiley != oldMapTile.tiley)
   {
-    mapTempSprite.fillScreen(TFT_BLACK);
+    deleteMapScrSprites();
+    createMapScrSprites();
+
+    acquireSdSPI();
+
     isMapFound  = mapTempSprite.drawPngFile(SD, currentMapTile.file, tileSize, tileSize);
 
     if (!isMapFound)
@@ -124,8 +131,9 @@ void generateRenderMap()
       oldMapTile.zoom = currentMapTile.zoom;
       oldMapTile.tilex = currentMapTile.tilex;
       oldMapTile.tiley = currentMapTile.tiley;
-      redrawMap = false;
     }
+
+    releaseSdSPI();
 
     log_v("TILE: %s", oldMapTile.file);
   }

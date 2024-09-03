@@ -2,8 +2,8 @@
  * @file ILI9488_XPT2046_SPI.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LOVYANGFX TFT driver for ILI9488 SPI With XPT2046 Touch controller
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #ifndef ILI9488_XPT2046_SPI_HPP
@@ -27,6 +27,7 @@ extern const uint8_t TCH_SPI_CS;
 extern const bool TFT_INVERT;
 
 #define LARGE_SCREEN
+#define TOUCH_INPUT
 
 class LGFX : public lgfx::LGFX_Device
 {
@@ -47,7 +48,7 @@ public:
       #endif
       cfg.spi_mode = 0;
       cfg.freq_write = 79999999;
-      cfg.freq_read = 30000000;
+      cfg.freq_read = 15000000;
       cfg.spi_3wire = false;
       cfg.use_lock = false;
       cfg.dma_channel = SPI_DMA_CH_AUTO;
@@ -77,7 +78,12 @@ public:
       cfg.invert = TFT_INVERT;
       cfg.rgb_order = false;
       cfg.dlen_16bit = false;
+      #ifdef SPI_SHARED
+      cfg.bus_shared = true;
+      #endif
+      #ifndef SPI_SHARED
       cfg.bus_shared = false;
+      #endif
       _panel_instance.config(cfg);
     }
 
@@ -91,7 +97,7 @@ public:
       cfg.bus_shared = true;
       cfg.offset_rotation = 0;
       #ifdef ARDUINO_ESP32S3_DEV
-      cfg.spi_host = SPI3_HOST;
+      cfg.spi_host = SPI2_HOST;
       #endif
       #ifdef ARDUINO_ESP32_DEV
       cfg.spi_host = HSPI_HOST;

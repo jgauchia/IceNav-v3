@@ -36,35 +36,49 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 
 Currently, IceNav works with the following hardware setups and specs 
 
-**Highly recommended an ESP32 with PSRAM** 
+**Highly recommended an ESP32S3 with PSRAM and 320x480 Screen** 
  
 > [!IMPORTANT]
 > Please review the platformio.ini file to choose the appropriate environment as well as the different build flags for your correct setup.
 
 ### Boards
 
-|                  | FLASH | PSRAM | Environment                  |
-|:-----------------|:-----:|:-----:|:-----------------------------|
-| ESP32            |  16M  |  4M   | ``` [env:ESP32_N16R4] ```    |
-| ESP32S3          |  16M  |  8M   | ``` [env:ESP32S3_N16R8] ```  |
-| MAKERFAB ESP32S3 |  16M  |  2M   | ``` [env:MAKERF_ESP32S3] ``` |
+|                  | FLASH | PSRAM | Environment                  | Full Support |
+|:-----------------|:-----:|:-----:|:-----------------------------|--------------|
+| ICENAV (ESP32S3) |  16M  |  8M   | ``` [env:ICENAV] ```         |     YES      |
+| ESP32            |  16M  |  4M   | ``` [env:ESP32_N16R4] ```    |     YES      |
+| ESP32S3          |  16M  |  8M   | ``` [env:ESP32S3_N16R8] ```  |     YES      |
+| [MAKERFABS ESP32S3](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) |  16M  |  2M   | ``` [env:MAKERF_ESP32S3] ``` |   TESTING    |
+
+
+> [!IMPORTANT]
+> Currently, this project can run on any board with an ESP32S3 and at least a 320x480 TFT screen. The idea is to support all existing boards on the market that I can get to work, so if you don't want to use the specific IceNav board, please feel free to create an issue, and I will look into providing support.
+> Any help or contribution is always welcome
+
 
 ### Screens
 
 | Driver [^1] | Resolution | SPI | 8bit | 16bit | Touch     | Build Flags [^2]                 |
 |:------------|:----------:|:---:|:----:|:-----:|:---------:|:---------------------------------|
-| ILI9488 [^3]| 320x480    | yes | ---  | ---   | XPT2046   | ```-D ILI9488_XPT2046_SPI = 1``` |
-| ILI9488     | 320x480    | --- | ---  | yes   | FT5x06    | ```-D ILI9488_FT5x06_16B = 1```  |
-| ILI9341     | 320x240    | yes | ---  | ---   | XPT2046   | ```-D ILI9341_XPT2046_SPI = 1``` |
+| ILI9488 [^3]| 320x480    | yes | ---  | ---   | XPT2046   | ```-DILI9488_XPT2046_SPI```      |
+| ILI9488     | 320x480    | yes | ---  | ---   | FT5x06    | ```-DILI9488_FT5x06_SPI```       |
+| ILI9488     | 320x480    | --- | yes  | ---   | --------  | ```-DILI9488_NOTOUCH_8B```       |
+| ILI9488     | 320x480    | --- | ---  | yes   | FT5x06    | ```-DILI9488_FT5x06_16B```       |
+| ILI9341     | 320x240    | yes | ---  | ---   | XPT2046   | ```-DILI9341_XPT2046_SPI```      |
+
+If TFT shares SPI bus with SD card add the following Build Flag to platformio.ini
+
+```-DSPI_SHARED```
 
 ### Modules
 
 |             | Type          | Build Flags [^2]                 | lib_deps [^4] (**no common environment**)              |
 |:------------|:--------------|:---------------------------------|:-------------------------------------------------------|
-| AT6558D     | GPS           | ```-D AT6558D_GPS = 1```         |                                                        |
-| HMC5883L    | Compass       | ```-D HMC5883L = 1```            | ```adafruit/Adafruit Unified Sensor@^1.1.14``` <br> ```adafruit/Adafruit BusIO@^1.16.1``` <br> ```adafruit/Adafruit HMC5883 Unified@^1.2.3```|
-| MPU9250     | IMU (Compass) | ```-D IMU_MPU9250 = 1 ```        | ```bolderflight/Bolder Flight Systems MPU9250@^1.0.2```|
-| BME280      | Temp/Pres/Hum | ```-D BME280 = 1```              | ```adafruit/Adafruit Unified Sensor@^1.1.14``` <br> ```adafruit/Adafruit BusIO@^1.16.1``` <br> ```adafruit/Adafruit BME280 Library@^2.2.4```|
+| AT6558D     | GPS           | ```-DAT6558D_GPS```              |                                                        |
+| HMC5883L    | Compass       | ```-DHMC5883L```                 | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
+| QMC5883     | Compass       | ```-DQMC5883```                  | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
+| MPU9250     | IMU (Compass) | ```-DIMU_MPU9250```              | ```bolderflight/Bolder Flight Systems MPU9250@^1.0.2```|
+| BME280      | Temp/Pres/Hum | ```-DBME280```                   | ```adafruit/Adafruit Unified Sensor@^1.1.14``` <br> ```adafruit/Adafruit BusIO@^1.16.1``` <br> ```adafruit/Adafruit BME280 Library@^2.2.4```|
 
 
 [^1]: See **hal.hpp** for pinouts configuration
@@ -177,15 +191,16 @@ info:           get device information
 nmcli:          network manager CLI.
 reboot:         perform a ESP32 reboot
 scshot:         screenshot to SD or sending a PC
+waypoint:       waypoint utilities
 ```
 
 Some extra details:
 
 **nmcli**: IceNav use a `wcli` network manager library. For more details of this command and its sub commands please refer to [here](https://github.com/hpsaturn/esp32-wifi-cli?tab=readme-ov-file#readme)
 
-**schot**: This utility can save a screenshot to the root of your SD, with the name: `screenshot.raw`. You can convert it to png using the `convert.py` script in the `tools` folder.
+**scshot**: This utility can save a screenshot to the root of your SD, with the name: `screenshot.raw`. You can convert it to png using the `convert.py` script in the `tools` folder.
 
-Additionally, this screenshot command can send the screenshot over WiFi using the following syntax:
+Additionally, this screenshot command can send the screenshot over WiFi using the following syntax (replace IP with your PC IP):
 
 ```bash
 scshot 192.168.1.10 8123
@@ -197,11 +212,27 @@ Ensure your PC has the specified port open and firewall access enabled to receiv
 nc -l -p 8123 > screenshot.raw
 ```
 
+**waypoint**: type `waypoint` for detailed options.
+
+Additionally, this waypoint command can send the waypoint over WiFi using the following syntax (replace IP with your PC IP):
+
+```bash
+waypoint down file.gpx 192.168.1.10 8123
+```
+
+Ensure your PC has the specified port open and firewall access enabled to receive the waypoint file via the `netcat` command, like this:
+
+```bash
+nc -l -p 8123 > waypoint.gpx
+```
+
 ### TO DO
 
 - [X] LVGL 9 Integration
 - [X] Support other resolutions and TFT models
+- [ ] Support for ready-made boards 
 - [X] Wifi CLI Manager
+- [X] LVGL Optimization 
 - [ ] GPX Integration
 - [ ] Multiple IMU's and Compass module implementation
 - [ ] Power saving
@@ -211,9 +242,18 @@ nc -l -p 8123 > screenshot.raw
 - [ ] Fix bugs!
 - [ ] Web file server
       
+
+## Special thanks to....
+* [@hpsaturn](https://github.com/hpsaturn) Thanks to him and his knowledge, this project is no longer sitting in a drawer :smirk:.
+* [@pcbway](https://github.com/pcbway) for bringing a first prototype of the IceNav PCB to reality :muscle:
+* [@lovyan03](https://github.com/lovyan03/LovyanGFX) for his library; I still have a lot to learn from it.
+* [@lvgl](https://github.com/lvgl/lvgl) for creating an amazing UI
+* And of course, to my family, who supports me through all this development and doesn’t understand why. :kissing_heart: I will never be able to thank you enough for the time I've dedicated.
+
+
 ## Credits
 
-* Added support to [Makerfabs ESP32-S3 Parallel TFT with Touch 3.5" ILI9488](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) thanks to [@hpsaturn](https://github.com/hpsaturn)
+* Added support to [Makerfabs ESP32-S3 Parallel TFT with Touch 3.5" ILI9488](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) from [@makerfabs](https://github.com/makerfabs) thanks to [@hpsaturn](https://github.com/hpsaturn) to test it!
 * Improved documentation thanks to [@hpsaturn](https://github.com/hpsaturn)
 * Improved auto mainScreen selection from env variable preset thanks to [@hpsaturn](https://github.com/hpsaturn)
 * Improved getLat getLon from environment variables thanks to [@hpsaturn](https://github.com/hpsaturn)

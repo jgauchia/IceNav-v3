@@ -2,8 +2,8 @@
  * @file vectorMaps.cpp
  * @author @aresta - https://github.com/aresta/ESP32_GPS
  * @brief  Vector maps draw functions
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #include "vectorMaps.hpp"
@@ -121,7 +121,7 @@ int16_t parseInt16(ReadBufferingStream &file)
 }
 
 /**
- * @brief Returns the string until terminator char or newline. The terminator character is not included but comsumed from stream.
+ * @brief Returns the string until terminator char or newline. The terminator character is not included but consumed from stream.
  *
  * @param file
  * @param terminator
@@ -389,7 +389,7 @@ void getMapBlocks(BBox &bbox, MemCache &memCache)
     if (memCache.blocks.size() >= MAPBLOCKS_MAX)
     {
       // remove first one, the oldest
-      log_v("Deleteing freeHeap: %i", esp_get_free_heap_size());
+      log_v("Deleting freeHeap: %i", esp_get_free_heap_size());
       MapBlock *firstBlock = memCache.blocks.front();
       delete firstBlock;                              // free memory
       memCache.blocks.erase(memCache.blocks.begin()); // remove pointer from the vector
@@ -407,12 +407,12 @@ void getMapBlocks(BBox &bbox, MemCache &memCache)
       log_d("Block readed from SD card: %p", newBlock);
       log_d("FreeHeap: %i", esp_get_free_heap_size());
     }
-    else
-    {
-      newBlock->inView = false;
-      newBlock->offset = Point32(blockMinX, blockMinY);
-      memCache.blocks.push_back(newBlock); // add the block to the memory cache
-    }
+    // else
+    // {
+    //   newBlock->inView = false;
+    //   newBlock->offset = Point32(blockMinX, blockMinY);
+    //   memCache.blocks.push_back(newBlock); // add the block to the memory cache
+    // }
   }
 
   log_d("memCache size: %i %i", memCache.blocks.size(), millis());
@@ -424,7 +424,7 @@ void getMapBlocks(BBox &bbox, MemCache &memCache)
  * @param points
  * @param color
  */
-void fillPoligon(Polygon p, TFT_eSprite &map) // scanline fill algorithm
+void fillPolygon(Polygon p, TFT_eSprite &map) // scanline fill algorithm
 {
   int16_t maxY = p.bbox.max.y;
   int16_t minY = p.bbox.min.y;
@@ -498,7 +498,6 @@ void fillPoligon(Polygon p, TFT_eSprite &map) // scanline fill algorithm
  */
 void generateVectorMap(ViewPort &viewPort, MemCache &memCache, TFT_eSprite &map)
 {
-  map.fillScreen(TFT_BLACK);
   Polygon newPolygon;
   map.fillScreen(BACKGROUND_COLOR);
   uint32_t totalTime = millis();
@@ -531,12 +530,12 @@ void generateVectorMap(ViewPort &viewPort, MemCache &memCache, TFT_eSprite &map)
 
         newPolygon.points.clear();
         for (Point16 p : polygon.points)
-        { // TODO: move to fillPoligon
+        { // TODO: move to fillPolygon
             newPolygon.points.push_back(Point16(
                 toScreenCoord(p.x, screen_center_mc.x),
                 toScreenCoord(p.y, screen_center_mc.y)));
         }
-        fillPoligon(newPolygon, map);
+        fillPolygon(newPolygon, map);
       }
       log_d("Block polygons done %i ms", millis() - blockTime);
       blockTime = millis();

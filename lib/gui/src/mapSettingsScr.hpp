@@ -2,8 +2,8 @@
  * @file mapSettingsScr.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Map Settings screen
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #ifndef MAPSETTINGSCR_HPP
@@ -27,6 +27,7 @@ static lv_obj_t *checkCompass;
 static lv_obj_t *checkCompassRot;
 static lv_obj_t *checkSpeed;
 static lv_obj_t *checkScale;
+static lv_obj_t *checkFullScreen;
 
 static void mapSettingsEvents(lv_event_t *event);
 void createMapSettingsScr();

@@ -2,8 +2,8 @@
  * @file satInfo.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Satellites info screen functions
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #include "satInfo.hpp"
@@ -13,7 +13,7 @@
 // GSV GL_GSV;  // GLONASS Satellites in view
 // GSV BD_GSV;  // BEIDOU Satellites in view
 
-SatPos satPos; // Satellite position X,Y in constelation map
+SatPos satPos; // Satellite position X,Y in constellation map
 
 TFT_eSprite spriteSNR1 = TFT_eSprite(&tft);       // Sprite for snr GPS Satellite Labels
 TFT_eSprite spriteSNR2 = TFT_eSprite(&tft);       // Sprite for snr GPS Satellite Labels
@@ -26,10 +26,10 @@ lv_chart_series_t *satelliteBarSerie1; // Satellite Signal Graphics Bars
 lv_chart_series_t *satelliteBarSerie2; // Satellite Signal Graphics Bars
 
 /**
- * @brief Get the Satellite position for constelation map
+ * @brief Get the Satellite position for constellation map
  *
  * @param elev -> elevation
- * @param azim -> Azimut
+ * @param azim -> Azimuth
  * @return SatPos -> Satellite position
  */
 SatPos getSatPos(uint8_t elev, uint16_t azim)

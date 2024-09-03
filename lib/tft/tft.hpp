@@ -2,17 +2,15 @@
  * @file tft.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief TFT definition and functions
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #ifndef TFT_HPP
 #define TFT_HPP
 
 #include <Arduino.h>
-#include <FS.h>
 #include <SD.h>
-#include <SPIFFS.h>
 
 #ifdef ILI9488_XPT2046_SPI
 #include "ILI9488_XPT2046_SPI.hpp"
@@ -26,15 +24,23 @@
 #include "ILI9341_XPT2046_SPI.hpp"
 #endif
 
+#ifdef ILI9488_FT5x06_SPI
+#include "ILI9488_FT5x06_SPI.hpp"
+#endif
+
+#ifdef ILI9488_NOTOUCH_8B
+#include "ILI9488_NOTOUCH_8B.hpp"
+#endif
+
 #include <LGFX_TFT_eSPI.hpp>
 
 extern TFT_eSPI tft;
-static const char* calibrationFile PROGMEM = "/TouchCalData1";
+static const char* calibrationFile PROGMEM = "/spiffs/TouchCal";
 extern bool repeatCalib;
 static uint8_t brightnessLevel = 255;
 extern uint16_t TFT_WIDTH;
 extern uint16_t TFT_HEIGHT;
-extern bool waitScreenRefresh;                  // Wait for refres screen (screenshoot issues)
+extern bool waitScreenRefresh;                  // Wait for refresh screen (screenshot issues)
 
 
 void setBrightness(uint8_t brightness);

@@ -2,40 +2,49 @@
  * @file lvglSetup.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL Screen implementation
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #include "lvglSetup.hpp"
+#include "addWaypointScr.hpp"
 #include "globalGuiDef.h"
 
 ViewPort viewPort; // Vector map viewport
 MemCache memCache; // Vector map Memory Cache
+
+lv_display_t *display;
 
 lv_obj_t *searchSatScreen; // Search Satellite Screen
 lv_style_t styleThemeBkg;  // New Main Background Style
 lv_style_t styleObjectBkg; // New Objects Background Color
 lv_style_t styleObjectSel; // New Objects Selected Color
 
+
 /**
  * @brief LVGL display update
  *
  */
-void displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
+void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 { 
+  // if (tft.getStartCount() == 0) 
+  // {
+  //   tft.startWrite();  
+  // }
+  // tft.waitDMA(); 
+  // tft.setSwapBytes(true);
+  // tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t*)px_map);
+  // tft.setSwapBytes(false);
+  // tft.display(); 
+
   uint32_t w = (area->x2 - area->x1 + 1);
   uint32_t h = (area->y2 - area->y1 + 1);
-  //tft.startWrite();
-  if (tft.getStartCount() == 0)
-    tft.startWrite();
 
-
+  tft.startWrite();
+  tft.setSwapBytes(true);
   tft.setAddrWindow(area->x1, area->y1, w, h);
-  tft.pushPixels((uint16_t *)px_map, w * h, true);
-  
-  //tft.endWrite();
-  if (tft.getStartCount() > 0)
-    tft.endWrite();
+  tft.pushImageDMA(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t*)px_map);
+  tft.endWrite();
 
   lv_display_flush_ready(disp);
 }
@@ -44,17 +53,24 @@ void displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
  * @brief LVGL touch read
  *
  */
-void touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
+void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 {
   uint16_t touchX, touchY;
-  bool touched = tft.getTouch(&touchX, &touchY);
-  if (!touched)
+  if (!tft.getTouch(&touchX, &touchY))
     data->state = LV_INDEV_STATE_RELEASED;
   else
   {
+    if ( lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_0)
+    {
+      data->point.x = touchX;
+      data->point.y = touchY;
+    }
+    else if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
+    {
+      data->point.x = 320 - touchY;
+      data->point.y = touchX;
+    }
     data->state = LV_INDEV_STATE_PRESSED;
-    data->point.x = touchX;
-    data->point.y = touchY;
   }
 }
 
@@ -134,11 +150,9 @@ void initLVGL()
 {
   lv_init();
   
-  lv_port_spiffsFsInit();
-  // lv_port_sdFsInit();
-  
   display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
   lv_display_set_flush_cb(display, displayFlush);
+  lv_display_set_flush_wait_cb(display, NULL);
   
   size_t DRAW_BUF_SIZE = 0;
   
@@ -146,7 +160,7 @@ void initLVGL()
   assert(ESP.getFreePsram());
 
   if ( ESP.getPsramSize() >= 4000000 )
-    // 4Mb PSRAM
+    // >4Mb PSRAM
     DRAW_BUF_SIZE = TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t);
   else
     // 2Mb PSRAM
@@ -166,14 +180,16 @@ void initLVGL()
   
   #endif
   
+  #ifdef TOUCH_INPUT
   lv_indev_t *indev_drv = lv_indev_create();
   lv_indev_set_type(indev_drv, LV_INDEV_TYPE_POINTER);
   lv_indev_set_read_cb(indev_drv, touchRead);
+  #endif
   
   //  Create Main Timer
   mainTimer = lv_timer_create(updateMainScreen, UPDATE_MAINSCR_PERIOD, NULL);
   lv_timer_ready(mainTimer);
-  
+
   modifyTheme();
   
   //  Create Screens
@@ -184,6 +200,7 @@ void initLVGL()
   createMapSettingsScr();
   createDeviceSettingsScr();
   createButtonBarScr();
+  createAddWaypointScreen();
   
   // Create and start a periodic timer interrupt to call lv_tick_inc 
   const esp_timer_create_args_t periodic_timer_args = { .callback = &lv_tick_task, .name = "periodic_gui" };

@@ -1,22 +1,23 @@
 /**
  * @file globalMapsDef.h
  * @brief  Global Maps Variables
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #ifndef GLOBALMAPSDEF_H
 #define GLOBALMAPSDEF_H
 
-#include "SPIFFS.h"
 #include "tft.hpp"
 
 #ifdef LARGE_SCREEN
-#define MAP_HEIGHT 374  // Map Height Size
-#define MAP_WIDTH 320   // Map Width Size
+#define MAP_HEIGHT 380       // Map Height Size 380
+#define MAP_WIDTH 320        // Map Width Size
+#define MAP_HEIGHT_FULL 480  // Map Height Full Screen
 #else
-#define MAP_HEIGHT 240 // Map Height Size
-#define MAP_WIDTH 240  // Map Width Size
+#define MAP_HEIGHT 220       // Map Height Size
+#define MAP_WIDTH 240        // Map Width Size
+#define MAP_HEIGHT_FULL 320  // Map Height Full Screen
 #endif
 
 #define TILE_HEIGHT 768 // Tile 9x9 Height Size
@@ -28,6 +29,7 @@
 extern bool isMapFound;              // Flag to indicate when tile map is found on SD
 extern bool isScrolled;              // Flag to indicate when tileview was scrolled
 extern bool redrawMap;               // Flag to indicate need redraw Map
+
 
 extern TFT_eSprite sprArrow;         // Sprite for Navigation Arrow in map tile
 extern TFT_eSprite mapTempSprite;    // Double Buffering Sprites for Map Tile
@@ -71,7 +73,7 @@ struct ScreenCoord
 };
 
 /**
- * @brief Navitagion Arrow position on screen
+ * @brief Navigation Arrow position on screen
  *
  */
 extern ScreenCoord navArrowPosition;
@@ -93,7 +95,7 @@ static ScreenCoord coord2ScreenPos(double lon, double lat, uint8_t zoomLevel, ui
   return data;
 }
 
-static const char *noMapFile PROGMEM = "/NOMAP.png";
+static const char *noMapFile PROGMEM = "/spiffs/NOMAP.png";
 
 /**
  * @brief Load No Map Image
@@ -101,7 +103,7 @@ static const char *noMapFile PROGMEM = "/NOMAP.png";
  */
 static void showNoMap(TFT_eSprite &map)
 {
-  map.drawPngFile(SPIFFS, noMapFile, (MAP_WIDTH / 2) - 50, (MAP_HEIGHT / 2) - 50);
+  map.drawPngFile(noMapFile, (MAP_WIDTH / 2) - 50, (MAP_HEIGHT / 2) - 50);
   map.drawCenterString("NO MAP FOUND", (MAP_WIDTH / 2), (MAP_HEIGHT >> 1) + 65, &fonts::DejaVu18);
 }
 

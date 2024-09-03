@@ -2,8 +2,8 @@
  * @file compass.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Compass definition and functions
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #ifndef COMPASS_HPP
@@ -14,9 +14,14 @@
 extern int mapHeading;
 
 #ifdef HMC5883L
-#include <Adafruit_Sensor.h>
-#include <Adafruit_HMC5883_U.h>
-extern Adafruit_HMC5883_Unified compass;
+#include <DFRobot_QMC5883.h>
+extern DFRobot_QMC5883 compass;
+#define ENABLE_COMPASS
+#endif
+
+#ifdef QMC5883
+#include <DFRobot_QMC5883.h>
+extern DFRobot_QMC5883 compass;
 #define ENABLE_COMPASS
 #endif
 

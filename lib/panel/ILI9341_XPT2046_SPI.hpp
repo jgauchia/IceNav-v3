@@ -2,14 +2,16 @@
 //  * @file ILI9341_XPT2046_SPI.hpp
 //  * @author Jordi Gauchía (jgauchia@gmx.es)
 //  * @brief  LOVYANGFX TFT driver for ILI9341 SPI With XPT2046 Touch controller
-//  * @version 0.1.8
-//  * @date 2024-06
+//  * @version 0.1.8_Alpha
+//  * @date 2024-08
 //  */
 
 #ifndef ILI9341_XPT2046_SPI_HPP
 #define ILI9341_XPT2046_SPI_HPP
 
 #define LGFX_USE_V1
+
+#define TOUCH_INPUT
 
 #include "LovyanGFX.hpp"
 
@@ -75,7 +77,12 @@ public:
       cfg.invert = false;
       cfg.rgb_order = false;
       cfg.dlen_16bit = false;
+      #ifdef SPI_SHARED
+      cfg.bus_shared = true;
+      #endif
+      #ifndef SPI_SHARED
       cfg.bus_shared = false;
+      #endif
       _panel_instance.config(cfg);
     }
 

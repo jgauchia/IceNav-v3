@@ -2,8 +2,8 @@
  * @file splashScr.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Splash screen - NOT LVGL
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #include "splashScr.hpp"
@@ -23,8 +23,8 @@ void splashScreen()
   static uint16_t pngHeight = 0;
   static uint16_t pngWidth = 0;
 
-  getPngSize(SPIFFS, logoFile,&pngWidth,&pngHeight);
-  tft.drawPngFile(SPIFFS, logoFile, (tft.width() / 2) - (pngWidth/2), (tft.height() / 2) - pngHeight);
+  getPngSize(logoFile,&pngWidth,&pngHeight);
+  tft.drawPngFile(logoFile, (tft.width() / 2) - (pngWidth/2), (tft.height() / 2) - pngHeight);
 
   char statusString[50] = "";
   tft.setTextSize(1);

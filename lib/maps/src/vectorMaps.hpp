@@ -2,8 +2,8 @@
  * @file vectorMaps.hpp
  * @author @aresta - https://github.com/aresta/ESP32_GPS
  * @brief  Vector maps draw functions
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-08
  */
 
 #ifndef VECTORMAPS_HPP
@@ -130,7 +130,7 @@ struct Polyline
 };
 
 /**
- * @brief Poligon
+ * @brief Polygon
  *
  */
 struct Polygon
@@ -215,7 +215,7 @@ void parseCoords(ReadBufferingStream &file, std::vector<Point16> &points);
 BBox parseBbox(String str);
 MapBlock *readMapBlock(String fileName);
 void getMapBlocks(BBox &bbox, MemCache &memCache);
-void fillPoligon(Polygon p, TFT_eSprite &map); // scanline fill algorithm
+void fillPolygon(Polygon p, TFT_eSprite &map); // scanline fill algorithm
 void generateVectorMap(ViewPort &viewPort, MemCache &memCache, TFT_eSprite &map);
 
 
