@@ -47,10 +47,10 @@ void waypointListEvent(lv_event_t * event)
                     if ( name == wptSelected )
                     {
                         //addWpt.name = (char*)name.c_str();
-                        addWpt.name = new char[name.size() + 1];
-                        std::strcpy(addWpt.name, name.c_str());
-                        addWpt.lat = std::stod(lat);
-                        addWpt.lon = std::stod(lon);
+                        loadWpt.name = new char[name.size() + 1];
+                        std::strcpy(loadWpt.name, name.c_str());
+                        loadWpt.lat = std::stod(lat);
+                        loadWpt.lon = std::stod(lon);
                         log_i("Waypoint: %s %s %s",name.c_str(), lat.c_str(), lon.c_str());
                         break;
                     }

@@ -11,6 +11,7 @@
 extern const int SD_CS;
 
 wayPoint addWpt = {0, 0, 0, "", "", "", "", "", "", 0, 0, 0, 0};
+wayPoint loadWpt = {0, 0, 0, "", "", "", "", "", "", 0, 0, 0, 0};
 File gpxFile;
 
 /**
