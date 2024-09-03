@@ -64,9 +64,9 @@ void updateCompassScr(lv_event_t * event)
     #endif
   }
   if (obj==latitude)
-    lv_label_set_text_static(obj, latFormatString(GPS.location.lat()));
+    lv_label_set_text_fmt(latitude, "%s", lonFormatString(GPS.location.lat()));
   if (obj==longitude)
-    lv_label_set_text_static(obj, lonFormatString(GPS.location.lng()));
+    lv_label_set_text_fmt(longitude, "%s", lonFormatString(GPS.location.lng()));
   if (obj==altitude)
     lv_label_set_text_fmt(obj, "%4d m.", (int)GPS.altitude.meters());
   if (obj==speedLabel)
@@ -594,7 +594,8 @@ void createMainScr()
   lv_img_set_src(compassImg, &bruj);
   lv_img_set_zoom(compassImg,iconScale);
   lv_obj_update_layout(compassImg);
-  lv_obj_align_to(compassImg, compassWidget, LV_ALIGN_CENTER, 0, 0);    lv_img_set_pivot(compassImg, 100, 100) ;
+  lv_obj_align_to(compassImg, compassWidget, LV_ALIGN_CENTER, 0, 0);   
+  lv_img_set_pivot(compassImg, 100, 100) ;
   compassHeading = lv_label_create(compassWidget);
   lv_obj_set_height(compassHeading,38);
   lv_obj_align(compassHeading, LV_ALIGN_CENTER, 0, 20);
@@ -611,10 +612,10 @@ void createMainScr()
   lv_obj_clear_flag(positionWidget, LV_OBJ_FLAG_SCROLLABLE);
   latitude = lv_label_create(positionWidget);
   lv_obj_set_style_text_font(latitude, fontMedium, 0);
-  lv_label_set_text_static(latitude, latFormatString(GPS.location.lat()));
+  lv_label_set_text_fmt(latitude, "%s", latFormatString(GPS.location.lat()));
   longitude = lv_label_create(positionWidget);
   lv_obj_set_style_text_font(longitude, fontMedium, 0);
-  lv_label_set_text_static(longitude, lonFormatString(GPS.location.lng()));
+  lv_label_set_text_fmt(longitude, "%s", lonFormatString(GPS.location.lng()));
   lv_obj_t *posImg = lv_img_create(positionWidget);
   lv_img_set_src(posImg, positionIconFile);
   lv_img_set_zoom(posImg,iconScale);
@@ -750,12 +751,12 @@ void createMainScr()
 
   latNav = lv_label_create(navTile);
   lv_obj_set_style_text_font(latNav, fontOptions, 0);
-  lv_label_set_text_static(latNav, latFormatString(addWpt.lat));
+  lv_label_set_text_fmt(latNav, "%s", "");
   lv_obj_set_pos(latNav, 60, 90);
   
   lonNav = lv_label_create(navTile);
   lv_obj_set_style_text_font(lonNav, fontOptions, 0);
-  lv_label_set_text_static(lonNav, lonFormatString(addWpt.lon));
+  lv_label_set_text_fmt(lonNav, "%s", "");
   lv_obj_set_pos(lonNav, 60, 120);
   
   // Navigation Tile Events

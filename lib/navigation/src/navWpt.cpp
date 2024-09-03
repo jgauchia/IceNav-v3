@@ -18,8 +18,8 @@ lv_obj_t *lonNav;
  */
 void updateNavScreen()
 {
-  lv_label_set_text_static(latNav, latFormatString(loadWpt.lat));
-  lv_label_set_text_static(lonNav, lonFormatString(loadWpt.lon));
+  lv_label_set_text_fmt(latNav, "%s", latFormatString(loadWpt.lat));
+  lv_label_set_text_fmt(lonNav, "%s", lonFormatString(loadWpt.lon));
   lv_label_set_text_fmt(nameNav, "%s",loadWpt.name);
   delete[] loadWpt.name;
 }
