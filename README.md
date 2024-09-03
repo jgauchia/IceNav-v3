@@ -192,6 +192,7 @@ nmcli:          network manager CLI.
 reboot:         perform a ESP32 reboot
 scshot:         screenshot to SD or sending a PC
 waypoint:       waypoint utilities
+wipe:           wipe preferences to factory default
 ```
 
 Some extra details:
