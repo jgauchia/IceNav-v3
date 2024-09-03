@@ -37,6 +37,16 @@ void wcli_info(char *args, Stream *response)
   response->println(gpsBaudDetected);
 }
 
+void wcli_swipe(char *args, Stream *response)
+{
+  Pair<String, String> operands = wcli.parseCommand(args);
+  String deviceId = operands.first();
+  response->println("Clearing device to defaults..");
+  wcli.clearSettings();
+  cfg.clear();
+  response->println("done");
+}
+
 void wcli_clear(char *args, Stream *response)
 {
   wcli.shell->clear();
@@ -215,6 +225,7 @@ void initShell(){
   wcli.setSilentMode(true);
   // Main Commands:
   wcli.add("reboot", &wcli_reboot, "\tperform a ESP32 reboot");
+  wcli.add("wipe", &wcli_swipe, "\t\twipe preferences to factory default");
   wcli.add("info", &wcli_info, "\t\tget device information");
   wcli.add("clear", &wcli_clear, "\t\tclear shell");
   wcli.add("scshot", &wcli_scshot, "\tscreenshot to SD or sending a PC");
