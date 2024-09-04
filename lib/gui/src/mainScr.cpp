@@ -541,11 +541,18 @@ void zoomOutEvent(lv_event_t *event)
  */
 void updateNavEvent(lv_event_t *event)
 {
-  lv_label_set_text_fmt(distNav,"%d m.", (int)calcDist(getLat(), getLon(), loadWpt.lat, loadWpt.lon));
-  #ifdef ENABLE_COMPASS
-    double wptCourse = calcCourse(getLat(), getLon(), loadWpt.lat, loadWpt.lon) - getHeading();
-    lv_img_set_angle(arrowNav, (wptCourse * 10));
-  #endif
+  int wptDistance = (int)calcDist(getLat(), getLon(), loadWpt.lat, loadWpt.lon);
+  lv_label_set_text_fmt(distNav,"%d m.", wptDistance);
+
+  if (wptDistance == 0)
+    lv_img_set_src(arrowNav, &navfinish);
+  else
+  {
+    #ifdef ENABLE_COMPASS
+      double wptCourse = calcCourse(getLat(), getLon(), loadWpt.lat, loadWpt.lon) - getHeading();
+      lv_img_set_angle(arrowNav, (wptCourse * 10));
+    #endif
+  }
 }
 
 /**
