@@ -64,9 +64,9 @@ void updateCompassScr(lv_event_t * event)
     #endif
   }
   if (obj==latitude)
-    lv_label_set_text_fmt(latitude, "%s", lonFormatString(GPS.location.lat()));
+    lv_label_set_text_fmt(latitude, "%s", latFormatString(getLat()));
   if (obj==longitude)
-    lv_label_set_text_fmt(longitude, "%s", lonFormatString(GPS.location.lng()));
+    lv_label_set_text_fmt(longitude, "%s", lonFormatString(getLon()));
   if (obj==altitude)
     lv_label_set_text_fmt(obj, "%4d m.", (int)GPS.altitude.meters());
   if (obj==speedLabel)
@@ -269,6 +269,7 @@ void updateMainScreen(lv_timer_t *t)
         break;
           
       case NAV:
+        lv_obj_send_event(navTile, LV_EVENT_VALUE_CHANGED, NULL);
         break;
 
       case SATTRACK:
@@ -534,6 +535,16 @@ void zoomOutEvent(lv_event_t *event)
 }
 
 /**
+ * @brief Navigation update event
+ *
+ * @param event
+ */
+void updateNavEvent(lv_event_t *event)
+{
+  lv_label_set_text_fmt(distNav,"%d m.", (int)calcDist(getLat(), getLon(), loadWpt.lat, loadWpt.lon));
+}
+
+/**
  * @brief Create Main Screen
  *
  */
@@ -612,10 +623,10 @@ void createMainScr()
   lv_obj_clear_flag(positionWidget, LV_OBJ_FLAG_SCROLLABLE);
   latitude = lv_label_create(positionWidget);
   lv_obj_set_style_text_font(latitude, fontMedium, 0);
-  lv_label_set_text_fmt(latitude, "%s", latFormatString(GPS.location.lat()));
+  lv_label_set_text_fmt(latitude, "%s", latFormatString(getLat()));
   longitude = lv_label_create(positionWidget);
   lv_obj_set_style_text_font(longitude, fontMedium, 0);
-  lv_label_set_text_fmt(longitude, "%s", lonFormatString(GPS.location.lng()));
+  lv_label_set_text_fmt(longitude, "%s", lonFormatString(getLon()));
   lv_obj_t *posImg = lv_img_create(positionWidget);
   lv_img_set_src(posImg, positionIconFile);
   lv_img_set_zoom(posImg,iconScale);
@@ -731,7 +742,7 @@ void createMainScr()
   lv_obj_set_style_text_font(label, fontOptions, 0);
   lv_label_set_text_static(label, "Navigation to:");
   lv_obj_center(label);
-  lv_obj_align(label,LV_ALIGN_TOP_LEFT,10,30);
+  lv_obj_align(label,LV_ALIGN_TOP_LEFT,10, 20);
 
   nameNav = lv_label_create(navTile);
   lv_obj_set_style_text_font(nameNav, fontLargeMedium, 0);
@@ -758,9 +769,19 @@ void createMainScr()
   lv_obj_set_style_text_font(lonNav, fontOptions, 0);
   lv_label_set_text_fmt(lonNav, "%s", "");
   lv_obj_set_pos(lonNav, 60, 120);
+
+  label = lv_label_create(navTile);
+  lv_obj_set_style_text_font(label, fontOptions, 0);
+  lv_label_set_text_static(label, "Distance");
+  lv_obj_align(label, LV_ALIGN_CENTER, 0, -50);
+
+  distNav = lv_label_create(navTile);
+  lv_obj_set_style_text_font(distNav, fontVeryLarge, 0);
+  lv_label_set_text_fmt(distNav,"%d m.", 0);
+  lv_obj_align(distNav,LV_ALIGN_CENTER, 0, -5);
   
   // Navigation Tile Events
-  // lv_obj_add_event_cb(navTile, updateNav, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_add_event_cb(navTile, updateNavEvent, LV_EVENT_VALUE_CHANGED, NULL);
   
   // Satellite Tracking Tile
   lv_obj_t *infoGrid = lv_obj_create(satTrackTile);

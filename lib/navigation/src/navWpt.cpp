@@ -11,6 +11,7 @@
 lv_obj_t *nameNav;
 lv_obj_t *latNav;
 lv_obj_t *lonNav;
+lv_obj_t *distNav;
 
  /**
  * @brief Update navigation screen

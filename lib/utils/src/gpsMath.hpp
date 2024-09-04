@@ -23,7 +23,7 @@ extern double midLon; // Mid point between 2 Longitudes
 
 static const char *degreeFormat PROGMEM = "%03d\xC2\xB0 %02d\' %.2f\" %c"; // GGºMM'SS" to string format
 
-float calcDist(float lat1, float lon1, float lat2, float lon2);
+double calcDist(double lat1, double lon1, double lat2, double lon2);
 void calcMidPoint(float lat1, float lon1, float lat2, float lon2);
 float mapFloat(float x, float inMin, float inMax, float outMin, float outMax);
 char *latFormatString(double lat);

@@ -111,6 +111,7 @@ void toolBarEvent(lv_event_t *event);
 void fullScreenEvent(lv_event_t *event);
 void zoomOutEvent(lv_event_t *event);
 void zoomInEvent(lv_event_t *event);
+void updateNavEvent(lv_event_t *event);
 
 void createMainScr();
 

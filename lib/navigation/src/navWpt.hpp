@@ -23,6 +23,7 @@ char *lonFormatString(double lon);
  extern lv_obj_t *nameNav;
  extern lv_obj_t *latNav;
  extern lv_obj_t *lonNav;
+ extern lv_obj_t *distNav;
 
 void updateNavScreen();
 

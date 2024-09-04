@@ -12,19 +12,27 @@ double midLat = 0; // Mid point between 2 Latitudes
 double midLon = 0; // Mid point between 2 Longitudes
 
 /**
- * @brief Function to calculate the distance in meters given 2 coordinates (latitude and longitude)
+ * @brief Function to calculate the distance in meters given 2 coordinates (latitude and longitude) haversine formula
  *
  * @param lat1 -> Latitude 1
  * @param lon1 -> Longitude 1
  * @param lat2 -> Latitude 2
  * @param lon2 -> Longitude 2
- * @return float -> Distance in meters
+ * @return double -> Distance in meters
  */
-float calcDist(float lat1, float lon1, float lat2, float lon2)
+double calcDist(double lat1, double lon1, double lat2, double lon2)
 {
-  float f_x = 69.1 * (lat2 - lat1);
-  float f_y = 69.1 * (lon2 - lon1) * cos(lat1 / 57.3);
-  return (float)sqrt((float)(f_x * f_x) + (float)(f_y * f_y)) * 1609.344;
+    lat1 = lat1 * (M_PI / 180.0);
+    lon1 = lon1 * (M_PI / 180.0);
+    lat2 = lat2 * (M_PI / 180.0);
+    lon2 = lon2 * (M_PI / 180.0);
+    double dlat = lat2 - lat1;
+    double dlon = lon2 - lon1;
+    double a = sin(dlat / 2) * sin(dlat / 2) +
+               cos(lat1) * cos(lat2) *
+               sin(dlon / 2) * sin(dlon / 2);
+    double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return EARTH_RADIUS * c;
 }
 
 /**
