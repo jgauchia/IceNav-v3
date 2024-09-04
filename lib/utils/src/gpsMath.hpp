@@ -28,5 +28,6 @@ void calcMidPoint(float lat1, float lon1, float lat2, float lon2);
 float mapFloat(float x, float inMin, float inMax, float outMin, float outMax);
 char *latFormatString(double lat);
 char *lonFormatString(double lon);
+double calcCourse(double lat1, double lon1, double lat2, double lon2);
 
 #endif

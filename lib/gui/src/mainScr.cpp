@@ -542,6 +542,10 @@ void zoomOutEvent(lv_event_t *event)
 void updateNavEvent(lv_event_t *event)
 {
   lv_label_set_text_fmt(distNav,"%d m.", (int)calcDist(getLat(), getLon(), loadWpt.lat, loadWpt.lon));
+  #ifdef ENABLE_COMPASS
+    double wptCourse = calcCourse(getLat(), getLon(), loadWpt.lat, loadWpt.lon) - getHeading();
+    lv_img_set_angle(arrowNav, (wptCourse * 10));
+  #endif
 }
 
 /**
@@ -779,6 +783,15 @@ void createMainScr()
   lv_obj_set_style_text_font(distNav, fontVeryLarge, 0);
   lv_label_set_text_fmt(distNav,"%d m.", 0);
   lv_obj_align(distNav,LV_ALIGN_CENTER, 0, -5);
+
+  #ifdef ENABLE_COMPASS
+    arrowNav = lv_img_create(navTile);
+    lv_img_set_src(arrowNav, &navup);
+    lv_img_set_zoom(arrowNav,iconScale);
+    lv_obj_update_layout(arrowNav);
+    lv_img_set_pivot(arrowNav, 50, 50) ;
+    lv_obj_align(arrowNav,LV_ALIGN_CENTER, 0, 100);
+  #endif
   
   // Navigation Tile Events
   lv_obj_add_event_cb(navTile, updateNavEvent, LV_EVENT_VALUE_CHANGED, NULL);

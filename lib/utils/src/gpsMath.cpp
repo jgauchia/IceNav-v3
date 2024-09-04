@@ -36,6 +36,31 @@ double calcDist(double lat1, double lon1, double lat2, double lon2)
 }
 
 /**
+ * @brief Function to calculate the heading given 2 coordinates (latitude and longitude) Orthodromic Course
+ *
+ * @param lat1 -> Latitude 1
+ * @param lon1 -> Longitude 1
+ * @param lat2 -> Latitude 2
+ * @param lon2 -> Longitude 2
+ * @return double -> heading
+ */
+double calcCourse(double lat1, double lon1, double lat2, double lon2)
+{
+  lat1 = lat1 * M_PI / 180.0;
+  lat2 = lat2 * M_PI / 180.0;
+  double dLon = (lon2 - lon1) * M_PI / 180.0;
+
+  double y = sin(dLon) * cos(lat2);
+  double x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon);
+  double course = atan2(y, x);
+
+  course = course * 180.0 / M_PI;
+  course = fmod((course + 360.0), 360.0);
+
+  return course;
+}
+
+/**
  * @brief Function to calculate the midpoint given 2 coordinates (latitude and longitude)
  *
  * @param lat1 -> Latitude 1
