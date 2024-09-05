@@ -17,8 +17,6 @@
   #define I2C_SDA_PIN 38
   #define I2C_SCL_PIN 39
 
-  #define ADC_BATT_PIN 34
-
   extern const uint8_t GPS_TX = 17;
   extern const uint8_t GPS_RX = 18;
 
@@ -47,8 +45,6 @@
 #ifdef MAKERF_ESP32S3
   #define LCD_CS 37
   #define LCD_BLK 45
-
-  #define ADC_BATT_PIN 34
 
   #define I2C_SDA_PIN 38
   #define I2C_SCL_PIN 39
@@ -94,7 +90,6 @@
  *
  */
 #ifdef ESP32_N16R4
-  #define ADC_BATT_PIN 34
 
   extern const uint8_t GPS_TX = 25;
   extern const uint8_t GPS_RX = 26;
@@ -118,72 +113,40 @@
   extern const uint8_t SD_CLK = 12;
 #endif
 
-
-
 /**
- * @brief GPS pin definition
- *
- */
-#ifdef ESP32S3_N16R8
-  extern const uint8_t GPS_TX = 17;
-  extern const uint8_t GPS_RX = 18;
-#endif
-
-/**
- * @brief I2C pin definition
+ * @brief ESP32S3_N16R8 BOARD pin definition
  *
  */
 #ifdef ESP32S3_N16R8
   #define I2C_SDA_PIN 38
   #define I2C_SCL_PIN 39
-#endif
 
-/**
- * @brief Battery monitor pin
- *
- */
-#define ADC_BATT_PIN 34
+  extern const uint8_t GPS_TX = 17;
+  extern const uint8_t GPS_RX = 18;
 
-/**
- * @brief TFT Invert color
- *
- */
-extern const bool TFT_INVERT = true;
-
-/**
- * @brief TFT SPI pin definition
- *
- */
-#ifdef ESP32S3_N16R8
   extern const uint8_t TFT_SPI_SCLK = 12;
   extern const uint8_t TFT_SPI_MOSI = 11;
   extern const uint8_t TFT_SPI_MISO = 13;
   extern const uint8_t TFT_SPI_DC   = 3;
   extern const uint8_t TFT_SPI_CS   = 10;
   extern const uint8_t TFT_SPI_RST  = 6;
-#endif
 
-/**
- * @brief TOUCH SPI pin definition
- *
- */
-#ifdef ESP32S3_N16R8
   extern const uint8_t TCH_SPI_SCLK = 12;
   extern const uint8_t TCH_SPI_MOSI = 11;
   extern const uint8_t TCH_SPI_MISO = 13;
   extern const uint8_t TCH_SPI_INT  = 5;
   extern const uint8_t TCH_SPI_CS   = 4;
-#endif
 
-/**
- * @brief SD Card pin definition
- *
- */
-#ifdef ESP32S3_N16R8   
   extern const uint8_t SD_CS = 1;
   extern const uint8_t SD_MISO = 41;
   extern const uint8_t SD_MOSI = 2;
   extern const uint8_t SD_CLK = 42;
 #endif
+
+/**
+ * @brief TFT Invert color
+ *
+ */
+extern const bool TFT_INVERT = true;
 
 #endif
