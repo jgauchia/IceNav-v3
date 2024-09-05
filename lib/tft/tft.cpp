@@ -141,7 +141,7 @@ void initTFT()
 #ifdef ICENAV_BOARD
   gpio_set_drive_capability(GPIO_NUM_45, GPIO_DRIVE_CAP_3);
 #endif
-#ifdef ARDUINO_ESP32_DEV
+#ifdef ESP32_N16R4
   gpio_set_drive_capability(GPIO_NUM_33, GPIO_DRIVE_CAP_3);
 #endif
 #ifdef ESP32S3_N16R8

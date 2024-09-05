@@ -89,8 +89,34 @@
   extern const uint8_t TCH_I2C_INT  = 40;
 #endif
 
+/**
+ * @brief ESP32_N16R4 BOARD pin definition
+ *
+ */
+#ifdef ESP32_N16R4
+  #define ADC_BATT_PIN 34
 
+  extern const uint8_t GPS_TX = 25;
+  extern const uint8_t GPS_RX = 26;
 
+  extern const uint8_t TFT_SPI_SCLK = 14;
+  extern const uint8_t TFT_SPI_MOSI = 13;
+  extern const uint8_t TFT_SPI_MISO = 27;
+  extern const uint8_t TFT_SPI_DC   = 15;
+  extern const uint8_t TFT_SPI_CS   = 2;
+  extern const uint8_t TFT_SPI_RST  = 32;
+
+  extern const uint8_t TCH_SPI_SCLK = 14;
+  extern const uint8_t TCH_SPI_MOSI = 13;
+  extern const uint8_t TCH_SPI_MISO = 27;
+  extern const uint8_t TCH_SPI_INT  = 5;
+  extern const uint8_t TCH_SPI_CS   = 18;
+
+  extern const uint8_t SD_CS = 4;
+  extern const uint8_t SD_MISO = 19;
+  extern const uint8_t SD_MOSI = 23;
+  extern const uint8_t SD_CLK = 12;
+#endif
 
 
 
@@ -98,10 +124,6 @@
  * @brief GPS pin definition
  *
  */
-#ifdef ARDUINO_ESP32_DEV
-  extern const uint8_t GPS_TX = 25;
-  extern const uint8_t GPS_RX = 26;
-#endif
 #ifdef ESP32S3_N16R8
   extern const uint8_t GPS_TX = 17;
   extern const uint8_t GPS_RX = 18;
@@ -132,14 +154,6 @@ extern const bool TFT_INVERT = true;
  * @brief TFT SPI pin definition
  *
  */
-#ifdef ARDUINO_ESP32_DEV
-  extern const uint8_t TFT_SPI_SCLK = 14;
-  extern const uint8_t TFT_SPI_MOSI = 13;
-  extern const uint8_t TFT_SPI_MISO = 27;
-  extern const uint8_t TFT_SPI_DC   = 15;
-  extern const uint8_t TFT_SPI_CS   = 2;
-  extern const uint8_t TFT_SPI_RST  = 32;
-#endif
 #ifdef ESP32S3_N16R8
   extern const uint8_t TFT_SPI_SCLK = 12;
   extern const uint8_t TFT_SPI_MOSI = 11;
@@ -153,13 +167,6 @@ extern const bool TFT_INVERT = true;
  * @brief TOUCH SPI pin definition
  *
  */
-#ifdef ARDUINO_ESP32_DEV
-  extern const uint8_t TCH_SPI_SCLK = 14;
-  extern const uint8_t TCH_SPI_MOSI = 13;
-  extern const uint8_t TCH_SPI_MISO = 27;
-  extern const uint8_t TCH_SPI_INT  = 5;
-  extern const uint8_t TCH_SPI_CS   = 18;
-#endif
 #ifdef ESP32S3_N16R8
   extern const uint8_t TCH_SPI_SCLK = 12;
   extern const uint8_t TCH_SPI_MOSI = 11;
@@ -172,12 +179,6 @@ extern const bool TFT_INVERT = true;
  * @brief SD Card pin definition
  *
  */
-#ifdef ARDUINO_ESP32_DEV
-  extern const uint8_t SD_CS = 4;
-  extern const uint8_t SD_MISO = 19;
-  extern const uint8_t SD_MOSI = 23;
-  extern const uint8_t SD_CLK = 12;
-#endif
 #ifdef ESP32S3_N16R8   
   extern const uint8_t SD_CS = 1;
   extern const uint8_t SD_MISO = 41;
