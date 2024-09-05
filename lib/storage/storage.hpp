@@ -18,6 +18,10 @@
 static SPIClass spiSD = SPIClass(HSPI);
 static uint32_t sdFreq = 10000000;
 #endif
+#ifdef ELECROW_ESP32
+static SPIClass spiSD = SPIClass(HSPI);
+static uint32_t sdFreq = 10000000;
+#endif
 #ifdef ESP32S3_N16R8
 static SPIClass spiSD = SPIClass(HSPI);
 static uint32_t sdFreq = 10000000;
