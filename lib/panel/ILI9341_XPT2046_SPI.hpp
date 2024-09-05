@@ -39,7 +39,7 @@ public:
   {
     {
       auto cfg = _bus_instance.config();
-      #ifdef ARDUINO_ESP32S3_DEV
+      #ifdef ESP32S3_N16R8
       cfg.spi_host = SPI2_HOST;
       #endif
       #ifdef ARDUINO_ESP32_DEV
@@ -95,7 +95,7 @@ public:
       cfg.pin_int = TCH_SPI_INT;
       cfg.bus_shared = true;
       cfg.offset_rotation = 0;
-      #ifdef ARDUINO_ESP32S3_DEV
+      #ifdef ESP32S3_N16R8
       cfg.spi_host = SPI3_HOST;
       #endif
       #ifdef ARDUINO_ESP32_DEV

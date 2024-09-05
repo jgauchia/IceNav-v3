@@ -144,7 +144,10 @@ void initTFT()
 #ifdef ARDUINO_ESP32_DEV
   gpio_set_drive_capability(GPIO_NUM_33, GPIO_DRIVE_CAP_3);
 #endif
-#ifdef ARDUINO_ESP32S3_DEV
+#ifdef ESP32S3_N16R8
+  gpio_set_drive_capability(GPIO_NUM_45, GPIO_DRIVE_CAP_3);
+#endif
+#ifdef MAKERF_ESP32S3
   gpio_set_drive_capability(GPIO_NUM_45, GPIO_DRIVE_CAP_3);
 #endif
 
