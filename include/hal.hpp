@@ -49,8 +49,13 @@
   #define I2C_SDA_PIN 38
   #define I2C_SCL_PIN 39
 
-  extern const uint8_t GPS_TX = 19;  // Analog PIN Terminal Port
-  extern const uint8_t GPS_RX = 40;  // Digital PIN Terminal Port
+  // UART PORT
+  // extern const uint8_t GPS_TX = 44;  // UART PIN Terminal Port
+  // extern const uint8_t GPS_RX = 43;  // UART PIN Terminal Port
+
+  // Alternative to UART PORT
+  extern const uint8_t GPS_TX = 40;  // Analog PIN Terminal Port
+  extern const uint8_t GPS_RX = 19;  // Digital PIN Terminal Port
 
   extern const uint8_t SD_CS = 1;
   extern const uint8_t SD_MISO = 41;
