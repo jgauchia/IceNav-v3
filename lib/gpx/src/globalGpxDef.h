@@ -7,12 +7,12 @@
  */
 
 
-#ifndef GLOBALWPTDEF_H
-#define GLOBALWPTDEF_H
+#ifndef GLOBALGPXDEF_H
+#define GLOBALGPXDEF_H
 
 #include <pgmspace.h>
 #include "FS.h"
-
+#include <regex>
 
 
 /**
@@ -28,6 +28,17 @@ enum wptAction_t
     WPT_DEL,
 };
 
+/**
+ * @brief Waypoint Action
+ *
+ */
+extern uint8_t wptAction;
+
+/**
+ * @brief Waypoint File Content for REGEX
+ *
+ */
+extern std::string wptContent;
 
 /** 
  * @Brief GPX File

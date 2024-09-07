@@ -34,44 +34,27 @@ void waypointListEvent(lv_event_t * event)
 
             if (!sel.isEmpty())
             {
-                log_v("%d",wptAction);
-
                 switch (wptAction)
                 {
                     case WPT_LOAD:
-                        std::string wptSelected = sel.substring(6,sel.length()).c_str();
-                        std::regex wptGet("lat=\"([^\"]+)\"\\s+lon=\"([^\"]+)\">\\s*<name>([^<]*?)</name>");
-                        std::smatch wptFound;
-                        std::string::const_iterator wptSearch(wptContent.cbegin());
-
-                        while (std::regex_search(wptSearch, wptContent.cend(), wptFound, wptGet))
-                        {
-                            std::string lat = wptFound[1].str();  
-                            std::string lon = wptFound[2].str();  
-                            std::string name = wptFound[3].str(); 
-
-                            if ( name == wptSelected )
-                            {
-                                //addWpt.name = (char*)name.c_str();
-                                loadWpt.name = new char[name.size() + 1];
-                                std::strcpy(loadWpt.name, name.c_str());
-                                loadWpt.lat = std::stod(lat);
-                                loadWpt.lon = std::stod(lon);
-                                log_i("Waypoint: %s %s %s",name.c_str(), lat.c_str(), lon.c_str());
-                                //break;
-                            }
-                            wptSearch = wptFound.suffix().first; 
-                        }
-
+                        loadWptFile(sel);
                         lv_obj_clear_flag(navTile,LV_OBJ_FLAG_HIDDEN);
                         updateNavScreen();
                         loadMainScreen();
-
                         break;
-                    // default:
-                    //     break;
+                    case WPT_EDIT:
+                        isMainScreen = false;
+                        redrawMap = false;
+                        loadWptFile(sel);
+                        lv_textarea_set_text(waypointName, loadWpt.name);
+                        isScreenRotated = false;
+                        lv_obj_set_width(waypointName, tft.width() -10);
+                        updateWaypointPos();
+                        lv_screen_load(addWaypointScreen);
+                        break;
+                    default:
+                        break;
                 }
-
             }   
         } 
     }

@@ -50,8 +50,16 @@ static void addWaypointEvent(lv_event_t *event)
           addWaypointToFile(wptFile,addWpt);
         }
         break;
-      default:
+      case WPT_EDIT:
+        char *newName = (char *)lv_textarea_get_text(fileName);
+
+        if ( strcmp(loadWpt.name, newName) != 0)
+        {
+           log_v("%s",newName);
+        }
         break;
+      // default:
+      //   break;
     }
 
     isMainScreen = true;
@@ -112,6 +120,10 @@ void updateWaypointPos()
       addWpt.lon = getLon();
       lv_label_set_text_static(lat, latFormatString(addWpt.lat));
       lv_label_set_text_static(lon, lonFormatString(addWpt.lon));
+      break;
+    case WPT_EDIT:
+      lv_label_set_text_static(lat, latFormatString(loadWpt.lat));
+      lv_label_set_text_static(lon, lonFormatString(loadWpt.lon));
       break;
     default:
       break;

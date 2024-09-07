@@ -35,6 +35,8 @@ extern bool needReboot;                // Flag to force device reboot
 extern bool isSearchingSat;            // Flag to indicate that is searching satellites
 extern lv_obj_t *buttonBar;            // Button Bar
 extern lv_obj_t *menuBtn;              // Button Menu
+extern lv_obj_t *waypointName;         // Add / Edit Waypoint screen text area
+extern bool isScreenRotated;           // Flag to know if screen is rotated
 
 #ifdef LARGE_SCREEN
   static const lv_font_t *fontDefault = &lv_font_montserrat_14;
@@ -64,12 +66,6 @@ extern lv_obj_t *menuBtn;              // Button Menu
 
 static const int iconScale = LV_SCALE_NONE * scale;
 static const int buttonScale = LV_SCALE_NONE * scaleBut;
-
-/**
- * @brief Waypoint Action
- *
- */
-extern uint8_t wptAction;
 
 /**
  * @brief Get PNG width and height

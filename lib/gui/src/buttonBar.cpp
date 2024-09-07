@@ -110,10 +110,9 @@ void optionEvent(lv_event_t *event)
     log_v("Edit Option");
     wptAction = WPT_EDIT;
     isMainScreen = true;
-    // isOptionLoaded = false;
     lv_msgbox_close(option);
-    // updateWaypointListScreen();
-    // lv_screen_load(listWaypointScreen);
+    updateWaypointListScreen();
+    lv_screen_load(listWaypointScreen);
   }
   // if (strcmp(action,"delete") == 0)
   // {

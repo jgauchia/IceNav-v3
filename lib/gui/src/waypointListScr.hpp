@@ -10,11 +10,13 @@
 #define WAYPOINTLISTSCR_HPP
 
 #include "globalGuiDef.h"
+#include "globalGpxDef.h"
 #include "mainScr.hpp"
 #include "storage.hpp"
 #include <regex>
 
 void loadMainScreen();
+void updateWaypointPos();
 
 void waypointListEvent(lv_event_t * event);
 void createWaypointListScreen();
