@@ -70,6 +70,10 @@ void setup()
     Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
     Wire.begin();
   #endif
+  #ifdef ELECROW_ESP32
+    Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
+    Wire.begin();
+  #endif
 
   #ifdef BME280
    initBME();
