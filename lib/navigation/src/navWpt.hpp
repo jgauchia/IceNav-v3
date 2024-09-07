@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Waypoint Navigation Functions
  * @version 0.1.8_Alpha
- * @date 2024-08
+ * @date 2024-09
  */
 
 #ifndef NAVWPT_HPP
@@ -11,6 +11,7 @@
 
 #include "lvgl.h"
 #include "addWaypoint.hpp"
+#include "loadWaypoint.hpp"
 #include "gpsMath.hpp"
 
 char *latFormatString(double lat);

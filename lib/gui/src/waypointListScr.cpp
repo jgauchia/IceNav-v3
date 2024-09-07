@@ -2,8 +2,8 @@
  * @file waypointListScr.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Waypoint list screen
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-09
  */
 
 #include "waypointListScr.hpp"
@@ -31,39 +31,50 @@ void waypointListEvent(lv_event_t * event)
         if ( row!= 0 )
         {
             String sel = String(lv_table_get_cell_value(obj, row, col));
+
             if (!sel.isEmpty())
             {
-                std::string wptSelected = sel.substring(6,sel.length()).c_str();
-                std::regex wptGet("lat=\"([^\"]+)\"\\s+lon=\"([^\"]+)\">\\s*<name>([^<]*?)</name>");
-                std::smatch wptFound;
-                std::string::const_iterator wptSearch(wptContent.cbegin());
+                log_v("%d",wptAction);
 
-                while (std::regex_search(wptSearch, wptContent.cend(), wptFound, wptGet))
+                switch (wptAction)
                 {
-                    std::string lat = wptFound[1].str();  
-                    std::string lon = wptFound[2].str();  
-                    std::string name = wptFound[3].str(); 
+                    case WPT_LOAD:
+                        std::string wptSelected = sel.substring(6,sel.length()).c_str();
+                        std::regex wptGet("lat=\"([^\"]+)\"\\s+lon=\"([^\"]+)\">\\s*<name>([^<]*?)</name>");
+                        std::smatch wptFound;
+                        std::string::const_iterator wptSearch(wptContent.cbegin());
 
-                    if ( name == wptSelected )
-                    {
-                        //addWpt.name = (char*)name.c_str();
-                        loadWpt.name = new char[name.size() + 1];
-                        std::strcpy(loadWpt.name, name.c_str());
-                        loadWpt.lat = std::stod(lat);
-                        loadWpt.lon = std::stod(lon);
-                        log_i("Waypoint: %s %s %s",name.c_str(), lat.c_str(), lon.c_str());
+                        while (std::regex_search(wptSearch, wptContent.cend(), wptFound, wptGet))
+                        {
+                            std::string lat = wptFound[1].str();  
+                            std::string lon = wptFound[2].str();  
+                            std::string name = wptFound[3].str(); 
+
+                            if ( name == wptSelected )
+                            {
+                                //addWpt.name = (char*)name.c_str();
+                                loadWpt.name = new char[name.size() + 1];
+                                std::strcpy(loadWpt.name, name.c_str());
+                                loadWpt.lat = std::stod(lat);
+                                loadWpt.lon = std::stod(lon);
+                                log_i("Waypoint: %s %s %s",name.c_str(), lat.c_str(), lon.c_str());
+                                //break;
+                            }
+                            wptSearch = wptFound.suffix().first; 
+                        }
+
+                        lv_obj_clear_flag(navTile,LV_OBJ_FLAG_HIDDEN);
+                        updateNavScreen();
+                        loadMainScreen();
+
                         break;
-                    }
-                    wptSearch = wptFound.suffix().first; 
+                    // default:
+                    //     break;
                 }
-                
-                // TODO Call Edit , Delete screens (identify origin)
-                lv_obj_clear_flag(navTile,LV_OBJ_FLAG_HIDDEN);
-                updateNavScreen();
-                loadMainScreen();
-            }
-        }   
-    } 
+
+            }   
+        } 
+    }
 }
 
 /**

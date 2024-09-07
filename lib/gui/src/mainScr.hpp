@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Main Screen
  * @version 0.1.8_Alpha
- * @date 2024-08
+ * @date 2024-09
  */
 
 #ifndef MAINSCR_HPP
@@ -18,6 +18,7 @@
 #include "renderMaps.hpp"
 #include "vectorMaps.hpp"
 #include "addWaypoint.hpp"
+#include "loadWaypoint.hpp"
 #include "navWpt.hpp"
 
 static lv_timer_t *mainTimer;    // Main Screen Timer

@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Main Screen
  * @version 0.1.8_Alpha
- * @date 2024-08
+ * @date 2024-09
  */
 
 #include "mainScr.hpp"
@@ -23,6 +23,7 @@ bool isScrolled = true;       // Flag to indicate when tileview was scrolled
 bool isReady = false;         // Flag to indicate when tileview scroll was finished
 bool redrawMap = true;        // Flag to indicate when needs to redraw Map
 uint8_t activeTile = 0;       // Current active tile
+uint8_t wptAction = WPT_NONE; // Current Waypoint Action
 
 #ifdef LARGE_SCREEN
   int toolBarOffset = 100;

@@ -2,8 +2,8 @@
  * @file addWaypointScr.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Add Waypoint Screen
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-09
  */
 
 #include "addWaypointScr.hpp"
@@ -31,7 +31,6 @@ static void addWaypointEvent(lv_event_t *event)
 
   if (code == LV_EVENT_READY)
   {
-    addWpt.name = (char *)lv_textarea_get_text(fileName);
    
     if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
     {
@@ -39,15 +38,25 @@ static void addWaypointEvent(lv_event_t *event)
       lv_display_set_rotation(display,LV_DISPLAY_ROTATION_0);
     }
     
-    if ( strcmp(addWpt.name,"") != 0)
+    switch (wptAction)
     {
-      openGpxFile(wptFile);
-      vTaskDelay(100);
-      addWaypointToFile(wptFile,addWpt);
+      case WPT_ADD:
+        addWpt.name = (char *)lv_textarea_get_text(fileName);
+
+        if ( strcmp(addWpt.name,"") != 0)
+        {
+          openGpxFile(wptFile);
+          vTaskDelay(100);
+          addWaypointToFile(wptFile,addWpt);
+        }
+        break;
+      default:
+        break;
     }
 
     isMainScreen = true;
     redrawMap = true;
+    wptAction = WPT_NONE;
     lv_refr_now(display);
     loadMainScreen();
   }
@@ -61,6 +70,7 @@ static void addWaypointEvent(lv_event_t *event)
     }
     isMainScreen = true;
     redrawMap = true;
+    wptAction = WPT_NONE;
     lv_refr_now(display);
     loadMainScreen();
   }
@@ -95,10 +105,17 @@ static void rotateScreen(lv_event_t *event)
  */
 void updateWaypointPos()
 {
-  addWpt.lat = getLat();
-  addWpt.lon = getLon();
-  lv_label_set_text_static(lat, latFormatString(addWpt.lat));
-  lv_label_set_text_static(lon, lonFormatString(addWpt.lon));
+  switch (wptAction)
+  {
+    case WPT_ADD:
+      addWpt.lat = getLat();
+      addWpt.lon = getLon();
+      lv_label_set_text_static(lat, latFormatString(addWpt.lat));
+      lv_label_set_text_static(lon, lonFormatString(addWpt.lon));
+      break;
+    default:
+      break;
+  }
 }
 
 /**

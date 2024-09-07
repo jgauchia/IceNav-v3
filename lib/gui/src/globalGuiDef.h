@@ -2,7 +2,7 @@
  * @file globalGuiDef.h
  * @brief  Global GUI Variables
  * @version 0.1.8_Alpha
- * @date 2024-08
+ * @date 2024-09
  */
 
 #ifndef GLOBALGUIDEF_H
@@ -64,6 +64,12 @@ extern lv_obj_t *menuBtn;              // Button Menu
 
 static const int iconScale = LV_SCALE_NONE * scale;
 static const int buttonScale = LV_SCALE_NONE * scaleBut;
+
+/**
+ * @brief Waypoint Action
+ *
+ */
+extern uint8_t wptAction;
 
 /**
  * @brief Get PNG width and height

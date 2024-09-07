@@ -2,8 +2,8 @@
  * @file globalGpxDef.h
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Global GPX Variables
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-09
  */
 
 
@@ -12,6 +12,22 @@
 
 #include <pgmspace.h>
 #include "FS.h"
+
+
+
+/**
+ * @brief Waypoint action enum
+ *
+ */
+enum wptAction_t
+{
+    WPT_NONE,
+    WPT_ADD,
+    WPT_LOAD,
+    WPT_EDIT,
+    WPT_DEL,
+};
+
 
 /** 
  * @Brief GPX File

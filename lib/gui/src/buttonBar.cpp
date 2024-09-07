@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Button Bar 
  * @version 0.1.8_Alpha
- * @date 2024-08
+ * @date 2024-09
  */
 
 #include "buttonBar.hpp"
@@ -42,9 +42,11 @@ void buttonBarEvent(lv_event_t *event)
   }
 
   char *option = (char *)lv_event_get_user_data(event);
+
   if (strcmp(option,"addwpt") == 0)
   {
     log_v("Add Waypoint");
+    wptAction = WPT_ADD;
     isMainScreen = false;
     redrawMap = false;
     lv_textarea_set_text(waypointName, "");
@@ -66,18 +68,18 @@ void buttonBarEvent(lv_event_t *event)
       loadOptions();
     }
   }
-  if (strcmp(option,"track") == 0)
-  {
-    log_v("Track");
-    isMainScreen = false;
-    isTrackOpt = true;
-    isWaypointOpt = false;
-    if (!isOptionLoaded)
-    {
-      isOptionLoaded = true;
-      loadOptions();
-    } 
-  }
+  // if (strcmp(option,"track") == 0)
+  // {
+  //   log_v("Track");
+  //   isMainScreen = false;
+  //   isTrackOpt = true;
+  //   isWaypointOpt = false;
+  //   if (!isOptionLoaded)
+  //   {
+  //     isOptionLoaded = true;
+  //     loadOptions();
+  //   } 
+  // }
   if (strcmp(option,"settings") == 0)
   {
     log_v("Settings");
@@ -97,8 +99,8 @@ void optionEvent(lv_event_t *event)
   if (strcmp(action,"load") == 0)
   {
     log_v("Load Option");
+    wptAction = WPT_LOAD;
     isMainScreen = false;
-    // isOptionLoaded = false;
     lv_msgbox_close(option);
     updateWaypointListScreen();
     lv_screen_load(listWaypointScreen);
@@ -106,22 +108,23 @@ void optionEvent(lv_event_t *event)
   if (strcmp(action,"edit") == 0)
   {
     log_v("Edit Option");
+    wptAction = WPT_EDIT;
     isMainScreen = true;
-    isOptionLoaded = false;
+    // isOptionLoaded = false;
     lv_msgbox_close(option);
     // updateWaypointListScreen();
     // lv_screen_load(listWaypointScreen);
   }
-  if (strcmp(action,"delete") == 0)
-  {
-    log_v("Delete Option");
-    isMainScreen = true;
-    isOptionLoaded = false;
-    lv_msgbox_close(option);
-    // updateWaypointListScreen();
-    // lv_screen_load(listWaypointScreen);
+  // if (strcmp(action,"delete") == 0)
+  // {
+  //   log_v("Delete Option");
+  //   isMainScreen = true;
+  //   isOptionLoaded = false;
+  //   lv_msgbox_close(option);
+  //   // updateWaypointListScreen();
+  //   // lv_screen_load(listWaypointScreen);
     
-  }
+  // }
 }
 
 /**
@@ -319,7 +322,6 @@ void loadOptions()
   imgBtn = lv_img_create(buttons);
   lv_img_set_src(imgBtn, editIconFile);
   lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_HIDDEN);
   lv_obj_add_event_cb(imgBtn, optionEvent, LV_EVENT_PRESSED, (char*)"edit");
   
   // Delete Button

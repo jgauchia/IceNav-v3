@@ -2,8 +2,8 @@
  * @file addWaypoint.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Add Waypoint functions
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-09
  */
 
 #ifndef ADDWAYPOINT_HPP
@@ -17,7 +17,6 @@
 #include "lvgl.h"
 
 extern wayPoint addWpt;
-extern wayPoint loadWpt;
 
 static const char* wptFile PROGMEM = "/WPT/waypoint.gpx";
 
