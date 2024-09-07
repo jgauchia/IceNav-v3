@@ -48,7 +48,7 @@ Currently, IceNav works with the following hardware setups and specs
 | ICENAV (ESP32S3)       |  16M  |  8M   | ``` [env:ICENAV] ```         |     YES      |
 | ESP32                  |  16M  |  4M   | ``` [env:ESP32_N16R4] ```    |     YES      |
 | ESP32S3                |  16M  |  8M   | ``` [env:ESP32S3_N16R8] ```  |     YES      |
-| [ELECROW ESP32 Terminal](https://www.elecrow.com/esp-terminal-with-esp32-3-5-inch-parallel-480x320-tft-capacitive-touch-display-rgb-by-chip-ili9488.html) |  16M  |  8M   | ``` [env:ELECROW_ESP32] ```  | YES[^1] [^2] |
+| [ELECROW ESP32 Terminal](https://www.elecrow.com/esp-terminal-with-esp32-3-5-inch-parallel-480x320-tft-capacitive-touch-display-rgb-by-chip-ili9488.html) |  16M  |  8M   | ``` [env:ELECROW_ESP32] ```  | YES [^1] [^2]|
 | [MAKERFABS ESP32S3](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) |  16M  |  2M   | ``` [env:MAKERF_ESP32S3] ``` |   TESTING    |
 
 
