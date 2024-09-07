@@ -548,7 +548,9 @@ void updateNavEvent(lv_event_t *event)
   if (wptDistance == 0)
   {
     lv_img_set_src(arrowNav, &navfinish);
-    lv_img_set_angle(arrowNav, 0);
+    #ifdef ENABLE_COMPASS
+      lv_img_set_angle(arrowNav, 0);
+    #endif
   }
   else
   {
@@ -795,13 +797,14 @@ void createMainScr()
   lv_label_set_text_fmt(distNav,"%d m.", 0);
   lv_obj_align(distNav,LV_ALIGN_CENTER, 0, -5);
 
+  arrowNav = lv_img_create(navTile);
+  lv_img_set_zoom(arrowNav,iconScale);
+  lv_obj_update_layout(arrowNav);
+  lv_obj_align(arrowNav,LV_ALIGN_CENTER, 0, 100);
+  
   #ifdef ENABLE_COMPASS
-    arrowNav = lv_img_create(navTile);
     lv_img_set_src(arrowNav, &navup);
-    lv_img_set_zoom(arrowNav,iconScale);
-    lv_obj_update_layout(arrowNav);
     lv_img_set_pivot(arrowNav, 50, 50) ;
-    lv_obj_align(arrowNav,LV_ALIGN_CENTER, 0, 100);
   #endif
   
   // Navigation Tile Events
