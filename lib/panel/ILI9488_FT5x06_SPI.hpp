@@ -42,10 +42,10 @@ public:
       #ifdef ICENAV_BOARD
       cfg.spi_host = SPI2_HOST;
       #endif
-      #ifdef ARDUINO_ESP32S3_DEV
+      #ifdef ESP32S3_N16R8
       cfg.spi_host = SPI2_HOST;
       #endif
-      #ifdef ARDUINO_ESP32_DEV
+      #ifdef ESP32_N16R4
       cfg.spi_host = HSPI_HOST;
       #endif
       cfg.spi_mode = 0;
