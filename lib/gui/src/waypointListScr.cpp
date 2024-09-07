@@ -50,7 +50,7 @@ void waypointListEvent(lv_event_t * event)
                         isScreenRotated = false;
                         lv_obj_set_width(waypointName, tft.width() -10);
                         updateWaypointPos();
-                        lv_screen_load(addWaypointScreen);
+                        lv_screen_load(waypointScreen);
                         break;
                     default:
                         break;

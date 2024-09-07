@@ -12,6 +12,7 @@
 #include "lvgl.h"
 #include "addWaypoint.hpp"
 #include "loadWaypoint.hpp"
+#include "editWaypoint.hpp"
 #include "gpsMath.hpp"
 
 char *latFormatString(double lat);

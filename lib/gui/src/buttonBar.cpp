@@ -7,7 +7,7 @@
  */
 
 #include "buttonBar.hpp"
-#include "addWaypointScr.hpp"
+#include "waypointScr.hpp"
 #include "waypointListScr.hpp"
 #include "display/lv_display.h"
 #include "globalGuiDef.h"
@@ -53,7 +53,7 @@ void buttonBarEvent(lv_event_t *event)
     isScreenRotated = false;
     lv_obj_set_width(waypointName, tft.width() -10);
     updateWaypointPos();
-    lv_screen_load(addWaypointScreen);
+    lv_screen_load(waypointScreen);
   }
 
   if (strcmp(option,"waypoint") == 0)

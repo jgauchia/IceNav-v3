@@ -19,6 +19,7 @@
 #include "vectorMaps.hpp"
 #include "addWaypoint.hpp"
 #include "loadWaypoint.hpp"
+#include "editWaypoint.hpp"
 #include "navWpt.hpp"
 
 static lv_timer_t *mainTimer;    // Main Screen Timer

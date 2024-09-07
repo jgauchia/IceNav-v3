@@ -7,7 +7,7 @@
  */
 
 #include "lvglSetup.hpp"
-#include "addWaypointScr.hpp"
+#include "waypointScr.hpp"
 #include "waypointListScr.hpp"
 #include "globalGuiDef.h"
 
@@ -201,7 +201,7 @@ void initLVGL()
   createMapSettingsScr();
   createDeviceSettingsScr();
   createButtonBarScr();
-  createAddWaypointScreen();
+  createWaypointScreen();
   createWaypointListScreen();
   
   // Create and start a periodic timer interrupt to call lv_tick_inc 
