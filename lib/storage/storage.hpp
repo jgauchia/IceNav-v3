@@ -17,7 +17,9 @@
 #include <LovyanGFX.hpp>
 #include <tft.hpp>
 
+
 static sdmmc_card_t* sdcard;
+
 extern bool isSdLoaded;
 
 
