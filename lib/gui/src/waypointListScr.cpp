@@ -97,12 +97,18 @@ void updateWaypointListScreen()
         log_e("Waypoint file not found");
     else
     {
-        wptContent = "";
-        while (wayPointFile.available()) 
-            wptContent += (char)wayPointFile.read();
-
         log_i("Waypoint file found");
+
+        size_t fileSize = wayPointFile.size();
+
+        uint8_t* buffer =(uint8_t*)ps_malloc(fileSize + 1);  
+        buffer[fileSize] = '\0'; 
+
+        wayPointFile.read(buffer, fileSize);
         wayPointFile.close();
+
+        wptContent = std::string((char*)buffer);
+        delete[] buffer;
     
         std::regex wptName("<name>([^<]*?)</name>");
         std::smatch wptFound;
