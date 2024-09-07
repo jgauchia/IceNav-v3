@@ -545,7 +545,10 @@ void updateNavEvent(lv_event_t *event)
   lv_label_set_text_fmt(distNav,"%d m.", wptDistance);
 
   if (wptDistance == 0)
+  {
     lv_img_set_src(arrowNav, &navfinish);
+    lv_img_set_angle(arrowNav, 0);
+  }
   else
   {
     #ifdef ENABLE_COMPASS
