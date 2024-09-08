@@ -121,15 +121,15 @@ void modifyTheme()
   
   /*Initialize the new theme from the current theme*/
   lv_theme_t *th_act = lv_disp_get_theme(NULL);
-  static lv_theme_t th_new;
-  th_new = *th_act;
+  static lv_theme_t *th_new;
+  th_new = th_act;
   
   /*Set the parent theme and the style apply callback for the new theme*/
-  lv_theme_set_parent(&th_new, th_act);
-  lv_theme_set_apply_cb(&th_new, applyModifyTheme);
+  lv_theme_set_parent( th_new, th_act);
+  lv_theme_set_apply_cb(th_new, applyModifyTheme);
   
   /*Assign the new theme to the current display*/
-  lv_disp_set_theme(NULL, &th_new);
+  lv_disp_set_theme(NULL, th_new);
 }
 
 /**
