@@ -17,36 +17,25 @@ void deleteWaypointName(char * wpt)
 {
     std::string wptDelete = std::string((char*)wpt);
     
-    std::regex delWpt("(^<wpt[^>]*>\\s*<name>" + wptDelete + "</name>[\\s\\S]*?</wpt>$)");
+    std::regex delWpt("<wpt lat=\"([^\"]+)\"\\s+lon=\"([^\"]+)\">\\s*<name>(" + wptDelete + ")</name>\\s*</wpt>\\s*");
 
-    std::string result = std::regex_replace(wptContent, delWpt, "HOLA");
+    std::string result = std::regex_replace(wptContent, delWpt, "");
 
-    log_i("%s",result.c_str());
+    size_t fileSize = result.length();
+
+    acquireSdSPI();
+
+    File wayPointFile = SD.open(wptFile, FILE_WRITE);
+
+    if (!wayPointFile)
+      log_e("Error updating waypoint file");
+    else
+    {
+      wayPointFile.seek(0);
+      wayPointFile.write((uint8_t*)result.c_str(), fileSize);
+      wayPointFile.close();
+      log_i("Waypoint file updated");
+    }
+
+    releaseSdSPI();
 }
-
-    //  std::string wptOldName = std::string((char*)oldName);
-    // std::string wptNewName = std::string((char*)newName);
-
-    // std::regex findWptName("(\\s<name>" + wptOldName + "</name>)");
-    // std::string replaceWptName = " <name>" + wptNewName + "</name>";
-
-    // wptContent = std::regex_replace(wptContent,findWptName,replaceWptName);
-
-
-    // size_t fileSize = wptContent.length();
-
-    // acquireSdSPI();
-
-    // File wayPointFile = SD.open(wptFile, FILE_WRITE);
-
-    // if (!wayPointFile)
-    //   log_e("Error updating waypoint file");
-    // else
-    // {
-    //   wayPointFile.seek(0);
-    //   wayPointFile.write((uint8_t*)wptContent.c_str(), fileSize);
-    //   wayPointFile.close();
-    //   log_i("Waypoint file updated");
-    // }
-
-    // releaseSdSPI();
