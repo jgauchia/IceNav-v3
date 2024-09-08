@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL Screen implementation
  * @version 0.1.8_Alpha
- * @date 2024-08
+ * @date 2024-09
  */
 
 #ifndef LVGLSETUP_HPP
@@ -26,7 +26,7 @@
 #include "settingsScr.hpp"
 #include "deviceSettingsScr.hpp"
 #include "mapSettingsScr.hpp"
-#include "addWaypointScr.hpp"
+#include "waypointScr.hpp"
 
 /**
  * @brief Default display driver definition

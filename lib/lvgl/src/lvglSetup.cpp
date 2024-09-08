@@ -3,11 +3,12 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL Screen implementation
  * @version 0.1.8_Alpha
- * @date 2024-08
+ * @date 2024-09
  */
 
 #include "lvglSetup.hpp"
-#include "addWaypointScr.hpp"
+#include "waypointScr.hpp"
+#include "waypointListScr.hpp"
 #include "globalGuiDef.h"
 
 ViewPort viewPort; // Vector map viewport
@@ -200,12 +201,9 @@ void initLVGL()
   createMapSettingsScr();
   createDeviceSettingsScr();
   createButtonBarScr();
-<<<<<<< HEAD
+  createWaypointScreen();
+  createWaypointListScreen();
 
-=======
-  createAddWaypointScreen();
-  
->>>>>>> devel
   // Create and start a periodic timer interrupt to call lv_tick_inc 
   const esp_timer_create_args_t periodic_timer_args = { .callback = &lv_tick_task, .name = "periodic_gui" };
   esp_timer_handle_t periodic_timer;
@@ -221,5 +219,6 @@ void loadMainScreen()
 {
   isMainScreen = true;
   isSearchingSat = false;
+  wptAction = WPT_NONE;
   lv_screen_load(mainScreen);
 }

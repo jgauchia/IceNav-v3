@@ -1,16 +1,45 @@
 /**
  * @file globalGpxDef.h
+ * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Global GPX Variables
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-09
  */
 
 
-#ifndef GLOBALWPTDEF_H
-#define GLOBALWPTDEF_H
+#ifndef GLOBALGPXDEF_H
+#define GLOBALGPXDEF_H
 
 #include <pgmspace.h>
 #include "FS.h"
+#include <regex>
+
+static const char* wptFile PROGMEM = "/WPT/waypoint.gpx";
+
+/**
+ * @brief Waypoint action enum
+ *
+ */
+enum wptAction_t
+{
+    WPT_NONE,
+    WPT_ADD,
+    WPT_LOAD,
+    WPT_EDIT,
+    WPT_DEL,
+};
+
+/**
+ * @brief Waypoint Action
+ *
+ */
+extern uint8_t wptAction;
+
+/**
+ * @brief Waypoint File Content for REGEX
+ *
+ */
+extern std::string wptContent;
 
 /** 
  * @Brief GPX File
