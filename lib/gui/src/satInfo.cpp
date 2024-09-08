@@ -120,7 +120,6 @@ void drawSNRBar(lv_obj_t *bar, lv_chart_series_t *barSer, uint8_t id, uint8_t sa
   lv_point_t p;
   lv_chart_get_y_array(bar, barSer);
   lv_chart_set_value_by_id(bar, barSer, id, snr);
-  //barSer->y_points[id] = snr;
   lv_chart_get_point_pos_by_id(bar, barSer, id, &p);
   spr.setCursor(p.x - 2, 0);
   spr.print(satNum);
@@ -180,10 +179,8 @@ void fillSatInView(GSV &gsv, int color)
 
       for (int i = 0; i < (MAX_SATELLLITES_IN_VIEW / 2); i++)
       {
-          //  satelliteBarSerie1->y_points[i] = LV_CHART_POINT_NONE;
-          //  satelliteBarSerie2->y_points[i] = LV_CHART_POINT_NONE;
-           lv_chart_set_value_by_id(satelliteBar1, satelliteBarSerie1, i, LV_CHART_POINT_NONE);
-           lv_chart_set_value_by_id(satelliteBar2, satelliteBarSerie1, i, LV_CHART_POINT_NONE);
+        lv_chart_set_value_by_id(satelliteBar1, satelliteBarSerie1, i, LV_CHART_POINT_NONE);
+        lv_chart_set_value_by_id(satelliteBar2, satelliteBarSerie1, i, LV_CHART_POINT_NONE);
       }
 
       uint8_t activeSat = 0;
