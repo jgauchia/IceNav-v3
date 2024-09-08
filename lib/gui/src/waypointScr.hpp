@@ -1,13 +1,13 @@
 /**
- * @file addWaypointScr.hpp
+ * @file waypointScr.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Add Waypoint Screen
- * @version 0.1.8
- * @date 2024-06
+ * @version 0.1.8_Alpha
+ * @date 2024-09
  */
 
-#ifndef ADDWAYPOINTSCR_HPP
-#define ADDWAYPOINTSCR_HPP
+#ifndef waypointScr_HPP
+#define waypointScr_HPP
 
 #include "globalGuiDef.h"
 #include "mainScr.hpp"
@@ -17,10 +17,10 @@ extern bool isScreenRotated;
 
 void loadMainScreen();
 
-static void addWaypointEvent(lv_event_t *event);
+static void waypointScreenEvent(lv_event_t *event);
 static void rotateScreen(lv_event_t *event);
 
 void updateWaypointPos();
-void createAddWaypointScreen();
+void createWaypointScreen();
 
 #endif

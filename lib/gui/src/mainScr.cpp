@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Main Screen
  * @version 0.1.8_Alpha
- * @date 2024-08
+ * @date 2024-09
  */
 
 #include "mainScr.hpp"
@@ -23,6 +23,7 @@ bool isScrolled = true;       // Flag to indicate when tileview was scrolled
 bool isReady = false;         // Flag to indicate when tileview scroll was finished
 bool redrawMap = true;        // Flag to indicate when needs to redraw Map
 uint8_t activeTile = 0;       // Current active tile
+uint8_t wptAction = WPT_NONE; // Current Waypoint Action
 
 #ifdef LARGE_SCREEN
   int toolBarOffset = 100;
@@ -46,6 +47,15 @@ lv_obj_t *satTrackTile;
 lv_obj_t *btnFullScreen;
 lv_obj_t *btnZoomIn;
 lv_obj_t *btnZoomOut;
+lv_obj_t *nameNav;
+lv_obj_t *latNav;
+lv_obj_t *lonNav;
+lv_obj_t *distNav;
+lv_obj_t *arrowNav;
+double destLat = 0;
+double destLon = 0;
+char* destName = "";
+
 
 /**
  * @brief Update compass screen event
@@ -63,9 +73,9 @@ void updateCompassScr(lv_event_t * event)
     #endif
   }
   if (obj==latitude)
-    lv_label_set_text_static(obj, latFormatString(GPS.location.lat()));
+    lv_label_set_text_fmt(latitude, "%s", latFormatString(getLat()));
   if (obj==longitude)
-    lv_label_set_text_static(obj, lonFormatString(GPS.location.lng()));
+    lv_label_set_text_fmt(longitude, "%s", lonFormatString(getLon()));
   if (obj==altitude)
     lv_label_set_text_fmt(obj, "%4d m.", (int)GPS.altitude.meters());
   if (obj==speedLabel)
@@ -267,8 +277,9 @@ void updateMainScreen(lv_timer_t *t)
         lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
         break;
           
-      // case NAV:
-      //   break;
+      case NAV:
+        lv_obj_send_event(navTile, LV_EVENT_VALUE_CHANGED, NULL);
+        break;
 
       case SATTRACK:
         constelSprite.pushSprite(150 * scale, 40 * scale);
@@ -533,6 +544,35 @@ void zoomOutEvent(lv_event_t *event)
 }
 
 /**
+ * @brief Navigation update event
+ *
+ * @param event
+ */
+void updateNavEvent(lv_event_t *event)
+{
+  int wptDistance = (int)calcDist(getLat(), getLon(), destLat, destLon);
+  lv_label_set_text_fmt(distNav,"%d m.", wptDistance);
+
+  if (wptDistance == 0)
+  {
+    lv_img_set_src(arrowNav, &navfinish);
+    #ifdef ENABLE_COMPASS
+      lv_img_set_angle(arrowNav, 0);
+    #endif
+  }
+  else
+  {
+    #ifdef ENABLE_COMPASS
+      double wptCourse = calcCourse(getLat(), getLon(), loadWpt.lat, loadWpt.lon) - getHeading();
+      lv_img_set_angle(arrowNav, (wptCourse * 10));
+    #endif
+    #ifndef ENABLE_COMPASS
+       lv_img_set_src(arrowNav, NULL);
+    #endif
+  }
+}
+
+/**
  * @brief Create Main Screen
  *
  */
@@ -544,8 +584,9 @@ void createMainScr()
   tilesScreen = lv_tileview_create(mainScreen);
   compassTile = lv_tileview_add_tile(tilesScreen, 0, 0, LV_DIR_RIGHT);
   mapTile = lv_tileview_add_tile(tilesScreen, 1, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
- /*  navTile = lv_tileview_add_tile(tilesScreen, 2, 0, LV_DIR_LEFT | LV_DIR_RIGHT); */
-  satTrackTile = lv_tileview_add_tile(tilesScreen, 2, 0, LV_DIR_LEFT);
+  navTile = lv_tileview_add_tile(tilesScreen, 2, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
+  lv_obj_add_flag(navTile,LV_OBJ_FLAG_HIDDEN); 
+  satTrackTile = lv_tileview_add_tile(tilesScreen, 3, 0, LV_DIR_LEFT);
   lv_obj_set_size(tilesScreen, TFT_WIDTH, TFT_HEIGHT - 25);
   lv_obj_set_pos(tilesScreen, 0, 25);
   static lv_style_t styleScroll;
@@ -592,7 +633,8 @@ void createMainScr()
   lv_img_set_src(compassImg, &bruj);
   lv_img_set_zoom(compassImg,iconScale);
   lv_obj_update_layout(compassImg);
-  lv_obj_align_to(compassImg, compassWidget, LV_ALIGN_CENTER, 0, 0);    lv_img_set_pivot(compassImg, 100, 100) ;
+  lv_obj_align_to(compassImg, compassWidget, LV_ALIGN_CENTER, 0, 0);   
+  lv_img_set_pivot(compassImg, 100, 100) ;
   compassHeading = lv_label_create(compassWidget);
   lv_obj_set_height(compassHeading,38);
   lv_obj_align(compassHeading, LV_ALIGN_CENTER, 0, 20);
@@ -609,10 +651,10 @@ void createMainScr()
   lv_obj_clear_flag(positionWidget, LV_OBJ_FLAG_SCROLLABLE);
   latitude = lv_label_create(positionWidget);
   lv_obj_set_style_text_font(latitude, fontMedium, 0);
-  lv_label_set_text_static(latitude, latFormatString(GPS.location.lat()));
+  lv_label_set_text_fmt(latitude, "%s", latFormatString(getLat()));
   longitude = lv_label_create(positionWidget);
   lv_obj_set_style_text_font(longitude, fontMedium, 0);
-  lv_label_set_text_static(longitude, lonFormatString(GPS.location.lng()));
+  lv_label_set_text_fmt(longitude, "%s", lonFormatString(getLon()));
   lv_obj_t *posImg = lv_img_create(positionWidget);
   lv_img_set_src(posImg, positionIconFile);
   lv_img_set_zoom(posImg,iconScale);
@@ -723,10 +765,61 @@ void createMainScr()
   lv_obj_add_event_cb(mapTile, toolBarEvent, LV_EVENT_LONG_PRESSED, NULL);
   
   // Navigation Tile
-  // TODO
+  lv_obj_t * label;
+  label = lv_label_create(navTile);
+  lv_obj_set_style_text_font(label, fontOptions, 0);
+  lv_label_set_text_static(label, "Navigation to:");
+  lv_obj_center(label);
+  lv_obj_align(label,LV_ALIGN_TOP_LEFT,10, 20);
+
+  nameNav = lv_label_create(navTile);
+  lv_obj_set_style_text_font(nameNav, fontLargeMedium, 0);
+  //lv_label_set_text_fmt(nameNav, "%s","");
+  lv_obj_set_width(nameNav,TFT_WIDTH-10);
+  lv_obj_set_pos(nameNav,10, 55);
+
+  label = lv_label_create(navTile);
+  lv_obj_set_style_text_font(label, fontOptions, 0);
+  lv_label_set_text_static(label, "Lat:");
+  lv_obj_set_pos(label, 10, 90);
+
+  label = lv_label_create(navTile);
+  lv_obj_set_style_text_font(label, fontOptions, 0);
+  lv_label_set_text_static(label, "Lon:");
+  lv_obj_set_pos(label, 10, 120);
+
+  latNav = lv_label_create(navTile);
+  lv_obj_set_style_text_font(latNav, fontOptions, 0);
+  lv_label_set_text_fmt(latNav, "%s", "");
+  lv_obj_set_pos(latNav, 60, 90);
+  
+  lonNav = lv_label_create(navTile);
+  lv_obj_set_style_text_font(lonNav, fontOptions, 0);
+  lv_label_set_text_fmt(lonNav, "%s", "");
+  lv_obj_set_pos(lonNav, 60, 120);
+
+  label = lv_label_create(navTile);
+  lv_obj_set_style_text_font(label, fontOptions, 0);
+  lv_label_set_text_static(label, "Distance");
+  lv_obj_align(label, LV_ALIGN_CENTER, 0, -50);
+
+  distNav = lv_label_create(navTile);
+  lv_obj_set_style_text_font(distNav, fontVeryLarge, 0);
+  lv_label_set_text_fmt(distNav,"%d m.", 0);
+  lv_obj_align(distNav,LV_ALIGN_CENTER, 0, -5);
+
+  arrowNav = lv_img_create(navTile);
+  lv_img_set_zoom(arrowNav,iconScale);
+  lv_obj_update_layout(arrowNav);
+  lv_obj_align(arrowNav,LV_ALIGN_CENTER, 0, 100);
+  
+  #ifdef ENABLE_COMPASS
+    lv_img_set_src(arrowNav, &navup);
+    lv_img_set_pivot(arrowNav, 50, 50) ;
+  #endif
   
   // Navigation Tile Events
-  // TODO
+  lv_obj_add_event_cb(navTile, updateNavEvent, LV_EVENT_VALUE_CHANGED, NULL);
   
   // Satellite Tracking Tile
   lv_obj_t *infoGrid = lv_obj_create(satTrackTile);

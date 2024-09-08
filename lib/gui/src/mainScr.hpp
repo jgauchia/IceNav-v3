@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Main Screen
  * @version 0.1.8_Alpha
- * @date 2024-08
+ * @date 2024-09
  */
 
 #ifndef MAINSCR_HPP
@@ -18,6 +18,9 @@
 #include "renderMaps.hpp"
 #include "vectorMaps.hpp"
 #include "addWaypoint.hpp"
+#include "loadWaypoint.hpp"
+#include "deleteWaypoint.hpp"
+#include "editWaypoint.hpp"
 
 static lv_timer_t *mainTimer;    // Main Screen Timer
 #define UPDATE_MAINSCR_PERIOD 30 // Main Screen update time
@@ -36,7 +39,7 @@ enum tileName
 {
   COMPASS,
   MAP,
- /*  NAV, */
+  NAV,
   SATTRACK,
 };
 
@@ -85,6 +88,19 @@ static lv_style_t styleRadio;
 static lv_style_t styleRadioChk;
 static uint32_t activeGnss = 0;
 
+/**
+ * @brief Navigation Tile screen objects
+ *
+ */
+extern lv_obj_t *nameNav;
+extern lv_obj_t *latNav;
+extern lv_obj_t *lonNav;
+extern lv_obj_t *distNav;
+extern lv_obj_t *arrowNav;
+extern double destLat;
+extern double destLon;
+extern char* destName;
+
 void updateCompassScr(lv_event_t * event);
 
 void editScreen(lv_event_t *event);
@@ -110,6 +126,7 @@ void toolBarEvent(lv_event_t *event);
 void fullScreenEvent(lv_event_t *event);
 void zoomOutEvent(lv_event_t *event);
 void zoomInEvent(lv_event_t *event);
+void updateNavEvent(lv_event_t *event);
 
 void createMainScr();
 

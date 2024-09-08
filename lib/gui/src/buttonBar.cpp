@@ -3,11 +3,12 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Button Bar 
  * @version 0.1.8_Alpha
- * @date 2024-08
+ * @date 2024-09
  */
 
 #include "buttonBar.hpp"
-#include "addWaypointScr.hpp"
+#include "waypointScr.hpp"
+#include "waypointListScr.hpp"
 #include "display/lv_display.h"
 #include "globalGuiDef.h"
 
@@ -41,16 +42,18 @@ void buttonBarEvent(lv_event_t *event)
   }
 
   char *option = (char *)lv_event_get_user_data(event);
+
   if (strcmp(option,"addwpt") == 0)
   {
     log_v("Add Waypoint");
+    wptAction = WPT_ADD;
     isMainScreen = false;
     redrawMap = false;
     lv_textarea_set_text(waypointName, "");
     isScreenRotated = false;
     lv_obj_set_width(waypointName, tft.width() -10);
     updateWaypointPos();
-    lv_screen_load(addWaypointScreen);
+    lv_screen_load(waypointScreen);
   }
 
   if (strcmp(option,"waypoint") == 0)
@@ -65,18 +68,18 @@ void buttonBarEvent(lv_event_t *event)
       loadOptions();
     }
   }
-  if (strcmp(option,"track") == 0)
-  {
-    log_v("Track");
-    isMainScreen = false;
-    isTrackOpt = true;
-    isWaypointOpt = false;
-    if (!isOptionLoaded)
-    {
-      isOptionLoaded = true;
-      loadOptions();
-    } 
-  }
+  // if (strcmp(option,"track") == 0)
+  // {
+  //   log_v("Track");
+  //   isMainScreen = false;
+  //   isTrackOpt = true;
+  //   isWaypointOpt = false;
+  //   if (!isOptionLoaded)
+  //   {
+  //     isOptionLoaded = true;
+  //     loadOptions();
+  //   } 
+  // }
   if (strcmp(option,"settings") == 0)
   {
     log_v("Settings");
@@ -93,28 +96,48 @@ void buttonBarEvent(lv_event_t *event)
 void optionEvent(lv_event_t *event)
 {
   char *action = (char *)lv_event_get_user_data(event);
-  if (strcmp(action,"save") == 0)
-  {
-    log_v("Save Option");
-    isMainScreen = true;
-    isOptionLoaded = false;
-    lv_msgbox_close(option);
-  }
   if (strcmp(action,"load") == 0)
   {
     log_v("Load Option");
-    isMainScreen = true;
-    isOptionLoaded = false;
+    wptAction = WPT_LOAD;
+    isMainScreen = false;
     lv_msgbox_close(option);
+    updateWaypointListScreen();
+    lv_screen_load(listWaypointScreen);
+  }
+  if (strcmp(action,"edit") == 0)
+  {
+    log_v("Edit Option");
+    wptAction = WPT_EDIT;
+    isMainScreen = false;
+    lv_msgbox_close(option);
+    updateWaypointListScreen();
+    lv_screen_load(listWaypointScreen);
   }
   if (strcmp(action,"delete") == 0)
   {
     log_v("Delete Option");
-    isMainScreen = true;
-    isOptionLoaded = false;
+    wptAction = WPT_DEL;
+    isMainScreen = false;
     lv_msgbox_close(option);
+    updateWaypointListScreen();
+    lv_screen_load(listWaypointScreen);   
   }
 }
+
+/**
+ * @brief Close Options event
+ *
+ * @param event
+ */
+ void closeOption(lv_event_t *event)
+ {
+    isMainScreen = true;
+    isOptionLoaded = false;
+    isWaypointOpt = false;
+    isTrackOpt = false;
+    redrawMap = true;
+ }
 
 /**
  * @brief Hide/Show Animation
@@ -221,13 +244,11 @@ void createButtonBarScr()
   // Waypoint Button
   imgBtn = lv_img_create(buttonBar);
   lv_img_set_src(imgBtn, waypointIconFile);
-  lv_obj_set_style_img_recolor_opa(imgBtn, 230, 0);
-  lv_obj_set_style_img_recolor(imgBtn, lv_color_black(), 0);
   lv_img_set_zoom(imgBtn,buttonScale);
   lv_obj_update_layout(imgBtn);
   lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
   lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
-  //lv_obj_add_event_cb(imgBtn, buttonBarEvent, LV_EVENT_PRESSED, (char*)"waypoint");
+  lv_obj_add_event_cb(imgBtn, buttonBarEvent, LV_EVENT_PRESSED, (char*)"waypoint");
   
   // Track Button
   imgBtn = lv_img_create(buttonBar);
@@ -238,6 +259,7 @@ void createButtonBarScr()
   lv_obj_update_layout(imgBtn);
   lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
   lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_HIDDEN);
   //lv_obj_add_event_cb(imgBtn, buttonBarEvent, LV_EVENT_PRESSED, (char*)"track");
   
   // Settings Button
@@ -257,39 +279,51 @@ void createButtonBarScr()
 void loadOptions()
 {
   option = lv_msgbox_create(lv_scr_act());
+  lv_obj_t *buttons = lv_obj_create(option);
+  lv_obj_remove_style_all(buttons);
+  lv_obj_set_flex_flow(buttons, LV_FLEX_FLOW_ROW);
+  lv_obj_set_flex_align(buttons, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_set_size(buttons, TFT_WIDTH, 50 * scaleBut);
+  lv_obj_align_to(buttons, option,  LV_ALIGN_BOTTOM_LEFT, 0, -40);
+
   if (isWaypointOpt)
-  {
-    //lv_msgbox_add_title(option,"Waypoint Options");
-    //option = lv_msgbox_create(lv_scr_act(), "Waypoint Options", NULL, NULL, true);
-  }
+    lv_msgbox_add_title(option,"Waypoint Options");
   else if (isTrackOpt)
   {
     //lv_msgbox_add_title(option,"Track Options");
-    //option = lv_msgbox_create(lv_scr_act(), "Track Options", NULL, NULL, true);
   }
   lv_msgbox_add_close_button(option);
   
-  lv_obj_set_size(option, TFT_WIDTH, 128);
-  lv_obj_set_pos(option, 0, TFT_HEIGHT - 200);
+  lv_obj_set_size(option, TFT_WIDTH, 110 * scaleBut);
+  lv_obj_align(option, LV_ALIGN_BOTTOM_LEFT, 0, 0);
   lv_obj_clear_flag(option, LV_OBJ_FLAG_SCROLLABLE);
-  // lv_obj_add_event_cb(lv_msgbox_get_close_btn(option), close_option, LV_EVENT_PRESSED, NULL);
+  lv_obj_add_event_cb(option, closeOption, LV_EVENT_DELETE, NULL);
   
   lv_obj_t *imgBtn;
   
-  // Save Button
-  imgBtn = lv_img_create(option);
-  lv_img_set_src(imgBtn, saveIconFile);
-  lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_add_event_cb(imgBtn, optionEvent, LV_EVENT_PRESSED, (char*)"save");
+  // if (isTrackOpt)
+  // {
+  //   // Save Button
+  //   imgBtn = lv_img_create(option);
+  //   lv_img_set_src(imgBtn, saveIconFile);
+  //   lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
+  //   lv_obj_add_event_cb(imgBtn, optionEvent, LV_EVENT_PRESSED, (char*)"save");
+  // }
   
   // Load Button
-  imgBtn = lv_img_create(option);
+  imgBtn = lv_img_create(buttons);
   lv_img_set_src(imgBtn, loadIconFile);
   lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_add_event_cb(imgBtn, optionEvent, LV_EVENT_PRESSED, (char*)"load");
+
+  // Edit Button
+  imgBtn = lv_img_create(buttons);
+  lv_img_set_src(imgBtn, editIconFile);
+  lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_event_cb(imgBtn, optionEvent, LV_EVENT_PRESSED, (char*)"edit");
   
   // Delete Button
-  imgBtn = lv_img_create(option);
+  imgBtn = lv_img_create(buttons);
   lv_img_set_src(imgBtn, deleteIconFile);
   lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_add_event_cb(imgBtn, optionEvent, LV_EVENT_PRESSED, (char*)"delete");
