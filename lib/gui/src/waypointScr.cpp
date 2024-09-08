@@ -55,7 +55,7 @@ static void waypointScreenEvent(lv_event_t *event)
 
         if ( strcmp(loadWpt.name, newName) != 0)
         {
-           log_v("%s",newName);
+           editWaypointName(loadWpt.name, newName);
         }
         break;
       // default:

@@ -57,6 +57,8 @@ void waypointListEvent(lv_event_t * event)
                 }
             }   
         } 
+        else if ( row == 0 )
+            loadMainScreen();
     }
 }
 

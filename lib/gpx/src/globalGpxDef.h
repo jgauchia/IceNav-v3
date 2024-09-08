@@ -14,6 +14,7 @@
 #include "FS.h"
 #include <regex>
 
+static const char* wptFile PROGMEM = "/WPT/waypoint.gpx";
 
 /**
  * @brief Waypoint action enum

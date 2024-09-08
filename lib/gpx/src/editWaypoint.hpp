@@ -16,4 +16,6 @@
 #include "globalGuiDef.h"
 #include "globalGpxDef.h"
 
+void editWaypointName(char* oldName, char *newName);
+
 #endif
