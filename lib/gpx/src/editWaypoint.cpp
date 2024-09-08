@@ -43,6 +43,4 @@
 
     releaseSdSPI();
 
-    log_i("%s",wptContent.c_str());
-
  }

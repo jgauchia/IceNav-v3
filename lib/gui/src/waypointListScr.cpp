@@ -52,6 +52,9 @@ void waypointListEvent(lv_event_t * event)
                         updateWaypointPos();
                         lv_screen_load(waypointScreen);
                         break;
+                    case WPT_DEL:
+                        loadWptFile(sel);
+                        break;
                     default:
                         break;
                 }
