@@ -38,8 +38,21 @@ void waypointListEvent(lv_event_t * event)
                 {
                     case WPT_LOAD:
                         loadWptFile(sel);
-                        lv_obj_clear_flag(navTile,LV_OBJ_FLAG_HIDDEN);
-                        updateNavScreen();
+                        if ( loadWpt.lat != 0 && loadWpt.lon != 0 )
+                        {
+                            lv_obj_clear_flag(navTile,LV_OBJ_FLAG_HIDDEN);
+
+                            destLat = loadWpt.lat;
+                            destLon = loadWpt.lon;
+                            destName = loadWpt.name;
+
+                            lv_label_set_text_fmt(latNav, "%s", latFormatString(destLat));
+                            lv_label_set_text_fmt(lonNav, "%s", lonFormatString(destLon));
+                            lv_label_set_text_fmt(nameNav, "%s",destName);
+                        }
+                        else 
+                            lv_obj_add_flag(navTile,LV_OBJ_FLAG_HIDDEN);
+
                         loadMainScreen();
                         break;
                     case WPT_EDIT:
@@ -54,6 +67,8 @@ void waypointListEvent(lv_event_t * event)
                         break;
                     case WPT_DEL:
                         loadWptFile(sel);
+                        deleteWaypointName(loadWpt.name);
+                        loadMainScreen();
                         break;
                     default:
                         break;
@@ -61,7 +76,10 @@ void waypointListEvent(lv_event_t * event)
             }   
         } 
         else if ( row == 0 )
+        {
+            lv_obj_add_flag(navTile,LV_OBJ_FLAG_HIDDEN);
             loadMainScreen();
+        }
     }
 }
 
@@ -114,7 +132,7 @@ void updateWaypointListScreen()
 
         wptContent = std::string((char*)buffer);
         delete[] buffer;
-    
+
         std::regex wptName("<name>([^<]*?)</name>");
         std::smatch wptFound;
         std::string::const_iterator wptSearch(wptContent.cbegin());

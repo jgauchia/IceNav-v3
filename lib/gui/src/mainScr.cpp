@@ -47,6 +47,14 @@ lv_obj_t *satTrackTile;
 lv_obj_t *btnFullScreen;
 lv_obj_t *btnZoomIn;
 lv_obj_t *btnZoomOut;
+lv_obj_t *nameNav;
+lv_obj_t *latNav;
+lv_obj_t *lonNav;
+lv_obj_t *distNav;
+lv_obj_t *arrowNav;
+double destLat = 0;
+double destLon = 0;
+char* destName = "";
 
 
 /**
@@ -542,7 +550,7 @@ void zoomOutEvent(lv_event_t *event)
  */
 void updateNavEvent(lv_event_t *event)
 {
-  int wptDistance = (int)calcDist(getLat(), getLon(), loadWpt.lat, loadWpt.lon);
+  int wptDistance = (int)calcDist(getLat(), getLon(), destLat, destLon);
   lv_label_set_text_fmt(distNav,"%d m.", wptDistance);
 
   if (wptDistance == 0)
@@ -557,6 +565,9 @@ void updateNavEvent(lv_event_t *event)
     #ifdef ENABLE_COMPASS
       double wptCourse = calcCourse(getLat(), getLon(), loadWpt.lat, loadWpt.lon) - getHeading();
       lv_img_set_angle(arrowNav, (wptCourse * 10));
+    #endif
+    #ifndef ENABLE_COMPASS
+       lv_img_set_src(arrowNav, NULL);
     #endif
   }
 }
@@ -763,7 +774,7 @@ void createMainScr()
 
   nameNav = lv_label_create(navTile);
   lv_obj_set_style_text_font(nameNav, fontLargeMedium, 0);
-  lv_label_set_text_fmt(nameNav, "%s","");
+  //lv_label_set_text_fmt(nameNav, "%s","");
   lv_obj_set_width(nameNav,TFT_WIDTH-10);
   lv_obj_set_pos(nameNav,10, 55);
 

@@ -219,5 +219,6 @@ void loadMainScreen()
 {
   isMainScreen = true;
   isSearchingSat = false;
+  wptAction = WPT_NONE;
   lv_screen_load(mainScreen);
 }
