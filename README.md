@@ -20,6 +20,8 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 > Do not use in production (Experimental features).
 
 ## Screenshots
+<details><summary>Click me</summary>
+  
 |<img src="images/dev/splash.jpg">|<img src="images/dev/searchsat.jpg">|<img src="images/dev/compass.jpg">|<img src="images/dev/options.jpg">|<img src="images/dev/wptopt.jpg">|
 |:-:|:-:|:-:|:-:|:-:|
 | Splash Screen | Search Satellite | Compass | Main Options | Waypoint Options |
@@ -39,10 +41,11 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 ### WiFi CLI Manager
 ![WifiCLI](https://github.com/jgauchia/IceNav-v3/assets/1075178/a7f8af18-2c34-436d-8fef-995540312cb2)
 
+</details>
 
 ## Specifications
 
-Currently, IceNav works with the following hardware setups and specs 
+Currently, IceNav works with the following hardware setups and specs
 
 **Highly recommended an ESP32S3 with PSRAM and 320x480 Screen** 
  
@@ -98,8 +101,7 @@ If TFT shares SPI bus with SD card add the following Build Flag to platformio.in
 Other setups like another sensors types, etc... not listed in the specs, now **They are not included**
 
 If you wish to add any other type of sensor, module, etc., you can create a PR without any problem, and we will try to implement it. Thank you!
-
----
+</details>
 
 ## Wiring
 
