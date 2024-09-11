@@ -42,7 +42,7 @@ void updateNotifyBar(lv_event_t *event)
 #ifdef ENABLE_TEMP
   if (obj == temp)
     lv_label_set_text_fmt(obj, "%02d\xC2\xB0", tempValue);
-  #endif
+#endif
   if (obj == gpsCount)
   {
     if (GPS.satellites.isValid())
@@ -107,7 +107,7 @@ void updateNotifyBarTimer(lv_timer_t *t)
   lv_obj_send_event(gpsFixMode, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_send_event(wifi, LV_EVENT_VALUE_CHANGED, NULL);
  
-  if (GPS.location.isUpdated())
+  if (atoi(fixMode.value()) !=1 )
   {
     switch (GPS.location.FixQuality()) 
     {
@@ -126,7 +126,7 @@ void updateNotifyBarTimer(lv_timer_t *t)
     }
   }
   else
-   lv_led_off(gpsFix);
+    lv_led_off(gpsFix);
 
   #ifdef ENABLE_TEMP
   tempValue = (uint8_t)(bme.readTemperature());
