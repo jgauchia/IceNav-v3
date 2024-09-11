@@ -340,8 +340,8 @@ void updateMap(lv_event_t *event)
       
       releaseSdSPI();
             
-      deleteMapScrSprites();
-      createMapScrSprites();
+      // deleteMapScrSprites();
+      // createMapScrSprites();
       generateVectorMap(viewPort, memCache, mapTempSprite); 
       
       isPosMoved = false;
