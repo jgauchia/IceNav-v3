@@ -274,3 +274,4 @@ nc -l -p 8123 > waypoint.gpx
 * OSM to binary vectorial maps [OSM_Extract](https://github.com/aresta/OSM_Extract) thanks to [@aresta](https://github.com/aresta)
 * Preferences Library [Easy Preferences](https://github.com/hpsaturn/easy-preferences) thanks to [@hpsaturn](https://github.com/hpsaturn)
 * Wifi CLI manager [esp32-wifi-cli](https://github.com/hpsaturn/esp32-wifi-cli) thanks to [@hpsaturn](https://github.com/hpsaturn)
+* Web file server based in [@smford](https://github.com/smford) [esp32-asyncwebserver-fileupload-example ](https://github.com/smford/esp32-asyncwebserver-fileupload-example)
