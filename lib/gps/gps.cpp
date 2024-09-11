@@ -63,6 +63,11 @@ void initGPS()
       // gps->println("$PCAS04,5*1C\r\n");
 
       // GPS+BDS+GLONASS
+     
+      gps->println("$PCAS10,0*1C\r\n");
+      gps->flush();
+      delay(100);
+
       gps->println("$PCAS04,7*1E\r\n");
       gps->flush();
       delay(100);
