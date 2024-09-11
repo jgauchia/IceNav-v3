@@ -174,7 +174,8 @@ function downloadDeleteButton(filename, action)
 
 function changeDirectory(directory)
 {
-  var urltocall = "/changedirectory?dir=/" + directory;
+  var encodedDirectory = encodeURIComponent(directory);
+  var urltocall = "/changedirectory?dir=/" + encodedDirectory;
   xhr = new XMLHttpRequest();
   xhr.open("GET", urltocall, false);
   xhr.send();
