@@ -9,6 +9,7 @@
 #include "SPIFFS.h"
 #include <ESPmDNS.h>
 #include <esp_task_wdt.h>
+#include <algorithm> 
 
 /**
  * @brief Current directory
@@ -28,7 +29,6 @@ struct FileEntry {
   size_t size;
 };
 std::vector<FileEntry> fileCache;
-
 
 /**
  * @brief Web Server Declaration
@@ -53,6 +53,78 @@ String humanReadableSize(uint64_t bytes)
     return String(bytes / (1024.0 * 1024.0)) + " MB";
   else
     return String(bytes / (1024.0 * 1024.0 * 1024.0)) + " GB";
+}
+
+/**
+ * @brief Extract position of numeric part of string
+ *
+ * @param String
+ * @return pos 
+ */
+int extractNumber(const String& str, int& pos)
+{
+  int num = 0;
+  while (pos < str.length() && isdigit(str[pos])) 
+  {
+    num = num * 10 + (str[pos] - '0');
+    pos++;
+  }
+  return num;
+}
+
+/**
+ * @brief Compare alphanumerical two strings
+ *
+ * @param a -> First string
+ * @param b -> Second string
+ * @return true/false
+ */
+bool naturalCompare(const String& a, const String& b) 
+{
+  int i = 0, j = 0;
+  while (i < a.length() && j < b.length()) 
+  {
+    if (isdigit(a[i]) && isdigit(b[j])) 
+    {
+      int numA = extractNumber(a, i);
+      int numB = extractNumber(b, j);
+      if (numA != numB) 
+        return numA < numB;
+    } 
+    else 
+    {
+      if (tolower(a[i]) != tolower(b[j])) 
+        return tolower(a[i]) < tolower(b[j]);
+      i++;
+      j++;
+    }
+  }
+
+  return a.length() < b.length();
+}
+
+/**
+ * @brief Compare File Cache entries
+ *
+ * @param a -> File Cache entries 
+ * @param b -> File Cache entries
+ * @return true/false
+ */
+bool compareFileEntries(const FileEntry& a, const FileEntry& b)
+{
+  if (a.isDirectory != b.isDirectory) 
+    return a.isDirectory > b.isDirectory; 
+
+  return naturalCompare(a.name, b.name);
+}
+
+/**
+ * @brief Sort File Cache entries
+ *
+ */
+void sortFileCache() 
+{
+  std::sort(fileCache.begin(), fileCache.end(), compareFileEntries);
 }
 
 /**
@@ -82,6 +154,8 @@ void cacheDirectoryContent(const String& dir)
   }
 
   root.close();
+
+  sortFileCache();
 }
 
 /**
