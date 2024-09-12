@@ -7,6 +7,7 @@
  */
 
 #include "SPIFFS.h"
+#include <ESPmDNS.h>
 
 /**
  * @brief Current directory
@@ -19,6 +20,7 @@ String oldDir;
  *
  */
 static AsyncWebServer server(80);
+static const char* hostname = "icenav";
 
 /**
  * @brief Convert bytes to Human Readable Size
@@ -223,6 +225,12 @@ void sendSpiffsImage(const char *imageFile,AsyncWebServerRequest *request)
  */
 void configureWebServer()
 {
+
+   if (!MDNS.begin(hostname))       
+    log_e("nDNS init error");
+
+   log_i("mDNS initialized");
+
   server.onNotFound(webNotFound);
   server.onFileUpload(handleUpload);
   oldDir = "/";
