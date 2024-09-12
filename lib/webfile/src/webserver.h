@@ -15,7 +15,19 @@
  * 
  */
 String oldDir;
+
 const int FILES_PER_PAGE = 10; 
+
+/**
+ * @brief File directory cache
+ *
+ */
+struct FileEntry {
+  String name;
+  bool isDirectory;
+  size_t size;
+};
+std::vector<FileEntry> fileCache;
 
 
 /**
@@ -41,6 +53,35 @@ String humanReadableSize(uint64_t bytes)
     return String(bytes / (1024.0 * 1024.0)) + " MB";
   else
     return String(bytes / (1024.0 * 1024.0 * 1024.0)) + " GB";
+}
+
+/**
+ * @brief Cache file entries in directory
+ *
+ * @param dir
+ */
+void cacheDirectoryContent(const String& dir) 
+{
+  fileCache.clear();  
+
+  File root = SD.open(dir.c_str());
+  File foundFile = root.openNextFile();
+
+  while (foundFile)
+  {
+    FileEntry entry;
+    entry.name = foundFile.name();
+    entry.isDirectory = foundFile.isDirectory();
+    entry.size = foundFile.size();
+
+    fileCache.push_back(entry);
+    
+    esp_task_wdt_reset(); 
+
+    foundFile = root.openNextFile();
+  }
+
+  root.close();
 }
 
 /**
@@ -102,7 +143,6 @@ String webParser(const String &var)
 /**
  * @brief Reboot ESP
  * 
- * @param message 
  */
 void rebootESP()
 {
@@ -119,11 +159,7 @@ void rebootESP()
  */
 String listFiles(bool ishtml, int page = 0)
 {
-  acquireSdSPI(); 
-  
   String returnText = "";
-  File root = SD.open(oldDir.c_str());
-  File foundFile = root.openNextFile();
 
   int fileIndex = 0; 
   int startIdx = page * FILES_PER_PAGE; 
@@ -141,35 +177,31 @@ String listFiles(bool ishtml, int page = 0)
     }
   }
 
-  while (foundFile)
+  for (int i = startIdx; i < endIdx && i < fileCache.size(); ++i) 
   {
-    if (fileIndex >= startIdx && fileIndex < endIdx)
+    FileEntry& entry = fileCache[i];
+
+    if (ishtml) 
     {
-      if (ishtml)
+      returnText += "<tr align='left'><td style=\"width:300px\">";
+      if (entry.isDirectory) 
       {
-        returnText += "<tr align='left'><td style=\"width:300px\">";
-        if (foundFile.isDirectory())
-        {
-          returnText += "<img src=\"folder\"> <a href='#' onclick='changeDirectory(\"" + String(foundFile.name()) + "\")'>" + String(foundFile.name()) + "</a>";
-          returnText += "</td><td style=\"text-align:center\">dir</td><td></td><td></td>";
-        }
-        else
-        {
-          returnText += "<img src=\"files\"> " + String(foundFile.name());
-          returnText += "</td><td style=\"text-align:right\">" + humanReadableSize(foundFile.size()) + "</td>";
-          returnText += "<td><button class=\"button\" onclick=\"downloadDeleteButton('" + String(foundFile.name()) + "', 'download')\"><img src=\"down\"> Download</button></td>";
-          returnText += "<td><button class=\"button\" onclick=\"downloadDeleteButton('" + String(foundFile.name()) + "', 'delete')\"><img src=\"del\"> Delete</button></td>";
-        }
-        returnText += "</tr>";
-      }
-      else
+        returnText += "<img src=\"folder\"> <a href='#' onclick='changeDirectory(\"" + entry.name + "\")'>" + entry.name + "</a>";
+        returnText += "</td><td style=\"text-align:center\">dir</td><td></td><td></td>";
+      } 
+      else 
       {
-        returnText += "File: " + String(foundFile.name()) + " Size: " + humanReadableSize(foundFile.size()) + "\n";
+        returnText += "<img src=\"files\"> " + entry.name;
+        returnText += "</td><td style=\"text-align:right\">" + humanReadableSize(entry.size) + "</td>";
+        returnText += "<td><button class=\"button\" onclick=\"downloadDeleteButton('" + entry.name + "', 'download')\"><img src=\"down\"> Download</button></td>";
+        returnText += "<td><button class=\"button\" onclick=\"downloadDeleteButton('" + entry.name + "', 'delete')\"><img src=\"del\"> Delete</button></td>";
       }
+      returnText += "</tr>";
     }
-    foundFile = root.openNextFile();
-    fileIndex++;
-    esp_task_wdt_reset(); 
+    else 
+    {
+      returnText += "File: " + entry.name + " Size: " + humanReadableSize(entry.size) + "\n";
+    }
   }
 
   if (ishtml)
@@ -182,17 +214,12 @@ String listFiles(bool ishtml, int page = 0)
 
     returnText += "<ti><span> Page " + String(page + 1) + " </span></ti>";
 
-    if (fileIndex > endIdx)   
+    if (fileCache.size() > endIdx)
       returnText += "<ti><button class=\"button\" onclick='loadPage(" + String(page + 1) + ")'>Next</button></ti>";
 
     returnText += "</tr></p>"; 
   }
-
-  root.close(); 
-  foundFile.close();
-
-  releaseSdSPI(); 
-  
+ 
   return returnText;
 }
 
@@ -303,6 +330,10 @@ void configureWebServer()
                 page = request->getParam("page")->value().toInt();
               }
 
+              acquireSdSPI(); 
+              cacheDirectoryContent(oldDir);
+              releaseSdSPI();
+
               request->send(200, "text/html", listFiles(true, page)); });
 
   server.on("/file", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -359,9 +390,6 @@ void configureWebServer()
             {
               if (request->hasParam("dir"))
               {
-
-                acquireSdSPI();
-
                 String newDir = request->getParam("dir")->value();
                 log_i("new dir %s", newDir.c_str());
                 log_i("old dir %s", oldDir.c_str());
@@ -373,7 +401,6 @@ void configureWebServer()
                     oldDir = oldDir.substring(0, oldDir.lastIndexOf("/"));
                     if (oldDir == "")
                       oldDir = "/";
-                    SD.open(oldDir.c_str());
                     request->send(200, "text/plain", "Directory changed successfully");
                   }
                   else
@@ -389,18 +416,8 @@ void configureWebServer()
                   else
                     oldDir = newDir;
 
-                  if (SD.exists(oldDir))
-                  {
-                    SD.open(oldDir.c_str());
                     request->send(200, "text/plain", "Directory changed successfully");
-                  }
-                  else
-                  {
-                    request->send(500, "text/plain", "Failed to change directory");
-                  }
                 }
-
-                releaseSdSPI();
               }
               else
               {
