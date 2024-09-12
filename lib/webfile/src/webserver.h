@@ -268,7 +268,7 @@ void sendSpiffsImage(const char *imageFile,AsyncWebServerRequest *request)
   uint8_t *buffer = (uint8_t*)ps_malloc(sizeof(uint8_t)*size);
 
   fread(buffer, sizeof(uint8_t),size,f);
-
+  fclose(f);
   request->send_P(200,"image/png",buffer,size);
             
   free(buffer);
