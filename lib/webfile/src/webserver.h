@@ -308,9 +308,18 @@ void configureWebServer()
   
   server.on("/down", HTTP_GET, [](AsyncWebServerRequest *request)
             { sendSpiffsImage("/spiffs/download.png", request); });
+  
+  server.on("/up", HTTP_GET, [](AsyncWebServerRequest *request)
+            { sendSpiffsImage("/spiffs/upload.png", request); });          
 
   server.on("/del", HTTP_GET, [](AsyncWebServerRequest *request)
             { sendSpiffsImage("/spiffs/delete.png", request); });
+
+  server.on("/reb", HTTP_GET, [](AsyncWebServerRequest *request)
+            { sendSpiffsImage("/spiffs/reboot.png", request); });    
+
+  server.on("/list", HTTP_GET, [](AsyncWebServerRequest *request)
+            { sendSpiffsImage("/spiffs/list.png", request); });                    
 
   server.on("/reboot", HTTP_GET, [](AsyncWebServerRequest *request)
             {

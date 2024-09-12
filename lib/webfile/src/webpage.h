@@ -112,9 +112,9 @@ const char index_html[] PROGMEM = R"rawliteral(
   <p class="p3">Type: %TYPEFS% | Size: <span id="size">%TOTALFS%</span> | Used: <span id="used">%USEDFS%</span> | Free: <span id="free">%FREEFS%</span></p>
 
   <p>
-  <button class="button" onclick="rebootButton()">Reboot</button>
-  <button class="button" onclick="listFilesButton()">List Files</button>
-  <button class="button" onclick="uploadButton()">Upload File</button>
+  <button class="button" onclick="rebootButton()"><img src="reb"> Reboot</button>
+  <button class="button" onclick="listFilesButton()"><img src="list"> List Files</button>
+  <button class="button" onclick="uploadButton()"><img src="up"> Upload File</button>
   </p>
 
   <p class="p3" id="status"></p>
