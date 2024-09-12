@@ -75,6 +75,10 @@ const char index_html[] PROGMEM = R"rawliteral(
                 border-bottom: 1px solid #ddd;
               }
 
+      ti     {
+                padding: 4px;
+                text-align: left;
+             }
       td {
             font-family: "Lucida Console", "Courier New", monospace;
             font-size: 10px;
@@ -122,6 +126,15 @@ const char index_html[] PROGMEM = R"rawliteral(
 function _(el)
 {
   return document.getElementById(el);
+}
+
+function loadPage(page) 
+{
+  fetch('/listfiles?page=' + page) 
+    .then(response => response.text())
+    .then(data => {
+      document.getElementById("details").innerHTML = data; 
+    });
 }
 
 function refresh()

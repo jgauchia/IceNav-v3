@@ -8,12 +8,15 @@
 
 #include "SPIFFS.h"
 #include <ESPmDNS.h>
+#include <esp_task_wdt.h>
 
 /**
  * @brief Current directory
  * 
  */
 String oldDir;
+const int FILES_PER_PAGE = 10; 
+
 
 /**
  * @brief Web Server Declaration
@@ -111,15 +114,21 @@ void rebootESP()
  * @brief List Files in Web Page
  * 
  * @param ishtml 
+ * @param page
  * @return String 
  */
-String listFiles(bool ishtml)
+String listFiles(bool ishtml, int page = 0)
 {
-  acquireSdSPI();
-
+  acquireSdSPI(); 
+  
   String returnText = "";
   File root = SD.open(oldDir.c_str());
   File foundFile = root.openNextFile();
+
+  int fileIndex = 0; 
+  int startIdx = page * FILES_PER_PAGE; 
+  int endIdx = startIdx + FILES_PER_PAGE; 
+
   if (ishtml)
   {
     returnText += "<div style=\"overflow-y:scroll;\"><table><tr><th>Name</th><th style=\"text-align:center\">Size</th><th></th><th></th></tr>";
@@ -131,40 +140,59 @@ String listFiles(bool ishtml)
       returnText += "</tr>";
     }
   }
+
   while (foundFile)
   {
-    if (ishtml)
+    if (fileIndex >= startIdx && fileIndex < endIdx)
     {
-      returnText += "<tr align='left'><td style=\"width:300px\">";
-      if (foundFile.isDirectory())
+      if (ishtml)
       {
-        returnText += "<img src=\"folder\"> <a href='#' onclick='changeDirectory(\"" + String(foundFile.name()) + "\")'>" + String(foundFile.name()) + "</a>";
-        returnText += "</td><td style=\"text-align:center\">dir</td><td></td><td></td>";
+        returnText += "<tr align='left'><td style=\"width:300px\">";
+        if (foundFile.isDirectory())
+        {
+          returnText += "<img src=\"folder\"> <a href='#' onclick='changeDirectory(\"" + String(foundFile.name()) + "\")'>" + String(foundFile.name()) + "</a>";
+          returnText += "</td><td style=\"text-align:center\">dir</td><td></td><td></td>";
+        }
+        else
+        {
+          returnText += "<img src=\"files\"> " + String(foundFile.name());
+          returnText += "</td><td style=\"text-align:right\">" + humanReadableSize(foundFile.size()) + "</td>";
+          returnText += "<td><button class=\"button\" onclick=\"downloadDeleteButton('" + String(foundFile.name()) + "', 'download')\"><img src=\"down\"> Download</button></td>";
+          returnText += "<td><button class=\"button\" onclick=\"downloadDeleteButton('" + String(foundFile.name()) + "', 'delete')\"><img src=\"del\"> Delete</button></td>";
+        }
+        returnText += "</tr>";
       }
       else
       {
-        returnText += "<img src=\"files\"> " + String(foundFile.name());
-        returnText += "</td><td style=\"text-align:right\">" + humanReadableSize(foundFile.size()) + "</td>";
-        returnText += "<td><button class=\"button\" onclick=\"downloadDeleteButton('" + String(foundFile.name()) + "', 'download')\"><img src=\"down\"> Download</button></td>";
-        returnText += "<td><button class=\"button\" onclick=\"downloadDeleteButton('" + String(foundFile.name()) + "', 'delete')\"><img src=\"del\"> Delete</button></td>";
+        returnText += "File: " + String(foundFile.name()) + " Size: " + humanReadableSize(foundFile.size()) + "\n";
       }
-      returnText += "</tr>";
-    }
-    else
-    {
-      returnText += "File: " + String(foundFile.name()) + " Size: " + humanReadableSize(foundFile.size()) + "\n";
     }
     foundFile = root.openNextFile();
+    fileIndex++;
+    esp_task_wdt_reset(); 
   }
+
   if (ishtml)
   {
-    returnText += "</table></div>";
+    returnText += "</table></div><p></p><p>";
+    
+    returnText += "<tr align='left'>"; 
+    if (page > 0) 
+      returnText += "<ti><button class=\"button\" onclick='loadPage(" + String(page - 1) + ")'>Prev</button></ti>";
+
+    returnText += "<ti><span> Page " + String(page + 1) + " </span></ti>";
+
+    if (fileIndex > endIdx)   
+      returnText += "<ti><button class=\"button\" onclick='loadPage(" + String(page + 1) + ")'>Next</button></ti>";
+
+    returnText += "</tr></p>"; 
   }
-  root.close();
+
+  root.close(); 
   foundFile.close();
 
-  releaseSdSPI();
-
+  releaseSdSPI(); 
+  
   return returnText;
 }
 
@@ -268,7 +296,14 @@ void configureWebServer()
             {
               String logMessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
               log_i("%s", logMessage.c_str());
-              request->send(200, "text/plain", listFiles(true)); });
+
+              int page = 0;
+              if (request->hasParam("page"))
+              {
+                page = request->getParam("page")->value().toInt();
+              }
+
+              request->send(200, "text/html", listFiles(true, page)); });
 
   server.on("/file", HTTP_GET, [](AsyncWebServerRequest *request)
             {
