@@ -41,6 +41,9 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 ### WiFi CLI Manager
 ![WifiCLI](https://github.com/jgauchia/IceNav-v3/assets/1075178/a7f8af18-2c34-436d-8fef-995540312cb2)
 
+### Web File Server 
+![webfile](https://github.com/user-attachments/assets/ce38f3b6-d8ab-4540-8d01-a2b393cc5898)
+
 </details>
 
 ## Specifications
@@ -238,7 +241,22 @@ Ensure your PC has the specified port open and firewall access enabled to receiv
 nc -l -p 8123 > waypoint.gpx
 ```
 
-### TO DO
+## Web File Server 
+
+IceNav has a small web file server (https://youtu.be/IYLcdP40cU4) to manage existing files on the SD card.
+An active WiFi connection is required (to do this, see how to do it using CLI).
+
+The Web File Server will start automatically if default automatic network connection is enabled (see CLI).
+
+To access the Web File Server, simply use any browser and go to the following address: http://icenav.local
+
+> [!CAUTION]
+> This feature has known issues (failures when uploading/downloading some large files, web refresh...) if the SPI bus is shared between the TFT and the SD card. Tests with boards that do not share this bus have been successful.
+> Work is underway to fix this so that it can be applied to the final design of the IceNav board.
+
+
+
+## TO DO
 
 - [X] LVGL 9 Integration
 - [X] Support other resolutions and TFT models
@@ -252,7 +270,7 @@ nc -l -p 8123 > waypoint.gpx
 - [ ] Google Maps navigation style
 - [x] Optimize code
 - [ ] Fix bugs!
-- [ ] Web file server
+- [X] Web file server
       
 
 ## Special thanks to....
@@ -275,3 +293,4 @@ nc -l -p 8123 > waypoint.gpx
 * OSM to binary vectorial maps [OSM_Extract](https://github.com/aresta/OSM_Extract) thanks to [@aresta](https://github.com/aresta)
 * Preferences Library [Easy Preferences](https://github.com/hpsaturn/easy-preferences) thanks to [@hpsaturn](https://github.com/hpsaturn)
 * Wifi CLI manager [esp32-wifi-cli](https://github.com/hpsaturn/esp32-wifi-cli) thanks to [@hpsaturn](https://github.com/hpsaturn)
+* Web file server based in [@smford](https://github.com/smford) [esp32-asyncwebserver-fileupload-example ](https://github.com/smford/esp32-asyncwebserver-fileupload-example)
