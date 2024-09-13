@@ -62,11 +62,18 @@ void initGPS()
       // GPS+GLONASS
       // gps->println("$PCAS04,5*1C\r\n");
 
+   
+      // WARM START¿?
+      gps->println("$PCAS10,0*1C\r\n");
+      gps->flush();
+      delay(100);
+
       // GPS+BDS+GLONASS
       gps->println("$PCAS04,7*1E\r\n");
       gps->flush();
       delay(100);
 
+      // Update Rate
       gps->println(GPS_RATE_PCAS[gpsUpdate]);
       gps->flush();
       delay(100);

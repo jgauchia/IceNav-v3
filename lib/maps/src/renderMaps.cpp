@@ -91,8 +91,8 @@ void generateRenderMap()
   {
     acquireSdSPI();
 
-    deleteMapScrSprites();
-    createMapScrSprites();
+    // deleteMapScrSprites();
+    // createMapScrSprites();
 
     isMapFound  = mapTempSprite.drawPngFile(SD, currentMapTile.file, tileSize, tileSize);
 

@@ -159,6 +159,11 @@
   extern const uint8_t TCH_SPI_INT  = 5;
   extern const uint8_t TCH_SPI_CS   = 18;
 
+  extern const uint8_t TCH_I2C_PORT = 0;  
+  extern const uint8_t TCH_I2C_SDA  = 38;
+  extern const uint8_t TCH_I2C_SCL  = 39;
+  extern const uint8_t TCH_I2C_INT  = 40;
+
   extern const uint8_t SD_CS = 4;
   extern const uint8_t SD_MISO = 19;
   extern const uint8_t SD_MOSI = 23;
@@ -193,7 +198,7 @@
   extern const uint8_t TCH_I2C_SDA  = 38;
   extern const uint8_t TCH_I2C_SCL  = 39;
   extern const uint8_t TCH_I2C_INT  = 40;
-  
+
   extern const uint8_t SD_CS = 1;
   extern const uint8_t SD_MISO = 41;
   extern const uint8_t SD_MOSI = 2;
