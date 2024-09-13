@@ -213,14 +213,13 @@ function dropped(e)
   dragged(e);
   var fls = e.dataTransfer.files;
   var formData = new FormData();
-  //formData.append("file1", fls[0]);
+
   for (var i = 0; i < fls.length; i++) 
   {
     formData.append("file" + i, fls[i]); 
   }
   var z = document.getElementById("drag");
   z.style.backgroundColor = "white";
-  //z.textContent = fls[0].name;
 
   var fileNames = "";
   for (var i = 0; i < fls.length; i++) 
@@ -240,7 +239,7 @@ function dropped(e)
 
 function uploadButton() 
 {
-  _("detailsheader").innerHTML = "<h3>Upload File</h3>"
+  _("detailsheader").innerHTML = "<h3>Upload File(s)</h3>"
   _("status").innerHTML = "";
 
   var uploadform =
@@ -262,9 +261,9 @@ function uploadButton()
 function progressHandler(event) 
 {
   var percent = (event.loaded / event.total) * 100;
-  //_("loaded_n_total").innerHTML = "Uploaded " + event.loaded + " bytes of " + event.total; // event.total doesn't show accurate total file size
+  _("loaded_n_total").innerHTML = "Uploaded " + event.loaded + " bytes of " + event.total; // event.total doesn't show accurate total file size
  
-  _("loaded_n_total").innerHTML = "Uploaded " + event.loaded + " bytes";
+  //_("loaded_n_total").innerHTML = "Uploaded " + event.loaded + " bytes";
    _("progressBar").value = Math.round(percent);
   _("status").innerHTML = Math.round(percent) + "% uploaded... please wait";
   if (percent >= 100)
@@ -272,6 +271,7 @@ function progressHandler(event)
     _("status").innerHTML = "Please wait, writing file to filesystem";
   }
 }
+
 
 function completeHandler(event) 
 {
