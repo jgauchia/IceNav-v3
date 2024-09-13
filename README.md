@@ -20,21 +20,35 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 > Do not use in production (Experimental features).
 
 ## Screenshots
-|<img src="images/dev/splash.jpg">|<img src="images/dev/searchsat.jpg">|<img src="images/dev/compass.jpg">|<img src="images/dev/rendermap.jpg">|<img src="images/dev/vectormap.jpg">|
+<details><summary>Click me</summary>
+  
+|<img src="images/dev/splash.jpg">|<img src="images/dev/searchsat.jpg">|<img src="images/dev/compass.jpg">|<img src="images/dev/options.jpg">|<img src="images/dev/wptopt.jpg">|
 |:-:|:-:|:-:|:-:|:-:|
-| Splash Screen | Search Satellite | Compass | Rendered Map | Vectorized Map | 
+| Splash Screen | Search Satellite | Compass | Main Options | Waypoint Options |
 
-|<img src="images/dev/satelliteinfo.jpg">|<img src="images/dev/settings.jpg">|<img src="images/dev/compasscal.jpg">|<img src="images/dev/touchcal.jpg">|<img src="images/dev/mapsettings.jpg">|<img src="images/dev/devicesettings.jpg">|
-|:-:|:-:|:-:|:-:|:-:|:-:|
-| Satellite Info | Settings | Compass Calibration | Touch Calibration | Map Settings | Device Settings |
+|<img src="images/dev/rendermap.jpg">|<img src="images/dev/vectormap.jpg">|<img src="images/dev/navscreen.jpg">|<img src="images/dev/navscreen2.jpg">|<img src="images/dev/satelliteinfo.jpg">|
+|:-:|:-:|:-:|:-:|:-:|
+| Rendered Map | Vectorized Map | Navigation Screen | Navigation Screen | Satellite Info |
+
+|<img src="images/dev/addwpt_n.jpg">|<img src="images/dev/addwpt_l.jpg">|<img src="images/dev/wptlist.jpg">|
+|:-:|:-:|:-:|
+| Add Waypoint | Add Waypoint (landscape) | Waypoint List |
+
+|<img src="images/dev/settings.jpg">|<img src="images/dev/compasscal.jpg">|<img src="images/dev/touchcal.jpg">|<img src="images/dev/mapsettings.jpg">|<img src="images/dev/devicesettings.jpg">|
+|:-:|:-:|:-:|:-:|:-:|
+| Settings | Compass Calibration | Touch Calibration | Map Settings | Device Settings |
 
 ### WiFi CLI Manager
 ![WifiCLI](https://github.com/jgauchia/IceNav-v3/assets/1075178/a7f8af18-2c34-436d-8fef-995540312cb2)
 
+### Web File Server 
+![webfile](https://github.com/user-attachments/assets/ce38f3b6-d8ab-4540-8d01-a2b393cc5898)
+
+</details>
 
 ## Specifications
 
-Currently, IceNav works with the following hardware setups and specs 
+Currently, IceNav works with the following hardware setups and specs
 
 **Highly recommended an ESP32S3 with PSRAM and 320x480 Screen** 
  
@@ -90,8 +104,7 @@ If TFT shares SPI bus with SD card add the following Build Flag to platformio.in
 Other setups like another sensors types, etc... not listed in the specs, now **They are not included**
 
 If you wish to add any other type of sensor, module, etc., you can create a PR without any problem, and we will try to implement it. Thank you!
-
----
+</details>
 
 ## Wiring
 
@@ -228,7 +241,22 @@ Ensure your PC has the specified port open and firewall access enabled to receiv
 nc -l -p 8123 > waypoint.gpx
 ```
 
-### TO DO
+## Web File Server 
+
+IceNav has a small web file server (https://youtu.be/IYLcdP40cU4) to manage existing files on the SD card.
+An active WiFi connection is required (to do this, see how to do it using CLI).
+
+The Web File Server will start automatically if default automatic network connection is enabled (see CLI).
+
+To access the Web File Server, simply use any browser and go to the following address: http://icenav.local
+
+> [!CAUTION]
+> This feature has known issues (failures when uploading/downloading some large files, web refresh...) if the SPI bus is shared between the TFT and the SD card. Tests with boards that do not share this bus have been successful.
+> Work is underway to fix this so that it can be applied to the final design of the IceNav board.
+
+
+
+## TO DO
 
 - [X] LVGL 9 Integration
 - [X] Support other resolutions and TFT models
@@ -242,11 +270,12 @@ nc -l -p 8123 > waypoint.gpx
 - [ ] Google Maps navigation style
 - [x] Optimize code
 - [ ] Fix bugs!
-- [ ] Web file server
+- [X] Web file server
       
 
 ## Special thanks to....
 * [@hpsaturn](https://github.com/hpsaturn) Thanks to him and his knowledge, this project is no longer sitting in a drawer :smirk:.
+* [@Elecrow-RD](https://github.com/Elecrow-RD)  For your interest in my project and for providing me with hardware to test it.
 * [@pcbway](https://github.com/pcbway) for bringing a first prototype of the IceNav PCB to reality :muscle:
 * [@lovyan03](https://github.com/lovyan03/LovyanGFX) for his library; I still have a lot to learn from it.
 * [@lvgl](https://github.com/lvgl/lvgl) for creating an amazing UI
@@ -264,3 +293,4 @@ nc -l -p 8123 > waypoint.gpx
 * OSM to binary vectorial maps [OSM_Extract](https://github.com/aresta/OSM_Extract) thanks to [@aresta](https://github.com/aresta)
 * Preferences Library [Easy Preferences](https://github.com/hpsaturn/easy-preferences) thanks to [@hpsaturn](https://github.com/hpsaturn)
 * Wifi CLI manager [esp32-wifi-cli](https://github.com/hpsaturn/esp32-wifi-cli) thanks to [@hpsaturn](https://github.com/hpsaturn)
+* Web file server based in [@smford](https://github.com/smford) [esp32-asyncwebserver-fileupload-example ](https://github.com/smford/esp32-asyncwebserver-fileupload-example)

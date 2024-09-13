@@ -250,6 +250,7 @@ void updateMainScreen(lv_timer_t *t)
     {
       case COMPASS:
         #ifdef ENABLE_COMPASS
+        if (!waitScreenRefresh)
           heading = getHeading();
         #endif
         lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
@@ -355,9 +356,14 @@ void updateMap(lv_event_t *event)
       
       releaseSdSPI();
             
+<<<<<<< HEAD
 >>>>>>> devel
       deleteMapScrSprites();
       createMapScrSprites();
+=======
+      // deleteMapScrSprites();
+      // createMapScrSprites();
+>>>>>>> devel
       generateVectorMap(viewPort, memCache, mapTempSprite); 
       
       isPosMoved = false;

@@ -14,6 +14,8 @@
 #include <WiFi.h>
 #include <esp_wifi.h>
 #include <esp_bt.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
 #include <Timezone.h>
 
 // Hardware includes
@@ -40,6 +42,8 @@
 
 extern xSemaphoreHandle gpsMutex;
 
+#include "webpage.h"
+#include "webserver.h"
 #include "battery.hpp"
 #include "power.hpp"
 #include "settings.hpp"
@@ -122,6 +126,25 @@ void setup()
     initCLI();
     initCLITask();
   #endif
+<<<<<<< HEAD
+=======
+
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    configureWebServer();
+    server.begin();
+  }
+
+  // Preload Map
+  if (isVectorMap)
+  {
+  }
+  else
+  {
+    tileSize = RENDER_TILE_SIZE;
+    generateRenderMap();
+  }
+>>>>>>> devel
 }
 
 /**
@@ -130,7 +153,15 @@ void setup()
  */
 void loop()
 {
+<<<<<<< HEAD
   lv_timer_handler();
   vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
   //vTaskSuspend(NULL);
+=======
+  if (!waitScreenRefresh)
+  {
+    lv_timer_handler();
+    vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
+  }
+>>>>>>> devel
 }
