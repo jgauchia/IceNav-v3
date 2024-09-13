@@ -252,7 +252,7 @@ nc -l -p 8123 > waypoint.gpx
 - [ ] Google Maps navigation style
 - [x] Optimize code
 - [ ] Fix bugs!
-- [ ] Web file server
+- [X ] Web file server
       
 
 ## Special thanks to....
