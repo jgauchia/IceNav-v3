@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  GPS definition and functions
  * @version 0.1.8_Alpha
- * @date 2024-08
+ * @date 2024-09
  */
 
 #include "gps.hpp"
@@ -62,11 +62,18 @@ void initGPS()
       // GPS+GLONASS
       // gps->println("$PCAS04,5*1C\r\n");
 
+   
+      // WARM START¿?
+      gps->println("$PCAS10,0*1C\r\n");
+      gps->flush();
+      delay(100);
+
       // GPS+BDS+GLONASS
       gps->println("$PCAS04,7*1E\r\n");
       gps->flush();
       delay(100);
 
+      // Update Rate
       gps->println(GPS_RATE_PCAS[gpsUpdate]);
       gps->flush();
       delay(100);

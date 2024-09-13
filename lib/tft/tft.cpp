@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief TFT definition and functions
  * @version 0.1.8_Alpha
- * @date 2024-08
+ * @date 2024-09
  */
 
 #include "tft.hpp"
@@ -141,11 +141,17 @@ void initTFT()
 #ifdef ICENAV_BOARD
   gpio_set_drive_capability(GPIO_NUM_45, GPIO_DRIVE_CAP_3);
 #endif
-#ifdef ARDUINO_ESP32_DEV
+#ifdef ESP32_N16R4
   gpio_set_drive_capability(GPIO_NUM_33, GPIO_DRIVE_CAP_3);
 #endif
-#ifdef ARDUINO_ESP32S3_DEV
+#ifdef ESP32S3_N16R8
   gpio_set_drive_capability(GPIO_NUM_45, GPIO_DRIVE_CAP_3);
+#endif
+#ifdef MAKERF_ESP32S3
+  gpio_set_drive_capability(GPIO_NUM_45, GPIO_DRIVE_CAP_3);
+#endif
+#ifdef ELECROW_ESP32
+  gpio_set_drive_capability(GPIO_NUM_46, GPIO_DRIVE_CAP_3);
 #endif
 
   ledcSetup(0, 5000, 8);

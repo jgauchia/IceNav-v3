@@ -62,11 +62,18 @@ void setup()
     Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
     Wire.begin();
   #endif
-  #ifdef ARDUINO_ESP32S3_DEV
+  #ifdef MAKERF_ESP32S3
     Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
     Wire.begin();
   #endif
-
+  #ifdef ESP32S3_N16R8
+    Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
+    Wire.begin();
+  #endif
+  #ifdef ELECROW_ESP32
+    Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
+    Wire.begin();
+  #endif
 
   #ifdef BME280
    initBME();
@@ -120,6 +127,9 @@ void setup()
  */
 void loop()
 {
-  lv_timer_handler();
-  vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
+  if (!waitScreenRefresh)
+  {
+    lv_timer_handler();
+    vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
+  }
 }

@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LOVYANGFX TFT driver for ILI9488 SPI With XPT2046 Touch controller
  * @version 0.1.8_Alpha
- * @date 2024-08
+ * @date 2024-09
  */
 
 #ifndef ILI9488_XPT2046_SPI_HPP
@@ -40,10 +40,10 @@ public:
   {
     {
       auto cfg = _bus_instance.config();
-      #ifdef ARDUINO_ESP32S3_DEV
+      #ifdef ESP32S3_N16R8
       cfg.spi_host = SPI2_HOST;
       #endif
-      #ifdef ARDUINO_ESP32_DEV
+      #ifdef ESP32_N16R4
       cfg.spi_host = HSPI_HOST;
       #endif
       cfg.spi_mode = 0;
@@ -96,10 +96,10 @@ public:
       cfg.pin_int = TCH_SPI_INT;
       cfg.bus_shared = true;
       cfg.offset_rotation = 0;
-      #ifdef ARDUINO_ESP32S3_DEV
+      #ifdef ESP32S3_N16R8
       cfg.spi_host = SPI2_HOST;
       #endif
-      #ifdef ARDUINO_ESP32_DEV
+      #ifdef ESP32_N16R4
       cfg.spi_host = HSPI_HOST;
       #endif
       cfg.freq = 1000000;

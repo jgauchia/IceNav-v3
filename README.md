@@ -20,21 +20,32 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 > Do not use in production (Experimental features).
 
 ## Screenshots
-|<img src="images/dev/splash.jpg">|<img src="images/dev/searchsat.jpg">|<img src="images/dev/compass.jpg">|<img src="images/dev/rendermap.jpg">|<img src="images/dev/vectormap.jpg">|
+<details><summary>Click me</summary>
+  
+|<img src="images/dev/splash.jpg">|<img src="images/dev/searchsat.jpg">|<img src="images/dev/compass.jpg">|<img src="images/dev/options.jpg">|<img src="images/dev/wptopt.jpg">|
 |:-:|:-:|:-:|:-:|:-:|
-| Splash Screen | Search Satellite | Compass | Rendered Map | Vectorized Map | 
+| Splash Screen | Search Satellite | Compass | Main Options | Waypoint Options |
 
-|<img src="images/dev/satelliteinfo.jpg">|<img src="images/dev/settings.jpg">|<img src="images/dev/compasscal.jpg">|<img src="images/dev/touchcal.jpg">|<img src="images/dev/mapsettings.jpg">|<img src="images/dev/devicesettings.jpg">|
-|:-:|:-:|:-:|:-:|:-:|:-:|
-| Satellite Info | Settings | Compass Calibration | Touch Calibration | Map Settings | Device Settings |
+|<img src="images/dev/rendermap.jpg">|<img src="images/dev/vectormap.jpg">|<img src="images/dev/navscreen.jpg">|<img src="images/dev/navscreen2.jpg">|<img src="images/dev/satelliteinfo.jpg">|
+|:-:|:-:|:-:|:-:|:-:|
+| Rendered Map | Vectorized Map | Navigation Screen | Navigation Screen | Satellite Info |
+
+|<img src="images/dev/addwpt_n.jpg">|<img src="images/dev/addwpt_l.jpg">|<img src="images/dev/wptlist.jpg">|
+|:-:|:-:|:-:|
+| Add Waypoint | Add Waypoint (landscape) | Waypoint List |
+
+|<img src="images/dev/settings.jpg">|<img src="images/dev/compasscal.jpg">|<img src="images/dev/touchcal.jpg">|<img src="images/dev/mapsettings.jpg">|<img src="images/dev/devicesettings.jpg">|
+|:-:|:-:|:-:|:-:|:-:|
+| Settings | Compass Calibration | Touch Calibration | Map Settings | Device Settings |
 
 ### WiFi CLI Manager
 ![WifiCLI](https://github.com/jgauchia/IceNav-v3/assets/1075178/a7f8af18-2c34-436d-8fef-995540312cb2)
 
+</details>
 
 ## Specifications
 
-Currently, IceNav works with the following hardware setups and specs 
+Currently, IceNav works with the following hardware setups and specs
 
 **Highly recommended an ESP32S3 with PSRAM and 320x480 Screen** 
  
@@ -43,11 +54,12 @@ Currently, IceNav works with the following hardware setups and specs
 
 ### Boards
 
-|                  | FLASH | PSRAM | Environment                  | Full Support |
-|:-----------------|:-----:|:-----:|:-----------------------------|--------------|
-| ICENAV (ESP32S3) |  16M  |  8M   | ``` [env:ICENAV] ```         |     YES      |
-| ESP32            |  16M  |  4M   | ``` [env:ESP32_N16R4] ```    |     YES      |
-| ESP32S3          |  16M  |  8M   | ``` [env:ESP32S3_N16R8] ```  |     YES      |
+|                        | FLASH | PSRAM | Environment                  | Full Support |
+|:-----------------------|:-----:|:-----:|:-----------------------------|--------------|
+| ICENAV (ESP32S3)       |  16M  |  8M   | ``` [env:ICENAV] ```         |     YES      |
+| ESP32                  |  16M  |  4M   | ``` [env:ESP32_N16R4] ```    |     YES      |
+| ESP32S3                |  16M  |  8M   | ``` [env:ESP32S3_N16R8] ```  |     YES      |
+| [ELECROW ESP32 Terminal](https://www.elecrow.com/esp-terminal-with-esp32-3-5-inch-parallel-480x320-tft-capacitive-touch-display-rgb-by-chip-ili9488.html) |  16M  |  8M   | ``` [env:ELECROW_ESP32] ```  | YES [^1] [^2]|
 | [MAKERFABS ESP32S3](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) |  16M  |  2M   | ``` [env:MAKERF_ESP32S3] ``` |   TESTING    |
 
 
@@ -64,9 +76,9 @@ Currently, IceNav works with the following hardware setups and specs
 
 ### Screens
 
-| Driver [^1] | Resolution | SPI | 8bit | 16bit | Touch     | Build Flags [^2]                 |
+| Driver [^2] | Resolution | SPI | 8bit | 16bit | Touch     | Build Flags [^3]                 |
 |:------------|:----------:|:---:|:----:|:-----:|:---------:|:---------------------------------|
-| ILI9488 [^3]| 320x480    | yes | ---  | ---   | XPT2046   | ```-DILI9488_XPT2046_SPI```      |
+| ILI9488 [^4]| 320x480    | yes | ---  | ---   | XPT2046   | ```-DILI9488_XPT2046_SPI```      |
 | ILI9488     | 320x480    | yes | ---  | ---   | FT5x06    | ```-DILI9488_FT5x06_SPI```       |
 | ILI9488     | 320x480    | --- | yes  | ---   | --------  | ```-DILI9488_NOTOUCH_8B```       |
 | ILI9488     | 320x480    | --- | ---  | yes   | FT5x06    | ```-DILI9488_FT5x06_16B```       |
@@ -78,7 +90,7 @@ If TFT shares SPI bus with SD card add the following Build Flag to platformio.in
 
 ### Modules
 
-|             | Type          | Build Flags [^2]                 | lib_deps [^4] (**no common environment**)              |
+|             | Type          | Build Flags [^3]                 | lib_deps [^5] (**no common environment**)              |
 |:------------|:--------------|:---------------------------------|:-------------------------------------------------------|
 | AT6558D     | GPS           | ```-DAT6558D_GPS```              |                                                        |
 | HMC5883L    | Compass       | ```-DHMC5883L```                 | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
@@ -86,17 +98,16 @@ If TFT shares SPI bus with SD card add the following Build Flag to platformio.in
 | MPU9250     | IMU (Compass) | ```-DIMU_MPU9250```              | ```bolderflight/Bolder Flight Systems MPU9250@^1.0.2```|
 | BME280      | Temp/Pres/Hum | ```-DBME280```                   | ```adafruit/Adafruit Unified Sensor@^1.1.14``` <br> ```adafruit/Adafruit BusIO@^1.16.1``` <br> ```adafruit/Adafruit BME280 Library@^2.2.4```|
 
-
-[^1]: See **hal.hpp** for pinouts configuration
-[^2]: **platformio.ini** file under the build_flags section
-[^3]: If Touch SPI is wired to the same SPI of ILI9488 ensure that TFT MISO line has 3-STATE for screenshots (read GRAM) or leave out 
-[^4]: You need to add libraries dependencies if the buid flag requires
+[^1]: For ELECROW board UART port is shared with USB connection, GPS pinout are mapped to IO19 and IO40 (Analog and Digital Port). If CLI isn't used is possible to attach GPS module to UART port but for upload the firmware (change pinout at **hal.hpp**), the module should be disconnected.
+[^2]: See **hal.hpp** for pinouts configuration
+[^3]: **platformio.ini** file under the build_flags section
+[^4]: If Touch SPI is wired to the same SPI of ILI9488 ensure that TFT MISO line has 3-STATE for screenshots (read GRAM) or leave out 
+[^5]: You need to add libraries dependencies if the buid flag requires
 
 Other setups like another sensors types, etc... not listed in the specs, now **They are not included**
 
 If you wish to add any other type of sensor, module, etc., you can create a PR without any problem, and we will try to implement it. Thank you!
-
----
+</details>
 
 ## Wiring
 
@@ -198,6 +209,7 @@ nmcli:          network manager CLI.
 reboot:         perform a ESP32 reboot
 scshot:         screenshot to SD or sending a PC
 waypoint:       waypoint utilities
+wipe:           wipe preferences to factory default
 ```
 
 Some extra details:
@@ -251,6 +263,7 @@ nc -l -p 8123 > waypoint.gpx
 
 ## Special thanks to....
 * [@hpsaturn](https://github.com/hpsaturn) Thanks to him and his knowledge, this project is no longer sitting in a drawer :smirk:.
+* [@Elecrow-RD](https://github.com/Elecrow-RD)  For your interest in my project and for providing me with hardware to test it.
 * [@pcbway](https://github.com/pcbway) for bringing a first prototype of the IceNav PCB to reality :muscle:
 * [@lovyan03](https://github.com/lovyan03/LovyanGFX) for his library; I still have a lot to learn from it.
 * [@lvgl](https://github.com/lvgl/lvgl) for creating an amazing UI
