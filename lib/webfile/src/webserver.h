@@ -321,7 +321,7 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
   if (final)
   {
     request->_tempFile.close();
-    request->redirect("/");
+ //   request->redirect("/");
   }
 
   releaseSdSPI();

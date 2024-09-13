@@ -213,10 +213,22 @@ function dropped(e)
   dragged(e);
   var fls = e.dataTransfer.files;
   var formData = new FormData();
-  formData.append("file1", fls[0]);
+  //formData.append("file1", fls[0]);
+  for (var i = 0; i < fls.length; i++) 
+  {
+    formData.append("file" + i, fls[i]); 
+  }
   var z = document.getElementById("drag");
   z.style.backgroundColor = "white";
-  z.textContent = fls[0].name;
+  //z.textContent = fls[0].name;
+
+  var fileNames = "";
+  for (var i = 0; i < fls.length; i++) 
+  {
+    fileNames += fls[i].name + (i < fls.length - 1 ? ", " : ""); 
+  }
+  z.textContent = fileNames;
+
   var xhr = new XMLHttpRequest();
   xhr.upload.addEventListener("progress", progressHandler, false);
   xhr.addEventListener("load", completeHandler, false); 
