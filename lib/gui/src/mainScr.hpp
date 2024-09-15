@@ -29,10 +29,10 @@ extern bool isMainScreen;                          // Flag to indicate main scre
 extern bool isReady;                               // Flag to indicate when tileview scroll was finished
 static TFT_eSprite zoomSprite = TFT_eSprite(&tft); // Zoom sprite
 
-static const char *arrowIconFile PROGMEM = "F:/arrow.bin";    // Compass Arrow Icon
-static const char *positionIconFile PROGMEM = "F:/pin.bin";   // Position Icon
-static const char *altitudeIconFile PROGMEM = "F:/altit.bin"; // Altitude Icon
-static const char *speedIconFile PROGMEM = "F:/speed.bin";    // Speed Icon
+static const char *arrowIconFile PROGMEM = "/arrow.bin";    // Compass Arrow Icon
+static const char *positionIconFile PROGMEM = "/pin.bin";   // Position Icon
+static const char *altitudeIconFile PROGMEM = "/altit.bin"; // Altitude Icon
+static const char *speedIconFile PROGMEM = "/speed.bin";    // Speed Icon
 
 extern uint8_t activeTile; // Active Tile in TileView control
 enum tileName

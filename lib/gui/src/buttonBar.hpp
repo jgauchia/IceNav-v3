@@ -12,15 +12,15 @@
 #include "globalGuiDef.h"
 #include "mainScr.hpp"
 
-static const char *waypointIconFile PROGMEM = "F:/wpt.bin";      // Waypoint icon
-static const char *trackIconFile PROGMEM = "F:/track.bin";       // Track icon
-static const char *settingsIconFile PROGMEM = "F:/settings.bin"; // Settings icon
-static const char *saveIconFile PROGMEM = "F:/save.bin";         // Save icon
-static const char *loadIconFile PROGMEM = "F:/load.bin";         // Load icon
-static const char *editIconFile PROGMEM = "F:/edit.bin";         // Edit icon
-static const char *deleteIconFile PROGMEM = "F:/delete.bin";     // Delete icon
-static const char *menuIconFile PROGMEM = "F/menu.bin";          // Menu icon
-static const char *addWptIconFile PROGMEM = "F:/addwpt.bin";         // Add Waypoint icon
+static const char *waypointIconFile PROGMEM = "/wpt.bin";      // Waypoint icon
+static const char *trackIconFile PROGMEM = "/track.bin";       // Track icon
+static const char *settingsIconFile PROGMEM = "/settings.bin"; // Settings icon
+static const char *saveIconFile PROGMEM = "/save.bin";         // Save icon
+static const char *loadIconFile PROGMEM = "/load.bin";         // Load icon
+static const char *editIconFile PROGMEM = "/edit.bin";         // Edit icon
+static const char *deleteIconFile PROGMEM = "/delete.bin";     // Delete icon
+static const char *menuIconFile PROGMEM = "/menu.bin";          // Menu icon
+static const char *addWptIconFile PROGMEM = "/addwpt.bin";         // Add Waypoint icon
 
 static lv_obj_t *option;
 
