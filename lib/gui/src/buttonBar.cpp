@@ -223,7 +223,7 @@ void createButtonBarScr()
 
   menuBtn = lv_img_create(mainScreen);
   lv_img_set_src(menuBtn, menuIconFile);
-  lv_obj_add_flag(menuBtn, LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_flag(menuBtn, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
   lv_img_set_zoom(menuBtn,buttonScale);
   lv_obj_update_layout(menuBtn);
   lv_obj_add_event_cb(menuBtn, hideShowEvent, LV_EVENT_ALL, buttonBar);

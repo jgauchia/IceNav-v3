@@ -584,8 +584,8 @@ void createMainScr()
   // Main Screen Tiles
   tilesScreen = lv_tileview_create(mainScreen);
   compassTile = lv_tileview_add_tile(tilesScreen, 0, 0, LV_DIR_RIGHT);
-  mapTile = lv_tileview_add_tile(tilesScreen, 1, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
-  navTile = lv_tileview_add_tile(tilesScreen, 2, 0, LV_DIR_LEFT | LV_DIR_RIGHT);
+  mapTile = lv_tileview_add_tile(tilesScreen, 1, 0, (lv_dir_t)(LV_DIR_LEFT | LV_DIR_RIGHT));
+  navTile = lv_tileview_add_tile(tilesScreen, 2, 0, (lv_dir_t)(LV_DIR_LEFT | LV_DIR_RIGHT));
   lv_obj_add_flag(navTile,LV_OBJ_FLAG_HIDDEN); 
   satTrackTile = lv_tileview_add_tile(tilesScreen, 3, 0, LV_DIR_LEFT);
   lv_obj_set_size(tilesScreen, TFT_WIDTH, TFT_HEIGHT - 25);

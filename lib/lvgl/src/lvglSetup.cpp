@@ -6,6 +6,7 @@
  * @date 2024-09
  */
 
+#include "lvgl_private.h"
 #include "lvglSetup.hpp"
 #include "waypointScr.hpp"
 #include "waypointListScr.hpp"
@@ -158,33 +159,31 @@ void initLVGL()
   size_t DRAW_BUF_SIZE = 0;
   
   #ifdef BOARD_HAS_PSRAM
-  assert(ESP.getFreePsram());
+    assert(ESP.getFreePsram());
 
-  if ( ESP.getPsramSize() >= 4000000 )
-    // >4Mb PSRAM
-    DRAW_BUF_SIZE = TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t);
-  else
-    // 2Mb PSRAM
-    DRAW_BUF_SIZE = ( TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t) / 8);
+    if ( ESP.getPsramSize() >= 4000000 )
+      // >4Mb PSRAM
+      DRAW_BUF_SIZE = TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t);
+    else
+      // 2Mb PSRAM
+      DRAW_BUF_SIZE = ( TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t) / 8);
 
-  log_v("LVGL: allocating %u bytes PSRAM for draw buffer",DRAW_BUF_SIZE * 2);
-  lv_color_t * drawBuf1 = (lv_color_t *)heap_caps_aligned_alloc(16, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-  lv_color_t * drawBuf2 = (lv_color_t *)heap_caps_aligned_alloc(16, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-  lv_display_set_buffers(display, drawBuf1, drawBuf2, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
-
+    log_v("LVGL: allocating %u bytes PSRAM for draw buffer",DRAW_BUF_SIZE * 2);
+    lv_color_t * drawBuf1 = (lv_color_t *)heap_caps_aligned_alloc(16, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    lv_color_t * drawBuf2 = (lv_color_t *)heap_caps_aligned_alloc(16, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    lv_display_set_buffers(display, drawBuf1, drawBuf2, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
   #else
-  
-  DRAW_BUF_SIZE =  TFT_WIDTH * TFT_HEIGHT / 10  * sizeof(lv_color_t);
-  log_v("LVGL: allocating %u bytes RAM for draw buffer",DRAW_BUF_SIZE);
-  lv_color_t * drawBuf1[DRAW_BUF_SIZE / 4];
-  lv_display_set_buffers(display, drawBuf1, NULL, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
-  
+    DRAW_BUF_SIZE =  TFT_WIDTH * TFT_HEIGHT / 10  * sizeof(lv_color_t);
+    log_v("LVGL: allocating %u bytes RAM for draw buffer",DRAW_BUF_SIZE);
+    lv_color_t * drawBuf1[DRAW_BUF_SIZE / 4];
+    lv_display_set_buffers(display, drawBuf1, NULL, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
   #endif
   
   #ifdef TOUCH_INPUT
-  lv_indev_t *indev_drv = lv_indev_create();
-  lv_indev_set_type(indev_drv, LV_INDEV_TYPE_POINTER);
-  lv_indev_set_read_cb(indev_drv, touchRead);
+    lv_indev_t *indev_drv = lv_indev_create();
+    lv_indev_set_type(indev_drv, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_long_press_time(indev_drv, 150);
+    lv_indev_set_read_cb(indev_drv, touchRead);
   #endif
   
   //  Create Main Timer
