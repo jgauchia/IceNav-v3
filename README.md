@@ -110,7 +110,7 @@ If you wish to add any other type of sensor, module, etc., you can create a PR w
 
 See **hal.hpp** for pinouts configuration
 
-## SD Map Tile File structure
+## SD Renderized Map Tile File structure
 
 Using [Maperitive](http://maperitive.net/) select your zone and generate your tiles. For that enter to `MAP-> Set Geometry bounds` draw or expand the square of your zone and run the command `generate-tiles minzoom=6 maxzoom=17`, It could takes long time, maybe 1 hour or more depending your area.
 
