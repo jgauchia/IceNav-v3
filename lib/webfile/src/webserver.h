@@ -16,6 +16,8 @@
  * 
  */
 String oldDir;
+String newDir;
+String currentDir;
 
 const int FILES_PER_PAGE = 10; 
 
@@ -154,6 +156,8 @@ void cacheDirectoryContent(const String& dir)
   }
 
   root.close();
+ 
+  currentDir = dir;
 
   sortFileCache();
 }
@@ -413,9 +417,12 @@ void configureWebServer()
                 page = request->getParam("page")->value().toInt();
               }
 
-              acquireSdSPI(); 
-              cacheDirectoryContent(oldDir);
-              releaseSdSPI();
+              if (currentDir != oldDir)
+              {
+                acquireSdSPI(); 
+                cacheDirectoryContent(oldDir);
+                releaseSdSPI();
+              }
 
               request->send(200, "text/html", listFiles(true, page)); });
 
@@ -473,7 +480,7 @@ void configureWebServer()
             {
               if (request->hasParam("dir"))
               {
-                String newDir = request->getParam("dir")->value();
+                newDir = request->getParam("dir")->value();
                 log_i("new dir %s", newDir.c_str());
                 log_i("old dir %s", oldDir.c_str());
                 // UP Directory
@@ -484,6 +491,7 @@ void configureWebServer()
                     oldDir = oldDir.substring(0, oldDir.lastIndexOf("/"));
                     if (oldDir == "")
                       oldDir = "/";
+                    currentDir = "";
                     request->send(200, "text/plain", "Directory changed successfully");
                   }
                   else
@@ -498,7 +506,7 @@ void configureWebServer()
                     oldDir = oldDir + newDir;
                   else
                     oldDir = newDir;
-
+                  currentDir = "";
                     request->send(200, "text/plain", "Directory changed successfully");
                 }
               }
