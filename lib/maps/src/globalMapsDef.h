@@ -29,7 +29,7 @@
 extern bool isMapFound;              // Flag to indicate when tile map is found on SD
 extern bool isScrolled;              // Flag to indicate when tileview was scrolled
 extern bool redrawMap;               // Flag to indicate need redraw Map
-
+extern int wptPosX, wptPosY;         // Waypoint position on render map.
 
 extern TFT_eSprite sprArrow;         // Sprite for Navigation Arrow in map tile
 extern TFT_eSprite mapTempSprite;    // Double Buffering Sprites for Map Tile

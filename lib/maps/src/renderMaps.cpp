@@ -11,9 +11,9 @@
 
 extern const int SD_CS;
 
-MapTile oldMapTile = {"", 0, 0, 0};     // Old Map tile coordinates and zoom
-MapTile currentMapTile = {"", 0, 0, 0}; // Current Map tile coordinates and zoom
-MapTile roundMapTile = {"", 0, 0, 0};   // Boundaries Map tiles
+MapTile oldMapTile = {(char*)"", 0, 0, 0};     // Old Map tile coordinates and zoom
+MapTile currentMapTile = {(char*)"", 0, 0, 0}; // Current Map tile coordinates and zoom
+MapTile roundMapTile = {(char*)"", 0, 0, 0};   // Boundaries Map tiles
 ScreenCoord navArrowPosition = {0,0};  // Map Arrow position
 
 bool isMapFound = false;
@@ -113,6 +113,26 @@ bool isCoordInBounds(double lat, double lon, tileBounds bound)
 }
 
 /**
+ * @brief Get position X,Y in render map for a coordinate
+ *
+ * @param lat -> latitude
+ * @param lon -> longitude
+ * @param bound -> map bounds
+ * @param pixelX -> X position on map
+ * @param pixelY -> Y position on map
+ */
+void coords2map(double lat, double lon, tileBounds bound, int *pixelX, int *pixelY)
+{
+  double lon_ratio = (lon - bound.lon_min) / (bound.lon_max - bound.lon_min);
+  double lat_ratio = (bound.lat_max - lat) / (bound.lat_max - bound.lat_min); 
+
+  *pixelX = (int)(lon_ratio * TILE_HEIGHT);
+  *pixelY = (int)(lat_ratio * TILE_HEIGHT);
+
+  log_i("Pixel X: %d, Pixel Y: %d\n", *pixelX, *pixelY);
+}
+
+/**
  * @brief Get the map tile structure from GPS Coordinates
  *
  * @param lon -> Longitude
@@ -144,7 +164,9 @@ MapTile getMapTile(double lon, double lat, uint8_t zoomLevel, int16_t offsetX, i
 void generateRenderMap()
 {
   currentMapTile = getMapTile(getLon(), getLat(), zoom, 0, 0);
+
   bool foundRoundMap = false;
+  bool missingMap = false;
 
   // Detects if tile changes from actual GPS position
   if (strcmp(currentMapTile.file, oldMapTile.file) != 0 || currentMapTile.zoom != oldMapTile.zoom || 
@@ -173,6 +195,8 @@ void generateRenderMap()
       log_v("Map Found!");
       oldMapTile.file = currentMapTile.file;
 
+      totalBounds = getTileBounds(currentMapTile.tilex, currentMapTile.tiley, zoom);
+                    
       static const uint8_t centerX = 0;
       static const uint8_t centerY = 0;
       int8_t startX = centerX - 1;
@@ -189,25 +213,38 @@ void generateRenderMap()
           }
           roundMapTile = getMapTile(getLon(), getLat(), zoom, x, y);
 
-          tileBounds currentBounds = getTileBounds(roundMapTile.tilex, roundMapTile.tiley, zoom);
-                    
-          if (currentBounds.lat_min < totalBounds.lat_min) totalBounds.lat_min = currentBounds.lat_min;
-          if (currentBounds.lat_max > totalBounds.lat_max) totalBounds.lat_max = currentBounds.lat_max;
-          if (currentBounds.lon_min < totalBounds.lon_min) totalBounds.lon_min = currentBounds.lon_min;
-          if (currentBounds.lon_max > totalBounds.lon_max) totalBounds.lon_max = currentBounds.lon_max;
-
           foundRoundMap = mapTempSprite.drawPngFile(SD, roundMapTile.file, (x - startX) * tileSize, (y - startY) * tileSize);
           if (!foundRoundMap)
           {
             mapTempSprite.fillRect((x - startX) * tileSize, (y - startY) * tileSize, tileSize, tileSize, TFT_BLACK);
             mapTempSprite.drawPngFile(noMapFile, ((x - startX) * tileSize) + (tileSize / 2) - 50 , ((y - startY) * tileSize) + (tileSize / 2) - 50);
+            missingMap = true;
+          }
+          else
+          {
+            tileBounds currentBounds = getTileBounds(roundMapTile.tilex, roundMapTile.tiley, zoom);
+                    
+            if (currentBounds.lat_min < totalBounds.lat_min) totalBounds.lat_min = currentBounds.lat_min;
+            if (currentBounds.lat_max > totalBounds.lat_max) totalBounds.lat_max = currentBounds.lat_max;
+            if (currentBounds.lon_min < totalBounds.lon_min) totalBounds.lon_min = currentBounds.lon_min;
+            if (currentBounds.lon_max > totalBounds.lon_max) totalBounds.lon_max = currentBounds.lon_max;
           }
         }
       }
 
-      log_i("Total Bounds: Lat Min: %f, Lat Max: %f, Lon Min: %f, Lon Max: %f",
-            totalBounds.lat_min, totalBounds.lat_max, totalBounds.lon_min, totalBounds.lon_max);
+      if (!missingMap)
+      {
+        log_i("Total Bounds: Lat Min: %f, Lat Max: %f, Lon Min: %f, Lon Max: %f",
+              totalBounds.lat_min, totalBounds.lat_max, totalBounds.lon_min, totalBounds.lon_max);
 
+        if(isCoordInBounds(destLat,destLon,totalBounds))
+          coords2map(destLat, destLon, totalBounds, &wptPosX, &wptPosY);
+      }
+      else
+      {
+        wptPosX = -1;
+        wptPosY = -1;
+      }
       oldMapTile.zoom = currentMapTile.zoom;
       oldMapTile.tilex = currentMapTile.tilex;
       oldMapTile.tiley = currentMapTile.tiley;
