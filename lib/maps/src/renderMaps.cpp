@@ -84,6 +84,7 @@ MapTile getMapTile(double lon, double lat, uint8_t zoomLevel, int16_t offsetX, i
 void generateRenderMap()
 {
   currentMapTile = getMapTile(getLon(), getLat(), zoom, 0, 0);
+  bool foundRoundMap = false;
 
   // Detects if tile changes from actual GPS position
   if (strcmp(currentMapTile.file, oldMapTile.file) != 0 || currentMapTile.zoom != oldMapTile.zoom || 
@@ -127,7 +128,12 @@ void generateRenderMap()
             continue;
           }
           roundMapTile = getMapTile(getLon(), getLat(), zoom, x, y);
-          mapTempSprite.drawPngFile(SD, roundMapTile.file, (x - startX) * tileSize, (y - startY) * tileSize);
+          foundRoundMap = mapTempSprite.drawPngFile(SD, roundMapTile.file, (x - startX) * tileSize, (y - startY) * tileSize);
+          if (!foundRoundMap)
+          {
+            mapTempSprite.fillRect((x - startX) * tileSize, (y - startY) * tileSize, tileSize, tileSize, TFT_BLACK);
+            mapTempSprite.drawPngFile(noMapFile, ((x - startX) * tileSize) + (tileSize / 2) - 50 , ((y - startY) * tileSize) + (tileSize / 2) - 50);
+          }
         }
       }
 
