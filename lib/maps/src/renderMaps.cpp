@@ -18,6 +18,10 @@ ScreenCoord navArrowPosition = {0,0};  // Map Arrow position
 
 bool isMapFound = false;
 
+tileBounds totalBounds = { 90.0, -90.0, 180.0, -180.0}; 
+
+
+
 /**
  * @brief Tile size for position calculation
  *
@@ -50,6 +54,49 @@ uint32_t lon2tilex(double f_lon, uint8_t zoom)
 uint32_t lat2tiley(double f_lat, uint8_t zoom)
 {
   return (uint32_t)(floor((1.0 - log(tan(f_lat * M_PI / 180.0) + 1.0 / cos(f_lat * M_PI / 180.0)) / M_PI) / 2.0 * pow(2.0, zoom)));
+}
+
+/**
+ * @brief Get Longitude from OpenStreetMap files
+ *
+ * @param tileX -> tile X
+ * @param zoom  -> zoom
+ * @return longitude
+ */
+double tilex2lon(uint32_t tileX, uint8_t zoom)
+{
+  return tileX / pow(2.0, zoom) * 360.0 - 180.0;
+}
+
+/**
+ * @brief Get Latitude from OpenStreetMap files
+ *
+ * @param tileX -> tile Y
+ * @param zoom  -> zoom
+ * @return latitude
+ */
+double tiley2lat(uint32_t tileY, uint8_t zoom)
+{
+  double n = M_PI - 2.0 * M_PI * tileY / pow(2.0, zoom);
+  return 180.0 / M_PI * atan(sinh(n));
+}
+
+/**
+ * @brief Get min and max longitude and latitude from tile
+ *
+ * @param tileX -> tile X
+ * @param tileY -> tile Y
+ * @param zoom  -> zoom
+ * @return tileBounds -> min and max longitude and latitude
+ */
+tileBounds getTileBounds(uint32_t tileX, uint32_t tileY, uint8_t zoom)
+{
+  tileBounds bounds;
+  bounds.lon_min = tilex2lon(tileX, zoom);
+  bounds.lat_min = tiley2lat(tileY + 1, zoom);  
+  bounds.lon_max = tilex2lon(tileX + 1, zoom);  
+  bounds.lat_max = tiley2lat(tileY, zoom);      
+  return bounds;
 }
 
 /**
@@ -128,6 +175,14 @@ void generateRenderMap()
             continue;
           }
           roundMapTile = getMapTile(getLon(), getLat(), zoom, x, y);
+
+          tileBounds currentBounds = getTileBounds(roundMapTile.tilex, roundMapTile.tiley, zoom);
+                    
+          if (currentBounds.lat_min < totalBounds.lat_min) totalBounds.lat_min = currentBounds.lat_min;
+          if (currentBounds.lat_max > totalBounds.lat_max) totalBounds.lat_max = currentBounds.lat_max;
+          if (currentBounds.lon_min < totalBounds.lon_min) totalBounds.lon_min = currentBounds.lon_min;
+          if (currentBounds.lon_max > totalBounds.lon_max) totalBounds.lon_max = currentBounds.lon_max;
+
           foundRoundMap = mapTempSprite.drawPngFile(SD, roundMapTile.file, (x - startX) * tileSize, (y - startY) * tileSize);
           if (!foundRoundMap)
           {
@@ -136,6 +191,9 @@ void generateRenderMap()
           }
         }
       }
+
+      log_i("Total Bounds: Lat Min: %f, Lat Max: %f, Lon Min: %f, Lon Max: %f",
+            totalBounds.lat_min, totalBounds.lat_max, totalBounds.lon_min, totalBounds.lon_max);
 
       oldMapTile.zoom = currentMapTile.zoom;
       oldMapTile.tilex = currentMapTile.tilex;

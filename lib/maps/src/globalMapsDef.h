@@ -107,4 +107,24 @@ static void showNoMap(TFT_eSprite &map)
   map.drawCenterString("NO MAP FOUND", (MAP_WIDTH / 2), (MAP_HEIGHT >> 1) + 65, &fonts::DejaVu18);
 }
 
+
+/**
+ * @brief Structure to store min and max tile latitude and longitude
+ *
+ */
+struct tileBounds 
+{
+    double lat_min; 
+    double lat_max; 
+    double lon_min; 
+    double lon_max; 
+};
+
+/**
+ * @brief Render map min and max latitude and longitude
+ *
+ */
+extern tileBounds totalBounds;
+
+
 #endif
