@@ -516,6 +516,7 @@ void zoomInEvent(lv_event_t *event)
       isPosMoved = false;
     }
   }
+  log_i("%d",isCoordInBounds(destLat,destLon,totalBounds));
   lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
 }
 
@@ -541,6 +542,7 @@ void zoomOutEvent(lv_event_t *event)
       isPosMoved = false;
     }
   }
+  log_i("%d",isCoordInBounds(destLat,destLon,totalBounds));
   lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
 }
 

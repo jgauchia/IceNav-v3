@@ -53,6 +53,9 @@ void waypointListEvent(lv_event_t * event)
                         else 
                             lv_obj_add_flag(navTile,LV_OBJ_FLAG_HIDDEN);
 
+
+                        log_i("%d",isCoordInBounds(destLat,destLon,totalBounds));
+                        
                         loadMainScreen();
                         break;
                     case WPT_EDIT:

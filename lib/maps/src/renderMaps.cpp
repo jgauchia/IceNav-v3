@@ -100,6 +100,19 @@ tileBounds getTileBounds(uint32_t tileX, uint32_t tileY, uint8_t zoom)
 }
 
 /**
+ * @brief Check if coordinates are in map bounds
+ *
+ * @param lat -> latitude
+ * @param lon -> longitude
+ * @param bound -> map bounds
+ * @return true/false
+ */
+bool isCoordInBounds(double lat, double lon, tileBounds bound)
+{
+  return (lat >= totalBounds.lat_min && lat <= totalBounds.lat_max &&  lon >= totalBounds.lon_min && lon <= totalBounds.lon_max);
+}
+
+/**
  * @brief Get the map tile structure from GPS Coordinates
  *
  * @param lon -> Longitude
