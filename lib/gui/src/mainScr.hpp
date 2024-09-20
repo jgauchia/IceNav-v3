@@ -97,8 +97,6 @@ extern lv_obj_t *latNav;
 extern lv_obj_t *lonNav;
 extern lv_obj_t *distNav;
 extern lv_obj_t *arrowNav;
-extern double destLat;
-extern double destLon;
 extern char* destName;
 
 void updateCompassScr(lv_event_t * event);

@@ -24,6 +24,7 @@ bool isReady = false;         // Flag to indicate when tileview scroll was finis
 bool redrawMap = true;        // Flag to indicate when needs to redraw Map
 uint8_t activeTile = 0;       // Current active tile
 uint8_t wptAction = WPT_NONE; // Current Waypoint Action
+int wptPosX, wptPosY = 0;     // Waypoint position on map
 
 #ifdef LARGE_SCREEN
   int toolBarOffset = 100;
@@ -516,6 +517,7 @@ void zoomInEvent(lv_event_t *event)
       isPosMoved = false;
     }
   }
+
   lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
 }
 
@@ -541,6 +543,7 @@ void zoomOutEvent(lv_event_t *event)
       isPosMoved = false;
     }
   }
+
   lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
 }
 

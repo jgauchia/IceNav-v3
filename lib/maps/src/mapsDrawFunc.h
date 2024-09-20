@@ -13,6 +13,7 @@
 // Images
 #include "bruj.c"
 #include "navigation.c"
+#include "waypoint.c"
 #include "compass.c"
 #include "zoom.c"
 #include "speed.c"
@@ -23,6 +24,9 @@
 #include "navup.c"
 #include "navfinish.c"
 #include <cstdint>
+
+bool isCoordInBounds(double lat, double lon, tileBounds bound);
+void coords2map(double lat, double lon, tileBounds bound, int *pixelX, int *pixelY);
 
 // Scale for map
 static const char *map_scale[] PROGMEM = {"5000 Km", "2500 Km", "1500 Km",
@@ -166,12 +170,6 @@ static void displayMap(uint16_t tileSize)
   {
     navArrowPosition = coord2ScreenPos(getLon(), getLat(), zoom, tileSize);
 
-    if (tileSize == RENDER_TILE_SIZE)
-      mapTempSprite.setPivot(tileSize + navArrowPosition.posX, tileSize + navArrowPosition.posY);
-
-    if (tileSize == VECTOR_TILE_SIZE)
-      mapTempSprite.setPivot(tileSize , tileSize );
-
     #ifdef ENABLE_COMPASS
 
     if (isMapRotation)
@@ -184,6 +182,15 @@ static void displayMap(uint16_t tileSize)
     mapHeading = GPS.course.deg();
 
     #endif
+
+    if (tileSize == RENDER_TILE_SIZE)
+    {
+      mapTempSprite.pushImage(wptPosX-8, wptPosY-8, 16 ,16 ,(uint16_t*)waypoint, TFT_BLACK);
+      mapTempSprite.setPivot(tileSize + navArrowPosition.posX, tileSize + navArrowPosition.posY);
+    }
+
+    if (tileSize == VECTOR_TILE_SIZE)
+      mapTempSprite.setPivot(tileSize , tileSize );
 
     mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
     //mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);

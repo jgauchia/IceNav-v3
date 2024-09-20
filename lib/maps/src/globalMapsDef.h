@@ -29,7 +29,7 @@
 extern bool isMapFound;              // Flag to indicate when tile map is found on SD
 extern bool isScrolled;              // Flag to indicate when tileview was scrolled
 extern bool redrawMap;               // Flag to indicate need redraw Map
-
+extern int wptPosX, wptPosY;         // Waypoint position on render map.
 
 extern TFT_eSprite sprArrow;         // Sprite for Navigation Arrow in map tile
 extern TFT_eSprite mapTempSprite;    // Double Buffering Sprites for Map Tile
@@ -106,5 +106,25 @@ static void showNoMap(TFT_eSprite &map)
   map.drawPngFile(noMapFile, (MAP_WIDTH / 2) - 50, (MAP_HEIGHT / 2) - 50);
   map.drawCenterString("NO MAP FOUND", (MAP_WIDTH / 2), (MAP_HEIGHT >> 1) + 65, &fonts::DejaVu18);
 }
+
+
+/**
+ * @brief Structure to store min and max tile latitude and longitude
+ *
+ */
+struct tileBounds 
+{
+    double lat_min; 
+    double lat_max; 
+    double lon_min; 
+    double lon_max; 
+};
+
+/**
+ * @brief Render map min and max latitude and longitude
+ *
+ */
+extern tileBounds totalBounds;
+
 
 #endif
