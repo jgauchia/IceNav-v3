@@ -31,8 +31,25 @@ void wcli_reboot(char *args, Stream *response)
 
 void wcli_info(char *args, Stream *response)
 {
+  setlocale(LC_NUMERIC, "");
+  size_t totalSPIFFS, usedSPIFFS, freeSPIFFS = 0;
+  esp_spiffs_info(NULL, &totalSPIFFS, &usedSPIFFS);
+  freeSPIFFS = totalSPIFFS - usedSPIFFS;
+
   response->println();
   wcli.status(response);
+  response->printf("Total Memory\t: %3.0iKb\n",ESP.getHeapSize()/1000);
+  response->printf("SPIFFS total\t: %u bytes\n", totalSPIFFS);
+  response->printf("SPIFFS used\t: %u bytes\n", usedSPIFFS);
+  response->printf("SPIFFS free\t: %u bytes\n", freeSPIFFS);
+  if (psramFound())
+  {
+    response->printf("PSRAM total\t: %u bytes\n", ESP.getPsramSize());
+    response->printf("PSRAM used\t: %u bytes\n", ESP.getPsramSize()-ESP.getFreePsram());
+    response->printf("PSRAM free\t: %u bytes\n", ESP.getFreePsram());
+  }
+  response->printf("Flash size\t: %u bytes\n", ESP.getFlashChipSize());
+  response->printf("Program size\t: %u bytes\n", ESP.getSketchSize());
   response->print("GPS Baud rate\t: ");
   response->println(gpsBaudDetected);
 }
