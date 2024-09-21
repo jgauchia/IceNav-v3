@@ -55,7 +55,7 @@ lv_obj_t *distNav;
 lv_obj_t *arrowNav;
 double destLat = 0;
 double destLon = 0;
-char* destName = "";
+char* destName = (char *)"";
 
 
 /**
