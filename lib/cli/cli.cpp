@@ -31,10 +31,29 @@ void wcli_reboot(char *args, Stream *response)
 
 void wcli_info(char *args, Stream *response)
 {
+  setlocale(LC_NUMERIC, "");
+  size_t totalSPIFFS, usedSPIFFS, freeSPIFFS = 0;
+  esp_spiffs_info(NULL, &totalSPIFFS, &usedSPIFFS);
+  freeSPIFFS = totalSPIFFS - usedSPIFFS;
+
   response->println();
   wcli.status(response);
-  response->print("GPS Baud rate\t: ");
-  response->println(gpsBaudDetected);
+  response->printf("Total Memory\t: %3.0iKb\r\n",ESP.getHeapSize()/1000);
+  response->printf("SPIFFS total\t: %u bytes\r\n", totalSPIFFS);
+  response->printf("SPIFFS used\t: %u bytes\r\n", usedSPIFFS);
+  response->printf("SPIFFS free\t: %u bytes\r\n", freeSPIFFS);
+  if (psramFound())
+  {
+    response->printf("PSRAM total\t: %u bytes\r\n", ESP.getPsramSize());
+    response->printf("PSRAM used\t: %u bytes\r\n", ESP.getPsramSize()-ESP.getFreePsram());
+    response->printf("PSRAM free\t: %u bytes\r\n", ESP.getFreePsram());
+  }
+  response->printf("Flash size\t: %u bytes\r\n", ESP.getFlashChipSize());
+  response->printf("Program size\t: %u bytes\r\n", ESP.getSketchSize());
+  response->printf("\r\n");
+  response->printf("GPS Baud rate\t: %i baud\r\n",gpsBaudDetected);
+  response->printf("GPS Tx GPIO:\t: %i\r\n",GPS_TX);
+  response->printf("GPS Rx GPIO:\t: %i\r\n",GPS_RX);
 }
 
 void wcli_swipe(char *args, Stream *response)
