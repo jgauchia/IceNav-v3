@@ -38,18 +38,18 @@ void wcli_info(char *args, Stream *response)
 
   response->println();
   wcli.status(response);
-  response->printf("Total Memory\t: %3.0iKb\n",ESP.getHeapSize()/1000);
-  response->printf("SPIFFS total\t: %u bytes\n", totalSPIFFS);
-  response->printf("SPIFFS used\t: %u bytes\n", usedSPIFFS);
-  response->printf("SPIFFS free\t: %u bytes\n", freeSPIFFS);
+  response->printf("Total Memory\t: %3.0iKb\r\n",ESP.getHeapSize()/1000);
+  response->printf("SPIFFS total\t: %u bytes\r\n", totalSPIFFS);
+  response->printf("SPIFFS used\t: %u bytes\r\n", usedSPIFFS);
+  response->printf("SPIFFS free\t: %u bytes\r\n", freeSPIFFS);
   if (psramFound())
   {
-    response->printf("PSRAM total\t: %u bytes\n", ESP.getPsramSize());
-    response->printf("PSRAM used\t: %u bytes\n", ESP.getPsramSize()-ESP.getFreePsram());
-    response->printf("PSRAM free\t: %u bytes\n", ESP.getFreePsram());
+    response->printf("PSRAM total\t: %u bytes\r\n", ESP.getPsramSize());
+    response->printf("PSRAM used\t: %u bytes\r\n", ESP.getPsramSize()-ESP.getFreePsram());
+    response->printf("PSRAM free\t: %u bytes\r\n", ESP.getFreePsram());
   }
-  response->printf("Flash size\t: %u bytes\n", ESP.getFlashChipSize());
-  response->printf("Program size\t: %u bytes\n", ESP.getSketchSize());
+  response->printf("Flash size\t: %u bytes\r\n", ESP.getFlashChipSize());
+  response->printf("Program size\t: %u bytes\r\n", ESP.getSketchSize());
   response->print("GPS Baud rate\t: ");
   response->println(gpsBaudDetected);
 }
