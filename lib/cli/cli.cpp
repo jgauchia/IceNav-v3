@@ -50,8 +50,7 @@ void wcli_info(char *args, Stream *response)
   }
   response->printf("Flash size\t: %u bytes\r\n", ESP.getFlashChipSize());
   response->printf("Program size\t: %u bytes\r\n", ESP.getSketchSize());
-  response->print("GPS Baud rate\t: ");
-  response->println(gpsBaudDetected);
+  response->printf("GPS Baud rate\t: %i baud\r\n",gpsBaudDetected);
 }
 
 void wcli_swipe(char *args, Stream *response)
