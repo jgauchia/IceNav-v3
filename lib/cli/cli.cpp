@@ -50,6 +50,10 @@ void wcli_info(char *args, Stream *response)
   }
   response->printf("Flash size\t: %u bytes\r\n", ESP.getFlashChipSize());
   response->printf("Program size\t: %u bytes\r\n", ESP.getSketchSize());
+  if (enableWeb)
+    response->println("Web file server\t: \033[1;32menabled\033[0;37m");
+  else
+    response->println("Web file server\t: \033[1;31mdisabled\033[0;37m");
   response->printf("\r\n");
   response->printf("GPS Baud rate\t: %i baud\r\n",gpsBaudDetected);
   response->printf("GPS Tx GPIO:\t: %i\r\n",GPS_TX);
