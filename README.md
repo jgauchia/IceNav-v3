@@ -205,6 +205,7 @@ info:           get device information
 nmcli:          network manager CLI.
 reboot:         perform a ESP32 reboot
 scshot:         screenshot to SD or sending a PC
+settings:       device settings
 waypoint:       waypoint utilities
 wipe:           wipe preferences to factory default
 ```
@@ -226,6 +227,8 @@ Ensure your PC has the specified port open and firewall access enabled to receiv
 ```bash
 nc -l -p 8123 > screenshot.raw
 ```
+
+**settings**: Device settings type 'settings' for detailed options.
 
 **waypoint**: type `waypoint` for detailed options.
 
