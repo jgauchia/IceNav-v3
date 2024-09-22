@@ -12,8 +12,8 @@
 #include <TinyGPS++.h>
 #include "settings.hpp"
 
-extern const uint8_t GPS_TX;
-extern const uint8_t GPS_RX;
+extern uint8_t GPS_TX;
+extern uint8_t GPS_RX;
 
 #define MAX_SATELLITES 120
 #define MAX_SATELLLITES_IN_VIEW 32
