@@ -92,7 +92,7 @@ void editScreen(lv_event_t *event)
 {
   lv_event_code_t code = lv_event_get_code(event);
   
-  if (code == LV_EVENT_VALUE_CHANGED)
+  if (code == LV_EVENT_LONG_PRESSED)
     canMoveWidget = !canMoveWidget;
 }
 
@@ -109,6 +109,7 @@ void unselectWidget(lv_event_t *event)
     if (widgetSelected)
     {
       objUnselect(obj);
+      canMoveWidget = !canMoveWidget;
       lv_obj_add_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
       widgetSelected = false;
     }
@@ -600,24 +601,24 @@ void createMainScr()
   
   // Compass Tile
   
-  // Pin drag widget
-  static lv_style_t editBtnStyleOff;
-  lv_style_init(&editBtnStyleOff);
-  lv_style_set_bg_color(&editBtnStyleOff, lv_color_black());
-  lv_style_set_text_color(&editBtnStyleOff, lv_color_hex(0x303030));
-  static lv_style_t editBtnStyleOn;
-  lv_style_init(&editBtnStyleOn);
-  lv_style_set_bg_color(&editBtnStyleOn, lv_color_black());
-  lv_style_set_text_color(&editBtnStyleOn, lv_color_white());
-  lv_obj_t *editScreenBtn = lv_button_create(compassTile);
-  lv_obj_add_style(editScreenBtn, &editBtnStyleOff, LV_PART_MAIN | LV_STATE_DEFAULT);
-  lv_obj_add_style(editScreenBtn, &editBtnStyleOn, LV_PART_MAIN | LV_STATE_CHECKED);
-  lv_obj_set_pos(editScreenBtn, 5, 5);
-  lv_obj_add_flag(editScreenBtn, LV_OBJ_FLAG_CHECKABLE);
-  lv_obj_t *editScreenLbl;
-  editScreenLbl = lv_label_create(editScreenBtn);
-  lv_label_set_text(editScreenLbl, LV_SYMBOL_EDIT);
-  lv_obj_center(editScreenLbl);
+  // // Pin drag widget
+  // static lv_style_t editBtnStyleOff;
+  // lv_style_init(&editBtnStyleOff);
+  // lv_style_set_bg_color(&editBtnStyleOff, lv_color_black());
+  // lv_style_set_text_color(&editBtnStyleOff, lv_color_hex(0x303030));
+  // static lv_style_t editBtnStyleOn;
+  // lv_style_init(&editBtnStyleOn);
+  // lv_style_set_bg_color(&editBtnStyleOn, lv_color_black());
+  // lv_style_set_text_color(&editBtnStyleOn, lv_color_white());
+  // lv_obj_t *editScreenBtn = lv_button_create(compassTile);
+  // lv_obj_add_style(editScreenBtn, &editBtnStyleOff, LV_PART_MAIN | LV_STATE_DEFAULT);
+  // lv_obj_add_style(editScreenBtn, &editBtnStyleOn, LV_PART_MAIN | LV_STATE_CHECKED);
+  // lv_obj_set_pos(editScreenBtn, 5, 5);
+  // lv_obj_add_flag(editScreenBtn, LV_OBJ_FLAG_CHECKABLE);
+  // lv_obj_t *editScreenLbl;
+  // editScreenLbl = lv_label_create(editScreenBtn);
+  // lv_label_set_text(editScreenLbl, LV_SYMBOL_EDIT);
+  // lv_obj_center(editScreenLbl);
   
   // Compass Widget
   lv_obj_t *compassWidget = lv_obj_create(compassTile);
@@ -642,6 +643,7 @@ void createMainScr()
   lv_obj_set_style_text_font(compassHeading, fontVeryLarge, 0);
   lv_label_set_text_static(compassHeading, "---\xC2\xB0");
   objUnselect(compassWidget);
+  lv_obj_add_event_cb(compassWidget, editScreen, LV_EVENT_LONG_PRESSED, NULL);
   lv_obj_add_event_cb(compassWidget, dragWidget, LV_EVENT_PRESSING, (char *)"Compass_");
   lv_obj_add_event_cb(compassWidget, unselectWidget, LV_EVENT_RELEASED, NULL);
   
@@ -666,6 +668,7 @@ void createMainScr()
   lv_obj_align(longitude, LV_ALIGN_TOP_LEFT, 15, 3);
   lv_obj_align(posImg, LV_ALIGN_TOP_LEFT, -15, -10);
   objUnselect(positionWidget);
+  lv_obj_add_event_cb(positionWidget, editScreen, LV_EVENT_LONG_PRESSED, NULL);
   lv_obj_add_event_cb(positionWidget, dragWidget, LV_EVENT_PRESSING, (char *)"Coords_");
   lv_obj_add_event_cb(positionWidget, unselectWidget, LV_EVENT_RELEASED, NULL);
   
@@ -686,6 +689,7 @@ void createMainScr()
   lv_obj_align(altitImg, LV_ALIGN_LEFT_MID, -15, 0);
   lv_obj_align(altitude, LV_ALIGN_CENTER, 10, 0);
   objUnselect(altitudeWidget);
+  lv_obj_add_event_cb(altitudeWidget, editScreen, LV_EVENT_LONG_PRESSED, NULL);
   lv_obj_add_event_cb(altitudeWidget, dragWidget, LV_EVENT_PRESSING, (char *)"Altitude_");
   lv_obj_add_event_cb(altitudeWidget, unselectWidget, LV_EVENT_RELEASED, NULL);
   
@@ -706,6 +710,7 @@ void createMainScr()
   lv_obj_align(speedImg, LV_ALIGN_LEFT_MID, -10, 0);
   lv_obj_align(speedLabel, LV_ALIGN_CENTER, 10, 0);
   objUnselect(speedWidget);
+  lv_obj_add_event_cb(speedWidget, editScreen, LV_EVENT_LONG_PRESSED, NULL);
   lv_obj_add_event_cb(speedWidget, dragWidget, LV_EVENT_PRESSING, (char *)"Speed_");
   lv_obj_add_event_cb(speedWidget, unselectWidget, LV_EVENT_RELEASED, NULL);
   
@@ -715,7 +720,7 @@ void createMainScr()
   lv_obj_add_event_cb(longitude, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(altitude, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(speedLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
-  lv_obj_add_event_cb(editScreenBtn, editScreen, LV_EVENT_ALL, NULL);
+  //lv_obj_add_event_cb(editScreenBtn, editScreen, LV_EVENT_ALL, NULL);
  
   // Map Tile Toolbar
   btnFullScreen = lv_btn_create(mapTile);
