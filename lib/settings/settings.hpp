@@ -52,6 +52,7 @@ void saveGPSUpdateRate(uint16_t gpsUpdateRate);
 void saveWidgetPos(char *widget, uint16_t posX, uint16_t posY);
 void saveMapType(bool vector);
 void saveShowMap(bool mapMode);
+void saveGpsGpio(int8_t txGpio, int8_t rxGpio);
 void printSettings();
 
 #endif
