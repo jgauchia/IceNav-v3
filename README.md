@@ -228,7 +228,7 @@ Ensure your PC has the specified port open and firewall access enabled to receiv
 nc -l -p 8123 > screenshot.raw
 ```
 
-**settings**: Device settings type 'settings' for detailed options.
+**settings**: Device settings type `settings` for detailed options.
 
 **waypoint**: type `waypoint` for detailed options.
 
