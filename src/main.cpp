@@ -114,7 +114,7 @@ void setup()
     initCLITask();
   #endif
 
-  if (WiFi.status() == WL_CONNECTED)
+  if (WiFi.status() == WL_CONNECTED && enableWeb)
   {
     configureWebServer();
     server.begin();
