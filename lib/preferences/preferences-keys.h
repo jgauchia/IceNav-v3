@@ -21,4 +21,5 @@
   X(KDEF_ZOOM, "Def_zoom", UINT)         \
   X(KGPS_TX, "GPS_tx", UINT)             \
   X(KGPS_RX, "GPS_rx", UINT)             \
+  X(KWEB_FILE, "Web_file", BOOL)         \
   X(KCOUNT, "KCOUNT", UNKNOWN)
