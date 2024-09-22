@@ -169,9 +169,6 @@ void getActTile(lv_event_t *event)
     isScrolled = true;
     redrawMap = true;
 
-    log_d("Free PSRAM: %d", ESP.getFreePsram());
-    log_d("Used PSRAM: %d", ESP.getPsramSize() - ESP.getFreePsram());
-
     if (activeTile == SATTRACK)
     {
       createSatSprite(spriteSat);
