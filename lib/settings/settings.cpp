@@ -39,7 +39,7 @@ uint16_t altitudePosX = 0;    // Altitude widget position X
 uint16_t altitudePosY = 0;    // Altitude widget position Y
 uint16_t speedPosX = 0;       // Speed widget position X
 uint16_t speedPosY = 0;       // Speed widget position Y
-bool enableWeb = false;        // Enable/disable web file server
+bool enableWeb = true;        // Enable/disable web file server
 bool showToolBar = false;     // Show Map Toolbar
 
 /**
