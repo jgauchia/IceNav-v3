@@ -41,6 +41,8 @@ void unselectWidget(lv_event_t *event)
     if (widgetSelected)
     {
       objUnselect(obj);
+      char *widget = (char *)lv_event_get_user_data(event);
+      saveWidgetPos(widget, newX, newY);
       canMoveWidget = !canMoveWidget;
       lv_obj_add_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
       widgetSelected = false;
@@ -83,9 +85,8 @@ void dragWidget(lv_event_t *event)
     if (x > 0 && y > 0 && (x + width) < TFT_WIDTH && (y + height) < TFT_HEIGHT - 25)
     {
       lv_obj_set_pos(obj, x, y);
-      
-      char *widget = (char *)lv_event_get_user_data(event);
-      saveWidgetPos(widget, x, y);
+      newX = x;
+      newY = y;
     }
   }
 }
@@ -119,7 +120,7 @@ void positionWidget(_lv_obj_t *screen)
     objUnselect(obj);
     lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);
     lv_obj_add_event_cb(obj, dragWidget, LV_EVENT_PRESSING, (char *)"Coords_");
-    lv_obj_add_event_cb(obj, unselectWidget, LV_EVENT_RELEASED, NULL);
+    lv_obj_add_event_cb(obj, unselectWidget, LV_EVENT_RELEASED, (char *)"Coords_");
 }
 
 /**
@@ -153,7 +154,7 @@ void compassWidget(_lv_obj_t *screen)
     objUnselect(obj);
     lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);
     lv_obj_add_event_cb(obj, dragWidget, LV_EVENT_PRESSING, (char *)"Compass_");
-    lv_obj_add_event_cb(obj, unselectWidget, LV_EVENT_RELEASED, NULL);
+    lv_obj_add_event_cb(obj, unselectWidget, LV_EVENT_RELEASED, (char *)"Compass_");
 }
 
 /**
@@ -181,7 +182,7 @@ void altitudeWidget(_lv_obj_t *screen)
     objUnselect(obj);
     lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);
     lv_obj_add_event_cb(obj, dragWidget, LV_EVENT_PRESSING, (char *)"Altitude_");
-    lv_obj_add_event_cb(obj, unselectWidget, LV_EVENT_RELEASED, NULL);
+    lv_obj_add_event_cb(obj, unselectWidget, LV_EVENT_RELEASED, (char *)"Altitude_");
 }
 
 /**
@@ -209,5 +210,5 @@ void speedWidget(_lv_obj_t *screen)
     objUnselect(obj);
     lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);
     lv_obj_add_event_cb(obj, dragWidget, LV_EVENT_PRESSING, (char *)"Speed_");
-    lv_obj_add_event_cb(obj, unselectWidget, LV_EVENT_RELEASED, NULL);
+    lv_obj_add_event_cb(obj, unselectWidget, LV_EVENT_RELEASED, (char *)"Speed_");
 }

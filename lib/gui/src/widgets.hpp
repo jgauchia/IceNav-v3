@@ -33,6 +33,8 @@ void unselectWidget(lv_event_t *event);
 
 static bool widgetSelected = false;
 static bool canMoveWidget = false;
+static lv_coord_t newX = 0;
+static lv_coord_t newY = 0;
 
 static const char *arrowIconFile PROGMEM = "/arrow.bin";    // Compass Arrow Icon
 static const char *positionIconFile PROGMEM = "/pin.bin";   // Position Icon
