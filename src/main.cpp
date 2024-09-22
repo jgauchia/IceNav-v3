@@ -116,6 +116,14 @@ void setup()
 
   if (WiFi.status() == WL_CONNECTED)
   {
+    if (!MDNS.begin(hostname))       
+      log_e("nDNS init error");
+
+    log_i("mDNS initialized");
+  }
+
+  if (WiFi.status() == WL_CONNECTED && enableWeb)
+  {
     configureWebServer();
     server.begin();
   }

@@ -38,6 +38,7 @@ extern uint16_t altitudePosX; // Altitude widget position X
 extern uint16_t altitudePosY; // Altitude widget position Y
 extern uint16_t speedPosX;    // Speed widget position X
 extern uint16_t speedPosY;    // Speed widget position Y
+extern bool enableWeb;        // Enable/disable web file server
 
 void loadPreferences();
 void saveMapRotation(bool zoomRotation);
@@ -53,6 +54,7 @@ void saveWidgetPos(char *widget, uint16_t posX, uint16_t posY);
 void saveMapType(bool vector);
 void saveShowMap(bool mapMode);
 void saveGpsGpio(int8_t txGpio, int8_t rxGpio);
+void saveWebFile(bool status);
 void printSettings();
 
 #endif

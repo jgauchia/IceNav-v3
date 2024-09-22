@@ -359,10 +359,10 @@ void sendSpiffsImage(const char *imageFile,AsyncWebServerRequest *request)
 void configureWebServer()
 {
 
-   if (!MDNS.begin(hostname))       
-    log_e("nDNS init error");
+  //  if (!MDNS.begin(hostname))       
+  //   log_e("nDNS init error");
 
-   log_i("mDNS initialized");
+  //  log_i("mDNS initialized");
 
   server.onNotFound(webNotFound);
   server.onFileUpload(handleUpload);
