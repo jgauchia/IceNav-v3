@@ -22,7 +22,7 @@ extern lv_display_t *display;
  *
  */
 extern lv_obj_t *mainScreen;           // Main Screen
-static lv_obj_t *tilesScreen;          // Tiles Screen
+extern lv_obj_t *tilesScreen;          // Tiles Screen
 extern lv_obj_t *notifyBarIcons;       // Notify Bar Icons
 extern lv_obj_t *notifyBarHour;        // Notify Bar Hour
 extern lv_obj_t *settingsScreen;       // Settings Screen

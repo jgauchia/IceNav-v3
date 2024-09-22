@@ -35,12 +35,7 @@ int wptPosX, wptPosY = 0;     // Waypoint position on map
   int toolBarSpace = 50;
 #endif
 
-lv_obj_t *compassHeading;
-lv_obj_t *compassImg;
-lv_obj_t *latitude;
-lv_obj_t *longitude;
-lv_obj_t *altitude;
-lv_obj_t *speedLabel;
+lv_obj_t *tilesScreen;
 lv_obj_t *compassTile;
 lv_obj_t *navTile;
 lv_obj_t *mapTile;
@@ -53,6 +48,7 @@ lv_obj_t *latNav;
 lv_obj_t *lonNav;
 lv_obj_t *distNav;
 lv_obj_t *arrowNav;
+
 double destLat = 0;
 double destLon = 0;
 char* destName = (char *)"";
@@ -81,81 +77,6 @@ void updateCompassScr(lv_event_t * event)
     lv_label_set_text_fmt(obj, "%4d m.", (int)GPS.altitude.meters());
   if (obj==speedLabel)
     lv_label_set_text_fmt(obj, "%3d Km/h", (int)GPS.speed.kmph());
-}
-
-/**
- * @brief Edit Screen Event (drag widgets)
- *
- * @param event
- */
-void editScreen(lv_event_t *event)
-{
-  lv_event_code_t code = lv_event_get_code(event);
-  
-  if (code == LV_EVENT_LONG_PRESSED)
-    canMoveWidget = !canMoveWidget;
-}
-
-/**
- * @brief Unselect widget
- *
- * @param event
- */
-void unselectWidget(lv_event_t *event)
-{
-  if (canMoveWidget)
-  {
-    lv_obj_t *obj = (lv_obj_t *)lv_event_get_target(event);
-    if (widgetSelected)
-    {
-      objUnselect(obj);
-      canMoveWidget = !canMoveWidget;
-      lv_obj_add_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
-      widgetSelected = false;
-    }
-    isScrolled = true;
-  }
-}
-
-/**
- * @brief Drag widget event
- *
- * @param event
- */
-void dragWidget(lv_event_t *event)
-{
-  if (canMoveWidget)
-  {
-    isScrolled = false;
-    lv_obj_t *obj = (lv_obj_t *)lv_event_get_target(event);
-    if (!widgetSelected)
-    {
-      objSelect(obj);
-      lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
-      widgetSelected = true;
-    }
-
-    lv_indev_t *indev = lv_indev_get_act();
-    if (indev == NULL)
-      return;
-    
-    lv_point_t vect;
-    lv_indev_get_vect(indev, &vect);
-    
-    lv_coord_t x = lv_obj_get_x(obj) + vect.x;
-    lv_coord_t y = lv_obj_get_y(obj) + vect.y;
-    lv_coord_t width = lv_obj_get_width(obj);
-    lv_coord_t height = lv_obj_get_height(obj);
-    
-    // Limit drag area
-    if (x > 0 && y > 0 && (x + width) < TFT_WIDTH && (y + height) < TFT_HEIGHT - 25)
-    {
-      lv_obj_set_pos(obj, x, y);
-      
-      char *widget = (char *)lv_event_get_user_data(event);
-      saveWidgetPos(widget, x, y);
-    }
-  }
 }
 
 /**
@@ -619,100 +540,16 @@ void createMainScr()
   // editScreenLbl = lv_label_create(editScreenBtn);
   // lv_label_set_text(editScreenLbl, LV_SYMBOL_EDIT);
   // lv_obj_center(editScreenLbl);
+  // lv_obj_add_event_cb(editScreenBtn, editWidget, LV_EVENT_ALL, NULL);
   
   // Compass Widget
-  lv_obj_t *compassWidget = lv_obj_create(compassTile);
-  lv_obj_set_size(compassWidget, 200 * scale, 200 * scale);
-  lv_obj_set_pos(compassWidget, compassPosX, compassPosY);
-  lv_obj_clear_flag(compassWidget, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_t *arrowImg = lv_img_create(compassWidget);
-  lv_img_set_src(arrowImg, arrowIconFile);
-  lv_obj_align(arrowImg, LV_ALIGN_CENTER, 0, -30);
-  lv_img_set_zoom(arrowImg,iconScale);
-  lv_obj_update_layout(arrowImg);
-  LV_IMG_DECLARE(bruj);
-  compassImg = lv_img_create(compassWidget);
-  lv_img_set_src(compassImg, &bruj);
-  lv_img_set_zoom(compassImg,iconScale);
-  lv_obj_update_layout(compassImg);
-  lv_obj_align_to(compassImg, compassWidget, LV_ALIGN_CENTER, 0, 0);   
-  lv_img_set_pivot(compassImg, 100, 100) ;
-  compassHeading = lv_label_create(compassWidget);
-  lv_obj_set_height(compassHeading,38);
-  lv_obj_align(compassHeading, LV_ALIGN_CENTER, 0, 20);
-  lv_obj_set_style_text_font(compassHeading, fontVeryLarge, 0);
-  lv_label_set_text_static(compassHeading, "---\xC2\xB0");
-  objUnselect(compassWidget);
-  lv_obj_add_event_cb(compassWidget, editScreen, LV_EVENT_LONG_PRESSED, NULL);
-  lv_obj_add_event_cb(compassWidget, dragWidget, LV_EVENT_PRESSING, (char *)"Compass_");
-  lv_obj_add_event_cb(compassWidget, unselectWidget, LV_EVENT_RELEASED, NULL);
-  
+  compassWidget(compassTile);
   // Position widget
-  lv_obj_t *positionWidget = lv_obj_create(compassTile);
-  lv_obj_set_height(positionWidget,40);
-  lv_obj_set_pos(positionWidget, coordPosX, coordPosY);
-  lv_obj_clear_flag(positionWidget, LV_OBJ_FLAG_SCROLLABLE);
-  latitude = lv_label_create(positionWidget);
-  lv_obj_set_style_text_font(latitude, fontMedium, 0);
-  lv_label_set_text_fmt(latitude, "%s", latFormatString(getLat()));
-  longitude = lv_label_create(positionWidget);
-  lv_obj_set_style_text_font(longitude, fontMedium, 0);
-  lv_label_set_text_fmt(longitude, "%s", lonFormatString(getLon()));
-  lv_obj_t *posImg = lv_img_create(positionWidget);
-  lv_img_set_src(posImg, positionIconFile);
-  lv_img_set_zoom(posImg,iconScale);
-  lv_obj_update_layout(latitude);
-  lv_obj_update_layout(posImg);
-  lv_obj_set_width(positionWidget, lv_obj_get_width(latitude) + 40);
-  lv_obj_align(latitude, LV_ALIGN_TOP_LEFT, 15, -12);
-  lv_obj_align(longitude, LV_ALIGN_TOP_LEFT, 15, 3);
-  lv_obj_align(posImg, LV_ALIGN_TOP_LEFT, -15, -10);
-  objUnselect(positionWidget);
-  lv_obj_add_event_cb(positionWidget, editScreen, LV_EVENT_LONG_PRESSED, NULL);
-  lv_obj_add_event_cb(positionWidget, dragWidget, LV_EVENT_PRESSING, (char *)"Coords_");
-  lv_obj_add_event_cb(positionWidget, unselectWidget, LV_EVENT_RELEASED, NULL);
-  
+  positionWidget(compassTile);
   // Altitude widget
-  lv_obj_t *altitudeWidget = lv_obj_create(compassTile);
-  lv_obj_set_height(altitudeWidget, 40 * scale);
-  lv_obj_set_pos(altitudeWidget, altitudePosX, altitudePosY);
-  lv_obj_clear_flag(altitudeWidget, LV_OBJ_FLAG_SCROLLABLE);
-  altitude = lv_label_create(altitudeWidget);
-  lv_obj_set_style_text_font(altitude, fontLargeMedium, 0);
-  lv_label_set_text_static(altitude, "0000 m.");
-  lv_obj_t *altitImg = lv_img_create(altitudeWidget);
-  lv_img_set_src(altitImg, altitudeIconFile);
-  lv_img_set_zoom(altitImg,iconScale);
-  lv_obj_update_layout(altitude);
-  lv_obj_update_layout(altitImg);
-  lv_obj_set_width(altitudeWidget, lv_obj_get_width(altitude) + 40);
-  lv_obj_align(altitImg, LV_ALIGN_LEFT_MID, -15, 0);
-  lv_obj_align(altitude, LV_ALIGN_CENTER, 10, 0);
-  objUnselect(altitudeWidget);
-  lv_obj_add_event_cb(altitudeWidget, editScreen, LV_EVENT_LONG_PRESSED, NULL);
-  lv_obj_add_event_cb(altitudeWidget, dragWidget, LV_EVENT_PRESSING, (char *)"Altitude_");
-  lv_obj_add_event_cb(altitudeWidget, unselectWidget, LV_EVENT_RELEASED, NULL);
-  
+  altitudeWidget(compassTile);
   // Speed widget
-  lv_obj_t *speedWidget = lv_obj_create(compassTile);
-  lv_obj_set_height(speedWidget, 40 * scale);
-  lv_obj_set_pos(speedWidget, speedPosX, speedPosY);
-  lv_obj_clear_flag(speedWidget, LV_OBJ_FLAG_SCROLLABLE);
-  speedLabel = lv_label_create(speedWidget);
-  lv_obj_set_style_text_font(speedLabel, fontLargeMedium, 0);
-  lv_label_set_text_static(speedLabel, "   0 Km/h");
-  lv_obj_t *speedImg = lv_img_create(speedWidget);
-  lv_img_set_src(speedImg, speedIconFile);
-  lv_img_set_zoom(speedImg,iconScale);
-  lv_obj_update_layout(speedLabel);
-  lv_obj_update_layout(speedImg);
-  lv_obj_set_width(speedWidget, lv_obj_get_width(speedLabel) + 40);
-  lv_obj_align(speedImg, LV_ALIGN_LEFT_MID, -10, 0);
-  lv_obj_align(speedLabel, LV_ALIGN_CENTER, 10, 0);
-  objUnselect(speedWidget);
-  lv_obj_add_event_cb(speedWidget, editScreen, LV_EVENT_LONG_PRESSED, NULL);
-  lv_obj_add_event_cb(speedWidget, dragWidget, LV_EVENT_PRESSING, (char *)"Speed_");
-  lv_obj_add_event_cb(speedWidget, unselectWidget, LV_EVENT_RELEASED, NULL);
+  speedWidget(compassTile);
   
   // Compass Tile Events
   lv_obj_add_event_cb(compassHeading, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
@@ -720,7 +557,6 @@ void createMainScr()
   lv_obj_add_event_cb(longitude, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(altitude, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(speedLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
-  //lv_obj_add_event_cb(editScreenBtn, editScreen, LV_EVENT_ALL, NULL);
  
   // Map Tile Toolbar
   btnFullScreen = lv_btn_create(mapTile);
