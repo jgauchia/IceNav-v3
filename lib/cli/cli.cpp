@@ -278,6 +278,33 @@ void wcli_settings(char *args, Stream *response)
   }
 }
 
+
+void wcli_webfile(char *args, Stream *response)
+{
+  Pair<String, String> operands = wcli.parseCommand(args);
+  String commands = operands.first();
+
+  if (commands.isEmpty())
+    response->println(F("missing parameter use: webfile \033[1;32menable/disable\033[0;37m"));
+  else
+  {
+    if(commands.equals("enable"))
+    {
+      saveWebFile(true);
+      response->println("");
+      response->printf("Web file server \033[1;32menabled\033[0;37m\r\n");
+      response->println("Please reboot device");
+    }
+    if(commands.equals("disable"))
+    {
+      saveWebFile(false);
+      response->println("");
+      response->printf("Web file server \033[1;32mdisabled\033[0;37m\r\n");
+      response->println("Please reboot device");
+    }
+  }
+}
+
 void initRemoteShell()
 {
 #ifndef DISABLE_CLI_TELNET 
@@ -296,6 +323,7 @@ void initShell(){
   wcli.add("scshot", &wcli_scshot, "\tscreenshot to SD or sending a PC");
   wcli.add("waypoint", &wcli_waypoint, "\twaypoint utilities");
   wcli.add("settings", &wcli_settings, "\tdevice settings");
+  wcli.add("webfile", &wcli_webfile, "\tenable/disable Web file server");
   wcli.begin("IceNav");
 }
 

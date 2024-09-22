@@ -207,6 +207,7 @@ reboot:         perform a ESP32 reboot
 scshot:         screenshot to SD or sending a PC
 settings:       device settings
 waypoint:       waypoint utilities
+webfile:        enable/disable Web file server
 wipe:           wipe preferences to factory default
 ```
 
