@@ -21,6 +21,7 @@
 #include "splashScr.hpp"
 #include "searchSatScr.hpp"
 #include "notifyBar.hpp"
+#include "widgets.hpp"
 #include "mainScr.hpp"
 #include "buttonBar.hpp"
 #include "settingsScr.hpp"
