@@ -30,7 +30,9 @@ void initADC()
 
   #ifndef ELECROW_ESP32
     adc1_config_width(ADC_WIDTH_BIT_12);
-    adc1_config_channel_atten(ADC1_CHANNEL_6, ADC_ATTEN_DB_12);
+  #ifndef TDECK_ESP32S3
+    adc1_config_channel_atten(ADC1_CHANNEL_6, ADC_ATTEN_DB_12); // I don't why T-Deck board not support it ??
+  #endif
   #endif
   #ifdef ELECROW_ESP32
     adc2_config_channel_atten(ADC2_CHANNEL_6, ADC_ATTEN_DB_12);
