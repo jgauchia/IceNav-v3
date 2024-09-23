@@ -73,6 +73,7 @@ void setup()
     digitalWrite(SD_CS, HIGH);
     digitalWrite(RADIO_CS_PIN, HIGH);
     digitalWrite(TFT_SPI_CS, HIGH);
+    pinMode(TFT_SPI_MISO, INPUT_PULLUP);
   #endif
   #ifdef ICENAV_BOARD
     Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
