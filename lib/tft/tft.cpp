@@ -15,50 +15,58 @@ uint16_t TFT_HEIGHT = 0;
 bool waitScreenRefresh = false;
 
 #ifdef TDECK_ESP32S3 
-extern const uint8_t TFT_SPI_BL;
+  extern const uint8_t TFT_SPI_BL;
 #endif
 
 /**
  * @brief Set the TFT brightness
  *
- * @param brightness -> 0..255
+ * @param brightness -> 0..255 / 0..15 for T-DECK
  */
 void setBrightness(uint8_t brightness)
 {
   
-  //if (brightness <= 255)
-  //{
-  //  ledcWrite(0, brightness);
-  //  brightnessLevel = brightness;
-  // }
+  #ifndef TDECK_ESP32S3 
+  if (brightness <= 255)
+  {
+   ledcWrite(0, brightness);
+   brightnessLevel = brightness;
+  }
+  #endif
 
+  #ifdef TDECK_ESP32S3 
     static uint8_t level = 0;
     static uint8_t steps = 16;
-    if (brightness == 0) {
-        digitalWrite(TFT_SPI_BL, 0);
-        delay(3);
-        level = 0;
-        return;
+    if (brightness == 0) 
+    {
+      digitalWrite(TFT_SPI_BL, 0);
+      delay(3);
+      level = 0;
+      return;
     }
-    if (level == 0) {
-        digitalWrite(TFT_SPI_BL, 1);
-        level = steps;
-        delayMicroseconds(30);
+    if (level == 0) 
+    {
+      digitalWrite(TFT_SPI_BL, 1);
+      level = steps;
+      delayMicroseconds(30);
     }
     int from = steps - level;
     int to = steps - brightness;
     int num = (steps + to - from) % steps;
-    for (int i = 0; i < num; i++) {
-        digitalWrite(TFT_SPI_BL, 0);
-        digitalWrite(TFT_SPI_BL, 1);
+    for (int i = 0; i < num; i++) 
+    {
+      digitalWrite(TFT_SPI_BL, 0);
+      digitalWrite(TFT_SPI_BL, 1);
     }
     level = brightness;
+    brightnessLevel = brightness;
+  #endif
 }
 
 /**
  * @brief Get the TFT brightness
  *
- * @return int -> brightness value 0..255
+ * @return int -> brightness value 0..255 / 0..15 for T-DECK
  */
 uint8_t getBrightness()
 {
@@ -155,9 +163,11 @@ void touchCalibrate()
  */
 void initTFT()
 {
-  setBrightness(15);
   tft.init();
-  tft.setRotation(1);
+
+  #ifdef TDECK_ESP32S3
+    tft.setRotation(1);
+  #endif
 
   TFT_HEIGHT = tft.height();
   TFT_WIDTH = tft.width();
@@ -182,18 +192,13 @@ void initTFT()
 #ifdef ELECROW_ESP32
   gpio_set_drive_capability(GPIO_NUM_46, GPIO_DRIVE_CAP_3);
 #endif
-#ifdef TDECK_ESP32S3
-//  gpio_set_drive_capability(GPIO_NUM_42, GPIO_DRIVE_CAP_3);
-#endif
 
 #ifndef TDECK_ESP32S3
   ledcSetup(0, 5000, 8);
   ledcAttachPin(TFT_BL, 0);
   ledcWrite(0, 255);
 #endif
-#ifdef TDECK_ESP32S3
-//  digitalWrite(BOARD_BL_PIN, 0);
-#endif
+
 #ifdef TOUCH_INPUT
   touchCalibrate();
 #endif
