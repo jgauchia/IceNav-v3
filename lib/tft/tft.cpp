@@ -14,6 +14,10 @@ uint16_t TFT_WIDTH = 0;
 uint16_t TFT_HEIGHT = 0;
 bool waitScreenRefresh = false;
 
+#ifdef TDECK_ESP32S3 
+extern const uint8_t TFT_SPI_BL;
+#endif
+
 /**
  * @brief Set the TFT brightness
  *
@@ -31,13 +35,13 @@ void setBrightness(uint8_t brightness)
     static uint8_t level = 0;
     static uint8_t steps = 16;
     if (brightness == 0) {
-        digitalWrite(BOARD_BL_PIN, 0);
+        digitalWrite(TFT_SPI_BL, 0);
         delay(3);
         level = 0;
         return;
     }
     if (level == 0) {
-        digitalWrite(BOARD_BL_PIN, 1);
+        digitalWrite(TFT_SPI_BL, 1);
         level = steps;
         delayMicroseconds(30);
     }
@@ -45,8 +49,8 @@ void setBrightness(uint8_t brightness)
     int to = steps - brightness;
     int num = (steps + to - from) % steps;
     for (int i = 0; i < num; i++) {
-        digitalWrite(BOARD_BL_PIN, 0);
-        digitalWrite(BOARD_BL_PIN, 1);
+        digitalWrite(TFT_SPI_BL, 0);
+        digitalWrite(TFT_SPI_BL, 1);
     }
     level = brightness;
 }
