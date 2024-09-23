@@ -21,11 +21,10 @@ extern const uint8_t TFT_SPI_MISO;
 extern const uint8_t TFT_SPI_DC;
 extern const uint8_t TFT_SPI_CS;
 extern const uint8_t TFT_SPI_RST;
-extern const uint8_t TCH_SPI_SCLK;
-extern const uint8_t TCH_SPI_MOSI;
-extern const uint8_t TCH_SPI_MISO;
-extern const uint8_t TCH_SPI_INT;
-extern const uint8_t TCH_SPI_CS;
+extern const uint8_t TCH_I2C_PORT;
+extern const uint8_t TCH_I2C_SDA;
+extern const uint8_t TCH_I2C_SCL;
+extern const uint8_t TCH_I2C_INT;
 extern const bool TFT_INVERT;
 
 class LGFX : public lgfx::LGFX_Device
@@ -88,24 +87,21 @@ public:
 
     {
       auto cfg = _touch_instance.config();
+
       cfg.x_min = 0;
       cfg.x_max = 320;
       cfg.y_min = 0;
-      cfg.y_max = 240;
-      cfg.pin_int = TCH_SPI_INT;
+      cfg.y_max = 480;
+      cfg.pin_int = TCH_I2C_INT;
       cfg.bus_shared = true;
       cfg.offset_rotation = 0;
-      #ifdef ESP32S3_N16R8
-      cfg.spi_host = SPI3_HOST;
-      #endif
-      #ifdef ESP32_N16R4
-      cfg.spi_host = HSPI_HOST;
-      #endif
-      cfg.freq = 1000000;
-      cfg.pin_sclk = TCH_SPI_SCLK;
-      cfg.pin_mosi = TCH_SPI_MOSI;
-      cfg.pin_miso = TCH_SPI_MISO;
-      cfg.pin_cs = TCH_SPI_CS;
+
+      cfg.i2c_port = TCH_I2C_PORT;
+      cfg.i2c_addr = 0x14;   // If doesn't works try 0x5D
+      cfg.pin_sda = TCH_I2C_SDA;
+      cfg.pin_scl = TCH_I2C_SCL;
+      cfg.freq = 400000;
+
       _touch_instance.config(cfg);
       _panel_instance.setTouch(&_touch_instance);
     }
