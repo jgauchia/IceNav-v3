@@ -58,10 +58,10 @@ public:
       cfg.pin_cs = TFT_SPI_CS;
       cfg.pin_rst = TFT_SPI_RST;
       cfg.pin_busy = -1;
-      cfg.panel_width = 320;
-      cfg.panel_height = 240;
-      cfg.memory_width = 320;
-      cfg.memory_height = 240;
+      cfg.panel_width = 240;
+      cfg.panel_height = 320;
+      cfg.memory_width = 240;
+      cfg.memory_height = 320;
       cfg.offset_x = 0;
       cfg.offset_y = 0;
       cfg.offset_rotation = 0;
@@ -76,18 +76,29 @@ public:
     }
 
     {
+      auto cfg = _light_instance.config();
+      cfg.pin_bl = 42;
+      cfg.invert = false;
+      cfg.freq = 44100;
+      cfg.pwm_channel = 7;
+
+      _light_instance.config(cfg);
+      _panel_instance.setLight(&_light_instance);
+    }
+    
+    {
       auto cfg = _touch_instance.config();
 
       cfg.x_min = 0;
       cfg.x_max = 320;
       cfg.y_min = 0;
-      cfg.y_max = 480;
+      cfg.y_max = 240;
       cfg.pin_int = TCH_I2C_INT;
       cfg.bus_shared = true;
       cfg.offset_rotation = 0;
 
       cfg.i2c_port = TCH_I2C_PORT;
-      cfg.i2c_addr = 0x5D;   // If doesn't works try 0x14
+      cfg.i2c_addr = 0x14;   // If doesn't works try 0x5D
       cfg.pin_sda = TCH_I2C_SDA;
       cfg.pin_scl = TCH_I2C_SCL;
       cfg.freq = 800000UL;
