@@ -32,8 +32,8 @@
 #include "ILI9488_NOTOUCH_8B.hpp"
 #endif
 
-#ifdef ST7789_GT911_I2C
-#include "ST7789_GT911_I2C.hpp"
+#ifdef LILYGO_TDECK
+#include "LILYGO_TDECK.hpp"
 #endif
 
 #include <LGFX_TFT_eSPI.hpp>

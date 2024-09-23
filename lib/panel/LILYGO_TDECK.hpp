@@ -1,13 +1,13 @@
 /**
- * @file ST77899_GT911_I2C.hpp
+ * @file LILYGO_TDECK.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es) and Antonio Vanegas @Hpsturn
  * @brief  LOVYANGFX TFT driver for ST7789 SPI With GT911 Touch controller
  * @version 0.1.8_Alpha
  * @date 2024-09
  */
 
-#ifndef ST7789_GT911_I2C_HPP
-#define ST7789_GT911_I2C_HPP
+#ifndef LILYGO_TDECK_HPP
+#define LILYGO_TDECK_HPP
 
 #define LGFX_USE_V1
 
@@ -99,7 +99,7 @@ public:
       cfg.offset_rotation = 0;
 
       cfg.i2c_port = TCH_I2C_PORT;
-      cfg.i2c_addr = 0x5D;   // If doesn't works try 0x5D
+      cfg.i2c_addr = 0x5D;   
       cfg.pin_sda = TCH_I2C_SDA;
       cfg.pin_scl = TCH_I2C_SCL;
       cfg.freq = 400000;
