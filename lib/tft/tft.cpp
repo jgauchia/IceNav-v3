@@ -153,6 +153,7 @@ void initTFT()
 {
   setBrightness(15);
   tft.init();
+  tft.setRotation(1);
 
   TFT_HEIGHT = tft.height();
   TFT_WIDTH = tft.width();
