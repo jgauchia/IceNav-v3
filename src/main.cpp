@@ -103,7 +103,7 @@ void setup()
 
   powerOn();
   loadPreferences();
-  initSD();
+  //initSD();
   initSPIFFS();
   initTFT();
   initGPS();
