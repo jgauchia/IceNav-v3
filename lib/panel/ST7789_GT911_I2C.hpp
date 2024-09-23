@@ -31,6 +31,7 @@ class LGFX : public lgfx::LGFX_Device
 {
   lgfx::Panel_ST7789 _panel_instance;
   lgfx::Bus_SPI _bus_instance;
+  lgfx::Light_PWM _light_instance;
   lgfx::Touch_GT911 _touch_instance;
 
 public:
@@ -90,18 +91,18 @@ public:
       auto cfg = _touch_instance.config();
 
       cfg.x_min = 0;
-      cfg.x_max = 320;
+      cfg.x_max = 239;
       cfg.y_min = 0;
-      cfg.y_max = 240;
+      cfg.y_max = 319;
       cfg.pin_int = TCH_I2C_INT;
-      cfg.bus_shared = true;
+      cfg.bus_shared = false;
       cfg.offset_rotation = 0;
 
       cfg.i2c_port = TCH_I2C_PORT;
-      cfg.i2c_addr = 0x14;   // If doesn't works try 0x5D
+      cfg.i2c_addr = 0x5D;   // If doesn't works try 0x5D
       cfg.pin_sda = TCH_I2C_SDA;
       cfg.pin_scl = TCH_I2C_SCL;
-      cfg.freq = 800000UL;
+      cfg.freq = 400000;
 
       _touch_instance.config(cfg);
       _panel_instance.setTouch(&_touch_instance);
