@@ -212,8 +212,8 @@
   #define I2C_SDA_PIN 18
   #define I2C_SCL_PIN 8
 
-  extern const uint8_t GPS_TX = -1;
-  extern const uint8_t GPS_RX = -1;
+  uint8_t GPS_TX = 43;
+  uint8_t GPS_RX = 44;
 
   extern const uint8_t TFT_SPI_SCLK = 40;
   extern const uint8_t TFT_SPI_MOSI = 41;
