@@ -39,7 +39,7 @@ uint16_t altitudePosX = 0;    // Altitude widget position X
 uint16_t altitudePosY = 0;    // Altitude widget position Y
 uint16_t speedPosX = 0;       // Speed widget position X
 uint16_t speedPosY = 0;       // Speed widget position Y
-
+bool enableWeb = true;        // Enable/disable web file server
 bool showToolBar = false;     // Show Map Toolbar
 
 /**
@@ -89,6 +89,9 @@ void loadPreferences()
     maxZoom = 17;
   }
   isMapFullScreen = cfg.getBool(PKEYS::KMAP_MODE, false);
+  GPS_TX = cfg.getUInt(PKEYS::KGPS_TX, GPS_TX);
+  GPS_RX = cfg.getUInt(PKEYS::KGPS_RX, GPS_RX);
+  enableWeb = cfg.getBool(PKEYS::KWEB_FILE, enableWeb);
 
   // // Default Widgets positions
   // compassPosX = 60;
@@ -271,6 +274,30 @@ void saveMapType(bool vector)
 void saveShowMap(bool mapMode)
 {
   cfg.saveBool(PKEYS::KMAP_MODE, mapMode);
+}
+
+/**
+ * @brief Save GPS GPIO's
+ *
+ * @param txGpio
+ * @param rxGpio
+ */
+void saveGpsGpio(int8_t txGpio, int8_t rxGpio)
+{
+  if (txGpio != -1)
+    cfg.saveUInt(PKEYS::KGPS_TX, (uint8_t)txGpio);
+  if (rxGpio != -1)
+    cfg.saveUInt(PKEYS::KGPS_RX, (uint8_t)rxGpio);
+}
+
+/**
+ * @brief Save Enable/disable web file server
+ *
+ * @param status 
+ */
+void saveWebFile(bool status)
+{
+  cfg.saveBool(PKEYS::KWEB_FILE, status);
 }
 
 /**

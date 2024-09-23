@@ -21,6 +21,7 @@
 #include "loadWaypoint.hpp"
 #include "deleteWaypoint.hpp"
 #include "editWaypoint.hpp"
+#include "widgets.hpp"
 
 static lv_timer_t *mainTimer;    // Main Screen Timer
 #define UPDATE_MAINSCR_PERIOD 30 // Main Screen update time
@@ -29,12 +30,8 @@ extern bool isMainScreen;                          // Flag to indicate main scre
 extern bool isReady;                               // Flag to indicate when tileview scroll was finished
 static TFT_eSprite zoomSprite = TFT_eSprite(&tft); // Zoom sprite
 
-static const char *arrowIconFile PROGMEM = "/arrow.bin";    // Compass Arrow Icon
-static const char *positionIconFile PROGMEM = "/pin.bin";   // Position Icon
-static const char *altitudeIconFile PROGMEM = "/altit.bin"; // Altitude Icon
-static const char *speedIconFile PROGMEM = "/speed.bin";    // Speed Icon
-
 extern uint8_t activeTile; // Active Tile in TileView control
+
 enum tileName
 {
   COMPASS,
@@ -42,9 +39,6 @@ enum tileName
   NAV,
   SATTRACK,
 };
-
-static bool widgetSelected = false;
-static bool canMoveWidget = false;
 
 /**
  * @brief Main Screen Tiles
@@ -64,17 +58,6 @@ extern lv_obj_t *btnZoomIn;
 extern lv_obj_t *btnZoomOut;
 extern int toolBarOffset;
 extern int toolBarSpace;
-
-/**
- * @brief Compass Tile screen objects
- *
- */
-extern lv_obj_t *compassHeading;
-extern lv_obj_t *compassImg;
-extern lv_obj_t *latitude;
-extern lv_obj_t *longitude;
-extern lv_obj_t *altitude;
-extern lv_obj_t *speedLabel;
 
 /**
  * @brief Satellite Tracking Tile screen objects
@@ -100,9 +83,6 @@ extern lv_obj_t *arrowNav;
 extern char* destName;
 
 void updateCompassScr(lv_event_t * event);
-
-void editScreen(lv_event_t *event);
-void unselectWidget(lv_event_t *event);
 
 void deleteMapScrSprites();
 void createMapScrSprites();

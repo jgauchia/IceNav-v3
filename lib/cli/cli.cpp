@@ -50,6 +50,10 @@ void wcli_info(char *args, Stream *response)
   }
   response->printf("Flash size\t: %u bytes\r\n", ESP.getFlashChipSize());
   response->printf("Program size\t: %u bytes\r\n", ESP.getSketchSize());
+  if (enableWeb)
+    response->println("Web file server\t: \033[1;32menabled\033[0;37m");
+  else
+    response->println("Web file server\t: \033[1;31mdisabled\033[0;37m");
   response->printf("\r\n");
   response->printf("GPS Baud rate\t: %i baud\r\n",gpsBaudDetected);
   response->printf("GPS Tx GPIO:\t: %i\r\n",GPS_TX);
@@ -232,6 +236,75 @@ void wcli_waypoint(char *args, Stream *response)
   }
 }
 
+void wcli_settings(char *args, Stream *response)
+{
+  Pair<String, String> operands = wcli.parseCommand(args);
+  String commands = operands.first();
+  String value = operands.second();
+  int8_t gpio = -1;
+
+  if (commands.isEmpty())
+  {
+    response->println("");
+    response->println(F( "\033[1;31m----\033[1;32m Available commands \033[1;31m----\033[0;37m\r\n" ));
+    response->println(F( "\033[1;32msetgpstx:\t\033[0;37mset GPS Tx GPIO"));
+    response->println(F( "\033[1;32msetgpsrx:\t\033[0;37mset GPS Rx GPIO"));
+  }
+  else if (commands.equals("setgpstx"))
+  {
+      if(value.isEmpty())
+        response->println(F("Tx GPIO missing, use: setgpstx \033[1;32mGPIO\033[0;37m"));
+      else
+      {
+        gpio = value.toInt();
+        saveGpsGpio(gpio, -1);
+        response->println("");
+        response->printf("GPS \033[1;31mTx GPIO\033[0;37m set to: \033[1;32m%i\033[0;37m\r\n",gpio);
+        response->println("Please reboot device");
+      }
+  }
+  else if (commands.equals("setgpsrx"))
+  {
+      if(value.isEmpty())
+        response->println(F("Rx GPIO missing, use: setgpsrx \033[1;32mGPIO\033[0;37m"));
+      else
+      {
+        gpio = value.toInt();
+        saveGpsGpio(-1, gpio);
+        response->println("");
+        response->printf("GPS \033[1;31mRx GPIO\033[0;37m set to: \033[1;32m%i\033[0;37m\r\n",gpio);
+        response->println("Please reboot device");
+      }
+  }
+}
+
+
+void wcli_webfile(char *args, Stream *response)
+{
+  Pair<String, String> operands = wcli.parseCommand(args);
+  String commands = operands.first();
+
+  if (commands.isEmpty())
+    response->println(F("missing parameter use: webfile \033[1;32menable/disable\033[0;37m"));
+  else
+  {
+    if(commands.equals("enable"))
+    {
+      saveWebFile(true);
+      response->println("");
+      response->printf("Web file server \033[1;32menabled\033[0;37m\r\n");
+      response->println("Please reboot device");
+    }
+    if(commands.equals("disable"))
+    {
+      saveWebFile(false);
+      response->println("");
+      response->printf("Web file server \033[1;32mdisabled\033[0;37m\r\n");
+      response->println("Please reboot device");
+    }
+  }
+}
+
 void initRemoteShell()
 {
 #ifndef DISABLE_CLI_TELNET 
@@ -249,6 +322,8 @@ void initShell(){
   wcli.add("clear", &wcli_clear, "\t\tclear shell");
   wcli.add("scshot", &wcli_scshot, "\tscreenshot to SD or sending a PC");
   wcli.add("waypoint", &wcli_waypoint, "\twaypoint utilities");
+  wcli.add("settings", &wcli_settings, "\tdevice settings");
+  wcli.add("webfile", &wcli_webfile, "\tenable/disable Web file server");
   wcli.begin("IceNav");
 }
 
