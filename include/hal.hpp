@@ -205,38 +205,32 @@
   extern const uint8_t SD_CLK = 42;
 #endif
 
-#ifdef TDECK_ESP32S3   // Check SPI GPIO for TFT , SD Card and I2C for touch 
+#ifdef TDECK_ESP32S3   // Check GPS UART GPIO
   #define LCD_CS 37
   #define LCD_BLK 45
 
-  #define I2C_SDA_PIN 38
-  #define I2C_SCL_PIN 39
+  #define I2C_SDA_PIN 18
+  #define I2C_SCL_PIN 8
 
-  extern const uint8_t GPS_TX = 17;
-  extern const uint8_t GPS_RX = 18;
+  extern const uint8_t GPS_TX = -1;
+  extern const uint8_t GPS_RX = -1;
 
-  extern const uint8_t TFT_SPI_SCLK = 12;
-  extern const uint8_t TFT_SPI_MOSI = 11;
-  extern const uint8_t TFT_SPI_MISO = 13;
-  extern const uint8_t TFT_SPI_DC   = 3;
-  extern const uint8_t TFT_SPI_CS   = 10;
-  extern const uint8_t TFT_SPI_RST  = 6;
+  extern const uint8_t TFT_SPI_SCLK = 40;
+  extern const uint8_t TFT_SPI_MOSI = 41;
+  extern const uint8_t TFT_SPI_MISO = 38;
+  extern const uint8_t TFT_SPI_DC   = 11;
+  extern const uint8_t TFT_SPI_CS   = 12;
+  extern const uint8_t TFT_SPI_RST  = -1;
 
-  extern const uint8_t TCH_SPI_SCLK = -1;
-  extern const uint8_t TCH_SPI_MOSI = -1;
-  extern const uint8_t TCH_SPI_MISO = -1;
-  extern const uint8_t TCH_SPI_INT  = -1;
-  extern const uint8_t TCH_SPI_CS   = -1;
+  extern const uint8_t SD_CS = 39;
+  extern const uint8_t SD_MISO = 38;
+  extern const uint8_t SD_MOSI = 41;
+  extern const uint8_t SD_CLK = 40;
 
-  extern const uint8_t TCH_I2C_PORT = 0;  
-  extern const uint8_t TCH_I2C_SDA  = 38;
-  extern const uint8_t TCH_I2C_SCL  = 39;
-  extern const uint8_t TCH_I2C_INT  = 40;
-
-  extern const uint8_t SD_CS = 1;
-  extern const uint8_t SD_MISO = 41;
-  extern const uint8_t SD_MOSI = 2;
-  extern const uint8_t SD_CLK = 42;
+  extern const uint8_t TCH_I2C_PORT = 0;
+  extern const uint8_t TCH_I2C_SDA  = 18;
+  extern const uint8_t TCH_I2C_SCL  = 8;
+  extern const uint8_t TCH_I2C_INT  = 16;;
 #endif
 
 
