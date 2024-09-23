@@ -153,10 +153,14 @@ void initTFT()
 #ifdef ELECROW_ESP32
   gpio_set_drive_capability(GPIO_NUM_46, GPIO_DRIVE_CAP_3);
 #endif
+#ifdef TDECK_ESP32S3
+  gpio_set_drive_capability(GPIO_NUM_42, GPIO_DRIVE_CAP_3);
+#endif
 
-  ledcSetup(0, 5000, 8);
-  ledcAttachPin(TFT_BL, 0);
-  ledcWrite(0, 255);
+//  ledcSetup(0, 5000, 8);
+//  ledcAttachPin(TFT_BL, 0);
+//  ledcWrite(0, 255);
+digitalWrite(BOARD_BL_PIN, 1);
 #ifdef TOUCH_INPUT
   touchCalibrate();
 #endif
