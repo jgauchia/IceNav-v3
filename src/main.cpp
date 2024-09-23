@@ -61,7 +61,11 @@ void setup()
   #ifdef ARDUINO_USB_CDC_ON_BOOT
     Serial.begin(115200);  
   #endif
-
+  
+  #ifdef TDECK_ESP32S3
+    Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
+    Wire.begin();
+  #endif
   #ifdef ICENAV_BOARD
     Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
     Wire.begin();
