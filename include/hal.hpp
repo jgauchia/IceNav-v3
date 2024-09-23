@@ -214,6 +214,7 @@
 
   #define BOARD_BOOT_PIN      10
   #define BOARD_BL_PIN        42
+  #define RADIO_CS_PIN        9
 
   uint8_t GPS_TX = 43;
   uint8_t GPS_RX = 44;
