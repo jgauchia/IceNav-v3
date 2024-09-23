@@ -212,7 +212,7 @@
   #define I2C_SDA_PIN 18
   #define I2C_SCL_PIN 8
 
-  #define BOARD_BOOT_PIN      0
+  #define BOARD_BOOT_PIN      10
   #define BOARD_BL_PIN        42
 
   uint8_t GPS_TX = 43;
