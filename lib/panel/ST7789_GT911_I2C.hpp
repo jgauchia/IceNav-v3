@@ -71,11 +71,7 @@ public:
       cfg.invert = false;
       cfg.rgb_order = false;
       cfg.dlen_16bit = false;
-      #ifdef SPI_SHARED
       cfg.bus_shared = true;
-      #endif
-      #ifndef SPI_SHARED
-      cfg.bus_shared = false;
       #endif
       _panel_instance.config(cfg);
     }
