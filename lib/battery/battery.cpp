@@ -30,9 +30,7 @@ void initADC()
 
   #ifndef ELECROW_ESP32
     adc1_config_width(ADC_WIDTH_BIT_12);
-  #ifndef TDECK_ESP32S3
-    adc1_config_channel_atten(ADC2_CHANNEL_0, ADC_ATTEN_DB_12); // I don't why T-Deck board not support it ??
-  #endif
+    adc1_config_channel_atten(ADC1_CHANNEL_6, ADC_ATTEN_DB_11); // I don't why T-Deck board not support it 
   #endif
   #ifdef ELECROW_ESP32
     adc2_config_channel_atten(ADC2_CHANNEL_6, ADC_ATTEN_DB_12);
@@ -57,12 +55,6 @@ float batteryRead()
     #ifdef ELECROW_ESP32
      int readRaw;
      esp_err_t r = adc2_get_raw(ADC2_CHANNEL_6, ADC_WIDTH_BIT_12, &readRaw);
-     if (r == ESP_OK)
-      sum += (long)readRaw;
-    #endif
-    #ifdef TDECK_ESP32S3
-     int readRaw;
-     esp_err_t r = adc2_get_raw(ADC2_CHANNEL_0, ADC_WIDTH_BIT_12, &readRaw);
      if (r == ESP_OK)
       sum += (long)readRaw;
     #endif
