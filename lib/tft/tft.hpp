@@ -32,6 +32,10 @@
 #include "ILI9488_NOTOUCH_8B.hpp"
 #endif
 
+#ifdef ST7789_GT911_I2C
+#include "ST7789_GT911_I2C.hpp"
+#endif
+
 #include <LGFX_TFT_eSPI.hpp>
 
 extern TFT_eSPI tft;
