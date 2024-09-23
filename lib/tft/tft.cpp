@@ -21,11 +21,34 @@ bool waitScreenRefresh = false;
  */
 void setBrightness(uint8_t brightness)
 {
-  if (brightness <= 255)
-  {
-    ledcWrite(0, brightness);
-    brightnessLevel = brightness;
-  }
+  
+  //if (brightness <= 255)
+  //{
+  //  ledcWrite(0, brightness);
+  //  brightnessLevel = brightness;
+  // }
+
+    static uint8_t level = 0;
+    static uint8_t steps = 16;
+    if (brightness == 0) {
+        digitalWrite(BOARD_BL_PIN, 0);
+        delay(3);
+        level = 0;
+        return;
+    }
+    if (level == 0) {
+        digitalWrite(BOARD_BL_PIN, 1);
+        level = steps;
+        delayMicroseconds(30);
+    }
+    int from = steps - level;
+    int to = steps - brightness;
+    int num = (steps + to - from) % steps;
+    for (int i = 0; i < num; i++) {
+        digitalWrite(BOARD_BL_PIN, 0);
+        digitalWrite(BOARD_BL_PIN, 1);
+    }
+    level = brightness;
 }
 
 /**
@@ -128,7 +151,9 @@ void touchCalibrate()
  */
 void initTFT()
 {
+  setBrightness(15);
   tft.init();
+  tft.setRotation(1);
 
   TFT_HEIGHT = tft.height();
   TFT_WIDTH = tft.width();
@@ -153,10 +178,18 @@ void initTFT()
 #ifdef ELECROW_ESP32
   gpio_set_drive_capability(GPIO_NUM_46, GPIO_DRIVE_CAP_3);
 #endif
+#ifdef TDECK_ESP32S3
+//  gpio_set_drive_capability(GPIO_NUM_42, GPIO_DRIVE_CAP_3);
+#endif
 
+#ifndef TDECK_ESP32S3
   ledcSetup(0, 5000, 8);
   ledcAttachPin(TFT_BL, 0);
   ledcWrite(0, 255);
+#endif
+#ifdef TDECK_ESP32S3
+//  digitalWrite(BOARD_BL_PIN, 0);
+#endif
 #ifdef TOUCH_INPUT
   touchCalibrate();
 #endif

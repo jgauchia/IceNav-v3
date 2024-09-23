@@ -61,7 +61,21 @@ void setup()
   #ifdef ARDUINO_USB_CDC_ON_BOOT
     Serial.begin(115200);  
   #endif
-
+  
+  #ifdef TDECK_ESP32S3
+    pinMode(BOARD_POWERON, OUTPUT);
+    digitalWrite(BOARD_POWERON, HIGH);
+    pinMode(TCH_I2C_INT, INPUT);
+    Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
+    Wire.begin();
+    pinMode(SD_CS, OUTPUT);
+    pinMode(RADIO_CS_PIN, OUTPUT);
+    pinMode(TFT_SPI_CS, OUTPUT);
+    digitalWrite(SD_CS, HIGH);
+    digitalWrite(RADIO_CS_PIN, HIGH);
+    digitalWrite(TFT_SPI_CS, HIGH);
+    pinMode(TFT_SPI_MISO, INPUT_PULLUP);
+  #endif
   #ifdef ICENAV_BOARD
     Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
     Wire.begin();
@@ -89,7 +103,7 @@ void setup()
 
   powerOn();
   loadPreferences();
-  initSD();
+  //initSD();
   initSPIFFS();
   initTFT();
   initGPS();
