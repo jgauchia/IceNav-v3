@@ -65,6 +65,7 @@ void setup()
   #ifdef TDECK_ESP32S3
     pinMode(BOARD_POWERON, OUTPUT);
     digitalWrite(BOARD_POWERON, HIGH);
+    pinMode(TCH_I2C_INT, INPUT);
     Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
     Wire.begin();
     pinMode(SD_CS, OUTPUT);
