@@ -72,7 +72,6 @@ public:
       cfg.rgb_order = false;
       cfg.dlen_16bit = false;
       cfg.bus_shared = true;
-      #endif
       _panel_instance.config(cfg);
     }
 
