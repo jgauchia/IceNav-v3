@@ -163,7 +163,7 @@ void initTFT()
   ledcWrite(0, 255);
 #endif
 #ifdef TDECK_ESP32S3
-  digitalWrite(BOARD_BL_PIN, 1);
+  digitalWrite(BOARD_BL_PIN, 0);
 #endif
 #ifdef TOUCH_INPUT
   touchCalibrate();
