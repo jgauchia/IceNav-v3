@@ -97,10 +97,10 @@ public:
       cfg.offset_rotation = 0;
 
       cfg.i2c_port = TCH_I2C_PORT;
-      cfg.i2c_addr = 0x14;   // If doesn't works try 0x5D
+      cfg.i2c_addr = 0x5D;   // If doesn't works try 0x14
       cfg.pin_sda = TCH_I2C_SDA;
       cfg.pin_scl = TCH_I2C_SCL;
-      cfg.freq = 400000;
+      cfg.freq = 800000UL;
 
       _touch_instance.config(cfg);
       _panel_instance.setTouch(&_touch_instance);
