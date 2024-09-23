@@ -206,11 +206,14 @@
 #endif
 
 #ifdef TDECK_ESP32S3   // Check GPS UART GPIO
-  #define LCD_CS 37
-  #define LCD_BLK 45
+  #define LCD_CS 12
+  #define LCD_BLK 42
 
   #define I2C_SDA_PIN 18
   #define I2C_SCL_PIN 8
+
+  #define BOARD_BOOT_PIN      0
+  #define BOARD_BL_PIN        42
 
   uint8_t GPS_TX = 43;
   uint8_t GPS_RX = 44;
