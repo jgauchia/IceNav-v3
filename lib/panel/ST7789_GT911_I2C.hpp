@@ -38,12 +38,7 @@ public:
   {
     {
       auto cfg = _bus_instance.config();
-      #ifdef ESP32S3_N16R8
       cfg.spi_host = SPI2_HOST;
-      #endif
-      #ifdef ESP32_N16R4
-      cfg.spi_host = HSPI_HOST;
-      #endif
       cfg.spi_mode = 0;
       cfg.freq_write = 40000000;
       cfg.freq_read = 20000000;
