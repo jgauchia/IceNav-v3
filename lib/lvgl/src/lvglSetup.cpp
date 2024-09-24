@@ -85,7 +85,8 @@ uint32_t keypadGetKey()
 {
   char key_ch = 0;
   Wire.requestFrom(0x55, 1);
-  while (Wire.available() > 0) {
+  while (Wire.available() > 0) 
+  {
     key_ch = Wire.read();
   }
   return key_ch;
@@ -103,6 +104,7 @@ void IRAM_ATTR keypadRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
   if (act_key != 0) {
     data->state = LV_INDEV_STATE_PR;
     last_key = act_key;
+    log_i("%d", act_key);
   } else {
     data->state = LV_INDEV_STATE_REL;
   }
