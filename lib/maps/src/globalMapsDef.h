@@ -11,13 +11,20 @@
 #include "tft.hpp"
 
 #ifdef LARGE_SCREEN
-#define MAP_HEIGHT 380       // Map Height Size 380
-#define MAP_WIDTH 320        // Map Width Size
-#define MAP_HEIGHT_FULL 480  // Map Height Full Screen
+  #define MAP_HEIGHT 380       // Map Height Size 380
+  #define MAP_WIDTH 320        // Map Width Size
+  #define MAP_HEIGHT_FULL 480  // Map Height Full Screen
 #else
-#define MAP_HEIGHT 220       // Map Height Size
-#define MAP_WIDTH 240        // Map Width Size
-#define MAP_HEIGHT_FULL 320  // Map Height Full Screen
+  #ifndef TDECK_ESP32S3
+    #define MAP_HEIGHT 220       // Map Height Size
+    #define MAP_WIDTH 240        // Map Width Size
+    #define MAP_HEIGHT_FULL 320  // Map Height Full Screen
+  #endif
+  #ifndef TDECK_ESP32S3
+    #define MAP_HEIGHT 140       // Map Height Size
+    #define MAP_WIDTH 320        // Map Width Size
+    #define MAP_HEIGHT_FULL 240  // Map Height Full Screen
+  #endif
 #endif
 
 #define TILE_HEIGHT 768 // Tile 9x9 Height Size
