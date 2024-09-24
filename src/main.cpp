@@ -104,10 +104,10 @@ void setup()
   #endif
 
   powerOn();
-  loadPreferences();
   initSD();
   initSPIFFS();
   initTFT();
+  loadPreferences();
   initGPS();
   initLVGL();
   initADC();
