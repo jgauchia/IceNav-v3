@@ -283,6 +283,7 @@ void loadOptions()
   lv_obj_remove_style_all(buttons);
   lv_obj_set_flex_flow(buttons, LV_FLEX_FLOW_ROW);
   lv_obj_set_flex_align(buttons, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_set_style_text_font(option, fontSmall, 0);
   lv_obj_set_size(buttons, TFT_WIDTH, 50 * scaleBut);
   lv_obj_align_to(buttons, option,  LV_ALIGN_BOTTOM_LEFT, 0, -40);
 
