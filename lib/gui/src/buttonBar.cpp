@@ -313,18 +313,27 @@ void loadOptions()
   // Load Button
   imgBtn = lv_img_create(buttons);
   lv_img_set_src(imgBtn, loadIconFile);
+  lv_img_set_zoom(imgBtn,buttonScale);
+  lv_obj_update_layout(imgBtn);
+  lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
   lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_add_event_cb(imgBtn, optionEvent, LV_EVENT_PRESSED, (char*)"load");
 
   // Edit Button
   imgBtn = lv_img_create(buttons);
   lv_img_set_src(imgBtn, editIconFile);
+  lv_img_set_zoom(imgBtn,buttonScale);
+  lv_obj_update_layout(imgBtn);
+  lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
   lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_add_event_cb(imgBtn, optionEvent, LV_EVENT_PRESSED, (char*)"edit");
   
   // Delete Button
   imgBtn = lv_img_create(buttons);
   lv_img_set_src(imgBtn, deleteIconFile);
+  lv_img_set_zoom(imgBtn,buttonScale);
+  lv_obj_update_layout(imgBtn);
+  lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
   lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_add_event_cb(imgBtn, optionEvent, LV_EVENT_PRESSED, (char*)"delete");
 }
