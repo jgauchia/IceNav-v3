@@ -30,7 +30,7 @@ void initSD()
   SD.end();
   SDInitOk = SD.begin(SD_CS);
   #endif
-  
+
   #ifndef SPI_SHARED
     #ifdef TDECK_ESP32S3
       digitalWrite(SD_CS, HIGH);
@@ -105,12 +105,12 @@ esp_err_t initSPIFFS()
     digitalWrite(SD_CS,LOW);
     #endif
    
-    #ifdef TDECK_ESP32S3
-    tft.waitDisplay();
-    tft.endTransaction();
-    digitalWrite(TFT_SPI_CS,HIGH);
-    digitalWrite(SD_CS,LOW);
-    #endif
+    // #ifdef TDECK_ESP32S3
+    // tft.waitDisplay();
+    // tft.endTransaction();
+    // digitalWrite(TFT_SPI_CS,HIGH);
+    // digitalWrite(SD_CS,LOW);
+    // #endif
  }
 
  /**
@@ -125,9 +125,9 @@ esp_err_t initSPIFFS()
     tft.beginTransaction();
     #endif  
     
-    #ifdef TDECK_ESP32S3
-    digitalWrite(SD_CS,HIGH);
-    digitalWrite(TFT_SPI_CS,LOW);
-    tft.beginTransaction();
-    #endif 
+    // #ifdef TDECK_ESP32S3
+    // digitalWrite(SD_CS,HIGH);
+    // digitalWrite(TFT_SPI_CS,LOW);
+    // tft.beginTransaction();
+    // #endif 
   }
