@@ -29,6 +29,46 @@ static void waypointScreenEvent(lv_event_t *event)
   lv_event_code_t code = lv_event_get_code(event);
   lv_obj_t *fileName = (lv_obj_t *)lv_event_get_target(event);
 
+  #ifdef TDECK_ESP32S3
+    if (code == LV_EVENT_KEY)
+    {
+    
+      if ( lv_indev_get_key(lv_indev_active()) == 13 ) // Enter Key
+      {    
+        switch (wptAction)
+        {
+          case WPT_ADD:
+            addWpt.name = (char *)lv_textarea_get_text(fileName);
+
+            if ( strcmp(addWpt.name,"") != 0)
+            {
+              openGpxFile(wptFile);
+              vTaskDelay(100);
+              addWaypointToFile(wptFile,addWpt);
+            }
+            break;
+          case WPT_EDIT:
+            char *newName = (char *)lv_textarea_get_text(fileName);
+
+            if ( strcmp(loadWpt.name, newName) != 0)
+            {
+              editWaypointName(loadWpt.name, newName);
+            }
+            break;
+          // default:
+          //   break;
+        }
+
+        isMainScreen = true;
+        redrawMap = true;
+        wptAction = WPT_NONE;
+        lv_refr_now(display);
+        loadMainScreen();
+      }
+
+    }
+  #endif
+
   if (code == LV_EVENT_READY)
   {
    
@@ -145,9 +185,11 @@ void createWaypointScreen()
   lv_obj_set_width(waypointName, tft.width() - 10);
   lv_obj_add_state(waypointName, LV_STATE_FOCUSED);
   lv_obj_add_event_cb(waypointName, waypointScreenEvent, LV_EVENT_ALL, waypointScreen);
-  // lv_obj_t *keyboard = lv_keyboard_create(waypointScreen);
-  // lv_keyboard_set_mode(keyboard,LV_KEYBOARD_MODE_TEXT_UPPER);
-  // lv_keyboard_set_textarea(keyboard, waypointName);
+  #ifndef TDECK_ESP32S3
+    lv_obj_t *keyboard = lv_keyboard_create(waypointScreen);
+    lv_keyboard_set_mode(keyboard,LV_KEYBOARD_MODE_TEXT_UPPER);
+    lv_keyboard_set_textarea(keyboard, waypointName);
+  #endif
 
   #ifdef TDECK_ESP32S3
     lv_group_add_obj(scrGroup, waypointName);
