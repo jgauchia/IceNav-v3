@@ -14,6 +14,9 @@
 #include "esp_attr.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#ifdef TDECK_ESP32S3 
+    #include "Wire.h"
+#endif
 
 #define LV_TICK_PERIOD_MS 5
 
@@ -38,6 +41,10 @@ static uint32_t objectColor = 0x303030;
 
 void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map);
 void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data);
+#ifdef TDECK_ESP32S3 
+    void IRAM_ATTR keypadRead(lv_indev_t *indev_driver, lv_indev_data_t *data);
+    uint32_t keypadGetKey();
+#endif
 void applyModifyTheme(lv_theme_t *th, lv_obj_t *obj);
 void modifyTheme();
 void lv_tick_task(void *arg);
