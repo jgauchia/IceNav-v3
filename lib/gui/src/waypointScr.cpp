@@ -32,7 +32,7 @@ static void waypointScreenEvent(lv_event_t *event)
   #ifdef TDECK_ESP32S3
     if (code == LV_EVENT_KEY)
     {
-    
+
       if ( lv_indev_get_key(lv_indev_active()) == 13 ) // Enter Key
       {    
         switch (wptAction)
@@ -66,6 +66,14 @@ static void waypointScreenEvent(lv_event_t *event)
         loadMainScreen();
       }
 
+      if ( lv_indev_get_key(lv_indev_active()) == 35 ) // # Key (ESCAPE)
+      { 
+        isMainScreen = true;
+        redrawMap = true;
+        wptAction = WPT_NONE;
+        lv_refr_now(display);
+        loadMainScreen();
+      }
     }
   #endif
 
@@ -196,19 +204,21 @@ void createWaypointScreen()
     lv_group_add_obj(scrGroup, waypointScreen);
   #endif
 
-  // Rotate Screen button
-  static lv_style_t editBtnStyleOn;
-  lv_style_init(&editBtnStyleOn);
-  lv_style_set_bg_color(&editBtnStyleOn, lv_color_black());
-  lv_style_set_text_color(&editBtnStyleOn, lv_color_white());
-  lv_obj_t *rotateScreenBtn = lv_button_create(waypointScreen); 
-  lv_obj_add_style(rotateScreenBtn, &editBtnStyleOn, LV_PART_MAIN | LV_STATE_DEFAULT);
-  lv_obj_align(rotateScreenBtn, LV_ALIGN_TOP_RIGHT, -10, 5);
-  lv_obj_add_flag(rotateScreenBtn, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_add_event_cb(rotateScreenBtn, rotateScreen, LV_EVENT_CLICKED, NULL);
-  lv_obj_t *rotateScreenLbl = lv_label_create(rotateScreenBtn);
-  lv_label_set_text(rotateScreenLbl, LV_SYMBOL_LOOP);
-  lv_obj_center(rotateScreenLbl);
+  #ifndef TDECK_ESP32S3
+    // Rotate Screen button
+    static lv_style_t editBtnStyleOn;
+    lv_style_init(&editBtnStyleOn);
+    lv_style_set_bg_color(&editBtnStyleOn, lv_color_black());
+    lv_style_set_text_color(&editBtnStyleOn, lv_color_white());
+    lv_obj_t *rotateScreenBtn = lv_button_create(waypointScreen); 
+    lv_obj_add_style(rotateScreenBtn, &editBtnStyleOn, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_align(rotateScreenBtn, LV_ALIGN_TOP_RIGHT, -10, 5);
+    lv_obj_add_flag(rotateScreenBtn, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(rotateScreenBtn, rotateScreen, LV_EVENT_CLICKED, NULL);
+    lv_obj_t *rotateScreenLbl = lv_label_create(rotateScreenBtn);
+    lv_label_set_text(rotateScreenLbl, LV_SYMBOL_LOOP);
+    lv_obj_center(rotateScreenLbl);
+  #endif
 
   lv_obj_t* label;
   label = lv_label_create(waypointScreen);
