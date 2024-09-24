@@ -22,6 +22,8 @@ lv_style_t styleThemeBkg;  // New Main Background Style
 lv_style_t styleObjectBkg; // New Objects Background Color
 lv_style_t styleObjectSel; // New Objects Selected Color
 
+lv_group_t * scrGroup;     // Screen group
+
 
 /**
  * @brief LVGL display update
@@ -192,7 +194,8 @@ void initLVGL()
   lv_init();
   
   #ifdef TDECK_ESP32S3
-    lv_group_set_default(lv_group_create());
+    scrGroup = lv_group_create();
+    lv_group_set_default(scrGroup);
   #endif
 
   display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);

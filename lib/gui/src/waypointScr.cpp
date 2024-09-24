@@ -148,6 +148,11 @@ void createWaypointScreen()
   lv_keyboard_set_mode(keyboard,LV_KEYBOARD_MODE_TEXT_UPPER);
   lv_keyboard_set_textarea(keyboard, waypointName);
 
+  #ifdef TDECK_ESP32S3
+    lv_group_add_obj(scrGroup, waypointName).
+    lv_group_add_obj(scrGroup, waypointScreen).
+  #endif
+
   // Rotate Screen button
   static lv_style_t editBtnStyleOn;
   lv_style_init(&editBtnStyleOn);

@@ -28,8 +28,10 @@ extern lv_obj_t *notifyBarHour;        // Notify Bar Hour
 extern lv_obj_t *settingsScreen;       // Settings Screen
 extern lv_obj_t *mapSettingsScreen;    // Map Settings Screen
 extern lv_obj_t *deviceSettingsScreen; // Device Settings Screen
-extern lv_obj_t *waypointScreen;    // Add Waypoint Screen
+extern lv_obj_t *waypointScreen;       // Add Waypoint Screen
 extern lv_obj_t *listWaypointScreen;   // List Waypoint Screen
+
+extern lv_group_t * scrGroup;          // Screen group
 
 extern bool needReboot;                // Flag to force device reboot
 extern bool isSearchingSat;            // Flag to indicate that is searching satellites
