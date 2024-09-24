@@ -117,9 +117,7 @@ void updateWaypointListScreen()
 
     acquireSdSPI();
     log_i("Trying to open Waypoint file");
-    vTaskDelay(100);
     File wayPointFile = SD.open(wptFile);
-    vTaskDelay(100);
 
     if (!wayPointFile)
         log_e("Waypoint file not found");
