@@ -138,15 +138,16 @@ void createWaypointScreen()
 {
 
   waypointScreen = lv_obj_create(NULL);
-  lv_obj_t *keyboard = lv_keyboard_create(waypointScreen);
+
   waypointName = lv_textarea_create(waypointScreen);
   lv_textarea_set_one_line(waypointName, true);
   lv_obj_align(waypointName, LV_ALIGN_TOP_MID, 0, 40);
   lv_obj_set_width(waypointName, tft.width() - 10);
   lv_obj_add_state(waypointName, LV_STATE_FOCUSED);
   lv_obj_add_event_cb(waypointName, waypointScreenEvent, LV_EVENT_ALL, waypointScreen);
-  lv_keyboard_set_mode(keyboard,LV_KEYBOARD_MODE_TEXT_UPPER);
-  lv_keyboard_set_textarea(keyboard, waypointName);
+  // lv_obj_t *keyboard = lv_keyboard_create(waypointScreen);
+  // lv_keyboard_set_mode(keyboard,LV_KEYBOARD_MODE_TEXT_UPPER);
+  // lv_keyboard_set_textarea(keyboard, waypointName);
 
   #ifdef TDECK_ESP32S3
     lv_group_add_obj(scrGroup, waypointName);
