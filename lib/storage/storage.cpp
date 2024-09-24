@@ -30,9 +30,16 @@ void initSD()
   SD.end();
   SDInitOk = SD.begin(SD_CS);
   #endif
+  
   #ifndef SPI_SHARED
-  spiSD.begin(SD_CLK, SD_MISO, SD_MOSI, SD_CS);
-  SDInitOk = SD.begin(SD_CS, spiSD, sdFreq);
+    #ifdef TDECK_ESP32S3
+      digitalWrite(SD_CS, HIGH);
+      SDInitOk = SD.begin(SD_CS, SPI, 800000U);
+    #endif
+    #ifndef TDECK_ESP32S3
+      spiSD.begin(SD_CLK, SD_MISO, SD_MOSI, SD_CS);
+      SDInitOk = SD.begin(SD_CS, spiSD, sdFreq);
+    #endif
   #endif
   
   if (!SDInitOk)
