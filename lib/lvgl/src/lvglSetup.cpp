@@ -191,6 +191,10 @@ void initLVGL()
 {
   lv_init();
   
+  #ifdef TDECK_ESP32S3
+    lv_group_set_default(lv_group_create());
+  #endif
+
   display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
   lv_display_set_flush_cb(display, displayFlush);
   lv_display_set_flush_wait_cb(display, NULL);
@@ -225,7 +229,7 @@ void initLVGL()
     lv_indev_set_read_cb(indev_drv, touchRead);
   #endif
 
-  #ifdef TDECK_ESP32S3
+  #ifdef TDECK_ESP32S3  
     lv_indev_t *indev_keypad = lv_indev_create();
     lv_indev_set_type(indev_keypad, LV_INDEV_TYPE_KEYPAD);
     lv_indev_set_read_cb(indev_keypad, keypadRead);
