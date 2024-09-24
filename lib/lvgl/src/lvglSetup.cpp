@@ -229,6 +229,7 @@ void initLVGL()
     lv_indev_t *indev_keypad = lv_indev_create();
     lv_indev_set_type(indev_keypad, LV_INDEV_TYPE_KEYPAD);
     lv_indev_set_read_cb(indev_keypad, keypadRead);
+    lv_indev_set_group(indev_keypad, lv_group_get_default());
   #endif
   
   //  Create Main Timer
