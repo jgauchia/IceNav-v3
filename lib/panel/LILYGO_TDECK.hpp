@@ -40,13 +40,8 @@ public:
     {
       auto cfg = _bus_instance.config();
       cfg.spi_host = SPI2_HOST;
-      #ifdef TDECK_ESP32S3
       cfg.spi_mode = SPI_MODE0;
       cfg.use_lock = false;
-      #else
-      cfg.spi_mode = SPI_MODE3;
-      cfg.use_lock = true;
-      #endif
       cfg.freq_write = 80000000;
       cfg.freq_read = 16000000;
       cfg.spi_3wire = false;
