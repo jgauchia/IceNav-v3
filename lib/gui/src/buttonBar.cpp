@@ -221,6 +221,11 @@ void createButtonBarScr()
   lv_obj_align(buttonBar, LV_ALIGN_BOTTOM_RIGHT, 0,  -LV_DPX(14) );
   lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
 
+  static lv_style_t style;
+  lv_style_init(&style);
+  lv_style_set_pad_column(&style, 10);
+  lv_obj_add_style(buttonBar, &style, 0);
+
   menuBtn = lv_img_create(mainScreen);
   lv_img_set_src(menuBtn, menuIconFile);
   lv_obj_add_flag(menuBtn, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
@@ -283,7 +288,7 @@ void loadOptions()
   lv_obj_remove_style_all(buttons);
   lv_obj_set_flex_flow(buttons, LV_FLEX_FLOW_ROW);
   lv_obj_set_flex_align(buttons, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_text_font(option, fontSmall, 0);
+  lv_obj_set_style_text_font(option, fontDefault, 0);
   lv_obj_set_size(buttons, TFT_WIDTH, 50 * scaleBut);
   lv_obj_align_to(buttons, option,  LV_ALIGN_BOTTOM_LEFT, 0, -40);
 
