@@ -117,9 +117,6 @@ void updateWaypointListScreen()
 
     acquireSdSPI();
     log_i("Trying to open Waypoint file");
-
-    digitalWrite(SD_CS, HIGH); // TESTING FORCE CS
-
     File wayPointFile = SD.open(wptFile);
 
     if (!wayPointFile)

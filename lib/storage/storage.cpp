@@ -15,6 +15,8 @@ extern const int SD_CS;
 extern const int SD_MISO;
 extern const int SD_MOSI;
 extern const int SD_CLK;
+extern const int BOARD_TFT_CS;
+extern const int RADIO_CS_PIN;
 
 /**
  * @brief SD Card init
@@ -34,6 +36,8 @@ void initSD()
   #ifndef SPI_SHARED
     #ifdef TDECK_ESP32S3
       digitalWrite(SD_CS, HIGH);
+      digitalWrite(RADIO_CS_PIN, HIGH);
+      digitalWrite(BOARD_TFT_CS, HIGH);
       SDInitOk = SD.begin(SD_CS, SPI, 800000U);
     #endif
     #ifndef TDECK_ESP32S3
