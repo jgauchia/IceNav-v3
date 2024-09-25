@@ -213,7 +213,6 @@
   #define I2C_SCL_PIN 8
 
   #define BOARD_POWERON 10
-  #define RADIO_CS_PIN  9
 
   uint8_t GPS_TX = 43;
   uint8_t GPS_RX = 44;
@@ -230,6 +229,9 @@
   extern const uint8_t SD_MISO = 38;
   extern const uint8_t SD_MOSI = 41;
   extern const uint8_t SD_CLK = 40;
+
+  extern const uint8_t BOARD_TFT_CS = 12;
+  extern const uint8_t RADIO_CS_PIN = 9;
 
   extern const uint8_t TCH_I2C_PORT = 0;
   extern const uint8_t TCH_I2C_SDA  = 18;
