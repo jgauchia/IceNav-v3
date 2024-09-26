@@ -43,6 +43,16 @@ void powerLightSleepTimer(int millis)
 }
 
 /**
+ * @brief Sleep Mode
+ * 
+ */
+void powerLightSleep()
+{
+  esp_sleep_enable_ext1_wakeup(1ull << BOARD_BOOT_PIN, ESP_EXT1_WAKEUP_ANY_LOW);
+  esp_light_sleep_start();
+}
+
+/**
  * @brief Power off peripherals devices
  */
 void powerOffPeripherals()

@@ -19,6 +19,7 @@
 
 void powerDeepSeep();
 void powerLightSleepTimer(int millis);
+void powerLightSleep();
 void powerOffPeripherals();
 void powerOn();
 

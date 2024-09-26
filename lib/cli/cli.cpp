@@ -28,8 +28,9 @@ void wcli_reboot(char *args, Stream *response)
 }
 
 void wcli_poweroff(char *args, Stream *response) {
-  powerOffPeripherals();
-  powerDeepSeep();  
+  // powerOffPeripherals();
+  // powerDeepSeep();
+  powerLightSleep();
 }
 
 void wcli_info(char *args, Stream *response)
@@ -311,7 +312,7 @@ void wcli_webfile(char *args, Stream *response)
 void initRemoteShell()
 {
 #ifndef DISABLE_CLI_TELNET 
-  if (wcli.isTelnetEnable()) wcli.shellTelnet->attachLogo(logo);
+  if (wcli.isTelnetRunning()) wcli.shellTelnet->attachLogo(logo);
 #endif
 }
 
