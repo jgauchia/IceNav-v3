@@ -210,7 +210,7 @@
   #define I2C_SCL_PIN 8
 
   #define BOARD_POWERON 10
-  extern const uint8_t BOARD_BOOT_PIN=0;
+  extern const uint8_t BOARD_BOOT_PIN = 0;
 
   uint8_t GPS_TX = 43;
   uint8_t GPS_RX = 44;
