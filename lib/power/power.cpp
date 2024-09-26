@@ -8,6 +8,8 @@
 
 #include "power.hpp"
 
+extern const int BOARD_BOOT_PIN;
+
 /**
  * @brief Deep Sleep Mode
  * 
@@ -19,6 +21,12 @@ void powerDeepSeep()
   esp_wifi_stop();
   esp_deep_sleep_disable_rom_logging();
   delay(10);
+#ifdef TDECK_ESP32S3
+  // If you need other peripherals to maintain power, please set the IO port to hold
+  // gpio_hold_en((gpio_num_t)BOARD_POWERON);
+  // gpio_deep_sleep_hold_en();
+  esp_sleep_enable_ext1_wakeup(1ull << BOARD_BOOT_PIN, ESP_EXT1_WAKEUP_ANY_LOW);
+#endif
   esp_deep_sleep_start();
 }
 
@@ -32,6 +40,27 @@ void powerLightSleepTimer(int millis)
   esp_sleep_enable_timer_wakeup(millis * 1000);
   esp_err_t rtc_gpio_hold_en(gpio_num_t GPIO_NUM_5);
   esp_light_sleep_start();
+}
+
+/**
+ * @brief Power off peripherals devices
+ */
+void powerPeripherals()
+{
+#ifdef TDECK_ESP32S3
+  // LilyGo T-Deck control backlight chip has 16 levels of adjustment range
+  for (int i = 16; i > 0; --i) {
+    setBrightness(i);
+    delay(30);
+  }
+#endif
+
+  delay(1000);
+
+  tft.getPanel()->setSleep(true);
+  tft.writecommand(0x10);  // set display enter sleep mode
+  SPI.end();
+  Wire.end();
 }
 
 /**

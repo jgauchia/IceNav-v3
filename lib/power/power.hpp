@@ -9,14 +9,17 @@
 #ifndef POWER_HPP
 #define POWER_HPP
 
+#include <Wire.h>
 #include <WiFi.h>
 #include <driver/rtc_io.h>
 #include <esp_bt.h>
 #include <esp_bt_main.h>
 #include <esp_wifi.h>
+#include "tft.hpp"
 
 void powerDeepSeep();
 void powerLightSleepTimer(int millis);
+void powerPeripherals();
 void powerOn();
 
 #endif
