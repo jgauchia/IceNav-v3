@@ -45,7 +45,7 @@ void powerLightSleepTimer(int millis)
 /**
  * @brief Power off peripherals devices
  */
-void powerPeripherals()
+void powerOffPeripherals()
 {
 #ifdef TDECK_ESP32S3
   // LilyGo T-Deck control backlight chip has 16 levels of adjustment range
