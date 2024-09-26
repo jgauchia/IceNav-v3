@@ -21,7 +21,7 @@
     #define MAP_HEIGHT_FULL 320  // Map Height Full Screen
   #endif
   #ifdef TDECK_ESP32S3
-    #define MAP_HEIGHT 140       // Map Height Size
+    #define MAP_HEIGHT 180       // Map Height Size
     #define MAP_WIDTH 320        // Map Width Size
     #define MAP_HEIGHT_FULL 240  // Map Height Full Screen
   #endif
