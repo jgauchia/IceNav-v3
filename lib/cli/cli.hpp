@@ -14,6 +14,7 @@
 #include <ESP32WifiCLI.hpp>
 #include "utils.h"
 #include "gps.hpp"
+#include "power.hpp"
 
 void initCLI();
 
