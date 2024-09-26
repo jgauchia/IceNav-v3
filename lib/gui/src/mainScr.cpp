@@ -521,27 +521,7 @@ void createMainScr()
   lv_obj_add_event_cb(tilesScreen, scrollTile, LV_EVENT_SCROLL_BEGIN, NULL);
   
   // Compass Tile
-  
-  // // Pin drag widget
-  // static lv_style_t editBtnStyleOff;
-  // lv_style_init(&editBtnStyleOff);
-  // lv_style_set_bg_color(&editBtnStyleOff, lv_color_black());
-  // lv_style_set_text_color(&editBtnStyleOff, lv_color_hex(0x303030));
-  // static lv_style_t editBtnStyleOn;
-  // lv_style_init(&editBtnStyleOn);
-  // lv_style_set_bg_color(&editBtnStyleOn, lv_color_black());
-  // lv_style_set_text_color(&editBtnStyleOn, lv_color_white());
-  // lv_obj_t *editScreenBtn = lv_button_create(compassTile);
-  // lv_obj_add_style(editScreenBtn, &editBtnStyleOff, LV_PART_MAIN | LV_STATE_DEFAULT);
-  // lv_obj_add_style(editScreenBtn, &editBtnStyleOn, LV_PART_MAIN | LV_STATE_CHECKED);
-  // lv_obj_set_pos(editScreenBtn, 5, 5);
-  // lv_obj_add_flag(editScreenBtn, LV_OBJ_FLAG_CHECKABLE);
-  // lv_obj_t *editScreenLbl;
-  // editScreenLbl = lv_label_create(editScreenBtn);
-  // lv_label_set_text(editScreenLbl, LV_SYMBOL_EDIT);
-  // lv_obj_center(editScreenLbl);
-  // lv_obj_add_event_cb(editScreenBtn, editWidget, LV_EVENT_ALL, NULL);
-  
+   
   // Compass Widget
   compassWidget(compassTile);
   // Position widget
