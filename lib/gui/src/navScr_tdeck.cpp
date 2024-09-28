@@ -21,56 +21,54 @@ lv_obj_t *arrowNav;
  */
 void navigationScr(_lv_obj_t *screen)
 {
-  // lv_obj_t * label;
-  // label = lv_label_create(navTile);
-  // lv_obj_set_style_text_font(label, fontOptions, 0);
-  // lv_label_set_text_static(label, "Navigation to:");
-  // lv_obj_center(label);
-  // lv_obj_align(label,LV_ALIGN_TOP_LEFT,10, 20);
+    lv_obj_t * label;
+    label = lv_label_create(screen);
+    lv_obj_set_style_text_font(label, fontOptions, 0);
+    lv_label_set_text_static(label, "Navigation to:");
+    lv_obj_center(label);
+    lv_obj_align(label,LV_ALIGN_TOP_LEFT,10, 20);
 
-  // nameNav = lv_label_create(navTile);
-  // lv_obj_set_style_text_font(nameNav, fontLargeMedium, 0);
-  // //lv_label_set_text_fmt(nameNav, "%s","");
-  // lv_obj_set_width(nameNav,TFT_WIDTH-10);
-  // lv_obj_set_pos(nameNav,10, 55);
+    nameNav = lv_label_create(screen);
+    lv_obj_set_style_text_font(nameNav, fontLargeMedium, 0);
+    //lv_label_set_text_fmt(nameNav, "%s","");
+    lv_obj_set_width(nameNav,TFT_WIDTH-10);
+    lv_obj_set_pos(nameNav,10, 37);
 
-  // label = lv_label_create(navTile);
-  // lv_obj_set_style_text_font(label, fontOptions, 0);
-  // lv_label_set_text_static(label, "Lat:");
-  // lv_obj_set_pos(label, 10, 90);
+    label = lv_label_create(screen);
+    lv_obj_set_style_text_font(label, fontOptions, 0);
+    lv_label_set_text_static(label, "Lat:");
+    lv_obj_set_pos(label, 10, 70);
 
-  // label = lv_label_create(navTile);
-  // lv_obj_set_style_text_font(label, fontOptions, 0);
-  // lv_label_set_text_static(label, "Lon:");
-  // lv_obj_set_pos(label, 10, 120);
+    label = lv_label_create(screen);
+    lv_obj_set_style_text_font(label, fontOptions, 0);
+    lv_label_set_text_static(label, "Lon:");
+    lv_obj_set_pos(label, 10, 100);
 
-  // latNav = lv_label_create(navTile);
-  // lv_obj_set_style_text_font(latNav, fontOptions, 0);
-  // lv_label_set_text_fmt(latNav, "%s", "");
-  // lv_obj_set_pos(latNav, 60, 90);
+    latNav = lv_label_create(screen);
+    lv_obj_set_style_text_font(latNav, fontOptions, 0);
+    lv_label_set_text_fmt(latNav, "%s", "");
+    lv_obj_set_pos(latNav, 60, 70);
   
-  // lonNav = lv_label_create(navTile);
-  // lv_obj_set_style_text_font(lonNav, fontOptions, 0);
-  // lv_label_set_text_fmt(lonNav, "%s", "");
-  // lv_obj_set_pos(lonNav, 60, 120);
+    lonNav = lv_label_create(screen);
+    lv_obj_set_style_text_font(lonNav, fontOptions, 0);
+    lv_label_set_text_fmt(lonNav, "%s", "");
+    lv_obj_set_pos(lonNav, 60, 100);
 
-  // label = lv_label_create(navTile);
-  // lv_obj_set_style_text_font(label, fontOptions, 0);
-  // lv_label_set_text_static(label, "Distance");
-  // lv_obj_align(label, LV_ALIGN_CENTER, 0, -50);
+    label = lv_label_create(screen);
+    lv_obj_set_style_text_font(label, fontOptions, 0);
+    lv_label_set_text_static(label, "Distance");
+    lv_obj_set_pos(label,(TFT_WIDTH - 150) - ( lv_obj_get_width(label) / 2 ) , 20);
 
-  // distNav = lv_label_create(navTile);
-  // lv_obj_set_style_text_font(distNav, fontVeryLarge, 0);
-  // lv_label_set_text_fmt(distNav,"%d m.", 0);
-  // lv_obj_align(distNav,LV_ALIGN_CENTER, 0, -5);
+    distNav = lv_label_create(screen);
+    lv_obj_set_style_text_font(distNav, fontVeryLarge, 0);
+    lv_label_set_text_fmt(distNav,"%d m.", 0);
+    lv_obj_set_pos(label,(TFT_WIDTH - 150) - ( lv_obj_get_width(label) / 2 ) , 40);
 
-  // arrowNav = lv_img_create(navTile);
-  // lv_img_set_zoom(arrowNav,iconScale);
-  // lv_obj_update_layout(arrowNav);
-  // lv_obj_align(arrowNav,LV_ALIGN_CENTER, 0, 100);
+    arrowNav = lv_img_create(screen);
+    lv_img_set_zoom(arrowNav,iconScale);
+    lv_obj_update_layout(arrowNav);
+    lv_obj_set_pos(arrowNav,TFT_WIDTH - 150, 70);
   
-  // #ifdef ENABLE_COMPASS
-  //   lv_img_set_src(arrowNav, &navup);
-  //   lv_img_set_pivot(arrowNav, 50, 50) ;
-  // #endif
+    lv_img_set_src(arrowNav, &navup);
+    lv_img_set_pivot(arrowNav, 50, 50) ;
 }
