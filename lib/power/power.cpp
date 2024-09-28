@@ -8,7 +8,9 @@
 
 #include "power.hpp"
 
-extern const int BOARD_BOOT_PIN;
+#ifdef TDECK_ESP32S3
+  extern const uint8_t BOARD_BOOT_PIN;
+#endif
 
 /**
  * @brief Deep Sleep Mode
@@ -48,7 +50,9 @@ void powerLightSleepTimer(int millis)
  */
 void powerLightSleep()
 {
+#ifdef TDECK_ESP32S3
   esp_sleep_enable_ext1_wakeup(1ull << BOARD_BOOT_PIN, ESP_EXT1_WAKEUP_ANY_LOW);
+#endif
   esp_light_sleep_start();
 }
 

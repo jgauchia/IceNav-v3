@@ -173,6 +173,9 @@ void updateMainScreen(lv_timer_t *t)
         if (!waitScreenRefresh)
           heading = getHeading();
         #endif
+        #ifndef ENABLE_COMPASS
+          heading = GPS.course.deg();
+        #endif
         lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
         
         
@@ -479,19 +482,19 @@ void updateNavEvent(lv_event_t *event)
   if (wptDistance == 0)
   {
     lv_img_set_src(arrowNav, &navfinish);
-    #ifdef ENABLE_COMPASS
-      lv_img_set_angle(arrowNav, 0);
-    #endif
+    //#ifdef ENABLE_COMPASS
+    lv_img_set_angle(arrowNav, 0);
+    //#endif
   }
   else
   {
     #ifdef ENABLE_COMPASS
       double wptCourse = calcCourse(getLat(), getLon(), loadWpt.lat, loadWpt.lon) - getHeading();
-      lv_img_set_angle(arrowNav, (wptCourse * 10));
     #endif
     #ifndef ENABLE_COMPASS
-       lv_img_set_src(arrowNav, NULL);
+      double wptCourse = calcCourse(getLat(), getLon(), loadWpt.lat, loadWpt.lon) - GPS.course.deg();
     #endif
+    lv_img_set_angle(arrowNav, (wptCourse * 10));
   }
 }
 
