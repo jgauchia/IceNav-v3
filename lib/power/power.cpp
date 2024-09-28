@@ -52,22 +52,49 @@ void powerLightSleep()
   esp_light_sleep_start();
 }
 
+void powerOffScreen()
+{
+#ifdef TDECK_ESP32S3
+  // LilyGo T-Deck control backlight chip has 16 levels of adjustment range
+  // for (int i = 16; i > 0; --i) {
+  //   setBrightness(i);
+  //   delay(30);
+  // }
+  tft.setBrightness(0);
+  // tft.getPanel()->setSleep(true);
+  // TODO: we could need a complete panel power off?
+#else
+  setBrightness(0);
+#endif
+}
+
+/**
+ * @brief Core light suspend and TFT off
+ */
+void deviceSuspend()
+{
+  int brightness = tft.getBrightness();
+  powerOffScreen();
+  powerLightSleep();
+  tft.setBrightness(brightness);
+}
+
+/**
+ * @brief Power off peripherals and deepsleep
+ */
+void deviceShutdown()
+{
+  powerOffPeripherals();
+  powerDeepSeep();
+}
+
 /**
  * @brief Power off peripherals devices
  */
 void powerOffPeripherals()
 {
-#ifdef TDECK_ESP32S3
-  // LilyGo T-Deck control backlight chip has 16 levels of adjustment range
-  for (int i = 16; i > 0; --i) {
-    setBrightness(i);
-    delay(30);
-  }
-#endif
-
-  delay(1000);
-
-  tft.getPanel()->setSleep(true);
+  powerOffScreen();
+  tft.getPanel()->setSleep(true); // sounds that it is not working
   tft.writecommand(0x10);  // set display enter sleep mode
   SPI.end();
   Wire.end();
