@@ -22,6 +22,12 @@
 #include "deleteWaypoint.hpp"
 #include "editWaypoint.hpp"
 #include "widgets.hpp"
+#ifndef TDECK_ESP32S3
+  #include "navScr.hpp"
+#endif
+#ifdef TDECK_ESP32S3
+  #include "navScr_tdeck.hpp"
+#endif
 
 static lv_timer_t *mainTimer;    // Main Screen Timer
 #define UPDATE_MAINSCR_PERIOD 30 // Main Screen update time
@@ -70,17 +76,6 @@ static lv_obj_t *altLabel;
 static lv_style_t styleRadio;
 static lv_style_t styleRadioChk;
 static uint32_t activeGnss = 0;
-
-/**
- * @brief Navigation Tile screen objects
- *
- */
-extern lv_obj_t *nameNav;
-extern lv_obj_t *latNav;
-extern lv_obj_t *lonNav;
-extern lv_obj_t *distNav;
-extern lv_obj_t *arrowNav;
-extern char* destName;
 
 void updateCompassScr(lv_event_t * event);
 
