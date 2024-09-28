@@ -62,7 +62,7 @@ void navigationScr(_lv_obj_t *screen)
     distNav = lv_label_create(screen);
     lv_obj_set_style_text_font(distNav, fontVeryLarge, 0);
     lv_label_set_text_fmt(distNav,"%d m.", 0);
-    lv_obj_set_pos(label,(TFT_WIDTH - 150) - ( lv_obj_get_width(label) / 2 ) , 40);
+    lv_obj_set_pos(distNav,(TFT_WIDTH - 150) - ( lv_obj_get_width(distNav) / 2 ) , 40);
 
     arrowNav = lv_img_create(screen);
     lv_img_set_zoom(arrowNav,iconScale);
