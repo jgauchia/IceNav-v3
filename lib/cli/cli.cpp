@@ -28,9 +28,7 @@ void wcli_reboot(char *args, Stream *response)
 }
 
 void wcli_poweroff(char *args, Stream *response) {
-  // powerOffPeripherals();
-  // powerDeepSeep();
-  powerLightSleep();
+  deviceSuspend();
 }
 
 void wcli_info(char *args, Stream *response)
