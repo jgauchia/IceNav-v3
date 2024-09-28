@@ -64,10 +64,10 @@ void updateCompassScr(lv_event_t * event)
   lv_obj_t *obj = (lv_obj_t *)lv_event_get_current_target(event);
   if (obj==compassHeading)
   {
-    #ifdef ENABLE_COMPASS
-      lv_label_set_text_fmt(compassHeading, "%5d\xC2\xB0", heading);
-      lv_img_set_angle(compassImg, -(heading * 10));
-    #endif
+    //#ifdef ENABLE_COMPASS
+    lv_label_set_text_fmt(compassHeading, "%5d\xC2\xB0", heading);
+    lv_img_set_angle(compassImg, -(heading * 10));
+    //#endif
   }
   if (obj==latitude)
     lv_label_set_text_fmt(latitude, "%s", latFormatString(getLat()));
