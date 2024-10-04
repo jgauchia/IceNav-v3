@@ -54,13 +54,13 @@ void splashScreen()
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
 
   #ifndef TDECK_ESP32S3
-    const uint8_t maxBrightness = 254;
+    const uint8_t maxBrightness = 255;
   #endif
   #ifdef TDECK_ESP32S3
-    const uint8_t maxBrightness = 15;
+    const uint8_t maxBrightness = 16;
   #endif
 
-  for (uint8_t fadeIn = 0; fadeIn <= maxBrightness; fadeIn++)
+  for (uint8_t fadeIn = 0; fadeIn <= ( maxBrightness - 1); fadeIn++)
   {
     setBrightness(fadeIn);
     millisActual = millis();
