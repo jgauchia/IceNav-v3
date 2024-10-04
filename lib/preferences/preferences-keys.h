@@ -23,6 +23,6 @@
   X(KDEF_ZOOM, "Def_zoom", UINT)         \
   X(KGPS_TX, "GPS_tx", UINT)             \
   X(KGPS_RX, "GPS_rx", UINT)             \
-  X(KLAT_DFL, "defLAT", FLOAT)          \
-  X(KLON_DFL, "defLON", FLOAT)          \
+  X(KLAT_DFL, "defLAT", DOUBLE)          \
+  X(KLON_DFL, "defLON", DOUBLE)          \
   X(KCOUNT, "KCOUNT", UNKNOWN)

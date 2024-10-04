@@ -134,11 +134,7 @@ void setup()
   splashScreen();
   initGpsTask();
 
-  #ifdef DEFAULT_LAT
-    loadMainScreen();
-  #else
-    lv_screen_load(searchSatScreen);
-  #endif
+  lv_screen_load(searchSatScreen);
 
   #ifndef DISABLE_CLI
     initCLI();
