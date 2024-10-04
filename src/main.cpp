@@ -131,6 +131,16 @@ void setup()
   mapTempSprite.deleteSprite();
   mapTempSprite.createSprite(TILE_WIDTH, TILE_HEIGHT);
 
+  // Preload Map
+  if (isVectorMap)
+  {
+  }
+  else
+  {
+    tileSize = RENDER_TILE_SIZE;
+    generateRenderMap();
+  }
+
   splashScreen();
   initGpsTask();
 
@@ -157,16 +167,6 @@ void setup()
   {
     configureWebServer();
     server.begin();
-  }
-
-  // Preload Map
-  if (isVectorMap)
-  {
-  }
-  else
-  {
-    tileSize = RENDER_TILE_SIZE;
-    generateRenderMap();
   }
 
   if(WiFi.getMode() == WIFI_OFF)
