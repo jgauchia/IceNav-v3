@@ -308,6 +308,7 @@ void printSettings()
   log_v("%11s \t%s \t%s", "=======", "=======", "=====");
 
   for (int i = 0; i < KCOUNT; i++) {
+    if (i == PKEYS::KUSER) continue;
     String key = cfg.getKey((CONFKEYS)i);
     bool isDefined = cfg.isKey(key);
     String defined = isDefined ? "custom " : "default";

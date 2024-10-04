@@ -132,6 +132,11 @@ double getLat()
 {
   if (GPS.location.isValid())
     return GPS.location.lat();
+  else if (cfg.getDouble(PKEYS::KLAT_DFL,0.0) != 0.0)
+  {
+    log_v("getLat: %02f\r\n",cfg.getDouble(PKEYS::KLAT_DFL,0.0));
+    return cfg.getDouble(PKEYS::KLAT_DFL,0.0);
+  }
   else
   {
 #ifdef DEFAULT_LAT
@@ -150,6 +155,11 @@ double getLon()
 {
   if (GPS.location.isValid())
     return GPS.location.lng();
+  else if (cfg.getDouble(PKEYS::KLON_DFL,0.0) != 0.0)
+  {
+    log_v("getLon: %02f\r\n",cfg.getDouble(PKEYS::KLON_DFL,0.0));
+    return cfg.getDouble(PKEYS::KLON_DFL,0.0);
+  }
   else
   {
 #ifdef DEFAULT_LON
