@@ -32,7 +32,7 @@
 #include "ILI9488_NOTOUCH_8B.hpp"
 #endif
 
-#ifdef LILYGO_TDECK
+#ifdef TDECK_ESP32S3
 #include "LILYGO_TDECK.hpp"
 #endif
 
@@ -42,11 +42,11 @@ extern TFT_eSPI tft;
 static const char* calibrationFile PROGMEM = "/spiffs/TouchCal";
 extern bool repeatCalib;
 
-#ifndef LILYGO_TDECK
-static uint8_t brightnessLevel = 255;
+#ifndef TDECK_ESP32S3
+    static uint8_t brightnessLevel = 255;
 #endif
-#ifdef LILYGO_TDECK
-static uint8_t brightnessLevel = 15;
+#ifdef TDECK_ESP32S3
+    static uint8_t brightnessLevel = 15;
 #endif
 
 extern uint16_t TFT_WIDTH;
