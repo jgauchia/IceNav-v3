@@ -14,7 +14,7 @@
  */
 uint8_t minZoom = 0; // Min Zoom Level
 uint8_t maxZoom = 0; // Max Zoom Level
-uint8_t defZoom = 2; // Default Zoom Level
+uint8_t defZoom = 15; // Default Zoom Level
 uint8_t zoom = 0;    // Actual Zoom Level
 
 #ifdef LARGE_SCREEN
