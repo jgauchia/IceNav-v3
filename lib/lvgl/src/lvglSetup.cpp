@@ -117,6 +117,48 @@ void IRAM_ATTR keypadRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 }
 #endif
 
+#ifdef POWER_SAVE
+
+extern const uint8_t BOARD_BOOT_PIN;
+
+/**
+* @brief LVGL GPIO read
+*
+*/
+void IRAM_ATTR gpioRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
+{
+  static uint8_t lastStat = 0;
+  uint8_t currentStat = gpioGetBut();
+  
+  data->btn_id = 0;
+
+  if (currentStat > 0)
+  {
+    lastStat = currentStat;
+    data->state = LV_INDEV_STATE_PRESSED;
+  }
+  else
+  {
+    if (lastStat != 0)
+    {
+      log_v("GPIO pressed , state: %d",gpioGetBut());
+      data->state = LV_INDEV_STATE_RELEASED;
+      lastStat = 0;
+    }
+  }
+}
+
+/**
+* @brief LVGL GPIO read
+*
+*/
+uint8_t gpioGetBut()
+{
+  return digitalRead(BOARD_BOOT_PIN);
+}
+
+#endif
+
 /**
  * @brief Apply Custom Dark theme
  *
@@ -237,6 +279,12 @@ void initLVGL()
     lv_indev_set_type(indev_keypad, LV_INDEV_TYPE_KEYPAD);
     lv_indev_set_read_cb(indev_keypad, keypadRead);
     lv_indev_set_group(indev_keypad, lv_group_get_default());
+  #endif
+
+  #ifdef POWER_SAVE
+    lv_indev_t *indev_gpio = lv_indev_create();
+    lv_indev_set_type(indev_gpio, LV_INDEV_TYPE_BUTTON);
+    lv_indev_set_read_cb(indev_gpio, gpioRead);
   #endif
   
   //  Create Main Timer

@@ -45,6 +45,10 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data);
     void IRAM_ATTR keypadRead(lv_indev_t *indev_driver, lv_indev_data_t *data);
     uint32_t keypadGetKey();
 #endif
+#ifdef POWER_SAVE
+    void IRAM_ATTR gpioRead(lv_indev_t *indev_driver, lv_indev_data_t *data);
+    uint8_t gpioGetBut();
+#endif
 void applyModifyTheme(lv_theme_t *th, lv_obj_t *obj);
 void modifyTheme();
 void lv_tick_task(void *arg);
