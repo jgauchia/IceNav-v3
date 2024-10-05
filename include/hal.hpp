@@ -20,6 +20,8 @@
   uint8_t GPS_TX = 17;
   uint8_t GPS_RX = 18;
 
+  extern const uint8_t BOARD_BOOT_PIN = 0;
+
   extern const uint8_t TFT_SPI_SCLK = 12;
   extern const uint8_t TFT_SPI_MOSI = 11;
   extern const uint8_t TFT_SPI_MISO = 13;
@@ -56,6 +58,8 @@
   // Alternative to UART PORT
   uint8_t GPS_TX = 40;  // Analog PIN Terminal Port
   uint8_t GPS_RX = 19;  // Digital PIN Terminal Port
+
+  extern const uint8_t BOARD_BOOT_PIN = 0;
 
   extern const uint8_t SD_CS = 1;
   extern const uint8_t SD_MISO = 41;
@@ -104,6 +108,8 @@
   uint8_t GPS_TX = 17;
   uint8_t GPS_RX = 18;
 
+  extern const uint8_t BOARD_BOOT_PIN = 0;
+
   extern const uint8_t SD_CS = 1;
   extern const uint8_t SD_MISO = 41;
   extern const uint8_t SD_MOSI = 2;
@@ -146,6 +152,8 @@
   uint8_t GPS_TX = 25;
   uint8_t GPS_RX = 26;
 
+  extern const uint8_t BOARD_BOOT_PIN = 0;
+
   extern const uint8_t TFT_SPI_SCLK = 14;
   extern const uint8_t TFT_SPI_MOSI = 13;
   extern const uint8_t TFT_SPI_MISO = 27;
@@ -180,6 +188,8 @@
 
   uint8_t GPS_TX = 17;
   uint8_t GPS_RX = 18;
+
+  extern const uint8_t BOARD_BOOT_PIN = 0;
 
   extern const uint8_t TFT_SPI_SCLK = 12;
   extern const uint8_t TFT_SPI_MOSI = 11;

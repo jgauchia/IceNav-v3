@@ -8,7 +8,7 @@
 
 #include "power.hpp"
 
-#ifdef TDECK_ESP32S3
+#ifdef POWER_SAVE
   extern const uint8_t BOARD_BOOT_PIN;
 #endif
 
