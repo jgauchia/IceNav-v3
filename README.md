@@ -176,7 +176,7 @@ Please follow the instructions provided by [OSM_Extract](https://github.com/ares
 > pio run -e environment --target upload
 > ```
 > 
-> After the first run, load the icons and assets with:
+> After this, load the icons and assets with:
 > 
 > ```bash
 > pio run --target uploadfs
@@ -184,16 +184,27 @@ Please follow the instructions provided by [OSM_Extract](https://github.com/ares
 
 
 > [!TIP]
-> Optional, for map debugging version with specific coordinates, build and install the firmware with the next environment variables, like this:
+> Optional, for map debugging with specific coordinates, or when you are in indoors, you are able to set the defaults coordinates, on two ways:
+
+> **Using the CLI**
+>
+> Using the next commands to set your default coordinates, for instance:
+>
+> ```bash
+> klist
+> kset defLAT 52.5200
+> kset defLON 13.4049
+> ```
+> 
+> **Using enviroment variables**:
+>
+> Export your coordinates before to build and upload, for instance:
 > 
 > ```bash
 > export ICENAV3_LAT=52.5200
 > export ICENAV3_LON=13.4049
 > pio run --target upload
 > ```
-
-> [!NOTE]
-> For production version don't forget unset these environment variables.  
 
 ## CLI
 
