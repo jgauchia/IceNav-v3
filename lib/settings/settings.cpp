@@ -12,10 +12,11 @@
  * @brief Zoom Levels and Default zoom
  *
  */
-uint8_t minZoom = 0; // Min Zoom Level
-uint8_t maxZoom = 0; // Max Zoom Level
-uint8_t defZoom = 15; // Default Zoom Level
-uint8_t zoom = 0;    // Actual Zoom Level
+uint8_t minZoom = 0;        // Min Zoom Level
+uint8_t maxZoom = 0;        // Max Zoom Level
+uint8_t defZoomRender = 15; // Default Zoom Level for render map
+uint8_t defZoomVector = 2;  // Default Zoom Level for vector map
+uint8_t zoom = 0;           // Actual Zoom Level
 
 #ifdef LARGE_SCREEN
   static const float scale = 1.0f;
@@ -60,7 +61,6 @@ void loadPreferences()
   offY = cfg.getFloat(PKEYS::KCOMP_OFFSET_Y, 0.0);
 #endif
   isMapRotation = cfg.getBool(PKEYS::KMAP_ROT, false);
-  defaultZoom = cfg.getUInt(PKEYS::KDEF_ZOOM, defZoom);
   zoom = defaultZoom;
   showMapCompass = cfg.getBool(PKEYS::KMAP_COMPASS, true);
   isCompassRot = cfg.getBool(PKEYS::KCOMP_ROT, true);
@@ -81,11 +81,13 @@ void loadPreferences()
   {
     minZoom = 1;
     maxZoom = 4;
+    defaultZoom = cfg.getUInt(PKEYS::KDEF_ZOOM, defZoomVector);
   }
   else
   {
     minZoom = 6;
     maxZoom = 17;
+    defaultZoom = cfg.getUInt(PKEYS::KDEF_ZOOM, defZoomRender);
   }
   isMapFullScreen = cfg.getBool(PKEYS::KMAP_MODE, true);
   GPS_TX = cfg.getUInt(PKEYS::KGPS_TX, GPS_TX);

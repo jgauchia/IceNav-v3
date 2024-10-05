@@ -14,10 +14,11 @@
 #include "gps.hpp"
 #include "compass.hpp"
 
-extern uint8_t minZoom; // Min Zoom Level
-extern uint8_t maxZoom; // Max Zoom Level
-extern uint8_t defZoom; // Default Zoom Level
-extern uint8_t zoom;    // Actual Zoom Level
+extern uint8_t minZoom;        // Min Zoom Level
+extern uint8_t maxZoom;        // Max Zoom Level
+extern uint8_t defZoomRender;  // Default Zoom Level for render map
+extern uint8_t defZoomVector;  // Default Zoom Level for vector map
+extern uint8_t zoom;           // Actual Zoom Level
 
 extern bool isMapRotation;    // Map Compass Rotation
 extern uint8_t defaultZoom;   // Default Zoom Value
