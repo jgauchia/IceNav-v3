@@ -120,6 +120,7 @@ void IRAM_ATTR keypadRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 #ifdef POWER_SAVE
 
 extern const uint8_t BOARD_BOOT_PIN;
+uint32_t deviceSuspendCount = 0;
 
 /**
 * @brief LVGL GPIO read
@@ -150,7 +151,8 @@ void gpioLongEvent(lv_event_t *event)
   lv_event_code_t code = lv_event_get_code(event);
 
   log_v("GPIO Long pressed");
-  deviceShutdown();
+  deviceSuspendCount = 1000;
+  //deviceShutdown();
 }
 
 /**
@@ -162,7 +164,8 @@ void gpioClickEvent(lv_event_t *event)
   lv_event_code_t code = lv_event_get_code(event);
 
   log_v("GPIO Single Clicked");
-  deviceSuspend();
+  deviceSuspendCount = 300;
+  //deviceSuspend();
 }
 
 /**

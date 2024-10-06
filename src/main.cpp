@@ -53,7 +53,7 @@ extern xSemaphoreHandle gpsMutex;
 
 // AsyncEventButton b1(GPIO_NUM_0, LOW);
 
-// uint32_t deviceSuspendCount = 0;
+extern uint32_t deviceSuspendCount;
 
 // void on_multi_click(int32_t counter){
 //   Serial.println("device suspend..");
@@ -75,7 +75,7 @@ void setup()
   
   // Force GPIO0 to internal PullUP  during boot (avoid LVGL key read)
   #ifdef POWER_SAVE
-    pinMode(BOARD_BOOT_PIN,INPUT_PULLUP);
+     pinMode(BOARD_BOOT_PIN,INPUT_PULLUP);
   #endif
 
   #ifdef ARDUINO_USB_CDC_ON_BOOT
@@ -190,7 +190,7 @@ void loop()
     lv_timer_handler();
     vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
   }
-  // if (deviceSuspendCount == 500) deviceShutdown();
-  // if (deviceSuspendCount == 1) deviceSuspend();
-  // if (deviceSuspendCount > 0 ) deviceSuspendCount--;
+  if (deviceSuspendCount == 500) deviceShutdown();
+  if (deviceSuspendCount == 1) deviceSuspend();
+  if (deviceSuspendCount > 0 ) deviceSuspendCount--;
 }
