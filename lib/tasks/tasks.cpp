@@ -29,13 +29,9 @@ void gpsTask(void *pvParameters)
     //xSemaphoreTake(gpsMutex, portMAX_DELAY);
     while (gps->available() > 0)
     {
-      #ifdef OUTPUT_NMEA
-      {
-        Serial.write(gps->read());
-      }
-      #else
-      GPS.encode(gps->read());
-      #endif
+      char c = gps->read();
+      GPS.encode(c);
+      if (nmea_output_enable) Serial.print(c);
     }
     if (GPS.time.isValid() && !isTimeFixed)
     {
