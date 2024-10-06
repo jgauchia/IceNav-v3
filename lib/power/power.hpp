@@ -22,7 +22,6 @@ void powerDeepSeep();
 void powerLightSleepTimer(int millis);
 void powerLightSleep();
 void powerOffPeripherals();
-void powerOffScreen();
 void deviceSuspend();
 void deviceShutdown();
 void powerOn();

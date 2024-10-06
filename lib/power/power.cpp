@@ -8,9 +8,7 @@
 
 #include "power.hpp"
 
-#ifdef POWER_SAVE
-  extern const uint8_t BOARD_BOOT_PIN;
-#endif
+extern const uint8_t BOARD_BOOT_PIN;
 
 /**
  * @brief Deep Sleep Mode
@@ -23,12 +21,10 @@ void powerDeepSleep()
   esp_wifi_stop();
   esp_deep_sleep_disable_rom_logging();
   delay(10);
-#ifdef POWER_SAVE
   // If you need other peripherals to maintain power, please set the IO port to hold
   // gpio_hold_en((gpio_num_t)BOARD_POWERON);
   // gpio_deep_sleep_hold_en();
   esp_sleep_enable_ext1_wakeup(1ull << BOARD_BOOT_PIN, ESP_EXT1_WAKEUP_ANY_LOW);
-#endif
   esp_deep_sleep_start();
 }
 
@@ -50,26 +46,8 @@ void powerLightSleepTimer(int millis)
  */
 void powerLightSleep()
 {
-#ifdef POWER_SAVE
   esp_sleep_enable_ext1_wakeup(1ull << BOARD_BOOT_PIN, ESP_EXT1_WAKEUP_ANY_LOW);
-#endif
   esp_light_sleep_start();
-}
-
-void powerOffScreen()
-{
-// #ifdef TDECK_ESP32S3
-  // LilyGo T-Deck control backlight chip has 16 levels of adjustment range
-  // for (int i = 16; i > 0; --i) {
-  //   setBrightness(i);
-  //   delay(30);
-  // }
-  tft.setBrightness(0);
-  // tft.getPanel()->setSleep(true);
-  // TODO: we could need a complete panel power off?
-// #else
-//   setBrightness(0);
-// #endif
 }
 
 /**
@@ -78,11 +56,9 @@ void powerOffScreen()
 void deviceSuspend()
 {
   int brightness = tft.getBrightness();
-  powerOffScreen();
-  //tftOff();
+  tftOff();
   powerLightSleep();
-  tft.setBrightness(brightness);
-  //tftOn();
+  tftOn(brightness);
   while (digitalRead(BOARD_BOOT_PIN) != 1)
   { 
     delay(5);
@@ -104,11 +80,10 @@ void deviceShutdown()
  */
 void powerOffPeripherals()
 {
-  powerOffScreen();
-  tft.getPanel()->setSleep(true); // sounds that it is not working
-  tft.writecommand(0x10);  // set display enter sleep mode
-  //tftOff();
-  SPI.end();
+  tftOff();
+  #ifdef TDECK_ESP32S3
+    SPI.end();
+  #endif
   Wire.end();
 }
 

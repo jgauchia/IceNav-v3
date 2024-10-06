@@ -56,7 +56,7 @@ extern bool waitScreenRefresh;                  // Wait for refresh screen (scre
 
 void setBrightness(uint8_t brightness);
 uint8_t getBrightness();
-void tftOn();
+void tftOn(uint8_t brightness);
 void tftOff();
 void touchCalibrate();
 void initTFT();

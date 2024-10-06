@@ -77,10 +77,11 @@ uint8_t getBrightness()
  * @brief Turn on TFT Sleep Mode for ILI9488
  *
  */
-void tftOn()
+void tftOn(uint8_t brightness)
 {
   tft.writecommand(0x11);
-  setBrightness(255);
+  delay(120);
+  tft.setBrightness(brightness);
 }
 
 /**
@@ -89,8 +90,8 @@ void tftOn()
  */
 void tftOff()
 {
+  tft.setBrightness(0);
   tft.writecommand(0x10);
-  setBrightness(0);
 }
 
 /**
@@ -164,7 +165,7 @@ void touchCalibrate()
 void initTFT()
 {
   tft.init();
-
+  
   #ifdef TDECK_ESP32S3
     tft.setRotation(1);
   #endif
