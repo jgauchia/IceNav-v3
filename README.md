@@ -210,11 +210,13 @@ Please follow the instructions provided by [OSM_Extract](https://github.com/ares
 
 IceNav has a basic CLI accessible via Serial and optionally via Telnet if enabled. When you access the CLI and type `help`, you should see the following commands:
 
-
 ```bash
 clear:          clear shell
 info:           get device information
-nmcli:          network manager CLI.
+klist:          list of user preferences. ('all' param show all)
+kset:           set an user extra preference
+nmcli:          network manager CLI. Type nmcli help for more info
+poweroff:       perform a ESP32 deep sleep
 reboot:         perform a ESP32 reboot
 scshot:         screenshot to SD or sending a PC
 settings:       device settings

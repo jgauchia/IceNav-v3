@@ -108,10 +108,13 @@ void wcli_scshot(char *args, Stream *response)
 void wcli_klist(char *args, Stream *response) {
   Pair<String, String> operands = wcli.parseCommand(args);
   String opt = operands.first();
+  int key_count = PKEYS::KUSER+1;
+  if (opt.equals("all")) key_count = 0; // Only show the basic keys to configure
   response->printf("\n%11s \t%s \t%s \r\n", "KEYNAME", "DEFINED", "VALUE");
   response->printf("\n%11s \t%s \t%s \r\n", "=======", "=======", "=====");
 
-  for (int i = PKEYS::KUSER+1; i < PKEYS::KCOUNT; i++) {
+  for (int i = key_count; i < PKEYS::KCOUNT; i++) {
+    if (i == PKEYS::KUSER) continue;
     String key = cfg.getKey((CONFKEYS)i);
     bool isDefined = cfg.isKey(key);
     String defined = isDefined ? "custom " : "default";
@@ -359,7 +362,7 @@ void initShell(){
   wcli.add("waypoint", &wcli_waypoint, "\twaypoint utilities");
   wcli.add("settings", &wcli_settings, "\tdevice settings");
   wcli.add("webfile", &wcli_webfile, "\tenable/disable Web file server");
-  wcli.add("klist", &wcli_klist, "\t\tlist of user extra preferences");
+  wcli.add("klist", &wcli_klist, "\t\tlist of user preferences. ('all' param show all)");
   wcli.add("kset", &wcli_kset, "\t\tset an user extra preference");
   wcli.begin("IceNav");
 }
