@@ -58,7 +58,7 @@ void powerLightSleep()
 
 void powerOffScreen()
 {
-#ifdef TDECK_ESP32S3
+// #ifdef TDECK_ESP32S3
   // LilyGo T-Deck control backlight chip has 16 levels of adjustment range
   // for (int i = 16; i > 0; --i) {
   //   setBrightness(i);
@@ -67,9 +67,9 @@ void powerOffScreen()
   tft.setBrightness(0);
   // tft.getPanel()->setSleep(true);
   // TODO: we could need a complete panel power off?
-#else
-  setBrightness(0);
-#endif
+// #else
+//   setBrightness(0);
+// #endif
 }
 
 /**
