@@ -149,10 +149,8 @@ void IRAM_ATTR gpioRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 void gpioLongEvent(lv_event_t *event)
 {
   lv_event_code_t code = lv_event_get_code(event);
-
-  log_v("GPIO Long pressed");
+  log_v("Shuting down device");
   deviceSuspendCount = 1000;
-  //deviceShutdown();
 }
 
 /**
@@ -162,10 +160,10 @@ void gpioLongEvent(lv_event_t *event)
 void gpioClickEvent(lv_event_t *event)
 {
   lv_event_code_t code = lv_event_get_code(event);
-
-  log_v("GPIO Single Clicked");
+  lv_indev_reset_long_press(lv_indev_active());
+  lv_indev_reset(NULL,lv_scr_act());
+  log_v("Entering sleep mode");
   deviceSuspendCount = 300;
-  //deviceSuspend();
 }
 
 /**

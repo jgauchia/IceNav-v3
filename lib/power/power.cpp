@@ -79,8 +79,12 @@ void deviceSuspend()
 {
   int brightness = tft.getBrightness();
   powerOffScreen();
+  //tftOff();
   powerLightSleep();
   tft.setBrightness(brightness);
+  //tftOn();
+  while (digitalRead(BOARD_BOOT_PIN) != 1);
+  log_v("Exited sleep mode");
 }
 
 /**
@@ -100,6 +104,7 @@ void powerOffPeripherals()
   powerOffScreen();
   tft.getPanel()->setSleep(true); // sounds that it is not working
   tft.writecommand(0x10);  // set display enter sleep mode
+  //tftOff();
   SPI.end();
   Wire.end();
 }

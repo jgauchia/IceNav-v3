@@ -17,7 +17,6 @@
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <Timezone.h>
-// #include <espasyncbutton.hpp>
 
 // Hardware includes
 #include "hal.hpp"
@@ -51,19 +50,7 @@ extern xSemaphoreHandle gpsMutex;
 #include "lvglSetup.hpp"
 #include "tasks.hpp"
 
-// AsyncEventButton b1(GPIO_NUM_0, LOW);
-
 extern uint32_t deviceSuspendCount;
-
-// void on_multi_click(int32_t counter){
-//   Serial.println("device suspend..");
-//   deviceSuspendCount = 300;
-// }
-
-// void on_long_press(){
-//   Serial.println("device shutdown..");
-//   deviceSuspendCount = 1000;
-// }
 
 /**
  * @brief Setup
@@ -172,11 +159,6 @@ void setup()
 
   if(WiFi.getMode() == WIFI_OFF)
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-
-  // b1.begin();
-  // b1.onMultiClick(on_multi_click);
-  // b1.onLongPress(on_long_press);
-  // b1.enable();
 }
 
 /**

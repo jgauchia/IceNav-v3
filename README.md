@@ -86,9 +86,11 @@ To do this, simply include the following Build Flag in the required env in platf
 | ILI9488     | 320x480    | --- | ---  | yes   | FT5x06    | ```-DILI9488_FT5x06_16B```       |
 | ILI9341     | 320x240    | yes | ---  | ---   | XPT2046   | ```-DILI9341_XPT2046_SPI```      |
 
-If TFT shares SPI bus with SD card add the following Build Flag to platformio.ini
+If TFT shares SPI bus with SD card add the followings Build Flag to platformio.ini
 
 ```-DSPI_SHARED```
+```-DARDUINO_RUNNING_CORE=1```
+```-DARDUINO_EVENT_RUNNING_CORE=1```
 
 ### Modules
 

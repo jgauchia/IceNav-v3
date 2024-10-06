@@ -16,6 +16,7 @@
 #include <esp_bt_main.h>
 #include <esp_wifi.h>
 #include "tft.hpp"
+#include "lvgl.h"
 
 void powerDeepSeep();
 void powerLightSleepTimer(int millis);
