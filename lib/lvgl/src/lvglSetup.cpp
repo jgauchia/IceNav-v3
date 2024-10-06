@@ -150,6 +150,7 @@ void gpioLongEvent(lv_event_t *event)
   lv_event_code_t code = lv_event_get_code(event);
 
   log_v("GPIO Long pressed");
+  deviceShutdown();
 }
 
 /**
@@ -161,6 +162,7 @@ void gpioClickEvent(lv_event_t *event)
   lv_event_code_t code = lv_event_get_code(event);
 
   log_v("GPIO Single Clicked");
+  deviceSuspend();
 }
 
 /**
