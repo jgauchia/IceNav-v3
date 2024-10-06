@@ -72,6 +72,11 @@ extern xSemaphoreHandle gpsMutex;
 void setup()
 {
   gpsMutex = xSemaphoreCreateMutex();
+  
+  // Force GPIO0 to internal PullUP  during boot (avoid LVGL key read)
+  #ifdef POWER_SAVE
+    pinMode(BOARD_BOOT_PIN,INPUT_PULLUP);
+  #endif
 
   #ifdef ARDUINO_USB_CDC_ON_BOOT
     Serial.begin(115200);  
@@ -165,8 +170,9 @@ void setup()
     server.begin();
   }
 
-  // if(WiFi.getMode() == WIFI_OFF)
-  //   ESP_ERROR_CHECK(esp_event_loop_create_default());
+  if(WiFi.getMode() == WIFI_OFF)
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+
   // b1.begin();
   // b1.onMultiClick(on_multi_click);
   // b1.onLongPress(on_long_press);

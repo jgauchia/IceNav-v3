@@ -285,7 +285,7 @@ To access the Web File Server, simply use any browser and go to the following ad
 - [X] LVGL Optimization 
 - [ ] GPX Integration
 - [ ] Multiple IMU's and Compass module implementation
-- [ ] Power saving
+- [X] Power saving
 - [X] Vector maps
 - [ ] Google Maps navigation style
 - [x] Optimize code

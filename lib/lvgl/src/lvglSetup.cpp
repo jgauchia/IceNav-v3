@@ -22,8 +22,8 @@ lv_style_t styleThemeBkg;  // New Main Background Style
 lv_style_t styleObjectBkg; // New Objects Background Color
 lv_style_t styleObjectSel; // New Objects Selected Color
 
-lv_group_t * scrGroup;     // Screen group
-
+lv_group_t *scrGroup;     // Screen group
+lv_group_t *keyGroup;     // GPIO group
 
 /**
  * @brief LVGL display update
@@ -127,25 +127,40 @@ extern const uint8_t BOARD_BOOT_PIN;
 */
 void IRAM_ATTR gpioRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 {
-  static uint8_t lastStat = 0;
   uint8_t currentStat = gpioGetBut();
-  
-  data->btn_id = 0;
 
-  if (currentStat > 0)
+  if (currentStat == 0)
   {
-    lastStat = currentStat;
+    data->key = LV_KEY_ENTER;
     data->state = LV_INDEV_STATE_PRESSED;
   }
   else
   {
-    if (lastStat != 0)
-    {
-      log_v("GPIO pressed , state: %d",gpioGetBut());
-      data->state = LV_INDEV_STATE_RELEASED;
-      lastStat = 0;
-    }
+    data->key = 0;
+    data->state = LV_INDEV_STATE_RELEASED;
   }
+}
+
+/**
+* @brief LVGL GPIO long read event
+*
+*/
+void gpioLongEvent(lv_event_t *event)
+{
+  lv_event_code_t code = lv_event_get_code(event);
+
+  log_v("GPIO Long pressed");
+}
+
+/**
+* @brief LVGL GPIO short read event
+*
+*/
+void gpioClickEvent(lv_event_t *event)
+{
+  lv_event_code_t code = lv_event_get_code(event);
+
+  log_v("GPIO Single Clicked");
 }
 
 /**
@@ -235,11 +250,6 @@ void initLVGL()
 {
   lv_init();
   
-  #ifdef TDECK_ESP32S3
-    scrGroup = lv_group_create();
-    lv_group_set_default(scrGroup);
-  #endif
-
   display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
   lv_display_set_flush_cb(display, displayFlush);
   lv_display_set_flush_wait_cb(display, NULL);
@@ -275,6 +285,8 @@ void initLVGL()
   #endif
 
   #ifdef TDECK_ESP32S3  
+    scrGroup = lv_group_create();
+    lv_group_set_default(scrGroup);
     lv_indev_t *indev_keypad = lv_indev_create();
     lv_indev_set_type(indev_keypad, LV_INDEV_TYPE_KEYPAD);
     lv_indev_set_read_cb(indev_keypad, keypadRead);
@@ -283,8 +295,16 @@ void initLVGL()
 
   #ifdef POWER_SAVE
     lv_indev_t *indev_gpio = lv_indev_create();
-    lv_indev_set_type(indev_gpio, LV_INDEV_TYPE_BUTTON);
+    lv_indev_set_type(indev_gpio, LV_INDEV_TYPE_KEYPAD);
     lv_indev_set_read_cb(indev_gpio, gpioRead);
+    lv_indev_set_long_press_time(indev_gpio, longPressTime);
+
+    keyGroup = lv_group_create();
+    lv_group_add_obj(keyGroup,lv_scr_act());
+    lv_indev_set_group(indev_gpio, keyGroup);
+
+    lv_indev_add_event_cb(indev_gpio, gpioLongEvent, LV_EVENT_LONG_PRESSED, NULL);
+    lv_indev_add_event_cb(indev_gpio, gpioClickEvent, LV_EVENT_SHORT_CLICKED, NULL);
   #endif
   
   //  Create Main Timer
