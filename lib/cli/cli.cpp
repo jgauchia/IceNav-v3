@@ -105,7 +105,8 @@ void wcli_scshot(char *args, Stream *response)
  * @brief list of user preference key. This depends of EasyPreferences manifest.
  * @author @Hpsaturn. Method migrated from CanAirIO project
  */
-void wcli_klist(char *args, Stream *response) {
+void wcli_klist(char *args, Stream *response)
+{
   Pair<String, String> operands = wcli.parseCommand(args);
   String opt = operands.first();
   int key_count = PKEYS::KUSER+1;
@@ -128,7 +129,8 @@ void wcli_klist(char *args, Stream *response) {
  * @brief set an user preference key. This depends of EasyPreferences manifest.
  * @author @Hpsaturn. Method migrated from CanAirIO project
  */
-void wcli_kset(char *args, Stream *response) {
+void wcli_kset(char *args, Stream *response)
+{
   Pair<String, String> operands = wcli.parseCommand(args);
   String key = operands.first();
   String v = operands.second();
@@ -316,6 +318,22 @@ void wcli_settings(char *args, Stream *response)
   }
 }
 
+void wcli_nmeaout (char *args, Stream *response){
+  Pair<String, String> operands = wcli.parseCommand(args);
+  String param = operands.first();
+  if(param.isEmpty()) response->println("missing on/off param");
+  else if (param.equals("on")){
+    nmea_output_enable = true;
+  }
+  else
+    nmea_output_enable = false;
+}
+
+void wcli_abort_handler () {
+  Serial.println("cancel");
+  nmea_output_enable = false;
+}
+
 void wcli_webfile(char *args, Stream *response)
 {
   Pair<String, String> operands = wcli.parseCommand(args);
@@ -364,6 +382,8 @@ void initShell(){
   wcli.add("webfile", &wcli_webfile, "\tenable/disable Web file server");
   wcli.add("klist", &wcli_klist, "\t\tlist of user preferences. ('all' param show all)");
   wcli.add("kset", &wcli_kset, "\t\tset an user extra preference");
+  wcli.add("nmeaout", &wcli_nmeaout, "\ton/off GPS NMEA output (Ctrl+C to stop)");
+  wcli.shell->overrideAbortKey(&wcli_abort_handler);
   wcli.begin("IceNav");
 }
 

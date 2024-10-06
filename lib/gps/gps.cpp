@@ -13,6 +13,7 @@ bool isTimeFixed = false;
 HardwareSerial *gps = &Serial2;
 TinyGPSPlus GPS = TinyGPSPlus();
 long gpsBaudDetected = 0;
+bool nmea_output_enable = false;
 
 #ifdef AT6558D_GPS
 
