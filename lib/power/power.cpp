@@ -83,7 +83,10 @@ void deviceSuspend()
   powerLightSleep();
   tft.setBrightness(brightness);
   //tftOn();
-  while (digitalRead(BOARD_BOOT_PIN) != 1);
+  while (digitalRead(BOARD_BOOT_PIN) != 1)
+  { 
+    delay(5);
+  };
   log_v("Exited sleep mode");
 }
 
