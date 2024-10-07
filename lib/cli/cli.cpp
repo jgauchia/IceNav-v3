@@ -318,20 +318,16 @@ void wcli_settings(char *args, Stream *response)
   }
 }
 
-void wcli_nmeaout (char *args, Stream *response){
-  Pair<String, String> operands = wcli.parseCommand(args);
-  String param = operands.first();
-  if(param.isEmpty()) response->println("missing on/off param");
-  else if (param.equals("on")){
-    nmea_output_enable = true;
-  }
-  else
-    nmea_output_enable = false;
+void wcli_outnmea (char *args, Stream *response){
+    nmea_output_enable = !nmea_output_enable;
 }
 
 void wcli_abort_handler () {
-  Serial.println("cancel");
-  nmea_output_enable = false;
+  if (nmea_output_enable) {
+    nmea_output_enable = false;
+    delay(100);
+    Serial.println("\r\nCancel NMEA output!");
+  } 
 }
 
 void wcli_webfile(char *args, Stream *response)
@@ -382,7 +378,7 @@ void initShell(){
   wcli.add("webfile", &wcli_webfile, "\tenable/disable Web file server");
   wcli.add("klist", &wcli_klist, "\t\tlist of user preferences. ('all' param show all)");
   wcli.add("kset", &wcli_kset, "\t\tset an user extra preference");
-  wcli.add("nmeaout", &wcli_nmeaout, "\ton/off GPS NMEA output (Ctrl+C to stop)");
+  wcli.add("outnmea", &wcli_outnmea, "\ttoggle GPS NMEA output (or Ctrl+C to stop)");
   wcli.shell->overrideAbortKey(&wcli_abort_handler);
   wcli.begin("IceNav");
 }
