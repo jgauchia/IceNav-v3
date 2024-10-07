@@ -94,7 +94,18 @@ void loadPreferences()
   GPS_RX = cfg.getUInt(PKEYS::KGPS_RX, GPS_RX);
   enableWeb = cfg.getBool(PKEYS::KWEB_FILE, enableWeb);
 
-  // // Default Widgets positions
+  // Default Widgets positions
+  #ifdef TDECK_ESP32S3
+  compassPosX = cfg.isKey(CONFKEYS::KCOMP_X) ? cfg.getInt(CONFKEYS::KCOMP_X, compassPosX) : 162;
+  compassPosY = cfg.isKey(CONFKEYS::KCOMP_Y) ? cfg.getInt(CONFKEYS::KCOMP_Y, compassPosY) : 6;
+  coordPosX = cfg.isKey(CONFKEYS::KCOORD_X) ? cfg.getInt(CONFKEYS::KCOORD_X, coordPosX) : 1;
+  coordPosY = cfg.isKey(CONFKEYS::KCOORD_Y) ? cfg.getInt(CONFKEYS::KCOORD_Y, coordPosY) : 10;
+  altitudePosX = cfg.isKey(CONFKEYS::KALTITUDE_X) ? cfg.getInt(CONFKEYS::KALTITUDE_X, altitudePosX) : 5;
+  altitudePosY = cfg.isKey(CONFKEYS::KALTITUDE_Y) ? cfg.getInt(CONFKEYS::KALTITUDE_Y, altitudePosY) : 57;
+  speedPosX = cfg.isKey(CONFKEYS::KSPEED_X) ? cfg.getInt(CONFKEYS::KSPEED_X, speedPosX) : 3;
+  speedPosY = cfg.isKey(CONFKEYS::KSPEED_Y) ? cfg.getInt(CONFKEYS::KSPEED_Y, speedPosY) : 94;
+  #endif
+
   // compassPosX = 60;
   // compassPosY = 82;
   // coordPosX = 66;
