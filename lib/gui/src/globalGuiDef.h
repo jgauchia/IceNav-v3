@@ -41,6 +41,8 @@ extern lv_obj_t *menuBtn;              // Button Menu
 extern lv_obj_t *waypointName;         // Add / Edit Waypoint screen text area
 extern bool isScreenRotated;           // Flag to know if screen is rotated
 
+extern lv_obj_t *powerMsg;             // Power Message
+
 #ifdef LARGE_SCREEN
   static const lv_font_t *fontDefault = &lv_font_montserrat_14;
   static const lv_font_t *fontSmall = &lv_font_montserrat_10;
