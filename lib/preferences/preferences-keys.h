@@ -25,6 +25,7 @@
   X(KGPS_RX, "GPS_rx", UINT)             \
   X(KLAT_DFL, "defLAT", DOUBLE)          \
   X(KLON_DFL, "defLON", DOUBLE)          \
+  X(KBRIGT_DFL, "defBright", INT)        \
   X(KVMAX_BATT, "VmaxBatt", FLOAT)       \
   X(KVMIN_BATT, "VminBatt", FLOAT)       \
   X(KCOUNT, "KCOUNT", UNKNOWN)

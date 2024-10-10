@@ -18,7 +18,7 @@ void splashScreen()
 {
   tft.fillScreen(TFT_BLACK);
   millisActual = millis();
-  setBrightness(0);
+  tft.setBrightness(0);
 
   static uint16_t pngHeight = 0;
   static uint16_t pngWidth = 0;
@@ -53,16 +53,16 @@ void splashScreen()
   memset(&statusString[0], 0, sizeof(statusString));
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
 
-  #ifndef TDECK_ESP32S3
+  // #ifndef TDECK_ESP32S3
     const uint8_t maxBrightness = 255;
-  #endif
-  #ifdef TDECK_ESP32S3
-    const uint8_t maxBrightness = 16;
-  #endif
+  // #endif
+  // #ifdef TDECK_ESP32S3
+    // const uint8_t maxBrightness = 16;
+  // #endif
 
   for (uint8_t fadeIn = 0; fadeIn <= ( maxBrightness - 1); fadeIn++)
   {
-    setBrightness(fadeIn);
+    tft.setBrightness(fadeIn);
     millisActual = millis();
     while (millis() < millisActual + 15)
       ;
@@ -70,7 +70,7 @@ void splashScreen()
 
   for (uint8_t fadeOut = maxBrightness; fadeOut > 0; fadeOut--)
   {
-    setBrightness(fadeOut);
+    tft.setBrightness(fadeOut);
     millisActual = millis();
     while (millis() < millisActual + 15)
       ;
@@ -80,5 +80,5 @@ void splashScreen()
     ;
 
   tft.fillScreen(TFT_BLACK);
-  setBrightness(maxBrightness);
+  tft.setBrightness(maxBrightness);
 }
