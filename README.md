@@ -66,6 +66,10 @@ Currently, IceNav works with the following hardware setups and specs
 | [MAKERFABS ESP32S3](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) |  16M  |  2M   | ``` [env:MAKERF_ESP32S3] ``` |   TESTING    |
 | [LILYGO T-DECK](https://www.lilygo.cc/products/t-deck) |  16M  |  8M   | ``` [env:TDECK_ESP32S3] ``` |   TESTING    |
 
+If the board has a BOOT button (GPIO0) it is possible to use power saving functions.
+To do this, simply include the following Build Flag in the required env in platformio.ini
+
+```-DPOWER_SAVE```
 
 > [!IMPORTANT]
 > Currently, this project can run on any board with an ESP32S3 and at least a 320x480 TFT screen. The idea is to support all existing boards on the market that I can get to work, so if you don't want to use the specific IceNav board, please feel free to create an issue, and I will look into providing support.
@@ -82,9 +86,11 @@ Currently, IceNav works with the following hardware setups and specs
 | ILI9488     | 320x480    | --- | ---  | yes   | FT5x06    | ```-DILI9488_FT5x06_16B```       |
 | ILI9341     | 320x240    | yes | ---  | ---   | XPT2046   | ```-DILI9341_XPT2046_SPI```      |
 
-If TFT shares SPI bus with SD card add the following Build Flag to platformio.ini
+If TFT shares SPI bus with SD card add the followings Build Flag to platformio.ini
 
 ```-DSPI_SHARED```
+```-DARDUINO_RUNNING_CORE=1```
+```-DARDUINO_EVENT_RUNNING_CORE=1```
 
 ### Modules
 
@@ -286,7 +292,7 @@ To access the Web File Server, simply use any browser and go to the following ad
 - [X] LVGL Optimization 
 - [ ] GPX Integration
 - [ ] Multiple IMU's and Compass module implementation
-- [ ] Power saving
+- [X] Power saving
 - [X] Vector maps
 - [ ] Google Maps navigation style
 - [x] Optimize code

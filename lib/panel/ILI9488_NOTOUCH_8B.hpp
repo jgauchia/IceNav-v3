@@ -33,6 +33,7 @@ extern const uint8_t TFT_D7;
 class LGFX : public lgfx::LGFX_Device
 {
   lgfx::Panel_ILI9488 _panel_instance;
+  lgfx::Light_PWM _light_instance;
   lgfx::Bus_Parallel8 _bus_instance;
 
 public:
@@ -60,6 +61,17 @@ public:
       _panel_instance.setBus(&_bus_instance); 
     }
 
+    {
+      auto cfg = _light_instance.config();
+      cfg.pin_bl = TFT_BL;
+      cfg.invert = false;
+      cfg.freq = 44100;
+      cfg.pwm_channel = 7;
+
+      _light_instance.config(cfg);
+      _panel_instance.setLight(&_light_instance);
+    }
+    
     {                                        
       auto cfg = _panel_instance.config();
 

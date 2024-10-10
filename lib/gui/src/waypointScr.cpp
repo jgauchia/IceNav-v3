@@ -200,7 +200,6 @@ void createWaypointScreen()
   #endif
 
   #ifdef TDECK_ESP32S3
-
     lv_group_add_obj(scrGroup, waypointName);
     lv_group_focus_obj(waypointName);
     //lv_group_add_obj(scrGroup, waypointScreen);
