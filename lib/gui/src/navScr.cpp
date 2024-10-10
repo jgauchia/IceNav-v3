@@ -75,7 +75,8 @@ lv_obj_t *arrowNav;
     lv_img_set_pivot(arrowNav, 50, 50) ;
   //#endif
   }
-#elif
+#endif
+#ifdef TDECK_ESP32S3
   void navigationScr(_lv_obj_t *screen)
   {
     lv_obj_t * label;
