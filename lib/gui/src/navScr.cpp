@@ -114,7 +114,7 @@ lv_obj_t *arrowNav;
     label = lv_label_create(screen);
     lv_obj_set_style_text_font(label, fontOptions, 0);
     lv_label_set_text_static(label, "Distance");
-    lv_obj_set_pos(label,10, 110);
+    lv_obj_set_pos(label,(10, 120);
 
     distNav = lv_label_create(screen);
     lv_obj_set_style_text_font(distNav, fontVeryLarge, 0);
@@ -122,7 +122,7 @@ lv_obj_t *arrowNav;
     lv_obj_set_pos(distNav,10, 140);
 
     arrowNav = lv_img_create(screen);
-     lv_obj_set_pos(arrowNav,TFT_WIDTH - 100, 70);
+    lv_obj_set_pos(arrowNav,TFT_WIDTH - 150, 35);
   
     lv_img_set_src(arrowNav, &navup);
     lv_img_set_pivot(arrowNav, 50, 50) ;
