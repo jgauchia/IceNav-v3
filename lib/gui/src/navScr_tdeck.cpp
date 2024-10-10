@@ -26,38 +26,38 @@ void navigationScr(_lv_obj_t *screen)
     lv_obj_set_style_text_font(label, fontOptions, 0);
     lv_label_set_text_static(label, "Navigation to:");
     lv_obj_center(label);
-    lv_obj_align(label,LV_ALIGN_TOP_LEFT,10, 20);
+    lv_obj_align(label,LV_ALIGN_TOP_LEFT,10, 5);
 
     nameNav = lv_label_create(screen);
     lv_obj_set_style_text_font(nameNav, fontLargeMedium, 0);
     //lv_label_set_text_fmt(nameNav, "%s","");
     lv_obj_set_width(nameNav,TFT_WIDTH-10);
-    lv_obj_set_pos(nameNav,10, 37);
+    lv_obj_set_pos(nameNav,10, 12);
 
     label = lv_label_create(screen);
     lv_obj_set_style_text_font(label, fontOptions, 0);
     lv_label_set_text_static(label, "Lat:");
-    lv_obj_set_pos(label, 10, 70);
+    lv_obj_set_pos(label, 10, 45);
 
     label = lv_label_create(screen);
     lv_obj_set_style_text_font(label, fontOptions, 0);
     lv_label_set_text_static(label, "Lon:");
-    lv_obj_set_pos(label, 10, 100);
+    lv_obj_set_pos(label, 10, 75);
 
     latNav = lv_label_create(screen);
     lv_obj_set_style_text_font(latNav, fontOptions, 0);
     lv_label_set_text_fmt(latNav, "%s", "");
-    lv_obj_set_pos(latNav, 60, 70);
+    lv_obj_set_pos(latNav, 60, 45);
   
     lonNav = lv_label_create(screen);
     lv_obj_set_style_text_font(lonNav, fontOptions, 0);
     lv_label_set_text_fmt(lonNav, "%s", "");
-    lv_obj_set_pos(lonNav, 60, 100);
+    lv_obj_set_pos(lonNav, 60, 75);
 
     label = lv_label_create(screen);
     lv_obj_set_style_text_font(label, fontOptions, 0);
     lv_label_set_text_static(label, "Distance");
-    lv_obj_set_pos(label,(TFT_WIDTH - 150) - ( lv_obj_get_width(label) / 2 ) , 20);
+    lv_obj_set_pos(label,240 - ( lv_obj_get_width(label) / 2 ) , 5);
 
     distNav = lv_label_create(screen);
     lv_obj_set_style_text_font(distNav, fontVeryLarge, 0);
