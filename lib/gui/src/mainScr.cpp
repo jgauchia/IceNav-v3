@@ -43,11 +43,6 @@ lv_obj_t *satTrackTile;
 lv_obj_t *btnFullScreen;
 lv_obj_t *btnZoomIn;
 lv_obj_t *btnZoomOut;
-lv_obj_t *nameNav;
-lv_obj_t *latNav;
-lv_obj_t *lonNav;
-lv_obj_t *distNav;
-lv_obj_t *arrowNav;
 
 double destLat = 0;
 double destLon = 0;
@@ -64,10 +59,10 @@ void updateCompassScr(lv_event_t * event)
   lv_obj_t *obj = (lv_obj_t *)lv_event_get_current_target(event);
   if (obj==compassHeading)
   {
-    #ifdef ENABLE_COMPASS
-      lv_label_set_text_fmt(compassHeading, "%5d\xC2\xB0", heading);
-      lv_img_set_angle(compassImg, -(heading * 10));
-    #endif
+    //#ifdef ENABLE_COMPASS
+    lv_label_set_text_fmt(compassHeading, "%5d\xC2\xB0", heading);
+    lv_img_set_angle(compassImg, -(heading * 10));
+    //#endif
   }
   if (obj==latitude)
     lv_label_set_text_fmt(latitude, "%s", latFormatString(getLat()));
@@ -172,6 +167,9 @@ void updateMainScreen(lv_timer_t *t)
         #ifdef ENABLE_COMPASS
         if (!waitScreenRefresh)
           heading = getHeading();
+        #endif
+        #ifndef ENABLE_COMPASS
+          heading = GPS.course.deg();
         #endif
         lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
         
@@ -479,19 +477,19 @@ void updateNavEvent(lv_event_t *event)
   if (wptDistance == 0)
   {
     lv_img_set_src(arrowNav, &navfinish);
-    #ifdef ENABLE_COMPASS
-      lv_img_set_angle(arrowNav, 0);
-    #endif
+    //#ifdef ENABLE_COMPASS
+    lv_img_set_angle(arrowNav, 0);
+    //#endif
   }
   else
   {
     #ifdef ENABLE_COMPASS
       double wptCourse = calcCourse(getLat(), getLon(), loadWpt.lat, loadWpt.lon) - getHeading();
-      lv_img_set_angle(arrowNav, (wptCourse * 10));
     #endif
     #ifndef ENABLE_COMPASS
-       lv_img_set_src(arrowNav, NULL);
+      double wptCourse = calcCourse(getLat(), getLon(), loadWpt.lat, loadWpt.lon) - GPS.course.deg();
     #endif
+    lv_img_set_angle(arrowNav, (wptCourse * 10));
   }
 }
 
@@ -521,27 +519,7 @@ void createMainScr()
   lv_obj_add_event_cb(tilesScreen, scrollTile, LV_EVENT_SCROLL_BEGIN, NULL);
   
   // Compass Tile
-  
-  // // Pin drag widget
-  // static lv_style_t editBtnStyleOff;
-  // lv_style_init(&editBtnStyleOff);
-  // lv_style_set_bg_color(&editBtnStyleOff, lv_color_black());
-  // lv_style_set_text_color(&editBtnStyleOff, lv_color_hex(0x303030));
-  // static lv_style_t editBtnStyleOn;
-  // lv_style_init(&editBtnStyleOn);
-  // lv_style_set_bg_color(&editBtnStyleOn, lv_color_black());
-  // lv_style_set_text_color(&editBtnStyleOn, lv_color_white());
-  // lv_obj_t *editScreenBtn = lv_button_create(compassTile);
-  // lv_obj_add_style(editScreenBtn, &editBtnStyleOff, LV_PART_MAIN | LV_STATE_DEFAULT);
-  // lv_obj_add_style(editScreenBtn, &editBtnStyleOn, LV_PART_MAIN | LV_STATE_CHECKED);
-  // lv_obj_set_pos(editScreenBtn, 5, 5);
-  // lv_obj_add_flag(editScreenBtn, LV_OBJ_FLAG_CHECKABLE);
-  // lv_obj_t *editScreenLbl;
-  // editScreenLbl = lv_label_create(editScreenBtn);
-  // lv_label_set_text(editScreenLbl, LV_SYMBOL_EDIT);
-  // lv_obj_center(editScreenLbl);
-  // lv_obj_add_event_cb(editScreenBtn, editWidget, LV_EVENT_ALL, NULL);
-  
+   
   // Compass Widget
   compassWidget(compassTile);
   // Position widget
@@ -607,59 +585,8 @@ void createMainScr()
   lv_obj_add_event_cb(mapTile, toolBarEvent, LV_EVENT_LONG_PRESSED, NULL);
   
   // Navigation Tile
-  lv_obj_t * label;
-  label = lv_label_create(navTile);
-  lv_obj_set_style_text_font(label, fontOptions, 0);
-  lv_label_set_text_static(label, "Navigation to:");
-  lv_obj_center(label);
-  lv_obj_align(label,LV_ALIGN_TOP_LEFT,10, 20);
+  navigationScr(navTile);
 
-  nameNav = lv_label_create(navTile);
-  lv_obj_set_style_text_font(nameNav, fontLargeMedium, 0);
-  //lv_label_set_text_fmt(nameNav, "%s","");
-  lv_obj_set_width(nameNav,TFT_WIDTH-10);
-  lv_obj_set_pos(nameNav,10, 55);
-
-  label = lv_label_create(navTile);
-  lv_obj_set_style_text_font(label, fontOptions, 0);
-  lv_label_set_text_static(label, "Lat:");
-  lv_obj_set_pos(label, 10, 90);
-
-  label = lv_label_create(navTile);
-  lv_obj_set_style_text_font(label, fontOptions, 0);
-  lv_label_set_text_static(label, "Lon:");
-  lv_obj_set_pos(label, 10, 120);
-
-  latNav = lv_label_create(navTile);
-  lv_obj_set_style_text_font(latNav, fontOptions, 0);
-  lv_label_set_text_fmt(latNav, "%s", "");
-  lv_obj_set_pos(latNav, 60, 90);
-  
-  lonNav = lv_label_create(navTile);
-  lv_obj_set_style_text_font(lonNav, fontOptions, 0);
-  lv_label_set_text_fmt(lonNav, "%s", "");
-  lv_obj_set_pos(lonNav, 60, 120);
-
-  label = lv_label_create(navTile);
-  lv_obj_set_style_text_font(label, fontOptions, 0);
-  lv_label_set_text_static(label, "Distance");
-  lv_obj_align(label, LV_ALIGN_CENTER, 0, -50);
-
-  distNav = lv_label_create(navTile);
-  lv_obj_set_style_text_font(distNav, fontVeryLarge, 0);
-  lv_label_set_text_fmt(distNav,"%d m.", 0);
-  lv_obj_align(distNav,LV_ALIGN_CENTER, 0, -5);
-
-  arrowNav = lv_img_create(navTile);
-  lv_img_set_zoom(arrowNav,iconScale);
-  lv_obj_update_layout(arrowNav);
-  lv_obj_align(arrowNav,LV_ALIGN_CENTER, 0, 100);
-  
-  #ifdef ENABLE_COMPASS
-    lv_img_set_src(arrowNav, &navup);
-    lv_img_set_pivot(arrowNav, 50, 50) ;
-  #endif
-  
   // Navigation Tile Events
   lv_obj_add_event_cb(navTile, updateNavEvent, LV_EVENT_VALUE_CHANGED, NULL);
   

@@ -18,8 +18,14 @@
   X(KCOMP_ROT, "Compass_rot", BOOL)      \
   X(KGPS_SPEED, "GPS_speed", SHORT)      \
   X(KGPS_RATE, "GPS_rate", SHORT)        \
+  X(KWEB_FILE, "Web_file", BOOL)         \
+  X(KUSER, "-----", UNKNOWN)             \
   X(KDEF_ZOOM, "Def_zoom", UINT)         \
   X(KGPS_TX, "GPS_tx", UINT)             \
   X(KGPS_RX, "GPS_rx", UINT)             \
-  X(KWEB_FILE, "Web_file", BOOL)         \
+  X(KLAT_DFL, "defLAT", DOUBLE)          \
+  X(KLON_DFL, "defLON", DOUBLE)          \
+  X(KBRIGT_DFL, "defBright", INT)        \
+  X(KVMAX_BATT, "VmaxBatt", FLOAT)       \
+  X(KVMIN_BATT, "VminBatt", FLOAT)       \
   X(KCOUNT, "KCOUNT", UNKNOWN)

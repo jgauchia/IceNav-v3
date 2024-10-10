@@ -21,7 +21,6 @@
 #include "collapse.c"
 #include "zoomin.c"
 #include "zoomout.c"
-#include "navup.c"
 #include "navfinish.c"
 #include <cstdint>
 

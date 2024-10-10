@@ -33,7 +33,6 @@ static uint32_t sdFreq = 40000000;
 
 extern bool isSdLoaded;
 
-
 void initSD();
 esp_err_t initSPIFFS();
 void acquireSdSPI();

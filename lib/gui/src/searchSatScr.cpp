@@ -52,6 +52,7 @@ void searchGPS(lv_timer_t *searchTimer)
   {
     lv_timer_del(searchTimer);
     isSearchingSat = false;
+    zoom = defaultZoom;
     loadMainScreen();
   }
 }

@@ -33,6 +33,7 @@ class LGFX : public lgfx::LGFX_Device
 {
   lgfx::Panel_ILI9488 _panel_instance;
   lgfx::Bus_SPI _bus_instance;
+  lgfx::Light_PWM _light_instance;
   lgfx::Touch_XPT2046 _touch_instance;
 
 public:
@@ -85,6 +86,17 @@ public:
       cfg.bus_shared = false;
       #endif
       _panel_instance.config(cfg);
+    }
+
+    {
+      auto cfg = _light_instance.config();
+      cfg.pin_bl = TFT_BL;
+      cfg.invert = false;
+      cfg.freq = 44100;
+      cfg.pwm_channel = 7;
+
+      _light_instance.config(cfg);
+      _panel_instance.setLight(&_light_instance);
     }
 
     {
