@@ -22,12 +22,7 @@
 #include "deleteWaypoint.hpp"
 #include "editWaypoint.hpp"
 #include "widgets.hpp"
-#ifndef TDECK_ESP32S3
-  #include "navScr.hpp"
-#endif
-#ifdef TDECK_ESP32S3
-  #include "navScr_tdeck.hpp"
-#endif
+#include "navScr.hpp"
 
 static lv_timer_t *mainTimer;    // Main Screen Timer
 #define UPDATE_MAINSCR_PERIOD 30 // Main Screen update time
