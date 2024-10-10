@@ -114,7 +114,7 @@ lv_obj_t *arrowNav;
     label = lv_label_create(screen);
     lv_obj_set_style_text_font(label, fontOptions, 0);
     lv_label_set_text_static(label, "Distance");
-    lv_obj_set_pos(label,(10, 120);
+    lv_obj_set_pos(label,10, 120);
 
     distNav = lv_label_create(screen);
     lv_obj_set_style_text_font(distNav, fontVeryLarge, 0);
