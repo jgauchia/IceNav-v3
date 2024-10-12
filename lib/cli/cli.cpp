@@ -93,6 +93,10 @@ void wcli_scshot(char *args, Stream *response)
     response->println("Note: is possible to send it to a PC using: scshot ip port");
   }
   else {
+    if (!WiFi.isConnected()) {
+      response->println("Please connect your WiFi first!");
+      return;
+    }
     response->printf("Sending screenshot to %s:%i..\r\n", ip.c_str(), port);
 
     waitScreenRefresh = true;
