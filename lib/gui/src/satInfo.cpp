@@ -48,7 +48,9 @@ SatPos getSatPos(uint8_t elev, uint16_t azim)
 void deleteSatInfoSprites()
 {
   spriteSNR1.deleteSprite();
-  spriteSNR2.deleteSprite();
+  #ifndef TDECK_ESP32S3
+    spriteSNR2.deleteSprite();
+  #endif
   spriteSat.deleteSprite();
   constelSprite.deleteSprite();
 }
@@ -154,7 +156,9 @@ void fillSatInView(GSV &gsv, int color)
   if (gsv.totalMsg.isUpdated())
   {
     lv_chart_refresh(satelliteBar1);
-    lv_chart_refresh(satelliteBar2);
+    #ifndef TDECK_ESP32S3
+      lv_chart_refresh(satelliteBar2);
+    #endif
 
     for (int i = 0; i < 4; ++i)
     {
@@ -175,23 +179,40 @@ void fillSatInView(GSV &gsv, int color)
     if (totalMessages == currentMessage)
     {
       createSNRSprite(spriteSNR1);
-      createSNRSprite(spriteSNR2);
+      #ifndef TDECK_ESP32S3
+        createSNRSprite(spriteSNR2);
+      #endif
 
-      for (int i = 0; i < (MAX_SATELLLITES_IN_VIEW / 2); i++)
-      {
-        lv_chart_set_value_by_id(satelliteBar1, satelliteBarSerie1, i, LV_CHART_POINT_NONE);
-        lv_chart_set_value_by_id(satelliteBar2, satelliteBarSerie1, i, LV_CHART_POINT_NONE);
-      }
+      #ifndef TDECK_ESP32S3
+        for (int i = 0; i < (MAX_SATELLLITES_IN_VIEW / 2); i++)
+        {
+          lv_chart_set_value_by_id(satelliteBar1, satelliteBarSerie1, i, LV_CHART_POINT_NONE);
+          lv_chart_set_value_by_id(satelliteBar2, satelliteBarSerie2, i, LV_CHART_POINT_NONE);
+        }
+      #endif
+
+      #ifdef TDECK_ESP32S3
+        for (int i = 0; i < MAX_SATELLLITES_IN_VIEW; i++)
+        {
+          lv_chart_set_value_by_id(satelliteBar1, satelliteBarSerie1, i, LV_CHART_POINT_NONE);
+        }
+      #endif
 
       uint8_t activeSat = 0;
       for (int i = 0; i < MAX_SATELLITES; ++i)
       {
         if (satTracker[i].active && satTracker[i].snr > 0)
         {
-          if (activeSat < (MAX_SATELLLITES_IN_VIEW / 2))
+          #ifndef TDECK_ESP32S3
+            if (activeSat < (MAX_SATELLLITES_IN_VIEW / 2))
+              drawSNRBar(satelliteBar1, satelliteBarSerie1, activeSat, satTracker[i].satNum, satTracker[i].snr, spriteSNR1);
+            else
+              drawSNRBar(satelliteBar2, satelliteBarSerie2, (activeSat - (MAX_SATELLLITES_IN_VIEW / 2)), satTracker[i].satNum, satTracker[i].snr, spriteSNR2);
+          #endif
+
+          #ifdef TDECK_ESP32S3
             drawSNRBar(satelliteBar1, satelliteBarSerie1, activeSat, satTracker[i].satNum, satTracker[i].snr, spriteSNR1);
-          else
-            drawSNRBar(satelliteBar2, satelliteBarSerie2, (activeSat - (MAX_SATELLLITES_IN_VIEW / 2)), satTracker[i].satNum, satTracker[i].snr, spriteSNR2);
+          #endif
 
           activeSat++;
 
@@ -222,7 +243,9 @@ void fillSatInView(GSV &gsv, int color)
     lv_chart_refresh(satelliteBar1);
     spriteSNR1.pushSprite(0, 260 * scale);
 
-    lv_chart_refresh(satelliteBar2);
-    spriteSNR2.pushSprite(0, 345 * scale);
+    #ifndef TDECK_ESP32S3
+      lv_chart_refresh(satelliteBar2);
+      spriteSNR2.pushSprite(0, 345 * scale);
+    #endif
   }
 }
