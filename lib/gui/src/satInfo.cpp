@@ -160,9 +160,7 @@ void fillSatInView(GSV &gsv, int color)
   if (gsv.totalMsg.isUpdated())
   {
     lv_chart_refresh(satelliteBar1);
-    #ifndef TDECK_ESP32S3
-      lv_chart_refresh(satelliteBar2);
-    #endif
+    lv_chart_refresh(satelliteBar2);
 
     for (int i = 0; i < 4; ++i)
     {
@@ -228,19 +226,16 @@ void fillSatInView(GSV &gsv, int color)
       }
     }
 
+    lv_chart_refresh(satelliteBar1);
+    lv_chart_refresh(satelliteBar2);
+      
     #ifndef TDECK_ESP32S3
-      lv_chart_refresh(satelliteBar1);
       spriteSNR1.pushSprite(0, 260 * scale);
-
-      lv_chart_refresh(satelliteBar2);
       spriteSNR2.pushSprite(0, 345 * scale);
     #endif
 
     #ifdef TDECK_ESP32S3
-      lv_chart_refresh(satelliteBar1);
       spriteSNR1.pushSprite(0, 260);
-
-      lv_chart_refresh(satelliteBar2);
       spriteSNR2.pushSprite(TFT_WIDTH / 2 , 260);
     #endif 
   }
