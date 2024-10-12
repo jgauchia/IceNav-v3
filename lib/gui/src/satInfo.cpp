@@ -142,7 +142,13 @@ void clearSatInView()
     satTracker[clear].active = false;
   }
   createConstelSprite(constelSprite);
-  constelSprite.pushSprite(150 * scale, 40 * scale);
+  #ifndef TDECK_ESP32S3
+    constelSprite.pushSprite(150 * scale, 40 * scale);
+  #else
+
+  #ifdef TDECK_ESP32S3
+    constelSprite.pushSprite(250 * scale, 40 * scale);
+  #endif
 }
 
 /**
