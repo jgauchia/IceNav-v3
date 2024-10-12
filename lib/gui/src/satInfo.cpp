@@ -142,7 +142,7 @@ void clearSatInView()
   createConstelSprite(constelSprite);
   #ifndef TDECK_ESP32S3
     constelSprite.pushSprite(150 * scale, 40 * scale);
-  #else
+  #endif
 
   #ifdef TDECK_ESP32S3
     constelSprite.pushSprite(250 * scale, 40 * scale);
@@ -197,12 +197,10 @@ void fillSatInView(GSV &gsv, int color)
       {
         if (satTracker[i].active && satTracker[i].snr > 0)
         {
-          #ifndef TDECK_ESP32S3
-            if (activeSat < (MAX_SATELLLITES_IN_VIEW / 2))
-              drawSNRBar(satelliteBar1, satelliteBarSerie1, activeSat, satTracker[i].satNum, satTracker[i].snr, spriteSNR1);
-            else
-              drawSNRBar(satelliteBar2, satelliteBarSerie2, (activeSat - (MAX_SATELLLITES_IN_VIEW / 2)), satTracker[i].satNum, satTracker[i].snr, spriteSNR2);
-          #endif
+          if (activeSat < (MAX_SATELLLITES_IN_VIEW / 2))
+            drawSNRBar(satelliteBar1, satelliteBarSerie1, activeSat, satTracker[i].satNum, satTracker[i].snr, spriteSNR1);
+          else
+            drawSNRBar(satelliteBar2, satelliteBarSerie2, (activeSat - (MAX_SATELLLITES_IN_VIEW / 2)), satTracker[i].satNum, satTracker[i].snr, spriteSNR2);
 
           activeSat++;
 

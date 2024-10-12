@@ -146,7 +146,7 @@ void activeGnssEvent(lv_event_t *event)
     void satelliteScr(_lv_obj_t *screen)
     {
         lv_obj_t *infoGrid = lv_obj_create(screen);
-        lv_obj_set_size(infoGrid, 90, 175);
+        lv_obj_set_size(infoGrid, 90, 155);
         lv_obj_set_flex_align(infoGrid, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
         lv_obj_set_style_pad_row(infoGrid, 5 * scale, 0);
         lv_obj_clear_flag(infoGrid, LV_OBJ_FLAG_SCROLLABLE);
