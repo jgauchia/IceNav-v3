@@ -61,18 +61,6 @@ extern lv_obj_t *btnZoomOut;
 extern int toolBarOffset;
 extern int toolBarSpace;
 
-/**
- * @brief Satellite Tracking Tile screen objects
- *
- */
-static lv_obj_t *pdopLabel;
-static lv_obj_t *hdopLabel;
-static lv_obj_t *vdopLabel;
-static lv_obj_t *altLabel;
-static lv_style_t styleRadio;
-static lv_style_t styleRadioChk;
-static uint32_t activeGnss = 0;
-
 void updateCompassScr(lv_event_t * event);
 
 void deleteMapScrSprites();
@@ -89,7 +77,6 @@ void deleteMapScrSprites();
 void createMapScrSprites();
 void drawMapWidgets();
 void updateMap(lv_event_t *event);
-void activeGnssEvent(lv_event_t *event);
 void updateSatTrack(lv_event_t *event);
 void toolBarEvent(lv_event_t *event);
 void fullScreenEvent(lv_event_t *event);
