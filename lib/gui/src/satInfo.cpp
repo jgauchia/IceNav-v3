@@ -246,12 +246,17 @@ void fillSatInView(GSV &gsv, int color)
       }
     }
 
-    lv_chart_refresh(satelliteBar1);
-    spriteSNR1.pushSprite(0, 260 * scale);
-
     #ifndef TDECK_ESP32S3
+      lv_chart_refresh(satelliteBar1);
+      spriteSNR1.pushSprite(0, 260 * scale);
+
       lv_chart_refresh(satelliteBar2);
       spriteSNR2.pushSprite(0, 345 * scale);
     #endif
+
+    #ifdef TDECK_ESP32S3
+      lv_chart_refresh(satelliteBar1);
+      spriteSNR1.pushSprite(0, 220);
+    #endif 
   }
 }
