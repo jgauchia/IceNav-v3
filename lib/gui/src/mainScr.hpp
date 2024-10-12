@@ -23,6 +23,7 @@
 #include "editWaypoint.hpp"
 #include "widgets.hpp"
 #include "navScr.hpp"
+#include "satInfoScr.hpp"
 
 static lv_timer_t *mainTimer;    // Main Screen Timer
 #define UPDATE_MAINSCR_PERIOD 30 // Main Screen update time
