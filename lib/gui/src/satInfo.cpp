@@ -153,33 +153,33 @@ void clearSatInView()
 /**
  * @brief Display satellite in view info
  *
- * @param gsv -> GSV NMEA sentence
+ * 
  */
-void fillSatInView(GSV &gsv)
+void fillSatInView()
 {
   for (uint8_t sv = 0; sv < 4; sv++ )
   {
-    if (gsv.totalMsg[sv].isUpdated())
+    if (gnssInfoSV[sv].totalMsg.isUpdated())
     {
       // lv_chart_refresh(satelliteBar1);
       // lv_chart_refresh(satelliteBar2);
 
       for (int i = 0; i < 4; ++i)
       {
-        int no = atoi(gsv.satNum[i].value());
+        int no = atoi(gnssInfoSV[sv].satNum[i].value());
         if (no >= 1 && no <= MAX_SATELLITES)
         {
-          satTracker[no - 1].satNum = atoi(gsv.satNum[i].value());
-          satTracker[no - 1].elev = atoi(gsv.elev[i].value());
-          satTracker[no - 1].azim = atoi(gsv.azim[i].value());
-          satTracker[no - 1].snr = atoi(gsv.snr[i].value());
+          satTracker[no - 1].satNum = atoi(gnssInfoSV[sv].satNum[i].value());
+          satTracker[no - 1].elev = atoi(gnssInfoSV[sv].elev[i].value());
+          satTracker[no - 1].azim = atoi(gnssInfoSV[sv].azim[i].value());
+          satTracker[no - 1].snr = atoi(gnssInfoSV[sv].snr[i].value());
           satTracker[no - 1].active = true;
           satTracker[no - 1].type = sv;
         }
       }
 
-      uint8_t totalMessages = atoi(gsv.totalMsg[sv].value());
-      uint8_t currentMessage = atoi(gsv.msgNum[sv].value());
+      uint8_t totalMessages = atoi(gnssInfoSV[sv].totalMsg.value());
+      uint8_t currentMessage = atoi(gnssInfoSV[sv].msgNum.value());
 
       if (totalMessages == currentMessage)
       {
@@ -187,11 +187,11 @@ void fillSatInView(GSV &gsv)
         createSNRSprite(spriteSNR2);
 
 
-        for (int i = 0; i < (MAX_SATELLLITES_IN_VIEW / 2); i++)
-        {
-          lv_chart_set_value_by_id(satelliteBar1, satelliteBarSerie1, i, LV_CHART_POINT_NONE);
-          lv_chart_set_value_by_id(satelliteBar2, satelliteBarSerie2, i, LV_CHART_POINT_NONE);
-        }
+        // for (int i = 0; i < (MAX_SATELLLITES_IN_VIEW / 2); i++)
+        // {
+        //   lv_chart_set_value_by_id(satelliteBar1, satelliteBarSerie1, i, LV_CHART_POINT_NONE);
+        //   lv_chart_set_value_by_id(satelliteBar2, satelliteBarSerie2, i, LV_CHART_POINT_NONE);
+        // }
       
         uint8_t activeSat = 0;
         for (int i = 0; i < MAX_SATELLITES; ++i)

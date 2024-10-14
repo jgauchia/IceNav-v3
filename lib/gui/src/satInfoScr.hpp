@@ -22,11 +22,7 @@ extern lv_obj_t *pdopLabel;
 extern lv_obj_t *hdopLabel;
 extern lv_obj_t *vdopLabel;
 extern lv_obj_t *altLabel;
-extern lv_style_t styleRadio;
-extern lv_style_t styleRadioChk;
-extern uint32_t activeGnss;
 
-void activeGnssEvent(lv_event_t *event);
 void satelliteBar1DrawEvent(lv_event_t * event);
 void satelliteScr(_lv_obj_t *screen);
 
