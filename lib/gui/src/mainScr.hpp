@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Main Screen
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-10
  */
 
 #ifndef MAINSCR_HPP
@@ -23,6 +23,7 @@
 #include "editWaypoint.hpp"
 #include "widgets.hpp"
 #include "navScr.hpp"
+#include "satInfoScr.hpp"
 
 static lv_timer_t *mainTimer;    // Main Screen Timer
 #define UPDATE_MAINSCR_PERIOD 30 // Main Screen update time
@@ -60,18 +61,6 @@ extern lv_obj_t *btnZoomOut;
 extern int toolBarOffset;
 extern int toolBarSpace;
 
-/**
- * @brief Satellite Tracking Tile screen objects
- *
- */
-static lv_obj_t *pdopLabel;
-static lv_obj_t *hdopLabel;
-static lv_obj_t *vdopLabel;
-static lv_obj_t *altLabel;
-static lv_style_t styleRadio;
-static lv_style_t styleRadioChk;
-static uint32_t activeGnss = 0;
-
 void updateCompassScr(lv_event_t * event);
 
 void deleteMapScrSprites();
@@ -88,7 +77,6 @@ void deleteMapScrSprites();
 void createMapScrSprites();
 void drawMapWidgets();
 void updateMap(lv_event_t *event);
-void activeGnssEvent(lv_event_t *event);
 void updateSatTrack(lv_event_t *event);
 void toolBarEvent(lv_event_t *event);
 void fullScreenEvent(lv_event_t *event);
