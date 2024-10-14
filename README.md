@@ -70,6 +70,8 @@ If the board has a BOOT button (GPIO0) it is possible to use power saving functi
 To do this, simply include the following Build Flag in the required env in platformio.ini
 
 ```-DPOWER_SAVE```
+```-DARDUINO_RUNNING_CORE=1```
+```-DARDUINO_EVENT_RUNNING_CORE=1```
 
 > [!IMPORTANT]
 > Currently, this project can run on any board with an ESP32S3 and at least a 320x480 TFT screen. The idea is to support all existing boards on the market that I can get to work, so if you don't want to use the specific IceNav board, please feel free to create an issue, and I will look into providing support.
@@ -89,8 +91,6 @@ To do this, simply include the following Build Flag in the required env in platf
 If TFT shares SPI bus with SD card add the followings Build Flag to platformio.ini
 
 ```-DSPI_SHARED```
-```-DARDUINO_RUNNING_CORE=1```
-```-DARDUINO_EVENT_RUNNING_CORE=1```
 
 ### Modules
 
