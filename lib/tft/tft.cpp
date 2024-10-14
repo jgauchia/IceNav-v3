@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief TFT definition and functions
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-10
  */
 
 #include "tft.hpp"
@@ -14,24 +14,59 @@ uint16_t TFT_WIDTH = 0;
 uint16_t TFT_HEIGHT = 0;
 bool waitScreenRefresh = false;
 
+#ifdef TDECK_ESP32S3 
+  extern const uint8_t TFT_SPI_BL;
+#endif
+
 /**
  * @brief Set the TFT brightness
  *
- * @param brightness -> 0..255
+ * @param brightness -> 0..255 / 0..15 for T-DECK
  */
 void setBrightness(uint8_t brightness)
 {
+  
+  #ifndef TDECK_ESP32S3 
   if (brightness <= 255)
   {
-    ledcWrite(0, brightness);
-    brightnessLevel = brightness;
+   ledcWrite(0, brightness);
+   brightnessLevel = brightness;
   }
+  #endif
+
+  #ifdef TDECK_ESP32S3 
+    static uint8_t level = 0;
+    static uint8_t steps = 16;
+    if (brightness == 0) 
+    {
+      digitalWrite(TFT_SPI_BL, 0);
+      delay(3);
+      level = 0;
+      return;
+    }
+    if (level == 0) 
+    {
+      digitalWrite(TFT_SPI_BL, 1);
+      level = steps;
+      delayMicroseconds(30);
+    }
+    int from = steps - level;
+    int to = steps - brightness;
+    int num = (steps + to - from) % steps;
+    for (int i = 0; i < num; i++) 
+    {
+      digitalWrite(TFT_SPI_BL, 0);
+      digitalWrite(TFT_SPI_BL, 1);
+    }
+    level = brightness;
+    brightnessLevel = brightness;
+  #endif
 }
 
 /**
  * @brief Get the TFT brightness
  *
- * @return int -> brightness value 0..255
+ * @return int -> brightness value 0..255 / 0..15 for T-DECK
  */
 uint8_t getBrightness()
 {
@@ -42,10 +77,11 @@ uint8_t getBrightness()
  * @brief Turn on TFT Sleep Mode for ILI9488
  *
  */
-void tftOn()
+void tftOn(uint8_t brightness)
 {
   tft.writecommand(0x11);
-  setBrightness(255);
+  delay(120);
+  tft.setBrightness(brightness);
 }
 
 /**
@@ -54,8 +90,8 @@ void tftOn()
  */
 void tftOff()
 {
+  tft.setBrightness(0);
   tft.writecommand(0x10);
-  setBrightness(0);
 }
 
 /**
@@ -129,6 +165,10 @@ void touchCalibrate()
 void initTFT()
 {
   tft.init();
+  
+  #ifdef TDECK_ESP32S3
+    tft.setRotation(1);
+  #endif
 
   TFT_HEIGHT = tft.height();
   TFT_WIDTH = tft.width();
@@ -154,9 +194,12 @@ void initTFT()
   gpio_set_drive_capability(GPIO_NUM_46, GPIO_DRIVE_CAP_3);
 #endif
 
-  ledcSetup(0, 5000, 8);
-  ledcAttachPin(TFT_BL, 0);
-  ledcWrite(0, 255);
+// #ifndef TDECK_ESP32S3
+//   ledcSetup(0, 5000, 8);
+//   ledcAttachPin(TFT_BL, 0);
+//   ledcWrite(0, 255);
+// #endif
+
 #ifdef TOUCH_INPUT
   touchCalibrate();
 #endif

@@ -3,7 +3,7 @@
  * @author @Hpsaturn
  * @brief  Network CLI and custom internal commands
  * @version Using https://github.com/hpsaturn/esp32-wifi-cli.git
- * @date 2024-09
+ * @date 2024-10
  */
 
 #ifndef DISABLE_CLI
@@ -22,12 +22,14 @@ const char logo[] =
 ""
 ;
 
-
-
 void wcli_reboot(char *args, Stream *response)
 {
   ESP.restart();
-} 
+}
+
+void wcli_poweroff(char *args, Stream *response) {
+  deviceSuspend();
+}
 
 void wcli_info(char *args, Stream *response)
 {
@@ -91,11 +93,53 @@ void wcli_scshot(char *args, Stream *response)
     response->println("Note: is possible to send it to a PC using: scshot ip port");
   }
   else {
+    if (!WiFi.isConnected()) {
+      response->println("Please connect your WiFi first!");
+      return;
+    }
     response->printf("Sending screenshot to %s:%i..\r\n", ip.c_str(), port);
 
     waitScreenRefresh = true;
     captureScreenshot(SCREENSHOT_TEMP_FILE, ip.c_str(), port, response);
     waitScreenRefresh = false;
+  }
+}
+
+/**
+ * @brief list of user preference key. This depends of EasyPreferences manifest.
+ * @author @Hpsaturn. Method migrated from CanAirIO project
+ */
+void wcli_klist(char *args, Stream *response)
+{
+  Pair<String, String> operands = wcli.parseCommand(args);
+  String opt = operands.first();
+  int key_count = PKEYS::KUSER+1;
+  if (opt.equals("all")) key_count = 0; // Only show the basic keys to configure
+  response->printf("\n%11s \t%s \t%s \r\n", "KEYNAME", "DEFINED", "VALUE");
+  response->printf("\n%11s \t%s \t%s \r\n", "=======", "=======", "=====");
+
+  for (int i = key_count; i < PKEYS::KCOUNT; i++) {
+    if (i == PKEYS::KUSER) continue;
+    String key = cfg.getKey((CONFKEYS)i);
+    bool isDefined = cfg.isKey(key);
+    String defined = isDefined ? "custom " : "default";
+    String value = "";
+    if (isDefined) value = cfg.getValue(key);
+    response->printf("%11s \t%s \t%s \r\n", key, defined.c_str(), value.c_str());
+  }
+}
+
+/**
+ * @brief set an user preference key. This depends of EasyPreferences manifest.
+ * @author @Hpsaturn. Method migrated from CanAirIO project
+ */
+void wcli_kset(char *args, Stream *response)
+{
+  Pair<String, String> operands = wcli.parseCommand(args);
+  String key = operands.first();
+  String v = operands.second();
+  if(cfg.saveAuto(key,v)){
+    response->printf("saved key %s\t: %s\r\n", key, v);
   }
 }
 
@@ -278,6 +322,17 @@ void wcli_settings(char *args, Stream *response)
   }
 }
 
+void wcli_outnmea (char *args, Stream *response){
+    nmea_output_enable = !nmea_output_enable;
+}
+
+void wcli_abort_handler () {
+  if (nmea_output_enable) {
+    nmea_output_enable = false;
+    delay(100);
+    Serial.println("\r\nCancel NMEA output!");
+  } 
+}
 
 void wcli_webfile(char *args, Stream *response)
 {
@@ -308,7 +363,7 @@ void wcli_webfile(char *args, Stream *response)
 void initRemoteShell()
 {
 #ifndef DISABLE_CLI_TELNET 
-  if (wcli.isTelnetEnable()) wcli.shellTelnet->attachLogo(logo);
+  if (wcli.isTelnetRunning()) wcli.shellTelnet->attachLogo(logo);
 #endif
 }
 
@@ -317,6 +372,7 @@ void initShell(){
   wcli.setSilentMode(true);
   // Main Commands:
   wcli.add("reboot", &wcli_reboot, "\tperform a ESP32 reboot");
+  wcli.add("poweroff", &wcli_poweroff, "\tperform a ESP32 deep sleep");
   wcli.add("wipe", &wcli_swipe, "\t\twipe preferences to factory default");
   wcli.add("info", &wcli_info, "\t\tget device information");
   wcli.add("clear", &wcli_clear, "\t\tclear shell");
@@ -324,6 +380,10 @@ void initShell(){
   wcli.add("waypoint", &wcli_waypoint, "\twaypoint utilities");
   wcli.add("settings", &wcli_settings, "\tdevice settings");
   wcli.add("webfile", &wcli_webfile, "\tenable/disable Web file server");
+  wcli.add("klist", &wcli_klist, "\t\tlist of user preferences. ('all' param show all)");
+  wcli.add("kset", &wcli_kset, "\t\tset an user extra preference");
+  wcli.add("outnmea", &wcli_outnmea, "\ttoggle GPS NMEA output (or Ctrl+C to stop)");
+  wcli.shell->overrideAbortKey(&wcli_abort_handler);
   wcli.begin("IceNav");
 }
 

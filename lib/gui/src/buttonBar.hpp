@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Button Bar
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-10
  */
 
 #ifndef BUTTONBAR_HPP
@@ -19,8 +19,9 @@ static const char *saveIconFile PROGMEM = "/save.bin";         // Save icon
 static const char *loadIconFile PROGMEM = "/load.bin";         // Load icon
 static const char *editIconFile PROGMEM = "/edit.bin";         // Edit icon
 static const char *deleteIconFile PROGMEM = "/delete.bin";     // Delete icon
-static const char *menuIconFile PROGMEM = "/menu.bin";          // Menu icon
-static const char *addWptIconFile PROGMEM = "/addwpt.bin";         // Add Waypoint icon
+static const char *menuIconFile PROGMEM = "/menu.bin";         // Menu icon
+static const char *addWptIconFile PROGMEM = "/addwpt.bin";     // Add Waypoint icon
+static const char *exitIconFile PROGMEM = "/exit.bin";         // Exit icon 
 
 static lv_obj_t *option;
 
@@ -31,7 +32,6 @@ extern bool isBarOpen;      // Flag to determine if Button Bar is open
 
 void buttonBarEvent(lv_event_t *event);
 void optionEvent(lv_event_t *event);
-void closeOption(lv_event_t *event);
 void hideShowEvent(lv_event_t * e);
 void hideShowAnim(void * var, int32_t v);
 void createButtonBarScr();

@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Waypoint list screen
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-10
  */
 
 #include "waypointListScr.hpp"
@@ -116,7 +116,7 @@ void updateWaypointListScreen()
     isMainScreen = false;  
 
     acquireSdSPI();
-
+    log_i("Trying to open Waypoint file");
     File wayPointFile = SD.open(wptFile);
 
     if (!wayPointFile)

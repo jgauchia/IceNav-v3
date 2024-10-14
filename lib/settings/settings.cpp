@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Settings functions
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-10
  */
 
 #include "settings.hpp"
@@ -12,10 +12,17 @@
  * @brief Zoom Levels and Default zoom
  *
  */
-uint8_t minZoom = 0; // Min Zoom Level
-uint8_t maxZoom = 0; // Max Zoom Level
-uint8_t defZoom = 2; // Default Zoom Level
-uint8_t zoom = 0;    // Actual Zoom Level
+uint8_t minZoom = 0;        // Min Zoom Level
+uint8_t maxZoom = 0;        // Max Zoom Level
+uint8_t defZoomRender = 15; // Default Zoom Level for render map
+uint8_t defZoomVector = 2;  // Default Zoom Level for vector map
+uint8_t zoom = 0;           // Actual Zoom Level
+
+#ifdef LARGE_SCREEN
+  static const float scale = 1.0f;
+#else
+  static const float scale = 0.75f;
+#endif
 
 /**
  * @brief Global Variables definition for device preferences & config.
@@ -41,6 +48,8 @@ uint16_t speedPosX = 0;       // Speed widget position X
 uint16_t speedPosY = 0;       // Speed widget position Y
 bool enableWeb = true;        // Enable/disable web file server
 bool showToolBar = false;     // Show Map Toolbar
+// float batteryMax = 0.0;       // 4.2;      // maximum voltage of battery
+// float batteryMin = 0.0;       // 3.6;      // minimum voltage of battery before shutdown
 
 /**
  * @brief Load stored preferences
@@ -54,46 +63,54 @@ void loadPreferences()
   offY = cfg.getFloat(PKEYS::KCOMP_OFFSET_Y, 0.0);
 #endif
   isMapRotation = cfg.getBool(PKEYS::KMAP_ROT, false);
-  defaultZoom = cfg.getUInt(PKEYS::KDEF_ZOOM, defZoom);
   zoom = defaultZoom;
-  showMapCompass = cfg.getBool(PKEYS::KMAP_COMPASS, false);
+  showMapCompass = cfg.getBool(PKEYS::KMAP_COMPASS, true);
   isCompassRot = cfg.getBool(PKEYS::KCOMP_ROT, true);
-  showMapSpeed = cfg.getBool(PKEYS::KMAP_SPEED, false);
-  showMapScale = cfg.getBool(PKEYS::KMAP_SCALE, false);
+  showMapSpeed = cfg.getBool(PKEYS::KMAP_SPEED, true);
+  showMapScale = cfg.getBool(PKEYS::KMAP_SCALE, true);
   gpsBaud = cfg.getShort(PKEYS::KGPS_SPEED, 4);
   gpsUpdate = cfg.getShort(PKEYS::KGPS_RATE, 3);
-  compassPosX = cfg.getInt(PKEYS::KCOMP_X, 60);
+  compassPosX = cfg.getInt(PKEYS::KCOMP_X, ( TFT_WIDTH / 2 ) - ( 100 * scale ) );
   compassPosY = cfg.getInt(PKEYS::KCOMP_Y, 80);
-  coordPosX = cfg.getInt(PKEYS::KCOORD_X, 66);
+  coordPosX = cfg.getInt(PKEYS::KCOORD_X, ( TFT_WIDTH / 2 ) - ( 90 * scale ) );
   coordPosY = cfg.getInt(PKEYS::KCOORD_Y, 30);
-#ifdef LARGE_SCREEN
   altitudePosX = cfg.getInt(PKEYS::KALTITUDE_X, 8);
-  altitudePosY = cfg.getInt(PKEYS::KALTITUDE_Y, 293);
+  altitudePosY = cfg.getInt(PKEYS::KALTITUDE_Y, TFT_HEIGHT - 170);
   speedPosX = cfg.getInt(PKEYS::KSPEED_X, 1);
-  speedPosY = cfg.getInt(PKEYS::KSPEED_Y, 337);
-#else
-  altitudePosX = cfg.getInt(PKEYS::KALTITUDE_X, 8);
-  altitudePosY = cfg.getInt(PKEYS::KALTITUDE_Y, 170);
-  speedPosX = cfg.getInt(PKEYS::KSPEED_X, 1);
-  speedPosY = cfg.getInt(PKEYS::KSPEED_Y, 210);
-#endif
+  speedPosY = cfg.getInt(PKEYS::KSPEED_Y, TFT_HEIGHT - 130);
   isVectorMap = cfg.getBool(PKEYS::KMAP_VECTOR, false);
   if (isVectorMap)
   {
     minZoom = 1;
     maxZoom = 4;
+    defaultZoom = cfg.getUInt(PKEYS::KDEF_ZOOM, defZoomVector);
   }
   else
   {
     minZoom = 6;
     maxZoom = 17;
+    defaultZoom = cfg.getUInt(PKEYS::KDEF_ZOOM, defZoomRender);
   }
-  isMapFullScreen = cfg.getBool(PKEYS::KMAP_MODE, false);
+  isMapFullScreen = cfg.getBool(PKEYS::KMAP_MODE, true);
   GPS_TX = cfg.getUInt(PKEYS::KGPS_TX, GPS_TX);
   GPS_RX = cfg.getUInt(PKEYS::KGPS_RX, GPS_RX);
   enableWeb = cfg.getBool(PKEYS::KWEB_FILE, enableWeb);
 
-  // // Default Widgets positions
+  // Default Widgets positions
+  #ifdef TDECK_ESP32S3
+  compassPosX = cfg.isKey(CONFKEYS::KCOMP_X) ? cfg.getInt(CONFKEYS::KCOMP_X, compassPosX) : 162;
+  compassPosY = cfg.isKey(CONFKEYS::KCOMP_Y) ? cfg.getInt(CONFKEYS::KCOMP_Y, compassPosY) : 6;
+  coordPosX = cfg.isKey(CONFKEYS::KCOORD_X) ? cfg.getInt(CONFKEYS::KCOORD_X, coordPosX) : 1;
+  coordPosY = cfg.isKey(CONFKEYS::KCOORD_Y) ? cfg.getInt(CONFKEYS::KCOORD_Y, coordPosY) : 10;
+  altitudePosX = cfg.isKey(CONFKEYS::KALTITUDE_X) ? cfg.getInt(CONFKEYS::KALTITUDE_X, altitudePosX) : 5;
+  altitudePosY = cfg.isKey(CONFKEYS::KALTITUDE_Y) ? cfg.getInt(CONFKEYS::KALTITUDE_Y, altitudePosY) : 57;
+  speedPosX = cfg.isKey(CONFKEYS::KSPEED_X) ? cfg.getInt(CONFKEYS::KSPEED_X, speedPosX) : 3;
+  speedPosY = cfg.isKey(CONFKEYS::KSPEED_Y) ? cfg.getInt(CONFKEYS::KSPEED_Y, speedPosY) : 94;
+  #endif
+
+  batteryMax = cfg.getFloat(PKEYS::KVMAX_BATT,4.2);
+  batteryMin = cfg.getFloat(PKEYS::KVMIN_BATT,3.6);
+
   // compassPosX = 60;
   // compassPosY = 82;
   // coordPosX = 66;
@@ -309,6 +326,7 @@ void printSettings()
   log_v("%11s \t%s \t%s", "=======", "=======", "=====");
 
   for (int i = 0; i < KCOUNT; i++) {
+    if (i == PKEYS::KUSER) continue;
     String key = cfg.getKey((CONFKEYS)i);
     bool isDefined = cfg.isKey(key);
     String defined = isDefined ? "custom " : "default";

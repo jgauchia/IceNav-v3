@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL Screen implementation
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-10
  */
 
 #include "lvgl_private.h"
@@ -22,6 +22,9 @@ lv_style_t styleThemeBkg;  // New Main Background Style
 lv_style_t styleObjectBkg; // New Objects Background Color
 lv_style_t styleObjectSel; // New Objects Selected Color
 
+lv_group_t *scrGroup;     // Screen group
+lv_group_t *keyGroup;     // GPIO group
+lv_obj_t *powerMsg;       // Power Message
 
 /**
  * @brief LVGL display update
@@ -75,6 +78,119 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     data->state = LV_INDEV_STATE_PRESSED;
   }
 }
+
+#ifdef TDECK_ESP32S3 
+/**
+ * @brief LVGL T-DECK keyboard read
+ *
+ */
+uint32_t keypadGetKey()
+{
+  char key_ch = 0;
+  Wire.requestFrom(0x55, 1);
+  while (Wire.available() > 0) 
+  {
+    key_ch = Wire.read();
+  }
+  return key_ch;
+}
+
+/**
+ * @brief LVGL T-DECK keyboard read
+ *
+ */
+void IRAM_ATTR keypadRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
+{
+  static uint32_t last_key = 0;
+  uint32_t act_key;
+  act_key = keypadGetKey();
+  if (act_key != 0) 
+  {
+    data->state = LV_INDEV_STATE_PRESSED;
+    last_key = act_key;
+    log_i("%d", act_key);
+  } 
+  else 
+  {
+    data->state = LV_INDEV_STATE_RELEASED;
+  }
+  data->key = last_key;
+}
+#endif
+
+#ifdef POWER_SAVE
+
+extern const uint8_t BOARD_BOOT_PIN;
+uint32_t deviceSuspendCount = 0;
+
+/**
+* @brief LVGL GPIO read
+*
+*/
+void IRAM_ATTR gpioRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
+{
+  uint8_t currentStat = gpioGetBut();
+
+  if (currentStat == 0)
+  {
+    data->key = LV_KEY_ENTER;
+    data->state = LV_INDEV_STATE_PRESSED;
+  }
+  else
+  {
+    data->key = 0;
+    data->state = LV_INDEV_STATE_RELEASED;
+  }
+}
+
+/**
+* @brief LVGL GPIO long read event
+*
+*/
+void gpioLongEvent(lv_event_t *event)
+{
+  lv_event_code_t code = lv_event_get_code(event);
+  log_v("Shuting down device");
+  powerMsg = lv_msgbox_create(lv_scr_act());
+  lv_obj_set_width(powerMsg,TFT_WIDTH - 20);
+  lv_obj_set_align(powerMsg,LV_ALIGN_CENTER);
+  lv_obj_set_style_text_font(powerMsg, fontDefault, 0);
+  lv_obj_t *labelText = lv_msgbox_get_content(powerMsg);
+  lv_obj_set_style_text_align(labelText, LV_TEXT_ALIGN_CENTER, 0);
+  lv_msgbox_add_text(powerMsg, LV_SYMBOL_WARNING " This device will shutdown shortly");
+  deviceSuspendCount = 800;
+}
+
+/**
+* @brief LVGL GPIO short read event
+*
+*/
+void gpioClickEvent(lv_event_t *event)
+{
+  lv_event_code_t code = lv_event_get_code(event);
+  lv_indev_reset_long_press(lv_indev_active());
+  lv_indev_reset(NULL,lv_scr_act());
+  log_v("Entering sleep mode");
+  powerMsg = lv_msgbox_create(lv_scr_act());
+  lv_obj_set_width(powerMsg,TFT_WIDTH - 20);
+  lv_obj_set_align(powerMsg,LV_ALIGN_CENTER);
+  lv_obj_set_style_text_font(powerMsg, fontDefault, 0);
+  lv_obj_t *labelText = lv_msgbox_get_content(powerMsg);
+  lv_obj_set_style_text_align(labelText, LV_TEXT_ALIGN_CENTER, 0);
+  lv_msgbox_add_text(powerMsg, LV_SYMBOL_WARNING " This device will sleep shortly");
+  deviceSuspendCount = 300;
+}
+
+/**
+* @brief LVGL GPIO read
+*
+*/
+uint8_t gpioGetBut()
+{
+  return digitalRead(BOARD_BOOT_PIN);
+}
+
+#endif
 
 /**
  * @brief Apply Custom Dark theme
@@ -184,6 +300,29 @@ void initLVGL()
     lv_indev_set_type(indev_drv, LV_INDEV_TYPE_POINTER);
     lv_indev_set_long_press_time(indev_drv, 150);
     lv_indev_set_read_cb(indev_drv, touchRead);
+  #endif
+
+  #ifdef TDECK_ESP32S3  
+    scrGroup = lv_group_create();
+    lv_group_set_default(scrGroup);
+    lv_indev_t *indev_keypad = lv_indev_create();
+    lv_indev_set_type(indev_keypad, LV_INDEV_TYPE_KEYPAD);
+    lv_indev_set_read_cb(indev_keypad, keypadRead);
+    lv_indev_set_group(indev_keypad, lv_group_get_default());
+  #endif
+
+  #ifdef POWER_SAVE
+    lv_indev_t *indev_gpio = lv_indev_create();
+    lv_indev_set_type(indev_gpio, LV_INDEV_TYPE_KEYPAD);
+    lv_indev_set_read_cb(indev_gpio, gpioRead);
+    lv_indev_set_long_press_time(indev_gpio, longPressTime);
+
+    keyGroup = lv_group_create();
+    lv_group_add_obj(keyGroup,lv_scr_act());
+    lv_indev_set_group(indev_gpio, keyGroup);
+
+    lv_indev_add_event_cb(indev_gpio, gpioLongEvent, LV_EVENT_LONG_PRESSED, NULL);
+    lv_indev_add_event_cb(indev_gpio, gpioClickEvent, LV_EVENT_SHORT_CLICKED, NULL);
   #endif
   
   //  Create Main Timer

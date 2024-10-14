@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  GPS definition and functions
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-10
  */
 
 #include "gps.hpp"
@@ -13,6 +13,7 @@ bool isTimeFixed = false;
 HardwareSerial *gps = &Serial2;
 TinyGPSPlus GPS = TinyGPSPlus();
 long gpsBaudDetected = 0;
+bool nmea_output_enable = false;
 
 #ifdef AT6558D_GPS
 
@@ -132,6 +133,11 @@ double getLat()
 {
   if (GPS.location.isValid())
     return GPS.location.lat();
+  else if (cfg.getDouble(PKEYS::KLAT_DFL,0.0) != 0.0)
+  {
+    // log_v("getLat: %02f",cfg.getDouble(PKEYS::KLAT_DFL,0.0));
+    return cfg.getDouble(PKEYS::KLAT_DFL,0.0);
+  }
   else
   {
 #ifdef DEFAULT_LAT
@@ -150,6 +156,11 @@ double getLon()
 {
   if (GPS.location.isValid())
     return GPS.location.lng();
+  else if (cfg.getDouble(PKEYS::KLON_DFL,0.0) != 0.0)
+  {
+    // log_v("getLon: %02f",cfg.getDouble(PKEYS::KLON_DFL,0.0));
+    return cfg.getDouble(PKEYS::KLON_DFL,0.0);
+  }
   else
   {
 #ifdef DEFAULT_LON

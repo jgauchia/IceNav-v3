@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  GPS definition and functions
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-10
  */
 
 #ifndef GPS_HPP
@@ -22,6 +22,7 @@ extern TinyGPSPlus GPS;
 extern bool isGpsFixed;
 extern bool isTimeFixed;
 extern long gpsBaudDetected;
+extern bool nmea_output_enable;
 
 static uint8_t fix_old = 0;
 static unsigned long GPS_BAUD[] = {4800, 9600, 19200, 38400, 0};
