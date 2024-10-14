@@ -35,9 +35,9 @@ static const char *GPS_RATE_PCAS[] = {"$PCAS02,1000*2E\r\n", "$PCAS02,500*1A\r\n
  */
 struct GSV
 {
-  TinyGPSCustom totalMsg;
-  TinyGPSCustom msgNum;
-  TinyGPSCustom satsInView;
+  TinyGPSCustom totalMsg[4];
+  TinyGPSCustom msgNum[4];
+  TinyGPSCustom satsInView[4];
   TinyGPSCustom satNum[4];
   TinyGPSCustom elev[4];
   TinyGPSCustom azim[4];
@@ -48,29 +48,14 @@ struct GSV
  * @brief Custom NMEA sentences
  *
  */
-#ifdef AT6558D_GPS
-
 // DOP and fix mode
-  extern TinyGPSCustom pdop; // $GNGSA sentence, 15th element
-  extern TinyGPSCustom hdop; // $GNGSA sentence, 16th element
-  extern TinyGPSCustom vdop; // $GNGSA sentence, 17th element
-  extern TinyGPSCustom fixMode;
+extern TinyGPSCustom pdop; // $GPGSA sentence, 15th element
+extern TinyGPSCustom hdop; // $GPGSA sentence, 16th element
+extern TinyGPSCustom vdop; // $GPGSA sentence, 17th element
+extern TinyGPSCustom fixMode;
 
-  extern GSV GPS_GSV; // GPS Satellites in view
-  extern GSV GL_GSV;  // GLONASS Satellites in view
-  extern GSV BD_GSV;  // BEIDOU Satellites in view
+extern GSV gnssInfoSV; // GPS Satellites in view
 
-#else
-
-  // DOP and fix mode
-  extern TinyGPSCustom pdop; // $GPGSA sentence, 15th element
-  extern TinyGPSCustom hdop; // $GPGSA sentence, 16th element
-  extern TinyGPSCustom vdop; // $GPGSA sentence, 17th element
-  extern TinyGPSCustom fixMode;
-
-  extern GSV GPS_GSV; // GPS Satellites in view
-
-#endif
 
 /**
  * @brief Structure for satellite position (number, elev, azimuth,...)
@@ -85,6 +70,7 @@ struct
   uint8_t snr;
   uint16_t posX;
   uint16_t posY;
+  uint8_t type;
 } satTracker[MAX_SATELLITES];
 
 void initGPS();

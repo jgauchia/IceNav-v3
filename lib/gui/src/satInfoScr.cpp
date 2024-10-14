@@ -40,6 +40,50 @@ void activeGnssEvent(lv_event_t *event)
   *activeId = lv_obj_get_index(activeCheckBox);
 }
 
+/**
+ * @brief SNR Bar draw event
+ *
+ * @param event
+ */
+void satelliteBar1DrawEvent(lv_event_t * event)
+{
+  lv_event_code_t e = lv_event_get_code(event);
+  lv_obj_t * obj = (lv_obj_t *)lv_event_get_target(event);
+
+  if (e == LV_EVENT_DRAW_TASK_ADDED) 
+  {
+    lv_draw_task_t * drawTask = lv_event_get_draw_task(event);
+    lv_draw_dsc_base_t * base_dsc = (lv_draw_dsc_base_t *)lv_draw_task_get_draw_dsc(drawTask);
+
+    if(base_dsc->part == LV_PART_ITEMS)
+    {
+      uint16_t dscId = base_dsc->id2;
+     //Change color/border of bar depending on GNSS and if SV is in use
+        if (lv_draw_task_get_type(drawTask) == LV_DRAW_TASK_TYPE_FILL) 
+        {
+          lv_draw_fill_dsc_t * fill_dsc = lv_draw_task_get_fill_dsc(drawTask);
+          if(fill_dsc) 
+          {
+            fill_dsc->color = lv_palette_main(LV_PALETTE_BLUE);
+            //fill_dsc->width = 7;
+          }
+        }
+        if (lv_draw_task_get_type(drawTask) == LV_DRAW_TASK_TYPE_BORDER) 
+        {
+          // lv_draw_border_dsc_t * border_dsc = lv_draw_task_get_border_dsc(drawTask);
+          // if (border_dsc) {
+          //   border_dsc->width = gnss_svInfo[dscId].bInUse == true ? 1 : 0;
+          //   border_dsc->color = gnss_svInfo[dscId].bInUse == true ? lv_color_white() : lv_color_black();
+        }
+    }
+  }
+
+  if (e == LV_EVENT_DRAW_POST_END) 
+  {
+
+  }
+}
+
  /**
  * @brief Satellite info screen
  *
@@ -83,9 +127,17 @@ void activeGnssEvent(lv_event_t *event)
         lv_chart_set_range(satelliteBar1, LV_CHART_AXIS_PRIMARY_Y, 0, 60);
         satelliteBarSerie1 = lv_chart_add_series(satelliteBar1, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
         lv_chart_set_type(satelliteBar1, LV_CHART_TYPE_BAR);
+        lv_obj_set_style_pad_all(satelliteBar1, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+        lv_obj_set_style_pad_column(satelliteBar1, 1, 0);
         lv_chart_set_point_count(satelliteBar1, (MAX_SATELLLITES_IN_VIEW / 2));
         lv_obj_set_pos(satelliteBar1, 0, 175 * scale);
+        lv_obj_add_event_cb(satelliteBar1, satelliteBar1DrawEvent, LV_EVENT_DRAW_TASK_ADDED, NULL);
+        lv_obj_add_event_cb(satelliteBar1, satelliteBar1DrawEvent, LV_EVENT_DRAW_POST_END, NULL);
+        lv_obj_add_flag(satelliteBar1, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
+
         
+
+
         satelliteBar2 = lv_chart_create(screen);
         lv_obj_set_size(satelliteBar2, TFT_WIDTH, 55 * scale);
         lv_chart_set_div_line_count(satelliteBar2, 6, 0);

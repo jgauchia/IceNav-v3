@@ -40,5 +40,5 @@ void createSatSprite(TFT_eSprite &spr);
 void createSNRSprite(TFT_eSprite &spr);
 void drawSNRBar(lv_obj_t *bar, lv_chart_series_t *barSer, uint8_t id, uint8_t satNum, uint8_t snr, TFT_eSprite &spr);
 void clearSatInView();
-void fillSatInView(GSV &gsv, int color);
+void fillSatInView(GSV &gsv);
 #endif

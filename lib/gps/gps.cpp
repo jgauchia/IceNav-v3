@@ -23,7 +23,7 @@ TinyGPSCustom hdop(GPS, PSTR("GNGSA"), 16); // $GNGSA sentence, 16th element
 TinyGPSCustom vdop(GPS, PSTR("GNGSA"), 17); // $GNGSA sentence, 17th element
 TinyGPSCustom fixMode(GPS, PSTR("GNGSA"), 2);
 
-GSV GPS_GSV; // GPS Satellites in view
+GSV gnssInfoSV; // GPS Satellites in view
 GSV GL_GSV;  // GLONASS Satellites in view
 GSV BD_GSV;  // BEIDOU Satellites in view
 
@@ -35,7 +35,7 @@ TinyGPSCustom hdop(GPS, PSTR("GPGSA"), 16); // $GPGSA sentence, 16th element
 TinyGPSCustom vdop(GPS, PSTR("GPGSA"), 17); // $GPGSA sentence, 17th element
 TinyGPSCustom fixMode(GPS, PSTR("GPGSA"), 2);
 
-GSV GPS_GSV; // GPS Satellites in view
+GSV gnssInfoSV; // GPS Satellites in view
 
 #endif
 
@@ -86,40 +86,40 @@ void initGPS()
 #endif
 
   // Initialize satellites in view custom NMEA structure
-  GPS_GSV.totalMsg.begin(GPS, PSTR("GPGSV"), 1);
-  GPS_GSV.msgNum.begin(GPS, PSTR("GPGSV"), 2);
-  GPS_GSV.satsInView.begin(GPS, PSTR("GPGSV"), 3);
+  gnssInfoSV.totalMsg[0].begin(GPS, PSTR("GPGSV"), 1);
+  gnssInfoSV.msgNum[0].begin(GPS, PSTR("GPGSV"), 2);
+  gnssInfoSV.satsInView[0].begin(GPS, PSTR("GPGSV"), 3);
 
 #ifdef AT6558D_GPS
 
-  GL_GSV.totalMsg.begin(GPS, PSTR("GLGSV"), 1);
-  GL_GSV.msgNum.begin(GPS, PSTR("GLGSV"), 2);
-  GL_GSV.satsInView.begin(GPS, PSTR("GLGSV"), 3);
+  // gnssInfoSV.totalMsg[1].begin(GPS, PSTR("GLGSV"), 1);
+  // gnssInfoSV.msgNum[1].begin(GPS, PSTR("GLGSV"), 2);
+  // gnssInfoSV.satsInView[1].begin(GPS, PSTR("GLGSV"), 3);
 
-  BD_GSV.totalMsg.begin(GPS, PSTR("BDGSV"), 1);
-  BD_GSV.msgNum.begin(GPS, PSTR("BDGSV"), 2);
-  BD_GSV.satsInView.begin(GPS, PSTR("BDGSV"), 3);
+  // gnssInfoSV.totalMsg[2].begin(GPS, PSTR("BDGSV"), 1);
+  // gnssInfoSV.msgNum[2].begin(GPS, PSTR("BDGSV"), 2);
+  // gnssInfoSV.satsInView[2].begin(GPS, PSTR("BDGSV"), 3);
 
 #endif
 
   for (int i = 0; i < 4; ++i)
   {
-    GPS_GSV.satNum[i].begin(GPS, PSTR("GPGSV"), 4 + (4 * i)); // offsets 4, 8, 12, 16
-    GPS_GSV.elev[i].begin(GPS, PSTR("GPGSV"), 5 + (4 * i));   // offsets 5, 9, 13, 17
-    GPS_GSV.azim[i].begin(GPS, PSTR("GPGSV"), 6 + (4 * i));   // offsets 6, 10, 14, 18
-    GPS_GSV.snr[i].begin(GPS, PSTR("GPGSV"), 7 + (4 * i));    // offsets 7, 11, 15, 19
+    gnssInfoSV.satNum[i].begin(GPS, PSTR("GPGSV"), 4 + (4 * i)); // offsets 4, 8, 12, 16
+    gnssInfoSV.elev[i].begin(GPS, PSTR("GPGSV"), 5 + (4 * i));   // offsets 5, 9, 13, 17
+    gnssInfoSV.azim[i].begin(GPS, PSTR("GPGSV"), 6 + (4 * i));   // offsets 6, 10, 14, 18
+    gnssInfoSV.snr[i].begin(GPS, PSTR("GPGSV"), 7 + (4 * i));    // offsets 7, 11, 15, 19
 
 #ifdef AT6558D_GPS
 
-    GL_GSV.satNum[i].begin(GPS, PSTR("GLGSV"), 4 + (4 * i)); // offsets 4, 8, 12, 16
-    GL_GSV.elev[i].begin(GPS, PSTR("GLGSV"), 5 + (4 * i));   // offsets 5, 9, 13, 17
-    GL_GSV.azim[i].begin(GPS, PSTR("GLGSV"), 6 + (4 * i));   // offsets 6, 10, 14, 18
-    GL_GSV.snr[i].begin(GPS, PSTR("GLGSV"), 7 + (4 * i));    // offsets 7, 11, 15, 19
+    gnssInfoSV.satNum[i].begin(GPS, PSTR("GLGSV"), 4 + (4 * i)); // offsets 4, 8, 12, 16
+    gnssInfoSV.elev[i].begin(GPS, PSTR("GLGSV"), 5 + (4 * i));   // offsets 5, 9, 13, 17
+    gnssInfoSV.azim[i].begin(GPS, PSTR("GLGSV"), 6 + (4 * i));   // offsets 6, 10, 14, 18
+    gnssInfoSV.snr[i].begin(GPS, PSTR("GLGSV"), 7 + (4 * i));    // offsets 7, 11, 15, 19
 
-    BD_GSV.satNum[i].begin(GPS, PSTR("BDGSV"), 4 + (4 * i)); // offsets 4, 8, 12, 16
-    BD_GSV.elev[i].begin(GPS, PSTR("BDGSV"), 5 + (4 * i));   // offsets 5, 9, 13, 17
-    BD_GSV.azim[i].begin(GPS, PSTR("BDGSV"), 6 + (4 * i));   // offsets 6, 10, 14, 18
-    BD_GSV.snr[i].begin(GPS, PSTR("BDGSV"), 7 + (4 * i));    // offsets 7, 11, 15, 19
+    gnssInfoSV.satNum[i].begin(GPS, PSTR("BDGSV"), 4 + (4 * i)); // offsets 4, 8, 12, 16
+    gnssInfoSV.elev[i].begin(GPS, PSTR("BDGSV"), 5 + (4 * i));   // offsets 5, 9, 13, 17
+    gnssInfoSV.azim[i].begin(GPS, PSTR("BDGSV"), 6 + (4 * i));   // offsets 6, 10, 14, 18
+    gnssInfoSV.snr[i].begin(GPS, PSTR("BDGSV"), 7 + (4 * i));    // offsets 7, 11, 15, 19
 
 #endif
   }
