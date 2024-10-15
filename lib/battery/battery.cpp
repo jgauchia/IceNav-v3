@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Battery monitor definition and functions
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-10
  */
 
 
@@ -17,7 +17,7 @@ uint8_t battLevel = 0;
 uint8_t battLevelOld = 0;
 
 /**
- * @brief Configurate ADC Channel for battery reading
+ * @brief Configure ADC Channel for battery reading
  *
  */
 void initADC()
@@ -26,11 +26,16 @@ void initADC()
   //     0dB attenuation (ADC_ATTEN_DB_0) gives full-scale voltage 1.1V
   //     2.5dB attenuation (ADC_ATTEN_DB_2_5) gives full-scale voltage 1.5V
   //     6dB attenuation (ADC_ATTEN_DB_6) gives full-scale voltage 2.2V
-  //     11dB attenuation (ADC_ATTEN_DB_11) gives full-scale voltage 3.9V
+  //     12dB attenuation (ADC_ATTEN_DB_12) gives full-scale voltage 3.9V
 
   #ifndef ELECROW_ESP32
     adc1_config_width(ADC_WIDTH_BIT_12);
-    adc1_config_channel_atten(ADC1_CHANNEL_6, ADC_ATTEN_DB_12);
+    #ifndef TDECK_ESP32S3 
+      adc1_config_channel_atten(ADC1_CHANNEL_6, ADC_ATTEN_DB_12); 
+    #endif
+    #ifdef TDECK_ESP32S3 
+      adc1_config_channel_atten(ADC1_CHANNEL_3, ADC_ATTEN_DB_12); 
+    #endif 
   #endif
   #ifdef ELECROW_ESP32
     adc2_config_channel_atten(ADC2_CHANNEL_6, ADC_ATTEN_DB_12);
@@ -50,7 +55,12 @@ float batteryRead()
   for (int i = 0; i < 100; i++)
   {
     #ifndef ELECROW_ESP32
-     sum += (long)adc1_get_raw(ADC1_CHANNEL_6);
+      #ifndef TDECK_ESP32S3
+        sum += (long)adc1_get_raw(ADC1_CHANNEL_6);
+      #endif
+      #ifdef TDECK_ESP32S3
+        sum += (long)adc1_get_raw(ADC1_CHANNEL_3);
+      #endif
     #endif
     #ifdef ELECROW_ESP32
      int readRaw;

@@ -45,8 +45,3 @@ if dfl_lat != None and dfl_lon != None:
         u'-DDEFAULT_LON=' + dfl_lon + ''
         ])
 
-config_path = "lib/lvgl/lvgl_"+ flavor + "_conf.h"
-output_path =  ".pio/libdeps/" + flavor 
-target_path = output_path + "/lv_conf.h"
-os.makedirs(output_path, 0o755, True)
-shutil.copy(config_path , target_path)

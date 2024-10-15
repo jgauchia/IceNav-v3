@@ -41,6 +41,9 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 ### WiFi CLI Manager
 ![WifiCLI](https://github.com/jgauchia/IceNav-v3/assets/1075178/a7f8af18-2c34-436d-8fef-995540312cb2)
 
+### Web File Server 
+![webfile](https://github.com/user-attachments/assets/ce38f3b6-d8ab-4540-8d01-a2b393cc5898)
+
 </details>
 
 ## Specifications
@@ -61,7 +64,14 @@ Currently, IceNav works with the following hardware setups and specs
 | ESP32S3                |  16M  |  8M   | ``` [env:ESP32S3_N16R8] ```  |     YES      |
 | [ELECROW ESP32 Terminal](https://www.elecrow.com/esp-terminal-with-esp32-3-5-inch-parallel-480x320-tft-capacitive-touch-display-rgb-by-chip-ili9488.html) |  16M  |  8M   | ``` [env:ELECROW_ESP32] ```  | YES [^1] [^2]|
 | [MAKERFABS ESP32S3](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) |  16M  |  2M   | ``` [env:MAKERF_ESP32S3] ``` |   TESTING    |
+| [LILYGO T-DECK](https://www.lilygo.cc/products/t-deck) |  16M  |  8M   | ``` [env:TDECK_ESP32S3] ``` |   YES    |
 
+If the board has a BOOT button (GPIO0) it is possible to use power saving functions.
+To do this, simply include the following Build Flag in the required env in platformio.ini
+
+```-DPOWER_SAVE```
+```-DARDUINO_RUNNING_CORE=1```
+```-DARDUINO_EVENT_RUNNING_CORE=1```
 
 > [!IMPORTANT]
 > Currently, this project can run on any board with an ESP32S3 and at least a 320x480 TFT screen. The idea is to support all existing boards on the market that I can get to work, so if you don't want to use the specific IceNav board, please feel free to create an issue, and I will look into providing support.
@@ -77,7 +87,7 @@ Currently, IceNav works with the following hardware setups and specs
 | ILI9488     | 320x480    | --- | ---  | yes   | FT5x06    | ```-DILI9488_FT5x06_16B```       |
 | ILI9341     | 320x240    | yes | ---  | ---   | XPT2046   | ```-DILI9341_XPT2046_SPI```      |
 
-If TFT shares SPI bus with SD card add the following Build Flag to platformio.ini
+If TFT shares SPI bus with SD card add the followings Build Flag to platformio.ini
 
 ```-DSPI_SHARED```
 
@@ -106,7 +116,7 @@ If you wish to add any other type of sensor, module, etc., you can create a PR w
 
 See **hal.hpp** for pinouts configuration
 
-## SD Map Tile File structure
+## SD Renderized Map Tile File structure
 
 Using [Maperitive](http://maperitive.net/) select your zone and generate your tiles. For that enter to `MAP-> Set Geometry bounds` draw or expand the square of your zone and run the command `generate-tiles minzoom=6 maxzoom=17`, It could takes long time, maybe 1 hour or more depending your area.
 
@@ -171,7 +181,7 @@ Please follow the instructions provided by [OSM_Extract](https://github.com/ares
 > pio run -e environment --target upload
 > ```
 > 
-> After the first run, load the icons and assets with:
+> After this, load the icons and assets with:
 > 
 > ```bash
 > pio run --target uploadfs
@@ -179,7 +189,21 @@ Please follow the instructions provided by [OSM_Extract](https://github.com/ares
 
 
 > [!TIP]
-> Optional, for map debugging version with specific coordinates, build and install the firmware with the next environment variables, like this:
+> Optional, for map debugging with specific coordinates, or when you are in indoors, you are able to set the defaults coordinates, on two ways:
+
+> **Using the CLI**
+>
+> Using the next commands to set your default coordinates, for instance:
+>
+> ```bash
+> klist
+> kset defLAT 52.5200
+> kset defLON 13.4049
+> ```
+> 
+> **Using enviroment variables**:
+>
+> Export your coordinates before to build and upload, for instance:
 > 
 > ```bash
 > export ICENAV3_LAT=52.5200
@@ -187,27 +211,31 @@ Please follow the instructions provided by [OSM_Extract](https://github.com/ares
 > pio run --target upload
 > ```
 
-> [!NOTE]
-> For production version don't forget unset these environment variables.  
-
 ## CLI
 
 IceNav has a basic CLI accessible via Serial and optionally via Telnet if enabled. When you access the CLI and type `help`, you should see the following commands:
 
-
 ```bash
 clear:          clear shell
 info:           get device information
-nmcli:          network manager CLI.
+klist:          list of user preferences. ('all' param show all)
+kset:           set an user extra preference
+nmcli:          network manager CLI. Type nmcli help for more info
+outnmea:        toggle GPS NMEA output (or Ctrl+C to stop)
+poweroff:       perform a ESP32 deep sleep
 reboot:         perform a ESP32 reboot
 scshot:         screenshot to SD or sending a PC
+settings:       device settings
 waypoint:       waypoint utilities
+webfile:        enable/disable Web file server
 wipe:           wipe preferences to factory default
 ```
 
 Some extra details:
 
 **nmcli**: IceNav use a `wcli` network manager library. For more details of this command and its sub commands please refer to [here](https://github.com/hpsaturn/esp32-wifi-cli?tab=readme-ov-file#readme)
+
+**outnmea**: this command toggle the GPS output to the serial console. With that it will be compatible with external GPS software like `PyGPSClient` and others. To stop these messages in your console, just only repeat the same command or perform a `CTRL+C`.
 
 **scshot**: This utility can save a screenshot to the root of your SD, with the name: `screenshot.raw`. You can convert it to png using the `convert.py` script in the `tools` folder.
 
@@ -223,6 +251,8 @@ Ensure your PC has the specified port open and firewall access enabled to receiv
 nc -l -p 8123 > screenshot.raw
 ```
 
+**settings**: Device settings type `settings` for detailed options.
+
 **waypoint**: type `waypoint` for detailed options.
 
 Additionally, this waypoint command can send the waypoint over WiFi using the following syntax (replace IP with your PC IP):
@@ -237,7 +267,22 @@ Ensure your PC has the specified port open and firewall access enabled to receiv
 nc -l -p 8123 > waypoint.gpx
 ```
 
-### TO DO
+## Web File Server 
+
+IceNav has a small web file server (https://youtu.be/IYLcdP40cU4) to manage existing files on the SD card.
+An active WiFi connection is required (to do this, see how to do it using CLI).
+
+The Web File Server will start automatically if default automatic network connection is enabled (see CLI).
+
+To access the Web File Server, simply use any browser and go to the following address: http://icenav.local
+
+> [!CAUTION]
+> This feature has known issues (failures when uploading/downloading some large files, web refresh...) if the SPI bus is shared between the TFT and the SD card. Tests with boards that do not share this bus have been successful.
+> Work is underway to fix this so that it can be applied to the final design of the IceNav board.
+
+
+
+## TO DO
 
 - [X] LVGL 9 Integration
 - [X] Support other resolutions and TFT models
@@ -246,12 +291,12 @@ nc -l -p 8123 > waypoint.gpx
 - [X] LVGL Optimization 
 - [ ] GPX Integration
 - [ ] Multiple IMU's and Compass module implementation
-- [ ] Power saving
+- [X] Power saving
 - [X] Vector maps
 - [ ] Google Maps navigation style
 - [x] Optimize code
 - [ ] Fix bugs!
-- [ ] Web file server
+- [X] Web file server
       
 
 ## Special thanks to....
@@ -274,3 +319,4 @@ nc -l -p 8123 > waypoint.gpx
 * OSM to binary vectorial maps [OSM_Extract](https://github.com/aresta/OSM_Extract) thanks to [@aresta](https://github.com/aresta)
 * Preferences Library [Easy Preferences](https://github.com/hpsaturn/easy-preferences) thanks to [@hpsaturn](https://github.com/hpsaturn)
 * Wifi CLI manager [esp32-wifi-cli](https://github.com/hpsaturn/esp32-wifi-cli) thanks to [@hpsaturn](https://github.com/hpsaturn)
+* Web file server based in [@smford](https://github.com/smford) [esp32-asyncwebserver-fileupload-example ](https://github.com/smford/esp32-asyncwebserver-fileupload-example)

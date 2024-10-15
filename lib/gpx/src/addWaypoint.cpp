@@ -3,15 +3,15 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Add Waypoint functions
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-10
  */
 
 #include "addWaypoint.hpp"
 
 extern const int SD_CS;
 
-wayPoint addWpt = {0, 0, 0, "", "", "", "", "", "", 0, 0, 0, 0};
-wayPoint loadWpt = {0, 0, 0, "", "", "", "", "", "", 0, 0, 0, 0};
+wayPoint addWpt = {0, 0, 0, (char *)"", (char *)"", (char *)"", (char *)"", (char *)"", (char *)"", 0, 0, 0, 0};
+wayPoint loadWpt = {0, 0, 0, (char *)"", (char *)"", (char *)"", (char *)"", (char *)"", (char *)"", 0, 0, 0, 0};
 File gpxFile;
 
 /**

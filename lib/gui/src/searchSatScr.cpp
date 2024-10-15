@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - GPS satellite search screen
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-10
  */
 
 #include "searchSatScr.hpp"
@@ -52,6 +52,7 @@ void searchGPS(lv_timer_t *searchTimer)
   {
     lv_timer_del(searchTimer);
     isSearchingSat = false;
+    zoom = defaultZoom;
     loadMainScreen();
   }
 }

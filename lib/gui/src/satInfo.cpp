@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Satellites info screen functions
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-10
  */
 
 #include "satInfo.hpp"
@@ -118,7 +118,8 @@ void createSNRSprite(TFT_eSprite &spr)
 void drawSNRBar(lv_obj_t *bar, lv_chart_series_t *barSer, uint8_t id, uint8_t satNum, uint8_t snr, TFT_eSprite &spr)
 {
   lv_point_t p;
-  barSer->y_points[id] = snr;
+  lv_chart_get_y_array(bar, barSer);
+  lv_chart_set_value_by_id(bar, barSer, id, snr);
   lv_chart_get_point_pos_by_id(bar, barSer, id, &p);
   spr.setCursor(p.x - 2, 0);
   spr.print(satNum);
@@ -139,7 +140,13 @@ void clearSatInView()
     satTracker[clear].active = false;
   }
   createConstelSprite(constelSprite);
-  constelSprite.pushSprite(150 * scale, 40 * scale);
+  #ifndef TDECK_ESP32S3
+    constelSprite.pushSprite(150 * scale, 40 * scale);
+  #endif
+
+  #ifdef TDECK_ESP32S3
+    constelSprite.pushSprite(250 * scale, 40 * scale);
+  #endif
 }
 
 /**
@@ -176,12 +183,13 @@ void fillSatInView(GSV &gsv, int color)
       createSNRSprite(spriteSNR1);
       createSNRSprite(spriteSNR2);
 
+
       for (int i = 0; i < (MAX_SATELLLITES_IN_VIEW / 2); i++)
       {
-          satelliteBarSerie1->y_points[i] = LV_CHART_POINT_NONE;
-          satelliteBarSerie2->y_points[i] = LV_CHART_POINT_NONE;
+        lv_chart_set_value_by_id(satelliteBar1, satelliteBarSerie1, i, LV_CHART_POINT_NONE);
+        lv_chart_set_value_by_id(satelliteBar2, satelliteBarSerie2, i, LV_CHART_POINT_NONE);
       }
-
+     
       uint8_t activeSat = 0;
       for (int i = 0; i < MAX_SATELLITES; ++i)
       {
@@ -219,9 +227,16 @@ void fillSatInView(GSV &gsv, int color)
     }
 
     lv_chart_refresh(satelliteBar1);
-    spriteSNR1.pushSprite(0, 260 * scale);
-
     lv_chart_refresh(satelliteBar2);
-    spriteSNR2.pushSprite(0, 345 * scale);
+      
+    #ifndef TDECK_ESP32S3
+      spriteSNR1.pushSprite(0, 260 * scale);
+      spriteSNR2.pushSprite(0, 345 * scale);
+    #endif
+
+    #ifdef TDECK_ESP32S3
+      spriteSNR1.pushSprite(0, 260);
+      spriteSNR2.pushSprite(TFT_WIDTH / 2 , 260);
+    #endif 
   }
 }

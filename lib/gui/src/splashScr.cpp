@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Splash screen - NOT LVGL
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-10
  */
 
 #include "splashScr.hpp"
@@ -18,7 +18,7 @@ void splashScreen()
 {
   tft.fillScreen(TFT_BLACK);
   millisActual = millis();
-  setBrightness(0);
+  tft.setBrightness(0);
 
   static uint16_t pngHeight = 0;
   static uint16_t pngWidth = 0;
@@ -53,23 +53,32 @@ void splashScreen()
   memset(&statusString[0], 0, sizeof(statusString));
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
 
-  for (uint8_t fadeIn = 0; fadeIn <= UINT8_MAX - 1; fadeIn++)
+  // #ifndef TDECK_ESP32S3
+    const uint8_t maxBrightness = 255;
+  // #endif
+  // #ifdef TDECK_ESP32S3
+    // const uint8_t maxBrightness = 16;
+  // #endif
+
+  for (uint8_t fadeIn = 0; fadeIn <= ( maxBrightness - 1); fadeIn++)
   {
-    setBrightness(fadeIn);
+    tft.setBrightness(fadeIn);
     millisActual = millis();
     while (millis() < millisActual + 15)
       ;
   }
-  for (uint8_t fadeOut = UINT8_MAX; fadeOut > 0; fadeOut--)
+
+  for (uint8_t fadeOut = maxBrightness; fadeOut > 0; fadeOut--)
   {
-    setBrightness(fadeOut);
+    tft.setBrightness(fadeOut);
     millisActual = millis();
     while (millis() < millisActual + 15)
       ;
   }
+
   while (millis() < millisActual + 100)
     ;
 
   tft.fillScreen(TFT_BLACK);
-  setBrightness(255);
+  tft.setBrightness(maxBrightness);
 }
