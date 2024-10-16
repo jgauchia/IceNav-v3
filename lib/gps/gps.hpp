@@ -54,7 +54,7 @@ extern TinyGPSCustom hdop; // $GPGSA sentence, 16th element
 extern TinyGPSCustom vdop; // $GPGSA sentence, 17th element
 extern TinyGPSCustom fixMode;
 
-extern GSV gnssInfoSV[3]; // GPS Satellites in view
+extern GSV gnssInfoSV[4]; // GNSS info
 
 
 /**

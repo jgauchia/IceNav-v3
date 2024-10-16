@@ -9,21 +9,14 @@
 #include "satInfo.hpp"
 #include "globalGuiDef.h"
 
-// GSV gnssInfoSV; // GPS Satellites in view
-// GSV GL_GSV;  // GLONASS Satellites in view
-// GSV BD_GSV;  // BEIDOU Satellites in view
-
 SatPos satPos; // Satellite position X,Y in constellation map
 
 TFT_eSprite spriteSNR1 = TFT_eSprite(&tft);       // Sprite for snr GPS Satellite Labels
-TFT_eSprite spriteSNR2 = TFT_eSprite(&tft);       // Sprite for snr GPS Satellite Labels
 TFT_eSprite spriteSat = TFT_eSprite(&tft);        // Sprite for satellite position in map
 TFT_eSprite constelSprite = TFT_eSprite(&tft);    // Sprite for Satellite Constellation
 
-lv_obj_t *satelliteBar1;               // Satellite Signal Graphics Bars
-lv_obj_t *satelliteBar2;               // Satellite Signal Graphics Bars
-lv_chart_series_t *satelliteBarSerie1; // Satellite Signal Graphics Bars
-lv_chart_series_t *satelliteBarSerie2; // Satellite Signal Graphics Bars
+lv_obj_t *satelliteBar;               // Satellite Signal Graphics Bars
+lv_chart_series_t *satelliteBarSerie; // Satellite Signal Graphics Bars
 
 /**
  * @brief Get the Satellite position for constellation map
@@ -47,8 +40,7 @@ SatPos getSatPos(uint8_t elev, uint16_t azim)
  */
 void deleteSatInfoSprites()
 {
-  spriteSNR1.deleteSprite();
-  spriteSNR2.deleteSprite();
+  //spriteSNR1.deleteSprite();
   spriteSat.deleteSprite();
   constelSprite.deleteSprite();
 }
@@ -115,14 +107,14 @@ void createSNRSprite(TFT_eSprite &spr)
  * @param snr -> Sat SNR
  * @param spr -> Sat number sprite
  */
-void drawSNRBar(lv_obj_t *bar, lv_chart_series_t *barSer, uint8_t id, uint8_t satNum, uint8_t snr, TFT_eSprite &spr)
+void drawSNRBar(lv_obj_t *bar, lv_chart_series_t *barSer, uint8_t id, uint8_t satNum, uint8_t snr)
 {
   lv_point_t p;
   lv_chart_get_y_array(bar, barSer);
   lv_chart_set_value_by_id(bar, barSer, id, snr);
   lv_chart_get_point_pos_by_id(bar, barSer, id, &p);
-  spr.setCursor(p.x - 2, 0);
-  spr.print(satNum);
+  // spr.setCursor(p.x - 2, 0);
+  // spr.print(satNum);
 }
 
 /**
@@ -157,12 +149,14 @@ void clearSatInView()
  */
 void fillSatInView()
 {
+  uint8_t totalMessages = 0;
+  uint8_t currentMessage = 0;
+
   for (uint8_t sv = 0; sv < 4; sv++ )
   {
     if (gnssInfoSV[sv].totalMsg.isUpdated())
     {
-      // lv_chart_refresh(satelliteBar1);
-      // lv_chart_refresh(satelliteBar2);
+      // lv_chart_refresh(satelliteBar);
 
       for (int i = 0; i < 4; ++i)
       {
@@ -178,30 +172,27 @@ void fillSatInView()
         }
       }
 
-      uint8_t totalMessages = atoi(gnssInfoSV[sv].totalMsg.value());
-      uint8_t currentMessage = atoi(gnssInfoSV[sv].msgNum.value());
+      totalMessages = atoi(gnssInfoSV[sv].totalMsg.value());
+      currentMessage = atoi(gnssInfoSV[sv].msgNum.value());
 
       if (totalMessages == currentMessage)
       {
-        createSNRSprite(spriteSNR1);
-        createSNRSprite(spriteSNR2);
+        //createSNRSprite(spriteSNR1);
 
-
-        // for (int i = 0; i < (MAX_SATELLLITES_IN_VIEW / 2); i++)
-        // {
-        //   lv_chart_set_value_by_id(satelliteBar1, satelliteBarSerie1, i, LV_CHART_POINT_NONE);
-        //   lv_chart_set_value_by_id(satelliteBar2, satelliteBarSerie2, i, LV_CHART_POINT_NONE);
-        // }
+        for (int i = 0; i < MAX_SATELLLITES_IN_VIEW ; i++)
+        {
+          lv_chart_set_value_by_id(satelliteBar, satelliteBarSerie, i, LV_CHART_POINT_NONE);
+        }
       
         uint8_t activeSat = 0;
         for (int i = 0; i < MAX_SATELLITES; ++i)
         {
           if (satTracker[i].active && satTracker[i].snr > 0)
           {
-            if (activeSat < (MAX_SATELLLITES_IN_VIEW / 2))
-              drawSNRBar(satelliteBar1, satelliteBarSerie1, activeSat, satTracker[i].satNum, satTracker[i].snr, spriteSNR1);
-            else
-              drawSNRBar(satelliteBar2, satelliteBarSerie2, (activeSat - (MAX_SATELLLITES_IN_VIEW / 2)), satTracker[i].satNum, satTracker[i].snr, spriteSNR2);
+            if (activeSat < MAX_SATELLLITES_IN_VIEW )
+               drawSNRBar(satelliteBar, satelliteBarSerie, activeSat, satTracker[i].satNum, satTracker[i].snr);
+            // else
+            //   drawSNRBar(satelliteBar2, satelliteBarSerie2, (activeSat - (MAX_SATELLLITES_IN_VIEW / 2)), satTracker[i].satNum, satTracker[i].snr, spriteSNR2);
 
             activeSat++;
 
@@ -228,19 +219,11 @@ void fillSatInView()
           }
         }
       }
+      lv_chart_refresh(satelliteBar);
     }
   }
 
-    lv_chart_refresh(satelliteBar1);
-    lv_chart_refresh(satelliteBar2);
-      
-    #ifndef TDECK_ESP32S3
-      spriteSNR1.pushSprite(0, 260 * scale);
-      spriteSNR2.pushSprite(0, 345 * scale);
-    #endif
 
-    #ifdef TDECK_ESP32S3
-      spriteSNR1.pushSprite(0, 260);
-      spriteSNR2.pushSprite(TFT_WIDTH / 2 , 260);
-    #endif 
+      
+    //spriteSNR1.pushSprite(0, 400 * scale);
 }

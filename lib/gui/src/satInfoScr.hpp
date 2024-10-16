@@ -23,7 +23,7 @@ extern lv_obj_t *hdopLabel;
 extern lv_obj_t *vdopLabel;
 extern lv_obj_t *altLabel;
 
-void satelliteBar1DrawEvent(lv_event_t * event);
+void satelliteBarDrawEvent(lv_event_t * event);
 void satelliteScr(_lv_obj_t *screen);
 
 #endif

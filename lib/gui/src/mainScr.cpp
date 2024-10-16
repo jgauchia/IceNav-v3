@@ -130,6 +130,7 @@ void getActTile(lv_event_t *event)
   lv_obj_t *actTile = lv_tileview_get_tile_act(tilesScreen);
   lv_coord_t tileX = lv_obj_get_x(actTile) / TFT_WIDTH;
   activeTile = tileX;
+  log_v("Active Tile: %d",activeTile);
 }
 
 /**
@@ -193,6 +194,7 @@ void updateMainScreen(lv_timer_t *t)
         #ifdef ENABLE_COMPASS
           heading = getHeading();
         #endif
+
         lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
         break;
           

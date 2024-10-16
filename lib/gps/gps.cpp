@@ -21,7 +21,7 @@ TinyGPSCustom hdop(GPS, PSTR("GNGSA"), 16); // $GNGSA sentence, 16th element
 TinyGPSCustom vdop(GPS, PSTR("GNGSA"), 17); // $GNGSA sentence, 17th element
 TinyGPSCustom fixMode(GPS, PSTR("GNGSA"), 2);
 
-GSV gnssInfoSV[3]; // GPS Satellites in view
+GSV gnssInfoSV[4]; // GPS Satellites in view
 
 /**
  * @brief Init GPS and custom NMEA parsing
@@ -112,7 +112,7 @@ double getLat()
     return GPS.location.lat();
   else if (cfg.getDouble(PKEYS::KLAT_DFL,0.0) != 0.0)
   {
-    // log_v("getLat: %02f",cfg.getDouble(PKEYS::KLAT_DFL,0.0));
+    //log_v("getLat: %02f",cfg.getDouble(PKEYS::KLAT_DFL,0.0));
     return cfg.getDouble(PKEYS::KLAT_DFL,0.0);
   }
   else
@@ -135,7 +135,7 @@ double getLon()
     return GPS.location.lng();
   else if (cfg.getDouble(PKEYS::KLON_DFL,0.0) != 0.0)
   {
-    // log_v("getLon: %02f",cfg.getDouble(PKEYS::KLON_DFL,0.0));
+    //log_v("getLon: %02f",cfg.getDouble(PKEYS::KLON_DFL,0.0));
     return cfg.getDouble(PKEYS::KLON_DFL,0.0);
   }
   else
