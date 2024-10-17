@@ -48,35 +48,20 @@ struct GSV
  * @brief Custom NMEA sentences
  *
  */
-#ifdef AT6558D_GPS
-
 // DOP and fix mode
-  extern TinyGPSCustom pdop; // $GNGSA sentence, 15th element
-  extern TinyGPSCustom hdop; // $GNGSA sentence, 16th element
-  extern TinyGPSCustom vdop; // $GNGSA sentence, 17th element
-  extern TinyGPSCustom fixMode;
+extern TinyGPSCustom pdop; // $GPGSA sentence, 15th element
+extern TinyGPSCustom hdop; // $GPGSA sentence, 16th element
+extern TinyGPSCustom vdop; // $GPGSA sentence, 17th element
+extern TinyGPSCustom fixMode;
 
-  extern GSV GPS_GSV; // GPS Satellites in view
-  extern GSV GL_GSV;  // GLONASS Satellites in view
-  extern GSV BD_GSV;  // BEIDOU Satellites in view
+extern GSV gnssInfoSV[3]; // GNSS info
 
-#else
-
-  // DOP and fix mode
-  extern TinyGPSCustom pdop; // $GPGSA sentence, 15th element
-  extern TinyGPSCustom hdop; // $GPGSA sentence, 16th element
-  extern TinyGPSCustom vdop; // $GPGSA sentence, 17th element
-  extern TinyGPSCustom fixMode;
-
-  extern GSV GPS_GSV; // GPS Satellites in view
-
-#endif
 
 /**
  * @brief Structure for satellite position (number, elev, azimuth,...)
  *
  */
-struct
+struct SATINFO
 {
   bool active;
   uint8_t satNum;
@@ -85,7 +70,11 @@ struct
   uint8_t snr;
   uint16_t posX;
   uint16_t posY;
-} satTracker[MAX_SATELLITES];
+  uint8_t type;
+  uint8_t id;
+};
+
+extern SATINFO satTracker[MAX_SATELLITES];
 
 void initGPS();
 double getLat();

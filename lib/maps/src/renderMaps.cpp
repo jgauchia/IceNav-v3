@@ -253,7 +253,6 @@ void generateRenderMap()
     }
 
     releaseSdSPI();
-    vTaskDelay(100);
 
     log_v("TILE: %s", oldMapTile.file);
   }

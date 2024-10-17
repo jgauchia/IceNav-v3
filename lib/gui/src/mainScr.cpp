@@ -130,6 +130,7 @@ void getActTile(lv_event_t *event)
   lv_obj_t *actTile = lv_tileview_get_tile_act(tilesScreen);
   lv_coord_t tileX = lv_obj_get_x(actTile) / TFT_WIDTH;
   activeTile = tileX;
+  log_v("Active Tile: %d",activeTile);
 }
 
 /**
@@ -193,6 +194,7 @@ void updateMainScreen(lv_timer_t *t)
         #ifdef ENABLE_COMPASS
           heading = getHeading();
         #endif
+
         lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
         break;
           
@@ -258,8 +260,6 @@ void updateMap(lv_event_t *event)
       
       releaseSdSPI();
             
-      // deleteMapScrSprites();
-      // createMapScrSprites();
       generateVectorMap(viewPort, memCache, mapTempSprite); 
       
       isPosMoved = false;
@@ -291,22 +291,7 @@ void updateSatTrack(lv_event_t *event)
   if (GPS.altitude.isUpdated())
     lv_label_set_text_fmt(altLabel, "ALT:\n%4dm.", (int)GPS.altitude.meters());
 
-  #ifdef AT6558D_GPS
-    switch ((int)activeGnss)
-    {
-      case 0:
-        fillSatInView(GPS_GSV, TFT_GREEN);
-        break;
-      case 1:
-        fillSatInView(GL_GSV, TFT_BLUE);
-        break;
-      case 2:
-        fillSatInView(BD_GSV, TFT_RED);
-        break;
-    }
-  #else
-    fillSatInView(GPS_GSV, TFT_GREEN);
-  #endif
+  fillSatInView();
 }
 
 /**
