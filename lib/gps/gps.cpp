@@ -21,7 +21,8 @@ TinyGPSCustom hdop(GPS, PSTR("GNGSA"), 16); // $GNGSA sentence, 16th element
 TinyGPSCustom vdop(GPS, PSTR("GNGSA"), 17); // $GNGSA sentence, 17th element
 TinyGPSCustom fixMode(GPS, PSTR("GNGSA"), 2);
 
-GSV gnssInfoSV[4]; // GPS Satellites in view
+GSV gnssInfoSV[3];                  // GNSS info
+SATINFO satTracker[MAX_SATELLITES]; // Satellite info
 
 /**
  * @brief Init GPS and custom NMEA parsing

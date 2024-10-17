@@ -54,14 +54,14 @@ extern TinyGPSCustom hdop; // $GPGSA sentence, 16th element
 extern TinyGPSCustom vdop; // $GPGSA sentence, 17th element
 extern TinyGPSCustom fixMode;
 
-extern GSV gnssInfoSV[4]; // GNSS info
+extern GSV gnssInfoSV[3]; // GNSS info
 
 
 /**
  * @brief Structure for satellite position (number, elev, azimuth,...)
  *
  */
-struct
+struct SATINFO
 {
   bool active;
   uint8_t satNum;
@@ -71,7 +71,10 @@ struct
   uint16_t posX;
   uint16_t posY;
   uint8_t type;
-} satTracker[MAX_SATELLITES];
+  uint8_t id;
+};
+
+extern SATINFO satTracker[MAX_SATELLITES];
 
 void initGPS();
 double getLat();

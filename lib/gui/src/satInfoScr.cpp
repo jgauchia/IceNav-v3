@@ -14,6 +14,27 @@ lv_obj_t *hdopLabel;
 lv_obj_t *vdopLabel;
 lv_obj_t *altLabel;
 
+void drawTextOnLayer(const char * text, lv_layer_t * layer, lv_point_t * p, lv_area_t * coords, lv_color_t color, const void * font, int16_t offset)
+{
+  lv_draw_rect_dsc_t drawRectDsc;
+  lv_draw_rect_dsc_init(&drawRectDsc);
+
+  //drawRectDsc.bg_color = lv_color_black();
+  drawRectDsc.bg_opa = LV_OPA_TRANSP;
+  drawRectDsc.radius = 0;
+  drawRectDsc.bg_image_symbol_font = font;
+  drawRectDsc.bg_image_src = text;
+  drawRectDsc.bg_image_recolor = color;
+
+  lv_area_t a;
+  a.x1 = coords->x1 + p->x - 10;
+  a.x2 = coords->x1 + p->x + 10;
+  a.y1 = coords->y1 + p->y + 10 - offset;
+  a.y2 = a.y1 - 20;
+
+  lv_draw_rect(layer, &drawRectDsc, &a);
+}
+
 /**
  * @brief SNR Bar draw event
  *
@@ -37,7 +58,20 @@ void satelliteBarDrawEvent(lv_event_t * event)
         lv_draw_fill_dsc_t * fill_dsc = lv_draw_task_get_fill_dsc(drawTask);
         if(fill_dsc) 
         {
-          fill_dsc->color = lv_palette_main(LV_PALETTE_BLUE);
+          switch (satTracker[dscId].type)
+          {
+             case 0:
+              fill_dsc->color = lv_palette_main(LV_PALETTE_GREEN);
+              break;
+             case 1:
+              fill_dsc->color = lv_palette_main(LV_PALETTE_BLUE);
+              break;
+             case 2:
+              fill_dsc->color = lv_palette_main(LV_PALETTE_RED);
+              break;
+          }
+
+          
         }
       }
       if (lv_draw_task_get_type(drawTask) == LV_DRAW_TASK_TYPE_BORDER) 
@@ -52,7 +86,24 @@ void satelliteBarDrawEvent(lv_event_t * event)
 
   if (e == LV_EVENT_DRAW_POST_END) 
   {
+    lv_layer_t * layer = lv_event_get_layer(event);
+    char buf[16];
 
+    for (int i = 0; i < totalSatView; i++)
+    {
+      lv_area_t chartObjCoords;
+      lv_obj_get_coords(obj, &chartObjCoords);
+      lv_point_t p;
+      lv_chart_get_point_pos_by_id(obj, lv_chart_get_series_next(obj, NULL), i, &p);
+
+      // // Satellite Type
+      // lv_snprintf(buf, sizeof(buf), LV_SYMBOL_DUMMY"%d", satTracker[i].type);
+      // drawTextOnLayer(buf, layer, &p, &chartObjCoords, lv_color_white(), fontSmall, 15);
+
+      // Satellite Id
+      lv_snprintf(buf, sizeof(buf), LV_SYMBOL_DUMMY"%d", satTracker[i].satNum);
+      drawTextOnLayer(buf, layer, &p, &chartObjCoords, lv_color_white(), fontSmall, (chartObjCoords.y1 + p.y) - chartObjCoords.y2 + 10);
+    }
   }
 }
 
@@ -104,7 +155,7 @@ void satelliteBarDrawEvent(lv_event_t * event)
         satelliteBar = lv_chart_create(wrapper);
         lv_obj_set_size(satelliteBar, TFT_WIDTH * 2, 120 * scale);
         lv_chart_set_div_line_count(satelliteBar, 10, 0);
-        lv_chart_set_range(satelliteBar, LV_CHART_AXIS_PRIMARY_Y, 0, 60);
+        lv_chart_set_range(satelliteBar, LV_CHART_AXIS_PRIMARY_Y, 0, 100);
         satelliteBarSerie = lv_chart_add_series(satelliteBar, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
         lv_chart_set_type(satelliteBar, LV_CHART_TYPE_BAR);
         //lv_obj_set_style_pad_all(satelliteBar, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
