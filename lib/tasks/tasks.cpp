@@ -26,30 +26,36 @@ void gpsTask(void *pvParameters)
   log_v("Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
   while (1)
   {
-    //xSemaphoreTake(gpsMutex, portMAX_DELAY);
-    while (gps->available() > 0)
+    //if ( xSemaphoreTake(gpsMutex, portMAX_DELAY) == pdTRUE )
     {
-      char c = gps->read();
-      GPS.encode(c);
-      if (nmea_output_enable) Serial.print(c);
+
+      while (gps->available() > 0)
+      {
+        char c = gps->read();
+        if (nmea_output_enable) Serial.print(c);
+        GPS.encode(c);
+
+      }
+      if (GPS.time.isValid() && !isTimeFixed)
+      {
+        setTime(GPS.time.hour(),
+                GPS.time.minute(),
+                GPS.time.second(),
+                GPS.date.day(),
+                GPS.date.month(),
+                GPS.date.year());
+        utc = now();
+        local = CE.toLocal(utc);
+        setTime(local);
+        isTimeFixed = true;
+      }
+
+      // if (!GPS.time.isValid() && isTimeFixed)
+      //     isTimeFixed = false;
+      //xSemaphoreGive(gpsMutex);
     }
-    if (GPS.time.isValid() && !isTimeFixed)
-    {
-      setTime(GPS.time.hour(),
-              GPS.time.minute(),
-              GPS.time.second(),
-              GPS.date.day(),
-              GPS.date.month(),
-              GPS.date.year());
-      utc = now();
-      local = CE.toLocal(utc);
-      setTime(local);
-      isTimeFixed = true;
-    }
-    // if (!GPS.time.isValid() && isTimeFixed)
-    //     isTimeFixed = false;
-    //xSemaphoreTake(gpsMutex, portMAX_DELAY); 
-    vTaskDelay(10); /// portTICK_PERIOD_MS);
+     
+    vTaskDelay(10 / portTICK_PERIOD_MS);
   }
 }
 

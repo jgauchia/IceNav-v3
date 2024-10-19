@@ -329,6 +329,10 @@ void initLVGL()
   mainTimer = lv_timer_create(updateMainScreen, UPDATE_MAINSCR_PERIOD, NULL);
   lv_timer_ready(mainTimer);
 
+  // Create Satellite Info Timer
+  satInfoTimer = lv_timer_create(updateSatTrack, UPDATE_MAINSCR_PERIOD, NULL);
+  lv_timer_ready(satInfoTimer);
+
   modifyTheme();
   
   //  Create Screens
