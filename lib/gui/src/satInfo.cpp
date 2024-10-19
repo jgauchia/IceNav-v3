@@ -16,8 +16,10 @@ TFT_eSprite constelSprite = TFT_eSprite(&tft);    // Sprite for Satellite Conste
 
 lv_obj_t *satelliteBar;               // Satellite Signal Graphics Bars
 lv_chart_series_t *satelliteBarSerie; // Satellite Signal Graphics Bars
+bool drawSNRBar = false;              // Control SNR draw event
 uint8_t activeSat = 0;                // ID activeSat
 uint8_t totalSatView = 0;             // Total Sats in view
+
 
 /**
  * @brief Get the Satellite position for constellation map
@@ -116,81 +118,35 @@ void clearSatInView()
  */
 void fillSatInView()
 {
-  activeSat = 0;
-  for (uint8_t clear = 0; clear < MAX_SATELLITES; clear++)
-  {
-    satTracker[clear].satNum = 0;
-    satTracker[clear].elev = 0;
-    satTracker[clear].azim = 0;
-    satTracker[clear].snr = 0;
-    satTracker[clear].active = false;
-    satTracker[clear].type = 0;
-    satTracker[clear].id = 0;
-  }
 
-  for (uint8_t sv = 0; sv < 3; )
-  {
-    if (gnssInfoSV[sv].totalMsg.isUpdated())
+  if ( activeSat == 0 )
+  { 
+    for (int i = 0; i < totalSatView; i++)
     {
-      uint8_t totalMessages = atoi(gnssInfoSV[sv].totalMsg.value());
-      uint8_t currentMessage = atoi(gnssInfoSV[sv].msgNum.value());
+      // satPos = getSatPos(satTracker[i].elev, satTracker[i].azim);
+      // satTracker[i].posX = satPos.x;
+      // satTracker[i].posY = satPos.y;
 
-      for (uint8_t i = 0; i < 4; ++i)
-      {
-        uint8_t snr = atoi(gnssInfoSV[sv].snr[i].value());
-        if ( snr > 0 )
-        {
-          satTracker[activeSat].satNum = atoi(gnssInfoSV[sv].satNum[i].value());
-          satTracker[activeSat].elev = atoi(gnssInfoSV[sv].elev[i].value());
-          satTracker[activeSat].azim = atoi(gnssInfoSV[sv].azim[i].value());
-          satTracker[activeSat].snr = snr;
-          if ( satTracker[activeSat].snr > 0)
-            satTracker[activeSat].active = true;
-          else
-            satTracker[activeSat].active = false;
-          satTracker[activeSat].type = sv;
-          satTracker[activeSat].id = activeSat;
-          activeSat++;
-        }
-      }
+      // spriteSat.fillCircle(6, 4, 2, TFT_GREEN);
+      // spriteSat.setCursor(0 , 8);
+      // spriteSat.print(i + 1);
+      // spriteSat.pushSprite(&constelSprite,satPos.x, satPos.y, TFT_TRANSPARENT);
 
-      if (totalMessages == currentMessage && sv == 2)
-      {
-        for (int i = 0; i < MAX_SATELLLITES_IN_VIEW; i++)
-        {
-          lv_chart_set_value_by_id(satelliteBar, satelliteBarSerie, i, LV_CHART_POINT_NONE);
-        }
-        
-        totalSatView = activeSat;
+      // if ( satTracker[i].posX != satPos.x || satTracker[i].posY != satPos.y)
+      // {
+      //     spriteSat.fillScreen(TFT_TRANSPARENT);
+      //     spriteSat.pushSprite(&constelSprite, satTracker[i].posX, satTracker[i].posY, TFT_TRANSPARENT);
+      // }
 
-        for (int i = 0; i < activeSat; i++)
-        {
-          satPos = getSatPos(satTracker[i].elev, satTracker[i].azim);
-          satTracker[i].posX = satPos.x;
-          satTracker[i].posY = satPos.y;
+      // if ( !satTracker[i].active )
+      // {
+      //   spriteSat.fillScreen(TFT_TRANSPARENT);
+      //   spriteSat.pushSprite(&constelSprite, satTracker[i].posX, satTracker[i].posY, TFT_TRANSPARENT);
+      // }
 
-          spriteSat.fillCircle(6, 4, 2, TFT_GREEN);
-          spriteSat.setCursor(0 , 8);
-          spriteSat.print(i + 1);
-          spriteSat.pushSprite(&constelSprite,satPos.x, satPos.y, TFT_TRANSPARENT);
-
-          if ( satTracker[i].posX != satPos.x || satTracker[i].posY != satPos.y)
-          {
-              spriteSat.fillScreen(TFT_TRANSPARENT);
-              spriteSat.pushSprite(&constelSprite, satTracker[i].posX, satTracker[i].posY, TFT_TRANSPARENT);
-          }
-
-          if ( !satTracker[i].active )
-          {
-            spriteSat.fillScreen(TFT_TRANSPARENT);
-            spriteSat.pushSprite(&constelSprite, satTracker[i].posX, satTracker[i].posY, TFT_TRANSPARENT);
-          }
-
-          if ( satTracker[i].active )
-            lv_chart_set_value_by_id(satelliteBar, satelliteBarSerie, satTracker[i].id, satTracker[i].snr);
-        }
-      }
+        drawSNRBar = true;
+        lv_chart_set_value_by_id(satelliteBar, satelliteBarSerie, satTracker[i].id, satTracker[i].snr);
     }
-    sv++;
+    totalSatView = 0;
   }
 }

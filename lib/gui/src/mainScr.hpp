@@ -28,6 +28,9 @@
 static lv_timer_t *mainTimer;    // Main Screen Timer
 #define UPDATE_MAINSCR_PERIOD 30 // Main Screen update time
 
+static lv_timer_t *satInfoTimer;   // Satellite Info screen Timer
+#define UPDATE_SATINFO_PERIOD 1000 // Satellite Info update time
+
 extern bool isMainScreen;                          // Flag to indicate main screen is selected
 extern bool isReady;                               // Flag to indicate when tileview scroll was finished
 static TFT_eSprite zoomSprite = TFT_eSprite(&tft); // Zoom sprite
@@ -77,7 +80,7 @@ void deleteMapScrSprites();
 void createMapScrSprites();
 void drawMapWidgets();
 void updateMap(lv_event_t *event);
-void updateSatTrack(lv_event_t *event);
+void updateSatTrack(lv_timer_t *t);
 void toolBarEvent(lv_event_t *event);
 void fullScreenEvent(lv_event_t *event);
 void zoomOutEvent(lv_event_t *event);

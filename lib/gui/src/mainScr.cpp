@@ -200,13 +200,52 @@ void updateMainScreen(lv_timer_t *t)
           
       case NAV:
         lv_obj_send_event(navTile, LV_EVENT_VALUE_CHANGED, NULL);
-        break;
-
+        break;       
+      
       case SATTRACK:
-        constelSprite.pushSprite(150 * scale, 40 * scale);
-        lv_obj_send_event(satTrackTile, LV_EVENT_VALUE_CHANGED, NULL);
         break;
-          
+ 
+  totalSatView = activeSat;
+
+  if (gnssInfoSV.totalMsg.isUpdated())
+  {
+
+    uint8_t totalMessages = atoi(gnssInfoSV.totalMsg.value());
+    uint8_t currentMessage = atoi(gnssInfoSV.msgNum.value());
+
+    for (int i = 0; currentMessage < totalMessages ? i < 4 : i < (atoi(gnssInfoSV.satsInView.value()) % 4); ++i)
+    {
+      satTracker[totalSatView].satNum = atoi(gnssInfoSV.satNum[i].value());
+      satTracker[totalSatView].elev = atoi(gnssInfoSV.elev[i].value());
+      satTracker[totalSatView].azim = atoi(gnssInfoSV.azim[i].value());
+      satTracker[totalSatView].snr = atoi(gnssInfoSV.snr[i].value());
+      log_v("Msg %d of %d / Tot SV: %d - %d - Sat Num:%d Elev:%d Azim:%d SNR:%d",
+        currentMessage,totalMessages,atoi(gnssInfoSV.satsInView.value()),totalSatView, 
+        satTracker[totalSatView].satNum,
+        satTracker[totalSatView].elev,
+        satTracker[totalSatView].azim,
+        satTracker[totalSatView].snr);
+      if ( satTracker[totalSatView].snr > 0)
+        satTracker[totalSatView].active = true;
+      else
+        satTracker[totalSatView].active = false;
+      satTracker[totalSatView].type = 0;
+      satTracker[totalSatView].id = totalSatView;
+      totalSatView++;
+    }
+    
+    activeSat = totalSatView;
+    
+    if (totalMessages == currentMessage)
+    {   
+      for (int i = 0; i < MAX_SATELLLITES_IN_VIEW; i++)
+      {
+        drawSNRBar = false;
+        lv_chart_set_value_by_id(satelliteBar, satelliteBarSerie, i, LV_CHART_POINT_NONE);
+      }
+      activeSat = 0;
+    }
+  }
 
       default:
         break;
@@ -279,19 +318,25 @@ void updateMap(lv_event_t *event)
  *
  * @param event
  */
-void updateSatTrack(lv_event_t *event)
+void updateSatTrack(lv_timer_t *t)
 {
-  if (pdop.isUpdated() || hdop.isUpdated() || vdop.isUpdated())
+  if (isScrolled && isMainScreen)
   {
-    lv_label_set_text_fmt(pdopLabel, "PDOP:\n%s", pdop.value());
-    lv_label_set_text_fmt(hdopLabel, "HDOP:\n%s", hdop.value());
-    lv_label_set_text_fmt(vdopLabel, "VDOP:\n%s", vdop.value());
+    if ( activeTile == SATTRACK )
+    {
+        if (pdop.isUpdated() || hdop.isUpdated() || vdop.isUpdated())
+        {
+          lv_label_set_text_fmt(pdopLabel, "PDOP:\n%s", pdop.value());
+          lv_label_set_text_fmt(hdopLabel, "HDOP:\n%s", hdop.value());
+          lv_label_set_text_fmt(vdopLabel, "VDOP:\n%s", vdop.value());
+        }
+
+        if (GPS.altitude.isUpdated())
+          lv_label_set_text_fmt(altLabel, "ALT:\n%4dm.", (int)GPS.altitude.meters());
+
+        fillSatInView();
+    }
   }
-
-  if (GPS.altitude.isUpdated())
-    lv_label_set_text_fmt(altLabel, "ALT:\n%4dm.", (int)GPS.altitude.meters());
-
-  fillSatInView();
 }
 
 /**
@@ -556,6 +601,6 @@ void createMainScr()
   satelliteScr(satTrackTile);
 
   // Satellite Tracking Event
-  lv_obj_add_event_cb(satTrackTile, updateSatTrack, LV_EVENT_VALUE_CHANGED, NULL);
+  //lv_obj_add_event_cb(satTrackTile, updateSatTrack, LV_EVENT_VALUE_CHANGED, NULL);
 }
 

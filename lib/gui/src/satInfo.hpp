@@ -28,6 +28,7 @@ extern TFT_eSprite constelSprite;    // Sprite for Satellite Constellation
 
 extern lv_obj_t *satelliteBar;               // Satellite Signal Graphics Bars
 extern lv_chart_series_t *satelliteBarSerie; // Satellite Signal Graphics Bars
+extern bool drawSNRBar;                      // Control SNR draw event
 extern uint8_t activeSat;                    // Id active Sat
 extern uint8_t totalSatView;                 // Total Sats in view
 
