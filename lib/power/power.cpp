@@ -83,9 +83,7 @@ void deviceShutdown()
 void powerOffPeripherals()
 {
   tftOff();
-  #ifdef TDECK_ESP32S3
-    SPI.end();
-  #endif
+  SPI.end();
   Wire.end();
 }
 

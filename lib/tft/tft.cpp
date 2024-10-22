@@ -178,28 +178,6 @@ void initTFT()
   tft.fillScreen(TFT_BLACK);
   tft.endWrite();
 
-#ifdef ICENAV_BOARD
-  gpio_set_drive_capability(GPIO_NUM_45, GPIO_DRIVE_CAP_3);
-#endif
-#ifdef ESP32_N16R4
-  gpio_set_drive_capability(GPIO_NUM_33, GPIO_DRIVE_CAP_3);
-#endif
-#ifdef ESP32S3_N16R8
-  gpio_set_drive_capability(GPIO_NUM_45, GPIO_DRIVE_CAP_3);
-#endif
-#ifdef MAKERF_ESP32S3
-  gpio_set_drive_capability(GPIO_NUM_45, GPIO_DRIVE_CAP_3);
-#endif
-#ifdef ELECROW_ESP32
-  gpio_set_drive_capability(GPIO_NUM_46, GPIO_DRIVE_CAP_3);
-#endif
-
-// #ifndef TDECK_ESP32S3
-//   ledcSetup(0, 5000, 8);
-//   ledcAttachPin(TFT_BL, 0);
-//   ledcWrite(0, 255);
-// #endif
-
 #ifdef TOUCH_INPUT
   touchCalibrate();
 #endif
