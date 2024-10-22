@@ -63,7 +63,6 @@ void loadPreferences()
   offY = cfg.getFloat(PKEYS::KCOMP_OFFSET_Y, 0.0);
 #endif
   isMapRotation = cfg.getBool(PKEYS::KMAP_ROT, false);
-  zoom = defaultZoom;
   showMapCompass = cfg.getBool(PKEYS::KMAP_COMPASS, true);
   isCompassRot = cfg.getBool(PKEYS::KCOMP_ROT, true);
   showMapSpeed = cfg.getBool(PKEYS::KMAP_SPEED, true);
@@ -91,6 +90,7 @@ void loadPreferences()
     maxZoom = 17;
     defaultZoom = cfg.getUInt(PKEYS::KDEF_ZOOM, defZoomRender);
   }
+  zoom = defaultZoom;
   isMapFullScreen = cfg.getBool(PKEYS::KMAP_MODE, true);
   GPS_TX = cfg.getUInt(PKEYS::KGPS_TX, GPS_TX);
   GPS_RX = cfg.getUInt(PKEYS::KGPS_RX, GPS_RX);
@@ -206,17 +206,17 @@ void saveGPSBaud(uint16_t gpsBaud)
   if (gpsBaud != 4)
   {
 #ifdef AT6558D_GPS
-    gps->flush();
-    gps->println(GPS_BAUD_PCAS[gpsBaud]);
-    gps->flush();
-    gps->println("$PCAS00*01\r\n");
-    gps->flush();
+    gpsPort.flush();
+    gpsPort.println(GPS_BAUD_PCAS[gpsBaud]);
+    gpsPort.flush();
+    gpsPort.println("$PCAS00*01\r\n");
+    gpsPort.flush();
     delay(500);
 #endif
-    gps->flush();
-    gps->end();
+    gpsPort.flush();
+    gpsPort.end();
     delay(500);
-    gps->begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
+    gpsPort.begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
     delay(500);
   }
   else
@@ -225,10 +225,10 @@ void saveGPSBaud(uint16_t gpsBaud)
 
     if (gpsBaudDetected != 0)
     {
-      gps->flush();
-      gps->end();
+      gpsPort.flush();
+      gpsPort.end();
       delay(500);
-      gps->begin(gpsBaudDetected, SERIAL_8N1, GPS_RX, GPS_TX);
+      gpsPort.begin(gpsBaudDetected, SERIAL_8N1, GPS_RX, GPS_TX);
       delay(500);
     }
   }
@@ -243,11 +243,11 @@ void saveGPSUpdateRate(uint16_t gpsUpdateRate)
 {
   cfg.saveShort(PKEYS::KGPS_RATE, gpsUpdateRate);
 #ifdef AT6558D_GPS
-  gps->flush();
-  gps->println(GPS_RATE_PCAS[gpsUpdateRate]);
-  gps->flush();
-  gps->println("$PCAS00*01\r\n");
-  gps->flush();
+  gpsPort.flush();
+  gpsPort.println(GPS_RATE_PCAS[gpsUpdateRate]);
+  gpsPort.flush();
+  gpsPort.println("$PCAS00*01\r\n");
+  gpsPort.flush();
   delay(500);
 #endif
 }

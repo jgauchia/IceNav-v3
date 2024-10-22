@@ -16,7 +16,6 @@
 #include <esp_bt.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
-#include <Timezone.h>
 
 // Hardware includes
 #include "hal.hpp"

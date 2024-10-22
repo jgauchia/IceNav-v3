@@ -15,6 +15,8 @@
  */
 uint8_t battLevel = 0;
 uint8_t battLevelOld = 0;
+float batteryMax = 4.2;      // maximum voltage of battery
+float batteryMin = 3.6;      // minimum voltage of battery before shutdown
 
 /**
  * @brief Configure ADC Channel for battery reading

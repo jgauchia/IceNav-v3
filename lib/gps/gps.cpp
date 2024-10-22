@@ -10,34 +10,13 @@
 
 bool isGpsFixed = false;
 bool isTimeFixed = false;
-HardwareSerial *gps = &Serial2;
-TinyGPSPlus GPS = TinyGPSPlus();
 long gpsBaudDetected = 0;
 bool nmea_output_enable = false;
-
-#ifdef AT6558D_GPS
-
-// DOP and fix mode
-TinyGPSCustom pdop(GPS, PSTR("GNGSA"), 15); // $GNGSA sentence, 15th element
-TinyGPSCustom hdop(GPS, PSTR("GNGSA"), 16); // $GNGSA sentence, 16th element
-TinyGPSCustom vdop(GPS, PSTR("GNGSA"), 17); // $GNGSA sentence, 17th element
-TinyGPSCustom fixMode(GPS, PSTR("GNGSA"), 2);
-
-GSV GPS_GSV; // GPS Satellites in view
-GSV GL_GSV;  // GLONASS Satellites in view
-GSV BD_GSV;  // BEIDOU Satellites in view
-
-#else
-
-// DOP and fix mode
-TinyGPSCustom pdop(GPS, PSTR("GPGSA"), 15); // $GPGSA sentence, 15th element
-TinyGPSCustom hdop(GPS, PSTR("GPGSA"), 16); // $GPGSA sentence, 16th element
-TinyGPSCustom vdop(GPS, PSTR("GPGSA"), 17); // $GPGSA sentence, 17th element
-TinyGPSCustom fixMode(GPS, PSTR("GPGSA"), 2);
-
-GSV GPS_GSV; // GPS Satellites in view
-
-#endif
+gps_fix  fix;
+NMEAGPS  GPS;
+GPSDATA gpsData;
+SV satTracker[MAX_SATELLITES];
+NeoGPS::time_t localTime = 0;
 
 /**
  * @brief Init GPS and custom NMEA parsing
@@ -46,83 +25,45 @@ GSV GPS_GSV; // GPS Satellites in view
 void initGPS()
 {
   if (gpsBaud != 4)
-    gps->begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
+    gpsPort.begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
   else
   {
     gpsBaudDetected = autoBaudGPS();
 
     if (gpsBaudDetected != 0)
     {
-      gps->begin(gpsBaudDetected, SERIAL_8N1, GPS_RX, GPS_TX);
+      gpsPort.begin(gpsBaudDetected, SERIAL_8N1, GPS_RX, GPS_TX);
     }
   }
 #ifdef AT6558D_GPS
-      // GPS
-      // gps->println("$PCAS04,1*18\r\n");
-
-      // GPS+GLONASS
-      // gps->println("$PCAS04,5*1C\r\n");
-
-   
-      // // WARM START¿?
-      // gps->println("$PCAS10,0*1C\r\n");
-      // gps->flush();
+      // FACTORY RESET
+      // gpsPort.println("$PCAS10,3*1F\r\n");
+      // gpsPort.flush();
       // delay(100);
 
+      // GPS
+      // gpsPort.println("$PCAS04,1*18\r\n")
+
+      // GPS+GLONASS
+      // gpsPort.println("$PCAS04,5*1C\r\n");
+
       // GPS+BDS+GLONASS
-      gps->println("$PCAS04,7*1E\r\n");
-      gps->flush();
+      gpsPort.println("$PCAS04,7*1E\r\n");
+      gpsPort.flush();
       delay(100);
 
       // Update Rate
-      gps->println(GPS_RATE_PCAS[gpsUpdate]);
-      gps->flush();
+      gpsPort.println(GPS_RATE_PCAS[gpsUpdate]);
+      gpsPort.flush();
       delay(100);
 
-      // Set NMEA 4.1
-      gps->println("$PCAS05,2*1A\r\n");
-      gps->flush();
+      // Set NMEA 4.1 
+      gpsPort.println("$PCAS05,2*1A\r\n");
+      gpsPort.flush();
       delay(100);
 #endif
 
-  // Initialize satellites in view custom NMEA structure
-  GPS_GSV.totalMsg.begin(GPS, PSTR("GPGSV"), 1);
-  GPS_GSV.msgNum.begin(GPS, PSTR("GPGSV"), 2);
-  GPS_GSV.satsInView.begin(GPS, PSTR("GPGSV"), 3);
-
-#ifdef AT6558D_GPS
-
-  GL_GSV.totalMsg.begin(GPS, PSTR("GLGSV"), 1);
-  GL_GSV.msgNum.begin(GPS, PSTR("GLGSV"), 2);
-  GL_GSV.satsInView.begin(GPS, PSTR("GLGSV"), 3);
-
-  BD_GSV.totalMsg.begin(GPS, PSTR("BDGSV"), 1);
-  BD_GSV.msgNum.begin(GPS, PSTR("BDGSV"), 2);
-  BD_GSV.satsInView.begin(GPS, PSTR("BDGSV"), 3);
-
-#endif
-
-  for (int i = 0; i < 4; ++i)
-  {
-    GPS_GSV.satNum[i].begin(GPS, PSTR("GPGSV"), 4 + (4 * i)); // offsets 4, 8, 12, 16
-    GPS_GSV.elev[i].begin(GPS, PSTR("GPGSV"), 5 + (4 * i));   // offsets 5, 9, 13, 17
-    GPS_GSV.azim[i].begin(GPS, PSTR("GPGSV"), 6 + (4 * i));   // offsets 6, 10, 14, 18
-    GPS_GSV.snr[i].begin(GPS, PSTR("GPGSV"), 7 + (4 * i));    // offsets 7, 11, 15, 19
-
-#ifdef AT6558D_GPS
-
-    GL_GSV.satNum[i].begin(GPS, PSTR("GLGSV"), 4 + (4 * i)); // offsets 4, 8, 12, 16
-    GL_GSV.elev[i].begin(GPS, PSTR("GLGSV"), 5 + (4 * i));   // offsets 5, 9, 13, 17
-    GL_GSV.azim[i].begin(GPS, PSTR("GLGSV"), 6 + (4 * i));   // offsets 6, 10, 14, 18
-    GL_GSV.snr[i].begin(GPS, PSTR("GLGSV"), 7 + (4 * i));    // offsets 7, 11, 15, 19
-
-    BD_GSV.satNum[i].begin(GPS, PSTR("BDGSV"), 4 + (4 * i)); // offsets 4, 8, 12, 16
-    BD_GSV.elev[i].begin(GPS, PSTR("BDGSV"), 5 + (4 * i));   // offsets 5, 9, 13, 17
-    BD_GSV.azim[i].begin(GPS, PSTR("BDGSV"), 6 + (4 * i));   // offsets 6, 10, 14, 18
-    BD_GSV.snr[i].begin(GPS, PSTR("BDGSV"), 7 + (4 * i));    // offsets 7, 11, 15, 19
-
-#endif
-  }
+    localTime.init();
 }
 
 /**
@@ -131,8 +72,8 @@ void initGPS()
  */
 double getLat()
 {
-  if (GPS.location.isValid())
-    return GPS.location.lat();
+  if (fix.valid.location)
+    return fix.latitude();
   else if (cfg.getDouble(PKEYS::KLAT_DFL,0.0) != 0.0)
   {
     // log_v("getLat: %02f",cfg.getDouble(PKEYS::KLAT_DFL,0.0));
@@ -154,8 +95,8 @@ double getLat()
  */
 double getLon()
 {
-  if (GPS.location.isValid())
-    return GPS.location.lng();
+  if (fix.valid.location)
+    return fix.longitude();
   else if (cfg.getDouble(PKEYS::KLON_DFL,0.0) != 0.0)
   {
     // log_v("getLon: %02f",cfg.getDouble(PKEYS::KLON_DFL,0.0));
@@ -172,13 +113,77 @@ double getLon()
 }
 
 /**
+ * @brief Get GPS parsed data
+ *
+ */
+void getGPSData()
+{
+  // GPS Fix
+  if (fix.status != gps_fix::STATUS_NONE)
+    isGpsFixed = true;
+
+  // GPS Not fixed
+  if (fix.status == gps_fix::STATUS_NONE)
+    isGpsFixed = false;
+
+  // Satellite Count
+  gpsData.satellites = fix.satellites;
+
+  // Fix Mode
+  gpsData.fixMode = fix.status;
+
+  // Time and Date
+  if (fix.valid.time && fix.valid.date)
+  {
+    adjustTime( fix.dateTime );
+    localTime = fix.dateTime;
+  }
+
+  // Altitude
+  if (fix.valid.altitude)
+    gpsData.altitude = fix.alt.whole;
+
+  // Speed
+  if (fix.valid.speed)
+    gpsData.speed = (uint16_t)fix.speed_kph();
+
+  // Latitude and Longitude
+  gpsData.latitude = getLat();
+  gpsData.longitude = getLon();
+
+  // Heading
+  if (fix.valid.heading)
+    gpsData.heading = (uint16_t)fix.heading();
+
+  // HDOP , PDOP , VDOP
+  if (fix.valid.hdop)
+    gpsData.hdop = (float)fix.hdop / 1000;
+  if (fix.valid.pdop)
+    gpsData.pdop = (float)fix.pdop / 1000;
+  if (fix.valid.vdop)
+    gpsData.vdop = (float)fix.vdop / 1000;
+
+  // Satellite info
+  gpsData.satInView = (uint8_t)GPS.sat_count;
+  for (uint8_t i = 0; i < GPS.sat_count; i++) 
+  {
+    satTracker[i].satNum = (uint8_t)GPS.satellites[i].id;
+    satTracker[i].elev = (uint8_t)GPS.satellites[i].elevation;
+    satTracker[i].azim = (uint16_t)GPS.satellites[i].azimuth;
+    satTracker[i].snr = (uint8_t)GPS.satellites[i].snr;
+    satTracker[i].active = GPS.satellites[i].tracked;
+    strncpy(satTracker[i].talker_id, GPS.satellites[i].talker_id, 3);
+  }
+}
+
+/**
  *  @brief return pulse rate from RX GPS pin
  *  @return pulse rate
  */
 long detectRate(int rxPin)  
 {
   long  rate = 10000, x=2000;
-  pinMode(rxPin, INPUT);      // make sure serial in is a input pin
+  pinMode(rxPin, INPUT);      // make sure Serial in is a input pin
   digitalWrite (rxPin, HIGH); // pull up enabled just for noise protection
 
   for (int i = 0; i < 5; i++)

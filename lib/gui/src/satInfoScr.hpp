@@ -26,7 +26,6 @@ extern lv_style_t styleRadio;
 extern lv_style_t styleRadioChk;
 extern uint32_t activeGnss;
 
-void activeGnssEvent(lv_event_t *event);
 void satelliteScr(_lv_obj_t *screen);
 
 #endif

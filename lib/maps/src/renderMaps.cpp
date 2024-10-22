@@ -163,7 +163,7 @@ MapTile getMapTile(double lon, double lat, uint8_t zoomLevel, int16_t offsetX, i
  */
 void generateRenderMap()
 {
-  currentMapTile = getMapTile(getLon(), getLat(), zoom, 0, 0);
+  currentMapTile = getMapTile(gpsData.longitude, gpsData.latitude, zoom, 0, 0);
 
   bool foundRoundMap = false;
   bool missingMap = false;
@@ -211,7 +211,7 @@ void generateRenderMap()
             // Skip Center Tile
             continue;
           }
-          roundMapTile = getMapTile(getLon(), getLat(), zoom, x, y);
+          roundMapTile = getMapTile(gpsData.longitude, gpsData.latitude, zoom, x, y);
 
           foundRoundMap = mapTempSprite.drawPngFile(SD, roundMapTile.file, (x - startX) * tileSize, (y - startY) * tileSize);
           if (!foundRoundMap)

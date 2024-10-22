@@ -36,11 +36,9 @@ void buttonEvent(lv_event_t *event)
  *
  */
 void searchGPS(lv_timer_t *searchTimer)
-{
-  if (GPS.location.isValid())
+{ 
+  if (isGpsFixed)
   {
-    isGpsFixed = true;
-   
     millisActual = millis();
     while (millis() < millisActual + 2000)
       ;
@@ -48,6 +46,7 @@ void searchGPS(lv_timer_t *searchTimer)
     isSearchingSat = false;
     loadMainScreen();
   }
+
   if (skipSearch)
   {
     lv_timer_del(searchTimer);

@@ -65,13 +65,13 @@ void updateCompassScr(lv_event_t * event)
     //#endif
   }
   if (obj==latitude)
-    lv_label_set_text_fmt(latitude, "%s", latFormatString(getLat()));
+    lv_label_set_text_fmt(latitude, "%s", latFormatString(gpsData.latitude));
   if (obj==longitude)
-    lv_label_set_text_fmt(longitude, "%s", lonFormatString(getLon()));
+    lv_label_set_text_fmt(longitude, "%s", lonFormatString(gpsData.longitude));
   if (obj==altitude)
-    lv_label_set_text_fmt(obj, "%4d m.", (int)GPS.altitude.meters());
+    lv_label_set_text_fmt(obj, "%4d m.", gpsData.altitude);
   if (obj==speedLabel)
-    lv_label_set_text_fmt(obj, "%3d Km/h", (int)GPS.speed.kmph());
+    lv_label_set_text_fmt(obj, "%3d Km/h", gpsData.speed);
 }
 
 /**
@@ -169,27 +169,16 @@ void updateMainScreen(lv_timer_t *t)
           heading = getHeading();
         #endif
         #ifndef ENABLE_COMPASS
-          heading = GPS.course.deg();
+          heading = gpsData.heading;
         #endif
         lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
-        
-        
-        if(GPS.location.isValid())
-        {
-          lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
-          lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
-        }
-        if (GPS.altitude.isValid())
-        {
-          lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
-        }
-
-        if (GPS.speed.isValid())
-          lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
+        lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
+        lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
+        lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
+        lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
         break;
       
       case MAP:
-        // if (GPS.location.isUpdated())
         #ifdef ENABLE_COMPASS
           heading = getHeading();
         #endif
@@ -246,7 +235,7 @@ void updateMap(lv_event_t *event)
 {
   if (isVectorMap)
   {
-    getPosition(getLat(), getLon());
+    getPosition(gpsData.latitude, gpsData.longitude);
     if (isPosMoved)
     {
       tileSize = VECTOR_TILE_SIZE;
@@ -281,32 +270,13 @@ void updateMap(lv_event_t *event)
  */
 void updateSatTrack(lv_event_t *event)
 {
-  if (pdop.isUpdated() || hdop.isUpdated() || vdop.isUpdated())
-  {
-    lv_label_set_text_fmt(pdopLabel, "PDOP:\n%s", pdop.value());
-    lv_label_set_text_fmt(hdopLabel, "HDOP:\n%s", hdop.value());
-    lv_label_set_text_fmt(vdopLabel, "VDOP:\n%s", vdop.value());
-  }
+  lv_label_set_text_fmt(pdopLabel, "PDOP:\n%.1f", gpsData.pdop);
+  lv_label_set_text_fmt(hdopLabel, "HDOP:\n%.1f", gpsData.hdop);
+  lv_label_set_text_fmt(vdopLabel, "VDOP:\n%.1f", gpsData.vdop);
 
-  if (GPS.altitude.isUpdated())
-    lv_label_set_text_fmt(altLabel, "ALT:\n%4dm.", (int)GPS.altitude.meters());
+  lv_label_set_text_fmt(altLabel, "ALT:\n%4dm.", gpsData.altitude);
 
-  #ifdef AT6558D_GPS
-    switch ((int)activeGnss)
-    {
-      case 0:
-        fillSatInView(GPS_GSV, TFT_GREEN);
-        break;
-      case 1:
-        fillSatInView(GL_GSV, TFT_BLUE);
-        break;
-      case 2:
-        fillSatInView(BD_GSV, TFT_RED);
-        break;
-    }
-  #else
-    fillSatInView(GPS_GSV, TFT_GREEN);
-  #endif
+  fillSatInView();
 }
 
 /**
@@ -448,7 +418,7 @@ void zoomOutEvent(lv_event_t *event)
  */
 void updateNavEvent(lv_event_t *event)
 {
-  int wptDistance = (int)calcDist(getLat(), getLon(), destLat, destLon);
+  int wptDistance = (int)calcDist(gpsData.latitude, gpsData.longitude, destLat, destLon);
   lv_label_set_text_fmt(distNav,"%d m.", wptDistance);
 
   if (wptDistance == 0)
@@ -461,10 +431,10 @@ void updateNavEvent(lv_event_t *event)
   else
   {
     #ifdef ENABLE_COMPASS
-      double wptCourse = calcCourse(getLat(), getLon(), loadWpt.lat, loadWpt.lon) - getHeading();
+      double wptCourse = calcCourse(gpsData.latitude, gpsData.longitude, loadWpt.lat, loadWpt.lon) - getHeading();
     #endif
     #ifndef ENABLE_COMPASS
-      double wptCourse = calcCourse(getLat(), getLon(), loadWpt.lat, loadWpt.lon) - GPS.course.deg();
+      double wptCourse = calcCourse(gpsData.latitude, gpsData.longitude, loadWpt.lat, loadWpt.lon) - gpsData.heading;
     #endif
     lv_img_set_angle(arrowNav, (wptCourse * 10));
   }

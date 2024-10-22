@@ -10,7 +10,7 @@
 #define SETTINGS_HPP
 
 #include <EasyPreferences.hpp>
-#include <TinyGPS++.h>
+#include <NMEAGPS.h>
 #include "gps.hpp"
 #include "battery.hpp"
 #include "compass.hpp"
