@@ -56,9 +56,10 @@ void powerLightSleep()
 void deviceSuspend()
 {
   int brightness = tft.getBrightness();
+  lv_msgbox_close(powerMsg); 
+  lv_refr_now(display);
   tftOff();
   powerLightSleep();
-  lv_msgbox_close(powerMsg);  
   tftOn(brightness);
   while (digitalRead(BOARD_BOOT_PIN) != 1)
   { 

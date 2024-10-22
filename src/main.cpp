@@ -50,8 +50,6 @@ extern xSemaphoreHandle gpsMutex;
 #include "lvglSetup.hpp"
 #include "tasks.hpp"
 
-extern uint32_t deviceSuspendCount;
-
 /**
  * @brief Setup
  *
@@ -179,7 +177,4 @@ void loop()
     lv_timer_handler();
     vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
   }
-  if (deviceSuspendCount == 500) deviceShutdown();
-  if (deviceSuspendCount == 1) deviceSuspend();
-  if (deviceSuspendCount > 0 ) deviceSuspendCount--;
 }

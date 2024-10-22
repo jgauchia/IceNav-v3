@@ -121,7 +121,6 @@ void IRAM_ATTR keypadRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 #ifdef POWER_SAVE
 
 extern const uint8_t BOARD_BOOT_PIN;
-uint32_t deviceSuspendCount = 0;
 
 /**
 * @brief LVGL GPIO read
@@ -158,7 +157,10 @@ void gpioLongEvent(lv_event_t *event)
   lv_obj_t *labelText = lv_msgbox_get_content(powerMsg);
   lv_obj_set_style_text_align(labelText, LV_TEXT_ALIGN_CENTER, 0);
   lv_msgbox_add_text(powerMsg, LV_SYMBOL_WARNING " This device will shutdown shortly");
-  deviceSuspendCount = 800;
+  lv_obj_invalidate(powerMsg);
+  lv_refr_now(display);
+  vTaskDelay(2000);
+  deviceShutdown();
 }
 
 /**
@@ -178,7 +180,10 @@ void gpioClickEvent(lv_event_t *event)
   lv_obj_t *labelText = lv_msgbox_get_content(powerMsg);
   lv_obj_set_style_text_align(labelText, LV_TEXT_ALIGN_CENTER, 0);
   lv_msgbox_add_text(powerMsg, LV_SYMBOL_WARNING " This device will sleep shortly");
-  deviceSuspendCount = 300;
+  lv_obj_invalidate(powerMsg);
+  lv_refr_now(display);
+  vTaskDelay(2000);
+  deviceSuspend();
 }
 
 /**
