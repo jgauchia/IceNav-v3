@@ -320,3 +320,9 @@ To access the Web File Server, simply use any browser and go to the following ad
 * Preferences Library [Easy Preferences](https://github.com/hpsaturn/easy-preferences) thanks to [@hpsaturn](https://github.com/hpsaturn)
 * Wifi CLI manager [esp32-wifi-cli](https://github.com/hpsaturn/esp32-wifi-cli) thanks to [@hpsaturn](https://github.com/hpsaturn)
 * Web file server based in [@smford](https://github.com/smford) [esp32-asyncwebserver-fileupload-example ](https://github.com/smford/esp32-asyncwebserver-fileupload-example)
+
+
+---
+Map data is available thanks to the great OpenStreetMap project and contributors. The map data is available under the Open Database License.
+
+© OpenStreetMap contributors

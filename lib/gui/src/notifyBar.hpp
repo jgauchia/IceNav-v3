@@ -10,7 +10,6 @@
 #define NOTIFYBAR_HPP
 
 #include <WiFi.h>
-#include <TimeLib.h>
 #include "globalGuiDef.h"
 #include "tasks.hpp"
 #include "storage.hpp"

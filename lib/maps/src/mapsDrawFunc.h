@@ -75,7 +75,7 @@ static void drawMapWidgets()
   if (isMapRotation)
     mapHeading = heading;
   else
-    mapHeading = GPS.course.deg();
+    mapHeading = gpsData.heading;
   if (showMapCompass)
   {
     mapSprite.fillRectAlpha(MAP_WIDTH - 48, 0, 48, 48, 95, TFT_BLACK);
@@ -132,7 +132,7 @@ static void drawMapWidgets()
   {
     mapSprite.fillRectAlpha(0, mapHeight - 32, 70, 32, 95, TFT_BLACK);
     mapSprite.pushImage(0, mapHeight - 28, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
-    mapSprite.drawNumber((uint16_t)GPS.speed.kmph(), 26, mapHeight - 24 , &fonts::FreeSansBold9pt7b);
+    mapSprite.drawNumber(gpsData.speed, 26, mapHeight - 24 , &fonts::FreeSansBold9pt7b);
   }
 
   if (!isVectorMap)
@@ -167,18 +167,18 @@ static void displayMap(uint16_t tileSize)
 
   if (isMapFound)
   {
-    navArrowPosition = coord2ScreenPos(getLon(), getLat(), zoom, tileSize);
+    navArrowPosition = coord2ScreenPos(gpsData.longitude, gpsData.latitude, zoom, tileSize);
 
     #ifdef ENABLE_COMPASS
 
     if (isMapRotation)
       mapHeading = heading;
     else
-      mapHeading = GPS.course.deg();
+      mapHeading = gpsData.heading;
 
     #else 
 
-    mapHeading = GPS.course.deg();
+    mapHeading = gpsData.heading;
 
     #endif
 

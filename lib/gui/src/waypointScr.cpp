@@ -164,8 +164,8 @@ void updateWaypointPos()
   switch (wptAction)
   {
     case WPT_ADD:
-      addWpt.lat = getLat();
-      addWpt.lon = getLon();
+      addWpt.lat = gpsData.latitude;
+      addWpt.lon = gpsData.longitude;
       lv_label_set_text_static(lat, latFormatString(addWpt.lat));
       lv_label_set_text_static(lon, lonFormatString(addWpt.lon));
       break;
