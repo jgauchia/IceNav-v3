@@ -61,27 +61,30 @@ void satelliteBarDrawEvent(lv_event_t * event)
     lv_draw_dsc_base_t * base_dsc = (lv_draw_dsc_base_t *)lv_draw_task_get_draw_dsc(drawTask);
     if(base_dsc->part == LV_PART_ITEMS)
     {
-      uint16_t dscId = base_dsc->id2;
-     //Change color/border of bar depending on GNSS and if SV is in use
+        uint16_t dscId = base_dsc->id2;
+        //Change color/border of bar depending on GNSS and if SV is in use
         if (lv_draw_task_get_type(drawTask) == LV_DRAW_TASK_TYPE_FILL) 
         {
-          lv_draw_fill_dsc_t * fill_dsc = lv_draw_task_get_fill_dsc(drawTask);
-          if(fill_dsc) 
-          {
+            lv_draw_fill_dsc_t * fill_dsc = lv_draw_task_get_fill_dsc(drawTask);
+            if(fill_dsc) 
+            {
             if ( strcmp(satTracker[dscId].talker_id,"GP") == 0 )
-              fill_dsc->color = lv_color_hex(0x196f3d);
+                fill_dsc->color = lv_color_hex(0x196f3d);
             if ( strcmp(satTracker[dscId].talker_id,"GL") == 0 )
-              fill_dsc->color = lv_color_hex(0x1a5276);
+                fill_dsc->color = lv_color_hex(0x1a5276);
             if ( strcmp(satTracker[dscId].talker_id,"BD") == 0 )
-              fill_dsc->color = lv_color_hex(0x5b2c6f);
-          }
+                fill_dsc->color = lv_color_hex(0x5b2c6f);
+            }
         }
         if (lv_draw_task_get_type(drawTask) == LV_DRAW_TASK_TYPE_BORDER) 
         {
-          // lv_draw_border_dsc_t * border_dsc = lv_draw_task_get_border_dsc(drawTask);
-          // if (border_dsc) {
-          //   border_dsc->width = gnss_svInfo[dscId].bInUse == true ? 1 : 0;
-          //   border_dsc->color = gnss_svInfo[dscId].bInUse == true ? lv_color_white() : lv_color_black();
+            lv_draw_border_dsc_t * border_dsc = lv_draw_task_get_border_dsc(drawTask);
+            if (border_dsc) 
+            {
+            log_v("sss %d",satTracker[dscId].active);
+            border_dsc->width = satTracker[dscId].active == true ? 1 : 0;
+            border_dsc->color = satTracker[dscId].active == true ? lv_color_white() : lv_color_black();
+            }
         }
     }
   }
@@ -97,6 +100,13 @@ void satelliteBarDrawEvent(lv_event_t * event)
         lv_obj_get_coords(obj, &chartObjCoords);
         lv_point_t p;
         lv_chart_get_point_pos_by_id(obj, lv_chart_get_series_next(obj, NULL), i, &p);
+
+        //Draw signal at top of bar
+        if (satTracker[i].snr > 0)
+        {
+            lv_snprintf(buf, sizeof(buf), LV_SYMBOL_DUMMY"%d", satTracker[i].snr);
+            drawTextOnLayer(buf, layer, &p, &chartObjCoords, lv_color_white(), fontSmall, 15);
+        }
 
         //Draw Satellite ID
         lv_snprintf(buf, sizeof(buf), LV_SYMBOL_DUMMY"%d", satTracker[i].satNum);
@@ -158,7 +168,8 @@ void satelliteBarDrawEvent(lv_event_t * event)
         lv_chart_set_range(satelliteBar, LV_CHART_AXIS_PRIMARY_Y, 0, 60);
         satelliteBarSerie = lv_chart_add_series(satelliteBar, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
         lv_chart_set_type(satelliteBar, LV_CHART_TYPE_BAR);
-        //lv_obj_set_style_pad_all(satelliteBar, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+        lv_obj_set_style_pad_all(satelliteBar, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+        lv_obj_set_style_pad_gap(satelliteBar, -7, LV_PART_ITEMS | LV_STATE_DEFAULT);
         lv_obj_set_style_pad_column(satelliteBar, 2, 0);
         lv_chart_set_point_count(satelliteBar, MAX_SATELLLITES_IN_VIEW );
         lv_obj_add_event_cb(satelliteBar, satelliteBarDrawEvent, LV_EVENT_DRAW_TASK_ADDED, NULL);

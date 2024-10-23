@@ -134,7 +134,7 @@ void fillSatInView()
 
     spriteSat.fillCircle(6, 4, 2, TFT_GREEN);
     spriteSat.setCursor(0 , 8);
-    spriteSat.print(i + 1);
+    spriteSat.print(satTracker[i].satNum);
     spriteSat.pushSprite(&constelSprite,satPos.x, satPos.y, TFT_TRANSPARENT);
 
     if ( satTracker[i].posX != satPos.x || satTracker[i].posY != satPos.y)
