@@ -13,6 +13,39 @@ lv_obj_t *hdopLabel;
 lv_obj_t *vdopLabel;
 lv_obj_t *altLabel;
 
+
+/**
+ * @brief Draw Text on SNR Chart
+ *
+ * @param text -> Text
+ * @param layer 
+ * @param p
+ * @param coords
+ * @param color
+ * @param font
+ * @param offset
+ */
+void drawTextOnLayer(const char * text, lv_layer_t * layer, lv_point_t * p, lv_area_t * coords, lv_color_t color, const void * font, int16_t offset)
+{
+  lv_draw_rect_dsc_t draw_rect_dsc;
+  lv_draw_rect_dsc_init(&draw_rect_dsc);
+
+  //draw_rect_dsc.bg_color = lv_color_black();
+  draw_rect_dsc.bg_opa = LV_OPA_TRANSP;
+  draw_rect_dsc.radius = 0;
+  draw_rect_dsc.bg_image_symbol_font = font;
+  draw_rect_dsc.bg_image_src = text;
+  draw_rect_dsc.bg_image_recolor = color;
+
+  lv_area_t a;
+  a.x1 = coords->x1 + p->x - 10;
+  a.x2 = coords->x1 + p->x + 10;
+  a.y1 = coords->y1 + p->y + 10 - offset;
+  a.y2 = a.y1 - 20;
+
+  lv_draw_rect(layer, &draw_rect_dsc, &a);
+}
+
 /**
  * @brief SNR Bar draw event
  *
@@ -52,10 +85,26 @@ void satelliteBarDrawEvent(lv_event_t * event)
         }
     }
   }
+
   if (e == LV_EVENT_DRAW_POST_END) 
   {
-  }
+    lv_layer_t * layer = lv_event_get_layer(event);
+    char buf[16];
+    
+    for (uint16_t i = 0; i < gpsData.satInView; i++) 
+    {
+        lv_area_t chartObjCoords;
+        lv_obj_get_coords(obj, &chartObjCoords);
+        lv_point_t p;
+        lv_chart_get_point_pos_by_id(obj, lv_chart_get_series_next(obj, NULL), i, &p);
+
+        //Draw Satellite ID
+        lv_snprintf(buf, sizeof(buf), LV_SYMBOL_DUMMY"%d", satTracker[i].satNum);
+        drawTextOnLayer(buf, layer, &p, &chartObjCoords, lv_color_white(), fontSmall, (chartObjCoords.y1 + p.y) - chartObjCoords.y2 + 10);
+    }
+  } 
 }
+
 
 
  /**
