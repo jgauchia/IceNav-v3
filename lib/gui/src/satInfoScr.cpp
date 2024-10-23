@@ -69,21 +69,11 @@ void satelliteBarDrawEvent(lv_event_t * event)
             if(fill_dsc) 
             {
             if ( strcmp(satTracker[dscId].talker_id,"GP") == 0 )
-                fill_dsc->color = lv_color_hex(0x196f3d);
+                fill_dsc->color = satTracker[dscId].active == true ? lv_color_hex(0x229954) : lv_color_hex(0x104828);
             if ( strcmp(satTracker[dscId].talker_id,"GL") == 0 )
-                fill_dsc->color = lv_color_hex(0x1a5276);
+                fill_dsc->color = satTracker[dscId].active == true ? lv_color_hex(0x2471a3) : lv_color_hex(0x11364d);
             if ( strcmp(satTracker[dscId].talker_id,"BD") == 0 )
-                fill_dsc->color = lv_color_hex(0x5b2c6f);
-            }
-        }
-        if (lv_draw_task_get_type(drawTask) == LV_DRAW_TASK_TYPE_BORDER) 
-        {
-            lv_draw_border_dsc_t * border_dsc = lv_draw_task_get_border_dsc(drawTask);
-            if (border_dsc) 
-            {
-            log_v("sss %d",satTracker[dscId].active);
-            border_dsc->width = satTracker[dscId].active == true ? 1 : 0;
-            border_dsc->color = satTracker[dscId].active == true ? lv_color_white() : lv_color_black();
+                fill_dsc->color = satTracker[dscId].active == true ? lv_color_hex(0x7d3c98) : lv_color_hex(0x3b1c48);
             }
         }
     }
