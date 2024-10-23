@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Satellites info screen functions
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-10
  */
 
 #include "satInfo.hpp"
@@ -118,7 +118,8 @@ void createSNRSprite(TFT_eSprite &spr)
 void drawSNRBar(lv_obj_t *bar, lv_chart_series_t *barSer, uint8_t id, uint8_t satNum, uint8_t snr, TFT_eSprite &spr)
 {
   lv_point_t p;
-  barSer->y_points[id] = snr;
+  lv_chart_get_y_array(bar, barSer);
+  lv_chart_set_value_by_id(bar, barSer, id, snr);
   lv_chart_get_point_pos_by_id(bar, barSer, id, &p);
   spr.setCursor(p.x - 2, 0);
   spr.print(satNum);
@@ -130,98 +131,74 @@ void drawSNRBar(lv_obj_t *bar, lv_chart_series_t *barSer, uint8_t id, uint8_t sa
  */
 void clearSatInView()
 {
-  for (int clear = 0; clear < MAX_SATELLITES; clear++)
-  {
-    satTracker[clear].satNum = 0;
-    satTracker[clear].elev = 0;
-    satTracker[clear].azim = 0;
-    satTracker[clear].snr = 0;
-    satTracker[clear].active = false;
-  }
   createConstelSprite(constelSprite);
-  constelSprite.pushSprite(150 * scale, 40 * scale);
+  #ifndef TDECK_ESP32S3
+    constelSprite.pushSprite(150 * scale, 40 * scale);
+  #endif
+
+  #ifdef TDECK_ESP32S3
+    constelSprite.pushSprite(250 * scale, 40 * scale);
+  #endif
 }
 
 /**
  * @brief Display satellite in view info
  *
- * @param gsv -> GSV NMEA sentence
- * @param color -> Satellite color in constellation
+ *
  */
-void fillSatInView(GSV &gsv, int color)
+void fillSatInView()
 {
-  if (gsv.totalMsg.isUpdated())
+
+  lv_chart_refresh(satelliteBar1);
+  lv_chart_refresh(satelliteBar2);
+
+  createSNRSprite(spriteSNR1);
+  createSNRSprite(spriteSNR2);
+
+  for (int i = 0; i < (MAX_SATELLLITES_IN_VIEW / 2); i++)
   {
-    lv_chart_refresh(satelliteBar1);
-    lv_chart_refresh(satelliteBar2);
-
-    for (int i = 0; i < 4; ++i)
-    {
-      int no = atoi(gsv.satNum[i].value());
-      if (no >= 1 && no <= MAX_SATELLITES)
-      {
-        satTracker[no - 1].satNum = atoi(gsv.satNum[i].value());
-        satTracker[no - 1].elev = atoi(gsv.elev[i].value());
-        satTracker[no - 1].azim = atoi(gsv.azim[i].value());
-        satTracker[no - 1].snr = atoi(gsv.snr[i].value());
-        satTracker[no - 1].active = true;
-      }
-    }
-
-    uint8_t totalMessages = atoi(gsv.totalMsg.value());
-    uint8_t currentMessage = atoi(gsv.msgNum.value());
-
-    if (totalMessages == currentMessage)
-    {
-      createSNRSprite(spriteSNR1);
-      createSNRSprite(spriteSNR2);
-
-      for (int i = 0; i < (MAX_SATELLLITES_IN_VIEW / 2); i++)
-      {
-          satelliteBarSerie1->y_points[i] = LV_CHART_POINT_NONE;
-          satelliteBarSerie2->y_points[i] = LV_CHART_POINT_NONE;
-      }
-
-      uint8_t activeSat = 0;
-      for (int i = 0; i < MAX_SATELLITES; ++i)
-      {
-        if (satTracker[i].active && satTracker[i].snr > 0)
-        {
-          if (activeSat < (MAX_SATELLLITES_IN_VIEW / 2))
-            drawSNRBar(satelliteBar1, satelliteBarSerie1, activeSat, satTracker[i].satNum, satTracker[i].snr, spriteSNR1);
-          else
-            drawSNRBar(satelliteBar2, satelliteBarSerie2, (activeSat - (MAX_SATELLLITES_IN_VIEW / 2)), satTracker[i].satNum, satTracker[i].snr, spriteSNR2);
-
-          activeSat++;
-
-          satPos = getSatPos(satTracker[i].elev, satTracker[i].azim);
-
-          spriteSat.fillCircle(6, 4, 2, color);
-          spriteSat.setCursor(0 , 8);
-          spriteSat.print(i + 1);
-          spriteSat.pushSprite(&constelSprite,satPos.x, satPos.y, TFT_TRANSPARENT);
-
-          if ( satTracker[i].posX != satPos.x || satTracker[i].posY != satPos.y)
-          {
-              spriteSat.fillScreen(TFT_TRANSPARENT);
-              spriteSat.pushSprite(&constelSprite, satTracker[i].posX, satTracker[i].posY, TFT_TRANSPARENT);
-          }
-
-          satTracker[i].posX = satPos.x;
-          satTracker[i].posY = satPos.y;
-        }
-        else if ((satTracker[i].active && satTracker[i].snr == 0) || !satTracker[i].active)
-        {
-          spriteSat.fillScreen(TFT_TRANSPARENT);
-          spriteSat.pushSprite(&constelSprite, satTracker[i].posX, satTracker[i].posY, TFT_TRANSPARENT);
-        }
-      }
-    }
-
-    lv_chart_refresh(satelliteBar1);
-    spriteSNR1.pushSprite(0, 260 * scale);
-
-    lv_chart_refresh(satelliteBar2);
-    spriteSNR2.pushSprite(0, 345 * scale);
+    lv_chart_set_value_by_id(satelliteBar1, satelliteBarSerie1, i, LV_CHART_POINT_NONE);
+    lv_chart_set_value_by_id(satelliteBar2, satelliteBarSerie2, i, LV_CHART_POINT_NONE);
   }
+    
+
+  for (int i = 0; i < gpsData.satInView; ++i)
+  {
+    if (i < (MAX_SATELLLITES_IN_VIEW / 2))
+      drawSNRBar(satelliteBar1, satelliteBarSerie1, i, satTracker[i].satNum, satTracker[i].snr, spriteSNR1);
+    else
+      drawSNRBar(satelliteBar2, satelliteBarSerie2, (i - (MAX_SATELLLITES_IN_VIEW / 2)), satTracker[i].satNum, satTracker[i].snr, spriteSNR2);
+
+    satPos = getSatPos(satTracker[i].elev, satTracker[i].azim);
+
+    spriteSat.fillCircle(6, 4, 2, TFT_GREEN);
+    spriteSat.setCursor(0 , 8);
+    spriteSat.print(i + 1);
+    spriteSat.pushSprite(&constelSprite,satPos.x, satPos.y, TFT_TRANSPARENT);
+
+    if ( satTracker[i].posX != satPos.x || satTracker[i].posY != satPos.y)
+    {
+        spriteSat.fillScreen(TFT_TRANSPARENT);
+        spriteSat.pushSprite(&constelSprite, satTracker[i].posX, satTracker[i].posY, TFT_TRANSPARENT);
+    }
+
+    satTracker[i].posX = satPos.x;
+    satTracker[i].posY = satPos.y;
+
+    spriteSat.fillScreen(TFT_TRANSPARENT);
+    spriteSat.pushSprite(&constelSprite, satTracker[i].posX, satTracker[i].posY, TFT_TRANSPARENT);
+  }
+
+  lv_chart_refresh(satelliteBar1);
+  lv_chart_refresh(satelliteBar2);
+    
+  #ifndef TDECK_ESP32S3
+    spriteSNR1.pushSprite(0, 260 * scale);
+    spriteSNR2.pushSprite(0, 345 * scale);
+  #endif
+
+  #ifdef TDECK_ESP32S3
+    spriteSNR1.pushSprite(0, 260);
+    spriteSNR2.pushSprite(TFT_WIDTH / 2 , 260);
+  #endif 
 }

@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Waypoint list screen
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-10
  */
 
 #include "waypointListScr.hpp"
@@ -49,6 +49,9 @@ void waypointListEvent(lv_event_t * event)
                             lv_label_set_text_fmt(latNav, "%s", latFormatString(destLat));
                             lv_label_set_text_fmt(lonNav, "%s", lonFormatString(destLon));
                             lv_label_set_text_fmt(nameNav, "%s",destName);
+
+                            oldMapTile = {(char*)"", 0, 0, 0}; 
+                            lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
                         }
                         else 
                             lv_obj_add_flag(navTile,LV_OBJ_FLAG_HIDDEN);
@@ -113,7 +116,7 @@ void updateWaypointListScreen()
     isMainScreen = false;  
 
     acquireSdSPI();
-
+    log_i("Trying to open Waypoint file");
     File wayPointFile = SD.open(wptFile);
 
     if (!wayPointFile)

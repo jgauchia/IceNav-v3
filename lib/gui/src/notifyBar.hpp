@@ -3,14 +3,13 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief LVGL - Notify Bar Screen
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-10
  */
 
 #ifndef NOTIFYBAR_HPP
 #define NOTIFYBAR_HPP
 
 #include <WiFi.h>
-#include <TimeLib.h>
 #include "globalGuiDef.h"
 #include "tasks.hpp"
 #include "storage.hpp"

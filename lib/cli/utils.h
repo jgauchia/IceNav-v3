@@ -3,7 +3,7 @@
  * @author @Hpsaturn
  * @brief  Network CLI and custom internal commands
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-10
  */
 
 #ifndef UTILS_H
@@ -17,14 +17,13 @@
 #define SCREENSHOT_TEMP_FILE "/screenshot.raw"
 
 // Capture the screenshot and save it to the SD card
-static void captureScreenshot(const char* filename, Stream *response)
+static bool captureScreenshot(const char* filename, Stream *response)
 {
   // Allocate memory to store the screen data (1 byte per segment)
   uint8_t* buffer = (uint8_t*)malloc(tft.width() * tft.height() * 2); // 2 bytes per pixel
   if (!buffer) {
     response->println("Failed to allocate memory for buffer");
-  //  file.close();
-    return;
+    return false;
   }
 
   // Read the screen data into the buffer using readRect
@@ -35,7 +34,7 @@ static void captureScreenshot(const char* filename, Stream *response)
   File file = SD.open(filename, FILE_WRITE);
   if (!file) {
     response->println("Failed to open file for writing");
-    return;
+    return false;
   }
 
   // Write the buffer data to the file
@@ -55,6 +54,8 @@ static void captureScreenshot(const char* filename, Stream *response)
   response->println("Screenshot saved");
 
   releaseSdSPI();
+
+  return true;
 }
 
 // WiFi client
@@ -67,6 +68,11 @@ static void captureScreenshot(const char* filename, const char* pc_ip, uint16_t 
   }
 
   response->println("Connected to server");
+  
+  if (!captureScreenshot(filename,response)){
+    client.stop();
+    return;
+  };
 
   acquireSdSPI();
 

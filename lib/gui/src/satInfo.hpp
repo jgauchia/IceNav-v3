@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Satellites info screen functions
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-10
  */
 
 #ifndef SATINFO_HPP
@@ -40,5 +40,5 @@ void createSatSprite(TFT_eSprite &spr);
 void createSNRSprite(TFT_eSprite &spr);
 void drawSNRBar(lv_obj_t *bar, lv_chart_series_t *barSer, uint8_t id, uint8_t satNum, uint8_t snr, TFT_eSprite &spr);
 void clearSatInView();
-void fillSatInView(GSV &gsv, int color);
+void fillSatInView();
 #endif

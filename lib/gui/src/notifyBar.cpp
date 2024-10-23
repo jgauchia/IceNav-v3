@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief LVGL - Notify Bar Screen
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-10
  */
 
 #include "notifyBar.hpp"
@@ -24,32 +24,16 @@ void updateNotifyBar(lv_event_t *event)
   lv_obj_t *obj = (lv_obj_t *)lv_event_get_target(event);
   
   if (obj == gpsTime)
-  {
-    if(hour(now()) != GPS.time.hour())
-    {
-      setTime(GPS.time.hour(),
-              GPS.time.minute(),
-              GPS.time.second(),
-              GPS.date.day(),
-              GPS.date.month(),
-              GPS.date.year());
-      utc = now();
-      local = CE.toLocal(utc);
-      setTime(local);
-    }
-    lv_label_set_text_fmt(obj, timeFormat, hour(now()), minute(now()), second(now()));
-  }  
+    lv_label_set_text_fmt(obj, timeFormat, localTime.hours, localTime.minutes, localTime.seconds);
+
 #ifdef ENABLE_TEMP
   if (obj == temp)
     lv_label_set_text_fmt(obj, "%02d\xC2\xB0", tempValue);
 #endif
+
   if (obj == gpsCount)
-  {
-    if (GPS.satellites.isValid())
-      lv_label_set_text_fmt(obj, LV_SYMBOL_GPS "%2d", GPS.satellites.value());
-    else
-      lv_label_set_text_fmt(obj, LV_SYMBOL_GPS "%2d", 0);
-  }
+    lv_label_set_text_fmt(obj, LV_SYMBOL_GPS "%2d", gpsData.satellites);
+
   if (obj == battery)
   {
     if (battLevel <= 160 && battLevel > 140)
@@ -65,28 +49,38 @@ void updateNotifyBar(lv_event_t *event)
     else if (battLevel <= 20)
       lv_label_set_text(obj, LV_SYMBOL_BATTERY_EMPTY);
   }
+
   if (obj == gpsFixMode)
   {
-    if (fixMode.isValid() && fix_old != atoi(fixMode.value()))
+    switch (gpsData.fixMode)
     {
-      switch (atoi(fixMode.value()))
-      {
-        case 1:
-          lv_label_set_text_static(obj, "--");
-          break;
-        case 2:
-          lv_label_set_text_static(obj, "2D");
-          break;
-        case 3:
-          lv_label_set_text_static(obj, "3D");
-          break;
-        default:
-          lv_label_set_text_static(obj, "--");
-          break;
-      }
-      fix_old = atoi(fixMode.value());
+      case gps_fix::STATUS_NONE:
+        lv_label_set_text_static(obj, "----");
+        break;
+      case gps_fix::STATUS_STD:
+        lv_label_set_text_static(obj, " 3D ");
+        break;
+      case gps_fix::STATUS_DGPS:
+        lv_label_set_text_static(obj, "DGPS");
+        break;
+      case gps_fix::STATUS_PPS:
+        lv_label_set_text_static(obj, "PPS");
+        break;
+      case gps_fix::STATUS_RTK_FLOAT:
+        lv_label_set_text_static(obj, "RTK");
+        break;
+      case gps_fix::STATUS_RTK_FIXED:
+        lv_label_set_text_static(obj, "RTK");
+        break;
+      case gps_fix::STATUS_TIME_ONLY: 
+        lv_label_set_text_static(obj, "TIME");
+        break;       
+      case gps_fix::STATUS_EST:
+        lv_label_set_text_static(obj, "EST");
+        break;  
     }
   }
+
   if (obj == wifi)
   {
     if (WiFi.status() == WL_CONNECTED)
@@ -107,24 +101,8 @@ void updateNotifyBarTimer(lv_timer_t *t)
   lv_obj_send_event(gpsFixMode, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_send_event(wifi, LV_EVENT_VALUE_CHANGED, NULL);
  
-  if (atoi(fixMode.value()) !=1 )
-  {
-    switch (GPS.location.FixQuality()) 
-    {
-      case '0':
-        lv_led_off(gpsFix);
-        break;
-      case '1':
-        lv_led_toggle(gpsFix);
-        break;
-      case '2':
-        lv_led_toggle(gpsFix);
-        break;
-      default:
-        lv_led_off(gpsFix);
-        break;
-    }
-  }
+  if (isGpsFixed)
+    lv_led_toggle(gpsFix);
   else
     lv_led_off(gpsFix);
 
@@ -177,7 +155,7 @@ void createNotifyBar()
   
   gpsTime = lv_label_create(notifyBarHour);
   lv_obj_set_style_text_font(gpsTime, fontLarge, 0);
-  lv_label_set_text_fmt(gpsTime, timeFormat, hour(local), minute(local), second(local));
+  lv_label_set_text_fmt(gpsTime, timeFormat, 0, 0, 0);
   lv_obj_add_event_cb(gpsTime, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
  
   wifi = lv_label_create(notifyBarIcons);
@@ -207,7 +185,7 @@ void createNotifyBar()
   
   gpsFixMode = lv_label_create(notifyBarIcons);
   lv_obj_set_style_text_font(gpsFixMode, fontSmall, 0);
-  lv_label_set_text_static(gpsFixMode, "--");
+  lv_label_set_text_static(gpsFixMode, "----");
   lv_obj_add_event_cb(gpsFixMode, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
   
   battery = lv_label_create(notifyBarIcons);
