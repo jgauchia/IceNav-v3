@@ -150,7 +150,43 @@ void satelliteBarDrawEvent(lv_event_t * event)
         lv_obj_t * wrapper = lv_obj_create(barCont);
         lv_obj_remove_style_all(wrapper);
         lv_obj_set_size(wrapper, TFT_WIDTH * 2, 150);
-        lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);    
+        lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);   
+
+        lv_obj_t * gnssLabel = lv_label_create(barCont);
+        lv_obj_set_style_text_font(gnssLabel, fontSatInfo, 0);
+        lv_obj_set_pos(gnssLabel, 0, 127);
+        lv_obj_set_width(gnssLabel,90);
+        lv_obj_set_style_bg_color(gnssLabel, lv_color_hex(0x104828), 0);
+        lv_obj_set_style_bg_opa(gnssLabel, LV_OPA_100, 0);
+        lv_obj_set_style_border_color(gnssLabel, lv_color_hex(0x229954), 0);
+        lv_obj_set_style_border_width(gnssLabel, 1, 0);
+        lv_obj_set_style_border_opa(gnssLabel, LV_OPA_100, 0);
+        lv_label_set_text(gnssLabel, "GPS");
+        lv_obj_set_style_text_align(gnssLabel, LV_TEXT_ALIGN_CENTER, 0);
+
+        gnssLabel = lv_label_create(barCont);
+        lv_obj_set_style_text_font(gnssLabel, fontSatInfo, 0);
+        lv_obj_set_pos(gnssLabel, 95, 127);
+        lv_obj_set_width(gnssLabel,90);
+        lv_obj_set_style_bg_color(gnssLabel, lv_color_hex(0x11364d), 0);
+        lv_obj_set_style_bg_opa(gnssLabel, LV_OPA_100, 0);
+        lv_obj_set_style_border_color(gnssLabel, lv_color_hex(0x2471a3), 0);
+        lv_obj_set_style_border_width(gnssLabel, 1, 0);
+        lv_obj_set_style_border_opa(gnssLabel, LV_OPA_100, 0);
+        lv_label_set_text(gnssLabel, "GLONASS");
+        lv_obj_set_style_text_align(gnssLabel, LV_TEXT_ALIGN_CENTER, 0);
+
+        gnssLabel = lv_label_create(barCont);
+        lv_obj_set_style_text_font(gnssLabel, fontSatInfo, 0);
+        lv_obj_set_pos(gnssLabel, 190, 127);
+        lv_obj_set_width(gnssLabel,90);
+        lv_obj_set_style_bg_color(gnssLabel, lv_color_hex(0x3b1c48), 0);
+        lv_obj_set_style_bg_opa(gnssLabel, LV_OPA_100, 0);
+        lv_obj_set_style_border_color(gnssLabel, lv_color_hex(0x7d3c98), 0);
+        lv_obj_set_style_border_width(gnssLabel, 1, 0);
+        lv_obj_set_style_border_opa(gnssLabel, LV_OPA_100, 0);
+        lv_label_set_text(gnssLabel, "BEIDOU");
+        lv_obj_set_style_text_align(gnssLabel, LV_TEXT_ALIGN_CENTER, 0);
 
         satelliteBar = lv_chart_create(wrapper);
         lv_obj_set_size(satelliteBar, TFT_WIDTH * 2, 120 * scale);
