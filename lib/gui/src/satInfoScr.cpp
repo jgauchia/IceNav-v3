@@ -121,7 +121,7 @@ void satelliteBarDrawEvent(lv_event_t * event)
         lv_obj_set_flex_align(infoGrid, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
         lv_obj_clear_flag(infoGrid, LV_OBJ_FLAG_SCROLLABLE);
         lv_obj_set_flex_flow(infoGrid, LV_FLEX_FLOW_ROW_WRAP);
-        lv_obj_set_pos(infoGrid,0,190);
+        lv_obj_set_pos(infoGrid,0,190 * scale);
 
         static lv_style_t styleGrid;
         lv_style_init(&styleGrid);
@@ -147,7 +147,7 @@ void satelliteBarDrawEvent(lv_event_t * event)
         
         lv_obj_t * barCont = lv_obj_create(screen);
         lv_obj_set_size(barCont, TFT_WIDTH, 180 * scale);
-        lv_obj_set_pos(barCont, 0, 5);
+        lv_obj_set_pos(barCont, 0, 5 * scale);
         lv_obj_t * wrapper = lv_obj_create(barCont);
         lv_obj_remove_style_all(wrapper);
         lv_obj_set_size(wrapper, TFT_WIDTH * 2, 150);
