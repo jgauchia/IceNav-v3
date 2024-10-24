@@ -88,8 +88,8 @@ void getActTile(lv_event_t *event)
 
     if (activeTile == SATTRACK)
     {
-      createSatSprite(spriteSat);
-      createConstelSprite(constelSprite);
+      // createSatSprite(spriteSat);
+      // createConstelSprite(constelSprite);
     }
     if (activeTile == MAP)
     {
@@ -270,11 +270,11 @@ void updateMap(lv_event_t *event)
  */
 void updateSatTrack(lv_event_t *event)
 {
-  lv_label_set_text_fmt(pdopLabel, "PDOP:\n%.1f", gpsData.pdop);
-  lv_label_set_text_fmt(hdopLabel, "HDOP:\n%.1f", gpsData.hdop);
-  lv_label_set_text_fmt(vdopLabel, "VDOP:\n%.1f", gpsData.vdop);
+  lv_label_set_text_fmt(pdopLabel, "PDOP: %.1f", gpsData.pdop);
+  lv_label_set_text_fmt(hdopLabel, "HDOP: %.1f", gpsData.hdop);
+  lv_label_set_text_fmt(vdopLabel, "VDOP: %.1f", gpsData.vdop);
 
-  lv_label_set_text_fmt(altLabel, "ALT:\n%4dm.", gpsData.altitude);
+  lv_label_set_text_fmt(altLabel, "ALT: %4dm.", gpsData.altitude);
 
   fillSatInView();
 }
