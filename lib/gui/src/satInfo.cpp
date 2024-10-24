@@ -106,7 +106,7 @@ void drawSNRBar(lv_obj_t *bar, lv_chart_series_t *barSer, uint8_t id, uint8_t sa
  */
 void clearSatInView()
 {
-  createConstelSprite(constelSprite);
+  // createConstelSprite(constelSprite);
 }
 
 /**
@@ -132,22 +132,22 @@ void fillSatInView()
 
     satPos = getSatPos(satTracker[i].elev, satTracker[i].azim);
 
-    spriteSat.fillCircle(6, 4, 2, TFT_GREEN);
-    spriteSat.setCursor(0 , 8);
-    spriteSat.print(satTracker[i].satNum);
-    spriteSat.pushSprite(&constelSprite,satPos.x, satPos.y, TFT_TRANSPARENT);
+    // spriteSat.fillCircle(6, 4, 2, TFT_GREEN);
+    // spriteSat.setCursor(0 , 8);
+    // spriteSat.print(satTracker[i].satNum);
+    // spriteSat.pushSprite(&constelSprite,satPos.x, satPos.y, TFT_TRANSPARENT);
 
-    if ( satTracker[i].posX != satPos.x || satTracker[i].posY != satPos.y)
-    {
-        spriteSat.fillScreen(TFT_TRANSPARENT);
-        spriteSat.pushSprite(&constelSprite, satTracker[i].posX, satTracker[i].posY, TFT_TRANSPARENT);
-    }
+    // if ( satTracker[i].posX != satPos.x || satTracker[i].posY != satPos.y)
+    // {
+    //     spriteSat.fillScreen(TFT_TRANSPARENT);
+    //     spriteSat.pushSprite(&constelSprite, satTracker[i].posX, satTracker[i].posY, TFT_TRANSPARENT);
+    // }
 
     satTracker[i].posX = satPos.x;
     satTracker[i].posY = satPos.y;
 
-    spriteSat.fillScreen(TFT_TRANSPARENT);
-    spriteSat.pushSprite(&constelSprite, satTracker[i].posX, satTracker[i].posY, TFT_TRANSPARENT);
+    // spriteSat.fillScreen(TFT_TRANSPARENT);
+    // spriteSat.pushSprite(&constelSprite, satTracker[i].posX, satTracker[i].posY, TFT_TRANSPARENT);
   }
 
   lv_chart_refresh(satelliteBar);

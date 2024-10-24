@@ -116,37 +116,38 @@ void satelliteBarDrawEvent(lv_event_t * event)
     void satelliteScr(_lv_obj_t *screen)
     {
         lv_obj_t *infoGrid = lv_obj_create(screen);
-        lv_obj_set_size(infoGrid, 90, 175);
+        lv_obj_set_width(infoGrid,TFT_WIDTH);
+        lv_obj_set_height(infoGrid,35);
         lv_obj_set_flex_align(infoGrid, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-        lv_obj_set_style_pad_row(infoGrid, 5 * scale, 0);
         lv_obj_clear_flag(infoGrid, LV_OBJ_FLAG_SCROLLABLE);
-        lv_obj_set_flex_flow(infoGrid, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_flex_flow(infoGrid, LV_FLEX_FLOW_ROW_WRAP);
+        lv_obj_set_pos(infoGrid,0,190);
+
         static lv_style_t styleGrid;
         lv_style_init(&styleGrid);
         lv_style_set_bg_opa(&styleGrid, LV_OPA_0);
         lv_style_set_border_opa(&styleGrid, LV_OPA_0);
         lv_obj_add_style(infoGrid, &styleGrid, LV_PART_MAIN);
-        lv_obj_set_y(infoGrid,0);
-        
+              
         pdopLabel = lv_label_create(infoGrid);
-        lv_obj_set_style_text_font(pdopLabel, fontSatInfo, 0);
-        lv_label_set_text_fmt(pdopLabel, "PDOP:\n%.1f", 0);
+        lv_obj_set_style_text_font(pdopLabel, fontDefault, 0);
+        lv_label_set_text_fmt(pdopLabel, "PDOP: %.1f", 0);
         
         hdopLabel = lv_label_create(infoGrid);
-        lv_obj_set_style_text_font(hdopLabel, fontSatInfo, 0);
-        lv_label_set_text_fmt(hdopLabel, "HDOP:\n%.1f", 0);
+        lv_obj_set_style_text_font(hdopLabel, fontDefault, 0);
+        lv_label_set_text_fmt(hdopLabel, "HDOP: %.1f", 0);
         
         vdopLabel = lv_label_create(infoGrid);
-        lv_obj_set_style_text_font(vdopLabel, fontSatInfo, 0);
-        lv_label_set_text_fmt(vdopLabel, "VDOP:\n%.1f", 0);
+        lv_obj_set_style_text_font(vdopLabel, fontDefault, 0);
+        lv_label_set_text_fmt(vdopLabel, "VDOP: %.1f", 0);
         
         altLabel = lv_label_create(infoGrid);
-        lv_obj_set_style_text_font(altLabel, fontSatInfo, 0);
-        lv_label_set_text_fmt(altLabel, "ALT:\n%4dm.", 0); 
+        lv_obj_set_style_text_font(altLabel, fontDefault, 0);
+        lv_label_set_text_fmt(altLabel, "ALT: %4dm.", 0); 
         
         lv_obj_t * barCont = lv_obj_create(screen);
         lv_obj_set_size(barCont, TFT_WIDTH, 180 * scale);
-        lv_obj_set_pos(barCont, 0, 200 * scale);
+        lv_obj_set_pos(barCont, 0, 5);
         lv_obj_t * wrapper = lv_obj_create(barCont);
         lv_obj_remove_style_all(wrapper);
         lv_obj_set_size(wrapper, TFT_WIDTH * 2, 150);
