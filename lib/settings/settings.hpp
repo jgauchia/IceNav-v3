@@ -20,6 +20,7 @@ extern uint8_t maxZoom;        // Max Zoom Level
 extern uint8_t defZoomRender;  // Default Zoom Level for render map
 extern uint8_t defZoomVector;  // Default Zoom Level for vector map
 extern uint8_t zoom;           // Actual Zoom Level
+extern uint8_t defBright;      // Default brightness
 extern float batteryMax;       // 4.2;      // maximum voltage of battery
 extern float batteryMin;       // 3.6;      // minimum voltage of battery before shutdown
 
@@ -59,6 +60,7 @@ void saveMapType(bool vector);
 void saveShowMap(bool mapMode);
 void saveGpsGpio(int8_t txGpio, int8_t rxGpio);
 void saveWebFile(bool status);
+void saveBrightness(uint8_t vb);
 void printSettings();
 
 #endif

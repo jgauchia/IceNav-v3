@@ -30,16 +30,20 @@ void deviceSettingsEvent(lv_event_t *event)
     gpsUpdate = lv_dropdown_get_selected(obj);
     saveGPSUpdateRate(gpsUpdate);
   }
-  if (strcmp(option,"back") == 0)
+  if (strcmp(option, "back") == 0)
+  {
+    log_i("saving brightness to: %i", defBright);
+    saveBrightness(defBright);
     lv_screen_load(settingsScreen);
+  }
 }
 
 void lv_brightness_cb(lv_event_t *e)
 {
     lv_obj_t *obj =(lv_obj_t*) lv_event_get_target(e);
-    uint8_t val =  lv_slider_get_value(obj);
-    log_i("brightness %i",val);
-    tft.setBrightness(val);
+    defBright =  lv_slider_get_value(obj);
+    log_i("brightness %i", defBright);
+    tft.setBrightness(defBright);
 }
 
 // void lv_background_opa_cb(lv_event_t *e)
@@ -150,7 +154,7 @@ void createDeviceSettingsScr()
   lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
   lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"rate");
 
-  create_slider(deviceSettingsOptions, LV_SYMBOL_SETTINGS, "Brightness", 5, 254, 128, lv_brightness_cb, LV_EVENT_VALUE_CHANGED);
+  create_slider(deviceSettingsOptions, LV_SYMBOL_SETTINGS, "Brightness", 5, 255, defBright, lv_brightness_cb, LV_EVENT_VALUE_CHANGED);
   // create_slider(deviceSettingsOptions, LV_SYMBOL_SETTINGS, "Background", 0, 255, 128, lv_background_opa_cb, LV_EVENT_VALUE_CHANGED);
 
   // Back button
