@@ -150,7 +150,7 @@ void createDeviceSettingsScr()
   lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
   lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"rate");
 
-  create_slider(deviceSettingsOptions, LV_SYMBOL_SETTINGS, "Brightness", 5, 254, 128, lv_brightness_cb, LV_EVENT_VALUE_CHANGED);
+  create_slider(deviceSettingsOptions, LV_SYMBOL_SETTINGS, "Brightness", 5, 255, 128, lv_brightness_cb, LV_EVENT_VALUE_CHANGED);
   // create_slider(deviceSettingsOptions, LV_SYMBOL_SETTINGS, "Background", 0, 255, 128, lv_background_opa_cb, LV_EVENT_VALUE_CHANGED);
 
   // Back button

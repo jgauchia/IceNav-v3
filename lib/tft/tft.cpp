@@ -18,60 +18,7 @@ bool waitScreenRefresh = false;
   extern const uint8_t TFT_SPI_BL;
 #endif
 
-/**
- * @brief Set the TFT brightness
- *
- * @param brightness -> 0..255 / 0..15 for T-DECK
- */
-void setBrightness(uint8_t brightness)
-{
-  
-  #ifndef TDECK_ESP32S3 
-  if (brightness <= 255)
-  {
-   ledcWrite(0, brightness);
-   brightnessLevel = brightness;
-  }
-  #endif
 
-  #ifdef TDECK_ESP32S3 
-    static uint8_t level = 0;
-    static uint8_t steps = 16;
-    if (brightness == 0) 
-    {
-      digitalWrite(TFT_SPI_BL, 0);
-      delay(3);
-      level = 0;
-      return;
-    }
-    if (level == 0) 
-    {
-      digitalWrite(TFT_SPI_BL, 1);
-      level = steps;
-      delayMicroseconds(30);
-    }
-    int from = steps - level;
-    int to = steps - brightness;
-    int num = (steps + to - from) % steps;
-    for (int i = 0; i < num; i++) 
-    {
-      digitalWrite(TFT_SPI_BL, 0);
-      digitalWrite(TFT_SPI_BL, 1);
-    }
-    level = brightness;
-    brightnessLevel = brightness;
-  #endif
-}
-
-/**
- * @brief Get the TFT brightness
- *
- * @return int -> brightness value 0..255 / 0..15 for T-DECK
- */
-uint8_t getBrightness()
-{
-  return brightnessLevel;
-}
 
 /**
  * @brief Turn on TFT Sleep Mode for ILI9488
