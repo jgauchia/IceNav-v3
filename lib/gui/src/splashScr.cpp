@@ -71,9 +71,10 @@ void splashScreen()
       ;
   }
 
+  tft.fillScreen(TFT_BLACK);
+  
   while (millis() < millisActual + 100)
     ;
   
-  tft.fillScreen(TFT_BLACK);
   tft.setBrightness(defBright);
 }
