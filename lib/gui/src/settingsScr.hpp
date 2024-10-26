@@ -13,6 +13,7 @@
 #include "mainScr.hpp"
 #include "compass.hpp"
 #include "searchSatScr.hpp"
+#include "settings.hpp"
 
 void loadMainScreen();
 

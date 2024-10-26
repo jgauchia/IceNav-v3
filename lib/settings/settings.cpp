@@ -30,6 +30,7 @@ uint8_t zoom = 0;           // Actual Zoom Level
  */
 bool isMapRotation = true;    // Map Compass Rotation
 uint8_t defaultZoom = 0;      // Default Zoom Value
+uint8_t defBright = 255;      // Default Brightness
 bool showMapCompass = true;   // Compass in map screen
 bool isCompassRot = true;     // Compass rotation in map screen
 bool showMapSpeed = true;     // Speed in map screen
@@ -78,6 +79,7 @@ void loadPreferences()
   speedPosX = cfg.getInt(PKEYS::KSPEED_X, 1);
   speedPosY = cfg.getInt(PKEYS::KSPEED_Y, TFT_HEIGHT - 130);
   isVectorMap = cfg.getBool(PKEYS::KMAP_VECTOR, false);
+  defBright = cfg.getUInt(PKEYS::KDEF_BRIGT, 254);
   if (isVectorMap)
   {
     minZoom = 1;
@@ -315,6 +317,16 @@ void saveGpsGpio(int8_t txGpio, int8_t rxGpio)
 void saveWebFile(bool status)
 {
   cfg.saveBool(PKEYS::KWEB_FILE, status);
+}
+
+/**
+ * @brief Save default Brightness
+ *
+ * @param status 
+ */
+void saveBrightness(uint8_t vb)
+{
+  cfg.saveUInt(PKEYS::KDEF_BRIGT, vb);
 }
 
 /**

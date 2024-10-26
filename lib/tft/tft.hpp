@@ -42,10 +42,6 @@ extern TFT_eSPI tft;
 static const char* calibrationFile PROGMEM = "/spiffs/TouchCal";
 extern bool repeatCalib;
 
-#ifndef TDECK_ESP32S3
-    static uint8_t brightnessLevel = 255;
-#endif
-
 extern uint16_t TFT_WIDTH;
 extern uint16_t TFT_HEIGHT;
 extern bool waitScreenRefresh;                  // Wait for refresh screen (screenshot issues)
