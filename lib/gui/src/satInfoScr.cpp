@@ -240,11 +240,11 @@ void satelliteScr(_lv_obj_t *screen)
         lv_obj_t * barCont = lv_obj_create(screen);
         lv_obj_set_size(barCont, TFT_WIDTH, 145);
         lv_obj_set_pos(barCont, 0, 5);
-        lv_obj_clear_flag(barCont, LV_OBJ_FLAG_SCROLL_CHAIN_VER);
-
+        
         lv_obj_t * wrapper = lv_obj_create(barCont);
         lv_obj_remove_style_all(wrapper);
         lv_obj_set_size(wrapper, TFT_WIDTH * 2, 125);
+        lv_obj_clear_flag(wrapper, LV_OBJ_FLAG_SCROLL_CHAIN_VER);
 
         lv_obj_t * gnssLabel = lv_label_create(barCont);
         lv_obj_set_style_text_font(gnssLabel, fontSatInfo, 0);
