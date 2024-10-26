@@ -539,6 +539,9 @@ void createMainScr()
   
   // Satellite Tracking and info Tile
   satelliteScr(satTrackTile);
+  #ifdef TDECK_ESP32S3
+    lv_obj_clear_flag(satTrackTile, LV_OBJ_FLAG_SCROLLABLE);
+  #endif
 
   // Satellite Tracking Event
   lv_obj_add_event_cb(satTrackTile, updateSatTrack, LV_EVENT_VALUE_CHANGED, NULL);
