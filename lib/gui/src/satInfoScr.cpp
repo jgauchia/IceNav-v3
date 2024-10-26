@@ -112,7 +112,7 @@ void satelliteBarDrawEvent(lv_event_t * event)
  *
  * @param screen 
  */
-//  #ifndef TDECK_ESP32S3
+ #ifndef TDECK_ESP32S3
     void satelliteScr(_lv_obj_t *screen)
     {
         lv_obj_t *infoGrid = lv_obj_create(screen);
@@ -203,57 +203,97 @@ void satelliteBarDrawEvent(lv_event_t * event)
         lv_obj_add_event_cb(satelliteBar, satelliteBarDrawEvent, LV_EVENT_DRAW_POST_END, NULL);
         lv_obj_add_flag(satelliteBar, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
     }
-// #endif
+#endif
 
-// #ifdef TDECK_ESP32S3
-//     void satelliteScr(_lv_obj_t *screen)
-//     {
-//         lv_obj_t *infoGrid = lv_obj_create(screen);
-//         lv_obj_set_size(infoGrid, 90, 155);
-//         lv_obj_set_flex_align(infoGrid, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-//         lv_obj_set_style_pad_row(infoGrid, 5 * scale, 0);
-//         lv_obj_clear_flag(infoGrid, LV_OBJ_FLAG_SCROLLABLE);
-//         lv_obj_set_flex_flow(infoGrid, LV_FLEX_FLOW_COLUMN);
-//         static lv_style_t styleGrid;
-//         lv_style_init(&styleGrid);
-//         lv_style_set_bg_opa(&styleGrid, LV_OPA_0);
-//         lv_style_set_border_opa(&styleGrid, LV_OPA_0);
-//         lv_obj_add_style(infoGrid, &styleGrid, LV_PART_MAIN);
-//         lv_obj_set_y(infoGrid,0);
-        
-//         pdopLabel = lv_label_create(infoGrid);
-//         lv_obj_set_style_text_font(pdopLabel, fontSatInfo, 0);
-//         lv_label_set_text_fmt(pdopLabel, "PDOP:\n%s", "0.0");
-        
-//         hdopLabel = lv_label_create(infoGrid);
-//         lv_obj_set_style_text_font(hdopLabel, fontSatInfo, 0);
-//         lv_label_set_text_fmt(hdopLabel, "HDOP:\n%s", "0.0");
-        
-//         vdopLabel = lv_label_create(infoGrid);
-//         lv_obj_set_style_text_font(vdopLabel, fontSatInfo, 0);
-//         lv_label_set_text_fmt(vdopLabel, "VDOP:\n%s", "0.0");
-        
-//         altLabel = lv_label_create(infoGrid);
-//         lv_obj_set_style_text_font(altLabel, fontSatInfo, 0);
-//         lv_label_set_text_fmt(altLabel, "ALT:\n%4dm.", 0); 
-        
-//         satelliteBar1 = lv_chart_create(screen);
-//         lv_obj_set_size(satelliteBar1, ( TFT_WIDTH / 2 ) - 1 , 55);
-//         lv_chart_set_div_line_count(satelliteBar1, 6, 0);
-//         lv_chart_set_range(satelliteBar1, LV_CHART_AXIS_PRIMARY_Y, 0, 60);
-//         satelliteBarSerie1 = lv_chart_add_series(satelliteBar1, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
-//         lv_chart_set_type(satelliteBar1, LV_CHART_TYPE_BAR);
-//         lv_chart_set_point_count(satelliteBar1,(MAX_SATELLLITES_IN_VIEW / 2));
-//         lv_obj_set_pos(satelliteBar1, 0, 155);
+#ifdef TDECK_ESP32S3
+void satelliteScr(_lv_obj_t *screen)
+    {
+        lv_obj_t *infoGrid = lv_obj_create(screen);
+        lv_obj_set_width(infoGrid,TFT_WIDTH);
+        lv_obj_set_height(infoGrid,35);
+        lv_obj_set_flex_align(infoGrid, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+        lv_obj_clear_flag(infoGrid, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_flex_flow(infoGrid, LV_FLEX_FLOW_ROW_WRAP);
+        lv_obj_set_pos(infoGrid,0,170);
 
-//         satelliteBar2 = lv_chart_create(screen);
-//         lv_obj_set_size(satelliteBar2, ( TFT_WIDTH / 2 ) - 1 , 55);
-//         lv_chart_set_div_line_count(satelliteBar2, 6, 0);
-//         lv_chart_set_range(satelliteBar2, LV_CHART_AXIS_PRIMARY_Y, 0, 60);
-//         satelliteBarSerie2 = lv_chart_add_series(satelliteBar2, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
-//         lv_chart_set_type(satelliteBar2, LV_CHART_TYPE_BAR);
-//         lv_chart_set_point_count(satelliteBar2, (MAX_SATELLLITES_IN_VIEW / 2));
-//         lv_obj_set_pos(satelliteBar2, TFT_WIDTH / 2, 155);
+        static lv_style_t styleGrid;
+        lv_style_init(&styleGrid);
+        lv_style_set_bg_opa(&styleGrid, LV_OPA_0);
+        lv_style_set_border_opa(&styleGrid, LV_OPA_0);
+        lv_obj_add_style(infoGrid, &styleGrid, LV_PART_MAIN);
               
-//     }
-// #endif
+        pdopLabel = lv_label_create(infoGrid);
+        lv_obj_set_style_text_font(pdopLabel, fontDefault, 0);
+        lv_label_set_text_fmt(pdopLabel, "PDOP: %.1f", 0);
+        
+        hdopLabel = lv_label_create(infoGrid);
+        lv_obj_set_style_text_font(hdopLabel, fontDefault, 0);
+        lv_label_set_text_fmt(hdopLabel, "HDOP: %.1f", 0);
+        
+        vdopLabel = lv_label_create(infoGrid);
+        lv_obj_set_style_text_font(vdopLabel, fontDefault, 0);
+        lv_label_set_text_fmt(vdopLabel, "VDOP: %.1f", 0);
+        
+        altLabel = lv_label_create(infoGrid);
+        lv_obj_set_style_text_font(altLabel, fontDefault, 0);
+        lv_label_set_text_fmt(altLabel, "ALT: %4dm.", 0); 
+        
+        lv_obj_t * barCont = lv_obj_create(screen);
+        lv_obj_set_size(barCont, TFT_WIDTH, 160);
+        lv_obj_set_pos(barCont, 0, 5);
+        lv_obj_t * wrapper = lv_obj_create(barCont);
+        lv_obj_remove_style_all(wrapper);
+        lv_obj_set_size(wrapper, TFT_WIDTH * 2, 130);
+        lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);   
+
+        lv_obj_t * gnssLabel = lv_label_create(barCont);
+        lv_obj_set_style_text_font(gnssLabel, fontSatInfo, 0);
+        lv_obj_set_pos(gnssLabel, 0, 107);
+        lv_obj_set_width(gnssLabel,90);
+        lv_obj_set_style_bg_color(gnssLabel, lv_color_hex(0x104828), 0);
+        lv_obj_set_style_bg_opa(gnssLabel, LV_OPA_100, 0);
+        lv_obj_set_style_border_color(gnssLabel, lv_color_hex(0x229954), 0);
+        lv_obj_set_style_border_width(gnssLabel, 1, 0);
+        lv_obj_set_style_border_opa(gnssLabel, LV_OPA_100, 0);
+        lv_label_set_text(gnssLabel, "GPS");
+        lv_obj_set_style_text_align(gnssLabel, LV_TEXT_ALIGN_CENTER, 0);
+
+        gnssLabel = lv_label_create(barCont);
+        lv_obj_set_style_text_font(gnssLabel, fontSatInfo, 0);
+        lv_obj_set_pos(gnssLabel, 95, 107);
+        lv_obj_set_width(gnssLabel,90);
+        lv_obj_set_style_bg_color(gnssLabel, lv_color_hex(0x11364d), 0);
+        lv_obj_set_style_bg_opa(gnssLabel, LV_OPA_100, 0);
+        lv_obj_set_style_border_color(gnssLabel, lv_color_hex(0x2471a3), 0);
+        lv_obj_set_style_border_width(gnssLabel, 1, 0);
+        lv_obj_set_style_border_opa(gnssLabel, LV_OPA_100, 0);
+        lv_label_set_text(gnssLabel, "GLONASS");
+        lv_obj_set_style_text_align(gnssLabel, LV_TEXT_ALIGN_CENTER, 0);
+
+        gnssLabel = lv_label_create(barCont);
+        lv_obj_set_style_text_font(gnssLabel, fontSatInfo, 0);
+        lv_obj_set_pos(gnssLabel, 190, 107);
+        lv_obj_set_width(gnssLabel,90);
+        lv_obj_set_style_bg_color(gnssLabel, lv_color_hex(0x3b1c48), 0);
+        lv_obj_set_style_bg_opa(gnssLabel, LV_OPA_100, 0);
+        lv_obj_set_style_border_color(gnssLabel, lv_color_hex(0x7d3c98), 0);
+        lv_obj_set_style_border_width(gnssLabel, 1, 0);
+        lv_obj_set_style_border_opa(gnssLabel, LV_OPA_100, 0);
+        lv_label_set_text(gnssLabel, "BEIDOU");
+        lv_obj_set_style_text_align(gnssLabel, LV_TEXT_ALIGN_CENTER, 0);
+
+        satelliteBar = lv_chart_create(wrapper);
+        lv_obj_set_size(satelliteBar, TFT_WIDTH * 2, 100);
+        lv_chart_set_div_line_count(satelliteBar, 10, 0);
+        lv_chart_set_range(satelliteBar, LV_CHART_AXIS_PRIMARY_Y, 0, 60);
+        satelliteBarSerie = lv_chart_add_series(satelliteBar, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
+        lv_chart_set_type(satelliteBar, LV_CHART_TYPE_BAR);
+        lv_obj_set_style_pad_all(satelliteBar, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+        lv_obj_set_style_pad_gap(satelliteBar, -7, LV_PART_ITEMS | LV_STATE_DEFAULT);
+        lv_obj_set_style_pad_column(satelliteBar, 2, 0);
+        lv_chart_set_point_count(satelliteBar, MAX_SATELLLITES_IN_VIEW );
+        lv_obj_add_event_cb(satelliteBar, satelliteBarDrawEvent, LV_EVENT_DRAW_TASK_ADDED, NULL);
+        lv_obj_add_event_cb(satelliteBar, satelliteBarDrawEvent, LV_EVENT_DRAW_POST_END, NULL);
+        lv_obj_add_flag(satelliteBar, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
+    }
+#endif
