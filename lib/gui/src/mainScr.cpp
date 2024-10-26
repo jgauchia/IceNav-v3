@@ -540,7 +540,7 @@ void createMainScr()
   // Satellite Tracking and info Tile
   satelliteScr(satTrackTile);
   #ifdef TDECK_ESP32S3
-    lv_obj_clear_flag(satTrackTile, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_clear_flag(satTrackTile, LV_OBJ_FLAG_SCROLL_CHAIN_VER);
   #endif
 
   // Satellite Tracking Event
