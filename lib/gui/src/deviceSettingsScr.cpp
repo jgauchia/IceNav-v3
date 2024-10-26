@@ -30,17 +30,20 @@ void deviceSettingsEvent(lv_event_t *event)
     gpsUpdate = lv_dropdown_get_selected(obj);
     saveGPSUpdateRate(gpsUpdate);
   }
-  if (strcmp(option,"back") == 0)
+  if (strcmp(option, "back") == 0)
+  {
+    log_i("saving brightness to: %i", defBright);
+    saveBrightness(defBright);
     lv_screen_load(settingsScreen);
+  }
 }
 
 void lv_brightness_cb(lv_event_t *e)
 {
     lv_obj_t *obj =(lv_obj_t*) lv_event_get_target(e);
-    uint8_t val =  lv_slider_get_value(obj);
-    log_i("brightness %i",val);
-    tft.setBrightness(val);
-    defBright = val;
+    defBright =  lv_slider_get_value(obj);
+    log_i("brightness %i", defBright);
+    tft.setBrightness(defBright);
 }
 
 // void lv_background_opa_cb(lv_event_t *e)

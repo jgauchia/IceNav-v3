@@ -22,9 +22,6 @@ static void back(lv_event_t *event)
     lv_screen_load(searchSatScreen);
   else
     loadMainScreen();
-
-  log_i("saving brightness to:\t%i",defBright);
-  saveBrightness(defBright);
 }
 
 /**
