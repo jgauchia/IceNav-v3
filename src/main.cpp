@@ -85,13 +85,6 @@ void setup()
   #ifdef ICENAV_BOARD
     Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
     Wire.begin();
-    pinMode(SD_CS, OUTPUT);
-    pinMode(TFT_SPI_CS, OUTPUT);
-    digitalWrite(SD_CS, HIGH);
-    digitalWrite(TFT_SPI_CS, HIGH);
-    pinMode(TFT_SPI_MISO, INPUT_PULLUP);
-    pinMode(SD_MISO, INPUT_PULLUP);
-    SPI.begin(SD_CLK, SD_MISO, SD_MOSI);
   #endif
   #ifdef MAKERF_ESP32S3
     Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
