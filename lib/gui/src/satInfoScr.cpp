@@ -214,7 +214,7 @@ void satelliteScr(_lv_obj_t *screen)
         lv_obj_set_flex_align(infoGrid, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
         lv_obj_clear_flag(infoGrid, LV_OBJ_FLAG_SCROLLABLE);
         lv_obj_set_flex_flow(infoGrid, LV_FLEX_FLOW_ROW_WRAP);
-        lv_obj_set_pos(infoGrid,0,140);
+        lv_obj_set_pos(infoGrid,0,150);
 
         static lv_style_t styleGrid;
         lv_style_init(&styleGrid);
@@ -243,12 +243,12 @@ void satelliteScr(_lv_obj_t *screen)
         lv_obj_set_pos(barCont, 0, 5);
         lv_obj_t * wrapper = lv_obj_create(barCont);
         lv_obj_remove_style_all(wrapper);
-        lv_obj_set_size(wrapper, TFT_WIDTH * 2, 110);
+        lv_obj_set_size(wrapper, TFT_WIDTH * 2, 120);
         lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);   
 
         lv_obj_t * gnssLabel = lv_label_create(barCont);
         lv_obj_set_style_text_font(gnssLabel, fontSatInfo, 0);
-        lv_obj_set_pos(gnssLabel, 0, 87);
+        lv_obj_set_pos(gnssLabel, 0, 97);
         lv_obj_set_width(gnssLabel,90);
         lv_obj_set_style_bg_color(gnssLabel, lv_color_hex(0x104828), 0);
         lv_obj_set_style_bg_opa(gnssLabel, LV_OPA_100, 0);
@@ -260,7 +260,7 @@ void satelliteScr(_lv_obj_t *screen)
 
         gnssLabel = lv_label_create(barCont);
         lv_obj_set_style_text_font(gnssLabel, fontSatInfo, 0);
-        lv_obj_set_pos(gnssLabel, 95, 87);
+        lv_obj_set_pos(gnssLabel, 95, 97);
         lv_obj_set_width(gnssLabel,90);
         lv_obj_set_style_bg_color(gnssLabel, lv_color_hex(0x11364d), 0);
         lv_obj_set_style_bg_opa(gnssLabel, LV_OPA_100, 0);
@@ -272,7 +272,7 @@ void satelliteScr(_lv_obj_t *screen)
 
         gnssLabel = lv_label_create(barCont);
         lv_obj_set_style_text_font(gnssLabel, fontSatInfo, 0);
-        lv_obj_set_pos(gnssLabel, 190, 87);
+        lv_obj_set_pos(gnssLabel, 190, 97);
         lv_obj_set_width(gnssLabel,90);
         lv_obj_set_style_bg_color(gnssLabel, lv_color_hex(0x3b1c48), 0);
         lv_obj_set_style_bg_opa(gnssLabel, LV_OPA_100, 0);
@@ -283,7 +283,7 @@ void satelliteScr(_lv_obj_t *screen)
         lv_obj_set_style_text_align(gnssLabel, LV_TEXT_ALIGN_CENTER, 0);
 
         satelliteBar = lv_chart_create(wrapper);
-        lv_obj_set_size(satelliteBar, TFT_WIDTH * 2, 80);
+        lv_obj_set_size(satelliteBar, TFT_WIDTH * 2, 90);
         lv_chart_set_div_line_count(satelliteBar, 10, 0);
         lv_chart_set_range(satelliteBar, LV_CHART_AXIS_PRIMARY_Y, 0, 60);
         satelliteBarSerie = lv_chart_add_series(satelliteBar, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
