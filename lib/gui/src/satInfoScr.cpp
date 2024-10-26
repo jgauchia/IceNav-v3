@@ -150,7 +150,7 @@ void satelliteBarDrawEvent(lv_event_t * event)
         lv_obj_set_pos(barCont, 0, 5);
         lv_obj_t * wrapper = lv_obj_create(barCont);
         lv_obj_remove_style_all(wrapper);
-        lv_obj_set_size(wrapper, TFT_WIDTH * 2, 150);
+        lv_obj_set_size(wrapper, TFT_WIDTH * 2, 120);
 
         lv_obj_t * gnssLabel = lv_label_create(barCont);
         lv_obj_set_style_text_font(gnssLabel, fontSatInfo, 0);
@@ -243,7 +243,7 @@ void satelliteScr(_lv_obj_t *screen)
         
         lv_obj_t * wrapper = lv_obj_create(barCont);
         lv_obj_remove_style_all(wrapper);
-        lv_obj_set_size(wrapper, TFT_WIDTH * 2, 125);
+        lv_obj_set_size(wrapper, TFT_WIDTH * 2, 100);
 
         lv_obj_t * gnssLabel = lv_label_create(barCont);
         lv_obj_set_style_text_font(gnssLabel, fontSatInfo, 0);
@@ -294,6 +294,5 @@ void satelliteScr(_lv_obj_t *screen)
         lv_obj_add_event_cb(satelliteBar, satelliteBarDrawEvent, LV_EVENT_DRAW_TASK_ADDED, NULL);
         lv_obj_add_event_cb(satelliteBar, satelliteBarDrawEvent, LV_EVENT_DRAW_POST_END, NULL);
         lv_obj_add_flag(satelliteBar, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
-        lv_obj_clear_flag(satelliteBar, LV_OBJ_FLAG_SCROLLABLE);
     }
 #endif
