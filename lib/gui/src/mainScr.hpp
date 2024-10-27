@@ -12,7 +12,6 @@
 #include "globalGuiDef.h"
 #include "lvglFuncs.hpp"
 #include "misc/lv_color.h"
-#include "satInfo.hpp"
 #include "notifyBar.hpp"
 #include "buttonBar.hpp"
 #include "renderMaps.hpp"
