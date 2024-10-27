@@ -537,15 +537,21 @@ void createMainScr()
   lv_obj_add_event_cb(navTile, updateNavEvent, LV_EVENT_VALUE_CHANGED, NULL);
   
   // Satellite Tracking and info Tile
+  satelliteScr(satTrackTile);
   #ifdef BOARD_HAS_PSRAM
     #ifndef TDECK_ESP32S3
-      satelliteScr(satTrackTile);
-      createConstCanvas(satTrackTile);
+      // createConstCanvas(satTrackTile);
+      // drawSatConst();
+      // lv_obj_set_pos(constCanvas,( TFT_WIDTH / 2 ) - canvasCenter_X, 240);
+
+      createConstCanvas(constMsg);
+      lv_obj_align(constCanvas,LV_ALIGN_CENTER,0,0);
       drawSatConst();
-      lv_obj_set_pos(constCanvas,( TFT_WIDTH / 2 ) - canvasCenter_X, 240);
     #endif
     #ifdef TDECK_ESP32S3
-
+      createConstCanvas(constMsg);
+      lv_obj_align(constCanvas,LV_ALIGN_CENTER,0,0);
+      drawSatConst();
     #endif
   #endif
 

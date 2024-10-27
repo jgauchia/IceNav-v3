@@ -17,6 +17,7 @@ lv_layer_t canvasLayer;
 lv_layer_t satLayer;
 lv_obj_t *satelliteBar;               
 lv_chart_series_t *satelliteBarSerie; 
+lv_obj_t *constMsg;
 
 /**
  * @brief Draw Text on SNR Chart
@@ -107,6 +108,32 @@ void satelliteBarDrawEvent(lv_event_t * event)
         drawTextOnLayer(buf, layer, &p, &chartObjCoords, lv_color_white(), fontSmall, (chartObjCoords.y1 + p.y) - chartObjCoords.y2 + 10);
     }
   } 
+}
+
+/**
+ * @brief SNR Long press event for show constellation Map (only for T-DECK)
+ *
+ * @param event
+ */
+void constSatEvent(lv_event_t *event)
+{
+    lv_event_code_t code = lv_event_get_code(event);
+  
+    if (code == LV_EVENT_LONG_PRESSED)
+        lv_obj_clear_flag(constMsg,LV_OBJ_FLAG_HIDDEN); 
+}
+
+/**
+ * @brief Event for hide constellation Map (only for T-DECK)
+ *
+ * @param event
+ */
+void closeConstSatEvent(lv_event_t *event)
+{
+    lv_event_code_t code = lv_event_get_code(event);
+  
+    if (code == LV_EVENT_LONG_PRESSED)
+        lv_obj_add_flag(constMsg,LV_OBJ_FLAG_HIDDEN); 
 }
 
  /**
@@ -218,6 +245,13 @@ void createConstCanvas(_lv_obj_t *screen)
         lv_obj_add_event_cb(satelliteBar, satelliteBarDrawEvent, LV_EVENT_DRAW_TASK_ADDED, NULL);
         lv_obj_add_event_cb(satelliteBar, satelliteBarDrawEvent, LV_EVENT_DRAW_POST_END, NULL);
         lv_obj_add_flag(satelliteBar, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
+        lv_obj_add_event_cb(satelliteBar, constSatEvent, LV_EVENT_LONG_PRESSED, NULL);
+
+        constMsg = lv_msgbox_create(screen);
+        lv_obj_set_size(constMsg, 180, 185);
+        lv_obj_set_align(constMsg,LV_ALIGN_CENTER);
+        lv_obj_add_flag(constMsg,LV_OBJ_FLAG_HIDDEN); 
+        lv_obj_add_event_cb(constMsg, closeConstSatEvent, LV_EVENT_LONG_PRESSED, NULL);
     }
 #endif
 
@@ -311,6 +345,13 @@ void createConstCanvas(_lv_obj_t *screen)
         lv_obj_add_event_cb(satelliteBar, satelliteBarDrawEvent, LV_EVENT_DRAW_TASK_ADDED, NULL);
         lv_obj_add_event_cb(satelliteBar, satelliteBarDrawEvent, LV_EVENT_DRAW_POST_END, NULL);
         lv_obj_add_flag(satelliteBar, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
+        lv_obj_add_event_cb(satelliteBar, constSatEvent, LV_EVENT_LONG_PRESSED, NULL);
+
+        constMsg = lv_msgbox_create(screen);
+        lv_obj_set_size(constMsg, 180, 185);
+        lv_obj_set_align(constMsg,LV_ALIGN_CENTER);
+        lv_obj_add_flag(constMsg,LV_OBJ_FLAG_HIDDEN); 
+        lv_obj_add_event_cb(constMsg, closeConstSatEvent, LV_EVENT_LONG_PRESSED, NULL);
     }
 #endif
 

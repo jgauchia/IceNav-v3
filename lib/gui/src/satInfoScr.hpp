@@ -38,6 +38,7 @@ extern lv_obj_t *altLabel;
 extern lv_obj_t *constCanvas;
 extern lv_obj_t *satelliteBar;               
 extern lv_chart_series_t *satelliteBarSerie; 
+extern lv_obj_t *constMsg;
 
 /**
  * @brief Satellite Constellation Layer Canvas Definition
@@ -49,7 +50,9 @@ extern lv_chart_series_t *satelliteBarSerie;
 
 
 void drawTextOnLayer(const char * text, lv_layer_t * layer, lv_point_t * p, lv_area_t * coords, lv_color_t color, const void * font, int16_t offset);
-void satelliteBarDrawEvent(lv_event_t * event);
+void satelliteBarDrawEvent(lv_event_t *event);
+void constSatEvent(lv_event_t *event);
+void closeConstSatEvent(lv_event_t *event);
 void createConstCanvas(_lv_obj_t *screen);
 void satelliteScr(_lv_obj_t *screen);
 void drawSatSNR();
