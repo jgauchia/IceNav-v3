@@ -246,12 +246,6 @@ void createConstCanvas(_lv_obj_t *screen)
         lv_obj_add_event_cb(satelliteBar, satelliteBarDrawEvent, LV_EVENT_DRAW_POST_END, NULL);
         lv_obj_add_flag(satelliteBar, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
         lv_obj_add_event_cb(satelliteBar, constSatEvent, LV_EVENT_LONG_PRESSED, NULL);
-
-        constMsg = lv_msgbox_create(screen);
-        lv_obj_set_size(constMsg, 180, 185);
-        lv_obj_set_align(constMsg,LV_ALIGN_CENTER);
-        lv_obj_add_flag(constMsg,LV_OBJ_FLAG_HIDDEN); 
-        lv_obj_add_event_cb(constMsg, closeConstSatEvent, LV_EVENT_LONG_PRESSED, NULL);
     }
 #endif
 
@@ -437,4 +431,64 @@ void drawSatConst()
 
     // Finish Canvas Draw 
     lv_canvas_finish_layer(constCanvas, &canvasLayer); 
+}
+
+/**
+ * @brief Draw Satellite Position in Constellation
+ *
+ *
+ */
+void drawSatSky()
+{
+    lv_canvas_fill_bg(constCanvas, lv_color_black(), LV_OPA_100);
+    drawSatConst();
+
+    lv_layer_t satPosLayer;
+    lv_canvas_init_layer(constCanvas, &satPosLayer);
+
+    // Draw Satellite
+    lv_draw_arc_dsc_t dscSat;
+    lv_draw_arc_dsc_init(&dscSat);
+    dscSat.width = 8;
+    dscSat.start_angle = 0;
+    dscSat.end_angle = 360;
+    dscSat.radius = 8;
+    dscSat.opa = LV_OPA_70;
+
+    for (int i = 0; i < gpsData.satInView; i++)
+    {
+        if ( strcmp(satTracker[i].talker_id,"GP") == 0 )
+            dscSat.color = satTracker[i].active == true ? GP_INACTIVE_COLOR : GP_ACTIVE_COLOR;
+        if ( strcmp(satTracker[i].talker_id,"GL") == 0 )
+            dscSat.color = satTracker[i].active == true ? GL_INACTIVE_COLOR : GL_ACTIVE_COLOR;
+        if ( strcmp(satTracker[i].talker_id,"BD") == 0 )
+            dscSat.color = satTracker[i].active == true ? BD_INACTIVE_COLOR : BD_ACTIVE_COLOR;
+        dscSat.center.x = satTracker[i].posX;
+        dscSat.center.y = satTracker[i].posY;
+        lv_draw_arc(&satPosLayer, &dscSat);
+
+        // Draw Satellite Number
+        char buf[16];
+        lv_draw_rect_dsc_t draw_rect_dsc;
+        lv_draw_rect_dsc_init(&draw_rect_dsc);
+
+        lv_snprintf(buf, sizeof(buf), LV_SYMBOL_DUMMY"%d", satTracker[i].satNum);
+
+        draw_rect_dsc.bg_opa = LV_OPA_TRANSP;
+        draw_rect_dsc.radius = 0;
+        draw_rect_dsc.bg_image_symbol_font = &lv_font_montserrat_8;
+        draw_rect_dsc.bg_image_src = buf;
+        draw_rect_dsc.bg_image_recolor = lv_color_white();
+
+        lv_area_t a;
+        a.x1 = satTracker[i].posX-8;
+        a.x2 = satTracker[i].posX+8;
+        a.y1 = satTracker[i].posY-5;
+        a.y2 =  satTracker[i].posY+4;
+
+        lv_draw_rect(&satPosLayer, &draw_rect_dsc, &a);
+
+        // Finish Canvas Draw 
+        lv_canvas_finish_layer(constCanvas, &satPosLayer); 
+    }
 }

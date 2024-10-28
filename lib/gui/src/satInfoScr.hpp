@@ -57,5 +57,5 @@ void createConstCanvas(_lv_obj_t *screen);
 void satelliteScr(_lv_obj_t *screen);
 void drawSatSNR();
 void drawSatConst();
-
+void drawSatSky();
 #endif

@@ -275,7 +275,7 @@ void updateSatTrack(lv_event_t *event)
   lv_label_set_text_fmt(altLabel, "ALT: %4dm.", gpsData.altitude);
 
   drawSatSNR();
-  //drawSatConst();
+  drawSatSky();
 }
 
 /**
@@ -540,13 +540,9 @@ void createMainScr()
   satelliteScr(satTrackTile);
   #ifdef BOARD_HAS_PSRAM
     #ifndef TDECK_ESP32S3
-      // createConstCanvas(satTrackTile);
-      // drawSatConst();
-      // lv_obj_set_pos(constCanvas,( TFT_WIDTH / 2 ) - canvasCenter_X, 240);
-
-      createConstCanvas(constMsg);
-      lv_obj_align(constCanvas,LV_ALIGN_CENTER,0,0);
+      createConstCanvas(satTrackTile);
       drawSatConst();
+      lv_obj_set_pos(constCanvas,( TFT_WIDTH / 2 ) - canvasCenter_X, 240);
     #endif
     #ifdef TDECK_ESP32S3
       createConstCanvas(constMsg);
