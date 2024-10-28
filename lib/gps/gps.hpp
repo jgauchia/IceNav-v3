@@ -14,6 +14,9 @@
 #include "settings.hpp"
 #include "timezone.hpp"
 
+#define DEG2RAD(a) ((a) / (180 / M_PI)) // Convert degrees to radians
+#define RAD2DEG(a) ((a) * (180 / M_PI)) // Convert radians to degrees
+
 extern uint8_t GPS_TX;
 extern uint8_t GPS_RX;
 
@@ -81,5 +84,15 @@ double getLon();
 void getGPSData();
 long detectRate(int rxPin);
 long autoBaudGPS();
+
+/**
+ * @brief Satellite Constellation Canvas Definition
+ *
+ */
+static const uint8_t canvasOffset = 15;
+static const uint8_t canvasSize = 180;
+static const uint8_t canvasCenter_X = canvasSize / 2;
+static const uint8_t canvasCenter_Y = canvasSize / 2;
+static const uint8_t canvasRadius = canvasCenter_X - canvasOffset;
 
 #endif
