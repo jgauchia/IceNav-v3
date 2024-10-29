@@ -167,7 +167,6 @@ void getGPSData()
 
   // Satellite info
   gpsData.satInView = (uint8_t)GPS.sat_count;
-  log_v("Satellites in view: %d",(uint8_t)GPS.sat_count);
   for (uint8_t i = 0; i < gpsData.satInView; i++) 
   {
     satTracker[i].satNum = (uint8_t)GPS.satellites[i].id;
