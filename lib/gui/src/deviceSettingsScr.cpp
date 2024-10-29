@@ -126,7 +126,7 @@ void createDeviceSettingsScr()
   lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_set_align(list, LV_ALIGN_OUT_LEFT_BOTTOM);
   dropdown = lv_dropdown_create(list);
-  lv_dropdown_set_options(dropdown, "4800\n9600\n19200\n38400\nAUTO");
+  lv_dropdown_set_options(dropdown, "4800\n9600\n19200\nAUTO");
   lv_dropdown_set_selected(dropdown, gpsBaud);
   lv_obj_t* item = lv_dropdown_get_list(dropdown);
   lv_obj_set_style_bg_color(item, lv_color_hex(objectColor), LV_PART_SELECTED | LV_STATE_CHECKED);
