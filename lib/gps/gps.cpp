@@ -35,6 +35,8 @@ void initGPS()
       gpsPort.begin(gpsBaudDetected, SERIAL_8N1, GPS_RX, GPS_TX);
     }
   }
+  gpsPort.setRxBufferSize(1024);
+
 #ifdef AT6558D_GPS
       // FACTORY RESET
       // gpsPort.println("$PCAS10,3*1F\r\n");

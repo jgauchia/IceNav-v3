@@ -57,7 +57,7 @@ public:
       cfg.dma_channel = SPI_DMA_CH_AUTO;
       cfg.pin_sclk = TFT_SPI_SCLK;
       cfg.pin_mosi = TFT_SPI_MOSI;
-      cfg.pin_miso = TFT_SPI_MISO;
+      cfg.pin_miso = -1;
       cfg.pin_dc = TFT_SPI_DC;
       _bus_instance.config(cfg);
       _panel_instance.setBus(&_bus_instance);

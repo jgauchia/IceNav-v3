@@ -42,22 +42,9 @@ void gpsTask(void *pvParameters)
       }
 
       xSemaphoreGive(gpsMutex);
-    // if (GPS.time.isValid() && !isTimeFixed)
-    // {
-    //   setTime(GPS.time.hour(),
-    //           GPS.time.minute(),
-    //           GPS.time.second(),
-    //           GPS.date.day(),
-    //           GPS.date.month(),
-    //           GPS.date.year());
-    //   // utc = now();
-    //   // local = CE.toLocal(utc);
-    //   // setTime(local);
-    //   isTimeFixed = true;
-    // }
-    }
-    vTaskDelay(1); /// portTICK_PERIOD_MS);
 
+      vTaskDelay(1); /// portTICK_PERIOD_MS);
+    }
   }
 }
 
