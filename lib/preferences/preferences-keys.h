@@ -28,4 +28,5 @@
   X(KDEF_BRIGT, "defBright", UINT)       \
   X(KVMAX_BATT, "VmaxBatt", FLOAT)       \
   X(KVMIN_BATT, "VminBatt", FLOAT)       \
+  X(KTEMP_OFFS, "tempOffs", INT)         \
   X(KCOUNT, "KCOUNT", UNKNOWN)

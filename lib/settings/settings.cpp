@@ -49,6 +49,7 @@ uint16_t speedPosX = 0;       // Speed widget position X
 uint16_t speedPosY = 0;       // Speed widget position Y
 bool enableWeb = true;        // Enable/disable web file server
 bool showToolBar = false;     // Show Map Toolbar
+int8_t tempOffset = 0;        // BME Temperature offset
 // float batteryMax = 0.0;       // 4.2;      // maximum voltage of battery
 // float batteryMin = 0.0;       // 3.6;      // minimum voltage of battery before shutdown
 
