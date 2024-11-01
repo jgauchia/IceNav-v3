@@ -20,12 +20,12 @@
   X(KGPS_RATE, "GPS_rate", SHORT)        \
   X(KWEB_FILE, "Web_file", BOOL)         \
   X(KUSER, "-----", UNKNOWN)             \
-  X(KDEF_ZOOM, "Def_zoom", UINT)         \
-  X(KGPS_TX, "gpsTX", UINT)             \
-  X(KGPS_RX, "gpsRX", UINT)             \
+  X(KDEF_ZOOM, "defZoom", UINT)          \
+  X(KGPS_TX, "gpsTX", UINT)              \
+  X(KGPS_RX, "gpsRX", UINT)              \
   X(KLAT_DFL, "defLAT", DOUBLE)          \
   X(KLON_DFL, "defLON", DOUBLE)          \
-  X(KDEF_BRIGT, "defBright", UINT)        \
+  X(KDEF_BRIGT, "defBright", UINT)       \
   X(KVMAX_BATT, "VmaxBatt", FLOAT)       \
   X(KVMIN_BATT, "VminBatt", FLOAT)       \
   X(KCOUNT, "KCOUNT", UNKNOWN)
