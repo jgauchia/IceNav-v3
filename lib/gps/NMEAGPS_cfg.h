@@ -45,7 +45,7 @@
 // to determine when the GPS quiet time begins, and thus
 // when you can perform "some" time-consuming operations.
 
-#define LAST_SENTENCE_IN_INTERVAL NMEAGPS::NMEA_ZDA
+#define LAST_SENTENCE_IN_INTERVAL NMEAGPS::NMEA_RMC
 
 // NOTE: For PUBX-only, PGRM and UBX configs, use
 //          (NMEAGPS::nmea_msg_t)(NMEAGPS::NMEA_LAST_MSG+1)
@@ -64,6 +64,8 @@
 // use NMEAorder.ino to list them.  You do not have to select
 // the last sentence the device sends if you have disabled
 // it.  Just select the last sentence that you have *enabled*.
+
+#define NMEAGPS_COHERENT
 
 //------------------------------------------------------
 // Choose how multiple sentences are merged into a fix:
