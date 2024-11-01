@@ -98,6 +98,7 @@ void loadPreferences()
   GPS_TX = cfg.getUInt(PKEYS::KGPS_TX, GPS_TX);
   GPS_RX = cfg.getUInt(PKEYS::KGPS_RX, GPS_RX);
   enableWeb = cfg.getBool(PKEYS::KWEB_FILE, enableWeb);
+  tempOffset = cfg.getInt(PKEYS::KTEMP_OFFS,0);
 
   // Default Widgets positions
   #ifdef TDECK_ESP32S3
