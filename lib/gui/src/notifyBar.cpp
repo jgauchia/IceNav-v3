@@ -107,7 +107,6 @@ void updateNotifyBarTimer(lv_timer_t *t)
     lv_led_off(gpsFix);
 
   #ifdef ENABLE_TEMP
-  log_v("%d", tempOffset);
   tempValue = (uint8_t)(bme.readTemperature() + tempOffset);
   if (tempValue != tempOld)
   {
