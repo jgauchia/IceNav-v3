@@ -233,6 +233,30 @@ wipe:           wipe preferences to factory default
 
 Some extra details:
 
+**klist**: List user custom settings:
+
+```
+    KEYNAME     DEFINED         VALUE 
+    =======     =======         ===== 
+    defZoom     custom         
+      gpsTX     custom          
+      gpsRX     custom          
+     defLAT     custom          
+     defLON     custom           
+  defBright     custom          
+   VmaxBatt     custom         
+   VminBatt     custom          
+   tempOffs     custom
+```          
+
+**kset KEYNAME**: Set user custom settings:
+
+In order to simplify the configuration of the device (minimum and maximum battery level, default position, etc...) via CLI it is possible to specify default values ​​for the configuration.
+This has been done in order to speed up the device configuration process without having to invest "time" in modifying and creating extra configuration screens in the GUI (LVGL).
+
+Available user parameters can be obtained using the **klist** command with a CLI connection (either via USB connection or TELNET connection)
+
+
 **nmcli**: IceNav use a `wcli` network manager library. For more details of this command and its sub commands please refer to [here](https://github.com/hpsaturn/esp32-wifi-cli?tab=readme-ov-file#readme)
 
 **outnmea**: this command toggle the GPS output to the serial console. With that it will be compatible with external GPS software like `PyGPSClient` and others. To stop these messages in your console, just only repeat the same command or perform a `CTRL+C`.
