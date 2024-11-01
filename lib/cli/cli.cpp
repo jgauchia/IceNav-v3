@@ -3,7 +3,7 @@
  * @author @Hpsaturn
  * @brief  Network CLI and custom internal commands
  * @version Using https://github.com/hpsaturn/esp32-wifi-cli.git
- * @date 2024-10
+ * @date 2024-11
  */
 
 #ifndef DISABLE_CLI
