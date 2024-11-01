@@ -44,6 +44,7 @@ extern uint16_t altitudePosY; // Altitude widget position Y
 extern uint16_t speedPosX;    // Speed widget position X
 extern uint16_t speedPosY;    // Speed widget position Y
 extern bool enableWeb;        // Enable/disable web file server
+extern int8_t tempOffset;     // BME Temperature offset
 
 void loadPreferences();
 void saveMapRotation(bool zoomRotation);

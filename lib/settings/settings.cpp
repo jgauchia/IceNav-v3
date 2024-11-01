@@ -49,6 +49,7 @@ uint16_t speedPosX = 0;       // Speed widget position X
 uint16_t speedPosY = 0;       // Speed widget position Y
 bool enableWeb = true;        // Enable/disable web file server
 bool showToolBar = false;     // Show Map Toolbar
+int8_t tempOffset = 0;        // BME Temperature offset
 // float batteryMax = 0.0;       // 4.2;      // maximum voltage of battery
 // float batteryMin = 0.0;       // 3.6;      // minimum voltage of battery before shutdown
 
@@ -97,6 +98,7 @@ void loadPreferences()
   GPS_TX = cfg.getUInt(PKEYS::KGPS_TX, GPS_TX);
   GPS_RX = cfg.getUInt(PKEYS::KGPS_RX, GPS_RX);
   enableWeb = cfg.getBool(PKEYS::KWEB_FILE, enableWeb);
+  tempOffset = cfg.getInt(PKEYS::KTEMP_OFFS,0);
 
   // Default Widgets positions
   #ifdef TDECK_ESP32S3
