@@ -89,7 +89,7 @@ static lv_obj_t *create_slider(lv_obj_t *parent, const char *icon, const char *t
     lv_obj_t *obj = create_text(parent, icon, txt);
 
     lv_obj_t *slider = lv_slider_create(obj);
-    lv_obj_set_flex_grow(slider, 1);
+    lv_obj_set_width(slider,TFT_WIDTH - 80);
     lv_slider_set_range(slider, min, max);
     lv_slider_set_value(slider, val, LV_ANIM_OFF);
 
@@ -155,8 +155,7 @@ void createDeviceSettingsScr()
   lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"rate");
 
   create_slider(deviceSettingsOptions, LV_SYMBOL_SETTINGS, "Brightness", 5, 255, defBright, lv_brightness_cb, LV_EVENT_VALUE_CHANGED);
-  // create_slider(deviceSettingsOptions, LV_SYMBOL_SETTINGS, "Background", 0, 255, 128, lv_background_opa_cb, LV_EVENT_VALUE_CHANGED);
-
+  
   // Back button
   btn = lv_btn_create(deviceSettingsScreen);
   lv_obj_set_size(btn, TFT_WIDTH - 30, 40 * scale);
