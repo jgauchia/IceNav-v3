@@ -139,19 +139,28 @@ The PBF files can be downloaded from the [geofabrik](https://download.geofabrik.
 
 The PBF files should be saved in the `pbf` directory. Once saved, you should select the region or boundaries for which the GeoJSON files will be generated.
 
-To obtain the boundaries, please check the [geojson.io](http://geojson.io) website.
-
-For generate GeoJSON files run inside `maps` directory:
-
-```bash
-ogr2ogr -t_srs EPSG:3857 -spat min_lon min_lat max_lon max_lat map_lines.geojson /pbf/downloaded.pbf lines
-
-ogr2ogr -t_srs EPSG:3857 -spat min_lon min_lat max_lon max_lat map_polygons.geojson /pbf/downloaded.pbf multipolygons
+To obtain the boundaries use `osmconvert file.pbf --out-statistics`:
+```
+lon min: -5.5203154
+lon max: 11.7825360
+lat min: 35.2703341
+lat max: 44.4078541
 ```
 
-For generate binary map files run inside `maps` directory.
+For generate GeoJSON files run inside `scripts` directory:
+
 ```bash
-/scripts/./extract_features.py min_lon min_lat max_lon max_lat map
+min_lon=123
+min_lat=123
+max_lon=123
+max_lat=123
+
+./pbf_to_geojson.sh $min_lon $min_lat $max_lon $max_lat /pbf/clipped.pbf /maps/test
+```
+
+For generate binary map files run inside `scripts` directory.
+```bash
+./extract_features.py $min_lon $min_lat $max_lon $max_lat /maps/test
 ```
 Once the process is completed, the maps will be inside the `maps/mymap` directory. Copy all folders to the SD card except the `test_imgs` directory into `VECTMAP` folder of the SD Card.
 
