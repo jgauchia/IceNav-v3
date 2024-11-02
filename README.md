@@ -153,7 +153,7 @@ For generate binary map files run inside `maps` directory.
 ```bash
 /scripts/./extract_features.py min_lon min_lat max_lon max_lat map
 ```
-Once the process is completed, the maps will be inside the `maps/mymap` directory. Copy all folders to the SD card except the `test_imgs` directory.
+Once the process is completed, the maps will be inside the `maps/mymap` directory. Copy all folders to the SD card except the `test_imgs` directory into `VECTMAP` folder of the SD Card.
 
 Please follow the instructions provided by [OSM_Extract](https://github.com/aresta/OSM_Extract) for any further questions.
 

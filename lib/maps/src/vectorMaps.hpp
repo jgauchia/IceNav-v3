@@ -23,8 +23,8 @@
 #include "gpsMath.hpp"
 #include "settings.hpp"
 
-const String baseFolder PROGMEM = "/mymap/"; // Vector Map Files Folder
-extern bool isPosMoved;                      // Flag when current position changes
+const String baseFolder PROGMEM = "/VECTMAP/"; // Vector Map Files Folder
+extern bool isPosMoved;                        // Flag when current position changes
 
 /**
  * @brief Vector map object colours
