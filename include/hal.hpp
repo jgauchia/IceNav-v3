@@ -17,8 +17,8 @@
   #define I2C_SDA_PIN 38
   #define I2C_SCL_PIN 39
 
-  uint8_t GPS_TX = 44;
-  uint8_t GPS_RX = 43;
+  uint8_t GPS_TX = 43;
+  uint8_t GPS_RX = 44;
 
   extern const uint8_t BOARD_BOOT_PIN = 0;
 
