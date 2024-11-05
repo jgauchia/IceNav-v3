@@ -97,7 +97,7 @@ public:
       cfg.dummy_read_pixel = 8; 
       cfg.dummy_read_bits = 1;  
       cfg.readable = true;      
-      cfg.invert = TFT_INVERT;       
+      cfg.invert = true;     
       cfg.rgb_order = false;    
       cfg.dlen_16bit = true;    
       cfg.bus_shared = true;    
