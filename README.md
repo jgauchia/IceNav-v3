@@ -95,6 +95,7 @@ If TFT shares SPI bus with SD card add the followings Build Flag to platformio.i
 
 |             | Type          | Build Flags [^3]                 | lib_deps [^5] (**no common environment**)              |
 |:------------|:--------------|:---------------------------------|:-------------------------------------------------------|
+|             | Batt. Monitor | ```-DADC1``` or ```-DADC2``` <br> ```-DBATT_PIN=ADCn_CHANNEL_x``` |                       |   
 | AT6558D     | GPS           | ```-DAT6558D_GPS```              |                                                        |
 | HMC5883L    | Compass       | ```-DHMC5883L```                 | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
 | QMC5883     | Compass       | ```-DQMC5883```                  | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
