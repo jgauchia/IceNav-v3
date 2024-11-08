@@ -54,7 +54,7 @@ public:
       auto cfg = _bus_instance.config(); 
 
       cfg.port = 0;              
-      cfg.freq_write = 30000000; 
+      cfg.freq_write = 40000000; 
       cfg.pin_wr = TFT_WR;
       cfg.pin_rd = TFT_RD;
       cfg.pin_rs = TFT_RS;
