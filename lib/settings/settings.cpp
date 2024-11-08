@@ -220,6 +220,7 @@ void saveGPSBaud(uint16_t gpsBaud)
     gpsPort.flush();
     gpsPort.end();
     delay(500);
+    gpsPort.setRxBufferSize(1024);
     gpsPort.begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
     delay(500);
   }
@@ -232,6 +233,7 @@ void saveGPSBaud(uint16_t gpsBaud)
       gpsPort.flush();
       gpsPort.end();
       delay(500);
+      gpsPort.setRxBufferSize(1024);
       gpsPort.begin(gpsBaudDetected, SERIAL_8N1, GPS_RX, GPS_TX);
       delay(500);
     }

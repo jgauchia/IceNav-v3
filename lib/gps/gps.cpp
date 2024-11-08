@@ -24,6 +24,8 @@ NeoGPS::time_t localTime = 0;
  */
 void initGPS()
 {
+  gpsPort.setRxBufferSize(1024);
+
   if (gpsBaud != 4)
     gpsPort.begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
   else
@@ -35,7 +37,6 @@ void initGPS()
       gpsPort.begin(gpsBaudDetected, SERIAL_8N1, GPS_RX, GPS_TX);
     }
   }
-  gpsPort.setRxBufferSize(512);
 
 #ifdef AT6558D_GPS
       // FACTORY RESET
