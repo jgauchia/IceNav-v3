@@ -35,6 +35,8 @@ void initGPS()
       gpsPort.begin(gpsBaudDetected, SERIAL_8N1, GPS_RX, GPS_TX);
     }
   }
+  gpsPort.setRxBufferSize(512);
+
 #ifdef AT6558D_GPS
       // FACTORY RESET
       // gpsPort.println("$PCAS10,3*1F\r\n");
@@ -165,7 +167,7 @@ void getGPSData()
 
   // Satellite info
   gpsData.satInView = (uint8_t)GPS.sat_count;
-  for (uint8_t i = 0; i < GPS.sat_count; i++) 
+  for (uint8_t i = 0; i < gpsData.satInView; i++) 
   {
     satTracker[i].satNum = (uint8_t)GPS.satellites[i].id;
     satTracker[i].elev = (uint8_t)GPS.satellites[i].elevation;

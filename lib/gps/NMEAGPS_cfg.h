@@ -65,6 +65,8 @@
 // the last sentence the device sends if you have disabled
 // it.  Just select the last sentence that you have *enabled*.
 
+#define NMEAGPS_COHERENT
+
 //------------------------------------------------------
 // Choose how multiple sentences are merged into a fix:
 //   1) No merging
