@@ -108,6 +108,10 @@ void readCompass(float &x, float &y, float &z)
   y = IMU.getMagY_uT();
   z = IMU.getMagZ_uT();
   #endif
+
+  #ifdef ICENAV_BOARD
+    y = y * -1;
+  #endif
 }
 
 /**
