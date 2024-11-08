@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Battery monitor definition and functions
  * @version 0.1.8_Alpha
- * @date 2024-10
+ * @date 2024-11
  */
 
 
@@ -30,17 +30,13 @@ void initADC()
   //     6dB attenuation (ADC_ATTEN_DB_6) gives full-scale voltage 2.2V
   //     12dB attenuation (ADC_ATTEN_DB_12) gives full-scale voltage 3.9V
 
-  #ifndef ELECROW_ESP32
+  #ifdef ADC1
     adc1_config_width(ADC_WIDTH_BIT_12);
-    #ifndef TDECK_ESP32S3 
-      adc1_config_channel_atten(ADC1_CHANNEL_6, ADC_ATTEN_DB_12); 
-    #endif
-    #ifdef TDECK_ESP32S3 
-      adc1_config_channel_atten(ADC1_CHANNEL_3, ADC_ATTEN_DB_12); 
-    #endif 
+    adc1_config_channel_atten(BATT_PIN, ADC_ATTEN_DB_12); 
   #endif
-  #ifdef ELECROW_ESP32
-    adc2_config_channel_atten(ADC2_CHANNEL_6, ADC_ATTEN_DB_12);
+
+  #ifdef ADC2
+    adc2_config_channel_atten(BATT_PIN, ADC_ATTEN_DB_12);
   #endif
 }
 
@@ -56,20 +52,18 @@ float batteryRead()
   float output = 0.0;  // output value
   for (int i = 0; i < 100; i++)
   {
-    #ifndef ELECROW_ESP32
-      #ifndef TDECK_ESP32S3
-        sum += (long)adc1_get_raw(ADC1_CHANNEL_6);
-      #endif
-      #ifdef TDECK_ESP32S3
-        sum += (long)adc1_get_raw(ADC1_CHANNEL_3);
-      #endif
+
+    #ifdef ADC1
+      sum += (long)adc1_get_raw(BATT_PIN);
     #endif
-    #ifdef ELECROW_ESP32
+
+    #ifdef ADC2
      int readRaw;
-     esp_err_t r = adc2_get_raw(ADC2_CHANNEL_6, ADC_WIDTH_BIT_12, &readRaw);
+     esp_err_t r = adc2_get_raw(BATT_PIN, ADC_WIDTH_BIT_12, &readRaw);
      if (r == ESP_OK)
       sum += (long)readRaw;
     #endif
+
     delayMicroseconds(150);
   }
   voltage = sum / (float)100;

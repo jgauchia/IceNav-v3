@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LOVYANGFX TFT driver for ILI9488 16 Bits parallel  With FT5x06 Touch controller
  * @version 0.1.8_Alpha
- * @date 2024-10
+ * @date 2024-11
  */
 
 #ifndef ILI9488_FT5x06_16B_HPP
@@ -97,7 +97,7 @@ public:
       cfg.dummy_read_pixel = 8; 
       cfg.dummy_read_bits = 1;  
       cfg.readable = true;      
-      cfg.invert = false;       
+      cfg.invert = true;     
       cfg.rgb_order = false;    
       cfg.dlen_16bit = true;    
       cfg.bus_shared = true;    

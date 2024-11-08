@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Satellite info screen 
  * @version 0.1.8_Alpha
- * @date 2024-10
+ * @date 2024-11
  */
 
 #ifndef SATINFOSCR_HPP

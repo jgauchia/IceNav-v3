@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief LVGL - Notify Bar Screen
  * @version 0.1.8_Alpha
- * @date 2024-10
+ * @date 2024-11
  */
 
 #include "notifyBar.hpp"
@@ -107,7 +107,7 @@ void updateNotifyBarTimer(lv_timer_t *t)
     lv_led_off(gpsFix);
 
   #ifdef ENABLE_TEMP
-  tempValue = (uint8_t)(bme.readTemperature());
+  tempValue = (uint8_t)(bme.readTemperature() + tempOffset);
   if (tempValue != tempOld)
   {
     lv_obj_send_event(temp, LV_EVENT_VALUE_CHANGED, NULL);

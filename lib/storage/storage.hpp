@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Storage definition and functions
  * @version 0.1.8_Alpha
- * @date 2024-10
+ * @date 2024-11
  */
 
 #ifndef STORAGE_HPP
@@ -14,6 +14,10 @@
 #include <LovyanGFX.hpp>
 #include <tft.hpp>
 
+#ifdef ICENAV_BOARD
+static SPIClass spiSD = SPIClass(HSPI);
+static uint32_t sdFreq = 10000000;
+#endif
 #ifdef MAKERF_ESP32S3
 static SPIClass spiSD = SPIClass(HSPI);
 static uint32_t sdFreq = 10000000;

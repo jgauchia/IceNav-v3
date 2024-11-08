@@ -3,7 +3,7 @@
  * @author @aresta - https://github.com/aresta/ESP32_GPS
  * @brief  Vector maps draw functions
  * @version 0.1.8_Alpha
- * @date 2024-10
+ * @date 2024-11
  */
 
 #ifndef VECTORMAPS_HPP
@@ -23,8 +23,8 @@
 #include "gpsMath.hpp"
 #include "settings.hpp"
 
-const String baseFolder PROGMEM = "/mymap/"; // Vector Map Files Folder
-extern bool isPosMoved;                      // Flag when current position changes
+const String baseFolder PROGMEM = "/VECTMAP/"; // Vector Map Files Folder
+extern bool isPosMoved;                        // Flag when current position changes
 
 /**
  * @brief Vector map object colours

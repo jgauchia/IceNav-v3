@@ -93,13 +93,14 @@ If TFT shares SPI bus with SD card add the followings Build Flag to platformio.i
 
 ### Modules
 
-|             | Type          | Build Flags [^3]                 | lib_deps [^5] (**no common environment**)              |
-|:------------|:--------------|:---------------------------------|:-------------------------------------------------------|
-| AT6558D     | GPS           | ```-DAT6558D_GPS```              |                                                        |
-| HMC5883L    | Compass       | ```-DHMC5883L```                 | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
-| QMC5883     | Compass       | ```-DQMC5883```                  | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
-| MPU9250     | IMU (Compass) | ```-DIMU_MPU9250```              | ```bolderflight/Bolder Flight Systems MPU9250@^1.0.2```|
-| BME280      | Temp/Pres/Hum | ```-DBME280```                   | ```adafruit/Adafruit Unified Sensor@^1.1.14``` <br> ```adafruit/Adafruit BusIO@^1.16.1``` <br> ```adafruit/Adafruit BME280 Library@^2.2.4```|
+|             | Type          | Build Flags [^3]                   | lib_deps [^5] (**no common environment**)              |
+|:------------|:--------------|:-----------------------------------|:-------------------------------------------------------|
+|             | Batt. Monitor | ```-DADC1``` or ```-DADC2``` <br> ```-DBATT_PIN=ADCn_CHANNEL_x``` |                       |   
+| AT6558D     | GPS           | ```-DAT6558D_GPS```                |                                                        |
+| HMC5883L    | Compass       | ```-DHMC5883L```                   | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
+| QMC5883     | Compass       | ```-DQMC5883```                    | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
+| MPU9250     | IMU (Compass) | ```-DIMU_MPU9250```                | ```bolderflight/Bolder Flight Systems MPU9250@^1.0.2```|
+| BME280      | Temp/Pres/Hum | ```-DBME280```                     | ```adafruit/Adafruit Unified Sensor@^1.1.14``` <br> ```adafruit/Adafruit BusIO@^1.16.1``` <br> ```adafruit/Adafruit BME280 Library@^2.2.4```|
 
 [^1]: For ELECROW board UART port is shared with USB connection, GPS pinout are mapped to IO19 and IO40 (Analog and Digital Port). If CLI isn't used is possible to attach GPS module to UART port but for upload the firmware (change pinout at **hal.hpp**), the module should be disconnected.
 [^2]: See **hal.hpp** for pinouts configuration
@@ -139,21 +140,33 @@ The PBF files can be downloaded from the [geofabrik](https://download.geofabrik.
 
 The PBF files should be saved in the `pbf` directory. Once saved, you should select the region or boundaries for which the GeoJSON files will be generated.
 
-To obtain the boundaries, please check the [geojson.io](http://geojson.io) website.
-
-For generate GeoJSON files run inside `maps` directory:
-
-```bash
-ogr2ogr -t_srs EPSG:3857 -spat min_lon min_lat max_lon max_lat map_lines.geojson /pbf/downloaded.pbf lines
-
-ogr2ogr -t_srs EPSG:3857 -spat min_lon min_lat max_lon max_lat map_polygons.geojson /pbf/downloaded.pbf multipolygons
+To obtain the boundaries use `osmconvert file.pbf --out-statistics`:
+```
+lon min: -5.5203154
+lon max: 11.7825360
+lat min: 35.2703341
+lat max: 44.4078541
 ```
 
-For generate binary map files run inside `maps` directory.
+or use [Bboxfinder](http://bboxfinder.com/) website drawing a box on desired area.
+
+
+For generate GeoJSON files run inside `scripts` directory:
+
 ```bash
-/scripts/./extract_features.py min_lon min_lat max_lon max_lat map
+min_lon=123
+min_lat=123
+max_lon=123
+max_lat=123
+
+./pbf_to_geojson.sh $min_lon $min_lat $max_lon $max_lat /pbf/clipped.pbf /maps/test
 ```
-Once the process is completed, the maps will be inside the `maps/mymap` directory. Copy all folders to the SD card except the `test_imgs` directory.
+
+For generate binary map files run inside `scripts` directory.
+```bash
+./extract_features.py $min_lon $min_lat $max_lon $max_lat /maps/test
+```
+Once the process is completed, the maps will be inside the `maps/mymap` directory. Copy all folders to the SD card except the `test_imgs` directory into `VECTMAP` folder of the SD Card.
 
 Please follow the instructions provided by [OSM_Extract](https://github.com/aresta/OSM_Extract) for any further questions.
 
@@ -232,6 +245,30 @@ wipe:           wipe preferences to factory default
 ```
 
 Some extra details:
+
+**klist**: List user custom settings:
+
+```
+    KEYNAME     DEFINED         VALUE 
+    =======     =======         ===== 
+    defZoom     custom         
+      gpsTX     custom          
+      gpsRX     custom          
+     defLAT     custom          
+     defLON     custom           
+  defBright     custom          
+   VmaxBatt     custom         
+   VminBatt     custom          
+   tempOffs     custom
+```          
+
+**kset KEYNAME**: Set user custom settings:
+
+In order to simplify the configuration of the device (minimum and maximum battery level, default position, etc...) via CLI it is possible to specify default values ​​for the configuration.
+This has been done in order to speed up the device configuration process without having to invest "time" in modifying and creating extra configuration screens in the GUI (LVGL).
+
+Available user parameters can be obtained using the **klist** command with a CLI connection (either via USB connection or TELNET connection)
+
 
 **nmcli**: IceNav use a `wcli` network manager library. For more details of this command and its sub commands please refer to [here](https://github.com/hpsaturn/esp32-wifi-cli?tab=readme-ov-file#readme)
 
