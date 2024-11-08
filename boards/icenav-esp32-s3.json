@@ -16,7 +16,6 @@
         "-DPOWER_SAVE",
         "-DADC2",
         "-DBATT_PIN=ADC2_CHANNEL_6",
-        "-DILI9488_FT5x06_16B",
         "-DTFT_BL=46",
         "-DAT6558D_GPS",
         "-DQMC5883",
