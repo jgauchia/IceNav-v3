@@ -148,6 +148,9 @@ lat min: 35.2703341
 lat max: 44.4078541
 ```
 
+or use [Bboxfinder](http://bboxfinder.com/) website drawing a box on desired area.
+
+
 For generate GeoJSON files run inside `scripts` directory:
 
 ```bash
