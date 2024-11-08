@@ -22,7 +22,6 @@
 
   extern const uint8_t BOARD_BOOT_PIN = 0;
 
-
   extern const uint8_t SD_CS = 1;
   extern const uint8_t SD_MISO = 41;
   extern const uint8_t SD_MOSI = 2;
@@ -108,6 +107,38 @@
   extern const uint8_t TCH_I2C_SDA  = 38;
   extern const uint8_t TCH_I2C_SCL  = 39;
   extern const uint8_t TCH_I2C_INT  = -1;
+#endif
+
+#ifdef TDECK_ESP32S3   // Check GPS UART GPIO
+  #define I2C_SDA_PIN 18
+  #define I2C_SCL_PIN 8
+
+  #define BOARD_POWERON 10
+  extern const uint8_t BOARD_BOOT_PIN = 0;
+
+  uint8_t GPS_TX = 43;
+  uint8_t GPS_RX = 44;
+
+  extern const uint8_t TFT_SPI_SCLK = 40;
+  extern const uint8_t TFT_SPI_MOSI = 41;
+  extern const uint8_t TFT_SPI_MISO = 38;
+  extern const uint8_t TFT_SPI_DC   = 11;
+  extern const uint8_t TFT_SPI_CS   = 12;
+  extern const uint8_t TFT_SPI_RST  = -1;
+  extern const uint8_t TFT_SPI_BL   = 42;
+
+  extern const uint8_t SD_CS = 39;
+  extern const uint8_t SD_MISO = 38;
+  extern const uint8_t SD_MOSI = 41;
+  extern const uint8_t SD_CLK = 40;
+
+  extern const uint8_t BOARD_TFT_CS = 12;
+  extern const uint8_t RADIO_CS_PIN = 9;
+
+  extern const uint8_t TCH_I2C_PORT = 0;
+  extern const uint8_t TCH_I2C_SDA  = 18;
+  extern const uint8_t TCH_I2C_SCL  = 8;
+  extern const uint8_t TCH_I2C_INT  = 16;
 #endif
 
 /**
@@ -229,38 +260,6 @@
   extern const uint8_t SD_MISO = 41;
   extern const uint8_t SD_MOSI = 2;
   extern const uint8_t SD_CLK = 42;
-#endif
-
-#ifdef TDECK_ESP32S3   // Check GPS UART GPIO
-  #define I2C_SDA_PIN 18
-  #define I2C_SCL_PIN 8
-
-  #define BOARD_POWERON 10
-  extern const uint8_t BOARD_BOOT_PIN = 0;
-
-  uint8_t GPS_TX = 43;
-  uint8_t GPS_RX = 44;
-
-  extern const uint8_t TFT_SPI_SCLK = 40;
-  extern const uint8_t TFT_SPI_MOSI = 41;
-  extern const uint8_t TFT_SPI_MISO = 38;
-  extern const uint8_t TFT_SPI_DC   = 11;
-  extern const uint8_t TFT_SPI_CS   = 12;
-  extern const uint8_t TFT_SPI_RST  = -1;
-  extern const uint8_t TFT_SPI_BL   = 42;
-
-  extern const uint8_t SD_CS = 39;
-  extern const uint8_t SD_MISO = 38;
-  extern const uint8_t SD_MOSI = 41;
-  extern const uint8_t SD_CLK = 40;
-
-  extern const uint8_t BOARD_TFT_CS = 12;
-  extern const uint8_t RADIO_CS_PIN = 9;
-
-  extern const uint8_t TCH_I2C_PORT = 0;
-  extern const uint8_t TCH_I2C_SDA  = 18;
-  extern const uint8_t TCH_I2C_SCL  = 8;
-  extern const uint8_t TCH_I2C_INT  = 16;;
 #endif
 
 /**
