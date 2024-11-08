@@ -323,7 +323,7 @@ To access the Web File Server, simply use any browser and go to the following ad
 
 - [X] LVGL 9 Integration
 - [X] Support other resolutions and TFT models
-- [ ] Support for ready-made boards 
+- [X] Support for ready-made boards 
 - [X] Wifi CLI Manager
 - [X] LVGL Optimization 
 - [ ] GPX Integration
