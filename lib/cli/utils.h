@@ -14,43 +14,32 @@
 #include "storage.hpp"
 #include "tft.hpp"
 
-#define SCREENSHOT_TEMP_FILE "/screenshot.raw"
+#define SCREENSHOT_TEMP_FILE "/screenshot.png"
 
 // Capture the screenshot and save it to the SD card
 static bool captureScreenshot(const char* filename, Stream *response)
 {
-  // Allocate memory to store the screen data (1 byte per segment)
-  uint8_t* buffer = (uint8_t*)malloc(tft.width() * tft.height() * 2); // 2 bytes per pixel
-  if (!buffer) {
-    response->println("Failed to allocate memory for buffer");
-    return false;
-  }
-
-  // Read the screen data into the buffer using readRect
-  tft.readRect(0, 0, tft.width(), tft.height(), (uint16_t*)buffer);
-
   acquireSdSPI();
 
-  File file = SD.open(filename, FILE_WRITE);
-  if (!file) {
-    response->println("Failed to open file for writing");
+  size_t dlen;
+  uint8_t* png = (uint8_t*)tft.createPng(&dlen, 0, 0, tft.width(), tft.height());
+  if (!png)
+  {
+    response->println("Filed to create PNG");
     return false;
   }
 
-  // Write the buffer data to the file
-  for (int y = 0; y < tft.height(); y++) {
-    for (int x = 0; x < tft.width(); x++) {
-      // Combine the two 8-bit segments into a 16-bit value
-      uint8_t highByte = buffer[(y * tft.width() + x) * 2];
-      uint8_t lowByte = buffer[(y * tft.width() + x) * 2 + 1];
-      uint16_t color = (highByte << 8) | lowByte;
-      file.write((const uint8_t*)&color, sizeof(color));
-    }
+  File file = SD.open(filename, FILE_WRITE);
+
+  bool result = false;
+  if (file)
+  {
+    file.write((std::uint8_t*)png, dlen);
+    file.close();
+    free(png);
+    result = true;
   }
 
-  // Clean up
-  free(buffer);
-  file.close();
   response->println("Screenshot saved");
 
   releaseSdSPI();
