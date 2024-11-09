@@ -1,5 +1,5 @@
 /**
- * @file ILI9488_FT5x06_16B.hpp
+ * @file ICENAV_BOARD.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LOVYANGFX TFT driver for IceNaV board
  * @version 0.1.8_Alpha
