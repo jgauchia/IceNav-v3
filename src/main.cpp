@@ -126,10 +126,13 @@ void setup()
   }
   else
   {
+    // Get init Latitude and Longitude
+    gpsData.latitude = getLat();
+    gpsData.longitude = getLon();
     tileSize = RENDER_TILE_SIZE;
     generateRenderMap();
   }
-
+  
   splashScreen();
   initGpsTask();
 
