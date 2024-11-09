@@ -32,6 +32,10 @@
 #include "ILI9488_NOTOUCH_8B.hpp"
 #endif
 
+#ifdef ICENAV_BOARD
+#include "ICENAV_BOARD.hpp"
+#endif
+
 #ifdef TDECK_ESP32S3
 #include "LILYGO_TDECK.hpp"
 #endif
