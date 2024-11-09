@@ -15,6 +15,7 @@
 #include <regex>
 
 static const char* wptFile PROGMEM = "/WPT/waypoint.gpx";
+static const char* wptFolder PROGMEM = "/WPT";
 
 /**
  * @brief Waypoint action enum

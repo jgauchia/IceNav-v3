@@ -23,6 +23,15 @@ void openGpxFile(const char* gpxFilename)
 {
   acquireSdSPI();
 
+  if (!SD.exists(wptFolder))
+  {
+    log_i("WPT folder not exists");
+    if (SD.mkdir(wptFolder))
+     log_i("WPT folder created");
+    else
+     log_i("WPT folder not created");
+  }
+  
   gpxFile = SD.open(gpxFilename, FILE_READ);
 
   if (!gpxFile)
