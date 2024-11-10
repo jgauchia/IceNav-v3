@@ -18,10 +18,6 @@
 static SPIClass spiSD = SPIClass(HSPI);
 static uint32_t sdFreq = 10000000;
 #endif
-#ifdef TDECK_ESP32S3
-static SPIClass spiSD = SPIClass(HSPI);
-static uint32_t sdFreq = 10000000;
-#endif
 #ifdef MAKERF_ESP32S3
 static SPIClass spiSD = SPIClass(HSPI);
 static uint32_t sdFreq = 10000000;
