@@ -35,7 +35,7 @@ static bool captureScreenshot(const char* filename, Stream *response)
   if (file)
   {
     file.write((uint8_t*)png, dlen);
-    response->println("Screenshot saved, size: %d",dlen);
+    response->println("Screenshot saved");
     free(png);
     file.close();
     result = true;
