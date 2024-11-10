@@ -20,12 +20,18 @@
 static bool captureScreenshot(const char* filename, Stream *response)
 {
   size_t dlen;
+  #ifdef TDECK_ESP32S3
+    tft.setSwapBytes(false);
+  #endif
   uint8_t* png = (uint8_t*)tft.createPng(&dlen, 0, 0, tft.width(), tft.height());
   if (!png)
   {
     response->println("Filed to create PNG");
     return false;
   }
+  #ifdef TDECK_ESP32S3
+    tft.setSwapBytes(true);
+  #endif
 
   acquireSdSPI();
 
