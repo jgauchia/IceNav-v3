@@ -19,6 +19,8 @@ String oldDir;
 String newDir;
 String currentDir;
 
+bool updateList = true;
+
 const int FILES_PER_PAGE = 10; 
 
 /**
@@ -326,6 +328,7 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
   {
     request->_tempFile.close();
  //   request->redirect("/");
+    updateList = true;
   }
 
   releaseSdSPI();
@@ -416,8 +419,8 @@ void configureWebServer()
               {
                 page = request->getParam("page")->value().toInt();
               }
-
-              if (currentDir != oldDir)
+        
+              if (updateList)
               {
                 acquireSdSPI(); 
                 cacheDirectoryContent(oldDir);
@@ -460,6 +463,7 @@ void configureWebServer()
                     logMessage += " deleted";
                     SD.remove(path);
                     request->send(200, "text/plain", "Deleted File: " + String(fileName));
+                    updateList = true;
                   }
                   else
                   {
@@ -480,6 +484,8 @@ void configureWebServer()
             {
               if (request->hasParam("dir"))
               {
+                updateList = false;
+
                 newDir = request->getParam("dir")->value();
                 log_i("new dir %s", newDir.c_str());
                 log_i("old dir %s", oldDir.c_str());
@@ -509,6 +515,11 @@ void configureWebServer()
                   currentDir = "";
                     request->send(200, "text/plain", "Directory changed successfully");
                 }
+
+                acquireSdSPI(); 
+                cacheDirectoryContent(oldDir);
+                releaseSdSPI();
+
               }
               else
               {
