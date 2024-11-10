@@ -314,6 +314,8 @@ String listFiles(bool ishtml, int page = 0)
  */
 void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final)
 {
+  waitScreenRefresh = true;
+
   acquireSdSPI();
 
   if (!index)
@@ -327,8 +329,8 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
   if (final)
   {
     request->_tempFile.close();
- //   request->redirect("/");
     updateList = true;
+    waitScreenRefresh = false;
   }
 
   releaseSdSPI();
