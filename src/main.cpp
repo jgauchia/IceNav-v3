@@ -70,8 +70,6 @@ void setup()
     pinMode(BOARD_POWERON, OUTPUT);
     digitalWrite(BOARD_POWERON, HIGH);
     pinMode(TCH_I2C_INT, INPUT);
-    Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
-    Wire.begin();
     pinMode(SD_CS, OUTPUT);
     pinMode(RADIO_CS_PIN, OUTPUT);
     pinMode(TFT_SPI_CS, OUTPUT);
@@ -82,22 +80,9 @@ void setup()
     pinMode(SD_MISO, INPUT_PULLUP);
     SPI.begin(SD_CLK, SD_MISO, SD_MOSI);
   #endif
-  #ifdef ICENAV_BOARD
-    Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
-    Wire.begin();
-  #endif
-  #ifdef MAKERF_ESP32S3
-    Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
-    Wire.begin();
-  #endif
-  #ifdef ESP32S3_N16R8
-    Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
-    Wire.begin();
-  #endif
-  #ifdef ELECROW_ESP32
-    Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
-    Wire.begin();
-  #endif
+
+  Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
+  Wire.begin();
 
   #ifdef BME280
    initBME();
