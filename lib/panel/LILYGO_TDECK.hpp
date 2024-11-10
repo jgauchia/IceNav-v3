@@ -66,8 +66,8 @@ public:
       cfg.offset_x = 0;
       cfg.offset_y = 0;
       cfg.offset_rotation = 0;
-      cfg.dummy_read_pixel = 8;
-      cfg.dummy_read_bits = 1;
+      cfg.dummy_read_pixel = 16;
+      cfg.dummy_read_bits = 2;
       cfg.readable = true;
       cfg.invert = false;
       cfg.rgb_order = false;
