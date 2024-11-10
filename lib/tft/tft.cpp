@@ -121,9 +121,7 @@ void initTFT()
   TFT_WIDTH = tft.width();
 
   tft.initDMA();
-  // tft.startWrite();
   tft.fillScreen(TFT_BLACK);
-  // tft.endWrite();
 
 #ifdef TOUCH_INPUT
   touchCalibrate();
