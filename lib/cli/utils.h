@@ -19,8 +19,6 @@
 // Capture the screenshot and save it to the SD card
 static bool captureScreenshot(const char* filename, Stream *response)
 {
-  acquireSdSPI();
-
   size_t dlen;
   uint8_t* png = (uint8_t*)tft.createPng(&dlen, 0, 0, tft.width(), tft.height());
   if (!png)
@@ -29,22 +27,25 @@ static bool captureScreenshot(const char* filename, Stream *response)
     return false;
   }
 
+  acquireSdSPI();
+
   File file = SD.open(filename, FILE_WRITE);
 
   bool result = false;
   if (file)
   {
-    file.write((std::uint8_t*)png, dlen);
-    file.close();
+    file.write((uint8_t*)png, dlen);
+    response->println("Screenshot saved, size: %d",dlen);
     free(png);
+    file.close();
     result = true;
   }
-
-  response->println("Screenshot saved");
+  else  
+    response->println("Failed to open file for writing");
 
   releaseSdSPI();
 
-  return true;
+  return result;
 }
 
 // WiFi client
