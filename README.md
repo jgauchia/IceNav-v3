@@ -274,9 +274,9 @@ Available user parameters can be obtained using the **klist** command with a CLI
 
 **outnmea**: this command toggle the GPS output to the serial console. With that it will be compatible with external GPS software like `PyGPSClient` and others. To stop these messages in your console, just only repeat the same command or perform a `CTRL+C`.
 
-**scshot**: This utility can save a screenshot to the root of your SD, with the name: `screenshot.raw`. You can convert it to png using the `convert.py` script in the `tools` folder.
+**scshot**: This utility can save a PNG screenshot to the root of your SD, with the name: `screenshot.png`. 
 
-Additionally, this screenshot command can send the screenshot over WiFi using the following syntax (replace IP with your PC IP):
+This screenshot command can send the screenshot over WiFi using the following syntax (replace IP with your PC IP):
 
 ```bash
 scshot 192.168.1.10 8123
@@ -285,8 +285,10 @@ scshot 192.168.1.10 8123
 Ensure your PC has the specified port open and firewall access enabled to receive the screenshot via the `netcat` command, like this:
 
 ```bash
-nc -l -p 8123 > screenshot.raw
+nc -l -p 8123 > screenshot.png
 ```
+
+Additionally, you can download the screenshot with webfile server.
 
 **settings**: Device settings type `settings` for detailed options.
 

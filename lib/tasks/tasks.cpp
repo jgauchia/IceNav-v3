@@ -66,6 +66,8 @@ void initGpsTask()
 #ifndef DISABLE_CLI
 void cliTask(void *param) 
 {
+  log_v("CLI Task - running on core %d", xPortGetCoreID());
+  log_v("Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
   while(1) 
   {
     wcli.loop();
@@ -78,7 +80,7 @@ void cliTask(void *param)
  * @brief Init CLI task
  *
  */
-void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 4000, NULL, 1, NULL, 1); }
+void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 20000, NULL, 1, NULL, 1); }
 
 #endif
 
