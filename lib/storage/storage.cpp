@@ -28,20 +28,13 @@ void initSD()
   pinMode(SD_CS,OUTPUT);
   digitalWrite(SD_CS,LOW);
 
-  #ifdef SPI_SHARED
+  #if defined ( ICENAV_BOARD ) || defined ( MAKERF_ESP32S3 ) || defined ( ELECROW_ESP32 )
+    spiSD.begin(SD_CLK, SD_MISO, SD_MOSI, SD_CS);
+    SDInitOk = SD.begin(SD_CS, spiSD, sdFreq);
+  #else
     SD.end();
     SDInitOk = SD.begin(SD_CS);
   #endif
-
-  #ifdef TDECK_ESP32S3
-    SD.end();
-    SDInitOk = SD.begin(SD_CS);
-  #endif
-
-  // #ifndef SPI_SHARED
-  //   spiSD.begin(SD_CLK, SD_MISO, SD_MOSI, SD_CS);
-  //   SDInitOk = SD.begin(SD_CS, spiSD, sdFreq);
-  // #endif
   
   if (!SDInitOk)
   {

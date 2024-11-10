@@ -14,25 +14,9 @@
 #include <LovyanGFX.hpp>
 #include <tft.hpp>
 
-#ifdef ICENAV_BOARD
+#if defined ( ICENAV_BOARD ) || defined ( MAKERF_ESP32S3 ) || defined ( ELECROW_ESP32 )
 static SPIClass spiSD = SPIClass(HSPI);
 static uint32_t sdFreq = 10000000;
-#endif
-#ifdef MAKERF_ESP32S3
-static SPIClass spiSD = SPIClass(HSPI);
-static uint32_t sdFreq = 10000000;
-#endif
-#ifdef ELECROW_ESP32
-static SPIClass spiSD = SPIClass(HSPI);
-static uint32_t sdFreq = 10000000;
-#endif
-#ifdef ESP32S3_N16R8
-static SPIClass spiSD = SPIClass(HSPI);
-static uint32_t sdFreq = 10000000;
-#endif
-#ifdef ESP32_N16R4
-static SPIClass spiSD = SPIClass(VSPI);
-static uint32_t sdFreq = 40000000;
 #endif
 
 extern bool isSdLoaded;
