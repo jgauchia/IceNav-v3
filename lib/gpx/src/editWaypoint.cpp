@@ -27,8 +27,6 @@
 
     size_t fileSize = wptContent.length();
 
-    // acquireSdSPI();
-
     File wayPointFile = SD.open(wptFile, FILE_WRITE);
 
     if (!wayPointFile)
@@ -40,7 +38,4 @@
       wayPointFile.close();
       log_i("Waypoint file updated");
     }
-
-    // releaseSdSPI();
-
  }

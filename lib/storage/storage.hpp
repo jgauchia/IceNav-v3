@@ -23,7 +23,5 @@ extern bool isSdLoaded;
 
 void initSD();
 esp_err_t initSPIFFS();
-// void acquireSdSPI();
-// void releaseSdSPI();
 
 #endif

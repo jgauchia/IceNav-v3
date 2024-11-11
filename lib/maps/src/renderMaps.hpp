@@ -48,7 +48,5 @@ MapTile getMapTile(double lon, double lat, uint8_t zoomLevel, int16_t offsetX, i
 void drawMapWidgets();
 void generateRenderMap();
 void initSD();
-// void acquireSdSPI();
-// void releaseSdSPI();
 
 #endif

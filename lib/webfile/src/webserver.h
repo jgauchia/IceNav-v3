@@ -184,8 +184,6 @@ void webNotFound(AsyncWebServerRequest *request)
  */
 String webParser(const String &var)
 {
-  // acquireSdSPI();
-
   if (var == "FIRMWARE")
     return String(VERSION) + " - Rev: " + String(REVISION);
   else if (var == "FREEFS")
@@ -216,8 +214,6 @@ String webParser(const String &var)
   }
   else
     return "";
-
-  // releaseSdSPI();
 }
 
 /**
@@ -316,8 +312,6 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
 {
   waitScreenRefresh = true;
 
-  // acquireSdSPI();
-
   if (!index)
   {
     request->client()->setRxTimeout(15000);
@@ -332,8 +326,6 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
     updateList = true;
     waitScreenRefresh = false;
   }
-
-  // releaseSdSPI();
 }
 
 /**
@@ -423,11 +415,7 @@ void configureWebServer()
               }
         
               if (updateList)
-              {
-                // acquireSdSPI(); 
                 cacheDirectoryContent(oldDir);
-                // releaseSdSPI();
-              }
 
               request->send(200, "text/html", listFiles(true, page)); });
 
@@ -438,8 +426,6 @@ void configureWebServer()
 
               if (request->hasParam("name") && request->hasParam("action"))
               {
-                // acquireSdSPI();
-
                 const char *fileName = request->getParam("name")->value().c_str();
                 const char *fileAction = request->getParam("action")->value().c_str();
 
@@ -474,8 +460,6 @@ void configureWebServer()
                   }
                   log_i("%s", logMessage.c_str());
                 }
-
-                // releaseSdSPI();
               }
               else
               {
@@ -518,9 +502,7 @@ void configureWebServer()
                     request->send(200, "text/plain", "Directory changed successfully");
                 }
 
-                // acquireSdSPI(); 
                 cacheDirectoryContent(oldDir);
-                // releaseSdSPI();
 
               }
               else
