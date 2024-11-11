@@ -69,9 +69,9 @@ Currently, IceNav works with the following hardware setups and specs
 If the board has a BOOT button (GPIO0) it is possible to use power saving functions.
 To do this, simply include the following Build Flag in the required env in platformio.ini
 
-```-DPOWER_SAVE```
-```-DARDUINO_RUNNING_CORE=1```
-```-DARDUINO_EVENT_RUNNING_CORE=1```
+```-DPOWER_SAVE``` <br>
+```-DARDUINO_RUNNING_CORE=1``` <br>
+```-DARDUINO_EVENT_RUNNING_CORE=1``` <br>
 
 > [!IMPORTANT]
 > Currently, this project can run on any board with an ESP32S3 and at least a 320x480 TFT screen. The idea is to support all existing boards on the market that I can get to work, so if you don't want to use the specific IceNav board, please feel free to create an issue, and I will look into providing support.
@@ -86,10 +86,6 @@ To do this, simply include the following Build Flag in the required env in platf
 | ILI9488     | 320x480    | --- | yes  | ---   | --------  | ```-DILI9488_NOTOUCH_8B```       |
 | ILI9488     | 320x480    | --- | ---  | yes   | FT5x06    | ```-DILI9488_FT5x06_16B```       |
 | ILI9341     | 320x240    | yes | ---  | ---   | XPT2046   | ```-DILI9341_XPT2046_SPI```      |
-
-If TFT shares SPI bus with SD card add the followings Build Flag to platformio.ini
-
-```-DSPI_SHARED```
 
 ### Modules
 

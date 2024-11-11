@@ -172,8 +172,6 @@ void generateRenderMap()
   if (strcmp(currentMapTile.file, oldMapTile.file) != 0 || currentMapTile.zoom != oldMapTile.zoom || 
              currentMapTile.tilex != oldMapTile.tilex || currentMapTile.tiley != oldMapTile.tiley)
   {
-    acquireSdSPI();
-
     // deleteMapScrSprites();
     // createMapScrSprites();
 
@@ -251,9 +249,6 @@ void generateRenderMap()
 
       redrawMap = true;
     }
-
-    releaseSdSPI();
-    vTaskDelay(100);
 
     log_v("TILE: %s", oldMapTile.file);
   }

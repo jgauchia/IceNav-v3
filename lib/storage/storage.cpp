@@ -28,14 +28,12 @@ void initSD()
   pinMode(SD_CS,OUTPUT);
   digitalWrite(SD_CS,LOW);
 
-  #ifdef SPI_SHARED
-    SD.end();
-    SDInitOk = SD.begin(SD_CS);
-  #endif
-
-  #ifndef SPI_SHARED
+  #if defined ( ICENAV_BOARD ) || defined ( MAKERF_ESP32S3 ) || defined ( ELECROW_ESP32 )
     spiSD.begin(SD_CLK, SD_MISO, SD_MOSI, SD_CS);
     SDInitOk = SD.begin(SD_CS, spiSD, sdFreq);
+  #else
+    SD.end();
+    SDInitOk = SD.begin(SD_CS);
   #endif
   
   if (!SDInitOk)
@@ -88,29 +86,3 @@ esp_err_t initSPIFFS()
   return ESP_OK;
 }
 
-/**
- * @brief Acquire SPI Bus for SD operations
- *
- */
- void acquireSdSPI()
- {
-    #ifdef SPI_SHARED
-    tft.waitDisplay();
-    tft.endTransaction();
-    digitalWrite(TFT_SPI_CS,HIGH);
-    digitalWrite(SD_CS,LOW);
-    #endif
- }
-
- /**
-  * @brief Release SPI Bus for other operations
-  *
-  */
-  void releaseSdSPI()
-  {
-    #ifdef SPI_SHARED   
-    digitalWrite(SD_CS,HIGH);
-    digitalWrite(TFT_SPI_CS,LOW);
-    tft.beginTransaction();
-    #endif  
-  }

@@ -154,12 +154,6 @@ static void drawMapWidgets()
  */
 static void displayMap(uint16_t tileSize)
 {
-  if (tft.getStartCount() == 0) 
-  {
-    tft.startWrite();  
-  }
-  tft.waitDMA(); 
-
   if (!isMapFullScreen)
     mapSprite.pushSprite(0, 27); 
   else

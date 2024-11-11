@@ -115,7 +115,6 @@ void updateWaypointListScreen()
     lv_table_set_row_count(listWaypointScreen, 1);
     isMainScreen = false;  
 
-    acquireSdSPI();
     log_i("Trying to open Waypoint file");
     File wayPointFile = SD.open(wptFile);
 
@@ -149,6 +148,4 @@ void updateWaypointListScreen()
             wptSearch = wptFound.suffix().first;  
         }
     }
-
-    releaseSdSPI();
 }

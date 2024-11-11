@@ -27,8 +27,6 @@ static bool captureScreenshot(const char* filename, Stream *response)
     return false;
   }
 
-  acquireSdSPI();
-
   File file = SD.open(filename, FILE_WRITE);
 
   bool result = false;
@@ -42,8 +40,6 @@ static bool captureScreenshot(const char* filename, Stream *response)
   }
   else  
     response->println("Failed to open file for writing");
-
-  releaseSdSPI();
 
   return result;
 }
@@ -64,13 +60,10 @@ static void captureScreenshot(const char* filename, const char* pc_ip, uint16_t 
     return;
   };
 
-  acquireSdSPI();
-
   File file = SD.open(filename, FILE_READ);
   if (!file) {
     response->println("Failed to open file for reading");
     client.stop();
-    releaseSdSPI();
     return;
   }
 
@@ -87,8 +80,6 @@ static void captureScreenshot(const char* filename, const char* pc_ip, uint16_t 
   file.close();
   client.stop();
   response->println("Screenshot sent over WiFi");
-
-  releaseSdSPI();
 }
 #endif
 
