@@ -94,7 +94,7 @@ void waypointListEvent(lv_event_t * event)
 {
     listWaypointScreen = lv_table_create(NULL);
     lv_obj_set_size(listWaypointScreen, TFT_WIDTH, TFT_HEIGHT);    
-    lv_table_set_cell_value(listWaypointScreen, 0, 0, " Waypoints");
+    lv_table_set_cell_value(listWaypointScreen, 0, 0, LV_SYMBOL_LEFT " Waypoints");
     lv_table_set_column_width(listWaypointScreen,0,TFT_WIDTH);
     lv_obj_add_event_cb(listWaypointScreen, waypointListEvent, LV_EVENT_ALL, NULL);
     lv_obj_set_style_pad_ver(listWaypointScreen, 15, LV_PART_ITEMS);
