@@ -140,7 +140,7 @@ void gpioLongEvent(lv_event_t *event)
   lv_event_code_t code = lv_event_get_code(event);
   log_v("Shuting down device");
   powerMsg = lv_msgbox_create(lv_scr_act());
-  lv_obj_set_width(powerMsg,TFT_WIDTH - 20);
+  lv_obj_set_width(powerMsg,TFT_WIDTH);
   lv_obj_set_align(powerMsg,LV_ALIGN_CENTER);
   lv_obj_set_style_text_font(powerMsg, fontDefault, 0);
   lv_obj_t *labelText = lv_msgbox_get_content(powerMsg);
@@ -163,7 +163,7 @@ void gpioClickEvent(lv_event_t *event)
   lv_indev_reset(NULL,lv_scr_act());
   log_v("Entering sleep mode");
   powerMsg = lv_msgbox_create(lv_scr_act());
-  lv_obj_set_width(powerMsg,TFT_WIDTH - 20);
+  lv_obj_set_width(powerMsg,TFT_WIDTH);
   lv_obj_set_align(powerMsg,LV_ALIGN_CENTER);
   lv_obj_set_style_text_font(powerMsg, fontDefault, 0);
   lv_obj_t *labelText = lv_msgbox_get_content(powerMsg);
