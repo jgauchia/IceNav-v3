@@ -23,7 +23,7 @@ void deleteWaypointName(char * wpt)
 
     size_t fileSize = result.length();
 
-    acquireSdSPI();
+    // acquireSdSPI();
 
     File wayPointFile = SD.open(wptFile, FILE_WRITE);
 
@@ -37,5 +37,5 @@ void deleteWaypointName(char * wpt)
       log_i("Waypoint file updated");
     }
 
-    releaseSdSPI();
+    // releaseSdSPI();
 }

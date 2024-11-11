@@ -21,7 +21,7 @@ File gpxFile;
  */
 void openGpxFile(const char* gpxFilename)
 {
-  acquireSdSPI();
+  // acquireSdSPI();
 
   if (!SD.exists(wptFolder))
   {
@@ -54,7 +54,7 @@ void openGpxFile(const char* gpxFilename)
     gpxFile.close();
   }
 
-  releaseSdSPI();
+  // releaseSdSPI();
 }
 
 /**
@@ -67,7 +67,7 @@ void addWaypointToFile(const char* gpxFilename, wayPoint addWpt)
 {
   char textFmt[100] = "";
 
-  acquireSdSPI();
+  // acquireSdSPI();
 
   gpxFile = SD.open(gpxFilename, FILE_WRITE);
 
@@ -95,5 +95,5 @@ void addWaypointToFile(const char* gpxFilename, wayPoint addWpt)
   else
     log_e("Waypoint not append to file");
 
-  releaseSdSPI();
+  // releaseSdSPI();
 }

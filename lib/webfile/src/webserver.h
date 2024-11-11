@@ -184,7 +184,7 @@ void webNotFound(AsyncWebServerRequest *request)
  */
 String webParser(const String &var)
 {
-  acquireSdSPI();
+  // acquireSdSPI();
 
   if (var == "FIRMWARE")
     return String(VERSION) + " - Rev: " + String(REVISION);
@@ -217,7 +217,7 @@ String webParser(const String &var)
   else
     return "";
 
-  releaseSdSPI();
+  // releaseSdSPI();
 }
 
 /**
@@ -316,7 +316,7 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
 {
   waitScreenRefresh = true;
 
-  acquireSdSPI();
+  // acquireSdSPI();
 
   if (!index)
   {
@@ -333,7 +333,7 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
     waitScreenRefresh = false;
   }
 
-  releaseSdSPI();
+  // releaseSdSPI();
 }
 
 /**
@@ -424,9 +424,9 @@ void configureWebServer()
         
               if (updateList)
               {
-                acquireSdSPI(); 
+                // acquireSdSPI(); 
                 cacheDirectoryContent(oldDir);
-                releaseSdSPI();
+                // releaseSdSPI();
               }
 
               request->send(200, "text/html", listFiles(true, page)); });
@@ -438,7 +438,7 @@ void configureWebServer()
 
               if (request->hasParam("name") && request->hasParam("action"))
               {
-                acquireSdSPI();
+                // acquireSdSPI();
 
                 const char *fileName = request->getParam("name")->value().c_str();
                 const char *fileAction = request->getParam("action")->value().c_str();
@@ -475,7 +475,7 @@ void configureWebServer()
                   log_i("%s", logMessage.c_str());
                 }
 
-                releaseSdSPI();
+                // releaseSdSPI();
               }
               else
               {
@@ -518,9 +518,9 @@ void configureWebServer()
                     request->send(200, "text/plain", "Directory changed successfully");
                 }
 
-                acquireSdSPI(); 
+                // acquireSdSPI(); 
                 cacheDirectoryContent(oldDir);
-                releaseSdSPI();
+                // releaseSdSPI();
 
               }
               else

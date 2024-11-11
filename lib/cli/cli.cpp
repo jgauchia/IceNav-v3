@@ -163,7 +163,7 @@ void wcli_waypoint(char *args, Stream *response)
   }
   else if (commands.equals("list"))
   {
-    acquireSdSPI();
+    // acquireSdSPI();
 
     path = "/WPT";
 
@@ -185,7 +185,7 @@ void wcli_waypoint(char *args, Stream *response)
     }
     dir.close();
 
-    releaseSdSPI();
+    // releaseSdSPI();
   }
   else if (commands.equals("down"))
   {
@@ -226,14 +226,14 @@ void wcli_waypoint(char *args, Stream *response)
 
       response->println("Connected to server");
       
-      acquireSdSPI();
+      // acquireSdSPI();
       
       File file = SD.open(path, FILE_READ);
       if (!file)
       {
         response->println("Failed to open file for reading");
         client.stop();
-        releaseSdSPI();
+        // releaseSdSPI();
         return;
       }
 
@@ -251,7 +251,7 @@ void wcli_waypoint(char *args, Stream *response)
       client.stop();
       response->println("Waypoint file sent over WiFi");
       
-      releaseSdSPI();
+      // releaseSdSPI();
     }
   }
   else if (commands.equals("del"))
@@ -260,7 +260,7 @@ void wcli_waypoint(char *args, Stream *response)
       response->println(F("File name missing"));
     else
     {
-      acquireSdSPI();
+      // acquireSdSPI();
 
       path = "/WPT/" + fileDel;
       if (!SD.remove(path))
@@ -275,7 +275,7 @@ void wcli_waypoint(char *args, Stream *response)
         response->println(F(" deleted"));
       }
 
-      releaseSdSPI();
+      // releaseSdSPI();
     }
   }
 }
