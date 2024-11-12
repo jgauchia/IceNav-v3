@@ -311,12 +311,6 @@ The Web File Server will start automatically if default automatic network connec
 
 To access the Web File Server, simply use any browser and go to the following address: http://icenav.local
 
-> [!CAUTION]
-> This feature has known issues (failures when uploading/downloading some large files, web refresh...) if the SPI bus is shared between the TFT and the SD card. Tests with boards that do not share this bus have been successful.
-> Work is underway to fix this so that it can be applied to the final design of the IceNav board.
-
-
-
 ## TO DO
 
 - [X] LVGL 9 Integration
