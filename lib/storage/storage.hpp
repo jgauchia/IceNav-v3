@@ -16,7 +16,7 @@
 
 #if defined ( ICENAV_BOARD ) || defined ( MAKERF_ESP32S3 ) || defined ( ELECROW_ESP32 )
 static SPIClass spiSD = SPIClass(HSPI);
-static uint32_t sdFreq = 10000000;
+static uint32_t sdFreq = 40000000;
 #endif
 
 extern bool isSdLoaded;
