@@ -123,10 +123,10 @@ After that, copy the contents of directory `Tiles` into your SD in a directory c
 
 On SD Card map tiles (256x256 PNG Format) should be stored, in these folders structure:
 
-      [ MAP ]
-         |________ [ zoom folder (number) ]
-                              |__________________ [ tile X folder (number) ]
-                                                             |_______________________ tile Y file.png
+      [ 📁 MAP ]
+         |________ [ 📁 zoom folder (number) ]
+                              |__________________ [ 📁 tile X folder (number) ]
+                                                             |_______________________ 🗺️ tile Y file.png
 
 ## SD Vectorized Map File structure          
 
