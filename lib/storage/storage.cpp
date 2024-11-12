@@ -32,8 +32,8 @@ void initSD()
     spiSD.begin(SD_CLK, SD_MISO, SD_MOSI, SD_CS);
     SDInitOk = SD.begin(SD_CS, spiSD, sdFreq);
   #else
-    SD.end();
-    SDInitOk = SD.begin(SD_CS);
+    SPI.begin(SD_CLK, SD_MISO, SD_MOSI);
+    SDInitOk = SD.begin(SD_CS, SPI, sdFreq);
   #endif
   
   if (!SDInitOk)

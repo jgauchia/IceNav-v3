@@ -78,7 +78,6 @@ void setup()
     digitalWrite(TFT_SPI_CS, HIGH);
     pinMode(TFT_SPI_MISO, INPUT_PULLUP);
     pinMode(SD_MISO, INPUT_PULLUP);
-    SPI.begin(SD_CLK, SD_MISO, SD_MOSI);
   #endif
 
   Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
