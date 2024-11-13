@@ -2,7 +2,7 @@
  * @file editWaypoint.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Edit Waypoint functions
- * @version 0.1.8_Alpha
+ * @version 0.1.8
  * @date 2024-11
  */
 
