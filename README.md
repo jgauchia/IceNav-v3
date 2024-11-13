@@ -20,9 +20,13 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 > Do not use in production (Experimental features).
 
 ## Screenshots
-<details><summary>Click me</summary>
+
+|<img src="images/dev/splash.png">|<img src="images/dev/compass.jpg">|<img src="images/dev/rendermap.jpg">|<img src="images/dev/satelliteinfo.jpg">|
+|:-:|:-:|:-:|:-:|
+
+<details><summary>See more...</summary>
   
-|<img src="images/dev/splash.jpg">|<img src="images/dev/searchsat.jpg">|<img src="images/dev/compass.jpg">|<img src="images/dev/options.jpg">|<img src="images/dev/wptopt.jpg">|
+|<img src="images/dev/splash.png">|<img src="images/dev/searchsat.jpg">|<img src="images/dev/compass.jpg">|<img src="images/dev/options.jpg">|<img src="images/dev/wptopt.jpg">|
 |:-:|:-:|:-:|:-:|:-:|
 | Splash Screen | Search Satellite | Compass | Main Options | Waypoint Options |
 
@@ -37,6 +41,16 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 |<img src="images/dev/settings.jpg">|<img src="images/dev/compasscal.jpg">|<img src="images/dev/touchcal.jpg">|<img src="images/dev/mapsettings.jpg">|<img src="images/dev/devicesettings.jpg">|
 |:-:|:-:|:-:|:-:|:-:|
 | Settings | Compass Calibration | Touch Calibration | Map Settings | Device Settings |
+
+LilyGo T-DECK
+
+|<img src="images/dev/tdeck/main.png">|<img src="images/dev/tdeck/map.png">|<img src="images/dev/tdeck/map_waypoint.png">|
+|:-:|:-:|:-:|
+| Compass | Rendered Map | Waypoint on Map |
+
+|<img src="images/dev/tdeck/waypointnav.png">|<img src="images/dev/tdeck/waypoint_edit.png">|<img src="images/dev/tdeck/satellites03.png">|
+|:-:|:-:|:-:|
+| Navigation Screen | Edit Waypoint | Satellite Info |
 
 ### WiFi CLI Manager
 ![WifiCLI](https://github.com/jgauchia/IceNav-v3/assets/1075178/a7f8af18-2c34-436d-8fef-995540312cb2)

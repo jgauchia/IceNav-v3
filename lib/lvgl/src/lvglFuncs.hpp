@@ -2,7 +2,7 @@
  * @file lvglFuncs.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL custom functions
- * @version 0.1.8_Alpha
+ * @version 0.1.8
  * @date 2024-11
  */
 
