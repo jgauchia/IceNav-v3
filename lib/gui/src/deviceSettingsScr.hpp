@@ -2,7 +2,7 @@
  * @file deviceSettingsScr.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Device Settings Screen
- * @version 0.1.8
+ * @version 0.1.9_alpha
  * @date 2024-11
  */
 

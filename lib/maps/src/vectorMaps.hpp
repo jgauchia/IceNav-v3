@@ -2,7 +2,7 @@
  * @file vectorMaps.hpp
  * @author @aresta - https://github.com/aresta/ESP32_GPS
  * @brief  Vector maps draw functions
- * @version 0.1.8
+ * @version 0.1.9_alpha
  * @date 2024-11
  */
 

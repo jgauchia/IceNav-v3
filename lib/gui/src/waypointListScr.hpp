@@ -2,7 +2,7 @@
  * @file waypointListScr.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Waypoint list screen
- * @version 0.1.8
+ * @version 0.1.9_alpha
  * @date 2024-11
  */
 

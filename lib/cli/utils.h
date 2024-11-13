@@ -2,7 +2,7 @@
  * @file utils.h
  * @author @Hpsaturn
  * @brief  Network CLI and custom internal commands
- * @version 0.1.8
+ * @version 0.1.9_alpha
  * @date 2024-11
  */
 

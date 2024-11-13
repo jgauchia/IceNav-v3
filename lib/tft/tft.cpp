@@ -2,7 +2,7 @@
  * @file tft.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief TFT definition and functions
- * @version 0.1.8
+ * @version 0.1.9_alpha
  * @date 2024-11
  */
 
