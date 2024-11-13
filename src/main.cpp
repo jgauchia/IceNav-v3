@@ -2,7 +2,7 @@
  * @file main.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  ESP32 GPS Navigation main code
- * @version 0.1.8_Alpha
+ * @version 0.1.8
  * @date 2024-08
  */
 
