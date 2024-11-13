@@ -104,6 +104,9 @@ void setup()
   mapTempSprite.deleteSprite();
   mapTempSprite.createSprite(TILE_WIDTH, TILE_HEIGHT);
 
+  gpsData.latitude = getLat();
+  gpsData.longitude = getLon();
+
   // Preload Map
   if (isVectorMap)
   {
@@ -111,8 +114,6 @@ void setup()
   else
   {
     // Get init Latitude and Longitude
-    gpsData.latitude = getLat();
-    gpsData.longitude = getLon();
     tileSize = RENDER_TILE_SIZE;
     generateRenderMap();
   }

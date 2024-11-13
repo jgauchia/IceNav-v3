@@ -151,8 +151,9 @@ void getGPSData()
     gpsData.speed = (uint16_t)fix.speed_kph();
 
   // Latitude and Longitude
-  gpsData.latitude = getLat();
-  gpsData.longitude = getLon();
+  if (fix.valid.location)
+    gpsData.latitude = getLat();
+    gpsData.longitude = getLon();
 
   // Heading
   if (fix.valid.heading)
