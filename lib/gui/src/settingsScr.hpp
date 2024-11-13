@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Settings Screen
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-11
  */
 
 #ifndef SETTINGSSCR_HPP
@@ -13,6 +13,7 @@
 #include "mainScr.hpp"
 #include "compass.hpp"
 #include "searchSatScr.hpp"
+#include "settings.hpp"
 
 void loadMainScreen();
 

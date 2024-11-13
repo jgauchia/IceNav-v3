@@ -2,7 +2,7 @@
  * @file globalMapsDef.h
  * @brief  Global Maps Variables
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-11
  */
 
 #ifndef GLOBALMAPSDEF_H
@@ -11,13 +11,20 @@
 #include "tft.hpp"
 
 #ifdef LARGE_SCREEN
-#define MAP_HEIGHT 380       // Map Height Size 380
-#define MAP_WIDTH 320        // Map Width Size
-#define MAP_HEIGHT_FULL 480  // Map Height Full Screen
+  #define MAP_HEIGHT 380       // Map Height Size 380
+  #define MAP_WIDTH 320        // Map Width Size
+  #define MAP_HEIGHT_FULL 480  // Map Height Full Screen
 #else
-#define MAP_HEIGHT 220       // Map Height Size
-#define MAP_WIDTH 240        // Map Width Size
-#define MAP_HEIGHT_FULL 320  // Map Height Full Screen
+  #ifndef TDECK_ESP32S3
+    #define MAP_HEIGHT 220       // Map Height Size
+    #define MAP_WIDTH 240        // Map Width Size
+    #define MAP_HEIGHT_FULL 320  // Map Height Full Screen
+  #endif
+  #ifdef TDECK_ESP32S3
+    #define MAP_HEIGHT 180       // Map Height Size
+    #define MAP_WIDTH 320        // Map Width Size
+    #define MAP_HEIGHT_FULL 240  // Map Height Full Screen
+  #endif
 #endif
 
 #define TILE_HEIGHT 768 // Tile 9x9 Height Size
@@ -29,7 +36,7 @@
 extern bool isMapFound;              // Flag to indicate when tile map is found on SD
 extern bool isScrolled;              // Flag to indicate when tileview was scrolled
 extern bool redrawMap;               // Flag to indicate need redraw Map
-
+extern int wptPosX, wptPosY;         // Waypoint position on render map.
 
 extern TFT_eSprite sprArrow;         // Sprite for Navigation Arrow in map tile
 extern TFT_eSprite mapTempSprite;    // Double Buffering Sprites for Map Tile
@@ -106,5 +113,25 @@ static void showNoMap(TFT_eSprite &map)
   map.drawPngFile(noMapFile, (MAP_WIDTH / 2) - 50, (MAP_HEIGHT / 2) - 50);
   map.drawCenterString("NO MAP FOUND", (MAP_WIDTH / 2), (MAP_HEIGHT >> 1) + 65, &fonts::DejaVu18);
 }
+
+
+/**
+ * @brief Structure to store min and max tile latitude and longitude
+ *
+ */
+struct tileBounds 
+{
+    double lat_min; 
+    double lat_max; 
+    double lon_min; 
+    double lon_max; 
+};
+
+/**
+ * @brief Render map min and max latitude and longitude
+ *
+ */
+extern tileBounds totalBounds;
+
 
 #endif

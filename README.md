@@ -41,6 +41,9 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 ### WiFi CLI Manager
 ![WifiCLI](https://github.com/jgauchia/IceNav-v3/assets/1075178/a7f8af18-2c34-436d-8fef-995540312cb2)
 
+### Web File Server 
+![webfile](https://github.com/user-attachments/assets/ce38f3b6-d8ab-4540-8d01-a2b393cc5898)
+
 </details>
 
 ## Specifications
@@ -56,12 +59,19 @@ Currently, IceNav works with the following hardware setups and specs
 
 |                        | FLASH | PSRAM | Environment                  | Full Support |
 |:-----------------------|:-----:|:-----:|:-----------------------------|--------------|
-| ICENAV (ESP32S3)       |  16M  |  8M   | ``` [env:ICENAV] ```         |     YES      |
-| ESP32                  |  16M  |  4M   | ``` [env:ESP32_N16R4] ```    |     YES      |
-| ESP32S3                |  16M  |  8M   | ``` [env:ESP32S3_N16R8] ```  |     YES      |
-| [ELECROW ESP32 Terminal](https://www.elecrow.com/esp-terminal-with-esp32-3-5-inch-parallel-480x320-tft-capacitive-touch-display-rgb-by-chip-ili9488.html) |  16M  |  8M   | ``` [env:ELECROW_ESP32] ```  | YES [^1] [^2]|
-| [MAKERFABS ESP32S3](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) |  16M  |  2M   | ``` [env:MAKERF_ESP32S3] ``` |   TESTING    |
+| ICENAV (Custom ESP32S3) |  16M  |  8M   | ``` [env:ICENAV_BOARD] ```   |    ✔️ YES      |
+| ESP32                  |  16M  |  4M   | ``` [env:ESP32_N16R4] ```    |    ✔️ YES      |
+| ESP32S3                |  16M  |  8M   | ``` [env:ESP32S3_N16R8] ```  |    ✔️ YES      |
+| [ELECROW ESP32 Terminal](https://www.elecrow.com/esp-terminal-with-esp32-3-5-inch-parallel-480x320-tft-capacitive-touch-display-rgb-by-chip-ili9488.html) |  16M  |  8M   | ``` [env:ELECROW_ESP32] ```  | ✔️ YES [^1] [^2]|
+| [MAKERFABS ESP32S3](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) |  16M  |  2M   | ``` [env:MAKERF_ESP32S3] ``` |  🚧 TESTING    |
+| [LILYGO T-DECK](https://www.lilygo.cc/products/t-deck) |  16M  |  8M   | ``` [env:TDECK_ESP32S3] ``` |  ✔️ YES    |
 
+If the board has a BOOT button (GPIO0) it is possible to use power saving functions.
+To do this, simply include the following Build Flag in the required env in platformio.ini
+
+```-DPOWER_SAVE``` <br>
+```-DARDUINO_RUNNING_CORE=1``` <br>
+```-DARDUINO_EVENT_RUNNING_CORE=1``` <br>
 
 > [!IMPORTANT]
 > Currently, this project can run on any board with an ESP32S3 and at least a 320x480 TFT screen. The idea is to support all existing boards on the market that I can get to work, so if you don't want to use the specific IceNav board, please feel free to create an issue, and I will look into providing support.
@@ -71,25 +81,22 @@ Currently, IceNav works with the following hardware setups and specs
 
 | Driver [^2] | Resolution | SPI | 8bit | 16bit | Touch     | Build Flags [^3]                 |
 |:------------|:----------:|:---:|:----:|:-----:|:---------:|:---------------------------------|
-| ILI9488 [^4]| 320x480    | yes | ---  | ---   | XPT2046   | ```-DILI9488_XPT2046_SPI```      |
-| ILI9488     | 320x480    | yes | ---  | ---   | FT5x06    | ```-DILI9488_FT5x06_SPI```       |
-| ILI9488     | 320x480    | --- | yes  | ---   | --------  | ```-DILI9488_NOTOUCH_8B```       |
-| ILI9488     | 320x480    | --- | ---  | yes   | FT5x06    | ```-DILI9488_FT5x06_16B```       |
-| ILI9341     | 320x240    | yes | ---  | ---   | XPT2046   | ```-DILI9341_XPT2046_SPI```      |
-
-If TFT shares SPI bus with SD card add the following Build Flag to platformio.ini
-
-```-DSPI_SHARED```
+| ILI9488 [^4]| 320x480    | ✔️ |  ➖  |  ➖  | XPT2046   | ```-DILI9488_XPT2046_SPI```      |
+| ILI9488     | 320x480    | ✔️ |  ➖  |  ➖  | FT5x06    | ```-DILI9488_FT5x06_SPI```       |
+| ILI9488     | 320x480    | ➖ |  ✔️  |  ➖  |    ➖    | ```-DILI9488_NOTOUCH_8B```       |
+| ILI9488     | 320x480    | ➖ |   ➖ |  ✔️  | FT5x06    | ```-DILI9488_FT5x06_16B```       |
+| ILI9341     | 320x240    | ✔️ |  ➖  |  ➖  | XPT2046   | ```-DILI9341_XPT2046_SPI```      |
 
 ### Modules
 
-|             | Type          | Build Flags [^3]                 | lib_deps [^5] (**no common environment**)              |
-|:------------|:--------------|:---------------------------------|:-------------------------------------------------------|
-| AT6558D     | GPS           | ```-DAT6558D_GPS```              |                                                        |
-| HMC5883L    | Compass       | ```-DHMC5883L```                 | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
-| QMC5883     | Compass       | ```-DQMC5883```                  | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
-| MPU9250     | IMU (Compass) | ```-DIMU_MPU9250```              | ```bolderflight/Bolder Flight Systems MPU9250@^1.0.2```|
-| BME280      | Temp/Pres/Hum | ```-DBME280```                   | ```adafruit/Adafruit Unified Sensor@^1.1.14``` <br> ```adafruit/Adafruit BusIO@^1.16.1``` <br> ```adafruit/Adafruit BME280 Library@^2.2.4```|
+|             | Type          | Build Flags [^3]                   | lib_deps [^5] (**no common environment**)              |
+|:------------|:--------------|:-----------------------------------|:-------------------------------------------------------|
+|             | 🔋 Batt. Monitor | ```-DADC1``` or ```-DADC2``` <br> ```-DBATT_PIN=ADCn_CHANNEL_x``` |                       |   
+| AT6558D     | 🛰️ GPS        | ```-DAT6558D_GPS```                |                                                        |
+| HMC5883L    | 🧭 Compass    | ```-DHMC5883L```                   | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
+| QMC5883     | 🧭 Compass    | ```-DQMC5883```                    | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
+| MPU9250     | 🧭 IMU (Compass) | ```-DIMU_MPU9250```                | ```bolderflight/Bolder Flight Systems MPU9250@^1.0.2```|
+| BME280      | 🌡️ Temp <br> ☁️ Pres <br> 💧 Hum | ```-DBME280```                     | ```adafruit/Adafruit Unified Sensor@^1.1.14``` <br> ```adafruit/Adafruit BusIO@^1.16.1``` <br> ```adafruit/Adafruit BME280 Library@^2.2.4```|
 
 [^1]: For ELECROW board UART port is shared with USB connection, GPS pinout are mapped to IO19 and IO40 (Analog and Digital Port). If CLI isn't used is possible to attach GPS module to UART port but for upload the firmware (change pinout at **hal.hpp**), the module should be disconnected.
 [^2]: See **hal.hpp** for pinouts configuration
@@ -106,7 +113,7 @@ If you wish to add any other type of sensor, module, etc., you can create a PR w
 
 See **hal.hpp** for pinouts configuration
 
-## SD Map Tile File structure
+## SD Renderized Map Tile File structure
 
 Using [Maperitive](http://maperitive.net/) select your zone and generate your tiles. For that enter to `MAP-> Set Geometry bounds` draw or expand the square of your zone and run the command `generate-tiles minzoom=6 maxzoom=17`, It could takes long time, maybe 1 hour or more depending your area.
 
@@ -116,10 +123,10 @@ After that, copy the contents of directory `Tiles` into your SD in a directory c
 
 On SD Card map tiles (256x256 PNG Format) should be stored, in these folders structure:
 
-      [ MAP ]
-         |________ [ zoom folder (number) ]
-                              |__________________ [ tile X folder (number) ]
-                                                             |_______________________ tile Y file.png
+      [ 📁 MAP ]
+         |________ [ 📁 zoom folder (number) ]
+                              |__________________ [ 📁 tile X folder (number) ]
+                                                             |_______________________ 🗺️ tile Y file.png
 
 ## SD Vectorized Map File structure          
 
@@ -129,21 +136,33 @@ The PBF files can be downloaded from the [geofabrik](https://download.geofabrik.
 
 The PBF files should be saved in the `pbf` directory. Once saved, you should select the region or boundaries for which the GeoJSON files will be generated.
 
-To obtain the boundaries, please check the [geojson.io](http://geojson.io) website.
-
-For generate GeoJSON files run inside `maps` directory:
-
-```bash
-ogr2ogr -t_srs EPSG:3857 -spat min_lon min_lat max_lon max_lat map_lines.geojson /pbf/downloaded.pbf lines
-
-ogr2ogr -t_srs EPSG:3857 -spat min_lon min_lat max_lon max_lat map_polygons.geojson /pbf/downloaded.pbf multipolygons
+To obtain the boundaries use `osmconvert file.pbf --out-statistics`:
+```
+lon min: -5.5203154
+lon max: 11.7825360
+lat min: 35.2703341
+lat max: 44.4078541
 ```
 
-For generate binary map files run inside `maps` directory.
+or use [Bboxfinder](http://bboxfinder.com/) website drawing a box on desired area.
+
+
+For generate GeoJSON files run inside `scripts` directory:
+
 ```bash
-/scripts/./extract_features.py min_lon min_lat max_lon max_lat map
+min_lon=123
+min_lat=123
+max_lon=123
+max_lat=123
+
+./pbf_to_geojson.sh $min_lon $min_lat $max_lon $max_lat /pbf/clipped.pbf /maps/test
 ```
-Once the process is completed, the maps will be inside the `maps/mymap` directory. Copy all folders to the SD card except the `test_imgs` directory.
+
+For generate binary map files run inside `scripts` directory.
+```bash
+./extract_features.py $min_lon $min_lat $max_lon $max_lat /maps/test
+```
+Once the process is completed, the maps will be inside the `maps/mymap` directory. Copy all folders to the SD card except the `test_imgs` directory into `VECTMAP` folder of the SD Card.
 
 Please follow the instructions provided by [OSM_Extract](https://github.com/aresta/OSM_Extract) for any further questions.
 
@@ -171,7 +190,7 @@ Please follow the instructions provided by [OSM_Extract](https://github.com/ares
 > pio run -e environment --target upload
 > ```
 > 
-> After the first run, load the icons and assets with:
+> After this, load the icons and assets with:
 > 
 > ```bash
 > pio run --target uploadfs
@@ -179,7 +198,21 @@ Please follow the instructions provided by [OSM_Extract](https://github.com/ares
 
 
 > [!TIP]
-> Optional, for map debugging version with specific coordinates, build and install the firmware with the next environment variables, like this:
+> Optional, for map debugging with specific coordinates, or when you are in indoors, you are able to set the defaults coordinates, on two ways:
+
+> **Using the CLI**
+>
+> Using the next commands to set your default coordinates, for instance:
+>
+> ```bash
+> klist
+> kset defLAT 52.5200
+> kset defLON 13.4049
+> ```
+> 
+> **Using enviroment variables**:
+>
+> Export your coordinates before to build and upload, for instance:
 > 
 > ```bash
 > export ICENAV3_LAT=52.5200
@@ -187,31 +220,59 @@ Please follow the instructions provided by [OSM_Extract](https://github.com/ares
 > pio run --target upload
 > ```
 
-> [!NOTE]
-> For production version don't forget unset these environment variables.  
-
 ## CLI
 
 IceNav has a basic CLI accessible via Serial and optionally via Telnet if enabled. When you access the CLI and type `help`, you should see the following commands:
 
-
 ```bash
 clear:          clear shell
 info:           get device information
-nmcli:          network manager CLI.
+klist:          list of user preferences. ('all' param show all)
+kset:           set an user extra preference
+nmcli:          network manager CLI. Type nmcli help for more info
+outnmea:        toggle GPS NMEA output (or Ctrl+C to stop)
+poweroff:       perform a ESP32 deep sleep
 reboot:         perform a ESP32 reboot
 scshot:         screenshot to SD or sending a PC
+settings:       device settings
 waypoint:       waypoint utilities
+webfile:        enable/disable Web file server
 wipe:           wipe preferences to factory default
 ```
 
 Some extra details:
 
+**klist**: List user custom settings:
+
+```
+    KEYNAME     DEFINED         VALUE 
+    =======     =======         ===== 
+    defZoom     custom         
+      gpsTX     custom          
+      gpsRX     custom          
+     defLAT     custom          
+     defLON     custom           
+  defBright     custom          
+   VmaxBatt     custom         
+   VminBatt     custom          
+   tempOffs     custom
+```          
+
+**kset KEYNAME**: Set user custom settings:
+
+In order to simplify the configuration of the device (minimum and maximum battery level, default position, etc...) via CLI it is possible to specify default values ​​for the configuration.
+This has been done in order to speed up the device configuration process without having to invest "time" in modifying and creating extra configuration screens in the GUI (LVGL).
+
+Available user parameters can be obtained using the **klist** command with a CLI connection (either via USB connection or TELNET connection)
+
+
 **nmcli**: IceNav use a `wcli` network manager library. For more details of this command and its sub commands please refer to [here](https://github.com/hpsaturn/esp32-wifi-cli?tab=readme-ov-file#readme)
 
-**scshot**: This utility can save a screenshot to the root of your SD, with the name: `screenshot.raw`. You can convert it to png using the `convert.py` script in the `tools` folder.
+**outnmea**: this command toggle the GPS output to the serial console. With that it will be compatible with external GPS software like `PyGPSClient` and others. To stop these messages in your console, just only repeat the same command or perform a `CTRL+C`.
 
-Additionally, this screenshot command can send the screenshot over WiFi using the following syntax (replace IP with your PC IP):
+**scshot**: This utility can save a PNG screenshot to the root of your SD, with the name: `screenshot.png`. 
+
+This screenshot command can send the screenshot over WiFi using the following syntax (replace IP with your PC IP):
 
 ```bash
 scshot 192.168.1.10 8123
@@ -220,8 +281,12 @@ scshot 192.168.1.10 8123
 Ensure your PC has the specified port open and firewall access enabled to receive the screenshot via the `netcat` command, like this:
 
 ```bash
-nc -l -p 8123 > screenshot.raw
+nc -l -p 8123 > screenshot.png
 ```
+
+Additionally, you can download the screenshot with webfile server.
+
+**settings**: Device settings type `settings` for detailed options.
 
 **waypoint**: type `waypoint` for detailed options.
 
@@ -237,21 +302,30 @@ Ensure your PC has the specified port open and firewall access enabled to receiv
 nc -l -p 8123 > waypoint.gpx
 ```
 
-### TO DO
+## Web File Server 
+
+IceNav has a small web file server (https://youtu.be/IYLcdP40cU4) to manage existing files on the SD card.
+An active WiFi connection is required (to do this, see how to do it using CLI).
+
+The Web File Server will start automatically if default automatic network connection is enabled (see CLI).
+
+To access the Web File Server, simply use any browser and go to the following address: http://icenav.local
+
+## TO DO
 
 - [X] LVGL 9 Integration
 - [X] Support other resolutions and TFT models
-- [ ] Support for ready-made boards 
+- [X] Support for ready-made boards 
 - [X] Wifi CLI Manager
 - [X] LVGL Optimization 
 - [ ] GPX Integration
 - [ ] Multiple IMU's and Compass module implementation
-- [ ] Power saving
+- [X] Power saving
 - [X] Vector maps
 - [ ] Google Maps navigation style
 - [x] Optimize code
 - [ ] Fix bugs!
-- [ ] Web file server
+- [X] Web file server
       
 
 ## Special thanks to....
@@ -274,3 +348,10 @@ nc -l -p 8123 > waypoint.gpx
 * OSM to binary vectorial maps [OSM_Extract](https://github.com/aresta/OSM_Extract) thanks to [@aresta](https://github.com/aresta)
 * Preferences Library [Easy Preferences](https://github.com/hpsaturn/easy-preferences) thanks to [@hpsaturn](https://github.com/hpsaturn)
 * Wifi CLI manager [esp32-wifi-cli](https://github.com/hpsaturn/esp32-wifi-cli) thanks to [@hpsaturn](https://github.com/hpsaturn)
+* Web file server based in [@smford](https://github.com/smford) [esp32-asyncwebserver-fileupload-example ](https://github.com/smford/esp32-asyncwebserver-fileupload-example)
+
+
+---
+Map data is available thanks to the great OpenStreetMap project and contributors. The map data is available under the Open Database License.
+
+© OpenStreetMap contributors

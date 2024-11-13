@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Edit Waypoint functions
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-11
  */
 
  #include "editWaypoint.hpp"
@@ -27,8 +27,6 @@
 
     size_t fileSize = wptContent.length();
 
-    acquireSdSPI();
-
     File wayPointFile = SD.open(wptFile, FILE_WRITE);
 
     if (!wayPointFile)
@@ -40,7 +38,4 @@
       wayPointFile.close();
       log_i("Waypoint file updated");
     }
-
-    releaseSdSPI();
-
  }

@@ -2,7 +2,7 @@
  * @file globalGuiDef.h
  * @brief  Global GUI Variables
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-11
  */
 
 #ifndef GLOBALGUIDEF_H
@@ -22,14 +22,17 @@ extern lv_display_t *display;
  *
  */
 extern lv_obj_t *mainScreen;           // Main Screen
-static lv_obj_t *tilesScreen;          // Tiles Screen
+extern lv_obj_t *tilesScreen;          // Tiles Screen
 extern lv_obj_t *notifyBarIcons;       // Notify Bar Icons
 extern lv_obj_t *notifyBarHour;        // Notify Bar Hour
 extern lv_obj_t *settingsScreen;       // Settings Screen
 extern lv_obj_t *mapSettingsScreen;    // Map Settings Screen
 extern lv_obj_t *deviceSettingsScreen; // Device Settings Screen
-extern lv_obj_t *waypointScreen;    // Add Waypoint Screen
+extern lv_obj_t *waypointScreen;       // Add Waypoint Screen
 extern lv_obj_t *listWaypointScreen;   // List Waypoint Screen
+
+extern lv_group_t * scrGroup;          // Screen group
+extern lv_group_t * keyGroup;          // GPIO group
 
 extern bool needReboot;                // Flag to force device reboot
 extern bool isSearchingSat;            // Flag to indicate that is searching satellites
@@ -37,6 +40,8 @@ extern lv_obj_t *buttonBar;            // Button Bar
 extern lv_obj_t *menuBtn;              // Button Menu
 extern lv_obj_t *waypointName;         // Add / Edit Waypoint screen text area
 extern bool isScreenRotated;           // Flag to know if screen is rotated
+
+extern lv_obj_t *powerMsg;             // Power Message
 
 #ifdef LARGE_SCREEN
   static const lv_font_t *fontDefault = &lv_font_montserrat_14;

@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - GPS satellite search screen
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-11
  */
 
 #ifndef SEARCHSATSCR_HPP
@@ -16,9 +16,9 @@
 extern lv_obj_t *searchSatScreen;     // Search Satellite Screen
 static lv_timer_t *searchTimer;
 static const char* textSearch PROGMEM = "Searching for satellites";
-static const char* satIconFile PROGMEM = "F:/sat.bin";
-static const char *skipIconFile PROGMEM = "F:/skip.bin";     // Skip icon
-static const char *confIconFile PROGMEM = "F:/settings.bin"; // Settings icon
+static const char* satIconFile PROGMEM = "/sat.bin";
+static const char *skipIconFile PROGMEM = "/skip.bin";     // Skip icon
+static const char *confIconFile PROGMEM = "/settings.bin"; // Settings icon
 
 void loadMainScreen();
 void searchGPS(lv_timer_t *searchTimer);

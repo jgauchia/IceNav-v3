@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief TFT definition and functions
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-11
  */
 
 #include "tft.hpp"
@@ -14,38 +14,21 @@ uint16_t TFT_WIDTH = 0;
 uint16_t TFT_HEIGHT = 0;
 bool waitScreenRefresh = false;
 
-/**
- * @brief Set the TFT brightness
- *
- * @param brightness -> 0..255
- */
-void setBrightness(uint8_t brightness)
-{
-  if (brightness <= 255)
-  {
-    ledcWrite(0, brightness);
-    brightnessLevel = brightness;
-  }
-}
+#ifdef TDECK_ESP32S3 
+  extern const uint8_t TFT_SPI_BL;
+#endif
 
-/**
- * @brief Get the TFT brightness
- *
- * @return int -> brightness value 0..255
- */
-uint8_t getBrightness()
-{
-  return brightnessLevel;
-}
+
 
 /**
  * @brief Turn on TFT Sleep Mode for ILI9488
  *
  */
-void tftOn()
+void tftOn(uint8_t brightness)
 {
   tft.writecommand(0x11);
-  setBrightness(255);
+  delay(120);
+  tft.setBrightness(brightness);
 }
 
 /**
@@ -54,8 +37,8 @@ void tftOn()
  */
 void tftOff()
 {
+  tft.setBrightness(0);
   tft.writecommand(0x10);
-  setBrightness(0);
 }
 
 /**
@@ -129,34 +112,17 @@ void touchCalibrate()
 void initTFT()
 {
   tft.init();
+  
+  #ifdef TDECK_ESP32S3
+    tft.setRotation(1);
+  #endif
 
   TFT_HEIGHT = tft.height();
   TFT_WIDTH = tft.width();
 
   tft.initDMA();
-  tft.startWrite();
   tft.fillScreen(TFT_BLACK);
-  tft.endWrite();
 
-#ifdef ICENAV_BOARD
-  gpio_set_drive_capability(GPIO_NUM_45, GPIO_DRIVE_CAP_3);
-#endif
-#ifdef ESP32_N16R4
-  gpio_set_drive_capability(GPIO_NUM_33, GPIO_DRIVE_CAP_3);
-#endif
-#ifdef ESP32S3_N16R8
-  gpio_set_drive_capability(GPIO_NUM_45, GPIO_DRIVE_CAP_3);
-#endif
-#ifdef MAKERF_ESP32S3
-  gpio_set_drive_capability(GPIO_NUM_45, GPIO_DRIVE_CAP_3);
-#endif
-#ifdef ELECROW_ESP32
-  gpio_set_drive_capability(GPIO_NUM_46, GPIO_DRIVE_CAP_3);
-#endif
-
-  ledcSetup(0, 5000, 8);
-  ledcAttachPin(TFT_BL, 0);
-  ledcWrite(0, 255);
 #ifdef TOUCH_INPUT
   touchCalibrate();
 #endif

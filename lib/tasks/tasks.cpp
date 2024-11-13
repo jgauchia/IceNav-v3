@@ -3,14 +3,12 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Core Tasks functions
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-11
  */
 
 #include "tasks.hpp"
 #include "Arduino.h"
 #include "freertos/FreeRTOS.h"
-
-time_t local, utc = 0;
 
 TaskHandle_t LVGLTaskHandler;
 xSemaphoreHandle gpsMutex;
@@ -26,34 +24,27 @@ void gpsTask(void *pvParameters)
   log_v("Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
   while (1)
   {
-    //xSemaphoreTake(gpsMutex, portMAX_DELAY);
-    while (gps->available() > 0)
+    if ( xSemaphoreTake(gpsMutex, portMAX_DELAY) == pdTRUE )
     {
-      #ifdef OUTPUT_NMEA
+      if (nmea_output_enable)
       {
-        Serial.write(gps->read());
+        while (gpsPort.available())
+        {
+          char c = gpsPort.read();
+          Serial.print(c);
+        }
+      } 
+
+      while (GPS.available( gpsPort )) 
+      {
+        fix = GPS.read();
+        getGPSData();
       }
-      #else
-      GPS.encode(gps->read());
-      #endif
+
+      xSemaphoreGive(gpsMutex);
+
+      vTaskDelay(1); /// portTICK_PERIOD_MS);
     }
-    if (GPS.time.isValid() && !isTimeFixed)
-    {
-      setTime(GPS.time.hour(),
-              GPS.time.minute(),
-              GPS.time.second(),
-              GPS.date.day(),
-              GPS.date.month(),
-              GPS.date.year());
-      utc = now();
-      local = CE.toLocal(utc);
-      setTime(local);
-      isTimeFixed = true;
-    }
-    // if (!GPS.time.isValid() && isTimeFixed)
-    //     isTimeFixed = false;
-    //xSemaphoreTake(gpsMutex, portMAX_DELAY); 
-    vTaskDelay(10); /// portTICK_PERIOD_MS);
   }
 }
 
@@ -75,6 +66,8 @@ void initGpsTask()
 #ifndef DISABLE_CLI
 void cliTask(void *param) 
 {
+  log_v("CLI Task - running on core %d", xPortGetCoreID());
+  log_v("Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
   while(1) 
   {
     wcli.loop();
@@ -87,7 +80,7 @@ void cliTask(void *param)
  * @brief Init CLI task
  *
  */
-void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 4000, NULL, 1, NULL, 1); }
+void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 20000, NULL, 1, NULL, 1); }
 
 #endif
 

@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Compass definition and functions
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-11
  */
 
 #include "compass.hpp"
@@ -107,6 +107,10 @@ void readCompass(float &x, float &y, float &z)
   x = IMU.getMagX_uT();
   y = IMU.getMagY_uT();
   z = IMU.getMagZ_uT();
+  #endif
+
+  #ifdef ICENAV_BOARD
+    y = y * -1;
   #endif
 }
 

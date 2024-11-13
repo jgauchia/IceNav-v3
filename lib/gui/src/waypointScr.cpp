@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Waypoint Screen
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-11
  */
 
 #include "waypointScr.hpp"
@@ -28,6 +28,54 @@ static void waypointScreenEvent(lv_event_t *event)
 {
   lv_event_code_t code = lv_event_get_code(event);
   lv_obj_t *fileName = (lv_obj_t *)lv_event_get_target(event);
+
+  #ifdef TDECK_ESP32S3
+    if (code == LV_EVENT_KEY)
+    {
+
+      if ( lv_indev_get_key(lv_indev_active()) == 13 ) // Enter Key
+      {    
+        switch (wptAction)
+        {
+          case WPT_ADD:
+            addWpt.name = (char *)lv_textarea_get_text(fileName);
+
+            if ( strcmp(addWpt.name,"") != 0)
+            {
+              openGpxFile(wptFile);
+              vTaskDelay(100);
+              addWaypointToFile(wptFile,addWpt);
+            }
+            break;
+          case WPT_EDIT:
+            char *newName = (char *)lv_textarea_get_text(fileName);
+
+            if ( strcmp(loadWpt.name, newName) != 0)
+            {
+              editWaypointName(loadWpt.name, newName);
+            }
+            break;
+          // default:
+          //   break;
+        }
+
+        isMainScreen = true;
+        redrawMap = true;
+        wptAction = WPT_NONE;
+        lv_refr_now(display);
+        loadMainScreen();
+      }
+
+      if ( lv_indev_get_key(lv_indev_active()) == 35 ) // # Key (ESCAPE)
+      { 
+        isMainScreen = true;
+        redrawMap = true;
+        wptAction = WPT_NONE;
+        lv_refr_now(display);
+        loadMainScreen();
+      }
+    }
+  #endif
 
   if (code == LV_EVENT_READY)
   {
@@ -116,8 +164,8 @@ void updateWaypointPos()
   switch (wptAction)
   {
     case WPT_ADD:
-      addWpt.lat = getLat();
-      addWpt.lon = getLon();
+      addWpt.lat = gpsData.latitude;
+      addWpt.lon = gpsData.longitude;
       lv_label_set_text_static(lat, latFormatString(addWpt.lat));
       lv_label_set_text_static(lon, lonFormatString(addWpt.lon));
       break;
@@ -138,29 +186,40 @@ void createWaypointScreen()
 {
 
   waypointScreen = lv_obj_create(NULL);
-  lv_obj_t *keyboard = lv_keyboard_create(waypointScreen);
+
   waypointName = lv_textarea_create(waypointScreen);
   lv_textarea_set_one_line(waypointName, true);
   lv_obj_align(waypointName, LV_ALIGN_TOP_MID, 0, 40);
   lv_obj_set_width(waypointName, tft.width() - 10);
   lv_obj_add_state(waypointName, LV_STATE_FOCUSED);
   lv_obj_add_event_cb(waypointName, waypointScreenEvent, LV_EVENT_ALL, waypointScreen);
-  lv_keyboard_set_mode(keyboard,LV_KEYBOARD_MODE_TEXT_UPPER);
-  lv_keyboard_set_textarea(keyboard, waypointName);
+  #ifndef TDECK_ESP32S3
+    lv_obj_t *keyboard = lv_keyboard_create(waypointScreen);
+    lv_keyboard_set_mode(keyboard,LV_KEYBOARD_MODE_TEXT_UPPER);
+    lv_keyboard_set_textarea(keyboard, waypointName);
+  #endif
 
-  // Rotate Screen button
-  static lv_style_t editBtnStyleOn;
-  lv_style_init(&editBtnStyleOn);
-  lv_style_set_bg_color(&editBtnStyleOn, lv_color_black());
-  lv_style_set_text_color(&editBtnStyleOn, lv_color_white());
-  lv_obj_t *rotateScreenBtn = lv_button_create(waypointScreen); 
-  lv_obj_add_style(rotateScreenBtn, &editBtnStyleOn, LV_PART_MAIN | LV_STATE_DEFAULT);
-  lv_obj_align(rotateScreenBtn, LV_ALIGN_TOP_RIGHT, -10, 5);
-  lv_obj_add_flag(rotateScreenBtn, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_add_event_cb(rotateScreenBtn, rotateScreen, LV_EVENT_CLICKED, NULL);
-  lv_obj_t *rotateScreenLbl = lv_label_create(rotateScreenBtn);
-  lv_label_set_text(rotateScreenLbl, LV_SYMBOL_LOOP);
-  lv_obj_center(rotateScreenLbl);
+  #ifdef TDECK_ESP32S3
+    lv_group_add_obj(scrGroup, waypointName);
+    lv_group_focus_obj(waypointName);
+    //lv_group_add_obj(scrGroup, waypointScreen);
+  #endif
+
+  #ifndef TDECK_ESP32S3
+    // Rotate Screen button
+    static lv_style_t editBtnStyleOn;
+    lv_style_init(&editBtnStyleOn);
+    lv_style_set_bg_color(&editBtnStyleOn, lv_color_black());
+    lv_style_set_text_color(&editBtnStyleOn, lv_color_white());
+    lv_obj_t *rotateScreenBtn = lv_button_create(waypointScreen); 
+    lv_obj_add_style(rotateScreenBtn, &editBtnStyleOn, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_align(rotateScreenBtn, LV_ALIGN_TOP_RIGHT, -10, 5);
+    lv_obj_add_flag(rotateScreenBtn, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(rotateScreenBtn, rotateScreen, LV_EVENT_CLICKED, NULL);
+    lv_obj_t *rotateScreenLbl = lv_label_create(rotateScreenBtn);
+    lv_label_set_text(rotateScreenLbl, LV_SYMBOL_LOOP);
+    lv_obj_center(rotateScreenLbl);
+  #endif
 
   lv_obj_t* label;
   label = lv_label_create(waypointScreen);

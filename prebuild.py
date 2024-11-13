@@ -45,8 +45,21 @@ if dfl_lat != None and dfl_lon != None:
         u'-DDEFAULT_LON=' + dfl_lon + ''
         ])
 
-config_path = "lib/lvgl/lvgl_"+ flavor + "_conf.h"
-output_path =  ".pio/libdeps/" + flavor 
-target_path = output_path + "/lv_conf.h"
+# NeoGps Config files
+config_path = "lib/gps/GPSfix_cfg.h"
+output_path =  ".pio/libdeps/" + flavor + "/NeoGPS/src" 
+target_path = output_path + "/GPSfix_cfg.h"
+os.makedirs(output_path, 0o755, True)
+shutil.copy(config_path , target_path)
+
+config_path = "lib/gps/NeoGPS_cfg.h"
+output_path =  ".pio/libdeps/" + flavor + "/NeoGPS/src" 
+target_path = output_path + "/NeoGPS_cfg.h"
+os.makedirs(output_path, 0o755, True)
+shutil.copy(config_path , target_path)
+
+config_path = "lib/gps/NMEAGPS_cfg.h"
+output_path =  ".pio/libdeps/" + flavor + "/NeoGPS/src" 
+target_path = output_path + "/NMEAGPS_cfg.h"
 os.makedirs(output_path, 0o755, True)
 shutil.copy(config_path , target_path)

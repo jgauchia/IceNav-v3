@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Device Settings Screen
  * @version 0.1.8_Alpha
- * @date 2024-09
+ * @date 2024-11
  */
 
 #include "deviceSettingsScr.hpp"
@@ -30,8 +30,78 @@ void deviceSettingsEvent(lv_event_t *event)
     gpsUpdate = lv_dropdown_get_selected(obj);
     saveGPSUpdateRate(gpsUpdate);
   }
-  if (strcmp(option,"back") == 0)
+  if (strcmp(option, "back") == 0)
+  {
+    log_i("saving brightness to: %i", defBright);
+    saveBrightness(defBright);
     lv_screen_load(settingsScreen);
+  }
+}
+
+void lv_brightness_cb(lv_event_t *e)
+{
+    lv_obj_t *obj =(lv_obj_t*) lv_event_get_target(e);
+    defBright =  lv_slider_get_value(obj);
+    log_i("brightness %i", defBright);
+    tft.setBrightness(defBright);
+}
+
+// void lv_background_opa_cb(lv_event_t *e)
+// {
+//     lv_obj_t *obj =(lv_obj_t*) lv_event_get_target(e);
+//     uint8_t val =  lv_slider_get_value(obj);
+//     std::vector<lv_obj_t *>::iterator it;
+//     for (it = sub_section.begin(); it != sub_section.end(); it++) {
+//         lv_obj_set_style_bg_opa(*it, val, LV_PART_MAIN);
+//     }
+// }
+
+static lv_obj_t *create_text(lv_obj_t *parent, const char *icon, const char *txt)
+{
+    lv_obj_t *obj = lv_menu_cont_create(parent);
+
+    lv_obj_t *img = NULL;
+    lv_obj_t *label = NULL;
+
+    if (icon) {
+        img = lv_img_create(obj);
+        lv_img_set_src(img, icon);
+    }
+
+    if (txt) {
+        label = lv_label_create(obj);
+        lv_label_set_text(label, txt);
+        lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR);
+        lv_obj_set_flex_grow(label, 1);
+    }
+
+    if (icon && txt) {
+        lv_obj_add_flag(img, LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
+        lv_obj_swap(img, label);
+    }
+
+    return obj;
+}
+
+static lv_obj_t *create_slider(lv_obj_t *parent, const char *icon, const char *txt, int32_t min, int32_t max,
+                               int32_t val, lv_event_cb_t cb, lv_event_code_t filter)
+{
+    lv_obj_t *obj = create_text(parent, icon, txt);
+
+    lv_obj_t *slider = lv_slider_create(obj);
+    lv_obj_set_width(slider,TFT_WIDTH - 80);
+    lv_slider_set_range(slider, min, max);
+    lv_slider_set_value(slider, val, LV_ANIM_OFF);
+
+    if (cb != NULL) {
+        lv_obj_add_event_cb(slider, cb, filter, NULL);
+    }
+
+    if (icon == NULL) {
+        lv_obj_add_flag(slider, LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
+    }
+
+    return slider;
 }
 
 /**
@@ -56,7 +126,7 @@ void createDeviceSettingsScr()
   lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_set_align(list, LV_ALIGN_OUT_LEFT_BOTTOM);
   dropdown = lv_dropdown_create(list);
-  lv_dropdown_set_options(dropdown, "4800\n9600\n19200\n38400\nAUTO");
+  lv_dropdown_set_options(dropdown, "4800\n9600\n19200\nAUTO");
   lv_dropdown_set_selected(dropdown, gpsBaud);
   lv_obj_t* item = lv_dropdown_get_list(dropdown);
   lv_obj_set_style_bg_color(item, lv_color_hex(objectColor), LV_PART_SELECTED | LV_STATE_CHECKED);
@@ -83,6 +153,8 @@ void createDeviceSettingsScr()
   lv_obj_set_width(dropdown,TFT_WIDTH / 3);
   lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
   lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"rate");
+
+  create_slider(deviceSettingsOptions, LV_SYMBOL_SETTINGS, "Brightness", 5, 255, defBright, lv_brightness_cb, LV_EVENT_VALUE_CHANGED);
   
   // Back button
   btn = lv_btn_create(deviceSettingsScreen);
