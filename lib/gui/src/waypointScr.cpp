@@ -252,6 +252,7 @@ void createWaypointScreen()
     lv_obj_align(rotateScreenBtn, LV_ALIGN_TOP_RIGHT, -10, 5);
     lv_obj_add_flag(rotateScreenBtn, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(rotateScreenBtn, rotateScreen, LV_EVENT_CLICKED, NULL);
+    lv_obj_set_size(rotateScreenBtn, 40, 35);
     lv_obj_t *rotateScreenLbl = lv_label_create(rotateScreenBtn);
     lv_label_set_text(rotateScreenLbl, LV_SYMBOL_LOOP);
     lv_obj_center(rotateScreenLbl);
