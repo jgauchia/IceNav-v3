@@ -336,7 +336,7 @@ To access the Web File Server, simply use any browser and go to the following ad
 - [X] Vector maps
 - [ ] Google Maps navigation style
 - [x] Optimize code
-- [ ] Fix bugs!
+- [X] Fix bugs!
 - [X] Web file server
       
 
