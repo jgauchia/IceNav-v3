@@ -267,48 +267,6 @@ void wcli_waypoint(char *args, Stream *response)
   }
 }
 
-void wcli_settings(char *args, Stream *response)
-{
-  Pair<String, String> operands = wcli.parseCommand(args);
-  String commands = operands.first();
-  String value = operands.second();
-  int8_t gpio = -1;
-
-  if (commands.isEmpty())
-  {
-    response->println("");
-    response->println(F( "\033[1;31m----\033[1;32m Available commands \033[1;31m----\033[0;37m\r\n" ));
-    response->println(F( "\033[1;32msetgpstx:\t\033[0;37mset GPS Tx GPIO"));
-    response->println(F( "\033[1;32msetgpsrx:\t\033[0;37mset GPS Rx GPIO"));
-  }
-  else if (commands.equals("setgpstx"))
-  {
-      if(value.isEmpty())
-        response->println(F("Tx GPIO missing, use: setgpstx \033[1;32mGPIO\033[0;37m"));
-      else
-      {
-        gpio = value.toInt();
-        saveGpsGpio(gpio, -1);
-        response->println("");
-        response->printf("GPS \033[1;31mTx GPIO\033[0;37m set to: \033[1;32m%i\033[0;37m\r\n",gpio);
-        response->println("Please reboot device");
-      }
-  }
-  else if (commands.equals("setgpsrx"))
-  {
-      if(value.isEmpty())
-        response->println(F("Rx GPIO missing, use: setgpsrx \033[1;32mGPIO\033[0;37m"));
-      else
-      {
-        gpio = value.toInt();
-        saveGpsGpio(-1, gpio);
-        response->println("");
-        response->printf("GPS \033[1;31mRx GPIO\033[0;37m set to: \033[1;32m%i\033[0;37m\r\n",gpio);
-        response->println("Please reboot device");
-      }
-  }
-}
-
 void wcli_outnmea (char *args, Stream *response){
     nmea_output_enable = !nmea_output_enable;
 }
@@ -365,7 +323,6 @@ void initShell(){
   wcli.add("clear", &wcli_clear, "\t\tclear shell");
   wcli.add("scshot", &wcli_scshot, "\tscreenshot to SD or sending a PC");
   wcli.add("waypoint", &wcli_waypoint, "\twaypoint utilities");
-  wcli.add("settings", &wcli_settings, "\tdevice settings");
   wcli.add("webfile", &wcli_webfile, "\tenable/disable Web file server");
   wcli.add("klist", &wcli_klist, "\t\tlist of user preferences. ('all' param show all)");
   wcli.add("kset", &wcli_kset, "\t\tset an user extra preference");

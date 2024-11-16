@@ -246,7 +246,6 @@ outnmea:        toggle GPS NMEA output (or Ctrl+C to stop)
 poweroff:       perform a ESP32 deep sleep
 reboot:         perform a ESP32 reboot
 scshot:         screenshot to SD or sending a PC
-settings:       device settings
 waypoint:       waypoint utilities
 webfile:        enable/disable Web file server
 wipe:           wipe preferences to factory default
@@ -297,8 +296,6 @@ nc -l -p 8123 > screenshot.png
 ```
 
 Additionally, you can download the screenshot with webfile server.
-
-**settings**: Device settings type `settings` for detailed options.
 
 **waypoint**: type `waypoint` for detailed options.
 
