@@ -21,9 +21,14 @@ void powerDeepSleep()
   esp_wifi_stop();
   esp_deep_sleep_disable_rom_logging();
   delay(10);
-  // If you need other peripherals to maintain power, please set the IO port to hold
-  // gpio_hold_en((gpio_num_t)BOARD_POWERON);
-  // gpio_deep_sleep_hold_en();
+
+  #ifdef ICENAV_BOARD
+    // If you need other peripherals to maintain power, please set the IO port to hold
+    gpio_hold_en((gpio_num_t)TFT_BL);
+    gpio_hold_en((gpio_num_t)BOARD_BOOT_PIN);
+    gpio_deep_sleep_hold_en();
+  #endif
+
   esp_sleep_enable_ext1_wakeup(1ull << BOARD_BOOT_PIN, ESP_EXT1_WAKEUP_ANY_LOW);
   esp_deep_sleep_start();
 }
@@ -83,6 +88,7 @@ void deviceShutdown()
 void powerOffPeripherals()
 {
   tftOff();
+  tft.fillScreen(TFT_BLACK);
   SPI.end();
   Wire.end();
 }

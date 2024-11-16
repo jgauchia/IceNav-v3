@@ -59,7 +59,12 @@ void setup()
   
   // Force GPIO0 to internal PullUP  during boot (avoid LVGL key read)
   #ifdef POWER_SAVE
-     pinMode(BOARD_BOOT_PIN,INPUT_PULLUP);
+    pinMode(BOARD_BOOT_PIN,INPUT_PULLUP);
+    #ifdef ICENAV_BOARD
+      gpio_hold_dis((gpio_num_t)TFT_BL);
+      gpio_hold_dis((gpio_num_t)BOARD_BOOT_PIN);
+      gpio_deep_sleep_hold_dis();
+    #endif
   #endif
 
   #ifdef ARDUINO_USB_CDC_ON_BOOT
