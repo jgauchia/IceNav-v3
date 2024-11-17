@@ -154,8 +154,6 @@ void createNotifyBar()
   lv_obj_add_style(notifyBarIcons, &styleBar, LV_PART_MAIN);
   lv_obj_add_style(notifyBarHour, &styleBar, LV_PART_MAIN);
   
-  lv_obj_t *label;
-  
   gpsTime = lv_label_create(notifyBarHour);
   lv_obj_set_style_text_font(gpsTime, fontLarge, 0);
   lv_label_set_text_fmt(gpsTime, timeFormat, 0, 0, 0);

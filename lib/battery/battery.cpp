@@ -9,10 +9,6 @@
 
 #include "battery.hpp"
 
-
-// ADC characteristics (global for simplicity)
-static esp_adc_cal_characteristics_t characteristics;
-
 Battery::Battery() {}
 
 /**

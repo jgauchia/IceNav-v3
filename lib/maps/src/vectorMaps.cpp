@@ -204,7 +204,6 @@ BBox parseBbox(String str)
 MapBlock *readMapBlock(String fileName)
 {
   log_d("readMapBlock: %s", fileName.c_str());
-  char c;
   char str[30];
   MapBlock *mblock = new MapBlock();
   fs::File file_ = SD.open(fileName + ".fmp");
@@ -236,7 +235,6 @@ MapBlock *readMapBlock(String fileName)
     uint32_t totalPoints = 0;
     Polygon polygon;
     Point16 p;
-    int16_t maxVectorZoom;// = 4;
     while (count > 0)
     {
       // log_d("line: %i", line);

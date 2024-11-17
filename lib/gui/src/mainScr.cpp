@@ -206,7 +206,6 @@ void updateMainScreen(lv_timer_t *t)
  */
 void gestureEvent(lv_event_t *event)
 {
-  lv_obj_t *screen = (lv_obj_t *)lv_event_get_current_target(event);
   lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
   if (activeTile == MAP && isMainScreen)
   {

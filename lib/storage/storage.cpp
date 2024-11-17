@@ -25,7 +25,6 @@ Storage::Storage() : isSdLoaded(false) {}
  */
 void Storage::initSD() 
 {
-    bool SDInitOk = false;
     pinMode(SD_CS, OUTPUT);
     digitalWrite(SD_CS, LOW);
 

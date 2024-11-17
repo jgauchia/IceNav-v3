@@ -137,7 +137,6 @@ void IRAM_ATTR gpioRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 */
 void gpioLongEvent(lv_event_t *event)
 {
-  lv_event_code_t code = lv_event_get_code(event);
   log_v("Shuting down device");
   powerMsg = lv_msgbox_create(lv_scr_act());
   lv_obj_set_width(powerMsg,TFT_WIDTH);
@@ -158,7 +157,6 @@ void gpioLongEvent(lv_event_t *event)
 */
 void gpioClickEvent(lv_event_t *event)
 {
-  lv_event_code_t code = lv_event_get_code(event);
   lv_indev_reset_long_press(lv_indev_active());
   lv_indev_reset(NULL,lv_scr_act());
   log_v("Entering sleep mode");
