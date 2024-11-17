@@ -22,13 +22,15 @@ const char logo[] =
 ""
 ;
 
+extern Power power;
+
 void wcli_reboot(char *args, Stream *response)
 {
   ESP.restart();
 }
 
 void wcli_poweroff(char *args, Stream *response) {
-  deviceShutdown();
+  power.deviceShutdown();
 }
 
 void wcli_info(char *args, Stream *response)

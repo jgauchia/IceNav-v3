@@ -44,11 +44,12 @@ extern xSemaphoreHandle gpsMutex;
 #include "webpage.h"
 #include "webserver.h"
 #include "battery.hpp"
+#include "power.hpp"
 
 extern Storage storage;
 extern Battery battery;
+extern Power power;
 
-#include "power.hpp"
 #include "settings.hpp"
 #include "lvglSetup.hpp"
 #include "tasks.hpp"
@@ -101,7 +102,7 @@ void setup()
    initCompass();
   #endif
 
-  powerOn();
+  // powerOn();
   storage.initSD();
   storage.initSPIFFS();
   battery.initADC();

@@ -14,7 +14,6 @@
 #include <LovyanGFX.hpp>
 #include <tft.hpp>
 
-
 class Storage
 {
 private:

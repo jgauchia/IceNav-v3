@@ -10,11 +10,22 @@
 
 extern const uint8_t BOARD_BOOT_PIN;
 
+Power::Power()
+{
+  #ifdef DISABLE_RADIO
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_OFF);
+    btStop();
+    esp_wifi_stop();
+    esp_bt_controller_disable();
+  #endif
+}
+
 /**
  * @brief Deep Sleep Mode
  * 
  */
-void powerDeepSleep()
+void Power::powerDeepSleep()
 {
   esp_bluedroid_disable();
   esp_bt_controller_disable();
@@ -38,7 +49,7 @@ void powerDeepSleep()
  * 
  * @param millis 
  */
-void powerLightSleepTimer(int millis)
+void Power::powerLightSleepTimer(int millis)
 {
   esp_sleep_enable_timer_wakeup(millis * 1000);
   esp_err_t rtc_gpio_hold_en(gpio_num_t GPIO_NUM_5);
@@ -49,16 +60,27 @@ void powerLightSleepTimer(int millis)
  * @brief Sleep Mode
  * 
  */
-void powerLightSleep()
+void Power::powerLightSleep()
 {
   esp_sleep_enable_ext1_wakeup(1ull << BOARD_BOOT_PIN, ESP_EXT1_WAKEUP_ANY_LOW);
   esp_light_sleep_start();
 }
 
 /**
+ * @brief Power off peripherals devices
+ */
+void Power::powerOffPeripherals()
+{
+  tftOff();
+  tft.fillScreen(TFT_BLACK);
+  SPI.end();
+  Wire.end();
+}
+
+/**
  * @brief Core light suspend and TFT off
  */
-void deviceSuspend()
+void Power::deviceSuspend()
 {
   int brightness = tft.getBrightness();
   lv_msgbox_close(powerMsg); 
@@ -75,35 +97,27 @@ void deviceSuspend()
 
 /**
  * @brief Power off peripherals and deep sleep
+ *
  */
-void deviceShutdown()
+void Power::deviceShutdown()
 {
   powerOffPeripherals();
   powerDeepSleep();
 }
 
-/**
- * @brief Power off peripherals devices
- */
-void powerOffPeripherals()
-{
-  tftOff();
-  tft.fillScreen(TFT_BLACK);
-  SPI.end();
-  Wire.end();
-}
 
-/**
- * @brief On Mode
- * 
- */
-void powerOn()
-{
-#ifdef DISABLE_RADIO
-  WiFi.disconnect(true);
-  WiFi.mode(WIFI_OFF);
-  btStop();
-  esp_wifi_stop();
-  esp_bt_controller_disable();
-#endif
-}
+
+// /**
+//  * @brief On Mode
+//  * 
+//  */
+// void powerOn()
+// {
+// #ifdef DISABLE_RADIO
+//   WiFi.disconnect(true);
+//   WiFi.mode(WIFI_OFF);
+//   btStop();
+//   esp_wifi_stop();
+//   esp_bt_controller_disable();
+// #endif
+// }

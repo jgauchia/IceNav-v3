@@ -26,6 +26,8 @@ lv_group_t *scrGroup;     // Screen group
 lv_group_t *keyGroup;     // GPIO group
 lv_obj_t *powerMsg;       // Power Message
 
+Power power;
+
 /**
  * @brief LVGL display update
  *
@@ -148,7 +150,7 @@ void gpioLongEvent(lv_event_t *event)
   lv_obj_invalidate(powerMsg);
   lv_refr_now(display);
   vTaskDelay(2000);
-  deviceShutdown();
+  power.deviceShutdown();
 }
 
 /**
@@ -170,7 +172,7 @@ void gpioClickEvent(lv_event_t *event)
   lv_obj_invalidate(powerMsg);
   lv_refr_now(display);
   vTaskDelay(2000);
-  deviceSuspend();
+  power.deviceSuspend();
 }
 
 /**
