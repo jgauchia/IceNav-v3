@@ -40,11 +40,14 @@
 #endif
 
 extern xSemaphoreHandle gpsMutex;
-extern Storage storage;
 
 #include "webpage.h"
 #include "webserver.h"
 #include "battery.hpp"
+
+extern Storage storage;
+extern Battery battery;
+
 #include "power.hpp"
 #include "settings.hpp"
 #include "lvglSetup.hpp"
@@ -101,11 +104,12 @@ void setup()
   powerOn();
   storage.initSD();
   storage.initSPIFFS();
+  battery.initADC();
   initTFT();
   loadPreferences();
   initGPS();
   initLVGL();
-  initADC();
+
   
   // Reserve PSRAM for buffer map
   mapTempSprite.deleteSprite();
