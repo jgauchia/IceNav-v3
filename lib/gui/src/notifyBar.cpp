@@ -7,12 +7,15 @@
  */
 
 #include "notifyBar.hpp"
+#include "storage.hpp"
 #include "font/lv_symbol_def.h"
 #include "misc/lv_event.h"
 
 lv_obj_t *mainScreen;
 lv_obj_t *notifyBarIcons;
 lv_obj_t *notifyBarHour;
+
+Storage storage;
 
 /**
  * @brief Update notify bar event
@@ -168,7 +171,7 @@ void createNotifyBar()
   lv_obj_add_event_cb(temp, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
   #endif
   
-  if (isSdLoaded)
+  if (storage.getSdLoaded())
   {
     sdCard = lv_label_create(notifyBarIcons);
     lv_label_set_text_static(sdCard, LV_SYMBOL_SD_CARD);

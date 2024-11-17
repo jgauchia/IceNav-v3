@@ -40,6 +40,7 @@
 #endif
 
 extern xSemaphoreHandle gpsMutex;
+extern Storage storage;
 
 #include "webpage.h"
 #include "webserver.h"
@@ -48,6 +49,7 @@ extern xSemaphoreHandle gpsMutex;
 #include "settings.hpp"
 #include "lvglSetup.hpp"
 #include "tasks.hpp"
+
 
 /**
  * @brief Setup
@@ -97,8 +99,8 @@ void setup()
   #endif
 
   powerOn();
-  initSD();
-  initSPIFFS();
+  storage.initSD();
+  storage.initSPIFFS();
   initTFT();
   loadPreferences();
   initGPS();

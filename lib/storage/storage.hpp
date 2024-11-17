@@ -14,11 +14,20 @@
 #include <LovyanGFX.hpp>
 #include <tft.hpp>
 
-static uint32_t sdFreq = 40000000;
 
-extern bool isSdLoaded;
+class Storage
+{
+private:
+    bool isSdLoaded;
+    static const uint32_t sdFreq = 40000000;
 
-void initSD();
-esp_err_t initSPIFFS();
+public:
+    Storage();
+
+    void initSD();
+    esp_err_t initSPIFFS();
+
+    bool getSdLoaded() const;
+};
 
 #endif
