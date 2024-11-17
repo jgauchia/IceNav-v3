@@ -31,6 +31,7 @@ uint8_t zoom = 0;           // Actual Zoom Level
 bool isMapRotation = true;    // Map Compass Rotation
 uint8_t defaultZoom = 0;      // Default Zoom Value
 uint8_t defBright = 255;      // Default Brightness
+int32_t defGMT = 1;           // Default GMT offset
 bool showMapCompass = true;   // Compass in map screen
 bool isCompassRot = true;     // Compass rotation in map screen
 bool showMapSpeed = true;     // Speed in map screen
@@ -81,6 +82,7 @@ void loadPreferences()
   speedPosY = cfg.getInt(PKEYS::KSPEED_Y, TFT_HEIGHT - 130);
   isVectorMap = cfg.getBool(PKEYS::KMAP_VECTOR, false);
   defBright = cfg.getUInt(PKEYS::KDEF_BRIGT, 254);
+  defGMT = cfg.getInt(PKEYS::KGMT_OFFS, 1);
   if (isVectorMap)
   {
     minZoom = 1;

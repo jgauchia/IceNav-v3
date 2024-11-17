@@ -267,6 +267,7 @@ Some extra details:
    VmaxBatt     custom         
    VminBatt     custom          
    tempOffs     custom
+     defGMT     custom     
 ```          
 
 **kset KEYNAME**: Set user custom settings:

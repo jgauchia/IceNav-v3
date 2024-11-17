@@ -9,14 +9,7 @@
 #ifndef TIMEZONE_HPP
 #define TIMEZONE_HPP
 
-// Set these values to the offset of your timezone from GMT
-
-static const int32_t          zone_hours   =  1L; 
-static const int32_t          zone_minutes =  0L; // usually zero
-static const NeoGPS::clock_t  zone_offset  =
-                              zone_hours   * NeoGPS::SECONDS_PER_HOUR +
-                              zone_minutes * NeoGPS::SECONDS_PER_MINUTE;
-
+extern int32_t defGMT;          // Default GMT offset
 
 // Uncomment one DST changeover rule, or define your own:
 
@@ -50,6 +43,11 @@ static const NeoGPS::clock_t  zone_offset  =
 static void adjustTime( NeoGPS::time_t & dt )
 {
   NeoGPS::clock_t seconds = dt; // convert date/time structure to seconds
+
+  // Set these values to the offset of your timezone from GMT
+  static const int32_t          zone_minutes =  0L; // usually zero
+  static const NeoGPS::clock_t  zone_offset = (int32_t)defGMT * NeoGPS::SECONDS_PER_HOUR +
+                                              zone_minutes * NeoGPS::SECONDS_PER_MINUTE;
 
   #ifdef CALCULATE_DST
     //  Calculate DST changeover times once per reset and year!
