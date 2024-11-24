@@ -9,12 +9,8 @@
 #ifndef ADDWAYPOINT_HPP
 #define ADDWAYPOINT_HPP
 
-#include "globalGpxDef.h"
 #include "SD.h"
-#include "FS.h"
-#include "tft.hpp"
-#include "storage.hpp"
-#include "lvgl.h"
+#include "globalGpxDef.h"
 
 extern wayPoint addWpt;
 

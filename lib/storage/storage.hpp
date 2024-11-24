@@ -10,9 +10,8 @@
 #define STORAGE_HPP
 
 #include "esp_spiffs.h"
+#include "esp_err.h"
 #include <SD.h>
-#include <LovyanGFX.hpp>
-#include <tft.hpp>
 
 class Storage
 {
@@ -25,7 +24,6 @@ public:
 
     void initSD();
     esp_err_t initSPIFFS();
-
     bool getSdLoaded() const;
 };
 

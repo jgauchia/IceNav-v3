@@ -19,8 +19,6 @@
 #include "lvgl.h"
 #include "globalGuiDef.h"
 
-// void powerOn();
-
 class Power
 {
 private:

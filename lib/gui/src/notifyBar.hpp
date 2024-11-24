@@ -9,7 +9,6 @@
 #ifndef NOTIFYBAR_HPP
 #define NOTIFYBAR_HPP
 
-#include <WiFi.h>
 #include "globalGuiDef.h"
 #include "tasks.hpp"
 #include "storage.hpp"

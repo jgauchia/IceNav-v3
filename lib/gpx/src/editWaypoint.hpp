@@ -10,10 +10,6 @@
 #define EDITWAYPOINT_HPP
 
 #include "SD.h"
-#include "FS.h"
-#include "tft.hpp"
-#include "storage.hpp"
-#include "globalGuiDef.h"
 #include "globalGpxDef.h"
 
 void editWaypointName(char* oldName, char *newName);

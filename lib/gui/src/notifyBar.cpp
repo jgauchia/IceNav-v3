@@ -7,8 +7,6 @@
  */
 
 #include "notifyBar.hpp"
-#include "font/lv_symbol_def.h"
-#include "misc/lv_event.h"
 
 lv_obj_t *mainScreen;
 lv_obj_t *notifyBarIcons;

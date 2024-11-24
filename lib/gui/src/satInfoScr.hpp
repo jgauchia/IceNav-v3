@@ -9,7 +9,6 @@
 #ifndef SATINFOSCR_HPP
 #define SATINFOSCR_HPP
 
-#include "lvgl.h"
 #include "globalGuiDef.h"
 #include "gps.hpp"
 

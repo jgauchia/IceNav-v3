@@ -7,9 +7,6 @@
  */
 
 #include "renderMaps.hpp"
-#include "mapsDrawFunc.h"
-
-extern const int SD_CS;
 
 MapTile oldMapTile = {(char*)"", 0, 0, 0};     // Old Map tile coordinates and zoom
 MapTile currentMapTile = {(char*)"", 0, 0, 0}; // Current Map tile coordinates and zoom
@@ -19,8 +16,6 @@ ScreenCoord navArrowPosition = {0,0};  // Map Arrow position
 bool isMapFound = false;
 
 tileBounds totalBounds = { 90.0, -90.0, 180.0, -180.0}; 
-
-
 
 /**
  * @brief Tile size for position calculation
@@ -172,9 +167,6 @@ void generateRenderMap()
   if (strcmp(currentMapTile.file, oldMapTile.file) != 0 || currentMapTile.zoom != oldMapTile.zoom || 
              currentMapTile.tilex != oldMapTile.tilex || currentMapTile.tiley != oldMapTile.tiley)
   {
-    // deleteMapScrSprites();
-    // createMapScrSprites();
-
     isMapFound  = mapTempSprite.drawPngFile(SD, currentMapTile.file, tileSize, tileSize);
 
     if (!isMapFound)

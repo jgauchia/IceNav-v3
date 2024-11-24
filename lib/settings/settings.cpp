@@ -116,15 +116,6 @@ void loadPreferences()
 
   battery.setBatteryLevels(cfg.getFloat(PKEYS::KVMAX_BATT,4.2),cfg.getFloat(PKEYS::KVMIN_BATT,3.6));
 
-  // compassPosX = 60;
-  // compassPosY = 82;
-  // coordPosX = 66;
-  // coordPosY = 29;
-  // altitudePosX = 8;
-  // altitudePosY = 293;
-  // speedPosX = 1;
-  // speedPosY = 337;
-
   printSettings();
 }
 

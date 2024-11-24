@@ -9,7 +9,6 @@
 #ifndef SPLASHSCR_HPP
 #define SPLASHSCR_HPP
 
-#include "tft.hpp"
 #include "globalGuiDef.h"
 #include "settings.hpp"
 

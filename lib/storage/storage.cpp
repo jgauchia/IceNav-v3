@@ -7,14 +7,12 @@
  */
 
 #include "storage.hpp"
-#include "esp_err.h"
-#include "esp_spiffs.h"
 
 // Pin definitions (should be configurable if needed)
-extern const int SD_CS;
-extern const int SD_MISO;
-extern const int SD_MOSI;
-extern const int SD_CLK;
+extern const uint8_t SD_CS;
+extern const uint8_t SD_MISO;
+extern const uint8_t SD_MOSI;
+extern const uint8_t SD_CLK;
 
 Storage::Storage() : isSdLoaded(false) {}
 

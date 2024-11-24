@@ -11,6 +11,8 @@
 
 #include "globalGuiDef.h"
 #include "mainScr.hpp"
+#include "waypointScr.hpp"
+#include "waypointListScr.hpp"
 
 static const char *waypointIconFile PROGMEM = "/wpt.bin";      // Waypoint icon
 static const char *trackIconFile PROGMEM = "/track.bin";       // Track icon

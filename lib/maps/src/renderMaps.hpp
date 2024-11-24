@@ -9,11 +9,7 @@
 #ifndef RENDERMAPS_HPP
 #define RENDERMAPS_HPP
 
-#include <Arduino.h>
-#include "tft.hpp"
-#include "compass.hpp"
 #include "settings.hpp"
-#include "globalMapsDef.h"
 #include "mapsDrawFunc.h"
 
 /**
@@ -45,8 +41,6 @@ tileBounds getTileBounds(uint32_t tileX, uint32_t tileY, uint8_t zoom);
 bool isCoordInBounds(double lat, double lon, tileBounds bound);
 void coords2map(double lat, double lon, tileBounds bound, int *pixelX, int *pixelY);
 MapTile getMapTile(double lon, double lat, uint8_t zoomLevel, int16_t offsetX, int16_t offsetY);
-void drawMapWidgets();
 void generateRenderMap();
-void initSD();
 
 #endif

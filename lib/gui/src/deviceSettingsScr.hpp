@@ -10,8 +10,6 @@
 #define DEVICESETTINGSCR_HPP
 
 #include "globalGuiDef.h"
-#include "gps.hpp"
-#include "settings.hpp"
 #include "lvglSetup.hpp"
 
 static lv_obj_t *deviceSettingsOptions;

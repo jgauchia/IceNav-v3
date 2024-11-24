@@ -7,7 +7,6 @@
  */
 
 #include "settingsScr.hpp"
-#include "globalGuiDef.h"
 
 bool needReboot = false;
 

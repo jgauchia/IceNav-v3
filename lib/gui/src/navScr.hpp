@@ -9,7 +9,6 @@
 #ifndef NAVSCR_HPP
 #define NAVSCR_HPP
 
-#include "lvgl.h"
 #include "globalGuiDef.h"
 #include "navup.c"
 

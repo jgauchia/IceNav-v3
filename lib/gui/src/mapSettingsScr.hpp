@@ -10,7 +10,6 @@
 #define MAPSETTINGSCR_HPP
 
 #include "globalGuiDef.h"
-#include "settings.hpp"
 #include "lvglFuncs.hpp"
 #include "vectorMaps.hpp"
 #include "renderMaps.hpp"

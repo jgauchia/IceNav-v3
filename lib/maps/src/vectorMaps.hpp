@@ -9,17 +9,10 @@
 #ifndef VECTORMAPS_HPP
 #define VECTORMAPS_HPP
 
-#include <SPI.h>
-#include <SD.h>
 #include <StreamUtils.h>
-#include <string>
-#include <stdint.h>
 #include <vector>
-#include <array>
-#include <math.h>
 #include <map>
 #include "globalMapsDef.h"
-#include "tft.hpp"
 #include "gpsMath.hpp"
 #include "settings.hpp"
 

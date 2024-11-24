@@ -6,11 +6,7 @@
  * @date 2024-11
  */
 
-#include "lvgl_private.h"
 #include "lvglSetup.hpp"
-#include "waypointScr.hpp"
-#include "waypointListScr.hpp"
-#include "globalGuiDef.h"
 
 ViewPort viewPort; // Vector map viewport
 MemCache memCache; // Vector map Memory Cache

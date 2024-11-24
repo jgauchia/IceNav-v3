@@ -7,10 +7,6 @@
  */
 
 #include "buttonBar.hpp"
-#include "waypointScr.hpp"
-#include "waypointListScr.hpp"
-#include "display/lv_display.h"
-#include "globalGuiDef.h"
 
 bool isWaypointOpt = false;
 bool isTrackOpt = false;
@@ -59,7 +55,6 @@ void buttonBarEvent(lv_event_t *event)
   if (strcmp(option,"waypoint") == 0)
   {
     log_v("Waypoint");
-  //  isMainScreen = false;
     isWaypointOpt = true;
     isTrackOpt = false;
     if (!isOptionLoaded)
