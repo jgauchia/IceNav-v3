@@ -19,6 +19,7 @@
   X(KGPS_SPEED, "GPS_speed", SHORT)      \
   X(KGPS_RATE, "GPS_rate", SHORT)        \
   X(KWEB_FILE, "Web_file", BOOL)         \
+  X(KDST_ZONE, "defDST", STRING)         \
   X(KUSER, "-----", UNKNOWN)             \
   X(KDEF_ZOOM, "defZoom", UINT)          \
   X(KGPS_TX, "gpsTX", UINT)              \

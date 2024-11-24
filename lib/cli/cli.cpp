@@ -24,15 +24,25 @@ const char logo[] =
 
 extern Power power;
 
+/**
+ * @brief Reboot ESP
+ */
 void wcli_reboot(char *args, Stream *response)
 {
   ESP.restart();
 }
 
-void wcli_poweroff(char *args, Stream *response) {
-  power.deviceShutdown();
+/**
+ * @brief ESP Deep Sleep/shutdown
+ */
+void wcli_poweroff(char *args, Stream *response)
+{
+  deviceShutdown();
 }
 
+/**
+ * @brief Display device info
+ */
 void wcli_info(char *args, Stream *response)
 {
   setlocale(LC_NUMERIC, "");
@@ -64,6 +74,9 @@ void wcli_info(char *args, Stream *response)
   response->printf("GPS Rx GPIO:\t: %i\r\n",GPS_RX);
 }
 
+/**
+ * @brief Clear user settings
+ */
 void wcli_swipe(char *args, Stream *response)
 {
   Pair<String, String> operands = wcli.parseCommand(args);
@@ -74,11 +87,17 @@ void wcli_swipe(char *args, Stream *response)
   response->println("done");
 }
 
+/**
+ * @brief Clear CLI console
+ */
 void wcli_clear(char *args, Stream *response)
 {
   wcli.shell->clear();
 }
 
+/**
+ * @brief Take a screenshot
+ */
 void wcli_scshot(char *args, Stream *response)
 {
   Pair<String, String> operands = wcli.parseCommand(args);
@@ -145,6 +164,9 @@ void wcli_kset(char *args, Stream *response)
   }
 }
 
+/**
+ * @brief Waypoint list, download or delete
+ */
 void wcli_waypoint(char *args, Stream *response)
 {
   Pair<String, String> operands = wcli.parseCommand(args);
@@ -269,11 +291,19 @@ void wcli_waypoint(char *args, Stream *response)
   }
 }
 
-void wcli_outnmea (char *args, Stream *response){
+/**
+ * @brief Output NMEA sentences in CLI
+ */
+void wcli_outnmea (char *args, Stream *response)
+{
     nmea_output_enable = !nmea_output_enable;
 }
 
-void wcli_abort_handler () {
+/**
+ * @brief Cancel NMEA Output
+ */
+void wcli_abort_handler () 
+{
   if (nmea_output_enable) {
     nmea_output_enable = false;
     delay(100);
@@ -281,6 +311,9 @@ void wcli_abort_handler () {
   } 
 }
 
+/**
+ * @brief Webfile server enable/disable option
+ */
 void wcli_webfile(char *args, Stream *response)
 {
   Pair<String, String> operands = wcli.parseCommand(args);
@@ -307,6 +340,25 @@ void wcli_webfile(char *args, Stream *response)
   }
 }
 
+/**
+ * @brief Set DST (daylight saving time) zone EU or USA
+ */
+void wcli_setdst(char *args, Stream *response)
+{
+  Pair<String, String> operands = wcli.parseCommand(args);
+  String commands = operands.first();
+  if (commands.isEmpty())
+    response->println(F("missing parameter use: setdstzone \033[1;32mNONE/EU/USA\033[0;37m"));
+  else
+  {
+    commands.toUpperCase();
+    if(commands.equals("NONE") || commands.equals("EU") || commands.equals("USA") )
+      cfg.saveAuto("defDST",commands);
+    else
+      response->println(F("wrong parameter use: \033[1;32mNONE/EU/USA\033[0;37m"));
+  }
+}
+
 void initRemoteShell()
 {
 #ifndef DISABLE_CLI_TELNET 
@@ -314,7 +366,8 @@ void initRemoteShell()
 #endif
 }
 
-void initShell(){
+void initShell()
+{
   wcli.shell->attachLogo(logo);
   wcli.setSilentMode(true);
   // Main Commands:
@@ -329,6 +382,7 @@ void initShell(){
   wcli.add("klist", &wcli_klist, "\t\tlist of user preferences. ('all' param show all)");
   wcli.add("kset", &wcli_kset, "\t\tset an user extra preference");
   wcli.add("outnmea", &wcli_outnmea, "\ttoggle GPS NMEA output (or Ctrl+C to stop)");
+  wcli.add("setdstzone", &wcli_setdst, "\tset DST (Daylight Saving Time zone: NONE, EU or USA)");
   wcli.shell->overrideAbortKey(&wcli_abort_handler);
   wcli.begin("IceNav");
 }

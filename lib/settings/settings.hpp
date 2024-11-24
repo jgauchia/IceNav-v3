@@ -43,6 +43,8 @@ extern uint16_t speedPosX;    // Speed widget position X
 extern uint16_t speedPosY;    // Speed widget position Y
 extern bool enableWeb;        // Enable/disable web file server
 extern int8_t tempOffset;     // BME Temperature offset
+extern String defDST;         // default DST zone
+extern bool calculateDST;     // Calculate DST flag
 
 void loadPreferences();
 void saveMapRotation(bool zoomRotation);
