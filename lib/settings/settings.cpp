@@ -51,6 +51,8 @@ uint16_t speedPosY = 0;       // Speed widget position Y
 bool enableWeb = true;        // Enable/disable web file server
 bool showToolBar = false;     // Show Map Toolbar
 int8_t tempOffset = 0;        // BME Temperature offset
+String defDST = "NONE";       // default DST zone
+bool calculateDST = false;    // Calculate DST flag
 // float batteryMax = 0.0;       // 4.2;      // maximum voltage of battery
 // float batteryMin = 0.0;       // 3.6;      // minimum voltage of battery before shutdown
 
@@ -125,6 +127,12 @@ void loadPreferences()
   // altitudePosY = 293;
   // speedPosX = 1;
   // speedPosY = 337;
+
+  defDST = cfg.getString(PKEYS::KDST_ZONE, "EU");
+  if (defDST.equals("NONE"))
+    calculateDST = false;
+  else
+    calculateDST = true;
 
   printSettings();
 }

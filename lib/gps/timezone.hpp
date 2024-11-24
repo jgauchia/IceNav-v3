@@ -10,33 +10,22 @@
 #define TIMEZONE_HPP
 
 extern int32_t defGMT;          // Default GMT offset
+extern String defDST;           // Default DST zone
+extern bool calculateDST;       // Calculate DST flag
 
-// Uncomment one DST changeover rule, or define your own:
+//  Calculate DST changeover times once per reset and year!
+static NeoGPS::time_t  changeover;
+static NeoGPS::clock_t springForward, fallBack;
 
-//#define USA_DST
-#define EU_DST
-
-#if defined(USA_DST)
-  static const uint8_t springMonth =  3;
-  static const uint8_t springDate  = 14; // latest 2nd Sunday
-  static const uint8_t springHour  =  2;
-  static const uint8_t fallMonth   = 11;
-  static const uint8_t fallDate    =  7; // latest 1st Sunday
-  static const uint8_t fallHour    =  2;
-  #define CALCULATE_DST
-
-#elif defined(EU_DST)
-  static const uint8_t springMonth =  3;
-  static const uint8_t springDate  = 31; // latest last Sunday
-  static const uint8_t springHour  =  2;
-  static const uint8_t fallMonth   = 10;
-  static const uint8_t fallDate    = 31; // latest last Sunday
-  static const uint8_t fallHour    =  1;
-  #define CALCULATE_DST
-#endif
+static uint8_t springMonth =  0;
+static uint8_t springDate  =  0; // latest last Sunday
+static uint8_t springHour  =  0;
+static uint8_t fallMonth   =  0;
+static uint8_t fallDate    =  0; // latest last Sunday
+static uint8_t fallHour    =  0;
 
 /**
- * @brief Update notify bar event
+ * @brief Adjust Time (GMT and DST)
  *
  * @param dt -> GPS Time
  */
@@ -49,12 +38,29 @@ static void adjustTime( NeoGPS::time_t & dt )
   static const NeoGPS::clock_t  zone_offset = (int32_t)defGMT * NeoGPS::SECONDS_PER_HOUR +
                                               zone_minutes * NeoGPS::SECONDS_PER_MINUTE;
 
-  #ifdef CALCULATE_DST
-    //  Calculate DST changeover times once per reset and year!
-    static NeoGPS::time_t  changeover;
-    static NeoGPS::clock_t springForward, fallBack;
+  if (calculateDST)
+  {
+    if (defDST.equals("USA"))
+    {
+      springMonth =  3;
+      springDate  = 14; // latest 2nd Sunday
+      springHour  =  2;
+      fallMonth   = 11;
+      fallDate    =  7; // latest 1st Sunday
+      fallHour    =  2;
+    }
+    if (defDST.equals("EU"))
+    {
+      springMonth =  3;
+      springDate  = 31; // latest last Sunday
+      springHour  =  2;
+      fallMonth   = 10;
+      fallDate    = 31; // latest last Sunday
+      fallHour    =  1;
+    }
 
-    if ((springForward == 0) || (changeover.year != dt.year)) {
+    if ((springForward == 0) || (changeover.year != dt.year))
+    {
 
       //  Calculate the spring changeover time (seconds)
       changeover.year    = dt.year;
@@ -77,16 +83,17 @@ static void adjustTime( NeoGPS::time_t & dt )
       changeover.date -= (changeover.day - NeoGPS::time_t::SUNDAY);
       fallBack = (NeoGPS::clock_t) changeover;
     }
-  #endif
+  }
 
   //  First, offset from UTC to the local timezone
   seconds += zone_offset;
 
-  #ifdef CALCULATE_DST
+  if (calculateDST)
+  {
     //  Then add an hour if DST is in effect
     if ((springForward <= seconds) && (seconds < fallBack))
       seconds += NeoGPS::SECONDS_PER_HOUR;
-  #endif
+  }
 
   dt = seconds; // convert seconds back to a date/time structure
 
