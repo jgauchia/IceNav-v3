@@ -14,12 +14,6 @@ uint16_t TFT_WIDTH = 0;
 uint16_t TFT_HEIGHT = 0;
 bool waitScreenRefresh = false;
 
-#ifdef TDECK_ESP32S3 
-  extern const uint8_t TFT_SPI_BL;
-#endif
-
-
-
 /**
  * @brief Turn on TFT Sleep Mode for ILI9488
  *

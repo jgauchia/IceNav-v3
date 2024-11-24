@@ -94,8 +94,8 @@ static void drawMapWidgets()
     mapHeight = MAP_HEIGHT;
 
 
-  int toolBarOffset = 0;
-  int toolBarSpace = 0;
+  uint8_t toolBarOffset = 0;
+  uint8_t toolBarSpace = 0;
   #ifdef LARGE_SCREEN
     toolBarOffset = 100;
     toolBarSpace = 60;

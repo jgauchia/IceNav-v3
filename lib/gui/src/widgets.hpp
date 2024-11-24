@@ -9,8 +9,6 @@
 #ifndef WIDGETS_HPP
 #define WIDGETS_HPP
 
-#include "lvgl.h"
-#include "globalGuiDef.h"
 #include "globalMapsDef.h"
 #include "lvglFuncs.hpp"
 #include "gpsMath.hpp"

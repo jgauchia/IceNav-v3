@@ -51,6 +51,7 @@ uint16_t speedPosY = 0;       // Speed widget position Y
 bool enableWeb = true;        // Enable/disable web file server
 bool showToolBar = false;     // Show Map Toolbar
 int8_t tempOffset = 0;        // BME Temperature offset
+extern Battery battery;
 String defDST = "NONE";       // default DST zone
 bool calculateDST = false;    // Calculate DST flag
 // float batteryMax = 0.0;       // 4.2;      // maximum voltage of battery
@@ -116,17 +117,7 @@ void loadPreferences()
   speedPosY = cfg.isKey(CONFKEYS::KSPEED_Y) ? cfg.getInt(CONFKEYS::KSPEED_Y, speedPosY) : 94;
   #endif
 
-  batteryMax = cfg.getFloat(PKEYS::KVMAX_BATT,4.2);
-  batteryMin = cfg.getFloat(PKEYS::KVMIN_BATT,3.6);
-
-  // compassPosX = 60;
-  // compassPosY = 82;
-  // coordPosX = 66;
-  // coordPosY = 29;
-  // altitudePosX = 8;
-  // altitudePosY = 293;
-  // speedPosX = 1;
-  // speedPosY = 337;
+  battery.setBatteryLevels(cfg.getFloat(PKEYS::KVMAX_BATT,4.2),cfg.getFloat(PKEYS::KVMIN_BATT,3.6));
 
   defDST = cfg.getString(PKEYS::KDST_ZONE, "EU");
   if (defDST.equals("NONE"))

@@ -21,8 +21,6 @@ extern uint8_t defZoomRender;  // Default Zoom Level for render map
 extern uint8_t defZoomVector;  // Default Zoom Level for vector map
 extern uint8_t zoom;           // Actual Zoom Level
 extern uint8_t defBright;      // Default brightness
-extern float batteryMax;       // 4.2;      // maximum voltage of battery
-extern float batteryMin;       // 3.6;      // minimum voltage of battery before shutdown
 
 extern bool isMapRotation;    // Map Compass Rotation
 extern uint8_t defaultZoom;   // Default Zoom Value

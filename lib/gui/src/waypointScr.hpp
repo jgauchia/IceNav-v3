@@ -9,7 +9,7 @@
 #ifndef waypointScr_HPP
 #define waypointScr_HPP
 
-#include "globalGuiDef.h"
+#include "addWaypoint.hpp"
 #include "mainScr.hpp"
 
 extern lv_obj_t *waypointName;

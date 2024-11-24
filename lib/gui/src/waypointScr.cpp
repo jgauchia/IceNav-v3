@@ -7,11 +7,6 @@
  */
 
 #include "waypointScr.hpp"
-#include "core/lv_obj_pos.h"
-#include "display/lv_display.h"
-#include "globalGuiDef.h"
-#include "tft.hpp"
-#include "addWaypoint.hpp"
 
 lv_obj_t *waypointScreen;  // Add Waypoint Screen
 lv_obj_t *waypointName;
@@ -238,7 +233,6 @@ void createWaypointScreen()
   #ifdef TDECK_ESP32S3
     lv_group_add_obj(scrGroup, waypointName);
     lv_group_focus_obj(waypointName);
-    //lv_group_add_obj(scrGroup, waypointScreen);
   #endif
 
   #ifndef TDECK_ESP32S3

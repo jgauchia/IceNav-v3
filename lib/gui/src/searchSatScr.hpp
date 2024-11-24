@@ -9,7 +9,6 @@
 #ifndef SEARCHSATSCR_HPP
 #define SEARCHSATSCR_HPP
 
-#include <lvgl.h>
 #include "gps.hpp"
 #include "globalGuiDef.h"
 

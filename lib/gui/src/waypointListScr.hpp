@@ -9,11 +9,7 @@
 #ifndef WAYPOINTLISTSCR_HPP
 #define WAYPOINTLISTSCR_HPP
 
-#include "globalGuiDef.h"
-#include "globalGpxDef.h"
 #include "mainScr.hpp"
-#include "storage.hpp"
-#include <regex>
 
 void loadMainScreen();
 void updateWaypointPos();

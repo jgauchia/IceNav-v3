@@ -7,8 +7,6 @@
  */
 
 #include "tasks.hpp"
-#include "Arduino.h"
-#include "freertos/FreeRTOS.h"
 
 TaskHandle_t LVGLTaskHandler;
 xSemaphoreHandle gpsMutex;

@@ -7,8 +7,6 @@
  */
 
 #include "mapSettingsScr.hpp"
-#include "core/lv_obj.h"
-#include "settings.hpp"
 
 lv_obj_t *mapSettingsScreen; // Map Settings Screen
 

@@ -26,7 +26,6 @@ void buttonEvent(lv_event_t *event)
   }
   if (strcmp(option,"settings") == 0)
   {
-    //isMainScreen = false;
     lv_screen_load(settingsScreen); 
   }
 }

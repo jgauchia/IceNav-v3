@@ -237,7 +237,6 @@ String listFiles(bool ishtml, int page = 0)
 {
   String returnText = "";
 
-  int fileIndex = 0; 
   int startIdx = page * FILES_PER_PAGE; 
   int endIdx = startIdx + FILES_PER_PAGE; 
 

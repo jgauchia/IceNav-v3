@@ -45,9 +45,15 @@ extern xSemaphoreHandle gpsMutex;
 #include "webserver.h"
 #include "battery.hpp"
 #include "power.hpp"
+
+extern Storage storage;
+extern Battery battery;
+extern Power power;
+
 #include "settings.hpp"
 #include "lvglSetup.hpp"
 #include "tasks.hpp"
+
 
 /**
  * @brief Setup
@@ -96,14 +102,15 @@ void setup()
    initCompass();
   #endif
 
-  powerOn();
-  initSD();
-  initSPIFFS();
+  // powerOn();
+  storage.initSD();
+  storage.initSPIFFS();
+  battery.initADC();
   initTFT();
   loadPreferences();
   initGPS();
   initLVGL();
-  initADC();
+
   
   // Reserve PSRAM for buffer map
   mapTempSprite.deleteSprite();

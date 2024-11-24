@@ -7,12 +7,13 @@
  */
 
 #include "notifyBar.hpp"
-#include "font/lv_symbol_def.h"
-#include "misc/lv_event.h"
 
 lv_obj_t *mainScreen;
 lv_obj_t *notifyBarIcons;
 lv_obj_t *notifyBarHour;
+
+Storage storage;
+Battery battery;
 
 /**
  * @brief Update notify bar event
@@ -34,7 +35,7 @@ void updateNotifyBar(lv_event_t *event)
   if (obj == gpsCount)
     lv_label_set_text_fmt(obj, LV_SYMBOL_GPS "%2d", gpsData.satellites);
 
-  if (obj == battery)
+  if (obj == battIcon)
   {
     if (battLevel <= 160 && battLevel > 140)
       lv_label_set_text_static(obj, "  " LV_SYMBOL_CHARGE);
@@ -115,10 +116,10 @@ void updateNotifyBarTimer(lv_timer_t *t)
   }
   #endif
 
-  battLevel = batteryRead();
+  battLevel = battery.readBattery();
   if (battLevel != battLevelOld)
   {
-    lv_obj_send_event(battery, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_send_event(battIcon, LV_EVENT_VALUE_CHANGED, NULL);
     battLevelOld = battLevel;
   }
 }
@@ -151,8 +152,6 @@ void createNotifyBar()
   lv_obj_add_style(notifyBarIcons, &styleBar, LV_PART_MAIN);
   lv_obj_add_style(notifyBarHour, &styleBar, LV_PART_MAIN);
   
-  lv_obj_t *label;
-  
   gpsTime = lv_label_create(notifyBarHour);
   lv_obj_set_style_text_font(gpsTime, fontLarge, 0);
   lv_label_set_text_fmt(gpsTime, timeFormat, 0, 0, 0);
@@ -168,7 +167,7 @@ void createNotifyBar()
   lv_obj_add_event_cb(temp, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
   #endif
   
-  if (isSdLoaded)
+  if (storage.getSdLoaded())
   {
     sdCard = lv_label_create(notifyBarIcons);
     lv_label_set_text_static(sdCard, LV_SYMBOL_SD_CARD);
@@ -188,9 +187,9 @@ void createNotifyBar()
   lv_label_set_text_static(gpsFixMode, "----");
   lv_obj_add_event_cb(gpsFixMode, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
   
-  battery = lv_label_create(notifyBarIcons);
-  lv_label_set_text_static(battery, LV_SYMBOL_BATTERY_EMPTY);
-  lv_obj_add_event_cb(battery, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
+  battIcon = lv_label_create(notifyBarIcons);
+  lv_label_set_text_static(battIcon, LV_SYMBOL_BATTERY_EMPTY);
+  lv_obj_add_event_cb(battIcon, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
   
   lv_timer_t *timerNotifyBar = lv_timer_create(updateNotifyBarTimer, UPDATE_NOTIFY_PERIOD, NULL);
   lv_timer_ready(timerNotifyBar);

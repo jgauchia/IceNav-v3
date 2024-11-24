@@ -9,11 +9,6 @@
 #ifndef LOADWAYPOINT_HPP
 #define LOADWAYPOINT_HPP
 
-#include "SD.h"
-#include "FS.h"
-#include "tft.hpp"
-#include "storage.hpp"
-#include "globalGuiDef.h"
 #include "globalGpxDef.h"
 
 extern wayPoint loadWpt;

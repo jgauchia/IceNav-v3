@@ -7,7 +7,6 @@
  */
 
 #include "deviceSettingsScr.hpp"
-#include "globalGuiDef.h"
 
 lv_obj_t *deviceSettingsScreen; // Device Settings Screen
 

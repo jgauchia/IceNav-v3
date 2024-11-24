@@ -7,16 +7,6 @@
  */
 
 #include "mainScr.hpp"
-#include "buttonBar.hpp"
-#include "core/lv_obj.h"
-#include "core/lv_obj_pos.h"
-#include "globalGuiDef.h"
-#include "globalMapsDef.h"
-#include "settings.hpp"
-#include "tft.hpp"
-
-extern const int SD_CS;
-extern const uint8_t TFT_SPI_CS;
 
 bool isMainScreen = false;    // Flag to indicate main screen is selected
 bool isScrolled = true;       // Flag to indicate when tileview was scrolled
@@ -27,12 +17,12 @@ uint8_t wptAction = WPT_NONE; // Current Waypoint Action
 int wptPosX, wptPosY = 0;     // Waypoint position on map
 
 #ifdef LARGE_SCREEN
-  int toolBarOffset = 100;
-  int toolBarSpace = 60;
+  uint8_t toolBarOffset = 100;
+  uint8_t toolBarSpace = 60;
 #endif
 #ifndef LARGE_SCREEN
-  int toolBarOffset = 80;
-  int toolBarSpace = 50;
+  uint8_t toolBarOffset = 80;
+  uint8_t toolBarSpace = 50;
 #endif
 
 lv_obj_t *tilesScreen;
@@ -59,10 +49,8 @@ void updateCompassScr(lv_event_t * event)
   lv_obj_t *obj = (lv_obj_t *)lv_event_get_current_target(event);
   if (obj==compassHeading)
   {
-    //#ifdef ENABLE_COMPASS
     lv_label_set_text_fmt(compassHeading, "%5d\xC2\xB0", heading);
     lv_img_set_angle(compassImg, -(heading * 10));
-    //#endif
   }
   if (obj==latitude)
     lv_label_set_text_fmt(latitude, "%s", latFormatString(gpsData.latitude));
@@ -86,11 +74,6 @@ void getActTile(lv_event_t *event)
     isScrolled = true;
     redrawMap = true;
 
-    if (activeTile == SATTRACK)
-    {
-      // createSatSprite(spriteSat);
-      // createConstelSprite(constelSprite);
-    }
     if (activeTile == MAP)
     {
       createMapScrSprites();
@@ -206,7 +189,6 @@ void updateMainScreen(lv_timer_t *t)
  */
 void gestureEvent(lv_event_t *event)
 {
-  lv_obj_t *screen = (lv_obj_t *)lv_event_get_current_target(event);
   lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
   if (activeTile == MAP && isMainScreen)
   {
@@ -241,8 +223,6 @@ void updateMap(lv_event_t *event)
 
       getMapBlocks(viewPort.bbox, memCache);
                
-      // deleteMapScrSprites();
-      // createMapScrSprites();
       generateVectorMap(viewPort, memCache, mapTempSprite); 
       
       isPosMoved = false;
@@ -419,9 +399,7 @@ void updateNavEvent(lv_event_t *event)
   if (wptDistance == 0)
   {
     lv_img_set_src(arrowNav, &navfinish);
-    //#ifdef ENABLE_COMPASS
     lv_img_set_angle(arrowNav, 0);
-    //#endif
   }
   else
   {
