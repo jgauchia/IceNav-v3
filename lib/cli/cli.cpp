@@ -37,7 +37,7 @@ void wcli_reboot(char *args, Stream *response)
  */
 void wcli_poweroff(char *args, Stream *response)
 {
-  deviceShutdown();
+  power.deviceShutdown();
 }
 
 /**
