@@ -219,7 +219,7 @@ function dropped(e)
     formData.append("file" + i, fls[i]); 
   }
   var z = document.getElementById("drag");
-  z.style.backgroundColor = "white";
+  z.style.backgroundColor = "black";
 
   var fileNames = "";
   for (var i = 0; i < fls.length; i++) 
