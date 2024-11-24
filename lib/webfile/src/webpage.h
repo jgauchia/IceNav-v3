@@ -175,7 +175,8 @@ function downloadDeleteButton(filename, action)
     xhr.open("GET", urltocall, false);
     xhr.send();
     sessionStorage.setItem("msgStatus",xhr.responseText);
-    _("details").innerHTML = xhr.responseText;
+    _("status").innerHTML = "";
+    _("details").innerHTML = "Deleting file: " + filename;
     document.location.reload(true);   
   }
   if (action == "download") 
