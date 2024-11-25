@@ -19,6 +19,10 @@ String oldDir;
 String newDir;
 String currentDir;
 
+
+String createDir;
+uint8_t nextSlash = 0;
+
 bool updateList = true;
 
 const int FILES_PER_PAGE = 10; 
@@ -299,6 +303,37 @@ String listFiles(bool ishtml, int page = 0)
 }
 
 /**
+ * @brief Create directories if needed for upload
+ * 
+ * @param filepath -> Full file path 
+ * @return true/false if successful
+ */
+bool createDirectories(String filepath)
+{
+  uint8_t lastSlash = 0;
+  while (true) 
+  {
+    nextSlash = filepath.indexOf('/', lastSlash + 1);
+    String dir = filepath.substring(0, nextSlash);
+        
+    if (!SD.exists(oldDir + "/" + dir))
+    {
+      if (!SD.mkdir(oldDir + "/" + dir))
+      {
+        log_e("Directory %s creation error", dir.c_str());
+        return false;
+      }
+      log_v("Directory %s created",dir.c_str());
+    }
+    if (nextSlash == 255) break;
+    lastSlash = nextSlash;
+
+    esp_task_wdt_reset();
+  }
+  return true;
+}
+
+/**
  * @brief Upload file handle
  * 
  * @param request 
@@ -310,12 +345,25 @@ String listFiles(bool ishtml, int page = 0)
 void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final)
 {
   waitScreenRefresh = true;
+  uint8_t lastSlashIndex = filename.lastIndexOf("/");
+  
+  if (lastSlashIndex != -1) 
+  {
+    String path = filename.substring(0, lastSlashIndex);
+    if (createDir != path)
+    {
+      if (!createDirectories(path))
+        log_e("Directory creation error");
+      createDir = path;
+    }
+  } 
 
   if (!index)
   {
     request->client()->setRxTimeout(15000);
     request->_tempFile = SD.open(oldDir + "/" + filename, "w");
   }
+
   if (len)
     request->_tempFile.write(data, len);
 

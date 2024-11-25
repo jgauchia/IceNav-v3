@@ -93,6 +93,8 @@ const char index_html[] PROGMEM = R"rawliteral(
             background-color:  black;
             border: 1px solid #aaaaaa;
             text-align: center;
+            overflow-y: auto; 
+            overflow-x: hidden; 
           }    
   </style>
 
@@ -100,11 +102,11 @@ const char index_html[] PROGMEM = R"rawliteral(
 
 <body onload="refresh()">
 
-    <style>
-      body {
-             background-color: black;
-           }
-    </style>
+<style>
+  body {
+          background-color: black;
+        }
+</style>
 
   <img src="logo">
 
@@ -122,7 +124,7 @@ const char index_html[] PROGMEM = R"rawliteral(
   <p class="p3" id="details"></p>
 
 <script>
-
+{
 function _(el)
 {
   return document.getElementById(el);
@@ -200,44 +202,6 @@ function changeDirectory(directory)
   _("details").innerHTML = xhr.responseText;
 }
 
-function dragged(e) 
-{  
-  var z = _("drag");
-  z.style.backgroundColor = "#5d6d7e";
-  z.style.opacity = "0.6";
-  e.stopPropagation();
-  e.preventDefault();
-}
-
-function dropped(e) 
-{
-  dragged(e);
-  var fls = e.dataTransfer.files;
-  var formData = new FormData();
-
-  for (var i = 0; i < fls.length; i++) 
-  {
-    formData.append("file" + i, fls[i]); 
-  }
-  var z = document.getElementById("drag");
-  z.style.backgroundColor = "black";
-
-  var fileNames = "";
-  for (var i = 0; i < fls.length; i++) 
-  {
-    fileNames += fls[i].name + (i < fls.length - 1 ? ", " : ""); 
-  }
-  z.textContent = fileNames;
-
-  var xhr = new XMLHttpRequest();
-  xhr.upload.addEventListener("progress", progressHandler, false);
-  xhr.addEventListener("load", completeHandler, false); 
-  xhr.addEventListener("error", errorHandler, false);
-  xhr.addEventListener("abort", abortHandler, false);
-  xhr.open("POST", "/");
-  xhr.send(formData);   
-}
-
 function uploadButton() 
 {
   _("detailsheader").innerHTML = "<h3>Upload File(s)</h3>"
@@ -257,6 +221,102 @@ function uploadButton()
   z.addEventListener("dragenter", dragged, false);
   z.addEventListener("dragover", dragged, false);
   z.addEventListener("drop", dropped, false);
+}
+
+function dragged(e) 
+{  
+  var z = _("drag");
+  z.style.backgroundColor = "#5d6d7e";
+  z.style.opacity = "0.6";
+  e.stopPropagation();
+  e.preventDefault();
+}
+
+function dropped(e) 
+{
+  dragged(e);
+  var dt = e.dataTransfer;
+  var items = dt.items;
+  var n = 0, uploads = [];
+  var formData = new FormData();
+  var fileNames = "";
+
+  var xhr = new XMLHttpRequest();
+  xhr.upload.addEventListener("progress", progressHandler, false);
+  xhr.addEventListener("load", completeHandler, false); 
+  xhr.addEventListener("error", errorHandler, false);
+  xhr.addEventListener("abort", abortHandler, false);
+
+  function processFiles(files)
+  {
+    for (file of files)
+    {
+      if (file.webkitRelativePath === "")
+      {
+        formData.append("file[]", file, file.name);
+        fileNames += file.name + ", "; 
+      }
+      else
+      {
+        formData.append("file[]", file, file.webkitRelativePath);
+        fileNames += file.webkitRelativePath + ", "; 
+      }
+    }
+    var z = document.getElementById("drag");
+    z.style.backgroundColor = "black";
+    z.textContent = fileNames;
+
+    xhr.open("POST", "/");
+    xhr.send(formData);
+  }
+
+  function traverseFileTree(item, path)
+  {
+    var handleFiles = function handleFiles(item, path) 
+    {
+      path = path || "";
+      if (item.isFile) 
+      {
+        item.file(function(file) 
+        {
+          uploads.push(file); // file exist, but don't append
+          // console.log(file, n, uploads.length); // show info
+          // if (uploads.length === n - 1 || n === 0) 
+          {
+            var files = uploads.slice(0);
+            n = uploads.length = 0;
+            processFiles(files)
+          } 
+        });
+      } 
+      else if (item.isDirectory) 
+      {
+        var dirReader = item.createReader();
+        dirReader.readEntries(function(entries) 
+        {
+          n += entries.length;
+          for (var i = 0; i < entries.length; i++) {
+            handleFiles(entries[i], path + item.name + "/");
+          }
+        });
+      }
+    }
+    handleFiles(item, path);
+  }
+
+  if (n !== 0 && uploads.length !== 0) 
+  {
+    n = uploads.length = 0;
+  }
+
+  for (var i = 0; i < items.length; i++) 
+  {
+    var item = items[i].webkitGetAsEntry();
+    if (item) 
+    {
+      traverseFileTree(item, "", i);
+    }
+  }
 }
 
 function progressHandler(event) 
@@ -295,6 +355,8 @@ function errorHandler(event)
 function abortHandler(event) 
 {
   _("status").innerHTML = "inUpload Aborted";
+}
+
 }
 </script>
 
