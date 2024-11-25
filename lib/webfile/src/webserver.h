@@ -347,16 +347,19 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
   waitScreenRefresh = true;
   uint8_t lastSlashIndex = filename.lastIndexOf("/");
   
-  if (lastSlashIndex != -1) 
+  if (lastSlashIndex != 255) 
   {
     String path = filename.substring(0, lastSlashIndex);
     if (createDir != path)
     {
+      log_v("%s",path.c_str());
       if (!createDirectories(path))
         log_e("Directory creation error");
       createDir = path;
     }
   } 
+  
+  log_v("%s", filename.c_str());
 
   if (!index)
   {
