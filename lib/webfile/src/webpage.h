@@ -243,10 +243,12 @@ function dragged(e)
 
 function dropped(e) 
 {
-  dragged(e);
+  e.preventDefault();
+  e.stopPropagation();
+
   var dt = e.dataTransfer;
   var items = dt.items;
-  var n = 0, uploads = [];
+  var uploads = [];
   var formData = new FormData();
   var fileNames = "";
 
@@ -256,21 +258,14 @@ function dropped(e)
   xhr.addEventListener("error", errorHandler, false);
   xhr.addEventListener("abort", abortHandler, false);
 
-  function processFiles(files)
+  async function processFiles(files) 
   {
-    for (file of files)
+    for (const file of files) 
     {
-      if (file.webkitRelativePath === "")
-      {
-        formData.append("file[]", file, file.name);
-        fileNames += file.name + ", "; 
-      }
-      else
-      {
-        formData.append("file[]", file, file.webkitRelativePath);
-        fileNames += file.webkitRelativePath + ", "; 
-      }
+      formData.append("file[]", file, file.name); 
+      fileNames += file.name + ", ";
     }
+
     var z = document.getElementById("drag");
     z.style.backgroundColor = "black";
     z.textContent = fileNames;
@@ -279,52 +274,47 @@ function dropped(e)
     xhr.send(formData);
   }
 
-  function traverseFileTree(item, path)
+  async function traverseFileTree(item, path = "") 
   {
-    var handleFiles = function handleFiles(item, path) 
-    {
-      path = path || "";
+    return new Promise((resolve) => {
       if (item.isFile) 
       {
-        item.file(function(file) 
-        {
-          uploads.push(file); // file exist, but don't append
-          // console.log(file, n, uploads.length); // show info
-          // if (uploads.length === n - 1 || n === 0) 
-          {
-            var files = uploads.slice(0);
-            n = uploads.length = 0;
-            processFiles(files)
-          } 
+        item.file((file) => {
+          const relativePath = path + file.name;
+          const newFile = new File([file], relativePath, { type: file.type });
+          uploads.push(newFile);
+          resolve();
         });
-      } 
-      else if (item.isDirectory) 
+      } else if (item.isDirectory) 
       {
-        var dirReader = item.createReader();
-        dirReader.readEntries(function(entries) 
-        {
-          n += entries.length;
-          for (var i = 0; i < entries.length; i++) {
-            handleFiles(entries[i], path + item.name + "/");
+        const dirReader = item.createReader();
+        dirReader.readEntries(async (entries) => {
+          for (const entry of entries) {
+            await traverseFileTree(entry, path + item.name + "/");
           }
+          resolve();
         });
       }
-    }
-    handleFiles(item, path);
+    });
   }
 
-  if (n !== 0 && uploads.length !== 0) 
+  async function handleItems(items) 
   {
-    n = uploads.length = 0;
-  }
-
-  for (var i = 0; i < items.length; i++) 
-  {
-    var item = items[i].webkitGetAsEntry();
-    if (item) 
+    const promises = [];
+    for (let i = 0; i < items.length; i++) 
     {
-      traverseFileTree(item, "", i);
+      const item = items[i].webkitGetAsEntry();
+      if (item) 
+      {
+        promises.push(traverseFileTree(item));
+      }
     }
+    await Promise.all(promises);
+    processFiles(uploads);
+  }
+
+  if (items && items.length > 0) {
+    handleItems(items);
   }
 }
 
