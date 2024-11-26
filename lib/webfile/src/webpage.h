@@ -181,6 +181,15 @@ function downloadDeleteButton(filename, action)
     _("details").innerHTML = "Deleting file: " + filename;
     document.location.reload(true);   
   }
+  if (action == "deldir")
+  {
+    xhr.open("GET", urltocall, false);
+    xhr.send();
+    sessionStorage.setItem("msgStatus",xhr.responseText);
+    _("status").innerHTML = "";
+    _("details").innerHTML = "Deleting folder: " + filename;
+    document.location.reload(true);   
+  }
   if (action == "download") 
   {
     _("status").innerHTML = "";

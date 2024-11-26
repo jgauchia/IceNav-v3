@@ -266,7 +266,9 @@ String listFiles(bool ishtml, int page = 0)
       if (entry.isDirectory) 
       {
         returnText += "<img src=\"folder\"> <a href='#' onclick='changeDirectory(\"" + entry.name + "\")'>" + entry.name + "</a>";
-        returnText += "</td><td style=\"text-align:center\">dir</td><td></td><td></td>";
+        returnText += "</td><td style=\"text-align:center\">dir</td>"; 
+        returnText += "<td></td>";
+        returnText += "<td><button class=\"button\" onclick=\"downloadDeleteButton('" + entry.name + "', 'deldir')\"><img src=\"del\"> Delete</button></td>";
       } 
       else 
       {
@@ -400,6 +402,66 @@ void sendSpiffsImage(const char *imageFile,AsyncWebServerRequest *request)
 }
 
 /**
+ * @brief Delete directory recursive
+ * 
+ * @param dirPath -> directory path
+ * @return true/false if successful
+ */
+bool deleteDirRecursive(const char *dirPath)
+{
+  File dir = SD.open(dirPath);
+  if (!dir || !dir.isDirectory())
+  {
+    log_e("Error: %s isn't a directory or can't open", dirPath);
+    return false;
+  }
+
+  while (true) 
+  {
+    File entry = dir.openNextFile();
+    if (!entry)
+      break;
+
+    if (entry.isDirectory()) 
+    {
+      char subDirPath[128]; 
+      snprintf(subDirPath, sizeof(subDirPath), "%s/%s", dirPath, entry.name());
+      
+      if (!deleteDirRecursive(subDirPath)) 
+      {
+        entry.close();
+        return false; 
+      }
+    } 
+    else
+    {
+      char fileName[255];
+      snprintf(fileName, sizeof(fileName), "%s",entry.name());
+      if (!SD.remove(fileName))
+      {
+        log_e("Error deleting file: %s",entry.name());
+        entry.close();
+        return false;
+      }
+      log_v("Deleted file: %s",entry.name());
+    }
+    entry.close(); 
+  }
+
+
+  dir.rewindDirectory();
+  dir.close();
+  if (!SD.rmdir(dirPath)) 
+  {
+    log_e("Error deleting directory: %s",dirPath);
+    return false;
+  }
+
+  log_v("Deleted directory: %s",dirPath);
+  return true;
+}
+
+/**
  * @brief Configure Web Server
  * 
  */
@@ -495,6 +557,13 @@ void configureWebServer()
                   {
                     logMessage += " downloaded";
                     request->send(SD, path, "application/octet-stream");
+                  }
+                  if (strcmp(fileAction, "deldir") == 0)
+                  {
+                    logMessage += " deleted";
+                    deleteDirRecursive(path.c_str());
+                    request->send(200, "text/plain", "Deleted Folder: " + String(fileName));
+                    updateList = true;
                   }
                   else if (strcmp(fileAction, "delete") == 0)
                   {
