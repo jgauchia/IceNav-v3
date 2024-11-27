@@ -194,6 +194,7 @@ function downloadDeleteButton(filename, action)
   }
   if (action == "download") 
   {
+    urltocall = "/file?name=/" + filename + "&action=" + action;
     _("status").innerHTML = "";
     window.open(urltocall,"_blank");
   }
