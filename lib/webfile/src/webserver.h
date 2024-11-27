@@ -407,57 +407,71 @@ void sendSpiffsImage(const char *imageFile,AsyncWebServerRequest *request)
  */
 bool deleteDirRecursive(const char *dirPath)
 {
-   String basePath = (String)dirPath;
+  String basePath = dirPath;
 
-    File dir = SD.open(dirPath);
-    if (!dir || !dir.isDirectory())
+  log_v("Processing directory: %s", basePath.c_str());
+
+  File dir = SD.open(basePath.c_str());
+  if (!dir || !dir.isDirectory())
+  {
+    log_e("Error: %s isn't a directory or can't open", basePath.c_str());
+    return false;
+  }
+
+  while (true)
+  {
+    File entry = dir.openNextFile();
+    if (!entry)
     {
-        log_e("Error: %s isn't a directory or can't open", dirPath);
-        return false;
+      break; 
     }
 
-    while (true)
+    if (!basePath.endsWith("/"))
     {
-        File entry = dir.openNextFile();
-        if (!entry)
-            break;
+      basePath += "/";
+    }
 
-        if (entry.isDirectory())
-        {
-            String subDirPath = basePath + "/" + entry.name();
-            log_v("New directory found: %s", subDirPath.c_str());
-            if (!deleteDirRecursive(subDirPath.c_str()))
-            {
-                entry.close();
-                return false;
-            }
-        }
-        else
-        {
-            if (!SD.remove(basePath + "/" + entry.name()))
-            {
-                log_e("Error deleting file: %s", entry.name());
-                entry.close();
-                return false;
-            }
-            log_v("Deleted file: %s/%s", basePath.c_str(), entry.name());
-        }
+    String entryPath = basePath + entry.name(); 
+
+    if (entry.isDirectory())
+    {
+        
+      log_v("Found subdirectory: %s", entryPath.c_str());
+      if (!deleteDirRecursive(entryPath.c_str()))
+      {
         entry.close();
-    }
-
-    esp_task_wdt_reset();
-
-    dir.close();
-
-    if (!SD.rmdir(basePath))
-    {
-        log_e("Error deleting directory: %s", basePath.c_str());
         return false;
+      }
     }
+    else
+    {
+      log_v("Found file: %s", entryPath.c_str());
+      if (!SD.remove(entryPath.c_str()))
+      {
+        log_e("Error deleting file: %s", entryPath.c_str());
+        entry.close();
+        return false;
+      }
+      log_v("Deleted file: %s", entryPath.c_str());
+    }
+    entry.close();
+  }
 
-    log_v("Deleted directory: %s", basePath.c_str());
-    return true;
+  dir.close();
 
+  if (basePath.endsWith("/"))
+  {
+    basePath = dirPath;
+  }
+
+  if (!SD.rmdir(basePath.c_str()))
+  {
+    log_e("Error deleting directory: %s", basePath.c_str());
+    return false;
+  }
+
+  log_v("Deleted directory: %s", basePath.c_str());
+  return true;
 }
 
 /**
@@ -537,7 +551,7 @@ void configureWebServer()
 
                 logMessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url() + "?name=" + String(fileName) + "&action=" + String(fileAction);
 
-                String path = oldDir + String(fileName);
+                String path = oldDir + "/" + String(fileName);
                 log_i("%s",path.c_str());
 
                 if (!SD.exists(path))
