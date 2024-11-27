@@ -617,7 +617,7 @@ void configureWebServer()
                     if (oldDir == "")
                       oldDir = "/";
                     currentDir = "";
-                    request->send(200, "text/plain", "Directory changed successfully");
+                    request->send(200, "text/plain", "Path:" + oldDir );
                   }
                   else
                   {
@@ -632,7 +632,7 @@ void configureWebServer()
                   else
                     oldDir = newDir;
                   currentDir = "";
-                    request->send(200, "text/plain", "Directory changed successfully");
+                  request->send(200, "text/plain", "Path:" + oldDir);
                 }
 
                 cacheDirectoryContent(oldDir);
