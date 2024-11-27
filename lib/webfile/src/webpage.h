@@ -170,10 +170,11 @@ function listFilesButton()
 
 function downloadDeleteButton(filename, action) 
 {
-  var urltocall = "/file?name=/" + filename + "&action=" + action;
+  var urltocall = "";
   xhr = new XMLHttpRequest();
   if (action == "delete")
   {
+    urltocall = "/file?name=/" + filename + "&action=" + action;
     xhr.open("GET", urltocall, false);
     xhr.send();
     sessionStorage.setItem("msgStatus",xhr.responseText);
@@ -183,6 +184,7 @@ function downloadDeleteButton(filename, action)
   }
   if (action == "deldir")
   {
+    urltocall = "/file?name=" + filename + "&action=" + action;
     xhr.open("GET", urltocall, false);
     xhr.send();
     sessionStorage.setItem("msgStatus",xhr.responseText);

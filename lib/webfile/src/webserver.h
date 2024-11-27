@@ -361,8 +361,6 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
     }
   } 
   
-  log_v("%s", filename.c_str());
-
   if (!index)
   {
     request->client()->setRxTimeout(15000);
@@ -409,56 +407,57 @@ void sendSpiffsImage(const char *imageFile,AsyncWebServerRequest *request)
  */
 bool deleteDirRecursive(const char *dirPath)
 {
-  File dir = SD.open(dirPath);
-  if (!dir || !dir.isDirectory())
-  {
-    log_e("Error: %s isn't a directory or can't open", dirPath);
-    return false;
-  }
+   String basePath = (String)dirPath;
 
-  while (true) 
-  {
-    File entry = dir.openNextFile();
-    if (!entry)
-      break;
-
-    if (entry.isDirectory()) 
+    File dir = SD.open(dirPath);
+    if (!dir || !dir.isDirectory())
     {
-      char subDirPath[128]; 
-      snprintf(subDirPath, sizeof(subDirPath), "%s/%s", dirPath, entry.name());
-      
-      if (!deleteDirRecursive(subDirPath)) 
-      {
-        entry.close();
-        return false; 
-      }
-    } 
-    else
-    {
-      char fileName[255];
-      snprintf(fileName, sizeof(fileName), "%s",entry.name());
-      if (!SD.remove(fileName))
-      {
-        log_e("Error deleting file: %s",entry.name());
-        entry.close();
+        log_e("Error: %s isn't a directory or can't open", dirPath);
         return false;
-      }
-      log_v("Deleted file: %s",entry.name());
     }
-    entry.close(); 
-  }
 
+    while (true)
+    {
+        File entry = dir.openNextFile();
+        if (!entry)
+            break;
 
-  dir.rewindDirectory();
-  dir.close();
-  if (!SD.rmdir(dirPath)) 
-  {
-    log_e("Error deleting directory: %s",dirPath);
-    return false;
-  }
+        if (entry.isDirectory())
+        {
+            String subDirPath = basePath + "/" + entry.name();
+            log_v("New directory found: %s", subDirPath.c_str());
+            if (!deleteDirRecursive(subDirPath.c_str()))
+            {
+                entry.close();
+                return false;
+            }
+        }
+        else
+        {
+            if (!SD.remove(basePath + "/" + entry.name()))
+            {
+                log_e("Error deleting file: %s", entry.name());
+                entry.close();
+                return false;
+            }
+            log_v("Deleted file: %s/%s", basePath.c_str(), entry.name());
+        }
+        entry.close();
+    }
 
-  log_v("Deleted directory: %s",dirPath);
-  return true;
+    esp_task_wdt_reset();
+
+    dir.close();
+
+    if (!SD.rmdir(basePath))
+    {
+        log_e("Error deleting directory: %s", basePath.c_str());
+        return false;
+    }
+
+    log_v("Deleted directory: %s", basePath.c_str());
+    return true;
+
 }
 
 /**
@@ -467,11 +466,6 @@ bool deleteDirRecursive(const char *dirPath)
  */
 void configureWebServer()
 {
-
-  //  if (!MDNS.begin(hostname))       
-  //   log_e("nDNS init error");
-
-  //  log_i("mDNS initialized");
 
   server.onNotFound(webNotFound);
   server.onFileUpload(handleUpload);
