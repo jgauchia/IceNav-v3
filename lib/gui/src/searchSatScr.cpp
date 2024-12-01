@@ -11,6 +11,7 @@
 static unsigned long millisActual = 0;
 static bool skipSearch = false;
 bool isSearchingSat = true;
+extern uint8_t activeTile;
 
 /**
  * @brief Button events
@@ -51,6 +52,8 @@ void searchGPS(lv_timer_t *searchTimer)
     lv_timer_del(searchTimer);
     isSearchingSat = false;
     zoom = defaultZoom;
+    activeTile = 3;
+    lv_tileview_set_tile_by_index(tilesScreen, 3, 0, LV_ANIM_OFF);
     loadMainScreen();
   }
 }

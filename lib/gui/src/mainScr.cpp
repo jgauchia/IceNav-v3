@@ -141,6 +141,10 @@ void scrollTile(lv_event_t *event)
  */
 void updateMainScreen(lv_timer_t *t)
 {
+  log_v("scrolled %d", isScrolled);
+  log_v("tile %d",activeTile);
+  log_v("main scr %d", isMainScreen);
+
   if (isScrolled && isMainScreen)
   {
     switch (activeTile)

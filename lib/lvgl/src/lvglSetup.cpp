@@ -346,6 +346,7 @@ void initLVGL()
 void loadMainScreen()
 {
   isMainScreen = true;
+  isScrolled = true;
   isSearchingSat = false;
   wptAction = WPT_NONE;
   lv_screen_load(mainScreen);
