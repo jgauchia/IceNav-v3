@@ -20,7 +20,7 @@
 #include "navScr.hpp"
 #include "satInfoScr.hpp"
 
-static lv_timer_t *mainTimer;    // Main Screen Timer
+extern lv_timer_t *mainTimer;    // Main Screen Timer
 #define UPDATE_MAINSCR_PERIOD 30 // Main Screen update time
 
 extern bool isMainScreen;                          // Flag to indicate main screen is selected

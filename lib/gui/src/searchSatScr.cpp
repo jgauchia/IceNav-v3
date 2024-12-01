@@ -12,6 +12,7 @@ static unsigned long millisActual = 0;
 static bool skipSearch = false;
 bool isSearchingSat = true;
 extern uint8_t activeTile;
+lv_timer_t *mainTimer;        // Main Screen Timer
 
 /**
  * @brief Button events
@@ -29,6 +30,7 @@ void buttonEvent(lv_event_t *event)
   {
     lv_screen_load(settingsScreen); 
   }
+  lv_timer_resume(mainTimer);
 }
 
 /**
@@ -43,6 +45,7 @@ void searchGPS(lv_timer_t *searchTimer)
     while (millis() < millisActual + 500)
       ;
     lv_timer_del(searchTimer);
+    lv_timer_resume(mainTimer);
     isSearchingSat = false;
     loadMainScreen();
   }
@@ -66,6 +69,7 @@ void createSearchSatScr()
 {
   searchTimer = lv_timer_create(searchGPS, 100, NULL);
   lv_timer_ready(searchTimer);
+  lv_timer_pause(mainTimer);
 
   searchSatScreen = lv_obj_create(NULL);
 
