@@ -78,6 +78,9 @@ struct GPSDATA
 
 extern GPSDATA gpsData;
 
+static bool calcSun = true;
+void calculateSun();
+
 void initGPS();
 double getLat();
 double getLon();

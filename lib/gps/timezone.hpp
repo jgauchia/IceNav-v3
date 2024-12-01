@@ -98,4 +98,26 @@ static void adjustTime( NeoGPS::time_t & dt )
   dt = seconds; // convert seconds back to a date/time structure
 
 } 
+
+/**
+ * @brief convert hour to HH:MM rounded
+ *
+ * @param h -> hour
+ * @param str -> HH:MM text format
+ */
+static char * hoursToString(double h, char *str)
+{
+  int m = int(round(h * 60));
+  int hr = (m / 60) % 24;
+  int mn = m % 60;
+
+  str[0] = (hr / 10) % 10 + '0';
+  str[1] = (hr % 10) + '0';
+  str[2] = ':';
+  str[3] = (mn / 10) % 10 + '0';
+  str[4] = (mn % 10) + '0';
+  str[5] = '\0';
+  return str;
+}
+
 #endif
