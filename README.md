@@ -38,7 +38,7 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 |:-:|:-:|:-:|
 | Add Waypoint | Add Waypoint (landscape) | Waypoint List |
 
-|<img src="images/dev/settings.jpg">|<img src="images/dev/compasscal.jpg">|<img src="images/dev/touchcal.jpg">|<img src="images/dev/mapsettings.jpg">|<img src="images/dev/devicesettings.jpg">|
+|<img src="images/dev/settings.jpg">|<img src="images/dev/compasscal.jpg">|<img src="images/dev/touchcal.jpg">|<img src="images/dev/mapsettings.jpg">|<img src="images/dev/devicesettings.png">|
 |:-:|:-:|:-:|:-:|:-:|
 | Settings | Compass Calibration | Touch Calibration | Map Settings | Device Settings |
 

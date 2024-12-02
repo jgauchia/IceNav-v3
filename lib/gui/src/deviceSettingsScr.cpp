@@ -15,7 +15,7 @@ lv_obj_t *deviceSettingsScreen; // Device Settings Screen
  * 
  * @param event 
  */
-void deviceSettingsEvent(lv_event_t *event)
+static void deviceSettingsEvent(lv_event_t *event)
 {
   lv_obj_t *obj = (lv_obj_t*)lv_event_get_target(event);
   char *option = (char *)lv_event_get_user_data(event);
@@ -40,13 +40,35 @@ void deviceSettingsEvent(lv_event_t *event)
 /**
  * @brief Brightness callback
  *
+ * @param e
  */
-void brightnessEvent(lv_event_t *e)
+static void brightnessEvent(lv_event_t *e)
 {
     lv_obj_t *obj =(lv_obj_t*) lv_event_get_target(e);
     defBright =  lv_slider_get_value(obj);
     log_i("brightness %i", defBright);
     tft.setBrightness(defBright);
+}
+
+/**
+ * @brief Upgrade firmware event
+ * 
+ * @param event 
+ */
+static void upgradeEvent(lv_event_t *event)
+{
+  createMsgUpgrade();
+  lv_screen_load(msgUpgrade);
+  if (!checkFileUpgrade())
+  {
+    lv_label_set_text_static(msgUprgdText, LV_SYMBOL_WARNING " No Firmware found!");
+  }
+  else
+  {
+    lv_label_set_text_static(msgUprgdText, LV_SYMBOL_WARNING " Firmware found!");
+    lv_obj_clear_flag(btnMsgUpgrade,LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(contMeter,LV_OBJ_FLAG_HIDDEN);
+  }
 }
 
 /**
@@ -155,10 +177,20 @@ void createDeviceSettingsScr()
   lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
   lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"rate");
 
+  // Upgrade button
+  list = lv_list_add_btn(deviceSettingsOptions, NULL, NULL);
+  btn = lv_btn_create(list);
+  lv_obj_set_size(btn, TFT_WIDTH - 45, 40 * scale);
+  label = lv_label_create(btn);
+  lv_obj_set_style_text_font(label, fontLarge, 0);
+  lv_label_set_text_static(label, "Firmware Upgrade");
+  lv_obj_center(label);
+  lv_obj_add_event_cb(btn, upgradeEvent, LV_EVENT_CLICKED, NULL);
+
   // Brightness Slider
   createBrightSlider(deviceSettingsOptions, LV_SYMBOL_SETTINGS, "Brightness", 5, 255, defBright, brightnessEvent, LV_EVENT_VALUE_CHANGED);
   
-  // Back button
+   // Back button
   btn = lv_btn_create(deviceSettingsScreen);
   lv_obj_set_size(btn, TFT_WIDTH - 30, 40 * scale);
   label = lv_label_create(btn);

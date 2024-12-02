@@ -572,7 +572,7 @@ void configureWebServer()
                     logMessage += " downloaded";
                     request->send(SD, path, "application/octet-stream");
                   }
-                  if (strcmp(fileAction, "deldir") == 0)
+                  else if (strcmp(fileAction, "deldir") == 0)
                   {
                     logMessage += " deleted";
                     deleteDirRecursive(path.c_str());
