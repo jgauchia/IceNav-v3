@@ -80,10 +80,10 @@ void onUpgrdProcess(size_t currSize, size_t totalSize)
     log_v("Firmware Upgrade process %d ...", (int)progress);
     char strProgress[30];
     sprintf(strProgress,"Upgrading... %d%%",(int)progress);
-    tft.drawCenterString(strProgress, tft.width() >> 1, (tft.height() >> 1)+25, &fonts::FreeSansBold9pt7b);
+    tft.drawCenterString(strProgress, tft.width() >> 1, (tft.height() >> 1)+25, &fonts::FreeSans9pt7b);
     drawProgressBar(40,tft.height() >> 1,TFT_WIDTH - 80,20,(int)progress,TFT_WHITE,TFT_BLUE);
     if ((int)progress == 100)
-        tft.drawCenterString("Upgrade complete", tft.width() >> 1, (tft.height() >> 1)+25, &fonts::FreeSansBold9pt7b);
+        tft.drawCenterString("Upgrade complete", tft.width() >> 1, (tft.height() >> 1)+25, &fonts::FreeSans9pt7b);
 }
 
 /**
