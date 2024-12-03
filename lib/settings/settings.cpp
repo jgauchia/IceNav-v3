@@ -48,6 +48,8 @@ uint16_t altitudePosX = 0;    // Altitude widget position X
 uint16_t altitudePosY = 0;    // Altitude widget position Y
 uint16_t speedPosX = 0;       // Speed widget position X
 uint16_t speedPosY = 0;       // Speed widget position Y
+uint16_t sunPosX = 0;         // Sunrise/sunset position X
+uint16_t sunPosY = 0;         // Sunrise/sunset position Y
 bool enableWeb = true;        // Enable/disable web file server
 bool showToolBar = false;     // Show Map Toolbar
 int8_t tempOffset = 0;        // BME Temperature offset
@@ -83,6 +85,8 @@ void loadPreferences()
   altitudePosY = cfg.getInt(PKEYS::KALTITUDE_Y, TFT_HEIGHT - 170);
   speedPosX = cfg.getInt(PKEYS::KSPEED_X, 1);
   speedPosY = cfg.getInt(PKEYS::KSPEED_Y, TFT_HEIGHT - 130);
+  sunPosX = cfg.getInt(PKEYS::KSUN_X, 170);
+  sunPosY = cfg.getInt(PKEYS::KSUN_Y, TFT_HEIGHT - 170 );
   isVectorMap = cfg.getBool(PKEYS::KMAP_VECTOR, false);
   defBright = cfg.getUInt(PKEYS::KDEF_BRIGT, 254);
   defGMT = cfg.getInt(PKEYS::KGMT_OFFS, 1);
@@ -115,6 +119,8 @@ void loadPreferences()
   altitudePosY = cfg.isKey(CONFKEYS::KALTITUDE_Y) ? cfg.getInt(CONFKEYS::KALTITUDE_Y, altitudePosY) : 57;
   speedPosX = cfg.isKey(CONFKEYS::KSPEED_X) ? cfg.getInt(CONFKEYS::KSPEED_X, speedPosX) : 3;
   speedPosY = cfg.isKey(CONFKEYS::KSPEED_Y) ? cfg.getInt(CONFKEYS::KSPEED_Y, speedPosY) : 94;
+  sunPosX = cfg.isKey(CONFKEYS::KSUN_X) ? cfg.getInt(CONFKEYS::KSPEED_X, speedPosX) : 3;
+  sunPosY = cfg.isKey(CONFKEYS::KSUN_Y) ? cfg.getInt(CONFKEYS::KSPEED_Y, speedPosY) : 110;
   #endif
 
   battery.setBatteryLevels(cfg.getFloat(PKEYS::KVMAX_BATT,4.2),cfg.getFloat(PKEYS::KVMIN_BATT,3.6));

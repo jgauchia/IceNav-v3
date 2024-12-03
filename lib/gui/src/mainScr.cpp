@@ -60,6 +60,10 @@ void updateCompassScr(lv_event_t * event)
     lv_label_set_text_fmt(obj, "%4d m.", gpsData.altitude);
   if (obj==speedLabel)
     lv_label_set_text_fmt(obj, "%3d Km/h", gpsData.speed);
+  if (obj==sunriseLabel)
+    lv_label_set_text_static(obj, gpsData.sunriseHour);
+  if (obj==sunsetLabel)
+    lv_label_set_text_static(obj, gpsData.sunsetHour);
 }
 
 /**
@@ -158,6 +162,8 @@ void updateMainScreen(lv_timer_t *t)
         lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
         lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
         lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
+        lv_obj_send_event(sunriseLabel, LV_EVENT_VALUE_CHANGED, NULL);
+        lv_obj_send_event(sunsetLabel, LV_EVENT_VALUE_CHANGED, NULL);
         break;
       
       case MAP:
@@ -448,6 +454,8 @@ void createMainScr()
   altitudeWidget(compassTile);
   // Speed widget
   speedWidget(compassTile);
+  // Sunrise/Sunset widget
+  sunWidget(compassTile);
   
   // Compass Tile Events
   lv_obj_add_event_cb(compassHeading, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
@@ -455,6 +463,8 @@ void createMainScr()
   lv_obj_add_event_cb(longitude, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(altitude, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(speedLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_add_event_cb(sunriseLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_add_event_cb(sunsetLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
  
   // Map Tile Toolbar
   btnFullScreen = lv_btn_create(mapTile);

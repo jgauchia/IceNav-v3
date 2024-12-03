@@ -16,6 +16,7 @@
 #include <esp_bt.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
+#include <SolarCalculator.h>
 
 // Hardware includes
 #include "hal.hpp"
@@ -50,10 +51,32 @@ extern Storage storage;
 extern Battery battery;
 extern Power power;
 
+/**
+ * @brief Sunrise and Sunset
+ *
+ */
+static double transit, sunrise, sunset;
+
 #include "settings.hpp"
 #include "lvglSetup.hpp"
 #include "tasks.hpp"
 
+/**
+ * @brief Calculate Sunrise and Sunset
+ *        Must be a global function
+ *
+ */
+void calculateSun()
+{
+  calcSunriseSunset(2000 + localTime.year, localTime.month, localTime.date, 
+                    gpsData.latitude, gpsData.longitude, 
+                    transit, sunrise, sunset);
+  log_v("%d/%d/%d",2000 + localTime.year, localTime.month, localTime.date);
+  hoursToString(sunrise + defGMT, gpsData.sunriseHour);
+  hoursToString(sunset + defGMT, gpsData.sunsetHour);
+  log_v("Sunrise: %s",gpsData.sunriseHour);
+  log_v("Sunset: %s",gpsData.sunsetHour);
+}
 
 /**
  * @brief Setup
@@ -116,6 +139,7 @@ void setup()
   mapTempSprite.deleteSprite();
   mapTempSprite.createSprite(TILE_WIDTH, TILE_HEIGHT);
 
+  // Get init Latitude and Longitude
   gpsData.latitude = getLat();
   gpsData.longitude = getLon();
 
@@ -125,7 +149,6 @@ void setup()
   }
   else
   {
-    // Get init Latitude and Longitude
     tileSize = RENDER_TILE_SIZE;
     generateRenderMap();
   }

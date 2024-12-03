@@ -74,9 +74,14 @@ struct GPSDATA
   float    pdop;
   float    vdop;
   uint8_t  satInView;
+  char     sunriseHour[6];
+  char     sunsetHour[6];
 };
 
 extern GPSDATA gpsData;
+
+static bool calcSun = true;
+void calculateSun();
 
 void initGPS();
 double getLat();
