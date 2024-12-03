@@ -13,6 +13,8 @@
   X(KALTITUDE_Y, "Altitude_Y", INT)      \
   X(KSPEED_X, "Speed_X", INT)            \
   X(KSPEED_Y, "Speed_Y", INT)            \
+  X(KSUN_X, "Sun_X", INT)                \
+  X(KSUN_Y, "Sun_Y", INT)                \
   X(KCOMP_OFFSET_X, "C_offset_x", FLOAT) \
   X(KCOMP_OFFSET_Y, "C_offset_y", FLOAT) \
   X(KCOMP_ROT, "Compass_rot", BOOL)      \

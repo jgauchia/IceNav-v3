@@ -71,11 +71,11 @@ void calculateSun()
   calcSunriseSunset(2000 + localTime.year, localTime.month, localTime.date, 
                     gpsData.latitude, gpsData.longitude, 
                     transit, sunrise, sunset);
-
-  char str[6];
   log_v("%d/%d/%d",2000 + localTime.year, localTime.month, localTime.date);
-  log_v("Sunrise: %s",hoursToString(sunrise + defGMT, str));
-  log_v("Sunset: %s", hoursToString(sunset + defGMT, str));
+  hoursToString(sunrise + defGMT, gpsData.sunriseHour);
+  hoursToString(sunset + defGMT, gpsData.sunsetHour);
+  log_v("Sunrise: %s",gpsData.sunriseHour);
+  log_v("Sunset: %s",gpsData.sunsetHour);
 }
 
 /**
