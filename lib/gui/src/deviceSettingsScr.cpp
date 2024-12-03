@@ -15,7 +15,7 @@ lv_obj_t *deviceSettingsScreen; // Device Settings Screen
  * 
  * @param event 
  */
-void deviceSettingsEvent(lv_event_t *event)
+static void deviceSettingsEvent(lv_event_t *event)
 {
   lv_obj_t *obj = (lv_obj_t*)lv_event_get_target(event);
   char *option = (char *)lv_event_get_user_data(event);
@@ -37,7 +37,12 @@ void deviceSettingsEvent(lv_event_t *event)
   }
 }
 
-void lv_brightness_cb(lv_event_t *e)
+/**
+ * @brief Brightness callback
+ *
+ * @param e
+ */
+static void brightnessEvent(lv_event_t *e)
 {
     lv_obj_t *obj =(lv_obj_t*) lv_event_get_target(e);
     defBright =  lv_slider_get_value(obj);
@@ -45,17 +50,32 @@ void lv_brightness_cb(lv_event_t *e)
     tft.setBrightness(defBright);
 }
 
-// void lv_background_opa_cb(lv_event_t *e)
-// {
-//     lv_obj_t *obj =(lv_obj_t*) lv_event_get_target(e);
-//     uint8_t val =  lv_slider_get_value(obj);
-//     std::vector<lv_obj_t *>::iterator it;
-//     for (it = sub_section.begin(); it != sub_section.end(); it++) {
-//         lv_obj_set_style_bg_opa(*it, val, LV_PART_MAIN);
-//     }
-// }
+/**
+ * @brief Upgrade firmware event
+ * 
+ * @param event 
+ */
+static void upgradeEvent(lv_event_t *event)
+{
+  createMsgUpgrade();
+  lv_screen_load(msgUpgrade);
+  if (!checkFileUpgrade())
+  {
+    lv_label_set_text_static(msgUprgdText, LV_SYMBOL_WARNING " No Firmware found!");
+  }
+  else
+  {
+    lv_label_set_text_static(msgUprgdText, LV_SYMBOL_WARNING " Firmware found!");
+    lv_obj_clear_flag(btnMsgUpgrade,LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(contMeter,LV_OBJ_FLAG_HIDDEN);
+  }
+}
 
-static lv_obj_t *create_text(lv_obj_t *parent, const char *icon, const char *txt)
+/**
+ * @brief Create brightness text
+ *
+ */
+static lv_obj_t *createBrightText(lv_obj_t *parent, const char *icon, const char *txt)
 {
     lv_obj_t *obj = lv_menu_cont_create(parent);
 
@@ -82,10 +102,14 @@ static lv_obj_t *create_text(lv_obj_t *parent, const char *icon, const char *txt
     return obj;
 }
 
-static lv_obj_t *create_slider(lv_obj_t *parent, const char *icon, const char *txt, int32_t min, int32_t max,
+/**
+ * @brief Create brightness slider
+ *
+ */
+static lv_obj_t *createBrightSlider(lv_obj_t *parent, const char *icon, const char *txt, int32_t min, int32_t max,
                                int32_t val, lv_event_cb_t cb, lv_event_code_t filter)
 {
-    lv_obj_t *obj = create_text(parent, icon, txt);
+    lv_obj_t *obj = createBrightText(parent, icon, txt);
 
     lv_obj_t *slider = lv_slider_create(obj);
     lv_obj_set_width(slider,TFT_WIDTH - 80);
@@ -153,9 +177,20 @@ void createDeviceSettingsScr()
   lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
   lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"rate");
 
-  create_slider(deviceSettingsOptions, LV_SYMBOL_SETTINGS, "Brightness", 5, 255, defBright, lv_brightness_cb, LV_EVENT_VALUE_CHANGED);
+  // Upgrade button
+  list = lv_list_add_btn(deviceSettingsOptions, NULL, NULL);
+  btn = lv_btn_create(list);
+  lv_obj_set_size(btn, TFT_WIDTH - 45, 40 * scale);
+  label = lv_label_create(btn);
+  lv_obj_set_style_text_font(label, fontLarge, 0);
+  lv_label_set_text_static(label, "Firmware Upgrade");
+  lv_obj_center(label);
+  lv_obj_add_event_cb(btn, upgradeEvent, LV_EVENT_CLICKED, NULL);
+
+  // Brightness Slider
+  createBrightSlider(deviceSettingsOptions, LV_SYMBOL_SETTINGS, "Brightness", 5, 255, defBright, brightnessEvent, LV_EVENT_VALUE_CHANGED);
   
-  // Back button
+   // Back button
   btn = lv_btn_create(deviceSettingsScreen);
   lv_obj_set_size(btn, TFT_WIDTH - 30, 40 * scale);
   label = lv_label_create(btn);

@@ -38,7 +38,7 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 |:-:|:-:|:-:|
 | Add Waypoint | Add Waypoint (landscape) | Waypoint List |
 
-|<img src="images/dev/settings.jpg">|<img src="images/dev/compasscal.jpg">|<img src="images/dev/touchcal.jpg">|<img src="images/dev/mapsettings.jpg">|<img src="images/dev/devicesettings.jpg">|
+|<img src="images/dev/settings.jpg">|<img src="images/dev/compasscal.jpg">|<img src="images/dev/touchcal.jpg">|<img src="images/dev/mapsettings.jpg">|<img src="images/dev/devicesettings.png">|
 |:-:|:-:|:-:|:-:|:-:|
 | Settings | Compass Calibration | Touch Calibration | Map Settings | Device Settings |
 
@@ -208,6 +208,8 @@ Please follow the instructions provided by [OSM_Extract](https://github.com/ares
 > pio run --target uploadfs
 > ```
 
+> [!TIP]
+> Optional, firmware upgrade is possible from SD Card, please see [PR #259](https://github.com/jgauchia/IceNav-v3/pull/259) for detailed instructions
 
 > [!TIP]
 > Optional, for map debugging with specific coordinates, or when you are in indoors, you are able to set the defaults coordinates, on two ways:
