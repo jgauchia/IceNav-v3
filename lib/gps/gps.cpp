@@ -138,10 +138,15 @@ void getGPSData()
   // Time and Date
   if (fix.valid.time && fix.valid.date)
   {
-    adjustTime( fix.dateTime );
+    adjustTime( fix.dateTime );   
     localTime = fix.dateTime;
-    // Calculate Sunrise and Sunset only one time when date & time was valid
-    calculateSun();
+    if (calcSun)
+    {
+      // Calculate Sunrise and Sunset only one time when date & time was valid
+      calculateSun();
+      log_v("Get date, time, Sunrise and Sunset");  
+      calcSun = false;
+    }
   }
 
   // Altitude
