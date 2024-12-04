@@ -66,7 +66,6 @@ void getPosition(double lat, double lon)
   Coord pos;
   pos.lat = lat;
   pos.lng = lon;
-
   if (abs(pos.lat - prevLat) > 0.00005 && abs(pos.lng - prevLng) > 0.00005)
   {
     point.x = lon2x(pos.lng);
@@ -571,6 +570,10 @@ void generateVectorMap(ViewPort &viewPort, MemCache &memCache, TFT_eSprite &map)
     //     TILE_WIDTH / 2, TILE_HEIGHT / 2 - 6,
     //     RED);
     log_d("Draw done! %i", millis());
+
+    MapBlock *firstBlock = memCache.blocks.front();
+    delete firstBlock;   
+    memCache.blocks.erase(memCache.blocks.begin()); 
   }
   else
   {
