@@ -141,11 +141,7 @@ void getGPSData()
     adjustTime( fix.dateTime );
     localTime = fix.dateTime;
     // Calculate Sunrise and Sunset only one time when date & time was valid
-    if (calcSun)
-    {
-      calculateSun();
-      calcSun = false;
-    }
+    calculateSun();
   }
 
   // Altitude

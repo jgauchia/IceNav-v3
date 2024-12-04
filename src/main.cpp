@@ -134,6 +134,12 @@ void setup()
   initGPS();
   initLVGL();
 
+  // Get init Latitude and Longitude
+  gpsData.latitude = getLat();
+  gpsData.longitude = getLon();
+
+  initGpsTask();
+
   #ifndef DISABLE_CLI
     initCLI();
     initCLITask();
@@ -160,10 +166,6 @@ void setup()
   mapTempSprite.deleteSprite();
   mapTempSprite.createSprite(TILE_WIDTH, TILE_HEIGHT);
 
-  // Get init Latitude and Longitude
-  gpsData.latitude = getLat();
-  gpsData.longitude = getLon();
-
   // Preload Map
   if (isVectorMap)
   {
@@ -184,8 +186,6 @@ void setup()
   }
   
   splashScreen();
-  initGpsTask();
-
   lv_screen_load(searchSatScreen);
 }
 
