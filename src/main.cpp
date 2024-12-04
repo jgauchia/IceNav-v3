@@ -167,6 +167,15 @@ void setup()
   // Preload Map
   if (isVectorMap)
   {
+    getPosition(gpsData.latitude, gpsData.longitude);
+    tileSize = VECTOR_TILE_SIZE;
+    viewPort.setCenter(point);
+
+    getMapBlocks(viewPort.bbox, memCache);
+              
+    generateVectorMap(viewPort, memCache, mapTempSprite); 
+    
+    isPosMoved = false;
   }
   else
   {
