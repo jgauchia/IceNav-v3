@@ -134,7 +134,28 @@ void setup()
   initGPS();
   initLVGL();
 
-  
+  #ifndef DISABLE_CLI
+    initCLI();
+    initCLITask();
+  #endif
+
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    if (!MDNS.begin(hostname))       
+      log_e("nDNS init error");
+
+    log_i("mDNS initialized");
+  }
+
+  if (WiFi.status() == WL_CONNECTED && enableWeb)
+  {
+    configureWebServer();
+    server.begin();
+  }
+
+  if(WiFi.getMode() == WIFI_OFF)
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+
   // Reserve PSRAM for buffer map
   mapTempSprite.deleteSprite();
   mapTempSprite.createSprite(TILE_WIDTH, TILE_HEIGHT);
@@ -157,28 +178,6 @@ void setup()
   initGpsTask();
 
   lv_screen_load(searchSatScreen);
-
-  #ifndef DISABLE_CLI
-    initCLI();
-    initCLITask();
-  #endif
-
-  if (WiFi.status() == WL_CONNECTED)
-  {
-    if (!MDNS.begin(hostname))       
-      log_e("nDNS init error");
-
-    log_i("mDNS initialized");
-  }
-
-  if (WiFi.status() == WL_CONNECTED && enableWeb)
-  {
-    configureWebServer();
-    server.begin();
-  }
-
-  if(WiFi.getMode() == WIFI_OFF)
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
 }
 
 /**
