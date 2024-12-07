@@ -30,9 +30,6 @@ extern MapTile oldMapTile;     // Old Map tile coordinates and zoom
 extern MapTile currentMapTile; // Current Map tile coordinates and zoom
 extern MapTile roundMapTile;   // Boundaries Map tiles
 
-extern double destLat;
-extern double destLon;
-
 uint32_t lon2tilex(double f_lon, uint8_t zoom);
 uint32_t lat2tiley(double f_lat, uint8_t zoom);
 double tilex2lon(uint32_t tileX, uint8_t zoom);

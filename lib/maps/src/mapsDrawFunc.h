@@ -183,7 +183,10 @@ static void displayMap(uint16_t tileSize)
     }
 
     if (tileSize == VECTOR_TILE_SIZE)
+    {
+      mapTempSprite.pushImage(wptPosX-8, wptPosY-8, 16 ,16 ,(uint16_t*)waypoint, TFT_BLACK);
       mapTempSprite.setPivot(tileSize , tileSize );
+    }
 
     mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
     //mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);

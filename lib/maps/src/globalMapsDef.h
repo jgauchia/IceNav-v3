@@ -133,5 +133,11 @@ struct tileBounds
  */
 extern tileBounds totalBounds;
 
+/**
+ * @brief Waypoint destination latitude and longitude
+ *
+ */
+extern double destLat;
+extern double destLon;
 
 #endif

@@ -13,6 +13,7 @@
 #include <vector>
 #include <map>
 #include "globalMapsDef.h"
+#include "renderMaps.hpp"
 #include "gpsMath.hpp"
 #include "settings.hpp"
 
@@ -182,7 +183,7 @@ struct MemBlocks
 };
 
 /**
- * @brief Point in geografic (lat,lon) coordinates and other gps data
+ * @brief Point in geographic (lat,lon) coordinates and other gps data
  *
  */
 struct Coord
