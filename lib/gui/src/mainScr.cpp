@@ -228,7 +228,7 @@ void updateMap(lv_event_t *event)
       viewPort.setCenter(point);
 
       getMapBlocks(viewPort.bbox, memCache);
-               
+             
       generateVectorMap(viewPort, memCache, mapTempSprite); 
       
       isPosMoved = false;

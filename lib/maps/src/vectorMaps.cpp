@@ -574,6 +574,14 @@ void generateVectorMap(ViewPort &viewPort, MemCache &memCache, TFT_eSprite &map)
     MapBlock *firstBlock = memCache.blocks.front();
     delete firstBlock;   
     memCache.blocks.erase(memCache.blocks.begin()); 
+
+    totalBounds.lat_min = mercatorY2lat(viewPort.bbox.min.y);
+    totalBounds.lat_max = mercatorY2lat(viewPort.bbox.max.y);
+    totalBounds.lon_min = mercatorX2lon(viewPort.bbox.min.x);
+    totalBounds.lon_max = mercatorX2lon(viewPort.bbox.max.x);
+    
+    log_i("Total Bounds: Lat Min: %f, Lat Max: %f, Lon Min: %f, Lon Max: %f",
+      totalBounds.lat_min, totalBounds.lat_max, totalBounds.lon_min, totalBounds.lon_max);
   }
   else
   {
