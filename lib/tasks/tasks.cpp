@@ -2,13 +2,11 @@
  * @file tasks.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Core Tasks functions
- * @version 0.1.8
+ * @version 0.1.9_alpha
  * @date 2024-11
  */
 
 #include "tasks.hpp"
-#include "Arduino.h"
-#include "freertos/FreeRTOS.h"
 
 TaskHandle_t LVGLTaskHandler;
 xSemaphoreHandle gpsMutex;

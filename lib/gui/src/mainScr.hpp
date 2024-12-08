@@ -2,7 +2,7 @@
  * @file mainScr.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Main Screen
- * @version 0.1.8
+ * @version 0.1.9_alpha
  * @date 2024-11
  */
 
@@ -10,13 +10,9 @@
 #define MAINSCR_HPP
 
 #include "globalGuiDef.h"
-#include "lvglFuncs.hpp"
-#include "misc/lv_color.h"
-#include "notifyBar.hpp"
 #include "buttonBar.hpp"
 #include "renderMaps.hpp"
 #include "vectorMaps.hpp"
-#include "addWaypoint.hpp"
 #include "loadWaypoint.hpp"
 #include "deleteWaypoint.hpp"
 #include "editWaypoint.hpp"
@@ -24,7 +20,7 @@
 #include "navScr.hpp"
 #include "satInfoScr.hpp"
 
-static lv_timer_t *mainTimer;    // Main Screen Timer
+extern lv_timer_t *mainTimer;    // Main Screen Timer
 #define UPDATE_MAINSCR_PERIOD 30 // Main Screen update time
 
 extern bool isMainScreen;                          // Flag to indicate main screen is selected
@@ -57,13 +53,14 @@ extern lv_obj_t *satTrackTile;
 extern lv_obj_t *btnFullScreen;
 extern lv_obj_t *btnZoomIn;
 extern lv_obj_t *btnZoomOut;
-extern int toolBarOffset;
-extern int toolBarSpace;
+extern uint8_t toolBarOffset;
+extern uint8_t toolBarSpace;
 
 void updateCompassScr(lv_event_t * event);
 
 void deleteMapScrSprites();
 void createMapScrSprites();
+void displayMap(uint16_t tileSize);
 
 void getActTile(lv_event_t *event);
 void scrollTile(lv_event_t *event);

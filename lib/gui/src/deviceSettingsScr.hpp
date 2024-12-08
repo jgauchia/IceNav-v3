@@ -2,7 +2,7 @@
  * @file deviceSettingsScr.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Device Settings Screen
- * @version 0.1.8
+ * @version 0.1.9_alpha
  * @date 2024-11
  */
 
@@ -10,13 +10,15 @@
 #define DEVICESETTINGSCR_HPP
 
 #include "globalGuiDef.h"
-#include "gps.hpp"
-#include "settings.hpp"
+#include "upgradeScr.hpp"
 #include "lvglSetup.hpp"
+#include "firmUpgrade.hpp"
 
 static lv_obj_t *deviceSettingsOptions;
 
 static void deviceSettingsEvent(lv_event_t *event);
+static void brightnessEvent(lv_event_t *e);
+static void upgradeEvent(lv_event_t *event);
 void createDeviceSettingsScr();
 
 #endif

@@ -2,13 +2,11 @@
  * @file mapSettingsScr.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Map Settings screen
- * @version 0.1.8
+ * @version 0.1.9_alpha
  * @date 2024-11
  */
 
 #include "mapSettingsScr.hpp"
-#include "core/lv_obj.h"
-#include "settings.hpp"
 
 lv_obj_t *mapSettingsScreen; // Map Settings Screen
 

@@ -2,7 +2,7 @@
  * @file storage.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Storage definition and functions
- * @version 0.1.8
+ * @version 0.1.9_alpha
  * @date 2024-11
  */
 
@@ -10,15 +10,21 @@
 #define STORAGE_HPP
 
 #include "esp_spiffs.h"
+#include "esp_err.h"
 #include <SD.h>
-#include <LovyanGFX.hpp>
-#include <tft.hpp>
 
-static uint32_t sdFreq = 40000000;
+class Storage
+{
+private:
+    bool isSdLoaded;
+    static const uint32_t sdFreq = 40000000;
 
-extern bool isSdLoaded;
+public:
+    Storage();
 
-void initSD();
-esp_err_t initSPIFFS();
+    void initSD();
+    esp_err_t initSPIFFS();
+    bool getSdLoaded() const;
+};
 
 #endif

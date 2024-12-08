@@ -2,7 +2,7 @@
  * @file gps.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  GPS definition and functions
- * @version 0.1.8
+ * @version 0.1.9_alpha
  * @date 2024-11
  */
 
@@ -74,9 +74,14 @@ struct GPSDATA
   float    pdop;
   float    vdop;
   uint8_t  satInView;
+  char     sunriseHour[6];
+  char     sunsetHour[6];
 };
 
 extern GPSDATA gpsData;
+
+static bool calcSun = true;
+void calculateSun();
 
 void initGPS();
 double getLat();

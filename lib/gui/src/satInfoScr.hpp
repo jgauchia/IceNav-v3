@@ -2,14 +2,13 @@
  * @file satInfoScr.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Satellite info screen 
- * @version 0.1.8
+ * @version 0.1.9_alpha
  * @date 2024-11
  */
 
 #ifndef SATINFOSCR_HPP
 #define SATINFOSCR_HPP
 
-#include "lvgl.h"
 #include "globalGuiDef.h"
 #include "gps.hpp"
 

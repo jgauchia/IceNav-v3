@@ -2,14 +2,13 @@
  * @file searchSatScr.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - GPS satellite search screen
- * @version 0.1.8
+ * @version 0.1.9_alpha
  * @date 2024-11
  */
 
 #ifndef SEARCHSATSCR_HPP
 #define SEARCHSATSCR_HPP
 
-#include <lvgl.h>
 #include "gps.hpp"
 #include "globalGuiDef.h"
 

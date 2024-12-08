@@ -2,16 +2,13 @@
  * @file lvglFuncs.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL custom functions
- * @version 0.1.8
+ * @version 0.1.9_alpha
  * @date 2024-11
  */
 
 #ifndef LVGLFUNCS_HPP
 #define LVGLFUNCS_HPP
 
-#include <Arduino.h>
-#include "tft.hpp"
-#include "lvgl.h"
 #include "globalGuiDef.h"
 
 void objHideCursor(_lv_obj_t *obj);

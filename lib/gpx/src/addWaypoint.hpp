@@ -2,19 +2,15 @@
  * @file addWaypoint.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Add Waypoint functions
- * @version 0.1.8
+ * @version 0.1.9_alpha
  * @date 2024-11
  */
 
 #ifndef ADDWAYPOINT_HPP
 #define ADDWAYPOINT_HPP
 
-#include "globalGpxDef.h"
 #include "SD.h"
-#include "FS.h"
-#include "tft.hpp"
-#include "storage.hpp"
-#include "lvgl.h"
+#include "globalGpxDef.h"
 
 extern wayPoint addWpt;
 

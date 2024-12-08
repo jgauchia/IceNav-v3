@@ -2,7 +2,7 @@
  * @file settings.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Settings functions
- * @version 0.1.8
+ * @version 0.1.9_alpha
  * @date 2024-11
  */
 
@@ -21,8 +21,6 @@ extern uint8_t defZoomRender;  // Default Zoom Level for render map
 extern uint8_t defZoomVector;  // Default Zoom Level for vector map
 extern uint8_t zoom;           // Actual Zoom Level
 extern uint8_t defBright;      // Default brightness
-extern float batteryMax;       // 4.2;      // maximum voltage of battery
-extern float batteryMin;       // 3.6;      // minimum voltage of battery before shutdown
 
 extern bool isMapRotation;    // Map Compass Rotation
 extern uint8_t defaultZoom;   // Default Zoom Value
@@ -43,8 +41,12 @@ extern uint16_t altitudePosX; // Altitude widget position X
 extern uint16_t altitudePosY; // Altitude widget position Y
 extern uint16_t speedPosX;    // Speed widget position X
 extern uint16_t speedPosY;    // Speed widget position Y
+extern uint16_t sunPosX;      // Sunrise/sunset position X
+extern uint16_t sunPosY;      // Sunrise/sunset position Y
 extern bool enableWeb;        // Enable/disable web file server
 extern int8_t tempOffset;     // BME Temperature offset
+extern String defDST;         // default DST zone
+extern bool calculateDST;     // Calculate DST flag
 
 void loadPreferences();
 void saveMapRotation(bool zoomRotation);
