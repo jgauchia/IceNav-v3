@@ -29,9 +29,9 @@ void splashScreen()
   tft.setTextSize(1);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
 
-  tft.drawString("Map data from OpenStreetMap.",0, TFT_HEIGHT - 120 );
-  tft.drawString("(c) OpenStreetMap",0, TFT_HEIGHT - 110 );
-  tft.drawString("(c) OpenStreetMap contributors",0, TFT_HEIGHT - 100 );
+  tft.drawCenterString("Map data from OpenStreetMap.",tft.width() >> 1, TFT_HEIGHT - 120 );
+  tft.drawCenterString("(c) OpenStreetMap",tft.width() >> 1, TFT_HEIGHT - 110 );
+  tft.drawCenterString("(c) OpenStreetMap contributors",tft.width() >> 1, TFT_HEIGHT - 100 );
 
   char statusString[50] = "";
   tft.setTextColor(TFT_YELLOW, TFT_BLACK);
