@@ -368,4 +368,4 @@ To access the Web File Server, simply use any browser and go to the following ad
 ---
 Map data is available thanks to the great OpenStreetMap project and contributors. The map data is available under the Open Database License.
 
-© OpenStreetMap contributors
+[© OpenStreetMap contributors](https://www.openstreetmap.org/copyright)
