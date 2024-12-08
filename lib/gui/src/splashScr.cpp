@@ -25,9 +25,15 @@ void splashScreen()
 
   getPngSize(logoFile,&pngWidth,&pngHeight);
   tft.drawPngFile(logoFile, (tft.width() / 2) - (pngWidth/2), (tft.height() / 2) - pngHeight);
+  
+  tft.setTextSize(1);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+
+  tft.drawString("Map data from OpenStreetMap.",0, TFT_HEIGHT - 120 );
+  tft.drawString("(c) OpenStreetMap",0, TFT_HEIGHT - 110 );
+  tft.drawString("(c) OpenStreetMap contributors",0, TFT_HEIGHT - 100 );
 
   char statusString[50] = "";
-  tft.setTextSize(1);
   tft.setTextColor(TFT_YELLOW, TFT_BLACK);
 
   memset(&statusString[0], 0, sizeof(statusString));
@@ -62,6 +68,10 @@ void splashScreen()
     while (millis() < millisActual + 15)
       ;
   }
+
+  millisActual = millis();
+  while (millis() < millisActual + 100)
+    ;
 
   for (uint8_t fadeOut = maxBrightness; fadeOut > 0; fadeOut--)
   {
