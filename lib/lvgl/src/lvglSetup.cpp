@@ -59,7 +59,7 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     }
     else if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
     {
-      data->point.x = 320 - touchY;
+      data->point.x = TFT_WIDTH - touchY;
       data->point.y = touchX;
     }
     data->state = LV_INDEV_STATE_PRESSED;
