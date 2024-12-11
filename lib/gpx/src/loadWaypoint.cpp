@@ -2,8 +2,8 @@
  * @file loadWaypoint.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Load Waypoint functions
- * @version 0.1.8
- * @date 2024-11
+ * @version 0.1.9
+ * @date 2024-12
  */
 
  #include "loadWaypoint.hpp"

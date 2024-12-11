@@ -2,15 +2,11 @@
  * @file lvglSetup.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL Screen implementation
- * @version 0.1.8
- * @date 2024-11
+ * @version 0.1.9
+ * @date 2024-12
  */
 
-#include "lvgl_private.h"
 #include "lvglSetup.hpp"
-#include "waypointScr.hpp"
-#include "waypointListScr.hpp"
-#include "globalGuiDef.h"
 
 ViewPort viewPort; // Vector map viewport
 MemCache memCache; // Vector map Memory Cache
@@ -25,6 +21,8 @@ lv_style_t styleObjectSel; // New Objects Selected Color
 lv_group_t *scrGroup;     // Screen group
 lv_group_t *keyGroup;     // GPIO group
 lv_obj_t *powerMsg;       // Power Message
+
+Power power;
 
 /**
  * @brief LVGL display update
@@ -61,7 +59,7 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     }
     else if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
     {
-      data->point.x = 320 - touchY;
+      data->point.x = TFT_WIDTH - touchY;
       data->point.y = touchX;
     }
     data->state = LV_INDEV_STATE_PRESSED;
@@ -137,7 +135,6 @@ void IRAM_ATTR gpioRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 */
 void gpioLongEvent(lv_event_t *event)
 {
-  lv_event_code_t code = lv_event_get_code(event);
   log_v("Shuting down device");
   powerMsg = lv_msgbox_create(lv_scr_act());
   lv_obj_set_width(powerMsg,TFT_WIDTH);
@@ -149,7 +146,7 @@ void gpioLongEvent(lv_event_t *event)
   lv_obj_invalidate(powerMsg);
   lv_refr_now(display);
   vTaskDelay(2000);
-  deviceShutdown();
+  power.deviceShutdown();
 }
 
 /**
@@ -158,7 +155,6 @@ void gpioLongEvent(lv_event_t *event)
 */
 void gpioClickEvent(lv_event_t *event)
 {
-  lv_event_code_t code = lv_event_get_code(event);
   lv_indev_reset_long_press(lv_indev_active());
   lv_indev_reset(NULL,lv_scr_act());
   log_v("Entering sleep mode");
@@ -172,7 +168,7 @@ void gpioClickEvent(lv_event_t *event)
   lv_obj_invalidate(powerMsg);
   lv_refr_now(display);
   vTaskDelay(2000);
-  deviceSuspend();
+  power.deviceSuspend();
 }
 
 /**
@@ -350,6 +346,7 @@ void initLVGL()
 void loadMainScreen()
 {
   isMainScreen = true;
+  isScrolled = true;
   isSearchingSat = false;
   wptAction = WPT_NONE;
   lv_screen_load(mainScreen);

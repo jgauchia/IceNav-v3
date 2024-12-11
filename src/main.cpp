@@ -2,8 +2,8 @@
  * @file main.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  ESP32 GPS Navigation main code
- * @version 0.1.8
- * @date 2024-08
+ * @version 0.1.9
+ * @date 2024-12
  */
 
 #include <Arduino.h>
@@ -16,6 +16,7 @@
 #include <esp_bt.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
+#include <SolarCalculator.h>
 
 // Hardware includes
 #include "hal.hpp"
@@ -45,9 +46,34 @@ extern xSemaphoreHandle gpsMutex;
 #include "webserver.h"
 #include "battery.hpp"
 #include "power.hpp"
+
+extern Storage storage;
+extern Battery battery;
+extern Power power;
+
+/**
+ * @brief Sunrise and Sunset
+ *
+ */
+static double transit, sunrise, sunset;
+
 #include "settings.hpp"
 #include "lvglSetup.hpp"
 #include "tasks.hpp"
+
+/**
+ * @brief Calculate Sunrise and Sunset
+ *        Must be a global function
+ *
+ */
+void calculateSun()
+{
+  calcSunriseSunset(2000 + localTime.year, localTime.month, localTime.date, 
+                    gpsData.latitude, gpsData.longitude, 
+                    transit, sunrise, sunset);
+  hoursToString(sunrise + defGMT, gpsData.sunriseHour);
+  hoursToString(sunset + defGMT, gpsData.sunsetHour);
+}
 
 /**
  * @brief Setup
@@ -59,7 +85,12 @@ void setup()
   
   // Force GPIO0 to internal PullUP  during boot (avoid LVGL key read)
   #ifdef POWER_SAVE
-     pinMode(BOARD_BOOT_PIN,INPUT_PULLUP);
+    pinMode(BOARD_BOOT_PIN,INPUT_PULLUP);
+    #ifdef ICENAV_BOARD
+      gpio_hold_dis((gpio_num_t)TFT_BL);
+      gpio_hold_dis((gpio_num_t)BOARD_BOOT_PIN);
+      gpio_deep_sleep_hold_dis();
+    #endif
   #endif
 
   #ifdef ARDUINO_USB_CDC_ON_BOOT
@@ -91,36 +122,20 @@ void setup()
    initCompass();
   #endif
 
-  powerOn();
-  initSD();
-  initSPIFFS();
+  // powerOn();
+  storage.initSD();
+  storage.initSPIFFS();
+  battery.initADC();
   initTFT();
   loadPreferences();
   initGPS();
   initLVGL();
-  initADC();
-  
-  // Reserve PSRAM for buffer map
-  mapTempSprite.deleteSprite();
-  mapTempSprite.createSprite(TILE_WIDTH, TILE_HEIGHT);
 
-  // Preload Map
-  if (isVectorMap)
-  {
-  }
-  else
-  {
-    // Get init Latitude and Longitude
-    gpsData.latitude = getLat();
-    gpsData.longitude = getLon();
-    tileSize = RENDER_TILE_SIZE;
-    generateRenderMap();
-  }
-  
-  splashScreen();
+  // Get init Latitude and Longitude
+  gpsData.latitude = getLat();
+  gpsData.longitude = getLon();
+
   initGpsTask();
-
-  lv_screen_load(searchSatScreen);
 
   #ifndef DISABLE_CLI
     initCLI();
@@ -143,6 +158,32 @@ void setup()
 
   if(WiFi.getMode() == WIFI_OFF)
     ESP_ERROR_CHECK(esp_event_loop_create_default());
+
+  // Reserve PSRAM for buffer map
+  mapTempSprite.deleteSprite();
+  mapTempSprite.createSprite(TILE_WIDTH, TILE_HEIGHT);
+
+  // Preload Map
+  if (isVectorMap)
+  {
+    getPosition(gpsData.latitude, gpsData.longitude);
+    tileSize = VECTOR_TILE_SIZE;
+    viewPort.setCenter(point);
+
+    getMapBlocks(viewPort.bbox, memCache);
+              
+    generateVectorMap(viewPort, memCache, mapTempSprite); 
+    
+    isPosMoved = false;
+  }
+  else
+  {
+    tileSize = RENDER_TILE_SIZE;
+    generateRenderMap();
+  }
+  
+  splashScreen();
+  lv_screen_load(searchSatScreen);
 }
 
 /**

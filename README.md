@@ -38,7 +38,7 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 |:-:|:-:|:-:|
 | Add Waypoint | Add Waypoint (landscape) | Waypoint List |
 
-|<img src="images/dev/settings.jpg">|<img src="images/dev/compasscal.jpg">|<img src="images/dev/touchcal.jpg">|<img src="images/dev/mapsettings.jpg">|<img src="images/dev/devicesettings.jpg">|
+|<img src="images/dev/settings.jpg">|<img src="images/dev/compasscal.jpg">|<img src="images/dev/touchcal.jpg">|<img src="images/dev/mapsettings.jpg">|<img src="images/dev/devicesettings.png">|
 |:-:|:-:|:-:|:-:|:-:|
 | Settings | Compass Calibration | Touch Calibration | Map Settings | Device Settings |
 
@@ -84,8 +84,6 @@ If the board has a BOOT button (GPIO0) it is possible to use power saving functi
 To do this, simply include the following Build Flag in the required env in platformio.ini
 
 ```-DPOWER_SAVE``` <br>
-```-DARDUINO_RUNNING_CORE=1``` <br>
-```-DARDUINO_EVENT_RUNNING_CORE=1``` <br>
 
 > [!IMPORTANT]
 > Currently, this project can run on any board with an ESP32S3 and at least a 320x480 TFT screen. The idea is to support all existing boards on the market that I can get to work, so if you don't want to use the specific IceNav board, please feel free to create an issue, and I will look into providing support.
@@ -107,10 +105,10 @@ To do this, simply include the following Build Flag in the required env in platf
 |:------------|:--------------|:-----------------------------------|:-------------------------------------------------------|
 |             | 🔋 Batt. Monitor | ```-DADC1``` or ```-DADC2``` <br> ```-DBATT_PIN=ADCn_CHANNEL_x``` |                       |   
 | AT6558D     | 🛰️ GPS        | ```-DAT6558D_GPS```                |                                                        |
-| HMC5883L    | 🧭 Compass    | ```-DHMC5883L```                   | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
-| QMC5883     | 🧭 Compass    | ```-DQMC5883```                    | ```dfrobot/DFRobot_QMC5883@^1.0.0```                   |
-| MPU9250     | 🧭 IMU (Compass) | ```-DIMU_MPU9250```                | ```bolderflight/Bolder Flight Systems MPU9250@^1.0.2```|
-| BME280      | 🌡️ Temp <br> ☁️ Pres <br> 💧 Hum | ```-DBME280```                     | ```adafruit/Adafruit Unified Sensor@^1.1.14``` <br> ```adafruit/Adafruit BusIO@^1.16.1``` <br> ```adafruit/Adafruit BME280 Library@^2.2.4```|
+| HMC5883L    | 🧭 Compass    | ```-DHMC5883L```                   | ```dfrobot/DFRobot_QMC5883@1.0.0```                   |
+| QMC5883     | 🧭 Compass    | ```-DQMC5883```                    | ```dfrobot/DFRobot_QMC5883@1.0.0```                   |
+| MPU9250     | 🧭 IMU (Compass) | ```-DIMU_MPU9250```                | ```bolderflight/Bolder Flight Systems MPU9250@1.0.2```|
+| BME280      | 🌡️ Temp <br> ☁️ Pres <br> 💧 Hum | ```-DBME280```                     | ```adafruit/Adafruit Unified Sensor@1.1.14``` <br> ```adafruit/Adafruit BusIO@1.16.2``` <br> ```adafruit/Adafruit BME280 Library@2.2.4```|
 
 [^1]: For ELECROW board UART port is shared with USB connection, GPS pinout are mapped to IO19 and IO40 (Analog and Digital Port). If CLI isn't used is possible to attach GPS module to UART port but for upload the firmware (change pinout at **hal.hpp**), the module should be disconnected.
 [^2]: See **hal.hpp** for pinouts configuration
@@ -210,6 +208,8 @@ Please follow the instructions provided by [OSM_Extract](https://github.com/ares
 > pio run --target uploadfs
 > ```
 
+> [!TIP]
+> Optional, firmware upgrade is possible from SD Card, please see [PR #259](https://github.com/jgauchia/IceNav-v3/pull/259) for detailed instructions
 
 > [!TIP]
 > Optional, for map debugging with specific coordinates, or when you are in indoors, you are able to set the defaults coordinates, on two ways:
@@ -248,7 +248,7 @@ outnmea:        toggle GPS NMEA output (or Ctrl+C to stop)
 poweroff:       perform a ESP32 deep sleep
 reboot:         perform a ESP32 reboot
 scshot:         screenshot to SD or sending a PC
-settings:       device settings
+setdstzone:     set DST (Daylight Saving Time zone: NONE, EU or USA)
 waypoint:       waypoint utilities
 webfile:        enable/disable Web file server
 wipe:           wipe preferences to factory default
@@ -270,6 +270,7 @@ Some extra details:
    VmaxBatt     custom         
    VminBatt     custom          
    tempOffs     custom
+     defGMT     custom     
 ```          
 
 **kset KEYNAME**: Set user custom settings:
@@ -299,8 +300,6 @@ nc -l -p 8123 > screenshot.png
 ```
 
 Additionally, you can download the screenshot with webfile server.
-
-**settings**: Device settings type `settings` for detailed options.
 
 **waypoint**: type `waypoint` for detailed options.
 
@@ -338,7 +337,7 @@ To access the Web File Server, simply use any browser and go to the following ad
 - [X] Vector maps
 - [ ] Google Maps navigation style
 - [x] Optimize code
-- [ ] Fix bugs!
+- [X] Fix bugs!
 - [X] Web file server
       
 
@@ -362,10 +361,11 @@ To access the Web File Server, simply use any browser and go to the following ad
 * OSM to binary vectorial maps [OSM_Extract](https://github.com/aresta/OSM_Extract) thanks to [@aresta](https://github.com/aresta)
 * Preferences Library [Easy Preferences](https://github.com/hpsaturn/easy-preferences) thanks to [@hpsaturn](https://github.com/hpsaturn)
 * Wifi CLI manager [esp32-wifi-cli](https://github.com/hpsaturn/esp32-wifi-cli) thanks to [@hpsaturn](https://github.com/hpsaturn)
-* Web file server based in [@smford](https://github.com/smford) [esp32-asyncwebserver-fileupload-example ](https://github.com/smford/esp32-asyncwebserver-fileupload-example)
+* Web file server based in [@smford](https://github.com/smford) [esp32-asyncwebserver-fileupload-example](https://github.com/smford/esp32-asyncwebserver-fileupload-example)
+* Solar sunset and sunrise [SolarCalculator](https://github.com/jpb10/SolarCalculator) thanks to [@jpb10](https://github.com/jpb10)
 
 
 ---
 Map data is available thanks to the great OpenStreetMap project and contributors. The map data is available under the Open Database License.
 
-© OpenStreetMap contributors
+[© OpenStreetMap contributors](https://www.openstreetmap.org/copyright)

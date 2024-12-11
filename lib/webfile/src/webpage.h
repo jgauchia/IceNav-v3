@@ -2,8 +2,8 @@
  * @file webpage.h
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief Web file server page
- * @version 0.1.8
- * @date 2024-11
+ * @version 0.1.9
+ * @date 2024-12
  */
 
 
@@ -93,6 +93,8 @@ const char index_html[] PROGMEM = R"rawliteral(
             background-color:  black;
             border: 1px solid #aaaaaa;
             text-align: center;
+            overflow-y: auto; 
+            overflow-x: hidden; 
           }    
   </style>
 
@@ -100,11 +102,11 @@ const char index_html[] PROGMEM = R"rawliteral(
 
 <body onload="refresh()">
 
-    <style>
-      body {
-             background-color: black;
-           }
-    </style>
+<style>
+  body {
+          background-color: black;
+        }
+</style>
 
   <img src="logo">
 
@@ -122,7 +124,7 @@ const char index_html[] PROGMEM = R"rawliteral(
   <p class="p3" id="details"></p>
 
 <script>
-
+{
 function _(el)
 {
   return document.getElementById(el);
@@ -168,18 +170,31 @@ function listFilesButton()
 
 function downloadDeleteButton(filename, action) 
 {
-  var urltocall = "/file?name=/" + filename + "&action=" + action;
+  var urltocall = "";
   xhr = new XMLHttpRequest();
   if (action == "delete")
   {
+    urltocall = "/file?name=/" + filename + "&action=" + action;
     xhr.open("GET", urltocall, false);
     xhr.send();
     sessionStorage.setItem("msgStatus",xhr.responseText);
-    _("details").innerHTML = xhr.responseText;
+    _("status").innerHTML = "";
+    _("details").innerHTML = "Deleting file: " + filename;
+    document.location.reload(true);   
+  }
+  if (action == "deldir")
+  {
+    urltocall = "/file?name=" + filename + "&action=" + action;
+    xhr.open("GET", urltocall, false);
+    xhr.send();
+    sessionStorage.setItem("msgStatus",xhr.responseText);
+    _("status").innerHTML = "";
+    _("details").innerHTML = "Deleting folder: " + filename;
     document.location.reload(true);   
   }
   if (action == "download") 
   {
+    urltocall = "/file?name=/" + filename + "&action=" + action;
     _("status").innerHTML = "";
     window.open(urltocall,"_blank");
   }
@@ -197,44 +212,6 @@ function changeDirectory(directory)
   xhr.send();
   _("detailsheader").innerHTML = "<h3>Files<h3>";
   _("details").innerHTML = xhr.responseText;
-}
-
-function dragged(e) 
-{  
-  var z = _("drag");
-  z.style.backgroundColor = "#5d6d7e";
-  z.style.opacity = "0.6";
-  e.stopPropagation();
-  e.preventDefault();
-}
-
-function dropped(e) 
-{
-  dragged(e);
-  var fls = e.dataTransfer.files;
-  var formData = new FormData();
-
-  for (var i = 0; i < fls.length; i++) 
-  {
-    formData.append("file" + i, fls[i]); 
-  }
-  var z = document.getElementById("drag");
-  z.style.backgroundColor = "white";
-
-  var fileNames = "";
-  for (var i = 0; i < fls.length; i++) 
-  {
-    fileNames += fls[i].name + (i < fls.length - 1 ? ", " : ""); 
-  }
-  z.textContent = fileNames;
-
-  var xhr = new XMLHttpRequest();
-  xhr.upload.addEventListener("progress", progressHandler, false);
-  xhr.addEventListener("load", completeHandler, false); 
-  xhr.addEventListener("error", errorHandler, false);
-  xhr.addEventListener("abort", abortHandler, false);
-  xhr.open("POST", "/");
-  xhr.send(formData);   
 }
 
 function uploadButton() 
@@ -256,6 +233,92 @@ function uploadButton()
   z.addEventListener("dragenter", dragged, false);
   z.addEventListener("dragover", dragged, false);
   z.addEventListener("drop", dropped, false);
+}
+
+function dragged(e) 
+{  
+  var z = _("drag");
+  z.style.backgroundColor = "#5d6d7e";
+  z.style.opacity = "0.6";
+  e.stopPropagation();
+  e.preventDefault();
+}
+
+function dropped(e) 
+{
+  e.preventDefault();
+  e.stopPropagation();
+
+  var dt = e.dataTransfer;
+  var items = dt.items;
+  var uploads = [];
+  var formData = new FormData();
+  var fileNames = "";
+
+  var xhr = new XMLHttpRequest();
+  xhr.upload.addEventListener("progress", progressHandler, false);
+  xhr.addEventListener("load", completeHandler, false); 
+  xhr.addEventListener("error", errorHandler, false);
+  xhr.addEventListener("abort", abortHandler, false);
+
+  async function processFiles(files) 
+  {
+    for (const file of files) 
+    {
+      formData.append("file[]", file, file.name); 
+      fileNames += file.name + ", ";
+    }
+
+    var z = document.getElementById("drag");
+    z.style.backgroundColor = "black";
+    z.textContent = fileNames;
+
+    xhr.open("POST", "/");
+    xhr.send(formData);
+  }
+
+  async function traverseFileTree(item, path = "") 
+  {
+    return new Promise((resolve) => {
+      if (item.isFile) 
+      {
+        item.file((file) => {
+          const relativePath = path + file.name;
+          const newFile = new File([file], relativePath, { type: file.type });
+          uploads.push(newFile);
+          resolve();
+        });
+      } else if (item.isDirectory) 
+      {
+        const dirReader = item.createReader();
+        dirReader.readEntries(async (entries) => {
+          for (const entry of entries) {
+            await traverseFileTree(entry, path + item.name + "/");
+          }
+          resolve();
+        });
+      }
+    });
+  }
+
+  async function handleItems(items) 
+  {
+    const promises = [];
+    for (let i = 0; i < items.length; i++) 
+    {
+      const item = items[i].webkitGetAsEntry();
+      if (item) 
+      {
+        promises.push(traverseFileTree(item));
+      }
+    }
+    await Promise.all(promises);
+    processFiles(uploads);
+  }
+
+  if (items && items.length > 0) {
+    handleItems(items);
+  }
 }
 
 function progressHandler(event) 
@@ -294,6 +357,8 @@ function errorHandler(event)
 function abortHandler(event) 
 {
   _("status").innerHTML = "inUpload Aborted";
+}
+
 }
 </script>
 

@@ -1,8 +1,8 @@
 /**
  * @file globalMapsDef.h
  * @brief  Global Maps Variables
- * @version 0.1.8
- * @date 2024-11
+ * @version 0.1.9
+ * @date 2024-12
  */
 
 #ifndef GLOBALMAPSDEF_H
@@ -133,5 +133,11 @@ struct tileBounds
  */
 extern tileBounds totalBounds;
 
+/**
+ * @brief Waypoint destination latitude and longitude
+ *
+ */
+extern double destLat;
+extern double destLon;
 
 #endif

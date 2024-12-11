@@ -2,21 +2,11 @@
  * @file mainScr.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Main Screen
- * @version 0.1.8
- * @date 2024-11
+ * @version 0.1.9
+ * @date 2024-12
  */
 
 #include "mainScr.hpp"
-#include "buttonBar.hpp"
-#include "core/lv_obj.h"
-#include "core/lv_obj_pos.h"
-#include "globalGuiDef.h"
-#include "globalMapsDef.h"
-#include "settings.hpp"
-#include "tft.hpp"
-
-extern const int SD_CS;
-extern const uint8_t TFT_SPI_CS;
 
 bool isMainScreen = false;    // Flag to indicate main screen is selected
 bool isScrolled = true;       // Flag to indicate when tileview was scrolled
@@ -27,12 +17,12 @@ uint8_t wptAction = WPT_NONE; // Current Waypoint Action
 int wptPosX, wptPosY = 0;     // Waypoint position on map
 
 #ifdef LARGE_SCREEN
-  int toolBarOffset = 100;
-  int toolBarSpace = 60;
+  uint8_t toolBarOffset = 100;
+  uint8_t toolBarSpace = 60;
 #endif
 #ifndef LARGE_SCREEN
-  int toolBarOffset = 80;
-  int toolBarSpace = 50;
+  uint8_t toolBarOffset = 80;
+  uint8_t toolBarSpace = 50;
 #endif
 
 lv_obj_t *tilesScreen;
@@ -59,10 +49,8 @@ void updateCompassScr(lv_event_t * event)
   lv_obj_t *obj = (lv_obj_t *)lv_event_get_current_target(event);
   if (obj==compassHeading)
   {
-    //#ifdef ENABLE_COMPASS
     lv_label_set_text_fmt(compassHeading, "%5d\xC2\xB0", heading);
     lv_img_set_angle(compassImg, -(heading * 10));
-    //#endif
   }
   if (obj==latitude)
     lv_label_set_text_fmt(latitude, "%s", latFormatString(gpsData.latitude));
@@ -72,6 +60,10 @@ void updateCompassScr(lv_event_t * event)
     lv_label_set_text_fmt(obj, "%4d m.", gpsData.altitude);
   if (obj==speedLabel)
     lv_label_set_text_fmt(obj, "%3d Km/h", gpsData.speed);
+  if (obj==sunriseLabel)
+    lv_label_set_text_static(obj, gpsData.sunriseHour);
+  if (obj==sunsetLabel)
+    lv_label_set_text_static(obj, gpsData.sunsetHour);
 }
 
 /**
@@ -86,11 +78,6 @@ void getActTile(lv_event_t *event)
     isScrolled = true;
     redrawMap = true;
 
-    if (activeTile == SATTRACK)
-    {
-      // createSatSprite(spriteSat);
-      // createConstelSprite(constelSprite);
-    }
     if (activeTile == MAP)
     {
       createMapScrSprites();
@@ -175,6 +162,8 @@ void updateMainScreen(lv_timer_t *t)
         lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
         lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
         lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
+        lv_obj_send_event(sunriseLabel, LV_EVENT_VALUE_CHANGED, NULL);
+        lv_obj_send_event(sunsetLabel, LV_EVENT_VALUE_CHANGED, NULL);
         break;
       
       case MAP:
@@ -206,7 +195,6 @@ void updateMainScreen(lv_timer_t *t)
  */
 void gestureEvent(lv_event_t *event)
 {
-  lv_obj_t *screen = (lv_obj_t *)lv_event_get_current_target(event);
   lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
   if (activeTile == MAP && isMainScreen)
   {
@@ -240,9 +228,7 @@ void updateMap(lv_event_t *event)
       viewPort.setCenter(point);
 
       getMapBlocks(viewPort.bbox, memCache);
-               
-      // deleteMapScrSprites();
-      // createMapScrSprites();
+             
       generateVectorMap(viewPort, memCache, mapTempSprite); 
       
       isPosMoved = false;
@@ -419,9 +405,7 @@ void updateNavEvent(lv_event_t *event)
   if (wptDistance == 0)
   {
     lv_img_set_src(arrowNav, &navfinish);
-    //#ifdef ENABLE_COMPASS
     lv_img_set_angle(arrowNav, 0);
-    //#endif
   }
   else
   {
@@ -470,6 +454,8 @@ void createMainScr()
   altitudeWidget(compassTile);
   // Speed widget
   speedWidget(compassTile);
+  // Sunrise/Sunset widget
+  sunWidget(compassTile);
   
   // Compass Tile Events
   lv_obj_add_event_cb(compassHeading, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
@@ -477,6 +463,8 @@ void createMainScr()
   lv_obj_add_event_cb(longitude, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(altitude, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(speedLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_add_event_cb(sunriseLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_add_event_cb(sunsetLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
  
   // Map Tile Toolbar
   btnFullScreen = lv_btn_create(mapTile);

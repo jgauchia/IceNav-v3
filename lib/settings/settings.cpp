@@ -2,8 +2,8 @@
  * @file settings.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Settings functions
- * @version 0.1.8
- * @date 2024-11
+ * @version 0.1.9
+ * @date 2024-12
  */
 
 #include "settings.hpp"
@@ -31,6 +31,7 @@ uint8_t zoom = 0;           // Actual Zoom Level
 bool isMapRotation = true;    // Map Compass Rotation
 uint8_t defaultZoom = 0;      // Default Zoom Value
 uint8_t defBright = 255;      // Default Brightness
+int32_t defGMT = 1;           // Default GMT offset
 bool showMapCompass = true;   // Compass in map screen
 bool isCompassRot = true;     // Compass rotation in map screen
 bool showMapSpeed = true;     // Speed in map screen
@@ -47,9 +48,14 @@ uint16_t altitudePosX = 0;    // Altitude widget position X
 uint16_t altitudePosY = 0;    // Altitude widget position Y
 uint16_t speedPosX = 0;       // Speed widget position X
 uint16_t speedPosY = 0;       // Speed widget position Y
+uint16_t sunPosX = 0;         // Sunrise/sunset position X
+uint16_t sunPosY = 0;         // Sunrise/sunset position Y
 bool enableWeb = true;        // Enable/disable web file server
 bool showToolBar = false;     // Show Map Toolbar
 int8_t tempOffset = 0;        // BME Temperature offset
+extern Battery battery;
+String defDST = "NONE";       // default DST zone
+bool calculateDST = false;    // Calculate DST flag
 // float batteryMax = 0.0;       // 4.2;      // maximum voltage of battery
 // float batteryMin = 0.0;       // 3.6;      // minimum voltage of battery before shutdown
 
@@ -79,8 +85,11 @@ void loadPreferences()
   altitudePosY = cfg.getInt(PKEYS::KALTITUDE_Y, TFT_HEIGHT - 170);
   speedPosX = cfg.getInt(PKEYS::KSPEED_X, 1);
   speedPosY = cfg.getInt(PKEYS::KSPEED_Y, TFT_HEIGHT - 130);
+  sunPosX = cfg.getInt(PKEYS::KSUN_X, 170);
+  sunPosY = cfg.getInt(PKEYS::KSUN_Y, TFT_HEIGHT - 170 );
   isVectorMap = cfg.getBool(PKEYS::KMAP_VECTOR, false);
   defBright = cfg.getUInt(PKEYS::KDEF_BRIGT, 254);
+  defGMT = cfg.getInt(PKEYS::KGMT_OFFS, 1);
   if (isVectorMap)
   {
     minZoom = 1;
@@ -110,19 +119,17 @@ void loadPreferences()
   altitudePosY = cfg.isKey(CONFKEYS::KALTITUDE_Y) ? cfg.getInt(CONFKEYS::KALTITUDE_Y, altitudePosY) : 57;
   speedPosX = cfg.isKey(CONFKEYS::KSPEED_X) ? cfg.getInt(CONFKEYS::KSPEED_X, speedPosX) : 3;
   speedPosY = cfg.isKey(CONFKEYS::KSPEED_Y) ? cfg.getInt(CONFKEYS::KSPEED_Y, speedPosY) : 94;
+  sunPosX = cfg.isKey(CONFKEYS::KSUN_X) ? cfg.getInt(CONFKEYS::KSPEED_X, speedPosX) : 3;
+  sunPosY = cfg.isKey(CONFKEYS::KSUN_Y) ? cfg.getInt(CONFKEYS::KSPEED_Y, speedPosY) : 110;
   #endif
 
-  batteryMax = cfg.getFloat(PKEYS::KVMAX_BATT,4.2);
-  batteryMin = cfg.getFloat(PKEYS::KVMIN_BATT,3.6);
+  battery.setBatteryLevels(cfg.getFloat(PKEYS::KVMAX_BATT,4.2),cfg.getFloat(PKEYS::KVMIN_BATT,3.6));
 
-  // compassPosX = 60;
-  // compassPosY = 82;
-  // coordPosX = 66;
-  // coordPosY = 29;
-  // altitudePosX = 8;
-  // altitudePosY = 293;
-  // speedPosX = 1;
-  // speedPosY = 337;
+  defDST = cfg.getString(PKEYS::KDST_ZONE, "EU");
+  if (defDST.equals("NONE"))
+    calculateDST = false;
+  else
+    calculateDST = true;
 
   printSettings();
 }

@@ -2,8 +2,8 @@
  * @file tft.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief TFT definition and functions
- * @version 0.1.8
- * @date 2024-11
+ * @version 0.1.9
+ * @date 2024-12
  */
 
 #include "tft.hpp"
@@ -13,12 +13,6 @@ bool repeatCalib = false;
 uint16_t TFT_WIDTH = 0;
 uint16_t TFT_HEIGHT = 0;
 bool waitScreenRefresh = false;
-
-#ifdef TDECK_ESP32S3 
-  extern const uint8_t TFT_SPI_BL;
-#endif
-
-
 
 /**
  * @brief Turn on TFT Sleep Mode for ILI9488

@@ -2,8 +2,8 @@
  * @file LILYGO_TDECK.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es) and Antonio Vanegas @Hpsturn
  * @brief  LOVYANGFX TFT driver for ST7789 SPI With GT911 Touch controller
- * @version 0.1.8
- * @date 2024-11
+ * @version 0.1.9
+ * @date 2024-12
  */
 
 #ifndef LILYGO_TDECK_HPP

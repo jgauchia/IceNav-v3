@@ -2,8 +2,8 @@
  * @file vectorMaps.cpp
  * @author @aresta - https://github.com/aresta/ESP32_GPS
  * @brief  Vector maps draw functions
- * @version 0.1.8
- * @date 2024-11
+ * @version 0.1.9
+ * @date 2024-12
  */
 
 #include "vectorMaps.hpp"
@@ -66,7 +66,6 @@ void getPosition(double lat, double lon)
   Coord pos;
   pos.lat = lat;
   pos.lng = lon;
-
   if (abs(pos.lat - prevLat) > 0.00005 && abs(pos.lng - prevLng) > 0.00005)
   {
     point.x = lon2x(pos.lng);
@@ -204,7 +203,6 @@ BBox parseBbox(String str)
 MapBlock *readMapBlock(String fileName)
 {
   log_d("readMapBlock: %s", fileName.c_str());
-  char c;
   char str[30];
   MapBlock *mblock = new MapBlock();
   fs::File file_ = SD.open(fileName + ".fmp");
@@ -236,7 +234,6 @@ MapBlock *readMapBlock(String fileName)
     uint32_t totalPoints = 0;
     Polygon polygon;
     Point16 p;
-    int16_t maxVectorZoom;// = 4;
     while (count > 0)
     {
       // log_d("line: %i", line);
@@ -573,6 +570,26 @@ void generateVectorMap(ViewPort &viewPort, MemCache &memCache, TFT_eSprite &map)
     //     TILE_WIDTH / 2, TILE_HEIGHT / 2 - 6,
     //     RED);
     log_d("Draw done! %i", millis());
+
+    MapBlock *firstBlock = memCache.blocks.front();
+    delete firstBlock;   
+    memCache.blocks.erase(memCache.blocks.begin()); 
+
+    totalBounds.lat_min = mercatorY2lat(viewPort.bbox.min.y);
+    totalBounds.lat_max = mercatorY2lat(viewPort.bbox.max.y);
+    totalBounds.lon_min = mercatorX2lon(viewPort.bbox.min.x);
+    totalBounds.lon_max = mercatorX2lon(viewPort.bbox.max.x);
+
+    log_i("Total Bounds: Lat Min: %f, Lat Max: %f, Lon Min: %f, Lon Max: %f",
+      totalBounds.lat_min, totalBounds.lat_max, totalBounds.lon_min, totalBounds.lon_max);
+
+    if(isCoordInBounds(destLat,destLon,totalBounds))
+      coords2map(destLat, destLon, totalBounds, &wptPosX, &wptPosY);
+    else
+    {
+      wptPosX = -1;
+      wptPosY = -1;
+    }
   }
   else
   {

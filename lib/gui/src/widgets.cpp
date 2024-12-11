@@ -2,8 +2,8 @@
  * @file widgets.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Widgets
- * @version 0.1.8
- * @date 2024-11
+ * @version 0.1.9
+ * @date 2024-12
  */
 
 #include "widgets.hpp"
@@ -14,6 +14,8 @@ lv_obj_t *latitude;
 lv_obj_t *longitude;
 lv_obj_t *altitude;
 lv_obj_t *speedLabel;
+lv_obj_t *sunriseLabel;
+lv_obj_t *sunsetLabel;
 
 /**
  * @brief Edit Screen Event (drag widgets)
@@ -211,4 +213,41 @@ void speedWidget(_lv_obj_t *screen)
     lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);
     lv_obj_add_event_cb(obj, dragWidget, LV_EVENT_PRESSING, (char *)"Speed_");
     lv_obj_add_event_cb(obj, unselectWidget, LV_EVENT_RELEASED, (char *)"Speed_");
+}
+
+/**
+ * @brief Sunrise/Sunset widget
+ *
+ * @param screen 
+ */
+void sunWidget(_lv_obj_t *screen)
+{
+  lv_obj_t *obj = lv_obj_create(screen);
+  lv_obj_set_size(obj, 70 * scale, 60 * scale);
+  lv_obj_set_pos(obj, sunPosX, sunPosY);
+  lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
+
+  sunriseLabel = lv_label_create(obj);
+  lv_obj_align(sunriseLabel, LV_ALIGN_TOP_RIGHT, 16, -2);
+  lv_label_set_text_static(sunriseLabel, "");
+  sunsetLabel = lv_label_create(obj);
+  lv_obj_align(sunsetLabel,LV_ALIGN_BOTTOM_RIGHT, 16, 10);
+  lv_label_set_text_static(sunsetLabel, "");
+
+  lv_obj_t *img;
+  img = lv_img_create(obj);
+  lv_img_set_src(img, sunriseIconFile);
+  lv_img_set_zoom(img,iconScale);
+  lv_obj_update_layout(img);
+  lv_obj_align(img, LV_ALIGN_TOP_LEFT, -10, -10);
+  img = lv_img_create(obj);
+  lv_img_set_src(img, sunsetIconFile);
+  lv_img_set_zoom(img,iconScale);
+  lv_obj_update_layout(img);
+  lv_obj_align(img, LV_ALIGN_BOTTOM_LEFT, -10, 10);
+
+  objUnselect(obj);
+  lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);
+  lv_obj_add_event_cb(obj, dragWidget, LV_EVENT_PRESSING, (char *)"Sun_");
+  lv_obj_add_event_cb(obj, unselectWidget, LV_EVENT_RELEASED, (char *)"Sun_");
 }

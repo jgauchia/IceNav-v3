@@ -2,24 +2,18 @@
  * @file vectorMaps.hpp
  * @author @aresta - https://github.com/aresta/ESP32_GPS
  * @brief  Vector maps draw functions
- * @version 0.1.8
- * @date 2024-11
+ * @version 0.1.9
+ * @date 2024-12
  */
 
 #ifndef VECTORMAPS_HPP
 #define VECTORMAPS_HPP
 
-#include <SPI.h>
-#include <SD.h>
 #include <StreamUtils.h>
-#include <string>
-#include <stdint.h>
 #include <vector>
-#include <array>
-#include <math.h>
 #include <map>
 #include "globalMapsDef.h"
-#include "tft.hpp"
+#include "renderMaps.hpp"
 #include "gpsMath.hpp"
 #include "settings.hpp"
 
@@ -61,6 +55,8 @@ const int32_t MAPFOLDER_MASK = pow(2, MAPFOLDER_SIZE_BITS) - 1; // ...00001111
 
 static double lat2y(double lat) { return log(tan(DEG2RAD(lat) / 2 + M_PI / 4)) * EARTH_RADIUS; }
 static double lon2x(double lon) { return DEG2RAD(lon) * EARTH_RADIUS; }
+static double mercatorX2lon(double x) { return (x / EARTH_RADIUS) * (180.0 / M_PI); }
+static double mercatorY2lat(double y) { return (atan(sinh(y / EARTH_RADIUS))) * (180.0 / M_PI); }
 
 /**
  * @brief Point in 16 bits projected coordinates (x,y)
@@ -187,7 +183,7 @@ struct MemBlocks
 };
 
 /**
- * @brief Point in geografic (lat,lon) coordinates and other gps data
+ * @brief Point in geographic (lat,lon) coordinates and other gps data
  *
  */
 struct Coord

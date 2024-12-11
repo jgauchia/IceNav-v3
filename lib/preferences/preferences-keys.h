@@ -13,12 +13,15 @@
   X(KALTITUDE_Y, "Altitude_Y", INT)      \
   X(KSPEED_X, "Speed_X", INT)            \
   X(KSPEED_Y, "Speed_Y", INT)            \
+  X(KSUN_X, "Sun_X", INT)                \
+  X(KSUN_Y, "Sun_Y", INT)                \
   X(KCOMP_OFFSET_X, "C_offset_x", FLOAT) \
   X(KCOMP_OFFSET_Y, "C_offset_y", FLOAT) \
   X(KCOMP_ROT, "Compass_rot", BOOL)      \
   X(KGPS_SPEED, "GPS_speed", SHORT)      \
   X(KGPS_RATE, "GPS_rate", SHORT)        \
   X(KWEB_FILE, "Web_file", BOOL)         \
+  X(KDST_ZONE, "defDST", STRING)         \
   X(KUSER, "-----", UNKNOWN)             \
   X(KDEF_ZOOM, "defZoom", UINT)          \
   X(KGPS_TX, "gpsTX", UINT)              \
@@ -29,4 +32,5 @@
   X(KVMAX_BATT, "VmaxBatt", FLOAT)       \
   X(KVMIN_BATT, "VminBatt", FLOAT)       \
   X(KTEMP_OFFS, "tempOffs", INT)         \
+  X(KGMT_OFFS, "defGMT", INT)            \
   X(KCOUNT, "KCOUNT", UNKNOWN)

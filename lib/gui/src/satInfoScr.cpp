@@ -2,8 +2,8 @@
  * @file satInfoScr.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Satellite info screen 
- * @version 0.1.8
- * @date 2024-11
+ * @version 0.1.9
+ * @date 2024-12
  */
 
 #include "satInfoScr.hpp"
@@ -35,7 +35,6 @@ void drawTextOnLayer(const char * text, lv_layer_t * layer, lv_point_t * p, lv_a
   lv_draw_rect_dsc_t draw_rect_dsc;
   lv_draw_rect_dsc_init(&draw_rect_dsc);
 
-  //draw_rect_dsc.bg_color = lv_color_black();
   draw_rect_dsc.bg_opa = LV_OPA_TRANSP;
   draw_rect_dsc.radius = 0;
   draw_rect_dsc.bg_image_symbol_font = font;

@@ -2,16 +2,11 @@
  * @file waypointScr.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Waypoint Screen
- * @version 0.1.8
- * @date 2024-11
+ * @version 0.1.9
+ * @date 2024-12
  */
 
 #include "waypointScr.hpp"
-#include "core/lv_obj_pos.h"
-#include "display/lv_display.h"
-#include "globalGuiDef.h"
-#include "tft.hpp"
-#include "addWaypoint.hpp"
 
 lv_obj_t *waypointScreen;  // Add Waypoint Screen
 lv_obj_t *waypointName;
@@ -55,8 +50,6 @@ static void waypointScreenEvent(lv_event_t *event)
               editWaypointName(loadWpt.name, newName);
             }
             break;
-          // default:
-          //   break;
         }
 
         isMainScreen = true;
@@ -106,8 +99,6 @@ static void waypointScreenEvent(lv_event_t *event)
            editWaypointName(loadWpt.name, newName);
         }
         break;
-      // default:
-      //   break;
     }
 
     isMainScreen = true;
@@ -153,6 +144,46 @@ static void rotateScreen(lv_event_t *event)
   }
   lv_obj_set_width(waypointName, tft.width() -10);
   lv_refr_now(display);
+}
+
+/**
+ * @brief Waypoint Name event
+ *
+ * @param event
+ */
+static void waypointNameEvent(lv_event_t *event)
+{
+  lv_event_code_t code = lv_event_get_code(event);
+  if(code == LV_EVENT_CLICKED)
+  {
+    switch (wptAction)
+      {
+        case WPT_ADD:
+          addWpt.name = (char *)lv_textarea_get_text(waypointName);
+
+          if ( strcmp(addWpt.name,"") != 0)
+          {
+            openGpxFile(wptFile);
+            vTaskDelay(100);
+            addWaypointToFile(wptFile,addWpt);
+          }
+          break;
+        case WPT_EDIT:
+          char *newName = (char *)lv_textarea_get_text(waypointName);
+
+          if ( strcmp(loadWpt.name, newName) != 0)
+          {
+            editWaypointName(loadWpt.name, newName);
+          }
+          break;
+      }
+
+    isMainScreen = true;
+    redrawMap = true;
+    wptAction = WPT_NONE;
+    lv_refr_now(display);
+    loadMainScreen();
+  }
 }
 
 /**
@@ -202,7 +233,6 @@ void createWaypointScreen()
   #ifdef TDECK_ESP32S3
     lv_group_add_obj(scrGroup, waypointName);
     lv_group_focus_obj(waypointName);
-    //lv_group_add_obj(scrGroup, waypointScreen);
   #endif
 
   #ifndef TDECK_ESP32S3
@@ -216,18 +246,22 @@ void createWaypointScreen()
     lv_obj_align(rotateScreenBtn, LV_ALIGN_TOP_RIGHT, -10, 5);
     lv_obj_add_flag(rotateScreenBtn, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(rotateScreenBtn, rotateScreen, LV_EVENT_CLICKED, NULL);
+    lv_obj_set_size(rotateScreenBtn, 40, 35);
     lv_obj_t *rotateScreenLbl = lv_label_create(rotateScreenBtn);
     lv_label_set_text(rotateScreenLbl, LV_SYMBOL_LOOP);
     lv_obj_center(rotateScreenLbl);
   #endif
 
-  lv_obj_t* label;
-  label = lv_label_create(waypointScreen);
-  lv_obj_set_style_text_font(label, fontOptions, 0);
-  lv_label_set_text_static(label, "Waypoint Name:");
-  lv_obj_center(label);
-  lv_obj_align(label,LV_ALIGN_TOP_LEFT,10,10);
+  lv_obj_t* labelWpt;
+  labelWpt = lv_label_create(waypointScreen);
+  lv_obj_set_style_text_font(labelWpt, fontOptions, 0);
+  lv_label_set_text_static(labelWpt, LV_SYMBOL_LEFT " Waypoint Name:");
+  lv_obj_center(labelWpt);
+  lv_obj_align(labelWpt,LV_ALIGN_TOP_LEFT,10,10);
+  lv_obj_add_flag(labelWpt, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_event_cb(labelWpt, waypointNameEvent, LV_EVENT_ALL, NULL);
 
+  lv_obj_t* label;
   label = lv_label_create(waypointScreen);
   lv_obj_set_style_text_font(label, fontOptions, 0);
   lv_label_set_text_static(label, "Lat:");

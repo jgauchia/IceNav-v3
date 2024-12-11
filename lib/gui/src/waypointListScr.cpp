@@ -2,8 +2,8 @@
  * @file waypointListScr.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Waypoint list screen
- * @version 0.1.8
- * @date 2024-11
+ * @version 0.1.9
+ * @date 2024-12
  */
 
 #include "waypointListScr.hpp"
@@ -56,6 +56,8 @@ void waypointListEvent(lv_event_t * event)
                         else 
                             lv_obj_add_flag(navTile,LV_OBJ_FLAG_HIDDEN);
 
+                        isPosMoved = true;
+                        
                         loadMainScreen();
                         break;
                     case WPT_EDIT:

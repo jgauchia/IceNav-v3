@@ -2,8 +2,8 @@
  * @file buttonBar.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Button Bar
- * @version 0.1.8
- * @date 2024-11
+ * @version 0.1.9
+ * @date 2024-12
  */
 
 #ifndef BUTTONBAR_HPP
@@ -11,6 +11,8 @@
 
 #include "globalGuiDef.h"
 #include "mainScr.hpp"
+#include "waypointScr.hpp"
+#include "waypointListScr.hpp"
 
 static const char *waypointIconFile PROGMEM = "/wpt.bin";      // Waypoint icon
 static const char *trackIconFile PROGMEM = "/track.bin";       // Track icon

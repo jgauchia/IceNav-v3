@@ -2,8 +2,8 @@
  * @file gps.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  GPS definition and functions
- * @version 0.1.8
- * @date 2024-11
+ * @version 0.1.9
+ * @date 2024-12
  */
 
 #include "gps.hpp"
@@ -138,8 +138,15 @@ void getGPSData()
   // Time and Date
   if (fix.valid.time && fix.valid.date)
   {
-    adjustTime( fix.dateTime );
+    adjustTime( fix.dateTime );   
     localTime = fix.dateTime;
+    if (calcSun)
+    {
+      // Calculate Sunrise and Sunset only one time when date & time was valid
+      calculateSun();
+      log_v("Get date, time, Sunrise and Sunset");  
+      calcSun = false;
+    }
   }
 
   // Altitude
@@ -151,8 +158,9 @@ void getGPSData()
     gpsData.speed = (uint16_t)fix.speed_kph();
 
   // Latitude and Longitude
-  gpsData.latitude = getLat();
-  gpsData.longitude = getLon();
+  if (fix.valid.location)
+    gpsData.latitude = getLat();
+    gpsData.longitude = getLon();
 
   // Heading
   if (fix.valid.heading)

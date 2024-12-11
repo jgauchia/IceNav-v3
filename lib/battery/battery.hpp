@@ -2,8 +2,8 @@
  * @file battery.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Battery monitor definition and functions
- * @version 0.1.8
- * @date 2024-11
+ * @version 0.1.9
+ * @date 2024-12
  */
 
 #ifndef BATTERY_HPP
@@ -13,16 +13,19 @@
 #include <driver/adc.h>
 #include <esp_adc_cal.h>
 
-static esp_adc_cal_characteristics_t characteristics;
-#define V_REF 3.9 // ADC reference voltage
+class Battery
+{
+private:
+    float batteryMax;
+    float batteryMin;
+    static constexpr float V_REF = 3.9; // ADC reference voltage
 
-extern float batteryMax;     // 4.2;      // maximum voltage of battery
-extern float batteryMin;     // 3.6;      // minimum voltage of battery before shutdown
+public:
+    Battery();
 
-extern uint8_t battLevel;
-extern uint8_t battLevelOld;
-
-void initADC();
-float batteryRead();
+    void initADC();
+    void setBatteryLevels(float maxVoltage, float minVoltage);
+    float readBattery();
+};
 
 #endif

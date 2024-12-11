@@ -2,12 +2,11 @@
  * @file settingsScr.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Settings Screen
- * @version 0.1.8
- * @date 2024-11
+ * @version 0.1.9
+ * @date 2024-12
  */
 
 #include "settingsScr.hpp"
-#include "globalGuiDef.h"
 
 bool needReboot = false;
 
@@ -19,7 +18,10 @@ bool needReboot = false;
 static void back(lv_event_t *event)
 {
   if (isSearchingSat)
+  {
+    lv_timer_pause(mainTimer);
     lv_screen_load(searchSatScreen);
+  }
   else
     loadMainScreen();
 }

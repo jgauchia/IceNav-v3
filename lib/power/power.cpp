@@ -2,28 +2,44 @@
  * @file power.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  ESP32 Power Management functions
- * @version 0.1.8
- * @date 2024-11
+ * @version 0.1.9
+ * @date 2024-12
  */
 
 #include "power.hpp"
 
 extern const uint8_t BOARD_BOOT_PIN;
 
+Power::Power()
+{
+  #ifdef DISABLE_RADIO
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_OFF);
+    btStop();
+    esp_wifi_stop();
+    esp_bt_controller_disable();
+  #endif
+}
+
 /**
  * @brief Deep Sleep Mode
  * 
  */
-void powerDeepSleep()
+void Power::powerDeepSleep()
 {
   esp_bluedroid_disable();
   esp_bt_controller_disable();
   esp_wifi_stop();
   esp_deep_sleep_disable_rom_logging();
   delay(10);
-  // If you need other peripherals to maintain power, please set the IO port to hold
-  // gpio_hold_en((gpio_num_t)BOARD_POWERON);
-  // gpio_deep_sleep_hold_en();
+
+  #ifdef ICENAV_BOARD
+    // If you need other peripherals to maintain power, please set the IO port to hold
+    gpio_hold_en((gpio_num_t)TFT_BL);
+    gpio_hold_en((gpio_num_t)BOARD_BOOT_PIN);
+    gpio_deep_sleep_hold_en();
+  #endif
+
   esp_sleep_enable_ext1_wakeup(1ull << BOARD_BOOT_PIN, ESP_EXT1_WAKEUP_ANY_LOW);
   esp_deep_sleep_start();
 }
@@ -33,7 +49,7 @@ void powerDeepSleep()
  * 
  * @param millis 
  */
-void powerLightSleepTimer(int millis)
+void Power::powerLightSleepTimer(int millis)
 {
   esp_sleep_enable_timer_wakeup(millis * 1000);
   esp_err_t rtc_gpio_hold_en(gpio_num_t GPIO_NUM_5);
@@ -44,16 +60,27 @@ void powerLightSleepTimer(int millis)
  * @brief Sleep Mode
  * 
  */
-void powerLightSleep()
+void Power::powerLightSleep()
 {
   esp_sleep_enable_ext1_wakeup(1ull << BOARD_BOOT_PIN, ESP_EXT1_WAKEUP_ANY_LOW);
   esp_light_sleep_start();
 }
 
 /**
+ * @brief Power off peripherals devices
+ */
+void Power::powerOffPeripherals()
+{
+  tftOff();
+  tft.fillScreen(TFT_BLACK);
+  SPI.end();
+  Wire.end();
+}
+
+/**
  * @brief Core light suspend and TFT off
  */
-void deviceSuspend()
+void Power::deviceSuspend()
 {
   int brightness = tft.getBrightness();
   lv_msgbox_close(powerMsg); 
@@ -70,34 +97,27 @@ void deviceSuspend()
 
 /**
  * @brief Power off peripherals and deep sleep
+ *
  */
-void deviceShutdown()
+void Power::deviceShutdown()
 {
   powerOffPeripherals();
   powerDeepSleep();
 }
 
-/**
- * @brief Power off peripherals devices
- */
-void powerOffPeripherals()
-{
-  tftOff();
-  SPI.end();
-  Wire.end();
-}
 
-/**
- * @brief On Mode
- * 
- */
-void powerOn()
-{
-#ifdef DISABLE_RADIO
-  WiFi.disconnect(true);
-  WiFi.mode(WIFI_OFF);
-  btStop();
-  esp_wifi_stop();
-  esp_bt_controller_disable();
-#endif
-}
+
+// /**
+//  * @brief On Mode
+//  * 
+//  */
+// void powerOn()
+// {
+// #ifdef DISABLE_RADIO
+//   WiFi.disconnect(true);
+//   WiFi.mode(WIFI_OFF);
+//   btStop();
+//   esp_wifi_stop();
+//   esp_bt_controller_disable();
+// #endif
+// }
