@@ -2,7 +2,7 @@
  * @file firmUpgrade.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Firmware upgrade from SD functions
- * @version 0.1.9
+ * @version 0.2.0_alpha
  * @date 2024-12
  */
 
