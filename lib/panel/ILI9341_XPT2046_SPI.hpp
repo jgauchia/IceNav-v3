@@ -2,8 +2,8 @@
 //  * @file ILI9341_XPT2046_SPI.hpp
 //  * @author Jordi Gauchía (jgauchia@gmx.es)
 //  * @brief  LOVYANGFX TFT driver for ILI9341 SPI With XPT2046 Touch controller
-//  * @version 0.1.9_alpha
-//  * @date 2024-11
+//  * @version 0.1.9
+//  * @date 2024-12
 //  */
 
 #ifndef ILI9341_XPT2046_SPI_HPP

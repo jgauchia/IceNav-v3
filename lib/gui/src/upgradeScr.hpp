@@ -2,8 +2,8 @@
  * @file upgradeScr.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL Firmware upgrade messages
- * @version 0.1.9_alpha
- * @date 2024-11
+ * @version 0.1.9
+ * @date 2024-12
  */
 
 #ifndef UPGRADESCR_HPP
