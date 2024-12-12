@@ -29,6 +29,7 @@ extern DFRobot_QMC5883 compass;
 #include <MPU9250.h>
 extern MPU9250 IMU;
 #define ENABLE_COMPASS
+#define ENABLE_IMU;
 #endif
 
 #define COMPASS_CAL_TIME 16000

@@ -48,8 +48,7 @@ int heading = 0;
 float offX = 0.0, offY = 0.0; 
 
 /**
-:wa
-* @brief Init Compass
+ * @brief Init Compass
  *
  */
 void initCompass()
