@@ -40,6 +40,10 @@
 #include "bme.hpp"
 #endif
 
+#ifdef MPU6050
+#include "imu.hpp"
+#endif
+
 extern xSemaphoreHandle gpsMutex;
 
 #include "webpage.h"
@@ -115,11 +119,15 @@ void setup()
   Wire.begin();
 
   #ifdef BME280
-   initBME();
+    initBME();
   #endif
 
   #ifdef ENABLE_COMPASS
-   initCompass();
+    initCompass();
+  #endif
+
+  #ifdef ENABLE_IMU
+    initIMU();
   #endif
 
   // powerOn();
