@@ -388,13 +388,11 @@ void initShell()
 }
 
 /**
- * @brief WiFi CLI init and IceNav custom commands
+ * @brief WiFi CLI init
  **/
 void initCLI() 
 {
-  #ifndef ARDUINO_USB_CDC_ON_BOOT
-    Serial.begin(115200);
-  #endif
+  Serial.begin(115200);
   log_v("init CLI");
   initShell(); 
   initRemoteShell();

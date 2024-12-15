@@ -97,10 +97,6 @@ void setup()
     #endif
   #endif
 
-  #ifdef ARDUINO_USB_CDC_ON_BOOT
-    Serial.begin(115200);  
-  #endif
-  
   #ifdef TDECK_ESP32S3
     pinMode(BOARD_POWERON, OUTPUT);
     digitalWrite(BOARD_POWERON, HIGH);
@@ -133,6 +129,7 @@ void setup()
   storage.initSD();
   storage.initSPIFFS();
   battery.initADC();
+
   initTFT();
   loadPreferences();
   initGPS();
