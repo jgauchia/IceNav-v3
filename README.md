@@ -251,14 +251,13 @@ poweroff:       perform a ESP32 deep sleep
 reboot:         perform a ESP32 reboot
 scshot:         screenshot to SD or sending a PC
 setdstzone:     set DST (Daylight Saving Time zone: NONE, EU or USA)
-waypoint:       waypoint utilities
 webfile:        enable/disable Web file server
 wipe:           wipe preferences to factory default
 ```
 
 Some extra details:
 
-**klist**: List user custom settings:
+**klist**: List user custom settings (example of custom settings):
 
 ```
     defZoom     custom          17 
@@ -307,20 +306,6 @@ nc -l -p 8123 > screenshot.png
 
 Additionally, you can download the screenshot with webfile server.
 
-**waypoint**: type `waypoint` for detailed options.
-
-Additionally, this waypoint command can send the waypoint over WiFi using the following syntax (replace IP with your PC IP):
-
-```bash
-waypoint down file.gpx 192.168.1.10 8123
-```
-
-Ensure your PC has the specified port open and firewall access enabled to receive the waypoint file via the `netcat` command, like this:
-
-```bash
-nc -l -p 8123 > waypoint.gpx
-```
-
 ## Web File Server 
 
 IceNav has a small web file server (https://youtu.be/IYLcdP40cU4) to manage existing files on the SD card.
@@ -341,7 +326,7 @@ To access the Web File Server, simply use any browser and go to the following ad
 - [ ] Multiple IMU's and Compass module implementation
 - [X] Power saving
 - [X] Vector maps
-- [ ] Google Maps navigation style
+- [ ] Google Maps navigation style (turn by turn)
 - [x] Optimize code
 - [X] Fix bugs!
 - [X] Web file server
