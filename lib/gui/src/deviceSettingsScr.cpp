@@ -32,7 +32,7 @@ static void deviceSettingsEvent(lv_event_t *event)
   if (strcmp(option, "back") == 0)
   {
     log_i("saving brightness to: %i", defBright);
-    saveBrightness(defBright);
+    cfg.saveUInt(PKEYS::KDEF_BRIGT, defBright);
     lv_screen_load(settingsScreen);
   }
 }

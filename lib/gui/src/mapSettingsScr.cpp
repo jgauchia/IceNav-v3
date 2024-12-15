@@ -24,8 +24,8 @@ static void mapSettingsEvents(lv_event_t *event)
   {
     if (needReboot)
     {   
-      saveMapType(isVectorMap);
-      saveDefaultZoom(defaultZoom);
+      cfg.saveBool(PKEYS::KMAP_VECTOR, isVectorMap);
+      cfg.saveUInt(PKEYS::KDEF_ZOOM, defaultZoom);
       lv_obj_delete(mapSettingsScreen);
       showRestartScr();
     }
@@ -41,7 +41,7 @@ static void mapSettingsEvents(lv_event_t *event)
       defaultZoom = (uint8_t)lv_spinbox_get_value(zoomLevel);
       zoom = defaultZoom;
       isPosMoved = true;
-      saveDefaultZoom(defaultZoom);
+      cfg.saveUInt(PKEYS::KDEF_ZOOM, defaultZoom);
     }
   }
 
@@ -53,7 +53,7 @@ static void mapSettingsEvents(lv_event_t *event)
       defaultZoom = (uint8_t)lv_spinbox_get_value(zoomLevel);
       zoom = defaultZoom;
       isPosMoved = true;
-      saveDefaultZoom(defaultZoom);
+      cfg.saveUInt(PKEYS::KDEF_ZOOM, defaultZoom);
     }
   }
 
@@ -79,37 +79,37 @@ static void mapSettingsEvents(lv_event_t *event)
   if (obj == mapSwitch)
   {
     isMapRotation = lv_obj_has_state(obj, LV_STATE_CHECKED);
-    saveMapRotation(isMapRotation);
+    cfg.saveBool(PKEYS::KMAP_ROT_MODE, isMapRotation);
   }
 
   if (obj == checkCompass)
   {
     showMapCompass = lv_obj_has_state(obj, LV_STATE_CHECKED);
-    saveShowCompass(showMapCompass);
+     cfg.saveBool(PKEYS::KMAP_COMPASS, showMapCompass);
   }
 
   if (obj == checkCompassRot)
   {
     isCompassRot = lv_obj_has_state(obj, LV_STATE_CHECKED);
-    saveCompassRot(isCompassRot);
+    cfg.saveBool(PKEYS::KMAP_COMP_ROT, isCompassRot);
   }
 
   if (obj == checkSpeed)
   {
     showMapSpeed = lv_obj_has_state(obj, LV_STATE_CHECKED);
-    saveShowSpeed(showMapSpeed);
+    cfg.saveBool(PKEYS::KMAP_SPEED, showMapSpeed);
   }
 
   if (obj == checkScale)
   {
     showMapScale = lv_obj_has_state(obj, LV_STATE_CHECKED);
-    saveShowScale(showMapScale);
+    cfg.saveBool(PKEYS::KMAP_SCALE, showMapScale);
   }
 
   if (obj == checkFullScreen)
   {
     isMapFullScreen = lv_obj_has_state(obj, LV_STATE_CHECKED);
-    saveShowMap(isMapFullScreen);
+    cfg.saveBool(PKEYS::KMAP_MODE, isMapFullScreen);
     needReboot = true;
   }
 }

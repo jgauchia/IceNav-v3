@@ -56,8 +56,6 @@ int8_t tempOffset = 0;        // BME Temperature offset
 extern Battery battery;
 String defDST = "NONE";       // default DST zone
 bool calculateDST = false;    // Calculate DST flag
-// float batteryMax = 0.0;       // 4.2;      // maximum voltage of battery
-// float batteryMin = 0.0;       // 3.6;      // minimum voltage of battery before shutdown
 
 /**
  * @brief Load stored preferences
@@ -132,78 +130,6 @@ void loadPreferences()
     calculateDST = true;
 
   printSettings();
-}
-
-/**
- * @brief Save Map Rotation Type
- *
- * @param zoomRotation
- */
-void saveMapRotation(bool zoomRotation)
-{
-  cfg.saveBool(PKEYS::KMAP_ROT_MODE, zoomRotation);
-}
-
-/**
- * @brief Save current compass calibration in preferences
- *
- * @param offsetX
- * @param offsetY
- */
-void saveCompassCal(float offsetX, float offsetY)
-{
-  cfg.saveFloat(PKEYS::KCOMP_OFFSET_X, offsetX);
-  cfg.saveFloat(PKEYS::KCOMP_OFFSET_Y, offsetY);
-}
-
-/**
- * @brief Save default zoom value
- *
- * @param defaultZoom
- */
-void saveDefaultZoom(uint8_t defaultZoom)
-{
-  cfg.saveUInt(PKEYS::KDEF_ZOOM, defaultZoom);
-}
-
-/**
- * @brief Save show compass in map
- *
- * @param showCompass
- */
-void saveShowCompass(bool showCompass)
-{
-  cfg.saveBool(PKEYS::KMAP_COMPASS, showCompass);
-}
-
-/**
- * @brief Save compass rotation in map
- *
- * @param compassRot
- */
-void saveCompassRot(bool compassRot)
-{
-  cfg.saveBool(PKEYS::KMAP_COMP_ROT, compassRot);
-}
-
-/**
- * @brief Save show speed in map
- *
- * @param showSpeed
- */
-void saveShowSpeed(bool showSpeed)
-{
-  cfg.saveBool(PKEYS::KMAP_SPEED, showSpeed);
-}
-
-/**
- * @brief Save show scale in map
- *
- * @param showScale
- */
-void saveShowScale(bool showScale)
-{
-  cfg.saveBool(PKEYS::KMAP_SCALE, showScale);
 }
 
 /**
@@ -284,60 +210,6 @@ void saveWidgetPos(char *widget, uint16_t posX, uint16_t posY)
 
   cfg.saveInt(widgetX, posX);
   cfg.saveInt(widgetY, posY);
-}
-
-/**
- * @brief Save Map Type
- *
- * @param vector
- */
-void saveMapType(bool vector)
-{
-  cfg.saveBool(PKEYS::KMAP_VECTOR, vector);
-}
-
-/**
- * @brief Save Map Mode
- *
- * @param mapMOde
- */
-void saveShowMap(bool mapMode)
-{
-  cfg.saveBool(PKEYS::KMAP_MODE, mapMode);
-}
-
-/**
- * @brief Save GPS GPIO's
- *
- * @param txGpio
- * @param rxGpio
- */
-void saveGpsGpio(int8_t txGpio, int8_t rxGpio)
-{
-  if (txGpio != -1)
-    cfg.saveUInt(PKEYS::KGPS_TX, (uint8_t)txGpio);
-  if (rxGpio != -1)
-    cfg.saveUInt(PKEYS::KGPS_RX, (uint8_t)rxGpio);
-}
-
-/**
- * @brief Save Enable/disable web file server
- *
- * @param status 
- */
-void saveWebFile(bool status)
-{
-  cfg.saveBool(PKEYS::KWEB_FILE, status);
-}
-
-/**
- * @brief Save default Brightness
- *
- * @param status 
- */
-void saveBrightness(uint8_t vb)
-{
-  cfg.saveUInt(PKEYS::KDEF_BRIGT, vb);
 }
 
 /**

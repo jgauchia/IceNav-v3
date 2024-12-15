@@ -49,21 +49,10 @@ extern String defDST;         // default DST zone
 extern bool calculateDST;     // Calculate DST flag
 
 void loadPreferences();
-void saveMapRotation(bool zoomRotation);
-void saveCompassCal(float offsetX, float offsetY);
-void saveDefaultZoom(uint8_t defaultZoom);
-void saveShowCompass(bool showCompass);
-void saveCompassRot(bool compassRot);
-void saveShowSpeed(bool showSpeed);
-void saveShowScale(bool showScale);
+
 void saveGPSBaud(uint16_t gpsBaud);
 void saveGPSUpdateRate(uint16_t gpsUpdateRate);
 void saveWidgetPos(char *widget, uint16_t posX, uint16_t posY);
-void saveMapType(bool vector);
-void saveShowMap(bool mapMode);
-void saveGpsGpio(int8_t txGpio, int8_t rxGpio);
-void saveWebFile(bool status);
-void saveBrightness(uint8_t vb);
 void printSettings();
 
 #endif
