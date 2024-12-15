@@ -70,9 +70,9 @@ void loadPreferences()
   offX = cfg.getFloat(PKEYS::KCOMP_OFFSET_X, 0.0);
   offY = cfg.getFloat(PKEYS::KCOMP_OFFSET_Y, 0.0);
 #endif
-  isMapRotation = cfg.getBool(PKEYS::KMAP_ROT, false);
+  isMapRotation = cfg.getBool(PKEYS::KMAP_ROT_MODE, false);
   showMapCompass = cfg.getBool(PKEYS::KMAP_COMPASS, true);
-  isCompassRot = cfg.getBool(PKEYS::KCOMP_ROT, true);
+  isCompassRot = cfg.getBool(PKEYS::KMAP_COMP_ROT, true);
   showMapSpeed = cfg.getBool(PKEYS::KMAP_SPEED, true);
   showMapScale = cfg.getBool(PKEYS::KMAP_SCALE, true);
   gpsBaud = cfg.getShort(PKEYS::KGPS_SPEED, 4);
@@ -141,7 +141,7 @@ void loadPreferences()
  */
 void saveMapRotation(bool zoomRotation)
 {
-  cfg.saveBool(PKEYS::KMAP_ROT, zoomRotation);
+  cfg.saveBool(PKEYS::KMAP_ROT_MODE, zoomRotation);
 }
 
 /**
@@ -183,7 +183,7 @@ void saveShowCompass(bool showCompass)
  */
 void saveCompassRot(bool compassRot)
 {
-  cfg.saveBool(PKEYS::KCOMP_ROT, compassRot);
+  cfg.saveBool(PKEYS::KMAP_COMP_ROT, compassRot);
 }
 
 /**
