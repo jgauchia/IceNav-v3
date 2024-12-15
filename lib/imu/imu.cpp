@@ -12,6 +12,8 @@
 Adafruit_MPU6050 mpu;
 #endif
 
+#ifdef ENABLE_IMU
+
 /**
  * @brief Init IMU
  *
@@ -23,3 +25,5 @@ void initIMU()
     else
         log_i("IMU init");
 }
+
+#endif
