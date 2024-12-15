@@ -15,6 +15,8 @@ extern Adafruit_MPU6050 mpu;
 #define ENABLE_IMU
 #endif
 
+#ifdef ENABLE_IMU
 void initIMU();
+#endif
 
 #endif
