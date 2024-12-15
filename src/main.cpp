@@ -130,7 +130,6 @@ void setup()
     initIMU();
   #endif
 
-  // powerOn();
   storage.initSD();
   storage.initSPIFFS();
   battery.initADC();

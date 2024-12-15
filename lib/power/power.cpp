@@ -104,20 +104,3 @@ void Power::deviceShutdown()
   powerOffPeripherals();
   powerDeepSleep();
 }
-
-
-
-// /**
-//  * @brief On Mode
-//  * 
-//  */
-// void powerOn()
-// {
-// #ifdef DISABLE_RADIO
-//   WiFi.disconnect(true);
-//   WiFi.mode(WIFI_OFF);
-//   btStop();
-//   esp_wifi_stop();
-//   esp_bt_controller_disable();
-// #endif
-// }
