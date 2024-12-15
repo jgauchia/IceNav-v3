@@ -205,9 +205,9 @@ eventSource.onmessage = (event) =>
 {
   if (event.data === "refresh")
   {
-    _("status").innerHTML = "";
-    _("details").innerHTML = "Deleted folder: " + filename;
     document.location.reload(true); 
+    _("status").innerHTML = "";
+    _("details").innerHTML = "";
   }
 };
 

@@ -202,6 +202,7 @@ void loop()
     vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
   }
 
+  // Deleting recursive directories in webfile server
   if (enableWeb && deleteDir)
   {
     deleteDir = false;
