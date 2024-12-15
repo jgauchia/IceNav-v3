@@ -201,4 +201,14 @@ void loop()
     lv_timer_handler();
     vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
   }
+
+  if (enableWeb && deleteDir)
+  {
+    deleteDir = false;
+    if(deleteDirRecursive(deletePath.c_str()))
+    {
+      updateList = true;
+      eventRefresh.send("refresh", nullptr, millis());
+    }
+  }
 }
