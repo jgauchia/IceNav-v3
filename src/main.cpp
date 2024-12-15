@@ -210,6 +210,7 @@ void loop()
     {
       updateList = true;
       eventRefresh.send("refresh", nullptr, millis());
+      eventRefresh.send("Folder deleted" , "updateStatus", millis());
     }
   }
 }

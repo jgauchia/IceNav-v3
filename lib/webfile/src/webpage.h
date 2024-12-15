@@ -188,9 +188,8 @@ function downloadDeleteButton(filename, action)
     xhr.open("GET", urltocall, false);
     xhr.send();
     sessionStorage.setItem("msgStatus",xhr.responseText);
-    _("status").innerHTML = "";
-    _("details").innerHTML = "Deleting folder: " + filename + " please wait....";
-    //document.location.reload(true);   
+    _("status").innerHTML = "Deleting folder: " + filename + " please wait....";
+    _("details").innerHTML = "";
   }
   if (action == "download") 
   {
@@ -205,10 +204,13 @@ eventSource.onmessage = (event) =>
 {
   if (event.data === "refresh")
   {
+    sessionStorage.removeItem("msgStatus");
     document.location.reload(true); 
-    _("status").innerHTML = "";
-    _("details").innerHTML = "";
   }
+  eventSource.addEventListener("updateStatus", (event) => 
+  {
+    document.getElementById("status").innerHTML = event.data;
+  });
 };
 
 function changeDirectory(directory)
