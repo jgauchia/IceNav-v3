@@ -218,7 +218,8 @@ void compassCalibrate()
   {
   };
 
-  saveCompassCal(offX,offY);
+  cfg.saveFloat(PKEYS::KCOMP_OFFSET_X, offX);
+  cfg.saveFloat(PKEYS::KCOMP_OFFSET_Y, offY);
 }
 
 

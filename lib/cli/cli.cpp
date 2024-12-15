@@ -325,14 +325,14 @@ void wcli_webfile(char *args, Stream *response)
   {
     if(commands.equals("enable"))
     {
-      saveWebFile(true);
+      cfg.saveBool(PKEYS::KWEB_FILE, true);
       response->println("");
       response->printf("Web file server \033[1;32menabled\033[0;37m\r\n");
       response->println("Please reboot device");
     }
     if(commands.equals("disable"))
     {
-      saveWebFile(false);
+      cfg.saveBool(PKEYS::KWEB_FILE, false);
       response->println("");
       response->printf("Web file server \033[1;32mdisabled\033[0;37m\r\n");
       response->println("Please reboot device");

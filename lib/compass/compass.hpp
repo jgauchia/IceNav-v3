@@ -10,6 +10,7 @@
 #define COMPASS_HPP
 
 #include "tft.hpp"
+#include <EasyPreferences.hpp>
 
 extern int mapHeading;
 
@@ -33,7 +34,6 @@ extern MPU9250 IMU;
 #endif
 
 #define COMPASS_CAL_TIME 16000
-void saveCompassCal(float offsetX, float offsetY);
 extern float declinationAngle;
 extern int heading;
 
