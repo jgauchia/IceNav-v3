@@ -189,8 +189,8 @@ function downloadDeleteButton(filename, action)
     xhr.send();
     sessionStorage.setItem("msgStatus",xhr.responseText);
     _("status").innerHTML = "";
-    _("details").innerHTML = "Deleting folder: " + filename;
-    document.location.reload(true);   
+    _("details").innerHTML = "Deleting folder: " + filename + " please wait....";
+    //document.location.reload(true);   
   }
   if (action == "download") 
   {
@@ -199,6 +199,17 @@ function downloadDeleteButton(filename, action)
     window.open(urltocall,"_blank");
   }
 }
+
+const eventSource = new EventSource('/eventRefresh');
+eventSource.onmessage = (event) => 
+{
+  if (event.data === "refresh")
+  {
+    _("status").innerHTML = "";
+    _("details").innerHTML = "Deleted folder: " + filename;
+    document.location.reload(true); 
+  }
+};
 
 function changeDirectory(directory)
 {

@@ -24,6 +24,8 @@ String createDir;
 uint8_t nextSlash = 0;
 
 bool updateList = true;
+bool deleteDir = false;
+String deletePath = "";
 
 const int FILES_PER_PAGE = 10; 
 
@@ -43,7 +45,10 @@ std::vector<FileEntry> fileCache;
  *
  */
 static AsyncWebServer server(80);
+static AsyncEventSource eventRefresh("/eventRefresh");
 static const char* hostname = "icenav";
+
+
 
 /**
  * @brief Convert bytes to Human Readable Size
@@ -426,6 +431,7 @@ bool deleteDirRecursive(const char *dirPath)
 
   while (true)
   {
+    esp_task_wdt_reset();
     File entry = dir.openNextFile();
     if (!entry)
     {
@@ -440,8 +446,8 @@ bool deleteDirRecursive(const char *dirPath)
     String entryPath = basePath + entry.name(); 
 
     if (entry.isDirectory())
-    {
-        
+    {     
+
       log_v("Found subdirectory: %s", entryPath.c_str());
       if (!deleteDirRecursive(entryPath.c_str()))
       {
@@ -475,7 +481,7 @@ bool deleteDirRecursive(const char *dirPath)
     log_e("Error deleting directory: %s", basePath.c_str());
     return false;
   }
-
+  esp_task_wdt_reset();
   log_v("Deleted directory: %s", basePath.c_str());
   return true;
 }
@@ -489,6 +495,7 @@ void configureWebServer()
 
   server.onNotFound(webNotFound);
   server.onFileUpload(handleUpload);
+  server.addHandler(&eventRefresh);
   oldDir = "/";
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
             {
@@ -541,28 +548,28 @@ void configureWebServer()
               }
         
               if (updateList)
+              {
+                esp_task_wdt_reset();
                 cacheDirectoryContent(oldDir);
+              }
 
               request->send(200, "text/html", listFiles(true, page)); });
 
   server.on("/file", HTTP_GET, [](AsyncWebServerRequest *request)
             {
-              String logMessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-              log_i("%s", logMessage.c_str());
-
               if (request->hasParam("name") && request->hasParam("action"))
               {
                 const char *fileName = request->getParam("name")->value().c_str();
                 const char *fileAction = request->getParam("action")->value().c_str();
 
-                logMessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url() + "?name=" + String(fileName) + "&action=" + String(fileAction);
+                String logMessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url() + "?name=" + String(fileName) + "&action=" + String(fileAction);
 
                 String path = oldDir + "/" + String(fileName);
                 log_i("%s",path.c_str());
 
                 if (!SD.exists(path))
                 {
-                  request->send(400, "text/plain", "ERROR: file does not exist");
+                  request->send(400, "text/plain", "ERROR: file/ does not exist");
                 }
                 else
                 {
@@ -575,9 +582,9 @@ void configureWebServer()
                   else if (strcmp(fileAction, "deldir") == 0)
                   {
                     logMessage += " deleted";
-                    deleteDirRecursive(path.c_str());
-                    request->send(200, "text/plain", "Deleted Folder: " + String(fileName));
-                    updateList = true;
+                    deletePath = path;
+                    deleteDir = true;
+                    request->send(200, "text/plain", "Deleting Folder: " + String(fileName) + " please wait...");
                   }
                   else if (strcmp(fileAction, "delete") == 0)
                   {
@@ -600,7 +607,7 @@ void configureWebServer()
               } });
 
   server.on("/changedirectory", HTTP_GET, [](AsyncWebServerRequest *request)
-            {
+              {
               if (request->hasParam("dir"))
               {
                 updateList = false;
