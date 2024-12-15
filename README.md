@@ -261,18 +261,22 @@ Some extra details:
 **klist**: List user custom settings:
 
 ```
-    KEYNAME     DEFINED         VALUE 
-    =======     =======         ===== 
-    defZoom     custom         
-      gpsTX     custom          
-      gpsRX     custom          
-     defLAT     custom          
-     defLON     custom           
-  defBright     custom          
-   VmaxBatt     custom         
-   VminBatt     custom          
-   tempOffs     custom
-     defGMT     custom     
+    defZoom     custom          17 
+ fullScrMap     custom          true 
+    vectMap     custom          false 
+   mapSpeed     custom          true 
+   mapScale     custom          true 
+    mapComp     custom          true 
+ mapCompRot     custom          true 
+      gpsTX     custom          43 
+      gpsRX     custom          44 
+     defLAT     custom          52.5200
+     defLON     custom          13.4049
+  defBright     custom          255 
+   VmaxBatt     custom          4.19999981 
+   VminBatt     custom          3.59999990 
+   tempOffs     custom          0 
+     defGMT     custom          1   
 ```          
 
 **kset KEYNAME**: Set user custom settings:
