@@ -2,7 +2,7 @@
  * @file compass.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Compass definition and functions
- * @version 0.1.9
+ * @version 0.2.0_alpha
  * @date 2024-12
  */
 
@@ -48,8 +48,7 @@ int heading = 0;
 float offX = 0.0, offY = 0.0; 
 
 /**
-:wa
-* @brief Init Compass
+ * @brief Init Compass
  *
  */
 void initCompass()
@@ -219,7 +218,8 @@ void compassCalibrate()
   {
   };
 
-  saveCompassCal(offX,offY);
+  cfg.saveFloat(PKEYS::KCOMP_OFFSET_X, offX);
+  cfg.saveFloat(PKEYS::KCOMP_OFFSET_Y, offY);
 }
 
 

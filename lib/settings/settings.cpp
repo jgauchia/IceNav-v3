@@ -2,7 +2,7 @@
  * @file settings.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Settings functions
- * @version 0.1.9
+ * @version 0.2.0_alpha
  * @date 2024-12
  */
 
@@ -56,8 +56,6 @@ int8_t tempOffset = 0;        // BME Temperature offset
 extern Battery battery;
 String defDST = "NONE";       // default DST zone
 bool calculateDST = false;    // Calculate DST flag
-// float batteryMax = 0.0;       // 4.2;      // maximum voltage of battery
-// float batteryMin = 0.0;       // 3.6;      // minimum voltage of battery before shutdown
 
 /**
  * @brief Load stored preferences
@@ -70,9 +68,9 @@ void loadPreferences()
   offX = cfg.getFloat(PKEYS::KCOMP_OFFSET_X, 0.0);
   offY = cfg.getFloat(PKEYS::KCOMP_OFFSET_Y, 0.0);
 #endif
-  isMapRotation = cfg.getBool(PKEYS::KMAP_ROT, false);
+  isMapRotation = cfg.getBool(PKEYS::KMAP_ROT_MODE, false);
   showMapCompass = cfg.getBool(PKEYS::KMAP_COMPASS, true);
-  isCompassRot = cfg.getBool(PKEYS::KCOMP_ROT, true);
+  isCompassRot = cfg.getBool(PKEYS::KMAP_COMP_ROT, true);
   showMapSpeed = cfg.getBool(PKEYS::KMAP_SPEED, true);
   showMapScale = cfg.getBool(PKEYS::KMAP_SCALE, true);
   gpsBaud = cfg.getShort(PKEYS::KGPS_SPEED, 4);
@@ -132,78 +130,6 @@ void loadPreferences()
     calculateDST = true;
 
   printSettings();
-}
-
-/**
- * @brief Save Map Rotation Type
- *
- * @param zoomRotation
- */
-void saveMapRotation(bool zoomRotation)
-{
-  cfg.saveBool(PKEYS::KMAP_ROT, zoomRotation);
-}
-
-/**
- * @brief Save current compass calibration in preferences
- *
- * @param offsetX
- * @param offsetY
- */
-void saveCompassCal(float offsetX, float offsetY)
-{
-  cfg.saveFloat(PKEYS::KCOMP_OFFSET_X, offsetX);
-  cfg.saveFloat(PKEYS::KCOMP_OFFSET_Y, offsetY);
-}
-
-/**
- * @brief Save default zoom value
- *
- * @param defaultZoom
- */
-void saveDefaultZoom(uint8_t defaultZoom)
-{
-  cfg.saveUInt(PKEYS::KDEF_ZOOM, defaultZoom);
-}
-
-/**
- * @brief Save show compass in map
- *
- * @param showCompass
- */
-void saveShowCompass(bool showCompass)
-{
-  cfg.saveBool(PKEYS::KMAP_COMPASS, showCompass);
-}
-
-/**
- * @brief Save compass rotation in map
- *
- * @param compassRot
- */
-void saveCompassRot(bool compassRot)
-{
-  cfg.saveBool(PKEYS::KCOMP_ROT, compassRot);
-}
-
-/**
- * @brief Save show speed in map
- *
- * @param showSpeed
- */
-void saveShowSpeed(bool showSpeed)
-{
-  cfg.saveBool(PKEYS::KMAP_SPEED, showSpeed);
-}
-
-/**
- * @brief Save show scale in map
- *
- * @param showScale
- */
-void saveShowScale(bool showScale)
-{
-  cfg.saveBool(PKEYS::KMAP_SCALE, showScale);
 }
 
 /**
@@ -284,60 +210,6 @@ void saveWidgetPos(char *widget, uint16_t posX, uint16_t posY)
 
   cfg.saveInt(widgetX, posX);
   cfg.saveInt(widgetY, posY);
-}
-
-/**
- * @brief Save Map Type
- *
- * @param vector
- */
-void saveMapType(bool vector)
-{
-  cfg.saveBool(PKEYS::KMAP_VECTOR, vector);
-}
-
-/**
- * @brief Save Map Mode
- *
- * @param mapMOde
- */
-void saveShowMap(bool mapMode)
-{
-  cfg.saveBool(PKEYS::KMAP_MODE, mapMode);
-}
-
-/**
- * @brief Save GPS GPIO's
- *
- * @param txGpio
- * @param rxGpio
- */
-void saveGpsGpio(int8_t txGpio, int8_t rxGpio)
-{
-  if (txGpio != -1)
-    cfg.saveUInt(PKEYS::KGPS_TX, (uint8_t)txGpio);
-  if (rxGpio != -1)
-    cfg.saveUInt(PKEYS::KGPS_RX, (uint8_t)rxGpio);
-}
-
-/**
- * @brief Save Enable/disable web file server
- *
- * @param status 
- */
-void saveWebFile(bool status)
-{
-  cfg.saveBool(PKEYS::KWEB_FILE, status);
-}
-
-/**
- * @brief Save default Brightness
- *
- * @param status 
- */
-void saveBrightness(uint8_t vb)
-{
-  cfg.saveUInt(PKEYS::KDEF_BRIGT, vb);
 }
 
 /**

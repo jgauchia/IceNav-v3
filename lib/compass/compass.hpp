@@ -2,7 +2,7 @@
  * @file compass.hpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  Compass definition and functions
- * @version 0.1.9
+ * @version 0.2.0_alpha
  * @date 2024-12
  */
 
@@ -10,6 +10,7 @@
 #define COMPASS_HPP
 
 #include "tft.hpp"
+#include <EasyPreferences.hpp>
 
 extern int mapHeading;
 
@@ -29,10 +30,10 @@ extern DFRobot_QMC5883 compass;
 #include <MPU9250.h>
 extern MPU9250 IMU;
 #define ENABLE_COMPASS
+#define ENABLE_IMU;
 #endif
 
 #define COMPASS_CAL_TIME 16000
-void saveCompassCal(float offsetX, float offsetY);
 extern float declinationAngle;
 extern int heading;
 

@@ -109,6 +109,8 @@ To do this, simply include the following Build Flag in the required env in platf
 | QMC5883     | 🧭 Compass    | ```-DQMC5883```                    | ```dfrobot/DFRobot_QMC5883@1.0.0```                   |
 | MPU9250     | 🧭 IMU (Compass) | ```-DIMU_MPU9250```                | ```bolderflight/Bolder Flight Systems MPU9250@1.0.2```|
 | BME280      | 🌡️ Temp <br> ☁️ Pres <br> 💧 Hum | ```-DBME280```                     | ```adafruit/Adafruit Unified Sensor@1.1.14``` <br> ```adafruit/Adafruit BusIO@1.16.2``` <br> ```adafruit/Adafruit BME280 Library@2.2.4```|
+| MPU6050     | 📳 IMU | ```-DMPU6050```                     | ```adafruit/Adafruit Unified Sensor@1.1.14``` <br> ```adafruit/Adafruit BusIO@1.16.2``` <br> ```adafruit/Adafruit MPU6050@^2.2.6```|
+
 
 [^1]: For ELECROW board UART port is shared with USB connection, GPS pinout are mapped to IO19 and IO40 (Analog and Digital Port). If CLI isn't used is possible to attach GPS module to UART port but for upload the firmware (change pinout at **hal.hpp**), the module should be disconnected.
 [^2]: See **hal.hpp** for pinouts configuration
@@ -249,28 +251,31 @@ poweroff:       perform a ESP32 deep sleep
 reboot:         perform a ESP32 reboot
 scshot:         screenshot to SD or sending a PC
 setdstzone:     set DST (Daylight Saving Time zone: NONE, EU or USA)
-waypoint:       waypoint utilities
 webfile:        enable/disable Web file server
 wipe:           wipe preferences to factory default
 ```
 
 Some extra details:
 
-**klist**: List user custom settings:
+**klist**: List user custom settings (example of custom settings):
 
 ```
-    KEYNAME     DEFINED         VALUE 
-    =======     =======         ===== 
-    defZoom     custom         
-      gpsTX     custom          
-      gpsRX     custom          
-     defLAT     custom          
-     defLON     custom           
-  defBright     custom          
-   VmaxBatt     custom         
-   VminBatt     custom          
-   tempOffs     custom
-     defGMT     custom     
+    defZoom     custom          17 
+ fullScrMap     custom          true 
+    vectMap     custom          false 
+   mapSpeed     custom          true 
+   mapScale     custom          true 
+    mapComp     custom          true 
+ mapCompRot     custom          true 
+      gpsTX     custom          43 
+      gpsRX     custom          44 
+     defLAT     custom          52.5200
+     defLON     custom          13.4049
+  defBright     custom          255 
+   VmaxBatt     custom          4.19999981 
+   VminBatt     custom          3.59999990 
+   tempOffs     custom          0 
+     defGMT     custom          1   
 ```          
 
 **kset KEYNAME**: Set user custom settings:
@@ -301,20 +306,6 @@ nc -l -p 8123 > screenshot.png
 
 Additionally, you can download the screenshot with webfile server.
 
-**waypoint**: type `waypoint` for detailed options.
-
-Additionally, this waypoint command can send the waypoint over WiFi using the following syntax (replace IP with your PC IP):
-
-```bash
-waypoint down file.gpx 192.168.1.10 8123
-```
-
-Ensure your PC has the specified port open and firewall access enabled to receive the waypoint file via the `netcat` command, like this:
-
-```bash
-nc -l -p 8123 > waypoint.gpx
-```
-
 ## Web File Server 
 
 IceNav has a small web file server (https://youtu.be/IYLcdP40cU4) to manage existing files on the SD card.
@@ -335,7 +326,7 @@ To access the Web File Server, simply use any browser and go to the following ad
 - [ ] Multiple IMU's and Compass module implementation
 - [X] Power saving
 - [X] Vector maps
-- [ ] Google Maps navigation style
+- [ ] Google Maps navigation style (turn by turn)
 - [x] Optimize code
 - [X] Fix bugs!
 - [X] Web file server

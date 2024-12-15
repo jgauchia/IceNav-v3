@@ -2,7 +2,7 @@
  * @file main.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  ESP32 GPS Navigation main code
- * @version 0.1.9
+ * @version 0.2.0_alpha
  * @date 2024-12
  */
 
@@ -38,6 +38,10 @@
 
 #ifdef BME280
 #include "bme.hpp"
+#endif
+
+#ifdef MPU6050
+#include "imu.hpp"
 #endif
 
 extern xSemaphoreHandle gpsMutex;
@@ -93,10 +97,6 @@ void setup()
     #endif
   #endif
 
-  #ifdef ARDUINO_USB_CDC_ON_BOOT
-    Serial.begin(115200);  
-  #endif
-  
   #ifdef TDECK_ESP32S3
     pinMode(BOARD_POWERON, OUTPUT);
     digitalWrite(BOARD_POWERON, HIGH);
@@ -115,17 +115,21 @@ void setup()
   Wire.begin();
 
   #ifdef BME280
-   initBME();
+    initBME();
   #endif
 
   #ifdef ENABLE_COMPASS
-   initCompass();
+    initCompass();
   #endif
 
-  // powerOn();
+  #ifdef ENABLE_IMU
+    initIMU();
+  #endif
+
   storage.initSD();
   storage.initSPIFFS();
   battery.initADC();
+
   initTFT();
   loadPreferences();
   initGPS();
@@ -196,5 +200,17 @@ void loop()
   {
     lv_timer_handler();
     vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
+  }
+
+  // Deleting recursive directories in webfile server
+  if (enableWeb && deleteDir)
+  {
+    deleteDir = false;
+    if(deleteDirRecursive(deletePath.c_str()))
+    {
+      updateList = true;
+      eventRefresh.send("refresh", nullptr, millis());
+      eventRefresh.send("Folder deleted" , "updateStatus", millis());
+    }
   }
 }

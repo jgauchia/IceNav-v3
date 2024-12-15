@@ -2,7 +2,7 @@
  * @file deviceSettingsScr.cpp
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Device Settings Screen
- * @version 0.1.9
+ * @version 0.2.0_alpha
  * @date 2024-12
  */
 
@@ -32,7 +32,7 @@ static void deviceSettingsEvent(lv_event_t *event)
   if (strcmp(option, "back") == 0)
   {
     log_i("saving brightness to: %i", defBright);
-    saveBrightness(defBright);
+    cfg.saveUInt(PKEYS::KDEF_BRIGT, defBright);
     lv_screen_load(settingsScreen);
   }
 }
