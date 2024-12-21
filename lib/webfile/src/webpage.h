@@ -267,28 +267,70 @@ function dropped(e)
   var uploads = [];
   var formData = new FormData();
   var fileNames = "";
+  var currentIndex = 0; 
+  var filesToUpload = []; 
+  var totalFiles = 0; 
+  var uploadedFiles = 0; 
 
   var xhr = new XMLHttpRequest();
   xhr.upload.addEventListener("progress", progressHandler, false);
   xhr.addEventListener("load", completeHandler, false); 
-  xhr.addEventListener("error", errorHandler, false);
-  xhr.addEventListener("abort", abortHandler, false);
+  // xhr.addEventListener("error", errorHandler, false);
+  // xhr.addEventListener("abort", abortHandler, false);
 
-  async function processFiles(files) 
+  async function processNextFile()  
   {
-    for (const file of files) 
+    if (currentIndex >= filesToUpload.length)
     {
-      formData.append("file[]", file, file.name); 
-      fileNames += file.name + ", ";
+      console.log("All files Uploaded");
+      return;
     }
+
+    const file = filesToUpload[currentIndex];
+    formData = new FormData(); 
+    formData.append("file", file, file.name);
+    fileNames = file.name;
 
     var z = document.getElementById("drag");
     z.style.backgroundColor = "black";
-    z.textContent = fileNames;
+    z.textContent = "Uploading:" + fileNames;
 
     xhr.open("POST", "/");
     xhr.send(formData);
+
+    xhr.onload = function ()
+    {
+      if (xhr.status === 200) 
+      {
+        console.log("Uploaded file: ${file.name}");
+        currentIndex++;
+        setTimeout(() => 
+        {
+           processNextFile();
+        }, 100);
+      } 
+      else  
+      {
+        console.error("Error uploading file: ${file.name}");
+      }
+    };
   }
+
+  // async function processFiles(files) 
+  // {
+  //   for (const file of files) 
+  //   {
+  //     formData.append("file[]", file, file.name); 
+  //     fileNames += file.name + ", ";
+  //   }
+
+  //   var z = document.getElementById("drag");
+  //   z.style.backgroundColor = "black";
+  //   z.textContent = fileNames;
+
+  //   xhr.open("POST", "/");
+  //   xhr.send(formData);
+  // }
 
   async function traverseFileTree(item, path = "") 
   {
@@ -326,7 +368,9 @@ function dropped(e)
       }
     }
     await Promise.all(promises);
-    processFiles(uploads);
+    filesToUpload = uploads;
+    processNextFile(); 
+   // processFiles(uploads);
   }
 
   if (items && items.length > 0) {
@@ -334,10 +378,25 @@ function dropped(e)
   }
 }
 
+var totalBytes = 0;
+var uploadedBytes = 0; 
+
 function progressHandler(event) 
 {
-  var percent = (event.loaded / event.total) * 100;
-  _("loaded_n_total").innerHTML = "Uploaded " + event.loaded + " bytes of " + event.total; // event.total doesn't show accurate total file size
+
+  if (totalBytes === 0) 
+  {
+    filesToUpload.forEach(file => 
+    {
+      totalBytes += file.size; 
+    });
+  }
+
+  uploadedBytes += event.loaded; 
+
+  // var percent = (event.loaded / event.total) * 100;
+  var percent = (uploadedBytes / totalBytes) * 100;
+  _("loaded_n_total").innerHTML = "Uploaded " + uploadedBytes + " bytes of " + totalBytes; // event.total doesn't show accurate total file size
  
   //_("loaded_n_total").innerHTML = "Uploaded " + event.loaded + " bytes";
    _("progressBar").value = Math.round(percent);
@@ -351,15 +410,23 @@ function progressHandler(event)
 
 function completeHandler(event) 
 {
-  _("status").innerHTML = "Upload Complete";
-  _("progressBar").value = 0;
-  xhr = new XMLHttpRequest();
-  xhr.open("GET", "/listfiles", false);
-  xhr.send();
-  sessionStorage.setItem("msgStatus","File Uploaded");
-  _("detailsheader").innerHTML = "<h3>Files<h3>";
-  _("details").innerHTML = xhr.responseText;
-  document.location.reload(true);
+  // _("status").innerHTML = "Upload Complete";
+  // _("progressBar").value = 0;
+
+  uploadedFiles++;
+
+  if (uploadedFiles === totalFiles)
+  {
+    _("status").innerHTML = "Upload Complete";
+    _("progressBar").value = 0;
+    xhr = new XMLHttpRequest();
+    xhr.open("GET", "/listfiles", false);
+    xhr.send();
+    sessionStorage.setItem("msgStatus","File Uploaded");
+    _("detailsheader").innerHTML = "<h3>Files<h3>";
+    _("details").innerHTML = xhr.responseText;
+    document.location.reload(true);
+  }
 }
 
 function errorHandler(event) 

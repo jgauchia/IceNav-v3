@@ -181,7 +181,7 @@ void cacheDirectoryContent(const String& dir)
 void webNotFound(AsyncWebServerRequest *request)
 {
   String logMessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-  log_i("%s", logMessage.c_str());
+  //log_i("%s", logMessage.c_str());
   request->send(404, "text/plain", "Not found");
 }
 
@@ -357,7 +357,8 @@ bool createDirectories(String filepath)
  */
 void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final)
 {
-  waitScreenRefresh = true;
+  // waitScreenRefresh = true;
+  request->client()->setRxTimeout(60);
   uint8_t lastSlashIndex = filename.lastIndexOf("/");
   
   if (lastSlashIndex != 255) 
@@ -374,18 +375,22 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
   
   if (!index)
   {
-    request->client()->setRxTimeout(15000);
+    // request->client()->setRxTimeout(30);
     request->_tempFile = SD.open(oldDir + "/" + filename, "w");
   }
 
   if (len)
+  {
     request->_tempFile.write(data, len);
+    esp_task_wdt_reset();
+  }
 
   if (final)
   {
     request->_tempFile.close();
-    updateList = true;
-    waitScreenRefresh = false;
+    // updateList = true;
+    // waitScreenRefresh = false;
+    request->send(200, "text/plain", "File uploaded");
   }
 }
 
