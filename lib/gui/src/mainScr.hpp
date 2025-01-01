@@ -2,17 +2,21 @@
  * @file mainScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Main Screen
+<<<<<<< HEAD
  * @version 0.2.0
+=======
+ * @version 0.1.9
+>>>>>>> 57797eb (refactor(maps): Refactor maps to classes)
  * @date 2024-12
  */
 
 #ifndef MAINSCR_HPP
 #define MAINSCR_HPP
 
+#include "maps.hpp"
+
 #include "globalGuiDef.h"
 #include "buttonBar.hpp"
-#include "renderMaps.hpp"
-#include "vectorMaps.hpp"
 #include "loadWaypoint.hpp"
 #include "deleteWaypoint.hpp"
 #include "editWaypoint.hpp"
@@ -23,6 +27,7 @@
 extern lv_timer_t *mainTimer;    // Main Screen Timer
 #define UPDATE_MAINSCR_PERIOD 30 // Main Screen update time
 
+extern bool isScrolled;                            // Flag to indicate when tileview was scrolled
 extern bool isMainScreen;                          // Flag to indicate main screen is selected
 extern bool isReady;                               // Flag to indicate when tileview scroll was finished
 static TFT_eSprite zoomSprite = TFT_eSprite(&tft); // Zoom sprite
@@ -58,20 +63,12 @@ extern uint8_t toolBarSpace;
 
 void updateCompassScr(lv_event_t * event);
 
-void deleteMapScrSprites();
-void createMapScrSprites();
-void displayMap(uint16_t tileSize);
-
 void getActTile(lv_event_t *event);
 void scrollTile(lv_event_t *event);
 
-void generateRenderMap();
-void generateVectorMap();
 void updateMainScreen(lv_timer_t *t);
 void gestureEvent(lv_event_t *event);
-void deleteMapScrSprites();
-void createMapScrSprites();
-void drawMapWidgets();
+
 void updateMap(lv_event_t *event);
 void updateSatTrack(lv_event_t *event);
 void toolBarEvent(lv_event_t *event);

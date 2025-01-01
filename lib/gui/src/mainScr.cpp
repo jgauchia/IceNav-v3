@@ -11,10 +11,8 @@
 bool isMainScreen = false;    // Flag to indicate main screen is selected
 bool isScrolled = true;       // Flag to indicate when tileview was scrolled
 bool isReady = false;         // Flag to indicate when tileview scroll was finished
-bool redrawMap = true;        // Flag to indicate when needs to redraw Map
 uint8_t activeTile = 0;       // Current active tile
 uint8_t wptAction = WPT_NONE; // Current Waypoint Action
-int wptPosX, wptPosY = 0;     // Waypoint position on map
 
 #ifdef LARGE_SCREEN
   uint8_t toolBarOffset = 100;
@@ -34,10 +32,9 @@ lv_obj_t *btnFullScreen;
 lv_obj_t *btnZoomIn;
 lv_obj_t *btnZoomOut;
 
-double destLat = 0;
-double destLon = 0;
 char* destName = (char *)"";
 
+Maps mapView;
 
 /**
  * @brief Update compass screen event
@@ -76,12 +73,12 @@ void getActTile(lv_event_t *event)
   if (isReady)
   {
     isScrolled = true;
-    redrawMap = true;
+    mapView.redrawMap = true;
 
     if (activeTile == MAP)
     {
-      createMapScrSprites();
-      if (isMapFullScreen)
+      mapView.createMapScrSprites();
+      if (mapSet.mapFullScreen)
       {
         lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
@@ -128,15 +125,15 @@ void scrollTile(lv_event_t *event)
 {
   isScrolled = false;
   isReady = false;
-  redrawMap = false;
+  mapView.redrawMap = false;
 
-  if (isMapFullScreen)
+  if (mapSet.mapFullScreen)
   {
     lv_obj_clear_flag(notifyBarHour,LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
   }
 
-  deleteMapScrSprites();
+  mapView.deleteMapScrSprites();
 }
 
 /**
@@ -219,28 +216,13 @@ void gestureEvent(lv_event_t *event)
  */
 void updateMap(lv_event_t *event)
 {
-  if (isVectorMap)
-  {
-    getPosition(gpsData.latitude, gpsData.longitude);
-    if (isPosMoved)
-    {
-      tileSize = VECTOR_TILE_SIZE;
-      viewPort.setCenter(point);
-
-      getMapBlocks(viewPort.bbox, memCache);
-             
-      generateVectorMap(viewPort, memCache, mapTempSprite); 
-      
-      isPosMoved = false;
-    }
-  }
+  if (mapSet.vectorMap)
+    mapView.generateVectorMap(zoom);
   else
-  {
-    tileSize = RENDER_TILE_SIZE;
-    generateRenderMap();
-  }
-  if (redrawMap)
-    displayMap(tileSize);
+    mapView.generateRenderMap(zoom);
+
+  if (mapView.redrawMap)
+    mapView.displayMap();
 }
 
 /**
@@ -269,17 +251,17 @@ void toolBarEvent(lv_event_t *event)
 {
   showToolBar = !showToolBar;
 
-  if (!isMapFullScreen)
+  if (!mapSet.mapFullScreen)
   {
-    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT - toolBarOffset);
-    lv_obj_set_pos(btnZoomOut, 10 , MAP_HEIGHT - (toolBarOffset + toolBarSpace));
-    lv_obj_set_pos(btnZoomIn, 10, MAP_HEIGHT - (toolBarOffset + (2 * toolBarSpace)));
+    lv_obj_set_pos(btnFullScreen, 10, mapView.mapScrHeight - toolBarOffset);
+    lv_obj_set_pos(btnZoomOut, 10 , mapView.mapScrHeight - (toolBarOffset + toolBarSpace));
+    lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrHeight - (toolBarOffset + (2 * toolBarSpace)));
   }
   else
   {
-    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT_FULL - (toolBarOffset + 24));
-    lv_obj_set_pos(btnZoomOut, 10, MAP_HEIGHT_FULL - (toolBarOffset + toolBarSpace + 24));
-    lv_obj_set_pos(btnZoomIn,10, MAP_HEIGHT_FULL - (toolBarOffset + (2 * toolBarSpace) + 24));
+    lv_obj_set_pos(btnFullScreen, 10, mapView.mapScrFull - (toolBarOffset + 24));
+    lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrFull - (toolBarOffset + toolBarSpace + 24));
+    lv_obj_set_pos(btnZoomIn,10, mapView.mapScrFull - (toolBarOffset + (2 * toolBarSpace) + 24));
   }
 
   if (!showToolBar)
@@ -303,13 +285,13 @@ void toolBarEvent(lv_event_t *event)
  */
 void fullScreenEvent(lv_event_t *event)
 {
-  isMapFullScreen = !isMapFullScreen;
+  mapSet.mapFullScreen = !mapSet.mapFullScreen;
 
-  if (!isMapFullScreen)
+  if (!mapSet.mapFullScreen)
   {
-    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT - toolBarOffset);
-    lv_obj_set_pos(btnZoomOut, 10, MAP_HEIGHT - (toolBarOffset + toolBarSpace));
-    lv_obj_set_pos(btnZoomIn, 10, MAP_HEIGHT - (toolBarOffset + (2 * toolBarSpace)));
+    lv_obj_set_pos(btnFullScreen, 10, mapView.mapScrHeight - toolBarOffset);
+    lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrHeight - (toolBarOffset + toolBarSpace));
+    lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrHeight - (toolBarOffset + (2 * toolBarSpace)));
 
     if (isBarOpen)
       lv_obj_clear_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
@@ -322,19 +304,19 @@ void fullScreenEvent(lv_event_t *event)
   }
   else
   {
-    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT_FULL - (toolBarOffset + 24));
-    lv_obj_set_pos(btnZoomOut, 10, MAP_HEIGHT_FULL - (toolBarOffset + toolBarSpace + 24));
-    lv_obj_set_pos(btnZoomIn, 10, MAP_HEIGHT_FULL - (toolBarOffset + (2 * toolBarSpace) + 24));
+    lv_obj_set_pos(btnFullScreen, 10, mapView.mapScrFull - (toolBarOffset + 24));
+    lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrFull - (toolBarOffset + toolBarSpace + 24));
+    lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrFull - (toolBarOffset + (2 * toolBarSpace) + 24));
     lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(notifyBarHour, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
   }
   
-  deleteMapScrSprites();
-  createMapScrSprites();
+  mapView.deleteMapScrSprites();
+  mapView.createMapScrSprites();
 
-  redrawMap = true;
+  mapView.redrawMap = true;
 
   lv_obj_invalidate(tilesScreen);   
   lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
@@ -347,7 +329,7 @@ void fullScreenEvent(lv_event_t *event)
  */
 void zoomInEvent(lv_event_t *event)
 {
-  if (!isVectorMap)
+  if (!mapSet.vectorMap)
   {
     if (zoom >= minZoom && zoom < maxZoom)
       zoom++;
@@ -355,11 +337,11 @@ void zoomInEvent(lv_event_t *event)
   else
   {
     zoom--;
-    isPosMoved = true;
+    mapView.isPosMoved = true;
     if (zoom < 1)
     {
       zoom = 1;
-      isPosMoved = false;
+      mapView.isPosMoved = false;
     }
   }
 
@@ -373,7 +355,7 @@ void zoomInEvent(lv_event_t *event)
  */
 void zoomOutEvent(lv_event_t *event)
 {
-  if (!isVectorMap)
+  if (!mapSet.vectorMap)
   {
     if (zoom <= maxZoom && zoom > minZoom)
       zoom--;
@@ -381,11 +363,11 @@ void zoomOutEvent(lv_event_t *event)
   else
   {
     zoom++;
-    isPosMoved = true;
+    mapView.isPosMoved = true;
     if (zoom > MAX_ZOOM)
     {
       zoom = MAX_ZOOM;
-      isPosMoved = false;
+      mapView.isPosMoved = false;
     }
   }
 
@@ -399,7 +381,7 @@ void zoomOutEvent(lv_event_t *event)
  */
 void updateNavEvent(lv_event_t *event)
 {
-  int wptDistance = (int)calcDist(gpsData.latitude, gpsData.longitude, destLat, destLon);
+  int wptDistance = (int)calcDist(gpsData.latitude, gpsData.longitude, loadWpt.lat, loadWpt.lon);
   lv_label_set_text_fmt(distNav,"%d m.", wptDistance);
 
   if (wptDistance == 0)
@@ -483,17 +465,17 @@ void createMainScr()
   lv_obj_set_size(btnZoomIn, 48, 48);
   lv_obj_add_event_cb(btnZoomIn, zoomInEvent, LV_EVENT_CLICKED, NULL);
 
-  if (!isMapFullScreen)
+  if (!mapSet.mapFullScreen)
   {
-    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT - toolBarOffset);
-    lv_obj_set_pos(btnZoomOut, 10, MAP_HEIGHT - (toolBarOffset + toolBarSpace));
-    lv_obj_set_pos(btnZoomIn, 10, MAP_HEIGHT - ( toolBarOffset + (2 * toolBarSpace)));
+    lv_obj_set_pos(btnFullScreen, 10, mapView.mapScrHeight - toolBarOffset);
+    lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrHeight - (toolBarOffset + toolBarSpace));
+    lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrHeight - ( toolBarOffset + (2 * toolBarSpace)));
   }
   else
   {
-    lv_obj_set_pos(btnFullScreen, 10, MAP_HEIGHT_FULL - (toolBarOffset + 24));
-    lv_obj_set_pos(btnZoomOut, 10, MAP_HEIGHT_FULL - (toolBarOffset + toolBarSpace + 24));
-    lv_obj_set_pos(btnZoomIn, 10, MAP_HEIGHT_FULL - (toolBarOffset + (2 * toolBarSpace) + 24));
+    lv_obj_set_pos(btnFullScreen, 10, mapView.mapScrFull - (toolBarOffset + 24));
+    lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrFull - (toolBarOffset + toolBarSpace + 24));
+    lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrFull - (toolBarOffset + (2 * toolBarSpace) + 24));
   }
 
   if (!showToolBar)

@@ -9,6 +9,10 @@
 
 #include "battery.hpp"
 
+/**
+ * @brief Battery Class constructor
+ *
+ */
 Battery::Battery() {}
 
 /**

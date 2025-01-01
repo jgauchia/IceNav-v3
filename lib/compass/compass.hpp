@@ -12,8 +12,6 @@
 #include "tft.hpp"
 #include <EasyPreferences.hpp>
 
-extern int mapHeading;
-
 #ifdef HMC5883L
 #include <DFRobot_QMC5883.h>
 extern DFRobot_QMC5883 compass;
