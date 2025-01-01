@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Main Screen
  * @version 0.1.9
- * @date 2024-12
+ * @date 2025-01
  */
 
 #ifndef MAINSCR_HPP

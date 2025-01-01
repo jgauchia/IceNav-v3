@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es)
  * @brief  LVGL - Map Settings screen
  * @version 0.2.0_alpha
- * @date 2024-12
+ * @date 2025-01
  */
 
 #ifndef MAPSETTINGSCR_HPP

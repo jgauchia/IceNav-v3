@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@gmx.es) and Antonio Vanegas @Hpsturn
  * @brief  LOVYANGFX TFT driver for ST7789 SPI With GT911 Touch controller
  * @version 0.2.0_alpha
- * @date 2024-12
+ * @date 2025-01
  */
 
 #ifndef LILYGO_TDECK_HPP
