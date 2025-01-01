@@ -10,6 +10,10 @@
 
 extern const uint8_t BOARD_BOOT_PIN;
 
+/**
+ * @brief Power Class constructor
+ *
+ */
 Power::Power()
 {
   #ifdef DISABLE_RADIO

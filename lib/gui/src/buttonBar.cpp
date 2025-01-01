@@ -8,6 +8,8 @@
 
 #include "buttonBar.hpp"
 
+extern Maps mapView;
+
 bool isWaypointOpt = false;
 bool isTrackOpt = false;
 bool isOptionLoaded = false;
@@ -44,7 +46,7 @@ void buttonBarEvent(lv_event_t *event)
     log_v("Add Waypoint");
     wptAction = WPT_ADD;
     isMainScreen = false;
-    redrawMap = false;
+    mapView.redrawMap = false;
     lv_textarea_set_text(waypointName, "");
     isScreenRotated = false;
     lv_obj_set_width(waypointName, tft.width() -10);
@@ -128,7 +130,7 @@ void optionEvent(lv_event_t *event)
   isOptionLoaded = false;
   isWaypointOpt = false;
   isTrackOpt = false;
-  redrawMap = true;
+  mapView.redrawMap = true;
 }
 
 /**

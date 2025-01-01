@@ -14,6 +14,11 @@ extern const uint8_t SD_MISO;
 extern const uint8_t SD_MOSI;
 extern const uint8_t SD_CLK;
 
+
+/**
+ * @brief Storage Class constructor
+ *
+ */
 Storage::Storage() : isSdLoaded(false) {}
 
 

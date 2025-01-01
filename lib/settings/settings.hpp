@@ -21,15 +21,8 @@ extern uint8_t defZoomRender;  // Default Zoom Level for render map
 extern uint8_t defZoomVector;  // Default Zoom Level for vector map
 extern uint8_t zoom;           // Actual Zoom Level
 extern uint8_t defBright;      // Default brightness
-
-extern bool isMapRotation;    // Map Compass Rotation
 extern uint8_t defaultZoom;   // Default Zoom Value
-extern bool showMapCompass;   // Compass in map screen
-extern bool isCompassRot;     // Compass rotation in map screen
-extern bool showMapSpeed;     // Speed in map screen
-extern bool showMapScale;     // Scale in map screen
-extern bool isVectorMap;      // Map type
-extern bool isMapFullScreen;  // Is Map Full Screen
+
 extern bool showToolBar;      // Show Map Toolbar
 extern uint16_t gpsBaud;      // GPS Speed
 extern uint16_t gpsUpdate;    // GPS Update rate
@@ -47,6 +40,24 @@ extern bool enableWeb;        // Enable/disable web file server
 extern int8_t tempOffset;     // BME Temperature offset
 extern String defDST;         // default DST zone
 extern bool calculateDST;     // Calculate DST flag
+
+
+/**
+ * @brief Structure for map settings
+ *
+ */
+struct MAP
+{
+  bool showMapCompass;   // Compass in map screen
+  bool compassRotation;  // Compass rotation in map screen
+  bool mapRotationComp;  // Rotate map with compass
+  bool mapFullScreen;    // Full Screen map
+  bool showMapSpeed;     // Speed in map screen
+  bool vectorMap;        // Map type (vector/render)
+  bool showMapScale;     // Scale in map screen
+};
+extern MAP mapSet;
+
 
 void loadPreferences();
 

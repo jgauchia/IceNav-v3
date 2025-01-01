@@ -9,7 +9,6 @@
 #ifndef WIDGETS_HPP
 #define WIDGETS_HPP
 
-#include "globalMapsDef.h"
 #include "lvglFuncs.hpp"
 #include "gpsMath.hpp"
 #include "settings.hpp"
@@ -35,6 +34,8 @@ static bool widgetSelected = false;
 static bool canMoveWidget = false;
 static lv_coord_t newX = 0;
 static lv_coord_t newY = 0;
+
+extern bool isScrolled;              // Flag to indicate when tileview was scrolled
 
 static const char *arrowIconFile PROGMEM = "/arrow.bin";     // Compass Arrow Icon
 static const char *positionIconFile PROGMEM = "/pin.bin";    // Position Icon

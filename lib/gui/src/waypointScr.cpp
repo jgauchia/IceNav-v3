@@ -8,6 +8,8 @@
 
 #include "waypointScr.hpp"
 
+extern Maps mapView;
+
 lv_obj_t *waypointScreen;  // Add Waypoint Screen
 lv_obj_t *waypointName;
 lv_obj_t *lat;
@@ -53,7 +55,7 @@ static void waypointScreenEvent(lv_event_t *event)
         }
 
         isMainScreen = true;
-        redrawMap = true;
+        mapView.redrawMap = true;
         wptAction = WPT_NONE;
         lv_refr_now(display);
         loadMainScreen();
@@ -62,7 +64,7 @@ static void waypointScreenEvent(lv_event_t *event)
       if ( lv_indev_get_key(lv_indev_active()) == 35 ) // # Key (ESCAPE)
       { 
         isMainScreen = true;
-        redrawMap = true;
+        mapView.redrawMap = true;
         wptAction = WPT_NONE;
         lv_refr_now(display);
         loadMainScreen();
@@ -102,7 +104,7 @@ static void waypointScreenEvent(lv_event_t *event)
     }
 
     isMainScreen = true;
-    redrawMap = true;
+    mapView.redrawMap = true;
     wptAction = WPT_NONE;
     lv_refr_now(display);
     loadMainScreen();
@@ -116,7 +118,7 @@ static void waypointScreenEvent(lv_event_t *event)
       lv_display_set_rotation(display,LV_DISPLAY_ROTATION_0);
     }
     isMainScreen = true;
-    redrawMap = true;
+    mapView.redrawMap = true;
     wptAction = WPT_NONE;
     lv_refr_now(display);
     loadMainScreen();
@@ -179,7 +181,7 @@ static void waypointNameEvent(lv_event_t *event)
       }
 
     isMainScreen = true;
-    redrawMap = true;
+    mapView.redrawMap = true;
     wptAction = WPT_NONE;
     lv_refr_now(display);
     loadMainScreen();

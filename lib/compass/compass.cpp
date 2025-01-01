@@ -8,8 +8,6 @@
 
 #include "compass.hpp"
 
-int mapHeading = 0;
-
 #ifdef HMC5883L
 DFRobot_QMC5883 compass = DFRobot_QMC5883(&Wire,HMC5883L_ADDRESS);
 #endif

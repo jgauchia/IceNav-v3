@@ -8,6 +8,8 @@
 
 #include "waypointListScr.hpp"
 
+extern Maps mapView;
+
 std::string wptContent;
 
 lv_obj_t *listWaypointScreen;  // Add Waypoint Screen
@@ -42,27 +44,24 @@ void waypointListEvent(lv_event_t * event)
                         {
                             lv_obj_clear_flag(navTile,LV_OBJ_FLAG_HIDDEN);
 
-                            destLat = loadWpt.lat;
-                            destLon = loadWpt.lon;
                             destName = loadWpt.name;
 
-                            lv_label_set_text_fmt(latNav, "%s", latFormatString(destLat));
-                            lv_label_set_text_fmt(lonNav, "%s", lonFormatString(destLon));
+                            lv_label_set_text_fmt(latNav, "%s", latFormatString(loadWpt.lat));
+                            lv_label_set_text_fmt(lonNav, "%s", lonFormatString(loadWpt.lon));
                             lv_label_set_text_fmt(nameNav, "%s",destName);
 
-                            oldMapTile = {(char*)"", 0, 0, 0}; 
+                            mapView.setWaypoint(loadWpt.lat,loadWpt.lon);
+
                             lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
                         }
                         else 
-                            lv_obj_add_flag(navTile,LV_OBJ_FLAG_HIDDEN);
-
-                        isPosMoved = true;
+                            lv_obj_add_flag(navTile,LV_OBJ_FLAG_HIDDEN);                      
                         
                         loadMainScreen();
                         break;
                     case WPT_EDIT:
                         isMainScreen = false;
-                        redrawMap = false;
+                        mapView.redrawMap = false;
                         loadWptFile(sel);
                         lv_textarea_set_text(waypointName, loadWpt.name);
                         isScreenRotated = false;

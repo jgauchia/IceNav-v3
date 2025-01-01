@@ -51,9 +51,12 @@ extern xSemaphoreHandle gpsMutex;
 #include "battery.hpp"
 #include "power.hpp"
 
+#include "maps.hpp"
+
 extern Storage storage;
 extern Battery battery;
 extern Power power;
+extern Maps mapView;
 
 /**
  * @brief Sunrise and Sunset
@@ -131,6 +134,9 @@ void setup()
   battery.initADC();
 
   initTFT();
+
+  mapView.initMap(TFT_HEIGHT-100,TFT_WIDTH,TFT_HEIGHT);
+
   loadPreferences();
   initGPS();
   initLVGL();
@@ -163,29 +169,15 @@ void setup()
   if(WiFi.getMode() == WIFI_OFF)
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-  // Reserve PSRAM for buffer map
-  mapTempSprite.deleteSprite();
-  mapTempSprite.createSprite(TILE_WIDTH, TILE_HEIGHT);
-
   // Preload Map
-  if (isVectorMap)
+  if (mapSet.vectorMap)
   {
-    getPosition(gpsData.latitude, gpsData.longitude);
-    tileSize = VECTOR_TILE_SIZE;
-    viewPort.setCenter(point);
-
-    getMapBlocks(viewPort.bbox, memCache);
-              
-    generateVectorMap(viewPort, memCache, mapTempSprite); 
-    
-    isPosMoved = false;
+    mapView.isPosMoved = true;
+    mapView.generateVectorMap(zoom);
   }
   else
-  {
-    tileSize = RENDER_TILE_SIZE;
-    generateRenderMap();
-  }
-  
+    mapView.generateRenderMap(zoom);
+
   splashScreen();
   lv_screen_load(searchSatScreen);
 }

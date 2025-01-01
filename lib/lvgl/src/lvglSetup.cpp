@@ -8,9 +8,6 @@
 
 #include "lvglSetup.hpp"
 
-ViewPort viewPort; // Vector map viewport
-MemCache memCache; // Vector map Memory Cache
-
 lv_display_t *display;
 
 lv_obj_t *searchSatScreen; // Search Satellite Screen

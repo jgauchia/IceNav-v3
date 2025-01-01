@@ -9,6 +9,12 @@
 #include "settings.hpp"
 
 /**
+ * @brief Structure for map settings
+ *
+ */
+MAP mapSet;
+
+/**
  * @brief Zoom Levels and Default zoom
  *
  */
@@ -28,16 +34,9 @@ uint8_t zoom = 0;           // Actual Zoom Level
  * @brief Global Variables definition for device preferences & config.
  *
  */
-bool isMapRotation = true;    // Map Compass Rotation
 uint8_t defaultZoom = 0;      // Default Zoom Value
 uint8_t defBright = 255;      // Default Brightness
 int32_t defGMT = 1;           // Default GMT offset
-bool showMapCompass = true;   // Compass in map screen
-bool isCompassRot = true;     // Compass rotation in map screen
-bool showMapSpeed = true;     // Speed in map screen
-bool showMapScale = true;     // Scale in map screen
-bool isVectorMap = false;     // Map Type
-bool isMapFullScreen = false; // Is Map Full Screen
 uint16_t gpsBaud = 0;         // GPS Speed
 uint16_t gpsUpdate = 0;       // GPS Update rate
 uint16_t compassPosX = 0;     // Compass widget position X
@@ -68,11 +67,13 @@ void loadPreferences()
   offX = cfg.getFloat(PKEYS::KCOMP_OFFSET_X, 0.0);
   offY = cfg.getFloat(PKEYS::KCOMP_OFFSET_Y, 0.0);
 #endif
-  isMapRotation = cfg.getBool(PKEYS::KMAP_ROT_MODE, false);
-  showMapCompass = cfg.getBool(PKEYS::KMAP_COMPASS, true);
-  isCompassRot = cfg.getBool(PKEYS::KMAP_COMP_ROT, true);
-  showMapSpeed = cfg.getBool(PKEYS::KMAP_SPEED, true);
-  showMapScale = cfg.getBool(PKEYS::KMAP_SCALE, true);
+  mapSet.mapRotationComp = cfg.getBool(PKEYS::KMAP_ROT_MODE, false);
+  mapSet.showMapCompass = cfg.getBool(PKEYS::KMAP_COMPASS, true);
+  mapSet.compassRotation = cfg.getBool(PKEYS::KMAP_COMP_ROT, true);
+  mapSet.mapFullScreen = cfg.getBool(PKEYS::KMAP_MODE, true);
+  mapSet.showMapSpeed = cfg.getBool(PKEYS::KMAP_SPEED, true);
+  mapSet.vectorMap = cfg.getBool(PKEYS::KMAP_VECTOR, false);
+  mapSet.showMapScale = cfg.getBool(PKEYS::KMAP_SCALE, true);
   gpsBaud = cfg.getShort(PKEYS::KGPS_SPEED, 4);
   gpsUpdate = cfg.getShort(PKEYS::KGPS_RATE, 3);
   compassPosX = cfg.getInt(PKEYS::KCOMP_X, ( TFT_WIDTH / 2 ) - ( 100 * scale ) );
@@ -85,10 +86,9 @@ void loadPreferences()
   speedPosY = cfg.getInt(PKEYS::KSPEED_Y, TFT_HEIGHT - 130);
   sunPosX = cfg.getInt(PKEYS::KSUN_X, 170);
   sunPosY = cfg.getInt(PKEYS::KSUN_Y, TFT_HEIGHT - 170 );
-  isVectorMap = cfg.getBool(PKEYS::KMAP_VECTOR, false);
   defBright = cfg.getUInt(PKEYS::KDEF_BRIGT, 254);
   defGMT = cfg.getInt(PKEYS::KGMT_OFFS, 1);
-  if (isVectorMap)
+  if (mapSet.vectorMap)
   {
     minZoom = 1;
     maxZoom = 4;
@@ -101,7 +101,6 @@ void loadPreferences()
     defaultZoom = cfg.getUInt(PKEYS::KDEF_ZOOM, defZoomRender);
   }
   zoom = defaultZoom;
-  isMapFullScreen = cfg.getBool(PKEYS::KMAP_MODE, true);
   GPS_TX = cfg.getUInt(PKEYS::KGPS_TX, GPS_TX);
   GPS_RX = cfg.getUInt(PKEYS::KGPS_RX, GPS_RX);
   enableWeb = cfg.getBool(PKEYS::KWEB_FILE, enableWeb);

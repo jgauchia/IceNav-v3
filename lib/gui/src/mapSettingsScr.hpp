@@ -11,8 +11,8 @@
 
 #include "globalGuiDef.h"
 #include "lvglFuncs.hpp"
-#include "vectorMaps.hpp"
-#include "renderMaps.hpp"
+#include "settings.hpp"
+#include "maps.hpp"
 
 static lv_obj_t *mapSettingsOptions;
 static lv_obj_t *mapSwitch;
