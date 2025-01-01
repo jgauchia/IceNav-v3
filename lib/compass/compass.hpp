@@ -2,8 +2,8 @@
  * @file compass.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Compass definition and functions
- * @version 0.2.0
- * @date 2024-12
+ * @version 0.2.0_alpha
+ * @date 2025-01
  */
 
 #ifndef COMPASS_HPP

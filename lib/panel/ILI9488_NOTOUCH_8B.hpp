@@ -2,8 +2,8 @@
  * @file ILI9488_NOTOUCH_8B.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LOVYANGFX TFT driver for ILI9488 8 Bits parallel  Without Touch controller
- * @version 0.2.0
- * @date 2024-12
+ * @version 0.2.0_alpha
+ * @date 2025-01
  */
 
 #ifndef ILI9488_NOTOUCH_8B_HPP

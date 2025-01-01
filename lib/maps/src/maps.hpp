@@ -4,7 +4,7 @@
  * @author @aresta - https://github.com/aresta/ESP32_GPS - Vector Maps
  * @brief  Maps draw class
  * @version 0.2.0_alpha
- * @date 2024-12
+ * @date 2025-01
  */
 
 #ifndef MAPS_HPP

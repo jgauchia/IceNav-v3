@@ -2,8 +2,8 @@
  * @file waypointScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Add Waypoint Screen
- * @version 0.2.0
- * @date 2024-12
+ * @version 0.2.0_alpha
+ * @date 2025-01
  */
 
 #ifndef waypointScr_HPP

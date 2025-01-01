@@ -2,12 +2,8 @@
  * @file mainScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Main Screen
-<<<<<<< HEAD
- * @version 0.2.0
-=======
- * @version 0.1.9
->>>>>>> 57797eb (refactor(maps): Refactor maps to classes)
- * @date 2024-12
+ * @version 0.2.0_alpha
+ * @date 2025-01
  */
 
 #ifndef MAINSCR_HPP
