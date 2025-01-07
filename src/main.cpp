@@ -23,6 +23,7 @@
 #include "gps.hpp"
 #include "storage.hpp"
 #include "tft.hpp"
+#include "debugUtils.hpp"
 
 #ifdef HMC5883L
 #include "compass.hpp"
@@ -88,6 +89,7 @@ void calculateSun()
  */
 void setup()
 {
+  checkCoreDumpPartition();
   gpsMutex = xSemaphoreCreateMutex();
   
   // Force GPIO0 to internal PullUP  during boot (avoid LVGL key read)
