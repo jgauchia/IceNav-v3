@@ -391,13 +391,13 @@ void updateNavEvent(lv_event_t *event)
   }
   else
   {
-    #ifdef ENABLE_COMPASS
-      double wptCourse = calcCourse(gpsData.latitude, gpsData.longitude, loadWpt.lat, loadWpt.lon) - getHeading();
-    #endif
-    #ifndef ENABLE_COMPASS
-      double wptCourse = calcCourse(gpsData.latitude, gpsData.longitude, loadWpt.lat, loadWpt.lon) - gpsData.heading;
-    #endif
-    lv_img_set_angle(arrowNav, (wptCourse * 10));
+    // #ifdef ENABLE_COMPASS
+     double wptCourse = calcCourse(gpsData.latitude, gpsData.longitude, loadWpt.lat, loadWpt.lon) - heading;
+    // #endif
+    // #ifndef ENABLE_COMPASS
+    //  double wptCourse = calcCourse(gpsData.latitude, gpsData.longitude, loadWpt.lat, loadWpt.lon) - gpsData.heading;
+    // #endif
+     lv_img_set_angle(arrowNav, (wptCourse * 10));
   }
 }
 

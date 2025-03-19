@@ -36,8 +36,46 @@ float declinationAngle = 0.22;
  *
  */
 int heading = 0;
-#define SMOOTH_FACTOR 0.40
-#define SMOOTH_PREVIOUS_FACTOR 0.60
+class KalmanFilter
+{
+public:
+  KalmanFilter(float processNoise, float measurementNoise, float estimateError, float initialEstimate)
+      : q(processNoise), r(measurementNoise), p(estimateError), x(initialEstimate) {}
+
+  float update(float measurement)
+  {
+    p = p + q;
+    k = p / (p + r);
+    x = x + k * (measurement - x);
+    x = wrapToPi(x);
+    p = (1 - k) * p;
+    return x;
+  }
+
+private:
+  float q; // Process noise covariance
+  float r; // Measurement noise covariance
+  float p; // Estimate error covariance
+  float k; // Kalman gain
+  float x; // Value
+  float wrapToPi(float angle)
+  {
+    while (angle < -M_PI)
+      angle += 2 * M_PI;
+    while (angle > M_PI)
+      angle -= 2 * M_PI;
+    return angle;
+  }
+};
+KalmanFilter kalmanFilter(0.01, 0.3, 1.0, 0.0);
+
+// Helper function to wrap angle to -pi to pi
+float wrapToPi(float angle) {
+  while (angle < -M_PI) angle += 2 * M_PI;
+  while (angle > M_PI) angle -= 2 * M_PI;
+  return angle;
+}
+
 
 /**
  * @brief Compass offset calibration
@@ -55,14 +93,14 @@ void initCompass()
   if (!compass.begin())
     compass.begin();
   compass.setDataRate(HMC5883L_DATARATE_15HZ);
-  compass.setSamples(HMC5883L_SAMPLES_2);
+  compass.setSamples(HMC5883L_SAMPLES_1);
   #endif
 
   #ifdef QMC5883
   if (!compass.begin())
     compass.begin();
   compass.setDataRate(QMC5883_DATARATE_10HZ);
-  compass.setSamples(QMC5883_SAMPLES_2);
+  compass.setSamples(QMC5883_SAMPLES_1);
   #endif
 
   #ifdef IMU_MPU9250
@@ -126,15 +164,26 @@ int getHeading()
 
   float headingNoFilter = atan2(y - offY, x - offX);
   headingNoFilter += declinationAngle;
-  headingSmooth = headingNoFilter;
-  // headingSmooth = (headingNoFilter * SMOOTH_FACTOR) + (headingPrevious * SMOOTH_PREVIOUS_FACTOR);
-  // headingPrevious = headingSmooth;
 
-  if (headingSmooth < 0)
-    headingSmooth += 2 * M_PI;
-  if (headingSmooth > 2 * M_PI)
-    headingSmooth -= 2 * M_PI;
-  return (int)(headingSmooth * 180 / M_PI);
+  // if (headingNoFilter < 0)
+  //   headingNoFilter += 2 * M_PI;
+  // if (headingNoFilter > 2 * M_PI)
+  //   headingNoFilter -= 2 * M_PI;
+
+  headingNoFilter = wrapToPi(headingNoFilter);
+
+  headingSmooth = kalmanFilter.update(headingNoFilter);
+
+  // Convert heading to degrees
+  int headingDegrees = (int)(headingSmooth * 180 / M_PI);
+
+  // Wrap heading to stay within 0 to 360 degrees
+  if (headingDegrees < 0)
+    headingDegrees += 360;
+  if (headingDegrees >= 360)
+    headingDegrees -= 360;
+
+  return headingDegrees;
 }
 
 /**
