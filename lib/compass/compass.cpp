@@ -53,6 +53,7 @@ public:
   }
 
 private:
+
   float q; // Process noise covariance
   float r; // Measurement noise covariance
   float p; // Estimate error covariance
