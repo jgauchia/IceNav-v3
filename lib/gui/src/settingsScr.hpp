@@ -12,6 +12,7 @@
 #include "globalGuiDef.h"
 #include "mainScr.hpp"
 #include "searchSatScr.hpp"
+#include "compass.hpp"
 
 void loadMainScreen();
 

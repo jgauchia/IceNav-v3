@@ -11,6 +11,7 @@
 
 #include <EasyPreferences.hpp>
 #include <NMEAGPS.h>
+#include "tft.hpp"
 #include "gps.hpp"
 #include "battery.hpp"
 #include "compass.hpp"

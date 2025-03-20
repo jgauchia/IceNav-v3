@@ -19,6 +19,7 @@
 #include "widgets.hpp"
 #include "navScr.hpp"
 #include "satInfoScr.hpp"
+#include "compass.hpp"
 
 extern lv_timer_t *mainTimer;    // Main Screen Timer
 #define UPDATE_MAINSCR_PERIOD 30 // Main Screen update time
@@ -29,6 +30,7 @@ extern bool isReady;                               // Flag to indicate when tile
 static TFT_eSprite zoomSprite = TFT_eSprite(&tft); // Zoom sprite
 
 extern uint8_t activeTile; // Active Tile in TileView control
+extern int heading;        // Heading value (Compass or GPS)
 
 enum tileName
 {

@@ -57,6 +57,9 @@ extern Storage storage;
 extern Battery battery;
 extern Power power;
 extern Maps mapView;
+#ifdef ENABLE_COMPASS
+Compass compass;
+#endif
 
 /**
  * @brief Sunrise and Sunset
@@ -122,7 +125,9 @@ void setup()
   #endif
 
   #ifdef ENABLE_COMPASS
-    initCompass();
+      compass.init();
+      compass.setDeclinationAngle(0.22);
+      compass.setKalmanFilterConst(0.01, 0.4);
   #endif
 
   #ifdef ENABLE_IMU

@@ -9,6 +9,8 @@
 
 #include "maps.hpp"
 
+extern Compass compass;
+
 extern Point16::Point16(char *coordsPair)
 {
   char *next;
@@ -829,7 +831,7 @@ void Maps::drawMapWidgets(MAP mapSettings)
   uint16_t mapHeading = 0;
   #ifdef ENABLE_COMPASS
     if (mapSettings.mapRotationComp)
-      mapHeading = heading;
+      mapHeading = compass.getHeading();
     else
       mapHeading = gpsData.heading;
   #else 
@@ -1107,7 +1109,7 @@ void Maps::displayMap()
     #ifdef ENABLE_COMPASS
 
     if (mapSet.mapRotationComp)
-      mapHeading = heading;
+      mapHeading = compass.getHeading();
     else
       mapHeading = gpsData.heading;
 

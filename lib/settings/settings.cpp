@@ -25,36 +25,37 @@ uint8_t defZoomVector = 2;  // Default Zoom Level for vector map
 uint8_t zoom = 0;           // Actual Zoom Level
 
 #ifdef LARGE_SCREEN
-  static const float scale = 1.0f;
+static const float scale = 1.0f;
 #else
-  static const float scale = 0.75f;
+static const float scale = 0.75f;
 #endif
 
 /**
  * @brief Global Variables definition for device preferences & config.
  *
  */
-uint8_t defaultZoom = 0;      // Default Zoom Value
-uint8_t defBright = 255;      // Default Brightness
-int32_t defGMT = 1;           // Default GMT offset
-uint16_t gpsBaud = 0;         // GPS Speed
-uint16_t gpsUpdate = 0;       // GPS Update rate
-uint16_t compassPosX = 0;     // Compass widget position X
-uint16_t compassPosY = 0;     // Compass widget position Y
-uint16_t coordPosX = 0;       // Coordinates widget position X
-uint16_t coordPosY = 0;       // Coordinates widget position Y
-uint16_t altitudePosX = 0;    // Altitude widget position X
-uint16_t altitudePosY = 0;    // Altitude widget position Y
-uint16_t speedPosX = 0;       // Speed widget position X
-uint16_t speedPosY = 0;       // Speed widget position Y
-uint16_t sunPosX = 0;         // Sunrise/sunset position X
-uint16_t sunPosY = 0;         // Sunrise/sunset position Y
-bool enableWeb = true;        // Enable/disable web file server
-bool showToolBar = false;     // Show Map Toolbar
-int8_t tempOffset = 0;        // BME Temperature offset
+uint8_t defaultZoom = 0;   // Default Zoom Value
+uint8_t defBright = 255;   // Default Brightness
+int32_t defGMT = 1;        // Default GMT offset
+uint16_t gpsBaud = 0;      // GPS Speed
+uint16_t gpsUpdate = 0;    // GPS Update rate
+uint16_t compassPosX = 0;  // Compass widget position X
+uint16_t compassPosY = 0;  // Compass widget position Y
+uint16_t coordPosX = 0;    // Coordinates widget position X
+uint16_t coordPosY = 0;    // Coordinates widget position Y
+uint16_t altitudePosX = 0; // Altitude widget position X
+uint16_t altitudePosY = 0; // Altitude widget position Y
+uint16_t speedPosX = 0;    // Speed widget position X
+uint16_t speedPosY = 0;    // Speed widget position Y
+uint16_t sunPosX = 0;      // Sunrise/sunset position X
+uint16_t sunPosY = 0;      // Sunrise/sunset position Y
+bool enableWeb = true;     // Enable/disable web file server
+bool showToolBar = false;  // Show Map Toolbar
+int8_t tempOffset = 0;     // BME Temperature offset
 extern Battery battery;
-String defDST = "NONE";       // default DST zone
-bool calculateDST = false;    // Calculate DST flag
+extern Compass compass;
+String defDST = "NONE";    // default DST zone
+bool calculateDST = false; // Calculate DST flag
 
 /**
  * @brief Load stored preferences
@@ -64,8 +65,7 @@ void loadPreferences()
 {
   cfg.init("ICENAV");
 #ifdef ENABLE_COMPASS
-  offX = cfg.getFloat(PKEYS::KCOMP_OFFSET_X, 0.0);
-  offY = cfg.getFloat(PKEYS::KCOMP_OFFSET_Y, 0.0);
+  compass.setOffsets(cfg.getFloat(PKEYS::KCOMP_OFFSET_X, 0.0), cfg.getFloat(PKEYS::KCOMP_OFFSET_Y, 0.0));
 #endif
   mapSet.mapRotationComp = cfg.getBool(PKEYS::KMAP_ROT_MODE, false);
   mapSet.showMapCompass = cfg.getBool(PKEYS::KMAP_COMPASS, true);
@@ -76,16 +76,16 @@ void loadPreferences()
   mapSet.showMapScale = cfg.getBool(PKEYS::KMAP_SCALE, true);
   gpsBaud = cfg.getShort(PKEYS::KGPS_SPEED, 4);
   gpsUpdate = cfg.getShort(PKEYS::KGPS_RATE, 3);
-  compassPosX = cfg.getInt(PKEYS::KCOMP_X, ( TFT_WIDTH / 2 ) - ( 100 * scale ) );
+  compassPosX = cfg.getInt(PKEYS::KCOMP_X, (TFT_WIDTH / 2) - (100 * scale));
   compassPosY = cfg.getInt(PKEYS::KCOMP_Y, 80);
-  coordPosX = cfg.getInt(PKEYS::KCOORD_X, ( TFT_WIDTH / 2 ) - ( 90 * scale ) );
+  coordPosX = cfg.getInt(PKEYS::KCOORD_X, (TFT_WIDTH / 2) - (90 * scale));
   coordPosY = cfg.getInt(PKEYS::KCOORD_Y, 30);
   altitudePosX = cfg.getInt(PKEYS::KALTITUDE_X, 8);
   altitudePosY = cfg.getInt(PKEYS::KALTITUDE_Y, TFT_HEIGHT - 170);
   speedPosX = cfg.getInt(PKEYS::KSPEED_X, 1);
   speedPosY = cfg.getInt(PKEYS::KSPEED_Y, TFT_HEIGHT - 130);
   sunPosX = cfg.getInt(PKEYS::KSUN_X, 170);
-  sunPosY = cfg.getInt(PKEYS::KSUN_Y, TFT_HEIGHT - 170 );
+  sunPosY = cfg.getInt(PKEYS::KSUN_Y, TFT_HEIGHT - 170);
   defBright = cfg.getUInt(PKEYS::KDEF_BRIGT, 254);
   defGMT = cfg.getInt(PKEYS::KGMT_OFFS, 1);
   if (mapSet.vectorMap)
@@ -104,10 +104,10 @@ void loadPreferences()
   GPS_TX = cfg.getUInt(PKEYS::KGPS_TX, GPS_TX);
   GPS_RX = cfg.getUInt(PKEYS::KGPS_RX, GPS_RX);
   enableWeb = cfg.getBool(PKEYS::KWEB_FILE, enableWeb);
-  tempOffset = cfg.getInt(PKEYS::KTEMP_OFFS,0);
+  tempOffset = cfg.getInt(PKEYS::KTEMP_OFFS, 0);
 
-  // Default Widgets positions
-  #ifdef TDECK_ESP32S3
+// Default Widgets positions
+#ifdef TDECK_ESP32S3
   compassPosX = cfg.isKey(CONFKEYS::KCOMP_X) ? cfg.getInt(CONFKEYS::KCOMP_X, compassPosX) : 162;
   compassPosY = cfg.isKey(CONFKEYS::KCOMP_Y) ? cfg.getInt(CONFKEYS::KCOMP_Y, compassPosY) : 6;
   coordPosX = cfg.isKey(CONFKEYS::KCOORD_X) ? cfg.getInt(CONFKEYS::KCOORD_X, coordPosX) : 1;
@@ -118,9 +118,9 @@ void loadPreferences()
   speedPosY = cfg.isKey(CONFKEYS::KSPEED_Y) ? cfg.getInt(CONFKEYS::KSPEED_Y, speedPosY) : 94;
   sunPosX = cfg.isKey(CONFKEYS::KSUN_X) ? cfg.getInt(CONFKEYS::KSPEED_X, speedPosX) : 3;
   sunPosY = cfg.isKey(CONFKEYS::KSUN_Y) ? cfg.getInt(CONFKEYS::KSPEED_Y, speedPosY) : 110;
-  #endif
+#endif
 
-  battery.setBatteryLevels(cfg.getFloat(PKEYS::KVMAX_BATT,4.2),cfg.getFloat(PKEYS::KVMIN_BATT,3.6));
+  battery.setBatteryLevels(cfg.getFloat(PKEYS::KVMAX_BATT, 4.2), cfg.getFloat(PKEYS::KVMIN_BATT, 3.6));
 
   defDST = cfg.getString(PKEYS::KDST_ZONE, "EU");
   if (defDST.equals("NONE"))
@@ -214,18 +214,21 @@ void saveWidgetPos(char *widget, uint16_t posX, uint16_t posY)
 /**
  * @brief Utility to show all settings
  */
-void printSettings() 
+void printSettings()
 {
   log_v("%11s \t%s \t%s", "KEYNAME", "DEFINED", "VALUE");
   log_v("%11s \t%s \t%s", "=======", "=======", "=====");
 
-  for (int i = 0; i < KCOUNT; i++) {
-    if (i == PKEYS::KUSER) continue;
+  for (int i = 0; i < KCOUNT; i++)
+  {
+    if (i == PKEYS::KUSER)
+      continue;
     String key = cfg.getKey((CONFKEYS)i);
     bool isDefined = cfg.isKey(key);
     String defined = isDefined ? "custom " : "default";
     String value = "";
-    if (isDefined) value = cfg.getValue(key);
+    if (isDefined)
+      value = cfg.getValue(key);
     log_v("%11s \t%s \t%s", key.c_str(), defined.c_str(), value.c_str());
   }
 }
