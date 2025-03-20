@@ -13,6 +13,9 @@ bool isScrolled = true;       // Flag to indicate when tileview was scrolled
 bool isReady = false;         // Flag to indicate when tileview scroll was finished
 uint8_t activeTile = 0;       // Current active tile
 uint8_t wptAction = WPT_NONE; // Current Waypoint Action
+int heading = 0;              // Heading value (Compass or GPS)
+
+extern Compass compass;
 
 #ifdef LARGE_SCREEN
   uint8_t toolBarOffset = 100;
@@ -149,7 +152,7 @@ void updateMainScreen(lv_timer_t *t)
       case COMPASS:
         #ifdef ENABLE_COMPASS
         if (!waitScreenRefresh)
-          heading = getHeading();
+          heading = compass.getHeading();
         #endif
         #ifndef ENABLE_COMPASS
           heading = gpsData.heading;
@@ -165,7 +168,7 @@ void updateMainScreen(lv_timer_t *t)
       
       case MAP:
         #ifdef ENABLE_COMPASS
-          heading = getHeading();
+          heading = compass.getHeading();
         #endif
         lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
         break;
@@ -391,12 +394,12 @@ void updateNavEvent(lv_event_t *event)
   }
   else
   {
-    // #ifdef ENABLE_COMPASS
-     double wptCourse = calcCourse(gpsData.latitude, gpsData.longitude, loadWpt.lat, loadWpt.lon) - heading;
-    // #endif
-    // #ifndef ENABLE_COMPASS
-    //  double wptCourse = calcCourse(gpsData.latitude, gpsData.longitude, loadWpt.lat, loadWpt.lon) - gpsData.heading;
-    // #endif
+    #ifdef ENABLE_COMPASS
+     double wptCourse = calcCourse(gpsData.latitude, gpsData.longitude, loadWpt.lat, loadWpt.lon) - compass.getHeading();
+    #endif
+    #ifndef ENABLE_COMPASS
+     double wptCourse = calcCourse(gpsData.latitude, gpsData.longitude, loadWpt.lat, loadWpt.lon) - gpsData.heading;
+    #endif
      lv_img_set_angle(arrowNav, (wptCourse * 10));
   }
 }

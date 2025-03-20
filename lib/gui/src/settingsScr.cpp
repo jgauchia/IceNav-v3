@@ -9,6 +9,7 @@
 #include "settingsScr.hpp"
 
 bool needReboot = false;
+extern Compass compass;
 
 /**
  * @brief Back button event
@@ -52,7 +53,7 @@ static void touchCalib(lv_event_t *event)
 static void compassCalib(lv_event_t *event)
 {
   tft.fillScreen(TFT_BLACK);
-  compassCalibrate();
+  compass.calibrate();
   tft.fillScreen(TFT_BLACK);
   isMainScreen = false;
   lv_screen_load(settingsScreen);

@@ -17,6 +17,7 @@
 #include "tft.hpp"
 #include "gpsMath.hpp"
 #include "settings.hpp"
+#include "compass.hpp"
 #include "mapVars.h"
 
 class Maps
