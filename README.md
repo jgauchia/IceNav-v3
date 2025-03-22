@@ -276,6 +276,11 @@ Some extra details:
    VminBatt     custom          3.59999990     Battery min. voltage
    tempOffs     custom          0              Temperature offset (-/+)
      defGMT     custom          1              Default GMT Time
+  defDecAng     custom          0.22000000     Default declination angle
+  kalmanFil     custom          true           Enable compass Kalman Filter
+    kalmanQ     custom          0.00500000     Def. Kalman Filter const. Process noise covariance (0-1)
+    kalmanR     custom          0.60000000     Def. Kalman Filter const. Measurement noise covariance (0-1)
+
 ```          
 
 **kset KEYNAME**: Set user custom settings:

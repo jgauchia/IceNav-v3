@@ -126,8 +126,6 @@ void setup()
 
   #ifdef ENABLE_COMPASS
       compass.init();
-      compass.setDeclinationAngle(0.22);
-      compass.setKalmanFilterConst(0.01, 0.4);
   #endif
 
   #ifdef ENABLE_IMU
