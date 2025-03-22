@@ -66,7 +66,10 @@ void loadPreferences()
   cfg.init("ICENAV");
 #ifdef ENABLE_COMPASS
   compass.setOffsets(cfg.getFloat(PKEYS::KCOMP_OFFSET_X, 0.0), cfg.getFloat(PKEYS::KCOMP_OFFSET_Y, 0.0));
-#endif
+  compass.setDeclinationAngle(cfg.getFloat(PKEYS::KDECL_ANG, 0.22));
+  compass.enableKalmanFilter(cfg.getBool(PKEYS::KKALM_FIL, false));
+  compass.setKalmanFilterConst(cfg.getFloat(PKEYS::KKALM_Q, 0.01),cfg.getFloat(PKEYS::KKALM_R, 0.1));
+#endif  
   mapSet.mapRotationComp = cfg.getBool(PKEYS::KMAP_ROT_MODE, false);
   mapSet.showMapCompass = cfg.getBool(PKEYS::KMAP_COMPASS, true);
   mapSet.compassRotation = cfg.getBool(PKEYS::KMAP_COMP_ROT, true);

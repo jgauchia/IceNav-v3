@@ -33,4 +33,8 @@
   X(KVMIN_BATT, "VminBatt", FLOAT)       \
   X(KTEMP_OFFS, "tempOffs", INT)         \
   X(KGMT_OFFS, "defGMT", INT)            \
+  X(KDECL_ANG, "defDecAng", FLOAT)       \
+  X(KKALM_FIL, "kalmanFil", BOOL)        \
+  X(KKALM_Q, "kalmanQ", FLOAT)           \
+  X(KKALM_R, "kalmanR", FLOAT)           \
   X(KCOUNT, "KCOUNT", UNKNOWN)
