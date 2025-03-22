@@ -10,6 +10,7 @@
 #include "maps.hpp"
 
 extern Compass compass;
+extern Gps gps;
 
 extern Point16::Point16(char *coordsPair)
 {
@@ -833,9 +834,9 @@ void Maps::drawMapWidgets(MAP mapSettings)
     if (mapSettings.mapRotationComp)
       mapHeading = compass.getHeading();
     else
-      mapHeading = gpsData.heading;
+      mapHeading = gps.gpsData.heading;
   #else 
-      mapHeading = gpsData.heading;
+      mapHeading = gps.gpsData.heading;
   #endif
 
   if (mapSettings.showMapCompass)
@@ -891,7 +892,7 @@ void Maps::drawMapWidgets(MAP mapSettings)
   {
     Maps::mapSprite.fillRectAlpha(0, mapHeight - 32, 70, 32, 95, TFT_BLACK);
     Maps::mapSprite.pushImage(0, mapHeight - 28, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
-    Maps::mapSprite.drawNumber(gpsData.speed, 26, mapHeight - 24 , &fonts::FreeSansBold9pt7b);
+    Maps::mapSprite.drawNumber(gps.gpsData.speed, 26, mapHeight - 24 , &fonts::FreeSansBold9pt7b);
   }
 
   if (!mapSettings.vectorMap)
@@ -985,7 +986,7 @@ void Maps::generateRenderMap(uint8_t zoom)
   Maps::mapTileSize = Maps::renderMapTileSize;
   Maps::zoomLevel = zoom;
 
-  Maps::currentMapTile = getMapTile(gpsData.longitude, gpsData.latitude, zoom, 0, 0);
+  Maps::currentMapTile = getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
 
   bool foundRoundMap = false;
   bool missingMap = false;
@@ -1028,7 +1029,7 @@ void Maps::generateRenderMap(uint8_t zoom)
             // Skip Center Tile
             continue;
           }
-          Maps::roundMapTile = getMapTile(gpsData.longitude, gpsData.latitude, zoom, x, y);
+          Maps::roundMapTile = getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, x, y);
 
           foundRoundMap = Maps::mapTempSprite.drawPngFile(SD, Maps::roundMapTile.file, (x - startX) * Maps::mapTileSize, (y - startY) * Maps::mapTileSize);
           if (!foundRoundMap)
@@ -1080,7 +1081,7 @@ void Maps::generateRenderMap(uint8_t zoom)
  */
 void Maps::generateVectorMap(uint8_t zoom)
 {
-  Maps::getPosition(gpsData.latitude, gpsData.longitude);
+  Maps::getPosition(gps.gpsData.latitude, gps.gpsData.longitude);
   if (Maps::isPosMoved)
   {
     Maps::mapTileSize = Maps::vectorMapTileSize;
@@ -1111,11 +1112,11 @@ void Maps::displayMap()
     if (mapSet.mapRotationComp)
       mapHeading = compass.getHeading();
     else
-      mapHeading = gpsData.heading;
+      mapHeading = gps.gpsData.heading;
 
     #else 
 
-    mapHeading = gpsData.heading;
+    mapHeading = gps.gpsData.heading;
 
     #endif
 
@@ -1123,7 +1124,7 @@ void Maps::displayMap()
 
     if (Maps::mapTileSize == Maps::renderMapTileSize)
     {
-      Maps::navArrowPosition = Maps::coord2ScreenPos(gpsData.longitude, gpsData.latitude, Maps::zoomLevel, Maps::renderMapTileSize);
+      Maps::navArrowPosition = Maps::coord2ScreenPos(gps.gpsData.longitude, gps.gpsData.latitude, Maps::zoomLevel, Maps::renderMapTileSize);
       Maps::mapTempSprite.setPivot(Maps::renderMapTileSize + Maps::navArrowPosition.posX, Maps::renderMapTileSize + Maps::navArrowPosition.posY);
     }
     if (Maps::mapTileSize == Maps::vectorMapTileSize)

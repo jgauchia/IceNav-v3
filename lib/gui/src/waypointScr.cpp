@@ -9,6 +9,7 @@
 #include "waypointScr.hpp"
 
 extern Maps mapView;
+extern Gps gps;
 
 lv_obj_t *waypointScreen;  // Add Waypoint Screen
 lv_obj_t *waypointName;
@@ -197,8 +198,8 @@ void updateWaypointPos()
   switch (wptAction)
   {
     case WPT_ADD:
-      addWpt.lat = gpsData.latitude;
-      addWpt.lon = gpsData.longitude;
+      addWpt.lat = gps.gpsData.latitude;
+      addWpt.lon = gps.gpsData.longitude;
       lv_label_set_text_static(lat, latFormatString(addWpt.lat));
       lv_label_set_text_static(lon, lonFormatString(addWpt.lon));
       break;

@@ -10,6 +10,7 @@
 
 TaskHandle_t LVGLTaskHandler;
 xSemaphoreHandle gpsMutex;
+extern Gps gps;
 
 /**
  * @brief Read GPS data
@@ -36,7 +37,7 @@ void gpsTask(void *pvParameters)
       while (GPS.available( gpsPort )) 
       {
         fix = GPS.read();
-        getGPSData();
+        gps.getGPSData();
       }
 
       xSemaphoreGive(gpsMutex);
