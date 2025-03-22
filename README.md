@@ -260,6 +260,8 @@ Some extra details:
 **klist**: List user custom settings (example of custom settings):
 
 ```
+    KEYNAME     DEFINED         VALUE          
+    =======     =======         ===== 
     defZoom     custom          17             Default zoom
  fullScrMap     custom          true           Fullscreen map
     vectMap     custom          false          Vectorized map
