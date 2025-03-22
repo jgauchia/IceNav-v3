@@ -118,6 +118,7 @@ int Compass::getHeading()
 
   if (kalmanFilterEnabled)
   {
+    headingNoFilter = unwrapFromPi(headingNoFilter, headingPrevious);
     headingSmooth = kalmanFilter.update(headingNoFilter);
   }
   else
@@ -125,14 +126,14 @@ int Compass::getHeading()
     headingSmooth = headingNoFilter;
   }
 
-  int headingDegrees = (int)(headingSmooth * 180 / M_PI);
+  headingPrevious = headingNoFilter;
+
+  float headingDegrees = (int)(headingSmooth * 180 / M_PI);
 
   if (headingDegrees < 0)
     headingDegrees += 360;
-  if (headingDegrees >= 360)
-    headingDegrees -= 360;
-
-  return headingDegrees;
+    
+  return static_cast<int>(headingDegrees);
 }
 
 /**
@@ -272,5 +273,26 @@ float Compass::wrapToPi(float angle)
     angle += 2 * M_PI;
   while (angle > M_PI)
     angle -= 2 * M_PI;
+  return angle;
+}
+
+/**
+ * @brief Helper function to unwrap angle to -pi to pi
+ * 
+ * @param angle
+ * @param previousAngle
+ * @return unrap angle
+ */
+float Compass::unwrapFromPi(float angle, float previousAngle)
+{
+  float delta = angle - previousAngle;
+  if (delta > M_PI)
+  {
+    angle -= 2 * M_PI;
+  }
+  else if (delta < -M_PI)
+  {
+    angle += 2 * M_PI;
+  }
   return angle;
 }

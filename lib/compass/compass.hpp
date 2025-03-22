@@ -38,10 +38,12 @@ public:
     float update(float measurement)
     {
         measurement = wrapToPi(measurement);
+        float y = measurement - x;
+        y = wrapToPi(y);
 
         p = p + q;
         k = p / (p + r);
-        x = x + k * (measurement - x);
+        x = x + k * y;
 
         x = wrapToPi(x);
 
@@ -99,6 +101,7 @@ private:
     KalmanFilter kalmanFilter;
 
     float wrapToPi(float angle);
+    float unwrapFromPi(float angle, float previousAngle);
 };
 
 #endif // COMPASS_HPP

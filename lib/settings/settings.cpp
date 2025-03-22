@@ -54,6 +54,7 @@ bool showToolBar = false;  // Show Map Toolbar
 int8_t tempOffset = 0;     // BME Temperature offset
 extern Battery battery;
 extern Compass compass;
+extern Gps gps;
 String defDST = "NONE";    // default DST zone
 bool calculateDST = false; // Calculate DST flag
 
@@ -161,7 +162,7 @@ void saveGPSBaud(uint16_t gpsBaud)
   }
   else
   {
-    gpsBaudDetected = autoBaudGPS();
+    gpsBaudDetected = gps.autoBaud();
 
     if (gpsBaudDetected != 0)
     {

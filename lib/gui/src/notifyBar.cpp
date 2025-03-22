@@ -14,6 +14,7 @@ lv_obj_t *notifyBarHour;
 
 Storage storage;
 Battery battery;
+extern Gps gps;
 
 /**
  * @brief Update notify bar event
@@ -33,7 +34,7 @@ void updateNotifyBar(lv_event_t *event)
 #endif
 
   if (obj == gpsCount)
-    lv_label_set_text_fmt(obj, LV_SYMBOL_GPS "%2d", gpsData.satellites);
+    lv_label_set_text_fmt(obj, LV_SYMBOL_GPS "%2d", gps.gpsData.satellites);
 
   if (obj == battIcon)
   {
@@ -53,7 +54,7 @@ void updateNotifyBar(lv_event_t *event)
 
   if (obj == gpsFixMode)
   {
-    switch (gpsData.fixMode)
+    switch (gps.gpsData.fixMode)
     {
       case gps_fix::STATUS_NONE:
         lv_label_set_text_static(obj, "----");

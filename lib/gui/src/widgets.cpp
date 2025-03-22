@@ -17,6 +17,8 @@ lv_obj_t *speedLabel;
 lv_obj_t *sunriseLabel;
 lv_obj_t *sunsetLabel;
 
+extern Gps gps;
+
 /**
  * @brief Edit Screen Event (drag widgets)
  *
@@ -106,10 +108,10 @@ void positionWidget(_lv_obj_t *screen)
     lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     latitude = lv_label_create(obj);
     lv_obj_set_style_text_font(latitude, fontMedium, 0);
-    lv_label_set_text_fmt(latitude, "%s", latFormatString(gpsData.latitude));
+    lv_label_set_text_fmt(latitude, "%s", latFormatString(gps.gpsData.latitude));
     longitude = lv_label_create(obj);
     lv_obj_set_style_text_font(longitude, fontMedium, 0);
-    lv_label_set_text_fmt(longitude, "%s", lonFormatString(gpsData.longitude));
+    lv_label_set_text_fmt(longitude, "%s", lonFormatString(gps.gpsData.longitude));
     lv_obj_t *img = lv_img_create(obj);
     lv_img_set_src(img, positionIconFile);
     lv_img_set_zoom(img,iconScale);

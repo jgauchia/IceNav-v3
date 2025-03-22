@@ -19,6 +19,8 @@ lv_obj_t *satelliteBar;
 lv_chart_series_t *satelliteBarSerie; 
 lv_obj_t *constMsg;
 
+Gps gps;
+
 /**
  * @brief Draw Text on SNR Chart
  *
@@ -72,12 +74,12 @@ void satelliteBarDrawEvent(lv_event_t * event)
             lv_draw_fill_dsc_t * fill_dsc = lv_draw_task_get_fill_dsc(drawTask);
             if(fill_dsc) 
             {
-            if ( strcmp(satTracker[dscId].talker_id,"GP") == 0 )
-                fill_dsc->color = satTracker[dscId].active == true ? GP_INACTIVE_COLOR : GP_ACTIVE_COLOR;
-            if ( strcmp(satTracker[dscId].talker_id,"GL") == 0 )
-                fill_dsc->color = satTracker[dscId].active == true ? GL_INACTIVE_COLOR : GL_ACTIVE_COLOR;
-            if ( strcmp(satTracker[dscId].talker_id,"BD") == 0 )
-                fill_dsc->color = satTracker[dscId].active == true ? BD_INACTIVE_COLOR : BD_ACTIVE_COLOR;
+            if ( strcmp(gps.satTracker[dscId].talker_id,"GP") == 0 )
+                fill_dsc->color = gps.satTracker[dscId].active == true ? GP_INACTIVE_COLOR : GP_ACTIVE_COLOR;
+            if ( strcmp(gps.satTracker[dscId].talker_id,"GL") == 0 )
+                fill_dsc->color = gps.satTracker[dscId].active == true ? GL_INACTIVE_COLOR : GL_ACTIVE_COLOR;
+            if ( strcmp(gps.satTracker[dscId].talker_id,"BD") == 0 )
+                fill_dsc->color = gps.satTracker[dscId].active == true ? BD_INACTIVE_COLOR : BD_ACTIVE_COLOR;
             }
         }
     }
@@ -88,7 +90,7 @@ void satelliteBarDrawEvent(lv_event_t * event)
     lv_layer_t * layer = lv_event_get_layer(event);
     char buf[16];
     
-    for (uint16_t i = 0; i < gpsData.satInView; i++) 
+    for (uint16_t i = 0; i < gps.gpsData.satInView; i++) 
     {
         lv_area_t chartObjCoords;
         lv_obj_get_coords(obj, &chartObjCoords);
@@ -96,14 +98,14 @@ void satelliteBarDrawEvent(lv_event_t * event)
         lv_chart_get_point_pos_by_id(obj, lv_chart_get_series_next(obj, NULL), i, &p);
 
         //Draw signal at top of bar
-        if (satTracker[i].snr > 0)
+        if (gps.satTracker[i].snr > 0)
         {
-            lv_snprintf(buf, sizeof(buf), LV_SYMBOL_DUMMY"%d", satTracker[i].snr);
+            lv_snprintf(buf, sizeof(buf), LV_SYMBOL_DUMMY"%d", gps.satTracker[i].snr);
             drawTextOnLayer(buf, layer, &p, &chartObjCoords, lv_color_white(), fontSmall, 15);
         }
 
         //Draw Satellite ID
-        lv_snprintf(buf, sizeof(buf), LV_SYMBOL_DUMMY"%d", satTracker[i].satNum);
+        lv_snprintf(buf, sizeof(buf), LV_SYMBOL_DUMMY"%d", gps.satTracker[i].satNum);
         drawTextOnLayer(buf, layer, &p, &chartObjCoords, lv_color_white(), fontSmall, (chartObjCoords.y1 + p.y) - chartObjCoords.y2 + 10);
     }
   } 
@@ -359,9 +361,9 @@ void drawSatSNR()
     lv_chart_set_value_by_id(satelliteBar, satelliteBarSerie, i, LV_CHART_POINT_NONE);
   }
 
-  for (int i = 0; i < gpsData.satInView; ++i)
+  for (int i = 0; i < gps.gpsData.satInView; ++i)
   {
-    lv_chart_set_value_by_id(satelliteBar, satelliteBarSerie, i, satTracker[i].snr);
+    lv_chart_set_value_by_id(satelliteBar, satelliteBarSerie, i, gps.satTracker[i].snr);
   }
 
   lv_chart_refresh(satelliteBar);
@@ -453,16 +455,16 @@ void drawSatSky()
     dscSat.radius = 8;
     dscSat.opa = LV_OPA_70;
 
-    for (int i = 0; i < gpsData.satInView; i++)
+    for (int i = 0; i < gps.gpsData.satInView; i++)
     {
-        if ( strcmp(satTracker[i].talker_id,"GP") == 0 )
-            dscSat.color = satTracker[i].active == true ? GP_INACTIVE_COLOR : GP_ACTIVE_COLOR;
-        if ( strcmp(satTracker[i].talker_id,"GL") == 0 )
-            dscSat.color = satTracker[i].active == true ? GL_INACTIVE_COLOR : GL_ACTIVE_COLOR;
-        if ( strcmp(satTracker[i].talker_id,"BD") == 0 )
-            dscSat.color = satTracker[i].active == true ? BD_INACTIVE_COLOR : BD_ACTIVE_COLOR;
-        dscSat.center.x = satTracker[i].posX;
-        dscSat.center.y = satTracker[i].posY;
+        if ( strcmp(gps.satTracker[i].talker_id,"GP") == 0 )
+            dscSat.color = gps.satTracker[i].active == true ? GP_INACTIVE_COLOR : GP_ACTIVE_COLOR;
+        if ( strcmp(gps.satTracker[i].talker_id,"GL") == 0 )
+            dscSat.color = gps.satTracker[i].active == true ? GL_INACTIVE_COLOR : GL_ACTIVE_COLOR;
+        if ( strcmp(gps.satTracker[i].talker_id,"BD") == 0 )
+            dscSat.color = gps.satTracker[i].active == true ? BD_INACTIVE_COLOR : BD_ACTIVE_COLOR;
+        dscSat.center.x = gps.satTracker[i].posX;
+        dscSat.center.y = gps.satTracker[i].posY;
         lv_draw_arc(&satPosLayer, &dscSat);
 
         // Draw Satellite Number
@@ -470,7 +472,7 @@ void drawSatSky()
         lv_draw_rect_dsc_t draw_rect_dsc;
         lv_draw_rect_dsc_init(&draw_rect_dsc);
 
-        lv_snprintf(buf, sizeof(buf), LV_SYMBOL_DUMMY"%d", satTracker[i].satNum);
+        lv_snprintf(buf, sizeof(buf), LV_SYMBOL_DUMMY"%d", gps.satTracker[i].satNum);
 
         draw_rect_dsc.bg_opa = LV_OPA_TRANSP;
         draw_rect_dsc.radius = 0;
@@ -479,10 +481,10 @@ void drawSatSky()
         draw_rect_dsc.bg_image_recolor = lv_color_white();
 
         lv_area_t a;
-        a.x1 = satTracker[i].posX-8;
-        a.x2 = satTracker[i].posX+8;
-        a.y1 = satTracker[i].posY-5;
-        a.y2 =  satTracker[i].posY+4;
+        a.x1 = gps.satTracker[i].posX-8;
+        a.x2 = gps.satTracker[i].posX+8;
+        a.y1 = gps.satTracker[i].posY-5;
+        a.y2 = gps.satTracker[i].posY+4;
 
         lv_draw_rect(&satPosLayer, &draw_rect_dsc, &a);
 
