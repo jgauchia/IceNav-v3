@@ -260,22 +260,22 @@ Some extra details:
 **klist**: List user custom settings (example of custom settings):
 
 ```
-    defZoom     custom          17 
- fullScrMap     custom          true 
-    vectMap     custom          false 
-   mapSpeed     custom          true 
-   mapScale     custom          true 
-    mapComp     custom          true 
- mapCompRot     custom          true 
-      gpsTX     custom          43 
-      gpsRX     custom          44 
-     defLAT     custom          52.5200
-     defLON     custom          13.4049
-  defBright     custom          255 
-   VmaxBatt     custom          4.19999981 
-   VminBatt     custom          3.59999990 
-   tempOffs     custom          0 
-     defGMT     custom          1   
+    defZoom     custom          17             Default zoom
+ fullScrMap     custom          true           Fullscreen map
+    vectMap     custom          false          Vectorized map
+   mapSpeed     custom          true           Show speed meter in map
+   mapScale     custom          true           Show scale meter in map
+    mapComp     custom          true           Show compass in map
+ mapCompRot     custom          true           Rotate map with the compass
+      gpsTX     custom          43             GPS Tx gpio
+      gpsRX     custom          44             GPS Rx gpio
+     defLAT     custom          52.5200        Default latitude
+     defLON     custom          13.4049        Default longitude
+  defBright     custom          255            Default screen bright (0-255)
+   VmaxBatt     custom          4.19999981     Battery max. voltage
+   VminBatt     custom          3.59999990     Battery min. voltage
+   tempOffs     custom          0              Temperature offset (-/+)
+     defGMT     custom          1              Default GMT Time
 ```          
 
 **kset KEYNAME**: Set user custom settings:
