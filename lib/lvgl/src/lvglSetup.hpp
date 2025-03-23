@@ -15,11 +15,18 @@
 // #ifdef TDECK_ESP32S3 
 //     #include "Wire.h"
 // #endif
+#include "globalGpxDef.h"
+#include "tasks.hpp"
+#include "cli.hpp"
+#include "bme.hpp"
+#include "maps.hpp"
+#include "firmUpgrade.hpp"
 #include "splashScr.hpp"
 #include "notifyBar.hpp"
 #include "settingsScr.hpp"
 #include "deviceSettingsScr.hpp"
 #include "mapSettingsScr.hpp"
+
 
 /**
  * @brief Default display driver definition

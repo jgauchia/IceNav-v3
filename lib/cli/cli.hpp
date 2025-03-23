@@ -12,9 +12,11 @@
 #ifndef DISABLE_CLI
 
 #include <ESP32WifiCLI.hpp>
+#include "settings.hpp"
 #include "utils.h"
 #include "gps.hpp"
 #include "power.hpp"
+#include <NMEAGPS.h>
 
 void initCLI();
 

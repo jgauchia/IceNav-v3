@@ -9,6 +9,7 @@
 #ifndef LVGLFUNCS_HPP
 #define LVGLFUNCS_HPP
 
+#include "tft.hpp"
 #include "globalGuiDef.h"
 
 void objHideCursor(_lv_obj_t *obj);

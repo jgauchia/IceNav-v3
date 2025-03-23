@@ -62,9 +62,10 @@ void updateCompassScr(lv_event_t *event)
   if (obj == speedLabel)
     lv_label_set_text_fmt(obj, "%3d Km/h", gps.gpsData.speed);
   if (obj == sunriseLabel)
+  {
     lv_label_set_text_static(obj, gps.gpsData.sunriseHour);
-  if (obj == sunsetLabel)
-    lv_label_set_text_static(obj, gps.gpsData.sunsetHour);
+    lv_label_set_text_static(sunsetLabel, gps.gpsData.sunsetHour);
+  }
 }
 
 /**
@@ -165,8 +166,8 @@ void updateMainScreen(lv_timer_t *t)
       lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
       lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
       lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
-      lv_obj_send_event(sunriseLabel, LV_EVENT_VALUE_CHANGED, NULL);
-      lv_obj_send_event(sunsetLabel, LV_EVENT_VALUE_CHANGED, NULL);
+      // lv_obj_send_event(sunriseLabel, LV_EVENT_VALUE_CHANGED, NULL);
+      // lv_obj_send_event(sunsetLabel, LV_EVENT_VALUE_CHANGED, NULL);
       break;
 
     case MAP:
