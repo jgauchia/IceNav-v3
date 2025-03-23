@@ -163,7 +163,8 @@ void updateMainScreen(lv_timer_t *t)
 #endif
       lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
       lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
-      lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
+      if (gps.isAltitudeChanged())
+        lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
       if (gps.isSpeedChanged())
         lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
       break;

@@ -279,3 +279,17 @@ bool Gps::isSpeedChanged()
   }
   return false;
 }
+
+/**
+ *  @brief Check if the altitude has changed
+ *  @return true if altitude has changed, false otherwise
+ */
+bool Gps::isAltitudeChanged()
+{
+  if (gpsData.altitude != previousAltitude)
+  {
+    previousAltitude = gpsData.altitude;
+    return true;
+  }
+  return false;
+}
