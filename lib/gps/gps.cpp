@@ -265,3 +265,17 @@ long Gps::autoBaud()
 
   return baud;
 }
+
+/**
+ *  @brief Check if the speed has changed
+ *  @return true if speed has changed, false otherwise
+ */
+bool Gps::isSpeedChanged()
+{
+  if (gpsData.speed != previousSpeed)
+  {
+    previousSpeed = gpsData.speed;
+    return true;
+  }
+  return false;
+}

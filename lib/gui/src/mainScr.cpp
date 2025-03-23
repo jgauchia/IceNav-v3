@@ -161,13 +161,11 @@ void updateMainScreen(lv_timer_t *t)
       heading = gps.gpsData.heading;
       lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
 #endif
-
       lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
       lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
       lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
-      lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
-      // lv_obj_send_event(sunriseLabel, LV_EVENT_VALUE_CHANGED, NULL);
-      // lv_obj_send_event(sunsetLabel, LV_EVENT_VALUE_CHANGED, NULL);
+      if (gps.isSpeedChanged())
+        lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
       break;
 
     case MAP:
