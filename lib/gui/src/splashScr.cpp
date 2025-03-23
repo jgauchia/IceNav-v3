@@ -10,6 +10,7 @@
 
 static unsigned long millisActual = 0;
 extern Maps mapView;
+extern bool calcSun = false;
 
 /**
  * @brief Splash screen
@@ -25,6 +26,8 @@ void splashScreen()
   }
   else
     mapView.generateRenderMap(zoom);
+
+  calcSun = true;
 
   tft.fillScreen(TFT_BLACK);
   millisActual = millis();
