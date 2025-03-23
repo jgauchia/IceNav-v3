@@ -1,9 +1,9 @@
 /**
  * @file mainScr.hpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Main Screen
  * @version 0.1.9
- * @date 2025-01
+ * @date 2025-03
  */
 
 #ifndef MAINSCR_HPP

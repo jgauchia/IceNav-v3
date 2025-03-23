@@ -1,9 +1,9 @@
 /**
  * @file loadWaypoint.hpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Load Waypoint functions
  * @version 0.2.0_alpha
- * @date 2025-01
+ * @date 2025-03
  */
 
 #ifndef LOADWAYPOINT_HPP
