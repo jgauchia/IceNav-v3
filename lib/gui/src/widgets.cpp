@@ -182,7 +182,7 @@ void altitudeWidget(_lv_obj_t *screen)
     lv_obj_update_layout(img);
     lv_obj_set_width(obj, lv_obj_get_width(altitude) + 40);
     lv_obj_align(img, LV_ALIGN_LEFT_MID, -15, 0);
-    lv_obj_align(altitude, LV_ALIGN_CENTER, 10, 0);
+    lv_obj_align(altitude, LV_ALIGN_CENTER, 15, 0);
     objUnselect(obj);
     lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);
     lv_obj_add_event_cb(obj, dragWidget, LV_EVENT_PRESSING, (char *)"Altitude_");
@@ -202,7 +202,7 @@ void speedWidget(_lv_obj_t *screen)
     lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     speedLabel = lv_label_create(obj);
     lv_obj_set_style_text_font(speedLabel, fontLargeMedium, 0);
-    lv_label_set_text_static(speedLabel, "   0 Km/h");
+    lv_label_set_text_static(speedLabel, "000 Km/h");
     lv_obj_t *img = lv_img_create(obj);
     lv_img_set_src(img, speedIconFile);
     lv_img_set_zoom(img,iconScale);
@@ -210,7 +210,7 @@ void speedWidget(_lv_obj_t *screen)
     lv_obj_update_layout(img);
     lv_obj_set_width(obj, lv_obj_get_width(speedLabel) + 40);
     lv_obj_align(img, LV_ALIGN_LEFT_MID, -10, 0);
-    lv_obj_align(speedLabel, LV_ALIGN_CENTER, 10, 0);
+    lv_obj_align(speedLabel, LV_ALIGN_CENTER, 20, 0);
     objUnselect(obj);
     lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);
     lv_obj_add_event_cb(obj, dragWidget, LV_EVENT_PRESSING, (char *)"Speed_");
