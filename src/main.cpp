@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ESP32 GPS Navigation main code
  * @version 0.2.0_alpha
- * @date 2025-01
+ * @date 2025-03
  */
 
 #include <Arduino.h>

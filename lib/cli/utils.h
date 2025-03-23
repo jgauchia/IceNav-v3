@@ -3,7 +3,7 @@
  * @author @Hpsaturn
  * @brief  Network CLI and custom internal commands
  * @version 0.2.0_alpha
- * @date 2025-01
+ * @date 2025-03
  */
 
 #ifndef UTILS_H

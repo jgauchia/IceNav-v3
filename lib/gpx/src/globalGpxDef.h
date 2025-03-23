@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Global GPX Variables
  * @version 0.2.0_alpha
- * @date 2025-01
+ * @date 2025-03
  */
 
 

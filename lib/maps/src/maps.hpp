@@ -1,10 +1,10 @@
 /**
  * @file maps.hpp
- * @author Jordi Gauchía (jgauchia@gmx.es) - Render Maps
+ * @author Jordi Gauchía (jgauchia@jgauchia.com) - Render Maps
  * @author @aresta - https://github.com/aresta/ESP32_GPS - Vector Maps
  * @brief  Maps draw class
  * @version 0.2.0_alpha
- * @date 2025-01
+ * @date 2025-03
  */
 
 #ifndef MAPS_HPP
