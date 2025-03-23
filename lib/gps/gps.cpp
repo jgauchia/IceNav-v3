@@ -7,6 +7,10 @@
  */
 
 #include "gps.hpp"
+#include "lvgl.h"
+#include "widgets.hpp"
+
+extern lv_obj_t *sunriseLabel;
 bool isGpsFixed = false;
 bool isTimeFixed = false;
 long gpsBaudDetected = 0;
@@ -147,6 +151,7 @@ void Gps::getGPSData()
       calculateSun();
       log_v("Get date, time, Sunrise and Sunset");
       calcSun = false;
+      lv_obj_send_event(sunriseLabel, LV_EVENT_VALUE_CHANGED, NULL);
     }
   }
 
