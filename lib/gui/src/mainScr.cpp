@@ -161,8 +161,11 @@ void updateMainScreen(lv_timer_t *t)
       heading = gps.gpsData.heading;
       lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
 #endif
-      lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
-      lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
+      if(gps.hasLocationChange())
+      {
+        lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
+        lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
+      }
       if (gps.isAltitudeChanged())
         lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
       if (gps.isSpeedChanged())

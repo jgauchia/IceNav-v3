@@ -293,3 +293,18 @@ bool Gps::isAltitudeChanged()
   }
   return false;
 }
+
+/**
+ *  @brief Check if the latitude or longitude has changed
+ *  @return true if latitude or longitude has changed, false otherwise
+ */
+bool Gps::hasLocationChange()
+{
+  if (gpsData.latitude != previousLatitude || gpsData.longitude != previousLongitude)
+  {
+    previousLatitude = gpsData.latitude;
+    previousLongitude = gpsData.longitude;
+    return true;
+  }
+  return false;
+}

@@ -64,6 +64,7 @@ public:
   long autoBaud();
   bool isSpeedChanged();
   bool isAltitudeChanged();
+  bool hasLocationChange();
 
   struct GPSDATA
   {
@@ -97,6 +98,8 @@ public:
 private:
   uint16_t previousSpeed;
   int16_t previousAltitude;
+  double previousLatitude; 
+  double previousLongitude;
 };
 
 #endif // GPS_HPP
