@@ -63,6 +63,7 @@ public:
   long detectRate(int rxPin);
   long autoBaud();
   bool isSpeedChanged();
+  bool isAltitudeChanged();
 
   struct GPSDATA
   {
@@ -95,6 +96,7 @@ public:
 
 private:
   uint16_t previousSpeed;
+  int16_t previousAltitude;
 };
 
 #endif // GPS_HPP
