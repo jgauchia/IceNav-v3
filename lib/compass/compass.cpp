@@ -132,8 +132,24 @@ int Compass::getHeading()
 
   if (headingDegrees < 0)
     headingDegrees += 360;
-    
+
   return static_cast<int>(headingDegrees);
+}
+
+/**
+ * @brief Check compass heading is update
+ *
+ * @return true/flase
+ */
+bool Compass::isUpdated()
+{
+  int currentDegrees = getHeading();
+  if (currentDegrees != previousDegrees)
+  {
+    previousDegrees = currentDegrees;
+    return true;
+  }
+  return false;
 }
 
 /**
