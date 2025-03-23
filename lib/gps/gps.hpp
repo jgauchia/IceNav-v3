@@ -30,7 +30,7 @@ extern gps_fix fix;
 extern NMEAGPS GPS;
 extern NeoGPS::time_t localTime;
 
-static bool calcSun = true;
+extern bool calcSun;
 void calculateSun();
 
 extern bool isGpsFixed;
