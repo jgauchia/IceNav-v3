@@ -153,11 +153,14 @@ void updateMainScreen(lv_timer_t *t)
 #ifdef ENABLE_COMPASS
       if (!waitScreenRefresh)
         heading = compass.getHeading();
+      if (compass.isUpdated())
+        lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
 #endif
 #ifndef ENABLE_COMPASS
       heading = gpsData.heading;
-#endif
       lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
+#endif
+
       lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
       lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
       lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
