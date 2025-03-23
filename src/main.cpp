@@ -1,7 +1,7 @@
 /**
  * @file main.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief  ESP32 GPS Navigation main code
+ * @brief  ICENAV - ESP32 GPS Navigator main code
  * @version 0.2.0_alpha
  * @date 2025-03
  */
@@ -172,15 +172,6 @@ void setup()
 
   if (WiFi.getMode() == WIFI_OFF)
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-
-  // Preload Map
-  if (mapSet.vectorMap)
-  {
-    mapView.isPosMoved = true;
-    mapView.generateVectorMap(zoom);
-  }
-  else
-    mapView.generateRenderMap(zoom);
 
   splashScreen();
   lv_screen_load(searchSatScreen);
