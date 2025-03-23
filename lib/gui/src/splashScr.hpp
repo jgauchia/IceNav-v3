@@ -11,6 +11,7 @@
 
 #include "globalGuiDef.h"
 #include "settings.hpp"
+#include "maps.hpp"
 
 #ifdef LARGE_SCREEN
 static const char* logoFile PROGMEM = "/spiffs/LOGO_LARGE.png";
