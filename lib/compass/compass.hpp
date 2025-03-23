@@ -81,6 +81,7 @@ public:
     void init();
     void read(float &x, float &y, float &z);
     int getHeading();
+    bool isUpdated();
     void calibrate();
     void setDeclinationAngle(float angle);
     void setOffsets(float offsetX, float offsetY);
@@ -99,6 +100,7 @@ private:
     float maxY;
     bool kalmanFilterEnabled;
     KalmanFilter kalmanFilter;
+    int previousDegrees;
 
     float wrapToPi(float angle);
     float unwrapFromPi(float angle, float previousAngle);
