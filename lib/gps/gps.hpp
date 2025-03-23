@@ -26,8 +26,8 @@ extern uint8_t GPS_RX;
 #define DEBUG_PORT Serial
 #define gpsPort Serial2
 #define GPS_PORT_NAME "Serial2"
-extern gps_fix  fix;
-extern NMEAGPS  GPS;
+extern gps_fix fix;
+extern NMEAGPS GPS;
 extern NeoGPS::time_t localTime;
 
 static bool calcSun = true;
@@ -52,7 +52,6 @@ static const uint8_t canvasCenter_X = canvasSize / 2;
 static const uint8_t canvasCenter_Y = canvasSize / 2;
 static const uint8_t canvasRadius = canvasCenter_X - canvasOffset;
 
-
 class Gps
 {
 public:
@@ -63,6 +62,7 @@ public:
   void getGPSData();
   long detectRate(int rxPin);
   long autoBaud();
+  bool isSpeedChanged();
 
   struct GPSDATA
   {
@@ -92,6 +92,9 @@ public:
     uint16_t posY;
     char talker_id[3];
   } satTracker[MAX_SATELLITES];
+
+private:
+  uint16_t previousSpeed;
 };
 
 #endif // GPS_HPP
