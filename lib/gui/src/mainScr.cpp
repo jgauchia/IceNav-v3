@@ -157,7 +157,7 @@ void updateMainScreen(lv_timer_t *t)
         lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
 #endif
 #ifndef ENABLE_COMPASS
-      heading = gpsData.heading;
+      heading = gps.gpsData.heading;
       lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
 #endif
 
