@@ -7,7 +7,9 @@
     },
     "core": "esp32",
     "extra_flags": [
-      "-DARDUINO_USB_MODE=1",
+      "-DBOARD_HAS_PSRAM",
+      "-DARDUINO_USB_CDC_ON_BOOT=1",
+      "-DARDUINO_USB_MODE=0",
       "-DARDUINO_RUNNING_CORE=1",
       "-DARDUINO_EVENT_RUNNING_CORE=1"
     ],
@@ -18,7 +20,7 @@
     "mcu": "esp32s3",
     "variant": "esp32s3"
   },
-  "connectivity": ["wifi"],
+  "connectivity": ["wifi", "bluetooth", "lora"],
   "debug": {
     "default_tool": "esp-builtin",
     "onboard_tools": ["esp-builtin"],
@@ -30,6 +32,8 @@
     "flash_size": "16MB",
     "maximum_ram_size": 327680,
     "maximum_size": 16777216,
+    "use_1200bps_touch": true,
+    "wait_for_upload_port": true,
     "require_upload_port": true,
     "speed": 921600
   },
