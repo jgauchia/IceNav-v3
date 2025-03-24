@@ -75,6 +75,7 @@ void Gps::init()
 
 /**
  * @brief return latitude from GPS or sys env pre-built variable
+ * 
  * @return latitude or 0.0 if not defined
  */
 double Gps::getLat()
@@ -100,6 +101,7 @@ double Gps::getLat()
 
 /**
  * @brief return longitude from GPS or sys env pre-built variable
+ * 
  * @return longitude or 0.0 if not defined
  */
 double Gps::getLon()
@@ -199,6 +201,7 @@ void Gps::getGPSData()
 
 /**
  *  @brief return pulse rate from RX GPS pin
+ * 
  *  @return pulse rate
  */
 long Gps::detectRate(int rxPin)
@@ -219,6 +222,7 @@ long Gps::detectRate(int rxPin)
 
 /**
  *  @brief Detect GPS Baudrate
+ * 
  *  @return baudrate
  */
 long Gps::autoBaud()
@@ -269,6 +273,7 @@ long Gps::autoBaud()
 
 /**
  *  @brief Check if the speed has changed
+ * 
  *  @return true if speed has changed, false otherwise
  */
 bool Gps::isSpeedChanged()
@@ -283,6 +288,7 @@ bool Gps::isSpeedChanged()
 
 /**
  *  @brief Check if the altitude has changed
+ * 
  *  @return true if altitude has changed, false otherwise
  */
 bool Gps::isAltitudeChanged()
@@ -297,6 +303,7 @@ bool Gps::isAltitudeChanged()
 
 /**
  *  @brief Check if the latitude or longitude has changed
+ * 
  *  @return true if latitude or longitude has changed, false otherwise
  */
 bool Gps::hasLocationChange()
@@ -312,6 +319,7 @@ bool Gps::hasLocationChange()
 
 /**
  *  @brief Check if the PDOP, HDOP, or VDOP has changed
+ * 
  *  @return true if PDOP, HDOP, or VDOP has changed, false otherwise
  */
 bool Gps::isDOPChanged()

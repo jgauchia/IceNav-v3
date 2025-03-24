@@ -93,6 +93,8 @@ void calculateSun()
 void setup()
 {
   gpsMutex = xSemaphoreCreateMutex();
+  esp_log_level_set("*", ESP_LOG_DEBUG);
+  esp_log_level_set("storage", ESP_LOG_DEBUG);
 
 // Force GPIO0 to internal PullUP  during boot (avoid LVGL key read)
 #ifdef POWER_SAVE
