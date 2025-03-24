@@ -161,7 +161,7 @@ void updateMainScreen(lv_timer_t *t)
       heading = gps.gpsData.heading;
       lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
 #endif
-      if(gps.hasLocationChange())
+      if (gps.hasLocationChange())
       {
         lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
         lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
@@ -240,11 +240,15 @@ void updateMap(lv_event_t *event)
  */
 void updateSatTrack(lv_event_t *event)
 {
-  lv_label_set_text_fmt(pdopLabel, "PDOP: %.1f", gps.gpsData.pdop);
-  lv_label_set_text_fmt(hdopLabel, "HDOP: %.1f", gps.gpsData.hdop);
-  lv_label_set_text_fmt(vdopLabel, "VDOP: %.1f", gps.gpsData.vdop);
+  if (gps.isDOPChanged())
+  {
+    lv_label_set_text_fmt(pdopLabel, "PDOP: %.1f", gps.gpsData.pdop);
+    lv_label_set_text_fmt(hdopLabel, "HDOP: %.1f", gps.gpsData.hdop);
+    lv_label_set_text_fmt(vdopLabel, "VDOP: %.1f", gps.gpsData.vdop);
+  }
 
-  lv_label_set_text_fmt(altLabel, "ALT: %4dm.", gps.gpsData.altitude);
+  if (gps.isAltitudeChanged())
+    lv_label_set_text_fmt(altLabel, "ALT: %4dm.", gps.gpsData.altitude);
 
   drawSatSNR();
   drawSatSky();

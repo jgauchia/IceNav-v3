@@ -174,7 +174,7 @@ void altitudeWidget(_lv_obj_t *screen)
     lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     altitude = lv_label_create(obj);
     lv_obj_set_style_text_font(altitude, fontLargeMedium, 0);
-    lv_label_set_text_static(altitude, "0000 m.");
+    lv_label_set_text_static(altitude, "0 m.");
     lv_obj_t *img = lv_img_create(obj);
     lv_img_set_src(img, altitudeIconFile);
     lv_img_set_zoom(img,iconScale);
@@ -202,7 +202,7 @@ void speedWidget(_lv_obj_t *screen)
     lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     speedLabel = lv_label_create(obj);
     lv_obj_set_style_text_font(speedLabel, fontLargeMedium, 0);
-    lv_label_set_text_static(speedLabel, "000 Km/h");
+    lv_label_set_text_static(speedLabel, "0 Km/h");
     lv_obj_t *img = lv_img_create(obj);
     lv_img_set_src(img, speedIconFile);
     lv_img_set_zoom(img,iconScale);
