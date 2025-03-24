@@ -65,6 +65,7 @@ public:
   bool isSpeedChanged();
   bool isAltitudeChanged();
   bool hasLocationChange();
+  bool isDOPChanged();
 
   struct GPSDATA
   {
@@ -100,6 +101,9 @@ private:
   int16_t previousAltitude;
   double previousLatitude; 
   double previousLongitude;
+  float previousHdop; 
+  float previousPdop; 
+  float previousVdop; 
 };
 
 #endif // GPS_HPP

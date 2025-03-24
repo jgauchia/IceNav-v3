@@ -11,6 +11,7 @@
 #include "widgets.hpp"
 
 extern lv_obj_t *sunriseLabel;
+bool calcSun = false;
 bool isGpsFixed = false;
 bool isTimeFixed = false;
 long gpsBaudDetected = 0;
@@ -304,6 +305,22 @@ bool Gps::hasLocationChange()
   {
     previousLatitude = gpsData.latitude;
     previousLongitude = gpsData.longitude;
+    return true;
+  }
+  return false;
+}
+
+/**
+ *  @brief Check if the PDOP, HDOP, or VDOP has changed
+ *  @return true if PDOP, HDOP, or VDOP has changed, false otherwise
+ */
+bool Gps::isDOPChanged()
+{
+  if (gpsData.pdop != previousPdop || gpsData.hdop != previousHdop || gpsData.vdop != previousVdop)
+  {
+    previousPdop = gpsData.pdop;
+    previousHdop = gpsData.hdop;
+    previousVdop = gpsData.vdop;
     return true;
   }
   return false;
