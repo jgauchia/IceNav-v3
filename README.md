@@ -6,6 +6,7 @@
 ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 * Note: Under development (experimental features under devel branch)
 * There is the possibility to use two types of maps: Rendered Maps or Tiles (large files), and Vector Maps (small files).
+* Recommended to use an ESP32-S3 with PSRAM and a screen with a parallel bus for optimal performance, although other ESP models and SPI screens also yield good results.
 
 <table>
   <tr>
