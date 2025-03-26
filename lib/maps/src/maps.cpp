@@ -200,22 +200,27 @@ int16_t Maps::toScreenCoord(const int32_t pxy, const int32_t screenCenterxy)
  * @param file
  * @return int16_t
  */
-int16_t Maps::parseInt16(ReadBufferingStream &file)
+int16_t Maps::parseInt16(char *file)
 {
   char num[16];
   uint8_t i;
   char c;
   i = 0;
-  c = (char)file.read();
+  c = file[Maps::idx];
   if (c == '\n')
     return 0;
   while (c >= '0' && c <= '9')
   {
     assert(i < 15);
-    num[i++] = c;
-    c = (char)file.read();
+    c = file[Maps::idx];
+    num[i] = c;
+    Maps::idx++;
+    i++;
+
+    c = file[Maps::idx];
   }
   num[i] = '\0';
+
   if (c != ';' && c != ',' && c != '\n')
   {
     log_e("parseInt16 error: %c %i", c, c);
@@ -225,6 +230,7 @@ int16_t Maps::parseInt16(ReadBufferingStream &file)
   }
   try
   {
+    Maps::idx++;
     return std::stoi(num);
   }
   catch (std::invalid_argument)
@@ -245,19 +251,22 @@ int16_t Maps::parseInt16(ReadBufferingStream &file)
  * @param terminator
  * @param str
  */
-void Maps::parseStrUntil(ReadBufferingStream &file, char terminator, char *str)
+void Maps::parseStrUntil(char *file, char terminator, char *str)
 {
   uint8_t i;
   char c;
   i = 0;
-  c = (char)file.read();
+  c = file[Maps::idx];
   while (c != terminator && c != '\n')
   {
     assert(i < 29);
-    str[i++] = c;
-    c = (char)file.read();
+    str[i] = c;
+    Maps::idx++;
+    i++;
+    c = file[Maps::idx];
   }
   str[i] = '\0';
+  Maps::idx++;
 }
 
 /**
@@ -266,7 +275,7 @@ void Maps::parseStrUntil(ReadBufferingStream &file, char terminator, char *str)
  * @param file
  * @param points
  */
-void Maps::parseCoords(ReadBufferingStream &file, std::vector<Point16> &points)
+void Maps::parseCoords(char *file, std::vector<Point16> &points)
 {
   char str[30];
   assert(points.size() == 0);
@@ -324,9 +333,11 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
   log_d("readMapBlock: %s", fileName.c_str());
   char str[30];
   MapBlock *mblock = new MapBlock();
-  fs::File file_ = SD.open(fileName + ".fmp");
-  // std::string fullPath = fileName + ".fmp";
-  // fs::File file_ = fopen(fullPath.c_str(), "r");
+  std::string filePath = fileName.c_str() + std::string(".fmp");
+  log_i("File: %s", filePath.c_str());
+
+  FILE *file_ = fopen(filePath.c_str(), "r");
+
   if (!file_)
   {
     Maps::isMapFound = false;
@@ -335,10 +346,22 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
   }
   else
   {
+    fseek(file_, 0, SEEK_END);
+    long file_size = ftell(file_);
+    fseek(file_, 0, SEEK_SET);
+
+#ifdef BOARD_HAS_PSRAM
+    char *file = (char *)ps_malloc(file_size + 1);
+#else
+    char *file = (char *)malloc(file_size + 1);
+#endif
+    size_t bytes_read = fread(file, 1, file_size, file_);
+    file[file_size] = '\0';
+
     Maps::isMapFound = true;
 
-    ReadBufferingStream file{file_, 2000};
     uint32_t line = 0;
+    Maps::idx = 0;
 
     // read polygons
     Maps::parseStrUntil(file, ':', str);
@@ -348,6 +371,7 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
       while (0)
         ;
     }
+
     int16_t count = Maps::parseInt16(file);
     assert(count > 0);
     line++;
@@ -364,9 +388,10 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
       polygon.color = (uint16_t)std::stoul(str, nullptr, 16);
       // log_d("polygon.color: %i", polygon.color);
       line++;
+
       Maps::parseStrUntil(file, '\n', str); // maxZoom
       polygon.maxZoom = str[0] ? (uint8_t)std::stoi(str) : MAX_ZOOM;
-      //log_d("polygon.maxZoom: %i", polygon.maxZoom);
+      // log_d("polygon.maxZoom: %i", polygon.maxZoom);
       line++;
 
       Maps::parseStrUntil(file, ':', str);
@@ -390,6 +415,7 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
         while (true)
           ;
       }
+
       Maps::parseCoords(file, polygon.points);
       line++;
       mblock->polygons.push_back(polygon);
@@ -435,9 +461,6 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
       polyline.bbox.max.x = Maps::parseInt16(file);
       polyline.bbox.max.y = Maps::parseInt16(file);
 
-      // if( line > 4050){
-      //     log_e("polyline.bbox %i %i %i %i", polyline.bbox.min.x, polyline.bbox.min.y,polyline.bbox.max.x, polyline.bbox.max.y);
-      // }
       line++;
 
       polyline.points.clear();
@@ -450,17 +473,13 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
       }
       Maps::parseCoords(file, polyline.points);
       line++;
-      // if( line > 4050 && fileName == "/mymap/3_77/6_9"){
-      //     for( Point16 p: polyline.points){
-      //         log_d("p.x, p.y %i %i", p.x, p.y);
-      //     }
-      // }
       mblock->polylines.push_back(polyline);
       totalPoints += polyline.points.size();
       count--;
     }
     assert(count == 0);
-    file_.close();
+    fclose(file_);
+    free(file);
     return mblock;
   }
 }
@@ -601,13 +620,16 @@ void Maps::getMapBlocks(BBox &bbox, Maps::MemCache &memCache)
       log_d("Block readed from SD card: %p", newBlock);
       log_d("FreeHeap: %i", esp_get_free_heap_size());
     }
+    
     // else
     // {
     //   newBlock->inView = false;
     //   newBlock->offset = Point32(blockMinX, blockMinY);
     //   memCache.blocks.push_back(newBlock); // add the block to the memory cache
-    // }
+    // }.
+    delete newBlock;
   }
+
 
   log_d("memCache size: %i %i", memCache.blocks.size(), millis());
 }
