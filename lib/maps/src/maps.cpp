@@ -627,7 +627,6 @@ void Maps::getMapBlocks(BBox &bbox, Maps::MemCache &memCache)
     //   newBlock->offset = Point32(blockMinX, blockMinY);
     //   memCache.blocks.push_back(newBlock); // add the block to the memory cache
     // }.
-    delete newBlock;
   }
 
 
