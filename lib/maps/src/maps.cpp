@@ -11,6 +11,7 @@
 
 extern Compass compass;
 extern Gps gps;
+extern Storage storage;
 
 extern Point16::Point16(char *coordsPair)
 {
@@ -336,7 +337,7 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
   std::string filePath = fileName.c_str() + std::string(".fmp");
   log_i("File: %s", filePath.c_str());
 
-  FILE *file_ = fopen(filePath.c_str(), "r");
+  FILE *file_ = storage.open(filePath.c_str(), "r");
 
   if (!file_)
   {
@@ -346,18 +347,15 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
   }
   else
   {
-    fseek(file_, 0, SEEK_END);
-    long file_size = ftell(file_);
-    fseek(file_, 0, SEEK_SET);
+    size_t fileSize = storage.size(filePath.c_str());
 
 #ifdef BOARD_HAS_PSRAM
-    char *file = (char *)ps_malloc(file_size + 1);
+    char *file = (char *)ps_malloc(fileSize + 1);
 #else
-    char *file = (char *)malloc(file_size + 1);
+    char *file = (char *)malloc(fileSize + 1);
 #endif
-    size_t bytes_read = fread(file, 1, file_size, file_);
-    file[file_size] = '\0';
 
+    storage.read(file_, file, fileSize);
     Maps::isMapFound = true;
 
     uint32_t line = 0;
@@ -478,8 +476,8 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
       count--;
     }
     assert(count == 0);
-    fclose(file_);
-    free(file);
+    storage.close(file_);
+    delete[] file;
     return mblock;
   }
 }

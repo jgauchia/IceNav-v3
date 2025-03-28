@@ -208,6 +208,21 @@ size_t Storage::read(FILE *file, uint8_t *buffer, size_t size)
 }
 
 /**
+ * @brief Read a specified number of chars from a file into a buffer
+ * 
+ * @param file Pointer to the file
+ * @param buffer Buffer to read the chars into
+ * @param size Number of bytes to read
+ * @return size_t Number of chars actually read
+ */
+size_t Storage::read(FILE *file, char *buffer, size_t size)
+{
+    if (!file)
+        return 0;
+    return fread(buffer, 1, size, file);
+}
+
+/**
  * @brief Check if a file exists on the SD card
  * 
  * @param path Path to the file

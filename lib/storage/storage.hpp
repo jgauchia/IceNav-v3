@@ -110,6 +110,7 @@ public:
     int close(FILE *file);
     size_t size(const char *path);
     size_t read(FILE* file, uint8_t* buffer, size_t size);
+    size_t read(FILE* file, char* buffer, size_t size);
     bool exists(const char *path);
     bool mkdir(const char *path);
     bool remove(const char *path);

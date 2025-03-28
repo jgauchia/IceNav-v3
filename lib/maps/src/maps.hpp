@@ -18,6 +18,7 @@
 #include "settings.hpp"
 #include "compass.hpp"
 #include "mapVars.h"
+#include "storage.hpp"
 
 class Maps
 {
