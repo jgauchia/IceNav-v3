@@ -14,10 +14,77 @@
 #include "driver/sdmmc_host.h"
 #include "driver/sdspi_host.h"
 #include "sdmmc_cmd.h"
+#include "Stream.h"
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+class FileStream : public Stream
+{
+public:
+    FileStream(FILE *file) : file(file) {}
+
+    virtual int available() override
+    {
+        if (!file)
+            return 0;
+        long current_pos = ftell(file);
+        fseek(file, 0, SEEK_END);
+        long end_pos = ftell(file);
+        fseek(file, current_pos, SEEK_SET);
+        return end_pos - current_pos;
+    }
+
+    virtual int read() override
+    {
+        if (!file)
+            return -1;
+        return fgetc(file);
+    }
+
+    virtual size_t readBytes(char *buffer, size_t length) override
+    {
+        if (!file)
+            return 0;
+        return fread(buffer, 1, length, file);
+    }
+
+    virtual int peek() override
+    {
+        if (!file)
+            return -1;
+        int c = fgetc(file);
+        if (c != EOF)
+        {
+            ungetc(c, file);
+        }
+        return c;
+    }
+
+    virtual void flush() override
+    {
+        if (file)
+        {
+            fflush(file);
+        }
+    }
+
+    size_t write(uint8_t) override
+    {
+        // Not implemented 
+        return 0;
+    }
+
+    size_t write(const uint8_t *, size_t) override
+    {
+        // Not implemented 
+        return 0;
+    }
+
+private:
+    FILE *file;
+};
 
 class Storage
 {
@@ -33,6 +100,8 @@ public:
     esp_err_t initSPIFFS();
     bool getSdLoaded() const;
     FILE *open(const char *path, const char *mode);
+    int close(FILE *file);
+    size_t size(const char *path);
     bool exists(const char *path);
     bool mkdir(const char *path);
     bool remove(const char *path);

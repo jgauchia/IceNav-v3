@@ -166,6 +166,30 @@ FILE *Storage::open(const char *path, const char *mode)
 }
 
 /**
+ * @brief Close a file on the SD card
+ * 
+ * @param file Pointer to the file
+ * @return int 0 on success, EOF on error
+ */
+int Storage::close(FILE* file) {
+    return fclose(file);
+}
+
+/**
+ * @brief Get the size of a file on the SD card
+ * 
+ * @param path Path to the file
+ * @return size_t Size of the file in bytes
+ */
+size_t Storage::size(const char* path) {
+    struct stat st;
+    if (stat(path, &st) == 0) {
+        return st.st_size;
+    }
+    return 0;
+}
+
+/**
  * @brief Check if a file exists on the SD card
  * 
  * @param path Path to the file
