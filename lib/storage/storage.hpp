@@ -43,6 +43,13 @@ public:
         return fgetc(file);
     }
 
+    virtual size_t read(uint8_t *buffer, size_t size)
+    {
+        if (!file)
+            return 0;
+        return fread(buffer, 1, size, file);
+    }
+
     virtual size_t readBytes(char *buffer, size_t length) override
     {
         if (!file)
@@ -72,13 +79,13 @@ public:
 
     size_t write(uint8_t) override
     {
-        // Not implemented 
+        // Not implemented
         return 0;
     }
 
     size_t write(const uint8_t *, size_t) override
     {
-        // Not implemented 
+        // Not implemented
         return 0;
     }
 
@@ -102,6 +109,7 @@ public:
     FILE *open(const char *path, const char *mode);
     int close(FILE *file);
     size_t size(const char *path);
+    size_t read(FILE* file, uint8_t* buffer, size_t size);
     bool exists(const char *path);
     bool mkdir(const char *path);
     bool remove(const char *path);

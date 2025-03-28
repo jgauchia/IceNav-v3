@@ -14,8 +14,8 @@
 #include "FS.h"
 #include <regex>
 
-static const char* wptFile PROGMEM = "/WPT/waypoint.gpx";
-static const char* wptFolder PROGMEM = "/WPT";
+static const char* wptFile PROGMEM = "/sdcard/WPT/waypoint.gpx";
+static const char* wptFolder PROGMEM = "/sdcard/WPT";
 
 /**
  * @brief Waypoint action enum

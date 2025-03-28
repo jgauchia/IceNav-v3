@@ -171,7 +171,8 @@ FILE *Storage::open(const char *path, const char *mode)
  * @param file Pointer to the file
  * @return int 0 on success, EOF on error
  */
-int Storage::close(FILE* file) {
+int Storage::close(FILE *file)
+{
     return fclose(file);
 }
 
@@ -181,12 +182,29 @@ int Storage::close(FILE* file) {
  * @param path Path to the file
  * @return size_t Size of the file in bytes
  */
-size_t Storage::size(const char* path) {
+size_t Storage::size(const char *path)
+{
     struct stat st;
-    if (stat(path, &st) == 0) {
+    if (stat(path, &st) == 0)
+    {
         return st.st_size;
     }
     return 0;
+}
+
+/**
+ * @brief Read a specified number of bytes from a file into a buffer
+ * 
+ * @param file Pointer to the file
+ * @param buffer Buffer to read the bytes into
+ * @param size Number of bytes to read
+ * @return size_t Number of bytes actually read
+ */
+size_t Storage::read(FILE *file, uint8_t *buffer, size_t size)
+{
+    if (!file)
+        return 0;
+    return fread(buffer, 1, size, file);
 }
 
 /**
