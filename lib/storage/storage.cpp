@@ -61,7 +61,7 @@ esp_err_t Storage::initSD()
         .intr_flags = 0};
 
     // Adjust the SPI speed (frequency)
-    host.max_freq_khz = 20000;  
+    host.max_freq_khz = 20000;
 
     // Initialize the SPI bus
     ret = spi_bus_initialize((spi_host_device_t)host.slot, &bus_cfg, SDSPI_DEFAULT_DMA);
@@ -151,4 +151,61 @@ esp_err_t Storage::initSPIFFS()
 bool Storage::getSdLoaded() const
 {
     return isSdLoaded;
+}
+
+/**
+ * @brief Open a file on the SD card
+ * 
+ * @param path Path to the file
+ * @param mode Mode in which to open the file
+ * @return FILE* Pointer to the opened file
+ */
+FILE *Storage::open(const char *path, const char *mode)
+{
+    return fopen(path, mode);
+}
+
+/**
+ * @brief Check if a file exists on the SD card
+ * 
+ * @param path Path to the file
+ * @return true if the file exists, false otherwise
+ */
+bool Storage::exists(const char *path)
+{
+    struct stat st;
+    return stat(path, &st) == 0;
+}
+
+/**
+ * @brief Create a directory on the SD card
+ * 
+ * @param path Path to the directory
+ * @return true if the directory was created successfully, false otherwise
+ */
+bool Storage::mkdir(const char *path)
+{
+    return ::mkdir(path, 0777) == 0;
+}
+
+/**
+ * @brief Remove a file from the SD card
+ * 
+ * @param path Path to the file
+ * @return true if the file was removed successfully, false otherwise
+ */
+bool Storage::remove(const char *path)
+{
+    return ::remove(path) == 0;
+}
+
+/**
+ * @brief Remove a directory from the SD card
+ * 
+ * @param path Path to the directory
+ * @return true if the directory was removed successfully, false otherwise
+ */
+bool Storage::rmdir(const char *path)
+{
+    return ::rmdir(path) == 0;
 }
