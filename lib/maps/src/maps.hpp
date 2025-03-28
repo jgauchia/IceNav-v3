@@ -11,7 +11,6 @@
 #define MAPS_HPP
 
 #include <cstdint>
-#include <StreamUtils.h>
 #include <vector>
 #include <map>
 #include "tft.hpp"
