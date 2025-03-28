@@ -13,6 +13,7 @@
 #include "cli.hpp"
 #include "storage.hpp"
 #include "tft.hpp"
+#include "SD.h"
 
 #define SCREENSHOT_TEMP_FILE "/screenshot.png"
 

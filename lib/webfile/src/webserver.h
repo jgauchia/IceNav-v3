@@ -7,6 +7,7 @@
  */
 
 #include "SPIFFS.h"
+#include "SD.h"
 #include <ESPmDNS.h>
 #include <esp_task_wdt.h>
 #include <algorithm> 
