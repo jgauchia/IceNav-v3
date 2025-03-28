@@ -223,6 +223,20 @@ size_t Storage::read(FILE *file, char *buffer, size_t size)
 }
 
 /**
+ * @brief Write a specified number of bytes from a buffer to a file
+ * 
+ * @param file Pointer to the file
+ * @param buffer Buffer containing the bytes to write
+ * @param size Number of bytes to write
+ * @return size_t Number of bytes actually written
+ */
+size_t Storage::write(FILE* file, const uint8_t* buffer, size_t size)
+{
+    if (!file) return 0;
+    return fwrite(buffer, 1, size, file);
+}
+
+/**
  * @brief Check if a file exists on the SD card
  * 
  * @param path Path to the file
@@ -265,4 +279,20 @@ bool Storage::remove(const char *path)
 bool Storage::rmdir(const char *path)
 {
     return ::rmdir(path) == 0;
+}
+
+/**
+ * @brief Get the number of bytes available to read from the file
+ * 
+ * @param file Pointer to the file
+ * @return size_t Number of bytes available to read
+ */
+size_t Storage::fileAvailable(FILE* file)
+{
+    if (!file) return 0;
+    long current_pos = ftell(file);
+    fseek(file, 0, SEEK_END);
+    long end_pos = ftell(file);
+    fseek(file, current_pos, SEEK_SET);
+    return end_pos - current_pos;
 }
