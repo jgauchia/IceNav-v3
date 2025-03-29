@@ -9,8 +9,8 @@
 #ifndef EDITWAYPOINT_HPP
 #define EDITWAYPOINT_HPP
 
-#include "SD.h"
 #include "globalGpxDef.h"
+#include "storage.hpp"
 
 void editWaypointName(char* oldName, char *newName);
 

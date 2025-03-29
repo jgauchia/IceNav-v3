@@ -7,6 +7,7 @@
  */
 
  #include "editWaypoint.hpp"
+ extern Storage storage;
 
 /**
  * @brief Edit Waypoint Name
@@ -24,18 +25,17 @@
 
     wptContent = std::regex_replace(wptContent,findWptName,replaceWptName);
 
-
     size_t fileSize = wptContent.length();
 
-    File wayPointFile = SD.open(wptFile, FILE_WRITE);
+    FILE *wayPointFile = storage.open(wptFile, "w");
 
     if (!wayPointFile)
       log_e("Error updating waypoint file");
     else
     {
-      wayPointFile.seek(0);
-      wayPointFile.write((uint8_t*)wptContent.c_str(), fileSize);
-      wayPointFile.close();
+      storage.seek(wayPointFile, 0, SEEK_SET);
+      storage.write(wayPointFile,(uint8_t*)wptContent.c_str(), fileSize);
+      storage.close(wayPointFile);
       log_i("Waypoint file updated");
     }
  }

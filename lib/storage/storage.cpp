@@ -282,6 +282,21 @@ bool Storage::rmdir(const char *path)
 }
 
 /**
+ * @brief Seek to a specific position in a file
+ * 
+ * @param file Pointer to the file
+ * @param offset Number of bytes to offset from whence
+ * @param whence Position from where offset is added
+ *               (SEEK_SET, SEEK_CUR, SEEK_END)
+ * @return int 0 on success, non-zero on error
+ */
+int Storage::seek(FILE* file, long offset, int whence)
+{
+    if (!file) return -1;
+    return fseek(file, offset, whence);
+}
+
+/**
  * @brief Get the number of bytes available to read from the file
  * 
  * @param file Pointer to the file

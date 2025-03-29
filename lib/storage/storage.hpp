@@ -116,6 +116,7 @@ public:
     bool mkdir(const char *path);
     bool remove(const char *path);
     bool rmdir(const char *path);
+    int seek(FILE* file, long offset, int whence);
     size_t fileAvailable(FILE* file);
 };
 
