@@ -68,7 +68,8 @@ Compass compass;
  */
 static double transit, sunrise, sunset;
 
-#include "settings.hpp"
+#include "timezone.c"
+#include "settings.hpp" 
 #include "lvglSetup.hpp"
 #include "tasks.hpp"
 
@@ -79,11 +80,22 @@ static double transit, sunrise, sunset;
  */
 void calculateSun()
 {
-  calcSunriseSunset(2000 + localTime.year, localTime.month, localTime.date,
-                    gps.gpsData.latitude, gps.gpsData.longitude,
-                    transit, sunrise, sunset);
-  hoursToString(sunrise + defGMT, gps.gpsData.sunriseHour);
-  hoursToString(sunset + defGMT, gps.gpsData.sunsetHour);
+  calcSunriseSunset(2000 + fix.dateTime.year, 
+                    fix.dateTime.month, 
+                    fix.dateTime.date,
+                    gps.gpsData.latitude, 
+                    gps.gpsData.longitude,
+                    transit, 
+                    sunrise, 
+                    sunset);
+  int hours = (int)sunrise + gps.gpsData.UTC;
+  int minutes = (int)round(((sunrise + gps.gpsData.UTC) - hours) * 60);
+  snprintf(gps.gpsData.sunriseHour, 6, "%02d:%02d", hours, minutes);         
+  hours = (int)sunset +  gps.gpsData.UTC;
+  minutes = (int)round(((sunset +  gps.gpsData.UTC) - hours) * 60);
+  snprintf(gps.gpsData.sunsetHour, 6, "%02d:%02d", hours, minutes); 
+  log_i("Sunrise: %s",gps.gpsData.sunriseHour);
+  log_i("Sunset: %s",gps.gpsData.sunsetHour);               
 }
 
 /**

@@ -26,7 +26,7 @@ void splashScreen()
   else
     mapView.generateRenderMap(zoom);
 
-  calcSun = true;
+  setTime = false;
 
   tft.fillScreen(TFT_BLACK);
   millisActual = millis();
