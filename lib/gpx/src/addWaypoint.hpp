@@ -9,8 +9,13 @@
 #ifndef ADDWAYPOINT_HPP
 #define ADDWAYPOINT_HPP
 
-#include "SD.h"
 #include "globalGpxDef.h"
+#include "storage.hpp"
+#include "settings.hpp"
+#include "NMEAGPS.h"
+#include "gps.hpp"
+#include <sys/time.h>
+#include <time.h>
 
 extern wayPoint addWpt;
 

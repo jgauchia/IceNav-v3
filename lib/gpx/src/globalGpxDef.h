@@ -14,8 +14,8 @@
 #include "FS.h"
 #include <regex>
 
-static const char* wptFile PROGMEM = "/sdcard/WPT/waypoint.gpx";
-static const char* wptFolder PROGMEM = "/sdcard/WPT";
+static const char* wptFile PROGMEM = "/sdcard/WPT2/waypoint.gpx";
+static const char* wptFolder PROGMEM = "/sdcard/WPT2";
 
 /**
  * @brief Waypoint action enum
@@ -47,7 +47,7 @@ extern std::string wptContent;
  *
  */
 
-extern File gpxFile;
+extern FILE* gpxFile;
 
 /**
  * @brief Waypoint Structure
@@ -78,11 +78,13 @@ static const struct
 {
   const char* header; 
   const char* footer; 
-} gpxType PROGMEM = { "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\r\n"
-                      "<gpx xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
-                      "xmlns=\"http://www.topografix.com/GPX/1/1\" version=\"1.1\" "
-                      "creator=\"IceNav\" "
-                      "xsi:schemaLocation=\"http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd\">"
+} gpxType PROGMEM = { "<?xml version=\"1.1\"?>\n"
+                      "<gpx\n"
+                      " version=\"1.1\"\n"
+                      " creator=\"IceNav\"\n"
+                      " xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
+                      " xmlns=\"http://www.topografix.com/GPX/1/1\"\n"
+                      " xsi:schemaLocation=\"http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd\">"
                       , "</gpx>" };
 
 /**
@@ -114,11 +116,11 @@ static const struct
   const char* hdop;
   const char* vdop;
   const char* pdop;
-} wptType PROGMEM = { " lat=\"%f\""
-                     , "lon=\"%f\">"
+} wptType PROGMEM = {  " lat=\"%f\""
+                     , " lon=\"%f\">"
                      , " <ele>%f</ele>"
                      , " <time>%s</time>"
-                     , " <name>%s</name>"
+                     , " <name>%s</name>\r\n"
                      , " <desc>%s</desc>"
                      , " <src>IceNav</src>"
                      , " <sym>%s</sym>"

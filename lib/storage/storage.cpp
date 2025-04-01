@@ -230,9 +230,25 @@ size_t Storage::read(FILE *file, char *buffer, size_t size)
  * @param size Number of bytes to write
  * @return size_t Number of bytes actually written
  */
-size_t Storage::write(FILE* file, const uint8_t* buffer, size_t size)
+size_t Storage::write(FILE *file, const uint8_t *buffer, size_t size)
 {
-    if (!file) return 0;
+    if (!file)
+        return 0;
+    return fwrite(buffer, 1, size, file);
+}
+
+/**
+ * @brief Write a specified number of chars from a buffer to a file
+ * 
+ * @param file Pointer to the file
+ * @param buffer Buffer containing the chars to write
+ * @param size Number of chars to write
+ * @return size_t Number of bytes actually written
+ */
+size_t Storage::write(FILE *file, const char *buffer, size_t size)
+{
+    if (!file)
+        return 0;
     return fwrite(buffer, 1, size, file);
 }
 
@@ -290,10 +306,39 @@ bool Storage::rmdir(const char *path)
  *               (SEEK_SET, SEEK_CUR, SEEK_END)
  * @return int 0 on success, non-zero on error
  */
-int Storage::seek(FILE* file, long offset, int whence)
+int Storage::seek(FILE *file, long offset, int whence)
 {
-    if (!file) return -1;
+    if (!file)
+        return -1;
     return fseek(file, offset, whence);
+}
+
+/**
+ * @brief Write a string to a file without a newline
+ * 
+ * @param file Pointer to the file
+ * @param str String to write
+ * @return int Number of characters written, negative on error
+ */
+int Storage::print(FILE *file, const char *str)
+{
+    if (!file)
+        return -1;
+    return fprintf(file, "%s", str);
+}
+
+/**
+ * @brief Write a string to a file with a newline
+ * 
+ * @param file Pointer to the file
+ * @param str String to write
+ * @return int Number of characters written, negative on error
+ */
+int Storage::println(FILE *file, const char *str)
+{
+    if (!file)
+        return -1;
+    return fprintf(file, "%s\n", str);
 }
 
 /**
@@ -302,12 +347,34 @@ int Storage::seek(FILE* file, long offset, int whence)
  * @param file Pointer to the file
  * @return size_t Number of bytes available to read
  */
-size_t Storage::fileAvailable(FILE* file)
+size_t Storage::fileAvailable(FILE *file)
 {
-    if (!file) return 0;
+    if (!file)
+        return 0;
     long current_pos = ftell(file);
     fseek(file, 0, SEEK_END);
     long end_pos = ftell(file);
     fseek(file, current_pos, SEEK_SET);
     return end_pos - current_pos;
 }
+
+/**
+ * @brief Set the tion date and time attribute for a file or folder
+ * 
+ * @param path Path to the file
+ * @param creationTime time as time_t
+ */
+void Storage::setFileTime(const char *path, time_t creationTime)
+{
+    struct stat st;
+    if (stat(path, &st) == 0)
+    {
+        time_t nowTime = time(NULL);
+        struct tm *now = localtime(&creationTime);
+        struct utimbuf newTime;
+        newTime.actime = mktime(now);
+        newTime.modtime = mktime(now);
+        utime(path, &newTime);
+    }
+}
+

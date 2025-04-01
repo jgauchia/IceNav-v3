@@ -19,6 +19,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <time.h>
+#include <utime.h>
 
 class FileStream : public Stream
 {
@@ -97,7 +99,6 @@ class Storage
 {
 private:
     bool isSdLoaded;
-    static const uint32_t sdFreq = 40000000;
     sdmmc_card_t *card;
 
 public:
@@ -108,15 +109,19 @@ public:
     bool getSdLoaded() const;
     FILE *open(const char *path, const char *mode);
     int close(FILE *file);
-    size_t size(const char *path);
-    size_t read(FILE* file, uint8_t* buffer, size_t size);
-    size_t read(FILE* file, char* buffer, size_t size);
-    size_t write(FILE* file, const uint8_t* buffer, size_t size);
     bool exists(const char *path);
     bool mkdir(const char *path);
     bool remove(const char *path);
     bool rmdir(const char *path);
+    size_t size(const char *path);
+    void setFileTime(const char* path, time_t creationTime);
+    size_t read(FILE* file, uint8_t* buffer, size_t size);
+    size_t read(FILE* file, char* buffer, size_t size);
+    size_t write(FILE* file, const uint8_t* buffer, size_t size);
+    size_t write(FILE* file, const char* buffer, size_t size);
     int seek(FILE* file, long offset, int whence);
+    int print(FILE* file, const char* str);
+    int println(FILE* file, const char* str);
     size_t fileAvailable(FILE* file);
 };
 
