@@ -82,7 +82,7 @@ public:
     uint8_t satInView;
     char sunriseHour[6];
     char sunsetHour[6];
-    uint8_t UTC;
+    int UTC;
   } gpsData;
 
   struct SV
