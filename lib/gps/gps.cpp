@@ -367,6 +367,14 @@ void Gps::setLocalTime(NeoGPS::time_t gpsTime, const char* tz)
   strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S %Z", tmUTC);
   log_i("Current UTC time: %s", buffer);
 
-  gpsData.UTC = tmLocal->tm_hour - tmUTC->tm_hour;
-  log_i("UTC: %i", gpsData.UTC);
+  
+  int UTC = tmLocal->tm_hour - tmUTC->tm_hour;
+  if (UTC > 12) 
+      UTC -= 24;
+  else if (UTC < -12)
+      UTC += 24;
+  
+  gpsData.UTC  = UTC;
+
+  log_i("UTC: %i", UTC);
 }
