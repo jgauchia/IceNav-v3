@@ -21,16 +21,11 @@ extern Gps gps;
  */
 void openGpxFile(const char *gpxFilename)
 {
-  time_t localTime = time(NULL);
-
   if (!storage.exists(wptFolder))
   {
     log_i("WPT folder not exists");
     if (storage.mkdir(wptFolder))
-    {
-      storage.setFileTime(wptFolder, localTime);
-      log_i("WPT folder created");
-    }
+     log_i("WPT folder created");
     else
       log_i("WPT folder not created");
   }
@@ -47,7 +42,6 @@ void openGpxFile(const char *gpxFilename)
       storage.println(gpxFile, gpxType.header);
       storage.print(gpxFile, gpxType.footer);
       storage.close(gpxFile);
-      storage.setFileTime(gpxFilename, localTime);
       log_i("File Size: %d", storage.size(gpxFilename));
     }
     else
@@ -68,36 +62,53 @@ void openGpxFile(const char *gpxFilename)
  */
 void addWaypointToFile(const char *gpxFilename, wayPoint addWpt)
 {
-  // gpxFile = storage.open(gpxFilename, "w");
+  char textFmt[100] = "";
+  gpxFile = storage.open(gpxFilename, "r+");
 
-  // if (gpxFile)
-  // {
-  //   log_i("Append Waypoint to file");
-  //   log_i("Name %s",addWpt.name);
-  //   log_i("Lat %f",addWpt.lat);
-  //   log_i("Lon %f",addWpt.lon);
-  //   log_i("File Size: %d",storage.size(gpxFilename));
-  //   storage.seek(gpxFile, storage.size(gpxFilename) - 6,SEEK_SET);
+  if (gpxFile)
+  {
+    log_i("Append Waypoint to file");
+    log_i("Name %s",addWpt.name);
+    log_i("Lat %f",addWpt.lat);
+    log_i("Lon %f",addWpt.lon);
+    storage.seek(gpxFile, storage.size(gpxFilename) - 6,SEEK_SET);
+    storage.print(gpxFile, gpxWPT.open);
 
-  //   storage.write(gpxFile,(uint8_t*)gpxWPT.open, sizeof(gpxWPT.open));
-  //   sprintf(textFmt,wptType.lat,addWpt.lat);
-  //   // gpxFile.println(textFmt);
-  //   storage.write(gpxFile,textFmt,sizeof(textFmt));
-  //   sprintf(textFmt,wptType.lon,addWpt.lon);
-  //   // gpxFile.println(textFmt);
-  //   storage.write(gpxFile,textFmt,sizeof(textFmt));
-  //   sprintf(textFmt,wptType.name,addWpt.name);
-  //   // gpxFile.println(textFmt);
-  //   storage.write(gpxFile,textFmt,sizeof(textFmt));
-  //   // gpxFile.println(gpxWPT.close);
-  //   storage.write(gpxFile,gpxWPT.close,sizeof(gpxWPT.close));
-  //   // gpxFile.print(gpxType.footer);
-  //   storage.write(gpxFile,gpxType.footer,sizeof(gpxType.footer));
-  //   storage.close(gpxFile);
-  //   vTaskDelay(100);
-  //   // gpxFile = storage.open(gpxFilename, "r");
-  //   log_i("File Size: %d",storage.size(gpxFilename));
-  // }
-  // else
-  //   log_e("Waypoint not append to file");
+    // Coords
+    sprintf(textFmt,wptType.lat,addWpt.lat);
+    storage.print(gpxFile,textFmt);
+    sprintf(textFmt,wptType.lon,addWpt.lon);
+    storage.println(gpxFile,textFmt);
+    // Waypoint elevation
+    sprintf(textFmt,wptType.ele,addWpt.ele);
+    storage.println(gpxFile,textFmt);
+    // Waypoint time
+    time_t tUTCwpt = time(NULL);
+    struct tm UTCwpt_tm;
+    struct tm *tmUTCwpt = gmtime_r(&tUTCwpt, &UTCwpt_tm);
+    strftime(textFmt, sizeof(textFmt), " <time>%Y-%m-%dT%H:%M:%SZ</time>", tmUTCwpt);
+    storage.println(gpxFile,textFmt);
+    // Waypoint Name
+    sprintf(textFmt,wptType.name,addWpt.name);
+    storage.println(gpxFile,textFmt);
+    // Waypoint source
+    storage.println(gpxFile,wptType.src);
+    // Number satellites
+    sprintf(textFmt,wptType.sat,addWpt.sat);
+    storage.println(gpxFile,textFmt);
+    // HDOP, VDOP, PDOP
+    sprintf(textFmt,wptType.hdop,addWpt.hdop);
+    storage.println(gpxFile,textFmt);
+    sprintf(textFmt,wptType.vdop,addWpt.vdop);
+    storage.println(gpxFile,textFmt);
+    sprintf(textFmt,wptType.pdop,addWpt.pdop);
+    storage.println(gpxFile,textFmt);
+
+    storage.println(gpxFile,gpxWPT.close);
+    storage.print(gpxFile,gpxType.footer);
+    storage.close(gpxFile);
+    log_i("File Size: %d",storage.size(gpxFilename));
+  }
+  else
+    log_e("Waypoint not append to file");
 }

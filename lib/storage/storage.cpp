@@ -362,19 +362,23 @@ size_t Storage::fileAvailable(FILE *file)
  * @brief Set the tion date and time attribute for a file or folder
  * 
  * @param path Path to the file
- * @param creationTime time as time_t
  */
-void Storage::setFileTime(const char *path, time_t creationTime)
+void Storage::setFileTime(const char *path)
 {
-    struct stat st;
-    if (stat(path, &st) == 0)
-    {
-        time_t nowTime = time(NULL);
-        struct tm *now = localtime(&creationTime);
-        struct utimbuf newTime;
-        newTime.actime = mktime(now);
-        newTime.modtime = mktime(now);
-        utime(path, &newTime);
-    }
+    // struct stat st;
+    // if (stat(path, &st) == 0)
+    // {
+    //     time_t tFile = time(NULL);
+    //     struct tm file_tm;
+    //     struct tm *tmFile = localtime_r(&tFile, &file_tm);
+    //     // time_t nowTime = time(NULL);
+    //     // struct tm *now = localtime(&creationTime);
+
+    //     struct utimbuf newTime;
+    //     file_tm.tm_hour = file_tm.tm_hour - 2;
+    //     newTime.actime = mktime(&file_tm);
+    //     newTime.modtime = time(NULL);
+    //     utime(path, &newTime);
+    // }
 }
 

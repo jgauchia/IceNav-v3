@@ -14,8 +14,8 @@
 #include "FS.h"
 #include <regex>
 
-static const char* wptFile PROGMEM = "/sdcard/WPT2/waypoint.gpx";
-static const char* wptFolder PROGMEM = "/sdcard/WPT2";
+static const char* wptFile PROGMEM = "/sdcard/WPT/waypoint.gpx";
+static const char* wptFolder PROGMEM = "/sdcard/WPT";
 
 /**
  * @brief Waypoint action enum
@@ -78,13 +78,13 @@ static const struct
 {
   const char* header; 
   const char* footer; 
-} gpxType PROGMEM = { "<?xml version=\"1.1\"?>\n"
+} gpxType PROGMEM = { "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
                       "<gpx\n"
-                      " version=\"1.1\"\n"
+                      " version=\"1.0\"\n"
                       " creator=\"IceNav\"\n"
                       " xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
-                      " xmlns=\"http://www.topografix.com/GPX/1/1\"\n"
-                      " xsi:schemaLocation=\"http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd\">"
+                      " xmlns=\"http://www.topografix.com/GPX/1/0\"\n"
+                      " xsi:schemaLocation=\"http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd\">"
                       , "</gpx>" };
 
 /**
@@ -120,7 +120,7 @@ static const struct
                      , " lon=\"%f\">"
                      , " <ele>%f</ele>"
                      , " <time>%s</time>"
-                     , " <name>%s</name>\r\n"
+                     , " <name>%s</name>"
                      , " <desc>%s</desc>"
                      , " <src>IceNav</src>"
                      , " <sym>%s</sym>"

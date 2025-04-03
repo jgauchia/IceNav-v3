@@ -29,7 +29,7 @@ static bool captureScreenshot(const char *filename, Stream *response)
   }
 
   FILE *file = storage.open(filename, "w");
-
+  
   bool result = false;
   if (file)
   {
