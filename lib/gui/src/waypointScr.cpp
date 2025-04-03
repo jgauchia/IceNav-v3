@@ -200,6 +200,11 @@ void updateWaypointPos()
     case WPT_ADD:
       addWpt.lat = gps.gpsData.latitude;
       addWpt.lon = gps.gpsData.longitude;
+      addWpt.ele = gps.gpsData.altitude;
+      addWpt.sat = gps.gpsData.satellites;
+      addWpt.hdop = gps.gpsData.hdop;
+      addWpt.pdop = gps.gpsData.pdop;
+      addWpt.vdop = gps.gpsData.vdop;
       lv_label_set_text_static(lat, latFormatString(addWpt.lat));
       lv_label_set_text_static(lon, lonFormatString(addWpt.lon));
       break;
