@@ -11,8 +11,7 @@
 #define GLOBALGPXDEF_H
 
 #include <pgmspace.h>
-#include "FS.h"
-#include <regex>
+#include <stdint.h>
 
 static const char* wptFile PROGMEM = "/WPT/waypoint.gpx";
 static const char* wptFolder PROGMEM = "/WPT";
@@ -37,37 +36,24 @@ enum wptAction_t
 extern uint8_t wptAction;
 
 /**
- * @brief Waypoint File Content for REGEX
- *
- */
-extern std::string wptContent;
-
-/** 
- * @Brief GPX File
- *
- */
-
-extern File gpxFile;
-
-/**
  * @brief Waypoint Structure
  *
  */
 struct wayPoint
 {
-  double lat;
-  double lon;
-  float  ele;
-  char*  time;
-  char*  name;
-  char*  desc;
-  char*  src;
-  char*  sym;
-  char*  type;
-  int    sat;
-  float  hdop;
-  float  vdop;
-  float  pdop;
+  double    lat;
+  double    lon;
+  float     ele;
+  char*     time;
+  char*     name;
+  char*     desc;
+  char*     src;
+  char*     sym;
+  char*     type;
+  uint8_t   sat;
+  float     hdop;
+  float     vdop;
+  float     pdop;
 };
 
 /**
@@ -85,47 +71,5 @@ static const struct
                       "xsi:schemaLocation=\"http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd\">"
                       , "</gpx>" };
 
-/**
- * @Brief WPT label definition
- *
- */
-static const struct
-{
-  const char* open;
-  const char* close;
-} gpxWPT PROGMEM = { "<wpt" , "</wpt>" };
-
-/**
- * @Brief wptType definition
- *
- */
-static const struct
-{
-  const char* lat;
-  const char* lon;
-  const char* ele;
-  const char* time;
-  const char* name;
-  const char* desc;
-  const char* src;
-  const char* sym;
-  const char* type;
-  const char* sat;
-  const char* hdop;
-  const char* vdop;
-  const char* pdop;
-} wptType PROGMEM = { " lat=\"%f\""
-                     , "lon=\"%f\">"
-                     , " <ele>%f</ele>"
-                     , " <time>%s</time>"
-                     , " <name>%s</name>"
-                     , " <desc>%s</desc>"
-                     , " <src>IceNav</src>"
-                     , " <sym>%s</sym>"
-                     , " <type>%s</type>"
-                     , " <sat>%d</sat>"
-                     , " <hdop>%f</hdop>"
-                     , " <vdop>%f</vdop>"
-                     , " <pdop>%f</pdop>" };
 
 #endif

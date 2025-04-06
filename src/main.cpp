@@ -14,6 +14,7 @@
 #include <WiFi.h>
 #include <esp_wifi.h>
 #include <esp_bt.h>
+#include <esp_log.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <SolarCalculator.h>
@@ -50,6 +51,7 @@ extern xSemaphoreHandle gpsMutex;
 #include "webserver.h"
 #include "battery.hpp"
 #include "power.hpp"
+#include "gpxParser.hpp"
 
 #include "maps.hpp"
 
@@ -144,7 +146,7 @@ void setup()
 #ifdef ENABLE_IMU
   initIMU();
 #endif
-
+ 
   storage.initSD();
   storage.initSPIFFS();
   battery.initADC();

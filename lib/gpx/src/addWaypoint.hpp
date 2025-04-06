@@ -12,9 +12,6 @@
 #include "SD.h"
 #include "globalGpxDef.h"
 
-extern wayPoint addWpt;
-
-void openGpxFile(const char* gpxFilename);
-void addWaypointToFile(const char* gpxFilename, wayPoint addWpt);
+void createGpxFile(const char* gpxFilename);
 
 #endif

@@ -10,6 +10,7 @@
 #define WAYPOINTLISTSCR_HPP
 
 #include "mainScr.hpp"
+#include "gpxParser.hpp"
 
 void loadMainScreen();
 void updateWaypointPos();

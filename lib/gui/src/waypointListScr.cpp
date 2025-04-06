@@ -9,8 +9,7 @@
 #include "waypointListScr.hpp"
 
 extern Maps mapView;
-
-std::string wptContent;
+extern wayPoint loadWpt;
 
 lv_obj_t *listWaypointScreen; // Add Waypoint Screen
 
@@ -33,23 +32,25 @@ void waypointListEvent(lv_event_t *event)
         if (row != 0)
         {
             String sel = String(lv_table_get_cell_value(obj, row, col));
+            String wptName = sel.substring(6,sel.length());
 
             if (!sel.isEmpty())
             {
+                GPXParser gpx(wptFile);
+                loadWpt = gpx.getWaypointInfo(wptName);
+
                 switch (wptAction)
                 {
                 case WPT_LOAD:
-                    lv_img_set_src(arrowNav, &navup);
-                    loadWptFile(sel);
+                    lv_img_set_src(arrowNav, &navup);        
+
                     if (loadWpt.lat != 0 && loadWpt.lon != 0)
                     {
                         lv_obj_clear_flag(navTile, LV_OBJ_FLAG_HIDDEN);
 
-                        destName = loadWpt.name;
-
                         lv_label_set_text_fmt(latNav, "%s", latFormatString(loadWpt.lat));
                         lv_label_set_text_fmt(lonNav, "%s", lonFormatString(loadWpt.lon));
-                        lv_label_set_text_fmt(nameNav, "%s", destName);
+                        lv_label_set_text_fmt(nameNav, "%s", loadWpt.name);
 
                         mapView.setWaypoint(loadWpt.lat, loadWpt.lon);
 
@@ -63,7 +64,7 @@ void waypointListEvent(lv_event_t *event)
                 case WPT_EDIT:
                     isMainScreen = false;
                     mapView.redrawMap = false;
-                    loadWptFile(sel);
+
                     lv_textarea_set_text(waypointName, loadWpt.name);
                     isScreenRotated = false;
                     lv_obj_set_width(waypointName, tft.width() - 10);
@@ -71,8 +72,7 @@ void waypointListEvent(lv_event_t *event)
                     lv_screen_load(waypointScreen);
                     break;
                 case WPT_DEL:
-                    loadWptFile(sel);
-                    deleteWaypointName(loadWpt.name);
+                    gpx.deleteWaypoint(loadWpt.name);
                     loadMainScreen();
                     break;
                 default:
@@ -116,42 +116,14 @@ void updateWaypointListScreen()
     lv_obj_clean(listWaypointScreen);
     lv_table_set_row_count(listWaypointScreen, 1);
     isMainScreen = false;
+ 
+    GPXParser gpx(wptFile);
 
-    log_i("Trying to open Waypoint file");
-    File wayPointFile = SD.open(wptFile);
-
-    if (!wayPointFile)
-        log_e("Waypoint file not found");
-    else
+    uint16_t totalWpt = 1;
+    std::vector<std::string> names = gpx.getWaypointList();
+    for (const std::string& name : names) 
     {
-        log_i("Waypoint file found");
-
-        size_t fileSize = wayPointFile.size();
-
-#ifdef BOARD_HAS_PSRAM
-        uint8_t *buffer = (uint8_t *)ps_malloc(fileSize + 1);
-#else
-        uint8_t *buffer = (uint8_t *)malloc(fileSize + 1);
-#endif
-        buffer[fileSize] = '\0';
-
-        wayPointFile.read(buffer, fileSize);
-        wayPointFile.close();
-
-        wptContent = std::string((char*)buffer);
-        delete[] buffer;
-
-        std::regex wptName("<name>([^<]*?)</name>");
-        std::smatch wptFound;
-        std::string::const_iterator wptSearch(wptContent.cbegin());
-
-        int totalWpt = 1;
-
-        while (std::regex_search(wptSearch, wptContent.cend(), wptFound, wptName))
-        {
-            lv_table_set_cell_value_fmt(listWaypointScreen, totalWpt, 0, LV_SYMBOL_GPS " - %s", wptFound[1].str().c_str());
-            totalWpt++;
-            wptSearch = wptFound.suffix().first;
-        }
+        lv_table_set_cell_value_fmt(listWaypointScreen, totalWpt, 0, LV_SYMBOL_GPS " - %s", name.c_str());
+        totalWpt++;
     }
 }

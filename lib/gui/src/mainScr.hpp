@@ -13,9 +13,6 @@
 
 #include "globalGuiDef.h"
 #include "buttonBar.hpp"
-#include "loadWaypoint.hpp"
-#include "deleteWaypoint.hpp"
-#include "editWaypoint.hpp"
 #include "widgets.hpp"
 #include "navScr.hpp"
 #include "satInfoScr.hpp"

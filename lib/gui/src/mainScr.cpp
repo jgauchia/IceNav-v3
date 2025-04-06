@@ -17,6 +17,7 @@ int heading = 0;              // Heading value (Compass or GPS)
 
 extern Compass compass;
 extern Gps gps;
+extern wayPoint loadWpt;
 
 #ifdef LARGE_SCREEN
 uint8_t toolBarOffset = 100;
@@ -35,8 +36,6 @@ lv_obj_t *satTrackTile;
 lv_obj_t *btnFullScreen;
 lv_obj_t *btnZoomIn;
 lv_obj_t *btnZoomOut;
-
-char *destName = (char *)"";
 
 Maps mapView;
 
