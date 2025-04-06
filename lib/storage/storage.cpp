@@ -17,7 +17,7 @@ extern const uint8_t SD_MISO;
 extern const uint8_t SD_MOSI;
 extern const uint8_t SD_CLK;
 
-static const char *TAG = "storage";
+static const char *TAG = "Storage";
 
 /**
  * @brief Storage Class constructor

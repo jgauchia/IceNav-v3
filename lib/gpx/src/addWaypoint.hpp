@@ -11,15 +11,7 @@
 
 #include "globalGpxDef.h"
 #include "storage.hpp"
-#include "settings.hpp"
-#include "NMEAGPS.h"
-#include "gps.hpp"
-#include <sys/time.h>
-#include <time.h>
 
-extern wayPoint addWpt;
-
-void openGpxFile(const char* gpxFilename);
-void addWaypointToFile(const char* gpxFilename, wayPoint addWpt);
+void createGpxFile(const char* gpxFilename);
 
 #endif

@@ -11,6 +11,7 @@
 
 #include "mainScr.hpp"
 #include "storage.hpp"
+#include "gpxParser.hpp"
 
 void loadMainScreen();
 void updateWaypointPos();

@@ -21,7 +21,6 @@ extern lv_obj_t *latNav;
 extern lv_obj_t *lonNav;
 extern lv_obj_t *distNav;
 extern lv_obj_t *arrowNav;
-extern char* destName;
 
 void navigationScr(_lv_obj_t *screen);
 
