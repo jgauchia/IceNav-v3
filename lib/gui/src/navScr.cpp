@@ -32,6 +32,7 @@ lv_obj_t *arrowNav;
     nameNav = lv_label_create(screen);
     lv_obj_set_style_text_font(nameNav, fontLargeMedium, 0);
     //lv_label_set_text_fmt(nameNav, "%s","");
+    lv_label_set_long_mode(nameNav, LV_LABEL_LONG_SCROLL_CIRCULAR);
     lv_obj_set_width(nameNav,TFT_WIDTH-10);
     lv_obj_set_pos(nameNav,10, 55);
 
@@ -88,6 +89,7 @@ lv_obj_t *arrowNav;
     nameNav = lv_label_create(screen);
     lv_obj_set_style_text_font(nameNav, fontLargeMedium, 0);
     //lv_label_set_text_fmt(nameNav, "%s","");
+    lv_label_set_long_mode(nameNav, LV_LABEL_LONG_SCROLL_CIRCULAR);
     lv_obj_set_width(nameNav,TFT_WIDTH-10);
     lv_obj_set_pos(nameNav,10, 37);
 
