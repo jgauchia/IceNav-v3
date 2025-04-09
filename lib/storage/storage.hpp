@@ -21,6 +21,19 @@
 #include <unistd.h>
 #include <time.h>
 #include <utime.h>
+#include <string>
+
+struct SDCardInfo
+{
+    std::string name;
+    std::string capacity;
+    int sector_size;
+    int read_block_len;
+    std::string card_type;
+    std::string total_space;
+    std::string free_space;
+    std::string used_space;
+};
 
 class FileStream : public Stream
 {
@@ -106,6 +119,7 @@ public:
 
     esp_err_t initSD();
     esp_err_t initSPIFFS();
+    SDCardInfo getSDCardInfo();
     bool getSdLoaded() const;
     FILE *open(const char *path, const char *mode);
     int close(FILE *file);

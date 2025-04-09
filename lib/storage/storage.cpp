@@ -11,6 +11,11 @@
 #include "esp_log.h"
 #include "esp_vfs_fat.h"
 #include "driver/sdspi_host.h"
+#include <cmath>
+#include <sstream>
+#include <iomanip>
+
+#define SD_OCR_SDHC_CAP (1<<30)
 
 extern const uint8_t SD_CS;
 extern const uint8_t SD_MISO;
@@ -18,6 +23,24 @@ extern const uint8_t SD_MOSI;
 extern const uint8_t SD_CLK;
 
 static const char *TAG = "Storage";
+
+namespace 
+{
+    std::string formatSize(uint64_t size)
+    {
+        static const char *suffixes[] = {"B","KB","MB","GB","TB"};
+        int order = 0;
+        double formatted_size = static_cast<double>(size);
+        while (formatted_size >= 1024 && order < sizeof(suffixes) / sizeof(suffixes[0]) - 1)
+        {
+            order++;
+            formatted_size /= 1024;
+        }
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(2) << formatted_size << " " << suffixes[order];
+        return oss.str();
+    }
+}
 
 /**
  * @brief Storage Class constructor
@@ -144,6 +167,54 @@ esp_err_t Storage::initSPIFFS()
 }
 
 /**
+ * @brief Get SD card information
+ *
+ * @return SDCardInfo structure containing SD card information
+ */
+SDCardInfo Storage::getSDCardInfo()
+{
+    SDCardInfo info;
+
+    if (card != nullptr)
+    {
+        info.name = std::string(reinterpret_cast<const char*>(card->cid.name));
+        info.capacity = formatSize((uint64_t)(card->csd.capacity) * card->csd.sector_size);
+        info.sector_size = card->csd.sector_size;
+        info.read_block_len = card->csd.read_block_len;
+        info.card_type = (card->ocr && SD_OCR_SDHC_CAP) ? "SDHC/SDXC" : "SDSC";
+
+        FATFS *fs;
+        DWORD fre_clust, fre_sect, tot_sect;
+
+        if (f_getfree("0:",&fre_clust, &fs) == FR_OK)
+        {
+            tot_sect = (fs->n_fatent - 2) * fs->csize;
+            fre_sect = fre_clust * fs->csize;
+
+            uint64_t total_space_bytes = tot_sect / 2 ;
+            uint64_t free_space_bytes = fre_sect / 2 ;
+            uint64_t used_space_bytes = total_space_bytes - free_space_bytes;
+
+            info.total_space = formatSize(total_space_bytes);
+            info.free_space = formatSize(free_space_bytes);
+            info.used_space = formatSize(used_space_bytes);
+        }
+        else
+        {
+            ESP_LOGE(TAG, "Failed to get filesystem info");
+            info.total_space = "0 B";
+            info.free_space = "0 B";
+            info.used_space = "0 B";
+        }
+    }
+    else
+        ESP_LOGE(TAG, "SD Card not initialized");
+
+    return info;
+}
+
+
+/**
  * @brief Get SD status
  * 
  * @return true if SD card is loaded, false otherwise
@@ -187,7 +258,7 @@ size_t Storage::size(const char *path)
     struct stat st;
     if (stat(path, &st) == 0)
     {
-        return st.st_size;
+        return st.st_size; 
     }
     return 0;
 }
