@@ -180,7 +180,7 @@ void altitudeWidget(_lv_obj_t *screen)
     lv_img_set_zoom(img,iconScale);
     lv_obj_update_layout(altitude);
     lv_obj_update_layout(img);
-    lv_obj_set_width(obj, lv_obj_get_width(altitude) + 40);
+    lv_obj_set_width(obj, 140);
     lv_obj_align(img, LV_ALIGN_LEFT_MID, -15, 0);
     lv_obj_align(altitude, LV_ALIGN_CENTER, 15, 0);
     objUnselect(obj);
@@ -208,7 +208,7 @@ void speedWidget(_lv_obj_t *screen)
     lv_img_set_zoom(img,iconScale);
     lv_obj_update_layout(speedLabel);
     lv_obj_update_layout(img);
-    lv_obj_set_width(obj, lv_obj_get_width(speedLabel) + 40);
+    lv_obj_set_width(obj, 160);
     lv_obj_align(img, LV_ALIGN_LEFT_MID, -10, 0);
     lv_obj_align(speedLabel, LV_ALIGN_CENTER, 20, 0);
     objUnselect(obj);
@@ -225,7 +225,7 @@ void speedWidget(_lv_obj_t *screen)
 void sunWidget(_lv_obj_t *screen)
 {
   lv_obj_t *obj = lv_obj_create(screen);
-  lv_obj_set_size(obj, 70 * scale, 60 * scale);
+  lv_obj_set_size(obj, 70, 60);
   lv_obj_set_pos(obj, sunPosX, sunPosY);
   lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
 
