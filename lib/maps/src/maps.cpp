@@ -11,6 +11,7 @@
 
 extern Compass compass;
 extern Gps gps;
+extern Storage storage;
 
 extern Point16::Point16(char *coordsPair)
 {
@@ -27,7 +28,6 @@ bool BBox::intersects(BBox b)
     return false;
   return true;
 }
-
 
 /**
  * @brief Map Class constructor
@@ -146,9 +146,9 @@ Maps::MapTile Maps::getMapTile(double lon, double lat, uint8_t zoomLevel, int16_
  * @return Y position
  */
 double Maps::lat2y(double lat)
-{ 
+{
   return log(tan(DEG2RAD(lat) / 2 + M_PI / 4)) * EARTH_RADIUS;
-} 
+}
 
 /**
  * @brief Get pixel X position from OpenStreetMap Vector map longitude
@@ -158,7 +158,7 @@ double Maps::lat2y(double lat)
  */
 double Maps::lon2x(double lon)
 {
-   return DEG2RAD(lon) * EARTH_RADIUS; 
+  return DEG2RAD(lon) * EARTH_RADIUS;
 }
 
 /**
@@ -168,7 +168,7 @@ double Maps::lon2x(double lon)
  * @return longitude
  */
 double Maps::mercatorX2lon(double x)
-{ 
+{
   return (x / EARTH_RADIUS) * (180.0 / M_PI);
 }
 
@@ -179,8 +179,8 @@ double Maps::mercatorX2lon(double x)
  * @return latitude
  */
 double Maps::mercatorY2lat(double y)
-{ 
-  return (atan(sinh(y / EARTH_RADIUS))) * (180.0 / M_PI); 
+{
+  return (atan(sinh(y / EARTH_RADIUS))) * (180.0 / M_PI);
 }
 
 /**
@@ -201,30 +201,37 @@ int16_t Maps::toScreenCoord(const int32_t pxy, const int32_t screenCenterxy)
  * @param file
  * @return int16_t
  */
-int16_t Maps::parseInt16(ReadBufferingStream &file)
+int16_t Maps::parseInt16(char *file)
 {
   char num[16];
   uint8_t i;
   char c;
   i = 0;
-  c = (char)file.read();
+  c = file[Maps::idx];
   if (c == '\n')
     return 0;
   while (c >= '0' && c <= '9')
   {
     assert(i < 15);
-    num[i++] = c;
-    c = (char)file.read();
+    c = file[Maps::idx];
+    num[i] = c;
+    Maps::idx++;
+    i++;
+
+    c = file[Maps::idx];
   }
   num[i] = '\0';
+
   if (c != ';' && c != ',' && c != '\n')
   {
     log_e("parseInt16 error: %c %i", c, c);
     log_e("Num: [%s]", num);
-    while (1);
+    while (1)
+      ;
   }
   try
   {
+    Maps::idx++;
     return std::stoi(num);
   }
   catch (std::invalid_argument)
@@ -245,19 +252,22 @@ int16_t Maps::parseInt16(ReadBufferingStream &file)
  * @param terminator
  * @param str
  */
-void Maps::parseStrUntil(ReadBufferingStream &file, char terminator, char *str)
+void Maps::parseStrUntil(char *file, char terminator, char *str)
 {
   uint8_t i;
   char c;
   i = 0;
-  c = (char)file.read();
+  c = file[Maps::idx];
   while (c != terminator && c != '\n')
   {
     assert(i < 29);
-    str[i++] = c;
-    c = (char)file.read();
+    str[i] = c;
+    Maps::idx++;
+    i++;
+    c = file[Maps::idx];
   }
   str[i] = '\0';
+  Maps::idx++;
 }
 
 /**
@@ -266,7 +276,7 @@ void Maps::parseStrUntil(ReadBufferingStream &file, char terminator, char *str)
  * @param file
  * @param points
  */
-void Maps::parseCoords(ReadBufferingStream &file, std::vector<Point16> &points)
+void Maps::parseCoords(char *file, std::vector<Point16> &points)
 {
   char str[30];
   assert(points.size() == 0);
@@ -324,7 +334,11 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
   log_d("readMapBlock: %s", fileName.c_str());
   char str[30];
   MapBlock *mblock = new MapBlock();
-  fs::File file_ = SD.open(fileName + ".fmp");
+  std::string filePath = fileName.c_str() + std::string(".fmp");
+  log_i("File: %s", filePath.c_str());
+
+  FILE *file_ = storage.open(filePath.c_str(), "r");
+
   if (!file_)
   {
     Maps::isMapFound = false;
@@ -333,18 +347,29 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
   }
   else
   {
+    size_t fileSize = storage.size(filePath.c_str());
+
+#ifdef BOARD_HAS_PSRAM
+    char *file = (char *)ps_malloc(fileSize + 1);
+#else
+    char *file = (char *)malloc(fileSize + 1);
+#endif
+
+    storage.read(file_, file, fileSize);
     Maps::isMapFound = true;
 
-    ReadBufferingStream file{file_, 2000};
     uint32_t line = 0;
+    Maps::idx = 0;
 
     // read polygons
     Maps::parseStrUntil(file, ':', str);
     if (strcmp(str, "Polygons") != 0)
     {
       log_e("Map error. Expected Polygons instead of: %s", str);
-      while (0);
+      while (0)
+        ;
     }
+
     int16_t count = Maps::parseInt16(file);
     assert(count > 0);
     line++;
@@ -361,16 +386,18 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
       polygon.color = (uint16_t)std::stoul(str, nullptr, 16);
       // log_d("polygon.color: %i", polygon.color);
       line++;
+
       Maps::parseStrUntil(file, '\n', str); // maxZoom
       polygon.maxZoom = str[0] ? (uint8_t)std::stoi(str) : MAX_ZOOM;
-      //log_d("polygon.maxZoom: %i", polygon.maxZoom);
+      // log_d("polygon.maxZoom: %i", polygon.maxZoom);
       line++;
 
       Maps::parseStrUntil(file, ':', str);
       if (strcmp(str, "bbox") != 0)
       {
         log_e("bbox error tag. Line %i : %s", line, str);
-        while (true);
+        while (true)
+          ;
       }
       polygon.bbox.min.x = Maps::parseInt16(file);
       polygon.bbox.min.y = Maps::parseInt16(file);
@@ -383,8 +410,10 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
       if (strcmp(str, "coords") != 0)
       {
         log_e("coords error tag. Line %i : %s", line, str);
-        while (true);
+        while (true)
+          ;
       }
+
       Maps::parseCoords(file, polygon.points);
       line++;
       mblock->polygons.push_back(polygon);
@@ -421,7 +450,8 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
       if (strcmp(str, "bbox") != 0)
       {
         log_e("bbox error tag. Line %i : %s", line, str);
-        while (true);
+        while (true)
+          ;
       }
 
       polyline.bbox.min.x = Maps::parseInt16(file);
@@ -429,9 +459,6 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
       polyline.bbox.max.x = Maps::parseInt16(file);
       polyline.bbox.max.y = Maps::parseInt16(file);
 
-      // if( line > 4050){
-      //     log_e("polyline.bbox %i %i %i %i", polyline.bbox.min.x, polyline.bbox.min.y,polyline.bbox.max.x, polyline.bbox.max.y);
-      // }
       line++;
 
       polyline.points.clear();
@@ -439,21 +466,18 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
       if (strcmp(str, "coords") != 0)
       {
         log_d("coords tag. Line %i : %s", line, str);
-        while (true);
+        while (true)
+          ;
       }
       Maps::parseCoords(file, polyline.points);
       line++;
-      // if( line > 4050 && fileName == "/mymap/3_77/6_9"){
-      //     for( Point16 p: polyline.points){
-      //         log_d("p.x, p.y %i %i", p.x, p.y);
-      //     }
-      // }
       mblock->polylines.push_back(polyline);
       totalPoints += polyline.points.size();
       count--;
     }
     assert(count == 0);
-    file_.close();
+    storage.close(file_);
+    delete[] file;
     return mblock;
   }
 }
@@ -490,8 +514,8 @@ void Maps::fillPolygon(Polygon p, TFT_eSprite &map) // scanline fill algorithm
           (p.points[i].y >= pixelY && p.points[i + 1].y < pixelY))
       {
         nodeX[nodes++] =
-          p.points[i].x + double(pixelY - p.points[i].y) / double(p.points[i + 1].y - p.points[i].y) *
-          double(p.points[i + 1].x - p.points[i].x);
+            p.points[i].x + double(pixelY - p.points[i].y) / double(p.points[i + 1].y - p.points[i].y) *
+                                double(p.points[i + 1].x - p.points[i].x);
       }
     }
     assert(nodes < p.points.size());
@@ -569,7 +593,7 @@ void Maps::getMapBlocks(BBox &bbox, Maps::MemCache &memCache)
     int32_t folderNameX = blockMinX >> (MAPFOLDER_SIZE_BITS + MAPBLOCK_SIZE_BITS);
     int32_t folderNameY = blockMinY >> (MAPFOLDER_SIZE_BITS + MAPBLOCK_SIZE_BITS);
     char folderName[12];
-    snprintf(folderName, 9, "%+04d%+04d", folderNameX, folderNameY);         // force sign and 4 chars per number
+    snprintf(folderName, 9, "%+04d%+04d", folderNameX, folderNameY);              // force sign and 4 chars per number
     String fileName = mapVectorFolder + folderName + "/" + blockX + "_" + blockY; //  /maps/123_456/777_888
 
     // check if cache is full
@@ -594,13 +618,15 @@ void Maps::getMapBlocks(BBox &bbox, Maps::MemCache &memCache)
       log_d("Block readed from SD card: %p", newBlock);
       log_d("FreeHeap: %i", esp_get_free_heap_size());
     }
+    
     // else
     // {
     //   newBlock->inView = false;
     //   newBlock->offset = Point32(blockMinX, blockMinY);
     //   memCache.blocks.push_back(newBlock); // add the block to the memory cache
-    // }
+    // }.
   }
+
 
   log_d("memCache size: %i %i", memCache.blocks.size(), millis());
 }
@@ -648,9 +674,9 @@ void Maps::readVectorMap(Maps::ViewPort &viewPort, Maps::MemCache &memCache, TFT
         newPolygon.points.clear();
         for (Point16 p : polygon.points)
         { // TODO: move to fillPolygon
-            newPolygon.points.push_back(Point16(
-                Maps::toScreenCoord(p.x, screen_center_mc.x),
-                Maps::toScreenCoord(p.y, screen_center_mc.y)));
+          newPolygon.points.push_back(Point16(
+              Maps::toScreenCoord(p.x, screen_center_mc.x),
+              Maps::toScreenCoord(p.y, screen_center_mc.y)));
         }
         Maps::fillPolygon(newPolygon, map);
       }
@@ -676,7 +702,7 @@ void Maps::readVectorMap(Maps::ViewPort &viewPort, Maps::MemCache &memCache, TFT
           //                     p1x, TILE_HEIGHT - p1y,
           //                     p2x, TILE_HEIGHT - p2y,
           //                     line.width / zoom ?: 1, line.color);
-          map.drawLine(p1x, Maps::tileHeight - p1y,p2x, Maps::tileHeight - p2y, line.color);
+          map.drawLine(p1x, Maps::tileHeight - p1y, p2x, Maps::tileHeight - p2y, line.color);
         }
       }
       log_d("Block lines done %i ms", millis() - blockTime);
@@ -692,8 +718,8 @@ void Maps::readVectorMap(Maps::ViewPort &viewPort, Maps::MemCache &memCache, TFT
     log_d("Draw done! %i", millis());
 
     MapBlock *firstBlock = memCache.blocks.front();
-    delete firstBlock;   
-    memCache.blocks.erase(memCache.blocks.begin()); 
+    delete firstBlock;
+    memCache.blocks.erase(memCache.blocks.begin());
 
     Maps::totalBounds.lat_min = Maps::mercatorY2lat(viewPort.bbox.min.y);
     Maps::totalBounds.lat_max = Maps::mercatorY2lat(viewPort.bbox.max.y);
@@ -701,9 +727,9 @@ void Maps::readVectorMap(Maps::ViewPort &viewPort, Maps::MemCache &memCache, TFT
     Maps::totalBounds.lon_max = Maps::mercatorX2lon(viewPort.bbox.max.x);
 
     log_i("Total Bounds: Lat Min: %f, Lat Max: %f, Lon Min: %f, Lon Max: %f",
-      Maps::totalBounds.lat_min, Maps::totalBounds.lat_max, Maps::totalBounds.lon_min, Maps::totalBounds.lon_max);
+          Maps::totalBounds.lat_min, Maps::totalBounds.lat_max, Maps::totalBounds.lon_min, Maps::totalBounds.lon_max);
 
-    if(Maps::isCoordInBounds(Maps::destLat,Maps::destLon,Maps::totalBounds))
+    if (Maps::isCoordInBounds(Maps::destLat, Maps::destLon, Maps::totalBounds))
       Maps::coords2map(Maps::destLat, Maps::destLon, Maps::totalBounds, &(Maps::wptPosX), &(Maps::wptPosY));
     else
     {
@@ -755,9 +781,9 @@ Maps::tileBounds Maps::getTileBounds(uint32_t tileX, uint32_t tileY, uint8_t zoo
 {
   tileBounds bounds;
   bounds.lon_min = Maps::tilex2lon(tileX, zoom);
-  bounds.lat_min = Maps::tiley2lat(tileY + 1, zoom);  
-  bounds.lon_max = Maps::tilex2lon(tileX + 1, zoom);  
-  bounds.lat_max = Maps::tiley2lat(tileY, zoom);      
+  bounds.lat_min = Maps::tiley2lat(tileY + 1, zoom);
+  bounds.lon_max = Maps::tilex2lon(tileX + 1, zoom);
+  bounds.lat_max = Maps::tiley2lat(tileY, zoom);
   return bounds;
 }
 
@@ -771,7 +797,7 @@ Maps::tileBounds Maps::getTileBounds(uint32_t tileX, uint32_t tileY, uint8_t zoo
  */
 bool Maps::isCoordInBounds(double lat, double lon, tileBounds bound)
 {
-  return (lat >= Maps::totalBounds.lat_min && lat <= Maps::totalBounds.lat_max &&  lon >= Maps::totalBounds.lon_min && lon <= Maps::totalBounds.lon_max);
+  return (lat >= Maps::totalBounds.lat_min && lat <= Maps::totalBounds.lat_max && lon >= Maps::totalBounds.lon_min && lon <= Maps::totalBounds.lon_max);
 }
 
 /**
@@ -803,7 +829,7 @@ Maps::ScreenCoord Maps::coord2ScreenPos(double lon, double lat, uint8_t zoomLeve
 void Maps::coords2map(double lat, double lon, tileBounds bound, uint16_t *pixelX, uint16_t *pixelY)
 {
   double lon_ratio = (lon - bound.lon_min) / (bound.lon_max - bound.lon_min);
-  double lat_ratio = (bound.lat_max - lat) / (bound.lat_max - bound.lat_min); 
+  double lat_ratio = (bound.lat_max - lat) / (bound.lat_max - bound.lat_min);
 
   *pixelX = (int)(lon_ratio * Maps::tileWidth);
   *pixelY = (int)(lat_ratio * Maps::tileHeight);
@@ -830,58 +856,58 @@ void Maps::drawMapWidgets(MAP mapSettings)
   Maps::mapSprite.setTextColor(TFT_WHITE, TFT_WHITE);
 
   uint16_t mapHeading = 0;
-  #ifdef ENABLE_COMPASS
-    if (mapSettings.mapRotationComp)
-      mapHeading = compass.getHeading();
-    else
-      mapHeading = gps.gpsData.heading;
-  #else 
-      mapHeading = gps.gpsData.heading;
-  #endif
+#ifdef ENABLE_COMPASS
+  if (mapSettings.mapRotationComp)
+    mapHeading = compass.getHeading();
+  else
+    mapHeading = gps.gpsData.heading;
+#else
+  mapHeading = gps.gpsData.heading;
+#endif
 
   if (mapSettings.showMapCompass)
   {
     Maps::mapSprite.fillRectAlpha(Maps::mapScrWidth - 48, 0, 48, 48, 95, TFT_BLACK);
     if (mapSettings.compassRotation)
-    Maps::mapSprite.pushImageRotateZoom(Maps::mapScrWidth - 24, 24, 24, 24, 360 - mapHeading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
+      Maps::mapSprite.pushImageRotateZoom(Maps::mapScrWidth - 24, 24, 24, 24, 360 - mapHeading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
     else
-    Maps::mapSprite.pushImage(Maps::mapScrWidth - 48, 0, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
+      Maps::mapSprite.pushImage(Maps::mapScrWidth - 48, 0, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
   }
 
   uint16_t mapHeight = 0;
   if (mapSettings.mapFullScreen)
-    mapHeight = Maps::mapScrFull; 
+    mapHeight = Maps::mapScrFull;
   else
     mapHeight = Maps::mapScrHeight;
 
   uint8_t toolBarOffset = 0;
   uint8_t toolBarSpace = 0;
-  #ifdef LARGE_SCREEN
-    toolBarOffset = 100;
-    toolBarSpace = 60;
-  #endif
-  #ifndef LARGE_SCREEN
-    toolBarOffset = 80;
-    toolBarSpace = 50;
-  #endif
+#ifdef LARGE_SCREEN
+  toolBarOffset = 100;
+  toolBarSpace = 60;
+#endif
+#ifndef LARGE_SCREEN
+  toolBarOffset = 80;
+  toolBarSpace = 50;
+#endif
 
   if (showToolBar)
   {
     if (mapSettings.mapFullScreen)
     {
-      Maps::mapSprite.pushImage(10,mapHeight - toolBarOffset, 48, 48,(uint16_t*)collapse,TFT_BLACK);
+      Maps::mapSprite.pushImage(10, mapHeight - toolBarOffset, 48, 48, (uint16_t *)collapse, TFT_BLACK);
     }
     else
     {
-      Maps::mapSprite.pushImage(10,mapHeight - toolBarOffset, 48 ,48 ,(uint16_t*)expand,TFT_BLACK);
+      Maps::mapSprite.pushImage(10, mapHeight - toolBarOffset, 48, 48, (uint16_t *)expand, TFT_BLACK);
     }
-   Maps::mapSprite.fillRectAlpha(10, mapHeight - toolBarOffset, 48, 48, 50, TFT_BLACK);
+    Maps::mapSprite.fillRectAlpha(10, mapHeight - toolBarOffset, 48, 48, 50, TFT_BLACK);
 
-   Maps::mapSprite.pushImage(10, mapHeight - (toolBarOffset + toolBarSpace), 48,48,(uint16_t*)zoomout,TFT_BLACK);
-   Maps::mapSprite.fillRectAlpha(10, mapHeight - (toolBarOffset + toolBarSpace), 48, 48, 50, TFT_BLACK);
+    Maps::mapSprite.pushImage(10, mapHeight - (toolBarOffset + toolBarSpace), 48, 48, (uint16_t *)zoomout, TFT_BLACK);
+    Maps::mapSprite.fillRectAlpha(10, mapHeight - (toolBarOffset + toolBarSpace), 48, 48, 50, TFT_BLACK);
 
-   Maps::mapSprite.pushImage(10, mapHeight - (toolBarOffset + (2 * toolBarSpace)), 48,48,(uint16_t*)zoomin,TFT_BLACK);
-   Maps::mapSprite.fillRectAlpha(10, mapHeight - (toolBarOffset + (2 * toolBarSpace)), 48, 48, 50, TFT_BLACK);
+    Maps::mapSprite.pushImage(10, mapHeight - (toolBarOffset + (2 * toolBarSpace)), 48, 48, (uint16_t *)zoomin, TFT_BLACK);
+    Maps::mapSprite.fillRectAlpha(10, mapHeight - (toolBarOffset + (2 * toolBarSpace)), 48, 48, 50, TFT_BLACK);
   }
 
   Maps::mapSprite.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
@@ -892,18 +918,18 @@ void Maps::drawMapWidgets(MAP mapSettings)
   {
     Maps::mapSprite.fillRectAlpha(0, mapHeight - 32, 70, 32, 95, TFT_BLACK);
     Maps::mapSprite.pushImage(0, mapHeight - 28, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
-    Maps::mapSprite.drawNumber(gps.gpsData.speed, 26, mapHeight - 24 , &fonts::FreeSansBold9pt7b);
+    Maps::mapSprite.drawNumber(gps.gpsData.speed, 26, mapHeight - 24, &fonts::FreeSansBold9pt7b);
   }
 
   if (!mapSettings.vectorMap)
     if (mapSettings.showMapScale)
     {
-      Maps::mapSprite.fillRectAlpha(Maps::mapScrWidth - 70, mapHeight - 32 , 70, Maps::mapScrWidth - 75, 95, TFT_BLACK);
+      Maps::mapSprite.fillRectAlpha(Maps::mapScrWidth - 70, mapHeight - 32, 70, Maps::mapScrWidth - 75, 95, TFT_BLACK);
       Maps::mapSprite.setTextSize(1);
-      Maps::mapSprite.drawFastHLine(Maps::mapScrWidth - 65 , mapHeight - 14 , 60);
-      Maps::mapSprite.drawFastVLine(Maps::mapScrWidth - 65  , mapHeight - 19 , 10);
-      Maps::mapSprite.drawFastVLine(Maps::mapScrWidth - 5, mapHeight - 19 , 10);
-      Maps::mapSprite.drawCenterString(map_scale[zoom], Maps::mapScrWidth - 35 , mapHeight - 24);
+      Maps::mapSprite.drawFastHLine(Maps::mapScrWidth - 65, mapHeight - 14, 60);
+      Maps::mapSprite.drawFastVLine(Maps::mapScrWidth - 65, mapHeight - 19, 10);
+      Maps::mapSprite.drawFastVLine(Maps::mapScrWidth - 5, mapHeight - 19, 10);
+      Maps::mapSprite.drawCenterString(map_scale[zoom], Maps::mapScrWidth - 35, mapHeight - 24);
     }
 }
 
@@ -935,18 +961,17 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth, uint16_t mapFull)
   Maps::mapScrHeight = mapHeight;
   Maps::mapScrWidth = mapWidth;
   Maps::mapScrFull = mapFull;
-    
+
   // Reserve PSRAM for buffer map
   Maps::mapTempSprite.deleteSprite();
   Maps::mapTempSprite.createSprite(tileHeight, tileWidth);
 
+  Maps::oldMapTile = {(char *)"", 0, 0, 0};     // Old Map tile coordinates and zoom
+  Maps::currentMapTile = {(char *)"", 0, 0, 0}; // Current Map tile coordinates and zoom
+  Maps::roundMapTile = {(char *)"", 0, 0, 0};   // Boundaries Map tiles
+  Maps::navArrowPosition = {0, 0};              // Map Arrow position
 
-  Maps::oldMapTile = {(char*)"", 0, 0, 0};     // Old Map tile coordinates and zoom
-  Maps::currentMapTile = {(char*)"", 0, 0, 0}; // Current Map tile coordinates and zoom
-  Maps::roundMapTile = {(char*)"", 0, 0, 0};   // Boundaries Map tiles  
-  Maps::navArrowPosition = {0,0};  // Map Arrow position
-
-  Maps::totalBounds = { 90.0, -90.0, 180.0, -180.0}; 
+  Maps::totalBounds = {90.0, -90.0, 180.0, -180.0};
 }
 
 /**
@@ -967,9 +992,9 @@ void Maps::createMapScrSprites()
 {
   // Map Sprite
   if (!mapSet.mapFullScreen)
-     Maps::mapSprite.createSprite(Maps::mapScrWidth, Maps::mapScrHeight);
+    Maps::mapSprite.createSprite(Maps::mapScrWidth, Maps::mapScrHeight);
   else
-     Maps::mapSprite.createSprite(Maps::mapScrWidth, Maps::mapScrFull);
+    Maps::mapSprite.createSprite(Maps::mapScrWidth, Maps::mapScrFull);
   // Arrow Sprite
   Maps::arrowSprite.createSprite(16, 16);
   Maps::arrowSprite.setColorDepth(16);
@@ -992,10 +1017,10 @@ void Maps::generateRenderMap(uint8_t zoom)
   bool missingMap = false;
 
   // Detects if tile changes from actual GPS position
-  if (strcmp(Maps::currentMapTile.file, Maps::oldMapTile.file) != 0 || Maps::currentMapTile.zoom != Maps::oldMapTile.zoom || 
-             Maps::currentMapTile.tilex != Maps::oldMapTile.tilex || Maps::currentMapTile.tiley != Maps::oldMapTile.tiley)
+  if (strcmp(Maps::currentMapTile.file, Maps::oldMapTile.file) != 0 || Maps::currentMapTile.zoom != Maps::oldMapTile.zoom ||
+      Maps::currentMapTile.tilex != Maps::oldMapTile.tilex || Maps::currentMapTile.tiley != Maps::oldMapTile.tiley)
   {
-    Maps::isMapFound  = Maps::mapTempSprite.drawPngFile(SD, Maps::currentMapTile.file, Maps::mapTileSize, Maps::mapTileSize);
+    Maps::isMapFound = Maps::mapTempSprite.drawPngFile(Maps::currentMapTile.file, Maps::mapTileSize, Maps::mapTileSize);
 
     if (!Maps::isMapFound)
     {
@@ -1014,7 +1039,7 @@ void Maps::generateRenderMap(uint8_t zoom)
       Maps::oldMapTile.file = Maps::currentMapTile.file;
 
       Maps::totalBounds = Maps::getTileBounds(Maps::currentMapTile.tilex, Maps::currentMapTile.tiley, zoom);
-                    
+
       static const uint8_t centerX = 0;
       static const uint8_t centerY = 0;
       int8_t startX = centerX - 1;
@@ -1031,21 +1056,25 @@ void Maps::generateRenderMap(uint8_t zoom)
           }
           Maps::roundMapTile = getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, x, y);
 
-          foundRoundMap = Maps::mapTempSprite.drawPngFile(SD, Maps::roundMapTile.file, (x - startX) * Maps::mapTileSize, (y - startY) * Maps::mapTileSize);
+          foundRoundMap = Maps::mapTempSprite.drawPngFile(Maps::roundMapTile.file, (x - startX) * Maps::mapTileSize, (y - startY) * Maps::mapTileSize);
           if (!foundRoundMap)
           {
             Maps::mapTempSprite.fillRect((x - startX) * Maps::mapTileSize, (y - startY) * Maps::mapTileSize, Maps::mapTileSize, Maps::mapTileSize, TFT_BLACK);
-            Maps::mapTempSprite.drawPngFile(noMapFile, ((x - startX) * Maps::mapTileSize) + (Maps::mapTileSize / 2) - 50 , ((y - startY) * Maps::mapTileSize) + (Maps::mapTileSize / 2) - 50);
+            Maps::mapTempSprite.drawPngFile(noMapFile, ((x - startX) * Maps::mapTileSize) + (Maps::mapTileSize / 2) - 50, ((y - startY) * Maps::mapTileSize) + (Maps::mapTileSize / 2) - 50);
             missingMap = true;
           }
           else
           {
             tileBounds currentBounds = Maps::getTileBounds(Maps::roundMapTile.tilex, Maps::roundMapTile.tiley, zoom);
-                    
-            if (currentBounds.lat_min < Maps::totalBounds.lat_min) Maps::totalBounds.lat_min = currentBounds.lat_min;
-            if (currentBounds.lat_max > Maps::totalBounds.lat_max) Maps::totalBounds.lat_max = currentBounds.lat_max;
-            if (currentBounds.lon_min < Maps::totalBounds.lon_min) Maps::totalBounds.lon_min = currentBounds.lon_min;
-            if (currentBounds.lon_max > Maps::totalBounds.lon_max) Maps::totalBounds.lon_max = currentBounds.lon_max;
+
+            if (currentBounds.lat_min < Maps::totalBounds.lat_min)
+              Maps::totalBounds.lat_min = currentBounds.lat_min;
+            if (currentBounds.lat_max > Maps::totalBounds.lat_max)
+              Maps::totalBounds.lat_max = currentBounds.lat_max;
+            if (currentBounds.lon_min < Maps::totalBounds.lon_min)
+              Maps::totalBounds.lon_min = currentBounds.lon_min;
+            if (currentBounds.lon_max > Maps::totalBounds.lon_max)
+              Maps::totalBounds.lon_max = currentBounds.lon_max;
           }
         }
       }
@@ -1055,7 +1084,7 @@ void Maps::generateRenderMap(uint8_t zoom)
         log_i("Total Bounds: Lat Min: %f, Lat Max: %f, Lon Min: %f, Lon Max: %f",
               Maps::totalBounds.lat_min, Maps::totalBounds.lat_max, Maps::totalBounds.lon_min, Maps::totalBounds.lon_max);
 
-        if(Maps::isCoordInBounds(Maps::destLat,Maps::destLon,Maps::totalBounds))
+        if (Maps::isCoordInBounds(Maps::destLat, Maps::destLon, Maps::totalBounds))
           Maps::coords2map(Maps::destLat, Maps::destLon, Maps::totalBounds, &(Maps::wptPosX), &(Maps::wptPosY));
       }
       else
@@ -1087,8 +1116,8 @@ void Maps::generateVectorMap(uint8_t zoom)
     Maps::mapTileSize = Maps::vectorMapTileSize;
     Maps::zoomLevel = zoom;
     Maps::viewPort.setCenter(Maps::point);
-    Maps::getMapBlocks(Maps::viewPort.bbox, Maps::memCache);  
-    Maps::readVectorMap(Maps::viewPort, Maps::memCache, Maps::mapTempSprite, zoom); 
+    Maps::getMapBlocks(Maps::viewPort.bbox, Maps::memCache);
+    Maps::readVectorMap(Maps::viewPort, Maps::memCache, Maps::mapTempSprite, zoom);
     Maps::isPosMoved = false;
   }
 }
@@ -1100,27 +1129,27 @@ void Maps::generateVectorMap(uint8_t zoom)
 void Maps::displayMap()
 {
   if (!mapSet.mapFullScreen)
-    Maps::mapSprite.pushSprite(0, 27); 
+    Maps::mapSprite.pushSprite(0, 27);
   else
-    Maps::mapSprite.pushSprite(0,0);
+    Maps::mapSprite.pushSprite(0, 0);
 
   if (Maps::isMapFound)
   {
     uint16_t mapHeading = 0;
-    #ifdef ENABLE_COMPASS
+#ifdef ENABLE_COMPASS
 
     if (mapSet.mapRotationComp)
       mapHeading = compass.getHeading();
     else
       mapHeading = gps.gpsData.heading;
 
-    #else 
+#else
 
     mapHeading = gps.gpsData.heading;
 
-    #endif
+#endif
 
-    Maps::mapTempSprite.pushImage(Maps::wptPosX-8, Maps::wptPosY-8, 16 ,16 ,(uint16_t*)waypoint, TFT_BLACK);
+    Maps::mapTempSprite.pushImage(Maps::wptPosX - 8, Maps::wptPosY - 8, 16, 16, (uint16_t *)waypoint, TFT_BLACK);
 
     if (Maps::mapTileSize == Maps::renderMapTileSize)
     {
@@ -1128,11 +1157,11 @@ void Maps::displayMap()
       Maps::mapTempSprite.setPivot(Maps::renderMapTileSize + Maps::navArrowPosition.posX, Maps::renderMapTileSize + Maps::navArrowPosition.posY);
     }
     if (Maps::mapTileSize == Maps::vectorMapTileSize)
-      Maps::mapTempSprite.setPivot(Maps::vectorMapTileSize , Maps::vectorMapTileSize);
+      Maps::mapTempSprite.setPivot(Maps::vectorMapTileSize, Maps::vectorMapTileSize);
 
     Maps::mapTempSprite.pushRotated(&(Maps::mapSprite), 360 - mapHeading, TFT_TRANSPARENT);
     //Maps::mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
-   
+
     Maps::arrowSprite.pushRotated(&(Maps::mapSprite), 0, TFT_BLACK);
     Maps::drawMapWidgets(mapSet);
   }
@@ -1150,6 +1179,6 @@ void Maps::setWaypoint(double wptLat, double wptLon)
 {
   Maps::destLat = wptLat;
   Maps::destLon = wptLon;
-  Maps::oldMapTile = {(char*)"", 0, 0, 0}; 
+  Maps::oldMapTile = {(char *)"", 0, 0, 0};
   Maps::isPosMoved = true;
 }

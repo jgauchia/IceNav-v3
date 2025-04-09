@@ -10,6 +10,7 @@
 #define POWER_HPP
 
 #include <Wire.h>
+#include <SPI.h>
 #include <WiFi.h>
 #include <driver/rtc_io.h>
 #include <esp_bt.h>

@@ -11,14 +11,13 @@
 #include "widgets.hpp"
 
 extern lv_obj_t *sunriseLabel;
-bool calcSun = false;
+bool setTime = true;
 bool isGpsFixed = false;
 bool isTimeFixed = false;
 long gpsBaudDetected = 0;
 bool nmea_output_enable = false;
 gps_fix fix;
 NMEAGPS GPS;
-NeoGPS::time_t localTime = 0;
 
 Gps::Gps() {}
 
@@ -70,11 +69,11 @@ void Gps::init()
   delay(100);
 #endif
 
-  localTime.init();
 }
 
 /**
  * @brief return latitude from GPS or sys env pre-built variable
+ * 
  * @return latitude or 0.0 if not defined
  */
 double Gps::getLat()
@@ -100,6 +99,7 @@ double Gps::getLat()
 
 /**
  * @brief return longitude from GPS or sys env pre-built variable
+ * 
  * @return longitude or 0.0 if not defined
  */
 double Gps::getLon()
@@ -144,14 +144,15 @@ void Gps::getGPSData()
   // Time and Date
   if (fix.valid.time && fix.valid.date)
   {
-    adjustTime(fix.dateTime);
-    localTime = fix.dateTime;
-    if (calcSun)
+    if (!setTime)
     {
+      log_v("Get date, time, Sunrise and Sunset");
+      // Set ESP RTC - Local time
+      String TZ = cfg.isKey(CONFKEYS::KDEF_TZ) ? cfg.getString(CONFKEYS::KDEF_TZ, TZ) : "UTC";
+      setLocalTime(fix.dateTime,getPosixTZ(TZ.c_str()));
       // Calculate Sunrise and Sunset only one time when date & time was valid
       calculateSun();
-      log_v("Get date, time, Sunrise and Sunset");
-      calcSun = false;
+      setTime = true;
       lv_obj_send_event(sunriseLabel, LV_EVENT_VALUE_CHANGED, NULL);
     }
   }
@@ -199,6 +200,7 @@ void Gps::getGPSData()
 
 /**
  *  @brief return pulse rate from RX GPS pin
+ * 
  *  @return pulse rate
  */
 long Gps::detectRate(int rxPin)
@@ -219,6 +221,7 @@ long Gps::detectRate(int rxPin)
 
 /**
  *  @brief Detect GPS Baudrate
+ * 
  *  @return baudrate
  */
 long Gps::autoBaud()
@@ -269,6 +272,7 @@ long Gps::autoBaud()
 
 /**
  *  @brief Check if the speed has changed
+ * 
  *  @return true if speed has changed, false otherwise
  */
 bool Gps::isSpeedChanged()
@@ -283,6 +287,7 @@ bool Gps::isSpeedChanged()
 
 /**
  *  @brief Check if the altitude has changed
+ * 
  *  @return true if altitude has changed, false otherwise
  */
 bool Gps::isAltitudeChanged()
@@ -297,6 +302,7 @@ bool Gps::isAltitudeChanged()
 
 /**
  *  @brief Check if the latitude or longitude has changed
+ * 
  *  @return true if latitude or longitude has changed, false otherwise
  */
 bool Gps::hasLocationChange()
@@ -312,6 +318,7 @@ bool Gps::hasLocationChange()
 
 /**
  *  @brief Check if the PDOP, HDOP, or VDOP has changed
+ * 
  *  @return true if PDOP, HDOP, or VDOP has changed, false otherwise
  */
 bool Gps::isDOPChanged()
@@ -324,4 +331,50 @@ bool Gps::isDOPChanged()
     return true;
   }
   return false;
+}
+
+/**
+ * @brief set local time from GPS time and TZ
+ * 
+ * @param gpsTime NeoGPS::time_t to convert
+ * @param tz timezone TZ
+ */
+void Gps::setLocalTime(NeoGPS::time_t gpsTime, const char* tz)
+{
+  struct tm timeinfo;
+  timeinfo.tm_year = (2000 + gpsTime.year) - 1900;
+  timeinfo.tm_mon = gpsTime.month - 1;
+  timeinfo.tm_mday = gpsTime.date;
+  timeinfo.tm_hour = gpsTime.hours;
+  timeinfo.tm_min = gpsTime.minutes;
+  timeinfo.tm_sec = gpsTime.seconds;
+  struct timeval now = { .tv_sec = mktime(&timeinfo) };
+  settimeofday(&now, NULL);
+
+  setenv("TZ",tz,1);
+  tzset();
+
+  time_t tLocal = time(NULL);
+  time_t tUTC = time(NULL);
+  struct tm local_tm;
+  struct tm UTC_tm;
+  struct tm *tmLocal = localtime_r(&tLocal, &local_tm);
+  struct tm *tmUTC = gmtime_r(&tUTC, &UTC_tm);
+
+  char buffer[100];
+  strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S %Z", tmLocal);
+  log_i("Current local time: %s",buffer);
+  strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S %Z", tmUTC);
+  log_i("Current UTC time: %s", buffer);
+
+  
+  int UTC = tmLocal->tm_hour - tmUTC->tm_hour;
+  if (UTC > 12) 
+      UTC -= 24;
+  else if (UTC < -12)
+      UTC += 24;
+  
+  gpsData.UTC  = UTC;
+
+  log_i("UTC: %i", UTC);
 }

@@ -11,7 +11,6 @@
 #define MAPS_HPP
 
 #include <cstdint>
-#include <StreamUtils.h>
 #include <vector>
 #include <map>
 #include "tft.hpp"
@@ -19,6 +18,7 @@
 #include "settings.hpp"
 #include "compass.hpp"
 #include "mapVars.h"
+#include "storage.hpp"
 
 class Maps
 {
@@ -97,9 +97,10 @@ class Maps
         double mercatorX2lon(double x);
         double mercatorY2lat(double y);
         int16_t toScreenCoord(const int32_t pxy, const int32_t screenCenterxy);
-        int16_t parseInt16(ReadBufferingStream &file);
-        void parseStrUntil(ReadBufferingStream &file, char terminator, char *str);
-        void parseCoords(ReadBufferingStream &file, std::vector<Point16> &points);
+        uint32_t idx;
+        int16_t parseInt16(char *file);
+        void parseStrUntil(char *file, char terminator, char *str);
+        void parseCoords(char *file, std::vector<Point16> &points);
         BBox parseBbox(String str);
         MapBlock *readMapBlock(String fileName);
         void fillPolygon(Polygon p, TFT_eSprite &map);

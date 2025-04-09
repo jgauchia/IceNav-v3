@@ -251,7 +251,6 @@ outnmea:        toggle GPS NMEA output (or Ctrl+C to stop)
 poweroff:       perform a ESP32 deep sleep
 reboot:         perform a ESP32 reboot
 scshot:         screenshot to SD or sending a PC
-setdstzone:     set DST (Daylight Saving Time zone: NONE, EU or USA)
 webfile:        enable/disable Web file server
 wipe:           wipe preferences to factory default
 ```
@@ -278,7 +277,7 @@ Some extra details:
    VmaxBatt     custom          4.19999981     Battery max. voltage
    VminBatt     custom          3.59999990     Battery min. voltage
    tempOffs     custom          0              Temperature offset (-/+)
-     defGMT     custom          1              Default GMT Time
+      defTZ     custom          Europe/Madrid  TZ identifier (see /utils/src/timezone.c default UTC)
   defDecAng     custom          0.22000000     Default declination angle
   kalmanFil     custom          true           Enable compass Kalman Filter
     kalmanQ     custom          0.00500000     Def. Kalman Filter const. Process noise covariance (0-1)

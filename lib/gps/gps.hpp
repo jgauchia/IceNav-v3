@@ -12,7 +12,6 @@
 #include <NMEAGPS.h>
 #include <Streamers.h>
 #include "settings.hpp"
-#include "timezone.hpp"
 
 #define DEG2RAD(a) ((a) / (180 / M_PI)) // Convert degrees to radians
 #define RAD2DEG(a) ((a) * (180 / M_PI)) // Convert radians to degrees
@@ -28,10 +27,10 @@ extern uint8_t GPS_RX;
 #define GPS_PORT_NAME "Serial2"
 extern gps_fix fix;
 extern NMEAGPS GPS;
-extern NeoGPS::time_t localTime;
 
-extern bool calcSun;
+extern bool setTime;
 void calculateSun();
+const char* getPosixTZ(const char* name);
 
 extern bool isGpsFixed;
 extern bool isTimeFixed;
@@ -66,6 +65,7 @@ public:
   bool isAltitudeChanged();
   bool hasLocationChange();
   bool isDOPChanged();
+  void setLocalTime(NeoGPS::time_t gpsTime, const char* tz);
 
   struct GPSDATA
   {
@@ -82,6 +82,7 @@ public:
     uint8_t satInView;
     char sunriseHour[6];
     char sunsetHour[6];
+    int UTC;
   } gpsData;
 
   struct SV

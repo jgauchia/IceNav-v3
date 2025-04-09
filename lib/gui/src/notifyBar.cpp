@@ -26,7 +26,13 @@ void updateNotifyBar(lv_event_t *event)
   lv_obj_t *obj = (lv_obj_t *)lv_event_get_target(event);
   
   if (obj == gpsTime)
-    lv_label_set_text_fmt(obj, timeFormat, localTime.hours, localTime.minutes, localTime.seconds);
+  {
+    struct tm local_tm;
+    time_t localTime = time(NULL);
+    struct tm *now = localtime_r(&localTime,&local_tm);
+
+    lv_label_set_text_fmt(obj, timeFormat, now->tm_hour, now->tm_min, now->tm_sec);
+  }
 
 #ifdef ENABLE_TEMP
   if (obj == temp)

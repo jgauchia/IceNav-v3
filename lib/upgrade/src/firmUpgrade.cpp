@@ -8,6 +8,8 @@
 
  #include "firmUpgrade.hpp"
 
+ extern Storage storage;
+
 /**
  * @brief Check if firmware file exist
  * 
@@ -15,7 +17,7 @@
  */
 bool checkFileUpgrade()
 {
-if (SD.exists(upgrdFile))
+if (storage.exists(upgrdFile))
     return true;
 else
     return false;
@@ -28,10 +30,11 @@ else
 void onUpgrdStart()
 {
     log_v("Try to upgrade firmware...");
-    File firmware = SD.open(upgrdFile);
+    FILE *firmware = storage.open(upgrdFile, "r");
     Update.onProgress(onUpgrdProcess);
-    Update.begin(firmware.size(), U_FLASH);
-    Update.writeStream(firmware);
+    Update.begin(storage.size(upgrdFile), U_FLASH);
+    FileStream firmwareStream(firmware);
+    Update.writeStream(firmwareStream);
     if (Update.end())
     {
         log_v("Upgrade finished!");
@@ -43,7 +46,7 @@ void onUpgrdStart()
         lv_obj_clear_flag(btnMsgBack,LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(contMeter,LV_OBJ_FLAG_HIDDEN);
     }
-    firmware.close();
+    storage.close(firmware);
 }
 
 /**

@@ -36,7 +36,6 @@ static const float scale = 0.75f;
  */
 uint8_t defaultZoom = 0;   // Default Zoom Value
 uint8_t defBright = 255;   // Default Brightness
-int32_t defGMT = 1;        // Default GMT offset
 uint16_t gpsBaud = 0;      // GPS Speed
 uint16_t gpsUpdate = 0;    // GPS Update rate
 uint16_t compassPosX = 0;  // Compass widget position X
@@ -55,7 +54,6 @@ int8_t tempOffset = 0;     // BME Temperature offset
 extern Battery battery;
 extern Compass compass;
 extern Gps gps;
-String defDST = "NONE";    // default DST zone
 bool calculateDST = false; // Calculate DST flag
 
 /**
@@ -91,7 +89,6 @@ void loadPreferences()
   sunPosX = cfg.getInt(PKEYS::KSUN_X, 170);
   sunPosY = cfg.getInt(PKEYS::KSUN_Y, TFT_HEIGHT - 170);
   defBright = cfg.getUInt(PKEYS::KDEF_BRIGT, 254);
-  defGMT = cfg.getInt(PKEYS::KGMT_OFFS, 1);
   if (mapSet.vectorMap)
   {
     minZoom = 1;
@@ -125,13 +122,6 @@ void loadPreferences()
 #endif
 
   battery.setBatteryLevels(cfg.getFloat(PKEYS::KVMAX_BATT, 4.2), cfg.getFloat(PKEYS::KVMIN_BATT, 3.6));
-
-  defDST = cfg.getString(PKEYS::KDST_ZONE, "EU");
-  if (defDST.equals("NONE"))
-    calculateDST = false;
-  else
-    calculateDST = true;
-
   printSettings();
 }
 

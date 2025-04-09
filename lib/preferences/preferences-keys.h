@@ -15,7 +15,6 @@
   X(KGPS_SPEED, "gpsBaud", SHORT)        \
   X(KGPS_RATE, "gpsRate", SHORT)         \
   X(KWEB_FILE, "webServer", BOOL)        \
-  X(KDST_ZONE, "defDST", STRING)         \
   X(KUSER, "-----", UNKNOWN)             \
   X(KDEF_ZOOM, "defZoom", UINT)          \
   X(KMAP_MODE, "fullScrMap", BOOL)       \
@@ -32,7 +31,7 @@
   X(KVMAX_BATT, "VmaxBatt", FLOAT)       \
   X(KVMIN_BATT, "VminBatt", FLOAT)       \
   X(KTEMP_OFFS, "tempOffs", INT)         \
-  X(KGMT_OFFS, "defGMT", INT)            \
+  X(KDEF_TZ, "defTZ",STRING)             \
   X(KDECL_ANG, "defDecAng", FLOAT)       \
   X(KKALM_FIL, "kalmanFil", BOOL)        \
   X(KKALM_Q, "kalmanQ", FLOAT)           \

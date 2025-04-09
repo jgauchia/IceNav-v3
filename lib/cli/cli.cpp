@@ -214,25 +214,6 @@ void wcli_webfile(char *args, Stream *response)
   }
 }
 
-/**
- * @brief Set DST (daylight saving time) zone EU or USA
- */
-void wcli_setdst(char *args, Stream *response)
-{
-  Pair<String, String> operands = wcli.parseCommand(args);
-  String commands = operands.first();
-  if (commands.isEmpty())
-    response->println(F("missing parameter use: setdstzone \033[1;32mNONE/EU/USA\033[0;37m"));
-  else
-  {
-    commands.toUpperCase();
-    if(commands.equals("NONE") || commands.equals("EU") || commands.equals("USA") )
-      cfg.saveAuto("defDST",commands);
-    else
-      response->println(F("wrong parameter use: \033[1;32mNONE/EU/USA\033[0;37m"));
-  }
-}
-
 void initRemoteShell()
 {
 #ifndef DISABLE_CLI_TELNET 
@@ -255,7 +236,6 @@ void initShell()
   wcli.add("klist", &wcli_klist, "\t\tlist of user preferences. ('all' param show all)");
   wcli.add("kset", &wcli_kset, "\t\tset an user extra preference");
   wcli.add("outnmea", &wcli_outnmea, "\ttoggle GPS NMEA output (or Ctrl+C to stop)");
-  wcli.add("setdstzone", &wcli_setdst, "\tset DST (Daylight Saving Time zone: NONE, EU or USA)");
   wcli.shell->overrideAbortKey(&wcli_abort_handler);
   wcli.begin("IceNav");
 }
