@@ -2,7 +2,7 @@
  * @file imu.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  IMU definition and functions
- * @version 0.2.0
+ * @version 0.2.1_alpha
  * @date 2025-04
  */
 

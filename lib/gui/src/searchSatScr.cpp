@@ -2,7 +2,7 @@
  * @file searchSatScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - GPS satellite search screen
- * @version 0.2.0
+ * @version 0.2.1_alpha
  * @date 2025-04
  */
 
