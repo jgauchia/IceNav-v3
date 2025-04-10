@@ -12,6 +12,8 @@
 extern Compass compass;
 extern Gps gps;
 
+const char* TAG PROGMEM = "Maps";
+
 extern Point16::Point16(char *coordsPair)
 {
   char *next;
@@ -219,8 +221,8 @@ int16_t Maps::parseInt16(ReadBufferingStream &file)
   num[i] = '\0';
   if (c != ';' && c != ',' && c != '\n')
   {
-    log_e("parseInt16 error: %c %i", c, c);
-    log_e("Num: [%s]", num);
+    ESP_LOGE(TAG, "parseInt16 error: %c %i", c, c);
+    ESP_LOGE(TAG, "Num: [%s]", num);
     while (1);
   }
   try
@@ -229,11 +231,11 @@ int16_t Maps::parseInt16(ReadBufferingStream &file)
   }
   catch (std::invalid_argument)
   {
-    log_e("parseInt16 invalid_argument: [%c] [%s]", c, num);
+    ESP_LOGE(TAG, "parseInt16 invalid_argument: [%c] [%s]", c, num);
   }
   catch (std::out_of_range)
   {
-    log_e("parseInt16 out_of_range: [%c] [%s]", c, num);
+    ESP_LOGE(TAG, "parseInt16 out_of_range: [%c] [%s]", c, num);
   }
   return -1;
 }
@@ -282,19 +284,17 @@ void Maps::parseCoords(ReadBufferingStream &file, std::vector<Point16> &points)
       parseStrUntil(file, ';', str);
       assert(str[0] != '\0');
       point.y = (int16_t)std::stoi(str);
-      // log_d("point: %i %i", point.x, point.y);
     }
     catch (std::invalid_argument)
     {
-      log_e("parseCoords invalid_argument: %s", str);
+      ESP_LOGE(TAG, "parseCoords invalid_argument: %s", str);
     }
     catch (std::out_of_range)
     {
-      log_e("parseCoords out_of_range: %s", str);
+      ESP_LOGE(TAG, "parseCoords out_of_range: %s", str);
     }
     points.push_back(point);
   }
-  // points.shrink_to_fit();
 }
 
 /**
@@ -321,7 +321,7 @@ BBox Maps::parseBbox(String str)
  */
 Maps::MapBlock *Maps::readMapBlock(String fileName)
 {
-  log_d("readMapBlock: %s", fileName.c_str());
+  ESP_LOGI(TAG, "readMapBlock: %s", fileName.c_str());
   char str[30];
   MapBlock *mblock = new MapBlock();
   fs::File file_ = SD.open(fileName + ".fmp");
@@ -342,34 +342,30 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
     Maps::parseStrUntil(file, ':', str);
     if (strcmp(str, "Polygons") != 0)
     {
-      log_e("Map error. Expected Polygons instead of: %s", str);
+      ESP_LOGE(TAG, "Map error. Expected Polygons instead of: %s", str);
       while (0);
     }
     int16_t count = Maps::parseInt16(file);
     assert(count > 0);
     line++;
-    log_d("count: %i", count);
 
     uint32_t totalPoints = 0;
     Polygon polygon;
     Point16 p;
     while (count > 0)
     {
-      // log_d("line: %i", line);
       Maps::parseStrUntil(file, '\n', str); // color
       assert(str[0] == '0' && str[1] == 'x');
       polygon.color = (uint16_t)std::stoul(str, nullptr, 16);
-      // log_d("polygon.color: %i", polygon.color);
       line++;
       Maps::parseStrUntil(file, '\n', str); // maxZoom
       polygon.maxZoom = str[0] ? (uint8_t)std::stoi(str) : MAX_ZOOM;
-      //log_d("polygon.maxZoom: %i", polygon.maxZoom);
       line++;
 
       Maps::parseStrUntil(file, ':', str);
       if (strcmp(str, "bbox") != 0)
       {
-        log_e("bbox error tag. Line %i : %s", line, str);
+        ESP_LOGE(TAG, "bbox error tag. Line %i : %s", line, str);
         while (true);
       }
       polygon.bbox.min.x = Maps::parseInt16(file);
@@ -382,7 +378,7 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
       Maps::parseStrUntil(file, ':', str);
       if (strcmp(str, "coords") != 0)
       {
-        log_e("coords error tag. Line %i : %s", line, str);
+        ESP_LOGE(TAG, "coords error tag. Line %i : %s", line, str);
         while (true);
       }
       Maps::parseCoords(file, polygon.points);
@@ -396,16 +392,14 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
     // read lines
     Maps::parseStrUntil(file, ':', str);
     if (strcmp(str, "Polylines") != 0)
-      log_e("Map error. Expected Polylines instead of: %s", str);
+      ESP_LOGE(TAG, "Map error. Expected Polylines instead of: %s", str);
     count = Maps::parseInt16(file);
     assert(count > 0);
     line++;
-    log_d("count: %i", count);
 
     Polyline polyline;
     while (count > 0)
     {
-      // log_d("line: %i", line);
       Maps::parseStrUntil(file, '\n', str); // color
       assert(str[0] == '0' && str[1] == 'x');
       polyline.color = (uint16_t)std::stoul(str, nullptr, 16);
@@ -420,7 +414,7 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
       Maps::parseStrUntil(file, ':', str);
       if (strcmp(str, "bbox") != 0)
       {
-        log_e("bbox error tag. Line %i : %s", line, str);
+        ESP_LOGE(TAG, "bbox error tag. Line %i : %s", line, str);
         while (true);
       }
 
@@ -438,7 +432,7 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
       Maps::parseStrUntil(file, ':', str);
       if (strcmp(str, "coords") != 0)
       {
-        log_d("coords tag. Line %i : %s", line, str);
+        ESP_LOGI(TAG, "coords tag. Line %i : %s", line, str);
         while (true);
       }
       Maps::parseCoords(file, polyline.points);
@@ -474,9 +468,8 @@ void Maps::fillPolygon(Polygon p, TFT_eSprite &map) // scanline fill algorithm
   if (minY < 0)
     minY = 0;
   if (minY >= maxY)
-  {
     return;
-  }
+
   int16_t nodeX[p.points.size()], pixelY;
 
   //  Loop through the rows of the image.
@@ -490,8 +483,8 @@ void Maps::fillPolygon(Polygon p, TFT_eSprite &map) // scanline fill algorithm
           (p.points[i].y >= pixelY && p.points[i + 1].y < pixelY))
       {
         nodeX[nodes++] =
-          p.points[i].x + double(pixelY - p.points[i].y) / double(p.points[i + 1].y - p.points[i].y) *
-          double(p.points[i + 1].x - p.points[i].x);
+                        p.points[i].x + double(pixelY - p.points[i].y) / double(p.points[i + 1].y - p.points[i].y) *
+                        double(p.points[i + 1].x - p.points[i].x);
       }
     }
     assert(nodes < p.points.size());
@@ -508,9 +501,7 @@ void Maps::fillPolygon(Polygon p, TFT_eSprite &map) // scanline fill algorithm
         i = 0;
       }
       else
-      {
         i++;
-      }
     }
 
     //  Fill the pixels between node pairs.
@@ -537,7 +528,7 @@ void Maps::fillPolygon(Polygon p, TFT_eSprite &map) // scanline fill algorithm
  */
 void Maps::getMapBlocks(BBox &bbox, Maps::MemCache &memCache)
 {
-  log_d("getMapBlocks %i", millis());
+  ESP_LOGI(TAG, "getMapBlocks %i", millis());
   for (MapBlock *block : memCache.blocks)
   {
     block->inView = false;
@@ -562,7 +553,7 @@ void Maps::getMapBlocks(BBox &bbox, Maps::MemCache &memCache)
     if (found)
       continue;
 
-    log_d("load from disk (%i, %i) %i", blockMinX, blockMinY, millis());
+    ESP_LOGI(TAG, "load from disk (%i, %i) %i", blockMinX, blockMinY, millis());
     // block is not in memory => load from disk
     int32_t blockX = (blockMinX >> MAPBLOCK_SIZE_BITS) & MAPFOLDER_MASK;
     int32_t blockY = (blockMinY >> MAPBLOCK_SIZE_BITS) & MAPFOLDER_MASK;
@@ -576,11 +567,11 @@ void Maps::getMapBlocks(BBox &bbox, Maps::MemCache &memCache)
     if (memCache.blocks.size() >= MAPBLOCKS_MAX)
     {
       // remove first one, the oldest
-      log_v("Deleting freeHeap: %i", esp_get_free_heap_size());
+      ESP_LOGV(TAG, "Deleting freeHeap: %i", esp_get_free_heap_size());
       MapBlock *firstBlock = memCache.blocks.front();
       delete firstBlock;                              // free memory
       memCache.blocks.erase(memCache.blocks.begin()); // remove pointer from the vector
-      log_v("Deleted freeHeap: %i", esp_get_free_heap_size());
+      ESP_LOGV(TAG, "Deleted freeHeap: %i", esp_get_free_heap_size());
     }
 
     MapBlock *newBlock = Maps::readMapBlock(fileName);
@@ -591,18 +582,12 @@ void Maps::getMapBlocks(BBox &bbox, Maps::MemCache &memCache)
       memCache.blocks.push_back(newBlock); // add the block to the memory cache
       assert(memCache.blocks.size() <= MAPBLOCKS_MAX);
 
-      log_d("Block readed from SD card: %p", newBlock);
-      log_d("FreeHeap: %i", esp_get_free_heap_size());
+      ESP_LOGI(TAG, "Block readed from SD card: %p", newBlock);
+      ESP_LOGI(TAG, "FreeHeap: %i", esp_get_free_heap_size());
     }
-    // else
-    // {
-    //   newBlock->inView = false;
-    //   newBlock->offset = Point32(blockMinX, blockMinY);
-    //   memCache.blocks.push_back(newBlock); // add the block to the memory cache
-    // }
   }
 
-  log_d("memCache size: %i %i", memCache.blocks.size(), millis());
+  ESP_LOGI(TAG, "memCache size: %i %i", memCache.blocks.size(), millis());
 }
 
 /**
@@ -618,7 +603,7 @@ void Maps::readVectorMap(Maps::ViewPort &viewPort, Maps::MemCache &memCache, TFT
   Polygon newPolygon;
   map.fillScreen(BACKGROUND_COLOR);
   uint32_t totalTime = millis();
-  log_d("Draw start %i", totalTime);
+  ESP_LOGI(TAG, "Draw start %i", totalTime);
   int16_t p1x, p1y, p2x, p2y;
   if (Maps::isMapFound)
   {
@@ -654,7 +639,7 @@ void Maps::readVectorMap(Maps::ViewPort &viewPort, Maps::MemCache &memCache, TFT
         }
         Maps::fillPolygon(newPolygon, map);
       }
-      log_d("Block polygons done %i ms", millis() - blockTime);
+      ESP_LOGI(TAG, "Block polygons done %i ms", millis() - blockTime);
       blockTime = millis();
 
       ////// Lines
@@ -679,9 +664,9 @@ void Maps::readVectorMap(Maps::ViewPort &viewPort, Maps::MemCache &memCache, TFT
           map.drawLine(p1x, Maps::tileHeight - p1y,p2x, Maps::tileHeight - p2y, line.color);
         }
       }
-      log_d("Block lines done %i ms", millis() - blockTime);
+      ESP_LOGI(TAG, "Block lines done %i ms", millis() - blockTime);
     }
-    log_d("Total %i ms", millis() - totalTime);
+    ESP_LOGI(TAG, "Total %i ms", millis() - totalTime);
 
     // TODO: paint only in NAV mode
     // map.fillTriangle(
@@ -689,7 +674,7 @@ void Maps::readVectorMap(Maps::ViewPort &viewPort, Maps::MemCache &memCache, TFT
     //     TILE_WIDTH / 2 + 4, TILE_HEIGHT / 2 + 5,
     //     TILE_WIDTH / 2, TILE_HEIGHT / 2 - 6,
     //     RED);
-    log_d("Draw done! %i", millis());
+    ESP_LOGI(TAG, "Draw done! %i", millis());
 
     MapBlock *firstBlock = memCache.blocks.front();
     delete firstBlock;   
@@ -700,8 +685,8 @@ void Maps::readVectorMap(Maps::ViewPort &viewPort, Maps::MemCache &memCache, TFT
     Maps::totalBounds.lon_min = Maps::mercatorX2lon(viewPort.bbox.min.x);
     Maps::totalBounds.lon_max = Maps::mercatorX2lon(viewPort.bbox.max.x);
 
-    log_i("Total Bounds: Lat Min: %f, Lat Max: %f, Lon Min: %f, Lon Max: %f",
-      Maps::totalBounds.lat_min, Maps::totalBounds.lat_max, Maps::totalBounds.lon_min, Maps::totalBounds.lon_max);
+    ESP_LOGI(TAG, "Total Bounds: Lat Min: %f, Lat Max: %f, Lon Min: %f, Lon Max: %f",
+          Maps::totalBounds.lat_min, Maps::totalBounds.lat_max, Maps::totalBounds.lon_min, Maps::totalBounds.lon_max);
 
     if(Maps::isCoordInBounds(Maps::destLat,Maps::destLon,Maps::totalBounds))
       Maps::coords2map(Maps::destLat, Maps::destLon, Maps::totalBounds, &(Maps::wptPosX), &(Maps::wptPosY));
@@ -716,7 +701,7 @@ void Maps::readVectorMap(Maps::ViewPort &viewPort, Maps::MemCache &memCache, TFT
     Maps::isMapFound = false;
     map.fillScreen(TFT_BLACK);
     Maps::showNoMap(map);
-    log_v("Map doesn't exist");
+    ESP_LOGE(TAG, "Map doesn't exist");
   }
 }
 
@@ -808,7 +793,7 @@ void Maps::coords2map(double lat, double lon, tileBounds bound, uint16_t *pixelX
   *pixelX = (int)(lon_ratio * Maps::tileWidth);
   *pixelY = (int)(lat_ratio * Maps::tileHeight);
 
-  log_i("Pixel X: %d, Pixel Y: %d\n", *pixelX, *pixelY);
+  ESP_LOGI(TAG, "Pixel X: %d, Pixel Y: %d\n", *pixelX, *pixelY);
 }
 
 /**
@@ -868,14 +853,11 @@ void Maps::drawMapWidgets(MAP mapSettings)
   if (showToolBar)
   {
     if (mapSettings.mapFullScreen)
-    {
-      Maps::mapSprite.pushImage(10,mapHeight - toolBarOffset, 48, 48,(uint16_t*)collapse,TFT_BLACK);
-    }
+      Maps::mapSprite.pushImage(10, mapHeight - toolBarOffset, 48, 48, (uint16_t *)collapse, TFT_BLACK);
     else
-    {
-      Maps::mapSprite.pushImage(10,mapHeight - toolBarOffset, 48 ,48 ,(uint16_t*)expand,TFT_BLACK);
-    }
-   Maps::mapSprite.fillRectAlpha(10, mapHeight - toolBarOffset, 48, 48, 50, TFT_BLACK);
+      Maps::mapSprite.pushImage(10, mapHeight - toolBarOffset, 48, 48, (uint16_t *)expand, TFT_BLACK);
+
+      Maps::mapSprite.fillRectAlpha(10, mapHeight - toolBarOffset, 48, 48, 50, TFT_BLACK);
 
    Maps::mapSprite.pushImage(10, mapHeight - (toolBarOffset + toolBarSpace), 48,48,(uint16_t*)zoomout,TFT_BLACK);
    Maps::mapSprite.fillRectAlpha(10, mapHeight - (toolBarOffset + toolBarSpace), 48, 48, 50, TFT_BLACK);
@@ -999,7 +981,7 @@ void Maps::generateRenderMap(uint8_t zoom)
 
     if (!Maps::isMapFound)
     {
-      log_v("No Map Found!");
+      ESP_LOGE(TAG, "No Map Found!");
       Maps::isMapFound = false;
       Maps::oldMapTile.file = Maps::currentMapTile.file;
       Maps::oldMapTile.zoom = Maps::currentMapTile.zoom;
@@ -1010,7 +992,7 @@ void Maps::generateRenderMap(uint8_t zoom)
     }
     else
     {
-      log_v("Map Found!");
+      ESP_LOGI(TAG, "Map Found!");
       Maps::oldMapTile.file = Maps::currentMapTile.file;
 
       Maps::totalBounds = Maps::getTileBounds(Maps::currentMapTile.tilex, Maps::currentMapTile.tiley, zoom);
@@ -1025,10 +1007,8 @@ void Maps::generateRenderMap(uint8_t zoom)
         for (int x = startX; x <= startX + 2; x++)
         {
           if (x == centerX && y == centerY)
-          {
-            // Skip Center Tile
-            continue;
-          }
+            continue;// Skip Center Tile
+           
           Maps::roundMapTile = getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, x, y);
 
           foundRoundMap = Maps::mapTempSprite.drawPngFile(SD, Maps::roundMapTile.file, (x - startX) * Maps::mapTileSize, (y - startY) * Maps::mapTileSize);
@@ -1052,7 +1032,7 @@ void Maps::generateRenderMap(uint8_t zoom)
 
       if (!missingMap)
       {
-        log_i("Total Bounds: Lat Min: %f, Lat Max: %f, Lon Min: %f, Lon Max: %f",
+        ESP_LOGI(TAG, "Total Bounds: Lat Min: %f, Lat Max: %f, Lon Min: %f, Lon Max: %f",
               Maps::totalBounds.lat_min, Maps::totalBounds.lat_max, Maps::totalBounds.lon_min, Maps::totalBounds.lon_max);
 
         if(Maps::isCoordInBounds(Maps::destLat,Maps::destLon,Maps::totalBounds))
@@ -1070,7 +1050,7 @@ void Maps::generateRenderMap(uint8_t zoom)
       Maps::redrawMap = true;
     }
 
-    log_v("TILE: %s", Maps::oldMapTile.file);
+    ESP_LOGI(TAG, "TILE: %s", Maps::oldMapTile.file);
   }
 }
 
@@ -1115,9 +1095,7 @@ void Maps::displayMap()
       mapHeading = gps.gpsData.heading;
 
     #else 
-
     mapHeading = gps.gpsData.heading;
-
     #endif
 
     Maps::mapTempSprite.pushImage(Maps::wptPosX-8, Maps::wptPosY-8, 16 ,16 ,(uint16_t*)waypoint, TFT_BLACK);

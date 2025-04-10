@@ -11,7 +11,7 @@
 #include <sstream>
 #include "esp_log.h"
 
-static const char* TAG = "GPXParser";
+static const char* TAG PROGMEM = "GPXParser";
 
 /**
  * @brief Helper function to format double values to a specific number of decimal places

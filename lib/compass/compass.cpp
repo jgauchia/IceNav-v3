@@ -7,6 +7,8 @@
 
 #include "compass.hpp"
 
+static const char* TAG PROGMEM = "Compass";
+
 #ifdef HMC5883L
 DFRobot_QMC5883 comp = DFRobot_QMC5883(&Wire, HMC5883L_ADDRESS);
 #endif
@@ -20,7 +22,7 @@ MPU9250 IMU = MPU9250(Wire, 0x68);
 #endif
 
 /**
- * @brief Battery Class constructor with default values
+ * @brief Compass Class constructor with default values
  *
  */
 Compass::Compass()
@@ -56,9 +58,9 @@ void Compass::init()
   int status = IMU.begin();
   if (status < 0)
   {
-    log_e("IMU initialization unsuccessful");
-    log_e("Check IMU wiring or try cycling power");
-    log_e("Status: %i", status);
+    ESP_LOGE(TAG, "IMU initialization unsuccessful");
+    ESP_LOGE(TAG, "Check IMU wiring or try cycling power");
+    ESP_LOGE(TAG, "Status: %i", status);
   }
 #endif
 }
@@ -122,11 +124,9 @@ int Compass::getHeading()
     headingSmooth = kalmanFilter.update(headingNoFilter);
   }
   else
-  {
     headingSmooth = headingNoFilter;
-  }
 
-  headingPrevious = headingNoFilter;
+    headingPrevious = headingNoFilter;
 
   float headingDegrees = (int)(headingSmooth * 180 / M_PI);
 
@@ -303,12 +303,8 @@ float Compass::unwrapFromPi(float angle, float previousAngle)
 {
   float delta = angle - previousAngle;
   if (delta > M_PI)
-  {
     angle -= 2 * M_PI;
-  }
   else if (delta < -M_PI)
-  {
     angle += 2 * M_PI;
-  }
   return angle;
 }

@@ -8,6 +8,8 @@
 
 #include "settings.hpp"
 
+static const char* TAG PROGMEM = "Settings";
+
 /**
  * @brief Structure for map settings
  *
@@ -210,8 +212,8 @@ void saveWidgetPos(char *widget, uint16_t posX, uint16_t posY)
  */
 void printSettings()
 {
-  log_v("%11s \t%s \t%s", "KEYNAME", "DEFINED", "VALUE");
-  log_v("%11s \t%s \t%s", "=======", "=======", "=====");
+  ESP_LOGV(TAG, "%11s \t%s \t%s", "KEYNAME", "DEFINED", "VALUE");
+  ESP_LOGV(TAG, "%11s \t%s \t%s", "=======", "=======", "=====");
 
   for (int i = 0; i < KCOUNT; i++)
   {
@@ -223,6 +225,6 @@ void printSettings()
     String value = "";
     if (isDefined)
       value = cfg.getValue(key);
-    log_v("%11s \t%s \t%s", key.c_str(), defined.c_str(), value.c_str());
+    ESP_LOGV(TAG, "%11s \t%s \t%s", key.c_str(), defined.c_str(), value.c_str());
   }
 }

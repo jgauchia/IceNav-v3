@@ -12,6 +12,8 @@ TaskHandle_t LVGLTaskHandler;
 xSemaphoreHandle gpsMutex;
 extern Gps gps;
 
+static const char* TAG PROGMEM = "Task";
+
 /**
  * @brief Read GPS data
  *
@@ -19,8 +21,8 @@ extern Gps gps;
  */
 void gpsTask(void *pvParameters)
 {
-  log_v("GPS Task - running on core %d", xPortGetCoreID());
-  log_v("Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
+  ESP_LOGV(TAG, "GPS Task - running on core %d", xPortGetCoreID());
+  ESP_LOGV(TAG, "Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
   while (1)
   {
     if ( xSemaphoreTake(gpsMutex, portMAX_DELAY) == pdTRUE )
@@ -65,8 +67,8 @@ void initGpsTask()
 #ifndef DISABLE_CLI
 void cliTask(void *param) 
 {
-  log_v("CLI Task - running on core %d", xPortGetCoreID());
-  log_v("Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
+  ESP_LOGV(TAG, "CLI Task - running on core %d", xPortGetCoreID());
+  ESP_LOGV(TAG, "Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
   while(1) 
   {
     wcli.loop();

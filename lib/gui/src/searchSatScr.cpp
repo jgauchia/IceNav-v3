@@ -23,13 +23,9 @@ void buttonEvent(lv_event_t *event)
 {
   char *option = (char *)lv_event_get_user_data(event);
   if (strcmp(option,"skip") == 0)
-  {
     skipSearch = true;
-  }
   if (strcmp(option,"settings") == 0)
-  {
     lv_screen_load(settingsScreen); 
-  }
   lv_timer_resume(mainTimer);
 }
 
@@ -120,6 +116,4 @@ void createSearchSatScr()
   lv_obj_update_layout(imgBtn);
   lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
   lv_obj_add_event_cb(imgBtn, buttonEvent, LV_EVENT_PRESSED, (char*)"skip");
-
-
 }

@@ -77,26 +77,22 @@ void splashScreen()
   {
     tft.setBrightness(fadeIn);
     millisActual = millis();
-    while (millis() < millisActual + 15)
-      ;
+    while (millis() < millisActual + 15);
   }
 
   millisActual = millis();
-  while (millis() < millisActual + 100)
-    ;
+  while (millis() < millisActual + 100);
 
   for (uint8_t fadeOut = maxBrightness; fadeOut > 0; fadeOut--)
   {
     tft.setBrightness(fadeOut);
     millisActual = millis();
-    while (millis() < millisActual + 15)
-      ;
+    while (millis() < millisActual + 15);
   }
 
   tft.fillScreen(TFT_BLACK);
 
-  while (millis() < millisActual + 100)
-    ;
+  while (millis() < millisActual + 100);
 
   tft.setBrightness(defBright);
 }

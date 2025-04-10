@@ -19,18 +19,18 @@
 
 class GPXParser
 {
-    public:
-        GPXParser(const char* filePath);
-        ~GPXParser();
-    
-        std::vector<std::string> getWaypointList();
-        wayPoint getWaypointInfo(const String& name);
-        bool addWaypoint(const wayPoint& wp);
-        bool editWaypointName(const char* oldName, const char* newName);
-        bool deleteWaypoint(const char* name);
-    
-    private:
-        std::string filePath;
+  public:
+    GPXParser(const char* filePath);
+    ~GPXParser();
+
+    std::vector<std::string> getWaypointList();
+    wayPoint getWaypointInfo(const String& name);
+    bool addWaypoint(const wayPoint& wp);
+    bool editWaypointName(const char* oldName, const char* newName);
+    bool deleteWaypoint(const char* name);
+  
+  private:
+    std::string filePath;
 };
 
 #endif

@@ -6,7 +6,9 @@
  * @date 2025-03
  */
 
- #include "firmUpgrade.hpp"
+#include "firmUpgrade.hpp"
+
+static const char* TAG PROGMEM = "Firmware Update";
 
 /**
  * @brief Check if firmware file exist
@@ -15,10 +17,10 @@
  */
 bool checkFileUpgrade()
 {
-if (SD.exists(upgrdFile))
-    return true;
-else
-    return false;
+  if (SD.exists(upgrdFile))
+      return true;
+    else
+      return false;
 }
 
 /**
@@ -27,23 +29,23 @@ else
  */
 void onUpgrdStart()
 {
-    log_v("Try to upgrade firmware...");
-    File firmware = SD.open(upgrdFile);
-    Update.onProgress(onUpgrdProcess);
-    Update.begin(firmware.size(), U_FLASH);
-    Update.writeStream(firmware);
-    if (Update.end())
-    {
-        log_v("Upgrade finished!");
-    }
-    else
-    {
-        log_e("Upgrade error!");
-        lv_label_set_text_static(msgUprgdText, LV_SYMBOL_WARNING " Upgrade error!");
-        lv_obj_clear_flag(btnMsgBack,LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(contMeter,LV_OBJ_FLAG_HIDDEN);
-    }
-    firmware.close();
+  ESP_LOGV(TAG,"Try to upgrade firmware...");
+  File firmware = SD.open(upgrdFile);
+  Update.onProgress(onUpgrdProcess);
+  Update.begin(firmware.size(), U_FLASH);
+  Update.writeStream(firmware);
+  if (Update.end())
+  {
+    ESP_LOGV(TAG,"Upgrade finished!");
+  }
+  else
+  {
+     ESP_LOGE(TAG,"Upgrade error!");
+    lv_label_set_text_static(msgUprgdText, LV_SYMBOL_WARNING " Upgrade error!");
+    lv_obj_clear_flag(btnMsgBack,LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(contMeter,LV_OBJ_FLAG_HIDDEN);
+  }
+  firmware.close();
 }
 
 /**
@@ -76,14 +78,14 @@ void drawProgressBar(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t per
  */
 void onUpgrdProcess(size_t currSize, size_t totalSize)
 {
-    float progress = (currSize * 100) / totalSize;
-    log_v("Firmware Upgrade process %d ...", (int)progress);
-    char strProgress[30];
-    sprintf(strProgress,"Upgrading... %d%%",(int)progress);
-    tft.drawCenterString(strProgress, tft.width() >> 1, (tft.height() >> 1)+25, &fonts::FreeSans9pt7b);
-    drawProgressBar(40,tft.height() >> 1,TFT_WIDTH - 80,20,(int)progress,TFT_WHITE,TFT_BLUE);
-    if ((int)progress == 100)
-        tft.drawCenterString("Upgrade complete", tft.width() >> 1, (tft.height() >> 1)+25, &fonts::FreeSans9pt7b);
+  float progress = (currSize * 100) / totalSize;
+  ESP_LOGV(TAG, "Firmware Upgrade process %d ...", (int)progress);
+  char strProgress[30];
+  sprintf(strProgress,"Upgrading... %d%%",(int)progress);
+  tft.drawCenterString(strProgress, tft.width() >> 1, (tft.height() >> 1)+25, &fonts::FreeSans9pt7b);
+  drawProgressBar(40,tft.height() >> 1,TFT_WIDTH - 80,20,(int)progress,TFT_WHITE,TFT_BLUE);
+  if ((int)progress == 100)
+    tft.drawCenterString("Upgrade complete", tft.width() >> 1, (tft.height() >> 1)+25, &fonts::FreeSans9pt7b);
 }
 
 /**
@@ -92,7 +94,7 @@ void onUpgrdProcess(size_t currSize, size_t totalSize)
  */
 void onUpgrdEnd()
 {
-    delay(500);
-    log_i("Rebooting ESP32: ");
-    ESP.restart();
+  delay(500);
+  ESP_LOGI(TAG, "Rebooting ESP32: ");
+  ESP.restart();
 }

@@ -19,6 +19,8 @@ bool nmea_output_enable = false;
 gps_fix fix;
 NMEAGPS GPS;
 
+static const char* TAG PROGMEM = "GPS";
+
 Gps::Gps() {}
 
 /**
@@ -36,9 +38,7 @@ void Gps::init()
     gpsBaudDetected = autoBaud();
 
     if (gpsBaudDetected != 0)
-    {
       gpsPort.begin(gpsBaudDetected, SERIAL_8N1, GPS_RX, GPS_TX);
-    }
   }
 
 #ifdef AT6558D_GPS
@@ -82,10 +82,7 @@ double Gps::getLat()
     if (fix.valid.location)
       return fix.latitude();
     else if (cfg.getDouble(PKEYS::KLAT_DFL, 0.0) != 0.0)
-    {
-      // log_v("getLat: %02f",cfg.getDouble(PKEYS::KLAT_DFL,0.0));
       return cfg.getDouble(PKEYS::KLAT_DFL, 0.0);
-    }
     else
     {
 #ifdef DEFAULT_LAT
@@ -107,10 +104,7 @@ double Gps::getLon()
   if (fix.valid.location)
     return fix.longitude();
   else if (cfg.getDouble(PKEYS::KLON_DFL, 0.0) != 0.0)
-  {
-    // log_v("getLon: %02f",cfg.getDouble(PKEYS::KLON_DFL,0.0));
     return cfg.getDouble(PKEYS::KLON_DFL, 0.0);
-  }
   else
   {
 #ifdef DEFAULT_LON
@@ -167,8 +161,10 @@ void Gps::getGPSData()
 
   // Latitude and Longitude
   if (fix.valid.location)
+  {
     gpsData.latitude = getLat();
-  gpsData.longitude = getLon();
+    gpsData.longitude = getLon();
+  }
 
   // Heading
   if (fix.valid.heading)
@@ -363,9 +359,9 @@ void Gps::setLocalTime(NeoGPS::time_t gpsTime, const char* tz)
 
   char buffer[100];
   strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S %Z", tmLocal);
-  log_i("Current local time: %s",buffer);
+  ESP_LOGI(TAG, "Current local time: %s",buffer);
   strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S %Z", tmUTC);
-  log_i("Current UTC time: %s", buffer);
+  ESP_LOGI(TAG, "Current UTC time: %s", buffer);
 
   
   int UTC = tmLocal->tm_hour - tmUTC->tm_hour;
@@ -376,5 +372,5 @@ void Gps::setLocalTime(NeoGPS::time_t gpsTime, const char* tz)
   
   gpsData.UTC  = UTC;
 
-  log_i("UTC: %i", UTC);
+  ESP_LOGI(TAG, "UTC: %i", UTC);
 }

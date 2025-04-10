@@ -95,10 +95,9 @@ void IRAM_ATTR keypadRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     log_i("%d", act_key);
   } 
   else 
-  {
     data->state = LV_INDEV_STATE_RELEASED;
-  }
-  data->key = last_key;
+
+    data->key = last_key;
 }
 #endif
 
@@ -132,7 +131,6 @@ void IRAM_ATTR gpioRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 */
 void gpioLongEvent(lv_event_t *event)
 {
-  log_v("Shuting down device");
   powerMsg = lv_msgbox_create(lv_scr_act());
   lv_obj_set_width(powerMsg,TFT_WIDTH);
   lv_obj_set_align(powerMsg,LV_ALIGN_CENTER);
@@ -154,7 +152,6 @@ void gpioClickEvent(lv_event_t *event)
 {
   lv_indev_reset_long_press(lv_indev_active());
   lv_indev_reset(NULL,lv_scr_act());
-  log_v("Entering sleep mode");
   powerMsg = lv_msgbox_create(lv_scr_act());
   lv_obj_set_width(powerMsg,TFT_WIDTH);
   lv_obj_set_align(powerMsg,LV_ALIGN_CENTER);

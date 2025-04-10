@@ -58,7 +58,7 @@ static void captureScreenshot(const char* filename, const char* pc_ip, uint16_t 
   if (!captureScreenshot(filename,response)){
     client.stop();
     return;
-  };
+  }
 
   File file = SD.open(filename, FILE_READ);
   if (!file) {

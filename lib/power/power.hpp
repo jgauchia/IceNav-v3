@@ -21,13 +21,13 @@
 
 class Power
 {
-private:
+  private:
     void powerDeepSleep();
     void powerLightSleepTimer(int millis);
     void powerLightSleep();
     void powerOffPeripherals();
 
-public:
+  public:
     Power();
 
     void deviceSuspend();
