@@ -2,8 +2,8 @@
  * @file power.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ESP32 Power Management functions
- * @version 0.2.0_alpha
- * @date 2025-03
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #include "power.hpp"

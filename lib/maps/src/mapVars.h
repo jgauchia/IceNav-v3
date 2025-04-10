@@ -2,8 +2,8 @@
  * @file mapsVars.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Maps vars and structures
- * @version 0.2.0_alpha
- * @date 2025-03
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #ifndef MAPVARS_H
