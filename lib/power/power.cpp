@@ -1,15 +1,19 @@
 /**
  * @file power.cpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ESP32 Power Management functions
- * @version 0.1.9
- * @date 2024-12
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #include "power.hpp"
 
 extern const uint8_t BOARD_BOOT_PIN;
 
+/**
+ * @brief Power Class constructor
+ *
+ */
 Power::Power()
 {
   #ifdef DISABLE_RADIO
@@ -104,20 +108,3 @@ void Power::deviceShutdown()
   powerOffPeripherals();
   powerDeepSleep();
 }
-
-
-
-// /**
-//  * @brief On Mode
-//  * 
-//  */
-// void powerOn()
-// {
-// #ifdef DISABLE_RADIO
-//   WiFi.disconnect(true);
-//   WiFi.mode(WIFI_OFF);
-//   btStop();
-//   esp_wifi_stop();
-//   esp_bt_controller_disable();
-// #endif
-// }

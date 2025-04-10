@@ -1,9 +1,9 @@
 /**
  * @file widgets.cpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Widgets
- * @version 0.1.9
- * @date 2024-12
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #include "widgets.hpp"
@@ -16,6 +16,8 @@ lv_obj_t *altitude;
 lv_obj_t *speedLabel;
 lv_obj_t *sunriseLabel;
 lv_obj_t *sunsetLabel;
+
+extern Gps gps;
 
 /**
  * @brief Edit Screen Event (drag widgets)
@@ -100,29 +102,29 @@ void dragWidget(lv_event_t *event)
  */
 void positionWidget(_lv_obj_t *screen)
 {
-    lv_obj_t *obj = lv_obj_create(screen);  
-    lv_obj_set_height(obj,40);
-    lv_obj_set_pos(obj, coordPosX, coordPosY);
-    lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
-    latitude = lv_label_create(obj);
-    lv_obj_set_style_text_font(latitude, fontMedium, 0);
-    lv_label_set_text_fmt(latitude, "%s", latFormatString(gpsData.latitude));
-    longitude = lv_label_create(obj);
-    lv_obj_set_style_text_font(longitude, fontMedium, 0);
-    lv_label_set_text_fmt(longitude, "%s", lonFormatString(gpsData.longitude));
-    lv_obj_t *img = lv_img_create(obj);
-    lv_img_set_src(img, positionIconFile);
-    lv_img_set_zoom(img,iconScale);
-    lv_obj_update_layout(latitude);
-    lv_obj_update_layout(img);
-    lv_obj_set_width(obj, lv_obj_get_width(latitude) + 40);
-    lv_obj_align(latitude, LV_ALIGN_TOP_LEFT, 15, -12);
-    lv_obj_align(longitude, LV_ALIGN_TOP_LEFT, 15, 3);
-    lv_obj_align(img, LV_ALIGN_TOP_LEFT, -15, -10);
-    objUnselect(obj);
-    lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);
-    lv_obj_add_event_cb(obj, dragWidget, LV_EVENT_PRESSING, (char *)"Coords_");
-    lv_obj_add_event_cb(obj, unselectWidget, LV_EVENT_RELEASED, (char *)"Coords_");
+  lv_obj_t *obj = lv_obj_create(screen);  
+  lv_obj_set_height(obj,40);
+  lv_obj_set_pos(obj, coordPosX, coordPosY);
+  lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
+  latitude = lv_label_create(obj);
+  lv_obj_set_style_text_font(latitude, fontMedium, 0);
+  lv_label_set_text_fmt(latitude, "%s", latFormatString(gps.gpsData.latitude));
+  longitude = lv_label_create(obj);
+  lv_obj_set_style_text_font(longitude, fontMedium, 0);
+  lv_label_set_text_fmt(longitude, "%s", lonFormatString(gps.gpsData.longitude));
+  lv_obj_t *img = lv_img_create(obj);
+  lv_img_set_src(img, positionIconFile);
+  lv_img_set_zoom(img,iconScale);
+  lv_obj_update_layout(latitude);
+  lv_obj_update_layout(img);
+  lv_obj_set_width(obj, lv_obj_get_width(latitude) + 40);
+  lv_obj_align(latitude, LV_ALIGN_TOP_LEFT, 15, -12);
+  lv_obj_align(longitude, LV_ALIGN_TOP_LEFT, 15, 3);
+  lv_obj_align(img, LV_ALIGN_TOP_LEFT, -15, -10);
+  objUnselect(obj);
+  lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);
+  lv_obj_add_event_cb(obj, dragWidget, LV_EVENT_PRESSING, (char *)"Coords_");
+  lv_obj_add_event_cb(obj, unselectWidget, LV_EVENT_RELEASED, (char *)"Coords_");
 }
 
 /**
@@ -132,31 +134,31 @@ void positionWidget(_lv_obj_t *screen)
  */
 void compassWidget(_lv_obj_t *screen)
 {
-    lv_obj_t *obj = lv_obj_create(screen);
-    lv_obj_set_size(obj, 200 * scale, 200 * scale);
-    lv_obj_set_pos(obj, compassPosX, compassPosY);
-    lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_t *img = lv_img_create(obj);
-    lv_img_set_src(img, arrowIconFile);
-    lv_obj_align(img, LV_ALIGN_CENTER, 0, -30);
-    lv_img_set_zoom(img,iconScale);
-    lv_obj_update_layout(img);
-    LV_IMG_DECLARE(bruj);
-    compassImg = lv_img_create(obj);
-    lv_img_set_src(compassImg, &bruj);
-    lv_img_set_zoom(compassImg,iconScale);
-    lv_obj_update_layout(compassImg);
-    lv_obj_align_to(compassImg, obj, LV_ALIGN_CENTER, 0, 0);   
-    lv_img_set_pivot(compassImg, 100, 100) ;
-    compassHeading = lv_label_create(obj);
-    lv_obj_set_height(compassHeading,38);
-    lv_obj_align(compassHeading, LV_ALIGN_CENTER, 0, 20);
-    lv_obj_set_style_text_font(compassHeading, fontVeryLarge, 0);
-    lv_label_set_text_static(compassHeading, "---\xC2\xB0");
-    objUnselect(obj);
-    lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);
-    lv_obj_add_event_cb(obj, dragWidget, LV_EVENT_PRESSING, (char *)"Compass_");
-    lv_obj_add_event_cb(obj, unselectWidget, LV_EVENT_RELEASED, (char *)"Compass_");
+  lv_obj_t *obj = lv_obj_create(screen);
+  lv_obj_set_size(obj, 200 * scale, 200 * scale);
+  lv_obj_set_pos(obj, compassPosX, compassPosY);
+  lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_t *img = lv_img_create(obj);
+  lv_img_set_src(img, arrowIconFile);
+  lv_obj_align(img, LV_ALIGN_CENTER, 0, -30);
+  lv_img_set_zoom(img,iconScale);
+  lv_obj_update_layout(img);
+  LV_IMG_DECLARE(bruj);
+  compassImg = lv_img_create(obj);
+  lv_img_set_src(compassImg, &bruj);
+  lv_img_set_zoom(compassImg,iconScale);
+  lv_obj_update_layout(compassImg);
+  lv_obj_align_to(compassImg, obj, LV_ALIGN_CENTER, 0, 0);   
+  lv_img_set_pivot(compassImg, 100, 100) ;
+  compassHeading = lv_label_create(obj);
+  lv_obj_set_height(compassHeading,38);
+  lv_obj_align(compassHeading, LV_ALIGN_CENTER, 0, 20);
+  lv_obj_set_style_text_font(compassHeading, fontVeryLarge, 0);
+  lv_label_set_text_static(compassHeading, "---\xC2\xB0");
+  objUnselect(obj);
+  lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);
+  lv_obj_add_event_cb(obj, dragWidget, LV_EVENT_PRESSING, (char *)"Compass_");
+  lv_obj_add_event_cb(obj, unselectWidget, LV_EVENT_RELEASED, (char *)"Compass_");
 }
 
 /**
@@ -166,25 +168,25 @@ void compassWidget(_lv_obj_t *screen)
  */
 void altitudeWidget(_lv_obj_t *screen)
 {
-    lv_obj_t *obj = lv_obj_create(screen);
-    lv_obj_set_height(obj, 40 * scale);
-    lv_obj_set_pos(obj, altitudePosX, altitudePosY);
-    lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
-    altitude = lv_label_create(obj);
-    lv_obj_set_style_text_font(altitude, fontLargeMedium, 0);
-    lv_label_set_text_static(altitude, "0000 m.");
-    lv_obj_t *img = lv_img_create(obj);
-    lv_img_set_src(img, altitudeIconFile);
-    lv_img_set_zoom(img,iconScale);
-    lv_obj_update_layout(altitude);
-    lv_obj_update_layout(img);
-    lv_obj_set_width(obj, lv_obj_get_width(altitude) + 40);
-    lv_obj_align(img, LV_ALIGN_LEFT_MID, -15, 0);
-    lv_obj_align(altitude, LV_ALIGN_CENTER, 10, 0);
-    objUnselect(obj);
-    lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);
-    lv_obj_add_event_cb(obj, dragWidget, LV_EVENT_PRESSING, (char *)"Altitude_");
-    lv_obj_add_event_cb(obj, unselectWidget, LV_EVENT_RELEASED, (char *)"Altitude_");
+  lv_obj_t *obj = lv_obj_create(screen);
+  lv_obj_set_height(obj, 40 * scale);
+  lv_obj_set_pos(obj, altitudePosX, altitudePosY);
+  lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
+  altitude = lv_label_create(obj);
+  lv_obj_set_style_text_font(altitude, fontLargeMedium, 0);
+  lv_label_set_text_static(altitude, "0 m.");
+  lv_obj_t *img = lv_img_create(obj);
+  lv_img_set_src(img, altitudeIconFile);
+  lv_img_set_zoom(img,iconScale);
+  lv_obj_update_layout(altitude);
+  lv_obj_update_layout(img);
+  lv_obj_set_width(obj, 140);
+  lv_obj_align(img, LV_ALIGN_LEFT_MID, -15, 0);
+  lv_obj_align(altitude, LV_ALIGN_CENTER, 15, 0);
+  objUnselect(obj);
+  lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);
+  lv_obj_add_event_cb(obj, dragWidget, LV_EVENT_PRESSING, (char *)"Altitude_");
+  lv_obj_add_event_cb(obj, unselectWidget, LV_EVENT_RELEASED, (char *)"Altitude_");
 }
 
 /**
@@ -194,25 +196,25 @@ void altitudeWidget(_lv_obj_t *screen)
  */
 void speedWidget(_lv_obj_t *screen)
 {
-    lv_obj_t *obj = lv_obj_create(screen);
-    lv_obj_set_height(obj, 40 * scale);
-    lv_obj_set_pos(obj, speedPosX, speedPosY);
-    lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
-    speedLabel = lv_label_create(obj);
-    lv_obj_set_style_text_font(speedLabel, fontLargeMedium, 0);
-    lv_label_set_text_static(speedLabel, "   0 Km/h");
-    lv_obj_t *img = lv_img_create(obj);
-    lv_img_set_src(img, speedIconFile);
-    lv_img_set_zoom(img,iconScale);
-    lv_obj_update_layout(speedLabel);
-    lv_obj_update_layout(img);
-    lv_obj_set_width(obj, lv_obj_get_width(speedLabel) + 40);
-    lv_obj_align(img, LV_ALIGN_LEFT_MID, -10, 0);
-    lv_obj_align(speedLabel, LV_ALIGN_CENTER, 10, 0);
-    objUnselect(obj);
-    lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);
-    lv_obj_add_event_cb(obj, dragWidget, LV_EVENT_PRESSING, (char *)"Speed_");
-    lv_obj_add_event_cb(obj, unselectWidget, LV_EVENT_RELEASED, (char *)"Speed_");
+  lv_obj_t *obj = lv_obj_create(screen);
+  lv_obj_set_height(obj, 40 * scale);
+  lv_obj_set_pos(obj, speedPosX, speedPosY);
+  lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
+  speedLabel = lv_label_create(obj);
+  lv_obj_set_style_text_font(speedLabel, fontLargeMedium, 0);
+  lv_label_set_text_static(speedLabel, "0 Km/h");
+  lv_obj_t *img = lv_img_create(obj);
+  lv_img_set_src(img, speedIconFile);
+  lv_img_set_zoom(img,iconScale);
+  lv_obj_update_layout(speedLabel);
+  lv_obj_update_layout(img);
+  lv_obj_set_width(obj, 160);
+  lv_obj_align(img, LV_ALIGN_LEFT_MID, -10, 0);
+  lv_obj_align(speedLabel, LV_ALIGN_CENTER, 20, 0);
+  objUnselect(obj);
+  lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);
+  lv_obj_add_event_cb(obj, dragWidget, LV_EVENT_PRESSING, (char *)"Speed_");
+  lv_obj_add_event_cb(obj, unselectWidget, LV_EVENT_RELEASED, (char *)"Speed_");
 }
 
 /**
@@ -223,7 +225,7 @@ void speedWidget(_lv_obj_t *screen)
 void sunWidget(_lv_obj_t *screen)
 {
   lv_obj_t *obj = lv_obj_create(screen);
-  lv_obj_set_size(obj, 70 * scale, 60 * scale);
+  lv_obj_set_size(obj, 70, 60);
   lv_obj_set_pos(obj, sunPosX, sunPosY);
   lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
 

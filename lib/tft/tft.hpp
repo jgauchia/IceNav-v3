@@ -1,16 +1,16 @@
 /**
  * @file tft.hpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief TFT definition and functions
- * @version 0.1.9
- * @date 2024-12
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #ifndef TFT_HPP
 #define TFT_HPP
 
 #include <Arduino.h>
-#include <SD.h>
+#include "storage.hpp"
 
 #ifdef ILI9488_XPT2046_SPI
 #include "ILI9488_XPT2046_SPI.hpp"

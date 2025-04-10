@@ -1,9 +1,9 @@
 /**
  * @file deviceSettingsScr.cpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Device Settings Screen
- * @version 0.1.9
- * @date 2024-12
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #include "deviceSettingsScr.hpp"
@@ -31,8 +31,7 @@ static void deviceSettingsEvent(lv_event_t *event)
   }
   if (strcmp(option, "back") == 0)
   {
-    log_i("saving brightness to: %i", defBright);
-    saveBrightness(defBright);
+    cfg.saveUInt(PKEYS::KDEF_BRIGT, defBright);
     lv_screen_load(settingsScreen);
   }
 }
@@ -46,7 +45,6 @@ static void brightnessEvent(lv_event_t *e)
 {
     lv_obj_t *obj =(lv_obj_t*) lv_event_get_target(e);
     defBright =  lv_slider_get_value(obj);
-    log_i("brightness %i", defBright);
     tft.setBrightness(defBright);
 }
 
@@ -77,29 +75,32 @@ static void upgradeEvent(lv_event_t *event)
  */
 static lv_obj_t *createBrightText(lv_obj_t *parent, const char *icon, const char *txt)
 {
-    lv_obj_t *obj = lv_menu_cont_create(parent);
+  lv_obj_t *obj = lv_menu_cont_create(parent);
 
-    lv_obj_t *img = NULL;
-    lv_obj_t *label = NULL;
+  lv_obj_t *img = NULL;
+  lv_obj_t *label = NULL;
 
-    if (icon) {
-        img = lv_img_create(obj);
-        lv_img_set_src(img, icon);
-    }
+  if (icon) 
+  {
+    img = lv_img_create(obj);
+    lv_img_set_src(img, icon);
+  }
 
-    if (txt) {
-        label = lv_label_create(obj);
-        lv_label_set_text(label, txt);
-        lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR);
-        lv_obj_set_flex_grow(label, 1);
-    }
+  if (txt) 
+  {
+    label = lv_label_create(obj);
+    lv_label_set_text(label, txt);
+    lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR);
+    lv_obj_set_flex_grow(label, 1);
+  }
 
-    if (icon && txt) {
-        lv_obj_add_flag(img, LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
-        lv_obj_swap(img, label);
-    }
+  if (icon && txt)
+  {
+    lv_obj_add_flag(img, LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
+    lv_obj_swap(img, label);
+  }
 
-    return obj;
+  return obj;
 }
 
 /**
@@ -109,22 +110,21 @@ static lv_obj_t *createBrightText(lv_obj_t *parent, const char *icon, const char
 static lv_obj_t *createBrightSlider(lv_obj_t *parent, const char *icon, const char *txt, int32_t min, int32_t max,
                                int32_t val, lv_event_cb_t cb, lv_event_code_t filter)
 {
-    lv_obj_t *obj = createBrightText(parent, icon, txt);
+  lv_obj_t *obj = createBrightText(parent, icon, txt);
 
-    lv_obj_t *slider = lv_slider_create(obj);
-    lv_obj_set_width(slider,TFT_WIDTH - 80);
-    lv_slider_set_range(slider, min, max);
-    lv_slider_set_value(slider, val, LV_ANIM_OFF);
+  lv_obj_t *slider = lv_slider_create(obj);
+  lv_obj_set_width(slider,TFT_WIDTH - 80);
+  lv_slider_set_range(slider, min, max);
+  lv_slider_set_value(slider, val, LV_ANIM_OFF);
 
-    if (cb != NULL) {
-        lv_obj_add_event_cb(slider, cb, filter, NULL);
-    }
+  if (cb != NULL) 
+    lv_obj_add_event_cb(slider, cb, filter, NULL);
 
-    if (icon == NULL) {
-        lv_obj_add_flag(slider, LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
-    }
 
-    return slider;
+  if (icon == NULL) 
+    lv_obj_add_flag(slider, LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
+
+  return slider;
 }
 
 /**

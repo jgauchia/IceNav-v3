@@ -1,14 +1,15 @@
 /**
  * @file lvglFuncs.hpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL custom functions
- * @version 0.1.9
- * @date 2024-12
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #ifndef LVGLFUNCS_HPP
 #define LVGLFUNCS_HPP
 
+#include "tft.hpp"
 #include "globalGuiDef.h"
 
 void objHideCursor(_lv_obj_t *obj);

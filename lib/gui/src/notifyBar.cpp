@@ -1,9 +1,9 @@
 /**
  * @file notifyBar.cpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief LVGL - Notify Bar Screen
- * @version 0.1.9
- * @date 2024-12
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #include "notifyBar.hpp"
@@ -14,6 +14,7 @@ lv_obj_t *notifyBarHour;
 
 Storage storage;
 Battery battery;
+extern Gps gps;
 
 /**
  * @brief Update notify bar event
@@ -25,7 +26,13 @@ void updateNotifyBar(lv_event_t *event)
   lv_obj_t *obj = (lv_obj_t *)lv_event_get_target(event);
   
   if (obj == gpsTime)
-    lv_label_set_text_fmt(obj, timeFormat, localTime.hours, localTime.minutes, localTime.seconds);
+  {
+    struct tm local_tm;
+    time_t localTime = time(NULL);
+    struct tm *now = localtime_r(&localTime,&local_tm);
+
+    lv_label_set_text_fmt(obj, timeFormat, now->tm_hour, now->tm_min, now->tm_sec);
+  }
 
 #ifdef ENABLE_TEMP
   if (obj == temp)
@@ -33,7 +40,7 @@ void updateNotifyBar(lv_event_t *event)
 #endif
 
   if (obj == gpsCount)
-    lv_label_set_text_fmt(obj, LV_SYMBOL_GPS "%2d", gpsData.satellites);
+    lv_label_set_text_fmt(obj, LV_SYMBOL_GPS "%2d", gps.gpsData.satellites);
 
   if (obj == battIcon)
   {
@@ -53,7 +60,7 @@ void updateNotifyBar(lv_event_t *event)
 
   if (obj == gpsFixMode)
   {
-    switch (gpsData.fixMode)
+    switch (gps.gpsData.fixMode)
     {
       case gps_fix::STATUS_NONE:
         lv_label_set_text_static(obj, "----");

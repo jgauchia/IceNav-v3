@@ -1,10 +1,4 @@
 #define CONFIG_KEYS_LIST                 \
-  X(KMAP_ROT, "Map_rot", BOOL)           \
-  X(KMAP_SPEED, "Map_speed", BOOL)       \
-  X(KMAP_SCALE, "Map_scale", BOOL)       \
-  X(KMAP_COMPASS, "Map_compass", BOOL)   \
-  X(KMAP_VECTOR, "Map_vector", BOOL)     \
-  X(KMAP_MODE, "Map_mode", BOOL)         \
   X(KCOMP_X, "Compass_X", INT)           \
   X(KCOMP_Y, "Compass_Y", INT)           \
   X(KCOORD_X, "Coords_X", INT)           \
@@ -15,15 +9,20 @@
   X(KSPEED_Y, "Speed_Y", INT)            \
   X(KSUN_X, "Sun_X", INT)                \
   X(KSUN_Y, "Sun_Y", INT)                \
-  X(KCOMP_OFFSET_X, "C_offset_x", FLOAT) \
-  X(KCOMP_OFFSET_Y, "C_offset_y", FLOAT) \
-  X(KCOMP_ROT, "Compass_rot", BOOL)      \
-  X(KGPS_SPEED, "GPS_speed", SHORT)      \
-  X(KGPS_RATE, "GPS_rate", SHORT)        \
-  X(KWEB_FILE, "Web_file", BOOL)         \
-  X(KDST_ZONE, "defDST", STRING)         \
+  X(KCOMP_OFFSET_X, "compOfsX", FLOAT)   \
+  X(KCOMP_OFFSET_Y, "compOfsY", FLOAT)   \
+  X(KMAP_ROT_MODE, "mapRotMode", BOOL)   \
+  X(KGPS_SPEED, "gpsBaud", SHORT)        \
+  X(KGPS_RATE, "gpsRate", SHORT)         \
+  X(KWEB_FILE, "webServer", BOOL)        \
   X(KUSER, "-----", UNKNOWN)             \
   X(KDEF_ZOOM, "defZoom", UINT)          \
+  X(KMAP_MODE, "fullScrMap", BOOL)       \
+  X(KMAP_VECTOR, "vectMap", BOOL)        \
+  X(KMAP_SPEED, "mapSpeed", BOOL)        \
+  X(KMAP_SCALE, "mapScale", BOOL)        \
+  X(KMAP_COMPASS, "mapComp", BOOL)       \
+  X(KMAP_COMP_ROT, "mapCompRot", BOOL)   \
   X(KGPS_TX, "gpsTX", UINT)              \
   X(KGPS_RX, "gpsRX", UINT)              \
   X(KLAT_DFL, "defLAT", DOUBLE)          \
@@ -32,5 +31,9 @@
   X(KVMAX_BATT, "VmaxBatt", FLOAT)       \
   X(KVMIN_BATT, "VminBatt", FLOAT)       \
   X(KTEMP_OFFS, "tempOffs", INT)         \
-  X(KGMT_OFFS, "defGMT", INT)            \
+  X(KDEF_TZ, "defTZ",STRING)             \
+  X(KDECL_ANG, "defDecAng", FLOAT)       \
+  X(KKALM_FIL, "kalmanFil", BOOL)        \
+  X(KKALM_Q, "kalmanQ", FLOAT)           \
+  X(KKALM_R, "kalmanR", FLOAT)           \
   X(KCOUNT, "KCOUNT", UNKNOWN)

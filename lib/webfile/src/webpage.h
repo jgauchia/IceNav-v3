@@ -1,9 +1,9 @@
  /**
  * @file webpage.h
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief Web file server page
- * @version 0.1.9
- * @date 2024-12
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 
@@ -188,9 +188,8 @@ function downloadDeleteButton(filename, action)
     xhr.open("GET", urltocall, false);
     xhr.send();
     sessionStorage.setItem("msgStatus",xhr.responseText);
-    _("status").innerHTML = "";
-    _("details").innerHTML = "Deleting folder: " + filename;
-    document.location.reload(true);   
+    _("status").innerHTML = "Deleting folder: " + filename + " please wait....";
+    _("details").innerHTML = "";
   }
   if (action == "download") 
   {
@@ -199,6 +198,20 @@ function downloadDeleteButton(filename, action)
     window.open(urltocall,"_blank");
   }
 }
+
+const eventSource = new EventSource('/eventRefresh');
+eventSource.onmessage = (event) => 
+{
+  if (event.data === "refresh")
+  {
+    sessionStorage.removeItem("msgStatus");
+    document.location.reload(true); 
+  }
+  eventSource.addEventListener("updateStatus", (event) => 
+  {
+    document.getElementById("status").innerHTML = event.data;
+  });
+};
 
 function changeDirectory(directory)
 {

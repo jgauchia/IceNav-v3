@@ -1,14 +1,15 @@
 /**
  * @file settingsScr.cpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Settings Screen
- * @version 0.1.9
- * @date 2024-12
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #include "settingsScr.hpp"
 
 bool needReboot = false;
+extern Compass compass;
 
 /**
  * @brief Back button event
@@ -52,7 +53,7 @@ static void touchCalib(lv_event_t *event)
 static void compassCalib(lv_event_t *event)
 {
   tft.fillScreen(TFT_BLACK);
-  compassCalibrate();
+  compass.calibrate();
   tft.fillScreen(TFT_BLACK);
   isMainScreen = false;
   lv_screen_load(settingsScreen);

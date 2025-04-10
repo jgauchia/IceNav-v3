@@ -1,15 +1,21 @@
  /**
  * @file webserver.h
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief Web file server functions
- * @version 0.1.9
- * @date 2024-12
+ * @version 0.2.0
+ * @date 2025-04
  */
 
-#include "SPIFFS.h"
+#include "storage.hpp"
 #include <ESPmDNS.h>
 #include <esp_task_wdt.h>
 #include <algorithm> 
+#include <dirent.h>
+#include <stdio.h>
+#include <stack>
+#include <string>
+#include <sys/stat.h>
+#include <unistd.h>
 
 /**
  * @brief Current directory
@@ -19,19 +25,25 @@ String oldDir;
 String newDir;
 String currentDir;
 
-
 String createDir;
 uint8_t nextSlash = 0;
 
 bool updateList = true;
+bool deleteDir = false;
+String deletePath = "";
 
 const int FILES_PER_PAGE = 10; 
+
+extern Storage storage;
+
+static const char* TAG = "Webserver";
 
 /**
  * @brief File directory cache
  *
  */
-struct FileEntry {
+struct FileEntry
+{
   String name;
   bool isDirectory;
   size_t size;
@@ -43,7 +55,10 @@ std::vector<FileEntry> fileCache;
  *
  */
 static AsyncWebServer server(80);
+static AsyncEventSource eventRefresh("/eventRefresh");
 static const char* hostname = "icenav";
+
+
 
 /**
  * @brief Convert bytes to Human Readable Size
@@ -144,25 +159,39 @@ void cacheDirectoryContent(const String& dir)
 {
   fileCache.clear();  
 
-  File root = SD.open(dir.c_str());
-  File foundFile = root.openNextFile();
+  String fullDir = "/sdcard" + dir;
 
-  while (foundFile)
+  DIR* dp = opendir(fullDir.c_str());
+  if (dp != nullptr) 
   {
-    FileEntry entry;
-    entry.name = foundFile.name();
-    entry.isDirectory = foundFile.isDirectory();
-    entry.size = foundFile.size();
+    struct dirent* ep;
+    while ((ep = readdir(dp))) 
+    {
+      FileEntry entry;
+      entry.name = String(ep->d_name);
+      entry.isDirectory = (ep->d_type == DT_DIR);
 
-    fileCache.push_back(entry);
-    
-    esp_task_wdt_reset(); 
+      if (!entry.isDirectory) 
+      {
+        String filePath = fullDir + "/" + entry.name;
+        FILE* file = fopen(filePath.c_str(), "r");
+        if (file)
+        {
+          fseek(file, 0, SEEK_END);
+          entry.size = ftell(file);
+          fclose(file);
+        }
+      }
+      else 
+        entry.size = 0;
 
-    foundFile = root.openNextFile();
+      fileCache.push_back(entry);
+
+      esp_task_wdt_reset(); 
+    }
+    closedir(dp);
   }
 
-  root.close();
- 
   currentDir = dir;
 
   sortFileCache();
@@ -188,34 +217,18 @@ void webNotFound(AsyncWebServerRequest *request)
  */
 String webParser(const String &var)
 {
+  SDCardInfo info = storage.getSDCardInfo();
+
   if (var == "FIRMWARE")
     return String(VERSION) + " - Rev: " + String(REVISION);
   else if (var == "FREEFS")
-    return humanReadableSize((SD.totalBytes() - SD.usedBytes()));
+    return info.free_space.c_str();
   else if (var == "USEDFS")
-    return humanReadableSize(SD.usedBytes());
+    return info.used_space.c_str();
   else if (var == "TOTALFS")
-    return humanReadableSize(SD.cardSize());
+    return info.total_space.c_str();
   else if (var == "TYPEFS")
-  {
-    uint8_t cardType = SD.cardType();
-    if (cardType == CARD_MMC)
-    {
-      return "MMC";
-    }
-    else if (cardType == CARD_SD)
-    {
-      return "SDSC";
-    }
-    else if (cardType == CARD_SDHC)
-    {
-      return "SDHC";
-    }
-    else
-    {
-      return "UNKNOWN";
-    }
-  }
+    return info.card_type.c_str();
   else
     return "";
 }
@@ -323,18 +336,19 @@ bool createDirectories(String filepath)
   {
     nextSlash = filepath.indexOf('/', lastSlash + 1);
     String dir = filepath.substring(0, nextSlash);
-        
-    if (!SD.exists(oldDir + "/" + dir))
+    
+    String newDir = "/sdcard" + oldDir + "/" + dir;
+    if (!storage.exists(newDir.c_str()))
     {
-      if (!SD.mkdir(oldDir + "/" + dir))
+      if (!storage.mkdir(newDir.c_str()))
       {
-        log_e("Directory %s creation error", dir.c_str());
+        ESP_LOGE(TAG, "Directory %s creation error", newDir.c_str());
         return false;
       }
-      log_v("Directory %s created",dir.c_str());
+      ESP_LOGI(TAG, "Directory %s created",newDir.c_str());
     }
     if (nextSlash == 255) break;
-    lastSlash = nextSlash;
+     lastSlash = nextSlash;
 
     esp_task_wdt_reset();
   }
@@ -353,6 +367,9 @@ bool createDirectories(String filepath)
 void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final)
 {
   waitScreenRefresh = true;
+
+  static FILE *file = nullptr;
+
   uint8_t lastSlashIndex = filename.lastIndexOf("/");
   
   if (lastSlashIndex != 255) 
@@ -360,26 +377,43 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
     String path = filename.substring(0, lastSlashIndex);
     if (createDir != path)
     {
-      log_v("%s",path.c_str());
+
       if (!createDirectories(path))
-        log_e("Directory creation error");
+        ESP_LOGE(TAG, "Directory creation error");
       createDir = path;
     }
   } 
-  
+
   if (!index)
   {
-    request->client()->setRxTimeout(15000);
-    request->_tempFile = SD.open(oldDir + "/" + filename, "w");
+    String fullPath = "/sdcard" + oldDir + "/" + filename;
+    file = storage.open(fullPath.c_str(), "w");
+    if (!file) 
+    {
+        ESP_LOGE(TAG, "Failed to open file for writing: %s", fullPath.c_str());
+        request->send(500, "text/plain", "Failed to open file for writing");
+        return;
+    }
+    ESP_LOGI(TAG, "Started writing file: %s", fullPath.c_str());  
   }
 
-  if (len)
-    request->_tempFile.write(data, len);
-
-  if (final)
+  if (file)
   {
-    request->_tempFile.close();
-    updateList = true;
+    if (fwrite(data, 1, len, file) != len) 
+    {
+        ESP_LOGE(TAG, "Failed to write data to file");
+        request->send(500, "text/plain", "Failed to write data to file");
+        storage.close(file);
+        file = nullptr;
+        return;
+    }
+  }
+
+  if (final) 
+  {
+    ESP_LOGI(TAG, "Finished writing file");
+    storage.close(file);
+    file = nullptr;
     waitScreenRefresh = false;
   }
 }
@@ -392,17 +426,24 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
  */
 void sendSpiffsImage(const char *imageFile,AsyncWebServerRequest *request)
 {
-  FILE *f = fopen(imageFile,"r");
-  fseek(f, 0, SEEK_END);
-  size_t size = ftell(f);
-  rewind(f);
-  uint8_t *buffer = (uint8_t*)ps_malloc(sizeof(uint8_t)*size);
+  FILE *file = storage.open(imageFile,"r");
 
-  fread(buffer, sizeof(uint8_t),size,f);
-  fclose(f);
-  request->send_P(200,"image/png",buffer,size);
-            
-  free(buffer);
+  if (file)
+  {
+    size_t size = storage.size(imageFile);
+
+    #ifdef BOARD_HAS_PSRAM
+      uint8_t *buffer = (uint8_t*)ps_malloc(sizeof(uint8_t)*size);
+    #else
+      uint8_t *buffer = (uint8_t*)malloc(sizeof(uint8_t)*size);
+    #endif
+
+    storage.read(file,buffer,size);
+    storage.close(file);
+    request->send_P(200,"image/png",buffer,size);
+              
+    free(buffer);
+  }
 }
 
 /**
@@ -413,72 +454,101 @@ void sendSpiffsImage(const char *imageFile,AsyncWebServerRequest *request)
  */
 bool deleteDirRecursive(const char *dirPath)
 {
-  String basePath = dirPath;
-
-  log_v("Processing directory: %s", basePath.c_str());
-
-  File dir = SD.open(basePath.c_str());
-  if (!dir || !dir.isDirectory())
+  if (!dirPath || strlen(dirPath) == 0)
   {
-    log_e("Error: %s isn't a directory or can't open", basePath.c_str());
+    ESP_LOGE(TAG, "Error: Invalid directory path");
     return false;
   }
 
-  while (true)
+  // Normalize the input path
+  std::string rootDir(dirPath);
+
+  // Use two stacks: one for processing directories and another for tracking deletable directories
+  std::stack<std::string> dirStack;       // Stack for directories to process
+  std::stack<std::string> deleteStack;    // Stack for directories to delete
+
+  dirStack.push(rootDir);
+
+  while (!dirStack.empty()) 
   {
-    File entry = dir.openNextFile();
-    if (!entry)
+    std::string currentDir = dirStack.top();
+    dirStack.pop();
+
+    ESP_LOGI(TAG, "Processing directory: %s", currentDir.c_str());
+
+    DIR *dir = opendir(currentDir.c_str());
+    if (!dir)
     {
-      break; 
+      ESP_LOGE(TAG, "Error opening directory: %s", currentDir.c_str());
+      return false;
     }
 
-    if (!basePath.endsWith("/"))
+    bool hasEntries = false; // Track if the directory has any entries
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) 
     {
-      basePath += "/";
-    }
+      // Skip the current and parent directory entries
+      if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+        continue;
 
-    String entryPath = basePath + entry.name(); 
+      // Construct the full path for the current entry
+      char entryPath[PATH_MAX];
+      snprintf(entryPath, sizeof(entryPath), "%s/%s", currentDir.c_str(), entry->d_name);
 
-    if (entry.isDirectory())
-    {
-        
-      log_v("Found subdirectory: %s", entryPath.c_str());
-      if (!deleteDirRecursive(entryPath.c_str()))
+      struct stat entryStat;
+      if (stat(entryPath, &entryStat) == -1)
       {
-        entry.close();
+        ESP_LOGE(TAG, "Error getting entry stats for: %s", entryPath);
+        closedir(dir);
         return false;
       }
-    }
-    else
-    {
-      log_v("Found file: %s", entryPath.c_str());
-      if (!SD.remove(entryPath.c_str()))
+
+      if (S_ISDIR(entryStat.st_mode)) 
       {
-        log_e("Error deleting file: %s", entryPath.c_str());
-        entry.close();
-        return false;
+        // Push the subdirectory onto the stack for later processing
+        ESP_LOGI(TAG, "Found subdirectory: %s", entryPath);
+        dirStack.push(std::string(entryPath));
       }
-      log_v("Deleted file: %s", entryPath.c_str());
+      else
+      {
+        // Delete the file
+        ESP_LOGI(TAG, "Found file: %s", entryPath);
+        if (remove(entryPath) != 0)
+        {
+          ESP_LOGE(TAG, "Error deleting file: %s", entryPath);
+          closedir(dir);
+          return false;
+        }
+        ESP_LOGI(TAG, "Deleted file: %s", entryPath);
+      }
+
+      hasEntries = true; // The directory is not empty
     }
-    entry.close();
+
+    closedir(dir);
+
+    // If the directory is empty, add it to the delete stack
+    deleteStack.push(currentDir);
   }
 
-  dir.close();
-
-  if (basePath.endsWith("/"))
+  // Now delete all directories in reverse order (from deepest to root)
+  while (!deleteStack.empty()) 
   {
-    basePath = dirPath;
+    std::string dirToDelete = deleteStack.top();
+    deleteStack.pop();
+
+    ESP_LOGI(TAG, "Deleting directory: %s", dirToDelete.c_str());
+    if (rmdir(dirToDelete.c_str()) != 0)
+    {
+      ESP_LOGE(TAG, "Error deleting directory: %s", dirToDelete.c_str());
+      return false;
+    }
+    ESP_LOGI(TAG, "Deleted directory: %s", dirToDelete.c_str());
   }
 
-  if (!SD.rmdir(basePath.c_str()))
-  {
-    log_e("Error deleting directory: %s", basePath.c_str());
-    return false;
-  }
-
-  log_v("Deleted directory: %s", basePath.c_str());
   return true;
 }
+
 
 /**
  * @brief Configure Web Server
@@ -486,10 +556,10 @@ bool deleteDirRecursive(const char *dirPath)
  */
 void configureWebServer()
 {
-
   server.onNotFound(webNotFound);
   server.onFileUpload(handleUpload);
-  oldDir = "/";
+  server.addHandler(&eventRefresh);
+  oldDir = "";
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
             {
               String logMessage = "Client:" + request->client()->remoteIP().toString() + +" " + request->url();
@@ -541,48 +611,67 @@ void configureWebServer()
               }
         
               if (updateList)
+              {
+                esp_task_wdt_reset();
                 cacheDirectoryContent(oldDir);
+              }
 
               request->send(200, "text/html", listFiles(true, page)); });
 
   server.on("/file", HTTP_GET, [](AsyncWebServerRequest *request)
             {
-              String logMessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-              log_i("%s", logMessage.c_str());
-
               if (request->hasParam("name") && request->hasParam("action"))
               {
                 const char *fileName = request->getParam("name")->value().c_str();
                 const char *fileAction = request->getParam("action")->value().c_str();
 
-                logMessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url() + "?name=" + String(fileName) + "&action=" + String(fileAction);
+                String logMessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url() + "?name=" + String(fileName) + "&action=" + String(fileAction);
+                String path = "/sdcard" + oldDir + "/" + String(fileName);
 
-                String path = oldDir + "/" + String(fileName);
-                log_i("%s",path.c_str());
-
-                if (!SD.exists(path))
+                FILE* file = storage.open(path.c_str(), "r");
+          
+                log_i("folder %s",path.c_str());
+                if (!file)
                 {
-                  request->send(400, "text/plain", "ERROR: file does not exist");
+                  if (strcmp(fileAction, "deldir") == 0)
+                  {
+                    logMessage += " deleted";
+                    deletePath = path;
+                    deleteDir = true;
+                    request->send(200, "text/plain", "Deleting Folder: " + String(fileName) + " please wait...");
+                    updateList = true;
+                  }
+                  else
+                    request->send(400, "text/plain", "ERROR: file/ does not exist");
                 }
                 else
                 {
-                  log_i("%s", logMessage + " file exists");
                   if (strcmp(fileAction, "download") == 0)
                   {
-                    logMessage += " downloaded";
-                    request->send(SD, path, "application/octet-stream");
+                    logMessage += " downloaded";             
+                    AsyncWebServerResponse *response = request->beginChunkedResponse("application/octet-stream", [file](uint8_t *buffer, size_t maxLen, size_t index) -> size_t 
+                    {
+                      size_t bytesRead = storage.read(file, buffer, maxLen);
+                      if (bytesRead == 0)
+                          storage.close(file);
+                      return bytesRead;
+                    });
+                    response->addHeader("Content-Disposition", "attachment; filename=\"" + path.substring(path.lastIndexOf('/') + 1) + "\"");
+                    request->send(response);
                   }
-                  else if (strcmp(fileAction, "deldir") == 0)
-                  {
-                    logMessage += " deleted";
-                    deleteDirRecursive(path.c_str());
-                    request->send(200, "text/plain", "Deleted Folder: " + String(fileName));
-                    updateList = true;
-                  }
+                  // else if (strcmp(fileAction, "deldir") == 0)
+                  // {
+                  //   logMessage += " deleted";
+                  //   deletePath = path;
+                  //   deleteDir = true;
+                  //   request->send(200, "text/plain", "Deleting Folder: " + String(fileName) + " please wait...");
+                  //   updateList = true;
+                  // }
                   else if (strcmp(fileAction, "delete") == 0)
                   {
                     logMessage += " deleted";
-                    SD.remove(path);
+                    storage.close(file);
+                    storage.remove(path.c_str());
                     request->send(200, "text/plain", "Deleted File: " + String(fileName));
                     updateList = true;
                   }
@@ -600,7 +689,7 @@ void configureWebServer()
               } });
 
   server.on("/changedirectory", HTTP_GET, [](AsyncWebServerRequest *request)
-            {
+              {
               if (request->hasParam("dir"))
               {
                 updateList = false;
@@ -614,8 +703,6 @@ void configureWebServer()
                   if (oldDir != "/..")
                   {
                     oldDir = oldDir.substring(0, oldDir.lastIndexOf("/"));
-                    if (oldDir == "")
-                      oldDir = "/";
                     currentDir = "";
                     request->send(200, "text/plain", "Path:" + oldDir );
                   }

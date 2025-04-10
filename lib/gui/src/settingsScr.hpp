@@ -1,9 +1,9 @@
 /**
  * @file settingsScr.hpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Settings Screen
- * @version 0.1.9
- * @date 2024-12
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #ifndef SETTINGSSCR_HPP
@@ -12,6 +12,7 @@
 #include "globalGuiDef.h"
 #include "mainScr.hpp"
 #include "searchSatScr.hpp"
+#include "compass.hpp"
 
 void loadMainScreen();
 

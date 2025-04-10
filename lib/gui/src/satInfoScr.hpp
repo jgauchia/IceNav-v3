@@ -1,9 +1,9 @@
 /**
  * @file satInfoScr.hpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Satellite info screen 
- * @version 0.1.9
- * @date 2024-12
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #ifndef SATINFOSCR_HPP

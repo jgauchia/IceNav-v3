@@ -1,15 +1,12 @@
 /**
  * @file lvglSetup.cpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Screen implementation
- * @version 0.1.9
- * @date 2024-12
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #include "lvglSetup.hpp"
-
-ViewPort viewPort; // Vector map viewport
-MemCache memCache; // Vector map Memory Cache
 
 lv_display_t *display;
 
@@ -98,10 +95,9 @@ void IRAM_ATTR keypadRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     log_i("%d", act_key);
   } 
   else 
-  {
     data->state = LV_INDEV_STATE_RELEASED;
-  }
-  data->key = last_key;
+
+    data->key = last_key;
 }
 #endif
 
@@ -135,7 +131,6 @@ void IRAM_ATTR gpioRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 */
 void gpioLongEvent(lv_event_t *event)
 {
-  log_v("Shuting down device");
   powerMsg = lv_msgbox_create(lv_scr_act());
   lv_obj_set_width(powerMsg,TFT_WIDTH);
   lv_obj_set_align(powerMsg,LV_ALIGN_CENTER);
@@ -157,7 +152,6 @@ void gpioClickEvent(lv_event_t *event)
 {
   lv_indev_reset_long_press(lv_indev_active());
   lv_indev_reset(NULL,lv_scr_act());
-  log_v("Entering sleep mode");
   powerMsg = lv_msgbox_create(lv_scr_act());
   lv_obj_set_width(powerMsg,TFT_WIDTH);
   lv_obj_set_align(powerMsg,LV_ALIGN_CENTER);
@@ -275,8 +269,8 @@ void initLVGL()
       DRAW_BUF_SIZE = ( TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t) / 8);
 
     log_v("LVGL: allocating %u bytes PSRAM for draw buffer",DRAW_BUF_SIZE * 2);
-    lv_color_t * drawBuf1 = (lv_color_t *)heap_caps_aligned_alloc(16, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-    lv_color_t * drawBuf2 = (lv_color_t *)heap_caps_aligned_alloc(16, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    lv_color_t * drawBuf1 = (lv_color_t *)heap_caps_aligned_alloc(16, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
+    lv_color_t * drawBuf2 = (lv_color_t *)heap_caps_aligned_alloc(16, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
     lv_display_set_buffers(display, drawBuf1, drawBuf2, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
   #else
     DRAW_BUF_SIZE =  TFT_WIDTH * TFT_HEIGHT / 10  * sizeof(lv_color_t);

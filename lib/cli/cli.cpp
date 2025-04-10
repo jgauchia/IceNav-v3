@@ -3,13 +3,13 @@
  * @author @Hpsaturn
  * @brief  Network CLI and custom internal commands
  * @version Using https://github.com/hpsaturn/esp32-wifi-cli.git
- * @date 2024-12
+ * @date 2025-04
  */
 
 #ifndef DISABLE_CLI
 #include "cli.hpp"
 
-const char logo[] =
+static const char logo[] PROGMEM =
 "\r\n"
 "░▒▓█▓▒░  ░▒▓██████▓▒░  ░▒▓████████▓▒░ ░▒▓███████▓▒░   ░▒▓██████▓▒░  ░▒▓█▓▒░░▒▓█▓▒░ \r\n"
 "░▒▓█▓▒░ ░▒▓█▓▒░░▒▓█▓▒░ ░▒▓█▓▒░        ░▒▓█▓▒░░▒▓█▓▒░ ░▒▓█▓▒░░▒▓█▓▒░ ░▒▓█▓▒░░▒▓█▓▒░ \r\n"
@@ -21,6 +21,8 @@ const char logo[] =
 "\r\n"
 ""
 ;
+
+static const char* TAG PROGMEM = "CLI";
 
 extern Power power;
 
@@ -104,7 +106,8 @@ void wcli_scshot(char *args, Stream *response)
   String ip = operands.first();
   uint16_t port = operands.second().toInt();
  
-  if (ip.isEmpty()){
+  if (ip.isEmpty())
+  {
     response->println("Saving to SD..");
 
     waitScreenRefresh = true;
@@ -113,8 +116,10 @@ void wcli_scshot(char *args, Stream *response)
     
     response->println("Note: is possible to send it to a PC using: scshot ip port");
   }
-  else {
-    if (!WiFi.isConnected()) {
+  else
+  {
+    if (!WiFi.isConnected()) 
+    {
       response->println("Please connect your WiFi first!");
       return;
     }
@@ -139,7 +144,8 @@ void wcli_klist(char *args, Stream *response)
   response->printf("\n%11s \t%s \t%s \r\n", "KEYNAME", "DEFINED", "VALUE");
   response->printf("\n%11s \t%s \t%s \r\n", "=======", "=======", "=====");
 
-  for (int i = key_count; i < PKEYS::KCOUNT; i++) {
+  for (int i = key_count; i < PKEYS::KCOUNT; i++)
+  {
     if (i == PKEYS::KUSER) continue;
     String key = cfg.getKey((CONFKEYS)i);
     bool isDefined = cfg.isKey(key);
@@ -159,152 +165,26 @@ void wcli_kset(char *args, Stream *response)
   Pair<String, String> operands = wcli.parseCommand(args);
   String key = operands.first();
   String v = operands.second();
-  if(cfg.saveAuto(key,v)){
+  if (cfg.saveAuto(key,v))
     response->printf("saved key %s\t: %s\r\n", key, v);
-  }
 }
 
-/**
- * @brief Waypoint list, download or delete
- */
-void wcli_waypoint(char *args, Stream *response)
-{
-  Pair<String, String> operands = wcli.parseCommand(args);
-  String path;
-  String commands = operands.first();
-  String fileDel = operands.second();
-  String argsStr = args;
-  String downArgs[4];
-  int argsCnt = 0;
-
-  if (commands.isEmpty())
-  {
-    response->println("");
-    response->println(F( "\033[1;31m----\033[1;32m Available commands \033[1;31m----\033[0;37m\r\n" ));
-    response->println(F( "\033[1;32mlist:\t\033[0;37mlist waypoints files"));
-    response->println(F( "\033[1;32mdown:\t\033[0;37mdownload waypoint file"));
-    response->println(F( "\033[1;32mdel:\t\033[0;37mdelete waypoint file"));
-  }
-  else if (commands.equals("list"))
-  {
-    path = "/WPT";
-
-    File dir = SD.open(path);
-
-    response->println(F("\r\n\033[4mFile        \tSize\033[0m"));
-
-    while (true) 
-    {
-      File entry =  dir.openNextFile();
-      if (!entry) 
-      {
-        entry.close();
-        break;
-      }
-      response->print(entry.name());
-      response->print("\t");
-      response->println(entry.size());
-    }
-    dir.close();
-  }
-  else if (commands.equals("down"))
-  {
-    while (argsStr.length() > 0)
-    {
-      int index = argsStr.indexOf(' ');
-      if (index == -1)
-      {
-        downArgs[argsCnt++] = argsStr;
-        break;
-      }
-      else
-      {
-        downArgs[argsCnt++] = argsStr.substring(0, index);
-        argsStr = argsStr.substring(index+1);
-      }
-    }
-    if (downArgs[1].isEmpty())
-      response->println(F("File name missing"));
-    else if (downArgs[2].isEmpty())
-      response->println(F("IP destination missing"));
-    else if (downArgs[3].isEmpty())
-      response->println(F("Port missing"));
-    else
-    {
-      
-      path = "/WPT/" + downArgs[1];
-
-      response->println(path);
-
-      response->printf("Sending screenshot to %s:%i..\r\n", downArgs[2].c_str(), downArgs[3].toInt());
-
-      if (!client.connect(downArgs[2].c_str(), downArgs[3].toInt())) 
-      {
-        response->println("Connection to server failed");
-        return;
-      }
-
-      response->println("Connected to server");
-      
-      File file = SD.open(path, FILE_READ);
-      if (!file)
-      {
-        response->println("Failed to open file for reading");
-        client.stop();
-        return;
-      }
-
-      // Send the file data to the PC
-      while (file.available())
-      {
-        size_t size = 0;
-        uint8_t buffer[512];
-        size = file.read(buffer, sizeof(buffer));
-        if (size > 0)
-          client.write(buffer, size);
-      }
-
-      file.close();
-      client.stop();
-      response->println("Waypoint file sent over WiFi");
-    }
-  }
-  else if (commands.equals("del"))
-  {
-    if (fileDel.isEmpty())
-      response->println(F("File name missing"));
-    else
-    {
-      path = "/WPT/" + fileDel;
-      if (!SD.remove(path))
-      {
-        response->print(F("Error deleting file "));
-        response->println(fileDel);
-      }
-      else
-      {
-        response->print(F("File "));
-        response->print(fileDel);
-        response->println(F(" deleted"));
-      }
-    }
-  }
-}
 
 /**
  * @brief Output NMEA sentences in CLI
  */
-void wcli_outnmea (char *args, Stream *response)
+void wcli_outnmea(char *args, Stream *response)
 {
-    nmea_output_enable = !nmea_output_enable;
+  nmea_output_enable = !nmea_output_enable;
 }
 
 /**
  * @brief Cancel NMEA Output
  */
-void wcli_abort_handler () 
+void wcli_abort_handler() 
 {
-  if (nmea_output_enable) {
+  if (nmea_output_enable)
+  {
     nmea_output_enable = false;
     delay(100);
     Serial.println("\r\nCancel NMEA output!");
@@ -325,37 +205,18 @@ void wcli_webfile(char *args, Stream *response)
   {
     if(commands.equals("enable"))
     {
-      saveWebFile(true);
+      cfg.saveBool(PKEYS::KWEB_FILE, true);
       response->println("");
       response->printf("Web file server \033[1;32menabled\033[0;37m\r\n");
       response->println("Please reboot device");
     }
     if(commands.equals("disable"))
     {
-      saveWebFile(false);
+      cfg.saveBool(PKEYS::KWEB_FILE, false);
       response->println("");
       response->printf("Web file server \033[1;32mdisabled\033[0;37m\r\n");
       response->println("Please reboot device");
     }
-  }
-}
-
-/**
- * @brief Set DST (daylight saving time) zone EU or USA
- */
-void wcli_setdst(char *args, Stream *response)
-{
-  Pair<String, String> operands = wcli.parseCommand(args);
-  String commands = operands.first();
-  if (commands.isEmpty())
-    response->println(F("missing parameter use: setdstzone \033[1;32mNONE/EU/USA\033[0;37m"));
-  else
-  {
-    commands.toUpperCase();
-    if(commands.equals("NONE") || commands.equals("EU") || commands.equals("USA") )
-      cfg.saveAuto("defDST",commands);
-    else
-      response->println(F("wrong parameter use: \033[1;32mNONE/EU/USA\033[0;37m"));
   }
 }
 
@@ -377,25 +238,21 @@ void initShell()
   wcli.add("info", &wcli_info, "\t\tget device information");
   wcli.add("clear", &wcli_clear, "\t\tclear shell");
   wcli.add("scshot", &wcli_scshot, "\tscreenshot to SD or sending a PC");
-  wcli.add("waypoint", &wcli_waypoint, "\twaypoint utilities");
   wcli.add("webfile", &wcli_webfile, "\tenable/disable Web file server");
   wcli.add("klist", &wcli_klist, "\t\tlist of user preferences. ('all' param show all)");
   wcli.add("kset", &wcli_kset, "\t\tset an user extra preference");
   wcli.add("outnmea", &wcli_outnmea, "\ttoggle GPS NMEA output (or Ctrl+C to stop)");
-  wcli.add("setdstzone", &wcli_setdst, "\tset DST (Daylight Saving Time zone: NONE, EU or USA)");
   wcli.shell->overrideAbortKey(&wcli_abort_handler);
   wcli.begin("IceNav");
 }
 
 /**
- * @brief WiFi CLI init and IceNav custom commands
+ * @brief WiFi CLI init
  **/
 void initCLI() 
 {
-  #ifndef ARDUINO_USB_CDC_ON_BOOT
-    Serial.begin(115200);
-  #endif
-  log_v("init CLI");
+  Serial.begin(115200);
+  ESP_LOGV(TAG, "init CLI");
   initShell(); 
   initRemoteShell();
 }

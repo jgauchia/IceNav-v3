@@ -1,19 +1,19 @@
 /**
  * @file main.cpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
- * @brief  ESP32 GPS Navigation main code
- * @version 0.1.9
- * @date 2024-12
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @brief  ICENAV - ESP32 GPS Navigator main code
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #include <Arduino.h>
 #include <stdint.h>
 #include <Wire.h>
-#include <SD.h>
 #include <SPI.h>
 #include <WiFi.h>
 #include <esp_wifi.h>
 #include <esp_bt.h>
+#include <esp_log.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <SolarCalculator.h>
@@ -40,16 +40,28 @@
 #include "bme.hpp"
 #endif
 
+#ifdef MPU6050
+#include "imu.hpp"
+#endif
+
 extern xSemaphoreHandle gpsMutex;
 
 #include "webpage.h"
 #include "webserver.h"
 #include "battery.hpp"
 #include "power.hpp"
+#include "gpxParser.hpp"
+
+#include "maps.hpp"
 
 extern Storage storage;
 extern Battery battery;
 extern Power power;
+extern Maps mapView;
+extern Gps gps;
+#ifdef ENABLE_COMPASS
+Compass compass;
+#endif
 
 /**
  * @brief Sunrise and Sunset
@@ -57,7 +69,8 @@ extern Power power;
  */
 static double transit, sunrise, sunset;
 
-#include "settings.hpp"
+#include "timezone.c"
+#include "settings.hpp" 
 #include "lvglSetup.hpp"
 #include "tasks.hpp"
 
@@ -68,11 +81,22 @@ static double transit, sunrise, sunset;
  */
 void calculateSun()
 {
-  calcSunriseSunset(2000 + localTime.year, localTime.month, localTime.date, 
-                    gpsData.latitude, gpsData.longitude, 
-                    transit, sunrise, sunset);
-  hoursToString(sunrise + defGMT, gpsData.sunriseHour);
-  hoursToString(sunset + defGMT, gpsData.sunsetHour);
+  calcSunriseSunset(2000 + fix.dateTime.year, 
+                    fix.dateTime.month, 
+                    fix.dateTime.date,
+                    gps.gpsData.latitude, 
+                    gps.gpsData.longitude,
+                    transit, 
+                    sunrise, 
+                    sunset);
+  int hours = (int)sunrise + gps.gpsData.UTC;
+  int minutes = (int)round(((sunrise + gps.gpsData.UTC) - hours) * 60);
+  snprintf(gps.gpsData.sunriseHour, 6, "%02d:%02d", hours, minutes);         
+  hours = (int)sunset +  gps.gpsData.UTC;
+  minutes = (int)round(((sunset +  gps.gpsData.UTC) - hours) * 60);
+  snprintf(gps.gpsData.sunsetHour, 6, "%02d:%02d", hours, minutes); 
+  log_i("Sunrise: %s",gps.gpsData.sunriseHour);
+  log_i("Sunset: %s",gps.gpsData.sunsetHour);               
 }
 
 /**
@@ -82,69 +106,74 @@ void calculateSun()
 void setup()
 {
   gpsMutex = xSemaphoreCreateMutex();
-  
-  // Force GPIO0 to internal PullUP  during boot (avoid LVGL key read)
-  #ifdef POWER_SAVE
-    pinMode(BOARD_BOOT_PIN,INPUT_PULLUP);
-    #ifdef ICENAV_BOARD
-      gpio_hold_dis((gpio_num_t)TFT_BL);
-      gpio_hold_dis((gpio_num_t)BOARD_BOOT_PIN);
-      gpio_deep_sleep_hold_dis();
-    #endif
-  #endif
+  esp_log_level_set("*", ESP_LOG_DEBUG);
+  esp_log_level_set("storage", ESP_LOG_DEBUG);
 
-  #ifdef ARDUINO_USB_CDC_ON_BOOT
-    Serial.begin(115200);  
-  #endif
-  
-  #ifdef TDECK_ESP32S3
-    pinMode(BOARD_POWERON, OUTPUT);
-    digitalWrite(BOARD_POWERON, HIGH);
-    pinMode(TCH_I2C_INT, INPUT);
-    pinMode(SD_CS, OUTPUT);
-    pinMode(RADIO_CS_PIN, OUTPUT);
-    pinMode(TFT_SPI_CS, OUTPUT);
-    digitalWrite(SD_CS, HIGH);
-    digitalWrite(RADIO_CS_PIN, HIGH);
-    digitalWrite(TFT_SPI_CS, HIGH);
-    pinMode(TFT_SPI_MISO, INPUT_PULLUP);
-    pinMode(SD_MISO, INPUT_PULLUP);
-  #endif
+// Force GPIO0 to internal PullUP  during boot (avoid LVGL key read)
+#ifdef POWER_SAVE
+  pinMode(BOARD_BOOT_PIN, INPUT_PULLUP);
+#ifdef ICENAV_BOARD
+  gpio_hold_dis((gpio_num_t)TFT_BL);
+  gpio_hold_dis((gpio_num_t)BOARD_BOOT_PIN);
+  gpio_deep_sleep_hold_dis();
+#endif
+#endif
+
+#ifdef TDECK_ESP32S3
+  pinMode(BOARD_POWERON, OUTPUT);
+  digitalWrite(BOARD_POWERON, HIGH);
+  pinMode(TCH_I2C_INT, INPUT);
+  pinMode(SD_CS, OUTPUT);
+  pinMode(RADIO_CS_PIN, OUTPUT);
+  pinMode(TFT_SPI_CS, OUTPUT);
+  digitalWrite(SD_CS, HIGH);
+  digitalWrite(RADIO_CS_PIN, HIGH);
+  digitalWrite(TFT_SPI_CS, HIGH);
+  pinMode(TFT_SPI_MISO, INPUT_PULLUP);
+  pinMode(SD_MISO, INPUT_PULLUP);
+#endif
 
   Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
   Wire.begin();
 
-  #ifdef BME280
-   initBME();
-  #endif
+#ifdef BME280
+  initBME();
+#endif
 
-  #ifdef ENABLE_COMPASS
-   initCompass();
-  #endif
+#ifdef ENABLE_COMPASS
+  compass.init();
+#endif
 
-  // powerOn();
+#ifdef ENABLE_IMU
+  initIMU();
+#endif
+ 
   storage.initSD();
   storage.initSPIFFS();
   battery.initADC();
+
   initTFT();
+
+  mapView.initMap(TFT_HEIGHT - 100, TFT_WIDTH, TFT_HEIGHT);
+
   loadPreferences();
-  initGPS();
+  gps.init();
   initLVGL();
 
   // Get init Latitude and Longitude
-  gpsData.latitude = getLat();
-  gpsData.longitude = getLon();
+  gps.gpsData.latitude = gps.getLat();
+  gps.gpsData.longitude = gps.getLon();
 
   initGpsTask();
 
-  #ifndef DISABLE_CLI
-    initCLI();
-    initCLITask();
-  #endif
+#ifndef DISABLE_CLI
+  initCLI();
+  initCLITask();
+#endif
 
   if (WiFi.status() == WL_CONNECTED)
   {
-    if (!MDNS.begin(hostname))       
+    if (!MDNS.begin(hostname))
       log_e("nDNS init error");
 
     log_i("mDNS initialized");
@@ -156,32 +185,9 @@ void setup()
     server.begin();
   }
 
-  if(WiFi.getMode() == WIFI_OFF)
+  if (WiFi.getMode() == WIFI_OFF)
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-  // Reserve PSRAM for buffer map
-  mapTempSprite.deleteSprite();
-  mapTempSprite.createSprite(TILE_WIDTH, TILE_HEIGHT);
-
-  // Preload Map
-  if (isVectorMap)
-  {
-    getPosition(gpsData.latitude, gpsData.longitude);
-    tileSize = VECTOR_TILE_SIZE;
-    viewPort.setCenter(point);
-
-    getMapBlocks(viewPort.bbox, memCache);
-              
-    generateVectorMap(viewPort, memCache, mapTempSprite); 
-    
-    isPosMoved = false;
-  }
-  else
-  {
-    tileSize = RENDER_TILE_SIZE;
-    generateRenderMap();
-  }
-  
   splashScreen();
   lv_screen_load(searchSatScreen);
 }
@@ -196,5 +202,17 @@ void loop()
   {
     lv_timer_handler();
     vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
+  }
+
+  // Deleting recursive directories in webfile server
+  if (enableWeb && deleteDir)
+  {
+    deleteDir = false;
+    if (deleteDirRecursive(deletePath.c_str()))
+    {
+      updateList = true;
+      eventRefresh.send("refresh", nullptr, millis());
+      eventRefresh.send("Folder deleted", "updateStatus", millis());
+    }
   }
 }

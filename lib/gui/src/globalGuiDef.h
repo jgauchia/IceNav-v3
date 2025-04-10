@@ -1,8 +1,8 @@
 /**
  * @file globalGuiDef.h
  * @brief  Global GUI Variables
- * @version 0.1.9
- * @date 2024-12
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #ifndef GLOBALGUIDEF_H
@@ -10,6 +10,7 @@
 
 #include <lvgl.h>
 #include "tft.hpp"
+#include "storage.hpp"
 
 /**
  * @Brief LVGL Display Driver
@@ -42,6 +43,8 @@ extern lv_obj_t *waypointName;         // Add / Edit Waypoint screen text area
 extern bool isScreenRotated;           // Flag to know if screen is rotated
 
 extern lv_obj_t *powerMsg;             // Power Message
+
+extern Storage storage;
 
 #ifdef LARGE_SCREEN
   static const lv_font_t *fontDefault = &lv_font_montserrat_14;
@@ -82,12 +85,10 @@ static const int buttonScale = LV_SCALE_NONE * scaleBut;
  */
 static bool getPngSize(const char* filename, uint16_t *width, uint16_t *height)
 {
-  FILE* file = fopen(filename, "r");
+  FILE* file = storage.open(filename, "r");
 
   if (!file)
-  {
     return false;
-  }
 
   uint8_t table[32];
 
@@ -96,7 +97,7 @@ static bool getPngSize(const char* filename, uint16_t *width, uint16_t *height)
   *width=table[16]*256*256*256+table[17]*256*256+table[18]*256+table[19];
   *height=table[20]*256*256*256+table[21]*256*256+table[22]*256+table[23];
 
-  fclose(file);
+  storage.close(file);
 
   return true;
 }

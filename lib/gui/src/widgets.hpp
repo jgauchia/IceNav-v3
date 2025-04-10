@@ -1,15 +1,14 @@
 /**
  * @file widgets.hpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Widgets
- * @version 0.1.9
- * @date 2024-12
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #ifndef WIDGETS_HPP
 #define WIDGETS_HPP
 
-#include "globalMapsDef.h"
 #include "lvglFuncs.hpp"
 #include "gpsMath.hpp"
 #include "settings.hpp"
@@ -35,6 +34,8 @@ static bool widgetSelected = false;
 static bool canMoveWidget = false;
 static lv_coord_t newX = 0;
 static lv_coord_t newY = 0;
+
+extern bool isScrolled;              // Flag to indicate when tileview was scrolled
 
 static const char *arrowIconFile PROGMEM = "/arrow.bin";     // Compass Arrow Icon
 static const char *positionIconFile PROGMEM = "/pin.bin";    // Position Icon

@@ -1,9 +1,9 @@
 /**
  * @file firmUpgrade.hpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Firmware upgrade from SD functions
- * @version 0.1.9
- * @date 2024-12
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #ifndef FIRMUPGRADE_HPP
@@ -13,9 +13,9 @@
 #include "tft.hpp"
 #include "lvgl.h"
 #include "upgradeScr.hpp"
-#include "SD.h"
+#include "storage.hpp"
 
-static const char *upgrdFile PROGMEM = "/firmware.bin"; // Firmware upgrade file
+static const char *upgrdFile PROGMEM = "/sdcard/firmware.bin"; // Firmware upgrade file
 
 bool checkFileUpgrade();
 void onUpgrdStart();

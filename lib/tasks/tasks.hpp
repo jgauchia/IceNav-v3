@@ -1,9 +1,9 @@
 /**
  * @file tasks.hpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Core Tasks functions
- * @version 0.1.9
- * @date 2024-12
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #ifndef TASKS_HPP
@@ -15,8 +15,7 @@
 #include "compass.hpp"
 #include "lvgl.h"
 #include "cli.hpp"
-#include "mainScr.hpp"
-#include "globalMapsDef.h"
+//#include "mainScr.hpp"
 #include "globalGpxDef.h"
 #include "lvglFuncs.hpp"
 
@@ -26,8 +25,8 @@ void gpsTask(void *pvParameters);
 void initGpsTask();
 
 #ifndef DISABLE_CLI
-    void cliTask(void *param);
-    void initCLITask();
+  void cliTask(void *param);
+  void initCLITask();
 #endif
 
 #endif

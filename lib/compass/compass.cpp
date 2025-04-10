@@ -1,21 +1,20 @@
 /**
  * @file compass.cpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
- * @brief  Compass definition and functions
- * @version 0.1.9
- * @date 2024-12
+ * @brief Compass definition and functions
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #include "compass.hpp"
 
-int mapHeading = 0;
+static const char* TAG PROGMEM = "Compass";
 
 #ifdef HMC5883L
-DFRobot_QMC5883 compass = DFRobot_QMC5883(&Wire,HMC5883L_ADDRESS);
+DFRobot_QMC5883 comp = DFRobot_QMC5883(&Wire, HMC5883L_ADDRESS);
 #endif
 
 #ifdef QMC5883
-DFRobot_QMC5883 compass = DFRobot_QMC5883(&Wire,QMC5883_ADDRESS);
+DFRobot_QMC5883 comp = DFRobot_QMC5883(&Wire, QMC5883_ADDRESS);
 #endif
 
 #ifdef IMU_MPU9250
@@ -23,95 +22,82 @@ MPU9250 IMU = MPU9250(Wire, 0x68);
 #endif
 
 /**
- * @brief Magnetic declination
+ * @brief Compass Class constructor with default values
  *
  */
-//  Obtain your magnetic declination from http://www.magnetic-declination.com/
-//  By convention, declination is positive when magnetic north
-//  is east of true north, and negative when it is to the west.
-//  Substitute your magnetic declination for the "declinationAngle" shown below.
-float declinationAngle = 0.22;
-
-
-/**
- * @brief Compass Heading Angle and Smooth factors
- *
- */
-int heading = 0;
-#define SMOOTH_FACTOR 0.40
-#define SMOOTH_PREVIOUS_FACTOR 0.60
-
-/**
- * @brief Compass offset calibration
- * 
- */
-float offX = 0.0, offY = 0.0; 
-
-/**
-:wa
-* @brief Init Compass
- *
- */
-void initCompass()
+Compass::Compass()
+    : declinationAngle(0.22), offX(0.0), offY(0.0),
+      headingSmooth(0.0), headingPrevious(0.0),
+      minX(0.0), maxX(0.0), minY(0.0), maxY(0.0),
+      kalmanFilterEnabled(true),
+      kalmanFilter(0.01, 0.1, 1.0, 0.0)
 {
-  #ifdef HMC5883L
-  if (!compass.begin())
-    compass.begin();
-  compass.setDataRate(HMC5883L_DATARATE_15HZ);
-  compass.setSamples(HMC5883L_SAMPLES_2);
-  #endif
-
-  #ifdef QMC5883
-  if (!compass.begin())
-    compass.begin();
-  compass.setDataRate(QMC5883_DATARATE_10HZ);
-  compass.setSamples(QMC5883_SAMPLES_2);
-  #endif
-
-  #ifdef IMU_MPU9250
-  int status = IMU.begin();
-  if (status < 0)
-  {
-    log_e("IMU initialization unsuccessful");
-    log_e("Check IMU wiring or try cycling power");
-    log_e("Status: %i", status);
-  }
-  #endif
 }
 
 /**
- * @brief Read compass values
+ * @brief Compass Init
  *
- * @param x
- * @param y
- * @param z
  */
-void readCompass(float &x, float &y, float &z)
+void Compass::init()
 {
-  #ifdef HMC5883L
-  sVector_t mag = compass.readRaw();
+#ifdef HMC5883L
+  if (!comp.begin())
+    comp.begin();
+  comp.setDataRate(HMC5883L_DATARATE_15HZ);
+  comp.setSamples(HMC5883L_SAMPLES_1);
+#endif
+
+#ifdef QMC5883
+  if (!comp.begin())
+    comp.begin();
+  comp.setDataRate(QMC5883_DATARATE_10HZ);
+  comp.setSamples(QMC5883_SAMPLES_1);
+#endif
+
+#ifdef IMU_MPU9250
+  int status = IMU.begin();
+  if (status < 0)
+  {
+    ESP_LOGE(TAG, "IMU initialization unsuccessful");
+    ESP_LOGE(TAG, "Check IMU wiring or try cycling power");
+    ESP_LOGE(TAG, "Status: %i", status);
+  }
+#endif
+}
+
+/**
+ * @brief Configure ADC Channel for battery reading
+ *
+ * @param x 
+ * @param y 
+ * @param z 
+ */
+void Compass::read(float &x, float &y, float &z)
+{
+#ifdef HMC5883L
+  sVector_t mag = comp.readRaw();
   y = mag.YAxis;
   x = mag.XAxis;
   z = mag.ZAxis;
-  #endif
+#endif
 
-  #ifdef QMC5883 
-  sVector_t mag = compass.readRaw();
+#ifdef QMC5883
+  sVector_t mag = comp.readRaw();
   y = mag.YAxis;
   x = mag.XAxis;
   z = mag.ZAxis;
-  #endif
+#endif
 
-   #ifdef IMU_MPU9250
+#ifdef IMU_MPU9250
   IMU.readSensor();
   x = IMU.getMagX_uT();
   y = IMU.getMagY_uT();
   z = IMU.getMagZ_uT();
-  #endif
+#endif
 
-  #ifdef ICENAV_BOARD
-    y = y * -1;
-  #endif
+#ifdef ICENAV_BOARD
+  y = y * -1;
+#endif
 }
 
 /**
@@ -119,32 +105,58 @@ void readCompass(float &x, float &y, float &z)
  *
  * @return compass heading
  */
-int getHeading()
+int Compass::getHeading()
 {
   float y = 0.0;
   float x = 0.0;
   float z = 0.0;
 
-  readCompass(x, y, z);
+  read(x, y, z);
 
   float headingNoFilter = atan2(y - offY, x - offX);
   headingNoFilter += declinationAngle;
-  headingSmooth = headingNoFilter;
-  // headingSmooth = (headingNoFilter * SMOOTH_FACTOR) + (headingPrevious * SMOOTH_PREVIOUS_FACTOR);
-  // headingPrevious = headingSmooth;
 
-  if (headingSmooth < 0)
-    headingSmooth += 2 * M_PI;
-  if (headingSmooth > 2 * M_PI)
-    headingSmooth -= 2 * M_PI;
-  return (int)(headingSmooth * 180 / M_PI);
+  headingNoFilter = wrapToPi(headingNoFilter);
+
+  if (kalmanFilterEnabled)
+  {
+    headingNoFilter = unwrapFromPi(headingNoFilter, headingPrevious);
+    headingSmooth = kalmanFilter.update(headingNoFilter);
+  }
+  else
+    headingSmooth = headingNoFilter;
+
+    headingPrevious = headingNoFilter;
+
+  float headingDegrees = (int)(headingSmooth * 180 / M_PI);
+
+  if (headingDegrees < 0)
+    headingDegrees += 360;
+
+  return static_cast<int>(headingDegrees);
+}
+
+/**
+ * @brief Check compass heading is update
+ *
+ * @return true/flase
+ */
+bool Compass::isUpdated()
+{
+  int currentDegrees = getHeading();
+  if (currentDegrees != previousDegrees)
+  {
+    previousDegrees = currentDegrees;
+    return true;
+  }
+  return false;
 }
 
 /**
  * @brief Compass calibration
  *
  */
-void compassCalibrate()
+void Compass::calibrate()
 {
   bool cal = 1;
   float y = 0.0;
@@ -152,18 +164,18 @@ void compassCalibrate()
   float z = 0.0;
   uint16_t touchX, touchY;
 
-  static const lgfx::v1::GFXfont* fontSmall;
-  static const lgfx::v1::GFXfont* fontLarge;
+  static const lgfx::v1::GFXfont *fontSmall;
+  static const lgfx::v1::GFXfont *fontLarge;
 
-  #ifdef LARGE_SCREEN
-    fontSmall = &fonts::DejaVu18;
-    fontLarge = &fonts::DejaVu40;
-    static const float scale = 1.0f;
-  #else
-    fontSmall = &fonts::DejaVu12;
-    fontLarge = &fonts::DejaVu24;
-    static const float scale = 0.75f;
-  #endif
+#ifdef LARGE_SCREEN
+  fontSmall = &fonts::DejaVu18;
+  fontLarge = &fonts::DejaVu40;
+  static const float scale = 1.0f;
+#else
+  fontSmall = &fonts::DejaVu12;
+  fontLarge = &fonts::DejaVu24;
+  static const float scale = 0.75f;
+#endif
 
   tft.drawCenterString("ROTATE THE DEVICE", tft.width() >> 1, 10 * scale, fontSmall);
   tft.drawPngFile(PSTR("/spiffs/turn.png"), (tft.width() / 2) - 50, 60 * scale);
@@ -177,15 +189,14 @@ void compassCalibrate()
 
   unsigned long calTimeWas = millis();
 
-  readCompass(x, y, z);
+  read(x, y, z);
 
-  maxX = minX = x; // Set initial values to current magnetometer readings.
+  maxX = minX = x;
   maxY = minY = y;
 
   while (cal)
   {
-
-    readCompass(x, y, z);
+    read(x, y, z);
 
     if (x > maxX)
       maxX = x;
@@ -219,7 +230,81 @@ void compassCalibrate()
   {
   };
 
-  saveCompassCal(offX,offY);
+  cfg.saveFloat(PKEYS::KCOMP_OFFSET_X, offX);
+  cfg.saveFloat(PKEYS::KCOMP_OFFSET_Y, offY);
 }
 
+/**
+ * @brief Set compass declination angle
+ * 
+ * @param angle -> Declination angle
+ */
+void Compass::setDeclinationAngle(float angle)
+{
+  declinationAngle = angle;
+}
 
+/**
+ * @brief Set compass calibration offsets
+ * 
+ * @param offsetX
+ * @param offsetY
+ */
+void Compass::setOffsets(float offsetX, float offsetY)
+{
+  offX = offsetX;
+  offY = offsetY;
+}
+
+/**
+ * @brief Enable compass Kalman filter
+ * 
+ * @param enable -> true/false
+ */
+void Compass::enableKalmanFilter(bool enabled)
+{
+  kalmanFilterEnabled = enabled;
+}
+
+/**
+ * @brief Set Kalman filter constants
+ * 
+ * @param processNoise -> 0-1
+ * @param measureNoise -> 0-1
+ */
+void Compass::setKalmanFilterConst(float processNoise, float measureNoise)
+{
+  kalmanFilter.setConstants(processNoise, measureNoise);
+}
+
+/**
+ * @brief Helper function to wrap angle to -pi to pi
+ * 
+ * @param angle
+ * @return wrap angle
+ */
+float Compass::wrapToPi(float angle)
+{
+  while (angle < -M_PI)
+    angle += 2 * M_PI;
+  while (angle > M_PI)
+    angle -= 2 * M_PI;
+  return angle;
+}
+
+/**
+ * @brief Helper function to unwrap angle to -pi to pi
+ * 
+ * @param angle
+ * @param previousAngle
+ * @return unrap angle
+ */
+float Compass::unwrapFromPi(float angle, float previousAngle)
+{
+  float delta = angle - previousAngle;
+  if (delta > M_PI)
+    angle -= 2 * M_PI;
+  else if (delta < -M_PI)
+    angle += 2 * M_PI;
+  return angle;
+}

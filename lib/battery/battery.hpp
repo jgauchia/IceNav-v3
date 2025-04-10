@@ -1,9 +1,9 @@
 /**
  * @file battery.hpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Battery monitor definition and functions
- * @version 0.1.9
- * @date 2024-12
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #ifndef BATTERY_HPP
@@ -16,16 +16,16 @@
 class Battery
 {
 private:
-    float batteryMax;
-    float batteryMin;
-    static constexpr float V_REF = 3.9; // ADC reference voltage
+  float batteryMax;
+  float batteryMin;
+  static constexpr float V_REF = 3.9; // ADC reference voltage
 
 public:
-    Battery();
+  Battery();
 
-    void initADC();
-    void setBatteryLevels(float maxVoltage, float minVoltage);
-    float readBattery();
+  void initADC();
+  void setBatteryLevels(float maxVoltage, float minVoltage);
+  float readBattery();
 };
 
 #endif

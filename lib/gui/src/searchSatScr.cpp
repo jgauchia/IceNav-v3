@@ -1,9 +1,9 @@
 /**
  * @file searchSatScr.cpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - GPS satellite search screen
- * @version 0.1.9
- * @date 2024-12
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #include "searchSatScr.hpp"
@@ -23,13 +23,9 @@ void buttonEvent(lv_event_t *event)
 {
   char *option = (char *)lv_event_get_user_data(event);
   if (strcmp(option,"skip") == 0)
-  {
     skipSearch = true;
-  }
   if (strcmp(option,"settings") == 0)
-  {
     lv_screen_load(settingsScreen); 
-  }
   lv_timer_resume(mainTimer);
 }
 
@@ -120,6 +116,4 @@ void createSearchSatScr()
   lv_obj_update_layout(imgBtn);
   lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
   lv_obj_add_event_cb(imgBtn, buttonEvent, LV_EVENT_PRESSED, (char*)"skip");
-
-
 }

@@ -1,15 +1,16 @@
 /**
  * @file power.hpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ESP32 Power Management functions
- * @version 0.1.9
- * @date 2024-12
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #ifndef POWER_HPP
 #define POWER_HPP
 
 #include <Wire.h>
+#include <SPI.h>
 #include <WiFi.h>
 #include <driver/rtc_io.h>
 #include <esp_bt.h>
@@ -21,13 +22,13 @@
 
 class Power
 {
-private:
+  private:
     void powerDeepSleep();
     void powerLightSleepTimer(int millis);
     void powerLightSleep();
     void powerOffPeripherals();
 
-public:
+  public:
     Power();
 
     void deviceSuspend();

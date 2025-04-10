@@ -1,9 +1,9 @@
 /**
  * @file tft.cpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief TFT definition and functions
- * @version 0.1.9
- * @date 2024-12
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #include "tft.hpp"
@@ -13,6 +13,7 @@ bool repeatCalib = false;
 uint16_t TFT_WIDTH = 0;
 uint16_t TFT_HEIGHT = 0;
 bool waitScreenRefresh = false;
+extern Storage storage;
 
 /**
  * @brief Turn on TFT Sleep Mode for ILI9488
@@ -44,7 +45,7 @@ void touchCalibrate()
   uint16_t calData[8];
   uint8_t calDataOK = 0;
 
-  FILE* f = fopen(calibrationFile, "r");
+  FILE* f = storage.open(calibrationFile, "r");
 
   if (f != NULL)
   {
@@ -56,7 +57,7 @@ void touchCalibrate()
       {
         log_i("Touch calibration exists");
         calDataOK = 1;
-        fclose(f);
+        storage.close(f);
       }
     }
   }
@@ -84,12 +85,12 @@ void touchCalibrate()
     delay(500);
     tft.drawCenterString("TOUCH TO CONTINUE.", tft.width() >> 1, (tft.height() >> 1) + (tft.fontHeight(fontLarge) * 2), fontSmall);
 
-    FILE* f = fopen(calibrationFile, "w");
+    FILE* f = storage.open(calibrationFile, "w");
     if (f)
     {
       log_v("Calibration saved");
       fwrite((const unsigned char *)calData, sizeof(unsigned char), 16 ,f);
-      fclose(f);
+      storage.close(f);
     }
     else
       log_e("Calibration not saved!");

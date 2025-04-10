@@ -1,9 +1,9 @@
 /**
  * @file gpsMath.cpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Math and various functions
- * @version 0.1.9
- * @date 2024-12
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #include "gpsMath.hpp"
@@ -22,17 +22,17 @@ double midLon = 0; // Mid point between 2 Longitudes
  */
 double calcDist(double lat1, double lon1, double lat2, double lon2)
 {
-    lat1 = lat1 * (M_PI / 180.0);
-    lon1 = lon1 * (M_PI / 180.0);
-    lat2 = lat2 * (M_PI / 180.0);
-    lon2 = lon2 * (M_PI / 180.0);
-    double dlat = lat2 - lat1;
-    double dlon = lon2 - lon1;
-    double a = sin(dlat / 2) * sin(dlat / 2) +
-               cos(lat1) * cos(lat2) *
-               sin(dlon / 2) * sin(dlon / 2);
-    double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-    return EARTH_RADIUS * c;
+  lat1 = lat1 * (M_PI / 180.0);
+  lon1 = lon1 * (M_PI / 180.0);
+  lat2 = lat2 * (M_PI / 180.0);
+  lon2 = lon2 * (M_PI / 180.0);
+  double dlat = lat2 - lat1;
+  double dlon = lon2 - lon1;
+  double a = sin(dlat / 2) * sin(dlat / 2) +
+              cos(lat1) * cos(lat2) *
+              sin(dlon / 2) * sin(dlon / 2);
+  double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+  return EARTH_RADIUS * c;
 }
 
 /**

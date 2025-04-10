@@ -6,6 +6,7 @@
 ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 * Note: Under development (experimental features under devel branch)
 * There is the possibility to use two types of maps: Rendered Maps or Tiles (large files), and Vector Maps (small files).
+* Recommended to use an ESP32-S3 with PSRAM and a screen with a parallel bus for optimal performance, although other ESP models and SPI screens also yield good results.
 
 <table>
   <tr>
@@ -109,6 +110,8 @@ To do this, simply include the following Build Flag in the required env in platf
 | QMC5883     | 🧭 Compass    | ```-DQMC5883```                    | ```dfrobot/DFRobot_QMC5883@1.0.0```                   |
 | MPU9250     | 🧭 IMU (Compass) | ```-DIMU_MPU9250```                | ```bolderflight/Bolder Flight Systems MPU9250@1.0.2```|
 | BME280      | 🌡️ Temp <br> ☁️ Pres <br> 💧 Hum | ```-DBME280```                     | ```adafruit/Adafruit Unified Sensor@1.1.14``` <br> ```adafruit/Adafruit BusIO@1.16.2``` <br> ```adafruit/Adafruit BME280 Library@2.2.4```|
+| MPU6050     | 📳 IMU | ```-DMPU6050```                     | ```adafruit/Adafruit Unified Sensor@1.1.14``` <br> ```adafruit/Adafruit BusIO@1.16.2``` <br> ```adafruit/Adafruit MPU6050@^2.2.6```|
+
 
 [^1]: For ELECROW board UART port is shared with USB connection, GPS pinout are mapped to IO19 and IO40 (Analog and Digital Port). If CLI isn't used is possible to attach GPS module to UART port but for upload the firmware (change pinout at **hal.hpp**), the module should be disconnected.
 [^2]: See **hal.hpp** for pinouts configuration
@@ -248,29 +251,38 @@ outnmea:        toggle GPS NMEA output (or Ctrl+C to stop)
 poweroff:       perform a ESP32 deep sleep
 reboot:         perform a ESP32 reboot
 scshot:         screenshot to SD or sending a PC
-setdstzone:     set DST (Daylight Saving Time zone: NONE, EU or USA)
-waypoint:       waypoint utilities
 webfile:        enable/disable Web file server
 wipe:           wipe preferences to factory default
 ```
 
 Some extra details:
 
-**klist**: List user custom settings:
+**klist**: List user custom settings (example of custom settings):
 
 ```
-    KEYNAME     DEFINED         VALUE 
+    KEYNAME     DEFINED         VALUE          
     =======     =======         ===== 
-    defZoom     custom         
-      gpsTX     custom          
-      gpsRX     custom          
-     defLAT     custom          
-     defLON     custom           
-  defBright     custom          
-   VmaxBatt     custom         
-   VminBatt     custom          
-   tempOffs     custom
-     defGMT     custom     
+    defZoom     custom          17             Default zoom
+ fullScrMap     custom          true           Fullscreen map
+    vectMap     custom          false          Vectorized map
+   mapSpeed     custom          true           Show speed meter in map
+   mapScale     custom          true           Show scale meter in map
+    mapComp     custom          true           Show compass in map
+ mapCompRot     custom          true           Rotate map with the compass
+      gpsTX     custom          43             GPS Tx gpio
+      gpsRX     custom          44             GPS Rx gpio
+     defLAT     custom          52.5200        Default latitude
+     defLON     custom          13.4049        Default longitude
+  defBright     custom          255            Default screen bright (0-255)
+   VmaxBatt     custom          4.19999981     Battery max. voltage
+   VminBatt     custom          3.59999990     Battery min. voltage
+   tempOffs     custom          0              Temperature offset (-/+)
+      defTZ     custom          Europe/Madrid  TZ identifier (see /utils/src/timezone.c default UTC)
+  defDecAng     custom          0.22000000     Default declination angle
+  kalmanFil     custom          true           Enable compass Kalman Filter
+    kalmanQ     custom          0.00500000     Def. Kalman Filter const. Process noise covariance (0-1)
+    kalmanR     custom          0.60000000     Def. Kalman Filter const. Measurement noise covariance (0-1)
+
 ```          
 
 **kset KEYNAME**: Set user custom settings:
@@ -301,20 +313,6 @@ nc -l -p 8123 > screenshot.png
 
 Additionally, you can download the screenshot with webfile server.
 
-**waypoint**: type `waypoint` for detailed options.
-
-Additionally, this waypoint command can send the waypoint over WiFi using the following syntax (replace IP with your PC IP):
-
-```bash
-waypoint down file.gpx 192.168.1.10 8123
-```
-
-Ensure your PC has the specified port open and firewall access enabled to receive the waypoint file via the `netcat` command, like this:
-
-```bash
-nc -l -p 8123 > waypoint.gpx
-```
-
 ## Web File Server 
 
 IceNav has a small web file server (https://youtu.be/IYLcdP40cU4) to manage existing files on the SD card.
@@ -335,7 +333,7 @@ To access the Web File Server, simply use any browser and go to the following ad
 - [ ] Multiple IMU's and Compass module implementation
 - [X] Power saving
 - [X] Vector maps
-- [ ] Google Maps navigation style
+- [ ] Google Maps navigation style (turn by turn)
 - [x] Optimize code
 - [X] Fix bugs!
 - [X] Web file server

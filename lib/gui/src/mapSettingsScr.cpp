@@ -1,14 +1,16 @@
 /**
  * @file mapSettingsScr.hpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Map Settings screen
- * @version 0.1.9
- * @date 2024-12
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #include "mapSettingsScr.hpp"
 
 lv_obj_t *mapSettingsScreen; // Map Settings Screen
+
+extern Maps mapView;
 
 /**
  * @brief Map Settings Events
@@ -24,8 +26,8 @@ static void mapSettingsEvents(lv_event_t *event)
   {
     if (needReboot)
     {   
-      saveMapType(isVectorMap);
-      saveDefaultZoom(defaultZoom);
+      cfg.saveBool(PKEYS::KMAP_VECTOR, mapSet.vectorMap);
+      cfg.saveUInt(PKEYS::KDEF_ZOOM, defaultZoom);
       lv_obj_delete(mapSettingsScreen);
       showRestartScr();
     }
@@ -40,8 +42,8 @@ static void mapSettingsEvents(lv_event_t *event)
       lv_spinbox_increment(zoomLevel);
       defaultZoom = (uint8_t)lv_spinbox_get_value(zoomLevel);
       zoom = defaultZoom;
-      isPosMoved = true;
-      saveDefaultZoom(defaultZoom);
+      mapView.isPosMoved = true;
+      cfg.saveUInt(PKEYS::KDEF_ZOOM, defaultZoom);
     }
   }
 
@@ -52,15 +54,15 @@ static void mapSettingsEvents(lv_event_t *event)
       lv_spinbox_decrement(zoomLevel);
       defaultZoom = (uint8_t)lv_spinbox_get_value(zoomLevel);
       zoom = defaultZoom;
-      isPosMoved = true;
-      saveDefaultZoom(defaultZoom);
+      mapView.isPosMoved = true;
+      cfg.saveUInt(PKEYS::KDEF_ZOOM, defaultZoom);
     }
   }
 
   if (obj == mapType)
   {
-    isVectorMap = lv_obj_has_state(obj, LV_STATE_CHECKED);
-    if (!isVectorMap)
+    mapSet.vectorMap = lv_obj_has_state(obj, LV_STATE_CHECKED);
+    if (!mapSet.vectorMap)
     {
       minZoom = 6;
       maxZoom = 17;
@@ -78,38 +80,38 @@ static void mapSettingsEvents(lv_event_t *event)
 
   if (obj == mapSwitch)
   {
-    isMapRotation = lv_obj_has_state(obj, LV_STATE_CHECKED);
-    saveMapRotation(isMapRotation);
+    mapSet.mapRotationComp = lv_obj_has_state(obj, LV_STATE_CHECKED);
+    cfg.saveBool(PKEYS::KMAP_ROT_MODE, mapSet.mapRotationComp);
   }
 
   if (obj == checkCompass)
   {
-    showMapCompass = lv_obj_has_state(obj, LV_STATE_CHECKED);
-    saveShowCompass(showMapCompass);
+    mapSet.showMapCompass = lv_obj_has_state(obj, LV_STATE_CHECKED);
+    cfg.saveBool(PKEYS::KMAP_COMPASS, mapSet.showMapCompass);
   }
 
   if (obj == checkCompassRot)
   {
-    isCompassRot = lv_obj_has_state(obj, LV_STATE_CHECKED);
-    saveCompassRot(isCompassRot);
+    mapSet.compassRotation = lv_obj_has_state(obj, LV_STATE_CHECKED);
+    cfg.saveBool(PKEYS::KMAP_COMP_ROT, mapSet.compassRotation);
   }
 
   if (obj == checkSpeed)
   {
-    showMapSpeed = lv_obj_has_state(obj, LV_STATE_CHECKED);
-    saveShowSpeed(showMapSpeed);
+    mapSet.showMapSpeed = lv_obj_has_state(obj, LV_STATE_CHECKED);
+    cfg.saveBool(PKEYS::KMAP_SPEED, mapSet.showMapSpeed);
   }
 
   if (obj == checkScale)
   {
-    showMapScale = lv_obj_has_state(obj, LV_STATE_CHECKED);
-    saveShowScale(showMapScale);
+    mapSet.showMapScale = lv_obj_has_state(obj, LV_STATE_CHECKED);
+    cfg.saveBool(PKEYS::KMAP_SCALE, mapSet.showMapScale);
   }
 
   if (obj == checkFullScreen)
   {
-    isMapFullScreen = lv_obj_has_state(obj, LV_STATE_CHECKED);
-    saveShowMap(isMapFullScreen);
+    mapSet.mapFullScreen = lv_obj_has_state(obj, LV_STATE_CHECKED);
+    cfg.saveBool(PKEYS::KMAP_MODE, mapSet.mapFullScreen);
     needReboot = true;
   }
 }
@@ -136,7 +138,7 @@ void createMapSettingsScr()
   label = lv_label_create(mapType);
   lv_label_set_text_static(label, "V   R");
   lv_obj_center(label);
-  if (isVectorMap)
+  if (mapSet.vectorMap)
     lv_obj_add_state(mapType, LV_STATE_CHECKED);
   else
     lv_obj_clear_state(mapType, LV_STATE_CHECKED);
@@ -152,7 +154,7 @@ void createMapSettingsScr()
   label = lv_label_create(mapSwitch);
   lv_label_set_text_static(label, "C   H");
   lv_obj_center(label);
-  if (isMapRotation)
+  if (mapSet.mapRotationComp)
     lv_obj_add_state(mapSwitch, LV_STATE_CHECKED);
   else
     lv_obj_clear_state(mapSwitch, LV_STATE_CHECKED);
@@ -195,7 +197,7 @@ void createMapSettingsScr()
   checkFullScreen = lv_checkbox_create(list);
   lv_obj_align_to(checkFullScreen, list, LV_ALIGN_RIGHT_MID, 0, 0);
   lv_checkbox_set_text(checkFullScreen, " ");
-  lv_obj_add_state(checkFullScreen, isMapFullScreen);
+  lv_obj_add_state(checkFullScreen, mapSet.mapFullScreen);
   lv_obj_add_event_cb(checkFullScreen, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
 
   // Show Compass
@@ -206,7 +208,7 @@ void createMapSettingsScr()
   checkCompass = lv_checkbox_create(list);
   lv_obj_align_to(checkCompass, list, LV_ALIGN_RIGHT_MID, 0, 0);
   lv_checkbox_set_text(checkCompass, " ");
-  lv_obj_add_state(checkCompass, showMapCompass);
+  lv_obj_add_state(checkCompass, mapSet.showMapCompass);
   lv_obj_add_event_cb(checkCompass, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
 
   // Compass Rotation
@@ -217,7 +219,7 @@ void createMapSettingsScr()
   checkCompassRot = lv_checkbox_create(list);
   lv_obj_align_to(checkCompassRot, list, LV_ALIGN_RIGHT_MID, 0, 0);
   lv_checkbox_set_text(checkCompassRot, " ");
-  lv_obj_add_state(checkCompassRot, isCompassRot);
+  lv_obj_add_state(checkCompassRot, mapSet.compassRotation);
   lv_obj_add_event_cb(checkCompassRot, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
 
   // Show Speed
@@ -228,7 +230,7 @@ void createMapSettingsScr()
   checkSpeed = lv_checkbox_create(list);
   lv_obj_align_to(checkSpeed, list, LV_ALIGN_RIGHT_MID, 0, 0);
   lv_checkbox_set_text(checkSpeed, " ");
-  lv_obj_add_state(checkSpeed, showMapSpeed);
+  lv_obj_add_state(checkSpeed, mapSet.showMapSpeed);
   lv_obj_add_event_cb(checkSpeed, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
 
   // Show Map Scale
@@ -239,7 +241,7 @@ void createMapSettingsScr()
   checkScale = lv_checkbox_create(list);
   lv_obj_align_to(checkScale, list, LV_ALIGN_RIGHT_MID, 0, 0);
   lv_checkbox_set_text(checkScale, " ");
-  lv_obj_add_state(checkScale, showMapScale);
+  lv_obj_add_state(checkScale, mapSet.showMapScale);
   lv_obj_add_event_cb(checkScale, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
 
   // Back button
