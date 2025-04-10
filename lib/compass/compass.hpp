@@ -32,78 +32,78 @@
 class KalmanFilter
 {
 public:
-    KalmanFilter(float processNoise, float measurementNoise, float estimateError, float initialEstimate)
-        : q(processNoise), r(measurementNoise), p(estimateError), x(initialEstimate) {}
+  KalmanFilter(float processNoise, float measurementNoise, float estimateError, float initialEstimate)
+    : q(processNoise), r(measurementNoise), p(estimateError), x(initialEstimate) {}
 
-    float update(float measurement)
-    {
-        measurement = wrapToPi(measurement);
-        float y = measurement - x;
-        y = wrapToPi(y);
+  float update(float measurement)
+  {
+    measurement = wrapToPi(measurement);
+    float y = measurement - x;
+    y = wrapToPi(y);
 
-        p = p + q;
-        k = p / (p + r);
-        x = x + k * y;
+    p = p + q;
+    k = p / (p + r);
+    x = x + k * y;
 
-        x = wrapToPi(x);
+    x = wrapToPi(x);
 
-        p = (1 - k) * p;
-        return x;
-    }
+    p = (1 - k) * p;
+    return x;
+  }
 
-    void setConstants(float processNoise, float measurementNoise)
-    {
-        q = processNoise;
-        r = measurementNoise;
-    }
+  void setConstants(float processNoise, float measurementNoise)
+  {
+    q = processNoise;
+    r = measurementNoise;
+  }
 
 private:
-    float q; // Process noise covariance
-    float r; // Measurement noise covariance
-    float p; // Estimate error covariance
-    float k; // Kalman gain
-    float x; // Value
+  float q; // Process noise covariance
+  float r; // Measurement noise covariance
+  float p; // Estimate error covariance
+  float k; // Kalman gain
+  float x; // Value
 
-    float wrapToPi(float angle)
-    {
-        while (angle < -M_PI)
-            angle += 2 * M_PI;
-        while (angle > M_PI)
-            angle -= 2 * M_PI;
-        return angle;
-    }
+  float wrapToPi(float angle)
+  {
+    while (angle < -M_PI)
+        angle += 2 * M_PI;
+    while (angle > M_PI)
+        angle -= 2 * M_PI;
+    return angle;
+  }
 };
 
 class Compass
 {
 public:
-    Compass();
-    void init();
-    void read(float &x, float &y, float &z);
-    int getHeading();
-    bool isUpdated();
-    void calibrate();
-    void setDeclinationAngle(float angle);
-    void setOffsets(float offsetX, float offsetY);
-    void enableKalmanFilter(bool enabled);
-    void setKalmanFilterConst(float processNoise, float measureNoise);
+  Compass();
+  void init();
+  void read(float &x, float &y, float &z);
+  int getHeading();
+  bool isUpdated();
+  void calibrate();
+  void setDeclinationAngle(float angle);
+  void setOffsets(float offsetX, float offsetY);
+  void enableKalmanFilter(bool enabled);
+  void setKalmanFilterConst(float processNoise, float measureNoise);
 
 private:
-    float declinationAngle;
-    float offX;
-    float offY;
-    float headingSmooth;
-    float headingPrevious;
-    float minX;
-    float maxX;
-    float minY;
-    float maxY;
-    bool kalmanFilterEnabled;
-    KalmanFilter kalmanFilter;
-    int previousDegrees;
+  float declinationAngle;
+  float offX;
+  float offY;
+  float headingSmooth;
+  float headingPrevious;
+  float minX;
+  float maxX;
+  float minY;
+  float maxY;
+  bool kalmanFilterEnabled;
+  KalmanFilter kalmanFilter;
+  int previousDegrees;
 
-    float wrapToPi(float angle);
-    float unwrapFromPi(float angle, float previousAngle);
+  float wrapToPi(float angle);
+  float unwrapFromPi(float angle, float previousAngle);
 };
 
-#endif // COMPASS_HPP
+#endif 

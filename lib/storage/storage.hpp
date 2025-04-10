@@ -128,7 +128,6 @@ public:
     bool remove(const char *path);
     bool rmdir(const char *path);
     size_t size(const char *path);
-    void setFileTime(const char* path);
     size_t read(FILE* file, uint8_t* buffer, size_t size);
     size_t read(FILE* file, char* buffer, size_t size);
     size_t write(FILE* file, const uint8_t* buffer, size_t size);

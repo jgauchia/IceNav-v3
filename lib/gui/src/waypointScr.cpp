@@ -88,7 +88,7 @@ static void waypointScreenEvent(lv_event_t *event)
       case WPT_EDIT:
         char *newName = (char *)lv_textarea_get_text(fileName);
         if (strcmp(loadWpt.name, newName) != 0)
-           gpx.editWaypointName(loadWpt.name, newName);
+          gpx.editWaypointName(loadWpt.name, newName);
         break;
     }
 

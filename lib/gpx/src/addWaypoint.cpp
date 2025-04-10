@@ -13,7 +13,7 @@ wayPoint addWpt;
 wayPoint loadWpt; 
 extern Storage storage;
 
-static const char* TAG = "GPX Creation file";
+static const char* TAG PROGMEM = "GPX Creation file";
 
 /**
  * @brief Open GPX File exists if not, create new.
@@ -26,7 +26,7 @@ void createGpxFile(const char *gpxFilename)
   {
     ESP_LOGI(TAG,"WPT folder not exists");
     if (storage.mkdir(wptFolder))
-     ESP_LOGI(TAG, "WPT folder created");
+      ESP_LOGI(TAG, "WPT folder created");
     else
       ESP_LOGE(TAG, "WPT folder not created");
   }
@@ -46,7 +46,7 @@ void createGpxFile(const char *gpxFilename)
       ESP_LOGI(TAG,"File Size: %d", storage.size(gpxFilename));
     }
     else
-     ESP_LOGE(TAG,"GPX File creation error");
+      ESP_LOGE(TAG,"GPX File creation error");
   }
   else
   {

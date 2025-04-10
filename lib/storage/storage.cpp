@@ -26,20 +26,20 @@ static const char *TAG = "Storage";
 
 namespace 
 {
-    std::string formatSize(uint64_t size)
+  std::string formatSize(uint64_t size)
+  {
+    static const char *suffixes[] = {"B","KB","MB","GB","TB"};
+    int order = 0;
+    double formatted_size = static_cast<double>(size);
+    while (formatted_size >= 1024 && order < sizeof(suffixes) / sizeof(suffixes[0]) - 1)
     {
-        static const char *suffixes[] = {"B","KB","MB","GB","TB"};
-        int order = 0;
-        double formatted_size = static_cast<double>(size);
-        while (formatted_size >= 1024 && order < sizeof(suffixes) / sizeof(suffixes[0]) - 1)
-        {
-            order++;
-            formatted_size /= 1024;
-        }
-        std::ostringstream oss;
-        oss << std::fixed << std::setprecision(2) << formatted_size << " " << suffixes[order];
-        return oss.str();
+      order++;
+      formatted_size /= 1024;
     }
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(2) << formatted_size << " " << suffixes[order];
+    return oss.str();
+  }
 }
 
 /**
@@ -52,79 +52,79 @@ Storage::Storage() : isSdLoaded(false), card(nullptr) {}
  */
 esp_err_t Storage::initSD()
 {
-    esp_err_t ret;
+  esp_err_t ret;
 
-    sdmmc_host_t host = SDSPI_HOST_DEFAULT();
+  sdmmc_host_t host = SDSPI_HOST_DEFAULT();
 #ifdef TDECK_ESP32S3
-    host.slot = SPI2_HOST;
+  host.slot = SPI2_HOST;
 #endif
 #ifdef ICENAV_BOARD
-    host.slot = SPI2_HOST;
+  host.slot = SPI2_HOST;
 #endif
 #ifdef ESP32S3_N16R8
-    host.slot = SPI2_HOST;
+  host.slot = SPI2_HOST;
 #endif
 #ifdef ESP32_N16R4
-    host.slot = HSPI_HOST;
+  host.slot = HSPI_HOST;
 #endif
 
-    sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
-    slot_config.gpio_cs = (gpio_num_t)SD_CS;
-    slot_config.host_id = (spi_host_device_t)host.slot;
+  sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
+  slot_config.gpio_cs = (gpio_num_t)SD_CS;
+  slot_config.host_id = (spi_host_device_t)host.slot;
 
-    // SPI bus configuration
-    spi_bus_config_t bus_cfg = {
-        .mosi_io_num = (gpio_num_t)SD_MOSI,
-        .miso_io_num = (gpio_num_t)SD_MISO,
-        .sclk_io_num = (gpio_num_t)SD_CLK,
-        .quadwp_io_num = -1,
-        .quadhd_io_num = -1,
-        .max_transfer_sz = 4096, // Set transfer size to 4096 bytes (multiple of 512)
-        .flags = 0,
-        .intr_flags = 0};
+  // SPI bus configuration
+  spi_bus_config_t bus_cfg = {
+      .mosi_io_num = (gpio_num_t)SD_MOSI,
+      .miso_io_num = (gpio_num_t)SD_MISO,
+      .sclk_io_num = (gpio_num_t)SD_CLK,
+      .quadwp_io_num = -1,
+      .quadhd_io_num = -1,
+      .max_transfer_sz = 4096, // Set transfer size to 4096 bytes (multiple of 512)
+      .flags = 0,
+      .intr_flags = 0};
 
-    // Adjust the SPI speed (frequency)
-    host.max_freq_khz = 20000;
+  // Adjust the SPI speed (frequency)
+  host.max_freq_khz = 20000;
 
-    // Initialize the SPI bus
-    ret = spi_bus_initialize((spi_host_device_t)host.slot, &bus_cfg, SDSPI_DEFAULT_DMA);
-    if (ret != ESP_OK)
+  // Initialize the SPI bus
+  ret = spi_bus_initialize((spi_host_device_t)host.slot, &bus_cfg, SDSPI_DEFAULT_DMA);
+  if (ret != ESP_OK)
+  {
+    ESP_LOGE(TAG, "Failed to initialize SPI bus.");
+    return ret;
+  }
+
+  ESP_LOGI(TAG, "Initializing SD card");
+
+  esp_vfs_fat_mount_config_t mount_config = {
+      .format_if_mount_failed = true,
+      .max_files = 5,
+      .allocation_unit_size = 16 * 1024};
+
+  ret = esp_vfs_fat_sdspi_mount("/sdcard", &host, &slot_config, &mount_config, &card);
+  if (ret != ESP_OK)
+  {
+    if (ret == ESP_FAIL)
     {
-        ESP_LOGE(TAG, "Failed to initialize SPI bus.");
-        return ret;
+      ESP_LOGE(TAG, "Failed to mount filesystem. "
+                    "If you want the card to be formatted, set format_if_mount_failed = true.");
     }
-
-    ESP_LOGI(TAG, "Initializing SD card");
-
-    esp_vfs_fat_mount_config_t mount_config = {
-        .format_if_mount_failed = true,
-        .max_files = 5,
-        .allocation_unit_size = 16 * 1024};
-
-    ret = esp_vfs_fat_sdspi_mount("/sdcard", &host, &slot_config, &mount_config, &card);
-    if (ret != ESP_OK)
+  else
     {
-        if (ret == ESP_FAIL)
-        {
-            ESP_LOGE(TAG, "Failed to mount filesystem. "
-                          "If you want the card to be formatted, set format_if_mount_failed = true.");
-        }
-        else
-        {
-            ESP_LOGE(TAG, "Failed to initialize the card (%s). "
-                          "Make sure SD card lines have pull-up resistors in place.",
-                     esp_err_to_name(ret));
-        }
-        return ret;
+      ESP_LOGE(TAG, "Failed to initialize the card (%s). "
+                    "Make sure SD card lines have pull-up resistors in place.",
+                      esp_err_to_name(ret));
     }
-    else
-    {
-        ESP_LOGI(TAG, "SD card initialized successfully");
-        sdmmc_card_print_info(stdout, card);
-        isSdLoaded = true;
+    return ret;
+  }
+  else
+  {
+    ESP_LOGI(TAG, "SD card initialized successfully");
+    sdmmc_card_print_info(stdout, card);
+    isSdLoaded = true;
 
-        return ESP_OK;
-    }
+    return ESP_OK;
+  }
 }
 
 /**
@@ -134,36 +134,36 @@ esp_err_t Storage::initSD()
  */
 esp_err_t Storage::initSPIFFS()
 {
-    ESP_LOGI(TAG, "Initializing SPIFFS");
+  ESP_LOGI(TAG, "Initializing SPIFFS");
 
-    esp_vfs_spiffs_conf_t conf =
-        {
-            .base_path = "/spiffs",
-            .partition_label = NULL,
-            .max_files = 5,
-            .format_if_mount_failed = false};
+  esp_vfs_spiffs_conf_t conf =
+      {
+        .base_path = "/spiffs",
+        .partition_label = NULL,
+        .max_files = 5,
+        .format_if_mount_failed = false};
 
-    esp_err_t ret = esp_vfs_spiffs_register(&conf);
+  esp_err_t ret = esp_vfs_spiffs_register(&conf);
 
-    if (ret != ESP_OK)
-    {
-        if (ret == ESP_FAIL)
-            ESP_LOGE(TAG, "Failed to mount or format filesystem");
-        else if (ret == ESP_ERR_NOT_FOUND)
-            ESP_LOGE(TAG, "Failed to find SPIFFS partition");
-        else
-            ESP_LOGE(TAG, "Failed to initialize SPIFFS (%s)", esp_err_to_name(ret));
-        return ESP_FAIL;
-    }
-
-    size_t total = 0, used = 0;
-    ret = esp_spiffs_info(NULL, &total, &used);
-    if (ret != ESP_OK)
-        ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s)", esp_err_to_name(ret));
+  if (ret != ESP_OK)
+  {
+    if (ret == ESP_FAIL)
+      ESP_LOGE(TAG, "Failed to mount or format filesystem");
+    else if (ret == ESP_ERR_NOT_FOUND)
+      ESP_LOGE(TAG, "Failed to find SPIFFS partition");
     else
-        ESP_LOGI(TAG, "Partition size: total: %d used: %d", total, used);
+      ESP_LOGE(TAG, "Failed to initialize SPIFFS (%s)", esp_err_to_name(ret));
+    return ESP_FAIL;
+  }
 
-    return ESP_OK;
+  size_t total = 0, used = 0;
+  ret = esp_spiffs_info(NULL, &total, &used);
+  if (ret != ESP_OK)
+    ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s)", esp_err_to_name(ret));
+  else
+    ESP_LOGI(TAG, "Partition size: total: %d used: %d", total, used);
+
+  return ESP_OK;
 }
 
 /**
@@ -173,44 +173,44 @@ esp_err_t Storage::initSPIFFS()
  */
 SDCardInfo Storage::getSDCardInfo()
 {
-    SDCardInfo info;
+  SDCardInfo info;
 
-    if (card != nullptr)
+  if (card != nullptr)
+  {
+    info.name = std::string(reinterpret_cast<const char*>(card->cid.name));
+    info.capacity = formatSize((uint64_t)(card->csd.capacity) * card->csd.sector_size);
+    info.sector_size = card->csd.sector_size;
+    info.read_block_len = card->csd.read_block_len;
+    info.card_type = (card->ocr && SD_OCR_SDHC_CAP) ? "SDHC/SDXC" : "SDSC";
+
+    FATFS *fs;
+    DWORD fre_clust, fre_sect, tot_sect;
+
+    if (f_getfree("0:",&fre_clust, &fs) == FR_OK)
     {
-        info.name = std::string(reinterpret_cast<const char*>(card->cid.name));
-        info.capacity = formatSize((uint64_t)(card->csd.capacity) * card->csd.sector_size);
-        info.sector_size = card->csd.sector_size;
-        info.read_block_len = card->csd.read_block_len;
-        info.card_type = (card->ocr && SD_OCR_SDHC_CAP) ? "SDHC/SDXC" : "SDSC";
+      tot_sect = (fs->n_fatent - 2) * fs->csize;
+      fre_sect = fre_clust * fs->csize;
 
-        FATFS *fs;
-        DWORD fre_clust, fre_sect, tot_sect;
+      uint64_t total_space_bytes = tot_sect / 2 ;
+      uint64_t free_space_bytes = fre_sect / 2 ;
+      uint64_t used_space_bytes = total_space_bytes - free_space_bytes;
 
-        if (f_getfree("0:",&fre_clust, &fs) == FR_OK)
-        {
-            tot_sect = (fs->n_fatent - 2) * fs->csize;
-            fre_sect = fre_clust * fs->csize;
-
-            uint64_t total_space_bytes = tot_sect / 2 ;
-            uint64_t free_space_bytes = fre_sect / 2 ;
-            uint64_t used_space_bytes = total_space_bytes - free_space_bytes;
-
-            info.total_space = formatSize(total_space_bytes);
-            info.free_space = formatSize(free_space_bytes);
-            info.used_space = formatSize(used_space_bytes);
-        }
-        else
-        {
-            ESP_LOGE(TAG, "Failed to get filesystem info");
-            info.total_space = "0 B";
-            info.free_space = "0 B";
-            info.used_space = "0 B";
-        }
+      info.total_space = formatSize(total_space_bytes);
+      info.free_space = formatSize(free_space_bytes);
+      info.used_space = formatSize(used_space_bytes);
     }
     else
-        ESP_LOGE(TAG, "SD Card not initialized");
+    {
+      ESP_LOGE(TAG, "Failed to get filesystem info");
+      info.total_space = "0 B";
+      info.free_space = "0 B";
+      info.used_space = "0 B";
+    }
+  }
+  else
+    ESP_LOGE(TAG, "SD Card not initialized");
 
-    return info;
+  return info;
 }
 
 
@@ -221,7 +221,7 @@ SDCardInfo Storage::getSDCardInfo()
  */
 bool Storage::getSdLoaded() const
 {
-    return isSdLoaded;
+  return isSdLoaded;
 }
 
 /**
@@ -233,7 +233,7 @@ bool Storage::getSdLoaded() const
  */
 FILE *Storage::open(const char *path, const char *mode)
 {
-    return fopen(path, mode);
+  return fopen(path, mode);
 }
 
 /**
@@ -244,7 +244,7 @@ FILE *Storage::open(const char *path, const char *mode)
  */
 int Storage::close(FILE *file)
 {
-    return fclose(file);
+  return fclose(file);
 }
 
 /**
@@ -255,12 +255,10 @@ int Storage::close(FILE *file)
  */
 size_t Storage::size(const char *path)
 {
-    struct stat st;
-    if (stat(path, &st) == 0)
-    {
-        return st.st_size; 
-    }
-    return 0;
+  struct stat st;
+  if (stat(path, &st) == 0)
+    return st.st_size; 
+  return 0;
 }
 
 /**
@@ -273,9 +271,9 @@ size_t Storage::size(const char *path)
  */
 size_t Storage::read(FILE *file, uint8_t *buffer, size_t size)
 {
-    if (!file)
-        return 0;
-    return fread(buffer, 1, size, file);
+  if (!file)
+    return 0;
+  return fread(buffer, 1, size, file);
 }
 
 /**
@@ -288,9 +286,9 @@ size_t Storage::read(FILE *file, uint8_t *buffer, size_t size)
  */
 size_t Storage::read(FILE *file, char *buffer, size_t size)
 {
-    if (!file)
-        return 0;
-    return fread(buffer, 1, size, file);
+  if (!file)
+    return 0;
+  return fread(buffer, 1, size, file);
 }
 
 /**
@@ -303,9 +301,9 @@ size_t Storage::read(FILE *file, char *buffer, size_t size)
  */
 size_t Storage::write(FILE *file, const uint8_t *buffer, size_t size)
 {
-    if (!file)
-        return 0;
-    return fwrite(buffer, 1, size, file);
+  if (!file)
+    return 0;
+  return fwrite(buffer, 1, size, file);
 }
 
 /**
@@ -318,9 +316,9 @@ size_t Storage::write(FILE *file, const uint8_t *buffer, size_t size)
  */
 size_t Storage::write(FILE *file, const char *buffer, size_t size)
 {
-    if (!file)
-        return 0;
-    return fwrite(buffer, 1, size, file);
+  if (!file)
+    return 0;
+  return fwrite(buffer, 1, size, file);
 }
 
 /**
@@ -331,8 +329,8 @@ size_t Storage::write(FILE *file, const char *buffer, size_t size)
  */
 bool Storage::exists(const char *path)
 {
-    struct stat st;
-    return stat(path, &st) == 0;
+  struct stat st;
+  return stat(path, &st) == 0;
 }
 
 /**
@@ -343,7 +341,7 @@ bool Storage::exists(const char *path)
  */
 bool Storage::mkdir(const char *path)
 {
-    return ::mkdir(path, 0777) == 0;
+  return ::mkdir(path, 0777) == 0;
 }
 
 /**
@@ -354,7 +352,7 @@ bool Storage::mkdir(const char *path)
  */
 bool Storage::remove(const char *path)
 {
-    return ::remove(path) == 0;
+  return ::remove(path) == 0;
 }
 
 /**
@@ -365,7 +363,7 @@ bool Storage::remove(const char *path)
  */
 bool Storage::rmdir(const char *path)
 {
-    return ::rmdir(path) == 0;
+  return ::rmdir(path) == 0;
 }
 
 /**
@@ -379,9 +377,9 @@ bool Storage::rmdir(const char *path)
  */
 int Storage::seek(FILE *file, long offset, int whence)
 {
-    if (!file)
-        return -1;
-    return fseek(file, offset, whence);
+  if (!file)
+    return -1;
+  return fseek(file, offset, whence);
 }
 
 /**
@@ -393,9 +391,9 @@ int Storage::seek(FILE *file, long offset, int whence)
  */
 int Storage::print(FILE *file, const char *str)
 {
-    if (!file)
-        return -1;
-    return fprintf(file, "%s", str);
+  if (!file)
+    return -1;
+  return fprintf(file, "%s", str);
 }
 
 /**
@@ -407,9 +405,9 @@ int Storage::print(FILE *file, const char *str)
  */
 int Storage::println(FILE *file, const char *str)
 {
-    if (!file)
-        return -1;
-    return fprintf(file, "%s\n", str);
+  if (!file)
+    return -1;
+  return fprintf(file, "%s\n", str);
 }
 
 /**
@@ -420,36 +418,13 @@ int Storage::println(FILE *file, const char *str)
  */
 size_t Storage::fileAvailable(FILE *file)
 {
-    if (!file)
-        return 0;
-    long current_pos = ftell(file);
-    fseek(file, 0, SEEK_END);
-    long end_pos = ftell(file);
-    fseek(file, current_pos, SEEK_SET);
-    return end_pos - current_pos;
+  if (!file)
+    return 0;
+  long current_pos = ftell(file);
+  fseek(file, 0, SEEK_END);
+  long end_pos = ftell(file);
+  fseek(file, current_pos, SEEK_SET);
+  return end_pos - current_pos;
 }
 
-/**
- * @brief Set the tion date and time attribute for a file or folder
- * 
- * @param path Path to the file
- */
-void Storage::setFileTime(const char *path)
-{
-    // struct stat st;
-    // if (stat(path, &st) == 0)
-    // {
-    //     time_t tFile = time(NULL);
-    //     struct tm file_tm;
-    //     struct tm *tmFile = localtime_r(&tFile, &file_tm);
-    //     // time_t nowTime = time(NULL);
-    //     // struct tm *now = localtime(&creationTime);
-
-    //     struct utimbuf newTime;
-    //     file_tm.tm_hour = file_tm.tm_hour - 2;
-    //     newTime.actime = mktime(&file_tm);
-    //     newTime.modtime = time(NULL);
-    //     utime(path, &newTime);
-    // }
-}
 

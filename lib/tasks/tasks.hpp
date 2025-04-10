@@ -25,8 +25,8 @@ void gpsTask(void *pvParameters);
 void initGpsTask();
 
 #ifndef DISABLE_CLI
-    void cliTask(void *param);
-    void initCLITask();
+  void cliTask(void *param);
+  void initCLITask();
 #endif
 
 #endif

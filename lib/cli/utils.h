@@ -65,7 +65,7 @@ static void captureScreenshot(const char *filename, const char *pc_ip, uint16_t 
   {
     client.stop();
     return;
-  };
+  }
 
   FILE* file = storage.open(filename, "r");
   if (!file)

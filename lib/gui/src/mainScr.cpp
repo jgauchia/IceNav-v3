@@ -110,9 +110,7 @@ void getActTile(lv_event_t *event)
     }
   }
   else
-  {
     isReady = true;
-  }
 
   lv_obj_t *actTile = lv_tileview_get_tile_act(tilesScreen);
   lv_coord_t tileX = lv_obj_get_x(actTile) / TFT_WIDTH;
@@ -149,45 +147,45 @@ void updateMainScreen(lv_timer_t *t)
   {
     switch (activeTile)
     {
-    case COMPASS:
-#ifdef ENABLE_COMPASS
-      if (!waitScreenRefresh)
-        heading = compass.getHeading();
-      if (compass.isUpdated())
+      case COMPASS:
+  #ifdef ENABLE_COMPASS
+        if (!waitScreenRefresh)
+          heading = compass.getHeading();
+        if (compass.isUpdated())
+          lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
+  #endif
+  #ifndef ENABLE_COMPASS
+        heading = gps.gpsData.heading;
         lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
-#endif
-#ifndef ENABLE_COMPASS
-      heading = gps.gpsData.heading;
-      lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
-#endif
-      if (gps.hasLocationChange())
-      {
-        lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
-        lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
-      }
-      if (gps.isAltitudeChanged())
-        lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
-      if (gps.isSpeedChanged())
-        lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
-      break;
+  #endif
+        if (gps.hasLocationChange())
+        {
+          lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
+          lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
+        }
+        if (gps.isAltitudeChanged())
+          lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
+        if (gps.isSpeedChanged())
+          lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
+        break;
 
-    case MAP:
-#ifdef ENABLE_COMPASS
-      heading = compass.getHeading();
-#endif
-      lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
-      break;
+      case MAP:
+  #ifdef ENABLE_COMPASS
+        heading = compass.getHeading();
+  #endif
+        lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
+        break;
 
-    case NAV:
-      lv_obj_send_event(navTile, LV_EVENT_VALUE_CHANGED, NULL);
-      break;
+      case NAV:
+        lv_obj_send_event(navTile, LV_EVENT_VALUE_CHANGED, NULL);
+        break;
 
-    case SATTRACK:
-      lv_obj_send_event(satTrackTile, LV_EVENT_VALUE_CHANGED, NULL);
-      break;
+      case SATTRACK:
+        lv_obj_send_event(satTrackTile, LV_EVENT_VALUE_CHANGED, NULL);
+        break;
 
-    default:
-      break;
+      default:
+        break;
     }
   }
 }
@@ -204,14 +202,14 @@ void gestureEvent(lv_event_t *event)
   {
     switch (dir)
     {
-    case LV_DIR_LEFT:
-      break;
-    case LV_DIR_RIGHT:
-      break;
-    case LV_DIR_TOP:
-      break;
-    case LV_DIR_BOTTOM:
-      break;
+      case LV_DIR_LEFT:
+        break;
+      case LV_DIR_RIGHT:
+        break;
+      case LV_DIR_TOP:
+        break;
+      case LV_DIR_BOTTOM:
+        break;
     }
   }
 }

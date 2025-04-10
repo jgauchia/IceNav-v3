@@ -16,16 +16,16 @@
 class Battery
 {
 private:
-    float batteryMax;
-    float batteryMin;
-    static constexpr float V_REF = 3.9; // ADC reference voltage
+  float batteryMax;
+  float batteryMin;
+  static constexpr float V_REF = 3.9; // ADC reference voltage
 
 public:
-    Battery();
+  Battery();
 
-    void initADC();
-    void setBatteryLevels(float maxVoltage, float minVoltage);
-    float readBattery();
+  void initADC();
+  void setBatteryLevels(float maxVoltage, float minVoltage);
+  float readBattery();
 };
 
 #endif

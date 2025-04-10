@@ -9,7 +9,7 @@
 #ifndef DISABLE_CLI
 #include "cli.hpp"
 
-const char logo[] =
+static const char logo[] PROGMEM =
 "\r\n"
 "░▒▓█▓▒░  ░▒▓██████▓▒░  ░▒▓████████▓▒░ ░▒▓███████▓▒░   ░▒▓██████▓▒░  ░▒▓█▓▒░░▒▓█▓▒░ \r\n"
 "░▒▓█▓▒░ ░▒▓█▓▒░░▒▓█▓▒░ ░▒▓█▓▒░        ░▒▓█▓▒░░▒▓█▓▒░ ░▒▓█▓▒░░▒▓█▓▒░ ░▒▓█▓▒░░▒▓█▓▒░ \r\n"
@@ -21,6 +21,8 @@ const char logo[] =
 "\r\n"
 ""
 ;
+
+static const char* TAG PROGMEM = "CLI";
 
 extern Power power;
 
@@ -104,7 +106,8 @@ void wcli_scshot(char *args, Stream *response)
   String ip = operands.first();
   uint16_t port = operands.second().toInt();
  
-  if (ip.isEmpty()){
+  if (ip.isEmpty())
+  {
     response->println("Saving to SD..");
 
     waitScreenRefresh = true;
@@ -113,8 +116,10 @@ void wcli_scshot(char *args, Stream *response)
     
     response->println("Note: is possible to send it to a PC using: scshot ip port");
   }
-  else {
-    if (!WiFi.isConnected()) {
+  else
+  {
+    if (!WiFi.isConnected()) 
+    {
       response->println("Please connect your WiFi first!");
       return;
     }
@@ -139,7 +144,8 @@ void wcli_klist(char *args, Stream *response)
   response->printf("\n%11s \t%s \t%s \r\n", "KEYNAME", "DEFINED", "VALUE");
   response->printf("\n%11s \t%s \t%s \r\n", "=======", "=======", "=====");
 
-  for (int i = key_count; i < PKEYS::KCOUNT; i++) {
+  for (int i = key_count; i < PKEYS::KCOUNT; i++)
+  {
     if (i == PKEYS::KUSER) continue;
     String key = cfg.getKey((CONFKEYS)i);
     bool isDefined = cfg.isKey(key);
@@ -159,26 +165,26 @@ void wcli_kset(char *args, Stream *response)
   Pair<String, String> operands = wcli.parseCommand(args);
   String key = operands.first();
   String v = operands.second();
-  if(cfg.saveAuto(key,v)){
+  if (cfg.saveAuto(key,v))
     response->printf("saved key %s\t: %s\r\n", key, v);
-  }
 }
 
 
 /**
  * @brief Output NMEA sentences in CLI
  */
-void wcli_outnmea (char *args, Stream *response)
+void wcli_outnmea(char *args, Stream *response)
 {
-    nmea_output_enable = !nmea_output_enable;
+  nmea_output_enable = !nmea_output_enable;
 }
 
 /**
  * @brief Cancel NMEA Output
  */
-void wcli_abort_handler () 
+void wcli_abort_handler() 
 {
-  if (nmea_output_enable) {
+  if (nmea_output_enable)
+  {
     nmea_output_enable = false;
     delay(100);
     Serial.println("\r\nCancel NMEA output!");
@@ -246,7 +252,7 @@ void initShell()
 void initCLI() 
 {
   Serial.begin(115200);
-  log_v("init CLI");
+  ESP_LOGV(TAG, "init CLI");
   initShell(); 
   initRemoteShell();
 }

@@ -43,7 +43,6 @@ void buttonBarEvent(lv_event_t *event)
 
   if (strcmp(option,"addwpt") == 0)
   {
-    log_v("Add Waypoint");
     wptAction = WPT_ADD;
     isMainScreen = false;
     mapView.redrawMap = false;
@@ -56,7 +55,6 @@ void buttonBarEvent(lv_event_t *event)
 
   if (strcmp(option,"waypoint") == 0)
   {
-    log_v("Waypoint");
     isWaypointOpt = true;
     isTrackOpt = false;
     if (!isOptionLoaded)
@@ -67,7 +65,6 @@ void buttonBarEvent(lv_event_t *event)
   }
   // if (strcmp(option,"track") == 0)
   // {
-  //   log_v("Track");
   //   isMainScreen = false;
   //   isTrackOpt = true;
   //   isWaypointOpt = false;
@@ -79,7 +76,6 @@ void buttonBarEvent(lv_event_t *event)
   // }
   if (strcmp(option,"settings") == 0)
   {
-    log_v("Settings");
     isMainScreen = false;
     lv_screen_load(settingsScreen);
   }
@@ -95,7 +91,6 @@ void optionEvent(lv_event_t *event)
   char *action = (char *)lv_event_get_user_data(event);
   if (strcmp(action,"load") == 0)
   {
-    log_v("Load Option");
     wptAction = WPT_LOAD;
     isMainScreen = false;
     lv_obj_del(option);
@@ -104,7 +99,6 @@ void optionEvent(lv_event_t *event)
   }
   if (strcmp(action,"edit") == 0)
   {
-    log_v("Edit Option");
     wptAction = WPT_EDIT;
     isMainScreen = false;
     lv_obj_del(option);
@@ -113,7 +107,6 @@ void optionEvent(lv_event_t *event)
   }
   if (strcmp(action,"delete") == 0)
   {
-    log_v("Delete Option");
     wptAction = WPT_DEL;
     isMainScreen = false;
     lv_obj_del(option);
@@ -125,7 +118,6 @@ void optionEvent(lv_event_t *event)
     isMainScreen = true;
     lv_obj_del(option);
   }
-
 
   isOptionLoaded = false;
   isWaypointOpt = false;
