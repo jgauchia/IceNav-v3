@@ -2,8 +2,8 @@
  * @file imu.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  IMU definition and functions
- * @version 0.2.0_alpha
- * @date 2025-03
+ * @version 0.2.0
+ * @date 2025-04
  */
 
  #include "imu.hpp"
