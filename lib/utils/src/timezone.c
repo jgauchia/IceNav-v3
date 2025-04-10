@@ -2,8 +2,8 @@
  * @file timezone.c
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  POSIX timezone (TZ)
- * @version 0.2.0_alpha
- * @date 2025-03
+ * @version 0.2.0
+ * @date 2025-04
  */
 
 #include <pgmspace.h>
