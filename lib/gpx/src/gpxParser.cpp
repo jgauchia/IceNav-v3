@@ -341,3 +341,43 @@ GPXParser::~GPXParser() {}
   ESP_LOGE("GPXParser", "Waypoint with name %s not found in file: %s", name, filePath.c_str());
   return false;
 }
+
+/**
+ * @brief Retrieve a list of track names from the GPX file.
+ *
+ * @return std::vector<std::string> Vector containing all track names.
+ */
+ std::vector<std::string> GPXParser::getTrackList()
+ {
+  std::vector<std::string> trackNames;
+
+  tinyxml2::XMLDocument doc;
+  tinyxml2::XMLError result = doc.LoadFile(filePath.c_str());
+  if (result != tinyxml2::XML_SUCCESS)
+  {
+    ESP_LOGE(TAG, "Failed to load file: %s", filePath.c_str());
+    return trackNames;
+  }
+
+  tinyxml2::XMLElement* root = doc.RootElement();
+  if (!root)
+  {
+    ESP_LOGE(TAG, "Failed to get root element in file: %s", filePath.c_str());
+    return trackNames;
+  }
+
+  // Iterate through <trk> elements
+  for (tinyxml2::XMLElement* trk = root->FirstChildElement("trk"); trk != nullptr; trk = trk->NextSiblingElement("trk"))
+  {
+    tinyxml2::XMLElement* nameElement = trk->FirstChildElement("name");
+    if (nameElement)
+    {
+      const char* name = nameElement->GetText();
+      if (name)
+        trackNames.push_back(name);
+    }
+  }
+
+  std::sort(trackNames.begin(), trackNames.end()); // Sort track names alphabetically
+  return trackNames;
+ }

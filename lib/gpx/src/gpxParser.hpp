@@ -23,6 +23,7 @@ class GPXParser
     ~GPXParser();
 
     std::vector<std::string> getWaypointList();
+    std::vector<std::string> getTrackList();
     wayPoint getWaypointInfo(const String& name);
     bool addWaypoint(const wayPoint& wp);
     bool editWaypointName(const char* oldName, const char* newName);
