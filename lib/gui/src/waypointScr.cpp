@@ -32,7 +32,6 @@ static void waypointScreenEvent(lv_event_t *event)
   #ifdef TDECK_ESP32S3
     if (code == LV_EVENT_KEY)
     {
-      createGpxFile(wptFile);
       GPXParser gpx(wptFile);
       if ( lv_indev_get_key(lv_indev_active()) == 13 ) // Enter Key
       {    
@@ -70,7 +69,6 @@ static void waypointScreenEvent(lv_event_t *event)
 
   if (code == LV_EVENT_READY)
   {
-    createGpxFile(wptFile);
     GPXParser gpx(wptFile);
     if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
     {
@@ -148,7 +146,6 @@ static void waypointNameEvent(lv_event_t *event)
 
   if(code == LV_EVENT_CLICKED)
   {
-    createGpxFile(wptFile);
     GPXParser gpx(wptFile);
     switch (gpxAction)
     {

@@ -15,6 +15,7 @@
 
 static const char* wptFile PROGMEM = "/sdcard/WPT/waypoint.gpx";
 static const char* wptFolder PROGMEM = "/sdcard/WPT";
+static const char* trkFolder PROGMEM = "/sdcard/TRK";
 
 /**
  * @brief Waypoint action enum
