@@ -40,8 +40,7 @@ void createGpxFile(const char *gpxFilename)
     if (gpxFile)
     {
       ESP_LOGI(TAG,"Creating GPX File");
-      storage.println(gpxFile, gpxType.header);
-      storage.print(gpxFile, gpxType.footer);
+      storage.println(gpxFile, gpxHeader);
       storage.close(gpxFile);
       ESP_LOGI(TAG,"File Size: %d", storage.size(gpxFilename));
     }
