@@ -20,20 +20,20 @@ static const char* wptFolder PROGMEM = "/sdcard/WPT";
  * @brief Waypoint action enum
  *
  */
-enum wptAction_t
+enum gpxAction_t
 {
     WPT_NONE,
     WPT_ADD,
-    WPT_LOAD,
-    WPT_EDIT,
-    WPT_DEL,
+    GPX_LOAD,
+    GPX_EDIT,
+    GPX_DEL,
 };
 
 /**
  * @brief Waypoint Action
  *
  */
-extern uint8_t wptAction;
+extern uint8_t gpxAction;
 
 /**
  * @brief Waypoint Structure

@@ -12,7 +12,7 @@ bool isMainScreen = false;    // Flag to indicate main screen is selected
 bool isScrolled = true;       // Flag to indicate when tileview was scrolled
 bool isReady = false;         // Flag to indicate when tileview scroll was finished
 uint8_t activeTile = 0;       // Current active tile
-uint8_t wptAction = WPT_NONE; // Current Waypoint Action
+uint8_t gpxAction = WPT_NONE; // Current Waypoint Action
 int heading = 0;              // Heading value (Compass or GPS)
 
 extern Compass compass;

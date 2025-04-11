@@ -36,14 +36,14 @@ static void waypointScreenEvent(lv_event_t *event)
       GPXParser gpx(wptFile);
       if ( lv_indev_get_key(lv_indev_active()) == 13 ) // Enter Key
       {    
-        switch (wptAction)
+        switch (gpxAction)
         {
           case WPT_ADD:
             addWpt.name = (char *)lv_textarea_get_text(fileName);
             if (strcmp(addWpt.name,"") != 0)
               gpx.addWaypoint(addWpt);
             break;
-          case WPT_EDIT:
+          case GPX_EDIT:
             char *newName = (char *)lv_textarea_get_text(fileName);
             if (strcmp(loadWpt.name, newName) != 0)
               gpx.editWaypointName(loadWpt.name, newName);
@@ -52,7 +52,7 @@ static void waypointScreenEvent(lv_event_t *event)
 
         isMainScreen = true;
         mapView.redrawMap = true;
-        wptAction = WPT_NONE;
+        gpxAction = WPT_NONE;
         lv_refr_now(display);
         loadMainScreen();
       }
@@ -61,7 +61,7 @@ static void waypointScreenEvent(lv_event_t *event)
       { 
         isMainScreen = true;
         mapView.redrawMap = true;
-        wptAction = WPT_NONE;
+        gpxAction = WPT_NONE;
         lv_refr_now(display);
         loadMainScreen();
       }
@@ -78,14 +78,14 @@ static void waypointScreenEvent(lv_event_t *event)
       lv_display_set_rotation(display,LV_DISPLAY_ROTATION_0);
     }
     
-    switch (wptAction)
+    switch (gpxAction)
     {
       case WPT_ADD:
         addWpt.name = (char *)lv_textarea_get_text(fileName);
         if (strcmp(addWpt.name,"") != 0)
           gpx.addWaypoint(addWpt);
         break;
-      case WPT_EDIT:
+      case GPX_EDIT:
         char *newName = (char *)lv_textarea_get_text(fileName);
         if (strcmp(loadWpt.name, newName) != 0)
           gpx.editWaypointName(loadWpt.name, newName);
@@ -94,7 +94,7 @@ static void waypointScreenEvent(lv_event_t *event)
 
     isMainScreen = true;
     mapView.redrawMap = true;
-    wptAction = WPT_NONE;
+    gpxAction = WPT_NONE;
     lv_refr_now(display);
     loadMainScreen();
   }
@@ -108,7 +108,7 @@ static void waypointScreenEvent(lv_event_t *event)
     }
     isMainScreen = true;
     mapView.redrawMap = true;
-    wptAction = WPT_NONE;
+    gpxAction = WPT_NONE;
     lv_refr_now(display);
     loadMainScreen();
   }
@@ -150,14 +150,14 @@ static void waypointNameEvent(lv_event_t *event)
   {
     createGpxFile(wptFile);
     GPXParser gpx(wptFile);
-    switch (wptAction)
+    switch (gpxAction)
     {
       case WPT_ADD:
         addWpt.name = (char *)lv_textarea_get_text(waypointName);
         if (strcmp(addWpt.name,"") != 0)
           gpx.addWaypoint(addWpt);
         break;
-      case WPT_EDIT:
+      case GPX_EDIT:
         char *newName = (char *)lv_textarea_get_text(waypointName);
         if (strcmp(loadWpt.name, newName) != 0)
           gpx.editWaypointName(loadWpt.name, newName);
@@ -166,7 +166,7 @@ static void waypointNameEvent(lv_event_t *event)
 
     isMainScreen = true;
     mapView.redrawMap = true;
-    wptAction = WPT_NONE;
+    gpxAction = WPT_NONE;
     lv_refr_now(display);
     loadMainScreen();
   }
@@ -182,7 +182,7 @@ void updateWaypointPos()
   // struct tm UTCwpt_tm;
   // struct tm *tmUTCwpt = gmtime_r(&tUTCwpt, &UTCwpt_tm);
 
-  switch (wptAction)
+  switch (gpxAction)
   {
     case WPT_ADD:
       addWpt.lat = gps.gpsData.latitude;
@@ -195,7 +195,7 @@ void updateWaypointPos()
       lv_label_set_text_static(lat, latFormatString(addWpt.lat));
       lv_label_set_text_static(lon, lonFormatString(addWpt.lon));
       break;
-    case WPT_EDIT:
+    case GPX_EDIT:
       lv_label_set_text_static(lat, latFormatString(loadWpt.lat));
       lv_label_set_text_static(lon, lonFormatString(loadWpt.lon));
       break;
