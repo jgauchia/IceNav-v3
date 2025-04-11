@@ -12,6 +12,7 @@
 #include <Arduino.h>
 #include <string>
 #include <vector>
+#include <map>
 #include <algorithm>
 #include "tinyxml2.h"
 #include "globalGpxDef.h"
@@ -20,10 +21,11 @@ class GPXParser
 {
   public:
     GPXParser(const char* filePath);
+    GPXParser();
     ~GPXParser();
 
     std::vector<std::string> getWaypointList();
-    std::vector<std::string> getTrackList();
+    static std::map<std::string, std::vector<std::string>> getTrackList(const std::string& folderPath);
     wayPoint getWaypointInfo(const String& name);
     bool addWaypoint(const wayPoint& wp);
     bool editWaypointName(const char* oldName, const char* newName);

@@ -96,6 +96,8 @@ void optionEvent(lv_event_t *event)
     updateGpxListScreen();
     if (isTrackOpt)
       lv_table_set_cell_value(listGPXScreen, 0, 0, LV_SYMBOL_LEFT " Tracks");
+    if (isWaypointOpt)
+      lv_table_set_cell_value(listGPXScreen, 0, 0, LV_SYMBOL_LEFT " Waypoints");
     lv_screen_load(listGPXScreen);
   }
   if (strcmp(action,"edit") == 0)
@@ -106,6 +108,8 @@ void optionEvent(lv_event_t *event)
     updateGpxListScreen();
     if (isTrackOpt)
       lv_table_set_cell_value(listGPXScreen, 0, 0, LV_SYMBOL_LEFT " Tracks");
+    if (isWaypointOpt)
+      lv_table_set_cell_value(listGPXScreen, 0, 0, LV_SYMBOL_LEFT " Waypoints");
     lv_screen_load(listGPXScreen);
   }
   if (strcmp(action,"delete") == 0)
@@ -116,6 +120,8 @@ void optionEvent(lv_event_t *event)
     updateGpxListScreen();
     if (isTrackOpt)
       lv_table_set_cell_value(listGPXScreen, 0, 0, LV_SYMBOL_LEFT " Tracks");
+    if (isWaypointOpt)
+      lv_table_set_cell_value(listGPXScreen, 0, 0, LV_SYMBOL_LEFT " Waypoints");
     lv_screen_load(listGPXScreen);   
   }
   if (strcmp(action,"exit") == 0)

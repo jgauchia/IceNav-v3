@@ -7,12 +7,15 @@
  */
 
 #include "gpxScr.hpp"
+#include "esp_log.h"
 
 extern Maps mapView;
 extern Storage storage;
 extern wayPoint loadWpt;
 
 lv_obj_t *listGPXScreen; // Add Waypoint Screen
+
+static const char* TAG PROGMEM = "GPX List Screen";
 
 /**
  * @brief Way point list event
@@ -90,6 +93,8 @@ void gpxListEvent(lv_event_t *event)
     }
     else if (row == 0)
     {
+      isWaypointOpt = false;
+      isTrackOpt = false;
       lv_obj_add_flag(navTile, LV_OBJ_FLAG_HIDDEN);
       loadMainScreen();
     }
@@ -129,17 +134,32 @@ void updateGpxListScreen()
   {
     GPXParser gpx(wptFile);
 
-    uint16_t totalWpt = 1;
+    uint16_t totalGpx = 1;
     std::vector<std::string> names = gpx.getWaypointList();
     for (const std::string& name : names) 
     {
-      lv_table_set_cell_value_fmt(listGPXScreen, totalWpt, 0, LV_SYMBOL_GPS " - %s", name.c_str());
-      totalWpt++;
+      lv_table_set_cell_value_fmt(listGPXScreen, totalGpx, 0, LV_SYMBOL_GPS " - %s", name.c_str());
+      totalGpx++;
     }
   } 
 
   if (isTrackOpt)
   {
-    
+    uint16_t totalGpx = 1;
+    std::map<std::string, std::vector<std::string>> tracksByFile = GPXParser::getTrackList(trkFolder);
+
+    for (std::map<std::string, std::vector<std::string>>::const_iterator it = tracksByFile.begin(); it != tracksByFile.end(); ++it)
+    {
+      const std::string& fileName = it->first;
+      const std::vector<std::string>& trackNames = it->second;
+
+      ESP_LOGI(TAG, "File: %s", fileName.c_str());
+      for (const std::string& trackName : trackNames)
+      {
+          ESP_LOGI(TAG, " - %s", trackName.c_str());
+          lv_table_set_cell_value_fmt(listGPXScreen, totalGpx, 0, LV_SYMBOL_SHUFFLE " - %s", trackName.c_str());
+          totalGpx++;
+      }
+    }
   }
 }

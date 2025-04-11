@@ -9,6 +9,7 @@
 #include "gpxParser.hpp"
 #include <iomanip>
 #include <sstream>
+#include <dirent.h> 
 #include "esp_log.h"
 
 static const char* TAG PROGMEM = "GPXParser";
@@ -28,6 +29,7 @@ std::string formatDouble(double value, int precision)
 }
 
 GPXParser::GPXParser(const char* filePath) : filePath(filePath) {}
+GPXParser::GPXParser(): filePath("") {}
 
 GPXParser::~GPXParser() {}
 
@@ -39,37 +41,37 @@ GPXParser::~GPXParser() {}
  */
  std::vector<std::string> GPXParser::getWaypointList() 
  {
-    std::vector<std::string> names;
+  std::vector<std::string> names;
 
-    tinyxml2::XMLDocument doc;
-    tinyxml2::XMLError result = doc.LoadFile(filePath.c_str());
-    if (result != tinyxml2::XML_SUCCESS) 
-    {
-      ESP_LOGE(TAG, "Failed to load file: %s", filePath.c_str());
-      return names;
-    }
-
-    tinyxml2::XMLElement* root = doc.RootElement();
-    if (!root)
-    {
-      ESP_LOGE(TAG, "Failed to get root element in file: %s", filePath.c_str());
-      return names;
-    }
-
-    for (tinyxml2::XMLElement* wpt = root->FirstChildElement("wpt"); wpt != nullptr; wpt = wpt->NextSiblingElement("wpt")) 
-    {
-      tinyxml2::XMLElement* nameElement = wpt->FirstChildElement("name");
-      if (nameElement) 
-      {
-        const char* name = nameElement->GetText();
-        if (name)
-          names.push_back(name);
-      }
-    }
-
-    std::sort(names.begin(), names.end());
-    
+  tinyxml2::XMLDocument doc;
+  tinyxml2::XMLError result = doc.LoadFile(filePath.c_str());
+  if (result != tinyxml2::XML_SUCCESS) 
+  {
+    ESP_LOGE(TAG, "Failed to load file: %s", filePath.c_str());
     return names;
+  }
+
+  tinyxml2::XMLElement* root = doc.RootElement();
+  if (!root)
+  {
+    ESP_LOGE(TAG, "Failed to get root element in file: %s", filePath.c_str());
+    return names;
+  }
+
+  for (tinyxml2::XMLElement* wpt = root->FirstChildElement("wpt"); wpt != nullptr; wpt = wpt->NextSiblingElement("wpt")) 
+  {
+    tinyxml2::XMLElement* nameElement = wpt->FirstChildElement("name");
+    if (nameElement) 
+    {
+      const char* name = nameElement->GetText();
+      if (name)
+        names.push_back(name);
+    }
+  }
+
+  std::sort(names.begin(), names.end());
+  
+  return names;
 }
 
 /**
@@ -80,85 +82,85 @@ GPXParser::~GPXParser() {}
  */
  wayPoint GPXParser::getWaypointInfo(const String& name) 
  {
-    wayPoint wp = {0};
+  wayPoint wp = {0};
 
-    tinyxml2::XMLDocument doc;
-    tinyxml2::XMLError result = doc.LoadFile(filePath.c_str());
-    if (result != tinyxml2::XML_SUCCESS)
-    {
-      ESP_LOGE(TAG, "Failed to load file: %s", filePath.c_str());
-      return wp;
-    }
-
-    tinyxml2::XMLElement* root = doc.RootElement();
-    if (!root) 
-    {
-      ESP_LOGE(TAG, "Failed to get root element in file: %s", filePath.c_str());
-      return wp;
-    }
-
-    tinyxml2::XMLElement* wpt = nullptr;
-    for (wpt = root->FirstChildElement("wpt"); wpt != nullptr; wpt = wpt->NextSiblingElement("wpt")) 
-    {
-      tinyxml2::XMLElement* nameElement = wpt->FirstChildElement("name");
-      if (nameElement && name == nameElement->GetText()) 
-      {
-        wp.name = strdup(nameElement->GetText());
-        break;
-      }
-    }
-
-    if (wpt)
-    {
-      wpt->QueryDoubleAttribute("lat", &wp.lat);
-      wpt->QueryDoubleAttribute("lon", &wp.lon);
-
-      tinyxml2::XMLElement* element = nullptr;
-
-      element = wpt->FirstChildElement("ele");
-      if (element) 
-        wp.ele = static_cast<float>(element->DoubleText());
-
-      element = wpt->FirstChildElement("time");
-      if (element)
-        wp.time = strdup(element->GetText());
-
-      element = wpt->FirstChildElement("desc");
-      if (element) 
-        wp.desc = strdup(element->GetText());
-
-      element = wpt->FirstChildElement("src");
-      if (element) 
-        wp.src = strdup(element->GetText());
-
-      element = wpt->FirstChildElement("sym");
-      if (element) 
-        wp.sym = strdup(element->GetText());
-
-      element = wpt->FirstChildElement("type");
-      if (element) 
-        wp.type = strdup(element->GetText());
-
-      element = wpt->FirstChildElement("sat");
-      if (element) 
-        wp.sat = static_cast<uint8_t>(element->UnsignedText());
-
-      element = wpt->FirstChildElement("hdop");
-      if (element) 
-        wp.hdop = static_cast<float>(element->DoubleText());
-
-      element = wpt->FirstChildElement("vdop");
-      if (element) 
-        wp.vdop = static_cast<float>(element->DoubleText());
-
-      element = wpt->FirstChildElement("pdop");
-      if (element) 
-        wp.pdop = static_cast<float>(element->DoubleText());
-    }
-    else
-        ESP_LOGE(TAG, "Waypoint with name %s not found in file: %s", name.c_str(), filePath.c_str());
-
+  tinyxml2::XMLDocument doc;
+  tinyxml2::XMLError result = doc.LoadFile(filePath.c_str());
+  if (result != tinyxml2::XML_SUCCESS)
+  {
+    ESP_LOGE(TAG, "Failed to load file: %s", filePath.c_str());
     return wp;
+  }
+
+  tinyxml2::XMLElement* root = doc.RootElement();
+  if (!root) 
+  {
+    ESP_LOGE(TAG, "Failed to get root element in file: %s", filePath.c_str());
+    return wp;
+  }
+
+  tinyxml2::XMLElement* wpt = nullptr;
+  for (wpt = root->FirstChildElement("wpt"); wpt != nullptr; wpt = wpt->NextSiblingElement("wpt")) 
+  {
+    tinyxml2::XMLElement* nameElement = wpt->FirstChildElement("name");
+    if (nameElement && name == nameElement->GetText()) 
+    {
+      wp.name = strdup(nameElement->GetText());
+      break;
+    }
+  }
+
+  if (wpt)
+  {
+    wpt->QueryDoubleAttribute("lat", &wp.lat);
+    wpt->QueryDoubleAttribute("lon", &wp.lon);
+
+    tinyxml2::XMLElement* element = nullptr;
+
+    element = wpt->FirstChildElement("ele");
+    if (element) 
+      wp.ele = static_cast<float>(element->DoubleText());
+
+    element = wpt->FirstChildElement("time");
+    if (element)
+      wp.time = strdup(element->GetText());
+
+    element = wpt->FirstChildElement("desc");
+    if (element) 
+      wp.desc = strdup(element->GetText());
+
+    element = wpt->FirstChildElement("src");
+    if (element) 
+      wp.src = strdup(element->GetText());
+
+    element = wpt->FirstChildElement("sym");
+    if (element) 
+      wp.sym = strdup(element->GetText());
+
+    element = wpt->FirstChildElement("type");
+    if (element) 
+      wp.type = strdup(element->GetText());
+
+    element = wpt->FirstChildElement("sat");
+    if (element) 
+      wp.sat = static_cast<uint8_t>(element->UnsignedText());
+
+    element = wpt->FirstChildElement("hdop");
+    if (element) 
+      wp.hdop = static_cast<float>(element->DoubleText());
+
+    element = wpt->FirstChildElement("vdop");
+    if (element) 
+      wp.vdop = static_cast<float>(element->DoubleText());
+
+    element = wpt->FirstChildElement("pdop");
+    if (element) 
+      wp.pdop = static_cast<float>(element->DoubleText());
+  }
+  else
+      ESP_LOGE(TAG, "Waypoint with name %s not found in file: %s", name.c_str(), filePath.c_str());
+
+  return wp;
 }
 
 /**
@@ -343,41 +345,66 @@ GPXParser::~GPXParser() {}
 }
 
 /**
- * @brief Retrieve a list of track names from the GPX file.
+ * @brief Retrieve track names from all GPX files in a specified folder.
  *
- * @return std::vector<std::string> Vector containing all track names.
+ * @param folderPath Path to the folder containing GPX files.
+ * @return std::map<std::string, std::vector<std::string>> Map where the key is the file name and the value is a vector of track names.
  */
- std::vector<std::string> GPXParser::getTrackList()
+ std::map<std::string, std::vector<std::string>> GPXParser::getTrackList(const std::string& folderPath)
  {
-  std::vector<std::string> trackNames;
+  std::map<std::string, std::vector<std::string>> tracksByFile;
 
-  tinyxml2::XMLDocument doc;
-  tinyxml2::XMLError result = doc.LoadFile(filePath.c_str());
-  if (result != tinyxml2::XML_SUCCESS)
+  DIR* dir = opendir(folderPath.c_str());
+  if (!dir)
   {
-    ESP_LOGE(TAG, "Failed to load file: %s", filePath.c_str());
-    return trackNames;
+    ESP_LOGE(TAG, "Failed to open folder: %s", folderPath.c_str());
+    return tracksByFile;
   }
 
-  tinyxml2::XMLElement* root = doc.RootElement();
-  if (!root)
+  struct dirent* entry;
+  while ((entry = readdir(dir)) != nullptr)
   {
-    ESP_LOGE(TAG, "Failed to get root element in file: %s", filePath.c_str());
-    return trackNames;
-  }
-
-  // Iterate through <trk> elements
-  for (tinyxml2::XMLElement* trk = root->FirstChildElement("trk"); trk != nullptr; trk = trk->NextSiblingElement("trk"))
-  {
-    tinyxml2::XMLElement* nameElement = trk->FirstChildElement("name");
-    if (nameElement)
+    if (entry->d_type == DT_REG)
     {
-      const char* name = nameElement->GetText();
-      if (name)
-        trackNames.push_back(name);
+      std::string fileName = entry->d_name;
+
+      if (fileName.size() >= 4 && fileName.substr(fileName.size() - 4) == ".gpx")
+      {
+        std::string filePath = folderPath + "/" + fileName;
+
+        // Create a GPXParser instance for the file
+        GPXParser parser(filePath.c_str());
+        std::vector<std::string> trackNames;
+
+        tinyxml2::XMLDocument doc;
+        tinyxml2::XMLError result = doc.LoadFile(filePath.c_str());
+        if (result == tinyxml2::XML_SUCCESS)
+        {
+          tinyxml2::XMLElement* root = doc.RootElement();
+          if (root)
+          {
+            for (tinyxml2::XMLElement* trk = root->FirstChildElement("trk"); trk != nullptr; trk = trk->NextSiblingElement("trk"))
+            {
+              tinyxml2::XMLElement* nameElement = trk->FirstChildElement("name");
+              if (nameElement)
+              {
+                const char* name = nameElement->GetText();
+                if (name)
+                  trackNames.push_back(name);
+              }
+            }
+          }
+          else
+            ESP_LOGE(TAG, "Failed to get root element in file: %s", filePath.c_str());
+        }
+        else
+          ESP_LOGE(TAG, "Failed to load GPX file: %s", filePath.c_str());
+
+        tracksByFile[fileName] = trackNames;
+      }
     }
   }
 
-  std::sort(trackNames.begin(), trackNames.end()); // Sort track names alphabetically
-  return trackNames;
+  closedir(dir);
+  return tracksByFile;
  }
