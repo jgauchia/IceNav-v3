@@ -12,6 +12,7 @@
 #include "globalGpxDef.h"
 #include "storage.hpp"
 
-void createGpxFiles();
+void createGpxFolders();
+void createWptFile();
 
 #endif

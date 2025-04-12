@@ -16,10 +16,10 @@ extern Storage storage;
 static const char* TAG PROGMEM = "GPX file struct";
 
 /**
- * @brief Open GPX File and folders structure
+ * @brief Create GPX folders structure
  * 
  */
-void createGpxFiles()
+void createGpxFolders()
 {
   if (!storage.exists(trkFolder))
   {
@@ -42,7 +42,14 @@ void createGpxFiles()
   }
   else
     ESP_LOGI(TAG,"WPT folder exists");
+}
 
+/**
+ * @brief Create default IcenNav waypoint file
+ * 
+ */
+void createWptFile()
+{
   FILE *gpxFile = storage.open(wptFile, "r");
 
   if (!gpxFile)

@@ -48,6 +48,8 @@ void gpxListEvent(lv_event_t *event)
       else if (gpxTrack)
         gpxFolder = String(trkFolder) + "/" + gpxFile;
 
+      GPXParser gpx(gpxFolder.c_str());
+      
       if (!sel.isEmpty())
       {
         switch (gpxAction)
@@ -55,8 +57,7 @@ void gpxListEvent(lv_event_t *event)
           case GPX_LOAD:
             if (gpxWaypoint)
             {
-              GPXParser gpx(gpxFolder.c_str());
-              loadWpt = gpx.getWaypointInfo(gpxName);
+              loadWpt = gpx.getWaypointInfo(gpxName.c_str());
               lv_img_set_src(arrowNav, &navup);        
 
               if (loadWpt.lat != 0 && loadWpt.lon != 0)
@@ -83,8 +84,7 @@ void gpxListEvent(lv_event_t *event)
 
             if (gpxWaypoint)
             {
-              GPXParser gpx(gpxFolder.c_str());
-              loadWpt = gpx.getWaypointInfo(gpxName);
+              loadWpt = gpx.getWaypointInfo(gpxName.c_str());
               lv_textarea_set_text(waypointName, loadWpt.name);
               isScreenRotated = false;
               lv_obj_set_width(waypointName, tft.width() - 10);
@@ -94,10 +94,7 @@ void gpxListEvent(lv_event_t *event)
             break;
           case GPX_DEL:
             if (gpxWaypoint)
-            {
-              GPXParser gpx(gpxFolder.c_str());
-              gpx.deleteWaypoint(loadWpt.name);
-            }
+              gpx.deleteWaypoint(gpxName.c_str());
 
             loadMainScreen(); 
             break;

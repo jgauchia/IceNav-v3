@@ -153,7 +153,7 @@ void setup()
   battery.initADC();
 
   initTFT();
-  createGpxFiles();
+  createGpxFolders();
 
   mapView.initMap(TFT_HEIGHT - 100, TFT_WIDTH, TFT_HEIGHT);
 
