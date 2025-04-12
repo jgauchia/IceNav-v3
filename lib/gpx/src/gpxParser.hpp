@@ -24,7 +24,7 @@ class GPXParser
     GPXParser();
     ~GPXParser();
 
-    std::vector<std::string> getWaypointList();
+    static std::map<std::string, std::vector<std::string>> getWaypointList(const std::string& folderPath);
     static std::map<std::string, std::vector<std::string>> getTrackList(const std::string& folderPath);
     wayPoint getWaypointInfo(const String& name);
     bool addWaypoint(const wayPoint& wp);

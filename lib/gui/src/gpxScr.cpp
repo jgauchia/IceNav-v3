@@ -12,6 +12,10 @@
 extern Maps mapView;
 extern Storage storage;
 extern wayPoint loadWpt;
+extern bool isWaypointOpt;
+extern bool isTrackOpt;
+bool gpxWaypoint = false;
+bool gpxTrack = false;
 
 lv_obj_t *listGPXScreen; // Add Waypoint Screen
 
@@ -35,18 +39,24 @@ void gpxListEvent(lv_event_t *event)
     if (row != 0)
     {
       String sel = String(lv_table_get_cell_value(obj, row, col));
-      String wptName = sel.substring(6,sel.length());
+      String gpxName = sel.substring(6,sel.length());
+      String gpxFile = String(lv_table_get_cell_value(obj, row, col+1));
+
+      String gpxFolder = "";
+      if (gpxWaypoint)
+        gpxFolder = String(wptFolder) + "/" + gpxFile;
+      else if (gpxTrack)
+        gpxFolder = String(trkFolder) + "/" + gpxFile;
 
       if (!sel.isEmpty())
       {
-        GPXParser gpx(wptFile);
-        loadWpt = gpx.getWaypointInfo(wptName);
-
         switch (gpxAction)
         {
           case GPX_LOAD:
-            if (isWaypointOpt)
+            if (gpxWaypoint)
             {
+              GPXParser gpx(gpxFolder.c_str());
+              loadWpt = gpx.getWaypointInfo(gpxName);
               lv_img_set_src(arrowNav, &navup);        
 
               if (loadWpt.lat != 0 && loadWpt.lon != 0)
@@ -71,8 +81,10 @@ void gpxListEvent(lv_event_t *event)
             isMainScreen = false;
             mapView.redrawMap = false;
 
-            if (isWaypointOpt)
+            if (gpxWaypoint)
             {
+              GPXParser gpx(gpxFolder.c_str());
+              loadWpt = gpx.getWaypointInfo(gpxName);
               lv_textarea_set_text(waypointName, loadWpt.name);
               isScreenRotated = false;
               lv_obj_set_width(waypointName, tft.width() - 10);
@@ -81,10 +93,13 @@ void gpxListEvent(lv_event_t *event)
             }
             break;
           case GPX_DEL:
-            if (isWaypointOpt)
+            if (gpxWaypoint)
+            {
+              GPXParser gpx(gpxFolder.c_str());
               gpx.deleteWaypoint(loadWpt.name);
+            }
 
-            loadMainScreen();
+            loadMainScreen(); 
             break;
           default:
             break;
@@ -93,8 +108,6 @@ void gpxListEvent(lv_event_t *event)
     }
     else if (row == 0)
     {
-      isWaypointOpt = false;
-      isTrackOpt = false;
       lv_obj_add_flag(navTile, LV_OBJ_FLAG_HIDDEN);
       loadMainScreen();
     }
@@ -108,8 +121,11 @@ void gpxListEvent(lv_event_t *event)
 void createGpxListScreen()
 {
   listGPXScreen = lv_table_create(NULL);
-  lv_obj_set_size(listGPXScreen, TFT_WIDTH, TFT_HEIGHT);
+  lv_table_set_col_cnt(listGPXScreen, 2);
+  lv_table_set_column_width(listGPXScreen,1,400);
+  lv_obj_set_size(listGPXScreen, LV_SIZE_CONTENT, TFT_HEIGHT);
   lv_table_set_cell_value(listGPXScreen, 0, 0, LV_SYMBOL_LEFT " Waypoints");
+  lv_table_set_cell_value(listGPXScreen, 0, 1, LV_SYMBOL_FILE " File");
   lv_table_set_column_width(listGPXScreen, 0, TFT_WIDTH);
   lv_obj_add_event_cb(listGPXScreen, gpxListEvent, LV_EVENT_ALL, NULL);
   lv_obj_set_style_pad_ver(listGPXScreen, 15, LV_PART_ITEMS);
@@ -132,19 +148,29 @@ void updateGpxListScreen()
 
   if (isWaypointOpt)
   {
-    GPXParser gpx(wptFile);
-
+    gpxWaypoint = true;
+    gpxTrack = false;
     uint16_t totalGpx = 1;
-    std::vector<std::string> names = gpx.getWaypointList();
-    for (const std::string& name : names) 
+    std::map<std::string, std::vector<std::string>> waypointByFile = GPXParser::getWaypointList(wptFolder);
+
+    for (std::map<std::string, std::vector<std::string>>::const_iterator it = waypointByFile.begin(); it != waypointByFile.end(); ++it)
     {
-      lv_table_set_cell_value_fmt(listGPXScreen, totalGpx, 0, LV_SYMBOL_GPS " - %s", name.c_str());
-      totalGpx++;
+      const std::string& fileName = it->first;
+      const std::vector<std::string>& waypointNames = it->second;
+
+      for (const std::string& waypointName : waypointNames)
+      {
+        lv_table_set_cell_value_fmt(listGPXScreen, totalGpx, 0, LV_SYMBOL_GPS " - %s", waypointName.c_str());
+        lv_table_set_cell_value_fmt(listGPXScreen, totalGpx, 1, "%s", fileName.c_str());
+        totalGpx++;
+      }
     }
   } 
 
   if (isTrackOpt)
   {
+    gpxWaypoint = false;
+    gpxTrack = true;
     uint16_t totalGpx = 1;
     std::map<std::string, std::vector<std::string>> tracksByFile = GPXParser::getTrackList(trkFolder);
 
@@ -153,12 +179,11 @@ void updateGpxListScreen()
       const std::string& fileName = it->first;
       const std::vector<std::string>& trackNames = it->second;
 
-      ESP_LOGI(TAG, "File: %s", fileName.c_str());
       for (const std::string& trackName : trackNames)
       {
-          ESP_LOGI(TAG, " - %s", trackName.c_str());
-          lv_table_set_cell_value_fmt(listGPXScreen, totalGpx, 0, LV_SYMBOL_SHUFFLE " - %s", trackName.c_str());
-          totalGpx++;
+        lv_table_set_cell_value_fmt(listGPXScreen, totalGpx, 0, LV_SYMBOL_SHUFFLE " - %s", trackName.c_str());
+        lv_table_set_cell_value_fmt(listGPXScreen, totalGpx, 1, "%s", fileName.c_str());
+        totalGpx++;
       }
     }
   }

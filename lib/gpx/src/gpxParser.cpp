@@ -34,47 +34,6 @@ GPXParser::GPXParser(): filePath("") {}
 GPXParser::~GPXParser() {}
 
 /**
- * @brief Retrieve Waypoint list
- *
- * @param filePath GPX file path
- * @return std::vector<std::string> Vector containing all waypoint names
- */
- std::vector<std::string> GPXParser::getWaypointList() 
- {
-  std::vector<std::string> names;
-
-  tinyxml2::XMLDocument doc;
-  tinyxml2::XMLError result = doc.LoadFile(filePath.c_str());
-  if (result != tinyxml2::XML_SUCCESS) 
-  {
-    ESP_LOGE(TAG, "Failed to load file: %s", filePath.c_str());
-    return names;
-  }
-
-  tinyxml2::XMLElement* root = doc.RootElement();
-  if (!root)
-  {
-    ESP_LOGE(TAG, "Failed to get root element in file: %s", filePath.c_str());
-    return names;
-  }
-
-  for (tinyxml2::XMLElement* wpt = root->FirstChildElement("wpt"); wpt != nullptr; wpt = wpt->NextSiblingElement("wpt")) 
-  {
-    tinyxml2::XMLElement* nameElement = wpt->FirstChildElement("name");
-    if (nameElement) 
-    {
-      const char* name = nameElement->GetText();
-      if (name)
-        names.push_back(name);
-    }
-  }
-
-  std::sort(names.begin(), names.end());
-  
-  return names;
-}
-
-/**
  * @brief Retrieve waypoint details for a given name from a GPX file
  *
  * @param name Waypoint name to search for
@@ -342,6 +301,71 @@ GPXParser::~GPXParser() {}
 
   ESP_LOGE("GPXParser", "Waypoint with name %s not found in file: %s", name, filePath.c_str());
   return false;
+}
+
+/**
+ * @brief Retrieve track names from all GPX files in a specified folder.
+ *
+ * @param folderPath Path to the folder containing GPX files.
+ * @return std::map<std::string, std::vector<std::string>> Map where the key is the file name and the value is a vector of waypoint names.
+ */
+ std::map<std::string, std::vector<std::string>> GPXParser::getWaypointList(const std::string& folderPath)
+ {
+  std::map<std::string, std::vector<std::string>> waypointByFile;
+
+  DIR* dir = opendir(folderPath.c_str());
+  if (!dir)
+  {
+    ESP_LOGE(TAG, "Failed to open folder: %s", folderPath.c_str());
+    return waypointByFile;
+  }
+
+  struct dirent* entry;
+  while ((entry = readdir(dir)) != nullptr)
+  {
+    if (entry->d_type == DT_REG)
+    {
+      std::string fileName = entry->d_name;
+
+      if (fileName.size() >= 4 && fileName.substr(fileName.size() - 4) == ".gpx")
+      {
+        std::string filePath = folderPath + "/" + fileName;
+
+        // Create a GPXParser instance for the file
+        GPXParser parser(filePath.c_str());
+        std::vector<std::string> waypointNames;
+
+        tinyxml2::XMLDocument doc;
+        tinyxml2::XMLError result = doc.LoadFile(filePath.c_str());
+        if (result == tinyxml2::XML_SUCCESS)
+        {
+          tinyxml2::XMLElement* root = doc.RootElement();
+          if (root)
+          {
+            for (tinyxml2::XMLElement* trk = root->FirstChildElement("wpt"); trk != nullptr; trk = trk->NextSiblingElement("wpt"))
+            {
+              tinyxml2::XMLElement* nameElement = trk->FirstChildElement("name");
+              if (nameElement)
+              {
+                const char* name = nameElement->GetText();
+                if (name)
+                  waypointNames.push_back(name);
+              }
+            }
+          }
+          else
+            ESP_LOGE(TAG, "Failed to get root element in file: %s", filePath.c_str());
+        }
+        else
+          ESP_LOGE(TAG, "Failed to load GPX file: %s", filePath.c_str());
+
+        waypointByFile[fileName] = waypointNames;
+      }
+    }
+  }
+
+  closedir(dir);
+  return waypointByFile;
 }
 
 /**

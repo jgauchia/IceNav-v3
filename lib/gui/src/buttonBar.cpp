@@ -10,8 +10,8 @@
 
 extern Maps mapView;
 
-bool isWaypointOpt = false;
-bool isTrackOpt = false;
+bool isWaypointOpt;
+bool isTrackOpt;
 bool isOptionLoaded = false;
 bool isBarOpen = false;
 
