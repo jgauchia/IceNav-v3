@@ -329,7 +329,7 @@ To access the Web File Server, simply use any browser and go to the following ad
 - [X] Support for ready-made boards 
 - [X] Wifi CLI Manager
 - [X] LVGL Optimization 
-- [ ] GPX Integration
+- [X] GPX Integration
 - [ ] Multiple IMU's and Compass module implementation
 - [X] Power saving
 - [X] Vector maps
