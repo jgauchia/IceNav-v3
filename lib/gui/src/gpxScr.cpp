@@ -95,6 +95,8 @@ void gpxListEvent(lv_event_t *event)
           case GPX_DEL:
             if (gpxWaypoint)
               gpx.deleteWaypoint(gpxName.c_str());
+            if (gpxTrack)
+              gpx.deleteTrack(gpxName.c_str());
 
             loadMainScreen(); 
             break;
@@ -120,7 +122,7 @@ void createGpxListScreen()
   listGPXScreen = lv_table_create(NULL);
   lv_table_set_col_cnt(listGPXScreen, 2);
   lv_table_set_column_width(listGPXScreen,1,400);
-  lv_obj_set_size(listGPXScreen, LV_SIZE_CONTENT, TFT_HEIGHT);
+  lv_obj_set_size(listGPXScreen, TFT_WIDTH, TFT_HEIGHT);
   lv_table_set_cell_value(listGPXScreen, 0, 0, LV_SYMBOL_LEFT " Waypoints");
   lv_table_set_cell_value(listGPXScreen, 0, 1, LV_SYMBOL_FILE " File");
   lv_table_set_column_width(listGPXScreen, 0, TFT_WIDTH);

@@ -445,3 +445,63 @@ std::map<std::string, std::vector<std::string>> GPXParser::getTrackList(const st
   closedir(dir);
   return tracksByFile;
 }
+
+/**
+ * @brief Delete a waypoint from the GPX file
+ *
+ * @param name The name of the waypoint to delete 
+ * @return true if the waypoint was deleted successfully, false otherwise
+ */
+bool GPXParser::deleteTrack(const char* name)
+{
+  tinyxml2::XMLDocument doc;
+  tinyxml2::XMLError result = doc.LoadFile(filePath.c_str());
+  if (result != tinyxml2::XML_SUCCESS) 
+  {
+    ESP_LOGE(TAG, "Failed to load file: %s", filePath.c_str());
+    return false;
+  }
+
+  tinyxml2::XMLElement* root = doc.RootElement();
+  if (!root) 
+  {
+    ESP_LOGE(TAG, "Failed to get root element in file: %s", filePath.c_str());
+    return false;
+  }
+
+  for (tinyxml2::XMLElement* wpt = root->FirstChildElement("trk"); wpt != nullptr; wpt = wpt->NextSiblingElement("trk")) 
+  {
+    tinyxml2::XMLElement* nameElement = wpt->FirstChildElement("name");
+    if (nameElement && strcmp(nameElement->GetText(), name) == 0) 
+    {
+      root->DeleteChild(wpt);
+      result = doc.SaveFile(filePath.c_str());
+      if (result != tinyxml2::XML_SUCCESS)
+      {
+        ESP_LOGE(TAG, "Failed to save file: %s", filePath.c_str());
+        return false;
+      }
+
+      if (!root->FirstChildElement("trk")) 
+      {
+        if (!root->FirstChildElement("wpt")) 
+        {
+          if (remove(filePath.c_str()) != 0)
+          {
+            ESP_LOGE(TAG, "Failed to delete file: %s", filePath.c_str());
+            return false;
+          }
+          ESP_LOGI(TAG, "File %s deleted as it had no waypoints or tracks left", filePath.c_str());
+        }
+        else
+        {
+          ESP_LOGI(TAG, "File %s not deleted as it contains waypoints but no tracks", filePath.c_str());
+        }
+      }
+      return true;
+    }
+  }
+
+  ESP_LOGE(TAG, "Track with name %s not found in file: %s", name, filePath.c_str());
+  return false;
+}

@@ -30,7 +30,8 @@ class GPXParser
     bool deleteWaypoint(const char* name);
   
     static std::map<std::string, std::vector<std::string>> getTrackList(const std::string& folderPath);
-
+    bool deleteTrack(const char* name);
+    
   private:
     std::string filePath;
 };
