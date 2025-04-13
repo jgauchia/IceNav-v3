@@ -323,7 +323,7 @@ void initLVGL()
   createMapSettingsScr();
   createDeviceSettingsScr();
   createButtonBarScr();
-  createWaypointScreen();
+  createGpxDetailScreen();
   createGpxListScreen();
   
   // Create and start a periodic timer interrupt to call lv_tick_inc 

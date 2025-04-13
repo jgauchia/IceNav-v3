@@ -42,13 +42,12 @@ void gpxListEvent(lv_event_t *event)
       String gpxName = sel.substring(6,sel.length());
       String gpxFile = String(lv_table_get_cell_value(obj, row, col+1));
 
-      String gpxFolder = "";
       if (gpxWaypoint)
-        gpxFolder = String(wptFolder) + "/" + gpxFile;
+        gpxFileFolder = String(wptFolder) + "/" + gpxFile;
       else if (gpxTrack)
-        gpxFolder = String(trkFolder) + "/" + gpxFile;
+        gpxFileFolder = String(trkFolder) + "/" + gpxFile;
 
-      GPXParser gpx(gpxFolder.c_str());
+      GPXParser gpx(gpxFileFolder.c_str());
       
       if (!sel.isEmpty())
       {
@@ -85,18 +84,18 @@ void gpxListEvent(lv_event_t *event)
             if (gpxWaypoint)
             {
               loadWpt = gpx.getWaypointInfo(gpxName.c_str());
-              lv_textarea_set_text(waypointName, loadWpt.name);
+              lv_textarea_set_text(gpxTagValue, loadWpt.name);
               isScreenRotated = false;
-              lv_obj_set_width(waypointName, tft.width() - 10);
-              updateWaypointPos();
-              lv_screen_load(waypointScreen);
+              lv_obj_set_width(gpxTagValue, tft.width() - 10);
+              updateWaypoint(gpxAction);
+              lv_screen_load(gpxDetailScreen);
             }
             break;
           case GPX_DEL:
             if (gpxWaypoint)
-              gpx.deleteWaypoint(gpxName.c_str());
+              gpx.deleteTagByName("wpt", gpxName.c_str());
             if (gpxTrack)
-              gpx.deleteTrack(gpxName.c_str());
+              gpx.deleteTagByName("trk", gpxName.c_str());
 
             loadMainScreen(); 
             break;
@@ -150,16 +149,16 @@ void updateGpxListScreen()
     gpxWaypoint = true;
     gpxTrack = false;
     uint16_t totalGpx = 1;
-    std::map<std::string, std::vector<std::string>> waypointByFile = GPXParser::getWaypointList(wptFolder);
+    std::map<std::string, std::vector<std::string>> waypointByFile = GPXParser::getTagElementList("wpt", "name", wptFolder);
 
     for (std::map<std::string, std::vector<std::string>>::const_iterator it = waypointByFile.begin(); it != waypointByFile.end(); ++it)
     {
       const std::string& fileName = it->first;
       const std::vector<std::string>& waypointNames = it->second;
 
-      for (const std::string& waypointName : waypointNames)
+      for (const std::string& gpxTagValue : waypointNames)
       {
-        lv_table_set_cell_value_fmt(listGPXScreen, totalGpx, 0, LV_SYMBOL_GPS " - %s", waypointName.c_str());
+        lv_table_set_cell_value_fmt(listGPXScreen, totalGpx, 0, LV_SYMBOL_GPS " - %s", gpxTagValue.c_str());
         lv_table_set_cell_value_fmt(listGPXScreen, totalGpx, 1, "%s", fileName.c_str());
         totalGpx++;
       }
@@ -171,7 +170,7 @@ void updateGpxListScreen()
     gpxWaypoint = false;
     gpxTrack = true;
     uint16_t totalGpx = 1;
-    std::map<std::string, std::vector<std::string>> tracksByFile = GPXParser::getTrackList(trkFolder);
+    std::map<std::string, std::vector<std::string>> tracksByFile = GPXParser::getTagElementList("trk", "name", trkFolder);
 
     for (std::map<std::string, std::vector<std::string>>::const_iterator it = tracksByFile.begin(); it != tracksByFile.end(); ++it)
     {

@@ -1,0 +1,28 @@
+/**
+ * @file gpxDetailScr.hpp
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @brief  LVGL - GPX Tag detail Screen
+ * @version 0.2.1_alpha
+ * @date 2025-04
+ */
+
+#ifndef GPXDETAILSCR_HPP
+#define GPXDETAILSCR_HPP
+
+#include "gpxFiles.hpp"
+#include "gpxScr.hpp"
+#include "mainScr.hpp"
+
+extern lv_obj_t *gpxTagValue;
+extern bool isScreenRotated;
+
+void loadMainScreen();
+
+static void gpxDetailScreenEvent(lv_event_t *event);
+static void rotateScreen(lv_event_t *event);
+static void gpxTagNameEvent(lv_event_t *event);
+
+void updateWaypoint();
+void createGpxDetailScreen();
+
+#endif

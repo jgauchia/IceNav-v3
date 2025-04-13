@@ -46,11 +46,11 @@ void buttonBarEvent(lv_event_t *event)
     gpxAction = WPT_ADD;
     isMainScreen = false;
     mapView.redrawMap = false;
-    lv_textarea_set_text(waypointName, "");
+    lv_textarea_set_text(gpxTagValue, "");
     isScreenRotated = false;
-    lv_obj_set_width(waypointName, tft.width() -10);
-    updateWaypointPos();
-    lv_screen_load(waypointScreen);
+    lv_obj_set_width(gpxTagValue, tft.width() -10);
+    updateWaypoint(gpxAction);
+    lv_screen_load(gpxDetailScreen);
   }
 
   if (strcmp(option,"waypoint") == 0)

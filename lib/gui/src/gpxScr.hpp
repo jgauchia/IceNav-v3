@@ -14,8 +14,10 @@
 #include "gpxParser.hpp"
 #include "buttonBar.hpp"
 
+extern String gpxFileFolder;
+
 void loadMainScreen();
-void updateWaypointPos();
+void updateWaypoint(uint8_t action);
 
 void gpxListEvent(lv_event_t * event);
 void createGpxListScreen();

@@ -11,7 +11,7 @@
 
 #include "globalGuiDef.h"
 #include "mainScr.hpp"
-#include "waypointScr.hpp"
+#include "gpxDetailScr.hpp"
 #include "gpxScr.hpp"
 
 static const char *waypointIconFile PROGMEM = "/wpt.bin";      // Waypoint icon

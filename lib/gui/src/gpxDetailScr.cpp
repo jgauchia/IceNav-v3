@@ -1,30 +1,34 @@
 /**
- * @file waypointScr.cpp
+ * @file gpxDetailScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief  LVGL - Waypoint Screen
+ * @brief  LVGL - GPX Tag detail Screen
  * @version 0.2.1_alpha
  * @date 2025-04
  */
 
-#include "waypointScr.hpp"
+#include "gpxDetailScr.hpp"
 
 extern Maps mapView;
 extern Gps gps;
 extern wayPoint loadWpt;
 extern wayPoint addWpt;
+String gpxFileFolder;
 
-lv_obj_t *waypointScreen;  // Add Waypoint Screen
-lv_obj_t *waypointName;
-lv_obj_t *lat;
-lv_obj_t *lon;
+lv_obj_t *gpxDetailScreen;  
+lv_obj_t *gpxTag;
+lv_obj_t *gpxTagValue;
+lv_obj_t *labelLat;
+lv_obj_t *labelLatValue;
+lv_obj_t *labelLon;
+lv_obj_t *labelLonValue;
 bool isScreenRotated = false;
 
 /**
- * @brief Waypoint Screen event
+ * @brief GPX Detail Screen event
  *
  * @param event
  */
-static void waypointScreenEvent(lv_event_t *event)
+static void gpxDetailScreenEvent(lv_event_t *event)
 {
   lv_event_code_t code = lv_event_get_code(event);
   lv_obj_t *fileName = (lv_obj_t *)lv_event_get_target(event);
@@ -32,21 +36,28 @@ static void waypointScreenEvent(lv_event_t *event)
   #ifdef TDECK_ESP32S3
     if (code == LV_EVENT_KEY)
     {
-      createWptFile();
-      GPXParser gpx(wptFile);
       if ( lv_indev_get_key(lv_indev_active()) == 13 ) // Enter Key
       {    
+        createWptFile();
+        GPXParser gpx;
+
         switch (gpxAction)
         {
           case WPT_ADD:
             addWpt.name = (char *)lv_textarea_get_text(fileName);
             if (strcmp(addWpt.name,"") != 0)
+            {
+              gpx.filePath = wptFile;
               gpx.addWaypoint(addWpt);
+            }
             break;
           case GPX_EDIT:
             char *newName = (char *)lv_textarea_get_text(fileName);
             if (strcmp(loadWpt.name, newName) != 0)
-              gpx.editWaypointName(loadWpt.name, newName);
+            {
+              gpx.filePath = gpxFileFolder.c_str();
+              gpx.editTagAttrOrElem("wpt", nullptr, "name", loadWpt.name, newName);
+            }
             break;
         }
 
@@ -70,25 +81,32 @@ static void waypointScreenEvent(lv_event_t *event)
 
   if (code == LV_EVENT_READY)
   {
-    createWptFile();
-    GPXParser gpx(wptFile);
     if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
     {
       tft.setRotation(0);
       lv_display_set_rotation(display,LV_DISPLAY_ROTATION_0);
     }
     
+    createWptFile();
+    GPXParser gpx;
+
     switch (gpxAction)
     {
       case WPT_ADD:
         addWpt.name = (char *)lv_textarea_get_text(fileName);
         if (strcmp(addWpt.name,"") != 0)
+        {
+          gpx.filePath = wptFile;
           gpx.addWaypoint(addWpt);
+        }
         break;
       case GPX_EDIT:
         char *newName = (char *)lv_textarea_get_text(fileName);
         if (strcmp(loadWpt.name, newName) != 0)
-          gpx.editWaypointName(loadWpt.name, newName);
+        {
+          gpx.filePath = gpxFileFolder.c_str();
+          gpx.editTagAttrOrElem("wpt", nullptr, "name", loadWpt.name, newName);
+        }
         break;
     }
 
@@ -133,34 +151,40 @@ static void rotateScreen(lv_event_t *event)
     tft.setRotation(0);
     lv_display_set_rotation(display, LV_DISPLAY_ROTATION_0);
   }
-  lv_obj_set_width(waypointName, tft.width() -10);
+  lv_obj_set_width(gpxTagValue, tft.width() -10);
   lv_refr_now(display);
 }
 
 /**
- * @brief Waypoint Name event
+ * @brief GPX Tag Name event
  *
  * @param event
  */
-static void waypointNameEvent(lv_event_t *event)
+static void gpxTagNameEvent(lv_event_t *event)
 {
   lv_event_code_t code = lv_event_get_code(event);
 
   if(code == LV_EVENT_CLICKED)
   {
     createWptFile();
-    GPXParser gpx(wptFile);
+    GPXParser gpx;
+
     switch (gpxAction)
     {
       case WPT_ADD:
-        addWpt.name = (char *)lv_textarea_get_text(waypointName);
+        addWpt.name = (char *)lv_textarea_get_text(gpxTagValue);
         if (strcmp(addWpt.name,"") != 0)
+        {
+          gpx.filePath = wptFile;
           gpx.addWaypoint(addWpt);
-        break;
+        }
       case GPX_EDIT:
-        char *newName = (char *)lv_textarea_get_text(waypointName);
+        char *newName = (char *)lv_textarea_get_text(gpxTagValue);
         if (strcmp(loadWpt.name, newName) != 0)
-          gpx.editWaypointName(loadWpt.name, newName);
+        {
+          gpx.filePath = gpxFileFolder.c_str();
+          gpx.editTagAttrOrElem("wpt", nullptr, "name", loadWpt.name, newName);
+        }
         break;
     }
 
@@ -173,16 +197,13 @@ static void waypointNameEvent(lv_event_t *event)
 }
 
 /**
- * @brief Update current waypoint position to add
+ * @brief Update current waypoint 
  *
+ * @param action add or edit action
  */
-void updateWaypointPos()
+void updateWaypoint(uint8_t action)
 {
-  // time_t tUTCwpt = time(NULL);
-  // struct tm UTCwpt_tm;
-  // struct tm *tmUTCwpt = gmtime_r(&tUTCwpt, &UTCwpt_tm);
-
-  switch (gpxAction)
+  switch (action)
   {
     case WPT_ADD:
       addWpt.lat = gps.gpsData.latitude;
@@ -192,12 +213,12 @@ void updateWaypointPos()
       addWpt.hdop = gps.gpsData.hdop;
       addWpt.pdop = gps.gpsData.pdop;
       addWpt.vdop = gps.gpsData.vdop;
-      lv_label_set_text_static(lat, latFormatString(addWpt.lat));
-      lv_label_set_text_static(lon, lonFormatString(addWpt.lon));
+      lv_label_set_text_static(labelLatValue, latFormatString(addWpt.lat));
+      lv_label_set_text_static(labelLonValue, lonFormatString(addWpt.lon));
       break;
     case GPX_EDIT:
-      lv_label_set_text_static(lat, latFormatString(loadWpt.lat));
-      lv_label_set_text_static(lon, lonFormatString(loadWpt.lon));
+      lv_label_set_text_static(labelLatValue, latFormatString(loadWpt.lat));
+      lv_label_set_text_static(labelLonValue, lonFormatString(loadWpt.lon));
       break;
     default:
       break;
@@ -208,26 +229,25 @@ void updateWaypointPos()
  * @brief Create Waypoint screen
  *
  */
-void createWaypointScreen()
+void createGpxDetailScreen()
 {
+  gpxDetailScreen = lv_obj_create(NULL);
 
-  waypointScreen = lv_obj_create(NULL);
-
-  waypointName = lv_textarea_create(waypointScreen);
-  lv_textarea_set_one_line(waypointName, true);
-  lv_obj_align(waypointName, LV_ALIGN_TOP_MID, 0, 40);
-  lv_obj_set_width(waypointName, tft.width() - 10);
-  lv_obj_add_state(waypointName, LV_STATE_FOCUSED);
-  lv_obj_add_event_cb(waypointName, waypointScreenEvent, LV_EVENT_ALL, waypointScreen);
+  gpxTagValue = lv_textarea_create(gpxDetailScreen);
+  lv_textarea_set_one_line(gpxTagValue, true);
+  lv_obj_align(gpxTagValue, LV_ALIGN_TOP_MID, 0, 40);
+  lv_obj_set_width(gpxTagValue, tft.width() - 10);
+  lv_obj_add_state(gpxTagValue, LV_STATE_FOCUSED);
+  lv_obj_add_event_cb(gpxTagValue, gpxDetailScreenEvent, LV_EVENT_ALL, gpxDetailScreen);
   #ifndef TDECK_ESP32S3
-    lv_obj_t *keyboard = lv_keyboard_create(waypointScreen);
+    lv_obj_t *keyboard = lv_keyboard_create(gpxDetailScreen);
     lv_keyboard_set_mode(keyboard,LV_KEYBOARD_MODE_TEXT_UPPER);
-    lv_keyboard_set_textarea(keyboard, waypointName);
+    lv_keyboard_set_textarea(keyboard, gpxTagValue);
   #endif
 
   #ifdef TDECK_ESP32S3
-    lv_group_add_obj(scrGroup, waypointName);
-    lv_group_focus_obj(waypointName);
+    lv_group_add_obj(scrGroup, gpxTagValue);
+    lv_group_focus_obj(gpxTagValue);
   #endif
 
   #ifndef TDECK_ESP32S3
@@ -236,7 +256,7 @@ void createWaypointScreen()
     lv_style_init(&editBtnStyleOn);
     lv_style_set_bg_color(&editBtnStyleOn, lv_color_black());
     lv_style_set_text_color(&editBtnStyleOn, lv_color_white());
-    lv_obj_t *rotateScreenBtn = lv_button_create(waypointScreen); 
+    lv_obj_t *rotateScreenBtn = lv_button_create(gpxDetailScreen); 
     lv_obj_add_style(rotateScreenBtn, &editBtnStyleOn, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_align(rotateScreenBtn, LV_ALIGN_TOP_RIGHT, -10, 5);
     lv_obj_add_flag(rotateScreenBtn, LV_OBJ_FLAG_CLICKABLE);
@@ -247,33 +267,32 @@ void createWaypointScreen()
     lv_obj_center(rotateScreenLbl);
   #endif
 
-  lv_obj_t* labelWpt;
-  labelWpt = lv_label_create(waypointScreen);
-  lv_obj_set_style_text_font(labelWpt, fontOptions, 0);
-  lv_label_set_text_static(labelWpt, LV_SYMBOL_LEFT " Waypoint Name:");
-  lv_obj_center(labelWpt);
-  lv_obj_align(labelWpt,LV_ALIGN_TOP_LEFT,10,10);
-  lv_obj_add_flag(labelWpt, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_add_event_cb(labelWpt, waypointNameEvent, LV_EVENT_ALL, NULL);
 
-  lv_obj_t* label;
-  label = lv_label_create(waypointScreen);
-  lv_obj_set_style_text_font(label, fontOptions, 0);
-  lv_label_set_text_static(label, "Lat:");
-  lv_obj_set_pos(label, 10, 90);
+  gpxTag = lv_label_create(gpxDetailScreen);
+  lv_obj_set_style_text_font(gpxTag, fontOptions, 0);
+  lv_label_set_text_static(gpxTag, LV_SYMBOL_LEFT " Waypoint Name:");
+  lv_obj_center(gpxTag);
+  lv_obj_align(gpxTag,LV_ALIGN_TOP_LEFT,10,10);
+  lv_obj_add_flag(gpxTag, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_event_cb(gpxTag, gpxTagNameEvent, LV_EVENT_ALL, NULL);
 
-  label = lv_label_create(waypointScreen);
-  lv_obj_set_style_text_font(label, fontOptions, 0);
-  lv_label_set_text_static(label, "Lon:");
-  lv_obj_set_pos(label, 10, 120);
+  labelLat = lv_label_create(gpxDetailScreen);
+  lv_obj_set_style_text_font(labelLat, fontOptions, 0);
+  lv_label_set_text_static(labelLat, "Lat:");
+  lv_obj_set_pos(labelLat, 10, 90);
 
-  lat = lv_label_create(waypointScreen);
-  lv_obj_set_style_text_font(lat, fontOptions, 0);
-  lv_label_set_text_static(lat, latFormatString(addWpt.lat));
-  lv_obj_set_pos(lat, 60, 90);
+  labelLon = lv_label_create(gpxDetailScreen);
+  lv_obj_set_style_text_font(labelLon, fontOptions, 0);
+  lv_label_set_text_static(labelLon, "Lon:");
+  lv_obj_set_pos(labelLon, 10, 120);
+
+  labelLatValue = lv_label_create(gpxDetailScreen);
+  lv_obj_set_style_text_font(labelLatValue, fontOptions, 0);
+  lv_label_set_text_static(labelLatValue, latFormatString(addWpt.lat));
+  lv_obj_set_pos(labelLatValue, 60, 90);
   
-  lon = lv_label_create(waypointScreen);
-  lv_obj_set_style_text_font(lon, fontOptions, 0);
-  lv_label_set_text_static(lon, lonFormatString(addWpt.lon));
-  lv_obj_set_pos(lon, 60, 120);
+  labelLonValue = lv_label_create(gpxDetailScreen);
+  lv_obj_set_style_text_font(labelLonValue, fontOptions, 0);
+  lv_label_set_text_static(labelLonValue, lonFormatString(addWpt.lon));
+  lv_obj_set_pos(labelLonValue, 60, 120);
 }
