@@ -85,11 +85,29 @@ void gpxListEvent(lv_event_t *event)
             {
               loadWpt = gpx.getWaypointInfo(gpxName.c_str());
               lv_textarea_set_text(gpxTagValue, loadWpt.name);
-              isScreenRotated = false;
-              lv_obj_set_width(gpxTagValue, tft.width() - 10);
-              updateWaypoint(gpxAction);
-              lv_screen_load(gpxDetailScreen);
+              lv_label_set_text_static(gpxTag, LV_SYMBOL_LEFT " Waypoint Name:");
+              lv_obj_clear_flag(labelLat, LV_OBJ_FLAG_HIDDEN);
+              lv_obj_clear_flag(labelLatValue, LV_OBJ_FLAG_HIDDEN);
+              lv_obj_clear_flag(labelLon, LV_OBJ_FLAG_HIDDEN);
+              lv_obj_clear_flag(labelLonValue, LV_OBJ_FLAG_HIDDEN);
             }
+
+            if (gpxTrack)
+            {
+              loadWpt.name = strdup(gpxName.c_str());
+              lv_textarea_set_text(gpxTagValue, loadWpt.name);
+              lv_label_set_text_static(gpxTag, LV_SYMBOL_LEFT " Track Name:");
+              lv_obj_add_flag(labelLat, LV_OBJ_FLAG_HIDDEN);
+              lv_obj_add_flag(labelLatValue, LV_OBJ_FLAG_HIDDEN);
+              lv_obj_add_flag(labelLon, LV_OBJ_FLAG_HIDDEN);
+              lv_obj_add_flag(labelLonValue, LV_OBJ_FLAG_HIDDEN);
+            }
+
+            isScreenRotated = false;
+            lv_obj_set_width(gpxTagValue, tft.width() - 10);
+            updateWaypoint(gpxAction);
+            lv_screen_load(gpxDetailScreen);
+
             break;
           case GPX_DEL:
             if (gpxWaypoint)

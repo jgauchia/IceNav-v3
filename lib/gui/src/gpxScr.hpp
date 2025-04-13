@@ -15,6 +15,8 @@
 #include "buttonBar.hpp"
 
 extern String gpxFileFolder;
+extern bool gpxTrack;
+extern bool gpxWaypoint;
 
 void loadMainScreen();
 void updateWaypoint(uint8_t action);

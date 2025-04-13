@@ -14,6 +14,11 @@
 #include "mainScr.hpp"
 
 extern lv_obj_t *gpxTagValue;
+extern lv_obj_t *gpxTag;
+extern lv_obj_t *labelLat;
+extern lv_obj_t *labelLatValue;
+extern lv_obj_t *labelLon;
+extern lv_obj_t *labelLonValue;
 extern bool isScreenRotated;
 
 void loadMainScreen();

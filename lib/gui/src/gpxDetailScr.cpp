@@ -13,6 +13,8 @@ extern Gps gps;
 extern wayPoint loadWpt;
 extern wayPoint addWpt;
 String gpxFileFolder;
+// bool gpxWaypoint;
+// bool gpxTrack;
 
 lv_obj_t *gpxDetailScreen;  
 lv_obj_t *gpxTag;
@@ -31,7 +33,7 @@ bool isScreenRotated = false;
 static void gpxDetailScreenEvent(lv_event_t *event)
 {
   lv_event_code_t code = lv_event_get_code(event);
-  lv_obj_t *fileName = (lv_obj_t *)lv_event_get_target(event);
+  lv_obj_t *tagName = (lv_obj_t *)lv_event_get_target(event);
 
   #ifdef TDECK_ESP32S3
     if (code == LV_EVENT_KEY)
@@ -44,7 +46,7 @@ static void gpxDetailScreenEvent(lv_event_t *event)
         switch (gpxAction)
         {
           case WPT_ADD:
-            addWpt.name = (char *)lv_textarea_get_text(fileName);
+            addWpt.name = (char *)lv_textarea_get_text(tagName);
             if (strcmp(addWpt.name,"") != 0)
             {
               gpx.filePath = wptFile;
@@ -52,11 +54,14 @@ static void gpxDetailScreenEvent(lv_event_t *event)
             }
             break;
           case GPX_EDIT:
-            char *newName = (char *)lv_textarea_get_text(fileName);
+            char *newName = (char *)lv_textarea_get_text(tagName);
             if (strcmp(loadWpt.name, newName) != 0)
             {
               gpx.filePath = gpxFileFolder.c_str();
-              gpx.editTagAttrOrElem("wpt", nullptr, "name", loadWpt.name, newName);
+              if (gpxWaypoint)
+                gpx.editTagAttrOrElem("wpt", nullptr, "name", loadWpt.name, newName);
+              if (gpxTrack)
+                gpx.editTagAttrOrElem("trk", nullptr, "name", loadWpt.name, newName);
             }
             break;
         }
@@ -93,7 +98,7 @@ static void gpxDetailScreenEvent(lv_event_t *event)
     switch (gpxAction)
     {
       case WPT_ADD:
-        addWpt.name = (char *)lv_textarea_get_text(fileName);
+        addWpt.name = (char *)lv_textarea_get_text(tagName);
         if (strcmp(addWpt.name,"") != 0)
         {
           gpx.filePath = wptFile;
@@ -101,11 +106,14 @@ static void gpxDetailScreenEvent(lv_event_t *event)
         }
         break;
       case GPX_EDIT:
-        char *newName = (char *)lv_textarea_get_text(fileName);
+        char *newName = (char *)lv_textarea_get_text(tagName);
         if (strcmp(loadWpt.name, newName) != 0)
         {
           gpx.filePath = gpxFileFolder.c_str();
-          gpx.editTagAttrOrElem("wpt", nullptr, "name", loadWpt.name, newName);
+          if (gpxWaypoint)
+            gpx.editTagAttrOrElem("wpt", nullptr, "name", loadWpt.name, newName);
+          if (gpxTrack)
+            gpx.editTagAttrOrElem("trk", nullptr, "name", loadWpt.name, newName);
         }
         break;
     }
@@ -183,7 +191,10 @@ static void gpxTagNameEvent(lv_event_t *event)
         if (strcmp(loadWpt.name, newName) != 0)
         {
           gpx.filePath = gpxFileFolder.c_str();
-          gpx.editTagAttrOrElem("wpt", nullptr, "name", loadWpt.name, newName);
+          if (gpxWaypoint)
+            gpx.editTagAttrOrElem("wpt", nullptr, "name", loadWpt.name, newName);
+          if (gpxTrack)
+            gpx.editTagAttrOrElem("trk", nullptr, "name", loadWpt.name, newName);
         }
         break;
     }
