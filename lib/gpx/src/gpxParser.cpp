@@ -118,7 +118,7 @@ bool GPXParser::deleteTagByName(const char* tag, const char* name)
 
   for (tinyxml2::XMLElement* Tag = root->FirstChildElement(tag); Tag != nullptr; Tag = Tag->NextSiblingElement(tag)) 
   {
-    tinyxml2::XMLElement* nameElement = Tag->FirstChildElement("name");
+    tinyxml2::XMLElement* nameElement = Tag->FirstChildElement(gpxNameElem);
     if (nameElement && strcmp(nameElement->GetText(), name) == 0) 
     {
       root->DeleteChild(Tag);
@@ -129,9 +129,9 @@ bool GPXParser::deleteTagByName(const char* tag, const char* name)
         return false;
       }
 
-      // if (!root->FirstChildElement("wpt")) 
+      // if (!root->FirstChildElement(gpxWaypointTag)) 
       // {
-      //   if (!root->FirstChildElement("trk")) 
+      //   if (!root->FirstChildElement(gpxTrackTag)) 
       //   {
       //     if (remove(filePath.c_str()) != 0)
       //     {
@@ -179,9 +179,9 @@ wayPoint GPXParser::getWaypointInfo(const char* name)
   }
 
   tinyxml2::XMLElement* wpt = nullptr;
-  for (wpt = root->FirstChildElement("wpt"); wpt != nullptr; wpt = wpt->NextSiblingElement("wpt")) 
+  for (wpt = root->FirstChildElement(gpxWaypointTag); wpt != nullptr; wpt = wpt->NextSiblingElement(gpxWaypointTag)) 
   {
-    tinyxml2::XMLElement* nameElement = wpt->FirstChildElement("name");
+    tinyxml2::XMLElement* nameElement = wpt->FirstChildElement(gpxNameElem);
     if (nameElement && strcmp(nameElement->GetText(), name) == 0) 
     {
       wp.name = strdup(nameElement->GetText());
@@ -191,48 +191,48 @@ wayPoint GPXParser::getWaypointInfo(const char* name)
 
   if (wpt)
   {
-    wpt->QueryDoubleAttribute("lat", &wp.lat);
-    wpt->QueryDoubleAttribute("lon", &wp.lon);
+    wpt->QueryDoubleAttribute(gpxLatElem, &wp.lat);
+    wpt->QueryDoubleAttribute(gpxLonElem, &wp.lon);
 
     tinyxml2::XMLElement* element = nullptr;
 
-    element = wpt->FirstChildElement("ele");
+    element = wpt->FirstChildElement(gpxEleElem);
     if (element) 
       wp.ele = static_cast<float>(element->DoubleText());
 
-    element = wpt->FirstChildElement("time");
+    element = wpt->FirstChildElement(gpxTimeElem);
     if (element)
       wp.time = strdup(element->GetText());
 
-    element = wpt->FirstChildElement("desc");
+    element = wpt->FirstChildElement(gpxDescElem);
     if (element) 
       wp.desc = strdup(element->GetText());
 
-    element = wpt->FirstChildElement("src");
+    element = wpt->FirstChildElement(gpxSrcElem);
     if (element) 
       wp.src = strdup(element->GetText());
 
-    element = wpt->FirstChildElement("sym");
+    element = wpt->FirstChildElement(gpxSymElem);
     if (element) 
       wp.sym = strdup(element->GetText());
 
-    element = wpt->FirstChildElement("type");
+    element = wpt->FirstChildElement(gpxTypeElem);
     if (element) 
       wp.type = strdup(element->GetText());
 
-    element = wpt->FirstChildElement("sat");
+    element = wpt->FirstChildElement(gpxSatElem);
     if (element) 
       wp.sat = static_cast<uint8_t>(element->UnsignedText());
 
-    element = wpt->FirstChildElement("hdop");
+    element = wpt->FirstChildElement(gpxHdopElem);
     if (element) 
       wp.hdop = static_cast<float>(element->DoubleText());
 
-    element = wpt->FirstChildElement("vdop");
+    element = wpt->FirstChildElement(gpxVdopElem);
     if (element) 
       wp.vdop = static_cast<float>(element->DoubleText());
 
-    element = wpt->FirstChildElement("pdop");
+    element = wpt->FirstChildElement(gpxPdopElem);
     if (element) 
       wp.pdop = static_cast<float>(element->DoubleText());
   }
@@ -271,57 +271,57 @@ bool GPXParser::addWaypoint(const wayPoint& wp)
     return false;
   }
 
-  tinyxml2::XMLElement* newWpt = doc.NewElement("wpt");
-  newWpt->SetAttribute("lat", formatDouble(wp.lat, 6).c_str());
-  newWpt->SetAttribute("lon", formatDouble(wp.lon, 6).c_str());
+  tinyxml2::XMLElement* newWpt = doc.NewElement(gpxWaypointTag);
+  newWpt->SetAttribute(gpxLatElem, formatDouble(wp.lat, 6).c_str());
+  newWpt->SetAttribute(gpxLonElem, formatDouble(wp.lon, 6).c_str());
 
   tinyxml2::XMLElement* element = nullptr;
 
-  element = doc.NewElement("ele");
+  element = doc.NewElement(gpxEleElem);
   element->SetText(wp.ele);
   newWpt->InsertEndChild(element);
 
-  element = doc.NewElement("time");
+  element = doc.NewElement(gpxTimeElem);
   element->SetText(textFmt);
   newWpt->InsertEndChild(element);
 
-  element = doc.NewElement("name");
+  element = doc.NewElement(gpxNameElem);
   element->SetText(wp.name ? wp.name : "");
   newWpt->InsertEndChild(element);
 
-  // element = doc.NewElement("desc");
+  // element = doc.NewElement(gpxDescElem);
   // element->SetText(wp.desc ? wp.desc : "");
   // newWpt->InsertEndChild(element);
 
-  element = doc.NewElement("src");
+  element = doc.NewElement(gpxSrcElem);
   element->SetText(wp.src ? wp.src : "IceNav");
   newWpt->InsertEndChild(element);
 
-  // element = doc.NewElement("sym");
+  // element = doc.NewElement(gpxSymElem);
   // element->SetText(wp.sym ? wp.sym : "");
   // newWpt->InsertEndChild(element);
 
-  // element = doc.NewElement("type");
+  // element = doc.NewElement(gpxTypeElem);
   // element->SetText(wp.type ? wp.type : "");
   // newWpt->InsertEndChild(element);
 
-  element = doc.NewElement("sat");
+  element = doc.NewElement(gpxSatElem);
   element->SetText(wp.sat);
   newWpt->InsertEndChild(element);
 
-  element = doc.NewElement("hdop");
+  element = doc.NewElement(gpxHdopElem);
   element->SetText(wp.hdop);
   newWpt->InsertEndChild(element);
 
-  element = doc.NewElement("vdop");
+  element = doc.NewElement(gpxVdopElem);
   element->SetText(wp.vdop);
   newWpt->InsertEndChild(element);
 
-  element = doc.NewElement("pdop");
+  element = doc.NewElement(gpxPdopElem);
   element->SetText(wp.pdop);
   newWpt->InsertEndChild(element);
 
-  tinyxml2::XMLElement* lastWpt = root->LastChildElement("wpt");
+  tinyxml2::XMLElement* lastWpt = root->LastChildElement(gpxWaypointTag);
   if (lastWpt) 
     root->InsertAfterChild(lastWpt, newWpt);
   else

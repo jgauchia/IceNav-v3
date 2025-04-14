@@ -75,6 +75,12 @@ void gpxListEvent(lv_event_t *event)
                 lv_obj_add_flag(navTile, LV_OBJ_FLAG_HIDDEN);
             }
 
+            if (gpxTrack)
+            {
+
+
+            }
+            
             loadMainScreen();
             break;
           case GPX_EDIT:
@@ -111,9 +117,9 @@ void gpxListEvent(lv_event_t *event)
             break;
           case GPX_DEL:
             if (gpxWaypoint)
-              gpx.deleteTagByName("wpt", gpxName.c_str());
+              gpx.deleteTagByName(gpxWaypointTag, gpxName.c_str());
             if (gpxTrack)
-              gpx.deleteTagByName("trk", gpxName.c_str());
+              gpx.deleteTagByName(gpxTrackTag, gpxName.c_str());
 
             loadMainScreen(); 
             break;
@@ -167,7 +173,7 @@ void updateGpxListScreen()
     gpxWaypoint = true;
     gpxTrack = false;
     uint16_t totalGpx = 1;
-    std::map<std::string, std::vector<std::string>> waypointByFile = GPXParser::getTagElementList("wpt", "name", wptFolder);
+    std::map<std::string, std::vector<std::string>> waypointByFile = GPXParser::getTagElementList(gpxWaypointTag, gpxNameElem, wptFolder);
 
     for (std::map<std::string, std::vector<std::string>>::const_iterator it = waypointByFile.begin(); it != waypointByFile.end(); ++it)
     {
@@ -188,7 +194,7 @@ void updateGpxListScreen()
     gpxWaypoint = false;
     gpxTrack = true;
     uint16_t totalGpx = 1;
-    std::map<std::string, std::vector<std::string>> tracksByFile = GPXParser::getTagElementList("trk", "name", trkFolder);
+    std::map<std::string, std::vector<std::string>> tracksByFile = GPXParser::getTagElementList(gpxTrackTag, gpxNameElem, trkFolder);
 
     for (std::map<std::string, std::vector<std::string>>::const_iterator it = tracksByFile.begin(); it != tracksByFile.end(); ++it)
     {

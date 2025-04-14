@@ -23,6 +23,23 @@
 
 static const char* TAGGPX PROGMEM = "GPXParser";
 
+static const char* gpxWaypointTag PROGMEM = "wpt";
+static const char* gpxTrackTag PROGMEM = "trk";
+static const char* gpxNameElem PROGMEM = "name";
+static const char* gpxLatElem PROGMEM = "lat";
+static const char* gpxLonElem PROGMEM = "lon";
+static const char* gpxEleElem PROGMEM ="ele";
+static const char* gpxTimeElem PROGMEM = "time";
+static const char* gpxDescElem PROGMEM = "desc";
+static const char* gpxSrcElem PROGMEM = "src";
+static const char* gpxSymElem PROGMEM = "sym";
+static const char* gpxTypeElem PROGMEM = "type";
+static const char* gpxSatElem PROGMEM = "sat";
+static const char* gpxHdopElem PROGMEM = "hdop";
+static const char* gpxVdopElem PROGMEM = "vdop";
+static const char* gpxPdopElem PROGMEM = "pdop";
+
+
 class GPXParser
 {
   public:

@@ -59,9 +59,9 @@ static void gpxDetailScreenEvent(lv_event_t *event)
             {
               gpx.filePath = gpxFileFolder.c_str();
               if (gpxWaypoint)
-                gpx.editTagAttrOrElem("wpt", nullptr, "name", loadWpt.name, newName);
+                gpx.editTagAttrOrElem(gpxWaypointTag, nullptr, gpxNameElem, loadWpt.name, newName);
               if (gpxTrack)
-                gpx.editTagAttrOrElem("trk", nullptr, "name", loadWpt.name, newName);
+                gpx.editTagAttrOrElem(gpxTrackTag, nullptr, gpxNameElem, loadWpt.name, newName);
             }
             break;
         }
@@ -111,9 +111,9 @@ static void gpxDetailScreenEvent(lv_event_t *event)
         {
           gpx.filePath = gpxFileFolder.c_str();
           if (gpxWaypoint)
-            gpx.editTagAttrOrElem("wpt", nullptr, "name", loadWpt.name, newName);
+            gpx.editTagAttrOrElem(gpxWaypointTag, nullptr, gpxNameElem, loadWpt.name, newName);
           if (gpxTrack)
-            gpx.editTagAttrOrElem("trk", nullptr, "name", loadWpt.name, newName);
+            gpx.editTagAttrOrElem(gpxTrackTag, nullptr, gpxNameElem, loadWpt.name, newName);
         }
         break;
     }
@@ -192,9 +192,9 @@ static void gpxTagNameEvent(lv_event_t *event)
         {
           gpx.filePath = gpxFileFolder.c_str();
           if (gpxWaypoint)
-            gpx.editTagAttrOrElem("wpt", nullptr, "name", loadWpt.name, newName);
+            gpx.editTagAttrOrElem(gpxWaypointTag, nullptr, gpxNameElem, loadWpt.name, newName);
           if (gpxTrack)
-            gpx.editTagAttrOrElem("trk", nullptr, "name", loadWpt.name, newName);
+            gpx.editTagAttrOrElem(gpxTrackTag, nullptr, gpxNameElem, loadWpt.name, newName);
         }
         break;
     }
