@@ -1,17 +1,18 @@
 /**
- * @file addWaypoint.hpp
+ * @file gpxFiles.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief  Add Waypoint functions
+ * @brief  Create GPX files and folder struct
  * @version 0.2.1_alpha
  * @date 2025-04
  */
 
-#ifndef ADDWAYPOINT_HPP
-#define ADDWAYPOINT_HPP
+#ifndef GPXFILES_HPP
+#define GPXFILES_HPP
 
 #include "globalGpxDef.h"
 #include "storage.hpp"
 
-void createGpxFile(const char* gpxFilename);
+void createGpxFolders();
+void createWptFile();
 
 #endif

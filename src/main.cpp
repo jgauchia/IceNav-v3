@@ -63,6 +63,10 @@ extern Gps gps;
 Compass compass;
 #endif
 
+
+std::vector<wayPoint> trackData;
+
+
 /**
  * @brief Sunrise and Sunset
  *
@@ -153,6 +157,7 @@ void setup()
   battery.initADC();
 
   initTFT();
+  createGpxFolders();
 
   mapView.initMap(TFT_HEIGHT - 100, TFT_WIDTH, TFT_HEIGHT);
 

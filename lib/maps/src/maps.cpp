@@ -12,7 +12,7 @@
 extern Compass compass;
 extern Gps gps;
 extern Storage storage;
-
+extern std::vector<wayPoint> trackData;
 const char* TAG PROGMEM = "Maps";
 
 extern Point16::Point16(char *coordsPair)
@@ -713,6 +713,21 @@ void Maps::readVectorMap(Maps::ViewPort &viewPort, Maps::MemCache &memCache, TFT
       Maps::wptPosX = -1;
       Maps::wptPosY = -1;
     }
+
+    for (size_t i = 1; i < trackData.size(); ++i)
+    {
+      if ( trackData[i-1].lon > Maps::totalBounds.lon_min && trackData[i-1].lon < Maps::totalBounds.lon_max &&
+           trackData[i-1].lat > Maps::totalBounds.lat_min && trackData[i-1].lat < Maps::totalBounds.lat_max &&
+           trackData[i].lon > Maps::totalBounds.lon_min && trackData[i].lon < Maps::totalBounds.lon_max &&
+           trackData[i].lat > Maps::totalBounds.lat_min && trackData[i].lat < Maps::totalBounds.lat_max )
+      {
+        uint16_t x, y, x2, y2;
+        Maps::coords2map(trackData[i-1].lat,trackData[i-1].lon,Maps::totalBounds, &x,&y);
+        Maps::coords2map(trackData[i].lat,trackData[i].lon,Maps::totalBounds, &x2,&y2);
+
+        map.drawWideLine(x,y,x2,y2,2,TFT_BLUE);                                                                         
+      }    
+    }
   }
   else
   {
@@ -810,8 +825,6 @@ void Maps::coords2map(double lat, double lon, tileBounds bound, uint16_t *pixelX
 
   *pixelX = (int)(lon_ratio * Maps::tileWidth);
   *pixelY = (int)(lat_ratio * Maps::tileHeight);
-
-  ESP_LOGI(TAG, "Pixel X: %d, Pixel Y: %d\n", *pixelX, *pixelY);
 }
 
 /**
@@ -1069,6 +1082,21 @@ void Maps::generateRenderMap(uint8_t zoom)
       Maps::oldMapTile.tiley = Maps::currentMapTile.tiley;
 
       Maps::redrawMap = true;
+
+      for (size_t i = 1; i < trackData.size(); ++i)
+      {
+        if ( trackData[i-1].lon > Maps::totalBounds.lon_min && trackData[i-1].lon < Maps::totalBounds.lon_max &&
+             trackData[i-1].lat > Maps::totalBounds.lat_min && trackData[i-1].lat < Maps::totalBounds.lat_max &&
+             trackData[i].lon > Maps::totalBounds.lon_min && trackData[i].lon < Maps::totalBounds.lon_max &&
+             trackData[i].lat > Maps::totalBounds.lat_min && trackData[i].lat < Maps::totalBounds.lat_max )
+        {
+          uint16_t x, y, x2, y2;
+          Maps::coords2map(trackData[i-1].lat,trackData[i-1].lon,Maps::totalBounds, &x,&y);
+          Maps::coords2map(trackData[i].lat,trackData[i].lon,Maps::totalBounds, &x2,&y2);
+
+          Maps::mapTempSprite.drawWideLine(x,y,x2,y2,2,TFT_BLUE);                                                                         
+        }    
+      }
     }
 
     ESP_LOGI(TAG, "TILE: %s", Maps::oldMapTile.file);
@@ -1129,7 +1157,7 @@ void Maps::displayMap()
       Maps::mapTempSprite.setPivot(Maps::vectorMapTileSize, Maps::vectorMapTileSize);
 
     Maps::mapTempSprite.pushRotated(&(Maps::mapSprite), 360 - mapHeading, TFT_TRANSPARENT);
-    //Maps::mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
+    // Maps::mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
 
     Maps::arrowSprite.pushRotated(&(Maps::mapSprite), 0, TFT_BLACK);
     Maps::drawMapWidgets(mapSet);
@@ -1148,6 +1176,14 @@ void Maps::setWaypoint(double wptLat, double wptLon)
 {
   Maps::destLat = wptLat;
   Maps::destLon = wptLon;
-  Maps::oldMapTile = {(char *)"", 0, 0, 0};
-  Maps::isPosMoved = true;
 }
+
+/**
+ * @brief Refresh current map
+ *
+ */
+ void Maps::updateMap()
+ {
+   Maps::oldMapTile = {(char *)"", 0, 0, 0};
+   Maps::isPosMoved = true;
+ }

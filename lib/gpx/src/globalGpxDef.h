@@ -15,25 +15,26 @@
 
 static const char* wptFile PROGMEM = "/sdcard/WPT/waypoint.gpx";
 static const char* wptFolder PROGMEM = "/sdcard/WPT";
+static const char* trkFolder PROGMEM = "/sdcard/TRK";
 
 /**
  * @brief Waypoint action enum
  *
  */
-enum wptAction_t
+enum gpxAction_t
 {
     WPT_NONE,
     WPT_ADD,
-    WPT_LOAD,
-    WPT_EDIT,
-    WPT_DEL,
+    GPX_LOAD,
+    GPX_EDIT,
+    GPX_DEL,
 };
 
 /**
  * @brief Waypoint Action
  *
  */
-extern uint8_t wptAction;
+extern uint8_t gpxAction;
 
 /**
  * @brief Waypoint Structure
@@ -57,21 +58,17 @@ struct wayPoint
 };
 
 /**
- * @Brief gpxType definition
+ * @Brief GPX header file format
  *
  */
-static const struct 
-{
-  const char* header; 
-  const char* footer; 
-} gpxType PROGMEM = { "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+static const char* gpxHeader PROGMEM = { "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
                       "<gpx\n"
                       " version=\"1.0\"\n"
                       " creator=\"IceNav\"\n"
                       " xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
                       " xmlns=\"http://www.topografix.com/GPX/1/0\"\n"
-                      " xsi:schemaLocation=\"http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd\">"
-                      , "</gpx>" };
+                      " xsi:schemaLocation=\"http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd\">\n"
+                      "</gpx>" };
 
 
 #endif

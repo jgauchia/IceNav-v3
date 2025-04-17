@@ -323,8 +323,8 @@ void initLVGL()
   createMapSettingsScr();
   createDeviceSettingsScr();
   createButtonBarScr();
-  createWaypointScreen();
-  createWaypointListScreen();
+  createGpxDetailScreen();
+  createGpxListScreen();
   
   // Create and start a periodic timer interrupt to call lv_tick_inc 
   const esp_timer_create_args_t periodic_timer_args = { .callback = &lv_tick_task, .name = "periodic_gui" };
@@ -342,6 +342,6 @@ void loadMainScreen()
   isMainScreen = true;
   isScrolled = true;
   isSearchingSat = false;
-  wptAction = WPT_NONE;
+  gpxAction = WPT_NONE;
   lv_screen_load(mainScreen);
 }
