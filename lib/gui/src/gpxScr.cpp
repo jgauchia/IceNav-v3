@@ -16,6 +16,7 @@ extern bool isWaypointOpt;
 extern bool isTrackOpt;
 bool gpxWaypoint = false;
 bool gpxTrack = false;
+extern std::vector<wayPoint> trackData;
 
 lv_obj_t *listGPXScreen; // Add Waypoint Screen
 
@@ -68,6 +69,7 @@ void gpxListEvent(lv_event_t *event)
                 lv_label_set_text_fmt(nameNav, "%s", loadWpt.name);
 
                 mapView.setWaypoint(loadWpt.lat, loadWpt.lon);
+                mapView.updateMap();
 
                 lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
               }
@@ -77,8 +79,9 @@ void gpxListEvent(lv_event_t *event)
 
             if (gpxTrack)
             {
-
-
+              gpx.loadTrack(trackData);
+              mapView.updateMap();
+              lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
             }
             
             loadMainScreen();

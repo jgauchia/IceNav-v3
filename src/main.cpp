@@ -63,6 +63,10 @@ extern Gps gps;
 Compass compass;
 #endif
 
+
+std::vector<wayPoint> trackData;
+
+
 /**
  * @brief Sunrise and Sunset
  *

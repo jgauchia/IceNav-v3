@@ -25,6 +25,8 @@
 #include "zoomout.c"
 #include "navfinish.c"
 
+#include "globalGpxDef.h"
+
 /**
  * @brief Point in 16 bits projected coordinates (x,y) Vector Maps
  *

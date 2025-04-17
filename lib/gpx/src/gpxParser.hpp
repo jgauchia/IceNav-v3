@@ -57,6 +57,7 @@ class GPXParser
     bool deleteTagByName(const char* tag, const char* name);
     wayPoint getWaypointInfo(const char* name);
     bool addWaypoint(const wayPoint& wp);
+    bool loadTrack(std::vector<wayPoint>& trackData);
 
     std::string filePath;
 };

@@ -158,6 +158,7 @@ class Maps
     void generateVectorMap(uint8_t zoom);
     void displayMap();
     void setWaypoint(double wptLat, double wptLon);
+    void updateMap();
 };
 
 #endif

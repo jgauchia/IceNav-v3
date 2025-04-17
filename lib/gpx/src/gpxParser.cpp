@@ -336,5 +336,56 @@ bool GPXParser::addWaypoint(const wayPoint& wp)
   return result == tinyxml2::XML_SUCCESS;
 }
 
+/**
+ * @brief Load GPX track data and store coordinates from '<trk>' structure.
+ *
+ * @param trackData Vector to store track points (each point is a wayPoint).
+ * @return true if the track data was loaded successfully, false otherwise.
+ */
+bool GPXParser::loadTrack(std::vector<wayPoint>& trackData)
+{
+  tinyxml2::XMLDocument doc;
+  tinyxml2::XMLError result = doc.LoadFile(filePath.c_str());
+  if (result != tinyxml2::XML_SUCCESS)
+  {
+    ESP_LOGE(TAGGPX, "Failed to load file: %s", filePath.c_str());
+    return false;
+  }
 
+  tinyxml2::XMLElement* root = doc.RootElement();
+  if (!root)
+  {
+    ESP_LOGE(TAGGPX, "Failed to get root element in file: %s", filePath.c_str());
+    return false;
+  }
+
+  // Iterate through <trk> elements
+  for (tinyxml2::XMLElement* trk = root->FirstChildElement(gpxTrackTag); trk != nullptr; trk = trk->NextSiblingElement(gpxTrackTag))
+  {
+    // Iterate through <trkseg> elements
+    for (tinyxml2::XMLElement* trkseg = trk->FirstChildElement("trkseg"); trkseg != nullptr; trkseg = trkseg->NextSiblingElement("trkseg"))
+    {
+      // Iterate through <trkpt> elements
+      for (tinyxml2::XMLElement* trkpt = trkseg->FirstChildElement("trkpt"); trkpt != nullptr; trkpt = trkpt->NextSiblingElement("trkpt"))
+      {
+        wayPoint point = {0};
+
+        // Extract latitude and longitude
+        trkpt->QueryDoubleAttribute(gpxLatElem, &point.lat);
+        trkpt->QueryDoubleAttribute(gpxLonElem, &point.lon);
+
+        // // Extract optional elements
+        // tinyxml2::XMLElement* ele = trkpt->FirstChildElement("ele");
+        // if (ele) point.ele = static_cast<float>(ele->DoubleText());
+
+        // tinyxml2::XMLElement* time = trkpt->FirstChildElement("time");
+        // if (time) point.time = strdup(time->GetText());
+
+        trackData.push_back(point);
+      }
+    }
+  }
+
+    return true;
+}
 
