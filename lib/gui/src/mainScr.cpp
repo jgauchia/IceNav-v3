@@ -197,19 +197,37 @@ void updateMainScreen(lv_timer_t *t)
  */
 void gestureEvent(lv_event_t *event)
 {
-  lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
-  if (activeTile == MAP && isMainScreen)
+  lv_obj_t *screen = (lv_obj_t*)lv_event_get_current_target(event);
+  lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_active());
+  lv_event_code_t code = lv_event_get_code(event);
+
+  if (code == LV_EVENT_GESTURE && showMapToolBar)
   {
-    switch (dir)
+    if (activeTile == MAP && isMainScreen)
     {
-      case LV_DIR_LEFT:
-        break;
-      case LV_DIR_RIGHT:
-        break;
-      case LV_DIR_TOP:
-        break;
-      case LV_DIR_BOTTOM:
-        break;
+      switch (dir)
+      {
+        case LV_DIR_LEFT:
+          mapView.panMap(1,0);
+          mapView.generateRenderMap(zoom);
+          lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
+          break;
+        case LV_DIR_RIGHT:
+          mapView.panMap(-1,0);
+          mapView.generateRenderMap(zoom);
+          lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
+          break;
+        case LV_DIR_TOP:
+          mapView.panMap(0,1);
+          mapView.generateRenderMap(zoom);
+          lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
+          break;
+        case LV_DIR_BOTTOM:
+          mapView.panMap(0,-1);
+          mapView.generateRenderMap(zoom);
+          lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
+          break;
+      }
     }
   }
 }
@@ -224,7 +242,14 @@ void updateMap(lv_event_t *event)
   if (mapSet.vectorMap)
     mapView.generateVectorMap(zoom);
   else
+  {
+    if (mapView.followGps)
+      mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
+    else
+      mapView.currentMapTile = mapView.getMapTile(mapView.currentMapTile.lon, mapView.currentMapTile.lat, zoom, 0, 0);
+
     mapView.generateRenderMap(zoom);
+  }
 
   if (mapView.redrawMap)
     mapView.displayMap();
@@ -252,38 +277,46 @@ void updateSatTrack(lv_event_t *event)
 }
 
 /**
- * @brief Tool Bar Event
+ * @brief Map Tool Bar Event
  *
  * @param event
  */
-void toolBarEvent(lv_event_t *event)
+void mapToolBarEvent(lv_event_t *event)
 {
-  showToolBar = !showToolBar;
+  lv_event_code_t code = lv_event_get_code(event);
 
-  if (!mapSet.mapFullScreen)
+  if (code == LV_EVENT_LONG_PRESSED)
   {
-    lv_obj_set_pos(btnFullScreen, 10, mapView.mapScrHeight - toolBarOffset);
-    lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrHeight - (toolBarOffset + toolBarSpace));
-    lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrHeight - (toolBarOffset + (2 * toolBarSpace)));
-  }
-  else
-  {
-    lv_obj_set_pos(btnFullScreen, 10, mapView.mapScrFull - (toolBarOffset + 24));
-    lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrFull - (toolBarOffset + toolBarSpace + 24));
-    lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrFull - (toolBarOffset + (2 * toolBarSpace) + 24));
-  }
+    showMapToolBar = !showMapToolBar;
 
-  if (!showToolBar)
-  {
-    lv_obj_clear_flag(btnFullScreen, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_CLICKABLE);
-  }
-  else
-  {
-    lv_obj_add_flag(btnFullScreen, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_flag(btnZoomOut, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_CLICKABLE);
+    if (!mapSet.mapFullScreen)
+    {
+      lv_obj_set_pos(btnFullScreen, 10, mapView.mapScrHeight - toolBarOffset);
+      lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrHeight - (toolBarOffset + toolBarSpace));
+      lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrHeight - (toolBarOffset + (2 * toolBarSpace)));
+    }
+    else
+    {
+      lv_obj_set_pos(btnFullScreen, 10, mapView.mapScrFull - (toolBarOffset + 24));
+      lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrFull - (toolBarOffset + toolBarSpace + 24));
+      lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrFull - (toolBarOffset + (2 * toolBarSpace) + 24));
+    }
+
+    if (!showMapToolBar)
+    {
+      lv_obj_clear_flag(btnFullScreen, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_add_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
+      mapView.centerOnGps(gps.gpsData.latitude, gps.gpsData.longitude);
+    }
+    else
+    {
+      lv_obj_add_flag(btnFullScreen, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_add_flag(btnZoomOut, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
+    }
   }
 }
 
@@ -486,7 +519,7 @@ void createMainScr()
     lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrFull - (toolBarOffset + (2 * toolBarSpace) + 24));
   }
 
-  if (!showToolBar)
+  if (!showMapToolBar)
   {
     lv_obj_clear_flag(btnFullScreen, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_CLICKABLE);
@@ -501,8 +534,8 @@ void createMainScr()
 
   // Map Tile Events
   lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_VALUE_CHANGED, NULL);
-  lv_obj_add_event_cb(mapTile, gestureEvent, LV_EVENT_GESTURE, NULL);
-  lv_obj_add_event_cb(mapTile, toolBarEvent, LV_EVENT_LONG_PRESSED, NULL);
+  lv_obj_add_event_cb(mainScreen, gestureEvent, LV_EVENT_GESTURE, NULL);
+  lv_obj_add_event_cb(mapTile, mapToolBarEvent, LV_EVENT_LONG_PRESSED, NULL);
 
   // Navigation Tile
   navigationScr(navTile);

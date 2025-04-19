@@ -28,7 +28,7 @@ bool BBox::intersects(BBox b)
 {
   if (b.min.x > max.x || b.max.x < min.x || b.min.y > max.y || b.max.y < min.y)
     return false;
-  return true;
+   return true;
 }
 
 /**
@@ -136,6 +136,9 @@ Maps::MapTile Maps::getMapTile(double lon, double lat, uint8_t zoomLevel, int16_
   data.tilex = x;
   data.tiley = y;
   data.zoom = zoomLevel;
+  data.lat = lat;
+  data.lon = lon;
+  Maps::isMapFound = storage.exists(tileFile);
   return data;
 }
 
@@ -881,7 +884,7 @@ void Maps::drawMapWidgets(MAP mapSettings)
   toolBarSpace = 50;
 #endif
 
-  if (showToolBar)
+  if (showMapToolBar)
   {
     if (mapSettings.mapFullScreen)
       Maps::mapSprite.pushImage(10, mapHeight - toolBarOffset, 48, 48, (uint16_t *)collapse, TFT_BLACK);
@@ -998,8 +1001,6 @@ void Maps::generateRenderMap(uint8_t zoom)
   Maps::mapTileSize = Maps::renderMapTileSize;
   Maps::zoomLevel = zoom;
 
-  Maps::currentMapTile = getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
-
   bool foundRoundMap = false;
   bool missingMap = false;
 
@@ -1007,8 +1008,6 @@ void Maps::generateRenderMap(uint8_t zoom)
   if (strcmp(Maps::currentMapTile.file, Maps::oldMapTile.file) != 0 || Maps::currentMapTile.zoom != Maps::oldMapTile.zoom ||
       Maps::currentMapTile.tilex != Maps::oldMapTile.tilex || Maps::currentMapTile.tiley != Maps::oldMapTile.tiley)
   {
-    Maps::isMapFound = Maps::mapTempSprite.drawPngFile(Maps::currentMapTile.file, Maps::mapTileSize, Maps::mapTileSize);
-
     if (!Maps::isMapFound)
     {
       ESP_LOGE(TAG, "No Map Found!");
@@ -1022,7 +1021,6 @@ void Maps::generateRenderMap(uint8_t zoom)
     }
     else
     {
-      ESP_LOGI(TAG, "Map Found!");
       Maps::oldMapTile.file = Maps::currentMapTile.file;
 
       Maps::totalBounds = Maps::getTileBounds(Maps::currentMapTile.tilex, Maps::currentMapTile.tiley, zoom);
@@ -1035,11 +1033,18 @@ void Maps::generateRenderMap(uint8_t zoom)
       for (int y = startY; y <= startY + 2; y++)
       {
         for (int x = startX; x <= startX + 2; x++)
-        {
+        {         
+          // Maps::roundMapTile = getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, x, y);
           if (x == centerX && y == centerY)
-            continue;// Skip Center Tile
-           
-          Maps::roundMapTile = getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, x, y);
+          {
+            // Maps::oldMapTile.zoom = Maps::currentMapTile.zoom;
+            // Maps::oldMapTile.tilex = Maps::currentMapTile.tilex;
+            // Maps::oldMapTile.tiley = Maps::currentMapTile.tiley;
+            // Maps::oldMapTile.lat = Maps::currentMapTile.lat;
+            // Maps::oldMapTile.lon = Maps::currentMapTile.lon;    
+          }
+
+          Maps::roundMapTile = getMapTile(currentMapTile.lon, currentMapTile.lat, zoom, x, y);
 
           foundRoundMap = Maps::mapTempSprite.drawPngFile(Maps::roundMapTile.file, (x - startX) * Maps::mapTileSize, (y - startY) * Maps::mapTileSize);
           if (!foundRoundMap)
@@ -1066,9 +1071,6 @@ void Maps::generateRenderMap(uint8_t zoom)
 
       if (!missingMap)
       {
-        ESP_LOGI(TAG, "Total Bounds: Lat Min: %f, Lat Max: %f, Lon Min: %f, Lon Max: %f",
-              Maps::totalBounds.lat_min, Maps::totalBounds.lat_max, Maps::totalBounds.lon_min, Maps::totalBounds.lon_max);
-
         if (Maps::isCoordInBounds(Maps::destLat, Maps::destLon, Maps::totalBounds))
           Maps::coords2map(Maps::destLat, Maps::destLon, Maps::totalBounds, &(Maps::wptPosX), &(Maps::wptPosY));
       }
@@ -1077,11 +1079,14 @@ void Maps::generateRenderMap(uint8_t zoom)
         Maps::wptPosX = -1;
         Maps::wptPosY = -1;
       }
+
+      Maps::redrawMap = true;
+
       Maps::oldMapTile.zoom = Maps::currentMapTile.zoom;
       Maps::oldMapTile.tilex = Maps::currentMapTile.tilex;
       Maps::oldMapTile.tiley = Maps::currentMapTile.tiley;
-
-      Maps::redrawMap = true;
+      Maps::oldMapTile.lat = Maps::currentMapTile.lat;
+      Maps::oldMapTile.lon = Maps::currentMapTile.lon;    
 
       for (size_t i = 1; i < trackData.size(); ++i)
       {
@@ -1098,8 +1103,6 @@ void Maps::generateRenderMap(uint8_t zoom)
         }    
       }
     }
-
-    ESP_LOGI(TAG, "TILE: %s", Maps::oldMapTile.file);
   }
 }
 
@@ -1159,7 +1162,9 @@ void Maps::displayMap()
     Maps::mapTempSprite.pushRotated(&(Maps::mapSprite), 360 - mapHeading, TFT_TRANSPARENT);
     // Maps::mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
 
-    Maps::arrowSprite.pushRotated(&(Maps::mapSprite), 0, TFT_BLACK);
+    if (Maps::followGps)
+      Maps::arrowSprite.pushRotated(&(Maps::mapSprite), 0, TFT_BLACK);
+
     Maps::drawMapWidgets(mapSet);
   }
   else
@@ -1186,4 +1191,35 @@ void Maps::setWaypoint(double wptLat, double wptLon)
  {
    Maps::oldMapTile = {(char *)"", 0, 0, 0};
    Maps::isPosMoved = true;
+ }
+
+ /**
+ * @brief Pan current map
+ *
+ * @param dx 
+ * @param dy
+ * @param zoom
+ */
+ void Maps::panMap(int8_t dx, int8_t dy)
+ {
+  Maps::followGps = false;
+  Maps::currentMapTile.tilex += dx;
+  Maps::currentMapTile.tiley += dy;
+  Maps::currentMapTile.lat = Maps::tiley2lat(Maps::currentMapTile.tiley,Maps::currentMapTile.zoom);
+  Maps::currentMapTile.lon = Maps::tilex2lon(Maps::currentMapTile.tilex,Maps::currentMapTile.zoom);
+ }
+
+  /**
+ * @brief Center map on current GPS location
+ *
+ * @param lat -> GPS Latitude 
+ * @param lon -> GPS Longitude
+ */
+ void Maps::centerOnGps(double lat, double lon)
+ {
+  Maps::followGps = true;
+  Maps::currentMapTile.tilex = Maps::lon2tilex(lon, Maps::currentMapTile.zoom);
+  Maps::currentMapTile.tiley = Maps::lat2tiley(lat, Maps::currentMapTile.zoom);
+  Maps::currentMapTile.lat = Maps::tiley2lat(Maps::currentMapTile.tiley,Maps::currentMapTile.zoom);
+  Maps::currentMapTile.lon = Maps::tilex2lon(Maps::currentMapTile.tilex,Maps::currentMapTile.zoom);
  }

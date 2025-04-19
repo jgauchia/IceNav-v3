@@ -30,17 +30,15 @@ class Maps
         uint32_t tilex;
         uint32_t tiley;
         uint8_t zoom;
+        double lat;
+        double lon;
     };
-    MapTile oldMapTile;                                                   // Old Map tile coordinates and zoom
-    MapTile currentMapTile;                                               // Current Map tile coordinates and zoom
-    MapTile roundMapTile;                                                 // Boundaries Map tiles
     uint16_t lon2posx(float f_lon, uint8_t zoom, uint16_t tileSize);
     uint16_t lat2posy(float f_lat, uint8_t zoom, uint16_t tileSize);
     uint32_t lon2tilex(double f_lon, uint8_t zoom);
     uint32_t lat2tiley(double f_lat, uint8_t zoom);
     double tilex2lon(uint32_t tileX, uint8_t zoom);
     double tiley2lat(uint32_t tileY, uint8_t zoom);
-    MapTile getMapTile(double lon, double lat, uint8_t zoomLevel, int16_t offsetX, int16_t offsetY);
 
     // Vector Map  
     static const int32_t MAPBLOCK_MASK = pow(2, MAPBLOCK_SIZE_BITS) - 1;  // ...00000000111111111111
@@ -149,8 +147,13 @@ class Maps
     uint16_t mapScrFull;                                                 // Screen map size in full screen
     bool redrawMap = true;                                               // Flag to indicate need redraw Map
     bool isPosMoved = true;                                              // Flag when current position changes (vector map)
+    bool followGps = true;                                               // Flag to indicate if map follow GPS signal
+    MapTile oldMapTile;                                                  // Old Map tile coordinates and zoom
+    MapTile currentMapTile;                                              // Current Map tile coordinates and zoom
+    MapTile roundMapTile;                                                // Boundaries Map tiles
 
     Maps();
+    MapTile getMapTile(double lon, double lat, uint8_t zoomLevel, int16_t offsetX, int16_t offsetY);
     void initMap(uint16_t mapHeight, uint16_t mapWidth, uint16_t mapFull);
     void deleteMapScrSprites();
     void createMapScrSprites();
@@ -159,6 +162,8 @@ class Maps
     void displayMap();
     void setWaypoint(double wptLat, double wptLon);
     void updateMap();
+    void panMap(int8_t dx, int8_t dy);
+    void centerOnGps(double lat, double lon);
 };
 
 #endif

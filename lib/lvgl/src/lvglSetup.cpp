@@ -282,7 +282,7 @@ void initLVGL()
   #ifdef TOUCH_INPUT
     lv_indev_t *indev_drv = lv_indev_create();
     lv_indev_set_type(indev_drv, LV_INDEV_TYPE_POINTER);
-    lv_indev_set_long_press_time(indev_drv, 750);
+    lv_indev_set_long_press_time(indev_drv, 2000);
     lv_indev_set_read_cb(indev_drv, touchRead);
   #endif
 
