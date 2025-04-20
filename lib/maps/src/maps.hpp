@@ -26,12 +26,12 @@ class Maps
     // Render Map
     struct MapTile                                                        // Tile Map structure
     {
-        char *file;
-        uint32_t tilex;
-        uint32_t tiley;
-        uint8_t zoom;
-        double lat;
-        double lon;
+      char *file;
+      uint32_t tilex;
+      uint32_t tiley;
+      uint8_t zoom;
+      double lat;
+      double lon;
     };
     uint16_t lon2posx(float f_lon, uint8_t zoom, uint16_t tileSize);
     uint16_t lat2posy(float f_lat, uint8_t zoom, uint16_t tileSize);
@@ -153,7 +153,7 @@ class Maps
     MapTile roundMapTile;                                                // Boundaries Map tiles
 
     Maps();
-    MapTile getMapTile(double lon, double lat, uint8_t zoomLevel, int16_t offsetX, int16_t offsetY);
+    MapTile getMapTile(double lon, double lat, uint8_t zoomLevel, int8_t offsetX, int8_t offsetY);
     void initMap(uint16_t mapHeight, uint16_t mapWidth, uint16_t mapFull);
     void deleteMapScrSprites();
     void createMapScrSprites();

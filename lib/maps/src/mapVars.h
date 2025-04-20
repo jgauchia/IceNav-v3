@@ -75,7 +75,7 @@ struct BBox
 };
 
 static const String mapVectorFolder PROGMEM = "/sdcard/VECTMAP/";        // Vector Map Files Folder
-static const char *mapRenderFolder PROGMEM = "/sdcard/MAP/%d/%d/%d.png"; // Render Maps file folder
+static const char *mapRenderFolder PROGMEM = "/sdcard/MAP/%u/%u/%u.png"; // Render Maps file folder
 static const char *noMapFile PROGMEM = "/spiffs/NOMAP.png";       // No map image file
 static const char *map_scale[] PROGMEM = {"5000 Km", "2500 Km", "1500 Km",
                                           "700 Km", "350 Km", "150 Km",

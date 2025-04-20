@@ -92,7 +92,6 @@ void IRAM_ATTR keypadRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
   {
     data->state = LV_INDEV_STATE_PRESSED;
     last_key = act_key;
-    log_i("%d", act_key);
   } 
   else 
     data->state = LV_INDEV_STATE_RELEASED;

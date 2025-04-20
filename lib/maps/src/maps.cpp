@@ -74,7 +74,9 @@ uint16_t Maps::lat2posy(float f_lat, uint8_t zoom, uint16_t tileSize)
  */
 uint32_t Maps::lon2tilex(double f_lon, uint8_t zoom)
 {
-  return (uint32_t)(floor((f_lon + 180.0) / 360.0 * pow(2.0, zoom)));
+  double rawTile = (f_lon + 180.0) / 360.0 * pow(2.0, zoom);
+  rawTile += 1e-6;
+  return (uint32_t)(floor(rawTile));
 }
 
 /**
@@ -86,7 +88,9 @@ uint32_t Maps::lon2tilex(double f_lon, uint8_t zoom)
  */
 uint32_t Maps::lat2tiley(double f_lat, uint8_t zoom)
 {
-  return (uint32_t)(floor((1.0 - log(tan(f_lat * M_PI / 180.0) + 1.0 / cos(f_lat * M_PI / 180.0)) / M_PI) / 2.0 * pow(2.0, zoom)));
+  double rawTile = (1.0 - log(tan(f_lat * M_PI / 180.0) + 1.0 / cos(f_lat * M_PI / 180.0)) / M_PI) / 2.0 * pow(2.0, zoom);
+  rawTile += 1e-6;
+  return (uint32_t)(floor(rawTile));
 }
 
 /**
@@ -124,15 +128,15 @@ double Maps::tiley2lat(uint32_t tileY, uint8_t zoom)
  * @param offsetY -> Tile Offset Y
  * @return MapTile -> Map Tile structure
  */
-Maps::MapTile Maps::getMapTile(double lon, double lat, uint8_t zoomLevel, int16_t offsetX, int16_t offsetY)
+Maps::MapTile Maps::getMapTile(double lon, double lat, uint8_t zoomLevel, int8_t offsetX, int8_t offsetY)
 {
-  static char tileFile[40] = "";
+  char tileFile[40];
   uint32_t x = Maps::lon2tilex(lon, zoomLevel) + offsetX;
   uint32_t y = Maps::lat2tiley(lat, zoomLevel) + offsetY;
 
   sprintf(tileFile, mapRenderFolder, zoomLevel, x, y);
   MapTile data;
-  data.file = tileFile;
+  data.file = strdup(tileFile);
   data.tilex = x;
   data.tiley = y;
   data.zoom = zoomLevel;
@@ -1005,8 +1009,9 @@ void Maps::generateRenderMap(uint8_t zoom)
   bool missingMap = false;
 
   // Detects if tile changes from actual GPS position
-  if (strcmp(Maps::currentMapTile.file, Maps::oldMapTile.file) != 0 || Maps::currentMapTile.zoom != Maps::oldMapTile.zoom ||
-      Maps::currentMapTile.tilex != Maps::oldMapTile.tilex || Maps::currentMapTile.tiley != Maps::oldMapTile.tiley)
+  if ( Maps::currentMapTile.zoom != Maps::oldMapTile.zoom ||
+       Maps::currentMapTile.tilex != Maps::oldMapTile.tilex || 
+       Maps::currentMapTile.tiley != Maps::oldMapTile.tiley )
   {
     if (!Maps::isMapFound)
     {
@@ -1021,29 +1026,18 @@ void Maps::generateRenderMap(uint8_t zoom)
     }
     else
     {
-      Maps::oldMapTile.file = Maps::currentMapTile.file;
+      Maps::oldMapTile = Maps::currentMapTile;
+      Maps::oldMapTile.file = strdup(Maps::currentMapTile.file);
 
       Maps::totalBounds = Maps::getTileBounds(Maps::currentMapTile.tilex, Maps::currentMapTile.tiley, zoom);
 
-      static const uint8_t centerX = 0;
-      static const uint8_t centerY = 0;
-      int8_t startX = centerX - 1;
-      int8_t startY = centerY - 1;
+      int8_t startX = -1; 
+      int8_t startY = -1; 
 
       for (int y = startY; y <= startY + 2; y++)
       {
         for (int x = startX; x <= startX + 2; x++)
         {         
-          // Maps::roundMapTile = getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, x, y);
-          if (x == centerX && y == centerY)
-          {
-            // Maps::oldMapTile.zoom = Maps::currentMapTile.zoom;
-            // Maps::oldMapTile.tilex = Maps::currentMapTile.tilex;
-            // Maps::oldMapTile.tiley = Maps::currentMapTile.tiley;
-            // Maps::oldMapTile.lat = Maps::currentMapTile.lat;
-            // Maps::oldMapTile.lon = Maps::currentMapTile.lon;    
-          }
-
           Maps::roundMapTile = getMapTile(currentMapTile.lon, currentMapTile.lat, zoom, x, y);
 
           foundRoundMap = Maps::mapTempSprite.drawPngFile(Maps::roundMapTile.file, (x - startX) * Maps::mapTileSize, (y - startY) * Maps::mapTileSize);
@@ -1082,13 +1076,7 @@ void Maps::generateRenderMap(uint8_t zoom)
 
       Maps::redrawMap = true;
 
-      Maps::oldMapTile.zoom = Maps::currentMapTile.zoom;
-      Maps::oldMapTile.tilex = Maps::currentMapTile.tilex;
-      Maps::oldMapTile.tiley = Maps::currentMapTile.tiley;
-      Maps::oldMapTile.lat = Maps::currentMapTile.lat;
-      Maps::oldMapTile.lon = Maps::currentMapTile.lon;    
-
-      for (size_t i = 1; i < trackData.size(); ++i)
+      for (size_t i = 1; i < trackData.size(); i++)
       {
         if ( trackData[i-1].lon > Maps::totalBounds.lon_min && trackData[i-1].lon < Maps::totalBounds.lon_max &&
              trackData[i-1].lat > Maps::totalBounds.lat_min && trackData[i-1].lat < Maps::totalBounds.lat_max &&
@@ -1203,10 +1191,10 @@ void Maps::setWaypoint(double wptLat, double wptLon)
  void Maps::panMap(int8_t dx, int8_t dy)
  {
   Maps::followGps = false;
-  Maps::currentMapTile.tilex += dx;
-  Maps::currentMapTile.tiley += dy;
-  Maps::currentMapTile.lat = Maps::tiley2lat(Maps::currentMapTile.tiley,Maps::currentMapTile.zoom);
+  Maps::currentMapTile.tilex = Maps::lon2tilex(Maps::currentMapTile.lon, Maps::currentMapTile.zoom) + dx;
+  Maps::currentMapTile.tiley = Maps::lat2tiley(Maps::currentMapTile.lat, Maps::currentMapTile.zoom) + dy;
   Maps::currentMapTile.lon = Maps::tilex2lon(Maps::currentMapTile.tilex,Maps::currentMapTile.zoom);
+  Maps::currentMapTile.lat = Maps::tiley2lat(Maps::currentMapTile.tiley,Maps::currentMapTile.zoom);
  }
 
   /**
@@ -1220,6 +1208,6 @@ void Maps::setWaypoint(double wptLat, double wptLon)
   Maps::followGps = true;
   Maps::currentMapTile.tilex = Maps::lon2tilex(lon, Maps::currentMapTile.zoom);
   Maps::currentMapTile.tiley = Maps::lat2tiley(lat, Maps::currentMapTile.zoom);
-  Maps::currentMapTile.lat = Maps::tiley2lat(Maps::currentMapTile.tiley,Maps::currentMapTile.zoom);
-  Maps::currentMapTile.lon = Maps::tilex2lon(Maps::currentMapTile.tilex,Maps::currentMapTile.zoom);
+  Maps::currentMapTile.lat = lat;
+  Maps::currentMapTile.lon = lon;
  }

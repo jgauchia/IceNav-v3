@@ -199,9 +199,8 @@ void gestureEvent(lv_event_t *event)
 {
   lv_obj_t *screen = (lv_obj_t*)lv_event_get_current_target(event);
   lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_active());
-  lv_event_code_t code = lv_event_get_code(event);
 
-  if (code == LV_EVENT_GESTURE && showMapToolBar)
+  if (showMapToolBar)
   {
     if (activeTile == MAP && isMainScreen)
     {
@@ -209,23 +208,15 @@ void gestureEvent(lv_event_t *event)
       {
         case LV_DIR_LEFT:
           mapView.panMap(1,0);
-          mapView.generateRenderMap(zoom);
-          lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
           break;
         case LV_DIR_RIGHT:
           mapView.panMap(-1,0);
-          mapView.generateRenderMap(zoom);
-          lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
           break;
         case LV_DIR_TOP:
           mapView.panMap(0,1);
-          mapView.generateRenderMap(zoom);
-          lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
           break;
         case LV_DIR_BOTTOM:
           mapView.panMap(0,-1);
-          mapView.generateRenderMap(zoom);
-          lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
           break;
       }
     }
@@ -246,7 +237,9 @@ void updateMap(lv_event_t *event)
     if (mapView.followGps)
       mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
     else
+    {
       mapView.currentMapTile = mapView.getMapTile(mapView.currentMapTile.lon, mapView.currentMapTile.lat, zoom, 0, 0);
+    }
 
     mapView.generateRenderMap(zoom);
   }
@@ -285,38 +278,35 @@ void mapToolBarEvent(lv_event_t *event)
 {
   lv_event_code_t code = lv_event_get_code(event);
 
-  if (code == LV_EVENT_LONG_PRESSED)
+  showMapToolBar = !showMapToolBar;
+
+  if (!mapSet.mapFullScreen)
   {
-    showMapToolBar = !showMapToolBar;
+    lv_obj_set_pos(btnFullScreen, 10, mapView.mapScrHeight - toolBarOffset);
+    lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrHeight - (toolBarOffset + toolBarSpace));
+    lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrHeight - (toolBarOffset + (2 * toolBarSpace)));
+  }
+  else
+  {
+    lv_obj_set_pos(btnFullScreen, 10, mapView.mapScrFull - (toolBarOffset + 24));
+    lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrFull - (toolBarOffset + toolBarSpace + 24));
+    lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrFull - (toolBarOffset + (2 * toolBarSpace) + 24));
+  }
 
-    if (!mapSet.mapFullScreen)
-    {
-      lv_obj_set_pos(btnFullScreen, 10, mapView.mapScrHeight - toolBarOffset);
-      lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrHeight - (toolBarOffset + toolBarSpace));
-      lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrHeight - (toolBarOffset + (2 * toolBarSpace)));
-    }
-    else
-    {
-      lv_obj_set_pos(btnFullScreen, 10, mapView.mapScrFull - (toolBarOffset + 24));
-      lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrFull - (toolBarOffset + toolBarSpace + 24));
-      lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrFull - (toolBarOffset + (2 * toolBarSpace) + 24));
-    }
-
-    if (!showMapToolBar)
-    {
-      lv_obj_clear_flag(btnFullScreen, LV_OBJ_FLAG_CLICKABLE);
-      lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_CLICKABLE);
-      lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_CLICKABLE);
-      lv_obj_add_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
-      mapView.centerOnGps(gps.gpsData.latitude, gps.gpsData.longitude);
-    }
-    else
-    {
-      lv_obj_add_flag(btnFullScreen, LV_OBJ_FLAG_CLICKABLE);
-      lv_obj_add_flag(btnZoomOut, LV_OBJ_FLAG_CLICKABLE);
-      lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_CLICKABLE);
-      lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
-    }
+  if (!showMapToolBar)
+  {
+    lv_obj_clear_flag(btnFullScreen, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
+    mapView.centerOnGps(gps.gpsData.latitude, gps.gpsData.longitude);
+  }
+  else
+  {
+    lv_obj_add_flag(btnFullScreen, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(btnZoomOut, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
   }
 }
 
