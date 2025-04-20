@@ -130,13 +130,13 @@ double Maps::tiley2lat(uint32_t tileY, uint8_t zoom)
  */
 Maps::MapTile Maps::getMapTile(double lon, double lat, uint8_t zoomLevel, int8_t offsetX, int8_t offsetY)
 {
-  char tileFile[40];
+  char tileFile[255];
   uint32_t x = Maps::lon2tilex(lon, zoomLevel) + offsetX;
   uint32_t y = Maps::lat2tiley(lat, zoomLevel) + offsetY;
 
   sprintf(tileFile, mapRenderFolder, zoomLevel, x, y);
   MapTile data;
-  data.file = strdup(tileFile);
+  strcpy(data.file,tileFile);
   data.tilex = x;
   data.tiley = y;
   data.zoom = zoomLevel;
@@ -959,9 +959,9 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth, uint16_t mapFull)
   Maps::mapTempSprite.deleteSprite();
   Maps::mapTempSprite.createSprite(tileHeight, tileWidth);
 
-  Maps::oldMapTile = {(char *)"", 0, 0, 0};     // Old Map tile coordinates and zoom
-  Maps::currentMapTile = {(char *)"", 0, 0, 0}; // Current Map tile coordinates and zoom
-  Maps::roundMapTile = {(char *)"", 0, 0, 0};   // Boundaries Map tiles
+  Maps::oldMapTile = {};     // Old Map tile coordinates and zoom
+  Maps::currentMapTile = {}; // Current Map tile coordinates and zoom
+  Maps::roundMapTile = {};    // Boundaries Map tiles
   Maps::navArrowPosition = {0, 0};              // Map Arrow position
 
   Maps::totalBounds = {90.0, -90.0, 180.0, -180.0};
@@ -1007,39 +1007,46 @@ void Maps::generateRenderMap(uint8_t zoom)
   bool foundRoundMap = false;
   bool missingMap = false;
 
+
+  if (Maps::followGps)
+    Maps::currentMapTile = Maps::getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, Maps::zoomLevel, 0, 0);
+  else
+    Maps::currentMapTile = Maps::getMapTile(Maps::currentMapTile.lon, Maps::currentMapTile.lat, Maps::zoomLevel, 0, 0);
+
   // Detects if tile changes from actual GPS position
-  if ( Maps::currentMapTile.zoom != Maps::oldMapTile.zoom ||
-       Maps::currentMapTile.tilex != Maps::oldMapTile.tilex || 
-       Maps::currentMapTile.tiley != Maps::oldMapTile.tiley )
-  {
-    ESP_LOGI(TAG,"Check SD Map");
-    Maps::isMapFound = storage.exists(Maps::currentMapTile.file);
+  if (strcmp(Maps::currentMapTile.file, Maps::oldMapTile.file) != 0 || Maps::currentMapTile.zoom != Maps::oldMapTile.zoom ||
+      Maps::currentMapTile.tilex != Maps::oldMapTile.tilex || Maps::currentMapTile.tiley != Maps::oldMapTile.tiley)
+  { 
+    Maps::isMapFound = Maps::mapTempSprite.drawPngFile(Maps::currentMapTile.file, Maps::mapTileSize, Maps::mapTileSize);
+    
     if (!Maps::isMapFound)
     {
       ESP_LOGE(TAG, "No Map Found!");
       Maps::isMapFound = false;
-      Maps::oldMapTile.file = Maps::currentMapTile.file;
-      Maps::oldMapTile.zoom = Maps::currentMapTile.zoom;
-      Maps::oldMapTile.tilex = Maps::currentMapTile.tilex;
-      Maps::oldMapTile.tiley = Maps::currentMapTile.tiley;
+      Maps::oldMapTile = Maps::currentMapTile;
+      strcpy(Maps::oldMapTile.file,Maps::currentMapTile.file);
       Maps::mapTempSprite.fillScreen(TFT_BLACK);
       Maps::showNoMap(Maps::mapTempSprite);
     }
     else
     {
       Maps::oldMapTile = Maps::currentMapTile;
-      Maps::oldMapTile.file = strdup(Maps::currentMapTile.file);
+      strcpy(Maps::oldMapTile.file,Maps::currentMapTile.file);
 
-      Maps::totalBounds = Maps::getTileBounds(Maps::currentMapTile.tilex, Maps::currentMapTile.tiley, zoom);
+      Maps::totalBounds = Maps::getTileBounds(Maps::currentMapTile.tilex, Maps::currentMapTile.tiley, Maps::zoomLevel);
 
-      int8_t startX = -1; 
-      int8_t startY = -1; 
+      int8_t startX = -1;
+      int8_t startY = -1;
 
-      for (int y = startY; y <= startY + 2; y++)
+      for (int8_t y = startX; y <= startX + 2 ; y++)
       {
-        for (int x = startX; x <= startX + 2; x++)
+        for (int8_t x = startY; x <= startY + 2; x++)
         {         
-          Maps::roundMapTile = getMapTile(currentMapTile.lon, currentMapTile.lat, zoom, x, y);
+
+          if (x == 0 && y == 0)
+            continue;// Skip Center Tile
+
+          Maps::roundMapTile = getMapTile(Maps::currentMapTile.lon, Maps::currentMapTile.lat, Maps::zoomLevel, x, y);
 
           foundRoundMap = Maps::mapTempSprite.drawPngFile(Maps::roundMapTile.file, (x - startX) * Maps::mapTileSize, (y - startY) * Maps::mapTileSize);
           if (!foundRoundMap)
@@ -1050,7 +1057,7 @@ void Maps::generateRenderMap(uint8_t zoom)
           }
           else
           {
-            tileBounds currentBounds = Maps::getTileBounds(Maps::roundMapTile.tilex, Maps::roundMapTile.tiley, zoom);
+            tileBounds currentBounds = Maps::getTileBounds(Maps::roundMapTile.tilex, Maps::roundMapTile.tiley, Maps::zoomLevel);
 
             if (currentBounds.lat_min < Maps::totalBounds.lat_min)
               Maps::totalBounds.lat_min = currentBounds.lat_min;
@@ -1178,7 +1185,7 @@ void Maps::setWaypoint(double wptLat, double wptLon)
  */
  void Maps::updateMap()
  {
-   Maps::oldMapTile = {(char *)"", 0, 0, 0};
+   Maps::oldMapTile = {};
    Maps::isPosMoved = true;
  }
 

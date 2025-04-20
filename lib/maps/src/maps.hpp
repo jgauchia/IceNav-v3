@@ -26,7 +26,7 @@ class Maps
     // Render Map
     struct MapTile                                                        // Tile Map structure
     {
-      char *file;
+      char file[255];
       uint32_t tilex;
       uint32_t tiley;
       uint8_t zoom;

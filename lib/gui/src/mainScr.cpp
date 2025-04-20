@@ -197,7 +197,7 @@ void updateMainScreen(lv_timer_t *t)
  */
 void gestureEvent(lv_event_t *event)
 {
-  lv_obj_t *screen = (lv_obj_t*)lv_event_get_current_target(event);
+  // lv_obj_t *screen = (lv_obj_t*)lv_event_get_current_target(event);
   lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_active());
 
   if (showMapToolBar)
@@ -233,14 +233,7 @@ void updateMap(lv_event_t *event)
   if (mapSet.vectorMap)
     mapView.generateVectorMap(zoom);
   else
-  {
-    if (mapView.followGps)
-      mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
-    else
-      mapView.currentMapTile = mapView.getMapTile(mapView.currentMapTile.lon, mapView.currentMapTile.lat, zoom, 0, 0);
-
     mapView.generateRenderMap(zoom);
-  }
 
   if (mapView.redrawMap)
     mapView.displayMap();
