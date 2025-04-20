@@ -1012,7 +1012,7 @@ void Maps::generateRenderMap(uint8_t zoom)
        Maps::currentMapTile.tilex != Maps::oldMapTile.tilex || 
        Maps::currentMapTile.tiley != Maps::oldMapTile.tiley )
   {
-    log_i("READ SD");
+    ESP_LOGI(TAG,"Check SD Map");
     Maps::isMapFound = storage.exists(Maps::currentMapTile.file);
     if (!Maps::isMapFound)
     {

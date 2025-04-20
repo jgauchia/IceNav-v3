@@ -84,7 +84,7 @@ esp_err_t Storage::initSD()
       .intr_flags = 0};
 
   // Adjust the SPI speed (frequency)
-  host.max_freq_khz = 20000;
+  host.max_freq_khz = 10000;
 
   // Initialize the SPI bus
   ret = spi_bus_initialize((spi_host_device_t)host.slot, &bus_cfg, SDSPI_DEFAULT_DMA);

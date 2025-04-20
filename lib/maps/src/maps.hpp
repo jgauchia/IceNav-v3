@@ -110,6 +110,7 @@ class Maps
     static const uint16_t tileHeight = 768;                               // Tile 9x9 Height Size
     static const uint16_t tileWidth = 768;                                // Tile 9x9 Width Size
     static const uint16_t renderMapTileSize = 256;                        // Render map tile size
+    static const uint16_t scrollThreshold = renderMapTileSize / 2;        // Smooth scroll threshold
     static const uint16_t vectorMapTileSize = tileHeight / 2;             // Vector map tile size
     uint16_t mapTileSize;                                                 // Actual map tile size (render or vector map)
     uint16_t wptPosX, wptPosY;                                            // Waypoint position on screen map
