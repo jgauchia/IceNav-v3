@@ -901,6 +901,11 @@ void Maps::drawMapWidgets(MAP mapSettings)
 
     Maps::mapSprite.pushImage(10, mapHeight - (toolBarOffset + (2 * toolBarSpace)), 48, 48, (uint16_t *)zoomin, TFT_BLACK);
     Maps::mapSprite.fillRectAlpha(10, mapHeight - (toolBarOffset + (2 * toolBarSpace)), 48, 48, 50, TFT_BLACK);
+
+    if (!mapSettings.vectorMap)
+    {
+      Maps::mapSprite.pushImage(tft.width() - 58, mapHeight - toolBarOffset, 48, 48, (uint16_t *)move, TFT_BLACK);
+    }
   }
 
   Maps::mapSprite.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);

@@ -24,6 +24,7 @@
 #include "zoomin.c"
 #include "zoomout.c"
 #include "navfinish.c"
+#include "move.c"
 
 #include "globalGpxDef.h"
 
