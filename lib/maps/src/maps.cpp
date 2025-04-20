@@ -142,7 +142,6 @@ Maps::MapTile Maps::getMapTile(double lon, double lat, uint8_t zoomLevel, int8_t
   data.zoom = zoomLevel;
   data.lat = lat;
   data.lon = lon;
-  Maps::isMapFound = storage.exists(tileFile);
   return data;
 }
 
@@ -1013,6 +1012,8 @@ void Maps::generateRenderMap(uint8_t zoom)
        Maps::currentMapTile.tilex != Maps::oldMapTile.tilex || 
        Maps::currentMapTile.tiley != Maps::oldMapTile.tiley )
   {
+    log_i("READ SD");
+    Maps::isMapFound = storage.exists(Maps::currentMapTile.file);
     if (!Maps::isMapFound)
     {
       ESP_LOGE(TAG, "No Map Found!");

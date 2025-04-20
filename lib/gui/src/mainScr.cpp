@@ -237,9 +237,7 @@ void updateMap(lv_event_t *event)
     if (mapView.followGps)
       mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
     else
-    {
       mapView.currentMapTile = mapView.getMapTile(mapView.currentMapTile.lon, mapView.currentMapTile.lat, zoom, 0, 0);
-    }
 
     mapView.generateRenderMap(zoom);
   }
