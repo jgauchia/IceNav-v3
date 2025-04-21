@@ -11,6 +11,8 @@
 bool isMainScreen = false;    // Flag to indicate main screen is selected
 bool isScrolled = true;       // Flag to indicate when tileview was scrolled
 bool isReady = false;         // Flag to indicate when tileview scroll was finished
+bool isScrollingMap = false;  // Flag to indicate if map is scrolling
+bool canScrollMap = false;    // Flag to indicate whet can scroll map
 uint8_t activeTile = 0;       // Current active tile
 uint8_t gpxAction = WPT_NONE; // Current Waypoint Action
 int heading = 0;              // Heading value (Compass or GPS)
@@ -201,28 +203,28 @@ void gestureEvent(lv_event_t *event)
 
   if (showMapToolBar)
   {
-    if (activeTile == MAP && isMainScreen)
-    {
-      switch (dir)
-      {
-        case LV_DIR_LEFT:
-          // mapView.panMap(1,0);
-          mapView.scrollMap(10,0);
-          break;
-        case LV_DIR_RIGHT:
-          // mapView.panMap(-1,0);
-          mapView.scrollMap(-10,0);
-          break;
-        case LV_DIR_TOP:
-          //mapView.panMap(0,1);
-          mapView.scrollMap(0,10);
-          break;
-        case LV_DIR_BOTTOM:
-          // mapView.panMap(0,-1);
-          mapView.scrollMap(0,-10);
-          break;
-      }
-    }
+    // if (activeTile == MAP && isMainScreen)
+    // {
+    //   switch (dir)
+    //   {
+    //     case LV_DIR_LEFT:
+    //       // mapView.panMap(1,0);
+    //       mapView.scrollMap(30,0);
+    //       break;
+    //     case LV_DIR_RIGHT:
+    //       // mapView.panMap(-1,0);
+    //       mapView.scrollMap(-30,0);
+    //       break;
+    //     case LV_DIR_TOP:
+    //       //mapView.panMap(0,1);
+    //       mapView.scrollMap(0,30);
+    //       break;
+    //     case LV_DIR_BOTTOM:
+    //       // mapView.panMap(0,-1);
+    //       mapView.scrollMap(0,-30);
+    //       break;
+    //   }
+    // }
   }
 }
 
@@ -273,6 +275,7 @@ void mapToolBarEvent(lv_event_t *event)
   lv_event_code_t code = lv_event_get_code(event);
 
   showMapToolBar = !showMapToolBar;
+  canScrollMap = !canScrollMap;
 
   if (!mapSet.mapFullScreen)
   {
@@ -303,6 +306,62 @@ void mapToolBarEvent(lv_event_t *event)
     lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
   }
 }
+
+/**
+ * @brief Scrool Map Event
+ *
+ * @param event
+ */
+void scrollMapEvent(lv_event_t *event)
+{
+  if (canScrollMap)
+  {
+    lv_event_code_t code = lv_event_get_code(event);
+    lv_indev_t * indev = lv_event_get_indev(event);
+    static int last_x = 0, last_y = 0;
+    static int dx = 0, dy = 0;
+    lv_point_t p;
+
+
+    switch (code)
+    {
+      case LV_EVENT_PRESSED:
+      {
+        lv_indev_get_point(indev, &p);
+        last_x = p.x;
+        last_y = p.y;
+        isScrollingMap = true;
+        break;
+      }
+  
+      case LV_EVENT_PRESSING:
+      {
+        lv_indev_get_point(indev, &p);
+
+        int dx = p.x - last_x;
+        int dy = p.y - last_y;
+
+        const int SCROLL_THRESHOLD = 5; 
+
+        if (abs(dx) > SCROLL_THRESHOLD || abs(dy) > SCROLL_THRESHOLD) 
+        {
+          mapView.scrollMap(-dx, -dy);
+          last_x = p.x;
+          last_y = p.y;
+        }
+        break;
+      }
+  
+      case LV_EVENT_PRESS_LOST:
+      {
+        isScrollingMap = false;
+        break;
+      }
+    }
+  }
+}
+
+
 
 /**
  * @brief Full Screen Event Toolbar
@@ -519,7 +578,8 @@ void createMainScr()
   // Map Tile Events
   lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(mainScreen, gestureEvent, LV_EVENT_GESTURE, NULL);
-  lv_obj_add_event_cb(mapTile, mapToolBarEvent, LV_EVENT_LONG_PRESSED, NULL);
+  lv_obj_add_event_cb(mapTile, mapToolBarEvent, LV_EVENT_LONG_PRESSED_REPEAT, NULL);
+  lv_obj_add_event_cb(mapTile, scrollMapEvent, LV_EVENT_ALL, NULL);
 
   // Navigation Tile
   navigationScr(navTile);

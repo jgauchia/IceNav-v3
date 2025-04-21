@@ -1245,9 +1245,26 @@ void Maps::setWaypoint(double wptLat, double wptLon)
  */
  void Maps::scrollMap(int16_t dx, int16_t dy)
  {
-  Maps::offsetX += dx;  
-  Maps::offsetY += dy;  
-  log_i("%i %i",Maps::offsetX,offsetY);
+  const float inertia = 0.4f;  
+  const float friction = 0.7f;  
+  const float maxSpeed = 15.0f;
+
+  static float speedX = 0.0f, speedY = 0.0f;
+
+  speedX = (speedX + dx) * inertia;
+  speedY = (speedY + dy) * inertia;
+
+  speedX *= friction;
+  speedY *= friction;
+
+  if (fabs(speedX) > maxSpeed) speedX = (speedX > 0) ? maxSpeed : -maxSpeed;
+  if (fabs(speedY) > maxSpeed) speedY = (speedY > 0) ? maxSpeed : -maxSpeed;
+  
+  // dx *= inertia;
+  // dy *= inertia;
+  
+  Maps::offsetX += (int16_t)speedX;
+  Maps::offsetY += (int16_t)speedY;
 
   Maps::scrollUpdated = false;
   Maps::followGps = false;
