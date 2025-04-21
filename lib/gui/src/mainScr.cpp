@@ -197,7 +197,6 @@ void updateMainScreen(lv_timer_t *t)
  */
 void gestureEvent(lv_event_t *event)
 {
-  // lv_obj_t *screen = (lv_obj_t*)lv_event_get_current_target(event);
   lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_active());
 
   if (showMapToolBar)
@@ -207,16 +206,20 @@ void gestureEvent(lv_event_t *event)
       switch (dir)
       {
         case LV_DIR_LEFT:
-          mapView.panMap(1,0);
+          // mapView.panMap(1,0);
+          mapView.scrollMap(10,0);
           break;
         case LV_DIR_RIGHT:
-          mapView.panMap(-1,0);
+          // mapView.panMap(-1,0);
+          mapView.scrollMap(-10,0);
           break;
         case LV_DIR_TOP:
-          mapView.panMap(0,1);
+          //mapView.panMap(0,1);
+          mapView.scrollMap(0,10);
           break;
         case LV_DIR_BOTTOM:
-          mapView.panMap(0,-1);
+          // mapView.panMap(0,-1);
+          mapView.scrollMap(0,-10);
           break;
       }
     }

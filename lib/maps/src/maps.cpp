@@ -1152,24 +1152,37 @@ void Maps::displayMap()
 
     Maps::mapTempSprite.pushImage(Maps::wptPosX - 8, Maps::wptPosY - 8, 16, 16, (uint16_t *)waypoint, TFT_BLACK);
 
-    if (Maps::mapTileSize == Maps::renderMapTileSize)
+    if (Maps::mapTileSize == Maps::renderMapTileSize && Maps::followGps)
     {
       Maps::navArrowPosition = Maps::coord2ScreenPos(gps.gpsData.longitude, gps.gpsData.latitude, Maps::zoomLevel, Maps::renderMapTileSize);
       Maps::mapTempSprite.setPivot(Maps::renderMapTileSize + Maps::navArrowPosition.posX, Maps::renderMapTileSize + Maps::navArrowPosition.posY);
     }
-    if (Maps::mapTileSize == Maps::vectorMapTileSize)
+    else if (Maps::mapTileSize == Maps::renderMapTileSize && !Maps::followGps)
+    {
+      int16_t pivotX = Maps::tileWidth / 2 + Maps::offsetX;  
+      int16_t pivotY = Maps::tileHeight / 2 + Maps::offsetY;  
+      Maps::mapTempSprite.setPivot(pivotX, pivotY);
+    }
+    else if (Maps::mapTileSize == Maps::vectorMapTileSize)
       Maps::mapTempSprite.setPivot(Maps::vectorMapTileSize, Maps::vectorMapTileSize);
 
-    Maps::mapTempSprite.pushRotated(&(Maps::mapSprite), 360 - mapHeading, TFT_TRANSPARENT);
-    // Maps::mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
-
     if (Maps::followGps)
+    {
+      Maps::mapTempSprite.pushRotated(&(Maps::mapSprite), 360 - mapHeading, TFT_TRANSPARENT);
       Maps::arrowSprite.pushRotated(&(Maps::mapSprite), 0, TFT_BLACK);
-
+    }
+    else
+      Maps::mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
+ 
     Maps::drawMapWidgets(mapSet);
   }
   else
-    Maps::mapTempSprite.pushSprite(&(Maps::mapSprite), 0, 0, TFT_TRANSPARENT);
+  {
+    if (Maps::scrollUpdated && !Maps::followGps)
+     Maps::mapTempSprite.pushSprite(&(Maps::mapSprite), 0, 0, TFT_TRANSPARENT);
+    else
+     Maps::mapTempSprite.pushSprite(&(Maps::mapSprite), 0, 0, TFT_TRANSPARENT);
+  }
 }
 
 /**
@@ -1199,11 +1212,10 @@ void Maps::setWaypoint(double wptLat, double wptLon)
  *
  * @param dx 
  * @param dy
- * @param zoom
  */
  void Maps::panMap(int8_t dx, int8_t dy)
  {
-  Maps::followGps = false;
+  // Maps::followGps = false;
   Maps::currentMapTile.tilex = Maps::lon2tilex(Maps::currentMapTile.lon, Maps::currentMapTile.zoom) + dx;
   Maps::currentMapTile.tiley = Maps::lat2tiley(Maps::currentMapTile.lat, Maps::currentMapTile.zoom) + dy;
   Maps::currentMapTile.lon = Maps::tilex2lon(Maps::currentMapTile.tilex,Maps::currentMapTile.zoom);
@@ -1223,4 +1235,51 @@ void Maps::setWaypoint(double wptLat, double wptLon)
   Maps::currentMapTile.tiley = Maps::lat2tiley(lat, Maps::currentMapTile.zoom);
   Maps::currentMapTile.lat = lat;
   Maps::currentMapTile.lon = lon;
+ }
+
+/**
+ * @brief Smooth scroll current map
+ *
+ * @param dx 
+ * @param dy
+ */
+ void Maps::scrollMap(int16_t dx, int16_t dy)
+ {
+  Maps::offsetX += dx;  
+  Maps::offsetY += dy;  
+  log_i("%i %i",Maps::offsetX,offsetY);
+
+  Maps::scrollUpdated = false;
+  Maps::followGps = false;
+
+  if (Maps::offsetX <= -Maps::scrollThreshold) 
+  {
+      Maps::tileX--;  
+      Maps::offsetX += Maps::renderMapTileSize;  
+      Maps::scrollUpdated = true;
+  }
+  else if (offsetX >= Maps::scrollThreshold)
+  {
+      Maps::tileX++;  
+      Maps::offsetX -= Maps::renderMapTileSize;
+      Maps::scrollUpdated = true;
+  }
+
+  if (Maps::offsetY <= -Maps::scrollThreshold)
+  {
+      Maps::tileY--; 
+      Maps::offsetY += Maps::renderMapTileSize;
+      Maps::scrollUpdated = true;
+  } 
+  else if (Maps::offsetY >= Maps::scrollThreshold)
+  {
+      Maps::tileY++;  
+      Maps::offsetY -= Maps::renderMapTileSize;
+      Maps::scrollUpdated = true;
+  }
+
+  if (Maps::scrollUpdated)
+  {
+    Maps::panMap(Maps::tileX,Maps::tileY);
+  }
  }

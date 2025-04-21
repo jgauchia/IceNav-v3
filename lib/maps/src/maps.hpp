@@ -152,6 +152,12 @@ class Maps
     MapTile oldMapTile;                                                  // Old Map tile coordinates and zoom
     MapTile currentMapTile;                                              // Current Map tile coordinates and zoom
     MapTile roundMapTile;                                                // Boundaries Map tiles
+    int8_t tileX = 0;                                                    // Map tile x counter
+    int8_t tileY = 0;                                                    // Map tile y counter
+    int16_t offsetX = 0;                                                 // Accumulative X scroll map offset
+    int16_t offsetY = 0;                                                 // Accumulative Y scroll map offset
+    bool scrollUpdated = false;                                          // Flag to indicate when map was scrolled and needs to update
+
 
     Maps();
     MapTile getMapTile(double lon, double lat, uint8_t zoomLevel, int8_t offsetX, int8_t offsetY);
@@ -165,6 +171,7 @@ class Maps
     void updateMap();
     void panMap(int8_t dx, int8_t dy);
     void centerOnGps(double lat, double lon);
+    void scrollMap(int16_t dx, int16_t dy);
 };
 
 #endif
