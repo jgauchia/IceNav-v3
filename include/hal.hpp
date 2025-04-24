@@ -262,6 +262,21 @@
   extern const uint8_t SD_CLK = 42;
 #endif
 
+#ifdef T4_S3   
+  #define I2C_SDA_PIN 6
+  #define I2C_SCL_PIN 7
+
+  uint8_t GPS_TX = 44;
+  uint8_t GPS_RX = 43;
+
+  extern const uint8_t BOARD_BOOT_PIN = 0;
+  
+  extern const uint8_t SD_CS = 1;
+  extern const uint8_t SD_MISO = 4;
+  extern const uint8_t SD_MOSI = 2;
+  extern const uint8_t SD_CLK = 3;
+#endif 
+
 /**
  * @brief TFT Invert color
  *

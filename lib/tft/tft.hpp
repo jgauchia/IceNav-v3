@@ -40,6 +40,11 @@
 #include "LILYGO_TDECK.hpp"
 #endif
 
+#ifdef T4_S3
+#include "LILYGO_T4_S3.hpp"
+#endif
+
+
 #include <LGFX_TFT_eSPI.hpp>
 
 extern TFT_eSPI tft;
