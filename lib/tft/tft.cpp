@@ -107,7 +107,11 @@ void touchCalibrate()
 void initTFT()
 {
   tft.init();
-  
+
+  #ifdef T4_S3
+    tft.enableFrameBuffer(true);
+  #endif
+
   #ifdef TDECK_ESP32S3
     tft.setRotation(1);
   #endif

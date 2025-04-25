@@ -61,7 +61,7 @@ class LGFX : public lgfx::LGFX_Device
         cfg.pin_io2   = GPIO_NUM_16;
         cfg.pin_io3   = GPIO_NUM_12;
 
-        cfg.spi_host   = SPI2_HOST;
+        cfg.spi_host   = SPI3_HOST;
         cfg.spi_mode   = SPI_MODE0;
         cfg.dma_channel = SPI_DMA_CH_AUTO;
 
