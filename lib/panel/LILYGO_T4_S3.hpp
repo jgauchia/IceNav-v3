@@ -99,7 +99,7 @@ class LGFX : public lgfx::LGFX_Device
         cfg.y_max      = 600;
 
         cfg.freq       = 400000;
-        cfg.bus_shared = false;
+        cfg.bus_shared = true;
         cfg.offset_rotation = _offset_rotation = 0;
 
         _touch_instance.config(cfg);

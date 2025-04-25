@@ -137,13 +137,6 @@ void setup()
   pinMode(SD_MISO, INPUT_PULLUP);
 #endif
 
-#ifdef T4_S3
-  // pinMode(9, OUTPUT);
-  // digitalWrite(9, HIGH);
-  // pinMode(18, OUTPUT);
-  // digitalWrite(18, HIGH);
-#endif
-
   Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
   Wire.begin();
 
@@ -201,8 +194,8 @@ void setup()
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
   splashScreen();
-  // lv_screen_load(searchSatScreen);
-  loadMainScreen();
+  lv_screen_load(searchSatScreen);
+  // loadMainScreen();
 }
 
 /**

@@ -29,18 +29,10 @@ void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *
 { 
   uint32_t w = (area->x2 - area->x1 + 1);
   uint32_t h = (area->y2 - area->y1 + 1);
-
-#ifdef T4_S3
-  lv_draw_sw_rgb565_swap(px_map, w * h * 2);
-  tft.setAddrWindow(area->x1, area->y1, w, h);
-  tft.pushImage(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t*)px_map);
-#else
   tft.setSwapBytes(true);
   tft.setAddrWindow(area->x1, area->y1, w, h);
   tft.pushImageDMA(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t*)px_map);
   tft.setSwapBytes(false);
-#endif
-
   lv_display_flush_ready(disp);
 }
 
