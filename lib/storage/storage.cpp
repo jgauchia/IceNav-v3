@@ -58,6 +58,9 @@ esp_err_t Storage::initSD()
 #ifdef TDECK_ESP32S3
   host.slot = SPI2_HOST;
 #endif
+#ifdef T4_S3
+  host.slot = SPI2_HOST;
+#endif
 #ifdef ICENAV_BOARD
   host.slot = SPI2_HOST;
 #endif

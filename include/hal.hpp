@@ -265,6 +265,7 @@
 #ifdef T4_S3   
   #define I2C_SDA_PIN 6
   #define I2C_SCL_PIN 7
+  extern const uint8_t TCH_I2C_INT  = 8;
 
   uint8_t GPS_TX = 43;
   uint8_t GPS_RX = 44;

@@ -52,7 +52,7 @@ class LGFX : public lgfx::LGFX_Device
       {
         auto cfg = _bus_instance.config();
 
-        cfg.freq_write = 40000000;
+        cfg.freq_write = 80000000;
         cfg.freq_read  = 20000000; // irrelevant
 
         cfg.pin_sclk  = GPIO_NUM_15;
@@ -77,7 +77,7 @@ class LGFX : public lgfx::LGFX_Device
         cfg.panel_height     = 600;
 
         cfg.readable = true;
-
+        // cfg.bus_shared = true;
         cfg.offset_x = 16;
         cfg.offset_y = 0;
 

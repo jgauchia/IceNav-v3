@@ -110,17 +110,15 @@ void calculateSun()
 void setup()
 {
   gpsMutex = xSemaphoreCreateMutex();
-  esp_log_level_set("*", ESP_LOG_DEBUG);
-  esp_log_level_set("storage", ESP_LOG_DEBUG);
 
 // Force GPIO0 to internal PullUP  during boot (avoid LVGL key read)
 #ifdef POWER_SAVE
   pinMode(BOARD_BOOT_PIN, INPUT_PULLUP);
-#ifdef ICENAV_BOARD
-  gpio_hold_dis((gpio_num_t)TFT_BL);
-  gpio_hold_dis((gpio_num_t)BOARD_BOOT_PIN);
-  gpio_deep_sleep_hold_dis();
-#endif
+  #ifdef ICENAV_BOARD
+    gpio_hold_dis((gpio_num_t)TFT_BL);
+    gpio_hold_dis((gpio_num_t)BOARD_BOOT_PIN);
+    gpio_deep_sleep_hold_dis();
+  #endif
 #endif
 
 #ifdef TDECK_ESP32S3
@@ -135,6 +133,14 @@ void setup()
   digitalWrite(TFT_SPI_CS, HIGH);
   pinMode(TFT_SPI_MISO, INPUT_PULLUP);
   pinMode(SD_MISO, INPUT_PULLUP);
+#endif
+
+#ifdef T4_S3
+  pinMode(TCH_I2C_INT, INPUT);
+  pinMode(SD_CS, OUTPUT);
+  digitalWrite(SD_CS, HIGH);
+  pinMode(SD_MISO, INPUT_PULLUP);
+  pinMode(SD_MOSI, INPUT_PULLUP);
 #endif
 
   Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
@@ -194,8 +200,8 @@ void setup()
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
   splashScreen();
-  lv_screen_load(searchSatScreen);
-  // loadMainScreen();
+  // lv_screen_load(searchSatScreen);
+  loadMainScreen();
 }
 
 /**
