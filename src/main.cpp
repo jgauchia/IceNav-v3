@@ -135,14 +135,6 @@ void setup()
   pinMode(SD_MISO, INPUT_PULLUP);
 #endif
 
-#ifdef T4_S3
-  pinMode(TCH_I2C_INT, INPUT);
-  pinMode(SD_CS, OUTPUT);
-  digitalWrite(SD_CS, HIGH);
-  pinMode(SD_MISO, INPUT_PULLUP);
-  pinMode(SD_MOSI, INPUT_PULLUP);
-#endif
-
   Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
   Wire.begin();
 
