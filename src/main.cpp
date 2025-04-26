@@ -152,7 +152,10 @@ void setup()
  
   storage.initSD();
   storage.initSPIFFS();
-  // battery.initADC();
+
+#ifndef T4_S3
+  battery.initADC();
+#endif
 
   initTFT();
   createGpxFolders();
