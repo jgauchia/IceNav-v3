@@ -79,11 +79,18 @@ void touchCalibrate()
       fontLarge = &fonts::DejaVu24;
     #endif
 
-    tft.drawCenterString("TOUCH THE ARROW MARKER.", tft.width() >> 1, tft.height() >> 1, fontSmall);
+    TFT_eSprite touchSprite = TFT_eSprite(&tft);  
+    touchSprite.createSprite(tft.width(), tft.height());  
+
+    touchSprite.drawCenterString("TOUCH THE ARROW MARKER.", tft.width() >> 1, tft.height() >> 1, fontSmall);
+    touchSprite.pushSprite(0,0);
+
     tft.calibrateTouch(calData, TFT_WHITE, TFT_BLACK, std::max(tft.width(), tft.height()) >> 3);
-    tft.drawCenterString("DONE!", tft.width() >> 1, (tft.height() >> 1) + (tft.fontHeight(fontSmall) * 2), fontLarge);
+    touchSprite.drawCenterString("DONE!", tft.width() >> 1, (tft.height() >> 1) + (tft.fontHeight(fontSmall) * 2), fontLarge);
+    touchSprite.pushSprite(0,0);
     delay(500);
-    tft.drawCenterString("TOUCH TO CONTINUE.", tft.width() >> 1, (tft.height() >> 1) + (tft.fontHeight(fontLarge) * 2), fontSmall);
+    touchSprite.drawCenterString("TOUCH TO CONTINUE.", tft.width() >> 1, (tft.height() >> 1) + (tft.fontHeight(fontLarge) * 2), fontSmall);
+    touchSprite.pushSprite(0,0);
 
     FILE* f = storage.open(calibrationFile, "w");
     if (f)
@@ -95,9 +102,13 @@ void touchCalibrate()
     else
       log_e("Calibration not saved!");
 
-    uint16_t touchX, touchY;
+        uint16_t touchX, touchY;
     while (!tft.getTouch(&touchX, &touchY));
+
+    touchSprite.deleteSprite();
   }
+
+
 }
 
 /**

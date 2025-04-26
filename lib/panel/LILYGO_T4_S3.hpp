@@ -4,6 +4,7 @@
 #define LGFX_USE_V1
 #define LGFX_USE_QSPI
 #define TOUCH_INPUT
+#define LARGE_SCREEN
 
 
 #include <LovyanGFX.hpp>
