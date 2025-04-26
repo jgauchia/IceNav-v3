@@ -109,7 +109,7 @@ void initTFT()
   tft.init();
 
   #ifdef T4_S3
-    tft.enableFrameBuffer(true);
+  //   tft.enableFrameBuffer(false);
   #endif
 
   #ifdef TDECK_ESP32S3

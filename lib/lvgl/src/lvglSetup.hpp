@@ -49,5 +49,6 @@ void modifyTheme();
 void lv_tick_task(void *arg);
 void initLVGL();
 void loadMainScreen();
+static void lv_rounder_cb(lv_event_t *event);
 
 #endif
