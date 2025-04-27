@@ -32,6 +32,10 @@
   #include "ILI9488_NOTOUCH_8B.hpp"
 #endif
 
+#ifdef MAKERF_ESP32S3
+  #include "MAKERF_ESP32S3.hpp"
+#endif
+
 #ifdef ICENAV_BOARD
   #include "ICENAV_BOARD.hpp"
 #endif
