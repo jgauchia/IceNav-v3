@@ -97,7 +97,7 @@ esp_err_t Storage::initSD()
   ESP_LOGI(TAG, "Initializing SD card");
 
   esp_vfs_fat_mount_config_t mount_config = {
-      .format_if_mount_failed = true,
+      .format_if_mount_failed = false,
       .max_files = 5,
       .allocation_unit_size = 16 * 1024};
 

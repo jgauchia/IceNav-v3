@@ -124,17 +124,17 @@ void setup()
 #endif
 
 #ifdef TDECK_ESP32S3
-  pinMode(BOARD_POWERON, OUTPUT);
-  digitalWrite(BOARD_POWERON, HIGH);
-  pinMode(TCH_I2C_INT, INPUT);
-  pinMode(SD_CS, OUTPUT);
-  pinMode(RADIO_CS_PIN, OUTPUT);
-  pinMode(TFT_SPI_CS, OUTPUT);
-  digitalWrite(SD_CS, HIGH);
-  digitalWrite(RADIO_CS_PIN, HIGH);
-  digitalWrite(TFT_SPI_CS, HIGH);
-  pinMode(TFT_SPI_MISO, INPUT_PULLUP);
-  pinMode(SD_MISO, INPUT_PULLUP);
+  // pinMode(BOARD_POWERON, OUTPUT);
+  // digitalWrite(BOARD_POWERON, HIGH);
+  // pinMode(TCH_I2C_INT, INPUT);
+  // pinMode(SD_CS, OUTPUT);
+  // pinMode(RADIO_CS_PIN, OUTPUT);
+  // pinMode(TFT_SPI_CS, OUTPUT);
+  // digitalWrite(SD_CS, HIGH);
+  // digitalWrite(RADIO_CS_PIN, HIGH);
+  // digitalWrite(TFT_SPI_CS, HIGH);
+  // pinMode(TFT_SPI_MISO, INPUT_PULLUP);
+  // pinMode(SD_MISO, INPUT_PULLUP);
 #endif
 
   Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
