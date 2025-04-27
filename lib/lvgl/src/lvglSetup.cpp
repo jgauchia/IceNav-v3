@@ -44,22 +44,33 @@ void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *
  */
 void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 {
-  uint16_t touchX, touchY;
-  if (!tft.getTouch(&touchX, &touchY))
+  int TOUCH_MAX_POINTS = 2;
+  lgfx::touch_point_t touch_raw[TOUCH_MAX_POINTS];
+  int count = tft.getTouchRaw(touch_raw, TOUCH_MAX_POINTS);
+  // while (--count >= 0)
+  // {
+  //    log_i("point: %i [%3d:%-3d]", count, touch_raw[count].x, touch_raw[count].y );
+  // }
+
+  // uint16_t touchX, touchY;
+  if (count == 0)
     data->state = LV_INDEV_STATE_RELEASED;
   else
   {
-    if ( lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_0)
+    while (--count >= 0)
     {
-      data->point.x = touchX;
-      data->point.y = touchY;
+      if ( lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_0)
+      {
+        data->point.x = touch_raw[count].x;
+        data->point.y = touch_raw[count].y;
+      }
+      else if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
+      {
+        data->point.x = TFT_WIDTH - touch_raw[count].y;
+        data->point.y = touch_raw[count].x;
+      }
+      data->state = LV_INDEV_STATE_PRESSED;
     }
-    else if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
-    {
-      data->point.x = TFT_WIDTH - touchY;
-      data->point.y = touchX;
-    }
-    data->state = LV_INDEV_STATE_PRESSED;
   }
 }
 
