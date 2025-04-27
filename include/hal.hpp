@@ -17,15 +17,15 @@
   #define I2C_SDA_PIN   GPIO_NUM_38
   #define I2C_SCL_PIN   GPIO_NUM_39
 
-  uint8_t GPS_TX = 43;
-  uint8_t GPS_RX = 44;
+  uint8_t GPS_TX = GPIO_NUM_43;
+  uint8_t GPS_RX = GPIO_NUM_44;
 
-  extern const uint8_t BOARD_BOOT_PIN = 0;
+  extern const uint8_t BOARD_BOOT_PIN = GPIO_NUM_0;
 
-  extern const uint8_t SD_CS = 1;
-  extern const uint8_t SD_MISO = 41;
-  extern const uint8_t SD_MOSI = 2;
-  extern const uint8_t SD_CLK = 42;
+  extern const uint8_t SD_CS = GPIO_NUM_1;
+  extern const uint8_t SD_MISO = GPIO_NUM_41;
+  extern const uint8_t SD_MOSI = GPIO_NUM_2;
+  extern const uint8_t SD_CLK = GPIO_NUM_42;
 #endif
 
 /**
