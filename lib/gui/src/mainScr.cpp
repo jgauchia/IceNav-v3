@@ -314,7 +314,7 @@ void mapToolBarEvent(lv_event_t *event)
  */
 void scrollMapEvent(lv_event_t *event)
 {
-  // if (canScrollMap)
+  if (canScrollMap)
   {
     lv_event_code_t code = lv_event_get_code(event);
     lv_indev_t * indev = lv_event_get_indev(event);
@@ -331,7 +331,7 @@ void scrollMapEvent(lv_event_t *event)
         last_x = p.x;
         last_y = p.y;
         isScrollingMap = true;
-        lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
+        // lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
         break;
       }
   
@@ -579,7 +579,7 @@ void createMainScr()
   // Map Tile Events
   lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(mainScreen, gestureEvent, LV_EVENT_GESTURE, NULL);
-  //lv_obj_add_event_cb(mapTile, mapToolBarEvent, LV_EVENT_LONG_PRESSED_REPEAT, NULL);
+  lv_obj_add_event_cb(mapTile, mapToolBarEvent, LV_EVENT_LONG_PRESSED_REPEAT, NULL);
   lv_obj_add_event_cb(mapTile, scrollMapEvent, LV_EVENT_ALL, NULL);
 
   // Navigation Tile
