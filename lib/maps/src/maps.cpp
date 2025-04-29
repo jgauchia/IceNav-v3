@@ -594,12 +594,6 @@ void Maps::getMapBlocks(BBox &bbox, Maps::MemCache &memCache)
       log_d("Block readed from SD card: %p", newBlock);
       log_d("FreeHeap: %i", esp_get_free_heap_size());
     }
-    // else
-    // {
-    //   newBlock->inView = false;
-    //   newBlock->offset = Point32(blockMinX, blockMinY);
-    //   memCache.blocks.push_back(newBlock); // add the block to the memory cache
-    // }.
   }
 
   log_d("memCache size: %i %i", memCache.blocks.size(), millis());
