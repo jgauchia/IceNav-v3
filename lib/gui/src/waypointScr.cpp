@@ -1,8 +1,8 @@
 /**
  * @file waypointScr.cpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Waypoint Screen
- * @version 0.1.9
+ * @version 0.2.0
  * @date 2024-12
  */
 

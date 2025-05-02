@@ -1,8 +1,8 @@
 /**
  * @file settingsScr.hpp
- * @author Jordi Gauchía (jgauchia@gmx.es)
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Settings Screen
- * @version 0.1.9
+ * @version 0.2.0
  * @date 2024-12
  */
 
