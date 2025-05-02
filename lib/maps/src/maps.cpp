@@ -995,7 +995,12 @@ void Maps::generateRenderMap(uint8_t zoom)
       Maps::currentMapTile.tilex != Maps::oldMapTile.tilex || Maps::currentMapTile.tiley != Maps::oldMapTile.tiley)
   {
 
+    #ifdef SPI_SHARED
+    tft.waitDisplay();
     tft.endTransaction();
+    digitalWrite(TFT_SPI_CS,HIGH);
+    digitalWrite(39,LOW);
+    #endif
 
     Maps::isMapFound = Maps::mapTempSprite.drawPngFile(Maps::currentMapTile.file, Maps::mapTileSize, Maps::mapTileSize);
 
@@ -1076,7 +1081,11 @@ void Maps::generateRenderMap(uint8_t zoom)
 
     ESP_LOGI(TAG, "TILE: %s", Maps::oldMapTile.file);
 
+    #ifdef SPI_SHARED
+    digitalWrite(39,HIGH);
+    digitalWrite(TFT_SPI_CS,LOW);
     tft.beginTransaction();
+    #endif
   }
 }
 
