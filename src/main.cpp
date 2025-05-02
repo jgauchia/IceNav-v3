@@ -148,11 +148,11 @@ void setup()
   initIMU();
 #endif
  
-  storage.initSD();
   storage.initSPIFFS();
   battery.initADC();
 
   initTFT();
+  storage.initSD();
 
   mapView.initMap(TFT_HEIGHT - 100, TFT_WIDTH, TFT_HEIGHT);
 

@@ -994,6 +994,9 @@ void Maps::generateRenderMap(uint8_t zoom)
   if (strcmp(Maps::currentMapTile.file, Maps::oldMapTile.file) != 0 || Maps::currentMapTile.zoom != Maps::oldMapTile.zoom ||
       Maps::currentMapTile.tilex != Maps::oldMapTile.tilex || Maps::currentMapTile.tiley != Maps::oldMapTile.tiley)
   {
+
+    tft.endTransaction();
+
     Maps::isMapFound = Maps::mapTempSprite.drawPngFile(Maps::currentMapTile.file, Maps::mapTileSize, Maps::mapTileSize);
 
     if (!Maps::isMapFound)
@@ -1072,6 +1075,8 @@ void Maps::generateRenderMap(uint8_t zoom)
     }
 
     ESP_LOGI(TAG, "TILE: %s", Maps::oldMapTile.file);
+
+    tft.beginTransaction();
   }
 }
 

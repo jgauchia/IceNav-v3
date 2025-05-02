@@ -67,11 +67,14 @@ esp_err_t Storage::initSD()
 #ifdef ESP32_N16R4
   host.slot = HSPI_HOST;
 #endif
+  // Adjust the SPI speed (frequency)
+  host.max_freq_khz = 20000;
 
   sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
   slot_config.gpio_cs = (gpio_num_t)SD_CS;
   slot_config.host_id = (spi_host_device_t)host.slot;
 
+#ifndef SPI_SHARED
   // SPI bus configuration
   spi_bus_config_t bus_cfg = {
       .mosi_io_num = (gpio_num_t)SD_MOSI,
@@ -83,9 +86,6 @@ esp_err_t Storage::initSD()
       .flags = 0,
       .intr_flags = 0};
 
-  // Adjust the SPI speed (frequency)
-  host.max_freq_khz = 20000;
-
   // Initialize the SPI bus
   ret = spi_bus_initialize((spi_host_device_t)host.slot, &bus_cfg, SDSPI_DEFAULT_DMA);
   if (ret != ESP_OK)
@@ -93,6 +93,7 @@ esp_err_t Storage::initSD()
     ESP_LOGE(TAG, "Failed to initialize SPI bus.");
     return ret;
   }
+#endif
 
   ESP_LOGI(TAG, "Initializing SD card");
 
