@@ -100,6 +100,10 @@ To do this, simply include the following Build Flag in the required env in platf
 | ILI9488     | 320x480    | ➖ |   ➖ |  ✔️  | FT5x06    | ```-DILI9488_FT5x06_16B```       |
 | ILI9341     | 320x240    | ✔️ |  ➖  |  ➖  | XPT2046   | ```-DILI9341_XPT2046_SPI```      |
 
+> [!IMPORTANT]
+> If you are using a TFT with SPI shared bus, for example with an SD card, you need to add the following buildflag:
+> ```-DSPI_SHARED```
+
 ### Modules
 
 |             | Type          | Build Flags [^3]                   | lib_deps [^5] (**no common environment**)              |

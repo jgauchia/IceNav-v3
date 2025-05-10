@@ -117,24 +117,24 @@ void setup()
 #ifdef POWER_SAVE
   pinMode(BOARD_BOOT_PIN, INPUT_PULLUP);
 #ifdef ICENAV_BOARD
-  gpio_hold_dis((gpio_num_t)TFT_BL);
+  gpio_hold_dis(GPIO_NUM_46);
   gpio_hold_dis((gpio_num_t)BOARD_BOOT_PIN);
   gpio_deep_sleep_hold_dis();
 #endif
 #endif
 
 #ifdef TDECK_ESP32S3
-  pinMode(BOARD_POWERON, OUTPUT);
-  digitalWrite(BOARD_POWERON, HIGH);
-  pinMode(TCH_I2C_INT, INPUT);
-  pinMode(SD_CS, OUTPUT);
-  pinMode(RADIO_CS_PIN, OUTPUT);
-  pinMode(TFT_SPI_CS, OUTPUT);
-  digitalWrite(SD_CS, HIGH);
-  digitalWrite(RADIO_CS_PIN, HIGH);
-  digitalWrite(TFT_SPI_CS, HIGH);
-  pinMode(TFT_SPI_MISO, INPUT_PULLUP);
-  pinMode(SD_MISO, INPUT_PULLUP);
+  // pinMode(BOARD_POWERON, OUTPUT);
+  // digitalWrite(BOARD_POWERON, HIGH);
+  // pinMode(TCH_I2C_INT, INPUT);
+  // pinMode(SD_CS, OUTPUT);
+  // pinMode(RADIO_CS_PIN, OUTPUT);
+  // pinMode(TFT_SPI_CS, OUTPUT);
+  // digitalWrite(SD_CS, HIGH);
+  // digitalWrite(RADIO_CS_PIN, HIGH);
+  // digitalWrite(TFT_SPI_CS, HIGH);
+  // pinMode(TFT_SPI_MISO, INPUT_PULLUP);
+  // pinMode(SD_MISO, INPUT_PULLUP);
 #endif
 
   Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
