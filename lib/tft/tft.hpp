@@ -10,7 +10,7 @@
 #define TFT_HPP
 
 #include <Arduino.h>
-#include "storage.hpp"
+#include <SD.h>
 
 #ifdef ILI9488_XPT2046_SPI
 #include "ILI9488_XPT2046_SPI.hpp"

@@ -288,7 +288,6 @@ wayPoint GPXParser::getWaypointInfo(const String& name)
   }
 
   tinyxml2::XMLElement* root = doc.RootElement();
-
   if (!root)
   {
     ESP_LOGE(TAG, "Failed to get root element in file: %s", filePath.c_str());
@@ -296,12 +295,10 @@ wayPoint GPXParser::getWaypointInfo(const String& name)
   }
 
   tinyxml2::XMLElement* newWpt = doc.NewElement("wpt");
-
   newWpt->SetAttribute("lat", wp.lat);
   newWpt->SetAttribute("lon", wp.lon);
 
   tinyxml2::XMLElement* element = doc.NewElement("ele");
-
   element->SetText(wp.ele);
   newWpt->InsertEndChild(element);
 
@@ -503,7 +500,6 @@ bool GPXParser::deleteWaypoint(const char* name)
   }
 
   tinyxml2::XMLElement* root = doc.RootElement();
-
   if (!root) {
       ESP_LOGE(TAG, "Failed to get root element in file: %s", filePath.c_str());
       return false;

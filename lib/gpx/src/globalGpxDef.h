@@ -13,8 +13,8 @@
 #include <pgmspace.h>
 #include <stdint.h>
 
-static const char* wptFile PROGMEM = "/sdcard/WPT/waypoint.gpx";
-static const char* wptFolder PROGMEM = "/sdcard/WPT";
+static const char* wptFile PROGMEM = "/WPT/waypoint.gpx";
+static const char* wptFolder PROGMEM = "/WPT";
 
 /**
  * @brief Waypoint action enum
@@ -64,13 +64,11 @@ static const struct
 {
   const char* header; 
   const char* footer; 
-} gpxType PROGMEM = { "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-                      "<gpx\n"
-                      " version=\"1.0\"\n"
-                      " creator=\"IceNav\"\n"
-                      " xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
-                      " xmlns=\"http://www.topografix.com/GPX/1/0\"\n"
-                      " xsi:schemaLocation=\"http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd\">"
+} gpxType PROGMEM = { "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\r\n"
+                      "<gpx xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
+                      "xmlns=\"http://www.topografix.com/GPX/1/1\" version=\"1.1\" "
+                      "creator=\"IceNav\" "
+                      "xsi:schemaLocation=\"http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd\">"
                       , "</gpx>" };
 
 

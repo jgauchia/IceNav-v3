@@ -9,8 +9,8 @@
 #ifndef ADDWAYPOINT_HPP
 #define ADDWAYPOINT_HPP
 
+#include "SD.h"
 #include "globalGpxDef.h"
-#include "storage.hpp"
 
 void createGpxFile(const char* gpxFilename);
 

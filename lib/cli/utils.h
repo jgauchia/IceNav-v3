@@ -13,36 +13,32 @@
 #include "cli.hpp"
 #include "storage.hpp"
 #include "tft.hpp"
-extern Storage storage;
 
-#define SCREENSHOT_TEMP_FILE "/sdcard/screenshot.png"
+#define SCREENSHOT_TEMP_FILE "/screenshot.png"
 
 // Capture the screenshot and save it to the SD card
-static bool captureScreenshot(const char *filename, Stream *response)
+static bool captureScreenshot(const char* filename, Stream *response)
 {
   size_t dlen;
-  uint8_t *png = (uint8_t *)tft.createPng(&dlen, 0, 0, tft.width(), tft.height());
+  uint8_t* png = (uint8_t*)tft.createPng(&dlen, 0, 0, tft.width(), tft.height());
   if (!png)
   {
     response->println("Filed to create PNG");
     return false;
   }
 
-  FILE *file = storage.open(filename, "w");
-  
+  File file = SD.open(filename, FILE_WRITE);
+
   bool result = false;
   if (file)
   {
-    size_t err = storage.write(file, (uint8_t *)png, dlen);
-    if (err != 0)
-      response->println("Screenshot saved");
-    else
-      response->println("Error writing screenshot");
+    file.write((uint8_t*)png, dlen);
+    response->println("Screenshot saved");
     free(png);
-    storage.close(file);
+    file.close();
     result = true;
   }
-  else
+  else  
     response->println("Failed to open file for writing");
 
   return result;
@@ -51,43 +47,37 @@ static bool captureScreenshot(const char *filename, Stream *response)
 // WiFi client
 static WiFiClient client;
 
-static void captureScreenshot(const char *filename, const char *pc_ip, uint16_t pc_port, Stream *response)
-{
-  if (!client.connect(pc_ip, pc_port))
-  {
+static void captureScreenshot(const char* filename, const char* pc_ip, uint16_t pc_port, Stream *response) {
+  if (!client.connect(pc_ip, pc_port)) {
     response->println("Connection to server failed");
     return;
   }
 
   response->println("Connected to server");
-
-  if (!captureScreenshot(filename, response))
-  {
+  
+  if (!captureScreenshot(filename,response)){
     client.stop();
     return;
   }
 
-  FILE* file = storage.open(filename, "r");
-  if (!file)
-  {
+  File file = SD.open(filename, FILE_READ);
+  if (!file) {
     response->println("Failed to open file for reading");
     client.stop();
     return;
   }
 
   // Send the file data to the PC
-  while (storage.fileAvailable(file))
-  {
+  while (file.available()) {
     size_t size = 0;
     uint8_t buffer[512];
-    size = storage.read(file, buffer, sizeof(buffer));
-    if (size > 0)
-    {
+    size = file.read(buffer, sizeof(buffer));
+    if (size > 0) {
       client.write(buffer, size);
     }
   }
 
-  storage.close(file);
+  file.close();
   client.stop();
   response->println("Screenshot sent over WiFi");
 }

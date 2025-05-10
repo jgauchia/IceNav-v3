@@ -13,9 +13,9 @@
 #include "tft.hpp"
 #include "lvgl.h"
 #include "upgradeScr.hpp"
-#include "storage.hpp"
+#include "SD.h"
 
-static const char *upgrdFile PROGMEM = "/sdcard/firmware.bin"; // Firmware upgrade file
+static const char *upgrdFile PROGMEM = "/firmware.bin"; // Firmware upgrade file
 
 bool checkFileUpgrade();
 void onUpgrdStart();
