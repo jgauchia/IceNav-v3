@@ -15,19 +15,6 @@
 
 #include "LovyanGFX.hpp"
 
-// extern const uint8_t TFT_SPI_SCLK;
-// extern const uint8_t TFT_SPI_MOSI;
-// extern const uint8_t TFT_SPI_MISO;
-// extern const uint8_t TFT_SPI_DC;
-// extern const uint8_t TFT_SPI_CS;
-// extern const uint8_t TFT_SPI_RST;
-// extern const uint8_t TFT_SPI_BL;
-// extern const uint8_t TCH_I2C_PORT;
-// extern const uint8_t TCH_I2C_SDA;
-// extern const uint8_t TCH_I2C_SCL;
-// extern const uint8_t TCH_I2C_INT;
-// extern const bool TFT_INVERT;
-
 class LGFX : public lgfx::LGFX_Device
 {
   lgfx::Panel_ST7789  _panel_instance;
@@ -38,33 +25,11 @@ class LGFX : public lgfx::LGFX_Device
 public:
   LGFX(void)
   {
-    // Power on display 
-    lgfx::pinMode(GPIO_NUM_10, lgfx::pin_mode_t::output);
-    lgfx::gpio_hi(GPIO_NUM_10 );
-
-    // Wakeup touch chip 
-    lgfx::pinMode(GPIO_NUM_16, lgfx::pin_mode_t::output);
-    lgfx::gpio_hi(GPIO_NUM_16 );
-    delay(20);
-
-    // Set touch int input 
-    lgfx::pinMode(GPIO_NUM_16, lgfx::pin_mode_t::input);
-    delay(20);
-
-    // SD card 
-    lgfx::pinMode(GPIO_NUM_39, lgfx::pin_mode_t::output);
-    lgfx::gpio_hi(GPIO_NUM_39 );
-    lgfx::pinMode(GPIO_NUM_38, lgfx::pin_mode_t::input_pullup);
-
-    // Wakeup LoRa 
-    lgfx::pinMode(GPIO_NUM_9,  lgfx::pin_mode_t::output);
-    lgfx::gpio_hi(GPIO_NUM_9 );
-
     {
       auto cfg = _bus_instance.config();
       cfg.spi_host = SPI2_HOST;
-      cfg.spi_mode = 3;
-      cfg.use_lock = true;
+      cfg.spi_mode = 0;
+      cfg.use_lock = false;
       cfg.freq_write = 40000000;
       cfg.freq_read = 16000000;
       cfg.spi_3wire = false;

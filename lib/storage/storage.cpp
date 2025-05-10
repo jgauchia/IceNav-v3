@@ -87,12 +87,15 @@ esp_err_t Storage::initSD()
   host.max_freq_khz = 20000;
 
   // Initialize the SPI bus
-  ret = spi_bus_initialize((spi_host_device_t)host.slot, &bus_cfg, SDSPI_DEFAULT_DMA);
-  if (ret != ESP_OK)
-  {
-    ESP_LOGE(TAG, "Failed to initialize SPI bus.");
-    return ret;
-  }
+  
+  #ifndef SPI_SHARED
+    ret = spi_bus_initialize((spi_host_device_t)host.slot, &bus_cfg, SDSPI_DEFAULT_DMA);
+    if (ret != ESP_OK)
+    {
+      ESP_LOGE(TAG, "Failed to initialize SPI bus.");
+      return ret;
+    }
+  #endif
 
   ESP_LOGI(TAG, "Initializing SD card");
 

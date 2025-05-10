@@ -32,6 +32,10 @@
   #include "ILI9488_NOTOUCH_8B.hpp"
 #endif
 
+#ifdef ILI9341_NOTOUCH_SPI
+  #include "ILI9341_NOTOUCH_SPI.hpp"
+#endif
+
 #ifdef MAKERF_ESP32S3
   #include "MAKERF_ESP32S3.hpp"
 #endif
