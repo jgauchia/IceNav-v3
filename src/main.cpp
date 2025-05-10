@@ -9,7 +9,6 @@
 #include <Arduino.h>
 #include <stdint.h>
 #include <Wire.h>
-#include <SD.h>
 #include <SPI.h>
 #include <WiFi.h>
 #include <esp_wifi.h>

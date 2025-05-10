@@ -10,6 +10,10 @@
 
 static const char* TAG PROGMEM = "Firmware Update";
 
+ extern Storage storage;
+
+ static const char* TAG PROGMEM = "Firmware Update";
+
 /**
  * @brief Check if firmware file exist
  * 
@@ -40,7 +44,7 @@ void onUpgrdStart()
   }
   else
   {
-     ESP_LOGE(TAG,"Upgrade error!");
+    ESP_LOGE(TAG,"Upgrade error!");
     lv_label_set_text_static(msgUprgdText, LV_SYMBOL_WARNING " Upgrade error!");
     lv_obj_clear_flag(btnMsgBack,LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(contMeter,LV_OBJ_FLAG_HIDDEN);

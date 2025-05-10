@@ -9,12 +9,12 @@
 #include "addWaypoint.hpp"
 #include "esp_log.h"
 
-extern const uint8_t SD_CS;
+wayPoint addWpt;
+wayPoint loadWpt; 
+extern Storage storage;
 
 File gpxFile;
 wayPoint addWpt;
-wayPoint loadWpt; 
-
 static const char* TAG PROGMEM = "GPX Creation file";
 
 /**
@@ -24,34 +24,35 @@ static const char* TAG PROGMEM = "GPX Creation file";
  */
 void createGpxFile(const char *gpxFilename)
 {
-  if (!SD.exists(wptFolder))
+  if (!storage.exists(wptFolder))
   {
     ESP_LOGI(TAG,"WPT folder not exists");
     if (SD.mkdir(wptFolder))
       ESP_LOGI(TAG, "WPT folder created");
     else
-     log_i("WPT folder not created");
+      ESP_LOGE(TAG, "WPT folder not created");
   }
-  
-  gpxFile = SD.open(gpxFilename, FILE_READ);
+
+  FILE *gpxFile = storage.open(gpxFilename, "r");
 
   if (!gpxFile)
   {
-    log_i("GPX File not exists");
-    gpxFile = SD.open(gpxFilename, FILE_WRITE);
+    ESP_LOGI(TAG,"GPX File not exists");
+    gpxFile = storage.open(gpxFilename, "w");
     if (gpxFile)
     {
-      log_i("Creating GPX File");
-      gpxFile.println(gpxType.header);
-      gpxFile.print(gpxType.footer);
-      gpxFile.close();
+      ESP_LOGI(TAG,"Creating GPX File");
+      storage.println(gpxFile, gpxType.header);
+      storage.print(gpxFile, gpxType.footer);
+      storage.close(gpxFile);
+      ESP_LOGI(TAG,"File Size: %d", storage.size(gpxFilename));
     }
     else
       ESP_LOGE(TAG,"GPX File creation error");
   }
   else
   {
-    log_i("GPX File exists");
+    ESP_LOGI(TAG,"GPX File exists");
     gpxFile.close();
   }
 }

@@ -30,7 +30,6 @@ bool BBox::intersects(BBox b)
   return true;
 }
 
-
 /**
  * @brief Map Class constructor
  *
@@ -160,7 +159,7 @@ double Maps::lat2y(double lat)
  */
 double Maps::lon2x(double lon)
 {
-   return DEG2RAD(lon) * EARTH_RADIUS; 
+  return DEG2RAD(lon) * EARTH_RADIUS;
 }
 
 /**
@@ -170,7 +169,7 @@ double Maps::lon2x(double lon)
  * @return longitude
  */
 double Maps::mercatorX2lon(double x)
-{ 
+{
   return (x / EARTH_RADIUS) * (180.0 / M_PI);
 }
 
@@ -181,8 +180,8 @@ double Maps::mercatorX2lon(double x)
  * @return latitude
  */
 double Maps::mercatorY2lat(double y)
-{ 
-  return (atan(sinh(y / EARTH_RADIUS))) * (180.0 / M_PI); 
+{
+  return (atan(sinh(y / EARTH_RADIUS))) * (180.0 / M_PI);
 }
 
 /**
@@ -219,6 +218,7 @@ int16_t Maps::parseInt16(ReadBufferingStream &file)
     c = (char)file.read();
   }
   num[i] = '\0';
+
   if (c != ';' && c != ',' && c != '\n')
   {
     ESP_LOGE(TAG, "parseInt16 error: %c %i", c, c);
@@ -325,6 +325,7 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
   char str[30];
   MapBlock *mblock = new MapBlock();
   fs::File file_ = SD.open(fileName + ".fmp");
+
   if (!file_)
   {
     Maps::isMapFound = false;
@@ -345,6 +346,7 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
       ESP_LOGE(TAG, "Map error. Expected Polygons instead of: %s", str);
       while (0);
     }
+
     int16_t count = Maps::parseInt16(file);
     assert(count > 0);
     line++;
@@ -358,6 +360,7 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
       assert(str[0] == '0' && str[1] == 'x');
       polygon.color = (uint16_t)std::stoul(str, nullptr, 16);
       line++;
+
       Maps::parseStrUntil(file, '\n', str); // maxZoom
       polygon.maxZoom = str[0] ? (uint8_t)std::stoi(str) : MAX_ZOOM;
       line++;
@@ -381,6 +384,7 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
         ESP_LOGE(TAG, "coords error tag. Line %i : %s", line, str);
         while (true);
       }
+
       Maps::parseCoords(file, polygon.points);
       line++;
       mblock->polygons.push_back(polygon);
@@ -423,9 +427,6 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
       polyline.bbox.max.x = Maps::parseInt16(file);
       polyline.bbox.max.y = Maps::parseInt16(file);
 
-      // if( line > 4050){
-      //     log_e("polyline.bbox %i %i %i %i", polyline.bbox.min.x, polyline.bbox.min.y,polyline.bbox.max.x, polyline.bbox.max.y);
-      // }
       line++;
 
       polyline.points.clear();
@@ -437,17 +438,14 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
       }
       Maps::parseCoords(file, polyline.points);
       line++;
-      // if( line > 4050 && fileName == "/mymap/3_77/6_9"){
-      //     for( Point16 p: polyline.points){
-      //         log_d("p.x, p.y %i %i", p.x, p.y);
-      //     }
-      // }
+
       mblock->polylines.push_back(polyline);
       totalPoints += polyline.points.size();
       count--;
     }
     assert(count == 0);
     file_.close();
+
     return mblock;
   }
 }
@@ -662,6 +660,7 @@ void Maps::readVectorMap(Maps::ViewPort &viewPort, Maps::MemCache &memCache, TFT
           //                     p2x, TILE_HEIGHT - p2y,
           //                     line.width / zoom ?: 1, line.color);
           map.drawLine(p1x, Maps::tileHeight - p1y,p2x, Maps::tileHeight - p2y, line.color);
+
         }
       }
       ESP_LOGI(TAG, "Block lines done %i ms", millis() - blockTime);
@@ -815,6 +814,7 @@ void Maps::drawMapWidgets(MAP mapSettings)
   Maps::mapSprite.setTextColor(TFT_WHITE, TFT_WHITE);
 
   uint16_t mapHeading = 0;
+
   #ifdef ENABLE_COMPASS
     if (mapSettings.mapRotationComp)
       mapHeading = compass.getHeading();
@@ -828,9 +828,9 @@ void Maps::drawMapWidgets(MAP mapSettings)
   {
     Maps::mapSprite.fillRectAlpha(Maps::mapScrWidth - 48, 0, 48, 48, 95, TFT_BLACK);
     if (mapSettings.compassRotation)
-    Maps::mapSprite.pushImageRotateZoom(Maps::mapScrWidth - 24, 24, 24, 24, 360 - mapHeading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
+      Maps::mapSprite.pushImageRotateZoom(Maps::mapScrWidth - 24, 24, 24, 24, 360 - mapHeading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
     else
-    Maps::mapSprite.pushImage(Maps::mapScrWidth - 48, 0, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
+      Maps::mapSprite.pushImage(Maps::mapScrWidth - 48, 0, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
   }
 
   uint16_t mapHeight = 0;
@@ -841,6 +841,7 @@ void Maps::drawMapWidgets(MAP mapSettings)
 
   uint8_t toolBarOffset = 0;
   uint8_t toolBarSpace = 0;
+
   #ifdef LARGE_SCREEN
     toolBarOffset = 100;
     toolBarSpace = 60;
@@ -859,11 +860,11 @@ void Maps::drawMapWidgets(MAP mapSettings)
 
       Maps::mapSprite.fillRectAlpha(10, mapHeight - toolBarOffset, 48, 48, 50, TFT_BLACK);
 
-   Maps::mapSprite.pushImage(10, mapHeight - (toolBarOffset + toolBarSpace), 48,48,(uint16_t*)zoomout,TFT_BLACK);
-   Maps::mapSprite.fillRectAlpha(10, mapHeight - (toolBarOffset + toolBarSpace), 48, 48, 50, TFT_BLACK);
+    Maps::mapSprite.pushImage(10, mapHeight - (toolBarOffset + toolBarSpace), 48, 48, (uint16_t *)zoomout, TFT_BLACK);
+    Maps::mapSprite.fillRectAlpha(10, mapHeight - (toolBarOffset + toolBarSpace), 48, 48, 50, TFT_BLACK);
 
-   Maps::mapSprite.pushImage(10, mapHeight - (toolBarOffset + (2 * toolBarSpace)), 48,48,(uint16_t*)zoomin,TFT_BLACK);
-   Maps::mapSprite.fillRectAlpha(10, mapHeight - (toolBarOffset + (2 * toolBarSpace)), 48, 48, 50, TFT_BLACK);
+    Maps::mapSprite.pushImage(10, mapHeight - (toolBarOffset + (2 * toolBarSpace)), 48, 48, (uint16_t *)zoomin, TFT_BLACK);
+    Maps::mapSprite.fillRectAlpha(10, mapHeight - (toolBarOffset + (2 * toolBarSpace)), 48, 48, 50, TFT_BLACK);
   }
 
   Maps::mapSprite.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
@@ -874,18 +875,18 @@ void Maps::drawMapWidgets(MAP mapSettings)
   {
     Maps::mapSprite.fillRectAlpha(0, mapHeight - 32, 70, 32, 95, TFT_BLACK);
     Maps::mapSprite.pushImage(0, mapHeight - 28, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
-    Maps::mapSprite.drawNumber(gps.gpsData.speed, 26, mapHeight - 24 , &fonts::FreeSansBold9pt7b);
+    Maps::mapSprite.drawNumber(gps.gpsData.speed, 26, mapHeight - 24, &fonts::FreeSansBold9pt7b);
   }
 
   if (!mapSettings.vectorMap)
     if (mapSettings.showMapScale)
     {
-      Maps::mapSprite.fillRectAlpha(Maps::mapScrWidth - 70, mapHeight - 32 , 70, Maps::mapScrWidth - 75, 95, TFT_BLACK);
+      Maps::mapSprite.fillRectAlpha(Maps::mapScrWidth - 70, mapHeight - 32, 70, Maps::mapScrWidth - 75, 95, TFT_BLACK);
       Maps::mapSprite.setTextSize(1);
-      Maps::mapSprite.drawFastHLine(Maps::mapScrWidth - 65 , mapHeight - 14 , 60);
-      Maps::mapSprite.drawFastVLine(Maps::mapScrWidth - 65  , mapHeight - 19 , 10);
-      Maps::mapSprite.drawFastVLine(Maps::mapScrWidth - 5, mapHeight - 19 , 10);
-      Maps::mapSprite.drawCenterString(map_scale[zoom], Maps::mapScrWidth - 35 , mapHeight - 24);
+      Maps::mapSprite.drawFastHLine(Maps::mapScrWidth - 65, mapHeight - 14, 60);
+      Maps::mapSprite.drawFastVLine(Maps::mapScrWidth - 65, mapHeight - 19, 10);
+      Maps::mapSprite.drawFastVLine(Maps::mapScrWidth - 5, mapHeight - 19, 10);
+      Maps::mapSprite.drawCenterString(map_scale[zoom], Maps::mapScrWidth - 35, mapHeight - 24);
     }
 }
 
@@ -917,18 +918,16 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth, uint16_t mapFull)
   Maps::mapScrHeight = mapHeight;
   Maps::mapScrWidth = mapWidth;
   Maps::mapScrFull = mapFull;
-    
+
   // Reserve PSRAM for buffer map
   Maps::mapTempSprite.deleteSprite();
   Maps::mapTempSprite.createSprite(tileHeight, tileWidth);
+  Maps::oldMapTile = {(char *)"", 0, 0, 0};     // Old Map tile coordinates and zoom
+  Maps::currentMapTile = {(char *)"", 0, 0, 0}; // Current Map tile coordinates and zoom
+  Maps::roundMapTile = {(char *)"", 0, 0, 0};   // Boundaries Map tiles
+  Maps::navArrowPosition = {0, 0};              // Map Arrow position
 
-
-  Maps::oldMapTile = {(char*)"", 0, 0, 0};     // Old Map tile coordinates and zoom
-  Maps::currentMapTile = {(char*)"", 0, 0, 0}; // Current Map tile coordinates and zoom
-  Maps::roundMapTile = {(char*)"", 0, 0, 0};   // Boundaries Map tiles  
-  Maps::navArrowPosition = {0,0};  // Map Arrow position
-
-  Maps::totalBounds = { 90.0, -90.0, 180.0, -180.0}; 
+  Maps::totalBounds = {90.0, -90.0, 180.0, -180.0};
 }
 
 /**
@@ -949,9 +948,10 @@ void Maps::createMapScrSprites()
 {
   // Map Sprite
   if (!mapSet.mapFullScreen)
-     Maps::mapSprite.createSprite(Maps::mapScrWidth, Maps::mapScrHeight);
+    Maps::mapSprite.createSprite(Maps::mapScrWidth, Maps::mapScrHeight);
   else
-     Maps::mapSprite.createSprite(Maps::mapScrWidth, Maps::mapScrFull);
+    Maps::mapSprite.createSprite(Maps::mapScrWidth, Maps::mapScrFull);
+
   // Arrow Sprite
   Maps::arrowSprite.createSprite(16, 16);
   Maps::arrowSprite.setColorDepth(16);
@@ -996,7 +996,7 @@ void Maps::generateRenderMap(uint8_t zoom)
       Maps::oldMapTile.file = Maps::currentMapTile.file;
 
       Maps::totalBounds = Maps::getTileBounds(Maps::currentMapTile.tilex, Maps::currentMapTile.tiley, zoom);
-                    
+
       static const uint8_t centerX = 0;
       static const uint8_t centerY = 0;
       int8_t startX = centerX - 1;
@@ -1087,18 +1087,18 @@ void Maps::displayMap()
   if (Maps::isMapFound)
   {
     uint16_t mapHeading = 0;
-    #ifdef ENABLE_COMPASS
+
+#ifdef ENABLE_COMPASS
 
     if (mapSet.mapRotationComp)
       mapHeading = compass.getHeading();
     else
       mapHeading = gps.gpsData.heading;
-
-    #else 
+#else
     mapHeading = gps.gpsData.heading;
-    #endif
+#endif
+    Maps::mapTempSprite.pushImage(Maps::wptPosX - 8, Maps::wptPosY - 8, 16, 16, (uint16_t *)waypoint, TFT_BLACK);
 
-    Maps::mapTempSprite.pushImage(Maps::wptPosX-8, Maps::wptPosY-8, 16 ,16 ,(uint16_t*)waypoint, TFT_BLACK);
 
     if (Maps::mapTileSize == Maps::renderMapTileSize)
     {
@@ -1110,7 +1110,7 @@ void Maps::displayMap()
 
     Maps::mapTempSprite.pushRotated(&(Maps::mapSprite), 360 - mapHeading, TFT_TRANSPARENT);
     //Maps::mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
-   
+
     Maps::arrowSprite.pushRotated(&(Maps::mapSprite), 0, TFT_BLACK);
     Maps::drawMapWidgets(mapSet);
   }
