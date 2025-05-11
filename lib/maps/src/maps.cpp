@@ -1159,27 +1159,9 @@ void Maps::displayMap()
     }
     else if (Maps::mapTileSize == Maps::renderMapTileSize && !Maps::followGps)
     {
-      // int16_t pivotX = Maps::tileWidth / 2 + Maps::offsetX;  
-      // int16_t pivotY = Maps::tileHeight / 2 + Maps::offsetY;  
-      // Maps::mapTempSprite.setPivot(pivotX, pivotY);
-
-      // int16_t maxOffsetX = TFT_WIDTH / 2;  // Límite derecho
-      // int16_t minOffsetX = -TFT_WIDTH/ 2; // Límite izquierdo
-      // int16_t maxOffsetY = TFT_HEIGHT / 2; // Límite inferior
-      // int16_t minOffsetY = -TFT_HEIGHT / 2; // Límite superior
-  
-      // Ajustar offsets si están fuera de los límites
-      // if (Maps::offsetX > maxOffsetX) Maps::offsetX = maxOffsetX;
-      // if (Maps::offsetX < minOffsetX) Maps::offsetX = minOffsetX;
-      // if (Maps::offsetY > maxOffsetY) Maps::offsetY = maxOffsetY;
-      // if (Maps::offsetY < minOffsetY) Maps::offsetY = minOffsetY;
-  
-      // Actualizar el pivote del sprite según los offsets ajustados
       int16_t pivotX = Maps::tileWidth / 2 + Maps::offsetX;
       int16_t pivotY = Maps::tileHeight / 2 + Maps::offsetY;
       Maps::mapTempSprite.setPivot(pivotX, pivotY);
-  
-
     }
     else if (Maps::mapTileSize == Maps::vectorMapTileSize)
       Maps::mapTempSprite.setPivot(Maps::vectorMapTileSize, Maps::vectorMapTileSize);
@@ -1233,14 +1215,13 @@ void Maps::setWaypoint(double wptLat, double wptLon)
  */
  void Maps::panMap(int8_t dx, int8_t dy)
  {
-  // Maps::followGps = false;
-  Maps::currentMapTile.tilex = Maps::lon2tilex(Maps::currentMapTile.lon, Maps::currentMapTile.zoom) + dx;
-  Maps::currentMapTile.tiley = Maps::lat2tiley(Maps::currentMapTile.lat, Maps::currentMapTile.zoom) + dy;
-  Maps::currentMapTile.lon = Maps::tilex2lon(Maps::currentMapTile.tilex,Maps::currentMapTile.zoom);
-  Maps::currentMapTile.lat = Maps::tiley2lat(Maps::currentMapTile.tiley,Maps::currentMapTile.zoom);
+    Maps::currentMapTile.tilex += dx;
+    Maps::currentMapTile.tiley += dy;
+    Maps::currentMapTile.lon = Maps::tilex2lon(Maps::currentMapTile.tilex, Maps::currentMapTile.zoom);
+    Maps::currentMapTile.lat = Maps::tiley2lat(Maps::currentMapTile.tiley, Maps::currentMapTile.zoom);
  }
 
-  /**
+/**
  * @brief Center map on current GPS location
  *
  * @param lat -> GPS Latitude 
@@ -1264,7 +1245,7 @@ void Maps::setWaypoint(double wptLat, double wptLon)
  void Maps::scrollMap(int16_t dx, int16_t dy)
  {
   const float inertia = 0.5f;  
-  const float friction = 0.9f;  
+  const float friction = 0.95f;  
   const float maxSpeed = 10.0f;
 
   static float speedX = 0.0f, speedY = 0.0f;
@@ -1281,12 +1262,8 @@ void Maps::setWaypoint(double wptLat, double wptLon)
   Maps::offsetX += (int16_t)speedX;
   Maps::offsetY += (int16_t)speedY;
 
-  // Maps::mapTempSprite.scroll(-(int16_t)speedX, -(int16_t)speedY);
-
-  // int16_t pivotX = Maps::tileWidth / 2 + Maps::offsetX;  
-  // int16_t pivotY = Maps::tileHeight / 2 + Maps::offsetY;  
-  // Maps::mapTempSprite.setPivot(-pivotX, -pivotY);
-  // Maps::displayMap();
+  // Maps::offsetX += (int16_t)dx;
+  // Maps::offsetY += (int16_t)dy;
 
   Maps::scrollUpdated = false;
   Maps::followGps = false;
@@ -1319,91 +1296,85 @@ void Maps::setWaypoint(double wptLat, double wptLon)
 
   if (Maps::scrollUpdated)
   {
-    Maps::panMap(Maps::tileX,Maps::tileY);
- //   Maps::preloadTiles(Maps::tileX,Maps::tileY);
-    // Maps::offsetX = 0;
-    // Maps::offsetY = 0;
+    int8_t deltaTileX = Maps::tileX - Maps::lastTileX;
+    int8_t deltaTileY = Maps::tileY - Maps::lastTileY;
+    Maps::panMap(deltaTileX, deltaTileY);
+    Maps::preloadTiles(deltaTileX, deltaTileY);
+    Maps::lastTileX = Maps::tileX;
+    Maps::lastTileY = Maps::tileY;
   }
  }
 
- void Maps::preloadTiles(int8_t dirX, int8_t dirY)
- {
-     // Determinar tamaño del sprite temporal según la dirección del desplazamiento
-     int16_t preloadWidth = (dirX != 0) ? renderMapTileSize : renderMapTileSize * 3;
-     int16_t preloadHeight = (dirY != 0) ? renderMapTileSize : renderMapTileSize * 3;
- 
-     // Crear un sprite temporal para precargar los tiles
-     TFT_eSprite preloadSprite = TFT_eSprite(&tft);
-     preloadSprite.createSprite(preloadWidth, preloadHeight);
- 
-     int16_t startX = tileX + dirX;
-     int16_t startY = tileY + dirY;
- 
-     for (int8_t i = 0; i < 3; ++i)
-     {
-         // Calcular las coordenadas del tile a cargar
-         int16_t tileToLoadX = startX + ((dirX == 0) ? i - 1 : 0);
-         int16_t tileToLoadY = startY + ((dirY == 0) ? i - 1 : 0);
- 
-         // Obtener el archivo correspondiente al tile
-         Maps::roundMapTile = Maps::getMapTile(
-             Maps::currentMapTile.lon, 
-             Maps::currentMapTile.lat, 
-             Maps::zoomLevel, 
-             tileToLoadX, 
-             tileToLoadY
-         );
- 
-         // Dibujar el archivo PNG del tile en el sprite temporal
-         bool foundTile = preloadSprite.drawPngFile(
-             Maps::roundMapTile.file, 
-             (dirX != 0) ? i * renderMapTileSize : 0, 
-             (dirY != 0) ? i * renderMapTileSize : 0
-         );
- 
-         if (!foundTile) // Si el archivo no se encuentra, dibujar un tile de error
-         {
-             preloadSprite.fillRect(
-                 (dirX != 0) ? i * renderMapTileSize : 0, 
-                 (dirY != 0) ? i * renderMapTileSize : 0, 
-                 renderMapTileSize, 
-                 renderMapTileSize, 
-                 TFT_BLACK
-             );
-             preloadSprite.drawPngFile(
-                 noMapFile, 
-                 (dirX != 0) ? (i * renderMapTileSize + (renderMapTileSize / 2) - 50) : ((renderMapTileSize / 2) - 50),
-                 (dirY != 0) ? (i * renderMapTileSize + (renderMapTileSize / 2) - 50) : ((renderMapTileSize / 2) - 50)
-             );
-         }
-     }
+ /**
+ * @brief Preload Tiles for map scrolling
+ *
+ * @param dirX
+ * @param dirY
+ */
+void Maps::preloadTiles(int8_t dirX, int8_t dirY)
+{
+  int16_t preloadWidth = (dirX != 0) ? renderMapTileSize : renderMapTileSize * 2;
+  int16_t preloadHeight = (dirY != 0) ? renderMapTileSize : renderMapTileSize * 2;
 
-    // Integrar el sprite temporal en mapTempSprite
-    if (dirX != 0)
+  TFT_eSprite preloadSprite = TFT_eSprite(&tft);
+  preloadSprite.createSprite(preloadWidth, preloadHeight);
+
+  int16_t startX = tileX + dirX;
+  int16_t startY = tileY + dirY;
+
+  for (int8_t i = 0; i < 2; ++i) 
+  {
+    int16_t tileToLoadX = startX + ((dirX == 0) ? i - 1 : 0);
+    int16_t tileToLoadY = startY + ((dirY == 0) ? i - 1 : 0);
+
+    Maps::roundMapTile = Maps::getMapTile(
+      Maps::currentMapTile.lon,
+      Maps::currentMapTile.lat,
+      Maps::zoomLevel,
+      tileToLoadX,
+      tileToLoadY
+    );
+
+    bool foundTile = preloadSprite.drawPngFile(
+      Maps::roundMapTile.file,
+      (dirX != 0) ? i * renderMapTileSize : 0,
+      (dirY != 0) ? i * renderMapTileSize : 0
+    );
+
+    if (!foundTile)
     {
-        // Mover el contenido actual de mapTempSprite y pegar los nuevos tiles
-        mapTempSprite.scroll(dirX * renderMapTileSize, 0);
-        mapTempSprite.pushImage(
-            (dirX > 0 ? renderMapTileSize * 2 : 0), 
-            0, 
-            preloadWidth, 
-            preloadHeight, 
-            preloadSprite.frameBuffer(0) // Reemplazo de getPointer por frameBuffer
-        );
+      preloadSprite.fillRect(
+        (dirX != 0) ? i * renderMapTileSize : 0,
+        (dirY != 0) ? i * renderMapTileSize : 0,
+        renderMapTileSize,
+        renderMapTileSize,
+        TFT_LIGHTGREY
+      );
     }
-    else if (dirY != 0)
+  }
+
+  if (dirX != 0)
+  {
+    mapTempSprite.scroll(dirX * renderMapTileSize, 0);
+    mapTempSprite.pushImage(
+      (dirX > 0 ? renderMapTileSize * 2 : 0),
+      0,
+      preloadWidth,
+      preloadHeight,
+      preloadSprite.frameBuffer(0)
+    );
+    }
+    else if (dirY != 0) 
     {
-        mapTempSprite.scroll(0, dirY * renderMapTileSize);
-        mapTempSprite.pushImage(
-            0, 
-            (dirY > 0 ? renderMapTileSize * 2 : 0), 
-            preloadWidth, 
-            preloadHeight, 
-            preloadSprite.frameBuffer(0) // Reemplazo de getPointer por frameBuffer
-        );
+      mapTempSprite.scroll(0, dirY * renderMapTileSize);
+      mapTempSprite.pushImage(
+        0,
+        (dirY > 0 ? renderMapTileSize * 2 : 0),
+        preloadWidth,
+        preloadHeight,
+        preloadSprite.frameBuffer(0)
+      );
     }
 
- 
-     // Liberar el sprite temporal para ahorrar memoria
-     preloadSprite.deleteSprite();
- }
+    preloadSprite.deleteSprite();
+}

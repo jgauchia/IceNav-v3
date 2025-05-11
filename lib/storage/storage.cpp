@@ -80,7 +80,7 @@ esp_err_t Storage::initSD()
       .sclk_io_num = (gpio_num_t)SD_CLK,
       .quadwp_io_num = -1,
       .quadhd_io_num = -1,
-      .max_transfer_sz = 4096, // Set transfer size to 4096 bytes (multiple of 512)
+      .max_transfer_sz = 8192, // Set transfer size to 4096 bytes (multiple of 512)
       .flags = 0,
       .intr_flags = 0};
 

@@ -332,7 +332,6 @@ void scrollMapEvent(lv_event_t *event)
         last_x = p.x;
         last_y = p.y;
         isScrollingMap = true;
-        // lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
         break;
       }
   
@@ -343,7 +342,7 @@ void scrollMapEvent(lv_event_t *event)
         int dx = p.x - last_x;
         int dy = p.y - last_y;
 
-        const int SCROLL_THRESHOLD = 20; 
+        const int SCROLL_THRESHOLD = 5; 
 
         if (abs(dx) > SCROLL_THRESHOLD || abs(dy) > SCROLL_THRESHOLD) 
         {

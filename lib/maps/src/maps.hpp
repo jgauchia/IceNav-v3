@@ -110,7 +110,7 @@ class Maps
     static const uint16_t tileHeight = 768;                               // Tile 9x9 Height Size
     static const uint16_t tileWidth = 768;                                // Tile 9x9 Width Size
     static const uint16_t renderMapTileSize = 256;                        // Render map tile size
-    static const uint16_t scrollThreshold = renderMapTileSize / 1;        // Smooth scroll threshold
+    static const uint16_t scrollThreshold = renderMapTileSize / 2;        // Smooth scroll threshold
     static const uint16_t vectorMapTileSize = tileHeight / 2;             // Vector map tile size
     uint16_t mapTileSize;                                                 // Actual map tile size (render or vector map)
     uint16_t wptPosX, wptPosY;                                            // Waypoint position on screen map
@@ -157,6 +157,8 @@ class Maps
     int16_t offsetX = 0;                                                 // Accumulative X scroll map offset
     int16_t offsetY = 0;                                                 // Accumulative Y scroll map offset
     bool scrollUpdated = false;                                          // Flag to indicate when map was scrolled and needs to update
+    int8_t lastTileX = 0;
+    int8_t lastTileY = 0;
 
 
     Maps();
