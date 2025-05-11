@@ -16,6 +16,7 @@ bool canScrollMap = false;    // Flag to indicate whet can scroll map
 uint8_t activeTile = 0;       // Current active tile
 uint8_t gpxAction = WPT_NONE; // Current Waypoint Action
 int heading = 0;              // Heading value (Compass or GPS)
+extern uint32_t DOUBLE_TOUCH_EVENT;
 
 extern Compass compass;
 extern Gps gps;
@@ -579,7 +580,8 @@ void createMainScr()
   // Map Tile Events
   lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(mainScreen, gestureEvent, LV_EVENT_GESTURE, NULL);
-  lv_obj_add_event_cb(mapTile, mapToolBarEvent, LV_EVENT_LONG_PRESSED_REPEAT, NULL);
+  DOUBLE_TOUCH_EVENT = lv_event_register_id();
+  lv_obj_add_event_cb(mapTile, mapToolBarEvent, (lv_event_code_t)DOUBLE_TOUCH_EVENT, NULL);
   lv_obj_add_event_cb(mapTile, scrollMapEvent, LV_EVENT_ALL, NULL);
 
   // Navigation Tile

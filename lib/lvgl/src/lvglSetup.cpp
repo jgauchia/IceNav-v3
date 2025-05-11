@@ -21,6 +21,12 @@ lv_obj_t *powerMsg;       // Power Message
 
 Power power;
 
+static bool countTouchReleases = false;
+static int numberTouchReleases = 0;
+static uint32_t firstTouchReleaseTime = 0;
+#define TOUCH_DOUBLE_TOUCH_INTERVAL 150
+uint32_t DOUBLE_TOUCH_EVENT;
+
 /**
  * @brief LVGL display update
  *
@@ -46,7 +52,29 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 {
   uint16_t touchX, touchY;
   if (!tft.getTouch(&touchX, &touchY))
+  {
     data->state = LV_INDEV_STATE_RELEASED;
+    if (countTouchReleases)
+    {
+      countTouchReleases = false;
+      uint32_t touchReleaseTime = millis();
+      if (!firstTouchReleaseTime)
+        firstTouchReleaseTime = touchReleaseTime;
+      numberTouchReleases++;
+    }
+
+    if (millis() - firstTouchReleaseTime > TOUCH_DOUBLE_TOUCH_INTERVAL)
+    {
+      if (numberTouchReleases == 2)
+      {
+        if (activeTile == MAP)
+          lv_obj_send_event(mapTile, (lv_event_code_t)DOUBLE_TOUCH_EVENT, NULL);
+      }
+
+      numberTouchReleases = 0;
+      firstTouchReleaseTime = 0;
+    }  
+  }
   else
   {
     if ( lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_0)
@@ -59,9 +87,12 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
       data->point.x = TFT_WIDTH - touchY;
       data->point.y = touchX;
     }
+    countTouchReleases = true;
     data->state = LV_INDEV_STATE_PRESSED;
   }
 }
+
+
 
 #ifdef TDECK_ESP32S3 
 /**
@@ -250,7 +281,7 @@ void lv_tick_task(void *arg)
 void initLVGL()
 {
   lv_init();
-  
+
   display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
   lv_display_set_flush_cb(display, displayFlush);
   lv_display_set_flush_wait_cb(display, NULL);

@@ -1035,7 +1035,6 @@ void Maps::generateRenderMap(uint8_t zoom)
     }
     else
     {
-      log_i("RELOAD MAP");
       Maps::oldMapTile = Maps::currentMapTile;
       strcpy(Maps::oldMapTile.file,Maps::currentMapTile.file);
 
@@ -1169,8 +1168,6 @@ void Maps::displayMap()
       // int16_t maxOffsetY = TFT_HEIGHT / 2; // Límite inferior
       // int16_t minOffsetY = -TFT_HEIGHT / 2; // Límite superior
   
-      log_i("%i , %i",Maps::offsetX,Maps::offsetY);
-
       // Ajustar offsets si están fuera de los límites
       // if (Maps::offsetX > maxOffsetX) Maps::offsetX = maxOffsetX;
       // if (Maps::offsetX < minOffsetX) Maps::offsetX = minOffsetX;
