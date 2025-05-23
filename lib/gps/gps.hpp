@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef GPS_HPP
-#define GPS_HPP
+#pragma once
 
 #include <NMEAGPS.h>
 #include <Streamers.h>
@@ -106,5 +105,3 @@ private:
   float previousPdop; 
   float previousVdop; 
 };
-
-#endif 

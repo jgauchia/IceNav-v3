@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef GPXSCR_HPP
-#define GPXSCR_HPP
+#pragma once
 
 #include "mainScr.hpp"
 #include "storage.hpp"
@@ -24,5 +23,3 @@ void updateWaypoint(uint8_t action);
 void gpxListEvent(lv_event_t * event);
 void createGpxListScreen();
 void updateGpxListScreen();
-
-#endif

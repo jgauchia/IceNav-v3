@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef GPXPARSER_HPP
-#define GPXPARSER_HPP
+#pragma once
 
 #include <Arduino.h>
 #include <string>
@@ -201,5 +200,3 @@ bool GPXParser::insertTagAttrOrElem(const char* tag, const char* attribute, cons
   ESP_LOGI(TAGGPX, "Successfully inserted attribute/element '%s' into tag '%s'", attribute ? attribute : element, tag);
   return true; 
 }
-
-#endif  

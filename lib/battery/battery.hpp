@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef BATTERY_HPP
-#define BATTERY_HPP
+#pragma once
 
 #include <Arduino.h>
 #include <driver/adc.h>
@@ -27,5 +26,3 @@ public:
   void setBatteryLevels(float maxVoltage, float minVoltage);
   float readBattery();
 };
-
-#endif

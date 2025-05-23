@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef HAL_HPP
-#define HAL_HPP
+#pragma once
 
 /**
  * @brief ICENAV BOARD pin definition
@@ -170,4 +169,4 @@
  */
 extern const bool TFT_INVERT = true;
 
-#endif
+

@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef SETTINGSSCR_HPP
-#define SETTINGSSCR_HPP
+#pragma once
 
 #include "globalGuiDef.h"
 #include "mainScr.hpp"
@@ -24,5 +23,3 @@ static void deviceSettings(lv_event_t *event);
 
 static lv_obj_t *settingsButtons;
 void createSettingsScr();
-
-#endif

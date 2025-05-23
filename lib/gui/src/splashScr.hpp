@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef SPLASHSCR_HPP
-#define SPLASHSCR_HPP
+#pragma once
 
 #include "globalGuiDef.h"
 #include "settings.hpp"
@@ -26,5 +25,3 @@ static const char* statusLine4 PROGMEM = "Firmware v.%s rev.%s";
 static const char* statusLine5 PROGMEM = "ENV: %s";
 
 void splashScreen();
-
-#endif

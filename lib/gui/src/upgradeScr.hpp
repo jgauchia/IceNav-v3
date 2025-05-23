@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef UPGRADESCR_HPP
-#define UPGRADESCR_HPP
+#pragma once
 
 #include "lvgl.h"
 #include "firmUpgrade.hpp"
@@ -22,5 +21,3 @@ extern lv_obj_t *contMeter;
 void msgBackEvent(lv_event_t *event);
 void msgUpgrdEvent(lv_event_t *event);
 void createMsgUpgrade();
-
-#endif

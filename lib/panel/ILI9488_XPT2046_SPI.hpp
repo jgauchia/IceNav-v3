@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef ILI9488_XPT2046_SPI_HPP
-#define ILI9488_XPT2046_SPI_HPP
+#pragma once
 
 #define LGFX_USE_V1
 
@@ -125,5 +124,3 @@ public:
     setPanel(&_panel_instance);
   }
 };
-
-#endif

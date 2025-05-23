@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef SEARCHSATSCR_HPP
-#define SEARCHSATSCR_HPP
+#pragma once
 
 #include "gps.hpp"
 #include "globalGuiDef.h"
@@ -23,5 +22,3 @@ void loadMainScreen();
 void searchGPS(lv_timer_t *searchTimer);
 void buttonEvent(lv_event_t *event);
 void createSearchSatScr();
-
-#endif

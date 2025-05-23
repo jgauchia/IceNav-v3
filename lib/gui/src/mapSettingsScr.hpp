@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef MAPSETTINGSCR_HPP
-#define MAPSETTINGSCR_HPP
+#pragma once
 
 #include "globalGuiDef.h"
 #include "lvglFuncs.hpp"
@@ -30,5 +29,3 @@ static lv_obj_t *checkFullScreen;
 
 static void mapSettingsEvents(lv_event_t *event);
 void createMapSettingsScr();
-
-#endif

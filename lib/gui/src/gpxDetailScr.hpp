@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef GPXDETAILSCR_HPP
-#define GPXDETAILSCR_HPP
+#pragma once
 
 #include "gpxFiles.hpp"
 #include "gpxScr.hpp"
@@ -29,5 +28,3 @@ static void gpxTagNameEvent(lv_event_t *event);
 
 void updateWaypoint();
 void createGpxDetailScreen();
-
-#endif

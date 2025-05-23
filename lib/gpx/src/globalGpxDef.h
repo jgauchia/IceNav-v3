@@ -6,9 +6,7 @@
  * @date 2025-04
  */
 
-
-#ifndef GLOBALGPXDEF_H
-#define GLOBALGPXDEF_H
+#pragma once
 
 #include <pgmspace.h>
 #include <stdint.h>
@@ -69,6 +67,3 @@ static const char* gpxHeader PROGMEM = { "<?xml version=\"1.0\" encoding=\"UTF-8
                       " xmlns=\"http://www.topografix.com/GPX/1/0\"\n"
                       " xsi:schemaLocation=\"http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd\">\n"
                       "</gpx>" };
-
-
-#endif

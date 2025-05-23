@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef TFT_HPP
-#define TFT_HPP
+#pragma once
 
 #include <Arduino.h>
 #include "storage.hpp"
@@ -63,5 +62,3 @@ void tftOn(uint8_t brightness);
 void tftOff();
 void touchCalibrate();
 void initTFT();
-
-#endif

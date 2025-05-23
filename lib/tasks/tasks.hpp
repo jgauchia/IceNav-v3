@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef TASKS_HPP
-#define TASKS_HPP
+#pragma once
 
 #include "gps.hpp"
 #include "bme.hpp"
@@ -27,6 +26,4 @@ void initGpsTask();
 #ifndef DISABLE_CLI
   void cliTask(void *param);
   void initCLITask();
-#endif
-
 #endif

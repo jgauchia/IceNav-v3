@@ -7,8 +7,7 @@
  * @date 2025-04
  */
 
-#ifndef MAPS_HPP
-#define MAPS_HPP
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -176,5 +175,3 @@ class Maps
     void scrollMap(int16_t dx, int16_t dy);
     void preloadTiles(int8_t dirX, int8_t dirY);
 };
-
-#endif

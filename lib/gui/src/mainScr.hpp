@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef MAINSCR_HPP
-#define MAINSCR_HPP
+#pragma once
 
 #include "maps.hpp"
 
@@ -76,5 +75,3 @@ void zoomInEvent(lv_event_t *event);
 void updateNavEvent(lv_event_t *event);
 
 void createMainScr();
-
-#endif

@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef BME_HPP
-#define BME_HPP
+#pragma once
 
 #ifdef BME280
 
@@ -27,7 +26,5 @@ extern uint8_t tempValue;
 extern uint8_t tempOld;
 
 void initBME();
-
-#endif
 
 #endif

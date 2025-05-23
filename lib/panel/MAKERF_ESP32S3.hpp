@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef MAKERF_ESP32S3_HPP
-#define MAKERF_ESP32S3_HPP
+#pragma once
 
 #define LGFX_USE_V1
 
@@ -115,5 +114,3 @@ public:
     setPanel(&_panel_instance);
   }
 };
-
-#endif

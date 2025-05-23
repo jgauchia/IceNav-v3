@@ -5,8 +5,7 @@
  * @date 2025-04
  */
 
-#ifndef GLOBALGUIDEF_H
-#define GLOBALGUIDEF_H
+#pragma once
 
 #include <lvgl.h>
 #include "tft.hpp"
@@ -101,7 +100,5 @@ static bool getPngSize(const char* filename, uint16_t *width, uint16_t *height)
 
   return true;
 }
-
-#endif
 
 

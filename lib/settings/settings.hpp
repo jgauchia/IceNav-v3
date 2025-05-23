@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef SETTINGS_HPP
-#define SETTINGS_HPP
+#pragma once
 
 #include <EasyPreferences.hpp>
 #include <NMEAGPS.h>
@@ -65,5 +64,3 @@ void saveGPSBaud(uint16_t gpsBaud);
 void saveGPSUpdateRate(uint16_t gpsUpdateRate);
 void saveWidgetPos(char *widget, uint16_t posX, uint16_t posY);
 void printSettings();
-
-#endif
