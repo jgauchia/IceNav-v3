@@ -55,7 +55,6 @@ void touchCalibrate()
     {
       if (fread((char *)calData, sizeof(char), 16, f))
       {
-        log_i("Touch calibration exists");
         calDataOK = 1;
         storage.close(f);
       }

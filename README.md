@@ -29,7 +29,7 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
   
 |<img src="images/dev/splash.png">|<img src="images/dev/searchsat.jpg">|<img src="images/dev/compass.jpg">|<img src="images/dev/options.jpg">|<img src="images/dev/wptopt.jpg">|
 |:-:|:-:|:-:|:-:|:-:|
-| Splash Screen | Search Satellite | Compass | Main Options | Waypoint Options |
+| Splash Screen | Search Satellite | Compass | Main Options | Wpt/Track Options |
 
 |<img src="images/dev/rendermap.jpg">|<img src="images/dev/vectormap.jpg">|<img src="images/dev/navscreen.jpg">|<img src="images/dev/navscreen2.jpg">|<img src="images/dev/satelliteinfo.jpg">|
 |:-:|:-:|:-:|:-:|:-:|

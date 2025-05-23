@@ -24,7 +24,7 @@ extern uint8_t zoom;           // Actual Zoom Level
 extern uint8_t defBright;      // Default brightness
 extern uint8_t defaultZoom;   // Default Zoom Value
 
-extern bool showToolBar;      // Show Map Toolbar
+extern bool showMapToolBar;      // Show Map Toolbar
 extern uint16_t gpsBaud;      // GPS Speed
 extern uint16_t gpsUpdate;    // GPS Update rate
 extern uint16_t compassPosX;  // Compass widget position X

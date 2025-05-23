@@ -24,6 +24,8 @@ extern lv_timer_t *mainTimer;    // Main Screen Timer
 extern bool isScrolled;                            // Flag to indicate when tileview was scrolled
 extern bool isMainScreen;                          // Flag to indicate main screen is selected
 extern bool isReady;                               // Flag to indicate when tileview scroll was finished
+extern bool canScrollMap;                          // Flag to indicate whet can scroll map
+extern bool isScrollingMap;                        // Flag to indicate if map is scrolling
 static TFT_eSprite zoomSprite = TFT_eSprite(&tft); // Zoom sprite
 
 extern uint8_t activeTile; // Active Tile in TileView control
@@ -66,7 +68,8 @@ void gestureEvent(lv_event_t *event);
 
 void updateMap(lv_event_t *event);
 void updateSatTrack(lv_event_t *event);
-void toolBarEvent(lv_event_t *event);
+void mapToolBarEvent(lv_event_t *event);
+void scrollMapEvent(lv_event_t *event);
 void fullScreenEvent(lv_event_t *event);
 void zoomOutEvent(lv_event_t *event);
 void zoomInEvent(lv_event_t *event);
