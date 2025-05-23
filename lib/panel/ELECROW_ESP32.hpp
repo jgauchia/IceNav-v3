@@ -1,13 +1,13 @@
 /**
- * @file ICENAV_BOARD.hpp
+ * @file ELECROW_ESP32.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief  LOVYANGFX TFT driver for IceNaV board
+ * @brief  LOVYANGFX TFT driver for ELECROW ESP32 3.5 Terminal
  * @version 0.2.1_alpha
  * @date 2025-04
  */
 
-#ifndef ICENAV_BOARD_HPP
-#define ICENAV_BOARD_HPP
+#ifndef ELECROW_ESP32_HPP
+#define ELECROW_ESP32_HPP
 
 #define LGFX_USE_V1
 
@@ -73,7 +73,7 @@ public:
       cfg.dummy_read_pixel = 8; 
       cfg.dummy_read_bits = 1;  
       cfg.readable = true;      
-      cfg.invert = true;     
+      cfg.invert = false;     
       cfg.rgb_order = false;    
       cfg.dlen_16bit = true;    
       cfg.bus_shared = true;    
@@ -99,7 +99,7 @@ public:
       cfg.x_max = 319;
       cfg.y_min = 0;
       cfg.y_max = 479;
-      cfg.pin_int = GPIO_NUM_40;
+      cfg.pin_int = -1;
       cfg.bus_shared = true;
       cfg.offset_rotation = 0;
 

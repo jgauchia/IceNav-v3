@@ -10,6 +10,7 @@
 
 static unsigned long millisActual = 0;
 extern Maps mapView;
+extern Gps gps;
 
 /**
  * @brief Splash screen
@@ -24,7 +25,10 @@ void splashScreen()
     mapView.generateVectorMap(zoom);
   }
   else
+  {
+    mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
     mapView.generateRenderMap(zoom);
+  }
 
   setTime = false;
 

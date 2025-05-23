@@ -66,6 +66,7 @@ esp_err_t Storage::initSD()
 #endif
 #ifdef ESP32_N16R4
   host.slot = HSPI_HOST;
+  host.command_timeout_ms = 1000;
 #endif
 
   sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
@@ -79,7 +80,7 @@ esp_err_t Storage::initSD()
       .sclk_io_num = (gpio_num_t)SD_CLK,
       .quadwp_io_num = -1,
       .quadhd_io_num = -1,
-      .max_transfer_sz = 4096, // Set transfer size to 4096 bytes (multiple of 512)
+      .max_transfer_sz = 8192, // Set transfer size to 4096 bytes (multiple of 512)
       .flags = 0,
       .intr_flags = 0};
 
@@ -97,7 +98,7 @@ esp_err_t Storage::initSD()
   ESP_LOGI(TAG, "Initializing SD card");
 
   esp_vfs_fat_mount_config_t mount_config = {
-      .format_if_mount_failed = true,
+      .format_if_mount_failed = false,
       .max_files = 5,
       .allocation_unit_size = 16 * 1024};
 

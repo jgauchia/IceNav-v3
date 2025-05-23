@@ -1,13 +1,13 @@
 /**
- * @file ICENAV_BOARD.hpp
+ * @file MAKERF_ESP32S3.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief  LOVYANGFX TFT driver for IceNaV board
+ * @brief  LOVYANGFX TFT driver MakerFabs 16 Bits parallel  With FT5x06 Touch controller
  * @version 0.2.1_alpha
  * @date 2025-04
  */
 
-#ifndef ICENAV_BOARD_HPP
-#define ICENAV_BOARD_HPP
+#ifndef MAKERF_ESP32S3_HPP
+#define MAKERF_ESP32S3_HPP
 
 #define LGFX_USE_V1
 
@@ -31,9 +31,9 @@ public:
 
       cfg.port = 0;              
       cfg.freq_write = 80000000; 
-      cfg.pin_wr = GPIO_NUM_18;
+      cfg.pin_wr = GPIO_NUM_35;
       cfg.pin_rd = GPIO_NUM_48;
-      cfg.pin_rs = GPIO_NUM_45;
+      cfg.pin_rs = GPIO_NUM_36;
 
       cfg.pin_d0 = GPIO_NUM_47;
       cfg.pin_d1 = GPIO_NUM_21;
@@ -59,7 +59,7 @@ public:
     {                                        
       auto cfg = _panel_instance.config();
 
-      cfg.pin_cs = -1;   
+      cfg.pin_cs = GPIO_NUM_37;   
       cfg.pin_rst = -1;  
       cfg.pin_busy = -1; 
 
@@ -73,7 +73,7 @@ public:
       cfg.dummy_read_pixel = 8; 
       cfg.dummy_read_bits = 1;  
       cfg.readable = true;      
-      cfg.invert = true;     
+      cfg.invert = false;     
       cfg.rgb_order = false;    
       cfg.dlen_16bit = true;    
       cfg.bus_shared = true;    
@@ -83,7 +83,7 @@ public:
 
     {
       auto cfg = _light_instance.config();
-      cfg.pin_bl = GPIO_NUM_46;
+      cfg.pin_bl = GPIO_NUM_45;
       cfg.invert = false;
       cfg.freq = 44100;
       cfg.pwm_channel = 7;
