@@ -26,6 +26,7 @@ static int numberTouchReleases = 0;
 static uint32_t firstTouchReleaseTime = 0;
 #define TOUCH_DOUBLE_TOUCH_INTERVAL 150
 uint32_t DOUBLE_TOUCH_EVENT;
+#define TOUCH_MAX_POINTS 2
 
 /**
  * @brief LVGL display update
@@ -50,12 +51,32 @@ void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *
  */
 void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 {
-  int TOUCH_MAX_POINTS = 2;
+  // int TOUCH_MAX_POINTS = 2;
   lgfx::touch_point_t touch_raw[TOUCH_MAX_POINTS];
+  static lgfx::touch_point_t touch_prev[TOUCH_MAX_POINTS];
+  static bool prevValid = false;
+  static bool pinchActive = false;
+  static int lastZoomDir = 0;    // 1 = in, -1 = out, 0 = no change
+
+  float diagonal = sqrtf(tft.width() * tft.width() + tft.height() * tft.height());
+  float threshold = 0.02f * diagonal; 
+
   int count = tft.getTouchRaw(touch_raw, TOUCH_MAX_POINTS);
   if (count == 0)
   {
     data->state = LV_INDEV_STATE_RELEASED;
+
+    if (pinchActive && lastZoomDir != 0)
+    {
+      if (lastZoomDir > 0)
+        lv_obj_send_event(btnZoomIn,LV_EVENT_CLICKED,NULL);
+      else
+        lv_obj_send_event(btnZoomOut,LV_EVENT_CLICKED,NULL);
+    }
+    pinchActive = false;
+    prevValid = false;
+    lastZoomDir = 0;
+
     if (countTouchReleases)
     {
       countTouchReleases = false;
@@ -79,22 +100,54 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
   }
   else
   {
-    log_i("point: %i [%3d:%-3d]", count, touch_raw[count-1].x, touch_raw[count-1].y );
-    while (--count >= 0)
+    if (count == 1)
     {
       if ( lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_0)
       {
-        data->point.x = touch_raw[count].x;
-        data->point.y = touch_raw[count].y;
+        data->point.x = touch_raw[count-1].x;
+        data->point.y = touch_raw[count-1].y;
       }
       else if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
       {
-        data->point.x = TFT_WIDTH - touch_raw[count].y;
-        data->point.y = touch_raw[count].x;
+        data->point.x = TFT_WIDTH - touch_raw[count-1].y;
+        data->point.y = touch_raw[count-1].x;
       }
+      countTouchReleases = true;
+      pinchActive = false;
+      prevValid = false;
+      lastZoomDir = 0;
+      data->state = LV_INDEV_STATE_PRESSED;
     }
-    countTouchReleases = true;
-    data->state = LV_INDEV_STATE_PRESSED;
+    else if (count == 2)
+    {
+      //data->state = LV_INDEV_STATE_PRESSED;
+      if (prevValid)
+      {
+        float distPrev = sqrtf(powf(touch_prev[0].x - touch_prev[1].x, 2) +
+                               powf(touch_prev[0].y - touch_prev[1].y, 2));
+        float distCurr = sqrtf(powf(touch_raw[0].x - touch_raw[1].x, 2) +
+                               powf(touch_raw[0].y - touch_raw[1].y, 2));
+        float threshold = 5.0f; 
+        if (showMapToolBar)
+        {
+          if (fabsf(distCurr - distPrev) > threshold) 
+          {
+            float delta = distCurr - distPrev;
+            if (fabsf(delta) > threshold)
+            {
+              pinchActive = true;
+              if (delta > 0)
+                lastZoomDir = 1;  // out
+              else
+                lastZoomDir = -1; // in
+            }
+          }
+        }
+      }
+      touch_prev[0] = touch_raw[0];
+      touch_prev[1] = touch_raw[1];
+      prevValid = true;
+    }
   }
 }
 
