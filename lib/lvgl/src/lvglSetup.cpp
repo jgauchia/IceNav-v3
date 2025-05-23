@@ -53,13 +53,8 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
   int TOUCH_MAX_POINTS = 2;
   lgfx::touch_point_t touch_raw[TOUCH_MAX_POINTS];
   int count = tft.getTouchRaw(touch_raw, TOUCH_MAX_POINTS);
-  // while (--count >= 0)
-  // {
-  //    log_i("point: %i [%3d:%-3d]", count, touch_raw[count].x, touch_raw[count].y );
-  // }
-
-  // uint16_t touchX, touchY;
   if (count == 0)
+  {
     data->state = LV_INDEV_STATE_RELEASED;
     if (countTouchReleases)
     {
@@ -84,6 +79,7 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
   }
   else
   {
+    log_i("point: %i [%3d:%-3d]", count, touch_raw[count-1].x, touch_raw[count-1].y );
     while (--count >= 0)
     {
       if ( lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_0)
@@ -96,7 +92,6 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
         data->point.x = TFT_WIDTH - touch_raw[count].y;
         data->point.y = touch_raw[count].x;
       }
-      data->state = LV_INDEV_STATE_PRESSED;
     }
     countTouchReleases = true;
     data->state = LV_INDEV_STATE_PRESSED;
