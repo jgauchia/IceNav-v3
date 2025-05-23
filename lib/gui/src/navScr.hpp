@@ -9,7 +9,7 @@
 #pragma once
 
 #include "globalGuiDef.h"
-#include "navup.c"
+#include "navup.h"
 
 /**
  * @brief Navigation Tile screen objects

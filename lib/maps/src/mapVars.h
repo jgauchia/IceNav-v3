@@ -12,18 +12,18 @@
  * @brief Map Widgets images.
  *
  */
-#include "bruj.c"
-#include "navigation.c"
-#include "waypoint.c"
-#include "compass.c"
-#include "zoom.c"
-#include "speed.c"
-#include "expand.c"
-#include "collapse.c"
-#include "zoomin.c"
-#include "zoomout.c"
-#include "navfinish.c"
-#include "move.c"
+#include "bruj.h"
+#include "navigation.h"
+#include "waypoint.h"
+#include "compass.h"
+#include "zoom.h"
+#include "speed.h"
+#include "expand.h"
+#include "collapse.h"
+#include "zoomin.h"
+#include "zoomout.h"
+#include "navfinish.h"
+#include "move.h"
 
 #include "globalGpxDef.h"
 

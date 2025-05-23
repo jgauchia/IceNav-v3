@@ -58,6 +58,7 @@ void gpxListEvent(lv_event_t *event)
             if (gpxWaypoint)
             {
               loadWpt = gpx.getWaypointInfo(gpxName.c_str());
+              LV_IMG_DECLARE(navup);
               lv_img_set_src(arrowNav, &navup);        
 
               if (loadWpt.lat != 0 && loadWpt.lon != 0)
