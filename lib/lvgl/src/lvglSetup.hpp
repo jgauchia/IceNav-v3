@@ -22,7 +22,7 @@
 #include "settingsScr.hpp"
 #include "deviceSettingsScr.hpp"
 #include "mapSettingsScr.hpp"
-
+#include "gestures.hpp"
 
 /**
  * @brief Default display driver definition

@@ -20,11 +20,6 @@ lv_group_t *keyGroup;     // GPIO group
 lv_obj_t *powerMsg;       // Power Message
 
 Power power;
-
-static bool countTouchReleases = false;
-static int numberTouchReleases = 0;
-static uint32_t firstTouchReleaseTime = 0;
-#define TOUCH_DOUBLE_TOUCH_INTERVAL 150
 uint32_t DOUBLE_TOUCH_EVENT;
 
 /**
@@ -50,10 +45,33 @@ void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *
  */
 void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 {
-  uint16_t touchX, touchY;
-  if (!tft.getTouch(&touchX, &touchY))
+  lgfx::touch_point_t touchRaw[TOUCH_MAX_POINTS];
+  static lgfx::touch_point_t touchPrev[TOUCH_MAX_POINTS];
+  static bool prevValid = false;
+  static bool pinchActive = false;
+  static int lastZoomDir = ZOOM_NONE;    
+  static unsigned long lastTime = 0;
+
+  int count = tft.getTouchRaw(touchRaw, TOUCH_MAX_POINTS);
+  unsigned long now = millis();
+  float dt_ms = (now > lastTime) ? (float)(now - lastTime) : 1.0f;
+
+  if (count == 0)
   {
     data->state = LV_INDEV_STATE_RELEASED;
+
+    if (pinchActive && lastZoomDir != 0)
+    {
+      if (lastZoomDir == ZOOM_IN)
+        lv_obj_send_event(btnZoomIn,LV_EVENT_CLICKED,NULL);
+      else if (lastZoomDir == ZOOM_OUT)
+        lv_obj_send_event(btnZoomOut,LV_EVENT_CLICKED,NULL);
+    }
+    pinchActive = false;
+    prevValid = false;
+    lastZoomDir = ZOOM_NONE;
+    lastTime = now;
+
     if (countTouchReleases)
     {
       countTouchReleases = false;
@@ -77,22 +95,43 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
   }
   else
   {
-    if ( lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_0)
+    if (count == 1)
     {
-      data->point.x = touchX;
-      data->point.y = touchY;
+      if ( lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_0)
+      {
+        data->point.x = touchRaw[count-1].x;
+        data->point.y = touchRaw[count-1].y;
+      }
+      else if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
+      {
+        data->point.x = TFT_WIDTH - touchRaw[count-1].y;
+        data->point.y = touchRaw[count-1].x;
+      }
+      countTouchReleases = true;
+      pinchActive = false;
+      prevValid = false;
+      lastZoomDir = ZOOM_NONE;
+      lastTime = now;
+      data->state = LV_INDEV_STATE_PRESSED;
     }
-    else if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
+    else if (count == 2)
     {
-      data->point.x = TFT_WIDTH - touchY;
-      data->point.y = touchX;
+      if (prevValid)
+      {
+        zoom_dir zoomDir = pinchZoom(touchPrev, touchRaw, dt_ms);
+        if (zoomDir != ZOOM_NONE && showMapToolBar)
+        {
+          pinchActive = true;
+          lastZoomDir = zoomDir;
+        }
+      }
+      touchPrev[0] = touchRaw[0];
+      touchPrev[1] = touchRaw[1];
+      prevValid = true;
+      lastTime = now;
     }
-    countTouchReleases = true;
-    data->state = LV_INDEV_STATE_PRESSED;
   }
 }
-
-
 
 #ifdef TDECK_ESP32S3 
 /**
