@@ -1,6 +1,6 @@
 # How to Add a New Hardware Environment
 
-This document explains how to add support for a new hardware board in IceNav-v3 using the modular `[feat_xxx]` features system in `platformio.ini`.
+This document explains how to add support for a new hardware board in IceNav using the modular `[feat_xxx]` features system in `platformio.ini`.
 
 ---
 
@@ -93,25 +93,6 @@ lib_deps =
     ${common.lib_deps}
     ${feat_imu_mpu6050.lib_deps}
     ${feat_comp_hmc.lib_deps}
-```
-
----
-
-## 7. Adding a New Display
-
-For a new display driver, create a new feature block, e.g.:
-
-```ini
-[feat_scr_myscreen]
-build_flags = -DMYSCREEN_DRIVER_FLAG
-```
-
-And in your environment:
-
-```ini
-build_flags =
-    ${common.build_flags}
-    ${feat_scr_myscreen.build_flags}
 ```
 
 ---
