@@ -58,6 +58,7 @@
 #ifdef ELECROW_ESP32
   #define I2C_SDA_PIN   GPIO_NUM_38
   #define I2C_SCL_PIN   GPIO_NUM_39
+  #define TL_BL         GPIO_NUM_46
 
   // UART PORT
   // uint8_t GPS_TX = GPIO_NUM_44;  // UART PIN Terminal Port
