@@ -104,7 +104,7 @@ lib_deps =
 </details>
 
 **How to add a new board or configuration:**  
-See [How to Add New Hardware (NEW_HARDWARE_ENV.md)](docs/NEW_HARDWARE_ENV.md) for step-by-step instructions and best practices.
+See [How to Add New Hardware](docs/NEW_HARDWARE_ENV.md) for step-by-step instructions and best practices.
 
 ---
 
@@ -167,7 +167,7 @@ Currently, IceNav works with the following hardware setups and specs
 ## How to Add a New Hardware Environment
 
 Want to add a new board or a feature combination?  
-👉 **See:** [How to Add New Hardware (docs/NEW_HARDWARE_ENV.md)](docs/NEW_HARDWARE_ENV.md)
+👉 **See:** [How to Add New Hardware](docs/NEW_HARDWARE_ENV.md)
 
 ---
 
