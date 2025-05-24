@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef DEVICESETTINGSCR_HPP
-#define DEVICESETTINGSCR_HPP
+#pragma once
 
 #include "globalGuiDef.h"
 #include "upgradeScr.hpp"
@@ -20,5 +19,3 @@ static void deviceSettingsEvent(lv_event_t *event);
 static void brightnessEvent(lv_event_t *e);
 static void upgradeEvent(lv_event_t *event);
 void createDeviceSettingsScr();
-
-#endif

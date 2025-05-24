@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef POWER_HPP
-#define POWER_HPP
+#pragma once
 
 #include <Wire.h>
 #include <SPI.h>
@@ -34,6 +33,3 @@ class Power
     void deviceSuspend();
     void deviceShutdown();
 };
-
-
-#endif

@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef LVGLFUNCS_HPP
-#define LVGLFUNCS_HPP
+#pragma once
 
 #include "tft.hpp"
 #include "globalGuiDef.h"
@@ -17,5 +16,3 @@ void objSelect(_lv_obj_t *obj);
 void objUnselect(_lv_obj_t *obj);
 void restartTimerCb(lv_timer_t *timer);
 void showRestartScr();
-
-#endif

@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef ILI9488_NOTOUCH_8B_HPP
-#define ILI9488_NOTOUCH_8B_HPP
+#pragma once
 
 #define LGFX_USE_V1
 
@@ -101,5 +100,3 @@ public:
 
   }
 };
-
-#endif

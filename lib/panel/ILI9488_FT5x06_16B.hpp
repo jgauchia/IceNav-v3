@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef ILI9488_FT5x06_16B_HPP
-#define ILI9488_FT5x06_16B_HPP
+#pragma once
 
 #define LGFX_USE_V1
 
@@ -139,5 +138,3 @@ public:
     setPanel(&_panel_instance);
   }
 };
-
-#endif

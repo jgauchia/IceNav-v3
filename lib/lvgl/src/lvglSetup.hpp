@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef LVGLSETUP_HPP
-#define LVGLSETUP_HPP
+#pragma once
 
 #define LV_TICK_PERIOD_MS 5
 
@@ -49,5 +48,3 @@ void modifyTheme();
 void lv_tick_task(void *arg);
 void initLVGL();
 void loadMainScreen();
-
-#endif

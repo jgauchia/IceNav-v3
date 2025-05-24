@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef LILYGO_TDECK_HPP
-#define LILYGO_TDECK_HPP
+#pragma once
 
 #define LGFX_USE_V1
 
@@ -98,5 +97,3 @@ public:
     setPanel(&_panel_instance);
   }
 };
-
-#endif

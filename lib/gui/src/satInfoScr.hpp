@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef SATINFOSCR_HPP
-#define SATINFOSCR_HPP
+#pragma once
 
 #include "globalGuiDef.h"
 #include "gps.hpp"
@@ -57,4 +56,3 @@ void satelliteScr(_lv_obj_t *screen);
 void drawSatSNR();
 void drawSatConst();
 void drawSatSky();
-#endif

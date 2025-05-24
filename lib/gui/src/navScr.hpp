@@ -6,11 +6,10 @@
  * @date 2025-04
  */
 
-#ifndef NAVSCR_HPP
-#define NAVSCR_HPP
+#pragma once
 
 #include "globalGuiDef.h"
-#include "navup.c"
+#include "navup.h"
 
 /**
  * @brief Navigation Tile screen objects
@@ -23,5 +22,3 @@ extern lv_obj_t *distNav;
 extern lv_obj_t *arrowNav;
 
 void navigationScr(_lv_obj_t *screen);
-
-#endif

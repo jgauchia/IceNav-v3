@@ -6,13 +6,10 @@
  * @date 2025-04
  */
 
-#ifndef GPXFILES_HPP
-#define GPXFILES_HPP
+#pragma once
 
 #include "globalGpxDef.h"
 #include "storage.hpp"
 
 void createGpxFolders();
 void createWptFile();
-
-#endif

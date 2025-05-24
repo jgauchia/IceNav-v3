@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef CLI_HPP
-#define CLI_HPP
+#pragma once
 
 #ifndef DISABLE_CLI
 
@@ -19,7 +18,5 @@
 #include <NMEAGPS.h>
 
 void initCLI();
-
-#endif
 
 #endif

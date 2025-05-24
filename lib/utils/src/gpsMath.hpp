@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef GPSMATH_HPP
-#define GPSMATH_HPP
+#pragma once
 
 #include <Arduino.h>
 #include <stdint.h>
@@ -29,5 +28,3 @@ float mapFloat(float x, float inMin, float inMax, float outMin, float outMax);
 char *latFormatString(double lat);
 char *lonFormatString(double lon);
 double calcCourse(double lat1, double lon1, double lat2, double lon2);
-
-#endif

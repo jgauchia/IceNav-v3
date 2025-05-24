@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef BUTTONBAR_HPP
-#define BUTTONBAR_HPP
+#pragma once
 
 #include "globalGuiDef.h"
 #include "mainScr.hpp"
@@ -38,5 +37,3 @@ void hideShowEvent(lv_event_t * e);
 void hideShowAnim(void * var, int32_t v);
 void createButtonBarScr();
 void loadOptions();
-
-#endif

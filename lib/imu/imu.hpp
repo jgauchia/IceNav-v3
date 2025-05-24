@@ -6,8 +6,7 @@
  * @date 2025-04
  */
 
-#ifndef IMU_HPP
-#define IMU_HPP
+#pragma once
 
 #ifdef MPU6050
 #include <Adafruit_MPU6050.h>
@@ -17,6 +16,4 @@ extern Adafruit_MPU6050 mpu;
 
 #ifdef ENABLE_IMU
 void initIMU();
-#endif
-
 #endif
