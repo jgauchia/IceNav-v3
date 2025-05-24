@@ -19,7 +19,7 @@
 static bool countTouchReleases = false;
 static int numberTouchReleases = 0;
 static uint32_t firstTouchReleaseTime = 0;
-uint32_t DOUBLE_TOUCH_EVENT;
+static uint32_t DOUBLE_TOUCH_EVENT;
 
 typedef enum 
 {
