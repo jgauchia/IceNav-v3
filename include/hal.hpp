@@ -41,6 +41,10 @@
   uint8_t GPS_TX = GPIO_NUM_43;
   uint8_t GPS_RX = GPIO_NUM_44;
 
+  extern const uint8_t TFT_SPI_CS   = GPIO_NUM_12;
+  extern const uint8_t RADIO_CS_PIN = GPIO_NUM_9;
+  extern const uint8_t SPI_MISO = GPIO_NUM_38;
+
   extern const uint8_t SD_CS = GPIO_NUM_39;
   extern const uint8_t SD_MISO = GPIO_NUM_38;
   extern const uint8_t SD_MOSI = GPIO_NUM_41;
@@ -157,10 +161,10 @@
   extern const uint8_t TCH_I2C_SCL  = GPIO_NUM_39;
   extern const uint8_t TCH_I2C_INT  = GPIO_NUM_40;
 
-  extern const uint8_t SD_CS = GPIO_NUM_1;
-  extern const uint8_t SD_MISO = GPIO_NUM_41;
-  extern const uint8_t SD_MOSI = GPIO_NUM_2;
-  extern const uint8_t SD_CLK = GPIO_NUM_42;
+  extern const uint8_t SD_CS = GPIO_NUM_21;
+  extern const uint8_t SD_MISO = GPIO_NUM_13;
+  extern const uint8_t SD_MOSI = GPIO_NUM_11;
+  extern const uint8_t SD_CLK = GPIO_NUM_12;
 #endif
 
 /**
