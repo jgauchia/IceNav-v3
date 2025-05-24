@@ -20,6 +20,7 @@ lv_group_t *keyGroup;     // GPIO group
 lv_obj_t *powerMsg;       // Power Message
 
 Power power;
+uint32_t DOUBLE_TOUCH_EVENT;
 
 /**
  * @brief LVGL display update
