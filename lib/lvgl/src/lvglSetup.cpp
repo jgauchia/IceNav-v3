@@ -21,12 +21,6 @@ lv_obj_t *powerMsg;       // Power Message
 
 Power power;
 
-static bool countTouchReleases = false;
-static int numberTouchReleases = 0;
-static uint32_t firstTouchReleaseTime = 0;
-#define TOUCH_DOUBLE_TOUCH_INTERVAL 150
-uint32_t DOUBLE_TOUCH_EVENT;
-
 /**
  * @brief LVGL display update
  *
@@ -56,8 +50,6 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
   static bool pinchActive = false;
   static int lastZoomDir = ZOOM_NONE;    
   static unsigned long lastTime = 0;
-
-  // float thresholdBase = 0.8f * sqrtf(tft.width() * tft.width() + tft.height() * tft.height()); 
 
   int count = tft.getTouchRaw(touchRaw, TOUCH_MAX_POINTS);
   unsigned long now = millis();
