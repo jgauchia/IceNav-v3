@@ -84,7 +84,7 @@ void drawProgressBar(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t per
  */
 void onUpgrdProcess(size_t currSize, size_t totalSize)
 {
-  // float progress = (currSize * 100) / totalSize;
+  float progress = (currSize * 100) / totalSize;
   ESP_LOGV(TAG, "Firmware Upgrade process %d ...", (int)progress);
   // char strProgress[30];
   // sprintf(strProgress,"Upgrading... %d%%",(int)progress);
