@@ -2,7 +2,7 @@
 //  * @file ILI9341_NOTOUCH_SPI.hpp
 //  * @author Jordi Gauchía (jgauchia@jgauchia.com)
 //  * @brief  LOVYANGFX TFT driver for ILI9341 SPI With no touch
-//  * @version 0.2.1
+//  * @version 0.2.2
 //  * @date 2025-05
 //  */
 

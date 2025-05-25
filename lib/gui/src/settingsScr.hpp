@@ -2,7 +2,7 @@
  * @file settingsScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Settings Screen
- * @version 0.2.1
+ * @version 0.2.2
  * @date 2025-05
  */
 

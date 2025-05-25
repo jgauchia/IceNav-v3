@@ -2,7 +2,7 @@
  * @file ILI9488_XPT2046_SPI.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LOVYANGFX TFT driver for ILI9488 SPI With XPT2046 Touch controller
- * @version 0.2.1
+ * @version 0.2.2
  * @date 2025-05
  */
 
