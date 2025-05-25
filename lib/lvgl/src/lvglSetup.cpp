@@ -52,7 +52,8 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
   static int lastZoomDir = ZOOM_NONE;    
   static unsigned long lastTime = 0;
 
-  int count = tft.getTouchRaw(touchRaw, TOUCH_MAX_POINTS);
+  int count = tft.getTouch(touchRaw, TOUCH_MAX_POINTS);
+
   unsigned long now = millis();
   float dt_ms = (now > lastTime) ? (float)(now - lastTime) : 1.0f;
 
@@ -97,7 +98,7 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
   {
     if (count == 1)
     {
-      if ( lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_0)
+      if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_0)
       {
         data->point.x = touchRaw[count-1].x;
         data->point.y = touchRaw[count-1].y;
@@ -107,6 +108,7 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
         data->point.x = TFT_WIDTH - touchRaw[count-1].y;
         data->point.y = touchRaw[count-1].x;
       }
+
       countTouchReleases = true;
       pinchActive = false;
       prevValid = false;
