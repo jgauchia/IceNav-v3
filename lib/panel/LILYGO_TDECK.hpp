@@ -92,7 +92,6 @@ public:
       cfg.freq = 400000;
 
       _touch_instance.config(cfg);
-      _touch_instance.setTouchNums(2);
       _panel_instance.setTouch(&_touch_instance);
     }
     setPanel(&_panel_instance);
