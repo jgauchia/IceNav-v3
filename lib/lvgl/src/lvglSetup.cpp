@@ -100,16 +100,22 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
   {
     if (count == 1)
     {
-      if ( lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_0)
-      {
+      #ifdef TDECK_ESP32S3
         data->point.x = touchRaw[count-1].x;
         data->point.y = touchRaw[count-1].y;
-      }
-      else if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
-      {
-        data->point.x = TFT_WIDTH - touchRaw[count-1].y;
-        data->point.y = touchRaw[count-1].x;
-      }
+      #else
+        if ( lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_0)
+        {
+          data->point.x = touchRaw[count-1].x;
+          data->point.y = touchRaw[count-1].y;
+        }
+        else if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
+        {
+          data->point.x = TFT_WIDTH - touchRaw[count-1].y;
+          data->point.y = touchRaw[count-1].x;
+        }
+      #endif
+      
       countTouchReleases = true;
       pinchActive = false;
       prevValid = false;
