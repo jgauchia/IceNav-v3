@@ -1,9 +1,9 @@
  /**
  * @file webpage.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief Web file server page implementation
- * @version 0.2.1_alpha
- * @date 2025-04
+ * @brief Web file server page
+ * @version 0.2.2
+ * @date 2025-05
  */
 
 #include "webpage.hpp"

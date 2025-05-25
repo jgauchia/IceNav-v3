@@ -2,8 +2,8 @@
  * @file upgradeScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Firmware upgrade messages
- * @version 0.2.1_alpha
- * @date 2025-04
+ * @version 0.2.2
+ * @date 2025-05
  */
 
 #pragma once
