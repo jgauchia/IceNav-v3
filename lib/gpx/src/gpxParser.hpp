@@ -2,12 +2,11 @@
  * @file gpxParser.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  GPX Parser class
- * @version 0.2.1_alpha
- * @date 2025-04
+ * @version 0.2.2
+ * @date 2025-05
  */
 
-#ifndef GPXPARSER_HPP
-#define GPXPARSER_HPP
+#pragma once
 
 #include <Arduino.h>
 #include <string>
@@ -201,5 +200,3 @@ bool GPXParser::insertTagAttrOrElem(const char* tag, const char* attribute, cons
   ESP_LOGI(TAGGPX, "Successfully inserted attribute/element '%s' into tag '%s'", attribute ? attribute : element, tag);
   return true; 
 }
-
-#endif  

@@ -1,5 +1,4 @@
-#ifndef NMEAGPS_CFG_H
-#define NMEAGPS_CFG_H
+#pragma once
 
 //  Copyright (C) 2014-2017, SlashDevin
 //
@@ -339,6 +338,4 @@
 #if defined( NMEAGPS_TIMESTAMP_FROM_INTERVAL ) &   \
     defined( NMEAGPS_TIMESTAMP_FROM_PPS )
   #error You cannot enable both TIMESTAMP_FROM_INTERVAL and PPS in NMEAGPS_cfg.h!
-#endif
-
 #endif

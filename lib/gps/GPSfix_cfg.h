@@ -1,5 +1,4 @@
-#ifndef GPS_FIX_CFG
-#define GPS_FIX_CFG
+#pragma once
 
 //  Copyright (C) 2014-2017, SlashDevin
 //
@@ -52,5 +51,3 @@
 #define GPS_FIX_HDG_ERR
 #define GPS_FIX_TIME_ERR
 #define GPS_FIX_GEOID_HEIGHT
-
-#endif

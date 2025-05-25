@@ -2,12 +2,11 @@
  * @file lvglSetup.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Screen implementation
- * @version 0.2.1_alpha
- * @date 2025-04
+ * @version 0.2.2
+ * @date 2025-05
  */
 
-#ifndef LVGLSETUP_HPP
-#define LVGLSETUP_HPP
+#pragma once
 
 #define LV_TICK_PERIOD_MS 5
 
@@ -23,7 +22,7 @@
 #include "settingsScr.hpp"
 #include "deviceSettingsScr.hpp"
 #include "mapSettingsScr.hpp"
-
+#include "gestures.hpp"
 
 /**
  * @brief Default display driver definition
