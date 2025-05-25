@@ -25,6 +25,7 @@ static const char* TAG = "Webserver";
 
 std::vector<FileEntry> fileCache;
 
+AsyncWebServer server(80);
 AsyncEventSource eventRefresh("/eventRefresh");
 const char* hostname = "icenav";
 
