@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Main Screen
  * @version 0.1.9
- * @date 2025-04
+ * @date 2025-05
  */
 
 #pragma once
