@@ -24,30 +24,22 @@
 #include "storage.hpp"
 #include "tft.hpp"
 
-#ifdef HMC5883L
-#include "compass.hpp"
-#endif
-
-#ifdef QMC5883
-#include "compass.hpp"
-#endif
-
-#ifdef IMU_MPU9250
-#include "compass.hpp"
+#if defined(HMC5883L) || defined(QMC5883) || defined(IMU_MPU9250)
+  #include "compass.hpp"
 #endif
 
 #ifdef BME280
-#include "bme.hpp"
+  #include "bme.hpp"
 #endif
 
 #ifdef MPU6050
-#include "imu.hpp"
+  #include "imu.hpp"
 #endif
 
 extern xSemaphoreHandle gpsMutex;
 
-#include "webpage.h"
-#include "webserver.h"
+#include "webpage.hpp"
+#include "webserver.hpp"
 #include "battery.hpp"
 #include "power.hpp"
 #include "gpxParser.hpp"
