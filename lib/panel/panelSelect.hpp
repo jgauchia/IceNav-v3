@@ -22,6 +22,8 @@
     #include "ICENAV_BOARD.hpp"
 #elif defined(TDECK_ESP32S3)
     #include "LILYGO_TDECK.hpp"
+#elif defined(T4_S3)
+    #include "LILYGO_T4_S3.hpp"
 #else
     #error "No Panel defined!"
 #endif
