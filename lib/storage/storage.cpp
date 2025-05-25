@@ -103,7 +103,7 @@ esp_err_t Storage::initSD()
   esp_vfs_fat_mount_config_t mount_config = {
       .format_if_mount_failed = false,
       .max_files = 5,
-      .allocation_unit_size = 16 * 1024};
+      .allocation_unit_size = 8 * 1024};
 
   ret = esp_vfs_fat_sdspi_mount("/sdcard", &host, &slot_config, &mount_config, &card);
   if (ret != ESP_OK)
