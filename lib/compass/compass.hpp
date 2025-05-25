@@ -1,12 +1,11 @@
 /**
  * @file compass.hpp
  * @brief Compass definition and functions
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
-#ifndef COMPASS_HPP
-#define COMPASS_HPP
+#pragma once
 
 #include "tft.hpp"
 #include <EasyPreferences.hpp>
@@ -105,5 +104,3 @@ private:
   float wrapToPi(float angle);
   float unwrapFromPi(float angle, float previousAngle);
 };
-
-#endif 

@@ -2,12 +2,11 @@
  * @file upgradeScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Firmware upgrade messages
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
-#ifndef UPGRADESCR_HPP
-#define UPGRADESCR_HPP
+#pragma once
 
 #include "lvgl.h"
 #include "firmUpgrade.hpp"
@@ -22,5 +21,3 @@ extern lv_obj_t *contMeter;
 void msgBackEvent(lv_event_t *event);
 void msgUpgrdEvent(lv_event_t *event);
 void createMsgUpgrade();
-
-#endif

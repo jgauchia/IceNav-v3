@@ -2,12 +2,11 @@
  * @file bme.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  BME280 Sensor functions
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
-#ifndef BME_HPP
-#define BME_HPP
+#pragma once
 
 #ifdef BME280
 
@@ -27,7 +26,5 @@ extern uint8_t tempValue;
 extern uint8_t tempOld;
 
 void initBME();
-
-#endif
 
 #endif

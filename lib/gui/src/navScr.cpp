@@ -2,8 +2,8 @@
  * @file navScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Navigation screen 
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
  #include "navScr.hpp"
@@ -71,6 +71,7 @@ void navigationScr(_lv_obj_t *screen)
   lv_obj_update_layout(arrowNav);
   lv_obj_align(arrowNav,LV_ALIGN_CENTER, 0, 100);
 
+  LV_IMG_DECLARE(navup);
   lv_img_set_src(arrowNav, &navup);
   lv_img_set_pivot(arrowNav, 50, 50) ;
 }
@@ -126,6 +127,7 @@ void navigationScr(_lv_obj_t *screen)
   arrowNav = lv_img_create(screen);
   lv_obj_set_pos(arrowNav,TFT_WIDTH - 100, 35);
 
+  LV_IMG_DECLARE(navup);
   lv_img_set_src(arrowNav, &navup);
   lv_img_set_pivot(arrowNav, 50, 50) ;
 }

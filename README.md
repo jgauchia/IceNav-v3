@@ -29,7 +29,7 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
   
 |<img src="images/dev/splash.png">|<img src="images/dev/searchsat.jpg">|<img src="images/dev/compass.jpg">|<img src="images/dev/options.jpg">|<img src="images/dev/wptopt.jpg">|
 |:-:|:-:|:-:|:-:|:-:|
-| Splash Screen | Search Satellite | Compass | Main Options | Waypoint Options |
+| Splash Screen | Search Satellite | Compass | Main Options | Wpt/Track Options |
 
 |<img src="images/dev/rendermap.jpg">|<img src="images/dev/vectormap.jpg">|<img src="images/dev/navscreen.jpg">|<img src="images/dev/navscreen2.jpg">|<img src="images/dev/satelliteinfo.jpg">|
 |:-:|:-:|:-:|:-:|:-:|
@@ -99,6 +99,11 @@ To do this, simply include the following Build Flag in the required env in platf
 | ILI9488     | 320x480    | ➖ |  ✔️  |  ➖  |    ➖    | ```-DILI9488_NOTOUCH_8B```       |
 | ILI9488     | 320x480    | ➖ |   ➖ |  ✔️  | FT5x06    | ```-DILI9488_FT5x06_16B```       |
 | ILI9341     | 320x240    | ✔️ |  ➖  |  ➖  | XPT2046   | ```-DILI9341_XPT2046_SPI```      |
+| ILI9341     | 320x240    | ✔️ |  ➖  |  ➖  |   ➖   | ```-DILI9341_NOTOUCH_SPI```      |
+
+> [!IMPORTANT]
+> If you are using a TFT with SPI shared bus, for example with an SD card, you need to add the following buildflag:
+> ```-DSPI_SHARED```
 
 ### Modules
 
@@ -329,7 +334,7 @@ To access the Web File Server, simply use any browser and go to the following ad
 - [X] Support for ready-made boards 
 - [X] Wifi CLI Manager
 - [X] LVGL Optimization 
-- [ ] GPX Integration
+- [X] GPX Integration
 - [ ] Multiple IMU's and Compass module implementation
 - [X] Power saving
 - [X] Vector maps

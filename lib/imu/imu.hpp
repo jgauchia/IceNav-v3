@@ -2,12 +2,11 @@
  * @file imu.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  IMU definition and functions
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
-#ifndef IMU_HPP
-#define IMU_HPP
+#pragma once
 
 #ifdef MPU6050
 #include <Adafruit_MPU6050.h>
@@ -17,6 +16,4 @@ extern Adafruit_MPU6050 mpu;
 
 #ifdef ENABLE_IMU
 void initIMU();
-#endif
-
 #endif

@@ -2,12 +2,11 @@
  * @file searchSatScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - GPS satellite search screen
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
-#ifndef SEARCHSATSCR_HPP
-#define SEARCHSATSCR_HPP
+#pragma once
 
 #include "gps.hpp"
 #include "globalGuiDef.h"
@@ -23,5 +22,3 @@ void loadMainScreen();
 void searchGPS(lv_timer_t *searchTimer);
 void buttonEvent(lv_event_t *event);
 void createSearchSatScr();
-
-#endif

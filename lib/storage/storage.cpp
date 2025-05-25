@@ -2,8 +2,8 @@
  * @file storage.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Storage definition and functions
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
 #include "storage.hpp"
@@ -66,6 +66,7 @@ esp_err_t Storage::initSD()
 #endif
 #ifdef ESP32_N16R4
   host.slot = HSPI_HOST;
+  host.command_timeout_ms = 1000;
 #endif
 
   sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
@@ -79,7 +80,7 @@ esp_err_t Storage::initSD()
       .sclk_io_num = (gpio_num_t)SD_CLK,
       .quadwp_io_num = -1,
       .quadhd_io_num = -1,
-      .max_transfer_sz = 4096, // Set transfer size to 4096 bytes (multiple of 512)
+      .max_transfer_sz = 8192, // Set transfer size to 4096 bytes (multiple of 512)
       .flags = 0,
       .intr_flags = 0};
 
@@ -87,17 +88,20 @@ esp_err_t Storage::initSD()
   host.max_freq_khz = 20000;
 
   // Initialize the SPI bus
-  ret = spi_bus_initialize((spi_host_device_t)host.slot, &bus_cfg, SDSPI_DEFAULT_DMA);
-  if (ret != ESP_OK)
-  {
-    ESP_LOGE(TAG, "Failed to initialize SPI bus.");
-    return ret;
-  }
+  
+  #ifndef SPI_SHARED
+    ret = spi_bus_initialize((spi_host_device_t)host.slot, &bus_cfg, SDSPI_DEFAULT_DMA);
+    if (ret != ESP_OK)
+    {
+      ESP_LOGE(TAG, "Failed to initialize SPI bus.");
+      return ret;
+    }
+  #endif
 
   ESP_LOGI(TAG, "Initializing SD card");
 
   esp_vfs_fat_mount_config_t mount_config = {
-      .format_if_mount_failed = true,
+      .format_if_mount_failed = false,
       .max_files = 5,
       .allocation_unit_size = 16 * 1024};
 

@@ -2,50 +2,25 @@
  * @file ICENAV_BOARD.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LOVYANGFX TFT driver for IceNaV board
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
-#ifndef ICENAV_BOARD_HPP
-#define ICENAV_BOARD_HPP
+#pragma once
 
 #define LGFX_USE_V1
-
-#include <LovyanGFX.hpp>
-
-extern const uint8_t TCH_I2C_PORT;
-extern const uint8_t TCH_I2C_SDA;
-extern const uint8_t TCH_I2C_SCL;
-extern const uint8_t TCH_I2C_INT;
-extern const uint8_t TFT_WR;
-extern const uint8_t TFT_RD;
-extern const uint8_t TFT_RS;
-extern const uint8_t TFT_D0;
-extern const uint8_t TFT_D1;
-extern const uint8_t TFT_D2;
-extern const uint8_t TFT_D3;
-extern const uint8_t TFT_D4;
-extern const uint8_t TFT_D5;
-extern const uint8_t TFT_D6;
-extern const uint8_t TFT_D7;
-extern const uint8_t TFT_D8;
-extern const uint8_t TFT_D9;
-extern const uint8_t TFT_D10;
-extern const uint8_t TFT_D11;
-extern const uint8_t TFT_D12;
-extern const uint8_t TFT_D13;
-extern const uint8_t TFT_D14;
-extern const uint8_t TFT_D15;
 
 #define LARGE_SCREEN
 #define TOUCH_INPUT
 
+#include <LovyanGFX.hpp>
+
 class LGFX : public lgfx::LGFX_Device
 {
-  lgfx::Panel_ILI9488 _panel_instance;
-  lgfx::Bus_Parallel16 _bus_instance;
-  lgfx::Light_PWM _light_instance;
-  lgfx::Touch_FT5x06 _touch_instance;
+  lgfx::Panel_ILI9488   _panel_instance;
+  lgfx::Bus_Parallel16  _bus_instance;
+  lgfx::Light_PWM       _light_instance;
+  lgfx::Touch_FT5x06    _touch_instance;
 
 public:
   LGFX(void)
@@ -54,27 +29,27 @@ public:
       auto cfg = _bus_instance.config(); 
 
       cfg.port = 0;              
-      cfg.freq_write = 40000000; 
-      cfg.pin_wr = TFT_WR;
-      cfg.pin_rd = TFT_RD;
-      cfg.pin_rs = TFT_RS;
+      cfg.freq_write = 80000000; 
+      cfg.pin_wr = GPIO_NUM_18;
+      cfg.pin_rd = GPIO_NUM_48;
+      cfg.pin_rs = GPIO_NUM_45;
 
-      cfg.pin_d0 = TFT_D0;
-      cfg.pin_d1 = TFT_D1;
-      cfg.pin_d2 = TFT_D2;
-      cfg.pin_d3 = TFT_D3;
-      cfg.pin_d4 = TFT_D4;
-      cfg.pin_d5 = TFT_D5;
-      cfg.pin_d6 = TFT_D6;
-      cfg.pin_d7 = TFT_D7;
-      cfg.pin_d8 = TFT_D8;
-      cfg.pin_d9 = TFT_D9;
-      cfg.pin_d10 = TFT_D10;
-      cfg.pin_d11 = TFT_D11;
-      cfg.pin_d12 = TFT_D12;
-      cfg.pin_d13 = TFT_D13;
-      cfg.pin_d14 = TFT_D14;
-      cfg.pin_d15 = TFT_D15;
+      cfg.pin_d0 = GPIO_NUM_47;
+      cfg.pin_d1 = GPIO_NUM_21;
+      cfg.pin_d2 = GPIO_NUM_14;
+      cfg.pin_d3 = GPIO_NUM_13;
+      cfg.pin_d4 = GPIO_NUM_12;
+      cfg.pin_d5 = GPIO_NUM_11;
+      cfg.pin_d6 = GPIO_NUM_10;
+      cfg.pin_d7 = GPIO_NUM_9;
+      cfg.pin_d8 = GPIO_NUM_3;
+      cfg.pin_d9 = GPIO_NUM_8;
+      cfg.pin_d10 = GPIO_NUM_16;
+      cfg.pin_d11 = GPIO_NUM_15;
+      cfg.pin_d12 = GPIO_NUM_7;
+      cfg.pin_d13 = GPIO_NUM_6;
+      cfg.pin_d14 = GPIO_NUM_5;
+      cfg.pin_d15 = GPIO_NUM_4;
 
       _bus_instance.config(cfg);              
       _panel_instance.setBus(&_bus_instance); 
@@ -107,7 +82,7 @@ public:
 
     {
       auto cfg = _light_instance.config();
-      cfg.pin_bl = TFT_BL;
+      cfg.pin_bl = GPIO_NUM_46;
       cfg.invert = false;
       cfg.freq = 44100;
       cfg.pwm_channel = 7;
@@ -120,17 +95,17 @@ public:
       auto cfg = _touch_instance.config();
 
       cfg.x_min = 0;
-      cfg.x_max = 320;
+      cfg.x_max = 319;
       cfg.y_min = 0;
-      cfg.y_max = 480;
-      cfg.pin_int = TCH_I2C_INT;
+      cfg.y_max = 479;
+      cfg.pin_int = GPIO_NUM_40;
       cfg.bus_shared = true;
       cfg.offset_rotation = 0;
 
-      cfg.i2c_port = TCH_I2C_PORT;
+      cfg.i2c_port = 0;
       cfg.i2c_addr = 0x38;
-      cfg.pin_sda = TCH_I2C_SDA;
-      cfg.pin_scl = TCH_I2C_SCL;
+      cfg.pin_sda = GPIO_NUM_38;
+      cfg.pin_scl = GPIO_NUM_39;
       cfg.freq = 400000;
 
       _touch_instance.config(cfg);
@@ -139,5 +114,3 @@ public:
     setPanel(&_panel_instance);
   }
 };
-
-#endif

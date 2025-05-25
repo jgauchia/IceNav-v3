@@ -1,13 +1,12 @@
 /**
  * @file LILYGO_TDECK.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com) and Antonio Vanegas @Hpsturn
- * @brief  LOVYANGFX TFT driver for ST7789 SPI With GT911 Touch controller
- * @version 0.2.0
- * @date 2025-04
+ * @brief  LOVYANGFX TFT driver for Lilygo T-DECK biard
+ * @version 0.2.1
+ * @date 2025-05
  */
 
-#ifndef LILYGO_TDECK_HPP
-#define LILYGO_TDECK_HPP
+#pragma once
 
 #define LGFX_USE_V1
 
@@ -15,24 +14,12 @@
 
 #include "LovyanGFX.hpp"
 
-extern const uint8_t TFT_SPI_SCLK;
-extern const uint8_t TFT_SPI_MOSI;
-extern const uint8_t TFT_SPI_MISO;
-extern const uint8_t TFT_SPI_DC;
-extern const uint8_t TFT_SPI_CS;
-extern const uint8_t TFT_SPI_RST;
-extern const uint8_t TCH_I2C_PORT;
-extern const uint8_t TCH_I2C_SDA;
-extern const uint8_t TCH_I2C_SCL;
-extern const uint8_t TCH_I2C_INT;
-extern const bool TFT_INVERT;
-
 class LGFX : public lgfx::LGFX_Device
 {
-  lgfx::Panel_ST7789 _panel_instance;
-  lgfx::Bus_SPI _bus_instance;
-  lgfx::Light_PWM _light_instance;
-  lgfx::Touch_GT911 _touch_instance;
+  lgfx::Panel_ST7789  _panel_instance;
+  lgfx::Bus_SPI       _bus_instance;
+  lgfx::Light_PWM     _light_instance;
+  lgfx::Touch_GT911   _touch_instance;
 
 public:
   LGFX(void)
@@ -40,24 +27,24 @@ public:
     {
       auto cfg = _bus_instance.config();
       cfg.spi_host = SPI2_HOST;
-      cfg.spi_mode = SPI_MODE0;
+      cfg.spi_mode = 0;
       cfg.use_lock = false;
-      cfg.freq_write = 80000000;
+      cfg.freq_write = 40000000;
       cfg.freq_read = 16000000;
       cfg.spi_3wire = false;
       cfg.dma_channel = SPI_DMA_CH_AUTO;
-      cfg.pin_sclk = TFT_SPI_SCLK;
-      cfg.pin_mosi = TFT_SPI_MOSI;
-      cfg.pin_miso = TFT_SPI_MISO;
-      cfg.pin_dc = TFT_SPI_DC;
+      cfg.pin_sclk = GPIO_NUM_40;
+      cfg.pin_mosi = GPIO_NUM_41;
+      cfg.pin_miso = GPIO_NUM_38;
+      cfg.pin_dc = GPIO_NUM_11;
       _bus_instance.config(cfg);
       _panel_instance.setBus(&_bus_instance);
     }
 
     {
       auto cfg = _panel_instance.config();
-      cfg.pin_cs = TFT_SPI_CS;
-      cfg.pin_rst = TFT_SPI_RST;
+      cfg.pin_cs = GPIO_NUM_12;
+      cfg.pin_rst = -1;
       cfg.pin_busy = -1;
       cfg.panel_width = 240;
       cfg.panel_height = 320;
@@ -78,7 +65,7 @@ public:
 
     {
       auto cfg = _light_instance.config();
-      cfg.pin_bl = 42;
+      cfg.pin_bl = GPIO_NUM_42;
       cfg.invert = false;
       cfg.freq = 44100;
       cfg.pwm_channel = 7;
@@ -94,14 +81,14 @@ public:
       cfg.x_max = 239;
       cfg.y_min = 0;
       cfg.y_max = 319;
-      cfg.pin_int = TCH_I2C_INT;
-      cfg.bus_shared = false;
+      cfg.pin_int = GPIO_NUM_16;
+      cfg.bus_shared = true;
       cfg.offset_rotation = 0;
 
-      cfg.i2c_port = TCH_I2C_PORT;
+      cfg.i2c_port = 0;
       cfg.i2c_addr = 0x5D;   
-      cfg.pin_sda = TCH_I2C_SDA;
-      cfg.pin_scl = TCH_I2C_SCL;
+      cfg.pin_sda = GPIO_NUM_18;
+      cfg.pin_scl = GPIO_NUM_8;
       cfg.freq = 400000;
 
       _touch_instance.config(cfg);
@@ -110,5 +97,3 @@ public:
     setPanel(&_panel_instance);
   }
 };
-
-#endif

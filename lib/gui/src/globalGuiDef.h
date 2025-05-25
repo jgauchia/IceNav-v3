@@ -1,12 +1,11 @@
 /**
  * @file globalGuiDef.h
  * @brief  Global GUI Variables
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
-#ifndef GLOBALGUIDEF_H
-#define GLOBALGUIDEF_H
+#pragma once
 
 #include <lvgl.h>
 #include "tft.hpp"
@@ -29,8 +28,8 @@ extern lv_obj_t *notifyBarHour;        // Notify Bar Hour
 extern lv_obj_t *settingsScreen;       // Settings Screen
 extern lv_obj_t *mapSettingsScreen;    // Map Settings Screen
 extern lv_obj_t *deviceSettingsScreen; // Device Settings Screen
-extern lv_obj_t *waypointScreen;       // Add Waypoint Screen
-extern lv_obj_t *listWaypointScreen;   // List Waypoint Screen
+extern lv_obj_t *gpxDetailScreen;       // Add Waypoint Screen
+extern lv_obj_t *listGPXScreen;   // List Waypoint Screen
 
 extern lv_group_t * scrGroup;          // Screen group
 extern lv_group_t * keyGroup;          // GPIO group
@@ -39,7 +38,7 @@ extern bool needReboot;                // Flag to force device reboot
 extern bool isSearchingSat;            // Flag to indicate that is searching satellites
 extern lv_obj_t *buttonBar;            // Button Bar
 extern lv_obj_t *menuBtn;              // Button Menu
-extern lv_obj_t *waypointName;         // Add / Edit Waypoint screen text area
+extern lv_obj_t *gpxTagValue;         // Add / Edit Waypoint screen text area
 extern bool isScreenRotated;           // Flag to know if screen is rotated
 
 extern lv_obj_t *powerMsg;             // Power Message
@@ -101,7 +100,5 @@ static bool getPngSize(const char* filename, uint16_t *width, uint16_t *height)
 
   return true;
 }
-
-#endif
 
 

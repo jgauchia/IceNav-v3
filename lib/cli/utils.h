@@ -2,12 +2,11 @@
  * @file utils.h
  * @author @Hpsaturn
  * @brief  Network CLI and custom internal commands
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
-#ifndef UTILS_H
-#define UTILS_H
+#pragma once
 
 #ifndef DISABLE_CLI
 #include "cli.hpp"
@@ -91,6 +90,4 @@ static void captureScreenshot(const char *filename, const char *pc_ip, uint16_t 
   client.stop();
   response->println("Screenshot sent over WiFi");
 }
-#endif
-
 #endif

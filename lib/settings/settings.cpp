@@ -2,8 +2,8 @@
  * @file settings.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Settings functions
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
 #include "settings.hpp"
@@ -51,7 +51,7 @@ uint16_t speedPosY = 0;    // Speed widget position Y
 uint16_t sunPosX = 0;      // Sunrise/sunset position X
 uint16_t sunPosY = 0;      // Sunrise/sunset position Y
 bool enableWeb = true;     // Enable/disable web file server
-bool showToolBar = false;  // Show Map Toolbar
+bool showMapToolBar = false;  // Show Map Toolbar
 int8_t tempOffset = 0;     // BME Temperature offset
 extern Battery battery;
 extern Compass compass;

@@ -2,12 +2,11 @@
  * @file settings.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Settings functions
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
-#ifndef SETTINGS_HPP
-#define SETTINGS_HPP
+#pragma once
 
 #include <EasyPreferences.hpp>
 #include <NMEAGPS.h>
@@ -24,7 +23,7 @@ extern uint8_t zoom;           // Actual Zoom Level
 extern uint8_t defBright;      // Default brightness
 extern uint8_t defaultZoom;   // Default Zoom Value
 
-extern bool showToolBar;      // Show Map Toolbar
+extern bool showMapToolBar;      // Show Map Toolbar
 extern uint16_t gpsBaud;      // GPS Speed
 extern uint16_t gpsUpdate;    // GPS Update rate
 extern uint16_t compassPosX;  // Compass widget position X
@@ -65,5 +64,3 @@ void saveGPSBaud(uint16_t gpsBaud);
 void saveGPSUpdateRate(uint16_t gpsUpdateRate);
 void saveWidgetPos(char *widget, uint16_t posX, uint16_t posY);
 void printSettings();
-
-#endif

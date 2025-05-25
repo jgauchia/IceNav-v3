@@ -1,5 +1,4 @@
-#ifndef NEOGPS_CFG
-#define NEOGPS_CFG
+#pragma once
 
 //  Copyright (C) 2014-2017, SlashDevin
 //
@@ -119,7 +118,4 @@
     (defined(TEENSYDUINO) && (TEENSYDUINO < 139))
   #undef pgm_read_ptr
   #define pgm_read_ptr(addr) (*(const void **)(addr))
-#endif
-
-
 #endif

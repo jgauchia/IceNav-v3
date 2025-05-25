@@ -2,8 +2,8 @@
  * @file tft.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief TFT definition and functions
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
 #include "tft.hpp"
@@ -55,7 +55,6 @@ void touchCalibrate()
     {
       if (fread((char *)calData, sizeof(char), 16, f))
       {
-        log_i("Touch calibration exists");
         calDataOK = 1;
         storage.close(f);
       }

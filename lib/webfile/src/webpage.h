@@ -2,8 +2,8 @@
  * @file webpage.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief Web file server page
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
 
@@ -174,7 +174,7 @@ function downloadDeleteButton(filename, action)
   xhr = new XMLHttpRequest();
   if (action == "delete")
   {
-    urltocall = "/file?name=/" + filename + "&action=" + action;
+    urltocall = "/file?name=/" + encodeURIComponent(filename) + "&action=" + action;
     xhr.open("GET", urltocall, false);
     xhr.send();
     sessionStorage.setItem("msgStatus",xhr.responseText);
@@ -184,7 +184,7 @@ function downloadDeleteButton(filename, action)
   }
   if (action == "deldir")
   {
-    urltocall = "/file?name=" + filename + "&action=" + action;
+    urltocall = "/file?name=" + encodeURIComponent(filename) + "&action=" + action;
     xhr.open("GET", urltocall, false);
     xhr.send();
     sessionStorage.setItem("msgStatus",xhr.responseText);
@@ -193,7 +193,7 @@ function downloadDeleteButton(filename, action)
   }
   if (action == "download") 
   {
-    urltocall = "/file?name=/" + filename + "&action=" + action;
+    urltocall = "/file?name=/" + encodeURIComponent(filename) + "&action=" + action;
     _("status").innerHTML = "";
     window.open(urltocall,"_blank");
   }

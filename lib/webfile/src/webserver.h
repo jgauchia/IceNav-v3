@@ -2,8 +2,8 @@
  * @file webserver.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief Web file server functions
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
 #include "storage.hpp"

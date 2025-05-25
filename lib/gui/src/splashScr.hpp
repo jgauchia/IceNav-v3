@@ -2,12 +2,11 @@
  * @file splashScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Splash screen - NOT LVGL
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
-#ifndef SPLASHSCR_HPP
-#define SPLASHSCR_HPP
+#pragma once
 
 #include "globalGuiDef.h"
 #include "settings.hpp"
@@ -26,5 +25,3 @@ static const char* statusLine4 PROGMEM = "Firmware v.%s rev.%s";
 static const char* statusLine5 PROGMEM = "ENV: %s";
 
 void splashScreen();
-
-#endif

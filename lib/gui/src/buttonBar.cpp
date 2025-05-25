@@ -2,16 +2,16 @@
  * @file buttonBar.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Button Bar 
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
 #include "buttonBar.hpp"
 
 extern Maps mapView;
 
-bool isWaypointOpt = false;
-bool isTrackOpt = false;
+bool isWaypointOpt;
+bool isTrackOpt;
 bool isOptionLoaded = false;
 bool isBarOpen = false;
 
@@ -43,14 +43,14 @@ void buttonBarEvent(lv_event_t *event)
 
   if (strcmp(option,"addwpt") == 0)
   {
-    wptAction = WPT_ADD;
+    gpxAction = WPT_ADD;
     isMainScreen = false;
     mapView.redrawMap = false;
-    lv_textarea_set_text(waypointName, "");
+    lv_textarea_set_text(gpxTagValue, "");
     isScreenRotated = false;
-    lv_obj_set_width(waypointName, tft.width() -10);
-    updateWaypointPos();
-    lv_screen_load(waypointScreen);
+    lv_obj_set_width(gpxTagValue, tft.width() -10);
+    updateWaypoint(gpxAction);
+    lv_screen_load(gpxDetailScreen);
   }
 
   if (strcmp(option,"waypoint") == 0)
@@ -63,17 +63,16 @@ void buttonBarEvent(lv_event_t *event)
       loadOptions();
     }
   }
-  // if (strcmp(option,"track") == 0)
-  // {
-  //   isMainScreen = false;
-  //   isTrackOpt = true;
-  //   isWaypointOpt = false;
-  //   if (!isOptionLoaded)
-  //   {
-  //     isOptionLoaded = true;
-  //     loadOptions();
-  //   } 
-  // }
+  if (strcmp(option,"track") == 0)
+  {
+    isTrackOpt = true;
+    isWaypointOpt = false;
+    if (!isOptionLoaded)
+    {
+      isOptionLoaded = true;
+      loadOptions();
+    } 
+  }
   if (strcmp(option,"settings") == 0)
   {
     isMainScreen = false;
@@ -91,31 +90,45 @@ void optionEvent(lv_event_t *event)
   char *action = (char *)lv_event_get_user_data(event);
   if (strcmp(action,"load") == 0)
   {
-    wptAction = WPT_LOAD;
+    gpxAction = GPX_LOAD;
     isMainScreen = false;
     lv_obj_del(option);
-    updateWaypointListScreen();
-    lv_screen_load(listWaypointScreen);
+    updateGpxListScreen();
+    if (isTrackOpt)
+      lv_table_set_cell_value(listGPXScreen, 0, 0, LV_SYMBOL_LEFT " Tracks");
+    if (isWaypointOpt)
+      lv_table_set_cell_value(listGPXScreen, 0, 0, LV_SYMBOL_LEFT " Waypoints");
+    lv_screen_load(listGPXScreen);
   }
   if (strcmp(action,"edit") == 0)
   {
-    wptAction = WPT_EDIT;
+    gpxAction = GPX_EDIT;
     isMainScreen = false;
     lv_obj_del(option);
-    updateWaypointListScreen();
-    lv_screen_load(listWaypointScreen);
+    updateGpxListScreen();
+    if (isTrackOpt)
+      lv_table_set_cell_value(listGPXScreen, 0, 0, LV_SYMBOL_LEFT " Tracks");
+    if (isWaypointOpt)
+      lv_table_set_cell_value(listGPXScreen, 0, 0, LV_SYMBOL_LEFT " Waypoints");
+    lv_screen_load(listGPXScreen);
   }
   if (strcmp(action,"delete") == 0)
   {
-    wptAction = WPT_DEL;
+    gpxAction = GPX_DEL;
     isMainScreen = false;
     lv_obj_del(option);
-    updateWaypointListScreen();
-    lv_screen_load(listWaypointScreen);   
+    updateGpxListScreen();
+    if (isTrackOpt)
+      lv_table_set_cell_value(listGPXScreen, 0, 0, LV_SYMBOL_LEFT " Tracks");
+    if (isWaypointOpt)
+      lv_table_set_cell_value(listGPXScreen, 0, 0, LV_SYMBOL_LEFT " Waypoints");
+    lv_screen_load(listGPXScreen);   
   }
   if (strcmp(action,"exit") == 0)
   {
     isMainScreen = true;
+    isTrackOpt = false;
+    isWaypointOpt = false;
     lv_obj_del(option);
   }
 
@@ -168,7 +181,7 @@ void hideShowEvent(lv_event_t * e)
       lv_anim_set_var(&a, buttonBar);
       lv_anim_set_exec_cb(&a, hideShowAnim);
       lv_anim_set_values(&a, 0, 256);
-      lv_anim_set_duration(&a, 250);
+      lv_anim_set_duration(&a, 150);
       lv_anim_start(&a);
     }
     else 
@@ -178,7 +191,7 @@ void hideShowEvent(lv_event_t * e)
       lv_anim_set_var(&a, buttonBar);
       lv_anim_set_exec_cb(&a, hideShowAnim);
       lv_anim_set_values(&a, 256, 0);
-      lv_anim_set_duration(&a, 250);
+      lv_anim_set_duration(&a, 150);
       lv_anim_start(&a);
     }
   }
@@ -244,14 +257,11 @@ void createButtonBarScr()
   // Track Button
   imgBtn = lv_img_create(buttonBar);
   lv_img_set_src(imgBtn, trackIconFile);
-  lv_obj_set_style_img_recolor_opa(imgBtn, 230, 0);
-  lv_obj_set_style_img_recolor(imgBtn, lv_color_black(), 0);
   lv_img_set_zoom(imgBtn,buttonScale);
   lv_obj_update_layout(imgBtn);
   lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
   lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_HIDDEN);
-  //lv_obj_add_event_cb(imgBtn, buttonBarEvent, LV_EVENT_PRESSED, (char*)"track");
+  lv_obj_add_event_cb(imgBtn, buttonBarEvent, LV_EVENT_PRESSED, (char*)"track");
   
   // Settings Button
   imgBtn = lv_img_create(buttonBar);

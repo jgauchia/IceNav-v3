@@ -2,28 +2,30 @@
  * @file mapsVars.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Maps vars and structures
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
-#ifndef MAPVARS_H
-#define MAPVARS_H
+#pragma once
 
  /**
  * @brief Map Widgets images.
  *
  */
-#include "bruj.c"
-#include "navigation.c"
-#include "waypoint.c"
-#include "compass.c"
-#include "zoom.c"
-#include "speed.c"
-#include "expand.c"
-#include "collapse.c"
-#include "zoomin.c"
-#include "zoomout.c"
-#include "navfinish.c"
+#include "bruj.h"
+#include "navigation.h"
+#include "waypoint.h"
+#include "compass.h"
+#include "zoom.h"
+#include "speed.h"
+#include "expand.h"
+#include "collapse.h"
+#include "zoomin.h"
+#include "zoomout.h"
+#include "navfinish.h"
+#include "move.h"
+
+#include "globalGpxDef.h"
 
 /**
  * @brief Point in 16 bits projected coordinates (x,y) Vector Maps
@@ -73,7 +75,7 @@ struct BBox
 };
 
 static const String mapVectorFolder PROGMEM = "/sdcard/VECTMAP/";        // Vector Map Files Folder
-static const char *mapRenderFolder PROGMEM = "/sdcard/MAP/%d/%d/%d.png"; // Render Maps file folder
+static const char *mapRenderFolder PROGMEM = "/sdcard/MAP/%u/%u/%u.png"; // Render Maps file folder
 static const char *noMapFile PROGMEM = "/spiffs/NOMAP.png";       // No map image file
 static const char *map_scale[] PROGMEM = {"5000 Km", "2500 Km", "1500 Km",
                                           "700 Km", "350 Km", "150 Km",
@@ -112,6 +114,4 @@ static const uint16_t BACKGROUND_COLOR = 0xEF5D;
 #define MAPBLOCKS_MAX 6                                                // max blocks in memory
 #define MAPBLOCK_SIZE_BITS 12                                          // 4096 x 4096 coords (~meters) per block
 #define MAPFOLDER_SIZE_BITS 4                                          // 16 x 16 map blocks per folder
-#define MAX_ZOOM 4                                                     // Vector max MAX_ZOOM
-
-#endif                                          
+#define MAX_ZOOM 4                                                     // Vector max MAX_ZOOM                              

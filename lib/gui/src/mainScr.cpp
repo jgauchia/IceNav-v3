@@ -2,8 +2,8 @@
  * @file mainScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Main Screen
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
 #include "mainScr.hpp"
@@ -11,9 +11,12 @@
 bool isMainScreen = false;    // Flag to indicate main screen is selected
 bool isScrolled = true;       // Flag to indicate when tileview was scrolled
 bool isReady = false;         // Flag to indicate when tileview scroll was finished
+bool isScrollingMap = false;  // Flag to indicate if map is scrolling
+bool canScrollMap = false;    // Flag to indicate whet can scroll map
 uint8_t activeTile = 0;       // Current active tile
-uint8_t wptAction = WPT_NONE; // Current Waypoint Action
+uint8_t gpxAction = WPT_NONE; // Current Waypoint Action
 int heading = 0;              // Heading value (Compass or GPS)
+extern uint32_t DOUBLE_TOUCH_EVENT;
 
 extern Compass compass;
 extern Gps gps;
@@ -197,20 +200,32 @@ void updateMainScreen(lv_timer_t *t)
  */
 void gestureEvent(lv_event_t *event)
 {
-  lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
-  if (activeTile == MAP && isMainScreen)
+  lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_active());
+
+  if (showMapToolBar)
   {
-    switch (dir)
-    {
-      case LV_DIR_LEFT:
-        break;
-      case LV_DIR_RIGHT:
-        break;
-      case LV_DIR_TOP:
-        break;
-      case LV_DIR_BOTTOM:
-        break;
-    }
+    // if (activeTile == MAP && isMainScreen)
+    // {
+    //   switch (dir)
+    //   {
+    //     case LV_DIR_LEFT:
+    //       // mapView.panMap(1,0);
+    //       mapView.scrollMap(30,0);
+    //       break;
+    //     case LV_DIR_RIGHT:
+    //       // mapView.panMap(-1,0);
+    //       mapView.scrollMap(-30,0);
+    //       break;
+    //     case LV_DIR_TOP:
+    //       //mapView.panMap(0,1);
+    //       mapView.scrollMap(0,30);
+    //       break;
+    //     case LV_DIR_BOTTOM:
+    //       // mapView.panMap(0,-1);
+    //       mapView.scrollMap(0,-30);
+    //       break;
+    //   }
+    // }
   }
 }
 
@@ -252,13 +267,16 @@ void updateSatTrack(lv_event_t *event)
 }
 
 /**
- * @brief Tool Bar Event
+ * @brief Map Tool Bar Event
  *
  * @param event
  */
-void toolBarEvent(lv_event_t *event)
+void mapToolBarEvent(lv_event_t *event)
 {
-  showToolBar = !showToolBar;
+  lv_event_code_t code = lv_event_get_code(event);
+
+  showMapToolBar = !showMapToolBar;
+  canScrollMap = !canScrollMap;
 
   if (!mapSet.mapFullScreen)
   {
@@ -273,19 +291,78 @@ void toolBarEvent(lv_event_t *event)
     lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrFull - (toolBarOffset + (2 * toolBarSpace) + 24));
   }
 
-  if (!showToolBar)
+  if (!showMapToolBar)
   {
     lv_obj_clear_flag(btnFullScreen, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
+    mapView.centerOnGps(gps.gpsData.latitude, gps.gpsData.longitude);
   }
   else
   {
     lv_obj_add_flag(btnFullScreen, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(btnZoomOut, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
   }
 }
+
+/**
+ * @brief Scrool Map Event
+ *
+ * @param event
+ */
+void scrollMapEvent(lv_event_t *event)
+{
+  if (canScrollMap)
+  {
+    lv_event_code_t code = lv_event_get_code(event);
+    lv_indev_t * indev = lv_event_get_indev(event);
+    static int last_x = 0, last_y = 0;
+    static int dx = 0, dy = 0;
+    lv_point_t p;
+
+
+    switch (code)
+    {
+      case LV_EVENT_PRESSED:
+      {
+        lv_indev_get_point(indev, &p);
+        last_x = p.x;
+        last_y = p.y;
+        isScrollingMap = true;
+        break;
+      }
+  
+      case LV_EVENT_PRESSING:
+      {
+        lv_indev_get_point(indev, &p);
+
+        int dx = p.x - last_x;
+        int dy = p.y - last_y;
+
+        const int SCROLL_THRESHOLD = 5; 
+
+        if (abs(dx) > SCROLL_THRESHOLD || abs(dy) > SCROLL_THRESHOLD) 
+        {
+          mapView.scrollMap(-dx, -dy);
+          last_x = p.x;
+          last_y = p.y;
+        }
+        break;
+      }
+  
+      case LV_EVENT_PRESS_LOST:
+      {
+        isScrollingMap = false;
+        break;
+      }
+    }
+  }
+}
+
+
 
 /**
  * @brief Full Screen Event Toolbar
@@ -395,6 +472,7 @@ void updateNavEvent(lv_event_t *event)
 
   if (wptDistance == 0)
   {
+    LV_IMG_DECLARE(navfinish);
     lv_img_set_src(arrowNav, &navfinish);
     lv_img_set_angle(arrowNav, 0);
   }
@@ -486,7 +564,7 @@ void createMainScr()
     lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrFull - (toolBarOffset + (2 * toolBarSpace) + 24));
   }
 
-  if (!showToolBar)
+  if (!showMapToolBar)
   {
     lv_obj_clear_flag(btnFullScreen, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_CLICKABLE);
@@ -501,8 +579,10 @@ void createMainScr()
 
   // Map Tile Events
   lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_VALUE_CHANGED, NULL);
-  lv_obj_add_event_cb(mapTile, gestureEvent, LV_EVENT_GESTURE, NULL);
-  lv_obj_add_event_cb(mapTile, toolBarEvent, LV_EVENT_LONG_PRESSED, NULL);
+  lv_obj_add_event_cb(mainScreen, gestureEvent, LV_EVENT_GESTURE, NULL);
+  DOUBLE_TOUCH_EVENT = lv_event_register_id();
+  lv_obj_add_event_cb(mapTile, mapToolBarEvent, (lv_event_code_t)DOUBLE_TOUCH_EVENT, NULL);
+  lv_obj_add_event_cb(mapTile, scrollMapEvent, LV_EVENT_ALL, NULL);
 
   // Navigation Tile
   navigationScr(navTile);

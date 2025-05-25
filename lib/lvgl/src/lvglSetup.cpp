@@ -2,8 +2,8 @@
  * @file lvglSetup.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Screen implementation
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
 #include "lvglSetup.hpp"
@@ -20,6 +20,7 @@ lv_group_t *keyGroup;     // GPIO group
 lv_obj_t *powerMsg;       // Power Message
 
 Power power;
+uint32_t DOUBLE_TOUCH_EVENT;
 
 /**
  * @brief LVGL display update
@@ -44,22 +45,93 @@ void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *
  */
 void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 {
-  uint16_t touchX, touchY;
-  if (!tft.getTouch(&touchX, &touchY))
+  lgfx::touch_point_t touchRaw[TOUCH_MAX_POINTS];
+  static lgfx::touch_point_t touchPrev[TOUCH_MAX_POINTS];
+  static bool prevValid = false;
+  static bool pinchActive = false;
+  static int lastZoomDir = ZOOM_NONE;    
+  static unsigned long lastTime = 0;
+
+  int count = tft.getTouch(touchRaw, TOUCH_MAX_POINTS);
+
+  unsigned long now = millis();
+  float dt_ms = (now > lastTime) ? (float)(now - lastTime) : 1.0f;
+
+  if (count == 0)
+  {
     data->state = LV_INDEV_STATE_RELEASED;
+
+    if (pinchActive && lastZoomDir != 0)
+    {
+      if (lastZoomDir == ZOOM_IN)
+        lv_obj_send_event(btnZoomIn,LV_EVENT_CLICKED,NULL);
+      else if (lastZoomDir == ZOOM_OUT)
+        lv_obj_send_event(btnZoomOut,LV_EVENT_CLICKED,NULL);
+    }
+    pinchActive = false;
+    prevValid = false;
+    lastZoomDir = ZOOM_NONE;
+    lastTime = now;
+
+    if (countTouchReleases)
+    {
+      countTouchReleases = false;
+      uint32_t touchReleaseTime = millis();
+      if (!firstTouchReleaseTime)
+        firstTouchReleaseTime = touchReleaseTime;
+      numberTouchReleases++;
+    }
+
+    if (millis() - firstTouchReleaseTime > TOUCH_DOUBLE_TOUCH_INTERVAL)
+    {
+      if (numberTouchReleases == 2)
+      {
+        if (activeTile == MAP)
+          lv_obj_send_event(mapTile, (lv_event_code_t)DOUBLE_TOUCH_EVENT, NULL);
+      }
+
+      numberTouchReleases = 0;
+      firstTouchReleaseTime = 0;
+    }  
+  }
   else
   {
-    if ( lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_0)
+    if (count == 1)
     {
-      data->point.x = touchX;
-      data->point.y = touchY;
+      if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_0)
+      {
+        data->point.x = touchRaw[count-1].x;
+        data->point.y = touchRaw[count-1].y;
+      }
+      else if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
+      {
+        data->point.x = TFT_WIDTH - touchRaw[count-1].y;
+        data->point.y = touchRaw[count-1].x;
+      }
+
+      countTouchReleases = true;
+      pinchActive = false;
+      prevValid = false;
+      lastZoomDir = ZOOM_NONE;
+      lastTime = now;
+      data->state = LV_INDEV_STATE_PRESSED;
     }
-    else if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
+    else if (count == 2)
     {
-      data->point.x = TFT_WIDTH - touchY;
-      data->point.y = touchX;
+      if (prevValid)
+      {
+        zoom_dir zoomDir = pinchZoom(touchPrev, touchRaw, dt_ms);
+        if (zoomDir != ZOOM_NONE && showMapToolBar)
+        {
+          pinchActive = true;
+          lastZoomDir = zoomDir;
+        }
+      }
+      touchPrev[0] = touchRaw[0];
+      touchPrev[1] = touchRaw[1];
+      prevValid = true;
+      lastTime = now;
     }
-    data->state = LV_INDEV_STATE_PRESSED;
   }
 }
 
@@ -92,7 +164,6 @@ void IRAM_ATTR keypadRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
   {
     data->state = LV_INDEV_STATE_PRESSED;
     last_key = act_key;
-    log_i("%d", act_key);
   } 
   else 
     data->state = LV_INDEV_STATE_RELEASED;
@@ -251,7 +322,7 @@ void lv_tick_task(void *arg)
 void initLVGL()
 {
   lv_init();
-  
+
   display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
   lv_display_set_flush_cb(display, displayFlush);
   lv_display_set_flush_wait_cb(display, NULL);
@@ -282,7 +353,7 @@ void initLVGL()
   #ifdef TOUCH_INPUT
     lv_indev_t *indev_drv = lv_indev_create();
     lv_indev_set_type(indev_drv, LV_INDEV_TYPE_POINTER);
-    lv_indev_set_long_press_time(indev_drv, 150);
+    lv_indev_set_long_press_time(indev_drv, 1500);
     lv_indev_set_read_cb(indev_drv, touchRead);
   #endif
 
@@ -323,8 +394,8 @@ void initLVGL()
   createMapSettingsScr();
   createDeviceSettingsScr();
   createButtonBarScr();
-  createWaypointScreen();
-  createWaypointListScreen();
+  createGpxDetailScreen();
+  createGpxListScreen();
   
   // Create and start a periodic timer interrupt to call lv_tick_inc 
   const esp_timer_create_args_t periodic_timer_args = { .callback = &lv_tick_task, .name = "periodic_gui" };
@@ -342,6 +413,6 @@ void loadMainScreen()
   isMainScreen = true;
   isScrolled = true;
   isSearchingSat = false;
-  wptAction = WPT_NONE;
+  gpxAction = WPT_NONE;
   lv_screen_load(mainScreen);
 }

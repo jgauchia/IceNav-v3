@@ -2,12 +2,11 @@
  * @file tasks.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Core Tasks functions
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
-#ifndef TASKS_HPP
-#define TASKS_HPP
+#pragma once
 
 #include "gps.hpp"
 #include "bme.hpp"
@@ -27,6 +26,4 @@ void initGpsTask();
 #ifndef DISABLE_CLI
   void cliTask(void *param);
   void initCLITask();
-#endif
-
 #endif

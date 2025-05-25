@@ -2,12 +2,11 @@
  * @file power.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ESP32 Power Management functions
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
-#ifndef POWER_HPP
-#define POWER_HPP
+#pragma once
 
 #include <Wire.h>
 #include <SPI.h>
@@ -34,6 +33,3 @@ class Power
     void deviceSuspend();
     void deviceShutdown();
 };
-
-
-#endif

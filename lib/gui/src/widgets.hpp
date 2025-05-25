@@ -2,12 +2,11 @@
  * @file widgets.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Widgets
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
-#ifndef WIDGETS_HPP
-#define WIDGETS_HPP
+#pragma once
 
 #include "lvglFuncs.hpp"
 #include "gpsMath.hpp"
@@ -49,5 +48,3 @@ void compassWidget(_lv_obj_t *screen);
 void altitudeWidget(_lv_obj_t *screen);
 void speedWidget(_lv_obj_t *screen);
 void sunWidget(_lv_obj_t *screen);
-
-#endif

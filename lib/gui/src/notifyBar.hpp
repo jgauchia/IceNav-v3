@@ -2,12 +2,11 @@
  * @file notifyBar.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief LVGL - Notify Bar Screen
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
-#ifndef NOTIFYBAR_HPP
-#define NOTIFYBAR_HPP
+#pragma once
 
 #include "globalGuiDef.h"
 #include "tasks.hpp"
@@ -42,5 +41,3 @@ static const char* timeFormat PROGMEM = "%02d:%02d:%02d";
 void updateNotifyBar(lv_event_t *event);
 void updateNotifyBarTimer(lv_timer_t *t);
 void createNotifyBar();
-
-#endif

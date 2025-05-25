@@ -2,8 +2,8 @@
  * @file main.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ICENAV - ESP32 GPS Navigator main code
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
 #include <Arduino.h>
@@ -63,6 +63,10 @@ extern Gps gps;
 Compass compass;
 #endif
 
+
+std::vector<wayPoint> trackData;
+
+
 /**
  * @brief Sunrise and Sunset
  *
@@ -113,7 +117,7 @@ void setup()
 #ifdef POWER_SAVE
   pinMode(BOARD_BOOT_PIN, INPUT_PULLUP);
 #ifdef ICENAV_BOARD
-  gpio_hold_dis((gpio_num_t)TFT_BL);
+  gpio_hold_dis(GPIO_NUM_46);
   gpio_hold_dis((gpio_num_t)BOARD_BOOT_PIN);
   gpio_deep_sleep_hold_dis();
 #endif
@@ -122,15 +126,14 @@ void setup()
 #ifdef TDECK_ESP32S3
   pinMode(BOARD_POWERON, OUTPUT);
   digitalWrite(BOARD_POWERON, HIGH);
-  pinMode(TCH_I2C_INT, INPUT);
+  pinMode(GPIO_NUM_16, INPUT);
   pinMode(SD_CS, OUTPUT);
   pinMode(RADIO_CS_PIN, OUTPUT);
   pinMode(TFT_SPI_CS, OUTPUT);
   digitalWrite(SD_CS, HIGH);
   digitalWrite(RADIO_CS_PIN, HIGH);
   digitalWrite(TFT_SPI_CS, HIGH);
-  pinMode(TFT_SPI_MISO, INPUT_PULLUP);
-  pinMode(SD_MISO, INPUT_PULLUP);
+  pinMode(SPI_MISO, INPUT_PULLUP);
 #endif
 
   Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
@@ -148,11 +151,17 @@ void setup()
   initIMU();
 #endif
  
+#ifndef SPI_SHARED
   storage.initSD();
+#endif
   storage.initSPIFFS();
   battery.initADC();
 
   initTFT();
+#ifdef SPI_SHARED
+  storage.initSD();
+#endif
+  createGpxFolders();
 
   mapView.initMap(TFT_HEIGHT - 100, TFT_WIDTH, TFT_HEIGHT);
 

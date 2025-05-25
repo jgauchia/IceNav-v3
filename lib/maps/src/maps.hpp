@@ -3,12 +3,11 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com) - Render Maps
  * @author @aresta - https://github.com/aresta/ESP32_GPS - Vector Maps
  * @brief  Maps draw class
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
-#ifndef MAPS_HPP
-#define MAPS_HPP
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -26,21 +25,19 @@ class Maps
     // Render Map
     struct MapTile                                                        // Tile Map structure
     {
-        char *file;
-        uint32_t tilex;
-        uint32_t tiley;
-        uint8_t zoom;
+      char file[255];
+      uint32_t tilex;
+      uint32_t tiley;
+      uint8_t zoom;
+      double lat;
+      double lon;
     };
-    MapTile oldMapTile;                                                   // Old Map tile coordinates and zoom
-    MapTile currentMapTile;                                               // Current Map tile coordinates and zoom
-    MapTile roundMapTile;                                                 // Boundaries Map tiles
     uint16_t lon2posx(float f_lon, uint8_t zoom, uint16_t tileSize);
     uint16_t lat2posy(float f_lat, uint8_t zoom, uint16_t tileSize);
     uint32_t lon2tilex(double f_lon, uint8_t zoom);
     uint32_t lat2tiley(double f_lat, uint8_t zoom);
     double tilex2lon(uint32_t tileX, uint8_t zoom);
     double tiley2lat(uint32_t tileY, uint8_t zoom);
-    MapTile getMapTile(double lon, double lat, uint8_t zoomLevel, int16_t offsetX, int16_t offsetY);
 
     // Vector Map  
     static const int32_t MAPBLOCK_MASK = pow(2, MAPBLOCK_SIZE_BITS) - 1;  // ...00000000111111111111
@@ -112,6 +109,7 @@ class Maps
     static const uint16_t tileHeight = 768;                               // Tile 9x9 Height Size
     static const uint16_t tileWidth = 768;                                // Tile 9x9 Width Size
     static const uint16_t renderMapTileSize = 256;                        // Render map tile size
+    static const uint16_t scrollThreshold = renderMapTileSize / 2;        // Smooth scroll threshold
     static const uint16_t vectorMapTileSize = tileHeight / 2;             // Vector map tile size
     uint16_t mapTileSize;                                                 // Actual map tile size (render or vector map)
     uint16_t wptPosX, wptPosY;                                            // Waypoint position on screen map
@@ -149,8 +147,21 @@ class Maps
     uint16_t mapScrFull;                                                 // Screen map size in full screen
     bool redrawMap = true;                                               // Flag to indicate need redraw Map
     bool isPosMoved = true;                                              // Flag when current position changes (vector map)
+    bool followGps = true;                                               // Flag to indicate if map follow GPS signal
+    MapTile oldMapTile;                                                  // Old Map tile coordinates and zoom
+    MapTile currentMapTile;                                              // Current Map tile coordinates and zoom
+    MapTile roundMapTile;                                                // Boundaries Map tiles
+    int8_t tileX = 0;                                                    // Map tile x counter
+    int8_t tileY = 0;                                                    // Map tile y counter
+    int16_t offsetX = 0;                                                 // Accumulative X scroll map offset
+    int16_t offsetY = 0;                                                 // Accumulative Y scroll map offset
+    bool scrollUpdated = false;                                          // Flag to indicate when map was scrolled and needs to update
+    int8_t lastTileX = 0;
+    int8_t lastTileY = 0;
+
 
     Maps();
+    MapTile getMapTile(double lon, double lat, uint8_t zoomLevel, int8_t offsetX, int8_t offsetY);
     void initMap(uint16_t mapHeight, uint16_t mapWidth, uint16_t mapFull);
     void deleteMapScrSprites();
     void createMapScrSprites();
@@ -158,6 +169,9 @@ class Maps
     void generateVectorMap(uint8_t zoom);
     void displayMap();
     void setWaypoint(double wptLat, double wptLon);
+    void updateMap();
+    void panMap(int8_t dx, int8_t dy);
+    void centerOnGps(double lat, double lon);
+    void scrollMap(int16_t dx, int16_t dy);
+    void preloadTiles(int8_t dirX, int8_t dirY);
 };
-
-#endif

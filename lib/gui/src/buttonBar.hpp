@@ -2,17 +2,16 @@
  * @file buttonBar.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Button Bar
- * @version 0.2.0
- * @date 2025-04
+ * @version 0.2.1
+ * @date 2025-05
  */
 
-#ifndef BUTTONBAR_HPP
-#define BUTTONBAR_HPP
+#pragma once
 
 #include "globalGuiDef.h"
 #include "mainScr.hpp"
-#include "waypointScr.hpp"
-#include "waypointListScr.hpp"
+#include "gpxDetailScr.hpp"
+#include "gpxScr.hpp"
 
 static const char *waypointIconFile PROGMEM = "/wpt.bin";      // Waypoint icon
 static const char *trackIconFile PROGMEM = "/track.bin";       // Track icon
@@ -38,5 +37,3 @@ void hideShowEvent(lv_event_t * e);
 void hideShowAnim(void * var, int32_t v);
 void createButtonBarScr();
 void loadOptions();
-
-#endif
