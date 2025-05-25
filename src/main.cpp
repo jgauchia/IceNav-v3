@@ -199,6 +199,12 @@ void setup()
 
   splashScreen();
   lv_screen_load(searchSatScreen);
+
+  #ifdef ESP32S3_N16R8
+  delay(3000);
+  onUpgrdStart();
+  onUpgrdEnd();
+  #endif
 }
 
 /**
