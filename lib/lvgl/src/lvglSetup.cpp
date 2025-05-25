@@ -54,8 +54,8 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 
   int count = tft.getTouchRaw(touchRaw, TOUCH_MAX_POINTS);
 
-  log_i("Touch count: %i", count);
-  
+  log_i("Touch count: %i X:%i Y:%i", count,touchRaw[count-1].x,touchRaw[count-1].y );
+
   unsigned long now = millis();
   float dt_ms = (now > lastTime) ? (float)(now - lastTime) : 1.0f;
 
