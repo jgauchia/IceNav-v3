@@ -183,7 +183,7 @@ void setup()
   if (WiFi.status() == WL_CONNECTED && enableWeb)
   {
     configureWebServer();
-    server.begin();
+    webServer.begin();
   }
 
   if (WiFi.getMode() == WIFI_OFF)

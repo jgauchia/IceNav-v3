@@ -25,7 +25,7 @@ static const char* TAG = "Webserver";
 
 std::vector<FileEntry> fileCache;
 
-AsyncWebServer server(80);
+AsyncWebServer webServer(80);
 AsyncEventSource eventRefresh("/eventRefresh");
 const char* hostname = "icenav";
 
@@ -417,42 +417,42 @@ bool deleteDirRecursive(const char *dirPath)
 
 void configureWebServer()
 {
-  server.onNotFound(webNotFound);
-  server.onFileUpload(handleUpload);
-  server.addHandler(&eventRefresh);
+  webServer.onNotFound(webNotFound);
+  webServer.onFileUpload(handleUpload);
+  webServer.addHandler(&eventRefresh);
   oldDir = "";
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
+  webServer.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
   {
     String logMessage = "Client:" + request->client()->remoteIP().toString() + +" " + request->url();
     log_i("%s", logMessage.c_str());
     request->send_P(200, "text/html", index_html, webParser);
   });
 
-  server.on("/logo", HTTP_GET, [](AsyncWebServerRequest *request)
+  webServer.on("/logo", HTTP_GET, [](AsyncWebServerRequest *request)
   { sendSpiffsImage("/spiffs/LOGO_LARGE.png",request); });
 
-  server.on("/files", HTTP_GET, [](AsyncWebServerRequest *request)
+  webServer.on("/files", HTTP_GET, [](AsyncWebServerRequest *request)
   { sendSpiffsImage("/spiffs/file.png",request); });
 
-  server.on("/folder", HTTP_GET, [](AsyncWebServerRequest *request)
+  webServer.on("/folder", HTTP_GET, [](AsyncWebServerRequest *request)
   { sendSpiffsImage("/spiffs/folder.png",request); });
 
-  server.on("/down", HTTP_GET, [](AsyncWebServerRequest *request)
+  webServer.on("/down", HTTP_GET, [](AsyncWebServerRequest *request)
   { sendSpiffsImage("/spiffs/download.png", request); });
 
-  server.on("/up", HTTP_GET, [](AsyncWebServerRequest *request)
+  webServer.on("/up", HTTP_GET, [](AsyncWebServerRequest *request)
   { sendSpiffsImage("/spiffs/upload.png", request); });
 
-  server.on("/del", HTTP_GET, [](AsyncWebServerRequest *request)
+  webServer.on("/del", HTTP_GET, [](AsyncWebServerRequest *request)
   { sendSpiffsImage("/spiffs/delete.png", request); });
 
-  server.on("/reb", HTTP_GET, [](AsyncWebServerRequest *request)
+  webServer.on("/reb", HTTP_GET, [](AsyncWebServerRequest *request)
   { sendSpiffsImage("/spiffs/reboot.png", request); });
 
-  server.on("/list", HTTP_GET, [](AsyncWebServerRequest *request)
+  webServer.on("/list", HTTP_GET, [](AsyncWebServerRequest *request)
   { sendSpiffsImage("/spiffs/list.png", request); });
 
-  server.on("/reboot", HTTP_GET, [](AsyncWebServerRequest *request)
+  webServer.on("/reboot", HTTP_GET, [](AsyncWebServerRequest *request)
   {
     String logMessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
     request->send(200, "text/html", reboot_html);
@@ -460,7 +460,7 @@ void configureWebServer()
     rebootESP();
   });
 
-  server.on("/listfiles", HTTP_GET, [](AsyncWebServerRequest *request)
+  webServer.on("/listfiles", HTTP_GET, [](AsyncWebServerRequest *request)
   {
     String logMessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
     log_i("%s", logMessage.c_str());
@@ -480,7 +480,7 @@ void configureWebServer()
     request->send(200, "text/html", listFiles(true, page));
   });
 
-  server.on("/file", HTTP_GET, [](AsyncWebServerRequest *request)
+  webServer.on("/file", HTTP_GET, [](AsyncWebServerRequest *request)
   {
     if (request->hasParam("name") && request->hasParam("action"))
     {
@@ -543,7 +543,7 @@ void configureWebServer()
     }
   });
 
-  server.on("/changedirectory", HTTP_GET, [](AsyncWebServerRequest *request)
+  webServer.on("/changedirectory", HTTP_GET, [](AsyncWebServerRequest *request)
   {
     if (request->hasParam("dir"))
     {

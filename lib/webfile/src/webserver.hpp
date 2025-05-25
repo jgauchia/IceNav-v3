@@ -48,7 +48,7 @@ struct FileEntry
 };
 extern std::vector<FileEntry> fileCache;
 
-extern AsyncWebServer server;
+extern AsyncWebServer webServer;
 extern AsyncEventSource eventRefresh;
 extern const char* hostname;
 
