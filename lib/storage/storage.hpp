@@ -22,6 +22,10 @@
 #include <utime.h>
 #include <string>
 
+#include "Arduino.h"
+#include "SD.h"
+
+
 struct SDCardInfo
 {
   std::string name;

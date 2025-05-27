@@ -151,16 +151,16 @@ void setup()
   initIMU();
 #endif
  
-#ifndef SPI_SHARED
+// #ifndef SPI_SHARED
   storage.initSD();
-#endif
+// #endif
   storage.initSPIFFS();
   battery.initADC();
 
   initTFT();
-#ifdef SPI_SHARED
-  storage.initSD();
-#endif
+// #ifdef SPI_SHARED
+//   storage.initSD();
+// #endif
   createGpxFolders();
 
   mapView.initMap(TFT_HEIGHT - 100, TFT_WIDTH, TFT_HEIGHT);
@@ -200,11 +200,23 @@ void setup()
   splashScreen();
   lv_screen_load(searchSatScreen);
 
-  #ifdef ESP32S3_N16R8
-  delay(3000);
-  onUpgrdStart();
-  onUpgrdEnd();
-  #endif
+  // #ifdef ESP32S3_N16R8
+  //   createMsgUpgrade();
+  //   lv_screen_load(msgUpgrade);
+  //   if (!checkFileUpgrade())
+  //   {
+  //     lv_label_set_text_static(msgUprgdText, LV_SYMBOL_WARNING " No Firmware found!");
+  //   }
+  //   else
+  //   {
+  //     lv_label_set_text_static(msgUprgdText, LV_SYMBOL_WARNING " Firmware found!");
+  //     lv_obj_clear_flag(btnMsgUpgrade,LV_OBJ_FLAG_HIDDEN);
+  //     lv_obj_clear_flag(contMeter,LV_OBJ_FLAG_HIDDEN);
+  //   }
+  //   delay(3000);
+  //   onUpgrdStart();
+  // // onUpgrdEnd();
+  // #endif
 }
 
 /**

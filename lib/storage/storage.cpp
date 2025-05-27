@@ -52,22 +52,24 @@ Storage::Storage() : isSdLoaded(false), card(nullptr) {}
  */
 esp_err_t Storage::initSD()
 {
+#ifndef SPI_SHARED
+
   esp_err_t ret;
 
   sdmmc_host_t host = SDSPI_HOST_DEFAULT();
-#ifdef TDECK_ESP32S3
-  host.slot = SPI2_HOST;
-#endif
-#ifdef ICENAV_BOARD
-  host.slot = SPI2_HOST;
-#endif
-#ifdef ESP32S3_N16R8
-  host.slot = SPI2_HOST;
-#endif
-#ifdef ESP32_N16R4
-  host.slot = HSPI_HOST;
-  host.command_timeout_ms = 1000;
-#endif
+  #ifdef TDECK_ESP32S3
+    host.slot = SPI2_HOST;
+  #endif
+  #ifdef ICENAV_BOARD
+    host.slot = SPI2_HOST;
+  #endif
+  #ifdef ESP32S3_N16R8
+    host.slot = SPI2_HOST;
+  #endif
+  #ifdef ESP32_N16R4
+    host.slot = HSPI_HOST;
+    host.command_timeout_ms = 1000;
+  #endif
 
   sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
   slot_config.gpio_cs = (gpio_num_t)SD_CS;
@@ -80,7 +82,7 @@ esp_err_t Storage::initSD()
       .sclk_io_num = (gpio_num_t)SD_CLK,
       .quadwp_io_num = -1,
       .quadhd_io_num = -1,
-      .max_transfer_sz = 8192, // Set transfer size to 4096 bytes (multiple of 512)
+      .max_transfer_sz = 4096, // Set transfer size to 4096 bytes (multiple of 512)
       .flags = 0,
       .intr_flags = 0};
 
@@ -88,15 +90,13 @@ esp_err_t Storage::initSD()
   host.max_freq_khz = 20000;
 
   // Initialize the SPI bus
-  
-  #ifndef SPI_SHARED
-    ret = spi_bus_initialize((spi_host_device_t)host.slot, &bus_cfg, SDSPI_DEFAULT_DMA);
-    if (ret != ESP_OK)
-    {
-      ESP_LOGE(TAG, "Failed to initialize SPI bus.");
-      return ret;
-    }
-  #endif
+  ret = spi_bus_initialize((spi_host_device_t)host.slot, &bus_cfg, SPI_DMA_CH_AUTO);
+  if (ret != ESP_OK)
+  {
+    ESP_LOGE(TAG, "Failed to initialize SPI bus.");
+    return ret;
+  }
+
 
   ESP_LOGI(TAG, "Initializing SD card");
 
@@ -113,7 +113,7 @@ esp_err_t Storage::initSD()
       ESP_LOGE(TAG, "Failed to mount filesystem. "
                     "If you want the card to be formatted, set format_if_mount_failed = true.");
     }
-  else
+    else
     {
       ESP_LOGE(TAG, "Failed to initialize the card (%s). "
                     "Make sure SD card lines have pull-up resistors in place.",
@@ -129,6 +129,25 @@ esp_err_t Storage::initSD()
 
     return ESP_OK;
   }
+#else
+    pinMode(SD_CS, OUTPUT);
+    digitalWrite(SD_CS, LOW);
+
+    SPI.begin(SD_CLK, SD_MISO, SD_MOSI);
+    
+    if (!SD.begin(SD_CS, SPI, 20000000, "/sdcard")) 
+    {
+        ESP_LOGE(TAG,"SD Card Mount Failed");
+        isSdLoaded = false;
+        return ESP_FAIL;
+    } 
+    else 
+    {
+        ESP_LOGI(TAG,"SD Card Mounted");
+        isSdLoaded = true;
+        return ESP_OK;
+    }
+#endif
 }
 
 /**
