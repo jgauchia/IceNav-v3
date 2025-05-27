@@ -198,40 +198,56 @@ SDCardInfo Storage::getSDCardInfo()
 {
   SDCardInfo info;
 
-  if (card != nullptr)
-  {
-    info.name = std::string(reinterpret_cast<const char*>(card->cid.name));
-    info.capacity = formatSize((uint64_t)(card->csd.capacity) * card->csd.sector_size);
-    info.sector_size = card->csd.sector_size;
-    info.read_block_len = card->csd.read_block_len;
-    info.card_type = (card->ocr && SD_OCR_SDHC_CAP) ? "SDHC/SDXC" : "SDSC";
-
-    FATFS *fs;
-    DWORD fre_clust, fre_sect, tot_sect;
-
-    if (f_getfree("0:",&fre_clust, &fs) == FR_OK)
+  #ifndef SPI_SHARED
+    if (card != nullptr)
     {
-      tot_sect = (fs->n_fatent - 2) * fs->csize;
-      fre_sect = fre_clust * fs->csize;
+      info.name = std::string(reinterpret_cast<const char*>(card->cid.name));
+      info.capacity = formatSize((uint64_t)(card->csd.capacity) * card->csd.sector_size);
+      info.sector_size = card->csd.sector_size;
+      info.read_block_len = card->csd.read_block_len;
+      info.card_type = (card->ocr && SD_OCR_SDHC_CAP) ? "SDHC/SDXC" : "SDSC";
 
-      uint64_t total_space_bytes = tot_sect / 2 ;
-      uint64_t free_space_bytes = fre_sect / 2 ;
-      uint64_t used_space_bytes = total_space_bytes - free_space_bytes;
+      FATFS *fs;
+      DWORD fre_clust, fre_sect, tot_sect;
 
-      info.total_space = formatSize(total_space_bytes);
-      info.free_space = formatSize(free_space_bytes);
-      info.used_space = formatSize(used_space_bytes);
+      if (f_getfree("0:",&fre_clust, &fs) == FR_OK)
+      {
+        tot_sect = (fs->n_fatent - 2) * fs->csize;
+        fre_sect = fre_clust * fs->csize;
+
+        uint64_t total_space_bytes = tot_sect / 2 ;
+        uint64_t free_space_bytes = fre_sect / 2 ;
+        uint64_t used_space_bytes = total_space_bytes - free_space_bytes;
+
+        info.total_space = formatSize(total_space_bytes);
+        info.free_space = formatSize(free_space_bytes);
+        info.used_space = formatSize(used_space_bytes);
+      }
+      else
+      {
+        ESP_LOGE(TAG, "Failed to get filesystem info");
+        info.total_space = "0 B";
+        info.free_space = "0 B";
+        info.used_space = "0 B";
+      }
     }
     else
-    {
-      ESP_LOGE(TAG, "Failed to get filesystem info");
-      info.total_space = "0 B";
-      info.free_space = "0 B";
-      info.used_space = "0 B";
-    }
-  }
-  else
-    ESP_LOGE(TAG, "SD Card not initialized");
+      ESP_LOGE(TAG, "SD Card not initialized");
+  #else
+    uint8_t cardType = SD.cardType();
+    if (cardType == CARD_MMC)
+      info.card_type = "MMC";
+    else if (cardType == CARD_SD)
+      info.card_type = "SDSC";
+    else if (cardType == CARD_SDHC)
+      info.card_type = "SDHC";
+    else
+      info.card_type = "UNKNOWN";
+
+    info.total_space = formatSize(SD.cardSize());
+    info.free_space = formatSize((SD.totalBytes() - SD.usedBytes()));
+    info.used_space = formatSize(SD.usedBytes());  
+  #endif
 
   return info;
 }
