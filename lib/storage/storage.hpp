@@ -22,9 +22,10 @@
 #include <utime.h>
 #include <string>
 
-#include "Arduino.h"
-#include "SD.h"
-
+#ifdef SPI_SHARED
+  #include "Arduino.h"
+  #include "SD.h"
+#endif
 
 struct SDCardInfo
 {
