@@ -151,16 +151,11 @@ void setup()
   initIMU();
 #endif
  
-#ifndef SPI_SHARED
   storage.initSD();
-#endif
   storage.initSPIFFS();
   battery.initADC();
 
   initTFT();
-#ifdef SPI_SHARED
-  storage.initSD();
-#endif
   createGpxFolders();
 
   mapView.initMap(TFT_HEIGHT - 100, TFT_WIDTH, TFT_HEIGHT);
