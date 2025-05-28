@@ -43,40 +43,47 @@ void splashScreen()
 
   static uint16_t pngHeight = 0;
   static uint16_t pngWidth = 0;
+  static uint8_t margin = 0;
 
   getPngSize(logoFile, &pngWidth, &pngHeight);
   splashSprite.fillScreen(TFT_BLACK);
   splashSprite.drawPngFile(logoFile, (tft.width() / 2) - (pngWidth / 2), (tft.height() / 2) - pngHeight);
 
-  splashSprite.setTextSize(1);
+  #ifdef T4_S3
+    splashSprite.setTextSize(2);
+    margin = 2;
+  #else
+    splashSprite.setTextSize(1);
+    margin = 1;
+  #endif
   splashSprite.setTextColor(TFT_WHITE, TFT_BLACK);
 
-  splashSprite.drawCenterString("Map data from OpenStreetMap.", tft.width() >> 1, TFT_HEIGHT - 120);
-  splashSprite.drawCenterString("(c) OpenStreetMap", tft.width() >> 1, TFT_HEIGHT - 110);
-  splashSprite.drawCenterString("(c) OpenStreetMap contributors", tft.width() >> 1, TFT_HEIGHT - 100);
+  splashSprite.drawCenterString("Map data from OpenStreetMap.", tft.width() >> 1, tft.height() - 120*margin);
+  splashSprite.drawCenterString("(c) OpenStreetMap", tft.width() >> 1, tft.height() - 110*margin);
+  splashSprite.drawCenterString("(c) OpenStreetMap contributors", tft.width() >> 1, tft.height() - 100*margin);
 
   char statusString[50] = "";
   splashSprite.setTextColor(TFT_YELLOW, TFT_BLACK);
 
   memset(&statusString[0], 0, sizeof(statusString));
   sprintf(statusString, statusLine1, ESP.getChipModel(), ESP.getCpuFreqMHz());
-  splashSprite.drawString(statusString, 0, TFT_HEIGHT - 50);
+  splashSprite.drawString(statusString, 0, tft.height() - 50*margin);
 
   memset(&statusString[0], 0, sizeof(statusString));
   sprintf(statusString, statusLine2, (ESP.getFreeHeap() / 1024), (ESP.getFreeHeap() * 100) / ESP.getHeapSize());
-  splashSprite.drawString(statusString, 0, TFT_HEIGHT - 40);
+  splashSprite.drawString(statusString, 0, tft.height() - 40*margin);
 
   memset(&statusString[0], 0, sizeof(statusString));
   sprintf(statusString, statusLine3, ESP.getPsramSize(), ESP.getPsramSize() - ESP.getFreePsram());
-  splashSprite.drawString(statusString, 0, TFT_HEIGHT - 30);
+  splashSprite.drawString(statusString, 0, tft.height() - 30*margin);
 
   memset(&statusString[0], 0, sizeof(statusString));
   sprintf(statusString, statusLine4, String(VERSION), String(REVISION));
-  splashSprite.drawString(statusString, 0, TFT_HEIGHT - 20);
+  splashSprite.drawString(statusString, 0, tft.height() - 20*margin);
 
   memset(&statusString[0], 0, sizeof(statusString));
   sprintf(statusString, statusLine5, String(FLAVOR));
-  splashSprite.drawString(statusString, 0, TFT_HEIGHT - 10);
+  splashSprite.drawString(statusString, 0, tft.height() - 10*margin);
 
   memset(&statusString[0], 0, sizeof(statusString));
   splashSprite.setTextColor(TFT_WHITE, TFT_BLACK);
