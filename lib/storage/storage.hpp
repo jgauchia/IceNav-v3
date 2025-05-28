@@ -22,6 +22,11 @@
 #include <utime.h>
 #include <string>
 
+#ifdef SPI_SHARED
+  #include "Arduino.h"
+  #include "SD.h"
+#endif
+
 struct SDCardInfo
 {
   std::string name;

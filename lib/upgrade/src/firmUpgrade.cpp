@@ -36,22 +36,26 @@ void onUpgrdStart()
   upgradeSprite.createSprite(tft.width(),tft.height());  
   ESP_LOGV(TAG, "Try to upgrade firmware...");
   FILE *firmware = storage.open(upgrdFile, "r");
-  Update.onProgress(onUpgrdProcess);
-  Update.begin(storage.size(upgrdFile), U_FLASH);
-  FileStream firmwareStream(firmware);
-  Update.writeStream(firmwareStream);
-  if (Update.end())
-    ESP_LOGV(TAG, "Upgrade finished!");
-  else
+  if (firmware)
   {
-    ESP_LOGE(TAG, "Upgrade error!");
-    lv_label_set_text_static(msgUprgdText, LV_SYMBOL_WARNING " Upgrade error!");
-    lv_obj_clear_flag(btnMsgBack,LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(contMeter,LV_OBJ_FLAG_HIDDEN);
+    Update.onProgress(onUpgrdProcess);
+    Update.begin(storage.size(upgrdFile), U_FLASH);
+    FileStream firmwareStream(firmware);
+    Update.writeStream(firmwareStream);
+    if (Update.end())
+      ESP_LOGV(TAG, "Upgrade finished!");
+    else
+    {
+      ESP_LOGE(TAG, "Upgrade error!");
+      lv_label_set_text_static(msgUprgdText, LV_SYMBOL_WARNING " Upgrade error!");
+      lv_obj_clear_flag(btnMsgBack,LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(contMeter,LV_OBJ_FLAG_HIDDEN);
+    }
+    upgradeSprite.deleteSprite();
+    storage.close(firmware);
   }
-
-  upgradeSprite.deleteSprite();
-  storage.close(firmware);
+  else
+    ESP_LOGE(TAG, "Upgrade firmware error , file open error");
 }
 
 /**

@@ -149,9 +149,7 @@ void setup()
   initIMU();
 #endif
  
-#ifndef SPI_SHARED
   storage.initSD();
-#endif
   storage.initSPIFFS();
 
 #ifndef T4_S3
@@ -159,9 +157,6 @@ void setup()
 #endif
 
   initTFT();
-#ifdef SPI_SHARED
-  storage.initSD();
-#endif
   createGpxFolders();
 
   mapView.initMap(TFT_HEIGHT - 100, TFT_WIDTH, TFT_HEIGHT);
