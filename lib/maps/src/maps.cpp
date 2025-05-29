@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com) - Render Maps
  * @author @aresta - https://github.com/aresta/ESP32_GPS - Vector Maps
  * @brief  Maps draw class
- * @version 0.2.1
+ * @version 0.2.2
  * @date 2025-05
  */
 

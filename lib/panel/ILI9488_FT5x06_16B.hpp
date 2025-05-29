@@ -2,7 +2,7 @@
  * @file ILI9488_FT5x06_16B.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LOVYANGFX TFT driver for ILI9488 16 Bits parallel  With FT5x06 Touch controller
- * @version 0.2.1
+ * @version 0.2.2
  * @date 2025-05
  */
 

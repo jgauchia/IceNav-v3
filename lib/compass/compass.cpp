@@ -1,7 +1,7 @@
 /**
  * @file compass.cpp
  * @brief Compass definition and functions
- * @version 0.2.1
+ * @version 0.2.2
  * @date 2025-05
  */
 

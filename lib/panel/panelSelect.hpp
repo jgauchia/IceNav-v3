@@ -2,7 +2,7 @@
  * @file panelSelect.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief Panel model select
- * @version 0.2.1
+ * @version 0.2.2
  * @date 2025-05
  */
 
@@ -18,6 +18,8 @@
     #include "ILI9488_FT5x06_SPI.hpp"
 #elif defined(ILI9488_NOTOUCH_8B)
     #include "ILI9488_NOTOUCH_8B.hpp"
+#elif defined(ILI9341_NOTOUCH_SPI)
+    #include "ILI9341_NOTOUCH_SPI.hpp"
 #elif defined(ICENAV_BOARD)
     #include "ICENAV_BOARD.hpp"
 #elif defined(TDECK_ESP32S3)

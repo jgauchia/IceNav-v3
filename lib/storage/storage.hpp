@@ -2,7 +2,7 @@
  * @file storage.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Storage definition and functions
- * @version 0.2.1
+ * @version 0.2.2
  * @date 2025-05
  */
 
@@ -21,6 +21,11 @@
 #include <time.h>
 #include <utime.h>
 #include <string>
+
+#ifdef SPI_SHARED
+  #include "Arduino.h"
+  #include "SD.h"
+#endif
 
 struct SDCardInfo
 {
