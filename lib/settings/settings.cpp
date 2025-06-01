@@ -135,7 +135,7 @@ void loadPreferences()
 void saveGPSBaud(uint16_t gpsBaud)
 {
   cfg.saveShort(PKEYS::KGPS_SPEED, gpsBaud);
-  if (gpsBaud != 4)
+  if (gpsBaud != 3)
   {
 #ifdef AT6558D_GPS
     gpsPort.flush();
