@@ -25,10 +25,13 @@ extern bool isMainScreen;                          // Flag to indicate main scre
 extern bool isReady;                               // Flag to indicate when tileview scroll was finished
 extern bool canScrollMap;                          // Flag to indicate whet can scroll map
 extern bool isScrollingMap;                        // Flag to indicate if map is scrolling
-static TFT_eSprite zoomSprite = TFT_eSprite(&tft); // Zoom sprite
+// static TFT_eSprite zoomSprite = TFT_eSprite(&tft); // Zoom sprite
 
 extern uint8_t activeTile; // Active Tile in TileView control
 extern int heading;        // Heading value (Compass or GPS)
+
+static const char *zoomInIconFile PROGMEM = "/zoomin.bin";           // Zoom in icon
+static const char *zoomOutIconFile PROGMEM = "/zoomout.bin";         // Zoom out icon
 
 enum tileName
 {

@@ -882,11 +882,11 @@ void Maps::drawMapWidgets(MAP mapSettings)
   toolBarSpace = 50;
 #endif
 
-  if (showMapToolBar)
-  {
-    Maps::mapSprite.pushImage(10, mapHeight - toolBarOffset, 48, 48, (uint16_t *)zoomout, TFT_BLACK);
-    Maps::mapSprite.pushImage(10, mapHeight - (toolBarOffset + toolBarSpace), 48, 48, (uint16_t *)zoomin, TFT_BLACK);
-  }
+  // if (showMapToolBar)
+  // {
+  //   Maps::mapSprite.pushImage(10, mapHeight - toolBarOffset, 48, 48, (uint16_t *)zoomout, TFT_BLACK);
+  //   Maps::mapSprite.pushImage(10, mapHeight - (toolBarOffset + toolBarSpace), 48, 48, (uint16_t *)zoomin, TFT_BLACK);
+  // }
 
   Maps::mapSprite.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
   Maps::mapSprite.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
@@ -902,12 +902,12 @@ void Maps::drawMapWidgets(MAP mapSettings)
   if (!mapSettings.vectorMap)
     if (mapSettings.showMapScale)
     {
-      Maps::mapSprite.fillRectAlpha(Maps::mapScrWidth - 70, mapHeight - 32, 70, Maps::mapScrWidth - 75, 95, TFT_BLACK);
+      Maps::mapSprite.fillRectAlpha(70, mapHeight - 32, 70, Maps::mapScrWidth - 75, 95, TFT_BLACK);
       Maps::mapSprite.setTextSize(1);
-      Maps::mapSprite.drawFastHLine(Maps::mapScrWidth - 65, mapHeight - 14, 60);
-      Maps::mapSprite.drawFastVLine(Maps::mapScrWidth - 65, mapHeight - 19, 10);
-      Maps::mapSprite.drawFastVLine(Maps::mapScrWidth - 5, mapHeight - 19, 10);
-      Maps::mapSprite.drawCenterString(map_scale[zoom], Maps::mapScrWidth - 35, mapHeight - 24);
+      Maps::mapSprite.drawFastHLine(75, mapHeight - 14, 60);
+      Maps::mapSprite.drawFastVLine(75, mapHeight - 19, 10);
+      Maps::mapSprite.drawFastVLine(135, mapHeight - 19, 10);
+      Maps::mapSprite.drawCenterString(map_scale[zoom], 110, mapHeight - 24);
     }
 }
 
