@@ -277,8 +277,8 @@ void mapToolBarEvent(lv_event_t *event)
   showMapToolBar = !showMapToolBar;
   canScrollMap = !canScrollMap;
 
-  lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrHeight - (toolBarOffset + toolBarSpace));
-  lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrHeight - (toolBarOffset + (2 * toolBarSpace)));
+  lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrHeight - toolBarOffset);
+  lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrHeight - ( toolBarOffset + toolBarSpace ));
 
   if (!showMapToolBar)
   {
@@ -501,8 +501,8 @@ void createMainScr()
   lv_obj_set_size(btnZoomIn, 48, 48);
   lv_obj_add_event_cb(btnZoomIn, zoomInEvent, LV_EVENT_CLICKED, NULL);
 
-  lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrHeight - (toolBarOffset + toolBarSpace));
-  lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrHeight - (toolBarOffset + (2 * toolBarSpace)));
+  lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrHeight - toolBarOffset);
+  lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrHeight - (toolBarOffset + toolBarSpace));
 
   if (!showMapToolBar)
   {
