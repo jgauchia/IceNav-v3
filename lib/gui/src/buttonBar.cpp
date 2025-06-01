@@ -60,6 +60,9 @@ void buttonBarEvent(lv_event_t *event)
     if (!isOptionLoaded)
     {
       isOptionLoaded = true;
+      lv_obj_add_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+      lv_obj_set_size(buttonBar, 50 * scaleBut, 50 * scaleBut);
+      lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
       loadOptions();
     }
   }
@@ -70,6 +73,9 @@ void buttonBarEvent(lv_event_t *event)
     if (!isOptionLoaded)
     {
       isOptionLoaded = true;
+      lv_obj_add_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+      lv_obj_set_size(buttonBar, 50 * scaleBut, 50 * scaleBut);
+      lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
       loadOptions();
     } 
   }
@@ -130,6 +136,7 @@ void optionEvent(lv_event_t *event)
     isTrackOpt = false;
     isWaypointOpt = false;
     lv_obj_del(option);
+    lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
   }
 
   isOptionLoaded = false;
@@ -287,18 +294,17 @@ void loadOptions()
   lv_obj_set_style_border_width(option, 1, 0);
   lv_obj_set_style_border_opa(option,LV_OPA_20,0);
   lv_obj_set_style_bg_color(option, lv_color_black(), 0);
-  lv_obj_set_style_bg_opa(option, 255, 0);
+  lv_obj_set_style_bg_opa(option, 210, 0);
   lv_obj_set_flex_flow(option, LV_FLEX_FLOW_ROW);
   lv_obj_set_flex_align(option, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
   lv_obj_set_size(option, TFT_WIDTH, 50 * scaleBut);
   lv_obj_clear_flag(option, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_align(option, LV_ALIGN_BOTTOM_LEFT, 0, -10);
+  lv_obj_align(option, LV_ALIGN_BOTTOM_LEFT, 0, 0);
 
   static lv_style_t style;
   lv_style_init(&style);
   lv_style_set_pad_column(&style, 10);
   lv_obj_add_style(option, &style, 0);
-
   
   lv_obj_t *imgBtn;
   

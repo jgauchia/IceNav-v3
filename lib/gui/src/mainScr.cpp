@@ -253,9 +253,6 @@ void mapToolBarEvent(lv_event_t *event)
   showMapToolBar = !showMapToolBar;
   canScrollMap = !canScrollMap;
 
-  // lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrHeight - toolBarOffset);
-  // lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrHeight - ( toolBarOffset + toolBarSpace ));
-
   if (!showMapToolBar)
   {
     lv_obj_clear_flag(btnZoomOut, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
