@@ -57,6 +57,20 @@ extern Storage storage;
   static const float scale = 1.0f;
   static const float scaleBut = 1.0f;
   static const float scaleSatInfo = 1.0f;
+  static const float imgAlign = 1.0f;
+#elif T4_S3
+  static const lv_font_t *fontDefault = &lv_font_montserrat_18;
+  static const lv_font_t *fontSmall = &lv_font_montserrat_14;
+  static const lv_font_t *fontSatInfo = &lv_font_montserrat_20;
+  static const lv_font_t *fontMedium = &lv_font_montserrat_20;
+  static const lv_font_t *fontLarge = &lv_font_montserrat_24;
+  static const lv_font_t *fontLargeMedium = &lv_font_montserrat_28;
+  static const lv_font_t *fontVeryLarge = &lv_font_montserrat_48;
+  static const lv_font_t *fontOptions = &lv_font_montserrat_22;
+  static const float scale = 1.5f;
+  static const float scaleBut = 1.5f;
+  static const float scaleSatInfo = 1.5f;
+  static const float imgAlign = 1.2f;
 #else
   static const lv_font_t *fontDefault = &lv_font_montserrat_12;
   static const lv_font_t *fontSmall = &lv_font_montserrat_8;
@@ -69,6 +83,7 @@ extern Storage storage;
   static const float scale = 0.75f;
   static const float scaleBut = 0.60f;
   static const float scaleSatInfo = 0.80f;
+  static const float imgAlign = 1.0f;
 #endif
 
 static const int iconScale = LV_SCALE_NONE * scale;
