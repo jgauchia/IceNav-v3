@@ -39,6 +39,8 @@ lv_obj_t *satTrackTile;
 lv_obj_t *btnFullScreen;
 lv_obj_t *btnZoomIn;
 lv_obj_t *btnZoomOut;
+lv_obj_t *mapCanvas;
+lv_layer_t canvasMapLayer;
 
 Maps mapView;
 
@@ -83,34 +85,34 @@ void getActTile(lv_event_t *event)
     mapView.redrawMap = true;
 
     if (activeTile == MAP)
-    {
+    // {
       mapView.createMapScrSprites();
-      if (mapSet.mapFullScreen)
-      {
-        lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(menuBtn, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(notifyBarHour, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
-      }
-      else
-      {
-        lv_obj_clear_flag(notifyBarHour, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(menuBtn, LV_OBJ_FLAG_HIDDEN);
+    //   if (mapSet.mapFullScreen)
+    //   {
+    //     lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
+    //     lv_obj_add_flag(menuBtn, LV_OBJ_FLAG_HIDDEN);
+    //     lv_obj_add_flag(notifyBarHour, LV_OBJ_FLAG_HIDDEN);
+    //     lv_obj_add_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
+    //   }
+    //   else
+    //   {
+    //     lv_obj_clear_flag(notifyBarHour, LV_OBJ_FLAG_HIDDEN);
+    //     lv_obj_clear_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
+    //     lv_obj_clear_flag(menuBtn, LV_OBJ_FLAG_HIDDEN);
 
-        if (isBarOpen)
-          lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
-        else
-          lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
-      }
-    }
-    else if (activeTile != MAP)
-    {
-      lv_obj_clear_flag(menuBtn, LV_OBJ_FLAG_HIDDEN);
+    //     if (isBarOpen)
+    //       lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
+    //     else
+    //       lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
+    //   }
+    // }
+    // else if (activeTile != MAP)
+    // {
+    //   lv_obj_clear_flag(menuBtn, LV_OBJ_FLAG_HIDDEN);
 
       if (isBarOpen)
         lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
-    }
+    // }
   }
   else
     isReady = true;
@@ -130,13 +132,6 @@ void scrollTile(lv_event_t *event)
   isScrolled = false;
   isReady = false;
   mapView.redrawMap = false;
-
-  if (mapSet.mapFullScreen)
-  {
-    lv_obj_clear_flag(notifyBarHour, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_clear_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
-  }
-
   mapView.deleteMapScrSprites();
 }
 
@@ -241,8 +236,12 @@ void updateMap(lv_event_t *event)
   else
     mapView.generateRenderMap(zoom);
 
-  if (mapView.redrawMap)
+ if (mapView.redrawMap)
+ {
     mapView.displayMap();
+    lv_canvas_set_buffer(mapCanvas, mapView.mapBuffer, tft.width(), tft.height()-27, LV_COLOR_FORMAT_RGB565);
+ }
+
 }
 
 /**
@@ -278,22 +277,11 @@ void mapToolBarEvent(lv_event_t *event)
   showMapToolBar = !showMapToolBar;
   canScrollMap = !canScrollMap;
 
-  if (!mapSet.mapFullScreen)
-  {
-    lv_obj_set_pos(btnFullScreen, 10, mapView.mapScrHeight - toolBarOffset);
-    lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrHeight - (toolBarOffset + toolBarSpace));
-    lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrHeight - (toolBarOffset + (2 * toolBarSpace)));
-  }
-  else
-  {
-    lv_obj_set_pos(btnFullScreen, 10, mapView.mapScrFull - (toolBarOffset + 24));
-    lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrFull - (toolBarOffset + toolBarSpace + 24));
-    lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrFull - (toolBarOffset + (2 * toolBarSpace) + 24));
-  }
+  lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrHeight - (toolBarOffset + toolBarSpace));
+  lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrHeight - (toolBarOffset + (2 * toolBarSpace)));
 
   if (!showMapToolBar)
   {
-    lv_obj_clear_flag(btnFullScreen, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
@@ -301,7 +289,6 @@ void mapToolBarEvent(lv_event_t *event)
   }
   else
   {
-    lv_obj_add_flag(btnFullScreen, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(btnZoomOut, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
@@ -360,52 +347,6 @@ void scrollMapEvent(lv_event_t *event)
       }
     }
   }
-}
-
-
-
-/**
- * @brief Full Screen Event Toolbar
- *
- * @param event
- */
-void fullScreenEvent(lv_event_t *event)
-{
-  mapSet.mapFullScreen = !mapSet.mapFullScreen;
-
-  if (!mapSet.mapFullScreen)
-  {
-    lv_obj_set_pos(btnFullScreen, 10, mapView.mapScrHeight - toolBarOffset);
-    lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrHeight - (toolBarOffset + toolBarSpace));
-    lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrHeight - (toolBarOffset + (2 * toolBarSpace)));
-
-    // if (isBarOpen)
-    //   lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
-    // else
-    //   lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
-
-    lv_obj_clear_flag(menuBtn, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_clear_flag(notifyBarHour, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_clear_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
-  }
-  else
-  {
-    lv_obj_set_pos(btnFullScreen, 10, mapView.mapScrFull - (toolBarOffset + 24));
-    lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrFull - (toolBarOffset + toolBarSpace + 24));
-    lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrFull - (toolBarOffset + (2 * toolBarSpace) + 24));
-    lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(menuBtn, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(notifyBarHour, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(notifyBarIcons, LV_OBJ_FLAG_HIDDEN);
-  }
-
-  mapView.deleteMapScrSprites();
-  mapView.createMapScrSprites();
-
-  mapView.redrawMap = true;
-
-  lv_obj_invalidate(tilesScreen);
-  lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
 }
 
 /**
@@ -488,6 +429,20 @@ void updateNavEvent(lv_event_t *event)
   }
 }
 
+ /**
+ * @brief Create Canvas for Map
+ *
+ * @param screen 
+ */
+void createMapCanvas(_lv_obj_t *screen)
+{
+  // static lv_color_t *cbuf = (lv_color_t*)heap_caps_aligned_alloc(16, (tft.width()*tft.height()*sizeof(lv_color_t)), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);;
+  mapCanvas = lv_canvas_create(screen);
+  // lv_canvas_set_buffer(mapCanvas, cbuf, tft.width(), tft.height(), LV_COLOR_FORMAT_RGB565);
+  // lv_canvas_fill_bg(mapCanvas, lv_color_white(), LV_OPA_100);
+  // lv_canvas_init_layer(constCanvas, &canvasMapLayer);
+}
+
 /**
  * @brief Create Main Screen
  *
@@ -536,11 +491,6 @@ void createMainScr()
   lv_obj_add_event_cb(sunsetLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
 
   // Map Tile Toolbar
-  btnFullScreen = lv_btn_create(mapTile);
-  lv_obj_remove_style_all(btnFullScreen);
-  lv_obj_set_size(btnFullScreen, 48, 48);
-  lv_obj_add_event_cb(btnFullScreen, fullScreenEvent, LV_EVENT_CLICKED, NULL);
-
   btnZoomOut = lv_btn_create(mapTile);
   lv_obj_remove_style_all(btnZoomOut);
   lv_obj_set_size(btnZoomOut, 48, 48);
@@ -551,28 +501,16 @@ void createMainScr()
   lv_obj_set_size(btnZoomIn, 48, 48);
   lv_obj_add_event_cb(btnZoomIn, zoomInEvent, LV_EVENT_CLICKED, NULL);
 
-  if (!mapSet.mapFullScreen)
-  {
-    lv_obj_set_pos(btnFullScreen, 10, mapView.mapScrHeight - toolBarOffset);
-    lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrHeight - (toolBarOffset + toolBarSpace));
-    lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrHeight - (toolBarOffset + (2 * toolBarSpace)));
-  }
-  else
-  {
-    lv_obj_set_pos(btnFullScreen, 10, mapView.mapScrFull - (toolBarOffset + 24));
-    lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrFull - (toolBarOffset + toolBarSpace + 24));
-    lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrFull - (toolBarOffset + (2 * toolBarSpace) + 24));
-  }
+  lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrHeight - (toolBarOffset + toolBarSpace));
+  lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrHeight - (toolBarOffset + (2 * toolBarSpace)));
 
   if (!showMapToolBar)
   {
-    lv_obj_clear_flag(btnFullScreen, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_CLICKABLE);
   }
   else
   {
-    lv_obj_add_flag(btnFullScreen, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(btnZoomOut, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_CLICKABLE);
   }
@@ -583,6 +521,7 @@ void createMainScr()
   DOUBLE_TOUCH_EVENT = lv_event_register_id();
   lv_obj_add_event_cb(mapTile, mapToolBarEvent, (lv_event_code_t)DOUBLE_TOUCH_EVENT, NULL);
   lv_obj_add_event_cb(mapTile, scrollMapEvent, LV_EVENT_ALL, NULL);
+  createMapCanvas(mapTile);
 
   // Navigation Tile
   navigationScr(navTile);

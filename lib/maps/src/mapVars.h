@@ -18,8 +18,6 @@
 #include "compass.h"
 #include "zoom.h"
 #include "speed.h"
-#include "expand.h"
-#include "collapse.h"
 #include "zoomin.h"
 #include "zoomout.h"
 #include "navfinish.h"

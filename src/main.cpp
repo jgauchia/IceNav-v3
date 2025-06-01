@@ -158,7 +158,7 @@ void setup()
   initTFT();
   createGpxFolders();
 
-  mapView.initMap(TFT_HEIGHT - 27, TFT_WIDTH, TFT_HEIGHT);
+  mapView.initMap(tft.height() - 27, tft.width());
 
   loadPreferences();
   gps.init();
