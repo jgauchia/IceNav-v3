@@ -217,7 +217,7 @@ void createButtonBarScr()
   lv_obj_set_style_bg_opa(buttonBar, 230, 0);
   lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_FLOATING);
   lv_obj_set_size(buttonBar, 50 * scaleBut, 50 * scaleBut);
-  lv_obj_align(buttonBar, LV_ALIGN_BOTTOM_RIGHT, 0,  -LV_DPX(14) );
+  lv_obj_align(buttonBar, LV_ALIGN_BOTTOM_RIGHT, 0, 0 );
   lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
 
   static lv_style_t style;
@@ -232,7 +232,7 @@ void createButtonBarScr()
   lv_obj_update_layout(menuBtn);
   lv_obj_add_event_cb(menuBtn, hideShowEvent, LV_EVENT_ALL, buttonBar);
   lv_obj_set_size(menuBtn, 48 * scaleBut, 48 * scaleBut);
-  lv_obj_align(menuBtn, LV_ALIGN_BOTTOM_RIGHT, 0, -LV_DPX(15));
+  lv_obj_align(menuBtn, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
 
   lv_obj_t *imgBtn;
   

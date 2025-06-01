@@ -379,10 +379,10 @@ void fullScreenEvent(lv_event_t *event)
     lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrHeight - (toolBarOffset + toolBarSpace));
     lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrHeight - (toolBarOffset + (2 * toolBarSpace)));
 
-    if (isBarOpen)
-      lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
-    else
-      lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
+    // if (isBarOpen)
+    //   lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
+    // else
+    //   lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
 
     lv_obj_clear_flag(menuBtn, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(notifyBarHour, LV_OBJ_FLAG_HIDDEN);
