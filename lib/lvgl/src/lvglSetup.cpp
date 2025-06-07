@@ -2,8 +2,8 @@
  * @file lvglSetup.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Screen implementation
- * @version 0.2.2
- * @date 2025-05
+ * @version 0.2.3
+ * @date 2025-06
  */
 
 #include "lvglSetup.hpp"
@@ -414,5 +414,7 @@ void loadMainScreen()
   isScrolled = true;
   isSearchingSat = false;
   gpxAction = WPT_NONE;
+  lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
   lv_screen_load(mainScreen);
 }

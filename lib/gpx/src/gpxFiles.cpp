@@ -2,8 +2,8 @@
  * @file gpxFiles.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Create GPX files and folder struct
- * @version 0.2.2
- * @date 2025-05
+ * @version 0.2.3
+ * @date 2025-06
  */
 
 #include "gpxFiles.hpp"
