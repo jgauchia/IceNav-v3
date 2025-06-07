@@ -215,7 +215,7 @@ void updateMap(lv_event_t *event)
  if (mapView.redrawMap)
  {
     mapView.displayMap();
-    lv_canvas_set_buffer(mapCanvas, mapView.mapBuffer, tft.width(), tft.height()-27, LV_COLOR_FORMAT_RGB565);
+    lv_canvas_set_buffer(mapCanvas, mapView.mapBuffer, tft.width(), tft.height()-27, LV_COLOR_FORMAT_RGB565_SWAPPED);
  }
 
 }
