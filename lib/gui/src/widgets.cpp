@@ -180,7 +180,7 @@ void altitudeWidget(_lv_obj_t *screen)
   lv_img_set_zoom(img,iconScale);
   lv_obj_update_layout(altitude);
   lv_obj_update_layout(img);
-  lv_obj_set_width(obj, 140);
+  lv_obj_set_width(obj, 140 * imgAlign);
   lv_obj_align(img, LV_ALIGN_LEFT_MID, -15, 0);
   lv_obj_align(altitude, LV_ALIGN_CENTER, 15, 0);
   objUnselect(obj);
@@ -208,7 +208,7 @@ void speedWidget(_lv_obj_t *screen)
   lv_img_set_zoom(img,iconScale);
   lv_obj_update_layout(speedLabel);
   lv_obj_update_layout(img);
-  lv_obj_set_width(obj, 160);
+  lv_obj_set_width(obj, 160 * imgAlign);
   lv_obj_align(img, LV_ALIGN_LEFT_MID, -10, 0);
   lv_obj_align(speedLabel, LV_ALIGN_CENTER, 20, 0);
   objUnselect(obj);
@@ -225,15 +225,16 @@ void speedWidget(_lv_obj_t *screen)
 void sunWidget(_lv_obj_t *screen)
 {
   lv_obj_t *obj = lv_obj_create(screen);
-  lv_obj_set_size(obj, 70, 60);
+  // lv_obj_set_size(obj, 70, 60 * imgAlign);
+  lv_obj_set_height(obj, 70);
   lv_obj_set_pos(obj, sunPosX, sunPosY);
   lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
 
   sunriseLabel = lv_label_create(obj);
-  lv_obj_align(sunriseLabel, LV_ALIGN_TOP_RIGHT, 16, -2);
+  lv_obj_align(sunriseLabel, LV_ALIGN_TOP_MID, 0, -2);
   lv_label_set_text_static(sunriseLabel, "");
   sunsetLabel = lv_label_create(obj);
-  lv_obj_align(sunsetLabel,LV_ALIGN_BOTTOM_RIGHT, 16, 10);
+  lv_obj_align(sunsetLabel,LV_ALIGN_BOTTOM_MID, 0, 10);
   lv_label_set_text_static(sunsetLabel, "");
 
   lv_obj_t *img;
@@ -241,12 +242,12 @@ void sunWidget(_lv_obj_t *screen)
   lv_img_set_src(img, sunriseIconFile);
   lv_img_set_zoom(img,iconScale);
   lv_obj_update_layout(img);
-  lv_obj_align(img, LV_ALIGN_TOP_LEFT, -10, -10);
+  lv_obj_align(img, LV_ALIGN_TOP_LEFT, -12, -10);
   img = lv_img_create(obj);
   lv_img_set_src(img, sunsetIconFile);
   lv_img_set_zoom(img,iconScale);
   lv_obj_update_layout(img);
-  lv_obj_align(img, LV_ALIGN_BOTTOM_LEFT, -10, 10);
+  lv_obj_align(img, LV_ALIGN_BOTTOM_LEFT, -12, 10);
 
   objUnselect(obj);
   lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);

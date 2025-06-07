@@ -49,6 +49,7 @@ void createMsgUpgrade()
   lv_obj_set_flex_flow(content, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_flex_align(content, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
   lv_obj_set_height(msgBox,200);
+  lv_obj_set_width(msgBox,tft.width()-25);
 
   lv_obj_t *contText = lv_obj_create(content);
   lv_obj_set_size(contText, lv_pct(100), LV_SIZE_CONTENT);
