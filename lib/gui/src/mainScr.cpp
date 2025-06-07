@@ -87,8 +87,8 @@ void getActTile(lv_event_t *event)
     if (activeTile == MAP)
       mapView.createMapScrSprites();
 
-      if (isBarOpen)
-        lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
+    if (isBarOpen)
+      lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
   }
   else
     isReady = true;
