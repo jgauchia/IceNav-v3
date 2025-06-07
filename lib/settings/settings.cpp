@@ -74,7 +74,6 @@ void loadPreferences()
   mapSet.mapRotationComp = cfg.getBool(PKEYS::KMAP_ROT_MODE, false);
   mapSet.showMapCompass = cfg.getBool(PKEYS::KMAP_COMPASS, true);
   mapSet.compassRotation = cfg.getBool(PKEYS::KMAP_COMP_ROT, true);
-  mapSet.mapFullScreen = cfg.getBool(PKEYS::KMAP_MODE, true);
   mapSet.showMapSpeed = cfg.getBool(PKEYS::KMAP_SPEED, true);
   mapSet.vectorMap = cfg.getBool(PKEYS::KMAP_VECTOR, false);
   mapSet.showMapScale = cfg.getBool(PKEYS::KMAP_SCALE, true);

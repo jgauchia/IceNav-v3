@@ -414,5 +414,7 @@ void loadMainScreen()
   isScrolled = true;
   isSearchingSat = false;
   gpxAction = WPT_NONE;
+  lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
   lv_screen_load(mainScreen);
 }

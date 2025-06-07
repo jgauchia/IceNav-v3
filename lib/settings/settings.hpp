@@ -50,7 +50,6 @@ struct MAP
   bool showMapCompass;   // Compass in map screen
   bool compassRotation;  // Compass rotation in map screen
   bool mapRotationComp;  // Rotate map with compass
-  bool mapFullScreen;    // Full Screen map
   bool showMapSpeed;     // Speed in map screen
   bool vectorMap;        // Map type (vector/render)
   bool showMapScale;     // Scale in map screen
