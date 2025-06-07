@@ -269,7 +269,6 @@ Some extra details:
     KEYNAME     DEFINED         VALUE          
     =======     =======         ===== 
     defZoom     custom          17             Default zoom
- fullScrMap     custom          true           Fullscreen map
     vectMap     custom          false          Vectorized map
    mapSpeed     custom          true           Show speed meter in map
    mapScale     custom          true           Show scale meter in map

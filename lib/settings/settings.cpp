@@ -2,8 +2,8 @@
  * @file settings.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Settings functions
- * @version 0.2.2
- * @date 2025-05
+ * @version 0.2.3
+ * @date 2025-06
  */
 
 #include "settings.hpp"
@@ -74,7 +74,6 @@ void loadPreferences()
   mapSet.mapRotationComp = cfg.getBool(PKEYS::KMAP_ROT_MODE, false);
   mapSet.showMapCompass = cfg.getBool(PKEYS::KMAP_COMPASS, true);
   mapSet.compassRotation = cfg.getBool(PKEYS::KMAP_COMP_ROT, true);
-  mapSet.mapFullScreen = cfg.getBool(PKEYS::KMAP_MODE, true);
   mapSet.showMapSpeed = cfg.getBool(PKEYS::KMAP_SPEED, true);
   mapSet.vectorMap = cfg.getBool(PKEYS::KMAP_VECTOR, false);
   mapSet.showMapScale = cfg.getBool(PKEYS::KMAP_SCALE, true);
@@ -135,7 +134,7 @@ void loadPreferences()
 void saveGPSBaud(uint16_t gpsBaud)
 {
   cfg.saveShort(PKEYS::KGPS_SPEED, gpsBaud);
-  if (gpsBaud != 4)
+  if (gpsBaud != 3)
   {
 #ifdef AT6558D_GPS
     gpsPort.flush();

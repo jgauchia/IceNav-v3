@@ -3,8 +3,8 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com) - Render Maps
  * @author @aresta - https://github.com/aresta/ESP32_GPS - Vector Maps
  * @brief  Maps draw class
- * @version 0.2.2
- * @date 2025-05
+ * @version 0.2.3
+ * @date 2025-06
  */
 
 #pragma once
@@ -142,6 +142,7 @@ class Maps
     void drawMapWidgets(MAP mapSet);
 
   public:
+    void* mapBuffer;                                                     // Pointer to map screen sprite
     uint16_t mapScrHeight;                                               // Screen map size height   
     uint16_t mapScrWidth;                                                // Screen map size width
     uint16_t mapScrFull;                                                 // Screen map size in full screen
@@ -162,7 +163,7 @@ class Maps
 
     Maps();
     MapTile getMapTile(double lon, double lat, uint8_t zoomLevel, int8_t offsetX, int8_t offsetY);
-    void initMap(uint16_t mapHeight, uint16_t mapWidth, uint16_t mapFull);
+    void initMap(uint16_t mapHeight, uint16_t mapWidth);
     void deleteMapScrSprites();
     void createMapScrSprites();
     void generateRenderMap(uint8_t zoom);
