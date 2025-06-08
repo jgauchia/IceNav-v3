@@ -32,7 +32,8 @@ extern int heading;        // Heading value (Compass or GPS)
 
 static const char *zoomInIconFile PROGMEM = "/zoomin.bin";           // Zoom in icon
 static const char *zoomOutIconFile PROGMEM = "/zoomout.bin";         // Zoom out icon
-static const char *navArrowIconFile PROGMEM = "/navarrow.bin";
+static const char *navArrowIconFile PROGMEM = "/navarrow.bin";       // Navigation Arrow icon
+static const char *zoomIconFile PROGMEM = "/zoom.bin";               // Zoom map icon
 
 enum tileName
 {
@@ -59,6 +60,8 @@ extern lv_obj_t *btnFullScreen;
 extern lv_obj_t *btnZoomIn;
 extern lv_obj_t *btnZoomOut;
 extern lv_obj_t *navArrow;
+extern lv_obj_t *zoomWidget;
+extern lv_obj_t *zoomLabel;
 extern uint8_t toolBarOffset;
 extern uint8_t toolBarSpace;
 
@@ -78,5 +81,6 @@ void zoomOutEvent(lv_event_t *event);
 void zoomInEvent(lv_event_t *event);
 void updateNavEvent(lv_event_t *event);
 void createMapCanvas(_lv_obj_t *screen);
-
+void showMapWidgets();
+void hideMapWidgets();
 void createMainScr();

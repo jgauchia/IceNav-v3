@@ -40,10 +40,12 @@ lv_obj_t *btnFullScreen;
 lv_obj_t *btnZoomIn;
 lv_obj_t *btnZoomOut;
 lv_obj_t *navArrow;
+lv_obj_t *zoomWidget;
+lv_obj_t *zoomLabel;
 lv_obj_t *mapCanvas;
 lv_layer_t canvasMapLayer;
 
-Maps mapView;
+extern Maps mapView;
 
 /**
  * @brief Update compass screen event
@@ -74,6 +76,26 @@ void updateCompassScr(lv_event_t *event)
 }
 
 /**
+ * @brief Show Map Widgets
+ */
+void showMapWidgets()
+{
+  lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_clear_flag(zoomWidget, LV_OBJ_FLAG_HIDDEN);
+}
+
+/**
+ * @brief Hide Map Widgets
+ *
+ */
+void hideMapWidgets()
+{
+  lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);  
+  lv_obj_add_flag(zoomWidget, LV_OBJ_FLAG_HIDDEN);
+}
+
+
+/**
  * @brief Get the active tile
  *
  * @param event
@@ -89,9 +111,9 @@ void getActTile(lv_event_t *event)
     {
       mapView.createMapScrSprites();
       if (mapView.isMapFound)
-        lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+        showMapWidgets();
       else
-        lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+        hideMapWidgets();
     }
 
     if (isBarOpen)
@@ -267,8 +289,8 @@ void mapToolBarEvent(lv_event_t *event)
     lv_obj_add_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
     mapView.centerOnGps(gps.gpsData.latitude, gps.gpsData.longitude);
+    lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
   }
   else
   {
@@ -277,7 +299,10 @@ void mapToolBarEvent(lv_event_t *event)
     lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+    if (!mapView.followGps)
+      lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+    else
+      lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
   }
 }
 
@@ -320,6 +345,7 @@ void scrollMapEvent(lv_event_t *event)
         if (abs(dx) > SCROLL_THRESHOLD || abs(dy) > SCROLL_THRESHOLD) 
         {
           mapView.scrollMap(-dx, -dy);
+          lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
           last_x = p.x;
           last_y = p.y;
         }
@@ -328,6 +354,7 @@ void scrollMapEvent(lv_event_t *event)
   
       case LV_EVENT_PRESS_LOST:
       {
+        lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
         isScrollingMap = false;
         break;
       }
@@ -357,7 +384,7 @@ void zoomInEvent(lv_event_t *event)
       mapView.isPosMoved = false;
     }
   }
-
+  lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
   lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
 }
 
@@ -383,7 +410,7 @@ void zoomOutEvent(lv_event_t *event)
       mapView.isPosMoved = false;
     }
   }
-
+  lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
   lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
 }
 
@@ -455,7 +482,6 @@ void createMainScr()
   lv_obj_add_event_cb(tilesScreen, scrollTile, LV_EVENT_SCROLL_BEGIN, NULL);
 
   // Compass Tile
-
   // Compass Widget
   compassWidget(compassTile);
   // Position widget
@@ -478,10 +504,29 @@ void createMainScr()
 
   // Map Tile
   createMapCanvas(mapTile);
+
+  // Navigation Arrow Widget
   navArrow = lv_img_create(mapTile);
   lv_img_set_src(navArrow, navArrowIconFile);
   lv_obj_align(navArrow, LV_ALIGN_CENTER, 0, 0);
   lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+
+  // Map zoom Widget
+  zoomWidget = lv_obj_create(mapTile);
+  lv_obj_set_size(zoomWidget, 64, 32);
+  lv_obj_clear_flag(zoomWidget, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_flex_flow(zoomWidget, LV_FLEX_FLOW_ROW);
+  lv_obj_set_flex_align(zoomWidget, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_set_style_bg_color(zoomWidget, lv_color_black(), 0);
+  lv_obj_set_style_bg_opa(zoomWidget, 128, 0);
+  lv_obj_set_style_border_color(zoomWidget, lv_color_white(), 0);
+  lv_obj_set_style_border_width(zoomWidget, 1, 0);
+  lv_obj_set_style_border_opa(zoomWidget,128,0);
+  lv_obj_t *img = lv_img_create(zoomWidget);
+  lv_img_set_src(img, zoomIconFile);
+  zoomLabel = lv_label_create(zoomWidget);
+  lv_obj_set_style_text_font(zoomLabel, &lv_font_montserrat_20, 0);
+  lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
   
   // Map Tile Toolbar
   btnZoomOut = lv_img_create(mapTile);
