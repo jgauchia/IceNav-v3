@@ -882,12 +882,6 @@ void Maps::drawMapWidgets(MAP mapSettings)
   toolBarSpace = 50;
 #endif
 
-  // if (showMapToolBar)
-  // {
-  //   Maps::mapSprite.pushImage(10, mapHeight - toolBarOffset, 48, 48, (uint16_t *)zoomout, TFT_BLACK);
-  //   Maps::mapSprite.pushImage(10, mapHeight - (toolBarOffset + toolBarSpace), 48, 48, (uint16_t *)zoomin, TFT_BLACK);
-  // }
-
   Maps::mapSprite.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
   Maps::mapSprite.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
   Maps::mapSprite.drawNumber(zoom, 26, 8, &fonts::FreeSansBold9pt7b);
@@ -956,7 +950,6 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
  */
 void Maps::deleteMapScrSprites()
 {
-  Maps::arrowSprite.deleteSprite();
   Maps::mapSprite.deleteSprite();
 }
 
@@ -968,11 +961,6 @@ void Maps::createMapScrSprites()
 {
   // Map Sprite
   Maps::mapBuffer = Maps::mapSprite.createSprite(Maps::mapScrWidth, Maps::mapScrHeight);
-  
-  // Arrow Sprite
-  Maps::arrowSprite.createSprite(16, 16);
-  Maps::arrowSprite.setColorDepth(16);
-  Maps::arrowSprite.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
 }
 
 /**
@@ -1138,10 +1126,7 @@ void Maps::displayMap()
       Maps::mapTempSprite.setPivot(Maps::vectorMapTileSize, Maps::vectorMapTileSize);
 
     if (Maps::followGps)
-    {
       Maps::mapTempSprite.pushRotated(&(Maps::mapSprite), 360 - mapHeading, TFT_TRANSPARENT);
-      Maps::arrowSprite.pushRotated(&(Maps::mapSprite), 0, TFT_BLACK);
-    }
     else
       Maps::mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
  

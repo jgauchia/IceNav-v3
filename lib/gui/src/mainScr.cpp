@@ -39,6 +39,7 @@ lv_obj_t *satTrackTile;
 lv_obj_t *btnFullScreen;
 lv_obj_t *btnZoomIn;
 lv_obj_t *btnZoomOut;
+lv_obj_t *navArrow;
 lv_obj_t *mapCanvas;
 lv_layer_t canvasMapLayer;
 
@@ -85,7 +86,13 @@ void getActTile(lv_event_t *event)
     mapView.redrawMap = true;
 
     if (activeTile == MAP)
+    {
       mapView.createMapScrSprites();
+      if (mapView.isMapFound)
+        lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+      else
+        lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+    }
 
     if (isBarOpen)
       lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
@@ -260,6 +267,7 @@ void mapToolBarEvent(lv_event_t *event)
     lv_obj_add_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
     mapView.centerOnGps(gps.gpsData.latitude, gps.gpsData.longitude);
   }
   else
@@ -269,6 +277,7 @@ void mapToolBarEvent(lv_event_t *event)
     lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
   }
 }
 
@@ -469,7 +478,11 @@ void createMainScr()
 
   // Map Tile
   createMapCanvas(mapTile);
-
+  navArrow = lv_img_create(mapTile);
+  lv_img_set_src(navArrow, navArrowIconFile);
+  lv_obj_align(navArrow, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+  
   // Map Tile Toolbar
   btnZoomOut = lv_img_create(mapTile);
   lv_img_set_src(btnZoomOut, zoomOutIconFile);
