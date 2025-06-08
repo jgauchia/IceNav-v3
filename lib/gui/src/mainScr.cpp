@@ -384,8 +384,8 @@ void zoomInEvent(lv_event_t *event)
       mapView.isPosMoved = false;
     }
   }
-  lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
   lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+  lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
 }
 
 /**
@@ -410,8 +410,8 @@ void zoomOutEvent(lv_event_t *event)
       mapView.isPosMoved = false;
     }
   }
-  lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
   lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+  lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
 }
 
 /**
