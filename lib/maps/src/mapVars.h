@@ -13,7 +13,6 @@
  *
  */
 #include "bruj.h"
-#include "navigation.h"
 #include "waypoint.h"
 #include "compass.h"
 #include "zoom.h"
