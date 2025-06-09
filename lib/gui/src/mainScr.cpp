@@ -363,51 +363,47 @@ void scrollMapEvent(lv_event_t *event)
 }
 
 /**
- * @brief Zoom In Event Toolbar
+ * @brief Zoom Event Toolbar
  *
  * @param event
  */
-void zoomInEvent(lv_event_t *event)
+void zoomEvent(lv_event_t *event)
 {
-  if (!mapSet.vectorMap)
+  lv_obj_t *obj = (lv_obj_t *)lv_event_get_current_target(event);
+  if ( obj == btnZoomIn )
   {
-    if (zoom >= minZoom && zoom < maxZoom)
-      zoom++;
-  }
-  else
-  {
-    zoom--;
-    mapView.isPosMoved = true;
-    if (zoom < 1)
+    if (!mapSet.vectorMap)
     {
-      zoom = 1;
-      mapView.isPosMoved = false;
+      if (zoom >= minZoom && zoom < maxZoom)
+        zoom++;
+    }
+    else
+    {
+      zoom--;
+      mapView.isPosMoved = true;
+      if (zoom < 1)
+      {
+        zoom = 1;
+        mapView.isPosMoved = false;
+      }
     }
   }
-  lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
-  lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
-}
-
-/**
- * @brief Zoom Out Event Toolbar
- *
- * @param event
- */
-void zoomOutEvent(lv_event_t *event)
-{
-  if (!mapSet.vectorMap)
+  else if ( obj == btnZoomOut )
   {
-    if (zoom <= maxZoom && zoom > minZoom)
-      zoom--;
-  }
-  else
-  {
-    zoom++;
-    mapView.isPosMoved = true;
-    if (zoom > MAX_ZOOM)
+    if (!mapSet.vectorMap)
     {
-      zoom = MAX_ZOOM;
-      mapView.isPosMoved = false;
+      if (zoom <= maxZoom && zoom > minZoom)
+        zoom--;
+    }
+    else
+    {
+      zoom++;
+      mapView.isPosMoved = true;
+      if (zoom > MAX_ZOOM)
+      {
+        zoom = MAX_ZOOM;
+        mapView.isPosMoved = false;
+      }
     }
   }
   lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
@@ -534,14 +530,14 @@ void createMainScr()
   lv_img_set_zoom(btnZoomOut,buttonScale);
   lv_obj_update_layout(btnZoomOut);
   lv_obj_set_size(btnZoomOut,  48 * scaleBut, 48 * scaleBut);
-  lv_obj_add_event_cb(btnZoomOut, zoomOutEvent, LV_EVENT_CLICKED, NULL);
+  lv_obj_add_event_cb(btnZoomOut, zoomEvent, LV_EVENT_CLICKED, NULL);
 
   btnZoomIn = lv_img_create(mapTile);
   lv_img_set_src(btnZoomIn, zoomInIconFile);
   lv_img_set_zoom(btnZoomIn,buttonScale);
   lv_obj_update_layout(btnZoomIn);
   lv_obj_set_size(btnZoomIn,  48 * scaleBut, 48 * scaleBut);
-  lv_obj_add_event_cb(btnZoomIn, zoomInEvent, LV_EVENT_CLICKED, NULL);
+  lv_obj_add_event_cb(btnZoomIn, zoomEvent, LV_EVENT_CLICKED, NULL);
 
   lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrHeight - toolBarOffset);
   lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrHeight - (toolBarOffset + toolBarSpace));
