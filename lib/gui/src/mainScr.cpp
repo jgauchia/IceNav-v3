@@ -488,7 +488,6 @@ void createMainScr()
   speedWidget(compassTile);
   // Sunrise/Sunset widget
   sunWidget(compassTile);
-
   // Compass Tile Events
   lv_obj_add_event_cb(compassHeading, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(latitude, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
@@ -499,49 +498,25 @@ void createMainScr()
   lv_obj_add_event_cb(sunsetLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
 
   // Map Tile
+  // Map Canvas
   createMapCanvas(mapTile);
-
   // Navigation Arrow Widget
-  navArrow = lv_img_create(mapTile);
-  lv_img_set_src(navArrow, navArrowIconFile);
-  lv_obj_align(navArrow, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
-
+  navArrowWidget(mapTile);
   // Map zoom Widget
-  zoomWidget = lv_obj_create(mapTile);
-  lv_obj_set_size(zoomWidget, 64, 32);
-  lv_obj_clear_flag(zoomWidget, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_set_flex_flow(zoomWidget, LV_FLEX_FLOW_ROW);
-  lv_obj_set_flex_align(zoomWidget, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_bg_color(zoomWidget, lv_color_black(), 0);
-  lv_obj_set_style_bg_opa(zoomWidget, 128, 0);
-  lv_obj_set_style_border_color(zoomWidget, lv_color_white(), 0);
-  lv_obj_set_style_border_width(zoomWidget, 1, 0);
-  lv_obj_set_style_border_opa(zoomWidget,128,0);
-  lv_obj_t *img = lv_img_create(zoomWidget);
-  lv_img_set_src(img, zoomIconFile);
-  zoomLabel = lv_label_create(zoomWidget);
-  lv_obj_set_style_text_font(zoomLabel, &lv_font_montserrat_20, 0);
-  lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
-  
+  mapZoomWidget(mapTile);
   // Map Tile Toolbar
   btnZoomOut = lv_img_create(mapTile);
   lv_img_set_src(btnZoomOut, zoomOutIconFile);
   lv_img_set_zoom(btnZoomOut,buttonScale);
   lv_obj_update_layout(btnZoomOut);
   lv_obj_set_size(btnZoomOut,  48 * scaleBut, 48 * scaleBut);
-  lv_obj_add_event_cb(btnZoomOut, zoomEvent, LV_EVENT_CLICKED, NULL);
-
   btnZoomIn = lv_img_create(mapTile);
   lv_img_set_src(btnZoomIn, zoomInIconFile);
   lv_img_set_zoom(btnZoomIn,buttonScale);
   lv_obj_update_layout(btnZoomIn);
   lv_obj_set_size(btnZoomIn,  48 * scaleBut, 48 * scaleBut);
-  lv_obj_add_event_cb(btnZoomIn, zoomEvent, LV_EVENT_CLICKED, NULL);
-
   lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrHeight - toolBarOffset);
   lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrHeight - (toolBarOffset + toolBarSpace));
-
   if (!showMapToolBar)
   {
     lv_obj_clear_flag(btnZoomOut, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
@@ -556,17 +531,17 @@ void createMainScr()
     lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
   }
-
   // Map Tile Events
   lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(mainScreen, gestureEvent, LV_EVENT_GESTURE, NULL);
   DOUBLE_TOUCH_EVENT = lv_event_register_id();
   lv_obj_add_event_cb(mapTile, mapToolBarEvent, (lv_event_code_t)DOUBLE_TOUCH_EVENT, NULL);
   lv_obj_add_event_cb(mapTile, scrollMapEvent, LV_EVENT_ALL, NULL);
+  lv_obj_add_event_cb(btnZoomOut, zoomEvent, LV_EVENT_CLICKED, NULL);
+  lv_obj_add_event_cb(btnZoomIn, zoomEvent, LV_EVENT_CLICKED, NULL);
 
   // Navigation Tile
   navigationScr(navTile);
-
   // Navigation Tile Events
   lv_obj_add_event_cb(navTile, updateNavEvent, LV_EVENT_VALUE_CHANGED, NULL);
 
@@ -584,7 +559,6 @@ void createMainScr()
   drawSatConst();
 #endif
 #endif
-
   // Satellite Tracking Event
   lv_obj_add_event_cb(satTrackTile, updateSatTrack, LV_EVENT_VALUE_CHANGED, NULL);
 }
