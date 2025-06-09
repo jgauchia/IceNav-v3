@@ -39,9 +39,6 @@ lv_obj_t *satTrackTile;
 lv_obj_t *btnFullScreen;
 lv_obj_t *btnZoomIn;
 lv_obj_t *btnZoomOut;
-lv_obj_t *navArrow;
-lv_obj_t *zoomWidget;
-lv_obj_t *zoomLabel;
 lv_obj_t *mapCanvas;
 lv_layer_t canvasMapLayer;
 

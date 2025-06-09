@@ -25,8 +25,8 @@ extern lv_obj_t *speedLabel;
 extern lv_obj_t *sunriseLabel;
 extern lv_obj_t *sunsetLabel;
 extern lv_obj_t *navArrow;
-extern lv_obj_t *zoomWidget;
 extern lv_obj_t *zoomLabel;
+extern lv_obj_t *zoomWidget;
 
 void editWidget(lv_event_t *event);
 void dragWidget(lv_event_t *event);
