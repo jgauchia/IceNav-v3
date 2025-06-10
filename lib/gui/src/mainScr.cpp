@@ -79,6 +79,10 @@ void showMapWidgets()
 {
   lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
   lv_obj_clear_flag(zoomWidget, LV_OBJ_FLAG_HIDDEN);
+  if (mapSet.showMapSpeed)
+    lv_obj_clear_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
+  else
+    lv_obj_add_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
 }
 
 /**
@@ -89,6 +93,7 @@ void hideMapWidgets()
 {
   lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);  
   lv_obj_add_flag(zoomWidget, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
 }
 
 
@@ -238,12 +243,13 @@ void updateMap(lv_event_t *event)
   else
     mapView.generateRenderMap(zoom);
 
- if (mapView.redrawMap)
- {
+  if (mapView.redrawMap)
+  {
     mapView.displayMap();
     lv_canvas_set_buffer(mapCanvas, mapView.mapBuffer, tft.width(), tft.height()-27, LV_COLOR_FORMAT_RGB565);
- }
+  }
 
+  lv_label_set_text_fmt(mapSpeedLabel, "%3d", gps.gpsData.speed);     
 }
 
 /**
@@ -501,6 +507,8 @@ void createMainScr()
   navArrowWidget(mapTile);
   // Map zoom Widget
   mapZoomWidget(mapTile);
+  // Map speed Widget
+  mapSpeedWidget(mapTile);
   // Map Tile Toolbar
   btnZoomOut = lv_img_create(mapTile);
   lv_img_set_src(btnZoomOut, zoomOutIconFile);

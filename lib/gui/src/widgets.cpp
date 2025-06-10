@@ -19,6 +19,8 @@ lv_obj_t *sunsetLabel;
 lv_obj_t *navArrow;
 lv_obj_t *zoomLabel;
 lv_obj_t *zoomWidget;
+lv_obj_t *mapSpeedLabel;
+lv_obj_t *mapSpeed;
 
 extern Gps gps;
 
@@ -289,4 +291,31 @@ void mapZoomWidget(lv_obj_t *screen)
   zoomLabel = lv_label_create(zoomWidget);
   lv_obj_set_style_text_font(zoomLabel, &lv_font_montserrat_20, 0);
   lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
+  lv_obj_add_flag(zoomLabel,LV_OBJ_FLAG_HIDDEN);
+}
+
+/**
+ * @brief Map speed widget
+ *
+ * @param screen 
+ */
+void mapSpeedWidget(lv_obj_t *screen)
+{
+  mapSpeed = lv_obj_create(screen);
+  lv_obj_set_size(mapSpeed, 100, 32);
+  lv_obj_clear_flag(mapSpeed, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_flex_flow(mapSpeed, LV_FLEX_FLOW_ROW);
+  lv_obj_set_flex_align(mapSpeed, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_set_style_bg_color(mapSpeed, lv_color_black(), 0);
+  lv_obj_set_style_bg_opa(mapSpeed, 128, 0);
+  lv_obj_set_style_border_color(mapSpeed, lv_color_white(), 0);
+  lv_obj_set_style_border_width(mapSpeed, 1, 0);
+  lv_obj_set_style_border_opa(mapSpeed,128,0);
+  lv_obj_align(mapSpeed, LV_ALIGN_BOTTOM_LEFT, 0, -1);
+  lv_obj_t *img = lv_img_create(mapSpeed);
+  lv_img_set_src(img, mapSpeedIconFile);
+  mapSpeedLabel = lv_label_create(mapSpeed);
+  lv_obj_set_style_text_font(mapSpeedLabel, &lv_font_montserrat_20, 0);
+  lv_label_set_text_fmt(mapSpeedLabel, "%3d", 0);
+  lv_obj_add_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
 }

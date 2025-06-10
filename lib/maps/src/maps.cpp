@@ -871,24 +871,6 @@ void Maps::drawMapWidgets(MAP mapSettings)
   }
 
   uint16_t mapHeight = Maps::mapScrHeight;
-  uint8_t toolBarOffset = 0;
-  uint8_t toolBarSpace = 0;
-#ifdef LARGE_SCREEN
-  toolBarOffset = 100;
-  toolBarSpace = 60;
-#endif
-#ifndef LARGE_SCREEN
-  toolBarOffset = 80;
-  toolBarSpace = 50;
-#endif
-
-  if (mapSettings.showMapSpeed)
-  {
-    Maps::mapSprite.fillRectAlpha(0, mapHeight - 32, 70, 32, 95, TFT_BLACK);
-    Maps::mapSprite.pushImage(0, mapHeight - 28, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
-    Maps::mapSprite.drawNumber(gps.gpsData.speed, 26, mapHeight - 24, &fonts::FreeSansBold9pt7b);
-  }
-
   if (!mapSettings.vectorMap)
     if (mapSettings.showMapScale)
     {

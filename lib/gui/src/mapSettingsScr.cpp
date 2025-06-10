@@ -10,6 +10,8 @@
 
 lv_obj_t *mapSettingsScreen; // Map Settings Screen
 
+extern lv_obj_t *mapSpeed;
+
 extern Maps mapView;
 
 /**
@@ -100,6 +102,10 @@ static void mapSettingsEvents(lv_event_t *event)
   {
     mapSet.showMapSpeed = lv_obj_has_state(obj, LV_STATE_CHECKED);
     cfg.saveBool(PKEYS::KMAP_SPEED, mapSet.showMapSpeed);
+    if (mapSet.showMapSpeed)
+      lv_obj_clear_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
+    else
+      lv_obj_add_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
   }
 
   if (obj == checkScale)
