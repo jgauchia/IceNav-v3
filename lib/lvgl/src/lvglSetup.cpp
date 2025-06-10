@@ -22,6 +22,8 @@ lv_obj_t *powerMsg;       // Power Message
 Power power;
 uint32_t DOUBLE_TOUCH_EVENT;
 
+Maps mapView;
+
 /**
  * @brief LVGL round callback for T4-S3
  *
@@ -441,5 +443,9 @@ void loadMainScreen()
   gpxAction = WPT_NONE;
   lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
   lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
+  if (mapView.isMapFound)
+    lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+  else
+    lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
   lv_screen_load(mainScreen);
 }

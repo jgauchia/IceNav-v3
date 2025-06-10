@@ -72,9 +72,9 @@ void updateMap(lv_event_t *event);
 void updateSatTrack(lv_event_t *event);
 void mapToolBarEvent(lv_event_t *event);
 void scrollMapEvent(lv_event_t *event);
-void zoomOutEvent(lv_event_t *event);
-void zoomInEvent(lv_event_t *event);
+void zoomEvent(lv_event_t *event);
 void updateNavEvent(lv_event_t *event);
 void createMapCanvas(_lv_obj_t *screen);
-
+void showMapWidgets();
+void hideMapWidgets();
 void createMainScr();
