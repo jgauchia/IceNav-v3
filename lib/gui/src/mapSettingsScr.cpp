@@ -102,7 +102,7 @@ static void mapSettingsEvents(lv_event_t *event)
   {
     mapSet.compassRotation = lv_obj_has_state(obj, LV_STATE_CHECKED);
     cfg.saveBool(PKEYS::KMAP_COMP_ROT, mapSet.compassRotation);
-    if (!mapSet.compassRotation)ç
+    if (!mapSet.compassRotation);
       lv_img_set_angle(mapCompassImg, 0);
   }
 
