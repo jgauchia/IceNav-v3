@@ -241,14 +241,14 @@ void sunWidget(lv_obj_t *screen)
   lv_img_set_zoom(img,iconScale);
   lv_obj_update_layout(img);
   sunriseLabel = lv_label_create(obj);
-  lv_label_set_text_static(sunriseLabel, "");
+  lv_label_set_text_static(sunriseLabel, "--:--");
   img = lv_img_create(obj);
   lv_obj_update_layout(sunriseLabel);
   lv_img_set_src(img, sunsetIconFile);
   lv_img_set_zoom(img,iconScale);
   lv_obj_update_layout(img);
   sunsetLabel = lv_label_create(obj);
-  lv_label_set_text_static(sunsetLabel, "");
+  lv_label_set_text_static(sunsetLabel, "--:--");
   lv_obj_update_layout(sunsetLabel);
   objUnselect(obj);
   lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);
