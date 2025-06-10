@@ -14,7 +14,6 @@
  */
 #include "bruj.h"
 #include "waypoint.h"
-#include "compass.h"
 #include "navfinish.h"
 
 #include "globalGpxDef.h"

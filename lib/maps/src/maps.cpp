@@ -861,14 +861,14 @@ void Maps::drawMapWidgets(MAP mapSettings)
   mapHeading = gps.gpsData.heading;
 #endif
 
-  if (mapSettings.showMapCompass)
-  {
-    Maps::mapSprite.fillRectAlpha(Maps::mapScrWidth - 48, 0, 48, 48, 95, TFT_BLACK);
-    if (mapSettings.compassRotation)
-      Maps::mapSprite.pushImageRotateZoom(Maps::mapScrWidth - 24, 24, 24, 24, 360 - mapHeading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
-    else
-      Maps::mapSprite.pushImage(Maps::mapScrWidth - 48, 0, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
-  }
+  // if (mapSettings.showMapCompass)
+  // {
+    // Maps::mapSprite.fillRectAlpha(Maps::mapScrWidth - 48, 0, 48, 48, 95, TFT_BLACK);
+    // if (mapSettings.compassRotation)
+    //   Maps::mapSprite.pushImageRotateZoom(Maps::mapScrWidth - 24, 24, 24, 24, 360 - mapHeading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
+    // else
+    //   Maps::mapSprite.pushImage(Maps::mapScrWidth - 48, 0, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
+  // }
 
   uint16_t mapHeight = Maps::mapScrHeight;
   if (!mapSettings.vectorMap)

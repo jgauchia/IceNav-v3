@@ -21,6 +21,8 @@ lv_obj_t *zoomLabel;
 lv_obj_t *zoomWidget;
 lv_obj_t *mapSpeedLabel;
 lv_obj_t *mapSpeed;
+lv_obj_t *miniCompass;
+lv_obj_t *mapCompassImg;
 
 extern Gps gps;
 
@@ -283,7 +285,7 @@ void mapZoomWidget(lv_obj_t *screen)
   lv_obj_set_flex_align(zoomWidget, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
   lv_obj_set_style_bg_color(zoomWidget, lv_color_black(), 0);
   lv_obj_set_style_bg_opa(zoomWidget, 128, 0);
-  lv_obj_set_style_border_color(zoomWidget, lv_color_white(), 0);
+  lv_obj_set_style_border_color(zoomWidget, lv_color_black(), 0);
   lv_obj_set_style_border_width(zoomWidget, 1, 0);
   lv_obj_set_style_border_opa(zoomWidget,128,0);
   lv_obj_t *img = lv_img_create(zoomWidget);
@@ -291,7 +293,7 @@ void mapZoomWidget(lv_obj_t *screen)
   zoomLabel = lv_label_create(zoomWidget);
   lv_obj_set_style_text_font(zoomLabel, &lv_font_montserrat_20, 0);
   lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
-  lv_obj_add_flag(zoomLabel,LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(zoomWidget,LV_OBJ_FLAG_HIDDEN);
 }
 
 /**
@@ -308,7 +310,7 @@ void mapSpeedWidget(lv_obj_t *screen)
   lv_obj_set_flex_align(mapSpeed, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
   lv_obj_set_style_bg_color(mapSpeed, lv_color_black(), 0);
   lv_obj_set_style_bg_opa(mapSpeed, 128, 0);
-  lv_obj_set_style_border_color(mapSpeed, lv_color_white(), 0);
+  lv_obj_set_style_border_color(mapSpeed, lv_color_black(), 0);
   lv_obj_set_style_border_width(mapSpeed, 1, 0);
   lv_obj_set_style_border_opa(mapSpeed,128,0);
   lv_obj_align(mapSpeed, LV_ALIGN_BOTTOM_LEFT, 0, -1);
@@ -318,4 +320,26 @@ void mapSpeedWidget(lv_obj_t *screen)
   lv_obj_set_style_text_font(mapSpeedLabel, &lv_font_montserrat_20, 0);
   lv_label_set_text_fmt(mapSpeedLabel, "%3d", 0);
   lv_obj_add_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
+}
+
+/**
+ * @brief Map compass widget
+ *
+ * @param screen 
+ */
+void mapCompassWidget(lv_obj_t *screen)
+{
+  miniCompass = lv_obj_create(screen);
+  lv_obj_set_size(miniCompass, 50, 50);
+  lv_obj_clear_flag(miniCompass, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_style_bg_color(miniCompass, lv_color_black(), 0);
+  lv_obj_set_style_bg_opa(miniCompass, 128, 0);
+  lv_obj_set_style_border_color(miniCompass, lv_color_black(), 0);
+  lv_obj_set_style_border_width(miniCompass, 1, 0);
+  lv_obj_set_style_border_opa(miniCompass,128,0);
+  lv_obj_set_align(miniCompass, LV_ALIGN_TOP_RIGHT);
+  mapCompassImg = lv_img_create(miniCompass);
+  lv_img_set_src(mapCompassImg, mapCompassIconFile);
+  lv_obj_set_align(mapCompassImg, LV_ALIGN_CENTER);
+  lv_obj_add_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
 }

@@ -83,6 +83,10 @@ void showMapWidgets()
     lv_obj_clear_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
   else
     lv_obj_add_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
+  if (mapSet.showMapCompass)
+    lv_obj_clear_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
+  else
+    lv_obj_add_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
 }
 
 /**
@@ -94,6 +98,7 @@ void hideMapWidgets()
   lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);  
   lv_obj_add_flag(zoomWidget, LV_OBJ_FLAG_HIDDEN);
   lv_obj_add_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
 }
 
 
@@ -249,7 +254,23 @@ void updateMap(lv_event_t *event)
     lv_canvas_set_buffer(mapCanvas, mapView.mapBuffer, tft.width(), tft.height()-27, LV_COLOR_FORMAT_RGB565);
   }
 
-  lv_label_set_text_fmt(mapSpeedLabel, "%3d", gps.gpsData.speed);     
+  if (mapSet.showMapSpeed)
+    lv_label_set_text_fmt(mapSpeedLabel, "%3d", gps.gpsData.speed);     
+  
+  if (mapSet.showMapCompass)
+  {
+    uint16_t mapHeading = 0;
+    #ifdef ENABLE_COMPASS
+      if (mapSet.mapRotationComp)
+        mapHeading = compass.getHeading();
+      else
+        mapHeading = gps.gpsData.heading;
+    #else
+      mapHeading = gps.gpsData.heading;
+    #endif
+    if (mapSet.compassRotation)
+      lv_img_set_angle(mapCompassImg, -(mapHeading * 10));
+  }
 }
 
 /**
@@ -480,7 +501,7 @@ void createMainScr()
   lv_obj_add_event_cb(tilesScreen, getActTile, LV_EVENT_SCROLL_END, NULL);
   lv_obj_add_event_cb(tilesScreen, scrollTile, LV_EVENT_SCROLL_BEGIN, NULL);
 
-  // Compass Tile
+  // ********** Compass Tile **********
   // Compass Widget
   compassWidget(compassTile);
   // Position widget
@@ -500,8 +521,8 @@ void createMainScr()
   lv_obj_add_event_cb(sunriseLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(sunsetLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
 
-  // Map Tile
-  // Map Canvas
+  // ********** Map Tile **********
+  // Map Canvas 
   createMapCanvas(mapTile);
   // Navigation Arrow Widget
   navArrowWidget(mapTile);
@@ -509,6 +530,8 @@ void createMainScr()
   mapZoomWidget(mapTile);
   // Map speed Widget
   mapSpeedWidget(mapTile);
+  // Map compass Widget
+  mapCompassWidget(mapTile);
   // Map Tile Toolbar
   btnZoomOut = lv_img_create(mapTile);
   lv_img_set_src(btnZoomOut, zoomOutIconFile);
@@ -545,12 +568,12 @@ void createMainScr()
   lv_obj_add_event_cb(btnZoomOut, zoomEvent, LV_EVENT_CLICKED, NULL);
   lv_obj_add_event_cb(btnZoomIn, zoomEvent, LV_EVENT_CLICKED, NULL);
 
-  // Navigation Tile
+  // ********** Navigation Tile **********
   navigationScr(navTile);
   // Navigation Tile Events
   lv_obj_add_event_cb(navTile, updateNavEvent, LV_EVENT_VALUE_CHANGED, NULL);
 
-  // Satellite Tracking and info Tile
+  // ********** Satellite Tracking and info Tile **********
   satelliteScr(satTrackTile);
 #ifdef BOARD_HAS_PSRAM
 #ifndef TDECK_ESP32S3
