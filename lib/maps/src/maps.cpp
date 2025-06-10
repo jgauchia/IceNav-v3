@@ -882,10 +882,6 @@ void Maps::drawMapWidgets(MAP mapSettings)
   toolBarSpace = 50;
 #endif
 
-  Maps::mapSprite.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
-  Maps::mapSprite.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
-  Maps::mapSprite.drawNumber(zoom, 26, 8, &fonts::FreeSansBold9pt7b);
-
   if (mapSettings.showMapSpeed)
   {
     Maps::mapSprite.fillRectAlpha(0, mapHeight - 32, 70, 32, 95, TFT_BLACK);

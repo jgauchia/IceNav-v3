@@ -39,11 +39,10 @@ lv_obj_t *satTrackTile;
 lv_obj_t *btnFullScreen;
 lv_obj_t *btnZoomIn;
 lv_obj_t *btnZoomOut;
-lv_obj_t *navArrow;
 lv_obj_t *mapCanvas;
 lv_layer_t canvasMapLayer;
 
-Maps mapView;
+extern Maps mapView;
 
 /**
  * @brief Update compass screen event
@@ -74,6 +73,26 @@ void updateCompassScr(lv_event_t *event)
 }
 
 /**
+ * @brief Show Map Widgets
+ */
+void showMapWidgets()
+{
+  lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_clear_flag(zoomWidget, LV_OBJ_FLAG_HIDDEN);
+}
+
+/**
+ * @brief Hide Map Widgets
+ *
+ */
+void hideMapWidgets()
+{
+  lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);  
+  lv_obj_add_flag(zoomWidget, LV_OBJ_FLAG_HIDDEN);
+}
+
+
+/**
  * @brief Get the active tile
  *
  * @param event
@@ -89,9 +108,9 @@ void getActTile(lv_event_t *event)
     {
       mapView.createMapScrSprites();
       if (mapView.isMapFound)
-        lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+        showMapWidgets();
       else
-        lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+        hideMapWidgets();
     }
 
     if (isBarOpen)
@@ -267,8 +286,8 @@ void mapToolBarEvent(lv_event_t *event)
     lv_obj_add_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
     mapView.centerOnGps(gps.gpsData.latitude, gps.gpsData.longitude);
+    lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
   }
   else
   {
@@ -277,7 +296,10 @@ void mapToolBarEvent(lv_event_t *event)
     lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+    if (!mapView.followGps)
+      lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+    else
+      lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
   }
 }
 
@@ -320,6 +342,7 @@ void scrollMapEvent(lv_event_t *event)
         if (abs(dx) > SCROLL_THRESHOLD || abs(dy) > SCROLL_THRESHOLD) 
         {
           mapView.scrollMap(-dx, -dy);
+          lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
           last_x = p.x;
           last_y = p.y;
         }
@@ -328,6 +351,7 @@ void scrollMapEvent(lv_event_t *event)
   
       case LV_EVENT_PRESS_LOST:
       {
+        lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
         isScrollingMap = false;
         break;
       }
@@ -336,55 +360,51 @@ void scrollMapEvent(lv_event_t *event)
 }
 
 /**
- * @brief Zoom In Event Toolbar
+ * @brief Zoom Event Toolbar
  *
  * @param event
  */
-void zoomInEvent(lv_event_t *event)
+void zoomEvent(lv_event_t *event)
 {
-  if (!mapSet.vectorMap)
+  lv_obj_t *obj = (lv_obj_t *)lv_event_get_current_target(event);
+  if ( obj == btnZoomIn )
   {
-    if (zoom >= minZoom && zoom < maxZoom)
-      zoom++;
-  }
-  else
-  {
-    zoom--;
-    mapView.isPosMoved = true;
-    if (zoom < 1)
+    if (!mapSet.vectorMap)
     {
-      zoom = 1;
-      mapView.isPosMoved = false;
+      if (zoom >= minZoom && zoom < maxZoom)
+        zoom++;
     }
-  }
-
-  lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
-}
-
-/**
- * @brief Zoom Out Event Toolbar
- *
- * @param event
- */
-void zoomOutEvent(lv_event_t *event)
-{
-  if (!mapSet.vectorMap)
-  {
-    if (zoom <= maxZoom && zoom > minZoom)
+    else
+    {
       zoom--;
-  }
-  else
-  {
-    zoom++;
-    mapView.isPosMoved = true;
-    if (zoom > MAX_ZOOM)
-    {
-      zoom = MAX_ZOOM;
-      mapView.isPosMoved = false;
+      mapView.isPosMoved = true;
+      if (zoom < 1)
+      {
+        zoom = 1;
+        mapView.isPosMoved = false;
+      }
     }
   }
-
+  else if ( obj == btnZoomOut )
+  {
+    if (!mapSet.vectorMap)
+    {
+      if (zoom <= maxZoom && zoom > minZoom)
+        zoom--;
+    }
+    else
+    {
+      zoom++;
+      mapView.isPosMoved = true;
+      if (zoom > MAX_ZOOM)
+      {
+        zoom = MAX_ZOOM;
+        mapView.isPosMoved = false;
+      }
+    }
+  }
   lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+  lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
 }
 
 /**
@@ -455,7 +475,6 @@ void createMainScr()
   lv_obj_add_event_cb(tilesScreen, scrollTile, LV_EVENT_SCROLL_BEGIN, NULL);
 
   // Compass Tile
-
   // Compass Widget
   compassWidget(compassTile);
   // Position widget
@@ -466,7 +485,6 @@ void createMainScr()
   speedWidget(compassTile);
   // Sunrise/Sunset widget
   sunWidget(compassTile);
-
   // Compass Tile Events
   lv_obj_add_event_cb(compassHeading, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(latitude, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
@@ -477,30 +495,25 @@ void createMainScr()
   lv_obj_add_event_cb(sunsetLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
 
   // Map Tile
+  // Map Canvas
   createMapCanvas(mapTile);
-  navArrow = lv_img_create(mapTile);
-  lv_img_set_src(navArrow, navArrowIconFile);
-  lv_obj_align(navArrow, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
-  
+  // Navigation Arrow Widget
+  navArrowWidget(mapTile);
+  // Map zoom Widget
+  mapZoomWidget(mapTile);
   // Map Tile Toolbar
   btnZoomOut = lv_img_create(mapTile);
   lv_img_set_src(btnZoomOut, zoomOutIconFile);
   lv_img_set_zoom(btnZoomOut,buttonScale);
   lv_obj_update_layout(btnZoomOut);
   lv_obj_set_size(btnZoomOut,  48 * scaleBut, 48 * scaleBut);
-  lv_obj_add_event_cb(btnZoomOut, zoomOutEvent, LV_EVENT_CLICKED, NULL);
-
   btnZoomIn = lv_img_create(mapTile);
   lv_img_set_src(btnZoomIn, zoomInIconFile);
   lv_img_set_zoom(btnZoomIn,buttonScale);
   lv_obj_update_layout(btnZoomIn);
   lv_obj_set_size(btnZoomIn,  48 * scaleBut, 48 * scaleBut);
-  lv_obj_add_event_cb(btnZoomIn, zoomInEvent, LV_EVENT_CLICKED, NULL);
-
   lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrHeight - toolBarOffset);
   lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrHeight - (toolBarOffset + toolBarSpace));
-
   if (!showMapToolBar)
   {
     lv_obj_clear_flag(btnZoomOut, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
@@ -515,17 +528,17 @@ void createMainScr()
     lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
   }
-
   // Map Tile Events
   lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(mainScreen, gestureEvent, LV_EVENT_GESTURE, NULL);
   DOUBLE_TOUCH_EVENT = lv_event_register_id();
   lv_obj_add_event_cb(mapTile, mapToolBarEvent, (lv_event_code_t)DOUBLE_TOUCH_EVENT, NULL);
   lv_obj_add_event_cb(mapTile, scrollMapEvent, LV_EVENT_ALL, NULL);
+  lv_obj_add_event_cb(btnZoomOut, zoomEvent, LV_EVENT_CLICKED, NULL);
+  lv_obj_add_event_cb(btnZoomIn, zoomEvent, LV_EVENT_CLICKED, NULL);
 
   // Navigation Tile
   navigationScr(navTile);
-
   // Navigation Tile Events
   lv_obj_add_event_cb(navTile, updateNavEvent, LV_EVENT_VALUE_CHANGED, NULL);
 
@@ -543,7 +556,6 @@ void createMainScr()
   drawSatConst();
 #endif
 #endif
-
   // Satellite Tracking Event
   lv_obj_add_event_cb(satTrackTile, updateSatTrack, LV_EVENT_VALUE_CHANGED, NULL);
 }

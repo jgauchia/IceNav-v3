@@ -15,12 +15,8 @@
 #include "bruj.h"
 #include "waypoint.h"
 #include "compass.h"
-#include "zoom.h"
 #include "speed.h"
-#include "zoomin.h"
-#include "zoomout.h"
 #include "navfinish.h"
-#include "move.h"
 
 #include "globalGpxDef.h"
 
