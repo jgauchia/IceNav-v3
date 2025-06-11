@@ -52,7 +52,6 @@ static const char *sunsetIconFile PROGMEM = "/sunset.bin";          // Sunset Ic
 static const char *navArrowIconFile PROGMEM = "/navarrow.bin";      // Navigation Arrow icon
 static const char *zoomIconFile PROGMEM = "/zoom.bin";              // Zoom map icon
 static const char *mapSpeedIconFile PROGMEM = "/mapspeed.bin";      // Speed map icon
-static const char *mapCompassIconFile PROGMEM = "/compass.bin";     // Compass map icon
 
 void positionWidget(lv_obj_t *screen);
 void compassWidget(lv_obj_t *screen);

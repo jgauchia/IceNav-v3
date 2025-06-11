@@ -13,6 +13,7 @@
  *
  */
 #include "bruj.h"
+#include "compass.h"
 #include "waypoint.h"
 #include "navfinish.h"
 

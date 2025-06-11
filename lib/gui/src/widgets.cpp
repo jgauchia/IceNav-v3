@@ -339,7 +339,8 @@ void mapCompassWidget(lv_obj_t *screen)
   lv_obj_set_style_border_opa(miniCompass,128,0);
   lv_obj_set_align(miniCompass, LV_ALIGN_TOP_RIGHT);
   mapCompassImg = lv_img_create(miniCompass);
-  lv_img_set_src(mapCompassImg, mapCompassIconFile);
+  LV_IMG_DECLARE(compassMap);
+  lv_img_set_src(mapCompassImg, &compassMap);
   lv_obj_set_align(mapCompassImg, LV_ALIGN_CENTER);
   lv_obj_add_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
 }

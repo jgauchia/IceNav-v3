@@ -158,16 +158,16 @@ void updateMainScreen(lv_timer_t *t)
     switch (activeTile)
     {
       case COMPASS:
-  #ifdef ENABLE_COMPASS
-        if (!waitScreenRefresh)
-          heading = compass.getHeading();
-        if (compass.isUpdated())
-          lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
-  #endif
-  #ifndef ENABLE_COMPASS
-        heading = gps.gpsData.heading;
-        lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
-  #endif
+        #ifdef ENABLE_COMPASS
+              if (!waitScreenRefresh)
+                heading = compass.getHeading();
+              if (compass.isUpdated())
+                lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
+        #endif
+        #ifndef ENABLE_COMPASS
+              heading = gps.gpsData.heading;
+              lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
+        #endif
         if (gps.hasLocationChange())
         {
           lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
@@ -180,9 +180,14 @@ void updateMainScreen(lv_timer_t *t)
         break;
 
       case MAP:
-  #ifdef ENABLE_COMPASS
-        heading = compass.getHeading();
-  #endif
+        #ifdef ENABLE_COMPASS
+          if (mapSet.mapRotationComp)
+            heading = compass.getHeading();
+          else
+            heading = gps.gpsData.heading;
+        #else
+          heading = gps.gpsData.heading;
+        #endif
         lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
         break;
 
@@ -259,17 +264,8 @@ void updateMap(lv_event_t *event)
   
   if (mapSet.showMapCompass)
   {
-    uint16_t mapHeading = 0;
-    #ifdef ENABLE_COMPASS
-      if (mapSet.mapRotationComp)
-        mapHeading = compass.getHeading();
-      else
-        mapHeading = gps.gpsData.heading;
-    #else
-      mapHeading = gps.gpsData.heading;
-    #endif
     if (mapSet.compassRotation)
-      lv_img_set_angle(mapCompassImg, -(mapHeading * 10));
+      lv_img_set_angle(mapCompassImg, -(heading * 10));
   }
 }
 
