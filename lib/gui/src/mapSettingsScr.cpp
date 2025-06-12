@@ -10,6 +10,11 @@
 
 lv_obj_t *mapSettingsScreen; // Map Settings Screen
 
+extern lv_obj_t *mapSpeed;
+extern lv_obj_t *miniCompass;
+extern lv_obj_t *mapCompassImg;
+extern lv_obj_t *scaleWidget;
+
 extern Maps mapView;
 
 /**
@@ -88,24 +93,38 @@ static void mapSettingsEvents(lv_event_t *event)
   {
     mapSet.showMapCompass = lv_obj_has_state(obj, LV_STATE_CHECKED);
     cfg.saveBool(PKEYS::KMAP_COMPASS, mapSet.showMapCompass);
+    if (mapSet.showMapCompass)
+      lv_obj_clear_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
+    else
+      lv_obj_add_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
   }
 
   if (obj == checkCompassRot)
   {
     mapSet.compassRotation = lv_obj_has_state(obj, LV_STATE_CHECKED);
     cfg.saveBool(PKEYS::KMAP_COMP_ROT, mapSet.compassRotation);
+    if (!mapSet.compassRotation);
+      lv_img_set_angle(mapCompassImg, 0);
   }
 
   if (obj == checkSpeed)
   {
     mapSet.showMapSpeed = lv_obj_has_state(obj, LV_STATE_CHECKED);
     cfg.saveBool(PKEYS::KMAP_SPEED, mapSet.showMapSpeed);
+    if (mapSet.showMapSpeed)
+      lv_obj_clear_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
+    else
+      lv_obj_add_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
   }
 
   if (obj == checkScale)
   {
     mapSet.showMapScale = lv_obj_has_state(obj, LV_STATE_CHECKED);
     cfg.saveBool(PKEYS::KMAP_SCALE, mapSet.showMapScale);
+    if (mapSet.showMapScale)
+      lv_obj_clear_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
+    else
+      lv_obj_add_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
   }
 }
 

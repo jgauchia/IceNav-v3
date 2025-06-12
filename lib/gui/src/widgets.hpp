@@ -11,6 +11,7 @@
 #include "lvglFuncs.hpp"
 #include "gpsMath.hpp"
 #include "settings.hpp"
+#include "mapVars.h"
 
 /**
  * @brief Widget objects
@@ -27,6 +28,12 @@ extern lv_obj_t *sunsetLabel;
 extern lv_obj_t *navArrow;
 extern lv_obj_t *zoomLabel;
 extern lv_obj_t *zoomWidget;
+extern lv_obj_t *mapSpeedLabel;
+extern lv_obj_t *mapSpeed;
+extern lv_obj_t *miniCompass;
+extern lv_obj_t *mapCompassImg;
+extern lv_obj_t *scaleWidget;
+extern lv_obj_t *scaleLabel;
 
 void editWidget(lv_event_t *event);
 void dragWidget(lv_event_t *event);
@@ -47,6 +54,7 @@ static const char *sunriseIconFile PROGMEM = "/sunrise.bin";        // Sunrise I
 static const char *sunsetIconFile PROGMEM = "/sunset.bin";          // Sunset Icon
 static const char *navArrowIconFile PROGMEM = "/navarrow.bin";      // Navigation Arrow icon
 static const char *zoomIconFile PROGMEM = "/zoom.bin";              // Zoom map icon
+static const char *mapSpeedIconFile PROGMEM = "/mapspeed.bin";      // Speed map icon
 
 void positionWidget(lv_obj_t *screen);
 void compassWidget(lv_obj_t *screen);
@@ -55,3 +63,6 @@ void speedWidget(lv_obj_t *screen);
 void sunWidget(lv_obj_t *screen);
 void navArrowWidget(lv_obj_t *screen);
 void mapZoomWidget(lv_obj_t *screen);
+void mapSpeedWidget(lv_obj_t *screen);
+void mapCompassWidget(lv_obj_t *screen);
+void mapScaleWidget(lv_obj_t *screen);

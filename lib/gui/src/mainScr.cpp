@@ -79,6 +79,19 @@ void showMapWidgets()
 {
   lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
   lv_obj_clear_flag(zoomWidget, LV_OBJ_FLAG_HIDDEN);
+  if (mapSet.showMapSpeed)
+    lv_obj_clear_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
+  else
+    lv_obj_add_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
+  if (mapSet.showMapCompass)
+    lv_obj_clear_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
+  else
+    lv_obj_add_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
+  if (!mapSet.vectorMap)
+    if (mapSet.showMapScale)
+      lv_obj_clear_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
+    else
+      lv_obj_add_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
 }
 
 /**
@@ -89,6 +102,9 @@ void hideMapWidgets()
 {
   lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);  
   lv_obj_add_flag(zoomWidget, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
 }
 
 
@@ -148,16 +164,16 @@ void updateMainScreen(lv_timer_t *t)
     switch (activeTile)
     {
       case COMPASS:
-  #ifdef ENABLE_COMPASS
-        if (!waitScreenRefresh)
-          heading = compass.getHeading();
-        if (compass.isUpdated())
-          lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
-  #endif
-  #ifndef ENABLE_COMPASS
-        heading = gps.gpsData.heading;
-        lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
-  #endif
+        #ifdef ENABLE_COMPASS
+              if (!waitScreenRefresh)
+                heading = compass.getHeading();
+              if (compass.isUpdated())
+                lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
+        #endif
+        #ifndef ENABLE_COMPASS
+              heading = gps.gpsData.heading;
+              lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
+        #endif
         if (gps.hasLocationChange())
         {
           lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
@@ -170,9 +186,14 @@ void updateMainScreen(lv_timer_t *t)
         break;
 
       case MAP:
-  #ifdef ENABLE_COMPASS
-        heading = compass.getHeading();
-  #endif
+        #ifdef ENABLE_COMPASS
+          if (mapSet.mapRotationComp)
+            heading = compass.getHeading();
+          else
+            heading = gps.gpsData.heading;
+        #else
+          heading = gps.gpsData.heading;
+        #endif
         lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
         break;
 
@@ -238,12 +259,23 @@ void updateMap(lv_event_t *event)
   else
     mapView.generateRenderMap(zoom);
 
- if (mapView.redrawMap)
- {
+  if (mapView.redrawMap)
+  {
     mapView.displayMap();
     lv_canvas_set_buffer(mapCanvas, mapView.mapBuffer, tft.width(), tft.height()-27, LV_COLOR_FORMAT_RGB565_SWAPPED);
  }
 
+  if (mapSet.showMapSpeed)
+    lv_label_set_text_fmt(mapSpeedLabel, "%3d", gps.gpsData.speed);     
+  
+  if (mapSet.showMapScale)
+    lv_label_set_text_fmt(scaleLabel, "%s", map_scale[zoom]);
+
+  if (mapSet.showMapCompass)
+  {
+    if (mapSet.compassRotation)
+      lv_img_set_angle(mapCompassImg, -(heading * 10));
+  }
 }
 
 /**
@@ -474,7 +506,7 @@ void createMainScr()
   lv_obj_add_event_cb(tilesScreen, getActTile, LV_EVENT_SCROLL_END, NULL);
   lv_obj_add_event_cb(tilesScreen, scrollTile, LV_EVENT_SCROLL_BEGIN, NULL);
 
-  // Compass Tile
+  // ********** Compass Tile **********
   // Compass Widget
   compassWidget(compassTile);
   // Position widget
@@ -494,13 +526,19 @@ void createMainScr()
   lv_obj_add_event_cb(sunriseLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(sunsetLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
 
-  // Map Tile
-  // Map Canvas
+  // ********** Map Tile **********
+  // Map Canvas 
   createMapCanvas(mapTile);
   // Navigation Arrow Widget
   navArrowWidget(mapTile);
   // Map zoom Widget
   mapZoomWidget(mapTile);
+  // Map speed Widget
+  mapSpeedWidget(mapTile);
+  // Map compass Widget
+  mapCompassWidget(mapTile);
+  // Map scale Widget
+  mapScaleWidget(mapTile);
   // Map Tile Toolbar
   btnZoomOut = lv_img_create(mapTile);
   lv_img_set_src(btnZoomOut, zoomOutIconFile);
@@ -537,12 +575,12 @@ void createMainScr()
   lv_obj_add_event_cb(btnZoomOut, zoomEvent, LV_EVENT_CLICKED, NULL);
   lv_obj_add_event_cb(btnZoomIn, zoomEvent, LV_EVENT_CLICKED, NULL);
 
-  // Navigation Tile
+  // ********** Navigation Tile **********
   navigationScr(navTile);
   // Navigation Tile Events
   lv_obj_add_event_cb(navTile, updateNavEvent, LV_EVENT_VALUE_CHANGED, NULL);
 
-  // Satellite Tracking and info Tile
+  // ********** Satellite Tracking and info Tile **********
   satelliteScr(satTrackTile);
 #ifdef BOARD_HAS_PSRAM
 #ifndef TDECK_ESP32S3
