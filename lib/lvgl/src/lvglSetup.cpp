@@ -2,8 +2,8 @@
  * @file lvglSetup.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Screen implementation
- * @version 0.2.2
- * @date 2025-05
+ * @version 0.2.3
+ * @date 2025-06
  */
 
 #include "lvglSetup.hpp"
@@ -21,6 +21,8 @@ lv_obj_t *powerMsg;       // Power Message
 
 Power power;
 uint32_t DOUBLE_TOUCH_EVENT;
+
+Maps mapView;
 
 /**
  * @brief LVGL display update
@@ -414,5 +416,11 @@ void loadMainScreen()
   isScrolled = true;
   isSearchingSat = false;
   gpxAction = WPT_NONE;
+  lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
+  if (mapView.isMapFound)
+    lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+  else
+    lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
   lv_screen_load(mainScreen);
 }

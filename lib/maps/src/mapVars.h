@@ -2,8 +2,8 @@
  * @file mapsVars.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Maps vars and structures
- * @version 0.2.2
- * @date 2025-05
+ * @version 0.2.3
+ * @date 2025-06
  */
 
 #pragma once
@@ -13,17 +13,9 @@
  *
  */
 #include "bruj.h"
-#include "navigation.h"
-#include "waypoint.h"
 #include "compass.h"
-#include "zoom.h"
-#include "speed.h"
-#include "expand.h"
-#include "collapse.h"
-#include "zoomin.h"
-#include "zoomout.h"
+#include "waypoint.h"
 #include "navfinish.h"
-#include "move.h"
 
 #include "globalGpxDef.h"
 

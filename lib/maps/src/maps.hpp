@@ -3,8 +3,8 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com) - Render Maps
  * @author @aresta - https://github.com/aresta/ESP32_GPS - Vector Maps
  * @brief  Maps draw class
- * @version 0.2.2
- * @date 2025-05
+ * @version 0.2.3
+ * @date 2025-06
  */
 
 #pragma once
@@ -113,13 +113,11 @@ class Maps
     static const uint16_t vectorMapTileSize = tileHeight / 2;             // Vector map tile size
     uint16_t mapTileSize;                                                 // Actual map tile size (render or vector map)
     uint16_t wptPosX, wptPosY;                                            // Waypoint position on screen map
-    TFT_eSprite arrowSprite = TFT_eSprite(&tft);                          // Sprite for Navigation Arrow in map
     TFT_eSprite mapTempSprite = TFT_eSprite(&tft);                        // Full map sprite (not showed)
     TFT_eSprite mapSprite = TFT_eSprite(&tft);                            // Screen map sprite (showed)
     double prevLat, prevLon;                                              // Previous Latitude and Longitude
     double destLat, destLon;                                              // Waypoint destination latitude and longitude
     uint8_t zoomLevel;                                                    // Zoom level for map display
-    bool isMapFound = false;                                              // Flag to indicate when map is found on SD
     struct tileBounds                                                     // Map boundaries structure
     {
       double lat_min; 
@@ -139,15 +137,16 @@ class Maps
     ScreenCoord coord2ScreenPos(double lon, double lat, uint8_t zoomLevel, uint16_t tileSize);
     void coords2map(double lat, double lon, tileBounds bound, uint16_t *pixelX, uint16_t *pixelY);
     void showNoMap(TFT_eSprite &map);
-    void drawMapWidgets(MAP mapSet);
 
   public:
+    void* mapBuffer;                                                     // Pointer to map screen sprite
     uint16_t mapScrHeight;                                               // Screen map size height   
     uint16_t mapScrWidth;                                                // Screen map size width
     uint16_t mapScrFull;                                                 // Screen map size in full screen
     bool redrawMap = true;                                               // Flag to indicate need redraw Map
     bool isPosMoved = true;                                              // Flag when current position changes (vector map)
     bool followGps = true;                                               // Flag to indicate if map follow GPS signal
+    bool isMapFound = false;                                              // Flag to indicate when map is found on SD
     MapTile oldMapTile;                                                  // Old Map tile coordinates and zoom
     MapTile currentMapTile;                                              // Current Map tile coordinates and zoom
     MapTile roundMapTile;                                                // Boundaries Map tiles
@@ -162,7 +161,7 @@ class Maps
 
     Maps();
     MapTile getMapTile(double lon, double lat, uint8_t zoomLevel, int8_t offsetX, int8_t offsetY);
-    void initMap(uint16_t mapHeight, uint16_t mapWidth, uint16_t mapFull);
+    void initMap(uint16_t mapHeight, uint16_t mapWidth);
     void deleteMapScrSprites();
     void createMapScrSprites();
     void generateRenderMap(uint8_t zoom);

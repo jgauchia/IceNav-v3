@@ -2,13 +2,18 @@
  * @file mapSettingsScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Map Settings screen
- * @version 0.2.2
- * @date 2025-05
+ * @version 0.2.3
+ * @date 2025-06
  */
 
 #include "mapSettingsScr.hpp"
 
 lv_obj_t *mapSettingsScreen; // Map Settings Screen
+
+extern lv_obj_t *mapSpeed;
+extern lv_obj_t *miniCompass;
+extern lv_obj_t *mapCompassImg;
+extern lv_obj_t *scaleWidget;
 
 extern Maps mapView;
 
@@ -88,31 +93,38 @@ static void mapSettingsEvents(lv_event_t *event)
   {
     mapSet.showMapCompass = lv_obj_has_state(obj, LV_STATE_CHECKED);
     cfg.saveBool(PKEYS::KMAP_COMPASS, mapSet.showMapCompass);
+    if (mapSet.showMapCompass)
+      lv_obj_clear_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
+    else
+      lv_obj_add_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
   }
 
   if (obj == checkCompassRot)
   {
     mapSet.compassRotation = lv_obj_has_state(obj, LV_STATE_CHECKED);
     cfg.saveBool(PKEYS::KMAP_COMP_ROT, mapSet.compassRotation);
+    if (!mapSet.compassRotation);
+      lv_img_set_angle(mapCompassImg, 0);
   }
 
   if (obj == checkSpeed)
   {
     mapSet.showMapSpeed = lv_obj_has_state(obj, LV_STATE_CHECKED);
     cfg.saveBool(PKEYS::KMAP_SPEED, mapSet.showMapSpeed);
+    if (mapSet.showMapSpeed)
+      lv_obj_clear_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
+    else
+      lv_obj_add_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
   }
 
   if (obj == checkScale)
   {
     mapSet.showMapScale = lv_obj_has_state(obj, LV_STATE_CHECKED);
     cfg.saveBool(PKEYS::KMAP_SCALE, mapSet.showMapScale);
-  }
-
-  if (obj == checkFullScreen)
-  {
-    mapSet.mapFullScreen = lv_obj_has_state(obj, LV_STATE_CHECKED);
-    cfg.saveBool(PKEYS::KMAP_MODE, mapSet.mapFullScreen);
-    needReboot = true;
+    if (mapSet.showMapScale)
+      lv_obj_clear_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
+    else
+      lv_obj_add_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
   }
 }
 
@@ -188,17 +200,6 @@ void createMapSettingsScr()
   lv_obj_align_to(zoomBtnDown, list, LV_ALIGN_RIGHT_MID, 0, 0);
   lv_obj_set_style_bg_image_src(zoomBtnDown, LV_SYMBOL_MINUS, 0);
   lv_obj_add_event_cb(zoomBtnDown, mapSettingsEvents, LV_EVENT_ALL, NULL);
-
-  // Show Full Screen Map
-  list = lv_list_add_btn(mapSettingsOptions, NULL, "Show Full Screen Map");
-  lv_obj_set_style_text_font(list, fontOptions, 0);
-  lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
-  checkFullScreen = lv_checkbox_create(list);
-  lv_obj_align_to(checkFullScreen, list, LV_ALIGN_RIGHT_MID, 0, 0);
-  lv_checkbox_set_text(checkFullScreen, " ");
-  lv_obj_add_state(checkFullScreen, mapSet.mapFullScreen);
-  lv_obj_add_event_cb(checkFullScreen, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
 
   // Show Compass
   list = lv_list_add_btn(mapSettingsOptions, NULL, "Show Compass");

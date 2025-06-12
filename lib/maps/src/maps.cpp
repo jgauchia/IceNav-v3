@@ -3,8 +3,8 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com) - Render Maps
  * @author @aresta - https://github.com/aresta/ESP32_GPS - Vector Maps
  * @brief  Maps draw class
- * @version 0.2.2
- * @date 2025-05
+ * @version 0.2.3
+ * @date 2025-06
  */
 
 #include "maps.hpp"
@@ -844,94 +844,6 @@ void Maps::showNoMap(TFT_eSprite &map)
 }
 
 /**
- * @brief Draw map widgets
- *
- */
-void Maps::drawMapWidgets(MAP mapSettings)
-{
-  Maps::mapSprite.setTextColor(TFT_WHITE, TFT_WHITE);
-
-  uint16_t mapHeading = 0;
-#ifdef ENABLE_COMPASS
-  if (mapSettings.mapRotationComp)
-    mapHeading = compass.getHeading();
-  else
-    mapHeading = gps.gpsData.heading;
-#else
-  mapHeading = gps.gpsData.heading;
-#endif
-
-  if (mapSettings.showMapCompass)
-  {
-    Maps::mapSprite.fillRectAlpha(Maps::mapScrWidth - 48, 0, 48, 48, 95, TFT_BLACK);
-    if (mapSettings.compassRotation)
-      Maps::mapSprite.pushImageRotateZoom(Maps::mapScrWidth - 24, 24, 24, 24, 360 - mapHeading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
-    else
-      Maps::mapSprite.pushImage(Maps::mapScrWidth - 48, 0, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
-  }
-
-  uint16_t mapHeight = 0;
-  if (mapSettings.mapFullScreen)
-    mapHeight = Maps::mapScrFull;
-  else
-    mapHeight = Maps::mapScrHeight;
-
-  uint8_t toolBarOffset = 0;
-  uint8_t toolBarSpace = 0;
-#ifdef LARGE_SCREEN
-  toolBarOffset = 100;
-  toolBarSpace = 60;
-#endif
-#ifndef LARGE_SCREEN
-  toolBarOffset = 80;
-  toolBarSpace = 50;
-#endif
-
-  if (showMapToolBar)
-  {
-    if (mapSettings.mapFullScreen)
-      Maps::mapSprite.pushImage(10, mapHeight - toolBarOffset, 48, 48, (uint16_t *)collapse, TFT_BLACK);
-    else
-      Maps::mapSprite.pushImage(10, mapHeight - toolBarOffset, 48, 48, (uint16_t *)expand, TFT_BLACK);
-
-      // Maps::mapSprite.fillRectAlpha(10, mapHeight - toolBarOffset, 48, 48, 50, TFT_BLACK);
-
-    Maps::mapSprite.pushImage(10, mapHeight - (toolBarOffset + toolBarSpace), 48, 48, (uint16_t *)zoomout, TFT_BLACK);
-    // Maps::mapSprite.fillRectAlpha(10, mapHeight - (toolBarOffset + toolBarSpace), 48, 48, 50, TFT_BLACK);
-
-    Maps::mapSprite.pushImage(10, mapHeight - (toolBarOffset + (2 * toolBarSpace)), 48, 48, (uint16_t *)zoomin, TFT_BLACK);
-    // Maps::mapSprite.fillRectAlpha(10, mapHeight - (toolBarOffset + (2 * toolBarSpace)), 48, 48, 50, TFT_BLACK);
-
-    // if (!mapSettings.vectorMap)
-    // {
-    //   Maps::mapSprite.pushImage(tft.width() - 58, mapHeight - toolBarOffset, 48, 48, (uint16_t *)move, TFT_BLACK);
-    // }
-  }
-
-  Maps::mapSprite.fillRectAlpha(0, 0, 50, 32, 95, TFT_BLACK);
-  Maps::mapSprite.pushImage(0, 4, 24, 24, (uint16_t *)zoom_ico, TFT_BLACK);
-  Maps::mapSprite.drawNumber(zoom, 26, 8, &fonts::FreeSansBold9pt7b);
-
-  if (mapSettings.showMapSpeed)
-  {
-    Maps::mapSprite.fillRectAlpha(0, mapHeight - 32, 70, 32, 95, TFT_BLACK);
-    Maps::mapSprite.pushImage(0, mapHeight - 28, 24, 24, (uint16_t *)speed_ico, TFT_BLACK);
-    Maps::mapSprite.drawNumber(gps.gpsData.speed, 26, mapHeight - 24, &fonts::FreeSansBold9pt7b);
-  }
-
-  if (!mapSettings.vectorMap)
-    if (mapSettings.showMapScale)
-    {
-      Maps::mapSprite.fillRectAlpha(Maps::mapScrWidth - 70, mapHeight - 32, 70, Maps::mapScrWidth - 75, 95, TFT_BLACK);
-      Maps::mapSprite.setTextSize(1);
-      Maps::mapSprite.drawFastHLine(Maps::mapScrWidth - 65, mapHeight - 14, 60);
-      Maps::mapSprite.drawFastVLine(Maps::mapScrWidth - 65, mapHeight - 19, 10);
-      Maps::mapSprite.drawFastVLine(Maps::mapScrWidth - 5, mapHeight - 19, 10);
-      Maps::mapSprite.drawCenterString(map_scale[zoom], Maps::mapScrWidth - 35, mapHeight - 24);
-    }
-}
-
-/**
  * @brief Set center coordinates of viewport
  *
  * @param pcenter
@@ -952,13 +864,11 @@ void Maps::ViewPort::setCenter(Point32 pcenter)
  *
  * @param mapHeight  -> Screen map size height
  * @param mapWidth   -> Screen map size width
- * @param mapFull    -> Full Screen map size
  */
-void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth, uint16_t mapFull)
+void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
 {
   Maps::mapScrHeight = mapHeight;
   Maps::mapScrWidth = mapWidth;
-  Maps::mapScrFull = mapFull;
 
   // Reserve PSRAM for buffer map
   Maps::mapTempSprite.deleteSprite();
@@ -978,7 +888,6 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth, uint16_t mapFull)
  */
 void Maps::deleteMapScrSprites()
 {
-  Maps::arrowSprite.deleteSprite();
   Maps::mapSprite.deleteSprite();
 }
 
@@ -989,14 +898,7 @@ void Maps::deleteMapScrSprites()
 void Maps::createMapScrSprites()
 {
   // Map Sprite
-  if (!mapSet.mapFullScreen)
-    Maps::mapSprite.createSprite(Maps::mapScrWidth, Maps::mapScrHeight);
-  else
-    Maps::mapSprite.createSprite(Maps::mapScrWidth, Maps::mapScrFull);
-  // Arrow Sprite
-  Maps::arrowSprite.createSprite(16, 16);
-  Maps::arrowSprite.setColorDepth(16);
-  Maps::arrowSprite.pushImage(0, 0, 16, 16, (uint16_t *)navigation);
+  Maps::mapBuffer = Maps::mapSprite.createSprite(Maps::mapScrWidth, Maps::mapScrHeight);
 }
 
 /**
@@ -1132,11 +1034,6 @@ void Maps::generateVectorMap(uint8_t zoom)
  */
 void Maps::displayMap()
 {
-  if (!mapSet.mapFullScreen)
-    Maps::mapSprite.pushSprite(0, 27);
-  else
-    Maps::mapSprite.pushSprite(0, 0);
-
   if (Maps::isMapFound)
   {
     uint16_t mapHeading = 0;
@@ -1167,14 +1064,9 @@ void Maps::displayMap()
       Maps::mapTempSprite.setPivot(Maps::vectorMapTileSize, Maps::vectorMapTileSize);
 
     if (Maps::followGps)
-    {
       Maps::mapTempSprite.pushRotated(&(Maps::mapSprite), 360 - mapHeading, TFT_TRANSPARENT);
-      Maps::arrowSprite.pushRotated(&(Maps::mapSprite), 0, TFT_BLACK);
-    }
     else
       Maps::mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
- 
-    Maps::drawMapWidgets(mapSet);
   }
   else
   {
@@ -1182,6 +1074,13 @@ void Maps::displayMap()
      Maps::mapTempSprite.pushSprite(&(Maps::mapSprite), 0, 0, TFT_TRANSPARENT);
     else
      Maps::mapTempSprite.pushSprite(&(Maps::mapSprite), 0, 0, TFT_TRANSPARENT);
+  }
+
+  uint16_t* p = (uint16_t*)Maps::mapBuffer;
+  for (size_t i = 0; i < (Maps::mapScrWidth*Maps::mapScrHeight); ++i)
+  {
+    uint16_t c = p[i];
+    p[i] = (c << 8) | (c >> 8);
   }
 }
 

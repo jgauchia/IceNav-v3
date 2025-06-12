@@ -2,8 +2,8 @@
  * @file power.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ESP32 Power Management functions
- * @version 0.2.2
- * @date 2025-05
+ * @version 0.2.3
+ * @date 2025-06
  */
 
 #pragma once
