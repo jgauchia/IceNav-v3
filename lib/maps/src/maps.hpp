@@ -137,7 +137,6 @@ class Maps
     ScreenCoord coord2ScreenPos(double lon, double lat, uint8_t zoomLevel, uint16_t tileSize);
     void coords2map(double lat, double lon, tileBounds bound, uint16_t *pixelX, uint16_t *pixelY);
     void showNoMap(TFT_eSprite &map);
-    void drawMapWidgets(MAP mapSet);
 
   public:
     void* mapBuffer;                                                     // Pointer to map screen sprite

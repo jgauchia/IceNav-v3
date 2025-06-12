@@ -844,46 +844,6 @@ void Maps::showNoMap(TFT_eSprite &map)
 }
 
 /**
- * @brief Draw map widgets
- *
- */
-void Maps::drawMapWidgets(MAP mapSettings)
-{
-  Maps::mapSprite.setTextColor(TFT_WHITE, TFT_WHITE);
-
-  uint16_t mapHeading = 0;
-#ifdef ENABLE_COMPASS
-  if (mapSettings.mapRotationComp)
-    mapHeading = compass.getHeading();
-  else
-    mapHeading = gps.gpsData.heading;
-#else
-  mapHeading = gps.gpsData.heading;
-#endif
-
-  // if (mapSettings.showMapCompass)
-  // {
-    // Maps::mapSprite.fillRectAlpha(Maps::mapScrWidth - 48, 0, 48, 48, 95, TFT_BLACK);
-    // if (mapSettings.compassRotation)
-    //   Maps::mapSprite.pushImageRotateZoom(Maps::mapScrWidth - 24, 24, 24, 24, 360 - mapHeading, 1, 1, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
-    // else
-    //   Maps::mapSprite.pushImage(Maps::mapScrWidth - 48, 0, 48, 48, (uint16_t *)mini_compass, TFT_BLACK);
-  // }
-
-  uint16_t mapHeight = Maps::mapScrHeight;
-  if (!mapSettings.vectorMap)
-    if (mapSettings.showMapScale)
-    {
-      Maps::mapSprite.fillRectAlpha(70, mapHeight - 32, 70, Maps::mapScrWidth - 75, 95, TFT_BLACK);
-      Maps::mapSprite.setTextSize(1);
-      Maps::mapSprite.drawFastHLine(75, mapHeight - 14, 60);
-      Maps::mapSprite.drawFastVLine(75, mapHeight - 19, 10);
-      Maps::mapSprite.drawFastVLine(135, mapHeight - 19, 10);
-      Maps::mapSprite.drawCenterString(map_scale[zoom], 110, mapHeight - 24);
-    }
-}
-
-/**
  * @brief Set center coordinates of viewport
  *
  * @param pcenter
@@ -1107,8 +1067,6 @@ void Maps::displayMap()
       Maps::mapTempSprite.pushRotated(&(Maps::mapSprite), 360 - mapHeading, TFT_TRANSPARENT);
     else
       Maps::mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
- 
-    Maps::drawMapWidgets(mapSet);
   }
   else
   {

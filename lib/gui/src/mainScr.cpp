@@ -87,6 +87,11 @@ void showMapWidgets()
     lv_obj_clear_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
   else
     lv_obj_add_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
+  if (!mapSet.vectorMap)
+    if (mapSet.showMapScale)
+      lv_obj_clear_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
+    else
+      lv_obj_add_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
 }
 
 /**
@@ -99,6 +104,7 @@ void hideMapWidgets()
   lv_obj_add_flag(zoomWidget, LV_OBJ_FLAG_HIDDEN);
   lv_obj_add_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
   lv_obj_add_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
 }
 
 
@@ -262,6 +268,9 @@ void updateMap(lv_event_t *event)
   if (mapSet.showMapSpeed)
     lv_label_set_text_fmt(mapSpeedLabel, "%3d", gps.gpsData.speed);     
   
+  if (mapSet.showMapScale)
+    lv_label_set_text_fmt(scaleLabel, "%s", map_scale[zoom]);
+
   if (mapSet.showMapCompass)
   {
     if (mapSet.compassRotation)
@@ -528,6 +537,8 @@ void createMainScr()
   mapSpeedWidget(mapTile);
   // Map compass Widget
   mapCompassWidget(mapTile);
+  // Map scale Widget
+  mapScaleWidget(mapTile);
   // Map Tile Toolbar
   btnZoomOut = lv_img_create(mapTile);
   lv_img_set_src(btnZoomOut, zoomOutIconFile);

@@ -13,6 +13,7 @@ lv_obj_t *mapSettingsScreen; // Map Settings Screen
 extern lv_obj_t *mapSpeed;
 extern lv_obj_t *miniCompass;
 extern lv_obj_t *mapCompassImg;
+extern lv_obj_t *scaleWidget;
 
 extern Maps mapView;
 
@@ -120,6 +121,10 @@ static void mapSettingsEvents(lv_event_t *event)
   {
     mapSet.showMapScale = lv_obj_has_state(obj, LV_STATE_CHECKED);
     cfg.saveBool(PKEYS::KMAP_SCALE, mapSet.showMapScale);
+    if (mapSet.showMapScale)
+      lv_obj_clear_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
+    else
+      lv_obj_add_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
   }
 }
 

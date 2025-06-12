@@ -23,6 +23,8 @@ lv_obj_t *mapSpeedLabel;
 lv_obj_t *mapSpeed;
 lv_obj_t *miniCompass;
 lv_obj_t *mapCompassImg;
+lv_obj_t *scaleWidget;
+lv_obj_t *scaleLabel;
 
 extern Gps gps;
 
@@ -343,4 +345,35 @@ void mapCompassWidget(lv_obj_t *screen)
   lv_img_set_src(mapCompassImg, &compassMap);
   lv_obj_set_align(mapCompassImg, LV_ALIGN_CENTER);
   lv_obj_add_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
+}
+
+/**
+ * @brief Map scale widget
+ *
+ * @param screen 
+ */
+void mapScaleWidget(lv_obj_t *screen)
+{
+  scaleWidget = lv_obj_create(screen);
+  lv_obj_set_size(scaleWidget, 100, 32);
+  lv_obj_clear_flag(scaleWidget, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_flex_flow(scaleWidget, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_flex_align(scaleWidget, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_set_style_bg_color(scaleWidget, lv_color_black(), 0);
+  lv_obj_set_style_bg_opa(scaleWidget, 128, 0);
+  lv_obj_set_style_border_color(scaleWidget, lv_color_black(), 0);
+  lv_obj_set_style_border_width(scaleWidget, 1, 0);
+  lv_obj_set_style_border_opa(scaleWidget,128,0);
+  lv_obj_align(scaleWidget, LV_ALIGN_BOTTOM_LEFT, 102, -1);
+  lv_obj_add_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
+  scaleLabel = lv_label_create(scaleWidget);
+  lv_obj_set_style_text_font(scaleLabel, &lv_font_montserrat_12, 0);
+  lv_label_set_text_fmt(scaleLabel, "%s", map_scale[zoom]);
+  lv_obj_t * scale = lv_scale_create(scaleWidget);
+  lv_scale_set_mode(scale, LV_SCALE_MODE_HORIZONTAL_BOTTOM);
+  lv_scale_set_label_show(scale, false);
+  lv_obj_set_size(scale, 60, 10);
+  lv_scale_set_total_tick_count(scale, 2);
+  lv_scale_set_major_tick_every(scale, 2);
+  lv_scale_set_range(scale, 10, 20);
 }

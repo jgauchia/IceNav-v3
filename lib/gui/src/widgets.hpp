@@ -11,6 +11,7 @@
 #include "lvglFuncs.hpp"
 #include "gpsMath.hpp"
 #include "settings.hpp"
+#include "mapVars.h"
 
 /**
  * @brief Widget objects
@@ -31,6 +32,8 @@ extern lv_obj_t *mapSpeedLabel;
 extern lv_obj_t *mapSpeed;
 extern lv_obj_t *miniCompass;
 extern lv_obj_t *mapCompassImg;
+extern lv_obj_t *scaleWidget;
+extern lv_obj_t *scaleLabel;
 
 void editWidget(lv_event_t *event);
 void dragWidget(lv_event_t *event);
@@ -62,3 +65,4 @@ void navArrowWidget(lv_obj_t *screen);
 void mapZoomWidget(lv_obj_t *screen);
 void mapSpeedWidget(lv_obj_t *screen);
 void mapCompassWidget(lv_obj_t *screen);
+void mapScaleWidget(lv_obj_t *screen);
