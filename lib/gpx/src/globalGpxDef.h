@@ -56,6 +56,17 @@ struct wayPoint
 };
 
 /**
+ * @brief Track turnpoint structure
+ *
+ */
+struct TurnPoint 
+{
+    int idx;           // Track IDX
+    double angle;       // turn angle (positive = right, negative = left)
+    double distance;    // distance from start (in meters)
+};
+
+/**
  * @Brief GPX header file format
  *
  */

@@ -60,11 +60,12 @@ extern Power power;
 extern Maps mapView;
 extern Gps gps;
 #ifdef ENABLE_COMPASS
-Compass compass;
+  Compass compass;
 #endif
 
 
 std::vector<wayPoint> trackData;
+std::vector<TurnPoint> turnPoints;
 
 
 /**

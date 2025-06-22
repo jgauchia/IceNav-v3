@@ -381,11 +381,37 @@ bool GPXParser::loadTrack(std::vector<wayPoint>& trackData)
         // tinyxml2::XMLElement* time = trkpt->FirstChildElement("time");
         // if (time) point.time = strdup(time->GetText());
 
-        trackData.push_back(point);
+        trackData.push_back(point); 
       }
     }
   }
 
-    return true;
+
+  return true;
 }
 
+/**
+ * @brief Get turn points of loaded track.
+ *
+ * @param trackData Vector to track data points (each point is a wayPoint).
+ * @return TurnPoint structure with Turn points.
+ */
+std::vector<TurnPoint> GPXParser::getTurnPoints(float threshold_deg, std::vector<wayPoint>& trackData)
+{
+  std::vector<TurnPoint> turnPoints;
+  double accumDist = 0;
+  if (trackData.size() < 3) 
+    return turnPoints;
+  
+  for (size_t i = 1; i < trackData.size() - 1; ++i)
+  {
+    double brg1 = calcCourse(trackData[i-1].lat, trackData[i-1].lon, trackData[i].lat, trackData[i].lon);
+    double brg2 = calcCourse(trackData[i].lat, trackData[i].lon, trackData[i+1].lat, trackData[i+1].lon);
+    double diff = calcAngleDiff(brg2, brg1);
+    accumDist += calcDist(trackData[i-1].lat, trackData[i-1].lon, trackData[i].lat, trackData[i].lon);
+    if (fabs(diff) > threshold_deg) 
+      turnPoints.push_back({static_cast<int>(i), diff, accumDist});
+  }
+  
+  return turnPoints;
+}

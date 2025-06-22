@@ -17,6 +17,7 @@ extern bool isTrackOpt;
 bool gpxWaypoint = false;
 bool gpxTrack = false;
 extern std::vector<wayPoint> trackData;
+extern std::vector<TurnPoint> turnPoints;
 
 lv_obj_t *listGPXScreen; // Add Waypoint Screen
 
@@ -81,6 +82,13 @@ void gpxListEvent(lv_event_t *event)
             if (gpxTrack)
             {
               gpx.loadTrack(trackData);
+              turnPoints = gpx.getTurnPoints(30.0f,trackData);
+
+              for (auto& tp : turnPoints)
+              {
+                log_i("  idx: %d, angle: %.1f°, dist: %.1fm", tp.idx, tp.angle, tp.distance);
+              }
+
               mapView.updateMap();
               lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
             }

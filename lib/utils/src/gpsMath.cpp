@@ -61,6 +61,19 @@ double calcCourse(double lat1, double lon1, double lat2, double lon2)
 }
 
 /**
+ * @brief Function to calculate the minimum angular difference
+ *
+ * @param a -> Angle 1
+ * @param b -> Angle 2
+ * @return double -> angular difference (-180..180)
+ */
+double calcAngleDiff(double a, double b)
+{
+  double diff = fmod((a - b + 540.0f), 360.0f) - 180.0f;
+  return diff;
+}
+
+/**
  * @brief Function to calculate the midpoint given 2 coordinates (latitude and longitude)
  *
  * @param lat1 -> Latitude 1
@@ -73,7 +86,7 @@ void calcMidPoint(float lat1, float lon1, float lat2, float lon2)
 
   float dLon = (radians(lon2) - radians(lon1));
   float cosLat1 = cos(radians(lat1));
-  float cosLat2 = cos(radians(lat2));
+  float cosLat2 = cos(radians(lat2)); 
   float sinLat1 = sin(radians(lat1));
   float sinLat2 = sin(radians(lat2));
   float Bx = cosLat2 * cos(dLon);

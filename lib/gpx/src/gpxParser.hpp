@@ -19,6 +19,7 @@
 #include "esp_log.h"
 #include "tinyxml2.h"
 #include "globalGpxDef.h"
+#include "gpsMath.hpp"
 
 static const char* TAGGPX PROGMEM = "GPXParser";
 
@@ -57,6 +58,7 @@ class GPXParser
     wayPoint getWaypointInfo(const char* name);
     bool addWaypoint(const wayPoint& wp);
     bool loadTrack(std::vector<wayPoint>& trackData);
+    std::vector<TurnPoint> getTurnPoints(float threshold_deg, std::vector<wayPoint>& trackData);
 
     std::string filePath;
 };
