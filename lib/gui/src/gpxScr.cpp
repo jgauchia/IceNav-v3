@@ -86,7 +86,7 @@ void gpxListEvent(lv_event_t *event)
 
               for (auto& tp : turnPoints)
               {
-                log_i("  idx: %d, angle: %.1f°, dist: %.1fm", tp.idx, tp.angle, tp.distance);
+                ESP_LOGI(TAG, "idx: %d, angle: %.1f°, dist: %.1fm", tp.idx, tp.angle, tp.distance);
               }
 
               mapView.updateMap();

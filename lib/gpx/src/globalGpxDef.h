@@ -56,14 +56,14 @@ struct wayPoint
 };
 
 /**
- * @brief Track turnpoint structure
+ * @brief Track turn points structure
  *
  */
 struct TurnPoint 
 {
-    int idx;            // Track IDX
-    double angle;       // turn angle (positive = right, negative = left)
-    double distance;    // distance from start (in meters)
+  int idx;            // Track IDX
+  double angle;       // turn angle (positive = right, negative = left)
+  double distance;    // distance from start (in meters)
 };
 
 /**
