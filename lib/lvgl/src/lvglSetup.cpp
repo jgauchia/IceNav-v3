@@ -24,6 +24,12 @@ uint32_t DOUBLE_TOUCH_EVENT;
 
 Maps mapView;
 
+/* The recognizer keeps the state of the gesture */
+static lv_indev_gesture_recognizer_t recognizer;
+
+/* An array that stores the collected touch events */
+static lv_indev_touch_data_t touches[10];
+
 /**
  * @brief LVGL display update
  *
@@ -61,6 +67,21 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 
   if (count == 0)
   {
+    touches[0].point.x = 0;
+    touches[0].point.y = 0;
+    touches[0].state = LV_INDEV_STATE_RELEASED;
+    touches[0].id = 0;
+    touches[0].timestamp = now;
+
+    touches[1].point.x = 0;
+    touches[1].point.y = 0;
+    touches[1].state = LV_INDEV_STATE_RELEASED;
+    touches[1].id = 1;
+    touches[1].timestamp = now;
+
+    lv_indev_gesture_recognizers_update(indev_driver, &touches[0], 2);
+    lv_indev_gesture_recognizers_set_data(indev_driver, data);
+
     data->state = LV_INDEV_STATE_RELEASED;
 
     if (pinchActive && lastZoomDir != 0)
@@ -120,6 +141,18 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     }
     else if (count == 2)
     {
+      // data->continue_reading = true;
+      for (uint8_t i=0; i<count; i++)
+      {
+        touches[i].point.x = touchRaw[i].x;
+        touches[i].point.y = touchRaw[i].y;
+        touches[i].state = LV_INDEV_STATE_PRESSED;
+        touches[i].id = i;
+        touches[i].timestamp = lastTime;
+      }
+      lv_indev_gesture_recognizers_update(indev_driver, &touches[0], count);
+      lv_indev_gesture_recognizers_set_data(indev_driver, data);
+
       if (prevValid)
       {
         zoom_dir zoomDir = pinchZoom(touchPrev, touchRaw, dt_ms);
@@ -356,6 +389,8 @@ void initLVGL()
     lv_indev_t *indev_drv = lv_indev_create();
     lv_indev_set_type(indev_drv, LV_INDEV_TYPE_POINTER);
     // lv_indev_set_long_press_time(indev_drv, 1500);
+    // lv_indev_set_pinch_up_threshold(indev_drv, 0.5f);
+    // lv_indev_set_pinch_down_threshold(indev_drv, -2.0f);
     lv_indev_set_read_cb(indev_drv, touchRead);
   #endif
 

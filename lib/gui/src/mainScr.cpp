@@ -481,6 +481,35 @@ void createMapCanvas(_lv_obj_t *screen)
   // lv_canvas_init_layer(constCanvas, &canvasMapLayer);
 }
 
+void pinchEvent(lv_event_t * gesture_event)
+{
+      lv_indev_gesture_state_t state;
+    static lv_point_t center_pnt;
+    static float base_scale = 1.0;
+        float scale;
+
+    if(lv_event_get_gesture_type(gesture_event) != LV_INDEV_GESTURE_PINCH) {
+      log_i("nada");
+        return;
+    }
+
+    state = lv_event_get_gesture_state(gesture_event, LV_INDEV_GESTURE_PINCH);
+
+    scale = base_scale * lv_event_get_pinch_scale(gesture_event);
+
+    if(state == LV_INDEV_GESTURE_STATE_ENDED)
+    {
+      log_i("Pinch end");
+      log_i("%i", lv_event_get_gesture_type(gesture_event));
+    }
+
+    /* The first time the gesture is recognized, save its center */
+    if(state == LV_INDEV_GESTURE_STATE_RECOGNIZED) 
+    { 
+      log_i("%f", scale);
+    }
+}
+
 /**
  * @brief Create Main Screen
  *
@@ -574,6 +603,7 @@ void createMainScr()
   lv_obj_add_event_cb(mapTile, scrollMapEvent, LV_EVENT_ALL, NULL);
   lv_obj_add_event_cb(btnZoomOut, zoomEvent, LV_EVENT_CLICKED, NULL);
   lv_obj_add_event_cb(btnZoomIn, zoomEvent, LV_EVENT_CLICKED, NULL);
+  lv_obj_add_event_cb(mapTile, pinchEvent, LV_EVENT_GESTURE, NULL);
 
   // ********** Navigation Tile **********
   navigationScr(navTile);
