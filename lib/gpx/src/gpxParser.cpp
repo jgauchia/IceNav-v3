@@ -391,12 +391,24 @@ bool GPXParser::loadTrack(std::vector<wayPoint>& trackData)
 }
 
 /**
- * @brief Get turn points of loaded track.
+ * @brief Get turn points of a given track, filtering by minimum angle and distance, 
+ *        but always detect sharp turns regardless of distance.
  *
- * @param trackData Vector to track data points (each point is a wayPoint).
- * @return TurnPoint structure with Turn points.
+ * This function analyzes the provided track data to find significant turn points.
+ * A turn point is detected if the angle difference between two consecutive legs
+ * exceeds thresholdDeg and the distance between points is greater than minDist,
+ * or if the angle is very sharp (> sharpTurnDeg) regardless of distance.
+ *
+ * @param thresholdDeg Minimum angle difference (in degrees) to consider a turn.
+ * @param minDist Minimum distance (in meters) between consecutive points to consider a turn.
+ * @param sharpTurnDeg Angle (in degrees) above which any turn is considered important, even if distance is small. 
+ * @param trackData Vector containing wayPoint structures representing the track.
+ * @return std::vector<TurnPoint> Vector with detected turn points:
+ *         - index: index in trackData of the turn
+ *         - angle: angle difference at turn (deg, positive=right, negative=left)
+ *         - accumDist: accumulated distance up to the turn (meters)
  */
-std::vector<TurnPoint> GPXParser::getTurnPoints(float threshold_deg, std::vector<wayPoint>& trackData)
+std::vector<TurnPoint> GPXParser::getTurnPoints(float thresholdDeg, double minDist, float sharpTurnDeg, std::vector<wayPoint>& trackData)
 {
   std::vector<TurnPoint> turnPoints;
   double accumDist = 0;
@@ -405,11 +417,25 @@ std::vector<TurnPoint> GPXParser::getTurnPoints(float threshold_deg, std::vector
   
   for (size_t i = 1; i < trackData.size() - 1; ++i)
   {
+    double distPrev = calcDist(trackData[i-1].lat, trackData[i-1].lon, trackData[i].lat, trackData[i].lon);
+    accumDist += distPrev;
+
     double brg1 = calcCourse(trackData[i-1].lat, trackData[i-1].lon, trackData[i].lat, trackData[i].lon);
     double brg2 = calcCourse(trackData[i].lat, trackData[i].lon, trackData[i+1].lat, trackData[i+1].lon);
     double diff = calcAngleDiff(brg2, brg1);
-    accumDist += calcDist(trackData[i-1].lat, trackData[i-1].lon, trackData[i].lat, trackData[i].lon);
-    if (fabs(diff) > threshold_deg) 
+
+    // Always consider very sharp turns, even if points are close
+    if (fabs(diff) > sharpTurnDeg) 
+    {
+      turnPoints.push_back({static_cast<int>(i), diff, accumDist});
+      continue;
+    }
+
+    // For less sharp turns, apply distance filter
+    if (distPrev < minDist)
+      continue;
+
+    if (fabs(diff) > thresholdDeg)
       turnPoints.push_back({static_cast<int>(i), diff, accumDist});
   }
   

@@ -82,7 +82,7 @@ void gpxListEvent(lv_event_t *event)
             if (gpxTrack)
             {
               gpx.loadTrack(trackData);
-              turnPoints = gpx.getTurnPoints(30.0f,trackData);
+              turnPoints = gpx.getTurnPoints(18.0f, 20, 70.0f, trackData);
 
               for (auto& tp : turnPoints)
               {

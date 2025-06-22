@@ -61,9 +61,22 @@ struct wayPoint
  */
 struct TurnPoint 
 {
-    int idx;           // Track IDX
+    int idx;            // Track IDX
     double angle;       // turn angle (positive = right, negative = left)
     double distance;    // distance from start (in meters)
+};
+
+/**
+ * @brief Navigation state structure
+ *
+ */
+struct NavState
+{
+  int lastTrackIdx = 0;
+  int nextTurnIdx = 0;
+  bool warnedTurn = false;
+  bool warnedPreTurn = false;
+  bool warnedStraight = false;
 };
 
 /**
