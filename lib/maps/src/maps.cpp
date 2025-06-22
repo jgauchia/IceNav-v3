@@ -1075,13 +1075,6 @@ void Maps::displayMap()
     else
      Maps::mapTempSprite.pushSprite(&(Maps::mapSprite), 0, 0, TFT_TRANSPARENT);
   }
-
-  uint16_t* p = (uint16_t*)Maps::mapBuffer;
-  for (size_t i = 0; i < (Maps::mapScrWidth*Maps::mapScrHeight); ++i)
-  {
-    uint16_t c = p[i];
-    p[i] = (c << 8) | (c >> 8);
-  }
 }
 
 /**
