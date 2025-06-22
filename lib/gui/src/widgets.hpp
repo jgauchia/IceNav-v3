@@ -34,6 +34,9 @@ extern lv_obj_t *miniCompass;
 extern lv_obj_t *mapCompassImg;
 extern lv_obj_t *scaleWidget;
 extern lv_obj_t *scaleLabel;
+extern lv_obj_t *turnByTurn;
+extern lv_obj_t *turnDistLabel;
+extern lv_obj_t *turnImg;
 
 void editWidget(lv_event_t *event);
 void dragWidget(lv_event_t *event);
@@ -55,6 +58,14 @@ static const char *sunsetIconFile PROGMEM = "/sunset.bin";          // Sunset Ic
 static const char *navArrowIconFile PROGMEM = "/navarrow.bin";      // Navigation Arrow icon
 static const char *zoomIconFile PROGMEM = "/zoom.bin";              // Zoom map icon
 static const char *mapSpeedIconFile PROGMEM = "/mapspeed.bin";      // Speed map icon
+static const char *turnStraightIcon PROGMEM = "/STRAIGHT.bin";
+static const char *turnSleftIcon PROGMEM = "/SLLEFT.bin";
+static const char *turnSrightIcon PROGMEM = "/SLRIGHT.bin";
+static const char *turnTleftIcon PROGMEM = "/TLEFT.bin";
+static const char *turnTrigthIcon PROGMEM = "/TRIGHT.bin";
+static const char *turnUleftIcon PROGMEM = "/ULEFT.bin";
+static const char *turnUrigthIcon PROGMEM = "/URIGHT.bin";
+
 
 void positionWidget(lv_obj_t *screen);
 void compassWidget(lv_obj_t *screen);
@@ -66,3 +77,4 @@ void mapZoomWidget(lv_obj_t *screen);
 void mapSpeedWidget(lv_obj_t *screen);
 void mapCompassWidget(lv_obj_t *screen);
 void mapScaleWidget(lv_obj_t *screen);
+void turnByTurnWidget(lv_obj_t *screen);

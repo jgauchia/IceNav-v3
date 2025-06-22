@@ -539,6 +539,8 @@ void createMainScr()
   mapCompassWidget(mapTile);
   // Map scale Widget
   mapScaleWidget(mapTile);
+  // Turn by Turn navigation widget
+  turnByTurnWidget(mapTile);
   // Map Tile Toolbar
   btnZoomOut = lv_img_create(mapTile);
   lv_img_set_src(btnZoomOut, zoomOutIconFile);
