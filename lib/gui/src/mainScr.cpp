@@ -194,6 +194,7 @@ void updateMainScreen(lv_timer_t *t)
         #else
           heading = gps.gpsData.heading;
         #endif
+        
         lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
         break;
 

@@ -67,19 +67,6 @@ struct TurnPoint
 };
 
 /**
- * @brief Navigation state structure
- *
- */
-struct NavState
-{
-  int lastTrackIdx = 0;
-  int nextTurnIdx = 0;
-  bool warnedTurn = false;
-  bool warnedPreTurn = false;
-  bool warnedStraight = false;
-};
-
-/**
  * @Brief GPX header file format
  *
  */

@@ -410,12 +410,14 @@ void turnByTurnWidget(lv_obj_t *screen)
 
 
   turnImg = lv_img_create(turnByTurn);
-  lv_img_set_src(turnImg, &finish);
+  lv_img_set_src(turnImg, &straight);
   
   turnDistLabel = lv_label_create(turnByTurn);
   lv_obj_set_style_text_font(turnDistLabel, &lv_font_montserrat_18, 0);
-  lv_label_set_text_fmt(turnDistLabel, "%4d", 8888);
+  lv_label_set_text_fmt(turnDistLabel, "%4d", 0);
   lv_obj_t *obj = lv_label_create(turnByTurn);
   lv_obj_set_style_text_font(obj, &lv_font_montserrat_18, 0);
   lv_label_set_text_static(obj,"m.");
+
+  lv_obj_add_flag(turnByTurn,LV_OBJ_FLAG_HIDDEN);
 }

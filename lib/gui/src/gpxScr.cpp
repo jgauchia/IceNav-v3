@@ -16,6 +16,7 @@ extern bool isWaypointOpt;
 extern bool isTrackOpt;
 bool gpxWaypoint = false;
 bool gpxTrack = false;
+bool isTrackLoaded = false;
 extern std::vector<wayPoint> trackData;
 extern std::vector<TurnPoint> turnPoints;
 
@@ -82,7 +83,9 @@ void gpxListEvent(lv_event_t *event)
             if (gpxTrack)
             {
               gpx.loadTrack(trackData);
-              turnPoints = gpx.getTurnPoints(18.0f, 20, 70.0f, trackData);
+              turnPoints = gpx.getTurnPoints(18.0f, 20, 70.0f, trackData);            
+              isTrackLoaded = true;
+              lv_obj_clear_flag(turnByTurn,LV_OBJ_FLAG_HIDDEN);
 
               for (auto& tp : turnPoints)
               {
