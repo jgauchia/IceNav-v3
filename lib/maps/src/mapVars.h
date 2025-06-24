@@ -16,6 +16,14 @@
 #include "compass.h"
 #include "waypoint.h"
 #include "navfinish.h"
+#include "straight.h"
+#include "slleft.h"
+#include "slright.h"
+#include "tleft.h"
+#include "tright.h"
+#include "uleft.h"
+#include "uright.h"
+#include "finish.h"
 
 #include "globalGpxDef.h"
 

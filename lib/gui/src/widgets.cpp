@@ -29,6 +29,14 @@ lv_obj_t *turnByTurn;
 lv_obj_t *turnDistLabel;
 lv_obj_t *turnImg;
 
+LV_IMG_DECLARE(straight);
+LV_IMG_DECLARE(slleft);
+LV_IMG_DECLARE(slright);
+LV_IMG_DECLARE(tleft);
+LV_IMG_DECLARE(tright);
+LV_IMG_DECLARE(uleft);
+LV_IMG_DECLARE(uright);
+LV_IMG_DECLARE(finish);
 
 extern Gps gps;
 
@@ -399,8 +407,11 @@ void turnByTurnWidget(lv_obj_t *screen)
   lv_obj_set_style_border_width(turnByTurn, 1, 0);
   lv_obj_set_style_border_opa(turnByTurn,128,0);
   lv_obj_align(turnByTurn, LV_ALIGN_TOP_RIGHT, 0, 60);
+
+
   turnImg = lv_img_create(turnByTurn);
-  lv_img_set_src(turnImg, turnStraightIcon);
+  lv_img_set_src(turnImg, &finish);
+  
   turnDistLabel = lv_label_create(turnByTurn);
   lv_obj_set_style_text_font(turnDistLabel, &lv_font_montserrat_18, 0);
   lv_label_set_text_fmt(turnDistLabel, "%4d", 8888);

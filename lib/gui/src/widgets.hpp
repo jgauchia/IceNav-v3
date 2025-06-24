@@ -58,13 +58,6 @@ static const char *sunsetIconFile PROGMEM = "/sunset.bin";          // Sunset Ic
 static const char *navArrowIconFile PROGMEM = "/navarrow.bin";      // Navigation Arrow icon
 static const char *zoomIconFile PROGMEM = "/zoom.bin";              // Zoom map icon
 static const char *mapSpeedIconFile PROGMEM = "/mapspeed.bin";      // Speed map icon
-static const char *turnStraightIcon PROGMEM = "/STRAIGHT.bin";
-static const char *turnSleftIcon PROGMEM = "/SLLEFT.bin";
-static const char *turnSrightIcon PROGMEM = "/SLRIGHT.bin";
-static const char *turnTleftIcon PROGMEM = "/TLEFT.bin";
-static const char *turnTrigthIcon PROGMEM = "/TRIGHT.bin";
-static const char *turnUleftIcon PROGMEM = "/ULEFT.bin";
-static const char *turnUrigthIcon PROGMEM = "/URIGHT.bin";
 
 
 void positionWidget(lv_obj_t *screen);
