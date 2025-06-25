@@ -66,6 +66,11 @@ extern Gps gps;
 std::vector<wayPoint> trackData;     /**< Vector for storing track data */
 std::vector<TurnPoint> turnPoints;   /**< Vector for storing turn points */
 
+#include "navigation.hpp"
+unsigned long ultimoSimulacion = 0;
+int idxSimulacion = 0;
+NavState navState;
+
 static double transit, sunrise, sunset; /**< Variables to store solar transit, sunrise, and sunset times (in hours or fractional day) */
 
 #include "timezone.c"
@@ -215,5 +220,47 @@ void loop()
 			eventRefresh.send("refresh", nullptr, millis());
 			eventRefresh.send("Folder deleted", "updateStatus", millis());
 		}
-  }
+  	}
+
+	if (isTrackLoaded)
+	{
+		float userLat, userLon, gps_heading, speed_kmh;
+    	bool gps_heading_valid = false;
+ 		if (millis() - ultimoSimulacion > 500) 
+		{ // cada 1.5s simula el siguiente punto
+            ultimoSimulacion = millis();
+
+            if (idxSimulacion < (int)trackData.size() - 2)
+			{
+                gps.gpsData.latitude = trackData[idxSimulacion].lat;
+                gps.gpsData.longitude = trackData[idxSimulacion].lon;
+                // Heading simulado al siguiente punto
+                gps_heading = calcCourse(trackData[idxSimulacion].lat, trackData[idxSimulacion].lon,
+                                         trackData[idxSimulacion+1].lat, trackData[idxSimulacion+1].lon);
+                gps_heading_valid = true;
+				gps.gpsData.heading = gps_heading;
+                // Velocidad simulada
+                speed_kmh = 12.0;
+                idxSimulacion++;
+            }
+			else 
+			{
+                log_i("Fin de simulación de track");
+            }
+        } 
+		else
+		{
+            return;
+		}
+		float compass_heading = 0.0f;
+		bool compass_valid = false;
+
+		// float user_heading = select_heading(gps_heading, gps_heading_valid,
+		// 									compass_heading, compass_valid,
+		// 									speed_kmh);
+
+		// Llama a la función de navegación y avisos
+		updateNavigation(gps.gpsData.latitude, gps.gpsData.longitude, gps_heading, speed_kmh,
+						trackData, turnPoints, navState);
+	}
 }
