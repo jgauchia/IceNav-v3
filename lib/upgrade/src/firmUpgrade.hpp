@@ -14,7 +14,7 @@
 #include "upgradeScr.hpp"
 #include "storage.hpp"
 
-static const char *upgrdFile PROGMEM = "/sdcard/firmware.bin"; // Firmware upgrade file
+static const char *upgrdFile PROGMEM = "/sdcard/firmware.bin";  /**< Firmware upgrade file path */
 
 bool checkFileUpgrade();
 void onUpgrdStart();

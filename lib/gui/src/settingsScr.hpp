@@ -21,5 +21,5 @@ static void compassCalib(lv_event_t *event);
 static void mapSettings(lv_event_t *event);
 static void deviceSettings(lv_event_t *event);
 
-static lv_obj_t *settingsButtons;
+static lv_obj_t *settingsButtons; /**< Object holding all settings screen buttons */
 void createSettingsScr();

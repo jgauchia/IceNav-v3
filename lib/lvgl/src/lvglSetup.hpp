@@ -25,11 +25,7 @@
 #include "gestures.hpp"
 #include "maps.hpp"
 
-/**
- * @brief Default display driver definition
- *
- */
-static uint32_t objectColor = 0x303030; 
+static uint32_t objectColor = 0x303030; /**< Default display driver color definition. */
 
 void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map);
 void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data);
@@ -38,7 +34,7 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data);
 	uint32_t keypadGetKey();
 #endif
 #ifdef POWER_SAVE
-	static const uint16_t longPressTime = 1000; // Long press time 
+	static const uint16_t longPressTime = 1000; /**< Long press time threshold in milliseconds. */
 	void IRAM_ATTR gpioRead(lv_indev_t *indev_driver, lv_indev_data_t *data);
 	void gpioLongEvent(lv_event_t *event);
 	void gpioClickEvent(lv_event_t *event);

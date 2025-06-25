@@ -14,14 +14,15 @@
 #include "gps.hpp"
 
 #ifdef LARGE_SCREEN
-static const char* logoFile PROGMEM = "/spiffs/LOGO_LARGE.png";
+    static const char* logoFile PROGMEM = "/spiffs/LOGO_LARGE.png"; /**< Path to the large logo image for large screens */
 #else
-static const char* logoFile PROGMEM = "/spiffs/LOGO_SMALL.png";
+    static const char* logoFile PROGMEM = "/spiffs/LOGO_SMALL.png"; /**< Path to the small logo image for smaller screens */
 #endif
-static const char* statusLine1 PROGMEM = "Model:%s %dMhz";
-static const char* statusLine2 PROGMEM = "Free mem:%dK %d%%";
-static const char* statusLine3 PROGMEM = "PSRAM: %d - Used PSRAM: %d";
-static const char* statusLine4 PROGMEM = "Firmware v.%s rev.%s";
-static const char* statusLine5 PROGMEM = "ENV: %s";
+
+static const char* statusLine1 PROGMEM = "Model:%s %dMhz";             /**< Format string for model and CPU frequency */
+static const char* statusLine2 PROGMEM = "Free mem:%dK %d%%";          /**< Format string for free memory in KB and percentage */
+static const char* statusLine3 PROGMEM = "PSRAM: %d - Used PSRAM: %d"; /**< Format string for PSRAM total and used */
+static const char* statusLine4 PROGMEM = "Firmware v.%s rev.%s";       /**< Format string for firmware version and revision */
+static const char* statusLine5 PROGMEM = "ENV: %s";                    /**< Format string for environment information */
 
 void splashScreen();

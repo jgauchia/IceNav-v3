@@ -8,243 +8,259 @@
 
 #include "lvglSetup.hpp"
 
-lv_display_t *display;
+lv_display_t *display; /**< LVGL display driver */
 
-lv_obj_t *searchSatScreen; // Search Satellite Screen
-lv_style_t styleThemeBkg;  // New Main Background Style
-lv_style_t styleObjectBkg; // New Objects Background Color
-lv_style_t styleObjectSel; // New Objects Selected Color
+lv_obj_t *searchSatScreen; /**< Search Satellite Screen object. */
+lv_style_t styleThemeBkg;  /**< Main background style object. */
+lv_style_t styleObjectBkg; /**< Object background style. */
+lv_style_t styleObjectSel; /**< Object selected style. */
 
-lv_group_t *scrGroup;     // Screen group
-lv_group_t *keyGroup;     // GPIO group
-lv_obj_t *powerMsg;       // Power Message
+lv_group_t *scrGroup;   /**< LVGL group for screen. */
+lv_group_t *keyGroup;   /**< LVGL group for GPIO keys. */
+lv_obj_t *powerMsg;     /**< Power message object. */
 
 Power power;
-uint32_t DOUBLE_TOUCH_EVENT;
+uint32_t DOUBLE_TOUCH_EVENT; /**< Event identifier for double touch gesture. */
 
 Maps mapView;
 
 /**
- * @brief LVGL display update
+ * @brief LVGL display flush callback.
  *
+ * This function updates the specified area of the display with the provided pixel map.
+ * Flush callback for an LVGL display driver, and utilizes DMA for fast image transfer.
+ *
+ * @param disp   Pointer to the LVGL display driver.
+ * @param area   Area of the display to update.
+ * @param px_map Pointer to the pixel data to be displayed.
  */
 void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 { 
-  uint32_t w = (area->x2 - area->x1 + 1);
-  uint32_t h = (area->y2 - area->y1 + 1);
+	uint32_t w = (area->x2 - area->x1 + 1);
+	uint32_t h = (area->y2 - area->y1 + 1);
 
-  tft.setSwapBytes(true);
-  tft.setAddrWindow(area->x1, area->y1, w, h);
-  tft.pushImageDMA(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t*)px_map);
-  tft.setSwapBytes(false);
+	tft.setSwapBytes(true);
+	tft.setAddrWindow(area->x1, area->y1, w, h);
+	tft.pushImageDMA(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t*)px_map);
+	tft.setSwapBytes(false);
 
-  lv_display_flush_ready(disp);
+	lv_display_flush_ready(disp);
 }
 
 /**
- * @brief LVGL touch read
+ * @brief Reads and processes LVGL touch input, handling gestures and events.
  *
+ * @param indev_driver Pointer to the LVGL input device driver.
+ * @param data Pointer to the structure that will be populated with touch data.
  */
 void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 {
-  lgfx::touch_point_t touchRaw[TOUCH_MAX_POINTS];
-  static lgfx::touch_point_t touchPrev[TOUCH_MAX_POINTS];
-  static bool prevValid = false;
-  static bool pinchActive = false;
-  static int lastZoomDir = ZOOM_NONE;    
-  static unsigned long lastTime = 0;
+	lgfx::touch_point_t touchRaw[TOUCH_MAX_POINTS];
+	static lgfx::touch_point_t touchPrev[TOUCH_MAX_POINTS];
+	static bool prevValid = false;
+	static bool pinchActive = false;
+	static int lastZoomDir = ZOOM_NONE;    
+	static unsigned long lastTime = 0;
 
-  int count = tft.getTouch(touchRaw, TOUCH_MAX_POINTS);
+	int count = tft.getTouch(touchRaw, TOUCH_MAX_POINTS);
 
-  unsigned long now = millis();
-  float dt_ms = (now > lastTime) ? (float)(now - lastTime) : 1.0f;
+	unsigned long now = millis();
+	float dt_ms = (now > lastTime) ? (float)(now - lastTime) : 1.0f;
 
-  if (count == 0)
-  {
-    data->state = LV_INDEV_STATE_RELEASED;
+	if (count == 0)
+	{
+		data->state = LV_INDEV_STATE_RELEASED;
 
-    if (pinchActive && lastZoomDir != 0)
-    {
-      if (lastZoomDir == ZOOM_IN)
-        lv_obj_send_event(btnZoomIn,LV_EVENT_CLICKED,NULL);
-      else if (lastZoomDir == ZOOM_OUT)
-        lv_obj_send_event(btnZoomOut,LV_EVENT_CLICKED,NULL);
-    }
-    pinchActive = false;
-    prevValid = false;
-    lastZoomDir = ZOOM_NONE;
-    lastTime = now;
+		if (pinchActive && lastZoomDir != 0)
+		{
+			if (lastZoomDir == ZOOM_IN)
+				lv_obj_send_event(btnZoomIn,LV_EVENT_CLICKED,NULL);
+			else if (lastZoomDir == ZOOM_OUT)
+				lv_obj_send_event(btnZoomOut,LV_EVENT_CLICKED,NULL);
+		}
+		pinchActive = false;
+		prevValid = false;
+		lastZoomDir = ZOOM_NONE;
+		lastTime = now;
 
-    if (countTouchReleases)
-    {
-      countTouchReleases = false;
-      uint32_t touchReleaseTime = millis();
-      if (!firstTouchReleaseTime)
-        firstTouchReleaseTime = touchReleaseTime;
-      numberTouchReleases++;
-    }
+		if (countTouchReleases)
+		{
+			countTouchReleases = false;
+			uint32_t touchReleaseTime = millis();
+			if (!firstTouchReleaseTime)
+				firstTouchReleaseTime = touchReleaseTime;
+			numberTouchReleases++;
+		}
 
-    if (millis() - firstTouchReleaseTime > TOUCH_DOUBLE_TOUCH_INTERVAL)
-    {
-      if (numberTouchReleases == 2)
-      {
-        if (activeTile == MAP)
-          lv_obj_send_event(mapTile, (lv_event_code_t)DOUBLE_TOUCH_EVENT, NULL);
-      }
+		if (millis() - firstTouchReleaseTime > TOUCH_DOUBLE_TOUCH_INTERVAL)
+		{
+		if (numberTouchReleases == 2)
+		{
+			if (activeTile == MAP)
+				lv_obj_send_event(mapTile, (lv_event_code_t)DOUBLE_TOUCH_EVENT, NULL);
+		}
 
-      numberTouchReleases = 0;
-      firstTouchReleaseTime = 0;
-    }  
-  }
-  else
-  {
-    if (count == 1)
-    {
-      if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_0)
-      {
-        data->point.x = touchRaw[count-1].x;
-        data->point.y = touchRaw[count-1].y;
-      }
-      else if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
-      {
-        data->point.x = TFT_WIDTH - touchRaw[count-1].y;
-        data->point.y = touchRaw[count-1].x;
-      }
+		numberTouchReleases = 0;
+		firstTouchReleaseTime = 0;
+		}  
+	}
+	else
+	{
+		if (count == 1)
+		{
+			if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_0)
+			{
+				data->point.x = touchRaw[count-1].x;
+				data->point.y = touchRaw[count-1].y;
+			}
+			else if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
+			{
+				data->point.x = TFT_WIDTH - touchRaw[count-1].y;
+				data->point.y = touchRaw[count-1].x;
+			}
 
-      countTouchReleases = true;
-      pinchActive = false;
-      prevValid = false;
-      lastZoomDir = ZOOM_NONE;
-      lastTime = now;
-      data->state = LV_INDEV_STATE_PRESSED;
-    }
-    else if (count == 2)
-    {
-      if (prevValid)
-      {
-        zoom_dir zoomDir = pinchZoom(touchPrev, touchRaw, dt_ms);
-        if (zoomDir != ZOOM_NONE && showMapToolBar)
-        {
-          pinchActive = true;
-          lastZoomDir = zoomDir;
-        }
-      }
-      touchPrev[0] = touchRaw[0];
-      touchPrev[1] = touchRaw[1];
-      prevValid = true;
-      lastTime = now;
-    }
-  }
+			countTouchReleases = true;
+			pinchActive = false;
+			prevValid = false;
+			lastZoomDir = ZOOM_NONE;
+			lastTime = now;
+			data->state = LV_INDEV_STATE_PRESSED;
+		}
+		else if (count == 2)
+		{
+		if (prevValid)
+		{
+			zoom_dir zoomDir = pinchZoom(touchPrev, touchRaw, dt_ms);
+			if (zoomDir != ZOOM_NONE && showMapToolBar)
+			{
+				pinchActive = true;
+				lastZoomDir = zoomDir;
+			}
+		}
+		touchPrev[0] = touchRaw[0];
+		touchPrev[1] = touchRaw[1];
+		prevValid = true;
+		lastTime = now;
+		}
+	}
 }
 
 #ifdef TDECK_ESP32S3 
 /**
- * @brief LVGL T-DECK keyboard read
+ * @brief Reads a key value from the T-DECK keyboard via I2C.
  *
+ * @return The key value read from the keyboard.
  */
 uint32_t keypadGetKey()
 {
-  char key_ch = 0;
-  Wire.requestFrom(0x55, 1);
-  while (Wire.available() > 0) 
-  {
-    key_ch = Wire.read();
-  }
-  return key_ch;
+	char key_ch = 0;
+	Wire.requestFrom(0x55, 1);
+	while (Wire.available() > 0) 
+	{
+		key_ch = Wire.read();
+	}
+	return key_ch;
 }
 
 /**
- * @brief LVGL T-DECK keyboard read
+ * @brief Reads key input from the T-DECK keyboard for LVGL input device.
  *
+ * @param indev_driver Pointer to the LVGL input device driver.
+ * @param data Pointer to the structure that will be populated with key data.
  */
 void IRAM_ATTR keypadRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 {
-  static uint32_t last_key = 0;
-  uint32_t act_key;
-  act_key = keypadGetKey();
-  if (act_key != 0) 
-  {
-    data->state = LV_INDEV_STATE_PRESSED;
-    last_key = act_key;
-  } 
-  else 
-    data->state = LV_INDEV_STATE_RELEASED;
+	static uint32_t last_key = 0;
+	uint32_t act_key;
+	act_key = keypadGetKey();
+	if (act_key != 0) 
+	{
+		data->state = LV_INDEV_STATE_PRESSED;
+		last_key = act_key;
+	} 
+	else 
+		data->state = LV_INDEV_STATE_RELEASED;
 
-    data->key = last_key;
+		data->key = last_key;
 }
 #endif
 
 #ifdef POWER_SAVE
 
-extern const uint8_t BOARD_BOOT_PIN;
+extern const uint8_t BOARD_BOOT_PIN; /**< GPIO pin number used for board boot functionality. */
 
 /**
-* @brief LVGL GPIO read
-*
-*/
+ * @brief Reads GPIO button state for LVGL input device.
+ *
+ * @param indev_driver Pointer to the LVGL input device driver.
+ * @param data Pointer to the structure that will be populated with key data.
+ */
 void IRAM_ATTR gpioRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 {
-  uint8_t currentStat = gpioGetBut();
+	uint8_t currentStat = gpioGetBut();
 
-  if (currentStat == 0)
-  {
-    data->key = LV_KEY_ENTER;
-    data->state = LV_INDEV_STATE_PRESSED;
-  }
-  else
-  {
-    data->key = 0;
-    data->state = LV_INDEV_STATE_RELEASED;
-  }
+	if (currentStat == 0)
+	{
+		data->key = LV_KEY_ENTER;
+		data->state = LV_INDEV_STATE_PRESSED;
+	}
+	else
+	{
+		data->key = 0;
+		data->state = LV_INDEV_STATE_RELEASED;
+	}
 }
 
 /**
-* @brief LVGL GPIO long read event
-*
-*/
+ * @brief Handles LVGL GPIO long press event for shutdown message and device power-off.
+ *
+ * @param event Pointer to the LVGL event structure.
+ */
 void gpioLongEvent(lv_event_t *event)
 {
-  powerMsg = lv_msgbox_create(lv_scr_act());
-  lv_obj_set_width(powerMsg,TFT_WIDTH);
-  lv_obj_set_align(powerMsg,LV_ALIGN_CENTER);
-  lv_obj_set_style_text_font(powerMsg, fontDefault, 0);
-  lv_obj_t *labelText = lv_msgbox_get_content(powerMsg);
-  lv_obj_set_style_text_align(labelText, LV_TEXT_ALIGN_CENTER, 0);
-  lv_msgbox_add_text(powerMsg, LV_SYMBOL_WARNING " This device will shutdown shortly");
-  lv_obj_invalidate(powerMsg);
-  lv_refr_now(display);
-  vTaskDelay(2000);
-  power.deviceShutdown();
+	powerMsg = lv_msgbox_create(lv_scr_act());
+	lv_obj_set_width(powerMsg,TFT_WIDTH);
+	lv_obj_set_align(powerMsg,LV_ALIGN_CENTER);
+	lv_obj_set_style_text_font(powerMsg, fontDefault, 0);
+	lv_obj_t *labelText = lv_msgbox_get_content(powerMsg);
+	lv_obj_set_style_text_align(labelText, LV_TEXT_ALIGN_CENTER, 0);
+	lv_msgbox_add_text(powerMsg, LV_SYMBOL_WARNING " This device will shutdown shortly");
+	lv_obj_invalidate(powerMsg);
+	lv_refr_now(display);
+	vTaskDelay(2000);
+	power.deviceShutdown();
 }
 
 /**
-* @brief LVGL GPIO short read event
-*
-*/
+ * @brief Handles LVGL GPIO short press event for sleep message and device suspend.
+ *
+ * @param event Pointer to the LVGL event structure.
+ */
 void gpioClickEvent(lv_event_t *event)
 {
-  lv_indev_reset_long_press(lv_indev_active());
-  lv_indev_reset(NULL,lv_scr_act());
-  powerMsg = lv_msgbox_create(lv_scr_act());
-  lv_obj_set_width(powerMsg,TFT_WIDTH);
-  lv_obj_set_align(powerMsg,LV_ALIGN_CENTER);
-  lv_obj_set_style_text_font(powerMsg, fontDefault, 0);
-  lv_obj_t *labelText = lv_msgbox_get_content(powerMsg);
-  lv_obj_set_style_text_align(labelText, LV_TEXT_ALIGN_CENTER, 0);
-  lv_msgbox_add_text(powerMsg, LV_SYMBOL_WARNING " This device will sleep shortly");
-  lv_obj_invalidate(powerMsg);
-  lv_refr_now(display);
-  vTaskDelay(2000);
-  power.deviceSuspend();
+	lv_indev_reset_long_press(lv_indev_active());
+	lv_indev_reset(NULL,lv_scr_act());
+	powerMsg = lv_msgbox_create(lv_scr_act());
+	lv_obj_set_width(powerMsg,TFT_WIDTH);
+	lv_obj_set_align(powerMsg,LV_ALIGN_CENTER);
+	lv_obj_set_style_text_font(powerMsg, fontDefault, 0);
+	lv_obj_t *labelText = lv_msgbox_get_content(powerMsg);
+	lv_obj_set_style_text_align(labelText, LV_TEXT_ALIGN_CENTER, 0);
+	lv_msgbox_add_text(powerMsg, LV_SYMBOL_WARNING " This device will sleep shortly");
+	lv_obj_invalidate(powerMsg);
+	lv_refr_now(display);
+	vTaskDelay(2000);
+	power.deviceSuspend();
 }
 
 /**
-* @brief LVGL GPIO read
-*
-*/
+ * @brief Reads the state of the GPIO button pin.
+ *
+ * @return The current state of the GPIO button pin.
+ */
 uint8_t gpioGetBut()
 {
-  return digitalRead(BOARD_BOOT_PIN);
+	return digitalRead(BOARD_BOOT_PIN);
 }
 
 #endif
@@ -257,170 +273,176 @@ uint8_t gpioGetBut()
  */
 void applyModifyTheme(lv_theme_t *th, lv_obj_t *obj)
 {
-  LV_UNUSED(th);
-  if (!lv_obj_check_type(obj, &lv_led_class))
-  {
-    if (!lv_obj_check_type(obj, &lv_button_class))
-      lv_obj_add_style(obj, &styleThemeBkg, 0);
-    if (lv_obj_check_type(obj, &lv_button_class))
-      lv_obj_add_style(obj, &styleObjectBkg, 0);
-    if (lv_obj_check_type(obj, &lv_switch_class))
-    {
-      lv_obj_add_style(obj, &styleObjectBkg, 0);
-      lv_obj_add_style(obj, &styleObjectBkg, LV_PART_INDICATOR | LV_STATE_CHECKED);
-    }
-    if (lv_obj_check_type(obj, &lv_checkbox_class))
-    {
-      lv_obj_add_style(obj, &styleThemeBkg, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-      lv_obj_add_style(obj, &styleObjectBkg, LV_PART_INDICATOR | LV_STATE_CHECKED);
-    }
-  }
+	LV_UNUSED(th);
+	if (!lv_obj_check_type(obj, &lv_led_class))
+	{
+		if (!lv_obj_check_type(obj, &lv_button_class))
+			lv_obj_add_style(obj, &styleThemeBkg, 0);
+		if (lv_obj_check_type(obj, &lv_button_class))
+			lv_obj_add_style(obj, &styleObjectBkg, 0);
+		if (lv_obj_check_type(obj, &lv_switch_class))
+		{
+			lv_obj_add_style(obj, &styleObjectBkg, 0);
+			lv_obj_add_style(obj, &styleObjectBkg, LV_PART_INDICATOR | LV_STATE_CHECKED);
+		}
+		if (lv_obj_check_type(obj, &lv_checkbox_class))
+		{
+			lv_obj_add_style(obj, &styleThemeBkg, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+			lv_obj_add_style(obj, &styleObjectBkg, LV_PART_INDICATOR | LV_STATE_CHECKED);
+		}
+	}
 }
 
 /**
- * @brief Custom Dark theme
+ * @brief Apply Custom Dark theme styles to the given object.
  *
+ * This function assigns custom styles to various LVGL objects (button, switch, checkbox, etc.)
+ *
+ * @param th  Pointer to the LVGL theme (unused).
+ * @param obj Pointer to the LVGL object to style.
  */
 void modifyTheme()
 {
-  /*Initialize the styles*/
-  lv_style_init(&styleThemeBkg);
-  lv_style_set_bg_color(&styleThemeBkg, lv_color_black());
-  lv_style_set_border_color(&styleThemeBkg, lv_color_hex(objectColor));
-  lv_style_init(&styleObjectBkg);
-  lv_style_set_bg_color(&styleObjectBkg, lv_color_hex(objectColor));
-  lv_style_set_border_color(&styleObjectBkg, lv_color_hex(objectColor));
-  lv_style_init(&styleObjectSel);
-  lv_style_set_bg_color(&styleObjectSel, lv_color_hex(0x757575));
-  
-  /*Initialize the new theme from the current theme*/
-  lv_theme_t *th_act = lv_disp_get_theme(NULL);
-  static lv_theme_t th_new;
-  th_new = *th_act;
-  
-  /*Set the parent theme and the style apply callback for the new theme*/
-  lv_theme_set_parent(&th_new, th_act);
-  lv_theme_set_apply_cb(&th_new, applyModifyTheme);
-  
-  /*Assign the new theme to the current display*/
-  lv_disp_set_theme(NULL, &th_new);
+	/*Initialize the styles*/
+	lv_style_init(&styleThemeBkg);
+	lv_style_set_bg_color(&styleThemeBkg, lv_color_black());
+	lv_style_set_border_color(&styleThemeBkg, lv_color_hex(objectColor));
+	lv_style_init(&styleObjectBkg);
+	lv_style_set_bg_color(&styleObjectBkg, lv_color_hex(objectColor));
+	lv_style_set_border_color(&styleObjectBkg, lv_color_hex(objectColor));
+	lv_style_init(&styleObjectSel);
+	lv_style_set_bg_color(&styleObjectSel, lv_color_hex(0x757575));
+	
+	/*Initialize the new theme from the current theme*/
+	lv_theme_t *th_act = lv_disp_get_theme(NULL);
+	static lv_theme_t th_new;
+	th_new = *th_act;
+	
+	/*Set the parent theme and the style apply callback for the new theme*/
+	lv_theme_set_parent(&th_new, th_act);
+	lv_theme_set_apply_cb(&th_new, applyModifyTheme);
+	
+	/*Assign the new theme to the current display*/
+	lv_disp_set_theme(NULL, &th_new);
 }
 
 /**
- * @brief Setting up tick task for lvgl
- * 
- * @param arg 
+ * @brief Setting up tick task for LVGL. Increments the LVGL tick counter.
+ *
+ * @param arg Pointer to optional argument (unused).
  */
 void lv_tick_task(void *arg)
 {
-  (void)arg;
-  lv_tick_inc(LV_TICK_PERIOD_MS);
+	(void)arg;
+	lv_tick_inc(LV_TICK_PERIOD_MS);
 }
 
 /**
- * @brief Init LVGL
+ * @brief Initialize LVGL, display, input devices, themes, and main screens.
  *
+ * Initialize the LVGL library, sets up the display buffers using PSRAM or RAM,
+ * configures input devices (touch, keypad, GPIO), applies the custom theme, creates main UI screens,
+ * and starts the periodic timer for LVGL ticks.
  */
 void initLVGL()
 {
-  lv_init();
+	lv_init();
 
-  display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
-  lv_display_set_flush_cb(display, displayFlush);
-  lv_display_set_flush_wait_cb(display, NULL);
-  
-  size_t DRAW_BUF_SIZE = 0;
-  
-  #ifdef BOARD_HAS_PSRAM
-    assert(ESP.getFreePsram());
+	display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
+	lv_display_set_flush_cb(display, displayFlush);
+	lv_display_set_flush_wait_cb(display, NULL);
+	
+	size_t DRAW_BUF_SIZE = 0;
+	
+	#ifdef BOARD_HAS_PSRAM
+		assert(ESP.getFreePsram());
 
-    if ( ESP.getPsramSize() >= 4000000 )
-      // >4Mb PSRAM
-      DRAW_BUF_SIZE = TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t);
-    else
-      // 2Mb PSRAM
-      DRAW_BUF_SIZE = ( TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t) / 8);
+		if ( ESP.getPsramSize() >= 4000000 )
+			// >4Mb PSRAM
+			DRAW_BUF_SIZE = TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t);
+		else
+			// 2Mb PSRAM
+			DRAW_BUF_SIZE = ( TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t) / 8);
 
-    log_v("LVGL: allocating %u bytes PSRAM for draw buffer",DRAW_BUF_SIZE * 2);
-    lv_color_t * drawBuf1 = (lv_color_t *)heap_caps_aligned_alloc(16, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
-    lv_color_t * drawBuf2 = (lv_color_t *)heap_caps_aligned_alloc(16, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
-    lv_display_set_buffers(display, drawBuf1, drawBuf2, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
-  #else
-    DRAW_BUF_SIZE =  TFT_WIDTH * TFT_HEIGHT / 10  * sizeof(lv_color_t);
-    log_v("LVGL: allocating %u bytes RAM for draw buffer",DRAW_BUF_SIZE);
-    lv_color_t * drawBuf1[DRAW_BUF_SIZE / 4];
-    lv_display_set_buffers(display, drawBuf1, NULL, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
-  #endif
-  
-  #ifdef TOUCH_INPUT
-    lv_indev_t *indev_drv = lv_indev_create();
-    lv_indev_set_type(indev_drv, LV_INDEV_TYPE_POINTER);
-    // lv_indev_set_long_press_time(indev_drv, 1500);
-    lv_indev_set_read_cb(indev_drv, touchRead);
-  #endif
+		log_v("LVGL: allocating %u bytes PSRAM for draw buffer",DRAW_BUF_SIZE * 2);
+		lv_color_t * drawBuf1 = (lv_color_t *)heap_caps_aligned_alloc(16, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
+		lv_color_t * drawBuf2 = (lv_color_t *)heap_caps_aligned_alloc(16, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
+		lv_display_set_buffers(display, drawBuf1, drawBuf2, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
+	#else
+		DRAW_BUF_SIZE =  TFT_WIDTH * TFT_HEIGHT / 10  * sizeof(lv_color_t);
+		log_v("LVGL: allocating %u bytes RAM for draw buffer",DRAW_BUF_SIZE);
+		lv_color_t * drawBuf1[DRAW_BUF_SIZE / 4];
+		lv_display_set_buffers(display, drawBuf1, NULL, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
+	#endif
+	
+	#ifdef TOUCH_INPUT
+		lv_indev_t *indev_drv = lv_indev_create();
+		lv_indev_set_type(indev_drv, LV_INDEV_TYPE_POINTER);
+		// lv_indev_set_long_press_time(indev_drv, 1500);
+		lv_indev_set_read_cb(indev_drv, touchRead);
+	#endif
 
-  #ifdef TDECK_ESP32S3  
-    scrGroup = lv_group_create();
-    lv_group_set_default(scrGroup);
-    lv_indev_t *indev_keypad = lv_indev_create();
-    lv_indev_set_type(indev_keypad, LV_INDEV_TYPE_KEYPAD);
-    lv_indev_set_read_cb(indev_keypad, keypadRead);
-    lv_indev_set_group(indev_keypad, lv_group_get_default());
-  #endif
+	#ifdef TDECK_ESP32S3  
+		scrGroup = lv_group_create();
+		lv_group_set_default(scrGroup);
+		lv_indev_t *indev_keypad = lv_indev_create();
+		lv_indev_set_type(indev_keypad, LV_INDEV_TYPE_KEYPAD);
+		lv_indev_set_read_cb(indev_keypad, keypadRead);
+		lv_indev_set_group(indev_keypad, lv_group_get_default());
+	#endif
 
-  #ifdef POWER_SAVE
-    lv_indev_t *indev_gpio = lv_indev_create();
-    lv_indev_set_type(indev_gpio, LV_INDEV_TYPE_KEYPAD);
-    lv_indev_set_read_cb(indev_gpio, gpioRead);
-    lv_indev_set_long_press_time(indev_gpio, longPressTime);
+	#ifdef POWER_SAVE
+		lv_indev_t *indev_gpio = lv_indev_create();
+		lv_indev_set_type(indev_gpio, LV_INDEV_TYPE_KEYPAD);
+		lv_indev_set_read_cb(indev_gpio, gpioRead);
+		lv_indev_set_long_press_time(indev_gpio, longPressTime);
 
-    keyGroup = lv_group_create();
-    lv_group_add_obj(keyGroup,lv_scr_act());
-    lv_indev_set_group(indev_gpio, keyGroup);
+		keyGroup = lv_group_create();
+		lv_group_add_obj(keyGroup,lv_scr_act());
+		lv_indev_set_group(indev_gpio, keyGroup);
 
-    lv_indev_add_event_cb(indev_gpio, gpioLongEvent, LV_EVENT_LONG_PRESSED, NULL);
-    lv_indev_add_event_cb(indev_gpio, gpioClickEvent, LV_EVENT_SHORT_CLICKED, NULL);
-  #endif
-  
-  //  Create Main Timer
-  mainTimer = lv_timer_create(updateMainScreen, UPDATE_MAINSCR_PERIOD, NULL);
-  lv_timer_ready(mainTimer);
+		lv_indev_add_event_cb(indev_gpio, gpioLongEvent, LV_EVENT_LONG_PRESSED, NULL);
+		lv_indev_add_event_cb(indev_gpio, gpioClickEvent, LV_EVENT_SHORT_CLICKED, NULL);
+	#endif
+	
+	//  Create Main Timer
+	mainTimer = lv_timer_create(updateMainScreen, UPDATE_MAINSCR_PERIOD, NULL);
+	lv_timer_ready(mainTimer);
 
-  modifyTheme();
-  
-  //  Create Screens
-  createSearchSatScr();
-  createMainScr();
-  createNotifyBar();
-  createSettingsScr();
-  createMapSettingsScr();
-  createDeviceSettingsScr();
-  createButtonBarScr();
-  createGpxDetailScreen();
-  createGpxListScreen();
-  
-  // Create and start a periodic timer interrupt to call lv_tick_inc 
-  const esp_timer_create_args_t periodic_timer_args = { .callback = &lv_tick_task, .name = "periodic_gui" };
-  esp_timer_handle_t periodic_timer;
-  ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
-  ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer, LV_TICK_PERIOD_MS * 1000));
+	modifyTheme();
+	
+	//  Create Screens
+	createSearchSatScr();
+	createMainScr();
+	createNotifyBar();
+	createSettingsScr();
+	createMapSettingsScr();
+	createDeviceSettingsScr();
+	createButtonBarScr();
+	createGpxDetailScreen();
+	createGpxListScreen();
+	
+	// Create and start a periodic timer interrupt to call lv_tick_inc 
+	const esp_timer_create_args_t periodic_timer_args = { .callback = &lv_tick_task, .name = "periodic_gui" };
+	esp_timer_handle_t periodic_timer;
+	ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
+	ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer, LV_TICK_PERIOD_MS * 1000));
 }
 
 /**
  * @brief Load GPS Main Screen
- *
  */
 void loadMainScreen()
 {
-  isMainScreen = true;
-  isScrolled = true;
-  isSearchingSat = false;
-  gpxAction = WPT_NONE;
-  lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
-  lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
-  if (mapView.isMapFound)
-    lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
-  else
-    lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
-  lv_screen_load(mainScreen);
+	isMainScreen = true;
+	isScrolled = true;
+	isSearchingSat = false;
+	gpxAction = WPT_NONE;
+	lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+	lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
+	if (mapView.isMapFound)
+		lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+	else
+		lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+	lv_screen_load(mainScreen);
 }

@@ -11,20 +11,24 @@
 #include <LovyanGFX.hpp>
 #include "tft.hpp"
 
-#define TOUCH_MAX_POINTS 2
-#define TOUCH_DOUBLE_TOUCH_INTERVAL 150
-#define SPEED_FAST 1.0f   // px/ms fast speed
-#define SPEED_SLOW 0.3f   // px/ms slow speed
+#define TOUCH_MAX_POINTS 2                  /**< Maximum number of supported touch points */
+#define TOUCH_DOUBLE_TOUCH_INTERVAL 150     /**< Interval (ms) to detect double touch */
+#define SPEED_FAST 1.0f                     /**< Fast gesture speed threshold (px/ms) */
+#define SPEED_SLOW 0.3f                     /**< Slow gesture speed threshold (px/ms) */
 
-static bool countTouchReleases = false;
-static int numberTouchReleases = 0;
-static uint32_t firstTouchReleaseTime = 0;
+static bool countTouchReleases = false;         /**< Indicates if touch release events are being counted */
+static int numberTouchReleases = 0;             /**< Number of detected touch releases */
+static uint32_t firstTouchReleaseTime = 0;      /**< Timestamp of the first touch release event */
 
+/**
+ * @brief Zoom gesture direction enumeration
+ * 
+ */
 typedef enum 
 {
-  ZOOM_NONE = 0,
-  ZOOM_IN,
-  ZOOM_OUT
+  ZOOM_NONE = 0,    /**< No zoom gesture detected */
+  ZOOM_IN,          /**< Pinch out gesture detected (zoom in) */
+  ZOOM_OUT          /**< Pinch in gesture detected (zoom out) */
 } zoom_dir;
 
 zoom_dir pinchZoom(const lgfx::touch_point_t prev[TOUCH_MAX_POINTS],const lgfx::touch_point_t curr[TOUCH_MAX_POINTS],float dt_ms);

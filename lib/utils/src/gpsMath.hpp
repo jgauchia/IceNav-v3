@@ -11,16 +11,16 @@
 #include <Arduino.h>
 #include <stdint.h>
 
-#define EARTH_RADIUS 6378137       // Earth Radius
-#define METER_PER_PIXELS 156543.03 // Meters per pixels
+#define EARTH_RADIUS 6378137             /**< Earth radius in meters */
+#define METER_PER_PIXELS 156543.03       /**< Meters per pixel at zoom level 0 (latitude 0) */
 
-#define DEG2RAD(a) ((a) / (180 / M_PI)) // Convert degrees to radians
-#define RAD2DEG(a) ((a) * (180 / M_PI)) // Convert radians to degrees
+#define DEG2RAD(a) ((a) / (180 / M_PI))  /**< Convert degrees to radians */
+#define RAD2DEG(a) ((a) * (180 / M_PI))  /**< Convert radians to degrees */
 
-extern double midLat; // Mid point between 2 Latitudes
-extern double midLon; // Mid point between 2 Longitudes
+extern double midLat;                    /**< Midpoint between two latitudes */
+extern double midLon;                    /**< Midpoint between two longitudes */
 
-static const char *degreeFormat PROGMEM = "%03d\xC2\xB0 %02d\' %.2f\" %c"; // GGºMM'SS" to string format
+static const char *degreeFormat PROGMEM = "%03d\xC2\xB0 %02d\' %.2f\" %c"; /**< Format string for degrees (DDD°MM'SS" + hemisphere) */
 
 double calcDist(double lat1, double lon1, double lat2, double lon2);
 void calcMidPoint(float lat1, float lon1, float lat2, float lon2);
