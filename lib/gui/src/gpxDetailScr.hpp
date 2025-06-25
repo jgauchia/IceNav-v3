@@ -12,13 +12,13 @@
 #include "gpxScr.hpp"
 #include "mainScr.hpp"
 
-extern lv_obj_t *gpxTagValue;
-extern lv_obj_t *gpxTag;
-extern lv_obj_t *labelLat;
-extern lv_obj_t *labelLatValue;
-extern lv_obj_t *labelLon;
-extern lv_obj_t *labelLonValue;
-extern bool isScreenRotated;
+extern lv_obj_t *gpxTagValue;      /**< Add/Edit Waypoint name screen text area */
+extern lv_obj_t *gpxTag;           /**< Name Tag label  */
+extern lv_obj_t *labelLat;         /**< Latitude label */
+extern lv_obj_t *labelLatValue;    /**< Latitude value label */
+extern lv_obj_t *labelLon;         /**< Longitude label */
+extern lv_obj_t *labelLonValue;    /**< Longitude value label */
+extern bool isScreenRotated;       /**< Flag to know if screen is rotated */
 
 void loadMainScreen();
 

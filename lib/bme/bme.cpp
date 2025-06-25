@@ -12,16 +12,13 @@
 
 Adafruit_BME280 bme = Adafruit_BME280();
 
-/**
- * @brief Temperature reading values
- *
- */
-uint8_t tempValue = 0;
-uint8_t tempOld = 0;
+uint8_t tempValue = 0; /**< Stores the current temperature value from the BME280 sensor. */
+uint8_t tempOld = 0; /**< Stores the previous temperature value for comparison. */
 
 /**
- * @brief Init BME sensor
+ * @brief Initializes the BME280 sensor and sets up I2C communication.
  *
+ * Optionally allows advanced configuration for oversampling and filtering.
  */
 void initBME()
 {

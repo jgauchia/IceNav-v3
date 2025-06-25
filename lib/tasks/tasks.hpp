@@ -14,16 +14,15 @@
 #include "compass.hpp"
 #include "lvgl.h"
 #include "cli.hpp"
-//#include "mainScr.hpp"
 #include "globalGpxDef.h"
 #include "lvglFuncs.hpp"
 
-#define TASK_SLEEP_PERIOD_MS 5
+#define TASK_SLEEP_PERIOD_MS 5 /**< Sleep period for tasks in milliseconds */
 
 void gpsTask(void *pvParameters);
 void initGpsTask();
 
 #ifndef DISABLE_CLI
-  void cliTask(void *param);
-  void initCLITask();
+	void cliTask(void *param);
+	void initCLITask();
 #endif

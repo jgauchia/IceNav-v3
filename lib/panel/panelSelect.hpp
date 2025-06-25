@@ -8,6 +8,12 @@
 
 #pragma once
 
+/**
+ * @brief Include the appropriate display panel driver based on the defined macro
+ *
+ * This section conditionally includes the correct header for the selected display/touch panel hardware.
+ * If no supported panel macro is defined, compilation will stop with an error.
+ */
 #if defined(ILI9488_XPT2046_SPI)
     #include "ILI9488_XPT2046_SPI.hpp"
 #elif defined(ILI9488_FT5x06_16B)
