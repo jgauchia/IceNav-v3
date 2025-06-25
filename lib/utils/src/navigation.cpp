@@ -84,7 +84,7 @@ void updateNavigation(float userLat, float userLon, float userHeading, float spe
     {
         // Pseudocódigo: mostrar bitmap de "fuera de ruta"
         // mostrarBitmap(LVGL_BITMAP_FUERA_RUTA);
-        printf("¡Fuera de ruta! Reincorpórate al track\n");
+        log_i("¡Fuera de ruta! Reincorpórate al track");
         state.warnedStraight = false;
         state.warnedTurn = false;
         state.warnedPreTurn = false;
@@ -109,7 +109,7 @@ void updateNavigation(float userLat, float userLon, float userHeading, float spe
         {
             // Pseudocódigo: mostrar imagen de "seguir recto"
             // mostrarBitmap(LVGL_BITMAP_SEGUIR_RECTO);
-            printf("Sigue recto\n");
+            log_i("Sigue recto");
             state.warnedStraight = true;
             state.warnedPreTurn = false;
             state.warnedTurn = false;
@@ -125,30 +125,30 @@ void updateNavigation(float userLat, float userLon, float userHeading, float spe
                 // Leve
                 if (derecha)
                     // mostrarBitmap(LVGL_BITMAP_PREAVISO_FLECHA_LEVE_DERECHA);
-                    printf("Preaviso: giro leve a la DERECHA en %d m\n", (int)distanceToTurn);
+                    log_i("Preaviso: giro leve a la DERECHA en %d m", (int)distanceToTurn);
                 else
                     // mostrarBitmap(LVGL_BITMAP_PREAVISO_FLECHA_LEVE_IZQUIERDA);
-                    printf("Preaviso: giro leve a la IZQUIERDA en %d m\n", (int)distanceToTurn);
+                    log_i("Preaviso: giro leve a la IZQUIERDA en %d m", (int)distanceToTurn);
             }
             else if (abs_angle < 120)
             {
                 // Medio
                 if (derecha)
                     // mostrarBitmap(LVGL_BITMAP_PREAVISO_FLECHA_MEDIA_DERECHA);
-                    printf("Preaviso: giro medio a la DERECHA en %d m\n", (int)distanceToTurn);
+                    log_i("Preaviso: giro medio a la DERECHA en %d m", (int)distanceToTurn);
                 else
                     // mostrarBitmap(LVGL_BITMAP_PREAVISO_FLECHA_MEDIA_IZQUIERDA);
-                    printf("Preaviso: giro medio a la IZQUIERDA en %d m\n", (int)distanceToTurn);
+                    log_i("Preaviso: giro medio a la IZQUIERDA en %d m", (int)distanceToTurn);
             }
             else
             {
                 // Cerrado
                 if (derecha)
                     // mostrarBitmap(LVGL_BITMAP_PREAVISO_FLECHA_CERRADA_DERECHA);
-                    printf("Preaviso: giro cerrado a la DERECHA en %d m\n", (int)distanceToTurn);
+                    log_i("Preaviso: giro cerrado a la DERECHA en %d m", (int)distanceToTurn);
                 else
                     // mostrarBitmap(LVGL_BITMAP_PREAVISO_FLECHA_CERRADA_IZQUIERDA);
-                    printf("Preaviso: giro cerrado a la IZQUIERDA en %d m\n", (int)distanceToTurn);
+                    log_i("Preaviso: giro cerrado a la IZQUIERDA en %d m", (int)distanceToTurn);
             }
             state.warnedPreTurn = true;
             state.warnedStraight = false;
@@ -161,28 +161,28 @@ void updateNavigation(float userLat, float userLon, float userHeading, float spe
             {
                 if (derecha)
                     // mostrarBitmap(LVGL_BITMAP_GIRO_LEVE_DERECHA);
-                    printf("¡Giro leve a la DERECHA en %d m!\n", (int)distanceToTurn);
+                    log_i("¡Giro leve a la DERECHA en %d m!", (int)distanceToTurn);
                 else
                     // mostrarBitmap(LVGL_BITMAP_GIRO_LEVE_IZQUIERDA);
-                    printf("¡Giro leve a la IZQUIERDA en %d m!\n", (int)distanceToTurn);
+                    log_i("¡Giro leve a la IZQUIERDA en %d m!", (int)distanceToTurn);
             } 
             else if (abs_angle < 120)
             {
                 if (derecha)
                     // mostrarBitmap(LVGL_BITMAP_GIRO_MEDIO_DERECHA);
-                    printf("¡Giro medio a la DERECHA en %d m!\n", (int)distanceToTurn);
+                    log_i("¡Giro medio a la DERECHA en %d m!", (int)distanceToTurn);
                 else
                     // mostrarBitmap(LVGL_BITMAP_GIRO_MEDIO_IZQUIERDA);
-                    printf("¡Giro medio a la IZQUIERDA en %d m!\n", (int)distanceToTurn);
+                    log_i("¡Giro medio a la IZQUIERDA en %d m!", (int)distanceToTurn);
             } 
             else
             {
                 if (derecha)
                     // mostrarBitmap(LVGL_BITMAP_GIRO_CERRADO_DERECHA);
-                    printf("¡Giro cerrado a la DERECHA en %d m!\n", (int)distanceToTurn);
+                    log_i("¡Giro cerrado a la DERECHA en %d m!", (int)distanceToTurn);
                 else
                     // mostrarBitmap(LVGL_BITMAP_GIRO_CERRADO_IZQUIERDA);
-                    printf("¡Giro cerrado a la IZQUIERDA en %d m!\n", (int)distanceToTurn);
+                    log_i("¡Giro cerrado a la IZQUIERDA en %d m!", (int)distanceToTurn);
             }
             state.warnedTurn = true;
             state.warnedStraight = false;
@@ -198,7 +198,7 @@ void updateNavigation(float userLat, float userLon, float userHeading, float spe
     {
         // Pseudocódigo: mostrar bitmap de "fin de ruta"
         // mostrarBitmap(LVGL_BITMAP_FIN_RUTA);
-        printf("Fin de ruta o sin más giros.\n");
+        log_i("Fin de ruta o sin más giros.");
         state.warnedStraight = false;
         state.warnedTurn = false;
         state.warnedPreTurn = false;
