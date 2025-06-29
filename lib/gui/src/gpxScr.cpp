@@ -16,7 +16,10 @@ extern bool isWaypointOpt;
 extern bool isTrackOpt;
 bool gpxWaypoint = false;
 bool gpxTrack = false;
-extern std::vector<wayPoint> trackData; /**< Vector containing track waypoints */
+bool isTrackLoaded = false;
+
+extern std::vector<wayPoint> trackData;   /**< Vector containing track waypoints */
+extern std::vector<TurnPoint> turnPoints; /**< Vector containing turn points */
 
 lv_obj_t *listGPXScreen;                /**< Add Waypoint screen */
 
@@ -79,9 +82,13 @@ void gpxListEvent(lv_event_t *event)
 						lv_obj_add_flag(navTile, LV_OBJ_FLAG_HIDDEN);
 					}
 
-					if (gpxTrack)
+            		if (gpxTrack)
 					{
 						gpx.loadTrack(trackData);
+						// turnPoints = gpx.getTurnPoints(18.0f, 20, 70.0f, trackData);     
+						turnPoints = gpx.getTurnPointsSlidingWindow(18.0f, 20, 70.0f, 3, trackData);       
+						isTrackLoaded = true;
+						lv_obj_clear_flag(turnByTurn,LV_OBJ_FLAG_HIDDEN);
 						mapView.updateMap();
 						lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
 					}

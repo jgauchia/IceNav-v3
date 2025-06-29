@@ -382,27 +382,117 @@ bool GPXParser::loadTrack(std::vector<wayPoint>& trackData)
 		// Iterate through <trkseg> elements
 		for (tinyxml2::XMLElement* trkseg = trk->FirstChildElement("trkseg"); trkseg != nullptr; trkseg = trkseg->NextSiblingElement("trkseg"))
 		{
-		// Iterate through <trkpt> elements
-		for (tinyxml2::XMLElement* trkpt = trkseg->FirstChildElement("trkpt"); trkpt != nullptr; trkpt = trkpt->NextSiblingElement("trkpt"))
-		{
-			wayPoint point = {0};
+			// Iterate through <trkpt> elements
+			for (tinyxml2::XMLElement* trkpt = trkseg->FirstChildElement("trkpt"); trkpt != nullptr; trkpt = trkpt->NextSiblingElement("trkpt"))
+			{
+				wayPoint point = {0};
 
-			// Extract latitude and longitude
-			trkpt->QueryDoubleAttribute(gpxLatElem, &point.lat);
-			trkpt->QueryDoubleAttribute(gpxLonElem, &point.lon);
+				// Extract latitude and longitude
+				trkpt->QueryDoubleAttribute(gpxLatElem, &point.lat);
+				trkpt->QueryDoubleAttribute(gpxLonElem, &point.lon);
 
-			// // Extract optional elements
-			// tinyxml2::XMLElement* ele = trkpt->FirstChildElement("ele");
-			// if (ele) point.ele = static_cast<float>(ele->DoubleText());
+				// // Extract optional elements
+				// tinyxml2::XMLElement* ele = trkpt->FirstChildElement("ele");
+				// if (ele) point.ele = static_cast<float>(ele->DoubleText());
 
-			// tinyxml2::XMLElement* time = trkpt->FirstChildElement("time");
-			// if (time) point.time = strdup(time->GetText());
+				// tinyxml2::XMLElement* time = trkpt->FirstChildElement("time");
+				// if (time) point.time = strdup(time->GetText());
 
-			trackData.push_back(point);
-		}
+				trackData.push_back(point);
+			}
 		}
 	}
 
 	return true;
 }
 
+/**
+ * @brief Get turn points of a given track, filtering by minimum angle and distance, 
+ *        but always detect sharp turns regardless of distance.
+ *
+ * This function analyzes the provided track data to find significant turn points.
+ * A turn point is detected if the angle difference between two consecutive legs
+ * exceeds thresholdDeg and the distance between points is greater than minDist,
+ * or if the angle is very sharp (> sharpTurnDeg) regardless of distance.
+ *
+ * @param thresholdDeg Minimum angle difference (in degrees) to consider a turn.
+ * @param minDist Minimum distance (in meters) between consecutive points to consider a turn.
+ * @param sharpTurnDeg Angle (in degrees) above which any turn is considered important, even if distance is small. 
+ * @param trackData Vector containing wayPoint structures representing the track.
+ * @return std::vector<TurnPoint> Vector with detected turn points:
+ *         - index: index in trackData of the turn
+ *         - angle: angle difference at turn (deg, positive=right, negative=left)
+ *         - accumDist: accumulated distance up to the turn (meters)
+ */
+std::vector<TurnPoint> GPXParser::getTurnPoints(float thresholdDeg, double minDist, float sharpTurnDeg, std::vector<wayPoint>& trackData)
+{
+  std::vector<TurnPoint> turnPoints;
+  double accumDist = 0;
+  if (trackData.size() < 3) 
+    return turnPoints;
+  
+  for (size_t i = 1; i < trackData.size() - 1; ++i)
+  {
+    double distPrev = calcDist(trackData[i-1].lat, trackData[i-1].lon, trackData[i].lat, trackData[i].lon);
+    accumDist += distPrev;
+
+    double brg1 = calcCourse(trackData[i-1].lat, trackData[i-1].lon, trackData[i].lat, trackData[i].lon);
+    double brg2 = calcCourse(trackData[i].lat, trackData[i].lon, trackData[i+1].lat, trackData[i+1].lon);
+    double diff = calcAngleDiff(brg2, brg1);
+
+    // Always consider very sharp turns, even if points are close
+    if (fabs(diff) > sharpTurnDeg) 
+    {
+      turnPoints.push_back({static_cast<int>(i), diff, accumDist});
+      continue;
+    }
+
+    // For less sharp turns, apply distance filter
+    if (distPrev < minDist)
+      continue;
+
+    if (fabs(diff) > thresholdDeg)
+      turnPoints.push_back({static_cast<int>(i), diff, accumDist});
+  }
+  
+  return turnPoints;
+}
+
+
+std::vector<TurnPoint> GPXParser::getTurnPointsSlidingWindow(
+    float thresholdDeg, double minDist, float sharpTurnDeg,
+    int windowSize, const std::vector<wayPoint>& trackData)
+{
+    std::vector<TurnPoint> turnPoints;
+    double accumDist = 0;
+    if (trackData.size() < 2 * windowSize + 1)
+        return turnPoints;
+
+    for (size_t i = windowSize; i < trackData.size() - windowSize; ++i)
+    {
+        // Distancia total de la ventana (puedes usarla como filtro si quieres)
+        double distWindow = 0;
+        for (int j = int(i - windowSize); j < int(i + windowSize); ++j)
+            distWindow += calcDist(trackData[j].lat, trackData[j].lon, trackData[j+1].lat, trackData[j+1].lon);
+
+        // Ángulo global entre el tramo inicial y final de la ventana
+        double brgStart = calcCourse(trackData[i - windowSize].lat, trackData[i - windowSize].lon,
+                                     trackData[i].lat, trackData[i].lon);
+        double brgEnd   = calcCourse(trackData[i].lat, trackData[i].lon,
+                                     trackData[i + windowSize].lat, trackData[i + windowSize].lon);
+        double diff = calcAngleDiff(brgEnd, brgStart);
+
+        accumDist += calcDist(trackData[i-1].lat, trackData[i-1].lon, trackData[i].lat, trackData[i].lon);
+
+        // Detección igual que el método clásico, pero sobre el ángulo "global" de la ventana
+        if (std::abs(diff) > sharpTurnDeg) {
+            turnPoints.push_back({static_cast<int>(i), diff, accumDist});
+            continue;
+        }
+        if (distWindow < minDist)
+            continue;
+        if (std::abs(diff) > thresholdDeg)
+            turnPoints.push_back({static_cast<int>(i), diff, accumDist});
+    }
+    return turnPoints;
+}

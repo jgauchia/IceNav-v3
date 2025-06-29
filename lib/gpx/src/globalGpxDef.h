@@ -54,7 +54,19 @@ struct wayPoint
 };
 
 /**
- * @brief GPX header file format
+ * @brief Track turn points structure
+ *
+ * @details Structure representing a track turn point
+ */
+struct TurnPoint 
+{
+	int idx;            /**< Index of the track point */
+	double angle;       /**< Turn angle at this point (positive = right, negative = left) */
+	double distance;    /**< Distance from start to this point (in meters) */
+}; 
+
+/**
+ * @Brief GPX header file format
  *
  * @details Static string containing the standard GPX 1.0 file header, to be used when creating new GPX files.
  */

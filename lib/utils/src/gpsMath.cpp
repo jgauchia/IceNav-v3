@@ -67,6 +67,23 @@ double calcCourse(double lat1, double lon1, double lat2, double lon2)
 }
 
 /**
+ * @brief Calculates the minimum signed angular difference between two angles.
+ *
+ * This function computes the smallest difference between two angles (in degrees),
+ * returning a value in the range [-180, 180]. Positive results indicate a
+ * counterclockwise difference, and negative results indicate a clockwise difference.
+ *
+ * @param a Angle 1 (in degrees)
+ * @param b Angle 2 (in degrees)
+ * @return double Angular difference in degrees, normalized to [-180, 180]
+ */
+double calcAngleDiff(double a, double b)
+{
+  double diff = fmod((a - b + 540.0f), 360.0f) - 180.0f;
+  return diff;
+}
+
+/**
  * @brief Function to calculate the midpoint between two coordinates (latitude and longitude)
  *
  * @details Calculates the geographic midpoint (center point) between two coordinates on the Earth's surface.

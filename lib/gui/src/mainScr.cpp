@@ -201,9 +201,9 @@ void updateMainScreen(lv_timer_t *t)
 			else
 				heading = gps.gpsData.heading;
 			#else
-			heading = gps.gpsData.heading;
+				heading = gps.gpsData.heading;
 			#endif
-			lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
+				lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
 			break;
 
 		case NAV:
@@ -523,6 +523,8 @@ void createMainScr()
 	mapCompassWidget(mapTile);
 	// Map scale Widget
 	mapScaleWidget(mapTile);
+	// Turn by Turn navigation widget
+  	turnByTurnWidget(mapTile);
 	// Map Tile Toolbar
 	btnZoomOut = lv_img_create(mapTile);
 	lv_img_set_src(btnZoomOut, zoomOutIconFile);

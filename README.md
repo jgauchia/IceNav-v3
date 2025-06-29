@@ -337,8 +337,8 @@ To access the Web File Server, simply use any browser and go to the following ad
 - [ ] Multiple IMU's and Compass module implementation
 - [X] Power saving
 - [X] Vector maps
-- [ ] Google Maps navigation style (turn by turn)
-- [x] Optimize code
+- [X] Google Maps navigation style (turn by turn)
+- [X] Optimize code
 - [X] Fix bugs!
 - [X] Web file server
       

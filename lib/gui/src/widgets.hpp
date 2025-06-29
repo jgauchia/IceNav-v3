@@ -35,6 +35,9 @@ extern lv_obj_t *miniCompass;      /**< Mini compass widget */
 extern lv_obj_t *mapCompassImg;    /**< Map compass image object */
 extern lv_obj_t *scaleWidget;      /**< Scale widget object */
 extern lv_obj_t *scaleLabel;       /**< Scale label */
+extern lv_obj_t *turnByTurn;       /**< Turn-by-Turn navigation widget*/
+extern lv_obj_t *turnDistLabel;    /**< Label object showing turn distance */
+extern lv_obj_t *turnImg;          /**< Image object for turn indication */
 
 void editWidget(lv_event_t *event);
 void dragWidget(lv_event_t *event);
@@ -57,6 +60,7 @@ static const char *navArrowIconFile PROGMEM   = "/navarrow.bin";    /**< Navigat
 static const char *zoomIconFile PROGMEM       = "/zoom.bin";        /**< Zoom map icon */
 static const char *mapSpeedIconFile PROGMEM   = "/mapspeed.bin";    /**< Speed map icon */
 
+
 void positionWidget(lv_obj_t *screen);
 void compassWidget(lv_obj_t *screen);
 void altitudeWidget(lv_obj_t *screen);
@@ -67,3 +71,4 @@ void mapZoomWidget(lv_obj_t *screen);
 void mapSpeedWidget(lv_obj_t *screen);
 void mapCompassWidget(lv_obj_t *screen);
 void mapScaleWidget(lv_obj_t *screen);
+void turnByTurnWidget(lv_obj_t *screen);
