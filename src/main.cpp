@@ -226,7 +226,7 @@ void loop()
 	{
 		float userLat, userLon, gps_heading, speed_kmh;
     	bool gps_heading_valid = false;
- 		if (millis() - ultimoSimulacion > 250) 
+ 		if (millis() - ultimoSimulacion > 100) 
 		{ // cada 1.5s simula el siguiente punto
             ultimoSimulacion = millis();
 
