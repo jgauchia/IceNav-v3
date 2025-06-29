@@ -17,7 +17,8 @@ lv_timer_t *mainTimer;                        /**< Main Screen Timer */
 /**
  * @brief Button events
  *
- * Handles button events for the search screen. 
+ * @details Handles button events for the search screen. 
+ *
  * @param event LVGL event pointer.
  */
 void buttonEvent(lv_event_t *event)
@@ -33,7 +34,7 @@ void buttonEvent(lv_event_t *event)
 /**
  * @brief Search valid GPS signal
  *
- * Checks for a valid GPS fix or a skip command.
+ * @details Checks for a valid GPS fix or a skip command.
  *
  * @param searchTimer LVGL timer pointer associated with the satellite search.
  */
@@ -64,7 +65,7 @@ void searchGPS(lv_timer_t *searchTimer)
 /**
  * @brief Create Satellite Search Screen
  *
- * Creates the satellite search screen 
+ * @details Creates the satellite search screen 
  */
 void createSearchSatScr()
 {

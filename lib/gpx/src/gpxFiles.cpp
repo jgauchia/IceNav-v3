@@ -18,8 +18,8 @@ static const char* TAG PROGMEM = "GPX file struct";
 /**
  * @brief Create GPX folders structure
  *
- * Checks for the existence of the TRK and WPT folders on storage. Creates them if they do not exist,
- * and logs the results.
+ * @details Checks for the existence of the TRK and WPT folders on storage. Creates them if they do not exist,
+ * 			and logs the results.
  */
 void createGpxFolders()
 {
@@ -49,8 +49,8 @@ void createGpxFolders()
 /**
  * @brief Create default IceNav waypoint file
  *
- * Checks for the existence of the default waypoint GPX file on storage. If it does not exist,
- * the function creates a new GPX file with the GPX header. Logs the results.
+ * @details Checks for the existence of the default waypoint GPX file on storage. If it does not exist,
+ * 			the function creates a new GPX file with the GPX header. Logs the results.
  */
 void createWptFile()
 {

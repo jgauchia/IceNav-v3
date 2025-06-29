@@ -14,8 +14,8 @@ double midLon = 0;
 /**
  * @brief Function to calculate the distance in meters between two coordinates using the Haversine formula
  *
- * This function computes the great-circle distance between two points on the Earth's surface
- * given their latitude and longitude values, using the Haversine formula.
+ * @details Computes the great-circle distance between two points on the Earth's surface
+ * 			given their latitude and longitude values, using the Haversine formula.
  *
  * @param lat1 Latitude of point 1 (in degrees)
  * @param lon1 Longitude of point 1 (in degrees)
@@ -41,8 +41,8 @@ double calcDist(double lat1, double lon1, double lat2, double lon2)
 /**
  * @brief Function to calculate the heading (bearing) between two coordinates (latitude and longitude) using the Orthodromic (great-circle) course
  *
- * Calculates the initial bearing (forward azimuth) from the first point (lat1, lon1)
- * to the second point (lat2, lon2) on the surface of a sphere (Earth).
+ * @details Calculates the initial bearing (forward azimuth) from the first point (lat1, lon1)
+* 			to the second point (lat2, lon2) on the surface of a sphere (Earth).
  *
  * @param lat1 Latitude of point 1 (in degrees)
  * @param lon1 Longitude of point 1 (in degrees)
@@ -86,8 +86,8 @@ double calcAngleDiff(double a, double b)
 /**
  * @brief Function to calculate the midpoint between two coordinates (latitude and longitude)
  *
- * Calculates the geographic midpoint (center point) between two coordinates on the Earth's surface.
- * The result is stored in the global variables midLat and midLon.
+ * @details Calculates the geographic midpoint (center point) between two coordinates on the Earth's surface.
+ * 			The result is stored in the global variables midLat and midLon.
  *
  * @param lat1 Latitude of point 1 (in degrees)
  * @param lon1 Longitude of point 1 (in degrees)
@@ -127,7 +127,7 @@ float mapFloat(float x, float inMin, float inMax, float outMin, float outMax)
 /**
  * @brief Converts a latitude value to a string in GGºMM'SS" format
  *
- * Converts a latitude value (in decimal degrees) to a formatted string "GGºMM'SS" N/S".
+ * @details Converts a latitude value (in decimal degrees) to a formatted string "GGºMM'SS" N/S".
  *
  * @param lat Latitude value in decimal degrees
  * @return char* Pointer to formatted string
@@ -155,7 +155,7 @@ char *latFormatString(double lat)
 /**
  * @brief Converts a longitude value to a string in GGºMM'SS" format
  *
- * Converts a longitude value (in decimal degrees) to a formatted string "GGºMM'SS" E/W".
+ * @details Converts a longitude value (in decimal degrees) to a formatted string "GGºMM'SS" E/W".
  *
  * @param lon Longitude value in decimal degrees
  * @return char* Pointer to formatted string

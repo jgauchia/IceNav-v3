@@ -17,7 +17,7 @@
 /**
  * @brief Notify Bar screen objects.
  *
- * Objects used to display information in the notification bar
+ * @details Objects used to display information in the notification bar
  */
 static lv_obj_t *gpsTime;      /**< Time display object. */
 static lv_obj_t *gpsCount;     /**< Satellite count object. */
@@ -36,7 +36,7 @@ static float battLevelOld = 0;   /**< Previous battery level value. */
 /**
  * @brief Temperature values.
  *
- * Format string for displaying time in HH:MM:SS format
+ * @details Format string for displaying time in HH:MM:SS format
  */
 static const char* timeFormat PROGMEM = "%02d:%02d:%02d";
 

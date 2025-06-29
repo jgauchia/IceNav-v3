@@ -26,9 +26,9 @@ Gps::Gps() {}
 /**
  * @brief Init GPS and custom NMEA parsing.
  *
- * Initializes the GPS port with the appropriate baud rate and buffer size.
- * If a specific baud rate is not set (gpsBaud != 4), it uses the predefined baud rate array.
- * Otherwise, it attempts to auto-detect the baud rate.
+ * @details Initializes the GPS port with the appropriate baud rate and buffer size.
+ * 			If a specific baud rate is not set (gpsBaud != 4), it uses the predefined baud rate array.
+ *			Otherwise, it attempts to auto-detect the baud rate.
  */
 void Gps::init()
 {
@@ -76,8 +76,8 @@ void Gps::init()
 /**
  * @brief Return latitude from GPS or system environment pre-built variable.
  *
- * Returns the current latitude using the GPS fix if available, otherwise uses the system configuration
- * or a predefined default value. Returns 0.0 if latitude is not defined.
+ * @details Returns the current latitude using the GPS fix if available, otherwise uses the system configuration
+ * 			or a predefined default value. Returns 0.0 if latitude is not defined.
  *
  * @return double Latitude value or 0.0 if not defined.
  */
@@ -102,8 +102,8 @@ double Gps::getLat()
 /**
  * @brief Return longitude from GPS or system environment pre-built variable.
  *
- * Returns the current longitude using the GPS fix if available, otherwise uses the system configuration
- * or a predefined default value. Returns 0.0 if longitude is not defined.
+ * @details Returns the current longitude using the GPS fix if available, otherwise uses the system configuration
+ * 			or a predefined default value. Returns 0.0 if longitude is not defined.
  *
  * @return double Longitude value or 0.0 if not defined.
  */
@@ -126,9 +126,9 @@ double Gps::getLon()
 /**
  * @brief Get GPS parsed data.
  *
- * Updates the GPS data structure with the latest parsed values from the GPS fix.
- * Handles fix status, satellite information, time/date updates, position, altitude, speed,
- * heading, dilution of precision values, and updates satellite tracker positions and status.
+ * @details Updates the GPS data structure with the latest parsed values from the GPS fix.
+ * 			Handles fix status, satellite information, time/date updates, position, altitude, speed,
+ * 			heading, dilution of precision values, and updates satellite tracker positions and status.
  */
 void Gps::getGPSData()
 {
@@ -208,8 +208,8 @@ void Gps::getGPSData()
 /**
  * @brief Detect the baud rate of the incoming GPS signal on a given RX pin.
  *
- * Measures the duration of low pulses on the RX line to estimate the baud rate of the connected GPS device.
- * Returns the shortest measured pulse width as the likely bit duration.
+ * @details Measures the duration of low pulses on the RX line to estimate the baud rate of the connected GPS device.
+ * 			Returns the shortest measured pulse width as the likely bit duration.
  *
  * @param rxPin The GPIO pin number used for receiving GPS data.
  * @return long The estimated baud rate (bit duration in microseconds).
@@ -233,8 +233,8 @@ long Gps::detectRate(int rxPin)
 /**
  * @brief Detect GPS Baudrate.
  *
- * Measures the pulse width on the GPS RX pin multiple times to estimate the baud rate.
- * Maps the measured pulse width to the nearest standard baud rate value.
+ * @details Measures the pulse width on the GPS RX pin multiple times to estimate the baud rate.
+ * 			Maps the measured pulse width to the nearest standard baud rate value.
  *
  * @return long Detected baud rate, or 0 if detection failed.
  */
@@ -287,7 +287,7 @@ long Gps::autoBaud()
 /**
  * @brief Check if the speed has changed.
  *
- * Compares the current speed with the previous value and updates the previous value if changed.
+ * @details Compares the current speed with the previous value and updates the previous value if changed.
  *
  * @return true if speed has changed, false otherwise.
  */
@@ -304,7 +304,7 @@ bool Gps::isSpeedChanged()
 /**
  * @brief Check if the altitude has changed.
  *
- * Compares the current altitude with the previous value and updates the previous value if changed.
+ * @details Compares the current altitude with the previous value and updates the previous value if changed.
  *
  * @return true if altitude has changed, false otherwise.
  */
@@ -322,7 +322,7 @@ bool Gps::isAltitudeChanged()
 /**
  * @brief Check if the latitude or longitude has changed.
  *
- * Compares the current latitude and longitude with the previous values and updates them if changed.
+ * @details Compares the current latitude and longitude with the previous values and updates them if changed.
  *
  * @return true if latitude or longitude has changed, false otherwise.
  */
@@ -340,7 +340,7 @@ bool Gps::hasLocationChange()
 /**
  * @brief Check if the PDOP, HDOP, or VDOP has changed.
  *
- * Compares the current DOP values with the previous values and updates them if changed.
+ * @details Compares the current DOP values with the previous values and updates them if changed.
  *
  * @return true if PDOP, HDOP, or VDOP has changed, false otherwise.
  */
@@ -359,8 +359,8 @@ bool Gps::isDOPChanged()
 /**
  * @brief Set system local time from GPS time and timezone.
  *
- * Converts the provided GPS time to a struct tm, sets the system time, applies the timezone,
- * and logs both the local and UTC time. Also calculates and stores the UTC offset in gpsData.UTC.
+ * @details Converts the provided GPS time to a struct tm, sets the system time, applies the timezone,
+ * 			and logs both the local and UTC time. Also calculates and stores the UTC offset in gpsData.UTC.
  *
  * @param gpsTime The GPS time (NeoGPS::time_t) to set as system time.
  * @param tz The timezone string (POSIX TZ format).

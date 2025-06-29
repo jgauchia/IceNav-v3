@@ -15,7 +15,7 @@ extern Gps gps;
 /**
  * @brief Splash screen
  *
- * Displays the splash screen with logo, device information, Preloads the map and initializes display settings.
+ * @details Displays the splash screen with logo, device information, Preloads the map and initializes display settings.
  */
 void splashScreen()
 {

@@ -17,7 +17,7 @@
  * @class Battery
  * @brief Provides battery voltage monitoring and charge estimation.
  *
- * Handles ADC initialization, voltage range configuration, and computes battery charge percentage.
+ * @details Handles ADC initialization, voltage range configuration, and computes battery charge percentage.
  */
 class Battery
 {

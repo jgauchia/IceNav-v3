@@ -18,7 +18,7 @@ uint8_t tempOld = 0; /**< Stores the previous temperature value for comparison. 
 /**
  * @brief Initializes the BME280 sensor and sets up I2C communication.
  *
- * Optionally allows advanced configuration for oversampling and filtering.
+ * @details Optionally allows advanced configuration for oversampling and filtering.
  */
 void initBME()
 {

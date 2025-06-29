@@ -36,7 +36,7 @@ void msgUpgrdEvent(lv_event_t *event)
 /**
  * @brief Create Upgrade Message
  *
- * Creates the firmware upgrade message dialog
+ * @details Creates the firmware upgrade message dialog
  */
 void createMsgUpgrade()
 {

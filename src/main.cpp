@@ -82,8 +82,8 @@ static double transit, sunrise, sunset; /**< Variables to store solar transit, s
  * @brief Calculate Sunrise and Sunset
  *        Must be a global function
  *
- * Calls calcSunriseSunset to compute the solar transit, sunrise, and sunset times for
- * the current date and GPS location. Adjusts times for UTC offset 
+ * @details Calls calcSunriseSunset to compute the solar transit, sunrise, and sunset times for
+ * 			the current date and GPS location. Adjusts times for UTC offset 
  */
 void calculateSun()
 {

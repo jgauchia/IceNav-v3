@@ -30,8 +30,8 @@
 /**
  * @brief Structure for SD Card Information
  *
- * Contains descriptive and capacity-related information about an SD card,
- * including its name, capacity, sector size, read block length, type, and space details.
+ * @details Contains descriptive and capacity-related information about an SD card,
+ * 			including its name, capacity, sector size, read block length, type, and space details.
  */
 struct SDCardInfo
 {
@@ -49,8 +49,8 @@ struct SDCardInfo
  * @class FileStream
  * @brief FileStream class to wrap FILE* operations as a Stream
  *
- * Provides a Stream-compatible interface for reading from and flushing a standard C FILE*.
- * Write operations are not implemented.
+ * @details Provides a Stream-compatible interface for reading from and flushing a standard C FILE*.
+ * 			Write operations are not implemented.
  */
 class FileStream : public Stream
 {
@@ -158,8 +158,8 @@ private:
  * @class Storage
  * @brief Storage class for SD and SPIFFS operations
  *
- * Provides an abstraction for file and directory operations on SD cards and SPIFFS,
- * including initialization, basic file I/O, and SD card information retrieval.
+ * @details Provides an abstraction for file and directory operations on SD cards and SPIFFS,
+ * 			including initialization, basic file I/O, and SD card information retrieval.
  */
 class Storage
 {

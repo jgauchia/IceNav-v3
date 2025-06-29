@@ -13,8 +13,8 @@ extern const uint8_t BOARD_BOOT_PIN; /**< External declaration for the board's b
 /**
  * @brief Power Class constructor
  *
- * Initializes the Power class and optionally disables radio interfaces (WiFi and Bluetooth)
- * if the DISABLE_RADIO macro is defined, to reduce power consumption.
+ * @details Initializes the Power class and optionally disables radio interfaces (WiFi and Bluetooth)
+ * 			if the DISABLE_RADIO macro is defined, to reduce power consumption.
  */
 Power::Power()
 {
@@ -30,8 +30,8 @@ Power::Power()
 /**
  * @brief Deep Sleep Mode
  *
- * Puts the device into deep sleep mode to minimize power consumption.
- * Disables Bluetooth and WiFi, configures wakeup sources, and starts deep sleep.
+ * @details Puts the device into deep sleep mode to minimize power consumption.
+ * 			Disables Bluetooth and WiFi, configures wakeup sources, and starts deep sleep.
  */
 void Power::powerDeepSleep()
 {
@@ -55,8 +55,8 @@ void Power::powerDeepSleep()
 /**
  * @brief Sleep Mode Timer
  *
- * Puts the device into light sleep mode for a specified duration.
- * Enables timer wakeup and starts light sleep.
+ * @details Puts the device into light sleep mode for a specified duration.
+ * 			Enables timer wakeup and starts light sleep.
  *
  * @param millis Duration of light sleep in milliseconds
  */
@@ -70,8 +70,8 @@ void Power::powerLightSleepTimer(int millis)
 /**
  * @brief Sleep Mode
  *
- * Puts the device into light sleep mode until an external event occurs.
- * Configures the device to wake up on a low signal from the boot pin.
+ * @details Puts the device into light sleep mode until an external event occurs.
+ * 			Configures the device to wake up on a low signal from the boot pin.
  */
 void Power::powerLightSleep()
 {
@@ -82,7 +82,7 @@ void Power::powerLightSleep()
 /**
  * @brief Powers off peripheral devices to reduce power consumption.
  *
- * Turns off the TFT display, clears the screen, and ends SPI and I2C communications.
+ * @details Turns off the TFT display, clears the screen, and ends SPI and I2C communications.
  */
 void Power::powerOffPeripherals()
 {
@@ -95,9 +95,9 @@ void Power::powerOffPeripherals()
 /**
  * @brief Core light suspend and TFT off
  *
- * Suspends the device by turning off the TFT display, entering light sleep mode,
- * and restoring the display brightness upon wakeup. Ensures the device only resumes
- * when the boot pin is released.
+ * @details Suspends the device by turning off the TFT display, entering light sleep mode,
+ * 			and restoring the display brightness upon wakeup. Ensures the device only resumes
+ * 			when the boot pin is released.
  */
 void Power::deviceSuspend()
 {
@@ -117,7 +117,7 @@ void Power::deviceSuspend()
 /**
  * @brief Powers off peripherals and enters deep sleep mode.
  *
- * Turns off all peripheral devices and puts the device into deep sleep to minimize power consumption.
+ * @details Turns off all peripheral devices and puts the device into deep sleep to minimize power consumption.
  */
 void Power::deviceShutdown()
 {

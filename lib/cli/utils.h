@@ -22,8 +22,8 @@ extern Storage storage;
 /**
  * @brief Captures a screenshot from the TFT display and saves it to the SD card.
  *
- * Creates a PNG image of the current display, attempts to write it to the specified file,
- * and prints the operation result to the response stream.
+ * @details Creates a PNG image of the current display, attempts to write it to the specified file,
+ * 			and prints the operation result to the response stream.
  *
  * @param filename Path where the screenshot will be saved.
  * @param response Stream to send operation messages.
@@ -67,9 +67,9 @@ static WiFiClient client;
 /**
  * @brief Captures a screenshot and sends it over WiFi to a remote PC.
  *
- * Connects to a specified IP and port, captures a screenshot using captureScreenshot(),
- * then reads the file and sends its contents over the network connection.
- * Reports status and errors to the response stream.
+ * @details Connects to a specified IP and port, captures a screenshot using captureScreenshot(),
+ * 			then reads the file and sends its contents over the network connection.
+ * 			Reports status and errors to the response stream.
  *
  * @param filename Path where the screenshot will be saved and read from.
  * @param pc_ip IP address of the remote PC to send the screenshot to.

@@ -17,8 +17,8 @@ static const char* TAG PROGMEM = "Task";
 /**
  * @brief Read GPS data
  *
- * Task function that reads data from the GPS module, optionally prints NMEA output,
- * and updates the GPS fix structure. Uses the gpsMutex for thread safety.
+ * @details Task function that reads data from the GPS module, optionally prints NMEA output,
+ * 			and updates the GPS fix structure. Uses the gpsMutex for thread safety.
  *
  * @param pvParameters Task parameters (unused)
  */
@@ -55,7 +55,7 @@ void gpsTask(void *pvParameters)
 /**
  * @brief Init GPS task
  *
- * Creates and starts the GPS task 
+ * @details Creates and starts the GPS task 
  */
 void initGpsTask()
 {
@@ -66,7 +66,7 @@ void initGpsTask()
 /**
  * @brief CLI task
  *
- * Task function for the command-line interface. 
+ * @details Task function for the command-line interface. 
  *
  * @param param Task parameters (unused)
  */
@@ -86,7 +86,7 @@ void cliTask(void *param)
 /**
  * @brief Init CLI task
  *
- * Creates and starts CLI task
+ * @details Creates and starts CLI task
  */
 void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 20000, NULL, 1, NULL, 1); }
 

@@ -16,7 +16,7 @@
 /**
  * @brief Widget objects
  *
- * Declarations for UI widget objects 
+ * @details Declarations for UI widget objects 
  */
 extern lv_obj_t *latitude;         /**< Latitude label */
 extern lv_obj_t *longitude;        /**< Longitude label */

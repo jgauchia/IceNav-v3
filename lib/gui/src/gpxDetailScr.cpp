@@ -239,8 +239,8 @@ void updateWaypoint(uint8_t action)
 /**
  * @brief Create Waypoint screen
  *
- * This function initializes the GPX Detail screen, including the text area for waypoint name,
- * rotation button (if not TDECK_ESP32S3), and labels for latitude and longitude values.
+ * @details Initializes the GPX Detail screen, including the text area for waypoint name,
+ * 			rotation button (if not TDECK_ESP32S3), and labels for latitude and longitude values.
  */
 void createGpxDetailScreen()
 {

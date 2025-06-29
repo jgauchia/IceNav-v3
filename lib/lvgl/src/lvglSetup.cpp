@@ -27,8 +27,8 @@ Maps mapView;
 /**
  * @brief LVGL display flush callback.
  *
- * This function updates the specified area of the display with the provided pixel map.
- * Flush callback for an LVGL display driver, and utilizes DMA for fast image transfer.
+ * @details Updates the specified area of the display with the provided pixel map.
+ * 			Flush callback for an LVGL display driver, and utilizes DMA for fast image transfer.
  *
  * @param disp   Pointer to the LVGL display driver.
  * @param area   Area of the display to update.
@@ -296,7 +296,7 @@ void applyModifyTheme(lv_theme_t *th, lv_obj_t *obj)
 /**
  * @brief Apply Custom Dark theme styles to the given object.
  *
- * This function assigns custom styles to various LVGL objects (button, switch, checkbox, etc.)
+ * @details Assigns custom styles to various LVGL objects (button, switch, checkbox, etc.)
  *
  * @param th  Pointer to the LVGL theme (unused).
  * @param obj Pointer to the LVGL object to style.
@@ -340,9 +340,9 @@ void lv_tick_task(void *arg)
 /**
  * @brief Initialize LVGL, display, input devices, themes, and main screens.
  *
- * Initialize the LVGL library, sets up the display buffers using PSRAM or RAM,
- * configures input devices (touch, keypad, GPIO), applies the custom theme, creates main UI screens,
- * and starts the periodic timer for LVGL ticks.
+ * @details Initialize the LVGL library, sets up the display buffers using PSRAM or RAM,
+ * 			configures input devices (touch, keypad, GPIO), applies the custom theme, creates main UI screens,
+ * 			and starts the periodic timer for LVGL ticks.
  */
 void initLVGL()
 {

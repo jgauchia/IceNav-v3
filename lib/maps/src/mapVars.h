@@ -26,9 +26,9 @@
 /**
  * @brief Point in 16 bits projected coordinates (x, y) for Vector Maps.
  *
- * This struct represents a point using 16-bit signed integers for the x and y coordinates.
- * It provides basic arithmetic operators for point addition and subtraction,
- * and a constructor for parsing a coordinate pair from a C-string.
+ * @details Struct represents a point using 16-bit signed integers for the x and y coordinates.
+ * 			It provides basic arithmetic operators for point addition and subtraction,
+ * 			and a constructor for parsing a coordinate pair from a C-string.
  */
 struct Point16
 {
@@ -44,10 +44,10 @@ struct Point16
 /**
  * @brief Point in 32 bits projected coordinates (x, y) for Vector Maps.
  *
- * This struct represents a point using 32-bit signed integers for the x and y coordinates.
- * It provides constructors for direct initialization and from Point16,
- * arithmetic operators for point addition and subtraction, a conversion to Point16,
- * and equality comparison.
+ * @details Struct represents a point using 32-bit signed integers for the x and y coordinates.
+ * 			It provides constructors for direct initialization and from Point16,
+ * 			arithmetic operators for point addition and subtraction, a conversion to Point16,
+ * 			and equality comparison.
  */
 struct Point32
 {
@@ -65,8 +65,8 @@ struct Point32
 /**
  * @brief Bounding Box structure for 2D space using Point32.
  *
- * Represents an axis-aligned bounding box with minimum and maximum corners.
- * Provides methods for translation, point containment, and intersection tests.
+ * @details Represents an axis-aligned bounding box with minimum and maximum corners.
+ *			Provides methods for translation, point containment, and intersection tests.
  */
 struct BBox
 {

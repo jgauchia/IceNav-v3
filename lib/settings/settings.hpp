@@ -61,8 +61,8 @@ extern bool calculateDST;       /**< Daylight Saving Time calculation flag */
 /**
  * @brief Structure for map settings
  *
- * Contains configuration flags for displaying and interacting with the map UI,
- * such as compass, speed, map type, and scale settings.
+ * @details Contains configuration flags for displaying and interacting with the map UI,
+ *          such as compass, speed, map type, and scale settings.
  */
 struct MAP
 {

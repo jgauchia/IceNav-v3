@@ -16,7 +16,7 @@ Battery::Battery() {}
 /**
  * @brief Initializes the ADC channel(s) required for battery voltage measurement.
  *
- * Configures the hardware ADC based on the ESP32 chip (ADC1 or ADC2).
+ * @details Configures the hardware ADC based on the ESP32 chip (ADC1 or ADC2).
  */
 void Battery::initADC()
 {
@@ -45,8 +45,8 @@ void Battery::setBatteryLevels(float maxVoltage, float minVoltage)
 /**
  * @brief Reads and computes the current battery charge as a percentage.
  *
- * Takes 100 ADC samples, averages them, compensates for the voltage divider, and calculates the charge percentage.
- * Returns a value between 0 and 100 (values above 160 are treated as 0).
+ * @details Takes 100 ADC samples, averages them, compensates for the voltage divider, and calculates the charge percentage.
+ *          Returns a value between 0 and 100 (values above 160 are treated as 0).
  *
  * @return float Percentage of battery charge (0–100% typically).
  */

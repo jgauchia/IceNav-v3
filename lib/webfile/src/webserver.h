@@ -37,9 +37,9 @@ static const char* TAG = "Webserver";
 /**
  * @brief File directory cache entry
  *
- * This structure represents an entry in a file directory cache,
- * storing the file or directory name, a flag indicating if it is a directory,
- * and its size in bytes.
+ * @details This structure represents an entry in a file directory cache,
+ * 			storing the file or directory name, a flag indicating if it is a directory,
+ * 			and its size in bytes.
  */
 struct FileEntry
 {
@@ -52,8 +52,8 @@ std::vector<FileEntry> fileCache;  /**< Vector containing file/directory cache e
 /**
  * @brief Web Server Declaration
  *
- * Declares the main AsyncWebServer instance, a server-sent events (SSE) event source for "/eventRefresh",
- * and sets the device hostname.
+ * @details Declares the main AsyncWebServer instance, a server-sent events (SSE) event source for "/eventRefresh",
+ *			and sets the device hostname.
  */
 static AsyncWebServer server(80);                 /**< HTTP server running on port 80 */
 static AsyncEventSource eventRefresh("/eventRefresh"); /**< Server-Sent Events endpoint for refresh events */
@@ -63,7 +63,7 @@ static const char* hostname = "icenav";           /**< Device hostname */
 /**
  * @brief Convert bytes to Human Readable Size
  *
- * Converts a byte count to a human-readable string representation (B, KB, MB, GB).
+ * @details Converts a byte count to a human-readable string representation (B, KB, MB, GB).
  *
  * @param bytes Number of bytes
  * @return String Human-readable representation of the size
@@ -83,9 +83,9 @@ String humanReadableSize(uint64_t bytes)
 /**
  * @brief Extract numeric part from string starting at position
  *
- * Extracts an integer value from the given string starting at the
- * specified position. Updates the position to the character after
- * the numeric part.
+ * @details Extracts an integer value from the given string starting at the
+ * 			specified position. Updates the position to the character after
+ * 			the numeric part.
  *
  * @param str Input string to parse
  * @param pos Reference to the starting position; updated after extraction
@@ -105,8 +105,8 @@ int extractNumber(const String& str, int& pos)
 /**
  * @brief Compare two strings using natural (alphanumeric) order
  *
- * Compares two strings by segments, so that numeric parts are compared as numbers,
- * and character parts are compared lexicographically (case-insensitive).
+ * @details Compares two strings by segments, so that numeric parts are compared as numbers,
+ * 			and character parts are compared lexicographically (case-insensitive).
  *
  * @param a First string to compare
  * @param b Second string to compare
@@ -139,8 +139,8 @@ bool naturalCompare(const String& a, const String& b)
 /**
  * @brief Compare File Cache entries
  *
- * Compares two FileEntry objects for sorting. Directories are ordered before files.
- * If both are the same type, performs a natural alphanumeric comparison on the names.
+ * @details Compares two FileEntry objects for sorting. Directories are ordered before files.
+ * 			If both are the same type, performs a natural alphanumeric comparison on the names.
  *
  * @param a First FileEntry
  * @param b Second FileEntry
@@ -157,7 +157,7 @@ bool compareFileEntries(const FileEntry& a, const FileEntry& b)
 /**
  * @brief Sort File Cache entries
  *
- * Sorts the global fileCache vector, places directories before files and sorts names in natural alphanumeric order.
+ * @details Sorts the global fileCache vector, places directories before files and sorts names in natural alphanumeric order.
  */
 void sortFileCache() 
 {
@@ -167,9 +167,9 @@ void sortFileCache()
 /**
  * @brief Cache file entries in directory
  *
- * Reads the contents of the specified directory, populates the global fileCache vector
- * with FileEntry objects for each file and subdirectory. For files, the size is determined.
- * For directories, size is set to 0. The fileCache is sorted after reading.
+ * @details Reads the contents of the specified directory, populates the global fileCache vector
+ * 			with FileEntry objects for each file and subdirectory. For files, the size is determined.
+ * 			For directories, size is set to 0. The fileCache is sorted after reading.
  *
  * @param dir Directory path (relative to /sdcard)
  */
@@ -218,7 +218,7 @@ void cacheDirectoryContent(const String& dir)
 /**
  * @brief Manage Web not found error
  *
- * Handles HTTP 404 (Not Found) errors for the web server. 
+ * @details Handles HTTP 404 (Not Found) errors for the web server. 
  *
  * @param request Pointer to the AsyncWebServerRequest containing the HTTP request data
  */
@@ -232,7 +232,7 @@ void webNotFound(AsyncWebServerRequest *request)
 /**
  * @brief Replace HTML Vars with values
  *
- * Substitutes specific variable names with their corresponding runtime values for HTML templates.
+ * @details Substitutes specific variable names with their corresponding runtime values for HTML templates.
  *
  * @param var Variable name to substitute (e.g., "FIRMWARE", "FREEFS")
  * @return String Value to replace the variable with
@@ -268,9 +268,9 @@ void rebootESP()
 /**
  * @brief List Files in Web Page
  * 
- * Generates a paginated list of files and directories from the file cache, either as HTML or plain text.
- * In HTML mode, displays a table with navigation buttons and options to download or delete files/directories.
- * In plain text mode, lists file names and their sizes.
+ * @details Generates a paginated list of files and directories from the file cache, either as HTML or plain text.
+ * 			In HTML mode, displays a table with navigation buttons and options to download or delete files/directories.
+ * 			In plain text mode, lists file names and their sizes.
  *
  * @param ishtml If true, output is formatted as HTML; otherwise, as plain text.
  * @param page Page number for pagination (default: 0).
@@ -352,9 +352,9 @@ String listFiles(bool ishtml, int page = 0)
 /**
  * @brief Create directories if needed for upload
  * 
- * Ensures that all directories in the provided file path exist by creating each
- * missing directory in the path. Returns true if all directories are created/exist,
- * false if any creation fails.
+ * @details Ensures that all directories in the provided file path exist by creating each
+ * 			missing directory in the path. Returns true if all directories are created/exist,
+ * 			false if any creation fails.
  * 
  * @param filepath Full file path (relative to storage root)
  * @return true if successful, false otherwise
@@ -388,8 +388,8 @@ bool createDirectories(String filepath)
 /**
  * @brief Upload file handle
  * 
- * Handles file upload requests by writing the uploaded data in chunks to storage.
- * Creates necessary directories if required, opens and writes to the file, and handles errors.
+ * @details Handles file upload requests by writing the uploaded data in chunks to storage.
+ * 			Creates necessary directories if required, opens and writes to the file, and handles errors.
  * 
  * @param request Pointer to the AsyncWebServerRequest representing the upload
  * @param filename Name of the file being uploaded (may include path)
@@ -454,7 +454,7 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
 /**
  * @brief Send PNG file from SPIFFS to webpage
  * 
- * Reads a PNG image file from SPIFFS, sends it to the client as an HTTP response,
+ * @details Reads a PNG image file from SPIFFS, sends it to the client as an HTTP response,
  * 
  * @param imageFile Path to the image file in storage
  * @param request Pointer to the AsyncWebServerRequest
@@ -484,8 +484,8 @@ void sendSpiffsImage(const char *imageFile,AsyncWebServerRequest *request)
 /**
  * @brief Delete directory recursively
  * 
- * Deletes a directory and all its contents (files and subdirectories) recursively.
- * Uses a non-recursive approach with stacks to avoid stack overflow on deeply nested structures.
+ * @details Deletes a directory and all its contents (files and subdirectories) recursively.
+ * 			Uses a non-recursive approach with stacks to avoid stack overflow on deeply nested structures.
  * 
  * @param dirPath Directory path to delete
  * @return true if successful, false otherwise
@@ -590,8 +590,8 @@ bool deleteDirRecursive(const char *dirPath)
 /**
  * @brief Configure Web Server
  * 
- * Sets up all routes, event sources, handlers, and static file/image serving for the web server.
- * Handles file uploads, downloads, directory navigation, image serving, and server reboot via HTTP endpoints.
+ * @details Sets up all routes, event sources, handlers, and static file/image serving for the web server.
+ * 			Handles file uploads, downloads, directory navigation, image serving, and server reboot via HTTP endpoints.
  */
 void configureWebServer()
 {

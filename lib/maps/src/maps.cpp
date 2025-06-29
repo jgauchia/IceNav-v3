@@ -18,8 +18,8 @@ const char* TAG PROGMEM = "Maps";
 /**
  * @brief Constructs a Point16 object from a comma-separated coordinate string.
  *
- * Parses a string containing two coordinates separated by a comma (e.g., "123,456"),
- * and initializes the x and y members accordingly.
+ * @details Parses a string containing two coordinates separated by a comma (e.g., "123,456"),
+ * 			and initializes the x and y members accordingly.
  *
  * @param coordsPair Pointer to a null-terminated string with two coordinates.
  */
@@ -61,8 +61,8 @@ Maps::Maps() {}
 /**
  * @brief Get pixel X position from OpenStreetMap Render map longitude
  *
- * Converts a longitude value to the corresponding pixel X position
- * for a given zoom level and tile size in an OpenStreetMap render map.
+ * @details Converts a longitude value to the corresponding pixel X position
+ * 			for a given zoom level and tile size in an OpenStreetMap render map.
  *
  * @param f_lon Longitude coordinate.
  * @param zoom Zoom level.
@@ -77,8 +77,8 @@ uint16_t Maps::lon2posx(float f_lon, uint8_t zoom, uint16_t tileSize)
 /**
  * @brief Get pixel Y position from OpenStreetMap Render map latitude
  *
- * Converts a latitude value to the corresponding pixel Y position
- * for a given zoom level and tile size in an OpenStreetMap render map.
+ * @details Converts a latitude value to the corresponding pixel Y position
+ * 			for a given zoom level and tile size in an OpenStreetMap render map.
  *
  * @param f_lat Latitude coordinate.
  * @param zoom Zoom level.
@@ -93,8 +93,8 @@ uint16_t Maps::lat2posy(float f_lat, uint8_t zoom, uint16_t tileSize)
 /**
  * @brief Get TileX for OpenStreetMap files
  *
- * Converts a longitude value to the corresponding tile X index (folder) for OpenStreetMap files,
- * for a given zoom level.
+ * @details Converts a longitude value to the corresponding tile X index (folder) for OpenStreetMap files,
+ * 			for a given zoom level.
  *
  * @param f_lon Longitude coordinate.
  * @param zoom Zoom level.
@@ -110,8 +110,8 @@ uint32_t Maps::lon2tilex(double f_lon, uint8_t zoom)
 /**
  * @brief Get TileY for OpenStreetMap files
  *
- * Converts a latitude value to the corresponding tile Y index (file) for OpenStreetMap files,
- * for a given zoom level.
+ * @details Converts a latitude value to the corresponding tile Y index (file) for OpenStreetMap files,
+ * 			for a given zoom level.
  *
  * @param f_lat Latitude coordinate.
  * @param zoom Zoom level.
@@ -127,8 +127,8 @@ uint32_t Maps::lat2tiley(double f_lat, uint8_t zoom)
 /**
  * @brief Get Longitude from OpenStreetMap files
  *
- * Converts a tile X index to the corresponding longitude value for OpenStreetMap files,
- * for a given zoom level.
+ * @details Converts a tile X index to the corresponding longitude value for OpenStreetMap files,
+ * 			for a given zoom level.
  *
  * @param tileX Tile X index.
  * @param zoom Zoom level.
@@ -142,8 +142,8 @@ double Maps::tilex2lon(uint32_t tileX, uint8_t zoom)
 /**
  * @brief Get Latitude from OpenStreetMap files
  *
- * Converts a tile Y index to the corresponding latitude value for OpenStreetMap files,
- * for a given zoom level.
+ * @details Converts a tile Y index to the corresponding latitude value for OpenStreetMap files,
+ * 			for a given zoom level.
  *
  * @param tileY Tile Y index.
  * @param zoom Zoom level.
@@ -158,7 +158,7 @@ double Maps::tiley2lat(uint32_t tileY, uint8_t zoom)
 /**
  * @brief Get the map tile structure from GPS Coordinates
  *
- * Constructs a MapTile structure from the given GPS coordinates, zoom level, and optional tile offsets.
+ * @details Constructs a MapTile structure from the given GPS coordinates, zoom level, and optional tile offsets.
  *
  * @param lon Longitude coordinate.
  * @param lat Latitude coordinate.
@@ -189,8 +189,8 @@ Maps::MapTile Maps::getMapTile(double lon, double lat, uint8_t zoomLevel, int8_t
 /**
  * @brief Get pixel Y position from OpenStreetMap Vector map latitude
  *
- * Converts a latitude value to the corresponding Y position in the OpenStreetMap vector map
- * projection using the Mercator formula.
+ * @details Converts a latitude value to the corresponding Y position in the OpenStreetMap vector map
+ * 			projection using the Mercator formula.
  *
  * @param lat Latitude coordinate.
  * @return Y position.
@@ -203,8 +203,8 @@ double Maps::lat2y(double lat)
 /**
  * @brief Get pixel X position from OpenStreetMap Vector map longitude
  *
- * Converts a longitude value to the corresponding X position in the OpenStreetMap vector map
- * projection using the Mercator formula.
+ * @details Converts a longitude value to the corresponding X position in the OpenStreetMap vector map
+ * 			projection using the Mercator formula.
  *
  * @param lon Longitude coordinate.
  * @return X position.
@@ -217,7 +217,7 @@ double Maps::lon2x(double lon)
 /**
  * @brief Get longitude from X position in Vector Map (Mercator projection)
  *
- * Converts an X position in the Mercator projection to the corresponding longitude value.
+ * @details Converts an X position in the Mercator projection to the corresponding longitude value.
  *
  * @param x X position.
  * @return Longitude coordinate.
@@ -230,7 +230,7 @@ double Maps::mercatorX2lon(double x)
 /**
  * @brief Get latitude from Y position in Vector Map (Mercator projection)
  *
- * Converts a Y position in the Mercator projection to the corresponding latitude value.
+ * @details Converts a Y position in the Mercator projection to the corresponding latitude value.
  *
  * @param y Y position.
  * @return Latitude coordinate.
@@ -243,7 +243,7 @@ double Maps::mercatorY2lat(double y)
 /**
  * @brief Points to screen coordinates
  *
- * Converts a map coordinate to a screen coordinate based on the current zoom and screen center.
+ * @details Converts a map coordinate to a screen coordinate based on the current zoom and screen center.
  *
  * @param pxy Map coordinate (X or Y).
  * @param screenCenterxy Screen center coordinate (X or Y).
@@ -257,8 +257,8 @@ int16_t Maps::toScreenCoord(const int32_t pxy, const int32_t screenCenterxy)
 /**
  * @brief Returns int16 or 0 if empty
  *
- * Parses an integer value from the file buffer starting at Maps::idx. Returns the parsed int16_t value,
- * or 0 if the field is empty (next char is newline). Handles parsing errors and logs them.
+ * @details Parses an integer value from the file buffer starting at Maps::idx. Returns the parsed int16_t value,
+ * 			or 0 if the field is empty (next char is newline). Handles parsing errors and logs them.
  *
  * @param file Pointer to the character buffer to parse from.
  * @return Parsed int16_t value, 0 if empty, or -1 on error.
@@ -309,9 +309,9 @@ int16_t Maps::parseInt16(char *file)
 /**
  * @brief Returns the string until terminator char or newline. The terminator character is not included but consumed from stream.
  *
- * Reads characters from the file buffer starting at Maps::idx into the provided string, 
- * stopping at the specified terminator character or newline. The terminator is not included 
- * in the result string but is consumed from the stream.
+ * @details Reads characters from the file buffer starting at Maps::idx into the provided string, 
+ * 			stopping at the specified terminator character or newline. The terminator is not included 
+ * 			in the result string but is consumed from the stream.
  *
  * @param file Pointer to the character buffer to parse from.
  * @param terminator Character to terminate the copy operation.
@@ -338,8 +338,8 @@ void Maps::parseStrUntil(char *file, char terminator, char *str)
 /**
  * @brief Parse vector file to coords
  *
- * Parses coordinate pairs from the provided file buffer and appends them to the points vector.
- * Each coordinate pair is expected in the format "x,y;".
+ * @details Parses coordinate pairs from the provided file buffer and appends them to the points vector.
+ *			Each coordinate pair is expected in the format "x,y;".
  *
  * @param file Pointer to the character buffer to parse from.
  * @param points Reference to a vector of Point16 to store the parsed points.
@@ -376,7 +376,7 @@ void Maps::parseCoords(char *file, std::vector<Point16> &points)
 /**
  * @brief Parse Mapbox
  *
- * Parses a bounding box (BBox) from a string containing four integer values separated by delimiters.
+ * @details Parses a bounding box (BBox) from a string containing four integer values separated by delimiters.
  *
  * @param str Input string containing the bounding box coordinates as integers.
  * @return BBox Parsed bounding box as a BBox object.
@@ -394,7 +394,7 @@ BBox Maps::parseBbox(String str)
 /**
  * @brief Read vector map file to memory block
  *
- * Reads a vector map file (with .fmp extension) into a MapBlock structure, parsing polygons and polylines.
+ * @details Reads a vector map file (with .fmp extension) into a MapBlock structure, parsing polygons and polylines.
  *
  * @param fileName Name of the file (without extension).
  * @return MapBlock* Pointer to the allocated MapBlock structure, or with inView=false if not found.
@@ -544,8 +544,8 @@ Maps::MapBlock *Maps::readMapBlock(String fileName)
 /**
  * @brief Fill polygon routine
  *
- * Fills the given polygon using the scanline fill algorithm. Each scanline finds intersections
- * with the polygon edges, sorts them, and draws horizontal lines between node pairs.
+ * @details Fills the given polygon using the scanline fill algorithm. Each scanline finds intersections
+ * 			with the polygon edges, sorts them, and draws horizontal lines between node pairs.
  *
  * @param p Polygon to fill.
  * @param map Reference to TFT_eSprite on which to draw.
@@ -615,9 +615,9 @@ void Maps::fillPolygon(Polygon p, TFT_eSprite &map) // scanline fill algorithm
 /**
  * @brief Get bounding objects in memory block
  *
- * Ensures that all map blocks covering the corners of a given bounding box (bbox) are loaded into memory.
- * If necessary, loads new blocks from SD Card and manages the memory cache, removing the oldest block if the cache is full.
- * Sets the 'inView' flag for blocks currently needed.
+ * @details Ensures that all map blocks covering the corners of a given bounding box (bbox) are loaded into memory.
+ *			If necessary, loads new blocks from SD Card and manages the memory cache, removing the oldest block if the cache is full.
+ * 			Sets the 'inView' flag for blocks currently needed.
  *
  * @param bbox Bounding box specifying the region of interest.
  * @param memCache Reference to the memory cache holding loaded map blocks.
@@ -689,8 +689,8 @@ void Maps::getMapBlocks(BBox &bbox, Maps::MemCache &memCache)
 /**
  * @brief Generate vectorized map
  *
- * Renders the vector map using in-memory blocks within the current viewport and zoom level.
- * Draws polygons and polylines, updates map bounds, and overlays waypoints and tracks.
+ * @details Renders the vector map using in-memory blocks within the current viewport and zoom level.
+ * 			Draws polygons and polylines, updates map bounds, and overlays waypoints and tracks.
  *
  * @param viewPort Viewport describing the area to render.
  * @param memCache Memory cache holding loaded map blocks.
@@ -822,9 +822,9 @@ void Maps::readVectorMap(Maps::ViewPort &viewPort, Maps::MemCache &memCache, TFT
 /**
  * @brief Get vector map position from GPS position and check if moved
  *
- * Updates the internal map position based on the provided GPS latitude and longitude.
- * If the position has changed significantly since the previous update, recalculates
- * the map's internal coordinates and sets the moved flag.
+ * @details Updates the internal map position based on the provided GPS latitude and longitude.
+ * 			If the position has changed significantly since the previous update, recalculates
+ * 			the map's internal coordinates and sets the moved flag.
  *
  * @param lat Latitude in degrees.
  * @param lon Longitude in degrees.
@@ -849,7 +849,7 @@ void Maps::getPosition(double lat, double lon)
 /**
  * @brief Get min and max longitude and latitude from tile
  *
- * Returns the geographic boundaries (min/max longitude and latitude) for the specified tile coordinates and zoom level.
+ * @details Returns the geographic boundaries (min/max longitude and latitude) for the specified tile coordinates and zoom level.
  *
  * @param tileX Tile X coordinate.
  * @param tileY Tile Y coordinate.
@@ -869,7 +869,7 @@ Maps::tileBounds Maps::getTileBounds(uint32_t tileX, uint32_t tileY, uint8_t zoo
 /**
  * @brief Check if coordinates are in map bounds
  *
- * Checks if the latitude and longitude are within the specified tileBounds.
+ * @details Checks if the latitude and longitude are within the specified tileBounds.
  *
  * @param lat Latitude to check.
  * @param lon Longitude to check.
@@ -884,7 +884,7 @@ bool Maps::isCoordInBounds(double lat, double lon, tileBounds bound)
 /**
  * @brief Convert GPS Coordinates to screen position (with offsets)
  *
- * Converts the given longitude and latitude to screen coordinates at a specific zoom level and tile size.
+ * @details Converts the given longitude and latitude to screen coordinates at a specific zoom level and tile size.
  *
  * @param lon Longitude in degrees.
  * @param lat Latitude in degrees.
@@ -903,7 +903,7 @@ Maps::ScreenCoord Maps::coord2ScreenPos(double lon, double lat, uint8_t zoomLeve
 /**
  * @brief Get position X,Y in render map for a coordinate
  *
- * Converts latitude and longitude into pixel X,Y positions on the rendered map, given the map bounds.
+ * @details Converts latitude and longitude into pixel X,Y positions on the rendered map, given the map bounds.
  *
  * @param lat Latitude of the coordinate.
  * @param lon Longitude of the coordinate.
@@ -923,7 +923,7 @@ void Maps::coords2map(double lat, double lon, tileBounds bound, uint16_t *pixelX
 /**
  * @brief Load No Map Image
  *
- * Draws a "No Map Found" PNG image 
+ * @details Draws a "No Map Found" PNG image 
  *
  * @param map Reference to the TFT_eSprite map object.
  */
@@ -936,7 +936,7 @@ void Maps::showNoMap(TFT_eSprite &map)
 /**
  * @brief Set center coordinates of viewport
  *
- * Sets the center of the viewport and updates the bounding box (bbox) based on the current zoom and tile dimensions.
+ * @details Sets the center of the viewport and updates the bounding box (bbox) based on the current zoom and tile dimensions.
  *
  * @param pcenter New center coordinates (Point32) for the viewport.
  */
@@ -954,8 +954,8 @@ void Maps::ViewPort::setCenter(Point32 pcenter)
 /**
  * @brief Init map size
  *
- * Initializes the map screen size and allocates buffer space for rendering the map.
- * Also resets map tile state and navigation arrow position, and sets default map bounds.
+ * @details Initializes the map screen size and allocates buffer space for rendering the map.
+ * 			Also resets map tile state and navigation arrow position, and sets default map bounds.
  *
  * @param mapHeight  Screen map size height.
  * @param mapWidth   Screen map size width.
@@ -980,7 +980,7 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
 /**
  * @brief Delete map screen and release PSRAM
  *
- * Deletes the main map sprite to free up PSRAM.
+ * @details Deletes the main map sprite to free up PSRAM.
  */
 void Maps::deleteMapScrSprites()
 {
@@ -990,7 +990,7 @@ void Maps::deleteMapScrSprites()
 /**
  * @brief Create map screen 
  *
- * Creates the main map sprite with the current screen width and height, allocating memory for rendering.
+ * @details Creates the main map sprite with the current screen width and height, allocating memory for rendering.
  */
 void Maps::createMapScrSprites()
 {
@@ -1000,8 +1000,8 @@ void Maps::createMapScrSprites()
 /**
  * @brief Generate render map
  *
- * Generates the main rendered map by compositing the center and surrounding tiles based on the current zoom level.
- * Handles missing tiles, updates map bounds, overlays missing map notifications, and draws tracks if available.
+ * @details Generates the main rendered map by compositing the center and surrounding tiles based on the current zoom level.
+ * 			Handles missing tiles, updates map bounds, overlays missing map notifications, and draws tracks if available.
  *
  * @param zoom Zoom Level
  */
@@ -1111,9 +1111,9 @@ void Maps::generateRenderMap(uint8_t zoom)
 /**
  * @brief Generate vector map
  *
- * Generates the vector map for the current GPS position and zoom level.
- * If the position has moved, updates the viewport, fetches the relevant map blocks,
- * reads and renders the vector map, and then resets the movement flag.
+ * @details Generates the vector map for the current GPS position and zoom level.
+ * 			If the position has moved, updates the viewport, fetches the relevant map blocks,
+ * 			reads and renders the vector map, and then resets the movement flag.
  *
  * @param zoom Zoom Level
  */
@@ -1134,7 +1134,7 @@ void Maps::generateVectorMap(uint8_t zoom)
 /**
  * @brief Display Map
  *
- * Displays the map on the screen. 
+ * @details Displays the map on the screen. 
  */
 void Maps::displayMap()
 {
@@ -1184,7 +1184,7 @@ void Maps::displayMap()
 /**
  * @brief Set Waypoint coords in Map
  *
- * Sets the latitude and longitude for the waypoint on the map.
+ * @details Sets the latitude and longitude for the waypoint on the map.
  *
  * @param wptLat Waypoint Latitude
  * @param wptLon Waypoint Longitude
@@ -1198,7 +1198,7 @@ void Maps::setWaypoint(double wptLat, double wptLon)
 /**
  * @brief Refresh current map
  *
- * Resets the old map tile and marks the position as moved, causing the map to be updated/redrawn.
+ * @details Resets the old map tile and marks the position as moved, causing the map to be updated/redrawn.
  */
  void Maps::updateMap()
  {
@@ -1209,8 +1209,8 @@ void Maps::setWaypoint(double wptLat, double wptLon)
 /**
  * @brief Pan current map
  *
- * Moves the map view by the given tile offsets in the X (longitude) and Y (latitude) directions.
- * Updates the current map tile coordinates and recalculates the corresponding longitude and latitude.
+ * @details Moves the map view by the given tile offsets in the X (longitude) and Y (latitude) directions.
+ * 			Updates the current map tile coordinates and recalculates the corresponding longitude and latitude.
  *
  * @param dx Tile offset in X direction (east-west)
  * @param dy Tile offset in Y direction (north-south)
@@ -1226,7 +1226,7 @@ void Maps::setWaypoint(double wptLat, double wptLon)
 /**
  * @brief Center map on current GPS location
  *
- * Sets the map to follow the GPS and centers the map tile indices and coordinates on the current GPS location.
+ * @details Sets the map to follow the GPS and centers the map tile indices and coordinates on the current GPS location.
  *
  * @param lat GPS Latitude
  * @param lon GPS Longitude
@@ -1243,8 +1243,8 @@ void Maps::setWaypoint(double wptLat, double wptLon)
 /**
  * @brief Smooth scroll current map
  *
- * Smoothly scrolls the map view with inertia and friction, updating tile indices and offsets as needed.
- * Handles transitions when the scroll offset surpasses a threshold, triggering tile panning and preloading.
+ * @details Smoothly scrolls the map view with inertia and friction, updating tile indices and offsets as needed.
+ * 			Handles transitions when the scroll offset surpasses a threshold, triggering tile panning and preloading.
  *
  * @param dx Delta X input for scrolling
  * @param dy Delta Y input for scrolling
@@ -1315,8 +1315,8 @@ void Maps::setWaypoint(double wptLat, double wptLon)
 /**
  * @brief Preload Tiles for map scrolling
  *
- * Preloads map tiles in the direction of scrolling to enable smooth transitions.
- * Loads one or two tiles into a temporary sprite and uses it to update the main map buffer.
+ * @details Preloads map tiles in the direction of scrolling to enable smooth transitions.
+ * 			Loads one or two tiles into a temporary sprite and uses it to update the main map buffer.
  *
  * @param dirX Direction to preload tiles in X (-1 for left, 1 for right, 0 for no horizontal scroll)
  * @param dirY Direction to preload tiles in Y (-1 for up, 1 for down, 0 for no vertical scroll)
