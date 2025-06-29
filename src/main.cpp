@@ -226,7 +226,7 @@ void loop()
 	{
 		float userLat, userLon, gps_heading, speed_kmh;
     	bool gps_heading_valid = false;
- 		if (millis() - ultimoSimulacion > 500) 
+ 		if (millis() - ultimoSimulacion > 250) 
 		{ // cada 1.5s simula el siguiente punto
             ultimoSimulacion = millis();
 
@@ -261,6 +261,6 @@ void loop()
 
 		// Llama a la función de navegación y avisos
 		updateNavigation(gps.gpsData.latitude, gps.gpsData.longitude, gps_heading, speed_kmh,
-						trackData, turnPoints, navState);
+						trackData, turnPoints, navState,15,100);
 	}
 }

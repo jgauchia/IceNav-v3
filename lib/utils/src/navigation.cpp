@@ -6,7 +6,19 @@
  * @date 2025-06
  */
 
- #include "navigation.hpp"
+#include "navigation.hpp"
+
+extern lv_obj_t *turnDistLabel; 
+extern lv_obj_t *turnImg;
+
+LV_IMG_DECLARE(straight);
+LV_IMG_DECLARE(slleft);
+LV_IMG_DECLARE(slright);
+LV_IMG_DECLARE(tleft);
+LV_IMG_DECLARE(tright);
+LV_IMG_DECLARE(uleft);
+LV_IMG_DECLARE(uright);
+LV_IMG_DECLARE(finish);
 
  /**
  * @brief Find the closest track point index to the user's current position.
@@ -42,29 +54,9 @@
  * @return          The index of the closest point in the track within the search window or full track if needed.
  */
 
-
 int findClosestTrackPoint(float userLat, float userLon, const std::vector<wayPoint>& track, int lastIdx) 
 {
-    // int window = 20;
-    // int start = std::max(0, lastIdx - window);
-    // int end = std::min((int)track.size() - 1, lastIdx + window);
-
-    // int closestIdx = lastIdx;
-    // float minDist = calcDist(userLat, userLon, track[lastIdx].lat, track[lastIdx].lon);
-    // for (int i = start; i <= end; ++i) {
-    //     float d = calcDist(userLat, userLon, track[i].lat, track[i].lon);
-    //     if (d < minDist) {
-    //         minDist = d;
-    //         closestIdx = i;
-    //     }
-    // }
-    // // Prevent small backward jumps on the track
-    // if (closestIdx < lastIdx && (lastIdx - closestIdx) < 5) {
-    //     closestIdx = lastIdx;
-    // }
-    // return closestIdx;
-
-    int window = 20;
+    int window = 50;
     int n = (int)track.size();
     int start = std::max(0, lastIdx - window);
     int end = std::min(n - 1, lastIdx + window);
@@ -74,14 +66,17 @@ int findClosestTrackPoint(float userLat, float userLon, const std::vector<wayPoi
     int closestIdx = lastIdx;
 
     // Si la distancia al último punto es grande, busca en todo el track
-    if (minDist > 2 * window) { // o un umbral en metros, ej: 50m
+    if (minDist > 2 * window)       
+    { // o un umbral en metros, ej: 50m
         start = 0;
         end = n - 1;
     }
 
-    for (int i = start; i <= end; ++i) {
+    for (int i = start; i <= end; ++i)
+    {
         float d = calcDist(userLat, userLon, track[i].lat, track[i].lon);
-        if (d < minDist) {
+        if (d < minDist)
+        {
             minDist = d;
             closestIdx = i;
         }
@@ -93,174 +88,111 @@ int findClosestTrackPoint(float userLat, float userLon, const std::vector<wayPoi
     return closestIdx;
 }
 
-/**
- * @brief Enhanced turn-by-turn navigation logic with "soft curve" detection for S-shaped and gentle bends.
+ /**
+ * @brief Navegación simplificada: muestra solo el siguiente evento (recto, curva suave o fuerte) y únicamente lo avisa cuando quedan warnDist metros o menos.
  *
- * This function updates the navigation state and determines which instructions or alerts should be shown to the user.
- * - It supports off-track detection.
- * - The distance to the next turn is updated and shown dynamically ("live") on every cycle.
- * - Introduces a "soft curve" warning for angles between 15 and 60 degrees, so S-shaped and gentle curves are not interpreted as straight.
- * - The warning flags (warnedPreTurn, warnedTurn) are kept for possible unique actions (sound, vibration), but visual messages are refreshed every cycle.
- *
- * @param userLat         Current user latitude.
- * @param userLon         Current user longitude.
- * @param userHeading     Current heading of the user (degrees).
- * @param speed_kmh       Current user speed in km/h.
- * @param track           Vector of wayPoints representing the GPX track.
- * @param turns           Vector of TurnPoint, each representing a detected turn on the track.
- * @param state           Navigation state struct, updated persistently across function calls.
+ * @param userLat             Latitud del usuario.
+ * @param userLon             Longitud del usuario.
+ * @param userHeading         Rumbo del usuario (grados).
+ * @param speed_kmh           Velocidad del usuario (km/h).
+ * @param track               Vector de wayPoints del track GPX.
+ * @param turns               Vector de TurnPoint (giros detectados).
+ * @param state               Estado de navegación.
+ * @param minAngleForCurve    Umbral angular mínimo para considerar curva relevante (por defecto 15°).
+ * @param warnDist            Distancia (en metros) para mostrar el aviso del evento (por defecto 100).
  */
 void updateNavigation(
     float userLat, float userLon, float userHeading, float speed_kmh,
     const std::vector<wayPoint>& track,
     const std::vector<TurnPoint>& turns,
-    NavState& state
-) {
-    float lookahead = 1000.0; // meters: how far ahead to consider upcoming turns
-    float umbralSeguirRecto = 200.0; // meters to show "go straight" or "soft curve"
-    float preWarnDist = speed_kmh > 11.0 ? 150.0 : 80.0; // meters for pre-turn warning
-    float warnDist = 50.0; // meters for final turn warning
-    float minAngleForCurve = 15.0; // degrees: minimum angle to consider as "curva suave"
+    NavState& state,
+    float minAngleForCurve,
+    float warnDist
+)
+{
+    const float minTurnDist = 5.0f;  // Umbral para saltar turnpoints ya pasados o justo encima
 
     int closestIdx = findClosestTrackPoint(userLat, userLon, track, state.lastTrackIdx);
-
     float distToTrack = calcDist(userLat, userLon, track[closestIdx].lat, track[closestIdx].lon);
     if (distToTrack > 30.0) 
     {
-        // Pseudocode: show "off track" bitmap
-        // mostrarBitmap(LVGL_BITMAP_FUERA_RUTA);
         log_i("¡Fuera de ruta! Reincorpórate al track");
-        state.warnedStraight = false;
-        state.warnedTurn = false;
-        state.warnedPreTurn = false;
-        return;
-    }
-
-    // --- Find the most relevant next turn within lookahead ---
-    int relevantTurnIdx = -1;
-    float distanceToRelevantTurn = std::numeric_limits<float>::max();
-    float abs_angle = 0.0;
-    bool derecha = false;
-
-    // Scan all upcoming turns
-    for (int i = state.nextTurnIdx; i < (int)turns.size(); ++i) {
-        float turnLat = track[turns[i].idx].lat;
-        float turnLon = track[turns[i].idx].lon;
-        float distanceToTurn = calcDist(userLat, userLon, turnLat, turnLon);
-
-        if (distanceToTurn < distanceToRelevantTurn) {
-            distanceToRelevantTurn = distanceToTurn;
-            relevantTurnIdx = i;
-            abs_angle = fabs(turns[i].angle);
-            derecha = (turns[i].angle > 0);
-        }
-        // stop search if the next turn is outside the lookahead window
-        if (distanceToTurn > lookahead) break;
-    }
-
-    // If no relevant turn in lookahead: show recto to the next turn (even if it is far)
-    if (relevantTurnIdx == -1) {
-        if (!turns.empty()) {
-            // Still show "seguir recto" to the very next turn, even if > lookahead
-            float turnLat = track[turns[state.nextTurnIdx].idx].lat;
-            float turnLon = track[turns[state.nextTurnIdx].idx].lon;
-            float distanceToTurn = calcDist(userLat, userLon, turnLat, turnLon);
-            log_i("Sigue recto durante %d m", (int)distanceToTurn);
-        } else {
-            log_i("Fin de ruta o sin más giros.");
-        }
-        state.warnedStraight = false;
-        state.warnedTurn = false;
-        state.warnedPreTurn = false;
         state.lastTrackIdx = closestIdx;
         return;
     }
 
-    // Update state.nextTurnIdx if we've passed a turn
+    // Avanza el índice de turnpoint si ya lo hemos pasado (por índice)
     while (state.nextTurnIdx < (int)turns.size() && turns[state.nextTurnIdx].idx <= closestIdx)
         state.nextTurnIdx++;
 
-    // --- Nueva lógica de avisos para el giro relevante ---
-    if (distanceToRelevantTurn > umbralSeguirRecto) 
+    // Busca el siguiente evento relevante (el primero con distancia suficiente)
+    int nextEventIdx = -1;
+    float distanceToNextEvent = std::numeric_limits<float>::max();
+    float abs_angle = 0.0;
+    bool derecha = false;
+
+    for (int i = state.nextTurnIdx; i < (int)turns.size(); ++i)
     {
-        if (abs_angle > minAngleForCurve && abs_angle < 60) {
-            // Soft curve
-            if (derecha)
-                log_i("Curva suave a la DERECHA en %d m", (int)distanceToRelevantTurn);
-            else
-                log_i("Curva suave a la IZQUIERDA en %d m", (int)distanceToRelevantTurn);
-        } else {
-            // Go straight
-            log_i("Sigue recto durante %d m", (int)distanceToRelevantTurn);
-        }
-        state.warnedStraight = true;
-        state.warnedPreTurn = false;
-        state.warnedTurn = false;
+        float turnLat = track[turns[i].idx].lat;
+        float turnLon = track[turns[i].idx].lon;
+        float distanceToTurn = calcDist(userLat, userLon, turnLat, turnLon);
+        // Si el evento está “demasiado cerca” (o ya pasado), sáltalo y sigue buscando
+        if (distanceToTurn < minTurnDist)
+            continue;
+
+        distanceToNextEvent = distanceToTurn;
+        nextEventIdx = i;
+        abs_angle = fabs(turns[i].angle);
+        derecha = (turns[i].angle > 0);
+        break; // Encontrado el siguiente relevante, sal del bucle
+    }
+
+    // Si no queda ningún evento relevante
+    if (nextEventIdx == -1) 
+    {
+        lv_img_set_src(turnImg, &finish);
         state.lastTrackIdx = closestIdx;
         return;
     }
 
-    // --- Pre-turn warning: dynamically update distance ---
-    if (distanceToRelevantTurn < preWarnDist && distanceToRelevantTurn > warnDist) {
-        if (abs_angle < 60 && abs_angle >= minAngleForCurve) {
-            if (derecha)
-                log_i("Preaviso: curva suave a la DERECHA en %d m", (int)distanceToRelevantTurn);
-            else
-                log_i("Preaviso: curva suave a la IZQUIERDA en %d m", (int)distanceToRelevantTurn);
-        } else if (abs_angle < 60) {
-            if (derecha)
-                log_i("Preaviso: giro leve a la DERECHA en %d m", (int)distanceToRelevantTurn);
-            else
-                log_i("Preaviso: giro leve a la IZQUIERDA en %d m", (int)distanceToRelevantTurn);
-        }
-        else if (abs_angle < 120) {
-            if (derecha)
-                log_i("Preaviso: giro medio a la DERECHA en %d m", (int)distanceToRelevantTurn);
-            else
-                log_i("Preaviso: giro medio a la IZQUIERDA en %d m", (int)distanceToRelevantTurn);
-        }
-        else {
-            if (derecha)
-                log_i("Preaviso: giro cerrado a la DERECHA en %d m", (int)distanceToRelevantTurn);
-            else
-                log_i("Preaviso: giro cerrado a la IZQUIERDA en %d m", (int)distanceToRelevantTurn);
-        }
-        state.warnedPreTurn = true;
-        state.warnedStraight = false;
-    }
-    // --- Final turn warning: dynamically update distance ---
-    if (distanceToRelevantTurn <= warnDist) {
-        if (abs_angle < 60 && abs_angle >= minAngleForCurve) {
-            if (derecha)
-                log_i("¡Curva suave a la DERECHA en %d m!", (int)distanceToRelevantTurn);
-            else
-                log_i("¡Curva suave a la IZQUIERDA en %d m!", (int)distanceToRelevantTurn);
-        } else if (abs_angle < 60) {
-            if (derecha)
-                log_i("¡Giro leve a la DERECHA en %d m!", (int)distanceToRelevantTurn);
-            else
-                log_i("¡Giro leve a la IZQUIERDA en %d m!", (int)distanceToRelevantTurn);
-        } 
-        else if (abs_angle < 120) {
-            if (derecha)
-                log_i("¡Giro medio a la DERECHA en %d m!", (int)distanceToRelevantTurn);
-            else
-                log_i("¡Giro medio a la IZQUIERDA en %d m!", (int)distanceToRelevantTurn);
-        } 
-        else {
-            if (derecha)
-                log_i("¡Giro cerrado a la DERECHA en %d m!", (int)distanceToRelevantTurn);
-            else
-                log_i("¡Giro cerrado a la IZQUIERDA en %d m!", (int)distanceToRelevantTurn);
-        }
-        state.warnedTurn = true;
-        state.warnedStraight = false;
-    }
-    // Reset warnings if moving away from turn
-    if (distanceToRelevantTurn > preWarnDist) 
+    // Mostrar solo cuando falten <= warnDist metros
+    if (distanceToNextEvent <= warnDist)
     {
-        state.warnedTurn = false;
-        state.warnedPreTurn = false;
+        if (abs_angle >= minAngleForCurve && abs_angle < 60) 
+        {
+            if (derecha)
+                lv_img_set_src(turnImg, &slright);
+            else
+                lv_img_set_src(turnImg, &slleft);
+        }
+        else if (abs_angle >= 60) 
+        {
+            if (derecha)
+                lv_img_set_src(turnImg, &tright);
+            else
+                lv_img_set_src(turnImg, &tleft);
+
+        }
+        // else if (abs_angle > 3.0) 
+        // {
+        //     log_i("Desvío leve a la %s en %d m (%.1f° en idx %d)",
+        //         derecha ? "DERECHA" : "IZQUIERDA",
+        //         (int)distanceToNextEvent,
+        //         abs_angle,
+        //         turns[nextEventIdx].idx
+        //     );
+        // }
+        else 
+        {
+            lv_img_set_src(turnImg, &straight);     
+        }
     }
+    else
+    {
+        lv_img_set_src(turnImg, &straight);
+    }
+
+    lv_label_set_text_fmt(turnDistLabel, "%4d", (int)distanceToNextEvent);
+
     state.lastTrackIdx = closestIdx;
 }

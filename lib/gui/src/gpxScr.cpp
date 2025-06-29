@@ -85,14 +85,10 @@ void gpxListEvent(lv_event_t *event)
             		if (gpxTrack)
 					{
 						gpx.loadTrack(trackData);
-						turnPoints = gpx.getTurnPoints(18.0f, 20, 70.0f, trackData);            
+						// turnPoints = gpx.getTurnPoints(18.0f, 20, 70.0f, trackData);     
+						turnPoints = gpx.getTurnPointsSlidingWindow(18.0f, 20, 70.0f, 3, trackData);       
 						isTrackLoaded = true;
 						lv_obj_clear_flag(turnByTurn,LV_OBJ_FLAG_HIDDEN);
-
-						for (auto& tp : turnPoints)
-						{
-							ESP_LOGI(TAG, "idx: %d, angle: %.1f°, dist: %.1fm", tp.idx, tp.angle, tp.distance);
-						}
 						mapView.updateMap();
 						lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
 					}

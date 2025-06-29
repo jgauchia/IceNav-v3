@@ -12,6 +12,7 @@
 #include <vector>
 #include "globalGpxDef.h"
 #include "gpsMath.hpp"
+#include "lvgl.h"
 
  /**
  * @brief Navigation state structure for turn-by-turn guidance.
@@ -37,6 +38,11 @@ struct NavState
 };
 
 int findClosestTrackPoint(float userLat, float userLon, const std::vector<wayPoint>& track, int lastIdx);
-void updateNavigation(float userLat, float userLon, float userHeading, float speed_kmh,
-                      const std::vector<wayPoint>& track, const std::vector<TurnPoint>& turns,
-                      NavState& state);
+void updateNavigation(
+    float userLat, float userLon, float userHeading, float speed_kmh,
+    const std::vector<wayPoint>& track,
+    const std::vector<TurnPoint>& turns,
+    NavState& state,
+    float minAngleForCurve,
+    float warnDist
+);

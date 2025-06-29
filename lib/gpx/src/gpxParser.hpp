@@ -62,6 +62,7 @@ public:
     bool addWaypoint(const wayPoint& wp);
     bool loadTrack(std::vector<wayPoint>& trackData);
     std::vector<TurnPoint> getTurnPoints(float thresholdDeg, double minDist, float sharpTurnDeg, std::vector<wayPoint>& trackData);
+	std::vector<TurnPoint> getTurnPointsSlidingWindow(float thresholdDeg, double minDist, float sharpTurnDeg,int windowSize, const std::vector<wayPoint>& trackData);
 
 	std::string filePath;
 };

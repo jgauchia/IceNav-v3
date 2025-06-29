@@ -457,3 +457,42 @@ std::vector<TurnPoint> GPXParser::getTurnPoints(float thresholdDeg, double minDi
   
   return turnPoints;
 }
+
+
+std::vector<TurnPoint> GPXParser::getTurnPointsSlidingWindow(
+    float thresholdDeg, double minDist, float sharpTurnDeg,
+    int windowSize, const std::vector<wayPoint>& trackData)
+{
+    std::vector<TurnPoint> turnPoints;
+    double accumDist = 0;
+    if (trackData.size() < 2 * windowSize + 1)
+        return turnPoints;
+
+    for (size_t i = windowSize; i < trackData.size() - windowSize; ++i)
+    {
+        // Distancia total de la ventana (puedes usarla como filtro si quieres)
+        double distWindow = 0;
+        for (int j = int(i - windowSize); j < int(i + windowSize); ++j)
+            distWindow += calcDist(trackData[j].lat, trackData[j].lon, trackData[j+1].lat, trackData[j+1].lon);
+
+        // Ángulo global entre el tramo inicial y final de la ventana
+        double brgStart = calcCourse(trackData[i - windowSize].lat, trackData[i - windowSize].lon,
+                                     trackData[i].lat, trackData[i].lon);
+        double brgEnd   = calcCourse(trackData[i].lat, trackData[i].lon,
+                                     trackData[i + windowSize].lat, trackData[i + windowSize].lon);
+        double diff = calcAngleDiff(brgEnd, brgStart);
+
+        accumDist += calcDist(trackData[i-1].lat, trackData[i-1].lon, trackData[i].lat, trackData[i].lon);
+
+        // Detección igual que el método clásico, pero sobre el ángulo "global" de la ventana
+        if (std::abs(diff) > sharpTurnDeg) {
+            turnPoints.push_back({static_cast<int>(i), diff, accumDist});
+            continue;
+        }
+        if (distWindow < minDist)
+            continue;
+        if (std::abs(diff) > thresholdDeg)
+            turnPoints.push_back({static_cast<int>(i), diff, accumDist});
+    }
+    return turnPoints;
+}
