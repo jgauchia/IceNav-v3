@@ -21,31 +21,14 @@ LV_IMG_DECLARE(uright);
 LV_IMG_DECLARE(finish);
 
  /**
- * @brief Find the closest track point index to the user's current position.
- *
- * This function searches for the closest waypoint in the track to the user's given latitude and longitude.
- * To optimize performance, it only searches within a window of points around the last known closest index (lastIdx).
- * If a closer point is found within this window, its index is returned.
- * Additionally, to avoid small unwanted backward jumps (e.g., due to GPS noise), 
- * the function does not allow small regressions: if the closest point found is behind lastIdx 
- * but less than 5 points back, it will keep lastIdx as the result.
- *
- * @param userLat Current latitude of the user.
- * @param userLon Current longitude of the user.
- * @param track The vector of wayPoints representing the full track.
- * @param lastIdx The index of the last known closest point on the track.
- * @return The index of the closest point in the track within the search window.
- */
-
- /**
  * @brief Finds the closest track point index to the user's current position, with an adaptive search window.
  *
- * This function searches for the closest waypoint in the track to the user's given latitude and longitude.
- * To optimize performance, it initially searches within a window of points around the last known closest index (lastIdx).
- * If the user is detected to be far from the last known point (e.g., due to a fast jump, simulation, or GPS error),
- * the function automatically expands the search to cover the entire track, ensuring robust operation even with rapid movements.
- * Additionally, to avoid small unwanted backward jumps (e.g., due to GPS noise), small regressions are ignored:
- * if the closest point found is behind lastIdx but less than 5 points back, it keeps lastIdx as the result.
+ * @details Searches for the closest waypoint in the track to the user's given latitude and longitude.
+ *          To optimize performance, it initially searches within a window of points around the last known closest index (lastIdx).
+ *          If the user is detected to be far from the last known point (e.g., due to a fast jump, simulation, or GPS error),
+ *          the function automatically expands the search to cover the entire track, ensuring robust operation even with rapid movements.
+ *          Additionally, to avoid small unwanted backward jumps (e.g., due to GPS noise), small regressions are ignored:
+ *          if the closest point found is behind lastIdx but less than 5 points back, it keeps lastIdx as the result.
  *
  * @param userLat   Current latitude of the user.
  * @param userLon   Current longitude of the user.

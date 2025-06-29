@@ -56,7 +56,7 @@ struct wayPoint
 /**
  * @brief Track turn points structure
  *
- * Structure representing a track turn point
+ * @details Structure representing a track turn point
  */
 struct TurnPoint 
 {
