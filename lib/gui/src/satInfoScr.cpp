@@ -24,7 +24,7 @@ Gps gps;
 /**
  * @brief Draw Text on SNR Chart
  *
- * Draws a text label onto a specified layer of the SNR chart using the provided font, color, and position.
+ * @details Draws a text label onto a specified layer of the SNR chart using the provided font, color, and position.
  *
  * @param text   Pointer to the text string to display.
  * @param layer  Pointer to the drawing layer.
@@ -57,8 +57,8 @@ void drawTextOnLayer(const char * text, lv_layer_t * layer, lv_point_t * p, lv_a
 /**
  * @brief SNR Bar draw event.
  *
- * Handles the drawing of the Signal-to-Noise Ratio (SNR) bar chart for satellites. Colors each bar depending on the GNSS constellation
- * and whether the satellite is active. After drawing, overlays signal values and satellite IDs on the chart.
+ * @details Handles the drawing of the Signal-to-Noise Ratio (SNR) bar chart for satellites. Colors each bar depending on the GNSS constellation
+ * 			and whether the satellite is active. After drawing, overlays signal values and satellite IDs on the chart.
  *
  * @param event LVGL event pointer.
  */
@@ -119,7 +119,7 @@ void satelliteBarDrawEvent(lv_event_t * event)
 /**
  * @brief SNR long press event for showing constellation map (only for T-DECK).
  *
- * Handles the long press event on the SNR bar to display the constellation map message, specifically for the T-DECK device.
+ * @details Handles the long press event on the SNR bar to display the constellation map message, specifically for the T-DECK device.
  *
  * @param event LVGL event pointer.
  */
@@ -134,7 +134,7 @@ void constSatEvent(lv_event_t *event)
 /**
  * @brief Event for hiding the constellation map (only for T-DECK).
  *
- * Handles the long press event to hide the constellation map message on the T-DECK device.
+ * @details Handles the long press event to hide the constellation map message on the T-DECK device.
  *
  * @param event LVGL event pointer.
  */
@@ -149,8 +149,8 @@ void closeConstSatEvent(lv_event_t *event)
 /**
  * @brief Create Canvas for Satellite Constellation
  *
- * Initializes and creates the canvas object for rendering the satellite constellation on the specified screen,
- * allocates the required buffer, and sets up the drawing layer.
+ * @details Initializes and creates the canvas object for rendering the satellite constellation on the specified screen,
+ * 			allocates the required buffer, and sets up the drawing layer.
  *
  * @param screen Pointer to the LVGL screen object where the canvas will be created.
  */
@@ -167,7 +167,7 @@ void createConstCanvas(_lv_obj_t *screen)
 /**
  * @brief Satellite info screen
  *
- * Creates and lays out the satellite information screen, 
+ * @details Creates and lays out the satellite information screen, 
  *
  * @param screen Pointer to the LVGL screen object where the satellite info screen will be created.
  */
@@ -366,7 +366,7 @@ void satelliteScr(_lv_obj_t *screen)
 /**
  * @brief Draw Satellite SNR Bars
  *
- * Updates the SNR (Signal-to-Noise Ratio) bar chart with current satellite data.
+ * @details Updates the SNR (Signal-to-Noise Ratio) bar chart with current satellite data.
  */
 void drawSatSNR()
 {
@@ -386,7 +386,7 @@ void drawSatSNR()
 /**
  * @brief Draw Satellite Constellation
  *
- * Draws the satellite constellation grid on the canvas, including concentric circles, cross lines, and cardinal direction labels.
+ * @details Draws the satellite constellation grid on the canvas, including concentric circles, cross lines, and cardinal direction labels.
  */
 void drawSatConst()
 {
@@ -450,8 +450,8 @@ void drawSatConst()
 /**
  * @brief Draw Satellite Position in Constellation
  *
- * Draws the position of each satellite within the constellation canvas, including their colored circles (based on constellation and activity)
- * and overlays their satellite numbers at their respective positions.
+ * @details Draws the position of each satellite within the constellation canvas, including their colored circles (based on constellation and activity)
+ * 			and overlays their satellite numbers at their respective positions.
  */
 void drawSatSky()
 {

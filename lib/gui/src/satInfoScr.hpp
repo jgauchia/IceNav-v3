@@ -31,7 +31,7 @@
 /**
  * @brief Satellite Tracking Tile screen objects.
  *
- * Objects used in the satellite tracking tile 
+ * @details Objects used in the satellite tracking tile 
  */
 extern lv_obj_t *pdopLabel;          /**< Label for PDOP value. */
 extern lv_obj_t *hdopLabel;          /**< Label for HDOP value. */
@@ -45,7 +45,7 @@ extern lv_obj_t *constMsg;           /**< Label for constellation status message
 /**
  * @brief Satellite Constellation Layer Canvas Definition.
  *
- * Definitions for the color and layers used for drawing the satellite constellation on the canvas.
+ * @details Definitions for the color and layers used for drawing the satellite constellation on the canvas.
  */
 #define CONSTEL_COLOR lv_color_hex(0x515a5a)    /**< Color used for the constellation canvas background. */
 extern lv_layer_t canvasLayer;                  /**< Layer for the base canvas drawing. */

@@ -134,7 +134,7 @@ void updateNotifyBarTimer(lv_timer_t *t)
 /**
  * @brief Create a notify bar.
  *
- * Initializes and lays out the notification bar on the main screen, adding UI elements
+ * @details Initializes and lays out the notification bar on the main screen, adding UI elements
  */
 void createNotifyBar()
 {

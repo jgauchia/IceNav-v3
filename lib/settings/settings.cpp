@@ -59,9 +59,9 @@ extern Gps gps;
 /**
  * @brief Load stored preferences
  *
- * Loads all device configuration parameters from persistent storage.
- * Configures peripherals, map settings, widget positions, and feature flags
- * based on user or default preferences.
+ * @details Loads all device configuration parameters from persistent storage.
+ * 			Configures peripherals, map settings, widget positions, and feature flags
+ * 			based on user or default preferences.
  */
 void loadPreferences()
 {
@@ -130,11 +130,11 @@ void loadPreferences()
 /**
  * @brief Save GPS baud rate setting
  *
- * Saves the GPS baud rate to persistent storage and configures the GPS port
- * accordingly. If not using auto baud detection, sends configuration commands
- * to the GPS module (AT6558D), resets the port, and sets the new baud rate.
- * If using auto baud detection (gpsBaud == 3), attempts to detect baud rate
- * automatically and reconfigures the port.
+ * @details Saves the GPS baud rate to persistent storage and configures the GPS port
+ * 			accordingly. If not using auto baud detection, sends configuration commands
+ * 			to the GPS module (AT6558D), resets the port, and sets the new baud rate.
+ * 			If using auto baud detection (gpsBaud == 3), attempts to detect baud rate
+ * 			automatically and reconfigures the port.
  *
  * @param gpsBaud Baud rate index to save and configure
  */
@@ -177,8 +177,8 @@ void saveGPSBaud(uint16_t gpsBaud)
 /**
  * @brief Save GPS update rate
  *
- * Saves the GPS update rate to persistent storage and, if using the AT6558D GPS module,
- * sends the corresponding configuration commands to set the update rate.
+ * @details Saves the GPS update rate to persistent storage and, if using the AT6558D GPS module,
+ * 			sends the corresponding configuration commands to set the update rate.
  *
  * @param gpsUpdateRate Update rate index to save and configure
  */
@@ -198,7 +198,7 @@ void saveGPSUpdateRate(uint16_t gpsUpdateRate)
 /**
  * @brief Save widget position
  *
- * Saves the X and Y coordinates of a given widget to persistent storage.
+ * @details Saves the X and Y coordinates of a given widget to persistent storage.
  *
  * @param widget Name of the widget (used as key prefix)
  * @param posX   X position to save
@@ -222,7 +222,7 @@ void saveWidgetPos(char *widget, uint16_t posX, uint16_t posY)
 /**
  * @brief Utility to show all settings
  *
- * Prints all configuration keys, indicating if their values are custom or default, and displays their current values.
+ * @details Prints all configuration keys, indicating if their values are custom or default, and displays their current values.
  */
 void printSettings()
 {

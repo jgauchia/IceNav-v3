@@ -15,7 +15,7 @@ extern Compass compass;
 /**
  * @brief Back button event
  *
- * Handles the back button action
+ * @details Handles the back button action
  *
  * @param event LVGL event pointer.
  */
@@ -33,7 +33,7 @@ static void back(lv_event_t *event)
 /**
  * @brief Touch Calibration
  *
- * Handles the touch calibration event. 
+ * @details Handles the touch calibration event. 
  *
  * @param event LVGL event pointer.
  */
@@ -52,7 +52,7 @@ static void touchCalib(lv_event_t *event)
 /**
  * @brief Compass Calibration
  *
- * Handles the compass calibration event.
+ * @details Handles the compass calibration event.
  *
  * @param event LVGL event pointer.
  */
@@ -71,7 +71,7 @@ static void compassCalib(lv_event_t *event)
 /**
  * @brief Map Setting
  *
- * Handles the map settings event by loading the map settings screen.
+ * @details Handles the map settings event by loading the map settings screen.
  *
  * @param event LVGL event pointer.
  */
@@ -83,7 +83,7 @@ static void mapSettings(lv_event_t *event)
 /**
  * @brief Device Settings
  *
- * Handles the device settings event by loading the device settings screen.
+ * @details Handles the device settings event by loading the device settings screen.
  *
  * @param event LVGL event pointer.
  */
@@ -95,7 +95,7 @@ static void deviceSettings(lv_event_t *event)
 /**
  * @brief Create Settings screen
  *
- * Creates the settings screen 
+ * @details Creates the settings screen 
  */
 void createSettingsScr()
 {

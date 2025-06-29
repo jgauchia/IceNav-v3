@@ -158,8 +158,8 @@ private:
 	/**
 	* @brief Map boundaries structure
 	*
-	* Structure that stores the geographic limits (minimum and maximum latitude and longitude)
-	* of a map tile.
+	* @details Structure that stores the geographic limits (minimum and maximum latitude and longitude)
+	* 		   of a map tile.
 	*/
 	struct tileBounds
 	{
@@ -172,7 +172,7 @@ private:
 	/**
 	* @brief Screen position from GPS coordinates
 	*
-	* Structure that stores screen coordinates (X, Y) derived from GPS data.
+	* @details Structure that stores screen coordinates (X, Y) derived from GPS data.
 	*/
 	struct ScreenCoord
 	{

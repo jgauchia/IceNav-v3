@@ -32,7 +32,7 @@ void objHideCursor(_lv_obj_t *obj)
 /**
  * @brief Custom LVGL function to select a widget.
  *
- * This function applies a highlight style to the specified LVGL object to indicate that it is selected.
+ * @details Applies a highlight style to the specified LVGL object to indicate that it is selected.
  *
  * @param obj Pointer to the LVGL object to be selected.
  */
@@ -49,7 +49,7 @@ void objSelect(_lv_obj_t *obj)
 /**
  * @brief Custom LVGL function to unselect a widget.
  *
- * This function removes the selection highlight by applying a transparent style to the specified LVGL object.
+ * @details Removes the selection highlight by applying a transparent style to the specified LVGL object.
  *
  * @param obj Pointer to the LVGL object to be unselected.
  */

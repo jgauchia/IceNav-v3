@@ -41,8 +41,8 @@ public:
 	/**
 	* @brief Updates the state estimate using the Kalman filter algorithm for angular measurements.
 	*
-	* Applies the Kalman filter update step, taking into account the wrapped angular measurement,
-	* and updates the internal state and covariance variables accordingly.
+	* @details Applies the Kalman filter update step, taking into account the wrapped angular measurement,
+	* 		   and updates the internal state and covariance variables accordingly.
 	*
 	* @param measurement The new angle measurement to incorporate (in radians).
 	* @return float The updated state estimate (in radians, wrapped to [-π, π]).
@@ -66,7 +66,7 @@ public:
 	/**
 	* @brief Sets the process and measurement noise constants for the Kalman filter.
 	*
-	* Updates the internal parameters for process noise covariance (q) and measurement noise covariance (r).
+	* @details Updates the internal parameters for process noise covariance (q) and measurement noise covariance (r).
 	*
 	* @param processNoise Value for the process noise covariance.
 	* @param measurementNoise Value for the measurement noise covariance.

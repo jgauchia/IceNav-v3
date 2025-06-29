@@ -27,8 +27,8 @@ static const char *TAG = "Storage";
 /**
  * @brief Formats a byte size as a human-readable string with appropriate units.
  *
- * Converts a size in bytes to a string with units (B, KB, MB, GB, TB), using
- * two decimal places of precision.
+ * @details Converts a size in bytes to a string with units (B, KB, MB, GB, TB), using
+ * 			two decimal places of precision.
  *
  * @param size Size in bytes
  * @return std::string Human-readable string (e.g. "12.34 MB")

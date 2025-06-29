@@ -131,7 +131,7 @@ static void mapSettingsEvents(lv_event_t *event)
 /**
  * @brief Create Map Settings screen.
  *
- * Initializes map settings screen, including controls for map type, rotation, zoom, and display options.
+ * @details Initializes map settings screen, including controls for map type, rotation, zoom, and display options.
  */
 void createMapSettingsScr()
 {

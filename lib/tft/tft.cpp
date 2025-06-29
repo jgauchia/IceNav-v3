@@ -18,7 +18,7 @@ extern Storage storage;
 /**
  * @brief Turn on TFT Sleep Mode for ILI9488
  *
- * Wakes up the TFT display and sets the display brightness to the specified value.
+ * @details Wakes up the TFT display and sets the display brightness to the specified value.
  *
  * @param brightness Value to set the TFT backlight brightness
  */
@@ -32,7 +32,7 @@ void tftOn(uint8_t brightness)
 /**
  * @brief Turn off TFT Wake up Mode for ILI9488
  *
- * Puts the TFT display into sleep mode by setting brightness to 0 
+ * @details Puts the TFT display into sleep mode by setting brightness to 0 
  */
 void tftOff()
 {
@@ -43,8 +43,8 @@ void tftOff()
 /**
  * @brief Touch calibrate
  *
- * Calibrates the touch screen. If calibration data exists and recalibration is not requested, uses the saved data.
- * Otherwise, performs on-screen calibration and saves the result.
+ * @details Calibrates the touch screen. If calibration data exists and recalibration is not requested, uses the saved data.
+ * 			Otherwise, performs on-screen calibration and saves the result.
  */
 void touchCalibrate()
 {
@@ -108,7 +108,7 @@ void touchCalibrate()
 /**
  * @brief Init TFT display
  *
- * Initializes the TFT display,
+ * @details Initializes the TFT display,
  */
 void initTFT()
 {

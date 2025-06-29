@@ -11,9 +11,9 @@
 /**
  * @brief Detects movement for pinch-zoom with automatic dynamic threshold according to speed
  *
- * Calculates the distance between two touch points in the previous and current states,
- * dynamically adjusts the zoom thresholds based on gesture speed, and determines
- * if a pinch-zoom (in or out) gesture has occurred.
+ * @details Calculates the distance between two touch points in the previous and current states,
+ * 			dynamically adjusts the zoom thresholds based on gesture speed, and determines
+ * 			if a pinch-zoom (in or out) gesture has occurred.
  *
  * @param prev Array of two previous touch points (lgfx::touch_point_t).
  * @param curr Array of two current touch points (lgfx::touch_point_t).

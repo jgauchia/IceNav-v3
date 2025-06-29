@@ -144,8 +144,8 @@ void gpxListEvent(lv_event_t *event)
 /**
  * @brief Create List Waypoint Screen
  *
- * This function initializes the GPX Waypoint List screen with a two-column table,
- * sets up column widths, headers, styles, and attaches the event callback for handling user actions.
+ * @details Initializes the GPX Waypoint List screen with a two-column table,
+ * 			sets up column widths, headers, styles, and attaches the event callback for handling user actions.
  */
 void createGpxListScreen()
 {
@@ -168,7 +168,7 @@ void createGpxListScreen()
 /**
  * @brief Update List Waypoint Screen from file.
  *
- * Refreshes the GPX list screen by loading and displaying waypoints or tracks from the corresponding files and folders.
+ * @details Refreshes the GPX list screen by loading and displaying waypoints or tracks from the corresponding files and folders.
  */
 void updateGpxListScreen()
 {

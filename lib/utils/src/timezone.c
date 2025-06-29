@@ -13,8 +13,8 @@
 /**
  * @brief Structure to represent a POSIX time zone definition
  * 
- * This struct stores a human-readable time zone name and its corresponding
- * POSIX time zone string representation.
+ * @details	This struct stores a human-readable time zone name and its corresponding
+ * 			POSIX time zone string representation.
  */
 typedef struct 
 {
@@ -25,7 +25,7 @@ typedef struct
 /**
  * @brief POSIX time zone database array
  *
- * This array contains mappings of IANA time zone names to their corresponding POSIX time zone strings.
+ * @details Array contains mappings of IANA time zone names to their corresponding POSIX time zone strings.
  */
 static const posix_tz posix_tz_db[] PROGMEM = {
 	{"Africa/Abidjan", "GMT0"},
@@ -456,11 +456,12 @@ static const posix_tz posix_tz_db[] PROGMEM = {
 	};
   
 
+
 /**
  * @brief Retrieve POSIX TZ string from IANA timezone name
  * 
- * Searches the posix_tz_db array for a matching timezone name and returns the corresponding POSIX TZ string.
- * If not found, returns "UTC".
+ * @details Searches the posix_tz_db array for a matching timezone name and returns the corresponding POSIX TZ string.
+ * 			If not found, returns "UTC".
  *
  * @param name Timezone name (IANA format, e.g., "Europe/Madrid")
  * @return const char* POSIX TZ string, or "UTC" if not found

@@ -29,7 +29,7 @@ extern Power power;
 /**
  * @brief Reboots the ESP device.
  * 
- * CLI command: reboot
+ * @details CLI command: reboot
  */
 void wcli_reboot(char *args, Stream *response)
 {
@@ -49,7 +49,7 @@ void wcli_poweroff(char *args, Stream *response)
 /**
  * @brief Displays device information such as memory, SPIFFS, PSRAM, flash, and GPS parameters.
  * 
- * CLI command: info
+ * @details CLI command: info
  */
 void wcli_info(char *args, Stream *response)
 {
@@ -85,7 +85,7 @@ void wcli_info(char *args, Stream *response)
 /**
  * @brief Clears all user settings and resets device to factory defaults.
  * 
- * CLI command: wipe
+ * @details CLI command: wipe
  */
 void wcli_swipe(char *args, Stream *response)
 {
@@ -100,7 +100,7 @@ void wcli_swipe(char *args, Stream *response)
 /**
  * @brief Clears the CLI console.
  * 
- * CLI command: clear
+ * @details CLI command: clear
  */
 void wcli_clear(char *args, Stream *response)
 {
@@ -110,7 +110,7 @@ void wcli_clear(char *args, Stream *response)
 /**
  * @brief Captures a screenshot to SD card or sends it to a PC over WiFi.
  * 
- * CLI command: scshot
+ * @details CLI command: scshot
  */
 void wcli_scshot(char *args, Stream *response)
 {
@@ -147,9 +147,9 @@ void wcli_scshot(char *args, Stream *response)
  * @brief Lists user preference keys and their values.
  * @author @Hpsaturn. Method migrated from CanAirIO project  
  *
- * Shows only basic keys unless 'all' is specified.
+ * @details Shows only basic keys unless 'all' is specified.
  * 
- * CLI command: klist
+ * @details CLI command: klist
  */
 void wcli_klist(char *args, Stream *response)
 {
@@ -176,7 +176,7 @@ void wcli_klist(char *args, Stream *response)
  * @brief Sets a user preference key to a given value.
  * @author @Hpsaturn. Method migrated from CanAirIO project
  * 
- * CLI command: kset
+ * @details CLI command: kset
  */
 void wcli_kset(char *args, Stream *response)
 {
@@ -190,7 +190,7 @@ void wcli_kset(char *args, Stream *response)
 /**
  * @brief Toggles outputting NMEA sentences in the CLI.
  * 
- * CLI command: outnmea
+ * @details CLI command: outnmea
  */
 void wcli_outnmea(char *args, Stream *response)
 {
@@ -213,7 +213,7 @@ void wcli_abort_handler()
 /**
  * @brief Enables or disables the Web file server.
  * 
- * CLI command: webfile
+ * @details CLI command: webfile
  */
 void wcli_webfile(char *args, Stream *response)
 {

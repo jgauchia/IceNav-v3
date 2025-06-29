@@ -11,7 +11,7 @@
 /**
  * @brief Helper function to format double values to a specific number of decimal places
  *
- * Formats a double value as a string with the specified number of decimal places.
+ * @details Formats a double value as a string with the specified number of decimal places.
  *
  * @param value     Value in double format.
  * @param precision Number of decimal places to use.
@@ -31,8 +31,8 @@ GPXParser::~GPXParser() {}
 /**
  * @brief Retrieve tag elements value list from all GPX files in a specified folder.
  *
- * Iterates over all .gpx files in the given folder, extracts the specified element values under the specified tag,
- * and returns a map where each key is a file name and each value is a vector of element values.
+ * @details Iterates over all .gpx files in the given folder, extracts the specified element values under the specified tag,
+ * 			and returns a map where each key is a file name and each value is a vector of element values.
  *
  * @param tag XML tag to look for (e.g., "wpt" for waypoint).
  * @param element XML element to extract (e.g., "name", "desc").
@@ -100,8 +100,8 @@ std::map<std::string, std::vector<std::string>> GPXParser::getTagElementList(con
 /**
  * @brief Delete a tag from the GPX file with specified name value
  *
- * Loads the GPX file, searches for the first tag whose <name> element matches the provided name,
- * deletes it, and saves the file. Returns true if deletion was successful, false otherwise.
+ * @details Loads the GPX file, searches for the first tag whose <name> element matches the provided name,
+ * 			deletes it, and saves the file. Returns true if deletion was successful, false otherwise.
  *
  * @param tag  The XML tag to search for (e.g., "wpt" for waypoint).
  * @param name The name value to match for deletion.
@@ -164,7 +164,7 @@ bool GPXParser::deleteTagByName(const char* tag, const char* name)
 /**
  * @brief Retrieve waypoint details for a given name from a GPX file
  *
- * Searches the GPX file for a waypoint with the given name and returns its details.
+ * @details Searches the GPX file for a waypoint with the given name and returns its details.
  *
  * @param name Waypoint name to search for
  * @return wayPoint Struct containing waypoint details (fields are zeroed/empty if not found)
@@ -255,9 +255,9 @@ wayPoint GPXParser::getWaypointInfo(const char* name)
 /**
  * @brief Add a new waypoint to the GPX file
  *
- * Adds a new waypoint with the provided details to the GPX file. All required GPX elements are populated,
- * and the waypoint is inserted at the end of the waypoint list. Returns true if the waypoint was added successfully,
- * false otherwise.
+ * @details Adds a new waypoint with the provided details to the GPX file. All required GPX elements are populated,
+ * 			and the waypoint is inserted at the end of the waypoint list. Returns true if the waypoint was added successfully,
+ *			false otherwise.
  *
  * @param wp Waypoint struct containing the waypoint details
  * @return true if the waypoint was added successfully, false otherwise
@@ -353,8 +353,8 @@ bool GPXParser::addWaypoint(const wayPoint& wp)
 /**
 * @brief Load GPX track data and store coordinates from '<trk>' structure.
 *
-* Loads all track points from the `<trk>` structure in the GPX file, extracting latitude and longitude for each `<trkpt>`,
-* and stores them as `wayPoint` structures in the provided vector. Returns true if the operation was successful, or false on error.
+* @details Loads all track points from the `<trk>` structure in the GPX file, extracting latitude and longitude for each `<trkpt>`,
+* 		   and stores them as `wayPoint` structures in the provided vector. Returns true if the operation was successful, or false on error.
 *
 * @param trackData Vector to store track points (each point is a wayPoint).
 * @return true if the track data was loaded successfully, false otherwise.

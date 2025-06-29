@@ -14,7 +14,7 @@
 /**
  * @brief Navigation Tile screen objects.
  *
- * References to objects used in the navigation tile for displaying waypoint name, latitude, longitude, distance, and navigation arrow.
+ * @details References to objects used in the navigation tile for displaying waypoint name, latitude, longitude, distance, and navigation arrow.
  */
 extern lv_obj_t *nameNav;    /**< Navigation waypoint name label. */
 extern lv_obj_t *latNav;     /**< Navigation latitude label. */

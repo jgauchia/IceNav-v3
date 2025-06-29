@@ -100,7 +100,7 @@ void Compass::read(float &x, float &y, float &z)
 /**
  * @brief Calculates the heading (in degrees) from the magnetometer data.
  *
- * Applies calibration offsets and applies a Kalman filter if enabled.
+ * @details Applies calibration offsets and applies a Kalman filter if enabled.
  *
  * @return Heading in degrees.
  */
@@ -138,7 +138,7 @@ int Compass::getHeading()
 /**
  * @brief Checks if the compass heading has been updated since the last reading.
  *
- * Compares the current heading with the previous value to detect changes.
+ * @details Compares the current heading with the previous value to detect changes.
  *
  * @return true if updated, false otherwise.
  */
@@ -156,8 +156,8 @@ bool Compass::isUpdated()
 /**
  * @brief Performs compass calibration routine.
  *
- * Guides the user through a calibration process using the screen and touch input.
- * Saves the calculated X and Y offsets to persistent configuration.
+ * @details Guides the user through a calibration process using the screen and touch input.
+ * 			Saves the calculated X and Y offsets to persistent configuration.
  */
 void Compass::calibrate()
 {

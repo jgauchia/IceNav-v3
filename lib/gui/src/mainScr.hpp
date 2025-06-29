@@ -46,7 +46,7 @@ enum tileName
 /**
  * @brief Main Screen Tiles
  *
- * LVGL tile objects for main application screens.
+ * @details LVGL tile objects for main application screens.
  */
 extern lv_obj_t *compassTile;    /**< Compass screen tile */
 extern lv_obj_t *navTile;        /**< Navigation screen tile */
@@ -56,7 +56,7 @@ extern lv_obj_t *satTrackTile;   /**< Satellite track screen tile */
 /**
  * @brief Map Toolbar Buttons
  *
- * Toolbar button objects and toolbar layout configuration.
+ * @details Toolbar button objects and toolbar layout configuration.
  */
 extern lv_obj_t *btnZoomIn;       /**< Toolbar button for zooming in */
 extern lv_obj_t *btnZoomOut;      /**< Toolbar button for zooming out */

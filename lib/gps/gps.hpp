@@ -58,8 +58,8 @@ static const uint8_t canvasRadius = canvasCenter_X - canvasOffset;	/**< Radius o
  * @class GPS
  * @brief Provides high-level access to GPS data and configuration.
  *
- * This class manages the GPS module, parsing NMEA data, and provides methods to access
- * location, speed, satellite count, and other information.
+ * @details This class manages the GPS module, parsing NMEA data, and provides methods to access
+ *          location, speed, satellite count, and other information.
  */
 class Gps
 {

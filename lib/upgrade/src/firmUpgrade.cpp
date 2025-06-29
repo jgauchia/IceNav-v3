@@ -15,7 +15,7 @@
 /**
  * @brief Check if firmware file exists
  * 
- * Checks if the firmware upgrade file is present in storage.
+ * @details Checks if the firmware upgrade file is present in storage.
  * 
  * @return true if the upgrade file exists, false otherwise
  */
@@ -30,8 +30,8 @@ bool checkFileUpgrade()
 /**
  * @brief Firmware upgrade start callback
  * 
- * Initiates the firmware upgrade by opening the firmware file, starting the update process, 
- * and handling upgrade progress and result.
+ * @details Initiates the firmware upgrade by opening the firmware file, starting the update process, 
+ * 			and handling upgrade progress and result.
  */
 void onUpgrdStart()
 {
@@ -61,7 +61,7 @@ void onUpgrdStart()
 /**
  * @brief Draw progress bar
  * 
- * Draws a rounded progress bar at the specified position, with given width, height, percentage, and colors.
+ * @details Draws a rounded progress bar at the specified position, with given width, height, percentage, and colors.
  * 
  * @param x           X position of the progress bar
  * @param y           Y position of the progress bar
@@ -85,7 +85,7 @@ void drawProgressBar(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t per
 /**
  * @brief Firmware upgrade process callback
  * 
- * Handles the progress display during firmware upgrade by updating the progress bar and showing percentage.
+ * @details Handles the progress display during firmware upgrade by updating the progress bar and showing percentage.
  * 
  * @param currSize   Current written size from file
  * @param totalSize  Total size of the firmware file
@@ -105,7 +105,7 @@ void onUpgrdProcess(size_t currSize, size_t totalSize)
 /**
  * @brief Firmware upgrade end callback
  * 
- * Called when the firmware upgrade process finishes. 
+ * @details Called when the firmware upgrade process finishes. 
  */
 void onUpgrdEnd()
 {

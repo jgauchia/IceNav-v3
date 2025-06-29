@@ -18,7 +18,7 @@ static const char* trkFolder PROGMEM = "/sdcard/TRK";            /**< Path to th
 /**
  * @brief Waypoint action enum
  *
- * Enumeration of possible actions for GPX waypoints.
+ * @details Enumeration of possible actions for GPX waypoints.
  */
 enum gpxAction_t
 {
@@ -34,7 +34,7 @@ extern uint8_t gpxAction; /**< Indicates the current GPX waypoint action to be p
 /**
  * @brief Waypoint Structure
  *
- * Stores information related to a GPS waypoint.
+ * @details Stores information related to a GPS waypoint.
  */
 struct wayPoint
 {
@@ -56,7 +56,7 @@ struct wayPoint
 /**
  * @brief GPX header file format
  *
- * Static string containing the standard GPX 1.0 file header, to be used when creating new GPX files.
+ * @details Static string containing the standard GPX 1.0 file header, to be used when creating new GPX files.
  */
 static const char* gpxHeader PROGMEM = { "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
                       "<gpx\n"

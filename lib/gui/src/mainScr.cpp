@@ -47,7 +47,7 @@ extern Maps mapView;
 /**
  * @brief Update compass screen event
  *
- * Updates the compass screen UI elements (heading, coordinates, altitude, speed, sunrise/sunset) with current GPS and heading data when the relevant event is triggered.
+ * @details Updates the compass screen UI elements (heading, coordinates, altitude, speed, sunrise/sunset) with current GPS and heading data when the relevant event is triggered.
  *
  * @param event LVGL event pointer.
  */
@@ -77,7 +77,7 @@ void updateCompassScr(lv_event_t *event)
 /**
  * @brief Show Map Widgets.
  *
- * Displays or hides map-related UI widgets based on map user settings 
+ * @details Displays or hides map-related UI widgets based on map user settings 
  */
 void showMapWidgets()
 {
@@ -101,7 +101,7 @@ void showMapWidgets()
 /**
  * @brief Hide Map Widgets.
  *
- * Hides all map-related UI widgets on the screen.
+ * @details Hides all map-related UI widgets on the screen.
  */
 void hideMapWidgets()
 {
@@ -115,7 +115,7 @@ void hideMapWidgets()
 /**
  * @brief Get the active tile
  *
- * Handles the tileview scroll event, updates the active tile index, and manages map/widget visibility and bar status.
+ * @details Handles the tileview scroll event, updates the active tile index, and manages map/widget visibility and bar status.
  *
  * @param event LVGL event pointer.
  */
@@ -149,7 +149,7 @@ void getActTile(lv_event_t *event)
 /**
  * @brief Tile start scrolling event
  *
- * Handles the beginning of a tile scroll event by resetting scroll and map redraw flags and deleting map screen sprites.
+ * @details Handles the beginning of a tile scroll event by resetting scroll and map redraw flags and deleting map screen sprites.
  *
  * @param event LVGL event pointer.
  */
@@ -164,7 +164,7 @@ void scrollTile(lv_event_t *event)
 /**
  * @brief Update Main Screen.
  *
- * Periodically updates the active main screen tiles and its widgets 
+ * @details Periodically updates the active main screen tiles and its widgets 
  */
 void updateMainScreen(lv_timer_t *t)
 {
@@ -223,7 +223,7 @@ void updateMainScreen(lv_timer_t *t)
 /**
  * @brief Update map event
  *
- * Handles map update events by generating and displaying the map (vector or render), updating map speed, scale, and compass widgets according to current settings.
+ * @details Handles map update events by generating and displaying the map (vector or render), updating map speed, scale, and compass widgets according to current settings.
  *
  * @param event LVGL event pointer.
  */
@@ -256,7 +256,7 @@ void updateMap(lv_event_t *event)
 /**
  * @brief Update Satellite Tracking.
  *
- * Handles satellite tracking update events by refreshing DOP, altitude labels, and updating satellite SNR and sky plots.
+ * @details Handles satellite tracking update events by refreshing DOP, altitude labels, and updating satellite SNR and sky plots.
  */
 void updateSatTrack(lv_event_t *event)
 {
@@ -277,7 +277,7 @@ void updateSatTrack(lv_event_t *event)
 /**
  * @brief Map Tool Bar Event.
  *
- * Handles map toolbar visibility toggling, zoom button states, map scrollability, and map centering on GPS.
+ * @details Handles map toolbar visibility toggling, zoom button states, map scrollability, and map centering on GPS.
  *
  * @param event LVGL event pointer.
  */
@@ -315,7 +315,7 @@ void mapToolBarEvent(lv_event_t *event)
 /**
  * @brief Scroll Map Event.
  *
- * Handles map scrolling gestures, updating the map view position 
+ * @details Handles map scrolling gestures, updating the map view position 
  *
  * @param event LVGL event pointer.
  */
@@ -373,7 +373,7 @@ void scrollMapEvent(lv_event_t *event)
 /**
  * @brief Zoom Event Toolbar.
  *
- * Handles zoom in/out toolbar events, updates zoom level, manages map position, and refreshes the map
+ * @details Handles zoom in/out toolbar events, updates zoom level, manages map position, and refreshes the map
  *
  * @param event LVGL event pointer.
  */
@@ -451,7 +451,7 @@ void updateNavEvent(lv_event_t *event)
 /**
  * @brief Create Canvas for Map.
  *
- * Initializes and creates the canvas object for rendering the map on the specified screen.
+ * @details Initializes and creates the canvas object for rendering the map on the specified screen.
  *
  * @param screen Pointer to the LVGL screen object.
  */
@@ -467,7 +467,7 @@ void createMapCanvas(_lv_obj_t *screen)
 /**
  * @brief Create Main Screen.
  *
- * Initializes and configures the main screen and its tiles, widgets, and event callbacks 
+ * @details Initializes and configures the main screen and its tiles, widgets, and event callbacks 
  */
 void createMainScr()
 {
