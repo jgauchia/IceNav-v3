@@ -38,7 +38,8 @@ struct NavState
 };
 
 int findClosestTrackPoint(float userLat, float userLon, const std::vector<wayPoint>& track, int lastIdx);
-void updateNavigation(
+void updateNavigation
+(
     float userLat, float userLon, float userHeading, float speed_kmh,
     const std::vector<wayPoint>& track,
     const std::vector<TurnPoint>& turns,

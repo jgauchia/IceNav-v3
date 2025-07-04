@@ -71,18 +71,23 @@ int findClosestTrackPoint(float userLat, float userLon, const std::vector<wayPoi
     return closestIdx;
 }
 
- /**
- * @brief Navegación simplificada: muestra solo el siguiente evento (recto, curva suave o fuerte) y únicamente lo avisa cuando quedan warnDist metros o menos.
+/**
+ * @brief Simplified navigation logic that displays only the next significant event (straight, soft turn, or sharp turn),
+ *        notifying the user when the event is within a specified warning distance.
  *
- * @param userLat             Latitud del usuario.
- * @param userLon             Longitud del usuario.
- * @param userHeading         Rumbo del usuario (grados).
- * @param speed_kmh           Velocidad del usuario (km/h).
- * @param track               Vector de wayPoints del track GPX.
- * @param turns               Vector de TurnPoint (giros detectados).
- * @param state               Estado de navegación.
- * @param minAngleForCurve    Umbral angular mínimo para considerar curva relevante (por defecto 15°).
- * @param warnDist            Distancia (en metros) para mostrar el aviso del evento (por defecto 100).
+ * @details This function determines the user's position relative to a preloaded GPX track and identifies the next relevant turn,
+ *          based on angular thresholds and proximity. When the upcoming turn is close enough, it displays the corresponding
+ *          directional icon.
+ *
+ * @param userLat             Current latitude.
+ * @param userLon             Current longitude.
+ * @param userHeading         Current heading (in degrees).
+ * @param speed_kmh           Current speed in km/h
+ * @param track               Vector of GPX track waypoints.
+ * @param turns               Vector of detected turn points (with indices and angles).
+ * @param state               Navigation state, including last track index and next turn index.
+ * @param minAngleForCurve    Minimum turn angle to classify as a curve (default is 15 degrees).
+ * @param warnDist            Distance threshold (in meters) to trigger event notification (default is 100 meters).
  */
 void updateNavigation(
     float userLat, float userLon, float userHeading, float speed_kmh,
@@ -175,7 +180,8 @@ void updateNavigation(
         lv_img_set_src(turnImg, &straight);
     }
 
-    lv_label_set_text_fmt(turnDistLabel, "%4d", (int)distanceToNextEvent);
+    int roundedDist = ((int)distanceToNextEvent / 5) * 5;
+    lv_label_set_text_fmt(turnDistLabel, "%4d", roundedDist);
 
     state.lastTrackIdx = closestIdx;
 }

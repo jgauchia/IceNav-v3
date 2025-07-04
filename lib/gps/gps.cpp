@@ -23,6 +23,7 @@ static const char* TAG PROGMEM = "GPS";
 
 Gps::Gps() {}
 
+
 /**
  * @brief Init GPS and custom NMEA parsing.
  *
@@ -404,3 +405,85 @@ void Gps::setLocalTime(NeoGPS::time_t gpsTime, const char* tz)
 
 	ESP_LOGI(TAG, "UTC: %i", UTC);
 }
+
+/**
+ * @brief Simulates a GPS signal over a preloaded track.
+ *
+ * @details Advances through the provided track data, simulating GPS coordinates and heading.
+ *          Applies random offset noise and smoothing to emulate realistic GPS signal behavior.
+ *          Updates the simulated GPS data every second if the step distance is above a threshold.
+ *
+ * @param trackData Vector of wayPoints representing the preloaded GPX track.
+ * @param speed Simulated speed in km/h to assign to the GPS data.
+ * @param refresh Simulation update rate refresh in ms
+ */
+void Gps::simFakeGPS(const std::vector<wayPoint>& trackData, uint16_t speed, uint16_t refresh)
+{
+	if (millis() - lastSimulationTime > refresh) 
+    {  
+        lastSimulationTime = millis();
+
+        if (simulationIndex < (int)trackData.size() - 2) 
+        {
+			if (simulationIndex == 0)
+			{
+  				// --- First point: initialize simulation state ---
+                smoothedLat = trackData[0].lat;
+                smoothedLon = trackData[0].lon;
+                lastSimLat = smoothedLat;
+                lastSimLon = smoothedLon;
+                filteredHeading = 0.0f;
+
+                gpsData.latitude = smoothedLat;
+                gpsData.longitude = smoothedLon;
+                gpsData.heading = filteredHeading;
+                gpsData.speed = speed;
+			}
+			else
+			{
+				float rawLat = trackData[simulationIndex].lat;
+				float rawLon = trackData[simulationIndex].lon;
+
+				float stepDist = calcDist(rawLat, rawLon, lastSimLat, lastSimLon);
+				if (stepDist < minStepDist) 
+				{
+					simulationIndex++;
+					return;
+				}
+
+				// --- Apply smoothing BEFORE adding noise ---
+				smoothedLat = posAlpha * rawLat + (1.0f - posAlpha) * smoothedLat;
+				smoothedLon = posAlpha * rawLon + (1.0f - posAlpha) * smoothedLon;
+
+				// --- Small noise to simulate GPS jitter ---
+				float latOffset = random(-10, 10) / 100000.0f;  // Smaller noise range
+				float lonOffset = random(-10, 10) / 100000.0f;
+
+				float noisyLat = smoothedLat + latOffset;
+				float noisyLon = smoothedLon + lonOffset;
+
+				// --- Heading estimation ---
+				int nextIdx = min(simulationIndex + headingLookahead, (int)trackData.size() - 1);
+				float desiredHeading = calcCourse(smoothedLat, smoothedLon,
+												trackData[nextIdx].lat,
+												trackData[nextIdx].lon);
+
+				filteredHeading = headAlpha * desiredHeading + (1.0f - headAlpha) * filteredHeading;
+
+				// --- Final output ---
+				gpsData.latitude = noisyLat;
+				gpsData.longitude = noisyLon;
+				gpsData.heading = filteredHeading;
+				gpsData.speed = speed;
+
+				lastSimLat = rawLat;
+				lastSimLon = rawLon;
+			}
+			simulationIndex++;
+        } 
+        else 
+        {
+            ESP_LOGI(TAG,"End of GPS signal simulation");
+        }
+    }
+} 

@@ -10,6 +10,7 @@
 
 #include <EasyPreferences.hpp>
 #include <NMEAGPS.h>
+#include "globalGpxDef.h"
 #include "tft.hpp"
 #include "gps.hpp"
 #include "battery.hpp"

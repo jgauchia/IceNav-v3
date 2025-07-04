@@ -8,9 +8,12 @@
 
 #pragma once
 
+#include "globalGpxDef.h"
 #include <NMEAGPS.h>
 #include <Streamers.h>
 #include "settings.hpp"
+#include <vector>
+
 
 #define DEG2RAD(a) ((a) / (180 / M_PI)) /**< Converts degrees to radians. @param a Angle in degrees. */
 #define RAD2DEG(a) ((a) * (180 / M_PI)) /**< Converts radians to degrees. @param a Angle in radians. */
@@ -76,6 +79,7 @@ public:
 	bool hasLocationChange();
 	bool isDOPChanged();
 	void setLocalTime(NeoGPS::time_t gpsTime, const char* tz);
+	void simFakeGPS(const std::vector<wayPoint>& trackData, uint16_t speed, uint16_t refresh);
 
 	/**
 	* @struct GPSDATA
@@ -123,4 +127,20 @@ private:
     float previousHdop;          /**< Previous HDOP for change detection. */
     float previousPdop;          /**< Previous PDOP for change detection. */
     float previousVdop;          /**< Previous VDOP for change detection. */
+
+	/**
+	 * @brief Variables for "fake" GPS signal from loaded track (simulation)
+	 * 
+	 */
+	const float posAlpha = 0.2f;           /**< Position smoothing factor, range 0 (no smoothing) to 1 (full smoothing) */
+	const float headAlpha = 0.3f;          /**< Heading smoothing factor, controls how fast heading adapts */
+	const float minStepDist = 5.0f;        /**< Minimum distance in meters between simulation steps to update */
+	const int headingLookahead = 3;        /**< Number of track points ahead used to calculate the heading */
+	float smoothedLat = 0.0f;              /**< Smoothed latitude after filtering */
+	float smoothedLon = 0.0f;              /**< Smoothed longitude after filtering */
+	float filteredHeading = 0.0f;          /**< Smoothed heading after filtering */
+	float lastSimLat = 0.0f;       		   /**< Last simulated latitude used for step distance */
+	float lastSimLon = 0.0f;     	       /**< Last simulated longitude used for step distance */
+	int simulationIndex = 0;                   /**< Current index in track simulation */
+	unsigned long lastSimulationTime = 0;      /**< Timestamp of last simulation update in milliseconds */
 };
