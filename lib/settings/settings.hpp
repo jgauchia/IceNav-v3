@@ -76,6 +76,17 @@ struct MAP
 };
 extern MAP mapSet; /**< Global instance for map settings */
 
+/**
+ * @brief Structure for navigation settings
+ *
+ * @details Contains navigation configuration 
+ */
+struct NAVIGATION 
+{
+    bool simNavigation;     /**< Indicates whether navigation simulation mode is enabled or disabled. */
+};
+extern NAVIGATION navSet; /**< Global instance for navigation settings */
+
 void loadPreferences();
 
 void saveGPSBaud(uint16_t gpsBaud);

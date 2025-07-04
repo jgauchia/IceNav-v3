@@ -11,6 +11,7 @@
 static const char* TAG PROGMEM = "Settings";
 
 MAP mapSet;
+NAVIGATION navSet;
 
 /**
  * @brief Zoom Levels and Default zoom
@@ -78,6 +79,7 @@ void loadPreferences()
 	mapSet.showMapSpeed = cfg.getBool(PKEYS::KMAP_SPEED, true);
 	mapSet.vectorMap = cfg.getBool(PKEYS::KMAP_VECTOR, false);
 	mapSet.showMapScale = cfg.getBool(PKEYS::KMAP_SCALE, true);
+	navSet.simNavigation = cfg.getBool(PKEYS::KSIM_NAV, false);
 	gpsBaud = cfg.getShort(PKEYS::KGPS_SPEED, 4);
 	gpsUpdate = cfg.getShort(PKEYS::KGPS_RATE, 3);
 	compassPosX = cfg.getInt(PKEYS::KCOMP_X, (TFT_WIDTH / 2) - (100 * scale));

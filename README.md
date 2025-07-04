@@ -244,7 +244,7 @@ Please follow the instructions provided by [OSM_Extract](https://github.com/ares
 
 ## CLI
 
-IceNav has a basic CLI accessible via Serial and optionally via Telnet if enabled. When you access the CLI and type `help`, you should see the following commands:
+IceNav has a basic CLI accessible via Serial and optionally via Telnet if enabled (port 11000). When you access the CLI and type `help`, you should see the following commands:
 
 ```bash
 clear:          clear shell
@@ -273,6 +273,7 @@ Some extra details:
    mapScale     custom          true           Show scale meter in map
     mapComp     custom          true           Show compass in map
  mapCompRot     custom          true           Rotate map with the compass
+     simNav     custom          false          Indicates whether navigation simulation mode is enabled or disabled
       gpsTX     custom          43             GPS Tx gpio
       gpsRX     custom          44             GPS Rx gpio
      defLAT     custom          52.5200        Default latitude

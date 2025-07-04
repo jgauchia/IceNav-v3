@@ -222,9 +222,11 @@ void loop()
 
 	if (isTrackLoaded)
 	{
-		gps.simFakeGPS(trackData,12,200);
+		if (navSet.simNavigation)
+			gps.simFakeGPS(trackData,12,200);
 
-		updateNavigation(gps.gpsData.latitude, gps.gpsData.longitude, gps.gpsData.heading, gps.gpsData.speed,
-						trackData, turnPoints, navState,20,200);
+		if (gps.gpsData.speed !=0)
+			updateNavigation(gps.gpsData.latitude, gps.gpsData.longitude, gps.gpsData.heading, gps.gpsData.speed,
+							 trackData, turnPoints, navState,20,200);
 	}
 }
