@@ -59,6 +59,7 @@ void gpxListEvent(lv_event_t *event)
 				switch (gpxAction)
 				{
 				case GPX_LOAD:
+					showMsg(LV_SYMBOL_DOWNLOAD, " Loading data...");
 					if (gpxWaypoint)
 					{
 					loadWpt = gpx.getWaypointInfo(gpxName.c_str());
@@ -92,7 +93,7 @@ void gpxListEvent(lv_event_t *event)
 						mapView.updateMap();
 						lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
 					}
-					
+					closeMsg();
 					loadMainScreen();
 					break;
 				case GPX_EDIT:
@@ -183,6 +184,7 @@ void updateGpxListScreen()
 	lv_table_set_row_count(listGPXScreen, 1);
 	isMainScreen = false;
 
+	showMsg(LV_SYMBOL_DOWNLOAD," Getting files...");
 	if (isWaypointOpt)
 	{
 		gpxWaypoint = true;
@@ -224,4 +226,5 @@ void updateGpxListScreen()
 			}
 		}
 	}
+	closeMsg();
 }

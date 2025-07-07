@@ -8,6 +8,8 @@
 
 #include "lvglFuncs.hpp"
 
+lv_obj_t *msgDialog;     /**< Message dialog object. */
+
 /**
  * @brief Custom LVGL function to hide the object's cursor.
  *
@@ -93,4 +95,34 @@ void showRestartScr()
 	lv_timer_t *restartTimer;
 	restartTimer = lv_timer_create(restartTimerCb, 3000, NULL);
 	lv_timer_reset(restartTimer);
+}
+
+/**
+ * @brief Show message dialog
+ *
+ * @param symbol LVGL symbol font
+ * @param message Message
+ */
+void showMsg(const char* symbol, const char* message)
+{
+	msgDialog = lv_msgbox_create(lv_scr_act());
+	lv_obj_set_width(msgDialog,TFT_WIDTH);
+	lv_obj_set_align(msgDialog,LV_ALIGN_CENTER);
+	lv_obj_set_style_text_font(msgDialog, fontDefault, 0);
+	lv_obj_t *labelText = lv_msgbox_get_content(msgDialog);
+	lv_obj_set_style_text_align(labelText, LV_TEXT_ALIGN_CENTER, 0);
+	char msg[100];
+	sprintf(msg,"%s %s",symbol, message);
+	lv_msgbox_add_text(msgDialog, msg);
+	lv_obj_invalidate(msgDialog);
+	lv_refr_now(display);
+}
+
+/**
+ * @brief Close message dialog.
+ *
+ */
+void closeMsg()
+{
+	lv_obj_del(msgDialog);
 }

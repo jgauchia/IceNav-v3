@@ -14,6 +14,7 @@ extern lv_obj_t *mapSpeed;
 extern lv_obj_t *miniCompass;
 extern lv_obj_t *mapCompassImg;
 extern lv_obj_t *scaleWidget;
+extern lv_obj_t *zoomLabel;
 
 extern Maps mapView;
 
@@ -47,6 +48,7 @@ static void mapSettingsEvents(lv_event_t *event)
 			lv_spinbox_increment(zoomLevel);
 			defaultZoom = (uint8_t)lv_spinbox_get_value(zoomLevel);
 			zoom = defaultZoom;
+			lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
 			mapView.isPosMoved = true;
 			cfg.saveUInt(PKEYS::KDEF_ZOOM, defaultZoom);
 		}
@@ -59,6 +61,7 @@ static void mapSettingsEvents(lv_event_t *event)
 			lv_spinbox_decrement(zoomLevel);
 			defaultZoom = (uint8_t)lv_spinbox_get_value(zoomLevel);
 			zoom = defaultZoom;
+			lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
 			mapView.isPosMoved = true;
 			cfg.saveUInt(PKEYS::KDEF_ZOOM, defaultZoom);
 		}
@@ -80,6 +83,7 @@ static void mapSettingsEvents(lv_event_t *event)
 		lv_spinbox_set_range(zoomLevel, minZoom, maxZoom);
 		defaultZoom = (uint8_t)lv_spinbox_get_value(zoomLevel);
 		zoom = defaultZoom;
+		lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
 		needReboot = true;
 	}
 

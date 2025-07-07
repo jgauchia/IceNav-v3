@@ -38,8 +38,6 @@ extern lv_obj_t *gpxTagValue;           /**< Add/Edit Waypoint screen text area 
 extern bool isScreenRotated;            /**< Flag to know if screen is rotated */
 extern bool isTrackLoaded;              /**< Flag to know if track is loaded */
 
-extern lv_obj_t *powerMsg;              /**< Power Message */
-
 extern Storage storage;
 
 #ifdef LARGE_SCREEN
