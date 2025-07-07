@@ -458,7 +458,25 @@ std::vector<TurnPoint> GPXParser::getTurnPoints(float thresholdDeg, double minDi
   return turnPoints;
 }
 
-
+/**
+ * @brief Detect turn points in a track using a sliding window approach.
+ *
+ * This function processes the given track using a sliding window of configurable size.
+ * It calculates the angle between the start and end segments of the window to detect turns.
+ * A turn point is added if the global angle exceeds `thresholdDeg` and the total distance 
+ * within the window is above `minDist`. Sharp turns above `sharpTurnDeg` are always included, 
+ * regardless of distance.
+ *
+ * @param thresholdDeg Minimum angle difference (in degrees) to consider a turn.
+ * @param minDist Minimum total distance (in meters) within the window to validate a turn.
+ * @param sharpTurnDeg Angle (in degrees) above which any turn is considered sharp and relevant.
+ * @param windowSize Number of points before and after the center point to define the sliding window.
+ * @param trackData Vector of wayPoint structures representing the track to analyze.
+ * @return std::vector<TurnPoint> List of detected turn points:
+ *         - index: index in trackData of the turn
+ *         - angle: angle difference at turn (degrees, positive = right, negative = left)
+ *         - accumDist: accumulated distance from the start of the track to this turn (meters)
+ */
 std::vector<TurnPoint> GPXParser::getTurnPointsSlidingWindow(
     float thresholdDeg, double minDist, float sharpTurnDeg,
     int windowSize, const std::vector<wayPoint>& trackData)
