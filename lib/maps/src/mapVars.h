@@ -20,6 +20,7 @@
 #include "uleft.h"
 #include "uright.h"
 #include "finish.h"
+#include "outtrack.h"
 
 #include "globalGpxDef.h"
 

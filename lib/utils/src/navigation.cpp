@@ -19,6 +19,7 @@ LV_IMG_DECLARE(tright);
 LV_IMG_DECLARE(uleft);
 LV_IMG_DECLARE(uright);
 LV_IMG_DECLARE(finish);
+LV_IMG_DECLARE(outtrack);
 
  /**
  * @brief Finds the closest track point index to the user's current position, with an adaptive search window.
@@ -36,7 +37,6 @@ LV_IMG_DECLARE(finish);
  * @param lastIdx   The index of the last known closest point on the track.
  * @return          The index of the closest point in the track within the search window or full track if needed.
  */
-
 int findClosestTrackPoint(float userLat, float userLon, const std::vector<wayPoint>& track, int lastIdx) 
 {
     int window = 50;
@@ -44,13 +44,13 @@ int findClosestTrackPoint(float userLat, float userLon, const std::vector<wayPoi
     int start = std::max(0, lastIdx - window);
     int end = std::min(n - 1, lastIdx + window);
 
-    // Si el usuario se ha alejado mucho, busca en todo el track
+    // If the user has strayed far, search the entire track
     float minDist = calcDist(userLat, userLon, track[lastIdx].lat, track[lastIdx].lon);
     int closestIdx = lastIdx;
 
-    // Si la distancia al último punto es grande, busca en todo el track
+    // If the distance to the last point is large, search the entire track
     if (minDist > 2 * window)       
-    { // o un umbral en metros, ej: 50m
+    { // Or a threshold in meters, e.g., 50m
         start = 0;
         end = n - 1;
     }
@@ -98,22 +98,22 @@ void updateNavigation(
     float warnDist
 )
 {
-    const float minTurnDist = 5.0f;  // Umbral para saltar turnpoints ya pasados o justo encima
+    const float minTurnDist = 5.0f;  
 
     int closestIdx = findClosestTrackPoint(userLat, userLon, track, state.lastTrackIdx);
     float distToTrack = calcDist(userLat, userLon, track[closestIdx].lat, track[closestIdx].lon);
     if (distToTrack > 30.0) 
     {
-        log_i("¡Fuera de ruta! Reincorpórate al track");
+        lv_img_set_src(turnImg, &outtrack);
         state.lastTrackIdx = closestIdx;
         return;
     }
 
-    // Avanza el índice de turnpoint si ya lo hemos pasado (por índice)
+    // Advance the turnpoint index if it has already been passed (by index)
     while (state.nextTurnIdx < (int)turns.size() && turns[state.nextTurnIdx].idx <= closestIdx)
         state.nextTurnIdx++;
 
-    // Busca el siguiente evento relevante (el primero con distancia suficiente)
+    // Search for the next relevant event (the first one with sufficient distance)
     int nextEventIdx = -1;
     float distanceToNextEvent = std::numeric_limits<float>::max();
     float abs_angle = 0.0;
@@ -124,7 +124,7 @@ void updateNavigation(
         float turnLat = track[turns[i].idx].lat;
         float turnLon = track[turns[i].idx].lon;
         float distanceToTurn = calcDist(userLat, userLon, turnLat, turnLon);
-        // Si el evento está “demasiado cerca” (o ya pasado), sáltalo y sigue buscando
+        // If the event is too close (or already passed), skip it and continue searching
         if (distanceToTurn < minTurnDist)
             continue;
 
@@ -132,10 +132,10 @@ void updateNavigation(
         nextEventIdx = i;
         abs_angle = fabs(turns[i].angle);
         derecha = (turns[i].angle > 0);
-        break; // Encontrado el siguiente relevante, sal del bucle
+        break; // Found the next relevant event, exit the loop
     }
 
-    // Si no queda ningún evento relevante
+    // If there are no remaining relevant events
     if (nextEventIdx == -1) 
     {
         lv_img_set_src(turnImg, &finish);
@@ -143,7 +143,7 @@ void updateNavigation(
         return;
     }
 
-    // Mostrar solo cuando falten <= warnDist metros
+    // Display only when there are <= warnDist meters remaining
     if (distanceToNextEvent <= warnDist)
     {
         if (abs_angle >= minAngleForCurve && abs_angle < 60) 
@@ -161,15 +161,6 @@ void updateNavigation(
                 lv_img_set_src(turnImg, &tleft);
 
         }
-        // else if (abs_angle > 3.0) 
-        // {
-        //     log_i("Desvío leve a la %s en %d m (%.1f° en idx %d)",
-        //         derecha ? "DERECHA" : "IZQUIERDA",
-        //         (int)distanceToNextEvent,
-        //         abs_angle,
-        //         turns[nextEventIdx].idx
-        //     );
-        // }
         else 
         {
             lv_img_set_src(turnImg, &straight);     
