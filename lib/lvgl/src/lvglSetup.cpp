@@ -35,15 +35,15 @@ Maps mapView;
  */
 void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 { 
-	uint32_t w = (area->x2 - area->x1 + 1);
-	uint32_t h = (area->y2 - area->y1 + 1);
+    const uint32_t w = area->x2 - area->x1 + 1;
+    const uint32_t h = area->y2 - area->y1 + 1;
 
-	tft.setSwapBytes(true);
-	tft.setAddrWindow(area->x1, area->y1, w, h);
-	tft.pushImageDMA(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t*)px_map);
-	tft.setSwapBytes(false);
+    tft.setSwapBytes(true);
+    tft.setAddrWindow(area->x1, area->y1, w, h);
+    tft.pushImageDMA(area->x1, area->y1, w, h, reinterpret_cast<uint16_t*>(px_map));
+    tft.setSwapBytes(false);
 
-	lv_display_flush_ready(disp);
+    lv_display_flush_ready(disp);
 }
 
 /**
