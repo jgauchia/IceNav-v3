@@ -27,7 +27,7 @@ extern bool lutInit;
  * @param deg Angle in degrees.
  * @return Angle in radians.
  */
-static inline double DEG2RAD(double deg)
+static inline __attribute__((always_inline)) double DEG2RAD(double deg)
 {
     return deg * (M_PI / 180.0);
 }
@@ -38,10 +38,11 @@ static inline double DEG2RAD(double deg)
  * @param rad Angle in radians.
  * @return Angle in degrees.
  */
-static inline double RAD2DEG(double rad) 
+static inline __attribute__((always_inline)) double RAD2DEG(double rad) 
 {
     return rad * (180.0 / M_PI);
 }
+
 
 extern double midLat;                    /**< Midpoint between two latitudes */
 extern double midLon;                    /**< Midpoint between two longitudes */
@@ -57,13 +58,10 @@ bool initTrigLUT();
  * @param rad Angle in radians
  * @return Sine of the angle
  */
-static inline double sinLUT(double rad)
+static inline __attribute__((always_inline)) double sinLUT(double rad)
 {
     if (!sinLut)
-	{
-        ESP_LOGE(TAGMATH, "sinLut not initialized!");
         return sin(rad);
-    }
 
     rad = fmod(rad, TWO_PI);
     if (rad < 0.0) rad += TWO_PI;
@@ -78,19 +76,17 @@ static inline double sinLUT(double rad)
 
     return result;
 }
+
 /**
  * @brief Lookup cosine value using precomputed LUT
  *
  * @param rad Angle in radians
  * @return Cosine of the angle
  */
-static inline double cosLUT(double rad)
+static inline __attribute__((always_inline)) double cosLUT(double rad)
 {
 	if (!cosLut)
-	{
-		ESP_LOGE(TAGMATH, "cosLut not initialized!");
 		return cos(rad);
-	}
 
 	rad = fmod(rad, TWO_PI);
 	if (rad < 0.0) rad += TWO_PI;
