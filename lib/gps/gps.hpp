@@ -15,9 +15,6 @@
 #include <vector>
 
 
-#define DEG2RAD(a) ((a) / (180 / M_PI)) /**< Converts degrees to radians. @param a Angle in degrees. */
-#define RAD2DEG(a) ((a) * (180 / M_PI)) /**< Converts radians to degrees. @param a Angle in radians. */
-
 extern uint8_t GPS_TX; /**< GPS TX pin number. */
 extern uint8_t GPS_RX; /**< GPS RX pin number. */
 

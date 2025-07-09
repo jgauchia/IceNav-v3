@@ -76,6 +76,7 @@ static double transit, sunrise, sunset; /**< Variables to store solar transit, s
 #include "lvglSetup.hpp"
 #include "tasks.hpp"
 
+
 /**
  * @brief Calculate Sunrise and Sunset
  *        Must be a global function
@@ -112,6 +113,8 @@ void setup()
 	gpsMutex = xSemaphoreCreateMutex();
 	esp_log_level_set("*", ESP_LOG_DEBUG);
 	esp_log_level_set("storage", ESP_LOG_DEBUG);
+
+	lutInit = initTrigLUT();
 
 	// Force GPIO0 to internal PullUP  during boot (avoid LVGL key read)
 	#ifdef POWER_SAVE

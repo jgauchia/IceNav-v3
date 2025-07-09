@@ -10,12 +10,49 @@
 
 double midLat = 0; 
 double midLon = 0; 
+bool lutInit = false;
+
+/**
+ * @brief Initialize lookup tables for sine and cosine
+ *
+ * @details Allocates memory for the tables in PSRAM if available, otherwise in RAM.
+ *          Must be called once before using LUT-based trig functions.
+ * @return true if initialization was successful, false if memory allocation failed
+ */
+bool initTrigLUT()
+{
+	#ifdef BOARD_HAS_PSRAM
+		sinLut = (double*) heap_caps_malloc(sizeof(double) * LUT_SIZE, MALLOC_CAP_SPIRAM);
+		cosLut = (double*) heap_caps_malloc(sizeof(double) * LUT_SIZE, MALLOC_CAP_SPIRAM);
+
+		if (!sinLut || !cosLut) 
+		{
+			ESP_LOGE(TAGMATH, "Error: Failed to allocate memory for LUTs");
+			if (sinLut) free(sinLut);
+			if (cosLut) free(cosLut);
+			sinLut = cosLut = NULL;
+			return false;
+		}
+		ESP_LOGI(TAGMATH, "Allocated memory for LUTs");
+
+		for (int i = 0; i < LUT_SIZE; ++i)
+		{
+			double angle = i * LUT_RES;
+			sinLut[i] = sin(angle);
+			cosLut[i] = cos(angle);
+		}
+		return true;
+	#else
+		return false;
+    #endif
+}
 
 /**
  * @brief Function to calculate the distance in meters between two coordinates using the Haversine formula
  *
  * @details Computes the great-circle distance between two points on the Earth's surface
  * 			given their latitude and longitude values, using the Haversine formula.
+ * 			Uses LUTs for trig functions if initialized.
  *
  * @param lat1 Latitude of point 1 (in degrees)
  * @param lon1 Longitude of point 1 (in degrees)
@@ -25,16 +62,30 @@ double midLon = 0;
  */
 double calcDist(double lat1, double lon1, double lat2, double lon2)
 {
-	lat1 = lat1 * (M_PI / 180.0);
-	lon1 = lon1 * (M_PI / 180.0);
-	lat2 = lat2 * (M_PI / 180.0);
-	lon2 = lon2 * (M_PI / 180.0);
+	lat1 = DEG2RAD(lat1);
+	lon1 = DEG2RAD(lon1);
+	lat2 = DEG2RAD(lat2);
+	lon2 = DEG2RAD(lon2);
 	double dlat = lat2 - lat1;
 	double dlon = lon2 - lon1;
-	double a = sin(dlat / 2) * sin(dlat / 2) +
-				cos(lat1) * cos(lat2) *
-				sin(dlon / 2) * sin(dlon / 2);
-	double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+
+	double a, c;
+
+	if (lutInit)
+	{
+		a = sinLUT(dlat / 2) * sinLUT(dlat / 2) +
+		    cosLUT(lat1) * cosLUT(lat2) *
+		    sinLUT(dlon / 2) * sinLUT(dlon / 2);
+	}
+	else
+	{
+		a = sin(dlat / 2) * sin(dlat / 2) +
+			cos(lat1) * cos(lat2) *
+			sin(dlon / 2) * sin(dlon / 2);
+	}
+
+	c = 2 * atan2(sqrt(a), sqrt(1 - a));
+
 	return EARTH_RADIUS * c;
 }
 
@@ -42,7 +93,8 @@ double calcDist(double lat1, double lon1, double lat2, double lon2)
  * @brief Function to calculate the heading (bearing) between two coordinates (latitude and longitude) using the Orthodromic (great-circle) course
  *
  * @details Calculates the initial bearing (forward azimuth) from the first point (lat1, lon1)
-* 			to the second point (lat2, lon2) on the surface of a sphere (Earth).
+ * 			to the second point (lat2, lon2) on the surface of a sphere (Earth).
+ *			Uses LUTs for trig functions if initialized.
  *
  * @param lat1 Latitude of point 1 (in degrees)
  * @param lon1 Longitude of point 1 (in degrees)
@@ -52,12 +104,22 @@ double calcDist(double lat1, double lon1, double lat2, double lon2)
  */
 double calcCourse(double lat1, double lon1, double lat2, double lon2)
 {
-	lat1 = lat1 * M_PI / 180.0;
-	lat2 = lat2 * M_PI / 180.0;
-	double dLon = (lon2 - lon1) * M_PI / 180.0;
+	lat1 = DEG2RAD(lat1);
+	lat2 = DEG2RAD(lat2);
+	double dLon = DEG2RAD(lon2 - lon1);
 
-	double y = sin(dLon) * cos(lat2);
-	double x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon);
+	double y, x;
+
+	if (lutInit)
+	{
+		y = sinLUT(dLon) * cosLUT(lat2);	
+		x = cosLUT(lat1) * sinLUT(lat2) - sinLUT(lat1) * cosLUT(lat2) * cosLUT(dLon);
+	}
+    else
+	{
+		y = sin(dLon) * cos(lat2);
+		x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon);
+	}
 	double course = atan2(y, x);
 
 	course = course * 180.0 / M_PI;
@@ -88,6 +150,7 @@ double calcAngleDiff(double a, double b)
  *
  * @details Calculates the geographic midpoint (center point) between two coordinates on the Earth's surface.
  * 			The result is stored in the global variables midLat and midLon.
+ *			Uses LUTs for trig functions if initialized.
  *
  * @param lat1 Latitude of point 1 (in degrees)
  * @param lon1 Longitude of point 1 (in degrees)
@@ -96,16 +159,42 @@ double calcAngleDiff(double a, double b)
  */
 void calcMidPoint(float lat1, float lon1, float lat2, float lon2)
 {
-	float dLon = (radians(lon2) - radians(lon1));
-	float cosLat1 = cos(radians(lat1));
-	float cosLat2 = cos(radians(lat2));
-	float sinLat1 = sin(radians(lat1));
-	float sinLat2 = sin(radians(lat2));
-	float Bx = cosLat2 * cos(dLon);
-	float By = cosLat2 * sin(dLon);
+	double rLat1 = DEG2RAD(lat1);
+	double rLon1 = DEG2RAD(lon1);
+	double rLat2 = DEG2RAD(lat2);
+	double rLon2 = DEG2RAD(lon2);
 
-	midLat = degrees(atan2(sinLat1 + sinLat2, sqrt((cosLat1 + Bx) * (cosLat1 + Bx) + By * By)));
-	midLon = degrees(radians(lon1) + atan2(By, cosLat1 + Bx));
+	double dLon = rLon2 - rLon1;
+
+	double sinLat1, sinLat2, cosLat1, cosLat2, cosDLon, sinDLon;
+
+	if (lutInit)
+	{
+		sinLat1 = sinLUT(rLat1);
+		sinLat2 = sinLUT(rLat2);
+		cosLat1 = cosLUT(rLat1);
+		cosLat2 = cosLUT(rLat2);
+		cosDLon = cosLUT(dLon);
+		sinDLon = sinLUT(dLon);
+	}
+	else
+	{
+		sinLat1 = sin(rLat1);
+		sinLat2 = sin(rLat2);
+		cosLat1 = cos(rLat1);
+		cosLat2 = cos(rLat2);
+		cosDLon = cos(dLon);
+		sinDLon = sin(dLon);
+	}
+
+	double Bx = cosLat2 * cosDLon;
+	double By = cosLat2 * sinDLon;
+
+	double midLatRad = atan2(sinLat1 + sinLat2, sqrt((cosLat1 + Bx) * (cosLat1 + Bx) + By * By));
+	double midLonRad = rLon1 + atan2(By, cosLat1 + Bx);
+
+	midLat = RAD2DEG(midLatRad);
+	midLon = RAD2DEG(midLonRad);
 }
 
 /**

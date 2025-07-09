@@ -201,8 +201,11 @@ void Gps::getGPSData()
 		satTracker[i].active = GPS.satellites[i].tracked;
 		strncpy(satTracker[i].talker_id, GPS.satellites[i].talker_id, 3);
 		int H = canvasRadius * (90 - satTracker[i].elev) / 90;
-		satTracker[i].posX = canvasCenter_X + H * sin(DEG2RAD(satTracker[i].azim));
-		satTracker[i].posY = canvasCenter_Y - H * cos(DEG2RAD(satTracker[i].azim));
+		double azimRad = DEG2RAD(satTracker[i].azim);
+		double sinAzim = lutInit ? sinLUT(azimRad) : sin(azimRad);
+		double cosAzim = lutInit ? cosLUT(azimRad) : cos(azimRad);
+		satTracker[i].posX = canvasCenter_X + H * sinAzim;
+		satTracker[i].posY = canvasCenter_Y - H * cosAzim;
 	}
 }
 
