@@ -106,33 +106,36 @@ void Compass::read(float &x, float &y, float &z)
  */
 int Compass::getHeading()
 {
-	float y = 0.0;
-	float x = 0.0;
-	float z = 0.0;
+    float x = 0.0f;
+    float y = 0.0f;
+    float z = 0.0f;
 
-	read(x, y, z);
+    read(x, y, z);
 
-	float headingNoFilter = atan2(y - offY, x - offX);
-	headingNoFilter += declinationAngle;
+    float hx = x - offX;
+    float hy = y - offY;
 
-	headingNoFilter = wrapToPi(headingNoFilter);
+    float heading = atan2f(hy, hx);
+    heading += declinationAngle;
+    heading = wrapToPi(heading);
 
-	if (kalmanFilterEnabled)
-	{
-		headingNoFilter = unwrapFromPi(headingNoFilter, headingPrevious);
-		headingSmooth = kalmanFilter.update(headingNoFilter);
-	}
-	else
-		headingSmooth = headingNoFilter;
+    if (kalmanFilterEnabled)
+    {
+        heading = unwrapFromPi(heading, headingPrevious);
+        headingSmooth = kalmanFilter.update(heading);
+    }
+    else
+    {
+        headingSmooth = heading;
+    }
 
-		headingPrevious = headingNoFilter;
+    headingPrevious = heading;
 
-	float headingDegrees = (int)(headingSmooth * 180 / M_PI);
+    int headingDeg = static_cast<int>(headingSmooth * (180.0f / M_PI));
+    if (headingDeg < 0)
+        headingDeg += 360;
 
-	if (headingDegrees < 0)
-		headingDegrees += 360;
-
-	return static_cast<int>(headingDegrees);
+    return headingDeg;
 }
 
 /**
