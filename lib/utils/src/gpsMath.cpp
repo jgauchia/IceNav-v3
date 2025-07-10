@@ -104,28 +104,41 @@ double calcDist(double lat1, double lon1, double lat2, double lon2)
  */
 double calcCourse(double lat1, double lon1, double lat2, double lon2)
 {
-	lat1 = DEG2RAD(lat1);
-	lat2 = DEG2RAD(lat2);
-	double dLon = DEG2RAD(lon2 - lon1);
 
-	double y, x;
+    lat1 = DEG2RAD(lat1);
+    lat2 = DEG2RAD(lat2);
+    double dLon = DEG2RAD(lon2 - lon1);
 
-	if (lutInit)
-	{
-		y = sinLUT(dLon) * cosLUT(lat2);	
-		x = cosLUT(lat1) * sinLUT(lat2) - sinLUT(lat1) * cosLUT(lat2) * cosLUT(dLon);
-	}
+    double sin_dLon, cos_dLon;
+    double sin_lat1, cos_lat1, sin_lat2, cos_lat2;
+
+    if (lutInit)
+    {
+        sin_dLon = sinLUT(dLon);
+        cos_dLon = cosLUT(dLon);
+        sin_lat1 = sinLUT(lat1);
+        cos_lat1 = cosLUT(lat1);
+        sin_lat2 = sinLUT(lat2);
+        cos_lat2 = cosLUT(lat2);
+    }
     else
-	{
-		y = sin(dLon) * cos(lat2);
-		x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon);
-	}
-	double course = atan2(y, x);
+    {
+        sin_dLon = sin(dLon);
+        cos_dLon = cos(dLon);
+        sin_lat1 = sin(lat1);
+        cos_lat1 = cos(lat1);
+        sin_lat2 = sin(lat2);
+        cos_lat2 = cos(lat2);
+    }
 
-	course = course * 180.0 / M_PI;
-	course = fmod((course + 360.0), 360.0);
+    double y = sin_dLon * cos_lat2;
+    double x = cos_lat1 * sin_lat2 - sin_lat1 * cos_lat2 * cos_dLon;
+    double course = atan2(y, x) * (180.0 / M_PI);
 
-	return course;
+    if (course < 0.0)
+        course += 360.0;
+
+    return course;
 }
 
 /**
@@ -141,8 +154,10 @@ double calcCourse(double lat1, double lon1, double lat2, double lon2)
  */
 double calcAngleDiff(double a, double b)
 {
-  double diff = fmod((a - b + 540.0f), 360.0f) - 180.0f;
-  return diff;
+	double diff = a - b;
+	while (diff > 180.0) diff -= 360.0;
+	while (diff < -180.0) diff += 360.0;
+	return diff;
 }
 
 /**
@@ -163,8 +178,7 @@ void calcMidPoint(float lat1, float lon1, float lat2, float lon2)
 	double rLon1 = DEG2RAD(lon1);
 	double rLat2 = DEG2RAD(lat2);
 	double rLon2 = DEG2RAD(lon2);
-
-	double dLon = rLon2 - rLon1;
+	double dLon  = rLon2 - rLon1;
 
 	double sinLat1, sinLat2, cosLat1, cosLat2, cosDLon, sinDLon;
 
@@ -189,9 +203,10 @@ void calcMidPoint(float lat1, float lon1, float lat2, float lon2)
 
 	double Bx = cosLat2 * cosDLon;
 	double By = cosLat2 * sinDLon;
+	double cosLat1_plus_Bx = cosLat1 + Bx;
 
-	double midLatRad = atan2(sinLat1 + sinLat2, sqrt((cosLat1 + Bx) * (cosLat1 + Bx) + By * By));
-	double midLonRad = rLon1 + atan2(By, cosLat1 + Bx);
+	double midLatRad = atan2(sinLat1 + sinLat2, sqrt(cosLat1_plus_Bx * cosLat1_plus_Bx + By * By));
+	double midLonRad = rLon1 + atan2(By, cosLat1_plus_Bx);
 
 	midLat = RAD2DEG(midLatRad);
 	midLon = RAD2DEG(midLonRad);

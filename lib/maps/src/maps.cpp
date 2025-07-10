@@ -71,7 +71,7 @@ Maps::Maps() {}
  */
 uint16_t Maps::lon2posx(float f_lon, uint8_t zoom, uint16_t tileSize)
 {
- 	 return ((uint16_t)(((f_lon + 180.0) / 360.0 * (pow(2.0, zoom)) * tileSize)) % tileSize);
+	return ((uint16_t)(((f_lon + 180.0f) / 360.0f * (float)(1 << zoom) * tileSize)) % tileSize);
 }
 
 /**
@@ -87,7 +87,13 @@ uint16_t Maps::lon2posx(float f_lon, uint8_t zoom, uint16_t tileSize)
  */
 uint16_t Maps::lat2posy(float f_lat, uint8_t zoom, uint16_t tileSize)
 {
-  	return ((uint16_t)(((1.0 - log(tan(f_lat * M_PI / 180.0) + 1.0 / cos(f_lat * M_PI / 180.0)) / M_PI) / 2.0 * (pow(2.0, zoom)) * tileSize)) % tileSize);
+    float lat_rad = f_lat * (float)M_PI / 180.0f;
+    float siny = tanf(lat_rad) + 1.0f / cosf(lat_rad);
+    float merc_n = logf(siny);
+
+    float scale = (1 << zoom) * tileSize;
+
+    return (uint16_t)(((1.0f - merc_n / (float)M_PI) / 2.0f * scale)) % tileSize;
 }
 
 /**
@@ -102,9 +108,9 @@ uint16_t Maps::lat2posy(float f_lat, uint8_t zoom, uint16_t tileSize)
  */
 uint32_t Maps::lon2tilex(double f_lon, uint8_t zoom)
 {
-	double rawTile = (f_lon + 180.0) / 360.0 * pow(2.0, zoom);
-	rawTile += 1e-6;
-	return (uint32_t)(floor(rawTile));
+    double rawTile = (f_lon + 180.0) / 360.0 * (1 << zoom);
+    rawTile += 1e-6; 
+    return (uint32_t)(rawTile); 
 }
 
 /**
@@ -119,9 +125,13 @@ uint32_t Maps::lon2tilex(double f_lon, uint8_t zoom)
  */
 uint32_t Maps::lat2tiley(double f_lat, uint8_t zoom)
 {
-	double rawTile = (1.0 - log(tan(f_lat * M_PI / 180.0) + 1.0 / cos(f_lat * M_PI / 180.0)) / M_PI) / 2.0 * pow(2.0, zoom);
-	rawTile += 1e-6;
-	return (uint32_t)(floor(rawTile));
+    double lat_rad = f_lat * M_PI / 180.0;
+    double siny = tan(lat_rad) + 1.0 / cos(lat_rad);
+    double merc_n = log(siny);
+
+    double rawTile = (1.0 - merc_n / M_PI) / 2.0 * (1 << zoom);
+    rawTile += 1e-6;
+    return (uint32_t)(rawTile); 
 }
 
 /**
@@ -136,7 +146,7 @@ uint32_t Maps::lat2tiley(double f_lat, uint8_t zoom)
  */
 double Maps::tilex2lon(uint32_t tileX, uint8_t zoom)
 {
-	return tileX / pow(2.0, zoom) * 360.0 - 180.0;
+	return (double)tileX * 360.0 / (1 << zoom) - 180.0;
 }
 
 /**
@@ -151,7 +161,8 @@ double Maps::tilex2lon(uint32_t tileX, uint8_t zoom)
  */
 double Maps::tiley2lat(uint32_t tileY, uint8_t zoom)
 {
-	double n = M_PI - 2.0 * M_PI * tileY / pow(2.0, zoom);
+	double scale = 1 << zoom;
+	double n = M_PI * (1.0 - 2.0 * tileY / scale);
 	return 180.0 / M_PI * atan(sinh(n));
 }
 
@@ -197,7 +208,11 @@ Maps::MapTile Maps::getMapTile(double lon, double lat, uint8_t zoomLevel, int8_t
  */
 double Maps::lat2y(double lat)
 {
-  	return log(tan(DEG2RAD(lat) / 2 + M_PI / 4)) * EARTH_RADIUS;
+    constexpr double INV_DEG = M_PI / 180.0;
+    constexpr double OFFSET = M_PI / 4.0;
+
+    double rad = lat * INV_DEG;
+    return log(tan(rad / 2.0 + OFFSET)) * EARTH_RADIUS;
 }
 
 /**

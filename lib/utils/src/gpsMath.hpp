@@ -63,7 +63,7 @@ static inline __attribute__((always_inline)) double sinLUT(double rad)
     if (!sinLut)
         return sin(rad);
 
-    rad = fmod(rad, TWO_PI);
+    rad -= TWO_PI * floor(rad / TWO_PI);
     if (rad < 0.0) rad += TWO_PI;
 
     double index = rad / LUT_RES;
@@ -88,7 +88,7 @@ static inline __attribute__((always_inline)) double cosLUT(double rad)
 	if (!cosLut)
 		return cos(rad);
 
-	rad = fmod(rad, TWO_PI);
+	rad -= TWO_PI * floor(rad / TWO_PI);
 	if (rad < 0.0) rad += TWO_PI;
 
 	double index = rad / LUT_RES;

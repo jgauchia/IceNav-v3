@@ -49,8 +49,9 @@ private:
 	double tiley2lat(uint32_t tileY, uint8_t zoom);
 
     // Vector Map  
-    static const int32_t MAPBLOCK_MASK = pow(2, MAPBLOCK_SIZE_BITS) - 1;  // ...00000000111111111111
-    static const int32_t MAPFOLDER_MASK = pow(2, MAPFOLDER_SIZE_BITS) - 1;// ...00001111
+	static const int32_t MAPBLOCK_MASK = (1 << MAPBLOCK_SIZE_BITS) - 1;
+	static const int32_t MAPFOLDER_MASK = (1 << MAPFOLDER_SIZE_BITS) - 1;
+	
 	/**
 	* @brief Point in geographic (lat, lon) coordinates
 	*
