@@ -38,15 +38,15 @@ private:
 		uint32_t tilex;      /**< X index of the tile */
 		uint32_t tiley;      /**< Y index of the tile */
 		uint8_t zoom;        /**< Zoom level of the tile */
-		double lat;          /**< Latitude of the tile center */
-		double lon;          /**< Longitude of the tile center */
+		float lat;          /**< Latitude of the tile center */
+		float lon;          /**< Longitude of the tile center */
 	};
 	uint16_t lon2posx(float f_lon, uint8_t zoom, uint16_t tileSize);
 	uint16_t lat2posy(float f_lat, uint8_t zoom, uint16_t tileSize);
-	uint32_t lon2tilex(double f_lon, uint8_t zoom);
-	uint32_t lat2tiley(double f_lat, uint8_t zoom);
-	double tilex2lon(uint32_t tileX, uint8_t zoom);
-	double tiley2lat(uint32_t tileY, uint8_t zoom);
+	uint32_t lon2tilex(float f_lon, uint8_t zoom);
+	uint32_t lat2tiley(float f_lat, uint8_t zoom);
+	float tilex2lon(uint32_t tileX, uint8_t zoom);
+	float tiley2lat(uint32_t tileY, uint8_t zoom);
 
     // Vector Map  
 	static const int32_t MAPBLOCK_MASK = (1 << MAPBLOCK_SIZE_BITS) - 1;
@@ -59,8 +59,8 @@ private:
 	struct Coord
 	{
 		Point32 getPoint32();
-		double lat = 0;   /**< Latitude */
-		double lng = 0;   /**< Longitude */
+		float lat = 0;   /**< Latitude */
+		float lng = 0;   /**< Longitude */
 	};
 	/**
 	* @brief Polyline struct
@@ -127,10 +127,10 @@ private:
 	};
     MemCache memCache; 				 /**< Memory Cache */
     Point32 point = viewPort.center; /**< Vector map GPS position point */
-    double lat2y(double lat);
-    double lon2x(double lon);
-    double mercatorX2lon(double x);
-    double mercatorY2lat(double y);
+    float lat2y(float lat);
+    float lon2x(float lon);
+    float mercatorX2lon(float x);
+    float mercatorY2lat(float y);
     int16_t toScreenCoord(const int32_t pxy, const int32_t screenCenterxy);
     uint32_t idx;					 /**< Index variable */
     int16_t parseInt16(char *file);
@@ -141,7 +141,7 @@ private:
     void fillPolygon(Polygon p, TFT_eSprite &map);
     void getMapBlocks(BBox &bbox, MemCache &memCache);
     void readVectorMap(ViewPort &viewPort, MemCache &memCache, TFT_eSprite &map, uint8_t zoom);
-    void getPosition(double lat, double lon);
+    void getPosition(float lat, float lon);
 
     // Common
 	static const uint16_t tileHeight = 768;                                      /**< Tile 9x9 Height Size */
@@ -153,8 +153,8 @@ private:
 	uint16_t wptPosX, wptPosY;                                                   /**< Waypoint position on screen map */
 	TFT_eSprite mapTempSprite = TFT_eSprite(&tft);                               /**< Full map sprite (not showed) */
 	TFT_eSprite mapSprite = TFT_eSprite(&tft);                                   /**< Screen map sprite (showed) */
-	double prevLat, prevLon;                                                     /**< Previous Latitude and Longitude */
-	double destLat, destLon;                                                     /**< Waypoint destination latitude and longitude */
+	float prevLat, prevLon;                                                     /**< Previous Latitude and Longitude */
+	float destLat, destLon;                                                     /**< Waypoint destination latitude and longitude */
 	uint8_t zoomLevel;                                                           /**< Zoom level for map display */
 	/**
 	* @brief Map boundaries structure
@@ -164,10 +164,10 @@ private:
 	*/
 	struct tileBounds
 	{
-		double lat_min;		/**< Minimum latitude */
-		double lat_max;     /**< Maximum latitude */
-		double lon_min;     /**< Minimum longitude */
-		double lon_max;     /**< Maximum longitude */
+		float lat_min;		/**< Minimum latitude */
+		float lat_max;     /**< Maximum latitude */
+		float lon_min;     /**< Minimum longitude */
+		float lon_max;     /**< Maximum longitude */
 	};
 	tileBounds totalBounds; /**< Map boundaries */
 	/**
@@ -182,9 +182,9 @@ private:
 	};
 	ScreenCoord navArrowPosition; /**< Navigation Arrow position on screen */
     tileBounds getTileBounds(uint32_t tileX, uint32_t tileY, uint8_t zoom);
-    bool isCoordInBounds(double lat, double lon, tileBounds bound);
-    ScreenCoord coord2ScreenPos(double lon, double lat, uint8_t zoomLevel, uint16_t tileSize);
-    void coords2map(double lat, double lon, tileBounds bound, uint16_t *pixelX, uint16_t *pixelY);
+    bool isCoordInBounds(float lat, float lon, tileBounds bound);
+    ScreenCoord coord2ScreenPos(float lon, float lat, uint8_t zoomLevel, uint16_t tileSize);
+    void coords2map(float lat, float lon, tileBounds bound, uint16_t *pixelX, uint16_t *pixelY);
     void showNoMap(TFT_eSprite &map);
 
 public:
@@ -209,17 +209,17 @@ public:
 
 
     Maps();
-    MapTile getMapTile(double lon, double lat, uint8_t zoomLevel, int8_t offsetX, int8_t offsetY);
+    MapTile getMapTile(float lon, float lat, uint8_t zoomLevel, int8_t offsetX, int8_t offsetY);
     void initMap(uint16_t mapHeight, uint16_t mapWidth);
     void deleteMapScrSprites();
     void createMapScrSprites();
     void generateRenderMap(uint8_t zoom);
     void generateVectorMap(uint8_t zoom);
     void displayMap();
-    void setWaypoint(double wptLat, double wptLon);
+    void setWaypoint(float wptLat, float wptLon);
     void updateMap();
     void panMap(int8_t dx, int8_t dy);
-    void centerOnGps(double lat, double lon);
+    void centerOnGps(float lat, float lon);
     void scrollMap(int16_t dx, int16_t dy);
     void preloadTiles(int8_t dirX, int8_t dirY);
 };
