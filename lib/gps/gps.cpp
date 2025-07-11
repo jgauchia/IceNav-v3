@@ -80,15 +80,15 @@ void Gps::init()
  * @details Returns the current latitude using the GPS fix if available, otherwise uses the system configuration
  * 			or a predefined default value. Returns 0.0 if latitude is not defined.
  *
- * @return double Latitude value or 0.0 if not defined.
+ * @return Latitude value or 0.0 if not defined.
  */
-double Gps::getLat()
+float Gps::getLat()
 {
 	{
 		if (fix.valid.location)
 		return fix.latitude();
-		else if (cfg.getDouble(PKEYS::KLAT_DFL, 0.0) != 0.0)
-		return cfg.getDouble(PKEYS::KLAT_DFL, 0.0);
+		else if (cfg.getFloat(PKEYS::KLAT_DFL, 0.0) != 0.0)
+		return cfg.getFloat(PKEYS::KLAT_DFL, 0.0);
 		else
 		{
 	#ifdef DEFAULT_LAT
@@ -106,14 +106,14 @@ double Gps::getLat()
  * @details Returns the current longitude using the GPS fix if available, otherwise uses the system configuration
  * 			or a predefined default value. Returns 0.0 if longitude is not defined.
  *
- * @return double Longitude value or 0.0 if not defined.
+ * @return Longitude value or 0.0 if not defined.
  */
-double Gps::getLon()
+float Gps::getLon()
 {
 	if (fix.valid.location)
 		return fix.longitude();
-	else if (cfg.getDouble(PKEYS::KLON_DFL, 0.0) != 0.0)
-		return cfg.getDouble(PKEYS::KLON_DFL, 0.0);
+	else if (cfg.getFloat(PKEYS::KLON_DFL, 0.0) != 0.0)
+		return cfg.getFloat(PKEYS::KLON_DFL, 0.0);
 	else
 	{
 	#ifdef DEFAULT_LON
@@ -190,7 +190,7 @@ void Gps::getGPSData()
 	if (fix.valid.vdop)
 		gpsData.vdop = (float)fix.vdop / 1000;
 
-	// Satellite info
+	// // Satellite info
 	gpsData.satInView = (uint8_t)GPS.sat_count;
 	for (uint8_t i = 0; i < gpsData.satInView; i++)
 	{
@@ -200,14 +200,20 @@ void Gps::getGPSData()
 		satTracker[i].snr = (uint8_t)GPS.satellites[i].snr;
 		satTracker[i].active = GPS.satellites[i].tracked;
 		strncpy(satTracker[i].talker_id, GPS.satellites[i].talker_id, 3);
+
 		int H = canvasRadius * (90 - satTracker[i].elev) / 90;
-		double azimRad = DEG2RAD(satTracker[i].azim);
-		double sinAzim = lutInit ? sinLUT(azimRad) : sin(azimRad);
-		double cosAzim = lutInit ? cosLUT(azimRad) : cos(azimRad);
+
+		float azimRad = DEG2RAD((float)satTracker[i].azim);
+		float sinAzim = lutInit ? sinLUT(azimRad) : sinf(azimRad);
+		float cosAzim = lutInit ? cosLUT(azimRad) : cosf(azimRad);
+
 		satTracker[i].posX = canvasCenter_X + H * sinAzim;
 		satTracker[i].posY = canvasCenter_Y - H * cosAzim;
 	}
+
 }
+
+
 
 /**
  * @brief Detect the baud rate of the incoming GPS signal on a given RX pin.

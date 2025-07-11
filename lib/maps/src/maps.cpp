@@ -106,12 +106,13 @@ uint16_t Maps::lat2posy(float f_lat, uint8_t zoom, uint16_t tileSize)
  * @param zoom Zoom level.
  * @return X tile index (folder).
  */
-uint32_t Maps::lon2tilex(double f_lon, uint8_t zoom)
+uint32_t Maps::lon2tilex(float f_lon, uint8_t zoom)
 {
-    double rawTile = (f_lon + 180.0) / 360.0 * (1 << zoom);
-    rawTile += 1e-6; 
-    return (uint32_t)(rawTile); 
+    float rawTile = (f_lon + 180.0f) / 360.0f * (1 << zoom);
+    rawTile += 1e-6f;
+    return (uint32_t)(rawTile);
 }
+
 
 /**
  * @brief Get TileY for OpenStreetMap files
@@ -123,16 +124,17 @@ uint32_t Maps::lon2tilex(double f_lon, uint8_t zoom)
  * @param zoom Zoom level.
  * @return Y tile index (file).
  */
-uint32_t Maps::lat2tiley(double f_lat, uint8_t zoom)
+uint32_t Maps::lat2tiley(float f_lat, uint8_t zoom)
 {
-    double lat_rad = f_lat * M_PI / 180.0;
-    double siny = tan(lat_rad) + 1.0 / cos(lat_rad);
-    double merc_n = log(siny);
+    float lat_rad = f_lat * M_PI / 180.0f;
+    float siny = tanf(lat_rad) + 1.0f / cosf(lat_rad);
+    float merc_n = logf(siny);
 
-    double rawTile = (1.0 - merc_n / M_PI) / 2.0 * (1 << zoom);
-    rawTile += 1e-6;
-    return (uint32_t)(rawTile); 
+    float rawTile = (1.0f - merc_n / (float)M_PI) / 2.0f * (1 << zoom);
+    rawTile += 1e-6f;
+    return (uint32_t)(rawTile);
 }
+
 
 /**
  * @brief Get Longitude from OpenStreetMap files
@@ -144,9 +146,9 @@ uint32_t Maps::lat2tiley(double f_lat, uint8_t zoom)
  * @param zoom Zoom level.
  * @return Longitude coordinate.
  */
-double Maps::tilex2lon(uint32_t tileX, uint8_t zoom)
+float Maps::tilex2lon(uint32_t tileX, uint8_t zoom)
 {
-	return (double)tileX * 360.0 / (1 << zoom) - 180.0;
+	return (float)tileX * 360.0f / (1 << zoom) - 180.0f;
 }
 
 /**
@@ -159,11 +161,11 @@ double Maps::tilex2lon(uint32_t tileX, uint8_t zoom)
  * @param zoom Zoom level.
  * @return Latitude coordinate.
  */
-double Maps::tiley2lat(uint32_t tileY, uint8_t zoom)
+float Maps::tiley2lat(uint32_t tileY, uint8_t zoom)
 {
-	double scale = 1 << zoom;
-	double n = M_PI * (1.0 - 2.0 * tileY / scale);
-	return 180.0 / M_PI * atan(sinh(n));
+	float scale = (float)(1 << zoom);
+	float n = (float)M_PI * (1.0f - 2.0f * (float)tileY / scale);
+	return 180.0f / (float)M_PI * atanf(sinhf(n));
 }
 
 /**
@@ -178,13 +180,13 @@ double Maps::tiley2lat(uint32_t tileY, uint8_t zoom)
  * @param offsetY Tile offset Y.
  * @return MapTile structure containing tile indices, file path, zoom, and GPS coordinates.
  */
-Maps::MapTile Maps::getMapTile(double lon, double lat, uint8_t zoomLevel, int8_t offsetX, int8_t offsetY)
+Maps::MapTile Maps::getMapTile(float lon, float lat, uint8_t zoomLevel, int8_t offsetX, int8_t offsetY)
 {
 	MapTile data;
 	data.tilex = Maps::lon2tilex(lon, zoomLevel) + offsetX;
 	data.tiley = Maps::lat2tiley(lat, zoomLevel) + offsetY;
 	data.zoom = zoomLevel;
-	data.lat = lat;
+	data.lat = lat; 
 	data.lon = lon;
 
 	snprintf(data.file, sizeof(data.file), mapRenderFolder, zoomLevel, data.tilex, data.tiley);
@@ -203,14 +205,15 @@ Maps::MapTile Maps::getMapTile(double lon, double lat, uint8_t zoomLevel, int8_t
  * @param lat Latitude coordinate.
  * @return Y position.
  */
-double Maps::lat2y(double lat)
+float Maps::lat2y(float lat)
 {
-    constexpr double INV_DEG = M_PI / 180.0;
-    constexpr double OFFSET = M_PI / 4.0;
+    constexpr float INV_DEG = (float)M_PI / 180.0f;
+    constexpr float OFFSET = (float)M_PI / 4.0f;
 
-    double rad = lat * INV_DEG;
-    return log(tan(rad / 2.0 + OFFSET)) * EARTH_RADIUS;
+    float rad = lat * INV_DEG;
+    return logf(tanf(rad / 2.0f + OFFSET)) * (float)EARTH_RADIUS;
 }
+
 
 /**
  * @brief Get pixel X position from OpenStreetMap Vector map longitude
@@ -221,9 +224,9 @@ double Maps::lat2y(double lat)
  * @param lon Longitude coordinate.
  * @return X position.
  */
-double Maps::lon2x(double lon)
+float Maps::lon2x(float lon)
 {
-  	return DEG2RAD(lon) * EARTH_RADIUS;
+    return DEG2RAD(lon) * EARTH_RADIUS;
 }
 
 /**
@@ -234,10 +237,11 @@ double Maps::lon2x(double lon)
  * @param x X position.
  * @return Longitude coordinate.
  */
-double Maps::mercatorX2lon(double x)
+float Maps::mercatorX2lon(float x)
 {
-	return (x / EARTH_RADIUS) * (180.0 / M_PI);
+    return (x / EARTH_RADIUS) * (180.0f / M_PI);
 }
+
 
 /**
  * @brief Get latitude from Y position in Vector Map (Mercator projection)
@@ -247,9 +251,9 @@ double Maps::mercatorX2lon(double x)
  * @param y Y position.
  * @return Latitude coordinate.
  */
-double Maps::mercatorY2lat(double y)
+float Maps::mercatorY2lat(float y)
 {
-  	return (atan(sinh(y / EARTH_RADIUS))) * (180.0 / M_PI);
+    return atanf(sinhf(y / EARTH_RADIUS)) * (180.0f / M_PI);
 }
 
 /**
@@ -263,7 +267,7 @@ double Maps::mercatorY2lat(double y)
  */
 int16_t Maps::toScreenCoord(const int32_t pxy, const int32_t screenCenterxy)
 {
- 	 return round((double)(pxy - screenCenterxy) / zoom) + (double)Maps::tileWidth / 2;
+ 	return roundf((float)(pxy - screenCenterxy) / zoom) + (float)Maps::tileWidth / 2.0f;
 }
 
 /**
@@ -842,18 +846,17 @@ void Maps::readVectorMap(Maps::ViewPort &viewPort, Maps::MemCache &memCache, TFT
  * @param lat Latitude in degrees.
  * @param lon Longitude in degrees.
  */
-void Maps::getPosition(double lat, double lon)
+void Maps::getPosition(float lat, float lon)
 {
-	if (abs(lat - Maps::prevLat) > 0.00005 && abs(lon - Maps::prevLon) > 0.00005)
-	{
-		Maps::point.x = Maps::lon2x(lon);
-		Maps::point.y = Maps::lat2y(lat);
-		Maps::prevLat = lat;
-		Maps::prevLon = lon;
-		Maps::isPosMoved = true;
-	}
+    if (fabsf(lat - Maps::prevLat) > 0.00005f && fabsf(lon - Maps::prevLon) > 0.00005f)
+    {
+        Maps::point.x = Maps::lon2x(lon);
+        Maps::point.y = Maps::lat2y(lat);
+        Maps::prevLat = lat;
+        Maps::prevLon = lon;
+        Maps::isPosMoved = true;
+    }
 }
-
 
 // Common Private section
 
@@ -887,10 +890,12 @@ Maps::tileBounds Maps::getTileBounds(uint32_t tileX, uint32_t tileY, uint8_t zoo
  * @param bound Map bounds to check against.
  * @return true if the coordinate is inside the bounds, false otherwise.
  */
-bool Maps::isCoordInBounds(double lat, double lon, tileBounds bound)
+bool Maps::isCoordInBounds(float lat, float lon, tileBounds bound)
 {
- 	 return (lat >= Maps::totalBounds.lat_min && lat <= Maps::totalBounds.lat_max && lon >= Maps::totalBounds.lon_min && lon <= Maps::totalBounds.lon_max);
+    return (lat >= bound.lat_min && lat <= bound.lat_max &&
+            lon >= bound.lon_min && lon <= bound.lon_max);
 }
+
 
 /**
  * @brief Convert GPS Coordinates to screen position (with offsets)
@@ -903,7 +908,7 @@ bool Maps::isCoordInBounds(double lat, double lon, tileBounds bound)
  * @param tileSize Size of a single map tile in pixels.
  * @return ScreenCoord Screen position (x, y) corresponding to the GPS coordinates.
  */
-Maps::ScreenCoord Maps::coord2ScreenPos(double lon, double lat, uint8_t zoomLevel, uint16_t tileSize)
+Maps::ScreenCoord Maps::coord2ScreenPos(float lon, float lat, uint8_t zoomLevel, uint16_t tileSize)
 {
 	ScreenCoord data;
 	data.posX = Maps::lon2posx(lon, zoomLevel, tileSize);
@@ -922,13 +927,13 @@ Maps::ScreenCoord Maps::coord2ScreenPos(double lon, double lat, uint8_t zoomLeve
  * @param pixelX Pointer to store the computed X position on the map.
  * @param pixelY Pointer to store the computed Y position on the map.
  */
-void Maps::coords2map(double lat, double lon, tileBounds bound, uint16_t *pixelX, uint16_t *pixelY)
+void Maps::coords2map(float lat, float lon, tileBounds bound, uint16_t *pixelX, uint16_t *pixelY)
 {
-	double lon_ratio = (lon - bound.lon_min) / (bound.lon_max - bound.lon_min);
-	double lat_ratio = (bound.lat_max - lat) / (bound.lat_max - bound.lat_min);
+	float lon_ratio = (lon - bound.lon_min) / (bound.lon_max - bound.lon_min);
+	float lat_ratio = (bound.lat_max - lat) / (bound.lat_max - bound.lat_min);
 
-	*pixelX = (int)(lon_ratio * Maps::tileWidth);
-	*pixelY = (int)(lat_ratio * Maps::tileHeight);
+	*pixelX = (uint16_t)(lon_ratio * Maps::tileWidth);
+	*pixelY = (uint16_t)(lat_ratio * Maps::tileHeight);
 }
 
 /**
@@ -1024,8 +1029,8 @@ void Maps::generateRenderMap(uint8_t zoom)
 	bool foundRoundMap = false;
 	bool missingMap = false;
 
-	const double lat = Maps::followGps ? gps.gpsData.latitude : Maps::currentMapTile.lat;
-	const double lon = Maps::followGps ? gps.gpsData.longitude : Maps::currentMapTile.lon;
+	const float lat = Maps::followGps ? gps.gpsData.latitude : Maps::currentMapTile.lat;
+	const float lon = Maps::followGps ? gps.gpsData.longitude : Maps::currentMapTile.lon;
 
 	Maps::currentMapTile = Maps::getMapTile(lon, lat, Maps::zoomLevel, 0, 0);
 
@@ -1146,8 +1151,8 @@ void Maps::generateRenderMap(uint8_t zoom)
  */
 void Maps::generateVectorMap(uint8_t zoom)
 {
-	const double lat = gps.gpsData.latitude;
-	const double lon = gps.gpsData.longitude;
+	const float lat = gps.gpsData.latitude;
+	const float lon = gps.gpsData.longitude;
 
 	Maps::getPosition(lat, lon);
 
@@ -1194,8 +1199,8 @@ void Maps::displayMap()
 	{
 		if (Maps::followGps)
 		{
-			const double lat = gps.gpsData.latitude;
-			const double lon = gps.gpsData.longitude;
+			const float lat = gps.gpsData.latitude;
+			const float lon = gps.gpsData.longitude;
 			Maps::navArrowPosition = Maps::coord2ScreenPos(lon, lat, Maps::zoomLevel, Maps::renderMapTileSize);
 			Maps::mapTempSprite.setPivot(Maps::renderMapTileSize + Maps::navArrowPosition.posX,
 										 Maps::renderMapTileSize + Maps::navArrowPosition.posY);
@@ -1226,7 +1231,7 @@ void Maps::displayMap()
  * @param wptLat Waypoint Latitude
  * @param wptLon Waypoint Longitude
  */
-void Maps::setWaypoint(double wptLat, double wptLon)
+void Maps::setWaypoint(float wptLat, float wptLon)
 {
 	Maps::destLat = wptLat;
 	Maps::destLon = wptLon;
@@ -1268,7 +1273,7 @@ void Maps::setWaypoint(double wptLat, double wptLon)
  * @param lat GPS Latitude
  * @param lon GPS Longitude
  */
- void Maps::centerOnGps(double lat, double lon)
+ void Maps::centerOnGps(float lat, float lon)
  {
 	Maps::followGps = true;
 	Maps::currentMapTile.tilex = Maps::lon2tilex(lon, Maps::currentMapTile.zoom);

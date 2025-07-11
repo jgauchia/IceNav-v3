@@ -85,9 +85,8 @@ void gpxListEvent(lv_event_t *event)
 
             		if (gpxTrack)
 					{
-						gpx.loadTrack(trackData);
-						// turnPoints = gpx.getTurnPoints(18.0f, 20, 70.0f, trackData);     
-						turnPoints = gpx.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 3, trackData);       
+						gpx.loadTrack(trackData);  
+						turnPoints = gpx.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, trackData);       
 						isTrackLoaded = true;
 						lv_obj_clear_flag(turnByTurn,LV_OBJ_FLAG_HIDDEN);
 						mapView.updateMap();

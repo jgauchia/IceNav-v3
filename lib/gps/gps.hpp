@@ -66,8 +66,8 @@ class Gps
 public:
 	Gps();
 	void init();
-	double getLat();
-	double getLon();
+	float getLat();
+	float getLon();
 	void getGPSData();
 	long detectRate(int rxPin);
 	long autoBaud();
@@ -88,8 +88,8 @@ public:
         uint8_t fixMode;      /**< GPS fix mode. */
         int16_t altitude;     /**< Altitude in meters. */
         uint16_t speed;       /**< Speed in km/h or knots. */
-        double latitude;      /**< Latitude in decimal degrees. */
-        double longitude;     /**< Longitude in decimal degrees. */
+        float latitude;       /**< Latitude in decimal degrees. */
+        float longitude;      /**< Longitude in decimal degrees. */
         uint16_t heading;     /**< Heading in degrees. */
         float hdop;           /**< Horizontal dilution of precision. */
         float pdop;           /**< Position dilution of precision. */
@@ -119,8 +119,8 @@ public:
 private:
     uint16_t previousSpeed;      /**< Previous speed value for change detection. */
     int16_t previousAltitude;    /**< Previous altitude value for change detection. */
-    double previousLatitude;     /**< Previous latitude for change detection. */
-    double previousLongitude;    /**< Previous longitude for change detection. */
+    float previousLatitude;     /**< Previous latitude for change detection. */
+    float previousLongitude;    /**< Previous longitude for change detection. */
     float previousHdop;          /**< Previous HDOP for change detection. */
     float previousPdop;          /**< Previous PDOP for change detection. */
     float previousVdop;          /**< Previous VDOP for change detection. */

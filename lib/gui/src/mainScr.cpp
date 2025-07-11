@@ -439,10 +439,10 @@ void updateNavEvent(lv_event_t *event)
 	else
 	{
 	#ifdef ENABLE_COMPASS
-		double wptCourse = calcCourse(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon) - compass.getHeading();
+		float wptCourse = calcCourse(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon) - compass.getHeading();
 	#endif
 	#ifndef ENABLE_COMPASS
-		double wptCourse = calcCourse(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon) - gps.gpsData.heading;
+		float wptCourse = calcCourse(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon) - gps.gpsData.heading;
 	#endif
 		lv_img_set_angle(arrowNav, (wptCourse * 10));
 	}

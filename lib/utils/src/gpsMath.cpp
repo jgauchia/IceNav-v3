@@ -8,8 +8,8 @@
 
 #include "gpsMath.hpp"
 
-double midLat = 0; 
-double midLon = 0; 
+float midLat = 0; 
+float midLon = 0; 
 bool lutInit = false;
 
 /**
@@ -21,30 +21,30 @@ bool lutInit = false;
  */
 bool initTrigLUT()
 {
-	#ifdef BOARD_HAS_PSRAM
-		sinLut = (double*) heap_caps_malloc(sizeof(double) * LUT_SIZE, MALLOC_CAP_SPIRAM);
-		cosLut = (double*) heap_caps_malloc(sizeof(double) * LUT_SIZE, MALLOC_CAP_SPIRAM);
+#ifdef BOARD_HAS_PSRAM
+    sinLut = (float*) heap_caps_malloc(sizeof(float) * LUT_SIZE, MALLOC_CAP_SPIRAM);
+    cosLut = (float*) heap_caps_malloc(sizeof(float) * LUT_SIZE, MALLOC_CAP_SPIRAM);
 
-		if (!sinLut || !cosLut) 
-		{
-			ESP_LOGE(TAGMATH, "Error: Failed to allocate memory for LUTs");
-			if (sinLut) free(sinLut);
-			if (cosLut) free(cosLut);
-			sinLut = cosLut = NULL;
-			return false;
-		}
-		ESP_LOGI(TAGMATH, "Allocated memory for LUTs");
+    if (!sinLut || !cosLut) 
+    {
+        ESP_LOGE(TAGMATH, "Error: Failed to allocate memory for float LUTs");
+        if (sinLut) free(sinLut);
+        if (cosLut) free(cosLut);
+        sinLut = cosLut = NULL;
+        return false;
+    }
+    ESP_LOGI(TAGMATH, "Allocated memory for float LUTs");
 
-		for (int i = 0; i < LUT_SIZE; ++i)
-		{
-			double angle = i * LUT_RES;
-			sinLut[i] = sin(angle);
-			cosLut[i] = cos(angle);
-		}
-		return true;
-	#else
-		return false;
-    #endif
+    for (int i = 0; i < LUT_SIZE; ++i)
+    {
+        float angle = i * LUT_RES;
+        sinLut[i] = sinf(angle);
+        cosLut[i] = cosf(angle);
+    }
+    return true;
+#else
+    return false;
+#endif
 }
 
 /**
@@ -58,35 +58,35 @@ bool initTrigLUT()
  * @param lon1 Longitude of point 1 (in degrees)
  * @param lat2 Latitude of point 2 (in degrees)
  * @param lon2 Longitude of point 2 (in degrees)
- * @return double Distance in meters between the two points
+ * @return Distance in meters between the two points
  */
-double calcDist(double lat1, double lon1, double lat2, double lon2)
+float calcDist(float lat1, float lon1, float lat2, float lon2)
 {
 	lat1 = DEG2RAD(lat1);
 	lon1 = DEG2RAD(lon1);
 	lat2 = DEG2RAD(lat2);
 	lon2 = DEG2RAD(lon2);
-	double dlat = lat2 - lat1;
-	double dlon = lon2 - lon1;
+ 	float dlat = lat2 - lat1;
+    float dlon = lon2 - lon1;
 
-	double a, c;
+    float a, c;
 
-	if (lutInit)
-	{
-		a = sinLUT(dlat / 2) * sinLUT(dlat / 2) +
-		    cosLUT(lat1) * cosLUT(lat2) *
-		    sinLUT(dlon / 2) * sinLUT(dlon / 2);
-	}
-	else
-	{
-		a = sin(dlat / 2) * sin(dlat / 2) +
-			cos(lat1) * cos(lat2) *
-			sin(dlon / 2) * sin(dlon / 2);
-	}
+    if (lutInit)
+    {
+        a = sinLUT(dlat * 0.5f) * sinLUT(dlat * 0.5f) +
+            cosLUT(lat1) * cosLUT(lat2) *
+            sinLUT(dlon * 0.5f) * sinLUT(dlon * 0.5f);
+    }
+    else
+    {
+        a = sinf(dlat * 0.5f) * sinf(dlat * 0.5f) +
+            cosf(lat1) * cosf(lat2) *
+            sinf(dlon * 0.5f) * sinf(dlon * 0.5f);
+    }
 
-	c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    c = 2.0f * atan2f(sqrtf(a), sqrtf(1.0f - a));
 
-	return EARTH_RADIUS * c;
+    return EARTH_RADIUS * c;
 }
 
 /**
@@ -100,17 +100,16 @@ double calcDist(double lat1, double lon1, double lat2, double lon2)
  * @param lon1 Longitude of point 1 (in degrees)
  * @param lat2 Latitude of point 2 (in degrees)
  * @param lon2 Longitude of point 2 (in degrees)
- * @return double Initial heading (degrees from North, 0-360)
+ * @return Initial heading (degrees from North, 0-360)
  */
-double calcCourse(double lat1, double lon1, double lat2, double lon2)
+float calcCourse(float lat1, float lon1, float lat2, float lon2)
 {
-
     lat1 = DEG2RAD(lat1);
     lat2 = DEG2RAD(lat2);
-    double dLon = DEG2RAD(lon2 - lon1);
+    float dLon = DEG2RAD(lon2 - lon1);
 
-    double sin_dLon, cos_dLon;
-    double sin_lat1, cos_lat1, sin_lat2, cos_lat2;
+    float sin_dLon, cos_dLon;
+    float sin_lat1, cos_lat1, sin_lat2, cos_lat2;
 
     if (lutInit)
     {
@@ -123,20 +122,20 @@ double calcCourse(double lat1, double lon1, double lat2, double lon2)
     }
     else
     {
-        sin_dLon = sin(dLon);
-        cos_dLon = cos(dLon);
-        sin_lat1 = sin(lat1);
-        cos_lat1 = cos(lat1);
-        sin_lat2 = sin(lat2);
-        cos_lat2 = cos(lat2);
+        sin_dLon = sinf(dLon);
+        cos_dLon = cosf(dLon);
+        sin_lat1 = sinf(lat1);
+        cos_lat1 = cosf(lat1);
+        sin_lat2 = sinf(lat2);
+        cos_lat2 = cosf(lat2);
     }
 
-    double y = sin_dLon * cos_lat2;
-    double x = cos_lat1 * sin_lat2 - sin_lat1 * cos_lat2 * cos_dLon;
-    double course = atan2(y, x) * (180.0 / M_PI);
+    float y = sin_dLon * cos_lat2;
+    float x = cos_lat1 * sin_lat2 - sin_lat1 * cos_lat2 * cos_dLon;
+    float course = atan2f(y, x) * (180.0f / M_PI);
 
-    if (course < 0.0)
-        course += 360.0;
+    if (course < 0.0f)
+        course += 360.0f;
 
     return course;
 }
@@ -150,14 +149,14 @@ double calcCourse(double lat1, double lon1, double lat2, double lon2)
  *
  * @param a Angle 1 (in degrees)
  * @param b Angle 2 (in degrees)
- * @return double Angular difference in degrees, normalized to [-180, 180]
+ * @return Angular difference in degrees, normalized to [-180, 180]
  */
-double calcAngleDiff(double a, double b)
+float calcAngleDiff(float a, float b)
 {
-	double diff = a - b;
-	while (diff > 180.0) diff -= 360.0;
-	while (diff < -180.0) diff += 360.0;
-	return diff;
+    float diff = a - b;
+    while (diff > 180.0f) diff -= 360.0f;
+    while (diff < -180.0f) diff += 360.0f;
+    return diff;
 }
 
 /**
@@ -174,13 +173,13 @@ double calcAngleDiff(double a, double b)
  */
 void calcMidPoint(float lat1, float lon1, float lat2, float lon2)
 {
-	double rLat1 = DEG2RAD(lat1);
-	double rLon1 = DEG2RAD(lon1);
-	double rLat2 = DEG2RAD(lat2);
-	double rLon2 = DEG2RAD(lon2);
-	double dLon  = rLon2 - rLon1;
+	float rLat1 = DEG2RAD(lat1);
+	float rLon1 = DEG2RAD(lon1);
+	float rLat2 = DEG2RAD(lat2);
+	float rLon2 = DEG2RAD(lon2);
+	float dLon  = rLon2 - rLon1;
 
-	double sinLat1, sinLat2, cosLat1, cosLat2, cosDLon, sinDLon;
+	float sinLat1, sinLat2, cosLat1, cosLat2, cosDLon, sinDLon;;
 
 	if (lutInit)
 	{
@@ -193,20 +192,20 @@ void calcMidPoint(float lat1, float lon1, float lat2, float lon2)
 	}
 	else
 	{
-		sinLat1 = sin(rLat1);
-		sinLat2 = sin(rLat2);
-		cosLat1 = cos(rLat1);
-		cosLat2 = cos(rLat2);
-		cosDLon = cos(dLon);
-		sinDLon = sin(dLon);
+		sinLat1 = sinf(rLat1);
+		sinLat2 = sinf(rLat2);
+		cosLat1 = cosf(rLat1);
+		cosLat2 = cosf(rLat2);
+		cosDLon = cosf(dLon);
+		sinDLon = sinf(dLon);
 	}
 
-	double Bx = cosLat2 * cosDLon;
-	double By = cosLat2 * sinDLon;
-	double cosLat1_plus_Bx = cosLat1 + Bx;
+	float Bx = cosLat2 * cosDLon;
+	float By = cosLat2 * sinDLon;
+	float cosLat1_plus_Bx = cosLat1 + Bx;
 
-	double midLatRad = atan2(sinLat1 + sinLat2, sqrt(cosLat1_plus_Bx * cosLat1_plus_Bx + By * By));
-	double midLonRad = rLon1 + atan2(By, cosLat1_plus_Bx);
+	float midLatRad = atan2f(sinLat1 + sinLat2, sqrtf(cosLat1_plus_Bx * cosLat1_plus_Bx + By * By));
+	float midLonRad = rLon1 + atan2f(By, cosLat1_plus_Bx);
 
 	midLat = RAD2DEG(midLatRad);
 	midLon = RAD2DEG(midLonRad);
@@ -229,57 +228,67 @@ float mapFloat(float x, float inMin, float inMax, float outMin, float outMax)
 }
 
 /**
- * @brief Converts a latitude value to a string in GGºMM'SS" format
+ * @brief Format latitude in degrees°minutes'seconds"N/S string.
  *
- * @details Converts a latitude value (in decimal degrees) to a formatted string "GGºMM'SS" N/S".
+ * @details Converts a float latitude into a formatted string using degrees, minutes,
+ *          and seconds notation (e.g., 41°23'45.12"N or S).
+ *          Uses a static buffer and assumes `degreeFormat` is a valid format string.
  *
- * @param lat Latitude value in decimal degrees
- * @return char* Pointer to formatted string
+ * @param lat Latitude in decimal degrees.
+ * @return Pointer to static buffer containing formatted string.
  */
-char *latFormatString(double lat)
+char *latFormatString(float lat)
 {
-	char N_S = PSTR('N');
-	double absLatitude = lat;
-	uint16_t deg;
-	uint8_t min;
-	static char s_buf[64];
-	if (lat < 0)
-	{
-		N_S = PSTR('S');
-		absLatitude = fabs(lat);
-	}
-	deg = (uint16_t)absLatitude;
-	absLatitude = (absLatitude - deg) * 60;
-	min = (uint8_t)absLatitude;
-	absLatitude = (absLatitude - min) * 60;
-	sprintf(s_buf, degreeFormat, deg, min, absLatitude, N_S);
-	return s_buf;
+    char N_S = 'N';
+    float absLatitude = lat;
+    uint16_t deg;
+    uint8_t min;
+    static char s_buf[64];
+
+    if (lat < 0.0f)
+    {
+        N_S = 'S';
+        absLatitude = fabsf(lat);
+    }
+
+    deg = static_cast<uint16_t>(absLatitude);
+    absLatitude = (absLatitude - deg) * 60.0f;
+    min = static_cast<uint8_t>(absLatitude);
+    absLatitude = (absLatitude - min) * 60.0f;
+
+    sprintf(s_buf, degreeFormat, deg, min, absLatitude, N_S);
+    return s_buf;
 }
 
 /**
- * @brief Converts a longitude value to a string in GGºMM'SS" format
+ * @brief Format longitude in degrees°minutes'seconds"E/W string.
  *
- * @details Converts a longitude value (in decimal degrees) to a formatted string "GGºMM'SS" E/W".
+ * @details Converts a float longitude into a formatted string using degrees, minutes,
+ *          and seconds notation (e.g., 2°10'30.45"E or W).
+ *          Uses a static buffer and assumes `degreeFormat` is a valid format string.
  *
- * @param lon Longitude value in decimal degrees
- * @return char* Pointer to formatted string
+ * @param lon Longitude in decimal degrees.
+ * @return Pointer to static buffer containing formatted string.
  */
-char *lonFormatString(double lon)
+char *lonFormatString(float lon)
 {
-	char E_W = PSTR('E');
-	double absLongitude = lon;
-	uint16_t deg;
-	uint8_t min;
-	static char s_buf[64];
-	if (lon < 0)
-	{
-		E_W = PSTR('W');
-		absLongitude = fabs(lon);
-	}
-	deg = (uint16_t)absLongitude;
-	absLongitude = (absLongitude - deg) * 60;
-	min = (uint8_t)absLongitude;
-	absLongitude = (absLongitude - min) * 60;
-	sprintf(s_buf, degreeFormat, deg, min, absLongitude, E_W);
-	return s_buf;
+    char E_W = 'E';
+    float absLongitude = lon;
+    uint16_t deg;
+    uint8_t min;
+    static char s_buf[64];
+
+    if (lon < 0.0f)
+    {
+        E_W = 'W';
+        absLongitude = fabsf(lon);
+    }
+
+    deg = static_cast<uint16_t>(absLongitude);
+    absLongitude = (absLongitude - deg) * 60.0f;
+    min = static_cast<uint8_t>(absLongitude);
+    absLongitude = (absLongitude - min) * 60.0f;
+
+    sprintf(s_buf, degreeFormat, deg, min, absLongitude, E_W);
+    return s_buf;
 }
