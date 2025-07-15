@@ -23,6 +23,7 @@ show_help() {
     echo "  - Resumable transfers"
     echo "  - Optimized for many small files"
     echo "  - Real-time speed display"
+    echo "  - Preserves source folder name"
     echo ""
     echo "Examples:"
     echo "  $0 /home/user/files /mnt/sd /dev/sdc1"
@@ -60,6 +61,9 @@ SOURCE="$1"
 DESTINATION="$2"
 DEVICE="$3"
 
+# Extract source folder name
+SOURCE_FOLDER_NAME=$(basename "$SOURCE")
+
 # Validate inputs
 if [ ! -d "$SOURCE" ]; then
     echo -e "${RED}Error: Source directory '$SOURCE' does not exist${NC}"
@@ -86,6 +90,7 @@ echo -e "${BLUE}Start: $(date)${NC}"
 echo ""
 echo "Configuration:"
 echo "  Source: $SOURCE"
+echo "  Source folder name: $SOURCE_FOLDER_NAME"
 echo "  Destination: $DESTINATION"
 echo "  Device: $DEVICE"
 echo ""
@@ -164,6 +169,7 @@ echo "   Write speed: ~${WRITE_SPEED}MB/s"
 # STEP 5: Rsync copy with progress
 echo -e "${YELLOW}5. Starting rsync copy...${NC}"
 echo "   Progress will be shown below:"
+echo "   Destination folder will be: $DESTINATION/$SOURCE_FOLDER_NAME/"
 echo ""
 
 RSYNC_START=$(date +%s)
@@ -171,65 +177,22 @@ RSYNC_START=$(date +%s)
 # Create temporary log file for rsync output
 RSYNC_LOG=$(mktemp /tmp/rsync_progress.XXXXXX)
 
-# Method 1: Simple progress bar based on file count
-if command -v pv >/dev/null 2>&1; then
-    # If pv is available, use it for better progress
-    echo "   Using enhanced progress display..."
-    
-    # Generate file list
-    FILELIST=$(mktemp /tmp/rsync_files.XXXXXX)
-    cd "$SOURCE" && find . -type f > "$FILELIST"
-    
-    # Use rsync with file list and pv for progress
-    rsync -av \
-        --files-from="$FILELIST" \
-        --partial \
-        --inplace \
-        --no-compress \
-        "$SOURCE" "$DESTINATION/backup/" 2>&1 | \
-        pv -l -s "$TOTAL_FILES" -p -t -e > /dev/null
-    
-    rm -f "$FILELIST"
-else
-    # Method 2: Custom progress monitoring
-    echo "   Copying $TOTAL_FILES files..."
-    
-    # Start rsync in background with log output
-    rsync -av \
-        --log-file="$RSYNC_LOG" \
-        --partial \
-        --inplace \
-        --no-compress \
-        --delete-during \
-        --prune-empty-dirs \
-        "$SOURCE/" "$DESTINATION/backup/" &
-    
-    RSYNC_PID=$!
-    
-    # Monitor progress
-    while kill -0 $RSYNC_PID 2>/dev/null; do
-        if [ -f "$RSYNC_LOG" ]; then
-            # Count transferred files from log
-            TRANSFERRED=$(grep -c ">" "$RSYNC_LOG" 2>/dev/null || echo 0)
-            PERCENT=$((TRANSFERRED * 100 / TOTAL_FILES))
-            
-            # Show progress bar
-            draw_progress_bar $PERCENT
-            printf " %d/%d files" "$TRANSFERRED" "$TOTAL_FILES"
-            
-            # Add current file being transferred
-            CURRENT_FILE=$(tail -n 1 "$RSYNC_LOG" 2>/dev/null | grep ">" | sed 's/.*>//' | cut -c1-40)
-            if [ -n "$CURRENT_FILE" ]; then
-                printf " | %s..." "$CURRENT_FILE"
-            fi
-        fi
-        sleep 1
-    done
-    
-    # Final progress
-    draw_progress_bar 100
-    printf " %d/%d files" "$TOTAL_FILES" "$TOTAL_FILES"
-    echo ""
+# Use rsync with standard progress but less verbose
+echo "   Copying $TOTAL_FILES files with rsync progress..."
+
+rsync -a \
+    --info=progress2 \
+    --partial \
+    --inplace \
+    --no-compress \
+    --delete-during \
+    --prune-empty-dirs \
+    "$SOURCE/" "$DESTINATION/$SOURCE_FOLDER_NAME/"
+
+# Check rsync exit status
+if [ $? -ne 0 ]; then
+    echo -e "${RED}Error: rsync failed${NC}"
+    exit 1
 fi
 
 RSYNC_END=$(date +%s)
@@ -246,8 +209,8 @@ echo -e "${YELLOW}6. Verifying copy...${NC}"
 
 # Count files in destination
 echo "   Counting destination files..."
-DEST_FILES=$(find "$DESTINATION/backup" -type f 2>/dev/null | wc -l)
-DEST_SIZE=$(du -sh "$DESTINATION/backup" 2>/dev/null | cut -f1)
+DEST_FILES=$(find "$DESTINATION/$SOURCE_FOLDER_NAME" -type f 2>/dev/null | wc -l)
+DEST_SIZE=$(du -sh "$DESTINATION/$SOURCE_FOLDER_NAME" 2>/dev/null | cut -f1)
 
 echo "   Source files: $TOTAL_FILES"
 echo "   Destination files: $DEST_FILES"
@@ -271,7 +234,7 @@ SAMPLE_ERRORS=0
 for file in $(find "$SOURCE" -type f | shuf | head -5); do
     SAMPLE_COUNT=$((SAMPLE_COUNT + 1))
     rel_path=${file#$SOURCE/}
-    dest_file="$DESTINATION/backup/$rel_path"
+    dest_file="$DESTINATION/$SOURCE_FOLDER_NAME/$rel_path"
     
     if [ -f "$dest_file" ]; then
         if cmp -s "$file" "$dest_file"; then
@@ -320,7 +283,7 @@ echo "  Average speed: ${AVG_SPEED}MB/s"
 echo "  Files/second: $FILES_PER_SEC"
 echo "  Device write speed: ~${WRITE_SPEED}MB/s"
 echo ""
-echo "Files are located at: $DESTINATION/backup/"
+echo "Files are located at: $DESTINATION/$SOURCE_FOLDER_NAME/"
 echo ""
 echo -e "${BLUE}Note: Progress bar shows file count progress${NC}"
 echo "For size-based progress, install pv: sudo apt install pv"

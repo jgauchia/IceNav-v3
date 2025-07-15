@@ -53,10 +53,6 @@ which mount
 
 ### Optional (Recommended)
 ```bash
-# Install for better progress monitoring
-sudo apt update
-sudo apt install pv
-
 # Install for enhanced file verification
 sudo apt install coreutils
 ```
