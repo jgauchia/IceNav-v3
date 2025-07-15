@@ -150,10 +150,10 @@ On SD Card map tiles (256x256 PNG Format) should be stored, in these folders str
 
 ## SD Vectorized Map File structure          
 
-      [ 📁 MAP ]
-         |________ [ 📁 zoom folder (number) ]
-                              |__________________ [ 📁 tile X folder (number) ]
-                                                             |_______________________ 🗺️ tile Y file.bin
+      [ 📁 VECTMAP ]
+            |________ [ 📁 zoom folder (number) ]
+                                 |__________________ [ 📁 tile X folder (number) ]
+                                                                |_______________________ 🗺️ tile Y file.bin
 
 ## Mass Copy Script for Map Tiles
 
@@ -167,6 +167,8 @@ For efficient transfer of millions of map tiles to SD cards or external storage 
 - ✅ **Performance metrics** - Speed and time statistics
 
 For detailed instructions on how to use the mass copy script, please refer to the [Mass Copy Tools Documentation](tools/mass_copy/README.md).
+
+Download link: [tools/mass_copy/rsync_copy.sh](tools/mass_copy/rsync_copy.sh)
 
 ## Firmware install
 
