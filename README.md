@@ -150,41 +150,10 @@ On SD Card map tiles (256x256 PNG Format) should be stored, in these folders str
 
 ## SD Vectorized Map File structure          
 
-Using [OSM_Extract](https://github.com/aresta/OSM_Extract) you can generate binary map files to later create vector maps. Once generated, these files should be saved in the `mymap` folder on the SD card.
-
-The PBF files can be downloaded from the [geofabrik](https://download.geofabrik.de/) website.
-
-The PBF files should be saved in the `pbf` directory. Once saved, you should select the region or boundaries for which the GeoJSON files will be generated.
-
-To obtain the boundaries use `osmconvert file.pbf --out-statistics`:
-```
-lon min: -5.5203154
-lon max: 11.7825360
-lat min: 35.2703341
-lat max: 44.4078541
-```
-
-or use [Bboxfinder](http://bboxfinder.com/) website drawing a box on desired area.
-
-
-For generate GeoJSON files run inside `scripts` directory:
-
-```bash
-min_lon=123
-min_lat=123
-max_lon=123
-max_lat=123
-
-./pbf_to_geojson.sh $min_lon $min_lat $max_lon $max_lat /pbf/clipped.pbf /maps/test
-```
-
-For generate binary map files run inside `scripts` directory.
-```bash
-./extract_features.py $min_lon $min_lat $max_lon $max_lat /maps/test
-```
-Once the process is completed, the maps will be inside the `maps/mymap` directory. Copy all folders to the SD card except the `test_imgs` directory into `VECTMAP` folder of the SD Card.
-
-Please follow the instructions provided by [OSM_Extract](https://github.com/aresta/OSM_Extract) for any further questions.
+      [ 📁 MAP ]
+         |________ [ 📁 zoom folder (number) ]
+                              |__________________ [ 📁 tile X folder (number) ]
+                                                             |_______________________ 🗺️ tile Y file.bin
 
 ## Firmware install
 
@@ -360,8 +329,6 @@ To access the Web File Server, simply use any browser and go to the following ad
 * Improved auto mainScreen selection from env variable preset thanks to [@hpsaturn](https://github.com/hpsaturn)
 * Improved getLat getLon from environment variables thanks to [@hpsaturn](https://github.com/hpsaturn)
 * 3DPrint case for an ESP32S3 Makerfabs Parallel board thanks to [@hpsaturn](https://github.com/hpsaturn)
-* Vectorial Maps routines [ESP32_GPS](https://github.com/aresta/ESP32_GPS) thanks to [@aresta](https://github.com/aresta)
-* OSM to binary vectorial maps [OSM_Extract](https://github.com/aresta/OSM_Extract) thanks to [@aresta](https://github.com/aresta)
 * Preferences Library [Easy Preferences](https://github.com/hpsaturn/easy-preferences) thanks to [@hpsaturn](https://github.com/hpsaturn)
 * Wifi CLI manager [esp32-wifi-cli](https://github.com/hpsaturn/esp32-wifi-cli) thanks to [@hpsaturn](https://github.com/hpsaturn)
 * Web file server based in [@smford](https://github.com/smford) [esp32-asyncwebserver-fileupload-example](https://github.com/smford/esp32-asyncwebserver-fileupload-example)

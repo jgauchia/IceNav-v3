@@ -1,7 +1,6 @@
 /**
  * @file maps.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com) - Render Maps
- * @author @aresta - https://github.com/aresta/ESP32_GPS - Vector Maps
  * @brief  Maps draw class
  * @version 0.2.3
  * @date 2025-06
@@ -15,41 +14,6 @@ extern Storage storage;
 extern std::vector<wayPoint> trackData; /**< Vector containing track waypoints */
 const char* TAG PROGMEM = "Maps";
 
-/**
- * @brief Constructs a Point16 object from a comma-separated coordinate string.
- *
- * @details Parses a string containing two coordinates separated by a comma (e.g., "123,456"),
- * 			and initializes the x and y members accordingly.
- *
- * @param coordsPair Pointer to a null-terminated string with two coordinates.
- */
-extern Point16::Point16(char *coordsPair)
-{
-	char *next;
-	x = static_cast<int16_t>(strtol(coordsPair, &next, 10)); // 1st coord 
-	y = static_cast<int16_t>(strtol(++next, nullptr, 10));  // 2nd coord
-}
-
-/**
- * @brief Checks if the bounding box contains a given point.
- *
- * @param p The point to check.
- * @return true if the point is inside the bounding box, false otherwise.
- */
-bool BBox::containsPoint(const Point32 p) { return p.x >= min.x && p.x <= max.x && p.y >= min.y && p.y <= max.y; }
-
-/**
- * @brief Checks if this bounding box intersects with another bounding box.
- *
- * @param b The bounding box to check intersection with.
- * @return true if the bounding boxes intersect, false otherwise.
- */
-bool BBox::intersects(BBox b) const
-{
-	if (b.min.x > max.x || b.max.x < min.x || b.min.y > max.y || b.max.y < min.y)
-		return false;
-	return true;
-}
 
 /**
  * @brief Map Class constructor
@@ -188,677 +152,14 @@ Maps::MapTile Maps::getMapTile(float lon, float lat, uint8_t zoomLevel, int8_t o
 	data.zoom = zoomLevel;
 	data.lat = lat; 
 	data.lon = lon;
-
-	snprintf(data.file, sizeof(data.file), mapRenderFolder, zoomLevel, data.tilex, data.tiley);
+    
+	if (mapSet.vectorMap)
+		snprintf(data.file, sizeof(data.file), mapVectorFolder, zoomLevel, data.tilex, data.tiley);
+	else
+		snprintf(data.file, sizeof(data.file), mapRenderFolder, zoomLevel, data.tilex, data.tiley);
 
 	return data;
 }
-
-// Vector Map Private section
-
-/**
- * @brief Get pixel Y position from OpenStreetMap Vector map latitude
- *
- * @details Converts a latitude value to the corresponding Y position in the OpenStreetMap vector map
- * 			projection using the Mercator formula.
- *
- * @param lat Latitude coordinate.
- * @return Y position.
- */
-float Maps::lat2y(float lat)
-{
-    constexpr float INV_DEG = (float)M_PI / 180.0f;
-    constexpr float OFFSET = (float)M_PI / 4.0f;
-
-    float rad = lat * INV_DEG;
-    return logf(tanf(rad / 2.0f + OFFSET)) * (float)EARTH_RADIUS;
-}
-
-
-/**
- * @brief Get pixel X position from OpenStreetMap Vector map longitude
- *
- * @details Converts a longitude value to the corresponding X position in the OpenStreetMap vector map
- * 			projection using the Mercator formula.
- *
- * @param lon Longitude coordinate.
- * @return X position.
- */
-float Maps::lon2x(float lon)
-{
-    return DEG2RAD(lon) * EARTH_RADIUS;
-}
-
-/**
- * @brief Get longitude from X position in Vector Map (Mercator projection)
- *
- * @details Converts an X position in the Mercator projection to the corresponding longitude value.
- *
- * @param x X position.
- * @return Longitude coordinate.
- */
-float Maps::mercatorX2lon(float x)
-{
-    return (x / EARTH_RADIUS) * (180.0f / M_PI);
-}
-
-
-/**
- * @brief Get latitude from Y position in Vector Map (Mercator projection)
- *
- * @details Converts a Y position in the Mercator projection to the corresponding latitude value.
- *
- * @param y Y position.
- * @return Latitude coordinate.
- */
-float Maps::mercatorY2lat(float y)
-{
-    return atanf(sinhf(y / EARTH_RADIUS)) * (180.0f / M_PI);
-}
-
-/**
- * @brief Points to screen coordinates
- *
- * @details Converts a map coordinate to a screen coordinate based on the current zoom and screen center.
- *
- * @param pxy Map coordinate (X or Y).
- * @param screenCenterxy Screen center coordinate (X or Y).
- * @return Screen coordinate as int16_t.
- */
-int16_t Maps::toScreenCoord(const int32_t pxy, const int32_t screenCenterxy)
-{
- 	return roundf((float)(pxy - screenCenterxy) / zoom) + (float)Maps::tileWidth / 2.0f;
-}
-
-/**
- * @brief Returns int16 or 0 if empty
- *
- * @details Parses an integer value from the file buffer starting at Maps::idx. Returns the parsed int16_t value,
- * 			or 0 if the field is empty (next char is newline). Handles parsing errors and logs them.
- *
- * @param file Pointer to the character buffer to parse from.
- * @return Parsed int16_t value, 0 if empty, or -1 on error.
- */
-int16_t Maps::parseInt16(char *file)
-{
-    char num[16];
-    uint8_t i = 0;
-    char c = file[Maps::idx];
-
-    if (c == '\n')
-        return 0;
-
-    while (c >= '0' && c <= '9' && i < 15)
-    {
-        num[i++] = c;
-        c = file[++Maps::idx];
-    }
-    num[i] = '\0';
-
-    if (c != ';' && c != ',' && c != '\n')
-    {
-        ESP_LOGE(TAG, "parseInt16 error: %c %i", c, c);
-        ESP_LOGE(TAG, "Num: [%s]", num);
-        while (1);  
-    }
-
-    Maps::idx++;  
-
-    try
-    {
-        return static_cast<int16_t>(std::stoi(num));
-    }
-    catch (const std::invalid_argument &)
-    {
-        ESP_LOGE(TAG, "parseInt16 invalid_argument: [%c] [%s]", c, num);
-    }
-    catch (const std::out_of_range &)
-    {
-        ESP_LOGE(TAG, "parseInt16 out_of_range: [%c] [%s]", c, num);
-    }
-
-    return -1;
-}
-
-/**
- * @brief Returns the string until terminator char or newline. The terminator character is not included but consumed from stream.
- *
- * @details Reads characters from the file buffer starting at Maps::idx into the provided string, 
- * 			stopping at the specified terminator character or newline. The terminator is not included 
- * 			in the result string but is consumed from the stream.
- *
- * @param file Pointer to the character buffer to parse from.
- * @param terminator Character to terminate the copy operation.
- * @param str Output buffer to store the parsed string (should be at least 30 bytes).
- */
-void Maps::parseStrUntil(char *file, char terminator, char *str)
-{
-	uint8_t i = 0;
-	char c;
-	while ((c = file[Maps::idx]) != terminator && c != '\n')
-	{
-		assert(i < 29);
-		str[i++] = c;
-		Maps::idx++;
-	}
-	str[i] = '\0';
-	Maps::idx++;
-}
-
-/**
- * @brief Parse vector file to coords
- *
- * @details Parses coordinate pairs from the provided file buffer and appends them to the points vector.
- *			Each coordinate pair is expected in the format "x,y;".
- *
- * @param file Pointer to the character buffer to parse from.
- * @param points Reference to a vector of Point16 to store the parsed points.
- */
-void Maps::parseCoords(char *file, std::vector<Point16> &points)
-{
-	char str[30];
-	assert(points.empty());
-
-	while (true)
-	{
-		try
-		{
-			parseStrUntil(file, ',', str);
-			if (!str[0])
-				break;
-
-			int16_t x = static_cast<int16_t>(std::stoi(str));
-
-			parseStrUntil(file, ';', str);
-			if (!str[0])
-			{
-				ESP_LOGE(TAG, "parseCoords missing Y coordinate");
-				break;
-			}
-
-			int16_t y = static_cast<int16_t>(std::stoi(str));
-			points.emplace_back(x, y);
-		}
-		catch (const std::invalid_argument&)
-		{
-			ESP_LOGE(TAG, "parseCoords invalid_argument: %s", str);
-		}
-		catch (const std::out_of_range&)
-		{
-			ESP_LOGE(TAG, "parseCoords out_of_range: %s", str);
-		}
-	}
-}
-
-/**
- * @brief Parse Mapbox
- *
- * @details Parses a bounding box (BBox) from a string containing four integer values separated by delimiters.
- *
- * @param str Input string containing the bounding box coordinates as integers.
- * @return BBox Parsed bounding box as a BBox object.
- */
-BBox Maps::parseBbox(String str)
-{
-	const char* ptr = str.c_str();
-	char* next;
-	int32_t x1 = (int32_t)strtol(ptr, &next, 10);
-	int32_t y1 = (int32_t)strtol(next + 1, &next, 10);
-	int32_t x2 = (int32_t)strtol(next + 1, &next, 10);
-	int32_t y2 = (int32_t)strtol(next + 1, nullptr, 10);
-	return BBox(Point32(x1, y1), Point32(x2, y2));
-}
-
-/**
- * @brief Read vector map file to memory block
- *
- * @details Reads a vector map file (with .fmp extension) into a MapBlock structure, parsing polygons and polylines.
- *
- * @param fileName Name of the file (without extension).
- * @return MapBlock* Pointer to the allocated MapBlock structure, or with inView=false if not found.
- */
-Maps::MapBlock *Maps::readMapBlock(String fileName)
-{
-	ESP_LOGI(TAG, "readMapBlock: %s", fileName.c_str());
-	char str[30];
-	MapBlock *mblock = new MapBlock();
-	std::string filePath = fileName.c_str() + std::string(".fmp");
-	ESP_LOGI(TAG, "File: %s", filePath.c_str());
-
-	FILE *file_ = storage.open(filePath.c_str(), "r");
-
-	if (!file_)
-	{
-		Maps::isMapFound = false;
-		mblock->inView = false;
-		return mblock;
-	}
-	else
-	{
-		size_t fileSize = storage.size(filePath.c_str());
-
-	#ifdef BOARD_HAS_PSRAM
-		char *file = (char *)ps_malloc(fileSize + 1);
-	#else
-		char *file = (char *)malloc(fileSize + 1);
-	#endif
-
-		vTaskDelay(1);  // Stabilize SD/MMC bus before read
-
-		size_t bytesRead = storage.read(file_, file, fileSize);
-		if (bytesRead != fileSize)
-		{
-			ESP_LOGE(TAG, "Error reading map file. Expected %u bytes, got %u", fileSize, bytesRead);
-			storage.close(file_);
-			delete[] file;
-			mblock->inView = false;
-			return mblock;
-		}
-
-		Maps::isMapFound = true;
-		uint32_t line = 0;
-		Maps::idx = 0;
-
-		Maps::parseStrUntil(file, ':', str);
-		if (strcmp(str, "Polygons") != 0)
-		{
-			ESP_LOGE(TAG, "Map error. Expected Polygons instead of: %s", str);
-			while (true);
-		}
-
-		int16_t count = Maps::parseInt16(file);
-		assert(count > 0);
-		line++;
-
-		uint32_t totalPoints = 0;
-		Polygon polygon;
-		Point16 p;
-		while (count > 0)
-		{
-			Maps::parseStrUntil(file, '\n', str); // color
-			assert(str[0] == '0' && str[1] == 'x');
-			polygon.color = (uint16_t)std::stoul(str, nullptr, 16);
-			line++;
-
-			Maps::parseStrUntil(file, '\n', str); // maxZoom
-			polygon.maxZoom = str[0] ? (uint8_t)std::stoi(str) : MAX_ZOOM;
-			line++;
-
-			Maps::parseStrUntil(file, ':', str);
-			if (strcmp(str, "bbox") != 0)
-			{
-				ESP_LOGE(TAG, "bbox error tag. Line %i : %s", line, str);
-				while (true);
-			}
-			polygon.bbox.min.x = Maps::parseInt16(file);
-			polygon.bbox.min.y = Maps::parseInt16(file);
-			polygon.bbox.max.x = Maps::parseInt16(file);
-			polygon.bbox.max.y = Maps::parseInt16(file);
-			line++;
-
-			polygon.points.clear();
-			Maps::parseStrUntil(file, ':', str);
-			if (strcmp(str, "coords") != 0)
-			{
-				ESP_LOGE(TAG, "coords error tag. Line %i : %s", line, str);
-				while (true);
-			}
-			Maps::parseCoords(file, polygon.points);
-			line++;
-
-			mblock->polygons.push_back(polygon);
-			totalPoints += polygon.points.size();
-			count--;
-		}
-		assert(count == 0);
-
-		Maps::parseStrUntil(file, ':', str);
-		if (strcmp(str, "Polylines") != 0)
-			ESP_LOGE(TAG, "Map error. Expected Polylines instead of: %s", str);
-		count = Maps::parseInt16(file);
-		assert(count > 0);
-		line++;
-
-		Polyline polyline;
-		while (count > 0)
-		{
-			Maps::parseStrUntil(file, '\n', str); // color
-			assert(str[0] == '0' && str[1] == 'x');
-			polyline.color = (uint16_t)std::stoul(str, nullptr, 16);
-			line++;
-
-			Maps::parseStrUntil(file, '\n', str); // width
-			polyline.width = str[0] ? (uint8_t)std::stoi(str) : 1;
-			line++;
-
-			Maps::parseStrUntil(file, '\n', str); // maxZoom
-			polyline.maxZoom = str[0] ? (uint8_t)std::stoi(str) : MAX_ZOOM;
-			line++;
-
-			Maps::parseStrUntil(file, ':', str);
-			if (strcmp(str, "bbox") != 0)
-			{
-				ESP_LOGE(TAG, "bbox error tag. Line %i : %s", line, str);
-				while (true);
-			}
-			polyline.bbox.min.x = Maps::parseInt16(file);
-			polyline.bbox.min.y = Maps::parseInt16(file);
-			polyline.bbox.max.x = Maps::parseInt16(file);
-			polyline.bbox.max.y = Maps::parseInt16(file);
-			line++;
-
-			polyline.points.clear();
-			Maps::parseStrUntil(file, ':', str);
-			if (strcmp(str, "coords") != 0)
-			{
-				ESP_LOGI(TAG, "coords tag. Line %i : %s", line, str);
-				while (true);
-			}
-			Maps::parseCoords(file, polyline.points);
-			line++;
-
-			mblock->polylines.push_back(polyline);
-			totalPoints += polyline.points.size();
-			count--;
-		}
-		assert(count == 0);
-
-		storage.close(file_);
-		delete[] file;
-		return mblock;
-	}
-}
-
-/**
- * @brief Fill polygon routine
- *
- * @details Fills the given polygon using the scanline fill algorithm. Each scanline finds intersections
- * 			with the polygon edges, sorts them, and draws horizontal lines between node pairs.
- *
- * @param p Polygon to fill.
- * @param map Reference to TFT_eSprite on which to draw.
- */
-void Maps::fillPolygon(Polygon p, TFT_eSprite &map)
-{
-	int16_t maxY = p.bbox.max.y;
-	int16_t minY = p.bbox.min.y;
-
-	if (maxY >= Maps::tileHeight)
-		maxY = Maps::tileHeight - 1;
-	if (minY < 0)
-		minY = 0;
-	if (minY >= maxY)
-		return;
-
-	int16_t pixelY;
-	std::vector<int16_t> nodeX;
-
-	for (pixelY = minY; pixelY <= maxY; ++pixelY)
-	{
-		nodeX.clear();
-		for (size_t i = 0; i < p.points.size() - 1; ++i)
-		{
-			int16_t y0 = p.points[i].y;
-			int16_t y1 = p.points[i + 1].y;
-
-			if ((y0 < pixelY && y1 >= pixelY) || (y1 < pixelY && y0 >= pixelY))
-			{
-				int16_t x0 = p.points[i].x;
-				int16_t x1 = p.points[i + 1].x;
-
-				float ratio = float(pixelY - y0) / float(y1 - y0);
-				int16_t intersectX = x0 + (int16_t)(ratio * float(x1 - x0));
-				nodeX.push_back(intersectX);
-			}
-		}
-
-		if (nodeX.size() < 2)
-			continue;
-
-		std::sort(nodeX.begin(), nodeX.end());
-
-		for (size_t i = 0; i + 1 < nodeX.size(); i += 2)
-		{
-			int16_t x0 = nodeX[i];
-			int16_t x1 = nodeX[i + 1];
-
-			if (x0 > Maps::tileWidth)
-				break;
-			if (x1 < 0)
-				continue;
-			if (x0 < 0)
-				x0 = 0;
-			if (x1 > Maps::tileWidth)
-				x1 = Maps::tileWidth;
-
-			map.drawLine(x0, Maps::tileHeight - pixelY, x1, Maps::tileHeight - pixelY, p.color);
-		}
-	}
-}
-
-/**
- * @brief Get bounding objects in memory block
- *
- * @details Ensures that all map blocks covering the corners of a given bounding box (bbox) are loaded into memory.
- *			If necessary, loads new blocks from SD Card and manages the memory cache, removing the oldest block if the cache is full.
- * 			Sets the 'inView' flag for blocks currently needed.
- *
- * @param bbox Bounding box specifying the region of interest.
- * @param memCache Reference to the memory cache holding loaded map blocks.
- */
-void Maps::getMapBlocks(BBox &bbox, Maps::MemCache &memCache)
-{
-	ESP_LOGI(TAG, "getMapBlocks %i", millis());
-
-	for (MapBlock *block : memCache.blocks)
-		block->inView = false;
-
-	const Point32 corners[4] = {
-		bbox.min,
-		bbox.max,
-		Point32(bbox.min.x, bbox.max.y),
-		Point32(bbox.max.x, bbox.min.y)};
-
-	for (const Point32 &point : corners)
-	{
-		int32_t blockMinX = point.x & ~MAPBLOCK_MASK;
-		int32_t blockMinY = point.y & ~MAPBLOCK_MASK;
-
-		bool found = false;
-		for (MapBlock *memblock : memCache.blocks)
-		{
-			if (memblock->offset.x == blockMinX && memblock->offset.y == blockMinY)
-			{
-				memblock->inView = true;
-				found = true;
-				break;
-			}
-		}
-		if (found)
-			continue;
-
-		ESP_LOGI(TAG, "load from disk (%i, %i) %i", blockMinX, blockMinY, millis());
-
-		int32_t folderNameX = blockMinX >> (MAPFOLDER_SIZE_BITS + MAPBLOCK_SIZE_BITS);
-		int32_t folderNameY = blockMinY >> (MAPFOLDER_SIZE_BITS + MAPBLOCK_SIZE_BITS);
-		int32_t blockX = (blockMinX >> MAPBLOCK_SIZE_BITS) & MAPFOLDER_MASK;
-		int32_t blockY = (blockMinY >> MAPBLOCK_SIZE_BITS) & MAPFOLDER_MASK;
-
-		char folderName[12];
-		snprintf(folderName, sizeof(folderName), "%+04d%+04d", folderNameX, folderNameY);
-		String fileName = mapVectorFolder + folderName + "/" + blockX + "_" + blockY;
-
-		if (memCache.blocks.size() >= MAPBLOCKS_MAX)
-		{
-			ESP_LOGV(TAG, "Deleting block - freeHeap: %i", esp_get_free_heap_size());
-			delete memCache.blocks.front();
-			memCache.blocks.erase(memCache.blocks.begin());
-			ESP_LOGV(TAG, "Deleted - freeHeap: %i", esp_get_free_heap_size());
-		}
-
-		MapBlock *newBlock = Maps::readMapBlock(fileName);
-		if (Maps::isMapFound && newBlock)
-		{
-			newBlock->inView = true;
-			newBlock->offset = Point32(blockMinX, blockMinY);
-			memCache.blocks.push_back(newBlock);
-			assert(memCache.blocks.size() <= MAPBLOCKS_MAX);
-
-			ESP_LOGI(TAG, "Block loaded: %p", newBlock);
-			ESP_LOGI(TAG, "FreeHeap: %i", esp_get_free_heap_size());
-		}
-	}
-
-	ESP_LOGI(TAG, "memCache size: %i %i", memCache.blocks.size(), millis());
-}
-
-/**
- * @brief Generate vectorized map
- *
- * @details Renders the vector map using in-memory blocks within the current viewport and zoom level.
- * 			Draws polygons and polylines, updates map bounds, and overlays waypoints and tracks.
- *
- * @param viewPort Viewport describing the area to render.
- * @param memCache Memory cache holding loaded map blocks.
- * @param map Map sprite (TFT_eSprite) to draw on.
- * @param zoom Zoom level for rendering.
- */
-void Maps::readVectorMap(Maps::ViewPort &viewPort, Maps::MemCache &memCache, TFT_eSprite &map, uint8_t zoom)
-{
-	Polygon newPolygon;
-	map.fillScreen(BACKGROUND_COLOR);
-	uint32_t totalTime = millis();
-	ESP_LOGI(TAG, "Draw start %i", totalTime);
-
-	if (!Maps::isMapFound)
-	{
-		Maps::isMapFound = false;
-		map.fillScreen(TFT_BLACK);
-		Maps::showNoMap(map);
-		ESP_LOGE(TAG, "Map doesn't exist");
-		return;
-	}
-
-	for (MapBlock *mblock : memCache.blocks)
-	{
-		if (!mblock->inView)
-			continue;
-
-		uint32_t blockTime = millis();
-
-		const Point16 screen_center_mc = viewPort.center.toPoint16() - mblock->offset.toPoint16();
-		const BBox screen_bbox_mc = viewPort.bbox - mblock->offset;
-
-		for (const Polygon &polygon : mblock->polygons)
-		{
-			if (zoom > polygon.maxZoom || !polygon.bbox.intersects(screen_bbox_mc))
-				continue;
-
-			newPolygon.color = polygon.color;
-			newPolygon.bbox.min.x = Maps::toScreenCoord(polygon.bbox.min.x, screen_center_mc.x);
-			newPolygon.bbox.min.y = Maps::toScreenCoord(polygon.bbox.min.y, screen_center_mc.y);
-			newPolygon.bbox.max.x = Maps::toScreenCoord(polygon.bbox.max.x, screen_center_mc.x);
-			newPolygon.bbox.max.y = Maps::toScreenCoord(polygon.bbox.max.y, screen_center_mc.y);
-
-			newPolygon.points.clear();
-			newPolygon.points.reserve(polygon.points.size());
-
-			for (const Point16 &p : polygon.points)
-			{
-				newPolygon.points.emplace_back(
-					Maps::toScreenCoord(p.x, screen_center_mc.x),
-					Maps::toScreenCoord(p.y, screen_center_mc.y));
-			}
-
-			Maps::fillPolygon(newPolygon, map);
-		}
-		ESP_LOGI(TAG, "Block polygons done %i ms", millis() - blockTime);
-		blockTime = millis();
-
-		for (const Polyline &line : mblock->polylines)
-		{
-			if (zoom > line.maxZoom || !line.bbox.intersects(screen_bbox_mc))
-				continue;
-
-			for (size_t i = 0; i < line.points.size() - 1; ++i)
-			{
-				const int16_t p1x = Maps::toScreenCoord(line.points[i].x, screen_center_mc.x);
-				const int16_t p1y = Maps::toScreenCoord(line.points[i].y, screen_center_mc.y);
-				const int16_t p2x = Maps::toScreenCoord(line.points[i + 1].x, screen_center_mc.x);
-				const int16_t p2y = Maps::toScreenCoord(line.points[i + 1].y, screen_center_mc.y);
-
-				map.drawLine(p1x, Maps::tileHeight - p1y, p2x, Maps::tileHeight - p2y, line.color);
-			}
-		}
-		ESP_LOGI(TAG, "Block lines done %i ms", millis() - blockTime);
-	}
-
-	ESP_LOGI(TAG, "Total %i ms", millis() - totalTime);
-
-	MapBlock *firstBlock = memCache.blocks.front();
-	delete firstBlock;
-	memCache.blocks.erase(memCache.blocks.begin());
-
-	Maps::totalBounds.lat_min = Maps::mercatorY2lat(viewPort.bbox.min.y);
-	Maps::totalBounds.lat_max = Maps::mercatorY2lat(viewPort.bbox.max.y);
-	Maps::totalBounds.lon_min = Maps::mercatorX2lon(viewPort.bbox.min.x);
-	Maps::totalBounds.lon_max = Maps::mercatorX2lon(viewPort.bbox.max.x);
-
-	ESP_LOGI(TAG, "Total Bounds: Lat Min: %f, Lat Max: %f, Lon Min: %f, Lon Max: %f",
-			 Maps::totalBounds.lat_min, Maps::totalBounds.lat_max,
-			 Maps::totalBounds.lon_min, Maps::totalBounds.lon_max);
-
-	if (Maps::isCoordInBounds(Maps::destLat, Maps::destLon, Maps::totalBounds))
-	{
-		Maps::coords2map(destLat, destLon, Maps::totalBounds, &wptPosX, &wptPosY);
-	}
-	else
-	{
-		Maps::wptPosX = -1;
-		Maps::wptPosY = -1;
-	}
-
-	for (size_t i = 1; i < trackData.size(); ++i)
-	{
-		const auto &p1 = trackData[i - 1];
-		const auto &p2 = trackData[i];
-
-		if (p1.lon > Maps::totalBounds.lon_min && p1.lon < Maps::totalBounds.lon_max &&
-			p1.lat > Maps::totalBounds.lat_min && p1.lat < Maps::totalBounds.lat_max &&
-			p2.lon > Maps::totalBounds.lon_min && p2.lon < Maps::totalBounds.lon_max &&
-			p2.lat > Maps::totalBounds.lat_min && p2.lat < Maps::totalBounds.lat_max)
-		{
-			uint16_t x1, y1, x2, y2;
-			Maps::coords2map(p1.lat, p1.lon, Maps::totalBounds, &x1, &y1);
-			Maps::coords2map(p2.lat, p2.lon, Maps::totalBounds, &x2, &y2);
-			map.drawWideLine(x1, y1, x2, y2, 2, TFT_BLUE);
-		}
-	}
-}
-
-/**
- * @brief Get vector map position from GPS position and check if moved
- *
- * @details Updates the internal map position based on the provided GPS latitude and longitude.
- * 			If the position has changed significantly since the previous update, recalculates
- * 			the map's internal coordinates and sets the moved flag.
- *
- * @param lat Latitude in degrees.
- * @param lon Longitude in degrees.
- */
-void Maps::getPosition(float lat, float lon)
-{
-    if (fabsf(lat - Maps::prevLat) > 0.00005f && fabsf(lon - Maps::prevLon) > 0.00005f)
-    {
-        Maps::point.x = Maps::lon2x(lon);
-        Maps::point.y = Maps::lat2y(lat);
-        Maps::prevLat = lat;
-        Maps::prevLon = lon;
-        Maps::isPosMoved = true;
-    }
-}
-
-// Common Private section
 
 /**
  * @brief Get min and max longitude and latitude from tile
@@ -949,22 +250,6 @@ void Maps::showNoMap(TFT_eSprite &map)
 	map.drawCenterString("NO MAP FOUND", (Maps::mapScrWidth / 2), (Maps::mapScrHeight >> 1) + 65, &fonts::DejaVu18);
 }
 
-/**
- * @brief Set center coordinates of viewport
- *
- * @details Sets the center of the viewport and updates the bounding box (bbox) based on the current zoom and tile dimensions.
- *
- * @param pcenter New center coordinates (Point32) for the viewport.
- */
-void Maps::ViewPort::setCenter(Point32 pcenter)
-{
-	center = pcenter;
-	bbox.min.x = pcenter.x - Maps::tileWidth * zoom / 2;
-	bbox.min.y = pcenter.y - Maps::tileHeight * zoom / 2;
-	bbox.max.x = pcenter.x + Maps::tileWidth * zoom / 2;
-	bbox.max.y = pcenter.y + Maps::tileHeight * zoom / 2;
-}
-
 // Public section
 
 /**
@@ -1014,18 +299,17 @@ void Maps::createMapScrSprites()
 }
 
 /**
- * @brief Generate render map
+ * @brief Generate map
  *
- * @details Generates the main rendered map by compositing the center and surrounding tiles based on the current zoom level.
+ * @details Generates the main map by compositing the center and surrounding tiles based on the current zoom level.
  * 			Handles missing tiles, updates map bounds, overlays missing map notifications, and draws tracks if available.
  *
  * @param zoom Zoom Level
  */
-void Maps::generateRenderMap(uint8_t zoom)
+void Maps::generateMap(uint8_t zoom)
 {
-	Maps::mapTileSize = Maps::renderMapTileSize;
 	Maps::zoomLevel = zoom;
-
+	
 	bool foundRoundMap = false;
 	bool missingMap = false;
 
@@ -1040,9 +324,13 @@ void Maps::generateRenderMap(uint8_t zoom)
 		Maps::currentMapTile.tilex != Maps::oldMapTile.tilex ||
 		Maps::currentMapTile.tiley != Maps::oldMapTile.tiley)
 	{
+		Maps::mapTempSprite.fillSprite(TFT_WHITE); 
 		const int16_t size = Maps::mapTileSize;
 
-		Maps::isMapFound = Maps::mapTempSprite.drawPngFile(Maps::currentMapTile.file, size, size);
+		if (mapSet.vectorMap)
+			Maps::isMapFound = drawTileFile(Maps::currentMapTile.file, size, size,Maps::mapTempSprite);
+		else
+			Maps::isMapFound = Maps::mapTempSprite.drawPngFile(Maps::currentMapTile.file, size, size);
 
 		Maps::oldMapTile = Maps::currentMapTile;
 		strcpy(Maps::oldMapTile.file, Maps::currentMapTile.file);
@@ -1076,8 +364,10 @@ void Maps::generateRenderMap(uint8_t zoom)
 						Maps::currentMapTile.lon, Maps::currentMapTile.lat,
 						Maps::zoomLevel, x, y);
 
-					foundRoundMap = Maps::mapTempSprite.drawPngFile(
-						Maps::roundMapTile.file, offsetX, offsetY);
+					if (mapSet.vectorMap)
+						foundRoundMap = drawTileFile(Maps::roundMapTile.file, offsetX, offsetY,Maps::mapTempSprite);
+					else
+						foundRoundMap = Maps::mapTempSprite.drawPngFile(Maps::roundMapTile.file, offsetX, offsetY);
 
 					if (!foundRoundMap)
 					{
@@ -1141,34 +431,6 @@ void Maps::generateRenderMap(uint8_t zoom)
 }
 
 /**
- * @brief Generate vector map
- *
- * @details Generates the vector map for the current GPS position and zoom level.
- * 			If the position has moved, updates the viewport, fetches the relevant map blocks,
- * 			reads and renders the vector map, and then resets the movement flag.
- *
- * @param zoom Zoom Level
- */
-void Maps::generateVectorMap(uint8_t zoom)
-{
-	const float lat = gps.gpsData.latitude;
-	const float lon = gps.gpsData.longitude;
-
-	Maps::getPosition(lat, lon);
-
-	if (!Maps::isPosMoved)
-		return;
-
-	Maps::mapTileSize = Maps::vectorMapTileSize;
-	Maps::zoomLevel = zoom;
-	Maps::viewPort.setCenter(Maps::point);
-	Maps::getMapBlocks(Maps::viewPort.bbox, Maps::memCache);
-	Maps::readVectorMap(Maps::viewPort, Maps::memCache, Maps::mapTempSprite, zoom);
-	Maps::isPosMoved = false;
-}
-
-
-/**
  * @brief Display Map
  *
  * @details Displays the map on the screen. 
@@ -1195,32 +457,22 @@ void Maps::displayMap()
 
 	const uint16_t size = Maps::mapTileSize;
 
-	if (size == Maps::renderMapTileSize)
-	{
-		if (Maps::followGps)
-		{
-			const float lat = gps.gpsData.latitude;
-			const float lon = gps.gpsData.longitude;
-			Maps::navArrowPosition = Maps::coord2ScreenPos(lon, lat, Maps::zoomLevel, Maps::renderMapTileSize);
-			Maps::mapTempSprite.setPivot(Maps::renderMapTileSize + Maps::navArrowPosition.posX,
-										 Maps::renderMapTileSize + Maps::navArrowPosition.posY);
-		}
-		else
-		{
-			const int16_t pivotX = Maps::tileWidth / 2 + Maps::offsetX;
-			const int16_t pivotY = Maps::tileHeight / 2 + Maps::offsetY;
-			Maps::mapTempSprite.setPivot(pivotX, pivotY);
-		}
-	}
-	else if (size == Maps::vectorMapTileSize)
-	{
-		Maps::mapTempSprite.setPivot(Maps::vectorMapTileSize, Maps::vectorMapTileSize);
-	}
-
 	if (Maps::followGps)
+	{
+		const float lat = gps.gpsData.latitude;
+		const float lon = gps.gpsData.longitude;
+		Maps::navArrowPosition = Maps::coord2ScreenPos(lon, lat, Maps::zoomLevel, Maps::mapTileSize);
+		Maps::mapTempSprite.setPivot(Maps::mapTileSize + Maps::navArrowPosition.posX,
+								     Maps::mapTileSize + Maps::navArrowPosition.posY);
 		Maps::mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
+	}
 	else
+	{
+		const int16_t pivotX = Maps::tileWidth / 2 + Maps::offsetX;
+		const int16_t pivotY = Maps::tileHeight / 2 + Maps::offsetY;
+		Maps::mapTempSprite.setPivot(pivotX, pivotY);
 		Maps::mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
+	}
 }
 
 /**
@@ -1245,7 +497,6 @@ void Maps::setWaypoint(float wptLat, float wptLon)
  void Maps::updateMap()
  {
 	Maps::oldMapTile = {};
-	Maps::isPosMoved = true;
  }
 
 /**
@@ -1315,7 +566,7 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
 	Maps::followGps = false;
 
 	const int16_t threshold = Maps::scrollThreshold;
-	const int16_t tileSize = Maps::renderMapTileSize;
+	const int16_t tileSize = Maps::mapTileSize;
 
 	if (Maps::offsetX <= -threshold)
 	{
@@ -1366,7 +617,7 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
  */
 void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 {
-	const int16_t tileSize = renderMapTileSize;
+	const int16_t tileSize = mapTileSize;
 	const int16_t preloadWidth  = (dirX != 0) ? tileSize : tileSize * 2;
 	const int16_t preloadHeight = (dirY != 0) ? tileSize : tileSize * 2;
 
@@ -1419,3 +670,130 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 
 	preloadSprite.deleteSprite();
 }
+
+/**
+ * @brief Returns a 16-bit RGB565 color corresponding to the given type_id.
+ *
+ * This function maps a `type_id` (typically assigned from OSM feature types)
+ * to a predefined color used when rendering vector tiles.
+ * Colors are encoded in RGB565 format using `tft.color565(r, g, b)`.
+ *
+ * The mapping is as follows:
+ * - 1: Building (gray)
+ * - 2: Forest (dark green)
+ * - 3: Park (light green)
+ * - 4: Water (blue)
+ * - 5: Main roads (red)
+ * - Default: White (used as fallback)
+ *
+ * @param type_id The numeric identifier of the feature type.
+ * @return A 16-bit RGB565 color value.
+ */
+uint16_t Maps::getColorForType(uint8_t type_id)
+{
+	switch (type_id) 
+	{
+		case 1: return tft.color565(150, 150, 150); // building
+		case 2: return tft.color565(34, 139, 34);   // forest
+		case 3: return tft.color565(100, 200, 100); // park
+		case 4: return tft.color565(0, 100, 255);   // water
+		case 5: return tft.color565(255, 50, 50);   // main roads
+		default: return tft.color565(255, 255, 255); // white fallback
+	}
+}
+
+/**
+ * @brief Draws a vector tile from a binary .bin file onto a TFT_eSprite surface.
+ *
+ * @details This function reads a binary tile file generated by the OSM tile generator,
+ * 			parses each vector feature, and renders it using drawLine onto the provided sprite.
+ * 			The drawing is offset by (xOffset, yOffset) to allow proper tile placement.
+ *
+ * The .bin format must follow this structure:
+ * - uint16_t num_features
+ * - For each feature:
+ *    - uint8_t type_id
+ *    - uint8_t geom_type (0 = LineString, 1 = Polygon)
+ *    - uint16_t num_points
+ *    - int16_t dx, dy for each point (delta-encoded)
+ *
+ * Optionally, if geom_type is Polygon (1) and has more than 2 points,
+ * the polygon is closed by drawing a final line to the first point.
+ *
+ * @param path Path to the binary tile file (e.g. "/tiles/14/8192/5440.bin").
+ * @param xOffset X offset in pixels on the target sprite.
+ * @param yOffset Y offset in pixels on the target sprite.
+ * @param map Reference to a TFT_eSprite object where the tile will be drawn.
+ * @return true if the tile was loaded and rendered successfully, false on error.
+ *
+ * @note The function assumes the color mapping is handled via getColorForType(type_id).
+ * @note This version uses only drawLine for rendering. No fill or optimization hints are used.
+ * @note Ensure coordinates are within bounds if drawing over a clipped sprite.
+ */
+bool Maps::drawTileFile(const char* path, int16_t xOffset, int16_t yOffset,TFT_eSprite &map) 
+{
+	FILE* file = fopen(path, "rb");
+	if (!file) 
+	{
+		ESP_LOGE(TAG,"Tile not found: %s", path);
+		return false;
+	}
+
+	uint16_t num_features = 0;
+
+	if (fread(&num_features, sizeof(uint16_t), 1, file) != 1) 
+	{
+		ESP_LOGE(TAG, "Failed to read tile header.");
+		fclose(file);
+		return false;
+	}
+
+	for (int i = 0; i < num_features; ++i)
+	{
+		uint8_t type_id = 0, geom_type = 0;
+		// uint16_t num_points = 0;
+		uint16_t color = 0, num_points = 0;
+
+		if (fread(&type_id, 1, 1, file) != 1) break;
+		if (fread(&geom_type, 1, 1, file) != 1) break;
+		if (fread(&color, sizeof(uint16_t), 1, file) != 1) break;
+		// uint16_t color = getColorForType(type_id);
+		if (fread(&num_points, sizeof(uint16_t), 1, file) != 1) break;
+
+		int16_t x = 0, y = 0, dx = 0, dy = 0;
+		int16_t prev_x = 0, prev_y = 0;
+
+		for (int p = 0; p < num_points; ++p) 
+		{
+			if (fread(&dx, sizeof(int16_t), 1, file) != 1) break;
+			if (fread(&dy, sizeof(int16_t), 1, file) != 1) break;
+
+			x += dx;
+			y += dy;
+
+			int16_t sx = xOffset + x;
+			int16_t sy = yOffset + y;
+
+			if (p > 0) 
+			{
+				int16_t sx_prev = xOffset + prev_x;
+				int16_t sy_prev = yOffset + prev_y;
+				map.drawLine(sx_prev, sy_prev, sx, sy, color);
+			}
+
+			prev_x = x;
+			prev_y = y;
+			}
+
+			if (geom_type == 1 && num_points > 2) 
+			{
+			int16_t sx_first = xOffset + x - dx;
+			int16_t sy_first = yOffset + y - dy;
+			map.drawLine(xOffset + x, yOffset + y, sx_first, sy_first, color);
+		}
+	}
+
+	fclose(file);
+	return true;
+}
+

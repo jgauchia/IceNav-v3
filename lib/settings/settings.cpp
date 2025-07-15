@@ -19,8 +19,7 @@ NAVIGATION navSet;
  */
 uint8_t minZoom = 0;         /**< Minimum Zoom Level */
 uint8_t maxZoom = 0;         /**< Maximum Zoom Level */
-uint8_t defZoomRender = 15;  /**< Default Zoom Level for rendered map */
-uint8_t defZoomVector = 2;   /**< Default Zoom Level for vector map */
+uint8_t defZoom = 15;        /**< Default Zoom Level for rendered map */
 uint8_t zoom = 0;            /**< Current Zoom Level */
 
 #ifdef LARGE_SCREEN
@@ -93,18 +92,9 @@ void loadPreferences()
 	sunPosX = cfg.getInt(PKEYS::KSUN_X, 170);
 	sunPosY = cfg.getInt(PKEYS::KSUN_Y, TFT_HEIGHT - 170);
 	defBright = cfg.getUInt(PKEYS::KDEF_BRIGT, 254);
-	if (mapSet.vectorMap)
-	{
-		minZoom = 1;
-		maxZoom = 4;
-		defaultZoom = cfg.getUInt(PKEYS::KDEF_ZOOM, defZoomVector);
-	}
-	else
-	{
-		minZoom = 6;
-		maxZoom = 17;
-		defaultZoom = cfg.getUInt(PKEYS::KDEF_ZOOM, defZoomRender);
-	}
+	minZoom = 6;
+	maxZoom = 17;
+	defaultZoom = cfg.getUInt(PKEYS::KDEF_ZOOM, defZoom);
 	zoom = defaultZoom;
 	GPS_TX = cfg.getUInt(PKEYS::KGPS_TX, GPS_TX);
 	GPS_RX = cfg.getUInt(PKEYS::KGPS_RX, GPS_RX);

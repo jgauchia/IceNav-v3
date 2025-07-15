@@ -91,10 +91,9 @@ void showMapWidgets()
 		lv_obj_clear_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
 	else
 		lv_obj_add_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
-	if (!mapSet.vectorMap)
-		if (mapSet.showMapScale)
+	if (mapSet.showMapScale)
 		lv_obj_clear_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
-		else
+	else
 		lv_obj_add_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
 }
 
@@ -229,10 +228,7 @@ void updateMainScreen(lv_timer_t *t)
  */
 void updateMap(lv_event_t *event)
 {
-	if (mapSet.vectorMap)
-		mapView.generateVectorMap(zoom);
-	else
-		mapView.generateRenderMap(zoom);
+	mapView.generateMap(zoom);
 
 	if (mapView.redrawMap)
 	{
@@ -382,39 +378,13 @@ void zoomEvent(lv_event_t *event)
 	lv_obj_t *obj = (lv_obj_t *)lv_event_get_current_target(event);
 	if ( obj == btnZoomIn )
 	{
-		if (!mapSet.vectorMap)
-		{
-			if (zoom >= minZoom && zoom < maxZoom)
-				zoom++;
-		}
-		else
-		{
-			zoom--;
-			mapView.isPosMoved = true;
-			if (zoom < 1)
-			{
-				zoom = 1;
-				mapView.isPosMoved = false;
-			}
-		}
+		if (zoom >= minZoom && zoom < maxZoom)
+			zoom++;
 	}
 	else if ( obj == btnZoomOut )
 	{
-		if (!mapSet.vectorMap)
-		{
-			if (zoom <= maxZoom && zoom > minZoom)
-				zoom--;
-		}
-		else
-		{
-			zoom++;
-			mapView.isPosMoved = true;
-			if (zoom > MAX_ZOOM)
-			{
-				zoom = MAX_ZOOM;
-				mapView.isPosMoved = false;
-			}
-		}
+		if (zoom <= maxZoom && zoom > minZoom)
+			zoom--;
 	}
 	lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
 	lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
