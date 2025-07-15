@@ -155,6 +155,19 @@ On SD Card map tiles (256x256 PNG Format) should be stored, in these folders str
                               |__________________ [ 📁 tile X folder (number) ]
                                                              |_______________________ 🗺️ tile Y file.bin
 
+## Mass Copy Script for Map Tiles
+
+For efficient transfer of millions of map tiles to SD cards or external storage devices, IceNav includes a high-performance mass copy script. This script is optimized for copying large numbers of small files (such as map tiles) and can reduce transfer time from hours to minutes.
+
+**Key features:**
+- ✅ **Optimized for millions of small files** - Much faster than traditional copy methods
+- ✅ **Real-time progress monitoring** - See exactly what's being copied
+- ✅ **Resumable transfers** - Continue interrupted copies
+- ✅ **Built-in integrity verification** - Sample file verification
+- ✅ **Performance metrics** - Speed and time statistics
+
+For detailed instructions on how to use the mass copy script, please refer to the [Mass Copy Tools Documentation](tools/mass_copy/README.md).
+
 ## Firmware install
 
 
