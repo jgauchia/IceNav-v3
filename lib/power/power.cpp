@@ -102,7 +102,7 @@ void Power::powerOffPeripherals()
 void Power::deviceSuspend()
 {
 	int brightness = tft.getBrightness();
-	lv_msgbox_close(powerMsg); 
+	closeMsg();
 	lv_refr_now(display);
 	tftOff();
 	powerLightSleep();

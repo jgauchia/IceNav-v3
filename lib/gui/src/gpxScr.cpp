@@ -16,7 +16,10 @@ extern bool isWaypointOpt;
 extern bool isTrackOpt;
 bool gpxWaypoint = false;
 bool gpxTrack = false;
-extern std::vector<wayPoint> trackData; /**< Vector containing track waypoints */
+bool isTrackLoaded = false;
+
+extern std::vector<wayPoint> trackData;   /**< Vector containing track waypoints */
+extern std::vector<TurnPoint> turnPoints; /**< Vector containing turn points */
 
 lv_obj_t *listGPXScreen;                /**< Add Waypoint screen */
 
@@ -56,6 +59,7 @@ void gpxListEvent(lv_event_t *event)
 				switch (gpxAction)
 				{
 				case GPX_LOAD:
+					showMsg(LV_SYMBOL_DOWNLOAD, " Loading data...");
 					if (gpxWaypoint)
 					{
 					loadWpt = gpx.getWaypointInfo(gpxName.c_str());
@@ -79,13 +83,16 @@ void gpxListEvent(lv_event_t *event)
 						lv_obj_add_flag(navTile, LV_OBJ_FLAG_HIDDEN);
 					}
 
-					if (gpxTrack)
+            		if (gpxTrack)
 					{
-						gpx.loadTrack(trackData);
+						gpx.loadTrack(trackData);  
+						turnPoints = gpx.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, trackData);       
+						isTrackLoaded = true;
+						lv_obj_clear_flag(turnByTurn,LV_OBJ_FLAG_HIDDEN);
 						mapView.updateMap();
 						lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
 					}
-					
+					closeMsg();
 					loadMainScreen();
 					break;
 				case GPX_EDIT:
@@ -176,6 +183,7 @@ void updateGpxListScreen()
 	lv_table_set_row_count(listGPXScreen, 1);
 	isMainScreen = false;
 
+	showMsg(LV_SYMBOL_DOWNLOAD," Getting files...");
 	if (isWaypointOpt)
 	{
 		gpxWaypoint = true;
@@ -217,4 +225,5 @@ void updateGpxListScreen()
 			}
 		}
 	}
+	closeMsg();
 }

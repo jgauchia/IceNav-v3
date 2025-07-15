@@ -9,15 +9,15 @@
 #include "gpxParser.hpp"
 
 /**
- * @brief Helper function to format double values to a specific number of decimal places
+ * @brief Helper function to format float values to a specific number of decimal places
  *
- * @details Formats a double value as a string with the specified number of decimal places.
+ * @details Formats a float value as a string with the specified number of decimal places.
  *
- * @param value     Value in double format.
+ * @param value     Value in float format.
  * @param precision Number of decimal places to use.
  * @return std::string Formatted value as a string.
  */
-std::string formatDouble(double value, int precision) 
+std::string formatFloat(float value, int precision) 
 {
 	std::ostringstream out;
 	out << std::fixed << std::setprecision(precision) << value;
@@ -201,8 +201,8 @@ wayPoint GPXParser::getWaypointInfo(const char* name)
 
 	if (wpt)
 	{
-		wpt->QueryDoubleAttribute(gpxLatElem, &wp.lat);
-		wpt->QueryDoubleAttribute(gpxLonElem, &wp.lon);
+		wpt->QueryFloatAttribute(gpxLatElem, &wp.lat);
+		wpt->QueryFloatAttribute(gpxLonElem, &wp.lon);
 
 		tinyxml2::XMLElement* element = nullptr;
 
@@ -286,8 +286,8 @@ bool GPXParser::addWaypoint(const wayPoint& wp)
 	}
 
 	tinyxml2::XMLElement* newWpt = doc.NewElement(gpxWaypointTag);
-	newWpt->SetAttribute(gpxLatElem, formatDouble(wp.lat, 6).c_str());
-	newWpt->SetAttribute(gpxLonElem, formatDouble(wp.lon, 6).c_str());
+	newWpt->SetAttribute(gpxLatElem, formatFloat(wp.lat, 6).c_str());
+	newWpt->SetAttribute(gpxLonElem, formatFloat(wp.lon, 6).c_str());
 
 	tinyxml2::XMLElement* element = nullptr;
 
@@ -382,27 +382,155 @@ bool GPXParser::loadTrack(std::vector<wayPoint>& trackData)
 		// Iterate through <trkseg> elements
 		for (tinyxml2::XMLElement* trkseg = trk->FirstChildElement("trkseg"); trkseg != nullptr; trkseg = trkseg->NextSiblingElement("trkseg"))
 		{
-		// Iterate through <trkpt> elements
-		for (tinyxml2::XMLElement* trkpt = trkseg->FirstChildElement("trkpt"); trkpt != nullptr; trkpt = trkpt->NextSiblingElement("trkpt"))
-		{
-			wayPoint point = {0};
+			// Iterate through <trkpt> elements
+			for (tinyxml2::XMLElement* trkpt = trkseg->FirstChildElement("trkpt"); trkpt != nullptr; trkpt = trkpt->NextSiblingElement("trkpt"))
+			{
+				wayPoint point = {0};
 
-			// Extract latitude and longitude
-			trkpt->QueryDoubleAttribute(gpxLatElem, &point.lat);
-			trkpt->QueryDoubleAttribute(gpxLonElem, &point.lon);
+				// Extract latitude and longitude
+				trkpt->QueryFloatAttribute(gpxLatElem, &point.lat);
+				trkpt->QueryFloatAttribute(gpxLonElem, &point.lon);
 
-			// // Extract optional elements
-			// tinyxml2::XMLElement* ele = trkpt->FirstChildElement("ele");
-			// if (ele) point.ele = static_cast<float>(ele->DoubleText());
+				// // Extract optional elements
+				// tinyxml2::XMLElement* ele = trkpt->FirstChildElement("ele");
+				// if (ele) point.ele = static_cast<float>(ele->DoubleText());
 
-			// tinyxml2::XMLElement* time = trkpt->FirstChildElement("time");
-			// if (time) point.time = strdup(time->GetText());
+				// tinyxml2::XMLElement* time = trkpt->FirstChildElement("time");
+				// if (time) point.time = strdup(time->GetText());
 
-			trackData.push_back(point);
-		}
+				trackData.push_back(point);
+			}
 		}
 	}
 
 	return true;
 }
 
+// /**
+//  * @brief Detect turn points in a track using a sliding window approach.
+//  *
+//  * This function processes the given track using a sliding window of configurable size.
+//  * It calculates the angle between the start and end segments of the window to detect turns.
+//  * A turn point is added if the global angle exceeds `thresholdDeg` and the total distance 
+//  * within the window is above `minDist`. Sharp turns above `sharpTurnDeg` are always included, 
+//  * regardless of distance.
+//  *
+//  * @param thresholdDeg Minimum angle difference (in degrees) to consider a turn.
+//  * @param minDist Minimum total distance (in meters) within the window to validate a turn.
+//  * @param sharpTurnDeg Angle (in degrees) above which any turn is considered sharp and relevant.
+//  * @param windowSize Number of points before and after the center point to define the sliding window.
+//  * @param trackData Vector of wayPoint structures representing the track to analyze.
+//  * @return std::vector<TurnPoint> List of detected turn points:
+//  *         - index: index in trackData of the turn
+//  *         - angle: angle difference at turn (degrees, positive = right, negative = left)
+//  *         - accumDist: accumulated distance from the start of the track to this turn (meters)
+//  */
+// std::vector<TurnPoint> GPXParser::getTurnPointsSlidingWindow(
+//     float thresholdDeg, float minDist, float sharpTurnDeg,
+//     int windowSize, const std::vector<wayPoint>& trackData)
+// {
+//     std::vector<TurnPoint> turnPoints;
+//     float accumDist = 0.0f;
+
+//     if (trackData.size() < 2 * windowSize + 1)
+//         return turnPoints;
+
+//     for (size_t i = windowSize; i < trackData.size() - windowSize; ++i)
+//     {
+//         float distWindow = 0.0f;
+//         for (int j = int(i - windowSize); j < int(i + windowSize); ++j)
+//             distWindow += calcDist(trackData[j].lat, trackData[j].lon,
+//                                    trackData[j+1].lat, trackData[j+1].lon);
+
+//         float brgStart = calcCourse(trackData[i - windowSize].lat, trackData[i - windowSize].lon,
+//                                     trackData[i].lat, trackData[i].lon);
+//         float brgEnd   = calcCourse(trackData[i].lat, trackData[i].lon,
+//                                     trackData[i + windowSize].lat, trackData[i + windowSize].lon);
+//         float diff = calcAngleDiff(brgEnd, brgStart);
+
+//         accumDist += calcDist(trackData[i-1].lat, trackData[i-1].lon,
+//                               trackData[i].lat, trackData[i].lon);
+
+//         if (std::fabs(diff) > sharpTurnDeg) 
+// 		{
+//             turnPoints.push_back({static_cast<int>(i), diff, accumDist});
+//             continue;
+//         }
+//         if (distWindow < minDist)
+//             continue;
+//         if (std::fabs(diff) > thresholdDeg)
+//             turnPoints.push_back({static_cast<int>(i), diff, accumDist});
+//     }
+//     return turnPoints;
+// }
+
+/**
+ * @brief Detects turn points in a GPX track using a sliding window approach.
+ *
+ * @details This function analyzes a track using a window of N points before and after each point
+ *          to estimate the turning angle between segments. It avoids false positives by skipping
+ *          windows with abnormally large jumps (e.g., GPS noise or corrupt data).
+ *
+ * @param thresholdDeg   Minimum angle (deg) to consider a turn.
+ * @param minDist        Minimum distance (m) of the whole window to consider a valid curve.
+ * @param sharpTurnDeg   Angle threshold (deg) for forced sharp turns.
+ * @param windowSize     Number of points before/after to use in the window.
+ * @param trackData      The vector of waypoints forming the track.
+ * @return               A vector of TurnPoint structures.
+ */
+std::vector<TurnPoint> GPXParser::getTurnPointsSlidingWindow(
+    float thresholdDeg, float minDist, float sharpTurnDeg,
+    int windowSize, const std::vector<wayPoint>& trackData)
+{
+    std::vector<TurnPoint> turnPoints;
+    float accumDist = 0.0f;
+
+    if (trackData.size() < 2 * windowSize + 1)
+        return turnPoints;
+
+    for (size_t i = windowSize; i < trackData.size() - windowSize; ++i)
+    {
+        float distWindow = 0.0f;
+        bool skipWindow = false;
+
+        for (int j = int(i - windowSize); j < int(i + windowSize); ++j)
+        {
+            float d = calcDist(trackData[j].lat, trackData[j].lon,
+                               trackData[j + 1].lat, trackData[j + 1].lon);
+
+            if (d > 200.0f)
+			{ // Skip if suspicious jump
+                skipWindow = true;
+                break;
+            }
+
+            distWindow += d;
+        }
+
+        if (skipWindow)
+            continue;
+
+        float brgStart = calcCourse(trackData[i - windowSize].lat, trackData[i - windowSize].lon,
+                                    trackData[i].lat, trackData[i].lon);
+        float brgEnd   = calcCourse(trackData[i].lat, trackData[i].lon,
+                                    trackData[i + windowSize].lat, trackData[i + windowSize].lon);
+        float diff = calcAngleDiff(brgEnd, brgStart);
+
+        accumDist += calcDist(trackData[i - 1].lat, trackData[i - 1].lon,
+                              trackData[i].lat, trackData[i].lon);
+
+        if (std::fabs(diff) > sharpTurnDeg)
+        {
+            turnPoints.push_back({static_cast<int>(i), diff, accumDist});
+            continue;
+        }
+
+        if (distWindow < minDist)
+            continue;
+
+        if (std::fabs(diff) > thresholdDeg)
+            turnPoints.push_back({static_cast<int>(i), diff, accumDist});
+    }
+
+    return turnPoints;
+}

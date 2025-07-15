@@ -201,9 +201,9 @@ void updateMainScreen(lv_timer_t *t)
 			else
 				heading = gps.gpsData.heading;
 			#else
-			heading = gps.gpsData.heading;
+				heading = gps.gpsData.heading;
 			#endif
-			lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
+				lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
 			break;
 
 		case NAV:
@@ -439,10 +439,10 @@ void updateNavEvent(lv_event_t *event)
 	else
 	{
 	#ifdef ENABLE_COMPASS
-		double wptCourse = calcCourse(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon) - compass.getHeading();
+		float wptCourse = calcCourse(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon) - compass.getHeading();
 	#endif
 	#ifndef ENABLE_COMPASS
-		double wptCourse = calcCourse(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon) - gps.gpsData.heading;
+		float wptCourse = calcCourse(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon) - gps.gpsData.heading;
 	#endif
 		lv_img_set_angle(arrowNav, (wptCourse * 10));
 	}
@@ -523,6 +523,8 @@ void createMainScr()
 	mapCompassWidget(mapTile);
 	// Map scale Widget
 	mapScaleWidget(mapTile);
+	// Turn by Turn navigation widget
+  	turnByTurnWidget(mapTile);
 	// Map Tile Toolbar
 	btnZoomOut = lv_img_create(mapTile);
 	lv_img_set_src(btnZoomOut, zoomOutIconFile);

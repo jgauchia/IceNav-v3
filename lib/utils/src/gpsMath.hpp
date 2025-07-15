@@ -13,18 +13,100 @@
 
 #define EARTH_RADIUS 6378137             /**< Earth radius in meters */
 #define METER_PER_PIXELS 156543.03       /**< Meters per pixel at zoom level 0 (latitude 0) */
+#define LUT_SIZE 65536                      /**< Number of entries in the lookup tables */
+#define LUT_RES (TWO_PI / (float)LUT_SIZE) /**< Angular resolution (radians per LUT step) */
 
-#define DEG2RAD(a) ((a) / (180 / M_PI))  /**< Convert degrees to radians */
-#define RAD2DEG(a) ((a) * (180 / M_PI))  /**< Convert radians to degrees */
+// Lookup tables (allocated in PSRAM if available, else in normal RAM)
+static float* sinLut = NULL;
+static float* cosLut = NULL;
+extern bool lutInit;
 
-extern double midLat;                    /**< Midpoint between two latitudes */
-extern double midLon;                    /**< Midpoint between two longitudes */
+/**
+ * @brief Converts degrees to radians.
+ *
+ * @param deg Angle in degrees.
+ * @return Angle in radians.
+ */
+static inline __attribute__((always_inline)) float DEG2RAD(float deg)
+{
+    return deg * (M_PI / 180.0);
+}
+
+/**
+ * @brief Converts radians to degrees.
+ *
+ * @param rad Angle in radians.
+ * @return Angle in degrees.
+ */
+static inline __attribute__((always_inline)) float RAD2DEG(float rad) 
+{
+    return rad * (180.0 / M_PI);
+}
+
+extern float midLat;                    /**< Midpoint between two latitudes */
+extern float midLon;                    /**< Midpoint between two longitudes */
 
 static const char *degreeFormat PROGMEM = "%03d\xC2\xB0 %02d\' %.2f\" %c"; /**< Format string for degrees (DDD°MM'SS" + hemisphere) */
+static const char* TAGMATH PROGMEM = "MATH";
 
-double calcDist(double lat1, double lon1, double lat2, double lon2);
+bool initTrigLUT();
+
+/**
+ * @brief Lookup sine value using precomputed LUT
+ *
+ * @param rad Angle in radians
+ * @return Sine of the angle
+ */
+static inline __attribute__((always_inline)) float sinLUT(float rad)
+{
+    if (!sinLut)
+        return sinf(rad);
+
+    rad -= TWO_PI * floorf(rad / TWO_PI);
+    if (rad < 0.0f) rad += TWO_PI;
+
+    float index = rad / LUT_RES;
+    int idx_low = (int)index;
+    int idx_high = (idx_low + 1) % LUT_SIZE;
+
+    float frac = index - idx_low;
+
+    float result = sinLut[idx_low] * (1.0f - frac) + sinLut[idx_high] * frac;
+
+    return result;
+}
+
+/**
+ * @brief Lookup cosine value using precomputed LUT
+ *
+ * @param rad Angle in radians
+ * @return Cosine of the angle
+ */
+static inline __attribute__((always_inline)) float cosLUT(float rad)
+{
+	if (!cosLut)
+		return cosf(rad);
+
+	// Normalize angle to [0, TWO_PI)
+	rad -= TWO_PI * floorf(rad / TWO_PI);
+	if (rad < 0.0f) rad += TWO_PI;
+
+	float index = rad / (float)LUT_RES;
+	int idx_low = (int)index;
+	int idx_high = (idx_low + 1) % LUT_SIZE;
+
+	float frac = index - idx_low;
+
+	float result = (float)cosLut[idx_low] * (1.0f - frac) + (float)cosLut[idx_high] * frac;
+
+	return result;
+}
+
+
+float calcDist(float lat1, float lon1, float lat2, float lon2);
 void calcMidPoint(float lat1, float lon1, float lat2, float lon2);
 float mapFloat(float x, float inMin, float inMax, float outMin, float outMax);
-char *latFormatString(double lat);
-char *lonFormatString(double lon);
-double calcCourse(double lat1, double lon1, double lat2, double lon2);
+char *latFormatString(float lat);
+char *lonFormatString(float lon);
+float calcCourse(float lat1, float lon1, float lat2, float lon2);
+float calcAngleDiff(float a, float b);

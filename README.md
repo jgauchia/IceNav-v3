@@ -22,7 +22,7 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 
 ## Screenshots
 
-|<img src="images/dev/splash.png">|<img src="images/dev/compass.jpg">|<img src="images/dev/rendermap.jpg">|<img src="images/dev/satelliteinfo.jpg">|
+|<img src="images/dev/splash.png">|<img src="images/dev/compass.jpg">|<img src="images/dev/mapnav.jpg">|<img src="images/dev/satelliteinfo.jpg">|
 |:-:|:-:|:-:|:-:|
 
 <details><summary>See more...</summary>
@@ -244,7 +244,7 @@ Please follow the instructions provided by [OSM_Extract](https://github.com/ares
 
 ## CLI
 
-IceNav has a basic CLI accessible via Serial and optionally via Telnet if enabled. When you access the CLI and type `help`, you should see the following commands:
+IceNav has a basic CLI accessible via Serial and optionally via Telnet if enabled (port 11000). When you access the CLI and type `help`, you should see the following commands:
 
 ```bash
 clear:          clear shell
@@ -273,6 +273,7 @@ Some extra details:
    mapScale     custom          true           Show scale meter in map
     mapComp     custom          true           Show compass in map
  mapCompRot     custom          true           Rotate map with the compass
+     simNav     custom          false          Indicates whether navigation simulation mode is enabled or disabled
       gpsTX     custom          43             GPS Tx gpio
       gpsRX     custom          44             GPS Rx gpio
      defLAT     custom          52.5200        Default latitude
@@ -337,8 +338,8 @@ To access the Web File Server, simply use any browser and go to the following ad
 - [ ] Multiple IMU's and Compass module implementation
 - [X] Power saving
 - [X] Vector maps
-- [ ] Google Maps navigation style (turn by turn)
-- [x] Optimize code
+- [X] Google Maps navigation style (turn by turn)
+- [X] Optimize code
 - [X] Fix bugs!
 - [X] Web file server
       

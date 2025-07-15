@@ -63,7 +63,11 @@ extern Gps gps;
 	Compass compass;
 #endif
 
-std::vector<wayPoint> trackData; /**< Container for storing track data */
+std::vector<wayPoint> trackData;     /**< Vector for storing track data */
+std::vector<TurnPoint> turnPoints;   /**< Vector for storing turn points */
+
+#include "navigation.hpp"
+NavState navState;
 
 static double transit, sunrise, sunset; /**< Variables to store solar transit, sunrise, and sunset times (in hours or fractional day) */
 
@@ -71,6 +75,7 @@ static double transit, sunrise, sunset; /**< Variables to store solar transit, s
 #include "settings.hpp" 
 #include "lvglSetup.hpp"
 #include "tasks.hpp"
+
 
 /**
  * @brief Calculate Sunrise and Sunset
@@ -108,6 +113,8 @@ void setup()
 	gpsMutex = xSemaphoreCreateMutex();
 	esp_log_level_set("*", ESP_LOG_DEBUG);
 	esp_log_level_set("storage", ESP_LOG_DEBUG);
+
+	lutInit = initTrigLUT();
 
 	// Force GPIO0 to internal PullUP  during boot (avoid LVGL key read)
 	#ifdef POWER_SAVE
@@ -214,5 +221,15 @@ void loop()
 			eventRefresh.send("refresh", nullptr, millis());
 			eventRefresh.send("Folder deleted", "updateStatus", millis());
 		}
-  }
+  	}
+
+	if (isTrackLoaded)
+	{
+		if (navSet.simNavigation)
+			gps.simFakeGPS(trackData,12,200);
+
+		if (gps.gpsData.speed !=0)
+			updateNavigation(gps.gpsData.latitude, gps.gpsData.longitude, gps.gpsData.heading, gps.gpsData.speed,
+							 trackData, turnPoints, navState,20,200);
+	}
 }

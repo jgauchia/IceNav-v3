@@ -10,6 +10,7 @@
 
 #include <EasyPreferences.hpp>
 #include <NMEAGPS.h>
+#include "globalGpxDef.h"
 #include "tft.hpp"
 #include "gps.hpp"
 #include "battery.hpp"
@@ -74,6 +75,17 @@ struct MAP
     bool showMapScale;      /**< Show map scale on screen */
 };
 extern MAP mapSet; /**< Global instance for map settings */
+
+/**
+ * @brief Structure for navigation settings
+ *
+ * @details Contains navigation configuration 
+ */
+struct NAVIGATION 
+{
+    bool simNavigation;     /**< Indicates whether navigation simulation mode is enabled or disabled. */
+};
+extern NAVIGATION navSet; /**< Global instance for navigation settings */
 
 void loadPreferences();
 

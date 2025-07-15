@@ -19,6 +19,7 @@
 #include "esp_log.h"
 #include "tinyxml2.h"
 #include "globalGpxDef.h"
+#include "gpsMath.hpp"
 
 static const char* TAGGPX PROGMEM = "GPXParser";
 
@@ -55,11 +56,12 @@ public:
 	template <typename T>
 	bool insertTagAttrOrElem(const char* tag, const char* attribute, const char* element, const T& value);
 
-	static std::map<std::string, std::vector<std::string>> getTagElementList(const char* tag, const char* element, const std::string& folderPath);
-	bool deleteTagByName(const char* tag, const char* name);
-	wayPoint getWaypointInfo(const char* name);
-	bool addWaypoint(const wayPoint& wp);
-	bool loadTrack(std::vector<wayPoint>& trackData);
+    static std::map<std::string, std::vector<std::string>> getTagElementList(const char* tag, const char* element, const std::string& folderPath);
+    bool deleteTagByName(const char* tag, const char* name);
+    wayPoint getWaypointInfo(const char* name);
+    bool addWaypoint(const wayPoint& wp);
+    bool loadTrack(std::vector<wayPoint>& trackData);
+	std::vector<TurnPoint> getTurnPointsSlidingWindow(float thresholdDeg, float minDist, float sharpTurnDeg,int windowSize, const std::vector<wayPoint>& trackData);
 
 	std::string filePath;
 };

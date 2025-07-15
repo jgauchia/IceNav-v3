@@ -23,6 +23,7 @@ static const char* TAG PROGMEM = "GPS";
 
 Gps::Gps() {}
 
+
 /**
  * @brief Init GPS and custom NMEA parsing.
  *
@@ -79,15 +80,15 @@ void Gps::init()
  * @details Returns the current latitude using the GPS fix if available, otherwise uses the system configuration
  * 			or a predefined default value. Returns 0.0 if latitude is not defined.
  *
- * @return double Latitude value or 0.0 if not defined.
+ * @return Latitude value or 0.0 if not defined.
  */
-double Gps::getLat()
+float Gps::getLat()
 {
 	{
 		if (fix.valid.location)
 		return fix.latitude();
-		else if (cfg.getDouble(PKEYS::KLAT_DFL, 0.0) != 0.0)
-		return cfg.getDouble(PKEYS::KLAT_DFL, 0.0);
+		else if (cfg.getFloat(PKEYS::KLAT_DFL, 0.0) != 0.0)
+		return cfg.getFloat(PKEYS::KLAT_DFL, 0.0);
 		else
 		{
 	#ifdef DEFAULT_LAT
@@ -105,14 +106,14 @@ double Gps::getLat()
  * @details Returns the current longitude using the GPS fix if available, otherwise uses the system configuration
  * 			or a predefined default value. Returns 0.0 if longitude is not defined.
  *
- * @return double Longitude value or 0.0 if not defined.
+ * @return Longitude value or 0.0 if not defined.
  */
-double Gps::getLon()
+float Gps::getLon()
 {
 	if (fix.valid.location)
 		return fix.longitude();
-	else if (cfg.getDouble(PKEYS::KLON_DFL, 0.0) != 0.0)
-		return cfg.getDouble(PKEYS::KLON_DFL, 0.0);
+	else if (cfg.getFloat(PKEYS::KLON_DFL, 0.0) != 0.0)
+		return cfg.getFloat(PKEYS::KLON_DFL, 0.0);
 	else
 	{
 	#ifdef DEFAULT_LON
@@ -189,7 +190,7 @@ void Gps::getGPSData()
 	if (fix.valid.vdop)
 		gpsData.vdop = (float)fix.vdop / 1000;
 
-	// Satellite info
+	// // Satellite info
 	gpsData.satInView = (uint8_t)GPS.sat_count;
 	for (uint8_t i = 0; i < gpsData.satInView; i++)
 	{
@@ -199,11 +200,20 @@ void Gps::getGPSData()
 		satTracker[i].snr = (uint8_t)GPS.satellites[i].snr;
 		satTracker[i].active = GPS.satellites[i].tracked;
 		strncpy(satTracker[i].talker_id, GPS.satellites[i].talker_id, 3);
+
 		int H = canvasRadius * (90 - satTracker[i].elev) / 90;
-		satTracker[i].posX = canvasCenter_X + H * sin(DEG2RAD(satTracker[i].azim));
-		satTracker[i].posY = canvasCenter_Y - H * cos(DEG2RAD(satTracker[i].azim));
+
+		float azimRad = DEG2RAD((float)satTracker[i].azim);
+		float sinAzim = lutInit ? sinLUT(azimRad) : sinf(azimRad);
+		float cosAzim = lutInit ? cosLUT(azimRad) : cosf(azimRad);
+
+		satTracker[i].posX = canvasCenter_X + H * sinAzim;
+		satTracker[i].posY = canvasCenter_Y - H * cosAzim;
 	}
+
 }
+
+
 
 /**
  * @brief Detect the baud rate of the incoming GPS signal on a given RX pin.
@@ -404,3 +414,85 @@ void Gps::setLocalTime(NeoGPS::time_t gpsTime, const char* tz)
 
 	ESP_LOGI(TAG, "UTC: %i", UTC);
 }
+
+/**
+ * @brief Simulates a GPS signal over a preloaded track.
+ *
+ * @details Advances through the provided track data, simulating GPS coordinates and heading.
+ *          Applies random offset noise and smoothing to emulate realistic GPS signal behavior.
+ *          Updates the simulated GPS data every second if the step distance is above a threshold.
+ *
+ * @param trackData Vector of wayPoints representing the preloaded GPX track.
+ * @param speed Simulated speed in km/h to assign to the GPS data.
+ * @param refresh Simulation update rate refresh in ms
+ */
+void Gps::simFakeGPS(const std::vector<wayPoint>& trackData, uint16_t speed, uint16_t refresh)
+{
+	if (millis() - lastSimulationTime > refresh) 
+    {  
+        lastSimulationTime = millis();
+
+        if (simulationIndex < (int)trackData.size() - 2) 
+        {
+			if (simulationIndex == 0)
+			{
+  				// --- First point: initialize simulation state ---
+                smoothedLat = trackData[0].lat;
+                smoothedLon = trackData[0].lon;
+                lastSimLat = smoothedLat;
+                lastSimLon = smoothedLon;
+                filteredHeading = 0.0f;
+
+                gpsData.latitude = smoothedLat;
+                gpsData.longitude = smoothedLon;
+                gpsData.heading = filteredHeading;
+                gpsData.speed = speed;
+			}
+			else
+			{
+				float rawLat = trackData[simulationIndex].lat;
+				float rawLon = trackData[simulationIndex].lon;
+
+				float stepDist = calcDist(rawLat, rawLon, lastSimLat, lastSimLon);
+				if (stepDist < minStepDist) 
+				{
+					simulationIndex++;
+					return;
+				}
+
+				// --- Apply smoothing BEFORE adding noise ---
+				smoothedLat = posAlpha * rawLat + (1.0f - posAlpha) * smoothedLat;
+				smoothedLon = posAlpha * rawLon + (1.0f - posAlpha) * smoothedLon;
+
+				// --- Small noise to simulate GPS jitter ---
+				float latOffset = random(-10, 10) / 100000.0f;  // Smaller noise range
+				float lonOffset = random(-10, 10) / 100000.0f;
+
+				float noisyLat = smoothedLat + latOffset;
+				float noisyLon = smoothedLon + lonOffset;
+
+				// --- Heading estimation ---
+				int nextIdx = min(simulationIndex + headingLookahead, (int)trackData.size() - 1);
+				float desiredHeading = calcCourse(smoothedLat, smoothedLon,
+												trackData[nextIdx].lat,
+												trackData[nextIdx].lon);
+
+				filteredHeading = headAlpha * desiredHeading + (1.0f - headAlpha) * filteredHeading;
+
+				// --- Final output ---
+				gpsData.latitude = noisyLat;
+				gpsData.longitude = noisyLon;
+				gpsData.heading = filteredHeading;
+				gpsData.speed = speed;
+
+				lastSimLat = rawLat;
+				lastSimLon = rawLon;
+			}
+			simulationIndex++;
+        } 
+        else 
+        {
+            ESP_LOGI(TAG,"End of GPS signal simulation");
+        }
+    }
+} 

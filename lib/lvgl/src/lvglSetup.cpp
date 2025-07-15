@@ -17,7 +17,6 @@ lv_style_t styleObjectSel; /**< Object selected style. */
 
 lv_group_t *scrGroup;   /**< LVGL group for screen. */
 lv_group_t *keyGroup;   /**< LVGL group for GPIO keys. */
-lv_obj_t *powerMsg;     /**< Power message object. */
 
 Power power;
 uint32_t DOUBLE_TOUCH_EVENT; /**< Event identifier for double touch gesture. */
@@ -36,15 +35,15 @@ Maps mapView;
  */
 void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 { 
-	uint32_t w = (area->x2 - area->x1 + 1);
-	uint32_t h = (area->y2 - area->y1 + 1);
+    const uint32_t w = area->x2 - area->x1 + 1;
+    const uint32_t h = area->y2 - area->y1 + 1;
 
-	tft.setSwapBytes(true);
-	tft.setAddrWindow(area->x1, area->y1, w, h);
-	tft.pushImageDMA(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1, (uint16_t*)px_map);
-	tft.setSwapBytes(false);
+    tft.setSwapBytes(true);
+    tft.setAddrWindow(area->x1, area->y1, w, h);
+    tft.pushImageDMA(area->x1, area->y1, w, h, reinterpret_cast<uint16_t*>(px_map));
+    tft.setSwapBytes(false);
 
-	lv_display_flush_ready(disp);
+    lv_display_flush_ready(disp);
 }
 
 /**
@@ -218,15 +217,7 @@ void IRAM_ATTR gpioRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
  */
 void gpioLongEvent(lv_event_t *event)
 {
-	powerMsg = lv_msgbox_create(lv_scr_act());
-	lv_obj_set_width(powerMsg,TFT_WIDTH);
-	lv_obj_set_align(powerMsg,LV_ALIGN_CENTER);
-	lv_obj_set_style_text_font(powerMsg, fontDefault, 0);
-	lv_obj_t *labelText = lv_msgbox_get_content(powerMsg);
-	lv_obj_set_style_text_align(labelText, LV_TEXT_ALIGN_CENTER, 0);
-	lv_msgbox_add_text(powerMsg, LV_SYMBOL_WARNING " This device will shutdown shortly");
-	lv_obj_invalidate(powerMsg);
-	lv_refr_now(display);
+	showMsg(LV_SYMBOL_WARNING, " This device will shutdown shortly");
 	vTaskDelay(2000);
 	power.deviceShutdown();
 }
@@ -238,17 +229,7 @@ void gpioLongEvent(lv_event_t *event)
  */
 void gpioClickEvent(lv_event_t *event)
 {
-	lv_indev_reset_long_press(lv_indev_active());
-	lv_indev_reset(NULL,lv_scr_act());
-	powerMsg = lv_msgbox_create(lv_scr_act());
-	lv_obj_set_width(powerMsg,TFT_WIDTH);
-	lv_obj_set_align(powerMsg,LV_ALIGN_CENTER);
-	lv_obj_set_style_text_font(powerMsg, fontDefault, 0);
-	lv_obj_t *labelText = lv_msgbox_get_content(powerMsg);
-	lv_obj_set_style_text_align(labelText, LV_TEXT_ALIGN_CENTER, 0);
-	lv_msgbox_add_text(powerMsg, LV_SYMBOL_WARNING " This device will sleep shortly");
-	lv_obj_invalidate(powerMsg);
-	lv_refr_now(display);
+	showMsg(LV_SYMBOL_WARNING, " This device will sleep shortly");
 	vTaskDelay(2000);
 	power.deviceSuspend();
 }

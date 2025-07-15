@@ -38,8 +38,8 @@ extern uint8_t gpxAction; /**< Indicates the current GPX waypoint action to be p
  */
 struct wayPoint
 {
-	double    lat;     /**< Latitude of the waypoint. */
-	double    lon;     /**< Longitude of the waypoint. */
+	float     lat;     /**< Latitude of the waypoint. */
+	float     lon;     /**< Longitude of the waypoint. */
 	float     ele;     /**< Elevation of the waypoint. */
 	char*     time;    /**< Timestamp of the waypoint (ISO 8601). */
 	char*     name;    /**< Name of the waypoint. */
@@ -54,7 +54,19 @@ struct wayPoint
 };
 
 /**
- * @brief GPX header file format
+ * @brief Track turn points structure
+ *
+ * @details Structure representing a track turn point
+ */
+struct TurnPoint 
+{
+	int idx;           /**< Index of the track point */
+	float angle;       /**< Turn angle at this point (positive = right, negative = left) */
+	float distance;    /**< Distance from start to this point (in meters) */
+}; 
+
+/**
+ * @Brief GPX header file format
  *
  * @details Static string containing the standard GPX 1.0 file header, to be used when creating new GPX files.
  */

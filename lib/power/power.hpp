@@ -19,6 +19,8 @@
 #include "lvgl.h"
 #include "globalGuiDef.h"
 
+void closeMsg();
+
 /**
  * @class Power
  * @brief Power management class for device sleep and shutdown operations

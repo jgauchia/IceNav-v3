@@ -25,6 +25,18 @@ lv_obj_t *miniCompass;
 lv_obj_t *mapCompassImg;
 lv_obj_t *scaleWidget;
 lv_obj_t *scaleLabel;
+lv_obj_t *turnByTurn;
+lv_obj_t *turnDistLabel;
+lv_obj_t *turnImg;
+
+LV_IMG_DECLARE(straight);
+LV_IMG_DECLARE(slleft);
+LV_IMG_DECLARE(slright);
+LV_IMG_DECLARE(tleft);
+LV_IMG_DECLARE(tright);
+LV_IMG_DECLARE(uleft);
+LV_IMG_DECLARE(uright);
+LV_IMG_DECLARE(finish);
 
 extern Gps gps;
 
@@ -376,4 +388,36 @@ void mapScaleWidget(lv_obj_t *screen)
     lv_scale_set_total_tick_count(scale, 2);
     lv_scale_set_major_tick_every(scale, 2);
     lv_scale_set_range(scale, 10, 20);
+}
+
+/**
+ * @brief Turn By Turn Navigation widget
+ *
+ * @param screen Pointer to the LVGL screen object where the navigationwidget will be created.
+ */
+void turnByTurnWidget(lv_obj_t *screen)
+{
+    turnByTurn = lv_obj_create(screen);
+    lv_obj_set_size(turnByTurn,60,100);
+    lv_obj_clear_flag(turnByTurn, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_flex_flow(turnByTurn, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(turnByTurn, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_bg_opa(turnByTurn, 128, 0);
+    lv_obj_set_style_border_color(turnByTurn, lv_color_black(), 0);
+    lv_obj_set_style_border_width(turnByTurn, 1, 0);
+    lv_obj_set_style_border_opa(turnByTurn,128,0);
+    lv_obj_align(turnByTurn, LV_ALIGN_TOP_RIGHT, 0, 60);
+
+
+    turnImg = lv_img_create(turnByTurn);
+    lv_img_set_src(turnImg, &straight);
+    
+    turnDistLabel = lv_label_create(turnByTurn);
+    lv_obj_set_style_text_font(turnDistLabel, &lv_font_montserrat_18, 0);
+    lv_label_set_text_fmt(turnDistLabel, "%4d", 0);
+    lv_obj_t *obj = lv_label_create(turnByTurn);
+    lv_obj_set_style_text_font(obj, &lv_font_montserrat_18, 0);
+    lv_label_set_text_static(obj,"m.");
+
+    lv_obj_add_flag(turnByTurn,LV_OBJ_FLAG_HIDDEN);
 }

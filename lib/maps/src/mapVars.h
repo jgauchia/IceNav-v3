@@ -12,6 +12,15 @@
 #include "compass.h"
 #include "waypoint.h"
 #include "navfinish.h"
+#include "straight.h"
+#include "slleft.h"
+#include "slright.h"
+#include "tleft.h"
+#include "tright.h"
+#include "uleft.h"
+#include "uright.h"
+#include "finish.h"
+#include "outtrack.h"
 
 #include "globalGpxDef.h"
 
@@ -66,7 +75,7 @@ struct BBox
 	BBox(Point32 min, Point32 max) : min(min), max(max){};
 	BBox operator-(const Point32 p) { return BBox(min - p, max - p); };
 	bool containsPoint(const Point32 p);
-	bool intersects(const BBox b);
+	bool intersects(const BBox b) const;
 	Point32 min;
 	Point32 max;
 };
@@ -82,8 +91,6 @@ static const char *map_scale[] PROGMEM = {"5000 Km", "2500 Km", "1500 Km",
 										"150 m", "80 m", "40 m",
 										"20 m", "10 m"
 										}; /**< Scale label for map */
-
-
 
 /**
  * @brief Vector map object colours

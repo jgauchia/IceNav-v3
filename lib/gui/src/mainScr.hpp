@@ -16,6 +16,7 @@
 #include "navScr.hpp"
 #include "satInfoScr.hpp"
 #include "compass.hpp"
+#include "navigation.hpp"
 
 extern lv_timer_t *mainTimer;    /**< Main Screen Timer */
 #define UPDATE_MAINSCR_PERIOD 30 /**< Main Screen update period (ms) */

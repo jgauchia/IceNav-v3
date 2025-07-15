@@ -8,12 +8,12 @@
 
 #pragma once
 
+#include "globalGpxDef.h"
 #include <NMEAGPS.h>
 #include <Streamers.h>
 #include "settings.hpp"
+#include <vector>
 
-#define DEG2RAD(a) ((a) / (180 / M_PI)) /**< Converts degrees to radians. @param a Angle in degrees. */
-#define RAD2DEG(a) ((a) * (180 / M_PI)) /**< Converts radians to degrees. @param a Angle in radians. */
 
 extern uint8_t GPS_TX; /**< GPS TX pin number. */
 extern uint8_t GPS_RX; /**< GPS RX pin number. */
@@ -66,8 +66,8 @@ class Gps
 public:
 	Gps();
 	void init();
-	double getLat();
-	double getLon();
+	float getLat();
+	float getLon();
 	void getGPSData();
 	long detectRate(int rxPin);
 	long autoBaud();
@@ -76,6 +76,7 @@ public:
 	bool hasLocationChange();
 	bool isDOPChanged();
 	void setLocalTime(NeoGPS::time_t gpsTime, const char* tz);
+	void simFakeGPS(const std::vector<wayPoint>& trackData, uint16_t speed, uint16_t refresh);
 
 	/**
 	* @struct GPSDATA
@@ -87,8 +88,8 @@ public:
         uint8_t fixMode;      /**< GPS fix mode. */
         int16_t altitude;     /**< Altitude in meters. */
         uint16_t speed;       /**< Speed in km/h or knots. */
-        double latitude;      /**< Latitude in decimal degrees. */
-        double longitude;     /**< Longitude in decimal degrees. */
+        float latitude;       /**< Latitude in decimal degrees. */
+        float longitude;      /**< Longitude in decimal degrees. */
         uint16_t heading;     /**< Heading in degrees. */
         float hdop;           /**< Horizontal dilution of precision. */
         float pdop;           /**< Position dilution of precision. */
@@ -118,9 +119,25 @@ public:
 private:
     uint16_t previousSpeed;      /**< Previous speed value for change detection. */
     int16_t previousAltitude;    /**< Previous altitude value for change detection. */
-    double previousLatitude;     /**< Previous latitude for change detection. */
-    double previousLongitude;    /**< Previous longitude for change detection. */
+    float previousLatitude;     /**< Previous latitude for change detection. */
+    float previousLongitude;    /**< Previous longitude for change detection. */
     float previousHdop;          /**< Previous HDOP for change detection. */
     float previousPdop;          /**< Previous PDOP for change detection. */
     float previousVdop;          /**< Previous VDOP for change detection. */
+
+	/**
+	 * @brief Variables for "fake" GPS signal from loaded track (simulation)
+	 * 
+	 */
+	const float posAlpha = 0.2f;           /**< Position smoothing factor, range 0 (no smoothing) to 1 (full smoothing) */
+	const float headAlpha = 0.3f;          /**< Heading smoothing factor, controls how fast heading adapts */
+	const float minStepDist = 5.0f;        /**< Minimum distance in meters between simulation steps to update */
+	const int headingLookahead = 3;        /**< Number of track points ahead used to calculate the heading */
+	float smoothedLat = 0.0f;              /**< Smoothed latitude after filtering */
+	float smoothedLon = 0.0f;              /**< Smoothed longitude after filtering */
+	float filteredHeading = 0.0f;          /**< Smoothed heading after filtering */
+	float lastSimLat = 0.0f;       		   /**< Last simulated latitude used for step distance */
+	float lastSimLon = 0.0f;     	       /**< Last simulated longitude used for step distance */
+	int simulationIndex = 0;                   /**< Current index in track simulation */
+	unsigned long lastSimulationTime = 0;      /**< Timestamp of last simulation update in milliseconds */
 };
