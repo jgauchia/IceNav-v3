@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# Fast mass copy using rsync (no TAR compression issues)
+# Fast mass copy using rsync with intelligent sync
 # Usage: ./rsync_copy.sh [SOURCE] [DESTINATION] [DEVICE]
 
 # Colors for output
@@ -18,31 +18,19 @@ show_help() {
     echo "Usage: $0 [SOURCE] [DESTINATION] [DEVICE]"
     echo ""
     echo "Features:"
-    echo "  - NO compression issues"
+    echo "  - Intelligent sync (only copies changed files)"
     echo "  - Built-in progress monitoring"
     echo "  - Resumable transfers"
     echo "  - Optimized for many small files"
     echo "  - Real-time speed display"
     echo "  - Preserves source folder name"
+    echo "  - Automatic cleanup of obsolete files"
     echo ""
     echo "Examples:"
     echo "  $0 /home/user/files /mnt/sd /dev/sdc1"
     echo "  $0 /var/data /media/usb /dev/sdb1"
     echo ""
     exit 0
-}
-
-# Function to draw progress bar
-draw_progress_bar() {
-    local percent=$1
-    local width=50
-    local filled=$((percent * width / 100))
-    local empty=$((width - filled))
-    
-    printf "\r["
-    printf "%${filled}s" | tr ' ' '='
-    printf "%${empty}s" | tr ' ' '.'
-    printf "] %3d%%" "$percent"
 }
 
 # Verify parameters
@@ -93,6 +81,7 @@ echo "  Source: $SOURCE"
 echo "  Source folder name: $SOURCE_FOLDER_NAME"
 echo "  Destination: $DESTINATION"
 echo "  Device: $DEVICE"
+echo "  Mode: Intelligent sync (only changed files)"
 echo ""
 
 # STEP 1: Mount device
@@ -112,74 +101,92 @@ echo -e "${GREEN}   ✓ Device mounted successfully${NC}"
 
 # STEP 2: Space verification
 echo -e "${YELLOW}2. Verifying available space...${NC}"
+
+# Get source size in bytes
 SOURCE_SIZE=$(du -sb "$SOURCE" | cut -f1)
-DESTINATION_FREE=$(df -B1 "$DESTINATION" | awk 'NR==2 {print $4}')
-SOURCE_SIZE_HR=$(du -sh "$SOURCE" | cut -f1)
-DESTINATION_FREE_HR=$(df -h "$DESTINATION" | awk 'NR==2 {print $4}')
+echo "   Source size: $(du -sh "$SOURCE" | cut -f1)"
 
-echo "   Source size: $SOURCE_SIZE_HR"
-echo "   Free space: $DESTINATION_FREE_HR"
+# Initialize with default
+DESTINATION_FREE="0"
 
-if [ "$SOURCE_SIZE" -gt "$DESTINATION_FREE" ]; then
-    echo -e "${RED}Error: Not enough space at destination${NC}"
-    exit 1
+# Method 1: Try df -B1 (most compatible)
+DF_OUTPUT=$(df -B1 "$DESTINATION" 2>/dev/null | tail -n 1)
+if [ -n "$DF_OUTPUT" ]; then
+    # Extract available space (4th column)
+    DESTINATION_FREE=$(echo "$DF_OUTPUT" | awk '{print $4}' | grep -E '^[0-9]+$' || echo "0")
 fi
 
-echo -e "${GREEN}   ✓ Sufficient space${NC}"
-
-# STEP 3: Count files for progress estimation
-echo -e "${YELLOW}3. Analyzing source files...${NC}"
-echo "   Counting files (this may take a moment)..."
-TOTAL_FILES=$(find "$SOURCE" -type f | wc -l)
-TOTAL_DIRS=$(find "$SOURCE" -type d | wc -l)
-
-echo "   Total files: $TOTAL_FILES"
-echo "   Total directories: $TOTAL_DIRS"
-
-if [ "$TOTAL_FILES" -eq 0 ]; then
-    echo -e "${RED}Error: No files found in $SOURCE${NC}"
-    exit 1
+# Method 2: Fallback to df with KB
+if [ "$DESTINATION_FREE" = "0" ]; then
+    DF_KB=$(df "$DESTINATION" 2>/dev/null | tail -1 | awk '{print $4}' | tr -d 'K' | grep -E '^[0-9]+$' || echo "0")
+    if [ "$DF_KB" != "0" ]; then
+        DESTINATION_FREE=$((DF_KB * 1024))
+    fi
 fi
 
-# Estimate time based on file count
-if [ "$TOTAL_FILES" -lt 10000 ]; then
-    ESTIMATED_TIME="1-3 minutes"
-elif [ "$TOTAL_FILES" -lt 100000 ]; then
-    ESTIMATED_TIME="3-10 minutes"
-elif [ "$TOTAL_FILES" -lt 1000000 ]; then
-    ESTIMATED_TIME="10-30 minutes"
+# Ensure DESTINATION_FREE is numeric
+if ! [[ "$DESTINATION_FREE" =~ ^[0-9]+$ ]]; then
+    DESTINATION_FREE="0"
+fi
+
+echo "   Free space: $(echo "$DESTINATION_FREE" | awk '{printf "%.1fG", $1/1024/1024/1024}')"
+
+# Check space only if we have valid numbers
+if [ "$DESTINATION_FREE" -gt 0 ] && [[ "$SOURCE_SIZE" =~ ^[0-9]+$ ]]; then
+    REQUIRED_SPACE=$((SOURCE_SIZE + SOURCE_SIZE / 10))
+    echo "   Required space (with 10% margin): $(echo "$REQUIRED_SPACE" | awk '{printf "%.1fG", $1/1024/1024/1024}')"
+    
+    if [ "$REQUIRED_SPACE" -gt "$DESTINATION_FREE" ]; then
+        echo -e "${RED}Error: Not enough space at destination${NC}"
+        echo "   Required: $(echo "$REQUIRED_SPACE" | awk '{printf "%.1fG", $1/1024/1024/1024}')"
+        echo "   Available: $(echo "$DESTINATION_FREE" | awk '{printf "%.1fG", $1/1024/1024/1024}')"
+        exit 1
+    fi
+    echo -e "${GREEN}   ✓ Sufficient space available${NC}"
 else
-    ESTIMATED_TIME="30-60 minutes"
+    echo -e "${YELLOW}   Warning: Could not verify space accurately, proceeding...${NC}"
+    echo "   Debug: DESTINATION_FREE='$DESTINATION_FREE', SOURCE_SIZE='$SOURCE_SIZE'"
 fi
 
-echo "   Estimated time: $ESTIMATED_TIME"
+# STEP 3: Analyze sync requirements
+echo -e "${YELLOW}3. Analyzing sync requirements...${NC}"
+
+TOTAL_FILES=$(find "$SOURCE" -type f 2>/dev/null | wc -l)
+echo "   Source files: $TOTAL_FILES"
+
+# Check if destination exists to determine sync type
+if [ -d "$DESTINATION/$SOURCE_FOLDER_NAME" ]; then
+    DEST_FILES=$(find "$DESTINATION/$SOURCE_FOLDER_NAME" -type f 2>/dev/null | wc -l)
+    echo "   Existing destination files: $DEST_FILES"
+    echo "   Sync mode: Update existing destination"
+else
+    echo "   Sync mode: Initial copy (destination doesn't exist)"
+fi
 
 # STEP 4: Device speed test
 echo -e "${YELLOW}4. Testing device write speed...${NC}"
 TEST_START=$(date +%s)
-dd if=/dev/zero of="$DESTINATION/speedtest.tmp" bs=10M count=1 oflag=direct status=none 2>/dev/null
+dd if=/dev/zero of="$DESTINATION/speedtest.tmp" bs=10M count=1 oflag=direct status=none 2>/dev/null || true
 TEST_END=$(date +%s)
 TEST_TIME=$((TEST_END - TEST_START))
 if [ $TEST_TIME -eq 0 ]; then TEST_TIME=1; fi
 WRITE_SPEED=$((10 / TEST_TIME))
-rm "$DESTINATION/speedtest.tmp"
+rm -f "$DESTINATION/speedtest.tmp"
 
 echo "   Write speed: ~${WRITE_SPEED}MB/s"
 
-# STEP 5: Rsync copy with progress
-echo -e "${YELLOW}5. Starting rsync copy...${NC}"
-echo "   Progress will be shown below:"
-echo "   Destination folder will be: $DESTINATION/$SOURCE_FOLDER_NAME/"
+# STEP 5: Rsync sync with intelligent behavior
+echo -e "${YELLOW}5. Starting intelligent sync...${NC}"
+echo "   Destination folder: $DESTINATION/$SOURCE_FOLDER_NAME/"
+echo "   Rsync will:"
+echo "   - Only copy new/modified files"
+echo "   - Remove obsolete files from destination"
+echo "   - Resume interrupted transfers"
 echo ""
 
 RSYNC_START=$(date +%s)
 
-# Create temporary log file for rsync output
-RSYNC_LOG=$(mktemp /tmp/rsync_progress.XXXXXX)
-
-# Use rsync with standard progress but less verbose
-echo "   Copying $TOTAL_FILES files with rsync progress..."
-
+# Rsync with intelligent sync - only copies what's needed
 rsync -a \
     --info=progress2 \
     --partial \
@@ -187,57 +194,54 @@ rsync -a \
     --no-compress \
     --delete-during \
     --prune-empty-dirs \
+    --human-readable \
     "$SOURCE/" "$DESTINATION/$SOURCE_FOLDER_NAME/"
 
 # Check rsync exit status
-if [ $? -ne 0 ]; then
-    echo -e "${RED}Error: rsync failed${NC}"
+RSYNC_EXIT_CODE=$?
+if [ $RSYNC_EXIT_CODE -ne 0 ]; then
+    echo -e "${RED}Error: rsync failed with exit code $RSYNC_EXIT_CODE${NC}"
     exit 1
 fi
 
 RSYNC_END=$(date +%s)
 RSYNC_TIME=$((RSYNC_END - RSYNC_START))
 
-# Clean up log file
-rm -f "$RSYNC_LOG"
-
 echo ""
-echo -e "${GREEN}   ✓ Rsync completed successfully${NC}"
+echo -e "${GREEN}   ✓ Sync completed successfully${NC}"
 
 # STEP 6: Verification
-echo -e "${YELLOW}6. Verifying copy...${NC}"
+echo -e "${YELLOW}6. Verifying sync result...${NC}"
 
-# Count files in destination
-echo "   Counting destination files..."
-DEST_FILES=$(find "$DESTINATION/$SOURCE_FOLDER_NAME" -type f 2>/dev/null | wc -l)
+DEST_FILES_FINAL=$(find "$DESTINATION/$SOURCE_FOLDER_NAME" -type f 2>/dev/null | wc -l)
 DEST_SIZE=$(du -sh "$DESTINATION/$SOURCE_FOLDER_NAME" 2>/dev/null | cut -f1)
 
 echo "   Source files: $TOTAL_FILES"
-echo "   Destination files: $DEST_FILES"
-echo "   Source size: $SOURCE_SIZE_HR"
+echo "   Destination files: $DEST_FILES_FINAL"
+echo "   Source size: $(du -sh "$SOURCE" | cut -f1)"
 echo "   Destination size: $DEST_SIZE"
 
-if [ "$TOTAL_FILES" -ne "$DEST_FILES" ]; then
-    echo -e "${YELLOW}   Warning: File count difference detected${NC}"
-    echo "   This might be due to permissions or special files"
+if [ "$TOTAL_FILES" -eq "$DEST_FILES_FINAL" ]; then
+    echo -e "${GREEN}   ✓ File count matches perfectly${NC}"
 else
-    echo -e "${GREEN}   ✓ File count matches${NC}"
+    DIFF=$((TOTAL_FILES - DEST_FILES_FINAL))
+    echo -e "${YELLOW}   Warning: File count difference: $DIFF files${NC}"
 fi
 
-# STEP 7: Sample verification (check a few random files)
+# STEP 7: Sample integrity check
 echo -e "${YELLOW}7. Sample integrity check...${NC}"
-echo "   Checking 5 random files..."
+echo "   Checking 10 random files..."
 
 SAMPLE_COUNT=0
 SAMPLE_ERRORS=0
 
-for file in $(find "$SOURCE" -type f | shuf | head -5); do
+for file in $(find "$SOURCE" -type f 2>/dev/null | shuf | head -10); do
     SAMPLE_COUNT=$((SAMPLE_COUNT + 1))
     rel_path=${file#$SOURCE/}
     dest_file="$DESTINATION/$SOURCE_FOLDER_NAME/$rel_path"
     
     if [ -f "$dest_file" ]; then
-        if cmp -s "$file" "$dest_file"; then
+        if cmp -s "$file" "$dest_file" 2>/dev/null; then
             echo "   ✓ $rel_path"
         else
             echo "   ✗ $rel_path (content differs)"
@@ -250,18 +254,24 @@ for file in $(find "$SOURCE" -type f | shuf | head -5); do
 done
 
 if [ $SAMPLE_ERRORS -eq 0 ]; then
-    echo -e "${GREEN}   ✓ Sample verification passed${NC}"
+    echo -e "${GREEN}   ✓ Sample verification passed (${SAMPLE_COUNT}/${SAMPLE_COUNT} files OK)${NC}"
 else
     echo -e "${YELLOW}   Warning: $SAMPLE_ERRORS/$SAMPLE_COUNT sample files had issues${NC}"
 fi
 
 # STEP 8: Final sync and unmount
 echo -e "${YELLOW}8. Finalizing...${NC}"
+echo "   Syncing filesystem..."
 sync
 sleep 2
-sudo umount "$DESTINATION"
 
-# Calculate speeds
+echo "   Unmounting device..."
+sudo umount "$DESTINATION"
+sleep 1
+
+echo -e "${GREEN}   ✓ Device unmounted safely${NC}"
+
+# Calculate performance stats
 TOTAL_TIME=$RSYNC_TIME
 if [ $TOTAL_TIME -gt 0 ]; then
     AVG_SPEED=$((SOURCE_SIZE / 1024 / 1024 / TOTAL_TIME))
@@ -272,18 +282,28 @@ else
 fi
 
 echo ""
-echo -e "${GREEN}=== COPY COMPLETED SUCCESSFULLY ===${NC}"
+echo -e "${GREEN}=== SYNC COMPLETED SUCCESSFULLY ===${NC}"
 echo -e "${GREEN}End: $(date)${NC}"
 echo ""
 echo "Performance Summary:"
-echo "  Files copied: $TOTAL_FILES"
-echo "  Data copied: $SOURCE_SIZE_HR"
-echo "  Total time: ${TOTAL_TIME}s ($((TOTAL_TIME / 60))m $((TOTAL_TIME % 60))s)"
+echo "  Files processed: $TOTAL_FILES"
+echo "  Data size: $(du -sh "$SOURCE" | cut -f1)"
+echo "  Sync time: ${TOTAL_TIME}s ($((TOTAL_TIME / 60))m $((TOTAL_TIME % 60))s)"
 echo "  Average speed: ${AVG_SPEED}MB/s"
 echo "  Files/second: $FILES_PER_SEC"
 echo "  Device write speed: ~${WRITE_SPEED}MB/s"
+echo "  Sample verification: $((SAMPLE_COUNT - SAMPLE_ERRORS))/$SAMPLE_COUNT files OK"
 echo ""
-echo "Files are located at: $DESTINATION/$SOURCE_FOLDER_NAME/"
+echo "Files synced to: $DESTINATION/$SOURCE_FOLDER_NAME/"
 echo ""
-echo -e "${BLUE}Note: Progress bar shows file count progress${NC}"
-echo "For size-based progress, install pv: sudo apt install pv"
+echo -e "${BLUE}Rsync intelligently synced only new/modified files${NC}"
+echo -e "${BLUE}Next sync will be faster as only changes will be copied${NC}"
+
+# Final status
+if [ $SAMPLE_ERRORS -eq 0 ]; then
+    echo -e "${GREEN}✓ SYNC SUCCESSFUL - All verifications passed${NC}"
+    exit 0
+else
+    echo -e "${YELLOW}⚠ SYNC COMPLETED with verification warnings${NC}"
+    exit 1
+fi
