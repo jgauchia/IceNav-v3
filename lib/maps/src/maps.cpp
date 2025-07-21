@@ -18,24 +18,25 @@ extern Storage storage;
 extern std::vector<wayPoint> trackData; /**< Vector containing track waypoints */
 const char* TAG PROGMEM = "Maps";
 
-
-/**********************************************************/
-/**********************************************************/
-// Static member definitions
 std::unordered_map<std::string, TileCache> Maps::tileCache;
 bool Maps::hasPsram = false;
 size_t Maps::maxCacheSize = Maps::MAX_CACHE_SIZE_NO_PSRAM;
-bool Maps::debugMode = false;
-int Maps::qualityLevel = 2; // Default: balanced
-uint32_t Maps::cacheHits = 0;
-uint32_t Maps::cacheMisses = 0;
-uint32_t Maps::tilesRendered = 0;
-uint32_t Maps::commandsExecuted = 0;
+int Maps::qualityLevel = 3; // 1=fast, 2=balanced, 3=quality
 
-// TileCache implementation
+/**< TileCache implementation */
+
+/**
+* @brief Default constructor initializing members to safe defaults.
+*/
 TileCache::TileCache() : data(nullptr), size(0), lastAccess(0), inPsram(false) {}
 
-TileCache::~TileCache() {
+/**
+* @brief Destructor frees allocated memory based on allocation type.
+* 
+* Uses `heap_caps_free` if `inPsram` is true, otherwise `delete[]`.
+*/
+TileCache::~TileCache() 
+{
     if (data) {
         if (inPsram) {
             heap_caps_free(data);
@@ -46,15 +47,28 @@ TileCache::~TileCache() {
     }
 }
 
+/**
+* @brief Move constructor transfers ownership of resources from another TileCache.
+* 
+* @param other TileCache object to move from.
+*/
 TileCache::TileCache(TileCache&& other) noexcept 
-    : data(other.data), size(other.size), lastAccess(other.lastAccess), inPsram(other.inPsram) {
+    : data(other.data), size(other.size), lastAccess(other.lastAccess), inPsram(other.inPsram)
+{
     other.data = nullptr;
     other.size = 0;
     other.lastAccess = 0;
     other.inPsram = false;
 }
 
-TileCache& TileCache::operator=(TileCache&& other) noexcept {
+/**
+* @brief Move assignment operator transfers ownership and cleans current resources.
+* 
+* @param other TileCache object to move from.
+* @return Reference to this object.
+*/
+TileCache& TileCache::operator=(TileCache&& other) noexcept 
+{
     if (this != &other) {
         // Clean up existing data
         if (data) {
@@ -79,15 +93,11 @@ TileCache& TileCache::operator=(TileCache&& other) noexcept {
     }
     return *this;
 }
-/**********************************************************/
-/**********************************************************/
 
 /**
  * @brief Map Class constructor
  */
 Maps::Maps() {}
-
-// Render Map Private section
 
 /**
  * @brief Get pixel X position from OpenStreetMap Render map longitude
@@ -143,7 +153,6 @@ uint32_t Maps::lon2tilex(float f_lon, uint8_t zoom)
     rawTile += 1e-6f;
     return (uint32_t)(rawTile);
 }
-
 
 /**
  * @brief Get TileY for OpenStreetMap files
@@ -316,8 +325,6 @@ void Maps::showNoMap(TFT_eSprite &map)
 	map.drawPngFile(noMapFile, (Maps::mapScrWidth / 2) - 50, (Maps::mapScrHeight / 2) - 50);
 	map.drawCenterString("NO MAP FOUND", (Maps::mapScrWidth / 2), (Maps::mapScrHeight >> 1) + 65, &fonts::DejaVu18);
 }
-
-// Public section
 
 /**
  * @brief Init map size
@@ -672,7 +679,6 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
 	}
 }
 
-
 /**
  * @brief Preload Tiles for map scrolling
  *
@@ -739,98 +745,71 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 }
 
 
-/***************************************************************************************************************/
-/***************************************************************************************************************/
-/***************************************************************************************************************/
-/***************************************************************************************************************/
-// Cache management
-void Maps::initCache() {
+
+
+
+
+/**< Vector Map */
+
+/**
+ * @brief Initializes the vector tile cache and related settings.
+ * 
+ * @details Detects if PSRAM is available and sets the maximum cache size accordingly.
+ * 			Clears any existing cached vector tile data 
+ * 			Logs initialization details including PSRAM availability, max cache size, and quality level.
+ */
+void Maps::initCache() 
+{
     hasPsram = (heap_caps_get_total_size(MALLOC_CAP_SPIRAM) > 0);
     maxCacheSize = hasPsram ? MAX_CACHE_SIZE_PSRAM : MAX_CACHE_SIZE_NO_PSRAM;
-    
-    // Clear existing cache
-    tileCache.clear();
-    
-    // Reset statistics
-    cacheHits = 0;
-    cacheMisses = 0;
-    tilesRendered = 0;
-    commandsExecuted = 0;
-    
-    ESP_LOGI(TAG, "Enhanced renderer initialized. PSRAM: %s, Max cache: %zu tiles, Quality: %d", 
+    tileCache.clear(); 
+    ESP_LOGI(TAG, "Vector tile renderer initialized. PSRAM: %s, Max cache: %zu tiles, Quality: %d", 
              hasPsram ? "YES" : "NO", maxCacheSize, qualityLevel);
 }
 
-void Maps::clearCache() {
+/**
+ * @brief Clears all cached vector tile data and resets rendering statistics.
+ * 
+ * @details Empties the vector tile cache 
+ */
+void Maps::clearCache() 
+{
     tileCache.clear();
-    ESP_LOGI(TAG, "Enhanced renderer cache cleared. Stats - Hits: %u, Misses: %u, Tiles: %u", 
-             cacheHits, cacheMisses, tilesRendered);
-    
-    // Reset statistics
-    cacheHits = 0;
-    cacheMisses = 0;
-    tilesRendered = 0;
-    commandsExecuted = 0;
 }
 
-void Maps::printCacheStats() {
-    size_t memoryUsed = getCacheUsage();
-    float hitRatio = (cacheHits + cacheMisses) > 0 ? (100.0f * cacheHits / (cacheHits + cacheMisses)) : 0.0f;
-    
-    ESP_LOGI(TAG, "=== CACHE STATISTICS ===");
-    ESP_LOGI(TAG, "Cached tiles: %zu/%zu", tileCache.size(), maxCacheSize);
-    ESP_LOGI(TAG, "Memory used: %zu bytes (%.1f KB)", memoryUsed, memoryUsed / 1024.0f);
-    ESP_LOGI(TAG, "Cache hits: %u, misses: %u (%.1f%% hit ratio)", cacheHits, cacheMisses, hitRatio);
-    ESP_LOGI(TAG, "Tiles rendered: %u, commands executed: %u", tilesRendered, commandsExecuted);
-    
-    if (debugMode) {
-        ESP_LOGI(TAG, "=== CACHE CONTENTS ===");
-        for (const auto& entry : tileCache) {
-            ESP_LOGI(TAG, "  %s: %zu bytes (%s)", 
-                     entry.first.c_str(), 
-                     entry.second.size,
-                     entry.second.inPsram ? "PSRAM" : "RAM");
-        }
-    }
-}
-
-size_t Maps::getCacheUsage() {
-    size_t total = 0;
-    for (const auto& entry : tileCache) {
-        total += entry.second.size;
-    }
-    return total;
-}
-
-void Maps::setDebugMode(bool enabled) {
-    debugMode = enabled;
-    ESP_LOGI(TAG, "Debug mode %s", enabled ? "enabled" : "disabled");
-}
-
-void Maps::setQualityLevel(int level) {
-    if (level >= 1 && level <= 3) {
-        qualityLevel = level;
-        ESP_LOGI(TAG, "Quality level set to %d (%s)", level, 
-                 (level == 1) ? "fast" : (level == 2) ? "balanced" : "quality");
-    } else {
-        ESP_LOGW(TAG, "Invalid quality level %d, keeping %d", level, qualityLevel);
-    }
-}
-
-// Utility functions
-bool Maps::validateTileData(const uint8_t* data, size_t size) {
-    if (!data || size < sizeof(uint16_t)) {
+/**
+ * @brief Performs basic sanity checks on a raw vector tile buffer before parsing.
+ *
+ * @details This routine verifies that:
+ *  			- The buffer pointer is non‑null and at least large enough to contain the
+ *   			  16‑bit command‑count header.
+ *				- The reported number of commands is within a reasonable upper bound
+ *   			  (protects against corrupted or malicious data).
+ *  			- The total buffer size does not exceed the compile‑time limit
+ *   			  #MAX_TILE_SIZE_BYTES.
+ *
+ * @param data Pointer to the raw tile byte buffer.
+ * @param size Size of the buffer in bytes.
+ * @return `true` if the buffer passes all checks and is considered safe to parse,
+ *         `false` otherwise 
+ */
+bool Maps::validateTileData(const uint8_t* data, size_t size)
+{
+    if (!data || size < sizeof(uint16_t)) 
+	{
         ESP_LOGE(TAG, "Invalid tile data: null or too small (%zu bytes)", size);
         return false;
     }
     
     uint16_t numCommands = *(uint16_t*)data;
-    if (numCommands > 15000) {  // Reasonable upper limit
-        ESP_LOGE(TAG, "Suspicious command count: %d", numCommands);
+    if (numCommands > 15000)
+	{ 
+		ESP_LOGE(TAG, "Suspicious command count: %d", numCommands);
         return false;
     }
     
-    if (size > MAX_TILE_SIZE_BYTES) {
+    if (size > MAX_TILE_SIZE_BYTES) 
+	{
         ESP_LOGE(TAG, "Tile too large: %zu bytes (max %zu)", size, MAX_TILE_SIZE_BYTES);
         return false;
     }
@@ -838,612 +817,257 @@ bool Maps::validateTileData(const uint8_t* data, size_t size) {
     return true;
 }
 
-void Maps::debugPrintCommand(uint8_t cmdType, GeometryComplexity complexity) {
-    if (!debugMode) return;
-    
-    const char* cmd_name;
-    switch (cmdType) {
-        case DRAW_LINE: cmd_name = "LINE"; break;
-        case DRAW_POLYLINE: cmd_name = "POLYLINE"; break;
-        case DRAW_FILL_RECT: cmd_name = "FILL_RECT"; break;
-        case DRAW_FILL_POLYGON: cmd_name = "FILL_POLYGON"; break;
-        case DRAW_STROKE_POLYGON: cmd_name = "STROKE_POLYGON"; break;
-        case DRAW_ADAPTIVE_LINE: cmd_name = "ADAPTIVE_LINE"; break;
-        case DRAW_SPLINE_CURVE: cmd_name = "SPLINE_CURVE"; break;
-        case DRAW_MULTI_LOD_POLYGON: cmd_name = "MULTI_LOD_POLYGON"; break;
-        case DRAW_HORIZONTAL_LINE: cmd_name = "H_LINE"; break;
-        case DRAW_VERTICAL_LINE: cmd_name = "V_LINE"; break;
-        default: cmd_name = "UNKNOWN"; break;
-    }
-    
-    const char* complexity_name;
-    switch (complexity) {
-        case COMPLEXITY_LOW: complexity_name = "LOW"; break;
-        case COMPLEXITY_MEDIUM: complexity_name = "MED"; break;
-        case COMPLEXITY_HIGH: complexity_name = "HIGH"; break;
-        default: complexity_name = "UNK"; break;
-    }
-    
-    ESP_LOGI(TAG, "Command: %s (complexity=%s, quality=%d)", cmd_name, complexity_name, qualityLevel);
-}
-
-void Maps::evictOldestTile() {
-    if (tileCache.empty()) return;
+/**
+ * @brief Evicts the least recently accessed vector tile from the tile cache.
+ *
+ * @details This function is used to maintain the cache size within the allowed limits.
+ * 		    It searches the `tileCache` for the entry with the oldest `lastAccess` timestamp
+ * 			and removes it. This helps implement a simple LRU (Least Recently Used) strategy.
+ *
+ * If the cache is already empty, the function returns immediately.
+ */
+void Maps::evictOldestTile()
+{
+    if (tileCache.empty()) 
+		return;
     
     auto oldest = tileCache.begin();
     uint32_t oldestTime = oldest->second.lastAccess;
     
-    for (auto it = tileCache.begin(); it != tileCache.end(); ++it) {
-        if (it->second.lastAccess < oldestTime) {
+    for (auto it = tileCache.begin(); it != tileCache.end(); ++it) 
+	{
+        if (it->second.lastAccess < oldestTime)
+		{
             oldest = it;
             oldestTime = it->second.lastAccess;
         }
     }
     
-    if (debugMode) {
-        ESP_LOGI(TAG, "Evicting tile from cache: %s", oldest->first.c_str());
-    }
-    
     tileCache.erase(oldest);
 }
 
-bool Maps::loadTileFromFile(const char* path, TileCache& cache) {
+/**
+ * @brief Loads a vector tile from a binary file into memory.
+ *
+ * @details Opens the given file path, reads its contents into a dynamically allocated
+ *			memory buffer, and fills the provided `TileCache` structure with the tile data.
+ * 			The function prefers to allocate memory in PSRAM if available and the file is larger than 1KB.
+ *
+ * @param path The path to the binary tile file.
+ * @param cache Reference to a TileCache object that will receive the tile data and metadata.
+ * @return true if the tile was successfully loaded and read into memory, false otherwise.
+ *
+ * @note On failure, the function ensures that memory is properly freed and the `cache.data` is set to nullptr.
+ *       The function also checks for file size limits and read errors.
+ */
+bool Maps::loadTileFromFile(const char* path, TileCache& cache) 
+{
     FILE* file = fopen(path, "rb");
-    if (!file) {
-        return false;
-    }
+    if (!file)
+		return false;
     
-    // Get file size
+    /**< Get file size */
     fseek(file, 0, SEEK_END);
     long fileSize = ftell(file);
     fseek(file, 0, SEEK_SET);
     
-    if (fileSize <= 0 || fileSize > MAX_TILE_SIZE_BYTES) {
+    if (fileSize <= 0 || fileSize > MAX_TILE_SIZE_BYTES) 
+	{
         ESP_LOGE(TAG, "Invalid file size: %ld bytes", fileSize);
         fclose(file);
         return false;
     }
     
-    // Allocate memory (prefer PSRAM for larger tiles)
-    if (hasPsram && fileSize > 1024) {
+    /**< Allocate memory (prefer PSRAM for larger tiles) */
+    if (hasPsram && fileSize > 1024)
+	{
         cache.data = (uint8_t*)heap_caps_malloc(fileSize, MALLOC_CAP_SPIRAM);
         cache.inPsram = true;
-    } else {
+    }
+	else 
+	{
         cache.data = new uint8_t[fileSize];
         cache.inPsram = false;
     }
     
-    if (!cache.data) {
+    if (!cache.data)
+	{
         ESP_LOGE(TAG, "Failed to allocate %ld bytes for tile", fileSize);
         fclose(file);
         return false;
     }
     
-    // Read file data
+    /**< Read file data */
     size_t bytesRead = fread(cache.data, 1, fileSize, file);
     fclose(file);
     
-    if (bytesRead != fileSize) {
+    if (bytesRead != fileSize) 
+	{
         ESP_LOGE(TAG, "Failed to read complete tile data: %zu/%ld bytes", bytesRead, fileSize);
-        if (cache.inPsram) {
+        if (cache.inPsram) 
             heap_caps_free(cache.data);
-        } else {
+        else
             delete[] cache.data;
-        }
+
         cache.data = nullptr;
         return false;
     }
     
     cache.size = fileSize;
     cache.lastAccess = millis();
-    
-    if (debugMode) {
-        ESP_LOGI(TAG, "Loaded tile: %ld bytes (%s)", fileSize, cache.inPsram ? "PSRAM" : "RAM");
-    }
-    
+
     return true;
 }
 
-// Main rendering function
-bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eSprite &map) {
-    if (!path) {
+/**
+ * @brief Renders a vector tile from a binary file onto a TFT sprite.
+ *
+ * @details Loads vector tile data from cache or disk, validates its contents, and executes drawing commands
+ *			on the given `TFT_eSprite`. The tile is cached for future use, and PSRAM is preferred
+ * 			when available and necessary.
+ *
+ * @param path Path to the `.bin` tile file.
+ * @param xOffset X-axis offset applied to all rendered features.
+ * @param yOffset Y-axis offset applied to all rendered features.
+ * @param map Reference to the TFT_eSprite onto which the tile will be rendered.
+ * @return true if at least one drawing command was executed successfully, false otherwise.
+ *
+ * @note This function:
+ *			 - Initializes the cache on first call.
+ * 			 - Automatically evicts the least recently used tile when the cache is full.
+ *			 - Logs and skips commands that are invalid or unknown.
+ *			 - Attempts to continue rendering even if individual commands fail.
+ */
+bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eSprite &map)
+{
+    if (!path) 
+	{
         ESP_LOGE(TAG, "Invalid tile path");
         return false;
     }
     
-    // Initialize cache if not done yet
+  	/**< Initialize cache if not done yet */
     static bool cacheInitialized = false;
-    if (!cacheInitialized) {
+    if (!cacheInitialized) 
+	{
         initCache();
         cacheInitialized = true;
     }
     
-    // Try to get tile data from cache first
+    /**< Try to get tile data from cache first */
     auto cacheIt = tileCache.find(std::string(path));
     uint8_t* dataPtr = nullptr;
     size_t dataSize = 0;
     
-    if (cacheIt != tileCache.end()) {
-        // Cache hit
-        cacheHits++;
+    if (cacheIt != tileCache.end()) 
+	{
+        /**< Cache hit */
         cacheIt->second.lastAccess = millis();
         dataPtr = cacheIt->second.data;
         dataSize = cacheIt->second.size;
         
-        if (debugMode) {
-            ESP_LOGI(TAG, "Cache hit for tile: %s", path);
-        }
-    } else {
-        // Cache miss - load from file
-        cacheMisses++;
-        
-        if (debugMode) {
-            ESP_LOGI(TAG, "Loading tile from file: %s", path);
-        }
-        
-        // Check if we need to make room in cache
-        if (tileCache.size() >= maxCacheSize) {
+
+    } 
+	else 
+	{
+        /**< Check if we need to make room in cache */
+        if (tileCache.size() >= maxCacheSize) 
             evictOldestTile();
-        }
         
-        // Create new cache entry
+        /**< Create new cache entry */
         TileCache newCache;
-        if (!loadTileFromFile(path, newCache)) {
-            if (debugMode) {
-                ESP_LOGW(TAG, "Failed to load tile: %s", path);
-            }
+        if (!loadTileFromFile(path, newCache)) 
             return false;
-        }
         
         dataPtr = newCache.data;
         dataSize = newCache.size;
         
-        // Move cache into map
+        /**< Move cache into map */
         tileCache[std::string(path)] = std::move(newCache);
     }
     
-    // Validate tile data
-    if (!validateTileData(dataPtr, dataSize)) {
+    /**< Validate tile data */
+    if (!validateTileData(dataPtr, dataSize)) 
+	{
         ESP_LOGE(TAG, "Invalid tile data: %s", path);
         return false;
     }
     
-    // Parse and execute commands
+    /**< Parse and execute commands */
     size_t offset = 0;
     uint16_t numCommands = *(uint16_t*)(dataPtr + offset);
     offset += sizeof(uint16_t);
     
-    if (debugMode) {
-        ESP_LOGI(TAG, "Processing tile %s: %d commands", path, numCommands);
-    }
-    
-    // Handle empty tiles
-    if (numCommands == 0) {
-        if (debugMode) {
-            ESP_LOGI(TAG, "Empty tile: %s", path);
-        }
-        tilesRendered++;
+  	/**< Handle empty tiles */
+    if (numCommands == 0) 
         return true;
-    }
     
     int executedCommands = 0;
     int skippedCommands = 0;
     
-    // Process each command
-    for (int i = 0; i < numCommands && offset < dataSize; ++i) {
-        if (offset >= dataSize) {
+    /**< Process each command */
+    for (int i = 0; i < numCommands && offset < dataSize; ++i) 
+	{
+        if (offset >= dataSize)
+		{
             ESP_LOGW(TAG, "Command data truncated at command %d/%d", i, numCommands);
             break;
         }
         
         uint8_t cmdType = dataPtr[offset];
         size_t oldOffset = offset;
-        offset++; // Skip command type byte
+        offset++; /**< Skip command type byte */
         
-        // Execute command
-        if (executeEnhancedCommand(cmdType, dataPtr, offset, xOffset, yOffset, map, dataSize))
- {
+        /**< Execute command */
+        if (executeCommand(cmdType, dataPtr, offset, xOffset, yOffset, map, dataSize))
             executedCommands++;
-            commandsExecuted++;
-        } else {
+		else 
+		{
             skippedCommands++;
             
-            // Try to skip this command to continue with the next one
-            if (offset == oldOffset + 1) {
-                if (!skipUnknownCommand(cmdType, dataPtr, offset, dataSize)) {
+            /**< Try to skip this command to continue with the next one */
+            if (offset == oldOffset + 1) 
+			{
+                if (!skipUnknownCommand(cmdType, dataPtr, offset, dataSize)) 
+				{
                     ESP_LOGW(TAG, "Cannot recover from unknown command %d, stopping tile processing", cmdType);
                     break;
                 }
             }
         }
         
-        // Safety check to prevent infinite loops
-        if (offset <= oldOffset) {
+        /**< Safety check to prevent infinite loops */
+        if (offset <= oldOffset)
+		{
             ESP_LOGE(TAG, "Command %d didn't advance offset, stopping processing", cmdType);
             break;
         }
     }
-    
-    // Log results
-    if (debugMode) {
-        ESP_LOGI(TAG, "Tile %s complete: %d executed, %d skipped", 
-                 path, executedCommands, skippedCommands);
-    }
-    
-    tilesRendered++;
+       
     return executedCommands > 0;
 }
 
-
-// Command execution dispatcher
-// bool Maps::executeEnhancedCommand(uint8_t cmdType, const uint8_t* data, size_t& offset, 
-//                                  int16_t xOffset, int16_t yOffset, TFT_eSprite &map) {
-//     try {
-//         switch (cmdType) {
-//             case DRAW_LINE:
-//                 return drawLine(data, offset, xOffset, yOffset, map);
-                
-//             case DRAW_POLYLINE:
-//                 return drawPolyline(data, offset, xOffset, yOffset, map);
-                
-//             case DRAW_FILL_RECT:
-//                 return drawFillRect(data, offset, xOffset, yOffset, map);
-                
-//             case DRAW_FILL_POLYGON:
-//                 return drawFillPolygon(data, offset, xOffset, yOffset, map);
-                
-//             case DRAW_STROKE_POLYGON:
-//                 return drawStrokePolygon(data, offset, xOffset, yOffset, map);
-                
-//             case DRAW_HORIZONTAL_LINE:
-//                 return drawHorizontalLine(data, offset, xOffset, yOffset, map);
-                
-//             case DRAW_VERTICAL_LINE:
-//                 return drawVerticalLine(data, offset, xOffset, yOffset, map);
-                
-//             case DRAW_ADAPTIVE_LINE: {
-//                 // Enhanced line with adaptive detail
-//                 if (!checkBounds(offset, 5, map.width() * map.height())) return false;
-                
-//                 uint16_t numPoints = *(uint16_t*)(data + offset); offset += sizeof(uint16_t);
-//                 uint8_t complexity = *(uint8_t*)(data + offset); offset += sizeof(uint8_t);
-//                 uint16_t color = *(uint16_t*)(data + offset); offset += sizeof(uint16_t);
-                
-//                 debugPrintCommand(cmdType, (GeometryComplexity)complexity);
-                
-//                 if (numPoints < 2 || numPoints > 2000) return false;
-//                 if (!checkBounds(offset, numPoints * 4, map.width() * map.height())) return false;
-                
-//                 // Load points
-//                 static std::vector<int16_t> points_x, points_y;
-//                 points_x.clear(); points_y.clear();
-//                 points_x.reserve(numPoints); points_y.reserve(numPoints);
-                
-//                 for (int p = 0; p < numPoints; ++p) {
-//                     int16_t x = clampCoord(*(int16_t*)(data + offset) + xOffset); offset += sizeof(int16_t);
-//                     int16_t y = clampCoord(*(int16_t*)(data + offset) + yOffset); offset += sizeof(int16_t);
-//                     points_x.push_back(x);
-//                     points_y.push_back(y);
-//                 }
-                
-//                 drawAdaptiveLine(points_x.data(), points_y.data(), numPoints, color, 
-//                                (GeometryComplexity)complexity, map);
-//                 return true;
-//             }
-            
-//             case DRAW_MULTI_LOD_POLYGON: {
-//                 // Enhanced polygon with LOD support
-//                 if (!checkBounds(offset, 6, map.width() * map.height())) return false;
-                
-//                 uint16_t numPoints = *(uint16_t*)(data + offset); offset += sizeof(uint16_t);
-//                 uint8_t complexity = *(uint8_t*)(data + offset); offset += sizeof(uint8_t);
-//                 uint8_t render_style = *(uint8_t*)(data + offset); offset += sizeof(uint8_t);
-//                 uint16_t color = *(uint16_t*)(data + offset); offset += sizeof(uint16_t);
-                
-//                 debugPrintCommand(cmdType, (GeometryComplexity)complexity);
-                
-//                 if (numPoints < 3 || numPoints > 1500) return false;
-//                 if (!checkBounds(offset, numPoints * 4, map.width() * map.height())) return false;
-                
-//                 // Load points
-//                 static std::vector<int16_t> points_x, points_y;
-//                 points_x.clear(); points_y.clear();
-//                 points_x.reserve(numPoints); points_y.reserve(numPoints);
-                
-//                 bool anyVisible = false;
-//                 for (int p = 0; p < numPoints; ++p) {
-//                     int16_t x = clampCoord(*(int16_t*)(data + offset) + xOffset); offset += sizeof(int16_t);
-//                     int16_t y = clampCoord(*(int16_t*)(data + offset) + yOffset); offset += sizeof(int16_t);
-//                     points_x.push_back(x);
-//                     points_y.push_back(y);
-                    
-//                     if (x >= -200 && x < map.width() + 200 && y >= -200 && y < map.height() + 200) {
-//                         anyVisible = true;
-//                     }
-//                 }
-                
-//                 if (anyVisible) {
-//                     drawMultiLODPolygon(points_x.data(), points_y.data(), numPoints, color, 
-//                                       (GeometryComplexity)complexity, render_style, map);
-//                     return true;
-//                 }
-//                 return false;
-//             }
-            
-//             case DRAW_SPLINE_CURVE: {
-//                 // Smooth curve rendering
-//                 if (!checkBounds(offset, 4, map.width() * map.height())) return false;
-                
-//                 uint16_t numPoints = *(uint16_t*)(data + offset); offset += sizeof(uint16_t);
-//                 uint16_t color = *(uint16_t*)(data + offset); offset += sizeof(uint16_t);
-                
-//                 debugPrintCommand(cmdType, COMPLEXITY_HIGH);
-                
-//                 if (numPoints < 3 || numPoints > 500) return false;
-//                 if (!checkBounds(offset, numPoints * 4, map.width() * map.height())) return false;
-                
-//                 // Load control points
-//                 static std::vector<int16_t> points_x, points_y;
-//                 points_x.clear(); points_y.clear();
-//                 points_x.reserve(numPoints); points_y.reserve(numPoints);
-                
-//                 for (int p = 0; p < numPoints; ++p) {
-//                     int16_t x = clampCoord(*(int16_t*)(data + offset) + xOffset); offset += sizeof(int16_t);
-//                     int16_t y = clampCoord(*(int16_t*)(data + offset) + yOffset); offset += sizeof(int16_t);
-//                     points_x.push_back(x);
-//                     points_y.push_back(y);
-//                 }
-                
-//                 drawSmoothCurve(points_x.data(), points_y.data(), numPoints, color, map);
-//                 return true;
-//             }
-            
-//             default:
-//                 ESP_LOGW(TAG, "Unknown enhanced command: %d", cmdType);
-//                 return false;
-//         }
-//     } catch (...) {
-//         ESP_LOGE(TAG, "Exception executing enhanced command %d", cmdType);
-//         return false;
-//     }
-// }
-// bool Maps::executeEnhancedCommand(uint8_t cmdType, const uint8_t* data, size_t& offset, 
-//                                  int16_t xOffset, int16_t yOffset, TFT_eSprite &map, size_t dataSize) {
-//     try {
-//         switch (cmdType) {
-//             case DRAW_LINE: {
-//                 // Ejemplo: leer 2 puntos + color (adaptar según definición real)
-//                 // Supongo estructura: numPoints(2 bytes), color(2 bytes), puntos (x,y) cada 2 bytes
-//                 if (!checkBounds(offset, 4 + 4, dataSize)) return false; // ejemplo mínimo
-//                 // Lógica propia de drawLine debería estar aquí o en función aparte.
-//                 // Aquí solo parseo segura.
-//                 // Ajusta según tu formato real.
-
-//                 // Ejemplo:
-//                 uint16_t numPoints;
-//                 memcpy(&numPoints, data + offset, 2); offset += 2;
-//                 uint16_t color;
-//                 memcpy(&color, data + offset, 2); offset += 2;
-
-//                 if (numPoints < 2 || numPoints > 2000) return false;
-//                 if (!checkBounds(offset, numPoints * 4, dataSize)) return false;
-
-//                 std::vector<int16_t> points_x, points_y;
-//                 points_x.reserve(numPoints);
-//                 points_y.reserve(numPoints);
-
-//                 for (uint16_t p = 0; p < numPoints; ++p) {
-//                     int16_t x, y;
-//                     memcpy(&x, data + offset, 2); offset += 2;
-//                     memcpy(&y, data + offset, 2); offset += 2;
-//                     points_x.push_back(clampCoord(x + xOffset));
-//                     points_y.push_back(clampCoord(y + yOffset));
-//                 }
-
-//                 drawLine(points_x.data(), points_y.data(), numPoints, color, map);
-//                 return true;
-//             }
-
-//             case DRAW_POLYLINE: {
-//                 if (!checkBounds(offset, 4, dataSize)) return false;
-
-//                 uint16_t numPoints;
-//                 memcpy(&numPoints, data + offset, 2); offset += 2;
-//                 uint16_t color;
-//                 memcpy(&color, data + offset, 2); offset += 2;
-
-//                 if (numPoints < 2 || numPoints > 2000) return false;
-//                 if (!checkBounds(offset, numPoints * 4, dataSize)) return false;
-
-//                 std::vector<int16_t> points_x, points_y;
-//                 points_x.reserve(numPoints);
-//                 points_y.reserve(numPoints);
-
-//                 for (uint16_t p = 0; p < numPoints; ++p) {
-//                     int16_t x, y;
-//                     memcpy(&x, data + offset, 2); offset += 2;
-//                     memcpy(&y, data + offset, 2); offset += 2;
-//                     points_x.push_back(clampCoord(x + xOffset));
-//                     points_y.push_back(clampCoord(y + yOffset));
-//                 }
-
-//                 drawPolyline(points_x.data(), points_y.data(), numPoints, color, map);
-//                 return true;
-//             }
-
-//             case DRAW_FILL_RECT: {
-//                 if (!checkBounds(offset, 10, dataSize)) return false;
-//                 int16_t x, y;
-//                 uint16_t w, h, color;
-
-//                 memcpy(&x, data + offset, 2); offset += 2;
-//                 memcpy(&y, data + offset, 2); offset += 2;
-//                 memcpy(&w, data + offset, 2); offset += 2;
-//                 memcpy(&h, data + offset, 2); offset += 2;
-//                 memcpy(&color, data + offset, 2); offset += 2;
-
-//                 x = clampCoord(x + xOffset);
-//                 y = clampCoord(y + yOffset);
-
-//                 drawFillRect(x, y, w, h, color, map);
-//                 return true;
-//             }
-
-//             case DRAW_FILL_POLYGON: {
-//                 if (!checkBounds(offset, 4, dataSize)) return false;
-//                 uint16_t numPoints;
-//                 memcpy(&numPoints, data + offset, 2); offset += 2;
-//                 uint16_t color;
-//                 memcpy(&color, data + offset, 2); offset += 2;
-
-//                 if (numPoints < 3 || numPoints > 1500) return false;
-//                 if (!checkBounds(offset, numPoints * 4, dataSize)) return false;
-
-//                 std::vector<int16_t> points_x, points_y;
-//                 points_x.reserve(numPoints);
-//                 points_y.reserve(numPoints);
-
-//                 for (uint16_t p = 0; p < numPoints; ++p) {
-//                     int16_t x, y;
-//                     memcpy(&x, data + offset, 2); offset += 2;
-//                     memcpy(&y, data + offset, 2); offset += 2;
-//                     points_x.push_back(clampCoord(x + xOffset));
-//                     points_y.push_back(clampCoord(y + yOffset));
-//                 }
-
-//                 drawFillPolygon(points_x.data(), points_y.data(), numPoints, color, map);
-//                 return true;
-//             }
-
-//             case DRAW_STROKE_POLYGON: {
-//                 if (!checkBounds(offset, 4, dataSize)) return false;
-//                 uint16_t numPoints;
-//                 memcpy(&numPoints, data + offset, 2); offset += 2;
-//                 uint16_t color;
-//                 memcpy(&color, data + offset, 2); offset += 2;
-
-//                 if (numPoints < 3 || numPoints > 1500) return false;
-//                 if (!checkBounds(offset, numPoints * 4, dataSize)) return false;
-
-//                 std::vector<int16_t> points_x, points_y;
-//                 points_x.reserve(numPoints);
-//                 points_y.reserve(numPoints);
-
-//                 for (uint16_t p = 0; p < numPoints; ++p) {
-//                     int16_t x, y;
-//                     memcpy(&x, data + offset, 2); offset += 2;
-//                     memcpy(&y, data + offset, 2); offset += 2;
-//                     points_x.push_back(clampCoord(x + xOffset));
-//                     points_y.push_back(clampCoord(y + yOffset));
-//                 }
-
-//                 drawStrokePolygon(points_x.data(), points_y.data(), numPoints, color, map);
-//                 return true;
-//             }
-
-//             case DRAW_HORIZONTAL_LINE: {
-//                 if (!checkBounds(offset, 6, dataSize)) return false;
-//                 int16_t x, y;
-//                 uint16_t length, color;
-
-//                 memcpy(&x, data + offset, 2); offset += 2;
-//                 memcpy(&y, data + offset, 2); offset += 2;
-//                 memcpy(&length, data + offset, 2); offset += 2;
-//                 memcpy(&color, data + offset, 2); offset += 2;
-
-//                 drawHorizontalLine(x + xOffset, y + yOffset, length, color, map);
-//                 return true;
-//             }
-
-//             case DRAW_VERTICAL_LINE: {
-//                 if (!checkBounds(offset, 6, dataSize)) return false;
-//                 int16_t x, y;
-//                 uint16_t length, color;
-
-//                 memcpy(&x, data + offset, 2); offset += 2;
-//                 memcpy(&y, data + offset, 2); offset += 2;
-//                 memcpy(&length, data + offset, 2); offset += 2;
-//                 memcpy(&color, data + offset, 2); offset += 2;
-
-//                 drawVerticalLine(x + xOffset, y + yOffset, length, color, map);
-//                 return true;
-//             }
-
-//             case DRAW_ADAPTIVE_LINE: {
-//                 if (!checkBounds(offset, 5, dataSize)) return false;
-
-//                 uint16_t numPoints;
-//                 uint8_t complexity;
-//                 uint16_t color;
-
-//                 memcpy(&numPoints, data + offset, 2); offset += 2;
-//                 memcpy(&complexity, data + offset, 1); offset += 1;
-//                 memcpy(&color, data + offset, 2); offset += 2;
-
-//                 if (numPoints < 2 || numPoints > 2000) return false;
-//                 if (!checkBounds(offset, numPoints * 4, dataSize)) return false;
-
-//                 std::vector<int16_t> points_x, points_y;
-//                 points_x.reserve(numPoints);
-//                 points_y.reserve(numPoints);
-
-//                 for (uint16_t p = 0; p < numPoints; ++p) {
-//                     int16_t x, y;
-//                     memcpy(&x, data + offset, 2); offset += 2;
-//                     memcpy(&y, data + offset, 2); offset += 2;
-//                     points_x.push_back(clampCoord(x + xOffset));
-//                     points_y.push_back(clampCoord(y + yOffset));
-//                 }
-
-//                 drawAdaptiveLine(points_x.data(), points_y.data(), numPoints, color,
-//                                 (GeometryComplexity)complexity, map);
-//                 return true;
-//             }
-
-//             case DRAW_MULTI_LOD_POLYGON: {
-//                 if (!checkBounds(offset, 6, dataSize)) return false;
-
-//                 uint16_t numPoints;
-//                 uint8_t complexity;
-//                 uint8_t render_style;
-//                 uint16_t color;
-
-//                 memcpy(&numPoints, data + offset, 2); offset += 2;
-//                 memcpy(&complexity, data + offset, 1); offset += 1;
-//                 memcpy(&render_style, data + offset, 1); offset += 1;
-//                 memcpy(&color, data + offset, 2); offset += 2;
-
-//                 if (numPoints < 3 || numPoints > 1500) return false;
-//                 if (!checkBounds(offset, numPoints * 4, dataSize)) return false;
-
-//                 std::vector<int16_t> points_x, points_y;
-//                 points_x.reserve(numPoints);
-//                 points_y.reserve(numPoints);
-
-//                 for (uint16_t p = 0; p < numPoints; ++p) {
-//                     int16_t x, y;
-//                     memcpy(&x, data + offset, 2); offset += 2;
-//                     memcpy(&y, data + offset, 2); offset += 2;
-//                     points_x.push_back(clampCoord(x + xOffset));
-//                     points_y.push_back(clampCoord(y + yOffset));
-//                 }
-
-//                 drawMultiLODPolygon(points_x.data(), points_y.data(), numPoints,
-//                                     (GeometryComplexity)complexity,
-//                                     (RenderStyle)render_style,
-//                                     color, map);
-//                 return true;
-//             }
-
-//             default:
-//                 return false;
-//         }
-//     } catch (...) {
-//         // Captura cualquier excepción (poco común en microcontroladores)
-//         return false;
-//     }
-// }
-bool Maps::executeEnhancedCommand(uint8_t cmdType, const uint8_t* data, size_t& offset,
+/**
+ * @brief Executes a drawing command parsed from vector tile data.
+ *
+ * @details This function interprets a single enhanced draw command from binary tile data
+ * 			and dispatches it to the appropriate drawing function. It handles bounds checking,
+ *			memory-safe parsing of command arguments, and optional visibility filtering based
+ * 		    on complexity or viewport relevance.
+ *
+ * @param cmdType The type of drawing command (see DrawCommand enum).
+ * @param data Pointer to the tile data buffer.
+ * @param offset Reference to the current offset within the buffer. Will be updated after parsing.
+ * @param xOffset Horizontal offset applied to all geometry (typically for tile alignment).
+ * @param yOffset Vertical offset applied to all geometry.
+ * @param map Reference to the TFT_eSprite where the geometry will be rendered.
+ * @param dataSize Total size of the tile data buffer (for bounds safety).
+ * @return true if the command was successfully executed, false otherwise.
+ *
+ * @note In case of unrecognized commands or data inconsistencies, the function
+ * logs the error and returns false. An exception-safe block ensures robustness on unexpected input.
+ */
+bool Maps::executeCommand(uint8_t cmdType, const uint8_t* data, size_t& offset,
                                   int16_t xOffset, int16_t yOffset, TFT_eSprite &map, size_t dataSize) {
     try {
         switch (cmdType) {
@@ -1462,13 +1086,13 @@ bool Maps::executeEnhancedCommand(uint8_t cmdType, const uint8_t* data, size_t& 
             case DRAW_VERTICAL_LINE:
                 return drawVerticalLine(data, offset, xOffset, yOffset, map);
 
-            case DRAW_ADAPTIVE_LINE: {
+            case DRAW_ADAPTIVE_LINE:
+			{
                 if (!checkBounds(offset, 5, dataSize)) return false;
                 uint16_t numPoints = *(uint16_t*)(data + offset); offset += 2;
                 uint8_t complexity = *(uint8_t*)(data + offset); offset += 1;
                 uint16_t color = *(uint16_t*)(data + offset); offset += 2;
 
-                debugPrintCommand(cmdType, (GeometryComplexity)complexity);
                 if (numPoints < 2 || numPoints > 2000) return false;
                 if (!checkBounds(offset, numPoints * 4, dataSize)) return false;
 
@@ -1476,7 +1100,8 @@ bool Maps::executeEnhancedCommand(uint8_t cmdType, const uint8_t* data, size_t& 
                 points_x.clear(); points_y.clear();
                 points_x.reserve(numPoints); points_y.reserve(numPoints);
 
-                for (int p = 0; p < numPoints; ++p) {
+                for (int p = 0; p < numPoints; ++p)
+				{
                     int16_t x = clampCoord(*(int16_t*)(data + offset) + xOffset); offset += 2;
                     int16_t y = clampCoord(*(int16_t*)(data + offset) + yOffset); offset += 2;
                     points_x.push_back(x);
@@ -1488,14 +1113,14 @@ bool Maps::executeEnhancedCommand(uint8_t cmdType, const uint8_t* data, size_t& 
                 return true;
             }
 
-            case DRAW_MULTI_LOD_POLYGON: {
+            case DRAW_MULTI_LOD_POLYGON: 
+			{
                 if (!checkBounds(offset, 6, dataSize)) return false;
                 uint16_t numPoints = *(uint16_t*)(data + offset); offset += 2;
                 uint8_t complexity = *(uint8_t*)(data + offset); offset += 1;
                 uint8_t render_style = *(uint8_t*)(data + offset); offset += 1;
                 uint16_t color = *(uint16_t*)(data + offset); offset += 2;
 
-                debugPrintCommand(cmdType, (GeometryComplexity)complexity);
                 if (numPoints < 3 || numPoints > 1500) return false;
                 if (!checkBounds(offset, numPoints * 4, dataSize)) return false;
 
@@ -1504,7 +1129,8 @@ bool Maps::executeEnhancedCommand(uint8_t cmdType, const uint8_t* data, size_t& 
                 points_x.reserve(numPoints); points_y.reserve(numPoints);
 
                 bool anyVisible = false;
-                for (int p = 0; p < numPoints; ++p) {
+                for (int p = 0; p < numPoints; ++p)
+				{
                     int16_t x = clampCoord(*(int16_t*)(data + offset) + xOffset); offset += 2;
                     int16_t y = clampCoord(*(int16_t*)(data + offset) + yOffset); offset += 2;
                     points_x.push_back(x);
@@ -1514,7 +1140,8 @@ bool Maps::executeEnhancedCommand(uint8_t cmdType, const uint8_t* data, size_t& 
                         anyVisible = true;
                 }
 
-                if (anyVisible) {
+                if (anyVisible) 
+				{
                     drawMultiLODPolygon(points_x.data(), points_y.data(), numPoints, color,
                                         (GeometryComplexity)complexity, render_style, map);
                     return true;
@@ -1522,12 +1149,12 @@ bool Maps::executeEnhancedCommand(uint8_t cmdType, const uint8_t* data, size_t& 
                 return false;
             }
 
-            case DRAW_SPLINE_CURVE: {
+            case DRAW_SPLINE_CURVE: 
+			{
                 if (!checkBounds(offset, 4, dataSize)) return false;
                 uint16_t numPoints = *(uint16_t*)(data + offset); offset += 2;
                 uint16_t color = *(uint16_t*)(data + offset); offset += 2;
 
-                debugPrintCommand(cmdType, COMPLEXITY_HIGH);
                 if (numPoints < 3 || numPoints > 500) return false;
                 if (!checkBounds(offset, numPoints * 4, dataSize)) return false;
 
@@ -1535,7 +1162,8 @@ bool Maps::executeEnhancedCommand(uint8_t cmdType, const uint8_t* data, size_t& 
                 points_x.clear(); points_y.clear();
                 points_x.reserve(numPoints); points_y.reserve(numPoints);
 
-                for (int p = 0; p < numPoints; ++p) {
+                for (int p = 0; p < numPoints; ++p) 
+				{
                     int16_t x = clampCoord(*(int16_t*)(data + offset) + xOffset); offset += 2;
                     int16_t y = clampCoord(*(int16_t*)(data + offset) + yOffset); offset += 2;
                     points_x.push_back(x);
@@ -1547,19 +1175,32 @@ bool Maps::executeEnhancedCommand(uint8_t cmdType, const uint8_t* data, size_t& 
             }
 
             default:
-                ESP_LOGW(TAG, "Unknown enhanced command: %d", cmdType);
+                ESP_LOGW(TAG, "Unknown command: %d", cmdType);
                 return false;
         }
-    } catch (...) {
-        ESP_LOGE(TAG, "Exception executing enhanced command %d", cmdType);
+    } 
+	catch (...) 
+	{
+        ESP_LOGE(TAG, "Exception executing command %d", cmdType);
         return false;
     }
 }
 
-
-
-// Basic drawing command implementations
-bool Maps::drawLine(const uint8_t* data, size_t& offset, int16_t xOffset, int16_t yOffset, TFT_eSprite &map) {
+/**
+ * @brief Draws a single line on the map using binary vector tile data.
+ *
+ * @details Parses two endpoints and a color from the tile buffer, applies coordinate offsets,
+ * 			and renders the line on the specified map canvas if it is within the visible area.
+ *
+ * @param data Pointer to the tile data buffer.
+ * @param offset Reference to the current offset within the buffer. Will be updated after reading.
+ * @param xOffset Horizontal offset to apply to coordinates.
+ * @param yOffset Vertical offset to apply to coordinates.
+ * @param map Reference to the TFT_eSprite where the line will be drawn.
+ * @return true if parsing and drawing were successful; false otherwise.
+ */
+bool Maps::drawLine(const uint8_t* data, size_t& offset, int16_t xOffset, int16_t yOffset, TFT_eSprite &map) 
+{
     if (!checkBounds(offset, 10, MAX_TILE_SIZE_BYTES)) return false;
     
     int16_t x1 = clampCoord(*(int16_t*)(data + offset) + xOffset); offset += sizeof(int16_t);
@@ -1568,38 +1209,36 @@ bool Maps::drawLine(const uint8_t* data, size_t& offset, int16_t xOffset, int16_
     int16_t y2 = clampCoord(*(int16_t*)(data + offset) + yOffset); offset += sizeof(int16_t);
     uint16_t color = *(uint16_t*)(data + offset); offset += sizeof(uint16_t);
     
-    debugPrintCommand(DRAW_LINE, COMPLEXITY_LOW);
-    
-            if (isVisible(std::min(x1, x2), std::min(y1, y2), std::abs(x2-x1), std::abs(y2-y1), map)) {
+    if (isVisible(std::min(x1, x2), std::min(y1, y2), std::abs(x2-x1), std::abs(y2-y1), map)) 
         map.drawLine(x1, y1, x2, y2, color);
-    }
-	
-    
+   
     return true;
 }
 
-bool Maps::drawPolyline(const uint8_t* data, size_t& offset, int16_t xOffset, int16_t yOffset, TFT_eSprite &map) {
+
+
+
+bool Maps::drawPolyline(const uint8_t* data, size_t& offset, int16_t xOffset, int16_t yOffset, TFT_eSprite &map) 
+{
     if (!checkBounds(offset, 4, MAX_TILE_SIZE_BYTES)) return false;
     
     uint16_t numPoints = *(uint16_t*)(data + offset); offset += sizeof(uint16_t);
     uint16_t color = *(uint16_t*)(data + offset); offset += sizeof(uint16_t);
     
-    debugPrintCommand(DRAW_POLYLINE, COMPLEXITY_MEDIUM);
-    
     if (numPoints < 2 || numPoints > 3000) return false;
     if (!checkBounds(offset, numPoints * 4, MAX_TILE_SIZE_BYTES)) return false;
     
-    // Draw lines between consecutive points
+    /**< Draw lines between consecutive points */
     int16_t prevX = clampCoord(*(int16_t*)(data + offset) + xOffset); offset += sizeof(int16_t);
     int16_t prevY = clampCoord(*(int16_t*)(data + offset) + yOffset); offset += sizeof(int16_t);
     
-    for (int p = 1; p < numPoints; ++p) {
+    for (int p = 1; p < numPoints; ++p)
+	{
         int16_t x = clampCoord(*(int16_t*)(data + offset) + xOffset); offset += sizeof(int16_t);
         int16_t y = clampCoord(*(int16_t*)(data + offset) + yOffset); offset += sizeof(int16_t);
         
-        if (isVisible(std::min(prevX, x), std::min(prevY, y), std::abs(x-prevX), std::abs(y-prevY), map)) {
+        if (isVisible(std::min(prevX, x), std::min(prevY, y), std::abs(x-prevX), std::abs(y-prevY), map))
             map.drawLine(prevX, prevY, x, y, color);
-        }
         
         prevX = x;
         prevY = y;
@@ -1617,8 +1256,6 @@ bool Maps::drawFillRect(const uint8_t* data, size_t& offset, int16_t xOffset, in
     int16_t h = *(int16_t*)(data + offset); offset += sizeof(int16_t);
     uint16_t color = *(uint16_t*)(data + offset); offset += sizeof(uint16_t);
     
-    debugPrintCommand(DRAW_FILL_RECT, COMPLEXITY_LOW);
-    
     if (w > 0 && h > 0 && isVisible(x, y, w, h, map)) {
         map.fillRect(x, y, w, h, color);
     }
@@ -1632,8 +1269,7 @@ bool Maps::drawFillPolygon(const uint8_t* data, size_t& offset, int16_t xOffset,
     uint16_t numPoints = *(uint16_t*)(data + offset); offset += sizeof(uint16_t);
     uint16_t color = *(uint16_t*)(data + offset); offset += sizeof(uint16_t);
     
-    debugPrintCommand(DRAW_FILL_POLYGON, COMPLEXITY_HIGH);
-    
+   
     if (numPoints < 3 || numPoints > 3000) return false;
     if (!checkBounds(offset, numPoints * 4, MAX_TILE_SIZE_BYTES)) return false;
     
@@ -1666,8 +1302,6 @@ bool Maps::drawStrokePolygon(const uint8_t* data, size_t& offset, int16_t xOffse
     
     uint16_t numPoints = *(uint16_t*)(data + offset); offset += sizeof(uint16_t);
     uint16_t color = *(uint16_t*)(data + offset); offset += sizeof(uint16_t);
-    
-    debugPrintCommand(DRAW_STROKE_POLYGON, COMPLEXITY_MEDIUM);
     
     if (numPoints < 3 || numPoints > 3000) return false;
     if (!checkBounds(offset, numPoints * 4, MAX_TILE_SIZE_BYTES)) return false;
@@ -1704,8 +1338,7 @@ bool Maps::drawHorizontalLine(const uint8_t* data, size_t& offset, int16_t xOffs
     int16_t y = clampCoord(*(int16_t*)(data + offset) + yOffset); offset += sizeof(int16_t);
     uint16_t color = *(uint16_t*)(data + offset); offset += sizeof(uint16_t);
     
-    debugPrintCommand(DRAW_HORIZONTAL_LINE, COMPLEXITY_LOW);
-    
+   
     if (x1 > x2) std::swap(x1, x2);
     
     if (isVisible(x1, y, x2-x1, 1, map)) {
@@ -1723,8 +1356,7 @@ bool Maps::drawVerticalLine(const uint8_t* data, size_t& offset, int16_t xOffset
     int16_t y2 = clampCoord(*(int16_t*)(data + offset) + yOffset); offset += sizeof(int16_t);
     uint16_t color = *(uint16_t*)(data + offset); offset += sizeof(uint16_t);
     
-    debugPrintCommand(DRAW_VERTICAL_LINE, COMPLEXITY_LOW);
-    
+   
     if (y1 > y2) std::swap(y1, y2);
     
     if (isVisible(x, y1, 1, y2-y1, map)) {

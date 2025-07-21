@@ -19,60 +19,82 @@
 #include "mapVars.h"
 #include "storage.hpp"
 
-/**********************************************************/
-/**********************************************************/
-
+/**
+ * @brief Macro to verify that a memory access is within allowed bounds.
+ * 
+ * @details Checks whether the range defined by [offset, offset + size) fits within the given limit.
+ * 			If the check fails, logs an error message with the provided values and returns false
+ * 			from the current function.
+ * 
+ * @param offset The starting offset/index for the access.
+ * @param size The number of bytes/elements to access.
+ * @param limit The maximum allowed limit (usually buffer size).
+ */
 #define CHECK_BOUNDS(offset, size, limit) \
     if (!checkBounds(offset, size, limit)) { \
         ESP_LOGE("BOUNDS", "Check failed: offset=%u size=%u limit=%u", (unsigned)(offset), (unsigned)(size), (unsigned)(limit)); \
         return false; \
     }
 
-// Enhanced draw command types - SYNCHRONIZED WITH PYTHON SCRIPT
-enum EnhancedDrawCommand : uint8_t 
+/**
+ * @brief Draw command types used for rendering vector graphics.
+ * 
+ * @details These commands are synchronized with the corresponding Python script
+ * 			that generates the binary tile data. Each command corresponds to a specific
+ * 			geometric drawing operation.
+ */
+enum DrawCommand : uint8_t 
 {
-    DRAW_LINE = 1,
-    DRAW_POLYLINE = 2,
-    DRAW_FILL_RECT = 3,
-    DRAW_FILL_POLYGON = 4,
-    DRAW_STROKE_POLYGON = 5,
-    DRAW_ADAPTIVE_LINE = 6,     
-    DRAW_SPLINE_CURVE = 7,      
-    DRAW_MULTI_LOD_POLYGON = 8, 
-    DRAW_HORIZONTAL_LINE = 9,
-    DRAW_VERTICAL_LINE = 10,
+    DRAW_LINE = 1,           /**< Draw a simple line segment */
+    DRAW_POLYLINE = 2,       /**< Draw a series of connected line segments */
+    DRAW_FILL_RECT = 3,      /**< Draw and fill a rectangle */
+    DRAW_FILL_POLYGON = 4,   /**< Draw and fill a polygon */
+    DRAW_STROKE_POLYGON = 5, /**< Draw only the stroke (outline) of a polygon */
+    DRAW_ADAPTIVE_LINE = 6,  /**< Draw a line with adaptive detail based on complexity */
+    DRAW_SPLINE_CURVE = 7,   /**< Draw a smooth spline curve through control points */
+    DRAW_MULTI_LOD_POLYGON = 8, /**< Draw a polygon with multiple levels of detail */
+    DRAW_HORIZONTAL_LINE = 9,/**< Draw a horizontal line */
+    DRAW_VERTICAL_LINE = 10, /**< Draw a vertical line */
 };
 
-// Complexity levels for geometry
+/**
+ * @brief Levels of complexity for geometric rendering.
+ * 
+ * @details Used to control the detail or quality of rendered vector shapes,
+ * 			allowing adaptive rendering based on zoom level or performance constraints.
+ */
 enum GeometryComplexity : uint8_t 
 {
-    COMPLEXITY_LOW = 0,
-    COMPLEXITY_MEDIUM = 1,
-    COMPLEXITY_HIGH = 2,
+    COMPLEXITY_LOW = 0,      /**< Low complexity, less detail */
+    COMPLEXITY_MEDIUM = 1,   /**< Medium complexity */
+    COMPLEXITY_HIGH = 2,     /**< High complexity, maximum detail */
 };
 
-// Cache structure for tile data
+/**
+ * @brief Cache structure to hold tile data in memory.
+ * 
+ * @details Manages a buffer containing tile data, its size, last access time (for cache eviction),
+ * 			and whether the data is stored in PSRAM (external RAM) or not.
+ * 
+ * Copy operations are deleted to prevent accidental copying and double frees.
+ * Move semantics are enabled for efficient transfer of ownership.
+ */
 struct TileCache
 {
-    uint8_t* data;
-    size_t size;
-    uint32_t lastAccess;
-    bool inPsram;
+    uint8_t* data;        /**< Pointer to the tile data buffer */
+    size_t size;          /**< Size of the tile data buffer in bytes */
+    uint32_t lastAccess;  /**< Timestamp of the last access for cache management */
+    bool inPsram;         /**< Flag indicating if the data resides in PSRAM memory */
     
     TileCache();
     ~TileCache();
     
-    // Prevent copying to avoid double-free issues
     TileCache(const TileCache&) = delete;
     TileCache& operator=(const TileCache&) = delete;
     
-    // Allow moving
     TileCache(TileCache&& other) noexcept;
     TileCache& operator=(TileCache&& other) noexcept;
 };
-
-/**********************************************************/
-/**********************************************************/
 
 /**
  * @class Maps
@@ -137,99 +159,72 @@ private:
 	float prevLat, prevLon;                                                      /**< Previous Latitude and Longitude */
 	float destLat, destLon;                                                      /**< Waypoint destination latitude and longitude */
 	uint8_t zoomLevel;                                                           /**< Zoom level for map display */
-	ScreenCoord navArrowPosition; /**< Navigation Arrow position on screen */
+	ScreenCoord navArrowPosition; 												 /**< Navigation Arrow position on screen */
     tileBounds getTileBounds(uint32_t tileX, uint32_t tileY, uint8_t zoom);
     bool isCoordInBounds(float lat, float lon, tileBounds bound);
     ScreenCoord coord2ScreenPos(float lon, float lat, uint8_t zoomLevel, uint16_t tileSize);
     void coords2map(float lat, float lon, tileBounds bound, uint16_t *pixelX, uint16_t *pixelY);
     void showNoMap(TFT_eSprite &map);
 
-
-/**********************************************************/
-/**********************************************************/
-	static constexpr size_t MAX_CACHE_SIZE_PSRAM = 30;
-    static constexpr size_t MAX_CACHE_SIZE_NO_PSRAM = 10;
-    static constexpr size_t MAX_TILE_SIZE_BYTES = 1024 * 1024; // 1MB max per tile
-    
-    // Static members
-    static std::unordered_map<std::string, TileCache> tileCache;
-    static bool hasPsram;
-    static size_t maxCacheSize;
-    static bool debugMode;
-    static int qualityLevel;
-    static uint32_t cacheHits;
-    static uint32_t cacheMisses;
-    static uint32_t tilesRendered;
-    static uint32_t commandsExecuted;
-    
-    // Command execution
-    // static bool executeEnhancedCommand(uint8_t cmdType, const uint8_t* data, size_t& offset, 
-    //                                   int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
-	static bool executeEnhancedCommand(uint8_t cmdType, const uint8_t* data, size_t& offset, 
-                                 int16_t xOffset, int16_t yOffset, TFT_eSprite &map, size_t dataSize);
-    
-    // Basic drawing commands
-
-    // Basic drawing commands
+	// Vector tiles
+	static constexpr size_t MAX_CACHE_SIZE_PSRAM = 30; 				/**< Maximum number of vector tiles cached when using PSRAM */
+	static constexpr size_t MAX_CACHE_SIZE_NO_PSRAM = 10; 			/**< Maximum number of vector tiles cached without using PSRAM */
+	static constexpr size_t MAX_TILE_SIZE_BYTES = 1024 * 1024; 		/**< Maximum allowed size per vector tile in bytes (1MB) */
+	static std::unordered_map<std::string, TileCache> tileCache;	/**< Cache storing vector tiles mapped by their string keys */
+	static bool hasPsram; 											/**< Flag indicating whether PSRAM is available */
+	static size_t maxCacheSize; 									/**< Maximum number of vector tiles allowed in the cache */
+	static int qualityLevel;										/**< Quality level setting for vector tiles rendering */
+    static bool executeCommand(uint8_t cmdType, const uint8_t* data, size_t& offset, 
+                            		   int16_t xOffset, int16_t yOffset, TFT_eSprite &map, size_t dataSize);  
     static bool drawLine(const uint8_t* data, size_t& offset, 
-                        int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
+                         int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
     static bool drawPolyline(const uint8_t* data, size_t& offset, 
-                            int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
+                             int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
     static bool drawFillRect(const uint8_t* data, size_t& offset, 
-                            int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
+                             int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
     static bool drawFillPolygon(const uint8_t* data, size_t& offset, 
-                               int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
-    static bool drawStrokePolygon(const uint8_t* data, size_t& offset, 
-                                 int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
-    static bool drawHorizontalLine(const uint8_t* data, size_t& offset, 
-                                  int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
-    static bool drawVerticalLine(const uint8_t* data, size_t& offset, 
                                 int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
-    
-    // Enhanced drawing commands
+    static bool drawStrokePolygon(const uint8_t* data, size_t& offset, 
+                                  int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
+    static bool drawHorizontalLine(const uint8_t* data, size_t& offset, 
+                                   int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
+    static bool drawVerticalLine(const uint8_t* data, size_t& offset, 
+                                 int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
     static void drawAdaptiveLine(const int16_t* points_x, const int16_t* points_y, 
-                               size_t count, uint16_t color, GeometryComplexity complexity, 
-                               TFT_eSprite &map);
+                                 size_t count, uint16_t color, GeometryComplexity complexity, 
+                                 TFT_eSprite &map);
     static void drawMultiLODPolygon(const int16_t* points_x, const int16_t* points_y, 
-                                  size_t count, uint16_t color, GeometryComplexity complexity, 
-                                  uint8_t render_style, TFT_eSprite &map);
+                                    size_t count, uint16_t color, GeometryComplexity complexity, 
+                                    uint8_t render_style, TFT_eSprite &map);
     static void drawSmoothCurve(const int16_t* points_x, const int16_t* points_y, 
-                              size_t count, uint16_t color, TFT_eSprite &map);
-    
-    // Polygon filling utility
+                                size_t count, uint16_t color, TFT_eSprite &map);
     static void drawPolygonFast(const int16_t* points_x, const int16_t* points_y, 
-                               size_t count, uint16_t color, TFT_eSprite &map);
-    
-    // Utility functions
-    static bool validateTileData(const uint8_t* data, size_t size);
-    static void debugPrintCommand(uint8_t cmdType, GeometryComplexity complexity);
-    static bool isVisible(int16_t x, int16_t y, int16_t w, int16_t h, const TFT_eSprite &map);
+                                size_t count, uint16_t color, TFT_eSprite &map);  
+    static bool validateTileData(const uint8_t* data, size_t size);											
     static bool skipUnknownCommand(uint8_t cmdType, const uint8_t* data, size_t& offset, size_t dataSize);
-    
-    // Interpolation helpers
     static void interpolatePoints(const int16_t* points_x, const int16_t* points_y, 
-                                size_t count, std::vector<int16_t>& out_x, std::vector<int16_t>& out_y);
+                                 size_t count, std::vector<int16_t>& out_x, std::vector<int16_t>& out_y);
     static void catmullRomSpline(const int16_t* points_x, const int16_t* points_y, 
-                               size_t count, std::vector<int16_t>& out_x, std::vector<int16_t>& out_y);
-
-    // Memory management helpers
+                                 size_t count, std::vector<int16_t>& out_x, std::vector<int16_t>& out_y);
     static void evictOldestTile();
     static bool loadTileFromFile(const char* path, TileCache& cache);
-    
-    // Bounds checking macros as inline functions
-    static inline bool checkBounds(size_t offset, size_t size, size_t limit) {
-        return (offset + size) <= limit;
-    }
-    
-    static inline int16_t clampCoord(int32_t coord) {
-		
-        return static_cast<int16_t>(std::max(static_cast<int32_t>(-32767), 
-                                           std::min(static_cast<int32_t>(32767), coord)));
-    }
-
-/**********************************************************/
-/**********************************************************/
-
+	static inline __attribute__((always_inline)) bool checkBounds(size_t offset, size_t size, size_t limit) { return (offset + size) <= limit; }
+    static inline __attribute__((always_inline)) int16_t clampCoord(int32_t coord) { return static_cast<int16_t>(std::max(static_cast<int32_t>(-32767), 
+                                                    								 std::min(static_cast<int32_t>(32767), coord))); }
+	/**
+	* @brief Checks if a rectangle is visible within the boundaries of the given map sprite.
+	* 
+	* @param x The x-coordinate of the rectangle's top-left corner.
+	* @param y The y-coordinate of the rectangle's top-left corner.
+	* @param w The width of the rectangle.
+	* @param h The height of the rectangle.
+	* @param map The TFT_eSprite object representing the map area.
+	* @return true if any part of the rectangle is visible within the map boundaries.
+	* @return false if the rectangle is completely outside the map area.
+	*/
+	static inline __attribute__((always_inline)) bool isVisible(int16_t x, int16_t y, int16_t w, int16_t h, const TFT_eSprite &map) {
+   																		 return !(x >= map.width() || y >= map.height() || x + w < 0 || y + h < 0); }																						 
+   
 public:
 	void* mapBuffer;                                               /**< Pointer to map screen sprite */
 	uint16_t mapScrHeight;                                         /**< Screen map size height */
@@ -264,41 +259,9 @@ public:
     void scrollMap(int16_t dx, int16_t dy);
     void preloadTiles(int8_t dirX, int8_t dirY);
 
-
-
-
-/**********************************************************/
-/**********************************************************/
-    // Core rendering functions
     static bool renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
-    
-    // Cache management
     static void initCache();
     static void clearCache();
-    static void printCacheStats();
-    
-    // Configuration
-    static void setDebugMode(bool enabled);
-    static void setQualityLevel(int level); // 1=fast, 2=balanced, 3=quality
-    
-    // Utility functions
-    static size_t getCacheUsage();
-    static bool hasPSRAM();
-/**********************************************************/
-/**********************************************************/
-
+	static inline __attribute__((always_inline)) bool hasPSRAM() { return hasPsram;}
 };
 
-/**********************************************************/
-/**********************************************************/
-// Inline implementations for performance-critical functions
-inline bool Maps::isVisible(int16_t x, int16_t y, int16_t w, int16_t h, const TFT_eSprite &map) {
-    return !(x >= map.width() || y >= map.height() || x + w < 0 || y + h < 0);
-}
-
-inline bool Maps::hasPSRAM() {
-    return hasPsram;
-}
-
-/**********************************************************/
-/**********************************************************/
