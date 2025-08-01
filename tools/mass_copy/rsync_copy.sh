@@ -28,7 +28,7 @@ show_help() {
     echo ""
     echo "Examples:"
     echo "  $0 /home/user/files /mnt/sd /dev/sdc1"
-    echo "  $0 /var/data /media/usb /dev/sdb1"
+    echo "  $0 /home/user/data /media/usb /dev/sdb1"
     echo ""
     exit 0
 }
