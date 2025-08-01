@@ -180,7 +180,7 @@ echo -e "${YELLOW}5. Starting intelligent sync...${NC}"
 echo "   Destination folder: $DESTINATION/$SOURCE_FOLDER_NAME/"
 echo "   Rsync will:"
 echo "   - Only copy new/modified files"
-echo "   - Remove obsolete files from destination"
+echo "   - Remove files from destination that no longer exist in source"
 echo "   - Resume interrupted transfers"
 echo ""
 
