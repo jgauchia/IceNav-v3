@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <vector>
 #include <map>
+#include <set>
 #include <unordered_map>
 #include "tft.hpp"
 #include "gpsMath.hpp"
@@ -95,6 +96,14 @@ struct TileCache
     TileCache(TileCache&& other) noexcept;
     TileCache& operator=(TileCache&& other) noexcept;
 };
+
+
+static int16_t read_le_int16(const uint8_t* data) {
+    return (int16_t)(data[0] | (data[1] << 8));
+}
+static uint16_t read_le_uint16(const uint8_t* data) {
+    return (uint16_t)(data[0] | (data[1] << 8));
+}
 
 /**
  * @class Maps
@@ -211,6 +220,8 @@ private:
 	static inline __attribute__((always_inline)) bool checkBounds(size_t offset, size_t size, size_t limit) { return (offset + size) <= limit; }
     static inline __attribute__((always_inline)) int16_t clampCoord(int32_t coord) { return static_cast<int16_t>(std::max(static_cast<int32_t>(-32767), 
                                                     								 std::min(static_cast<int32_t>(32767), coord))); }
+	
+
 	/**
 	* @brief Checks if a rectangle is visible within the boundaries of the given map sprite.
 	* 
