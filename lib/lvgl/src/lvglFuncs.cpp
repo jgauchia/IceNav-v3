@@ -112,7 +112,7 @@ void showMsg(const char* symbol, const char* message)
 	lv_obj_t *labelText = lv_msgbox_get_content(msgDialog);
 	lv_obj_set_style_text_align(labelText, LV_TEXT_ALIGN_CENTER, 0);
 	char msg[100];
-	sprintf(msg,"%s %s",symbol, message);
+	snprintf(msg, sizeof(msg), "%s %s", symbol, message);
 	lv_msgbox_add_text(msgDialog, msg);
 	lv_obj_invalidate(msgDialog);
 	lv_refr_now(display);
