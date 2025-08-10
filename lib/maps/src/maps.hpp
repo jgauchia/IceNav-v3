@@ -37,6 +37,9 @@
         return false; \
     }
 
+	static int uint16_to_tile_pixel(int32_t val);
+
+
 /**
  * @brief Draw command types used for rendering vector graphics.
  * 
@@ -46,64 +49,27 @@
  */
 enum DrawCommand : uint8_t 
 {
-    DRAW_LINE = 1,           /**< Draw a simple line segment */
-    DRAW_POLYLINE = 2,       /**< Draw a series of connected line segments */
-    DRAW_FILL_RECT = 3,      /**< Draw and fill a rectangle */
-    DRAW_FILL_POLYGON = 4,   /**< Draw and fill a polygon */
-    DRAW_STROKE_POLYGON = 5, /**< Draw only the stroke (outline) of a polygon */
-    DRAW_ADAPTIVE_LINE = 6,  /**< Draw a line with adaptive detail based on complexity */
-    DRAW_SPLINE_CURVE = 7,   /**< Draw a smooth spline curve through control points */
-    DRAW_MULTI_LOD_POLYGON = 8, /**< Draw a polygon with multiple levels of detail */
-    DRAW_HORIZONTAL_LINE = 9,/**< Draw a horizontal line */
-    DRAW_VERTICAL_LINE = 10, /**< Draw a vertical line */
-};
-
-/**
- * @brief Levels of complexity for geometric rendering.
- * 
- * @details Used to control the detail or quality of rendered vector shapes,
- * 			allowing adaptive rendering based on zoom level or performance constraints.
- */
-enum GeometryComplexity : uint8_t 
-{
-    COMPLEXITY_LOW = 0,      /**< Low complexity, less detail */
-    COMPLEXITY_MEDIUM = 1,   /**< Medium complexity */
-    COMPLEXITY_HIGH = 2,     /**< High complexity, maximum detail */
-};
-
-/**
- * @brief Cache structure to hold tile data in memory.
- * 
- * @details Manages a buffer containing tile data, its size, last access time (for cache eviction),
- * 			and whether the data is stored in PSRAM (external RAM) or not.
- * 
- * Copy operations are deleted to prevent accidental copying and double frees.
- * Move semantics are enabled for efficient transfer of ownership.
- */
-struct TileCache
-{
-    uint8_t* data;        /**< Pointer to the tile data buffer */
-    size_t size;          /**< Size of the tile data buffer in bytes */
-    uint32_t lastAccess;  /**< Timestamp of the last access for cache management */
-    bool inPsram;         /**< Flag indicating if the data resides in PSRAM memory */
-    
-    TileCache();
-    ~TileCache();
-    
-    TileCache(const TileCache&) = delete;
-    TileCache& operator=(const TileCache&) = delete;
-    
-    TileCache(TileCache&& other) noexcept;
-    TileCache& operator=(TileCache&& other) noexcept;
+    // Comandos básicos (compatibilidad con versión anterior)
+    DRAW_LINE = 1,               /**< Draw a simple line segment */
+    DRAW_POLYLINE = 2,           /**< Draw a series of connected line segments */
+    DRAW_STROKE_POLYGON = 3,     /**< Draw only the stroke (outline) of a single polygon */
+    DRAW_STROKE_POLYGONS = 4,    /**< Draw only the strokes (outlines) of multiple polygons */
+    DRAW_HORIZONTAL_LINE = 5,    /**< Draw a horizontal line */
+    DRAW_VERTICAL_LINE = 6,      /**< Draw a vertical line */
+    SET_COLOR = 0x80,            /**< Set current drawing color (RGB332) */
+    SET_COLOR_INDEX = 0x81,      /**< Set current color using palette index */
+    RECTANGLE = 0x82,            /**< Optimized rectangle command */
+    STRAIGHT_LINE = 0x83,        /**< Optimized straight line command */
+    GRID_PATTERN = 0x85,         /**< Urban grid pattern (multiple parallel lines) */
+    CIRCLE = 0x87,               /**< Optimized circle command */
+    PREDICTED_LINE = 0x89        /**< Coordinate-predicted line (only end point) */
 };
 
 
-static int16_t read_le_int16(const uint8_t* data) {
-    return (int16_t)(data[0] | (data[1] << 8));
-}
-static uint16_t read_le_uint16(const uint8_t* data) {
-    return (uint16_t)(data[0] | (data[1] << 8));
-}
+// helper functions for varint/zigzag decoding
+static uint32_t read_varint(const uint8_t* data, size_t& offset, size_t dataSize);
+static int32_t read_zigzag(const uint8_t* data, size_t& offset, size_t dataSize);
+static uint16_t rgb332_to_rgb565(uint8_t rgb332);
 
 /**
  * @class Maps
@@ -176,65 +142,9 @@ private:
     void showNoMap(TFT_eSprite &map);
 
 	// Vector tiles
-	static constexpr size_t MAX_CACHE_SIZE_PSRAM = 30; 				/**< Maximum number of vector tiles cached when using PSRAM */
-	static constexpr size_t MAX_CACHE_SIZE_NO_PSRAM = 10; 			/**< Maximum number of vector tiles cached without using PSRAM */
-	static constexpr size_t MAX_TILE_SIZE_BYTES = 1024 * 1024; 		/**< Maximum allowed size per vector tile in bytes (1MB) */
-	static std::unordered_map<std::string, TileCache> tileCache;	/**< Cache storing vector tiles mapped by their string keys */
-	static bool hasPsram; 											/**< Flag indicating whether PSRAM is available */
-	static size_t maxCacheSize; 									/**< Maximum number of vector tiles allowed in the cache */
-	static int qualityLevel;										/**< Quality level setting for vector tiles rendering */
-    static bool executeCommand(uint8_t cmdType, const uint8_t* data, size_t& offset, 
-                            		   int16_t xOffset, int16_t yOffset, TFT_eSprite &map, size_t dataSize);  
-    static bool drawLine(const uint8_t* data, size_t& offset, 
-                         int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
-    static bool drawPolyline(const uint8_t* data, size_t& offset, 
-                             int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
-    static bool drawFillRect(const uint8_t* data, size_t& offset, 
-                             int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
-    static bool drawFillPolygon(const uint8_t* data, size_t& offset, 
-                                int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
-    static bool drawStrokePolygon(const uint8_t* data, size_t& offset, 
-                                  int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
-    static bool drawHorizontalLine(const uint8_t* data, size_t& offset, 
-                                   int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
-    static bool drawVerticalLine(const uint8_t* data, size_t& offset, 
-                                 int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
-    static void drawAdaptiveLine(const int16_t* points_x, const int16_t* points_y, 
-                                 size_t count, uint16_t color, GeometryComplexity complexity, 
-                                 TFT_eSprite &map);
-    static void drawMultiLODPolygon(const int16_t* points_x, const int16_t* points_y, 
-                                    size_t count, uint16_t color, GeometryComplexity complexity, 
-                                    uint8_t render_style, TFT_eSprite &map);
-    static void drawSmoothCurve(const int16_t* points_x, const int16_t* points_y, 
-                                size_t count, uint16_t color, TFT_eSprite &map);
-    static void drawPolygonFast(const int16_t* points_x, const int16_t* points_y, 
-                                size_t count, uint16_t color, TFT_eSprite &map);  
-    static bool validateTileData(const uint8_t* data, size_t size);											
-    static bool skipUnknownCommand(uint8_t cmdType, const uint8_t* data, size_t& offset, size_t dataSize);
-    static void interpolatePoints(const int16_t* points_x, const int16_t* points_y, 
-                                 size_t count, std::vector<int16_t>& out_x, std::vector<int16_t>& out_y);
-    static void catmullRomSpline(const int16_t* points_x, const int16_t* points_y, 
-                                 size_t count, std::vector<int16_t>& out_x, std::vector<int16_t>& out_y);
-    static void evictOldestTile();
-    static bool loadTileFromFile(const char* path, TileCache& cache);
-	static inline __attribute__((always_inline)) bool checkBounds(size_t offset, size_t size, size_t limit) { return (offset + size) <= limit; }
-    static inline __attribute__((always_inline)) int16_t clampCoord(int32_t coord) { return static_cast<int16_t>(std::max(static_cast<int32_t>(-32767), 
-                                                    								 std::min(static_cast<int32_t>(32767), coord))); }
-	
-
-	/**
-	* @brief Checks if a rectangle is visible within the boundaries of the given map sprite.
-	* 
-	* @param x The x-coordinate of the rectangle's top-left corner.
-	* @param y The y-coordinate of the rectangle's top-left corner.
-	* @param w The width of the rectangle.
-	* @param h The height of the rectangle.
-	* @param map The TFT_eSprite object representing the map area.
-	* @return true if any part of the rectangle is visible within the map boundaries.
-	* @return false if the rectangle is completely outside the map area.
-	*/
-	static inline __attribute__((always_inline)) bool isVisible(int16_t x, int16_t y, int16_t w, int16_t h, const TFT_eSprite &map) {
-   																		 return !(x >= map.width() || y >= map.height() || x + w < 0 || y + h < 0); }																						 
+	static uint16_t currentDrawColor;                               /**< Current drawing color state */
+	static bool fillPolygons;                                       /**< Global fill polygons flag (like Python) */
+																 
    
 public:
 	void* mapBuffer;                                               /**< Pointer to map screen sprite */
@@ -271,8 +181,5 @@ public:
     void preloadTiles(int8_t dirX, int8_t dirY);
 
     static bool renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
-    static void initCache();
-    static void clearCache();
-	static inline __attribute__((always_inline)) bool hasPSRAM() { return hasPsram;}
 };
 

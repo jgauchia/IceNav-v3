@@ -18,81 +18,8 @@ extern Storage storage;
 extern std::vector<wayPoint> trackData; /**< Vector containing track waypoints */
 const char* TAG PROGMEM = "Maps";
 
-std::unordered_map<std::string, TileCache> Maps::tileCache;
-bool Maps::hasPsram = false;
-size_t Maps::maxCacheSize = Maps::MAX_CACHE_SIZE_NO_PSRAM;
-int Maps::qualityLevel = 3; // 1=fast, 2=balanced, 3=quality
-
-/**< TileCache implementation */
-
-/**
-* @brief Default constructor initializing members to safe defaults.
-*/
-TileCache::TileCache() : data(nullptr), size(0), lastAccess(0), inPsram(false) {}
-
-/**
-* @brief Destructor frees allocated memory based on allocation type.
-* 
-* Uses `heap_caps_free` if `inPsram` is true, otherwise `delete[]`.
-*/
-TileCache::~TileCache() 
-{
-    if (data) {
-        if (inPsram) {
-            heap_caps_free(data);
-        } else {
-            delete[] data;
-        }
-        data = nullptr;
-    }
-}
-
-/**
-* @brief Move constructor transfers ownership of resources from another TileCache.
-* 
-* @param other TileCache object to move from.
-*/
-TileCache::TileCache(TileCache&& other) noexcept 
-    : data(other.data), size(other.size), lastAccess(other.lastAccess), inPsram(other.inPsram)
-{
-    other.data = nullptr;
-    other.size = 0;
-    other.lastAccess = 0;
-    other.inPsram = false;
-}
-
-/**
-* @brief Move assignment operator transfers ownership and cleans current resources.
-* 
-* @param other TileCache object to move from.
-* @return Reference to this object.
-*/
-TileCache& TileCache::operator=(TileCache&& other) noexcept 
-{
-    if (this != &other) {
-        // Clean up existing data
-        if (data) {
-            if (inPsram) {
-                heap_caps_free(data);
-            } else {
-                delete[] data;
-            }
-        }
-        
-        // Move data from other
-        data = other.data;
-        size = other.size;
-        lastAccess = other.lastAccess;
-        inPsram = other.inPsram;
-        
-        // Reset other
-        other.data = nullptr;
-        other.size = 0;
-        other.lastAccess = 0;
-        other.inPsram = false;
-    }
-    return *this;
-}
+uint16_t Maps::currentDrawColor = TFT_WHITE;
+bool Maps::fillPolygons = false;  // Default: solo contorno como Python
 
 /**
  * @brief Map Class constructor
@@ -747,1373 +674,567 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 }
 
 
-
-
-
-
-/**< Vector Map */
+///*********************************************************** */
 
 /**
- * @brief Initializes the vector tile cache and related settings.
- * 
- * @details Detects if PSRAM is available and sets the maximum cache size accordingly.
- * 			Clears any existing cached vector tile data 
- * 			Logs initialization details including PSRAM availability, max cache size, and quality level.
+ * @brief Read variable-length integer (varint) from binary data.
  */
-void Maps::initCache() 
+static uint32_t read_varint(const uint8_t* data, size_t& offset, size_t dataSize)
 {
-    hasPsram = (heap_caps_get_total_size(MALLOC_CAP_SPIRAM) > 0);
-    maxCacheSize = hasPsram ? MAX_CACHE_SIZE_PSRAM : MAX_CACHE_SIZE_NO_PSRAM;
-    tileCache.clear(); 
-    ESP_LOGI(TAG, "Vector tile renderer initialized. PSRAM: %s, Max cache: %zu tiles, Quality: %d", 
-             hasPsram ? "YES" : "NO", maxCacheSize, qualityLevel);
-}
-
-/**
- * @brief Clears all cached vector tile data and resets rendering statistics.
- * 
- * @details Empties the vector tile cache 
- */
-void Maps::clearCache() 
-{
-    tileCache.clear();
-}
-
-/**
- * @brief Performs basic sanity checks on a raw vector tile buffer before parsing.
- *
- * @details This routine verifies that:
- *  			- The buffer pointer is non‑null and at least large enough to contain the
- *   			  16‑bit command‑count header.
- *				- The reported number of commands is within a reasonable upper bound
- *   			  (protects against corrupted or malicious data).
- *  			- The total buffer size does not exceed the compile‑time limit
- *   			  #MAX_TILE_SIZE_BYTES.
- *
- * @param data Pointer to the raw tile byte buffer.
- * @param size Size of the buffer in bytes.
- * @return `true` if the buffer passes all checks and is considered safe to parse,
- *         `false` otherwise 
- */
-bool Maps::validateTileData(const uint8_t* data, size_t size)
-{
-    if (!data || size < sizeof(uint16_t)) 
-	{
-        ESP_LOGE(TAG, "Invalid tile data: null or too small (%zu bytes)", size);
-        return false;
-    }
+    uint32_t value = 0;
+    uint8_t shift = 0;
     
-    uint16_t numCommands = *(uint16_t*)data;
-    if (numCommands > 15000)
-	{ 
-		ESP_LOGE(TAG, "Suspicious command count: %d", numCommands);
-        return false;
-    }
-    
-    if (size > MAX_TILE_SIZE_BYTES) 
-	{
-        ESP_LOGE(TAG, "Tile too large: %zu bytes (max %zu)", size, MAX_TILE_SIZE_BYTES);
-        return false;
-    }
-    
-    return true;
-}
-
-/**
- * @brief Evicts the least recently accessed vector tile from the tile cache.
- *
- * @details This function is used to maintain the cache size within the allowed limits.
- * 		    It searches the `tileCache` for the entry with the oldest `lastAccess` timestamp
- * 			and removes it. This helps implement a simple LRU (Least Recently Used) strategy.
- *
- * If the cache is already empty, the function returns immediately.
- */
-void Maps::evictOldestTile()
-{
-    if (tileCache.empty()) 
-		return;
-    
-    auto oldest = tileCache.begin();
-    uint32_t oldestTime = oldest->second.lastAccess;
-    
-    for (auto it = tileCache.begin(); it != tileCache.end(); ++it) 
-	{
-        if (it->second.lastAccess < oldestTime)
-		{
-            oldest = it;
-            oldestTime = it->second.lastAccess;
+    while (offset < dataSize && shift < 32) {
+        uint8_t byte = data[offset++];
+        value |= ((uint32_t)(byte & 0x7F)) << shift;
+        
+        if ((byte & 0x80) == 0) {
+            break;
         }
+        
+        shift += 7;
     }
     
-    tileCache.erase(oldest);
+    return value;
 }
 
 /**
- * @brief Loads a vector tile from a binary file into memory.
- *
- * @details Opens the given file path, reads its contents into a dynamically allocated
- *			memory buffer, and fills the provided `TileCache` structure with the tile data.
- * 			The function prefers to allocate memory in PSRAM if available and the file is larger than 1KB.
- *
- * @param path The path to the binary tile file.
- * @param cache Reference to a TileCache object that will receive the tile data and metadata.
- * @return true if the tile was successfully loaded and read into memory, false otherwise.
- *
- * @note On failure, the function ensures that memory is properly freed and the `cache.data` is set to nullptr.
- *       The function also checks for file size limits and read errors.
+ * @brief Read zigzag-encoded signed integer from binary data - FORMATO SCRIPT PYTHON
  */
-bool Maps::loadTileFromFile(const char* path, TileCache& cache) 
+static int32_t read_zigzag(const uint8_t* data, size_t& offset, size_t dataSize)
 {
-    FILE* file = fopen(path, "rb");
-    if (!file)
-		return false;
+    uint32_t encoded = read_varint(data, offset, dataSize);
+    return (int32_t)((encoded >> 1) ^ (-(int32_t)(encoded & 1)));
+}
+
+/**
+ * @brief Convert uint16 coordinate to tile pixel (0-255) - CORREGIDO PARA COORDENADAS 0-255
+ */
+static int uint16_to_tile_pixel(int32_t val) {
+    return (int)((val * 256) / 65536);
+}
+
+/**
+ * @brief Swap bytes in RGB565 color for display compatibility
+ */
+static uint16_t swapRGB565Bytes(uint16_t color)
+{
+    return ((color & 0xFF) << 8) | ((color & 0xFF00) >> 8);
+}
+
+/**
+ * @brief Convert RGB332 to RGB565 - CON SWAP DE BYTES PARA PANTALLA
+ */
+static uint16_t rgb332_to_rgb565(uint8_t c)
+{
+    // Conversión EXACTA del script PC: rgb332_to_rgb888()
+    // r = (c & 0xE0)        # Mantiene bits 7-5, bits 4-0 = 0
+    // g = (c & 0x1C) << 3   # Toma bits 4-2, shift left 3 → bits 7-5  
+    // b = (c & 0x03) << 6   # Toma bits 1-0, shift left 6 → bits 7-6
     
-    /**< Get file size */
+    uint8_t r8 = (c & 0xE0);        // Red: bits 7-5, resto 0 → 0x00, 0x20, 0x40, 0x60, 0x80, 0xA0, 0xC0, 0xE0
+    uint8_t g8 = (c & 0x1C) << 3;   // Green: bits 4-2 → 7-5 → 0x00, 0x20, 0x40, 0x60, 0x80, 0xA0, 0xC0, 0xE0  
+    uint8_t b8 = (c & 0x03) << 6;   // Blue: bits 1-0 → 7-6 → 0x00, 0x40, 0x80, 0xC0
+    
+    // Convertir de RGB888 a RGB565
+    // RGB565: RRRRRGGGGGGBBBBB
+    uint16_t r5 = (r8 >> 3);  // 8 bits → 5 bits (tomar bits 7-3)
+    uint16_t g6 = (g8 >> 2);  // 8 bits → 6 bits (tomar bits 7-2)
+    uint16_t b5 = (b8 >> 3);  // 8 bits → 5 bits (tomar bits 7-3)
+    
+    // Ensamblar RGB565
+    uint16_t rgb565 = (r5 << 11) | (g6 << 5) | b5;
+    
+    // SWAP BYTES PARA PANTALLA
+    return swapRGB565Bytes(rgb565);
+}
+
+/**
+ * @brief Check if point is on tile margin (0 or 255) - FILTRO COMO TILE_VIEWER.PY
+ */
+static bool isPointOnMargin(int px, int py)
+{
+    return (px == 0 || px == 255 || py == 0 || py == 255);
+}
+
+/**
+ * @brief Check if line should be drawn (not on margins) - FILTRO COMO TILE_VIEWER.PY
+ */
+static bool shouldDrawLine(int px1, int py1, int px2, int py2)
+{
+    // NO DIBUJAR COMPLETAMENTE si algún punto está en los márgenes del tile
+    return !isPointOnMargin(px1, py1) && !isPointOnMargin(px2, py2);
+}
+
+/**
+ * @brief Renders a vector tile with ALL possible drawing commands - CON SWAP DE BYTES PARA PANTALLA
+ */
+bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eSprite &map)
+{
+    if (!path) {
+        return false;
+    }
+    
+    // 1. LEER ARCHIVO COMPLETO
+    FILE* file = fopen(path, "rb");
+    if (!file) {
+        return false;
+    }
+    
     fseek(file, 0, SEEK_END);
     long fileSize = ftell(file);
     fseek(file, 0, SEEK_SET);
     
-    if (fileSize <= 0 || fileSize > MAX_TILE_SIZE_BYTES) 
-	{
-        ESP_LOGE(TAG, "Invalid file size: %ld bytes", fileSize);
+    if (fileSize <= 0 || fileSize > 100000) {
         fclose(file);
         return false;
     }
     
-    /**< Allocate memory (prefer PSRAM for larger tiles) */
-    if (hasPsram && fileSize > 1024)
-	{
-        cache.data = (uint8_t*)heap_caps_malloc(fileSize, MALLOC_CAP_SPIRAM);
-        cache.inPsram = true;
-    }
-	else 
-	{
-        cache.data = new uint8_t[fileSize];
-        cache.inPsram = false;
-    }
-    
-    if (!cache.data)
-	{
-        ESP_LOGE(TAG, "Failed to allocate %ld bytes for tile", fileSize);
+    uint8_t* data = new uint8_t[fileSize];
+    if (!data) {
         fclose(file);
         return false;
     }
     
-    /**< Read file data */
-    size_t bytesRead = fread(cache.data, 1, fileSize, file);
+    size_t bytesRead = fread(data, 1, fileSize, file);
     fclose(file);
     
-    if (bytesRead != fileSize) 
-	{
-        ESP_LOGE(TAG, "Failed to read complete tile data: %zu/%ld bytes", bytesRead, fileSize);
-        if (cache.inPsram) 
-            heap_caps_free(cache.data);
-        else
-            delete[] cache.data;
-
-        cache.data = nullptr;
+    if (bytesRead != fileSize) {
+        delete[] data;
         return false;
     }
     
-    cache.size = fileSize;
-    cache.lastAccess = millis();
-
-    return true;
-}
-// bool Maps::loadTileFromFile(const char* path, TileCache& cache)
-// {
-//     FILE* file = fopen(path, "rb");
-//     if (!file) {
-//         ESP_LOGE(TAG, "Failed to open tile file: %s", path);
-//         return false;
-//     }
-
-//     // Leer todo el archivo en memoria
-//     fseek(file, 0, SEEK_END);
-//     long fileSize = ftell(file);
-//     fseek(file, 0, SEEK_SET);
-
-//     if (fileSize <= 0 || fileSize > MAX_TILE_SIZE_BYTES) {
-//         ESP_LOGE(TAG, "Invalid file size for tile %s: %ld bytes", path, fileSize);
-//         fclose(file);
-//         return false;
-//     }
-
-//     cache.data = new uint8_t[fileSize];
-//     cache.inPsram = false;
-
-//     if (!cache.data) {
-//         ESP_LOGE(TAG, "Failed to allocate %ld bytes for tile %s", fileSize, path);
-//         fclose(file);
-//         return false;
-//     }
-
-//     size_t bytesRead = fread(cache.data, 1, fileSize, file);
-//     fclose(file);
-
-//     if (bytesRead != fileSize) {
-//         ESP_LOGE(TAG, "Failed to read complete tile data for %s: %zu/%ld bytes", path, bytesRead, fileSize);
-//         delete[] cache.data;
-//         cache.data = nullptr;
-//         return false;
-//     }
-
-//     cache.size = fileSize;
-//     cache.lastAccess = millis();
-
-//     // --- FUNCIONES DE LECTURA ENDIAN ---
-//     auto read_le_int16 = [](const uint8_t* data) -> int16_t {
-//         return (int16_t)(data[0] | (data[1] << 8));
-//     };
-//     auto read_le_uint16 = [](const uint8_t* data) -> uint16_t {
-//         return (uint16_t)(data[0] | (data[1] << 8));
-//     };
-
-//     // --- LOG DE COMANDOS ---
-//     if (fileSize < 2) {
-//         ESP_LOGE(TAG, "Tile file too small.");
-//         return false;
-//     }
-
-//     uint16_t num_cmds = read_le_uint16(cache.data);
-//     size_t offset = 2;
-
-//     ESP_LOGE(TAG, "Comandos en tile: %u", num_cmds);
-
-//     while (offset < fileSize) {
-//         uint8_t cmd_type = cache.data[offset];
-//         offset += 1;
-
-//         switch (cmd_type) {
-//             case 1: { // LINE
-//                 if (offset + 10 > fileSize) {
-//                     ESP_LOGE(TAG, "LINE: datos insuficientes en offset %zu", offset);
-//                     break;
-//                 }
-//                 int16_t x1 = read_le_int16(cache.data + offset);
-//                 int16_t y1 = read_le_int16(cache.data + offset + 2);
-//                 int16_t x2 = read_le_int16(cache.data + offset + 4);
-//                 int16_t y2 = read_le_int16(cache.data + offset + 6);
-//                 uint16_t color = read_le_uint16(cache.data + offset + 8);
-//                 ESP_LOGE(TAG, "LINE (%d, %d) -> (%d, %d), color: 0x%04X", x1, y1, x2, y2, color);
-//                 offset += 10;
-//                 break;
-//             }
-//             case 2: { // POLYLINE
-//                 if (offset + 4 > fileSize) {
-//                     ESP_LOGE(TAG, "POLYLINE: datos insuficientes en offset %zu", offset);
-//                     break;
-//                 }
-//                 uint16_t count = read_le_uint16(cache.data + offset);
-//                 uint16_t color = read_le_uint16(cache.data + offset + 2);
-//                 ESP_LOGE(TAG, "POLYLINE count: %u, color: 0x%04X", count, color);
-//                 offset += 4;
-//                 if (offset + count * 4 > fileSize) {
-//                     ESP_LOGE(TAG, "POLYLINE: datos insuficientes para puntos en offset %zu", offset);
-//                     offset += count * 4; // skip
-//                     break;
-//                 }
-//                 for (uint16_t i = 0; i < count; i++) {
-//                     int16_t x = read_le_int16(cache.data + offset);
-//                     int16_t y = read_le_int16(cache.data + offset + 2);
-//                     ESP_LOGE(TAG, "  POLYLINE p%d: (%d, %d)", i, x, y);
-//                     offset += 4;
-//                 }
-//                 break;
-//             }
-//             case 3: { // FILL_RECT
-//                 if (offset + 10 > fileSize) {
-//                     ESP_LOGE(TAG, "FILL_RECT: datos insuficientes en offset %zu", offset);
-//                     break;
-//                 }
-//                 int16_t x = read_le_int16(cache.data + offset);
-//                 int16_t y = read_le_int16(cache.data + offset + 2);
-//                 int16_t w = read_le_int16(cache.data + offset + 4);
-//                 int16_t h = read_le_int16(cache.data + offset + 6);
-//                 uint16_t color = read_le_uint16(cache.data + offset + 8);
-//                 ESP_LOGE(TAG, "FILL_RECT (%d, %d) %dx%d, color: 0x%04X", x, y, w, h, color);
-//                 offset += 10;
-//                 break;
-//             }
-//             case 4: { // FILL_POLYGON
-//                 if (offset + 4 > fileSize) {
-//                     ESP_LOGE(TAG, "FILL_POLYGON: datos insuficientes en offset %zu", offset);
-//                     break;
-//                 }
-//                 uint16_t count = read_le_uint16(cache.data + offset);
-//                 uint16_t color = read_le_uint16(cache.data + offset + 2);
-//                 ESP_LOGE(TAG, "FILL_POLYGON count: %u, color: 0x%04X", count, color);
-//                 offset += 4;
-//                 if (offset + count * 4 > fileSize) {
-//                     ESP_LOGE(TAG, "FILL_POLYGON: datos insuficientes para puntos en offset %zu", offset);
-//                     offset += count * 4;
-//                     break;
-//                 }
-//                 for (uint16_t i = 0; i < count; i++) {
-//                     int16_t x = read_le_int16(cache.data + offset);
-//                     int16_t y = read_le_int16(cache.data + offset + 2);
-//                     ESP_LOGE(TAG, "  FILL_POLYGON p%d: (%d, %d)", i, x, y);
-//                     offset += 4;
-//                 }
-//                 break;
-//             }
-//             case 5: { // STROKE_POLYGON
-//                 if (offset + 4 > fileSize) {
-//                     ESP_LOGE(TAG, "STROKE_POLYGON: datos insuficientes en offset %zu", offset);
-//                     break;
-//                 }
-//                 uint16_t count = read_le_uint16(cache.data + offset);
-//                 uint16_t color = read_le_uint16(cache.data + offset + 2);
-//                 ESP_LOGE(TAG, "STROKE_POLYGON count: %u, color: 0x%04X", count, color);
-//                 offset += 4;
-//                 if (offset + count * 4 > fileSize) {
-//                     ESP_LOGE(TAG, "STROKE_POLYGON: datos insuficientes para puntos en offset %zu", offset);
-//                     offset += count * 4;
-//                     break;
-//                 }
-//                 for (uint16_t i = 0; i < count; i++) {
-//                     int16_t x = read_le_int16(cache.data + offset);
-//                     int16_t y = read_le_int16(cache.data + offset + 2);
-//                     ESP_LOGE(TAG, "  STROKE_POLYGON p%d: (%d, %d)", i, x, y);
-//                     offset += 4;
-//                 }
-//                 break;
-//             }
-//             case 9: { // HORIZONTAL_LINE
-//                 if (offset + 8 > fileSize) {
-//                     ESP_LOGE(TAG, "HORIZONTAL_LINE: datos insuficientes en offset %zu", offset);
-//                     break;
-//                 }
-//                 int16_t x1 = read_le_int16(cache.data + offset);
-//                 int16_t x2 = read_le_int16(cache.data + offset + 2);
-//                 int16_t y = read_le_int16(cache.data + offset + 4);
-//                 uint16_t color = read_le_uint16(cache.data + offset + 6);
-//                 ESP_LOGE(TAG, "HORIZONTAL_LINE y=%d x=%d→%d, color: 0x%04X", y, x1, x2, color);
-//                 offset += 8;
-//                 break;
-//             }
-//             case 10: { // VERTICAL_LINE
-//                 if (offset + 8 > fileSize) {
-//                     ESP_LOGE(TAG, "VERTICAL_LINE: datos insuficientes en offset %zu", offset);
-//                     break;
-//                 }
-//                 int16_t x = read_le_int16(cache.data + offset);
-//                 int16_t y1 = read_le_int16(cache.data + offset + 2);
-//                 int16_t y2 = read_le_int16(cache.data + offset + 4);
-//                 uint16_t color = read_le_uint16(cache.data + offset + 6);
-//                 ESP_LOGE(TAG, "VERTICAL_LINE x=%d y=%d→%d, color: 0x%04X", x, y1, y2, color);
-//                 offset += 8;
-//                 break;
-//             }
-//             default:
-//                 ESP_LOGE(TAG, "Comando desconocido: %u en offset %zu", cmd_type, offset - 1);
-//                 break;
-//         }
-//     }
-
-//     return true;
-// }
-
-/**
- * @brief Renders a vector tile from a binary file onto a TFT sprite.
- *
- * @details Loads vector tile data from cache or disk, validates its contents, and executes drawing commands
- *			on the given `TFT_eSprite`. The tile is cached for future use, and PSRAM is preferred
- * 			when available and necessary.
- *
- * @param path Path to the `.bin` tile file.
- * @param xOffset X-axis offset applied to all rendered features.
- * @param yOffset Y-axis offset applied to all rendered features.
- * @param map Reference to the TFT_eSprite onto which the tile will be rendered.
- * @return true if at least one drawing command was executed successfully, false otherwise.
- *
- * @note This function:
- *			 - Initializes the cache on first call.
- * 			 - Automatically evicts the least recently used tile when the cache is full.
- *			 - Logs and skips commands that are invalid or unknown.
- *			 - Attempts to continue rendering even if individual commands fail.
- */
-bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eSprite &map)
-{
-    if (!path) 
-    {
-        ESP_LOGE(TAG, "Invalid tile path");
-        return false;
-    }
-    
-    /**< Initialize cache if not done yet */
-    static bool cacheInitialized = false;
-    if (!cacheInitialized) 
-    {
-        initCache();
-        cacheInitialized = true;
-    }
-    
-    /**< Try to get tile data from cache first */
-    auto cacheIt = tileCache.find(std::string(path));
-    uint8_t* dataPtr = nullptr;
-    size_t dataSize = 0;
-    
-    if (cacheIt != tileCache.end()) 
-    {
-        /**< Cache hit */
-        cacheIt->second.lastAccess = millis();
-        dataPtr = cacheIt->second.data;
-        dataSize = cacheIt->second.size;
-    } 
-    else 
-    {
-        /**< Check if we need to make room in cache */
-        if (tileCache.size() >= maxCacheSize) 
-            evictOldestTile();
-        
-        /**< Create new cache entry */
-        TileCache newCache;
-        if (!loadTileFromFile(path, newCache)) 
-            return false;
-        
-        dataPtr = newCache.data;
-        dataSize = newCache.size;
-        
-        /**< Move cache into map */
-        tileCache[std::string(path)] = std::move(newCache);
-    }
-    
-    /**< Validate tile data */
-    if (!validateTileData(dataPtr, dataSize)) 
-    {
-        ESP_LOGE(TAG, "Invalid tile data: %s", path);
-        return false;
-    }
-    
-    // Little endian read functions
-    auto read_le_int16 = [](const uint8_t* data) -> int16_t {
-        return (int16_t)(data[0] | (data[1] << 8));
-    };
-    auto read_le_uint16 = [](const uint8_t* data) -> uint16_t {
-        return (uint16_t)(data[0] | (data[1] << 8));
-    };
-    
-    /**< Parse and execute commands */
+    // 2. PROCESAR FORMATO SCRIPT PYTHON
     size_t offset = 0;
-    if (dataSize < 2)
-    {
-        ESP_LOGE(TAG, "Tile data too small: %s", path);
+    size_t dataSize = fileSize;
+    uint8_t current_color = 0xFF; // Color RGB332 por defecto (blanco)
+    uint16_t currentDrawColor = rgb332_to_rgb565(current_color); // Color actual para dibujar
+    
+    // Leer número de comandos
+    uint32_t num_cmds = read_varint(data, offset, dataSize);
+    
+    if (num_cmds == 0 || num_cmds > 50000) {
+        delete[] data;
         return false;
     }
-    uint16_t numCommands = read_le_uint16(dataPtr + offset); // <-- LITTLE ENDIAN
-    offset += 2;
     
-    /**< Handle empty tiles */
-    if (numCommands == 0) 
-        return true;
+    // 3. PROCESAR TODOS LOS COMANDOS POSIBLES - CON SWAP DE BYTES PARA PANTALLA
+    int executed = 0;
     
-    int executedCommands = 0;
-    int skippedCommands = 0;
-    
-    /**< Process each command */
-    for (int i = 0; i < numCommands && offset < dataSize; ++i) 
-    {
-        if (offset >= dataSize)
-        {
-            ESP_LOGW(TAG, "Command data truncated at command %d/%d", i, numCommands);
+    for (uint32_t cmd_idx = 0; cmd_idx < num_cmds; cmd_idx++) {
+        if (offset >= dataSize) {
             break;
         }
         
-        uint8_t cmdType = dataPtr[offset];
-        size_t oldOffset = offset;
-        offset++; /**< Skip command type byte */
+        size_t cmd_start_offset = offset;
+        uint32_t cmd_type = read_varint(data, offset, dataSize);
         
-        /**< Execute command */
-        if (executeCommand(cmdType, dataPtr, offset, xOffset, yOffset, map, dataSize))
-            executedCommands++;
-        else 
-        {
-            skippedCommands++;
-            
-            /**< Try to skip this command to continue with the next one */
-            if (offset == oldOffset + 1) 
-            {
-                if (!skipUnknownCommand(cmdType, dataPtr, offset, dataSize)) 
-                {
-                    ESP_LOGW(TAG, "Cannot recover from unknown command %d, stopping tile processing", cmdType);
-                    break;
+        // PROCESAR TODOS LOS COMANDOS POSIBLES
+        switch (cmd_type) {
+            case 0x80: // SET_COLOR - CON SWAP DE BYTES
+                if (offset < dataSize) {
+                    current_color = data[offset++];
+                    currentDrawColor = rgb332_to_rgb565(current_color);
+                    executed++;
                 }
-            }
-        }
-        
-        /**< Safety check to prevent infinite loops */
-        if (offset <= oldOffset)
-        {
-            ESP_LOGE(TAG, "Command %d didn't advance offset, stopping processing", cmdType);
-            break;
-        }
-    }
-    
-    return executedCommands > 0;
-}
-
-
-/**
- * @brief Executes a drawing command parsed from vector tile data.
- *
- * @details This function interprets a single enhanced draw command from binary tile data
- * 			and dispatches it to the appropriate drawing function. It handles bounds checking,
- *			memory-safe parsing of command arguments, and optional visibility filtering based
- * 		    on complexity or viewport relevance.
- *
- * @param cmdType The type of drawing command (see DrawCommand enum).
- * @param data Pointer to the tile data buffer.
- * @param offset Reference to the current offset within the buffer. Will be updated after parsing.
- * @param xOffset Horizontal offset applied to all geometry (typically for tile alignment).
- * @param yOffset Vertical offset applied to all geometry.
- * @param map Reference to the TFT_eSprite where the geometry will be rendered.
- * @param dataSize Total size of the tile data buffer (for bounds safety).
- * @return true if the command was successfully executed, false otherwise.
- *
- * @note In case of unrecognized commands or data inconsistencies, the function
- * logs the error and returns false. An exception-safe block ensures robustness on unexpected input.
- */
-bool Maps::executeCommand(uint8_t cmdType, const uint8_t* data, size_t& offset,
-                          int16_t xOffset, int16_t yOffset, TFT_eSprite &map, size_t dataSize) {
-    // Little endian read functions
-    auto read_le_int16 = [](const uint8_t* d) -> int16_t {
-        return (int16_t)(d[0] | (d[1] << 8));
-    };
-    auto read_le_uint16 = [](const uint8_t* d) -> uint16_t {
-        return (uint16_t)(d[0] | (d[1] << 8));
-    };
-
-    try {
-        switch (cmdType) {
-            case DRAW_LINE:
-                return drawLine(data, offset, xOffset, yOffset, map);
-            case DRAW_POLYLINE:
-                return drawPolyline(data, offset, xOffset, yOffset, map);
-            case DRAW_FILL_RECT:
-                return drawFillRect(data, offset, xOffset, yOffset, map);
-            case DRAW_FILL_POLYGON:
-                return drawFillPolygon(data, offset, xOffset, yOffset, map);
-            case DRAW_STROKE_POLYGON:
-                return drawStrokePolygon(data, offset, xOffset, yOffset, map);
-            case DRAW_HORIZONTAL_LINE:
-                return drawHorizontalLine(data, offset, xOffset, yOffset, map);
-            case DRAW_VERTICAL_LINE:
-                return drawVerticalLine(data, offset, xOffset, yOffset, map);
-
-            case DRAW_ADAPTIVE_LINE:
-            {
-                if (!checkBounds(offset, 5, dataSize)) return false;
-                uint16_t numPoints = read_le_uint16(data + offset); offset += 2;
-                uint8_t complexity = *(uint8_t*)(data + offset); offset += 1;
-                uint16_t color = read_le_uint16(data + offset); offset += 2;
-
-                if (numPoints < 2 || numPoints > 2000) return false;
-                if (!checkBounds(offset, numPoints * 4, dataSize)) return false;
-
-                static std::vector<int16_t> points_x, points_y;
-                points_x.clear(); points_y.clear();
-                points_x.reserve(numPoints); points_y.reserve(numPoints);
-
-                for (int p = 0; p < numPoints; ++p)
+                break;
+                
+            case 0x81: // SET_COLOR_INDEX - CON SWAP DE BYTES
                 {
-                    int16_t x = read_le_int16(data + offset) + xOffset; offset += 2;
-                    int16_t y = read_le_int16(data + offset) + yOffset; offset += 2;
-                    points_x.push_back(x);
-                    points_y.push_back(y);
+                    uint32_t color_index = read_varint(data, offset, dataSize);
+                    current_color = color_index & 0xFF;
+                    currentDrawColor = rgb332_to_rgb565(current_color);
+                    executed++;
                 }
-
-                drawAdaptiveLine(points_x.data(), points_y.data(), numPoints, color,
-                                 (GeometryComplexity)complexity, map);
-                return true;
-            }
-
-            case DRAW_MULTI_LOD_POLYGON: 
-            {
-                if (!checkBounds(offset, 6, dataSize)) return false;
-                uint16_t numPoints = read_le_uint16(data + offset); offset += 2;
-                uint8_t complexity = *(uint8_t*)(data + offset); offset += 1;
-                uint8_t render_style = *(uint8_t*)(data + offset); offset += 1;
-                uint16_t color = read_le_uint16(data + offset); offset += 2;
-
-                if (numPoints < 3 || numPoints > 1500) return false;
-                if (!checkBounds(offset, numPoints * 4, dataSize)) return false;
-
-                static std::vector<int16_t> points_x, points_y;
-                points_x.clear(); points_y.clear();
-                points_x.reserve(numPoints); points_y.reserve(numPoints);
-
-                bool anyVisible = false;
-                for (int p = 0; p < numPoints; ++p)
+                break;
+                
+            case 1: // LINE - NO DIBUJAR SI TOCA MÁRGENES
                 {
-                    int16_t x = read_le_int16(data + offset) + xOffset; offset += 2;
-                    int16_t y = read_le_int16(data + offset) + yOffset; offset += 2;
-                    points_x.push_back(x);
-                    points_y.push_back(y);
-
-                    if (x >= -200 && x < map.width() + 200 && y >= -200 && y < map.height() + 200)
-                        anyVisible = true;
+                    int32_t x1 = read_zigzag(data, offset, dataSize);
+                    int32_t y1 = read_zigzag(data, offset, dataSize);
+                    int32_t dx = read_zigzag(data, offset, dataSize);
+                    int32_t dy = read_zigzag(data, offset, dataSize);
+                    
+                    int32_t x2 = x1 + dx;
+                    int32_t y2 = y1 + dy;
+                    
+                    // Convertir a píxeles
+                    int px1 = uint16_to_tile_pixel(x1);
+                    int py1 = uint16_to_tile_pixel(y1);
+                    int px2 = uint16_to_tile_pixel(x2);
+                    int py2 = uint16_to_tile_pixel(y2);
+                    
+                    // SOLO dibujar si NO toca márgenes Y está en bounds
+                    if (px1 >= 0 && px1 <= 255 && py1 >= 0 && py1 <= 255 &&
+                        px2 >= 0 && px2 <= 255 && py2 >= 0 && py2 <= 255 &&
+                        shouldDrawLine(px1, py1, px2, py2)) {
+                        map.drawLine(px1 + xOffset, py1 + yOffset, px2 + xOffset, py2 + yOffset, currentDrawColor);
+                        executed++;
+                    }
+                    // Si toca márgenes: NO hacer nada (no dibujar línea negra)
                 }
-
-                if (anyVisible) 
+                break;
+                
+            case 2: // POLYLINE - NO DIBUJAR SEGMENTOS QUE TOCAN MÁRGENES
                 {
-                    drawMultiLODPolygon(points_x.data(), points_y.data(), numPoints, color,
-                                        (GeometryComplexity)complexity, render_style, map);
-                    return true;
+                    uint32_t num_points = read_varint(data, offset, dataSize);
+                    
+                    if (num_points >= 2 && num_points <= 1000) {
+                        // Primer punto (absoluto)
+                        int32_t prevX = read_zigzag(data, offset, dataSize);
+                        int32_t prevY = read_zigzag(data, offset, dataSize);
+                        
+                        int prevPx = uint16_to_tile_pixel(prevX);
+                        int prevPy = uint16_to_tile_pixel(prevY);
+                        
+                        // Puntos siguientes (relativos)
+                        for (uint32_t i = 1; i < num_points; ++i) {
+                            int32_t deltaX = read_zigzag(data, offset, dataSize);
+                            int32_t deltaY = read_zigzag(data, offset, dataSize);
+                            
+                            prevX += deltaX;
+                            prevY += deltaY;
+                            
+                            int currentPx = uint16_to_tile_pixel(prevX);
+                            int currentPy = uint16_to_tile_pixel(prevY);
+                            
+                            // SOLO dibujar segmento si NO toca márgenes
+                            if (prevPx >= 0 && prevPx <= 255 && prevPy >= 0 && prevPy <= 255 &&
+                                currentPx >= 0 && currentPx <= 255 && currentPy >= 0 && currentPy <= 255 &&
+                                shouldDrawLine(prevPx, prevPy, currentPx, currentPy)) {
+                                map.drawLine(prevPx + xOffset, prevPy + yOffset, 
+                                            currentPx + xOffset, currentPy + yOffset, currentDrawColor);
+                            }
+                            // Si toca márgenes: NO hacer nada (saltar segmento)
+                            
+                            prevPx = currentPx;
+                            prevPy = currentPy;
+                        }
+                        executed++;
+                    } else {
+                        // Skip invalid polyline
+                        for (uint32_t i = 0; i < num_points && offset < dataSize; ++i) {
+                            if (i == 0) {
+                                read_zigzag(data, offset, dataSize);
+                                read_zigzag(data, offset, dataSize);
+                            } else {
+                                read_zigzag(data, offset, dataSize);
+                                read_zigzag(data, offset, dataSize);
+                            }
+                        }
+                    }
                 }
-                return false;
-            }
-
-            case DRAW_SPLINE_CURVE: 
-            {
-                if (!checkBounds(offset, 4, dataSize)) return false;
-                uint16_t numPoints = read_le_uint16(data + offset); offset += 2;
-                uint16_t color = read_le_uint16(data + offset); offset += 2;
-
-                if (numPoints < 3 || numPoints > 500) return false;
-                if (!checkBounds(offset, numPoints * 4, dataSize)) return false;
-
-                static std::vector<int16_t> points_x, points_y;
-                points_x.clear(); points_y.clear();
-                points_x.reserve(numPoints); points_y.reserve(numPoints);
-
-                for (int p = 0; p < numPoints; ++p) 
+                break;
+                
+            case 3: // STROKE_POLYGON - NO DIBUJAR SEGMENTOS QUE TOCAN MÁRGENES
                 {
-                    int16_t x = read_le_int16(data + offset) + xOffset; offset += 2;
-                    int16_t y = read_le_int16(data + offset) + yOffset; offset += 2;
-                    points_x.push_back(x);
-                    points_y.push_back(y);
+                    uint32_t num_points = read_varint(data, offset, dataSize);
+                    
+                    if (num_points >= 3 && num_points <= 1000) {
+                        // Primer punto (absoluto)
+                        int32_t firstX = read_zigzag(data, offset, dataSize);
+                        int32_t firstY = read_zigzag(data, offset, dataSize);
+                        
+                        int firstPx = uint16_to_tile_pixel(firstX);
+                        int firstPy = uint16_to_tile_pixel(firstY);
+                        
+                        int prevPx = firstPx;
+                        int prevPy = firstPy;
+                        
+                        // Puntos siguientes (relativos)
+                        for (uint32_t i = 1; i < num_points; ++i) {
+                            int32_t deltaX = read_zigzag(data, offset, dataSize);
+                            int32_t deltaY = read_zigzag(data, offset, dataSize);
+                            
+                            firstX += deltaX;
+                            firstY += deltaY;
+                            
+                            int currentPx = uint16_to_tile_pixel(firstX);
+                            int currentPy = uint16_to_tile_pixel(firstY);
+                            
+                            // SOLO dibujar segmento si NO toca márgenes
+                            if (prevPx >= 0 && prevPx <= 255 && prevPy >= 0 && prevPy <= 255 &&
+                                currentPx >= 0 && currentPx <= 255 && currentPy >= 0 && currentPy <= 255 &&
+                                shouldDrawLine(prevPx, prevPy, currentPx, currentPy)) {
+                                map.drawLine(prevPx + xOffset, prevPy + yOffset, 
+                                            currentPx + xOffset, currentPy + yOffset, currentDrawColor);
+                            }
+                            // Si toca márgenes: NO hacer nada (saltar segmento)
+                            
+                            prevPx = currentPx;
+                            prevPy = currentPy;
+                        }
+                        
+                        // Cerrar polígono SOLO si NO toca márgenes
+                        if (prevPx >= 0 && prevPx <= 255 && prevPy >= 0 && prevPy <= 255 &&
+                            firstPx >= 0 && firstPx <= 255 && firstPy >= 0 && firstPy <= 255 &&
+                            shouldDrawLine(prevPx, prevPy, firstPx, firstPy)) {
+                            map.drawLine(prevPx + xOffset, prevPy + yOffset, 
+                                        firstPx + xOffset, firstPy + yOffset, currentDrawColor);
+                        }
+                        // Si toca márgenes: NO hacer nada (no cerrar polígono)
+                        executed++;
+                    } else {
+                        // Skip invalid polygon
+                        for (uint32_t i = 0; i < num_points && offset < dataSize; ++i) {
+                            if (i == 0) {
+                                read_zigzag(data, offset, dataSize);
+                                read_zigzag(data, offset, dataSize);
+                            } else {
+                                read_zigzag(data, offset, dataSize);
+                                read_zigzag(data, offset, dataSize);
+                            }
+                        }
+                    }
                 }
-
-                drawSmoothCurve(points_x.data(), points_y.data(), numPoints, color, map);
-                return true;
-            }
-
+                break;
+                
+            case 4: // FILL_POLYGON
+                {
+                    uint32_t num_points = read_varint(data, offset, dataSize);
+                    
+                    // Skip - implementación compleja de relleno
+                    int32_t accumX = 0, accumY = 0;
+                    for (uint32_t i = 0; i < num_points && offset < dataSize; ++i) {
+                        if (i == 0) {
+                            accumX = read_zigzag(data, offset, dataSize);
+                            accumY = read_zigzag(data, offset, dataSize);
+                        } else {
+                            int32_t deltaX = read_zigzag(data, offset, dataSize);
+                            int32_t deltaY = read_zigzag(data, offset, dataSize);
+                            accumX += deltaX;
+                            accumY += deltaY;
+                        }
+                    }
+                }
+                break;
+                
+            case 5: // HORIZONTAL_LINE - NO DIBUJAR SI TOCA MÁRGENES
+                {
+                    int32_t x1 = read_zigzag(data, offset, dataSize);
+                    int32_t dx = read_zigzag(data, offset, dataSize);
+                    int32_t y = read_zigzag(data, offset, dataSize);
+                    
+                    int32_t x2 = x1 + dx;
+                    
+                    int px1 = uint16_to_tile_pixel(x1);
+                    int px2 = uint16_to_tile_pixel(x2);
+                    int py = uint16_to_tile_pixel(y);
+                    
+                    // SOLO dibujar si NO toca márgenes
+                    if (px1 >= 0 && px1 <= 255 && px2 >= 0 && px2 <= 255 && py >= 0 && py <= 255 &&
+                        shouldDrawLine(px1, py, px2, py)) {
+                        map.drawLine(px1 + xOffset, py + yOffset, px2 + xOffset, py + yOffset, currentDrawColor);
+                        executed++;
+                    }
+                    // Si toca márgenes: NO hacer nada
+                }
+                break;
+                
+            case 6: // VERTICAL_LINE - NO DIBUJAR SI TOCA MÁRGENES
+                {
+                    int32_t x = read_zigzag(data, offset, dataSize);
+                    int32_t y1 = read_zigzag(data, offset, dataSize);
+                    int32_t dy = read_zigzag(data, offset, dataSize);
+                    
+                    int32_t y2 = y1 + dy;
+                    
+                    int px = uint16_to_tile_pixel(x);
+                    int py1 = uint16_to_tile_pixel(y1);
+                    int py2 = uint16_to_tile_pixel(y2);
+                    
+                    // SOLO dibujar si NO toca márgenes
+                    if (px >= 0 && px <= 255 && py1 >= 0 && py1 <= 255 && py2 >= 0 && py2 <= 255 &&
+                        shouldDrawLine(px, py1, px, py2)) {
+                        map.drawLine(px + xOffset, py1 + yOffset, px + xOffset, py2 + yOffset, currentDrawColor);
+                        executed++;
+                    }
+                    // Si toca márgenes: NO hacer nada
+                }
+                break;
+                
+            case 0x82: // RECTANGLE - NO DIBUJAR SI TOCA MÁRGENES
+                {
+                    int32_t x1 = read_zigzag(data, offset, dataSize);
+                    int32_t y1 = read_zigzag(data, offset, dataSize);
+                    int32_t dx = read_zigzag(data, offset, dataSize);
+                    int32_t dy = read_zigzag(data, offset, dataSize);
+                    
+                    int px1 = uint16_to_tile_pixel(x1);
+                    int py1 = uint16_to_tile_pixel(y1);
+                    int pwidth = uint16_to_tile_pixel(dx);
+                    int pheight = uint16_to_tile_pixel(dy);
+                    
+                    // SOLO dibujar si NO toca márgenes
+                    if (px1 >= 0 && px1 <= 255 && py1 >= 0 && py1 <= 255 && 
+                        pwidth > 0 && pheight > 0 &&
+                        !isPointOnMargin(px1, py1) && 
+                        !isPointOnMargin(px1 + pwidth, py1 + pheight)) {
+                        if (fillPolygons) {
+                            map.fillRect(px1 + xOffset, py1 + yOffset, pwidth, pheight, currentDrawColor);
+                        } else {
+                            map.drawRect(px1 + xOffset, py1 + yOffset, pwidth, pheight, currentDrawColor);
+                        }
+                        executed++;
+                    }
+                    // Si toca márgenes: NO hacer nada
+                }
+                break;
+                
+            case 0x83: // STRAIGHT_LINE - NO DIBUJAR SI TOCA MÁRGENES
+                {
+                    int32_t x1 = read_zigzag(data, offset, dataSize);
+                    int32_t y1 = read_zigzag(data, offset, dataSize);
+                    int32_t dx = read_zigzag(data, offset, dataSize);
+                    int32_t dy = read_zigzag(data, offset, dataSize);
+                    
+                    int32_t x2 = x1 + dx;
+                    int32_t y2 = y1 + dy;
+                    
+                    int px1 = uint16_to_tile_pixel(x1);
+                    int py1 = uint16_to_tile_pixel(y1);
+                    int px2 = uint16_to_tile_pixel(x2);
+                    int py2 = uint16_to_tile_pixel(y2);
+                    
+                    // SOLO dibujar si NO toca márgenes
+                    if (px1 >= 0 && px1 <= 255 && py1 >= 0 && py1 <= 255 &&
+                        px2 >= 0 && px2 <= 255 && py2 >= 0 && py2 <= 255 &&
+                        shouldDrawLine(px1, py1, px2, py2)) {
+                        map.drawLine(px1 + xOffset, py1 + yOffset, px2 + xOffset, py2 + yOffset, currentDrawColor);
+                        executed++;
+                    }
+                    // Si toca márgenes: NO hacer nada
+                }
+                break;
+                
+            case 0x84: // ELLIPSE - NO DIBUJAR SI TOCA MÁRGENES
+                {
+                    int32_t center_x = read_zigzag(data, offset, dataSize);
+                    int32_t center_y = read_zigzag(data, offset, dataSize);
+                    int32_t radius_x = read_zigzag(data, offset, dataSize);
+                    int32_t radius_y = read_zigzag(data, offset, dataSize);
+                    
+                    int pcx = uint16_to_tile_pixel(center_x);
+                    int pcy = uint16_to_tile_pixel(center_y);
+                    int pradius = uint16_to_tile_pixel((radius_x + radius_y) / 2);
+                    
+                    // SOLO dibujar si NO toca márgenes
+                    if (pcx >= 0 && pcx <= 255 && pcy >= 0 && pcy <= 255 && pradius > 0 &&
+                        !isPointOnMargin(pcx, pcy)) {
+                        if (fillPolygons) {
+                            map.fillCircle(pcx + xOffset, pcy + yOffset, pradius, currentDrawColor);
+                        } else {
+                            map.drawCircle(pcx + xOffset, pcy + yOffset, pradius, currentDrawColor);
+                        }
+                        executed++;
+                    }
+                    // Si toca márgenes: NO hacer nada
+                }
+                break;
+                
+            case 0x85: // ARC - NO DIBUJAR SI TOCA MÁRGENES
+                {
+                    int32_t center_x = read_zigzag(data, offset, dataSize);
+                    int32_t center_y = read_zigzag(data, offset, dataSize);
+                    int32_t radius = read_zigzag(data, offset, dataSize);
+                    int32_t start_angle = read_zigzag(data, offset, dataSize);
+                    int32_t end_angle = read_zigzag(data, offset, dataSize);
+                    
+                    int pcx = uint16_to_tile_pixel(center_x);
+                    int pcy = uint16_to_tile_pixel(center_y);
+                    int pradius = uint16_to_tile_pixel(radius);
+                    
+                    // SOLO dibujar si NO toca márgenes
+                    if (pcx >= 0 && pcx <= 255 && pcy >= 0 && pcy <= 255 && pradius > 0 &&
+                        !isPointOnMargin(pcx, pcy)) {
+                        map.drawCircle(pcx + xOffset, pcy + yOffset, pradius, currentDrawColor);
+                        executed++;
+                    }
+                    // Si toca márgenes: NO hacer nada
+                }
+                break;
+                
+            case 0x86: // BEZIER_CURVE - NO DIBUJAR SI TOCA MÁRGENES
+                {
+                    int32_t x1 = read_zigzag(data, offset, dataSize);
+                    int32_t y1 = read_zigzag(data, offset, dataSize);
+                    int32_t x2 = read_zigzag(data, offset, dataSize);
+                    int32_t y2 = read_zigzag(data, offset, dataSize);
+                    int32_t x3 = read_zigzag(data, offset, dataSize);
+                    int32_t y3 = read_zigzag(data, offset, dataSize);
+                    int32_t x4 = read_zigzag(data, offset, dataSize);
+                    int32_t y4 = read_zigzag(data, offset, dataSize);
+                    
+                    // Simplificar como línea recta - NO DIBUJAR SI TOCA MÁRGENES
+                    int px1 = uint16_to_tile_pixel(x1);
+                    int py1 = uint16_to_tile_pixel(y1);
+                    int px4 = uint16_to_tile_pixel(x4);
+                    int py4 = uint16_to_tile_pixel(y4);
+                    
+                    // SOLO dibujar si NO toca márgenes
+                    if (px1 >= 0 && px1 <= 255 && py1 >= 0 && py1 <= 255 &&
+                        px4 >= 0 && px4 <= 255 && py4 >= 0 && py4 <= 255 &&
+                        shouldDrawLine(px1, py1, px4, py4)) {
+                        map.drawLine(px1 + xOffset, py1 + yOffset, px4 + xOffset, py4 + yOffset, currentDrawColor);
+                        executed++;
+                    }
+                    // Si toca márgenes: NO hacer nada
+                }
+                break;
+                
+            case 0x87: // CIRCLE - NO DIBUJAR SI TOCA MÁRGENES
+                {
+                    int32_t center_x = read_zigzag(data, offset, dataSize);
+                    int32_t center_y = read_zigzag(data, offset, dataSize);
+                    int32_t radius = read_zigzag(data, offset, dataSize);
+                    
+                    int pcx = uint16_to_tile_pixel(center_x);
+                    int pcy = uint16_to_tile_pixel(center_y);
+                    int pradius = uint16_to_tile_pixel(radius);
+                    
+                    // SOLO dibujar si NO toca márgenes
+                    if (pcx >= 0 && pcx <= 255 && pcy >= 0 && pcy <= 255 && pradius > 0 &&
+                        !isPointOnMargin(pcx, pcy)) {
+                        if (fillPolygons) {
+                            map.fillCircle(pcx + xOffset, pcy + yOffset, pradius, currentDrawColor);
+                        } else {
+                            map.drawCircle(pcx + xOffset, pcy + yOffset, pradius, currentDrawColor);
+                        }
+                        executed++;
+                    }
+                    // Si toca márgenes: NO hacer nada
+                }
+                break;
+                
+            case 0x88: // TEXT
+                {
+                    int32_t x = read_zigzag(data, offset, dataSize);
+                    int32_t y = read_zigzag(data, offset, dataSize);
+                    uint32_t text_len = read_varint(data, offset, dataSize);
+                    
+                    if (text_len > 0 && text_len < 100 && offset + text_len <= dataSize) {
+                        offset += text_len; // Skip text content for now
+                        executed++;
+                    } else {
+                        offset += std::min(text_len, (uint32_t)(dataSize - offset));
+                    }
+                }
+                break;
+                
             default:
-                ESP_LOGW(TAG, "Unknown command: %d", cmdType);
-                return false;
-        }
-    } 
-    catch (...) 
-    {
-        ESP_LOGE(TAG, "Exception executing command %d", cmdType);
-        return false;
-    }
-}
-
-/**
- * @brief Draws a single line on the map using binary vector tile data.
- *
- * @details Parses two endpoints and a color from the tile buffer, applies coordinate offsets,
- * 			and renders the line on the specified map canvas if it is within the visible area.
- *
- * @param data Pointer to the tile data buffer.
- * @param offset Reference to the current offset within the buffer. Will be updated after reading.
- * @param xOffset Horizontal offset to apply to coordinates.
- * @param yOffset Vertical offset to apply to coordinates.
- * @param map Reference to the TFT_eSprite where the line will be drawn.
- * @return true if parsing and drawing were successful; false otherwise.
- */
-bool Maps::drawLine(const uint8_t* data, size_t& offset, int16_t xOffset, int16_t yOffset, TFT_eSprite &map) 
-{
-    if (!checkBounds(offset, 10, MAX_TILE_SIZE_BYTES)) return false;
-
-    auto read_le_int16 = [](const uint8_t* d) -> int16_t {
-        return (int16_t)(d[0] | (d[1] << 8));
-    };
-    auto read_le_uint16 = [](const uint8_t* d) -> uint16_t {
-        return (uint16_t)(d[0] | (d[1] << 8));
-    };
-
-    int16_t x1 = read_le_int16(data + offset); offset += sizeof(int16_t);
-    int16_t y1 = read_le_int16(data + offset); offset += sizeof(int16_t);
-    int16_t x2 = read_le_int16(data + offset); offset += sizeof(int16_t);
-    int16_t y2 = read_le_int16(data + offset); offset += sizeof(int16_t);
-    uint16_t color = read_le_uint16(data + offset); offset += sizeof(uint16_t);
-    if (isVisible(std::min(x1, x2), std::min(y1, y2), std::abs(x2-x1), std::abs(y2-y1), map))
-        map.drawLine(x1 + xOffset, y1 + yOffset, x2 + xOffset, y2 + yOffset, color);
-
-    return true;
-}
-
-/**
- * @brief Draws a polyline on the map using binary vector tile data.
- *
- * @details Parses a series of points and a color from the tile buffer, applies coordinate offsets,
- *          and renders lines between consecutive points on the specified map canvas if they are
- *          within the visible area.
- *
- * @param data Pointer to the tile data buffer.
- * @param offset Reference to the current offset within the buffer. Will be updated after reading.
- * @param xOffset Horizontal offset to apply to coordinates.
- * @param yOffset Vertical offset to apply to coordinates.
- * @param map Reference to the TFT_eSprite where the polyline will be drawn.
- * @return true if parsing and drawing were successful; false otherwise.
- */
-bool Maps::drawPolyline(const uint8_t* data, size_t& offset, int16_t xOffset, int16_t yOffset, TFT_eSprite &map) 
-{
-    if (!checkBounds(offset, 4, MAX_TILE_SIZE_BYTES)) return false;
-
-    // Little endian read functions
-    auto read_le_int16 = [](const uint8_t* d) -> int16_t {
-        return (int16_t)(d[0] | (d[1] << 8));
-    };
-    auto read_le_uint16 = [](const uint8_t* d) -> uint16_t {
-        return (uint16_t)(d[0] | (d[1] << 8));
-    };
-
-    uint16_t numPoints = read_le_uint16(data + offset); offset += sizeof(uint16_t);
-    uint16_t color = read_le_uint16(data + offset); offset += sizeof(uint16_t);
-
-    if (numPoints < 2 || numPoints > 3000) return false;
-    if (!checkBounds(offset, numPoints * 4, MAX_TILE_SIZE_BYTES)) return false;
-
-    /**< Draw lines between consecutive points */
-    int16_t prevX = read_le_int16(data + offset) + xOffset; offset += sizeof(int16_t);
-    int16_t prevY = read_le_int16(data + offset) + yOffset; offset += sizeof(int16_t);
-
-    for (int p = 1; p < numPoints; ++p)
-    {
-        int16_t x = read_le_int16(data + offset) + xOffset; offset += sizeof(int16_t);
-        int16_t y = read_le_int16(data + offset) + yOffset; offset += sizeof(int16_t);
-
-        if (isVisible(std::min(prevX, x), std::min(prevY, y), std::abs(x-prevX), std::abs(y-prevY), map))
-            map.drawLine(prevX, prevY, x, y, color);
-
-        prevX = x;
-        prevY = y;
-    }
-
-    return true;
-}
-
-/**
- * @brief Draws a filled rectangle on the map using binary vector tile data.
- *
- * @details Parses the rectangle's position, size, and color from the tile buffer,
- *          applies coordinate offsets, and renders the rectangle on the specified map canvas
- *          if it is within the visible area.
- *
- * @param data Pointer to the tile data buffer.
- * @param offset Reference to the current offset within the buffer. Will be updated after reading.
- * @param xOffset Horizontal offset to apply to coordinates.
- * @param yOffset Vertical offset to apply to coordinates.
- * @param map Reference to the TFT_eSprite where the rectangle will be drawn.
- * @return true if parsing and drawing were successful; false otherwise.
- */
-bool Maps::drawFillRect(const uint8_t* data, size_t& offset, int16_t xOffset, int16_t yOffset, TFT_eSprite &map)
-{
-    if (!checkBounds(offset, 10, MAX_TILE_SIZE_BYTES)) return false;
-
-    auto read_le_int16 = [](const uint8_t* d) -> int16_t {
-        return (int16_t)(d[0] | (d[1] << 8));
-    };
-    auto read_le_uint16 = [](const uint8_t* d) -> uint16_t {
-        return (uint16_t)(d[0] | (d[1] << 8));
-    };
-
-    int16_t x = read_le_int16(data + offset) + xOffset; offset += sizeof(int16_t);
-    int16_t y = read_le_int16(data + offset) + yOffset; offset += sizeof(int16_t);
-    int16_t w = read_le_int16(data + offset); offset += sizeof(int16_t);
-    int16_t h = read_le_int16(data + offset); offset += sizeof(int16_t);
-    uint16_t color = read_le_uint16(data + offset); offset += sizeof(uint16_t);
-
-
-    if (w == 256 && h == 256) {
-        // printf("Ignoring tile-size fillRect\n");
-        return true;
-    }
-
-    if (w > 0 && h > 0 && isVisible(x, y, w, h, map)) {
-        map.fillRect(x, y, w, h, color);
-    }
-
-    return true;
-}
-
-/**
- * @brief Draws a filled polygon on the map using binary vector tile data.
- *
- * @details Parses a series of points and a color from the tile buffer, applies coordinate offsets,
- *          and renders the polygon on the specified map canvas if it is within the visible area.
- *
- * @param data Pointer to the tile data buffer.
- * @param offset Reference to the current offset within the buffer. Will be updated after reading.
- * @param xOffset Horizontal offset to apply to coordinates.
- * @param yOffset Vertical offset to apply to coordinates.
- * @param map Reference to the TFT_eSprite where the polygon will be drawn.
- * @return true if parsing and drawing were successful; false otherwise.
- */
-bool Maps::drawFillPolygon(const uint8_t* data, size_t& offset, int16_t xOffset, int16_t yOffset, TFT_eSprite &map) {
-    if (!checkBounds(offset, 4, MAX_TILE_SIZE_BYTES)) return false;
-
-    // Little endian read functions
-    auto read_le_int16 = [](const uint8_t* d) -> int16_t {
-        return (int16_t)(d[0] | (d[1] << 8));
-    };
-    auto read_le_uint16 = [](const uint8_t* d) -> uint16_t {
-        return (uint16_t)(d[0] | (d[1] << 8));
-    };
-
-    uint16_t numPoints = read_le_uint16(data + offset); offset += sizeof(uint16_t);
-    uint16_t color = read_le_uint16(data + offset); offset += sizeof(uint16_t);
-
-    if (numPoints < 3 || numPoints > 3000) return false;
-    if (!checkBounds(offset, numPoints * 4, MAX_TILE_SIZE_BYTES)) return false;
-
-    // // Load points
-    static std::vector<int16_t> points_x, points_y;
-    points_x.clear(); points_y.clear();
-    points_x.reserve(numPoints); points_y.reserve(numPoints);
-
-    bool anyVisible = false;
-    for (int p = 0; p < numPoints; ++p) {
-        int16_t x = read_le_int16(data + offset) + xOffset; offset += sizeof(int16_t);
-        int16_t y = read_le_int16(data + offset) + yOffset; offset += sizeof(int16_t);
-        points_x.push_back(x);
-        points_y.push_back(y);
-
-        if (x >= -200 && x < map.width() + 200 && y >= -200 && y < map.height() + 200) {
-            anyVisible = true;
-        }
-    }
-
-    if (anyVisible) {
-       drawPolygonFast(points_x.data(), points_y.data(), numPoints, color, map);
-    }
-
-    return true;
-}
-
-/**
- * @brief Draws a stroked polygon on the map using binary vector tile data.
- *
- * @details Parses a series of points and a color from the tile buffer, applies coordinate offsets,
- *          and renders the polygon outline on the specified map canvas if it is within the visible area.
- *
- * @param data Pointer to the tile data buffer.
- * @param offset Reference to the current offset within the buffer. Will be updated after reading.
- * @param xOffset Horizontal offset to apply to coordinates.
- * @param yOffset Vertical offset to apply to coordinates.
- * @param map Reference to the TFT_eSprite where the polygon will be drawn.
- * @return true if parsing and drawing were successful; false otherwise.
- */
-bool Maps::drawStrokePolygon(const uint8_t* data, size_t& offset, int16_t xOffset, int16_t yOffset, TFT_eSprite &map) {
-    if (!checkBounds(offset, 4, MAX_TILE_SIZE_BYTES)) return false;
-
-    // Little endian read functions
-    auto read_le_int16 = [](const uint8_t* d) -> int16_t {
-        return (int16_t)(d[0] | (d[1] << 8));
-    };
-    auto read_le_uint16 = [](const uint8_t* d) -> uint16_t {
-        return (uint16_t)(d[0] | (d[1] << 8));
-    };
-
-    uint16_t numPoints = read_le_uint16(data + offset); offset += sizeof(uint16_t);
-    uint16_t color = read_le_uint16(data + offset); offset += sizeof(uint16_t);
-
-    if (numPoints < 2 || numPoints > 3000) return false;
-    if (!checkBounds(offset, numPoints * 4, MAX_TILE_SIZE_BYTES)) return false;
-
-    // Leer todos los puntos
-    std::vector<int16_t> xs, ys;
-    xs.reserve(numPoints);
-    ys.reserve(numPoints);
-    for (uint16_t i = 0; i < numPoints; ++i) {
-        int16_t x = read_le_int16(data + offset); offset += sizeof(int16_t);
-        int16_t y = read_le_int16(data + offset); offset += sizeof(int16_t);
-        xs.push_back(x + xOffset);
-        ys.push_back(y + yOffset);
-    }
-
-    // Dibujar el contorno (polilinea cerrada)
-    for (uint16_t i = 0; i < numPoints; ++i) {
-        uint16_t next = (i + 1) % numPoints;
-        if (isVisible(std::min(xs[i], xs[next]), std::min(ys[i], ys[next]),
-                      std::abs(xs[next] - xs[i]), std::abs(ys[next] - ys[i]), map)) {
-            map.drawLine(xs[i], ys[i], xs[next], ys[next], color);
-        }
-    }
-
-    return true;
-}
-
-/**
- * @brief Draws a horizontal line on the map using binary vector tile data.
- *
- * @details Parses start and end coordinates, vertical position, and color from the tile buffer,
- *          applies coordinate offsets, and renders the line on the specified map canvas if it is
- *          within the visible area.
- *
- * @param data Pointer to the tile data buffer.
- * @param offset Reference to the current offset within the buffer. Will be updated after reading.
- * @param xOffset Horizontal offset to apply to coordinates.
- * @param yOffset Vertical offset to apply to coordinates.
- * @param map Reference to the TFT_eSprite where the line will be drawn.
- * @return true if parsing and drawing were successful; false otherwise.
- */
-bool Maps::drawHorizontalLine(const uint8_t* data, size_t& offset, int16_t xOffset, int16_t yOffset, TFT_eSprite &map) {
-    if (!checkBounds(offset, 8, MAX_TILE_SIZE_BYTES)) return false;
-
-    // Little endian read functions
-    auto read_le_int16 = [](const uint8_t* d) -> int16_t {
-        return (int16_t)(d[0] | (d[1] << 8));
-    };
-    auto read_le_uint16 = [](const uint8_t* d) -> uint16_t {
-        return (uint16_t)(d[0] | (d[1] << 8));
-    };
-
-    int16_t x1 = read_le_int16(data + offset); offset += sizeof(int16_t);
-    int16_t x2 = read_le_int16(data + offset); offset += sizeof(int16_t);
-    int16_t y  = read_le_int16(data + offset); offset += sizeof(int16_t);
-    uint16_t color = read_le_uint16(data + offset); offset += sizeof(uint16_t);
-
-    x1 += xOffset;
-    x2 += xOffset;
-    y  += yOffset;
-
-    if (x1 > x2) std::swap(x1, x2);
-
-    if (isVisible(x1, y, x2 - x1 + 1, 1, map)) {
-        map.drawFastHLine(x1, y, x2 - x1 + 1, color);
-    }
-
-    return true;
-}
-
-/**
- * @brief Draws a vertical line on the map using binary vector tile data.
- *
- * @details Parses start and end coordinates, horizontal position, and color from the tile buffer,
- *          applies coordinate offsets, and renders the line on the specified map canvas if it is
- *          within the visible area.
- *
- * @param data Pointer to the tile data buffer.
- * @param offset Reference to the current offset within the buffer. Will be updated after reading.
- * @param xOffset Horizontal offset to apply to coordinates.
- * @param yOffset Vertical offset to apply to coordinates.
- * @param map Reference to the TFT_eSprite where the line will be drawn.
- * @return true if parsing and drawing were successful; false otherwise.
- */
-bool Maps::drawVerticalLine(const uint8_t* data, size_t& offset, int16_t xOffset, int16_t yOffset, TFT_eSprite &map) {
-    if (!checkBounds(offset, 8, MAX_TILE_SIZE_BYTES)) return false;
-
-    // Little endian read functions
-    auto read_le_int16 = [](const uint8_t* d) -> int16_t {
-        return (int16_t)(d[0] | (d[1] << 8));
-    };
-    auto read_le_uint16 = [](const uint8_t* d) -> uint16_t {
-        return (uint16_t)(d[0] | (d[1] << 8));
-    };
-
-    int16_t x  = read_le_int16(data + offset); offset += sizeof(int16_t);
-    int16_t y1 = read_le_int16(data + offset); offset += sizeof(int16_t);
-    int16_t y2 = read_le_int16(data + offset); offset += sizeof(int16_t);
-    uint16_t color = read_le_uint16(data + offset); offset += sizeof(uint16_t);
-
-    x  += xOffset;
-    y1 += yOffset;
-    y2 += yOffset;
-
-    if (y1 > y2) std::swap(y1, y2);
-
-    if (isVisible(x, y1, 1, y2 - y1 + 1, map)) {
-        map.drawFastVLine(x, y1, y2 - y1 + 1, color);
-    }
-
-    return true;
-}
-
-/**
- * @brief Draws an adaptive line on the map using binary vector tile data.
- *
- * @details Parses a series of points and a color from the tile buffer, applies coordinate offsets,
- *          and renders the line with adaptive quality based on complexity and render style.
- *
- * @param points_x Array of x-coordinates of the points.
- * @param points_y Array of y-coordinates of the points.
- * @param count Number of points in the arrays.
- * @param color Color to use for drawing the line.
- * @param complexity Complexity level for adaptive rendering.
- * @param map Reference to the TFT_eSprite where the line will be drawn.
- */
-void Maps::drawAdaptiveLine(const int16_t* points_x, const int16_t* points_y, 
-                           size_t count, uint16_t color, GeometryComplexity complexity, TFT_eSprite &map) {
-    if (count < 2) return;
-
-    // Adaptive rendering based on complexity and quality level
-    if (complexity == COMPLEXITY_HIGH && qualityLevel >= 2) {
-        // High quality: interpolate additional points for smooth curves
-        static std::vector<int16_t> smooth_x, smooth_y;
-        interpolatePoints(points_x, points_y, count, smooth_x, smooth_y);
-
-        for (size_t i = 1; i < smooth_x.size(); ++i) {
-            if (isVisible(std::min(smooth_x[i-1], smooth_x[i]), std::min(smooth_y[i-1], smooth_y[i]), 
-                         std::abs(smooth_x[i]-smooth_x[i-1]), std::abs(smooth_y[i]-smooth_y[i-1]), map)) {
-                map.drawLine(smooth_x[i-1], smooth_y[i-1], smooth_x[i], smooth_y[i], color);
-            }
-        }
-    } else {
-        // Standard quality: direct line drawing
-        for (size_t i = 1; i < count; ++i) {
-            if (isVisible(std::min(points_x[i-1], points_x[i]), std::min(points_y[i-1], points_y[i]), 
-                         std::abs(points_x[i]-points_x[i-1]), std::abs(points_y[i]-points_y[i-1]), map)) {
-                map.drawLine(points_x[i-1], points_y[i-1], points_x[i], points_y[i], color);
-            }
-        }
-    }
-}
-
-/**
- * @brief Draws a smooth curve on the map using binary vector tile data.
- *
- * @details Parses a series of points and a color from the tile buffer, applies coordinate offsets,
- *          generates a smooth curve using Catmull-Rom spline, and renders it on the specified map canvas.
- *
- * @param points_x Array of x-coordinates of the points.
- * @param points_y Array of y-coordinates of the points.
- * @param count Number of points in the arrays.
- * @param color Color to use for drawing the curve.
- * @param map Reference to the TFT_eSprite where the curve will be drawn.
- */
-void Maps::drawSmoothCurve(const int16_t* points_x, const int16_t* points_y, 
-                          size_t count, uint16_t color, TFT_eSprite &map) {
-    if (count < 3) return;
-    
-    // Generate smooth curve using Catmull-Rom spline
-    static std::vector<int16_t> curve_x, curve_y;
-    catmullRomSpline(points_x, points_y, count, curve_x, curve_y);
-    
-    // Draw the smooth curve
-    for (size_t i = 1; i < curve_x.size(); ++i) {
-        if (isVisible(std::min(curve_x[i-1], curve_x[i]), std::min(curve_y[i-1], curve_y[i]), 
-                     std::abs(curve_x[i]-curve_x[i-1]), std::abs(curve_y[i]-curve_y[i-1]), map)) {
-            map.drawLine(curve_x[i-1], curve_y[i-1], curve_x[i], curve_y[i], color);
-        }
-    }
-}
-
-/**
- * @brief Draws a multi-LOD polygon on the map using binary vector tile data.
- *
- * @details Parses a series of points and a color from the tile buffer, applies coordinate offsets,
- *          and renders the polygon with adaptive quality based on complexity and render style.
- *
- * @param points_x Array of x-coordinates of the points.
- * @param points_y Array of y-coordinates of the points.
- * @param count Number of points in the arrays.
- * @param color Color to use for drawing the polygon.
- * @param complexity Complexity level for adaptive rendering.
- * @param render_style Style of rendering (stroke or filled).
- * @param map Reference to the TFT_eSprite where the polygon will be drawn.
- */
-void Maps::drawMultiLODPolygon(const int16_t* points_x, const int16_t* points_y, 
-                              size_t count, uint16_t color, GeometryComplexity complexity, 
-                              uint8_t render_style, TFT_eSprite &map) {
-    if (count < 3) return;
-
-    // Quality-based LOD selection
-    size_t effective_points = count;
-
-    if (qualityLevel == 1 && complexity == COMPLEXITY_HIGH && count > 100) {
-        // Fast mode: reduce points for complex polygons
-        effective_points = count / 2;
-    }
-
-    if (render_style == 0) {  // Stroke only
-        // Dibuja los lados del polígono (contorno)
-        for (size_t i = 1; i < effective_points; ++i) {
-            map.drawLine(points_x[i-1], points_y[i-1], points_x[i], points_y[i], color);
-        }
-        // Cierra el polígono
-        map.drawLine(points_x[effective_points-1], points_y[effective_points-1], points_x[0], points_y[0], color);
-    } else {  // Filled
-        if (effective_points < count) {
-            // Create reduced point array
-            static std::vector<int16_t> reduced_x, reduced_y;
-            reduced_x.clear(); reduced_y.clear();
-            reduced_x.reserve(effective_points);
-            reduced_y.reserve(effective_points);
-
-            for (size_t i = 0; i < effective_points; ++i) {
-                size_t idx = i * count / effective_points;
-                if (idx >= count) idx = count - 1;
-                reduced_x.push_back(points_x[idx]);
-                reduced_y.push_back(points_y[idx]);
-            }
-
-            drawPolygonFast(reduced_x.data(), reduced_y.data(), effective_points, color, map);
-        } else {
-            drawPolygonFast(points_x, points_y, count, color, map);
-        }
-    }
-}
-
-/**
- * @brief Draws a filled polygon using a fast scanline algorithm.
- *
- * @details This function draws a filled polygon on the map using a scanline algorithm,
- *          which is efficient for rendering polygons with many vertices.
- *
- * @param points_x Array of x-coordinates of the polygon vertices.
- * @param points_y Array of y-coordinates of the polygon vertices.
- * @param count Number of vertices in the polygon.
- * @param color Color to use for filling the polygon.
- * @param map Reference to the TFT_eSprite where the polygon will be drawn.
- */
-// void Maps::drawPolygonFast(const int16_t* points_x, const int16_t* points_y, 
-//                            size_t count, uint16_t color, TFT_eSprite &map) 
-// {
-//     if (count < 3) return;
-
-//     // Verifica que hay al menos 3 puntos únicos
-//     std::set<std::pair<int16_t, int16_t>> unique_points;
-//     for (size_t i = 0; i < count; ++i)
-//         unique_points.insert({points_x[i], points_y[i]});
-//     if (unique_points.size() < 3) return;
-
-//     int16_t height = map.height();
-//     int16_t width = map.width();
-
-//     // Encuentra los límites verticales (Y) del polígono
-//     int16_t min_y = height - 1, max_y = 0;
-//     for (size_t i = 0; i < count; ++i) {
-//         if (points_y[i] < min_y) min_y = points_y[i];
-//         if (points_y[i] > max_y) max_y = points_y[i];
-//     }
-
-//     min_y = std::max((int16_t)0, min_y);
-//     max_y = std::min((int16_t)(height - 1), max_y);
-//     if (min_y > max_y) return;
-
-//     // Algoritmo de scanline robusto
-//     for (int16_t y = min_y; y <= max_y; ++y) {
-//         std::vector<int16_t> xints;
-//         for (size_t i = 0, j = count - 1; i < count; j = i++) {
-//             int16_t y0 = points_y[j], y1 = points_y[i];
-//             int16_t x0 = points_x[j], x1 = points_x[i];
-//             if ((y1 > y) != (y0 > y)) {
-//                 // Intersección de la arista con la scanline
-//                 float x = x0 + (float)(x1 - x0) * (y - y0) / (float)(y1 - y0);
-//                 xints.push_back(static_cast<int16_t>(x));
-//             }
-//         }
-//         std::sort(xints.begin(), xints.end());
-//         for (size_t k = 0; k + 1 < xints.size(); k += 2) {
-//             int16_t x_start = std::max((int16_t)0, xints[k]);
-//             int16_t x_end   = std::min((int16_t)(width - 1), xints[k + 1]);
-//             if (x_start <= x_end)
-//                 map.drawFastHLine(x_start, y, x_end - x_start + 1, color);
-//         }
-//     }
-
-//     // Dibuja el borde con el mismo color que el relleno
-//     for (size_t i = 0; i < count; ++i) {
-//         size_t j = (i + 1) % count;
-//         map.drawLine(points_x[i], points_y[i], points_x[j], points_y[j], color);
-//     }
-// }
-void Maps::drawPolygonFast(const int16_t* points_x, const int16_t* points_y, 
-                           size_t count, uint16_t color, TFT_eSprite &map) 
-{
-    if (count < 3) return;
-
-    // Filtra puntos duplicados consecutivos
-    std::vector<int16_t> px, py;
-    px.push_back(points_x[0]);
-    py.push_back(points_y[0]);
-    for (size_t i = 1; i < count; ++i) {
-        if (points_x[i] != px.back() || points_y[i] != py.back()) {
-            px.push_back(points_x[i]);
-            py.push_back(points_y[i]);
-        }
-    }
-    count = px.size();
-    if (count < 3) return;
-
-    // Cierra el polígono si hace falta y los extremos están suficientemente cerca
-    int dx = px.front() - px.back();
-    int dy = py.front() - py.back();
-    int dist2 = dx*dx + dy*dy;
-    if (dist2 > 0 && dist2 < 400) { // Permite hasta 20px de "desfase" para cerrar
-        px.push_back(px.front());
-        py.push_back(py.front());
-        ++count;
-    }
-
-    int16_t height = map.height();
-    int16_t width = map.width();
-
-    // Encuentra los límites verticales
-    int16_t min_y = height - 1, max_y = 0;
-    for (size_t i = 0; i < count; ++i) {
-        if (py[i] < min_y) min_y = py[i];
-        if (py[i] > max_y) max_y = py[i];
-    }
-    min_y = std::max((int16_t)0, min_y);
-    max_y = std::min((int16_t)(height - 1), max_y);
-    if (min_y > max_y) return;
-
-    // Algoritmo de scanline robusto
-    for (int16_t y = min_y; y <= max_y; ++y) {
-        std::vector<int16_t> xints;
-        for (size_t i = 0, j = count - 1; i < count; j = i++) {
-            int16_t y0 = py[j], y1 = py[i];
-            int16_t x0 = px[j], x1 = px[i];
-            if ((y1 > y) != (y0 > y) && (y1 != y0)) {
-                float x = x0 + (float)(x1 - x0) * (y - y0) / (float)(y1 - y0);
-                int16_t x_clip = std::max((int16_t)0, std::min((int16_t)(width - 1), static_cast<int16_t>(x)));
-                xints.push_back(x_clip);
-            }
-        }
-        std::sort(xints.begin(), xints.end());
-        for (size_t k = 0; k + 1 < xints.size(); k += 2) {
-            int16_t x_start = xints[k];
-            int16_t x_end   = xints[k + 1];
-            if (x_start <= x_end)
-                map.drawFastHLine(x_start, y, x_end - x_start + 1, color);
-        }
-    }
-
-    // Dibuja el borde
-    for (size_t i = 0; i + 1 < count; ++i) {
-        map.drawLine(px[i], py[i], px[i+1], py[i+1], color);
-    }
-}
-
-// Interpolation functions
-void Maps::interpolatePoints(const int16_t* points_x, const int16_t* points_y, 
-                            size_t count, std::vector<int16_t>& out_x, std::vector<int16_t>& out_y) {
-    out_x.clear();
-    out_y.clear();
-    
-    if (count < 2) return;
-    
-    // Reserve space for efficiency
-    out_x.reserve(count * 2);
-    out_y.reserve(count * 2);
-    
-    // Simple linear interpolation
-    for (size_t i = 0; i < count - 1; ++i) {
-        out_x.push_back(points_x[i]);
-        out_y.push_back(points_y[i]);
-        
-        // Add interpolated point if segment is long enough
-        int16_t dx = points_x[i+1] - points_x[i];
-        int16_t dy = points_y[i+1] - points_y[i];
-        int32_t dist_sq = dx * dx + dy * dy;
-        
-        if (dist_sq > 100) {  // If distance > 10 pixels
-            out_x.push_back(points_x[i] + dx/2);
-            out_y.push_back(points_y[i] + dy/2);
-        }
-    }
-    
-    // Add last point
-    out_x.push_back(points_x[count-1]);
-    out_y.push_back(points_y[count-1]);
-}
-
-void Maps::catmullRomSpline(const int16_t* points_x, const int16_t* points_y, 
-                           size_t count, std::vector<int16_t>& out_x, std::vector<int16_t>& out_y) {
-    out_x.clear();
-    out_y.clear();
-    
-    if (count < 4) {
-        // Fallback to linear interpolation
-        interpolatePoints(points_x, points_y, count, out_x, out_y);
-        return;
-    }
-    
-    // Reserve space
-    size_t estimatedPoints = (count - 3) * 10 + count;
-    out_x.reserve(estimatedPoints);
-    out_y.reserve(estimatedPoints);
-    
-    // Catmull-Rom spline implementation
-    for (size_t i = 1; i < count - 2; ++i) {
-        // Control points
-        float p0x = points_x[i-1], p0y = points_y[i-1];
-        float p1x = points_x[i], p1y = points_y[i];
-        float p2x = points_x[i+1], p2y = points_y[i+1];
-        float p3x = points_x[i+2], p3y = points_y[i+2];
-        
-        // Generate curve points (quality-dependent resolution)
-        int steps = (qualityLevel == 1) ? 5 : (qualityLevel == 2) ? 8 : 12;
-        
-        for (int j = 0; j < steps; ++j) {
-            float t = (float)j / steps;
-            float t2 = t * t;
-            float t3 = t2 * t;
-            
-            // Catmull-Rom formula
-            float x = 0.5f * ((2.0f * p1x) +
-                            (-p0x + p2x) * t +
-                            (2.0f * p0x - 5.0f * p1x + 4.0f * p2x - p3x) * t2 +
-                            (-p0x + 3.0f * p1x - 3.0f * p2x + p3x) * t3);
-            
-            float y = 0.5f * ((2.0f * p1y) +
-                            (-p0y + p2y) * t +
-                            (2.0f * p0y - 5.0f * p1y + 4.0f * p2y - p3y) * t2 +
-                            (-p0y + 3.0f * p1y - 3.0f * p2y + p3y) * t3);
-            
-            // Clamp coordinates
-            x = std::max(-32767.0f, std::min(32767.0f, x));
-            y = std::max(-32767.0f, std::min(32767.0f, y));
-            
-            out_x.push_back((int16_t)x);
-            out_y.push_back((int16_t)y);
-        }
-    }
-}
-
-// Recovery mechanism for unknown commands
-bool Maps::skipUnknownCommand(uint8_t cmdType, const uint8_t* data, size_t& offset, size_t dataSize) {
-    // Try to skip based on known command patterns
-    switch (cmdType) {
-        case DRAW_LINE:
-        case DRAW_FILL_RECT:
-            // 4 int16 + 1 uint16 = 10 bytes
-            if (offset + 10 <= dataSize) {
-                offset += 10;
-                return true;
-            }
-            break;
-            
-        case DRAW_HORIZONTAL_LINE:
-        case DRAW_VERTICAL_LINE:
-            // 3 int16 + 1 uint16 = 8 bytes
-            if (offset + 8 <= dataSize) {
-                offset += 8;
-                return true;
-            }
-            break;
-            
-        case DRAW_POLYLINE:
-        case DRAW_FILL_POLYGON:
-        case DRAW_STROKE_POLYGON:
-        case DRAW_SPLINE_CURVE:
-            // Variable length: num_points(2) + color(2) + points(num_points * 4)
-            if (offset + 4 <= dataSize) {
-                uint16_t numPoints = *(uint16_t*)(data + offset);
-                size_t totalSize = 4 + numPoints * 4;
-                if (offset + totalSize <= dataSize && numPoints <= 5000) {
-                    offset += totalSize;
-                    return true;
+                // Skip unknown command
+                if (offset < dataSize - 4) {
+                    offset += 4;
                 }
-            }
+                break;
+        }
+        
+        // Verificar progreso para evitar loops infinitos
+        if (offset <= cmd_start_offset) {
             break;
-            
-        default:
-            // Unknown command - try minimal skip
-            ESP_LOGW(TAG, "Unknown command type %d, attempting minimal skip", cmdType);
-            if (offset + 2 <= dataSize) {
-                offset += 2;
-                return true;
-            }
-            break;
+        }
     }
     
-    return false;
+    delete[] data;
+    return executed > 0;
 }
-
