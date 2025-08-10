@@ -143,8 +143,6 @@ private:
 
 	// Vector tiles
 	static uint16_t currentDrawColor;                               /**< Current drawing color state */
-	static bool fillPolygons;                                       /**< Global fill polygons flag (like Python) */
-																 
    
 public:
 	void* mapBuffer;                                               /**< Pointer to map screen sprite */

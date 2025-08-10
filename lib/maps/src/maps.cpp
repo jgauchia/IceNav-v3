@@ -19,7 +19,6 @@ extern std::vector<wayPoint> trackData; /**< Vector containing track waypoints *
 const char* TAG PROGMEM = "Maps";
 
 uint16_t Maps::currentDrawColor = TFT_WHITE;
-bool Maps::fillPolygons = false;  // Default: solo contorno como Python
 
 /**
  * @brief Map Class constructor
@@ -327,7 +326,7 @@ void Maps::generateMap(uint8_t zoom)
 	{
 		const int16_t size = Maps::mapTileSize;
 
-        Maps::mapTempSprite.fillScreen(TFT_BLACK);
+        Maps::mapTempSprite.fillScreen(TFT_WHITE);
 
 		if (mapSet.vectorMap)
 			Maps::isMapFound = renderTile(Maps::currentMapTile.file, size, size,Maps::mapTempSprite);
@@ -677,24 +676,83 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 ///*********************************************************** */
 
 /**
+ * @brief Paleta de colores RGB332 cargada desde palette.bin
+ */
+static uint8_t PALETTE[256]; // Hasta 256 colores posibles. Se rellena al arrancar.
+static uint32_t PALETTE_SIZE = 0;
+
+static bool fillPolygons = true;
+
+/**
+ * @brief Cargar paleta RGB332 desde palette.bin en la raíz del directorio
+ * @param palette_path Ruta completa al archivo palette.bin
+ * @return true si OK, false si error
+ */
+bool loadPalette(const char* palette_path)
+{
+    FILE* f = fopen(palette_path, "rb");
+    if (!f) {
+        return false;
+    }
+    PALETTE_SIZE = fread(PALETTE, 1, 256, f); // Hasta 256 colores
+    fclose(f);
+    return PALETTE_SIZE > 0;
+}
+
+/**
+ * @brief Convert palette index to RGB332 (usado en SET_COLOR_INDEX)
+ */
+uint8_t palette_index_to_rgb332(uint32_t idx)
+{
+    if (idx < PALETTE_SIZE)
+        return PALETTE[idx];
+    return 0xFF; // blanco por defecto si el índice es inválido
+}
+
+/**
+ * @brief Oscurecer color RGB332 (para dibujar bordes de polígonos rellenos)
+ */
+uint8_t darken_rgb332(uint8_t c, float amount = 0.4f)
+{
+    uint8_t r = (c & 0xE0) >> 5;
+    uint8_t g = (c & 0x1C) >> 2;
+    uint8_t b = (c & 0x03);
+
+    r = (uint8_t)(r * (1.0f - amount));
+    g = (uint8_t)(g * (1.0f - amount));
+    b = (uint8_t)(b * (1.0f - amount));
+
+    return ((r << 5) | (g << 2) | b);
+}
+
+/**
+ * @brief Convert RGB332 to RGB565 (SIN swap de bytes para ILI9488 con TFT_eSPI)
+ */
+static uint16_t rgb332_to_rgb565(uint8_t c)
+{
+    uint8_t r8 = (c & 0xE0);
+    uint8_t g8 = (c & 0x1C) << 3;
+    uint8_t b8 = (c & 0x03) << 6;
+    uint16_t r5 = (r8 >> 3);
+    uint16_t g6 = (g8 >> 2);
+    uint16_t b5 = (b8 >> 3);
+    uint16_t rgb565 = (r5 << 11) | (g6 << 5) | b5;
+    return rgb565;
+}
+
+/**
  * @brief Read variable-length integer (varint) from binary data.
  */
 static uint32_t read_varint(const uint8_t* data, size_t& offset, size_t dataSize)
 {
     uint32_t value = 0;
     uint8_t shift = 0;
-    
     while (offset < dataSize && shift < 32) {
         uint8_t byte = data[offset++];
         value |= ((uint32_t)(byte & 0x7F)) << shift;
-        
-        if ((byte & 0x80) == 0) {
-            break;
-        }
-        
+        if ((byte & 0x80) == 0) break;
         shift += 7;
     }
-    
     return value;
 }
 
@@ -711,208 +769,236 @@ static int32_t read_zigzag(const uint8_t* data, size_t& offset, size_t dataSize)
  * @brief Convert uint16 coordinate to tile pixel (0-255) - CORREGIDO PARA COORDENADAS 0-255
  */
 static int uint16_to_tile_pixel(int32_t val) {
-    return (int)((val * 256) / 65536);
+    int p = (int)((val * 256) / 65536);
+    if (p < 0) p = 0;
+    if (p > 255) p = 255;
+    return p;
 }
 
 /**
- * @brief Swap bytes in RGB565 color for display compatibility
- */
-static uint16_t swapRGB565Bytes(uint16_t color)
-{
-    return ((color & 0xFF) << 8) | ((color & 0xFF00) >> 8);
-}
-
-/**
- * @brief Convert RGB332 to RGB565 - CON SWAP DE BYTES PARA PANTALLA
- */
-static uint16_t rgb332_to_rgb565(uint8_t c)
-{
-    // Conversión EXACTA del script PC: rgb332_to_rgb888()
-    // r = (c & 0xE0)        # Mantiene bits 7-5, bits 4-0 = 0
-    // g = (c & 0x1C) << 3   # Toma bits 4-2, shift left 3 → bits 7-5  
-    // b = (c & 0x03) << 6   # Toma bits 1-0, shift left 6 → bits 7-6
-    
-    uint8_t r8 = (c & 0xE0);        // Red: bits 7-5, resto 0 → 0x00, 0x20, 0x40, 0x60, 0x80, 0xA0, 0xC0, 0xE0
-    uint8_t g8 = (c & 0x1C) << 3;   // Green: bits 4-2 → 7-5 → 0x00, 0x20, 0x40, 0x60, 0x80, 0xA0, 0xC0, 0xE0  
-    uint8_t b8 = (c & 0x03) << 6;   // Blue: bits 1-0 → 7-6 → 0x00, 0x40, 0x80, 0xC0
-    
-    // Convertir de RGB888 a RGB565
-    // RGB565: RRRRRGGGGGGBBBBB
-    uint16_t r5 = (r8 >> 3);  // 8 bits → 5 bits (tomar bits 7-3)
-    uint16_t g6 = (g8 >> 2);  // 8 bits → 6 bits (tomar bits 7-2)
-    uint16_t b5 = (b8 >> 3);  // 8 bits → 5 bits (tomar bits 7-3)
-    
-    // Ensamblar RGB565
-    uint16_t rgb565 = (r5 << 11) | (g6 << 5) | b5;
-    
-    // SWAP BYTES PARA PANTALLA
-    return swapRGB565Bytes(rgb565);
-}
-
-/**
- * @brief Check if point is on tile margin (0 or 255) - FILTRO COMO TILE_VIEWER.PY
+ * @brief Check if point is on tile margin (ahora margen ±1 píxel)
  */
 static bool isPointOnMargin(int px, int py)
 {
-    return (px == 0 || px == 255 || py == 0 || py == 255);
+    return (px <= 1 || px >= 254 || py <= 1 || py >= 254);
 }
 
 /**
- * @brief Check if line should be drawn (not on margins) - FILTRO COMO TILE_VIEWER.PY
+ * @brief Check if line should be drawn (filtra bordes de tile, margen ±1)
  */
 static bool shouldDrawLine(int px1, int py1, int px2, int py2)
 {
-    // NO DIBUJAR COMPLETAMENTE si algún punto está en los márgenes del tile
-    return !isPointOnMargin(px1, py1) && !isPointOnMargin(px2, py2);
+    // Si ambos extremos están en el margen, NO dibujar
+    if (isPointOnMargin(px1, py1) && isPointOnMargin(px2, py2)) {
+        return false;
+    }
+    // Si el segmento es exactamente horizontal/vertical en el margen, NO dibujar
+    if ((px1 == px2) && (px1 <= 1 || px1 >= 254)) return false;
+    if ((py1 == py2) && (py1 <= 1 || py1 >= 254)) return false;
+    return true;
 }
 
 /**
- * @brief Renders a vector tile with ALL possible drawing commands - CON SWAP DE BYTES PARA PANTALLA
+ * @brief Helper para rellenar polígonos generales (convexos y cóncavos) con TFT_eSPI (scanline fill)
+ */
+void fillPolygonGeneral(TFT_eSprite &map, int *px, int *py, int n, uint16_t color, int xOffset, int yOffset)
+{
+    if (n < 3 || n > 256) return;
+
+    int minY = py[0], maxY = py[0];
+    for (int i = 1; i < n; ++i) {
+        if (py[i] < minY) minY = py[i];
+        if (py[i] > maxY) maxY = py[i];
+    }
+
+    bool touchesMargin = false;
+    for (int i = 0; i < n; ++i) {
+        if (isPointOnMargin(px[i], py[i])) {
+            touchesMargin = true;
+            break;
+        }
+    }
+    if (touchesMargin) {
+        minY = 0;
+        maxY = 255;
+    }
+    if (minY < 0) minY = 0;
+    if (maxY > 255) maxY = 255;
+
+    for (int y = minY; y <= maxY; ++y) {
+        int xints[256];
+        int nints = 0;
+
+        for (int i = 0; i < n; ++i) {
+            int j = (i + 1) % n;
+            int yi = py[i], yj = py[j];
+            int xi = px[i], xj = px[j];
+            if ((yi < y && yj >= y) || (yj < y && yi >= y)) {
+                if (yj != yi) {
+                    int x = xi + (y - yi) * (xj - xi) / (yj - yi);
+                    if (x < 0) x = 0;
+                    if (x > 255) x = 255;
+                    xints[nints++] = x;
+                }
+            }
+        }
+
+        for (int i = 0; i < nints - 1; ++i) {
+            for (int j = i + 1; j < nints; ++j) {
+                if (xints[i] > xints[j]) {
+                    int tmp = xints[i]; xints[i] = xints[j]; xints[j] = tmp;
+                }
+            }
+        }
+
+        for (int i = 0; i < nints - 1; i += 2) {
+            int xStart = xints[i], xEnd = xints[i+1];
+            if (xStart < xEnd) {
+                if (xStart < 0) xStart = 0;
+                if (xEnd > 255) xEnd = 255;
+                map.drawLine(xStart + xOffset, y + yOffset, xEnd + xOffset, y + yOffset, color);
+            }
+        }
+    }
+}
+
+/**
+ * @brief Dibuja el borde del polígono, asegurando que segmentos en el margen se dibujan con color de relleno
+ */
+void drawPolygonBorder(TFT_eSprite &map, int *px, int *py, int num_points, uint16_t borderColor, uint16_t fillColor, int xOffset, int yOffset)
+{
+    for (uint32_t i = 0; i < num_points - 1; ++i) {
+        bool margin = isPointOnMargin(px[i], py[i]) && isPointOnMargin(px[i+1], py[i+1]);
+        uint16_t color = margin ? fillColor : borderColor;
+        // Dibuja SIEMPRE el borde: color darker salvo en margen (color de relleno)
+        map.drawLine(px[i] + xOffset, py[i] + yOffset, px[i+1] + xOffset, py[i+1] + yOffset, color);
+    }
+    // Cierre del polígono
+    bool margin = isPointOnMargin(px[num_points-1], py[num_points-1]) && isPointOnMargin(px[0], py[0]);
+    uint16_t color = margin ? fillColor : borderColor;
+    map.drawLine(px[num_points-1] + xOffset, py[num_points-1] + yOffset, px[0] + xOffset, py[0] + yOffset, color);
+}
+
+/**
+ * @brief Renders a vector tile with ALL possible drawing commands
  */
 bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eSprite &map)
 {
+    static bool palette_loaded = false;
+    if (!palette_loaded) {
+        palette_loaded = loadPalette("/sdcard/VECTMAP/palette.bin");
+    }
+
     if (!path) {
         return false;
     }
     
-    // 1. LEER ARCHIVO COMPLETO
     FILE* file = fopen(path, "rb");
     if (!file) {
         return false;
     }
-    
     fseek(file, 0, SEEK_END);
     long fileSize = ftell(file);
     fseek(file, 0, SEEK_SET);
-    
     if (fileSize <= 0 || fileSize > 100000) {
         fclose(file);
         return false;
     }
-    
     uint8_t* data = new uint8_t[fileSize];
     if (!data) {
         fclose(file);
         return false;
     }
-    
     size_t bytesRead = fread(data, 1, fileSize, file);
     fclose(file);
-    
     if (bytesRead != fileSize) {
         delete[] data;
         return false;
     }
-    
-    // 2. PROCESAR FORMATO SCRIPT PYTHON
+
     size_t offset = 0;
     size_t dataSize = fileSize;
-    uint8_t current_color = 0xFF; // Color RGB332 por defecto (blanco)
-    uint16_t currentDrawColor = rgb332_to_rgb565(current_color); // Color actual para dibujar
-    
-    // Leer número de comandos
+    uint8_t current_color = 0xFF;
+    uint16_t currentDrawColor = rgb332_to_rgb565(current_color);
+
     uint32_t num_cmds = read_varint(data, offset, dataSize);
-    
     if (num_cmds == 0 || num_cmds > 50000) {
         delete[] data;
         return false;
     }
-    
-    // 3. PROCESAR TODOS LOS COMANDOS POSIBLES - CON SWAP DE BYTES PARA PANTALLA
+
+    int px_list[256];
+    int py_list[256];
+
     int executed = 0;
-    
     for (uint32_t cmd_idx = 0; cmd_idx < num_cmds; cmd_idx++) {
-        if (offset >= dataSize) {
-            break;
-        }
-        
+        if (offset >= dataSize) break;
         size_t cmd_start_offset = offset;
         uint32_t cmd_type = read_varint(data, offset, dataSize);
-        
-        // PROCESAR TODOS LOS COMANDOS POSIBLES
+
         switch (cmd_type) {
-            case 0x80: // SET_COLOR - CON SWAP DE BYTES
+            case 0x80: // SET_COLOR
                 if (offset < dataSize) {
                     current_color = data[offset++];
                     currentDrawColor = rgb332_to_rgb565(current_color);
                     executed++;
                 }
                 break;
-                
-            case 0x81: // SET_COLOR_INDEX - CON SWAP DE BYTES
+            case 0x81: // SET_COLOR_INDEX
                 {
                     uint32_t color_index = read_varint(data, offset, dataSize);
-                    current_color = color_index & 0xFF;
+                    current_color = palette_index_to_rgb332(color_index);
                     currentDrawColor = rgb332_to_rgb565(current_color);
                     executed++;
                 }
                 break;
-                
-            case 1: // LINE - NO DIBUJAR SI TOCA MÁRGENES
+            case 1: // LINE
                 {
                     int32_t x1 = read_zigzag(data, offset, dataSize);
                     int32_t y1 = read_zigzag(data, offset, dataSize);
                     int32_t dx = read_zigzag(data, offset, dataSize);
                     int32_t dy = read_zigzag(data, offset, dataSize);
-                    
                     int32_t x2 = x1 + dx;
                     int32_t y2 = y1 + dy;
-                    
-                    // Convertir a píxeles
                     int px1 = uint16_to_tile_pixel(x1);
                     int py1 = uint16_to_tile_pixel(y1);
                     int px2 = uint16_to_tile_pixel(x2);
                     int py2 = uint16_to_tile_pixel(y2);
-                    
-                    // SOLO dibujar si NO toca márgenes Y está en bounds
                     if (px1 >= 0 && px1 <= 255 && py1 >= 0 && py1 <= 255 &&
-                        px2 >= 0 && px2 <= 255 && py2 >= 0 && py2 <= 255 &&
-                        shouldDrawLine(px1, py1, px2, py2)) {
-                        map.drawLine(px1 + xOffset, py1 + yOffset, px2 + xOffset, py2 + yOffset, currentDrawColor);
+                        px2 >= 0 && px2 <= 255 && py2 >= 0 && py2 <= 255) {
+                        if (shouldDrawLine(px1, py1, px2, py2)) {
+                            map.drawLine(px1 + xOffset, py1 + yOffset, px2 + xOffset, py2 + yOffset, currentDrawColor);
+                        }
                         executed++;
                     }
-                    // Si toca márgenes: NO hacer nada (no dibujar línea negra)
                 }
                 break;
-                
-            case 2: // POLYLINE - NO DIBUJAR SEGMENTOS QUE TOCAN MÁRGENES
+            case 2: // POLYLINE
                 {
                     uint32_t num_points = read_varint(data, offset, dataSize);
-                    
-                    if (num_points >= 2 && num_points <= 1000) {
-                        // Primer punto (absoluto)
+                    if (num_points >= 2 && num_points <= 256) {
                         int32_t prevX = read_zigzag(data, offset, dataSize);
                         int32_t prevY = read_zigzag(data, offset, dataSize);
-                        
                         int prevPx = uint16_to_tile_pixel(prevX);
                         int prevPy = uint16_to_tile_pixel(prevY);
-                        
-                        // Puntos siguientes (relativos)
                         for (uint32_t i = 1; i < num_points; ++i) {
                             int32_t deltaX = read_zigzag(data, offset, dataSize);
                             int32_t deltaY = read_zigzag(data, offset, dataSize);
-                            
                             prevX += deltaX;
                             prevY += deltaY;
-                            
                             int currentPx = uint16_to_tile_pixel(prevX);
                             int currentPy = uint16_to_tile_pixel(prevY);
-                            
-                            // SOLO dibujar segmento si NO toca márgenes
                             if (prevPx >= 0 && prevPx <= 255 && prevPy >= 0 && prevPy <= 255 &&
-                                currentPx >= 0 && currentPx <= 255 && currentPy >= 0 && currentPy <= 255 &&
-                                shouldDrawLine(prevPx, prevPy, currentPx, currentPy)) {
-                                map.drawLine(prevPx + xOffset, prevPy + yOffset, 
-                                            currentPx + xOffset, currentPy + yOffset, currentDrawColor);
+                                currentPx >= 0 && currentPx <= 255 && currentPy >= 0 && currentPy <= 255) {
+                                if (shouldDrawLine(prevPx, prevPy, currentPx, currentPy)) {
+                                    map.drawLine(prevPx + xOffset, prevPy + yOffset, currentPx + xOffset, currentPy + yOffset, currentDrawColor);
+                                }
                             }
-                            // Si toca márgenes: NO hacer nada (saltar segmento)
-                            
                             prevPx = currentPx;
                             prevPy = currentPy;
                         }
                         executed++;
                     } else {
-                        // Skip invalid polyline
                         for (uint32_t i = 0; i < num_points && offset < dataSize; ++i) {
                             if (i == 0) {
                                 read_zigzag(data, offset, dataSize);
@@ -925,57 +1011,32 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
                     }
                 }
                 break;
-                
-            case 3: // STROKE_POLYGON - NO DIBUJAR SEGMENTOS QUE TOCAN MÁRGENES
+            case 3: // STROKE_POLYGON
                 {
                     uint32_t num_points = read_varint(data, offset, dataSize);
-                    
-                    if (num_points >= 3 && num_points <= 1000) {
-                        // Primer punto (absoluto)
+                    if (num_points >= 3 && num_points <= 256) {
                         int32_t firstX = read_zigzag(data, offset, dataSize);
                         int32_t firstY = read_zigzag(data, offset, dataSize);
-                        
-                        int firstPx = uint16_to_tile_pixel(firstX);
-                        int firstPy = uint16_to_tile_pixel(firstY);
-                        
-                        int prevPx = firstPx;
-                        int prevPy = firstPy;
-                        
-                        // Puntos siguientes (relativos)
+                        px_list[0] = uint16_to_tile_pixel(firstX);
+                        py_list[0] = uint16_to_tile_pixel(firstY);
+                        int prevX = firstX;
+                        int prevY = firstY;
                         for (uint32_t i = 1; i < num_points; ++i) {
                             int32_t deltaX = read_zigzag(data, offset, dataSize);
                             int32_t deltaY = read_zigzag(data, offset, dataSize);
-                            
-                            firstX += deltaX;
-                            firstY += deltaY;
-                            
-                            int currentPx = uint16_to_tile_pixel(firstX);
-                            int currentPy = uint16_to_tile_pixel(firstY);
-                            
-                            // SOLO dibujar segmento si NO toca márgenes
-                            if (prevPx >= 0 && prevPx <= 255 && prevPy >= 0 && prevPy <= 255 &&
-                                currentPx >= 0 && currentPx <= 255 && currentPy >= 0 && currentPy <= 255 &&
-                                shouldDrawLine(prevPx, prevPy, currentPx, currentPy)) {
-                                map.drawLine(prevPx + xOffset, prevPy + yOffset, 
-                                            currentPx + xOffset, currentPy + yOffset, currentDrawColor);
-                            }
-                            // Si toca márgenes: NO hacer nada (saltar segmento)
-                            
-                            prevPx = currentPx;
-                            prevPy = currentPy;
+                            prevX += deltaX;
+                            prevY += deltaY;
+                            px_list[i] = uint16_to_tile_pixel(prevX);
+                            py_list[i] = uint16_to_tile_pixel(prevY);
                         }
-                        
-                        // Cerrar polígono SOLO si NO toca márgenes
-                        if (prevPx >= 0 && prevPx <= 255 && prevPy >= 0 && prevPy <= 255 &&
-                            firstPx >= 0 && firstPx <= 255 && firstPy >= 0 && firstPy <= 255 &&
-                            shouldDrawLine(prevPx, prevPy, firstPx, firstPy)) {
-                            map.drawLine(prevPx + xOffset, prevPy + yOffset, 
-                                        firstPx + xOffset, firstPy + yOffset, currentDrawColor);
+                        if (fillPolygons && num_points >= 3) {
+                            fillPolygonGeneral(map, px_list, py_list, num_points, currentDrawColor, xOffset, yOffset);
                         }
-                        // Si toca márgenes: NO hacer nada (no cerrar polígono)
+                        // Color de borde: si toca margen, usar color de relleno en los segmentos de margen
+                        uint16_t borderColor = rgb332_to_rgb565(darken_rgb332(current_color));
+                        drawPolygonBorder(map, px_list, py_list, num_points, borderColor, currentDrawColor, xOffset, yOffset);
                         executed++;
                     } else {
-                        // Skip invalid polygon
                         for (uint32_t i = 0; i < num_points && offset < dataSize; ++i) {
                             if (i == 0) {
                                 read_zigzag(data, offset, dataSize);
@@ -988,253 +1049,152 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
                     }
                 }
                 break;
-                
             case 4: // FILL_POLYGON
                 {
                     uint32_t num_points = read_varint(data, offset, dataSize);
-                    
-                    // Skip - implementación compleja de relleno
                     int32_t accumX = 0, accumY = 0;
-                    for (uint32_t i = 0; i < num_points && offset < dataSize; ++i) {
-                        if (i == 0) {
-                            accumX = read_zigzag(data, offset, dataSize);
-                            accumY = read_zigzag(data, offset, dataSize);
-                        } else {
-                            int32_t deltaX = read_zigzag(data, offset, dataSize);
-                            int32_t deltaY = read_zigzag(data, offset, dataSize);
-                            accumX += deltaX;
-                            accumY += deltaY;
+                    if (num_points >= 3 && num_points <= 256) {
+                        for (uint32_t i = 0; i < num_points && offset < dataSize; ++i) {
+                            if (i == 0) {
+                                accumX = read_zigzag(data, offset, dataSize);
+                                accumY = read_zigzag(data, offset, dataSize);
+                            } else {
+                                int32_t deltaX = read_zigzag(data, offset, dataSize);
+                                int32_t deltaY = read_zigzag(data, offset, dataSize);
+                                accumX += deltaX;
+                                accumY += deltaY;
+                            }
+                            px_list[i] = uint16_to_tile_pixel(accumX);
+                            py_list[i] = uint16_to_tile_pixel(accumY);
+                        }
+                        if (fillPolygons && num_points >= 3) {
+                            fillPolygonGeneral(map, px_list, py_list, num_points, currentDrawColor, xOffset, yOffset);
+                            uint16_t borderColor = rgb332_to_rgb565(darken_rgb332(current_color));
+                            drawPolygonBorder(map, px_list, py_list, num_points, borderColor, currentDrawColor, xOffset, yOffset);
+                            executed++;
+                        }
+                    } else {
+                        for (uint32_t i = 0; i < num_points && offset < dataSize; ++i) {
+                            if (i == 0) {
+                                accumX = read_zigzag(data, offset, dataSize);
+                                accumY = read_zigzag(data, offset, dataSize);
+                            } else {
+                                read_zigzag(data, offset, dataSize);
+                                read_zigzag(data, offset, dataSize);
+                            }
                         }
                     }
                 }
                 break;
-                
-            case 5: // HORIZONTAL_LINE - NO DIBUJAR SI TOCA MÁRGENES
+            case 5: // HORIZONTAL_LINE
                 {
                     int32_t x1 = read_zigzag(data, offset, dataSize);
                     int32_t dx = read_zigzag(data, offset, dataSize);
                     int32_t y = read_zigzag(data, offset, dataSize);
-                    
                     int32_t x2 = x1 + dx;
-                    
                     int px1 = uint16_to_tile_pixel(x1);
                     int px2 = uint16_to_tile_pixel(x2);
                     int py = uint16_to_tile_pixel(y);
-                    
-                    // SOLO dibujar si NO toca márgenes
-                    if (px1 >= 0 && px1 <= 255 && px2 >= 0 && px2 <= 255 && py >= 0 && py <= 255 &&
-                        shouldDrawLine(px1, py, px2, py)) {
-                        map.drawLine(px1 + xOffset, py + yOffset, px2 + xOffset, py + yOffset, currentDrawColor);
+                    if (px1 >= 0 && px1 <= 255 && px2 >= 0 && px2 <= 255 && py >= 0 && py <= 255) {
+                        if (shouldDrawLine(px1, py, px2, py)) {
+                            map.drawLine(px1 + xOffset, py + yOffset, px2 + xOffset, py + yOffset, currentDrawColor);
+                        }
                         executed++;
                     }
-                    // Si toca márgenes: NO hacer nada
                 }
                 break;
-                
-            case 6: // VERTICAL_LINE - NO DIBUJAR SI TOCA MÁRGENES
+            case 6: // VERTICAL_LINE
                 {
                     int32_t x = read_zigzag(data, offset, dataSize);
                     int32_t y1 = read_zigzag(data, offset, dataSize);
                     int32_t dy = read_zigzag(data, offset, dataSize);
-                    
                     int32_t y2 = y1 + dy;
-                    
                     int px = uint16_to_tile_pixel(x);
                     int py1 = uint16_to_tile_pixel(y1);
                     int py2 = uint16_to_tile_pixel(y2);
-                    
-                    // SOLO dibujar si NO toca márgenes
-                    if (px >= 0 && px <= 255 && py1 >= 0 && py1 <= 255 && py2 >= 0 && py2 <= 255 &&
-                        shouldDrawLine(px, py1, px, py2)) {
-                        map.drawLine(px + xOffset, py1 + yOffset, px + xOffset, py2 + yOffset, currentDrawColor);
+                    if (px >= 0 && px <= 255 && py1 >= 0 && py1 <= 255 && py2 >= 0 && py2 <= 255) {
+                        if (shouldDrawLine(px, py1, px, py2)) {
+                            map.drawLine(px + xOffset, py1 + yOffset, px + xOffset, py2 + yOffset, currentDrawColor);
+                        }
                         executed++;
                     }
-                    // Si toca márgenes: NO hacer nada
                 }
                 break;
-                
-            case 0x82: // RECTANGLE - NO DIBUJAR SI TOCA MÁRGENES
+            case 0x82: // RECTANGLE
                 {
                     int32_t x1 = read_zigzag(data, offset, dataSize);
                     int32_t y1 = read_zigzag(data, offset, dataSize);
                     int32_t dx = read_zigzag(data, offset, dataSize);
                     int32_t dy = read_zigzag(data, offset, dataSize);
-                    
                     int px1 = uint16_to_tile_pixel(x1);
                     int py1 = uint16_to_tile_pixel(y1);
                     int pwidth = uint16_to_tile_pixel(dx);
                     int pheight = uint16_to_tile_pixel(dy);
-                    
-                    // SOLO dibujar si NO toca márgenes
-                    if (px1 >= 0 && px1 <= 255 && py1 >= 0 && py1 <= 255 && 
+                    if (px1 >= 0 && px1 <= 255 && py1 >= 0 && py1 <= 255 &&
                         pwidth > 0 && pheight > 0 &&
-                        !isPointOnMargin(px1, py1) && 
+                        !isPointOnMargin(px1, py1) &&
                         !isPointOnMargin(px1 + pwidth, py1 + pheight)) {
                         if (fillPolygons) {
                             map.fillRect(px1 + xOffset, py1 + yOffset, pwidth, pheight, currentDrawColor);
+                            uint16_t borderColor = rgb332_to_rgb565(darken_rgb332(current_color));
+                            map.drawRect(px1 + xOffset, py1 + yOffset, pwidth, pheight, borderColor);
                         } else {
                             map.drawRect(px1 + xOffset, py1 + yOffset, pwidth, pheight, currentDrawColor);
                         }
                         executed++;
                     }
-                    // Si toca márgenes: NO hacer nada
                 }
                 break;
-                
-            case 0x83: // STRAIGHT_LINE - NO DIBUJAR SI TOCA MÁRGENES
+            case 0x83: // STRAIGHT_LINE
                 {
                     int32_t x1 = read_zigzag(data, offset, dataSize);
                     int32_t y1 = read_zigzag(data, offset, dataSize);
                     int32_t dx = read_zigzag(data, offset, dataSize);
                     int32_t dy = read_zigzag(data, offset, dataSize);
-                    
                     int32_t x2 = x1 + dx;
                     int32_t y2 = y1 + dy;
-                    
                     int px1 = uint16_to_tile_pixel(x1);
                     int py1 = uint16_to_tile_pixel(y1);
                     int px2 = uint16_to_tile_pixel(x2);
                     int py2 = uint16_to_tile_pixel(y2);
-                    
-                    // SOLO dibujar si NO toca márgenes
                     if (px1 >= 0 && px1 <= 255 && py1 >= 0 && py1 <= 255 &&
-                        px2 >= 0 && px2 <= 255 && py2 >= 0 && py2 <= 255 &&
-                        shouldDrawLine(px1, py1, px2, py2)) {
-                        map.drawLine(px1 + xOffset, py1 + yOffset, px2 + xOffset, py2 + yOffset, currentDrawColor);
+                        px2 >= 0 && px2 <= 255 && py2 >= 0 && py2 <= 255) {
+                        if (shouldDrawLine(px1, py1, px2, py2)) {
+                            map.drawLine(px1 + xOffset, py1 + yOffset, px2 + xOffset, py2 + yOffset, currentDrawColor);
+                        }
                         executed++;
                     }
-                    // Si toca márgenes: NO hacer nada
                 }
                 break;
-                
-            case 0x84: // ELLIPSE - NO DIBUJAR SI TOCA MÁRGENES
+            case 0x87: // CIRCLE
                 {
                     int32_t center_x = read_zigzag(data, offset, dataSize);
                     int32_t center_y = read_zigzag(data, offset, dataSize);
-                    int32_t radius_x = read_zigzag(data, offset, dataSize);
-                    int32_t radius_y = read_zigzag(data, offset, dataSize);
-                    
+                    int32_t radius = read_zigzag(data, offset, dataSize);
                     int pcx = uint16_to_tile_pixel(center_x);
                     int pcy = uint16_to_tile_pixel(center_y);
-                    int pradius = uint16_to_tile_pixel((radius_x + radius_y) / 2);
-                    
-                    // SOLO dibujar si NO toca márgenes
+                    int pradius = uint16_to_tile_pixel(radius);
                     if (pcx >= 0 && pcx <= 255 && pcy >= 0 && pcy <= 255 && pradius > 0 &&
                         !isPointOnMargin(pcx, pcy)) {
                         if (fillPolygons) {
                             map.fillCircle(pcx + xOffset, pcy + yOffset, pradius, currentDrawColor);
+                            uint16_t borderColor = rgb332_to_rgb565(darken_rgb332(current_color));
+                            map.drawCircle(pcx + xOffset, pcy + yOffset, pradius, borderColor);
                         } else {
                             map.drawCircle(pcx + xOffset, pcy + yOffset, pradius, currentDrawColor);
                         }
                         executed++;
                     }
-                    // Si toca márgenes: NO hacer nada
                 }
                 break;
-                
-            case 0x85: // ARC - NO DIBUJAR SI TOCA MÁRGENES
-                {
-                    int32_t center_x = read_zigzag(data, offset, dataSize);
-                    int32_t center_y = read_zigzag(data, offset, dataSize);
-                    int32_t radius = read_zigzag(data, offset, dataSize);
-                    int32_t start_angle = read_zigzag(data, offset, dataSize);
-                    int32_t end_angle = read_zigzag(data, offset, dataSize);
-                    
-                    int pcx = uint16_to_tile_pixel(center_x);
-                    int pcy = uint16_to_tile_pixel(center_y);
-                    int pradius = uint16_to_tile_pixel(radius);
-                    
-                    // SOLO dibujar si NO toca márgenes
-                    if (pcx >= 0 && pcx <= 255 && pcy >= 0 && pcy <= 255 && pradius > 0 &&
-                        !isPointOnMargin(pcx, pcy)) {
-                        map.drawCircle(pcx + xOffset, pcy + yOffset, pradius, currentDrawColor);
-                        executed++;
-                    }
-                    // Si toca márgenes: NO hacer nada
-                }
-                break;
-                
-            case 0x86: // BEZIER_CURVE - NO DIBUJAR SI TOCA MÁRGENES
-                {
-                    int32_t x1 = read_zigzag(data, offset, dataSize);
-                    int32_t y1 = read_zigzag(data, offset, dataSize);
-                    int32_t x2 = read_zigzag(data, offset, dataSize);
-                    int32_t y2 = read_zigzag(data, offset, dataSize);
-                    int32_t x3 = read_zigzag(data, offset, dataSize);
-                    int32_t y3 = read_zigzag(data, offset, dataSize);
-                    int32_t x4 = read_zigzag(data, offset, dataSize);
-                    int32_t y4 = read_zigzag(data, offset, dataSize);
-                    
-                    // Simplificar como línea recta - NO DIBUJAR SI TOCA MÁRGENES
-                    int px1 = uint16_to_tile_pixel(x1);
-                    int py1 = uint16_to_tile_pixel(y1);
-                    int px4 = uint16_to_tile_pixel(x4);
-                    int py4 = uint16_to_tile_pixel(y4);
-                    
-                    // SOLO dibujar si NO toca márgenes
-                    if (px1 >= 0 && px1 <= 255 && py1 >= 0 && py1 <= 255 &&
-                        px4 >= 0 && px4 <= 255 && py4 >= 0 && py4 <= 255 &&
-                        shouldDrawLine(px1, py1, px4, py4)) {
-                        map.drawLine(px1 + xOffset, py1 + yOffset, px4 + xOffset, py4 + yOffset, currentDrawColor);
-                        executed++;
-                    }
-                    // Si toca márgenes: NO hacer nada
-                }
-                break;
-                
-            case 0x87: // CIRCLE - NO DIBUJAR SI TOCA MÁRGENES
-                {
-                    int32_t center_x = read_zigzag(data, offset, dataSize);
-                    int32_t center_y = read_zigzag(data, offset, dataSize);
-                    int32_t radius = read_zigzag(data, offset, dataSize);
-                    
-                    int pcx = uint16_to_tile_pixel(center_x);
-                    int pcy = uint16_to_tile_pixel(center_y);
-                    int pradius = uint16_to_tile_pixel(radius);
-                    
-                    // SOLO dibujar si NO toca márgenes
-                    if (pcx >= 0 && pcx <= 255 && pcy >= 0 && pcy <= 255 && pradius > 0 &&
-                        !isPointOnMargin(pcx, pcy)) {
-                        if (fillPolygons) {
-                            map.fillCircle(pcx + xOffset, pcy + yOffset, pradius, currentDrawColor);
-                        } else {
-                            map.drawCircle(pcx + xOffset, pcy + yOffset, pradius, currentDrawColor);
-                        }
-                        executed++;
-                    }
-                    // Si toca márgenes: NO hacer nada
-                }
-                break;
-                
-            case 0x88: // TEXT
-                {
-                    int32_t x = read_zigzag(data, offset, dataSize);
-                    int32_t y = read_zigzag(data, offset, dataSize);
-                    uint32_t text_len = read_varint(data, offset, dataSize);
-                    
-                    if (text_len > 0 && text_len < 100 && offset + text_len <= dataSize) {
-                        offset += text_len; // Skip text content for now
-                        executed++;
-                    } else {
-                        offset += std::min(text_len, (uint32_t)(dataSize - offset));
-                    }
-                }
-                break;
-                
             default:
-                // Skip unknown command
                 if (offset < dataSize - 4) {
                     offset += 4;
                 }
                 break;
         }
-        
-        // Verificar progreso para evitar loops infinitos
-        if (offset <= cmd_start_offset) {
-            break;
-        }
+        if (offset <= cmd_start_offset) break;
     }
-    
     delete[] data;
     return executed > 0;
 }
