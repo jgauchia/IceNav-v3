@@ -927,8 +927,8 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
         return false;
     }
 
-    int px_list[256];
-    int py_list[256];
+    int px_list[512];
+    int py_list[512];
 
     int executed = 0;
     for (uint32_t cmd_idx = 0; cmd_idx < num_cmds; cmd_idx++) {
