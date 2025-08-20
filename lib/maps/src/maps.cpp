@@ -753,6 +753,11 @@ static uint32_t read_varint(const uint8_t* data, size_t& offset, size_t dataSize
         if ((byte & 0x80) == 0) break;
         shift += 7;
     }
+    // Si offset supera dataSize, devolver 0 y dejar offset al final
+    if (offset > dataSize) {
+        offset = dataSize;
+        return 0;
+    }
     return value;
 }
 
@@ -761,9 +766,11 @@ static uint32_t read_varint(const uint8_t* data, size_t& offset, size_t dataSize
  */
 static int32_t read_zigzag(const uint8_t* data, size_t& offset, size_t dataSize)
 {
+    if (offset >= dataSize) return 0;
     uint32_t encoded = read_varint(data, offset, dataSize);
     return (int32_t)((encoded >> 1) ^ (-(int32_t)(encoded & 1)));
 }
+
 
 /**
  * @brief Convert uint16 coordinate to tile pixel (0-255) - CORREGIDO PARA COORDENADAS 0-255
@@ -900,10 +907,6 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
     fseek(file, 0, SEEK_END);
     long fileSize = ftell(file);
     fseek(file, 0, SEEK_SET);
-    if (fileSize <= 0 || fileSize > 100000) {
-        fclose(file);
-        return false;
-    }
     uint8_t* data = new uint8_t[fileSize];
     if (!data) {
         fclose(file);
@@ -937,14 +940,14 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
         uint32_t cmd_type = read_varint(data, offset, dataSize);
 
         switch (cmd_type) {
-            case 0x80: // SET_COLOR
+            case 0x80:
                 if (offset < dataSize) {
                     current_color = data[offset++];
                     currentDrawColor = rgb332_to_rgb565(current_color);
                     executed++;
                 }
                 break;
-            case 0x81: // SET_COLOR_INDEX
+            case 0x81:
                 {
                     uint32_t color_index = read_varint(data, offset, dataSize);
                     current_color = palette_index_to_rgb332(color_index);
@@ -952,7 +955,7 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
                     executed++;
                 }
                 break;
-            case 1: // LINE
+            case 1:
                 {
                     int32_t x1 = read_zigzag(data, offset, dataSize);
                     int32_t y1 = read_zigzag(data, offset, dataSize);
@@ -973,7 +976,7 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
                     }
                 }
                 break;
-            case 2: // POLYLINE
+            case 2:
                 {
                     uint32_t num_points = read_varint(data, offset, dataSize);
                     if (num_points >= 2 && num_points <= 256) {
@@ -1011,7 +1014,7 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
                     }
                 }
                 break;
-            case 3: // STROKE_POLYGON
+            case 3:
                 {
                     uint32_t num_points = read_varint(data, offset, dataSize);
                     if (num_points >= 3 && num_points <= 256) {
@@ -1032,7 +1035,6 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
                         if (fillPolygons && num_points >= 3) {
                             fillPolygonGeneral(map, px_list, py_list, num_points, currentDrawColor, xOffset, yOffset);
                         }
-                        // Color de borde: si toca margen, usar color de relleno en los segmentos de margen
                         uint16_t borderColor = rgb332_to_rgb565(darken_rgb332(current_color));
                         drawPolygonBorder(map, px_list, py_list, num_points, borderColor, currentDrawColor, xOffset, yOffset);
                         executed++;
@@ -1049,7 +1051,7 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
                     }
                 }
                 break;
-            case 4: // FILL_POLYGON
+            case 4:
                 {
                     uint32_t num_points = read_varint(data, offset, dataSize);
                     int32_t accumX = 0, accumY = 0;
@@ -1086,7 +1088,7 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
                     }
                 }
                 break;
-            case 5: // HORIZONTAL_LINE
+            case 5:
                 {
                     int32_t x1 = read_zigzag(data, offset, dataSize);
                     int32_t dx = read_zigzag(data, offset, dataSize);
@@ -1103,7 +1105,7 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
                     }
                 }
                 break;
-            case 6: // VERTICAL_LINE
+            case 6:
                 {
                     int32_t x = read_zigzag(data, offset, dataSize);
                     int32_t y1 = read_zigzag(data, offset, dataSize);
@@ -1120,7 +1122,7 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
                     }
                 }
                 break;
-            case 0x82: // RECTANGLE
+            case 0x82:
                 {
                     int32_t x1 = read_zigzag(data, offset, dataSize);
                     int32_t y1 = read_zigzag(data, offset, dataSize);
@@ -1145,7 +1147,7 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
                     }
                 }
                 break;
-            case 0x83: // STRAIGHT_LINE
+            case 0x83:
                 {
                     int32_t x1 = read_zigzag(data, offset, dataSize);
                     int32_t y1 = read_zigzag(data, offset, dataSize);
@@ -1166,7 +1168,7 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
                     }
                 }
                 break;
-            case 0x87: // CIRCLE
+            case 0x87:
                 {
                     int32_t center_x = read_zigzag(data, offset, dataSize);
                     int32_t center_y = read_zigzag(data, offset, dataSize);
@@ -1196,5 +1198,9 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
         if (offset <= cmd_start_offset) break;
     }
     delete[] data;
-    return executed > 0;
+
+    if (executed == 0) {
+        return false;
+    }
+    return true;
 }
