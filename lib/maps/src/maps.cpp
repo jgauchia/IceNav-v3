@@ -899,7 +899,7 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
     if (!path) {
         return false;
     }
-    
+
     FILE* file = fopen(path, "rb");
     if (!file) {
         return false;
@@ -907,15 +907,23 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
     fseek(file, 0, SEEK_END);
     long fileSize = ftell(file);
     fseek(file, 0, SEEK_SET);
-    uint8_t* data = new uint8_t[fileSize];
+
+    uint8_t* data = nullptr;
+#if BOARD_HAS_PSRAM
+    data = (uint8_t*)heap_caps_malloc(fileSize, MALLOC_CAP_SPIRAM);
+#endif
+    if (!data) {
+        data = (uint8_t*)heap_caps_malloc(fileSize, MALLOC_CAP_8BIT);
+    }
     if (!data) {
         fclose(file);
         return false;
     }
+
     size_t bytesRead = fread(data, 1, fileSize, file);
     fclose(file);
     if (bytesRead != fileSize) {
-        delete[] data;
+        heap_caps_free(data);
         return false;
     }
 
@@ -926,7 +934,7 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
 
     uint32_t num_cmds = read_varint(data, offset, dataSize);
     if (num_cmds == 0 || num_cmds > 50000) {
-        delete[] data;
+        heap_caps_free(data);
         return false;
     }
 
@@ -1197,7 +1205,7 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
         }
         if (offset <= cmd_start_offset) break;
     }
-    delete[] data;
+    heap_caps_free(data);
 
     if (executed == 0) {
         return false;
