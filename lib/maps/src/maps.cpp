@@ -896,7 +896,7 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
         palette_loaded = loadPalette("/sdcard/VECTMAP/palette.bin");
     }
 
-    if (!path) {
+    if (!path || path[0] == '\0') {
         return false;
     }
 
@@ -938,8 +938,31 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
         return false;
     }
 
-    int px_list[512];
-    int py_list[512];
+    int* px_list = (int*)heap_caps_malloc(512 * sizeof(int), MALLOC_CAP_8BIT);
+    int* py_list = (int*)heap_caps_malloc(512 * sizeof(int), MALLOC_CAP_8BIT);
+
+    if (!px_list || !py_list) {
+        heap_caps_free(data);
+        if (px_list) heap_caps_free(px_list);
+        if (py_list) heap_caps_free(py_list);
+        return false;
+    }
+
+    LineSegment* lineBatch = (LineSegment*)heap_caps_malloc(LINE_BATCH_SIZE * sizeof(LineSegment), MALLOC_CAP_8BIT);
+    int batchCount = 0;
+    if (!lineBatch) {
+        heap_caps_free(data);
+        heap_caps_free(px_list);
+        heap_caps_free(py_list);
+        return false;
+    }
+
+    auto flushBatch = [&]() {
+        for (int i = 0; i < batchCount; ++i) {
+            map.drawLine(lineBatch[i].x0, lineBatch[i].y0, lineBatch[i].x1, lineBatch[i].y1, lineBatch[i].color);
+        }
+        batchCount = 0;
+    };
 
     int executed = 0;
     for (uint32_t cmd_idx = 0; cmd_idx < num_cmds; cmd_idx++) {
@@ -947,8 +970,11 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
         size_t cmd_start_offset = offset;
         uint32_t cmd_type = read_varint(data, offset, dataSize);
 
+        bool isLineCommand = false;
+
         switch (cmd_type) {
             case 0x80:
+                flushBatch();
                 if (offset < dataSize) {
                     current_color = data[offset++];
                     currentDrawColor = rgb332_to_rgb565(current_color);
@@ -956,6 +982,7 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
                 }
                 break;
             case 0x81:
+                flushBatch();
                 {
                     uint32_t color_index = read_varint(data, offset, dataSize);
                     current_color = palette_index_to_rgb332(color_index);
@@ -971,16 +998,22 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
                     int32_t dy = read_zigzag(data, offset, dataSize);
                     int32_t x2 = x1 + dx;
                     int32_t y2 = y1 + dy;
-                    int px1 = uint16_to_tile_pixel(x1);
-                    int py1 = uint16_to_tile_pixel(y1);
-                    int px2 = uint16_to_tile_pixel(x2);
-                    int py2 = uint16_to_tile_pixel(y2);
-                    if (px1 >= 0 && px1 <= 255 && py1 >= 0 && py1 <= 255 &&
-                        px2 >= 0 && px2 <= 255 && py2 >= 0 && py2 <= 255) {
-                        if (shouldDrawLine(px1, py1, px2, py2)) {
-                            map.drawLine(px1 + xOffset, py1 + yOffset, px2 + xOffset, py2 + yOffset, currentDrawColor);
+                    int px1 = uint16_to_tile_pixel(x1) + xOffset;
+                    int py1 = uint16_to_tile_pixel(y1) + yOffset;
+                    int px2 = uint16_to_tile_pixel(x2) + xOffset;
+                    int py2 = uint16_to_tile_pixel(y2) + yOffset;
+                    if (px1 >= 0 && px1 <= 255 + xOffset && py1 >= 0 && py1 <= 255 + yOffset &&
+                        px2 >= 0 && px2 <= 255 + xOffset && py2 >= 0 && py2 <= 255 + yOffset) {
+                        if (shouldDrawLine(px1 - xOffset, py1 - yOffset, px2 - xOffset, py2 - yOffset)) {
+                            if (batchCount < LINE_BATCH_SIZE) {
+                                lineBatch[batchCount++] = {px1, py1, px2, py2, currentDrawColor};
+                            } else {
+                                flushBatch();
+                                lineBatch[batchCount++] = {px1, py1, px2, py2, currentDrawColor};
+                            }
                         }
                         executed++;
+                        isLineCommand = true;
                     }
                 }
                 break;
@@ -990,39 +1023,41 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
                     if (num_points >= 2 && num_points <= 256) {
                         int32_t prevX = read_zigzag(data, offset, dataSize);
                         int32_t prevY = read_zigzag(data, offset, dataSize);
-                        int prevPx = uint16_to_tile_pixel(prevX);
-                        int prevPy = uint16_to_tile_pixel(prevY);
+                        int prevPx = uint16_to_tile_pixel(prevX) + xOffset;
+                        int prevPy = uint16_to_tile_pixel(prevY) + yOffset;
                         for (uint32_t i = 1; i < num_points; ++i) {
                             int32_t deltaX = read_zigzag(data, offset, dataSize);
                             int32_t deltaY = read_zigzag(data, offset, dataSize);
                             prevX += deltaX;
                             prevY += deltaY;
-                            int currentPx = uint16_to_tile_pixel(prevX);
-                            int currentPy = uint16_to_tile_pixel(prevY);
-                            if (prevPx >= 0 && prevPx <= 255 && prevPy >= 0 && prevPy <= 255 &&
-                                currentPx >= 0 && currentPx <= 255 && currentPy >= 0 && currentPy <= 255) {
-                                if (shouldDrawLine(prevPx, prevPy, currentPx, currentPy)) {
-                                    map.drawLine(prevPx + xOffset, prevPy + yOffset, currentPx + xOffset, currentPy + yOffset, currentDrawColor);
+                            int currentPx = uint16_to_tile_pixel(prevX) + xOffset;
+                            int currentPy = uint16_to_tile_pixel(prevY) + yOffset;
+                            if (prevPx >= 0 && prevPx <= 255 + xOffset && prevPy >= 0 && prevPy <= 255 + yOffset &&
+                                currentPx >= 0 && currentPx <= 255 + xOffset && currentPy >= 0 && currentPy <= 255 + yOffset) {
+                                if (shouldDrawLine(prevPx - xOffset, prevPy - yOffset, currentPx - xOffset, currentPy - yOffset)) {
+                                    if (batchCount < LINE_BATCH_SIZE) {
+                                        lineBatch[batchCount++] = {prevPx, prevPy, currentPx, currentPy, currentDrawColor};
+                                    } else {
+                                        flushBatch();
+                                        lineBatch[batchCount++] = {prevPx, prevPy, currentPx, currentPy, currentDrawColor};
+                                    }
                                 }
                             }
                             prevPx = currentPx;
                             prevPy = currentPy;
                         }
                         executed++;
+                        isLineCommand = true;
                     } else {
                         for (uint32_t i = 0; i < num_points && offset < dataSize; ++i) {
-                            if (i == 0) {
-                                read_zigzag(data, offset, dataSize);
-                                read_zigzag(data, offset, dataSize);
-                            } else {
-                                read_zigzag(data, offset, dataSize);
-                                read_zigzag(data, offset, dataSize);
-                            }
+                            read_zigzag(data, offset, dataSize);
+                            read_zigzag(data, offset, dataSize);
                         }
                     }
                 }
                 break;
             case 3:
+                flushBatch();
                 {
                     uint32_t num_points = read_varint(data, offset, dataSize);
                     if (num_points >= 3 && num_points <= 256) {
@@ -1048,18 +1083,14 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
                         executed++;
                     } else {
                         for (uint32_t i = 0; i < num_points && offset < dataSize; ++i) {
-                            if (i == 0) {
-                                read_zigzag(data, offset, dataSize);
-                                read_zigzag(data, offset, dataSize);
-                            } else {
-                                read_zigzag(data, offset, dataSize);
-                                read_zigzag(data, offset, dataSize);
-                            }
+                            read_zigzag(data, offset, dataSize);
+                            read_zigzag(data, offset, dataSize);
                         }
                     }
                 }
                 break;
             case 4:
+                flushBatch();
                 {
                     uint32_t num_points = read_varint(data, offset, dataSize);
                     int32_t accumX = 0, accumY = 0;
@@ -1085,13 +1116,8 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
                         }
                     } else {
                         for (uint32_t i = 0; i < num_points && offset < dataSize; ++i) {
-                            if (i == 0) {
-                                accumX = read_zigzag(data, offset, dataSize);
-                                accumY = read_zigzag(data, offset, dataSize);
-                            } else {
-                                read_zigzag(data, offset, dataSize);
-                                read_zigzag(data, offset, dataSize);
-                            }
+                            read_zigzag(data, offset, dataSize);
+                            read_zigzag(data, offset, dataSize);
                         }
                     }
                 }
@@ -1102,14 +1128,20 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
                     int32_t dx = read_zigzag(data, offset, dataSize);
                     int32_t y = read_zigzag(data, offset, dataSize);
                     int32_t x2 = x1 + dx;
-                    int px1 = uint16_to_tile_pixel(x1);
-                    int px2 = uint16_to_tile_pixel(x2);
-                    int py = uint16_to_tile_pixel(y);
-                    if (px1 >= 0 && px1 <= 255 && px2 >= 0 && px2 <= 255 && py >= 0 && py <= 255) {
-                        if (shouldDrawLine(px1, py, px2, py)) {
-                            map.drawLine(px1 + xOffset, py + yOffset, px2 + xOffset, py + yOffset, currentDrawColor);
+                    int px1 = uint16_to_tile_pixel(x1) + xOffset;
+                    int px2 = uint16_to_tile_pixel(x2) + xOffset;
+                    int py = uint16_to_tile_pixel(y) + yOffset;
+                    if (px1 >= 0 && px1 <= 255 + xOffset && px2 >= 0 && px2 <= 255 + xOffset && py >= 0 && py <= 255 + yOffset) {
+                        if (shouldDrawLine(px1 - xOffset, py - yOffset, px2 - xOffset, py - yOffset)) {
+                            if (batchCount < LINE_BATCH_SIZE) {
+                                lineBatch[batchCount++] = {px1, py, px2, py, currentDrawColor};
+                            } else {
+                                flushBatch();
+                                lineBatch[batchCount++] = {px1, py, px2, py, currentDrawColor};
+                            }
                         }
                         executed++;
+                        isLineCommand = true;
                     }
                 }
                 break;
@@ -1119,18 +1151,25 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
                     int32_t y1 = read_zigzag(data, offset, dataSize);
                     int32_t dy = read_zigzag(data, offset, dataSize);
                     int32_t y2 = y1 + dy;
-                    int px = uint16_to_tile_pixel(x);
-                    int py1 = uint16_to_tile_pixel(y1);
-                    int py2 = uint16_to_tile_pixel(y2);
-                    if (px >= 0 && px <= 255 && py1 >= 0 && py1 <= 255 && py2 >= 0 && py2 <= 255) {
-                        if (shouldDrawLine(px, py1, px, py2)) {
-                            map.drawLine(px + xOffset, py1 + yOffset, px + xOffset, py2 + yOffset, currentDrawColor);
+                    int px = uint16_to_tile_pixel(x) + xOffset;
+                    int py1 = uint16_to_tile_pixel(y1) + yOffset;
+                    int py2 = uint16_to_tile_pixel(y2) + yOffset;
+                    if (px >= 0 && px <= 255 + xOffset && py1 >= 0 && py1 <= 255 + yOffset && py2 >= 0 && py2 <= 255 + yOffset) {
+                        if (shouldDrawLine(px - xOffset, py1 - yOffset, px - xOffset, py2 - yOffset)) {
+                            if (batchCount < LINE_BATCH_SIZE) {
+                                lineBatch[batchCount++] = {px, py1, px, py2, currentDrawColor};
+                            } else {
+                                flushBatch();
+                                lineBatch[batchCount++] = {px, py1, px, py2, currentDrawColor};
+                            }
                         }
                         executed++;
+                        isLineCommand = true;
                     }
                 }
                 break;
             case 0x82:
+                flushBatch();
                 {
                     int32_t x1 = read_zigzag(data, offset, dataSize);
                     int32_t y1 = read_zigzag(data, offset, dataSize);
@@ -1163,20 +1202,27 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
                     int32_t dy = read_zigzag(data, offset, dataSize);
                     int32_t x2 = x1 + dx;
                     int32_t y2 = y1 + dy;
-                    int px1 = uint16_to_tile_pixel(x1);
-                    int py1 = uint16_to_tile_pixel(y1);
-                    int px2 = uint16_to_tile_pixel(x2);
-                    int py2 = uint16_to_tile_pixel(y2);
-                    if (px1 >= 0 && px1 <= 255 && py1 >= 0 && py1 <= 255 &&
-                        px2 >= 0 && px2 <= 255 && py2 >= 0 && py2 <= 255) {
-                        if (shouldDrawLine(px1, py1, px2, py2)) {
-                            map.drawLine(px1 + xOffset, py1 + yOffset, px2 + xOffset, py2 + yOffset, currentDrawColor);
+                    int px1 = uint16_to_tile_pixel(x1) + xOffset;
+                    int py1 = uint16_to_tile_pixel(y1) + yOffset;
+                    int px2 = uint16_to_tile_pixel(x2) + xOffset;
+                    int py2 = uint16_to_tile_pixel(y2) + yOffset;
+                    if (px1 >= 0 && px1 <= 255 + xOffset && py1 >= 0 && py1 <= 255 + yOffset &&
+                        px2 >= 0 && px2 <= 255 + xOffset && py2 >= 0 && py2 <= 255 + yOffset) {
+                        if (shouldDrawLine(px1 - xOffset, py1 - yOffset, px2 - xOffset, py2 - yOffset)) {
+                            if (batchCount < LINE_BATCH_SIZE) {
+                                lineBatch[batchCount++] = {px1, py1, px2, py2, currentDrawColor};
+                            } else {
+                                flushBatch();
+                                lineBatch[batchCount++] = {px1, py1, px2, py2, currentDrawColor};
+                            }
                         }
                         executed++;
+                        isLineCommand = true;
                     }
                 }
                 break;
             case 0x87:
+                flushBatch();
                 {
                     int32_t center_x = read_zigzag(data, offset, dataSize);
                     int32_t center_y = read_zigzag(data, offset, dataSize);
@@ -1198,14 +1244,23 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
                 }
                 break;
             default:
+                flushBatch();
                 if (offset < dataSize - 4) {
                     offset += 4;
                 }
                 break;
         }
+        if (!isLineCommand) {
+            flushBatch();
+        }
         if (offset <= cmd_start_offset) break;
     }
+    flushBatch();
+
     heap_caps_free(data);
+    heap_caps_free(px_list);
+    heap_caps_free(py_list);
+    heap_caps_free(lineBatch);
 
     if (executed == 0) {
         return false;

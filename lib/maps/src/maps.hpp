@@ -71,6 +71,14 @@ static uint32_t read_varint(const uint8_t* data, size_t& offset, size_t dataSize
 static int32_t read_zigzag(const uint8_t* data, size_t& offset, size_t dataSize);
 static uint16_t rgb332_to_rgb565(uint8_t rgb332);
 
+struct LineSegment
+{
+    int x0, y0, x1, y1;
+    uint16_t color;
+};
+
+#define LINE_BATCH_SIZE 64
+
 /**
  * @class Maps
  * @brief Maps class for handling vector and raster map rendering, navigation, and viewport management.
