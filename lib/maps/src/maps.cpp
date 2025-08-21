@@ -812,6 +812,17 @@ void fillPolygonGeneral(TFT_eSprite &map, int *px, int *py, int n, uint16_t colo
 {
     if (n < 3 || n > 256) return;
 
+    // Añadido: Si es un triángulo, usar fillTriangle (optimización fase 3 punto 5)
+    if (n == 3) {
+        map.fillTriangle(
+            px[0] + xOffset, py[0] + yOffset,
+            px[1] + xOffset, py[1] + yOffset,
+            px[2] + xOffset, py[2] + yOffset,
+            color
+        );
+        return;
+    }
+
     int minY = py[0], maxY = py[0];
     for (int i = 1; i < n; ++i) {
         if (py[i] < minY) minY = py[i];
