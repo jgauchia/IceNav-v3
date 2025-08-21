@@ -933,7 +933,7 @@ bool Maps::renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eS
     uint16_t currentDrawColor = rgb332_to_rgb565(current_color);
 
     uint32_t num_cmds = read_varint(data, offset, dataSize);
-    if (num_cmds == 0 || num_cmds > 50000) {
+    if (num_cmds == 0) {
         heap_caps_free(data);
         return false;
     }
