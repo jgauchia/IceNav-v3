@@ -875,15 +875,41 @@ void fillPolygonGeneral(TFT_eSprite &map, int *px, int *py, int n, uint16_t colo
 void drawPolygonBorder(TFT_eSprite &map, int *px, int *py, int num_points, uint16_t borderColor, uint16_t fillColor, int xOffset, int yOffset)
 {
     for (uint32_t i = 0; i < num_points - 1; ++i) {
-        bool margin = isPointOnMargin(px[i], py[i]) && isPointOnMargin(px[i+1], py[i+1]);
-        uint16_t color = margin ? fillColor : borderColor;
-        // Dibuja SIEMPRE el borde: color darker salvo en margen (color de relleno)
-        map.drawLine(px[i] + xOffset, py[i] + yOffset, px[i+1] + xOffset, py[i+1] + yOffset, color);
+        bool marginA = isPointOnMargin(px[i], py[i]);
+        bool marginB = isPointOnMargin(px[i+1], py[i+1]);
+        uint16_t color = (marginA && marginB) ? fillColor : borderColor;
+
+        int x0 = px[i] + xOffset;
+        int y0 = py[i] + yOffset;
+        int x1 = px[i+1] + xOffset;
+        int y1 = py[i+1] + yOffset;
+
+        // Ajuste visual solo si ambos extremos están en margen:
+        // si solo uno está en margen, NO lo movemos (evita líneas blancas)
+        if (marginA && marginB) {
+            // Si ambos están en margen, no hay ajuste adicional
+        }
+        // Si solo uno está en margen, NO mover el extremo
+
+        // Solo dibujar si los puntos están dentro de tile
+        if (x0 >= 0 && x0 <= 255 + xOffset && y0 >= 0 && y0 <= 255 + yOffset &&
+            x1 >= 0 && x1 <= 255 + xOffset && y1 >= 0 && y1 <= 255 + yOffset) {
+            map.drawLine(x0, y0, x1, y1, color);
+        }
     }
     // Cierre del polígono
-    bool margin = isPointOnMargin(px[num_points-1], py[num_points-1]) && isPointOnMargin(px[0], py[0]);
-    uint16_t color = margin ? fillColor : borderColor;
-    map.drawLine(px[num_points-1] + xOffset, py[num_points-1] + yOffset, px[0] + xOffset, py[0] + yOffset, color);
+    bool marginA = isPointOnMargin(px[num_points-1], py[num_points-1]);
+    bool marginB = isPointOnMargin(px[0], py[0]);
+    uint16_t color = (marginA && marginB) ? fillColor : borderColor;
+    int x0 = px[num_points-1] + xOffset;
+    int y0 = py[num_points-1] + yOffset;
+    int x1 = px[0] + xOffset;
+    int y1 = py[0] + yOffset;
+
+    if (x0 >= 0 && x0 <= 255 + xOffset && y0 >= 0 && y0 <= 255 + yOffset &&
+        x1 >= 0 && x1 <= 255 + xOffset && y1 >= 0 && y1 <= 255 + yOffset) {
+        map.drawLine(x0, y0, x1, y1, color);
+    }
 }
 
 /**
