@@ -37,9 +37,6 @@
         return false; \
     }
 
-	static int uint16_to_tile_pixel(int32_t val);
-
-
 /**
  * @brief Draw command types used for rendering vector graphics.
  * 
@@ -66,10 +63,14 @@ enum DrawCommand : uint8_t
 };
 
 
-// helper functions for varint/zigzag decoding
-static uint32_t read_varint(const uint8_t* data, size_t& offset, size_t dataSize);
-static int32_t read_zigzag(const uint8_t* data, size_t& offset, size_t dataSize);
-static uint16_t rgb332_to_rgb565(uint8_t rgb332);
+static constexpr int TILE_SIZE = 255;
+static constexpr int TILE_SIZE_PLUS_ONE = 256;
+static constexpr int MARGIN_PIXELS = 1;
+
+static uint8_t PALETTE[256];
+static uint32_t PALETTE_SIZE = 0;
+
+static bool fillPolygons = true;
 
 struct LineSegment
 {
@@ -150,7 +151,24 @@ private:
     void showNoMap(TFT_eSprite &map);
 
 	// Vector tiles
-	static uint16_t currentDrawColor;                               /**< Current drawing color state */
+	static uint16_t currentDrawColor;                            						/**< Current drawing color state */
+	bool loadPalette(const char* palettePath);											/**< Load color palette from binary file */
+	uint8_t paletteToRGB332(const uint32_t idx);					 					/**< Convert palette index to RGB332 color */
+	uint8_t darkenRGB332(const uint8_t color, const float amount);  					/**< Darken RGB332 color by a given fraction */
+	uint16_t RGB332ToRGB565(const uint8_t color);										/**< Convert RGB332 color to RGB565 */
+	uint32_t readVarint(const uint8_t* data, size_t& offset, size_t dataSize);			/**< Read a varint-encoded uint32_t from data buffer */
+	int32_t readZigzag(const uint8_t* data, size_t& offset, const size_t dataSize);		/**< Read a zigzag-encoded int32_t from data buffer */
+	int uint16ToPixel(const int32_t val);												/**< Convert uint16_t tile coordinate to pixel coordinate */
+	bool isPointOnMargin(const int px, const int py);									/**< Check if a point is on the margin of the tile */
+	bool isNear(int val, int target, int tol);											/**< Check if a value is near a target within a tolerance */
+	bool shouldDrawLine(const int px1, const int py1, const int px2, const int py2);	/**< Determine if a line should be drawn based on its endpoints */
+	void fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, 
+							const int numPoints, const uint16_t color,	
+							const int xOffset, const int yOffset);						/**< Fill a polygon using the scanline algorithm */
+	void drawPolygonBorder(TFT_eSprite &map, const int *px, const int *py, 
+							const int numPoints, const uint16_t borderColor, const uint16_t fillColor, 
+							const int xOffset, const int yOffset);						/**< Draw the border of a polygon with margin handling */
+
    
 public:
 	void* mapBuffer;                                               /**< Pointer to map screen sprite */
@@ -185,7 +203,6 @@ public:
     void centerOnGps(float lat, float lon);
     void scrollMap(int16_t dx, int16_t dy);
     void preloadTiles(int8_t dirX, int8_t dirY);
-
-    static bool renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
+    bool renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
 };
 
