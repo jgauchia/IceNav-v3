@@ -9,7 +9,6 @@
 #include "maps.hpp"
 #include <vector>
 #include <algorithm>
-#include <algorithm>
 #include <cstring>
 
 extern Compass compass;
@@ -19,6 +18,16 @@ extern std::vector<wayPoint> trackData; /**< Vector containing track waypoints *
 const char* TAG PROGMEM = "Maps";
 
 uint16_t Maps::currentDrawColor = TFT_WHITE;
+uint8_t Maps::PALETTE[256] = {0};
+uint32_t Maps::PALETTE_SIZE = 0;
+bool Maps::fillPolygons = true;
+
+#define LINE_BATCH_SIZE 64
+struct LineSegment
+{
+    int x0, y0, x1, y1;
+    uint16_t color;
+};
 
 /**
  * @brief Map Class constructor
@@ -38,7 +47,7 @@ Maps::Maps() {}
  */
 uint16_t Maps::lon2posx(float f_lon, uint8_t zoom, uint16_t tileSize)
 {
-	return ((uint16_t)(((f_lon + 180.0f) / 360.0f * (float)(1 << zoom) * tileSize)) % tileSize);
+    return static_cast<uint16_t>(((f_lon + 180.0f) / 360.0f * (1 << zoom) * tileSize)) % tileSize;
 }
 
 /**
@@ -54,13 +63,11 @@ uint16_t Maps::lon2posx(float f_lon, uint8_t zoom, uint16_t tileSize)
  */
 uint16_t Maps::lat2posy(float f_lat, uint8_t zoom, uint16_t tileSize)
 {
-    float lat_rad = f_lat * (float)M_PI / 180.0f;
+    float lat_rad = f_lat * static_cast<float>(M_PI) / 180.0f;
     float siny = tanf(lat_rad) + 1.0f / cosf(lat_rad);
     float merc_n = logf(siny);
-
     float scale = (1 << zoom) * tileSize;
-
-    return (uint16_t)(((1.0f - merc_n / (float)M_PI) / 2.0f * scale)) % tileSize;
+    return static_cast<uint16_t>(((1.0f - merc_n / static_cast<float>(M_PI)) / 2.0f * scale)) % tileSize;
 }
 
 /**
@@ -77,7 +84,7 @@ uint32_t Maps::lon2tilex(float f_lon, uint8_t zoom)
 {
     float rawTile = (f_lon + 180.0f) / 360.0f * (1 << zoom);
     rawTile += 1e-6f;
-    return (uint32_t)(rawTile);
+    return static_cast<uint32_t>(rawTile);
 }
 
 /**
@@ -92,15 +99,13 @@ uint32_t Maps::lon2tilex(float f_lon, uint8_t zoom)
  */
 uint32_t Maps::lat2tiley(float f_lat, uint8_t zoom)
 {
-    float lat_rad = f_lat * M_PI / 180.0f;
+    float lat_rad = f_lat * static_cast<float>(M_PI) / 180.0f;
     float siny = tanf(lat_rad) + 1.0f / cosf(lat_rad);
     float merc_n = logf(siny);
-
-    float rawTile = (1.0f - merc_n / (float)M_PI) / 2.0f * (1 << zoom);
+    float rawTile = (1.0f - merc_n / static_cast<float>(M_PI)) / 2.0f * (1 << zoom);
     rawTile += 1e-6f;
-    return (uint32_t)(rawTile);
+    return static_cast<uint32_t>(rawTile);
 }
-
 
 /**
  * @brief Get Longitude from OpenStreetMap files
@@ -114,7 +119,7 @@ uint32_t Maps::lat2tiley(float f_lat, uint8_t zoom)
  */
 float Maps::tilex2lon(uint32_t tileX, uint8_t zoom)
 {
-	return (float)tileX * 360.0f / (1 << zoom) - 180.0f;
+    return static_cast<float>(tileX) * 360.0f / (1 << zoom) - 180.0f;
 }
 
 /**
@@ -129,9 +134,9 @@ float Maps::tilex2lon(uint32_t tileX, uint8_t zoom)
  */
 float Maps::tiley2lat(uint32_t tileY, uint8_t zoom)
 {
-	float scale = (float)(1 << zoom);
-	float n = (float)M_PI * (1.0f - 2.0f * (float)tileY / scale);
-	return 180.0f / (float)M_PI * atanf(sinhf(n));
+    float scale = static_cast<float>(1 << zoom);
+    float n = static_cast<float>(M_PI) * (1.0f - 2.0f * static_cast<float>(tileY) / scale);
+    return 180.0f / static_cast<float>(M_PI) * atanf(sinhf(n));
 }
 
 /**
@@ -924,10 +929,13 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
         if (py[i] > maxy)
             maxy = py[i];
     }
+    int *xints = allocBuffer<int>(numPoints);
+    if (!xints) 
+        return;
+
     for (int y = miny; y <= maxy; ++y)
     {
         int nodes = 0;
-        int *xints = (int*)malloc(numPoints * sizeof(int));
         for (int i = 0, j = numPoints - 1; i < numPoints; j = i++) 
         {
             if ((py[i] < y && py[j] >= y) || (py[j] < y && py[i] >= y))
@@ -954,8 +962,8 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
                 }
             }
         }
-        free(xints);
     }
+    heap_caps_free(xints);
 }
 
 /**
@@ -976,6 +984,9 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
 */
 void Maps::drawPolygonBorder(TFT_eSprite &map, const int *px, const int *py, const int numPoints, const uint16_t borderColor, const uint16_t fillColor, const int xOffset, const int yOffset)
 {
+    if (numPoints < 2) 
+        return; 
+
     for (uint32_t i = 0; i < numPoints - 1; ++i) 
     {
         const bool marginA = isPointOnMargin(px[i], py[i]);
@@ -1011,6 +1022,81 @@ void Maps::drawPolygonBorder(TFT_eSprite &map, const int *px, const int *py, con
 }   
 
 /**
+* @brief Draws a filled circle with a border on a sprite.
+*                   
+* @details This function draws a circle on the provided TFT_eSprite object (map) at the specified position (x, y) with the given radius (r). 
+*          It fills the circle with the specified fill color and draws a border around it with the specified border color. 
+*          If fillShape is false, it only draws the circle border using the fill color.
+*
+* @param map The TFT_eSprite object where the circle will be drawn.
+* @param x The x-coordinate of the circle's center.
+* @param y The y-coordinate of the circle's center.
+* @param r The radius of the circle.
+* @param fill The color to fill the circle with (in RGB565 format).
+* @param border The color to use for the circle border (in RGB565 format).
+* @param fillShape If true, the circle will be filled; if false, only the border will be drawn.
+*/
+void Maps::drawFilledCircleWithBorder(TFT_eSprite& map, int x, int y, int r, uint16_t fill, uint16_t border, bool fillShape)
+{
+    if (fillShape) 
+    {
+        map.fillCircle(x, y, r, fill);
+        map.drawCircle(x, y, r, border);
+    }
+    else 
+        map.drawCircle(x, y, r, fill);
+}
+
+/**
+* @brief Draws a filled rectangle with a border on a sprite.
+*
+* @details This function draws a rectangle on the provided TFT_eSprite object (map) at the specified position (x, y) with the given width (w) and height (h). 
+*          It fills the rectangle with the specified fill color and draws a border around it with the specified border color. 
+*          If fillShape is false, it only draws the rectangle border using the fill color.
+*
+* @param map The TFT_eSprite object where the rectangle will be drawn.
+* @param x The x-coordinate of the top-left corner of the rectangle.
+* @param y The y-coordinate of the top-left corner of the rectangle.
+* @param w The width of the rectangle.
+* @param h The height of the rectangle.
+* @param fill The color to fill the rectangle with (in RGB565 format).
+* @param border The color to use for the rectangle border (in RGB565 format).
+* @param fillShape If true, the rectangle will be filled; if false, only the border will be drawn.
+*/
+void Maps::drawFilledRectWithBorder(TFT_eSprite& map, int x, int y, int w, int h, uint16_t fill, uint16_t border, bool fillShape)
+{
+    if (fillShape) 
+    {
+        map.fillRect(x, y, w, h, fill);
+        map.drawRect(x, y, w, h, border);
+    }
+    else 
+        map.drawRect(x, y, w, h, fill);
+}
+
+/**
+* @brief Allocates a buffer for a specified number of elements of type T, preferring PSRAM if available.
+*
+* @details This template function attempts to allocate memory for an array of numElements of type T. 
+*          If PSRAM is available (BOARD_HAS_PSRAM is defined), it first tries to allocate the memory in PSRAM. 
+*          If that fails or if PSRAM is not available, it falls back to allocating the memory in standard 8-bit heap memory.
+*          The function returns a pointer to the allocated memory, or nullptr if the allocation fails.
+*
+* @tparam T The type of elements to allocate.
+* @param numElements The number of elements to allocate.
+* @return A pointer to the allocated buffer, or nullptr if allocation fails.
+*/
+template<typename T>
+T* Maps::allocBuffer(size_t numElements) 
+{
+#if BOARD_HAS_PSRAM
+    T* ptr = (T*)heap_caps_malloc(numElements * sizeof(T), MALLOC_CAP_SPIRAM);
+    if (ptr) return ptr;
+#endif
+    return (T*)heap_caps_malloc(numElements * sizeof(T), MALLOC_CAP_8BIT);
+}
+
+/**
 * @brief Renders a map tile from a binary file onto a sprite.
 *
 * @details This function reads a binary map tile file, decodes its drawing commands, and renders the resulting graphics onto the provided TFT_eSprite object (map). 
@@ -1041,12 +1127,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     const long fileSize = ftell(file);
     fseek(file, 0, SEEK_SET);
 
-    uint8_t* data = nullptr;
-#if BOARD_HAS_PSRAM
-    data = (uint8_t*)heap_caps_malloc(fileSize, MALLOC_CAP_SPIRAM);
-#endif
-    if (!data)
-        data = (uint8_t*)heap_caps_malloc(fileSize, MALLOC_CAP_8BIT);
+    uint8_t* data = allocBuffer<uint8_t>(fileSize);
     if (!data)
     {
         fclose(file);
@@ -1073,7 +1154,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
         return false;
     }
 
-    LineSegment* lineBatch = (LineSegment*)heap_caps_malloc(LINE_BATCH_SIZE * sizeof(LineSegment), MALLOC_CAP_8BIT);
+    LineSegment* lineBatch = allocBuffer<LineSegment>(LINE_BATCH_SIZE);
     int batchCount = 0;
     if (!lineBatch) 
     {
@@ -1102,7 +1183,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
 
         switch (cmdType) 
         {
-            case 0x80:
+            case SET_COLOR:
                 flushBatch();
                 if (offset < dataSize) 
                 {
@@ -1111,7 +1192,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     executed++;
                 }
                 break;
-            case 0x81:
+            case SET_COLOR_INDEX:
                 flushBatch();
                 {
                     const uint32_t color_index = readVarint(data, offset, dataSize);
@@ -1120,7 +1201,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     executed++;
                 }
                 break;
-            case 1:
+            case DRAW_LINE:
                 {
                     const int32_t x1 = readZigzag(data, offset, dataSize);
                     const int32_t y1 = readZigzag(data, offset, dataSize);
@@ -1146,13 +1227,13 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     }
                 }
                 break;
-            case 2:
+            case DRAW_POLYLINE:
                 {
                     const uint32_t numPoints = readVarint(data, offset, dataSize);
                     if (numPoints >= 2) 
                     {
-                        int* px = (int*)heap_caps_malloc(numPoints * sizeof(int), MALLOC_CAP_8BIT);
-                        int* py = (int*)heap_caps_malloc(numPoints * sizeof(int), MALLOC_CAP_8BIT);
+                        int* px = allocBuffer<int>(numPoints);
+                        int* py = allocBuffer<int>(numPoints);
                         if (!px || !py)
                         {
                             if (px) heap_caps_free(px);
@@ -1205,14 +1286,14 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     }
                 }
                 break;
-            case 3:
+            case DRAW_STROKE_POLYGON:
                 flushBatch();
                 {
                     const uint32_t numPoints = readVarint(data, offset, dataSize);
                     if (numPoints >= 3) 
                     {
-                        int* px = (int*)heap_caps_malloc(numPoints * sizeof(int), MALLOC_CAP_8BIT);
-                        int* py = (int*)heap_caps_malloc(numPoints * sizeof(int), MALLOC_CAP_8BIT);
+                        int* px = allocBuffer<int>(numPoints);
+                        int* py = allocBuffer<int>(numPoints);
                         if (!px || !py) 
                         {
                             if (px) 
@@ -1260,15 +1341,15 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     }
                 }
                 break;
-            case 4:
+            case DRAW_STROKE_POLYGONS:
                 flushBatch();
                 {
                     const uint32_t numPoints = readVarint(data, offset, dataSize);
                     int32_t accumX = 0, accumY = 0;
                     if (numPoints >= 3) 
                     {
-                        int* px = (int*)heap_caps_malloc(numPoints * sizeof(int), MALLOC_CAP_8BIT);
-                        int* py = (int*)heap_caps_malloc(numPoints * sizeof(int), MALLOC_CAP_8BIT);
+                        int* px = allocBuffer<int>(numPoints);
+                        int* py = allocBuffer<int>(numPoints);
                         if (!px || !py) 
                         {
                             if (px)
@@ -1319,7 +1400,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     }
                 }
                 break;
-            case 5:
+            case DRAW_HORIZONTAL_LINE:
                 {
                     const int32_t x1 = readZigzag(data, offset, dataSize);
                     const int32_t dx = readZigzag(data, offset, dataSize);
@@ -1342,7 +1423,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     }
                 }
                 break;
-            case 6:
+            case DRAW_VERTICAL_LINE:
                 {
                     const int32_t x = readZigzag(data, offset, dataSize);
                     const int32_t y1 = readZigzag(data, offset, dataSize);
@@ -1365,7 +1446,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     }
                 }
                 break;
-            case 0x82:
+            case RECTANGLE:
                 flushBatch();
                 {
                     const int32_t x1 = readZigzag(data, offset, dataSize);
@@ -1383,9 +1464,9 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     {
                         if (fillPolygons) 
                         {
-                            map.fillRect(px1 + xOffset, py1 + yOffset, pwidth, pheight, currentDrawColor);
                             const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            map.drawRect(px1 + xOffset, py1 + yOffset, pwidth, pheight, borderColor);
+                            drawFilledRectWithBorder(map, px1 + xOffset, py1 + yOffset, pwidth, pheight, currentDrawColor, borderColor, fillPolygons);
+                            executed++;
                         }
                         else
                             map.drawRect(px1 + xOffset, py1 + yOffset, pwidth, pheight, currentDrawColor);
@@ -1393,7 +1474,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     }
                 }
                 break;
-            case 0x83:
+            case STRAIGHT_LINE:
                 {
                     const int32_t x1 = readZigzag(data, offset, dataSize);
                     const int32_t y1 = readZigzag(data, offset, dataSize);
@@ -1419,7 +1500,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     }
                 }
                 break;
-            case 0x87:
+            case CIRCLE:
                 flushBatch();
                 {
                     const int32_t center_x = readZigzag(data, offset, dataSize);
@@ -1433,9 +1514,9 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     {
                         if (fillPolygons) 
                         {
-                            map.fillCircle(pcx + xOffset, pcy + yOffset, pradius, currentDrawColor);
                             const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            map.drawCircle(pcx + xOffset, pcy + yOffset, pradius, borderColor);
+                            drawFilledCircleWithBorder(map, pcx + xOffset, pcy + yOffset, pradius, currentDrawColor, borderColor, fillPolygons);
+                            executed++;
                         }
                         else
                             map.drawCircle(pcx + xOffset, pcy + yOffset, pradius, currentDrawColor);
@@ -1443,7 +1524,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         executed++;
                     }
                 }
-                break;
+                break;            
             default:
                 flushBatch();
                 if (offset < dataSize - 4) 
