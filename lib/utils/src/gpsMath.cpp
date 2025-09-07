@@ -179,7 +179,7 @@ void calcMidPoint(float lat1, float lon1, float lat2, float lon2)
 	float rLon2 = DEG2RAD(lon2);
 	float dLon  = rLon2 - rLon1;
 
-	float sinLat1, sinLat2, cosLat1, cosLat2, cosDLon, sinDLon;;
+	float sinLat1, sinLat2, cosLat1, cosLat2, cosDLon, sinDLon;
 
 	if (lutInit)
 	{

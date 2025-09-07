@@ -49,7 +49,6 @@ static void mapSettingsEvents(lv_event_t *event)
 			defaultZoom = (uint8_t)lv_spinbox_get_value(zoomLevel);
 			zoom = defaultZoom;
 			lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
-			mapView.isPosMoved = true;
 			cfg.saveUInt(PKEYS::KDEF_ZOOM, defaultZoom);
 		}
 	}
@@ -62,7 +61,6 @@ static void mapSettingsEvents(lv_event_t *event)
 			defaultZoom = (uint8_t)lv_spinbox_get_value(zoomLevel);
 			zoom = defaultZoom;
 			lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
-			mapView.isPosMoved = true;
 			cfg.saveUInt(PKEYS::KDEF_ZOOM, defaultZoom);
 		}
 	}
@@ -70,16 +68,8 @@ static void mapSettingsEvents(lv_event_t *event)
 	if (obj == mapType)
 	{
 		mapSet.vectorMap = lv_obj_has_state(obj, LV_STATE_CHECKED);
-		if (!mapSet.vectorMap)
-		{
-			minZoom = 6;
-			maxZoom = 17;
-		}
-		else
-		{
-			minZoom = 1;
-			maxZoom = 4;
-		}
+		minZoom = 6;
+		maxZoom = 17;
 		lv_spinbox_set_range(zoomLevel, minZoom, maxZoom);
 		defaultZoom = (uint8_t)lv_spinbox_get_value(zoomLevel);
 		zoom = defaultZoom;

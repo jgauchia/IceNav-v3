@@ -1,13 +1,15 @@
 /**
  * @file maps.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com) - Render Maps
- * @author @aresta - https://github.com/aresta/ESP32_GPS - Vector Maps
  * @brief  Maps draw class
  * @version 0.2.3
  * @date 2025-06
  */
 
 #include "maps.hpp"
+#include <vector>
+#include <algorithm>
+#include <cstring>
 
 extern Compass compass;
 extern Gps gps;
@@ -15,48 +17,22 @@ extern Storage storage;
 extern std::vector<wayPoint> trackData; /**< Vector containing track waypoints */
 const char* TAG PROGMEM = "Maps";
 
-/**
- * @brief Constructs a Point16 object from a comma-separated coordinate string.
- *
- * @details Parses a string containing two coordinates separated by a comma (e.g., "123,456"),
- * 			and initializes the x and y members accordingly.
- *
- * @param coordsPair Pointer to a null-terminated string with two coordinates.
- */
-extern Point16::Point16(char *coordsPair)
-{
-	char *next;
-	x = static_cast<int16_t>(strtol(coordsPair, &next, 10)); // 1st coord 
-	y = static_cast<int16_t>(strtol(++next, nullptr, 10));  // 2nd coord
-}
+uint16_t Maps::currentDrawColor = TFT_WHITE;
+uint8_t Maps::PALETTE[256] = {0};
+uint32_t Maps::PALETTE_SIZE = 0;
+// bool Maps::fillPolygons = false;
 
-/**
- * @brief Checks if the bounding box contains a given point.
- *
- * @param p The point to check.
- * @return true if the point is inside the bounding box, false otherwise.
- */
-bool BBox::containsPoint(const Point32 p) { return p.x >= min.x && p.x <= max.x && p.y >= min.y && p.y <= max.y; }
-
-/**
- * @brief Checks if this bounding box intersects with another bounding box.
- *
- * @param b The bounding box to check intersection with.
- * @return true if the bounding boxes intersect, false otherwise.
- */
-bool BBox::intersects(BBox b) const
+#define LINE_BATCH_SIZE 64
+struct LineSegment
 {
-	if (b.min.x > max.x || b.max.x < min.x || b.min.y > max.y || b.max.y < min.y)
-		return false;
-	return true;
-}
+    int x0, y0, x1, y1;
+    uint16_t color;
+};
 
 /**
  * @brief Map Class constructor
  */
 Maps::Maps() {}
-
-// Render Map Private section
 
 /**
  * @brief Get pixel X position from OpenStreetMap Render map longitude
@@ -71,7 +47,7 @@ Maps::Maps() {}
  */
 uint16_t Maps::lon2posx(float f_lon, uint8_t zoom, uint16_t tileSize)
 {
-	return ((uint16_t)(((f_lon + 180.0f) / 360.0f * (float)(1 << zoom) * tileSize)) % tileSize);
+    return static_cast<uint16_t>(((f_lon + 180.0f) / 360.0f * (1 << zoom) * tileSize)) % tileSize;
 }
 
 /**
@@ -87,13 +63,11 @@ uint16_t Maps::lon2posx(float f_lon, uint8_t zoom, uint16_t tileSize)
  */
 uint16_t Maps::lat2posy(float f_lat, uint8_t zoom, uint16_t tileSize)
 {
-    float lat_rad = f_lat * (float)M_PI / 180.0f;
+    float lat_rad = f_lat * static_cast<float>(M_PI) / 180.0f;
     float siny = tanf(lat_rad) + 1.0f / cosf(lat_rad);
     float merc_n = logf(siny);
-
     float scale = (1 << zoom) * tileSize;
-
-    return (uint16_t)(((1.0f - merc_n / (float)M_PI) / 2.0f * scale)) % tileSize;
+    return static_cast<uint16_t>(((1.0f - merc_n / static_cast<float>(M_PI)) / 2.0f * scale)) % tileSize;
 }
 
 /**
@@ -110,9 +84,8 @@ uint32_t Maps::lon2tilex(float f_lon, uint8_t zoom)
 {
     float rawTile = (f_lon + 180.0f) / 360.0f * (1 << zoom);
     rawTile += 1e-6f;
-    return (uint32_t)(rawTile);
+    return static_cast<uint32_t>(rawTile);
 }
-
 
 /**
  * @brief Get TileY for OpenStreetMap files
@@ -126,15 +99,13 @@ uint32_t Maps::lon2tilex(float f_lon, uint8_t zoom)
  */
 uint32_t Maps::lat2tiley(float f_lat, uint8_t zoom)
 {
-    float lat_rad = f_lat * M_PI / 180.0f;
+    float lat_rad = f_lat * static_cast<float>(M_PI) / 180.0f;
     float siny = tanf(lat_rad) + 1.0f / cosf(lat_rad);
     float merc_n = logf(siny);
-
-    float rawTile = (1.0f - merc_n / (float)M_PI) / 2.0f * (1 << zoom);
+    float rawTile = (1.0f - merc_n / static_cast<float>(M_PI)) / 2.0f * (1 << zoom);
     rawTile += 1e-6f;
-    return (uint32_t)(rawTile);
+    return static_cast<uint32_t>(rawTile);
 }
-
 
 /**
  * @brief Get Longitude from OpenStreetMap files
@@ -148,7 +119,7 @@ uint32_t Maps::lat2tiley(float f_lat, uint8_t zoom)
  */
 float Maps::tilex2lon(uint32_t tileX, uint8_t zoom)
 {
-	return (float)tileX * 360.0f / (1 << zoom) - 180.0f;
+    return static_cast<float>(tileX) * 360.0f / (1 << zoom) - 180.0f;
 }
 
 /**
@@ -163,9 +134,9 @@ float Maps::tilex2lon(uint32_t tileX, uint8_t zoom)
  */
 float Maps::tiley2lat(uint32_t tileY, uint8_t zoom)
 {
-	float scale = (float)(1 << zoom);
-	float n = (float)M_PI * (1.0f - 2.0f * (float)tileY / scale);
-	return 180.0f / (float)M_PI * atanf(sinhf(n));
+    float scale = static_cast<float>(1 << zoom);
+    float n = static_cast<float>(M_PI) * (1.0f - 2.0f * static_cast<float>(tileY) / scale);
+    return 180.0f / static_cast<float>(M_PI) * atanf(sinhf(n));
 }
 
 /**
@@ -188,677 +159,14 @@ Maps::MapTile Maps::getMapTile(float lon, float lat, uint8_t zoomLevel, int8_t o
 	data.zoom = zoomLevel;
 	data.lat = lat; 
 	data.lon = lon;
-
-	snprintf(data.file, sizeof(data.file), mapRenderFolder, zoomLevel, data.tilex, data.tiley);
+    
+	if (mapSet.vectorMap)
+		snprintf(data.file, sizeof(data.file), mapVectorFolder, zoomLevel, data.tilex, data.tiley);
+	else
+		snprintf(data.file, sizeof(data.file), mapRenderFolder, zoomLevel, data.tilex, data.tiley);
 
 	return data;
 }
-
-// Vector Map Private section
-
-/**
- * @brief Get pixel Y position from OpenStreetMap Vector map latitude
- *
- * @details Converts a latitude value to the corresponding Y position in the OpenStreetMap vector map
- * 			projection using the Mercator formula.
- *
- * @param lat Latitude coordinate.
- * @return Y position.
- */
-float Maps::lat2y(float lat)
-{
-    constexpr float INV_DEG = (float)M_PI / 180.0f;
-    constexpr float OFFSET = (float)M_PI / 4.0f;
-
-    float rad = lat * INV_DEG;
-    return logf(tanf(rad / 2.0f + OFFSET)) * (float)EARTH_RADIUS;
-}
-
-
-/**
- * @brief Get pixel X position from OpenStreetMap Vector map longitude
- *
- * @details Converts a longitude value to the corresponding X position in the OpenStreetMap vector map
- * 			projection using the Mercator formula.
- *
- * @param lon Longitude coordinate.
- * @return X position.
- */
-float Maps::lon2x(float lon)
-{
-    return DEG2RAD(lon) * EARTH_RADIUS;
-}
-
-/**
- * @brief Get longitude from X position in Vector Map (Mercator projection)
- *
- * @details Converts an X position in the Mercator projection to the corresponding longitude value.
- *
- * @param x X position.
- * @return Longitude coordinate.
- */
-float Maps::mercatorX2lon(float x)
-{
-    return (x / EARTH_RADIUS) * (180.0f / M_PI);
-}
-
-
-/**
- * @brief Get latitude from Y position in Vector Map (Mercator projection)
- *
- * @details Converts a Y position in the Mercator projection to the corresponding latitude value.
- *
- * @param y Y position.
- * @return Latitude coordinate.
- */
-float Maps::mercatorY2lat(float y)
-{
-    return atanf(sinhf(y / EARTH_RADIUS)) * (180.0f / M_PI);
-}
-
-/**
- * @brief Points to screen coordinates
- *
- * @details Converts a map coordinate to a screen coordinate based on the current zoom and screen center.
- *
- * @param pxy Map coordinate (X or Y).
- * @param screenCenterxy Screen center coordinate (X or Y).
- * @return Screen coordinate as int16_t.
- */
-int16_t Maps::toScreenCoord(const int32_t pxy, const int32_t screenCenterxy)
-{
- 	return roundf((float)(pxy - screenCenterxy) / zoom) + (float)Maps::tileWidth / 2.0f;
-}
-
-/**
- * @brief Returns int16 or 0 if empty
- *
- * @details Parses an integer value from the file buffer starting at Maps::idx. Returns the parsed int16_t value,
- * 			or 0 if the field is empty (next char is newline). Handles parsing errors and logs them.
- *
- * @param file Pointer to the character buffer to parse from.
- * @return Parsed int16_t value, 0 if empty, or -1 on error.
- */
-int16_t Maps::parseInt16(char *file)
-{
-    char num[16];
-    uint8_t i = 0;
-    char c = file[Maps::idx];
-
-    if (c == '\n')
-        return 0;
-
-    while (c >= '0' && c <= '9' && i < 15)
-    {
-        num[i++] = c;
-        c = file[++Maps::idx];
-    }
-    num[i] = '\0';
-
-    if (c != ';' && c != ',' && c != '\n')
-    {
-        ESP_LOGE(TAG, "parseInt16 error: %c %i", c, c);
-        ESP_LOGE(TAG, "Num: [%s]", num);
-        while (1);  
-    }
-
-    Maps::idx++;  
-
-    try
-    {
-        return static_cast<int16_t>(std::stoi(num));
-    }
-    catch (const std::invalid_argument &)
-    {
-        ESP_LOGE(TAG, "parseInt16 invalid_argument: [%c] [%s]", c, num);
-    }
-    catch (const std::out_of_range &)
-    {
-        ESP_LOGE(TAG, "parseInt16 out_of_range: [%c] [%s]", c, num);
-    }
-
-    return -1;
-}
-
-/**
- * @brief Returns the string until terminator char or newline. The terminator character is not included but consumed from stream.
- *
- * @details Reads characters from the file buffer starting at Maps::idx into the provided string, 
- * 			stopping at the specified terminator character or newline. The terminator is not included 
- * 			in the result string but is consumed from the stream.
- *
- * @param file Pointer to the character buffer to parse from.
- * @param terminator Character to terminate the copy operation.
- * @param str Output buffer to store the parsed string (should be at least 30 bytes).
- */
-void Maps::parseStrUntil(char *file, char terminator, char *str)
-{
-	uint8_t i = 0;
-	char c;
-	while ((c = file[Maps::idx]) != terminator && c != '\n')
-	{
-		assert(i < 29);
-		str[i++] = c;
-		Maps::idx++;
-	}
-	str[i] = '\0';
-	Maps::idx++;
-}
-
-/**
- * @brief Parse vector file to coords
- *
- * @details Parses coordinate pairs from the provided file buffer and appends them to the points vector.
- *			Each coordinate pair is expected in the format "x,y;".
- *
- * @param file Pointer to the character buffer to parse from.
- * @param points Reference to a vector of Point16 to store the parsed points.
- */
-void Maps::parseCoords(char *file, std::vector<Point16> &points)
-{
-	char str[30];
-	assert(points.empty());
-
-	while (true)
-	{
-		try
-		{
-			parseStrUntil(file, ',', str);
-			if (!str[0])
-				break;
-
-			int16_t x = static_cast<int16_t>(std::stoi(str));
-
-			parseStrUntil(file, ';', str);
-			if (!str[0])
-			{
-				ESP_LOGE(TAG, "parseCoords missing Y coordinate");
-				break;
-			}
-
-			int16_t y = static_cast<int16_t>(std::stoi(str));
-			points.emplace_back(x, y);
-		}
-		catch (const std::invalid_argument&)
-		{
-			ESP_LOGE(TAG, "parseCoords invalid_argument: %s", str);
-		}
-		catch (const std::out_of_range&)
-		{
-			ESP_LOGE(TAG, "parseCoords out_of_range: %s", str);
-		}
-	}
-}
-
-/**
- * @brief Parse Mapbox
- *
- * @details Parses a bounding box (BBox) from a string containing four integer values separated by delimiters.
- *
- * @param str Input string containing the bounding box coordinates as integers.
- * @return BBox Parsed bounding box as a BBox object.
- */
-BBox Maps::parseBbox(String str)
-{
-	const char* ptr = str.c_str();
-	char* next;
-	int32_t x1 = (int32_t)strtol(ptr, &next, 10);
-	int32_t y1 = (int32_t)strtol(next + 1, &next, 10);
-	int32_t x2 = (int32_t)strtol(next + 1, &next, 10);
-	int32_t y2 = (int32_t)strtol(next + 1, nullptr, 10);
-	return BBox(Point32(x1, y1), Point32(x2, y2));
-}
-
-/**
- * @brief Read vector map file to memory block
- *
- * @details Reads a vector map file (with .fmp extension) into a MapBlock structure, parsing polygons and polylines.
- *
- * @param fileName Name of the file (without extension).
- * @return MapBlock* Pointer to the allocated MapBlock structure, or with inView=false if not found.
- */
-Maps::MapBlock *Maps::readMapBlock(String fileName)
-{
-	ESP_LOGI(TAG, "readMapBlock: %s", fileName.c_str());
-	char str[30];
-	MapBlock *mblock = new MapBlock();
-	std::string filePath = fileName.c_str() + std::string(".fmp");
-	ESP_LOGI(TAG, "File: %s", filePath.c_str());
-
-	FILE *file_ = storage.open(filePath.c_str(), "r");
-
-	if (!file_)
-	{
-		Maps::isMapFound = false;
-		mblock->inView = false;
-		return mblock;
-	}
-	else
-	{
-		size_t fileSize = storage.size(filePath.c_str());
-
-	#ifdef BOARD_HAS_PSRAM
-		char *file = (char *)ps_malloc(fileSize + 1);
-	#else
-		char *file = (char *)malloc(fileSize + 1);
-	#endif
-
-		vTaskDelay(1);  // Stabilize SD/MMC bus before read
-
-		size_t bytesRead = storage.read(file_, file, fileSize);
-		if (bytesRead != fileSize)
-		{
-			ESP_LOGE(TAG, "Error reading map file. Expected %u bytes, got %u", fileSize, bytesRead);
-			storage.close(file_);
-			delete[] file;
-			mblock->inView = false;
-			return mblock;
-		}
-
-		Maps::isMapFound = true;
-		uint32_t line = 0;
-		Maps::idx = 0;
-
-		Maps::parseStrUntil(file, ':', str);
-		if (strcmp(str, "Polygons") != 0)
-		{
-			ESP_LOGE(TAG, "Map error. Expected Polygons instead of: %s", str);
-			while (true);
-		}
-
-		int16_t count = Maps::parseInt16(file);
-		assert(count > 0);
-		line++;
-
-		uint32_t totalPoints = 0;
-		Polygon polygon;
-		Point16 p;
-		while (count > 0)
-		{
-			Maps::parseStrUntil(file, '\n', str); // color
-			assert(str[0] == '0' && str[1] == 'x');
-			polygon.color = (uint16_t)std::stoul(str, nullptr, 16);
-			line++;
-
-			Maps::parseStrUntil(file, '\n', str); // maxZoom
-			polygon.maxZoom = str[0] ? (uint8_t)std::stoi(str) : MAX_ZOOM;
-			line++;
-
-			Maps::parseStrUntil(file, ':', str);
-			if (strcmp(str, "bbox") != 0)
-			{
-				ESP_LOGE(TAG, "bbox error tag. Line %i : %s", line, str);
-				while (true);
-			}
-			polygon.bbox.min.x = Maps::parseInt16(file);
-			polygon.bbox.min.y = Maps::parseInt16(file);
-			polygon.bbox.max.x = Maps::parseInt16(file);
-			polygon.bbox.max.y = Maps::parseInt16(file);
-			line++;
-
-			polygon.points.clear();
-			Maps::parseStrUntil(file, ':', str);
-			if (strcmp(str, "coords") != 0)
-			{
-				ESP_LOGE(TAG, "coords error tag. Line %i : %s", line, str);
-				while (true);
-			}
-			Maps::parseCoords(file, polygon.points);
-			line++;
-
-			mblock->polygons.push_back(polygon);
-			totalPoints += polygon.points.size();
-			count--;
-		}
-		assert(count == 0);
-
-		Maps::parseStrUntil(file, ':', str);
-		if (strcmp(str, "Polylines") != 0)
-			ESP_LOGE(TAG, "Map error. Expected Polylines instead of: %s", str);
-		count = Maps::parseInt16(file);
-		assert(count > 0);
-		line++;
-
-		Polyline polyline;
-		while (count > 0)
-		{
-			Maps::parseStrUntil(file, '\n', str); // color
-			assert(str[0] == '0' && str[1] == 'x');
-			polyline.color = (uint16_t)std::stoul(str, nullptr, 16);
-			line++;
-
-			Maps::parseStrUntil(file, '\n', str); // width
-			polyline.width = str[0] ? (uint8_t)std::stoi(str) : 1;
-			line++;
-
-			Maps::parseStrUntil(file, '\n', str); // maxZoom
-			polyline.maxZoom = str[0] ? (uint8_t)std::stoi(str) : MAX_ZOOM;
-			line++;
-
-			Maps::parseStrUntil(file, ':', str);
-			if (strcmp(str, "bbox") != 0)
-			{
-				ESP_LOGE(TAG, "bbox error tag. Line %i : %s", line, str);
-				while (true);
-			}
-			polyline.bbox.min.x = Maps::parseInt16(file);
-			polyline.bbox.min.y = Maps::parseInt16(file);
-			polyline.bbox.max.x = Maps::parseInt16(file);
-			polyline.bbox.max.y = Maps::parseInt16(file);
-			line++;
-
-			polyline.points.clear();
-			Maps::parseStrUntil(file, ':', str);
-			if (strcmp(str, "coords") != 0)
-			{
-				ESP_LOGI(TAG, "coords tag. Line %i : %s", line, str);
-				while (true);
-			}
-			Maps::parseCoords(file, polyline.points);
-			line++;
-
-			mblock->polylines.push_back(polyline);
-			totalPoints += polyline.points.size();
-			count--;
-		}
-		assert(count == 0);
-
-		storage.close(file_);
-		delete[] file;
-		return mblock;
-	}
-}
-
-/**
- * @brief Fill polygon routine
- *
- * @details Fills the given polygon using the scanline fill algorithm. Each scanline finds intersections
- * 			with the polygon edges, sorts them, and draws horizontal lines between node pairs.
- *
- * @param p Polygon to fill.
- * @param map Reference to TFT_eSprite on which to draw.
- */
-void Maps::fillPolygon(Polygon p, TFT_eSprite &map)
-{
-	int16_t maxY = p.bbox.max.y;
-	int16_t minY = p.bbox.min.y;
-
-	if (maxY >= Maps::tileHeight)
-		maxY = Maps::tileHeight - 1;
-	if (minY < 0)
-		minY = 0;
-	if (minY >= maxY)
-		return;
-
-	int16_t pixelY;
-	std::vector<int16_t> nodeX;
-
-	for (pixelY = minY; pixelY <= maxY; ++pixelY)
-	{
-		nodeX.clear();
-		for (size_t i = 0; i < p.points.size() - 1; ++i)
-		{
-			int16_t y0 = p.points[i].y;
-			int16_t y1 = p.points[i + 1].y;
-
-			if ((y0 < pixelY && y1 >= pixelY) || (y1 < pixelY && y0 >= pixelY))
-			{
-				int16_t x0 = p.points[i].x;
-				int16_t x1 = p.points[i + 1].x;
-
-				float ratio = float(pixelY - y0) / float(y1 - y0);
-				int16_t intersectX = x0 + (int16_t)(ratio * float(x1 - x0));
-				nodeX.push_back(intersectX);
-			}
-		}
-
-		if (nodeX.size() < 2)
-			continue;
-
-		std::sort(nodeX.begin(), nodeX.end());
-
-		for (size_t i = 0; i + 1 < nodeX.size(); i += 2)
-		{
-			int16_t x0 = nodeX[i];
-			int16_t x1 = nodeX[i + 1];
-
-			if (x0 > Maps::tileWidth)
-				break;
-			if (x1 < 0)
-				continue;
-			if (x0 < 0)
-				x0 = 0;
-			if (x1 > Maps::tileWidth)
-				x1 = Maps::tileWidth;
-
-			map.drawLine(x0, Maps::tileHeight - pixelY, x1, Maps::tileHeight - pixelY, p.color);
-		}
-	}
-}
-
-/**
- * @brief Get bounding objects in memory block
- *
- * @details Ensures that all map blocks covering the corners of a given bounding box (bbox) are loaded into memory.
- *			If necessary, loads new blocks from SD Card and manages the memory cache, removing the oldest block if the cache is full.
- * 			Sets the 'inView' flag for blocks currently needed.
- *
- * @param bbox Bounding box specifying the region of interest.
- * @param memCache Reference to the memory cache holding loaded map blocks.
- */
-void Maps::getMapBlocks(BBox &bbox, Maps::MemCache &memCache)
-{
-	ESP_LOGI(TAG, "getMapBlocks %i", millis());
-
-	for (MapBlock *block : memCache.blocks)
-		block->inView = false;
-
-	const Point32 corners[4] = {
-		bbox.min,
-		bbox.max,
-		Point32(bbox.min.x, bbox.max.y),
-		Point32(bbox.max.x, bbox.min.y)};
-
-	for (const Point32 &point : corners)
-	{
-		int32_t blockMinX = point.x & ~MAPBLOCK_MASK;
-		int32_t blockMinY = point.y & ~MAPBLOCK_MASK;
-
-		bool found = false;
-		for (MapBlock *memblock : memCache.blocks)
-		{
-			if (memblock->offset.x == blockMinX && memblock->offset.y == blockMinY)
-			{
-				memblock->inView = true;
-				found = true;
-				break;
-			}
-		}
-		if (found)
-			continue;
-
-		ESP_LOGI(TAG, "load from disk (%i, %i) %i", blockMinX, blockMinY, millis());
-
-		int32_t folderNameX = blockMinX >> (MAPFOLDER_SIZE_BITS + MAPBLOCK_SIZE_BITS);
-		int32_t folderNameY = blockMinY >> (MAPFOLDER_SIZE_BITS + MAPBLOCK_SIZE_BITS);
-		int32_t blockX = (blockMinX >> MAPBLOCK_SIZE_BITS) & MAPFOLDER_MASK;
-		int32_t blockY = (blockMinY >> MAPBLOCK_SIZE_BITS) & MAPFOLDER_MASK;
-
-		char folderName[12];
-		snprintf(folderName, sizeof(folderName), "%+04d%+04d", folderNameX, folderNameY);
-		String fileName = mapVectorFolder + folderName + "/" + blockX + "_" + blockY;
-
-		if (memCache.blocks.size() >= MAPBLOCKS_MAX)
-		{
-			ESP_LOGV(TAG, "Deleting block - freeHeap: %i", esp_get_free_heap_size());
-			delete memCache.blocks.front();
-			memCache.blocks.erase(memCache.blocks.begin());
-			ESP_LOGV(TAG, "Deleted - freeHeap: %i", esp_get_free_heap_size());
-		}
-
-		MapBlock *newBlock = Maps::readMapBlock(fileName);
-		if (Maps::isMapFound && newBlock)
-		{
-			newBlock->inView = true;
-			newBlock->offset = Point32(blockMinX, blockMinY);
-			memCache.blocks.push_back(newBlock);
-			assert(memCache.blocks.size() <= MAPBLOCKS_MAX);
-
-			ESP_LOGI(TAG, "Block loaded: %p", newBlock);
-			ESP_LOGI(TAG, "FreeHeap: %i", esp_get_free_heap_size());
-		}
-	}
-
-	ESP_LOGI(TAG, "memCache size: %i %i", memCache.blocks.size(), millis());
-}
-
-/**
- * @brief Generate vectorized map
- *
- * @details Renders the vector map using in-memory blocks within the current viewport and zoom level.
- * 			Draws polygons and polylines, updates map bounds, and overlays waypoints and tracks.
- *
- * @param viewPort Viewport describing the area to render.
- * @param memCache Memory cache holding loaded map blocks.
- * @param map Map sprite (TFT_eSprite) to draw on.
- * @param zoom Zoom level for rendering.
- */
-void Maps::readVectorMap(Maps::ViewPort &viewPort, Maps::MemCache &memCache, TFT_eSprite &map, uint8_t zoom)
-{
-	Polygon newPolygon;
-	map.fillScreen(BACKGROUND_COLOR);
-	uint32_t totalTime = millis();
-	ESP_LOGI(TAG, "Draw start %i", totalTime);
-
-	if (!Maps::isMapFound)
-	{
-		Maps::isMapFound = false;
-		map.fillScreen(TFT_BLACK);
-		Maps::showNoMap(map);
-		ESP_LOGE(TAG, "Map doesn't exist");
-		return;
-	}
-
-	for (MapBlock *mblock : memCache.blocks)
-	{
-		if (!mblock->inView)
-			continue;
-
-		uint32_t blockTime = millis();
-
-		const Point16 screen_center_mc = viewPort.center.toPoint16() - mblock->offset.toPoint16();
-		const BBox screen_bbox_mc = viewPort.bbox - mblock->offset;
-
-		for (const Polygon &polygon : mblock->polygons)
-		{
-			if (zoom > polygon.maxZoom || !polygon.bbox.intersects(screen_bbox_mc))
-				continue;
-
-			newPolygon.color = polygon.color;
-			newPolygon.bbox.min.x = Maps::toScreenCoord(polygon.bbox.min.x, screen_center_mc.x);
-			newPolygon.bbox.min.y = Maps::toScreenCoord(polygon.bbox.min.y, screen_center_mc.y);
-			newPolygon.bbox.max.x = Maps::toScreenCoord(polygon.bbox.max.x, screen_center_mc.x);
-			newPolygon.bbox.max.y = Maps::toScreenCoord(polygon.bbox.max.y, screen_center_mc.y);
-
-			newPolygon.points.clear();
-			newPolygon.points.reserve(polygon.points.size());
-
-			for (const Point16 &p : polygon.points)
-			{
-				newPolygon.points.emplace_back(
-					Maps::toScreenCoord(p.x, screen_center_mc.x),
-					Maps::toScreenCoord(p.y, screen_center_mc.y));
-			}
-
-			Maps::fillPolygon(newPolygon, map);
-		}
-		ESP_LOGI(TAG, "Block polygons done %i ms", millis() - blockTime);
-		blockTime = millis();
-
-		for (const Polyline &line : mblock->polylines)
-		{
-			if (zoom > line.maxZoom || !line.bbox.intersects(screen_bbox_mc))
-				continue;
-
-			for (size_t i = 0; i < line.points.size() - 1; ++i)
-			{
-				const int16_t p1x = Maps::toScreenCoord(line.points[i].x, screen_center_mc.x);
-				const int16_t p1y = Maps::toScreenCoord(line.points[i].y, screen_center_mc.y);
-				const int16_t p2x = Maps::toScreenCoord(line.points[i + 1].x, screen_center_mc.x);
-				const int16_t p2y = Maps::toScreenCoord(line.points[i + 1].y, screen_center_mc.y);
-
-				map.drawLine(p1x, Maps::tileHeight - p1y, p2x, Maps::tileHeight - p2y, line.color);
-			}
-		}
-		ESP_LOGI(TAG, "Block lines done %i ms", millis() - blockTime);
-	}
-
-	ESP_LOGI(TAG, "Total %i ms", millis() - totalTime);
-
-	MapBlock *firstBlock = memCache.blocks.front();
-	delete firstBlock;
-	memCache.blocks.erase(memCache.blocks.begin());
-
-	Maps::totalBounds.lat_min = Maps::mercatorY2lat(viewPort.bbox.min.y);
-	Maps::totalBounds.lat_max = Maps::mercatorY2lat(viewPort.bbox.max.y);
-	Maps::totalBounds.lon_min = Maps::mercatorX2lon(viewPort.bbox.min.x);
-	Maps::totalBounds.lon_max = Maps::mercatorX2lon(viewPort.bbox.max.x);
-
-	ESP_LOGI(TAG, "Total Bounds: Lat Min: %f, Lat Max: %f, Lon Min: %f, Lon Max: %f",
-			 Maps::totalBounds.lat_min, Maps::totalBounds.lat_max,
-			 Maps::totalBounds.lon_min, Maps::totalBounds.lon_max);
-
-	if (Maps::isCoordInBounds(Maps::destLat, Maps::destLon, Maps::totalBounds))
-	{
-		Maps::coords2map(destLat, destLon, Maps::totalBounds, &wptPosX, &wptPosY);
-	}
-	else
-	{
-		Maps::wptPosX = -1;
-		Maps::wptPosY = -1;
-	}
-
-	for (size_t i = 1; i < trackData.size(); ++i)
-	{
-		const auto &p1 = trackData[i - 1];
-		const auto &p2 = trackData[i];
-
-		if (p1.lon > Maps::totalBounds.lon_min && p1.lon < Maps::totalBounds.lon_max &&
-			p1.lat > Maps::totalBounds.lat_min && p1.lat < Maps::totalBounds.lat_max &&
-			p2.lon > Maps::totalBounds.lon_min && p2.lon < Maps::totalBounds.lon_max &&
-			p2.lat > Maps::totalBounds.lat_min && p2.lat < Maps::totalBounds.lat_max)
-		{
-			uint16_t x1, y1, x2, y2;
-			Maps::coords2map(p1.lat, p1.lon, Maps::totalBounds, &x1, &y1);
-			Maps::coords2map(p2.lat, p2.lon, Maps::totalBounds, &x2, &y2);
-			map.drawWideLine(x1, y1, x2, y2, 2, TFT_BLUE);
-		}
-	}
-}
-
-/**
- * @brief Get vector map position from GPS position and check if moved
- *
- * @details Updates the internal map position based on the provided GPS latitude and longitude.
- * 			If the position has changed significantly since the previous update, recalculates
- * 			the map's internal coordinates and sets the moved flag.
- *
- * @param lat Latitude in degrees.
- * @param lon Longitude in degrees.
- */
-void Maps::getPosition(float lat, float lon)
-{
-    if (fabsf(lat - Maps::prevLat) > 0.00005f && fabsf(lon - Maps::prevLon) > 0.00005f)
-    {
-        Maps::point.x = Maps::lon2x(lon);
-        Maps::point.y = Maps::lat2y(lat);
-        Maps::prevLat = lat;
-        Maps::prevLon = lon;
-        Maps::isPosMoved = true;
-    }
-}
-
-// Common Private section
 
 /**
  * @brief Get min and max longitude and latitude from tile
@@ -950,24 +258,6 @@ void Maps::showNoMap(TFT_eSprite &map)
 }
 
 /**
- * @brief Set center coordinates of viewport
- *
- * @details Sets the center of the viewport and updates the bounding box (bbox) based on the current zoom and tile dimensions.
- *
- * @param pcenter New center coordinates (Point32) for the viewport.
- */
-void Maps::ViewPort::setCenter(Point32 pcenter)
-{
-	center = pcenter;
-	bbox.min.x = pcenter.x - Maps::tileWidth * zoom / 2;
-	bbox.min.y = pcenter.y - Maps::tileHeight * zoom / 2;
-	bbox.max.x = pcenter.x + Maps::tileWidth * zoom / 2;
-	bbox.max.y = pcenter.y + Maps::tileHeight * zoom / 2;
-}
-
-// Public section
-
-/**
  * @brief Init map size
  *
  * @details Initializes the map screen size and allocates buffer space for rendering the map.
@@ -1014,18 +304,17 @@ void Maps::createMapScrSprites()
 }
 
 /**
- * @brief Generate render map
+ * @brief Generate map
  *
- * @details Generates the main rendered map by compositing the center and surrounding tiles based on the current zoom level.
+ * @details Generates the main map by compositing the center and surrounding tiles based on the current zoom level.
  * 			Handles missing tiles, updates map bounds, overlays missing map notifications, and draws tracks if available.
  *
  * @param zoom Zoom Level
  */
-void Maps::generateRenderMap(uint8_t zoom)
+void Maps::generateMap(uint8_t zoom)
 {
-	Maps::mapTileSize = Maps::renderMapTileSize;
 	Maps::zoomLevel = zoom;
-
+	
 	bool foundRoundMap = false;
 	bool missingMap = false;
 
@@ -1042,8 +331,14 @@ void Maps::generateRenderMap(uint8_t zoom)
 	{
 		const int16_t size = Maps::mapTileSize;
 
-		Maps::isMapFound = Maps::mapTempSprite.drawPngFile(Maps::currentMapTile.file, size, size);
+        Maps::mapTempSprite.fillScreen(TFT_WHITE);
 
+		if (mapSet.vectorMap)
+			Maps::isMapFound = renderTile(Maps::currentMapTile.file, size, size,Maps::mapTempSprite);
+		else
+			Maps::isMapFound = Maps::mapTempSprite.drawPngFile(Maps::currentMapTile.file, size, size);
+
+        
 		Maps::oldMapTile = Maps::currentMapTile;
 		strcpy(Maps::oldMapTile.file, Maps::currentMapTile.file);
 
@@ -1075,9 +370,11 @@ void Maps::generateRenderMap(uint8_t zoom)
 					Maps::roundMapTile = getMapTile(
 						Maps::currentMapTile.lon, Maps::currentMapTile.lat,
 						Maps::zoomLevel, x, y);
-
-					foundRoundMap = Maps::mapTempSprite.drawPngFile(
-						Maps::roundMapTile.file, offsetX, offsetY);
+ 
+					if (mapSet.vectorMap)
+						foundRoundMap = renderTile(Maps::roundMapTile.file, offsetX, offsetY,Maps::mapTempSprite);
+					else
+						foundRoundMap = Maps::mapTempSprite.drawPngFile(Maps::roundMapTile.file, offsetX, offsetY);
 
 					if (!foundRoundMap)
 					{
@@ -1141,34 +438,6 @@ void Maps::generateRenderMap(uint8_t zoom)
 }
 
 /**
- * @brief Generate vector map
- *
- * @details Generates the vector map for the current GPS position and zoom level.
- * 			If the position has moved, updates the viewport, fetches the relevant map blocks,
- * 			reads and renders the vector map, and then resets the movement flag.
- *
- * @param zoom Zoom Level
- */
-void Maps::generateVectorMap(uint8_t zoom)
-{
-	const float lat = gps.gpsData.latitude;
-	const float lon = gps.gpsData.longitude;
-
-	Maps::getPosition(lat, lon);
-
-	if (!Maps::isPosMoved)
-		return;
-
-	Maps::mapTileSize = Maps::vectorMapTileSize;
-	Maps::zoomLevel = zoom;
-	Maps::viewPort.setCenter(Maps::point);
-	Maps::getMapBlocks(Maps::viewPort.bbox, Maps::memCache);
-	Maps::readVectorMap(Maps::viewPort, Maps::memCache, Maps::mapTempSprite, zoom);
-	Maps::isPosMoved = false;
-}
-
-
-/**
  * @brief Display Map
  *
  * @details Displays the map on the screen. 
@@ -1195,32 +464,22 @@ void Maps::displayMap()
 
 	const uint16_t size = Maps::mapTileSize;
 
-	if (size == Maps::renderMapTileSize)
-	{
-		if (Maps::followGps)
-		{
-			const float lat = gps.gpsData.latitude;
-			const float lon = gps.gpsData.longitude;
-			Maps::navArrowPosition = Maps::coord2ScreenPos(lon, lat, Maps::zoomLevel, Maps::renderMapTileSize);
-			Maps::mapTempSprite.setPivot(Maps::renderMapTileSize + Maps::navArrowPosition.posX,
-										 Maps::renderMapTileSize + Maps::navArrowPosition.posY);
-		}
-		else
-		{
-			const int16_t pivotX = Maps::tileWidth / 2 + Maps::offsetX;
-			const int16_t pivotY = Maps::tileHeight / 2 + Maps::offsetY;
-			Maps::mapTempSprite.setPivot(pivotX, pivotY);
-		}
-	}
-	else if (size == Maps::vectorMapTileSize)
-	{
-		Maps::mapTempSprite.setPivot(Maps::vectorMapTileSize, Maps::vectorMapTileSize);
-	}
-
 	if (Maps::followGps)
+	{
+		const float lat = gps.gpsData.latitude;
+		const float lon = gps.gpsData.longitude;
+		Maps::navArrowPosition = Maps::coord2ScreenPos(lon, lat, Maps::zoomLevel, Maps::mapTileSize);
+		Maps::mapTempSprite.setPivot(Maps::mapTileSize + Maps::navArrowPosition.posX,
+								     Maps::mapTileSize + Maps::navArrowPosition.posY);
 		Maps::mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
+	}
 	else
+	{
+		const int16_t pivotX = Maps::tileWidth / 2 + Maps::offsetX;
+		const int16_t pivotY = Maps::tileHeight / 2 + Maps::offsetY;
+		Maps::mapTempSprite.setPivot(pivotX, pivotY);
 		Maps::mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
+	}
 }
 
 /**
@@ -1245,7 +504,6 @@ void Maps::setWaypoint(float wptLat, float wptLon)
  void Maps::updateMap()
  {
 	Maps::oldMapTile = {};
-	Maps::isPosMoved = true;
  }
 
 /**
@@ -1315,7 +573,7 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
 	Maps::followGps = false;
 
 	const int16_t threshold = Maps::scrollThreshold;
-	const int16_t tileSize = Maps::renderMapTileSize;
+	const int16_t tileSize = Maps::mapTileSize;
 
 	if (Maps::offsetX <= -threshold)
 	{
@@ -1354,7 +612,6 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
 	}
 }
 
-
 /**
  * @brief Preload Tiles for map scrolling
  *
@@ -1366,7 +623,7 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
  */
 void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 {
-	const int16_t tileSize = renderMapTileSize;
+	const int16_t tileSize = mapTileSize;
 	const int16_t preloadWidth  = (dirX != 0) ? tileSize : tileSize * 2;
 	const int16_t preloadHeight = (dirY != 0) ? tileSize : tileSize * 2;
 
@@ -1418,4 +675,876 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 	}
 
 	preloadSprite.deleteSprite();
+}
+
+/**
+ * @brief Loads an RGB332 color palette from a binary file.
+ *
+ * @details This function reads up to 256 bytes from the specified binary file and stores them in the global PALETTE array,
+ *          setting the PALETTE_SIZE accordingly. The palette is expected to be in RGB332 format. 
+ *
+ * @param palettePath The path to the palette binary file.
+ * @return true if the palette was loaded successfully and contains at least one color, false otherwise.
+ */
+bool Maps::loadPalette(const char* palettePath)
+{
+    FILE* f = fopen(palettePath, "rb");
+    if (!f) 
+        return false;
+    PALETTE_SIZE = fread(PALETTE, 1, 256, f);
+    fclose(f);
+    return PALETTE_SIZE > 0;
+}
+
+/**
+ * @brief Converts a palette index to its corresponding RGB332 color value.
+ *
+ * @details descriptionLooks up the given index in the global PALETTE array and returns the corresponding RGB332 color.
+ *          If the index is out of range (greater than or equal to PALETTE_SIZE), returns 0xFF (white) by default.
+ *
+ * @param idx The palette index to look up.
+ * @return The RGB332 color value corresponding to the index, or 0xFF if the index is invalid.
+ */
+uint8_t Maps::paletteToRGB332(const uint32_t idx)
+{
+    if (idx < PALETTE_SIZE)
+        return PALETTE[idx];
+    return 0xFF;
+}
+
+/**
+ * @brief Darkens an RGB332 color by a specified amount.
+ *
+ * @details This function extracts the red, green, and blue components from the input RGB332 color value,
+ *          multiplies each component by (1.0 - amount), and recombines them into a new RGB332 value. The default darkening amount is 0.4.
+ *          This can be used to generate a visually darker shade of the original color for effects such as shading or selection highlighting.
+ *
+ * @param color The original RGB332 color value.
+ * @param amount The fraction to darken each color component (default is 0.4).
+ * @return The darkened RGB332 color value.
+ */
+uint8_t Maps::darkenRGB332(const uint8_t color, const float amount = 0.4f)
+{
+    uint8_t r = (color & 0xE0) >> 5;
+    uint8_t g = (color & 0x1C) >> 2;
+    uint8_t b = (color & 0x03);
+
+    r = static_cast<uint8_t>(r * (1.0f - amount));
+    g = static_cast<uint8_t>(g * (1.0f - amount));
+    b = static_cast<uint8_t>(b * (1.0f - amount));
+
+    return ((r << 5) | (g << 2) | b);
+}
+
+/**
+ * @brief Converts an RGB332 color value to RGB565 format.
+ *
+ * @details This function extracts the red, green, and blue components from the 8-bit RGB332 input value, scales each component to match the RGB565 format, and recombines them into a 16-bit RGB565 value. 
+ *
+ * @param color The input color value in RGB332 format.
+ * @return The corresponding color value in RGB565 format.
+ */
+uint16_t Maps::RGB332ToRGB565(const uint8_t color)
+{
+    uint8_t r8 = (color & 0xE0);
+    uint8_t g8 = (color & 0x1C) << 3;
+    uint8_t b8 = (color & 0x03) << 6;
+    uint16_t r5 = (r8 >> 3);
+    uint16_t g6 = (g8 >> 2);
+    uint16_t b5 = (b8 >> 3);
+    uint16_t rgb565 = (r5 << 11) | (g6 << 5) | b5;
+    return rgb565;
+}
+
+/**
+ * @brief Reads a variable-length integer (varint) from a byte array.
+ *
+ * @details This function decodes a 32-bit unsigned integer from the provided byte array starting at the given offset, using a variable-length encoding (varint). 
+ *          It advances the offset as bytes are read, ensuring it does not exceed dataSize.
+ *          The function returns the decoded value, or 0 if the offset moves past the end of the data buffer.
+ *
+ * @param data Pointer to the input byte array.
+ * @param offset Reference to the current position in the byte array; will be updated to the new offset after reading.
+ * @param dataSize The total size of the data buffer.
+ * @return The decoded uint32_t varint value, or 0 if the offset exceeds dataSize.
+ */
+uint32_t Maps::readVarint(const uint8_t* data, size_t& offset, const size_t dataSize)
+{
+    uint32_t value = 0;
+    uint8_t shift = 0;
+    while (offset < dataSize && shift < 32) 
+    {
+        uint8_t byte = data[offset++];
+        value |= ((uint32_t)(byte & 0x7F)) << shift;
+        if ((byte & 0x80) == 0) 
+            break;
+        shift += 7;
+    }
+    if (offset > dataSize)
+    {
+        offset = dataSize;
+        return 0;
+    }
+    return value;
+}
+
+/**
+ * @brief Reads a zigzag-encoded integer from a byte array.
+ *
+ * @details This function decodes a 32-bit signed integer from the provided byte array starting at the given offset, using zigzag encoding. 
+ *          It first reads a varint and then applies the zigzag decoding to convert it back to a signed integer. 
+ *          The function advances the offset as bytes are read, ensuring it does not exceed dataSize.
+ *          If the offset exceeds dataSize, it returns 0.
+ *
+ * @param data Pointer to the input byte array.
+ * @param offset Reference to the current position in the byte array; will be updated to the new offset after reading.
+ * @param dataSize The total size of the data buffer.
+ * @return The decoded int32_t zigzag value, or 0 if the offset exceeds dataSize.
+ */
+int32_t Maps::readZigzag(const uint8_t* data, size_t& offset, const size_t dataSize)
+{
+    if (offset >= dataSize) 
+        return 0;
+    const uint32_t encoded = Maps::readVarint(data, offset, dataSize);
+    return static_cast<int32_t>((encoded >> 1) ^ (-(int32_t)(encoded & 1)));
+}
+
+/**
+ * @brief Converts a 16-bit unsigned integer in the range [0, 65535] to a pixel coordinate in the range [0, TILE_SIZE].
+ *
+ * @details This function scales the input value from the range of a 16-bit unsigned integer (0 to 65535) to a pixel coordinate within a tile of size TILE_SIZE (0 to 255). 
+ *          It ensures that the resulting pixel coordinate is clamped within the valid range of [0, TILE_SIZE].
+ *
+ * @param val The input value in the range [0, 65535].
+ * @return The corresponding pixel coordinate in the range [0, TILE_SIZE].
+ */
+int Maps::uint16ToPixel(const int32_t val)
+{
+    int p = static_cast<int>((val * TILE_SIZE_PLUS_ONE) / 65536);
+    if (p < 0) 
+        p = 0;
+    if (p > TILE_SIZE)
+        p = TILE_SIZE;
+    return p;
+}
+
+/**
+ * @brief Checks if a point lies on the margin of a tile.
+ *
+ * @details This function determines whether the given point (px, py) is located within the margin area of a tile, as defined by the MARGIN_PIXELS constant. 
+ *          The margin is considered on any side of the tile (left, right, top, or bottom) if the point's coordinates are less than or equal to MARGIN_PIXELS,
+ *          or greater than or equal to TILE_SIZE minus MARGIN_PIXELS.
+ *
+ * @param px The x-coordinate of the point.
+ * @param py The y-coordinate of the point.
+ * @return true if the point is on the margin, false otherwise.
+ */
+bool Maps::isPointOnMargin(const int px, const int py)
+{
+    return (px <= MARGIN_PIXELS || px >= TILE_SIZE - MARGIN_PIXELS || py <= MARGIN_PIXELS || py >= TILE_SIZE - MARGIN_PIXELS);
+}
+
+/** 
+* @brief Checks if a value is near a target within a specified tolerance.
+*
+* @details This function determines whether the given value (val) is within a certain tolerance (tol) of the target value. 
+*          The default tolerance is set to 2. It returns true if the absolute difference between val and target is less than or equal to tol.
+*
+* @param val The value to check.
+* @param target The target value to compare against.
+* @param tol The tolerance range (default is 2).
+* @return true if val is within tol of target, false otherwise.
+*/
+bool Maps::isNear(int val, int target, int tol = 2) 
+{
+    return abs(val - target) <= tol;
+}
+
+/**
+* @brief Determines if a line between two points should be drawn based on specific criteria.
+*
+* @details This function evaluates whether a line defined by two endpoints (px1, py1) and (px2, py2) should be drawn. 
+*          It filters out lines that cross the entire tile from edge to edge (horizontally, vertically, or diagonally), 
+*          lines that are excessively long (more than 1.5 times the diagonal of the tile), and lines where both endpoints are on the margin of the tile.
+*          The function returns true if the line meets the criteria for drawing, and false otherwise.
+*
+* @param px1 The x-coordinate of the first endpoint.
+* @param py1 The y-coordinate of the first endpoint.
+* @param px2 The x-coordinate of the second endpoint.
+* @param py2 The y-coordinate of the second endpoint.
+* @return true if the line should be drawn, false otherwise.
+*/
+bool Maps::shouldDrawLine(const int px1, const int py1, const int px2, const int py2)
+{
+    if ((isNear(px1, 0) && isNear(px2, TILE_SIZE)) || (isNear(px1, TILE_SIZE) && isNear(px2, 0))) 
+    {
+        if ((isNear(py1, 0) && isNear(py2, TILE_SIZE)) || (isNear(py1, TILE_SIZE) && isNear(py2, 0)))
+            return false;
+        if (isNear(py1, py2)) 
+            return false; 
+    }
+    if ((isNear(py1, 0) && isNear(py2, TILE_SIZE)) || (isNear(py1, TILE_SIZE) && isNear(py2, 0)))
+    {
+        if (isNear(px1, px2))
+            return false; 
+    }
+
+    int dx = px2 - px1;
+    int dy = py2 - py1;
+    int len2 = dx*dx + dy*dy;
+    if (len2 > (TILE_SIZE * TILE_SIZE * 3))
+        return false;
+
+    if (isPointOnMargin(px1, py1) && isPointOnMargin(px2, py2))
+        return false;
+    if ((px1 == px2) && (px1 <= MARGIN_PIXELS || px1 >= TILE_SIZE - MARGIN_PIXELS))
+        return false;
+    if ((py1 == py2) && (py1 <= MARGIN_PIXELS || py1 >= TILE_SIZE - MARGIN_PIXELS))
+        return false;
+    return true;
+}
+
+/**
+ * @brief Fills a polygon on a sprite using the scanline algorithm.
+ *
+ * @details This function fills a polygon defined by the given vertex arrays (px, py) on the provided TFT_eSprite object (map) using the specified color (c). 
+ *          It calculates the intersection points of the polygon with each scanline and draws horizontal lines between pairs of intersection points to fill the polygon.
+ *          The function takes into account offsets for positioning within a larger context and ensures that drawing is constrained within the tile boundaries.
+ *
+ * @param map The TFT_eSprite object where the polygon will be drawn.
+ * @param px Array of x-coordinates of the polygon vertices.
+ * @param py Array of y-coordinates of the polygon vertices.
+ * @param numPoints The number of vertices in the polygon.
+ * @param c The color to fill the polygon with (in RGB565 format).
+ * @param xOffset The x-offset to apply when drawing the polygon.
+ * @param yOffset The y-offset to apply when drawing the polygon.
+ */
+void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset)
+{
+    int miny = py[0], maxy = py[0];
+    for (int i = 1; i < numPoints; ++i) 
+    {
+        if (py[i] < miny) 
+            miny = py[i];
+        if (py[i] > maxy)
+            maxy = py[i];
+    }
+    int *xints = allocBuffer<int>(numPoints);
+    if (!xints) 
+        return;
+
+    for (int y = miny; y <= maxy; ++y)
+    {
+        int nodes = 0;
+        for (int i = 0, j = numPoints - 1; i < numPoints; j = i++) 
+        {
+            if ((py[i] < y && py[j] >= y) || (py[j] < y && py[i] >= y))
+                xints[nodes++] = static_cast<int>(px[i] + (y - py[i]) * (px[j] - px[i]) / (py[j] - py[i]));
+        }
+        if (nodes > 1) 
+        {
+            std::sort(xints, xints + nodes);
+            for (int i = 0; i < nodes; i += 2) 
+            {
+                if (i + 1 < nodes) 
+                {
+                    int x0 = xints[i] + xOffset;
+                    int x1 = xints[i + 1] + xOffset;
+                    int yy = y + yOffset;
+                    if (yy >= 0 && yy <= TILE_SIZE + yOffset) 
+                    {
+                        if (x0 < 0) 
+                            x0 = 0;
+                        if (x1 > TILE_SIZE + xOffset) 
+                            x1 = TILE_SIZE + xOffset;
+                        map.drawLine(x0, yy, x1, yy, color);
+                    }
+                }
+            }
+        }
+    }
+    heap_caps_free(xints);
+}
+
+/**
+* @brief Draws the border of a polygon on a sprite, with special handling for margin points.
+*
+* @details This function draws the border of a polygon defined by the given vertex arrays (px, py) on the provided TFT_eSprite object (map). 
+*          It uses different colors for lines connecting margin points and non-margin points, and can optionally skip drawing lines between two margin points if fillPolygons is false.
+*          The function takes into account offsets for positioning within a larger context and ensures that drawing is constrained within the tile boundaries.
+*
+* @param map The TFT_eSprite object where the polygon border will be drawn.
+* @param px Array of x-coordinates of the polygon vertices.
+* @param py Array of y-coordinates of the polygon vertices.
+* @param numPoints The number of vertices in the polygon.
+* @param borderColor The color to use for drawing the border lines (in RGB565 format).
+* @param fillColor The color to use for lines between margin points (in RGB565 format).
+* @param xOffset The x-offset to apply when drawing the polygon border.
+* @param yOffset The y-offset to apply when drawing the polygon border.
+*/
+void Maps::drawPolygonBorder(TFT_eSprite &map, const int *px, const int *py, const int numPoints, const uint16_t borderColor, const uint16_t fillColor, const int xOffset, const int yOffset)
+{
+    if (numPoints < 2) 
+        return; 
+
+    for (uint32_t i = 0; i < numPoints - 1; ++i) 
+    {
+        const bool marginA = isPointOnMargin(px[i], py[i]);
+        const bool marginB = isPointOnMargin(px[i+1], py[i+1]);
+        const uint16_t color = (marginA && marginB) ? fillColor : borderColor;
+
+        const int x0 = px[i] + xOffset;
+        const int y0 = py[i] + yOffset;
+        const int x1 = px[i+1] + xOffset;
+        const int y1 = py[i+1] + yOffset;
+
+        if (x0 >= 0 && x0 <= TILE_SIZE + xOffset && y0 >= 0 && y0 <= TILE_SIZE + yOffset &&
+            x1 >= 0 && x1 <= TILE_SIZE + xOffset && y1 >= 0 && y1 <= TILE_SIZE + yOffset) 
+        {
+            if (!(marginA && marginB && !fillPolygons))
+                map.drawLine(x0, y0, x1, y1, color);
+        }
+    }
+    const bool marginA = isPointOnMargin(px[numPoints-1], py[numPoints-1]);
+    const bool marginB = isPointOnMargin(px[0], py[0]);
+    const uint16_t color = (marginA && marginB) ? fillColor : borderColor;
+    const int x0 = px[numPoints-1] + xOffset;
+    const int y0 = py[numPoints-1] + yOffset;
+    const int x1 = px[0] + xOffset;
+    const int y1 = py[0] + yOffset;
+
+    if (x0 >= 0 && x0 <= TILE_SIZE + xOffset && y0 >= 0 && y0 <= TILE_SIZE + yOffset &&
+        x1 >= 0 && x1 <= TILE_SIZE + xOffset && y1 >= 0 && y1 <= TILE_SIZE + yOffset) 
+    {
+        if (!(marginA && marginB && !fillPolygons)) 
+            map.drawLine(x0, y0, x1, y1, color);
+    }
+}   
+
+/**
+* @brief Draws a filled circle with a border on a sprite.
+*                   
+* @details This function draws a circle on the provided TFT_eSprite object (map) at the specified position (x, y) with the given radius (r). 
+*          It fills the circle with the specified fill color and draws a border around it with the specified border color. 
+*          If fillShape is false, it only draws the circle border using the fill color.
+*
+* @param map The TFT_eSprite object where the circle will be drawn.
+* @param x The x-coordinate of the circle's center.
+* @param y The y-coordinate of the circle's center.
+* @param r The radius of the circle.
+* @param fill The color to fill the circle with (in RGB565 format).
+* @param border The color to use for the circle border (in RGB565 format).
+* @param fillShape If true, the circle will be filled; if false, only the border will be drawn.
+*/
+void Maps::drawFilledCircleWithBorder(TFT_eSprite& map, int x, int y, int r, uint16_t fill, uint16_t border, bool fillShape)
+{
+    if (fillShape) 
+    {
+        map.fillCircle(x, y, r, fill);
+        map.drawCircle(x, y, r, border);
+    }
+    else 
+        map.drawCircle(x, y, r, fill);
+}
+
+/**
+* @brief Draws a filled rectangle with a border on a sprite.
+*
+* @details This function draws a rectangle on the provided TFT_eSprite object (map) at the specified position (x, y) with the given width (w) and height (h). 
+*          It fills the rectangle with the specified fill color and draws a border around it with the specified border color. 
+*          If fillShape is false, it only draws the rectangle border using the fill color.
+*
+* @param map The TFT_eSprite object where the rectangle will be drawn.
+* @param x The x-coordinate of the top-left corner of the rectangle.
+* @param y The y-coordinate of the top-left corner of the rectangle.
+* @param w The width of the rectangle.
+* @param h The height of the rectangle.
+* @param fill The color to fill the rectangle with (in RGB565 format).
+* @param border The color to use for the rectangle border (in RGB565 format).
+* @param fillShape If true, the rectangle will be filled; if false, only the border will be drawn.
+*/
+void Maps::drawFilledRectWithBorder(TFT_eSprite& map, int x, int y, int w, int h, uint16_t fill, uint16_t border, bool fillShape)
+{
+    if (fillShape) 
+    {
+        map.fillRect(x, y, w, h, fill);
+        map.drawRect(x, y, w, h, border);
+    }
+    else 
+        map.drawRect(x, y, w, h, fill);
+}
+
+/**
+* @brief Allocates a buffer for a specified number of elements of type T, preferring PSRAM if available.
+*
+* @details This template function attempts to allocate memory for an array of numElements of type T. 
+*          If PSRAM is available (BOARD_HAS_PSRAM is defined), it first tries to allocate the memory in PSRAM. 
+*          If that fails or if PSRAM is not available, it falls back to allocating the memory in standard 8-bit heap memory.
+*          The function returns a pointer to the allocated memory, or nullptr if the allocation fails.
+*
+* @tparam T The type of elements to allocate.
+* @param numElements The number of elements to allocate.
+* @return A pointer to the allocated buffer, or nullptr if allocation fails.
+*/
+template<typename T>
+T* Maps::allocBuffer(size_t numElements) 
+{
+#ifdef BOARD_HAS_PSRAM
+    T* ptr = (T*)heap_caps_malloc(numElements * sizeof(T), MALLOC_CAP_SPIRAM);
+    if (ptr) return ptr;
+#endif
+    return (T*)heap_caps_malloc(numElements * sizeof(T), MALLOC_CAP_8BIT);
+}
+
+/**
+* @brief Renders a map tile from a binary file onto a sprite.
+*
+* @details This function reads a binary map tile file, decodes its drawing commands, and renders the resulting graphics onto the provided TFT_eSprite object (map). 
+*          It supports line drawing and polygon filling based on the commands in the file, using a predefined color palette. The function handles batching of line drawing for performance optimization.
+*          The rendered tile is positioned on the sprite using the specified xOffset and yOffset.
+*
+* @param path The file path to the binary map tile.
+* @param xOffset The x-offset to apply when rendering the tile on the sprite.
+* @param yOffset The y-offset to apply when rendering the tile on the sprite.
+* @param map The TFT_eSprite object where the tile will be rendered.
+* @return true if the tile was rendered successfully, false otherwise.
+*/
+bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOffset, TFT_eSprite &map)
+{
+    static bool isPaletteLoaded = false;
+    if (!isPaletteLoaded) 
+        isPaletteLoaded = Maps::loadPalette("/sdcard/VECTMAP/palette.bin");
+
+    if (!path || path[0] == '\0')
+        return false;
+
+
+    FILE* file = fopen(path, "rb");
+    if (!file)
+       return false;
+    
+    fseek(file, 0, SEEK_END);
+    const long fileSize = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    uint8_t* data = allocBuffer<uint8_t>(fileSize);
+    if (!data)
+    {
+        fclose(file);
+        return false;
+    }
+
+    const size_t bytesRead = fread(data, 1, fileSize, file);
+    fclose(file);
+    if (bytesRead != fileSize) 
+    {
+        heap_caps_free(data);
+        return false;
+    }
+
+    size_t offset = 0;
+    const size_t dataSize = fileSize;
+    uint8_t current_color = 0xFF;
+    uint16_t currentDrawColor = RGB332ToRGB565(current_color);
+
+    const uint32_t num_cmds = readVarint(data, offset, dataSize);
+    if (num_cmds == 0)
+    {
+        heap_caps_free(data);
+        return false;
+    }
+
+    LineSegment* lineBatch = allocBuffer<LineSegment>(LINE_BATCH_SIZE);
+    int batchCount = 0;
+    if (!lineBatch) 
+    {
+        heap_caps_free(data);
+        return false;
+    }
+
+    auto flushBatch = [&]() 
+    {
+        for (int i = 0; i < batchCount; ++i) 
+        {
+            map.drawLine(lineBatch[i].x0, lineBatch[i].y0, lineBatch[i].x1, lineBatch[i].y1, lineBatch[i].color);
+        }
+        batchCount = 0;
+    };
+
+    int executed = 0;
+    for (uint32_t cmd_idx = 0; cmd_idx < num_cmds; cmd_idx++) 
+    {
+        if (offset >= dataSize) 
+            break;
+        const size_t cmdStartOffset = offset;
+        const uint32_t cmdType = readVarint(data, offset, dataSize);
+
+        bool isLineCommand = false;
+
+        switch (cmdType) 
+        {
+            case SET_COLOR:
+                flushBatch();
+                if (offset < dataSize) 
+                {
+                    current_color = data[offset++];
+                    currentDrawColor = RGB332ToRGB565(current_color);
+                    executed++;
+                }
+                break;
+            case SET_COLOR_INDEX:
+                flushBatch();
+                {
+                    const uint32_t color_index = readVarint(data, offset, dataSize);
+                    current_color = paletteToRGB332(color_index);
+                    currentDrawColor = RGB332ToRGB565(current_color);
+                    executed++;
+                }
+                break;
+            case DRAW_LINE:
+                {
+                    const int32_t x1 = readZigzag(data, offset, dataSize);
+                    const int32_t y1 = readZigzag(data, offset, dataSize);
+                    const int32_t dx = readZigzag(data, offset, dataSize);
+                    const int32_t dy = readZigzag(data, offset, dataSize);
+                    const int32_t x2 = x1 + dx;
+                    const int32_t y2 = y1 + dy;
+                    const int px1 = uint16ToPixel(x1) + xOffset;
+                    const int py1 = uint16ToPixel(y1) + yOffset;
+                    const int px2 = uint16ToPixel(x2) + xOffset;
+                    const int py2 = uint16ToPixel(y2) + yOffset;
+                    if (shouldDrawLine(px1 - xOffset, py1 - yOffset, px2 - xOffset, py2 - yOffset)) 
+                    {
+                        if (batchCount < LINE_BATCH_SIZE) 
+                            lineBatch[batchCount++] = {px1, py1, px2, py2, currentDrawColor};
+                        else 
+                        {
+                            flushBatch();
+                            lineBatch[batchCount++] = {px1, py1, px2, py2, currentDrawColor};
+                        }
+                        executed++;
+                        isLineCommand = true;
+                    }
+                }
+                break;
+            case DRAW_POLYLINE:
+                {
+                    const uint32_t numPoints = readVarint(data, offset, dataSize);
+                    if (numPoints >= 2) 
+                    {
+                        int* px = allocBuffer<int>(numPoints);
+                        int* py = allocBuffer<int>(numPoints);
+                        if (!px || !py)
+                        {
+                            if (px) heap_caps_free(px);
+                            if (py) heap_caps_free(py);
+                            for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
+                            {
+                                readZigzag(data, offset, dataSize);
+                                readZigzag(data, offset, dataSize);
+                            }
+                            break;
+                        }
+                        int32_t prevX = readZigzag(data, offset, dataSize);
+                        int32_t prevY = readZigzag(data, offset, dataSize);
+                        px[0] = uint16ToPixel(prevX) + xOffset;
+                        py[0] = uint16ToPixel(prevY) + yOffset;
+                        for (uint32_t i = 1; i < numPoints; ++i)
+                        {
+                            const int32_t deltaX = readZigzag(data, offset, dataSize);
+                            const int32_t deltaY = readZigzag(data, offset, dataSize);
+                            prevX += deltaX;
+                            prevY += deltaY;
+                            px[i] = uint16ToPixel(prevX) + xOffset;
+                            py[i] = uint16ToPixel(prevY) + yOffset;
+                        }
+                        for (uint32_t i = 1; i < numPoints; ++i)
+                        {
+                            if (shouldDrawLine(px[i-1] - xOffset, py[i-1] - yOffset, px[i] - xOffset, py[i] - yOffset))
+                            {
+                                if (batchCount < LINE_BATCH_SIZE) 
+                                    lineBatch[batchCount++] = {px[i-1], py[i-1], px[i], py[i], currentDrawColor};
+                                else 
+                                {
+                                    flushBatch();
+                                    lineBatch[batchCount++] = {px[i-1], py[i-1], px[i], py[i], currentDrawColor};
+                                }
+                            }
+                        }
+                        executed++;
+                        isLineCommand = true;
+                        heap_caps_free(px);
+                        heap_caps_free(py);
+                    }
+                    else
+                    {
+                        for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i) 
+                        {
+                            readZigzag(data, offset, dataSize);
+                            readZigzag(data, offset, dataSize);
+                        }
+                    }
+                }
+                break;
+            case DRAW_STROKE_POLYGON:
+                flushBatch();
+                {
+                    const uint32_t numPoints = readVarint(data, offset, dataSize);
+                    if (numPoints >= 3) 
+                    {
+                        int* px = allocBuffer<int>(numPoints);
+                        int* py = allocBuffer<int>(numPoints);
+                        if (!px || !py) 
+                        {
+                            if (px) 
+                                heap_caps_free(px);
+                            if (py) 
+                                heap_caps_free(py);
+                            for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
+                            {
+                                readZigzag(data, offset, dataSize);
+                                readZigzag(data, offset, dataSize);
+                            }
+                            break;
+                        }
+                        const int32_t firstX = readZigzag(data, offset, dataSize);
+                        const int32_t firstY = readZigzag(data, offset, dataSize);
+                        px[0] = uint16ToPixel(firstX);
+                        py[0] = uint16ToPixel(firstY);
+                        int prevX = firstX;
+                        int prevY = firstY;
+                        for (uint32_t i = 1; i < numPoints; ++i) 
+                        {
+                            const int32_t deltaX = readZigzag(data, offset, dataSize);
+                            const int32_t deltaY = readZigzag(data, offset, dataSize);
+                            prevX += deltaX;
+                            prevY += deltaY;
+                            px[i] = uint16ToPixel(prevX);
+                            py[i] = uint16ToPixel(prevY);
+                        }
+                        if (fillPolygons && numPoints >= 3) 
+                            fillPolygonGeneral(map, px, py, numPoints, currentDrawColor, xOffset, yOffset);
+
+                        const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
+                        drawPolygonBorder(map, px, py, numPoints, borderColor, currentDrawColor, xOffset, yOffset);
+                        executed++;
+                        heap_caps_free(px);
+                        heap_caps_free(py);
+                    } 
+                    else 
+                    {
+                        for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i) 
+                        {
+                            readZigzag(data, offset, dataSize);
+                            readZigzag(data, offset, dataSize);
+                        }
+                    }
+                }
+                break;
+            case DRAW_STROKE_POLYGONS:
+                flushBatch();
+                {
+                    const uint32_t numPoints = readVarint(data, offset, dataSize);
+                    int32_t accumX = 0, accumY = 0;
+                    if (numPoints >= 3) 
+                    {
+                        int* px = allocBuffer<int>(numPoints);
+                        int* py = allocBuffer<int>(numPoints);
+                        if (!px || !py) 
+                        {
+                            if (px)
+                                heap_caps_free(px);
+                            if (py) 
+                                heap_caps_free(py);
+                            for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i) 
+                            {
+                                readZigzag(data, offset, dataSize);
+                                readZigzag(data, offset, dataSize);
+                            }
+                            break;
+                        }
+                        for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
+                        {
+                            if (i == 0) 
+                            {
+                                accumX = readZigzag(data, offset, dataSize);
+                                accumY = readZigzag(data, offset, dataSize);
+                            } 
+                            else 
+                            {
+                                const int32_t deltaX = readZigzag(data, offset, dataSize);
+                                const int32_t deltaY = readZigzag(data, offset, dataSize);
+                                accumX += deltaX;
+                                accumY += deltaY;
+                            }
+                            px[i] = uint16ToPixel(accumX);
+                            py[i] = uint16ToPixel(accumY);
+                        }
+                        if (fillPolygons && numPoints >= 3)
+                        {
+                            fillPolygonGeneral(map, px, py, numPoints, currentDrawColor, xOffset, yOffset);
+                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
+                            drawPolygonBorder(map, px, py, numPoints, borderColor, currentDrawColor, xOffset, yOffset);
+                            executed++;
+                        }
+                        heap_caps_free(px);
+                        heap_caps_free(py);
+                    } 
+                    else
+                    {
+                        for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i) 
+                        {
+                            readZigzag(data, offset, dataSize);
+                            readZigzag(data, offset, dataSize);
+                        }
+                    }
+                }
+                break;
+            case DRAW_HORIZONTAL_LINE:
+                {
+                    const int32_t x1 = readZigzag(data, offset, dataSize);
+                    const int32_t dx = readZigzag(data, offset, dataSize);
+                    const int32_t y = readZigzag(data, offset, dataSize);
+                    const int32_t x2 = x1 + dx;
+                    const int px1 = uint16ToPixel(x1) + xOffset;
+                    const int px2 = uint16ToPixel(x2) + xOffset;
+                    const int py = uint16ToPixel(y) + yOffset;
+                    if (shouldDrawLine(px1 - xOffset, py - yOffset, px2 - xOffset, py - yOffset))
+                    {
+                        if (batchCount < LINE_BATCH_SIZE)
+                            lineBatch[batchCount++] = {px1, py, px2, py, currentDrawColor};
+                        else
+                        {
+                            flushBatch();
+                            lineBatch[batchCount++] = {px1, py, px2, py, currentDrawColor};
+                        }
+                        executed++;
+                        isLineCommand = true;
+                    }
+                }
+                break;
+            case DRAW_VERTICAL_LINE:
+                {
+                    const int32_t x = readZigzag(data, offset, dataSize);
+                    const int32_t y1 = readZigzag(data, offset, dataSize);
+                    const int32_t dy = readZigzag(data, offset, dataSize);
+                    const int32_t y2 = y1 + dy;
+                    const int px = uint16ToPixel(x) + xOffset;
+                    const int py1 = uint16ToPixel(y1) + yOffset;
+                    const int py2 = uint16ToPixel(y2) + yOffset;
+                    if (shouldDrawLine(px - xOffset, py1 - yOffset, px - xOffset, py2 - yOffset)) 
+                    {
+                        if (batchCount < LINE_BATCH_SIZE) 
+                            lineBatch[batchCount++] = {px, py1, px, py2, currentDrawColor};
+                        else 
+                        {
+                            flushBatch();
+                            lineBatch[batchCount++] = {px, py1, px, py2, currentDrawColor};
+                        }
+                        executed++;
+                        isLineCommand = true;
+                    }
+                }
+                break;
+            case RECTANGLE:
+                flushBatch();
+                {
+                    const int32_t x1 = readZigzag(data, offset, dataSize);
+                    const int32_t y1 = readZigzag(data, offset, dataSize);
+                    const int32_t dx = readZigzag(data, offset, dataSize);
+                    const int32_t dy = readZigzag(data, offset, dataSize);
+                    const int px1 = uint16ToPixel(x1);
+                    const int py1 = uint16ToPixel(y1);
+                    const int pwidth = uint16ToPixel(dx);
+                    const int pheight = uint16ToPixel(dy);
+                    if (px1 >= 0 && px1 <= TILE_SIZE && py1 >= 0 && py1 <= TILE_SIZE &&
+                        pwidth > 0 && pheight > 0 &&
+                        !isPointOnMargin(px1, py1) &&
+                        !isPointOnMargin(px1 + pwidth, py1 + pheight))
+                    {
+                        if (fillPolygons) 
+                        {
+                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
+                            drawFilledRectWithBorder(map, px1 + xOffset, py1 + yOffset, pwidth, pheight, currentDrawColor, borderColor, fillPolygons);
+                            executed++;
+                        }
+                        else
+                            map.drawRect(px1 + xOffset, py1 + yOffset, pwidth, pheight, currentDrawColor);
+                        executed++;
+                    }
+                }
+                break;
+            case STRAIGHT_LINE:
+                {
+                    const int32_t x1 = readZigzag(data, offset, dataSize);
+                    const int32_t y1 = readZigzag(data, offset, dataSize);
+                    const int32_t dx = readZigzag(data, offset, dataSize);
+                    const int32_t dy = readZigzag(data, offset, dataSize);
+                    const int32_t x2 = x1 + dx;
+                    const int32_t y2 = y1 + dy;
+                    const int px1 = uint16ToPixel(x1) + xOffset;
+                    const int py1 = uint16ToPixel(y1) + yOffset;
+                    const int px2 = uint16ToPixel(x2) + xOffset;
+                    const int py2 = uint16ToPixel(y2) + yOffset;
+                    if (shouldDrawLine(px1 - xOffset, py1 - yOffset, px2 - xOffset, py2 - yOffset)) 
+                    {
+                        if (batchCount < LINE_BATCH_SIZE)
+                            lineBatch[batchCount++] = {px1, py1, px2, py2, currentDrawColor};
+                        else
+                        {
+                            flushBatch();
+                            lineBatch[batchCount++] = {px1, py1, px2, py2, currentDrawColor};
+                        }
+                        executed++;
+                        isLineCommand = true;
+                    }
+                }
+                break;
+            case CIRCLE:
+                flushBatch();
+                {
+                    const int32_t center_x = readZigzag(data, offset, dataSize);
+                    const int32_t center_y = readZigzag(data, offset, dataSize);
+                    const int32_t radius = readZigzag(data, offset, dataSize);
+                    const int pcx = uint16ToPixel(center_x);
+                    const int pcy = uint16ToPixel(center_y);
+                    const int pradius = uint16ToPixel(radius);
+                    if (pcx >= 0 && pcx <= TILE_SIZE && pcy >= 0 && pcy <= TILE_SIZE && pradius > 0 &&
+                        !isPointOnMargin(pcx, pcy)) 
+                    {
+                        if (fillPolygons) 
+                        {
+                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
+                            drawFilledCircleWithBorder(map, pcx + xOffset, pcy + yOffset, pradius, currentDrawColor, borderColor, fillPolygons);
+                            executed++;
+                        }
+                        else
+                            map.drawCircle(pcx + xOffset, pcy + yOffset, pradius, currentDrawColor);
+
+                        executed++;
+                    }
+                }
+                break;            
+            default:
+                flushBatch();
+                if (offset < dataSize - 4) 
+                    offset += 4;
+
+                break;
+        }
+        if (!isLineCommand) 
+            flushBatch();
+
+        if (offset <= cmdStartOffset) 
+            break;
+    }
+    flushBatch();
+
+    heap_caps_free(data);
+    heap_caps_free(lineBatch);
+
+    if (executed == 0) 
+        return false;
+
+    return true;
 }

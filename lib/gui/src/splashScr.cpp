@@ -20,16 +20,8 @@ extern Gps gps;
 void splashScreen()
 {
 	// Preload Map
-	if (mapSet.vectorMap)
-	{
-		mapView.isPosMoved = true;
-		mapView.generateVectorMap(zoom);
-	}
-	else
-	{
-		mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
-		mapView.generateRenderMap(zoom);
-	}
+	mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
+	mapView.generateMap(zoom);
 
 	setTime = false;
 
