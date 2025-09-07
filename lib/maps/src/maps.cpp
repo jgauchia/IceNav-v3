@@ -1089,7 +1089,7 @@ void Maps::drawFilledRectWithBorder(TFT_eSprite& map, int x, int y, int w, int h
 template<typename T>
 T* Maps::allocBuffer(size_t numElements) 
 {
-#if BOARD_HAS_PSRAM
+#ifdef BOARD_HAS_PSRAM
     T* ptr = (T*)heap_caps_malloc(numElements * sizeof(T), MALLOC_CAP_SPIRAM);
     if (ptr) return ptr;
 #endif
