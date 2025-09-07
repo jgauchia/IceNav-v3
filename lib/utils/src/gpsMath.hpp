@@ -14,7 +14,7 @@
 #define EARTH_RADIUS 6378137             /**< Earth radius in meters */
 #define METER_PER_PIXELS 156543.03       /**< Meters per pixel at zoom level 0 (latitude 0) */
 #define LUT_SIZE 65536                      /**< Number of entries in the lookup tables */
-#define LUT_RES (TWO_PI / (float)LUT_SIZE) /**< Angular resolution (radians per LUT step) */
+static const float LUT_RES = (TWO_PI / (float)LUT_SIZE); /**< Angular resolution (radians per LUT step) */
 
 // Lookup tables (allocated in PSRAM if available, else in normal RAM)
 static float* sinLut = NULL;
