@@ -78,6 +78,7 @@ void loadPreferences()
 	mapSet.showMapSpeed = cfg.getBool(PKEYS::KMAP_SPEED, true);
 	mapSet.vectorMap = cfg.getBool(PKEYS::KMAP_VECTOR, false);
 	mapSet.showMapScale = cfg.getBool(PKEYS::KMAP_SCALE, true);
+	mapSet.fillPolygons = cfg.getBool(PKEYS::KFILL_POL, false);
 	navSet.simNavigation = cfg.getBool(PKEYS::KSIM_NAV, false);
 	gpsBaud = cfg.getShort(PKEYS::KGPS_SPEED, 4);
 	gpsUpdate = cfg.getShort(PKEYS::KGPS_RATE, 3);

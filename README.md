@@ -260,6 +260,7 @@ Some extra details:
     mapComp     custom          true           Show compass in map
  mapCompRot     custom          true           Rotate map with the compass
      simNav     custom          false          Indicates whether navigation simulation mode is enabled or disabled
+   fillPoly     custom          true           Fill polygons in vectorized map
       gpsTX     custom          43             GPS Tx gpio
       gpsRX     custom          44             GPS Rx gpio
      defLAT     custom          52.5200        Default latitude

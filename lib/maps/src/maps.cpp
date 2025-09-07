@@ -20,7 +20,7 @@ const char* TAG PROGMEM = "Maps";
 uint16_t Maps::currentDrawColor = TFT_WHITE;
 uint8_t Maps::PALETTE[256] = {0};
 uint32_t Maps::PALETTE_SIZE = 0;
-bool Maps::fillPolygons = true;
+// bool Maps::fillPolygons = false;
 
 #define LINE_BATCH_SIZE 64
 struct LineSegment

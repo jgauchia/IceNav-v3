@@ -37,7 +37,7 @@ enum DrawCommand : uint8_t
     RECTANGLE = 0x82,            /**< Optimized rectangle command */
     STRAIGHT_LINE = 0x83,        /**< Optimized straight line command */
     CIRCLE = 0x87,               /**< Optimized circle command */
-};
+                  };
 
 /**
  * @class Maps
@@ -80,8 +80,7 @@ private:
 	static uint16_t currentDrawColor;                           				/**< Current drawing color state */
 	static uint8_t PALETTE[256];                                                /**< Color palette for vector tiles */
 	static uint32_t PALETTE_SIZE;                                               /**< Number of entries in the palette */
-	static bool fillPolygons;                                                   /**< Flag for polygon filling */
-
+	
 	tileBounds totalBounds; 													/**< Map boundaries */
 	uint16_t wptPosX, wptPosY;                                                  /**< Waypoint position on screen map */
 	TFT_eSprite mapTempSprite = TFT_eSprite(&tft);                              /**< Full map sprite (not showed) */
@@ -129,6 +128,7 @@ private:
 
    
 public:
+	bool fillPolygons;                                             /**< Flag for polygon filling */
 	void* mapBuffer;                                               /**< Pointer to map screen sprite */
 	uint16_t mapScrHeight;                                         /**< Screen map size height */
 	uint16_t mapScrWidth;                                          /**< Screen map size width */

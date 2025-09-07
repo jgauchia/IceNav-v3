@@ -73,6 +73,7 @@ struct MAP
     bool showMapSpeed;      /**< Show speed in map screen */
     bool vectorMap;         /**< Map type: true for vector, false for rendered */
     bool showMapScale;      /**< Show map scale on screen */
+    bool fillPolygons;      /**< Flag for polygon filling */
 };
 extern MAP mapSet; /**< Global instance for map settings */
 

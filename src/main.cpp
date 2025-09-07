@@ -166,7 +166,8 @@ void setup()
 	loadPreferences();
 	gps.init();
 	initLVGL();
-
+	mapView.fillPolygons = mapSet.fillPolygons;
+	
 	// Get init Latitude and Longitude
 	gps.gpsData.latitude = gps.getLat();
 	gps.gpsData.longitude = gps.getLon();
