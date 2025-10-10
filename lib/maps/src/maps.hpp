@@ -137,6 +137,28 @@ private:
 		uint32_t misses;
 	};
 	
+	struct LineSegment	/**< Line segment structure */
+	{
+		int x0, y0, x1, y1;
+		uint16_t color;
+	};
+	
+	struct LineSegmentPool	/**< LineSegment pool for line batching */
+	{
+		std::vector<std::vector<LineSegment>> lineBatches;
+		size_t maxSize;
+		uint32_t hits;
+		uint32_t misses;
+	};
+	
+	struct CoordArrayPool	/**< Coordinate array pool for polygon coordinates */
+	{
+		std::vector<std::vector<int*>> coordArrays;
+		size_t maxSize;
+		uint32_t hits;
+		uint32_t misses;
+	};
+	
 	struct PolygonBounds	/**< Polygon bounding box structure */
 	{
 		int minX, minY, maxX, maxY; /**< Bounding box coordinates */
@@ -219,7 +241,17 @@ private:
 	static CommandPool commandPool;                                            /**< Pool for draw commands */
 	static CoordsPool coordsPool;                                              /**< Pool for coordinate arrays */
 	static FeaturePool featurePool;                                            /**< Pool for OSM features */
+	static LineSegmentPool lineSegmentPool;                                    /**< Pool for LineSegment batches */
+	static CoordArrayPool coordArrayPool;                                      /**< Pool for coordinate arrays */
 	static SemaphoreHandle_t advancedPoolMutex;                               /**< Mutex for advanced pools */
+	
+	// Memory monitoring and statistics
+	static uint32_t totalMemoryAllocations;                                    /**< Total memory allocations */
+	static uint32_t totalMemoryDeallocations;                                 /**< Total memory deallocations */
+	static uint32_t peakMemoryUsage;                                           /**< Peak memory usage */
+	static uint32_t currentMemoryUsage;                                        /**< Current memory usage */
+	static uint32_t poolEfficiencyScore;                                       /**< Pool efficiency score (0-100) */
+	static uint32_t lastStatsUpdate;                                           /**< Last statistics update timestamp */
 	
 	// Polygon optimization system
 	static bool polygonCullingEnabled;                                         /**< Enable polygon culling */
@@ -329,8 +361,20 @@ private:
 	void returnCoords(const std::vector<std::pair<int, int>>& coords);         /**< Return coordinates to pool */
 	std::map<std::string, std::string> getFeature();                           /**< Get feature from pool */
 	void returnFeature(const std::map<std::string, std::string>& feature);     /**< Return feature to pool */
+	std::vector<Maps::LineSegment> getLineSegmentBatch();                            /**< Get LineSegment batch from pool */
+	void returnLineSegmentBatch(const std::vector<Maps::LineSegment>& batch);        /**< Return LineSegment batch to pool */
+	int* getCoordArray(size_t size);                                           /**< Get coordinate array from pool */
+	void returnCoordArray(int* array, size_t size);                           /**< Return coordinate array to pool */
 	void clearAdvancedPools();                                                 /**< Clear all advanced pools */
 	void printAdvancedPoolStats();                                             /**< Print advanced pool statistics */
+	
+	// Memory monitoring methods
+	void initMemoryMonitoring();                                               /**< Initialize memory monitoring system */
+	void updateMemoryStats();                                                  /**< Update memory statistics */
+	void calculatePoolEfficiency();                                             /**< Calculate pool efficiency score */
+	void printMemoryStats();                                                   /**< Print detailed memory statistics */
+	void resetMemoryStats();                                                   /**< Reset memory statistics */
+	bool isMemoryPressureHigh();                                               /**< Check if memory pressure is high */
 	
 	// Polygon optimization methods
 	void initPolygonOptimizations();                                           /**< Initialize polygon optimization system */
@@ -403,6 +447,10 @@ public:
     // Advanced memory pool public methods
     void initializeAdvancedPools();                                             /**< Initialize advanced memory pools */
     void printAdvancedMemoryPoolStats();                                        /**< Print advanced memory pool statistics */
+    
+    // Memory monitoring public methods
+    void initializeMemoryMonitoring();                                          /**< Initialize memory monitoring system */
+    void printMemoryMonitoringStats();                                         /**< Print memory monitoring statistics */
     
     // Polygon optimization public methods
     void initializePolygonOptimizations();                                      /**< Initialize polygon optimization system */

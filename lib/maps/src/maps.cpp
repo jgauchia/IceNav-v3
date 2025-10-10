@@ -48,7 +48,17 @@ Maps::PointPool Maps::pointPool;
 Maps::CommandPool Maps::commandPool;
 Maps::CoordsPool Maps::coordsPool;
 Maps::FeaturePool Maps::featurePool;
+Maps::LineSegmentPool Maps::lineSegmentPool;
+Maps::CoordArrayPool Maps::coordArrayPool;
 SemaphoreHandle_t Maps::advancedPoolMutex = nullptr;
+
+// Memory monitoring static variables
+uint32_t Maps::totalMemoryAllocations = 0;
+uint32_t Maps::totalMemoryDeallocations = 0;
+uint32_t Maps::peakMemoryUsage = 0;
+uint32_t Maps::currentMemoryUsage = 0;
+uint32_t Maps::poolEfficiencyScore = 0;
+uint32_t Maps::lastStatsUpdate = 0;
 
 // Polygon optimization system static variables
 bool Maps::polygonCullingEnabled = true;
@@ -91,19 +101,19 @@ static size_t getOptimalBatchSize() {
 }
 
 #define LINE_BATCH_SIZE getOptimalBatchSize()
-struct LineSegment
-{
-    int x0, y0, x1, y1;
-    uint16_t color;
-};
 
 /**
  * @brief Map Class constructor
  */
 Maps::Maps() : fillPolygons(true) 
 {
+    ESP_LOGI(TAG, "Maps constructor called - initializing pools...");
+    
     // Initialize advanced memory pools in constructor
     initAdvancedPools();
+    initMemoryMonitoring();
+    
+    ESP_LOGI(TAG, "Maps constructor completed");
 }
 
 /**
@@ -1107,7 +1117,19 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
         if (py[i] > maxy)
             maxy = py[i];
     }
-    int *xints = allocBuffer<int>(numPoints);
+    // Try to get coordinate array from pool first
+    int* coordArray = getCoordArray(numPoints);
+    int *xints = nullptr;
+    
+    if (coordArray != nullptr) {
+        xints = coordArray;
+        coordArrayPool.hits++;
+    } else {
+        // Fallback to direct allocation if pool is empty or too small
+        xints = allocBuffer<int>(numPoints);
+        coordArrayPool.misses++;
+    }
+    
     if (!xints) 
         return;
 
@@ -1141,7 +1163,13 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
             }
         }
     }
-    poolDeallocate(xints);
+    
+    // Return coordinate array to pool if it came from pool
+    if (coordArray != nullptr) {
+        returnCoordArray(coordArray, numPoints);
+    } else {
+        poolDeallocate(xints);
+    }
 }
 
 /**
@@ -1520,11 +1548,13 @@ T* Maps::allocBuffer(size_t numElements)
     void* ptr = poolAllocate(totalSize);
     if (ptr) {
         poolHitCount++;
+        totalMemoryAllocations++;
         return static_cast<T*>(ptr);
     }
     
     // Fallback to standard allocation
     poolMissCount++;
+    totalMemoryAllocations++;
 #ifdef BOARD_HAS_PSRAM
     ptr = heap_caps_malloc(totalSize, MALLOC_CAP_SPIRAM);
     if (ptr) return static_cast<T*>(ptr);
@@ -2044,6 +2074,8 @@ void Maps::triggerPreload(int16_t centerX, int16_t centerY, uint8_t zoom)
  */
 void Maps::initAdvancedPools()
 {
+    ESP_LOGI(TAG, "Starting advanced pools initialization...");
+    
     detectAdvancedPoolCapabilities();
     
     if (advancedPoolMutex == nullptr) {
@@ -2052,6 +2084,7 @@ void Maps::initAdvancedPools()
             ESP_LOGE(TAG, "Failed to create advanced pool mutex");
             return;
         }
+        ESP_LOGI(TAG, "Advanced pool mutex created");
     }
     
     // Initialize point pool
@@ -2078,9 +2111,46 @@ void Maps::initAdvancedPools()
     featurePool.hits = 0;
     featurePool.misses = 0;
     
+    // Initialize line segment pool with pre-allocated batches
+    lineSegmentPool.lineBatches.clear();
+    lineSegmentPool.lineBatches.reserve(lineSegmentPool.maxSize);
+    
+    // Pre-allocate line segment batches
+    ESP_LOGI(TAG, "Pre-allocating %zu line segment batches...", lineSegmentPool.maxSize);
+    for (size_t i = 0; i < lineSegmentPool.maxSize; i++) {
+        std::vector<LineSegment> batch;
+        batch.reserve(256); // Pre-allocate space for 256 line segments
+        lineSegmentPool.lineBatches.push_back(batch);
+    }
+    ESP_LOGI(TAG, "Pre-allocated %zu line segment batches", lineSegmentPool.lineBatches.size());
+    
+    lineSegmentPool.hits = 0;
+    lineSegmentPool.misses = 0;
+    
+    // Initialize coord array pool with pre-allocated arrays
+    coordArrayPool.coordArrays.clear();
+    coordArrayPool.coordArrays.reserve(coordArrayPool.maxSize);
+    
+    // Pre-allocate coordinate arrays
+    ESP_LOGI(TAG, "Pre-allocating %zu coordinate arrays...", coordArrayPool.maxSize);
+    for (size_t i = 0; i < coordArrayPool.maxSize; i++) {
+        int* array = allocBuffer<int>(256); // Pre-allocate arrays of 256 ints
+        if (array) {
+            std::vector<int*> arrays;
+            arrays.push_back(array);
+            coordArrayPool.coordArrays.push_back(arrays);
+        } else {
+            ESP_LOGW(TAG, "Failed to allocate coordinate array %zu", i);
+        }
+    }
+    ESP_LOGI(TAG, "Pre-allocated %zu coordinate arrays", coordArrayPool.coordArrays.size());
+    
+    coordArrayPool.hits = 0;
+    coordArrayPool.misses = 0;
+    
     ESP_LOGI(TAG, "Advanced memory pools initialized");
-    ESP_LOGI(TAG, "Point pool: %zu, Command pool: %zu, Coords pool: %zu, Feature pool: %zu",
-             pointPool.maxSize, commandPool.maxSize, coordsPool.maxSize, featurePool.maxSize);
+    ESP_LOGI(TAG, "Point pool: %zu, Command pool: %zu, Coords pool: %zu, Feature pool: %zu, LineBatch pool: %zu, CoordArray pool: %zu",
+             pointPool.maxSize, commandPool.maxSize, coordsPool.maxSize, featurePool.maxSize, lineSegmentPool.maxSize, coordArrayPool.maxSize);
 }
 
 /**
@@ -2098,6 +2168,8 @@ void Maps::detectAdvancedPoolCapabilities()
     commandPool.maxSize = std::min(static_cast<size_t>(1000), psramFree / (1024 * 8)); // 8KB per command pool
     coordsPool.maxSize = std::min(static_cast<size_t>(500), psramFree / (1024 * 16)); // 16KB per coords pool
     featurePool.maxSize = std::min(static_cast<size_t>(200), psramFree / (1024 * 32)); // 32KB per feature pool
+    lineSegmentPool.maxSize = std::min(static_cast<size_t>(100), psramFree / (1024 * 64)); // 64KB per line batch pool
+    coordArrayPool.maxSize = std::min(static_cast<size_t>(50), psramFree / (1024 * 128)); // 128KB per coord array pool
 #else
     size_t ramFree = ESP.getFreeHeap();
     
@@ -2106,10 +2178,12 @@ void Maps::detectAdvancedPoolCapabilities()
     commandPool.maxSize = std::min(static_cast<size_t>(250), ramFree / (1024 * 16));
     coordsPool.maxSize = std::min(static_cast<size_t>(100), ramFree / (1024 * 32));
     featurePool.maxSize = std::min(static_cast<size_t>(50), ramFree / (1024 * 64));
+    lineSegmentPool.maxSize = std::min(static_cast<size_t>(25), ramFree / (1024 * 128));
+    coordArrayPool.maxSize = std::min(static_cast<size_t>(10), ramFree / (1024 * 256));
 #endif
     
-    ESP_LOGI(TAG, "Advanced pool sizes: Points=%zu, Commands=%zu, Coords=%zu, Features=%zu",
-             pointPool.maxSize, commandPool.maxSize, coordsPool.maxSize, featurePool.maxSize);
+    ESP_LOGI(TAG, "Advanced pool sizes: Points=%zu, Commands=%zu, Coords=%zu, Features=%zu, LineBatches=%zu, CoordArrays=%zu",
+             pointPool.maxSize, commandPool.maxSize, coordsPool.maxSize, featurePool.maxSize, lineSegmentPool.maxSize, coordArrayPool.maxSize);
 }
 
 /**
@@ -2288,11 +2362,15 @@ void Maps::clearAdvancedPools()
         commandPool.commands.clear();
         coordsPool.coords.clear();
         featurePool.features.clear();
+        lineSegmentPool.lineBatches.clear();
+        coordArrayPool.coordArrays.clear();
         
         pointPool.hits = pointPool.misses = 0;
         commandPool.hits = commandPool.misses = 0;
         coordsPool.hits = coordsPool.misses = 0;
         featurePool.hits = featurePool.misses = 0;
+        lineSegmentPool.hits = lineSegmentPool.misses = 0;
+        coordArrayPool.hits = coordArrayPool.misses = 0;
         
         xSemaphoreGive(advancedPoolMutex);
     }
@@ -2314,11 +2392,100 @@ void Maps::printAdvancedPoolStats()
              coordsPool.coords.size(), coordsPool.maxSize, coordsPool.hits, coordsPool.misses);
     ESP_LOGI(TAG, "Feature Pool: %zu/%zu used, %u hits, %u misses", 
              featurePool.features.size(), featurePool.maxSize, featurePool.hits, featurePool.misses);
+    ESP_LOGI(TAG, "LineSegment Pool: %zu/%zu used, %u hits, %u misses", 
+             lineSegmentPool.lineBatches.size(), lineSegmentPool.maxSize, lineSegmentPool.hits, lineSegmentPool.misses);
+    ESP_LOGI(TAG, "CoordArray Pool: %zu/%zu used, %u hits, %u misses", 
+             coordArrayPool.coordArrays.size(), coordArrayPool.maxSize, coordArrayPool.hits, coordArrayPool.misses);
 }
 
 void Maps::initializeAdvancedPools()
 {
     initAdvancedPools();
+}
+
+/**
+ * @brief Get LineSegment batch from pool
+ *
+ * @details Gets a LineSegment batch from the pool or creates a new one.
+ *
+ * @return LineSegment batch vector.
+ */
+std::vector<Maps::LineSegment> Maps::getLineSegmentBatch()
+{
+    if (advancedPoolMutex && xSemaphoreTake(advancedPoolMutex, portMAX_DELAY) == pdTRUE) {
+        if (!lineSegmentPool.lineBatches.empty()) {
+            auto batch = lineSegmentPool.lineBatches.back();
+            lineSegmentPool.lineBatches.pop_back();
+            batch.clear(); // Clear for reuse
+            lineSegmentPool.hits++;
+            xSemaphoreGive(advancedPoolMutex);
+            return batch;
+        }
+        lineSegmentPool.misses++;
+        xSemaphoreGive(advancedPoolMutex);
+    }
+    return std::vector<Maps::LineSegment>();
+}
+
+/**
+ * @brief Return LineSegment batch to pool
+ *
+ * @details Returns a LineSegment batch to the pool for reuse.
+ *
+ * @param batch The batch to return.
+ */
+void Maps::returnLineSegmentBatch(const std::vector<Maps::LineSegment>& batch)
+{
+    if (advancedPoolMutex && xSemaphoreTake(advancedPoolMutex, portMAX_DELAY) == pdTRUE) {
+        if (lineSegmentPool.lineBatches.size() < lineSegmentPool.maxSize) {
+            lineSegmentPool.lineBatches.push_back(batch);
+        }
+        xSemaphoreGive(advancedPoolMutex);
+    }
+}
+
+/**
+ * @brief Get coordinate array from pool
+ *
+ * @details Gets a coordinate array from the pool or creates a new one.
+ *
+ * @param size The size of the array needed.
+ * @return Pointer to coordinate array.
+ */
+int* Maps::getCoordArray(size_t size)
+{
+    if (advancedPoolMutex && xSemaphoreTake(advancedPoolMutex, portMAX_DELAY) == pdTRUE) {
+        if (!coordArrayPool.coordArrays.empty()) {
+            auto arrays = coordArrayPool.coordArrays.back();
+            coordArrayPool.coordArrays.pop_back();
+            coordArrayPool.hits++;
+            xSemaphoreGive(advancedPoolMutex);
+            return arrays[0]; // Return first array
+        }
+        coordArrayPool.misses++;
+        xSemaphoreGive(advancedPoolMutex);
+    }
+    return allocBuffer<int>(size);
+}
+
+/**
+ * @brief Return coordinate array to pool
+ *
+ * @details Returns a coordinate array to the pool for reuse.
+ *
+ * @param array The array to return.
+ * @param size The size of the array.
+ */
+void Maps::returnCoordArray(int* array, size_t size)
+{
+    if (advancedPoolMutex && xSemaphoreTake(advancedPoolMutex, portMAX_DELAY) == pdTRUE) {
+        if (coordArrayPool.coordArrays.size() < coordArrayPool.maxSize && array) {
+            std::vector<int*> arrays;
+            arrays.push_back(array);
+            coordArrayPool.coordArrays.push_back(arrays);
+        }
+        xSemaphoreGive(advancedPoolMutex);
+    }
 }
 
 void Maps::printAdvancedMemoryPoolStats()
@@ -2327,10 +2494,127 @@ void Maps::printAdvancedMemoryPoolStats()
 }
 
 /**
- * @brief Initialize memory pool system
+ * @brief Initialize memory monitoring system
  *
- * @details Initializes the memory pool system by detecting hardware capabilities and setting up the pool structure.
+ * @details Initializes the memory monitoring system with initial values.
  */
+void Maps::initMemoryMonitoring()
+{
+    totalMemoryAllocations = 0;
+    totalMemoryDeallocations = 0;
+    peakMemoryUsage = 0;
+    currentMemoryUsage = 0;
+    poolEfficiencyScore = 0;
+    lastStatsUpdate = millis();
+    
+    ESP_LOGI(TAG, "Memory monitoring system initialized");
+}
+
+/**
+ * @brief Update memory statistics
+ *
+ * @details Updates current memory usage and calculates efficiency metrics.
+ */
+void Maps::updateMemoryStats()
+{
+    uint32_t currentTime = millis();
+    
+    // Update every tile (force update)
+    currentMemoryUsage = ESP.getFreeHeap();
+    
+    // Update peak memory usage
+    if (currentMemoryUsage > peakMemoryUsage) {
+        peakMemoryUsage = currentMemoryUsage;
+    }
+    
+    // Calculate pool efficiency
+    calculatePoolEfficiency();
+    
+    lastStatsUpdate = currentTime;
+}
+
+/**
+ * @brief Calculate pool efficiency score
+ *
+ * @details Calculates efficiency score based on hit/miss ratios.
+ */
+void Maps::calculatePoolEfficiency()
+{
+    uint32_t totalHits = pointPool.hits + commandPool.hits + coordsPool.hits + 
+                        featurePool.hits + lineSegmentPool.hits + coordArrayPool.hits;
+    uint32_t totalMisses = pointPool.misses + commandPool.misses + coordsPool.misses + 
+                          featurePool.misses + lineSegmentPool.misses + coordArrayPool.misses;
+    
+    if (totalHits + totalMisses > 0) {
+        poolEfficiencyScore = (totalHits * 100) / (totalHits + totalMisses);
+    } else {
+        poolEfficiencyScore = 0;
+    }
+}
+
+/**
+ * @brief Print detailed memory statistics
+ *
+ * @details Prints comprehensive memory usage and efficiency statistics.
+ */
+void Maps::printMemoryStats()
+{
+    ESP_LOGI(TAG, "=== Memory Statistics ===");
+    ESP_LOGI(TAG, "Total Allocations: %u", totalMemoryAllocations);
+    ESP_LOGI(TAG, "Total Deallocations: %u", totalMemoryDeallocations);
+    ESP_LOGI(TAG, "Current Memory Usage: %u bytes", currentMemoryUsage);
+    ESP_LOGI(TAG, "Peak Memory Usage: %u bytes", peakMemoryUsage);
+    ESP_LOGI(TAG, "Pool Efficiency Score: %u%%", poolEfficiencyScore);
+    
+#ifdef BOARD_HAS_PSRAM
+    ESP_LOGI(TAG, "PSRAM Free: %u bytes", ESP.getFreePsram());
+#endif
+    ESP_LOGI(TAG, "Heap Free: %u bytes", ESP.getFreeHeap());
+    ESP_LOGI(TAG, "Heap Min Free: %u bytes", ESP.getMinFreeHeap());
+}
+
+/**
+ * @brief Reset memory statistics
+ *
+ * @details Resets all memory statistics to initial values.
+ */
+void Maps::resetMemoryStats()
+{
+    totalMemoryAllocations = 0;
+    totalMemoryDeallocations = 0;
+    peakMemoryUsage = 0;
+    currentMemoryUsage = 0;
+    poolEfficiencyScore = 0;
+    lastStatsUpdate = millis();
+    
+    ESP_LOGI(TAG, "Memory statistics reset");
+}
+
+/**
+ * @brief Check if memory pressure is high
+ *
+ * @details Checks if system is under high memory pressure.
+ *
+ * @return true if memory pressure is high, false otherwise.
+ */
+bool Maps::isMemoryPressureHigh()
+{
+    uint32_t freeHeap = ESP.getFreeHeap();
+    uint32_t minFreeHeap = ESP.getMinFreeHeap();
+    
+    // High pressure if less than 50KB free heap or min free is very low
+    return (freeHeap < 51200) || (minFreeHeap < 10240);
+}
+
+void Maps::initializeMemoryMonitoring()
+{
+    initMemoryMonitoring();
+}
+
+void Maps::printMemoryMonitoringStats()
+{
+    printMemoryStats();
+}
 void Maps::initMemoryPool()
 {
     detectMemoryPoolCapabilities();
@@ -4281,6 +4565,9 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
         return false;
     }
 
+    // Update memory statistics before rendering
+    updateMemoryStats();
+
     size_t offset = 0;
     const size_t dataSize = fileSize;
     uint8_t current_color = 0xFF;
@@ -4295,13 +4582,29 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
 
     // Use optimal batch size for this hardware
     const size_t optimalBatchSize = getOptimalBatchSize();
-    LineSegment* lineBatch = allocBuffer<LineSegment>(optimalBatchSize);
+    
+    // Try to get LineSegment batch from pool first
+    std::vector<LineSegment> lineBatchVector = getLineSegmentBatch();
+    LineSegment* lineBatch = nullptr;
+    
+    if (!lineBatchVector.empty()) {
+        lineBatch = lineBatchVector.data();
+        lineSegmentPool.hits++;
+    } else {
+        // Fallback to direct allocation if pool is empty
+        lineBatch = allocBuffer<LineSegment>(optimalBatchSize);
+        lineSegmentPool.misses++;
+    }
+    
     int batchCount = 0;
     if (!lineBatch) 
     {
         poolDeallocate(data);
         return false;
     }
+
+    // Track memory allocations for statistics
+    totalMemoryAllocations++;
 
     int executed = 0;
     int totalLines = 0;
@@ -4402,12 +4705,32 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     const uint32_t numPoints = readVarint(data, offset, dataSize);
                     if (numPoints >= 2) 
                     {
-                        int* px = allocBuffer<int>(numPoints);
-                        int* py = allocBuffer<int>(numPoints);
+                        // Try to get coordinate arrays from pool first
+                        int* coordArrayX = getCoordArray(numPoints);
+                        int* coordArrayY = getCoordArray(numPoints);
+                        int* px = nullptr;
+                        int* py = nullptr;
+                        
+                        if (coordArrayX != nullptr && coordArrayY != nullptr) {
+                            px = coordArrayX;
+                            py = coordArrayY;
+                            coordArrayPool.hits += 2;
+                        } else {
+                            // Fallback to direct allocation if pools are empty or too small
+                            px = allocBuffer<int>(numPoints);
+                            py = allocBuffer<int>(numPoints);
+                            coordArrayPool.misses += 2;
+                        }
+                        
                         if (!px || !py)
                         {
-                            if (px) poolDeallocate(px);
-                            if (py) poolDeallocate(py);
+                            // Return arrays to pool if they came from pool
+                            if (coordArrayX != nullptr) {
+                                returnCoordArray(coordArrayX, numPoints);
+                            }
+                            if (coordArrayY != nullptr) {
+                                returnCoordArray(coordArrayY, numPoints);
+                            }
                             for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
                             {
                                 readZigzag(data, offset, dataSize);
@@ -4443,8 +4766,18 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         }
                         executed++;
                         isLineCommand = true;
-                        poolDeallocate(px);
-                        poolDeallocate(py);
+                        
+                        // Return arrays to pool if they came from pool
+                        if (coordArrayX != nullptr) {
+                            returnCoordArray(coordArrayX, numPoints);
+                        } else {
+                            poolDeallocate(px);
+                        }
+                        if (coordArrayY != nullptr) {
+                            returnCoordArray(coordArrayY, numPoints);
+                        } else {
+                            poolDeallocate(py);
+                        }
                     }
                     else
                     {
@@ -4950,7 +5283,16 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
 
     // Use pool deallocation for better memory management
     poolDeallocate(data);
-    poolDeallocate(lineBatch);
+    
+    // Return LineSegment batch to pool if it came from pool
+    if (!lineBatchVector.empty()) {
+        returnLineSegmentBatch(lineBatchVector);
+    } else {
+        poolDeallocate(lineBatch);
+    }
+    
+    // Track memory deallocations for statistics
+    totalMemoryDeallocations += 2;
 
     if (executed == 0) 
         return false;
@@ -4958,22 +5300,30 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     // Add successfully rendered tile to cache
     addToCache(path, map);
 
+    // Log memory statistics every tile
+    static uint32_t tileRenderCount = 0;
+    if (++tileRenderCount % 1 == 0) {
+        ESP_LOGI(TAG, "=== Memory Stats after %u tiles ===", tileRenderCount);
+        ESP_LOGI(TAG, "Pool Efficiency: %u%%", poolEfficiencyScore);
+        ESP_LOGI(TAG, "Current Memory: %u bytes", currentMemoryUsage);
+        ESP_LOGI(TAG, "Peak Memory: %u bytes", peakMemoryUsage);
+        ESP_LOGI(TAG, "Memory Pressure: %s", isMemoryPressureHigh() ? "HIGH" : "NORMAL");
+        
+        // Advanced pool stats (info level)
+        ESP_LOGI(TAG, "Point Pool: %zu/%zu (hits:%u misses:%u)", 
+                 pointPool.points.size(), pointPool.maxSize, pointPool.hits, pointPool.misses);
+        ESP_LOGI(TAG, "LineSegment Pool: %zu/%zu (hits:%u misses:%u)", 
+                 lineSegmentPool.lineBatches.size(), lineSegmentPool.maxSize, lineSegmentPool.hits, lineSegmentPool.misses);
+        ESP_LOGI(TAG, "CoordArray Pool: %zu/%zu (hits:%u misses:%u)", 
+                 coordArrayPool.coordArrays.size(), coordArrayPool.maxSize, coordArrayPool.hits, coordArrayPool.misses);
+    }
+
     // Log rendering performance
     unsigned long renderTime = millis() - renderStart;
     if (totalLines > 0) {
         ESP_LOGI(TAG, "Tile rendered: %s", path);
         ESP_LOGI(TAG, "Performance: %lu ms, %d lines, %d batches, avg %.1f lines/batch", 
                  renderTime, totalLines, batchFlushes, (float)totalLines / batchFlushes);
-        
-        // Log command type statistics
-        ESP_LOGI(TAG, "Command stats: lines=%d, polygons=%d, rectangles=%d, circles=%d", 
-                 lineCommands, polygonCommands, rectangleCommands, circleCommands);
-        
-        // Log polygon optimization stats if enabled
-        if (polygonCullingEnabled || optimizedScanlineEnabled) {
-            ESP_LOGI(TAG, "Polygon stats: rendered=%u, culled=%u, optimized=%u", 
-                     polygonRenderCount, polygonCulledCount, polygonOptimizedCount);
-        }
     }
 
     return true;
@@ -5077,13 +5427,29 @@ bool Maps::renderTileWithLayerOrdering(const char* path, const int16_t xOffset, 
 
     // Use optimal batch size for this hardware
     const size_t optimalBatchSize = getOptimalBatchSize();
-    LineSegment* lineBatch = allocBuffer<LineSegment>(optimalBatchSize);
+    
+    // Try to get LineSegment batch from pool first
+    std::vector<LineSegment> lineBatchVector = getLineSegmentBatch();
+    LineSegment* lineBatch = nullptr;
+    
+    if (!lineBatchVector.empty()) {
+        lineBatch = lineBatchVector.data();
+        lineSegmentPool.hits++;
+    } else {
+        // Fallback to direct allocation if pool is empty
+        lineBatch = allocBuffer<LineSegment>(optimalBatchSize);
+        lineSegmentPool.misses++;
+    }
+    
     int batchCount = 0;
     if (!lineBatch) 
     {
         poolDeallocate(data);
         return false;
     }
+
+    // Track memory allocations for statistics
+    totalMemoryAllocations++;
 
     int executed = 0;
     int totalLines = 0;
@@ -5175,8 +5541,23 @@ bool Maps::renderTileWithLayerOrdering(const char* path, const int16_t xOffset, 
                     const uint32_t numPoints = readVarint(data, offset, dataSize);
                     if (numPoints >= 2) 
                     {
-                        int* px = allocBuffer<int>(numPoints);
-                        int* py = allocBuffer<int>(numPoints);
+                        // Try to get coordinate arrays from pool first
+                        int* coordArrayX = getCoordArray(numPoints);
+                        int* coordArrayY = getCoordArray(numPoints);
+                        int* px = nullptr;
+                        int* py = nullptr;
+                        
+                        if (coordArrayX != nullptr && coordArrayY != nullptr) {
+                            px = coordArrayX;
+                            py = coordArrayY;
+                            coordArrayPool.hits += 2;
+                        } else {
+                            // Fallback to direct allocation if pools are empty or too small
+                            px = allocBuffer<int>(numPoints);
+                            py = allocBuffer<int>(numPoints);
+                            coordArrayPool.misses += 2;
+                        }
+                        
                         if (!px || !py) 
                         {
                             if (px) poolDeallocate(px);
@@ -5445,7 +5826,16 @@ bool Maps::renderTileWithLayerOrdering(const char* path, const int16_t xOffset, 
 
     // Use pool deallocation for better memory management
     poolDeallocate(data);
-    poolDeallocate(lineBatch);
+    
+    // Return LineSegment batch to pool if it came from pool
+    if (!lineBatchVector.empty()) {
+        returnLineSegmentBatch(lineBatchVector);
+    } else {
+        poolDeallocate(lineBatch);
+    }
+    
+    // Track memory deallocations for statistics
+    totalMemoryDeallocations += 2;
 
     if (executed == 0) 
         return false;
@@ -5528,13 +5918,29 @@ bool Maps::renderTileWithLayers(const char* path, const int16_t xOffset, const i
 
     // Use optimal batch size for this hardware
     const size_t optimalBatchSize = getOptimalBatchSize();
-    LineSegment* lineBatch = allocBuffer<LineSegment>(optimalBatchSize);
+    
+    // Try to get LineSegment batch from pool first
+    std::vector<LineSegment> lineBatchVector = getLineSegmentBatch();
+    LineSegment* lineBatch = nullptr;
+    
+    if (!lineBatchVector.empty()) {
+        lineBatch = lineBatchVector.data();
+        lineSegmentPool.hits++;
+    } else {
+        // Fallback to direct allocation if pool is empty
+        lineBatch = allocBuffer<LineSegment>(optimalBatchSize);
+        lineSegmentPool.misses++;
+    }
+    
     int batchCount = 0;
     if (!lineBatch) 
     {
         poolDeallocate(data);
         return false;
     }
+
+    // Track memory allocations for statistics
+    totalMemoryAllocations++;
 
     int executed = 0;
     int totalLines = 0;
@@ -5634,8 +6040,23 @@ bool Maps::renderTileWithLayers(const char* path, const int16_t xOffset, const i
                     const uint32_t numPoints = readVarint(data, offset, dataSize);
                     if (numPoints >= 2) 
                     {
-                        int* px = allocBuffer<int>(numPoints);
-                        int* py = allocBuffer<int>(numPoints);
+                        // Try to get coordinate arrays from pool first
+                        int* coordArrayX = getCoordArray(numPoints);
+                        int* coordArrayY = getCoordArray(numPoints);
+                        int* px = nullptr;
+                        int* py = nullptr;
+                        
+                        if (coordArrayX != nullptr && coordArrayY != nullptr) {
+                            px = coordArrayX;
+                            py = coordArrayY;
+                            coordArrayPool.hits += 2;
+                        } else {
+                            // Fallback to direct allocation if pools are empty or too small
+                            px = allocBuffer<int>(numPoints);
+                            py = allocBuffer<int>(numPoints);
+                            coordArrayPool.misses += 2;
+                        }
+                        
                         if (!px || !py) 
                         {
                             if (px) poolDeallocate(px);
@@ -5902,13 +6323,40 @@ bool Maps::renderTileWithLayers(const char* path, const int16_t xOffset, const i
 
     // Use pool deallocation for better memory management
     poolDeallocate(data);
-    poolDeallocate(lineBatch);
+    
+    // Return LineSegment batch to pool if it came from pool
+    if (!lineBatchVector.empty()) {
+        returnLineSegmentBatch(lineBatchVector);
+    } else {
+        poolDeallocate(lineBatch);
+    }
+    
+    // Track memory deallocations for statistics
+    totalMemoryDeallocations += 2;
 
     if (executed == 0) 
         return false;
 
     // Add successfully rendered tile to cache
     addToCache(path, map);
+
+    // Log memory statistics every tile
+    static uint32_t tileRenderCount = 0;
+    if (++tileRenderCount % 1 == 0) {
+        ESP_LOGI(TAG, "=== Memory Stats after %u tiles ===", tileRenderCount);
+        ESP_LOGI(TAG, "Pool Efficiency: %u%%", poolEfficiencyScore);
+        ESP_LOGI(TAG, "Current Memory: %u bytes", currentMemoryUsage);
+        ESP_LOGI(TAG, "Peak Memory: %u bytes", peakMemoryUsage);
+        ESP_LOGI(TAG, "Memory Pressure: %s", isMemoryPressureHigh() ? "HIGH" : "NORMAL");
+        
+        // Advanced pool stats (info level)
+        ESP_LOGI(TAG, "Point Pool: %zu/%zu (hits:%u misses:%u)", 
+                 pointPool.points.size(), pointPool.maxSize, pointPool.hits, pointPool.misses);
+        ESP_LOGI(TAG, "LineSegment Pool: %zu/%zu (hits:%u misses:%u)", 
+                 lineSegmentPool.lineBatches.size(), lineSegmentPool.maxSize, lineSegmentPool.hits, lineSegmentPool.misses);
+        ESP_LOGI(TAG, "CoordArray Pool: %zu/%zu (hits:%u misses:%u)", 
+                 coordArrayPool.coordArrays.size(), coordArrayPool.maxSize, coordArrayPool.hits, coordArrayPool.misses);
+    }
 
     // Log rendering performance
     unsigned long renderTime = millis() - renderStart;
