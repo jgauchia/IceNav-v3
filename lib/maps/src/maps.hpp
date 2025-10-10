@@ -10,6 +10,10 @@
 
 #include <cstdint>
 #include <vector>
+#include <map>
+#include <string>
+#include <algorithm>
+#include <cstring>
 #include "tft.hpp"
 #include "gpsMath.hpp"
 #include "settings.hpp"
@@ -36,7 +40,24 @@ enum DrawCommand : uint8_t
     SET_COLOR_INDEX = 0x81,      /**< Set current color using palette index */
     RECTANGLE = 0x82,            /**< Optimized rectangle command */
     STRAIGHT_LINE = 0x83,        /**< Optimized straight line command */
+    HIGHWAY_SEGMENT = 0x84,      /**< Highway segment with continuity */
+    GRID_PATTERN = 0x85,         /**< Urban grid pattern */
+    BLOCK_PATTERN = 0x86,        /**< City block pattern */
     CIRCLE = 0x87,               /**< Optimized circle command */
+    SET_LAYER = 0x88,            /**< Layer indicator command */
+    RELATIVE_MOVE = 0x89,        /**< Relative coordinate movement */
+    PREDICTED_LINE = 0x8A,       /**< Predictive line based on pattern */
+    COMPRESSED_POLYLINE = 0x8B,  /**< Huffman-compressed polyline */
+    OPTIMIZED_POLYGON = 0x8C,    /**< Optimized polygon (contour only, fill decided by viewer) */
+    HOLLOW_POLYGON = 0x8D,       /**< Polygon outline only (optimized for boundaries) */
+    OPTIMIZED_TRIANGLE = 0x8E,   /**< Optimized triangle (contour only, fill decided by viewer) */
+    OPTIMIZED_RECTANGLE = 0x8F,  /**< Optimized rectangle (contour only, fill decided by viewer) */
+    OPTIMIZED_CIRCLE = 0x90,     /**< Optimized circle (contour only, fill decided by viewer) */
+    SIMPLE_RECTANGLE = 0x96,     /**< Simple rectangle (x, y, width, height) */
+    SIMPLE_CIRCLE = 0x97,        /**< Simple circle (center_x, center_y, radius) */
+    SIMPLE_TRIANGLE = 0x98,      /**< Simple triangle (x1, y1, x2, y2, x3, y3) */
+    DASHED_LINE = 0x99,          /**< Dashed line with pattern */
+    DOTTED_LINE = 0x9A,          /**< Dotted line with pattern */
                   };
 
 /**
@@ -55,6 +76,99 @@ private:
 		uint8_t zoom;       /**< Zoom level of the tile */
 		float lat;          /**< Latitude of the tile center */
 		float lon;          /**< Longitude of the tile center */
+	};
+	
+	struct CachedTile		/**< Cached tile structure */
+	{
+		TFT_eSprite* sprite;    /**< Rendered tile sprite */
+		uint32_t tileHash;     /**< Hash for tile identification */
+		uint32_t lastAccess;   /**< Last access timestamp for LRU */
+		bool isValid;          /**< Cache entry validity */
+		char filePath[255];    /**< Original file path */
+	};
+	
+	struct PreloadTask		/**< Background preload task structure */
+	{
+		char filePath[255];    /**< File path to preload */
+		int16_t tileX;         /**< Tile X coordinate */
+		int16_t tileY;         /**< Tile Y coordinate */
+		uint8_t zoom;          /**< Zoom level */
+		bool isActive;         /**< Task is active */
+		bool isCompleted;      /**< Task completed */
+	};
+	
+	struct MemoryPoolEntry	/**< Memory pool entry structure */
+	{
+		void* ptr;             /**< Pointer to allocated memory */
+		size_t size;           /**< Size of allocated memory */
+		bool isInUse;          /**< Entry is currently in use */
+		uint32_t allocationCount; /**< Number of times this entry was used */
+	};
+	
+	struct PointPool	/**< Point pool for coordinate reuse */
+	{
+		std::vector<std::pair<int, int>> points;
+		size_t maxSize;
+		uint32_t hits;
+		uint32_t misses;
+	};
+	
+	struct CommandPool	/**< Command pool for draw commands */
+	{
+		std::vector<std::pair<uint8_t, uint16_t>> commands;
+		size_t maxSize;
+		uint32_t hits;
+		uint32_t misses;
+	};
+	
+	struct CoordsPool	/**< Coordinates pool for polygon/line coordinates */
+	{
+		std::vector<std::vector<std::pair<int, int>>> coords;
+		size_t maxSize;
+		uint32_t hits;
+		uint32_t misses;
+	};
+	
+	struct FeaturePool	/**< Feature pool for OSM features */
+	{
+		std::vector<std::map<std::string, std::string>> features;
+		size_t maxSize;
+		uint32_t hits;
+		uint32_t misses;
+	};
+	
+	struct PolygonBounds	/**< Polygon bounding box structure */
+	{
+		int minX, minY, maxX, maxY; /**< Bounding box coordinates */
+		bool isValid;               /**< Bounds are valid */
+	};
+	
+	struct ScanlineEdge		/**< Edge structure for scanline algorithm */
+	{
+		int x;                  /**< Current X position */
+		int dx;                 /**< X increment per scanline */
+		int dy;                 /**< Remaining Y steps */
+		int winding;             /**< Winding number (+1 or -1) */
+	};
+	
+	// Layer rendering structures
+	struct RenderCommand		/**< Command for layered rendering */
+	{
+		uint8_t type;           /**< Command type */
+		uint8_t color;          /**< RGB332 color */
+		uint16_t colorRGB565;   /**< RGB565 color */
+		void* data;             /**< Command-specific data */
+		size_t dataSize;        /**< Size of command data */
+	};
+	
+	enum RenderLayer			/**< Rendering layer enumeration */
+	{
+		LAYER_TERRAIN = 0,      /**< Background terrain/land */
+		LAYER_WATER = 1,        /**< Water bodies, rivers */
+		LAYER_BUILDINGS = 2,    /**< Buildings with fill */
+		LAYER_OUTLINES = 3,     /**< Polygon outlines/borders */
+		LAYER_ROADS = 4,        /**< Roads, streets, paths */
+		LAYER_COUNT = 5         /**< Total number of layers */
 	};
 	struct tileBounds		/**< Map boundaries structure */
 	{
@@ -81,6 +195,44 @@ private:
 	static uint8_t PALETTE[256];                                                /**< Color palette for vector tiles */
 	static uint32_t PALETTE_SIZE;                                               /**< Number of entries in the palette */
 	
+	// Tile cache system
+	static std::vector<CachedTile> tileCache;                                   /**< Tile cache storage */
+	static size_t maxCachedTiles;                                               /**< Maximum cached tiles based on hardware */
+	static uint32_t cacheAccessCounter;                                         /**< Counter for LRU algorithm */
+	
+	// Background preload system
+	static std::vector<PreloadTask> preloadQueue;                              /**< Queue of tiles to preload */
+	static TaskHandle_t preloadTaskHandle;                                      /**< FreeRTOS task handle */
+	static SemaphoreHandle_t preloadMutex;                                      /**< Mutex for thread safety */
+	static bool preloadSystemActive;                                            /**< Preload system enabled */
+	
+	// Memory pool system
+	static std::vector<MemoryPoolEntry> memoryPool;                            /**< Memory pool for reusable buffers */
+	static SemaphoreHandle_t memoryPoolMutex;                                  /**< Mutex for memory pool thread safety */
+	static size_t maxPoolEntries;                                              /**< Maximum pool entries based on hardware */
+	static uint32_t poolAllocationCount;                                       /**< Total allocations from pool */
+	static uint32_t poolHitCount;                                              /**< Successful pool hits */
+	static uint32_t poolMissCount;                                             /**< Pool misses (fallback to malloc) */
+	
+	// Advanced memory pools for object reuse
+	static PointPool pointPool;                                                /**< Pool for coordinate points */
+	static CommandPool commandPool;                                            /**< Pool for draw commands */
+	static CoordsPool coordsPool;                                              /**< Pool for coordinate arrays */
+	static FeaturePool featurePool;                                            /**< Pool for OSM features */
+	static SemaphoreHandle_t advancedPoolMutex;                               /**< Mutex for advanced pools */
+	
+	// Polygon optimization system
+	static bool polygonCullingEnabled;                                         /**< Enable polygon culling */
+	static bool optimizedScanlineEnabled;                                      /**< Enable optimized scanline */
+	static uint32_t polygonRenderCount;                                        /**< Total polygons rendered */
+	static uint32_t polygonCulledCount;                                        /**< Polygons culled (not rendered) */
+	static uint32_t polygonOptimizedCount;                                     /**< Polygons using optimized algorithms */
+	
+	// Layer rendering system
+	static std::vector<std::vector<RenderCommand>> layerCommands;             /**< Commands organized by layer */
+	static bool layerRenderingEnabled;                                        /**< Enable/disable layer rendering */
+	static uint32_t layerRenderCount;                                          /**< Total layers rendered */
+	
 	tileBounds totalBounds; 													/**< Map boundaries */
 	uint16_t wptPosX, wptPosY;                                                  /**< Waypoint position on screen map */
 	TFT_eSprite mapTempSprite = TFT_eSprite(&tft);                              /**< Full map sprite (not showed) */
@@ -106,7 +258,7 @@ private:
 	bool loadPalette(const char* palettePath);											/**< Load color palette from binary file */
 	uint8_t paletteToRGB332(const uint32_t idx);					 					/**< Convert palette index to RGB332 color */
 	uint8_t darkenRGB332(const uint8_t color, const float amount);  					/**< Darken RGB332 color by a given fraction */
-	uint16_t RGB332ToRGB565(const uint8_t color);										/**< Convert RGB332 color to RGB565 */
+    uint16_t RGB332ToRGB565(const uint8_t color);										/**< Convert RGB332 color to RGB565 */
 	uint32_t readVarint(const uint8_t* data, size_t& offset, size_t dataSize);			/**< Read a varint-encoded uint32_t from data buffer */
 	int32_t readZigzag(const uint8_t* data, size_t& offset, const size_t dataSize);		/**< Read a zigzag-encoded int32_t from data buffer */
 	int uint16ToPixel(const int32_t val);												/**< Convert uint16_t tile coordinate to pixel coordinate */
@@ -124,7 +276,81 @@ private:
 	void drawFilledRectWithBorder(TFT_eSprite& map, int x, int y, int w, int h, 
 		                          uint16_t fill, uint16_t border, bool fillShape);		/**< Draw filled rectangle with border */
 	void drawFilledCircleWithBorder(TFT_eSprite& map, int x, int y, int r,
-									uint16_t fill, uint16_t border, bool fillShape);	/**< Draw filled circle with border */											
+									uint16_t fill, uint16_t border, bool fillShape);	/**< Draw filled circle with border */
+	void drawDashedLine(TFT_eSprite& map, int x1, int y1, int x2, int y2, 
+						int dashLength, int gapLength, uint16_t color);				/**< Draw dashed line */
+	void drawDottedLine(TFT_eSprite& map, int x1, int y1, int x2, int y2, 
+						int dotSpacing, uint16_t color);								/**< Draw dotted line */
+	void drawGridPattern(TFT_eSprite& map, int x, int y, int width, int spacing, 
+						int count, int direction, uint16_t color);					/**< Draw grid pattern */
+	void drawPredictedLine(TFT_eSprite& map, int startX, int startY, int patternType, 
+						int length, uint16_t color);									/**< Draw predicted line */
+	void drawHighwaySegment(TFT_eSprite& map, int startX, int startY, int endX, int endY, 
+						int width, uint16_t color);									/**< Draw highway segment */
+	void drawBlockPattern(TFT_eSprite& map, int x, int y, int blockSize, int spacing, 
+						int count, uint16_t color);									/**< Draw block pattern */
+	
+	// Tile cache methods
+	void initTileCache();                                                         /**< Initialize tile cache system */
+	void detectHardwareCapabilities();                                           /**< Detect available memory and set cache size */
+	uint32_t calculateTileHash(const char* filePath);                           /**< Calculate hash for tile identification */
+	bool getCachedTile(const char* filePath, TFT_eSprite& target, int16_t xOffset, int16_t yOffset); /**< Get tile from cache */
+	void addToCache(const char* filePath, TFT_eSprite& source);                 /**< Add rendered tile to cache */
+	void evictLRUTile();                                                         /**< Remove least recently used tile from cache */
+	void clearTileCache();                                                       /**< Clear all cached tiles */
+	size_t getCacheMemoryUsage();                                               /**< Get current cache memory usage in bytes */
+	
+	// Background preload methods
+	void initBackgroundPreload();                                               /**< Initialize background preload system */
+	void startPreloadTask();                                                    /**< Start FreeRTOS preload task */
+	void stopPreloadTask();                                                     /**< Stop FreeRTOS preload task */
+	void addToPreloadQueue(const char* filePath, int16_t tileX, int16_t tileY, uint8_t zoom); /**< Add tile to preload queue */
+	static void processPreloadQueue();                                          /**< Process preload queue in background */
+	static void preloadTaskFunction(void* parameter);                           /**< FreeRTOS task function */
+	void preloadAdjacentTiles(int16_t centerX, int16_t centerY, uint8_t zoom); /**< Preload tiles around current position */
+	
+	// Memory pool methods
+	void initMemoryPool();                                                      /**< Initialize memory pool system */
+	void detectMemoryPoolCapabilities();                                       /**< Detect optimal pool size based on hardware */
+	void* poolAllocate(size_t size);                                           /**< Allocate memory from pool */
+	void poolDeallocate(void* ptr);                                            /**< Return memory to pool */
+	void clearMemoryPool();                                                    /**< Clear all pool entries */
+	size_t getPoolMemoryUsage();                                               /**< Get current pool memory usage */
+	void printPoolStats();                                                     /**< Print pool statistics for debugging */
+	
+	// Advanced memory pool methods
+	void initAdvancedPools();                                                  /**< Initialize advanced memory pools */
+	void detectAdvancedPoolCapabilities();                                     /**< Detect optimal pool sizes */
+	std::pair<int, int> getPoint();                                            /**< Get point from pool */
+	void returnPoint(const std::pair<int, int>& point);                        /**< Return point to pool */
+	std::pair<uint8_t, uint16_t> getCommand();                                 /**< Get command from pool */
+	void returnCommand(const std::pair<uint8_t, uint16_t>& command);           /**< Return command to pool */
+	std::vector<std::pair<int, int>> getCoords();                              /**< Get coordinates from pool */
+	void returnCoords(const std::vector<std::pair<int, int>>& coords);         /**< Return coordinates to pool */
+	std::map<std::string, std::string> getFeature();                           /**< Get feature from pool */
+	void returnFeature(const std::map<std::string, std::string>& feature);     /**< Return feature to pool */
+	void clearAdvancedPools();                                                 /**< Clear all advanced pools */
+	void printAdvancedPoolStats();                                             /**< Print advanced pool statistics */
+	
+	// Polygon optimization methods
+	void initPolygonOptimizations();                                           /**< Initialize polygon optimization system */
+	void calculatePolygonBounds(const int *px, const int *py, int numPoints, PolygonBounds& bounds); /**< Calculate polygon bounding box */
+	bool isPolygonInViewport(const PolygonBounds& bounds, int xOffset, int yOffset); /**< Check if polygon is in viewport */
+	bool isSimplePolygon(const int *px, const int *py, int numPoints);         /**< Check if polygon can use optimized rendering */
+	void fillPolygonOptimized(TFT_eSprite &map, const int *px, const int *py, int numPoints, uint16_t color, int xOffset, int yOffset); /**< Optimized polygon filling */
+	void fillTriangleOptimized(TFT_eSprite &map, int x1, int y1, int x2, int y2, int x3, int y3, uint16_t color); /**< Optimized triangle filling */
+	void fillRectangleOptimized(TFT_eSprite &map, int x, int y, int w, int h, uint16_t color); /**< Optimized rectangle filling */
+	void fillPolygonScanlineOptimized(TFT_eSprite &map, const int *px, const int *py, int numPoints, uint16_t color, int xOffset, int yOffset); /**< Optimized scanline algorithm */
+	
+	// Layer rendering methods
+	void initLayerRendering();                                                /**< Initialize layer rendering system */
+	RenderLayer determineCommandLayer(uint8_t cmdType, uint8_t color);         /**< Determine which layer a command belongs to */
+	bool renderTileLayered(const char* path, const int16_t xOffset, const int16_t yOffset, TFT_eSprite& map); /**< Render tile with proper layer ordering */
+	bool renderTileWithLayers(const char* path, const int16_t xOffset, const int16_t yOffset, TFT_eSprite& map); /**< Render tile with simple layer grouping */
+	bool renderTileWithLayerOrdering(const char* path, const int16_t xOffset, const int16_t yOffset, TFT_eSprite& map); /**< Render tile with proper layer ordering */
+	void renderLayer(TFT_eSprite& map, const std::vector<RenderCommand>& commands, int xOffset, int yOffset); /**< Render a specific layer */
+	void clearLayerCommands();                                                /**< Clear all layer commands */
+	void printPolygonStats();                                                  /**< Print polygon optimization statistics */
 
    
 public:
@@ -160,5 +386,32 @@ public:
     void scrollMap(int16_t dx, int16_t dy);
     void preloadTiles(int8_t dirX, int8_t dirY);
     bool renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
+    
+    // Cache management public methods
+    void initializeTileCache();                                                  /**< Initialize tile cache system */
+    void printCacheStats();                                                      /**< Print cache statistics for debugging */
+    
+    // Background preload public methods
+    void enableBackgroundPreload();                                              /**< Enable background preload system */
+    void disableBackgroundPreload();                                            /**< Disable background preload system */
+    void triggerPreload(int16_t centerX, int16_t centerY, uint8_t zoom);        /**< Trigger preload of adjacent tiles */
+    
+    // Memory pool public methods
+    void initializeMemoryPool();                                                /**< Initialize memory pool system */
+    void printMemoryPoolStats();                                                /**< Print memory pool statistics */
+    
+    // Advanced memory pool public methods
+    void initializeAdvancedPools();                                             /**< Initialize advanced memory pools */
+    void printAdvancedMemoryPoolStats();                                        /**< Print advanced memory pool statistics */
+    
+    // Polygon optimization public methods
+    void initializePolygonOptimizations();                                      /**< Initialize polygon optimization system */
+    void printPolygonOptimizationStats();                                      /**< Print polygon optimization statistics */
+    void enablePolygonCulling(bool enable);                                    /**< Enable/disable polygon culling */
+    void enableOptimizedScanline(bool enable);                                 /**< Enable/disable optimized scanline */
+    
+    // Layer rendering public methods
+	bool enableLayerRendering(bool enable);                                     /**< Enable/disable layer rendering */
+    void printLayerRenderingStats();                                            /**< Print layer rendering statistics */
 };
 
