@@ -44,6 +44,14 @@ void createGpxFolders()
 	}
 	else
 		ESP_LOGI(TAG,"WPT folder exists");
+	if (!storage.exists(logFolder)){
+		ESP_LOGI(TAG, "LOG folder not exists");
+		if (storage.mkdir(logFolder))
+		ESP_LOGI(TAG, "LOG folder created");
+		else
+		ESP_LOGE(TAG, "LOG folder not created");
+	} else
+		ESP_LOGI(TAG, "LOG folder exists");
 }
 
 /**
