@@ -245,6 +245,21 @@ private:
 	static CoordArrayPool coordArrayPool;                                      /**< Pool for coordinate arrays */
 	static SemaphoreHandle_t advancedPoolMutex;                               /**< Mutex for advanced pools */
 	
+	// Unified memory pool system (experimental)
+	struct UnifiedPoolEntry
+	{
+		void* ptr;
+		size_t size;
+		bool isInUse;
+		uint32_t allocationCount;
+		uint8_t type; // 0=general, 1=point, 2=command, 3=coords, 4=feature, 5=lineSegment, 6=coordArray
+	};
+	static std::vector<UnifiedPoolEntry> unifiedPool;                         /**< Unified memory pool */
+	static SemaphoreHandle_t unifiedPoolMutex;                                /**< Mutex for unified pool */
+	static size_t maxUnifiedPoolEntries;                                      /**< Maximum unified pool entries */
+	static uint32_t unifiedPoolHitCount;                                       /**< Unified pool hits */
+	static uint32_t unifiedPoolMissCount;                                     /**< Unified pool misses */
+	
 	// Memory monitoring and statistics
 	static uint32_t totalMemoryAllocations;                                    /**< Total memory allocations */
 	static uint32_t totalMemoryDeallocations;                                 /**< Total memory deallocations */
@@ -361,12 +376,15 @@ private:
 	void returnCoords(const std::vector<std::pair<int, int>>& coords);         /**< Return coordinates to pool */
 	std::map<std::string, std::string> getFeature();                           /**< Get feature from pool */
 	void returnFeature(const std::map<std::string, std::string>& feature);     /**< Return feature to pool */
-	std::vector<Maps::LineSegment> getLineSegmentBatch();                            /**< Get LineSegment batch from pool */
-	void returnLineSegmentBatch(const std::vector<Maps::LineSegment>& batch);        /**< Return LineSegment batch to pool */
-	int* getCoordArray(size_t size);                                           /**< Get coordinate array from pool */
-	void returnCoordArray(int* array, size_t size);                           /**< Return coordinate array to pool */
 	void clearAdvancedPools();                                                 /**< Clear all advanced pools */
 	void printAdvancedPoolStats();                                             /**< Print advanced pool statistics */
+	
+	// Unified memory pool methods (experimental)
+	void initUnifiedPool();                                                     /**< Initialize unified memory pool */
+	void* unifiedAlloc(size_t size, uint8_t type = 0);                          /**< Allocate from unified pool */
+	void unifiedDealloc(void* ptr);                                             /**< Deallocate from unified pool */
+	void clearUnifiedPool();                                                    /**< Clear unified pool */
+	void printUnifiedPoolStats();                                               /**< Print unified pool statistics */
 	
 	// Memory monitoring methods
 	void initMemoryMonitoring();                                               /**< Initialize memory monitoring system */
@@ -390,8 +408,6 @@ private:
 	void initLayerRendering();                                                /**< Initialize layer rendering system */
 	RenderLayer determineCommandLayer(uint8_t cmdType, uint8_t color);         /**< Determine which layer a command belongs to */
 	bool renderTileLayered(const char* path, const int16_t xOffset, const int16_t yOffset, TFT_eSprite& map); /**< Render tile with proper layer ordering */
-	bool renderTileWithLayers(const char* path, const int16_t xOffset, const int16_t yOffset, TFT_eSprite& map); /**< Render tile with simple layer grouping */
-	bool renderTileWithLayerOrdering(const char* path, const int16_t xOffset, const int16_t yOffset, TFT_eSprite& map); /**< Render tile with proper layer ordering */
 	void renderLayer(TFT_eSprite& map, const std::vector<RenderCommand>& commands, int xOffset, int yOffset); /**< Render a specific layer */
 	void clearLayerCommands();                                                /**< Clear all layer commands */
 	void printPolygonStats();                                                  /**< Print polygon optimization statistics */

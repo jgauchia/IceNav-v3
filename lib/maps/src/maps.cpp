@@ -52,6 +52,13 @@ Maps::LineSegmentPool Maps::lineSegmentPool;
 Maps::CoordArrayPool Maps::coordArrayPool;
 SemaphoreHandle_t Maps::advancedPoolMutex = nullptr;
 
+// Unified memory pool system static variables (experimental)
+std::vector<Maps::UnifiedPoolEntry> Maps::unifiedPool;
+SemaphoreHandle_t Maps::unifiedPoolMutex = nullptr;
+size_t Maps::maxUnifiedPoolEntries = 0;
+uint32_t Maps::unifiedPoolHitCount = 0;
+uint32_t Maps::unifiedPoolMissCount = 0;
+
 // Memory monitoring static variables
 uint32_t Maps::totalMemoryAllocations = 0;
 uint32_t Maps::totalMemoryDeallocations = 0;
@@ -111,6 +118,7 @@ Maps::Maps() : fillPolygons(true)
     
     // Initialize advanced memory pools in constructor
     initAdvancedPools();
+    initUnifiedPool();
     initMemoryMonitoring();
     
     ESP_LOGI(TAG, "Maps constructor completed");
@@ -1109,6 +1117,8 @@ bool Maps::shouldDrawLine(const int px1, const int py1, const int px2, const int
  */
 void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset)
 {
+    static bool unifiedPoolLogged = false;
+    
     int miny = py[0], maxy = py[0];
     for (int i = 1; i < numPoints; ++i) 
     {
@@ -1117,18 +1127,20 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
         if (py[i] > maxy)
             maxy = py[i];
     }
-    // Try to get coordinate array from pool first
-    int* coordArray = getCoordArray(numPoints);
+    // Use unified pool directly
     int *xints = nullptr;
     
-    if (coordArray != nullptr) {
-        xints = coordArray;
-        coordArrayPool.hits++;
-    } else {
-        // Fallback to direct allocation if pool is empty or too small
-        xints = allocBuffer<int>(numPoints);
-        coordArrayPool.misses++;
+    // Use unified pool directly
+    xints = static_cast<int*>(unifiedAlloc(numPoints * sizeof(int), 6)); // Type 6 = coordArray
+    if (!xints) {
+        ESP_LOGW(TAG, "fillPolygonGeneral: Unified pool allocation failed");
+        return;
     }
+    if (!unifiedPoolLogged) {
+        ESP_LOGI(TAG, "fillPolygonGeneral: Using UNIFIED POOL for coordinate arrays");
+        unifiedPoolLogged = true;
+    }
+    unifiedPoolHitCount++;
     
     if (!xints) 
         return;
@@ -1164,12 +1176,8 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
         }
     }
     
-    // Return coordinate array to pool if it came from pool
-    if (coordArray != nullptr) {
-        returnCoordArray(coordArray, numPoints);
-    } else {
-        poolDeallocate(xints);
-    }
+    // Always use unified deallocation since we use unified pool directly
+    unifiedDealloc(xints);
 }
 
 /**
@@ -2401,91 +2409,6 @@ void Maps::printAdvancedPoolStats()
 void Maps::initializeAdvancedPools()
 {
     initAdvancedPools();
-}
-
-/**
- * @brief Get LineSegment batch from pool
- *
- * @details Gets a LineSegment batch from the pool or creates a new one.
- *
- * @return LineSegment batch vector.
- */
-std::vector<Maps::LineSegment> Maps::getLineSegmentBatch()
-{
-    if (advancedPoolMutex && xSemaphoreTake(advancedPoolMutex, portMAX_DELAY) == pdTRUE) {
-        if (!lineSegmentPool.lineBatches.empty()) {
-            auto batch = lineSegmentPool.lineBatches.back();
-            lineSegmentPool.lineBatches.pop_back();
-            batch.clear(); // Clear for reuse
-            lineSegmentPool.hits++;
-            xSemaphoreGive(advancedPoolMutex);
-            return batch;
-        }
-        lineSegmentPool.misses++;
-        xSemaphoreGive(advancedPoolMutex);
-    }
-    return std::vector<Maps::LineSegment>();
-}
-
-/**
- * @brief Return LineSegment batch to pool
- *
- * @details Returns a LineSegment batch to the pool for reuse.
- *
- * @param batch The batch to return.
- */
-void Maps::returnLineSegmentBatch(const std::vector<Maps::LineSegment>& batch)
-{
-    if (advancedPoolMutex && xSemaphoreTake(advancedPoolMutex, portMAX_DELAY) == pdTRUE) {
-        if (lineSegmentPool.lineBatches.size() < lineSegmentPool.maxSize) {
-            lineSegmentPool.lineBatches.push_back(batch);
-        }
-        xSemaphoreGive(advancedPoolMutex);
-    }
-}
-
-/**
- * @brief Get coordinate array from pool
- *
- * @details Gets a coordinate array from the pool or creates a new one.
- *
- * @param size The size of the array needed.
- * @return Pointer to coordinate array.
- */
-int* Maps::getCoordArray(size_t size)
-{
-    if (advancedPoolMutex && xSemaphoreTake(advancedPoolMutex, portMAX_DELAY) == pdTRUE) {
-        if (!coordArrayPool.coordArrays.empty()) {
-            auto arrays = coordArrayPool.coordArrays.back();
-            coordArrayPool.coordArrays.pop_back();
-            coordArrayPool.hits++;
-            xSemaphoreGive(advancedPoolMutex);
-            return arrays[0]; // Return first array
-        }
-        coordArrayPool.misses++;
-        xSemaphoreGive(advancedPoolMutex);
-    }
-    return allocBuffer<int>(size);
-}
-
-/**
- * @brief Return coordinate array to pool
- *
- * @details Returns a coordinate array to the pool for reuse.
- *
- * @param array The array to return.
- * @param size The size of the array.
- */
-void Maps::returnCoordArray(int* array, size_t size)
-{
-    if (advancedPoolMutex && xSemaphoreTake(advancedPoolMutex, portMAX_DELAY) == pdTRUE) {
-        if (coordArrayPool.coordArrays.size() < coordArrayPool.maxSize && array) {
-            std::vector<int*> arrays;
-            arrays.push_back(array);
-            coordArrayPool.coordArrays.push_back(arrays);
-        }
-        xSemaphoreGive(advancedPoolMutex);
-    }
 }
 
 void Maps::printAdvancedMemoryPoolStats()
@@ -4523,6 +4446,11 @@ void Maps::enableOptimizedScanline(bool enable)
 bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOffset, TFT_eSprite &map)
 {
     static bool isPaletteLoaded = false;
+    static bool unifiedPoolLogged = false;
+    static bool unifiedPolylineLogged = false;
+    static bool unifiedLineBatchLogged = false;
+    static bool unifiedPolygonLogged = false;
+    static bool unifiedPolygonsLogged = false;
     if (!isPaletteLoaded) 
         isPaletteLoaded = Maps::loadPalette("/sdcard/VECTMAP/palette.bin");
 
@@ -4534,12 +4462,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
         return true; // Tile found in cache
     }
 
-    // Use layered rendering if enabled
-    if (layerRenderingEnabled) {
-        return renderTileWithLayers(path, xOffset, yOffset, map);
-    }
-    
-    // Use original rendering - no layer system needed
+    // Use original rendering with unified pool
 
 
     FILE* file = fopen(path, "rb");
@@ -4550,18 +4473,22 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     const long fileSize = ftell(file);
     fseek(file, 0, SEEK_SET);
 
-    uint8_t* data = allocBuffer<uint8_t>(fileSize);
+    uint8_t* data = static_cast<uint8_t*>(unifiedAlloc(fileSize, 0)); // Type 0 = general
     if (!data)
     {
         fclose(file);
         return false;
+    }
+    if (!unifiedPoolLogged) {
+        ESP_LOGI(TAG, "renderTile: Using UNIFIED POOL for data allocation");
+        unifiedPoolLogged = true;
     }
 
     const size_t bytesRead = fread(data, 1, fileSize, file);
     fclose(file);
     if (bytesRead != fileSize) 
     {
-        poolDeallocate(data);
+        unifiedDealloc(data);
         return false;
     }
 
@@ -4576,30 +4503,30 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     const uint32_t num_cmds = readVarint(data, offset, dataSize);
     if (num_cmds == 0)
     {
-        poolDeallocate(data);
+        unifiedDealloc(data);
         return false;
     }
 
     // Use optimal batch size for this hardware
     const size_t optimalBatchSize = getOptimalBatchSize();
     
-    // Try to get LineSegment batch from pool first
-    std::vector<LineSegment> lineBatchVector = getLineSegmentBatch();
-    LineSegment* lineBatch = nullptr;
-    
-    if (!lineBatchVector.empty()) {
-        lineBatch = lineBatchVector.data();
-        lineSegmentPool.hits++;
-    } else {
-        // Fallback to direct allocation if pool is empty
-        lineBatch = allocBuffer<LineSegment>(optimalBatchSize);
-        lineSegmentPool.misses++;
+    // Use unified pool for line batch allocation
+    LineSegment* lineBatch = static_cast<LineSegment*>(unifiedAlloc(optimalBatchSize * sizeof(LineSegment), 5)); // Type 5 = lineSegment
+    if (!lineBatch) {
+        ESP_LOGW(TAG, "renderTile: Unified pool allocation failed for lineBatch");
+        unifiedDealloc(data);
+        return false;
     }
+    if (!unifiedLineBatchLogged) {
+        ESP_LOGI(TAG, "renderTile: Using UNIFIED POOL for lineBatch allocation");
+        unifiedLineBatchLogged = true;
+    }
+    unifiedPoolHitCount++;
     
     int batchCount = 0;
     if (!lineBatch) 
     {
-        poolDeallocate(data);
+        unifiedDealloc(data);
         return false;
     }
 
@@ -4705,38 +4632,30 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     const uint32_t numPoints = readVarint(data, offset, dataSize);
                     if (numPoints >= 2) 
                     {
-                        // Try to get coordinate arrays from pool first
-                        int* coordArrayX = getCoordArray(numPoints);
-                        int* coordArrayY = getCoordArray(numPoints);
-                        int* px = nullptr;
-                        int* py = nullptr;
-                        
-                        if (coordArrayX != nullptr && coordArrayY != nullptr) {
-                            px = coordArrayX;
-                            py = coordArrayY;
-                            coordArrayPool.hits += 2;
-                        } else {
-                            // Fallback to direct allocation if pools are empty or too small
-                            px = allocBuffer<int>(numPoints);
-                            py = allocBuffer<int>(numPoints);
-                            coordArrayPool.misses += 2;
+                        // Use unified pool directly
+                        int* px = static_cast<int*>(unifiedAlloc(numPoints * sizeof(int), 6)); // Type 6 = coordArray
+                        int* py = static_cast<int*>(unifiedAlloc(numPoints * sizeof(int), 6)); // Type 6 = coordArray
+                        if (!px || !py) {
+                            if (px) unifiedDealloc(px);
+                            if (py) unifiedDealloc(py);
+                            ESP_LOGW(TAG, "renderTile DRAW_POLYLINE: Unified pool allocation failed");
+                            continue;
                         }
+                        if (!unifiedPolylineLogged) {
+                            ESP_LOGI(TAG, "renderTile DRAW_POLYLINE: Using UNIFIED POOL for coordinate arrays");
+                            unifiedPolylineLogged = true;
+                        }
+                        unifiedPoolHitCount += 2;
                         
                         if (!px || !py)
                         {
-                            // Return arrays to pool if they came from pool
-                            if (coordArrayX != nullptr) {
-                                returnCoordArray(coordArrayX, numPoints);
-                            }
-                            if (coordArrayY != nullptr) {
-                                returnCoordArray(coordArrayY, numPoints);
-                            }
+                            // Skip this command if allocation failed
                             for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
                             {
                                 readZigzag(data, offset, dataSize);
                                 readZigzag(data, offset, dataSize);
                             }
-                            break;
+                            continue;
                         }
                         int32_t prevX = readZigzag(data, offset, dataSize);
                         int32_t prevY = readZigzag(data, offset, dataSize);
@@ -4767,17 +4686,9 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         executed++;
                         isLineCommand = true;
                         
-                        // Return arrays to pool if they came from pool
-                        if (coordArrayX != nullptr) {
-                            returnCoordArray(coordArrayX, numPoints);
-                        } else {
-                            poolDeallocate(px);
-                        }
-                        if (coordArrayY != nullptr) {
-                            returnCoordArray(coordArrayY, numPoints);
-                        } else {
-                            poolDeallocate(py);
-                        }
+                        // Always use unified deallocation since we use unified pool directly
+                        unifiedDealloc(px);
+                        unifiedDealloc(py);
                     }
                     else
                     {
@@ -4797,20 +4708,24 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     const uint32_t numPoints = readVarint(data, offset, dataSize);
                     if (numPoints >= 3) 
                     {
-                        int* px = allocBuffer<int>(numPoints);
-                        int* py = allocBuffer<int>(numPoints);
+                        int* px = static_cast<int*>(unifiedAlloc(numPoints * sizeof(int), 6)); // Type 6 = coordArray
+                        int* py = static_cast<int*>(unifiedAlloc(numPoints * sizeof(int), 6)); // Type 6 = coordArray
                         if (!px || !py) 
                         {
                             if (px) 
-                                poolDeallocate(px);
+                                unifiedDealloc(px);
                             if (py) 
-                                poolDeallocate(py);
+                                unifiedDealloc(py);
                             for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
                             {
                                 readZigzag(data, offset, dataSize);
                                 readZigzag(data, offset, dataSize);
                             }
                             break;
+                        }
+                        if (!unifiedPolygonLogged) {
+                            ESP_LOGI(TAG, "renderTile DRAW_STROKE_POLYGON: Using UNIFIED POOL for coordinate arrays");
+                            unifiedPolygonLogged = true;
                         }
                         const int32_t firstX = readZigzag(data, offset, dataSize);
                         const int32_t firstY = readZigzag(data, offset, dataSize);
@@ -4833,8 +4748,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
                         drawPolygonBorder(map, px, py, numPoints, borderColor, currentDrawColor, xOffset, yOffset);
                         executed++;
-                        poolDeallocate(px);
-                        poolDeallocate(py);
+                        unifiedDealloc(px);
+                        unifiedDealloc(py);
                     } 
                     else 
                     {
@@ -4853,20 +4768,24 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     int32_t accumX = 0, accumY = 0;
                     if (numPoints >= 3) 
                     {
-                        int* px = allocBuffer<int>(numPoints);
-                        int* py = allocBuffer<int>(numPoints);
+                        int* px = static_cast<int*>(unifiedAlloc(numPoints * sizeof(int), 6)); // Type 6 = coordArray
+                        int* py = static_cast<int*>(unifiedAlloc(numPoints * sizeof(int), 6)); // Type 6 = coordArray
                         if (!px || !py) 
                         {
                             if (px)
-                                poolDeallocate(px);
+                                unifiedDealloc(px);
                             if (py) 
-                                poolDeallocate(py);
+                                unifiedDealloc(py);
                             for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i) 
                             {
                                 readZigzag(data, offset, dataSize);
                                 readZigzag(data, offset, dataSize);
                             }
                             break;
+                        }
+                        if (!unifiedPolygonsLogged) {
+                            ESP_LOGI(TAG, "renderTile DRAW_STROKE_POLYGONS: Using UNIFIED POOL for coordinate arrays");
+                            unifiedPolygonsLogged = true;
                         }
                         for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
                         {
@@ -4893,8 +4812,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                             polygonCommands++;
                             executed++;
                         }
-                        poolDeallocate(px);
-                        poolDeallocate(py);
+                        unifiedDealloc(px);
+                        unifiedDealloc(py);
                     } 
                     else
                     {
@@ -5281,15 +5200,11 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     }
     flushBatch();
 
-    // Use pool deallocation for better memory management
-    poolDeallocate(data);
+    // Use unified deallocation for better memory management
+    unifiedDealloc(data);
     
-    // Return LineSegment batch to pool if it came from pool
-    if (!lineBatchVector.empty()) {
-        returnLineSegmentBatch(lineBatchVector);
-    } else {
-        poolDeallocate(lineBatch);
-    }
+    // Use unified deallocation for lineBatch
+    unifiedDealloc(lineBatch);
     
     // Track memory deallocations for statistics
     totalMemoryDeallocations += 2;
@@ -5299,24 +5214,6 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
 
     // Add successfully rendered tile to cache
     addToCache(path, map);
-
-    // Log memory statistics every tile
-    static uint32_t tileRenderCount = 0;
-    if (++tileRenderCount % 1 == 0) {
-        ESP_LOGI(TAG, "=== Memory Stats after %u tiles ===", tileRenderCount);
-        ESP_LOGI(TAG, "Pool Efficiency: %u%%", poolEfficiencyScore);
-        ESP_LOGI(TAG, "Current Memory: %u bytes", currentMemoryUsage);
-        ESP_LOGI(TAG, "Peak Memory: %u bytes", peakMemoryUsage);
-        ESP_LOGI(TAG, "Memory Pressure: %s", isMemoryPressureHigh() ? "HIGH" : "NORMAL");
-        
-        // Advanced pool stats (info level)
-        ESP_LOGI(TAG, "Point Pool: %zu/%zu (hits:%u misses:%u)", 
-                 pointPool.points.size(), pointPool.maxSize, pointPool.hits, pointPool.misses);
-        ESP_LOGI(TAG, "LineSegment Pool: %zu/%zu (hits:%u misses:%u)", 
-                 lineSegmentPool.lineBatches.size(), lineSegmentPool.maxSize, lineSegmentPool.hits, lineSegmentPool.misses);
-        ESP_LOGI(TAG, "CoordArray Pool: %zu/%zu (hits:%u misses:%u)", 
-                 coordArrayPool.coordArrays.size(), coordArrayPool.maxSize, coordArrayPool.hits, coordArrayPool.misses);
-    }
 
     // Log rendering performance
     unsigned long renderTime = millis() - renderStart;
@@ -5363,1009 +5260,133 @@ void Maps::printLayerRenderingStats()
     ESP_LOGI(TAG, "================================");
 }
 
-/**
- * @brief Render tile with proper layer ordering
- *
- * @details Modified version of renderTile that processes commands in the correct layer order:
- *          Terrain → Water → Buildings → Outlines → Roads
- *          This ensures proper visual layering without complex command grouping.
- *
- * @param path The file path to the binary map tile.
- * @param xOffset The x-offset to apply when rendering the tile on the sprite.
- * @param yOffset The y-offset to apply when rendering the tile on the sprite.
- * @param map The TFT_eSprite object where the tile will be rendered.
- * @return true if the tile was rendered successfully, false otherwise.
- */
-bool Maps::renderTileWithLayerOrdering(const char* path, const int16_t xOffset, const int16_t yOffset, TFT_eSprite& map)
+
+// Unified Memory Pool Implementation
+void Maps::initUnifiedPool()
 {
-    static bool isPaletteLoaded = false;
-    if (!isPaletteLoaded) 
-        isPaletteLoaded = Maps::loadPalette("/sdcard/VECTMAP/palette.bin");
-
-    if (!path || path[0] == '\0')
-        return false;
-
-    // Try to get tile from cache first
-    if (getCachedTile(path, map, xOffset, yOffset)) {
-        return true; // Tile found in cache
-    }
-
-    FILE* file = fopen(path, "rb");
-    if (!file)
-       return false;
+    ESP_LOGI(TAG, "Initializing unified memory pool...");
     
-    fseek(file, 0, SEEK_END);
-    const long fileSize = ftell(file);
-    fseek(file, 0, SEEK_SET);
-
-    uint8_t* data = allocBuffer<uint8_t>(fileSize);
-    if (!data)
-    {
-        fclose(file);
-        return false;
-    }
-
-    const size_t bytesRead = fread(data, 1, fileSize, file);
-    fclose(file);
-    if (bytesRead != fileSize) 
-    {
-        poolDeallocate(data);
-        return false;
-    }
-
-    size_t offset = 0;
-    const size_t dataSize = fileSize;
-    uint8_t current_color = 0xFF;
-    uint16_t currentDrawColor = RGB332ToRGB565(current_color);
-
-    const uint32_t num_cmds = readVarint(data, offset, dataSize);
-    if (num_cmds == 0)
-    {
-        poolDeallocate(data);
-        return false;
-    }
-
-    // Use optimal batch size for this hardware
-    const size_t optimalBatchSize = getOptimalBatchSize();
-    
-    // Try to get LineSegment batch from pool first
-    std::vector<LineSegment> lineBatchVector = getLineSegmentBatch();
-    LineSegment* lineBatch = nullptr;
-    
-    if (!lineBatchVector.empty()) {
-        lineBatch = lineBatchVector.data();
-        lineSegmentPool.hits++;
-    } else {
-        // Fallback to direct allocation if pool is empty
-        lineBatch = allocBuffer<LineSegment>(optimalBatchSize);
-        lineSegmentPool.misses++;
-    }
-    
-    int batchCount = 0;
-    if (!lineBatch) 
-    {
-        poolDeallocate(data);
-        return false;
-    }
-
-    // Track memory allocations for statistics
-    totalMemoryAllocations++;
-
-    int executed = 0;
-    int totalLines = 0;
-    int batchFlushes = 0;
-    unsigned long renderStart = millis();
-    
-    // Command type counters for debugging
-    int lineCommands = 0;
-    int polygonCommands = 0;
-    int rectangleCommands = 0;
-    int circleCommands = 0;
-
-    // Optimized flushBatch with better memory access patterns
-    auto flushBatch = [&]() 
-    {
-        if (batchCount == 0) return;
-        
-        for (int i = 0; i < batchCount; i++) 
-        {
-            const LineSegment& line = lineBatch[i];
-            map.drawLine(line.x0, line.y0, line.x1, line.y1, line.color);
+    if (unifiedPoolMutex == nullptr) {
+        unifiedPoolMutex = xSemaphoreCreateMutex();
+        if (unifiedPoolMutex == nullptr) {
+            ESP_LOGE(TAG, "Failed to create unified pool mutex");
+            return;
         }
-        totalLines += batchCount;
-        batchFlushes++;
-        batchCount = 0;
-    };
-    
-    // Process commands with layer-aware rendering
-    for (uint32_t cmd_idx = 0; cmd_idx < num_cmds; cmd_idx++) 
-    {
-        if (offset >= dataSize) 
-            break;
-        const size_t cmdStartOffset = offset;
-        const uint32_t cmdType = readVarint(data, offset, dataSize);
-
-        bool isLineCommand = false;
-        
-        // Process command normally - no layer system needed
-
-        switch (cmdType) 
-        {
-            case SET_COLOR:
-                flushBatch();
-                if (offset < dataSize) 
-                {
-                    current_color = data[offset++];
-                    currentDrawColor = RGB332ToRGB565(current_color);
-                    executed++;
-                }
-                break;
-            case SET_COLOR_INDEX:
-                flushBatch();
-                {
-                    const uint32_t color_index = readVarint(data, offset, dataSize);
-                    current_color = paletteToRGB332(color_index);
-                    currentDrawColor = RGB332ToRGB565(current_color);
-                    executed++;
-                }
-                break;
-            case DRAW_LINE:
-                {
-                    const int32_t x1 = readZigzag(data, offset, dataSize);
-                    const int32_t y1 = readZigzag(data, offset, dataSize);
-                    const int32_t dx = readZigzag(data, offset, dataSize);
-                    const int32_t dy = readZigzag(data, offset, dataSize);
-                    const int32_t x2 = x1 + dx;
-                    const int32_t y2 = y1 + dy;
-                    const int px1 = uint16ToPixel(x1) + xOffset;
-                    const int py1 = uint16ToPixel(y1) + yOffset;
-                    const int px2 = uint16ToPixel(x2) + xOffset;
-                    const int py2 = uint16ToPixel(y2) + yOffset;
-                    if (shouldDrawLine(px1 - xOffset, py1 - yOffset, px2 - xOffset, py2 - yOffset)) 
-                    {
-                        if (batchCount < optimalBatchSize) 
-                            lineBatch[batchCount++] = {px1, py1, px2, py2, currentDrawColor};
-                        else 
-                        {
-                            flushBatch();
-                            lineBatch[batchCount++] = {px1, py1, px2, py2, currentDrawColor};
-                        }
-                        isLineCommand = true;
-                        lineCommands++;
-                        executed++;
-                    }
-                }
-                break;
-            case DRAW_POLYLINE:
-                {
-                    const uint32_t numPoints = readVarint(data, offset, dataSize);
-                    if (numPoints >= 2) 
-                    {
-                        // Try to get coordinate arrays from pool first
-                        int* coordArrayX = getCoordArray(numPoints);
-                        int* coordArrayY = getCoordArray(numPoints);
-                        int* px = nullptr;
-                        int* py = nullptr;
-                        
-                        if (coordArrayX != nullptr && coordArrayY != nullptr) {
-                            px = coordArrayX;
-                            py = coordArrayY;
-                            coordArrayPool.hits += 2;
-                        } else {
-                            // Fallback to direct allocation if pools are empty or too small
-                            px = allocBuffer<int>(numPoints);
-                            py = allocBuffer<int>(numPoints);
-                            coordArrayPool.misses += 2;
-                        }
-                        
-                        if (!px || !py) 
-                        {
-                            if (px) poolDeallocate(px);
-                            if (py) poolDeallocate(py);
-                            break;
-                        }
-                        for (uint32_t i = 0; i < numPoints; i++) 
-                        {
-                            const int32_t x = readZigzag(data, offset, dataSize);
-                            const int32_t y = readZigzag(data, offset, dataSize);
-                            px[i] = uint16ToPixel(x) + xOffset;
-                            py[i] = uint16ToPixel(y) + yOffset;
-                        }
-                        for (uint32_t i = 1; i < numPoints; ++i) 
-                        {
-                            if (shouldDrawLine(px[i-1] - xOffset, py[i-1] - yOffset, px[i] - xOffset, py[i] - yOffset))
-                            {
-                                if (batchCount < optimalBatchSize) 
-                                    lineBatch[batchCount++] = {px[i-1], py[i-1], px[i], py[i], currentDrawColor};
-                                else 
-                                {
-                                    flushBatch();
-                                    lineBatch[batchCount++] = {px[i-1], py[i-1], px[i], py[i], currentDrawColor};
-                                }
-                            }
-                        }
-                        poolDeallocate(px);
-                        poolDeallocate(py);
-                        isLineCommand = true;
-                        lineCommands++;
-                        executed++;
-                    }
-                }
-                break;
-            case DRAW_STROKE_POLYGON:
-                flushBatch();
-                {
-                    const uint32_t numPoints = readVarint(data, offset, dataSize);
-                    if (numPoints >= 3) 
-                    {
-                        int* px = allocBuffer<int>(numPoints);
-                        int* py = allocBuffer<int>(numPoints);
-                        if (!px || !py) 
-                        {
-                            if (px) poolDeallocate(px);
-                            if (py) poolDeallocate(py);
-                            break;
-                        }
-                        for (uint32_t i = 0; i < numPoints; i++) 
-                        {
-                            const int32_t x = readZigzag(data, offset, dataSize);
-                            const int32_t y = readZigzag(data, offset, dataSize);
-                            px[i] = uint16ToPixel(x);
-                            py[i] = uint16ToPixel(y);
-                        }
-                        if (fillPolygons && numPoints >= 3)
-                        {
-                            // Original approach: fill first, then outline
-                            fillPolygonOptimized(map, px, py, numPoints, currentDrawColor, xOffset, yOffset);
-                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            drawPolygonBorder(map, px, py, numPoints, borderColor, currentDrawColor, xOffset, yOffset);
-                            polygonCommands++;
-                            executed++;
-                        }
-                        poolDeallocate(px);
-                        poolDeallocate(py);
-                    } 
-                    else
-                    {
-                        for (uint32_t i = 0; i < numPoints; i++) 
-                        {
-                            readZigzag(data, offset, dataSize);
-                            readZigzag(data, offset, dataSize);
-                        }
-                    }
-                }
-                break;
-            case DRAW_STROKE_POLYGONS:
-                flushBatch();
-                {
-                    const uint32_t numPoints = readVarint(data, offset, dataSize);
-                    int32_t accumX = 0, accumY = 0;
-                    if (numPoints >= 3) 
-                    {
-                        int* px = allocBuffer<int>(numPoints);
-                        int* py = allocBuffer<int>(numPoints);
-                        if (!px || !py) 
-                        {
-                            if (px) poolDeallocate(px);
-                            if (py) poolDeallocate(py);
-                            break;
-                        }
-                        for (uint32_t i = 0; i < numPoints; i++) 
-                        {
-                            const int32_t deltaX = readZigzag(data, offset, dataSize);
-                            const int32_t deltaY = readZigzag(data, offset, dataSize);
-                            accumX += deltaX;
-                            accumY += deltaY;
-                            px[i] = uint16ToPixel(accumX);
-                            py[i] = uint16ToPixel(accumY);
-                        }
-                        if (fillPolygons && numPoints >= 3)
-                        {
-                            // Original approach: fill first, then outline
-                            fillPolygonOptimized(map, px, py, numPoints, currentDrawColor, xOffset, yOffset);
-                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            drawPolygonBorder(map, px, py, numPoints, borderColor, currentDrawColor, xOffset, yOffset);
-                            polygonCommands++;
-                            executed++;
-                        }
-                        poolDeallocate(px);
-                        poolDeallocate(py);
-                    } 
-                    else
-                    {
-                        for (uint32_t i = 0; i < numPoints; i++) 
-                        {
-                            readZigzag(data, offset, dataSize);
-                            readZigzag(data, offset, dataSize);
-                        }
-                    }
-                }
-                break;
-            case DRAW_HORIZONTAL_LINE:
-                {
-                    const int32_t x1 = readZigzag(data, offset, dataSize);
-                    const int32_t dx = readZigzag(data, offset, dataSize);
-                    const int32_t y = readZigzag(data, offset, dataSize);
-                    const int32_t x2 = x1 + dx;
-                    const int px1 = uint16ToPixel(x1) + xOffset;
-                    const int py1 = uint16ToPixel(y) + yOffset;
-                    const int px2 = uint16ToPixel(x2) + xOffset;
-                    if (shouldDrawLine(px1 - xOffset, py1 - yOffset, px2 - xOffset, py1 - yOffset)) 
-                    {
-                        if (batchCount < optimalBatchSize) 
-                            lineBatch[batchCount++] = {px1, py1, px2, py1, currentDrawColor};
-                        else 
-                        {
-                            flushBatch();
-                            lineBatch[batchCount++] = {px1, py1, px2, py1, currentDrawColor};
-                        }
-                        isLineCommand = true;
-                        lineCommands++;
-                        executed++;
-                    }
-                }
-                break;
-            case DRAW_VERTICAL_LINE:
-                {
-                    const int32_t x = readZigzag(data, offset, dataSize);
-                    const int32_t y1 = readZigzag(data, offset, dataSize);
-                    const int32_t dy = readZigzag(data, offset, dataSize);
-                    const int32_t y2 = y1 + dy;
-                    const int px1 = uint16ToPixel(x) + xOffset;
-                    const int py1 = uint16ToPixel(y1) + yOffset;
-                    const int py2 = uint16ToPixel(y2) + yOffset;
-                    if (shouldDrawLine(px1 - xOffset, py1 - yOffset, px1 - xOffset, py2 - yOffset)) 
-                    {
-                        if (batchCount < optimalBatchSize) 
-                            lineBatch[batchCount++] = {px1, py1, px1, py2, currentDrawColor};
-                        else 
-                        {
-                            flushBatch();
-                            lineBatch[batchCount++] = {px1, py1, px1, py2, currentDrawColor};
-                        }
-                        isLineCommand = true;
-                        lineCommands++;
-                        executed++;
-                    }
-                }
-                break;
-            case RECTANGLE:
-                flushBatch();
-                {
-                    const int32_t x1 = readZigzag(data, offset, dataSize);
-                    const int32_t y1 = readZigzag(data, offset, dataSize);
-                    const int32_t dx = readZigzag(data, offset, dataSize);
-                    const int32_t dy = readZigzag(data, offset, dataSize);
-                    const int px1 = uint16ToPixel(x1) + xOffset;
-                    const int py1 = uint16ToPixel(y1) + yOffset;
-                    const int pdx = uint16ToPixel(dx);
-                    const int pdy = uint16ToPixel(dy);
-                    if (px1 >= 0 && px1 <= TILE_SIZE && py1 >= 0 && py1 <= TILE_SIZE && 
-                        pdx > 0 && pdy > 0 && !isPointOnMargin(px1 - xOffset, py1 - yOffset)) 
-                    {
-                        if (fillPolygons) 
-                        {
-                            // Original approach: fill first, then outline
-                            map.fillRect(px1, py1, pdx, pdy, currentDrawColor);
-                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            map.drawRect(px1, py1, pdx, pdy, borderColor);
-                            rectangleCommands++;
-                            executed++;
-                        }
-                    }
-                }
-                break;
-            case STRAIGHT_LINE:
-                {
-                    const int32_t x1 = readZigzag(data, offset, dataSize);
-                    const int32_t y1 = readZigzag(data, offset, dataSize);
-                    const int32_t dx = readZigzag(data, offset, dataSize);
-                    const int32_t dy = readZigzag(data, offset, dataSize);
-                    const int32_t x2 = x1 + dx;
-                    const int32_t y2 = y1 + dy;
-                    const int px1 = uint16ToPixel(x1) + xOffset;
-                    const int py1 = uint16ToPixel(y1) + yOffset;
-                    const int px2 = uint16ToPixel(x2) + xOffset;
-                    const int py2 = uint16ToPixel(y2) + yOffset;
-                    if (shouldDrawLine(px1 - xOffset, py1 - yOffset, px2 - xOffset, py2 - yOffset)) 
-                    {
-                        if (batchCount < optimalBatchSize) 
-                            lineBatch[batchCount++] = {px1, py1, px2, py2, currentDrawColor};
-                        else 
-                        {
-                            flushBatch();
-                            lineBatch[batchCount++] = {px1, py1, px2, py2, currentDrawColor};
-                        }
-                        isLineCommand = true;
-                        lineCommands++;
-                        executed++;
-                    }
-                }
-                break;
-            case CIRCLE:
-                flushBatch();
-                {
-                    const int32_t center_x = readZigzag(data, offset, dataSize);
-                    const int32_t center_y = readZigzag(data, offset, dataSize);
-                    const int32_t radius = readZigzag(data, offset, dataSize);
-                    const int pcx = uint16ToPixel(center_x) + xOffset;
-                    const int pcy = uint16ToPixel(center_y) + yOffset;
-                    const int pradius = uint16ToPixel(radius);
-                    if (pcx >= 0 && pcx <= TILE_SIZE && pcy >= 0 && pcy <= TILE_SIZE && pradius > 0 &&
-                        !isPointOnMargin(pcx - xOffset, pcy - yOffset)) 
-                    {
-                        if (fillPolygons) 
-                        {
-                            // Original approach: fill first, then outline
-                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            drawFilledCircleWithBorder(map, pcx, pcy, pradius, currentDrawColor, borderColor, fillPolygons);
-                            circleCommands++;
-                            executed++;
-                        }
-                        else
-                            map.drawCircle(pcx, pcy, pradius, currentDrawColor);
-
-                        executed++;
-                    }
-                }
-                break;            
-            default:
-                flushBatch();
-                if (offset < dataSize - 4) 
-                    offset += 4;
-
-                break;
-        }
-        if (!isLineCommand) 
-            flushBatch();
-
-        if (offset <= cmdStartOffset) 
-            break;
-    }
-    flushBatch();
-
-    // Use pool deallocation for better memory management
-    poolDeallocate(data);
-    
-    // Return LineSegment batch to pool if it came from pool
-    if (!lineBatchVector.empty()) {
-        returnLineSegmentBatch(lineBatchVector);
-    } else {
-        poolDeallocate(lineBatch);
     }
     
-    // Track memory deallocations for statistics
-    totalMemoryDeallocations += 2;
-
-    if (executed == 0) 
-        return false;
-
-    // Add successfully rendered tile to cache
-    addToCache(path, map);
-
-    // Log rendering performance
-    unsigned long renderTime = millis() - renderStart;
-    if (totalLines > 0)
-    {
-        ESP_LOGI(TAG, "Layer-ordered tile rendered: %s", path);
-        ESP_LOGI(TAG, "Performance: %lu ms, %d lines, %d batches, avg %.1f lines/batch", 
-                 renderTime, totalLines, batchFlushes, (float)totalLines / batchFlushes);
-    }
-
-    return true;
+#ifdef BOARD_HAS_PSRAM
+    size_t psramFree = ESP.getFreePsram();
+    maxUnifiedPoolEntries = std::min(static_cast<size_t>(100), psramFree / (1024 * 32)); // 32KB per entry
+    ESP_LOGI(TAG, "PSRAM available: %zu bytes, setting unified pool size to %zu entries", psramFree, maxUnifiedPoolEntries);
+#else
+    size_t ramFree = ESP.getFreeHeap();
+    maxUnifiedPoolEntries = std::min(static_cast<size_t>(25), ramFree / (1024 * 64)); // 64KB per entry
+    ESP_LOGI(TAG, "RAM available: %zu bytes, setting unified pool size to %zu entries", ramFree, maxUnifiedPoolEntries);
+#endif
+    
+    unifiedPool.clear();
+    unifiedPool.reserve(maxUnifiedPoolEntries);
+    unifiedPoolHitCount = 0;
+    unifiedPoolMissCount = 0;
+    
+    ESP_LOGI(TAG, "Unified memory pool initialized with %zu entries", maxUnifiedPoolEntries);
 }
 
-/**
- * @brief Render tile with simple layer grouping
- *
- * @details Modified version of renderTile that groups commands by layers during processing.
- *         This is simpler than the full layered system and works with existing code.
- *
- * @param path The file path to the binary map tile.
- * @param xOffset The x-offset to apply when rendering the tile on the sprite.
- * @param yOffset The y-offset to apply when rendering the tile on the sprite.
- * @param map The TFT_eSprite object where the tile will be rendered.
- * @return true if the tile was rendered successfully, false otherwise.
- */
-bool Maps::renderTileWithLayers(const char* path, const int16_t xOffset, const int16_t yOffset, TFT_eSprite& map)
+void* Maps::unifiedAlloc(size_t size, uint8_t type)
 {
-    static bool isPaletteLoaded = false;
-    if (!isPaletteLoaded) 
-        isPaletteLoaded = Maps::loadPalette("/sdcard/VECTMAP/palette.bin");
-
-    if (!path || path[0] == '\0')
-        return false;
-
-    // Try to get tile from cache first
-    if (getCachedTile(path, map, xOffset, yOffset)) {
-        return true; // Tile found in cache
-    }
-
-    FILE* file = fopen(path, "rb");
-    if (!file)
-       return false;
-    
-    fseek(file, 0, SEEK_END);
-    const long fileSize = ftell(file);
-    fseek(file, 0, SEEK_SET);
-
-    uint8_t* data = allocBuffer<uint8_t>(fileSize);
-    if (!data)
-    {
-        fclose(file);
-        return false;
-    }
-
-    const size_t bytesRead = fread(data, 1, fileSize, file);
-    fclose(file);
-    if (bytesRead != fileSize) 
-    {
-        poolDeallocate(data);
-        return false;
-    }
-
-    size_t offset = 0;
-    const size_t dataSize = fileSize;
-    uint8_t current_color = 0xFF;
-    uint16_t currentDrawColor = RGB332ToRGB565(current_color);
-
-    const uint32_t num_cmds = readVarint(data, offset, dataSize);
-    if (num_cmds == 0)
-    {
-        poolDeallocate(data);
-        return false;
-    }
-
-    // Use optimal batch size for this hardware
-    const size_t optimalBatchSize = getOptimalBatchSize();
-    
-    // Try to get LineSegment batch from pool first
-    std::vector<LineSegment> lineBatchVector = getLineSegmentBatch();
-    LineSegment* lineBatch = nullptr;
-    
-    if (!lineBatchVector.empty()) {
-        lineBatch = lineBatchVector.data();
-        lineSegmentPool.hits++;
-    } else {
-        // Fallback to direct allocation if pool is empty
-        lineBatch = allocBuffer<LineSegment>(optimalBatchSize);
-        lineSegmentPool.misses++;
-    }
-    
-    int batchCount = 0;
-    if (!lineBatch) 
-    {
-        poolDeallocate(data);
-        return false;
-    }
-
-    // Track memory allocations for statistics
-    totalMemoryAllocations++;
-
-    int executed = 0;
-    int totalLines = 0;
-    int batchFlushes = 0;
-    unsigned long renderStart = millis();
-    
-    // Command type counters for debugging
-    int lineCommands = 0;
-    int polygonCommands = 0;
-    int rectangleCommands = 0;
-    int circleCommands = 0;
-
-    // Clear layer commands
-    for (int i = 0; i < LAYER_COUNT; i++) {
-        layerCommands[i].clear();
-    }
-    
-    // Store commands by layer instead of rendering immediately
-    std::vector<RenderCommand> allCommands;
-
-    // Optimized flushBatch with better memory access patterns
-    auto flushBatch = [&]() 
-    {
-        if (batchCount == 0) return;
-        
-        for (int i = 0; i < batchCount; i++) 
-        {
-            const LineSegment& line = lineBatch[i];
-            map.drawLine(line.x0, line.y0, line.x1, line.y1, line.color);
+    if (unifiedPoolMutex && xSemaphoreTake(unifiedPoolMutex, portMAX_DELAY) == pdTRUE) {
+        for (auto& entry : unifiedPool) {
+            if (!entry.isInUse && entry.size >= size) {
+                entry.isInUse = true;
+                entry.allocationCount++;
+                entry.type = type;
+                unifiedPoolHitCount++;
+                xSemaphoreGive(unifiedPoolMutex);
+                return entry.ptr;
+            }
         }
-        totalLines += batchCount;
-        batchFlushes++;
-        batchCount = 0;
-    };
-    
-    // Process commands and group by layers
-    for (uint32_t cmd_idx = 0; cmd_idx < num_cmds; cmd_idx++) 
-    {
-        if (offset >= dataSize) 
-            break;
-        const size_t cmdStartOffset = offset;
-        const uint32_t cmdType = readVarint(data, offset, dataSize);
-
-        bool isLineCommand = false;
         
-        // Process command normally - no layer system needed
-
-        switch (cmdType) 
-        {
-            case SET_COLOR:
-                flushBatch();
-                if (offset < dataSize) 
-                {
-                    current_color = data[offset++];
-                    currentDrawColor = RGB332ToRGB565(current_color);
-                    executed++;
-                }
-                break;
-            case SET_COLOR_INDEX:
-                flushBatch();
-                {
-                    const uint32_t color_index = readVarint(data, offset, dataSize);
-                    current_color = paletteToRGB332(color_index);
-                    currentDrawColor = RGB332ToRGB565(current_color);
-                    executed++;
-                }
-                break;
-            case DRAW_LINE:
-                {
-                    const int32_t x1 = readZigzag(data, offset, dataSize);
-                    const int32_t y1 = readZigzag(data, offset, dataSize);
-                    const int32_t dx = readZigzag(data, offset, dataSize);
-                    const int32_t dy = readZigzag(data, offset, dataSize);
-                    const int32_t x2 = x1 + dx;
-                    const int32_t y2 = y1 + dy;
-                    const int px1 = uint16ToPixel(x1) + xOffset;
-                    const int py1 = uint16ToPixel(y1) + yOffset;
-                    const int px2 = uint16ToPixel(x2) + xOffset;
-                    const int py2 = uint16ToPixel(y2) + yOffset;
-                    if (shouldDrawLine(px1 - xOffset, py1 - yOffset, px2 - xOffset, py2 - yOffset)) 
-                    {
-                        if (batchCount < optimalBatchSize) 
-                            lineBatch[batchCount++] = {px1, py1, px2, py2, currentDrawColor};
-                        else 
-                        {
-                            flushBatch();
-                            lineBatch[batchCount++] = {px1, py1, px2, py2, currentDrawColor};
-                        }
-                        isLineCommand = true;
-                        lineCommands++;
-                        executed++;
-                    }
-                }
-                break;
-            case DRAW_POLYLINE:
-                {
-                    const uint32_t numPoints = readVarint(data, offset, dataSize);
-                    if (numPoints >= 2) 
-                    {
-                        // Try to get coordinate arrays from pool first
-                        int* coordArrayX = getCoordArray(numPoints);
-                        int* coordArrayY = getCoordArray(numPoints);
-                        int* px = nullptr;
-                        int* py = nullptr;
-                        
-                        if (coordArrayX != nullptr && coordArrayY != nullptr) {
-                            px = coordArrayX;
-                            py = coordArrayY;
-                            coordArrayPool.hits += 2;
-                        } else {
-                            // Fallback to direct allocation if pools are empty or too small
-                            px = allocBuffer<int>(numPoints);
-                            py = allocBuffer<int>(numPoints);
-                            coordArrayPool.misses += 2;
-                        }
-                        
-                        if (!px || !py) 
-                        {
-                            if (px) poolDeallocate(px);
-                            if (py) poolDeallocate(py);
-                            break;
-                        }
-                        for (uint32_t i = 0; i < numPoints; i++) 
-                        {
-                            const int32_t x = readZigzag(data, offset, dataSize);
-                            const int32_t y = readZigzag(data, offset, dataSize);
-                            px[i] = uint16ToPixel(x) + xOffset;
-                            py[i] = uint16ToPixel(y) + yOffset;
-                        }
-                        for (uint32_t i = 1; i < numPoints; ++i) 
-                        {
-                            if (shouldDrawLine(px[i-1] - xOffset, py[i-1] - yOffset, px[i] - xOffset, py[i] - yOffset))
-                            {
-                                if (batchCount < optimalBatchSize) 
-                                    lineBatch[batchCount++] = {px[i-1], py[i-1], px[i], py[i], currentDrawColor};
-                                else 
-                                {
-                                    flushBatch();
-                                    lineBatch[batchCount++] = {px[i-1], py[i-1], px[i], py[i], currentDrawColor};
-                                }
-                            }
-                        }
-                        poolDeallocate(px);
-                        poolDeallocate(py);
-                        isLineCommand = true;
-                        lineCommands++;
-                        executed++;
-                    }
-                }
-                break;
-            case DRAW_STROKE_POLYGON:
-                flushBatch();
-                {
-                    const uint32_t numPoints = readVarint(data, offset, dataSize);
-                    if (numPoints >= 3) 
-                    {
-                        int* px = allocBuffer<int>(numPoints);
-                        int* py = allocBuffer<int>(numPoints);
-                        if (!px || !py) 
-                        {
-                            if (px) poolDeallocate(px);
-                            if (py) poolDeallocate(py);
-                            break;
-                        }
-                        for (uint32_t i = 0; i < numPoints; i++) 
-                        {
-                            const int32_t x = readZigzag(data, offset, dataSize);
-                            const int32_t y = readZigzag(data, offset, dataSize);
-                            px[i] = uint16ToPixel(x);
-                            py[i] = uint16ToPixel(y);
-                        }
-                        if (fillPolygons && numPoints >= 3)
-                        {
-                            fillPolygonOptimized(map, px, py, numPoints, currentDrawColor, xOffset, yOffset);
-                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            drawPolygonBorder(map, px, py, numPoints, borderColor, currentDrawColor, xOffset, yOffset);
-                            polygonCommands++;
-                            executed++;
-                        }
-                        poolDeallocate(px);
-                        poolDeallocate(py);
-                    } 
-                    else
-                    {
-                        for (uint32_t i = 0; i < numPoints; i++) 
-                        {
-                            readZigzag(data, offset, dataSize);
-                            readZigzag(data, offset, dataSize);
-                        }
-                    }
-                }
-                break;
-            case DRAW_STROKE_POLYGONS:
-                flushBatch();
-                {
-                    const uint32_t numPoints = readVarint(data, offset, dataSize);
-                    int32_t accumX = 0, accumY = 0;
-                    if (numPoints >= 3) 
-                    {
-                        int* px = allocBuffer<int>(numPoints);
-                        int* py = allocBuffer<int>(numPoints);
-                        if (!px || !py) 
-                        {
-                            if (px) poolDeallocate(px);
-                            if (py) poolDeallocate(py);
-                            break;
-                        }
-                        for (uint32_t i = 0; i < numPoints; i++) 
-                        {
-                            const int32_t deltaX = readZigzag(data, offset, dataSize);
-                            const int32_t deltaY = readZigzag(data, offset, dataSize);
-                            accumX += deltaX;
-                            accumY += deltaY;
-                            px[i] = uint16ToPixel(accumX);
-                            py[i] = uint16ToPixel(accumY);
-                        }
-                        if (fillPolygons && numPoints >= 3)
-                        {
-                            fillPolygonOptimized(map, px, py, numPoints, currentDrawColor, xOffset, yOffset);
-                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            drawPolygonBorder(map, px, py, numPoints, borderColor, currentDrawColor, xOffset, yOffset);
-                            polygonCommands++;
-                            executed++;
-                        }
-                        poolDeallocate(px);
-                        poolDeallocate(py);
-                    } 
-                    else
-                    {
-                        for (uint32_t i = 0; i < numPoints; i++) 
-                        {
-                            readZigzag(data, offset, dataSize);
-                            readZigzag(data, offset, dataSize);
-                        }
-                    }
-                }
-                break;
-            case DRAW_HORIZONTAL_LINE:
-                {
-                    const int32_t x1 = readZigzag(data, offset, dataSize);
-                    const int32_t dx = readZigzag(data, offset, dataSize);
-                    const int32_t y = readZigzag(data, offset, dataSize);
-                    const int32_t x2 = x1 + dx;
-                    const int px1 = uint16ToPixel(x1) + xOffset;
-                    const int py1 = uint16ToPixel(y) + yOffset;
-                    const int px2 = uint16ToPixel(x2) + xOffset;
-                    if (shouldDrawLine(px1 - xOffset, py1 - yOffset, px2 - xOffset, py1 - yOffset)) 
-                    {
-                        if (batchCount < optimalBatchSize) 
-                            lineBatch[batchCount++] = {px1, py1, px2, py1, currentDrawColor};
-                        else 
-                        {
-                            flushBatch();
-                            lineBatch[batchCount++] = {px1, py1, px2, py1, currentDrawColor};
-                        }
-                        isLineCommand = true;
-                        lineCommands++;
-                        executed++;
-                    }
-                }
-                break;
-            case DRAW_VERTICAL_LINE:
-                {
-                    const int32_t x = readZigzag(data, offset, dataSize);
-                    const int32_t y1 = readZigzag(data, offset, dataSize);
-                    const int32_t dy = readZigzag(data, offset, dataSize);
-                    const int32_t y2 = y1 + dy;
-                    const int px1 = uint16ToPixel(x) + xOffset;
-                    const int py1 = uint16ToPixel(y1) + yOffset;
-                    const int py2 = uint16ToPixel(y2) + yOffset;
-                    if (shouldDrawLine(px1 - xOffset, py1 - yOffset, px1 - xOffset, py2 - yOffset)) 
-                    {
-                        if (batchCount < optimalBatchSize) 
-                            lineBatch[batchCount++] = {px1, py1, px1, py2, currentDrawColor};
-                        else 
-                        {
-                            flushBatch();
-                            lineBatch[batchCount++] = {px1, py1, px1, py2, currentDrawColor};
-                        }
-                        isLineCommand = true;
-                        lineCommands++;
-                        executed++;
-                    }
-                }
-                break;
-            case RECTANGLE:
-                flushBatch();
-                {
-                    const int32_t x1 = readZigzag(data, offset, dataSize);
-                    const int32_t y1 = readZigzag(data, offset, dataSize);
-                    const int32_t dx = readZigzag(data, offset, dataSize);
-                    const int32_t dy = readZigzag(data, offset, dataSize);
-                    const int px1 = uint16ToPixel(x1) + xOffset;
-                    const int py1 = uint16ToPixel(y1) + yOffset;
-                    const int pdx = uint16ToPixel(dx);
-                    const int pdy = uint16ToPixel(dy);
-                    if (px1 >= 0 && px1 <= TILE_SIZE && py1 >= 0 && py1 <= TILE_SIZE && 
-                        pdx > 0 && pdy > 0 && !isPointOnMargin(px1 - xOffset, py1 - yOffset)) 
-                    {
-                        if (fillPolygons) 
-                        {
-                            map.fillRect(px1, py1, pdx, pdy, currentDrawColor);
-                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            map.drawRect(px1, py1, pdx, pdy, borderColor);
-                            rectangleCommands++;
-                            executed++;
-                        }
-                    }
-                }
-                break;
-            case STRAIGHT_LINE:
-                {
-                    const int32_t x1 = readZigzag(data, offset, dataSize);
-                    const int32_t y1 = readZigzag(data, offset, dataSize);
-                    const int32_t dx = readZigzag(data, offset, dataSize);
-                    const int32_t dy = readZigzag(data, offset, dataSize);
-                    const int32_t x2 = x1 + dx;
-                    const int32_t y2 = y1 + dy;
-                    const int px1 = uint16ToPixel(x1) + xOffset;
-                    const int py1 = uint16ToPixel(y1) + yOffset;
-                    const int px2 = uint16ToPixel(x2) + xOffset;
-                    const int py2 = uint16ToPixel(y2) + yOffset;
-                    if (shouldDrawLine(px1 - xOffset, py1 - yOffset, px2 - xOffset, py2 - yOffset)) 
-                    {
-                        if (batchCount < optimalBatchSize) 
-                            lineBatch[batchCount++] = {px1, py1, px2, py2, currentDrawColor};
-                        else 
-                        {
-                            flushBatch();
-                            lineBatch[batchCount++] = {px1, py1, px2, py2, currentDrawColor};
-                        }
-                        isLineCommand = true;
-                        lineCommands++;
-                        executed++;
-                    }
-                }
-                break;
-            case CIRCLE:
-                flushBatch();
-                {
-                    const int32_t center_x = readZigzag(data, offset, dataSize);
-                    const int32_t center_y = readZigzag(data, offset, dataSize);
-                    const int32_t radius = readZigzag(data, offset, dataSize);
-                    const int pcx = uint16ToPixel(center_x) + xOffset;
-                    const int pcy = uint16ToPixel(center_y) + yOffset;
-                    const int pradius = uint16ToPixel(radius);
-                    if (pcx >= 0 && pcx <= TILE_SIZE && pcy >= 0 && pcy <= TILE_SIZE && pradius > 0 &&
-                        !isPointOnMargin(pcx - xOffset, pcy - yOffset)) 
-                    {
-                        if (fillPolygons) 
-                        {
-                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            drawFilledCircleWithBorder(map, pcx, pcy, pradius, currentDrawColor, borderColor, fillPolygons);
-                            circleCommands++;
-                            executed++;
-                        }
-                        else
-                            map.drawCircle(pcx, pcy, pradius, currentDrawColor);
-
-                        executed++;
-                    }
-                }
-                break;            
-            default:
-                flushBatch();
-                if (offset < dataSize - 4) 
-                    offset += 4;
-
-                break;
+        if (unifiedPool.size() < maxUnifiedPoolEntries) {
+            void* ptr = nullptr;
+#ifdef BOARD_HAS_PSRAM
+            ptr = heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
+#else
+            ptr = heap_caps_malloc(size, MALLOC_CAP_8BIT);
+#endif
+            
+            if (ptr) {
+                UnifiedPoolEntry entry;
+                entry.ptr = ptr;
+                entry.size = size;
+                entry.isInUse = true;
+                entry.allocationCount = 1;
+                entry.type = type;
+                unifiedPool.push_back(entry);
+                unifiedPoolHitCount++;
+                xSemaphoreGive(unifiedPoolMutex);
+                return ptr;
+            }
         }
-        if (!isLineCommand) 
-            flushBatch();
-
-        if (offset <= cmdStartOffset) 
-            break;
-    }
-    flushBatch();
-
-    // Rendering completed - no layer system needed
-
-    // Use pool deallocation for better memory management
-    poolDeallocate(data);
-    
-    // Return LineSegment batch to pool if it came from pool
-    if (!lineBatchVector.empty()) {
-        returnLineSegmentBatch(lineBatchVector);
-    } else {
-        poolDeallocate(lineBatch);
-    }
-    
-    // Track memory deallocations for statistics
-    totalMemoryDeallocations += 2;
-
-    if (executed == 0) 
-        return false;
-
-    // Add successfully rendered tile to cache
-    addToCache(path, map);
-
-    // Log memory statistics every tile
-    static uint32_t tileRenderCount = 0;
-    if (++tileRenderCount % 1 == 0) {
-        ESP_LOGI(TAG, "=== Memory Stats after %u tiles ===", tileRenderCount);
-        ESP_LOGI(TAG, "Pool Efficiency: %u%%", poolEfficiencyScore);
-        ESP_LOGI(TAG, "Current Memory: %u bytes", currentMemoryUsage);
-        ESP_LOGI(TAG, "Peak Memory: %u bytes", peakMemoryUsage);
-        ESP_LOGI(TAG, "Memory Pressure: %s", isMemoryPressureHigh() ? "HIGH" : "NORMAL");
         
-        // Advanced pool stats (info level)
-        ESP_LOGI(TAG, "Point Pool: %zu/%zu (hits:%u misses:%u)", 
-                 pointPool.points.size(), pointPool.maxSize, pointPool.hits, pointPool.misses);
-        ESP_LOGI(TAG, "LineSegment Pool: %zu/%zu (hits:%u misses:%u)", 
-                 lineSegmentPool.lineBatches.size(), lineSegmentPool.maxSize, lineSegmentPool.hits, lineSegmentPool.misses);
-        ESP_LOGI(TAG, "CoordArray Pool: %zu/%zu (hits:%u misses:%u)", 
-                 coordArrayPool.coordArrays.size(), coordArrayPool.maxSize, coordArrayPool.hits, coordArrayPool.misses);
+        unifiedPoolMissCount++;
+        xSemaphoreGive(unifiedPoolMutex);
     }
+    
+    unifiedPoolMissCount++;
+#ifdef BOARD_HAS_PSRAM
+    return heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
+#else
+    return heap_caps_malloc(size, MALLOC_CAP_8BIT);
+#endif
+}
 
-    // Log rendering performance
-    unsigned long renderTime = millis() - renderStart;
-    if (totalLines > 0)
-    {
-        ESP_LOGI(TAG, "Layered tile rendered: %s", path);
-        ESP_LOGI(TAG, "Performance: %lu ms, %d lines, %d batches, avg %.1f lines/batch", 
-                 renderTime, totalLines, batchFlushes, (float)totalLines / batchFlushes);
+void Maps::unifiedDealloc(void* ptr)
+{
+    if (!ptr) return;
+    
+    if (unifiedPoolMutex && xSemaphoreTake(unifiedPoolMutex, portMAX_DELAY) == pdTRUE) {
+        for (auto& entry : unifiedPool) {
+            if (entry.ptr == ptr && entry.isInUse) {
+                entry.isInUse = false;
+                xSemaphoreGive(unifiedPoolMutex);
+                return;
+            }
+        }
+        xSemaphoreGive(unifiedPoolMutex);
     }
+    
+    heap_caps_free(ptr);
+}
 
-    return true;
+void Maps::clearUnifiedPool()
+{
+    if (unifiedPoolMutex && xSemaphoreTake(unifiedPoolMutex, portMAX_DELAY) == pdTRUE) {
+        for (auto& entry : unifiedPool) {
+            if (entry.ptr) {
+                heap_caps_free(entry.ptr);
+            }
+        }
+        unifiedPool.clear();
+        unifiedPoolHitCount = 0;
+        unifiedPoolMissCount = 0;
+        xSemaphoreGive(unifiedPoolMutex);
+        ESP_LOGI(TAG, "Unified memory pool cleared");
+    }
+}
+
+void Maps::printUnifiedPoolStats()
+{
+    if (unifiedPoolMutex && xSemaphoreTake(unifiedPoolMutex, portMAX_DELAY) == pdTRUE) {
+        ESP_LOGI(TAG, "Unified Pool Stats:");
+        ESP_LOGI(TAG, "  Entries: %zu/%zu used", unifiedPool.size(), maxUnifiedPoolEntries);
+        ESP_LOGI(TAG, "  Hits: %u, Misses: %u", unifiedPoolHitCount, unifiedPoolMissCount);
+        
+        uint32_t totalRequests = unifiedPoolHitCount + unifiedPoolMissCount;
+        if (totalRequests > 0) {
+            float hitRate = (float)unifiedPoolHitCount * 100.0f / totalRequests;
+            ESP_LOGI(TAG, "  Hit Rate: %.1f%%", hitRate);
+        }
+        
+        xSemaphoreGive(unifiedPoolMutex);
+    }
 }

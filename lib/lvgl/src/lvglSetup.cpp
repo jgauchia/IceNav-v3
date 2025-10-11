@@ -23,6 +23,12 @@ uint32_t DOUBLE_TOUCH_EVENT; /**< Event identifier for double touch gesture. */
 
 Maps mapView;
 
+// Initialize memory pools after object creation
+void initializeMapsPools() {
+    mapView.initializeAdvancedPools();
+    mapView.initializeMemoryMonitoring();
+}
+
 /**
  * @brief LVGL display flush callback.
  *
@@ -328,6 +334,9 @@ void lv_tick_task(void *arg)
 void initLVGL()
 {
 	lv_init();
+	
+	// Initialize Maps memory pools
+	initializeMapsPools();
 
 	display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
 	lv_display_set_flush_cb(display, displayFlush);
