@@ -35,23 +35,6 @@ TaskHandle_t Maps::preloadTaskHandle = nullptr;
 SemaphoreHandle_t Maps::preloadMutex = nullptr;
 bool Maps::preloadSystemActive = false;
 
-// Memory pool system static variables
-std::vector<Maps::MemoryPoolEntry> Maps::memoryPool;
-SemaphoreHandle_t Maps::memoryPoolMutex = nullptr;
-size_t Maps::maxPoolEntries = 0;
-uint32_t Maps::poolAllocationCount = 0;
-uint32_t Maps::poolHitCount = 0;
-uint32_t Maps::poolMissCount = 0;
-
-// Advanced memory pools static variables
-Maps::PointPool Maps::pointPool;
-Maps::CommandPool Maps::commandPool;
-Maps::CoordsPool Maps::coordsPool;
-Maps::FeaturePool Maps::featurePool;
-Maps::LineSegmentPool Maps::lineSegmentPool;
-Maps::CoordArrayPool Maps::coordArrayPool;
-SemaphoreHandle_t Maps::advancedPoolMutex = nullptr;
-
 // Unified memory pool system static variables (experimental)
 std::vector<Maps::UnifiedPoolEntry> Maps::unifiedPool;
 SemaphoreHandle_t Maps::unifiedPoolMutex = nullptr;
@@ -379,7 +362,7 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
 	initBackgroundPreload();
 	
 	// Initialize memory pool system
-	initMemoryPool();
+	initUnifiedPool();
 	
 	// Initialize polygon optimizations
 	initPolygonOptimizations();
@@ -404,7 +387,7 @@ void Maps::deleteMapScrSprites()
 	disableBackgroundPreload();
 	
 	// Clear memory pool
-	clearMemoryPool();
+	clearUnifiedPool();
 	
 	// Clear layer commands
 	clearLayerCommands();
@@ -1553,15 +1536,15 @@ T* Maps::allocBuffer(size_t numElements)
     size_t totalSize = numElements * sizeof(T);
     
     // Try memory pool first
-    void* ptr = poolAllocate(totalSize);
+    void* ptr = unifiedAlloc(totalSize, 0);
     if (ptr) {
-        poolHitCount++;
+        unifiedPoolHitCount++;
         totalMemoryAllocations++;
         return static_cast<T*>(ptr);
     }
     
     // Fallback to standard allocation
-    poolMissCount++;
+    unifiedPoolMissCount++;
     totalMemoryAllocations++;
 #ifdef BOARD_HAS_PSRAM
     ptr = heap_caps_malloc(totalSize, MALLOC_CAP_SPIRAM);
@@ -2075,340 +2058,22 @@ void Maps::triggerPreload(int16_t centerX, int16_t centerY, uint8_t zoom)
     preloadAdjacentTiles(centerX, centerY, zoom);
 }
 
-/**
- * @brief Initialize advanced memory pools
- *
- * @details Initializes the advanced memory pool system with object-specific pools.
- */
-void Maps::initAdvancedPools()
-{
-    ESP_LOGI(TAG, "Starting advanced pools initialization...");
-    
-    detectAdvancedPoolCapabilities();
-    
-    if (advancedPoolMutex == nullptr) {
-        advancedPoolMutex = xSemaphoreCreateMutex();
-        if (advancedPoolMutex == nullptr) {
-            ESP_LOGE(TAG, "Failed to create advanced pool mutex");
-            return;
-        }
-        ESP_LOGI(TAG, "Advanced pool mutex created");
-    }
-    
-    // Initialize point pool
-    pointPool.points.clear();
-    pointPool.points.reserve(pointPool.maxSize);
-    pointPool.hits = 0;
-    pointPool.misses = 0;
-    
-    // Initialize command pool
-    commandPool.commands.clear();
-    commandPool.commands.reserve(commandPool.maxSize);
-    commandPool.hits = 0;
-    commandPool.misses = 0;
-    
-    // Initialize coords pool
-    coordsPool.coords.clear();
-    coordsPool.coords.reserve(coordsPool.maxSize);
-    coordsPool.hits = 0;
-    coordsPool.misses = 0;
-    
-    // Initialize feature pool
-    featurePool.features.clear();
-    featurePool.features.reserve(featurePool.maxSize);
-    featurePool.hits = 0;
-    featurePool.misses = 0;
-    
-    // Initialize line segment pool with pre-allocated batches
-    lineSegmentPool.lineBatches.clear();
-    lineSegmentPool.lineBatches.reserve(lineSegmentPool.maxSize);
-    
-    // Pre-allocate line segment batches
-    ESP_LOGI(TAG, "Pre-allocating %zu line segment batches...", lineSegmentPool.maxSize);
-    for (size_t i = 0; i < lineSegmentPool.maxSize; i++) {
-        std::vector<LineSegment> batch;
-        batch.reserve(256); // Pre-allocate space for 256 line segments
-        lineSegmentPool.lineBatches.push_back(batch);
-    }
-    ESP_LOGI(TAG, "Pre-allocated %zu line segment batches", lineSegmentPool.lineBatches.size());
-    
-    lineSegmentPool.hits = 0;
-    lineSegmentPool.misses = 0;
-    
-    // Initialize coord array pool with pre-allocated arrays
-    coordArrayPool.coordArrays.clear();
-    coordArrayPool.coordArrays.reserve(coordArrayPool.maxSize);
-    
-    // Pre-allocate coordinate arrays
-    ESP_LOGI(TAG, "Pre-allocating %zu coordinate arrays...", coordArrayPool.maxSize);
-    for (size_t i = 0; i < coordArrayPool.maxSize; i++) {
-        int* array = allocBuffer<int>(256); // Pre-allocate arrays of 256 ints
-        if (array) {
-            std::vector<int*> arrays;
-            arrays.push_back(array);
-            coordArrayPool.coordArrays.push_back(arrays);
-        } else {
-            ESP_LOGW(TAG, "Failed to allocate coordinate array %zu", i);
-        }
-    }
-    ESP_LOGI(TAG, "Pre-allocated %zu coordinate arrays", coordArrayPool.coordArrays.size());
-    
-    coordArrayPool.hits = 0;
-    coordArrayPool.misses = 0;
-    
-    ESP_LOGI(TAG, "Advanced memory pools initialized");
-    ESP_LOGI(TAG, "Point pool: %zu, Command pool: %zu, Coords pool: %zu, Feature pool: %zu, LineBatch pool: %zu, CoordArray pool: %zu",
-             pointPool.maxSize, commandPool.maxSize, coordsPool.maxSize, featurePool.maxSize, lineSegmentPool.maxSize, coordArrayPool.maxSize);
-}
-
-/**
- * @brief Detect advanced pool capabilities and set pool sizes
- *
- * @details Automatically detects available memory and sets appropriate pool sizes.
- */
-void Maps::detectAdvancedPoolCapabilities()
-{
-#ifdef BOARD_HAS_PSRAM
-    size_t psramFree = ESP.getFreePsram();
-    
-    // Calculate pool sizes based on available PSRAM
-    pointPool.maxSize = std::min(static_cast<size_t>(2000), psramFree / (1024 * 4)); // 4KB per point pool
-    commandPool.maxSize = std::min(static_cast<size_t>(1000), psramFree / (1024 * 8)); // 8KB per command pool
-    coordsPool.maxSize = std::min(static_cast<size_t>(500), psramFree / (1024 * 16)); // 16KB per coords pool
-    featurePool.maxSize = std::min(static_cast<size_t>(200), psramFree / (1024 * 32)); // 32KB per feature pool
-    lineSegmentPool.maxSize = std::min(static_cast<size_t>(100), psramFree / (1024 * 64)); // 64KB per line batch pool
-    coordArrayPool.maxSize = std::min(static_cast<size_t>(50), psramFree / (1024 * 128)); // 128KB per coord array pool
-#else
-    size_t ramFree = ESP.getFreeHeap();
-    
-    // Smaller pools for ESP32 without PSRAM
-    pointPool.maxSize = std::min(static_cast<size_t>(500), ramFree / (1024 * 8));
-    commandPool.maxSize = std::min(static_cast<size_t>(250), ramFree / (1024 * 16));
-    coordsPool.maxSize = std::min(static_cast<size_t>(100), ramFree / (1024 * 32));
-    featurePool.maxSize = std::min(static_cast<size_t>(50), ramFree / (1024 * 64));
-    lineSegmentPool.maxSize = std::min(static_cast<size_t>(25), ramFree / (1024 * 128));
-    coordArrayPool.maxSize = std::min(static_cast<size_t>(10), ramFree / (1024 * 256));
-#endif
-    
-    ESP_LOGI(TAG, "Advanced pool sizes: Points=%zu, Commands=%zu, Coords=%zu, Features=%zu, LineBatches=%zu, CoordArrays=%zu",
-             pointPool.maxSize, commandPool.maxSize, coordsPool.maxSize, featurePool.maxSize, lineSegmentPool.maxSize, coordArrayPool.maxSize);
-}
-
-/**
- * @brief Get point from pool
- *
- * @details Gets a point from the pool or creates a new one.
- *
- * @return Point pair (x, y).
- */
-std::pair<int, int> Maps::getPoint()
-{
-    if (advancedPoolMutex && xSemaphoreTake(advancedPoolMutex, portMAX_DELAY) == pdTRUE) {
-        if (!pointPool.points.empty()) {
-            auto point = pointPool.points.back();
-            pointPool.points.pop_back();
-            pointPool.hits++;
-            xSemaphoreGive(advancedPoolMutex);
-            return point;
-        }
-        pointPool.misses++;
-        xSemaphoreGive(advancedPoolMutex);
-    }
-    return std::make_pair(0, 0);
-}
-
-/**
- * @brief Return point to pool
- *
- * @details Returns a point to the pool for reuse.
- *
- * @param point The point to return.
- */
-void Maps::returnPoint(const std::pair<int, int>& point)
-{
-    if (advancedPoolMutex && xSemaphoreTake(advancedPoolMutex, portMAX_DELAY) == pdTRUE) {
-        if (pointPool.points.size() < pointPool.maxSize) {
-            pointPool.points.push_back(point);
-        }
-        xSemaphoreGive(advancedPoolMutex);
-    }
-}
-
-/**
- * @brief Get command from pool
- *
- * @details Gets a command from the pool or creates a new one.
- *
- * @return Command pair (type, color).
- */
-std::pair<uint8_t, uint16_t> Maps::getCommand()
-{
-    if (advancedPoolMutex && xSemaphoreTake(advancedPoolMutex, portMAX_DELAY) == pdTRUE) {
-        if (!commandPool.commands.empty()) {
-            auto command = commandPool.commands.back();
-            commandPool.commands.pop_back();
-            commandPool.hits++;
-            xSemaphoreGive(advancedPoolMutex);
-            return command;
-        }
-        commandPool.misses++;
-        xSemaphoreGive(advancedPoolMutex);
-    }
-    return std::make_pair(0, 0);
-}
-
-/**
- * @brief Return command to pool
- *
- * @details Returns a command to the pool for reuse.
- *
- * @param command The command to return.
- */
-void Maps::returnCommand(const std::pair<uint8_t, uint16_t>& command)
-{
-    if (advancedPoolMutex && xSemaphoreTake(advancedPoolMutex, portMAX_DELAY) == pdTRUE) {
-        if (commandPool.commands.size() < commandPool.maxSize) {
-            commandPool.commands.push_back(command);
-        }
-        xSemaphoreGive(advancedPoolMutex);
-    }
-}
-
-/**
- * @brief Get coordinates from pool
- *
- * @details Gets coordinates from the pool or creates a new vector.
- *
- * @return Coordinates vector.
- */
-std::vector<std::pair<int, int>> Maps::getCoords()
-{
-    if (advancedPoolMutex && xSemaphoreTake(advancedPoolMutex, portMAX_DELAY) == pdTRUE) {
-        if (!coordsPool.coords.empty()) {
-            auto coords = coordsPool.coords.back();
-            coordsPool.coords.pop_back();
-            coords.clear(); // Clear for reuse
-            coordsPool.hits++;
-            xSemaphoreGive(advancedPoolMutex);
-            return coords;
-        }
-        coordsPool.misses++;
-        xSemaphoreGive(advancedPoolMutex);
-    }
-    return std::vector<std::pair<int, int>>();
-}
-
-/**
- * @brief Return coordinates to pool
- *
- * @details Returns coordinates to the pool for reuse.
- *
- * @param coords The coordinates to return.
- */
-void Maps::returnCoords(const std::vector<std::pair<int, int>>& coords)
-{
-    if (advancedPoolMutex && xSemaphoreTake(advancedPoolMutex, portMAX_DELAY) == pdTRUE) {
-        if (coordsPool.coords.size() < coordsPool.maxSize) {
-            coordsPool.coords.push_back(coords);
-        }
-        xSemaphoreGive(advancedPoolMutex);
-    }
-}
-
-/**
- * @brief Get feature from pool
- *
- * @details Gets a feature from the pool or creates a new map.
- *
- * @return Feature map.
- */
-std::map<std::string, std::string> Maps::getFeature()
-{
-    if (advancedPoolMutex && xSemaphoreTake(advancedPoolMutex, portMAX_DELAY) == pdTRUE) {
-        if (!featurePool.features.empty()) {
-            auto feature = featurePool.features.back();
-            featurePool.features.pop_back();
-            feature.clear(); // Clear for reuse
-            featurePool.hits++;
-            xSemaphoreGive(advancedPoolMutex);
-            return feature;
-        }
-        featurePool.misses++;
-        xSemaphoreGive(advancedPoolMutex);
-    }
-    return std::map<std::string, std::string>();
-}
-
-/**
- * @brief Return feature to pool
- *
- * @details Returns a feature to the pool for reuse.
- *
- * @param feature The feature to return.
- */
-void Maps::returnFeature(const std::map<std::string, std::string>& feature)
-{
-    if (advancedPoolMutex && xSemaphoreTake(advancedPoolMutex, portMAX_DELAY) == pdTRUE) {
-        if (featurePool.features.size() < featurePool.maxSize) {
-            featurePool.features.push_back(feature);
-        }
-        xSemaphoreGive(advancedPoolMutex);
-    }
-}
-
-/**
- * @brief Clear all advanced pools
- *
- * @details Clears all advanced pool entries.
- */
-void Maps::clearAdvancedPools()
-{
-    if (!advancedPoolMutex) return;
-    
-    if (xSemaphoreTake(advancedPoolMutex, portMAX_DELAY) == pdTRUE) {
-        pointPool.points.clear();
-        commandPool.commands.clear();
-        coordsPool.coords.clear();
-        featurePool.features.clear();
-        lineSegmentPool.lineBatches.clear();
-        coordArrayPool.coordArrays.clear();
-        
-        pointPool.hits = pointPool.misses = 0;
-        commandPool.hits = commandPool.misses = 0;
-        coordsPool.hits = coordsPool.misses = 0;
-        featurePool.hits = featurePool.misses = 0;
-        lineSegmentPool.hits = lineSegmentPool.misses = 0;
-        coordArrayPool.hits = coordArrayPool.misses = 0;
-        
-        xSemaphoreGive(advancedPoolMutex);
-    }
-}
-
-/**
- * @brief Print advanced pool statistics
- *
- * @details Prints useful advanced pool statistics for debugging.
- */
-void Maps::printAdvancedPoolStats()
-{
-    ESP_LOGI(TAG, "=== Advanced Memory Pool Statistics ===");
-    ESP_LOGI(TAG, "Point Pool: %zu/%zu used, %u hits, %u misses", 
-             pointPool.points.size(), pointPool.maxSize, pointPool.hits, pointPool.misses);
-    ESP_LOGI(TAG, "Command Pool: %zu/%zu used, %u hits, %u misses", 
-             commandPool.commands.size(), commandPool.maxSize, commandPool.hits, commandPool.misses);
-    ESP_LOGI(TAG, "Coords Pool: %zu/%zu used, %u hits, %u misses", 
-             coordsPool.coords.size(), coordsPool.maxSize, coordsPool.hits, coordsPool.misses);
-    ESP_LOGI(TAG, "Feature Pool: %zu/%zu used, %u hits, %u misses", 
-             featurePool.features.size(), featurePool.maxSize, featurePool.hits, featurePool.misses);
-    ESP_LOGI(TAG, "LineSegment Pool: %zu/%zu used, %u hits, %u misses", 
-             lineSegmentPool.lineBatches.size(), lineSegmentPool.maxSize, lineSegmentPool.hits, lineSegmentPool.misses);
-    ESP_LOGI(TAG, "CoordArray Pool: %zu/%zu used, %u hits, %u misses", 
-             coordArrayPool.coordArrays.size(), coordArrayPool.maxSize, coordArrayPool.hits, coordArrayPool.misses);
-}
-
 void Maps::initializeAdvancedPools()
 {
-    initAdvancedPools();
+    // Advanced pools are now handled by unified pool
+    ESP_LOGI(TAG, "Advanced pools initialization delegated to unified pool");
+}
+
+void Maps::initAdvancedPools()
+{
+    // Advanced pools are now handled by unified pool
+    ESP_LOGI(TAG, "Advanced pools initialization delegated to unified pool");
+}
+
+void Maps::printAdvancedPoolStats()
+{
+    ESP_LOGI(TAG, "Advanced pools are now handled by unified pool");
+    ESP_LOGI(TAG, "Unified Pool: hits:%u misses:%u", unifiedPoolHitCount, unifiedPoolMissCount);
 }
 
 void Maps::printAdvancedMemoryPoolStats()
@@ -2463,10 +2128,8 @@ void Maps::updateMemoryStats()
  */
 void Maps::calculatePoolEfficiency()
 {
-    uint32_t totalHits = pointPool.hits + commandPool.hits + coordsPool.hits + 
-                        featurePool.hits + lineSegmentPool.hits + coordArrayPool.hits;
-    uint32_t totalMisses = pointPool.misses + commandPool.misses + coordsPool.misses + 
-                          featurePool.misses + lineSegmentPool.misses + coordArrayPool.misses;
+    uint32_t totalHits = unifiedPoolHitCount;
+    uint32_t totalMisses = unifiedPoolMissCount;
     
     if (totalHits + totalMisses > 0) {
         poolEfficiencyScore = (totalHits * 100) / (totalHits + totalMisses);
@@ -2537,236 +2200,6 @@ void Maps::initializeMemoryMonitoring()
 void Maps::printMemoryMonitoringStats()
 {
     printMemoryStats();
-}
-void Maps::initMemoryPool()
-{
-    detectMemoryPoolCapabilities();
-    
-    if (memoryPoolMutex == nullptr) {
-        memoryPoolMutex = xSemaphoreCreateMutex();
-        if (memoryPoolMutex == nullptr) {
-            ESP_LOGE(TAG, "Failed to create memory pool mutex");
-            return;
-        }
-    }
-    
-    memoryPool.clear();
-    memoryPool.reserve(maxPoolEntries);
-    poolAllocationCount = 0;
-    poolHitCount = 0;
-    poolMissCount = 0;
-    
-    ESP_LOGI(TAG, "Memory pool initialized with %zu entries capacity", maxPoolEntries);
-}
-
-/**
- * @brief Detect memory pool capabilities and set pool size
- *
- * @details Automatically detects available memory and sets the appropriate pool size.
- */
-void Maps::detectMemoryPoolCapabilities()
-{
-    maxPoolEntries = 0; // Default: no pool
-    
-#ifdef BOARD_HAS_PSRAM
-    size_t psramFree = ESP.getFreePsram();
-    size_t ramFree = ESP.getFreeHeap();
-    
-    ESP_LOGI(TAG, "PSRAM free: %zu bytes (%.2f MB)", psramFree, psramFree / (1024.0 * 1024.0));
-    ESP_LOGI(TAG, "RAM free: %zu bytes (%.2f KB)", ramFree, ramFree / 1024.0);
-    
-    // Calculate pool size based on available memory
-    // Reserve 20% of free PSRAM for pool (small buffers for line segments, etc.)
-    size_t poolMemory = psramFree * 0.2;
-    size_t avgBufferSize = 1024; // Average buffer size for line segments, polygons, etc.
-    
-    maxPoolEntries = poolMemory / avgBufferSize;
-    
-    // Apply reasonable limits
-    if (maxPoolEntries > 16) maxPoolEntries = 16; // Max 16 entries
-    if (maxPoolEntries < 4) maxPoolEntries = 4;   // Min 4 entries
-    
-    ESP_LOGI(TAG, "Memory pool capacity: %zu entries (%.2f KB reserved)", 
-             maxPoolEntries, poolMemory / 1024.0);
-#else
-    // ESP32 without PSRAM: small pool in RAM
-    size_t ramFree = ESP.getFreeHeap();
-    size_t poolMemory = ramFree * 0.1; // Only 10% of RAM for pool
-    size_t avgBufferSize = 512; // Smaller buffers for limited RAM
-    
-    maxPoolEntries = poolMemory / avgBufferSize;
-    if (maxPoolEntries > 8) maxPoolEntries = 8;  // Max 8 entries
-    if (maxPoolEntries < 2) maxPoolEntries = 0;  // Disable if too small
-    
-    ESP_LOGI(TAG, "Memory pool capacity: %zu entries (%.2f KB reserved)", 
-             maxPoolEntries, poolMemory / 1024.0);
-#endif
-}
-
-/**
- * @brief Allocate memory from pool
- *
- * @details Attempts to allocate memory from the pool. If no suitable entry is found, returns nullptr.
- *
- * @param size The size of memory to allocate.
- * @return Pointer to allocated memory, or nullptr if not available.
- */
-void* Maps::poolAllocate(size_t size)
-{
-    if (maxPoolEntries == 0 || !memoryPoolMutex) return nullptr;
-    
-    if (xSemaphoreTake(memoryPoolMutex, portMAX_DELAY) == pdTRUE) {
-        // Look for available entry of suitable size
-        for (auto& entry : memoryPool) {
-            if (!entry.isInUse && entry.size >= size) {
-                entry.isInUse = true;
-                entry.allocationCount++;
-                poolAllocationCount++;
-                xSemaphoreGive(memoryPoolMutex);
-                return entry.ptr;
-            }
-        }
-        
-        // No suitable entry found, try to create new one
-        if (memoryPool.size() < maxPoolEntries) {
-            MemoryPoolEntry newEntry;
-            
-#ifdef BOARD_HAS_PSRAM
-            newEntry.ptr = heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
-#else
-            newEntry.ptr = heap_caps_malloc(size, MALLOC_CAP_8BIT);
-#endif
-            
-            if (newEntry.ptr) {
-                newEntry.size = size;
-                newEntry.isInUse = true;
-                newEntry.allocationCount = 1;
-                memoryPool.push_back(newEntry);
-                poolAllocationCount++;
-                xSemaphoreGive(memoryPoolMutex);
-                return newEntry.ptr;
-            }
-        }
-        
-        xSemaphoreGive(memoryPoolMutex);
-    }
-    
-    return nullptr; // Pool allocation failed
-}
-
-/**
- * @brief Return memory to pool
- *
- * @details Returns memory to the pool by marking the entry as available.
- *
- * @param ptr Pointer to memory to return.
- */
-void Maps::poolDeallocate(void* ptr)
-{
-    if (!ptr || maxPoolEntries == 0 || !memoryPoolMutex) return;
-    
-    if (xSemaphoreTake(memoryPoolMutex, portMAX_DELAY) == pdTRUE) {
-        for (auto& entry : memoryPool) {
-            if (entry.ptr == ptr && entry.isInUse) {
-                entry.isInUse = false;
-                xSemaphoreGive(memoryPoolMutex);
-                return;
-            }
-        }
-        xSemaphoreGive(memoryPoolMutex);
-    }
-}
-
-/**
- * @brief Clear all pool entries
- *
- * @details Frees all pool entries and clears the pool.
- */
-void Maps::clearMemoryPool()
-{
-    if (!memoryPoolMutex) return;
-    
-    if (xSemaphoreTake(memoryPoolMutex, portMAX_DELAY) == pdTRUE) {
-        for (auto& entry : memoryPool) {
-            if (entry.ptr) {
-                heap_caps_free(entry.ptr);
-            }
-        }
-        memoryPool.clear();
-        poolAllocationCount = 0;
-        poolHitCount = 0;
-        poolMissCount = 0;
-        xSemaphoreGive(memoryPoolMutex);
-    }
-}
-
-/**
- * @brief Get current pool memory usage
- *
- * @details Calculates the current memory usage of the pool.
- *
- * @return Memory usage in bytes.
- */
-size_t Maps::getPoolMemoryUsage()
-{
-    size_t memoryUsage = 0;
-    if (!memoryPoolMutex) return 0;
-    
-    if (xSemaphoreTake(memoryPoolMutex, 0) == pdTRUE) {
-        for (const auto& entry : memoryPool) {
-            memoryUsage += entry.size;
-        }
-        xSemaphoreGive(memoryPoolMutex);
-    }
-    return memoryUsage;
-}
-
-/**
- * @brief Print pool statistics for debugging
- *
- * @details Prints useful pool statistics for debugging and monitoring.
- */
-void Maps::printPoolStats()
-{
-    ESP_LOGI(TAG, "=== Memory Pool Statistics ===");
-    ESP_LOGI(TAG, "Max pool entries: %zu", maxPoolEntries);
-    ESP_LOGI(TAG, "Current pool entries: %zu", memoryPool.size());
-    ESP_LOGI(TAG, "Pool memory usage: %zu bytes", getPoolMemoryUsage());
-    ESP_LOGI(TAG, "Total allocations: %u", poolAllocationCount);
-    ESP_LOGI(TAG, "Pool hits: %u", poolHitCount);
-    ESP_LOGI(TAG, "Pool misses: %u", poolMissCount);
-    
-    if (poolAllocationCount > 0) {
-        float hitRate = (float)poolHitCount / poolAllocationCount * 100.0f;
-        ESP_LOGI(TAG, "Hit rate: %.1f%%", hitRate);
-    }
-    
-    for (size_t i = 0; i < memoryPool.size(); ++i) {
-        const auto& entry = memoryPool[i];
-        ESP_LOGI(TAG, "Pool[%zu]: %zu bytes, inUse: %s, allocations: %u", 
-                 i, entry.size, entry.isInUse ? "yes" : "no", entry.allocationCount);
-    }
-    ESP_LOGI(TAG, "=============================");
-}
-
-/**
- * @brief Initialize memory pool system (public method)
- *
- * @details Public method to initialize the memory pool system.
- */
-void Maps::initializeMemoryPool()
-{
-    initMemoryPool();
-}
-
-/**
- * @brief Print memory pool statistics (public method)
- *
- * @details Public method to print memory pool statistics.
- */
-void Maps::printMemoryPoolStats()
-{
-    printPoolStats();
 }
 
 /**
@@ -2895,7 +2328,7 @@ void Maps::clearLayerCommands()
         // Free command data
         for (auto& cmd : layerCommands[i]) {
             if (cmd.data) {
-                poolDeallocate(cmd.data);
+                unifiedDealloc(cmd.data);
             }
         }
         layerCommands[i].clear();
@@ -3356,7 +2789,7 @@ bool Maps::renderTileLayered(const char* path, const int16_t xOffset, const int1
     fclose(file);
     if (bytesRead != fileSize) 
     {
-        poolDeallocate(data);
+        unifiedDealloc(data);
         return false;
     }
 
@@ -3368,7 +2801,7 @@ bool Maps::renderTileLayered(const char* path, const int16_t xOffset, const int1
     const uint32_t num_cmds = readVarint(data, offset, dataSize);
     if (num_cmds == 0)
     {
-        poolDeallocate(data);
+        unifiedDealloc(data);
         return false;
     }
 
@@ -3377,7 +2810,7 @@ bool Maps::renderTileLayered(const char* path, const int16_t xOffset, const int1
         // Free command data before clearing
         for (auto& cmd : layerCommands[i]) {
             if (cmd.data) {
-                poolDeallocate(cmd.data);
+                unifiedDealloc(cmd.data);
             }
         }
         layerCommands[i].clear();
@@ -3435,7 +2868,7 @@ bool Maps::renderTileLayered(const char* path, const int16_t xOffset, const int1
                     {
                         // Allocate memory for polygon data using pool
                         size_t cmdDataSize = sizeof(int) * (1 + numPoints * 2);
-                        int* polygonData = static_cast<int*>(poolAllocate(cmdDataSize));
+                        int* polygonData = static_cast<int*>(unifiedAlloc(cmdDataSize, 0));
                         if (polygonData) {
                             polygonData[0] = numPoints;
                             
@@ -3464,7 +2897,7 @@ bool Maps::renderTileLayered(const char* path, const int16_t xOffset, const int1
                     {
                         // Allocate memory for polygon data using pool
                         size_t cmdDataSize = sizeof(int) * (1 + numPoints * 2);
-                        int* polygonData = static_cast<int*>(poolAllocate(cmdDataSize));
+                        int* polygonData = static_cast<int*>(unifiedAlloc(cmdDataSize, 0));
                         if (polygonData) {
                             polygonData[0] = numPoints;
                             
@@ -3502,7 +2935,7 @@ bool Maps::renderTileLayered(const char* path, const int16_t xOffset, const int1
                         pdx > 0 && pdy > 0 && !isPointOnMargin(px1, py1)) 
                     {
                         // Allocate memory for rectangle data using pool
-                        int* rectData = static_cast<int*>(poolAllocate(sizeof(int) * 4));
+                        int* rectData = static_cast<int*>(unifiedAlloc(sizeof(int) * 4, 0));
                         if (rectData) {
                             rectData[0] = px1;
                             rectData[1] = py1;
@@ -3532,7 +2965,7 @@ bool Maps::renderTileLayered(const char* path, const int16_t xOffset, const int1
                         pwidth > 0 && pheight > 0 && px + pwidth <= TILE_SIZE && py + pheight <= TILE_SIZE) 
                     {
                         // Allocate memory for rectangle data using pool
-                        int* rectData = static_cast<int*>(poolAllocate(sizeof(int) * 4));
+                        int* rectData = static_cast<int*>(unifiedAlloc(sizeof(int) * 4, 0));
                         if (rectData) {
                             rectData[0] = px;
                             rectData[1] = py;
@@ -3561,7 +2994,7 @@ bool Maps::renderTileLayered(const char* path, const int16_t xOffset, const int1
                         !isPointOnMargin(pcx, pcy)) 
                     {
                         // Allocate memory for circle data using pool
-                        int* circleData = static_cast<int*>(poolAllocate(sizeof(int) * 3));
+                        int* circleData = static_cast<int*>(unifiedAlloc(sizeof(int) * 3, 0));
                         if (circleData) {
                             circleData[0] = pcx;
                             circleData[1] = pcy;
@@ -3589,7 +3022,7 @@ bool Maps::renderTileLayered(const char* path, const int16_t xOffset, const int1
                         pcx - pradius >= 0 && pcy - pradius >= 0) 
                     {
                         // Allocate memory for circle data using pool
-                        int* circleData = static_cast<int*>(poolAllocate(sizeof(int) * 3));
+                        int* circleData = static_cast<int*>(unifiedAlloc(sizeof(int) * 3, 0));
                         if (circleData) {
                             circleData[0] = pcx;
                             circleData[1] = pcy;
@@ -3617,7 +3050,7 @@ bool Maps::renderTileLayered(const char* path, const int16_t xOffset, const int1
                         pcx - pradius >= 0 && pcy - pradius >= 0) 
                     {
                         // Allocate memory for circle data using pool
-                        int* circleData = static_cast<int*>(poolAllocate(sizeof(int) * 3));
+                        int* circleData = static_cast<int*>(unifiedAlloc(sizeof(int) * 3, 0));
                         if (circleData) {
                             circleData[0] = pcx;
                             circleData[1] = pcy;
@@ -3651,7 +3084,7 @@ bool Maps::renderTileLayered(const char* path, const int16_t xOffset, const int1
                         px3 >= 0 && px3 <= TILE_SIZE && py3 >= 0 && py3 <= TILE_SIZE) 
                     {
                         // Allocate memory for triangle data using pool
-                        int* triangleData = static_cast<int*>(poolAllocate(sizeof(int) * 6));
+                        int* triangleData = static_cast<int*>(unifiedAlloc(sizeof(int) * 6, 0));
                         if (triangleData) {
                             triangleData[0] = px1;
                             triangleData[1] = py1;
@@ -3688,7 +3121,7 @@ bool Maps::renderTileLayered(const char* path, const int16_t xOffset, const int1
                         px3 >= 0 && px3 <= TILE_SIZE && py3 >= 0 && py3 <= TILE_SIZE) 
                     {
                         // Allocate memory for triangle data using pool
-                        int* triangleData = static_cast<int*>(poolAllocate(sizeof(int) * 6));
+                        int* triangleData = static_cast<int*>(unifiedAlloc(sizeof(int) * 6, 0));
                         if (triangleData) {
                             triangleData[0] = px1;
                             triangleData[1] = py1;
@@ -3722,7 +3155,7 @@ bool Maps::renderTileLayered(const char* path, const int16_t xOffset, const int1
                         px2 >= 0 && px2 <= TILE_SIZE && py2 >= 0 && py2 <= TILE_SIZE) 
                     {
                         // Allocate memory for dashed line data using pool
-                        int* lineData = static_cast<int*>(poolAllocate(sizeof(int) * 6));
+                        int* lineData = static_cast<int*>(unifiedAlloc(sizeof(int) * 6, 0));
                         if (lineData) {
                             lineData[0] = px1;
                             lineData[1] = py1;
@@ -3755,7 +3188,7 @@ bool Maps::renderTileLayered(const char* path, const int16_t xOffset, const int1
                         px2 >= 0 && px2 <= TILE_SIZE && py2 >= 0 && py2 <= TILE_SIZE) 
                     {
                         // Allocate memory for dotted line data using pool
-                        int* lineData = static_cast<int*>(poolAllocate(sizeof(int) * 5));
+                        int* lineData = static_cast<int*>(unifiedAlloc(sizeof(int) * 5, 0));
                         if (lineData) {
                             lineData[0] = px1;
                             lineData[1] = py1;
@@ -3785,7 +3218,7 @@ bool Maps::renderTileLayered(const char* path, const int16_t xOffset, const int1
                     if (px >= 0 && px <= TILE_SIZE && py >= 0 && py <= TILE_SIZE) 
                     {
                         // Allocate memory for grid pattern data using pool
-                        int* gridData = static_cast<int*>(poolAllocate(sizeof(int) * 6));
+                        int* gridData = static_cast<int*>(unifiedAlloc(sizeof(int) * 6, 0));
                         if (gridData) {
                             gridData[0] = px;
                             gridData[1] = py;
@@ -3815,7 +3248,7 @@ bool Maps::renderTileLayered(const char* path, const int16_t xOffset, const int1
                     if (px >= 0 && px <= TILE_SIZE && py >= 0 && py <= TILE_SIZE) 
                     {
                         // Allocate memory for block pattern data using pool
-                        int* blockData = static_cast<int*>(poolAllocate(sizeof(int) * 5));
+                        int* blockData = static_cast<int*>(unifiedAlloc(sizeof(int) * 5, 0));
                         if (blockData) {
                             blockData[0] = px;
                             blockData[1] = py;
@@ -3884,7 +3317,7 @@ bool Maps::renderTileLayered(const char* path, const int16_t xOffset, const int1
                         if (pstartX >= 0 && pstartX <= TILE_SIZE && pstartY >= 0 && pstartY <= TILE_SIZE) 
                         {
                             // Allocate memory for predicted line data using pool
-                            int* lineData = static_cast<int*>(poolAllocate(sizeof(int) * 4));
+                            int* lineData = static_cast<int*>(unifiedAlloc(sizeof(int) * 4, 0));
                             if (lineData) {
                                 lineData[0] = pstartX;
                                 lineData[1] = pstartY;
@@ -3925,7 +3358,7 @@ bool Maps::renderTileLayered(const char* path, const int16_t xOffset, const int1
                             pendX >= 0 && pendX <= TILE_SIZE && pendY >= 0 && pendY <= TILE_SIZE) 
                         {
                             // Allocate memory for highway segment data using pool
-                            int* segmentData = static_cast<int*>(poolAllocate(sizeof(int) * 5));
+                            int* segmentData = static_cast<int*>(unifiedAlloc(sizeof(int) * 5, 0));
                             if (segmentData) {
                                 segmentData[0] = pstartX;
                                 segmentData[1] = pstartY;
@@ -3964,7 +3397,7 @@ bool Maps::renderTileLayered(const char* path, const int16_t xOffset, const int1
                                 px2 >= 0 && px2 <= TILE_SIZE && py2 >= 0 && py2 <= TILE_SIZE) 
                             {
                                 // Allocate memory for line data using pool
-                                int* lineData = static_cast<int*>(poolAllocate(sizeof(int) * 4));
+                                int* lineData = static_cast<int*>(unifiedAlloc(sizeof(int) * 4, 0));
                                 if (lineData) {
                                     lineData[0] = px1;
                                     lineData[1] = py1;
@@ -3997,7 +3430,7 @@ bool Maps::renderTileLayered(const char* path, const int16_t xOffset, const int1
                     if (shouldDrawLine(px1, py1, px2, py2)) 
                     {
                         // Allocate memory for line data using pool
-                        int* lineData = static_cast<int*>(poolAllocate(sizeof(int) * 4));
+                        int* lineData = static_cast<int*>(unifiedAlloc(sizeof(int) * 4, 0));
                         if (lineData) {
                             lineData[0] = px1;
                             lineData[1] = py1;
@@ -4030,13 +3463,13 @@ bool Maps::renderTileLayered(const char* path, const int16_t xOffset, const int1
     }
 
     // Clean up efficiently
-    poolDeallocate(data);
+    unifiedDealloc(data);
     
     // Free all command data and clear layers
     for (int i = 0; i < LAYER_COUNT; i++) {
         for (auto& cmd : layerCommands[i]) {
             if (cmd.data) {
-                poolDeallocate(cmd.data);
+                unifiedDealloc(cmd.data);
             }
         }
         layerCommands[i].clear();

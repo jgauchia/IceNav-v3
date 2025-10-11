@@ -228,23 +228,6 @@ private:
 	static SemaphoreHandle_t preloadMutex;                                      /**< Mutex for thread safety */
 	static bool preloadSystemActive;                                            /**< Preload system enabled */
 	
-	// Memory pool system
-	static std::vector<MemoryPoolEntry> memoryPool;                            /**< Memory pool for reusable buffers */
-	static SemaphoreHandle_t memoryPoolMutex;                                  /**< Mutex for memory pool thread safety */
-	static size_t maxPoolEntries;                                              /**< Maximum pool entries based on hardware */
-	static uint32_t poolAllocationCount;                                       /**< Total allocations from pool */
-	static uint32_t poolHitCount;                                              /**< Successful pool hits */
-	static uint32_t poolMissCount;                                             /**< Pool misses (fallback to malloc) */
-	
-	// Advanced memory pools for object reuse
-	static PointPool pointPool;                                                /**< Pool for coordinate points */
-	static CommandPool commandPool;                                            /**< Pool for draw commands */
-	static CoordsPool coordsPool;                                              /**< Pool for coordinate arrays */
-	static FeaturePool featurePool;                                            /**< Pool for OSM features */
-	static LineSegmentPool lineSegmentPool;                                    /**< Pool for LineSegment batches */
-	static CoordArrayPool coordArrayPool;                                      /**< Pool for coordinate arrays */
-	static SemaphoreHandle_t advancedPoolMutex;                               /**< Mutex for advanced pools */
-	
 	// Unified memory pool system (experimental)
 	struct UnifiedPoolEntry
 	{
@@ -357,26 +340,11 @@ private:
 	void preloadAdjacentTiles(int16_t centerX, int16_t centerY, uint8_t zoom); /**< Preload tiles around current position */
 	
 	// Memory pool methods
-	void initMemoryPool();                                                      /**< Initialize memory pool system */
-	void detectMemoryPoolCapabilities();                                       /**< Detect optimal pool size based on hardware */
-	void* poolAllocate(size_t size);                                           /**< Allocate memory from pool */
-	void poolDeallocate(void* ptr);                                            /**< Return memory to pool */
-	void clearMemoryPool();                                                    /**< Clear all pool entries */
-	size_t getPoolMemoryUsage();                                               /**< Get current pool memory usage */
 	void printPoolStats();                                                     /**< Print pool statistics for debugging */
 	
 	// Advanced memory pool methods
 	void initAdvancedPools();                                                  /**< Initialize advanced memory pools */
 	void detectAdvancedPoolCapabilities();                                     /**< Detect optimal pool sizes */
-	std::pair<int, int> getPoint();                                            /**< Get point from pool */
-	void returnPoint(const std::pair<int, int>& point);                        /**< Return point to pool */
-	std::pair<uint8_t, uint16_t> getCommand();                                 /**< Get command from pool */
-	void returnCommand(const std::pair<uint8_t, uint16_t>& command);           /**< Return command to pool */
-	std::vector<std::pair<int, int>> getCoords();                              /**< Get coordinates from pool */
-	void returnCoords(const std::vector<std::pair<int, int>>& coords);         /**< Return coordinates to pool */
-	std::map<std::string, std::string> getFeature();                           /**< Get feature from pool */
-	void returnFeature(const std::map<std::string, std::string>& feature);     /**< Return feature to pool */
-	void clearAdvancedPools();                                                 /**< Clear all advanced pools */
 	void printAdvancedPoolStats();                                             /**< Print advanced pool statistics */
 	
 	// Unified memory pool methods (experimental)
@@ -457,8 +425,6 @@ public:
     void triggerPreload(int16_t centerX, int16_t centerY, uint8_t zoom);        /**< Trigger preload of adjacent tiles */
     
     // Memory pool public methods
-    void initializeMemoryPool();                                                /**< Initialize memory pool system */
-    void printMemoryPoolStats();                                                /**< Print memory pool statistics */
     
     // Advanced memory pool public methods
     void initializeAdvancedPools();                                             /**< Initialize advanced memory pools */
