@@ -64,6 +64,12 @@ bool createTrackPoint(const trkPoint& tp) {
 		return false;
 	}
 	
+	tinyxml2::XMLElement* trksegElem = trkElem->FirstChildElement(gpxTrackSegmentTag);
+	if (!trksegElem)	
+	{
+		ESP_LOGE(TAGGPX, "Failed to get trkseg element in file: %s", trackFile.c_str());
+		return false;
+	}
 
 	tinyxml2::XMLElement* newTrkPt = doc.NewElement(gpxTrackPointTag);
 	newTrkPt->SetAttribute(gpxLatElem, formatFloat(tp.lat, 6).c_str());
@@ -75,11 +81,11 @@ bool createTrackPoint(const trkPoint& tp) {
 	element->SetText(tp.ele);
 	newTrkPt->InsertEndChild(element);
 
-	tinyxml2::XMLElement* lastTrkPt = root->LastChildElement(gpxTrackPointTag);
+	tinyxml2::XMLElement* lastTrkPt = trksegElem->LastChildElement(gpxTrackPointTag);
 	if (lastTrkPt) 
-		root->InsertAfterChild(lastTrkPt, newTrkPt);
+		trksegElem->InsertAfterChild(lastTrkPt, newTrkPt);
 	else
-		root->InsertFirstChild(newTrkPt);
+		trksegElem->InsertFirstChild(newTrkPt);
 
 	result = doc.SaveFile(trackFile.c_str());
 	if (result != tinyxml2::XML_SUCCESS)
@@ -92,10 +98,11 @@ bool createTrackPoint(const trkPoint& tp) {
 
 void stopTrack(){
 	if (!isTracking) {
-		ESP_LOGW(TAG, "Tracking not started");
+		ESP_LOGI(TAG, "Tracking not started");
 		return;
 	} else {
 		isTracking = false;
+		trackFile = "";
 		ESP_LOGI(TAG, "Stopped tracking");
 	}
 }
