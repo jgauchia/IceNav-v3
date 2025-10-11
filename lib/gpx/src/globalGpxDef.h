@@ -54,6 +54,13 @@ struct wayPoint
 	float     pdop;    /**< Position dilution of precision. */
 };
 
+struct trkPoint
+{
+	float lat;       /**< Latitude of the track point. */
+	float lon;       /**< Longitude of the track point. */
+	float ele;       /**< Elevation of the track point. */
+};
+
 /**
  * @brief Track turn points structure
  *
@@ -65,6 +72,12 @@ struct TurnPoint
 	float angle;       /**< Turn angle at this point (positive = right, negative = left) */
 	float distance;    /**< Distance from start to this point (in meters) */
 }; 
+
+struct TrackPoints {
+	float lat;
+	float lon;
+	float ele;
+};
 
 /**
  * @Brief GPX header file format
