@@ -7,3 +7,6 @@
 assets
 tools/*.raw
 tools/*.png
+features.json
+tile_generator.py
+tile_viewer.py
