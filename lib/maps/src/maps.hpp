@@ -349,10 +349,59 @@ private:
 	
 	// Unified memory pool methods (experimental)
 	void initUnifiedPool();                                                     /**< Initialize unified memory pool */
-	void* unifiedAlloc(size_t size, uint8_t type = 0);                          /**< Allocate from unified pool */
-	void unifiedDealloc(void* ptr);                                             /**< Deallocate from unified pool */
+	static void* unifiedAlloc(size_t size, uint8_t type = 0);                          /**< Allocate from unified pool */
+	static void unifiedDealloc(void* ptr);                                             /**< Deallocate from unified pool */
 	void clearUnifiedPool();                                                    /**< Clear unified pool */
 	void printUnifiedPoolStats();                                               /**< Print unified pool statistics */
+	
+	// RAII Memory Guard for automatic memory management
+	template<typename T>
+	class MemoryGuard
+	{
+	private:
+		T* ptr;
+		size_t size;
+		uint8_t type;
+		bool fromPool;
+		
+	public:
+		MemoryGuard(size_t numElements, uint8_t poolType = 0) 
+			: ptr(nullptr), size(numElements * sizeof(T)), type(poolType), fromPool(false)
+		{
+			ptr = static_cast<T*>(Maps::unifiedAlloc(size, type));
+			if (ptr) {
+				fromPool = true;
+			} else {
+				// Fallback to direct allocation
+#ifdef BOARD_HAS_PSRAM
+				ptr = static_cast<T*>(heap_caps_malloc(size, MALLOC_CAP_SPIRAM));
+#else
+				ptr = static_cast<T*>(heap_caps_malloc(size, MALLOC_CAP_8BIT));
+#endif
+				fromPool = false;
+			}
+		}
+		
+		~MemoryGuard()
+		{
+			if (ptr) {
+				if (fromPool) {
+					Maps::unifiedDealloc(ptr);
+				} else {
+					heap_caps_free(ptr);
+				}
+			}
+		}
+		
+		T* get() const { return ptr; }
+		T& operator*() const { return *ptr; }
+		T* operator->() const { return ptr; }
+		operator bool() const { return ptr != nullptr; }
+		
+		// Disable copy constructor and assignment
+		MemoryGuard(const MemoryGuard&) = delete;
+		MemoryGuard& operator=(const MemoryGuard&) = delete;
+	};
 	
 	// Memory monitoring methods
 	void initMemoryMonitoring();                                               /**< Initialize memory monitoring system */

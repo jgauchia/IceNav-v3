@@ -1113,14 +1113,15 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
     // Use unified pool directly
     int *xints = nullptr;
     
-    // Use unified pool directly
-    xints = static_cast<int*>(unifiedAlloc(numPoints * sizeof(int), 6)); // Type 6 = coordArray
+    // Use RAII MemoryGuard for coordinate arrays
+    MemoryGuard<int> xintsGuard(numPoints, 6); // Type 6 = coordArray
+    xints = xintsGuard.get();
     if (!xints) {
-        ESP_LOGW(TAG, "fillPolygonGeneral: Unified pool allocation failed");
+        ESP_LOGW(TAG, "fillPolygonGeneral: RAII MemoryGuard allocation failed");
         return;
     }
     if (!unifiedPoolLogged) {
-        ESP_LOGI(TAG, "fillPolygonGeneral: Using UNIFIED POOL for coordinate arrays");
+        ESP_LOGI(TAG, "fillPolygonGeneral: Using RAII MemoryGuard for coordinate arrays");
         unifiedPoolLogged = true;
     }
     unifiedPoolHitCount++;
@@ -1159,8 +1160,8 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
         }
     }
     
-    // Always use unified deallocation since we use unified pool directly
-    unifiedDealloc(xints);
+    // RAII MemoryGuard automatically handles deallocation
+    // No manual deallocation needed for xints
 }
 
 /**
@@ -3906,14 +3907,16 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     const long fileSize = ftell(file);
     fseek(file, 0, SEEK_SET);
 
-    uint8_t* data = static_cast<uint8_t*>(unifiedAlloc(fileSize, 0)); // Type 0 = general
+    // Use RAII MemoryGuard for data allocation
+    MemoryGuard<uint8_t> dataGuard(fileSize, 0); // Type 0 = general
+    uint8_t* data = dataGuard.get();
     if (!data)
     {
         fclose(file);
         return false;
     }
     if (!unifiedPoolLogged) {
-        ESP_LOGI(TAG, "renderTile: Using UNIFIED POOL for data allocation");
+        ESP_LOGI(TAG, "renderTile: Using RAII MemoryGuard for data allocation");
         unifiedPoolLogged = true;
     }
 
@@ -3921,7 +3924,6 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     fclose(file);
     if (bytesRead != fileSize) 
     {
-        unifiedDealloc(data);
         return false;
     }
 
@@ -3936,32 +3938,26 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     const uint32_t num_cmds = readVarint(data, offset, dataSize);
     if (num_cmds == 0)
     {
-        unifiedDealloc(data);
         return false;
     }
 
     // Use optimal batch size for this hardware
     const size_t optimalBatchSize = getOptimalBatchSize();
     
-    // Use unified pool for line batch allocation
-    LineSegment* lineBatch = static_cast<LineSegment*>(unifiedAlloc(optimalBatchSize * sizeof(LineSegment), 5)); // Type 5 = lineSegment
+    // Use RAII MemoryGuard for line batch allocation
+    MemoryGuard<LineSegment> lineBatchGuard(optimalBatchSize, 5); // Type 5 = lineSegment
+    LineSegment* lineBatch = lineBatchGuard.get();
     if (!lineBatch) {
-        ESP_LOGW(TAG, "renderTile: Unified pool allocation failed for lineBatch");
-        unifiedDealloc(data);
+        ESP_LOGW(TAG, "renderTile: RAII MemoryGuard allocation failed for lineBatch");
         return false;
     }
     if (!unifiedLineBatchLogged) {
-        ESP_LOGI(TAG, "renderTile: Using UNIFIED POOL for lineBatch allocation");
+        ESP_LOGI(TAG, "renderTile: Using RAII MemoryGuard for lineBatch allocation");
         unifiedLineBatchLogged = true;
     }
     unifiedPoolHitCount++;
     
     int batchCount = 0;
-    if (!lineBatch) 
-    {
-        unifiedDealloc(data);
-        return false;
-    }
 
     // Track memory allocations for statistics
     totalMemoryAllocations++;
@@ -4065,17 +4061,17 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     const uint32_t numPoints = readVarint(data, offset, dataSize);
                     if (numPoints >= 2) 
                     {
-                        // Use unified pool directly
-                        int* px = static_cast<int*>(unifiedAlloc(numPoints * sizeof(int), 6)); // Type 6 = coordArray
-                        int* py = static_cast<int*>(unifiedAlloc(numPoints * sizeof(int), 6)); // Type 6 = coordArray
+                        // Use RAII MemoryGuard for coordinate arrays
+                        MemoryGuard<int> pxGuard(numPoints, 6); // Type 6 = coordArray
+                        MemoryGuard<int> pyGuard(numPoints, 6); // Type 6 = coordArray
+                        int* px = pxGuard.get();
+                        int* py = pyGuard.get();
                         if (!px || !py) {
-                            if (px) unifiedDealloc(px);
-                            if (py) unifiedDealloc(py);
-                            ESP_LOGW(TAG, "renderTile DRAW_POLYLINE: Unified pool allocation failed");
+                            ESP_LOGW(TAG, "renderTile DRAW_POLYLINE: RAII MemoryGuard allocation failed");
                             continue;
                         }
                         if (!unifiedPolylineLogged) {
-                            ESP_LOGI(TAG, "renderTile DRAW_POLYLINE: Using UNIFIED POOL for coordinate arrays");
+                            ESP_LOGI(TAG, "renderTile DRAW_POLYLINE: Using RAII MemoryGuard for coordinate arrays");
                             unifiedPolylineLogged = true;
                         }
                         unifiedPoolHitCount += 2;
@@ -4119,9 +4115,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         executed++;
                         isLineCommand = true;
                         
-                        // Always use unified deallocation since we use unified pool directly
-                        unifiedDealloc(px);
-                        unifiedDealloc(py);
+                        // RAII MemoryGuard automatically handles deallocation
+                        // No manual deallocation needed for px and py
                     }
                     else
                     {
@@ -4141,14 +4136,13 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     const uint32_t numPoints = readVarint(data, offset, dataSize);
                     if (numPoints >= 3) 
                     {
-                        int* px = static_cast<int*>(unifiedAlloc(numPoints * sizeof(int), 6)); // Type 6 = coordArray
-                        int* py = static_cast<int*>(unifiedAlloc(numPoints * sizeof(int), 6)); // Type 6 = coordArray
+                        // Use RAII MemoryGuard for coordinate arrays
+                        MemoryGuard<int> pxGuard(numPoints, 6); // Type 6 = coordArray
+                        MemoryGuard<int> pyGuard(numPoints, 6); // Type 6 = coordArray
+                        int* px = pxGuard.get();
+                        int* py = pyGuard.get();
                         if (!px || !py) 
                         {
-                            if (px) 
-                                unifiedDealloc(px);
-                            if (py) 
-                                unifiedDealloc(py);
                             for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
                             {
                                 readZigzag(data, offset, dataSize);
@@ -4157,7 +4151,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                             break;
                         }
                         if (!unifiedPolygonLogged) {
-                            ESP_LOGI(TAG, "renderTile DRAW_STROKE_POLYGON: Using UNIFIED POOL for coordinate arrays");
+                            ESP_LOGI(TAG, "renderTile DRAW_STROKE_POLYGON: Using RAII MemoryGuard for coordinate arrays");
                             unifiedPolygonLogged = true;
                         }
                         const int32_t firstX = readZigzag(data, offset, dataSize);
@@ -4181,8 +4175,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
                         drawPolygonBorder(map, px, py, numPoints, borderColor, currentDrawColor, xOffset, yOffset);
                         executed++;
-                        unifiedDealloc(px);
-                        unifiedDealloc(py);
+                        // RAII MemoryGuard automatically handles deallocation
+                        // No manual deallocation needed for px and py
                     } 
                     else 
                     {
@@ -4201,14 +4195,13 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     int32_t accumX = 0, accumY = 0;
                     if (numPoints >= 3) 
                     {
-                        int* px = static_cast<int*>(unifiedAlloc(numPoints * sizeof(int), 6)); // Type 6 = coordArray
-                        int* py = static_cast<int*>(unifiedAlloc(numPoints * sizeof(int), 6)); // Type 6 = coordArray
+                        // Use RAII MemoryGuard for coordinate arrays
+                        MemoryGuard<int> pxGuard(numPoints, 6); // Type 6 = coordArray
+                        MemoryGuard<int> pyGuard(numPoints, 6); // Type 6 = coordArray
+                        int* px = pxGuard.get();
+                        int* py = pyGuard.get();
                         if (!px || !py) 
                         {
-                            if (px)
-                                unifiedDealloc(px);
-                            if (py) 
-                                unifiedDealloc(py);
                             for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i) 
                             {
                                 readZigzag(data, offset, dataSize);
@@ -4217,7 +4210,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                             break;
                         }
                         if (!unifiedPolygonsLogged) {
-                            ESP_LOGI(TAG, "renderTile DRAW_STROKE_POLYGONS: Using UNIFIED POOL for coordinate arrays");
+                            ESP_LOGI(TAG, "renderTile DRAW_STROKE_POLYGONS: Using RAII MemoryGuard for coordinate arrays");
                             unifiedPolygonsLogged = true;
                         }
                         for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
@@ -4245,8 +4238,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                             polygonCommands++;
                             executed++;
                         }
-                        unifiedDealloc(px);
-                        unifiedDealloc(py);
+                        // RAII MemoryGuard automatically handles deallocation
+                        // No manual deallocation needed for px and py
                     } 
                     else
                     {
@@ -4633,14 +4626,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     }
     flushBatch();
 
-    // Use unified deallocation for better memory management
-    unifiedDealloc(data);
-    
-    // Use unified deallocation for lineBatch
-    unifiedDealloc(lineBatch);
-    
-    // Track memory deallocations for statistics
-    totalMemoryDeallocations += 2;
+    // RAII MemoryGuard automatically handles deallocation
+    // No manual deallocation needed for data and lineBatch
 
     if (executed == 0) 
         return false;
