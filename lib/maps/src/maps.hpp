@@ -58,7 +58,7 @@ enum DrawCommand : uint8_t
     SIMPLE_TRIANGLE = 0x98,      /**< Simple triangle (x1, y1, x2, y2, x3, y3) */
     DASHED_LINE = 0x99,          /**< Dashed line with pattern */
     DOTTED_LINE = 0x9A,          /**< Dotted line with pattern */
-                  };
+};
 
 /**
  * @class Maps
@@ -97,80 +97,16 @@ private:
 		bool isCompleted;      /**< Task completed */
 	};
 	
-	struct MemoryPoolEntry	/**< Memory pool entry structure */
-	{
-		void* ptr;             /**< Pointer to allocated memory */
-		size_t size;           /**< Size of allocated memory */
-		bool isInUse;          /**< Entry is currently in use */
-		uint32_t allocationCount; /**< Number of times this entry was used */
-	};
-	
-	struct PointPool	/**< Point pool for coordinate reuse */
-	{
-		std::vector<std::pair<int, int>> points;
-		size_t maxSize;
-		uint32_t hits;
-		uint32_t misses;
-	};
-	
-	struct CommandPool	/**< Command pool for draw commands */
-	{
-		std::vector<std::pair<uint8_t, uint16_t>> commands;
-		size_t maxSize;
-		uint32_t hits;
-		uint32_t misses;
-	};
-	
-	struct CoordsPool	/**< Coordinates pool for polygon/line coordinates */
-	{
-		std::vector<std::vector<std::pair<int, int>>> coords;
-		size_t maxSize;
-		uint32_t hits;
-		uint32_t misses;
-	};
-	
-	struct FeaturePool	/**< Feature pool for OSM features */
-	{
-		std::vector<std::map<std::string, std::string>> features;
-		size_t maxSize;
-		uint32_t hits;
-		uint32_t misses;
-	};
-	
 	struct LineSegment	/**< Line segment structure */
 	{
 		int x0, y0, x1, y1;
 		uint16_t color;
 	};
 	
-	struct LineSegmentPool	/**< LineSegment pool for line batching */
-	{
-		std::vector<std::vector<LineSegment>> lineBatches;
-		size_t maxSize;
-		uint32_t hits;
-		uint32_t misses;
-	};
-	
-	struct CoordArrayPool	/**< Coordinate array pool for polygon coordinates */
-	{
-		std::vector<std::vector<int*>> coordArrays;
-		size_t maxSize;
-		uint32_t hits;
-		uint32_t misses;
-	};
-	
 	struct PolygonBounds	/**< Polygon bounding box structure */
 	{
 		int minX, minY, maxX, maxY; /**< Bounding box coordinates */
 		bool isValid;               /**< Bounds are valid */
-	};
-	
-	struct ScanlineEdge		/**< Edge structure for scanline algorithm */
-	{
-		int x;                  /**< Current X position */
-		int dx;                 /**< X increment per scanline */
-		int dy;                 /**< Remaining Y steps */
-		int winding;             /**< Winding number (+1 or -1) */
 	};
 	
 	// Layer rendering structures
@@ -183,15 +119,6 @@ private:
 		size_t dataSize;        /**< Size of command data */
 	};
 	
-	enum RenderLayer			/**< Rendering layer enumeration */
-	{
-		LAYER_TERRAIN = 0,      /**< Background terrain/land */
-		LAYER_WATER = 1,        /**< Water bodies, rivers */
-		LAYER_BUILDINGS = 2,    /**< Buildings with fill */
-		LAYER_OUTLINES = 3,     /**< Polygon outlines/borders */
-		LAYER_ROADS = 4,        /**< Roads, streets, paths */
-		LAYER_COUNT = 5         /**< Total number of layers */
-	};
 	struct tileBounds		/**< Map boundaries structure */
 	{
 		float lat_min;	   /**< Minimum latitude */
@@ -199,6 +126,7 @@ private:
 		float lon_min;     /**< Minimum longitude */
 		float lon_max;     /**< Maximum longitude */
 	};
+
 	struct ScreenCoord		/**< Screen position from GPS coordinates */
 	{
 		uint16_t posX;		/**< X position on screen */
@@ -223,7 +151,7 @@ private:
 	static uint32_t cacheAccessCounter;                                         /**< Counter for LRU algorithm */
 	
 	// Background preload system
-	static std::vector<PreloadTask> preloadQueue;                              /**< Queue of tiles to preload */
+	static std::vector<PreloadTask> preloadQueue;                               /**< Queue of tiles to preload */
 	static TaskHandle_t preloadTaskHandle;                                      /**< FreeRTOS task handle */
 	static SemaphoreHandle_t preloadMutex;                                      /**< Mutex for thread safety */
 	static bool preloadSystemActive;                                            /**< Preload system enabled */
@@ -237,10 +165,11 @@ private:
 		uint32_t allocationCount;
 		uint8_t type; // 0=general, 1=point, 2=command, 3=coords, 4=feature, 5=lineSegment, 6=coordArray
 	};
+
 	static std::vector<UnifiedPoolEntry> unifiedPool;                         /**< Unified memory pool */
 	static SemaphoreHandle_t unifiedPoolMutex;                                /**< Mutex for unified pool */
 	static size_t maxUnifiedPoolEntries;                                      /**< Maximum unified pool entries */
-	static uint32_t unifiedPoolHitCount;                                       /**< Unified pool hits */
+	static uint32_t unifiedPoolHitCount;                                      /**< Unified pool hits */
 	static uint32_t unifiedPoolMissCount;                                     /**< Unified pool misses */
 	
 	// Memory monitoring and statistics
@@ -257,11 +186,6 @@ private:
 	static uint32_t polygonRenderCount;                                        /**< Total polygons rendered */
 	static uint32_t polygonCulledCount;                                        /**< Polygons culled (not rendered) */
 	static uint32_t polygonOptimizedCount;                                     /**< Polygons using optimized algorithms */
-	
-	// Layer rendering system
-	static std::vector<std::vector<RenderCommand>> layerCommands;             /**< Commands organized by layer */
-	static bool layerRenderingEnabled;                                        /**< Enable/disable layer rendering */
-	static uint32_t layerRenderCount;                                          /**< Total layers rendered */
 	
 	tileBounds totalBounds; 													/**< Map boundaries */
 	uint16_t wptPosX, wptPosY;                                                  /**< Waypoint position on screen map */
@@ -301,8 +225,7 @@ private:
 	void drawPolygonBorder(TFT_eSprite &map, const int *px, const int *py, 
 							const int numPoints, const uint16_t borderColor, const uint16_t fillColor, 
 							const int xOffset, const int yOffset);						/**< Draw the border of a polygon with margin handling */
-	template<typename T>
-    T* allocBuffer(size_t numElements);													/**< Allocate a buffer with memory caps */			
+	
 	void drawFilledRectWithBorder(TFT_eSprite& map, int x, int y, int w, int h, 
 		                          uint16_t fill, uint16_t border, bool fillShape);		/**< Draw filled rectangle with border */
 	void drawFilledCircleWithBorder(TFT_eSprite& map, int x, int y, int r,
@@ -339,20 +262,11 @@ private:
 	static void preloadTaskFunction(void* parameter);                           /**< FreeRTOS task function */
 	void preloadAdjacentTiles(int16_t centerX, int16_t centerY, uint8_t zoom); /**< Preload tiles around current position */
 	
-	// Memory pool methods
-	void printPoolStats();                                                     /**< Print pool statistics for debugging */
-	
-	// Advanced memory pool methods
-	void initAdvancedPools();                                                  /**< Initialize advanced memory pools */
-	void detectAdvancedPoolCapabilities();                                     /**< Detect optimal pool sizes */
-	void printAdvancedPoolStats();                                             /**< Print advanced pool statistics */
-	
 	// Unified memory pool methods (experimental)
 	void initUnifiedPool();                                                     /**< Initialize unified memory pool */
 	static void* unifiedAlloc(size_t size, uint8_t type = 0);                          /**< Allocate from unified pool */
 	static void unifiedDealloc(void* ptr);                                             /**< Deallocate from unified pool */
 	void clearUnifiedPool();                                                    /**< Clear unified pool */
-	void printUnifiedPoolStats();                                               /**< Print unified pool statistics */
 	
 	// RAII Memory Guard for automatic memory management
 	template<typename T>
@@ -407,9 +321,6 @@ private:
 	void initMemoryMonitoring();                                               /**< Initialize memory monitoring system */
 	void updateMemoryStats();                                                  /**< Update memory statistics */
 	void calculatePoolEfficiency();                                             /**< Calculate pool efficiency score */
-	void printMemoryStats();                                                   /**< Print detailed memory statistics */
-	void resetMemoryStats();                                                   /**< Reset memory statistics */
-	bool isMemoryPressureHigh();                                               /**< Check if memory pressure is high */
 	
 	// Polygon optimization methods
 	void initPolygonOptimizations();                                           /**< Initialize polygon optimization system */
@@ -420,16 +331,7 @@ private:
 	void fillTriangleOptimized(TFT_eSprite &map, int x1, int y1, int x2, int y2, int x3, int y3, uint16_t color); /**< Optimized triangle filling */
 	void fillRectangleOptimized(TFT_eSprite &map, int x, int y, int w, int h, uint16_t color); /**< Optimized rectangle filling */
 	void fillPolygonScanlineOptimized(TFT_eSprite &map, const int *px, const int *py, int numPoints, uint16_t color, int xOffset, int yOffset); /**< Optimized scanline algorithm */
-	
-	// Layer rendering methods
-	void initLayerRendering();                                                /**< Initialize layer rendering system */
-	RenderLayer determineCommandLayer(uint8_t cmdType, uint8_t color);         /**< Determine which layer a command belongs to */
-	bool renderTileLayered(const char* path, const int16_t xOffset, const int16_t yOffset, TFT_eSprite& map); /**< Render tile with proper layer ordering */
-	void renderLayer(TFT_eSprite& map, const std::vector<RenderCommand>& commands, int xOffset, int yOffset); /**< Render a specific layer */
-	void clearLayerCommands();                                                /**< Clear all layer commands */
-	void printPolygonStats();                                                  /**< Print polygon optimization statistics */
-
-   
+		  
 public:
 	bool fillPolygons;                                             /**< Flag for polygon filling */
 	void* mapBuffer;                                               /**< Pointer to map screen sprite */
@@ -461,36 +363,14 @@ public:
     void updateMap();
     void centerOnGps(float lat, float lon);
     void scrollMap(int16_t dx, int16_t dy);
-    void preloadTiles(int8_t dirX, int8_t dirY);
+    // void preloadTiles(int8_t dirX, int8_t dirY);
     bool renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
     
-    // Cache management public methods
-    void initializeTileCache();                                                  /**< Initialize tile cache system */
-    void printCacheStats();                                                      /**< Print cache statistics for debugging */
-    
-    // Background preload public methods
-    void enableBackgroundPreload();                                              /**< Enable background preload system */
+	// Background preload public methods
     void disableBackgroundPreload();                                            /**< Disable background preload system */
     void triggerPreload(int16_t centerX, int16_t centerY, uint8_t zoom);        /**< Trigger preload of adjacent tiles */
-    
-    // Memory pool public methods
-    
-    // Advanced memory pool public methods
-    void initializeAdvancedPools();                                             /**< Initialize advanced memory pools */
-    void printAdvancedMemoryPoolStats();                                        /**< Print advanced memory pool statistics */
-    
+      
     // Memory monitoring public methods
     void initializeMemoryMonitoring();                                          /**< Initialize memory monitoring system */
-    void printMemoryMonitoringStats();                                         /**< Print memory monitoring statistics */
-    
-    // Polygon optimization public methods
-    void initializePolygonOptimizations();                                      /**< Initialize polygon optimization system */
-    void printPolygonOptimizationStats();                                      /**< Print polygon optimization statistics */
-    void enablePolygonCulling(bool enable);                                    /**< Enable/disable polygon culling */
-    void enableOptimizedScanline(bool enable);                                 /**< Enable/disable optimized scanline */
-    
-    // Layer rendering public methods
-	bool enableLayerRendering(bool enable);                                     /**< Enable/disable layer rendering */
-    void printLayerRenderingStats();                                            /**< Print layer rendering statistics */
 };
 

@@ -24,8 +24,8 @@ uint32_t DOUBLE_TOUCH_EVENT; /**< Event identifier for double touch gesture. */
 Maps mapView;
 
 // Initialize memory pools after object creation
-void initializeMapsPools() {
-    mapView.initializeAdvancedPools();
+void initializeMapsPools() 
+{
     mapView.initializeMemoryMonitoring();
 }
 

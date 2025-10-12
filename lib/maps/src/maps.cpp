@@ -22,7 +22,6 @@ const char* TAG PROGMEM = "Maps";
 uint16_t Maps::currentDrawColor = TFT_WHITE;
 uint8_t Maps::PALETTE[256] = {0};
 uint32_t Maps::PALETTE_SIZE = 0;
-// fillPolygons is a non-static member variable, will be initialized in constructor
 
 // Tile cache system static variables
 std::vector<Maps::CachedTile> Maps::tileCache;
@@ -57,31 +56,24 @@ uint32_t Maps::polygonRenderCount = 0;
 uint32_t Maps::polygonCulledCount = 0;
 uint32_t Maps::polygonOptimizedCount = 0;
 
-// Initialize static variables for layer rendering
-std::vector<std::vector<Maps::RenderCommand>> Maps::layerCommands(LAYER_COUNT);
-bool Maps::layerRenderingEnabled = false;
-uint32_t Maps::layerRenderCount = 0;
-
-// Adaptive batching based on hardware capabilities
-#ifdef BOARD_HAS_PSRAM
-    #define LINE_BATCH_SIZE_BASE 128  // Base size for ESP32-S3
-#else
-    #define LINE_BATCH_SIZE_BASE 32   // Smaller size for ESP32 without PSRAM
-#endif
-
-// Calculate optimal batch size based on available memory
-static size_t getOptimalBatchSize() {
+/**
+ * @brief Get the Optimal Batch Size object
+ * 
+ * @return size_t 
+ */
+static size_t getOptimalBatchSize() 
+{
     static size_t optimalSize = 0;
-    if (optimalSize == 0) {
+    if (optimalSize == 0) 
+    {
 #ifdef BOARD_HAS_PSRAM
         size_t psramFree = ESP.getFreePsram();
-        if (psramFree >= 4 * 1024 * 1024) {
+        if (psramFree >= 4 * 1024 * 1024) 
             optimalSize = 256;  // High-end ESP32-S3: 256 lines
-        } else if (psramFree >= 2 * 1024 * 1024) {
+        else if (psramFree >= 2 * 1024 * 1024)
             optimalSize = 128;  // Mid-range ESP32-S3: 128 lines
-        } else {
+        else 
             optimalSize = 64;   // Low-end ESP32-S3: 64 lines
-        }
 #else
         optimalSize = 32;  // ESP32 without PSRAM: 32 lines
 #endif
@@ -89,8 +81,6 @@ static size_t getOptimalBatchSize() {
     }
     return optimalSize;
 }
-
-#define LINE_BATCH_SIZE getOptimalBatchSize()
 
 /**
  * @brief Map Class constructor
@@ -100,7 +90,6 @@ Maps::Maps() : fillPolygons(true)
     ESP_LOGI(TAG, "Maps constructor called - initializing pools...");
     
     // Initialize advanced memory pools in constructor
-    initAdvancedPools();
     initUnifiedPool();
     initMemoryMonitoring();
     
@@ -277,7 +266,6 @@ bool Maps::isCoordInBounds(float lat, float lon, tileBounds bound)
             lon >= bound.lon_min && lon <= bound.lon_max);
 }
 
-
 /**
  * @brief Convert GPS Coordinates to screen position (with offsets)
  *
@@ -360,15 +348,9 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
 	
 	// Initialize background preload system
 	initBackgroundPreload();
-	
-	// Initialize memory pool system
-	initUnifiedPool();
-	
+
 	// Initialize polygon optimizations
 	initPolygonOptimizations();
-	
-	// Initialize layer rendering system
-	initLayerRendering();
 }
 
 /**
@@ -388,9 +370,6 @@ void Maps::deleteMapScrSprites()
 	
 	// Clear memory pool
 	clearUnifiedPool();
-	
-	// Clear layer commands
-	clearLayerCommands();
 }
 
 /**
@@ -414,7 +393,8 @@ void Maps::createMapScrSprites()
 void Maps::generateMap(uint8_t zoom)
 {
 	// Clear cache if zoom level changed (tiles are not compatible between zoom levels)
-	if (Maps::zoomLevel != zoom && Maps::zoomLevel != 0) {
+	if (Maps::zoomLevel != zoom && Maps::zoomLevel != 0)
+    {
 		ESP_LOGI(TAG, "Zoom level changed from %d to %d - clearing cache", Maps::zoomLevel, zoom);
 		clearTileCache();
 	}
@@ -524,9 +504,8 @@ void Maps::generateMap(uint8_t zoom)
 			Maps::redrawMap = true;
 			
 			// Trigger background preload of adjacent tiles
-			if (preloadSystemActive) {
+			if (preloadSystemActive) 
 				triggerPreload(Maps::currentMapTile.tilex, Maps::currentMapTile.tiley, Maps::zoomLevel);
-			}
 
 			for (size_t i = 1; i < trackData.size(); ++i)
 			{
@@ -718,7 +697,7 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
 		const int8_t deltaTileX = Maps::tileX - Maps::lastTileX;
 		const int8_t deltaTileY = Maps::tileY - Maps::lastTileY;
 		Maps::panMap(deltaTileX, deltaTileY);
-		Maps::preloadTiles(deltaTileX, deltaTileY);
+		// Maps::preloadTiles(deltaTileX, deltaTileY);
 		Maps::lastTileX = Maps::tileX;
 		Maps::lastTileY = Maps::tileY;
 		
@@ -733,101 +712,102 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
 	}
 }
 
-/**
- * @brief Preload Tiles for map scrolling
- *
- * @details Preloads map tiles in the direction of scrolling to enable smooth transitions.
- * 			Loads one or two tiles into a temporary sprite and uses it to update the main map buffer.
- *
- * @param dirX Direction to preload tiles in X (-1 for left, 1 for right, 0 for no horizontal scroll)
- * @param dirY Direction to preload tiles in Y (-1 for up, 1 for down, 0 for no vertical scroll)
- */
-void Maps::preloadTiles(int8_t dirX, int8_t dirY)
-{
-	const int16_t tileSize = mapTileSize;
-	const int16_t preloadWidth  = (dirX != 0) ? tileSize : tileSize * 2;
-	const int16_t preloadHeight = (dirY != 0) ? tileSize : tileSize * 2;
+// /**
+//  * @brief Preload Tiles for map scrolling
+//  *
+//  * @details Preloads map tiles in the direction of scrolling to enable smooth transitions.
+//  * 			Loads one or two tiles into a temporary sprite and uses it to update the main map buffer.
+//  *
+//  * @param dirX Direction to preload tiles in X (-1 for left, 1 for right, 0 for no horizontal scroll)
+//  * @param dirY Direction to preload tiles in Y (-1 for up, 1 for down, 0 for no vertical scroll)
+//  */
+// void Maps::preloadTiles(int8_t dirX, int8_t dirY)
+// {
+// 	const int16_t tileSize = mapTileSize;
+// 	const int16_t preloadWidth  = (dirX != 0) ? tileSize : tileSize * 2;
+// 	const int16_t preloadHeight = (dirY != 0) ? tileSize : tileSize * 2;
 
-	ESP_LOGI(TAG, "Preloading tiles: dirX=%d, dirY=%d", dirX, dirY);
+// 	ESP_LOGI(TAG, "Preloading tiles: dirX=%d, dirY=%d", dirX, dirY);
 
-	TFT_eSprite preloadSprite = TFT_eSprite(&tft);
-	preloadSprite.createSprite(preloadWidth, preloadHeight);
+// 	TFT_eSprite preloadSprite = TFT_eSprite(&tft);
+// 	preloadSprite.createSprite(preloadWidth, preloadHeight);
 
-	const int16_t startX = tileX + dirX;
-	const int16_t startY = tileY + dirY;
+// 	const int16_t startX = tileX + dirX;
+// 	const int16_t startY = tileY + dirY;
 
-	for (int8_t i = 0; i < 2; ++i) 
-	{
-		const int16_t tileToLoadX = startX + ((dirX == 0) ? i - 1 : 0);
-		const int16_t tileToLoadY = startY + ((dirY == 0) ? i - 1 : 0);
+// 	for (int8_t i = 0; i < 2; ++i) 
+// 	{
+// 		const int16_t tileToLoadX = startX + ((dirX == 0) ? i - 1 : 0);
+// 		const int16_t tileToLoadY = startY + ((dirY == 0) ? i - 1 : 0);
 
-		Maps::roundMapTile = Maps::getMapTile(
-			Maps::currentMapTile.lon,
-			Maps::currentMapTile.lat,
-			Maps::zoomLevel,
-			tileToLoadX,
-			tileToLoadY
-		);
+// 		Maps::roundMapTile = Maps::getMapTile(
+// 			Maps::currentMapTile.lon,
+// 			Maps::currentMapTile.lat,
+// 			Maps::zoomLevel,
+// 			tileToLoadX,
+// 			tileToLoadY
+// 		);
 
-		const int16_t offsetX = (dirX != 0) ? i * tileSize : 0;
-		const int16_t offsetY = (dirY != 0) ? i * tileSize : 0;
+// 		const int16_t offsetX = (dirX != 0) ? i * tileSize : 0;
+// 		const int16_t offsetY = (dirY != 0) ? i * tileSize : 0;
 
-		bool foundTile = false;
+// 		bool foundTile = false;
 		
-		ESP_LOGI(TAG, "Loading tile: %s", Maps::roundMapTile.file);
+// 		ESP_LOGI(TAG, "Loading tile: %s", Maps::roundMapTile.file);
 		
-		// Try cache first for vector maps
-		if (mapSet.vectorMap) {
-			foundTile = getCachedTile(Maps::roundMapTile.file, preloadSprite, offsetX, offsetY);
-			if (foundTile) {
-				ESP_LOGI(TAG, "Tile found in cache: %s", Maps::roundMapTile.file);
-			}
-		}
+// 		// Try cache first for vector maps
+// 		if (mapSet.vectorMap) 
+//         {
+// 			foundTile = getCachedTile(Maps::roundMapTile.file, preloadSprite, offsetX, offsetY);
+// 			if (foundTile) 
+// 				ESP_LOGI(TAG, "Tile found in cache: %s", Maps::roundMapTile.file);
+// 		}
 		
-		// If not in cache, try to load from file
-		if (!foundTile) {
-			if (mapSet.vectorMap) {
-				ESP_LOGI(TAG, "Rendering tile to cache: %s", Maps::roundMapTile.file);
-				// Create a temporary sprite for rendering to cache
-				TFT_eSprite tempSprite = TFT_eSprite(&tft);
-				tempSprite.createSprite(tileSize, tileSize);
+// 		// If not in cache, try to load from file
+// 		if (!foundTile)
+//         {
+// 			if (mapSet.vectorMap)
+//             {
+// 				ESP_LOGI(TAG, "Rendering tile to cache: %s", Maps::roundMapTile.file);
+// 				// Create a temporary sprite for rendering to cache
+// 				TFT_eSprite tempSprite = TFT_eSprite(&tft);
+// 				tempSprite.createSprite(tileSize, tileSize);
 				
-				// Render tile to temporary sprite (this will cache it)
-				foundTile = renderTile(Maps::roundMapTile.file, 0, 0, tempSprite);
+// 				// Render tile to temporary sprite (this will cache it)
+// 				foundTile = renderTile(Maps::roundMapTile.file, 0, 0, tempSprite);
 				
-				if (foundTile) {
-					// Copy from temporary sprite to preload sprite
-					preloadSprite.pushImage(offsetX, offsetY, tileSize, tileSize, tempSprite.frameBuffer(0));
-					ESP_LOGI(TAG, "Tile rendered and cached: %s", Maps::roundMapTile.file);
-				}
+// 				if (foundTile) 
+//                 {
+// 					// Copy from temporary sprite to preload sprite
+// 					preloadSprite.pushImage(offsetX, offsetY, tileSize, tileSize, tempSprite.frameBuffer(0));
+// 					ESP_LOGI(TAG, "Tile rendered and cached: %s", Maps::roundMapTile.file);
+// 				}
 				
-				tempSprite.deleteSprite();
-			} else {
-				foundTile = preloadSprite.drawPngFile(Maps::roundMapTile.file, offsetX, offsetY);
-			}
-		}
+// 				tempSprite.deleteSprite();
+// 			} 
+//             else 
+// 				foundTile = preloadSprite.drawPngFile(Maps::roundMapTile.file, offsetX, offsetY);
+// 		}
 
-		if (!foundTile)
-		{
-			preloadSprite.fillRect(offsetX, offsetY, tileSize, tileSize, TFT_LIGHTGREY);
-		}
-	}
+// 		if (!foundTile)
+// 			preloadSprite.fillRect(offsetX, offsetY, tileSize, tileSize, TFT_LIGHTGREY);
+// 	}
 
-	if (dirX != 0)
-	{
-		mapTempSprite.scroll(dirX * tileSize, 0);
-		const int16_t pushX = (dirX > 0) ? tileSize * 2 : 0;
-		mapTempSprite.pushImage(pushX, 0, preloadWidth, preloadHeight, preloadSprite.frameBuffer(0));
-	}
-	else if (dirY != 0)
-	{
-		mapTempSprite.scroll(0, dirY * tileSize);
-		const int16_t pushY = (dirY > 0) ? tileSize * 2 : 0;
-		mapTempSprite.pushImage(0, pushY, preloadWidth, preloadHeight, preloadSprite.frameBuffer(0));
-	}
+// 	if (dirX != 0)
+// 	{
+// 		mapTempSprite.scroll(dirX * tileSize, 0);
+// 		const int16_t pushX = (dirX > 0) ? tileSize * 2 : 0;
+// 		mapTempSprite.pushImage(pushX, 0, preloadWidth, preloadHeight, preloadSprite.frameBuffer(0));
+// 	}
+// 	else if (dirY != 0)
+// 	{
+// 		mapTempSprite.scroll(0, dirY * tileSize);
+// 		const int16_t pushY = (dirY > 0) ? tileSize * 2 : 0;
+// 		mapTempSprite.pushImage(0, pushY, preloadWidth, preloadHeight, preloadSprite.frameBuffer(0));
+// 	}
 
-	preloadSprite.deleteSprite();
-}
+// 	preloadSprite.deleteSprite();
+// }
 
 /**
  * @brief Loads an RGB332 color palette from a binary file.
@@ -844,7 +824,7 @@ bool Maps::loadPalette(const char* palettePath)
     if (!f) 
         return false;
     
-    // Read 4-byte header for number of colors (like tile_viewer.py)
+    // Read 4-byte header for number of colors 
     uint32_t numColors;
     if (fread(&numColors, 4, 1, f) != 1) {
         fclose(f);
@@ -855,8 +835,10 @@ bool Maps::loadPalette(const char* palettePath)
     uint8_t rgb888[3];
     PALETTE_SIZE = 0;
     
-    for (uint32_t i = 0; i < numColors && i < 256; i++) {
-        if (fread(rgb888, 3, 1, f) == 1) {
+    for (uint32_t i = 0; i < numColors && i < 256; i++) 
+    {
+        if (fread(rgb888, 3, 1, f) == 1) 
+        {
             // Convert RGB888 to RGB332 using same method as tile_generator.py hex_to_rgb332_direct
             uint8_t r332 = rgb888[0] & 0xE0;  // Keep top 3 bits
             uint8_t g332 = (rgb888[1] & 0xE0) >> 3;  // Keep top 3 bits, shift right
@@ -882,9 +864,8 @@ bool Maps::loadPalette(const char* palettePath)
  */
 uint8_t Maps::paletteToRGB332(const uint32_t idx)
 {
-    if (idx < PALETTE_SIZE) {
+    if (idx < PALETTE_SIZE) 
         return PALETTE[idx];
-    }
     return 0xFF;
 }
 
@@ -922,12 +903,12 @@ uint8_t Maps::darkenRGB332(const uint8_t color, const float amount = 0.4f)
  */
 uint16_t Maps::RGB332ToRGB565(const uint8_t color)
 {
-    // Convert RGB332 to RGB565 using same method as tile_generator.py write_palette_bin
+    // Convert RGB332 to RGB565 
     uint8_t r = (color & 0xE0);
     uint8_t g = (color & 0x1C) << 3;
     uint8_t b = (color & 0x03) << 6;
     
-    // Convert to RGB565 format (reverse of RGB888 expansion in tile_generator.py)
+    // Convert to RGB565 format
     uint16_t r565 = (r >> 3) & 0x1F;  // 5 bits for red
     uint16_t g565 = (g >> 2) & 0x3F;  // 6 bits for green  
     uint16_t b565 = (b >> 3) & 0x1F;  // 5 bits for blue
@@ -1110,17 +1091,19 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
         if (py[i] > maxy)
             maxy = py[i];
     }
-    // Use unified pool directly
+
     int *xints = nullptr;
     
     // Use RAII MemoryGuard for coordinate arrays
     MemoryGuard<int> xintsGuard(numPoints, 6); // Type 6 = coordArray
     xints = xintsGuard.get();
-    if (!xints) {
+    if (!xints) 
+    {
         ESP_LOGW(TAG, "fillPolygonGeneral: RAII MemoryGuard allocation failed");
         return;
     }
-    if (!unifiedPoolLogged) {
+    if (!unifiedPoolLogged)
+    {
         ESP_LOGI(TAG, "fillPolygonGeneral: Using RAII MemoryGuard for coordinate arrays");
         unifiedPoolLogged = true;
     }
@@ -1159,9 +1142,6 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
             }
         }
     }
-    
-    // RAII MemoryGuard automatically handles deallocation
-    // No manual deallocation needed for xints
 }
 
 /**
@@ -1297,18 +1277,24 @@ void Maps::drawDashedLine(TFT_eSprite& map, int x1, int y1, int x2, int y2, int 
     int segmentLength = 0;
     bool drawingDash = true;
     
-    while (true) {
-        if (drawingDash) {
+    while (true) 
+    {
+        if (drawingDash) 
+        {
             map.drawPixel(currentX, currentY, color);
             segmentLength++;
             
-            if (segmentLength >= dashLength) {
+            if (segmentLength >= dashLength) 
+            {
                 drawingDash = false;
                 segmentLength = 0;
             }
-        } else {
+        } 
+        else 
+        {
             segmentLength++;
-            if (segmentLength >= gapLength) {
+            if (segmentLength >= gapLength)
+            {
                 drawingDash = true;
                 segmentLength = 0;
             }
@@ -1317,11 +1303,13 @@ void Maps::drawDashedLine(TFT_eSprite& map, int x1, int y1, int x2, int y2, int 
         if (currentX == x2 && currentY == y2) break;
         
         int e2 = 2 * err;
-        if (e2 > -dy) {
+        if (e2 > -dy) 
+        {
             err -= dy;
             currentX += sx;
         }
-        if (e2 < dx) {
+        if (e2 < dx)
+        {
             err += dx;
             currentY += sy;
         }
@@ -1344,7 +1332,8 @@ void Maps::drawPredictedLine(TFT_eSprite& map, int startX, int startY, int patte
     int endX = startX;
     int endY = startY;
     
-    switch (patternType) {
+    switch (patternType) 
+    {
         case 0: // Straight line
             endX = startX + length;
             endY = startY;
@@ -1380,7 +1369,8 @@ void Maps::drawPredictedLine(TFT_eSprite& map, int startX, int startY, int patte
  */
 void Maps::drawHighwaySegment(TFT_eSprite& map, int startX, int startY, int endX, int endY, int width, uint16_t color)
 {
-    if (width <= 1) {
+    if (width <= 1) 
+    {
         // Draw as simple line if width is 1 or less
         map.drawLine(startX, startY, endX, endY, color);
         return;
@@ -1401,7 +1391,8 @@ void Maps::drawHighwaySegment(TFT_eSprite& map, int startX, int startY, int endX
     int halfWidth = width / 2;
     
     // Draw multiple parallel lines to simulate width
-    for (int i = -halfWidth; i <= halfWidth; i++) {
+    for (int i = -halfWidth; i <= halfWidth; i++) 
+    {
         int offsetX = (int)(perpX * i);
         int offsetY = (int)(perpY * i);
         
@@ -1427,7 +1418,8 @@ void Maps::drawBlockPattern(TFT_eSprite& map, int x, int y, int blockSize, int s
     int currentX = x;
     int currentY = y;
     
-    for (int i = 0; i < count; i++) {
+    for (int i = 0; i < count; i++) 
+    {
         // Draw block rectangle
         map.drawRect(currentX, currentY, blockSize, blockSize, color);
         
@@ -1435,15 +1427,15 @@ void Maps::drawBlockPattern(TFT_eSprite& map, int x, int y, int blockSize, int s
         currentX += blockSize + spacing;
         
         // Check if we need to wrap to next row
-        if (currentX + blockSize > map.width()) {
+        if (currentX + blockSize > map.width()) 
+        {
             currentX = x;
             currentY += blockSize + spacing;
         }
         
         // Stop if we go beyond the map bounds
-        if (currentY + blockSize > map.height()) {
+        if (currentY + blockSize > map.height()) 
             break;
-        }
     }
 }
 
@@ -1470,20 +1462,22 @@ void Maps::drawDottedLine(TFT_eSprite& map, int x1, int y1, int x2, int y2, int 
     int currentY = y1;
     int dotCounter = 0;
     
-    while (true) {
-        if (dotCounter % dotSpacing == 0) {
+    while (true) 
+    {
+        if (dotCounter % dotSpacing == 0)
             map.drawPixel(currentX, currentY, color);
-        }
         dotCounter++;
         
         if (currentX == x2 && currentY == y2) break;
         
         int e2 = 2 * err;
-        if (e2 > -dy) {
+        if (e2 > -dy)
+        {
             err -= dy;
             currentX += sx;
         }
-        if (e2 < dx) {
+        if (e2 < dx) 
+        {
             err += dx;
             currentY += sy;
         }
@@ -1505,54 +1499,24 @@ void Maps::drawDottedLine(TFT_eSprite& map, int x1, int y1, int x2, int y2, int 
  */
 void Maps::drawGridPattern(TFT_eSprite& map, int x, int y, int width, int spacing, int count, int direction, uint16_t color)
 {
-    if (direction == 0) {
+    if (direction == 0)
+    {
         // Horizontal lines
-        for (int i = 0; i < count; i++) {
+        for (int i = 0; i < count; i++)
+        {
             int lineY = y + (i * spacing);
             map.drawLine(x, lineY, x + width, lineY, color);
         }
-    } else {
+    } 
+    else 
+    {
         // Vertical lines
-        for (int i = 0; i < count; i++) {
+        for (int i = 0; i < count; i++)
+        {
             int lineX = x + (i * spacing);
             map.drawLine(lineX, y, lineX, y + width, color);
         }
     }
-}
-
-/**
-* @brief Allocates a buffer for a specified number of elements of type T using memory pool.
-*
-* @details This template function attempts to allocate memory for an array of numElements of type T using the memory pool.
-*          If pool allocation fails, it falls back to standard heap allocation with PSRAM preference.
-*          The function returns a pointer to the allocated memory, or nullptr if the allocation fails.
-*
-* @tparam T The type of elements to allocate.
-* @param numElements The number of elements to allocate.
-* @return A pointer to the allocated buffer, or nullptr if allocation fails.
-*/
-template<typename T>
-T* Maps::allocBuffer(size_t numElements) 
-{
-    size_t totalSize = numElements * sizeof(T);
-    
-    // Try memory pool first
-    void* ptr = unifiedAlloc(totalSize, 0);
-    if (ptr) {
-        unifiedPoolHitCount++;
-        totalMemoryAllocations++;
-        return static_cast<T*>(ptr);
-    }
-    
-    // Fallback to standard allocation
-    unifiedPoolMissCount++;
-    totalMemoryAllocations++;
-#ifdef BOARD_HAS_PSRAM
-    ptr = heap_caps_malloc(totalSize, MALLOC_CAP_SPIRAM);
-    if (ptr) return static_cast<T*>(ptr);
-#endif
-    ptr = heap_caps_malloc(totalSize, MALLOC_CAP_8BIT);
-    return static_cast<T*>(ptr);
 }
 
 /**
@@ -1604,15 +1568,14 @@ void Maps::detectHardwareCapabilities()
     
     ESP_LOGI(TAG, "Calculated cache capacity: %zu tiles", maxCachedTiles);
     
-    if (maxCachedTiles >= 3) {
+    if (maxCachedTiles >= 3) 
         ESP_LOGI(TAG, "High-end ESP32-S3 detected: %zu tiles cache enabled", maxCachedTiles);
-    } else if (maxCachedTiles >= 2) {
+    else if (maxCachedTiles >= 2) 
         ESP_LOGI(TAG, "Mid-range ESP32-S3 detected: %zu tiles cache enabled", maxCachedTiles);
-    } else if (maxCachedTiles >= 1) {
+    else if (maxCachedTiles >= 1)
         ESP_LOGI(TAG, "Low-end ESP32-S3 detected: %zu tiles cache enabled", maxCachedTiles);
-    } else {
+    else 
         ESP_LOGI(TAG, "Insufficient PSRAM for tile cache - disabled");
-    }
 #else
     // ESP32 without PSRAM: no cache (memory too limited)
     ESP_LOGI(TAG, "ESP32 without PSRAM detected: tile cache disabled");
@@ -1655,8 +1618,10 @@ bool Maps::getCachedTile(const char* filePath, TFT_eSprite& target, int16_t xOff
     
     uint32_t tileHash = calculateTileHash(filePath);
     
-    for (auto& cachedTile : tileCache) {
-        if (cachedTile.isValid && cachedTile.tileHash == tileHash) {
+    for (auto& cachedTile : tileCache) 
+    {
+        if (cachedTile.isValid && cachedTile.tileHash == tileHash) 
+        {
             // Found in cache - update access time and copy sprite
             cachedTile.lastAccess = ++cacheAccessCounter;
             
@@ -1684,17 +1649,18 @@ void Maps::addToCache(const char* filePath, TFT_eSprite& source)
     uint32_t tileHash = calculateTileHash(filePath);
     
     // Check if already in cache
-    for (auto& cachedTile : tileCache) {
-        if (cachedTile.isValid && cachedTile.tileHash == tileHash) {
+    for (auto& cachedTile : tileCache) 
+    {
+        if (cachedTile.isValid && cachedTile.tileHash == tileHash) 
+        {
             cachedTile.lastAccess = ++cacheAccessCounter;
             return; // Already cached
         }
     }
     
     // Need to add new entry
-    if (tileCache.size() >= maxCachedTiles) {
+    if (tileCache.size() >= maxCachedTiles) 
         evictLRUTile(); // Make room
-    }
     
     // Create new cache entry
     CachedTile newEntry;
@@ -1725,15 +1691,18 @@ void Maps::evictLRUTile()
     auto lruIt = tileCache.begin();
     uint32_t oldestAccess = lruIt->lastAccess;
     
-    for (auto it = tileCache.begin(); it != tileCache.end(); ++it) {
-        if (it->lastAccess < oldestAccess) {
+    for (auto it = tileCache.begin(); it != tileCache.end(); ++it) 
+    {
+        if (it->lastAccess < oldestAccess)
+        {
             oldestAccess = it->lastAccess;
             lruIt = it;
         }
     }
     
     // Free the sprite memory
-    if (lruIt->sprite) {
+    if (lruIt->sprite) 
+    {
         lruIt->sprite->deleteSprite();
         delete lruIt->sprite;
     }
@@ -1749,8 +1718,10 @@ void Maps::evictLRUTile()
  */
 void Maps::clearTileCache()
 {
-    for (auto& cachedTile : tileCache) {
-        if (cachedTile.sprite) {
+    for (auto& cachedTile : tileCache)
+    {
+        if (cachedTile.sprite) 
+        {
             cachedTile.sprite->deleteSprite();
             delete cachedTile.sprite;
         }
@@ -1769,43 +1740,12 @@ void Maps::clearTileCache()
 size_t Maps::getCacheMemoryUsage()
 {
     size_t memoryUsage = 0;
-    for (const auto& cachedTile : tileCache) {
-        if (cachedTile.isValid && cachedTile.sprite) {
+    for (const auto& cachedTile : tileCache)
+    {
+        if (cachedTile.isValid && cachedTile.sprite) 
             memoryUsage += tileWidth * tileHeight * 2; // RGB565 = 2 bytes per pixel
-        }
     }
     return memoryUsage;
-}
-
-/**
- * @brief Initialize tile cache system (public method)
- *
- * @details Public method to initialize the tile cache system.
- */
-void Maps::initializeTileCache()
-{
-    initTileCache();
-}
-
-/**
- * @brief Print cache statistics for debugging
- *
- * @details Prints useful cache statistics for debugging and monitoring.
- */
-void Maps::printCacheStats()
-{
-    ESP_LOGI(TAG, "=== Tile Cache Statistics ===");
-    ESP_LOGI(TAG, "Max cached tiles: %zu", maxCachedTiles);
-    ESP_LOGI(TAG, "Current cached tiles: %zu", tileCache.size());
-    ESP_LOGI(TAG, "Cache memory usage: %zu bytes", getCacheMemoryUsage());
-    ESP_LOGI(TAG, "Cache access counter: %u", cacheAccessCounter);
-    
-    for (size_t i = 0; i < tileCache.size(); ++i) {
-        const auto& tile = tileCache[i];
-        ESP_LOGI(TAG, "Cache[%zu]: %s (hash: %u, access: %u)", 
-                 i, tile.filePath, tile.tileHash, tile.lastAccess);
-    }
-    ESP_LOGI(TAG, "=============================");
 }
 
 /**
@@ -1815,9 +1755,11 @@ void Maps::printCacheStats()
  */
 void Maps::initBackgroundPreload()
 {
-    if (preloadMutex == nullptr) {
+    if (preloadMutex == nullptr)
+    {
         preloadMutex = xSemaphoreCreateMutex();
-        if (preloadMutex == nullptr) {
+        if (preloadMutex == nullptr) 
+        {
             ESP_LOGE(TAG, "Failed to create preload mutex");
             return;
         }
@@ -1835,7 +1777,8 @@ void Maps::initBackgroundPreload()
  */
 void Maps::startPreloadTask()
 {
-    if (preloadTaskHandle != nullptr) {
+    if (preloadTaskHandle != nullptr) 
+    {
         ESP_LOGI(TAG, "Preload task already running");
         return;
     }
@@ -1849,12 +1792,13 @@ void Maps::startPreloadTask()
         &preloadTaskHandle
     );
     
-    if (result == pdPASS) {
+    if (result == pdPASS)
+    {
         preloadSystemActive = true;
         ESP_LOGI(TAG, "Background preload task started");
-    } else {
+    } 
+    else 
         ESP_LOGE(TAG, "Failed to create preload task");
-    }
 }
 
 /**
@@ -1864,7 +1808,8 @@ void Maps::startPreloadTask()
  */
 void Maps::stopPreloadTask()
 {
-    if (preloadTaskHandle != nullptr) {
+    if (preloadTaskHandle != nullptr) 
+    {
         preloadSystemActive = false;
         vTaskDelete(preloadTaskHandle);
         preloadTaskHandle = nullptr;
@@ -1886,17 +1831,21 @@ void Maps::addToPreloadQueue(const char* filePath, int16_t tileX, int16_t tileY,
 {
     if (!preloadSystemActive || !preloadMutex) return;
     
-    if (xSemaphoreTake(preloadMutex, portMAX_DELAY) == pdTRUE) {
+    if (xSemaphoreTake(preloadMutex, portMAX_DELAY) == pdTRUE) 
+    {
         // Check if tile is already in queue
         bool alreadyQueued = false;
-        for (const auto& task : preloadQueue) {
-            if (strcmp(task.filePath, filePath) == 0) {
+        for (const auto& task : preloadQueue) 
+        {
+            if (strcmp(task.filePath, filePath) == 0) 
+            {
                 alreadyQueued = true;
                 break;
             }
         }
         
-        if (!alreadyQueued && preloadQueue.size() < 8) { // Limit queue size
+        if (!alreadyQueued && preloadQueue.size() < 8) 
+        { // Limit queue size
             PreloadTask newTask;
             strncpy(newTask.filePath, filePath, sizeof(newTask.filePath) - 1);
             newTask.filePath[sizeof(newTask.filePath) - 1] = '\0';
@@ -1923,9 +1872,12 @@ void Maps::processPreloadQueue()
 {
     if (!preloadSystemActive || !preloadMutex) return;
     
-    if (xSemaphoreTake(preloadMutex, 0) == pdTRUE) {
-        for (auto& task : preloadQueue) {
-            if (!task.isActive && !task.isCompleted) {
+    if (xSemaphoreTake(preloadMutex, 0) == pdTRUE) 
+    {
+        for (auto& task : preloadQueue)
+        {
+            if (!task.isActive && !task.isCompleted)
+            {
                 task.isActive = true;
                 
                 // Create temporary sprite for rendering
@@ -1934,23 +1886,23 @@ void Maps::processPreloadQueue()
                 
                 // Render tile to cache (only for vector maps)
                 bool success = false;
-                if (mapSet.vectorMap) {
+                if (mapSet.vectorMap)
+                {
                     // Create a temporary Maps instance to call non-static method
                     Maps tempMaps;
                     success = tempMaps.renderTile(task.filePath, 0, 0, tempSprite);
-                } else {
+                } 
+                else 
                     // Skip PNG tiles in background preload
                     success = false;
-                }
                 
                 tempSprite.deleteSprite();
                 
                 task.isCompleted = success;
                 task.isActive = false;
                 
-                if (success) {
+                if (success)
                     ESP_LOGI(TAG, "Background preloaded: %s", task.filePath);
-                }
                 
                 // Yield to other tasks
                 vTaskDelay(1);
@@ -2003,8 +1955,10 @@ void Maps::preloadAdjacentTiles(int16_t centerX, int16_t centerY, uint8_t zoom)
     if (!preloadSystemActive) return;
     
     // Preload 3x3 grid around current position
-    for (int8_t dy = -1; dy <= 1; dy++) {
-        for (int8_t dx = -1; dx <= 1; dx++) {
+    for (int8_t dy = -1; dy <= 1; dy++)
+    {
+        for (int8_t dx = -1; dx <= 1; dx++)
+        {
             if (dx == 0 && dy == 0) continue; // Skip center tile
             
             int16_t tileX = centerX + dx;
@@ -2021,17 +1975,6 @@ void Maps::preloadAdjacentTiles(int16_t centerX, int16_t centerY, uint8_t zoom)
 }
 
 /**
- * @brief Enable background preload system (public method)
- *
- * @details Public method to enable the background preload system.
- */
-void Maps::enableBackgroundPreload()
-{
-    initBackgroundPreload();
-    startPreloadTask();
-}
-
-/**
  * @brief Disable background preload system (public method)
  *
  * @details Public method to disable the background preload system.
@@ -2039,7 +1982,8 @@ void Maps::enableBackgroundPreload()
 void Maps::disableBackgroundPreload()
 {
     stopPreloadTask();
-    if (preloadMutex) {
+    if (preloadMutex)
+    {
         vSemaphoreDelete(preloadMutex);
         preloadMutex = nullptr;
     }
@@ -2057,29 +2001,6 @@ void Maps::disableBackgroundPreload()
 void Maps::triggerPreload(int16_t centerX, int16_t centerY, uint8_t zoom)
 {
     preloadAdjacentTiles(centerX, centerY, zoom);
-}
-
-void Maps::initializeAdvancedPools()
-{
-    // Advanced pools are now handled by unified pool
-    ESP_LOGI(TAG, "Advanced pools initialization delegated to unified pool");
-}
-
-void Maps::initAdvancedPools()
-{
-    // Advanced pools are now handled by unified pool
-    ESP_LOGI(TAG, "Advanced pools initialization delegated to unified pool");
-}
-
-void Maps::printAdvancedPoolStats()
-{
-    ESP_LOGI(TAG, "Advanced pools are now handled by unified pool");
-    ESP_LOGI(TAG, "Unified Pool: hits:%u misses:%u", unifiedPoolHitCount, unifiedPoolMissCount);
-}
-
-void Maps::printAdvancedMemoryPoolStats()
-{
-    printAdvancedPoolStats();
 }
 
 /**
@@ -2112,9 +2033,8 @@ void Maps::updateMemoryStats()
     currentMemoryUsage = ESP.getFreeHeap();
     
     // Update peak memory usage
-    if (currentMemoryUsage > peakMemoryUsage) {
+    if (currentMemoryUsage > peakMemoryUsage) 
         peakMemoryUsage = currentMemoryUsage;
-    }
     
     // Calculate pool efficiency
     calculatePoolEfficiency();
@@ -2132,75 +2052,19 @@ void Maps::calculatePoolEfficiency()
     uint32_t totalHits = unifiedPoolHitCount;
     uint32_t totalMisses = unifiedPoolMissCount;
     
-    if (totalHits + totalMisses > 0) {
+    if (totalHits + totalMisses > 0)
         poolEfficiencyScore = (totalHits * 100) / (totalHits + totalMisses);
-    } else {
+    else 
         poolEfficiencyScore = 0;
-    }
 }
 
 /**
- * @brief Print detailed memory statistics
- *
- * @details Prints comprehensive memory usage and efficiency statistics.
+ * @brief Initialize memory monitoring (public method)
+ * 
  */
-void Maps::printMemoryStats()
-{
-    ESP_LOGI(TAG, "=== Memory Statistics ===");
-    ESP_LOGI(TAG, "Total Allocations: %u", totalMemoryAllocations);
-    ESP_LOGI(TAG, "Total Deallocations: %u", totalMemoryDeallocations);
-    ESP_LOGI(TAG, "Current Memory Usage: %u bytes", currentMemoryUsage);
-    ESP_LOGI(TAG, "Peak Memory Usage: %u bytes", peakMemoryUsage);
-    ESP_LOGI(TAG, "Pool Efficiency Score: %u%%", poolEfficiencyScore);
-    
-#ifdef BOARD_HAS_PSRAM
-    ESP_LOGI(TAG, "PSRAM Free: %u bytes", ESP.getFreePsram());
-#endif
-    ESP_LOGI(TAG, "Heap Free: %u bytes", ESP.getFreeHeap());
-    ESP_LOGI(TAG, "Heap Min Free: %u bytes", ESP.getMinFreeHeap());
-}
-
-/**
- * @brief Reset memory statistics
- *
- * @details Resets all memory statistics to initial values.
- */
-void Maps::resetMemoryStats()
-{
-    totalMemoryAllocations = 0;
-    totalMemoryDeallocations = 0;
-    peakMemoryUsage = 0;
-    currentMemoryUsage = 0;
-    poolEfficiencyScore = 0;
-    lastStatsUpdate = millis();
-    
-    ESP_LOGI(TAG, "Memory statistics reset");
-}
-
-/**
- * @brief Check if memory pressure is high
- *
- * @details Checks if system is under high memory pressure.
- *
- * @return true if memory pressure is high, false otherwise.
- */
-bool Maps::isMemoryPressureHigh()
-{
-    uint32_t freeHeap = ESP.getFreeHeap();
-    uint32_t minFreeHeap = ESP.getMinFreeHeap();
-    
-    // High pressure if less than 50KB free heap or min free is very low
-    return (freeHeap < 51200) || (minFreeHeap < 10240);
-}
-
 void Maps::initializeMemoryMonitoring()
 {
     initMemoryMonitoring();
-}
-
-void Maps::printMemoryMonitoringStats()
-{
-    printMemoryStats();
 }
 
 /**
@@ -2223,1274 +2087,6 @@ void Maps::initPolygonOptimizations()
 }
 
 /**
- * @brief Initialize layer rendering system
- *
- * @details Initializes the layer rendering system for proper map layer ordering.
- */
-void Maps::initLayerRendering()
-{
-    layerRenderingEnabled = false;  // Disable layer rendering - tiles already ordered by layer
-    layerRenderCount = 0;
-    
-    // Clear all layer commands
-    for (int i = 0; i < LAYER_COUNT; i++) {
-        layerCommands[i].clear();
-    }
-    
-    ESP_LOGI(TAG, "Layer rendering system initialized (DISABLED - tiles pre-ordered)", LAYER_COUNT);
-}
-
-/**
- * @brief Determine which layer a command belongs to
- *
- * @details Analyzes command type and color to determine the appropriate rendering layer.
- *
- * @param cmdType The command type (DrawCommand enum)
- * @param color The RGB332 color value
- * @return RenderLayer The appropriate layer for this command
- */
-Maps::RenderLayer Maps::determineCommandLayer(uint8_t cmdType, uint8_t color)
-{
-    // Extract RGB components for analysis
-    uint8_t r = (color >> 5) & 0x7;
-    uint8_t g = (color >> 2) & 0x7;
-    uint8_t b = color & 0x3;
-    
-    // Determine layer based on command type and color
-    switch (cmdType) {
-        case SET_LAYER:
-            // SET_LAYER command doesn't determine a layer, it sets one
-            // This should not be called for SET_LAYER commands
-            return LAYER_TERRAIN; // Default fallback
-            
-        case DRAW_STROKE_POLYGON:
-        case DRAW_STROKE_POLYGONS:
-        case RECTANGLE:
-        case CIRCLE:
-        case SIMPLE_RECTANGLE:
-        case SIMPLE_CIRCLE:
-        case SIMPLE_TRIANGLE:
-        case OPTIMIZED_POLYGON:
-        case HOLLOW_POLYGON:
-        case OPTIMIZED_TRIANGLE:
-        case OPTIMIZED_RECTANGLE:
-        case OPTIMIZED_CIRCLE:
-        case BLOCK_PATTERN:
-            // Filled shapes - determine by color
-            if (b > g && b > r) {
-                // Blue dominant - water
-                return LAYER_WATER;
-            } else if (r > 4 || g > 4) {
-                // Red/brown dominant - buildings
-                return LAYER_BUILDINGS;
-            } else {
-                // Green/neutral - terrain
-                return LAYER_TERRAIN;
-            }
-            
-        case DRAW_LINE:
-        case DRAW_POLYLINE:
-        case DRAW_HORIZONTAL_LINE:
-        case DRAW_VERTICAL_LINE:
-        case STRAIGHT_LINE:
-        case DASHED_LINE:
-        case DOTTED_LINE:
-        case GRID_PATTERN:
-        case COMPRESSED_POLYLINE:
-        case PREDICTED_LINE:
-        case RELATIVE_MOVE:
-        case HIGHWAY_SEGMENT:
-            // Lines - determine by color
-            if (r > 4 && g < 3 && b < 2) {
-                // Red dominant - roads
-                return LAYER_ROADS;
-            } else if (r > 3 || g > 3 || b > 2) {
-                // Colored lines - outlines
-                return LAYER_OUTLINES;
-            } else {
-                // Dark lines - roads
-                return LAYER_ROADS;
-            }
-            
-        default:
-            // Default to terrain for unknown commands
-            return LAYER_TERRAIN;
-    }
-}
-
-/**
- * @brief Clear all layer commands
- *
- * @details Clears all commands from all layers, freeing associated memory.
- */
-void Maps::clearLayerCommands()
-{
-    for (int i = 0; i < LAYER_COUNT; i++) {
-        // Free command data
-        for (auto& cmd : layerCommands[i]) {
-            if (cmd.data) {
-                unifiedDealloc(cmd.data);
-            }
-        }
-        layerCommands[i].clear();
-    }
-    
-    ESP_LOGI(TAG, "Cleared all layer commands");
-}
-
-/**
- * @brief Render a specific layer
- *
- * @details Renders all commands in a specific layer with proper ordering.
- *
- * @param map The TFT_eSprite object where the layer will be rendered.
- * @param commands The vector of commands to render.
- * @param xOffset The x-offset to apply when rendering.
- * @param yOffset The y-offset to apply when rendering.
- */
-void Maps::renderLayer(TFT_eSprite& map, const std::vector<RenderCommand>& commands, int xOffset, int yOffset)
-{
-    for (const auto& cmd : commands) {
-        // Set current color
-        uint16_t currentDrawColor = cmd.colorRGB565;
-        
-        // Render based on command type
-        switch (cmd.type) {
-            case SET_LAYER:
-                // SET_LAYER command - extract layer number and set current layer
-                {
-                    int* data = static_cast<int*>(cmd.data);
-                    if (data && cmd.dataSize >= sizeof(int)) {
-                        int layerNumber = data[0];
-                        // Layer is already determined by the layer system, so we just continue
-                        // This command is mainly for compatibility with tile_viewer.py
-                    }
-                }
-                break;
-                
-            case DRAW_STROKE_POLYGON:
-            case DRAW_STROKE_POLYGONS:
-            case OPTIMIZED_POLYGON:
-            case HOLLOW_POLYGON:
-                {
-                    // Extract polygon data
-                    int* data = static_cast<int*>(cmd.data);
-                    if (data && cmd.dataSize >= sizeof(int)) {
-                        int numPoints = data[0];
-                        if (numPoints >= 3 && cmd.dataSize >= sizeof(int) * (1 + numPoints * 2)) {
-                            int* px = data + 1;
-                            int* py = px + numPoints;
-                            
-                            // Fill polygon
-                            if (fillPolygons && cmd.type != HOLLOW_POLYGON) {
-                                fillPolygonOptimized(map, px, py, numPoints, currentDrawColor, xOffset, yOffset);
-                                
-                                // Draw border
-                                const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(cmd.color));
-                                drawPolygonBorder(map, px, py, numPoints, borderColor, currentDrawColor, xOffset, yOffset);
-                            } else {
-                                // Draw only outline for HOLLOW_POLYGON or when fillPolygons is false
-                                drawPolygonBorder(map, px, py, numPoints, currentDrawColor, currentDrawColor, xOffset, yOffset);
-                            }
-                        }
-                    }
-                }
-                break;
-                
-            case RECTANGLE:
-                {
-                    // Extract rectangle data
-                    int* data = static_cast<int*>(cmd.data);
-                    if (data && cmd.dataSize >= sizeof(int) * 4) {
-                        int x = data[0] + xOffset;
-                        int y = data[1] + yOffset;
-                        int w = data[2];
-                        int h = data[3];
-                        
-                        if (fillPolygons) {
-                            map.fillRect(x, y, w, h, currentDrawColor);
-                            
-                            // Draw border
-                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(cmd.color));
-                            map.drawRect(x, y, w, h, borderColor);
-                        }
-                    }
-                }
-                break;
-                
-            case SIMPLE_RECTANGLE:
-                {
-                    // Extract rectangle data
-                    int* data = static_cast<int*>(cmd.data);
-                    if (data && cmd.dataSize >= sizeof(int) * 4) {
-                        int x = data[0] + xOffset;
-                        int y = data[1] + yOffset;
-                        int w = data[2];
-                        int h = data[3];
-                        
-                        if (fillPolygons) {
-                            map.fillRect(x, y, w, h, currentDrawColor);
-                            
-                            // Draw border
-                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(cmd.color));
-                            map.drawRect(x, y, w, h, borderColor);
-                        } else {
-                            map.drawRect(x, y, w, h, currentDrawColor);
-                        }
-                    }
-                }
-                break;
-                
-            case OPTIMIZED_RECTANGLE:
-                {
-                    // Extract rectangle data
-                    int* data = static_cast<int*>(cmd.data);
-                    if (data && cmd.dataSize >= sizeof(int) * 4) {
-                        int x = data[0] + xOffset;
-                        int y = data[1] + yOffset;
-                        int w = data[2];
-                        int h = data[3];
-                        
-                        if (fillPolygons) {
-                            map.fillRect(x, y, w, h, currentDrawColor);
-                            
-                            // Draw border
-                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(cmd.color));
-                            map.drawRect(x, y, w, h, borderColor);
-                        } else {
-                            map.drawRect(x, y, w, h, currentDrawColor);
-                        }
-                    }
-                }
-                break;
-                
-            case CIRCLE:
-                {
-                    // Extract circle data
-                    int* data = static_cast<int*>(cmd.data);
-                    if (data && cmd.dataSize >= sizeof(int) * 3) {
-                        int cx = data[0] + xOffset;
-                        int cy = data[1] + yOffset;
-                        int radius = data[2];
-                        
-                        if (fillPolygons) {
-                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(cmd.color));
-                            drawFilledCircleWithBorder(map, cx, cy, radius, currentDrawColor, borderColor, fillPolygons);
-                        }
-                    }
-                }
-                break;
-                
-            case OPTIMIZED_TRIANGLE:
-                {
-                    // Extract triangle data
-                    int* data = static_cast<int*>(cmd.data);
-                    if (data && cmd.dataSize >= sizeof(int) * 6) {
-                        int x1 = data[0] + xOffset;
-                        int y1 = data[1] + yOffset;
-                        int x2 = data[2] + xOffset;
-                        int y2 = data[3] + yOffset;
-                        int x3 = data[4] + xOffset;
-                        int y3 = data[5] + yOffset;
-                        
-                        if (fillPolygons) {
-                            // Fill triangle using optimized algorithm
-                            fillTriangleOptimized(map, x1, y1, x2, y2, x3, y3, currentDrawColor);
-                            
-                            // Draw border
-                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(cmd.color));
-                            map.drawLine(x1, y1, x2, y2, borderColor);
-                            map.drawLine(x2, y2, x3, y3, borderColor);
-                            map.drawLine(x3, y3, x1, y1, borderColor);
-                        } else {
-                            // Draw only outline
-                            map.drawLine(x1, y1, x2, y2, currentDrawColor);
-                            map.drawLine(x2, y2, x3, y3, currentDrawColor);
-                            map.drawLine(x3, y3, x1, y1, currentDrawColor);
-                        }
-                    }
-                }
-                break;
-                
-            case SIMPLE_CIRCLE:
-                {
-                    // Extract circle data
-                    int* data = static_cast<int*>(cmd.data);
-                    if (data && cmd.dataSize >= sizeof(int) * 3) {
-                        int cx = data[0] + xOffset;
-                        int cy = data[1] + yOffset;
-                        int radius = data[2];
-                        
-                        if (fillPolygons) {
-                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(cmd.color));
-                            drawFilledCircleWithBorder(map, cx, cy, radius, currentDrawColor, borderColor, fillPolygons);
-                        } else {
-                            map.drawCircle(cx, cy, radius, currentDrawColor);
-                        }
-                    }
-                }
-                break;
-                
-            case OPTIMIZED_CIRCLE:
-                {
-                    // Extract circle data
-                    int* data = static_cast<int*>(cmd.data);
-                    if (data && cmd.dataSize >= sizeof(int) * 3) {
-                        int cx = data[0] + xOffset;
-                        int cy = data[1] + yOffset;
-                        int radius = data[2];
-                        
-                        if (fillPolygons) {
-                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(cmd.color));
-                            drawFilledCircleWithBorder(map, cx, cy, radius, currentDrawColor, borderColor, fillPolygons);
-                        } else {
-                            map.drawCircle(cx, cy, radius, currentDrawColor);
-                        }
-                    }
-                }
-                break;
-                
-            case SIMPLE_TRIANGLE:
-                {
-                    // Extract triangle data
-                    int* data = static_cast<int*>(cmd.data);
-                    if (data && cmd.dataSize >= sizeof(int) * 6) {
-                        int x1 = data[0] + xOffset;
-                        int y1 = data[1] + yOffset;
-                        int x2 = data[2] + xOffset;
-                        int y2 = data[3] + yOffset;
-                        int x3 = data[4] + xOffset;
-                        int y3 = data[5] + yOffset;
-                        
-                        if (fillPolygons) {
-                            // Fill triangle using optimized algorithm
-                            fillTriangleOptimized(map, x1, y1, x2, y2, x3, y3, currentDrawColor);
-                            
-                            // Draw border
-                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(cmd.color));
-                            map.drawLine(x1, y1, x2, y2, borderColor);
-                            map.drawLine(x2, y2, x3, y3, borderColor);
-                            map.drawLine(x3, y3, x1, y1, borderColor);
-                        } else {
-                            // Draw only outline
-                            map.drawLine(x1, y1, x2, y2, currentDrawColor);
-                            map.drawLine(x2, y2, x3, y3, currentDrawColor);
-                            map.drawLine(x3, y3, x1, y1, currentDrawColor);
-                        }
-                    }
-                }
-                break;
-                
-            case DRAW_LINE:
-            case DRAW_POLYLINE:
-            case DRAW_HORIZONTAL_LINE:
-            case DRAW_VERTICAL_LINE:
-            case STRAIGHT_LINE:
-                {
-                    // Extract line data
-                    int* data = static_cast<int*>(cmd.data);
-                    if (data && cmd.dataSize >= sizeof(int) * 4) {
-                        int x1 = data[0] + xOffset;
-                        int y1 = data[1] + yOffset;
-                        int x2 = data[2] + xOffset;
-                        int y2 = data[3] + yOffset;
-                        
-                        map.drawLine(x1, y1, x2, y2, currentDrawColor);
-                    }
-                }
-                break;
-                
-            case COMPRESSED_POLYLINE:
-                {
-                    // Extract compressed polyline data
-                    int* data = static_cast<int*>(cmd.data);
-                    if (data && cmd.dataSize >= sizeof(int) * 2) {
-                        int numPoints = data[0];
-                        int* points = &data[1];
-                        
-                        // Draw connected lines
-                        for (int i = 0; i < numPoints - 1; i++) {
-                            int x1 = points[i * 2] + xOffset;
-                            int y1 = points[i * 2 + 1] + yOffset;
-                            int x2 = points[(i + 1) * 2] + xOffset;
-                            int y2 = points[(i + 1) * 2 + 1] + yOffset;
-                            
-                            map.drawLine(x1, y1, x2, y2, currentDrawColor);
-                        }
-                    }
-                }
-                break;
-                
-            case PREDICTED_LINE:
-                {
-                    // Extract predicted line data
-                    int* data = static_cast<int*>(cmd.data);
-                    if (data && cmd.dataSize >= sizeof(int) * 4) {
-                        int startX = data[0] + xOffset;
-                        int startY = data[1] + yOffset;
-                        int patternType = data[2];
-                        int length = data[3];
-                        
-                        // Draw predicted line based on pattern
-                        drawPredictedLine(map, startX, startY, patternType, length, currentDrawColor);
-                    }
-                }
-                break;
-                
-            case RELATIVE_MOVE:
-                {
-                    // RELATIVE_MOVE doesn't draw anything, it just updates the current position
-                    // This is handled in the command processing loop, not in renderLayer
-                    // Skip rendering for this command type
-                }
-                break;
-                
-            case HIGHWAY_SEGMENT:
-                {
-                    // Extract highway segment data
-                    int* data = static_cast<int*>(cmd.data);
-                    if (data && cmd.dataSize >= sizeof(int) * 5) {
-                        int startX = data[0] + xOffset;
-                        int startY = data[1] + yOffset;
-                        int endX = data[2] + xOffset;
-                        int endY = data[3] + yOffset;
-                        int width = data[4];
-                        
-                        // Draw highway segment with width
-                        drawHighwaySegment(map, startX, startY, endX, endY, width, currentDrawColor);
-                    }
-                }
-                break;
-                
-            case BLOCK_PATTERN:
-                {
-                    // Extract block pattern data
-                    int* data = static_cast<int*>(cmd.data);
-                    if (data && cmd.dataSize >= sizeof(int) * 5) {
-                        int x = data[0] + xOffset;
-                        int y = data[1] + yOffset;
-                        int blockSize = data[2];
-                        int spacing = data[3];
-                        int count = data[4];
-                        
-                        // Draw block pattern
-                        drawBlockPattern(map, x, y, blockSize, spacing, count, currentDrawColor);
-                    }
-                }
-                break;
-                
-            case DASHED_LINE:
-                {
-                    // Extract dashed line data
-                    int* data = static_cast<int*>(cmd.data);
-                    if (data && cmd.dataSize >= sizeof(int) * 6) {
-                        int x1 = data[0] + xOffset;
-                        int y1 = data[1] + yOffset;
-                        int x2 = data[2] + xOffset;
-                        int y2 = data[3] + yOffset;
-                        int dashLength = data[4];
-                        int gapLength = data[5];
-                        
-                        // Draw dashed line using Bresenham-like algorithm
-                        drawDashedLine(map, x1, y1, x2, y2, dashLength, gapLength, currentDrawColor);
-                    }
-                }
-                break;
-                
-            case DOTTED_LINE:
-                {
-                    // Extract dotted line data
-                    int* data = static_cast<int*>(cmd.data);
-                    if (data && cmd.dataSize >= sizeof(int) * 5) {
-                        int x1 = data[0] + xOffset;
-                        int y1 = data[1] + yOffset;
-                        int x2 = data[2] + xOffset;
-                        int y2 = data[3] + yOffset;
-                        int dotSpacing = data[4];
-                        
-                        // Draw dotted line
-                        drawDottedLine(map, x1, y1, x2, y2, dotSpacing, currentDrawColor);
-                    }
-                }
-                break;
-                
-            case GRID_PATTERN:
-                {
-                    // Extract grid pattern data
-                    int* data = static_cast<int*>(cmd.data);
-                    if (data && cmd.dataSize >= sizeof(int) * 6) {
-                        int x = data[0] + xOffset;
-                        int y = data[1] + yOffset;
-                        int width = data[2];
-                        int spacing = data[3];
-                        int count = data[4];
-                        int direction = data[5];
-                        
-                        // Draw grid pattern
-                        drawGridPattern(map, x, y, width, spacing, count, direction, currentDrawColor);
-                    }
-                }
-                break;
-                
-            default:
-                // Skip unknown commands
-                break;
-        }
-    }
-}
-
-/**
- * @brief Render tile with proper layer ordering
- *
- * @details Reads tile data, organizes commands by layers, and renders them in the correct order:
- *         Terrain → Water → Buildings → Outlines → Roads
- *
- * @param path The file path to the binary map tile.
- * @param xOffset The x-offset to apply when rendering the tile on the sprite.
- * @param yOffset The y-offset to apply when rendering the tile on the sprite.
- * @param map The TFT_eSprite object where the tile will be rendered.
- * @return true if the tile was rendered successfully, false otherwise.
- */
-bool Maps::renderTileLayered(const char* path, const int16_t xOffset, const int16_t yOffset, TFT_eSprite& map)
-{
-    static bool isPaletteLoaded = false;
-    if (!isPaletteLoaded) {
-        isPaletteLoaded = Maps::loadPalette("/sdcard/VECTMAP/palette.bin");
-        if (isPaletteLoaded) {
-            Serial.printf("Palette loaded successfully: %d colors\n", PALETTE_SIZE);
-        } else {
-            Serial.println("WARNING: Failed to load palette from /sdcard/VECTMAP/palette.bin");
-        }
-    }
-
-    if (!path || path[0] == '\0')
-        return false;
-
-    // Try to get tile from cache first
-    if (getCachedTile(path, map, xOffset, yOffset)) {
-        return true; // Tile found in cache
-    }
-
-    FILE* file = fopen(path, "rb");
-    if (!file)
-       return false;
-    
-    fseek(file, 0, SEEK_END);
-    const long fileSize = ftell(file);
-    fseek(file, 0, SEEK_SET);
-
-    uint8_t* data = allocBuffer<uint8_t>(fileSize);
-    if (!data)
-    {
-        fclose(file);
-        return false;
-    }
-
-    const size_t bytesRead = fread(data, 1, fileSize, file);
-    fclose(file);
-    if (bytesRead != fileSize) 
-    {
-        unifiedDealloc(data);
-        return false;
-    }
-
-    size_t offset = 0;
-    const size_t dataSize = fileSize;
-    uint8_t current_color = 0xFF;
-    uint16_t currentDrawColor = RGB332ToRGB565(current_color);
-
-    const uint32_t num_cmds = readVarint(data, offset, dataSize);
-    if (num_cmds == 0)
-    {
-        unifiedDealloc(data);
-        return false;
-    }
-
-    // Clear all layer commands efficiently
-    for (int i = 0; i < LAYER_COUNT; i++) {
-        // Free command data before clearing
-        for (auto& cmd : layerCommands[i]) {
-            if (cmd.data) {
-                unifiedDealloc(cmd.data);
-            }
-        }
-        layerCommands[i].clear();
-    }
-    
-    int executed = 0;
-    unsigned long renderStart = millis();
-
-    // First pass: organize commands by layers with memory optimization
-    int currentLayer = LAYER_TERRAIN;  // Default layer
-    
-    for (uint32_t cmd_idx = 0; cmd_idx < num_cmds; cmd_idx++) 
-    {
-        if (offset >= dataSize) 
-            break;
-        const size_t cmdStartOffset = offset;
-        const uint32_t cmdType = readVarint(data, offset, dataSize);
-
-        switch (cmdType) 
-        {
-            case SET_LAYER:
-                {
-                    const int32_t layerNumber = readVarint(data, offset, dataSize);
-                    // Update current layer for subsequent commands
-                    currentLayer = static_cast<RenderLayer>(layerNumber);
-                    if (currentLayer >= LAYER_COUNT) {
-                        currentLayer = LAYER_TERRAIN;  // Fallback to terrain
-                    }
-                    continue;  // Skip to next command after SET_LAYER
-                }
-                break;
-                
-            case SET_COLOR:
-                if (offset < dataSize) 
-                {
-                    current_color = data[offset++];
-                    currentDrawColor = RGB332ToRGB565(current_color);
-                }
-                break;
-                
-            case SET_COLOR_INDEX:
-                {
-                    const uint32_t color_index = readVarint(data, offset, dataSize);
-                    current_color = paletteToRGB332(color_index);
-                    currentDrawColor = RGB332ToRGB565(current_color);
-                }
-                break;
-                
-            case DRAW_STROKE_POLYGON:
-            case OPTIMIZED_POLYGON:
-            case HOLLOW_POLYGON:
-                {
-                    const uint32_t numPoints = readVarint(data, offset, dataSize);
-                    if (numPoints >= 3 && numPoints <= 32) // Limit polygon complexity
-                    {
-                        // Allocate memory for polygon data using pool
-                        size_t cmdDataSize = sizeof(int) * (1 + numPoints * 2);
-                        int* polygonData = static_cast<int*>(unifiedAlloc(cmdDataSize, 0));
-                        if (polygonData) {
-                            polygonData[0] = numPoints;
-                            
-                            // Read polygon vertices
-                            for (uint32_t i = 0; i < numPoints; i++) {
-                                const int32_t x = readZigzag(data, offset, dataSize);
-                                const int32_t y = readZigzag(data, offset, dataSize);
-                                polygonData[1 + i] = uint16ToPixel(x);
-                                polygonData[1 + numPoints + i] = uint16ToPixel(y);
-                            }
-                            
-                            // Use current layer for command
-                            RenderCommand cmd = {static_cast<uint8_t>(cmdType), current_color, currentDrawColor, polygonData, cmdDataSize};
-                            layerCommands[currentLayer].push_back(cmd);
-                            executed++;
-                        }
-                    }
-                }
-                break;
-                
-            case DRAW_STROKE_POLYGONS:
-                {
-                    const uint32_t numPoints = readVarint(data, offset, dataSize);
-                    int32_t accumX = 0, accumY = 0;
-                    if (numPoints >= 3 && numPoints <= 32) // Limit polygon complexity
-                    {
-                        // Allocate memory for polygon data using pool
-                        size_t cmdDataSize = sizeof(int) * (1 + numPoints * 2);
-                        int* polygonData = static_cast<int*>(unifiedAlloc(cmdDataSize, 0));
-                        if (polygonData) {
-                            polygonData[0] = numPoints;
-                            
-                            // Read polygon vertices with delta encoding
-                            for (uint32_t i = 0; i < numPoints; i++) {
-                                const int32_t deltaX = readZigzag(data, offset, dataSize);
-                                const int32_t deltaY = readZigzag(data, offset, dataSize);
-                                accumX += deltaX;
-                                accumY += deltaY;
-                                polygonData[1 + i] = uint16ToPixel(accumX);
-                                polygonData[1 + numPoints + i] = uint16ToPixel(accumY);
-                            }
-                            
-                            // Use current layer for command
-                            RenderCommand cmd = {static_cast<uint8_t>(cmdType), current_color, currentDrawColor, polygonData, cmdDataSize};
-                            layerCommands[currentLayer].push_back(cmd);
-                            executed++;
-                        }
-                    }
-                }
-                break;
-                
-            case RECTANGLE:
-                {
-                    const int32_t x1 = readZigzag(data, offset, dataSize);
-                    const int32_t y1 = readZigzag(data, offset, dataSize);
-                    const int32_t dx = readZigzag(data, offset, dataSize);
-                    const int32_t dy = readZigzag(data, offset, dataSize);
-                    const int px1 = uint16ToPixel(x1);
-                    const int py1 = uint16ToPixel(y1);
-                    const int pdx = uint16ToPixel(dx);
-                    const int pdy = uint16ToPixel(dy);
-                    
-                    if (px1 >= 0 && px1 <= TILE_SIZE && py1 >= 0 && py1 <= TILE_SIZE && 
-                        pdx > 0 && pdy > 0 && !isPointOnMargin(px1, py1)) 
-                    {
-                        // Allocate memory for rectangle data using pool
-                        int* rectData = static_cast<int*>(unifiedAlloc(sizeof(int) * 4, 0));
-                        if (rectData) {
-                            rectData[0] = px1;
-                            rectData[1] = py1;
-                            rectData[2] = pdx;
-                            rectData[3] = pdy;
-                            
-                            // Use current layer for command
-                            RenderCommand cmd = {static_cast<uint8_t>(cmdType), current_color, currentDrawColor, rectData, sizeof(int) * 4};
-                            layerCommands[currentLayer].push_back(cmd);
-                            executed++;
-                        }
-                    }
-                }
-                break;
-            case SIMPLE_RECTANGLE:
-                {
-                    const int32_t x = readZigzag(data, offset, dataSize);
-                    const int32_t y = readZigzag(data, offset, dataSize);
-                    const int32_t width = readZigzag(data, offset, dataSize);
-                    const int32_t height = readZigzag(data, offset, dataSize);
-                    const int px = uint16ToPixel(x);
-                    const int py = uint16ToPixel(y);
-                    const int pwidth = uint16ToPixel(width);
-                    const int pheight = uint16ToPixel(height);
-                    
-                    if (px >= 0 && px <= TILE_SIZE && py >= 0 && py <= TILE_SIZE && 
-                        pwidth > 0 && pheight > 0 && px + pwidth <= TILE_SIZE && py + pheight <= TILE_SIZE) 
-                    {
-                        // Allocate memory for rectangle data using pool
-                        int* rectData = static_cast<int*>(unifiedAlloc(sizeof(int) * 4, 0));
-                        if (rectData) {
-                            rectData[0] = px;
-                            rectData[1] = py;
-                            rectData[2] = pwidth;
-                            rectData[3] = pheight;
-                            
-                            // Use current layer for command
-                            RenderCommand cmd = {static_cast<uint8_t>(cmdType), current_color, currentDrawColor, rectData, sizeof(int) * 4};
-                            layerCommands[currentLayer].push_back(cmd);
-                            executed++;
-                        }
-                    }
-                }
-                break;
-                
-            case CIRCLE:
-                {
-                    const int32_t center_x = readZigzag(data, offset, dataSize);
-                    const int32_t center_y = readZigzag(data, offset, dataSize);
-                    const int32_t radius = readZigzag(data, offset, dataSize);
-                    const int pcx = uint16ToPixel(center_x);
-                    const int pcy = uint16ToPixel(center_y);
-                    const int pradius = uint16ToPixel(radius);
-                    
-                    if (pcx >= 0 && pcx <= TILE_SIZE && pcy >= 0 && pcy <= TILE_SIZE && pradius > 0 &&
-                        !isPointOnMargin(pcx, pcy)) 
-                    {
-                        // Allocate memory for circle data using pool
-                        int* circleData = static_cast<int*>(unifiedAlloc(sizeof(int) * 3, 0));
-                        if (circleData) {
-                            circleData[0] = pcx;
-                            circleData[1] = pcy;
-                            circleData[2] = pradius;
-                            
-                            // Use current layer for command
-                            RenderCommand cmd = {static_cast<uint8_t>(cmdType), current_color, currentDrawColor, circleData, sizeof(int) * 3};
-                            layerCommands[currentLayer].push_back(cmd);
-                            executed++;
-                        }
-                    }
-                }
-                break;
-            case SIMPLE_CIRCLE:
-                {
-                    const int32_t center_x = readZigzag(data, offset, dataSize);
-                    const int32_t center_y = readZigzag(data, offset, dataSize);
-                    const int32_t radius = readZigzag(data, offset, dataSize);
-                    const int pcx = uint16ToPixel(center_x);
-                    const int pcy = uint16ToPixel(center_y);
-                    const int pradius = uint16ToPixel(radius);
-                    
-                    if (pcx >= 0 && pcx <= TILE_SIZE && pcy >= 0 && pcy <= TILE_SIZE && pradius > 0 &&
-                        pcx + pradius <= TILE_SIZE && pcy + pradius <= TILE_SIZE &&
-                        pcx - pradius >= 0 && pcy - pradius >= 0) 
-                    {
-                        // Allocate memory for circle data using pool
-                        int* circleData = static_cast<int*>(unifiedAlloc(sizeof(int) * 3, 0));
-                        if (circleData) {
-                            circleData[0] = pcx;
-                            circleData[1] = pcy;
-                            circleData[2] = pradius;
-                            
-                            // Use current layer for command
-                            RenderCommand cmd = {static_cast<uint8_t>(cmdType), current_color, currentDrawColor, circleData, sizeof(int) * 3};
-                            layerCommands[currentLayer].push_back(cmd);
-                            executed++;
-                        }
-                    }
-                }
-                break;
-            case OPTIMIZED_CIRCLE:
-                {
-                    const int32_t center_x = readZigzag(data, offset, dataSize);
-                    const int32_t center_y = readZigzag(data, offset, dataSize);
-                    const int32_t radius = readZigzag(data, offset, dataSize);
-                    const int pcx = uint16ToPixel(center_x);
-                    const int pcy = uint16ToPixel(center_y);
-                    const int pradius = uint16ToPixel(radius);
-                    
-                    if (pcx >= 0 && pcx <= TILE_SIZE && pcy >= 0 && pcy <= TILE_SIZE && pradius > 0 &&
-                        pcx + pradius <= TILE_SIZE && pcy + pradius <= TILE_SIZE &&
-                        pcx - pradius >= 0 && pcy - pradius >= 0) 
-                    {
-                        // Allocate memory for circle data using pool
-                        int* circleData = static_cast<int*>(unifiedAlloc(sizeof(int) * 3, 0));
-                        if (circleData) {
-                            circleData[0] = pcx;
-                            circleData[1] = pcy;
-                            circleData[2] = pradius;
-                            
-                            // Use current layer for command
-                            RenderCommand cmd = {static_cast<uint8_t>(cmdType), current_color, currentDrawColor, circleData, sizeof(int) * 3};
-                            layerCommands[currentLayer].push_back(cmd);
-                            executed++;
-                        }
-                    }
-                }
-                break;
-            case SIMPLE_TRIANGLE:
-                {
-                    const int32_t x1 = readZigzag(data, offset, dataSize);
-                    const int32_t y1 = readZigzag(data, offset, dataSize);
-                    const int32_t x2 = readZigzag(data, offset, dataSize);
-                    const int32_t y2 = readZigzag(data, offset, dataSize);
-                    const int32_t x3 = readZigzag(data, offset, dataSize);
-                    const int32_t y3 = readZigzag(data, offset, dataSize);
-                    const int px1 = uint16ToPixel(x1);
-                    const int py1 = uint16ToPixel(y1);
-                    const int px2 = uint16ToPixel(x2);
-                    const int py2 = uint16ToPixel(y2);
-                    const int px3 = uint16ToPixel(x3);
-                    const int py3 = uint16ToPixel(y3);
-                    
-                    if (px1 >= 0 && px1 <= TILE_SIZE && py1 >= 0 && py1 <= TILE_SIZE &&
-                        px2 >= 0 && px2 <= TILE_SIZE && py2 >= 0 && py2 <= TILE_SIZE &&
-                        px3 >= 0 && px3 <= TILE_SIZE && py3 >= 0 && py3 <= TILE_SIZE) 
-                    {
-                        // Allocate memory for triangle data using pool
-                        int* triangleData = static_cast<int*>(unifiedAlloc(sizeof(int) * 6, 0));
-                        if (triangleData) {
-                            triangleData[0] = px1;
-                            triangleData[1] = py1;
-                            triangleData[2] = px2;
-                            triangleData[3] = py2;
-                            triangleData[4] = px3;
-                            triangleData[5] = py3;
-                            
-                            // Use current layer for command
-                            RenderCommand cmd = {static_cast<uint8_t>(cmdType), current_color, currentDrawColor, triangleData, sizeof(int) * 6};
-                            layerCommands[currentLayer].push_back(cmd);
-                            executed++;
-                        }
-                    }
-                }
-                break;
-            case OPTIMIZED_TRIANGLE:
-                {
-                    const int32_t x1 = readZigzag(data, offset, dataSize);
-                    const int32_t y1 = readZigzag(data, offset, dataSize);
-                    const int32_t x2 = readZigzag(data, offset, dataSize);
-                    const int32_t y2 = readZigzag(data, offset, dataSize);
-                    const int32_t x3 = readZigzag(data, offset, dataSize);
-                    const int32_t y3 = readZigzag(data, offset, dataSize);
-                    const int px1 = uint16ToPixel(x1);
-                    const int py1 = uint16ToPixel(y1);
-                    const int px2 = uint16ToPixel(x2);
-                    const int py2 = uint16ToPixel(y2);
-                    const int px3 = uint16ToPixel(x3);
-                    const int py3 = uint16ToPixel(y3);
-                    
-                    if (px1 >= 0 && px1 <= TILE_SIZE && py1 >= 0 && py1 <= TILE_SIZE &&
-                        px2 >= 0 && px2 <= TILE_SIZE && py2 >= 0 && py2 <= TILE_SIZE &&
-                        px3 >= 0 && px3 <= TILE_SIZE && py3 >= 0 && py3 <= TILE_SIZE) 
-                    {
-                        // Allocate memory for triangle data using pool
-                        int* triangleData = static_cast<int*>(unifiedAlloc(sizeof(int) * 6, 0));
-                        if (triangleData) {
-                            triangleData[0] = px1;
-                            triangleData[1] = py1;
-                            triangleData[2] = px2;
-                            triangleData[3] = py2;
-                            triangleData[4] = px3;
-                            triangleData[5] = py3;
-                            
-                            // Use current layer for command
-                            RenderCommand cmd = {static_cast<uint8_t>(cmdType), current_color, currentDrawColor, triangleData, sizeof(int) * 6};
-                            layerCommands[currentLayer].push_back(cmd);
-                            executed++;
-                        }
-                    }
-                }
-                break;
-            case DASHED_LINE:
-                {
-                    const int32_t x1 = readZigzag(data, offset, dataSize);
-                    const int32_t y1 = readZigzag(data, offset, dataSize);
-                    const int32_t x2 = readZigzag(data, offset, dataSize);
-                    const int32_t y2 = readZigzag(data, offset, dataSize);
-                    const int32_t dashLength = readVarint(data, offset, dataSize);
-                    const int32_t gapLength = readVarint(data, offset, dataSize);
-                    const int px1 = uint16ToPixel(x1);
-                    const int py1 = uint16ToPixel(y1);
-                    const int px2 = uint16ToPixel(x2);
-                    const int py2 = uint16ToPixel(y2);
-                    
-                    if (px1 >= 0 && px1 <= TILE_SIZE && py1 >= 0 && py1 <= TILE_SIZE &&
-                        px2 >= 0 && px2 <= TILE_SIZE && py2 >= 0 && py2 <= TILE_SIZE) 
-                    {
-                        // Allocate memory for dashed line data using pool
-                        int* lineData = static_cast<int*>(unifiedAlloc(sizeof(int) * 6, 0));
-                        if (lineData) {
-                            lineData[0] = px1;
-                            lineData[1] = py1;
-                            lineData[2] = px2;
-                            lineData[3] = py2;
-                            lineData[4] = dashLength;
-                            lineData[5] = gapLength;
-                            
-                            // Use current layer for command
-                            RenderCommand cmd = {static_cast<uint8_t>(cmdType), current_color, currentDrawColor, lineData, sizeof(int) * 6};
-                            layerCommands[currentLayer].push_back(cmd);
-                            executed++;
-                        }
-                    }
-                }
-                break;
-            case DOTTED_LINE:
-                {
-                    const int32_t x1 = readZigzag(data, offset, dataSize);
-                    const int32_t y1 = readZigzag(data, offset, dataSize);
-                    const int32_t x2 = readZigzag(data, offset, dataSize);
-                    const int32_t y2 = readZigzag(data, offset, dataSize);
-                    const int32_t dotSpacing = readVarint(data, offset, dataSize);
-                    const int px1 = uint16ToPixel(x1);
-                    const int py1 = uint16ToPixel(y1);
-                    const int px2 = uint16ToPixel(x2);
-                    const int py2 = uint16ToPixel(y2);
-                    
-                    if (px1 >= 0 && px1 <= TILE_SIZE && py1 >= 0 && py1 <= TILE_SIZE &&
-                        px2 >= 0 && px2 <= TILE_SIZE && py2 >= 0 && py2 <= TILE_SIZE) 
-                    {
-                        // Allocate memory for dotted line data using pool
-                        int* lineData = static_cast<int*>(unifiedAlloc(sizeof(int) * 5, 0));
-                        if (lineData) {
-                            lineData[0] = px1;
-                            lineData[1] = py1;
-                            lineData[2] = px2;
-                            lineData[3] = py2;
-                            lineData[4] = dotSpacing;
-                            
-                            // Use current layer for command
-                            RenderCommand cmd = {static_cast<uint8_t>(cmdType), current_color, currentDrawColor, lineData, sizeof(int) * 5};
-                            layerCommands[currentLayer].push_back(cmd);
-                            executed++;
-                        }
-                    }
-                }
-                break;
-            case GRID_PATTERN:
-                {
-                    const int32_t x = readZigzag(data, offset, dataSize);
-                    const int32_t y = readZigzag(data, offset, dataSize);
-                    const int32_t width = readVarint(data, offset, dataSize);
-                    const int32_t spacing = readVarint(data, offset, dataSize);
-                    const int32_t count = readVarint(data, offset, dataSize);
-                    const int32_t direction = readVarint(data, offset, dataSize);
-                    const int px = uint16ToPixel(x);
-                    const int py = uint16ToPixel(y);
-                    
-                    if (px >= 0 && px <= TILE_SIZE && py >= 0 && py <= TILE_SIZE) 
-                    {
-                        // Allocate memory for grid pattern data using pool
-                        int* gridData = static_cast<int*>(unifiedAlloc(sizeof(int) * 6, 0));
-                        if (gridData) {
-                            gridData[0] = px;
-                            gridData[1] = py;
-                            gridData[2] = width;
-                            gridData[3] = spacing;
-                            gridData[4] = count;
-                            gridData[5] = direction;
-                            
-                            // Use current layer for command
-                            RenderCommand cmd = {static_cast<uint8_t>(cmdType), current_color, currentDrawColor, gridData, sizeof(int) * 6};
-                            layerCommands[currentLayer].push_back(cmd);
-                            executed++;
-                        }
-                    }
-                }
-                break;
-            case BLOCK_PATTERN:
-                {
-                    const int32_t x = readZigzag(data, offset, dataSize);
-                    const int32_t y = readZigzag(data, offset, dataSize);
-                    const int32_t blockSize = readVarint(data, offset, dataSize);
-                    const int32_t spacing = readVarint(data, offset, dataSize);
-                    const int32_t count = readVarint(data, offset, dataSize);
-                    const int px = uint16ToPixel(x);
-                    const int py = uint16ToPixel(y);
-                    
-                    if (px >= 0 && px <= TILE_SIZE && py >= 0 && py <= TILE_SIZE) 
-                    {
-                        // Allocate memory for block pattern data using pool
-                        int* blockData = static_cast<int*>(unifiedAlloc(sizeof(int) * 5, 0));
-                        if (blockData) {
-                            blockData[0] = px;
-                            blockData[1] = py;
-                            blockData[2] = blockSize;
-                            blockData[3] = spacing;
-                            blockData[4] = count;
-                            
-                            // Use current layer for command
-                            RenderCommand cmd = {static_cast<uint8_t>(cmdType), current_color, currentDrawColor, blockData, sizeof(int) * 5};
-                            layerCommands[currentLayer].push_back(cmd);
-                            executed++;
-                        }
-                    }
-                }
-                break;
-                
-            case DRAW_LINE:
-            case DRAW_POLYLINE:
-            case DRAW_HORIZONTAL_LINE:
-            case DRAW_VERTICAL_LINE:
-            case STRAIGHT_LINE:
-            case COMPRESSED_POLYLINE:
-            case PREDICTED_LINE:
-            case RELATIVE_MOVE:
-            case HIGHWAY_SEGMENT:
-                {
-                    // Read line data based on type
-                    int32_t x1, y1, x2, y2;
-                    
-                    if (cmdType == DRAW_LINE) {
-                        x1 = readZigzag(data, offset, dataSize);
-                        y1 = readZigzag(data, offset, dataSize);
-                        const int32_t dx = readZigzag(data, offset, dataSize);
-                        const int32_t dy = readZigzag(data, offset, dataSize);
-                        x2 = x1 + dx;
-                        y2 = y1 + dy;
-                    } else if (cmdType == DRAW_HORIZONTAL_LINE) {
-                        x1 = readZigzag(data, offset, dataSize);
-                        const int32_t dx = readZigzag(data, offset, dataSize);
-                        y1 = readZigzag(data, offset, dataSize);
-                        x2 = x1 + dx;
-                        y2 = y1;
-                    } else if (cmdType == DRAW_VERTICAL_LINE) {
-                        x1 = readZigzag(data, offset, dataSize);
-                        y1 = readZigzag(data, offset, dataSize);
-                        const int32_t dy = readZigzag(data, offset, dataSize);
-                        x2 = x1;
-                        y2 = y1 + dy;
-                    } else if (cmdType == STRAIGHT_LINE) {
-                        x1 = readZigzag(data, offset, dataSize);
-                        y1 = readZigzag(data, offset, dataSize);
-                        const int32_t dx = readZigzag(data, offset, dataSize);
-                        const int32_t dy = readZigzag(data, offset, dataSize);
-                        x2 = x1 + dx;
-                        y2 = y1 + dy;
-                    } else if (cmdType == PREDICTED_LINE) {
-                        // For predicted lines, we need to read startX, startY, patternType, length
-                        const int32_t startX = readZigzag(data, offset, dataSize);
-                        const int32_t startY = readZigzag(data, offset, dataSize);
-                        const int32_t patternType = readVarint(data, offset, dataSize);
-                        const int32_t length = readVarint(data, offset, dataSize);
-                        
-                        const int pstartX = uint16ToPixel(startX);
-                        const int pstartY = uint16ToPixel(startY);
-                        
-                        if (pstartX >= 0 && pstartX <= TILE_SIZE && pstartY >= 0 && pstartY <= TILE_SIZE) 
-                        {
-                            // Allocate memory for predicted line data using pool
-                            int* lineData = static_cast<int*>(unifiedAlloc(sizeof(int) * 4, 0));
-                            if (lineData) {
-                                lineData[0] = pstartX;
-                                lineData[1] = pstartY;
-                                lineData[2] = patternType;
-                                lineData[3] = length;
-                                
-                                // Determine layer and add command
-                                RenderLayer layer = determineCommandLayer(cmdType, current_color);
-                                RenderCommand cmd = {static_cast<uint8_t>(cmdType), current_color, currentDrawColor, lineData, sizeof(int) * 4};
-                                layerCommands[currentLayer].push_back(cmd);
-                                executed++;
-                            }
-                        }
-                        continue; // Skip the normal line processing below
-                    } else if (cmdType == RELATIVE_MOVE) {
-                        // For relative move, we need to read dx, dy and update current position
-                        const int32_t dx = readZigzag(data, offset, dataSize);
-                        const int32_t dy = readZigzag(data, offset, dataSize);
-                        
-                        // Update current position (this is handled by the caller)
-                        // RELATIVE_MOVE doesn't create a render command, it just updates state
-                        executed++;
-                        continue; // Skip the normal line processing below
-                    } else if (cmdType == HIGHWAY_SEGMENT) {
-                        // For highway segments, we need to read startX, startY, endX, endY, width
-                        const int32_t startX = readZigzag(data, offset, dataSize);
-                        const int32_t startY = readZigzag(data, offset, dataSize);
-                        const int32_t endX = readZigzag(data, offset, dataSize);
-                        const int32_t endY = readZigzag(data, offset, dataSize);
-                        const int32_t width = readVarint(data, offset, dataSize);
-                        
-                        const int pstartX = uint16ToPixel(startX);
-                        const int pstartY = uint16ToPixel(startY);
-                        const int pendX = uint16ToPixel(endX);
-                        const int pendY = uint16ToPixel(endY);
-                        
-                        if (pstartX >= 0 && pstartX <= TILE_SIZE && pstartY >= 0 && pstartY <= TILE_SIZE &&
-                            pendX >= 0 && pendX <= TILE_SIZE && pendY >= 0 && pendY <= TILE_SIZE) 
-                        {
-                            // Allocate memory for highway segment data using pool
-                            int* segmentData = static_cast<int*>(unifiedAlloc(sizeof(int) * 5, 0));
-                            if (segmentData) {
-                                segmentData[0] = pstartX;
-                                segmentData[1] = pstartY;
-                                segmentData[2] = pendX;
-                                segmentData[3] = pendY;
-                                segmentData[4] = width;
-                                
-                                // Determine layer and add command
-                                RenderLayer layer = determineCommandLayer(cmdType, current_color);
-                                RenderCommand cmd = {static_cast<uint8_t>(cmdType), current_color, currentDrawColor, segmentData, sizeof(int) * 5};
-                                layerCommands[currentLayer].push_back(cmd);
-                                executed++;
-                            }
-                        }
-                        continue; // Skip the normal line processing below
-                    } else if (cmdType == COMPRESSED_POLYLINE) {
-                        // For compressed polylines, we need to handle multiple points
-                        const int32_t numPoints = readVarint(data, offset, dataSize);
-                        if (numPoints < 2) continue;
-                        
-                        // Read first point
-                        x1 = readZigzag(data, offset, dataSize);
-                        y1 = readZigzag(data, offset, dataSize);
-                        
-                        // Read remaining points and draw lines
-                        for (int i = 1; i < numPoints; i++) {
-                            x2 = readZigzag(data, offset, dataSize);
-                            y2 = readZigzag(data, offset, dataSize);
-                            
-                            const int px1 = uint16ToPixel(x1);
-                            const int py1 = uint16ToPixel(y1);
-                            const int px2 = uint16ToPixel(x2);
-                            const int py2 = uint16ToPixel(y2);
-                            
-                            if (px1 >= 0 && px1 <= TILE_SIZE && py1 >= 0 && py1 <= TILE_SIZE &&
-                                px2 >= 0 && px2 <= TILE_SIZE && py2 >= 0 && py2 <= TILE_SIZE) 
-                            {
-                                // Allocate memory for line data using pool
-                                int* lineData = static_cast<int*>(unifiedAlloc(sizeof(int) * 4, 0));
-                                if (lineData) {
-                                    lineData[0] = px1;
-                                    lineData[1] = py1;
-                                    lineData[2] = px2;
-                                    lineData[3] = py2;
-                                    
-                                    // Determine layer and add command
-                                    RenderLayer layer = determineCommandLayer(cmdType, current_color);
-                                    RenderCommand cmd = {static_cast<uint8_t>(cmdType), current_color, currentDrawColor, lineData, sizeof(int) * 4};
-                                    layerCommands[currentLayer].push_back(cmd);
-                                    executed++;
-                                }
-                            }
-                            
-                            // Move to next point
-                            x1 = x2;
-                            y1 = y2;
-                        }
-                        continue; // Skip the normal line processing below
-                    } else {
-                        // DRAW_POLYLINE - skip for now, complex to handle
-                        continue;
-                    }
-                    
-                    const int px1 = uint16ToPixel(x1);
-                    const int py1 = uint16ToPixel(y1);
-                    const int px2 = uint16ToPixel(x2);
-                    const int py2 = uint16ToPixel(y2);
-                    
-                    if (shouldDrawLine(px1, py1, px2, py2)) 
-                    {
-                        // Allocate memory for line data using pool
-                        int* lineData = static_cast<int*>(unifiedAlloc(sizeof(int) * 4, 0));
-                        if (lineData) {
-                            lineData[0] = px1;
-                            lineData[1] = py1;
-                            lineData[2] = px2;
-                            lineData[3] = py2;
-                            
-                            // Use current layer for command
-                            RenderCommand cmd = {static_cast<uint8_t>(cmdType), current_color, currentDrawColor, lineData, sizeof(int) * 4};
-                            layerCommands[currentLayer].push_back(cmd);
-                            executed++;
-                        }
-                    }
-                }
-                break;
-                
-            default:
-                // Skip unknown commands
-                if (offset < dataSize - 4) 
-                    offset += 4;
-                break;
-        }
-    }
-
-    // Second pass: render layers in correct order
-    for (int layer = 0; layer < LAYER_COUNT; layer++) {
-        if (!layerCommands[layer].empty()) {
-            renderLayer(map, layerCommands[layer], xOffset, yOffset);
-            layerRenderCount++;
-        }
-    }
-
-    // Clean up efficiently
-    unifiedDealloc(data);
-    
-    // Free all command data and clear layers
-    for (int i = 0; i < LAYER_COUNT; i++) {
-        for (auto& cmd : layerCommands[i]) {
-            if (cmd.data) {
-                unifiedDealloc(cmd.data);
-            }
-        }
-        layerCommands[i].clear();
-    }
-
-    if (executed == 0) 
-        return false;
-
-    // Add successfully rendered tile to cache
-    addToCache(path, map);
-
-    // Log rendering performance
-    unsigned long renderTime = millis() - renderStart;
-    ESP_LOGI(TAG, "Layered tile rendered: %s in %lums, %d commands, %d layers", 
-             path, renderTime, executed, layerRenderCount);
-
-    return true;
-}
-
-/**
  * @brief Calculate polygon bounding box
  *
  * @details Calculates the bounding box for a polygon defined by vertex arrays.
@@ -3502,7 +2098,8 @@ bool Maps::renderTileLayered(const char* path, const int16_t xOffset, const int1
  */
 void Maps::calculatePolygonBounds(const int *px, const int *py, int numPoints, PolygonBounds& bounds)
 {
-    if (numPoints < 3) {
+    if (numPoints < 3) 
+    {
         bounds.isValid = false;
         return;
     }
@@ -3510,7 +2107,8 @@ void Maps::calculatePolygonBounds(const int *px, const int *py, int numPoints, P
     bounds.minX = bounds.maxX = px[0];
     bounds.minY = bounds.maxY = py[0];
     
-    for (int i = 1; i < numPoints; ++i) {
+    for (int i = 1; i < numPoints; ++i) 
+    {
         if (px[i] < bounds.minX) bounds.minX = px[i];
         if (px[i] > bounds.maxX) bounds.maxX = px[i];
         if (py[i] < bounds.minY) bounds.minY = py[i];
@@ -3562,7 +2160,8 @@ bool Maps::isSimplePolygon(const int *px, const int *py, int numPoints)
     if (numPoints == 3) return true;
     
     // Check for rectangles (4 points with right angles)
-    if (numPoints == 4) {
+    if (numPoints == 4) 
+    {
         // Simple rectangle check: opposite sides should be parallel
         int dx1 = px[1] - px[0];
         int dy1 = py[1] - py[0];
@@ -3570,9 +2169,8 @@ bool Maps::isSimplePolygon(const int *px, const int *py, int numPoints)
         int dy2 = py[2] - py[1];
         
         // Check if sides are perpendicular (dot product = 0)
-        if (dx1 * dx2 + dy1 * dy2 == 0) {
+        if (dx1 * dx2 + dy1 * dy2 == 0) 
             return true;
-        }
     }
     
     // For other polygons, use optimized scanline if enabled
@@ -3597,49 +2195,57 @@ void Maps::fillPolygonOptimized(TFT_eSprite &map, const int *px, const int *py, 
     polygonRenderCount++;
     
     // If optimizations are disabled, use original algorithm
-    if (!polygonCullingEnabled && !optimizedScanlineEnabled) {
+    if (!polygonCullingEnabled && !optimizedScanlineEnabled) 
+    {
         fillPolygonGeneral(map, px, py, numPoints, color, xOffset, yOffset);
         return;
     }
     
     // Apply viewport culling if enabled
-    if (polygonCullingEnabled) {
+    if (polygonCullingEnabled) 
+    {
         PolygonBounds bounds;
         calculatePolygonBounds(px, py, numPoints, bounds);
         
-        if (!isPolygonInViewport(bounds, xOffset, yOffset)) {
+        if (!isPolygonInViewport(bounds, xOffset, yOffset)) 
+        {
             polygonCulledCount++;
             return; // Skip rendering
         }
     }
     
     // Choose appropriate rendering algorithm
-    if (isSimplePolygon(px, py, numPoints)) {
+    if (isSimplePolygon(px, py, numPoints))
+    {
         polygonOptimizedCount++;
         
-        if (numPoints == 3) {
+        if (numPoints == 3) 
+        {
             // Triangle
             fillTriangleOptimized(map, px[0] + xOffset, py[0] + yOffset,
                                  px[1] + xOffset, py[1] + yOffset,
                                  px[2] + xOffset, py[2] + yOffset, color);
-        } else if (numPoints == 4) {
+        }
+        else if (numPoints == 4) 
+        {
             // Rectangle
             PolygonBounds bounds;
             calculatePolygonBounds(px, py, numPoints, bounds);
             fillRectangleOptimized(map, bounds.minX + xOffset, bounds.minY + yOffset,
                                   bounds.maxX - bounds.minX, bounds.maxY - bounds.minY, color);
-        } else {
+        } 
+        else 
+        {
             // Complex polygon with optimized scanline
-            if (optimizedScanlineEnabled) {
+            if (optimizedScanlineEnabled) 
                 fillPolygonScanlineOptimized(map, px, py, numPoints, color, xOffset, yOffset);
-            } else {
+            else
                 fillPolygonGeneral(map, px, py, numPoints, color, xOffset, yOffset);
-            }
         }
-    } else {
+    }
+    else 
         // Fallback to original algorithm
         fillPolygonGeneral(map, px, py, numPoints, color, xOffset, yOffset);
-    }
 }
 
 /**
@@ -3669,27 +2275,27 @@ void Maps::fillTriangleOptimized(TFT_eSprite &map, int x1, int y1, int x2, int y
     int dy3 = y3 - y2;
     
     // Fill top half
-    for (int y = y1; y < y2; y++) {
+    for (int y = y1; y < y2; y++) 
+    {
         int x_start = x1 + (y - y1) * dx1 / dy1;
         int x_end = x1 + (y - y1) * dx2 / dy2;
         
         if (x_start > x_end) std::swap(x_start, x_end);
         
-        if (x_start >= 0 && x_end < TILE_SIZE && y >= 0 && y < TILE_SIZE) {
+        if (x_start >= 0 && x_end < TILE_SIZE && y >= 0 && y < TILE_SIZE) 
             map.drawLine(x_start, y, x_end, y, color);
-        }
     }
     
     // Fill bottom half
-    for (int y = y2; y <= y3; y++) {
+    for (int y = y2; y <= y3; y++) 
+    {
         int x_start = x2 + (y - y2) * dx3 / dy3;
         int x_end = x1 + (y - y1) * dx2 / dy2;
         
         if (x_start > x_end) std::swap(x_start, x_end);
         
-        if (x_start >= 0 && x_end < TILE_SIZE && y >= 0 && y < TILE_SIZE) {
+        if (x_start >= 0 && x_end < TILE_SIZE && y >= 0 && y < TILE_SIZE) 
             map.drawLine(x_start, y, x_end, y, color);
-        }
     }
 }
 
@@ -3711,9 +2317,8 @@ void Maps::fillRectangleOptimized(TFT_eSprite &map, int x, int y, int w, int h, 
     if (x + w > TILE_SIZE) w = TILE_SIZE - x;
     if (y + h > TILE_SIZE) h = TILE_SIZE - y;
     
-    if (w > 0 && h > 0) {
+    if (w > 0 && h > 0)
         map.fillRect(x, y, w, h, color);
-    }
 }
 
 /**
@@ -3742,12 +2347,14 @@ void Maps::fillPolygonScanlineOptimized(TFT_eSprite &map, const int *px, const i
     int maxY = std::min(bounds.maxY, TILE_SIZE - 1);
     
     // Optimized scanline algorithm with better performance
-    for (int y = minY; y <= maxY; y++) {
+    for (int y = minY; y <= maxY; y++) 
+    {
         int intersections[32]; // Stack-allocated for small polygons
         int count = 0;
         
         // Find intersections with current scanline
-        for (int i = 0; i < numPoints; i++) {
+        for (int i = 0; i < numPoints; i++) 
+        {
             int j = (i + 1) % numPoints;
             
             int y1 = py[i];
@@ -3756,12 +2363,14 @@ void Maps::fillPolygonScanlineOptimized(TFT_eSprite &map, const int *px, const i
             int x2 = px[j];
             
             // Check if scanline intersects this edge (optimized condition)
-            if ((y1 < y && y <= y2) || (y2 < y && y <= y1)) {
+            if ((y1 < y && y <= y2) || (y2 < y && y <= y1)) 
+            {
                 // Calculate intersection X coordinate with fixed-point arithmetic
                 int x;
-                if (y1 == y2) {
+                if (y1 == y2) 
                     x = x1; // Horizontal edge
-                } else {
+                else 
+                {
                     // Use fixed-point arithmetic for better precision
                     int dy = y2 - y1;
                     int dx = x2 - x1;
@@ -3772,10 +2381,12 @@ void Maps::fillPolygonScanlineOptimized(TFT_eSprite &map, const int *px, const i
         }
         
         // Sort intersections (use insertion sort for small arrays)
-        for (int i = 1; i < count; i++) {
+        for (int i = 1; i < count; i++) 
+        {
             int key = intersections[i];
             int j = i - 1;
-            while (j >= 0 && intersections[j] > key) {
+            while (j >= 0 && intersections[j] > key) 
+            {
                 intersections[j + 1] = intersections[j];
                 j--;
             }
@@ -3783,85 +2394,16 @@ void Maps::fillPolygonScanlineOptimized(TFT_eSprite &map, const int *px, const i
         }
         
         // Fill between pairs of intersections
-        for (int i = 0; i < count - 1; i += 2) {
+        for (int i = 0; i < count - 1; i += 2)
+         {
             int x1 = std::max(0, intersections[i] + xOffset);
             int x2 = std::min(TILE_SIZE - 1, intersections[i + 1] + xOffset);
             int yy = y + yOffset;
             
-            if (x1 < x2 && yy >= 0 && yy < TILE_SIZE + yOffset) {
+            if (x1 < x2 && yy >= 0 && yy < TILE_SIZE + yOffset) 
                 map.drawFastHLine(x1, yy, x2 - x1 + 1, color);
-            }
         }
     }
-}
-
-/**
- * @brief Print polygon optimization statistics
- *
- * @details Prints useful polygon optimization statistics for debugging and monitoring.
- */
-void Maps::printPolygonStats()
-{
-    ESP_LOGI(TAG, "=== Polygon Optimization Statistics ===");
-    ESP_LOGI(TAG, "Culling enabled: %s", polygonCullingEnabled ? "yes" : "no");
-    ESP_LOGI(TAG, "Optimized scanline enabled: %s", optimizedScanlineEnabled ? "yes" : "no");
-    ESP_LOGI(TAG, "Total polygons rendered: %u", polygonRenderCount);
-    ESP_LOGI(TAG, "Polygons culled: %u", polygonCulledCount);
-    ESP_LOGI(TAG, "Polygons optimized: %u", polygonOptimizedCount);
-    
-    if (polygonRenderCount > 0) {
-        float cullRate = (float)polygonCulledCount / polygonRenderCount * 100.0f;
-        float optRate = (float)polygonOptimizedCount / polygonRenderCount * 100.0f;
-        ESP_LOGI(TAG, "Culling rate: %.1f%%", cullRate);
-        ESP_LOGI(TAG, "Optimization rate: %.1f%%", optRate);
-    }
-    ESP_LOGI(TAG, "=====================================");
-}
-
-/**
- * @brief Initialize polygon optimization system (public method)
- *
- * @details Public method to initialize the polygon optimization system.
- */
-void Maps::initializePolygonOptimizations()
-{
-    initPolygonOptimizations();
-}
-
-/**
- * @brief Print polygon optimization statistics (public method)
- *
- * @details Public method to print polygon optimization statistics.
- */
-void Maps::printPolygonOptimizationStats()
-{
-    printPolygonStats();
-}
-
-/**
- * @brief Enable/disable polygon culling (public method)
- *
- * @details Public method to enable or disable polygon culling.
- *
- * @param enable true to enable culling, false to disable.
- */
-void Maps::enablePolygonCulling(bool enable)
-{
-    polygonCullingEnabled = enable;
-    ESP_LOGI(TAG, "Polygon culling %s", enable ? "enabled" : "disabled");
-}
-
-/**
- * @brief Enable/disable optimized scanline (public method)
- *
- * @details Public method to enable or disable optimized scanline algorithm.
- *
- * @param enable true to enable optimized scanline, false to disable.
- */
-void Maps::enableOptimizedScanline(bool enable)
-{
-    optimizedScanlineEnabled = enable;
-    ESP_LOGI(TAG, "Optimized scanline %s", enable ? "enabled" : "disabled");
 }
 
 /**
@@ -3892,12 +2434,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
         return false;
 
     // Try to get tile from cache first
-    if (getCachedTile(path, map, xOffset, yOffset)) {
+    if (getCachedTile(path, map, xOffset, yOffset))
         return true; // Tile found in cache
-    }
-
-    // Use original rendering with unified pool
-
 
     FILE* file = fopen(path, "rb");
     if (!file)
@@ -3915,7 +2453,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
         fclose(file);
         return false;
     }
-    if (!unifiedPoolLogged) {
+    if (!unifiedPoolLogged)
+    {
         ESP_LOGI(TAG, "renderTile: Using RAII MemoryGuard for data allocation");
         unifiedPoolLogged = true;
     }
@@ -3923,9 +2462,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     const size_t bytesRead = fread(data, 1, fileSize, file);
     fclose(file);
     if (bytesRead != fileSize) 
-    {
         return false;
-    }
 
     // Update memory statistics before rendering
     updateMemoryStats();
@@ -3937,9 +2474,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
 
     const uint32_t num_cmds = readVarint(data, offset, dataSize);
     if (num_cmds == 0)
-    {
         return false;
-    }
 
     // Use optimal batch size for this hardware
     const size_t optimalBatchSize = getOptimalBatchSize();
@@ -3947,11 +2482,13 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     // Use RAII MemoryGuard for line batch allocation
     MemoryGuard<LineSegment> lineBatchGuard(optimalBatchSize, 5); // Type 5 = lineSegment
     LineSegment* lineBatch = lineBatchGuard.get();
-    if (!lineBatch) {
+    if (!lineBatch)
+    {
         ESP_LOGW(TAG, "renderTile: RAII MemoryGuard allocation failed for lineBatch");
         return false;
     }
-    if (!unifiedLineBatchLogged) {
+    if (!unifiedLineBatchLogged) 
+    {
         ESP_LOGI(TAG, "renderTile: Using RAII MemoryGuard for lineBatch allocation");
         unifiedLineBatchLogged = true;
     }
@@ -4005,9 +2542,6 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                 flushBatch();
                 {
                     const int32_t layerNumber = readVarint(data, offset, dataSize);
-                    // SET_LAYER command - layer is already determined by the layer system
-                    // This command is mainly for compatibility with tile_viewer.py
-                    // We don't need to process it further as the layer system handles ordering
                     executed++;
                 }
                 break;
@@ -4066,11 +2600,13 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         MemoryGuard<int> pyGuard(numPoints, 6); // Type 6 = coordArray
                         int* px = pxGuard.get();
                         int* py = pyGuard.get();
-                        if (!px || !py) {
+                        if (!px || !py)
+                        {
                             ESP_LOGW(TAG, "renderTile DRAW_POLYLINE: RAII MemoryGuard allocation failed");
                             continue;
                         }
-                        if (!unifiedPolylineLogged) {
+                        if (!unifiedPolylineLogged)
+                        {
                             ESP_LOGI(TAG, "renderTile DRAW_POLYLINE: Using RAII MemoryGuard for coordinate arrays");
                             unifiedPolylineLogged = true;
                         }
@@ -4114,9 +2650,6 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         }
                         executed++;
                         isLineCommand = true;
-                        
-                        // RAII MemoryGuard automatically handles deallocation
-                        // No manual deallocation needed for px and py
                     }
                     else
                     {
@@ -4150,7 +2683,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                             }
                             break;
                         }
-                        if (!unifiedPolygonLogged) {
+                        if (!unifiedPolygonLogged) 
+                        {
                             ESP_LOGI(TAG, "renderTile DRAW_STROKE_POLYGON: Using RAII MemoryGuard for coordinate arrays");
                             unifiedPolygonLogged = true;
                         }
@@ -4175,8 +2709,6 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
                         drawPolygonBorder(map, px, py, numPoints, borderColor, currentDrawColor, xOffset, yOffset);
                         executed++;
-                        // RAII MemoryGuard automatically handles deallocation
-                        // No manual deallocation needed for px and py
                     } 
                     else 
                     {
@@ -4209,7 +2741,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                             }
                             break;
                         }
-                        if (!unifiedPolygonsLogged) {
+                        if (!unifiedPolygonsLogged)
+                        {
                             ESP_LOGI(TAG, "renderTile DRAW_STROKE_POLYGONS: Using RAII MemoryGuard for coordinate arrays");
                             unifiedPolygonsLogged = true;
                         }
@@ -4238,8 +2771,6 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                             polygonCommands++;
                             executed++;
                         }
-                        // RAII MemoryGuard automatically handles deallocation
-                        // No manual deallocation needed for px and py
                     } 
                     else
                     {
@@ -4349,10 +2880,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                             drawFilledRectWithBorder(map, px + xOffset, py + yOffset, pwidth, pheight, currentDrawColor, borderColor, fillPolygons);
                         }
                         else
-                        {
                             // Draw only outline
                             map.drawRect(px + xOffset, py + yOffset, pwidth, pheight, currentDrawColor);
-                        }
                         executed++;
                     }
                 }
@@ -4381,10 +2910,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                             drawFilledRectWithBorder(map, px + xOffset, py + yOffset, pwidth, pheight, currentDrawColor, borderColor, fillPolygons);
                         }
                         else
-                        {
                             // Draw only outline
                             map.drawRect(px + xOffset, py + yOffset, pwidth, pheight, currentDrawColor);
-                        }
                         executed++;
                     }
                 }
@@ -4626,9 +3153,6 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     }
     flushBatch();
 
-    // RAII MemoryGuard automatically handles deallocation
-    // No manual deallocation needed for data and lineBatch
-
     if (executed == 0) 
         return false;
 
@@ -4647,48 +3171,18 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
 }
 
 /**
- * @brief Enable/disable layer rendering
- *
- * @details Enables or disables the layer rendering system for proper map layer ordering.
- *
- * @param enable true to enable layer rendering, false to disable
- * @return bool Current state of layer rendering
+ * @brief Initialize the unified memory pool for efficient memory management.
+ * 
  */
-bool Maps::enableLayerRendering(bool enable)
-{
-    layerRenderingEnabled = enable;
-    ESP_LOGI(TAG, "Layer rendering %s", enable ? "enabled" : "disabled");
-    return layerRenderingEnabled;
-}
-
-/**
- * @brief Print layer rendering statistics
- *
- * @details Prints useful layer rendering statistics for debugging and monitoring.
- */
-void Maps::printLayerRenderingStats()
-{
-    ESP_LOGI(TAG, "=== Layer Rendering Statistics ===");
-    ESP_LOGI(TAG, "Layer rendering enabled: %s", layerRenderingEnabled ? "Yes" : "No");
-    ESP_LOGI(TAG, "Total layers rendered: %u", layerRenderCount);
-    
-    const char* layerNames[] = {"Terrain", "Water", "Buildings", "Outlines", "Roads"};
-    for (int i = 0; i < LAYER_COUNT; i++) {
-        ESP_LOGI(TAG, "Layer %s: %zu commands", layerNames[i], layerCommands[i].size());
-    }
-    
-    ESP_LOGI(TAG, "================================");
-}
-
-
-// Unified Memory Pool Implementation
 void Maps::initUnifiedPool()
 {
     ESP_LOGI(TAG, "Initializing unified memory pool...");
     
-    if (unifiedPoolMutex == nullptr) {
+    if (unifiedPoolMutex == nullptr)
+    {
         unifiedPoolMutex = xSemaphoreCreateMutex();
-        if (unifiedPoolMutex == nullptr) {
+        if (unifiedPoolMutex == nullptr) 
+        {
             ESP_LOGE(TAG, "Failed to create unified pool mutex");
             return;
         }
@@ -4712,11 +3206,21 @@ void Maps::initUnifiedPool()
     ESP_LOGI(TAG, "Unified memory pool initialized with %zu entries", maxUnifiedPoolEntries);
 }
 
+/**
+ * @brief Implement a unified memory allocation function that uses a memory pool.
+ * 
+ * @param size Size of memory to allocate
+ * @param type type of allocation for tracking purposes
+ * @return void* 
+ */
 void* Maps::unifiedAlloc(size_t size, uint8_t type)
 {
-    if (unifiedPoolMutex && xSemaphoreTake(unifiedPoolMutex, portMAX_DELAY) == pdTRUE) {
-        for (auto& entry : unifiedPool) {
-            if (!entry.isInUse && entry.size >= size) {
+    if (unifiedPoolMutex && xSemaphoreTake(unifiedPoolMutex, portMAX_DELAY) == pdTRUE)
+    {
+        for (auto& entry : unifiedPool) 
+        {
+            if (!entry.isInUse && entry.size >= size) 
+            {
                 entry.isInUse = true;
                 entry.allocationCount++;
                 entry.type = type;
@@ -4726,7 +3230,8 @@ void* Maps::unifiedAlloc(size_t size, uint8_t type)
             }
         }
         
-        if (unifiedPool.size() < maxUnifiedPoolEntries) {
+        if (unifiedPool.size() < maxUnifiedPoolEntries) 
+        {
             void* ptr = nullptr;
 #ifdef BOARD_HAS_PSRAM
             ptr = heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
@@ -4734,7 +3239,8 @@ void* Maps::unifiedAlloc(size_t size, uint8_t type)
             ptr = heap_caps_malloc(size, MALLOC_CAP_8BIT);
 #endif
             
-            if (ptr) {
+            if (ptr) 
+            {
                 UnifiedPoolEntry entry;
                 entry.ptr = ptr;
                 entry.size = size;
@@ -4760,13 +3266,21 @@ void* Maps::unifiedAlloc(size_t size, uint8_t type)
 #endif
 }
 
+/**
+ * @brief Deallocate memory allocated from the unified memory pool.
+ * 
+ * @param ptr Pointer to memory to deallocate
+ */
 void Maps::unifiedDealloc(void* ptr)
 {
     if (!ptr) return;
     
-    if (unifiedPoolMutex && xSemaphoreTake(unifiedPoolMutex, portMAX_DELAY) == pdTRUE) {
-        for (auto& entry : unifiedPool) {
-            if (entry.ptr == ptr && entry.isInUse) {
+    if (unifiedPoolMutex && xSemaphoreTake(unifiedPoolMutex, portMAX_DELAY) == pdTRUE) 
+    {
+        for (auto& entry : unifiedPool) 
+        {
+            if (entry.ptr == ptr && entry.isInUse)
+            {
                 entry.isInUse = false;
                 xSemaphoreGive(unifiedPoolMutex);
                 return;
@@ -4778,35 +3292,23 @@ void Maps::unifiedDealloc(void* ptr)
     heap_caps_free(ptr);
 }
 
+/**
+ * @brief Clear the unified memory pool, freeing all allocated memory.
+ * 
+ */
 void Maps::clearUnifiedPool()
 {
-    if (unifiedPoolMutex && xSemaphoreTake(unifiedPoolMutex, portMAX_DELAY) == pdTRUE) {
-        for (auto& entry : unifiedPool) {
-            if (entry.ptr) {
+    if (unifiedPoolMutex && xSemaphoreTake(unifiedPoolMutex, portMAX_DELAY) == pdTRUE) 
+    {
+        for (auto& entry : unifiedPool)
+        {
+            if (entry.ptr) 
                 heap_caps_free(entry.ptr);
-            }
         }
         unifiedPool.clear();
         unifiedPoolHitCount = 0;
         unifiedPoolMissCount = 0;
         xSemaphoreGive(unifiedPoolMutex);
         ESP_LOGI(TAG, "Unified memory pool cleared");
-    }
-}
-
-void Maps::printUnifiedPoolStats()
-{
-    if (unifiedPoolMutex && xSemaphoreTake(unifiedPoolMutex, portMAX_DELAY) == pdTRUE) {
-        ESP_LOGI(TAG, "Unified Pool Stats:");
-        ESP_LOGI(TAG, "  Entries: %zu/%zu used", unifiedPool.size(), maxUnifiedPoolEntries);
-        ESP_LOGI(TAG, "  Hits: %u, Misses: %u", unifiedPoolHitCount, unifiedPoolMissCount);
-        
-        uint32_t totalRequests = unifiedPoolHitCount + unifiedPoolMissCount;
-        if (totalRequests > 0) {
-            float hitRate = (float)unifiedPoolHitCount * 100.0f / totalRequests;
-            ESP_LOGI(TAG, "  Hit Rate: %.1f%%", hitRate);
-        }
-        
-        xSemaphoreGive(unifiedPoolMutex);
     }
 }
