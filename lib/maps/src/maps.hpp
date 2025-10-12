@@ -187,6 +187,20 @@ private:
 	static uint32_t polygonCulledCount;                                        /**< Polygons culled (not rendered) */
 	static uint32_t polygonOptimizedCount;                                     /**< Polygons using optimized algorithms */
 	
+	// Precalculated transformation matrices
+	struct TransformMatrix
+	{
+		float scaleX, scaleY;     /**< Scale factors */
+		float offsetX, offsetY;   /**< Offset factors */
+		float rotation;           /**< Rotation angle */
+		bool isValid;             /**< Matrix is valid */
+	};
+	
+	static TransformMatrix coordTransformMatrix;                               /**< Precalculated coordinate transformation */
+	static TransformMatrix pixelTransformMatrix;                              /**< Precalculated pixel transformation */
+	static bool transformMatricesValid;                                       /**< Matrices are up to date */
+	static uint32_t lastTransformUpdate;                                      /**< Last matrix update timestamp */
+	
 	tileBounds totalBounds; 													/**< Map boundaries */
 	uint16_t wptPosX, wptPosY;                                                  /**< Waypoint position on screen map */
 	TFT_eSprite mapTempSprite = TFT_eSprite(&tft);                              /**< Full map sprite (not showed) */
@@ -331,6 +345,16 @@ private:
 	void fillTriangleOptimized(TFT_eSprite &map, int x1, int y1, int x2, int y2, int x3, int y3, uint16_t color); /**< Optimized triangle filling */
 	void fillRectangleOptimized(TFT_eSprite &map, int x, int y, int w, int h, uint16_t color); /**< Optimized rectangle filling */
 	void fillPolygonScanlineOptimized(TFT_eSprite &map, const int *px, const int *py, int numPoints, uint16_t color, int xOffset, int yOffset); /**< Optimized scanline algorithm */
+	
+	// Precalculated transformation methods
+	void initTransformMatrices();                                              /**< Initialize transformation matrices */
+	void updateTransformMatrices();                                            /**< Update transformation matrices */
+	void invalidateTransformMatrices();                                        /**< Mark matrices as invalid */
+	bool areTransformMatricesValid();                                         /**< Check if matrices are valid */
+	static uint16_t transformLonToPixel(float lon, uint8_t zoom, uint16_t tileSize); /**< Transform longitude to pixel using precalculated matrix */
+	static uint16_t transformLatToPixel(float lat, uint8_t zoom, uint16_t tileSize); /**< Transform latitude to pixel using precalculated matrix */
+	static float transformPixelToLon(uint16_t pixelX, uint8_t zoom, uint16_t tileSize); /**< Transform pixel to longitude using precalculated matrix */
+	static float transformPixelToLat(uint16_t pixelY, uint8_t zoom, uint16_t tileSize); /**< Transform pixel to latitude using precalculated matrix */
 		  
 public:
 	bool fillPolygons;                                             /**< Flag for polygon filling */
