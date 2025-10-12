@@ -58,7 +58,7 @@ enum DrawCommand : uint8_t
     SIMPLE_TRIANGLE = 0x98,      /**< Simple triangle (x1, y1, x2, y2, x3, y3) */
     DASHED_LINE = 0x99,          /**< Dashed line with pattern */
     DOTTED_LINE = 0x9A,          /**< Dotted line with pattern */
-};
+                  };
 
 /**
  * @class Maps
@@ -101,6 +101,15 @@ private:
 	{
 		int x0, y0, x1, y1;
 		uint16_t color;
+	};
+	
+	struct RenderBatch	/**< Efficient rendering batch structure */
+	{
+		LineSegment* segments;     /**< Array of line segments */
+		size_t count;              /**< Number of segments in batch */
+		size_t capacity;           /**< Maximum capacity of batch */
+		uint16_t color;            /**< Common color for batch */
+		bool isOptimized;          /**< Batch uses optimized rendering */
 	};
 	
 	struct PolygonBounds	/**< Polygon bounding box structure */
@@ -200,6 +209,13 @@ private:
 	static TransformMatrix pixelTransformMatrix;                              /**< Precalculated pixel transformation */
 	static bool transformMatricesValid;                                       /**< Matrices are up to date */
 	static uint32_t lastTransformUpdate;                                      /**< Last matrix update timestamp */
+	
+	// Efficient batch rendering system
+	static RenderBatch* activeBatch;                                          /**< Currently active render batch */
+	static size_t maxBatchSize;                                               /**< Maximum batch size for hardware */
+	static uint32_t batchRenderCount;                                         /**< Total batches rendered */
+	static uint32_t batchOptimizationCount;                                   /**< Batches using optimization */
+	static uint32_t batchFlushCount;                                          /**< Total batch flushes */
 	
 	tileBounds totalBounds; 													/**< Map boundaries */
 	uint16_t wptPosX, wptPosY;                                                  /**< Waypoint position on screen map */
@@ -355,7 +371,17 @@ private:
 	static uint16_t transformLatToPixel(float lat, uint8_t zoom, uint16_t tileSize); /**< Transform latitude to pixel using precalculated matrix */
 	static float transformPixelToLon(uint16_t pixelX, uint8_t zoom, uint16_t tileSize); /**< Transform pixel to longitude using precalculated matrix */
 	static float transformPixelToLat(uint16_t pixelY, uint8_t zoom, uint16_t tileSize); /**< Transform pixel to latitude using precalculated matrix */
-		  
+	
+	// Efficient batch rendering methods
+	void initBatchRendering();                                                /**< Initialize batch rendering system */
+	void createRenderBatch(size_t capacity);                                  /**< Create new render batch */
+	void addToBatch(int x0, int y0, int x1, int y1, uint16_t color);         /**< Add line segment to current batch */
+	void flushBatch(TFT_eSprite& map, int& optimizations);                  /**< Render and clear current batch */
+	void optimizeBatch(RenderBatch& batch);                                   /**< Optimize batch for rendering */
+	void destroyBatch();                                                      /**< Destroy current batch */
+	bool canBatch(uint16_t color);                                           /**< Check if line can be added to current batch */
+	size_t getOptimalBatchSize();                                            /**< Get optimal batch size for hardware */
+   
 public:
 	bool fillPolygons;                                             /**< Flag for polygon filling */
 	void* mapBuffer;                                               /**< Pointer to map screen sprite */
@@ -390,10 +416,10 @@ public:
     // void preloadTiles(int8_t dirX, int8_t dirY);
     bool renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
     
-	// Background preload public methods
+    // Background preload public methods
     void disableBackgroundPreload();                                            /**< Disable background preload system */
     void triggerPreload(int16_t centerX, int16_t centerY, uint8_t zoom);        /**< Trigger preload of adjacent tiles */
-      
+    
     // Memory monitoring public methods
     void initializeMemoryMonitoring();                                          /**< Initialize memory monitoring system */
 };

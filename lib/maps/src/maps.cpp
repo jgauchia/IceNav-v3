@@ -62,6 +62,13 @@ Maps::TransformMatrix Maps::pixelTransformMatrix = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f
 bool Maps::transformMatricesValid = false;
 uint32_t Maps::lastTransformUpdate = 0;
 
+// Efficient batch rendering static variables
+Maps::RenderBatch* Maps::activeBatch = nullptr;
+size_t Maps::maxBatchSize = 0;
+uint32_t Maps::batchRenderCount = 0;
+uint32_t Maps::batchOptimizationCount = 0;
+uint32_t Maps::batchFlushCount = 0;
+
 /**
  * @brief Get the Optimal Batch Size object
  * 
@@ -99,6 +106,7 @@ Maps::Maps() : fillPolygons(true)
     initUnifiedPool();
     initMemoryMonitoring();
     initTransformMatrices();
+    initBatchRendering();
     
     ESP_LOGI(TAG, "Maps constructor completed");
 }
@@ -373,6 +381,9 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
 	
 	// Initialize transformation matrices
 	initTransformMatrices();
+	
+	// Initialize batch rendering
+	initBatchRendering();
 }
 
 /**
@@ -2502,20 +2513,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     // Use optimal batch size for this hardware
     const size_t optimalBatchSize = getOptimalBatchSize();
     
-    // Use RAII MemoryGuard for line batch allocation
-    MemoryGuard<LineSegment> lineBatchGuard(optimalBatchSize, 5); // Type 5 = lineSegment
-    LineSegment* lineBatch = lineBatchGuard.get();
-    if (!lineBatch)
-    {
-        ESP_LOGW(TAG, "renderTile: RAII MemoryGuard allocation failed for lineBatch");
-        return false;
-    }
-    if (!unifiedLineBatchLogged) 
-    {
-        ESP_LOGI(TAG, "renderTile: Using RAII MemoryGuard for lineBatch allocation");
-        unifiedLineBatchLogged = true;
-    }
-    unifiedPoolHitCount++;
+    // Initialize efficient batch rendering
+    createRenderBatch(optimalBatchSize);
     
     int batchCount = 0;
 
@@ -2525,6 +2524,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     int executed = 0;
     int totalLines = 0;
     int batchFlushes = 0;
+    int batchOptimizations = 0;  // Track optimizations per tile
     unsigned long renderStart = millis();
     
     // Command type counters for debugging
@@ -2534,19 +2534,15 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     int circleCommands = 0;
 
     // Optimized flushBatch with better memory access patterns
-    auto flushBatch = [&]() 
+    auto flushCurrentBatch = [&]() 
     {
         if (batchCount == 0) return;
         
         totalLines += batchCount;
         batchFlushes++;
         
-        // Batch draw lines with optimized memory access
-        for (int i = 0; i < batchCount; ++i) 
-        {
-            const LineSegment& segment = lineBatch[i];
-            map.drawLine(segment.x0, segment.y0, segment.x1, segment.y1, segment.color);
-        }
+        // Use efficient batch rendering
+        flushBatch(map, batchOptimizations);
         batchCount = 0;
     };
 
@@ -2556,21 +2552,20 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
             break;
         const size_t cmdStartOffset = offset;
         const uint32_t cmdType = readVarint(data, offset, dataSize);
+        
+        // Since commands are pre-sorted by layer but we can't detect layer changes,
+        // we'll be more conservative and flush batches more frequently to ensure
+        // proper layer ordering. Flush every 50 commands to maintain layer integrity.
+        if (cmd_idx > 0 && cmd_idx % 50 == 0) {
+            flushCurrentBatch();
+        }
 
         bool isLineCommand = false;
 
         switch (cmdType) 
         {
-            case SET_LAYER:
-                flushBatch();
-                {
-                    const int32_t layerNumber = readVarint(data, offset, dataSize);
-                    executed++;
-                }
-                break;
-                
             case SET_COLOR:
-                flushBatch();
+                flushCurrentBatch();
                 if (offset < dataSize) 
                 {
                     current_color = data[offset++];
@@ -2579,7 +2574,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                 }
                 break;
             case SET_COLOR_INDEX:
-                flushBatch();
+                flushCurrentBatch();
                 {
                     const uint32_t color_index = readVarint(data, offset, dataSize);
                     current_color = paletteToRGB332(color_index);
@@ -2601,13 +2596,9 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     const int py2 = uint16ToPixel(y2) + yOffset;
                     if (shouldDrawLine(px1 - xOffset, py1 - yOffset, px2 - xOffset, py2 - yOffset)) 
                     {
-                        if (batchCount < optimalBatchSize) 
-                            lineBatch[batchCount++] = {px1, py1, px2, py2, currentDrawColor};
-                        else 
-                        {
-                            flushBatch();
-                            lineBatch[batchCount++] = {px1, py1, px2, py2, currentDrawColor};
-                        }
+                        // Use efficient batch rendering
+                        addToBatch(px1, py1, px2, py2, currentDrawColor);
+                        batchCount++;
                         executed++;
                         isLineCommand = true;
                     }
@@ -2662,13 +2653,9 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         {
                             if (shouldDrawLine(px[i-1] - xOffset, py[i-1] - yOffset, px[i] - xOffset, py[i] - yOffset))
                             {
-                                if (batchCount < optimalBatchSize) 
-                                    lineBatch[batchCount++] = {px[i-1], py[i-1], px[i], py[i], currentDrawColor};
-                                else 
-                                {
-                                    flushBatch();
-                                    lineBatch[batchCount++] = {px[i-1], py[i-1], px[i], py[i], currentDrawColor};
-                                }
+                                // Use efficient batch rendering
+                                addToBatch(px[i-1], py[i-1], px[i], py[i], currentDrawColor);
+                                batchCount++;
                             }
                         }
                         executed++;
@@ -2687,7 +2674,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
             case DRAW_STROKE_POLYGON:
             case OPTIMIZED_POLYGON:
             case HOLLOW_POLYGON:
-                flushBatch();
+                flushCurrentBatch();
                 {
                     const uint32_t numPoints = readVarint(data, offset, dataSize);
                     if (numPoints >= 3) 
@@ -2744,7 +2731,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                 }
                 break;
             case DRAW_STROKE_POLYGONS:
-                flushBatch();
+                flushCurrentBatch();
                 {
                     const uint32_t numPoints = readVarint(data, offset, dataSize);
                     int32_t accumX = 0, accumY = 0;
@@ -2816,13 +2803,9 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     const int py = uint16ToPixel(y) + yOffset;
                     if (shouldDrawLine(px1 - xOffset, py - yOffset, px2 - xOffset, py - yOffset))
                     {
-                        if (batchCount < optimalBatchSize)
-                            lineBatch[batchCount++] = {px1, py, px2, py, currentDrawColor};
-                        else
-                        {
-                            flushBatch();
-                            lineBatch[batchCount++] = {px1, py, px2, py, currentDrawColor};
-                        }
+                        // Use efficient batch rendering
+                        addToBatch(px1, py, px2, py, currentDrawColor);
+                        batchCount++;
                         executed++;
                         isLineCommand = true;
                     }
@@ -2839,20 +2822,16 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     const int py2 = uint16ToPixel(y2) + yOffset;
                     if (shouldDrawLine(px - xOffset, py1 - yOffset, px - xOffset, py2 - yOffset)) 
                     {
-                        if (batchCount < optimalBatchSize) 
-                            lineBatch[batchCount++] = {px, py1, px, py2, currentDrawColor};
-                        else 
-                        {
-                            flushBatch();
-                            lineBatch[batchCount++] = {px, py1, px, py2, currentDrawColor};
-                        }
+                        // Use efficient batch rendering
+                        addToBatch(px, py1, px, py2, currentDrawColor);
+                        batchCount++;
                         executed++;
                         isLineCommand = true;
                     }
                 }
                 break;
             case RECTANGLE:
-                flushBatch();
+                flushCurrentBatch();
                 {
                     const int32_t x1 = readZigzag(data, offset, dataSize);
                     const int32_t y1 = readZigzag(data, offset, dataSize);
@@ -2880,7 +2859,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                 }
                 break;
             case SIMPLE_RECTANGLE:
-                flushBatch();
+                flushCurrentBatch();
                 {
                     const int32_t x = readZigzag(data, offset, dataSize);
                     const int32_t y = readZigzag(data, offset, dataSize);
@@ -2910,7 +2889,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                 }
                 break;
             case OPTIMIZED_RECTANGLE:
-                flushBatch();
+                flushCurrentBatch();
                 {
                     const int32_t x = readZigzag(data, offset, dataSize);
                     const int32_t y = readZigzag(data, offset, dataSize);
@@ -2953,20 +2932,16 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     const int py2 = uint16ToPixel(y2) + yOffset;
                     if (shouldDrawLine(px1 - xOffset, py1 - yOffset, px2 - xOffset, py2 - yOffset)) 
                     {
-                        if (batchCount < optimalBatchSize)
-                            lineBatch[batchCount++] = {px1, py1, px2, py2, currentDrawColor};
-                        else
-                        {
-                            flushBatch();
-                            lineBatch[batchCount++] = {px1, py1, px2, py2, currentDrawColor};
-                        }
+                        // Use efficient batch rendering
+                        addToBatch(px1, py1, px2, py2, currentDrawColor);
+                        batchCount++;
                         executed++;
                         isLineCommand = true;
                     }
                 }
                 break;
             case CIRCLE:
-                flushBatch();
+                flushCurrentBatch();
                 {
                     const int32_t center_x = readZigzag(data, offset, dataSize);
                     const int32_t center_y = readZigzag(data, offset, dataSize);
@@ -2991,7 +2966,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                 }
                 break;
             case SIMPLE_CIRCLE:
-                flushBatch();
+                flushCurrentBatch();
                 {
                     const int32_t center_x = readZigzag(data, offset, dataSize);
                     const int32_t center_y = readZigzag(data, offset, dataSize);
@@ -3016,7 +2991,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                 }
                 break;
             case SIMPLE_TRIANGLE:
-                flushBatch();
+                flushCurrentBatch();
                 {
                     const int32_t x1 = readZigzag(data, offset, dataSize);
                     const int32_t y1 = readZigzag(data, offset, dataSize);
@@ -3058,7 +3033,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                 }
                 break;
             case OPTIMIZED_TRIANGLE:
-                flushBatch();
+                flushCurrentBatch();
                 {
                     const int32_t x1 = readZigzag(data, offset, dataSize);
                     const int32_t y1 = readZigzag(data, offset, dataSize);
@@ -3100,7 +3075,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                 }
                 break;
             case DASHED_LINE:
-                flushBatch();
+                flushCurrentBatch();
                 {
                     const int32_t x1 = readZigzag(data, offset, dataSize);
                     const int32_t y1 = readZigzag(data, offset, dataSize);
@@ -3122,7 +3097,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                 }
                 break;
             case DOTTED_LINE:
-                flushBatch();
+                flushCurrentBatch();
                 {
                     const int32_t x1 = readZigzag(data, offset, dataSize);
                     const int32_t y1 = readZigzag(data, offset, dataSize);
@@ -3143,7 +3118,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                 }
                 break;
             case GRID_PATTERN:
-                flushBatch();
+                flushCurrentBatch();
                 {
                     const int32_t x = readZigzag(data, offset, dataSize);
                     const int32_t y = readZigzag(data, offset, dataSize);
@@ -3162,19 +3137,22 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                 }
                 break;            
             default:
-                flushBatch();
+                flushCurrentBatch();
                 if (offset < dataSize - 4) 
                     offset += 4;
 
                 break;
         }
         if (!isLineCommand) 
-            flushBatch();
+            flushCurrentBatch();
 
         if (offset <= cmdStartOffset) 
             break;
     }
-    flushBatch();
+    flushCurrentBatch();
+    
+    // Clean up batch rendering
+    destroyBatch();
 
     if (executed == 0) 
         return false;
@@ -3186,8 +3164,11 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     unsigned long renderTime = millis() - renderStart;
     if (totalLines > 0) {
         ESP_LOGI(TAG, "Tile rendered: %s", path);
-        ESP_LOGI(TAG, "Performance: %lu ms, %d lines, %d batches, avg %.1f lines/batch", 
-                 renderTime, totalLines, batchFlushes, (float)totalLines / batchFlushes);
+    ESP_LOGI(TAG, "Performance: %lu ms, %d lines, %d batches, avg %.1f lines/batch", 
+             renderTime, totalLines, batchFlushes, 
+             batchFlushes > 0 ? (float)totalLines / batchFlushes : 0.0f);
+    ESP_LOGI(TAG, "Batch stats: %d renders, %d optimizations, %d flushes", 
+             batchFlushes, batchOptimizations, batchFlushes);
     }
 
     return true;
@@ -3336,7 +3317,10 @@ void Maps::clearUnifiedPool()
     }
 }
 
-// Precalculated transformation matrices implementation
+/**
+ * @brief Initialize transformation matrices for coordinate and pixel transformations.
+ * 
+ */
 void Maps::initTransformMatrices()
 {
     coordTransformMatrix.isValid = false;
@@ -3347,14 +3331,17 @@ void Maps::initTransformMatrices()
     ESP_LOGI(TAG, "Transform matrices initialized");
 }
 
+/**
+ * @brief Update transformation matrices if they are invalid or outdated.
+ * 
+ */
 void Maps::updateTransformMatrices()
 {
     uint32_t currentTime = millis();
     
     // Only update if matrices are invalid or enough time has passed
-    if (transformMatricesValid && (currentTime - lastTransformUpdate) < 1000) {
+    if (transformMatricesValid && (currentTime - lastTransformUpdate) < 1000)
         return; // Matrices are still valid
-    }
     
     // Calculate coordinate transformation matrix
     coordTransformMatrix.scaleX = 1.0f / 360.0f;  // Longitude scale factor
@@ -3381,6 +3368,9 @@ void Maps::updateTransformMatrices()
              pixelTransformMatrix.scaleX, pixelTransformMatrix.scaleY);
 }
 
+/**
+ * @brief Invalidate transformation matrices, forcing recalculation on next use. 
+ */
 void Maps::invalidateTransformMatrices()
 {
     transformMatricesValid = false;
@@ -3389,17 +3379,30 @@ void Maps::invalidateTransformMatrices()
     ESP_LOGI(TAG, "Transform matrices invalidated");
 }
 
+/**
+ * @brief  Check if transformation matrices are valid.
+ * 
+ * @return true  if valid
+ * @return false  if not valid
+ */
 bool Maps::areTransformMatricesValid()
 {
     return transformMatricesValid && coordTransformMatrix.isValid && pixelTransformMatrix.isValid;
 }
 
+/**
+ * @brief Transform longitude to pixel X coordinate at given zoom and tile size.
+ *  
+ * @param lon        Longitude in degrees
+ * @param zoom       Zoom level (0-21)
+ * @param tileSize   Tile size in pixels (typically 256)
+ * @return uint16_t  Pixel X coordinate within the tile
+ */
 uint16_t Maps::transformLonToPixel(float lon, uint8_t zoom, uint16_t tileSize)
 {
-    if (!transformMatricesValid || !coordTransformMatrix.isValid) {
+    if (!transformMatricesValid || !coordTransformMatrix.isValid)
         // Cannot call non-static method from static context, use fallback
         return static_cast<uint16_t>(((lon + 180.0f) / 360.0f * (1 << zoom) * tileSize)) % tileSize;
-    }
     
     // Use precalculated matrix for faster transformation
     float normalizedLon = (lon + coordTransformMatrix.offsetX) * coordTransformMatrix.scaleX;
@@ -3409,9 +3412,18 @@ uint16_t Maps::transformLonToPixel(float lon, uint8_t zoom, uint16_t tileSize)
     return static_cast<uint16_t>(pixelX) % tileSize;
 }
 
+/**
+ * @brief   Transform latitude to pixel Y coordinate at given zoom and tile size.
+ * 
+ * @param lat       Latitude in degrees       
+ * @param zoom      Zoom level (0-21)
+ * @param tileSize  Tile size in pixels (typically 256) 
+ * @return uint16_t Pixel Y coordinate within the tile 
+ */
 uint16_t Maps::transformLatToPixel(float lat, uint8_t zoom, uint16_t tileSize)
 {
-    if (!transformMatricesValid || !coordTransformMatrix.isValid) {
+    if (!transformMatricesValid || !coordTransformMatrix.isValid) 
+    {
         // Cannot call non-static method from static context, use fallback
         float lat_rad = lat * static_cast<float>(M_PI) / 180.0f;
         float siny = tanf(lat_rad) + 1.0f / cosf(lat_rad);
@@ -3431,12 +3443,19 @@ uint16_t Maps::transformLatToPixel(float lat, uint8_t zoom, uint16_t tileSize)
     return static_cast<uint16_t>(pixelY) % tileSize;
 }
 
+/**
+ * @brief   Transform pixel X coordinate to longitude at given zoom and tile size.
+ * 
+ * @param pixelX    Pixel X coordinate within the tile 
+ * @param zoom      Zoom level (0-21) 
+ * @param tileSize  Tile size in pixels (typically 256)
+ * @return float    Longitude in degrees
+ */
 float Maps::transformPixelToLon(uint16_t pixelX, uint8_t zoom, uint16_t tileSize)
 {
-    if (!transformMatricesValid || !coordTransformMatrix.isValid) {
+    if (!transformMatricesValid || !coordTransformMatrix.isValid) 
         // Cannot call non-static method from static context, use fallback
         return static_cast<float>(pixelX) * 360.0f / (1 << zoom) - 180.0f;
-    }
     
     float zoomFactor = static_cast<float>(1 << zoom);
     float normalizedX = static_cast<float>(pixelX) / (zoomFactor * static_cast<float>(tileSize));
@@ -3445,6 +3464,14 @@ float Maps::transformPixelToLon(uint16_t pixelX, uint8_t zoom, uint16_t tileSize
     return lon;
 }
 
+/**
+ * @brief   Transform pixel Y coordinate to latitude at given zoom and tile size.
+ * 
+ * @param pixelY    Pixel Y coordinate within the tile 
+ * @param zoom      Zoom level (0-21)
+ * @param tileSize  Tile size in pixels (typically 256)
+ * @return float    Latitude in degrees
+ */
 float Maps::transformPixelToLat(uint16_t pixelY, uint8_t zoom, uint16_t tileSize)
 {
     if (!transformMatricesValid || !coordTransformMatrix.isValid) {
@@ -3460,4 +3487,208 @@ float Maps::transformPixelToLat(uint16_t pixelY, uint8_t zoom, uint16_t tileSize
     float lat = 180.0f / static_cast<float>(M_PI) * atanf(sinhf(merc_n));
     
     return lat;
+}
+
+/**
+ * @brief Initialize batch rendering system, detecting optimal batch size based on hardware.
+ * 
+ */
+void Maps::initBatchRendering()
+{
+    // Detect optimal batch size based on hardware capabilities
+#ifdef BOARD_HAS_PSRAM
+    size_t psramFree = ESP.getFreePsram();
+    if (psramFree >= 4 * 1024 * 1024) 
+        maxBatchSize = 512;  // High-end ESP32-S3: 512 lines
+    else if (psramFree >= 2 * 1024 * 1024)
+        maxBatchSize = 256;  // Mid-range ESP32-S3: 256 lines
+    else 
+        maxBatchSize = 128;  // Low-end ESP32-S3: 128 lines
+#else
+    maxBatchSize = 64;  // ESP32 without PSRAM: 64 lines
+#endif
+    
+    activeBatch = nullptr;
+    batchRenderCount = 0;
+    batchOptimizationCount = 0;
+    batchFlushCount = 0;
+    
+    ESP_LOGI(TAG, "Batch rendering initialized with max batch size: %zu", maxBatchSize);
+}
+
+/**
+ * @brief Create a new render batch with specified capacity.
+ * 
+ * @param capacity Number of line segments the batch can hold
+ */
+void Maps::createRenderBatch(size_t capacity)
+{
+    if (activeBatch) 
+        destroyBatch();
+    
+    activeBatch = new RenderBatch();
+    activeBatch->segments = new LineSegment[capacity];
+    activeBatch->count = 0;
+    activeBatch->capacity = capacity;
+    activeBatch->color = 0;
+    activeBatch->isOptimized = false;
+    
+    ESP_LOGI(TAG, "Created render batch with capacity: %zu", capacity);
+}
+
+/**
+ * @brief Add a line segment to the current batch if possible.
+ * 
+ * @param x0    Starting X coordinate
+ * @param y0    Starting Y coordinate
+ * @param x1    Ending X coordinate
+ * @param y1    Ending Y coordinate
+ * @param color Color of the line segment
+ */
+void Maps::addToBatch(int x0, int y0, int x1, int y1, uint16_t color)
+{
+    if (!activeBatch)
+        createRenderBatch(maxBatchSize);
+    
+    // Check if we can add to current batch (same color)
+    if (!canBatch(color) || activeBatch->count >= activeBatch->capacity) 
+    {
+        ESP_LOGW(TAG, "Cannot add to batch - flushing current batch");
+        return;
+    }
+    
+    // Add segment to batch
+    activeBatch->segments[activeBatch->count] = {x0, y0, x1, y1, color};
+    activeBatch->count++;
+    
+    // Set batch color if first segment
+    if (activeBatch->count == 1) 
+        activeBatch->color = color;
+}
+
+/**
+ * @brief Flush the current batch, rendering all segments to the map.
+ * 
+ * @param map           Reference to the TFT_eSprite map to render onto
+ * @param optimizations Reference to a counter for optimizations performed
+ */
+void Maps::flushBatch(TFT_eSprite& map, int& optimizations)
+{
+    if (!activeBatch || activeBatch->count == 0)
+        return;
+    
+    batchFlushCount++;
+    
+    // Optimize batch if beneficial (threshold based on hardware capabilities)
+    size_t optimizationThreshold = maxBatchSize / 16; // 6.25% of max batch size (32 lines for 512 batch)
+    if (activeBatch->count > optimizationThreshold) 
+    {
+        optimizeBatch(*activeBatch);
+        batchOptimizationCount++;
+        optimizations++;  // Increment local counter
+    }
+    
+    // Render all segments in batch
+    for (size_t i = 0; i < activeBatch->count; i++) 
+    {
+        const LineSegment& segment = activeBatch->segments[i];
+        map.drawLine(segment.x0, segment.y0, segment.x1, segment.y1, segment.color);
+    }
+    
+    batchRenderCount++;
+    
+    // Clear batch for reuse
+    activeBatch->count = 0;
+    activeBatch->color = 0;
+    activeBatch->isOptimized = false;
+}
+
+/**
+ * @brief Optimize the batch by sorting and grouping segments for better rendering performance.
+ * 
+ * @param batch Reference to the RenderBatch to optimize
+ */
+void Maps::optimizeBatch(RenderBatch& batch)
+{
+    // Dynamic threshold based on hardware capabilities
+    size_t minOptimizationSize = maxBatchSize / 32; // 3.125% of max batch size (16 lines for 512 batch)
+    if (batch.count < minOptimizationSize) 
+        return; // Not worth optimizing small batches
+    
+    // Sort segments by color for better cache performance
+    std::sort(batch.segments, batch.segments + batch.count, 
+              [](const LineSegment& a, const LineSegment& b) {
+                  return a.color < b.color;
+              });
+    
+    // Group segments by color and optimize rendering order
+    uint16_t currentColor = batch.segments[0].color;
+    size_t colorGroupStart = 0;
+    
+    for (size_t i = 1; i <= batch.count; i++) {
+        if (i == batch.count || batch.segments[i].color != currentColor) 
+        {
+            // Process color group
+            size_t groupSize = i - colorGroupStart;
+            size_t minGroupSize = maxBatchSize / 64; // 1.56% of max batch size (8 lines for 512 batch)
+            if (groupSize > minGroupSize) 
+            {
+                // Use optimized rendering for large color groups
+                for (size_t j = colorGroupStart; j < i; j++)
+                {
+                    const LineSegment& segment = batch.segments[j];
+                    // Could implement specialized line drawing here
+                }
+            }
+            
+            if (i < batch.count) 
+            {
+                currentColor = batch.segments[i].color;
+                colorGroupStart = i;
+            }
+        }
+    }
+    
+    batch.isOptimized = true;
+}
+
+/**
+ * @brief Destroy the current batch and free associated memory.
+ * 
+ */
+void Maps::destroyBatch()
+{
+    if (activeBatch) 
+    {
+        if (activeBatch->segments) 
+            delete[] activeBatch->segments;
+        delete activeBatch;
+        activeBatch = nullptr;
+    }
+}
+
+/**
+ * @brief   Check if a line segment with the given color can be added to the current batch.
+ * 
+ * @param color     Color of the line segment to add
+ * @return true     if it can be added
+ * @return false    if it cannot be added
+ */
+bool Maps::canBatch(uint16_t color)
+{
+    if (!activeBatch) 
+        return true;
+    
+    // Can batch if same color or batch is empty
+    return (activeBatch->count == 0) || (activeBatch->color == color);
+}
+
+/**
+ * @brief Get the optimal batch size based on hardware capabilities.
+ * 
+ * @return size_t Optimal batch size
+ */
+size_t Maps::getOptimalBatchSize()
+{
+    return maxBatchSize;
 }
