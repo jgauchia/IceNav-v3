@@ -87,15 +87,6 @@ private:
 		char filePath[255];    /**< Original file path */
 	};
 	
-	struct PreloadTask		/**< Background preload task structure */
-	{
-		char filePath[255];    /**< File path to preload */
-		int16_t tileX;         /**< Tile X coordinate */
-		int16_t tileY;         /**< Tile Y coordinate */
-		uint8_t zoom;          /**< Zoom level */
-		bool isActive;         /**< Task is active */
-		bool isCompleted;      /**< Task completed */
-	};
 	
 	struct LineSegment	/**< Line segment structure */
 	{
@@ -160,10 +151,6 @@ private:
 	static uint32_t cacheAccessCounter;                                         /**< Counter for LRU algorithm */
 	
 	// Background preload system
-	static std::vector<PreloadTask> preloadQueue;                               /**< Queue of tiles to preload */
-	static TaskHandle_t preloadTaskHandle;                                      /**< FreeRTOS task handle */
-	static SemaphoreHandle_t preloadMutex;                                      /**< Mutex for thread safety */
-	static bool preloadSystemActive;                                            /**< Preload system enabled */
 	
 	// Unified memory pool system (experimental)
 	struct UnifiedPoolEntry
@@ -283,14 +270,6 @@ private:
 	void clearTileCache();                                                       /**< Clear all cached tiles */
 	size_t getCacheMemoryUsage();                                               /**< Get current cache memory usage in bytes */
 	
-	// Background preload methods
-	void initBackgroundPreload();                                               /**< Initialize background preload system */
-	void startPreloadTask();                                                    /**< Start FreeRTOS preload task */
-	void stopPreloadTask();                                                     /**< Stop FreeRTOS preload task */
-	void addToPreloadQueue(const char* filePath, int16_t tileX, int16_t tileY, uint8_t zoom); /**< Add tile to preload queue */
-	static void processPreloadQueue();                                          /**< Process preload queue in background */
-	static void preloadTaskFunction(void* parameter);                           /**< FreeRTOS task function */
-	void preloadAdjacentTiles(int16_t centerX, int16_t centerY, uint8_t zoom); /**< Preload tiles around current position */
 	
 	// Unified memory pool methods (experimental)
 	void initUnifiedPool();                                                     /**< Initialize unified memory pool */
@@ -413,7 +392,7 @@ public:
     void updateMap();
     void centerOnGps(float lat, float lon);
     void scrollMap(int16_t dx, int16_t dy);
-    // void preloadTiles(int8_t dirX, int8_t dirY);
+    void preloadTiles(int8_t dirX, int8_t dirY);
     bool renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
     
     // Background preload public methods

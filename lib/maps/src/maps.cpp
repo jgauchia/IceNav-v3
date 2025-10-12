@@ -28,12 +28,6 @@ std::vector<Maps::CachedTile> Maps::tileCache;
 size_t Maps::maxCachedTiles = 0;
 uint32_t Maps::cacheAccessCounter = 0;
 
-// Background preload system static variables
-std::vector<Maps::PreloadTask> Maps::preloadQueue;
-TaskHandle_t Maps::preloadTaskHandle = nullptr;
-SemaphoreHandle_t Maps::preloadMutex = nullptr;
-bool Maps::preloadSystemActive = false;
-
 // Unified memory pool system static variables (experimental)
 std::vector<Maps::UnifiedPoolEntry> Maps::unifiedPool;
 SemaphoreHandle_t Maps::unifiedPoolMutex = nullptr;
@@ -374,7 +368,6 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
 	initTileCache();
 	
 	// Initialize background preload system
-	initBackgroundPreload();
 
 	// Initialize polygon optimizations
 	initPolygonOptimizations();
@@ -398,8 +391,6 @@ void Maps::deleteMapScrSprites()
 	// Clear tile cache to free memory
 	clearTileCache();
 	
-	// Stop background preload system
-	disableBackgroundPreload();
 	
 	// Clear memory pool
 	clearUnifiedPool();
@@ -537,9 +528,6 @@ void Maps::generateMap(uint8_t zoom)
 
 			Maps::redrawMap = true;
 			
-			// Trigger background preload of adjacent tiles
-			if (preloadSystemActive) 
-				triggerPreload(Maps::currentMapTile.tilex, Maps::currentMapTile.tiley, Maps::zoomLevel);
 
 			for (size_t i = 1; i < trackData.size(); ++i)
 			{
@@ -731,7 +719,7 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
 		const int8_t deltaTileX = Maps::tileX - Maps::lastTileX;
 		const int8_t deltaTileY = Maps::tileY - Maps::lastTileY;
 		Maps::panMap(deltaTileX, deltaTileY);
-		// Maps::preloadTiles(deltaTileX, deltaTileY);
+		Maps::preloadTiles(deltaTileX, deltaTileY);
 		Maps::lastTileX = Maps::tileX;
 		Maps::lastTileY = Maps::tileY;
 		
@@ -746,102 +734,102 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
 	}
 }
 
-// /**
-//  * @brief Preload Tiles for map scrolling
-//  *
-//  * @details Preloads map tiles in the direction of scrolling to enable smooth transitions.
-//  * 			Loads one or two tiles into a temporary sprite and uses it to update the main map buffer.
-//  *
-//  * @param dirX Direction to preload tiles in X (-1 for left, 1 for right, 0 for no horizontal scroll)
-//  * @param dirY Direction to preload tiles in Y (-1 for up, 1 for down, 0 for no vertical scroll)
-//  */
-// void Maps::preloadTiles(int8_t dirX, int8_t dirY)
-// {
-// 	const int16_t tileSize = mapTileSize;
-// 	const int16_t preloadWidth  = (dirX != 0) ? tileSize : tileSize * 2;
-// 	const int16_t preloadHeight = (dirY != 0) ? tileSize : tileSize * 2;
+/**
+ * @brief Preload Tiles for map scrolling
+ *
+ * @details Preloads map tiles in the direction of scrolling to enable smooth transitions.
+ * 			Loads one or two tiles into a temporary sprite and uses it to update the main map buffer.
+ *
+ * @param dirX Direction to preload tiles in X (-1 for left, 1 for right, 0 for no horizontal scroll)
+ * @param dirY Direction to preload tiles in Y (-1 for up, 1 for down, 0 for no vertical scroll)
+ */
+void Maps::preloadTiles(int8_t dirX, int8_t dirY)
+{
+	const int16_t tileSize = mapTileSize;
+	const int16_t preloadWidth  = (dirX != 0) ? tileSize : tileSize * 2;
+	const int16_t preloadHeight = (dirY != 0) ? tileSize : tileSize * 2;
 
-// 	ESP_LOGI(TAG, "Preloading tiles: dirX=%d, dirY=%d", dirX, dirY);
+	ESP_LOGI(TAG, "Preloading tiles: dirX=%d, dirY=%d", dirX, dirY);
 
-// 	TFT_eSprite preloadSprite = TFT_eSprite(&tft);
-// 	preloadSprite.createSprite(preloadWidth, preloadHeight);
+	TFT_eSprite preloadSprite = TFT_eSprite(&tft);
+	preloadSprite.createSprite(preloadWidth, preloadHeight);
 
-// 	const int16_t startX = tileX + dirX;
-// 	const int16_t startY = tileY + dirY;
+	const int16_t startX = tileX + dirX;
+	const int16_t startY = tileY + dirY;
 
-// 	for (int8_t i = 0; i < 2; ++i) 
-// 	{
-// 		const int16_t tileToLoadX = startX + ((dirX == 0) ? i - 1 : 0);
-// 		const int16_t tileToLoadY = startY + ((dirY == 0) ? i - 1 : 0);
+	for (int8_t i = 0; i < 2; ++i) 
+	{
+		const int16_t tileToLoadX = startX + ((dirX == 0) ? i - 1 : 0);
+		const int16_t tileToLoadY = startY + ((dirY == 0) ? i - 1 : 0);
 
-// 		Maps::roundMapTile = Maps::getMapTile(
-// 			Maps::currentMapTile.lon,
-// 			Maps::currentMapTile.lat,
-// 			Maps::zoomLevel,
-// 			tileToLoadX,
-// 			tileToLoadY
-// 		);
+		Maps::roundMapTile = Maps::getMapTile(
+			Maps::currentMapTile.lon,
+			Maps::currentMapTile.lat,
+			Maps::zoomLevel,
+			tileToLoadX,
+			tileToLoadY
+		);
 
-// 		const int16_t offsetX = (dirX != 0) ? i * tileSize : 0;
-// 		const int16_t offsetY = (dirY != 0) ? i * tileSize : 0;
+		const int16_t offsetX = (dirX != 0) ? i * tileSize : 0;
+		const int16_t offsetY = (dirY != 0) ? i * tileSize : 0;
 
-// 		bool foundTile = false;
+		bool foundTile = false;
 		
-// 		ESP_LOGI(TAG, "Loading tile: %s", Maps::roundMapTile.file);
+		ESP_LOGI(TAG, "Loading tile: %s", Maps::roundMapTile.file);
 		
-// 		// Try cache first for vector maps
-// 		if (mapSet.vectorMap) 
-//         {
-// 			foundTile = getCachedTile(Maps::roundMapTile.file, preloadSprite, offsetX, offsetY);
-// 			if (foundTile) 
-// 				ESP_LOGI(TAG, "Tile found in cache: %s", Maps::roundMapTile.file);
-// 		}
+		// Try cache first for vector maps
+		if (mapSet.vectorMap) 
+        {
+			foundTile = getCachedTile(Maps::roundMapTile.file, preloadSprite, offsetX, offsetY);
+			if (foundTile) 
+				ESP_LOGI(TAG, "Tile found in cache: %s", Maps::roundMapTile.file);
+		}
 		
-// 		// If not in cache, try to load from file
-// 		if (!foundTile)
-//         {
-// 			if (mapSet.vectorMap)
-//             {
-// 				ESP_LOGI(TAG, "Rendering tile to cache: %s", Maps::roundMapTile.file);
-// 				// Create a temporary sprite for rendering to cache
-// 				TFT_eSprite tempSprite = TFT_eSprite(&tft);
-// 				tempSprite.createSprite(tileSize, tileSize);
+		// If not in cache, try to load from file
+		if (!foundTile)
+        {
+			if (mapSet.vectorMap)
+            {
+				ESP_LOGI(TAG, "Rendering tile to cache: %s", Maps::roundMapTile.file);
+				// Create a temporary sprite for rendering to cache
+				TFT_eSprite tempSprite = TFT_eSprite(&tft);
+				tempSprite.createSprite(tileSize, tileSize);
 				
-// 				// Render tile to temporary sprite (this will cache it)
-// 				foundTile = renderTile(Maps::roundMapTile.file, 0, 0, tempSprite);
+				// Render tile to temporary sprite (this will cache it)
+				foundTile = renderTile(Maps::roundMapTile.file, 0, 0, tempSprite);
 				
-// 				if (foundTile) 
-//                 {
-// 					// Copy from temporary sprite to preload sprite
-// 					preloadSprite.pushImage(offsetX, offsetY, tileSize, tileSize, tempSprite.frameBuffer(0));
-// 					ESP_LOGI(TAG, "Tile rendered and cached: %s", Maps::roundMapTile.file);
-// 				}
+				if (foundTile) 
+                {
+					// Copy from temporary sprite to preload sprite
+					preloadSprite.pushImage(offsetX, offsetY, tileSize, tileSize, tempSprite.frameBuffer(0));
+					ESP_LOGI(TAG, "Tile rendered and cached: %s", Maps::roundMapTile.file);
+				}
 				
-// 				tempSprite.deleteSprite();
-// 			} 
-//             else 
-// 				foundTile = preloadSprite.drawPngFile(Maps::roundMapTile.file, offsetX, offsetY);
-// 		}
+				tempSprite.deleteSprite();
+			} 
+            else 
+				foundTile = preloadSprite.drawPngFile(Maps::roundMapTile.file, offsetX, offsetY);
+		}
 
-// 		if (!foundTile)
-// 			preloadSprite.fillRect(offsetX, offsetY, tileSize, tileSize, TFT_LIGHTGREY);
-// 	}
+		if (!foundTile)
+			preloadSprite.fillRect(offsetX, offsetY, tileSize, tileSize, TFT_LIGHTGREY);
+	}
 
-// 	if (dirX != 0)
-// 	{
-// 		mapTempSprite.scroll(dirX * tileSize, 0);
-// 		const int16_t pushX = (dirX > 0) ? tileSize * 2 : 0;
-// 		mapTempSprite.pushImage(pushX, 0, preloadWidth, preloadHeight, preloadSprite.frameBuffer(0));
-// 	}
-// 	else if (dirY != 0)
-// 	{
-// 		mapTempSprite.scroll(0, dirY * tileSize);
-// 		const int16_t pushY = (dirY > 0) ? tileSize * 2 : 0;
-// 		mapTempSprite.pushImage(0, pushY, preloadWidth, preloadHeight, preloadSprite.frameBuffer(0));
-// 	}
+	if (dirX != 0)
+	{
+		mapTempSprite.scroll(dirX * tileSize, 0);
+		const int16_t pushX = (dirX > 0) ? tileSize * 2 : 0;
+		mapTempSprite.pushImage(pushX, 0, preloadWidth, preloadHeight, preloadSprite.frameBuffer(0));
+	}
+	else if (dirY != 0)
+	{
+		mapTempSprite.scroll(0, dirY * tileSize);
+		const int16_t pushY = (dirY > 0) ? tileSize * 2 : 0;
+		mapTempSprite.pushImage(0, pushY, preloadWidth, preloadHeight, preloadSprite.frameBuffer(0));
+	}
 
-// 	preloadSprite.deleteSprite();
-// }
+	preloadSprite.deleteSprite();
+}
 
 /**
  * @brief Loads an RGB332 color palette from a binary file.
@@ -1782,74 +1770,8 @@ size_t Maps::getCacheMemoryUsage()
     return memoryUsage;
 }
 
-/**
- * @brief Initialize background preload system
- *
- * @details Initializes the background preload system with FreeRTOS task and mutex.
- */
-void Maps::initBackgroundPreload()
-{
-    if (preloadMutex == nullptr)
-    {
-        preloadMutex = xSemaphoreCreateMutex();
-        if (preloadMutex == nullptr) 
-        {
-            ESP_LOGE(TAG, "Failed to create preload mutex");
-            return;
-        }
-    }
-    
-    preloadQueue.clear();
-    preloadSystemActive = false;
-    ESP_LOGI(TAG, "Background preload system initialized");
-}
 
-/**
- * @brief Start FreeRTOS preload task
- *
- * @details Creates and starts the FreeRTOS task for background tile preloading.
- */
-void Maps::startPreloadTask()
-{
-    if (preloadTaskHandle != nullptr) 
-    {
-        ESP_LOGI(TAG, "Preload task already running");
-        return;
-    }
-    
-    BaseType_t result = xTaskCreate(
-        preloadTaskFunction,
-        "TilePreload",
-        4096,  // Stack size
-        nullptr,
-        2,     // Priority (lower than main tasks)
-        &preloadTaskHandle
-    );
-    
-    if (result == pdPASS)
-    {
-        preloadSystemActive = true;
-        ESP_LOGI(TAG, "Background preload task started");
-    } 
-    else 
-        ESP_LOGE(TAG, "Failed to create preload task");
-}
 
-/**
- * @brief Stop FreeRTOS preload task
- *
- * @details Stops and deletes the FreeRTOS preload task.
- */
-void Maps::stopPreloadTask()
-{
-    if (preloadTaskHandle != nullptr) 
-    {
-        preloadSystemActive = false;
-        vTaskDelete(preloadTaskHandle);
-        preloadTaskHandle = nullptr;
-        ESP_LOGI(TAG, "Background preload task stopped");
-    }
-}
 
 /**
  * @brief Add tile to preload queue
@@ -1861,182 +1783,6 @@ void Maps::stopPreloadTask()
  * @param tileY The Y coordinate of the tile.
  * @param zoom The zoom level of the tile.
  */
-void Maps::addToPreloadQueue(const char* filePath, int16_t tileX, int16_t tileY, uint8_t zoom)
-{
-    if (!preloadSystemActive || !preloadMutex) return;
-    
-    if (xSemaphoreTake(preloadMutex, portMAX_DELAY) == pdTRUE) 
-    {
-        // Check if tile is already in queue
-        bool alreadyQueued = false;
-        for (const auto& task : preloadQueue) 
-        {
-            if (strcmp(task.filePath, filePath) == 0) 
-            {
-                alreadyQueued = true;
-                break;
-            }
-        }
-        
-        if (!alreadyQueued && preloadQueue.size() < 8) 
-        { // Limit queue size
-            PreloadTask newTask;
-            strncpy(newTask.filePath, filePath, sizeof(newTask.filePath) - 1);
-            newTask.filePath[sizeof(newTask.filePath) - 1] = '\0';
-            newTask.tileX = tileX;
-            newTask.tileY = tileY;
-            newTask.zoom = zoom;
-            newTask.isActive = false;
-            newTask.isCompleted = false;
-            
-            preloadQueue.push_back(newTask);
-            ESP_LOGI(TAG, "Added to preload queue: %s", filePath);
-        }
-        
-        xSemaphoreGive(preloadMutex);
-    }
-}
-
-/**
- * @brief Process preload queue in background
- *
- * @details Processes tiles in the preload queue, rendering them to cache.
- */
-void Maps::processPreloadQueue()
-{
-    if (!preloadSystemActive || !preloadMutex) return;
-    
-    if (xSemaphoreTake(preloadMutex, 0) == pdTRUE) 
-    {
-        for (auto& task : preloadQueue)
-        {
-            if (!task.isActive && !task.isCompleted)
-            {
-                task.isActive = true;
-                
-                // Create temporary sprite for rendering
-                TFT_eSprite tempSprite = TFT_eSprite(&tft);
-                tempSprite.createSprite(tileWidth, tileHeight);
-                
-                // Render tile to cache (only for vector maps)
-                bool success = false;
-                if (mapSet.vectorMap)
-                {
-                    // Create a temporary Maps instance to call non-static method
-                    Maps tempMaps;
-                    success = tempMaps.renderTile(task.filePath, 0, 0, tempSprite);
-                } 
-                else 
-                    // Skip PNG tiles in background preload
-                    success = false;
-                
-                tempSprite.deleteSprite();
-                
-                task.isCompleted = success;
-                task.isActive = false;
-                
-                if (success)
-                    ESP_LOGI(TAG, "Background preloaded: %s", task.filePath);
-                
-                // Yield to other tasks
-                vTaskDelay(1);
-                break; // Process one tile per call
-            }
-        }
-        
-        // Remove completed tasks
-        preloadQueue.erase(
-            std::remove_if(preloadQueue.begin(), preloadQueue.end(),
-                [](const PreloadTask& task) { return task.isCompleted; }),
-            preloadQueue.end()
-        );
-        
-        xSemaphoreGive(preloadMutex);
-    }
-}
-
-/**
- * @brief FreeRTOS task function for background preloading
- *
- * @details The main function for the FreeRTOS preload task.
- *
- * @param parameter Task parameter (unused).
- */
-void Maps::preloadTaskFunction(void* parameter)
-{
-    ESP_LOGI(TAG, "Background preload task started");
-    
-    while (preloadSystemActive) {
-        processPreloadQueue();
-        vTaskDelay(10); // Small delay to prevent CPU hogging
-    }
-    
-    ESP_LOGI(TAG, "Background preload task ended");
-    vTaskDelete(nullptr);
-}
-
-/**
- * @brief Preload tiles around current position
- *
- * @details Preloads tiles in a 3x3 grid around the current position.
- *
- * @param centerX The X coordinate of the center tile.
- * @param centerY The Y coordinate of the center tile.
- * @param zoom The zoom level.
- */
-void Maps::preloadAdjacentTiles(int16_t centerX, int16_t centerY, uint8_t zoom)
-{
-    if (!preloadSystemActive) return;
-    
-    // Preload 3x3 grid around current position
-    for (int8_t dy = -1; dy <= 1; dy++)
-    {
-        for (int8_t dx = -1; dx <= 1; dx++)
-        {
-            if (dx == 0 && dy == 0) continue; // Skip center tile
-            
-            int16_t tileX = centerX + dx;
-            int16_t tileY = centerY + dy;
-            
-            MapTile tile = getMapTile(
-                currentMapTile.lon, currentMapTile.lat,
-                zoom, dx, dy
-            );
-            
-            addToPreloadQueue(tile.file, tileX, tileY, zoom);
-        }
-    }
-}
-
-/**
- * @brief Disable background preload system (public method)
- *
- * @details Public method to disable the background preload system.
- */
-void Maps::disableBackgroundPreload()
-{
-    stopPreloadTask();
-    if (preloadMutex)
-    {
-        vSemaphoreDelete(preloadMutex);
-        preloadMutex = nullptr;
-    }
-}
-
-/**
- * @brief Trigger preload of adjacent tiles (public method)
- *
- * @details Public method to trigger preload of tiles around current position.
- *
- * @param centerX The X coordinate of the center tile.
- * @param centerY The Y coordinate of the center tile.
- * @param zoom The zoom level.
- */
-void Maps::triggerPreload(int16_t centerX, int16_t centerY, uint8_t zoom)
-{
-    preloadAdjacentTiles(centerX, centerY, zoom);
-}
-
 /**
  * @brief Initialize memory monitoring system
  *
