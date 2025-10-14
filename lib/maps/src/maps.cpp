@@ -50,11 +50,6 @@ uint32_t Maps::polygonRenderCount = 0;
 uint32_t Maps::polygonCulledCount = 0;
 uint32_t Maps::polygonOptimizedCount = 0;
 
-// Precalculated transformation matrices static variables
-Maps::TransformMatrix Maps::coordTransformMatrix = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false};
-Maps::TransformMatrix Maps::pixelTransformMatrix = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false};
-bool Maps::transformMatricesValid = false;
-uint32_t Maps::lastTransformUpdate = 0;
 
 // Efficient batch rendering static variables
 Maps::RenderBatch* Maps::activeBatch = nullptr;
@@ -98,7 +93,6 @@ Maps::Maps() : fillPolygons(true)
     
     // Initialize advanced memory pools in constructor
     initUnifiedPool();
-    initTransformMatrices();
     initBatchRendering();
     
     ESP_LOGI(TAG, "Maps constructor completed");
@@ -117,12 +111,7 @@ Maps::Maps() : fillPolygons(true)
  */
 uint16_t Maps::lon2posx(float f_lon, uint8_t zoom, uint16_t tileSize)
 {
-    // Use precalculated transformation if available
-    if (transformMatricesValid && coordTransformMatrix.isValid) {
-        return transformLonToPixel(f_lon, zoom, tileSize);
-    }
-    
-    // Fallback to original calculation
+    // Use direct calculation (more efficient than complex transformation matrices)
     return static_cast<uint16_t>(((f_lon + 180.0f) / 360.0f * (1 << zoom) * tileSize)) % tileSize;
 }
 
@@ -139,12 +128,7 @@ uint16_t Maps::lon2posx(float f_lon, uint8_t zoom, uint16_t tileSize)
  */
 uint16_t Maps::lat2posy(float f_lat, uint8_t zoom, uint16_t tileSize)
 {
-    // Use precalculated transformation if available
-    if (transformMatricesValid && coordTransformMatrix.isValid) {
-        return transformLatToPixel(f_lat, zoom, tileSize);
-    }
-    
-    // Fallback to original calculation
+    // Use direct calculation (more efficient than complex transformation matrices)
     float lat_rad = f_lat * static_cast<float>(M_PI) / 180.0f;
     float siny = tanf(lat_rad) + 1.0f / cosf(lat_rad);
     float merc_n = logf(siny);
@@ -376,9 +360,6 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
     polygonCulledCount = 0;
     polygonOptimizedCount = 0;
 	
-	// Initialize transformation matrices
-	initTransformMatrices();
-	
 	// Initialize batch rendering
 	initBatchRendering();
 }
@@ -425,7 +406,6 @@ void Maps::generateMap(uint8_t zoom)
     {
 		ESP_LOGI(TAG, "Zoom level changed from %d to %d - clearing cache", Maps::zoomLevel, zoom);
 		clearTileCache();
-		invalidateTransformMatrices(); // Invalidate matrices when zoom changes
 	}
 	
 	Maps::zoomLevel = zoom;
@@ -2409,177 +2389,6 @@ void Maps::clearUnifiedPool()
     }
 }
 
-/**
- * @brief Initialize transformation matrices for coordinate and pixel transformations.
- * 
- */
-void Maps::initTransformMatrices()
-{
-    coordTransformMatrix.isValid = false;
-    pixelTransformMatrix.isValid = false;
-    transformMatricesValid = false;
-    lastTransformUpdate = 0;
-    
-    ESP_LOGI(TAG, "Transform matrices initialized");
-}
-
-/**
- * @brief Update transformation matrices if they are invalid or outdated.
- * 
- */
-void Maps::updateTransformMatrices()
-{
-    uint32_t currentTime = millis();
-    
-    // Only update if matrices are invalid or enough time has passed
-    if (transformMatricesValid && (currentTime - lastTransformUpdate) < 1000)
-        return; // Matrices are still valid
-    
-    // Calculate coordinate transformation matrix
-    coordTransformMatrix.scaleX = 1.0f / 360.0f;  // Longitude scale factor
-    coordTransformMatrix.scaleY = 1.0f / (2.0f * static_cast<float>(M_PI));  // Latitude scale factor
-    coordTransformMatrix.offsetX = 180.0f;  // Longitude offset
-    coordTransformMatrix.offsetY = 0.0f;    // Latitude offset
-    coordTransformMatrix.rotation = 0.0f;   // No rotation for coordinate transform
-    coordTransformMatrix.isValid = true;
-    
-    // Calculate pixel transformation matrix
-    pixelTransformMatrix.scaleX = static_cast<float>(mapScrWidth) / static_cast<float>(tileWidth);
-    pixelTransformMatrix.scaleY = static_cast<float>(mapScrHeight) / static_cast<float>(tileHeight);
-    pixelTransformMatrix.offsetX = 0.0f;
-    pixelTransformMatrix.offsetY = 0.0f;
-    pixelTransformMatrix.rotation = 0.0f;
-    pixelTransformMatrix.isValid = true;
-    
-    transformMatricesValid = true;
-    lastTransformUpdate = currentTime;
-    
-    ESP_LOGI(TAG, "Transform matrices updated - Coord: scale(%.3f,%.3f) offset(%.1f,%.1f), Pixel: scale(%.3f,%.3f)", 
-             coordTransformMatrix.scaleX, coordTransformMatrix.scaleY, 
-             coordTransformMatrix.offsetX, coordTransformMatrix.offsetY,
-             pixelTransformMatrix.scaleX, pixelTransformMatrix.scaleY);
-}
-
-/**
- * @brief Invalidate transformation matrices, forcing recalculation on next use. 
- */
-void Maps::invalidateTransformMatrices()
-{
-    transformMatricesValid = false;
-    coordTransformMatrix.isValid = false;
-    pixelTransformMatrix.isValid = false;
-    ESP_LOGI(TAG, "Transform matrices invalidated");
-}
-
-/**
- * @brief  Check if transformation matrices are valid.
- * 
- * @return true  if valid
- * @return false  if not valid
- */
-bool Maps::areTransformMatricesValid()
-{
-    return transformMatricesValid && coordTransformMatrix.isValid && pixelTransformMatrix.isValid;
-}
-
-/**
- * @brief Transform longitude to pixel X coordinate at given zoom and tile size.
- *  
- * @param lon        Longitude in degrees
- * @param zoom       Zoom level (0-21)
- * @param tileSize   Tile size in pixels (typically 256)
- * @return uint16_t  Pixel X coordinate within the tile
- */
-uint16_t Maps::transformLonToPixel(float lon, uint8_t zoom, uint16_t tileSize)
-{
-    if (!transformMatricesValid || !coordTransformMatrix.isValid)
-        // Cannot call non-static method from static context, use fallback
-        return static_cast<uint16_t>(((lon + 180.0f) / 360.0f * (1 << zoom) * tileSize)) % tileSize;
-    
-    // Use precalculated matrix for faster transformation
-    float normalizedLon = (lon + coordTransformMatrix.offsetX) * coordTransformMatrix.scaleX;
-    float zoomFactor = static_cast<float>(1 << zoom);
-    float pixelX = normalizedLon * zoomFactor * static_cast<float>(tileSize);
-    
-    return static_cast<uint16_t>(pixelX) % tileSize;
-}
-
-/**
- * @brief   Transform latitude to pixel Y coordinate at given zoom and tile size.
- * 
- * @param lat       Latitude in degrees       
- * @param zoom      Zoom level (0-21)
- * @param tileSize  Tile size in pixels (typically 256) 
- * @return uint16_t Pixel Y coordinate within the tile 
- */
-uint16_t Maps::transformLatToPixel(float lat, uint8_t zoom, uint16_t tileSize)
-{
-    if (!transformMatricesValid || !coordTransformMatrix.isValid) 
-    {
-        // Cannot call non-static method from static context, use fallback
-        float lat_rad = lat * static_cast<float>(M_PI) / 180.0f;
-        float siny = tanf(lat_rad) + 1.0f / cosf(lat_rad);
-        float merc_n = logf(siny);
-        float scale = (1 << zoom) * tileSize;
-        return static_cast<uint16_t>(((1.0f - merc_n / static_cast<float>(M_PI)) / 2.0f * scale)) % tileSize;
-    }
-    
-    // Use precalculated matrix for faster transformation
-    float lat_rad = lat * static_cast<float>(M_PI) / 180.0f;
-    float siny = tanf(lat_rad) + 1.0f / cosf(lat_rad);
-    float merc_n = logf(siny);
-    float normalizedLat = (1.0f - merc_n * coordTransformMatrix.scaleY) * 0.5f;
-    float zoomFactor = static_cast<float>(1 << zoom);
-    float pixelY = normalizedLat * zoomFactor * static_cast<float>(tileSize);
-    
-    return static_cast<uint16_t>(pixelY) % tileSize;
-}
-
-/**
- * @brief   Transform pixel X coordinate to longitude at given zoom and tile size.
- * 
- * @param pixelX    Pixel X coordinate within the tile 
- * @param zoom      Zoom level (0-21) 
- * @param tileSize  Tile size in pixels (typically 256)
- * @return float    Longitude in degrees
- */
-float Maps::transformPixelToLon(uint16_t pixelX, uint8_t zoom, uint16_t tileSize)
-{
-    if (!transformMatricesValid || !coordTransformMatrix.isValid) 
-        // Cannot call non-static method from static context, use fallback
-        return static_cast<float>(pixelX) * 360.0f / (1 << zoom) - 180.0f;
-    
-    float zoomFactor = static_cast<float>(1 << zoom);
-    float normalizedX = static_cast<float>(pixelX) / (zoomFactor * static_cast<float>(tileSize));
-    float lon = (normalizedX / coordTransformMatrix.scaleX) - coordTransformMatrix.offsetX;
-    
-    return lon;
-}
-
-/**
- * @brief   Transform pixel Y coordinate to latitude at given zoom and tile size.
- * 
- * @param pixelY    Pixel Y coordinate within the tile 
- * @param zoom      Zoom level (0-21)
- * @param tileSize  Tile size in pixels (typically 256)
- * @return float    Latitude in degrees
- */
-float Maps::transformPixelToLat(uint16_t pixelY, uint8_t zoom, uint16_t tileSize)
-{
-    if (!transformMatricesValid || !coordTransformMatrix.isValid) {
-        // Cannot call non-static method from static context, use fallback
-        float scale = static_cast<float>(1 << zoom);
-        float n = static_cast<float>(M_PI) * (1.0f - 2.0f * static_cast<float>(pixelY) / scale);
-        return 180.0f / static_cast<float>(M_PI) * atanf(sinhf(n));
-    }
-    
-    float zoomFactor = static_cast<float>(1 << zoom);
-    float normalizedY = static_cast<float>(pixelY) / (zoomFactor * static_cast<float>(tileSize));
-    float merc_n = static_cast<float>(M_PI) * (1.0f - 2.0f * normalizedY);
-    float lat = 180.0f / static_cast<float>(M_PI) * atanf(sinhf(merc_n));
-    
-    return lat;
-}
 
 /**
  * @brief Initialize batch rendering system, detecting optimal batch size based on hardware.

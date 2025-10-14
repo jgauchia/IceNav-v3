@@ -183,19 +183,7 @@ private:
 	static uint32_t polygonCulledCount;                                        /**< Polygons culled (not rendered) */
 	static uint32_t polygonOptimizedCount;                                     /**< Polygons using optimized algorithms */
 	
-	// Precalculated transformation matrices
-	struct TransformMatrix
-	{
-		float scaleX, scaleY;     /**< Scale factors */
-		float offsetX, offsetY;   /**< Offset factors */
-		float rotation;           /**< Rotation angle */
-		bool isValid;             /**< Matrix is valid */
-	};
 	
-	static TransformMatrix coordTransformMatrix;                               /**< Precalculated coordinate transformation */
-	static TransformMatrix pixelTransformMatrix;                              /**< Precalculated pixel transformation */
-	static bool transformMatricesValid;                                       /**< Matrices are up to date */
-	static uint32_t lastTransformUpdate;                                      /**< Last matrix update timestamp */
 	
 	// Efficient batch rendering system
 	static RenderBatch* activeBatch;                                          /**< Currently active render batch */
@@ -313,15 +301,6 @@ private:
 	
 	// Polygon optimization methods
 	
-	// Precalculated transformation methods
-	void initTransformMatrices();                                              /**< Initialize transformation matrices */
-	void updateTransformMatrices();                                            /**< Update transformation matrices */
-	void invalidateTransformMatrices();                                        /**< Mark matrices as invalid */
-	bool areTransformMatricesValid();                                         /**< Check if matrices are valid */
-	static uint16_t transformLonToPixel(float lon, uint8_t zoom, uint16_t tileSize); /**< Transform longitude to pixel using precalculated matrix */
-	static uint16_t transformLatToPixel(float lat, uint8_t zoom, uint16_t tileSize); /**< Transform latitude to pixel using precalculated matrix */
-	static float transformPixelToLon(uint16_t pixelX, uint8_t zoom, uint16_t tileSize); /**< Transform pixel to longitude using precalculated matrix */
-	static float transformPixelToLat(uint16_t pixelY, uint8_t zoom, uint16_t tileSize); /**< Transform pixel to latitude using precalculated matrix */
 	
 	// Efficient batch rendering methods
 	void initBatchRendering();                                                /**< Initialize batch rendering system */
