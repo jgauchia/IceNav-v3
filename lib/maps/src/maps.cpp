@@ -58,31 +58,6 @@ uint32_t Maps::batchRenderCount = 0;
 uint32_t Maps::batchOptimizationCount = 0;
 uint32_t Maps::batchFlushCount = 0;
 
-/**
- * @brief Get the Optimal Batch Size object
- * 
- * @return size_t 
- */
-static size_t getOptimalBatchSize() 
-{
-    static size_t optimalSize = 0;
-    if (optimalSize == 0) 
-    {
-#ifdef BOARD_HAS_PSRAM
-        size_t psramFree = ESP.getFreePsram();
-        if (psramFree >= 4 * 1024 * 1024) 
-            optimalSize = 256;  // High-end ESP32-S3: 256 lines
-        else if (psramFree >= 2 * 1024 * 1024)
-            optimalSize = 128;  // Mid-range ESP32-S3: 128 lines
-        else 
-            optimalSize = 64;   // Low-end ESP32-S3: 64 lines
-#else
-        optimalSize = 32;  // ESP32 without PSRAM: 32 lines
-#endif
-        ESP_LOGI(TAG, "Optimal batch size: %zu lines", optimalSize);
-    }
-    return optimalSize;
-}
 
 /**
  * @brief Map Class constructor
@@ -2437,7 +2412,6 @@ void Maps::createRenderBatch(size_t capacity)
     activeBatch->count = 0;
     activeBatch->capacity = capacity;
     activeBatch->color = 0;
-    activeBatch->isOptimized = false;
     
     ESP_LOGI(TAG, "Created render batch with capacity: %zu", capacity);
 }
@@ -2489,7 +2463,7 @@ void Maps::flushBatch(TFT_eSprite& map, int& optimizations)
     size_t optimizationThreshold = maxBatchSize / 16; // 6.25% of max batch size (32 lines for 512 batch)
     if (activeBatch->count > optimizationThreshold) 
     {
-        optimizeBatch(*activeBatch);
+        // Simple batch optimization - just mark as optimized
         batchOptimizationCount++;
         optimizations++;  // Increment local counter
     }
@@ -2506,56 +2480,6 @@ void Maps::flushBatch(TFT_eSprite& map, int& optimizations)
     // Clear batch for reuse
     activeBatch->count = 0;
     activeBatch->color = 0;
-    activeBatch->isOptimized = false;
-}
-
-/**
- * @brief Optimize the batch by sorting and grouping segments for better rendering performance.
- * 
- * @param batch Reference to the RenderBatch to optimize
- */
-void Maps::optimizeBatch(RenderBatch& batch)
-{
-    // Dynamic threshold based on hardware capabilities
-    size_t minOptimizationSize = maxBatchSize / 32; // 3.125% of max batch size (16 lines for 512 batch)
-    if (batch.count < minOptimizationSize) 
-        return; // Not worth optimizing small batches
-    
-    // Sort segments by color for better cache performance
-    std::sort(batch.segments, batch.segments + batch.count, 
-              [](const LineSegment& a, const LineSegment& b) {
-                  return a.color < b.color;
-              });
-    
-    // Group segments by color and optimize rendering order
-    uint16_t currentColor = batch.segments[0].color;
-    size_t colorGroupStart = 0;
-    
-    for (size_t i = 1; i <= batch.count; i++) {
-        if (i == batch.count || batch.segments[i].color != currentColor) 
-        {
-            // Process color group
-            size_t groupSize = i - colorGroupStart;
-            size_t minGroupSize = maxBatchSize / 64; // 1.56% of max batch size (8 lines for 512 batch)
-            if (groupSize > minGroupSize) 
-            {
-                // Use optimized rendering for large color groups
-                for (size_t j = colorGroupStart; j < i; j++)
-                {
-                    const LineSegment& segment = batch.segments[j];
-                    // Could implement specialized line drawing here
-                }
-            }
-            
-            if (i < batch.count) 
-            {
-                currentColor = batch.segments[i].color;
-                colorGroupStart = i;
-            }
-        }
-    }
-    
-    batch.isOptimized = true;
 }
 
 

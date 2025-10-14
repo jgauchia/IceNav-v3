@@ -100,7 +100,6 @@ private:
 		size_t count;              /**< Number of segments in batch */
 		size_t capacity;           /**< Maximum capacity of batch */
 		uint16_t color;            /**< Common color for batch */
-		bool isOptimized;          /**< Batch uses optimized rendering */
 	};
 	
 	struct PolygonBounds	/**< Polygon bounding box structure */
@@ -307,7 +306,6 @@ private:
 	void createRenderBatch(size_t capacity);                                  /**< Create new render batch */
 	void addToBatch(int x0, int y0, int x1, int y1, uint16_t color);         /**< Add line segment to current batch */
 	void flushBatch(TFT_eSprite& map, int& optimizations);                  /**< Render and clear current batch */
-	void optimizeBatch(RenderBatch& batch);                                   /**< Optimize batch for rendering */
 	bool canBatch(uint16_t color);                                           /**< Check if line can be added to current batch */
 	size_t getOptimalBatchSize();                                            /**< Get optimal batch size for hardware */
    
