@@ -61,15 +61,11 @@ uint32_t Maps::batchFlushCount = 0;
 
 /**
  * @brief Map Class constructor
+ *
+ * @details Initializes the Maps class with default polygon filling enabled and logs completion status.
  */
 Maps::Maps() : fillPolygons(true) 
 {
-    ESP_LOGI(TAG, "Maps constructor called - initializing pools...");
-    
-    // Initialize advanced memory pools in constructor
-    initUnifiedPool();
-    initBatchRendering();
-    
     ESP_LOGI(TAG, "Maps constructor completed");
 }
 
@@ -326,7 +322,7 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
 	initTileCache();
 	
 	// Initialize background preload system
-
+	
 	// Initialize polygon optimizations
     // Initialize polygon optimization system
     polygonCullingEnabled = true;
@@ -511,7 +507,8 @@ void Maps::generateMap(uint8_t zoom)
 /**
  * @brief Display Map
  *
- * @details Displays the map on the screen. 
+ * @details Displays the map on the screen with proper rotation, waypoint overlay, and GPS navigation arrow positioning.
+ *          Handles both GPS-following mode and manual panning mode with appropriate pivot points and rotations.
  */
 void Maps::displayMap()
 {
@@ -681,15 +678,6 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
 		Maps::preloadTiles(deltaTileX, deltaTileY);
 		Maps::lastTileX = Maps::tileX;
 		Maps::lastTileY = Maps::tileY;
-		
-		// Print cache stats every 2 seconds during scrolling
-		if (millis() - lastCacheStats > 2000) {
-			ESP_LOGI(TAG, "=== Scroll Cache Stats ===");
-			ESP_LOGI(TAG, "Scroll delta: X=%d, Y=%d", deltaTileX, deltaTileY);
-			ESP_LOGI(TAG, "Cache hits: %zu/%zu tiles", tileCache.size(), maxCachedTiles);
-			ESP_LOGI(TAG, "Cache memory: %zu bytes", getCacheMemoryUsage());
-			lastCacheStats = millis();
-		}
 	}
 }
 
@@ -707,8 +695,6 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 	const int16_t tileSize = mapTileSize;
 	const int16_t preloadWidth  = (dirX != 0) ? tileSize : tileSize * 2;
 	const int16_t preloadHeight = (dirY != 0) ? tileSize : tileSize * 2;
-
-	ESP_LOGI(TAG, "Preloading tiles: dirX=%d, dirY=%d", dirX, dirY);
 
 	TFT_eSprite preloadSprite = TFT_eSprite(&tft);
 	preloadSprite.createSprite(preloadWidth, preloadHeight);
@@ -734,8 +720,6 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 
 		bool foundTile = false;
 		
-		ESP_LOGI(TAG, "Loading tile: %s", Maps::roundMapTile.file);
-		
 		// Try cache first for vector maps
 		if (mapSet.vectorMap) 
         {
@@ -749,7 +733,6 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
         {
 			if (mapSet.vectorMap)
             {
-				ESP_LOGI(TAG, "Rendering tile to cache: %s", Maps::roundMapTile.file);
 				// Create a temporary sprite for rendering to cache
 				TFT_eSprite tempSprite = TFT_eSprite(&tft);
 				tempSprite.createSprite(tileSize, tileSize);
@@ -761,7 +744,6 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
                 {
 					// Copy from temporary sprite to preload sprite
 					preloadSprite.pushImage(offsetX, offsetY, tileSize, tileSize, tempSprite.frameBuffer(0));
-					ESP_LOGI(TAG, "Tile rendered and cached: %s", Maps::roundMapTile.file);
 				}
 				
 				tempSprite.deleteSprite();
@@ -1234,7 +1216,8 @@ void Maps::drawPolygonBorder(TFT_eSprite &map, const int *px, const int *py, con
 /**
  * @brief Initialize tile cache system
  *
- * @details Initializes the tile cache system by detecting hardware capabilities and setting up the cache structure.
+ * @details Initializes the tile cache system by clearing existing cache, reserving space for the maximum number of cached tiles,
+ *          resetting the access counter, and logging the cache capacity for debugging purposes.
  */
 void Maps::initTileCache()
 {
@@ -1480,7 +1463,6 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     }
     if (!unifiedPoolLogged)
     {
-        ESP_LOGI(TAG, "renderTile: Using RAII MemoryGuard for data allocation");
         unifiedPoolLogged = true;
     }
 
@@ -1609,12 +1591,10 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         int* py = pyGuard.get();
                         if (!px || !py)
                         {
-                            ESP_LOGW(TAG, "renderTile DRAW_POLYLINE: RAII MemoryGuard allocation failed");
                             continue;
                         }
                         if (!unifiedPolylineLogged)
                         {
-                            ESP_LOGI(TAG, "renderTile DRAW_POLYLINE: Using RAII MemoryGuard for coordinate arrays");
                             unifiedPolylineLogged = true;
                         }
                         unifiedPoolHitCount += 2;
@@ -1688,7 +1668,6 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         }
                         if (!unifiedPolygonLogged) 
                         {
-                            ESP_LOGI(TAG, "renderTile DRAW_STROKE_POLYGON: Using RAII MemoryGuard for coordinate arrays");
                             unifiedPolygonLogged = true;
                         }
                         const int32_t firstX = readZigzag(data, offset, dataSize);
@@ -1746,7 +1725,6 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         }
                         if (!unifiedPolygonsLogged)
                         {
-                            ESP_LOGI(TAG, "renderTile DRAW_STROKE_POLYGONS: Using RAII MemoryGuard for coordinate arrays");
                             unifiedPolygonsLogged = true;
                         }
                         for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
@@ -2207,23 +2185,16 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     // Add successfully rendered tile to cache
     addToCache(path, map);
 
-    // Log rendering performance
     unsigned long renderTime = millis() - renderStart;
-    if (totalLines > 0) {
-        ESP_LOGI(TAG, "Tile rendered: %s", path);
-    ESP_LOGI(TAG, "Performance: %lu ms, %d lines, %d batches, avg %.1f lines/batch", 
-             renderTime, totalLines, batchFlushes, 
-             batchFlushes > 0 ? (float)totalLines / batchFlushes : 0.0f);
-    ESP_LOGI(TAG, "Batch stats: %d renders, %d optimizations, %d flushes", 
-             batchFlushes, batchOptimizations, batchFlushes);
-    }
 
     return true;
 }
 
 /**
- * @brief Initialize the unified memory pool for efficient memory management.
+ * @brief Initialize the unified memory pool for efficient memory management
  * 
+ * @details Sets up a unified memory pool system with mutex protection, calculates optimal pool size based on available PSRAM or RAM,
+ *          reserves space for pool entries, and initializes hit/miss counters for performance monitoring.
  */
 void Maps::initUnifiedPool()
 {
@@ -2254,15 +2225,18 @@ void Maps::initUnifiedPool()
     unifiedPoolHitCount = 0;
     unifiedPoolMissCount = 0;
     
-    ESP_LOGI(TAG, "Unified memory pool initialized with %zu entries", maxUnifiedPoolEntries);
+    ESP_LOGI(TAG, "Unified memory pool initialized");
 }
 
 /**
- * @brief Implement a unified memory allocation function that uses a memory pool.
- * 
- * @param size Size of memory to allocate
- * @param type type of allocation for tracking purposes
- * @return void* 
+ * @brief Implement a unified memory allocation function that uses a memory pool
+ *
+ * @details Attempts to allocate memory from the unified pool first, falling back to direct heap allocation if pool is full.
+ *          Uses mutex protection for thread safety and tracks allocation statistics for performance monitoring.
+ *
+ * @param size Size of memory to allocate in bytes
+ * @param type Type of allocation for tracking purposes (0=general, 6=coordArray, etc.)
+ * @return void* Pointer to allocated memory, or nullptr if allocation failed
  */
 void* Maps::unifiedAlloc(size_t size, uint8_t type)
 {
@@ -2318,7 +2292,10 @@ void* Maps::unifiedAlloc(size_t size, uint8_t type)
 }
 
 /**
- * @brief Deallocate memory allocated from the unified memory pool.
+ * @brief Deallocate memory allocated from the unified memory pool
+ *
+ * @details Marks memory as available in the unified pool if it was allocated from there, otherwise calls standard free.
+ *          Uses mutex protection for thread safety and handles null pointer gracefully.
  * 
  * @param ptr Pointer to memory to deallocate
  */
@@ -2344,8 +2321,10 @@ void Maps::unifiedDealloc(void* ptr)
 }
 
 /**
- * @brief Clear the unified memory pool, freeing all allocated memory.
+ * @brief Clear the unified memory pool, freeing all allocated memory
  * 
+ * @details Frees all memory entries in the unified pool, clears the pool vector, resets hit/miss counters,
+ *          and logs the clearing operation. Uses mutex protection for thread safety.
  */
 void Maps::clearUnifiedPool()
 {
@@ -2366,8 +2345,10 @@ void Maps::clearUnifiedPool()
 
 
 /**
- * @brief Initialize batch rendering system, detecting optimal batch size based on hardware.
- * 
+ * @brief Initialize batch rendering system, detecting optimal batch size based on hardware
+ *
+ * @details Analyzes available PSRAM or RAM to determine optimal batch size for line rendering performance.
+ *          Sets up batch rendering counters and initializes the active batch pointer to nullptr.
  */
 void Maps::initBatchRendering()
 {
@@ -2389,11 +2370,14 @@ void Maps::initBatchRendering()
     batchOptimizationCount = 0;
     batchFlushCount = 0;
     
-    ESP_LOGI(TAG, "Batch rendering initialized with max batch size: %zu", maxBatchSize);
+    ESP_LOGI(TAG, "Batch rendering initialized");
 }
 
 /**
- * @brief Create a new render batch with specified capacity.
+ * @brief Create a new render batch with specified capacity
+ *
+ * @details Allocates memory for a new render batch with the specified capacity for line segments.
+ *          Cleans up any existing active batch before creating the new one.
  * 
  * @param capacity Number of line segments the batch can hold
  */
@@ -2412,13 +2396,14 @@ void Maps::createRenderBatch(size_t capacity)
     activeBatch->count = 0;
     activeBatch->capacity = capacity;
     activeBatch->color = 0;
-    
-    ESP_LOGI(TAG, "Created render batch with capacity: %zu", capacity);
 }
 
 /**
- * @brief Add a line segment to the current batch if possible.
- * 
+ * @brief Add a line segment to the current batch if possible
+ *
+ * @details Adds a line segment to the current batch if it matches the batch color and there's capacity.
+ *          Creates a new batch if none exists. Only adds segments that can be batched together.
+ *
  * @param x0    Starting X coordinate
  * @param y0    Starting Y coordinate
  * @param x1    Ending X coordinate
@@ -2433,7 +2418,6 @@ void Maps::addToBatch(int x0, int y0, int x1, int y1, uint16_t color)
     // Check if we can add to current batch (same color)
     if (!canBatch(color) || activeBatch->count >= activeBatch->capacity) 
     {
-        ESP_LOGW(TAG, "Cannot add to batch - flushing current batch");
         return;
     }
     
@@ -2447,8 +2431,11 @@ void Maps::addToBatch(int x0, int y0, int x1, int y1, uint16_t color)
 }
 
 /**
- * @brief Flush the current batch, rendering all segments to the map.
- * 
+ * @brief Flush the current batch, rendering all segments to the map
+ *
+ * @details Renders all line segments in the current batch to the map sprite, applies optimizations if beneficial,
+ *          and resets the batch for reuse. Tracks batch flush and optimization statistics.
+ *
  * @param map           Reference to the TFT_eSprite map to render onto
  * @param optimizations Reference to a counter for optimizations performed
  */
@@ -2484,8 +2471,11 @@ void Maps::flushBatch(TFT_eSprite& map, int& optimizations)
 
 
 /**
- * @brief   Check if a line segment with the given color can be added to the current batch.
- * 
+ * @brief Check if a line segment with the given color can be added to the current batch
+ *
+ * @details Determines if a line segment can be added to the current batch based on color compatibility.
+ *          Returns true if the batch is empty or if the color matches the current batch color.
+ *
  * @param color     Color of the line segment to add
  * @return true     if it can be added
  * @return false    if it cannot be added
@@ -2500,9 +2490,12 @@ bool Maps::canBatch(uint16_t color)
 }
 
 /**
- * @brief Get the optimal batch size based on hardware capabilities.
- * 
- * @return size_t Optimal batch size
+ * @brief Get the optimal batch size based on hardware capabilities
+ *
+ * @details Returns the maximum batch size determined during initialization based on available memory.
+ *          This value is calculated based on PSRAM availability for ESP32-S3 or RAM for standard ESP32.
+ *
+ * @return size_t Optimal batch size for line rendering
  */
 size_t Maps::getOptimalBatchSize()
 {
