@@ -312,9 +312,6 @@ private:
 	// Memory monitoring methods
 	
 	// Polygon optimization methods
-	void fillPolygonOptimized(TFT_eSprite &map, const int *px, const int *py, int numPoints, uint16_t color, int xOffset, int yOffset); /**< Optimized polygon filling */
-	void fillTriangleOptimized(TFT_eSprite &map, int x1, int y1, int x2, int y2, int x3, int y3, uint16_t color); /**< Optimized triangle filling */
-	void fillRectangleOptimized(TFT_eSprite &map, int x, int y, int w, int h, uint16_t color); /**< Optimized rectangle filling */
 	
 	// Precalculated transformation methods
 	void initTransformMatrices();                                              /**< Initialize transformation matrices */

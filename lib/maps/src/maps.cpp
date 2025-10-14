@@ -1472,152 +1472,8 @@ size_t Maps::getCacheMemoryUsage()
 
 
 
-/**
- * @brief Optimized polygon filling
- *
- * @details Fills a polygon using the most appropriate algorithm based on polygon complexity.
- *
- * @param map The TFT_eSprite object where the polygon will be drawn.
- * @param px Array of x-coordinates of the polygon vertices.
- * @param py Array of y-coordinates of the polygon vertices.
- * @param numPoints The number of vertices in the polygon.
- * @param color The color to fill the polygon with.
- * @param xOffset The x-offset to apply when drawing the polygon.
- * @param yOffset The y-offset to apply when drawing the polygon.
- */
-void Maps::fillPolygonOptimized(TFT_eSprite &map, const int *px, const int *py, int numPoints, uint16_t color, int xOffset, int yOffset)
-{
-    polygonRenderCount++;
-    
-    // If optimizations are disabled, use original algorithm
-    if (!polygonCullingEnabled && !optimizedScanlineEnabled) 
-    {
-        fillPolygonGeneral(map, px, py, numPoints, color, xOffset, yOffset);
-        return;
-    }
-    
-    // Apply viewport culling if enabled
-    if (polygonCullingEnabled) 
-    {
-        // Simple bounds check without complex calculations
-        int minX = px[0], maxX = px[0], minY = py[0], maxY = py[0];
-        for (int i = 1; i < numPoints; i++) {
-            if (px[i] < minX) minX = px[i];
-            if (px[i] > maxX) maxX = px[i];
-            if (py[i] < minY) minY = py[i];
-            if (py[i] > maxY) maxY = py[i];
-        }
-        
-        // Simple viewport check
-        if (maxX < xOffset || minX > xOffset + TILE_SIZE ||
-            maxY < yOffset || minY > yOffset + TILE_SIZE) 
-        {
-            polygonCulledCount++;
-            return; // Skip rendering
-        }
-    }
-    
-    // Use optimized algorithms for simple polygons
-    if (numPoints == 3) 
-    {
-        polygonOptimizedCount++;
-        fillTriangleOptimized(map, px[0] + xOffset, py[0] + yOffset,
-                             px[1] + xOffset, py[1] + yOffset,
-                             px[2] + xOffset, py[2] + yOffset, color);
-    }
-    else if (numPoints == 4) 
-    {
-        polygonOptimizedCount++;
-        // Simple rectangle optimization
-        int minX = px[0], maxX = px[0], minY = py[0], maxY = py[0];
-        for (int i = 1; i < 4; i++) {
-            if (px[i] < minX) minX = px[i];
-            if (px[i] > maxX) maxX = px[i];
-            if (py[i] < minY) minY = py[i];
-            if (py[i] > maxY) maxY = py[i];
-        }
-        fillRectangleOptimized(map, minX + xOffset, minY + yOffset,
-                              maxX - minX, maxY - minY, color);
-    }
-    else 
-    {
-        // Fallback to original algorithm
-        fillPolygonGeneral(map, px, py, numPoints, color, xOffset, yOffset);
-    }
-}
 
-/**
- * @brief Optimized triangle filling
- *
- * @details Fills a triangle using an optimized algorithm.
- *
- * @param map The TFT_eSprite object where the triangle will be drawn.
- * @param x1, y1 First vertex coordinates.
- * @param x2, y2 Second vertex coordinates.
- * @param x3, y3 Third vertex coordinates.
- * @param color The color to fill the triangle with.
- */
-void Maps::fillTriangleOptimized(TFT_eSprite &map, int x1, int y1, int x2, int y2, int x3, int y3, uint16_t color)
-{
-    // Sort vertices by Y coordinate
-    if (y1 > y2) { std::swap(x1, x2); std::swap(y1, y2); }
-    if (y1 > y3) { std::swap(x1, x3); std::swap(y1, y3); }
-    if (y2 > y3) { std::swap(x2, x3); std::swap(y2, y3); }
-    
-    // Calculate slopes
-    int dx1 = x2 - x1;
-    int dy1 = y2 - y1;
-    int dx2 = x3 - x1;
-    int dy2 = y3 - y1;
-    int dx3 = x3 - x2;
-    int dy3 = y3 - y2;
-    
-    // Fill top half
-    for (int y = y1; y < y2; y++) 
-    {
-        int x_start = x1 + (y - y1) * dx1 / dy1;
-        int x_end = x1 + (y - y1) * dx2 / dy2;
-        
-        if (x_start > x_end) std::swap(x_start, x_end);
-        
-        if (x_start >= 0 && x_end < TILE_SIZE && y >= 0 && y < TILE_SIZE) 
-            map.drawLine(x_start, y, x_end, y, color);
-    }
-    
-    // Fill bottom half
-    for (int y = y2; y <= y3; y++) 
-    {
-        int x_start = x2 + (y - y2) * dx3 / dy3;
-        int x_end = x1 + (y - y1) * dx2 / dy2;
-        
-        if (x_start > x_end) std::swap(x_start, x_end);
-        
-        if (x_start >= 0 && x_end < TILE_SIZE && y >= 0 && y < TILE_SIZE) 
-            map.drawLine(x_start, y, x_end, y, color);
-    }
-}
 
-/**
- * @brief Optimized rectangle filling
- *
- * @details Fills a rectangle using the optimized fillRect method.
- *
- * @param map The TFT_eSprite object where the rectangle will be drawn.
- * @param x, y Top-left corner coordinates.
- * @param w, h Width and height of the rectangle.
- * @param color The color to fill the rectangle with.
- */
-void Maps::fillRectangleOptimized(TFT_eSprite &map, int x, int y, int w, int h, uint16_t color)
-{
-    // Clamp to tile boundaries
-    if (x < 0) { w += x; x = 0; }
-    if (y < 0) { h += y; y = 0; }
-    if (x + w > TILE_SIZE) w = TILE_SIZE - x;
-    if (y + h > TILE_SIZE) h = TILE_SIZE - y;
-    
-    if (w > 0 && h > 0)
-        map.fillRect(x, y, w, h, color);
-}
 
 
 /**
@@ -1957,7 +1813,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         }
                         if (fillPolygons && numPoints >= 3)
                         {
-                            fillPolygonOptimized(map, px, py, numPoints, currentDrawColor, xOffset, yOffset);
+                            fillPolygonGeneral(map, px, py, numPoints, currentDrawColor, xOffset, yOffset);
                             const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
                             drawPolygonBorder(map, px, py, numPoints, borderColor, currentDrawColor, xOffset, yOffset);
                             polygonCommands++;
@@ -2195,8 +2051,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     {
                         if (fillPolygons) 
                         {
-                            // Fill triangle using optimized algorithm
-                            fillTriangleOptimized(map, px1, py1, px2, py2, px3, py3, currentDrawColor);
+                            // Fill triangle using simple algorithm
+                            map.fillTriangle(px1, py1, px2, py2, px3, py3, currentDrawColor);
                             
                             // Draw border
                             const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
@@ -2237,8 +2093,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     {
                         if (fillPolygons) 
                         {
-                            // Fill triangle using optimized algorithm
-                            fillTriangleOptimized(map, px1, py1, px2, py2, px3, py3, currentDrawColor);
+                            // Fill triangle using simple algorithm
+                            map.fillTriangle(px1, py1, px2, py2, px3, py3, currentDrawColor);
                             
                             // Draw border
                             const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
