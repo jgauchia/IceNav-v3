@@ -1240,16 +1240,6 @@ void Maps::drawPolygonBorder(TFT_eSprite &map, const int *px, const int *py, con
 * @param border The color to use for the circle border (in RGB565 format).
 * @param fillShape If true, the circle will be filled; if false, only the border will be drawn.
 */
-void Maps::drawFilledCircleWithBorder(TFT_eSprite& map, int x, int y, int r, uint16_t fill, uint16_t border, bool fillShape)
-{
-    if (fillShape) 
-    {
-        map.fillCircle(x, y, r, fill);
-        map.drawCircle(x, y, r, border);
-    }
-    else 
-        map.drawCircle(x, y, r, fill);
-}
 
 /**
 * @brief Draws a filled rectangle with a border on a sprite.
@@ -1267,16 +1257,6 @@ void Maps::drawFilledCircleWithBorder(TFT_eSprite& map, int x, int y, int r, uin
 * @param border The color to use for the rectangle border (in RGB565 format).
 * @param fillShape If true, the rectangle will be filled; if false, only the border will be drawn.
 */
-void Maps::drawFilledRectWithBorder(TFT_eSprite& map, int x, int y, int w, int h, uint16_t fill, uint16_t border, bool fillShape)
-{
-    if (fillShape) 
-    {
-        map.fillRect(x, y, w, h, fill);
-        map.drawRect(x, y, w, h, border);
-    }
-    else 
-        map.drawRect(x, y, w, h, fill);
-}
 
 /**
  * @brief Draw a dashed line between two points
@@ -1290,57 +1270,6 @@ void Maps::drawFilledRectWithBorder(TFT_eSprite& map, int x, int y, int w, int h
  * @param gapLength Length of each gap between dashes.
  * @param color The color to draw the line with (in RGB565 format).
  */
-void Maps::drawDashedLine(TFT_eSprite& map, int x1, int y1, int x2, int y2, int dashLength, int gapLength, uint16_t color)
-{
-    int dx = abs(x2 - x1);
-    int dy = abs(y2 - y1);
-    int sx = (x1 < x2) ? 1 : -1;
-    int sy = (y1 < y2) ? 1 : -1;
-    int err = dx - dy;
-    
-    int currentX = x1;
-    int currentY = y1;
-    int segmentLength = 0;
-    bool drawingDash = true;
-    
-    while (true) 
-    {
-        if (drawingDash) 
-        {
-            map.drawPixel(currentX, currentY, color);
-            segmentLength++;
-            
-            if (segmentLength >= dashLength) 
-            {
-                drawingDash = false;
-                segmentLength = 0;
-            }
-        } 
-        else 
-        {
-            segmentLength++;
-            if (segmentLength >= gapLength)
-            {
-                drawingDash = true;
-                segmentLength = 0;
-            }
-        }
-        
-        if (currentX == x2 && currentY == y2) break;
-        
-        int e2 = 2 * err;
-        if (e2 > -dy) 
-        {
-            err -= dy;
-            currentX += sx;
-        }
-        if (e2 < dx)
-        {
-            err += dx;
-            currentY += sy;
-        }
-    }
-}
 
 
 
@@ -2102,7 +2031,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         if (fillPolygons) 
                         {
                             const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            drawFilledRectWithBorder(map, px1 + xOffset, py1 + yOffset, pwidth, pheight, currentDrawColor, borderColor, fillPolygons);
+                            map.fillRect(px1 + xOffset, py1 + yOffset, pwidth, pheight, currentDrawColor);
+                            map.drawRect(px1 + xOffset, py1 + yOffset, pwidth, pheight, borderColor);
                             executed++;
                         }
                         else
@@ -2130,12 +2060,11 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     {
                         if (fillPolygons) 
                         {
-                            // Fill rectangle with border
                             const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            drawFilledRectWithBorder(map, px + xOffset, py + yOffset, pwidth, pheight, currentDrawColor, borderColor, fillPolygons);
+                            map.fillRect(px + xOffset, py + yOffset, pwidth, pheight, currentDrawColor);
+                            map.drawRect(px + xOffset, py + yOffset, pwidth, pheight, borderColor);
                         }
                         else
-                            // Draw only outline
                             map.drawRect(px + xOffset, py + yOffset, pwidth, pheight, currentDrawColor);
                         executed++;
                     }
@@ -2160,12 +2089,11 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     {
                         if (fillPolygons) 
                         {
-                            // Fill rectangle with border
                             const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            drawFilledRectWithBorder(map, px + xOffset, py + yOffset, pwidth, pheight, currentDrawColor, borderColor, fillPolygons);
+                            map.fillRect(px + xOffset, py + yOffset, pwidth, pheight, currentDrawColor);
+                            map.drawRect(px + xOffset, py + yOffset, pwidth, pheight, borderColor);
                         }
                         else
-                            // Draw only outline
                             map.drawRect(px + xOffset, py + yOffset, pwidth, pheight, currentDrawColor);
                         executed++;
                     }
@@ -2208,7 +2136,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         if (fillPolygons) 
                         {
                             const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            drawFilledCircleWithBorder(map, pcx + xOffset, pcy + yOffset, pradius, currentDrawColor, borderColor, fillPolygons);
+                            map.fillCircle(pcx + xOffset, pcy + yOffset, pradius, currentDrawColor);
+                            map.drawCircle(pcx + xOffset, pcy + yOffset, pradius, borderColor);
                             executed++;
                         }
                         else
@@ -2235,7 +2164,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         if (fillPolygons) 
                         {
                             const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            drawFilledCircleWithBorder(map, pcx + xOffset, pcy + yOffset, pradius, currentDrawColor, borderColor, fillPolygons);
+                            map.fillCircle(pcx + xOffset, pcy + yOffset, pradius, currentDrawColor);
+                            map.drawCircle(pcx + xOffset, pcy + yOffset, pradius, borderColor);
                         }
                         else
                             map.drawCircle(pcx + xOffset, pcy + yOffset, pradius, currentDrawColor);
@@ -2344,7 +2274,24 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     if (px1 >= 0 && px1 <= TILE_SIZE && py1 >= 0 && py1 <= TILE_SIZE &&
                         px2 >= 0 && px2 <= TILE_SIZE && py2 >= 0 && py2 <= TILE_SIZE) 
                     {
-                        drawDashedLine(map, px1, py1, px2, py2, dashLength, gapLength, currentDrawColor);
+                        // Simple dashed line implementation
+                        int dx = abs(px2 - px1);
+                        int dy = abs(py2 - py1);
+                        int sx = (px1 < px2) ? 1 : -1;
+                        int sy = (py1 < py2) ? 1 : -1;
+                        int err = dx - dy;
+                        int currentX = px1, currentY = py1, dashCounter = 0;
+                        
+                        while (true) {
+                            if (dashCounter % (dashLength + gapLength) < dashLength)
+                                map.drawPixel(currentX, currentY, currentDrawColor);
+                            dashCounter++;
+                            if (currentX == px2 && currentY == py2) break;
+                            
+                            int e2 = 2 * err;
+                            if (e2 > -dy) { err -= dy; currentX += sx; }
+                            if (e2 < dx) { err += dx; currentY += sy; }
+                        }
                         executed++;
                     }
                 }

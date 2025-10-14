@@ -243,12 +243,6 @@ private:
 							const int numPoints, const uint16_t borderColor, const uint16_t fillColor, 
 							const int xOffset, const int yOffset);						/**< Draw the border of a polygon with margin handling */
 	
-	void drawFilledRectWithBorder(TFT_eSprite& map, int x, int y, int w, int h, 
-		                          uint16_t fill, uint16_t border, bool fillShape);		/**< Draw filled rectangle with border */
-	void drawFilledCircleWithBorder(TFT_eSprite& map, int x, int y, int r,
-									uint16_t fill, uint16_t border, bool fillShape);	/**< Draw filled circle with border */
-	void drawDashedLine(TFT_eSprite& map, int x1, int y1, int x2, int y2, 
-						int dashLength, int gapLength, uint16_t color);				/**< Draw dashed line */
 	
 	// Tile cache methods
 	void initTileCache();                                                         /**< Initialize tile cache system */
