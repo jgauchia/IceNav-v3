@@ -105,8 +105,13 @@ void calculateSun()
 }
 
 /**
- * @brief Setup
+ * @brief Initialize the ESP32 GPS Navigator system
  *
+ * @details Performs complete system initialization including hardware setup, 
+ *          peripheral configuration, storage initialization, display setup,
+ *          GPS initialization, LVGL GUI setup, and optional web server configuration.
+ *          Sets up mutexes, GPIO pins, I2C communication, sensors, file systems,
+ *          and launches background tasks for GPS processing and CLI interface.
  */
 void setup()
 {
@@ -201,8 +206,12 @@ void setup()
 }
 
 /**
- * @brief Main Loop
+ * @brief Main application loop
  *
+ * @details Continuously processes the LVGL GUI timer handler, manages screen refresh timing,
+ *          handles web server directory deletion operations, and processes GPS navigation
+ *          when track data is loaded. Includes simulation mode for testing navigation
+ *          without actual GPS movement and real-time navigation updates based on GPS speed.
  */
 void loop()
 {
@@ -227,10 +236,18 @@ void loop()
 	if (isTrackLoaded)
 	{
 		if (navSet.simNavigation)
-			gps.simFakeGPS(trackData,12,200);
+			gps.simFakeGPS(trackData,120,1000);
 
 		if (gps.gpsData.speed !=0)
+		{
+			// Use optimized NavConfig for simulation
+			NavConfig simConfig;
+			simConfig.searchWindow = 150;          // Larger window for simulation
+			simConfig.offTrackThreshold = 75.0f;   // More tolerant for simulation
+			simConfig.maxBackwardJump = 10;        // Allow more backward movement
+			
 			updateNavigation(gps.gpsData.latitude, gps.gpsData.longitude, gps.gpsData.heading, gps.gpsData.speed,
-							 trackData, turnPoints, navState,20,200);
+							 trackData, turnPoints, navState, 20, 200, simConfig);
+		}
 	}
 }

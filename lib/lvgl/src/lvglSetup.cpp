@@ -26,7 +26,7 @@ Maps mapView;
 // Initialize memory pools after object creation
 void initializeMapsPools() 
 {
-    mapView.initializeMemoryMonitoring();
+    // Memory monitoring is now handled internally
 }
 
 /**

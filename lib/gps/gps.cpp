@@ -442,6 +442,7 @@ void Gps::simFakeGPS(const std::vector<wayPoint>& trackData, uint16_t speed, uin
                 lastSimLat = smoothedLat;
                 lastSimLon = smoothedLon;
                 filteredHeading = 0.0f;
+                accumulatedDist = 0.0f;  // Reset accumulated distance for new track
 
                 gpsData.latitude = smoothedLat;
                 gpsData.longitude = smoothedLon;
@@ -453,31 +454,81 @@ void Gps::simFakeGPS(const std::vector<wayPoint>& trackData, uint16_t speed, uin
 				float rawLat = trackData[simulationIndex].lat;
 				float rawLon = trackData[simulationIndex].lon;
 
-				float stepDist = calcDist(rawLat, rawLon, lastSimLat, lastSimLon);
-				if (stepDist < minStepDist) 
-				{
-					simulationIndex++;
-					return;
+				// Calculate expected distance based on speed and time
+				float expectedDist = (speed * 1000.0f) / 3600.0f;  // Convert km/h to m/s
+				
+				// Advance through track points until we've covered the expected distance
+				int currentIndex = simulationIndex;
+				int pointsAdvanced = 0;
+				const float maxSegmentDist = 100.0f; // Filter out unrealistic jumps (>100m)
+				
+				// Add expected distance to accumulated distance
+				accumulatedDist += expectedDist;
+				
+				while (currentIndex < (int)trackData.size() - 1 && pointsAdvanced < 10) { // Limit to prevent infinite loops
+					int nextIndex = currentIndex + 1;
+					float segmentDist = calcDist(trackData[currentIndex].lat, trackData[currentIndex].lon,
+												trackData[nextIndex].lat, trackData[nextIndex].lon);
+					
+					// Skip unrealistic jumps or duplicate points
+					if (segmentDist > maxSegmentDist || segmentDist < 0.1f) {
+						currentIndex = nextIndex;
+						continue;
+					}
+					
+					// Check if we can advance to this point
+					if (segmentDist <= accumulatedDist) {
+						accumulatedDist -= segmentDist;
+						currentIndex = nextIndex;
+						pointsAdvanced++;
+					} else {
+						break; // Not enough accumulated distance
+					}
 				}
+				
+				// Update simulation index to the final point
+				simulationIndex = currentIndex;
+				
+				// Update position to the final point
+				rawLat = trackData[simulationIndex].lat;
+				rawLon = trackData[simulationIndex].lon;
 
 				// --- Apply smoothing BEFORE adding noise ---
 				smoothedLat = posAlpha * rawLat + (1.0f - posAlpha) * smoothedLat;
 				smoothedLon = posAlpha * rawLon + (1.0f - posAlpha) * smoothedLon;
 
 				// --- Small noise to simulate GPS jitter ---
-				float latOffset = random(-10, 10) / 100000.0f;  // Smaller noise range
-				float lonOffset = random(-10, 10) / 100000.0f;
+				float latOffset = random(-3, 3) / 100000.0f;  // Reduced noise for simulation
+				float lonOffset = random(-3, 3) / 100000.0f;
 
 				float noisyLat = smoothedLat + latOffset;
 				float noisyLon = smoothedLon + lonOffset;
 
-				// --- Heading estimation ---
-				int nextIdx = min(simulationIndex + headingLookahead, (int)trackData.size() - 1);
-				float desiredHeading = calcCourse(smoothedLat, smoothedLon,
-												trackData[nextIdx].lat,
-												trackData[nextIdx].lon);
-
-				filteredHeading = headAlpha * desiredHeading + (1.0f - headAlpha) * filteredHeading;
+				// --- Realistic heading based on track direction ---
+				// Look ahead based on speed (faster = further lookahead)
+				int lookAhead = min(max(3, speed / 20), (int)trackData.size() - simulationIndex - 1);
+				int targetIdx = simulationIndex + lookAhead;
+				
+				if (targetIdx < (int)trackData.size()) {
+					// Calculate heading towards future track point
+					float targetHeading = calcCourse(smoothedLat, smoothedLon,
+													trackData[targetIdx].lat,
+													trackData[targetIdx].lon);
+					
+					if (simulationIndex > 1) {
+						// Smooth transition to target heading (faster adaptation for higher speeds)
+						float headingDiff = calcAngleDiff(targetHeading, filteredHeading);
+						float adaptationRate = min(0.3f, 0.1f + (speed / 200.0f)); // 0.1-0.3 based on speed
+						filteredHeading += adaptationRate * headingDiff;
+					} else {
+						// Initialize with target heading
+						filteredHeading = targetHeading;
+					}
+					
+					// Normalize final heading
+					if (filteredHeading < 0.0f) filteredHeading += 360.0f;
+					if (filteredHeading >= 360.0f) filteredHeading -= 360.0f;
+				}
 
 				// --- Final output ---
 				gpsData.latitude = noisyLat;

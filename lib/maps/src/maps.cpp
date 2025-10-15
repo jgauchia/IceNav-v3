@@ -50,11 +50,6 @@ uint32_t Maps::polygonRenderCount = 0;
 uint32_t Maps::polygonCulledCount = 0;
 uint32_t Maps::polygonOptimizedCount = 0;
 
-// Precalculated transformation matrices static variables
-Maps::TransformMatrix Maps::coordTransformMatrix = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false};
-Maps::TransformMatrix Maps::pixelTransformMatrix = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false};
-bool Maps::transformMatricesValid = false;
-uint32_t Maps::lastTransformUpdate = 0;
 
 // Efficient batch rendering static variables
 Maps::RenderBatch* Maps::activeBatch = nullptr;
@@ -63,45 +58,14 @@ uint32_t Maps::batchRenderCount = 0;
 uint32_t Maps::batchOptimizationCount = 0;
 uint32_t Maps::batchFlushCount = 0;
 
-/**
- * @brief Get the Optimal Batch Size object
- * 
- * @return size_t 
- */
-static size_t getOptimalBatchSize() 
-{
-    static size_t optimalSize = 0;
-    if (optimalSize == 0) 
-    {
-#ifdef BOARD_HAS_PSRAM
-        size_t psramFree = ESP.getFreePsram();
-        if (psramFree >= 4 * 1024 * 1024) 
-            optimalSize = 256;  // High-end ESP32-S3: 256 lines
-        else if (psramFree >= 2 * 1024 * 1024)
-            optimalSize = 128;  // Mid-range ESP32-S3: 128 lines
-        else 
-            optimalSize = 64;   // Low-end ESP32-S3: 64 lines
-#else
-        optimalSize = 32;  // ESP32 without PSRAM: 32 lines
-#endif
-        ESP_LOGI(TAG, "Optimal batch size: %zu lines", optimalSize);
-    }
-    return optimalSize;
-}
 
 /**
  * @brief Map Class constructor
+ *
+ * @details Initializes the Maps class with default polygon filling enabled and logs completion status.
  */
 Maps::Maps() : fillPolygons(true) 
 {
-    ESP_LOGI(TAG, "Maps constructor called - initializing pools...");
-    
-    // Initialize advanced memory pools in constructor
-    initUnifiedPool();
-    initMemoryMonitoring();
-    initTransformMatrices();
-    initBatchRendering();
-    
     ESP_LOGI(TAG, "Maps constructor completed");
 }
 
@@ -118,12 +82,7 @@ Maps::Maps() : fillPolygons(true)
  */
 uint16_t Maps::lon2posx(float f_lon, uint8_t zoom, uint16_t tileSize)
 {
-    // Use precalculated transformation if available
-    if (transformMatricesValid && coordTransformMatrix.isValid) {
-        return transformLonToPixel(f_lon, zoom, tileSize);
-    }
-    
-    // Fallback to original calculation
+    // Use direct calculation (more efficient than complex transformation matrices)
     return static_cast<uint16_t>(((f_lon + 180.0f) / 360.0f * (1 << zoom) * tileSize)) % tileSize;
 }
 
@@ -140,12 +99,7 @@ uint16_t Maps::lon2posx(float f_lon, uint8_t zoom, uint16_t tileSize)
  */
 uint16_t Maps::lat2posy(float f_lat, uint8_t zoom, uint16_t tileSize)
 {
-    // Use precalculated transformation if available
-    if (transformMatricesValid && coordTransformMatrix.isValid) {
-        return transformLatToPixel(f_lat, zoom, tileSize);
-    }
-    
-    // Fallback to original calculation
+    // Use direct calculation (more efficient than complex transformation matrices)
     float lat_rad = f_lat * static_cast<float>(M_PI) / 180.0f;
     float siny = tanf(lat_rad) + 1.0f / cosf(lat_rad);
     float merc_n = logf(siny);
@@ -368,12 +322,14 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
 	initTileCache();
 	
 	// Initialize background preload system
-
-	// Initialize polygon optimizations
-	initPolygonOptimizations();
 	
-	// Initialize transformation matrices
-	initTransformMatrices();
+	// Initialize polygon optimizations
+    // Initialize polygon optimization system
+    polygonCullingEnabled = true;
+    optimizedScanlineEnabled = false;
+    polygonRenderCount = 0;
+    polygonCulledCount = 0;
+    polygonOptimizedCount = 0;
 	
 	// Initialize batch rendering
 	initBatchRendering();
@@ -421,7 +377,6 @@ void Maps::generateMap(uint8_t zoom)
     {
 		ESP_LOGI(TAG, "Zoom level changed from %d to %d - clearing cache", Maps::zoomLevel, zoom);
 		clearTileCache();
-		invalidateTransformMatrices(); // Invalidate matrices when zoom changes
 	}
 	
 	Maps::zoomLevel = zoom;
@@ -552,7 +507,8 @@ void Maps::generateMap(uint8_t zoom)
 /**
  * @brief Display Map
  *
- * @details Displays the map on the screen. 
+ * @details Displays the map on the screen with proper rotation, waypoint overlay, and GPS navigation arrow positioning.
+ *          Handles both GPS-following mode and manual panning mode with appropriate pivot points and rotations.
  */
 void Maps::displayMap()
 {
@@ -722,15 +678,6 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
 		Maps::preloadTiles(deltaTileX, deltaTileY);
 		Maps::lastTileX = Maps::tileX;
 		Maps::lastTileY = Maps::tileY;
-		
-		// Print cache stats every 2 seconds during scrolling
-		if (millis() - lastCacheStats > 2000) {
-			ESP_LOGI(TAG, "=== Scroll Cache Stats ===");
-			ESP_LOGI(TAG, "Scroll delta: X=%d, Y=%d", deltaTileX, deltaTileY);
-			ESP_LOGI(TAG, "Cache hits: %zu/%zu tiles", tileCache.size(), maxCachedTiles);
-			ESP_LOGI(TAG, "Cache memory: %zu bytes", getCacheMemoryUsage());
-			lastCacheStats = millis();
-		}
 	}
 }
 
@@ -748,8 +695,6 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 	const int16_t tileSize = mapTileSize;
 	const int16_t preloadWidth  = (dirX != 0) ? tileSize : tileSize * 2;
 	const int16_t preloadHeight = (dirY != 0) ? tileSize : tileSize * 2;
-
-	ESP_LOGI(TAG, "Preloading tiles: dirX=%d, dirY=%d", dirX, dirY);
 
 	TFT_eSprite preloadSprite = TFT_eSprite(&tft);
 	preloadSprite.createSprite(preloadWidth, preloadHeight);
@@ -775,8 +720,6 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 
 		bool foundTile = false;
 		
-		ESP_LOGI(TAG, "Loading tile: %s", Maps::roundMapTile.file);
-		
 		// Try cache first for vector maps
 		if (mapSet.vectorMap) 
         {
@@ -790,7 +733,6 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
         {
 			if (mapSet.vectorMap)
             {
-				ESP_LOGI(TAG, "Rendering tile to cache: %s", Maps::roundMapTile.file);
 				// Create a temporary sprite for rendering to cache
 				TFT_eSprite tempSprite = TFT_eSprite(&tft);
 				tempSprite.createSprite(tileSize, tileSize);
@@ -802,7 +744,6 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
                 {
 					// Copy from temporary sprite to preload sprite
 					preloadSprite.pushImage(offsetX, offsetY, tileSize, tileSize, tempSprite.frameBuffer(0));
-					ESP_LOGI(TAG, "Tile rendered and cached: %s", Maps::roundMapTile.file);
 				}
 				
 				tempSprite.deleteSprite();
@@ -1236,16 +1177,6 @@ void Maps::drawPolygonBorder(TFT_eSprite &map, const int *px, const int *py, con
 * @param border The color to use for the circle border (in RGB565 format).
 * @param fillShape If true, the circle will be filled; if false, only the border will be drawn.
 */
-void Maps::drawFilledCircleWithBorder(TFT_eSprite& map, int x, int y, int r, uint16_t fill, uint16_t border, bool fillShape)
-{
-    if (fillShape) 
-    {
-        map.fillCircle(x, y, r, fill);
-        map.drawCircle(x, y, r, border);
-    }
-    else 
-        map.drawCircle(x, y, r, fill);
-}
 
 /**
 * @brief Draws a filled rectangle with a border on a sprite.
@@ -1263,16 +1194,6 @@ void Maps::drawFilledCircleWithBorder(TFT_eSprite& map, int x, int y, int r, uin
 * @param border The color to use for the rectangle border (in RGB565 format).
 * @param fillShape If true, the rectangle will be filled; if false, only the border will be drawn.
 */
-void Maps::drawFilledRectWithBorder(TFT_eSprite& map, int x, int y, int w, int h, uint16_t fill, uint16_t border, bool fillShape)
-{
-    if (fillShape) 
-    {
-        map.fillRect(x, y, w, h, fill);
-        map.drawRect(x, y, w, h, border);
-    }
-    else 
-        map.drawRect(x, y, w, h, fill);
-}
 
 /**
  * @brief Draw a dashed line between two points
@@ -1286,323 +1207,26 @@ void Maps::drawFilledRectWithBorder(TFT_eSprite& map, int x, int y, int w, int h
  * @param gapLength Length of each gap between dashes.
  * @param color The color to draw the line with (in RGB565 format).
  */
-void Maps::drawDashedLine(TFT_eSprite& map, int x1, int y1, int x2, int y2, int dashLength, int gapLength, uint16_t color)
-{
-    int dx = abs(x2 - x1);
-    int dy = abs(y2 - y1);
-    int sx = (x1 < x2) ? 1 : -1;
-    int sy = (y1 < y2) ? 1 : -1;
-    int err = dx - dy;
-    
-    int currentX = x1;
-    int currentY = y1;
-    int segmentLength = 0;
-    bool drawingDash = true;
-    
-    while (true) 
-    {
-        if (drawingDash) 
-        {
-            map.drawPixel(currentX, currentY, color);
-            segmentLength++;
-            
-            if (segmentLength >= dashLength) 
-            {
-                drawingDash = false;
-                segmentLength = 0;
-            }
-        } 
-        else 
-        {
-            segmentLength++;
-            if (segmentLength >= gapLength)
-            {
-                drawingDash = true;
-                segmentLength = 0;
-            }
-        }
-        
-        if (currentX == x2 && currentY == y2) break;
-        
-        int e2 = 2 * err;
-        if (e2 > -dy) 
-        {
-            err -= dy;
-            currentX += sx;
-        }
-        if (e2 < dx)
-        {
-            err += dx;
-            currentY += sy;
-        }
-    }
-}
 
-/**
- * @brief Draw a predicted line based on pattern
- *
- * @details Draws a predicted line using pattern-based prediction for road networks.
- *
- * @param map The TFT_eSprite object where the line will be drawn.
- * @param startX, startY Starting point coordinates.
- * @param patternType Type of pattern (0=straight, 1=curved, 2=zigzag).
- * @param length Length of the predicted line.
- * @param color The color to draw the line with (in RGB565 format).
- */
-void Maps::drawPredictedLine(TFT_eSprite& map, int startX, int startY, int patternType, int length, uint16_t color)
-{
-    int endX = startX;
-    int endY = startY;
-    
-    switch (patternType) 
-    {
-        case 0: // Straight line
-            endX = startX + length;
-            endY = startY;
-            break;
-        case 1: // Curved line
-            endX = startX + length;
-            endY = startY + (length / 4); // Gentle curve
-            break;
-        case 2: // Zigzag line
-            endX = startX + length;
-            endY = startY + (length / 8); // Small zigzag
-            break;
-        default:
-            endX = startX + length;
-            endY = startY;
-            break;
-    }
-    
-    // Draw the predicted line
-    map.drawLine(startX, startY, endX, endY, color);
-}
 
-/**
- * @brief Draw a highway segment with width
- *
- * @details Draws a highway segment using multiple parallel lines to simulate width.
- *
- * @param map The TFT_eSprite object where the segment will be drawn.
- * @param startX, startY Starting point coordinates.
- * @param endX, endY Ending point coordinates.
- * @param width Width of the highway segment.
- * @param color The color to draw the segment with (in RGB565 format).
- */
-void Maps::drawHighwaySegment(TFT_eSprite& map, int startX, int startY, int endX, int endY, int width, uint16_t color)
-{
-    if (width <= 1) 
-    {
-        // Draw as simple line if width is 1 or less
-        map.drawLine(startX, startY, endX, endY, color);
-        return;
-    }
-    
-    // Calculate perpendicular direction for width
-    int dx = endX - startX;
-    int dy = endY - startY;
-    int length = sqrt(dx * dx + dy * dy);
-    
-    if (length == 0) return; // Avoid division by zero
-    
-    // Normalize and rotate 90 degrees for perpendicular
-    float perpX = -dy / (float)length;
-    float perpY = dx / (float)length;
-    
-    // Calculate half width offset
-    int halfWidth = width / 2;
-    
-    // Draw multiple parallel lines to simulate width
-    for (int i = -halfWidth; i <= halfWidth; i++) 
-    {
-        int offsetX = (int)(perpX * i);
-        int offsetY = (int)(perpY * i);
-        
-        map.drawLine(startX + offsetX, startY + offsetY, 
-                    endX + offsetX, endY + offsetY, color);
-    }
-}
 
-/**
- * @brief Draw a block pattern for urban areas
- *
- * @details Draws a pattern of rectangular blocks to represent urban areas.
- *
- * @param map The TFT_eSprite object where the pattern will be drawn.
- * @param x, y Starting coordinates.
- * @param blockSize Size of each block.
- * @param spacing Spacing between blocks.
- * @param count Number of blocks to draw.
- * @param color The color to draw the blocks with (in RGB565 format).
- */
-void Maps::drawBlockPattern(TFT_eSprite& map, int x, int y, int blockSize, int spacing, int count, uint16_t color)
-{
-    int currentX = x;
-    int currentY = y;
-    
-    for (int i = 0; i < count; i++) 
-    {
-        // Draw block rectangle
-        map.drawRect(currentX, currentY, blockSize, blockSize, color);
-        
-        // Move to next position
-        currentX += blockSize + spacing;
-        
-        // Check if we need to wrap to next row
-        if (currentX + blockSize > map.width()) 
-        {
-            currentX = x;
-            currentY += blockSize + spacing;
-        }
-        
-        // Stop if we go beyond the map bounds
-        if (currentY + blockSize > map.height()) 
-            break;
-    }
-}
 
-/**
- * @brief Draw a dotted line between two points
- *
- * @details Draws a dotted line using Bresenham-like algorithm with configurable dot spacing.
- *
- * @param map The TFT_eSprite object where the line will be drawn.
- * @param x1, y1 Starting point coordinates.
- * @param x2, y2 Ending point coordinates.
- * @param dotSpacing Distance between dots.
- * @param color The color to draw the line with (in RGB565 format).
- */
-void Maps::drawDottedLine(TFT_eSprite& map, int x1, int y1, int x2, int y2, int dotSpacing, uint16_t color)
-{
-    int dx = abs(x2 - x1);
-    int dy = abs(y2 - y1);
-    int sx = (x1 < x2) ? 1 : -1;
-    int sy = (y1 < y2) ? 1 : -1;
-    int err = dx - dy;
-    
-    int currentX = x1;
-    int currentY = y1;
-    int dotCounter = 0;
-    
-    while (true) 
-    {
-        if (dotCounter % dotSpacing == 0)
-            map.drawPixel(currentX, currentY, color);
-        dotCounter++;
-        
-        if (currentX == x2 && currentY == y2) break;
-        
-        int e2 = 2 * err;
-        if (e2 > -dy)
-        {
-            err -= dy;
-            currentX += sx;
-        }
-        if (e2 < dx) 
-        {
-            err += dx;
-            currentY += sy;
-        }
-    }
-}
 
-/**
- * @brief Draw a grid pattern (horizontal or vertical lines)
- *
- * @details Draws a series of parallel lines to create a grid pattern, commonly used for tile borders.
- *
- * @param map The TFT_eSprite object where the pattern will be drawn.
- * @param x, y Starting position coordinates.
- * @param width Length of each line in the pattern.
- * @param spacing Distance between lines.
- * @param count Number of lines to draw.
- * @param direction 0 for horizontal lines, 1 for vertical lines.
- * @param color The color to draw the lines with (in RGB565 format).
- */
-void Maps::drawGridPattern(TFT_eSprite& map, int x, int y, int width, int spacing, int count, int direction, uint16_t color)
-{
-    if (direction == 0)
-    {
-        // Horizontal lines
-        for (int i = 0; i < count; i++)
-        {
-            int lineY = y + (i * spacing);
-            map.drawLine(x, lineY, x + width, lineY, color);
-        }
-    } 
-    else 
-    {
-        // Vertical lines
-        for (int i = 0; i < count; i++)
-        {
-            int lineX = x + (i * spacing);
-            map.drawLine(lineX, y, lineX, y + width, color);
-        }
-    }
-}
 
 /**
  * @brief Initialize tile cache system
  *
- * @details Initializes the tile cache system by detecting hardware capabilities and setting up the cache structure.
+ * @details Initializes the tile cache system by clearing existing cache, reserving space for the maximum number of cached tiles,
+ *          resetting the access counter, and logging the cache capacity for debugging purposes.
  */
 void Maps::initTileCache()
 {
-    detectHardwareCapabilities();
     tileCache.clear();
     tileCache.reserve(maxCachedTiles);
     cacheAccessCounter = 0;
     ESP_LOGI(TAG, "Tile cache initialized with %zu tiles capacity", maxCachedTiles);
 }
 
-/**
- * @brief Detect hardware capabilities and set cache size
- *
- * @details Automatically detects available memory (PSRAM/RAM) and sets the appropriate cache size.
- */
-void Maps::detectHardwareCapabilities()
-{
-    maxCachedTiles = 0; // Default: no cache
-    
-#ifdef BOARD_HAS_PSRAM
-    // Check PSRAM size and availability
-    size_t psramSize = ESP.getPsramSize();
-    size_t psramFree = ESP.getFreePsram();
-    size_t psramUsed = psramSize - psramFree;
-    
-    ESP_LOGI(TAG, "PSRAM total: %zu bytes (%.2f MB)", psramSize, psramSize / (1024.0 * 1024.0));
-    ESP_LOGI(TAG, "PSRAM free: %zu bytes (%.2f MB)", psramFree, psramFree / (1024.0 * 1024.0));
-    ESP_LOGI(TAG, "PSRAM used: %zu bytes (%.2f MB)", psramUsed, psramUsed / (1024.0 * 1024.0));
-    
-    // Calculate available memory for cache (leave 50% free for other operations)
-    size_t availableForCache = psramFree * 0.5;
-    size_t tileMemorySize = tileWidth * tileHeight * 2; // RGB565 = 2 bytes per pixel
-    
-    ESP_LOGI(TAG, "Available for cache: %zu bytes (%.2f MB)", availableForCache, availableForCache / (1024.0 * 1024.0));
-    ESP_LOGI(TAG, "Memory per tile: %zu bytes (%.2f MB)", tileMemorySize, tileMemorySize / (1024.0 * 1024.0));
-    
-    // Calculate max tiles based on available memory
-    maxCachedTiles = availableForCache / tileMemorySize;
-    
-    // Apply reasonable limits
-    if (maxCachedTiles > 4) maxCachedTiles = 4; // Max 4 tiles regardless of memory
-    if (maxCachedTiles < 1) maxCachedTiles = 0; // Disable if less than 1 tile
-    
-    ESP_LOGI(TAG, "Calculated cache capacity: %zu tiles", maxCachedTiles);
-    
-    if (maxCachedTiles >= 3) 
-        ESP_LOGI(TAG, "High-end ESP32-S3 detected: %zu tiles cache enabled", maxCachedTiles);
-    else if (maxCachedTiles >= 2) 
-        ESP_LOGI(TAG, "Mid-range ESP32-S3 detected: %zu tiles cache enabled", maxCachedTiles);
-    else if (maxCachedTiles >= 1)
-        ESP_LOGI(TAG, "Low-end ESP32-S3 detected: %zu tiles cache enabled", maxCachedTiles);
-    else 
-        ESP_LOGI(TAG, "Insufficient PSRAM for tile cache - disabled");
-#else
-    // ESP32 without PSRAM: no cache (memory too limited)
-    ESP_LOGI(TAG, "ESP32 without PSRAM detected: tile cache disabled");
-#endif
-}
 
 /**
  * @brief Calculate hash for tile identification
@@ -1783,408 +1407,12 @@ size_t Maps::getCacheMemoryUsage()
  * @param tileY The Y coordinate of the tile.
  * @param zoom The zoom level of the tile.
  */
-/**
- * @brief Initialize memory monitoring system
- *
- * @details Initializes the memory monitoring system with initial values.
- */
-void Maps::initMemoryMonitoring()
-{
-    totalMemoryAllocations = 0;
-    totalMemoryDeallocations = 0;
-    peakMemoryUsage = 0;
-    currentMemoryUsage = 0;
-    poolEfficiencyScore = 0;
-    lastStatsUpdate = millis();
-    
-    ESP_LOGI(TAG, "Memory monitoring system initialized");
-}
 
-/**
- * @brief Update memory statistics
- *
- * @details Updates current memory usage and calculates efficiency metrics.
- */
-void Maps::updateMemoryStats()
-{
-    uint32_t currentTime = millis();
-    
-    // Update every tile (force update)
-    currentMemoryUsage = ESP.getFreeHeap();
-    
-    // Update peak memory usage
-    if (currentMemoryUsage > peakMemoryUsage) 
-        peakMemoryUsage = currentMemoryUsage;
-    
-    // Calculate pool efficiency
-    calculatePoolEfficiency();
-    
-    lastStatsUpdate = currentTime;
-}
 
-/**
- * @brief Calculate pool efficiency score
- *
- * @details Calculates efficiency score based on hit/miss ratios.
- */
-void Maps::calculatePoolEfficiency()
-{
-    uint32_t totalHits = unifiedPoolHitCount;
-    uint32_t totalMisses = unifiedPoolMissCount;
-    
-    if (totalHits + totalMisses > 0)
-        poolEfficiencyScore = (totalHits * 100) / (totalHits + totalMisses);
-    else 
-        poolEfficiencyScore = 0;
-}
 
-/**
- * @brief Initialize memory monitoring (public method)
- * 
- */
-void Maps::initializeMemoryMonitoring()
-{
-    initMemoryMonitoring();
-}
 
-/**
- * @brief Initialize polygon optimization system
- *
- * @details Initializes the polygon optimization system with default settings.
- */
-void Maps::initPolygonOptimizations()
-{
-    // Step-by-step polygon optimizations - enable culling first
-    polygonCullingEnabled = true;   // Enable culling - safe optimization
-    optimizedScanlineEnabled = false; // Keep scanline disabled for now
-    polygonRenderCount = 0;
-    polygonCulledCount = 0;
-    polygonOptimizedCount = 0;
-    
-    ESP_LOGI(TAG, "Polygon optimizations initialized - Culling: %s, Optimized scanline: %s", 
-             polygonCullingEnabled ? "enabled" : "disabled",
-             optimizedScanlineEnabled ? "enabled" : "disabled");
-}
 
-/**
- * @brief Calculate polygon bounding box
- *
- * @details Calculates the bounding box for a polygon defined by vertex arrays.
- *
- * @param px Array of x-coordinates of the polygon vertices.
- * @param py Array of y-coordinates of the polygon vertices.
- * @param numPoints The number of vertices in the polygon.
- * @param bounds Reference to store the calculated bounds.
- */
-void Maps::calculatePolygonBounds(const int *px, const int *py, int numPoints, PolygonBounds& bounds)
-{
-    if (numPoints < 3) 
-    {
-        bounds.isValid = false;
-        return;
-    }
-    
-    bounds.minX = bounds.maxX = px[0];
-    bounds.minY = bounds.maxY = py[0];
-    
-    for (int i = 1; i < numPoints; ++i) 
-    {
-        if (px[i] < bounds.minX) bounds.minX = px[i];
-        if (px[i] > bounds.maxX) bounds.maxX = px[i];
-        if (py[i] < bounds.minY) bounds.minY = py[i];
-        if (py[i] > bounds.maxY) bounds.maxY = py[i];
-    }
-    
-    bounds.isValid = true;
-}
 
-/**
- * @brief Check if polygon is in viewport
- *
- * @details Checks if the polygon's bounding box intersects with the visible area.
- *
- * @param bounds The polygon's bounding box.
- * @param xOffset The x-offset for positioning.
- * @param yOffset The y-offset for positioning.
- * @return true if polygon is in viewport, false otherwise.
- */
-bool Maps::isPolygonInViewport(const PolygonBounds& bounds, int xOffset, int yOffset)
-{
-    if (!bounds.isValid) return false;
-    
-    int screenMinX = xOffset;
-    int screenMinY = yOffset;
-    int screenMaxX = xOffset + TILE_SIZE;
-    int screenMaxY = yOffset + TILE_SIZE;
-    
-    // Check if bounding box intersects with screen area
-    return !(bounds.maxX < screenMinX || bounds.minX > screenMaxX ||
-             bounds.maxY < screenMinY || bounds.minY > screenMaxY);
-}
-
-/**
- * @brief Check if polygon can use optimized rendering
- *
- * @details Determines if a polygon is simple enough to use optimized rendering algorithms.
- *
- * @param px Array of x-coordinates of the polygon vertices.
- * @param py Array of y-coordinates of the polygon vertices.
- * @param numPoints The number of vertices in the polygon.
- * @return true if polygon can use optimized rendering, false otherwise.
- */
-bool Maps::isSimplePolygon(const int *px, const int *py, int numPoints)
-{
-    if (numPoints < 3) return false;
-    
-    // Check for triangles (3 points)
-    if (numPoints == 3) return true;
-    
-    // Check for rectangles (4 points with right angles)
-    if (numPoints == 4) 
-    {
-        // Simple rectangle check: opposite sides should be parallel
-        int dx1 = px[1] - px[0];
-        int dy1 = py[1] - py[0];
-        int dx2 = px[2] - px[1];
-        int dy2 = py[2] - py[1];
-        
-        // Check if sides are perpendicular (dot product = 0)
-        if (dx1 * dx2 + dy1 * dy2 == 0) 
-            return true;
-    }
-    
-    // For other polygons, use optimized scanline if enabled
-    return optimizedScanlineEnabled;
-}
-
-/**
- * @brief Optimized polygon filling
- *
- * @details Fills a polygon using the most appropriate algorithm based on polygon complexity.
- *
- * @param map The TFT_eSprite object where the polygon will be drawn.
- * @param px Array of x-coordinates of the polygon vertices.
- * @param py Array of y-coordinates of the polygon vertices.
- * @param numPoints The number of vertices in the polygon.
- * @param color The color to fill the polygon with.
- * @param xOffset The x-offset to apply when drawing the polygon.
- * @param yOffset The y-offset to apply when drawing the polygon.
- */
-void Maps::fillPolygonOptimized(TFT_eSprite &map, const int *px, const int *py, int numPoints, uint16_t color, int xOffset, int yOffset)
-{
-    polygonRenderCount++;
-    
-    // If optimizations are disabled, use original algorithm
-    if (!polygonCullingEnabled && !optimizedScanlineEnabled) 
-    {
-        fillPolygonGeneral(map, px, py, numPoints, color, xOffset, yOffset);
-        return;
-    }
-    
-    // Apply viewport culling if enabled
-    if (polygonCullingEnabled) 
-    {
-        PolygonBounds bounds;
-        calculatePolygonBounds(px, py, numPoints, bounds);
-        
-        if (!isPolygonInViewport(bounds, xOffset, yOffset)) 
-        {
-            polygonCulledCount++;
-            return; // Skip rendering
-        }
-    }
-    
-    // Choose appropriate rendering algorithm
-    if (isSimplePolygon(px, py, numPoints))
-    {
-        polygonOptimizedCount++;
-        
-        if (numPoints == 3) 
-        {
-            // Triangle
-            fillTriangleOptimized(map, px[0] + xOffset, py[0] + yOffset,
-                                 px[1] + xOffset, py[1] + yOffset,
-                                 px[2] + xOffset, py[2] + yOffset, color);
-        }
-        else if (numPoints == 4) 
-        {
-            // Rectangle
-            PolygonBounds bounds;
-            calculatePolygonBounds(px, py, numPoints, bounds);
-            fillRectangleOptimized(map, bounds.minX + xOffset, bounds.minY + yOffset,
-                                  bounds.maxX - bounds.minX, bounds.maxY - bounds.minY, color);
-        } 
-        else 
-        {
-            // Complex polygon with optimized scanline
-            if (optimizedScanlineEnabled) 
-                fillPolygonScanlineOptimized(map, px, py, numPoints, color, xOffset, yOffset);
-            else
-                fillPolygonGeneral(map, px, py, numPoints, color, xOffset, yOffset);
-        }
-    }
-    else 
-        // Fallback to original algorithm
-        fillPolygonGeneral(map, px, py, numPoints, color, xOffset, yOffset);
-}
-
-/**
- * @brief Optimized triangle filling
- *
- * @details Fills a triangle using an optimized algorithm.
- *
- * @param map The TFT_eSprite object where the triangle will be drawn.
- * @param x1, y1 First vertex coordinates.
- * @param x2, y2 Second vertex coordinates.
- * @param x3, y3 Third vertex coordinates.
- * @param color The color to fill the triangle with.
- */
-void Maps::fillTriangleOptimized(TFT_eSprite &map, int x1, int y1, int x2, int y2, int x3, int y3, uint16_t color)
-{
-    // Sort vertices by Y coordinate
-    if (y1 > y2) { std::swap(x1, x2); std::swap(y1, y2); }
-    if (y1 > y3) { std::swap(x1, x3); std::swap(y1, y3); }
-    if (y2 > y3) { std::swap(x2, x3); std::swap(y2, y3); }
-    
-    // Calculate slopes
-    int dx1 = x2 - x1;
-    int dy1 = y2 - y1;
-    int dx2 = x3 - x1;
-    int dy2 = y3 - y1;
-    int dx3 = x3 - x2;
-    int dy3 = y3 - y2;
-    
-    // Fill top half
-    for (int y = y1; y < y2; y++) 
-    {
-        int x_start = x1 + (y - y1) * dx1 / dy1;
-        int x_end = x1 + (y - y1) * dx2 / dy2;
-        
-        if (x_start > x_end) std::swap(x_start, x_end);
-        
-        if (x_start >= 0 && x_end < TILE_SIZE && y >= 0 && y < TILE_SIZE) 
-            map.drawLine(x_start, y, x_end, y, color);
-    }
-    
-    // Fill bottom half
-    for (int y = y2; y <= y3; y++) 
-    {
-        int x_start = x2 + (y - y2) * dx3 / dy3;
-        int x_end = x1 + (y - y1) * dx2 / dy2;
-        
-        if (x_start > x_end) std::swap(x_start, x_end);
-        
-        if (x_start >= 0 && x_end < TILE_SIZE && y >= 0 && y < TILE_SIZE) 
-            map.drawLine(x_start, y, x_end, y, color);
-    }
-}
-
-/**
- * @brief Optimized rectangle filling
- *
- * @details Fills a rectangle using the optimized fillRect method.
- *
- * @param map The TFT_eSprite object where the rectangle will be drawn.
- * @param x, y Top-left corner coordinates.
- * @param w, h Width and height of the rectangle.
- * @param color The color to fill the rectangle with.
- */
-void Maps::fillRectangleOptimized(TFT_eSprite &map, int x, int y, int w, int h, uint16_t color)
-{
-    // Clamp to tile boundaries
-    if (x < 0) { w += x; x = 0; }
-    if (y < 0) { h += y; y = 0; }
-    if (x + w > TILE_SIZE) w = TILE_SIZE - x;
-    if (y + h > TILE_SIZE) h = TILE_SIZE - y;
-    
-    if (w > 0 && h > 0)
-        map.fillRect(x, y, w, h, color);
-}
-
-/**
- * @brief Optimized scanline algorithm
- *
- * @details Fills a polygon using an optimized scanline algorithm with better memory management.
- *
- * @param map The TFT_eSprite object where the polygon will be drawn.
- * @param px Array of x-coordinates of the polygon vertices.
- * @param py Array of y-coordinates of the polygon vertices.
- * @param numPoints The number of vertices in the polygon.
- * @param color The color to fill the polygon with.
- * @param xOffset The x-offset to apply when drawing the polygon.
- * @param yOffset The y-offset to apply when drawing the polygon.
- */
-void Maps::fillPolygonScanlineOptimized(TFT_eSprite &map, const int *px, const int *py, int numPoints, uint16_t color, int xOffset, int yOffset)
-{
-    // Calculate bounding box
-    PolygonBounds bounds;
-    calculatePolygonBounds(px, py, numPoints, bounds);
-    
-    if (!bounds.isValid) return;
-    
-    // Clamp to tile boundaries
-    int minY = std::max(bounds.minY, 0);
-    int maxY = std::min(bounds.maxY, TILE_SIZE - 1);
-    
-    // Optimized scanline algorithm with better performance
-    for (int y = minY; y <= maxY; y++) 
-    {
-        int intersections[32]; // Stack-allocated for small polygons
-        int count = 0;
-        
-        // Find intersections with current scanline
-        for (int i = 0; i < numPoints; i++) 
-        {
-            int j = (i + 1) % numPoints;
-            
-            int y1 = py[i];
-            int y2 = py[j];
-            int x1 = px[i];
-            int x2 = px[j];
-            
-            // Check if scanline intersects this edge (optimized condition)
-            if ((y1 < y && y <= y2) || (y2 < y && y <= y1)) 
-            {
-                // Calculate intersection X coordinate with fixed-point arithmetic
-                int x;
-                if (y1 == y2) 
-                    x = x1; // Horizontal edge
-                else 
-                {
-                    // Use fixed-point arithmetic for better precision
-                    int dy = y2 - y1;
-                    int dx = x2 - x1;
-                    x = x1 + ((y - y1) * dx) / dy;
-                }
-                intersections[count++] = x;
-            }
-        }
-        
-        // Sort intersections (use insertion sort for small arrays)
-        for (int i = 1; i < count; i++) 
-        {
-            int key = intersections[i];
-            int j = i - 1;
-            while (j >= 0 && intersections[j] > key) 
-            {
-                intersections[j + 1] = intersections[j];
-                j--;
-            }
-            intersections[j + 1] = key;
-        }
-        
-        // Fill between pairs of intersections
-        for (int i = 0; i < count - 1; i += 2)
-         {
-            int x1 = std::max(0, intersections[i] + xOffset);
-            int x2 = std::min(TILE_SIZE - 1, intersections[i + 1] + xOffset);
-            int yy = y + yOffset;
-            
-            if (x1 < x2 && yy >= 0 && yy < TILE_SIZE + yOffset) 
-                map.drawFastHLine(x1, yy, x2 - x1 + 1, color);
-        }
-    }
-}
 
 /**
 * @brief Renders a map tile from a binary file onto a sprite.
@@ -2235,7 +1463,6 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     }
     if (!unifiedPoolLogged)
     {
-        ESP_LOGI(TAG, "renderTile: Using RAII MemoryGuard for data allocation");
         unifiedPoolLogged = true;
     }
 
@@ -2244,8 +1471,10 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     if (bytesRead != fileSize) 
         return false;
 
-    // Update memory statistics before rendering
-    updateMemoryStats();
+    // Update memory statistics (simplified)
+    currentMemoryUsage = ESP.getFreeHeap();
+    if (currentMemoryUsage > peakMemoryUsage) 
+        peakMemoryUsage = currentMemoryUsage;
 
     size_t offset = 0;
     const size_t dataSize = fileSize;
@@ -2362,12 +1591,10 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         int* py = pyGuard.get();
                         if (!px || !py)
                         {
-                            ESP_LOGW(TAG, "renderTile DRAW_POLYLINE: RAII MemoryGuard allocation failed");
                             continue;
                         }
                         if (!unifiedPolylineLogged)
                         {
-                            ESP_LOGI(TAG, "renderTile DRAW_POLYLINE: Using RAII MemoryGuard for coordinate arrays");
                             unifiedPolylineLogged = true;
                         }
                         unifiedPoolHitCount += 2;
@@ -2441,7 +1668,6 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         }
                         if (!unifiedPolygonLogged) 
                         {
-                            ESP_LOGI(TAG, "renderTile DRAW_STROKE_POLYGON: Using RAII MemoryGuard for coordinate arrays");
                             unifiedPolygonLogged = true;
                         }
                         const int32_t firstX = readZigzag(data, offset, dataSize);
@@ -2499,7 +1725,6 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         }
                         if (!unifiedPolygonsLogged)
                         {
-                            ESP_LOGI(TAG, "renderTile DRAW_STROKE_POLYGONS: Using RAII MemoryGuard for coordinate arrays");
                             unifiedPolygonsLogged = true;
                         }
                         for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
@@ -2521,7 +1746,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         }
                         if (fillPolygons && numPoints >= 3)
                         {
-                            fillPolygonOptimized(map, px, py, numPoints, currentDrawColor, xOffset, yOffset);
+                            fillPolygonGeneral(map, px, py, numPoints, currentDrawColor, xOffset, yOffset);
                             const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
                             drawPolygonBorder(map, px, py, numPoints, borderColor, currentDrawColor, xOffset, yOffset);
                             polygonCommands++;
@@ -2595,7 +1820,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         if (fillPolygons) 
                         {
                             const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            drawFilledRectWithBorder(map, px1 + xOffset, py1 + yOffset, pwidth, pheight, currentDrawColor, borderColor, fillPolygons);
+                            map.fillRect(px1 + xOffset, py1 + yOffset, pwidth, pheight, currentDrawColor);
+                            map.drawRect(px1 + xOffset, py1 + yOffset, pwidth, pheight, borderColor);
                             executed++;
                         }
                         else
@@ -2623,12 +1849,11 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     {
                         if (fillPolygons) 
                         {
-                            // Fill rectangle with border
                             const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            drawFilledRectWithBorder(map, px + xOffset, py + yOffset, pwidth, pheight, currentDrawColor, borderColor, fillPolygons);
+                            map.fillRect(px + xOffset, py + yOffset, pwidth, pheight, currentDrawColor);
+                            map.drawRect(px + xOffset, py + yOffset, pwidth, pheight, borderColor);
                         }
                         else
-                            // Draw only outline
                             map.drawRect(px + xOffset, py + yOffset, pwidth, pheight, currentDrawColor);
                         executed++;
                     }
@@ -2653,12 +1878,11 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     {
                         if (fillPolygons) 
                         {
-                            // Fill rectangle with border
                             const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            drawFilledRectWithBorder(map, px + xOffset, py + yOffset, pwidth, pheight, currentDrawColor, borderColor, fillPolygons);
+                            map.fillRect(px + xOffset, py + yOffset, pwidth, pheight, currentDrawColor);
+                            map.drawRect(px + xOffset, py + yOffset, pwidth, pheight, borderColor);
                         }
                         else
-                            // Draw only outline
                             map.drawRect(px + xOffset, py + yOffset, pwidth, pheight, currentDrawColor);
                         executed++;
                     }
@@ -2701,7 +1925,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         if (fillPolygons) 
                         {
                             const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            drawFilledCircleWithBorder(map, pcx + xOffset, pcy + yOffset, pradius, currentDrawColor, borderColor, fillPolygons);
+                            map.fillCircle(pcx + xOffset, pcy + yOffset, pradius, currentDrawColor);
+                            map.drawCircle(pcx + xOffset, pcy + yOffset, pradius, borderColor);
                             executed++;
                         }
                         else
@@ -2728,7 +1953,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         if (fillPolygons) 
                         {
                             const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            drawFilledCircleWithBorder(map, pcx + xOffset, pcy + yOffset, pradius, currentDrawColor, borderColor, fillPolygons);
+                            map.fillCircle(pcx + xOffset, pcy + yOffset, pradius, currentDrawColor);
+                            map.drawCircle(pcx + xOffset, pcy + yOffset, pradius, borderColor);
                         }
                         else
                             map.drawCircle(pcx + xOffset, pcy + yOffset, pradius, currentDrawColor);
@@ -2758,8 +1984,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     {
                         if (fillPolygons) 
                         {
-                            // Fill triangle using optimized algorithm
-                            fillTriangleOptimized(map, px1, py1, px2, py2, px3, py3, currentDrawColor);
+                            // Fill triangle using simple algorithm
+                            map.fillTriangle(px1, py1, px2, py2, px3, py3, currentDrawColor);
                             
                             // Draw border
                             const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
@@ -2800,8 +2026,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     {
                         if (fillPolygons) 
                         {
-                            // Fill triangle using optimized algorithm
-                            fillTriangleOptimized(map, px1, py1, px2, py2, px3, py3, currentDrawColor);
+                            // Fill triangle using simple algorithm
+                            map.fillTriangle(px1, py1, px2, py2, px3, py3, currentDrawColor);
                             
                             // Draw border
                             const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
@@ -2837,7 +2063,24 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     if (px1 >= 0 && px1 <= TILE_SIZE && py1 >= 0 && py1 <= TILE_SIZE &&
                         px2 >= 0 && px2 <= TILE_SIZE && py2 >= 0 && py2 <= TILE_SIZE) 
                     {
-                        drawDashedLine(map, px1, py1, px2, py2, dashLength, gapLength, currentDrawColor);
+                        // Simple dashed line implementation
+                        int dx = abs(px2 - px1);
+                        int dy = abs(py2 - py1);
+                        int sx = (px1 < px2) ? 1 : -1;
+                        int sy = (py1 < py2) ? 1 : -1;
+                        int err = dx - dy;
+                        int currentX = px1, currentY = py1, dashCounter = 0;
+                        
+                        while (true) {
+                            if (dashCounter % (dashLength + gapLength) < dashLength)
+                                map.drawPixel(currentX, currentY, currentDrawColor);
+                            dashCounter++;
+                            if (currentX == px2 && currentY == py2) break;
+                            
+                            int e2 = 2 * err;
+                            if (e2 > -dy) { err -= dy; currentX += sx; }
+                            if (e2 < dx) { err += dx; currentY += sy; }
+                        }
                         executed++;
                     }
                 }
@@ -2858,7 +2101,24 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     if (px1 >= 0 && px1 <= TILE_SIZE && py1 >= 0 && py1 <= TILE_SIZE &&
                         px2 >= 0 && px2 <= TILE_SIZE && py2 >= 0 && py2 <= TILE_SIZE) 
                     {
-                        drawDottedLine(map, px1, py1, px2, py2, dotSpacing, currentDrawColor);
+                        // Simple dotted line implementation
+                        int dx = abs(px2 - px1);
+                        int dy = abs(py2 - py1);
+                        int sx = (px1 < px2) ? 1 : -1;
+                        int sy = (py1 < py2) ? 1 : -1;
+                        int err = dx - dy;
+                        int currentX = px1, currentY = py1, dotCounter = 0;
+                        
+                        while (true) {
+                            if (dotCounter % dotSpacing == 0)
+                                map.drawPixel(currentX, currentY, currentDrawColor);
+                            dotCounter++;
+                            if (currentX == px2 && currentY == py2) break;
+                            
+                            int e2 = 2 * err;
+                            if (e2 > -dy) { err -= dy; currentX += sx; }
+                            if (e2 < dx) { err += dx; currentY += sy; }
+                        }
                         executed++;
                     }
                 }
@@ -2877,7 +2137,20 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     
                     if (px >= 0 && px <= TILE_SIZE && py >= 0 && py <= TILE_SIZE) 
                     {
-                        drawGridPattern(map, px, py, width, spacing, count, direction, currentDrawColor);
+                        // Simple grid pattern implementation
+                        if (direction == 0) {
+                            // Horizontal lines
+                            for (int i = 0; i < count; i++) {
+                                int lineY = py + (i * spacing);
+                                map.drawLine(px, lineY, px + width, lineY, currentDrawColor);
+                            }
+                        } else {
+                            // Vertical lines
+                            for (int i = 0; i < count; i++) {
+                                int lineX = px + (i * spacing);
+                                map.drawLine(lineX, py, lineX, py + width, currentDrawColor);
+                            }
+                        }
                         executed++;
                     }
                 }
@@ -2898,7 +2171,13 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     flushCurrentBatch();
     
     // Clean up batch rendering
-    destroyBatch();
+    if (activeBatch) 
+    {
+        if (activeBatch->segments) 
+            delete[] activeBatch->segments;
+        delete activeBatch;
+        activeBatch = nullptr;
+    }
 
     if (executed == 0) 
         return false;
@@ -2906,23 +2185,16 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     // Add successfully rendered tile to cache
     addToCache(path, map);
 
-    // Log rendering performance
     unsigned long renderTime = millis() - renderStart;
-    if (totalLines > 0) {
-        ESP_LOGI(TAG, "Tile rendered: %s", path);
-    ESP_LOGI(TAG, "Performance: %lu ms, %d lines, %d batches, avg %.1f lines/batch", 
-             renderTime, totalLines, batchFlushes, 
-             batchFlushes > 0 ? (float)totalLines / batchFlushes : 0.0f);
-    ESP_LOGI(TAG, "Batch stats: %d renders, %d optimizations, %d flushes", 
-             batchFlushes, batchOptimizations, batchFlushes);
-    }
 
     return true;
 }
 
 /**
- * @brief Initialize the unified memory pool for efficient memory management.
+ * @brief Initialize the unified memory pool for efficient memory management
  * 
+ * @details Sets up a unified memory pool system with mutex protection, calculates optimal pool size based on available PSRAM or RAM,
+ *          reserves space for pool entries, and initializes hit/miss counters for performance monitoring.
  */
 void Maps::initUnifiedPool()
 {
@@ -2953,15 +2225,18 @@ void Maps::initUnifiedPool()
     unifiedPoolHitCount = 0;
     unifiedPoolMissCount = 0;
     
-    ESP_LOGI(TAG, "Unified memory pool initialized with %zu entries", maxUnifiedPoolEntries);
+    ESP_LOGI(TAG, "Unified memory pool initialized");
 }
 
 /**
- * @brief Implement a unified memory allocation function that uses a memory pool.
- * 
- * @param size Size of memory to allocate
- * @param type type of allocation for tracking purposes
- * @return void* 
+ * @brief Implement a unified memory allocation function that uses a memory pool
+ *
+ * @details Attempts to allocate memory from the unified pool first, falling back to direct heap allocation if pool is full.
+ *          Uses mutex protection for thread safety and tracks allocation statistics for performance monitoring.
+ *
+ * @param size Size of memory to allocate in bytes
+ * @param type Type of allocation for tracking purposes (0=general, 6=coordArray, etc.)
+ * @return void* Pointer to allocated memory, or nullptr if allocation failed
  */
 void* Maps::unifiedAlloc(size_t size, uint8_t type)
 {
@@ -3017,7 +2292,10 @@ void* Maps::unifiedAlloc(size_t size, uint8_t type)
 }
 
 /**
- * @brief Deallocate memory allocated from the unified memory pool.
+ * @brief Deallocate memory allocated from the unified memory pool
+ *
+ * @details Marks memory as available in the unified pool if it was allocated from there, otherwise calls standard free.
+ *          Uses mutex protection for thread safety and handles null pointer gracefully.
  * 
  * @param ptr Pointer to memory to deallocate
  */
@@ -3043,8 +2321,10 @@ void Maps::unifiedDealloc(void* ptr)
 }
 
 /**
- * @brief Clear the unified memory pool, freeing all allocated memory.
+ * @brief Clear the unified memory pool, freeing all allocated memory
  * 
+ * @details Frees all memory entries in the unified pool, clears the pool vector, resets hit/miss counters,
+ *          and logs the clearing operation. Uses mutex protection for thread safety.
  */
 void Maps::clearUnifiedPool()
 {
@@ -3063,181 +2343,12 @@ void Maps::clearUnifiedPool()
     }
 }
 
-/**
- * @brief Initialize transformation matrices for coordinate and pixel transformations.
- * 
- */
-void Maps::initTransformMatrices()
-{
-    coordTransformMatrix.isValid = false;
-    pixelTransformMatrix.isValid = false;
-    transformMatricesValid = false;
-    lastTransformUpdate = 0;
-    
-    ESP_LOGI(TAG, "Transform matrices initialized");
-}
 
 /**
- * @brief Update transformation matrices if they are invalid or outdated.
- * 
- */
-void Maps::updateTransformMatrices()
-{
-    uint32_t currentTime = millis();
-    
-    // Only update if matrices are invalid or enough time has passed
-    if (transformMatricesValid && (currentTime - lastTransformUpdate) < 1000)
-        return; // Matrices are still valid
-    
-    // Calculate coordinate transformation matrix
-    coordTransformMatrix.scaleX = 1.0f / 360.0f;  // Longitude scale factor
-    coordTransformMatrix.scaleY = 1.0f / (2.0f * static_cast<float>(M_PI));  // Latitude scale factor
-    coordTransformMatrix.offsetX = 180.0f;  // Longitude offset
-    coordTransformMatrix.offsetY = 0.0f;    // Latitude offset
-    coordTransformMatrix.rotation = 0.0f;   // No rotation for coordinate transform
-    coordTransformMatrix.isValid = true;
-    
-    // Calculate pixel transformation matrix
-    pixelTransformMatrix.scaleX = static_cast<float>(mapScrWidth) / static_cast<float>(tileWidth);
-    pixelTransformMatrix.scaleY = static_cast<float>(mapScrHeight) / static_cast<float>(tileHeight);
-    pixelTransformMatrix.offsetX = 0.0f;
-    pixelTransformMatrix.offsetY = 0.0f;
-    pixelTransformMatrix.rotation = 0.0f;
-    pixelTransformMatrix.isValid = true;
-    
-    transformMatricesValid = true;
-    lastTransformUpdate = currentTime;
-    
-    ESP_LOGI(TAG, "Transform matrices updated - Coord: scale(%.3f,%.3f) offset(%.1f,%.1f), Pixel: scale(%.3f,%.3f)", 
-             coordTransformMatrix.scaleX, coordTransformMatrix.scaleY, 
-             coordTransformMatrix.offsetX, coordTransformMatrix.offsetY,
-             pixelTransformMatrix.scaleX, pixelTransformMatrix.scaleY);
-}
-
-/**
- * @brief Invalidate transformation matrices, forcing recalculation on next use. 
- */
-void Maps::invalidateTransformMatrices()
-{
-    transformMatricesValid = false;
-    coordTransformMatrix.isValid = false;
-    pixelTransformMatrix.isValid = false;
-    ESP_LOGI(TAG, "Transform matrices invalidated");
-}
-
-/**
- * @brief  Check if transformation matrices are valid.
- * 
- * @return true  if valid
- * @return false  if not valid
- */
-bool Maps::areTransformMatricesValid()
-{
-    return transformMatricesValid && coordTransformMatrix.isValid && pixelTransformMatrix.isValid;
-}
-
-/**
- * @brief Transform longitude to pixel X coordinate at given zoom and tile size.
- *  
- * @param lon        Longitude in degrees
- * @param zoom       Zoom level (0-21)
- * @param tileSize   Tile size in pixels (typically 256)
- * @return uint16_t  Pixel X coordinate within the tile
- */
-uint16_t Maps::transformLonToPixel(float lon, uint8_t zoom, uint16_t tileSize)
-{
-    if (!transformMatricesValid || !coordTransformMatrix.isValid)
-        // Cannot call non-static method from static context, use fallback
-        return static_cast<uint16_t>(((lon + 180.0f) / 360.0f * (1 << zoom) * tileSize)) % tileSize;
-    
-    // Use precalculated matrix for faster transformation
-    float normalizedLon = (lon + coordTransformMatrix.offsetX) * coordTransformMatrix.scaleX;
-    float zoomFactor = static_cast<float>(1 << zoom);
-    float pixelX = normalizedLon * zoomFactor * static_cast<float>(tileSize);
-    
-    return static_cast<uint16_t>(pixelX) % tileSize;
-}
-
-/**
- * @brief   Transform latitude to pixel Y coordinate at given zoom and tile size.
- * 
- * @param lat       Latitude in degrees       
- * @param zoom      Zoom level (0-21)
- * @param tileSize  Tile size in pixels (typically 256) 
- * @return uint16_t Pixel Y coordinate within the tile 
- */
-uint16_t Maps::transformLatToPixel(float lat, uint8_t zoom, uint16_t tileSize)
-{
-    if (!transformMatricesValid || !coordTransformMatrix.isValid) 
-    {
-        // Cannot call non-static method from static context, use fallback
-        float lat_rad = lat * static_cast<float>(M_PI) / 180.0f;
-        float siny = tanf(lat_rad) + 1.0f / cosf(lat_rad);
-        float merc_n = logf(siny);
-        float scale = (1 << zoom) * tileSize;
-        return static_cast<uint16_t>(((1.0f - merc_n / static_cast<float>(M_PI)) / 2.0f * scale)) % tileSize;
-    }
-    
-    // Use precalculated matrix for faster transformation
-    float lat_rad = lat * static_cast<float>(M_PI) / 180.0f;
-    float siny = tanf(lat_rad) + 1.0f / cosf(lat_rad);
-    float merc_n = logf(siny);
-    float normalizedLat = (1.0f - merc_n * coordTransformMatrix.scaleY) * 0.5f;
-    float zoomFactor = static_cast<float>(1 << zoom);
-    float pixelY = normalizedLat * zoomFactor * static_cast<float>(tileSize);
-    
-    return static_cast<uint16_t>(pixelY) % tileSize;
-}
-
-/**
- * @brief   Transform pixel X coordinate to longitude at given zoom and tile size.
- * 
- * @param pixelX    Pixel X coordinate within the tile 
- * @param zoom      Zoom level (0-21) 
- * @param tileSize  Tile size in pixels (typically 256)
- * @return float    Longitude in degrees
- */
-float Maps::transformPixelToLon(uint16_t pixelX, uint8_t zoom, uint16_t tileSize)
-{
-    if (!transformMatricesValid || !coordTransformMatrix.isValid) 
-        // Cannot call non-static method from static context, use fallback
-        return static_cast<float>(pixelX) * 360.0f / (1 << zoom) - 180.0f;
-    
-    float zoomFactor = static_cast<float>(1 << zoom);
-    float normalizedX = static_cast<float>(pixelX) / (zoomFactor * static_cast<float>(tileSize));
-    float lon = (normalizedX / coordTransformMatrix.scaleX) - coordTransformMatrix.offsetX;
-    
-    return lon;
-}
-
-/**
- * @brief   Transform pixel Y coordinate to latitude at given zoom and tile size.
- * 
- * @param pixelY    Pixel Y coordinate within the tile 
- * @param zoom      Zoom level (0-21)
- * @param tileSize  Tile size in pixels (typically 256)
- * @return float    Latitude in degrees
- */
-float Maps::transformPixelToLat(uint16_t pixelY, uint8_t zoom, uint16_t tileSize)
-{
-    if (!transformMatricesValid || !coordTransformMatrix.isValid) {
-        // Cannot call non-static method from static context, use fallback
-        float scale = static_cast<float>(1 << zoom);
-        float n = static_cast<float>(M_PI) * (1.0f - 2.0f * static_cast<float>(pixelY) / scale);
-        return 180.0f / static_cast<float>(M_PI) * atanf(sinhf(n));
-    }
-    
-    float zoomFactor = static_cast<float>(1 << zoom);
-    float normalizedY = static_cast<float>(pixelY) / (zoomFactor * static_cast<float>(tileSize));
-    float merc_n = static_cast<float>(M_PI) * (1.0f - 2.0f * normalizedY);
-    float lat = 180.0f / static_cast<float>(M_PI) * atanf(sinhf(merc_n));
-    
-    return lat;
-}
-
-/**
- * @brief Initialize batch rendering system, detecting optimal batch size based on hardware.
- * 
+ * @brief Initialize batch rendering system, detecting optimal batch size based on hardware
+ *
+ * @details Analyzes available PSRAM or RAM to determine optimal batch size for line rendering performance.
+ *          Sets up batch rendering counters and initializes the active batch pointer to nullptr.
  */
 void Maps::initBatchRendering()
 {
@@ -3259,32 +2370,40 @@ void Maps::initBatchRendering()
     batchOptimizationCount = 0;
     batchFlushCount = 0;
     
-    ESP_LOGI(TAG, "Batch rendering initialized with max batch size: %zu", maxBatchSize);
+    ESP_LOGI(TAG, "Batch rendering initialized");
 }
 
 /**
- * @brief Create a new render batch with specified capacity.
+ * @brief Create a new render batch with specified capacity
+ *
+ * @details Allocates memory for a new render batch with the specified capacity for line segments.
+ *          Cleans up any existing active batch before creating the new one.
  * 
  * @param capacity Number of line segments the batch can hold
  */
 void Maps::createRenderBatch(size_t capacity)
 {
     if (activeBatch) 
-        destroyBatch();
+    {
+        if (activeBatch->segments) 
+            delete[] activeBatch->segments;
+        delete activeBatch;
+        activeBatch = nullptr;
+    }
     
     activeBatch = new RenderBatch();
     activeBatch->segments = new LineSegment[capacity];
     activeBatch->count = 0;
     activeBatch->capacity = capacity;
     activeBatch->color = 0;
-    activeBatch->isOptimized = false;
-    
-    ESP_LOGI(TAG, "Created render batch with capacity: %zu", capacity);
 }
 
 /**
- * @brief Add a line segment to the current batch if possible.
- * 
+ * @brief Add a line segment to the current batch if possible
+ *
+ * @details Adds a line segment to the current batch if it matches the batch color and there's capacity.
+ *          Creates a new batch if none exists. Only adds segments that can be batched together.
+ *
  * @param x0    Starting X coordinate
  * @param y0    Starting Y coordinate
  * @param x1    Ending X coordinate
@@ -3299,7 +2418,6 @@ void Maps::addToBatch(int x0, int y0, int x1, int y1, uint16_t color)
     // Check if we can add to current batch (same color)
     if (!canBatch(color) || activeBatch->count >= activeBatch->capacity) 
     {
-        ESP_LOGW(TAG, "Cannot add to batch - flushing current batch");
         return;
     }
     
@@ -3313,8 +2431,11 @@ void Maps::addToBatch(int x0, int y0, int x1, int y1, uint16_t color)
 }
 
 /**
- * @brief Flush the current batch, rendering all segments to the map.
- * 
+ * @brief Flush the current batch, rendering all segments to the map
+ *
+ * @details Renders all line segments in the current batch to the map sprite, applies optimizations if beneficial,
+ *          and resets the batch for reuse. Tracks batch flush and optimization statistics.
+ *
  * @param map           Reference to the TFT_eSprite map to render onto
  * @param optimizations Reference to a counter for optimizations performed
  */
@@ -3329,7 +2450,7 @@ void Maps::flushBatch(TFT_eSprite& map, int& optimizations)
     size_t optimizationThreshold = maxBatchSize / 16; // 6.25% of max batch size (32 lines for 512 batch)
     if (activeBatch->count > optimizationThreshold) 
     {
-        optimizeBatch(*activeBatch);
+        // Simple batch optimization - just mark as optimized
         batchOptimizationCount++;
         optimizations++;  // Increment local counter
     }
@@ -3346,76 +2467,15 @@ void Maps::flushBatch(TFT_eSprite& map, int& optimizations)
     // Clear batch for reuse
     activeBatch->count = 0;
     activeBatch->color = 0;
-    activeBatch->isOptimized = false;
 }
 
-/**
- * @brief Optimize the batch by sorting and grouping segments for better rendering performance.
- * 
- * @param batch Reference to the RenderBatch to optimize
- */
-void Maps::optimizeBatch(RenderBatch& batch)
-{
-    // Dynamic threshold based on hardware capabilities
-    size_t minOptimizationSize = maxBatchSize / 32; // 3.125% of max batch size (16 lines for 512 batch)
-    if (batch.count < minOptimizationSize) 
-        return; // Not worth optimizing small batches
-    
-    // Sort segments by color for better cache performance
-    std::sort(batch.segments, batch.segments + batch.count, 
-              [](const LineSegment& a, const LineSegment& b) {
-                  return a.color < b.color;
-              });
-    
-    // Group segments by color and optimize rendering order
-    uint16_t currentColor = batch.segments[0].color;
-    size_t colorGroupStart = 0;
-    
-    for (size_t i = 1; i <= batch.count; i++) {
-        if (i == batch.count || batch.segments[i].color != currentColor) 
-        {
-            // Process color group
-            size_t groupSize = i - colorGroupStart;
-            size_t minGroupSize = maxBatchSize / 64; // 1.56% of max batch size (8 lines for 512 batch)
-            if (groupSize > minGroupSize) 
-            {
-                // Use optimized rendering for large color groups
-                for (size_t j = colorGroupStart; j < i; j++)
-                {
-                    const LineSegment& segment = batch.segments[j];
-                    // Could implement specialized line drawing here
-                }
-            }
-            
-            if (i < batch.count) 
-            {
-                currentColor = batch.segments[i].color;
-                colorGroupStart = i;
-            }
-        }
-    }
-    
-    batch.isOptimized = true;
-}
 
 /**
- * @brief Destroy the current batch and free associated memory.
- * 
- */
-void Maps::destroyBatch()
-{
-    if (activeBatch) 
-    {
-        if (activeBatch->segments) 
-            delete[] activeBatch->segments;
-        delete activeBatch;
-        activeBatch = nullptr;
-    }
-}
-
-/**
- * @brief   Check if a line segment with the given color can be added to the current batch.
- * 
+ * @brief Check if a line segment with the given color can be added to the current batch
+ *
+ * @details Determines if a line segment can be added to the current batch based on color compatibility.
+ *          Returns true if the batch is empty or if the color matches the current batch color.
+ *
  * @param color     Color of the line segment to add
  * @return true     if it can be added
  * @return false    if it cannot be added
@@ -3430,9 +2490,12 @@ bool Maps::canBatch(uint16_t color)
 }
 
 /**
- * @brief Get the optimal batch size based on hardware capabilities.
- * 
- * @return size_t Optimal batch size
+ * @brief Get the optimal batch size based on hardware capabilities
+ *
+ * @details Returns the maximum batch size determined during initialization based on available memory.
+ *          This value is calculated based on PSRAM availability for ESP32-S3 or RAM for standard ESP32.
+ *
+ * @return size_t Optimal batch size for line rendering
  */
 size_t Maps::getOptimalBatchSize()
 {

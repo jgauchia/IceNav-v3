@@ -100,7 +100,6 @@ private:
 		size_t count;              /**< Number of segments in batch */
 		size_t capacity;           /**< Maximum capacity of batch */
 		uint16_t color;            /**< Common color for batch */
-		bool isOptimized;          /**< Batch uses optimized rendering */
 	};
 	
 	struct PolygonBounds	/**< Polygon bounding box structure */
@@ -183,19 +182,7 @@ private:
 	static uint32_t polygonCulledCount;                                        /**< Polygons culled (not rendered) */
 	static uint32_t polygonOptimizedCount;                                     /**< Polygons using optimized algorithms */
 	
-	// Precalculated transformation matrices
-	struct TransformMatrix
-	{
-		float scaleX, scaleY;     /**< Scale factors */
-		float offsetX, offsetY;   /**< Offset factors */
-		float rotation;           /**< Rotation angle */
-		bool isValid;             /**< Matrix is valid */
-	};
 	
-	static TransformMatrix coordTransformMatrix;                               /**< Precalculated coordinate transformation */
-	static TransformMatrix pixelTransformMatrix;                              /**< Precalculated pixel transformation */
-	static bool transformMatricesValid;                                       /**< Matrices are up to date */
-	static uint32_t lastTransformUpdate;                                      /**< Last matrix update timestamp */
 	
 	// Efficient batch rendering system
 	static RenderBatch* activeBatch;                                          /**< Currently active render batch */
@@ -243,26 +230,9 @@ private:
 							const int numPoints, const uint16_t borderColor, const uint16_t fillColor, 
 							const int xOffset, const int yOffset);						/**< Draw the border of a polygon with margin handling */
 	
-	void drawFilledRectWithBorder(TFT_eSprite& map, int x, int y, int w, int h, 
-		                          uint16_t fill, uint16_t border, bool fillShape);		/**< Draw filled rectangle with border */
-	void drawFilledCircleWithBorder(TFT_eSprite& map, int x, int y, int r,
-									uint16_t fill, uint16_t border, bool fillShape);	/**< Draw filled circle with border */
-	void drawDashedLine(TFT_eSprite& map, int x1, int y1, int x2, int y2, 
-						int dashLength, int gapLength, uint16_t color);				/**< Draw dashed line */
-	void drawDottedLine(TFT_eSprite& map, int x1, int y1, int x2, int y2, 
-						int dotSpacing, uint16_t color);								/**< Draw dotted line */
-	void drawGridPattern(TFT_eSprite& map, int x, int y, int width, int spacing, 
-						int count, int direction, uint16_t color);					/**< Draw grid pattern */
-	void drawPredictedLine(TFT_eSprite& map, int startX, int startY, int patternType, 
-						int length, uint16_t color);									/**< Draw predicted line */
-	void drawHighwaySegment(TFT_eSprite& map, int startX, int startY, int endX, int endY, 
-						int width, uint16_t color);									/**< Draw highway segment */
-	void drawBlockPattern(TFT_eSprite& map, int x, int y, int blockSize, int spacing, 
-						int count, uint16_t color);									/**< Draw block pattern */
 	
 	// Tile cache methods
 	void initTileCache();                                                         /**< Initialize tile cache system */
-	void detectHardwareCapabilities();                                           /**< Detect available memory and set cache size */
 	uint32_t calculateTileHash(const char* filePath);                           /**< Calculate hash for tile identification */
 	bool getCachedTile(const char* filePath, TFT_eSprite& target, int16_t xOffset, int16_t yOffset); /**< Get tile from cache */
 	void addToCache(const char* filePath, TFT_eSprite& source);                 /**< Add rendered tile to cache */
@@ -327,37 +297,15 @@ private:
 	};
 	
 	// Memory monitoring methods
-	void initMemoryMonitoring();                                               /**< Initialize memory monitoring system */
-	void updateMemoryStats();                                                  /**< Update memory statistics */
-	void calculatePoolEfficiency();                                             /**< Calculate pool efficiency score */
 	
 	// Polygon optimization methods
-	void initPolygonOptimizations();                                           /**< Initialize polygon optimization system */
-	void calculatePolygonBounds(const int *px, const int *py, int numPoints, PolygonBounds& bounds); /**< Calculate polygon bounding box */
-	bool isPolygonInViewport(const PolygonBounds& bounds, int xOffset, int yOffset); /**< Check if polygon is in viewport */
-	bool isSimplePolygon(const int *px, const int *py, int numPoints);         /**< Check if polygon can use optimized rendering */
-	void fillPolygonOptimized(TFT_eSprite &map, const int *px, const int *py, int numPoints, uint16_t color, int xOffset, int yOffset); /**< Optimized polygon filling */
-	void fillTriangleOptimized(TFT_eSprite &map, int x1, int y1, int x2, int y2, int x3, int y3, uint16_t color); /**< Optimized triangle filling */
-	void fillRectangleOptimized(TFT_eSprite &map, int x, int y, int w, int h, uint16_t color); /**< Optimized rectangle filling */
-	void fillPolygonScanlineOptimized(TFT_eSprite &map, const int *px, const int *py, int numPoints, uint16_t color, int xOffset, int yOffset); /**< Optimized scanline algorithm */
 	
-	// Precalculated transformation methods
-	void initTransformMatrices();                                              /**< Initialize transformation matrices */
-	void updateTransformMatrices();                                            /**< Update transformation matrices */
-	void invalidateTransformMatrices();                                        /**< Mark matrices as invalid */
-	bool areTransformMatricesValid();                                         /**< Check if matrices are valid */
-	static uint16_t transformLonToPixel(float lon, uint8_t zoom, uint16_t tileSize); /**< Transform longitude to pixel using precalculated matrix */
-	static uint16_t transformLatToPixel(float lat, uint8_t zoom, uint16_t tileSize); /**< Transform latitude to pixel using precalculated matrix */
-	static float transformPixelToLon(uint16_t pixelX, uint8_t zoom, uint16_t tileSize); /**< Transform pixel to longitude using precalculated matrix */
-	static float transformPixelToLat(uint16_t pixelY, uint8_t zoom, uint16_t tileSize); /**< Transform pixel to latitude using precalculated matrix */
 	
 	// Efficient batch rendering methods
 	void initBatchRendering();                                                /**< Initialize batch rendering system */
 	void createRenderBatch(size_t capacity);                                  /**< Create new render batch */
 	void addToBatch(int x0, int y0, int x1, int y1, uint16_t color);         /**< Add line segment to current batch */
 	void flushBatch(TFT_eSprite& map, int& optimizations);                  /**< Render and clear current batch */
-	void optimizeBatch(RenderBatch& batch);                                   /**< Optimize batch for rendering */
-	void destroyBatch();                                                      /**< Destroy current batch */
 	bool canBatch(uint16_t color);                                           /**< Check if line can be added to current batch */
 	size_t getOptimalBatchSize();                                            /**< Get optimal batch size for hardware */
    
@@ -400,6 +348,5 @@ public:
     void triggerPreload(int16_t centerX, int16_t centerY, uint8_t zoom);        /**< Trigger preload of adjacent tiles */
     
     // Memory monitoring public methods
-    void initializeMemoryMonitoring();                                          /**< Initialize memory monitoring system */
 };
 
