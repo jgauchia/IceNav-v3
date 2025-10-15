@@ -1,26 +1,31 @@
 /**
- * @file tasks.hpp
+ * @file tasks.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief  Core Tasks functions
+ * @brief  Core Tasks implementation for GPS and CLI management
  * @version 0.2.3
  * @date 2025-06
+ * @details This file contains the implementation of FreeRTOS tasks for GPS data processing
+ *          and CLI interface management. It handles thread-safe GPS data reading and
+ *          command-line interface operations with proper mutex protection.
  */
 
 #include "tasks.hpp"
 
 TaskHandle_t LVGLTaskHandler;      /**< Handle for the LVGL task */
 xSemaphoreHandle gpsMutex;         /**< Mutex for GPS resource protection */
-extern Gps gps;
+extern Gps gps;                    /**< Global GPS instance for data processing */
 
-static const char* TAG PROGMEM = "Task";
+static const char* TAG PROGMEM = "Task"; /**< Logging tag for task operations */
 
 /**
- * @brief Read GPS data
+ * @brief GPS data processing task
  *
- * @details Task function that reads data from the GPS module, optionally prints NMEA output,
- * 			and updates the GPS fix structure. Uses the gpsMutex for thread safety.
+ * @details Continuously reads GPS data from the serial port, processes NMEA sentences,
+ *          and updates the global GPS fix structure. Handles optional NMEA output to
+ *          serial console and ensures thread-safe access using gpsMutex. The task runs
+ *          on core 0 with high priority to ensure real-time GPS data processing.
  *
- * @param pvParameters Task parameters (unused)
+ * @param pvParameters Task parameters (unused in current implementation)
  */
 void gpsTask(void *pvParameters)
 {
@@ -53,9 +58,11 @@ void gpsTask(void *pvParameters)
 }
 
 /**
- * @brief Init GPS task
+ * @brief Initialize GPS processing task
  *
- * @details Creates and starts the GPS task 
+ * @details Creates and starts the GPS task on core 0 with 8KB stack size and priority 1.
+ *          Includes a 500ms delay after task creation to ensure proper initialization
+ *          before other system components attempt to access GPS data.
  */
 void initGpsTask()
 {
@@ -64,11 +71,14 @@ void initGpsTask()
 }
 
 /**
- * @brief CLI task
+ * @brief Command-line interface processing task
  *
- * @details Task function for the command-line interface. 
+ * @details Handles CLI operations including command parsing, execution, and response
+ *          generation. Runs on core 1 with 20KB stack size to handle complex CLI
+ *          operations and network communications. The task processes commands at
+ *          60ms intervals to maintain responsive user interaction.
  *
- * @param param Task parameters (unused)
+ * @param param Task parameters (unused in current implementation)
  */
 #ifndef DISABLE_CLI
 void cliTask(void *param) 
@@ -84,9 +94,10 @@ void cliTask(void *param)
 }
 
 /**
- * @brief Init CLI task
+ * @brief Initialize CLI processing task
  *
- * @details Creates and starts CLI task
+ * @details Creates and starts the CLI task on core 1 with 20KB stack size and priority 1.
+ *          Only compiled when CLI functionality is enabled (not DISABLE_CLI).
  */
 void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 20000, NULL, 1, NULL, 1); }
 
