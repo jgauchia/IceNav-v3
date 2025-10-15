@@ -36,11 +36,11 @@
  */
 struct NavConfig 
 {
-    int searchWindow = 50;           /**< Window size for local search in findClosestTrackPoint */
-    float offTrackThreshold = 30.0f; /**< Distance threshold for off-track detection (meters) */
+    int searchWindow = 100;          /**< Window size for local search in findClosestTrackPoint */
+    float offTrackThreshold = 50.0f; /**< Distance threshold for off-track detection (meters) */
     float minTurnDistance = 5.0f;    /**< Minimum distance for valid turn detection (meters) */
     float maxTurnDistance = 2000.0f; /**< Maximum distance for suspicious turn filtering (meters) */
-    int maxBackwardJump = 5;         /**< Maximum backward positions to prevent GPS noise jumps */
+    int maxBackwardJump = 8;         /**< Maximum backward positions to prevent GPS noise jumps */
 };
 
 struct NavState 

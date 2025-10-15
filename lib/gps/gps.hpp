@@ -129,15 +129,16 @@ private:
 	 * @brief Variables for "fake" GPS signal from loaded track (simulation)
 	 * 
 	 */
-	const float posAlpha = 0.2f;           /**< Position smoothing factor, range 0 (no smoothing) to 1 (full smoothing) */
-	const float headAlpha = 0.3f;          /**< Heading smoothing factor, controls how fast heading adapts */
-	const float minStepDist = 5.0f;        /**< Minimum distance in meters between simulation steps to update */
-	const int headingLookahead = 3;        /**< Number of track points ahead used to calculate the heading */
+	const float posAlpha = 0.6f;           /**< Position smoothing factor, range 0 (no smoothing) to 1 (full smoothing) */
+	const float headAlpha = 0.5f;          /**< Heading smoothing factor, controls how fast heading adapts */
+	const float minStepDist = 3.0f;        /**< Minimum distance in meters between simulation steps to update */
+	const int headingLookahead = 5;        /**< Number of track points ahead used to calculate the heading */
 	float smoothedLat = 0.0f;              /**< Smoothed latitude after filtering */
 	float smoothedLon = 0.0f;              /**< Smoothed longitude after filtering */
 	float filteredHeading = 0.0f;          /**< Smoothed heading after filtering */
 	float lastSimLat = 0.0f;       		   /**< Last simulated latitude used for step distance */
 	float lastSimLon = 0.0f;     	       /**< Last simulated longitude used for step distance */
+	float accumulatedDist = 0.0f;          /**< Accumulated distance for multi-second simulation */
 	int simulationIndex = 0;                   /**< Current index in track simulation */
 	unsigned long lastSimulationTime = 0;      /**< Timestamp of last simulation update in milliseconds */
 };

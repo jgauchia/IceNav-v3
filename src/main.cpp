@@ -236,10 +236,18 @@ void loop()
 	if (isTrackLoaded)
 	{
 		if (navSet.simNavigation)
-			gps.simFakeGPS(trackData,12,200);
+			gps.simFakeGPS(trackData,120,1000);
 
 		if (gps.gpsData.speed !=0)
+		{
+			// Use optimized NavConfig for simulation
+			NavConfig simConfig;
+			simConfig.searchWindow = 150;          // Larger window for simulation
+			simConfig.offTrackThreshold = 75.0f;   // More tolerant for simulation
+			simConfig.maxBackwardJump = 10;        // Allow more backward movement
+			
 			updateNavigation(gps.gpsData.latitude, gps.gpsData.longitude, gps.gpsData.heading, gps.gpsData.speed,
-							 trackData, turnPoints, navState,20,200);
+							 trackData, turnPoints, navState, 20, 200, simConfig);
+		}
 	}
 }
