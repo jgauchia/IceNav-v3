@@ -21,6 +21,10 @@ static const char* gpxLatElem PROGMEM     = "lat";   /**< GPX latitude attribute
 static const char* gpxLonElem PROGMEM     = "lon";   /**< GPX longitude attribute. */
 static const char* gpxEleElem PROGMEM     = "ele";   /**< GPX elevation element. */
 
+static const char* gpxExtensionTag PROGMEM = "extensions"; /**< GPX extensions tag. */
+static const char* gpxTrackPointExtensionTag PROGMEM = "gpxtpx:TrackPointExtension"; /**< GPX track point extension tag. */
+static const char* gpxTemperatureElem PROGMEM = "gpxtpx:atemp"; /**< GPX temperature element. */
+
 void startTrack();
 void createTrackPoint();
 void stopTrack();

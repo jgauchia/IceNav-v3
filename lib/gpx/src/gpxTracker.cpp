@@ -81,6 +81,18 @@ bool createTrackPoint(const trkPoint& tp) {
 	element->SetText(tp.ele);
 	newTrkPt->InsertEndChild(element);
 
+	#ifdef DBME280
+		tinyxml2::XMLElement* extensionsElem = doc.NewElement(gpxExtensionTag);
+		newTrkPt->InsertEndChild(extensionsElem);
+
+		tinyxml2::XMLElement* tpExtElem = doc.NewElement(gpxTrackPointExtensionTag);
+		extensionsElem->InsertEndChild(tpExtElem);
+
+		tinyxml2::XMLElement* tempElem = doc.NewElement(gpxTemperatureElem);
+		tempElem->SetText(formatFloat(tp.temp, 1).c_str());
+		tpExtElem->InsertEndChild(tempElem);
+	#endif
+
 	tinyxml2::XMLElement* lastTrkPt = trksegElem->LastChildElement(gpxTrackPointTag);
 	if (lastTrkPt) 
 		trksegElem->InsertAfterChild(lastTrkPt, newTrkPt);

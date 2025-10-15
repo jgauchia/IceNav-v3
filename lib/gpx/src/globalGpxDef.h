@@ -59,6 +59,7 @@ struct trkPoint
 	float lat;       /**< Latitude of the track point. */
 	float lon;       /**< Longitude of the track point. */
 	float ele;       /**< Elevation of the track point. */
+	float temp;	  /**< Temperature at the track point. */
 };
 
 /**
@@ -72,12 +73,6 @@ struct TurnPoint
 	float angle;       /**< Turn angle at this point (positive = right, negative = left) */
 	float distance;    /**< Distance from start to this point (in meters) */
 }; 
-
-struct TrackPoints {
-	float lat;
-	float lon;
-	float ele;
-};
 
 /**
  * @Brief GPX header file format
@@ -99,6 +94,7 @@ static const char* gpxTrkHeader PROGMEM = { "<?xml version=\"1.0\" encoding=\"UT
 					  " creator=\"IceNav\"\n"
 					  " xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
 					  " xmlns=\"http://www.topografix.com/GPX/1/0\"\n"
+					  " xmlns=\"http://www.garmin.com/xmlschemas/TrackPointExtension/v1\"\n"
 					  " xsi:schemaLocation=\"http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd\">\n"
 					  "<trk>\n"
 					  "<name>IceNav Track</name>\n"
