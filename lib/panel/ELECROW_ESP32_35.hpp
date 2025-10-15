@@ -1,5 +1,5 @@
 /**
- * @file ELECROW_ESP32.hpp
+ * @file ELECROW_ESP32_35.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LOVYANGFX TFT driver for ELECROW ESP32 3.5 Terminal
  * @version 0.2.3
