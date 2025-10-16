@@ -168,7 +168,7 @@ esp_err_t Storage::initSPIFFS()
 {
 	ESP_LOGI(TAG, "Initializing SPIFFS");
 
-	esp_vfs_spiffs_conf_t conf = 
+	esp_vfs_spiffs_conf_t conf =
 		{
 			.base_path = "/spiffs",
 			.partition_label = NULL,
