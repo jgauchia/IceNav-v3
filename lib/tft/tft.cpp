@@ -124,11 +124,7 @@ void initTFT()
 	tft.initDMA();
 	tft.fillScreen(TFT_BLACK);
 
-	#ifdef ELECROW_ESP32_50
-	#elif ELECROW_ESP32_70
-	#else
-		#ifdef TOUCH_INPUT
-			touchCalibrate();
-		#endif
+	#ifdef TOUCH_INPUT
+		touchCalibrate();
 	#endif
 }
