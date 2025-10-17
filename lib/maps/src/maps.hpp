@@ -167,6 +167,7 @@ private:
 	static uint32_t unifiedPoolHitCount;                                      /**< Unified pool hits */
 	static uint32_t unifiedPoolMissCount;                                     /**< Unified pool misses */
 	
+	
 	// Memory monitoring and statistics
 	static uint32_t totalMemoryAllocations;                                    /**< Total memory allocations */
 	static uint32_t totalMemoryDeallocations;                                 /**< Total memory deallocations */
@@ -233,19 +234,22 @@ private:
 	
 	// Tile cache methods
 	void initTileCache();                                                         /**< Initialize tile cache system */
-	uint32_t calculateTileHash(const char* filePath);                           /**< Calculate hash for tile identification */
 	bool getCachedTile(const char* filePath, TFT_eSprite& target, int16_t xOffset, int16_t yOffset); /**< Get tile from cache */
 	void addToCache(const char* filePath, TFT_eSprite& source);                 /**< Add rendered tile to cache */
 	void evictLRUTile();                                                         /**< Remove least recently used tile from cache */
 	void clearTileCache();                                                       /**< Clear all cached tiles */
+	uint32_t calculateTileHash(const char* filePath);                           /**< Calculate hash for tile identification */
 	size_t getCacheMemoryUsage();                                               /**< Get current cache memory usage in bytes */
+	
+	// SD optimization methods
+	void prefetchAdjacentTiles(int16_t centerX, int16_t centerY, uint8_t zoom); /**< Prefetch adjacent tiles for faster loading */
 	
 	
 	// Unified memory pool methods (experimental)
+	public:
 	void initUnifiedPool();                                                     /**< Initialize unified memory pool */
 	static void* unifiedAlloc(size_t size, uint8_t type = 0);                          /**< Allocate from unified pool */
 	static void unifiedDealloc(void* ptr);                                             /**< Deallocate from unified pool */
-	void clearUnifiedPool();                                                    /**< Clear unified pool */
 	
 	// RAII Memory Guard for automatic memory management
 	template<typename T>
@@ -344,8 +348,6 @@ public:
     bool renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
     
     // Background preload public methods
-    void disableBackgroundPreload();                                            /**< Disable background preload system */
-    void triggerPreload(int16_t centerX, int16_t centerY, uint8_t zoom);        /**< Trigger preload of adjacent tiles */
     
     // Memory monitoring public methods
 };

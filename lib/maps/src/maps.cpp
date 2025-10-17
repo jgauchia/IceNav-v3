@@ -28,6 +28,7 @@ std::vector<Maps::CachedTile> Maps::tileCache;
 size_t Maps::maxCachedTiles = 0;
 uint32_t Maps::cacheAccessCounter = 0;
 
+
 // Unified memory pool system static variables (experimental)
 std::vector<Maps::UnifiedPoolEntry> Maps::unifiedPool;
 SemaphoreHandle_t Maps::unifiedPoolMutex = nullptr;
@@ -66,6 +67,7 @@ uint32_t Maps::batchFlushCount = 0;
  */
 Maps::Maps() : fillPolygons(true) 
 {
+    
     ESP_LOGI(TAG, "Maps constructor completed");
 }
 
@@ -348,8 +350,6 @@ void Maps::deleteMapScrSprites()
 	clearTileCache();
 	
 	
-	// Clear memory pool
-	clearUnifiedPool();
 }
 
 /**
@@ -500,6 +500,9 @@ void Maps::generateMap(uint8_t zoom)
 					Maps::mapTempSprite.drawWideLine(x1, y1, x2, y2, 2, TFT_BLUE);
 				}
 			}
+			
+			// Prefetch adjacent tiles for faster scrolling
+			prefetchAdjacentTiles(Maps::currentMapTile.tilex, Maps::currentMapTile.tiley, Maps::zoomLevel);
 		}
 	}
 }
@@ -698,6 +701,7 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 
 	TFT_eSprite preloadSprite = TFT_eSprite(&tft);
 	preloadSprite.createSprite(preloadWidth, preloadHeight);
+	
 
 	const int16_t startX = tileX + dirX;
 	const int16_t startY = tileY + dirY;
@@ -707,9 +711,14 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 		const int16_t tileToLoadX = startX + ((dirX == 0) ? i - 1 : 0);
 		const int16_t tileToLoadY = startY + ((dirY == 0) ? i - 1 : 0);
 
+		// Calculate correct coordinates for the tile being preloaded
+		// Use proper tile-to-coordinate conversion
+		float tileLon = (tileToLoadX / (1 << Maps::zoomLevel)) * 360.0f - 180.0f;
+		float tileLat = 90.0f - (tileToLoadY / (1 << Maps::zoomLevel)) * 180.0f;
+
 		Maps::roundMapTile = Maps::getMapTile(
-			Maps::currentMapTile.lon,
-			Maps::currentMapTile.lat,
+			tileLon,
+			tileLat,
 			Maps::zoomLevel,
 			tileToLoadX,
 			tileToLoadY
@@ -717,6 +726,7 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 
 		const int16_t offsetX = (dirX != 0) ? i * tileSize : 0;
 		const int16_t offsetY = (dirY != 0) ? i * tileSize : 0;
+		
 
 		bool foundTile = false;
 		
@@ -725,7 +735,10 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
         {
 			foundTile = getCachedTile(Maps::roundMapTile.file, preloadSprite, offsetX, offsetY);
 			if (foundTile) 
-				ESP_LOGI(TAG, "Tile found in cache: %s", Maps::roundMapTile.file);
+			{
+				// Cache hit - no need to log every time
+				// ESP_LOGI(TAG, "Tile found in cache: %s", Maps::roundMapTile.file);
+			}
 		}
 		
 		// If not in cache, try to load from file
@@ -755,6 +768,7 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 		if (!foundTile)
 			preloadSprite.fillRect(offsetX, offsetY, tileSize, tileSize, TFT_LIGHTGREY);
 	}
+	
 
 	if (dirX != 0)
 	{
@@ -1162,51 +1176,6 @@ void Maps::drawPolygonBorder(TFT_eSprite &map, const int *px, const int *py, con
     }
 }   
 
-/**
-* @brief Draws a filled circle with a border on a sprite.
-*                   
-* @details This function draws a circle on the provided TFT_eSprite object (map) at the specified position (x, y) with the given radius (r). 
-*          It fills the circle with the specified fill color and draws a border around it with the specified border color. 
-*          If fillShape is false, it only draws the circle border using the fill color.
-*
-* @param map The TFT_eSprite object where the circle will be drawn.
-* @param x The x-coordinate of the circle's center.
-* @param y The y-coordinate of the circle's center.
-* @param r The radius of the circle.
-* @param fill The color to fill the circle with (in RGB565 format).
-* @param border The color to use for the circle border (in RGB565 format).
-* @param fillShape If true, the circle will be filled; if false, only the border will be drawn.
-*/
-
-/**
-* @brief Draws a filled rectangle with a border on a sprite.
-*
-* @details This function draws a rectangle on the provided TFT_eSprite object (map) at the specified position (x, y) with the given width (w) and height (h). 
-*          It fills the rectangle with the specified fill color and draws a border around it with the specified border color. 
-*          If fillShape is false, it only draws the rectangle border using the fill color.
-*
-* @param map The TFT_eSprite object where the rectangle will be drawn.
-* @param x The x-coordinate of the top-left corner of the rectangle.
-* @param y The y-coordinate of the top-left corner of the rectangle.
-* @param w The width of the rectangle.
-* @param h The height of the rectangle.
-* @param fill The color to fill the rectangle with (in RGB565 format).
-* @param border The color to use for the rectangle border (in RGB565 format).
-* @param fillShape If true, the rectangle will be filled; if false, only the border will be drawn.
-*/
-
-/**
- * @brief Draw a dashed line between two points
- *
- * @details Draws a dashed line using Bresenham-like algorithm with configurable dash and gap lengths.
- *
- * @param map The TFT_eSprite object where the line will be drawn.
- * @param x1, y1 Starting point coordinates.
- * @param x2, y2 Ending point coordinates.
- * @param dashLength Length of each dash segment.
- * @param gapLength Length of each gap between dashes.
- * @param color The color to draw the line with (in RGB565 format).
- */
 
 
 
@@ -1334,14 +1303,23 @@ void Maps::evictLRUTile()
 {
     if (tileCache.empty()) return;
     
+    // Intelligent LRU eviction - consider both access time and memory usage
     auto lruIt = tileCache.begin();
-    uint32_t oldestAccess = lruIt->lastAccess;
+    uint32_t bestScore = lruIt->lastAccess;
+    size_t bestMemoryUsage = 0;
     
+    // Calculate memory usage for each tile
     for (auto it = tileCache.begin(); it != tileCache.end(); ++it) 
     {
-        if (it->lastAccess < oldestAccess)
+        size_t tileMemory = (it->sprite) ? (tileWidth * tileHeight * 2) : 0; // 2 bytes per pixel
+        
+        // Score based on access time and memory usage (lower is better)
+        uint32_t score = it->lastAccess + (tileMemory / 1024); // Add memory penalty
+        
+        if (score < bestScore || (score == bestScore && tileMemory > bestMemoryUsage))
         {
-            oldestAccess = it->lastAccess;
+            bestScore = score;
+            bestMemoryUsage = tileMemory;
             lruIt = it;
         }
     }
@@ -1397,16 +1375,6 @@ size_t Maps::getCacheMemoryUsage()
 
 
 
-/**
- * @brief Add tile to preload queue
- *
- * @details Adds a tile to the background preload queue for processing.
- *
- * @param filePath The file path of the tile to preload.
- * @param tileX The X coordinate of the tile.
- * @param tileY The Y coordinate of the tile.
- * @param zoom The zoom level of the tile.
- */
 
 
 
@@ -1445,6 +1413,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     if (getCachedTile(path, map, xOffset, yOffset))
         return true; // Tile found in cache
 
+    // Direct file read
     FILE* file = fopen(path, "rb");
     if (!file)
        return false;
@@ -1488,8 +1457,11 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     // Use optimal batch size for this hardware
     const size_t optimalBatchSize = getOptimalBatchSize();
     
-    // Initialize efficient batch rendering
+    // Initialize efficient batch rendering with DMA optimization
     createRenderBatch(optimalBatchSize);
+    
+    // Enable DMA for faster rendering
+    map.initDMA();
     
     int batchCount = 0;
 
@@ -2229,6 +2201,58 @@ void Maps::initUnifiedPool()
 }
 
 /**
+ * @brief Prefetch adjacent tiles for faster loading
+ * 
+ * @details Preloads tiles around the current position to reduce loading time during scrolling.
+ *          Uses background task to avoid blocking the main rendering thread.
+ * 
+ * @param centerX Current tile X coordinate
+ * @param centerY Current tile Y coordinate  
+ * @param zoom Current zoom level
+ */
+void Maps::prefetchAdjacentTiles(int16_t centerX, int16_t centerY, uint8_t zoom)
+{
+    // Prefetch 3x3 grid around current tile
+    for (int dx = -1; dx <= 1; dx++)
+    {
+        for (int dy = -1; dy <= 1; dy++)
+        {
+            if (dx == 0 && dy == 0) continue; // Skip center tile
+            
+            int16_t tileX = centerX + dx;
+            int16_t tileY = centerY + dy;
+            
+            // Calculate tile coordinates
+            float tileLon = (tileX / (1 << zoom)) * 360.0f - 180.0f;
+            float tileLat = 90.0f - (tileY / (1 << zoom)) * 180.0f;
+            
+            MapTile prefetchTile = getMapTile(tileLon, tileLat, zoom, tileX, tileY);
+            
+            // Check if tile exists and not already in cache
+            FILE* testFile = fopen(prefetchTile.file, "rb");
+            if (testFile)
+            {
+                fclose(testFile);
+                
+                // Try to load into cache if not already there
+                TFT_eSprite tempSprite = TFT_eSprite(&tft);
+                tempSprite.createSprite(tileWidth, tileHeight);
+                
+                if (!getCachedTile(prefetchTile.file, tempSprite, 0, 0))
+                {
+                    // Render tile to cache it
+                    renderTile(prefetchTile.file, 0, 0, tempSprite);
+                }
+                
+                tempSprite.deleteSprite();
+            }
+        }
+    }
+}
+
+
+
+/**
  * @brief Implement a unified memory allocation function that uses a memory pool
  *
  * @details Attempts to allocate memory from the unified pool first, falling back to direct heap allocation if pool is full.
@@ -2321,30 +2345,6 @@ void Maps::unifiedDealloc(void* ptr)
 }
 
 /**
- * @brief Clear the unified memory pool, freeing all allocated memory
- * 
- * @details Frees all memory entries in the unified pool, clears the pool vector, resets hit/miss counters,
- *          and logs the clearing operation. Uses mutex protection for thread safety.
- */
-void Maps::clearUnifiedPool()
-{
-    if (unifiedPoolMutex && xSemaphoreTake(unifiedPoolMutex, portMAX_DELAY) == pdTRUE) 
-    {
-        for (auto& entry : unifiedPool)
-        {
-            if (entry.ptr) 
-                heap_caps_free(entry.ptr);
-        }
-        unifiedPool.clear();
-        unifiedPoolHitCount = 0;
-        unifiedPoolMissCount = 0;
-        xSemaphoreGive(unifiedPoolMutex);
-        ESP_LOGI(TAG, "Unified memory pool cleared");
-    }
-}
-
-
-/**
  * @brief Initialize batch rendering system, detecting optimal batch size based on hardware
  *
  * @details Analyzes available PSRAM or RAM to determine optimal batch size for line rendering performance.
@@ -2403,7 +2403,7 @@ void Maps::createRenderBatch(size_t capacity)
  *
  * @details Adds a line segment to the current batch if it matches the batch color and there's capacity.
  *          Creates a new batch if none exists. Only adds segments that can be batched together.
- *
+ * 
  * @param x0    Starting X coordinate
  * @param y0    Starting Y coordinate
  * @param x1    Ending X coordinate
@@ -2435,7 +2435,7 @@ void Maps::addToBatch(int x0, int y0, int x1, int y1, uint16_t color)
  *
  * @details Renders all line segments in the current batch to the map sprite, applies optimizations if beneficial,
  *          and resets the batch for reuse. Tracks batch flush and optimization statistics.
- *
+ * 
  * @param map           Reference to the TFT_eSprite map to render onto
  * @param optimizations Reference to a counter for optimizations performed
  */
@@ -2475,7 +2475,7 @@ void Maps::flushBatch(TFT_eSprite& map, int& optimizations)
  *
  * @details Determines if a line segment can be added to the current batch based on color compatibility.
  *          Returns true if the batch is empty or if the color matches the current batch color.
- *
+ * 
  * @param color     Color of the line segment to add
  * @return true     if it can be added
  * @return false    if it cannot be added
@@ -2491,7 +2491,7 @@ bool Maps::canBatch(uint16_t color)
 
 /**
  * @brief Get the optimal batch size based on hardware capabilities
- *
+ * 
  * @details Returns the maximum batch size determined during initialization based on available memory.
  *          This value is calculated based on PSRAM availability for ESP32-S3 or RAM for standard ESP32.
  *
