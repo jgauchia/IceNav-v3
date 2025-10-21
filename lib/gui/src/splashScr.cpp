@@ -39,11 +39,10 @@ void createLVGLSplashScreen()
 	lv_label_set_text(label, "(c)OpenStreetMap contributors");
 	lv_obj_set_align(osmInfo, LV_ALIGN_BOTTOM_MID);
 	label = lv_label_create(splashScr);
-	lv_obj_set_style_text_font(label, &lv_font_montserrat_14, 0);
+	lv_obj_set_style_text_font(label, &lv_font_montserrat_18, 0);
 	lv_label_set_text_fmt(label,statusLine4, String(VERSION).c_str(), String(REVISION).c_str());
-	lv_obj_set_align(label, LV_ALIGN_BOTTOM_LEFT);
-	lv_obj_set_y(label, -50 * scale);
-	lv_obj_set_x(label, 5 * scale);
+	lv_obj_set_align(label, LV_ALIGN_CENTER);
+	lv_obj_set_y(label, -130 * scale);
 }
 
 /**
