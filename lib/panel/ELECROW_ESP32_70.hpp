@@ -24,7 +24,9 @@ class LGFX : public lgfx::LGFX_Device
   lgfx::Touch_GT911 _touch_instance;
 
 public:
+  // Constructor for the LGFX class.
   LGFX(void) {
+    // Configure the RGB bus.
     {
       auto cfg = _bus_instance.config();
       cfg.panel = &_panel_instance;
@@ -49,12 +51,14 @@ public:
       cfg.pin_d14 = GPIO_NUM_48; // R3
       cfg.pin_d15 = GPIO_NUM_45; // R4
 
+      // Configure sync and clock pins.
       cfg.pin_henable = GPIO_NUM_41;
       cfg.pin_vsync   = GPIO_NUM_40;
       cfg.pin_hsync   = GPIO_NUM_39;
       cfg.pin_pclk    = GPIO_NUM_0;
       cfg.freq_write  = 15000000;
 
+      // Configure timing parameters for horizontal and vertical sync.
       cfg.hsync_polarity    = 0;
       cfg.hsync_front_porch = 40;
       cfg.hsync_pulse_width = 48;
@@ -65,13 +69,16 @@ public:
       cfg.vsync_pulse_width = 31;
       cfg.vsync_back_porch  = 13;
 
+      // Configure polarity for clock and data transmission.
       cfg.pclk_active_neg   = 1;
       cfg.de_idle_high      = 0;
       cfg.pclk_idle_high    = 0;
 
+      // Apply configuration to the RGB bus instance.
       _bus_instance.config(cfg);
     }
 
+    // Configure the panel.
     {
       auto cfg = _panel_instance.config();
       cfg.memory_width  = 800;
@@ -81,30 +88,12 @@ public:
       cfg.offset_x      = 0;
       cfg.offset_y      = 0;
 
+      // Apply configuration to the panel instance.
       _panel_instance.config(cfg);
     }
 
+    // Set the RGB bus and panel instances.
     _panel_instance.setBus(&_bus_instance);
-    {
-      auto cfg = _touch_instance.config();
-
-      cfg.x_min = 0;
-      cfg.x_max = 479;
-      cfg.y_min = 0;
-      cfg.y_max = 799;
-      cfg.pin_int = -1;
-      cfg.bus_shared = true;
-      cfg.offset_rotation = 0;
-
-      cfg.i2c_port = 0;
-      cfg.i2c_addr = 0x38;
-      cfg.pin_sda = GPIO_NUM_19;
-      cfg.pin_scl = GPIO_NUM_20;
-      cfg.freq = 400000;
-
-      _touch_instance.config(cfg);
-      _panel_instance.setTouch(&_touch_instance);
-    }
     setPanel(&_panel_instance);
   }
 };

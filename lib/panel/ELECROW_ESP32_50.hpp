@@ -83,26 +83,6 @@ public:
       _panel_instance.config(cfg);
     }
     _panel_instance.setBus(&_bus_instance);
-    {
-      auto cfg = _touch_instance.config();
-
-      cfg.x_min = 0;
-      cfg.x_max = 479;
-      cfg.y_min = 0;
-      cfg.y_max = 799;
-      cfg.pin_int = -1;
-      cfg.bus_shared = true;
-      cfg.offset_rotation = 0;
-
-      cfg.i2c_port = 0;
-      cfg.i2c_addr = 0x38;
-      cfg.pin_sda = GPIO_NUM_19;
-      cfg.pin_scl = GPIO_NUM_20;
-      cfg.freq = 400000;
-
-      _touch_instance.config(cfg);
-      _panel_instance.setTouch(&_touch_instance);
-    }
     setPanel(&_panel_instance);
   }
 };

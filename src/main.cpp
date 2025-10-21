@@ -23,6 +23,7 @@
 #include "gps.hpp"
 #include "storage.hpp"
 #include "tft.hpp"
+#include "touch.h"
 
 #ifdef HMC5883L
 	#include "compass.hpp"
@@ -139,8 +140,14 @@ void setup()
 		pinMode(SPI_MISO, INPUT_PULLUP);
 	#endif
 
-	Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
-	Wire.begin();
+
+	
+	#if defined(ELECROW_ESP32_50) || defined(ELECROW_ESP32_70)
+		touch_init();
+	#else
+		Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
+		Wire.begin();
+	#endif
 
 	#ifdef BME280
 	initBME();
