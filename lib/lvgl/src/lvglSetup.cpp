@@ -11,6 +11,7 @@
 lv_display_t *display; /**< LVGL display driver */
 
 lv_obj_t *searchSatScreen; /**< Search Satellite Screen object. */
+lv_obj_t *splashScr;       /**< Splash Screen object. */
 lv_style_t styleThemeBkg;  /**< Main background style object. */
 lv_style_t styleObjectBkg; /**< Object background style. */
 lv_style_t styleObjectSel; /**< Object selected style. */
@@ -402,6 +403,9 @@ void initLVGL()
 	modifyTheme();
 	
 	//  Create Screens
+	#ifdef ICENAV_BOARD
+		createLVGLSplashScreen();
+	#endif
 	createSearchSatScr();
 	createMainScr();
 	createNotifyBar();
@@ -411,7 +415,7 @@ void initLVGL()
 	createButtonBarScr();
 	createGpxDetailScreen();
 	createGpxListScreen();
-	
+
 	// Create and start a periodic timer interrupt to call lv_tick_inc 
 	const esp_timer_create_args_t periodic_timer_args = { .callback = &lv_tick_task, .name = "periodic_gui" };
 	esp_timer_handle_t periodic_timer;
