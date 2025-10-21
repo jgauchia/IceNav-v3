@@ -204,7 +204,7 @@ void createMapSettingsScr()
 	checkCompass = lv_checkbox_create(list);
 	lv_obj_align_to(checkCompass, list, LV_ALIGN_RIGHT_MID, 0, 0);
 	lv_checkbox_set_text(checkCompass, " ");
-	lv_obj_add_state(checkCompass, mapSet.showMapCompass);
+	lv_obj_add_state(checkCompass, (lv_state_t)mapSet.showMapCompass);
 	lv_obj_add_event_cb(checkCompass, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
 
 	// Compass Rotation
@@ -215,7 +215,7 @@ void createMapSettingsScr()
 	checkCompassRot = lv_checkbox_create(list);
 	lv_obj_align_to(checkCompassRot, list, LV_ALIGN_RIGHT_MID, 0, 0);
 	lv_checkbox_set_text(checkCompassRot, " ");
-	lv_obj_add_state(checkCompassRot, mapSet.compassRotation);
+	lv_obj_add_state(checkCompassRot, (lv_state_t)mapSet.compassRotation);
 	lv_obj_add_event_cb(checkCompassRot, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
 
 	// Show Speed
@@ -226,7 +226,7 @@ void createMapSettingsScr()
 	checkSpeed = lv_checkbox_create(list);
 	lv_obj_align_to(checkSpeed, list, LV_ALIGN_RIGHT_MID, 0, 0);
 	lv_checkbox_set_text(checkSpeed, " ");
-	lv_obj_add_state(checkSpeed, mapSet.showMapSpeed);
+	lv_obj_add_state(checkSpeed, (lv_state_t)mapSet.showMapSpeed);
 	lv_obj_add_event_cb(checkSpeed, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
 
 	// Show Map Scale
@@ -237,7 +237,7 @@ void createMapSettingsScr()
 	checkScale = lv_checkbox_create(list);
 	lv_obj_align_to(checkScale, list, LV_ALIGN_RIGHT_MID, 0, 0);
 	lv_checkbox_set_text(checkScale, " ");
-	lv_obj_add_state(checkScale, mapSet.showMapScale);
+	lv_obj_add_state(checkScale, (lv_state_t)mapSet.showMapScale);
 	lv_obj_add_event_cb(checkScale, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
 
 	// Back button
