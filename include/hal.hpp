@@ -81,8 +81,9 @@
   #define I2C_SDA_PIN   GPIO_NUM_19
   #define I2C_SCL_PIN   GPIO_NUM_20  
 
-  uint8_t GPS_TX = GPIO_NUM_44;
-  uint8_t GPS_RX = GPIO_NUM_43;
+  // Use GPIO_D port for GPS
+  uint8_t GPS_TX = GPIO_NUM_NC;
+  uint8_t GPS_RX = GPIO_NUM_38;
 
   extern const uint8_t BOARD_BOOT_PIN = GPIO_NUM_0;
 
@@ -103,8 +104,9 @@
   #define I2C_SDA_PIN   GPIO_NUM_19
   #define I2C_SCL_PIN   GPIO_NUM_20  
 
-  uint8_t GPS_TX = GPIO_NUM_44;
-  uint8_t GPS_RX = GPIO_NUM_43;
+  // Use GPIO_D port for GPS
+  uint8_t GPS_TX = GPIO_NUM_NC;
+  uint8_t GPS_RX = GPIO_NUM_38;
 
   extern const uint8_t BOARD_BOOT_PIN = GPIO_NUM_0;
 
