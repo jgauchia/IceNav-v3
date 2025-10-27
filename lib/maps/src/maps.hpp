@@ -108,16 +108,6 @@ private:
 		bool isValid;               /**< Bounds are valid */
 	};
 	
-	// Layer rendering structures
-	struct RenderCommand		/**< Command for layered rendering */
-	{
-		uint8_t type;           /**< Command type */
-		uint8_t color;          /**< RGB332 color */
-		uint16_t colorRGB565;   /**< RGB565 color */
-		void* data;             /**< Command-specific data */
-		size_t dataSize;        /**< Size of command data */
-	};
-	
 	struct tileBounds		/**< Map boundaries structure */
 	{
 		float lat_min;	   /**< Minimum latitude */

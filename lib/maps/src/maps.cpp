@@ -1500,9 +1500,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
         const size_t cmdStartOffset = offset;
         const uint32_t cmdType = readVarint(data, offset, dataSize);
 
-        // Since commands are pre-sorted by layer but we can't detect layer changes,
-        // we'll be more conservative and flush batches more frequently to ensure
-        // proper layer ordering. Flush every 50 commands to maintain layer integrity.
+        // Flush batches periodically to ensure proper rendering
         if (cmd_idx > 0 && cmd_idx % 50 == 0) {
             flushCurrentBatch();
         }
