@@ -14,7 +14,11 @@
 #include "gps.hpp"
 
 #ifdef LARGE_SCREEN
-    static const char* logoFile PROGMEM = "/spiffs/LOGO_LARGE.png"; /**< Path to the large logo image for large screens */
+    #ifdef ICENAV_BOARD
+        static const char* logoFile PROGMEM = "/spiffs/LOGO_NEW.png"; /**< Path to the large logo image for large screens */  
+    #else
+        static const char* logoFile PROGMEM = "/spiffs/LOGO_LARGE.png"; /**< Path to the large logo image for large screens */
+    #endif
 #else
     static const char* logoFile PROGMEM = "/spiffs/LOGO_SMALL.png"; /**< Path to the small logo image for smaller screens */
 #endif
@@ -25,4 +29,8 @@ static const char* statusLine3 PROGMEM = "PSRAM: %d - Used PSRAM: %d"; /**< Form
 static const char* statusLine4 PROGMEM = "Firmware v.%s rev.%s";       /**< Format string for firmware version and revision */
 static const char* statusLine5 PROGMEM = "ENV: %s";                    /**< Format string for environment information */
 
+extern lv_obj_t *splashScr;
+static lv_obj_t *splashCanvas;
+
+void createLVGLSplashScreen();
 void splashScreen();

@@ -222,6 +222,7 @@ void displayTurnIcon(float distanceToNextEvent, float abs_angle, bool derecha, f
  * @param state               Persistent navigation state including current/last track and turn indices.
  * @param minAngleForCurve    Minimum angle (in degrees) to classify a soft curve (default: 15°).
  * @param warnDist            Distance threshold (in meters) to trigger the event warning (default: 100 m).
+ * @param config              Navigation configuration parameters.
  */
 void updateNavigation(
     float userLat, float userLon, float userHeading, float speed_kmh,

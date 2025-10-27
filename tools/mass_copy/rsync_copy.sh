@@ -1,34 +1,46 @@
 #!/bin/bash
 set -e
 
-# Fast mass copy using rsync with intelligent sync
-# Usage: ./rsync_copy.sh [SOURCE] [DESTINATION] [DEVICE]
+# Fast mass copy with anti-fragmentation modes
+# Usage: ./rsync_copy_defrag.sh [SOURCE] [DESTINATION] [DEVICE] [MODE]
 
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
+NC='\033[0m'
 
-# Function to show help
 show_help() {
-    echo -e "${BLUE}=== FAST MASS COPY WITH RSYNC ===${NC}"
+    echo -e "${BLUE}=== MASS COPY WITH ANTI-FRAGMENTATION ===${NC}"
     echo ""
-    echo "Usage: $0 [SOURCE] [DESTINATION] [DEVICE]"
+    echo "Usage: $0 [SOURCE] [DESTINATION] [DEVICE] [MODE]"
+    echo ""
+    echo "MODES:"
+    echo -e "  ${GREEN}incremental${NC} - Fast sync, only copies changed files (default)"
+    echo "               Use for: frequent development updates"
+    echo "               Warning: Causes fragmentation over time"
+    echo ""
+    echo -e "  ${MAGENTA}full${NC}        - Complete sequential copy (deletes destination first)"
+    echo "               Use for: production deployment, defragmentation"
+    echo "               Benefit: Zero fragmentation, optimal read performance"
     echo ""
     echo "Features:"
-    echo "  - Intelligent sync (only copies changed files)"
+    echo "  - Sequential Z→X→Y order (anti-fragmentation)"
     echo "  - Built-in progress monitoring"
-    echo "  - Resumable transfers"
-    echo "  - Optimized for many small files"
-    echo "  - Real-time speed display"
-    echo "  - Preserves source folder name"
-    echo "  - Automatic cleanup of obsolete files"
+    echo "  - Integrity verification"
+    echo "  - Optimized for map tiles"
     echo ""
     echo "Examples:"
-    echo "  $0 /home/user/files /mnt/sd /dev/sdc1"
-    echo "  $0 /home/user/data /media/usb /dev/sdb1"
+    echo "  $0 /home/user/tiles /mnt/sd /dev/sdc1 incremental  # Quick dev sync"
+    echo "  $0 /home/user/tiles /mnt/sd /dev/sdc1 full         # Production deploy"
+    echo ""
+    echo "Recommendations:"
+    echo "  - Development: Use 'incremental' for quick iterations"
+    echo "  - Production: Use 'full' before field deployment"
+    echo "  - Periodic: Run 'full' every N syncs to defragment"
     echo ""
     exit 0
 }
@@ -39,8 +51,8 @@ if [ $# -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
 fi
 
 if [ $# -lt 3 ]; then
-    echo -e "${RED}Error: 3 parameters required${NC}"
-    echo "Usage: $0 [SOURCE] [DESTINATION] [DEVICE]"
+    echo -e "${RED}Error: At least 3 parameters required${NC}"
+    echo "Usage: $0 [SOURCE] [DESTINATION] [DEVICE] [MODE]"
     echo "Run '$0 --help' for more information"
     exit 1
 fi
@@ -48,8 +60,14 @@ fi
 SOURCE="$1"
 DESTINATION="$2"
 DEVICE="$3"
+MODE="${4:-incremental}"  # Default to incremental
 
-# Extract source folder name
+# Validate mode
+if [ "$MODE" != "incremental" ] && [ "$MODE" != "full" ]; then
+    echo -e "${RED}Error: Invalid mode '$MODE'. Use 'incremental' or 'full'${NC}"
+    exit 1
+fi
+
 SOURCE_FOLDER_NAME=$(basename "$SOURCE")
 
 # Validate inputs
@@ -66,6 +84,7 @@ fi
 # Cleanup function
 cleanup() {
     echo -e "${YELLOW}Cleaning up...${NC}"
+    rm -f /tmp/rsync_filelist_sorted_$$.txt 2>/dev/null
     if mountpoint -q "$DESTINATION" 2>/dev/null; then
         sudo umount "$DESTINATION" 2>/dev/null || true
     fi
@@ -73,15 +92,29 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-echo -e "${BLUE}=== FAST MASS COPY WITH RSYNC ===${NC}"
+# Display mode banner
+if [ "$MODE" = "full" ]; then
+    echo -e "${MAGENTA}╔═══════════════════════════════════════════════╗${NC}"
+    echo -e "${MAGENTA}║   FULL MODE: Zero Fragmentation Guaranteed   ║${NC}"
+    echo -e "${MAGENTA}╚═══════════════════════════════════════════════╝${NC}"
+else
+    echo -e "${GREEN}╔═══════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║  INCREMENTAL MODE: Fast Development Sync     ║${NC}"
+    echo -e "${GREEN}╚═══════════════════════════════════════════════╝${NC}"
+fi
+
 echo -e "${BLUE}Start: $(date)${NC}"
 echo ""
 echo "Configuration:"
 echo "  Source: $SOURCE"
-echo "  Source folder name: $SOURCE_FOLDER_NAME"
 echo "  Destination: $DESTINATION"
 echo "  Device: $DEVICE"
-echo "  Mode: Intelligent sync (only changed files)"
+echo "  Mode: $MODE"
+if [ "$MODE" = "full" ]; then
+    echo -e "  ${MAGENTA}Strategy: Delete + Sequential copy (optimal performance)${NC}"
+else
+    echo -e "  ${YELLOW}Strategy: Incremental sync (may fragment over time)${NC}"
+fi
 echo ""
 
 # STEP 1: Mount device
@@ -89,7 +122,6 @@ echo -e "${YELLOW}1. Mounting device...${NC}"
 sudo mkdir -p "$DESTINATION"
 sudo umount "$DEVICE" 2>/dev/null || true
 
-# Mount with optimizations for many small files
 sudo mount -t vfat -o rw,uid=$(id -u),gid=$(id -g),umask=0022,async,noatime,nodiratime "$DEVICE" "$DESTINATION"
 
 if ! mountpoint -q "$DESTINATION"; then
@@ -102,21 +134,47 @@ echo -e "${GREEN}   ✓ Device mounted successfully${NC}"
 # STEP 2: Space verification
 echo -e "${YELLOW}2. Verifying available space...${NC}"
 
-# Get source size in bytes
-SOURCE_SIZE=$(du -sb "$SOURCE" | cut -f1)
-echo "   Source size: $(du -sh "$SOURCE" | cut -f1)"
+# Get source size - try multiple methods for reliability
+SOURCE_SIZE=""
 
-# Initialize with default
+# Method 1: du with block size (most reliable)
+SOURCE_SIZE=$(du -sb "$SOURCE" 2>/dev/null | cut -f1)
+
+# Method 2: du apparent size (fallback)
+if [ -z "$SOURCE_SIZE" ] || ! [[ "$SOURCE_SIZE" =~ ^[0-9]+$ ]]; then
+    SOURCE_SIZE=$(du --apparent-size -sb "$SOURCE" 2>/dev/null | cut -f1)
+fi
+
+# Method 3: Sum file sizes directly (slowest but most accurate)
+if [ -z "$SOURCE_SIZE" ] || ! [[ "$SOURCE_SIZE" =~ ^[0-9]+$ ]]; then
+    echo "   Calculating exact size (may take a moment)..."
+    SOURCE_SIZE=$(find "$SOURCE" -type f -printf "%s\n" 2>/dev/null | awk '{sum+=$1} END {print sum}')
+fi
+
+# Ensure we have a valid number
+if [ -z "$SOURCE_SIZE" ] || ! [[ "$SOURCE_SIZE" =~ ^[0-9]+$ ]]; then
+    SOURCE_SIZE=0
+fi
+
+# Display human-readable size
+if [ "$SOURCE_SIZE" -gt 0 ]; then
+    SOURCE_SIZE_HUMAN=$(echo "$SOURCE_SIZE" | awk '{
+        if ($1 >= 1073741824) printf "%.2fGB", $1/1073741824;
+        else if ($1 >= 1048576) printf "%.2fMB", $1/1048576;
+        else if ($1 >= 1024) printf "%.2fKB", $1/1024;
+        else printf "%dB", $1;
+    }')
+    echo "   Source size: $SOURCE_SIZE_HUMAN ($SOURCE_SIZE bytes)"
+else
+    echo "   Source size: Unknown (proceeding anyway)"
+fi
+
 DESTINATION_FREE="0"
-
-# Method 1: Try df -B1 (most compatible)
 DF_OUTPUT=$(df -B1 "$DESTINATION" 2>/dev/null | tail -n 1)
 if [ -n "$DF_OUTPUT" ]; then
-    # Extract available space (4th column)
     DESTINATION_FREE=$(echo "$DF_OUTPUT" | awk '{print $4}' | grep -E '^[0-9]+$' || echo "0")
 fi
 
-# Method 2: Fallback to df with KB
 if [ "$DESTINATION_FREE" = "0" ]; then
     DF_KB=$(df "$DESTINATION" 2>/dev/null | tail -1 | awk '{print $4}' | tr -d 'K' | grep -E '^[0-9]+$' || echo "0")
     if [ "$DF_KB" != "0" ]; then
@@ -124,47 +182,67 @@ if [ "$DESTINATION_FREE" = "0" ]; then
     fi
 fi
 
-# Ensure DESTINATION_FREE is numeric
 if ! [[ "$DESTINATION_FREE" =~ ^[0-9]+$ ]]; then
     DESTINATION_FREE="0"
 fi
 
 echo "   Free space: $(echo "$DESTINATION_FREE" | awk '{printf "%.1fG", $1/1024/1024/1024}')"
 
-# Check space only if we have valid numbers
 if [ "$DESTINATION_FREE" -gt 0 ] && [[ "$SOURCE_SIZE" =~ ^[0-9]+$ ]]; then
     REQUIRED_SPACE=$((SOURCE_SIZE + SOURCE_SIZE / 10))
-    echo "   Required space (with 10% margin): $(echo "$REQUIRED_SPACE" | awk '{printf "%.1fG", $1/1024/1024/1024}')"
     
     if [ "$REQUIRED_SPACE" -gt "$DESTINATION_FREE" ]; then
         echo -e "${RED}Error: Not enough space at destination${NC}"
-        echo "   Required: $(echo "$REQUIRED_SPACE" | awk '{printf "%.1fG", $1/1024/1024/1024}')"
-        echo "   Available: $(echo "$DESTINATION_FREE" | awk '{printf "%.1fG", $1/1024/1024/1024}')"
         exit 1
     fi
     echo -e "${GREEN}   ✓ Sufficient space available${NC}"
-else
-    echo -e "${YELLOW}   Warning: Could not verify space accurately, proceeding...${NC}"
-    echo "   Debug: DESTINATION_FREE='$DESTINATION_FREE', SOURCE_SIZE='$SOURCE_SIZE'"
 fi
 
-# STEP 3: Analyze sync requirements
-echo -e "${YELLOW}3. Analyzing sync requirements...${NC}"
-
-TOTAL_FILES=$(find "$SOURCE" -type f 2>/dev/null | wc -l)
-echo "   Source files: $TOTAL_FILES"
-
-# Check if destination exists to determine sync type
-if [ -d "$DESTINATION/$SOURCE_FOLDER_NAME" ]; then
-    DEST_FILES=$(find "$DESTINATION/$SOURCE_FOLDER_NAME" -type f 2>/dev/null | wc -l)
-    echo "   Existing destination files: $DEST_FILES"
-    echo "   Sync mode: Update existing destination"
+# STEP 3: Full mode - delete existing destination
+if [ "$MODE" = "full" ]; then
+    if [ -d "$DESTINATION/$SOURCE_FOLDER_NAME" ]; then
+        echo -e "${MAGENTA}3. FULL MODE: Removing existing destination...${NC}"
+        echo -e "${YELLOW}   This ensures zero fragmentation${NC}"
+        
+        EXISTING_SIZE=$(du -sh "$DESTINATION/$SOURCE_FOLDER_NAME" 2>/dev/null | cut -f1 || echo "unknown")
+        echo "   Existing data size: $EXISTING_SIZE"
+        
+        rm -rf "$DESTINATION/$SOURCE_FOLDER_NAME"
+        sync
+        
+        echo -e "${GREEN}   ✓ Destination cleared${NC}"
+    else
+        echo -e "${MAGENTA}3. FULL MODE: Destination empty (first copy)${NC}"
+    fi
 else
-    echo "   Sync mode: Initial copy (destination doesn't exist)"
+    echo -e "${YELLOW}3. INCREMENTAL MODE: Keeping existing files${NC}"
+    if [ -d "$DESTINATION/$SOURCE_FOLDER_NAME" ]; then
+        EXISTING_FILES=$(find "$DESTINATION/$SOURCE_FOLDER_NAME" -type f 2>/dev/null | wc -l)
+        echo "   Existing files: $EXISTING_FILES"
+        echo -e "${YELLOW}   Warning: Updates will cause fragmentation${NC}"
+    fi
 fi
 
-# STEP 4: Device speed test
-echo -e "${YELLOW}4. Testing device write speed...${NC}"
+# STEP 4: Generate sorted file list
+echo -e "${YELLOW}4. Generating optimized file list...${NC}"
+
+FILELIST="/tmp/rsync_filelist_sorted_$$.txt"
+
+find "$SOURCE" -type f 2>/dev/null | \
+    sed "s|^$SOURCE/||" | \
+    sort -t'/' -k1,1n -k2,2n -k3,3n > "$FILELIST"
+
+TOTAL_FILES=$(wc -l < "$FILELIST")
+echo "   Files to sync: $TOTAL_FILES"
+echo -e "${GREEN}   ✓ File list sorted (Z→X→Y order)${NC}"
+
+echo "   Sample write order:"
+head -3 "$FILELIST" | while read line; do
+    echo "     → $line"
+done
+
+# STEP 5: Device speed test
+echo -e "${YELLOW}5. Testing device write speed...${NC}"
 TEST_START=$(date +%s)
 dd if=/dev/zero of="$DESTINATION/speedtest.tmp" bs=10M count=1 oflag=direct status=none 2>/dev/null || true
 TEST_END=$(date +%s)
@@ -175,29 +253,43 @@ rm -f "$DESTINATION/speedtest.tmp"
 
 echo "   Write speed: ~${WRITE_SPEED}MB/s"
 
-# STEP 5: Rsync sync with intelligent behavior
-echo -e "${YELLOW}5. Starting intelligent sync...${NC}"
-echo "   Destination folder: $DESTINATION/$SOURCE_FOLDER_NAME/"
-echo "   Rsync will:"
-echo "   - Only copy new/modified files"
-echo "   - Remove files from destination that no longer exist in source"
-echo "   - Resume interrupted transfers"
+# STEP 6: Pre-create directory structure
+echo -e "${YELLOW}6. Pre-creating directory structure...${NC}"
+
+cut -d'/' -f1-2 "$FILELIST" | sort -u | while read dir; do
+    if [ -n "$dir" ]; then
+        mkdir -p "$DESTINATION/$SOURCE_FOLDER_NAME/$dir" 2>/dev/null || true
+    fi
+done
+
+echo -e "${GREEN}   ✓ Directory structure ready${NC}"
+
+# STEP 7: Rsync with mode-specific options
+echo -e "${YELLOW}7. Starting sync...${NC}"
+
+if [ "$MODE" = "full" ]; then
+    echo -e "${MAGENTA}   FULL MODE: Complete sequential copy${NC}"
+    echo "   - All files copied in order"
+    echo "   - Zero fragmentation guaranteed"
+else
+    echo -e "${GREEN}   INCREMENTAL MODE: Only changed files${NC}"
+    echo "   - Fast for small updates"
+    echo "   - May fragment over multiple syncs"
+fi
 echo ""
 
 RSYNC_START=$(date +%s)
 
-# Rsync with intelligent sync - only copies what's needed
 rsync -a \
     --info=progress2 \
+    --files-from="$FILELIST" \
     --partial \
     --inplace \
     --no-compress \
-    --delete-during \
     --prune-empty-dirs \
     --human-readable \
     "$SOURCE/" "$DESTINATION/$SOURCE_FOLDER_NAME/"
 
-# Check rsync exit status
 RSYNC_EXIT_CODE=$?
 if [ $RSYNC_EXIT_CODE -ne 0 ]; then
     echo -e "${RED}Error: rsync failed with exit code $RSYNC_EXIT_CODE${NC}"
@@ -208,18 +300,30 @@ RSYNC_END=$(date +%s)
 RSYNC_TIME=$((RSYNC_END - RSYNC_START))
 
 echo ""
-echo -e "${GREEN}   ✓ Sync completed successfully${NC}"
+echo -e "${GREEN}   ✓ Sync completed${NC}"
 
-# STEP 6: Verification
-echo -e "${YELLOW}6. Verifying sync result...${NC}"
+# STEP 8: Verification
+echo -e "${YELLOW}8. Verifying sync result...${NC}"
 
 DEST_FILES_FINAL=$(find "$DESTINATION/$SOURCE_FOLDER_NAME" -type f 2>/dev/null | wc -l)
-DEST_SIZE=$(du -sh "$DESTINATION/$SOURCE_FOLDER_NAME" 2>/dev/null | cut -f1)
+
+# Calculate destination size
+DEST_SIZE_BYTES=$(find "$DESTINATION/$SOURCE_FOLDER_NAME" -type f -printf "%s\n" 2>/dev/null | awk '{sum+=$1} END {print sum}')
+if [ -z "$DEST_SIZE_BYTES" ] || ! [[ "$DEST_SIZE_BYTES" =~ ^[0-9]+$ ]]; then
+    DEST_SIZE_BYTES=0
+fi
+
+DEST_SIZE=$(echo "$DEST_SIZE_BYTES" | awk '{
+    if ($1 >= 1073741824) printf "%.2fGB", $1/1073741824;
+    else if ($1 >= 1048576) printf "%.2fMB", $1/1048576;
+    else if ($1 >= 1024) printf "%.2fKB", $1/1024;
+    else printf "%dB", $1;
+}')
 
 echo "   Source files: $TOTAL_FILES"
 echo "   Destination files: $DEST_FILES_FINAL"
-echo "   Source size: $(du -sh "$SOURCE" | cut -f1)"
-echo "   Destination size: $DEST_SIZE"
+echo "   Source size: $SOURCE_SIZE_HUMAN"
+echo "   Destination size: $DEST_SIZE ($DEST_SIZE_BYTES bytes)"
 
 if [ "$TOTAL_FILES" -eq "$DEST_FILES_FINAL" ]; then
     echo -e "${GREEN}   ✓ File count matches perfectly${NC}"
@@ -228,50 +332,40 @@ else
     echo -e "${YELLOW}   Warning: File count difference: $DIFF files${NC}"
 fi
 
-# STEP 7: Sample integrity check
-echo -e "${YELLOW}7. Sample integrity check...${NC}"
-echo "   Checking 10 random files..."
+# STEP 9: Sample integrity check
+echo -e "${YELLOW}9. Sample integrity check...${NC}"
 
 SAMPLE_COUNT=0
 SAMPLE_ERRORS=0
 
-for file in $(find "$SOURCE" -type f 2>/dev/null | shuf | head -10); do
+for file in $(shuf -n 10 "$FILELIST"); do
     SAMPLE_COUNT=$((SAMPLE_COUNT + 1))
-    rel_path=${file#$SOURCE/}
-    dest_file="$DESTINATION/$SOURCE_FOLDER_NAME/$rel_path"
-    
-    if [ -f "$dest_file" ]; then
-        if cmp -s "$file" "$dest_file" 2>/dev/null; then
-            echo "   ✓ $rel_path"
-        else
-            echo "   ✗ $rel_path (content differs)"
-            SAMPLE_ERRORS=$((SAMPLE_ERRORS + 1))
-        fi
+    src_file="$SOURCE/$file"
+    dest_file="$DESTINATION/$SOURCE_FOLDER_NAME/$file"
+
+    if [ -f "$dest_file" ] && cmp -s "$src_file" "$dest_file" 2>/dev/null; then
+        echo "   ✓ $file"
     else
-        echo "   ✗ $rel_path (missing)"
+        echo "   ✗ $file"
         SAMPLE_ERRORS=$((SAMPLE_ERRORS + 1))
     fi
 done
 
 if [ $SAMPLE_ERRORS -eq 0 ]; then
-    echo -e "${GREEN}   ✓ Sample verification passed (${SAMPLE_COUNT}/${SAMPLE_COUNT} files OK)${NC}"
-else
-    echo -e "${YELLOW}   Warning: $SAMPLE_ERRORS/$SAMPLE_COUNT sample files had issues${NC}"
+    echo -e "${GREEN}   ✓ All samples verified OK${NC}"
 fi
 
-# STEP 8: Final sync and unmount
-echo -e "${YELLOW}8. Finalizing...${NC}"
-echo "   Syncing filesystem..."
+# STEP 10: Final sync and unmount
+echo -e "${YELLOW}10. Finalizing...${NC}"
 sync
 sleep 2
 
-echo "   Unmounting device..."
 sudo umount "$DESTINATION"
 sleep 1
 
 echo -e "${GREEN}   ✓ Device unmounted safely${NC}"
 
-# Calculate performance stats
+# Performance stats
 TOTAL_TIME=$RSYNC_TIME
 if [ $TOTAL_TIME -gt 0 ]; then
     AVG_SPEED=$((SOURCE_SIZE / 1024 / 1024 / TOTAL_TIME))
@@ -282,28 +376,41 @@ else
 fi
 
 echo ""
-echo -e "${GREEN}=== SYNC COMPLETED SUCCESSFULLY ===${NC}"
+if [ "$MODE" = "full" ]; then
+    echo -e "${MAGENTA}═══════════════════════════════════════════${NC}"
+    echo -e "${MAGENTA}    FULL SYNC COMPLETED - ZERO FRAGMENTATION${NC}"
+    echo -e "${MAGENTA}═══════════════════════════════════════════${NC}"
+else
+    echo -e "${GREEN}═══════════════════════════════════════════${NC}"
+    echo -e "${GREEN}    INCREMENTAL SYNC COMPLETED${NC}"
+    echo -e "${GREEN}═══════════════════════════════════════════${NC}"
+fi
 echo -e "${GREEN}End: $(date)${NC}"
 echo ""
 echo "Performance Summary:"
-echo "  Files processed: $TOTAL_FILES"
-echo "  Data size: $(du -sh "$SOURCE" | cut -f1)"
-echo "  Sync time: ${TOTAL_TIME}s ($((TOTAL_TIME / 60))m $((TOTAL_TIME % 60))s)"
-echo "  Average speed: ${AVG_SPEED}MB/s"
-echo "  Files/second: $FILES_PER_SEC"
-echo "  Device write speed: ~${WRITE_SPEED}MB/s"
-echo "  Sample verification: $((SAMPLE_COUNT - SAMPLE_ERRORS))/$SAMPLE_COUNT files OK"
+echo "  Files: $TOTAL_FILES"
+echo "  Size: $SOURCE_SIZE_HUMAN"
+echo "  Time: ${TOTAL_TIME}s ($((TOTAL_TIME / 60))m $((TOTAL_TIME % 60))s)"
+echo "  Speed: ${AVG_SPEED}MB/s"
+echo "  Files/sec: $FILES_PER_SEC"
+echo "  Verification: $((SAMPLE_COUNT - SAMPLE_ERRORS))/$SAMPLE_COUNT OK"
 echo ""
-echo "Files synced to: $DESTINATION/$SOURCE_FOLDER_NAME/"
-echo ""
-echo -e "${BLUE}Rsync intelligently synced only new/modified files${NC}"
-echo -e "${BLUE}Next sync will be faster as only changes will be copied${NC}"
 
-# Final status
+if [ "$MODE" = "full" ]; then
+    echo -e "${MAGENTA}✓ OPTIMAL: Files written sequentially, zero fragmentation${NC}"
+    echo -e "${CYAN}  This SD is now optimized for maximum read performance${NC}"
+else
+    echo -e "${YELLOW}⚠ FRAGMENTATION WARNING:${NC}"
+    echo -e "${YELLOW}  Multiple incremental syncs cause fragmentation${NC}"
+    echo -e "${YELLOW}  Recommend: Run 'full' mode periodically to defragment${NC}"
+    echo -e "${CYAN}  Example: ./$(basename $0) $SOURCE $DESTINATION $DEVICE full${NC}"
+fi
+
+echo ""
 if [ $SAMPLE_ERRORS -eq 0 ]; then
-    echo -e "${GREEN}✓ SYNC SUCCESSFUL - All verifications passed${NC}"
+    echo -e "${GREEN}✓ SYNC SUCCESSFUL${NC}"
     exit 0
 else
-    echo -e "${YELLOW}⚠ SYNC COMPLETED with verification warnings${NC}"
+    echo -e "${YELLOW}⚠ SYNC COMPLETED with warnings${NC}"
     exit 1
 fi

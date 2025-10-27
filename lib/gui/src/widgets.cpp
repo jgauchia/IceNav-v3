@@ -172,7 +172,7 @@ void compassWidget(lv_obj_t *screen)
     lv_obj_align_to(compassImg, obj, LV_ALIGN_CENTER, 0, 0);   
     lv_img_set_pivot(compassImg, 100, 100) ;
     compassHeading = lv_label_create(obj);
-    lv_obj_set_height(compassHeading,38);
+    lv_obj_set_height(compassHeading,45);
     lv_obj_align(compassHeading, LV_ALIGN_CENTER, 0, 20);
     lv_obj_set_style_text_font(compassHeading, fontVeryLarge, 0);
     lv_label_set_text_static(compassHeading, "---\xC2\xB0");
