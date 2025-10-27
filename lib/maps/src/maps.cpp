@@ -1499,7 +1499,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
             break;
         const size_t cmdStartOffset = offset;
         const uint32_t cmdType = readVarint(data, offset, dataSize);
-        
+
         // Since commands are pre-sorted by layer but we can't detect layer changes,
         // we'll be more conservative and flush batches more frequently to ensure
         // proper layer ordering. Flush every 50 commands to maintain layer integrity.
@@ -1511,6 +1511,10 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
 
         switch (cmdType) 
         {
+            case SET_LAYER:
+                // Ignore SET_LAYER command as tiles are already sorted by layers
+                readVarint(data, offset, dataSize);
+                break;
             case SET_COLOR:
                 flushCurrentBatch();
                 if (offset < dataSize) 
@@ -1574,11 +1578,11 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         if (!px || !py)
                         {
                             // Skip this command if allocation failed
-                            for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
-                            {
-                                readZigzag(data, offset, dataSize);
-                                readZigzag(data, offset, dataSize);
-                            }
+                                for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
+                                {
+                                    readZigzag(data, offset, dataSize);
+                                    readZigzag(data, offset, dataSize);
+                                }
                             continue;
                         }
                         int32_t prevX = readZigzag(data, offset, dataSize);
@@ -1608,11 +1612,11 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     }
                     else
                     {
-                        for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i) 
-                        {
-                            readZigzag(data, offset, dataSize);
-                            readZigzag(data, offset, dataSize);
-                        }
+                                for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
+                                {
+                                    readZigzag(data, offset, dataSize);
+                                    readZigzag(data, offset, dataSize);
+                                }
                     }
                 }
                 break;
@@ -1631,11 +1635,11 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         int* py = pyGuard.get();
                         if (!px || !py) 
                         {
-                            for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
-                            {
-                                readZigzag(data, offset, dataSize);
-                                readZigzag(data, offset, dataSize);
-                            }
+                                for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
+                                {
+                                    readZigzag(data, offset, dataSize);
+                                    readZigzag(data, offset, dataSize);
+                                }
                             break;
                         }
                         if (!unifiedPolygonLogged) 
@@ -1666,11 +1670,11 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     } 
                     else 
                     {
-                        for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i) 
-                        {
-                            readZigzag(data, offset, dataSize);
-                            readZigzag(data, offset, dataSize);
-                        }
+                                for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
+                                {
+                                    readZigzag(data, offset, dataSize);
+                                    readZigzag(data, offset, dataSize);
+                                }
                     }
                 }
                 break;
@@ -1688,11 +1692,11 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         int* py = pyGuard.get();
                         if (!px || !py) 
                         {
-                            for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i) 
-                            {
-                                readZigzag(data, offset, dataSize);
-                                readZigzag(data, offset, dataSize);
-                            }
+                                for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
+                                {
+                                    readZigzag(data, offset, dataSize);
+                                    readZigzag(data, offset, dataSize);
+                                }
                             break;
                         }
                         if (!unifiedPolygonsLogged)
@@ -1727,11 +1731,11 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     } 
                     else
                     {
-                        for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i) 
-                        {
-                            readZigzag(data, offset, dataSize);
-                            readZigzag(data, offset, dataSize);
-                        }
+                                for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
+                                {
+                                    readZigzag(data, offset, dataSize);
+                                    readZigzag(data, offset, dataSize);
+                                }
                     }
                 }
                 break;
