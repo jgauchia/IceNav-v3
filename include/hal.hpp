@@ -55,7 +55,8 @@
  * @brief ELECROW ESP32 Terminal BOARD pin definition
  *
  */
-#ifdef ELECROW_ESP32
+#ifdef ELECROW_ESP32_35
+  // Official specs: https://www.elecrow.com/wiki/esp32-display-352727-intelligent-touch-screen-wi-fi26ble-320480-hmi-display.html
   #define I2C_SDA_PIN   GPIO_NUM_38
   #define I2C_SCL_PIN   GPIO_NUM_39
 
@@ -72,6 +73,47 @@
   extern const uint8_t SD_MISO = GPIO_NUM_41;
   extern const uint8_t SD_MOSI = GPIO_NUM_2;
   extern const uint8_t SD_CLK = GPIO_NUM_42;
+#endif
+
+#ifdef ELECROW_ESP32_50
+  // Official specs: https://www.elecrow.com/wiki/esp32-display-502727-intelligent-touch-screen-wi-fi26ble-800480-hmi-display.html
+  // LCD Backlight	IO2
+  #define I2C_SDA_PIN   GPIO_NUM_19
+  #define I2C_SCL_PIN   GPIO_NUM_20  
+
+  // Use GPIO_D port for GPS
+  uint8_t GPS_TX = GPIO_NUM_NC;
+  uint8_t GPS_RX = GPIO_NUM_38;
+
+  extern const uint8_t BOARD_BOOT_PIN = GPIO_NUM_0;
+
+  extern const uint8_t SD_CS   = GPIO_NUM_10;
+  extern const uint8_t SD_MISO = GPIO_NUM_13;
+  extern const uint8_t SD_MOSI = GPIO_NUM_11;
+  extern const uint8_t SD_CLK  = GPIO_NUM_12;
+  // Alternative
+  // extern const uint8_t SD_CS   = GPIO_NUM_7;
+  // extern const uint8_t SD_MISO = GPIO_NUM_4;
+  // extern const uint8_t SD_MOSI = GPIO_NUM_6;
+  // extern const uint8_t SD_CLK  = GPIO_NUM_5;  
+#endif
+
+#ifdef ELECROW_ESP32_70
+  // Official specs: https://www.elecrow.com/wiki/esp32-display-702727-intelligent-touch-screen-wi-fi26ble-800480-hmi-display.html
+  // LCD Backlight	IO2
+  #define I2C_SDA_PIN   GPIO_NUM_19
+  #define I2C_SCL_PIN   GPIO_NUM_20  
+
+  // Use GPIO_D port for GPS
+  uint8_t GPS_TX = GPIO_NUM_NC;
+  uint8_t GPS_RX = GPIO_NUM_38;
+
+  extern const uint8_t BOARD_BOOT_PIN = GPIO_NUM_0;
+
+  extern const uint8_t SD_CS   = GPIO_NUM_10;
+  extern const uint8_t SD_MISO = GPIO_NUM_13;
+  extern const uint8_t SD_MOSI = GPIO_NUM_11;
+  extern const uint8_t SD_CLK  = GPIO_NUM_12;
 #endif
 
 /**
