@@ -2,7 +2,7 @@
  * @file globalGuiDef.h
  * @brief  Global GUI Variables
  * @version 0.2.3
- * @date 2025-06
+ * @date 2025-11
  */
 
 #pragma once
