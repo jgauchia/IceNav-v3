@@ -67,7 +67,6 @@ uint32_t Maps::batchFlushCount = 0;
  */
 Maps::Maps() : fillPolygons(true) 
 {
-    
     ESP_LOGI(TAG, "Maps constructor completed");
 }
 
@@ -84,7 +83,6 @@ Maps::Maps() : fillPolygons(true)
  */
 uint16_t Maps::lon2posx(float f_lon, uint8_t zoom, uint16_t tileSize)
 {
-    // Use direct calculation (more efficient than complex transformation matrices)
     return static_cast<uint16_t>(((f_lon + 180.0f) / 360.0f * (1 << zoom) * tileSize)) % tileSize;
 }
 
@@ -101,7 +99,6 @@ uint16_t Maps::lon2posx(float f_lon, uint8_t zoom, uint16_t tileSize)
  */
 uint16_t Maps::lat2posy(float f_lat, uint8_t zoom, uint16_t tileSize)
 {
-    // Use direct calculation (more efficient than complex transformation matrices)
     float lat_rad = f_lat * static_cast<float>(M_PI) / 180.0f;
     float siny = tanf(lat_rad) + 1.0f / cosf(lat_rad);
     float merc_n = logf(siny);
@@ -323,10 +320,7 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
 	// Initialize tile cache system
 	initTileCache();
 	
-	// Initialize background preload system
-	
 	// Initialize polygon optimizations
-    // Initialize polygon optimization system
     polygonCullingEnabled = true;
     optimizedScanlineEnabled = false;
     polygonRenderCount = 0;
@@ -348,8 +342,6 @@ void Maps::deleteMapScrSprites()
  	
 	// Clear tile cache to free memory
 	clearTileCache();
-	
-	
 }
 
 /**
@@ -816,7 +808,7 @@ bool Maps::loadPalette(const char* palettePath)
     {
         if (fread(rgb888, 3, 1, f) == 1) 
         {
-            // Convert RGB888 to RGB332 using same method as tile_generator.py hex_to_rgb332_direct
+            // Convert RGB332 to RGB888 
             uint8_t r332 = rgb888[0] & 0xE0;  // Keep top 3 bits
             uint8_t g332 = (rgb888[1] & 0xE0) >> 3;  // Keep top 3 bits, shift right
             uint8_t b332 = rgb888[2] >> 6;  // Keep top 2 bits
@@ -1176,12 +1168,6 @@ void Maps::drawPolygonBorder(TFT_eSprite &map, const int *px, const int *py, con
     }
 }   
 
-
-
-
-
-
-
 /**
  * @brief Initialize tile cache system
  *
@@ -1371,16 +1357,6 @@ size_t Maps::getCacheMemoryUsage()
     }
     return memoryUsage;
 }
-
-
-
-
-
-
-
-
-
-
 
 /**
 * @brief Renders a map tile from a binary file onto a sprite.

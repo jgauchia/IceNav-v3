@@ -58,7 +58,7 @@ enum DrawCommand : uint8_t
     SIMPLE_TRIANGLE = 0x98,      /**< Simple triangle (x1, y1, x2, y2, x3, y3) */
     DASHED_LINE = 0x99,          /**< Dashed line with pattern */
     DOTTED_LINE = 0x9A,          /**< Dotted line with pattern */
-                  };
+};
 
 /**
  * @class Maps
@@ -172,8 +172,6 @@ private:
 	static uint32_t polygonRenderCount;                                        /**< Total polygons rendered */
 	static uint32_t polygonCulledCount;                                        /**< Polygons culled (not rendered) */
 	static uint32_t polygonOptimizedCount;                                     /**< Polygons using optimized algorithms */
-	
-	
 	
 	// Efficient batch rendering system
 	static RenderBatch* activeBatch;                                          /**< Currently active render batch */
@@ -290,11 +288,6 @@ private:
 		MemoryGuard& operator=(const MemoryGuard&) = delete;
 	};
 	
-	// Memory monitoring methods
-	
-	// Polygon optimization methods
-	
-	
 	// Efficient batch rendering methods
 	void initBatchRendering();                                                /**< Initialize batch rendering system */
 	void createRenderBatch(size_t capacity);                                  /**< Create new render batch */
@@ -336,9 +329,5 @@ public:
     void scrollMap(int16_t dx, int16_t dy);
     void preloadTiles(int8_t dirX, int8_t dirY);
     bool renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
-    
-    // Background preload public methods
-    
-    // Memory monitoring public methods
 };
 
