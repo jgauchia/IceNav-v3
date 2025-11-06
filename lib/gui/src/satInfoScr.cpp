@@ -176,7 +176,7 @@ void satelliteScr(_lv_obj_t *screen)
 {
 	lv_obj_t *infoGrid = lv_obj_create(screen);
 	lv_obj_set_width(infoGrid,TFT_WIDTH);
-	lv_obj_set_height(infoGrid,35);
+	lv_obj_set_height(infoGrid,40*scale);
 	lv_obj_set_flex_align(infoGrid, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 	lv_obj_clear_flag(infoGrid, LV_OBJ_FLAG_SCROLLABLE);
 	lv_obj_set_flex_flow(infoGrid, LV_FLEX_FLOW_ROW_WRAP);
