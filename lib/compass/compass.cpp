@@ -2,7 +2,7 @@
  * @file compass.cpp
  * @brief Compass definition and functions
  * @version 0.2.3
- * @date 2025-06
+ * @date 2025-11
  */
 
 #include "compass.hpp"
