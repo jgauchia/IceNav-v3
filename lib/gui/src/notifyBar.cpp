@@ -44,9 +44,9 @@ void updateNotifyBar(lv_event_t *event)
 
 	if (obj == battIcon)
 	{
-		if (battLevel <= 160 && battLevel > 140)
+		if (battLevel <= 500 && battLevel > 110)
 			lv_label_set_text_static(obj, "  " LV_SYMBOL_CHARGE);
-		else if (battLevel <= 140 && battLevel > 80)
+		else if (battLevel <= 110 && battLevel > 80)
 			lv_label_set_text_static(obj, LV_SYMBOL_BATTERY_FULL);
 		else if (battLevel <= 80 && battLevel > 60)
 			lv_label_set_text_static(obj, LV_SYMBOL_BATTERY_3);
@@ -55,7 +55,7 @@ void updateNotifyBar(lv_event_t *event)
 		else if (battLevel <= 40 && battLevel > 20)
 			lv_label_set_text_static(obj, LV_SYMBOL_BATTERY_1);
 		else if (battLevel <= 20)
-			lv_label_set_text(obj, LV_SYMBOL_BATTERY_EMPTY);
+			lv_label_set_text_static(obj, LV_SYMBOL_BATTERY_EMPTY);
 	}
 
 	if (obj == gpsFixMode)
@@ -124,7 +124,7 @@ void updateNotifyBarTimer(lv_timer_t *t)
 	#endif
 
 	battLevel = battery.readBattery();
-	if (battLevel != battLevelOld)
+	//if (battLevel != battLevelOld)
 	{
 		lv_obj_send_event(battIcon, LV_EVENT_VALUE_CHANGED, NULL);
 		battLevelOld = battLevel;
