@@ -246,7 +246,7 @@ void speedWidget(lv_obj_t *screen)
 void sunWidget(lv_obj_t *screen)
 {
     lv_obj_t *obj = lv_obj_create(screen);
-    lv_obj_set_size(obj, 100, 60 * scale);
+    lv_obj_set_size(obj, 120, 60 * scale);
     lv_obj_set_pos(obj, sunPosX, sunPosY);
     lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW_WRAP);
