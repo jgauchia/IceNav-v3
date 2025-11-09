@@ -20,14 +20,14 @@ Battery::Battery() {}
  */
 void Battery::initADC()
 {
-#ifdef ADC1
-    adc1_config_width(ADC_WIDTH_BIT_12);
-    adc1_config_channel_atten(BATT_PIN, ADC_ATTEN_DB_12);
-#endif
+    #ifdef ADC1
+        adc1_config_width(ADC_WIDTH_BIT_12);
+        adc1_config_channel_atten(BATT_PIN, ADC_ATTEN_DB_12);
+    #endif
 
-#ifdef ADC2
-    adc2_config_channel_atten(BATT_PIN, ADC_ATTEN_DB_12);
-#endif
+    #ifdef ADC2
+        adc2_config_channel_atten(BATT_PIN, ADC_ATTEN_DB_12);
+    #endif
 }
 
 /**
@@ -59,14 +59,14 @@ float Battery::readBattery()
     for (int i = 0; i < 100; i++)
     {
         #ifdef ADC1
-        sum += (long)adc1_get_raw(BATT_PIN);
+            sum += (long)adc1_get_raw(BATT_PIN);
         #endif
 
         #ifdef ADC2
-        int readRaw;
-        esp_err_t r = adc2_get_raw(BATT_PIN, ADC_WIDTH_BIT_12, &readRaw);
-        if (r == ESP_OK)
-           sum += (long)readRaw;
+            int readRaw;
+            esp_err_t r = adc2_get_raw(BATT_PIN, ADC_WIDTH_BIT_12, &readRaw);
+            if (r == ESP_OK)
+                sum += (long)readRaw;
         #endif
         delayMicroseconds(150);
     }
@@ -82,4 +82,4 @@ float Battery::readBattery()
 
     return (output <= 500) ? output : 0.0f;
 }
-    	
+        

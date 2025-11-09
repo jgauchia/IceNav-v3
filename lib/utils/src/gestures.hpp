@@ -26,9 +26,9 @@ static uint32_t firstTouchReleaseTime = 0;      /**< Timestamp of the first touc
  */
 typedef enum 
 {
-  ZOOM_NONE = 0,    /**< No zoom gesture detected */
-  ZOOM_IN,          /**< Pinch out gesture detected (zoom in) */
-  ZOOM_OUT          /**< Pinch in gesture detected (zoom out) */
+    ZOOM_NONE = 0,    /**< No zoom gesture detected */
+    ZOOM_IN,          /**< Pinch out gesture detected (zoom in) */
+    ZOOM_OUT          /**< Pinch in gesture detected (zoom out) */
 } zoom_dir;
 
 zoom_dir pinchZoom(const lgfx::touch_point_t prev[TOUCH_MAX_POINTS],const lgfx::touch_point_t curr[TOUCH_MAX_POINTS],float dt_ms);

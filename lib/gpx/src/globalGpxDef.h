@@ -22,11 +22,11 @@ static const char* trkFolder PROGMEM = "/sdcard/TRK";            /**< Path to th
  */
 enum gpxAction_t
 {
-	WPT_NONE,   /**< No waypoint action. */
-	WPT_ADD,    /**< Add a new waypoint. */
-	GPX_LOAD,   /**< Load waypoints from GPX file. */
-	GPX_EDIT,   /**< Edit an existing waypoint. */
-	GPX_DEL,    /**< Delete a waypoint. */
+    WPT_NONE,   /**< No waypoint action. */
+    WPT_ADD,    /**< Add a new waypoint. */
+    GPX_LOAD,   /**< Load waypoints from GPX file. */
+    GPX_EDIT,   /**< Edit an existing waypoint. */
+    GPX_DEL,    /**< Delete a waypoint. */
 };
 
 extern uint8_t gpxAction; /**< Indicates the current GPX waypoint action to be performed. */
@@ -38,19 +38,19 @@ extern uint8_t gpxAction; /**< Indicates the current GPX waypoint action to be p
  */
 struct wayPoint
 {
-	float     lat;     /**< Latitude of the waypoint. */
-	float     lon;     /**< Longitude of the waypoint. */
-	float     ele;     /**< Elevation of the waypoint. */
-	char*     time;    /**< Timestamp of the waypoint (ISO 8601). */
-	char*     name;    /**< Name of the waypoint. */
-	char*     desc;    /**< Description of the waypoint. */
-	char*     src;     /**< Source of the waypoint data. */
-	char*     sym;     /**< Symbol associated with the waypoint. */
-	char*     type;    /**< Type/category of the waypoint. */
-	uint8_t   sat;     /**< Number of satellites used for this fix. */
-	float     hdop;    /**< Horizontal dilution of precision. */
-	float     vdop;    /**< Vertical dilution of precision. */
-	float     pdop;    /**< Position dilution of precision. */
+    float     lat;     /**< Latitude of the waypoint. */
+    float     lon;     /**< Longitude of the waypoint. */
+    float     ele;     /**< Elevation of the waypoint. */
+    char*     time;    /**< Timestamp of the waypoint (ISO 8601). */
+    char*     name;    /**< Name of the waypoint. */
+    char*     desc;    /**< Description of the waypoint. */
+    char*     src;     /**< Source of the waypoint data. */
+    char*     sym;     /**< Symbol associated with the waypoint. */
+    char*     type;    /**< Type/category of the waypoint. */
+    uint8_t   sat;     /**< Number of satellites used for this fix. */
+    float     hdop;    /**< Horizontal dilution of precision. */
+    float     vdop;    /**< Vertical dilution of precision. */
+    float     pdop;    /**< Position dilution of precision. */
 };
 
 /**
@@ -60,9 +60,9 @@ struct wayPoint
  */
 struct TurnPoint 
 {
-	int idx;           /**< Index of the track point */
-	float angle;       /**< Turn angle at this point (positive = right, negative = left) */
-	float distance;    /**< Distance from start to this point (in meters) */
+    int idx;           /**< Index of the track point */
+    float angle;       /**< Turn angle at this point (positive = right, negative = left) */
+    float distance;    /**< Distance from start to this point (in meters) */
 }; 
 
 /**

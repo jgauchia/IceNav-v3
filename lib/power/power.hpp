@@ -28,15 +28,15 @@ void closeMsg();
  */
 class Power
 {
-private:
-	void powerDeepSleep();
-	void powerLightSleepTimer(int millis);
-	void powerLightSleep();
-	void powerOffPeripherals();
+	private:
+		void powerDeepSleep();
+		void powerLightSleepTimer(int millis);
+		void powerLightSleep();
+		void powerOffPeripherals();
 
-public:
-	Power();
+	public:
+		Power();
 
-	void deviceSuspend();
-	void deviceShutdown();
+		void deviceSuspend();
+		void deviceShutdown();
 };

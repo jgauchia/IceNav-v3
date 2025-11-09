@@ -80,6 +80,9 @@ esp_err_t Storage::initSD()
 		host.slot = HSPI_HOST;
 		host.command_timeout_ms = 1000;
 	#endif
+	#ifdef T4_S3
+		host.slot = SPI2_HOST;
+	#endif
 
 	sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
 	slot_config.gpio_cs = (gpio_num_t)SD_CS;
