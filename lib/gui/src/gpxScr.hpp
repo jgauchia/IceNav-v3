@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - GPX list screen
  * @version 0.2.3
- * @date 2025-06
+ * @date 2025-11
  */
 
 #pragma once
@@ -13,9 +13,9 @@
 #include "gpxParser.hpp"
 #include "buttonBar.hpp"
 
-extern String gpxFileFolder;
-extern bool gpxTrack;
-extern bool gpxWaypoint;
+extern String gpxFileFolder;  /**< GPX file folder path */
+extern bool gpxTrack;         /**< Track mode flag */
+extern bool gpxWaypoint;      /**< Waypoint mode flag */
 
 void loadMainScreen();
 void updateWaypoint(uint8_t action);

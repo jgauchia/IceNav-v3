@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LOVYANGFX TFT driver for ELECROW ESP32 3.5 Terminal
  * @version 0.2.3
- * @date 2025-06
+ * @date 2025-11
  */
 
 #pragma once

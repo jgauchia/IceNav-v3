@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Boards Pin definitions
  * @version 0.2.3
- * @date 2025-06
+ * @date 2025-11
  */
 
 #pragma once
@@ -122,7 +122,7 @@
   extern const uint8_t TCH_I2C_PORT = 0;  
   extern const uint8_t TCH_I2C_SDA  = GPIO_NUM_38;
   extern const uint8_t TCH_I2C_SCL  = GPIO_NUM_39;
-  extern const uint8_t TCH_I2C_INT  = GPIO_NUM_40;
+  extern const uint8_t TCH_I2C_INT  = -1;
 
   extern const uint8_t SD_CS = GPIO_NUM_4;
   extern const uint8_t SD_MISO = GPIO_NUM_19;

@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL custom functions
  * @version 0.2.3
- * @date 2025-06
+ * @date 2025-11
  */
 
 #pragma once
@@ -16,3 +16,5 @@ void objSelect(_lv_obj_t *obj);
 void objUnselect(_lv_obj_t *obj);
 void restartTimerCb(lv_timer_t *timer);
 void showRestartScr();
+void showMsg(const char* symbol, const char* message);
+void closeMsg();
