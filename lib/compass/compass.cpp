@@ -170,6 +170,8 @@ void Compass::calibrate()
 	float z = 0.0;
 	uint16_t touchX, touchY;
 
+	TFT_eSprite compassCalSprite = TFT_eSprite(&tft);  
+
 	static const lgfx::v1::GFXfont *fontSmall;
 	static const lgfx::v1::GFXfont *fontLarge;
 
@@ -183,10 +185,14 @@ void Compass::calibrate()
 	static const float scale = 0.75f;
 	#endif
 
-	tft.drawCenterString("ROTATE THE DEVICE", tft.width() >> 1, 10 * scale, fontSmall);
-	tft.drawPngFile(PSTR("/spiffs/turn.png"), (tft.width() / 2) - 50, 60 * scale);
-	tft.drawCenterString("TOUCH TO START", tft.width() >> 1, 200 * scale, fontSmall);
-	tft.drawCenterString("COMPASS CALIBRATION", tft.width() >> 1, 230 * scale, fontSmall);
+	compassCalSprite.createSprite(tft.width(), tft.height());
+	compassCalSprite.fillScreen(TFT_BLACK);
+
+	compassCalSprite.drawCenterString("ROTATE THE DEVICE", tft.width() >> 1, 10 * scale, fontSmall);
+	compassCalSprite.drawPngFile(PSTR("/spiffs/turn.png"), (tft.width() / 2) - 50, 60 * scale);
+	compassCalSprite.drawCenterString("TOUCH TO START", tft.width() >> 1, 200 * scale, fontSmall);
+	compassCalSprite.drawCenterString("COMPASS CALIBRATION", tft.width() >> 1, 230 * scale, fontSmall);
+	compassCalSprite.pushSprite(0,0);
 
 	while (!tft.getTouch(&touchX, &touchY))
 	{
@@ -215,10 +221,18 @@ void Compass::calibrate()
 
 		int secmillis = millis() - calTimeWas;
 		int secs = (int)((COMPASS_CAL_TIME - secmillis + 1000) / 1000);
-		tft.setTextColor(TFT_WHITE, TFT_BLACK);
-		tft.setTextSize(3);
-		tft.setTextPadding(tft.textWidth("88"));
-		tft.drawNumber((COMPASS_CAL_TIME - secmillis) / 1000, (tft.width() >> 1), 280 * scale);
+		compassCalSprite.setTextColor(TFT_WHITE, TFT_BLACK);
+		compassCalSprite.setTextSize(3);
+		compassCalSprite.setTextPadding(100);
+
+		char timeString[3] = "";
+		memset(&timeString[0], 0, sizeof(timeString));
+		sprintf(timeString, "%i", (COMPASS_CAL_TIME - secmillis) / 1000);
+		compassCalSprite.drawString(timeString, (tft.width() >> 1), 280 * scale);
+
+		memset(&timeString[0], 0, sizeof(timeString));
+
+		compassCalSprite.pushSprite(0,0);
 
 		if (secs == 0)
 		{
@@ -228,13 +242,17 @@ void Compass::calibrate()
 		}
 	}
 
-	tft.setTextSize(1);
-	tft.drawCenterString("DONE!", tft.width() >> 1, 340 * scale, fontLarge);
-	tft.drawCenterString("TOUCH TO CONTINUE.", tft.width() >> 1, 380 * scale, fontSmall);
+	compassCalSprite.setTextSize(1);
+	compassCalSprite.drawCenterString("DONE!", tft.width() >> 1, 340 * scale, fontLarge);
+	compassCalSprite.drawCenterString("TOUCH TO CONTINUE.", tft.width() >> 1, 380 * scale, fontSmall);
+
+	compassCalSprite.pushSprite(0,0);
 
 	while (!tft.getTouch(&touchX, &touchY))
 	{
 	};
+
+	compassCalSprite.deleteSprite();
 
 	cfg.saveFloat(PKEYS::KCOMP_OFFSET_X, offX);
 	cfg.saveFloat(PKEYS::KCOMP_OFFSET_Y, offY);

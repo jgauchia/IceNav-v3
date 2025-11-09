@@ -23,7 +23,7 @@
 #ifdef IMU_MPU9250
 	#include <MPU9250.h>
 	#define ENABLE_COMPASS
-	#define ENABLE_IMU ;
+	#define ENABLE_IMU 
 #endif
 
 #define COMPASS_CAL_TIME 16000 /**< Compass calibration duration in milliseconds. */

@@ -12,6 +12,11 @@
 #include "storage.hpp"
 #include "panelSelect.hpp"
 
+#ifdef T4_S3
+#include "LILYGO_T4_S3.hpp"
+#endif
+
+
 #include <LGFX_TFT_eSPI.hpp>
 
 extern TFT_eSPI tft;                                      /**< TFT display object */

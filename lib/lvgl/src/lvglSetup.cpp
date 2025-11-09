@@ -24,10 +24,23 @@ uint32_t DOUBLE_TOUCH_EVENT; /**< Event identifier for double touch gesture. */
 
 Maps mapView;
 
-// Initialize memory pools after object creation
-void initializeMapsPools() 
+/**
+ * @brief LVGL round callback for T4-S3
+ *
+ */
+static void lv_rounder_cb(lv_event_t *event)
 {
-    // Memory monitoring is now handled internally
+	lv_area_t *area = (lv_area_t*)lv_event_get_param(event);
+	
+	// make sure all coordinates are even
+	if (area->x1 & 1)
+		area->x1--;
+	if (!(area->x2 & 1))
+		area->x2++;
+	if (area->y1 & 1)
+		area->y1--;
+	if (!(area->y2 & 1))
+		area->y2++;
 }
 
 /**
@@ -42,15 +55,18 @@ void initializeMapsPools()
  */
 void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 { 
-    const uint32_t w = area->x2 - area->x1 + 1;
-    const uint32_t h = area->y2 - area->y1 + 1;
-
-    tft.setSwapBytes(true);
-    tft.setAddrWindow(area->x1, area->y1, w, h);
-    tft.pushImageDMA(area->x1, area->y1, w, h, reinterpret_cast<uint16_t*>(px_map));
-    tft.setSwapBytes(false);
-
-    lv_display_flush_ready(disp);
+	uint32_t w = (area->x2 - area->x1 + 1);
+	uint32_t h = (area->y2 - area->y1 + 1);
+	#ifdef T4_S3
+		tft.setAddrWindow(area->x1, area->y1, w , h);
+		tft.pushPixelsDMA((uint16_t*)px_map, w * h,true);
+	#else
+		tft.setSwapBytes(true);
+		tft.setAddrWindow(area->x1, area->y1, w, h);
+		tft.pushImageDMA(area->x1, area->y1, w, h, reinterpret_cast<uint16_t*>(px_map));
+		tft.setSwapBytes(false);
+	#endif
+	lv_display_flush_ready(disp);
 }
 
 /**
@@ -336,17 +352,18 @@ void initLVGL()
 {
 	lv_init();
 	
-	// Initialize Maps memory pools
-	initializeMapsPools();
-
 	display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
 	lv_display_set_flush_cb(display, displayFlush);
 	lv_display_set_flush_wait_cb(display, NULL);
+
+	#ifdef T4_S3
+		lv_display_add_event_cb(display, lv_rounder_cb, LV_EVENT_INVALIDATE_AREA, display);
+	#endif
 	
 	size_t DRAW_BUF_SIZE = 0;
 	
 	#ifdef BOARD_HAS_PSRAM
-		assert(ESP.getFreePsram());
+    assert(ESP.getFreePsram());
 
 		if ( ESP.getPsramSize() >= 4000000 )
 			// >4Mb PSRAM
