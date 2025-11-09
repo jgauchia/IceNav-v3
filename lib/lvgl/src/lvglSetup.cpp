@@ -62,7 +62,8 @@ void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *
 		tft.pushPixelsDMA((uint16_t*)px_map, w * h,true);
 	#else
 		tft.setSwapBytes(true);
-		tft.pushImageDMA(area->x1, area->y1, w, h, (uint16_t*)px_map);
+		tft.setAddrWindow(area->x1, area->y1, w, h);
+		tft.pushImageDMA(area->x1, area->y1, w, h, reinterpret_cast<uint16_t*>(px_map));
 		tft.setSwapBytes(false);
 	#endif
 	lv_display_flush_ready(disp);

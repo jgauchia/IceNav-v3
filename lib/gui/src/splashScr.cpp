@@ -167,6 +167,7 @@ void splashScreen()
 
 	tft.setBrightness(defBright);
   
- 	 splashSprite.deleteSprite();
+	splashSprite.deleteSprite();
 #endif
 }
+
