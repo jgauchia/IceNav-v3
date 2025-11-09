@@ -88,30 +88,30 @@
 //#define NMEAGPS_IMPLICIT_MERGING
 
 #ifdef NMEAGPS_IMPLICIT_MERGING
-  #define NMEAGPS_MERGING NMEAGPS::IMPLICIT_MERGING
+    #define NMEAGPS_MERGING NMEAGPS::IMPLICIT_MERGING
 
-  // Nothing is done to the fix at the beginning of every sentence...
-  #define NMEAGPS_INIT_FIX(m)
+    // Nothing is done to the fix at the beginning of every sentence...
+    #define NMEAGPS_INIT_FIX(m)
 
-  // ...but we invalidate one part when it starts to get parsed.  It *may* get
-  // validated when the parsing is finished.
-  #define NMEAGPS_INVALIDATE(m) m_fix.valid.m = false
+    // ...but we invalidate one part when it starts to get parsed.  It *may* get
+    // validated when the parsing is finished.
+    #define NMEAGPS_INVALIDATE(m) m_fix.valid.m = false
 
 #else
 
-  #ifdef NMEAGPS_EXPLICIT_MERGING
-    #define NMEAGPS_MERGING NMEAGPS::EXPLICIT_MERGING
-  #else
-    #define NMEAGPS_MERGING NMEAGPS::NO_MERGING
-    #define NMEAGPS_NO_MERGING
-  #endif
+    #ifdef NMEAGPS_EXPLICIT_MERGING
+        #define NMEAGPS_MERGING NMEAGPS::EXPLICIT_MERGING
+    #else
+        #define NMEAGPS_MERGING NMEAGPS::NO_MERGING
+        #define NMEAGPS_NO_MERGING
+    #endif
 
   // When NOT accumulating (not IMPLICIT), invalidate the entire fix 
   // at the beginning of every sentence...
-  #define NMEAGPS_INIT_FIX(m) m.valid.init()
+    #define NMEAGPS_INIT_FIX(m) m.valid.init()
 
-  // ...so the individual parts do not need to be invalidated as they are parsed
-  #define NMEAGPS_INVALIDATE(m)
+    // ...so the individual parts do not need to be invalidated as they are parsed
+    #define NMEAGPS_INVALIDATE(m)
 
 #endif
 
@@ -130,7 +130,7 @@
 #define NMEAGPS_FIX_MAX 1
 
 #if defined(NMEAGPS_EXPLICIT_MERGING) && (NMEAGPS_FIX_MAX == 0)
-  #error You must define FIX_MAX >= 1 to allow EXPLICIT merging in NMEAGPS_cfg.h
+    #error You must define FIX_MAX >= 1 to allow EXPLICIT merging in NMEAGPS_cfg.h
 #endif
 
 //------------------------------------------------------
@@ -149,9 +149,9 @@
 //#define NMEAGPS_INTERRUPT_PROCESSING
 
 #ifdef  NMEAGPS_INTERRUPT_PROCESSING
-  #define NMEAGPS_PROCESSING_STYLE NMEAGPS::PS_INTERRUPT
+    #define NMEAGPS_PROCESSING_STYLE NMEAGPS::PS_INTERRUPT
 #else
-  #define NMEAGPS_PROCESSING_STYLE NMEAGPS::PS_POLLING
+    #define NMEAGPS_PROCESSING_STYLE NMEAGPS::PS_POLLING
 #endif
 
 //------------------------------------------------------
@@ -202,8 +202,8 @@
 
 #define NMEAGPS_PARSE_PROPRIETARY
 #ifdef NMEAGPS_PARSE_PROPRIETARY
-  #define NMEAGPS_SAVE_MFR_ID
-  #define NMEAGPS_PARSE_MFR_ID
+    #define NMEAGPS_SAVE_MFR_ID
+    #define NMEAGPS_PARSE_MFR_ID
 #endif
 
 //------------------------------------------------------
@@ -215,17 +215,17 @@
 #define NMEAGPS_PARSE_SATELLITE_INFO
 
 #ifdef NMEAGPS_PARSE_SATELLITES
-  #define NMEAGPS_MAX_SATELLITES (32)
+    #define NMEAGPS_MAX_SATELLITES (32)
 
-  #ifndef GPS_FIX_SATELLITES
-    #error GPS_FIX_SATELLITES must be defined in GPSfix.h!
-  #endif
+    #ifndef GPS_FIX_SATELLITES
+        #error GPS_FIX_SATELLITES must be defined in GPSfix.h!
+    #endif
 
 #endif
 
 #if defined(NMEAGPS_PARSE_SATELLITE_INFO) & \
     !defined(NMEAGPS_PARSE_SATELLITES)
-  #error NMEAGPS_PARSE_SATELLITES must be defined!
+    #error NMEAGPS_PARSE_SATELLITES must be defined!
 #endif
 
 //------------------------------------------------------
@@ -243,16 +243,16 @@
 #define NMEAGPS_DERIVED_TYPES
 
 #ifdef NMEAGPS_DERIVED_TYPES
-  #define NMEAGPS_VIRTUAL virtual
+    #define NMEAGPS_VIRTUAL virtual
 #else
-  #define NMEAGPS_VIRTUAL
+    #define NMEAGPS_VIRTUAL
 #endif
 
 //-----------------------------------
 // See if DERIVED_TYPES is required
 #if (defined(NMEAGPS_PARSE_TALKER_ID) | defined(NMEAGPS_PARSE_MFR_ID)) &  \
            !defined(NMEAGPS_DERIVED_TYPES)
-  #error You must define NMEAGPS_DERIVED_TYPES in NMEAGPS.h in order to parse Talker and/or Mfr IDs!
+     #error You must define NMEAGPS_DERIVED_TYPES in NMEAGPS.h in order to parse Talker and/or Mfr IDs!
 #endif
 
 //------------------------------------------------------
@@ -337,5 +337,5 @@
 
 #if defined( NMEAGPS_TIMESTAMP_FROM_INTERVAL ) &   \
     defined( NMEAGPS_TIMESTAMP_FROM_PPS )
-  #error You cannot enable both TIMESTAMP_FROM_INTERVAL and PPS in NMEAGPS_cfg.h!
+    #error You cannot enable both TIMESTAMP_FROM_INTERVAL and PPS in NMEAGPS_cfg.h!
 #endif

@@ -189,19 +189,19 @@ float Maps::tiley2lat(uint32_t tileY, uint8_t zoom)
  */
 Maps::MapTile Maps::getMapTile(float lon, float lat, uint8_t zoomLevel, int8_t offsetX, int8_t offsetY)
 {
-	MapTile data;
-	data.tilex = Maps::lon2tilex(lon, zoomLevel) + offsetX;
-	data.tiley = Maps::lat2tiley(lat, zoomLevel) + offsetY;
-	data.zoom = zoomLevel;
-	data.lat = lat; 
-	data.lon = lon;
+    MapTile data;
+    data.tilex = Maps::lon2tilex(lon, zoomLevel) + offsetX;
+    data.tiley = Maps::lat2tiley(lat, zoomLevel) + offsetY;
+    data.zoom = zoomLevel;
+    data.lat = lat; 
+    data.lon = lon;
     
-	if (mapSet.vectorMap)
-		snprintf(data.file, sizeof(data.file), mapVectorFolder, zoomLevel, data.tilex, data.tiley);
-	else
-		snprintf(data.file, sizeof(data.file), mapRenderFolder, zoomLevel, data.tilex, data.tiley);
+    if (mapSet.vectorMap)
+        snprintf(data.file, sizeof(data.file), mapVectorFolder, zoomLevel, data.tilex, data.tiley);
+    else
+        snprintf(data.file, sizeof(data.file), mapRenderFolder, zoomLevel, data.tilex, data.tiley);
 
-	return data;
+    return data;
 }
 
 /**
@@ -216,12 +216,12 @@ Maps::MapTile Maps::getMapTile(float lon, float lat, uint8_t zoomLevel, int8_t o
  */
 Maps::tileBounds Maps::getTileBounds(uint32_t tileX, uint32_t tileY, uint8_t zoom)
 {
-	tileBounds bounds;
-	bounds.lon_min = Maps::tilex2lon(tileX, zoom);
-	bounds.lat_min = Maps::tiley2lat(tileY + 1, zoom);
-	bounds.lon_max = Maps::tilex2lon(tileX + 1, zoom);
-	bounds.lat_max = Maps::tiley2lat(tileY, zoom);
-	return bounds;
+    tileBounds bounds;
+    bounds.lon_min = Maps::tilex2lon(tileX, zoom);
+    bounds.lat_min = Maps::tiley2lat(tileY + 1, zoom);
+    bounds.lon_max = Maps::tilex2lon(tileX + 1, zoom);
+    bounds.lat_max = Maps::tiley2lat(tileY, zoom);
+    return bounds;
 }
 
 /**
@@ -253,10 +253,10 @@ bool Maps::isCoordInBounds(float lat, float lon, tileBounds bound)
  */
 Maps::ScreenCoord Maps::coord2ScreenPos(float lon, float lat, uint8_t zoomLevel, uint16_t tileSize)
 {
-	ScreenCoord data;
-	data.posX = Maps::lon2posx(lon, zoomLevel, tileSize);
-	data.posY = Maps::lat2posy(lat, zoomLevel, tileSize);
-	return data;
+    ScreenCoord data;
+    data.posX = Maps::lon2posx(lon, zoomLevel, tileSize);
+    data.posY = Maps::lat2posy(lat, zoomLevel, tileSize);
+    return data;
 }
 
 /**
@@ -272,11 +272,11 @@ Maps::ScreenCoord Maps::coord2ScreenPos(float lon, float lat, uint8_t zoomLevel,
  */
 void Maps::coords2map(float lat, float lon, tileBounds bound, uint16_t *pixelX, uint16_t *pixelY)
 {
-	float lon_ratio = (lon - bound.lon_min) / (bound.lon_max - bound.lon_min);
-	float lat_ratio = (bound.lat_max - lat) / (bound.lat_max - bound.lat_min);
+    float lon_ratio = (lon - bound.lon_min) / (bound.lon_max - bound.lon_min);
+    float lat_ratio = (bound.lat_max - lat) / (bound.lat_max - bound.lat_min);
 
-	*pixelX = (uint16_t)(lon_ratio * Maps::tileWidth);
-	*pixelY = (uint16_t)(lat_ratio * Maps::tileHeight);
+    *pixelX = (uint16_t)(lon_ratio * Maps::tileWidth);
+    *pixelY = (uint16_t)(lat_ratio * Maps::tileHeight);
 }
 
 /**
@@ -288,8 +288,8 @@ void Maps::coords2map(float lat, float lon, tileBounds bound, uint16_t *pixelX, 
  */
 void Maps::showNoMap(TFT_eSprite &map)
 {
-	map.drawPngFile(noMapFile, (Maps::mapScrWidth / 2) - 50, (Maps::mapScrHeight / 2) - 50);
-	map.drawCenterString("NO MAP FOUND", (Maps::mapScrWidth / 2), (Maps::mapScrHeight >> 1) + 65, &fonts::DejaVu18);
+    map.drawPngFile(noMapFile, (Maps::mapScrWidth / 2) - 50, (Maps::mapScrHeight / 2) - 50);
+    map.drawCenterString("NO MAP FOUND", (Maps::mapScrWidth / 2), (Maps::mapScrHeight >> 1) + 65, &fonts::DejaVu18);
 }
 
 /**
@@ -303,32 +303,32 @@ void Maps::showNoMap(TFT_eSprite &map)
  */
 void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
 {
-	Maps::mapScrHeight = mapHeight;
-	Maps::mapScrWidth = mapWidth;
+    Maps::mapScrHeight = mapHeight;
+    Maps::mapScrWidth = mapWidth;
 
-	// Reserve PSRAM for buffer map
-	Maps::mapTempSprite.deleteSprite();
-	Maps::mapTempSprite.createSprite(tileHeight, tileWidth);
+    // Reserve PSRAM for buffer map
+    Maps::mapTempSprite.deleteSprite();
+    Maps::mapTempSprite.createSprite(tileHeight, tileWidth);
 
-	Maps::oldMapTile = {};     // Old Map tile coordinates and zoom
-	Maps::currentMapTile = {}; // Current Map tile coordinates and zoom
-	Maps::roundMapTile = {};    // Boundaries Map tiles
-	Maps::navArrowPosition = {0, 0};              // Map Arrow position
+    Maps::oldMapTile = {};     // Old Map tile coordinates and zoom
+    Maps::currentMapTile = {}; // Current Map tile coordinates and zoom
+    Maps::roundMapTile = {};    // Boundaries Map tiles
+    Maps::navArrowPosition = {0, 0};              // Map Arrow position
 
-	Maps::totalBounds = {90.0, -90.0, 180.0, -180.0};
-	
-	// Initialize tile cache system
-	initTileCache();
-	
-	// Initialize polygon optimizations
+    Maps::totalBounds = {90.0, -90.0, 180.0, -180.0};
+    
+    // Initialize tile cache system
+    initTileCache();
+    
+    // Initialize polygon optimizations
     polygonCullingEnabled = true;
     optimizedScanlineEnabled = false;
     polygonRenderCount = 0;
     polygonCulledCount = 0;
     polygonOptimizedCount = 0;
-	
-	// Initialize batch rendering
-	initBatchRendering();
+    
+    // Initialize batch rendering
+    initBatchRendering();
 }
 
 /**
@@ -338,10 +338,10 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
  */
 void Maps::deleteMapScrSprites()
 {
- 	Maps::mapSprite.deleteSprite();
- 	
-	// Clear tile cache to free memory
-	clearTileCache();
+    Maps::mapSprite.deleteSprite();
+     
+    // Clear tile cache to free memory
+    clearTileCache();
 }
 
 /**
@@ -351,7 +351,7 @@ void Maps::deleteMapScrSprites()
  */
 void Maps::createMapScrSprites()
 {
-	Maps::mapBuffer = Maps::mapSprite.createSprite(Maps::mapScrWidth, Maps::mapScrHeight);
+    Maps::mapBuffer = Maps::mapSprite.createSprite(Maps::mapScrWidth, Maps::mapScrHeight);
 }
 
 /**
@@ -364,139 +364,139 @@ void Maps::createMapScrSprites()
  */
 void Maps::generateMap(uint8_t zoom)
 {
-	// Clear cache if zoom level changed (tiles are not compatible between zoom levels)
-	if (Maps::zoomLevel != zoom && Maps::zoomLevel != 0)
+    // Clear cache if zoom level changed (tiles are not compatible between zoom levels)
+    if (Maps::zoomLevel != zoom && Maps::zoomLevel != 0)
     {
-		ESP_LOGI(TAG, "Zoom level changed from %d to %d - clearing cache", Maps::zoomLevel, zoom);
-		clearTileCache();
-	}
-	
-	Maps::zoomLevel = zoom;
-	
-	bool foundRoundMap = false;
-	bool missingMap = false;
+        ESP_LOGI(TAG, "Zoom level changed from %d to %d - clearing cache", Maps::zoomLevel, zoom);
+        clearTileCache();
+    }
+    
+    Maps::zoomLevel = zoom;
+    
+    bool foundRoundMap = false;
+    bool missingMap = false;
 
-	const float lat = Maps::followGps ? gps.gpsData.latitude : Maps::currentMapTile.lat;
-	const float lon = Maps::followGps ? gps.gpsData.longitude : Maps::currentMapTile.lon;
+    const float lat = Maps::followGps ? gps.gpsData.latitude : Maps::currentMapTile.lat;
+    const float lon = Maps::followGps ? gps.gpsData.longitude : Maps::currentMapTile.lon;
 
-	Maps::currentMapTile = Maps::getMapTile(lon, lat, Maps::zoomLevel, 0, 0);
+    Maps::currentMapTile = Maps::getMapTile(lon, lat, Maps::zoomLevel, 0, 0);
 
-	// Detects if tile changes from actual GPS position
-	if (strcmp(Maps::currentMapTile.file, Maps::oldMapTile.file) != 0 ||
-		Maps::currentMapTile.zoom != Maps::oldMapTile.zoom ||
-		Maps::currentMapTile.tilex != Maps::oldMapTile.tilex ||
-		Maps::currentMapTile.tiley != Maps::oldMapTile.tiley)
-	{
-		const int16_t size = Maps::mapTileSize;
+    // Detects if tile changes from actual GPS position
+    if (strcmp(Maps::currentMapTile.file, Maps::oldMapTile.file) != 0 ||
+        Maps::currentMapTile.zoom != Maps::oldMapTile.zoom ||
+        Maps::currentMapTile.tilex != Maps::oldMapTile.tilex ||
+        Maps::currentMapTile.tiley != Maps::oldMapTile.tiley)
+    {
+        const int16_t size = Maps::mapTileSize;
 
         Maps::mapTempSprite.fillScreen(TFT_WHITE);
 
-		if (mapSet.vectorMap)
-			Maps::isMapFound = renderTile(Maps::currentMapTile.file, size, size,Maps::mapTempSprite);
-		else
-			Maps::isMapFound = Maps::mapTempSprite.drawPngFile(Maps::currentMapTile.file, size, size);
+        if (mapSet.vectorMap)
+            Maps::isMapFound = renderTile(Maps::currentMapTile.file, size, size,Maps::mapTempSprite);
+        else
+            Maps::isMapFound = Maps::mapTempSprite.drawPngFile(Maps::currentMapTile.file, size, size);
 
         
-		Maps::oldMapTile = Maps::currentMapTile;
-		strcpy(Maps::oldMapTile.file, Maps::currentMapTile.file);
+        Maps::oldMapTile = Maps::currentMapTile;
+        strcpy(Maps::oldMapTile.file, Maps::currentMapTile.file);
 
-		if (!Maps::isMapFound)
-		{
-			ESP_LOGI(TAG, "No Map Found!");
-			Maps::isMapFound = false;
-			Maps::mapTempSprite.fillScreen(TFT_BLACK);
-			Maps::showNoMap(Maps::mapTempSprite);
-		}
-		else
-		{
-			Maps::totalBounds = Maps::getTileBounds(
-				Maps::currentMapTile.tilex, Maps::currentMapTile.tiley, Maps::zoomLevel);
+        if (!Maps::isMapFound)
+        {
+            ESP_LOGI(TAG, "No Map Found!");
+            Maps::isMapFound = false;
+            Maps::mapTempSprite.fillScreen(TFT_BLACK);
+            Maps::showNoMap(Maps::mapTempSprite);
+        }
+        else
+        {
+            Maps::totalBounds = Maps::getTileBounds(
+                Maps::currentMapTile.tilex, Maps::currentMapTile.tiley, Maps::zoomLevel);
 
-			const int8_t startX = -1;
-			const int8_t startY = -1;
+            const int8_t startX = -1;
+            const int8_t startY = -1;
 
-			for (int8_t y = startY; y <= startY + 2; y++)
-			{
-				const int16_t offsetY = (y - startY) * size;
+            for (int8_t y = startY; y <= startY + 2; y++)
+            {
+                const int16_t offsetY = (y - startY) * size;
 
-				for (int8_t x = startX; x <= startX + 2; x++)
-				{
-					if (x == 0 && y == 0) continue; // Skip center tile
+                for (int8_t x = startX; x <= startX + 2; x++)
+                {
+                    if (x == 0 && y == 0) continue; // Skip center tile
 
-					const int16_t offsetX = (x - startX) * size;
+                    const int16_t offsetX = (x - startX) * size;
 
-					Maps::roundMapTile = getMapTile(
-						Maps::currentMapTile.lon, Maps::currentMapTile.lat,
-						Maps::zoomLevel, x, y);
+                    Maps::roundMapTile = getMapTile(
+                        Maps::currentMapTile.lon, Maps::currentMapTile.lat,
+                        Maps::zoomLevel, x, y);
  
-					if (mapSet.vectorMap)
-						foundRoundMap = renderTile(Maps::roundMapTile.file, offsetX, offsetY,Maps::mapTempSprite);
-					else
-						foundRoundMap = Maps::mapTempSprite.drawPngFile(Maps::roundMapTile.file, offsetX, offsetY);
+                    if (mapSet.vectorMap)
+                        foundRoundMap = renderTile(Maps::roundMapTile.file, offsetX, offsetY,Maps::mapTempSprite);
+                    else
+                        foundRoundMap = Maps::mapTempSprite.drawPngFile(Maps::roundMapTile.file, offsetX, offsetY);
 
-					if (!foundRoundMap)
-					{
-						Maps::mapTempSprite.fillRect(offsetX, offsetY, size, size, TFT_BLACK);
-						Maps::mapTempSprite.drawPngFile(noMapFile,
-							offsetX + size / 2 - 50,
-							offsetY + size / 2 - 50);
-						missingMap = true;
-					}
-					else
-					{
-						const tileBounds currentBounds = Maps::getTileBounds(
-							Maps::roundMapTile.tilex, Maps::roundMapTile.tiley, Maps::zoomLevel);
+                    if (!foundRoundMap)
+                    {
+                        Maps::mapTempSprite.fillRect(offsetX, offsetY, size, size, TFT_BLACK);
+                        Maps::mapTempSprite.drawPngFile(noMapFile,
+                            offsetX + size / 2 - 50,
+                            offsetY + size / 2 - 50);
+                        missingMap = true;
+                    }
+                    else
+                    {
+                        const tileBounds currentBounds = Maps::getTileBounds(
+                            Maps::roundMapTile.tilex, Maps::roundMapTile.tiley, Maps::zoomLevel);
 
-						if (currentBounds.lat_min < Maps::totalBounds.lat_min)
-							Maps::totalBounds.lat_min = currentBounds.lat_min;
-						if (currentBounds.lat_max > Maps::totalBounds.lat_max)
-							Maps::totalBounds.lat_max = currentBounds.lat_max;
-						if (currentBounds.lon_min < Maps::totalBounds.lon_min)
-							Maps::totalBounds.lon_min = currentBounds.lon_min;
-						if (currentBounds.lon_max > Maps::totalBounds.lon_max)
-							Maps::totalBounds.lon_max = currentBounds.lon_max;
-					}
-				}
-			}
+                        if (currentBounds.lat_min < Maps::totalBounds.lat_min)
+                            Maps::totalBounds.lat_min = currentBounds.lat_min;
+                        if (currentBounds.lat_max > Maps::totalBounds.lat_max)
+                            Maps::totalBounds.lat_max = currentBounds.lat_max;
+                        if (currentBounds.lon_min < Maps::totalBounds.lon_min)
+                            Maps::totalBounds.lon_min = currentBounds.lon_min;
+                        if (currentBounds.lon_max > Maps::totalBounds.lon_max)
+                            Maps::totalBounds.lon_max = currentBounds.lon_max;
+                    }
+                }
+            }
 
-			if (!missingMap)
-			{
-				if (Maps::isCoordInBounds(Maps::destLat, Maps::destLon, Maps::totalBounds))
-				{
-					Maps::coords2map(Maps::destLat, Maps::destLon,
-						Maps::totalBounds, &wptPosX, &wptPosY);
-				}
-			}
-			else
-			{
-				Maps::wptPosX = -1;
-				Maps::wptPosY = -1;
-			}
+            if (!missingMap)
+            {
+                if (Maps::isCoordInBounds(Maps::destLat, Maps::destLon, Maps::totalBounds))
+                {
+                    Maps::coords2map(Maps::destLat, Maps::destLon,
+                        Maps::totalBounds, &wptPosX, &wptPosY);
+                }
+            }
+            else
+            {
+                Maps::wptPosX = -1;
+                Maps::wptPosY = -1;
+            }
 
-			Maps::redrawMap = true;
-			
+            Maps::redrawMap = true;
+            
 
-			for (size_t i = 1; i < trackData.size(); ++i)
-			{
-				const auto &p1 = trackData[i - 1];
-				const auto &p2 = trackData[i];
+            for (size_t i = 1; i < trackData.size(); ++i)
+            {
+                const auto &p1 = trackData[i - 1];
+                const auto &p2 = trackData[i];
 
-				if (p1.lon > Maps::totalBounds.lon_min && p1.lon < Maps::totalBounds.lon_max &&
-					p1.lat > Maps::totalBounds.lat_min && p1.lat < Maps::totalBounds.lat_max &&
-					p2.lon > Maps::totalBounds.lon_min && p2.lon < Maps::totalBounds.lon_max &&
-					p2.lat > Maps::totalBounds.lat_min && p2.lat < Maps::totalBounds.lat_max)
-				{
-					uint16_t x1, y1, x2, y2;
-					Maps::coords2map(p1.lat, p1.lon, Maps::totalBounds, &x1, &y1);
-					Maps::coords2map(p2.lat, p2.lon, Maps::totalBounds, &x2, &y2);
-					Maps::mapTempSprite.drawWideLine(x1, y1, x2, y2, 2, TFT_BLUE);
-				}
-			}
-			
-			// Prefetch adjacent tiles for faster scrolling
-			prefetchAdjacentTiles(Maps::currentMapTile.tilex, Maps::currentMapTile.tiley, Maps::zoomLevel);
-		}
-	}
+                if (p1.lon > Maps::totalBounds.lon_min && p1.lon < Maps::totalBounds.lon_max &&
+                    p1.lat > Maps::totalBounds.lat_min && p1.lat < Maps::totalBounds.lat_max &&
+                    p2.lon > Maps::totalBounds.lon_min && p2.lon < Maps::totalBounds.lon_max &&
+                    p2.lat > Maps::totalBounds.lat_min && p2.lat < Maps::totalBounds.lat_max)
+                {
+                    uint16_t x1, y1, x2, y2;
+                    Maps::coords2map(p1.lat, p1.lon, Maps::totalBounds, &x1, &y1);
+                    Maps::coords2map(p2.lat, p2.lon, Maps::totalBounds, &x2, &y2);
+                    Maps::mapTempSprite.drawWideLine(x1, y1, x2, y2, 2, TFT_BLUE);
+                }
+            }
+            
+            // Prefetch adjacent tiles for faster scrolling
+            prefetchAdjacentTiles(Maps::currentMapTile.tilex, Maps::currentMapTile.tiley, Maps::zoomLevel);
+        }
+    }
 }
 
 /**
@@ -507,42 +507,42 @@ void Maps::generateMap(uint8_t zoom)
  */
 void Maps::displayMap()
 {
-	if (!Maps::isMapFound)
-	{
-		if (Maps::scrollUpdated && !Maps::followGps)
-			Maps::mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
-		else
-			Maps::mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
-		return;
-	}
+    if (!Maps::isMapFound)
+    {
+        if (Maps::scrollUpdated && !Maps::followGps)
+            Maps::mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
+        else
+            Maps::mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
+        return;
+    }
 
-	uint16_t mapHeading = 0;
+    uint16_t mapHeading = 0;
 #ifdef ENABLE_COMPASS
-	mapHeading = mapSet.mapRotationComp ? compass.getHeading() : gps.gpsData.heading;
+    mapHeading = mapSet.mapRotationComp ? compass.getHeading() : gps.gpsData.heading;
 #else
-	mapHeading = gps.gpsData.heading;
+    mapHeading = gps.gpsData.heading;
 #endif
 
-	Maps::mapTempSprite.pushImage(Maps::wptPosX - 8, Maps::wptPosY - 8, 16, 16, (uint16_t *)waypoint, TFT_BLACK);
+    Maps::mapTempSprite.pushImage(Maps::wptPosX - 8, Maps::wptPosY - 8, 16, 16, (uint16_t *)waypoint, TFT_BLACK);
 
-	const uint16_t size = Maps::mapTileSize;
+    const uint16_t size = Maps::mapTileSize;
 
-	if (Maps::followGps)
-	{
-		const float lat = gps.gpsData.latitude;
-		const float lon = gps.gpsData.longitude;
-		Maps::navArrowPosition = Maps::coord2ScreenPos(lon, lat, Maps::zoomLevel, Maps::mapTileSize);
-		Maps::mapTempSprite.setPivot(Maps::mapTileSize + Maps::navArrowPosition.posX,
-								     Maps::mapTileSize + Maps::navArrowPosition.posY);
-		Maps::mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
-	}
-	else
-	{
-		const int16_t pivotX = Maps::tileWidth / 2 + Maps::offsetX;
-		const int16_t pivotY = Maps::tileHeight / 2 + Maps::offsetY;
-		Maps::mapTempSprite.setPivot(pivotX, pivotY);
-		Maps::mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
-	}
+    if (Maps::followGps)
+    {
+        const float lat = gps.gpsData.latitude;
+        const float lon = gps.gpsData.longitude;
+        Maps::navArrowPosition = Maps::coord2ScreenPos(lon, lat, Maps::zoomLevel, Maps::mapTileSize);
+        Maps::mapTempSprite.setPivot(Maps::mapTileSize + Maps::navArrowPosition.posX,
+                                     Maps::mapTileSize + Maps::navArrowPosition.posY);
+        Maps::mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
+    }
+    else
+    {
+        const int16_t pivotX = Maps::tileWidth / 2 + Maps::offsetX;
+        const int16_t pivotY = Maps::tileHeight / 2 + Maps::offsetY;
+        Maps::mapTempSprite.setPivot(pivotX, pivotY);
+        Maps::mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
+    }
 }
 
 /**
@@ -555,8 +555,8 @@ void Maps::displayMap()
  */
 void Maps::setWaypoint(float wptLat, float wptLon)
 {
-	Maps::destLat = wptLat;
-	Maps::destLon = wptLon;
+    Maps::destLat = wptLat;
+    Maps::destLon = wptLon;
 }
 
 /**
@@ -564,10 +564,10 @@ void Maps::setWaypoint(float wptLat, float wptLon)
  *
  * @details Resets the old map tile and marks the position as moved, causing the map to be updated/redrawn.
  */
- void Maps::updateMap()
- {
-	Maps::oldMapTile = {};
- }
+void Maps::updateMap()
+{
+    Maps::oldMapTile = {};
+}
 
 /**
  * @brief Pan current map
@@ -578,13 +578,13 @@ void Maps::setWaypoint(float wptLat, float wptLon)
  * @param dx Tile offset in X direction (east-west)
  * @param dy Tile offset in Y direction (north-south)
  */
- void Maps::panMap(int8_t dx, int8_t dy)
- {
-	Maps::currentMapTile.tilex += dx;
-	Maps::currentMapTile.tiley += dy;
-	Maps::currentMapTile.lon = Maps::tilex2lon(Maps::currentMapTile.tilex, Maps::currentMapTile.zoom);
-	Maps::currentMapTile.lat = Maps::tiley2lat(Maps::currentMapTile.tiley, Maps::currentMapTile.zoom);
- }
+void Maps::panMap(int8_t dx, int8_t dy)
+{
+    Maps::currentMapTile.tilex += dx;
+    Maps::currentMapTile.tiley += dy;
+    Maps::currentMapTile.lon = Maps::tilex2lon(Maps::currentMapTile.tilex, Maps::currentMapTile.zoom);
+    Maps::currentMapTile.lat = Maps::tiley2lat(Maps::currentMapTile.tiley, Maps::currentMapTile.zoom);
+}
 
 /**
  * @brief Center map on current GPS location
@@ -594,14 +594,14 @@ void Maps::setWaypoint(float wptLat, float wptLon)
  * @param lat GPS Latitude
  * @param lon GPS Longitude
  */
- void Maps::centerOnGps(float lat, float lon)
- {
-	Maps::followGps = true;
-	Maps::currentMapTile.tilex = Maps::lon2tilex(lon, Maps::currentMapTile.zoom);
-	Maps::currentMapTile.tiley = Maps::lat2tiley(lat, Maps::currentMapTile.zoom);
-	Maps::currentMapTile.lat = lat;
-	Maps::currentMapTile.lon = lon;
- }
+void Maps::centerOnGps(float lat, float lon)
+{
+    Maps::followGps = true;
+    Maps::currentMapTile.tilex = Maps::lon2tilex(lon, Maps::currentMapTile.zoom);
+    Maps::currentMapTile.tiley = Maps::lat2tiley(lat, Maps::currentMapTile.zoom);
+    Maps::currentMapTile.lat = lat;
+    Maps::currentMapTile.lon = lon;
+}
 
 /**
  * @brief Smooth scroll current map
@@ -614,66 +614,66 @@ void Maps::setWaypoint(float wptLat, float wptLon)
  */
 void Maps::scrollMap(int16_t dx, int16_t dy)
 {
-	const float inertia = 0.5f;
-	const float friction = 0.95f;
-	const float maxSpeed = 10.0f;
+    const float inertia = 0.5f;
+    const float friction = 0.95f;
+    const float maxSpeed = 10.0f;
 
-	static float speedX = 0.0f, speedY = 0.0f;
-	static unsigned long lastCacheStats = 0;
+    static float speedX = 0.0f, speedY = 0.0f;
+    static unsigned long lastCacheStats = 0;
 
-	speedX = (speedX + dx) * inertia * friction;
-	speedY = (speedY + dy) * inertia * friction;
+    speedX = (speedX + dx) * inertia * friction;
+    speedY = (speedY + dy) * inertia * friction;
 
-	const float absSpeedX = fabsf(speedX);
-	const float absSpeedY = fabsf(speedY);
+    const float absSpeedX = fabsf(speedX);
+    const float absSpeedY = fabsf(speedY);
 
-	if (absSpeedX > maxSpeed) speedX = (speedX > 0) ? maxSpeed : -maxSpeed;
-	if (absSpeedY > maxSpeed) speedY = (speedY > 0) ? maxSpeed : -maxSpeed;
+    if (absSpeedX > maxSpeed) speedX = (speedX > 0) ? maxSpeed : -maxSpeed;
+    if (absSpeedY > maxSpeed) speedY = (speedY > 0) ? maxSpeed : -maxSpeed;
 
-	Maps::offsetX += (int16_t)speedX;
-	Maps::offsetY += (int16_t)speedY;
+    Maps::offsetX += (int16_t)speedX;
+    Maps::offsetY += (int16_t)speedY;
 
-	Maps::scrollUpdated = false;
-	Maps::followGps = false;
+    Maps::scrollUpdated = false;
+    Maps::followGps = false;
 
-	const int16_t threshold = Maps::scrollThreshold;
-	const int16_t tileSize = Maps::mapTileSize;
+    const int16_t threshold = Maps::scrollThreshold;
+    const int16_t tileSize = Maps::mapTileSize;
 
-	if (Maps::offsetX <= -threshold)
-	{
-		Maps::tileX--;
-		Maps::offsetX += tileSize;
-		Maps::scrollUpdated = true;
-	}
-	else if (Maps::offsetX >= threshold)
-	{
-		Maps::tileX++;
-		Maps::offsetX -= tileSize;
-		Maps::scrollUpdated = true;
-	}
+    if (Maps::offsetX <= -threshold)
+    {
+        Maps::tileX--;
+        Maps::offsetX += tileSize;
+        Maps::scrollUpdated = true;
+    }
+    else if (Maps::offsetX >= threshold)
+    {
+        Maps::tileX++;
+        Maps::offsetX -= tileSize;
+        Maps::scrollUpdated = true;
+    }
 
-	if (Maps::offsetY <= -threshold)
-	{
-		Maps::tileY--;
-		Maps::offsetY += tileSize;
-		Maps::scrollUpdated = true;
-	}
-	else if (Maps::offsetY >= threshold)
-	{
-		Maps::tileY++;
-		Maps::offsetY -= tileSize;
-		Maps::scrollUpdated = true;
-	}
+    if (Maps::offsetY <= -threshold)
+    {
+        Maps::tileY--;
+        Maps::offsetY += tileSize;
+        Maps::scrollUpdated = true;
+    }
+    else if (Maps::offsetY >= threshold)
+    {
+        Maps::tileY++;
+        Maps::offsetY -= tileSize;
+        Maps::scrollUpdated = true;
+    }
 
-	if (Maps::scrollUpdated)
-	{
-		const int8_t deltaTileX = Maps::tileX - Maps::lastTileX;
-		const int8_t deltaTileY = Maps::tileY - Maps::lastTileY;
-		Maps::panMap(deltaTileX, deltaTileY);
-		Maps::preloadTiles(deltaTileX, deltaTileY);
-		Maps::lastTileX = Maps::tileX;
-		Maps::lastTileY = Maps::tileY;
-	}
+    if (Maps::scrollUpdated)
+    {
+        const int8_t deltaTileX = Maps::tileX - Maps::lastTileX;
+        const int8_t deltaTileY = Maps::tileY - Maps::lastTileY;
+        Maps::panMap(deltaTileX, deltaTileY);
+        Maps::preloadTiles(deltaTileX, deltaTileY);
+        Maps::lastTileX = Maps::tileX;
+        Maps::lastTileY = Maps::tileY;
+    }
 }
 
 /**
@@ -687,95 +687,95 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
  */
 void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 {
-	const int16_t tileSize = mapTileSize;
-	const int16_t preloadWidth  = (dirX != 0) ? tileSize : tileSize * 2;
-	const int16_t preloadHeight = (dirY != 0) ? tileSize : tileSize * 2;
+    const int16_t tileSize = mapTileSize;
+    const int16_t preloadWidth  = (dirX != 0) ? tileSize : tileSize * 2;
+    const int16_t preloadHeight = (dirY != 0) ? tileSize : tileSize * 2;
 
-	TFT_eSprite preloadSprite = TFT_eSprite(&tft);
-	preloadSprite.createSprite(preloadWidth, preloadHeight);
-	
+    TFT_eSprite preloadSprite = TFT_eSprite(&tft);
+    preloadSprite.createSprite(preloadWidth, preloadHeight);
+    
 
-	const int16_t startX = tileX + dirX;
-	const int16_t startY = tileY + dirY;
+    const int16_t startX = tileX + dirX;
+    const int16_t startY = tileY + dirY;
 
-	for (int8_t i = 0; i < 2; ++i) 
-	{
-		const int16_t tileToLoadX = startX + ((dirX == 0) ? i - 1 : 0);
-		const int16_t tileToLoadY = startY + ((dirY == 0) ? i - 1 : 0);
+    for (int8_t i = 0; i < 2; ++i) 
+    {
+        const int16_t tileToLoadX = startX + ((dirX == 0) ? i - 1 : 0);
+        const int16_t tileToLoadY = startY + ((dirY == 0) ? i - 1 : 0);
 
-		// Calculate correct coordinates for the tile being preloaded
-		// Use proper tile-to-coordinate conversion
-		float tileLon = (tileToLoadX / (1 << Maps::zoomLevel)) * 360.0f - 180.0f;
-		float tileLat = 90.0f - (tileToLoadY / (1 << Maps::zoomLevel)) * 180.0f;
+        // Calculate correct coordinates for the tile being preloaded
+        // Use proper tile-to-coordinate conversion
+        float tileLon = (tileToLoadX / (1 << Maps::zoomLevel)) * 360.0f - 180.0f;
+        float tileLat = 90.0f - (tileToLoadY / (1 << Maps::zoomLevel)) * 180.0f;
 
-		Maps::roundMapTile = Maps::getMapTile(
-			tileLon,
-			tileLat,
-			Maps::zoomLevel,
-			tileToLoadX,
-			tileToLoadY
-		);
+        Maps::roundMapTile = Maps::getMapTile(
+            tileLon,
+            tileLat,
+            Maps::zoomLevel,
+            tileToLoadX,
+            tileToLoadY
+        );
 
-		const int16_t offsetX = (dirX != 0) ? i * tileSize : 0;
-		const int16_t offsetY = (dirY != 0) ? i * tileSize : 0;
-		
+        const int16_t offsetX = (dirX != 0) ? i * tileSize : 0;
+        const int16_t offsetY = (dirY != 0) ? i * tileSize : 0;
+        
 
-		bool foundTile = false;
-		
-		// Try cache first for vector maps
-		if (mapSet.vectorMap) 
+        bool foundTile = false;
+        
+        // Try cache first for vector maps
+        if (mapSet.vectorMap) 
         {
-			foundTile = getCachedTile(Maps::roundMapTile.file, preloadSprite, offsetX, offsetY);
-			if (foundTile) 
-			{
-				// Cache hit - no need to log every time
-				// ESP_LOGI(TAG, "Tile found in cache: %s", Maps::roundMapTile.file);
-			}
-		}
-		
-		// If not in cache, try to load from file
-		if (!foundTile)
-        {
-			if (mapSet.vectorMap)
+            foundTile = getCachedTile(Maps::roundMapTile.file, preloadSprite, offsetX, offsetY);
+            if (foundTile) 
             {
-				// Create a temporary sprite for rendering to cache
-				TFT_eSprite tempSprite = TFT_eSprite(&tft);
-				tempSprite.createSprite(tileSize, tileSize);
-				
-				// Render tile to temporary sprite (this will cache it)
-				foundTile = renderTile(Maps::roundMapTile.file, 0, 0, tempSprite);
-				
-				if (foundTile) 
+                // Cache hit - no need to log every time
+                // ESP_LOGI(TAG, "Tile found in cache: %s", Maps::roundMapTile.file);
+            }
+        }
+        
+        // If not in cache, try to load from file
+        if (!foundTile)
+        {
+            if (mapSet.vectorMap)
+            {
+                // Create a temporary sprite for rendering to cache
+                TFT_eSprite tempSprite = TFT_eSprite(&tft);
+                tempSprite.createSprite(tileSize, tileSize);
+                
+                // Render tile to temporary sprite (this will cache it)
+                foundTile = renderTile(Maps::roundMapTile.file, 0, 0, tempSprite);
+                
+                if (foundTile) 
                 {
-					// Copy from temporary sprite to preload sprite
-					preloadSprite.pushImage(offsetX, offsetY, tileSize, tileSize, tempSprite.frameBuffer(0));
-				}
-				
-				tempSprite.deleteSprite();
-			} 
+                    // Copy from temporary sprite to preload sprite
+                    preloadSprite.pushImage(offsetX, offsetY, tileSize, tileSize, tempSprite.frameBuffer(0));
+                }
+                
+                tempSprite.deleteSprite();
+            } 
             else 
-				foundTile = preloadSprite.drawPngFile(Maps::roundMapTile.file, offsetX, offsetY);
-		}
+                foundTile = preloadSprite.drawPngFile(Maps::roundMapTile.file, offsetX, offsetY);
+        }
 
-		if (!foundTile)
-			preloadSprite.fillRect(offsetX, offsetY, tileSize, tileSize, TFT_LIGHTGREY);
-	}
-	
+        if (!foundTile)
+            preloadSprite.fillRect(offsetX, offsetY, tileSize, tileSize, TFT_LIGHTGREY);
+    }
+    
 
-	if (dirX != 0)
-	{
-		mapTempSprite.scroll(dirX * tileSize, 0);
-		const int16_t pushX = (dirX > 0) ? tileSize * 2 : 0;
-		mapTempSprite.pushImage(pushX, 0, preloadWidth, preloadHeight, preloadSprite.frameBuffer(0));
-	}
-	else if (dirY != 0)
-	{
-		mapTempSprite.scroll(0, dirY * tileSize);
-		const int16_t pushY = (dirY > 0) ? tileSize * 2 : 0;
-		mapTempSprite.pushImage(0, pushY, preloadWidth, preloadHeight, preloadSprite.frameBuffer(0));
-	}
+    if (dirX != 0)
+    {
+        mapTempSprite.scroll(dirX * tileSize, 0);
+        const int16_t pushX = (dirX > 0) ? tileSize * 2 : 0;
+        mapTempSprite.pushImage(pushX, 0, preloadWidth, preloadHeight, preloadSprite.frameBuffer(0));
+    }
+    else if (dirY != 0)
+    {
+        mapTempSprite.scroll(0, dirY * tileSize);
+        const int16_t pushY = (dirY > 0) ? tileSize * 2 : 0;
+        mapTempSprite.pushImage(0, pushY, preloadWidth, preloadHeight, preloadSprite.frameBuffer(0));
+    }
 
-	preloadSprite.deleteSprite();
+    preloadSprite.deleteSprite();
 }
 
 /**
@@ -1195,7 +1195,8 @@ uint32_t Maps::calculateTileHash(const char* filePath)
 {
     uint32_t hash = 0;
     const char* p = filePath;
-    while (*p) {
+    while (*p) 
+    {
         hash = hash * 31 + *p;
         p++;
     }
@@ -1407,9 +1408,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
         return false;
     }
     if (!unifiedPoolLogged)
-    {
         unifiedPoolLogged = true;
-    }
 
     const size_t bytesRead = fread(data, 1, fileSize, file);
     fclose(file);
@@ -1477,9 +1476,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
         const uint32_t cmdType = readVarint(data, offset, dataSize);
 
         // Flush batches periodically to ensure proper rendering
-        if (cmd_idx > 0 && cmd_idx % 50 == 0) {
+        if (cmd_idx > 0 && cmd_idx % 50 == 0) 
             flushCurrentBatch();
-        }
 
         bool isLineCommand = false;
 
@@ -1540,23 +1538,19 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         int* px = pxGuard.get();
                         int* py = pyGuard.get();
                         if (!px || !py)
-                        {
                             continue;
-                        }
                         if (!unifiedPolylineLogged)
-                        {
                             unifiedPolylineLogged = true;
-                        }
                         unifiedPoolHitCount += 2;
                         
                         if (!px || !py)
                         {
                             // Skip this command if allocation failed
-                                for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
-                                {
-                                    readZigzag(data, offset, dataSize);
-                                    readZigzag(data, offset, dataSize);
-                                }
+                            for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
+                            {
+                                readZigzag(data, offset, dataSize);
+                                readZigzag(data, offset, dataSize);
+                            }
                             continue;
                         }
                         int32_t prevX = readZigzag(data, offset, dataSize);
@@ -1586,11 +1580,11 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     }
                     else
                     {
-                                for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
-                                {
-                                    readZigzag(data, offset, dataSize);
-                                    readZigzag(data, offset, dataSize);
-                                }
+                        for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
+                        {
+                            readZigzag(data, offset, dataSize);
+                            readZigzag(data, offset, dataSize);
+                        }
                     }
                 }
                 break;
@@ -1609,17 +1603,16 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         int* py = pyGuard.get();
                         if (!px || !py) 
                         {
-                                for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
-                                {
-                                    readZigzag(data, offset, dataSize);
-                                    readZigzag(data, offset, dataSize);
-                                }
+                            for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
+                            {
+                                readZigzag(data, offset, dataSize);
+                                readZigzag(data, offset, dataSize);
+                            }
                             break;
                         }
                         if (!unifiedPolygonLogged) 
-                        {
                             unifiedPolygonLogged = true;
-                        }
+
                         const int32_t firstX = readZigzag(data, offset, dataSize);
                         const int32_t firstY = readZigzag(data, offset, dataSize);
                         px[0] = uint16ToPixel(firstX);
@@ -1644,11 +1637,11 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     } 
                     else 
                     {
-                                for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
-                                {
-                                    readZigzag(data, offset, dataSize);
-                                    readZigzag(data, offset, dataSize);
-                                }
+                        for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
+                        {
+                            readZigzag(data, offset, dataSize);
+                            readZigzag(data, offset, dataSize);
+                        }
                     }
                 }
                 break;
@@ -1666,17 +1659,15 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         int* py = pyGuard.get();
                         if (!px || !py) 
                         {
-                                for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
-                                {
-                                    readZigzag(data, offset, dataSize);
-                                    readZigzag(data, offset, dataSize);
-                                }
+                            for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
+                            {
+                                readZigzag(data, offset, dataSize);
+                                readZigzag(data, offset, dataSize);
+                            }
                             break;
                         }
                         if (!unifiedPolygonsLogged)
-                        {
                             unifiedPolygonsLogged = true;
-                        }
                         for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
                         {
                             if (i == 0) 
@@ -1705,11 +1696,11 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     } 
                     else
                     {
-                                for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
-                                {
-                                    readZigzag(data, offset, dataSize);
-                                    readZigzag(data, offset, dataSize);
-                                }
+                        for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
+                        {
+                            readZigzag(data, offset, dataSize);
+                            readZigzag(data, offset, dataSize);
+                        }
                     }
                 }
                 break;
@@ -2021,7 +2012,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         int err = dx - dy;
                         int currentX = px1, currentY = py1, dashCounter = 0;
                         
-                        while (true) {
+                        while (true) 
+                        {
                             if (dashCounter % (dashLength + gapLength) < dashLength)
                                 map.drawPixel(currentX, currentY, currentDrawColor);
                             dashCounter++;
@@ -2059,7 +2051,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         int err = dx - dy;
                         int currentX = px1, currentY = py1, dotCounter = 0;
                         
-                        while (true) {
+                        while (true) 
+                        {
                             if (dotCounter % dotSpacing == 0)
                                 map.drawPixel(currentX, currentY, currentDrawColor);
                             dotCounter++;
@@ -2088,15 +2081,20 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     if (px >= 0 && px <= TILE_SIZE && py >= 0 && py <= TILE_SIZE) 
                     {
                         // Simple grid pattern implementation
-                        if (direction == 0) {
+                        if (direction == 0) 
+                        {
                             // Horizontal lines
-                            for (int i = 0; i < count; i++) {
+                            for (int i = 0; i < count; i++)
+                            {
                                 int lineY = py + (i * spacing);
                                 map.drawLine(px, lineY, px + width, lineY, currentDrawColor);
                             }
-                        } else {
+                        } 
+                        else 
+                        {
                             // Vertical lines
-                            for (int i = 0; i < count; i++) {
+                            for (int i = 0; i < count; i++)
+                            {
                                 int lineX = px + (i * spacing);
                                 map.drawLine(lineX, py, lineX, py + width, currentDrawColor);
                             }
@@ -2160,15 +2158,15 @@ void Maps::initUnifiedPool()
         }
     }
     
-#ifdef BOARD_HAS_PSRAM
-    size_t psramFree = ESP.getFreePsram();
-    maxUnifiedPoolEntries = std::min(static_cast<size_t>(100), psramFree / (1024 * 32)); // 32KB per entry
-    ESP_LOGI(TAG, "PSRAM available: %zu bytes, setting unified pool size to %zu entries", psramFree, maxUnifiedPoolEntries);
-#else
-    size_t ramFree = ESP.getFreeHeap();
-    maxUnifiedPoolEntries = std::min(static_cast<size_t>(25), ramFree / (1024 * 64)); // 64KB per entry
-    ESP_LOGI(TAG, "RAM available: %zu bytes, setting unified pool size to %zu entries", ramFree, maxUnifiedPoolEntries);
-#endif
+    #ifdef BOARD_HAS_PSRAM
+        size_t psramFree = ESP.getFreePsram();
+        maxUnifiedPoolEntries = std::min(static_cast<size_t>(100), psramFree / (1024 * 32)); // 32KB per entry
+        ESP_LOGI(TAG, "PSRAM available: %zu bytes, setting unified pool size to %zu entries", psramFree, maxUnifiedPoolEntries);
+    #else
+        size_t ramFree = ESP.getFreeHeap();
+        maxUnifiedPoolEntries = std::min(static_cast<size_t>(25), ramFree / (1024 * 64)); // 64KB per entry
+        ESP_LOGI(TAG, "RAM available: %zu bytes, setting unified pool size to %zu entries", ramFree, maxUnifiedPoolEntries);
+    #endif
     
     unifiedPool.clear();
     unifiedPool.reserve(maxUnifiedPoolEntries);
@@ -2260,11 +2258,11 @@ void* Maps::unifiedAlloc(size_t size, uint8_t type)
         if (unifiedPool.size() < maxUnifiedPoolEntries) 
         {
             void* ptr = nullptr;
-#ifdef BOARD_HAS_PSRAM
-            ptr = heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
-#else
-            ptr = heap_caps_malloc(size, MALLOC_CAP_8BIT);
-#endif
+            #ifdef BOARD_HAS_PSRAM
+                ptr = heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
+            #else
+                ptr = heap_caps_malloc(size, MALLOC_CAP_8BIT);
+            #endif
             
             if (ptr) 
             {
@@ -2286,11 +2284,11 @@ void* Maps::unifiedAlloc(size_t size, uint8_t type)
     }
     
     unifiedPoolMissCount++;
-#ifdef BOARD_HAS_PSRAM
-    return heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
-#else
-    return heap_caps_malloc(size, MALLOC_CAP_8BIT);
-#endif
+    #ifdef BOARD_HAS_PSRAM
+        return heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
+    #else
+        return heap_caps_malloc(size, MALLOC_CAP_8BIT);
+    #endif
 }
 
 /**
@@ -2331,17 +2329,17 @@ void Maps::unifiedDealloc(void* ptr)
 void Maps::initBatchRendering()
 {
     // Detect optimal batch size based on hardware capabilities
-#ifdef BOARD_HAS_PSRAM
-    size_t psramFree = ESP.getFreePsram();
-    if (psramFree >= 4 * 1024 * 1024) 
-        maxBatchSize = 512;  // High-end ESP32-S3: 512 lines
-    else if (psramFree >= 2 * 1024 * 1024)
-        maxBatchSize = 256;  // Mid-range ESP32-S3: 256 lines
-    else 
-        maxBatchSize = 128;  // Low-end ESP32-S3: 128 lines
-#else
-    maxBatchSize = 64;  // ESP32 without PSRAM: 64 lines
-#endif
+    #ifdef BOARD_HAS_PSRAM
+        size_t psramFree = ESP.getFreePsram();
+        if (psramFree >= 4 * 1024 * 1024) 
+            maxBatchSize = 512;  // High-end ESP32-S3: 512 lines
+        else if (psramFree >= 2 * 1024 * 1024)
+            maxBatchSize = 256;  // Mid-range ESP32-S3: 256 lines
+        else 
+            maxBatchSize = 128;  // Low-end ESP32-S3: 128 lines
+    #else
+        maxBatchSize = 64;  // ESP32 without PSRAM: 64 lines
+    #endif
     
     activeBatch = nullptr;
     batchRenderCount = 0;
@@ -2395,10 +2393,8 @@ void Maps::addToBatch(int x0, int y0, int x1, int y1, uint16_t color)
     
     // Check if we can add to current batch (same color)
     if (!canBatch(color) || activeBatch->count >= activeBatch->capacity) 
-    {
-        return;
-    }
-    
+        return; 
+
     // Add segment to batch
     activeBatch->segments[activeBatch->count] = {x0, y0, x1, y1, color};
     activeBatch->count++;

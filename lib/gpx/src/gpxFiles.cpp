@@ -23,27 +23,27 @@ static const char* TAG PROGMEM = "GPX file struct";
  */
 void createGpxFolders()
 {
-	if (!storage.exists(trkFolder))
-	{
-		ESP_LOGI(TAG,"TRK folder not exists");
-		if (storage.mkdir(trkFolder))
-		ESP_LOGI(TAG, "TRK folder created");
-		else
-		ESP_LOGE(TAG, "TRK folder not created");
-	}
-	else
-		ESP_LOGI(TAG,"TRK folder exists");
+    if (!storage.exists(trkFolder))
+    {
+        ESP_LOGI(TAG,"TRK folder not exists");
+        if (storage.mkdir(trkFolder))
+            ESP_LOGI(TAG, "TRK folder created");
+        else
+            ESP_LOGE(TAG, "TRK folder not created");
+    }
+    else
+        ESP_LOGI(TAG,"TRK folder exists");
 
-	if (!storage.exists(wptFolder))
-	{
-		ESP_LOGI(TAG,"WPT folder not exists");
-		if (storage.mkdir(wptFolder))
-		ESP_LOGI(TAG, "WPT folder created");
-		else
-		ESP_LOGE(TAG, "WPT folder not created");
-	}
-	else
-		ESP_LOGI(TAG,"WPT folder exists");
+    if (!storage.exists(wptFolder))
+    {
+        ESP_LOGI(TAG,"WPT folder not exists");
+        if (storage.mkdir(wptFolder))
+            ESP_LOGI(TAG, "WPT folder created");
+        else
+            ESP_LOGE(TAG, "WPT folder not created");
+    }
+    else
+        ESP_LOGI(TAG,"WPT folder exists");
 }
 
 /**
@@ -54,25 +54,25 @@ void createGpxFolders()
  */
 void createWptFile()
 {
-	FILE *gpxFile = storage.open(wptFile, "r");
+    FILE *gpxFile = storage.open(wptFile, "r");
 
-	if (!gpxFile)
-	{
-		ESP_LOGI(TAG,"WPT file not exists");
-		gpxFile = storage.open(wptFile, "w");
-		if (gpxFile)
-		{
-		ESP_LOGI(TAG,"Creating WPT file");
-		storage.println(gpxFile, gpxHeader);
-		storage.close(gpxFile);
-		ESP_LOGI(TAG,"file Size: %d", storage.size(wptFile));
-		}
-		else
-		ESP_LOGE(TAG,"WPT file creation error");
-	}
-	else
-	{
-		ESP_LOGI(TAG,"WPT file exists");
-		storage.close(gpxFile);
-	}
+    if (!gpxFile)
+    {
+        ESP_LOGI(TAG,"WPT file not exists");
+        gpxFile = storage.open(wptFile, "w");
+        if (gpxFile)
+        {
+            ESP_LOGI(TAG,"Creating WPT file");
+            storage.println(gpxFile, gpxHeader);
+            storage.close(gpxFile);
+            ESP_LOGI(TAG,"file Size: %d", storage.size(wptFile));
+        }
+        else
+            ESP_LOGE(TAG,"WPT file creation error");
+    }
+    else
+    {
+        ESP_LOGI(TAG,"WPT file exists");
+        storage.close(gpxFile);
+    }
 }

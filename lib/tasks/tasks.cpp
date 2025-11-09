@@ -29,32 +29,32 @@ static const char* TAG PROGMEM = "Task"; /**< Logging tag for task operations */
  */
 void gpsTask(void *pvParameters)
 {
-	ESP_LOGV(TAG, "GPS Task - running on core %d", xPortGetCoreID());
-	ESP_LOGV(TAG, "Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
-	while (1)
-	{
-		if ( xSemaphoreTake(gpsMutex, portMAX_DELAY) == pdTRUE )
-		{
-			if (nmea_output_enable)
-			{
-				while (gpsPort.available())
-				{
-					char c = gpsPort.read();
-					Serial.print(c);
-				}
-			} 
+    ESP_LOGV(TAG, "GPS Task - running on core %d", xPortGetCoreID());
+    ESP_LOGV(TAG, "Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
+    while (1)
+    {
+        if ( xSemaphoreTake(gpsMutex, portMAX_DELAY) == pdTRUE )
+        {
+            if (nmea_output_enable)
+            {
+                while (gpsPort.available())
+                {
+                    char c = gpsPort.read();
+                    Serial.print(c);
+                }
+            } 
 
-			while (GPS.available( gpsPort )) 
-			{
-				fix = GPS.read();
-				gps.getGPSData();
-			}
+            while (GPS.available( gpsPort )) 
+            {
+                fix = GPS.read();
+                gps.getGPSData();
+            }
 
-			xSemaphoreGive(gpsMutex);
+            xSemaphoreGive(gpsMutex);
 
-			vTaskDelay(1); /// portTICK_PERIOD_MS);
-		}
-	}
+            vTaskDelay(1); /// portTICK_PERIOD_MS);
+        }
+    }
 }
 
 /**
@@ -66,8 +66,8 @@ void gpsTask(void *pvParameters)
  */
 void initGpsTask()
 {
-	xTaskCreatePinnedToCore(gpsTask, PSTR("GPS Task"), 8192, NULL, 1, NULL, 0);
-	delay(500);
+    xTaskCreatePinnedToCore(gpsTask, PSTR("GPS Task"), 8192, NULL, 1, NULL, 0);
+    delay(500);
 }
 
 /**
@@ -83,14 +83,14 @@ void initGpsTask()
 #ifndef DISABLE_CLI
 void cliTask(void *param) 
 {
-	ESP_LOGV(TAG, "CLI Task - running on core %d", xPortGetCoreID());
-	ESP_LOGV(TAG, "Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
-	while(1) 
-	{
-		wcli.loop();
-		vTaskDelay(60 / portTICK_PERIOD_MS);
-	}
-	vTaskDelete(NULL);
+    ESP_LOGV(TAG, "CLI Task - running on core %d", xPortGetCoreID());
+    ESP_LOGV(TAG, "Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
+    while(1) 
+    {
+        wcli.loop();
+        vTaskDelay(60 / portTICK_PERIOD_MS);
+    }
+    vTaskDelete(NULL);
 }
 
 /**

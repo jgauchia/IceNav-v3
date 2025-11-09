@@ -52,7 +52,8 @@ int findClosestTrackPoint(float userLat, float userLon, const std::vector<wayPoi
     for (int i = start; i <= end; ++i) 
     {
         float d = calcDist(userLat, userLon, track[i].lat, track[i].lon);
-        if (d < minDist) {
+        if (d < minDist) 
+        {
             minDist = d;
             closestIdx = i;
         }
@@ -61,9 +62,11 @@ int findClosestTrackPoint(float userLat, float userLon, const std::vector<wayPoi
     // If user is far from last known point, perform full search
     if (!forceGlobal && minDist > config.offTrackThreshold) 
     {
-        for (int i = 0; i < n; ++i) {
+        for (int i = 0; i < n; ++i) 
+        {
             float d = calcDist(userLat, userLon, track[i].lat, track[i].lon);
-            if (d < minDist) {
+            if (d < minDist) 
+            {
                 minDist = d;
                 closestIdx = i;
             }
@@ -173,22 +176,14 @@ void displayTurnIcon(float distanceToNextEvent, float abs_angle, bool derecha, f
     if (distanceToNextEvent <= warnDist)
     {
         if (abs_angle >= minAngleForCurve && abs_angle < 60.0f) 
-        {
             lv_img_set_src(turnImg, derecha ? &slright : &slleft);
-        }
         else if (abs_angle >= 60.0f) 
-        {
             lv_img_set_src(turnImg, derecha ? &tright : &tleft);
-        }
         else 
-        {
             lv_img_set_src(turnImg, &straight);
-        }
     }
     else
-    {
         lv_img_set_src(turnImg, &straight);
-    }
 }
 
 /**

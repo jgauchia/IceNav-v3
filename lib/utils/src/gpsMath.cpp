@@ -21,30 +21,32 @@ bool lutInit = false;
  */
 bool initTrigLUT()
 {
-#ifdef BOARD_HAS_PSRAM
-    sinLut = (float*) heap_caps_malloc(sizeof(float) * LUT_SIZE, MALLOC_CAP_SPIRAM);
-    cosLut = (float*) heap_caps_malloc(sizeof(float) * LUT_SIZE, MALLOC_CAP_SPIRAM);
+    #ifdef BOARD_HAS_PSRAM
+        sinLut = (float*) heap_caps_malloc(sizeof(float) * LUT_SIZE, MALLOC_CAP_SPIRAM);
+        cosLut = (float*) heap_caps_malloc(sizeof(float) * LUT_SIZE, MALLOC_CAP_SPIRAM);
 
-    if (!sinLut || !cosLut) 
-    {
-        ESP_LOGE(TAGMATH, "Error: Failed to allocate memory for float LUTs");
-        if (sinLut) free(sinLut);
-        if (cosLut) free(cosLut);
-        sinLut = cosLut = NULL;
+        if (!sinLut || !cosLut) 
+        {
+            ESP_LOGE(TAGMATH, "Error: Failed to allocate memory for float LUTs");
+            if (sinLut) 
+                free(sinLut);
+            if (cosLut) 
+                free(cosLut);
+            sinLut = cosLut = NULL;
+            return false;
+        }
+        ESP_LOGI(TAGMATH, "Allocated memory for float LUTs");
+
+        for (int i = 0; i < LUT_SIZE; ++i)
+        {
+            float angle = i * LUT_RES;
+            sinLut[i] = sinf(angle);
+            cosLut[i] = cosf(angle);
+        }
+        return true;
+    #else
         return false;
-    }
-    ESP_LOGI(TAGMATH, "Allocated memory for float LUTs");
-
-    for (int i = 0; i < LUT_SIZE; ++i)
-    {
-        float angle = i * LUT_RES;
-        sinLut[i] = sinf(angle);
-        cosLut[i] = cosf(angle);
-    }
-    return true;
-#else
-    return false;
-#endif
+    #endif
 }
 
 /**

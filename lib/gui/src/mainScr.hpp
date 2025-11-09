@@ -38,10 +38,10 @@ static const char *zoomOutIconFile PROGMEM = "/zoomout.bin"; /**< Zoom out icon 
  */
 enum tileName
 {
-	COMPASS,   /**< Compass screen */
-	MAP,       /**< Map screen */
-	NAV,       /**< Navigation screen */
-	SATTRACK,  /**< Satellite track screen */
+    COMPASS,   /**< Compass screen */
+    MAP,       /**< Map screen */
+    NAV,       /**< Navigation screen */
+    SATTRACK,  /**< Satellite track screen */
 };
 
 /**

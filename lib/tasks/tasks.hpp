@@ -34,14 +34,14 @@ void gpsTask(void *pvParameters);
 void initGpsTask();
 
 #ifndef DISABLE_CLI
-	/**
-	 * @brief CLI processing task function
-	 * @param param Task parameters (unused)
-	 */
-	void cliTask(void *param);
-	
-	/**
-	 * @brief Initialize CLI processing task
-	 */
-	void initCLITask();
+    /**
+     * @brief CLI processing task function
+     * @param param Task parameters (unused)
+     */
+    void cliTask(void *param);
+    
+    /**
+     * @brief Initialize CLI processing task
+     */
+    void initCLITask();
 #endif

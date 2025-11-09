@@ -89,7 +89,8 @@ static inline __attribute__((always_inline)) float cosLUT(float rad)
 
 	// Normalize angle to [0, TWO_PI)
 	rad -= TWO_PI * floorf(rad / TWO_PI);
-	if (rad < 0.0f) rad += TWO_PI;
+	if (rad < 0.0f) 
+        rad += TWO_PI;
 
 	float index = rad / (float)LUT_RES;
 	int idx_low = (int)index;
