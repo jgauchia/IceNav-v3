@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  GPS definition and functions
  * @version 0.2.3
- * @date 2025-06
+ * @date 2025-11
  */
 
 #pragma once
@@ -63,81 +63,82 @@ static const uint8_t canvasRadius = canvasCenter_X - canvasOffset;	/**< Radius o
  */
 class Gps
 {
-public:
-	Gps();
-	void init();
-	float getLat();
-	float getLon();
-	void getGPSData();
-	long detectRate(int rxPin);
-	long autoBaud();
-	bool isSpeedChanged();
-	bool isAltitudeChanged();
-	bool hasLocationChange();
-	bool isDOPChanged();
-	void setLocalTime(NeoGPS::time_t gpsTime, const char* tz);
-	void simFakeGPS(const std::vector<wayPoint>& trackData, uint16_t speed, uint16_t refresh);
+    public:
+        Gps();
+        void init();
+        float getLat();
+        float getLon();
+        void getGPSData();
+        long detectRate(int rxPin);
+        long autoBaud();
+        bool isSpeedChanged();
+        bool isAltitudeChanged();
+        bool hasLocationChange();
+        bool isDOPChanged();
+        void setLocalTime(NeoGPS::time_t gpsTime, const char* tz);
+        void simFakeGPS(const std::vector<wayPoint>& trackData, uint16_t speed, uint16_t refresh);
 
-	/**
-	* @struct GPSDATA
-	* @brief Holds parsed GPS data for easy access.
-	*/
-	struct GPSDATA
-	{
-        uint8_t satellites;   /**< Number of satellites used for fix. */
-        uint8_t fixMode;      /**< GPS fix mode. */
-        int16_t altitude;     /**< Altitude in meters. */
-        uint16_t speed;       /**< Speed in km/h or knots. */
-        float latitude;       /**< Latitude in decimal degrees. */
-        float longitude;      /**< Longitude in decimal degrees. */
-        uint16_t heading;     /**< Heading in degrees. */
-        float hdop;           /**< Horizontal dilution of precision. */
-        float pdop;           /**< Position dilution of precision. */
-        float vdop;           /**< Vertical dilution of precision. */
-        uint8_t satInView;    /**< Number of satellites in view. */
-        char sunriseHour[6];  /**< Sunrise time as string (HH:MM). */
-        char sunsetHour[6];   /**< Sunset time as string (HH:MM). */
-        int UTC;              /**< UTC offset. */
-	} gpsData;
+        /**
+        * @struct GPSDATA
+        * @brief Holds parsed GPS data for easy access.
+        */
+        struct GPSDATA
+        {
+            uint8_t satellites;   /**< Number of satellites used for fix. */
+            uint8_t fixMode;      /**< GPS fix mode. */
+            int16_t altitude;     /**< Altitude in meters. */
+            uint16_t speed;       /**< Speed in km/h or knots. */
+            float latitude;       /**< Latitude in decimal degrees. */
+            float longitude;      /**< Longitude in decimal degrees. */
+            uint16_t heading;     /**< Heading in degrees. */
+            float hdop;           /**< Horizontal dilution of precision. */
+            float pdop;           /**< Position dilution of precision. */
+            float vdop;           /**< Vertical dilution of precision. */
+            uint8_t satInView;    /**< Number of satellites in view. */
+            char sunriseHour[6];  /**< Sunrise time as string (HH:MM). */
+            char sunsetHour[6];   /**< Sunset time as string (HH:MM). */
+            int UTC;              /**< UTC offset. */
+        } gpsData;
 
-	/**
-	* @struct SV
-	* @brief Holds information about a tracked satellite.
-	*/
-	struct SV
-	{
-        bool active;          /**< True if the satellite is active. */
-        uint8_t satNum;       /**< Satellite number. */
-        uint8_t elev;         /**< Elevation in degrees. */
-        uint16_t azim;        /**< Azimuth in degrees. */
-        uint8_t snr;          /**< Signal-to-noise ratio. */
-        uint16_t posX;        /**< X position for display/map. */
-        uint16_t posY;        /**< Y position for display/map. */
-        char talker_id[3];    /**< NMEA talker ID. */
-  	} satTracker[MAX_SATELLITES];
+        /**
+        * @struct SV
+        * @brief Holds information about a tracked satellite.
+        */
+        struct SV
+        {
+            bool active;          /**< True if the satellite is active. */
+            uint8_t satNum;       /**< Satellite number. */
+            uint8_t elev;         /**< Elevation in degrees. */
+            uint16_t azim;        /**< Azimuth in degrees. */
+            uint8_t snr;          /**< Signal-to-noise ratio. */
+            uint16_t posX;        /**< X position for display/map. */
+            uint16_t posY;        /**< Y position for display/map. */
+            char talker_id[3];    /**< NMEA talker ID. */
+        } satTracker[MAX_SATELLITES];
 
-private:
-    uint16_t previousSpeed;      /**< Previous speed value for change detection. */
-    int16_t previousAltitude;    /**< Previous altitude value for change detection. */
-    float previousLatitude;     /**< Previous latitude for change detection. */
-    float previousLongitude;    /**< Previous longitude for change detection. */
-    float previousHdop;          /**< Previous HDOP for change detection. */
-    float previousPdop;          /**< Previous PDOP for change detection. */
-    float previousVdop;          /**< Previous VDOP for change detection. */
+    private:
+        uint16_t previousSpeed;      /**< Previous speed value for change detection. */
+        int16_t previousAltitude;    /**< Previous altitude value for change detection. */
+        float previousLatitude;     /**< Previous latitude for change detection. */
+        float previousLongitude;    /**< Previous longitude for change detection. */
+        float previousHdop;          /**< Previous HDOP for change detection. */
+        float previousPdop;          /**< Previous PDOP for change detection. */
+        float previousVdop;          /**< Previous VDOP for change detection. */
 
-	/**
-	 * @brief Variables for "fake" GPS signal from loaded track (simulation)
-	 * 
-	 */
-	const float posAlpha = 0.2f;           /**< Position smoothing factor, range 0 (no smoothing) to 1 (full smoothing) */
-	const float headAlpha = 0.3f;          /**< Heading smoothing factor, controls how fast heading adapts */
-	const float minStepDist = 5.0f;        /**< Minimum distance in meters between simulation steps to update */
-	const int headingLookahead = 3;        /**< Number of track points ahead used to calculate the heading */
-	float smoothedLat = 0.0f;              /**< Smoothed latitude after filtering */
-	float smoothedLon = 0.0f;              /**< Smoothed longitude after filtering */
-	float filteredHeading = 0.0f;          /**< Smoothed heading after filtering */
-	float lastSimLat = 0.0f;       		   /**< Last simulated latitude used for step distance */
-	float lastSimLon = 0.0f;     	       /**< Last simulated longitude used for step distance */
-	int simulationIndex = 0;                   /**< Current index in track simulation */
-	unsigned long lastSimulationTime = 0;      /**< Timestamp of last simulation update in milliseconds */
+        /**
+        * @brief Variables for "fake" GPS signal from loaded track (simulation)
+        * 
+        */
+        const float posAlpha = 0.6f;           /**< Position smoothing factor, range 0 (no smoothing) to 1 (full smoothing) */
+        const float headAlpha = 0.5f;          /**< Heading smoothing factor, controls how fast heading adapts */
+        const float minStepDist = 3.0f;        /**< Minimum distance in meters between simulation steps to update */
+        const int headingLookahead = 5;        /**< Number of track points ahead used to calculate the heading */
+        float smoothedLat = 0.0f;              /**< Smoothed latitude after filtering */
+        float smoothedLon = 0.0f;              /**< Smoothed longitude after filtering */
+        float filteredHeading = 0.0f;          /**< Smoothed heading after filtering */
+        float lastSimLat = 0.0f;       		   /**< Last simulated latitude used for step distance */
+        float lastSimLon = 0.0f;     	       /**< Last simulated longitude used for step distance */
+        float accumulatedDist = 0.0f;          /**< Accumulated distance for multi-second simulation */
+        int simulationIndex = 0;                   /**< Current index in track simulation */
+        unsigned long lastSimulationTime = 0;      /**< Timestamp of last simulation update in milliseconds */
 };

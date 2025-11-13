@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief Panel model select
  * @version 0.2.3
- * @date 2025-06
+ * @date 2025-11
  */
 
 #pragma once
@@ -30,6 +30,8 @@
     #include "ICENAV_BOARD.hpp"
 #elif defined(TDECK_ESP32S3)
     #include "LILYGO_TDECK.hpp"
+#elif defined(T4_S3)
+    #include "LILYGO_T4_S3.hpp"
 #elif defined(MAKERF_ESP32S3)
     #include "MAKERF_ESP32S3.hpp"
 #elif defined(ELECROW_ESP32)

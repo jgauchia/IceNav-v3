@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Storage definition and functions
  * @version 0.2.3
- * @date 2025-06
+ * @date 2025-11
  */
 
 #include "storage.hpp"
@@ -80,6 +80,9 @@ esp_err_t Storage::initSD()
 		host.slot = HSPI_HOST;
 		host.command_timeout_ms = 1000;
 	#endif
+	#ifdef T4_S3
+		host.slot = SPI2_HOST;
+	#endif
 
 	sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
 	slot_config.gpio_cs = (gpio_num_t)SD_CS;
@@ -92,7 +95,7 @@ esp_err_t Storage::initSD()
 		.sclk_io_num = (gpio_num_t)SD_CLK,
 		.quadwp_io_num = -1,
 		.quadhd_io_num = -1,
-		.max_transfer_sz = 4096, // Set transfer size to 4096 bytes (multiple of 512)
+		.max_transfer_sz = 32768,
 		.flags = 0,
 		.intr_flags = 0};
 
@@ -112,8 +115,8 @@ esp_err_t Storage::initSD()
 
 	esp_vfs_fat_mount_config_t mount_config = {
 		.format_if_mount_failed = false,
-		.max_files = 5,
-		.allocation_unit_size = 8 * 1024};
+		.max_files = 12,
+		.allocation_unit_size = 8192};
 
 	ret = esp_vfs_fat_sdspi_mount("/sdcard", &host, &slot_config, &mount_config, &card);
 	if (ret != ESP_OK)

@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Main Screen
  * @version 0.1.9
- * @date 2025-06
+ * @date 2025-11
  */
 
 #pragma once
@@ -38,10 +38,10 @@ static const char *zoomOutIconFile PROGMEM = "/zoomout.bin"; /**< Zoom out icon 
  */
 enum tileName
 {
-	COMPASS,   /**< Compass screen */
-	MAP,       /**< Map screen */
-	NAV,       /**< Navigation screen */
-	SATTRACK,  /**< Satellite track screen */
+    COMPASS,   /**< Compass screen */
+    MAP,       /**< Map screen */
+    NAV,       /**< Navigation screen */
+    SATTRACK,  /**< Satellite track screen */
 };
 
 /**

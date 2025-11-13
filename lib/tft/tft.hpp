@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief TFT definition and functions
  * @version 0.2.3
- * @date 2025-06
+ * @date 2025-11
  */
 
 #pragma once
@@ -11,6 +11,11 @@
 #include <Arduino.h>
 #include "storage.hpp"
 #include "panelSelect.hpp"
+
+#ifdef T4_S3
+#include "LILYGO_T4_S3.hpp"
+#endif
+
 
 #include <LGFX_TFT_eSPI.hpp>
 

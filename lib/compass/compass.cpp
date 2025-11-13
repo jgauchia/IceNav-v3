@@ -2,7 +2,7 @@
  * @file compass.cpp
  * @brief Compass definition and functions
  * @version 0.2.3
- * @date 2025-06
+ * @date 2025-11
  */
 
 #include "compass.hpp"
@@ -10,26 +10,26 @@
 static const char* TAG PROGMEM = "Compass";
 
 #ifdef HMC5883L
-	DFRobot_QMC5883 comp = DFRobot_QMC5883(&Wire, HMC5883L_ADDRESS);
+    DFRobot_QMC5883 comp = DFRobot_QMC5883(&Wire, HMC5883L_ADDRESS);
 #endif
 
 #ifdef QMC5883
-	DFRobot_QMC5883 comp = DFRobot_QMC5883(&Wire, QMC5883_ADDRESS);
+    DFRobot_QMC5883 comp = DFRobot_QMC5883(&Wire, QMC5883_ADDRESS);
 #endif
 
 #ifdef IMU_MPU9250
-	MPU9250 IMU = MPU9250(Wire, 0x68);
+    MPU9250 IMU = MPU9250(Wire, 0x68);
 #endif
 
 /**
  * @brief Compass class constructor with default filter and calibration values.
  */
 Compass::Compass()
-		: declinationAngle(0.22), offX(0.0), offY(0.0),
-		headingSmooth(0.0), headingPrevious(0.0),
-		minX(0.0), maxX(0.0), minY(0.0), maxY(0.0),
-		kalmanFilterEnabled(true),
-		kalmanFilter(0.01, 0.1, 1.0, 0.0)
+        : declinationAngle(0.22), offX(0.0), offY(0.0),
+        headingSmooth(0.0), headingPrevious(0.0),
+        minX(0.0), maxX(0.0), minY(0.0), maxY(0.0),
+        kalmanFilterEnabled(true),
+        kalmanFilter(0.01, 0.1, 1.0, 0.0)
 {
 }
 
@@ -38,28 +38,28 @@ Compass::Compass()
  */
 void Compass::init()
 {
-#ifdef HMC5883L
-	if (!comp.begin())
-		comp.begin();
-	comp.setDataRate(HMC5883L_DATARATE_15HZ);
-	comp.setSamples(HMC5883L_SAMPLES_1);
-#endif
+    #ifdef HMC5883L
+        if (!comp.begin())
+            comp.begin();
+        comp.setDataRate(HMC5883L_DATARATE_15HZ);
+        comp.setSamples(HMC5883L_SAMPLES_1);
+    #endif
 
 #ifdef QMC5883
-	if (!comp.begin())
-		comp.begin();
-	comp.setDataRate(QMC5883_DATARATE_10HZ);
-	comp.setSamples(QMC5883_SAMPLES_1);
+    if (!comp.begin())
+        comp.begin();
+    comp.setDataRate(QMC5883_DATARATE_10HZ);
+    comp.setSamples(QMC5883_SAMPLES_1);
 #endif
 
 #ifdef IMU_MPU9250
-	int status = IMU.begin();
-	if (status < 0)
-	{
-		ESP_LOGE(TAG, "IMU initialization unsuccessful");
-		ESP_LOGE(TAG, "Check IMU wiring or try cycling power");
-		ESP_LOGE(TAG, "Status: %i", status);
-	}
+    int status = IMU.begin();
+    if (status < 0)
+    {
+        ESP_LOGE(TAG, "IMU initialization unsuccessful");
+        ESP_LOGE(TAG, "Check IMU wiring or try cycling power");
+        ESP_LOGE(TAG, "Status: %i", status);
+    }
 #endif
 }
 
@@ -72,28 +72,28 @@ void Compass::init()
 void Compass::read(float &x, float &y, float &z)
 {
 #ifdef HMC5883L
-	sVector_t mag = comp.readRaw();
-	y = mag.YAxis;
-	x = mag.XAxis;
-	z = mag.ZAxis;
+    sVector_t mag = comp.readRaw();
+    y = mag.YAxis;
+    x = mag.XAxis;
+    z = mag.ZAxis;
 #endif
 
 #ifdef QMC5883
-	sVector_t mag = comp.readRaw();
-	y = mag.YAxis;
-	x = mag.XAxis;
-	z = mag.ZAxis;
+    sVector_t mag = comp.readRaw();
+    y = mag.YAxis;
+    x = mag.XAxis;
+    z = mag.ZAxis;
 #endif
 
 #ifdef IMU_MPU9250
-	IMU.readSensor();
-	x = IMU.getMagX_uT();
-	y = IMU.getMagY_uT();
-	z = IMU.getMagZ_uT();
+    IMU.readSensor();
+    x = IMU.getMagX_uT();
+    y = IMU.getMagY_uT();
+    z = IMU.getMagZ_uT();
 #endif
 
 #ifdef ICENAV_BOARD
-	y = y * -1;
+    y = y * -1;
 #endif
 }
 
@@ -147,13 +147,13 @@ int Compass::getHeading()
  */
 bool Compass::isUpdated()
 {
-	int currentDegrees = getHeading();
-	if (currentDegrees != previousDegrees)
-	{
-		previousDegrees = currentDegrees;
-		return true;
-	}
-	return false;
+    int currentDegrees = getHeading();
+    if (currentDegrees != previousDegrees)
+    {
+        previousDegrees = currentDegrees;
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -164,80 +164,98 @@ bool Compass::isUpdated()
  */
 void Compass::calibrate()
 {
-	bool cal = 1;
-	float y = 0.0;
-	float x = 0.0;
-	float z = 0.0;
-	uint16_t touchX, touchY;
+    bool cal = 1;
+    float y = 0.0;
+    float x = 0.0;
+    float z = 0.0;
+    uint16_t touchX, touchY;
 
-	static const lgfx::v1::GFXfont *fontSmall;
-	static const lgfx::v1::GFXfont *fontLarge;
+    TFT_eSprite compassCalSprite = TFT_eSprite(&tft);  
 
-	#ifdef LARGE_SCREEN
-	fontSmall = &fonts::DejaVu18;
-	fontLarge = &fonts::DejaVu40;
-	static const float scale = 1.0f;
-	#else
-	fontSmall = &fonts::DejaVu12;
-	fontLarge = &fonts::DejaVu24;
-	static const float scale = 0.75f;
-	#endif
+    static const lgfx::v1::GFXfont *fontSmall;
+    static const lgfx::v1::GFXfont *fontLarge;
 
-	tft.drawCenterString("ROTATE THE DEVICE", tft.width() >> 1, 10 * scale, fontSmall);
-	tft.drawPngFile(PSTR("/spiffs/turn.png"), (tft.width() / 2) - 50, 60 * scale);
-	tft.drawCenterString("TOUCH TO START", tft.width() >> 1, 200 * scale, fontSmall);
-	tft.drawCenterString("COMPASS CALIBRATION", tft.width() >> 1, 230 * scale, fontSmall);
+    #ifdef LARGE_SCREEN
+    fontSmall = &fonts::DejaVu18;
+    fontLarge = &fonts::DejaVu40;
+    static const float scale = 1.0f;
+    #else
+    fontSmall = &fonts::DejaVu12;
+    fontLarge = &fonts::DejaVu24;
+    static const float scale = 0.75f;
+    #endif
 
-	while (!tft.getTouch(&touchX, &touchY))
-	{
-	};
-	delay(1000);
+    compassCalSprite.createSprite(tft.width(), tft.height());
+    compassCalSprite.fillScreen(TFT_BLACK);
 
-	unsigned long calTimeWas = millis();
+    compassCalSprite.drawCenterString("ROTATE THE DEVICE", tft.width() >> 1, 10 * scale, fontSmall);
+    compassCalSprite.drawPngFile(PSTR("/spiffs/turn.png"), (tft.width() / 2) - 50, 60 * scale);
+    compassCalSprite.drawCenterString("TOUCH TO START", tft.width() >> 1, 200 * scale, fontSmall);
+    compassCalSprite.drawCenterString("COMPASS CALIBRATION", tft.width() >> 1, 230 * scale, fontSmall);
+    compassCalSprite.pushSprite(0,0);
 
-	read(x, y, z);
+    while (!tft.getTouch(&touchX, &touchY))
+    {
+    };
+    delay(1000);
 
-	maxX = minX = x;
-	maxY = minY = y;
+    unsigned long calTimeWas = millis();
 
-	while (cal)
-	{
-		read(x, y, z);
+    read(x, y, z);
 
-		if (x > maxX)
-			maxX = x;
-		if (x < minX)
-			minX = x;
-		if (y > maxY)
-			maxY = y;
-		if (y < minY)
-			minY = y;
+    maxX = minX = x;
+    maxY = minY = y;
 
-		int secmillis = millis() - calTimeWas;
-		int secs = (int)((COMPASS_CAL_TIME - secmillis + 1000) / 1000);
-		tft.setTextColor(TFT_WHITE, TFT_BLACK);
-		tft.setTextSize(3);
-		tft.setTextPadding(tft.textWidth("88"));
-		tft.drawNumber((COMPASS_CAL_TIME - secmillis) / 1000, (tft.width() >> 1), 280 * scale);
+    while (cal)
+    {
+        read(x, y, z);
 
-		if (secs == 0)
-		{
-			offX = (maxX + minX) / 2;
-			offY = (maxY + minY) / 2;
-			cal = 0;
-		}
-	}
+        if (x > maxX)
+            maxX = x;
+        if (x < minX)
+            minX = x;
+        if (y > maxY)
+            maxY = y;
+        if (y < minY)
+            minY = y;
 
-	tft.setTextSize(1);
-	tft.drawCenterString("DONE!", tft.width() >> 1, 340 * scale, fontLarge);
-	tft.drawCenterString("TOUCH TO CONTINUE.", tft.width() >> 1, 380 * scale, fontSmall);
+        int secmillis = millis() - calTimeWas;
+        int secs = (int)((COMPASS_CAL_TIME - secmillis + 1000) / 1000);
+        compassCalSprite.setTextColor(TFT_WHITE, TFT_BLACK);
+        compassCalSprite.setTextSize(3);
+        compassCalSprite.setTextPadding(100);
 
-	while (!tft.getTouch(&touchX, &touchY))
-	{
-	};
+        char timeString[3] = "";
+        memset(&timeString[0], 0, sizeof(timeString));
+        sprintf(timeString, "%i", (COMPASS_CAL_TIME - secmillis) / 1000);
+        compassCalSprite.drawString(timeString, (tft.width() >> 1), 280 * scale);
 
-	cfg.saveFloat(PKEYS::KCOMP_OFFSET_X, offX);
-	cfg.saveFloat(PKEYS::KCOMP_OFFSET_Y, offY);
+        memset(&timeString[0], 0, sizeof(timeString));
+
+        compassCalSprite.pushSprite(0,0);
+
+        if (secs == 0)
+        {
+            offX = (maxX + minX) / 2;
+            offY = (maxY + minY) / 2;
+            cal = 0;
+        }
+    }
+
+    compassCalSprite.setTextSize(1);
+    compassCalSprite.drawCenterString("DONE!", tft.width() >> 1, 340 * scale, fontLarge);
+    compassCalSprite.drawCenterString("TOUCH TO CONTINUE.", tft.width() >> 1, 380 * scale, fontSmall);
+
+    compassCalSprite.pushSprite(0,0);
+
+    while (!tft.getTouch(&touchX, &touchY))
+    {
+    };
+
+    compassCalSprite.deleteSprite();
+
+    cfg.saveFloat(PKEYS::KCOMP_OFFSET_X, offX);
+    cfg.saveFloat(PKEYS::KCOMP_OFFSET_Y, offY);
 }
 
 /**
@@ -246,7 +264,7 @@ void Compass::calibrate()
  */
 void Compass::setDeclinationAngle(float angle)
 {
-	declinationAngle = angle;
+    declinationAngle = angle;
 }
 
 /**
@@ -256,8 +274,8 @@ void Compass::setDeclinationAngle(float angle)
  */
 void Compass::setOffsets(float offsetX, float offsetY)
 {
-	offX = offsetX;
-	offY = offsetY;
+    offX = offsetX;
+    offY = offsetY;
 }
 
 /**
@@ -266,7 +284,7 @@ void Compass::setOffsets(float offsetX, float offsetY)
  */
 void Compass::enableKalmanFilter(bool enabled)
 {
-	kalmanFilterEnabled = enabled;
+    kalmanFilterEnabled = enabled;
 }
 
 /**
@@ -276,7 +294,7 @@ void Compass::enableKalmanFilter(bool enabled)
  */
 void Compass::setKalmanFilterConst(float processNoise, float measureNoise)
 {
-	kalmanFilter.setConstants(processNoise, measureNoise);
+    kalmanFilter.setConstants(processNoise, measureNoise);
 }
 
 /**
@@ -286,11 +304,11 @@ void Compass::setKalmanFilterConst(float processNoise, float measureNoise)
  */
 float Compass::wrapToPi(float angle)
 {
-	while (angle < -M_PI)
-		angle += 2 * M_PI;
-	while (angle > M_PI)
-		angle -= 2 * M_PI;
-	return angle;
+    while (angle < -M_PI)
+        angle += 2 * M_PI;
+    while (angle > M_PI)
+        angle -= 2 * M_PI;
+    return angle;
 }
 
 /**
@@ -301,10 +319,10 @@ float Compass::wrapToPi(float angle)
  */
 float Compass::unwrapFromPi(float angle, float previousAngle)
 {
-	float delta = angle - previousAngle;
-	if (delta > M_PI)
-		angle -= 2 * M_PI;
-	else if (delta < -M_PI)
-		angle += 2 * M_PI;
-	return angle;
+    float delta = angle - previousAngle;
+    if (delta > M_PI)
+        angle -= 2 * M_PI;
+    else if (delta < -M_PI)
+        angle += 2 * M_PI;
+    return angle;
 }

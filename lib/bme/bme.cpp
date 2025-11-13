@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  BME280 Sensor functions
  * @version 0.2.3
- * @date 2025-06
+ * @date 2025-11
  */
 
 #include "bme.hpp"
@@ -22,13 +22,13 @@ uint8_t tempOld = 0; /**< Stores the previous temperature value for comparison. 
  */
 void initBME()
 {
-  bme.begin(BME_ADDRESS);
-  // bme.setSampling(Adafruit_BME280::MODE_NORMAL,
-  //                 Adafruit_BME280::SAMPLING_X8,   // temperature
-  //                 Adafruit_BME280::SAMPLING_NONE, // pressure
-  //                 Adafruit_BME280::SAMPLING_NONE, // humidity
-  //                 Adafruit_BME280::FILTER_OFF,
-  //                 Adafruit_BME280::STANDBY_MS_1000);
+    bme.begin(BME_ADDRESS);
+    // bme.setSampling(Adafruit_BME280::MODE_NORMAL,
+    //                 Adafruit_BME280::SAMPLING_X8,   // temperature
+    //                 Adafruit_BME280::SAMPLING_NONE, // pressure
+    //                 Adafruit_BME280::SAMPLING_NONE, // humidity
+    //                 Adafruit_BME280::FILTER_OFF,
+    //                 Adafruit_BME280::STANDBY_MS_1000);
 }
 
 #endif

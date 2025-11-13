@@ -35,7 +35,7 @@
 #include <Arduino.h>
 
 #ifdef __AVR__
-  #define NEOGPS_PACKED_DATA
+    #define NEOGPS_PACKED_DATA
 #endif
 
 //------------------------------------------------------------------------
@@ -44,20 +44,20 @@
 
 #ifdef NEOGPS_PACKED_DATA
 
-  // This is for specifying the number of bits to be used for a 
-  // member of a struct.  Booleans are typically one bit.
-  #define NEOGPS_BF(b) :b
+    // This is for specifying the number of bits to be used for a 
+    // member of a struct.  Booleans are typically one bit.
+    #define NEOGPS_BF(b) :b
 
-  // This is for requesting the compiler to pack the struct or class members
-  // "as closely as possible".  This is a compiler-dependent interpretation.
-  #define NEOGPS_PACKED __attribute__((packed))
+    // This is for requesting the compiler to pack the struct or class members
+    // "as closely as possible".  This is a compiler-dependent interpretation.
+    #define NEOGPS_PACKED __attribute__((packed))
 
 #else
 
-  // Let the compiler do whatever it wants.
+    // Let the compiler do whatever it wants.
 
-  #define NEOGPS_PACKED
-  #define NEOGPS_BF(b)
+    #define NEOGPS_PACKED
+    #define NEOGPS_BF(b)
 
 #endif
 
@@ -98,11 +98,11 @@
         &                                          \
     !defined(ESP8266)  // PlatformIO Pull Request #82
 
-  #define CONST_CLASS_DATA static const
+    #define CONST_CLASS_DATA static const
   
 #else
 
-  #define CONST_CLASS_DATA static constexpr
+    #define CONST_CLASS_DATA static constexpr
   
 #endif
 
@@ -116,6 +116,6 @@
     defined(ARDUINO_ARCH_ARC32)   | \
     defined(__TC27XX__)           | \
     (defined(TEENSYDUINO) && (TEENSYDUINO < 139))
-  #undef pgm_read_ptr
-  #define pgm_read_ptr(addr) (*(const void **)(addr))
+    #undef pgm_read_ptr
+    #define pgm_read_ptr(addr) (*(const void **)(addr))
 #endif

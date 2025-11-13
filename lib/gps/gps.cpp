@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  GPS definition and functions
  * @version 0.2.3
- * @date 2025-06
+ * @date 2025-11
  */
 
 #include "gps.hpp"
@@ -33,45 +33,45 @@ Gps::Gps() {}
  */
 void Gps::init()
 {
-	gpsPort.setRxBufferSize(1024);
+    gpsPort.setRxBufferSize(1024);
 
-	if (gpsBaud != 4)
-		gpsPort.begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
-	else
-	{
-		gpsBaudDetected = autoBaud();
+    if (gpsBaud != 4)
+        gpsPort.begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
+    else
+    {
+        gpsBaudDetected = autoBaud();
 
-		if (gpsBaudDetected != 0)
-			gpsPort.begin(gpsBaudDetected, SERIAL_8N1, GPS_RX, GPS_TX);
-	}
+        if (gpsBaudDetected != 0)
+            gpsPort.begin(gpsBaudDetected, SERIAL_8N1, GPS_RX, GPS_TX);
+    }
 
-#ifdef AT6558D_GPS
-	// FACTORY RESET
-	// gpsPort.println("$PCAS10,3*1F\r\n");
-	// gpsPort.flush();
-	// delay(100);
+    #ifdef AT6558D_GPS
+        // FACTORY RESET
+        // gpsPort.println("$PCAS10,3*1F\r\n");
+        // gpsPort.flush();
+        // delay(100);
 
-	// GPS
-	// gpsPort.println("$PCAS04,1*18\r\n")
+        // GPS
+        // gpsPort.println("$PCAS04,1*18\r\n")
 
-	// GPS+GLONASS
-	// gpsPort.println("$PCAS04,5*1C\r\n");
+        // GPS+GLONASS
+        // gpsPort.println("$PCAS04,5*1C\r\n");
 
-	// GPS+BDS+GLONASS
-	gpsPort.println("$PCAS04,7*1E\r\n");
-	gpsPort.flush();
-	delay(100);
+        // GPS+BDS+GLONASS
+        gpsPort.println("$PCAS04,7*1E\r\n");
+        gpsPort.flush();
+        delay(100);
 
-	// Update Rate
-	gpsPort.println(GPS_RATE_PCAS[gpsUpdate]);
-	gpsPort.flush();
-	delay(100);
+        // Update Rate
+        gpsPort.println(GPS_RATE_PCAS[gpsUpdate]);
+        gpsPort.flush();
+        delay(100);
 
-	// Set NMEA 4.1
-	gpsPort.println("$PCAS05,2*1A\r\n");
-	gpsPort.flush();
-	delay(100);
-#endif
+        // Set NMEA 4.1
+        gpsPort.println("$PCAS05,2*1A\r\n");
+        gpsPort.flush();
+        delay(100);
+    #endif
 }
 
 /**
@@ -84,20 +84,18 @@ void Gps::init()
  */
 float Gps::getLat()
 {
-	{
-		if (fix.valid.location)
-		return fix.latitude();
-		else if (cfg.getFloat(PKEYS::KLAT_DFL, 0.0) != 0.0)
-		return cfg.getFloat(PKEYS::KLAT_DFL, 0.0);
-		else
-		{
-	#ifdef DEFAULT_LAT
-		return DEFAULT_LAT;
-	#else
-		return 0.0;
-	#endif
-		}
-	}
+    if (fix.valid.location)
+        return fix.latitude();
+    else if (cfg.getFloat(PKEYS::KLAT_DFL, 0.0) != 0.0)
+        return cfg.getFloat(PKEYS::KLAT_DFL, 0.0);
+    else
+    {
+        #ifdef DEFAULT_LAT
+            return DEFAULT_LAT;
+        #else
+            return 0.0;
+        #endif
+    }
 }
 
 /**
@@ -110,18 +108,18 @@ float Gps::getLat()
  */
 float Gps::getLon()
 {
-	if (fix.valid.location)
-		return fix.longitude();
-	else if (cfg.getFloat(PKEYS::KLON_DFL, 0.0) != 0.0)
-		return cfg.getFloat(PKEYS::KLON_DFL, 0.0);
-	else
-	{
-	#ifdef DEFAULT_LON
-		return DEFAULT_LON;
-	#else
-		return 0.0;
-	#endif
-	}
+    if (fix.valid.location)
+        return fix.longitude();
+    else if (cfg.getFloat(PKEYS::KLON_DFL, 0.0) != 0.0)
+        return cfg.getFloat(PKEYS::KLON_DFL, 0.0);
+    else
+    {
+        #ifdef DEFAULT_LON
+            return DEFAULT_LON;
+        #else
+            return 0.0;
+        #endif
+    }
 }
 
 /**
@@ -133,83 +131,83 @@ float Gps::getLon()
  */
 void Gps::getGPSData()
 {
-	// GPS Fix
-	if (fix.status != gps_fix::STATUS_NONE)
-		isGpsFixed = true;
+    // GPS Fix
+    if (fix.status != gps_fix::STATUS_NONE)
+        isGpsFixed = true;
 
-	// GPS Not fixed
-	if (fix.status == gps_fix::STATUS_NONE)
-		isGpsFixed = false;
+    // GPS Not fixed
+    if (fix.status == gps_fix::STATUS_NONE)
+        isGpsFixed = false;
 
-	// Satellite Count
-	gpsData.satellites = fix.satellites;
+    // Satellite Count
+    gpsData.satellites = fix.satellites;
 
-	// Fix Mode
-	gpsData.fixMode = fix.status;
+    // Fix Mode
+    gpsData.fixMode = fix.status;
 
-	// Time and Date
-	if (fix.valid.time && fix.valid.date)
-	{
-		if (!setTime)
-		{
-		log_v("Get date, time, Sunrise and Sunset");
-		// Set ESP RTC - Local time
-		String TZ = cfg.isKey(CONFKEYS::KDEF_TZ) ? cfg.getString(CONFKEYS::KDEF_TZ, TZ) : "UTC";
-		setLocalTime(fix.dateTime,getPosixTZ(TZ.c_str()));
-		// Calculate Sunrise and Sunset only one time when date & time was valid
-		calculateSun();
-		setTime = true;
-		lv_obj_send_event(sunriseLabel, LV_EVENT_VALUE_CHANGED, NULL);
-		}
-	}
+    // Time and Date
+    if (fix.valid.time && fix.valid.date)
+    {
+        if (!setTime)
+        {
+            log_v("Get date, time, Sunrise and Sunset");
+            // Set ESP RTC - Local time
+            String TZ = cfg.isKey(CONFKEYS::KDEF_TZ) ? cfg.getString(CONFKEYS::KDEF_TZ, TZ) : "UTC";
+            setLocalTime(fix.dateTime,getPosixTZ(TZ.c_str()));
+            // Calculate Sunrise and Sunset only one time when date & time was valid
+            calculateSun();
+            setTime = true;
+            lv_obj_send_event(sunriseLabel, LV_EVENT_VALUE_CHANGED, NULL);
+        }
+    }
 
-	// Altitude
-	if (fix.valid.altitude)
-		gpsData.altitude = fix.alt.whole;
+    // Altitude
+    if (fix.valid.altitude)
+        gpsData.altitude = fix.alt.whole;
 
-	// Speed
-	if (fix.valid.speed)
-		gpsData.speed = (uint16_t)fix.speed_kph();
+    // Speed
+    if (fix.valid.speed)
+        gpsData.speed = (uint16_t)fix.speed_kph();
 
-	// Latitude and Longitude
-	if (fix.valid.location)
-	{
-		gpsData.latitude = getLat();
-		gpsData.longitude = getLon();
-	}
+    // Latitude and Longitude
+    if (fix.valid.location)
+    {
+        gpsData.latitude = getLat();
+        gpsData.longitude = getLon();
+    }
 
-	// Heading
-	if (fix.valid.heading)
-		gpsData.heading = (uint16_t)fix.heading();
+    // Heading
+    if (fix.valid.heading)
+        gpsData.heading = (uint16_t)fix.heading();
 
-	// HDOP , PDOP , VDOP
-	if (fix.valid.hdop)
-		gpsData.hdop = (float)fix.hdop / 1000;
-	if (fix.valid.pdop)
-		gpsData.pdop = (float)fix.pdop / 1000;
-	if (fix.valid.vdop)
-		gpsData.vdop = (float)fix.vdop / 1000;
+    // HDOP , PDOP , VDOP
+    if (fix.valid.hdop)
+        gpsData.hdop = (float)fix.hdop / 1000;
+    if (fix.valid.pdop)
+        gpsData.pdop = (float)fix.pdop / 1000;
+    if (fix.valid.vdop)
+        gpsData.vdop = (float)fix.vdop / 1000;
 
-	// // Satellite info
-	gpsData.satInView = (uint8_t)GPS.sat_count;
-	for (uint8_t i = 0; i < gpsData.satInView; i++)
-	{
-		satTracker[i].satNum = (uint8_t)GPS.satellites[i].id;
-		satTracker[i].elev = (uint8_t)GPS.satellites[i].elevation;
-		satTracker[i].azim = (uint16_t)GPS.satellites[i].azimuth;
-		satTracker[i].snr = (uint8_t)GPS.satellites[i].snr;
-		satTracker[i].active = GPS.satellites[i].tracked;
-		strncpy(satTracker[i].talker_id, GPS.satellites[i].talker_id, 3);
+    // // Satellite info
+    gpsData.satInView = (uint8_t)GPS.sat_count;
+    for (uint8_t i = 0; i < gpsData.satInView; i++)
+    {
+        satTracker[i].satNum = (uint8_t)GPS.satellites[i].id;
+        satTracker[i].elev = (uint8_t)GPS.satellites[i].elevation;
+        satTracker[i].azim = (uint16_t)GPS.satellites[i].azimuth;
+        satTracker[i].snr = (uint8_t)GPS.satellites[i].snr;
+        satTracker[i].active = GPS.satellites[i].tracked;
+        strncpy(satTracker[i].talker_id, GPS.satellites[i].talker_id, 3);
 
-		int H = canvasRadius * (90 - satTracker[i].elev) / 90;
+        int H = canvasRadius * (90 - satTracker[i].elev) / 90;
 
-		float azimRad = DEG2RAD((float)satTracker[i].azim);
-		float sinAzim = lutInit ? sinLUT(azimRad) : sinf(azimRad);
-		float cosAzim = lutInit ? cosLUT(azimRad) : cosf(azimRad);
+        float azimRad = DEG2RAD((float)satTracker[i].azim);
+        float sinAzim = lutInit ? sinLUT(azimRad) : sinf(azimRad);
+        float cosAzim = lutInit ? cosLUT(azimRad) : cosf(azimRad);
 
-		satTracker[i].posX = canvasCenter_X + H * sinAzim;
-		satTracker[i].posY = canvasCenter_Y - H * cosAzim;
-	}
+        satTracker[i].posX = canvasCenter_X + H * sinAzim;
+        satTracker[i].posY = canvasCenter_Y - H * cosAzim;
+    }
 
 }
 
@@ -226,18 +224,18 @@ void Gps::getGPSData()
  */
 long Gps::detectRate(int rxPin)
 {
-	long rate = 10000, x = 2000;
-	pinMode(rxPin, INPUT);     // make sure Serial in is a input pin
-	digitalWrite(rxPin, HIGH); // pull up enabled just for noise protection
+    long rate = 10000, x = 2000;
+    pinMode(rxPin, INPUT);     // make sure Serial in is a input pin
+    digitalWrite(rxPin, HIGH); // pull up enabled just for noise protection
 
-	for (int i = 0; i < 5; i++)
-	{
-		x = pulseIn(rxPin, LOW, 125000); // measure the next zero bit width
-		if (x < 1)
-			continue;
-		rate = x < rate ? x : rate;
-	}
-	return rate;
+    for (int i = 0; i < 5; i++)
+    {
+        x = pulseIn(rxPin, LOW, 125000); // measure the next zero bit width
+        if (x < 1)
+            continue;
+        rate = x < rate ? x : rate;
+    }
+    return rate;
 }
 
 /**
@@ -250,48 +248,48 @@ long Gps::detectRate(int rxPin)
  */
 long Gps::autoBaud()
 {
-	long rate = detectRate(GPS_RX) + detectRate(GPS_RX) + detectRate(GPS_RX);
-	rate = rate / 3l;
-	long baud = 0;
-	/*
-		Time	Baud Rate
-		3333µs (3.3ms)300
-		833µs 	1200
-		416µs 	2400
-		208µs 	4800
-		104µs 	9600
-		69µs 	14400
-		52µs 	19200
-		34µs 	28800
-		26µs 	38400
-		17.3µs 	57600
-		8µs 	115200
-		Megas min is about 10uS? so there may be some inaccuracy
-	*/
-	if (rate < 12)
-		baud = 115200;
-	else if (rate < 20)
-		baud = 57600;
-	else if (rate < 30)
-		baud = 38400;
-	else if (rate < 40)
-		baud = 28800;
-	else if (rate < 60)
-		baud = 19200;
-	else if (rate < 80)
-		baud = 14400;
-	else if (rate < 150)
-		baud = 9600;
-	else if (rate < 300)
-		baud = 4800;
-	else if (rate < 600)
-		baud = 2400;
-	else if (rate < 1200)
-		baud = 1200;
-	else
-		baud = 0;
+    long rate = detectRate(GPS_RX) + detectRate(GPS_RX) + detectRate(GPS_RX);
+    rate = rate / 3l;
+    long baud = 0;
+    /*
+        Time	Baud Rate
+        3333µs (3.3ms)300
+        833µs 	1200
+        416µs 	2400
+        208µs 	4800
+        104µs 	9600
+        69µs 	14400
+        52µs 	19200
+        34µs 	28800
+        26µs 	38400
+        17.3µs 	57600
+        8µs 	115200
+        Megas min is about 10uS? so there may be some inaccuracy
+    */
+    if (rate < 12)
+        baud = 115200;
+    else if (rate < 20)
+        baud = 57600;
+    else if (rate < 30)
+        baud = 38400;
+    else if (rate < 40)
+        baud = 28800;
+    else if (rate < 60)
+        baud = 19200;
+    else if (rate < 80)
+        baud = 14400;
+    else if (rate < 150)
+        baud = 9600;
+    else if (rate < 300)
+        baud = 4800;
+    else if (rate < 600)
+        baud = 2400;
+    else if (rate < 1200)
+        baud = 1200;
+    else
+        baud = 0;
 
-	return baud;
+    return baud;
 }
 
 /**
@@ -303,12 +301,12 @@ long Gps::autoBaud()
  */
 bool Gps::isSpeedChanged()
 {
-	if (gpsData.speed != previousSpeed)
-	{
-		previousSpeed = gpsData.speed;
-		return true;
-	}
-	return false;
+    if (gpsData.speed != previousSpeed)
+    {
+        previousSpeed = gpsData.speed;
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -320,12 +318,12 @@ bool Gps::isSpeedChanged()
  */
 bool Gps::isAltitudeChanged()
 {
-	if (gpsData.altitude != previousAltitude)
-	{
-		previousAltitude = gpsData.altitude;
-		return true;
-	}
-	return false;
+    if (gpsData.altitude != previousAltitude)
+    {
+        previousAltitude = gpsData.altitude;
+        return true;
+    }
+    return false;
 }
 
 
@@ -338,13 +336,13 @@ bool Gps::isAltitudeChanged()
  */
 bool Gps::hasLocationChange()
 {
-	if (gpsData.latitude != previousLatitude || gpsData.longitude != previousLongitude)
-	{
-		previousLatitude = gpsData.latitude;
-		previousLongitude = gpsData.longitude;
-		return true;
-	}
-	return false;
+    if (gpsData.latitude != previousLatitude || gpsData.longitude != previousLongitude)
+    {
+        previousLatitude = gpsData.latitude;
+        previousLongitude = gpsData.longitude;
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -356,14 +354,14 @@ bool Gps::hasLocationChange()
  */
 bool Gps::isDOPChanged()
 {
-	if (gpsData.pdop != previousPdop || gpsData.hdop != previousHdop || gpsData.vdop != previousVdop)
-	{
-		previousPdop = gpsData.pdop;
-		previousHdop = gpsData.hdop;
-		previousVdop = gpsData.vdop;
-		return true;
-	}
-	return false;
+    if (gpsData.pdop != previousPdop || gpsData.hdop != previousHdop || gpsData.vdop != previousVdop)
+    {
+        previousPdop = gpsData.pdop;
+        previousHdop = gpsData.hdop;
+        previousVdop = gpsData.vdop;
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -377,42 +375,42 @@ bool Gps::isDOPChanged()
  */
 void Gps::setLocalTime(NeoGPS::time_t gpsTime, const char* tz)
 {
-	struct tm timeinfo;
-	timeinfo.tm_year = (2000 + gpsTime.year) - 1900;
-	timeinfo.tm_mon = gpsTime.month - 1;
-	timeinfo.tm_mday = gpsTime.date;
-	timeinfo.tm_hour = gpsTime.hours;
-	timeinfo.tm_min = gpsTime.minutes;
-	timeinfo.tm_sec = gpsTime.seconds;
-	struct timeval now = { .tv_sec = mktime(&timeinfo) };
-	settimeofday(&now, NULL);
+    struct tm timeinfo;
+    timeinfo.tm_year = (2000 + gpsTime.year) - 1900;
+    timeinfo.tm_mon = gpsTime.month - 1;
+    timeinfo.tm_mday = gpsTime.date;
+    timeinfo.tm_hour = gpsTime.hours;
+    timeinfo.tm_min = gpsTime.minutes;
+    timeinfo.tm_sec = gpsTime.seconds;
+    struct timeval now = { .tv_sec = mktime(&timeinfo) };
+    settimeofday(&now, NULL);
 
-	setenv("TZ",tz,1);
-	tzset();
+    setenv("TZ",tz,1);
+    tzset();
 
-	time_t tLocal = time(NULL);
-	time_t tUTC = time(NULL);
-	struct tm local_tm;
-	struct tm UTC_tm;
-	struct tm *tmLocal = localtime_r(&tLocal, &local_tm);
-	struct tm *tmUTC = gmtime_r(&tUTC, &UTC_tm);
+    time_t tLocal = time(NULL);
+    time_t tUTC = time(NULL);
+    struct tm local_tm;
+    struct tm UTC_tm;
+    struct tm *tmLocal = localtime_r(&tLocal, &local_tm);
+    struct tm *tmUTC = gmtime_r(&tUTC, &UTC_tm);
 
-	char buffer[100];
-	strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S %Z", tmLocal);
-	ESP_LOGI(TAG, "Current local time: %s",buffer);
-	strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S %Z", tmUTC);
-	ESP_LOGI(TAG, "Current UTC time: %s", buffer);
+    char buffer[100];
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S %Z", tmLocal);
+    ESP_LOGI(TAG, "Current local time: %s",buffer);
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S %Z", tmUTC);
+    ESP_LOGI(TAG, "Current UTC time: %s", buffer);
 
-	
-	int UTC = tmLocal->tm_hour - tmUTC->tm_hour;
-	if (UTC > 12) 
-		UTC -= 24;
-	else if (UTC < -12)
-		UTC += 24;
-	
-	gpsData.UTC  = UTC;
+    
+    int UTC = tmLocal->tm_hour - tmUTC->tm_hour;
+    if (UTC > 12) 
+        UTC -= 24;
+    else if (UTC < -12)
+        UTC += 24;
+    
+    gpsData.UTC  = UTC;
 
-	ESP_LOGI(TAG, "UTC: %i", UTC);
+    ESP_LOGI(TAG, "UTC: %i", UTC);
 }
 
 /**
@@ -428,67 +426,128 @@ void Gps::setLocalTime(NeoGPS::time_t gpsTime, const char* tz)
  */
 void Gps::simFakeGPS(const std::vector<wayPoint>& trackData, uint16_t speed, uint16_t refresh)
 {
-	if (millis() - lastSimulationTime > refresh) 
+    if (millis() - lastSimulationTime > refresh) 
     {  
         lastSimulationTime = millis();
 
         if (simulationIndex < (int)trackData.size() - 2) 
         {
-			if (simulationIndex == 0)
-			{
-  				// --- First point: initialize simulation state ---
+            if (simulationIndex == 0)
+            {
+                  // --- First point: initialize simulation state ---
                 smoothedLat = trackData[0].lat;
                 smoothedLon = trackData[0].lon;
                 lastSimLat = smoothedLat;
                 lastSimLon = smoothedLon;
                 filteredHeading = 0.0f;
+                accumulatedDist = 0.0f;  // Reset accumulated distance for new track
 
                 gpsData.latitude = smoothedLat;
                 gpsData.longitude = smoothedLon;
                 gpsData.heading = filteredHeading;
                 gpsData.speed = speed;
-			}
-			else
-			{
-				float rawLat = trackData[simulationIndex].lat;
-				float rawLon = trackData[simulationIndex].lon;
+            }
+            else
+            {
+                float rawLat = trackData[simulationIndex].lat;
+                float rawLon = trackData[simulationIndex].lon;
 
-				float stepDist = calcDist(rawLat, rawLon, lastSimLat, lastSimLon);
-				if (stepDist < minStepDist) 
-				{
-					simulationIndex++;
-					return;
-				}
+                // Calculate expected distance based on speed and time
+                float expectedDist = (speed * 1000.0f) / 3600.0f;  // Convert km/h to m/s
+                
+                // Advance through track points until we've covered the expected distance
+                int currentIndex = simulationIndex;
+                int pointsAdvanced = 0;
+                const float maxSegmentDist = 100.0f; // Filter out unrealistic jumps (>100m)
+                
+                // Add expected distance to accumulated distance
+                accumulatedDist += expectedDist;
+                
+                // Limit to prevent infinite loops
+                while (currentIndex < (int)trackData.size() - 1 && pointsAdvanced < 10) 
+                { 
+                    int nextIndex = currentIndex + 1;
+                    float segmentDist = calcDist(trackData[currentIndex].lat, trackData[currentIndex].lon,
+                                                trackData[nextIndex].lat, trackData[nextIndex].lon);
+                    
+                    // Skip unrealistic jumps or duplicate points
+                    if (segmentDist > maxSegmentDist || segmentDist < 0.1f) 
+                    {
+                        currentIndex = nextIndex;
+                        continue;
+                    }
+                    
+                    // Check if we can advance to this point
+                    if (segmentDist <= accumulatedDist) 
+                    {
+                        accumulatedDist -= segmentDist;
+                        currentIndex = nextIndex;
+                        pointsAdvanced++;
+                    } 
+                    else
+                    {
+                        break; // Not enough accumulated distance
+                    }
+                }
+                
+                // Update simulation index to the final point
+                simulationIndex = currentIndex;
+                
+                // Update position to the final point
+                rawLat = trackData[simulationIndex].lat;
+                rawLon = trackData[simulationIndex].lon;
 
-				// --- Apply smoothing BEFORE adding noise ---
-				smoothedLat = posAlpha * rawLat + (1.0f - posAlpha) * smoothedLat;
-				smoothedLon = posAlpha * rawLon + (1.0f - posAlpha) * smoothedLon;
+                // --- Apply smoothing BEFORE adding noise ---
+                smoothedLat = posAlpha * rawLat + (1.0f - posAlpha) * smoothedLat;
+                smoothedLon = posAlpha * rawLon + (1.0f - posAlpha) * smoothedLon;
 
-				// --- Small noise to simulate GPS jitter ---
-				float latOffset = random(-10, 10) / 100000.0f;  // Smaller noise range
-				float lonOffset = random(-10, 10) / 100000.0f;
+                // --- Small noise to simulate GPS jitter ---
+                float latOffset = random(-3, 3) / 100000.0f;  // Reduced noise for simulation
+                float lonOffset = random(-3, 3) / 100000.0f;
 
-				float noisyLat = smoothedLat + latOffset;
-				float noisyLon = smoothedLon + lonOffset;
+                float noisyLat = smoothedLat + latOffset;
+                float noisyLon = smoothedLon + lonOffset;
 
-				// --- Heading estimation ---
-				int nextIdx = min(simulationIndex + headingLookahead, (int)trackData.size() - 1);
-				float desiredHeading = calcCourse(smoothedLat, smoothedLon,
-												trackData[nextIdx].lat,
-												trackData[nextIdx].lon);
+                // --- Realistic heading based on track direction ---
+                // Look ahead based on speed (faster = further lookahead)
+                int lookAhead = min(max(3, speed / 20), (int)trackData.size() - simulationIndex - 1);
+                int targetIdx = simulationIndex + lookAhead;
+                
+                if (targetIdx < (int)trackData.size()) 
+                {
+                    // Calculate heading towards future track point
+                    float targetHeading = calcCourse(smoothedLat, smoothedLon,
+                                                    trackData[targetIdx].lat,
+                                                    trackData[targetIdx].lon);
+                    
+                    if (simulationIndex > 1) 
+                    {
+                        // Smooth transition to target heading (faster adaptation for higher speeds)
+                        float headingDiff = calcAngleDiff(targetHeading, filteredHeading);
+                        float adaptationRate = min(0.3f, 0.1f + (speed / 200.0f)); // 0.1-0.3 based on speed
+                        filteredHeading += adaptationRate * headingDiff;
+                    } 
+                    else 
+                    {
+                        // Initialize with target heading
+                        filteredHeading = targetHeading;
+                    }
+                    
+                    // Normalize final heading
+                    if (filteredHeading < 0.0f) filteredHeading += 360.0f;
+                    if (filteredHeading >= 360.0f) filteredHeading -= 360.0f;
+                }
 
-				filteredHeading = headAlpha * desiredHeading + (1.0f - headAlpha) * filteredHeading;
+                // --- Final output ---
+                gpsData.latitude = noisyLat;
+                gpsData.longitude = noisyLon;
+                gpsData.heading = filteredHeading;
+                gpsData.speed = speed;
 
-				// --- Final output ---
-				gpsData.latitude = noisyLat;
-				gpsData.longitude = noisyLon;
-				gpsData.heading = filteredHeading;
-				gpsData.speed = speed;
-
-				lastSimLat = rawLat;
-				lastSimLon = rawLon;
-			}
-			simulationIndex++;
+                lastSimLat = rawLat;
+                lastSimLon = rawLon;
+            }
+            simulationIndex++;
         } 
         else 
         {

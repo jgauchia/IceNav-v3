@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ESP32 Power Management functions
  * @version 0.2.3
- * @date 2025-06
+ * @date 2025-11
  */
 
 #pragma once
@@ -28,15 +28,15 @@ void closeMsg();
  */
 class Power
 {
-private:
-	void powerDeepSleep();
-	void powerLightSleepTimer(int millis);
-	void powerLightSleep();
-	void powerOffPeripherals();
+	private:
+		void powerDeepSleep();
+		void powerLightSleepTimer(int millis);
+		void powerLightSleep();
+		void powerOffPeripherals();
 
-public:
-	Power();
+	public:
+		Power();
 
-	void deviceSuspend();
-	void deviceShutdown();
+		void deviceSuspend();
+		void deviceShutdown();
 };

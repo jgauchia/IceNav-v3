@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Widgets
  * @version 0.2.3
- * @date 2025-06
+ * @date 2025-11
  */
 
 #include "widgets.hpp"
@@ -172,7 +172,7 @@ void compassWidget(lv_obj_t *screen)
     lv_obj_align_to(compassImg, obj, LV_ALIGN_CENTER, 0, 0);   
     lv_img_set_pivot(compassImg, 100, 100) ;
     compassHeading = lv_label_create(obj);
-    lv_obj_set_height(compassHeading,38);
+    lv_obj_set_height(compassHeading,45);
     lv_obj_align(compassHeading, LV_ALIGN_CENTER, 0, 20);
     lv_obj_set_style_text_font(compassHeading, fontVeryLarge, 0);
     lv_label_set_text_static(compassHeading, "---\xC2\xB0");
@@ -246,7 +246,7 @@ void speedWidget(lv_obj_t *screen)
 void sunWidget(lv_obj_t *screen)
 {
     lv_obj_t *obj = lv_obj_create(screen);
-    lv_obj_set_size(obj, 100, 60 * scale);
+    lv_obj_set_size(obj, 120, 60 * scale);
     lv_obj_set_pos(obj, sunPosX, sunPosY);
     lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW_WRAP);
