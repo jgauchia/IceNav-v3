@@ -14,6 +14,7 @@
 static const char* wptFile PROGMEM = "/sdcard/WPT/waypoint.gpx"; /**< Path to the waypoint GPX file on the SD card. */
 static const char* wptFolder PROGMEM = "/sdcard/WPT";            /**< Path to the waypoint folder on the SD card. */
 static const char* trkFolder PROGMEM = "/sdcard/TRK";            /**< Path to the track folder on the SD card. */
+static const char* logFolder PROGMEM = "/sdcard/LOG";            /**< Path to the log folder on the SD card. */
 
 /**
  * @brief Waypoint action enum
@@ -53,6 +54,14 @@ struct wayPoint
     float     pdop;    /**< Position dilution of precision. */
 };
 
+struct trkPoint
+{
+	float lat;       /**< Latitude of the track point. */
+	float lon;       /**< Longitude of the track point. */
+	float ele;       /**< Elevation of the track point. */
+	float temp;	  /**< Temperature at the track point. */
+};
+
 /**
  * @brief Track turn points structure
  *
@@ -78,3 +87,19 @@ static const char* gpxHeader PROGMEM = { "<?xml version=\"1.0\" encoding=\"UTF-8
                       " xmlns=\"http://www.topografix.com/GPX/1/0\"\n"
                       " xsi:schemaLocation=\"http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd\">\n"
                       "</gpx>" };
+
+static const char* gpxTrkHeader PROGMEM = { "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+					  "<gpx\n"
+					  " version=\"1.0\"\n"
+					  " creator=\"IceNav\"\n"
+					  " xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
+					  " xmlns=\"http://www.topografix.com/GPX/1/0\"\n"
+					  " xmlns=\"http://www.garmin.com/xmlschemas/TrackPointExtension/v1\"\n"
+					  " xsi:schemaLocation=\"http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd\">\n"
+					  "<trk>\n"
+					  "<name>IceNav Track</name>\n"
+					  "<type>cycling</type>\n"
+					  "<trkseg>\n"
+					  "</trkseg>\n"
+					  "</trk>\n"
+					  "</gpx>" };
