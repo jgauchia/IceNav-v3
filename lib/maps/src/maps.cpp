@@ -563,8 +563,9 @@ int32_t Maps::readZigzag(const uint8_t* data, size_t& offset, const size_t dataS
 }
 
 int Maps::uint16ToPixel(const int32_t val) {
-    int p = static_cast<int>((val * TILE_SIZE_PLUS_ONE) / 65536);
-    if (p < 0) p = 0;
+    // int p = static_cast<int>((val * TILE_SIZE_PLUS_ONE) / 65536);
+	int p = static_cast<int>(roundf((float)val * (float)TILE_SIZE / 65535.0f));
+	if (p < 0) p = 0;
     if (p > TILE_SIZE) p = TILE_SIZE;
     return p;
 }
