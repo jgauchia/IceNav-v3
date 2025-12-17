@@ -59,12 +59,12 @@ Migration from Arduino framework to ESP-IDF (pure) for the IceNav GPS Navigator 
 - [ ] Validate empty project compiles
 
 ### Phase 1: Minimal Boot
-- [ ] Basic main.c with app_main()
-- [ ] GPIO initialization (HAL)
-- [ ] I2C bus initialization
-- [ ] SPI bus initialization
-- [ ] UART initialization
-- [ ] **Hardware validation required**
+- [x] Basic main.c with app_main()
+- [x] GPIO initialization (board component)
+- [x] I2C bus initialization
+- [x] SPI bus initialization
+- [x] UART initialization
+- [x] **Hardware validated**
 
 ### Phase 2: Display
 - [ ] Integrate LovyanGFX (ESP-IDF compatible)
@@ -151,7 +151,8 @@ Migration from Arduino framework to ESP-IDF (pure) for the IceNav GPS Navigator 
 
 | Phase | Status | Date | Notes |
 |-------|--------|------|-------|
-| Phase 0 | IN PROGRESS | 2025-12-17 | Structure created, pending build validation |
+| Phase 0 | COMPLETED | 2025-12-17 | d4d79a2 - ESP-IDF setup validated |
+| Phase 1 | COMPLETED | 2025-12-18 | Board component: I2C, SPI, UART init |
 
 ---
 
