@@ -10,6 +10,7 @@
 #include "esp_system.h"
 #include "esp_chip_info.h"
 #include "board.h"
+#include "display.h"
 
 static const char *TAG = "icenav";
 
@@ -33,6 +34,29 @@ void app_main(void)
         ESP_LOGE(TAG, "Board initialization failed!");
         return;
     }
+
+    // Initialize display
+    ret = display_init();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Display initialization failed!");
+        return;
+    }
+
+    // Display test
+    display_fill(0x001F);  // Blue
+    vTaskDelay(pdMS_TO_TICKS(500));
+    display_fill(0x07E0);  // Green
+    vTaskDelay(pdMS_TO_TICKS(500));
+    display_fill(0xF800);  // Red
+    vTaskDelay(pdMS_TO_TICKS(500));
+    display_fill(0x0000);  // Black
+
+    display_text(10, 10, "IceNav GPS Navigator");
+    display_text(10, 40, "ESP-IDF Migration");
+
+    char buf[32];
+    snprintf(buf, sizeof(buf), "Display: %dx%d", display_width(), display_height());
+    display_text(10, 70, buf);
 
     ESP_LOGI(TAG, "System ready");
     ESP_LOGI(TAG, "Free heap after init: %lu bytes", esp_get_free_heap_size());
