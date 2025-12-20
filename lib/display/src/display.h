@@ -49,6 +49,24 @@ void display_fill(uint16_t color);
  */
 void display_text(int x, int y, const char *text);
 
+/**
+ * @brief Push pixel data to display region
+ * @param x X position
+ * @param y Y position
+ * @param w Width
+ * @param h Height
+ * @param data RGB565 pixel data
+ */
+void display_push_colors(int x, int y, int w, int h, const uint16_t *data);
+
+/**
+ * @brief Read touch point
+ * @param x Pointer to store X coordinate
+ * @param y Pointer to store Y coordinate
+ * @return true if touch detected
+ */
+bool display_get_touch(int *x, int *y);
+
 #ifdef __cplusplus
 }
 #endif

@@ -144,6 +144,7 @@ esp_err_t display_init(void)
     }
 
     lcd->setRotation(0);
+    lcd->setSwapBytes(true);  // Swap bytes for LVGL RGB565
     lcd->setBrightness(128);
     lcd->fillScreen(TFT_BLACK);
 
@@ -183,6 +184,26 @@ void display_text(int x, int y, const char *text)
         lcd->setTextSize(2);
         lcd->print(text);
     }
+}
+
+void display_push_colors(int x, int y, int w, int h, const uint16_t *data)
+{
+    if (lcd && data) {
+        lcd->pushImage(x, y, w, h, data);
+    }
+}
+
+bool display_get_touch(int *x, int *y)
+{
+    if (lcd && x && y) {
+        uint16_t tx, ty;
+        if (lcd->getTouch(&tx, &ty)) {
+            *x = tx;
+            *y = ty;
+            return true;
+        }
+    }
+    return false;
 }
 
 } // extern "C"
