@@ -1,7 +1,7 @@
 /**
  * @file main.c
  * @brief IceNav ESP32 GPS Navigator - ESP-IDF Entry Point
- * @details Phase 5: Sensors integration (battery, compass, IMU, barometer)
+ * @details Phase 6: Storage integration (SD Card + SPIFFS)
  */
 
 #include <stdio.h>
@@ -18,6 +18,7 @@
 #include "lvgl_port.h"
 #include "lvgl.h"
 #include "sensors.h"
+#include "storage.h"
 
 static const char *TAG = "icenav";
 
@@ -27,6 +28,7 @@ static lv_obj_t *lbl_compass = NULL;
 static lv_obj_t *lbl_imu = NULL;
 static lv_obj_t *lbl_bme280 = NULL;
 static lv_obj_t *lbl_gps = NULL;
+static lv_obj_t *lbl_storage = NULL;
 
 /**
  * @brief Create the main screen with sensor information
@@ -45,7 +47,7 @@ static void create_main_screen(void)
 
     // Subtitle
     lv_obj_t *subtitle = lv_label_create(scr);
-    lv_label_set_text(subtitle, "ESP-IDF Migration - Phase 5: Sensors");
+    lv_label_set_text(subtitle, "ESP-IDF Migration - Phase 6: Storage");
     lv_obj_set_style_text_font(subtitle, &lv_font_montserrat_14, 0);
     lv_obj_set_style_text_color(subtitle, lv_color_hex(0xaaaaaa), 0);
     lv_obj_align(subtitle, LV_ALIGN_TOP_MID, 0, 40);
@@ -84,6 +86,11 @@ static void create_main_screen(void)
     lbl_gps = lv_label_create(container);
     lv_label_set_text(lbl_gps, "GPS: UART initialized");
     lv_obj_set_style_text_color(lbl_gps, lv_color_hex(0x95e1d3), 0);
+
+    // Storage label
+    lbl_storage = lv_label_create(container);
+    lv_label_set_text(lbl_storage, "Storage: --");
+    lv_obj_set_style_text_color(lbl_storage, lv_color_hex(0xffa500), 0);
 
     // System info
     char buf[64];
@@ -156,6 +163,28 @@ static void update_sensor_display(void)
         snprintf(buf, sizeof(buf), "BME280: Not connected");
     }
     lv_label_set_text(lbl_bme280, buf);
+
+    // Storage
+    if (storage_sdcard_mounted()) {
+        sdcard_info_t sd_info;
+        if (storage_get_sdcard_info(&sd_info) == ESP_OK) {
+            char size_buf[16];
+            storage_format_size(sd_info.free_space, size_buf, sizeof(size_buf));
+            snprintf(buf, sizeof(buf), "SD: %s free", size_buf);
+        } else {
+            snprintf(buf, sizeof(buf), "SD: Mounted");
+        }
+    } else if (storage_spiffs_mounted()) {
+        spiffs_info_t spiffs_info;
+        if (storage_get_spiffs_info(&spiffs_info) == ESP_OK) {
+            snprintf(buf, sizeof(buf), "SPIFFS: %zu/%zu", spiffs_info.used, spiffs_info.total);
+        } else {
+            snprintf(buf, sizeof(buf), "SPIFFS: Mounted");
+        }
+    } else {
+        snprintf(buf, sizeof(buf), "Storage: Not available");
+    }
+    lv_label_set_text(lbl_storage, buf);
 }
 
 /**
@@ -214,7 +243,7 @@ void app_main(void)
 
     ESP_LOGI(TAG, "================================");
     ESP_LOGI(TAG, "IceNav GPS Navigator");
-    ESP_LOGI(TAG, "ESP-IDF Migration - Phase 5");
+    ESP_LOGI(TAG, "ESP-IDF Migration - Phase 6");
     ESP_LOGI(TAG, "================================");
     ESP_LOGI(TAG, "ESP-IDF: %s", esp_get_idf_version());
     ESP_LOGI(TAG, "Chip: %s, Cores: %d", CONFIG_IDF_TARGET, chip_info.cores);
@@ -257,6 +286,19 @@ void app_main(void)
         return;
     }
 
+    // Initialize storage (SD Card + SPIFFS)
+    ESP_LOGI(TAG, "Initializing storage...");
+    storage_init_all();
+    storage_print_status();
+
+    // List root directories
+    if (storage_sdcard_mounted()) {
+        storage_list_dir(SDCARD_MOUNT_POINT);
+    }
+    if (storage_spiffs_mounted()) {
+        storage_list_dir(SPIFFS_MOUNT_POINT);
+    }
+
     // Initialize all sensors
     ESP_LOGI(TAG, "Initializing sensors...");
     sensors_init_all();
@@ -278,6 +320,8 @@ void app_main(void)
     ESP_LOGI(TAG, "- Display: %dx%d", display_width(), display_height());
     ESP_LOGI(TAG, "- LVGL: Running");
     ESP_LOGI(TAG, "- GPS: UART%d @ %d baud", BOARD_GPS_UART_NUM, BOARD_GPS_BAUD);
+    ESP_LOGI(TAG, "- SD Card: %s", storage_sdcard_mounted() ? "Mounted" : "Not available");
+    ESP_LOGI(TAG, "- SPIFFS: %s", storage_spiffs_mounted() ? "Mounted" : "Not available");
     ESP_LOGI(TAG, "- Sensors: Monitoring");
     ESP_LOGI(TAG, "Free heap: %u KB", (unsigned)(esp_get_free_heap_size() / 1024));
     ESP_LOGI(TAG, "================================");

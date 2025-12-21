@@ -1,0 +1,13 @@
+idf_component_register(
+    SRCS
+        "src/storage.c"
+    INCLUDE_DIRS
+        "include"
+    REQUIRES
+        driver
+        board
+        fatfs
+        spiffs
+        esp_partition
+        vfs
+)
