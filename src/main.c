@@ -4,6 +4,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
@@ -11,12 +12,41 @@
 #include "esp_chip_info.h"
 #include "esp_heap_caps.h"
 #include "esp_psram.h"
+#include "driver/uart.h"
 #include "board.h"
 #include "display.h"
 #include "lvgl_port.h"
 #include "lvgl.h"
 
 static const char *TAG = "icenav";
+
+// GPS UART Configuration (use board.h defines)
+#ifndef BOARD_GPS_UART_NUM
+#define BOARD_GPS_UART_NUM    UART_NUM_1
+#define BOARD_GPS_TX          43
+#define BOARD_GPS_RX          44
+#define BOARD_GPS_BAUD        9600
+#endif
+
+/**
+ * @brief GPS read task - outputs raw NMEA to console
+ */
+static void gps_test_task(void *arg)
+{
+    ESP_LOGI(TAG, "GPS test task started - reading NMEA from UART%d", BOARD_GPS_UART_NUM);
+
+    uint8_t buf[256];
+
+    while (1) {
+        int len = uart_read_bytes(BOARD_GPS_UART_NUM, buf, sizeof(buf) - 1, pdMS_TO_TICKS(100));
+        if (len > 0) {
+            buf[len] = '\0';
+            // Print raw NMEA data to console
+            printf("%s", (char*)buf);
+            fflush(stdout);
+        }
+    }
+}
 
 /**
  * @brief Create a simple LVGL demo screen
@@ -33,7 +63,7 @@ static void create_demo_screen(void)
 
     // Subtitle
     lv_obj_t *subtitle = lv_label_create(scr);
-    lv_label_set_text(subtitle, "ESP-IDF + LVGL Migration");
+    lv_label_set_text(subtitle, "ESP-IDF Migration - Phase 4");
     lv_obj_set_style_text_font(subtitle, &lv_font_montserrat_16, 0);
     lv_obj_align(subtitle, LV_ALIGN_TOP_MID, 0, 60);
 
@@ -54,7 +84,7 @@ static void create_demo_screen(void)
     lv_obj_align(info2, LV_ALIGN_TOP_LEFT, 10, 40);
 
     lv_obj_t *info3 = lv_label_create(info_box);
-    lv_label_set_text(info3, "Phase 3: LVGL OK");
+    lv_label_set_text(info3, "GPS: Reading NMEA (check console)");
     lv_obj_set_style_text_color(info3, lv_color_hex(0x00FF00), 0);
     lv_obj_align(info3, LV_ALIGN_TOP_LEFT, 10, 70);
 
@@ -115,7 +145,7 @@ void app_main(void)
     }
 #endif
 
-    // Initialize board (I2C, SPI, UART)
+    // Initialize board (I2C, SPI, UART for GPS)
     esp_err_t ret = board_init();
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Board initialization failed!");
@@ -145,7 +175,10 @@ void app_main(void)
     // Create LVGL task
     xTaskCreatePinnedToCore(lvgl_task, "lvgl", 8192, NULL, 2, NULL, 1);
 
-    ESP_LOGI(TAG, "System ready");
+    // Create GPS test task to read and display NMEA sentences
+    xTaskCreatePinnedToCore(gps_test_task, "gps_test", 4096, NULL, 3, NULL, 0);
+
+    ESP_LOGI(TAG, "System ready - GPS NMEA output on console");
     ESP_LOGI(TAG, "Free heap after init: %u KB", (unsigned)(esp_get_free_heap_size() / 1024));
 
     while (1) {
