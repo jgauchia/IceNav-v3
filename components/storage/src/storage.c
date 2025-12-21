@@ -65,9 +65,14 @@ esp_err_t storage_init_sdcard(void)
         return ret;
     }
 
-    // Print card info
+    // Log card info using ESP_LOG
     ESP_LOGI(TAG, "SD Card mounted successfully");
-    sdmmc_card_print_info(stdout, sd_card);
+    ESP_LOGI(TAG, "SD Card: %s, Type: %s",
+             sd_card->cid.name,
+             (sd_card->ocr & (1 << 30)) ? "SDHC/SDXC" : "SDSC");
+    ESP_LOGI(TAG, "SD Card: Speed: %d kHz, Capacity: %llu MB",
+             sd_card->max_freq_khz,
+             ((uint64_t)sd_card->csd.capacity * sd_card->csd.sector_size) / (1024 * 1024));
 
     // Create default folders
     storage_mkdir(SDCARD_WPT_FOLDER);
