@@ -1,0 +1,16 @@
+idf_component_register(
+    SRCS
+        "src/sensors.c"
+        "src/battery.c"
+        "src/qmc5883l.c"
+        "src/mpu6050.c"
+        "src/bme280.c"
+    INCLUDE_DIRS
+        "include"
+    REQUIRES
+        driver
+        esp_adc
+        board
+        esp_timer
+        freertos
+)

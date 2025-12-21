@@ -6,6 +6,7 @@ idf_component_register(
         board
         display
         lvgl_port
+        sensors
         driver
         freertos
         esp_system
