@@ -2,8 +2,8 @@
  * @file power.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ESP32 Power Management functions
- * @version 0.2.2
- * @date 2025-05
+ * @version 0.2.3
+ * @date 2025-11
  */
 
 #pragma once
@@ -19,17 +19,24 @@
 #include "lvgl.h"
 #include "globalGuiDef.h"
 
+void closeMsg();
+
+/**
+ * @class Power
+ * @brief Power management class for device sleep and shutdown operations
+ *
+ */
 class Power
 {
-  private:
-    void powerDeepSleep();
-    void powerLightSleepTimer(int millis);
-    void powerLightSleep();
-    void powerOffPeripherals();
+	private:
+		void powerDeepSleep();
+		void powerLightSleepTimer(int millis);
+		void powerLightSleep();
+		void powerOffPeripherals();
 
-  public:
-    Power();
+	public:
+		Power();
 
-    void deviceSuspend();
-    void deviceShutdown();
+		void deviceSuspend();
+		void deviceShutdown();
 };

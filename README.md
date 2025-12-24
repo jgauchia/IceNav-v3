@@ -22,7 +22,7 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 
 ## Screenshots
 
-|<img src="images/dev/splash.png">|<img src="images/dev/compass.jpg">|<img src="images/dev/rendermap.jpg">|<img src="images/dev/satelliteinfo.jpg">|
+|<img src="images/dev/splash.png">|<img src="images/dev/compass.jpg">|<img src="images/dev/mapnav.jpg">|<img src="images/dev/satelliteinfo.jpg">|
 |:-:|:-:|:-:|:-:|
 
 <details><summary>See more...</summary>
@@ -80,6 +80,7 @@ Currently, IceNav works with the following hardware setups and specs
 | [ELECROW ESP32 Terminal](https://www.elecrow.com/esp-terminal-with-esp32-3-5-inch-parallel-480x320-tft-capacitive-touch-display-rgb-by-chip-ili9488.html) |  16M  |  8M   | ``` [env:ELECROW_ESP32] ```  | ✔️ YES [^1] [^2]|
 | [MAKERFABS ESP32S3](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) |  16M  |  2M   | ``` [env:MAKERF_ESP32S3] ``` |  🚧 TESTING    |
 | [LILYGO T-DECK](https://www.lilygo.cc/products/t-deck) |  16M  |  8M   | ``` [env:TDECK_ESP32S3] ``` |  ✔️ YES    |
+| [LILYGO T4-S3](https://lilygo.cc/products/t4-s3) | 16M | 8M | ``` [env:T4_S3] ``` | 🚧 TESTING    |
 
 If the board has a BOOT button (GPIO0) it is possible to use power saving functions.
 To do this, simply include the following Build Flag in the required env in platformio.ini
@@ -148,43 +149,29 @@ On SD Card map tiles (256x256 PNG Format) should be stored, in these folders str
                               |__________________ [ 📁 tile X folder (number) ]
                                                              |_______________________ 🗺️ tile Y file.png
 
-## SD Vectorized Map File structure          
+## SD Vectorized Map File structure 
 
-Using [OSM_Extract](https://github.com/aresta/OSM_Extract) you can generate binary map files to later create vector maps. Once generated, these files should be saved in the `mymap` folder on the SD card.
+Vectorized maps for IceNav can be generated using the Tile-Generator utility, which is available on GitHub at [jgauchia/Tile-Generator](https://github.com/jgauchia/Tile-Generator). This script allows you to convert map data into the required vector tile format compatible with IceNav. Please refer to the Tile-Generator repository for detailed instructions and usage examples on generating and preparing your own vector map files.
 
-The PBF files can be downloaded from the [geofabrik](https://download.geofabrik.de/) website.
+      [ 📁 VECTMAP ]
+            |________ [ 📁 zoom folder (number) ]
+                                 |__________________ [ 📁 tile X folder (number) ]
+                                                                |_______________________ 🗺️ tile Y file.bin
 
-The PBF files should be saved in the `pbf` directory. Once saved, you should select the region or boundaries for which the GeoJSON files will be generated.
+## Mass Copy Script for Map Tiles
 
-To obtain the boundaries use `osmconvert file.pbf --out-statistics`:
-```
-lon min: -5.5203154
-lon max: 11.7825360
-lat min: 35.2703341
-lat max: 44.4078541
-```
+For efficient transfer of millions of map tiles to SD cards or external storage devices, IceNav includes a high-performance mass copy script. This script is optimized for copying large numbers of small files (such as map tiles) and can reduce transfer time from hours to minutes.
 
-or use [Bboxfinder](http://bboxfinder.com/) website drawing a box on desired area.
+**Key features:**
+- ✅ **Optimized for millions of small files** - Much faster than traditional copy methods
+- ✅ **Real-time progress monitoring** - See exactly what's being copied
+- ✅ **Resumable transfers** - Continue interrupted copies
+- ✅ **Built-in integrity verification** - Sample file verification
+- ✅ **Performance metrics** - Speed and time statistics
 
+For detailed instructions on how to use the mass copy script, please refer to the [Mass Copy Tools Documentation](tools/mass_copy/README.md).
 
-For generate GeoJSON files run inside `scripts` directory:
-
-```bash
-min_lon=123
-min_lat=123
-max_lon=123
-max_lat=123
-
-./pbf_to_geojson.sh $min_lon $min_lat $max_lon $max_lat /pbf/clipped.pbf /maps/test
-```
-
-For generate binary map files run inside `scripts` directory.
-```bash
-./extract_features.py $min_lon $min_lat $max_lon $max_lat /maps/test
-```
-Once the process is completed, the maps will be inside the `maps/mymap` directory. Copy all folders to the SD card except the `test_imgs` directory into `VECTMAP` folder of the SD Card.
-
-Please follow the instructions provided by [OSM_Extract](https://github.com/aresta/OSM_Extract) for any further questions.
+Download link: [tools/mass_copy/rsync_copy.sh](tools/mass_copy/rsync_copy.sh)
 
 ## Firmware install
 
@@ -244,7 +231,7 @@ Please follow the instructions provided by [OSM_Extract](https://github.com/ares
 
 ## CLI
 
-IceNav has a basic CLI accessible via Serial and optionally via Telnet if enabled. When you access the CLI and type `help`, you should see the following commands:
+IceNav has a basic CLI accessible via Serial and optionally via Telnet if enabled (port 11000). When you access the CLI and type `help`, you should see the following commands:
 
 ```bash
 clear:          clear shell
@@ -268,12 +255,13 @@ Some extra details:
     KEYNAME     DEFINED         VALUE          
     =======     =======         ===== 
     defZoom     custom          17             Default zoom
- fullScrMap     custom          true           Fullscreen map
     vectMap     custom          false          Vectorized map
    mapSpeed     custom          true           Show speed meter in map
    mapScale     custom          true           Show scale meter in map
     mapComp     custom          true           Show compass in map
  mapCompRot     custom          true           Rotate map with the compass
+     simNav     custom          false          Indicates whether navigation simulation mode is enabled or disabled
+   fillPoly     custom          true           Fill polygons in vectorized map
       gpsTX     custom          43             GPS Tx gpio
       gpsRX     custom          44             GPS Rx gpio
      defLAT     custom          52.5200        Default latitude
@@ -338,14 +326,15 @@ To access the Web File Server, simply use any browser and go to the following ad
 - [ ] Multiple IMU's and Compass module implementation
 - [X] Power saving
 - [X] Vector maps
-- [ ] Google Maps navigation style (turn by turn)
-- [x] Optimize code
+- [X] Google Maps navigation style (turn by turn)
+- [X] Optimize code
 - [X] Fix bugs!
 - [X] Web file server
       
 
 ## Special thanks to....
 * [@hpsaturn](https://github.com/hpsaturn) Thanks to him and his knowledge, this project is no longer sitting in a drawer :smirk:.
+* [@Xinyuan-LilyGO](https://github.com/Xinyuan-LilyGO) for provide me hardware to test it.
 * [@Elecrow-RD](https://github.com/Elecrow-RD)  For your interest in my project and for providing me with hardware to test it.
 * [@pcbway](https://github.com/pcbway) for bringing a first prototype of the IceNav PCB to reality :muscle:
 * [@lovyan03](https://github.com/lovyan03/LovyanGFX) for his library; I still have a lot to learn from it.
@@ -360,8 +349,6 @@ To access the Web File Server, simply use any browser and go to the following ad
 * Improved auto mainScreen selection from env variable preset thanks to [@hpsaturn](https://github.com/hpsaturn)
 * Improved getLat getLon from environment variables thanks to [@hpsaturn](https://github.com/hpsaturn)
 * 3DPrint case for an ESP32S3 Makerfabs Parallel board thanks to [@hpsaturn](https://github.com/hpsaturn)
-* Vectorial Maps routines [ESP32_GPS](https://github.com/aresta/ESP32_GPS) thanks to [@aresta](https://github.com/aresta)
-* OSM to binary vectorial maps [OSM_Extract](https://github.com/aresta/OSM_Extract) thanks to [@aresta](https://github.com/aresta)
 * Preferences Library [Easy Preferences](https://github.com/hpsaturn/easy-preferences) thanks to [@hpsaturn](https://github.com/hpsaturn)
 * Wifi CLI manager [esp32-wifi-cli](https://github.com/hpsaturn/esp32-wifi-cli) thanks to [@hpsaturn](https://github.com/hpsaturn)
 * Web file server based in [@smford](https://github.com/smford) [esp32-asyncwebserver-fileupload-example](https://github.com/smford/esp32-asyncwebserver-fileupload-example)

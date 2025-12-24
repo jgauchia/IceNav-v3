@@ -17,16 +17,17 @@
   X(KWEB_FILE, "webServer", BOOL)        \
   X(KUSER, "-----", UNKNOWN)             \
   X(KDEF_ZOOM, "defZoom", UINT)          \
-  X(KMAP_MODE, "fullScrMap", BOOL)       \
   X(KMAP_VECTOR, "vectMap", BOOL)        \
   X(KMAP_SPEED, "mapSpeed", BOOL)        \
   X(KMAP_SCALE, "mapScale", BOOL)        \
   X(KMAP_COMPASS, "mapComp", BOOL)       \
   X(KMAP_COMP_ROT, "mapCompRot", BOOL)   \
+  X(KSIM_NAV, "simNav", BOOL)            \
+  X(KFILL_POL, "fillPoly", BOOL)         \
   X(KGPS_TX, "gpsTX", UINT)              \
   X(KGPS_RX, "gpsRX", UINT)              \
-  X(KLAT_DFL, "defLAT", DOUBLE)          \
-  X(KLON_DFL, "defLON", DOUBLE)          \
+  X(KLAT_DFL, "defLAT", FLOAT)          \
+  X(KLON_DFL, "defLON", FLOAT)          \
   X(KDEF_BRIGT, "defBright", UINT)       \
   X(KVMAX_BATT, "VmaxBatt", FLOAT)       \
   X(KVMIN_BATT, "VminBatt", FLOAT)       \

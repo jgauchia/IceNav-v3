@@ -2,8 +2,8 @@
  * @file deviceSettingsScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Device Settings Screen
- * @version 0.2.2
- * @date 2025-05
+ * @version 0.2.3
+ * @date 2025-11
  */
 
 #pragma once
@@ -13,7 +13,7 @@
 #include "lvglSetup.hpp"
 #include "firmUpgrade.hpp"
 
-static lv_obj_t *deviceSettingsOptions;
+static lv_obj_t *deviceSettingsOptions; /**< Device settings options */
 
 static void deviceSettingsEvent(lv_event_t *event);
 static void brightnessEvent(lv_event_t *e);
