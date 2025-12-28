@@ -2,8 +2,8 @@
  * @file settingsScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Settings Screen
- * @version 0.2.2
- * @date 2025-05
+ * @version 0.2.3
+ * @date 2025-11
  */
 
 #pragma once
@@ -21,5 +21,5 @@ static void compassCalib(lv_event_t *event);
 static void mapSettings(lv_event_t *event);
 static void deviceSettings(lv_event_t *event);
 
-static lv_obj_t *settingsButtons;
+static lv_obj_t *settingsButtons; /**< Object holding all settings screen buttons */
 void createSettingsScr();

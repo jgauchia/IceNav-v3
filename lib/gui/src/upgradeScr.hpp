@@ -2,8 +2,8 @@
  * @file upgradeScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Firmware upgrade messages
- * @version 0.2.2
- * @date 2025-05
+ * @version 0.2.3
+ * @date 2025-11
  */
 
 #pragma once
@@ -12,11 +12,11 @@
 #include "firmUpgrade.hpp"
 #include "globalGuiDef.h"
 
-extern lv_obj_t *msgUpgrade;
-extern lv_obj_t *msgUprgdText;
-extern lv_obj_t *btnMsgBack;
-extern lv_obj_t *btnMsgUpgrade;
-extern lv_obj_t *contMeter;
+extern lv_obj_t *msgUpgrade;      /**< Upgrade message object */
+extern lv_obj_t *msgUprgdText;    /**< Text label inside the upgrade message */
+extern lv_obj_t *btnMsgBack;      /**< Back button inside the message dialog */
+extern lv_obj_t *btnMsgUpgrade;   /**< Upgrade action button inside the message dialog */
+extern lv_obj_t *contMeter;       /**< Meter container object */
 
 void msgBackEvent(lv_event_t *event);
 void msgUpgrdEvent(lv_event_t *event);
