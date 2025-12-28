@@ -1412,8 +1412,6 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     static bool unifiedPoolLogged = false;
     static bool unifiedPolylineLogged = false;
     static bool unifiedLineBatchLogged = false;
-    static bool unifiedPolygonLogged = false;
-    static bool unifiedPolygonsLogged = false;
     if (!isPaletteLoaded) 
         isPaletteLoaded = Maps::loadPalette("/sdcard/VECTMAP/palette.bin");
 
@@ -1483,12 +1481,6 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     int batchOptimizations = 0;  // Track optimizations per tile
     unsigned long renderStart = millis();
     
-    // Command type counters for debugging
-    int lineCommands = 0;
-    int polygonCommands = 0;
-    int rectangleCommands = 0;
-    int circleCommands = 0;
-
     // Optimized flushBatch with better memory access patterns
     auto flushCurrentBatch = [&]() 
     {
@@ -1513,14 +1505,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
         if (cmd_idx > 0 && cmd_idx % 50 == 0) 
             flushCurrentBatch();
 
-        bool isLineCommand = false;
-
-        switch (cmdType) 
+        switch (cmdType)
         {
-            case SET_LAYER:
-                // Ignore SET_LAYER command as tiles are already sorted by layers
-                readVarint(data, offset, dataSize);
-                break;
             case SET_COLOR:
                 flushCurrentBatch();
                 if (offset < dataSize) 
@@ -1537,28 +1523,6 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     current_color = paletteToRGB332(color_index);
                     currentDrawColor = RGB332ToRGB565(current_color);
                     executed++;
-                }
-                break;
-            case DRAW_LINE:
-                {
-                    const int32_t x1 = readZigzag(data, offset, dataSize);
-                    const int32_t y1 = readZigzag(data, offset, dataSize);
-                    const int32_t dx = readZigzag(data, offset, dataSize);
-                    const int32_t dy = readZigzag(data, offset, dataSize);
-                    const int32_t x2 = x1 + dx;
-                    const int32_t y2 = y1 + dy;
-                    const int px1 = uint16ToPixel(x1) + xOffset;
-                    const int py1 = uint16ToPixel(y1) + yOffset;
-                    const int px2 = uint16ToPixel(x2) + xOffset;
-                    const int py2 = uint16ToPixel(y2) + yOffset;
-                    if (shouldDrawLine(px1 - xOffset, py1 - yOffset, px2 - xOffset, py2 - yOffset)) 
-                    {
-                        // Use efficient batch rendering
-                        addToBatch(px1, py1, px2, py2, currentDrawColor);
-                        batchCount++;
-                        executed++;
-                        isLineCommand = true;
-                    }
                 }
                 break;
             case DRAW_POLYLINE:
@@ -1616,8 +1580,6 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                 }
                 break;
             case DRAW_STROKE_POLYGON:
-            case OPTIMIZED_POLYGON:
-            case HOLLOW_POLYGON:
                 flushCurrentBatch();
                 {
                     readVarint(data, offset, dataSize);
@@ -1637,8 +1599,6 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                             }
                             break;
                         }
-                        if (!unifiedPolygonLogged)
-                            unifiedPolygonLogged = true;
 
                         const int32_t firstX = readZigzag(data, offset, dataSize);
                         const int32_t firstY = readZigzag(data, offset, dataSize);
@@ -1655,7 +1615,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                             px[i] = uint16ToPixel(prevX);
                             py[i] = uint16ToPixel(prevY);
                         }
-                        if (fillPolygons && numPoints >= 3 && cmdType != HOLLOW_POLYGON)
+                        if (fillPolygons && numPoints >= 3)
                             fillPolygonGeneral(map, px, py, numPoints, currentDrawColor, xOffset, yOffset);
 
                         const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
@@ -1672,464 +1632,6 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                     }
                 }
                 break;
-            case DRAW_STROKE_POLYGONS:
-                flushCurrentBatch();
-                {
-                    readVarint(data, offset, dataSize);
-                    const uint32_t numPoints = readVarint(data, offset, dataSize);
-                    int32_t accumX = 0, accumY = 0;
-                    if (numPoints >= 3)
-                    {
-                        MemoryGuard<int> pxGuard(numPoints, 6);
-                        MemoryGuard<int> pyGuard(numPoints, 6);
-                        int* px = pxGuard.get();
-                        int* py = pyGuard.get();
-                        if (!px || !py)
-                        {
-                            for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
-                            {
-                                readZigzag(data, offset, dataSize);
-                                readZigzag(data, offset, dataSize);
-                            }
-                            break;
-                        }
-                        if (!unifiedPolygonsLogged)
-                            unifiedPolygonsLogged = true;
-                        for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
-                        {
-                            if (i == 0)
-                            {
-                                accumX = readZigzag(data, offset, dataSize);
-                                accumY = readZigzag(data, offset, dataSize);
-                            }
-                            else
-                            {
-                                const int32_t deltaX = readZigzag(data, offset, dataSize);
-                                const int32_t deltaY = readZigzag(data, offset, dataSize);
-                                accumX += deltaX;
-                                accumY += deltaY;
-                            }
-                            px[i] = uint16ToPixel(accumX);
-                            py[i] = uint16ToPixel(accumY);
-                        }
-                        if (fillPolygons && numPoints >= 3)
-                        {
-                            fillPolygonGeneral(map, px, py, numPoints, currentDrawColor, xOffset, yOffset);
-                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            drawPolygonBorder(map, px, py, numPoints, borderColor, currentDrawColor, xOffset, yOffset);
-                            polygonCommands++;
-                            executed++;
-                        }
-                    }
-                    else
-                    {
-                        for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
-                        {
-                            readZigzag(data, offset, dataSize);
-                            readZigzag(data, offset, dataSize);
-                        }
-                    }
-                }
-                break;
-            case DRAW_HORIZONTAL_LINE:
-                {
-                    const int32_t x1 = readZigzag(data, offset, dataSize);
-                    const int32_t dx = readZigzag(data, offset, dataSize);
-                    const int32_t y = readZigzag(data, offset, dataSize);
-                    const int32_t x2 = x1 + dx;
-                    const int px1 = uint16ToPixel(x1) + xOffset;
-                    const int px2 = uint16ToPixel(x2) + xOffset;
-                    const int py = uint16ToPixel(y) + yOffset;
-                    if (shouldDrawLine(px1 - xOffset, py - yOffset, px2 - xOffset, py - yOffset))
-                    {
-                        // Use efficient batch rendering
-                        addToBatch(px1, py, px2, py, currentDrawColor);
-                        batchCount++;
-                        executed++;
-                        isLineCommand = true;
-                    }
-                }
-                break;
-            case DRAW_VERTICAL_LINE:
-                {
-                    const int32_t x = readZigzag(data, offset, dataSize);
-                    const int32_t y1 = readZigzag(data, offset, dataSize);
-                    const int32_t dy = readZigzag(data, offset, dataSize);
-                    const int32_t y2 = y1 + dy;
-                    const int px = uint16ToPixel(x) + xOffset;
-                    const int py1 = uint16ToPixel(y1) + yOffset;
-                    const int py2 = uint16ToPixel(y2) + yOffset;
-                    if (shouldDrawLine(px - xOffset, py1 - yOffset, px - xOffset, py2 - yOffset)) 
-                    {
-                        // Use efficient batch rendering
-                        addToBatch(px, py1, px, py2, currentDrawColor);
-                        batchCount++;
-                        executed++;
-                        isLineCommand = true;
-                    }
-                }
-                break;
-            case RECTANGLE:
-                flushCurrentBatch();
-                {
-                    const int32_t x1 = readZigzag(data, offset, dataSize);
-                    const int32_t y1 = readZigzag(data, offset, dataSize);
-                    const int32_t dx = readZigzag(data, offset, dataSize);
-                    const int32_t dy = readZigzag(data, offset, dataSize);
-                    const int px1 = uint16ToPixel(x1);
-                    const int py1 = uint16ToPixel(y1);
-                    const int pwidth = uint16ToPixel(dx);
-                    const int pheight = uint16ToPixel(dy);
-                    if (px1 >= 0 && px1 <= TILE_SIZE && py1 >= 0 && py1 <= TILE_SIZE &&
-                        pwidth > 0 && pheight > 0 &&
-                        !isPointOnMargin(px1, py1) &&
-                        !isPointOnMargin(px1 + pwidth, py1 + pheight))
-                    {
-                        if (fillPolygons) 
-                        {
-                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            map.fillRect(px1 + xOffset, py1 + yOffset, pwidth, pheight, currentDrawColor);
-                            map.drawRect(px1 + xOffset, py1 + yOffset, pwidth, pheight, borderColor);
-                            executed++;
-                        }
-                        else
-                            map.drawRect(px1 + xOffset, py1 + yOffset, pwidth, pheight, currentDrawColor);
-                        executed++;
-                    }
-                }
-                break;
-            case SIMPLE_RECTANGLE:
-                flushCurrentBatch();
-                {
-                    const int32_t x = readZigzag(data, offset, dataSize);
-                    const int32_t y = readZigzag(data, offset, dataSize);
-                    const int32_t width = readZigzag(data, offset, dataSize);
-                    const int32_t height = readZigzag(data, offset, dataSize);
-                    const int px = uint16ToPixel(x);
-                    const int py = uint16ToPixel(y);
-                    const int pwidth = uint16ToPixel(width);
-                    const int pheight = uint16ToPixel(height);
-                    
-                    // Validate rectangle bounds
-                    if (px >= 0 && px <= TILE_SIZE && py >= 0 && py <= TILE_SIZE &&
-                        pwidth > 0 && pheight > 0 &&
-                        px + pwidth <= TILE_SIZE && py + pheight <= TILE_SIZE)
-                    {
-                        if (fillPolygons) 
-                        {
-                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            map.fillRect(px + xOffset, py + yOffset, pwidth, pheight, currentDrawColor);
-                            map.drawRect(px + xOffset, py + yOffset, pwidth, pheight, borderColor);
-                        }
-                        else
-                            map.drawRect(px + xOffset, py + yOffset, pwidth, pheight, currentDrawColor);
-                        executed++;
-                    }
-                }
-                break;
-            case OPTIMIZED_RECTANGLE:
-                flushCurrentBatch();
-                {
-                    const int32_t x = readZigzag(data, offset, dataSize);
-                    const int32_t y = readZigzag(data, offset, dataSize);
-                    const int32_t width = readZigzag(data, offset, dataSize);
-                    const int32_t height = readZigzag(data, offset, dataSize);
-                    const int px = uint16ToPixel(x);
-                    const int py = uint16ToPixel(y);
-                    const int pwidth = uint16ToPixel(width);
-                    const int pheight = uint16ToPixel(height);
-                    
-                    // Validate rectangle bounds
-                    if (px >= 0 && px <= TILE_SIZE && py >= 0 && py <= TILE_SIZE &&
-                        pwidth > 0 && pheight > 0 &&
-                        px + pwidth <= TILE_SIZE && py + pheight <= TILE_SIZE)
-                    {
-                        if (fillPolygons) 
-                        {
-                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            map.fillRect(px + xOffset, py + yOffset, pwidth, pheight, currentDrawColor);
-                            map.drawRect(px + xOffset, py + yOffset, pwidth, pheight, borderColor);
-                        }
-                        else
-                            map.drawRect(px + xOffset, py + yOffset, pwidth, pheight, currentDrawColor);
-                        executed++;
-                    }
-                }
-                break;
-            case STRAIGHT_LINE:
-                {
-                    const int32_t x1 = readZigzag(data, offset, dataSize);
-                    const int32_t y1 = readZigzag(data, offset, dataSize);
-                    const int32_t dx = readZigzag(data, offset, dataSize);
-                    const int32_t dy = readZigzag(data, offset, dataSize);
-                    const int32_t x2 = x1 + dx;
-                    const int32_t y2 = y1 + dy;
-                    const int px1 = uint16ToPixel(x1) + xOffset;
-                    const int py1 = uint16ToPixel(y1) + yOffset;
-                    const int px2 = uint16ToPixel(x2) + xOffset;
-                    const int py2 = uint16ToPixel(y2) + yOffset;
-                    if (shouldDrawLine(px1 - xOffset, py1 - yOffset, px2 - xOffset, py2 - yOffset)) 
-                    {
-                        // Use efficient batch rendering
-                        addToBatch(px1, py1, px2, py2, currentDrawColor);
-                        batchCount++;
-                        executed++;
-                        isLineCommand = true;
-                    }
-                }
-                break;
-            case CIRCLE:
-                flushCurrentBatch();
-                {
-                    const int32_t center_x = readZigzag(data, offset, dataSize);
-                    const int32_t center_y = readZigzag(data, offset, dataSize);
-                    const int32_t radius = readZigzag(data, offset, dataSize);
-                    const int pcx = uint16ToPixel(center_x);
-                    const int pcy = uint16ToPixel(center_y);
-                    const int pradius = uint16ToPixel(radius);
-                    if (pcx >= 0 && pcx <= TILE_SIZE && pcy >= 0 && pcy <= TILE_SIZE && pradius > 0 &&
-                        !isPointOnMargin(pcx, pcy)) 
-                    {
-                        if (fillPolygons) 
-                        {
-                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            map.fillCircle(pcx + xOffset, pcy + yOffset, pradius, currentDrawColor);
-                            map.drawCircle(pcx + xOffset, pcy + yOffset, pradius, borderColor);
-                            executed++;
-                        }
-                        else
-                            map.drawCircle(pcx + xOffset, pcy + yOffset, pradius, currentDrawColor);
-
-                        executed++;
-                    }
-                }
-                break;
-            case SIMPLE_CIRCLE:
-                flushCurrentBatch();
-                {
-                    const int32_t center_x = readZigzag(data, offset, dataSize);
-                    const int32_t center_y = readZigzag(data, offset, dataSize);
-                    const int32_t radius = readZigzag(data, offset, dataSize);
-                    const int pcx = uint16ToPixel(center_x);
-                    const int pcy = uint16ToPixel(center_y);
-                    const int pradius = uint16ToPixel(radius);
-                    
-                    if (pcx >= 0 && pcx <= TILE_SIZE && pcy >= 0 && pcy <= TILE_SIZE && pradius > 0 &&
-                        pcx + pradius <= TILE_SIZE && pcy + pradius <= TILE_SIZE &&
-                        pcx - pradius >= 0 && pcy - pradius >= 0) 
-                    {
-                        if (fillPolygons) 
-                        {
-                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            map.fillCircle(pcx + xOffset, pcy + yOffset, pradius, currentDrawColor);
-                            map.drawCircle(pcx + xOffset, pcy + yOffset, pradius, borderColor);
-                        }
-                        else
-                            map.drawCircle(pcx + xOffset, pcy + yOffset, pradius, currentDrawColor);
-                        executed++;
-                    }
-                }
-                break;
-            case SIMPLE_TRIANGLE:
-                flushCurrentBatch();
-                {
-                    const int32_t x1 = readZigzag(data, offset, dataSize);
-                    const int32_t y1 = readZigzag(data, offset, dataSize);
-                    const int32_t x2 = readZigzag(data, offset, dataSize);
-                    const int32_t y2 = readZigzag(data, offset, dataSize);
-                    const int32_t x3 = readZigzag(data, offset, dataSize);
-                    const int32_t y3 = readZigzag(data, offset, dataSize);
-                    const int px1 = uint16ToPixel(x1) + xOffset;
-                    const int py1 = uint16ToPixel(y1) + yOffset;
-                    const int px2 = uint16ToPixel(x2) + xOffset;
-                    const int py2 = uint16ToPixel(y2) + yOffset;
-                    const int px3 = uint16ToPixel(x3) + xOffset;
-                    const int py3 = uint16ToPixel(y3) + yOffset;
-                    
-                    if (px1 >= 0 && px1 <= TILE_SIZE && py1 >= 0 && py1 <= TILE_SIZE &&
-                        px2 >= 0 && px2 <= TILE_SIZE && py2 >= 0 && py2 <= TILE_SIZE &&
-                        px3 >= 0 && px3 <= TILE_SIZE && py3 >= 0 && py3 <= TILE_SIZE) 
-                    {
-                        if (fillPolygons) 
-                        {
-                            // Fill triangle using simple algorithm
-                            map.fillTriangle(px1, py1, px2, py2, px3, py3, currentDrawColor);
-                            
-                            // Draw border
-                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            map.drawLine(px1, py1, px2, py2, borderColor);
-                            map.drawLine(px2, py2, px3, py3, borderColor);
-                            map.drawLine(px3, py3, px1, py1, borderColor);
-                        }
-                        else
-                        {
-                            // Draw only outline
-                            map.drawLine(px1, py1, px2, py2, currentDrawColor);
-                            map.drawLine(px2, py2, px3, py3, currentDrawColor);
-                            map.drawLine(px3, py3, px1, py1, currentDrawColor);
-                        }
-                        executed++;
-                    }
-                }
-                break;
-            case OPTIMIZED_TRIANGLE:
-                flushCurrentBatch();
-                {
-                    const int32_t x1 = readZigzag(data, offset, dataSize);
-                    const int32_t y1 = readZigzag(data, offset, dataSize);
-                    const int32_t x2 = readZigzag(data, offset, dataSize);
-                    const int32_t y2 = readZigzag(data, offset, dataSize);
-                    const int32_t x3 = readZigzag(data, offset, dataSize);
-                    const int32_t y3 = readZigzag(data, offset, dataSize);
-                    const int px1 = uint16ToPixel(x1) + xOffset;
-                    const int py1 = uint16ToPixel(y1) + yOffset;
-                    const int px2 = uint16ToPixel(x2) + xOffset;
-                    const int py2 = uint16ToPixel(y2) + yOffset;
-                    const int px3 = uint16ToPixel(x3) + xOffset;
-                    const int py3 = uint16ToPixel(y3) + yOffset;
-                    
-                    if (px1 >= 0 && px1 <= TILE_SIZE && py1 >= 0 && py1 <= TILE_SIZE &&
-                        px2 >= 0 && px2 <= TILE_SIZE && py2 >= 0 && py2 <= TILE_SIZE &&
-                        px3 >= 0 && px3 <= TILE_SIZE && py3 >= 0 && py3 <= TILE_SIZE) 
-                    {
-                        if (fillPolygons) 
-                        {
-                            // Fill triangle using simple algorithm
-                            map.fillTriangle(px1, py1, px2, py2, px3, py3, currentDrawColor);
-                            
-                            // Draw border
-                            const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                            map.drawLine(px1, py1, px2, py2, borderColor);
-                            map.drawLine(px2, py2, px3, py3, borderColor);
-                            map.drawLine(px3, py3, px1, py1, borderColor);
-                        }
-                        else
-                        {
-                            // Draw only outline
-                            map.drawLine(px1, py1, px2, py2, currentDrawColor);
-                            map.drawLine(px2, py2, px3, py3, currentDrawColor);
-                            map.drawLine(px3, py3, px1, py1, currentDrawColor);
-                        }
-                        executed++;
-                    }
-                }
-                break;
-            case DASHED_LINE:
-                flushCurrentBatch();
-                {
-                    const int32_t x1 = readZigzag(data, offset, dataSize);
-                    const int32_t y1 = readZigzag(data, offset, dataSize);
-                    const int32_t x2 = readZigzag(data, offset, dataSize);
-                    const int32_t y2 = readZigzag(data, offset, dataSize);
-                    const int32_t dashLength = readVarint(data, offset, dataSize);
-                    const int32_t gapLength = readVarint(data, offset, dataSize);
-                    const int px1 = uint16ToPixel(x1) + xOffset;
-                    const int py1 = uint16ToPixel(y1) + yOffset;
-                    const int px2 = uint16ToPixel(x2) + xOffset;
-                    const int py2 = uint16ToPixel(y2) + yOffset;
-                    
-                    if (px1 >= 0 && px1 <= TILE_SIZE && py1 >= 0 && py1 <= TILE_SIZE &&
-                        px2 >= 0 && px2 <= TILE_SIZE && py2 >= 0 && py2 <= TILE_SIZE) 
-                    {
-                        // Simple dashed line implementation
-                        int dx = abs(px2 - px1);
-                        int dy = abs(py2 - py1);
-                        int sx = (px1 < px2) ? 1 : -1;
-                        int sy = (py1 < py2) ? 1 : -1;
-                        int err = dx - dy;
-                        int currentX = px1, currentY = py1, dashCounter = 0;
-                        
-                        while (true) 
-                        {
-                            if (dashCounter % (dashLength + gapLength) < dashLength)
-                                map.drawPixel(currentX, currentY, currentDrawColor);
-                            dashCounter++;
-                            if (currentX == px2 && currentY == py2) break;
-                            
-                            int e2 = 2 * err;
-                            if (e2 > -dy) { err -= dy; currentX += sx; }
-                            if (e2 < dx) { err += dx; currentY += sy; }
-                        }
-                        executed++;
-                    }
-                }
-                break;
-            case DOTTED_LINE:
-                flushCurrentBatch();
-                {
-                    const int32_t x1 = readZigzag(data, offset, dataSize);
-                    const int32_t y1 = readZigzag(data, offset, dataSize);
-                    const int32_t x2 = readZigzag(data, offset, dataSize);
-                    const int32_t y2 = readZigzag(data, offset, dataSize);
-                    const int32_t dotSpacing = readVarint(data, offset, dataSize);
-                    const int px1 = uint16ToPixel(x1) + xOffset;
-                    const int py1 = uint16ToPixel(y1) + yOffset;
-                    const int px2 = uint16ToPixel(x2) + xOffset;
-                    const int py2 = uint16ToPixel(y2) + yOffset;
-                    
-                    if (px1 >= 0 && px1 <= TILE_SIZE && py1 >= 0 && py1 <= TILE_SIZE &&
-                        px2 >= 0 && px2 <= TILE_SIZE && py2 >= 0 && py2 <= TILE_SIZE) 
-                    {
-                        // Simple dotted line implementation
-                        int dx = abs(px2 - px1);
-                        int dy = abs(py2 - py1);
-                        int sx = (px1 < px2) ? 1 : -1;
-                        int sy = (py1 < py2) ? 1 : -1;
-                        int err = dx - dy;
-                        int currentX = px1, currentY = py1, dotCounter = 0;
-                        
-                        while (true) 
-                        {
-                            if (dotCounter % dotSpacing == 0)
-                                map.drawPixel(currentX, currentY, currentDrawColor);
-                            dotCounter++;
-                            if (currentX == px2 && currentY == py2) break;
-                            
-                            int e2 = 2 * err;
-                            if (e2 > -dy) { err -= dy; currentX += sx; }
-                            if (e2 < dx) { err += dx; currentY += sy; }
-                        }
-                        executed++;
-                    }
-                }
-                break;
-            case GRID_PATTERN:
-                flushCurrentBatch();
-                {
-                    const int32_t x = readZigzag(data, offset, dataSize);
-                    const int32_t y = readZigzag(data, offset, dataSize);
-                    const int32_t width = readVarint(data, offset, dataSize);
-                    const int32_t spacing = readVarint(data, offset, dataSize);
-                    const int32_t count = readVarint(data, offset, dataSize);
-                    const int32_t direction = readVarint(data, offset, dataSize);
-                    const int px = uint16ToPixel(x) + xOffset;
-                    const int py = uint16ToPixel(y) + yOffset;
-                    
-                    if (px >= 0 && px <= TILE_SIZE && py >= 0 && py <= TILE_SIZE) 
-                    {
-                        // Simple grid pattern implementation
-                        if (direction == 0) 
-                        {
-                            // Horizontal lines
-                            for (int i = 0; i < count; i++)
-                            {
-                                int lineY = py + (i * spacing);
-                                map.drawLine(px, lineY, px + width, lineY, currentDrawColor);
-                            }
-                        } 
-                        else 
-                        {
-                            // Vertical lines
-                            for (int i = 0; i < count; i++)
-                            {
-                                int lineX = px + (i * spacing);
-                                map.drawLine(lineX, py, lineX, py + width, currentDrawColor);
-                            }
-                        }
-                        executed++;
-                    }
-                }
-                break;            
             default:
                 flushCurrentBatch();
                 if (offset < dataSize - 4) 
@@ -2137,8 +1639,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
 
                 break;
         }
-        if (!isLineCommand) 
-            flushCurrentBatch();
+        flushCurrentBatch();
 
         if (offset <= cmdStartOffset) 
             break;
