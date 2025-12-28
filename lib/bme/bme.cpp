@@ -18,8 +18,18 @@ BME280_Driver bme = BME280_Driver();
 uint8_t tempValue = 0;
 uint8_t tempOld = 0;
 
+/**
+ * @brief Constructs BME280 driver with default configuration.
+ *
+ * @details Initializes with default I2C address and resets t_fine compensation value.
+ */
 BME280_Driver::BME280_Driver() : i2cAddr(BME_ADDRESS), t_fine(0) {}
 
+/**
+ * @brief Reads a single byte from a register.
+ * @param reg Register address.
+ * @return Register value.
+ */
 uint8_t BME280_Driver::read8(uint8_t reg)
 {
     Wire.beginTransmission(i2cAddr);
@@ -29,6 +39,11 @@ uint8_t BME280_Driver::read8(uint8_t reg)
     return Wire.read();
 }
 
+/**
+ * @brief Reads a 16-bit value from two consecutive registers (LSB first).
+ * @param reg Starting register address.
+ * @return 16-bit unsigned value in little-endian format.
+ */
 uint16_t BME280_Driver::read16_LE(uint8_t reg)
 {
     Wire.beginTransmission(i2cAddr);
@@ -40,11 +55,21 @@ uint16_t BME280_Driver::read16_LE(uint8_t reg)
     return (uint16_t)(msb << 8 | lsb);
 }
 
+/**
+ * @brief Reads a signed 16-bit value from two consecutive registers (LSB first).
+ * @param reg Starting register address.
+ * @return 16-bit signed value in little-endian format.
+ */
 int16_t BME280_Driver::readS16_LE(uint8_t reg)
 {
     return (int16_t)read16_LE(reg);
 }
 
+/**
+ * @brief Writes a single byte to a register.
+ * @param reg Register address.
+ * @param value Value to write.
+ */
 void BME280_Driver::write8(uint8_t reg, uint8_t value)
 {
     Wire.beginTransmission(i2cAddr);
@@ -53,6 +78,12 @@ void BME280_Driver::write8(uint8_t reg, uint8_t value)
     Wire.endTransmission();
 }
 
+/**
+ * @brief Reads factory calibration coefficients from sensor.
+ *
+ * @details Loads temperature, pressure, and humidity compensation coefficients
+ *          from non-volatile memory. These are used for sensor data compensation.
+ */
 void BME280_Driver::readCoefficients()
 {
     dig_T1 = read16_LE(0x88);
@@ -77,6 +108,16 @@ void BME280_Driver::readCoefficients()
     dig_H6 = (int8_t)read8(0xE7);
 }
 
+/**
+ * @brief Initializes the BME280 sensor.
+ *
+ * @details Verifies device identity via chip ID register, performs soft reset,
+ *          reads calibration coefficients, and configures normal mode with
+ *          1x oversampling for all measurements and 1000ms standby time.
+ *
+ * @param addr I2C address (default 0x76 or 0x77).
+ * @return true if initialization successful, false otherwise.
+ */
 bool BME280_Driver::begin(uint8_t addr)
 {
     i2cAddr = addr;
@@ -97,6 +138,15 @@ bool BME280_Driver::begin(uint8_t addr)
     return true;
 }
 
+/**
+ * @brief Reads temperature from sensor.
+ *
+ * @details Reads raw 20-bit ADC value from temperature registers and applies
+ *          compensation formula using factory calibration coefficients.
+ *          Updates internal t_fine value used by pressure and humidity calculations.
+ *
+ * @return Temperature in degrees Celsius.
+ */
 float BME280_Driver::readTemperature()
 {
     Wire.beginTransmission(i2cAddr);
@@ -119,6 +169,15 @@ float BME280_Driver::readTemperature()
     return T / 100.0f;
 }
 
+/**
+ * @brief Reads atmospheric pressure from sensor.
+ *
+ * @details Reads raw 20-bit ADC value from pressure registers and applies
+ *          compensation formula using factory calibration coefficients.
+ *          Internally calls readTemperature() to update t_fine value.
+ *
+ * @return Pressure in Pascals (Pa).
+ */
 float BME280_Driver::readPressure()
 {
     readTemperature();
@@ -154,6 +213,15 @@ float BME280_Driver::readPressure()
     return (float)p / 256.0f;
 }
 
+/**
+ * @brief Reads relative humidity from sensor.
+ *
+ * @details Reads raw 16-bit ADC value from humidity registers and applies
+ *          compensation formula using factory calibration coefficients.
+ *          Internally calls readTemperature() to update t_fine value.
+ *
+ * @return Relative humidity in percentage (%RH).
+ */
 float BME280_Driver::readHumidity()
 {
     readTemperature();
@@ -192,12 +260,26 @@ float BME280_Driver::readHumidity()
     return h / 1024.0f;
 }
 
+/**
+ * @brief Calculates altitude based on atmospheric pressure.
+ *
+ * @details Uses barometric formula to estimate altitude from current pressure
+ *          reading compared to sea level reference pressure.
+ *
+ * @param seaLevelPressure Reference sea level pressure in Pascals (default 101325 Pa).
+ * @return Estimated altitude in meters.
+ */
 float BME280_Driver::readAltitude(float seaLevelPressure)
 {
     float pressure = readPressure();
     return 44330.0f * (1.0f - powf(pressure / seaLevelPressure, 0.1903f));
 }
 
+/**
+ * @brief Initializes the BME280 sensor.
+ *
+ * @details Calls bme.begin() to initialize hardware with default I2C address.
+ */
 void initBME()
 {
     bme.begin(BME_ADDRESS);
