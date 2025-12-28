@@ -2,8 +2,8 @@
  * @file tasks.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Core Tasks implementation for GPS and CLI management
- * @version 0.2.3
- * @date 2025-11
+ * @version 0.2.4
+ * @date 2025-12
  * @details This file contains the implementation of FreeRTOS tasks for GPS data processing
  *          and CLI interface management. It handles thread-safe GPS data reading and
  *          command-line interface operations with proper mutex protection.

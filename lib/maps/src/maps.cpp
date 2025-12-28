@@ -2,8 +2,8 @@
  * @file maps.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com) - Render Maps
  * @brief  Maps draw class
- * @version 0.2.3
- * @date 2025-11
+ * @version 0.2.4
+ * @date 2025-12
  */
 
 #include "maps.hpp"
@@ -1131,10 +1131,10 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
 */
 void Maps::drawPolygonBorder(TFT_eSprite &map, const int *px, const int *py, const int numPoints, const uint16_t borderColor, const uint16_t fillColor, const int xOffset, const int yOffset)
 {
-    if (numPoints < 2) 
-        return; 
+    if (numPoints < 2)
+        return;
 
-    for (uint32_t i = 0; i < numPoints - 1; ++i) 
+    for (uint32_t i = 0; i < numPoints - 1; ++i)
     {
         const bool marginA = isPointOnMargin(px[i], py[i]);
         const bool marginB = isPointOnMargin(px[i+1], py[i+1]);
@@ -1146,10 +1146,27 @@ void Maps::drawPolygonBorder(TFT_eSprite &map, const int *px, const int *py, con
         const int y1 = py[i+1] + yOffset;
 
         if (x0 >= 0 && x0 <= TILE_SIZE + xOffset && y0 >= 0 && y0 <= TILE_SIZE + yOffset &&
-            x1 >= 0 && x1 <= TILE_SIZE + xOffset && y1 >= 0 && y1 <= TILE_SIZE + yOffset) 
+            x1 >= 0 && x1 <= TILE_SIZE + xOffset && y1 >= 0 && y1 <= TILE_SIZE + yOffset)
         {
-            if (!(marginA && marginB && !fillPolygons))
-                map.drawLine(x0, y0, x1, y1, color);
+            if (fillPolygons)
+            {
+                if (!(marginA && marginB))
+                    map.drawLine(x0, y0, x1, y1, color);
+                else
+                {
+                    map.drawLine(x0, y0, x1, y1, fillColor);
+                    map.drawPixel(x0, y0, borderColor);
+                    map.drawPixel(x1, y1, borderColor);
+                }
+            }
+            else if (!(marginA && marginB))
+                map.drawLine(x0, y0, x1, y1, borderColor);
+            else
+            {
+                map.drawLine(x0, y0, x1, y1, TFT_WHITE);
+                map.drawPixel(x0, y0, borderColor);
+                map.drawPixel(x1, y1, borderColor);
+            }
         }
     }
     const bool marginA = isPointOnMargin(px[numPoints-1], py[numPoints-1]);
@@ -1161,10 +1178,27 @@ void Maps::drawPolygonBorder(TFT_eSprite &map, const int *px, const int *py, con
     const int y1 = py[0] + yOffset;
 
     if (x0 >= 0 && x0 <= TILE_SIZE + xOffset && y0 >= 0 && y0 <= TILE_SIZE + yOffset &&
-        x1 >= 0 && x1 <= TILE_SIZE + xOffset && y1 >= 0 && y1 <= TILE_SIZE + yOffset) 
+        x1 >= 0 && x1 <= TILE_SIZE + xOffset && y1 >= 0 && y1 <= TILE_SIZE + yOffset)
     {
-        if (!(marginA && marginB && !fillPolygons)) 
-            map.drawLine(x0, y0, x1, y1, color);
+        if (fillPolygons)
+        {
+            if (!(marginA && marginB))
+                map.drawLine(x0, y0, x1, y1, color);
+            else
+            {
+                map.drawLine(x0, y0, x1, y1, fillColor);
+                map.drawPixel(x0, y0, borderColor);
+                map.drawPixel(x1, y1, borderColor);
+            }
+        }
+        else if (!(marginA && marginB))
+            map.drawLine(x0, y0, x1, y1, borderColor);
+        else
+        {
+            map.drawLine(x0, y0, x1, y1, TFT_WHITE);
+            map.drawPixel(x0, y0, borderColor);
+            map.drawPixel(x1, y1, borderColor);
+        }
     }
 }   
 
@@ -1529,23 +1563,16 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                 break;
             case DRAW_POLYLINE:
                 {
+                    const uint32_t lineWidth = readVarint(data, offset, dataSize);
                     const uint32_t numPoints = readVarint(data, offset, dataSize);
-                    if (numPoints >= 2) 
+                    if (numPoints >= 2)
                     {
-                        // Use RAII MemoryGuard for coordinate arrays
-                        MemoryGuard<int> pxGuard(numPoints, 6); // Type 6 = coordArray
-                        MemoryGuard<int> pyGuard(numPoints, 6); // Type 6 = coordArray
+                        MemoryGuard<int> pxGuard(numPoints, 6);
+                        MemoryGuard<int> pyGuard(numPoints, 6);
                         int* px = pxGuard.get();
                         int* py = pyGuard.get();
                         if (!px || !py)
-                            continue;
-                        if (!unifiedPolylineLogged)
-                            unifiedPolylineLogged = true;
-                        unifiedPoolHitCount += 2;
-                        
-                        if (!px || !py)
                         {
-                            // Skip this command if allocation failed
                             for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
                             {
                                 readZigzag(data, offset, dataSize);
@@ -1553,6 +1580,10 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                             }
                             continue;
                         }
+                        if (!unifiedPolylineLogged)
+                            unifiedPolylineLogged = true;
+                        unifiedPoolHitCount += 2;
+
                         int32_t prevX = readZigzag(data, offset, dataSize);
                         int32_t prevY = readZigzag(data, offset, dataSize);
                         px[0] = uint16ToPixel(prevX) + xOffset;
@@ -1566,17 +1597,13 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                             px[i] = uint16ToPixel(prevX) + xOffset;
                             py[i] = uint16ToPixel(prevY) + yOffset;
                         }
+                        flushCurrentBatch();
                         for (uint32_t i = 1; i < numPoints; ++i)
                         {
                             if (shouldDrawLine(px[i-1] - xOffset, py[i-1] - yOffset, px[i] - xOffset, py[i] - yOffset))
-                            {
-                                // Use efficient batch rendering
-                                addToBatch(px[i-1], py[i-1], px[i], py[i], currentDrawColor);
-                                batchCount++;
-                            }
+                                map.drawWideLine(px[i-1], py[i-1], px[i], py[i], lineWidth, currentDrawColor);
                         }
                         executed++;
-                        isLineCommand = true;
                     }
                     else
                     {
@@ -1593,15 +1620,15 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
             case HOLLOW_POLYGON:
                 flushCurrentBatch();
                 {
+                    readVarint(data, offset, dataSize);
                     const uint32_t numPoints = readVarint(data, offset, dataSize);
-                    if (numPoints >= 3) 
+                    if (numPoints >= 3)
                     {
-                        // Use RAII MemoryGuard for coordinate arrays
-                        MemoryGuard<int> pxGuard(numPoints, 6); // Type 6 = coordArray
-                        MemoryGuard<int> pyGuard(numPoints, 6); // Type 6 = coordArray
+                        MemoryGuard<int> pxGuard(numPoints, 6);
+                        MemoryGuard<int> pyGuard(numPoints, 6);
                         int* px = pxGuard.get();
                         int* py = pyGuard.get();
-                        if (!px || !py) 
+                        if (!px || !py)
                         {
                             for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
                             {
@@ -1610,7 +1637,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                             }
                             break;
                         }
-                        if (!unifiedPolygonLogged) 
+                        if (!unifiedPolygonLogged)
                             unifiedPolygonLogged = true;
 
                         const int32_t firstX = readZigzag(data, offset, dataSize);
@@ -1619,7 +1646,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                         py[0] = uint16ToPixel(firstY);
                         int prevX = firstX;
                         int prevY = firstY;
-                        for (uint32_t i = 1; i < numPoints; ++i) 
+                        for (uint32_t i = 1; i < numPoints; ++i)
                         {
                             const int32_t deltaX = readZigzag(data, offset, dataSize);
                             const int32_t deltaY = readZigzag(data, offset, dataSize);
@@ -1628,14 +1655,14 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                             px[i] = uint16ToPixel(prevX);
                             py[i] = uint16ToPixel(prevY);
                         }
-                        if (fillPolygons && numPoints >= 3 && cmdType != HOLLOW_POLYGON) 
+                        if (fillPolygons && numPoints >= 3 && cmdType != HOLLOW_POLYGON)
                             fillPolygonGeneral(map, px, py, numPoints, currentDrawColor, xOffset, yOffset);
 
                         const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
                         drawPolygonBorder(map, px, py, numPoints, borderColor, currentDrawColor, xOffset, yOffset);
                         executed++;
-                    } 
-                    else 
+                    }
+                    else
                     {
                         for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
                         {
@@ -1648,16 +1675,16 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
             case DRAW_STROKE_POLYGONS:
                 flushCurrentBatch();
                 {
+                    readVarint(data, offset, dataSize);
                     const uint32_t numPoints = readVarint(data, offset, dataSize);
                     int32_t accumX = 0, accumY = 0;
-                    if (numPoints >= 3) 
+                    if (numPoints >= 3)
                     {
-                        // Use RAII MemoryGuard for coordinate arrays
-                        MemoryGuard<int> pxGuard(numPoints, 6); // Type 6 = coordArray
-                        MemoryGuard<int> pyGuard(numPoints, 6); // Type 6 = coordArray
+                        MemoryGuard<int> pxGuard(numPoints, 6);
+                        MemoryGuard<int> pyGuard(numPoints, 6);
                         int* px = pxGuard.get();
                         int* py = pyGuard.get();
-                        if (!px || !py) 
+                        if (!px || !py)
                         {
                             for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
                             {
@@ -1670,12 +1697,12 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                             unifiedPolygonsLogged = true;
                         for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
                         {
-                            if (i == 0) 
+                            if (i == 0)
                             {
                                 accumX = readZigzag(data, offset, dataSize);
                                 accumY = readZigzag(data, offset, dataSize);
-                            } 
-                            else 
+                            }
+                            else
                             {
                                 const int32_t deltaX = readZigzag(data, offset, dataSize);
                                 const int32_t deltaY = readZigzag(data, offset, dataSize);
@@ -1693,7 +1720,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                             polygonCommands++;
                             executed++;
                         }
-                    } 
+                    }
                     else
                     {
                         for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)

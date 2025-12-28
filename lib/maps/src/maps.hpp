@@ -2,8 +2,8 @@
  * @file maps.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com) - Render Maps
  * @brief  Maps draw class
- * @version 0.2.3
- * @date 2025-11
+ * @version 0.2.4
+ * @date 2025-12
  */
 
 #pragma once
@@ -215,8 +215,8 @@ class Maps
         void fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, 
                                 const int numPoints, const uint16_t color,	
                                 const int xOffset, const int yOffset);						/**< Fill a polygon using the scanline algorithm */
-        void drawPolygonBorder(TFT_eSprite &map, const int *px, const int *py, 
-                                const int numPoints, const uint16_t borderColor, const uint16_t fillColor, 
+        void drawPolygonBorder(TFT_eSprite &map, const int *px, const int *py,
+                                const int numPoints, const uint16_t borderColor, const uint16_t fillColor,
                                 const int xOffset, const int yOffset);						/**< Draw the border of a polygon with margin handling */
         
         

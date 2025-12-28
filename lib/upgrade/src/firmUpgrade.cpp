@@ -2,8 +2,8 @@
  * @file firmUpgrade.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Firmware upgrade from SD functions
- * @version 0.2.3
- * @date 2025-11
+ * @version 0.2.4
+ * @date 2025-12
  */
 
  #include "firmUpgrade.hpp"
