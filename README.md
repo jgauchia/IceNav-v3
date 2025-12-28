@@ -115,8 +115,8 @@ To do this, simply include the following Build Flag in the required env in platf
 | HMC5883L    | 🧭 Compass    | ```-DHMC5883L```                   | ```dfrobot/DFRobot_QMC5883@1.0.0```                   |
 | QMC5883     | 🧭 Compass    | ```-DQMC5883```                    | ```dfrobot/DFRobot_QMC5883@1.0.0```                   |
 | MPU9250     | 🧭 IMU (Compass) | ```-DIMU_MPU9250```                | ```bolderflight/Bolder Flight Systems MPU9250@1.0.2```|
-| BME280      | 🌡️ Temp <br> ☁️ Pres <br> 💧 Hum | ```-DBME280```                     | ```adafruit/Adafruit Unified Sensor@1.1.14``` <br> ```adafruit/Adafruit BusIO@1.16.2``` <br> ```adafruit/Adafruit BME280 Library@2.2.4```|
-| MPU6050     | 📳 IMU | ```-DMPU6050```                     | ```adafruit/Adafruit Unified Sensor@1.1.14``` <br> ```adafruit/Adafruit BusIO@1.16.2``` <br> ```adafruit/Adafruit MPU6050@^2.2.6```|
+| BME280      | 🌡️ Temp <br> ☁️ Pres <br> 💧 Hum | ```-DBME280```                     |  |
+| MPU6050     | 📳 IMU | ```-DMPU6050```                     |  |
 
 
 [^1]: For ELECROW board UART port is shared with USB connection, GPS pinout are mapped to IO19 and IO40 (Analog and Digital Port). If CLI isn't used is possible to attach GPS module to UART port but for upload the firmware (change pinout at **hal.hpp**), the module should be disconnected.
