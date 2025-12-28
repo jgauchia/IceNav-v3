@@ -112,8 +112,8 @@ To do this, simply include the following Build Flag in the required env in platf
 |:------------|:--------------|:-----------------------------------|:-------------------------------------------------------|
 |             | 🔋 Batt. Monitor | ```-DADC1``` or ```-DADC2``` <br> ```-DBATT_PIN=ADCn_CHANNEL_x``` |                       |   
 | AT6558D     | 🛰️ GPS        | ```-DAT6558D_GPS```                |                                                        |
-| HMC5883L    | 🧭 Compass    | ```-DHMC5883L```                   | ```dfrobot/DFRobot_QMC5883@1.0.0```                   |
-| QMC5883     | 🧭 Compass    | ```-DQMC5883```                    | ```dfrobot/DFRobot_QMC5883@1.0.0```                   |
+| HMC5883L    | 🧭 Compass    | ```-DHMC5883L```                   |    |
+| QMC5883     | 🧭 Compass    | ```-DQMC5883```                    |    |
 | MPU9250     | 🧭 IMU (Compass) | ```-DIMU_MPU9250```                | ```bolderflight/Bolder Flight Systems MPU9250@1.0.2```|
 | BME280      | 🌡️ Temp <br> ☁️ Pres <br> 💧 Hum | ```-DBME280```                     |  |
 | MPU6050     | 📳 IMU | ```-DMPU6050```                     |  |
