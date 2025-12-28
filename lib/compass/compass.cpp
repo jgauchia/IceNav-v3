@@ -273,6 +273,181 @@ void HMC5883L_Driver::readRaw(float &x, float &y, float &z)
 }
 
 // ============================================================================
+// MPU9250/AK8963 Native Driver Implementation
+// ============================================================================
+
+/**
+ * @brief Constructs MPU9250 driver with default configuration.
+ *
+ * @details Initializes with default I2C addresses for MPU9250 and AK8963.
+ */
+MPU9250_Driver::MPU9250_Driver()
+    : mpuAddr(MPU9250_ADDRESS), akAddr(AK8963_ADDRESS),
+      magX(0), magY(0), magZ(0), asaX(1), asaY(1), asaZ(1) {}
+
+/**
+ * @brief Reads a single byte from a register.
+ * @param addr I2C device address.
+ * @param reg Register address.
+ * @return Register value.
+ */
+uint8_t MPU9250_Driver::read8(uint8_t addr, uint8_t reg)
+{
+    Wire.beginTransmission(addr);
+    Wire.write(reg);
+    Wire.endTransmission(false);
+    Wire.requestFrom(addr, (uint8_t)1);
+    return Wire.read();
+}
+
+/**
+ * @brief Writes a single byte to a register.
+ * @param addr I2C device address.
+ * @param reg Register address.
+ * @param value Value to write.
+ */
+void MPU9250_Driver::write8(uint8_t addr, uint8_t reg, uint8_t value)
+{
+    Wire.beginTransmission(addr);
+    Wire.write(reg);
+    Wire.write(value);
+    Wire.endTransmission();
+}
+
+/**
+ * @brief Reads a 16-bit value from two consecutive registers (LSB first).
+ * @param addr I2C device address.
+ * @param reg Starting register address.
+ * @return 16-bit signed value.
+ */
+int16_t MPU9250_Driver::read16LE(uint8_t addr, uint8_t reg)
+{
+    Wire.beginTransmission(addr);
+    Wire.write(reg);
+    Wire.endTransmission(false);
+    Wire.requestFrom(addr, (uint8_t)2);
+    int16_t value = Wire.read();
+    value |= (Wire.read() << 8);
+    return value;
+}
+
+/**
+ * @brief Initializes the MPU9250 and AK8963 magnetometer.
+ *
+ * @details Wakes up MPU9250, enables I2C bypass to access AK8963 directly,
+ *          reads sensitivity adjustment values, and configures continuous mode.
+ *
+ * @param addr MPU9250 I2C address (default 0x68).
+ * @return true if initialization successful, false otherwise.
+ */
+bool MPU9250_Driver::begin(uint8_t addr)
+{
+    mpuAddr = addr;
+
+    // Check MPU9250 WHO_AM_I
+    uint8_t whoAmI = read8(mpuAddr, MPU9250_REG_WHO_AM_I);
+    if (whoAmI != 0x71 && whoAmI != 0x73)
+    {
+        ESP_LOGE(TAG, "MPU9250 not found, WHO_AM_I: 0x%02X", whoAmI);
+        return false;
+    }
+
+    // Wake up MPU9250
+    write8(mpuAddr, MPU9250_REG_PWR_MGMT1, 0x00);
+    vTaskDelay(pdMS_TO_TICKS(100));
+
+    // Enable I2C bypass to access AK8963 directly
+    write8(mpuAddr, MPU9250_REG_INT_PIN, 0x02);
+    vTaskDelay(pdMS_TO_TICKS(10));
+
+    // Check AK8963 WHO_AM_I
+    uint8_t akId = read8(akAddr, AK8963_REG_WIA);
+    if (akId != 0x48)
+    {
+        ESP_LOGE(TAG, "AK8963 not found, WIA: 0x%02X", akId);
+        return false;
+    }
+
+    // Power down AK8963 before changing mode
+    write8(akAddr, AK8963_REG_CNTL1, 0x00);
+    vTaskDelay(pdMS_TO_TICKS(10));
+
+    // Enter Fuse ROM access mode to read sensitivity adjustment values
+    write8(akAddr, AK8963_REG_CNTL1, 0x0F);
+    vTaskDelay(pdMS_TO_TICKS(10));
+
+    // Read sensitivity adjustment values
+    uint8_t rawAsaX = read8(akAddr, AK8963_REG_ASAX);
+    uint8_t rawAsaY = read8(akAddr, AK8963_REG_ASAX + 1);
+    uint8_t rawAsaZ = read8(akAddr, AK8963_REG_ASAX + 2);
+
+    // Calculate adjustment factors: Hadj = H * ((ASA - 128) * 0.5 / 128 + 1)
+    asaX = ((rawAsaX - 128) * 0.5f / 128.0f) + 1.0f;
+    asaY = ((rawAsaY - 128) * 0.5f / 128.0f) + 1.0f;
+    asaZ = ((rawAsaZ - 128) * 0.5f / 128.0f) + 1.0f;
+
+    // Power down again
+    write8(akAddr, AK8963_REG_CNTL1, 0x00);
+    vTaskDelay(pdMS_TO_TICKS(10));
+
+    // Set continuous measurement mode 2 (100Hz) with 16-bit resolution
+    write8(akAddr, AK8963_REG_CNTL1, 0x16);
+    vTaskDelay(pdMS_TO_TICKS(10));
+
+    return true;
+}
+
+/**
+ * @brief Reads magnetometer data from AK8963.
+ *
+ * @details Checks data ready status and reads 6 bytes of magnetometer data.
+ *          Applies sensitivity adjustment to raw values.
+ */
+void MPU9250_Driver::readSensor()
+{
+    // Check if data is ready
+    uint8_t st1 = read8(akAddr, AK8963_REG_ST1);
+    if (!(st1 & 0x01))
+        return;
+
+    // Read magnetometer data (6 bytes) + ST2 to complete read cycle
+    Wire.beginTransmission(akAddr);
+    Wire.write(AK8963_REG_DATA);
+    Wire.endTransmission(false);
+    Wire.requestFrom(akAddr, (uint8_t)7);
+
+    int16_t rawX = Wire.read() | (Wire.read() << 8);
+    int16_t rawY = Wire.read() | (Wire.read() << 8);
+    int16_t rawZ = Wire.read() | (Wire.read() << 8);
+    Wire.read(); // ST2 register (required to complete read)
+
+    // Apply sensitivity adjustment and convert to microtesla
+    // AK8963 scale: 4912 uT for 16-bit mode (32760 counts)
+    const float scale = 4912.0f / 32760.0f;
+    magX = rawX * asaX * scale;
+    magY = rawY * asaY * scale;
+    magZ = rawZ * asaZ * scale;
+}
+
+/**
+ * @brief Gets X-axis magnetic field.
+ * @return Magnetic field in microtesla (uT).
+ */
+float MPU9250_Driver::getMagX_uT() { return magX; }
+
+/**
+ * @brief Gets Y-axis magnetic field.
+ * @return Magnetic field in microtesla (uT).
+ */
+float MPU9250_Driver::getMagY_uT() { return magY; }
+
+/**
+ * @brief Gets Z-axis magnetic field.
+ * @return Magnetic field in microtesla (uT).
+ */
+float MPU9250_Driver::getMagZ_uT() { return magZ; }
+
+// ============================================================================
 // Global Compass Instances
 // ============================================================================
 
@@ -285,7 +460,7 @@ void HMC5883L_Driver::readRaw(float &x, float &y, float &z)
 #endif
 
 #ifdef IMU_MPU9250
-    MPU9250 IMU = MPU9250(Wire, 0x68);
+    MPU9250_Driver IMU = MPU9250_Driver();
 #endif
 
 /**
@@ -328,17 +503,13 @@ void Compass::init()
 #endif
 
 #ifdef IMU_MPU9250
-    int status = IMU.begin();
-    if (status < 0)
+    if (!IMU.begin())
     {
-        ESP_LOGE(TAG, "IMU initialization unsuccessful");
+        ESP_LOGE(TAG, "MPU9250/AK8963 initialization failed");
         ESP_LOGE(TAG, "Check IMU wiring or try cycling power");
-        ESP_LOGE(TAG, "Status: %i", status);
+        return;
     }
-    else
-    {
-        ESP_LOGI(TAG, "MPU9250 init OK");
-    }
+    ESP_LOGI(TAG, "MPU9250/AK8963 init OK");
 #endif
 }
 

@@ -37,6 +37,24 @@
 // Data Rate: 0=0.75Hz, 1=1.5Hz, 2=3Hz, 3=7.5Hz, 4=15Hz, 5=30Hz, 6=75Hz
 // Samples: 0=1, 1=2, 2=4, 3=8
 
+// MPU9250/AK8963 Register definitions
+#define MPU9250_ADDRESS       0x68
+#define MPU9250_REG_WHO_AM_I  0x75
+#define MPU9250_REG_PWR_MGMT1 0x6B
+#define MPU9250_REG_INT_PIN   0x37
+
+#define AK8963_ADDRESS        0x0C
+#define AK8963_REG_WIA        0x00
+#define AK8963_REG_ST1        0x02
+#define AK8963_REG_DATA       0x03
+#define AK8963_REG_CNTL1      0x0A
+#define AK8963_REG_CNTL2      0x0B
+#define AK8963_REG_ASAX       0x10
+
+// AK8963 Configuration values
+// Mode: 0=PowerDown, 1=Single, 2=Continuous8Hz, 6=Continuous100Hz
+// Resolution: 0=14bit, 1=16bit (bit 4)
+
 #ifdef HMC5883L
     #define ENABLE_COMPASS
 #endif
@@ -46,7 +64,6 @@
 #endif
 
 #ifdef IMU_MPU9250
-    #include <MPU9250.h>
     #define ENABLE_COMPASS
     #define ENABLE_IMU
 #endif
@@ -93,6 +110,31 @@ private:
     uint8_t read8(uint8_t reg);
     void write8(uint8_t reg, uint8_t value);
     int16_t read16(uint8_t reg);
+};
+
+/**
+ * @class MPU9250_Driver
+ * @brief Native ESP-IDF driver for MPU9250 with AK8963 magnetometer.
+ */
+class MPU9250_Driver
+{
+public:
+    MPU9250_Driver();
+    bool begin(uint8_t addr = MPU9250_ADDRESS);
+    void readSensor();
+    float getMagX_uT();
+    float getMagY_uT();
+    float getMagZ_uT();
+
+private:
+    uint8_t mpuAddr;
+    uint8_t akAddr;
+    float magX, magY, magZ;
+    float asaX, asaY, asaZ;
+
+    uint8_t read8(uint8_t addr, uint8_t reg);
+    void write8(uint8_t addr, uint8_t reg, uint8_t value);
+    int16_t read16LE(uint8_t addr, uint8_t reg);
 };
 
 #define COMPASS_CAL_TIME 16000 /**< Compass calibration duration in milliseconds. */
