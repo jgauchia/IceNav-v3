@@ -2,8 +2,8 @@
  * @file navScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Navigation screen 
- * @version 0.2.3
- * @date 2025-11
+ * @version 0.2.4
+ * @date 2025-12
  */
 
  #include "navScr.hpp"

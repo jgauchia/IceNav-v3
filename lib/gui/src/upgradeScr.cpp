@@ -2,8 +2,8 @@
  * @file upgradeScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Firmware upgrade messages
- * @version 0.2.3
- * @date 2025-11
+ * @version 0.2.4
+ * @date 2025-12
  */
 
  #include "upgradeScr.hpp"

@@ -2,8 +2,8 @@
  * @file gpxScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - GPX list screen
- * @version 0.2.3
- * @date 2025-11
+ * @version 0.2.4
+ * @date 2025-12
  */
 
 #include "gpxScr.hpp"

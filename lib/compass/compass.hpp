@@ -1,8 +1,8 @@
 /**
  * @file compass.hpp
  * @brief Compass definition and functions
- * @version 0.2.3
- * @date 2025-11
+ * @version 0.2.4
+ * @date 2025-12
  */
 
 #pragma once

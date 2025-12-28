@@ -2,8 +2,8 @@
  * @file splashScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Splash screen - NOT LVGL
- * @version 0.2.3
- * @date 2025-11
+ * @version 0.2.4
+ * @date 2025-12
  */
 
 #include "splashScr.hpp"
