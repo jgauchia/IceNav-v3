@@ -32,11 +32,7 @@ BME280_Driver::BME280_Driver() : i2cAddr(BME_ADDRESS), t_fine(0) {}
  */
 uint8_t BME280_Driver::read8(uint8_t reg)
 {
-    Wire.beginTransmission(i2cAddr);
-    Wire.write(reg);
-    Wire.endTransmission();
-    Wire.requestFrom(i2cAddr, (uint8_t)1);
-    return Wire.read();
+    return i2c.read8(i2cAddr, reg);
 }
 
 /**
@@ -46,13 +42,9 @@ uint8_t BME280_Driver::read8(uint8_t reg)
  */
 uint16_t BME280_Driver::read16_LE(uint8_t reg)
 {
-    Wire.beginTransmission(i2cAddr);
-    Wire.write(reg);
-    Wire.endTransmission();
-    Wire.requestFrom(i2cAddr, (uint8_t)2);
-    uint8_t lsb = Wire.read();
-    uint8_t msb = Wire.read();
-    return (uint16_t)(msb << 8 | lsb);
+    uint8_t buffer[2];
+    i2c.readBytes(i2cAddr, reg, buffer, 2);
+    return (uint16_t)((buffer[1] << 8) | buffer[0]);
 }
 
 /**
@@ -72,10 +64,7 @@ int16_t BME280_Driver::readS16_LE(uint8_t reg)
  */
 void BME280_Driver::write8(uint8_t reg, uint8_t value)
 {
-    Wire.beginTransmission(i2cAddr);
-    Wire.write(reg);
-    Wire.write(value);
-    Wire.endTransmission();
+    i2c.write8(i2cAddr, reg, value);
 }
 
 /**
@@ -149,16 +138,14 @@ bool BME280_Driver::begin(uint8_t addr)
  */
 float BME280_Driver::readTemperature()
 {
-    Wire.beginTransmission(i2cAddr);
-    Wire.write(0xFA);
-    Wire.endTransmission();
-    Wire.requestFrom(i2cAddr, (uint8_t)3);
+    uint8_t buffer[3];
+    i2c.readBytes(i2cAddr, 0xFA, buffer, 3);
 
-    int32_t adc_T = Wire.read();
+    int32_t adc_T = buffer[0];
     adc_T <<= 8;
-    adc_T |= Wire.read();
+    adc_T |= buffer[1];
     adc_T <<= 8;
-    adc_T |= Wire.read();
+    adc_T |= buffer[2];
     adc_T >>= 4;
 
     int32_t var1 = ((((adc_T >> 3) - ((int32_t)dig_T1 << 1))) * ((int32_t)dig_T2)) >> 11;
@@ -182,16 +169,14 @@ float BME280_Driver::readPressure()
 {
     readTemperature();
 
-    Wire.beginTransmission(i2cAddr);
-    Wire.write(0xF7);
-    Wire.endTransmission();
-    Wire.requestFrom(i2cAddr, (uint8_t)3);
+    uint8_t buffer[3];
+    i2c.readBytes(i2cAddr, 0xF7, buffer, 3);
 
-    int32_t adc_P = Wire.read();
+    int32_t adc_P = buffer[0];
     adc_P <<= 8;
-    adc_P |= Wire.read();
+    adc_P |= buffer[1];
     adc_P <<= 8;
-    adc_P |= Wire.read();
+    adc_P |= buffer[2];
     adc_P >>= 4;
 
     int64_t var1 = ((int64_t)t_fine) - 128000;
@@ -226,14 +211,12 @@ float BME280_Driver::readHumidity()
 {
     readTemperature();
 
-    Wire.beginTransmission(i2cAddr);
-    Wire.write(0xFD);
-    Wire.endTransmission();
-    Wire.requestFrom(i2cAddr, (uint8_t)2);
+    uint8_t buffer[2];
+    i2c.readBytes(i2cAddr, 0xFD, buffer, 2);
 
-    int32_t adc_H = Wire.read();
+    int32_t adc_H = buffer[0];
     adc_H <<= 8;
-    adc_H |= Wire.read();
+    adc_H |= buffer[1];
 
     int32_t v_x1_u32r = (t_fine - ((int32_t)76800));
 

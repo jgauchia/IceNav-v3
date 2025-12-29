@@ -12,7 +12,7 @@
 
 #define ENABLE_IMU
 
-#include <Wire.h>
+#include "i2c_espidf.hpp"
 #include <cstdint>
 
 #define MPU6050_ADDRESS 0x68

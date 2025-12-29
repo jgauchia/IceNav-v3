@@ -7,6 +7,7 @@
  */
 
 #include "lvglSetup.hpp"
+#include "i2c_espidf.hpp"
 
 lv_display_t *display; /**< LVGL display driver */
 
@@ -167,7 +168,7 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     }
 }
 
-#ifdef TDECK_ESP32S3 
+#ifdef TDECK_ESP32S3
 /**
  * @brief Reads a key value from the T-DECK keyboard via I2C.
  *
@@ -175,12 +176,8 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
  */
 uint32_t keypadGetKey()
 {
-    char key_ch = 0;
-    Wire.requestFrom(0x55, 1);
-    while (Wire.available() > 0) 
-    {
-        key_ch = Wire.read();
-    }
+    uint8_t key_ch = 0;
+    i2c.readBytesRaw(0x55, &key_ch, 1);
     return key_ch;
 }
 

@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <Wire.h>
+#include "i2c_espidf.hpp"
 #include <SPI.h>
 #include <WiFi.h>
 #include <driver/rtc_io.h>

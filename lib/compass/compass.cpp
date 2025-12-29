@@ -30,11 +30,7 @@ QMC5883L_Driver::QMC5883L_Driver() : i2cAddr(QMC5883L_ADDRESS), ctrl1Value(0x01)
  */
 uint8_t QMC5883L_Driver::read8(uint8_t reg)
 {
-    Wire.beginTransmission(i2cAddr);
-    Wire.write(reg);
-    Wire.endTransmission(false);
-    Wire.requestFrom(i2cAddr, (uint8_t)1);
-    return Wire.read();
+    return i2c.read8(i2cAddr, reg);
 }
 
 /**
@@ -44,10 +40,7 @@ uint8_t QMC5883L_Driver::read8(uint8_t reg)
  */
 void QMC5883L_Driver::write8(uint8_t reg, uint8_t value)
 {
-    Wire.beginTransmission(i2cAddr);
-    Wire.write(reg);
-    Wire.write(value);
-    Wire.endTransmission();
+    i2c.write8(i2cAddr, reg, value);
 }
 
 /**
@@ -57,13 +50,9 @@ void QMC5883L_Driver::write8(uint8_t reg, uint8_t value)
  */
 int16_t QMC5883L_Driver::read16(uint8_t reg)
 {
-    Wire.beginTransmission(i2cAddr);
-    Wire.write(reg);
-    Wire.endTransmission(false);
-    Wire.requestFrom(i2cAddr, (uint8_t)2);
-    int16_t value = Wire.read();        // LSB first
-    value |= (Wire.read() << 8);        // MSB
-    return value;
+    uint8_t buffer[2];
+    i2c.readBytes(i2cAddr, reg, buffer, 2);
+    return (int16_t)(buffer[0] | (buffer[1] << 8));
 }
 
 /**
@@ -127,14 +116,12 @@ void QMC5883L_Driver::setSamples(uint8_t samples)
  */
 void QMC5883L_Driver::readRaw(float &x, float &y, float &z)
 {
-    Wire.beginTransmission(i2cAddr);
-    Wire.write(QMC5883L_REG_DATA);
-    Wire.endTransmission(false);
-    Wire.requestFrom(i2cAddr, (uint8_t)6);
+    uint8_t buffer[6];
+    i2c.readBytes(i2cAddr, QMC5883L_REG_DATA, buffer, 6);
 
-    x = (int16_t)(Wire.read() | (Wire.read() << 8));
-    y = (int16_t)(Wire.read() | (Wire.read() << 8));
-    z = (int16_t)(Wire.read() | (Wire.read() << 8));
+    x = (int16_t)(buffer[0] | (buffer[1] << 8));
+    y = (int16_t)(buffer[2] | (buffer[3] << 8));
+    z = (int16_t)(buffer[4] | (buffer[5] << 8));
 }
 
 // ============================================================================
@@ -155,11 +142,7 @@ HMC5883L_Driver::HMC5883L_Driver() : i2cAddr(HMC5883L_ADDRESS), configAValue(0x7
  */
 uint8_t HMC5883L_Driver::read8(uint8_t reg)
 {
-    Wire.beginTransmission(i2cAddr);
-    Wire.write(reg);
-    Wire.endTransmission(false);
-    Wire.requestFrom(i2cAddr, (uint8_t)1);
-    return Wire.read();
+    return i2c.read8(i2cAddr, reg);
 }
 
 /**
@@ -169,10 +152,7 @@ uint8_t HMC5883L_Driver::read8(uint8_t reg)
  */
 void HMC5883L_Driver::write8(uint8_t reg, uint8_t value)
 {
-    Wire.beginTransmission(i2cAddr);
-    Wire.write(reg);
-    Wire.write(value);
-    Wire.endTransmission();
+    i2c.write8(i2cAddr, reg, value);
 }
 
 /**
@@ -182,13 +162,9 @@ void HMC5883L_Driver::write8(uint8_t reg, uint8_t value)
  */
 int16_t HMC5883L_Driver::read16(uint8_t reg)
 {
-    Wire.beginTransmission(i2cAddr);
-    Wire.write(reg);
-    Wire.endTransmission(false);
-    Wire.requestFrom(i2cAddr, (uint8_t)2);
-    int16_t value = Wire.read() << 8;   // MSB first
-    value |= Wire.read();               // LSB
-    return value;
+    uint8_t buffer[2];
+    i2c.readBytes(i2cAddr, reg, buffer, 2);
+    return (int16_t)((buffer[0] << 8) | buffer[1]);
 }
 
 /**
@@ -261,15 +237,13 @@ void HMC5883L_Driver::setSamples(uint8_t samples)
  */
 void HMC5883L_Driver::readRaw(float &x, float &y, float &z)
 {
-    Wire.beginTransmission(i2cAddr);
-    Wire.write(HMC5883L_REG_DATA);
-    Wire.endTransmission(false);
-    Wire.requestFrom(i2cAddr, (uint8_t)6);
+    uint8_t buffer[6];
+    i2c.readBytes(i2cAddr, HMC5883L_REG_DATA, buffer, 6);
 
     // HMC5883L order: X MSB, X LSB, Z MSB, Z LSB, Y MSB, Y LSB
-    x = (int16_t)((Wire.read() << 8) | Wire.read());
-    z = (int16_t)((Wire.read() << 8) | Wire.read());
-    y = (int16_t)((Wire.read() << 8) | Wire.read());
+    x = (int16_t)((buffer[0] << 8) | buffer[1]);
+    z = (int16_t)((buffer[2] << 8) | buffer[3]);
+    y = (int16_t)((buffer[4] << 8) | buffer[5]);
 }
 
 // ============================================================================
@@ -293,11 +267,7 @@ MPU9250_Driver::MPU9250_Driver()
  */
 uint8_t MPU9250_Driver::read8(uint8_t addr, uint8_t reg)
 {
-    Wire.beginTransmission(addr);
-    Wire.write(reg);
-    Wire.endTransmission(false);
-    Wire.requestFrom(addr, (uint8_t)1);
-    return Wire.read();
+    return i2c.read8(addr, reg);
 }
 
 /**
@@ -308,10 +278,7 @@ uint8_t MPU9250_Driver::read8(uint8_t addr, uint8_t reg)
  */
 void MPU9250_Driver::write8(uint8_t addr, uint8_t reg, uint8_t value)
 {
-    Wire.beginTransmission(addr);
-    Wire.write(reg);
-    Wire.write(value);
-    Wire.endTransmission();
+    i2c.write8(addr, reg, value);
 }
 
 /**
@@ -322,13 +289,9 @@ void MPU9250_Driver::write8(uint8_t addr, uint8_t reg, uint8_t value)
  */
 int16_t MPU9250_Driver::read16LE(uint8_t addr, uint8_t reg)
 {
-    Wire.beginTransmission(addr);
-    Wire.write(reg);
-    Wire.endTransmission(false);
-    Wire.requestFrom(addr, (uint8_t)2);
-    int16_t value = Wire.read();
-    value |= (Wire.read() << 8);
-    return value;
+    uint8_t buffer[2];
+    i2c.readBytes(addr, reg, buffer, 2);
+    return (int16_t)(buffer[0] | (buffer[1] << 8));
 }
 
 /**
@@ -411,15 +374,13 @@ void MPU9250_Driver::readSensor()
         return;
 
     // Read magnetometer data (6 bytes) + ST2 to complete read cycle
-    Wire.beginTransmission(akAddr);
-    Wire.write(AK8963_REG_DATA);
-    Wire.endTransmission(false);
-    Wire.requestFrom(akAddr, (uint8_t)7);
+    uint8_t buffer[7];
+    i2c.readBytes(akAddr, AK8963_REG_DATA, buffer, 7);
 
-    int16_t rawX = Wire.read() | (Wire.read() << 8);
-    int16_t rawY = Wire.read() | (Wire.read() << 8);
-    int16_t rawZ = Wire.read() | (Wire.read() << 8);
-    Wire.read(); // ST2 register (required to complete read)
+    int16_t rawX = buffer[0] | (buffer[1] << 8);
+    int16_t rawY = buffer[2] | (buffer[3] << 8);
+    int16_t rawZ = buffer[4] | (buffer[5] << 8);
+    // buffer[6] is ST2 register (required to complete read)
 
     // Apply sensitivity adjustment and convert to microtesla
     // AK8963 scale: 4912 uT for 16-bit mode (32760 counts)

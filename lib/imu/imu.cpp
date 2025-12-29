@@ -34,11 +34,7 @@ MPU6050_Driver::MPU6050_Driver()
  */
 uint8_t MPU6050_Driver::read8(uint8_t reg)
 {
-    Wire.beginTransmission(i2cAddr);
-    Wire.write(reg);
-    Wire.endTransmission(false);
-    Wire.requestFrom(i2cAddr, (uint8_t)1);
-    return Wire.read();
+    return i2c.read8(i2cAddr, reg);
 }
 
 /**
@@ -48,10 +44,7 @@ uint8_t MPU6050_Driver::read8(uint8_t reg)
  */
 void MPU6050_Driver::write8(uint8_t reg, uint8_t value)
 {
-    Wire.beginTransmission(i2cAddr);
-    Wire.write(reg);
-    Wire.write(value);
-    Wire.endTransmission();
+    i2c.write8(i2cAddr, reg, value);
 }
 
 /**
@@ -61,13 +54,9 @@ void MPU6050_Driver::write8(uint8_t reg, uint8_t value)
  */
 int16_t MPU6050_Driver::read16(uint8_t reg)
 {
-    Wire.beginTransmission(i2cAddr);
-    Wire.write(reg);
-    Wire.endTransmission(false);
-    Wire.requestFrom(i2cAddr, (uint8_t)2);
-    int16_t value = Wire.read() << 8;
-    value |= Wire.read();
-    return value;
+    uint8_t buffer[2];
+    i2c.readBytes(i2cAddr, reg, buffer, 2);
+    return (int16_t)((buffer[0] << 8) | buffer[1]);
 }
 
 /**
@@ -200,19 +189,17 @@ float MPU6050_Driver::getTemp()
 void MPU6050_Driver::readAll(float &ax, float &ay, float &az,
                               float &gx, float &gy, float &gz, float &temp)
 {
-    Wire.beginTransmission(i2cAddr);
-    Wire.write(0x3B);
-    Wire.endTransmission(false);
-    Wire.requestFrom(i2cAddr, (uint8_t)14);
+    uint8_t buffer[14];
+    i2c.readBytes(i2cAddr, 0x3B, buffer, 14);
 
-    ax = (int16_t)(Wire.read() << 8 | Wire.read()) / accelScale;
-    ay = (int16_t)(Wire.read() << 8 | Wire.read()) / accelScale;
-    az = (int16_t)(Wire.read() << 8 | Wire.read()) / accelScale;
-    int16_t rawTemp = Wire.read() << 8 | Wire.read();
+    ax = (int16_t)((buffer[0] << 8) | buffer[1]) / accelScale;
+    ay = (int16_t)((buffer[2] << 8) | buffer[3]) / accelScale;
+    az = (int16_t)((buffer[4] << 8) | buffer[5]) / accelScale;
+    int16_t rawTemp = (buffer[6] << 8) | buffer[7];
     temp = (rawTemp / 340.0f) + 36.53f;
-    gx = (int16_t)(Wire.read() << 8 | Wire.read()) / gyroScale;
-    gy = (int16_t)(Wire.read() << 8 | Wire.read()) / gyroScale;
-    gz = (int16_t)(Wire.read() << 8 | Wire.read()) / gyroScale;
+    gx = (int16_t)((buffer[8] << 8) | buffer[9]) / gyroScale;
+    gy = (int16_t)((buffer[10] << 8) | buffer[11]) / gyroScale;
+    gz = (int16_t)((buffer[12] << 8) | buffer[13]) / gyroScale;
 }
 
 /**

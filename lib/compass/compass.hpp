@@ -9,7 +9,7 @@
 
 #include "tft.hpp"
 #include <EasyPreferences.hpp>
-#include <Wire.h>
+#include "i2c_espidf.hpp"
 
 // QMC5883L Register definitions
 #define QMC5883L_ADDRESS      0x0D

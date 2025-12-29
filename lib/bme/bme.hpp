@@ -12,7 +12,7 @@
 
 #define ENABLE_TEMP
 
-#include <Wire.h>
+#include "i2c_espidf.hpp"
 #include <cstdint>
 
 #define BME_ADDRESS 0x76

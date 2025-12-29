@@ -8,7 +8,7 @@
 
 #include <Arduino.h>
 #include <stdint.h>
-#include <Wire.h>
+#include "i2c_espidf.hpp"
 #include <SPI.h>
 #include <WiFi.h>
 #include <esp_wifi.h>
@@ -144,8 +144,7 @@ void setup()
         pinMode(SPI_MISO, INPUT_PULLUP);
     #endif
 
-    Wire.setPins(I2C_SDA_PIN, I2C_SCL_PIN);
-    Wire.begin();
+    i2c.begin(I2C_SDA_PIN, I2C_SCL_PIN);
 
     #ifdef BME280
         initBME();

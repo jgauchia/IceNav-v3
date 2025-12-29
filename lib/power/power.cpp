@@ -89,7 +89,7 @@ void Power::powerOffPeripherals()
     tftOff();
     tft.fillScreen(TFT_BLACK);
     SPI.end();
-    Wire.end();
+    i2c.end();
 }
 
 /**
