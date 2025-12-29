@@ -9,6 +9,7 @@
  #include "firmUpgrade.hpp"
  #include <freertos/FreeRTOS.h>
  #include <freertos/task.h>
+ #include "esp_system.h"
 
  extern Storage storage;
 
@@ -119,5 +120,5 @@ void onUpgrdEnd()
 {
     vTaskDelay(pdMS_TO_TICKS(500));
     ESP_LOGI(TAG, "Rebooting ESP32: ");
-    ESP.restart();
+    esp_restart();
 }

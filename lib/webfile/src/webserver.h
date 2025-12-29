@@ -12,6 +12,7 @@
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "esp_heap_caps.h"
+#include "esp_system.h"
 #include <esp_task_wdt.h>
 #include <algorithm>
 #include <dirent.h>
@@ -635,7 +636,7 @@ static esp_err_t reboot_handler(httpd_req_t *req)
     httpd_resp_send(req, reboot_html, strlen(reboot_html));
 
     vTaskDelay(pdMS_TO_TICKS(100));
-    ESP.restart();
+    esp_restart();
     return ESP_OK;
 }
 

@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <cstring>
 #include "esp_timer.h"
+#include "esp_system.h"
 
 static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
@@ -1451,7 +1452,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
         return false;
 
     // Update memory statistics (simplified)
-    currentMemoryUsage = ESP.getFreeHeap();
+    currentMemoryUsage = esp_get_free_heap_size();
     if (currentMemoryUsage > peakMemoryUsage) 
         peakMemoryUsage = currentMemoryUsage;
 
