@@ -8,8 +8,15 @@
 
 #pragma once
 
-#include <Arduino.h>
 #include <stdint.h>
+#include <cmath>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+#ifndef TWO_PI
+#define TWO_PI (2.0 * M_PI)
+#endif
 
 #define EARTH_RADIUS 6378137             /**< Earth radius in meters */
 #define METER_PER_PIXELS 156543.03       /**< Meters per pixel at zoom level 0 (latitude 0) */
