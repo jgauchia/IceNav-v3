@@ -14,8 +14,7 @@
 #include <esp_wifi.h>
 #include <esp_bt.h>
 #include <esp_log.h>
-#include <AsyncTCP.h>
-#include <ESPAsyncWebServer.h>
+#include <ESPmDNS.h>
 #include <SolarCalculator.h>
 
 // Hardware includes
@@ -197,7 +196,6 @@ void setup()
     if (WiFi.status() == WL_CONNECTED && enableWeb)
     {
         configureWebServer();
-        server.begin();
     }
 
     if (WiFi.getMode() == WIFI_OFF)
@@ -223,17 +221,11 @@ void loop()
         vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
     }
 
-    // Deleting recursive directories in webfile server
-    if (enableWeb && deleteDir)
+    // Process web server tasks (directory deletion)
+    if (enableWeb)
     {
-        deleteDir = false;
-        if (deleteDirRecursive(deletePath.c_str()))
-        {
-            updateList = true;
-            eventRefresh.send("refresh", nullptr, millis());
-            eventRefresh.send("Folder deleted", "updateStatus", millis());
-        }
-      }
+        processWebServerTasks();
+    }
 
     if (isTrackLoaded)
     {
