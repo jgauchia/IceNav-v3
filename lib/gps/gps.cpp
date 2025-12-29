@@ -19,7 +19,7 @@ bool nmea_output_enable = false;   /**< Enables or disables NMEA output. */
 gps_fix fix;             	       /**< Latest parsed GPS fix data. */
 NMEAGPS GPS;              	       /**< NMEAGPS parser instance. */
 
-static const char* TAG PROGMEM = "GPS";
+static const char* TAG = "GPS";
 
 Gps::Gps() {}
 

@@ -6,7 +6,7 @@
  * @date 2025-12
  */
 
-const char index_html[] PROGMEM = R"rawliteral(
+const char index_html[] = R"rawliteral(
 <!DOCTYPE HTML>
 <html lang="en">
 
@@ -392,7 +392,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 </html>
 )rawliteral";
 
-const char reboot_html[] PROGMEM = R"rawliteral(
+const char reboot_html[] = R"rawliteral(
 <!DOCTYPE HTML>
 <html lang="en">
 

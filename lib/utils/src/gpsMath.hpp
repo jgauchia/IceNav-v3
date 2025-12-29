@@ -46,8 +46,8 @@ static inline __attribute__((always_inline)) float RAD2DEG(float rad)
 extern float midLat;                    /**< Midpoint between two latitudes */
 extern float midLon;                    /**< Midpoint between two longitudes */
 
-static const char *degreeFormat PROGMEM = "%03d\xC2\xB0 %02d\' %.2f\" %c"; /**< Format string for degrees (DDD°MM'SS" + hemisphere) */
-static const char* TAGMATH PROGMEM = "MATH";
+static const char *degreeFormat = "%03d\xC2\xB0 %02d\' %.2f\" %c"; /**< Format string for degrees (DDD°MM'SS" + hemisphere) */
+static const char* TAGMATH = "MATH";
 
 bool initTrigLUT();
 

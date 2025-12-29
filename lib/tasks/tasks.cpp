@@ -15,7 +15,7 @@ TaskHandle_t LVGLTaskHandler;      /**< Handle for the LVGL task */
 xSemaphoreHandle gpsMutex;         /**< Mutex for GPS resource protection */
 extern Gps gps;                    /**< Global GPS instance for data processing */
 
-static const char* TAG PROGMEM = "Task"; /**< Logging tag for task operations */
+static const char* TAG = "Task"; /**< Logging tag for task operations */
 
 /**
  * @brief GPS data processing task

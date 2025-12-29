@@ -17,7 +17,7 @@ extern Compass compass;
 extern Gps gps;
 extern Storage storage;
 extern std::vector<wayPoint> trackData; /**< Vector containing track waypoints */
-const char* TAG PROGMEM = "Maps";
+const char* TAG = "Maps";
 
 uint16_t Maps::currentDrawColor = TFT_WHITE;
 uint8_t Maps::PALETTE[256] = {0};

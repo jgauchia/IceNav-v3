@@ -8,7 +8,7 @@
 
 #include "settings.hpp"
 
-static const char* TAG PROGMEM = "Settings";
+static const char* TAG = "Settings";
 
 MAP mapSet;
 NAVIGATION navSet;

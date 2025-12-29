@@ -10,7 +10,7 @@
 #include "cli.hpp"
 #include "esp_heap_caps.h"
 
-static const char logo[] PROGMEM =
+static const char logo[] =
 "\r\n"
 "░▒▓█▓▒░  ░▒▓██████▓▒░  ░▒▓████████▓▒░ ░▒▓███████▓▒░   ░▒▓██████▓▒░  ░▒▓█▓▒░░▒▓█▓▒░ \r\n"
 "░▒▓█▓▒░ ░▒▓█▓▒░░▒▓█▓▒░ ░▒▓█▓▒░        ░▒▓█▓▒░░▒▓█▓▒░ ░▒▓█▓▒░░▒▓█▓▒░ ░▒▓█▓▒░░▒▓█▓▒░ \r\n"
@@ -23,7 +23,7 @@ static const char logo[] PROGMEM =
 ""
 ;
 
-static const char* TAG PROGMEM = "CLI";
+static const char* TAG = "CLI";
 
 extern Power power;
 

@@ -21,23 +21,23 @@
 #include "globalGpxDef.h"
 #include "gpsMath.hpp"
 
-static const char* TAGGPX PROGMEM = "GPXParser";
+static const char* TAGGPX = "GPXParser";
 
-static const char* gpxWaypointTag PROGMEM = "wpt";   /**< GPX waypoint tag. */
-static const char* gpxTrackTag PROGMEM    = "trk";   /**< GPX track tag. */
-static const char* gpxNameElem PROGMEM    = "name";  /**< GPX name element. */
-static const char* gpxLatElem PROGMEM     = "lat";   /**< GPX latitude attribute. */
-static const char* gpxLonElem PROGMEM     = "lon";   /**< GPX longitude attribute. */
-static const char* gpxEleElem PROGMEM     = "ele";   /**< GPX elevation element. */
-static const char* gpxTimeElem PROGMEM    = "time";  /**< GPX time element. */
-static const char* gpxDescElem PROGMEM    = "desc";  /**< GPX description element. */
-static const char* gpxSrcElem PROGMEM     = "src";   /**< GPX source element. */
-static const char* gpxSymElem PROGMEM     = "sym";   /**< GPX symbol element. */
-static const char* gpxTypeElem PROGMEM    = "type";  /**< GPX type element. */
-static const char* gpxSatElem PROGMEM     = "sat";   /**< GPX satellites element. */
-static const char* gpxHdopElem PROGMEM    = "hdop";  /**< GPX horizontal dilution of precision element. */
-static const char* gpxVdopElem PROGMEM    = "vdop";  /**< GPX vertical dilution of precision element. */
-static const char* gpxPdopElem PROGMEM    = "pdop";  /**< GPX position dilution of precision element. */
+static const char* gpxWaypointTag = "wpt";   /**< GPX waypoint tag. */
+static const char* gpxTrackTag    = "trk";   /**< GPX track tag. */
+static const char* gpxNameElem    = "name";  /**< GPX name element. */
+static const char* gpxLatElem     = "lat";   /**< GPX latitude attribute. */
+static const char* gpxLonElem     = "lon";   /**< GPX longitude attribute. */
+static const char* gpxEleElem     = "ele";   /**< GPX elevation element. */
+static const char* gpxTimeElem    = "time";  /**< GPX time element. */
+static const char* gpxDescElem    = "desc";  /**< GPX description element. */
+static const char* gpxSrcElem     = "src";   /**< GPX source element. */
+static const char* gpxSymElem     = "sym";   /**< GPX symbol element. */
+static const char* gpxTypeElem    = "type";  /**< GPX type element. */
+static const char* gpxSatElem     = "sat";   /**< GPX satellites element. */
+static const char* gpxHdopElem    = "hdop";  /**< GPX horizontal dilution of precision element. */
+static const char* gpxVdopElem    = "vdop";  /**< GPX vertical dilution of precision element. */
+static const char* gpxPdopElem    = "pdop";  /**< GPX position dilution of precision element. */
 
 
 /**

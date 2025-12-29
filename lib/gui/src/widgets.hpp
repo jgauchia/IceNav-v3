@@ -50,15 +50,15 @@ static lv_coord_t newY = 0;              /**< New Y coordinate for widget moveme
 
 extern bool isScrolled;                  /**< Flag to indicate when tileview was scrolled */
 
-static const char *arrowIconFile PROGMEM      = "/arrow.bin";       /**< Compass arrow icon */
-static const char *positionIconFile PROGMEM   = "/pin.bin";         /**< Position icon */
-static const char *altitudeIconFile PROGMEM   = "/altit.bin";       /**< Altitude icon */
-static const char *speedIconFile PROGMEM      = "/speed.bin";       /**< Speed icon */
-static const char *sunriseIconFile PROGMEM    = "/sunrise.bin";     /**< Sunrise icon */
-static const char *sunsetIconFile PROGMEM     = "/sunset.bin";      /**< Sunset icon */
-static const char *navArrowIconFile PROGMEM   = "/navarrow.bin";    /**< Navigation arrow icon */
-static const char *zoomIconFile PROGMEM       = "/zoom.bin";        /**< Zoom map icon */
-static const char *mapSpeedIconFile PROGMEM   = "/mapspeed.bin";    /**< Speed map icon */
+static const char *arrowIconFile      = "/arrow.bin";       /**< Compass arrow icon */
+static const char *positionIconFile   = "/pin.bin";         /**< Position icon */
+static const char *altitudeIconFile   = "/altit.bin";       /**< Altitude icon */
+static const char *speedIconFile      = "/speed.bin";       /**< Speed icon */
+static const char *sunriseIconFile    = "/sunrise.bin";     /**< Sunrise icon */
+static const char *sunsetIconFile     = "/sunset.bin";      /**< Sunset icon */
+static const char *navArrowIconFile   = "/navarrow.bin";    /**< Navigation arrow icon */
+static const char *zoomIconFile       = "/zoom.bin";        /**< Zoom map icon */
+static const char *mapSpeedIconFile   = "/mapspeed.bin";    /**< Speed map icon */
 
 
 void positionWidget(lv_obj_t *screen);

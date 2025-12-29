@@ -10,7 +10,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-static const char* TAG PROGMEM = "Compass";
+static const char* TAG = "Compass";
 
 // ============================================================================
 // QMC5883L Native Driver Implementation
