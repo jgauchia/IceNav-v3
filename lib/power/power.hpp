@@ -9,9 +9,11 @@
 #pragma once
 
 #include "i2c_espidf.hpp"
-#include <SPI.h>
-#include <WiFi.h>
 #include <driver/rtc_io.h>
+#include <driver/gpio.h>
+#include <driver/spi_master.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 #include <esp_bt.h>
 #include <esp_bt_main.h>
 #include <esp_wifi.h>
