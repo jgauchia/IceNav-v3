@@ -9,6 +9,11 @@
 #include "lvglSetup.hpp"
 #include "i2c_espidf.hpp"
 #include "esp_heap_caps.h"
+#include "esp_timer.h"
+#include "driver/gpio.h"
+
+// ESP-IDF native millis() replacement
+static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 lv_display_t *display; /**< LVGL display driver */
 
@@ -88,7 +93,7 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 
     int count = tft.getTouch(touchRaw, TOUCH_MAX_POINTS);
 
-    unsigned long now = millis();
+    unsigned long now = millis_idf();
     float dt_ms = (now > lastTime) ? (float)(now - lastTime) : 1.0f;
 
     if (count == 0)
@@ -110,13 +115,13 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
         if (countTouchReleases)
         {
             countTouchReleases = false;
-            uint32_t touchReleaseTime = millis();
+            uint32_t touchReleaseTime = millis_idf();
             if (!firstTouchReleaseTime)
                 firstTouchReleaseTime = touchReleaseTime;
             numberTouchReleases++;
         }
 
-        if (millis() - firstTouchReleaseTime > TOUCH_DOUBLE_TOUCH_INTERVAL)
+        if (millis_idf() - firstTouchReleaseTime > TOUCH_DOUBLE_TOUCH_INTERVAL)
         {
             if (numberTouchReleases == 2)
             {
@@ -262,7 +267,7 @@ void gpioClickEvent(lv_event_t *event)
  */
 uint8_t gpioGetBut()
 {
-    return digitalRead(BOARD_BOOT_PIN);
+    return gpio_get_level((gpio_num_t)BOARD_BOOT_PIN);
 }
 
 #endif
