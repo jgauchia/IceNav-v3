@@ -7,6 +7,8 @@
  */
 
 #include "tft.hpp"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 TFT_eSPI tft = TFT_eSPI();
 bool repeatCalib = false;
@@ -22,7 +24,7 @@ extern Storage storage;
 void tftOn(uint8_t brightness)
 {
     tft.writecommand(0x11);
-    delay(120);
+    vTaskDelay(pdMS_TO_TICKS(120));
     tft.setBrightness(brightness);
 }
 
@@ -85,7 +87,7 @@ void touchCalibrate()
         tft.calibrateTouch(calData, TFT_WHITE, TFT_BLACK, std::max(tft.width(), tft.height()) >> 3);
         touchSprite.drawCenterString("DONE!", tft.width() >> 1, (tft.height() >> 1) + (tft.fontHeight(fontSmall) * 2), fontLarge);
         touchSprite.pushSprite(0,0);
-        delay(500);
+        vTaskDelay(pdMS_TO_TICKS(500));
         touchSprite.drawCenterString("TOUCH TO CONTINUE.", tft.width() >> 1, (tft.height() >> 1) + (tft.fontHeight(fontLarge) * 2), fontSmall);
         touchSprite.pushSprite(0,0);
 
