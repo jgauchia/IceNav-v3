@@ -9,6 +9,9 @@
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include "esp_timer.h"
+
+static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 static const char* TAG = "Compass";
 
@@ -602,9 +605,9 @@ void Compass::calibrate()
     while (!tft.getTouch(&touchX, &touchY))
     {
     };
-    delay(1000);
+    vTaskDelay(pdMS_TO_TICKS(1000));
 
-    unsigned long calTimeWas = millis();
+    unsigned long calTimeWas = millis_idf();
 
     read(x, y, z);
 
@@ -624,7 +627,7 @@ void Compass::calibrate()
         if (y < minY)
             minY = y;
 
-        int secmillis = millis() - calTimeWas;
+        int secmillis = millis_idf() - calTimeWas;
         int secs = (int)((COMPASS_CAL_TIME - secmillis + 1000) / 1000);
         compassCalSprite.setTextColor(TFT_WHITE, TFT_BLACK);
         compassCalSprite.setTextSize(3);

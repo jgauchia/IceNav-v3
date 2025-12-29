@@ -12,6 +12,9 @@
 #include <string>
 #include <algorithm>
 #include <cstring>
+#include "esp_timer.h"
+
+static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 extern Compass compass;
 extern Gps gps;
@@ -1479,7 +1482,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     int totalLines = 0;
     int batchFlushes = 0;
     int batchOptimizations = 0;  // Track optimizations per tile
-    unsigned long renderStart = millis();
+    unsigned long renderStart = millis_idf();
     
     // Optimized flushBatch with better memory access patterns
     auto flushCurrentBatch = [&]() 
@@ -1661,7 +1664,7 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     // Add successfully rendered tile to cache
     addToCache(path, map);
 
-    unsigned long renderTime = millis() - renderStart;
+    unsigned long renderTime = millis_idf() - renderStart;
 
     return true;
 }

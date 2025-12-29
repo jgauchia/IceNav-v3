@@ -9,6 +9,8 @@
 #ifndef DISABLE_CLI
 #include "cli.hpp"
 #include "esp_heap_caps.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 static const char logo[] =
 "\r\n"
@@ -208,7 +210,7 @@ void wcli_abort_handler()
     if (nmea_output_enable)
     {
         nmea_output_enable = false;
-        delay(100);
+        vTaskDelay(pdMS_TO_TICKS(100));
         Serial.println("\r\nCancel NMEA output!");
     } 
 }

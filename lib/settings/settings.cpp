@@ -7,6 +7,8 @@
  */
 
 #include "settings.hpp"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 static const char* TAG = "Settings";
 
@@ -142,14 +144,14 @@ void saveGPSBaud(uint16_t gpsBaud)
             gpsPort.flush();
             gpsPort.println("$PCAS00*01\r\n");
             gpsPort.flush();
-            delay(500);
+            vTaskDelay(pdMS_TO_TICKS(500));
         #endif
         gpsPort.flush();
         gpsPort.end();
-        delay(500);
+        vTaskDelay(pdMS_TO_TICKS(500));
         gpsPort.setRxBufferSize(1024);
         gpsPort.begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
-        delay(500);
+        vTaskDelay(pdMS_TO_TICKS(500));
     }
     else
     {
@@ -159,10 +161,10 @@ void saveGPSBaud(uint16_t gpsBaud)
         {
             gpsPort.flush();
             gpsPort.end();
-            delay(500);
+            vTaskDelay(pdMS_TO_TICKS(500));
             gpsPort.setRxBufferSize(1024);
             gpsPort.begin(gpsBaudDetected, SERIAL_8N1, GPS_RX, GPS_TX);
-            delay(500);
+            vTaskDelay(pdMS_TO_TICKS(500));
         }
   }
 }
@@ -184,7 +186,7 @@ void saveGPSUpdateRate(uint16_t gpsUpdateRate)
         gpsPort.flush();
         gpsPort.println("$PCAS00*01\r\n");
         gpsPort.flush();
-        delay(500);
+        vTaskDelay(pdMS_TO_TICKS(500));
     #endif
 }
 

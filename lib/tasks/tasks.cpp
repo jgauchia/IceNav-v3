@@ -67,7 +67,7 @@ void gpsTask(void *pvParameters)
 void initGpsTask()
 {
     xTaskCreatePinnedToCore(gpsTask, PSTR("GPS Task"), 8192, NULL, 1, NULL, 0);
-    delay(500);
+    vTaskDelay(pdMS_TO_TICKS(500));
 }
 
 /**

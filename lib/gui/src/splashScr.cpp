@@ -8,6 +8,9 @@
 
 #include "splashScr.hpp"
 #include "esp_heap_caps.h"
+#include "esp_timer.h"
+
+static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 static unsigned long millisActual = 0; /**< Current value of the system timer in milliseconds */
 extern Maps mapView;
@@ -60,7 +63,7 @@ void splashScreen()
     mapView.generateMap(zoom);
   
     #ifdef ICENAV_BOARD
-        millisActual = millis();
+        millisActual = millis_idf();
 
         tft.setBrightness(defBright);
 
@@ -90,7 +93,7 @@ void splashScreen()
         splashSprite.createSprite(tft.width(), tft.height());  
 
         tft.fillScreen(TFT_BLACK);
-        millisActual = millis();
+        millisActual = millis_idf();
         tft.setBrightness(0);
 
         static uint16_t pngHeight = 0;
@@ -149,22 +152,22 @@ void splashScreen()
             tft.setBrightness(fadeIn);
             if (fadeIn == 0)
             splashSprite.pushSprite(0,0);
-            millisActual = millis();
-            while (millis() < millisActual + 15);
+            millisActual = millis_idf();
+            while (millis_idf() < millisActual + 15);
         }
 
-        while (millis() < millisActual + 100);
+        while (millis_idf() < millisActual + 100);
 
         for (uint8_t fadeOut = maxBrightness; fadeOut > 0; fadeOut--)
         {
             tft.setBrightness(fadeOut);
-            millisActual = millis();
-            while (millis() < millisActual + 15);
+            millisActual = millis_idf();
+            while (millis_idf() < millisActual + 15);
         }
 
         tft.fillScreen(TFT_BLACK);
 
-        while (millis() < millisActual + 100);
+        while (millis_idf() < millisActual + 100);
 
         tft.setBrightness(defBright);
     
