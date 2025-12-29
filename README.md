@@ -178,7 +178,7 @@ Download link: [tools/mass_copy/rsync_copy.sh](tools/mass_copy/rsync_copy.sh)
 > [!IMPORTANT]
 >Please install first [PlatformIO](http://platformio.org/) open source ecosystem for IoT development compatible with **Arduino** IDE and its command line tools (Windows, MacOs and Linux). Also, you may need to install [git](http://git-scm.com/) in your system.
 > 
->For ESP32 board run:
+>For ICENAV board run:
 > 
 >```bash
 >pio run --target upload
