@@ -6,7 +6,7 @@
 ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 * Note: Under development (experimental features under devel branch)
 * There is the possibility to use two types of maps: Rendered Maps or Tiles (large files), and Vector Maps (small files).
-* Recommended to use an ESP32-S3 with PSRAM and a screen with a parallel bus for optimal performance, although other ESP models and SPI screens also yield good results.
+* Recommended to use an ESP32-S3 with PSRAM and a screen with a parallel bus for optimal performance, although SPI screens also yield good results.
 
 <table>
   <tr>
@@ -69,13 +69,13 @@ Currently, IceNav works with the following hardware setups and specs
  
 > [!IMPORTANT]
 > Please review the platformio.ini file to choose the appropriate environment as well as the different build flags for your correct setup.
+> Support for ESP32-S2 is discontinued due to IRAM issues.
 
 ### Boards
 
 |                        | FLASH | PSRAM | Environment                  | Full Support |
 |:-----------------------|:-----:|:-----:|:-----------------------------|--------------|
 | ICENAV (Custom ESP32S3) |  16M  |  8M   | ``` [env:ICENAV_BOARD] ```   |    ✔️ YES      |
-| ESP32                  |  16M  |  4M   | ``` [env:ESP32_N16R4] ```    |    ✔️ YES      |
 | ESP32S3                |  16M  |  8M   | ``` [env:ESP32S3_N16R8] ```  |    ✔️ YES      |
 | [ELECROW ESP32 Terminal](https://www.elecrow.com/esp-terminal-with-esp32-3-5-inch-parallel-480x320-tft-capacitive-touch-display-rgb-by-chip-ili9488.html) |  16M  |  8M   | ``` [env:ELECROW_ESP32] ```  | ✔️ YES [^1] [^2]|
 | [MAKERFABS ESP32S3](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) |  16M  |  2M   | ``` [env:MAKERF_ESP32S3] ``` |  🚧 TESTING    |
