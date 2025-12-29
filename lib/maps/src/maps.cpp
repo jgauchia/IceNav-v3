@@ -1687,11 +1687,11 @@ void Maps::initUnifiedPool()
     }
     
     #ifdef BOARD_HAS_PSRAM
-        size_t psramFree = ESP.getFreePsram();
+        size_t psramFree = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
         maxUnifiedPoolEntries = std::min(static_cast<size_t>(100), psramFree / (1024 * 32)); // 32KB per entry
         ESP_LOGI(TAG, "PSRAM available: %zu bytes, setting unified pool size to %zu entries", psramFree, maxUnifiedPoolEntries);
     #else
-        size_t ramFree = ESP.getFreeHeap();
+        size_t ramFree = heap_caps_get_free_size(MALLOC_CAP_8BIT);
         maxUnifiedPoolEntries = std::min(static_cast<size_t>(25), ramFree / (1024 * 64)); // 64KB per entry
         ESP_LOGI(TAG, "RAM available: %zu bytes, setting unified pool size to %zu entries", ramFree, maxUnifiedPoolEntries);
     #endif
@@ -1858,12 +1858,12 @@ void Maps::initBatchRendering()
 {
     // Detect optimal batch size based on hardware capabilities
     #ifdef BOARD_HAS_PSRAM
-        size_t psramFree = ESP.getFreePsram();
-        if (psramFree >= 4 * 1024 * 1024) 
+        size_t psramFree = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+        if (psramFree >= 4 * 1024 * 1024)
             maxBatchSize = 512;  // High-end ESP32-S3: 512 lines
         else if (psramFree >= 2 * 1024 * 1024)
             maxBatchSize = 256;  // Mid-range ESP32-S3: 256 lines
-        else 
+        else
             maxBatchSize = 128;  // Low-end ESP32-S3: 128 lines
     #else
         maxBatchSize = 64;  // ESP32 without PSRAM: 64 lines

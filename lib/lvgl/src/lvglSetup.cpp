@@ -8,6 +8,7 @@
 
 #include "lvglSetup.hpp"
 #include "i2c_espidf.hpp"
+#include "esp_heap_caps.h"
 
 lv_display_t *display; /**< LVGL display driver */
 
@@ -360,9 +361,9 @@ void initLVGL()
     size_t DRAW_BUF_SIZE = 0;
     
     #ifdef BOARD_HAS_PSRAM
-        assert(ESP.getFreePsram());
+        assert(heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
 
-        if ( ESP.getPsramSize() >= 4000000 )
+        if ( heap_caps_get_total_size(MALLOC_CAP_SPIRAM) >= 4000000 )
             // >4Mb PSRAM
             DRAW_BUF_SIZE = TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t);
         else

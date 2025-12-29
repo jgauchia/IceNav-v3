@@ -8,6 +8,7 @@
 
 #ifndef DISABLE_CLI
 #include "cli.hpp"
+#include "esp_heap_caps.h"
 
 static const char logo[] PROGMEM =
 "\r\n"
@@ -64,11 +65,13 @@ void wcli_info(char *args, Stream *response)
     response->printf("SPIFFS total\t: %u bytes\r\n", totalSPIFFS);
     response->printf("SPIFFS used\t: %u bytes\r\n", usedSPIFFS);
     response->printf("SPIFFS free\t: %u bytes\r\n", freeSPIFFS);
-    if (psramFound())
+    size_t psramTotal = heap_caps_get_total_size(MALLOC_CAP_SPIRAM);
+    if (psramTotal > 0)
     {
-        response->printf("PSRAM total\t: %u bytes\r\n", ESP.getPsramSize());
-        response->printf("PSRAM used\t: %u bytes\r\n", ESP.getPsramSize()-ESP.getFreePsram());
-        response->printf("PSRAM free\t: %u bytes\r\n", ESP.getFreePsram());
+        size_t psramFree = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+        response->printf("PSRAM total\t: %zu bytes\r\n", psramTotal);
+        response->printf("PSRAM used\t: %zu bytes\r\n", psramTotal - psramFree);
+        response->printf("PSRAM free\t: %zu bytes\r\n", psramFree);
     }
     response->printf("Flash size\t: %u bytes\r\n", ESP.getFlashChipSize());
     response->printf("Program size\t: %u bytes\r\n", ESP.getSketchSize());

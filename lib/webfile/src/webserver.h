@@ -9,6 +9,7 @@
 #include "storage.hpp"
 #include <ESPmDNS.h>
 #include <esp_task_wdt.h>
+#include "esp_heap_caps.h"
 #include <algorithm> 
 #include <dirent.h>
 #include <stdio.h>
@@ -468,16 +469,16 @@ void sendSpiffsImage(const char *imageFile,AsyncWebServerRequest *request)
         size_t size = storage.size(imageFile);
 
         #ifdef BOARD_HAS_PSRAM
-            uint8_t *buffer = (uint8_t*)ps_malloc(sizeof(uint8_t)*size);
+            uint8_t *buffer = (uint8_t*)heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
         #else
-            uint8_t *buffer = (uint8_t*)malloc(sizeof(uint8_t)*size);
+            uint8_t *buffer = (uint8_t*)heap_caps_malloc(size, MALLOC_CAP_8BIT);
         #endif
 
         storage.read(file,buffer,size);
         storage.close(file);
         request->send_P(200,"image/png",buffer,size);
-                
-        free(buffer);
+
+        heap_caps_free(buffer);
     }
 }
 

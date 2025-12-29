@@ -7,6 +7,7 @@
  */
 
 #include "splashScr.hpp"
+#include "esp_heap_caps.h"
 
 static unsigned long millisActual = 0; /**< Current value of the system timer in milliseconds */
 extern Maps mapView;
@@ -125,7 +126,7 @@ void splashScreen()
         splashSprite.drawString(statusString, 0, tft.height() - 40*margin);
 
         memset(&statusString[0], 0, sizeof(statusString));
-        sprintf(statusString, statusLine3, ESP.getPsramSize(), ESP.getPsramSize() - ESP.getFreePsram());
+        sprintf(statusString, statusLine3, heap_caps_get_total_size(MALLOC_CAP_SPIRAM), heap_caps_get_total_size(MALLOC_CAP_SPIRAM) - heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
         splashSprite.drawString(statusString, 0, tft.height() - 30*margin);
 
         memset(&statusString[0], 0, sizeof(statusString));
