@@ -62,22 +62,7 @@ class Maps
             bool isValid;          /**< Cache entry validity */
             char filePath[255];    /**< Original file path */
         };
-        
-        
-        struct LineSegment	/**< Line segment structure */
-        {
-            int x0, y0, x1, y1;
-            uint16_t color;
-        };
-        
-        struct RenderBatch	/**< Efficient rendering batch structure */
-        {
-            LineSegment* segments;     /**< Array of line segments */
-            size_t count;              /**< Number of segments in batch */
-            size_t capacity;           /**< Maximum capacity of batch */
-            uint16_t color;            /**< Common color for batch */
-        };
-        
+
         struct PolygonBounds	/**< Polygon bounding box structure */
         {
             int minX, minY, maxX, maxY; /**< Bounding box coordinates */
@@ -148,14 +133,7 @@ class Maps
         static uint32_t polygonRenderCount;                                        /**< Total polygons rendered */
         static uint32_t polygonCulledCount;                                        /**< Polygons culled (not rendered) */
         static uint32_t polygonOptimizedCount;                                     /**< Polygons using optimized algorithms */
-        
-        // Efficient batch rendering system
-        static RenderBatch* activeBatch;                                          /**< Currently active render batch */
-        static size_t maxBatchSize;                                               /**< Maximum batch size for hardware */
-        static uint32_t batchRenderCount;                                         /**< Total batches rendered */
-        static uint32_t batchOptimizationCount;                                   /**< Batches using optimization */
-        static uint32_t batchFlushCount;                                          /**< Total batch flushes */
-        
+
         tileBounds totalBounds; 													/**< Map boundaries */
         uint16_t wptPosX, wptPosY;                                                  /**< Waypoint position on screen map */
         TFT_eSprite mapTempSprite = TFT_eSprite(&tft);                              /**< Full map sprite (not showed) */
@@ -264,14 +242,6 @@ class Maps
                 MemoryGuard(const MemoryGuard&) = delete;
                 MemoryGuard& operator=(const MemoryGuard&) = delete;
         };
-    
-        // Efficient batch rendering methods
-        void initBatchRendering();                                                /**< Initialize batch rendering system */
-        void createRenderBatch(size_t capacity);                                  /**< Create new render batch */
-        void addToBatch(int x0, int y0, int x1, int y1, uint16_t color);         /**< Add line segment to current batch */
-        void flushBatch(TFT_eSprite& map, int& optimizations);                  /**< Render and clear current batch */
-        bool canBatch(uint16_t color);                                           /**< Check if line can be added to current batch */
-        size_t getOptimalBatchSize();                                            /**< Get optimal batch size for hardware */
 
         bool fillPolygons;                                             /**< Flag for polygon filling */
         void* mapBuffer;                                               /**< Pointer to map screen sprite */

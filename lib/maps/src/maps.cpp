@@ -56,14 +56,6 @@ uint32_t Maps::polygonCulledCount = 0;
 uint32_t Maps::polygonOptimizedCount = 0;
 
 
-// Efficient batch rendering static variables
-Maps::RenderBatch* Maps::activeBatch = nullptr;
-size_t Maps::maxBatchSize = 0;
-uint32_t Maps::batchRenderCount = 0;
-uint32_t Maps::batchOptimizationCount = 0;
-uint32_t Maps::batchFlushCount = 0;
-
-
 /**
  * @brief Map Class constructor
  *
@@ -330,9 +322,6 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
     polygonRenderCount = 0;
     polygonCulledCount = 0;
     polygonOptimizedCount = 0;
-    
-    // Initialize batch rendering
-    initBatchRendering();
 }
 
 /**
@@ -1470,38 +1459,14 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     if (num_cmds == 0)
         return false;
 
-    // Use optimal batch size for this hardware
-    const size_t optimalBatchSize = getOptimalBatchSize();
-    
-    // Initialize efficient batch rendering with DMA optimization
-    createRenderBatch(optimalBatchSize);
-    
     // Enable DMA for faster rendering
     map.initDMA();
-    
-    int batchCount = 0;
 
     // Track memory allocations for statistics
     totalMemoryAllocations++;
 
     int executed = 0;
-    int totalLines = 0;
-    int batchFlushes = 0;
-    int batchOptimizations = 0;  // Track optimizations per tile
     unsigned long renderStart = millis_idf();
-    
-    // Optimized flushBatch with better memory access patterns
-    auto flushCurrentBatch = [&]() 
-    {
-        if (batchCount == 0) return;
-        
-        totalLines += batchCount;
-        batchFlushes++;
-        
-        // Use efficient batch rendering
-        flushBatch(map, batchOptimizations);
-        batchCount = 0;
-    };
 
     for (uint32_t cmd_idx = 0; cmd_idx < num_cmds; cmd_idx++) 
     {
@@ -1513,7 +1478,6 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
         switch (cmdType)
         {
             case SET_COLOR:
-                flushCurrentBatch();
                 if (offset < dataSize) 
                 {
                     current_color = data[offset++];
@@ -1522,7 +1486,6 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                 }
                 break;
             case SET_COLOR_INDEX:
-                flushCurrentBatch();
                 {
                     const uint32_t color_index = readVarint(data, offset, dataSize);
                     current_color = paletteToRGB332(color_index);
@@ -1566,7 +1529,6 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                             px[i] = uint16ToPixel(prevX) + xOffset;
                             py[i] = uint16ToPixel(prevY) + yOffset;
                         }
-                        flushCurrentBatch();
                         for (uint32_t i = 1; i < numPoints; ++i)
                         {
                             if (shouldDrawLine(px[i-1] - xOffset, py[i-1] - yOffset, px[i] - xOffset, py[i] - yOffset))
@@ -1585,7 +1547,6 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                 }
                 break;
             case DRAW_STROKE_POLYGON:
-                flushCurrentBatch();
                 {
                     readVarint(data, offset, dataSize);
                     const uint32_t numPoints = readVarint(data, offset, dataSize);
@@ -1638,25 +1599,13 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
                 }
                 break;
             default:
-                flushCurrentBatch();
-                if (offset < dataSize - 4) 
+                if (offset < dataSize - 4)
                     offset += 4;
-
                 break;
         }
 
         if (offset <= cmdStartOffset)
             break;
-    }
-    flushCurrentBatch();
-    
-    // Clean up batch rendering
-    if (activeBatch) 
-    {
-        if (activeBatch->segments) 
-            delete[] activeBatch->segments;
-        delete activeBatch;
-        activeBatch = nullptr;
     }
 
     if (executed == 0) 
@@ -1852,158 +1801,3 @@ void Maps::unifiedDealloc(void* ptr)
     heap_caps_free(ptr);
 }
 
-/**
- * @brief Initialize batch rendering system, detecting optimal batch size based on hardware
- *
- * @details Analyzes available PSRAM or RAM to determine optimal batch size for line rendering performance.
- *          Sets up batch rendering counters and initializes the active batch pointer to nullptr.
- */
-void Maps::initBatchRendering()
-{
-    // Detect optimal batch size based on hardware capabilities
-    #ifdef BOARD_HAS_PSRAM
-        size_t psramFree = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
-        if (psramFree >= 4 * 1024 * 1024)
-            maxBatchSize = 512;  // High-end ESP32-S3: 512 lines
-        else if (psramFree >= 2 * 1024 * 1024)
-            maxBatchSize = 256;  // Mid-range ESP32-S3: 256 lines
-        else
-            maxBatchSize = 128;  // Low-end ESP32-S3: 128 lines
-    #else
-        maxBatchSize = 64;  // ESP32 without PSRAM: 64 lines
-    #endif
-    
-    activeBatch = nullptr;
-    batchRenderCount = 0;
-    batchOptimizationCount = 0;
-    batchFlushCount = 0;
-    
-    ESP_LOGI(TAG, "Batch rendering initialized");
-}
-
-/**
- * @brief Create a new render batch with specified capacity
- *
- * @details Allocates memory for a new render batch with the specified capacity for line segments.
- *          Cleans up any existing active batch before creating the new one.
- * 
- * @param capacity Number of line segments the batch can hold
- */
-void Maps::createRenderBatch(size_t capacity)
-{
-    if (activeBatch) 
-    {
-        if (activeBatch->segments) 
-            delete[] activeBatch->segments;
-        delete activeBatch;
-        activeBatch = nullptr;
-    }
-    
-    activeBatch = new RenderBatch();
-    activeBatch->segments = new LineSegment[capacity];
-    activeBatch->count = 0;
-    activeBatch->capacity = capacity;
-    activeBatch->color = 0;
-}
-
-/**
- * @brief Add a line segment to the current batch if possible
- *
- * @details Adds a line segment to the current batch if it matches the batch color and there's capacity.
- *          Creates a new batch if none exists. Only adds segments that can be batched together.
- * 
- * @param x0    Starting X coordinate
- * @param y0    Starting Y coordinate
- * @param x1    Ending X coordinate
- * @param y1    Ending Y coordinate
- * @param color Color of the line segment
- */
-void Maps::addToBatch(int x0, int y0, int x1, int y1, uint16_t color)
-{
-    if (!activeBatch)
-        createRenderBatch(maxBatchSize);
-    
-    // Check if we can add to current batch (same color)
-    if (!canBatch(color) || activeBatch->count >= activeBatch->capacity) 
-        return; 
-
-    // Add segment to batch
-    activeBatch->segments[activeBatch->count] = {x0, y0, x1, y1, color};
-    activeBatch->count++;
-    
-    // Set batch color if first segment
-    if (activeBatch->count == 1) 
-        activeBatch->color = color;
-}
-
-/**
- * @brief Flush the current batch, rendering all segments to the map
- *
- * @details Renders all line segments in the current batch to the map sprite, applies optimizations if beneficial,
- *          and resets the batch for reuse. Tracks batch flush and optimization statistics.
- * 
- * @param map           Reference to the TFT_eSprite map to render onto
- * @param optimizations Reference to a counter for optimizations performed
- */
-void Maps::flushBatch(TFT_eSprite& map, int& optimizations)
-{
-    if (!activeBatch || activeBatch->count == 0)
-        return;
-    
-    batchFlushCount++;
-    
-    // Optimize batch if beneficial (threshold based on hardware capabilities)
-    size_t optimizationThreshold = maxBatchSize / 16; // 6.25% of max batch size (32 lines for 512 batch)
-    if (activeBatch->count > optimizationThreshold) 
-    {
-        // Simple batch optimization - just mark as optimized
-        batchOptimizationCount++;
-        optimizations++;  // Increment local counter
-    }
-    
-    // Render all segments in batch
-    for (size_t i = 0; i < activeBatch->count; i++) 
-    {
-        const LineSegment& segment = activeBatch->segments[i];
-        map.drawLine(segment.x0, segment.y0, segment.x1, segment.y1, segment.color);
-    }
-    
-    batchRenderCount++;
-    
-    // Clear batch for reuse
-    activeBatch->count = 0;
-    activeBatch->color = 0;
-}
-
-
-/**
- * @brief Check if a line segment with the given color can be added to the current batch
- *
- * @details Determines if a line segment can be added to the current batch based on color compatibility.
- *          Returns true if the batch is empty or if the color matches the current batch color.
- * 
- * @param color     Color of the line segment to add
- * @return true     if it can be added
- * @return false    if it cannot be added
- */
-bool Maps::canBatch(uint16_t color)
-{
-    if (!activeBatch) 
-        return true;
-    
-    // Can batch if same color or batch is empty
-    return (activeBatch->count == 0) || (activeBatch->color == color);
-}
-
-/**
- * @brief Get the optimal batch size based on hardware capabilities
- * 
- * @details Returns the maximum batch size determined during initialization based on available memory.
- *          This value is calculated based on PSRAM availability for ESP32-S3 or RAM for standard ESP32.
- *
- * @return size_t Optimal batch size for line rendering
- */
-size_t Maps::getOptimalBatchSize()
-{
-    return maxBatchSize;
-}
