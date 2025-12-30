@@ -1103,13 +1103,14 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
                     int x0 = xints[i] + xOffset;
                     int x1 = xints[i + 1] + xOffset;
                     int yy = y + yOffset;
-                    if (yy >= 0 && yy <= TILE_SIZE + yOffset) 
+                    if (yy >= 0 && yy <= TILE_SIZE + yOffset)
                     {
-                        if (x0 < 0) 
+                        if (x0 < 0)
                             x0 = 0;
-                        if (x1 > TILE_SIZE + xOffset) 
+                        if (x1 > TILE_SIZE + xOffset)
                             x1 = TILE_SIZE + xOffset;
-                        map.drawLine(x0, yy, x1, yy, color);
+                        if (x1 > x0)
+                            map.drawFastHLine(x0, yy, x1 - x0, color);
                     }
                 }
             }
