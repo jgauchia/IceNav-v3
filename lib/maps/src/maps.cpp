@@ -1510,10 +1510,6 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
         const size_t cmdStartOffset = offset;
         const uint32_t cmdType = readVarint(data, offset, dataSize);
 
-        // Flush batches periodically to ensure proper rendering
-        if (cmd_idx > 0 && cmd_idx % 50 == 0) 
-            flushCurrentBatch();
-
         switch (cmdType)
         {
             case SET_COLOR:
@@ -1648,9 +1644,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
 
                 break;
         }
-        flushCurrentBatch();
 
-        if (offset <= cmdStartOffset) 
+        if (offset <= cmdStartOffset)
             break;
     }
     flushCurrentBatch();
