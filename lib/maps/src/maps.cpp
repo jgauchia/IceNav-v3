@@ -306,6 +306,12 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
     Maps::mapTempSprite.deleteSprite();
     Maps::mapTempSprite.createSprite(tileHeight, tileWidth);
 
+    // Pre-allocate scroll sprites (avoid allocation during scroll)
+    Maps::preloadSprite.deleteSprite();
+    Maps::preloadSprite.createSprite(mapTileSize * 2, mapTileSize * 2);
+    Maps::tileRenderSprite.deleteSprite();
+    Maps::tileRenderSprite.createSprite(mapTileSize, mapTileSize);
+
     Maps::oldMapTile = {};     // Old Map tile coordinates and zoom
     Maps::currentMapTile = {}; // Current Map tile coordinates and zoom
     Maps::roundMapTile = {};    // Boundaries Map tiles
@@ -332,7 +338,9 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
 void Maps::deleteMapScrSprites()
 {
     Maps::mapSprite.deleteSprite();
-     
+    Maps::preloadSprite.deleteSprite();
+    Maps::tileRenderSprite.deleteSprite();
+
     // Clear tile cache to free memory
     clearTileCache();
 }
@@ -502,10 +510,7 @@ void Maps::displayMap()
 {
     if (!Maps::isMapFound)
     {
-        if (Maps::scrollUpdated && !Maps::followGps)
-            Maps::mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
-        else
-            Maps::mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
+        Maps::mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
         return;
     }
 
@@ -684,20 +689,21 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
     const int16_t preloadWidth  = (dirX != 0) ? tileSize : tileSize * 2;
     const int16_t preloadHeight = (dirY != 0) ? tileSize : tileSize * 2;
 
-    TFT_eSprite preloadSprite = TFT_eSprite(&tft);
-    preloadSprite.createSprite(preloadWidth, preloadHeight);
-    
+    // Ensure sprites are created (lazy init if needed)
+    if (!preloadSprite.getBuffer())
+        preloadSprite.createSprite(mapTileSize * 2, mapTileSize * 2);
+    if (!tileRenderSprite.getBuffer())
+        tileRenderSprite.createSprite(mapTileSize, mapTileSize);
 
     const int16_t startX = tileX + dirX;
     const int16_t startY = tileY + dirY;
 
-    for (int8_t i = 0; i < 2; ++i) 
+    for (int8_t i = 0; i < 2; ++i)
     {
         const int16_t tileToLoadX = startX + ((dirX == 0) ? i - 1 : 0);
         const int16_t tileToLoadY = startY + ((dirY == 0) ? i - 1 : 0);
 
         // Calculate correct coordinates for the tile being preloaded
-        // Use proper tile-to-coordinate conversion
         float tileLon = (tileToLoadX / (1 << Maps::zoomLevel)) * 360.0f - 180.0f;
         float tileLat = 90.0f - (tileToLoadY / (1 << Maps::zoomLevel)) * 180.0f;
 
@@ -711,49 +717,31 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 
         const int16_t offsetX = (dirX != 0) ? i * tileSize : 0;
         const int16_t offsetY = (dirY != 0) ? i * tileSize : 0;
-        
 
         bool foundTile = false;
-        
+
         // Try cache first for vector maps
-        if (mapSet.vectorMap) 
-        {
+        if (mapSet.vectorMap)
             foundTile = getCachedTile(Maps::roundMapTile.file, preloadSprite, offsetX, offsetY);
-            if (foundTile) 
-            {
-                // Cache hit - no need to log every time
-                // ESP_LOGI(TAG, "Tile found in cache: %s", Maps::roundMapTile.file);
-            }
-        }
-        
+
         // If not in cache, try to load from file
         if (!foundTile)
         {
             if (mapSet.vectorMap)
             {
-                // Create a temporary sprite for rendering to cache
-                TFT_eSprite tempSprite = TFT_eSprite(&tft);
-                tempSprite.createSprite(tileSize, tileSize);
-                
-                // Render tile to temporary sprite (this will cache it)
-                foundTile = renderTile(Maps::roundMapTile.file, 0, 0, tempSprite);
-                
-                if (foundTile) 
-                {
-                    // Copy from temporary sprite to preload sprite
-                    preloadSprite.pushImage(offsetX, offsetY, tileSize, tileSize, tempSprite.frameBuffer(0));
-                }
-                
-                tempSprite.deleteSprite();
-            } 
-            else 
+                // Use pre-allocated sprite for rendering (avoids allocation during scroll)
+                foundTile = renderTile(Maps::roundMapTile.file, 0, 0, tileRenderSprite);
+
+                if (foundTile)
+                    preloadSprite.pushImage(offsetX, offsetY, tileSize, tileSize, tileRenderSprite.frameBuffer(0));
+            }
+            else
                 foundTile = preloadSprite.drawPngFile(Maps::roundMapTile.file, offsetX, offsetY);
         }
 
         if (!foundTile)
             preloadSprite.fillRect(offsetX, offsetY, tileSize, tileSize, TFT_LIGHTGREY);
     }
-    
 
     if (dirX != 0)
     {
@@ -767,8 +755,6 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
         const int16_t pushY = (dirY > 0) ? tileSize * 2 : 0;
         mapTempSprite.pushImage(0, pushY, preloadWidth, preloadHeight, preloadSprite.frameBuffer(0));
     }
-
-    preloadSprite.deleteSprite();
 }
 
 /**
@@ -1209,9 +1195,22 @@ void Maps::drawPolygonBorder(TFT_eSprite &map, const int *px, const int *py, con
 void Maps::initTileCache()
 {
     tileCache.clear();
+
+    // Calculate cache size based on available PSRAM
+    // Each cached tile uses mapTileSize * mapTileSize * 2 bytes (RGB565)
+    const size_t tileSizeBytes = mapTileSize * mapTileSize * 2;  // 256*256*2 = 128KB per tile
+    #ifdef BOARD_HAS_PSRAM
+        size_t psramFree = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+        // Use up to 25% of free PSRAM for tile cache, max 20 tiles
+        maxCachedTiles = std::min(static_cast<size_t>(20), (psramFree / 4) / tileSizeBytes);
+    #else
+        // Without PSRAM, use minimal cache (2-3 tiles)
+        maxCachedTiles = 2;
+    #endif
+
     tileCache.reserve(maxCachedTiles);
     cacheAccessCounter = 0;
-    ESP_LOGI(TAG, "Tile cache initialized with %zu tiles capacity", maxCachedTiles);
+    ESP_LOGI(TAG, "Tile cache initialized with %zu tiles capacity (tile size: %zu KB)", maxCachedTiles, tileSizeBytes / 1024);
 }
 
 
@@ -1249,22 +1248,40 @@ uint32_t Maps::calculateTileHash(const char* filePath)
 bool Maps::getCachedTile(const char* filePath, TFT_eSprite& target, int16_t xOffset, int16_t yOffset)
 {
     if (maxCachedTiles == 0) return false; // Cache disabled
-    
+
     uint32_t tileHash = calculateTileHash(filePath);
-    
-    for (auto& cachedTile : tileCache) 
+
+    for (auto& cachedTile : tileCache)
     {
-        if (cachedTile.isValid && cachedTile.tileHash == tileHash) 
+        if (cachedTile.isValid && cachedTile.tileHash == tileHash)
         {
-            // Found in cache - update access time and copy sprite
+            // Found in cache - update access time
             cachedTile.lastAccess = ++cacheAccessCounter;
-            
-            // Copy the cached sprite to target position
-            target.pushImage(xOffset, yOffset, tileWidth, tileHeight, cachedTile.sprite->frameBuffer(0));
+
+            // Direct memory copy from cache sprite to target (row by row)
+            // This avoids byte-order issues with pushSprite/pushImage methods
+            uint16_t* srcBuffer = (uint16_t*)cachedTile.sprite->getBuffer();
+            uint16_t* dstBuffer = (uint16_t*)target.getBuffer();
+            int dstWidth = target.width();
+
+            // Validate bounds
+            if (xOffset >= 0 && yOffset >= 0 &&
+                xOffset + mapTileSize <= dstWidth &&
+                yOffset + mapTileSize <= target.height())
+            {
+                for (int y = 0; y < mapTileSize; y++)
+                {
+                    int srcOffset = y * mapTileSize;
+                    int dstOffset = (yOffset + y) * dstWidth + xOffset;
+                    memcpy(&dstBuffer[dstOffset], &srcBuffer[srcOffset], mapTileSize * sizeof(uint16_t));
+                }
+            }
+
+            ESP_LOGI(TAG, "CACHE HIT - Free heap: %lu KB", esp_get_free_heap_size() / 1024);
             return true;
         }
     }
-    
+
     return false; // Not found in cache
 }
 
@@ -1275,42 +1292,69 @@ bool Maps::getCachedTile(const char* filePath, TFT_eSprite& target, int16_t xOff
  *
  * @param filePath The file path of the tile.
  * @param source The source sprite containing the rendered tile.
+ * @param srcX X offset in source sprite where tile data starts.
+ * @param srcY Y offset in source sprite where tile data starts.
  */
-void Maps::addToCache(const char* filePath, TFT_eSprite& source)
+void Maps::addToCache(const char* filePath, TFT_eSprite& source, int16_t srcX, int16_t srcY)
 {
     if (maxCachedTiles == 0) return; // Cache disabled
-    
+
     uint32_t tileHash = calculateTileHash(filePath);
-    
+
     // Check if already in cache
-    for (auto& cachedTile : tileCache) 
+    for (auto& cachedTile : tileCache)
     {
-        if (cachedTile.isValid && cachedTile.tileHash == tileHash) 
+        if (cachedTile.isValid && cachedTile.tileHash == tileHash)
         {
             cachedTile.lastAccess = ++cacheAccessCounter;
             return; // Already cached
         }
     }
-    
+
     // Need to add new entry
-    if (tileCache.size() >= maxCachedTiles) 
+    if (tileCache.size() >= maxCachedTiles)
         evictLRUTile(); // Make room
-    
-    // Create new cache entry
+
+    // Create new cache entry with 16-bit color depth
     CachedTile newEntry;
     newEntry.sprite = new TFT_eSprite(&tft);
-    newEntry.sprite->createSprite(tileWidth, tileHeight);
-    
-    // Copy the rendered tile to cache
-    newEntry.sprite->pushImage(0, 0, tileWidth, tileHeight, source.frameBuffer(0));
-    
+    newEntry.sprite->setColorDepth(16);
+    void* buffer = newEntry.sprite->createSprite(mapTileSize, mapTileSize);
+
+    if (!buffer)
+    {
+        ESP_LOGE(TAG, "Failed to create cache sprite");
+        delete newEntry.sprite;
+        return;
+    }
+
+    // Direct memory copy from source region to cache sprite (row by row)
+    // This avoids byte-order issues with pushSprite/pushImage methods
+    uint16_t* srcBuffer = (uint16_t*)source.getBuffer();
+    uint16_t* dstBuffer = (uint16_t*)newEntry.sprite->getBuffer();
+    int srcWidth = source.width();
+
+    // Validate bounds
+    if (srcX >= 0 && srcY >= 0 &&
+        srcX + mapTileSize <= srcWidth &&
+        srcY + mapTileSize <= source.height())
+    {
+        for (int y = 0; y < mapTileSize; y++)
+        {
+            int srcOffset = (srcY + y) * srcWidth + srcX;
+            int dstOffset = y * mapTileSize;
+            memcpy(&dstBuffer[dstOffset], &srcBuffer[srcOffset], mapTileSize * sizeof(uint16_t));
+        }
+    }
+
     newEntry.tileHash = tileHash;
     newEntry.lastAccess = ++cacheAccessCounter;
     newEntry.isValid = true;
     strncpy(newEntry.filePath, filePath, sizeof(newEntry.filePath) - 1);
     newEntry.filePath[sizeof(newEntry.filePath) - 1] = '\0';
-    
+
     tileCache.push_back(newEntry);
+    ESP_LOGI(TAG, "CACHE MISS - Added tile, cache size: %zu, Free heap: %lu KB", tileCache.size(), esp_get_free_heap_size() / 1024);
 }
 
 /**
@@ -1611,8 +1655,8 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     if (executed == 0) 
         return false;
 
-    // Add successfully rendered tile to cache
-    addToCache(path, map);
+    // Add successfully rendered tile to cache (pass offset to copy correct region)
+    addToCache(path, map, xOffset, yOffset);
 
     unsigned long renderTime = millis_idf() - renderStart;
 

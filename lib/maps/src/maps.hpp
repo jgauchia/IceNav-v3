@@ -138,6 +138,8 @@ class Maps
         uint16_t wptPosX, wptPosY;                                                  /**< Waypoint position on screen map */
         TFT_eSprite mapTempSprite = TFT_eSprite(&tft);                              /**< Full map sprite (not showed) */
         TFT_eSprite mapSprite = TFT_eSprite(&tft);                                  /**< Screen map sprite (showed) */
+        TFT_eSprite preloadSprite = TFT_eSprite(&tft);                              /**< Preload sprite for scroll (reusable) */
+        TFT_eSprite tileRenderSprite = TFT_eSprite(&tft);                           /**< Tile render sprite for cache miss (reusable) */
         float destLat, destLon;                                                     /**< Waypoint destination latitude and longitude */
         uint8_t zoomLevel;                                                          /**< Zoom level for map display */
         ScreenCoord navArrowPosition; 												/**< Navigation Arrow position on screen */
@@ -177,7 +179,7 @@ class Maps
         // Tile cache methods
         void initTileCache();                                                         /**< Initialize tile cache system */
         bool getCachedTile(const char* filePath, TFT_eSprite& target, int16_t xOffset, int16_t yOffset); /**< Get tile from cache */
-        void addToCache(const char* filePath, TFT_eSprite& source);                 /**< Add rendered tile to cache */
+        void addToCache(const char* filePath, TFT_eSprite& source, int16_t srcX, int16_t srcY); /**< Add rendered tile to cache */
         void evictLRUTile();                                                         /**< Remove least recently used tile from cache */
         void clearTileCache();                                                       /**< Clear all cached tiles */
         uint32_t calculateTileHash(const char* filePath);                           /**< Calculate hash for tile identification */
