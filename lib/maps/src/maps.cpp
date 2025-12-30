@@ -1139,9 +1139,12 @@ void Maps::drawPolygonBorder(TFT_eSprite &map, const int *px, const int *py, con
     if (numPoints < 2)
         return;
 
+    // Cache first point margin for closing segment
+    const bool marginFirst = isPointOnMargin(px[0], py[0]);
+    bool marginA = marginFirst;
+
     for (uint32_t i = 0; i < numPoints - 1; ++i)
     {
-        const bool marginA = isPointOnMargin(px[i], py[i]);
         const bool marginB = isPointOnMargin(px[i+1], py[i+1]);
         const uint16_t color = (marginA && marginB) ? fillColor : borderColor;
 
@@ -1173,9 +1176,10 @@ void Maps::drawPolygonBorder(TFT_eSprite &map, const int *px, const int *py, con
                 map.drawPixel(x1, y1, borderColor);
             }
         }
+        marginA = marginB;  // Reuse for next iteration
     }
-    const bool marginA = isPointOnMargin(px[numPoints-1], py[numPoints-1]);
-    const bool marginB = isPointOnMargin(px[0], py[0]);
+    // Closing segment: last point to first point
+    const bool marginB = marginFirst;  // Reuse cached first point
     const uint16_t color = (marginA && marginB) ? fillColor : borderColor;
     const int x0 = px[numPoints-1] + xOffset;
     const int y0 = py[numPoints-1] + yOffset;
