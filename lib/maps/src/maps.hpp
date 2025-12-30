@@ -14,6 +14,10 @@
 #include <string>
 #include <algorithm>
 #include <cstring>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
+#include "freertos/semphr.h"
 #include "tft.hpp"
 #include "gpsMath.hpp"
 #include "settings.hpp"
@@ -100,8 +104,21 @@ class Maps
         static size_t maxCachedTiles;                                               /**< Maximum cached tiles based on hardware */
         static uint32_t cacheAccessCounter;                                         /**< Counter for LRU algorithm */
         
-        // Background preload system
-        
+        // Background preload system (multi-core)
+        struct PrefetchRequest      /**< Background prefetch request structure */
+        {
+            char filePath[255];         /**< Tile file path to prefetch */
+            bool isVectorMap;           /**< True if vector map, false if PNG */
+        };
+
+        static QueueHandle_t prefetchQueue;                                         /**< Queue for prefetch requests */
+        static TaskHandle_t prefetchTaskHandle;                                     /**< Prefetch task handle */
+        static SemaphoreHandle_t prefetchMutex;                                     /**< Mutex for prefetch sprite access */
+        static TFT_eSprite* prefetchRenderSprite;                                   /**< Sprite for background rendering */
+        static volatile bool prefetchTaskRunning;                                   /**< Flag to control task lifecycle */
+
+        static void prefetchTask(void* pvParameters);                               /**< Background prefetch task (runs on Core 0) */
+
         // Unified memory pool system (experimental)
         struct UnifiedPoolEntry
         {
@@ -187,8 +204,14 @@ class Maps
         
         // SD optimization methods
         void prefetchAdjacentTiles(int16_t centerX, int16_t centerY, uint8_t zoom); /**< Prefetch adjacent tiles for faster loading */
-    
-    
+
+        // Background prefetch methods (multi-core)
+        void initPrefetchSystem();                                                  /**< Initialize background prefetch system */
+        void stopPrefetchSystem();                                                  /**< Stop background prefetch system */
+        void enqueuePrefetch(const char* filePath, bool isVectorMap);              /**< Enqueue tile for background prefetch */
+        void prefetchInitialRing(uint32_t centerX, uint32_t centerY, uint8_t zoom);  /**< Prefetch initial ring around 3x3 grid */
+        void enqueueSurroundingTiles(uint32_t centerX, uint32_t centerY, uint8_t zoom, int8_t dirX, int8_t dirY); /**< Enqueue tiles in scroll direction */
+
     // Unified memory pool methods (experimental)
     public:
         void initUnifiedPool();                                                     /**< Initialize unified memory pool */
@@ -276,6 +299,6 @@ class Maps
         void centerOnGps(float lat, float lon);
         void scrollMap(int16_t dx, int16_t dy);
         void preloadTiles(int8_t dirX, int8_t dirY);
-        bool renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
+        bool renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eSprite &map, bool shouldCache = false);
 };
 

@@ -32,6 +32,12 @@ std::vector<Maps::CachedTile> Maps::tileCache;
 size_t Maps::maxCachedTiles = 0;
 uint32_t Maps::cacheAccessCounter = 0;
 
+// Background prefetch system static variables (multi-core)
+QueueHandle_t Maps::prefetchQueue = nullptr;
+TaskHandle_t Maps::prefetchTaskHandle = nullptr;
+SemaphoreHandle_t Maps::prefetchMutex = nullptr;
+TFT_eSprite* Maps::prefetchRenderSprite = nullptr;
+volatile bool Maps::prefetchTaskRunning = false;
 
 // Unified memory pool system static variables (experimental)
 std::vector<Maps::UnifiedPoolEntry> Maps::unifiedPool;
@@ -321,7 +327,10 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
     
     // Initialize tile cache system
     initTileCache();
-    
+
+    // Initialize background prefetch system (multi-core)
+    initPrefetchSystem();
+
     // Initialize polygon optimizations
     polygonCullingEnabled = true;
     optimizedScanlineEnabled = false;
@@ -493,9 +502,7 @@ void Maps::generateMap(uint8_t zoom)
                     Maps::mapTempSprite.drawWideLine(x1, y1, x2, y2, 2, TFT_BLUE);
                 }
             }
-            
-            // Prefetch adjacent tiles for faster scrolling
-            prefetchAdjacentTiles(Maps::currentMapTile.tilex, Maps::currentMapTile.tiley, Maps::zoomLevel);
+
         }
     }
 }
@@ -617,7 +624,10 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
     const float maxSpeed = 10.0f;
 
     static float speedX = 0.0f, speedY = 0.0f;
-    static unsigned long lastCacheStats = 0;
+    static bool prefetchTriggeredX = false;
+    static bool prefetchTriggeredY = false;
+    static int8_t lastPrefetchDirX = 0;
+    static int8_t lastPrefetchDirY = 0;
 
     speedX = (speedX + dx) * inertia * friction;
     speedY = (speedY + dy) * inertia * friction;
@@ -636,18 +646,41 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
 
     const int16_t threshold = Maps::scrollThreshold;
     const int16_t tileSize = Maps::mapTileSize;
+    const int16_t prefetchThreshold = threshold / 2;  // Anticipate prefetch at 50% of threshold
+
+    // Detect scroll direction and trigger anticipatory prefetch
+    int8_t dirX = (speedX > 0.5f) ? 1 : (speedX < -0.5f) ? -1 : 0;
+    int8_t dirY = (speedY > 0.5f) ? 1 : (speedY < -0.5f) ? -1 : 0;
+
+    // Reset prefetch trigger if direction changed
+    if (dirX != lastPrefetchDirX) { prefetchTriggeredX = false; lastPrefetchDirX = dirX; }
+    if (dirY != lastPrefetchDirY) { prefetchTriggeredY = false; lastPrefetchDirY = dirY; }
+
+    // Anticipatory prefetch: trigger when approaching threshold (before tile change)
+    if (!prefetchTriggeredX && dirX != 0 && abs(Maps::offsetX) > prefetchThreshold)
+    {
+        enqueueSurroundingTiles(Maps::currentMapTile.tilex, Maps::currentMapTile.tiley, Maps::zoomLevel, dirX, 0);
+        prefetchTriggeredX = true;
+    }
+    if (!prefetchTriggeredY && dirY != 0 && abs(Maps::offsetY) > prefetchThreshold)
+    {
+        enqueueSurroundingTiles(Maps::currentMapTile.tilex, Maps::currentMapTile.tiley, Maps::zoomLevel, 0, dirY);
+        prefetchTriggeredY = true;
+    }
 
     if (Maps::offsetX <= -threshold)
     {
         Maps::tileX--;
         Maps::offsetX += tileSize;
         Maps::scrollUpdated = true;
+        prefetchTriggeredX = false;  // Reset for next tile
     }
     else if (Maps::offsetX >= threshold)
     {
         Maps::tileX++;
         Maps::offsetX -= tileSize;
         Maps::scrollUpdated = true;
+        prefetchTriggeredX = false;  // Reset for next tile
     }
 
     if (Maps::offsetY <= -threshold)
@@ -655,12 +688,14 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
         Maps::tileY--;
         Maps::offsetY += tileSize;
         Maps::scrollUpdated = true;
+        prefetchTriggeredY = false;  // Reset for next tile
     }
     else if (Maps::offsetY >= threshold)
     {
         Maps::tileY++;
         Maps::offsetY -= tileSize;
         Maps::scrollUpdated = true;
+        prefetchTriggeredY = false;  // Reset for next tile
     }
 
     if (Maps::scrollUpdated)
@@ -755,6 +790,7 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
         const int16_t pushY = (dirY > 0) ? tileSize * 2 : 0;
         mapTempSprite.pushImage(0, pushY, preloadWidth, preloadHeight, preloadSprite.frameBuffer(0));
     }
+
 }
 
 /**
@@ -1200,12 +1236,11 @@ void Maps::initTileCache()
     // Each cached tile uses mapTileSize * mapTileSize * 2 bytes (RGB565)
     const size_t tileSizeBytes = mapTileSize * mapTileSize * 2;  // 256*256*2 = 128KB per tile
     #ifdef BOARD_HAS_PSRAM
-        size_t psramFree = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
-        // Use up to 25% of free PSRAM for tile cache, max 20 tiles
-        maxCachedTiles = std::min(static_cast<size_t>(20), (psramFree / 4) / tileSizeBytes);
+        // Fixed cache size: 3 tiles (1 row/column for prefetch)
+        maxCachedTiles = 3;
     #else
-        // Without PSRAM, use minimal cache (2-3 tiles)
-        maxCachedTiles = 2;
+        // Without PSRAM, disable cache
+        maxCachedTiles = 0;
     #endif
 
     tileCache.reserve(maxCachedTiles);
@@ -1446,9 +1481,10 @@ size_t Maps::getCacheMemoryUsage()
 * @param xOffset The x-offset to apply when rendering the tile on the sprite.
 * @param yOffset The y-offset to apply when rendering the tile on the sprite.
 * @param map The TFT_eSprite object where the tile will be rendered.
+* @param shouldCache If true, add rendered tile to cache (used by prefetch only).
 * @return true if the tile was rendered successfully, false otherwise.
 */
-bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOffset, TFT_eSprite &map)
+bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOffset, TFT_eSprite &map, bool shouldCache)
 {
     static bool isPaletteLoaded = false;
     static bool unifiedPoolLogged = false;
@@ -1655,8 +1691,9 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     if (executed == 0) 
         return false;
 
-    // Add successfully rendered tile to cache (pass offset to copy correct region)
-    addToCache(path, map, xOffset, yOffset);
+    // Add successfully rendered tile to cache only if requested (prefetch only)
+    if (shouldCache)
+        addToCache(path, map, xOffset, yOffset);
 
     unsigned long renderTime = millis_idf() - renderStart;
 
@@ -1751,7 +1788,307 @@ void Maps::prefetchAdjacentTiles(int16_t centerX, int16_t centerY, uint8_t zoom)
     }
 }
 
+/**
+ * @brief Background prefetch task that runs on Core 0
+ *
+ * @details Continuously processes the prefetch queue, loading tiles into cache in the background.
+ *          Runs at low priority to not interfere with GPS task on the same core.
+ *
+ * @param pvParameters Maps instance pointer for accessing renderTile
+ */
+void Maps::prefetchTask(void* pvParameters)
+{
+    Maps* mapsInstance = static_cast<Maps*>(pvParameters);
+    PrefetchRequest request;
 
+    while (prefetchTaskRunning)
+    {
+        // Wait for a request with timeout (allows checking prefetchTaskRunning flag)
+        if (xQueueReceive(prefetchQueue, &request, pdMS_TO_TICKS(100)) == pdTRUE)
+        {
+            ESP_LOGD(TAG, "Task received request: %s", request.filePath);
+            // Check if already in cache
+            if (prefetchMutex && xSemaphoreTake(prefetchMutex, pdMS_TO_TICKS(50)) == pdTRUE)
+            {
+                // Quick check if file exists
+                FILE* testFile = fopen(request.filePath, "rb");
+                if (testFile)
+                {
+                    fclose(testFile);
+
+                    // Check if already cached using hash
+                    uint32_t tileHash = 0;
+                    const char* p = request.filePath;
+                    while (*p)
+                    {
+                        tileHash = tileHash * 31 + *p;
+                        p++;
+                    }
+
+                    bool alreadyCached = false;
+                    for (const auto& cachedTile : tileCache)
+                    {
+                        if (cachedTile.isValid && cachedTile.tileHash == tileHash)
+                        {
+                            alreadyCached = true;
+                            break;
+                        }
+                    }
+
+                    if (!alreadyCached && prefetchRenderSprite && mapsInstance)
+                    {
+                        if (request.isVectorMap)
+                        {
+                            // Vector: render and cache
+                            prefetchRenderSprite->fillSprite(TFT_WHITE);
+                            mapsInstance->renderTile(request.filePath, 0, 0, *prefetchRenderSprite, true);
+                        }
+                        else
+                        {
+                            // PNG: just pre-read file to FS buffer (no cache)
+                            FILE* pngFile = fopen(request.filePath, "rb");
+                            if (pngFile)
+                            {
+                                // Read file to populate FS cache
+                                fseek(pngFile, 0, SEEK_END);
+                                fseek(pngFile, 0, SEEK_SET);
+                                // Read in chunks to avoid large allocation
+                                char buffer[4096];
+                                while (fread(buffer, 1, sizeof(buffer), pngFile) > 0) {}
+                                fclose(pngFile);
+                            }
+                        }
+                    }
+                }
+
+                xSemaphoreGive(prefetchMutex);
+            }
+
+            // Yield to allow other tasks to run
+            taskYIELD();
+        }
+    }
+
+    vTaskDelete(NULL);
+}
+
+/**
+ * @brief Initialize the background prefetch system
+ *
+ * @details Creates the prefetch queue, mutex, render sprite, and starts the prefetch task on Core 0.
+ */
+void Maps::initPrefetchSystem()
+{
+    if (prefetchTaskRunning)
+        return;
+
+    // Create queue for prefetch requests (hold up to 16 requests)
+    prefetchQueue = xQueueCreate(16, sizeof(PrefetchRequest));
+    if (!prefetchQueue)
+    {
+        ESP_LOGE(TAG, "Failed to create prefetch queue");
+        return;
+    }
+
+    // Create mutex for sprite access
+    prefetchMutex = xSemaphoreCreateMutex();
+    if (!prefetchMutex)
+    {
+        ESP_LOGE(TAG, "Failed to create prefetch mutex");
+        vQueueDelete(prefetchQueue);
+        prefetchQueue = nullptr;
+        return;
+    }
+
+    // Create render sprite for background rendering
+    prefetchRenderSprite = new TFT_eSprite(&tft);
+    prefetchRenderSprite->setColorDepth(16);
+    if (!prefetchRenderSprite->createSprite(mapTileSize, mapTileSize))
+    {
+        ESP_LOGE(TAG, "Failed to create prefetch render sprite");
+        vSemaphoreDelete(prefetchMutex);
+        prefetchMutex = nullptr;
+        vQueueDelete(prefetchQueue);
+        prefetchQueue = nullptr;
+        delete prefetchRenderSprite;
+        prefetchRenderSprite = nullptr;
+        return;
+    }
+
+    // Start prefetch task on Core 0 (same as GPS, low priority)
+    prefetchTaskRunning = true;
+    BaseType_t result = xTaskCreatePinnedToCore(
+        prefetchTask,           // Task function
+        "PrefetchTask",         // Task name
+        8192,                   // Stack size (8KB)
+        this,                   // Pass Maps instance for renderTile access
+        2,                      // Priority (higher for faster prefetch)
+        &prefetchTaskHandle,    // Task handle
+        0                       // Core 0
+    );
+
+    if (result != pdPASS)
+    {
+        ESP_LOGE(TAG, "Failed to create prefetch task");
+        prefetchTaskRunning = false;
+        prefetchRenderSprite->deleteSprite();
+        delete prefetchRenderSprite;
+        prefetchRenderSprite = nullptr;
+        vSemaphoreDelete(prefetchMutex);
+        prefetchMutex = nullptr;
+        vQueueDelete(prefetchQueue);
+        prefetchQueue = nullptr;
+        return;
+    }
+
+}
+
+/**
+ * @brief Stop the background prefetch system
+ *
+ * @details Signals the prefetch task to stop and cleans up resources.
+ */
+void Maps::stopPrefetchSystem()
+{
+    if (!prefetchTaskRunning)
+        return;
+
+
+    prefetchTaskRunning = false;
+
+    // Wait for task to finish (with timeout)
+    vTaskDelay(pdMS_TO_TICKS(200));
+
+    // Clean up resources
+    if (prefetchRenderSprite)
+    {
+        prefetchRenderSprite->deleteSprite();
+        delete prefetchRenderSprite;
+        prefetchRenderSprite = nullptr;
+    }
+
+    if (prefetchMutex)
+    {
+        vSemaphoreDelete(prefetchMutex);
+        prefetchMutex = nullptr;
+    }
+
+    if (prefetchQueue)
+    {
+        vQueueDelete(prefetchQueue);
+        prefetchQueue = nullptr;
+    }
+
+    prefetchTaskHandle = nullptr;
+
+}
+
+/**
+ * @brief Enqueue a tile for background prefetch
+ *
+ * @details Adds a tile to the prefetch queue for background loading. Non-blocking.
+ *
+ * @param filePath Path to the tile file
+ * @param isVectorMap True if vector map, false if PNG
+ */
+void Maps::enqueuePrefetch(const char* filePath, bool isVectorMap)
+{
+    if (!prefetchQueue || !prefetchTaskRunning)
+        return;
+
+    PrefetchRequest request;
+    strncpy(request.filePath, filePath, sizeof(request.filePath) - 1);
+    request.filePath[sizeof(request.filePath) - 1] = '\0';
+    request.isVectorMap = isVectorMap;
+
+    // Non-blocking enqueue (don't wait if queue is full)
+    xQueueSend(prefetchQueue, &request, 0);
+}
+
+/**
+ * @brief Prefetch initial ring of tiles around the 3x3 grid
+ *
+ * @details Called after initial map load to prefetch the outer ring in all directions.
+ *          This gives the prefetch system a head start before user scrolls.
+ *
+ * @param centerX X coordinate of center tile
+ * @param centerY Y coordinate of center tile
+ * @param zoom Current zoom level
+ */
+void Maps::prefetchInitialRing(uint32_t centerX, uint32_t centerY, uint8_t zoom)
+{
+    if (!prefetchQueue || !prefetchTaskRunning)
+        return;
+
+    // Prefetch outer ring (distance 2) in all directions
+    for (int dx = -2; dx <= 2; dx++)
+    {
+        for (int dy = -2; dy <= 2; dy++)
+        {
+            // Skip inner 3x3 grid (already rendered)
+            if (dx >= -1 && dx <= 1 && dy >= -1 && dy <= 1) continue;
+
+            uint32_t tileX = centerX + dx;
+            uint32_t tileY = centerY + dy;
+
+            char filePath[255];
+            if (mapSet.vectorMap)
+                snprintf(filePath, sizeof(filePath), mapVectorFolder, zoom, tileX, tileY);
+            else
+                snprintf(filePath, sizeof(filePath), mapRenderFolder, zoom, tileX, tileY);
+
+            enqueuePrefetch(filePath, mapSet.vectorMap);
+        }
+    }
+}
+
+/**
+ * @brief Enqueue tiles in scroll direction for background prefetch
+ *
+ * @details Enqueues multiple rows/columns of tiles ahead in the scroll direction.
+ *          Number of rows/columns based on cache capacity (min 3, max cache size, multiples of 3).
+ *
+ * @param centerX X coordinate of center tile
+ * @param centerY Y coordinate of center tile
+ * @param zoom Current zoom level
+ * @param dirX Scroll direction X (-1 left, 0 none, 1 right)
+ * @param dirY Scroll direction Y (-1 up, 0 none, 1 down)
+ */
+void Maps::enqueueSurroundingTiles(uint32_t centerX, uint32_t centerY, uint8_t zoom, int8_t dirX, int8_t dirY)
+{
+    if (!prefetchQueue || !prefetchTaskRunning)
+        return;
+
+    if (dirX == 0 && dirY == 0)
+        return;
+
+    // Prefetch only 1 row/column (3 tiles) in scroll direction at distance 2
+    for (int offset = -1; offset <= 1; offset++)
+    {
+        uint32_t tileX, tileY;
+
+        if (dirX != 0)
+        {
+            // Horizontal scroll: prefetch 1 column
+            tileX = centerX + (dirX * 2);
+            tileY = centerY + offset;
+        }
+        else
+        {
+            // Vertical scroll: prefetch 1 row
+            tileX = centerX + offset;
+            tileY = centerY + (dirY * 2);
+        }
+
+        char filePath[255];
+        if (mapSet.vectorMap)
+            snprintf(filePath, sizeof(filePath), mapVectorFolder, zoom, tileX, tileY);
+        else
+            snprintf(filePath, sizeof(filePath), mapRenderFolder, zoom, tileX, tileY);
+
+        enqueuePrefetch(filePath, mapSet.vectorMap);
+    }
+}
 
 /**
  * @brief Implement a unified memory allocation function that uses a memory pool
