@@ -619,18 +619,38 @@ void Maps::centerOnGps(float lat, float lon)
  */
 void Maps::scrollMap(int16_t dx, int16_t dy)
 {
-    const float inertia = 0.5f;
-    const float friction = 0.95f;
-    const float maxSpeed = 10.0f;
+    // Base physics parameters
+    const float baseFriction = 0.92f;    // Friction when finger lifted
+    const float maxSpeed = 25.0f;        // Absolute max speed limit
+    const float smoothingFactor = 0.3f;  // Smooth finger speed changes (0-1)
 
     static float speedX = 0.0f, speedY = 0.0f;
+    static float smoothedFingerSpeed = 0.0f;  // Smoothed finger velocity
     static bool prefetchTriggeredX = false;
     static bool prefetchTriggeredY = false;
     static int8_t lastPrefetchDirX = 0;
     static int8_t lastPrefetchDirY = 0;
 
-    speedX = (speedX + dx) * inertia * friction;
-    speedY = (speedY + dy) * inertia * friction;
+    // Detect finger velocity from delta
+    const float instantFingerSpeed = sqrtf(dx * dx + dy * dy);
+
+    // Smooth the finger speed to handle acceleration/deceleration
+    smoothedFingerSpeed = smoothedFingerSpeed * (1.0f - smoothingFactor) +
+                          instantFingerSpeed * smoothingFactor;
+
+    const bool fingerActive = (instantFingerSpeed > 0.5f);
+
+    // Dynamic responsiveness based on smoothed finger speed
+    // Slow movement: more precise (0.7), Fast movement: more responsive (1.0)
+    const float responsiveness = fingerActive ?
+        fminf(1.0f, 0.7f + smoothedFingerSpeed * 0.025f) : 0.0f;
+
+    // Less friction while finger is active, more when released (inertia)
+    const float friction = fingerActive ? 0.6f : baseFriction;
+
+    // Physics: velocity = previous * friction + input * responsiveness
+    speedX = speedX * friction + dx * responsiveness;
+    speedY = speedY * friction + dy * responsiveness;
 
     const float absSpeedX = fabsf(speedX);
     const float absSpeedY = fabsf(speedY);
