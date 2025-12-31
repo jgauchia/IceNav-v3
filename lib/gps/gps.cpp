@@ -9,6 +9,50 @@
 #include "gps.hpp"
 #include "lvgl.h"
 #include "widgets.hpp"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include "esp_timer.h"
+#include "driver/gpio.h"
+
+static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
+
+/**
+ * @brief Measure pulse width on a GPIO pin (ESP-IDF native)
+ * @param pin GPIO pin number
+ * @param state State to measure (0=LOW, 1=HIGH)
+ * @param timeout Timeout in microseconds
+ * @return Pulse width in microseconds, or 0 if timeout
+ */
+static unsigned long pulseIn_idf(int pin, int state, unsigned long timeout)
+{
+    gpio_num_t gpio = (gpio_num_t)pin;
+    int64_t start = esp_timer_get_time();
+    int64_t timeout_us = timeout;
+
+    // Wait for any previous pulse to end
+    while (gpio_get_level(gpio) == state)
+    {
+        if ((esp_timer_get_time() - start) > timeout_us)
+            return 0;
+    }
+
+    // Wait for pulse to start
+    while (gpio_get_level(gpio) != state)
+    {
+        if ((esp_timer_get_time() - start) > timeout_us)
+            return 0;
+    }
+    int64_t pulseStart = esp_timer_get_time();
+
+    // Wait for pulse to end
+    while (gpio_get_level(gpio) == state)
+    {
+        if ((esp_timer_get_time() - start) > timeout_us)
+            return 0;
+    }
+
+    return (unsigned long)(esp_timer_get_time() - pulseStart);
+}
 
 extern lv_obj_t *sunriseLabel; 	   /**< Label object for displaying the sunrise time. */
 bool setTime = true;        	   /**< Indicates if the system time should be set from GPS. */
@@ -19,7 +63,7 @@ bool nmea_output_enable = false;   /**< Enables or disables NMEA output. */
 gps_fix fix;             	       /**< Latest parsed GPS fix data. */
 NMEAGPS GPS;              	       /**< NMEAGPS parser instance. */
 
-static const char* TAG PROGMEM = "GPS";
+static const char* TAG = "GPS";
 
 Gps::Gps() {}
 
@@ -60,17 +104,17 @@ void Gps::init()
         // GPS+BDS+GLONASS
         gpsPort.println("$PCAS04,7*1E\r\n");
         gpsPort.flush();
-        delay(100);
+        vTaskDelay(pdMS_TO_TICKS(100));
 
         // Update Rate
         gpsPort.println(GPS_RATE_PCAS[gpsUpdate]);
         gpsPort.flush();
-        delay(100);
+        vTaskDelay(pdMS_TO_TICKS(100));
 
         // Set NMEA 4.1
         gpsPort.println("$PCAS05,2*1A\r\n");
         gpsPort.flush();
-        delay(100);
+        vTaskDelay(pdMS_TO_TICKS(100));
     #endif
 }
 
@@ -225,12 +269,12 @@ void Gps::getGPSData()
 long Gps::detectRate(int rxPin)
 {
     long rate = 10000, x = 2000;
-    pinMode(rxPin, INPUT);     // make sure Serial in is a input pin
-    digitalWrite(rxPin, HIGH); // pull up enabled just for noise protection
+    gpio_set_direction((gpio_num_t)rxPin, GPIO_MODE_INPUT);
+    gpio_set_pull_mode((gpio_num_t)rxPin, GPIO_PULLUP_ONLY);
 
     for (int i = 0; i < 5; i++)
     {
-        x = pulseIn(rxPin, LOW, 125000); // measure the next zero bit width
+        x = pulseIn_idf(rxPin, 0, 125000); // measure the next zero bit width
         if (x < 1)
             continue;
         rate = x < rate ? x : rate;
@@ -426,9 +470,9 @@ void Gps::setLocalTime(NeoGPS::time_t gpsTime, const char* tz)
  */
 void Gps::simFakeGPS(const std::vector<wayPoint>& trackData, uint16_t speed, uint16_t refresh)
 {
-    if (millis() - lastSimulationTime > refresh) 
-    {  
-        lastSimulationTime = millis();
+    if (millis_idf() - lastSimulationTime > refresh)
+    {
+        lastSimulationTime = millis_idf();
 
         if (simulationIndex < (int)trackData.size() - 2) 
         {

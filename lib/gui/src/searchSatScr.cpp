@@ -7,6 +7,9 @@
  */
 
 #include "searchSatScr.hpp"
+#include "esp_timer.h"
+
+static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 static unsigned long millisActual = 0;        /**< Stores the current timestamp in milliseconds */
 static bool skipSearch = false;               /**< Flag to indicate if satellite search should be skipped */
@@ -42,8 +45,8 @@ void searchGPS(lv_timer_t *searchTimer)
 { 
     if (isGpsFixed)
     {
-        millisActual = millis();
-        while (millis() < millisActual + 500)
+        millisActual = millis_idf();
+        while (millis_idf() < millisActual + 500)
         ;
         lv_timer_del(searchTimer);
         lv_timer_resume(mainTimer);

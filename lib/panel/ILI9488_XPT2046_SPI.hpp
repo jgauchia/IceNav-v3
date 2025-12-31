@@ -40,12 +40,7 @@ class LGFX : public lgfx::LGFX_Device
         {
             {
                 auto cfg = _bus_instance.config();
-                #ifdef ESP32S3_N16R8
-                    cfg.spi_host = SPI2_HOST;
-                #endif
-                #ifdef ESP32_N16R4
-                    cfg.spi_host = HSPI_HOST;
-                #endif
+                cfg.spi_host = SPI2_HOST;
                 cfg.spi_mode = 0;
                 cfg.freq_write = 79999999;
                 cfg.freq_read = 15000000;
@@ -107,12 +102,7 @@ class LGFX : public lgfx::LGFX_Device
                 cfg.pin_int = TCH_SPI_INT;
                 cfg.bus_shared = true;
                 cfg.offset_rotation = 0;
-                #ifdef ESP32S3_N16R8
-                    cfg.spi_host = SPI2_HOST;
-                #endif
-                #ifdef ESP32_N16R4
-                    cfg.spi_host = HSPI_HOST;
-                #endif
+                cfg.spi_host = SPI2_HOST;
                 cfg.freq = 1000000;
                 cfg.pin_sclk = TCH_SPI_SCLK;
                 cfg.pin_mosi = TCH_SPI_MOSI;

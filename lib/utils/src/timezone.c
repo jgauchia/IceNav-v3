@@ -6,7 +6,6 @@
  * @date 2025-12
  */
 
-#include <pgmspace.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -27,7 +26,7 @@ typedef struct
  *
  * @details Array contains mappings of IANA time zone names to their corresponding POSIX time zone strings.
  */
-static const posix_tz posix_tz_db[] PROGMEM = {
+static const posix_tz posix_tz_db[] = {
     {"Africa/Abidjan", "GMT0"},
     {"Africa/Accra", "GMT0"},
     {"Africa/Addis_Ababa", "EAT-3"},

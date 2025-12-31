@@ -14,6 +14,10 @@
 #include <string>
 #include <algorithm>
 #include <cstring>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
+#include "freertos/semphr.h"
 #include "tft.hpp"
 #include "gpsMath.hpp"
 #include "settings.hpp"
@@ -28,36 +32,12 @@
  * 			that generates the binary tile data. Each command corresponds to a specific
  * 			geometric drawing operation.
  */
-enum DrawCommand : uint8_t 
+enum DrawCommand : uint8_t
 {
-    DRAW_LINE = 1,               /**< Draw a simple line segment */
-    DRAW_POLYLINE = 2,           /**< Draw a series of connected line segments */
-    DRAW_STROKE_POLYGON = 3,     /**< Draw only the stroke (outline) of a single polygon */
-    DRAW_STROKE_POLYGONS = 4,    /**< Draw only the strokes (outlines) of multiple polygons */
-    DRAW_HORIZONTAL_LINE = 5,    /**< Draw a horizontal line */
-    DRAW_VERTICAL_LINE = 6,      /**< Draw a vertical line */
-    SET_COLOR = 0x80,            /**< Set current drawing color (RGB332) */
-    SET_COLOR_INDEX = 0x81,      /**< Set current color using palette index */
-    RECTANGLE = 0x82,            /**< Optimized rectangle command */
-    STRAIGHT_LINE = 0x83,        /**< Optimized straight line command */
-    HIGHWAY_SEGMENT = 0x84,      /**< Highway segment with continuity */
-    GRID_PATTERN = 0x85,         /**< Urban grid pattern */
-    BLOCK_PATTERN = 0x86,        /**< City block pattern */
-    CIRCLE = 0x87,               /**< Optimized circle command */
-    SET_LAYER = 0x88,            /**< Layer indicator command */
-    RELATIVE_MOVE = 0x89,        /**< Relative coordinate movement */
-    PREDICTED_LINE = 0x8A,       /**< Predictive line based on pattern */
-    COMPRESSED_POLYLINE = 0x8B,  /**< Huffman-compressed polyline */
-    OPTIMIZED_POLYGON = 0x8C,    /**< Optimized polygon (contour only, fill decided by viewer) */
-    HOLLOW_POLYGON = 0x8D,       /**< Polygon outline only (optimized for boundaries) */
-    OPTIMIZED_TRIANGLE = 0x8E,   /**< Optimized triangle (contour only, fill decided by viewer) */
-    OPTIMIZED_RECTANGLE = 0x8F,  /**< Optimized rectangle (contour only, fill decided by viewer) */
-    OPTIMIZED_CIRCLE = 0x90,     /**< Optimized circle (contour only, fill decided by viewer) */
-    SIMPLE_RECTANGLE = 0x96,     /**< Simple rectangle (x, y, width, height) */
-    SIMPLE_CIRCLE = 0x97,        /**< Simple circle (center_x, center_y, radius) */
-    SIMPLE_TRIANGLE = 0x98,      /**< Simple triangle (x1, y1, x2, y2, x3, y3) */
-    DASHED_LINE = 0x99,          /**< Dashed line with pattern */
-    DOTTED_LINE = 0x9A,          /**< Dotted line with pattern */
+    DRAW_POLYLINE = 2,
+    DRAW_STROKE_POLYGON = 3,
+    SET_COLOR = 0x80,
+    SET_COLOR_INDEX = 0x81,
 };
 
 /**
@@ -86,22 +66,7 @@ class Maps
             bool isValid;          /**< Cache entry validity */
             char filePath[255];    /**< Original file path */
         };
-        
-        
-        struct LineSegment	/**< Line segment structure */
-        {
-            int x0, y0, x1, y1;
-            uint16_t color;
-        };
-        
-        struct RenderBatch	/**< Efficient rendering batch structure */
-        {
-            LineSegment* segments;     /**< Array of line segments */
-            size_t count;              /**< Number of segments in batch */
-            size_t capacity;           /**< Maximum capacity of batch */
-            uint16_t color;            /**< Common color for batch */
-        };
-        
+
         struct PolygonBounds	/**< Polygon bounding box structure */
         {
             int minX, minY, maxX, maxY; /**< Bounding box coordinates */
@@ -139,8 +104,21 @@ class Maps
         static size_t maxCachedTiles;                                               /**< Maximum cached tiles based on hardware */
         static uint32_t cacheAccessCounter;                                         /**< Counter for LRU algorithm */
         
-        // Background preload system
-        
+        // Background preload system (multi-core)
+        struct PrefetchRequest      /**< Background prefetch request structure */
+        {
+            char filePath[255];         /**< Tile file path to prefetch */
+            bool isVectorMap;           /**< True if vector map, false if PNG */
+        };
+
+        static QueueHandle_t prefetchQueue;                                         /**< Queue for prefetch requests */
+        static TaskHandle_t prefetchTaskHandle;                                     /**< Prefetch task handle */
+        static SemaphoreHandle_t prefetchMutex;                                     /**< Mutex for prefetch sprite access */
+        static TFT_eSprite* prefetchRenderSprite;                                   /**< Sprite for background rendering */
+        static volatile bool prefetchTaskRunning;                                   /**< Flag to control task lifecycle */
+
+        static void prefetchTask(void* pvParameters);                               /**< Background prefetch task (runs on Core 0) */
+
         // Unified memory pool system (experimental)
         struct UnifiedPoolEntry
         {
@@ -172,18 +150,13 @@ class Maps
         static uint32_t polygonRenderCount;                                        /**< Total polygons rendered */
         static uint32_t polygonCulledCount;                                        /**< Polygons culled (not rendered) */
         static uint32_t polygonOptimizedCount;                                     /**< Polygons using optimized algorithms */
-        
-        // Efficient batch rendering system
-        static RenderBatch* activeBatch;                                          /**< Currently active render batch */
-        static size_t maxBatchSize;                                               /**< Maximum batch size for hardware */
-        static uint32_t batchRenderCount;                                         /**< Total batches rendered */
-        static uint32_t batchOptimizationCount;                                   /**< Batches using optimization */
-        static uint32_t batchFlushCount;                                          /**< Total batch flushes */
-        
+
         tileBounds totalBounds; 													/**< Map boundaries */
         uint16_t wptPosX, wptPosY;                                                  /**< Waypoint position on screen map */
         TFT_eSprite mapTempSprite = TFT_eSprite(&tft);                              /**< Full map sprite (not showed) */
         TFT_eSprite mapSprite = TFT_eSprite(&tft);                                  /**< Screen map sprite (showed) */
+        TFT_eSprite preloadSprite = TFT_eSprite(&tft);                              /**< Preload sprite for scroll (reusable) */
+        TFT_eSprite tileRenderSprite = TFT_eSprite(&tft);                           /**< Tile render sprite for cache miss (reusable) */
         float destLat, destLon;                                                     /**< Waypoint destination latitude and longitude */
         uint8_t zoomLevel;                                                          /**< Zoom level for map display */
         ScreenCoord navArrowPosition; 												/**< Navigation Arrow position on screen */
@@ -223,7 +196,7 @@ class Maps
         // Tile cache methods
         void initTileCache();                                                         /**< Initialize tile cache system */
         bool getCachedTile(const char* filePath, TFT_eSprite& target, int16_t xOffset, int16_t yOffset); /**< Get tile from cache */
-        void addToCache(const char* filePath, TFT_eSprite& source);                 /**< Add rendered tile to cache */
+        void addToCache(const char* filePath, TFT_eSprite& source, int16_t srcX, int16_t srcY); /**< Add rendered tile to cache */
         void evictLRUTile();                                                         /**< Remove least recently used tile from cache */
         void clearTileCache();                                                       /**< Clear all cached tiles */
         uint32_t calculateTileHash(const char* filePath);                           /**< Calculate hash for tile identification */
@@ -231,8 +204,14 @@ class Maps
         
         // SD optimization methods
         void prefetchAdjacentTiles(int16_t centerX, int16_t centerY, uint8_t zoom); /**< Prefetch adjacent tiles for faster loading */
-    
-    
+
+        // Background prefetch methods (multi-core)
+        void initPrefetchSystem();                                                  /**< Initialize background prefetch system */
+        void stopPrefetchSystem();                                                  /**< Stop background prefetch system */
+        void enqueuePrefetch(const char* filePath, bool isVectorMap);              /**< Enqueue tile for background prefetch */
+        void prefetchInitialRing(uint32_t centerX, uint32_t centerY, uint8_t zoom);  /**< Prefetch initial ring around 3x3 grid */
+        void enqueueSurroundingTiles(uint32_t centerX, uint32_t centerY, uint8_t zoom, int8_t dirX, int8_t dirY); /**< Enqueue tiles in scroll direction */
+
     // Unified memory pool methods (experimental)
     public:
         void initUnifiedPool();                                                     /**< Initialize unified memory pool */
@@ -288,14 +267,6 @@ class Maps
                 MemoryGuard(const MemoryGuard&) = delete;
                 MemoryGuard& operator=(const MemoryGuard&) = delete;
         };
-    
-        // Efficient batch rendering methods
-        void initBatchRendering();                                                /**< Initialize batch rendering system */
-        void createRenderBatch(size_t capacity);                                  /**< Create new render batch */
-        void addToBatch(int x0, int y0, int x1, int y1, uint16_t color);         /**< Add line segment to current batch */
-        void flushBatch(TFT_eSprite& map, int& optimizations);                  /**< Render and clear current batch */
-        bool canBatch(uint16_t color);                                           /**< Check if line can be added to current batch */
-        size_t getOptimalBatchSize();                                            /**< Get optimal batch size for hardware */
 
         bool fillPolygons;                                             /**< Flag for polygon filling */
         void* mapBuffer;                                               /**< Pointer to map screen sprite */
@@ -328,6 +299,6 @@ class Maps
         void centerOnGps(float lat, float lon);
         void scrollMap(int16_t dx, int16_t dy);
         void preloadTiles(int8_t dirX, int8_t dirY);
-        bool renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eSprite &map);
+        bool renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eSprite &map, bool shouldCache = false);
 };
 
