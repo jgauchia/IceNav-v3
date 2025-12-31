@@ -7,10 +7,13 @@
  */
 
  #include "firmUpgrade.hpp"
+ #include <freertos/FreeRTOS.h>
+ #include <freertos/task.h>
+ #include "esp_system.h"
 
  extern Storage storage;
 
- static const char* TAG PROGMEM = "Firmware Update";
+ static const char* TAG = "Firmware Update";
 
 TFT_eSprite upgradeSprite = TFT_eSprite(&tft);  
 
@@ -115,7 +118,7 @@ void onUpgrdProcess(size_t currSize, size_t totalSize)
  */
 void onUpgrdEnd()
 {
-    delay(500);
+    vTaskDelay(pdMS_TO_TICKS(500));
     ESP_LOGI(TAG, "Rebooting ESP32: ");
-    ESP.restart();
+    esp_restart();
 }

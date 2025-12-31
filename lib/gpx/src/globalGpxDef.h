@@ -8,12 +8,11 @@
 
 #pragma once
 
-#include <pgmspace.h>
 #include <stdint.h>
 
-static const char* wptFile PROGMEM = "/sdcard/WPT/waypoint.gpx"; /**< Path to the waypoint GPX file on the SD card. */
-static const char* wptFolder PROGMEM = "/sdcard/WPT";            /**< Path to the waypoint folder on the SD card. */
-static const char* trkFolder PROGMEM = "/sdcard/TRK";            /**< Path to the track folder on the SD card. */
+static const char* wptFile = "/sdcard/WPT/waypoint.gpx"; /**< Path to the waypoint GPX file on the SD card. */
+static const char* wptFolder = "/sdcard/WPT";            /**< Path to the waypoint folder on the SD card. */
+static const char* trkFolder = "/sdcard/TRK";            /**< Path to the track folder on the SD card. */
 
 /**
  * @brief Waypoint action enum
@@ -70,7 +69,7 @@ struct TurnPoint
  *
  * @details Static string containing the standard GPX 1.0 file header, to be used when creating new GPX files.
  */
-static const char* gpxHeader PROGMEM = { "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+static const char* gpxHeader = { "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
                       "<gpx\n"
                       " version=\"1.0\"\n"
                       " creator=\"IceNav\"\n"

@@ -8,7 +8,8 @@
 
 #pragma once
 
-#include <Arduino.h>
+#include <cmath>
+#include <esp_rom_sys.h>
 #include <driver/adc.h>
 #include <esp_adc_cal.h>
 

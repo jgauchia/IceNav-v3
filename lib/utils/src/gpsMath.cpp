@@ -7,6 +7,9 @@
  */
 
 #include "gpsMath.hpp"
+#include <cstdio>
+#include "esp_log.h"
+#include "esp_heap_caps.h"
 
 float midLat = 0; 
 float midLon = 0; 

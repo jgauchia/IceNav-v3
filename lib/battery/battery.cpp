@@ -68,7 +68,7 @@ float Battery::readBattery()
             if (r == ESP_OK)
                 sum += (long)readRaw;
         #endif
-        delayMicroseconds(150);
+        esp_rom_delay_us(150);
     }
 
     voltage = sum / 100.0;

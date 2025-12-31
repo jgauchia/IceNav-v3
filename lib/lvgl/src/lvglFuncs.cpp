@@ -7,6 +7,7 @@
  */
 
 #include "lvglFuncs.hpp"
+#include "esp_system.h"
 
 lv_obj_t *msgDialog;     /**< Message dialog object. */
 
@@ -73,7 +74,7 @@ void objUnselect(_lv_obj_t *obj)
 void restartTimerCb(lv_timer_t *timer)
 {
     if (lv_timer_get_idle() != 0)
-        ESP.restart();
+        esp_restart();
 }
 
 /**

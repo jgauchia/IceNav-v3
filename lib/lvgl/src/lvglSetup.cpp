@@ -7,6 +7,13 @@
  */
 
 #include "lvglSetup.hpp"
+#include "i2c_espidf.hpp"
+#include "esp_heap_caps.h"
+#include "esp_timer.h"
+#include "driver/gpio.h"
+
+// ESP-IDF native millis() replacement
+static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 lv_display_t *display; /**< LVGL display driver */
 
@@ -86,7 +93,7 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 
     int count = tft.getTouch(touchRaw, TOUCH_MAX_POINTS);
 
-    unsigned long now = millis();
+    unsigned long now = millis_idf();
     float dt_ms = (now > lastTime) ? (float)(now - lastTime) : 1.0f;
 
     if (count == 0)
@@ -108,13 +115,13 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
         if (countTouchReleases)
         {
             countTouchReleases = false;
-            uint32_t touchReleaseTime = millis();
+            uint32_t touchReleaseTime = millis_idf();
             if (!firstTouchReleaseTime)
                 firstTouchReleaseTime = touchReleaseTime;
             numberTouchReleases++;
         }
 
-        if (millis() - firstTouchReleaseTime > TOUCH_DOUBLE_TOUCH_INTERVAL)
+        if (millis_idf() - firstTouchReleaseTime > TOUCH_DOUBLE_TOUCH_INTERVAL)
         {
             if (numberTouchReleases == 2)
             {
@@ -167,7 +174,7 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     }
 }
 
-#ifdef TDECK_ESP32S3 
+#ifdef TDECK_ESP32S3
 /**
  * @brief Reads a key value from the T-DECK keyboard via I2C.
  *
@@ -175,12 +182,8 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
  */
 uint32_t keypadGetKey()
 {
-    char key_ch = 0;
-    Wire.requestFrom(0x55, 1);
-    while (Wire.available() > 0) 
-    {
-        key_ch = Wire.read();
-    }
+    uint8_t key_ch = 0;
+    i2c.readBytesRaw(0x55, &key_ch, 1);
     return key_ch;
 }
 
@@ -264,7 +267,7 @@ void gpioClickEvent(lv_event_t *event)
  */
 uint8_t gpioGetBut()
 {
-    return digitalRead(BOARD_BOOT_PIN);
+    return gpio_get_level((gpio_num_t)BOARD_BOOT_PIN);
 }
 
 #endif
@@ -363,9 +366,9 @@ void initLVGL()
     size_t DRAW_BUF_SIZE = 0;
     
     #ifdef BOARD_HAS_PSRAM
-        assert(ESP.getFreePsram());
+        assert(heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
 
-        if ( ESP.getPsramSize() >= 4000000 )
+        if ( heap_caps_get_total_size(MALLOC_CAP_SPIRAM) >= 4000000 )
             // >4Mb PSRAM
             DRAW_BUF_SIZE = TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t);
         else

@@ -24,10 +24,10 @@
 
 #include "globalGpxDef.h"
 
-static const char *mapVectorFolder PROGMEM = "/sdcard/VECTMAP/%u/%u/%u.bin";        /**< Vector Map Files Folder */
-static const char *mapRenderFolder PROGMEM = "/sdcard/MAP/%u/%u/%u.png"; /**< Render Maps file folder */
-static const char *noMapFile PROGMEM = "/spiffs/NOMAP.png";              /**< No map image file */
-static const char *map_scale[] PROGMEM = {"5000 Km", "2500 Km", "1500 Km",
+static const char *mapVectorFolder = "/sdcard/VECTMAP/%u/%u/%u.bin";        /**< Vector Map Files Folder */
+static const char *mapRenderFolder = "/sdcard/MAP/%u/%u/%u.png"; /**< Render Maps file folder */
+static const char *noMapFile = "/spiffs/NOMAP.png";              /**< No map image file */
+static const char *map_scale[] = {"5000 Km", "2500 Km", "1500 Km",
                                         "700 Km", "350 Km", "150 Km",
                                         "100 Km", "40 Km", "20 Km",
                                         "10 Km", "5 Km", "2,5 Km",

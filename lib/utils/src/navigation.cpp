@@ -7,6 +7,8 @@
  */
 
 #include "navigation.hpp"
+#include <limits>
+#include "esp_log.h"
 
 extern lv_obj_t *turnDistLabel; 
 extern lv_obj_t *turnImg;

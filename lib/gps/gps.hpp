@@ -39,9 +39,9 @@ extern long gpsBaudDetected; 	 /**< Detected GPS baud rate. */
 extern bool nmea_output_enable;  /**< Enables or disables NMEA output. */
 
 
-static unsigned long GPS_BAUD[] PROGMEM = {4800, 9600, 19200, 0}; /**< Supported GPS baud rates. */
-static const char *GPS_BAUD_PCAS[] PROGMEM = {"$PCAS01,0*1C\r\n", "$PCAS01,1*1D\r\n", "$PCAS01,2*1E\r\n"}; /**< NMEA command strings to set baud rate for PCAS modules. */
-static const char *GPS_RATE_PCAS[] PROGMEM = {"$PCAS02,1000*2E\r\n", "$PCAS02,500*1A\r\n", "$PCAS02,250*18\r\n", "$PCAS02,200*1D\r\n", "$PCAS02,100*1E\r\n"}; /**< NMEA command strings to set update rate for PCAS modules. */
+static unsigned long GPS_BAUD[] = {4800, 9600, 19200, 0}; /**< Supported GPS baud rates. */
+static const char *GPS_BAUD_PCAS[] = {"$PCAS01,0*1C\r\n", "$PCAS01,1*1D\r\n", "$PCAS01,2*1E\r\n"}; /**< NMEA command strings to set baud rate for PCAS modules. */
+static const char *GPS_RATE_PCAS[] = {"$PCAS02,1000*2E\r\n", "$PCAS02,500*1A\r\n", "$PCAS02,250*18\r\n", "$PCAS02,200*1D\r\n", "$PCAS02,100*1E\r\n"}; /**< NMEA command strings to set update rate for PCAS modules. */
 
 /**
  * @brief Satellite Constellation Canvas Definition

@@ -1,12 +1,12 @@
- /**
+/**
  * @file webpage.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief Web file server page
+ * @brief  Web file server page
  * @version 0.2.4
  * @date 2025-12
  */
 
-const char index_html[] PROGMEM = R"rawliteral(
+const char index_html[] = R"rawliteral(
 <!DOCTYPE HTML>
 <html lang="en">
 
@@ -92,9 +92,9 @@ const char index_html[] PROGMEM = R"rawliteral(
                         background-color:  black;
                         border: 1px solid #aaaaaa;
                         text-align: center;
-                        overflow-y: auto; 
-                        overflow-x: hidden; 
-                }    
+                        overflow-y: auto;
+                        overflow-x: hidden;
+                }
         </style>
 
     </head>
@@ -122,17 +122,19 @@ const char index_html[] PROGMEM = R"rawliteral(
 
         <script>
         {
+            var pollInterval = null;
+
             function _(el)
             {
                 return document.getElementById(el);
             }
 
-            function loadPage(page) 
+            function loadPage(page)
             {
-                fetch('/listfiles?page=' + page) 
+                fetch('/listfiles?page=' + page)
                     .then(response => response.text())
                     .then(data => {
-                        document.getElementById("details").innerHTML = data; 
+                        document.getElementById("details").innerHTML = data;
                     });
             }
 
@@ -165,7 +167,35 @@ const char index_html[] PROGMEM = R"rawliteral(
                 _("details").innerHTML = xhr.responseText;
             }
 
-            function downloadDeleteButton(filename, action) 
+            function startPolling()
+            {
+                if (pollInterval) return;
+                pollInterval = setInterval(function() {
+                    fetch('/status')
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.message) {
+                                _("status").innerHTML = data.message;
+                            }
+                            if (data.refresh) {
+                                stopPolling();
+                                sessionStorage.removeItem("msgStatus");
+                                document.location.reload(true);
+                            }
+                        })
+                        .catch(err => {});
+                }, 1000);
+            }
+
+            function stopPolling()
+            {
+                if (pollInterval) {
+                    clearInterval(pollInterval);
+                    pollInterval = null;
+                }
+            }
+
+            function downloadDeleteButton(filename, action)
             {
                 var urltocall = "";
                 xhr = new XMLHttpRequest();
@@ -177,7 +207,7 @@ const char index_html[] PROGMEM = R"rawliteral(
                         sessionStorage.setItem("msgStatus",xhr.responseText);
                         _("status").innerHTML = "";
                         _("details").innerHTML = "Deleting file: " + filename;
-                        document.location.reload(true);   
+                        document.location.reload(true);
                 }
                 if (action == "deldir")
                 {
@@ -187,28 +217,15 @@ const char index_html[] PROGMEM = R"rawliteral(
                         sessionStorage.setItem("msgStatus",xhr.responseText);
                         _("status").innerHTML = "Deleting folder: " + filename + " please wait....";
                         _("details").innerHTML = "";
+                        startPolling();
                 }
-                if (action == "download") 
+                if (action == "download")
                 {
                         urltocall = "/file?name=/" + encodeURIComponent(filename) + "&action=" + action;
                         _("status").innerHTML = "";
                         window.open(urltocall,"_blank");
                 }
             }
-
-            const eventSource = new EventSource('/eventRefresh');
-            eventSource.onmessage = (event) => 
-            {
-                if (event.data === "refresh")
-                {
-                    sessionStorage.removeItem("msgStatus");
-                    document.location.reload(true); 
-                }
-                eventSource.addEventListener("updateStatus", (event) => 
-                {
-                    document.getElementById("status").innerHTML = event.data;
-                });
-            };
 
             function changeDirectory(directory)
             {
@@ -224,19 +241,19 @@ const char index_html[] PROGMEM = R"rawliteral(
                 _("details").innerHTML = xhr.responseText;
             }
 
-            function uploadButton() 
+            function uploadButton()
             {
                 _("detailsheader").innerHTML = "<h3>Upload File(s)</h3>"
                 _("status").innerHTML = "";
 
                 var uploadform =
                 "<form id=\"upload_form\" enctype=\"multipart/form-data\" method=\"post\">" +
-                "<div id=\"drag\"><h3 id=\"filetext\">Drag to upload file</h3></div>" + 
+                "<div id=\"drag\"><h3 id=\"filetext\">Drag to upload file</h3></div>" +
                 "<progress id=\"progressBar\" value=\"0\" max=\"100\" style=\"width:372px;\"></progress>" +
                 "<h3 id=\"status\"></h3>" +
                 "<p id=\"loaded_n_total\"></p>" +
                 "</form>";
-                
+
                 _("details").innerHTML = uploadform;
 
                 var z = _("drag");
@@ -245,8 +262,8 @@ const char index_html[] PROGMEM = R"rawliteral(
                 z.addEventListener("drop", dropped, false);
             }
 
-            function dragged(e) 
-            {  
+            function dragged(e)
+            {
                 var z = _("drag");
                 z.style.backgroundColor = "#5d6d7e";
                 z.style.opacity = "0.6";
@@ -254,7 +271,7 @@ const char index_html[] PROGMEM = R"rawliteral(
                 e.preventDefault();
             }
 
-            function dropped(e) 
+            function dropped(e)
             {
                 e.preventDefault();
                 e.stopPropagation();
@@ -267,15 +284,15 @@ const char index_html[] PROGMEM = R"rawliteral(
 
                 var xhr = new XMLHttpRequest();
                 xhr.upload.addEventListener("progress", progressHandler, false);
-                xhr.addEventListener("load", completeHandler, false); 
+                xhr.addEventListener("load", completeHandler, false);
                 xhr.addEventListener("error", errorHandler, false);
                 xhr.addEventListener("abort", abortHandler, false);
 
-                async function processFiles(files) 
+                async function processFiles(files)
                 {
-                    for (const file of files) 
+                    for (const file of files)
                     {
-                        formData.append("file[]", file, file.name); 
+                        formData.append("file[]", file, file.name);
                         fileNames += file.name + ", ";
                     }
 
@@ -287,10 +304,10 @@ const char index_html[] PROGMEM = R"rawliteral(
                     xhr.send(formData);
                 }
 
-                async function traverseFileTree(item, path = "") 
+                async function traverseFileTree(item, path = "")
                 {
                     return new Promise((resolve) => {
-                        if (item.isFile) 
+                        if (item.isFile)
                         {
                             item.file((file) => {
                             const relativePath = path + file.name;
@@ -298,7 +315,7 @@ const char index_html[] PROGMEM = R"rawliteral(
                             uploads.push(newFile);
                             resolve();
                             });
-                        } else if (item.isDirectory) 
+                        } else if (item.isDirectory)
                         {
                             const dirReader = item.createReader();
                             dirReader.readEntries(async (entries) => {
@@ -311,13 +328,13 @@ const char index_html[] PROGMEM = R"rawliteral(
                     });
                 }
 
-                async function handleItems(items) 
+                async function handleItems(items)
                 {
                     const promises = [];
-                    for (let i = 0; i < items.length; i++) 
+                    for (let i = 0; i < items.length; i++)
                     {
                         const item = items[i].webkitGetAsEntry();
-                        if (item) 
+                        if (item)
                         {
                             promises.push(traverseFileTree(item));
                         }
@@ -332,12 +349,10 @@ const char index_html[] PROGMEM = R"rawliteral(
                 }
             }
 
-            function progressHandler(event) 
+            function progressHandler(event)
             {
                 var percent = (event.loaded / event.total) * 100;
-                _("loaded_n_total").innerHTML = "Uploaded " + event.loaded + " bytes of " + event.total; // event.total doesn't show accurate total file size
-                
-                //_("loaded_n_total").innerHTML = "Uploaded " + event.loaded + " bytes";
+                _("loaded_n_total").innerHTML = "Uploaded " + event.loaded + " bytes of " + event.total;
                 _("progressBar").value = Math.round(percent);
                 _("status").innerHTML = Math.round(percent) + "% uploaded... please wait";
                 if (percent >= 100)
@@ -347,7 +362,7 @@ const char index_html[] PROGMEM = R"rawliteral(
             }
 
 
-            function completeHandler(event) 
+            function completeHandler(event)
             {
                 _("status").innerHTML = "Upload Complete";
                 _("progressBar").value = 0;
@@ -360,12 +375,12 @@ const char index_html[] PROGMEM = R"rawliteral(
                 document.location.reload(true);
             }
 
-            function errorHandler(event) 
+            function errorHandler(event)
             {
                 _("status").innerHTML = "Upload Failed";
             }
 
-            function abortHandler(event) 
+            function abortHandler(event)
             {
                 _("status").innerHTML = "inUpload Aborted";
             }
@@ -373,11 +388,11 @@ const char index_html[] PROGMEM = R"rawliteral(
         </script>
 
     </body>
-    
+
 </html>
 )rawliteral";
 
-const char reboot_html[] PROGMEM = R"rawliteral(
+const char reboot_html[] = R"rawliteral(
 <!DOCTYPE HTML>
 <html lang="en">
 
@@ -394,11 +409,11 @@ const char reboot_html[] PROGMEM = R"rawliteral(
             function countdown()
             {
                 seconds = seconds - 1;
-                if (seconds < 0) 
+                if (seconds < 0)
                 {
                     window.location = "/";
                 }
-                else    
+                else
                 {
                     document.getElementById("countdown").innerHTML = seconds;
                     window.setTimeout("countdown()", 1000);

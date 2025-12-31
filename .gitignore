@@ -1,3 +1,5 @@
 .pio
 .vscode
 assets
+docs/MIGRATION_PENDING.md
+docs/OPTIMIZATION_STATE.md

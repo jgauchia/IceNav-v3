@@ -13,7 +13,7 @@ wayPoint addWpt;  /**< Temporary waypoint structure used when adding a new waypo
 wayPoint loadWpt; /**< Temporary waypoint structure used when loading a waypoint. */
 extern Storage storage;
 
-static const char* TAG PROGMEM = "GPX file struct";
+static const char* TAG = "GPX file struct";
 
 /**
  * @brief Create GPX folders structure
