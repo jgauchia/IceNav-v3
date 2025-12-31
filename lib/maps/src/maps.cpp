@@ -12,6 +12,7 @@
 #include <string>
 #include <algorithm>
 #include <cstring>
+#include <sys/stat.h>
 #include "esp_timer.h"
 #include "esp_system.h"
 
@@ -825,35 +826,42 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 bool Maps::loadPalette(const char* palettePath)
 {
     FILE* f = fopen(palettePath, "rb");
-    if (!f) 
+    if (!f)
         return false;
-    
-    // Read 4-byte header for number of colors 
-    uint32_t numColors;
-    if (fread(&numColors, 4, 1, f) != 1) {
-        fclose(f);
-        return false;
-    }
-    
-    // Read RGB888 colors (3 bytes per color) and convert to RGB332
-    uint8_t rgb888[3];
-    PALETTE_SIZE = 0;
-    
-    for (uint32_t i = 0; i < numColors && i < 256; i++) 
-    {
-        if (fread(rgb888, 3, 1, f) == 1) 
-        {
-            // Convert RGB332 to RGB888 
-            uint8_t r332 = rgb888[0] & 0xE0;  // Keep top 3 bits
-            uint8_t g332 = (rgb888[1] & 0xE0) >> 3;  // Keep top 3 bits, shift right
-            uint8_t b332 = rgb888[2] >> 6;  // Keep top 2 bits
-            PALETTE[i] = r332 | g332 | b332;
-            PALETTE_SIZE++;
-        }
-    }
-    
+
+    // Read entire palette file in one operation (4-byte header + 256*3 RGB bytes max)
+    // This replaces 256+ individual fread() calls with a single read
+    static constexpr size_t MAX_PALETTE_BUFFER = 4 + 256 * 3;  // 772 bytes
+    uint8_t buffer[MAX_PALETTE_BUFFER];
+
+    const size_t bytesRead = fread(buffer, 1, MAX_PALETTE_BUFFER, f);
     fclose(f);
-    ESP_LOGI(TAG, "Loaded palette: %u colors", PALETTE_SIZE);
+
+    if (bytesRead < 4)
+        return false;
+
+    // Parse header (4 bytes little-endian)
+    const uint32_t numColors = buffer[0] | (buffer[1] << 8) | (buffer[2] << 16) | (buffer[3] << 24);
+    const size_t expectedSize = 4 + numColors * 3;
+
+    if (bytesRead < expectedSize || numColors > 256)
+        return false;
+
+    // Convert RGB888 to RGB332 from buffer
+    PALETTE_SIZE = 0;
+    const uint8_t* colorData = buffer + 4;
+
+    for (uint32_t i = 0; i < numColors; i++)
+    {
+        const uint8_t* rgb888 = colorData + (i * 3);
+        uint8_t r332 = rgb888[0] & 0xE0;           // Keep top 3 bits
+        uint8_t g332 = (rgb888[1] & 0xE0) >> 3;   // Keep top 3 bits, shift right
+        uint8_t b332 = rgb888[2] >> 6;             // Keep top 2 bits
+        PALETTE[i] = r332 | g332 | b332;
+        PALETTE_SIZE++;
+    }
+
+    ESP_LOGI(TAG, "Loaded palette: %u colors (single read)", PALETTE_SIZE);
     return PALETTE_SIZE > 0;
 }
 
@@ -1520,14 +1528,18 @@ bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOf
     if (getCachedTile(path, map, xOffset, yOffset))
         return true; // Tile found in cache
 
-    // Direct file read
+    // Open file first, then get size via fstat() - single directory lookup
     FILE* file = fopen(path, "rb");
     if (!file)
-       return false;
-    
-    fseek(file, 0, SEEK_END);
-    const long fileSize = ftell(file);
-    fseek(file, 0, SEEK_SET);
+        return false;
+
+    struct stat fileStat;
+    if (fstat(fileno(file), &fileStat) != 0 || fileStat.st_size <= 0)
+    {
+        fclose(file);
+        return false;
+    }
+    const size_t fileSize = fileStat.st_size;
 
     // Use RAII MemoryGuard for data allocation
     MemoryGuard<uint8_t> dataGuard(fileSize, 0); // Type 0 = general
@@ -1785,23 +1797,21 @@ void Maps::prefetchAdjacentTiles(int16_t centerX, int16_t centerY, uint8_t zoom)
             float tileLat = 90.0f - (tileY / (1 << zoom)) * 180.0f;
             
             MapTile prefetchTile = getMapTile(tileLon, tileLat, zoom, tileX, tileY);
-            
-            // Check if tile exists and not already in cache
-            FILE* testFile = fopen(prefetchTile.file, "rb");
-            if (testFile)
+
+            // Check if tile exists using stat() - avoids fopen/fclose overhead
+            struct stat tileStat;
+            if (stat(prefetchTile.file, &tileStat) == 0)
             {
-                fclose(testFile);
-                
                 // Try to load into cache if not already there
                 TFT_eSprite tempSprite = TFT_eSprite(&tft);
                 tempSprite.createSprite(tileWidth, tileHeight);
-                
+
                 if (!getCachedTile(prefetchTile.file, tempSprite, 0, 0))
                 {
                     // Render tile to cache it
                     renderTile(prefetchTile.file, 0, 0, tempSprite);
                 }
-                
+
                 tempSprite.deleteSprite();
             }
         }
@@ -1866,13 +1876,10 @@ void Maps::prefetchTask(void* pvParameters)
                         else
                         {
                             // PNG: just pre-read file to FS buffer (no cache)
+                            // Buffer 4KB max - task stack is 8KB, can't use larger buffers
                             FILE* pngFile = fopen(request.filePath, "rb");
                             if (pngFile)
                             {
-                                // Read file to populate FS cache
-                                fseek(pngFile, 0, SEEK_END);
-                                fseek(pngFile, 0, SEEK_SET);
-                                // Read in chunks to avoid large allocation
                                 char buffer[4096];
                                 while (fread(buffer, 1, sizeof(buffer), pngFile) > 0) {}
                                 fclose(pngFile);
