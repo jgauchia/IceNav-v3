@@ -17,6 +17,11 @@
 
 static const char* TAG = "FgbReader";
 
+// File I/O buffer for improved SD card performance
+// Larger buffer reduces number of actual SD reads (default is ~128-512 bytes)
+static constexpr size_t FILE_BUFFER_SIZE = 4096;
+static char fileBuffer_[FILE_BUFFER_SIZE];
+
 // FlatBuffer constants
 static constexpr uint32_t FB_SIZE_PREFIX = 4;
 
@@ -66,6 +71,9 @@ bool FgbReader::open(const char* path)
         ESP_LOGE(TAG, "Failed to open file: %s", path);
         return false;
     }
+
+    // Set larger file buffer for better SD card performance
+    setvbuf(file_, fileBuffer_, _IOFBF, FILE_BUFFER_SIZE);
 
     // Read and validate magic bytes
     if (!readMagic())
@@ -129,7 +137,11 @@ bool FgbReader::reopen()
 
         file_ = fopen(filePath_, "rb");
         if (file_)
+        {
+            // Set larger file buffer for better SD card performance
+            setvbuf(file_, fileBuffer_, _IOFBF, FILE_BUFFER_SIZE);
             return true;
+        }
     }
 
     ESP_LOGE(TAG, "Failed to reopen file after retries: %s", filePath_);
