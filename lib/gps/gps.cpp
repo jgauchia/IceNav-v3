@@ -130,14 +130,14 @@ float Gps::getLat()
 {
     if (fix.valid.location)
         return fix.latitude();
-    else if (cfg.getFloat(PKEYS::KLAT_DFL, 0.0) != 0.0)
-        return cfg.getFloat(PKEYS::KLAT_DFL, 0.0);
+    else if (cfg.getFloat(PKEYS::KLAT_DFL, 0.0f) != 0.0f)
+        return cfg.getFloat(PKEYS::KLAT_DFL, 0.0f);
     else
     {
         #ifdef DEFAULT_LAT
             return DEFAULT_LAT;
         #else
-            return 0.0;
+            return 0.0f;
         #endif
     }
 }
@@ -154,14 +154,14 @@ float Gps::getLon()
 {
     if (fix.valid.location)
         return fix.longitude();
-    else if (cfg.getFloat(PKEYS::KLON_DFL, 0.0) != 0.0)
-        return cfg.getFloat(PKEYS::KLON_DFL, 0.0);
+    else if (cfg.getFloat(PKEYS::KLON_DFL, 0.0f) != 0.0f)
+        return cfg.getFloat(PKEYS::KLON_DFL, 0.0f);
     else
     {
         #ifdef DEFAULT_LON
             return DEFAULT_LON;
         #else
-            return 0.0;
+            return 0.0f;
         #endif
     }
 }

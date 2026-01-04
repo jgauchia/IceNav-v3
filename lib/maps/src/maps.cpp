@@ -321,7 +321,7 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
     Maps::roundMapTile = {};    // Boundaries Map tiles
     Maps::navArrowPosition = {0, 0};              // Map Arrow position
 
-    Maps::totalBounds = {90.0, -90.0, 180.0, -180.0};
+    Maps::totalBounds = {90.0f, -90.0f, 180.0f, -180.0f};
     
     // Initialize tile cache system
     initTileCache();
@@ -1847,12 +1847,15 @@ void Maps::unifiedDealloc(void* ptr)
 void Maps::fgbCoordToPixel(double lon, double lat, const FgbBbox& viewport, int16_t& px, int16_t& py)
 {
     // Use linear interpolation within the viewport bbox
-    double xNorm = (lon - viewport.minX) / (viewport.maxX - viewport.minX);
-    double yNorm = (viewport.maxY - lat) / (viewport.maxY - viewport.minY); // Y inverted
+    // Cast to float for ESP32-S3 FPU hardware acceleration (32-bit single precision)
+    const float viewWidth = static_cast<float>(viewport.maxX - viewport.minX);
+    const float viewHeight = static_cast<float>(viewport.maxY - viewport.minY);
+    const float xNorm = static_cast<float>(lon - viewport.minX) / viewWidth;
+    const float yNorm = static_cast<float>(viewport.maxY - lat) / viewHeight; // Y inverted
 
     // Clamp to valid pixel range to avoid overflow with out-of-bounds coordinates
-    int32_t pxRaw = static_cast<int32_t>(xNorm * tileWidth);
-    int32_t pyRaw = static_cast<int32_t>(yNorm * tileHeight);
+    const int32_t pxRaw = static_cast<int32_t>(xNorm * static_cast<float>(tileWidth));
+    const int32_t pyRaw = static_cast<int32_t>(yNorm * static_cast<float>(tileHeight));
 
     px = static_cast<int16_t>(std::max(-1000, std::min(2000, pxRaw)));
     py = static_cast<int16_t>(std::max(-1000, std::min(2000, pyRaw)));
@@ -1987,22 +1990,23 @@ void Maps::renderFgbFeature(const FgbFeature& feature, const FgbBbox& viewport, 
 bool Maps::renderFgbViewport(float centerLat, float centerLon, uint8_t zoom, TFT_eSprite& map)
 {
     // Calculate center tile coordinates using Web Mercator projection
-    double latRad = centerLat * M_PI / 180.0;
-    double n = pow(2.0, zoom);
-    int centerTileX = (int)((centerLon + 180.0) / 360.0 * n);
-    int centerTileY = (int)((1.0 - log(tan(latRad) + 1.0 / cos(latRad)) / M_PI) / 2.0 * n);
+    // Use float math with f suffix for ESP32-S3 FPU hardware acceleration
+    const float latRad = centerLat * (float)M_PI / 180.0f;
+    const float n = static_cast<float>(1u << zoom);  // 2^zoom using bit shift (faster than powf)
+    const int centerTileX = static_cast<int>((centerLon + 180.0f) / 360.0f * n);
+    const int centerTileY = static_cast<int>((1.0f - logf(tanf(latRad) + 1.0f / cosf(latRad)) / (float)M_PI) / 2.0f * n);
 
     // Calculate viewport bbox based on exact 3x3 tile grid boundaries
     // This ensures features align exactly with tile boundaries
-    int minTileX = centerTileX - 1;
-    int maxTileX = centerTileX + 2;  // +2 to get right edge of tile +1
-    int minTileY = centerTileY - 1;
-    int maxTileY = centerTileY + 2;  // +2 to get bottom edge of tile +1
+    const int minTileX = centerTileX - 1;
+    const int maxTileX = centerTileX + 2;  // +2 to get right edge of tile +1
+    const int minTileY = centerTileY - 1;
+    const int maxTileY = centerTileY + 2;  // +2 to get bottom edge of tile +1
 
-    double maxLat = atan(sinh(M_PI * (1.0 - 2.0 * (double)minTileY / n))) * 180.0 / M_PI;
-    double minLon = (double)minTileX / n * 360.0 - 180.0;
-    double minLat = atan(sinh(M_PI * (1.0 - 2.0 * (double)maxTileY / n))) * 180.0 / M_PI;
-    double maxLon = (double)maxTileX / n * 360.0 - 180.0;
+    const float maxLat = atanf(sinhf((float)M_PI * (1.0f - 2.0f * static_cast<float>(minTileY) / n))) * 180.0f / (float)M_PI;
+    const float minLon = static_cast<float>(minTileX) / n * 360.0f - 180.0f;
+    const float minLat = atanf(sinhf((float)M_PI * (1.0f - 2.0f * static_cast<float>(maxTileY) / n))) * 180.0f / (float)M_PI;
+    const float maxLon = static_cast<float>(maxTileX) / n * 360.0f - 180.0f;
 
     FgbBbox viewport;
     viewport.minX = minLon;

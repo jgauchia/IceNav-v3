@@ -431,11 +431,11 @@ float MPU9250_Driver::getMagZ_uT() { return magZ; }
  * @brief Compass class constructor with default filter and calibration values.
  */
 Compass::Compass()
-        : declinationAngle(0.22), offX(0.0), offY(0.0),
-        headingSmooth(0.0), headingPrevious(0.0),
-        minX(0.0), maxX(0.0), minY(0.0), maxY(0.0),
+        : declinationAngle(0.22f), offX(0.0f), offY(0.0f),
+        headingSmooth(0.0f), headingPrevious(0.0f),
+        minX(0.0f), maxX(0.0f), minY(0.0f), maxY(0.0f),
         kalmanFilterEnabled(true),
-        kalmanFilter(0.01, 0.1, 1.0, 0.0)
+        kalmanFilter(0.01f, 0.1f, 1.0f, 0.0f)
 {
 }
 
@@ -573,9 +573,9 @@ bool Compass::isUpdated()
 void Compass::calibrate()
 {
     bool cal = 1;
-    float y = 0.0;
-    float x = 0.0;
-    float z = 0.0;
+    float y = 0.0f;
+    float x = 0.0f;
+    float z = 0.0f;
     uint16_t touchX, touchY;
 
     TFT_eSprite compassCalSprite = TFT_eSprite(&tft);  
