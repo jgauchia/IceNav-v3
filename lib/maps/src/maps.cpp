@@ -13,6 +13,8 @@
 #include <algorithm>
 #include <cstring>
 #include <cmath>
+#include <climits>
+#include <cstdint>
 #include <sys/stat.h>
 #include "esp_timer.h"
 #include "esp_system.h"
@@ -1862,43 +1864,56 @@ void Maps::fgbCoordToPixel(double lon, double lat, const FgbBbox& viewport, int1
 }
 
 /**
- * @brief Render a LineString feature
+ * @brief Render a LineString feature with bbox culling
  */
 void Maps::renderFgbLineString(const FgbFeature& feature, const FgbBbox& viewport, TFT_eSprite& map)
 {
     if (feature.coordinates.size() < 2)
         return;
 
-    uint16_t color = RGB332ToRGB565(feature.properties.colorRgb332);
+    // Convert all coordinates and compute bbox in single pass
+    const size_t numCoords = feature.coordinates.size();
+    MemoryGuard<int16_t> pxGuard(numCoords, 5);
+    MemoryGuard<int16_t> pyGuard(numCoords, 5);
+    int16_t* pxArr = pxGuard.get();
+    int16_t* pyArr = pyGuard.get();
 
-    int16_t prevX, prevY;
-    fgbCoordToPixel(feature.coordinates[0].x, feature.coordinates[0].y, viewport, prevX, prevY);
+    if (!pxArr || !pyArr)
+        return;
 
-    for (size_t i = 1; i < feature.coordinates.size(); i++)
+    int16_t minPx = INT16_MAX, maxPx = INT16_MIN;
+    int16_t minPy = INT16_MAX, maxPy = INT16_MIN;
+
+    for (size_t i = 0; i < numCoords; i++)
     {
-        int16_t currX, currY;
-        fgbCoordToPixel(feature.coordinates[i].x, feature.coordinates[i].y, viewport, currX, currY);
+        fgbCoordToPixel(feature.coordinates[i].x, feature.coordinates[i].y, viewport, pxArr[i], pyArr[i]);
+        minPx = std::min(minPx, pxArr[i]);
+        maxPx = std::max(maxPx, pxArr[i]);
+        minPy = std::min(minPy, pyArr[i]);
+        maxPy = std::max(maxPy, pyArr[i]);
+    }
 
-        // Draw line segment
-        map.drawLine(prevX, prevY, currX, currY, color);
+    // Bbox culling: skip if completely outside screen
+    if (maxPx < 0 || minPx >= tileWidth || maxPy < 0 || minPy >= tileHeight)
+        return;
 
-        prevX = currX;
-        prevY = currY;
+    // Draw line segments
+    uint16_t color = RGB332ToRGB565(feature.properties.colorRgb332);
+    for (size_t i = 1; i < numCoords; i++)
+    {
+        map.drawLine(pxArr[i-1], pyArr[i-1], pxArr[i], pyArr[i], color);
     }
 }
 
 /**
- * @brief Render a Polygon feature
+ * @brief Render a Polygon feature with bbox culling
  */
 void Maps::renderFgbPolygon(const FgbFeature& feature, const FgbBbox& viewport, TFT_eSprite& map)
 {
     if (feature.coordinates.size() < 3)
         return;
 
-    uint16_t fillColor = RGB332ToRGB565(feature.properties.colorRgb332);
-    uint16_t borderColor = RGB332ToRGB565(darkenRGB332(feature.properties.colorRgb332, 0.3f));
-
-    // Convert coordinates to pixel arrays
+    // Convert coordinates to pixel arrays and compute bbox
     size_t numPoints = feature.coordinates.size();
     MemoryGuard<int> pxGuard(numPoints, 6);
     MemoryGuard<int> pyGuard(numPoints, 6);
@@ -1908,13 +1923,27 @@ void Maps::renderFgbPolygon(const FgbFeature& feature, const FgbBbox& viewport, 
     if (!px || !py)
         return;
 
+    int minPx = INT_MAX, maxPx = INT_MIN;
+    int minPy = INT_MAX, maxPy = INT_MIN;
+
     for (size_t i = 0; i < numPoints; i++)
     {
         int16_t x, y;
         fgbCoordToPixel(feature.coordinates[i].x, feature.coordinates[i].y, viewport, x, y);
         px[i] = x;
         py[i] = y;
+        minPx = std::min(minPx, (int)x);
+        maxPx = std::max(maxPx, (int)x);
+        minPy = std::min(minPy, (int)y);
+        maxPy = std::max(maxPy, (int)y);
     }
+
+    // Bbox culling: skip if completely outside screen
+    if (maxPx < 0 || minPx >= tileWidth || maxPy < 0 || minPy >= tileHeight)
+        return;
+
+    uint16_t fillColor = RGB332ToRGB565(feature.properties.colorRgb332);
+    uint16_t borderColor = RGB332ToRGB565(darkenRGB332(feature.properties.colorRgb332, 0.3f));
 
     // Fill polygon if enabled
     if (fillPolygons)
