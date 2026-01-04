@@ -80,7 +80,7 @@ esp_err_t Storage::initSD()
 		.sclk_io_num = (gpio_num_t)SD_CLK,
 		.quadwp_io_num = -1,
 		.quadhd_io_num = -1,
-		.max_transfer_sz = 32768,
+		.max_transfer_sz = 4096,
 		.flags = 0,
 		.intr_flags = 0};
 
@@ -95,12 +95,11 @@ esp_err_t Storage::initSD()
 		return ret;
 	}
 
-
 	ESP_LOGI(TAG, "Initializing SD card");
 
 	esp_vfs_fat_mount_config_t mount_config = {
 		.format_if_mount_failed = false,
-		.max_files = 12,
+		.max_files = 20,  // Increased for 9 FGB layers + other files
 		.allocation_unit_size = 8192};
 
 	ret = esp_vfs_fat_sdspi_mount("/sdcard", &host, &slot_config, &mount_config, &card);

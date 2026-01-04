@@ -24,6 +24,7 @@
 #include "compass.hpp"
 #include "mapVars.h"
 #include "storage.hpp"
+#include "fgb_reader.hpp"
 
 /**
  * @brief Draw command types used for rendering vector graphics.
@@ -96,9 +97,7 @@ class Maps
         static const uint16_t scrollThreshold = mapTileSize / 2;                     /**< Smooth scroll threshold */
 
         static uint16_t currentDrawColor;                           				/**< Current drawing color state */
-        static uint8_t PALETTE[256];                                                /**< Color palette for vector tiles */
-        static uint32_t PALETTE_SIZE;                                               /**< Number of entries in the palette */
-        
+
         // Tile cache system
         static std::vector<CachedTile> tileCache;                                   /**< Tile cache storage */
         static size_t maxCachedTiles;                                               /**< Maximum cached tiles based on hardware */
@@ -175,12 +174,8 @@ class Maps
         void showNoMap(TFT_eSprite &map);
         void panMap(int8_t dx, int8_t dy);
 
-        bool loadPalette(const char* palettePath);											/**< Load color palette from binary file */
-        uint8_t paletteToRGB332(const uint32_t idx);					 					/**< Convert palette index to RGB332 color */
         uint8_t darkenRGB332(const uint8_t color, const float amount);  					/**< Darken RGB332 color by a given fraction */
         uint16_t RGB332ToRGB565(const uint8_t color);										/**< Convert RGB332 color to RGB565 */
-        uint32_t readVarint(const uint8_t* data, size_t& offset, size_t dataSize);			/**< Read a varint-encoded uint32_t from data buffer */
-        int32_t readZigzag(const uint8_t* data, size_t& offset, const size_t dataSize);		/**< Read a zigzag-encoded int32_t from data buffer */
         int uint16ToPixel(const int32_t val);												/**< Convert uint16_t tile coordinate to pixel coordinate */
         bool isPointOnMargin(const int px, const int py);									/**< Check if a point is on the margin of the tile */
         bool isNear(int val, int target, int tol);											/**< Check if a value is near a target within a tolerance */
@@ -299,6 +294,22 @@ class Maps
         void centerOnGps(float lat, float lon);
         void scrollMap(int16_t dx, int16_t dy);
         void preloadTiles(int8_t dirX, int8_t dirY);
-        bool renderTile(const char* path, int16_t xOffset, int16_t yOffset, TFT_eSprite &map, bool shouldCache = false);
+
+        // FlatGeobuf rendering methods
+        bool renderFgbViewport(float centerLat, float centerLon, uint8_t zoom, TFT_eSprite &map);
+
+    private:
+        // FlatGeobuf tile rendering helpers
+        void renderFgbFeature(const FgbFeature& feature, const FgbBbox& viewport, TFT_eSprite& map);
+        void renderFgbLineString(const FgbFeature& feature, const FgbBbox& viewport, TFT_eSprite& map);
+        void renderFgbPolygon(const FgbFeature& feature, const FgbBbox& viewport, TFT_eSprite& map);
+        void renderFgbPoint(const FgbFeature& feature, const FgbBbox& viewport, TFT_eSprite& map);
+        void fgbCoordToPixel(double lon, double lat, const FgbBbox& viewport, int16_t& px, int16_t& py);
+
+        // FGB render cache (avoid re-render when stationary)
+        float fgbLastLat_;
+        float fgbLastLon_;
+        uint8_t fgbLastZoom_;
+        bool fgbNeedsRender_;
 };
 
