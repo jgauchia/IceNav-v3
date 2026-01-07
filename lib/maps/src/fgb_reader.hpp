@@ -129,7 +129,6 @@ struct FgbProperties
     uint16_t colorRgb565;
     uint8_t minZoom;
     uint8_t priority;
-    char featureType[32];
 };
 
 /**
@@ -263,6 +262,5 @@ private:
     int colIndexColorRgb565_;
     int colIndexMinZoom_;
     int colIndexPriority_;
-    int colIndexFeatureType_;
 };
 
