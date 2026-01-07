@@ -37,7 +37,7 @@ FgbReader::FgbReader()
     , rtreeLoaded_(false)
     , rtreeData_(nullptr)
     , rtreeDataSize_(0)
-    , colIndexColorRgb332_(-1)
+    , colIndexColorRgb565_(-1)
     , colIndexMinZoom_(-1)
     , colIndexPriority_(-1)
     , colIndexOsmId_(-1)
@@ -348,7 +348,7 @@ bool FgbReader::parseHeaderFlatBuffer(const uint8_t* data, size_t size)
             ESP_LOGD(TAG, "Column[%d]: '%s' type=%d", i, col.name, (int)col.type);
 
             // Cache column indices for fast property lookup
-            if (strcmp(col.name, "color_rgb332") == 0) colIndexColorRgb332_ = i;
+            if (strcmp(col.name, "color_rgb565") == 0) colIndexColorRgb565_ = i;
             else if (strcmp(col.name, "min_zoom") == 0) colIndexMinZoom_ = i;
             else if (strcmp(col.name, "priority") == 0) colIndexPriority_ = i;
             else if (strcmp(col.name, "osm_id") == 0) colIndexOsmId_ = i;
@@ -374,8 +374,8 @@ bool FgbReader::parseHeaderFlatBuffer(const uint8_t* data, size_t size)
         header_.indexNodeSize = 16; // FlatGeobuf default
     }
 
-    ESP_LOGI(TAG, "Columns: colorRgb332=%d, minZoom=%d, priority=%d",
-             colIndexColorRgb332_, colIndexMinZoom_, colIndexPriority_);
+    ESP_LOGI(TAG, "Columns: colorRgb565=%d, minZoom=%d, priority=%d",
+             colIndexColorRgb565_, colIndexMinZoom_, colIndexPriority_);
 
     return true;
 }
@@ -836,9 +836,9 @@ bool FgbReader::parseFeatureFlatBuffer(const uint8_t* data, size_t size, FgbFeat
                 return value;
             };
 
-            if ((int)colIdx == colIndexColorRgb332_)
+            if ((int)colIdx == colIndexColorRgb565_)
             {
-                feature.properties.colorRgb332 = static_cast<uint8_t>(readIntValue(propOffset) & 0xFF);
+                feature.properties.colorRgb565 = static_cast<uint16_t>(readIntValue(propOffset) & 0xFFFF);
             }
             else if ((int)colIdx == colIndexMinZoom_)
             {

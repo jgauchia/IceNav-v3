@@ -823,50 +823,26 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 
 
 /**
- * @brief Darkens an RGB332 color by a specified amount.
+ * @brief Darkens an RGB565 color by a specified amount.
  *
- * @details This function extracts the red, green, and blue components from the input RGB332 color value,
- *          multiplies each component by (1.0 - amount), and recombines them into a new RGB332 value. The default darkening amount is 0.4.
- *          This can be used to generate a visually darker shade of the original color for effects such as shading or selection highlighting.
+ * @details This function extracts the red, green, and blue components from the input RGB565 color value,
+ *          multiplies each component by (1.0 - amount), and recombines them into a new RGB565 value.
  *
- * @param color The original RGB332 color value.
+ * @param color The original RGB565 color value.
  * @param amount The fraction to darken each color component (default is 0.4).
- * @return The darkened RGB332 color value.
+ * @return The darkened RGB565 color value.
  */
-uint8_t Maps::darkenRGB332(const uint8_t color, const float amount = 0.4f)
+uint16_t Maps::darkenRGB565(const uint16_t color, const float amount = 0.4f)
 {
-    uint8_t r = (color & 0xE0) >> 5;
-    uint8_t g = (color & 0x1C) >> 2;
-    uint8_t b = (color & 0x03);
+    uint8_t r = (color >> 11) & 0x1F;
+    uint8_t g = (color >> 5) & 0x3F;
+    uint8_t b = color & 0x1F;
 
     r = static_cast<uint8_t>(r * (1.0f - amount));
     g = static_cast<uint8_t>(g * (1.0f - amount));
     b = static_cast<uint8_t>(b * (1.0f - amount));
 
-    return ((r << 5) | (g << 2) | b);
-}
-
-/**
- * @brief Converts an RGB332 color value to RGB565 format.
- *
- * @details This function extracts the red, green, and blue components from the 8-bit RGB332 input value, scales each component to match the RGB565 format, and recombines them into a 16-bit RGB565 value. 
- *
- * @param color The input color value in RGB332 format.
- * @return The corresponding color value in RGB565 format.
- */
-uint16_t Maps::RGB332ToRGB565(const uint8_t color)
-{
-    // Convert RGB332 to RGB565 
-    uint8_t r = (color & 0xE0);
-    uint8_t g = (color & 0x1C) << 3;
-    uint8_t b = (color & 0x03) << 6;
-    
-    // Convert to RGB565 format
-    uint16_t r565 = (r >> 3) & 0x1F;  // 5 bits for red
-    uint16_t g565 = (g >> 2) & 0x3F;  // 6 bits for green  
-    uint16_t b565 = (b >> 3) & 0x1F;  // 5 bits for blue
-    
-    return (r565 << 11) | (g565 << 5) | b565;
+    return ((r << 11) | (g << 5) | b);
 }
 
 /**
@@ -1898,7 +1874,7 @@ void Maps::renderFgbLineString(const FgbFeature& feature, const FgbBbox& viewpor
         return;
 
     // Draw line segments
-    uint16_t color = RGB332ToRGB565(feature.properties.colorRgb332);
+    uint16_t color = feature.properties.colorRgb565;
     for (size_t i = 1; i < numCoords; i++)
     {
         map.drawLine(pxArr[i-1], pyArr[i-1], pxArr[i], pyArr[i], color);
@@ -1942,8 +1918,8 @@ void Maps::renderFgbPolygon(const FgbFeature& feature, const FgbBbox& viewport, 
     if (maxPx < 0 || minPx >= tileWidth || maxPy < 0 || minPy >= tileHeight)
         return;
 
-    uint16_t fillColor = RGB332ToRGB565(feature.properties.colorRgb332);
-    uint16_t borderColor = RGB332ToRGB565(darkenRGB332(feature.properties.colorRgb332, 0.3f));
+    uint16_t fillColor = feature.properties.colorRgb565;
+    uint16_t borderColor = darkenRGB565(feature.properties.colorRgb565, 0.3f);
 
     // Fill polygon if enabled
     if (fillPolygons)
@@ -1972,7 +1948,7 @@ void Maps::renderFgbPoint(const FgbFeature& feature, const FgbBbox& viewport, TF
 
     if (px >= 0 && px < tileWidth && py >= 0 && py < tileHeight)
     {
-        uint16_t color = RGB332ToRGB565(feature.properties.colorRgb332);
+        uint16_t color = feature.properties.colorRgb565;
         map.fillCircle(px, py, 3, color);
     }
 }

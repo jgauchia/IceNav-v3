@@ -174,8 +174,7 @@ class Maps
         void showNoMap(TFT_eSprite &map);
         void panMap(int8_t dx, int8_t dy);
 
-        uint8_t darkenRGB332(const uint8_t color, const float amount);  					/**< Darken RGB332 color by a given fraction */
-        uint16_t RGB332ToRGB565(const uint8_t color);										/**< Convert RGB332 color to RGB565 */
+        uint16_t darkenRGB565(const uint16_t color, const float amount);  					/**< Darken RGB565 color by a given fraction */
         int uint16ToPixel(const int32_t val);												/**< Convert uint16_t tile coordinate to pixel coordinate */
         bool isPointOnMargin(const int px, const int py);									/**< Check if a point is on the margin of the tile */
         bool isNear(int val, int target, int tol);											/**< Check if a value is near a target within a tolerance */

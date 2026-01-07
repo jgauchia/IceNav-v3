@@ -126,7 +126,7 @@ struct FgbCoord
  */
 struct FgbProperties
 {
-    uint8_t colorRgb332;
+    uint16_t colorRgb565;
     uint8_t minZoom;
     uint8_t priority;
     int64_t osmId;
@@ -261,7 +261,7 @@ private:
     double readF64LE(const uint8_t* data);
 
     // Column index cache (for fast property lookup)
-    int colIndexColorRgb332_;
+    int colIndexColorRgb565_;
     int colIndexMinZoom_;
     int colIndexPriority_;
     int colIndexOsmId_;
