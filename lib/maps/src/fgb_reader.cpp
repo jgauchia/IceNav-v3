@@ -40,7 +40,6 @@ FgbReader::FgbReader()
     , colIndexColorRgb565_(-1)
     , colIndexMinZoom_(-1)
     , colIndexPriority_(-1)
-    , colIndexOsmId_(-1)
     , colIndexFeatureType_(-1)
 {
     memset(&header_, 0, sizeof(header_));
@@ -351,7 +350,6 @@ bool FgbReader::parseHeaderFlatBuffer(const uint8_t* data, size_t size)
             if (strcmp(col.name, "color_rgb565") == 0) colIndexColorRgb565_ = i;
             else if (strcmp(col.name, "min_zoom") == 0) colIndexMinZoom_ = i;
             else if (strcmp(col.name, "priority") == 0) colIndexPriority_ = i;
-            else if (strcmp(col.name, "osm_id") == 0) colIndexOsmId_ = i;
             else if (strcmp(col.name, "feature_type") == 0) colIndexFeatureType_ = i;
         }
     }
@@ -847,10 +845,6 @@ bool FgbReader::parseFeatureFlatBuffer(const uint8_t* data, size_t size, FgbFeat
             else if ((int)colIdx == colIndexPriority_)
             {
                 feature.properties.priority = static_cast<uint8_t>(readIntValue(propOffset) & 0xFF);
-            }
-            else if ((int)colIdx == colIndexOsmId_)
-            {
-                feature.properties.osmId = readIntValue(propOffset);
             }
             else if ((int)colIdx == colIndexFeatureType_ && col.type == FgbColumnType::String)
             {
