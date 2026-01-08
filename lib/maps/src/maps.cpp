@@ -71,7 +71,7 @@ uint32_t Maps::polygonOptimizedCount = 0;
  * @details Initializes the Maps class with default polygon filling enabled and logs completion status.
  */
 Maps::Maps() : fillPolygons(true),
-               fgbLastLat_(0), fgbLastLon_(0), fgbLastZoom_(0), fgbNeedsRender_(true)
+               navLastLat_(0), navLastLon_(0), navLastZoom_(0), navNeedsRender_(true)
 {
 }
 
@@ -392,24 +392,24 @@ void Maps::generateMap(uint8_t zoom)
         // Check if position changed enough to require re-render
         // Use ~10m threshold (approx 0.0001 degrees)
         constexpr float POS_THRESHOLD = 0.0001f;
-        bool posChanged = fabsf(lat - fgbLastLat_) > POS_THRESHOLD ||
-                          fabsf(lon - fgbLastLon_) > POS_THRESHOLD ||
-                          zoom != fgbLastZoom_;
+        bool posChanged = fabsf(lat - navLastLat_) > POS_THRESHOLD ||
+                          fabsf(lon - navLastLon_) > POS_THRESHOLD ||
+                          zoom != navLastZoom_;
 
-        if (posChanged || fgbNeedsRender_)
+        if (posChanged || navNeedsRender_)
         {
-            Maps::isMapFound = renderFgbViewport(lat, lon, zoom, Maps::mapTempSprite);
+            Maps::isMapFound = renderNavViewport(lat, lon, zoom, Maps::mapTempSprite);
             if (!Maps::isMapFound)
             {
-                ESP_LOGW(TAG, "FGB: No map data found");
+                ESP_LOGW(TAG, "NAV: No map data found");
                 Maps::mapTempSprite.fillScreen(TFT_BLACK);
                 Maps::showNoMap(Maps::mapTempSprite);
             }
             // Update cache
-            fgbLastLat_ = lat;
-            fgbLastLon_ = lon;
-            fgbLastZoom_ = zoom;
-            fgbNeedsRender_ = false;
+            navLastLat_ = lat;
+            navLastLon_ = lon;
+            navLastZoom_ = zoom;
+            navNeedsRender_ = false;
         }
         return;
     }
@@ -1810,28 +1810,26 @@ void Maps::unifiedDealloc(void* ptr)
 
 
 // ============================================================================
-// FlatGeobuf Tile-based Rendering Implementation
+// NAV Tile-based Rendering Implementation
 // ============================================================================
 
 /**
- * @brief Convert geographic coordinates to pixel coordinates
+ * @brief Convert int32 scaled coordinates to pixel coordinates
  *
- * @param lon Longitude
- * @param lat Latitude
- * @param viewport Viewport bounding box
+ * @param lon Longitude (scaled by COORD_SCALE)
+ * @param lat Latitude (scaled by COORD_SCALE)
+ * @param viewport Viewport bounding box (scaled coords)
  * @param px Output pixel X
  * @param py Output pixel Y
  */
-void Maps::fgbCoordToPixel(double lon, double lat, const FgbBbox& viewport, int16_t& px, int16_t& py)
+void Maps::navCoordToPixel(int32_t lon, int32_t lat, const NavBbox& viewport, int16_t& px, int16_t& py)
 {
-    // Use linear interpolation within the viewport bbox
-    // Cast to float for ESP32-S3 FPU hardware acceleration (32-bit single precision)
-    const float viewWidth = static_cast<float>(viewport.maxX - viewport.minX);
-    const float viewHeight = static_cast<float>(viewport.maxY - viewport.minY);
-    const float xNorm = static_cast<float>(lon - viewport.minX) / viewWidth;
-    const float yNorm = static_cast<float>(viewport.maxY - lat) / viewHeight; // Y inverted
+    // Use integer math then convert to float for final calculation
+    const float viewWidth = static_cast<float>(viewport.maxLon - viewport.minLon);
+    const float viewHeight = static_cast<float>(viewport.maxLat - viewport.minLat);
+    const float xNorm = static_cast<float>(lon - viewport.minLon) / viewWidth;
+    const float yNorm = static_cast<float>(viewport.maxLat - lat) / viewHeight; // Y inverted
 
-    // Clamp to valid pixel range to avoid overflow with out-of-bounds coordinates
     const int32_t pxRaw = static_cast<int32_t>(xNorm * static_cast<float>(tileWidth));
     const int32_t pyRaw = static_cast<int32_t>(yNorm * static_cast<float>(tileHeight));
 
@@ -1842,13 +1840,12 @@ void Maps::fgbCoordToPixel(double lon, double lat, const FgbBbox& viewport, int1
 /**
  * @brief Render a LineString feature with bbox culling
  */
-void Maps::renderFgbLineString(const FgbFeature& feature, const FgbBbox& viewport, TFT_eSprite& map)
+void Maps::renderNavLineString(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map)
 {
-    if (feature.coordinates.size() < 2)
+    if (feature.coords.size() < 2)
         return;
 
-    // Convert all coordinates and compute bbox in single pass
-    const size_t numCoords = feature.coordinates.size();
+    const size_t numCoords = feature.coords.size();
     MemoryGuard<int16_t> pxGuard(numCoords, 5);
     MemoryGuard<int16_t> pyGuard(numCoords, 5);
     int16_t* pxArr = pxGuard.get();
@@ -1862,7 +1859,7 @@ void Maps::renderFgbLineString(const FgbFeature& feature, const FgbBbox& viewpor
 
     for (size_t i = 0; i < numCoords; i++)
     {
-        fgbCoordToPixel(feature.coordinates[i].x, feature.coordinates[i].y, viewport, pxArr[i], pyArr[i]);
+        navCoordToPixel(feature.coords[i].lon, feature.coords[i].lat, viewport, pxArr[i], pyArr[i]);
         minPx = std::min(minPx, pxArr[i]);
         maxPx = std::max(maxPx, pxArr[i]);
         minPy = std::min(minPy, pyArr[i]);
@@ -1873,7 +1870,6 @@ void Maps::renderFgbLineString(const FgbFeature& feature, const FgbBbox& viewpor
     if (maxPx < 0 || minPx >= tileWidth || maxPy < 0 || minPy >= tileHeight)
         return;
 
-    // Draw line segments
     uint16_t color = feature.properties.colorRgb565;
     for (size_t i = 1; i < numCoords; i++)
     {
@@ -1884,13 +1880,12 @@ void Maps::renderFgbLineString(const FgbFeature& feature, const FgbBbox& viewpor
 /**
  * @brief Render a Polygon feature with bbox culling
  */
-void Maps::renderFgbPolygon(const FgbFeature& feature, const FgbBbox& viewport, TFT_eSprite& map)
+void Maps::renderNavPolygon(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map)
 {
-    if (feature.coordinates.size() < 3)
+    if (feature.coords.size() < 3)
         return;
 
-    // Convert coordinates to pixel arrays and compute bbox
-    size_t numPoints = feature.coordinates.size();
+    size_t numPoints = feature.coords.size();
     MemoryGuard<int> pxGuard(numPoints, 6);
     MemoryGuard<int> pyGuard(numPoints, 6);
     int* px = pxGuard.get();
@@ -1905,7 +1900,7 @@ void Maps::renderFgbPolygon(const FgbFeature& feature, const FgbBbox& viewport, 
     for (size_t i = 0; i < numPoints; i++)
     {
         int16_t x, y;
-        fgbCoordToPixel(feature.coordinates[i].x, feature.coordinates[i].y, viewport, x, y);
+        navCoordToPixel(feature.coords[i].lon, feature.coords[i].lat, viewport, x, y);
         px[i] = x;
         py[i] = y;
         minPx = std::min(minPx, (int)x);
@@ -1921,13 +1916,11 @@ void Maps::renderFgbPolygon(const FgbFeature& feature, const FgbBbox& viewport, 
     uint16_t fillColor = feature.properties.colorRgb565;
     uint16_t borderColor = darkenRGB565(feature.properties.colorRgb565, 0.3f);
 
-    // Fill polygon if enabled
     if (fillPolygons)
     {
         fillPolygonGeneral(map, px, py, numPoints, fillColor, 0, 0);
     }
 
-    // Draw border
     for (size_t i = 0; i < numPoints; i++)
     {
         size_t next = (i + 1) % numPoints;
@@ -1938,13 +1931,13 @@ void Maps::renderFgbPolygon(const FgbFeature& feature, const FgbBbox& viewport, 
 /**
  * @brief Render a Point feature
  */
-void Maps::renderFgbPoint(const FgbFeature& feature, const FgbBbox& viewport, TFT_eSprite& map)
+void Maps::renderNavPoint(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map)
 {
-    if (feature.coordinates.empty())
+    if (feature.coords.empty())
         return;
 
     int16_t px, py;
-    fgbCoordToPixel(feature.coordinates[0].x, feature.coordinates[0].y, viewport, px, py);
+    navCoordToPixel(feature.coords[0].lon, feature.coords[0].lat, viewport, px, py);
 
     if (px >= 0 && px < tileWidth && py >= 0 && py < tileHeight)
     {
@@ -1954,25 +1947,22 @@ void Maps::renderFgbPoint(const FgbFeature& feature, const FgbBbox& viewport, TF
 }
 
 /**
- * @brief Render a single FGB feature based on geometry type
+ * @brief Render a single NAV feature based on geometry type
  */
-void Maps::renderFgbFeature(const FgbFeature& feature, const FgbBbox& viewport, TFT_eSprite& map)
+void Maps::renderNavFeature(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map)
 {
-    switch (feature.geometryType)
+    switch (feature.geomType)
     {
-        case FgbGeometryType::LineString:
-        case FgbGeometryType::MultiLineString:
-            renderFgbLineString(feature, viewport, map);
+        case NavGeomType::LineString:
+            renderNavLineString(feature, viewport, map);
             break;
 
-        case FgbGeometryType::Polygon:
-        case FgbGeometryType::MultiPolygon:
-            renderFgbPolygon(feature, viewport, map);
+        case NavGeomType::Polygon:
+            renderNavPolygon(feature, viewport, map);
             break;
 
-        case FgbGeometryType::Point:
-        case FgbGeometryType::MultiPoint:
-            renderFgbPoint(feature, viewport, map);
+        case NavGeomType::Point:
+            renderNavPoint(feature, viewport, map);
             break;
 
         default:
@@ -1981,10 +1971,10 @@ void Maps::renderFgbFeature(const FgbFeature& feature, const FgbBbox& viewport, 
 }
 
 /**
- * @brief Render FlatGeobuf viewport
+ * @brief Render NAV viewport
  *
- * @details Main entry point for FGB rendering. Opens layer files if needed,
- *          queries R-Tree for visible features, sorts by priority, and renders.
+ * @details Main entry point for NAV tile rendering. Loads 3x3 tile grid,
+ *          sorts features by priority, and renders to sprite.
  *
  * @param centerLat Center latitude
  * @param centerLon Center longitude
@@ -1992,45 +1982,40 @@ void Maps::renderFgbFeature(const FgbFeature& feature, const FgbBbox& viewport, 
  * @param map Target sprite for rendering
  * @return true if rendering succeeded
  */
-bool Maps::renderFgbViewport(float centerLat, float centerLon, uint8_t zoom, TFT_eSprite& map)
+bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT_eSprite& map)
 {
     // Calculate center tile coordinates using Web Mercator projection
-    // Use float math with f suffix for ESP32-S3 FPU hardware acceleration
     const float latRad = centerLat * (float)M_PI / 180.0f;
-    const float n = static_cast<float>(1u << zoom);  // 2^zoom using bit shift (faster than powf)
+    const float n = static_cast<float>(1u << zoom);
     const int centerTileX = static_cast<int>((centerLon + 180.0f) / 360.0f * n);
     const int centerTileY = static_cast<int>((1.0f - logf(tanf(latRad) + 1.0f / cosf(latRad)) / (float)M_PI) / 2.0f * n);
 
-    // Calculate viewport bbox based on exact 3x3 tile grid boundaries
-    // This ensures features align exactly with tile boundaries
+    // Calculate viewport bbox (in scaled int32 coordinates)
     const int minTileX = centerTileX - 1;
-    const int maxTileX = centerTileX + 2;  // +2 to get right edge of tile +1
+    const int maxTileX = centerTileX + 2;
     const int minTileY = centerTileY - 1;
-    const int maxTileY = centerTileY + 2;  // +2 to get bottom edge of tile +1
+    const int maxTileY = centerTileY + 2;
 
-    const float maxLat = atanf(sinhf((float)M_PI * (1.0f - 2.0f * static_cast<float>(minTileY) / n))) * 180.0f / (float)M_PI;
-    const float minLon = static_cast<float>(minTileX) / n * 360.0f - 180.0f;
-    const float minLat = atanf(sinhf((float)M_PI * (1.0f - 2.0f * static_cast<float>(maxTileY) / n))) * 180.0f / (float)M_PI;
-    const float maxLon = static_cast<float>(maxTileX) / n * 360.0f - 180.0f;
+    const float maxLatF = atanf(sinhf((float)M_PI * (1.0f - 2.0f * static_cast<float>(minTileY) / n))) * 180.0f / (float)M_PI;
+    const float minLonF = static_cast<float>(minTileX) / n * 360.0f - 180.0f;
+    const float minLatF = atanf(sinhf((float)M_PI * (1.0f - 2.0f * static_cast<float>(maxTileY) / n))) * 180.0f / (float)M_PI;
+    const float maxLonF = static_cast<float>(maxTileX) / n * 360.0f - 180.0f;
 
-    FgbBbox viewport;
-    viewport.minX = minLon;
-    viewport.maxX = maxLon;
-    viewport.minY = minLat;
-    viewport.maxY = maxLat;
+    NavBbox viewport;
+    viewport.minLon = static_cast<int32_t>(minLonF * COORD_SCALE);
+    viewport.maxLon = static_cast<int32_t>(maxLonF * COORD_SCALE);
+    viewport.minLat = static_cast<int32_t>(minLatF * COORD_SCALE);
+    viewport.maxLat = static_cast<int32_t>(maxLatF * COORD_SCALE);
 
     // Clear map with white background
     map.fillSprite(TFT_WHITE);
 
-    // Collect features from all tiles (3x3 grid around center)
+    // Collect features from all tiles
     struct RenderItem {
-        FgbFeature feature;
+        NavFeature feature;
         uint8_t priority;
     };
     std::vector<RenderItem> renderQueue;
-
-    int tilesLoaded = 0;
-    size_t totalFeatures = 0;
 
     // Load 3x3 tiles around center
     for (int dy = -1; dy <= 1; dy++)
@@ -2040,38 +2025,25 @@ bool Maps::renderFgbViewport(float centerLat, float centerLon, uint8_t zoom, TFT
             int tileX = centerTileX + dx;
             int tileY = centerTileY + dy;
 
-            // Build tile path: /sdcard/FGBMAP/{zoom}/{x}/{y}.fgb
+            // Build tile path: /sdcard/NAVMAP/{zoom}/{x}/{y}.nav
             char tilePath[128];
-            snprintf(tilePath, sizeof(tilePath), "/sdcard/FGBMAP/%d/%d/%d.fgb",
+            snprintf(tilePath, sizeof(tilePath), "/sdcard/NAVMAP/%d/%d/%d.nav",
                      zoom, tileX, tileY);
 
-            // Try to open and read tile
-            FgbReader reader;
+            NavReader reader;
             if (!reader.open(tilePath))
-            {
-                // Tile doesn't exist - skip silently
                 continue;
-            }
 
-            tilesLoaded++;
-
-            // For tile-based FGB, read ALL features (file is small, no bbox query needed)
-            // The R-Tree is small enough to fit in memory
-            auto offsets = reader.queryBbox(viewport, 5000);
-
-            std::vector<FgbFeature> features;
-            reader.readFeaturesSequential(offsets, features, zoom);
+            std::vector<NavFeature> features;
+            reader.readAllFeatures(features, zoom);
 
             for (const auto& feature : features)
             {
                 renderQueue.push_back({feature, feature.properties.getPriority()});
             }
 
-            totalFeatures += features.size();
             reader.close();
-
-            // Small delay between tiles to avoid SD saturation
-            vTaskDelay(pdMS_TO_TICKS(10));
+            vTaskDelay(pdMS_TO_TICKS(5));
         }
     }
 
@@ -2084,7 +2056,7 @@ bool Maps::renderFgbViewport(float centerLat, float centerLon, uint8_t zoom, TFT
     // Render all features
     for (const auto& item : renderQueue)
     {
-        renderFgbFeature(item.feature, viewport, map);
+        renderNavFeature(item.feature, viewport, map);
     }
 
     return true;

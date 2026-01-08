@@ -24,7 +24,7 @@
 #include "compass.hpp"
 #include "mapVars.h"
 #include "storage.hpp"
-#include "fgb_reader.hpp"
+#include "nav_reader.hpp"
 
 /**
  * @brief Draw command types used for rendering vector graphics.
@@ -294,21 +294,21 @@ class Maps
         void scrollMap(int16_t dx, int16_t dy);
         void preloadTiles(int8_t dirX, int8_t dirY);
 
-        // FlatGeobuf rendering methods
-        bool renderFgbViewport(float centerLat, float centerLon, uint8_t zoom, TFT_eSprite &map);
+        // NAV tile rendering methods
+        bool renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT_eSprite &map);
 
     private:
-        // FlatGeobuf tile rendering helpers
-        void renderFgbFeature(const FgbFeature& feature, const FgbBbox& viewport, TFT_eSprite& map);
-        void renderFgbLineString(const FgbFeature& feature, const FgbBbox& viewport, TFT_eSprite& map);
-        void renderFgbPolygon(const FgbFeature& feature, const FgbBbox& viewport, TFT_eSprite& map);
-        void renderFgbPoint(const FgbFeature& feature, const FgbBbox& viewport, TFT_eSprite& map);
-        void fgbCoordToPixel(double lon, double lat, const FgbBbox& viewport, int16_t& px, int16_t& py);
+        // NAV tile rendering helpers
+        void renderNavFeature(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map);
+        void renderNavLineString(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map);
+        void renderNavPolygon(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map);
+        void renderNavPoint(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map);
+        void navCoordToPixel(int32_t lon, int32_t lat, const NavBbox& viewport, int16_t& px, int16_t& py);
 
-        // FGB render cache (avoid re-render when stationary)
-        float fgbLastLat_;
-        float fgbLastLon_;
-        uint8_t fgbLastZoom_;
-        bool fgbNeedsRender_;
+        // NAV render cache (avoid re-render when stationary)
+        float navLastLat_;
+        float navLastLon_;
+        uint8_t navLastZoom_;
+        bool navNeedsRender_;
 };
 
