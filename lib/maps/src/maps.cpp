@@ -2064,7 +2064,7 @@ bool Maps::renderFgbViewport(float centerLat, float centerLon, uint8_t zoom, TFT
 
             for (const auto& feature : features)
             {
-                renderQueue.push_back({feature, feature.properties.priority});
+                renderQueue.push_back({feature, feature.properties.getPriority()});
             }
 
             totalFeatures += features.size();

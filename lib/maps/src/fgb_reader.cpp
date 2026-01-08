@@ -38,8 +38,7 @@ FgbReader::FgbReader()
     , rtreeData_(nullptr)
     , rtreeDataSize_(0)
     , colIndexColorRgb565_(-1)
-    , colIndexMinZoom_(-1)
-    , colIndexPriority_(-1)
+    , colIndexZoomPriority_(-1)
 {
     memset(&header_, 0, sizeof(header_));
     memset(filePath_, 0, sizeof(filePath_));
@@ -347,8 +346,7 @@ bool FgbReader::parseHeaderFlatBuffer(const uint8_t* data, size_t size)
 
             // Cache column indices for fast property lookup
             if (strcmp(col.name, "color_rgb565") == 0) colIndexColorRgb565_ = i;
-            else if (strcmp(col.name, "min_zoom") == 0) colIndexMinZoom_ = i;
-            else if (strcmp(col.name, "priority") == 0) colIndexPriority_ = i;
+            else if (strcmp(col.name, "zoom_priority") == 0) colIndexZoomPriority_ = i;
         }
     }
 
@@ -370,8 +368,8 @@ bool FgbReader::parseHeaderFlatBuffer(const uint8_t* data, size_t size)
         header_.indexNodeSize = 16; // FlatGeobuf default
     }
 
-    ESP_LOGI(TAG, "Columns: colorRgb565=%d, minZoom=%d, priority=%d",
-             colIndexColorRgb565_, colIndexMinZoom_, colIndexPriority_);
+    ESP_LOGI(TAG, "Columns: colorRgb565=%d, zoomPriority=%d",
+             colIndexColorRgb565_, colIndexZoomPriority_);
 
     return true;
 }
@@ -596,7 +594,7 @@ size_t FgbReader::readFeaturesSequential(std::vector<uint64_t>& offsets, std::ve
             FgbFeature feature;
             if (readFeature(offsets[i], feature))
             {
-                if (feature.properties.minZoom <= maxZoom)
+                if (feature.properties.getMinZoom() <= maxZoom)
                 {
                     features.push_back(std::move(feature));
                     count++;
@@ -662,7 +660,7 @@ size_t FgbReader::readFeaturesSequential(std::vector<uint64_t>& offsets, std::ve
         FgbFeature feature;
         if (parseFeatureFlatBuffer(buffer + bufferOffset + 4, featureSize, feature))
         {
-            if (feature.properties.minZoom <= maxZoom)
+            if (feature.properties.getMinZoom() <= maxZoom)
             {
                 features.push_back(std::move(feature));
                 count++;
@@ -836,13 +834,9 @@ bool FgbReader::parseFeatureFlatBuffer(const uint8_t* data, size_t size, FgbFeat
             {
                 feature.properties.colorRgb565 = static_cast<uint16_t>(readIntValue(propOffset) & 0xFFFF);
             }
-            else if ((int)colIdx == colIndexMinZoom_)
+            else if ((int)colIdx == colIndexZoomPriority_)
             {
-                feature.properties.minZoom = static_cast<uint8_t>(readIntValue(propOffset) & 0xFF);
-            }
-            else if ((int)colIdx == colIndexPriority_)
-            {
-                feature.properties.priority = static_cast<uint8_t>(readIntValue(propOffset) & 0xFF);
+                feature.properties.zoomPriority = static_cast<uint8_t>(readIntValue(propOffset) & 0xFF);
             }
             else
             {

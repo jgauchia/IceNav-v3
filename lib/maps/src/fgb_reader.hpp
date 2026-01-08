@@ -127,8 +127,11 @@ struct FgbCoord
 struct FgbProperties
 {
     uint16_t colorRgb565;
-    uint8_t minZoom;
-    uint8_t priority;
+    uint8_t zoomPriority;  // Packed: high nibble = min_zoom, low nibble = priority/7
+
+    // Helper methods to unpack
+    uint8_t getMinZoom() const { return zoomPriority >> 4; }
+    uint8_t getPriority() const { return (zoomPriority & 0x0F) * 7; }
 };
 
 /**
@@ -260,7 +263,6 @@ private:
 
     // Column index cache (for fast property lookup)
     int colIndexColorRgb565_;
-    int colIndexMinZoom_;
-    int colIndexPriority_;
+    int colIndexZoomPriority_;
 };
 
