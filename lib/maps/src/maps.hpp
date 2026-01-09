@@ -10,8 +10,6 @@
 
 #include <cstdint>
 #include <vector>
-#include <map>
-#include <string>
 #include <algorithm>
 #include <cstring>
 #include "freertos/FreeRTOS.h"
@@ -25,21 +23,6 @@
 #include "mapVars.h"
 #include "storage.hpp"
 #include "nav_reader.hpp"
-
-/**
- * @brief Draw command types used for rendering vector graphics.
- * 
- * @details These commands are synchronized with the corresponding Python script
- * 			that generates the binary tile data. Each command corresponds to a specific
- * 			geometric drawing operation.
- */
-enum DrawCommand : uint8_t
-{
-    DRAW_POLYLINE = 2,
-    DRAW_STROKE_POLYGON = 3,
-    SET_COLOR = 0x80,
-    SET_COLOR_INDEX = 0x81,
-};
 
 /**
  * @class Maps
@@ -96,8 +79,6 @@ class Maps
         static const uint16_t mapTileSize = 256;                             	     /**< Map tile size */
         static const uint16_t scrollThreshold = mapTileSize / 2;                     /**< Smooth scroll threshold */
 
-        static uint16_t currentDrawColor;                           				/**< Current drawing color state */
-
         // Tile cache system
         static std::vector<CachedTile> tileCache;                                   /**< Tile cache storage */
         static size_t maxCachedTiles;                                               /**< Maximum cached tiles based on hardware */
@@ -131,24 +112,6 @@ class Maps
         static std::vector<UnifiedPoolEntry> unifiedPool;                         /**< Unified memory pool */
         static SemaphoreHandle_t unifiedPoolMutex;                                /**< Mutex for unified pool */
         static size_t maxUnifiedPoolEntries;                                      /**< Maximum unified pool entries */
-        static uint32_t unifiedPoolHitCount;                                      /**< Unified pool hits */
-        static uint32_t unifiedPoolMissCount;                                     /**< Unified pool misses */
-        
-        
-        // Memory monitoring and statistics
-        static uint32_t totalMemoryAllocations;                                    /**< Total memory allocations */
-        static uint32_t totalMemoryDeallocations;                                 /**< Total memory deallocations */
-        static uint32_t peakMemoryUsage;                                           /**< Peak memory usage */
-        static uint32_t currentMemoryUsage;                                        /**< Current memory usage */
-        static uint32_t poolEfficiencyScore;                                       /**< Pool efficiency score (0-100) */
-        static uint32_t lastStatsUpdate;                                           /**< Last statistics update timestamp */
-        
-        // Polygon optimization system
-        static bool polygonCullingEnabled;                                         /**< Enable polygon culling */
-        static bool optimizedScanlineEnabled;                                      /**< Enable optimized scanline */
-        static uint32_t polygonRenderCount;                                        /**< Total polygons rendered */
-        static uint32_t polygonCulledCount;                                        /**< Polygons culled (not rendered) */
-        static uint32_t polygonOptimizedCount;                                     /**< Polygons using optimized algorithms */
 
         tileBounds totalBounds; 													/**< Map boundaries */
         uint16_t wptPosX, wptPosY;                                                  /**< Waypoint position on screen map */
@@ -195,15 +158,11 @@ class Maps
         void clearTileCache();                                                       /**< Clear all cached tiles */
         uint32_t calculateTileHash(const char* filePath);                           /**< Calculate hash for tile identification */
         size_t getCacheMemoryUsage();                                               /**< Get current cache memory usage in bytes */
-        
-        // SD optimization methods
-        void prefetchAdjacentTiles(int16_t centerX, int16_t centerY, uint8_t zoom); /**< Prefetch adjacent tiles for faster loading */
 
         // Background prefetch methods (multi-core)
         void initPrefetchSystem();                                                  /**< Initialize background prefetch system */
         void stopPrefetchSystem();                                                  /**< Stop background prefetch system */
         void enqueuePrefetch(const char* filePath, bool isVectorMap);              /**< Enqueue tile for background prefetch */
-        void prefetchInitialRing(uint32_t centerX, uint32_t centerY, uint8_t zoom);  /**< Prefetch initial ring around 3x3 grid */
         void enqueueSurroundingTiles(uint32_t centerX, uint32_t centerY, uint8_t zoom, int8_t dirX, int8_t dirY); /**< Enqueue tiles in scroll direction */
 
     // Unified memory pool methods (experimental)

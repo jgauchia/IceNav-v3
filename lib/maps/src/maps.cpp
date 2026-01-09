@@ -8,27 +8,19 @@
 
 #include "maps.hpp"
 #include <vector>
-#include <map>
-#include <string>
 #include <algorithm>
 #include <cstring>
 #include <cmath>
 #include <climits>
 #include <cstdint>
-#include <sys/stat.h>
 #include "esp_timer.h"
 #include "esp_system.h"
-
-static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 extern Compass compass;
 extern Gps gps;
 extern Storage storage;
 extern std::vector<wayPoint> trackData; /**< Vector containing track waypoints */
 const char* TAG = "Maps";
-
-
-uint16_t Maps::currentDrawColor = TFT_WHITE;
 
 // Tile cache system static variables
 std::vector<Maps::CachedTile> Maps::tileCache;
@@ -46,23 +38,6 @@ volatile bool Maps::prefetchTaskRunning = false;
 std::vector<Maps::UnifiedPoolEntry> Maps::unifiedPool;
 SemaphoreHandle_t Maps::unifiedPoolMutex = nullptr;
 size_t Maps::maxUnifiedPoolEntries = 0;
-uint32_t Maps::unifiedPoolHitCount = 0;
-uint32_t Maps::unifiedPoolMissCount = 0;
-
-// Memory monitoring static variables
-uint32_t Maps::totalMemoryAllocations = 0;
-uint32_t Maps::totalMemoryDeallocations = 0;
-uint32_t Maps::peakMemoryUsage = 0;
-uint32_t Maps::currentMemoryUsage = 0;
-uint32_t Maps::poolEfficiencyScore = 0;
-uint32_t Maps::lastStatsUpdate = 0;
-
-// Polygon optimization system static variables
-bool Maps::polygonCullingEnabled = true;
-bool Maps::optimizedScanlineEnabled = true;
-uint32_t Maps::polygonRenderCount = 0;
-uint32_t Maps::polygonCulledCount = 0;
-uint32_t Maps::polygonOptimizedCount = 0;
 
 
 /**
@@ -330,13 +305,6 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
 
     // Initialize background prefetch system (multi-core)
     initPrefetchSystem();
-
-    // Initialize polygon optimizations
-    polygonCullingEnabled = true;
-    optimizedScanlineEnabled = false;
-    polygonRenderCount = 0;
-    polygonCulledCount = 0;
-    polygonOptimizedCount = 0;
 }
 
 /**
@@ -386,7 +354,7 @@ void Maps::generateMap(uint8_t zoom)
     const float lat = Maps::followGps ? gps.gpsData.latitude : Maps::currentMapTile.lat;
     const float lon = Maps::followGps ? gps.gpsData.longitude : Maps::currentMapTile.lon;
 
-    // FlatGeobuf rendering path
+    // NAV vector map rendering path
     if (mapSet.vectorMap)
     {
         // Check if position changed enough to require re-render
@@ -976,8 +944,6 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
     if (!xints)
         return;
 
-    unifiedPoolHitCount++;
-
     for (int y = miny; y <= maxy; ++y)
     {
         int nodes = 0;
@@ -1381,54 +1347,8 @@ void Maps::initUnifiedPool()
     
     unifiedPool.clear();
     unifiedPool.reserve(maxUnifiedPoolEntries);
-    unifiedPoolHitCount = 0;
-    unifiedPoolMissCount = 0;
-    
+
     ESP_LOGI(TAG, "Unified memory pool initialized");
-}
-
-/**
- * @brief Prefetch adjacent tiles for faster loading
- * 
- * @details Preloads tiles around the current position to reduce loading time during scrolling.
- *          Uses background task to avoid blocking the main rendering thread.
- * 
- * @param centerX Current tile X coordinate
- * @param centerY Current tile Y coordinate  
- * @param zoom Current zoom level
- */
-void Maps::prefetchAdjacentTiles(int16_t centerX, int16_t centerY, uint8_t zoom)
-{
-    // FGB uses full viewport re-render, no tile prefetch needed
-    if (mapSet.vectorMap)
-        return;
-
-    // PNG: Prefetch 3x3 grid around current tile (just pre-read to FS buffer)
-    for (int dx = -1; dx <= 1; dx++)
-    {
-        for (int dy = -1; dy <= 1; dy++)
-        {
-            if (dx == 0 && dy == 0) continue; // Skip center tile
-
-            int16_t tileX = centerX + dx;
-            int16_t tileY = centerY + dy;
-
-            // Calculate tile coordinates
-            float tileLon = (tileX / (1 << zoom)) * 360.0f - 180.0f;
-            float tileLat = 90.0f - (tileY / (1 << zoom)) * 180.0f;
-
-            MapTile prefetchTile = getMapTile(tileLon, tileLat, zoom, tileX, tileY);
-
-            // Pre-read file to FS buffer
-            FILE* pngFile = fopen(prefetchTile.file, "rb");
-            if (pngFile)
-            {
-                char buffer[4096];
-                while (fread(buffer, 1, sizeof(buffer), pngFile) > 0) {}
-                fclose(pngFile);
-            }
-        }
-    }
 }
 
 /**
@@ -1637,40 +1557,6 @@ void Maps::enqueuePrefetch(const char* filePath, bool isVectorMap)
 }
 
 /**
- * @brief Prefetch initial ring of tiles around the 3x3 grid
- *
- * @details Called after initial map load to prefetch the outer ring in all directions.
- *          This gives the prefetch system a head start before user scrolls.
- *
- * @param centerX X coordinate of center tile
- * @param centerY Y coordinate of center tile
- * @param zoom Current zoom level
- */
-void Maps::prefetchInitialRing(uint32_t centerX, uint32_t centerY, uint8_t zoom)
-{
-    // FGB uses full viewport re-render, no tile prefetch needed
-    if (!prefetchQueue || !prefetchTaskRunning || mapSet.vectorMap)
-        return;
-
-    // Prefetch outer ring (distance 2) in all directions
-    for (int dx = -2; dx <= 2; dx++)
-    {
-        for (int dy = -2; dy <= 2; dy++)
-        {
-            // Skip inner 3x3 grid (already rendered)
-            if (dx >= -1 && dx <= 1 && dy >= -1 && dy <= 1) continue;
-
-            uint32_t tileX = centerX + dx;
-            uint32_t tileY = centerY + dy;
-
-            char filePath[255];
-            snprintf(filePath, sizeof(filePath), mapRenderFolder, zoom, tileX, tileY);
-            enqueuePrefetch(filePath, false);
-        }
-    }
-}
-
-/**
  * @brief Enqueue tiles in scroll direction for background prefetch
  *
  * @details Enqueues multiple rows/columns of tiles ahead in the scroll direction.
@@ -1731,12 +1617,11 @@ void* Maps::unifiedAlloc(size_t size, uint8_t type)
     {
         for (auto& entry : unifiedPool) 
         {
-            if (!entry.isInUse && entry.size >= size) 
+            if (!entry.isInUse && entry.size >= size)
             {
                 entry.isInUse = true;
                 entry.allocationCount++;
                 entry.type = type;
-                unifiedPoolHitCount++;
                 xSemaphoreGive(unifiedPoolMutex);
                 return entry.ptr;
             }
@@ -1760,17 +1645,14 @@ void* Maps::unifiedAlloc(size_t size, uint8_t type)
                 entry.allocationCount = 1;
                 entry.type = type;
                 unifiedPool.push_back(entry);
-                unifiedPoolHitCount++;
                 xSemaphoreGive(unifiedPoolMutex);
                 return ptr;
             }
         }
-        
-        unifiedPoolMissCount++;
+
         xSemaphoreGive(unifiedPoolMutex);
     }
-    
-    unifiedPoolMissCount++;
+
     #ifdef BOARD_HAS_PSRAM
         return heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
     #else
