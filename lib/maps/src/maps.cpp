@@ -2047,7 +2047,7 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
         }
     }
 
-    // Sort by priority (lower = render first = behind)
+    // Sort by priority (needed when combining multiple tiles)
     std::sort(renderQueue.begin(), renderQueue.end(),
               [](const RenderItem& a, const RenderItem& b) {
                   return a.priority < b.priority;
