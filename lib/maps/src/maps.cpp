@@ -1753,9 +1753,33 @@ void Maps::renderNavLineString(const NavFeature& feature, const NavBbox& viewpor
         return;
 
     uint16_t color = feature.properties.colorRgb565;
+    uint8_t width = feature.properties.getWidth();
+
+    // For thick lines, add round join at first vertex
+    if (width > 2)
+    {
+        map.fillCircle(pxArr[0], pyArr[0], width / 2, color);
+    }
+
     for (size_t i = 1; i < numCoords; i++)
     {
-        map.drawLine(pxArr[i-1], pyArr[i-1], pxArr[i], pyArr[i], color);
+        if (width <= 2)
+        {
+            // Fast path for thin lines
+            map.drawLine(pxArr[i-1], pyArr[i-1], pxArr[i], pyArr[i], color);
+            if (width == 2)
+            {
+                // Draw parallel line for width 2
+                map.drawLine(pxArr[i-1]+1, pyArr[i-1], pxArr[i]+1, pyArr[i], color);
+            }
+        }
+        else
+        {
+            // Use drawWideLine for thicker lines
+            map.drawWideLine(pxArr[i-1], pyArr[i-1], pxArr[i], pyArr[i], width, color);
+            // Round join at vertex to smooth curves
+            map.fillCircle(pxArr[i], pyArr[i], width / 2, color);
+        }
     }
 }
 
@@ -1793,6 +1817,12 @@ void Maps::renderNavPolygon(const NavFeature& feature, const NavBbox& viewport, 
 
     // Bbox culling: skip if completely outside screen
     if (maxPx < 0 || minPx >= tileWidth || maxPy < 0 || minPy >= tileHeight)
+        return;
+
+    // Skip polygons with oversized bbox (likely crossing tile boundary incorrectly)
+    int bboxWidth = maxPx - minPx;
+    int bboxHeight = maxPy - minPy;
+    if (bboxWidth > tileWidth * 2 || bboxHeight > tileHeight * 2)
         return;
 
     uint16_t fillColor = feature.properties.colorRgb565;

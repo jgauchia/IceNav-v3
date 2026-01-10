@@ -18,7 +18,6 @@
  * @brief NAV format constants
  */
 static constexpr uint8_t NAV_MAGIC[4] = {'N', 'A', 'V', '1'};
-static constexpr uint8_t NAV_VERSION = 1;
 static constexpr int32_t COORD_SCALE = 10000000;  // 1e7
 
 /**
@@ -68,9 +67,11 @@ struct NavProperties
 {
     uint16_t colorRgb565;
     uint8_t zoomPriority;  // High nibble = min_zoom, low nibble = priority/7
+    uint8_t width;         // Line width in pixels (NAV v2, default 1)
 
     uint8_t getMinZoom() const { return zoomPriority >> 4; }
     uint8_t getPriority() const { return (zoomPriority & 0x0F) * 7; }
+    uint8_t getWidth() const { return width > 0 ? width : 1; }
 };
 
 /**
@@ -89,7 +90,6 @@ struct NavFeature
  */
 struct NavHeader
 {
-    uint8_t version;
     uint16_t featureCount;
     NavBbox bbox;
 };

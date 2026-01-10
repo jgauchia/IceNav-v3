@@ -78,19 +78,8 @@ bool NavReader::readHeader()
         return false;
     }
 
-    // Read version (1 byte)
-    header_.version = readU8();
-    if (header_.version != NAV_VERSION)
-    {
-        ESP_LOGE(TAG, "Unsupported version: %u", header_.version);
-        return false;
-    }
-
     // Read feature count (2 bytes)
     header_.featureCount = readU16();
-
-    // Read reserved (1 byte)
-    readU8();
 
     // Read bbox (16 bytes)
     header_.bbox.minLon = readI32();
@@ -140,6 +129,9 @@ bool NavReader::readFeature(NavFeature& feature)
 
     // Read zoom_priority (1 byte)
     feature.properties.zoomPriority = readU8();
+
+    // Read width (1 byte)
+    feature.properties.width = readU8();
 
     // Read coordinate count (2 bytes)
     uint16_t coordCount = readU16();
