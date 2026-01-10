@@ -1366,6 +1366,13 @@ void Maps::prefetchTask(void* pvParameters)
 
     while (prefetchTaskRunning)
     {
+        // Skip SD access entirely for vector maps to avoid concurrent access errors
+        if (mapSet.vectorMap)
+        {
+            vTaskDelay(pdMS_TO_TICKS(500));  // Sleep longer when not needed
+            continue;
+        }
+
         // Wait for a request with timeout (allows checking prefetchTaskRunning flag)
         if (xQueueReceive(prefetchQueue, &request, pdMS_TO_TICKS(100)) == pdTRUE)
         {
@@ -1955,7 +1962,8 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
             }
 
             reader.close();
-            vTaskDelay(pdMS_TO_TICKS(5));
+            vTaskDelay(pdMS_TO_TICKS(10));
+            taskYIELD();
         }
     }
 
