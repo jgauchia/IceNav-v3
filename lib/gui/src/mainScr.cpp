@@ -233,7 +233,22 @@ void updateMap(lv_event_t *event)
     if (mapView.redrawMap)
     {
         mapView.displayMap();
-        lv_canvas_set_buffer(mapCanvas, mapView.mapBuffer, tft.width(), tft.height()-27, LV_COLOR_FORMAT_RGB565_SWAPPED);
+        // Virtual canvas 768x768 for smooth panning
+        lv_canvas_set_buffer(mapCanvas, mapView.mapBuffer, 768, 768, LV_COLOR_FORMAT_RGB565_SWAPPED);
+    }
+
+    // Position canvas for viewport
+    int16_t baseX = (tft.width() - 768) / 2;
+    int16_t baseY = ((tft.height() - 27) - 768) / 2;
+    if (mapView.followGps)
+    {
+        // GPS mode: center is already correct from pushRotated, no offset needed
+        lv_obj_set_pos(mapCanvas, baseX, baseY);
+    }
+    else
+    {
+        // Manual mode: apply panning offsets for smooth scroll
+        lv_obj_set_pos(mapCanvas, baseX - mapView.offsetX, baseY - mapView.offsetY);
     }
 
     if (mapSet.showMapSpeed)
@@ -423,6 +438,10 @@ void createMapCanvas(_lv_obj_t *screen)
 {
     // static lv_color_t *cbuf = (lv_color_t*)heap_caps_aligned_alloc(16, (tft.width()*tft.height()*sizeof(lv_color_t)), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);;
     mapCanvas = lv_canvas_create(screen);
+    // Hide scrollbars for virtual canvas
+    lv_obj_set_scrollbar_mode(mapCanvas, LV_SCROLLBAR_MODE_OFF);
+    // Prevent canvas from affecting parent scroll
+    lv_obj_add_flag(mapCanvas, LV_OBJ_FLAG_FLOATING);
     // lv_canvas_set_buffer(mapCanvas, cbuf, tft.width(), tft.height(), LV_COLOR_FORMAT_RGB565);
     // lv_canvas_fill_bg(mapCanvas, lv_color_white(), LV_OPA_100);
     // lv_canvas_init_layer(constCanvas, &canvasMapLayer);

@@ -323,13 +323,15 @@ void Maps::deleteMapScrSprites()
 }
 
 /**
- * @brief Create map screen 
+ * @brief Create map screen
  *
- * @details Creates the main map sprite with the current screen width and height, allocating memory for rendering.
+ * @details Creates the main map sprite with 768x768 for virtual canvas scrolling.
+ *          This allows smooth panning without re-rendering.
  */
 void Maps::createMapScrSprites()
 {
-    Maps::mapBuffer = Maps::mapSprite.createSprite(Maps::mapScrWidth, Maps::mapScrHeight);
+    // Create 768x768 sprite for virtual canvas (allows smooth panning)
+    Maps::mapBuffer = Maps::mapSprite.createSprite(tileWidth, tileHeight);
 }
 
 /**
@@ -366,6 +368,8 @@ void Maps::generateMap(uint8_t zoom)
 
         if (posChanged || navNeedsRender_)
         {
+            // Fill with background color before rendering to avoid black areas during scroll
+            Maps::mapTempSprite.fillScreen(0xE6D2);  // Light beige/tan map background
             Maps::isMapFound = renderNavViewport(lat, lon, zoom, Maps::mapTempSprite);
             if (!Maps::isMapFound)
             {
@@ -534,10 +538,8 @@ void Maps::displayMap()
     }
     else
     {
-        const int16_t pivotX = Maps::tileWidth / 2 + Maps::offsetX;
-        const int16_t pivotY = Maps::tileHeight / 2 + Maps::offsetY;
-        Maps::mapTempSprite.setPivot(pivotX, pivotY);
-        Maps::mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
+        // Manual mode: copy without rotation, viewport controlled by LVGL lv_obj_set_pos
+        Maps::mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
     }
 }
 

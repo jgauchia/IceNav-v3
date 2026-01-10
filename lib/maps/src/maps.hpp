@@ -77,7 +77,7 @@ class Maps
         static const uint16_t tileHeight = 768;                                      /**< Tile 9x9 Height Size */
         static const uint16_t tileWidth = 768;                                       /**< Tile 9x9 Width Size */
         static const uint16_t mapTileSize = 256;                             	     /**< Map tile size */
-        static const uint16_t scrollThreshold = mapTileSize / 2;                     /**< Smooth scroll threshold */
+        static const uint16_t scrollThreshold = 180;                                  /**< Smooth scroll threshold (for 768x768 canvas) */
 
         // Tile cache system
         static std::vector<CachedTile> tileCache;                                   /**< Tile cache storage */
