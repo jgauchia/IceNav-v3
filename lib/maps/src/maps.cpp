@@ -654,10 +654,23 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
     Maps::offsetX += (int16_t)speedX;
     Maps::offsetY += (int16_t)speedY;
 
+    // Calculate max offsets based on screen size (leave 10px safety margin)
+    const int16_t maxOffsetX = (tileWidth - mapScrWidth) / 2 - 10;
+    const int16_t maxOffsetY = (tileHeight - mapScrHeight) / 2 - 10;
+
+    // Clamp offsets to prevent canvas edge from showing
+    if (Maps::offsetX > maxOffsetX) Maps::offsetX = maxOffsetX;
+    if (Maps::offsetX < -maxOffsetX) Maps::offsetX = -maxOffsetX;
+    if (Maps::offsetY > maxOffsetY) Maps::offsetY = maxOffsetY;
+    if (Maps::offsetY < -maxOffsetY) Maps::offsetY = -maxOffsetY;
+
     Maps::scrollUpdated = false;
     Maps::followGps = false;
 
-    const int16_t threshold = Maps::scrollThreshold;
+    // Dynamic threshold based on available margin (can't exceed maxOffset)
+    const int16_t thresholdX = std::min((int16_t)Maps::scrollThreshold, maxOffsetX);
+    const int16_t thresholdY = std::min((int16_t)Maps::scrollThreshold, maxOffsetY);
+    const int16_t threshold = std::min(thresholdX, thresholdY);
     const int16_t tileSize = Maps::mapTileSize;
     const int16_t prefetchThreshold = threshold / 2;  // Anticipate prefetch at 50% of threshold
 
