@@ -12,6 +12,7 @@
 #include "gpsMath.hpp"
 #include "settings.hpp"
 #include "mapVars.h"
+#include "styles.hpp"
 
 /**
  * @brief Widget objects

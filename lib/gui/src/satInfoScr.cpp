@@ -181,13 +181,8 @@ void satelliteScr(_lv_obj_t *screen)
     lv_obj_clear_flag(infoGrid, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(infoGrid, LV_FLEX_FLOW_ROW_WRAP);
     lv_obj_set_pos(infoGrid,0,190);
+    lv_obj_add_style(infoGrid, &styleTransparent, LV_PART_MAIN);
 
-    static lv_style_t styleGrid;
-    lv_style_init(&styleGrid);
-    lv_style_set_bg_opa(&styleGrid, LV_OPA_0);
-    lv_style_set_border_opa(&styleGrid, LV_OPA_0);
-    lv_obj_add_style(infoGrid, &styleGrid, LV_PART_MAIN);
-            
     pdopLabel = lv_label_create(infoGrid);
     lv_obj_set_style_text_font(pdopLabel, fontDefault, 0);
     lv_label_set_text_fmt(pdopLabel, "PDOP: %.1f", 0);
@@ -273,13 +268,8 @@ void satelliteScr(_lv_obj_t *screen)
     lv_obj_clear_flag(infoGrid, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(infoGrid, LV_FLEX_FLOW_ROW_WRAP);
     lv_obj_set_pos(infoGrid,0,150);
+    lv_obj_add_style(infoGrid, &styleTransparent, LV_PART_MAIN);
 
-    static lv_style_t styleGrid;
-    lv_style_init(&styleGrid);
-    lv_style_set_bg_opa(&styleGrid, LV_OPA_0);
-    lv_style_set_border_opa(&styleGrid, LV_OPA_0);
-    lv_obj_add_style(infoGrid, &styleGrid, LV_PART_MAIN);
-            
     pdopLabel = lv_label_create(infoGrid);
     lv_obj_set_style_text_font(pdopLabel, fontDefault, 0);
     lv_label_set_text_fmt(pdopLabel, "PDOP: %.1f", 0);

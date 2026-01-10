@@ -10,6 +10,7 @@
 
 #include "globalGuiDef.h"
 #include "gps.hpp"
+#include "styles.hpp"
 
 /**
  * @brief Satellite SV Colors

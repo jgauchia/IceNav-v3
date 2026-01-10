@@ -354,7 +354,8 @@ void lv_tick_task(void *arg)
 void initLVGL()
 {
     lv_init();
-    
+    initSharedStyles();
+
     display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
     lv_display_set_flush_cb(display, displayFlush);
     lv_display_set_flush_wait_cb(display, NULL);

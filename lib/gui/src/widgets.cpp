@@ -297,11 +297,7 @@ void mapZoomWidget(lv_obj_t *screen)
     lv_obj_clear_flag(zoomWidget, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(zoomWidget, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(zoomWidget, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_bg_color(zoomWidget, lv_color_black(), 0);
-    lv_obj_set_style_bg_opa(zoomWidget, 128, 0);
-    lv_obj_set_style_border_color(zoomWidget, lv_color_black(), 0);
-    lv_obj_set_style_border_width(zoomWidget, 1, 0);
-    lv_obj_set_style_border_opa(zoomWidget,128,0);
+    lv_obj_add_style(zoomWidget, &styleMapWidget, 0);
     lv_obj_t *img = lv_img_create(zoomWidget);
     lv_img_set_src(img, zoomIconFile);
     zoomLabel = lv_label_create(zoomWidget);
@@ -322,11 +318,7 @@ void mapSpeedWidget(lv_obj_t *screen)
     lv_obj_clear_flag(mapSpeed, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(mapSpeed, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(mapSpeed, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_bg_color(mapSpeed, lv_color_black(), 0);
-    lv_obj_set_style_bg_opa(mapSpeed, 128, 0);
-    lv_obj_set_style_border_color(mapSpeed, lv_color_black(), 0);
-    lv_obj_set_style_border_width(mapSpeed, 1, 0);
-    lv_obj_set_style_border_opa(mapSpeed,128,0);
+    lv_obj_add_style(mapSpeed, &styleMapWidget, 0);
     lv_obj_align(mapSpeed, LV_ALIGN_BOTTOM_LEFT, 0, -1);
     lv_obj_t *img = lv_img_create(mapSpeed);
     lv_img_set_src(img, mapSpeedIconFile);
@@ -346,11 +338,7 @@ void mapCompassWidget(lv_obj_t *screen)
     miniCompass = lv_obj_create(screen);
     lv_obj_set_size(miniCompass, 50, 50);
     lv_obj_clear_flag(miniCompass, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_bg_color(miniCompass, lv_color_black(), 0);
-    lv_obj_set_style_bg_opa(miniCompass, 128, 0);
-    lv_obj_set_style_border_color(miniCompass, lv_color_black(), 0);
-    lv_obj_set_style_border_width(miniCompass, 1, 0);
-    lv_obj_set_style_border_opa(miniCompass,128,0);
+    lv_obj_add_style(miniCompass, &styleMapWidget, 0);
     lv_obj_set_align(miniCompass, LV_ALIGN_TOP_RIGHT);
     mapCompassImg = lv_img_create(miniCompass);
     LV_IMG_DECLARE(compassMap);
@@ -371,11 +359,7 @@ void mapScaleWidget(lv_obj_t *screen)
     lv_obj_clear_flag(scaleWidget, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(scaleWidget, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(scaleWidget, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_bg_color(scaleWidget, lv_color_black(), 0);
-    lv_obj_set_style_bg_opa(scaleWidget, 128, 0);
-    lv_obj_set_style_border_color(scaleWidget, lv_color_black(), 0);
-    lv_obj_set_style_border_width(scaleWidget, 1, 0);
-    lv_obj_set_style_border_opa(scaleWidget,128,0);
+    lv_obj_add_style(scaleWidget, &styleMapWidget, 0);
     lv_obj_align(scaleWidget, LV_ALIGN_BOTTOM_LEFT, 102, -1);
     lv_obj_add_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
     scaleLabel = lv_label_create(scaleWidget);
@@ -402,10 +386,7 @@ void turnByTurnWidget(lv_obj_t *screen)
     lv_obj_clear_flag(turnByTurn, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(turnByTurn, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(turnByTurn, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_bg_opa(turnByTurn, 128, 0);
-    lv_obj_set_style_border_color(turnByTurn, lv_color_black(), 0);
-    lv_obj_set_style_border_width(turnByTurn, 1, 0);
-    lv_obj_set_style_border_opa(turnByTurn,128,0);
+    lv_obj_add_style(turnByTurn, &styleMapWidget, 0);
     lv_obj_align(turnByTurn, LV_ALIGN_TOP_RIGHT, 0, 60);
 
 

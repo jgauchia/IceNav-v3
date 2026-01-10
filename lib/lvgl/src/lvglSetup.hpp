@@ -24,6 +24,7 @@
 #include "mapSettingsScr.hpp"
 #include "gestures.hpp"
 #include "maps.hpp"
+#include "styles.hpp"
 
 static uint32_t objectColor = 0x303030; /**< Default display driver color definition. */
 

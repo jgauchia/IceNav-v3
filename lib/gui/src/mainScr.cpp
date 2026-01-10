@@ -460,10 +460,7 @@ void createMainScr()
     satTrackTile = lv_tileview_add_tile(tilesScreen, 3, 0, LV_DIR_LEFT);
     lv_obj_set_size(tilesScreen, TFT_WIDTH, TFT_HEIGHT - 25);
     lv_obj_set_pos(tilesScreen, 0, 25);
-    static lv_style_t styleScroll;
-    lv_style_init(&styleScroll);
-    lv_style_set_bg_color(&styleScroll, lv_color_hex(0xFFFFFF));
-    lv_obj_add_style(tilesScreen, &styleScroll, LV_PART_SCROLLBAR);
+    lv_obj_add_style(tilesScreen, &styleScrollbarWhite, LV_PART_SCROLLBAR);
     // Main Screen Events
     lv_obj_add_event_cb(tilesScreen, getActTile, LV_EVENT_SCROLL_END, NULL);
     lv_obj_add_event_cb(tilesScreen, scrollTile, LV_EVENT_SCROLL_BEGIN, NULL);

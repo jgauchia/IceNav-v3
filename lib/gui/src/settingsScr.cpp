@@ -106,11 +106,7 @@ void createSettingsScr()
     lv_obj_set_flex_align(settingsButtons, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_row(settingsButtons, 20, 0);
     lv_obj_set_flex_flow(settingsButtons, LV_FLEX_FLOW_COLUMN);
-    static lv_style_t styleSettings;
-    lv_style_init(&styleSettings);
-    lv_style_set_bg_opa(&styleSettings, LV_OPA_0);
-    lv_style_set_border_opa(&styleSettings, LV_OPA_0);
-    lv_obj_add_style(settingsButtons, &styleSettings, LV_PART_MAIN);
+    lv_obj_add_style(settingsButtons, &styleTransparent, LV_PART_MAIN);
 
     lv_obj_t *btnLabel;
     lv_obj_t *btn;

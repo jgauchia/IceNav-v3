@@ -13,6 +13,7 @@
 #include "storage.hpp"
 #include "battery.hpp"
 #include "settings.hpp"
+#include "styles.hpp"
 
 /**
  * @brief Notify Bar screen objects.
