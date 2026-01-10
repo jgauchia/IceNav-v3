@@ -152,7 +152,7 @@ On SD Card map tiles (256x256 PNG Format) should be stored, in these folders str
 
 Vectorized maps for IceNav can be generated using the Tile-Generator utility, which is available on GitHub at [jgauchia/Tile-Generator](https://github.com/jgauchia/Tile-Generator). This script allows you to convert map data into the required vector tile format compatible with IceNav. Please refer to the Tile-Generator repository for detailed instructions and usage examples on generating and preparing your own vector map files.
 
-      [ 📁 VECTMAP ]
+      [ 📁 NAVMAP ]
             |________ [ 📁 zoom folder (number) ]
                                  |__________________ [ 📁 tile X folder (number) ]
                                                                 |_______________________ 🗺️ tile Y file.bin

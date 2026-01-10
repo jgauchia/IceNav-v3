@@ -24,7 +24,6 @@
 
 #include "globalGpxDef.h"
 
-static const char *mapVectorFolder = "/sdcard/VECTMAP/%u/%u/%u.bin";        /**< Vector Map Files Folder */
 static const char *mapRenderFolder = "/sdcard/MAP/%u/%u/%u.png"; /**< Render Maps file folder */
 static const char *noMapFile = "/spiffs/NOMAP.png";              /**< No map image file */
 static const char *map_scale[] = {"5000 Km", "2500 Km", "1500 Km",

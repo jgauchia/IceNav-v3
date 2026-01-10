@@ -8,25 +8,19 @@
 
 #include "maps.hpp"
 #include <vector>
-#include <map>
-#include <string>
 #include <algorithm>
 #include <cstring>
-#include <sys/stat.h>
+#include <cmath>
+#include <climits>
+#include <cstdint>
 #include "esp_timer.h"
 #include "esp_system.h"
-
-static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 extern Compass compass;
 extern Gps gps;
 extern Storage storage;
 extern std::vector<wayPoint> trackData; /**< Vector containing track waypoints */
 const char* TAG = "Maps";
-
-uint16_t Maps::currentDrawColor = TFT_WHITE;
-uint8_t Maps::PALETTE[256] = {0};
-uint32_t Maps::PALETTE_SIZE = 0;
 
 // Tile cache system static variables
 std::vector<Maps::CachedTile> Maps::tileCache;
@@ -44,23 +38,6 @@ volatile bool Maps::prefetchTaskRunning = false;
 std::vector<Maps::UnifiedPoolEntry> Maps::unifiedPool;
 SemaphoreHandle_t Maps::unifiedPoolMutex = nullptr;
 size_t Maps::maxUnifiedPoolEntries = 0;
-uint32_t Maps::unifiedPoolHitCount = 0;
-uint32_t Maps::unifiedPoolMissCount = 0;
-
-// Memory monitoring static variables
-uint32_t Maps::totalMemoryAllocations = 0;
-uint32_t Maps::totalMemoryDeallocations = 0;
-uint32_t Maps::peakMemoryUsage = 0;
-uint32_t Maps::currentMemoryUsage = 0;
-uint32_t Maps::poolEfficiencyScore = 0;
-uint32_t Maps::lastStatsUpdate = 0;
-
-// Polygon optimization system static variables
-bool Maps::polygonCullingEnabled = true;
-bool Maps::optimizedScanlineEnabled = true;
-uint32_t Maps::polygonRenderCount = 0;
-uint32_t Maps::polygonCulledCount = 0;
-uint32_t Maps::polygonOptimizedCount = 0;
 
 
 /**
@@ -68,9 +45,9 @@ uint32_t Maps::polygonOptimizedCount = 0;
  *
  * @details Initializes the Maps class with default polygon filling enabled and logs completion status.
  */
-Maps::Maps() : fillPolygons(true) 
+Maps::Maps() : fillPolygons(true),
+               navLastLat_(0), navLastLon_(0), navLastZoom_(0), navNeedsRender_(true)
 {
-    ESP_LOGI(TAG, "Maps constructor completed");
 }
 
 /**
@@ -199,10 +176,7 @@ Maps::MapTile Maps::getMapTile(float lon, float lat, uint8_t zoomLevel, int8_t o
     data.lat = lat; 
     data.lon = lon;
     
-    if (mapSet.vectorMap)
-        snprintf(data.file, sizeof(data.file), mapVectorFolder, zoomLevel, data.tilex, data.tiley);
-    else
-        snprintf(data.file, sizeof(data.file), mapRenderFolder, zoomLevel, data.tilex, data.tiley);
+    snprintf(data.file, sizeof(data.file), mapRenderFolder, zoomLevel, data.tilex, data.tiley);
 
     return data;
 }
@@ -324,20 +298,13 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
     Maps::roundMapTile = {};    // Boundaries Map tiles
     Maps::navArrowPosition = {0, 0};              // Map Arrow position
 
-    Maps::totalBounds = {90.0, -90.0, 180.0, -180.0};
+    Maps::totalBounds = {90.0f, -90.0f, 180.0f, -180.0f};
     
     // Initialize tile cache system
     initTileCache();
 
     // Initialize background prefetch system (multi-core)
     initPrefetchSystem();
-
-    // Initialize polygon optimizations
-    polygonCullingEnabled = true;
-    optimizedScanlineEnabled = false;
-    polygonRenderCount = 0;
-    polygonCulledCount = 0;
-    polygonOptimizedCount = 0;
 }
 
 /**
@@ -356,13 +323,15 @@ void Maps::deleteMapScrSprites()
 }
 
 /**
- * @brief Create map screen 
+ * @brief Create map screen
  *
- * @details Creates the main map sprite with the current screen width and height, allocating memory for rendering.
+ * @details Creates the main map sprite with 768x768 for virtual canvas scrolling.
+ *          This allows smooth panning without re-rendering.
  */
 void Maps::createMapScrSprites()
 {
-    Maps::mapBuffer = Maps::mapSprite.createSprite(Maps::mapScrWidth, Maps::mapScrHeight);
+    // Create 768x768 sprite for virtual canvas (allows smooth panning)
+    Maps::mapBuffer = Maps::mapSprite.createSprite(tileWidth, tileHeight);
 }
 
 /**
@@ -381,14 +350,45 @@ void Maps::generateMap(uint8_t zoom)
         ESP_LOGI(TAG, "Zoom level changed from %d to %d - clearing cache", Maps::zoomLevel, zoom);
         clearTileCache();
     }
-    
+
     Maps::zoomLevel = zoom;
-    
-    bool foundRoundMap = false;
-    bool missingMap = false;
 
     const float lat = Maps::followGps ? gps.gpsData.latitude : Maps::currentMapTile.lat;
     const float lon = Maps::followGps ? gps.gpsData.longitude : Maps::currentMapTile.lon;
+
+    // NAV vector map rendering path
+    if (mapSet.vectorMap)
+    {
+        // Check if position changed enough to require re-render
+        // Use ~10m threshold (approx 0.0001 degrees)
+        constexpr float POS_THRESHOLD = 0.0001f;
+        bool posChanged = fabsf(lat - navLastLat_) > POS_THRESHOLD ||
+                          fabsf(lon - navLastLon_) > POS_THRESHOLD ||
+                          zoom != navLastZoom_;
+
+        if (posChanged || navNeedsRender_)
+        {
+            // Fill with background color before rendering to avoid black areas during scroll
+            Maps::mapTempSprite.fillScreen(0xE6D2);  // Light beige/tan map background
+            Maps::isMapFound = renderNavViewport(lat, lon, zoom, Maps::mapTempSprite);
+            if (!Maps::isMapFound)
+            {
+                ESP_LOGW(TAG, "NAV: No map data found");
+                Maps::mapTempSprite.fillScreen(TFT_BLACK);
+                Maps::showNoMap(Maps::mapTempSprite);
+            }
+            // Update cache
+            navLastLat_ = lat;
+            navLastLon_ = lon;
+            navLastZoom_ = zoom;
+            navNeedsRender_ = false;
+        }
+        return;
+    }
+
+    // Legacy PNG tile rendering path
+    bool foundRoundMap = false;
+    bool missingMap = false;
 
     Maps::currentMapTile = Maps::getMapTile(lon, lat, Maps::zoomLevel, 0, 0);
 
@@ -402,10 +402,7 @@ void Maps::generateMap(uint8_t zoom)
 
         Maps::mapTempSprite.fillScreen(TFT_WHITE);
 
-        if (mapSet.vectorMap)
-            Maps::isMapFound = renderTile(Maps::currentMapTile.file, size, size,Maps::mapTempSprite);
-        else
-            Maps::isMapFound = Maps::mapTempSprite.drawPngFile(Maps::currentMapTile.file, size, size);
+        Maps::isMapFound = Maps::mapTempSprite.drawPngFile(Maps::currentMapTile.file, size, size);
 
         
         Maps::oldMapTile = Maps::currentMapTile;
@@ -440,10 +437,7 @@ void Maps::generateMap(uint8_t zoom)
                         Maps::currentMapTile.lon, Maps::currentMapTile.lat,
                         Maps::zoomLevel, x, y);
  
-                    if (mapSet.vectorMap)
-                        foundRoundMap = renderTile(Maps::roundMapTile.file, offsetX, offsetY,Maps::mapTempSprite);
-                    else
-                        foundRoundMap = Maps::mapTempSprite.drawPngFile(Maps::roundMapTile.file, offsetX, offsetY);
+                    foundRoundMap = Maps::mapTempSprite.drawPngFile(Maps::roundMapTile.file, offsetX, offsetY);
 
                     if (!foundRoundMap)
                     {
@@ -544,10 +538,8 @@ void Maps::displayMap()
     }
     else
     {
-        const int16_t pivotX = Maps::tileWidth / 2 + Maps::offsetX;
-        const int16_t pivotY = Maps::tileHeight / 2 + Maps::offsetY;
-        Maps::mapTempSprite.setPivot(pivotX, pivotY);
-        Maps::mapTempSprite.pushRotated(&mapSprite, 0, TFT_TRANSPARENT);
+        // Manual mode: copy without rotation, viewport controlled by LVGL lv_obj_set_pos
+        Maps::mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
     }
 }
 
@@ -662,10 +654,23 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
     Maps::offsetX += (int16_t)speedX;
     Maps::offsetY += (int16_t)speedY;
 
+    // Calculate max offsets based on screen size (leave 10px safety margin)
+    const int16_t maxOffsetX = (tileWidth - mapScrWidth) / 2 - 10;
+    const int16_t maxOffsetY = (tileHeight - mapScrHeight) / 2 - 10;
+
+    // Clamp offsets to prevent canvas edge from showing
+    if (Maps::offsetX > maxOffsetX) Maps::offsetX = maxOffsetX;
+    if (Maps::offsetX < -maxOffsetX) Maps::offsetX = -maxOffsetX;
+    if (Maps::offsetY > maxOffsetY) Maps::offsetY = maxOffsetY;
+    if (Maps::offsetY < -maxOffsetY) Maps::offsetY = -maxOffsetY;
+
     Maps::scrollUpdated = false;
     Maps::followGps = false;
 
-    const int16_t threshold = Maps::scrollThreshold;
+    // Dynamic threshold based on available margin (can't exceed maxOffset)
+    const int16_t thresholdX = std::min((int16_t)Maps::scrollThreshold, maxOffsetX);
+    const int16_t thresholdY = std::min((int16_t)Maps::scrollThreshold, maxOffsetY);
+    const int16_t threshold = std::min(thresholdX, thresholdY);
     const int16_t tileSize = Maps::mapTileSize;
     const int16_t prefetchThreshold = threshold / 2;  // Anticipate prefetch at 50% of threshold
 
@@ -776,24 +781,9 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 
         bool foundTile = false;
 
-        // Try cache first for vector maps
-        if (mapSet.vectorMap)
-            foundTile = getCachedTile(Maps::roundMapTile.file, preloadSprite, offsetX, offsetY);
-
-        // If not in cache, try to load from file
-        if (!foundTile)
-        {
-            if (mapSet.vectorMap)
-            {
-                // Use pre-allocated sprite for rendering (avoids allocation during scroll)
-                foundTile = renderTile(Maps::roundMapTile.file, 0, 0, tileRenderSprite);
-
-                if (foundTile)
-                    preloadSprite.pushImage(offsetX, offsetY, tileSize, tileSize, tileRenderSprite.frameBuffer(0));
-            }
-            else
-                foundTile = preloadSprite.drawPngFile(Maps::roundMapTile.file, offsetX, offsetY);
-        }
+        // Try to load tile from file (PNG only - FGB uses full viewport re-render)
+        if (!mapSet.vectorMap)
+            foundTile = preloadSprite.drawPngFile(Maps::roundMapTile.file, offsetX, offsetY);
 
         if (!foundTile)
             preloadSprite.fillRect(offsetX, offsetY, tileSize, tileSize, TFT_LIGHTGREY);
@@ -814,171 +804,28 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 
 }
 
-/**
- * @brief Loads an RGB332 color palette from a binary file.
- *
- * @details This function reads up to 256 bytes from the specified binary file and stores them in the global PALETTE array,
- *          setting the PALETTE_SIZE accordingly. The palette is expected to be in RGB332 format. 
- *
- * @param palettePath The path to the palette binary file.
- * @return true if the palette was loaded successfully and contains at least one color, false otherwise.
- */
-bool Maps::loadPalette(const char* palettePath)
-{
-    FILE* f = fopen(palettePath, "rb");
-    if (!f)
-        return false;
-
-    // Read entire palette file in one operation (4-byte header + 256*3 RGB bytes max)
-    // This replaces 256+ individual fread() calls with a single read
-    static constexpr size_t MAX_PALETTE_BUFFER = 4 + 256 * 3;  // 772 bytes
-    uint8_t buffer[MAX_PALETTE_BUFFER];
-
-    const size_t bytesRead = fread(buffer, 1, MAX_PALETTE_BUFFER, f);
-    fclose(f);
-
-    if (bytesRead < 4)
-        return false;
-
-    // Parse header (4 bytes little-endian)
-    const uint32_t numColors = buffer[0] | (buffer[1] << 8) | (buffer[2] << 16) | (buffer[3] << 24);
-    const size_t expectedSize = 4 + numColors * 3;
-
-    if (bytesRead < expectedSize || numColors > 256)
-        return false;
-
-    // Convert RGB888 to RGB332 from buffer
-    PALETTE_SIZE = 0;
-    const uint8_t* colorData = buffer + 4;
-
-    for (uint32_t i = 0; i < numColors; i++)
-    {
-        const uint8_t* rgb888 = colorData + (i * 3);
-        uint8_t r332 = rgb888[0] & 0xE0;           // Keep top 3 bits
-        uint8_t g332 = (rgb888[1] & 0xE0) >> 3;   // Keep top 3 bits, shift right
-        uint8_t b332 = rgb888[2] >> 6;             // Keep top 2 bits
-        PALETTE[i] = r332 | g332 | b332;
-        PALETTE_SIZE++;
-    }
-
-    ESP_LOGI(TAG, "Loaded palette: %u colors (single read)", PALETTE_SIZE);
-    return PALETTE_SIZE > 0;
-}
 
 /**
- * @brief Converts a palette index to its corresponding RGB332 color value.
+ * @brief Darkens an RGB565 color by a specified amount.
  *
- * @details descriptionLooks up the given index in the global PALETTE array and returns the corresponding RGB332 color.
- *          If the index is out of range (greater than or equal to PALETTE_SIZE), returns 0xFF (white) by default.
+ * @details This function extracts the red, green, and blue components from the input RGB565 color value,
+ *          multiplies each component by (1.0 - amount), and recombines them into a new RGB565 value.
  *
- * @param idx The palette index to look up.
- * @return The RGB332 color value corresponding to the index, or 0xFF if the index is invalid.
- */
-uint8_t Maps::paletteToRGB332(const uint32_t idx)
-{
-    if (idx < PALETTE_SIZE) 
-        return PALETTE[idx];
-    return 0xFF;
-}
-
-/**
- * @brief Darkens an RGB332 color by a specified amount.
- *
- * @details This function extracts the red, green, and blue components from the input RGB332 color value,
- *          multiplies each component by (1.0 - amount), and recombines them into a new RGB332 value. The default darkening amount is 0.4.
- *          This can be used to generate a visually darker shade of the original color for effects such as shading or selection highlighting.
- *
- * @param color The original RGB332 color value.
+ * @param color The original RGB565 color value.
  * @param amount The fraction to darken each color component (default is 0.4).
- * @return The darkened RGB332 color value.
+ * @return The darkened RGB565 color value.
  */
-uint8_t Maps::darkenRGB332(const uint8_t color, const float amount = 0.4f)
+uint16_t Maps::darkenRGB565(const uint16_t color, const float amount = 0.4f)
 {
-    uint8_t r = (color & 0xE0) >> 5;
-    uint8_t g = (color & 0x1C) >> 2;
-    uint8_t b = (color & 0x03);
+    uint8_t r = (color >> 11) & 0x1F;
+    uint8_t g = (color >> 5) & 0x3F;
+    uint8_t b = color & 0x1F;
 
     r = static_cast<uint8_t>(r * (1.0f - amount));
     g = static_cast<uint8_t>(g * (1.0f - amount));
     b = static_cast<uint8_t>(b * (1.0f - amount));
 
-    return ((r << 5) | (g << 2) | b);
-}
-
-/**
- * @brief Converts an RGB332 color value to RGB565 format.
- *
- * @details This function extracts the red, green, and blue components from the 8-bit RGB332 input value, scales each component to match the RGB565 format, and recombines them into a 16-bit RGB565 value. 
- *
- * @param color The input color value in RGB332 format.
- * @return The corresponding color value in RGB565 format.
- */
-uint16_t Maps::RGB332ToRGB565(const uint8_t color)
-{
-    // Convert RGB332 to RGB565 
-    uint8_t r = (color & 0xE0);
-    uint8_t g = (color & 0x1C) << 3;
-    uint8_t b = (color & 0x03) << 6;
-    
-    // Convert to RGB565 format
-    uint16_t r565 = (r >> 3) & 0x1F;  // 5 bits for red
-    uint16_t g565 = (g >> 2) & 0x3F;  // 6 bits for green  
-    uint16_t b565 = (b >> 3) & 0x1F;  // 5 bits for blue
-    
-    return (r565 << 11) | (g565 << 5) | b565;
-}
-
-/**
- * @brief Reads a variable-length integer (varint) from a byte array.
- *
- * @details This function decodes a 32-bit unsigned integer from the provided byte array starting at the given offset, using a variable-length encoding (varint). 
- *          It advances the offset as bytes are read, ensuring it does not exceed dataSize.
- *          The function returns the decoded value, or 0 if the offset moves past the end of the data buffer.
- *
- * @param data Pointer to the input byte array.
- * @param offset Reference to the current position in the byte array; will be updated to the new offset after reading.
- * @param dataSize The total size of the data buffer.
- * @return The decoded uint32_t varint value, or 0 if the offset exceeds dataSize.
- */
-uint32_t Maps::readVarint(const uint8_t* data, size_t& offset, const size_t dataSize)
-{
-    uint32_t value = 0;
-    uint8_t shift = 0;
-    while (offset < dataSize && shift < 32) 
-    {
-        uint8_t byte = data[offset++];
-        value |= ((uint32_t)(byte & 0x7F)) << shift;
-        if ((byte & 0x80) == 0) 
-            break;
-        shift += 7;
-    }
-    if (offset > dataSize)
-    {
-        offset = dataSize;
-        return 0;
-    }
-    return value;
-}
-
-/**
- * @brief Reads a zigzag-encoded integer from a byte array.
- *
- * @details This function decodes a 32-bit signed integer from the provided byte array starting at the given offset, using zigzag encoding. 
- *          It first reads a varint and then applies the zigzag decoding to convert it back to a signed integer. 
- *          The function advances the offset as bytes are read, ensuring it does not exceed dataSize.
- *          If the offset exceeds dataSize, it returns 0.
- *
- * @param data Pointer to the input byte array.
- * @param offset Reference to the current position in the byte array; will be updated to the new offset after reading.
- * @param dataSize The total size of the data buffer.
- * @return The decoded int32_t zigzag value, or 0 if the offset exceeds dataSize.
- */
-int32_t Maps::readZigzag(const uint8_t* data, size_t& offset, const size_t dataSize)
-{
-    if (offset >= dataSize) 
-        return 0;
-    const uint32_t encoded = Maps::readVarint(data, offset, dataSize);
-    return static_cast<int32_t>((encoded >> 1) ^ (-(int32_t)(encoded & 1)));
+    return ((r << 11) | (g << 5) | b);
 }
 
 /**
@@ -1109,19 +956,7 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
     // Use RAII MemoryGuard for coordinate arrays
     MemoryGuard<int> xintsGuard(numPoints, 6); // Type 6 = coordArray
     xints = xintsGuard.get();
-    if (!xints) 
-    {
-        ESP_LOGW(TAG, "fillPolygonGeneral: RAII MemoryGuard allocation failed");
-        return;
-    }
-    if (!unifiedPoolLogged)
-    {
-        ESP_LOGI(TAG, "fillPolygonGeneral: Using RAII MemoryGuard for coordinate arrays");
-        unifiedPoolLogged = true;
-    }
-    unifiedPoolHitCount++;
-    
-    if (!xints) 
+    if (!xints)
         return;
 
     for (int y = miny; y <= maxy; ++y)
@@ -1142,12 +977,12 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
                     int x0 = xints[i] + xOffset;
                     int x1 = xints[i + 1] + xOffset;
                     int yy = y + yOffset;
-                    if (yy >= 0 && yy <= TILE_SIZE + yOffset)
+                    if (yy >= 0 && yy < tileHeight + yOffset)
                     {
                         if (x0 < 0)
                             x0 = 0;
-                        if (x1 > TILE_SIZE + xOffset)
-                            x1 = TILE_SIZE + xOffset;
+                        if (x1 > tileWidth + xOffset)
+                            x1 = tileWidth + xOffset;
                         if (x1 > x0)
                             map.drawFastHLine(x0, yy, x1 - x0, color);
                     }
@@ -1273,7 +1108,6 @@ void Maps::initTileCache()
 
     tileCache.reserve(maxCachedTiles);
     cacheAccessCounter = 0;
-    ESP_LOGI(TAG, "Tile cache initialized with %zu tiles capacity (tile size: %zu KB)", maxCachedTiles, tileSizeBytes / 1024);
 }
 
 
@@ -1340,7 +1174,6 @@ bool Maps::getCachedTile(const char* filePath, TFT_eSprite& target, int16_t xOff
                 }
             }
 
-            ESP_LOGI(TAG, "CACHE HIT - Free heap: %lu KB", esp_get_free_heap_size() / 1024);
             return true;
         }
     }
@@ -1417,7 +1250,6 @@ void Maps::addToCache(const char* filePath, TFT_eSprite& source, int16_t srcX, i
     newEntry.filePath[sizeof(newEntry.filePath) - 1] = '\0';
 
     tileCache.push_back(newEntry);
-    ESP_LOGI(TAG, "CACHE MISS - Added tile, cache size: %zu, Free heap: %lu KB", tileCache.size(), esp_get_free_heap_size() / 1024);
 }
 
 /**
@@ -1499,240 +1331,6 @@ size_t Maps::getCacheMemoryUsage()
 }
 
 /**
-* @brief Renders a map tile from a binary file onto a sprite.
-*
-* @details This function reads a binary map tile file, decodes its drawing commands, and renders the resulting graphics onto the provided TFT_eSprite object (map). 
-*          It supports line drawing and polygon filling based on the commands in the file, using a predefined color palette. The function handles batching of line drawing for performance optimization.
-*          The rendered tile is positioned on the sprite using the specified xOffset and yOffset.
-*
-* @param path The file path to the binary map tile.
-* @param xOffset The x-offset to apply when rendering the tile on the sprite.
-* @param yOffset The y-offset to apply when rendering the tile on the sprite.
-* @param map The TFT_eSprite object where the tile will be rendered.
-* @param shouldCache If true, add rendered tile to cache (used by prefetch only).
-* @return true if the tile was rendered successfully, false otherwise.
-*/
-bool Maps::renderTile(const char* path, const int16_t xOffset, const int16_t yOffset, TFT_eSprite &map, bool shouldCache)
-{
-    static bool isPaletteLoaded = false;
-    static bool unifiedPoolLogged = false;
-    static bool unifiedPolylineLogged = false;
-    static bool unifiedLineBatchLogged = false;
-    if (!isPaletteLoaded) 
-        isPaletteLoaded = Maps::loadPalette("/sdcard/VECTMAP/palette.bin");
-
-    if (!path || path[0] == '\0')
-        return false;
-
-    // Try to get tile from cache first
-    if (getCachedTile(path, map, xOffset, yOffset))
-        return true; // Tile found in cache
-
-    // Open file first, then get size via fstat() - single directory lookup
-    FILE* file = fopen(path, "rb");
-    if (!file)
-        return false;
-
-    struct stat fileStat;
-    if (fstat(fileno(file), &fileStat) != 0 || fileStat.st_size <= 0)
-    {
-        fclose(file);
-        return false;
-    }
-    const size_t fileSize = fileStat.st_size;
-
-    // Use RAII MemoryGuard for data allocation
-    MemoryGuard<uint8_t> dataGuard(fileSize, 0); // Type 0 = general
-    uint8_t* data = dataGuard.get();
-    if (!data)
-    {
-        fclose(file);
-        return false;
-    }
-    if (!unifiedPoolLogged)
-        unifiedPoolLogged = true;
-
-    const size_t bytesRead = fread(data, 1, fileSize, file);
-    fclose(file);
-    if (bytesRead != fileSize) 
-        return false;
-
-    // Update memory statistics (simplified)
-    currentMemoryUsage = esp_get_free_heap_size();
-    if (currentMemoryUsage > peakMemoryUsage) 
-        peakMemoryUsage = currentMemoryUsage;
-
-    size_t offset = 0;
-    const size_t dataSize = fileSize;
-    uint8_t current_color = 0xFF;
-    uint16_t currentDrawColor = RGB332ToRGB565(current_color);
-
-    const uint32_t num_cmds = readVarint(data, offset, dataSize);
-    if (num_cmds == 0)
-        return false;
-
-    // Enable DMA for faster rendering
-    map.initDMA();
-
-    // Track memory allocations for statistics
-    totalMemoryAllocations++;
-
-    int executed = 0;
-    unsigned long renderStart = millis_idf();
-
-    for (uint32_t cmd_idx = 0; cmd_idx < num_cmds; cmd_idx++) 
-    {
-        if (offset >= dataSize) 
-            break;
-        const size_t cmdStartOffset = offset;
-        const uint32_t cmdType = readVarint(data, offset, dataSize);
-
-        switch (cmdType)
-        {
-            case SET_COLOR:
-                if (offset < dataSize) 
-                {
-                    current_color = data[offset++];
-                    currentDrawColor = RGB332ToRGB565(current_color);
-                    executed++;
-                }
-                break;
-            case SET_COLOR_INDEX:
-                {
-                    const uint32_t color_index = readVarint(data, offset, dataSize);
-                    current_color = paletteToRGB332(color_index);
-                    currentDrawColor = RGB332ToRGB565(current_color);
-                    executed++;
-                }
-                break;
-            case DRAW_POLYLINE:
-                {
-                    const uint32_t lineWidth = readVarint(data, offset, dataSize);
-                    const uint32_t numPoints = readVarint(data, offset, dataSize);
-                    if (numPoints >= 2)
-                    {
-                        MemoryGuard<int> pxGuard(numPoints, 6);
-                        MemoryGuard<int> pyGuard(numPoints, 6);
-                        int* px = pxGuard.get();
-                        int* py = pyGuard.get();
-                        if (!px || !py)
-                        {
-                            for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
-                            {
-                                readZigzag(data, offset, dataSize);
-                                readZigzag(data, offset, dataSize);
-                            }
-                            continue;
-                        }
-                        if (!unifiedPolylineLogged)
-                            unifiedPolylineLogged = true;
-                        unifiedPoolHitCount += 2;
-
-                        int32_t prevX = readZigzag(data, offset, dataSize);
-                        int32_t prevY = readZigzag(data, offset, dataSize);
-                        px[0] = uint16ToPixel(prevX) + xOffset;
-                        py[0] = uint16ToPixel(prevY) + yOffset;
-                        for (uint32_t i = 1; i < numPoints; ++i)
-                        {
-                            const int32_t deltaX = readZigzag(data, offset, dataSize);
-                            const int32_t deltaY = readZigzag(data, offset, dataSize);
-                            prevX += deltaX;
-                            prevY += deltaY;
-                            px[i] = uint16ToPixel(prevX) + xOffset;
-                            py[i] = uint16ToPixel(prevY) + yOffset;
-                        }
-                        for (uint32_t i = 1; i < numPoints; ++i)
-                        {
-                            if (shouldDrawLine(px[i-1] - xOffset, py[i-1] - yOffset, px[i] - xOffset, py[i] - yOffset))
-                                map.drawWideLine(px[i-1], py[i-1], px[i], py[i], lineWidth, currentDrawColor);
-                        }
-                        executed++;
-                    }
-                    else
-                    {
-                        for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
-                        {
-                            readZigzag(data, offset, dataSize);
-                            readZigzag(data, offset, dataSize);
-                        }
-                    }
-                }
-                break;
-            case DRAW_STROKE_POLYGON:
-                {
-                    readVarint(data, offset, dataSize);
-                    const uint32_t numPoints = readVarint(data, offset, dataSize);
-                    if (numPoints >= 3)
-                    {
-                        MemoryGuard<int> pxGuard(numPoints, 6);
-                        MemoryGuard<int> pyGuard(numPoints, 6);
-                        int* px = pxGuard.get();
-                        int* py = pyGuard.get();
-                        if (!px || !py)
-                        {
-                            for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
-                            {
-                                readZigzag(data, offset, dataSize);
-                                readZigzag(data, offset, dataSize);
-                            }
-                            break;
-                        }
-
-                        const int32_t firstX = readZigzag(data, offset, dataSize);
-                        const int32_t firstY = readZigzag(data, offset, dataSize);
-                        px[0] = uint16ToPixel(firstX);
-                        py[0] = uint16ToPixel(firstY);
-                        int prevX = firstX;
-                        int prevY = firstY;
-                        for (uint32_t i = 1; i < numPoints; ++i)
-                        {
-                            const int32_t deltaX = readZigzag(data, offset, dataSize);
-                            const int32_t deltaY = readZigzag(data, offset, dataSize);
-                            prevX += deltaX;
-                            prevY += deltaY;
-                            px[i] = uint16ToPixel(prevX);
-                            py[i] = uint16ToPixel(prevY);
-                        }
-                        if (fillPolygons && numPoints >= 3)
-                            fillPolygonGeneral(map, px, py, numPoints, currentDrawColor, xOffset, yOffset);
-
-                        const uint16_t borderColor = RGB332ToRGB565(darkenRGB332(current_color));
-                        drawPolygonBorder(map, px, py, numPoints, borderColor, currentDrawColor, xOffset, yOffset);
-                        executed++;
-                    }
-                    else
-                    {
-                        for (uint32_t i = 0; i < numPoints && offset < dataSize; ++i)
-                        {
-                            readZigzag(data, offset, dataSize);
-                            readZigzag(data, offset, dataSize);
-                        }
-                    }
-                }
-                break;
-            default:
-                if (offset < dataSize - 4)
-                    offset += 4;
-                break;
-        }
-
-        if (offset <= cmdStartOffset)
-            break;
-    }
-
-    if (executed == 0) 
-        return false;
-
-    // Add successfully rendered tile to cache only if requested (prefetch only)
-    if (shouldCache)
-        addToCache(path, map, xOffset, yOffset);
-
-    unsigned long renderTime = millis_idf() - renderStart;
-
-    return true;
-}
-
-/**
  * @brief Initialize the unified memory pool for efficient memory management
  * 
  * @details Sets up a unified memory pool system with mutex protection, calculates optimal pool size based on available PSRAM or RAM,
@@ -1764,58 +1362,8 @@ void Maps::initUnifiedPool()
     
     unifiedPool.clear();
     unifiedPool.reserve(maxUnifiedPoolEntries);
-    unifiedPoolHitCount = 0;
-    unifiedPoolMissCount = 0;
-    
+
     ESP_LOGI(TAG, "Unified memory pool initialized");
-}
-
-/**
- * @brief Prefetch adjacent tiles for faster loading
- * 
- * @details Preloads tiles around the current position to reduce loading time during scrolling.
- *          Uses background task to avoid blocking the main rendering thread.
- * 
- * @param centerX Current tile X coordinate
- * @param centerY Current tile Y coordinate  
- * @param zoom Current zoom level
- */
-void Maps::prefetchAdjacentTiles(int16_t centerX, int16_t centerY, uint8_t zoom)
-{
-    // Prefetch 3x3 grid around current tile
-    for (int dx = -1; dx <= 1; dx++)
-    {
-        for (int dy = -1; dy <= 1; dy++)
-        {
-            if (dx == 0 && dy == 0) continue; // Skip center tile
-            
-            int16_t tileX = centerX + dx;
-            int16_t tileY = centerY + dy;
-            
-            // Calculate tile coordinates
-            float tileLon = (tileX / (1 << zoom)) * 360.0f - 180.0f;
-            float tileLat = 90.0f - (tileY / (1 << zoom)) * 180.0f;
-            
-            MapTile prefetchTile = getMapTile(tileLon, tileLat, zoom, tileX, tileY);
-
-            // Check if tile exists using stat() - avoids fopen/fclose overhead
-            struct stat tileStat;
-            if (stat(prefetchTile.file, &tileStat) == 0)
-            {
-                // Try to load into cache if not already there
-                TFT_eSprite tempSprite = TFT_eSprite(&tft);
-                tempSprite.createSprite(tileWidth, tileHeight);
-
-                if (!getCachedTile(prefetchTile.file, tempSprite, 0, 0))
-                {
-                    // Render tile to cache it
-                    renderTile(prefetchTile.file, 0, 0, tempSprite);
-                }
-
-                tempSprite.deleteSprite();
-            }
-        }
-    }
 }
 
 /**
@@ -1833,6 +1381,13 @@ void Maps::prefetchTask(void* pvParameters)
 
     while (prefetchTaskRunning)
     {
+        // Skip SD access entirely for vector maps to avoid concurrent access errors
+        if (mapSet.vectorMap)
+        {
+            vTaskDelay(pdMS_TO_TICKS(500));  // Sleep longer when not needed
+            continue;
+        }
+
         // Wait for a request with timeout (allows checking prefetchTaskRunning flag)
         if (xQueueReceive(prefetchQueue, &request, pdMS_TO_TICKS(100)) == pdTRUE)
         {
@@ -1865,25 +1420,16 @@ void Maps::prefetchTask(void* pvParameters)
                         }
                     }
 
-                    if (!alreadyCached && prefetchRenderSprite && mapsInstance)
+                    if (!alreadyCached)
                     {
-                        if (request.isVectorMap)
+                        // PNG: just pre-read file to FS buffer (no cache)
+                        // Buffer 4KB max - task stack is 8KB, can't use larger buffers
+                        FILE* pngFile = fopen(request.filePath, "rb");
+                        if (pngFile)
                         {
-                            // Vector: render and cache
-                            prefetchRenderSprite->fillSprite(TFT_WHITE);
-                            mapsInstance->renderTile(request.filePath, 0, 0, *prefetchRenderSprite, true);
-                        }
-                        else
-                        {
-                            // PNG: just pre-read file to FS buffer (no cache)
-                            // Buffer 4KB max - task stack is 8KB, can't use larger buffers
-                            FILE* pngFile = fopen(request.filePath, "rb");
-                            if (pngFile)
-                            {
-                                char buffer[4096];
-                                while (fread(buffer, 1, sizeof(buffer), pngFile) > 0) {}
-                                fclose(pngFile);
-                            }
+                            char buffer[4096];
+                            while (fread(buffer, 1, sizeof(buffer), pngFile) > 0) {}
+                            fclose(pngFile);
                         }
                     }
                 }
@@ -2033,43 +1579,6 @@ void Maps::enqueuePrefetch(const char* filePath, bool isVectorMap)
 }
 
 /**
- * @brief Prefetch initial ring of tiles around the 3x3 grid
- *
- * @details Called after initial map load to prefetch the outer ring in all directions.
- *          This gives the prefetch system a head start before user scrolls.
- *
- * @param centerX X coordinate of center tile
- * @param centerY Y coordinate of center tile
- * @param zoom Current zoom level
- */
-void Maps::prefetchInitialRing(uint32_t centerX, uint32_t centerY, uint8_t zoom)
-{
-    if (!prefetchQueue || !prefetchTaskRunning)
-        return;
-
-    // Prefetch outer ring (distance 2) in all directions
-    for (int dx = -2; dx <= 2; dx++)
-    {
-        for (int dy = -2; dy <= 2; dy++)
-        {
-            // Skip inner 3x3 grid (already rendered)
-            if (dx >= -1 && dx <= 1 && dy >= -1 && dy <= 1) continue;
-
-            uint32_t tileX = centerX + dx;
-            uint32_t tileY = centerY + dy;
-
-            char filePath[255];
-            if (mapSet.vectorMap)
-                snprintf(filePath, sizeof(filePath), mapVectorFolder, zoom, tileX, tileY);
-            else
-                snprintf(filePath, sizeof(filePath), mapRenderFolder, zoom, tileX, tileY);
-
-            enqueuePrefetch(filePath, mapSet.vectorMap);
-        }
-    }
-}
-
-/**
  * @brief Enqueue tiles in scroll direction for background prefetch
  *
  * @details Enqueues multiple rows/columns of tiles ahead in the scroll direction.
@@ -2083,7 +1592,8 @@ void Maps::prefetchInitialRing(uint32_t centerX, uint32_t centerY, uint8_t zoom)
  */
 void Maps::enqueueSurroundingTiles(uint32_t centerX, uint32_t centerY, uint8_t zoom, int8_t dirX, int8_t dirY)
 {
-    if (!prefetchQueue || !prefetchTaskRunning)
+    // FGB uses full viewport re-render, no tile prefetch needed
+    if (!prefetchQueue || !prefetchTaskRunning || mapSet.vectorMap)
         return;
 
     if (dirX == 0 && dirY == 0)
@@ -2108,12 +1618,8 @@ void Maps::enqueueSurroundingTiles(uint32_t centerX, uint32_t centerY, uint8_t z
         }
 
         char filePath[255];
-        if (mapSet.vectorMap)
-            snprintf(filePath, sizeof(filePath), mapVectorFolder, zoom, tileX, tileY);
-        else
-            snprintf(filePath, sizeof(filePath), mapRenderFolder, zoom, tileX, tileY);
-
-        enqueuePrefetch(filePath, mapSet.vectorMap);
+        snprintf(filePath, sizeof(filePath), mapRenderFolder, zoom, tileX, tileY);
+        enqueuePrefetch(filePath, false);
     }
 }
 
@@ -2133,12 +1639,11 @@ void* Maps::unifiedAlloc(size_t size, uint8_t type)
     {
         for (auto& entry : unifiedPool) 
         {
-            if (!entry.isInUse && entry.size >= size) 
+            if (!entry.isInUse && entry.size >= size)
             {
                 entry.isInUse = true;
                 entry.allocationCount++;
                 entry.type = type;
-                unifiedPoolHitCount++;
                 xSemaphoreGive(unifiedPoolMutex);
                 return entry.ptr;
             }
@@ -2162,17 +1667,14 @@ void* Maps::unifiedAlloc(size_t size, uint8_t type)
                 entry.allocationCount = 1;
                 entry.type = type;
                 unifiedPool.push_back(entry);
-                unifiedPoolHitCount++;
                 xSemaphoreGive(unifiedPoolMutex);
                 return ptr;
             }
         }
-        
-        unifiedPoolMissCount++;
+
         xSemaphoreGive(unifiedPoolMutex);
     }
-    
-    unifiedPoolMissCount++;
+
     #ifdef BOARD_HAS_PSRAM
         return heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
     #else
@@ -2207,5 +1709,291 @@ void Maps::unifiedDealloc(void* ptr)
     }
     
     heap_caps_free(ptr);
+}
+
+
+
+// ============================================================================
+// NAV Tile-based Rendering Implementation
+// ============================================================================
+
+/**
+ * @brief Convert int32 scaled coordinates to pixel coordinates
+ *
+ * @param lon Longitude (scaled by COORD_SCALE)
+ * @param lat Latitude (scaled by COORD_SCALE)
+ * @param viewport Viewport bounding box (scaled coords)
+ * @param px Output pixel X
+ * @param py Output pixel Y
+ */
+void Maps::navCoordToPixel(int32_t lon, int32_t lat, const NavBbox& viewport, int16_t& px, int16_t& py)
+{
+    // Use integer math then convert to float for final calculation
+    const float viewWidth = static_cast<float>(viewport.maxLon - viewport.minLon);
+    const float viewHeight = static_cast<float>(viewport.maxLat - viewport.minLat);
+    const float xNorm = static_cast<float>(lon - viewport.minLon) / viewWidth;
+    const float yNorm = static_cast<float>(viewport.maxLat - lat) / viewHeight; // Y inverted
+
+    const int32_t pxRaw = static_cast<int32_t>(xNorm * static_cast<float>(tileWidth));
+    const int32_t pyRaw = static_cast<int32_t>(yNorm * static_cast<float>(tileHeight));
+
+    px = static_cast<int16_t>(std::max(-1000, std::min(2000, pxRaw)));
+    py = static_cast<int16_t>(std::max(-1000, std::min(2000, pyRaw)));
+}
+
+/**
+ * @brief Render a LineString feature with bbox culling
+ */
+void Maps::renderNavLineString(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map)
+{
+    if (feature.coords.size() < 2)
+        return;
+
+    const size_t numCoords = feature.coords.size();
+    MemoryGuard<int16_t> pxGuard(numCoords, 5);
+    MemoryGuard<int16_t> pyGuard(numCoords, 5);
+    int16_t* pxArr = pxGuard.get();
+    int16_t* pyArr = pyGuard.get();
+
+    if (!pxArr || !pyArr)
+        return;
+
+    int16_t minPx = INT16_MAX, maxPx = INT16_MIN;
+    int16_t minPy = INT16_MAX, maxPy = INT16_MIN;
+
+    for (size_t i = 0; i < numCoords; i++)
+    {
+        navCoordToPixel(feature.coords[i].lon, feature.coords[i].lat, viewport, pxArr[i], pyArr[i]);
+        minPx = std::min(minPx, pxArr[i]);
+        maxPx = std::max(maxPx, pxArr[i]);
+        minPy = std::min(minPy, pyArr[i]);
+        maxPy = std::max(maxPy, pyArr[i]);
+    }
+
+    // Bbox culling: skip if completely outside screen
+    if (maxPx < 0 || minPx >= tileWidth || maxPy < 0 || minPy >= tileHeight)
+        return;
+
+    uint16_t color = feature.properties.colorRgb565;
+    uint8_t width = feature.properties.getWidth();
+
+    // For thick lines, add round join at first vertex
+    if (width > 2)
+    {
+        map.fillCircle(pxArr[0], pyArr[0], width / 2, color);
+    }
+
+    for (size_t i = 1; i < numCoords; i++)
+    {
+        if (width <= 2)
+        {
+            // Fast path for thin lines
+            map.drawLine(pxArr[i-1], pyArr[i-1], pxArr[i], pyArr[i], color);
+            if (width == 2)
+            {
+                // Draw parallel line for width 2
+                map.drawLine(pxArr[i-1]+1, pyArr[i-1], pxArr[i]+1, pyArr[i], color);
+            }
+        }
+        else
+        {
+            // Use drawWideLine for thicker lines
+            map.drawWideLine(pxArr[i-1], pyArr[i-1], pxArr[i], pyArr[i], width, color);
+            // Round join at vertex to smooth curves
+            map.fillCircle(pxArr[i], pyArr[i], width / 2, color);
+        }
+    }
+}
+
+/**
+ * @brief Render a Polygon feature with bbox culling
+ */
+void Maps::renderNavPolygon(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map)
+{
+    if (feature.coords.size() < 3)
+        return;
+
+    size_t numPoints = feature.coords.size();
+    MemoryGuard<int> pxGuard(numPoints, 6);
+    MemoryGuard<int> pyGuard(numPoints, 6);
+    int* px = pxGuard.get();
+    int* py = pyGuard.get();
+
+    if (!px || !py)
+        return;
+
+    int minPx = INT_MAX, maxPx = INT_MIN;
+    int minPy = INT_MAX, maxPy = INT_MIN;
+
+    for (size_t i = 0; i < numPoints; i++)
+    {
+        int16_t x, y;
+        navCoordToPixel(feature.coords[i].lon, feature.coords[i].lat, viewport, x, y);
+        px[i] = x;
+        py[i] = y;
+        minPx = std::min(minPx, (int)x);
+        maxPx = std::max(maxPx, (int)x);
+        minPy = std::min(minPy, (int)y);
+        maxPy = std::max(maxPy, (int)y);
+    }
+
+    // Bbox culling: skip if completely outside screen
+    if (maxPx < 0 || minPx >= tileWidth || maxPy < 0 || minPy >= tileHeight)
+        return;
+
+    // Skip polygons with oversized bbox (likely crossing tile boundary incorrectly)
+    int bboxWidth = maxPx - minPx;
+    int bboxHeight = maxPy - minPy;
+    if (bboxWidth > tileWidth * 2 || bboxHeight > tileHeight * 2)
+        return;
+
+    uint16_t fillColor = feature.properties.colorRgb565;
+    uint16_t borderColor = darkenRGB565(feature.properties.colorRgb565, 0.3f);
+
+    if (fillPolygons)
+    {
+        fillPolygonGeneral(map, px, py, numPoints, fillColor, 0, 0);
+    }
+
+    for (size_t i = 0; i < numPoints; i++)
+    {
+        size_t next = (i + 1) % numPoints;
+        map.drawLine(px[i], py[i], px[next], py[next], borderColor);
+    }
+}
+
+/**
+ * @brief Render a Point feature
+ */
+void Maps::renderNavPoint(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map)
+{
+    if (feature.coords.empty())
+        return;
+
+    int16_t px, py;
+    navCoordToPixel(feature.coords[0].lon, feature.coords[0].lat, viewport, px, py);
+
+    if (px >= 0 && px < tileWidth && py >= 0 && py < tileHeight)
+    {
+        uint16_t color = feature.properties.colorRgb565;
+        map.fillCircle(px, py, 3, color);
+    }
+}
+
+/**
+ * @brief Render a single NAV feature based on geometry type
+ */
+void Maps::renderNavFeature(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map)
+{
+    switch (feature.geomType)
+    {
+        case NavGeomType::LineString:
+            renderNavLineString(feature, viewport, map);
+            break;
+
+        case NavGeomType::Polygon:
+            renderNavPolygon(feature, viewport, map);
+            break;
+
+        case NavGeomType::Point:
+            renderNavPoint(feature, viewport, map);
+            break;
+
+        default:
+            break;
+    }
+}
+
+/**
+ * @brief Render NAV viewport
+ *
+ * @details Main entry point for NAV tile rendering. Loads 3x3 tile grid,
+ *          sorts features by priority, and renders to sprite.
+ *
+ * @param centerLat Center latitude
+ * @param centerLon Center longitude
+ * @param zoom Zoom level
+ * @param map Target sprite for rendering
+ * @return true if rendering succeeded
+ */
+bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT_eSprite& map)
+{
+    // Calculate center tile coordinates using Web Mercator projection
+    const float latRad = centerLat * (float)M_PI / 180.0f;
+    const float n = static_cast<float>(1u << zoom);
+    const int centerTileX = static_cast<int>((centerLon + 180.0f) / 360.0f * n);
+    const int centerTileY = static_cast<int>((1.0f - logf(tanf(latRad) + 1.0f / cosf(latRad)) / (float)M_PI) / 2.0f * n);
+
+    // Calculate viewport bbox (in scaled int32 coordinates)
+    const int minTileX = centerTileX - 1;
+    const int maxTileX = centerTileX + 2;
+    const int minTileY = centerTileY - 1;
+    const int maxTileY = centerTileY + 2;
+
+    const float maxLatF = atanf(sinhf((float)M_PI * (1.0f - 2.0f * static_cast<float>(minTileY) / n))) * 180.0f / (float)M_PI;
+    const float minLonF = static_cast<float>(minTileX) / n * 360.0f - 180.0f;
+    const float minLatF = atanf(sinhf((float)M_PI * (1.0f - 2.0f * static_cast<float>(maxTileY) / n))) * 180.0f / (float)M_PI;
+    const float maxLonF = static_cast<float>(maxTileX) / n * 360.0f - 180.0f;
+
+    NavBbox viewport;
+    viewport.minLon = static_cast<int32_t>(minLonF * COORD_SCALE);
+    viewport.maxLon = static_cast<int32_t>(maxLonF * COORD_SCALE);
+    viewport.minLat = static_cast<int32_t>(minLatF * COORD_SCALE);
+    viewport.maxLat = static_cast<int32_t>(maxLatF * COORD_SCALE);
+
+    // Clear map with white background
+    map.fillSprite(TFT_WHITE);
+
+    // Collect features from all tiles
+    struct RenderItem {
+        NavFeature feature;
+        uint8_t priority;
+    };
+    std::vector<RenderItem> renderQueue;
+
+    // Load 3x3 tiles around center
+    for (int dy = -1; dy <= 1; dy++)
+    {
+        for (int dx = -1; dx <= 1; dx++)
+        {
+            int tileX = centerTileX + dx;
+            int tileY = centerTileY + dy;
+
+            // Build tile path: /sdcard/NAVMAP/{zoom}/{x}/{y}.nav
+            char tilePath[128];
+            snprintf(tilePath, sizeof(tilePath), "/sdcard/NAVMAP/%d/%d/%d.nav",
+                     zoom, tileX, tileY);
+
+            NavReader reader;
+            if (!reader.open(tilePath))
+                continue;
+
+            std::vector<NavFeature> features;
+            reader.readAllFeatures(features, zoom);
+
+            for (const auto& feature : features)
+            {
+                renderQueue.push_back({feature, feature.properties.getPriority()});
+            }
+
+            reader.close();
+            vTaskDelay(pdMS_TO_TICKS(10));
+            taskYIELD();
+        }
+    }
+
+    // Sort by priority (needed when combining multiple tiles)
+    std::sort(renderQueue.begin(), renderQueue.end(),
+              [](const RenderItem& a, const RenderItem& b) {
+                  return a.priority < b.priority;
+              });
+
+    // Render all features
+    for (const auto& item : renderQueue)
+    {
+        renderNavFeature(item.feature, viewport, map);
+    }
+
+    return true;
 }
 
