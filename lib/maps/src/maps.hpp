@@ -74,8 +74,6 @@ class Maps
         static constexpr int TILE_SIZE = 255;
         static constexpr int TILE_SIZE_PLUS_ONE = 256;
         static constexpr int MARGIN_PIXELS = 1;
-        static const uint16_t tileHeight = 768;                                      /**< Tile 9x9 Height Size */
-        static const uint16_t tileWidth = 768;                                       /**< Tile 9x9 Width Size */
         static const uint16_t mapTileSize = 256;                             	     /**< Map tile size */
         static const uint16_t scrollThreshold = 180;                                  /**< Smooth scroll threshold (for 768x768 canvas) */
 
@@ -167,6 +165,10 @@ class Maps
 
     // Unified memory pool methods (experimental)
     public:
+        // Virtual canvas dimensions (public for external access)
+        static const uint16_t tileWidth = 768;                                      /**< Virtual canvas width */
+        static const uint16_t tileHeight = 768;                                     /**< Virtual canvas height */
+
         void initUnifiedPool();                                                     /**< Initialize unified memory pool */
         static void* unifiedAlloc(size_t size, uint8_t type = 0);                          /**< Allocate from unified pool */
         static void unifiedDealloc(void* ptr);                                             /**< Deallocate from unified pool */
