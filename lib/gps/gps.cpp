@@ -244,7 +244,9 @@ void Gps::getGPSData()
         satTracker[i].active = GPS.satellites[i].tracked;
         strncpy(satTracker[i].talker_id, GPS.satellites[i].talker_id, 3);
 
-        int H = canvasRadius * (90 - satTracker[i].elev) / 90;
+        // Clamp elevation between 0 and 90 degrees
+        int8_t clampedElev = std::max((int8_t)0, std::min((int8_t)90, (int8_t)satTracker[i].elev));
+        int H = canvasRadius * (90 - clampedElev) / 90;
 
         float azimRad = DEG2RAD((float)satTracker[i].azim);
         float sinAzim = lutInit ? sinLUT(azimRad) : sinf(azimRad);

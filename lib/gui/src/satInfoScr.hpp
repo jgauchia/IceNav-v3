@@ -53,7 +53,6 @@ extern lv_layer_t canvasLayer;                  /**< Layer for the base canvas d
 extern lv_layer_t satLayer;                     /**< Layer for satellite elements. */
 
 
-void drawTextOnLayer(const char * text, lv_layer_t * layer, lv_point_t * p, lv_area_t * coords, lv_color_t color, const void * font, int16_t offset);
 void satelliteBarDrawEvent(lv_event_t *event);
 void constSatEvent(lv_event_t *event);
 void closeConstSatEvent(lv_event_t *event);
