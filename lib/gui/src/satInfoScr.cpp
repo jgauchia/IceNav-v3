@@ -43,10 +43,13 @@ void satelliteBarDrawEvent(lv_event_t * event)
                 {
                     if ( strcmp(gps.satTracker[dscId].talker_id,"GP") == 0 )
                         fill_dsc->color = gps.satTracker[dscId].active ? GP_ACTIVE_COLOR : GP_INACTIVE_COLOR;
-                    if ( strcmp(gps.satTracker[dscId].talker_id,"GL") == 0 )
+                    else if ( strcmp(gps.satTracker[dscId].talker_id,"GL") == 0 )
                         fill_dsc->color = gps.satTracker[dscId].active ? GL_ACTIVE_COLOR : GL_INACTIVE_COLOR;
-                    if ( strcmp(gps.satTracker[dscId].talker_id,"BD") == 0 )
+                    else if ( strcmp(gps.satTracker[dscId].talker_id,"BD") == 0 )
                         fill_dsc->color = gps.satTracker[dscId].active ? BD_ACTIVE_COLOR : BD_INACTIVE_COLOR;
+                    else
+                        // Fallback for GN, GA, etc. using series default (Light Green) or grey if inactive
+                        fill_dsc->color = gps.satTracker[dscId].active ? lv_palette_main(LV_PALETTE_LIGHT_GREEN) : lv_palette_main(LV_PALETTE_GREY);
                 }
             }
         }
@@ -57,13 +60,11 @@ void satelliteBarDrawEvent(lv_event_t * event)
         static char label_bufs[MAX_SATELLLITES_IN_VIEW][2][8];
         lv_area_t chartObjCoords;
         lv_obj_get_coords(obj, &chartObjCoords);
-        int32_t chartWidth = lv_obj_get_width(obj);
-        float barWidth = (float)chartWidth / MAX_SATELLLITES_IN_VIEW;
         for (uint16_t i = 0; i < gps.gpsData.satInView && i < MAX_SATELLLITES_IN_VIEW; i++) 
         {
-            int32_t centerX = chartObjCoords.x1 + (int32_t)(i * barWidth + barWidth/2);
             lv_point_t p;
             lv_chart_get_point_pos_by_id(obj, lv_chart_get_series_next(obj, NULL), i, &p);
+            int32_t centerX = chartObjCoords.x1 + p.x;
             if (gps.satTracker[i].snr > 0)
             {
                 lv_snprintf(label_bufs[i][0], 8, "%d", gps.satTracker[i].snr);
