@@ -167,7 +167,6 @@ void setup()
     mapView.initMap(tft.height() - 27, tft.width());
 
     // Initialize performance optimizations
-    mapView.initUnifiedPool();
 
     loadPreferences();
     gps.init();

@@ -34,11 +34,6 @@ SemaphoreHandle_t Maps::prefetchMutex = nullptr;
 TFT_eSprite* Maps::prefetchRenderSprite = nullptr;
 volatile bool Maps::prefetchTaskRunning = false;
 
-// Unified memory pool system static variables (experimental)
-std::vector<Maps::UnifiedPoolEntry> Maps::unifiedPool;
-SemaphoreHandle_t Maps::unifiedPoolMutex = nullptr;
-size_t Maps::maxUnifiedPoolEntries = 0;
-
 
 /**
  * @brief Map Class constructor
@@ -299,6 +294,15 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
     Maps::navArrowPosition = {0, 0};              // Map Arrow position
 
     Maps::totalBounds = {90.0f, -90.0f, 180.0f, -180.0f};
+
+    // Pre-allocate projection buffers to avoid runtime allocation
+    // 2048 points is sufficient for most complex features (roads, boundaries)
+    // This works with or without PSRAM, utilizing available heap
+    projBuf16X.reserve(2048);
+    projBuf16Y.reserve(2048);
+    projBuf32X.reserve(2048);
+    projBuf32Y.reserve(2048);
+    polyScanlineBuf.reserve(2048);
     
     // Initialize tile cache system
     initTileCache();
@@ -940,8 +944,6 @@ bool Maps::shouldDrawLine(const int px1, const int py1, const int px2, const int
  */
 void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset)
 {
-    static bool unifiedPoolLogged = false;
-    
     int miny = py[0], maxy = py[0];
     for (int i = 1; i < numPoints; ++i) 
     {
@@ -953,9 +955,11 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
 
     int *xints = nullptr;
     
-    // Use RAII MemoryGuard for coordinate arrays
-    MemoryGuard<int> xintsGuard(numPoints, 6); // Type 6 = coordArray
-    xints = xintsGuard.get();
+    // Use persistent buffer for coordinate arrays
+    if (polyScanlineBuf.capacity() < numPoints) polyScanlineBuf.reserve(numPoints);
+    // No resize needed as we use it as a raw buffer and track count via 'nodes'
+    xints = polyScanlineBuf.data();
+
     if (!xints)
         return;
 
@@ -1313,68 +1317,60 @@ void Maps::clearTileCache()
 }
 
 /**
+
  * @brief Get current cache memory usage
+
  *
+
  * @details Calculates the current memory usage of the tile cache.
+
  *
+
  * @return Memory usage in bytes.
+
  */
+
 size_t Maps::getCacheMemoryUsage()
+
 {
+
     size_t memoryUsage = 0;
+
     for (const auto& cachedTile : tileCache)
+
     {
-        if (cachedTile.isValid && cachedTile.sprite) 
+
+        if (cachedTile.isValid && cachedTile.sprite)
+
             memoryUsage += tileWidth * tileHeight * 2; // RGB565 = 2 bytes per pixel
+
     }
+
     return memoryUsage;
+
 }
 
-/**
- * @brief Initialize the unified memory pool for efficient memory management
- * 
- * @details Sets up a unified memory pool system with mutex protection, calculates optimal pool size based on available PSRAM or RAM,
- *          reserves space for pool entries, and initializes hit/miss counters for performance monitoring.
- */
-void Maps::initUnifiedPool()
-{
-    ESP_LOGI(TAG, "Initializing unified memory pool...");
-    
-    if (unifiedPoolMutex == nullptr)
-    {
-        unifiedPoolMutex = xSemaphoreCreateMutex();
-        if (unifiedPoolMutex == nullptr) 
-        {
-            ESP_LOGE(TAG, "Failed to create unified pool mutex");
-            return;
-        }
-    }
-    
-    #ifdef BOARD_HAS_PSRAM
-        size_t psramFree = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
-        maxUnifiedPoolEntries = std::min(static_cast<size_t>(100), psramFree / (1024 * 32)); // 32KB per entry
-        ESP_LOGI(TAG, "PSRAM available: %zu bytes, setting unified pool size to %zu entries", psramFree, maxUnifiedPoolEntries);
-    #else
-        size_t ramFree = heap_caps_get_free_size(MALLOC_CAP_8BIT);
-        maxUnifiedPoolEntries = std::min(static_cast<size_t>(25), ramFree / (1024 * 64)); // 64KB per entry
-        ESP_LOGI(TAG, "RAM available: %zu bytes, setting unified pool size to %zu entries", ramFree, maxUnifiedPoolEntries);
-    #endif
-    
-    unifiedPool.clear();
-    unifiedPool.reserve(maxUnifiedPoolEntries);
 
-    ESP_LOGI(TAG, "Unified memory pool initialized");
-}
 
 /**
+
  * @brief Background prefetch task that runs on Core 0
+
  *
+
  * @details Continuously processes the prefetch queue, loading tiles into cache in the background.
+
  *          Runs at low priority to not interfere with GPS task on the same core.
+
  *
+
  * @param pvParameters Maps instance pointer for accessing renderTile
+
  */
+
 void Maps::prefetchTask(void* pvParameters)
+
+
 {
     Maps* mapsInstance = static_cast<Maps*>(pvParameters);
     PrefetchRequest request;
@@ -1620,99 +1616,9 @@ void Maps::enqueueSurroundingTiles(uint32_t centerX, uint32_t centerY, uint8_t z
         char filePath[255];
         snprintf(filePath, sizeof(filePath), mapRenderFolder, zoom, tileX, tileY);
         enqueuePrefetch(filePath, false);
-    }
-}
-
-/**
- * @brief Implement a unified memory allocation function that uses a memory pool
- *
- * @details Attempts to allocate memory from the unified pool first, falling back to direct heap allocation if pool is full.
- *          Uses mutex protection for thread safety and tracks allocation statistics for performance monitoring.
- *
- * @param size Size of memory to allocate in bytes
- * @param type Type of allocation for tracking purposes (0=general, 6=coordArray, etc.)
- * @return void* Pointer to allocated memory, or nullptr if allocation failed
- */
-void* Maps::unifiedAlloc(size_t size, uint8_t type)
-{
-    if (unifiedPoolMutex && xSemaphoreTake(unifiedPoolMutex, portMAX_DELAY) == pdTRUE)
-    {
-        for (auto& entry : unifiedPool) 
-        {
-            if (!entry.isInUse && entry.size >= size)
-            {
-                entry.isInUse = true;
-                entry.allocationCount++;
-                entry.type = type;
-                xSemaphoreGive(unifiedPoolMutex);
-                return entry.ptr;
             }
         }
         
-        if (unifiedPool.size() < maxUnifiedPoolEntries) 
-        {
-            void* ptr = nullptr;
-            #ifdef BOARD_HAS_PSRAM
-                ptr = heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
-            #else
-                ptr = heap_caps_malloc(size, MALLOC_CAP_8BIT);
-            #endif
-            
-            if (ptr) 
-            {
-                UnifiedPoolEntry entry;
-                entry.ptr = ptr;
-                entry.size = size;
-                entry.isInUse = true;
-                entry.allocationCount = 1;
-                entry.type = type;
-                unifiedPool.push_back(entry);
-                xSemaphoreGive(unifiedPoolMutex);
-                return ptr;
-            }
-        }
-
-        xSemaphoreGive(unifiedPoolMutex);
-    }
-
-    #ifdef BOARD_HAS_PSRAM
-        return heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
-    #else
-        return heap_caps_malloc(size, MALLOC_CAP_8BIT);
-    #endif
-}
-
-/**
- * @brief Deallocate memory allocated from the unified memory pool
- *
- * @details Marks memory as available in the unified pool if it was allocated from there, otherwise calls standard free.
- *          Uses mutex protection for thread safety and handles null pointer gracefully.
- * 
- * @param ptr Pointer to memory to deallocate
- */
-void Maps::unifiedDealloc(void* ptr)
-{
-    if (!ptr) return;
-    
-    if (unifiedPoolMutex && xSemaphoreTake(unifiedPoolMutex, portMAX_DELAY) == pdTRUE) 
-    {
-        for (auto& entry : unifiedPool) 
-        {
-            if (entry.ptr == ptr && entry.isInUse)
-            {
-                entry.isInUse = false;
-                xSemaphoreGive(unifiedPoolMutex);
-                return;
-            }
-        }
-        xSemaphoreGive(unifiedPoolMutex);
-    }
-    
-    heap_caps_free(ptr);
-}
-
-
-
 // ============================================================================
 // NAV Tile-based Rendering Implementation
 // ============================================================================
@@ -1750,13 +1656,17 @@ void Maps::renderNavLineString(const NavFeature& feature, const NavBbox& viewpor
         return;
 
     const size_t numCoords = feature.coords.size();
-    MemoryGuard<int16_t> pxGuard(numCoords, 5);
-    MemoryGuard<int16_t> pyGuard(numCoords, 5);
-    int16_t* pxArr = pxGuard.get();
-    int16_t* pyArr = pyGuard.get();
+    
+    // Zero-Allocation Projection Pipeline
+    if (projBuf16X.capacity() < numCoords) projBuf16X.reserve(numCoords * 1.5);
+    if (projBuf16Y.capacity() < numCoords) projBuf16Y.reserve(numCoords * 1.5);
+    
+    // Resize without reallocating if capacity is sufficient
+    projBuf16X.resize(numCoords);
+    projBuf16Y.resize(numCoords);
 
-    if (!pxArr || !pyArr)
-        return;
+    int16_t* pxArr = projBuf16X.data();
+    int16_t* pyArr = projBuf16Y.data();
 
     int16_t minPx = INT16_MAX, maxPx = INT16_MIN;
     int16_t minPy = INT16_MAX, maxPy = INT16_MIN;
@@ -1814,13 +1724,17 @@ void Maps::renderNavPolygon(const NavFeature& feature, const NavBbox& viewport, 
         return;
 
     size_t numPoints = feature.coords.size();
-    MemoryGuard<int> pxGuard(numPoints, 6);
-    MemoryGuard<int> pyGuard(numPoints, 6);
-    int* px = pxGuard.get();
-    int* py = pyGuard.get();
+    
+    // Zero-Allocation Projection Pipeline
+    if (projBuf32X.capacity() < numPoints) projBuf32X.reserve(numPoints * 1.5);
+    if (projBuf32Y.capacity() < numPoints) projBuf32Y.reserve(numPoints * 1.5);
 
-    if (!px || !py)
-        return;
+    // Resize without reallocating if capacity is sufficient
+    projBuf32X.resize(numPoints);
+    projBuf32Y.resize(numPoints);
+
+    int* px = projBuf32X.data();
+    int* py = projBuf32Y.data();
 
     int minPx = INT_MAX, maxPx = INT_MIN;
     int minPy = INT_MAX, maxPy = INT_MIN;

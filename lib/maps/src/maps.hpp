@@ -97,20 +97,6 @@ class Maps
 
         static void prefetchTask(void* pvParameters);                               /**< Background prefetch task (runs on Core 0) */
 
-        // Unified memory pool system (experimental)
-        struct UnifiedPoolEntry
-        {
-            void* ptr;
-            size_t size;
-            bool isInUse;
-            uint32_t allocationCount;
-            uint8_t type; // 0=general, 1=point, 2=command, 3=coords, 4=feature, 5=lineSegment, 6=coordArray
-        };
-
-        static std::vector<UnifiedPoolEntry> unifiedPool;                         /**< Unified memory pool */
-        static SemaphoreHandle_t unifiedPoolMutex;                                /**< Mutex for unified pool */
-        static size_t maxUnifiedPoolEntries;                                      /**< Maximum unified pool entries */
-
         tileBounds totalBounds; 													/**< Map boundaries */
         uint16_t wptPosX, wptPosY;                                                  /**< Waypoint position on screen map */
         TFT_eSprite mapTempSprite = TFT_eSprite(&tft);                              /**< Full map sprite (not showed) */
@@ -163,65 +149,10 @@ class Maps
         void enqueuePrefetch(const char* filePath, bool isVectorMap);              /**< Enqueue tile for background prefetch */
         void enqueueSurroundingTiles(uint32_t centerX, uint32_t centerY, uint8_t zoom, int8_t dirX, int8_t dirY); /**< Enqueue tiles in scroll direction */
 
-    // Unified memory pool methods (experimental)
     public:
         // Virtual canvas dimensions (public for external access)
         static const uint16_t tileWidth = 768;                                      /**< Virtual canvas width */
         static const uint16_t tileHeight = 768;                                     /**< Virtual canvas height */
-
-        void initUnifiedPool();                                                     /**< Initialize unified memory pool */
-        static void* unifiedAlloc(size_t size, uint8_t type = 0);                          /**< Allocate from unified pool */
-        static void unifiedDealloc(void* ptr);                                             /**< Deallocate from unified pool */
-    
-        // RAII Memory Guard for automatic memory management
-        template<typename T>
-        class MemoryGuard
-        {
-            private:
-                T* ptr;
-                size_t size;
-                uint8_t type;
-                bool fromPool;
-                
-            public:
-                MemoryGuard(size_t numElements, uint8_t poolType = 0) 
-                    : ptr(nullptr), size(numElements * sizeof(T)), type(poolType), fromPool(false)
-                {
-                    ptr = static_cast<T*>(Maps::unifiedAlloc(size, type));
-                    if (ptr) 
-                        fromPool = true;
-                    else 
-                    {
-                        // Fallback to direct allocation
-                        #ifdef BOARD_HAS_PSRAM
-                            ptr = static_cast<T*>(heap_caps_malloc(size, MALLOC_CAP_SPIRAM));
-                        #else
-                            ptr = static_cast<T*>(heap_caps_malloc(size, MALLOC_CAP_8BIT));
-                        #endif
-                        fromPool = false;
-                    }
-                }
-                
-                ~MemoryGuard()
-                {
-                    if (ptr) 
-                    {
-                        if (fromPool)
-                            Maps::unifiedDealloc(ptr);
-                        else 
-                            heap_caps_free(ptr);
-                    }
-                }
-                
-                T* get() const { return ptr; }
-                T& operator*() const { return *ptr; }
-                T* operator->() const { return ptr; }
-                operator bool() const { return ptr != nullptr; }
-                
-                // Disable copy constructor and assignment
-                MemoryGuard(const MemoryGuard&) = delete;
-                MemoryGuard& operator=(const MemoryGuard&) = delete;
-        };
 
         bool fillPolygons;                                             /**< Flag for polygon filling */
         void* mapBuffer;                                               /**< Pointer to map screen sprite */
@@ -271,5 +202,12 @@ class Maps
         float navLastLon_;
         uint8_t navLastZoom_;
         bool navNeedsRender_;
+
+        // Zero-Allocation Projection Pipeline
+        std::vector<int16_t> projBuf16X;
+        std::vector<int16_t> projBuf16Y;
+        std::vector<int> projBuf32X;
+        std::vector<int> projBuf32Y;
+        std::vector<int> polyScanlineBuf;
 };
 
