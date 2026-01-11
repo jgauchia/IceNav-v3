@@ -1905,6 +1905,26 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
     // Render all features
     for (const auto& item : renderQueue)
     {
+        // Bbox Pre-Culling
+        if (item.feature.coords.empty()) continue;
+
+        int32_t fMinLon = INT32_MAX, fMaxLon = INT32_MIN;
+        int32_t fMinLat = INT32_MAX, fMaxLat = INT32_MIN;
+
+        for (const auto& c : item.feature.coords)
+        {
+            if (c.lon < fMinLon) fMinLon = c.lon;
+            if (c.lon > fMaxLon) fMaxLon = c.lon;
+            if (c.lat < fMinLat) fMinLat = c.lat;
+            if (c.lat > fMaxLat) fMaxLat = c.lat;
+        }
+
+        if (fMinLon > viewport.maxLon || fMaxLon < viewport.minLon || 
+            fMinLat > viewport.maxLat || fMaxLat < viewport.minLat)
+        {
+            continue;
+        }
+
         renderNavFeature(item.feature, viewport, map);
     }
 
