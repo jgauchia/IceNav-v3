@@ -1889,9 +1889,8 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
             int tileX = centerTileX + dx;
             int tileY = centerTileY + dy;
 
-            // Build tile path: /sdcard/NAVMAP/{zoom}/{x}/{y}.nav
             char tilePath[128];
-            snprintf(tilePath, sizeof(tilePath), "/sdcard/NAVMAP/%d/%d/%d.nav",
+            snprintf(tilePath, sizeof(tilePath), mapVectorFolder,
                      zoom, tileX, tileY);
 
             NavReader reader;
