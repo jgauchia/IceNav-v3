@@ -11,8 +11,6 @@
 #include "esp_log.h"
 #include "esp_heap_caps.h"
 
-float midLat = 0; 
-float midLon = 0; 
 bool lutInit = false;
 
 /**
@@ -162,74 +160,6 @@ float calcAngleDiff(float a, float b)
     while (diff > 180.0f) diff -= 360.0f;
     while (diff < -180.0f) diff += 360.0f;
     return diff;
-}
-
-/**
- * @brief Function to calculate the midpoint between two coordinates (latitude and longitude)
- *
- * @details Calculates the geographic midpoint (center point) between two coordinates on the Earth's surface.
- * 			The result is stored in the global variables midLat and midLon.
- *			Uses LUTs for trig functions if initialized.
- *
- * @param lat1 Latitude of point 1 (in degrees)
- * @param lon1 Longitude of point 1 (in degrees)
- * @param lat2 Latitude of point 2 (in degrees)
- * @param lon2 Longitude of point 2 (in degrees)
- */
-void calcMidPoint(float lat1, float lon1, float lat2, float lon2)
-{
-	float rLat1 = DEG2RAD(lat1);
-	float rLon1 = DEG2RAD(lon1);
-	float rLat2 = DEG2RAD(lat2);
-	float rLon2 = DEG2RAD(lon2);
-	float dLon  = rLon2 - rLon1;
-
-	float sinLat1, sinLat2, cosLat1, cosLat2, cosDLon, sinDLon;
-
-	if (lutInit)
-	{
-		sinLat1 = sinLUT(rLat1);
-		sinLat2 = sinLUT(rLat2);
-		cosLat1 = cosLUT(rLat1);
-		cosLat2 = cosLUT(rLat2);
-		cosDLon = cosLUT(dLon);
-		sinDLon = sinLUT(dLon);
-	}
-	else
-	{
-		sinLat1 = sinf(rLat1);
-		sinLat2 = sinf(rLat2);
-		cosLat1 = cosf(rLat1);
-		cosLat2 = cosf(rLat2);
-		cosDLon = cosf(dLon);
-		sinDLon = sinf(dLon);
-	}
-
-	float Bx = cosLat2 * cosDLon;
-	float By = cosLat2 * sinDLon;
-	float cosLat1_plus_Bx = cosLat1 + Bx;
-
-	float midLatRad = atan2f(sinLat1 + sinLat2, sqrtf(cosLat1_plus_Bx * cosLat1_plus_Bx + By * By));
-	float midLonRad = rLon1 + atan2f(By, cosLat1_plus_Bx);
-
-	midLat = RAD2DEG(midLatRad);
-	midLon = RAD2DEG(midLonRad);
-}
-
-/**
- * @brief Map a float value from one range to another
- *
- *
- * @param x Input value
- * @param inMin Minimum input value
- * @param inMax Maximum input value
- * @param outMin Minimum output value
- * @param outMax Maximum output value
- * @return float Mapped output value
- */
-float mapFloat(float x, float inMin, float inMax, float outMin, float outMax)
-{
-	return (x - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
 }
 
 /**

@@ -34,7 +34,6 @@ void calculateSun(); /**< Calculates sunrise and sunset times based on current G
 const char* getPosixTZ(const char* name); /**< Gets the POSIX time zone string for a given time zone name. @param name Time zone name (e.g., "CET", "UTC"). @return POSIX TZ string. */
 
 extern bool isGpsFixed;			 /**< Indicates whether a valid GPS fix has been acquired. */
-extern bool isTimeFixed;		 /**< Indicates whether the system time has been fixed using GPS. */
 extern long gpsBaudDetected; 	 /**< Detected GPS baud rate. */
 extern bool nmea_output_enable;  /**< Enables or disables NMEA output. */
 

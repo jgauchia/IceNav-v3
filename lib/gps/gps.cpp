@@ -61,7 +61,6 @@ static unsigned long pulseIn_idf(int pin, int state, unsigned long timeout)
 extern lv_obj_t *sunriseLabel; 	   /**< Label object for displaying the sunrise time. */
 bool setTime = true;        	   /**< Indicates if the system time should be set from GPS. */
 bool isGpsFixed = false;           /**< Indicates whether a valid GPS fix has been acquired. */
-bool isTimeFixed = false; 	       /**< Indicates whether the system time has been fixed using GPS. */
 long gpsBaudDetected = 0;   	   /**< Detected GPS baud rate. */
 bool nmea_output_enable = false;   /**< Enables or disables NMEA output. */
 gps_fix fix;             	       /**< Latest parsed GPS fix data. */

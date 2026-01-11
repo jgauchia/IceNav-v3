@@ -122,7 +122,6 @@ class Maps
         void panMap(int8_t dx, int8_t dy);
 
         uint16_t darkenRGB565(const uint16_t color, const float amount);  					/**< Darken RGB565 color by a given fraction */
-        int uint16ToPixel(const int32_t val);												/**< Convert uint16_t tile coordinate to pixel coordinate */
         bool isPointOnMargin(const int px, const int py);									/**< Check if a point is on the margin of the tile */
         bool isNear(int val, int target, int tol);											/**< Check if a value is near a target within a tolerance */
         bool shouldDrawLine(const int px1, const int py1, const int px2, const int py2);	/**< Determine if a line should be drawn based on its endpoints */
@@ -136,12 +135,8 @@ class Maps
         
         // Tile cache methods
         void initTileCache();                                                         /**< Initialize tile cache system */
-        bool getCachedTile(const char* filePath, TFT_eSprite& target, int16_t xOffset, int16_t yOffset); /**< Get tile from cache */
-        void addToCache(const char* filePath, TFT_eSprite& source, int16_t srcX, int16_t srcY); /**< Add rendered tile to cache */
-        void evictLRUTile();                                                         /**< Remove least recently used tile from cache */
         void clearTileCache();                                                       /**< Clear all cached tiles */
         uint32_t calculateTileHash(const char* filePath);                           /**< Calculate hash for tile identification */
-        size_t getCacheMemoryUsage();                                               /**< Get current cache memory usage in bytes */
 
         // Background prefetch methods (multi-core)
         void initPrefetchSystem();                                                  /**< Initialize background prefetch system */

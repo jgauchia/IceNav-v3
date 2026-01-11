@@ -12,7 +12,6 @@ lv_obj_t *vdopLabel;
 lv_obj_t *altLabel;
 lv_obj_t *constCanvas;
 lv_layer_t canvasLayer;
-lv_layer_t satLayer;
 lv_obj_t *satelliteBar;               
 lv_chart_series_t *satelliteBarSerie; 
 lv_obj_t *constMsg;

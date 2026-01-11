@@ -50,7 +50,6 @@ extern lv_obj_t *constMsg;           /**< Label for constellation status message
  */
 #define CONSTEL_COLOR lv_color_hex(0x515a5a)    /**< Color used for the constellation canvas background. */
 extern lv_layer_t canvasLayer;                  /**< Layer for the base canvas drawing. */
-extern lv_layer_t satLayer;                     /**< Layer for satellite elements. */
 
 
 void satelliteBarDrawEvent(lv_event_t *event);

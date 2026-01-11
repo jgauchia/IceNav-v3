@@ -829,29 +829,13 @@ uint16_t Maps::darkenRGB565(const uint16_t color, const float amount = 0.4f)
     g = static_cast<uint8_t>(g * (1.0f - amount));
     b = static_cast<uint8_t>(b * (1.0f - amount));
 
-    return ((r << 11) | (g << 5) | b);
-}
+        return ((r << 11) | (g << 5) | b);
 
-/**
- * @brief Converts a 16-bit unsigned integer in the range [0, 65535] to a pixel coordinate in the range [0, TILE_SIZE].
- *
- * @details This function scales the input value from the range of a 16-bit unsigned integer (0 to 65535) to a pixel coordinate within a tile of size TILE_SIZE (0 to 255). 
- *          It ensures that the resulting pixel coordinate is clamped within the valid range of [0, TILE_SIZE].
- *
- * @param val The input value in the range [0, 65535].
- * @return The corresponding pixel coordinate in the range [0, TILE_SIZE].
- */
-int Maps::uint16ToPixel(const int32_t val)
-{
-    int p = static_cast<int>((val * TILE_SIZE_PLUS_ONE) / 65536);
-    if (p < 0) 
-        p = 0;
-    if (p > TILE_SIZE)
-        p = TILE_SIZE;
-    return p;
-}
+    }
 
-/**
+    
+
+ /**
  * @brief Checks if a point lies on the margin of a tile.
  *
  * @details This function determines whether the given point (px, py) is located within the margin area of a tile, as defined by the MARGIN_PIXELS constant. 
@@ -1136,168 +1120,6 @@ uint32_t Maps::calculateTileHash(const char* filePath)
 }
 
 /**
- * @brief Get tile from cache
- *
- * @details Attempts to retrieve a tile from the cache. If found, copies it to the target sprite.
- *
- * @param filePath The file path of the tile to retrieve.
- * @param target The target sprite to copy the cached tile to.
- * @param xOffset The x-offset for positioning.
- * @param yOffset The y-offset for positioning.
- * @return true if tile was found in cache, false otherwise.
- */
-bool Maps::getCachedTile(const char* filePath, TFT_eSprite& target, int16_t xOffset, int16_t yOffset)
-{
-    if (maxCachedTiles == 0) return false; // Cache disabled
-
-    uint32_t tileHash = calculateTileHash(filePath);
-
-    for (auto& cachedTile : tileCache)
-    {
-        if (cachedTile.isValid && cachedTile.tileHash == tileHash)
-        {
-            // Found in cache - update access time
-            cachedTile.lastAccess = ++cacheAccessCounter;
-
-            // Direct memory copy from cache sprite to target (row by row)
-            // This avoids byte-order issues with pushSprite/pushImage methods
-            uint16_t* srcBuffer = (uint16_t*)cachedTile.sprite->getBuffer();
-            uint16_t* dstBuffer = (uint16_t*)target.getBuffer();
-            int dstWidth = target.width();
-
-            // Validate bounds
-            if (xOffset >= 0 && yOffset >= 0 &&
-                xOffset + mapTileSize <= dstWidth &&
-                yOffset + mapTileSize <= target.height())
-            {
-                for (int y = 0; y < mapTileSize; y++)
-                {
-                    int srcOffset = y * mapTileSize;
-                    int dstOffset = (yOffset + y) * dstWidth + xOffset;
-                    memcpy(&dstBuffer[dstOffset], &srcBuffer[srcOffset], mapTileSize * sizeof(uint16_t));
-                }
-            }
-
-            return true;
-        }
-    }
-
-    return false; // Not found in cache
-}
-
-/**
- * @brief Add rendered tile to cache
- *
- * @details Adds a newly rendered tile to the cache, evicting LRU entries if necessary.
- *
- * @param filePath The file path of the tile.
- * @param source The source sprite containing the rendered tile.
- * @param srcX X offset in source sprite where tile data starts.
- * @param srcY Y offset in source sprite where tile data starts.
- */
-void Maps::addToCache(const char* filePath, TFT_eSprite& source, int16_t srcX, int16_t srcY)
-{
-    if (maxCachedTiles == 0) return; // Cache disabled
-
-    uint32_t tileHash = calculateTileHash(filePath);
-
-    // Check if already in cache
-    for (auto& cachedTile : tileCache)
-    {
-        if (cachedTile.isValid && cachedTile.tileHash == tileHash)
-        {
-            cachedTile.lastAccess = ++cacheAccessCounter;
-            return; // Already cached
-        }
-    }
-
-    // Need to add new entry
-    if (tileCache.size() >= maxCachedTiles)
-        evictLRUTile(); // Make room
-
-    // Create new cache entry with 16-bit color depth
-    CachedTile newEntry;
-    newEntry.sprite = new TFT_eSprite(&tft);
-    newEntry.sprite->setColorDepth(16);
-    void* buffer = newEntry.sprite->createSprite(mapTileSize, mapTileSize);
-
-    if (!buffer)
-    {
-        ESP_LOGE(TAG, "Failed to create cache sprite");
-        delete newEntry.sprite;
-        return;
-    }
-
-    // Direct memory copy from source region to cache sprite (row by row)
-    // This avoids byte-order issues with pushSprite/pushImage methods
-    uint16_t* srcBuffer = (uint16_t*)source.getBuffer();
-    uint16_t* dstBuffer = (uint16_t*)newEntry.sprite->getBuffer();
-    int srcWidth = source.width();
-
-    // Validate bounds
-    if (srcX >= 0 && srcY >= 0 &&
-        srcX + mapTileSize <= srcWidth &&
-        srcY + mapTileSize <= source.height())
-    {
-        for (int y = 0; y < mapTileSize; y++)
-        {
-            int srcOffset = (srcY + y) * srcWidth + srcX;
-            int dstOffset = y * mapTileSize;
-            memcpy(&dstBuffer[dstOffset], &srcBuffer[srcOffset], mapTileSize * sizeof(uint16_t));
-        }
-    }
-
-    newEntry.tileHash = tileHash;
-    newEntry.lastAccess = ++cacheAccessCounter;
-    newEntry.isValid = true;
-    strncpy(newEntry.filePath, filePath, sizeof(newEntry.filePath) - 1);
-    newEntry.filePath[sizeof(newEntry.filePath) - 1] = '\0';
-
-    tileCache.push_back(newEntry);
-}
-
-/**
- * @brief Remove least recently used tile from cache
- *
- * @details Finds and removes the tile with the oldest access time.
- */
-void Maps::evictLRUTile()
-{
-    if (tileCache.empty()) return;
-    
-    // Intelligent LRU eviction - consider both access time and memory usage
-    auto lruIt = tileCache.begin();
-    uint32_t bestScore = lruIt->lastAccess;
-    size_t bestMemoryUsage = 0;
-    
-    // Calculate memory usage for each tile
-    for (auto it = tileCache.begin(); it != tileCache.end(); ++it) 
-    {
-        size_t tileMemory = (it->sprite) ? (tileWidth * tileHeight * 2) : 0; // 2 bytes per pixel
-        
-        // Score based on access time and memory usage (lower is better)
-        uint32_t score = it->lastAccess + (tileMemory / 1024); // Add memory penalty
-        
-        if (score < bestScore || (score == bestScore && tileMemory > bestMemoryUsage))
-        {
-            bestScore = score;
-            bestMemoryUsage = tileMemory;
-            lruIt = it;
-        }
-    }
-    
-    // Free the sprite memory
-    if (lruIt->sprite) 
-    {
-        lruIt->sprite->deleteSprite();
-        delete lruIt->sprite;
-    }
-    
-    // Remove from cache
-    tileCache.erase(lruIt);
-}
-
-/**
  * @brief Clear all cached tiles
  *
  * @details Frees all cached tiles and clears the cache.
@@ -1317,60 +1139,14 @@ void Maps::clearTileCache()
 }
 
 /**
-
- * @brief Get current cache memory usage
-
- *
-
- * @details Calculates the current memory usage of the tile cache.
-
- *
-
- * @return Memory usage in bytes.
-
- */
-
-size_t Maps::getCacheMemoryUsage()
-
-{
-
-    size_t memoryUsage = 0;
-
-    for (const auto& cachedTile : tileCache)
-
-    {
-
-        if (cachedTile.isValid && cachedTile.sprite)
-
-            memoryUsage += tileWidth * tileHeight * 2; // RGB565 = 2 bytes per pixel
-
-    }
-
-    return memoryUsage;
-
-}
-
-
-
-/**
-
  * @brief Background prefetch task that runs on Core 0
-
  *
-
  * @details Continuously processes the prefetch queue, loading tiles into cache in the background.
-
  *          Runs at low priority to not interfere with GPS task on the same core.
-
  *
-
  * @param pvParameters Maps instance pointer for accessing renderTile
-
  */
-
 void Maps::prefetchTask(void* pvParameters)
-
-
 {
     Maps* mapsInstance = static_cast<Maps*>(pvParameters);
     PrefetchRequest request;

@@ -50,9 +50,6 @@ static inline __attribute__((always_inline)) float RAD2DEG(float rad)
     return rad * (180.0f / M_PI);
 }
 
-extern float midLat;                    /**< Midpoint between two latitudes */
-extern float midLon;                    /**< Midpoint between two longitudes */
-
 static const char *degreeFormat = "%03d\xC2\xB0 %02d\' %.2f\" %c"; /**< Format string for degrees (DDD°MM'SS" + hemisphere) */
 static const char* TAGMATH = "MATH";
 
@@ -112,8 +109,6 @@ static inline __attribute__((always_inline)) float cosLUT(float rad)
 
 
 float calcDist(float lat1, float lon1, float lat2, float lon2);
-void calcMidPoint(float lat1, float lon1, float lat2, float lon2);
-float mapFloat(float x, float inMin, float inMax, float outMin, float outMax);
 char *latFormatString(float lat);
 char *lonFormatString(float lon);
 float calcCourse(float lat1, float lon1, float lat2, float lon2);
