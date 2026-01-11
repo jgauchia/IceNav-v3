@@ -57,7 +57,6 @@ extern Storage storage;
 extern Battery battery;
 extern Power power;
 extern Maps mapView;
-extern Gps gps;
 #ifdef ENABLE_COMPASS
     Compass compass;
 #endif

@@ -38,6 +38,8 @@ extern bool isTimeFixed;		 /**< Indicates whether the system time has been fixed
 extern long gpsBaudDetected; 	 /**< Detected GPS baud rate. */
 extern bool nmea_output_enable;  /**< Enables or disables NMEA output. */
 
+class Gps;
+extern Gps gps; /**< Global GPS instance */
 
 static unsigned long GPS_BAUD[] = {4800, 9600, 19200, 0}; /**< Supported GPS baud rates. */
 static const char *GPS_BAUD_PCAS[] = {"$PCAS01,0*1C\r\n", "$PCAS01,1*1D\r\n", "$PCAS01,2*1E\r\n"}; /**< NMEA command strings to set baud rate for PCAS modules. */
