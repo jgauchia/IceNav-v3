@@ -19,6 +19,7 @@ lv_display_t *display; /**< LVGL display driver */
 
 lv_obj_t *searchSatScreen; /**< Search Satellite Screen object. */
 lv_obj_t *splashScr;       /**< Splash Screen object. */
+lv_timer_t *mainTimer;     /**< Main Screen Timer */
 lv_style_t styleThemeBkg;  /**< Main background style object. */
 lv_style_t styleObjectBkg; /**< Object background style. */
 lv_style_t styleObjectSel; /**< Object selected style. */
@@ -459,5 +460,8 @@ void loadMainScreen()
         lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
     else
         lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+    
+    if (mainTimer) lv_timer_resume(mainTimer);
+
     lv_screen_load(mainScreen);
 }

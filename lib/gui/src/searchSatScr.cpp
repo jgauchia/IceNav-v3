@@ -15,7 +15,7 @@ static unsigned long millisActual = 0;        /**< Stores the current timestamp 
 static bool skipSearch = false;               /**< Flag to indicate if satellite search should be skipped */
 bool isSearchingSat = true;                   /**< Flag to indicate if satellite search is in progress */
 extern uint8_t activeTile;                    /**< Index of the currently active tile */
-lv_timer_t *mainTimer;                        /**< Main Screen Timer */
+extern lv_timer_t *mainTimer;                 /**< Main Screen Timer */
 lv_timer_t *searchTimer;                      /**< Timer for satellite search process */
 
 /**
@@ -86,7 +86,7 @@ void searchGPS(lv_timer_t *searchTimer)
 void createSearchSatScr()
 {
     searchTimer = lv_timer_create(searchGPS, 100, NULL);
-    lv_timer_ready(searchTimer);
+    lv_timer_pause(searchTimer);
     lv_timer_pause(mainTimer);
 
     searchSatScreen = lv_obj_create(NULL);
