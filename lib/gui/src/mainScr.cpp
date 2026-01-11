@@ -186,8 +186,12 @@ void updateMainScreen(lv_timer_t *t)
                 lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
                 lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
             }
-            if (gps.isAltitudeChanged())
+            static int16_t lastAltMain = -32768;
+            if (gps.gpsData.altitude != lastAltMain)
+            {
+                lastAltMain = gps.gpsData.altitude;
                 lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
+            }
             if (gps.isSpeedChanged())
                 lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
             break;
@@ -277,8 +281,12 @@ void updateSatTrack(lv_event_t *event)
         lv_label_set_text_fmt(vdopLabel, "VDOP: %.1f", gps.gpsData.vdop);
     }
 
-    if (gps.isAltitudeChanged())
+    static int16_t lastAltSat = -32768;
+    if (gps.gpsData.altitude != lastAltSat)
+    {
+        lastAltSat = gps.gpsData.altitude;
         lv_label_set_text_fmt(altLabel, "ALT: %4dm.", gps.gpsData.altitude);
+    }
 
     drawSatSNR();
     drawSatSky();
