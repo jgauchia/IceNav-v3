@@ -202,7 +202,17 @@ void setup()
         ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     splashScreen();
-    lv_screen_load(searchSatScreen);
+
+    // If GPS already has fix, skip search screen and go directly to main
+    if (isGpsFixed)
+    {
+        isSearchingSat = false;
+        loadMainScreen();
+    }
+    else
+    {
+        lv_screen_load(searchSatScreen);
+    }
 }
 
 /**

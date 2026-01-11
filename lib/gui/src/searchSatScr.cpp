@@ -16,6 +16,7 @@ static bool skipSearch = false;               /**< Flag to indicate if satellite
 bool isSearchingSat = true;                   /**< Flag to indicate if satellite search is in progress */
 extern uint8_t activeTile;                    /**< Index of the currently active tile */
 lv_timer_t *mainTimer;                        /**< Main Screen Timer */
+lv_timer_t *searchTimer;                      /**< Timer for satellite search process */
 
 /**
  * @brief Button events
@@ -42,20 +43,32 @@ void buttonEvent(lv_event_t *event)
  * @param searchTimer LVGL timer pointer associated with the satellite search.
  */
 void searchGPS(lv_timer_t *searchTimer)
-{ 
+{
+    static uint8_t fixConfirmCount = 0;  // Confirm fix is stable
+
     if (isGpsFixed)
     {
-        millisActual = millis_idf();
-        while (millis_idf() < millisActual + 500)
-        ;
-        lv_timer_del(searchTimer);
-        lv_timer_resume(mainTimer);
-        isSearchingSat = false;
-        loadMainScreen();
+        fixConfirmCount++;
+        // Wait for 5 consecutive checks (~500ms) to confirm stable fix
+        if (fixConfirmCount >= 5)
+        {
+            fixConfirmCount = 0;
+            lv_timer_del(searchTimer);
+            lv_timer_resume(mainTimer);
+            isSearchingSat = false;
+            loadMainScreen();
+        }
+        return;
+    }
+    else
+    {
+        fixConfirmCount = 0;  // Reset if fix lost
     }
 
     if (skipSearch)
     {
+        skipSearch = false;  // Reset flag
+        fixConfirmCount = 0;
         lv_timer_del(searchTimer);
         isSearchingSat = false;
         zoom = defaultZoom;

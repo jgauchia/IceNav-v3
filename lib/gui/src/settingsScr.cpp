@@ -24,6 +24,8 @@ static void back(lv_event_t *event)
     if (isSearchingSat)
     {
         lv_timer_pause(mainTimer);
+        searchTimer = lv_timer_create(searchGPS, 100, NULL);
+        lv_timer_ready(searchTimer);
         lv_screen_load(searchSatScreen);
     }
     else
