@@ -8,19 +8,19 @@
 
 #pragma once
 
-#include "bruj.h"
-#include "compass.h"
-#include "waypoint.h"
-#include "navfinish.h"
-#include "straight.h"
-#include "slleft.h"
-#include "slright.h"
-#include "tleft.h"
-#include "tright.h"
-#include "uleft.h"
-#include "uright.h"
-#include "finish.h"
-#include "outtrack.h"
+#include "../../images/src/bruj.h"
+#include "../../images/src/compass.h"
+#include "../../images/src/waypoint.h"
+#include "../../images/src/navfinish.h"
+#include "../../images/src/straight.h"
+#include "../../images/src/slleft.h"
+#include "../../images/src/slright.h"
+#include "../../images/src/tleft.h"
+#include "../../images/src/tright.h"
+#include "../../images/src/uleft.h"
+#include "../../images/src/uright.h"
+#include "../../images/src/finish.h"
+#include "../../images/src/outtrack.h"
 
 #include "globalGpxDef.h"
 

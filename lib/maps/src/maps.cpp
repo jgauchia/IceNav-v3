@@ -15,6 +15,7 @@
 #include <cstdint>
 #include "esp_timer.h"
 #include "esp_system.h"
+#include "tasks.hpp"
 
 extern Compass compass;
 extern Gps gps;
@@ -522,7 +523,7 @@ void Maps::displayMap()
 
     uint16_t mapHeading = 0;
 #ifdef ENABLE_COMPASS
-    mapHeading = mapSet.mapRotationComp ? compass.getHeading() : gps.gpsData.heading;
+    mapHeading = mapSet.mapRotationComp ? globalSensorData.heading : gps.gpsData.heading;
 #else
     mapHeading = gps.gpsData.heading;
 #endif
