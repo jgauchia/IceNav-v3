@@ -1648,7 +1648,11 @@ void Maps::navCoordToPixel(int32_t lon, int32_t lat, const NavBbox& viewport, in
 }
 
 /**
- * @brief Render a LineString feature with bbox culling
+ * @brief Render a LineString feature with bbox culling.
+ * 
+ * @param feature  The vector line feature to render.
+ * @param viewport Current view bounding box for projection.
+ * @param map      Target sprite to draw on.
  */
 void Maps::renderNavLineString(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map)
 {
@@ -1716,7 +1720,11 @@ void Maps::renderNavLineString(const NavFeature& feature, const NavBbox& viewpor
 }
 
 /**
- * @brief Render a Polygon feature with bbox culling
+ * @brief Render a Polygon feature with bbox culling.
+ * 
+ * @param feature  The vector polygon feature to render.
+ * @param viewport Current view bounding box for projection.
+ * @param map      Target sprite to draw on.
  */
 void Maps::renderNavPolygon(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map)
 {
@@ -1777,7 +1785,11 @@ void Maps::renderNavPolygon(const NavFeature& feature, const NavBbox& viewport, 
 }
 
 /**
- * @brief Render a Point feature
+ * @brief Render a Point feature.
+ * 
+ * @param feature  The vector point feature to render.
+ * @param viewport Current view bounding box for projection.
+ * @param map      Target sprite to draw on.
  */
 void Maps::renderNavPoint(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map)
 {
@@ -1795,7 +1807,11 @@ void Maps::renderNavPoint(const NavFeature& feature, const NavBbox& viewport, TF
 }
 
 /**
- * @brief Render a single NAV feature based on geometry type
+ * @brief Render a single NAV feature based on geometry type.
+ * 
+ * @param feature  The feature to render.
+ * @param viewport Current view bounding box for projection.
+ * @param map      Target sprite to draw on.
  */
 void Maps::renderNavFeature(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map)
 {

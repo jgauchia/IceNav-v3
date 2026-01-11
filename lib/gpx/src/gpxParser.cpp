@@ -24,8 +24,20 @@ std::string formatFloat(float value, int precision)
     return out.str();
 }
 
+/**
+ * @brief Constructs a GPXParser with a specific file path.
+ * @param filePath Path to the GPX file to be parsed.
+ */
 GPXParser::GPXParser(const char* filePath) : filePath(filePath) {}
+
+/**
+ * @brief Constructs a GPXParser with an empty file path.
+ */
 GPXParser::GPXParser() : filePath("") {}
+
+/**
+ * @brief Destructor for GPXParser.
+ */
 GPXParser::~GPXParser() {}
 
 /**

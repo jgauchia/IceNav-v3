@@ -15,6 +15,9 @@ static const char* TAG = "NavReader";
 static constexpr size_t FILE_BUFFER_SIZE = 4096;
 static char fileBuffer_[FILE_BUFFER_SIZE];
 
+/**
+ * @brief Constructs NavReader with default state.
+ */
 NavReader::NavReader()
     : file_(nullptr)
     , bytesRead_(0)
@@ -23,16 +26,24 @@ NavReader::NavReader()
     memset(&header_, 0, sizeof(header_));
 }
 
+/**
+ * @brief Destructor - ensures file resources are released.
+ */
 NavReader::~NavReader()
 {
     close();
 }
 
+/**
+ * @brief Opens a NAV tile file and reads its header.
+ * @param path File path to the .nav tile.
+ * @return true if opened and header validated successfully, false otherwise.
+ */
 bool NavReader::open(const char* path)
 {
     close();
 
-    file_ = fopen(path, "rb");
+    file = fopen(path, "rb");
     if (!file_)
     {
         ESP_LOGD(TAG, "Failed to open: %s", path);
@@ -53,6 +64,9 @@ bool NavReader::open(const char* path)
     return true;
 }
 
+/**
+ * @brief Closes the current NAV tile file and resets state.
+ */
 void NavReader::close()
 {
     if (file_)
@@ -64,6 +78,10 @@ void NavReader::close()
     bytesRead_ = 0;
 }
 
+/**
+ * @brief Reads and validates the NAV tile header.
+ * @return true if header is valid, false if magic bytes mismatch or read error.
+ */
 bool NavReader::readHeader()
 {
     // Read magic (4 bytes)
@@ -91,6 +109,12 @@ bool NavReader::readHeader()
     return true;
 }
 
+/**
+ * @brief Reads all vector features from the opened tile, filtered by zoom level.
+ * @param features Output vector to store read features.
+ * @param maxZoom  Maximum zoom level to include features for.
+ * @return Number of features successfully read and filtered.
+ */
 size_t NavReader::readAllFeatures(std::vector<NavFeature>& features, uint8_t maxZoom)
 {
     if (!file_ || !headerValid_)
@@ -116,6 +140,11 @@ size_t NavReader::readAllFeatures(std::vector<NavFeature>& features, uint8_t max
     return count;
 }
 
+/**
+ * @brief Reads a single feature from the current file position.
+ * @param feature Reference to store the read feature data.
+ * @return true if feature was read successfully, false on format error.
+ */
 bool NavReader::readFeature(NavFeature& feature)
 {
     // Read geometry type (1 byte)
@@ -160,6 +189,10 @@ bool NavReader::readFeature(NavFeature& feature)
     return true;
 }
 
+/**
+ * @brief Helper to read an 8-bit unsigned integer from file.
+ * @return The value read.
+ */
 uint8_t NavReader::readU8()
 {
     uint8_t value = 0;
@@ -168,6 +201,10 @@ uint8_t NavReader::readU8()
     return value;
 }
 
+/**
+ * @brief Helper to read a 16-bit unsigned integer (little-endian) from file.
+ * @return The value read.
+ */
 uint16_t NavReader::readU16()
 {
     uint8_t buf[2];
@@ -179,6 +216,10 @@ uint16_t NavReader::readU16()
     return 0;
 }
 
+/**
+ * @brief Helper to read a 32-bit signed integer (little-endian) from file.
+ * @return The value read.
+ */
 int32_t NavReader::readI32()
 {
     uint8_t buf[4];

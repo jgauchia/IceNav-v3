@@ -11,6 +11,10 @@
 #include <freertos/task.h>
 #include "esp_timer.h"
 
+/**
+ * @brief Get system uptime in milliseconds using ESP-IDF timer.
+ * @return uint32_t Milliseconds since boot.
+ */
 static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 static const char* TAG = "Compass";
@@ -394,19 +398,19 @@ void MPU9250_Driver::readSensor()
 }
 
 /**
- * @brief Gets X-axis magnetic field.
+ * @brief Gets X-axis magnetic field in microtesla.
  * @return Magnetic field in microtesla (uT).
  */
 float MPU9250_Driver::getMagX_uT() { return magX; }
 
 /**
- * @brief Gets Y-axis magnetic field.
+ * @brief Gets Y-axis magnetic field in microtesla.
  * @return Magnetic field in microtesla (uT).
  */
 float MPU9250_Driver::getMagY_uT() { return magY; }
 
 /**
- * @brief Gets Z-axis magnetic field.
+ * @brief Gets Z-axis magnetic field in microtesla.
  * @return Magnetic field in microtesla (uT).
  */
 float MPU9250_Driver::getMagZ_uT() { return magZ; }

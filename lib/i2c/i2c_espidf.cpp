@@ -16,6 +16,7 @@ I2CNative i2c;
 
 /**
  * @brief Constructs I2CNative with uninitialized state.
+ * @details Initializes the I2C port identifier to I2C_NUM_0 by default.
  */
 I2CNative::I2CNative() : i2cPort(I2C_NUM_0), initialized(false)
 {
@@ -23,6 +24,7 @@ I2CNative::I2CNative() : i2cPort(I2C_NUM_0), initialized(false)
 
 /**
  * @brief Destructor - cleans up I2C resources.
+ * @details Ensures the I2C driver is uninstalled and resources are freed.
  */
 I2CNative::~I2CNative()
 {
@@ -30,7 +32,11 @@ I2CNative::~I2CNative()
 }
 
 /**
- * @brief Initializes the I2C bus.
+ * @brief Initializes the I2C bus with specific pins and frequency.
+ * @param sda  GPIO pin number for SDA line.
+ * @param scl  GPIO pin number for SCL line.
+ * @param freq I2C clock frequency in Hz.
+ * @return true if initialization was successful, false on error.
  */
 bool I2CNative::begin(int sda, int scl, uint32_t freq)
 {
@@ -66,6 +72,7 @@ bool I2CNative::begin(int sda, int scl, uint32_t freq)
 
 /**
  * @brief Deinitializes the I2C bus.
+ * @details Deletes the I2C driver and marks the instance as uninitialized.
  */
 void I2CNative::end()
 {
@@ -79,6 +86,9 @@ void I2CNative::end()
 
 /**
  * @brief Reads a single byte from a register.
+ * @param addr I2C device address.
+ * @param reg  Register address to read from.
+ * @return Value read from the register, or 0 on error.
  */
 uint8_t I2CNative::read8(uint8_t addr, uint8_t reg)
 {
@@ -110,6 +120,10 @@ uint8_t I2CNative::read8(uint8_t addr, uint8_t reg)
 
 /**
  * @brief Writes a single byte to a register.
+ * @param addr  I2C device address.
+ * @param reg   Register address to write to.
+ * @param value Value to write to the register.
+ * @return true if write successful, false on error.
  */
 bool I2CNative::write8(uint8_t addr, uint8_t reg, uint8_t value)
 {
@@ -138,6 +152,11 @@ bool I2CNative::write8(uint8_t addr, uint8_t reg, uint8_t value)
 
 /**
  * @brief Reads multiple bytes from a register.
+ * @param addr   I2C device address.
+ * @param reg    Register address to start reading from.
+ * @param buffer Pointer to the buffer to store data.
+ * @param len    Number of bytes to read.
+ * @return Number of bytes successfully read.
  */
 size_t I2CNative::readBytes(uint8_t addr, uint8_t reg, uint8_t* buffer, size_t len)
 {
@@ -172,6 +191,10 @@ size_t I2CNative::readBytes(uint8_t addr, uint8_t reg, uint8_t* buffer, size_t l
 
 /**
  * @brief Reads multiple bytes without register (direct read).
+ * @param addr   I2C device address.
+ * @param buffer Pointer to the buffer to store data.
+ * @param len    Number of bytes to read.
+ * @return Number of bytes successfully read.
  */
 size_t I2CNative::readBytesRaw(uint8_t addr, uint8_t* buffer, size_t len)
 {
@@ -203,6 +226,11 @@ size_t I2CNative::readBytesRaw(uint8_t addr, uint8_t* buffer, size_t len)
 
 /**
  * @brief Writes multiple bytes to a register.
+ * @param addr   I2C device address.
+ * @param reg    Register address to start writing to.
+ * @param buffer Pointer to the data buffer to write.
+ * @param len    Number of bytes to write.
+ * @return true if write successful, false on error.
  */
 bool I2CNative::writeBytes(uint8_t addr, uint8_t reg, const uint8_t* buffer, size_t len)
 {

@@ -12,7 +12,10 @@
 #include "esp_timer.h"
 #include "driver/gpio.h"
 
-// ESP-IDF native millis() replacement
+/**
+ * @brief Get system uptime in milliseconds using ESP-IDF timer.
+ * @return uint32_t Milliseconds since boot.
+ */
 static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 lv_display_t *display; /**< LVGL display driver */

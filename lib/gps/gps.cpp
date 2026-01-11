@@ -14,6 +14,10 @@
 #include "esp_timer.h"
 #include "driver/gpio.h"
 
+/**
+ * @brief Get system uptime in milliseconds using ESP-IDF timer.
+ * @return uint32_t Milliseconds since boot.
+ */
 static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 /**
@@ -66,8 +70,10 @@ Gps gps;                           /**< Global GPS instance */
 
 static const char* TAG = "GPS";
 
+/**
+ * @brief Default constructor for Gps class.
+ */
 Gps::Gps() {}
-
 
 /**
  * @brief Init GPS and custom NMEA parsing.

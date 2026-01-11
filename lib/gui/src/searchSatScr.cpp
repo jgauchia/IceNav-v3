@@ -9,6 +9,10 @@
 #include "searchSatScr.hpp"
 #include "esp_timer.h"
 
+/**
+ * @brief Get system uptime in milliseconds using ESP-IDF timer.
+ * @return uint32_t Milliseconds since boot.
+ */
 static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 static unsigned long millisActual = 0;        /**< Stores the current timestamp in milliseconds */
