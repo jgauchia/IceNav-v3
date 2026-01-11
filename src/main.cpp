@@ -115,8 +115,8 @@ void calculateSun()
 void setup()
 {
     gpsMutex = xSemaphoreCreateMutex();
-    esp_log_level_set("*", ESP_LOG_DEBUG);
-    esp_log_level_set("storage", ESP_LOG_DEBUG);
+    // esp_log_level_set("*", ESP_LOG_DEBUG);
+    // esp_log_level_set("storage", ESP_LOG_DEBUG);
 
     lutInit = initTrigLUT();
 
