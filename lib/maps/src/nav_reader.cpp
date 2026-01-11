@@ -43,7 +43,7 @@ bool NavReader::open(const char* path)
 {
     close();
 
-    file = fopen(path, "rb");
+    file_ = fopen(path, "rb");
     if (!file_)
     {
         ESP_LOGD(TAG, "Failed to open: %s", path);
