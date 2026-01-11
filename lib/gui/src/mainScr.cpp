@@ -304,6 +304,7 @@ void mapToolBarEvent(lv_event_t *event)
 
     showMapToolBar = !showMapToolBar;
     canScrollMap = !canScrollMap;
+    isScrollingMap = false;
 
     if (!showMapToolBar)
     {
@@ -377,6 +378,7 @@ void scrollMapEvent(lv_event_t *event)
                 break;
             }
         
+            case LV_EVENT_RELEASED:
             case LV_EVENT_PRESS_LOST:
             {
                 lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
