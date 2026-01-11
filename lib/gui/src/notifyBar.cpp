@@ -7,13 +7,14 @@
  */
 
 #include "notifyBar.hpp"
+#include "tasks.hpp"
 
 lv_obj_t *mainScreen;         /**< Main screen */
 lv_obj_t *notifyBarIcons;     /**< Notification bar icons container object. */
 lv_obj_t *notifyBarHour;      /**< Notification bar hour display object. */
 
-Storage storage;
-Battery battery;
+extern Storage storage;
+extern Battery battery;
 extern Gps gps;
 
 /**
@@ -115,7 +116,7 @@ void updateNotifyBarTimer(lv_timer_t *t)
         lv_led_off(gpsFix);
 
     #ifdef ENABLE_TEMP
-    tempValue = (uint8_t)(bme.readTemperature() + tempOffset);
+    tempValue = (uint8_t)(globalSensorData.temperature + tempOffset);
     if (tempValue != tempOld)
     {
         lv_obj_send_event(temp, LV_EVENT_VALUE_CHANGED, NULL);
@@ -123,7 +124,7 @@ void updateNotifyBarTimer(lv_timer_t *t)
     }
     #endif
 
-    battLevel = battery.readBattery();
+    battLevel = globalSensorData.batteryPercent;
     if (battLevel != battLevelOld)
     {
         lv_obj_send_event(battIcon, LV_EVENT_VALUE_CHANGED, NULL);

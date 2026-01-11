@@ -7,6 +7,7 @@
  */
 
 #include "mainScr.hpp"
+#include "tasks.hpp"
 
 bool isMainScreen = false;    
 bool isScrolled = true;      
@@ -168,44 +169,42 @@ void updateMainScreen(lv_timer_t *t)
 {
     if (isScrolled && isMainScreen)
     {
+        #ifdef ENABLE_COMPASS
+            if (!waitScreenRefresh)
+                heading = globalSensorData.heading;
+        #else
+            heading = gps.gpsData.heading;
+        #endif
+
+        if (gps.hasLocationChange())
+        {
+            lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
+            lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
+        }
+
         switch (activeTile)
         {
         case COMPASS:
-            #ifdef ENABLE_COMPASS
-                if (!waitScreenRefresh)
-                    heading = compass.getHeading();
-                if (compass.isUpdated())
-                    lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
-            #endif
-            #ifndef ENABLE_COMPASS
-                heading = gps.gpsData.heading;
-                lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
-            #endif
-            if (gps.hasLocationChange())
+            static int lastHeadingComp = -1;
+            if (heading != lastHeadingComp)
             {
-                lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
-                lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
+                lastHeadingComp = heading;
+                lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
             }
+
             static int16_t lastAltMain = -32768;
             if (gps.gpsData.altitude != lastAltMain)
             {
                 lastAltMain = gps.gpsData.altitude;
                 lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
             }
+
             if (gps.isSpeedChanged())
                 lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
             break;
 
         case MAP:
-            #ifdef ENABLE_COMPASS
-            if (mapSet.mapRotationComp)
-                heading = compass.getHeading();
-            else
-                heading = gps.gpsData.heading;
-            #else
-                heading = gps.gpsData.heading;
-            #endif
-                lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
+            lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
             break;
 
         case NAV:
@@ -425,10 +424,10 @@ void updateNavEvent(lv_event_t *event)
     else
     {
         #ifdef ENABLE_COMPASS
-            float wptCourse = calcCourse(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon) - compass.getHeading();
+            float wptCourse = calcCourse(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon) - heading;
         #endif
         #ifndef ENABLE_COMPASS
-            float wptCourse = calcCourse(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon) - gps.gpsData.heading;
+            float wptCourse = calcCourse(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon) - heading;
         #endif
             lv_img_set_angle(arrowNav, (wptCourse * 10));
     }

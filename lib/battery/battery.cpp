@@ -8,6 +8,9 @@
 
 #include "battery.hpp"
 
+// Global Battery instance
+Battery battery;
+
 /**
  * @brief Constructs a Battery monitoring object for voltage measurement and percentage calculation.
  */

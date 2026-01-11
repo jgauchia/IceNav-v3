@@ -24,6 +24,9 @@ extern const uint8_t SD_CLK;  /**< Clock pin for SD card */
 
 static const char *TAG = "Storage";
 
+// Global Storage instance
+Storage storage;
+
 /**
  * @brief Formats a byte size as a human-readable string with appropriate units.
  *

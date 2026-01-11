@@ -16,9 +16,9 @@ I2CNative i2c;
 
 /**
  * @brief Constructs I2CNative with uninitialized state.
- * @details Initializes the I2C port identifier to I2C_NUM_0 by default.
+ * @details Initializes the I2C port identifier to I2C_NUM_0 by default and resets the mutex.
  */
-I2CNative::I2CNative() : i2cPort(I2C_NUM_0), initialized(false)
+I2CNative::I2CNative() : i2cPort(I2C_NUM_0), initialized(false), i2cMutex(nullptr)
 {
 }
 
@@ -43,6 +43,11 @@ bool I2CNative::begin(int sda, int scl, uint32_t freq)
     if (initialized)
         return true;
 
+    if (i2cMutex == nullptr)
+    {
+        i2cMutex = xSemaphoreCreateMutex();
+    }
+
     i2c_config_t conf = {};
     conf.mode = I2C_MODE_MASTER;
     conf.sda_io_num = (gpio_num_t)sda;
@@ -59,7 +64,7 @@ bool I2CNative::begin(int sda, int scl, uint32_t freq)
     }
 
     ret = i2c_driver_install(i2cPort, I2C_MODE_MASTER, 0, 0, 0);
-    if (ret != ESP_OK)
+    if (ret != ESP_OK && ret != ESP_ERR_INVALID_STATE)
     {
         ESP_LOGE(TAG, "Failed to install I2C driver: %s", esp_err_to_name(ret));
         return false;
@@ -92,27 +97,31 @@ void I2CNative::end()
  */
 uint8_t I2CNative::read8(uint8_t addr, uint8_t reg)
 {
-    if (!initialized)
+    if (!initialized || i2cMutex == nullptr)
         return 0;
 
     uint8_t value = 0;
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg, true);
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_READ, true);
-    i2c_master_read_byte(cmd, &value, I2C_MASTER_NACK);
-    i2c_master_stop(cmd);
-
-    esp_err_t ret = i2c_master_cmd_begin(i2cPort, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-    i2c_cmd_link_delete(cmd);
-
-    if (ret != ESP_OK)
+    if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_TIMEOUT_MS)) == pdTRUE)
     {
-        ESP_LOGE(TAG, "Read8 failed for 0x%02X reg 0x%02X: %s", addr, reg, esp_err_to_name(ret));
-        return 0;
+        i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+
+        i2c_master_start(cmd);
+        i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
+        i2c_master_write_byte(cmd, reg, true);
+        i2c_master_start(cmd);
+        i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_READ, true);
+        i2c_master_read_byte(cmd, &value, I2C_MASTER_NACK);
+        i2c_master_stop(cmd);
+
+        esp_err_t ret = i2c_master_cmd_begin(i2cPort, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
+        i2c_cmd_link_delete(cmd);
+
+        if (ret != ESP_OK)
+        {
+            ESP_LOGE(TAG, "Read8 failed for 0x%02X reg 0x%02X: %s", addr, reg, esp_err_to_name(ret));
+            value = 0;
+        }
+        xSemaphoreGive(i2cMutex);
     }
 
     return value;
@@ -127,27 +136,36 @@ uint8_t I2CNative::read8(uint8_t addr, uint8_t reg)
  */
 bool I2CNative::write8(uint8_t addr, uint8_t reg, uint8_t value)
 {
-    if (!initialized)
+    if (!initialized || i2cMutex == nullptr)
         return false;
 
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg, true);
-    i2c_master_write_byte(cmd, value, true);
-    i2c_master_stop(cmd);
-
-    esp_err_t ret = i2c_master_cmd_begin(i2cPort, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-    i2c_cmd_link_delete(cmd);
-
-    if (ret != ESP_OK)
+    bool success = false;
+    if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_TIMEOUT_MS)) == pdTRUE)
     {
-        ESP_LOGE(TAG, "Write8 failed for 0x%02X reg 0x%02X: %s", addr, reg, esp_err_to_name(ret));
-        return false;
+        i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+
+        i2c_master_start(cmd);
+        i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
+        i2c_master_write_byte(cmd, reg, true);
+        i2c_master_write_byte(cmd, value, true);
+        i2c_master_stop(cmd);
+
+        esp_err_t ret = i2c_master_cmd_begin(i2cPort, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
+        i2c_cmd_link_delete(cmd);
+
+        if (ret != ESP_OK)
+        {
+            ESP_LOGE(TAG, "Write8 failed for 0x%02X reg 0x%02X: %s", addr, reg, esp_err_to_name(ret));
+            success = false;
+        }
+        else
+        {
+            success = true;
+        }
+        xSemaphoreGive(i2cMutex);
     }
 
-    return true;
+    return success;
 }
 
 /**
@@ -160,33 +178,42 @@ bool I2CNative::write8(uint8_t addr, uint8_t reg, uint8_t value)
  */
 size_t I2CNative::readBytes(uint8_t addr, uint8_t reg, uint8_t* buffer, size_t len)
 {
-    if (!initialized || !buffer || len == 0)
+    if (!initialized || i2cMutex == nullptr || !buffer || len == 0)
         return 0;
 
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg, true);
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_READ, true);
-
-    if (len > 1)
-        i2c_master_read(cmd, buffer, len - 1, I2C_MASTER_ACK);
-    i2c_master_read_byte(cmd, buffer + len - 1, I2C_MASTER_NACK);
-
-    i2c_master_stop(cmd);
-
-    esp_err_t ret = i2c_master_cmd_begin(i2cPort, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-    i2c_cmd_link_delete(cmd);
-
-    if (ret != ESP_OK)
+    size_t readLen = 0;
+    if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_TIMEOUT_MS)) == pdTRUE)
     {
-        ESP_LOGE(TAG, "ReadBytes failed for 0x%02X reg 0x%02X: %s", addr, reg, esp_err_to_name(ret));
-        return 0;
+        i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+
+        i2c_master_start(cmd);
+        i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
+        i2c_master_write_byte(cmd, reg, true);
+        i2c_master_start(cmd);
+        i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_READ, true);
+
+        if (len > 1)
+            i2c_master_read(cmd, buffer, len - 1, I2C_MASTER_ACK);
+        i2c_master_read_byte(cmd, buffer + len - 1, I2C_MASTER_NACK);
+
+        i2c_master_stop(cmd);
+
+        esp_err_t ret = i2c_master_cmd_begin(i2cPort, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
+        i2c_cmd_link_delete(cmd);
+
+        if (ret != ESP_OK)
+        {
+            ESP_LOGE(TAG, "ReadBytes failed for 0x%02X reg 0x%02X: %s", addr, reg, esp_err_to_name(ret));
+            readLen = 0;
+        }
+        else
+        {
+            readLen = len;
+        }
+        xSemaphoreGive(i2cMutex);
     }
 
-    return len;
+    return readLen;
 }
 
 /**
@@ -198,30 +225,39 @@ size_t I2CNative::readBytes(uint8_t addr, uint8_t reg, uint8_t* buffer, size_t l
  */
 size_t I2CNative::readBytesRaw(uint8_t addr, uint8_t* buffer, size_t len)
 {
-    if (!initialized || !buffer || len == 0)
+    if (!initialized || i2cMutex == nullptr || !buffer || len == 0)
         return 0;
 
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_READ, true);
-
-    if (len > 1)
-        i2c_master_read(cmd, buffer, len - 1, I2C_MASTER_ACK);
-    i2c_master_read_byte(cmd, buffer + len - 1, I2C_MASTER_NACK);
-
-    i2c_master_stop(cmd);
-
-    esp_err_t ret = i2c_master_cmd_begin(i2cPort, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-    i2c_cmd_link_delete(cmd);
-
-    if (ret != ESP_OK)
+    size_t readLen = 0;
+    if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_TIMEOUT_MS)) == pdTRUE)
     {
-        ESP_LOGE(TAG, "ReadBytesRaw failed for 0x%02X: %s", addr, esp_err_to_name(ret));
-        return 0;
+        i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+
+        i2c_master_start(cmd);
+        i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_READ, true);
+
+        if (len > 1)
+            i2c_master_read(cmd, buffer, len - 1, I2C_MASTER_ACK);
+        i2c_master_read_byte(cmd, buffer + len - 1, I2C_MASTER_NACK);
+
+        i2c_master_stop(cmd);
+
+        esp_err_t ret = i2c_master_cmd_begin(i2cPort, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
+        i2c_cmd_link_delete(cmd);
+
+        if (ret != ESP_OK)
+        {
+            ESP_LOGE(TAG, "ReadBytesRaw failed for 0x%02X: %s", addr, esp_err_to_name(ret));
+            readLen = 0;
+        }
+        else
+        {
+            readLen = len;
+        }
+        xSemaphoreGive(i2cMutex);
     }
 
-    return len;
+    return readLen;
 }
 
 /**
@@ -234,25 +270,34 @@ size_t I2CNative::readBytesRaw(uint8_t addr, uint8_t* buffer, size_t len)
  */
 bool I2CNative::writeBytes(uint8_t addr, uint8_t reg, const uint8_t* buffer, size_t len)
 {
-    if (!initialized || !buffer || len == 0)
+    if (!initialized || i2cMutex == nullptr || !buffer || len == 0)
         return false;
 
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg, true);
-    i2c_master_write(cmd, buffer, len, true);
-    i2c_master_stop(cmd);
-
-    esp_err_t ret = i2c_master_cmd_begin(i2cPort, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-    i2c_cmd_link_delete(cmd);
-
-    if (ret != ESP_OK)
+    bool success = false;
+    if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_TIMEOUT_MS)) == pdTRUE)
     {
-        ESP_LOGE(TAG, "WriteBytes failed for 0x%02X reg 0x%02X: %s", addr, reg, esp_err_to_name(ret));
-        return false;
+        i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+
+        i2c_master_start(cmd);
+        i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
+        i2c_master_write_byte(cmd, reg, true);
+        i2c_master_write(cmd, buffer, len, true);
+        i2c_master_stop(cmd);
+
+        esp_err_t ret = i2c_master_cmd_begin(i2cPort, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
+        i2c_cmd_link_delete(cmd);
+
+        if (ret != ESP_OK)
+        {
+            ESP_LOGE(TAG, "WriteBytes failed for 0x%02X reg 0x%02X: %s", addr, reg, esp_err_to_name(ret));
+            success = false;
+        }
+        else
+        {
+            success = true;
+        }
+        xSemaphoreGive(i2cMutex);
     }
 
-    return true;
+    return success;
 }

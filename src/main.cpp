@@ -177,6 +177,7 @@ void setup()
     gps.gpsData.longitude = gps.getLon();
 
     initGpsTask();
+    initSensorTask();
 
     #ifndef DISABLE_CLI
         initCLI();
