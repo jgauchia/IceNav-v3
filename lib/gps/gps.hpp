@@ -33,7 +33,7 @@ void calculateSun(); /**< Calculates sunrise and sunset times based on current G
 
 const char* getPosixTZ(const char* name); /**< Gets the POSIX time zone string for a given time zone name. @param name Time zone name (e.g., "CET", "UTC"). @return POSIX TZ string. */
 
-extern bool isGpsFixed;			 /**< Indicates whether a valid GPS fix has been acquired. */
+extern bool isGpsFixed;		 /**< Indicates whether a valid GPS fix has been acquired. */
 extern long gpsBaudDetected; 	 /**< Detected GPS baud rate. */
 extern bool nmea_output_enable;  /**< Enables or disables NMEA output. */
 
@@ -48,25 +48,25 @@ static const char *GPS_RATE_PCAS[] = {"$PCAS02,1000*2E\r\n", "$PCAS02,500*1A\r\n
  * @brief Satellite Constellation Canvas Definition
  *
  */
-static const uint8_t canvasOffset = 15;          				    /**< Offset from the edge to start drawing the satellite constellation canvas */
-static const uint8_t canvasSize = 180;            				    /**< Total size (width and height) of the constellation canvas */
-static const uint8_t canvasCenter_X = canvasSize / 2; 				/**< X coordinate of the canvas center */
-static const uint8_t canvasCenter_Y = canvasSize / 2; 				/**< Y coordinate of the canvas center */
+static const uint8_t canvasOffset = 15;          					    /**< Offset from the edge to start drawing the satellite constellation canvas */
+static const uint8_t canvasSize = 180;							    /**< Total size (width and height) of the constellation canvas */
+static const uint8_t canvasCenter_X = canvasSize / 2;				/**< X coordinate of the canvas center */
+static const uint8_t canvasCenter_Y = canvasSize / 2;				/**< Y coordinate of the canvas center */
 static const uint8_t canvasRadius = canvasCenter_X - canvasOffset;	/**< Radius of the drawable area for the constellation */
 
 
 /**
- * @class GPS
- * @brief Provides high-level access to GPS data and configuration.
- *
- * @details This class manages the GPS module, parsing NMEA data, and provides methods to access
- *          location, speed, satellite count, and other information.
+ * @class Gps
+ * @brief GPS management class using NeoGPS library.
  */
 class Gps
 {
     public:
         Gps();
         void init();
+        void update();
+        void setLocalTime(NeoGPS::time_t gpsTime, const char* tz);
+        void simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refresh);
         float getLat();
         float getLon();
         void getGPSData();
@@ -76,8 +76,6 @@ class Gps
         bool isAltitudeChanged();
         bool hasLocationChange();
         bool isDOPChanged();
-        void setLocalTime(NeoGPS::time_t gpsTime, const char* tz);
-        void simFakeGPS(const std::vector<wayPoint>& trackData, uint16_t speed, uint16_t refresh);
 
         /**
         * @struct GPSDATA

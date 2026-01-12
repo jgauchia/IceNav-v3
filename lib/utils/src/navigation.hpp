@@ -51,16 +51,16 @@ struct NavState
     bool isOffTrack = false;   
 };
 
-int findClosestTrackPoint(float userLat, float userLon, const std::vector<wayPoint>& track, int lastIdx, const NavConfig& config = NavConfig{});
+int findClosestTrackPoint(float userLat, float userLon, const TrackVector& track, int lastIdx, const NavConfig& config = NavConfig{});
 void handleOffTrackCondition(float distToTrack, NavState& state, int closestIdx, const NavConfig& config = NavConfig{});
 void advanceTurnIndex(const std::vector<TurnPoint>& turns, NavState& state, int closestIdx);
-int findNextValidTurn(const std::vector<wayPoint>& track, const std::vector<TurnPoint>& turns, 
+int findNextValidTurn(const TrackVector& track, const std::vector<TurnPoint>& turns, 
                       float userLat, float userLon, NavState& state, const NavConfig& config = NavConfig{});
 void displayTurnIcon(float distanceToNextEvent, float abs_angle, bool derecha, float warnDist, float minAngleForCurve);
 void updateNavigation
 (
     float userLat, float userLon, float userHeading, float speed_kmh,
-    const std::vector<wayPoint>& track,
+    const TrackVector& track,
     const std::vector<TurnPoint>& turns,
     NavState& state,
     float minAngleForCurve,

@@ -36,7 +36,7 @@ private:
     i2c_port_t i2cPort;
     bool initialized;
     SemaphoreHandle_t i2cMutex;
-    static constexpr int I2C_TIMEOUT_MS = 100;
+    static constexpr int I2C_TIMEOUT_MS = 200;
 };
 
 extern I2CNative i2c;

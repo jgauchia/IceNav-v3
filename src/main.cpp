@@ -61,7 +61,7 @@ extern Maps mapView;
     Compass compass;
 #endif
 
-std::vector<wayPoint> trackData;     /**< Vector for storing track data */
+TrackVector trackData;     /**< Vector for storing track data */
 std::vector<TurnPoint> turnPoints;   /**< Vector for storing turn points */
 
 #include "navigation.hpp"

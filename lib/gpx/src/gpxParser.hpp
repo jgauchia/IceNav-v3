@@ -59,8 +59,8 @@ class GPXParser
         bool deleteTagByName(const char* tag, const char* name);
         wayPoint getWaypointInfo(const char* name);
         bool addWaypoint(const wayPoint& wp);
-        bool loadTrack(std::vector<wayPoint>& trackData);
-        std::vector<TurnPoint> getTurnPointsSlidingWindow(float thresholdDeg, float minDist, float sharpTurnDeg,int windowSize, const std::vector<wayPoint>& trackData);
+        bool loadTrack(TrackVector& trackData);
+        std::vector<TurnPoint> getTurnPointsSlidingWindow(float thresholdDeg, float minDist, float sharpTurnDeg,int windowSize, const TrackVector& trackData);
 
         std::string filePath;
 };

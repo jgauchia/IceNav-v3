@@ -17,7 +17,7 @@
  * @param precision Number of decimal places to use.
  * @return std::string Formatted value as a string.
  */
-std::string formatFloat(float value, int precision) 
+std::string formatFloat(float value, int precision)
 {
     std::ostringstream out;
     out << std::fixed << std::setprecision(precision) << value;
@@ -108,7 +108,7 @@ std::map<std::string, std::vector<std::string>> GPXParser::getTagElementList(con
     closedir(dir);
     return elementsByFile;
 }
- 
+
 /**
  * @brief Delete a tag from the GPX file with specified name value
  *
@@ -123,23 +123,23 @@ bool GPXParser::deleteTagByName(const char* tag, const char* name)
 {
     tinyxml2::XMLDocument doc;
     tinyxml2::XMLError result = doc.LoadFile(filePath.c_str());
-    if (result != tinyxml2::XML_SUCCESS) 
+    if (result != tinyxml2::XML_SUCCESS)
     {
         ESP_LOGE(TAGGPX, "Failed to load file: %s", filePath.c_str());
         return false;
     }
 
     tinyxml2::XMLElement* root = doc.RootElement();
-    if (!root) 
+    if (!root)
     {
         ESP_LOGE(TAGGPX, "Failed to get root element in file: %s", filePath.c_str());
         return false;
     }
 
-    for (tinyxml2::XMLElement* Tag = root->FirstChildElement(tag); Tag != nullptr; Tag = Tag->NextSiblingElement(tag)) 
+    for (tinyxml2::XMLElement* Tag = root->FirstChildElement(tag); Tag != nullptr; Tag = Tag->NextSiblingElement(tag))
     {
         tinyxml2::XMLElement* nameElement = Tag->FirstChildElement(gpxNameElem);
-        if (nameElement && strcmp(nameElement->GetText(), name) == 0) 
+        if (nameElement && strcmp(nameElement->GetText(), name) == 0)
         {
             root->DeleteChild(Tag);
             result = doc.SaveFile(filePath.c_str());
@@ -149,9 +149,9 @@ bool GPXParser::deleteTagByName(const char* tag, const char* name)
                 return false;
             }
 
-            // if (!root->FirstChildElement(gpxWaypointTag)) 
+            // if (!root->FirstChildElement(gpxWaypointTag))
             // {
-            //   if (!root->FirstChildElement(gpxTrackTag)) 
+            //   if (!root->FirstChildElement(gpxTrackTag))
             //   {
             //     if (remove(filePath.c_str()) != 0)
             //     {
@@ -181,7 +181,7 @@ bool GPXParser::deleteTagByName(const char* tag, const char* name)
  * @param name Waypoint name to search for
  * @return wayPoint Struct containing waypoint details (fields are zeroed/empty if not found)
  */
-wayPoint GPXParser::getWaypointInfo(const char* name) 
+wayPoint GPXParser::getWaypointInfo(const char* name)
 {
     wayPoint wp = {0};
 
@@ -194,17 +194,17 @@ wayPoint GPXParser::getWaypointInfo(const char* name)
     }
 
     tinyxml2::XMLElement* root = doc.RootElement();
-    if (!root) 
+    if (!root)
     {
         ESP_LOGE(TAGGPX, "Failed to get root element in file: %s", filePath.c_str());
         return wp;
     }
 
     tinyxml2::XMLElement* wpt = nullptr;
-    for (wpt = root->FirstChildElement(gpxWaypointTag); wpt != nullptr; wpt = wpt->NextSiblingElement(gpxWaypointTag)) 
+    for (wpt = root->FirstChildElement(gpxWaypointTag); wpt != nullptr; wpt = wpt->NextSiblingElement(gpxWaypointTag))
     {
         tinyxml2::XMLElement* nameElement = wpt->FirstChildElement(gpxNameElem);
-        if (nameElement && strcmp(nameElement->GetText(), name) == 0) 
+        if (nameElement && strcmp(nameElement->GetText(), name) == 0)
         {
             wp.name = strdup(nameElement->GetText());
             break;
@@ -219,7 +219,7 @@ wayPoint GPXParser::getWaypointInfo(const char* name)
         tinyxml2::XMLElement* element = nullptr;
 
         element = wpt->FirstChildElement(gpxEleElem);
-        if (element) 
+        if (element)
         wp.ele = static_cast<float>(element->DoubleText());
 
         element = wpt->FirstChildElement(gpxTimeElem);
@@ -227,35 +227,35 @@ wayPoint GPXParser::getWaypointInfo(const char* name)
         wp.time = strdup(element->GetText());
 
         element = wpt->FirstChildElement(gpxDescElem);
-        if (element) 
+        if (element)
         wp.desc = strdup(element->GetText());
 
         element = wpt->FirstChildElement(gpxSrcElem);
-        if (element) 
+        if (element)
         wp.src = strdup(element->GetText());
 
         element = wpt->FirstChildElement(gpxSymElem);
-        if (element) 
+        if (element)
         wp.sym = strdup(element->GetText());
 
         element = wpt->FirstChildElement(gpxTypeElem);
-        if (element) 
+        if (element)
         wp.type = strdup(element->GetText());
 
         element = wpt->FirstChildElement(gpxSatElem);
-        if (element) 
+        if (element)
         wp.sat = static_cast<uint8_t>(element->UnsignedText());
 
         element = wpt->FirstChildElement(gpxHdopElem);
-        if (element) 
+        if (element)
         wp.hdop = static_cast<float>(element->DoubleText());
 
         element = wpt->FirstChildElement(gpxVdopElem);
-        if (element) 
+        if (element)
         wp.vdop = static_cast<float>(element->DoubleText());
 
         element = wpt->FirstChildElement(gpxPdopElem);
-        if (element) 
+        if (element)
         wp.pdop = static_cast<float>(element->DoubleText());
     }
     else
@@ -263,7 +263,7 @@ wayPoint GPXParser::getWaypointInfo(const char* name)
 
     return wp;
 }
-    
+
 /**
  * @brief Add a new waypoint to the GPX file
  *
@@ -284,14 +284,14 @@ bool GPXParser::addWaypoint(const wayPoint& wp)
 
     tinyxml2::XMLDocument doc;
     tinyxml2::XMLError result = doc.LoadFile(filePath.c_str());
-    if (result != tinyxml2::XML_SUCCESS) 
+    if (result != tinyxml2::XML_SUCCESS)
     {
         ESP_LOGE(TAGGPX, "Failed to load file: %s", filePath.c_str());
         return false;
     }
 
     tinyxml2::XMLElement* root = doc.RootElement();
-    if (!root)  
+    if (!root)
     {
         ESP_LOGE(TAGGPX, "Failed to get root element in file: %s", filePath.c_str());
         return false;
@@ -348,7 +348,7 @@ bool GPXParser::addWaypoint(const wayPoint& wp)
     newWpt->InsertEndChild(element);
 
     tinyxml2::XMLElement* lastWpt = root->LastChildElement(gpxWaypointTag);
-    if (lastWpt) 
+    if (lastWpt)
         root->InsertAfterChild(lastWpt, newWpt);
     else
         root->InsertFirstChild(newWpt);
@@ -366,12 +366,13 @@ bool GPXParser::addWaypoint(const wayPoint& wp)
 * @brief Load GPX track data and store coordinates from '<trk>' structure.
 *
 * @details Loads all track points from the `<trk>` structure in the GPX file, extracting latitude and longitude for each `<trkpt>`,
-* 		   and stores them as `wayPoint` structures in the provided vector. Returns true if the operation was successful, or false on error.
+* 		   and stores them as `wayPoint` structures in the provided vector. Pre-reserves memory to avoid heap fragmentation.
+*          Returns true if the operation was successful, or false on error.
 *
 * @param trackData Vector to store track points (each point is a wayPoint).
 * @return true if the track data was loaded successfully, false otherwise.
 */
-bool GPXParser::loadTrack(std::vector<wayPoint>& trackData)
+bool GPXParser::loadTrack(TrackVector& trackData)
 {
     tinyxml2::XMLDocument doc;
     tinyxml2::XMLError result = doc.LoadFile(filePath.c_str());
@@ -386,6 +387,31 @@ bool GPXParser::loadTrack(std::vector<wayPoint>& trackData)
     {
         ESP_LOGE(TAGGPX, "Failed to get root element in file: %s", filePath.c_str());
         return false;
+    }
+
+    // Pre-count points to reserve memory and avoid fragmentation
+    size_t pointCount = 0;
+    for (tinyxml2::XMLElement* trk = root->FirstChildElement(gpxTrackTag); trk != nullptr; trk = trk->NextSiblingElement(gpxTrackTag))
+    {
+        for (tinyxml2::XMLElement* trkseg = trk->FirstChildElement("trkseg"); trkseg != nullptr; trkseg = trkseg->NextSiblingElement("trkseg"))
+        {
+            for (tinyxml2::XMLElement* trkpt = trkseg->FirstChildElement("trkpt"); trkpt != nullptr; trkpt = trkpt->NextSiblingElement("trkpt"))
+            {
+                pointCount++;
+            }
+        }
+    }
+
+    ESP_LOGI(TAGGPX, "Track has %d points", pointCount);
+
+    if (pointCount > 0)
+    {
+        try {
+            trackData.reserve(trackData.size() + pointCount);
+        } catch (const std::bad_alloc& e) {
+            ESP_LOGE(TAGGPX, "Failed to reserve memory for %d points: %s", pointCount, e.what());
+            return false;
+        }
     }
 
     // Iterate through <trk> elements
@@ -434,13 +460,16 @@ bool GPXParser::loadTrack(std::vector<wayPoint>& trackData)
  */
 std::vector<TurnPoint> GPXParser::getTurnPointsSlidingWindow(
     float thresholdDeg, float minDist, float sharpTurnDeg,
-    int windowSize, const std::vector<wayPoint>& trackData)
+    int windowSize, const TrackVector& trackData)
 {
     std::vector<TurnPoint> turnPoints;
     float accumDist = 0.0f;
 
     if (trackData.size() < 2 * windowSize + 1)
         return turnPoints;
+
+    // Reserve estimated capacity to avoid reallocations
+    turnPoints.reserve(trackData.size() / 20);  // Estimate ~5% of points are turns
 
     for (size_t i = windowSize; i < trackData.size() - windowSize; ++i)
     {

@@ -44,10 +44,11 @@ uint8_t QMC5883L_Driver::read8(uint8_t reg)
  * @brief Writes a single byte to a register.
  * @param reg Register address.
  * @param value Value to write.
+ * @return true if write successful, false on error.
  */
-void QMC5883L_Driver::write8(uint8_t reg, uint8_t value)
+bool QMC5883L_Driver::write8(uint8_t reg, uint8_t value)
 {
-    i2c.write8(i2cAddr, reg, value);
+    return i2c.write8(i2cAddr, reg, value);
 }
 
 /**
@@ -65,8 +66,8 @@ int16_t QMC5883L_Driver::read16(uint8_t reg)
 /**
  * @brief Initializes the QMC5883L magnetometer.
  *
- * @details Performs soft reset, configures SET/RESET period, and sets
- *          continuous mode with 10Hz ODR, 2G range, 512 oversampling.
+ * @details Verifies chip ID, performs soft reset, configures SET/RESET period,
+ *          and sets continuous mode with 10Hz ODR, 2G range, 512 oversampling.
  *
  * @param addr I2C address (default 0x0D).
  * @return true if initialization successful, false otherwise.
@@ -75,17 +76,37 @@ bool QMC5883L_Driver::begin(uint8_t addr)
 {
     i2cAddr = addr;
 
+    // Check Chip ID (QMC5883L ID is usually 0xFF)
+    uint8_t chipID = read8(QMC5883L_REG_CHIP_ID);
+    if (chipID != 0xFF)
+    {
+        ESP_LOGE(TAG, "QMC5883L not found at 0x%02X, Chip ID: 0x%02X (expected 0xFF)", addr, chipID);
+        return false;
+    }
+
     // Soft reset
-    write8(QMC5883L_REG_CTRL2, 0x80);
+    if (!write8(QMC5883L_REG_CTRL2, 0x80))
+    {
+        ESP_LOGE(TAG, "QMC5883L soft reset failed");
+        return false;
+    }
     vTaskDelay(pdMS_TO_TICKS(10));
 
     // Set/Reset period
-    write8(QMC5883L_REG_SET_RST, 0x01);
+    if (!write8(QMC5883L_REG_SET_RST, 0x01))
+    {
+        ESP_LOGE(TAG, "QMC5883L SET/RST config failed");
+        return false;
+    }
 
     // Control register 1: Continuous mode, 10Hz ODR, 2G range, 512x oversampling
     // Bits: OSR[7:6]=00(512), RNG[5:4]=00(2G), ODR[3:2]=00(10Hz), MODE[1:0]=01(Continuous)
     ctrl1Value = 0x01;  // Continuous mode, 10Hz, 2G, 512 OSR
-    write8(QMC5883L_REG_CTRL1, ctrl1Value);
+    if (!write8(QMC5883L_REG_CTRL1, ctrl1Value))
+    {
+        ESP_LOGE(TAG, "QMC5883L CTRL1 config failed");
+        return false;
+    }
 
     vTaskDelay(pdMS_TO_TICKS(10));
 
@@ -96,22 +117,24 @@ bool QMC5883L_Driver::begin(uint8_t addr)
  * @brief Sets the output data rate.
  *
  * @param rate 0=10Hz, 1=50Hz, 2=100Hz, 3=200Hz.
+ * @return true if successful, false on error.
  */
-void QMC5883L_Driver::setDataRate(uint8_t rate)
+bool QMC5883L_Driver::setDataRate(uint8_t rate)
 {
     ctrl1Value = (ctrl1Value & 0xF3) | ((rate & 0x03) << 2);
-    write8(QMC5883L_REG_CTRL1, ctrl1Value);
+    return write8(QMC5883L_REG_CTRL1, ctrl1Value);
 }
 
 /**
  * @brief Sets the oversampling rate.
  *
  * @param samples 0=512, 1=256, 2=128, 3=64.
+ * @return true if successful, false on error.
  */
-void QMC5883L_Driver::setSamples(uint8_t samples)
+bool QMC5883L_Driver::setSamples(uint8_t samples)
 {
     ctrl1Value = (ctrl1Value & 0x3F) | ((samples & 0x03) << 6);
-    write8(QMC5883L_REG_CTRL1, ctrl1Value);
+    return write8(QMC5883L_REG_CTRL1, ctrl1Value);
 }
 
 /**
@@ -124,7 +147,11 @@ void QMC5883L_Driver::setSamples(uint8_t samples)
 void QMC5883L_Driver::readRaw(float &x, float &y, float &z)
 {
     uint8_t buffer[6];
-    i2c.readBytes(i2cAddr, QMC5883L_REG_DATA, buffer, 6);
+    if (i2c.readBytes(i2cAddr, QMC5883L_REG_DATA, buffer, 6) != 6)
+    {
+        // Keep previous values on read error
+        return;
+    }
 
     x = (int16_t)(buffer[0] | (buffer[1] << 8));
     y = (int16_t)(buffer[2] | (buffer[3] << 8));
@@ -582,7 +609,7 @@ void Compass::calibrate()
     float z = 0.0f;
     uint16_t touchX, touchY;
 
-    TFT_eSprite compassCalSprite = TFT_eSprite(&tft);  
+    TFT_eSprite compassCalSprite = TFT_eSprite(&tft);
 
     static const lgfx::v1::GFXfont *fontSmall;
     static const lgfx::v1::GFXfont *fontLarge;

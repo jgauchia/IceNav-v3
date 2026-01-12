@@ -476,7 +476,7 @@ void Gps::setLocalTime(NeoGPS::time_t gpsTime, const char* tz)
  * @param speed Simulated speed in km/h to assign to the GPS data.
  * @param refresh Simulation update rate refresh in ms
  */
-void Gps::simFakeGPS(const std::vector<wayPoint>& trackData, uint16_t speed, uint16_t refresh)
+void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refresh)
 {
     if (millis_idf() - lastSimulationTime > refresh)
     {

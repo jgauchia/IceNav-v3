@@ -20,7 +20,7 @@
 extern Compass compass;
 extern Gps gps;
 extern Storage storage;
-extern std::vector<wayPoint> trackData; /**< Vector containing track waypoints */
+extern TrackVector trackData; /**< Vector containing track waypoints */
 const char* TAG = "Maps";
 
 // Tile cache system static variables
