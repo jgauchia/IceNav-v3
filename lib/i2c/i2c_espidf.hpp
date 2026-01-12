@@ -32,6 +32,17 @@ public:
     bool writeBytes(uint8_t addr, uint8_t reg, const uint8_t* buffer, size_t len);
     bool isInitialized() const { return initialized; }
 
+    bool lock(TickType_t timeout = pdMS_TO_TICKS(I2C_TIMEOUT_MS)) {
+        if (!initialized || i2cMutex == nullptr) return false;
+        return xSemaphoreTake(i2cMutex, timeout) == pdTRUE;
+    }
+
+    void unlock() {
+        if (initialized && i2cMutex != nullptr) {
+            xSemaphoreGive(i2cMutex);
+        }
+    }
+
 private:
     i2c_port_t i2cPort;
     bool initialized;

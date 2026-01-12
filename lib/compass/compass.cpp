@@ -146,10 +146,16 @@ bool QMC5883L_Driver::setSamples(uint8_t samples)
  */
 void QMC5883L_Driver::readRaw(float &x, float &y, float &z)
 {
+    // 1. Check Data Ready (Bit 0 of Status Register 0x06)
+    uint8_t status = read8(QMC5883L_REG_STATUS);
+    if ((status & 0x01) == 0)
+    {
+        return;
+    }
+
     uint8_t buffer[6];
     if (i2c.readBytes(i2cAddr, QMC5883L_REG_DATA, buffer, 6) != 6)
     {
-        // Keep previous values on read error
         return;
     }
 
@@ -271,8 +277,18 @@ void HMC5883L_Driver::setSamples(uint8_t samples)
  */
 void HMC5883L_Driver::readRaw(float &x, float &y, float &z)
 {
+    // Check Data Ready (Bit 0 of Status Register 0x09)
+    uint8_t status = read8(HMC5883L_REG_STATUS);
+    if ((status & 0x01) == 0)
+    {
+        return;
+    }
+
     uint8_t buffer[6];
-    i2c.readBytes(i2cAddr, HMC5883L_REG_DATA, buffer, 6);
+    if (i2c.readBytes(i2cAddr, HMC5883L_REG_DATA, buffer, 6) != 6)
+    {
+        return;
+    }
 
     // HMC5883L order: X MSB, X LSB, Z MSB, Z LSB, Y MSB, Y LSB
     x = (int16_t)((buffer[0] << 8) | buffer[1]);

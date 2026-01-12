@@ -70,6 +70,13 @@ bool I2CNative::begin(int sda, int scl, uint32_t freq)
         return false;
     }
 
+    // Stability improvements:
+    // 1. Maximize hardware timeout (approx 13ms) to allow clock stretching
+    i2c_set_timeout(i2cPort, 0xFFFFF); 
+    
+    // 2. Enable hardware filter to reject noise pulses < 7 cycles
+    i2c_filter_enable(i2cPort, 7);
+
     initialized = true;
     ESP_LOGI(TAG, "I2C bus initialized (SDA:%d, SCL:%d, %lu Hz)", sda, scl, freq);
     return true;
@@ -139,33 +146,38 @@ bool I2CNative::write8(uint8_t addr, uint8_t reg, uint8_t value)
     if (!initialized || i2cMutex == nullptr)
         return false;
 
-    bool success = false;
-    if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_TIMEOUT_MS)) == pdTRUE)
+    esp_err_t ret = ESP_FAIL;
+    int retries = 3;
+
+    for (int i = 0; i < retries; ++i)
     {
-        i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-
-        i2c_master_start(cmd);
-        i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-        i2c_master_write_byte(cmd, reg, true);
-        i2c_master_write_byte(cmd, value, true);
-        i2c_master_stop(cmd);
-
-        esp_err_t ret = i2c_master_cmd_begin(i2cPort, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-        i2c_cmd_link_delete(cmd);
-
-        if (ret != ESP_OK)
+        if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_TIMEOUT_MS)) == pdTRUE)
         {
-            ESP_LOGE(TAG, "Write8 failed for 0x%02X reg 0x%02X: %s", addr, reg, esp_err_to_name(ret));
-            success = false;
+            i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+
+            i2c_master_start(cmd);
+            i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
+            i2c_master_write_byte(cmd, reg, true);
+            i2c_master_write_byte(cmd, value, true);
+            i2c_master_stop(cmd);
+
+            ret = i2c_master_cmd_begin(i2cPort, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
+            i2c_cmd_link_delete(cmd);
+            xSemaphoreGive(i2cMutex);
+
+            if (ret == ESP_OK)
+            {
+                return true; // Éxito
+            }
+            ESP_LOGW(TAG, "Write8 failed for 0x%02X reg 0x%02X (attempt %d/%d): %s", addr, reg, i + 1, retries, esp_err_to_name(ret));
+            vTaskDelay(pdMS_TO_TICKS(5 * (i + 1)));
         }
-        else
-        {
-            success = true;
-        }
-        xSemaphoreGive(i2cMutex);
+        ESP_LOGW(TAG, "Write8 failed to take mutex for 0x%02X reg 0x%02X (attempt %d/%d)", addr, reg, i + 1, retries);
+        vTaskDelay(pdMS_TO_TICKS(10 * (i + 1)));
     }
 
-    return success;
+    ESP_LOGE(TAG, "Write8 failed for 0x%02X reg 0x%02X after %d retries. Last error: %s", addr, reg, retries, esp_err_to_name(ret));
+    return false; // Todos los reintentos fallaron
 }
 
 /**
@@ -181,39 +193,44 @@ size_t I2CNative::readBytes(uint8_t addr, uint8_t reg, uint8_t* buffer, size_t l
     if (!initialized || i2cMutex == nullptr || !buffer || len == 0)
         return 0;
 
-    size_t readLen = 0;
-    if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_TIMEOUT_MS)) == pdTRUE)
+    esp_err_t ret = ESP_FAIL;
+    int retries = 3;
+
+    for (int i = 0; i < retries; ++i)
     {
-        i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-
-        i2c_master_start(cmd);
-        i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-        i2c_master_write_byte(cmd, reg, true);
-        i2c_master_start(cmd);
-        i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_READ, true);
-
-        if (len > 1)
-            i2c_master_read(cmd, buffer, len - 1, I2C_MASTER_ACK);
-        i2c_master_read_byte(cmd, buffer + len - 1, I2C_MASTER_NACK);
-
-        i2c_master_stop(cmd);
-
-        esp_err_t ret = i2c_master_cmd_begin(i2cPort, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-        i2c_cmd_link_delete(cmd);
-
-        if (ret != ESP_OK)
+        if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_TIMEOUT_MS)) == pdTRUE)
         {
-            ESP_LOGE(TAG, "ReadBytes failed for 0x%02X reg 0x%02X: %s", addr, reg, esp_err_to_name(ret));
-            readLen = 0;
+            i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+
+            i2c_master_start(cmd);
+            i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
+            i2c_master_write_byte(cmd, reg, true);
+            i2c_master_start(cmd);
+            i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_READ, true);
+
+            if (len > 1)
+                i2c_master_read(cmd, buffer, len - 1, I2C_MASTER_ACK);
+            i2c_master_read_byte(cmd, buffer + len - 1, I2C_MASTER_NACK);
+
+            i2c_master_stop(cmd);
+
+            ret = i2c_master_cmd_begin(i2cPort, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
+            i2c_cmd_link_delete(cmd);
+            xSemaphoreGive(i2cMutex);
+
+            if (ret == ESP_OK)
+            {
+                return len; // Éxito
+            }
+            ESP_LOGW(TAG, "ReadBytes failed for 0x%02X reg 0x%02X (attempt %d/%d): %s", addr, reg, i + 1, retries, esp_err_to_name(ret));
+            vTaskDelay(pdMS_TO_TICKS(5 * (i + 1)));
         }
-        else
-        {
-            readLen = len;
-        }
-        xSemaphoreGive(i2cMutex);
+        ESP_LOGW(TAG, "ReadBytes failed to take mutex for 0x%02X reg 0x%02X (attempt %d/%d)", addr, reg, i + 1, retries);
+        vTaskDelay(pdMS_TO_TICKS(10 * (i + 1)));
     }
 
-    return readLen;
+    ESP_LOGE(TAG, "ReadBytes failed for 0x%02X reg 0x%02X after %d retries. Last error: %s", addr, reg, retries, esp_err_to_name(ret));
+    return 0; // Todos los reintentos fallaron
 }
 
 /**
@@ -228,36 +245,41 @@ size_t I2CNative::readBytesRaw(uint8_t addr, uint8_t* buffer, size_t len)
     if (!initialized || i2cMutex == nullptr || !buffer || len == 0)
         return 0;
 
-    size_t readLen = 0;
-    if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_TIMEOUT_MS)) == pdTRUE)
+    esp_err_t ret = ESP_FAIL;
+    int retries = 3;
+
+    for (int i = 0; i < retries; ++i)
     {
-        i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-
-        i2c_master_start(cmd);
-        i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_READ, true);
-
-        if (len > 1)
-            i2c_master_read(cmd, buffer, len - 1, I2C_MASTER_ACK);
-        i2c_master_read_byte(cmd, buffer + len - 1, I2C_MASTER_NACK);
-
-        i2c_master_stop(cmd);
-
-        esp_err_t ret = i2c_master_cmd_begin(i2cPort, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-        i2c_cmd_link_delete(cmd);
-
-        if (ret != ESP_OK)
+        if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_TIMEOUT_MS)) == pdTRUE)
         {
-            ESP_LOGE(TAG, "ReadBytesRaw failed for 0x%02X: %s", addr, esp_err_to_name(ret));
-            readLen = 0;
+            i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+
+            i2c_master_start(cmd);
+            i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_READ, true);
+
+            if (len > 1)
+                i2c_master_read(cmd, buffer, len - 1, I2C_MASTER_ACK);
+            i2c_master_read_byte(cmd, buffer + len - 1, I2C_MASTER_NACK);
+
+            i2c_master_stop(cmd);
+
+            ret = i2c_master_cmd_begin(i2cPort, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
+            i2c_cmd_link_delete(cmd);
+            xSemaphoreGive(i2cMutex);
+
+            if (ret == ESP_OK)
+            {
+                return len; // Éxito
+            }
+            ESP_LOGW(TAG, "ReadBytesRaw failed for 0x%02X (attempt %d/%d): %s", addr, i + 1, retries, esp_err_to_name(ret));
+            vTaskDelay(pdMS_TO_TICKS(5 * (i + 1)));
         }
-        else
-        {
-            readLen = len;
-        }
-        xSemaphoreGive(i2cMutex);
+        ESP_LOGW(TAG, "ReadBytesRaw failed to take mutex for 0x%02X (attempt %d/%d)", addr, i + 1, retries);
+        vTaskDelay(pdMS_TO_TICKS(10 * (i + 1)));
     }
 
-    return readLen;
+    ESP_LOGE(TAG, "ReadBytesRaw failed for 0x%02X after %d retries. Last error: %s", addr, retries, esp_err_to_name(ret));
+    return 0; // Todos los reintentos fallaron
 }
 
 /**
@@ -273,31 +295,36 @@ bool I2CNative::writeBytes(uint8_t addr, uint8_t reg, const uint8_t* buffer, siz
     if (!initialized || i2cMutex == nullptr || !buffer || len == 0)
         return false;
 
-    bool success = false;
-    if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_TIMEOUT_MS)) == pdTRUE)
+    esp_err_t ret = ESP_FAIL;
+    int retries = 3;
+
+    for (int i = 0; i < retries; ++i)
     {
-        i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-
-        i2c_master_start(cmd);
-        i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-        i2c_master_write_byte(cmd, reg, true);
-        i2c_master_write(cmd, buffer, len, true);
-        i2c_master_stop(cmd);
-
-        esp_err_t ret = i2c_master_cmd_begin(i2cPort, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-        i2c_cmd_link_delete(cmd);
-
-        if (ret != ESP_OK)
+        if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(I2C_TIMEOUT_MS)) == pdTRUE)
         {
-            ESP_LOGE(TAG, "WriteBytes failed for 0x%02X reg 0x%02X: %s", addr, reg, esp_err_to_name(ret));
-            success = false;
+            i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+
+            i2c_master_start(cmd);
+            i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
+            i2c_master_write_byte(cmd, reg, true);
+            i2c_master_write(cmd, buffer, len, true);
+            i2c_master_stop(cmd);
+
+            ret = i2c_master_cmd_begin(i2cPort, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
+            i2c_cmd_link_delete(cmd);
+            xSemaphoreGive(i2cMutex);
+
+            if (ret == ESP_OK)
+            {
+                return true; // Éxito
+            }
+            ESP_LOGW(TAG, "WriteBytes failed for 0x%02X reg 0x%02X (attempt %d/%d): %s", addr, reg, i + 1, retries, esp_err_to_name(ret));
+            vTaskDelay(pdMS_TO_TICKS(5 * (i + 1)));
         }
-        else
-        {
-            success = true;
-        }
-        xSemaphoreGive(i2cMutex);
+        ESP_LOGW(TAG, "WriteBytes failed to take mutex for 0x%02X reg 0x%02X (attempt %d/%d)", addr, reg, i + 1, retries);
+        vTaskDelay(pdMS_TO_TICKS(10 * (i + 1)));
     }
 
-    return success;
+    ESP_LOGE(TAG, "WriteBytes failed for 0x%02X reg 0x%02X after %d retries. Last error: %s", addr, reg, retries, esp_err_to_name(ret));
+    return false; // Todos los reintentos fallaron
 }
