@@ -11,6 +11,7 @@
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
 #include "driver/gpio.h"
+#include "esp_log.h" // Added for debugging
 
 /**
  * @brief Get system uptime in milliseconds using ESP-IDF timer.
@@ -94,6 +95,11 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     static bool pinchActive = false;
     static int lastZoomDir = ZOOM_NONE;    
     static unsigned long lastTime = 0;
+    
+    // Variables for drag detection
+    static int16_t startX = -1, startY = -1;
+    static bool isDrag = false;
+    const int DRAG_THRESHOLD = 30; // Increased threshold to 30px
 
     int count = tft.getTouch(touchRaw, TOUCH_MAX_POINTS);
 
@@ -103,6 +109,7 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     if (count == 0)
     {
         data->state = LV_INDEV_STATE_RELEASED;
+        startX = -1; 
 
         if (pinchActive && lastZoomDir != 0)
         {
@@ -119,10 +126,20 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
         if (countTouchReleases)
         {
             countTouchReleases = false;
-            uint32_t touchReleaseTime = millis_idf();
-            if (!firstTouchReleaseTime)
-                firstTouchReleaseTime = touchReleaseTime;
-            numberTouchReleases++;
+            
+            if (!isDrag)
+            {
+                uint32_t touchReleaseTime = millis_idf();
+                if (!firstTouchReleaseTime)
+                    firstTouchReleaseTime = touchReleaseTime;
+                numberTouchReleases++;
+            }
+            else
+            {
+                numberTouchReleases = 0;
+                firstTouchReleaseTime = 0;
+            }
+            isDrag = false;
         }
 
         if (millis_idf() - firstTouchReleaseTime > TOUCH_DOUBLE_TOUCH_INTERVAL)
@@ -150,6 +167,20 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
             {
                 data->point.x = TFT_WIDTH - touchRaw[count-1].y;
                 data->point.y = touchRaw[count-1].x;
+            }
+
+            if (startX == -1)
+            {
+                startX = data->point.x;
+                startY = data->point.y;
+                isDrag = false;
+            }
+            else if (!isDrag)
+            {
+                if (abs(data->point.x - startX) > DRAG_THRESHOLD || abs(data->point.y - startY) > DRAG_THRESHOLD)
+                {
+                    isDrag = true;
+                }
             }
 
             countTouchReleases = true;

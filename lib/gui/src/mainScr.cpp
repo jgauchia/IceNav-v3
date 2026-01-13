@@ -230,6 +230,9 @@ void updateMainScreen(lv_timer_t *t)
  */
 void updateMap(lv_event_t *event)
 {
+    // Force redraw in GPS mode to handle rotation/movement
+    if (mapView.followGps) mapView.redrawMap = true;
+
     mapView.generateMap(zoom);
 
     if (mapView.redrawMap)
@@ -237,6 +240,7 @@ void updateMap(lv_event_t *event)
         mapView.displayMap();
         // Virtual canvas for smooth panning
         lv_canvas_set_buffer(mapCanvas, mapView.mapBuffer, Maps::tileWidth, Maps::tileHeight, LV_COLOR_FORMAT_RGB565_SWAPPED);
+        mapView.redrawMap = false;
     }
 
     // Position canvas for viewport
