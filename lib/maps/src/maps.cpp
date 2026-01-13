@@ -14,6 +14,7 @@
 #include <climits>
 #include <cstdint>
 #include "tasks.hpp"
+#include "mainScr.hpp"
 
 extern Compass compass;
 extern Gps gps;
@@ -347,6 +348,16 @@ void Maps::createMapScrSprites()
  */
 void Maps::generateMap(uint8_t zoom)
 {
+    // Dynamic Prefetch System Control
+    if (mapSet.vectorMap)
+    {
+        if (prefetchTaskRunning) stopPrefetchSystem();
+    }
+    else
+    {
+        if (!prefetchTaskRunning) initPrefetchSystem();
+    }
+
     // Clear cache if zoom level changed (tiles are not compatible between zoom levels)
     if (Maps::zoomLevel != zoom && Maps::zoomLevel != 0)
     {
@@ -998,63 +1009,43 @@ void Maps::prefetchTask(void* pvParameters)
 
     while (prefetchTaskRunning)
     {
-        // Skip SD access entirely for vector maps to avoid concurrent access errors
-        if (mapSet.vectorMap)
+        // Only run when in PNG Map mode and showing the Map tile on main screen
+        if (mapSet.vectorMap || lv_screen_active() != mainScreen || activeTile != MAP)
         {
-            vTaskDelay(pdMS_TO_TICKS(500));  // Sleep longer when not needed
+            vTaskDelay(pdMS_TO_TICKS(1000));
             continue;
         }
 
-        // Wait for a request with timeout (allows checking prefetchTaskRunning flag)
+        // Wait for a request with timeout
         if (xQueueReceive(prefetchQueue, &request, pdMS_TO_TICKS(100)) == pdTRUE)
         {
-            ESP_LOGD(TAG, "Task received request: %s", request.filePath);
-            // Check if already in cache
             if (prefetchMutex && xSemaphoreTake(prefetchMutex, pdMS_TO_TICKS(50)) == pdTRUE)
             {
-                // Quick check if file exists
-                FILE* testFile = fopen(request.filePath, "rb");
-                if (testFile)
+                // Check if already cached using hash
+                uint32_t tileHash = mapsInstance->calculateTileHash(request.filePath);
+                bool alreadyCached = false;
+                for (const auto& cachedTile : tileCache)
                 {
-                    fclose(testFile);
-
-                    // Check if already cached using hash
-                    uint32_t tileHash = 0;
-                    const char* p = request.filePath;
-                    while (*p)
+                    if (cachedTile.isValid && cachedTile.tileHash == tileHash)
                     {
-                        tileHash = tileHash * 31 + *p;
-                        p++;
-                    }
-
-                    bool alreadyCached = false;
-                    for (const auto& cachedTile : tileCache)
-                    {
-                        if (cachedTile.isValid && cachedTile.tileHash == tileHash)
-                        {
-                            alreadyCached = true;
-                            break;
-                        }
-                    }
-
-                    if (!alreadyCached)
-                    {
-                        // PNG: just pre-read file to FS buffer (no cache)
-                        // Buffer 4KB max - task stack is 8KB, can't use larger buffers
-                        FILE* pngFile = fopen(request.filePath, "rb");
-                        if (pngFile)
-                        {
-                            char buffer[4096];
-                            while (fread(buffer, 1, sizeof(buffer), pngFile) > 0) {}
-                            fclose(pngFile);
-                        }
+                        alreadyCached = true;
+                        break;
                     }
                 }
 
+                if (!alreadyCached)
+                {
+                    // FS Warming: pre-read file to trigger SD/VFS cache
+                    FILE* pngFile = fopen(request.filePath, "rb");
+                    if (pngFile)
+                    {
+                        static char warmingBuffer[1024]; // Small static buffer to save stack
+                        while (fread(warmingBuffer, 1, sizeof(warmingBuffer), pngFile) > 0) {}
+                        fclose(pngFile);
+                    }
+                }
                 xSemaphoreGive(prefetchMutex);
             }
-
-            // Yield to allow other tasks to run
             taskYIELD();
         }
     }
@@ -1069,7 +1060,7 @@ void Maps::prefetchTask(void* pvParameters)
  */
 void Maps::initPrefetchSystem()
 {
-    if (prefetchTaskRunning)
+    if (prefetchTaskRunning || mapSet.vectorMap)
         return;
 
     // Create queue for prefetch requests (hold up to 16 requests)
@@ -1095,7 +1086,7 @@ void Maps::initPrefetchSystem()
     BaseType_t result = xTaskCreatePinnedToCore(
         prefetchTask,           // Task function
         "PrefetchTask",         // Task name
-        8192,                   // Stack size (8KB)
+        3072,                   // Stack size (3KB)
         this,                   // Pass Maps instance for renderTile access
         1,                      // Priority
         &prefetchTaskHandle,    // Task handle
@@ -1154,9 +1145,8 @@ void Maps::stopPrefetchSystem()
  * @details Adds a tile to the prefetch queue for background loading. Non-blocking.
  *
  * @param filePath Path to the tile file
- * @param isVectorMap True if vector map, false if PNG
  */
-void Maps::enqueuePrefetch(const char* filePath, bool isVectorMap)
+void Maps::enqueuePrefetch(const char* filePath)
 {
     if (!prefetchQueue || !prefetchTaskRunning)
         return;
@@ -1164,7 +1154,6 @@ void Maps::enqueuePrefetch(const char* filePath, bool isVectorMap)
     PrefetchRequest request;
     strncpy(request.filePath, filePath, sizeof(request.filePath) - 1);
     request.filePath[sizeof(request.filePath) - 1] = '\0';
-    request.isVectorMap = isVectorMap;
 
     // Non-blocking enqueue (don't wait if queue is full)
     xQueueSend(prefetchQueue, &request, 0);
@@ -1211,9 +1200,9 @@ void Maps::enqueueSurroundingTiles(uint32_t centerX, uint32_t centerY, uint8_t z
 
         char filePath[255];
         snprintf(filePath, sizeof(filePath), mapRenderFolder, zoom, tileX, tileY);
-        enqueuePrefetch(filePath, false);
-            }
-        }
+        enqueuePrefetch(filePath);
+    }
+}
         
 // ============================================================================
 // NAV Tile-based Rendering Implementation

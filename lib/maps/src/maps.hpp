@@ -86,7 +86,6 @@ class Maps
         struct PrefetchRequest      /**< Background prefetch request structure */
         {
             char filePath[255];         /**< Tile file path to prefetch */
-            bool isVectorMap;           /**< True if vector map, false if PNG */
         };
 
         static QueueHandle_t prefetchQueue;                                         /**< Queue for prefetch requests */
@@ -134,7 +133,7 @@ class Maps
         // Background prefetch methods (multi-core)
         void initPrefetchSystem();                                                  /**< Initialize background prefetch system */
         void stopPrefetchSystem();                                                  /**< Stop background prefetch system */
-        void enqueuePrefetch(const char* filePath, bool isVectorMap);              /**< Enqueue tile for background prefetch */
+        void enqueuePrefetch(const char* filePath);              /**< Enqueue tile for background prefetch */
         void enqueueSurroundingTiles(uint32_t centerX, uint32_t centerY, uint8_t zoom, int8_t dirX, int8_t dirY); /**< Enqueue tiles in scroll direction */
 
     public:
