@@ -13,8 +13,6 @@
 #include <cmath>
 #include <climits>
 #include <cstdint>
-#include "esp_timer.h"
-#include "esp_system.h"
 #include "tasks.hpp"
 
 extern Compass compass;
@@ -32,7 +30,6 @@ uint32_t Maps::cacheAccessCounter = 0;
 QueueHandle_t Maps::prefetchQueue = nullptr;
 TaskHandle_t Maps::prefetchTaskHandle = nullptr;
 SemaphoreHandle_t Maps::prefetchMutex = nullptr;
-TFT_eSprite* Maps::prefetchRenderSprite = nullptr;
 volatile bool Maps::prefetchTaskRunning = false;
 
 
@@ -291,8 +288,6 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
     // Pre-allocate scroll sprites (avoid allocation during scroll)
     Maps::preloadSprite.deleteSprite();
     Maps::preloadSprite.createSprite(mapTileSize * 2, mapTileSize * 2);
-    Maps::tileRenderSprite.deleteSprite();
-    Maps::tileRenderSprite.createSprite(mapTileSize, mapTileSize);
 
     Maps::oldMapTile = {};     // Old Map tile coordinates and zoom
     Maps::currentMapTile = {}; // Current Map tile coordinates and zoom
@@ -326,7 +321,6 @@ void Maps::deleteMapScrSprites()
 {
 
     Maps::preloadSprite.deleteSprite();
-    Maps::tileRenderSprite.deleteSprite();
 
     // Clear tile cache to free memory
     clearTileCache();
@@ -763,8 +757,6 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
     // Ensure sprites are created (lazy init if needed)
     if (!preloadSprite.getBuffer())
         preloadSprite.createSprite(mapTileSize * 2, mapTileSize * 2);
-    if (!tileRenderSprite.getBuffer())
-        tileRenderSprite.createSprite(mapTileSize, mapTileSize);
 
     const int16_t startX = tileX + dirX;
     const int16_t startY = tileY + dirY;
@@ -825,7 +817,7 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
  * @param amount The fraction to darken each color component (default is 0.4).
  * @return The darkened RGB565 color value.
  */
-uint16_t Maps::darkenRGB565(const uint16_t color, const float amount = 0.4f)
+uint16_t Maps::darkenRGB565(const uint16_t color, const float amount)
 {
     uint8_t r = (color >> 11) & 0x1F;
     uint8_t g = (color >> 5) & 0x3F;
@@ -855,66 +847,6 @@ uint16_t Maps::darkenRGB565(const uint16_t color, const float amount = 0.4f)
 bool Maps::isPointOnMargin(const int px, const int py)
 {
     return (px <= MARGIN_PIXELS || px >= TILE_SIZE - MARGIN_PIXELS || py <= MARGIN_PIXELS || py >= TILE_SIZE - MARGIN_PIXELS);
-}
-
-/** 
-* @brief Checks if a value is near a target within a specified tolerance.
-*
-* @details This function determines whether the given value (val) is within a certain tolerance (tol) of the target value. 
-*          The default tolerance is set to 2. It returns true if the absolute difference between val and target is less than or equal to tol.
-*
-* @param val The value to check.
-* @param target The target value to compare against.
-* @param tol The tolerance range (default is 2).
-* @return true if val is within tol of target, false otherwise.
-*/
-bool Maps::isNear(int val, int target, int tol = 2) 
-{
-    return abs(val - target) <= tol;
-}
-
-/**
-* @brief Determines if a line between two points should be drawn based on specific criteria.
-*
-* @details This function evaluates whether a line defined by two endpoints (px1, py1) and (px2, py2) should be drawn. 
-*          It filters out lines that cross the entire tile from edge to edge (horizontally, vertically, or diagonally), 
-*          lines that are excessively long (more than 1.5 times the diagonal of the tile), and lines where both endpoints are on the margin of the tile.
-*          The function returns true if the line meets the criteria for drawing, and false otherwise.
-*
-* @param px1 The x-coordinate of the first endpoint.
-* @param py1 The y-coordinate of the first endpoint.
-* @param px2 The x-coordinate of the second endpoint.
-* @param py2 The y-coordinate of the second endpoint.
-* @return true if the line should be drawn, false otherwise.
-*/
-bool Maps::shouldDrawLine(const int px1, const int py1, const int px2, const int py2)
-{
-    if ((isNear(px1, 0) && isNear(px2, TILE_SIZE)) || (isNear(px1, TILE_SIZE) && isNear(px2, 0))) 
-    {
-        if ((isNear(py1, 0) && isNear(py2, TILE_SIZE)) || (isNear(py1, TILE_SIZE) && isNear(py2, 0)))
-            return false;
-        if (isNear(py1, py2)) 
-            return false; 
-    }
-    if ((isNear(py1, 0) && isNear(py2, TILE_SIZE)) || (isNear(py1, TILE_SIZE) && isNear(py2, 0)))
-    {
-        if (isNear(px1, px2))
-            return false; 
-    }
-
-    int dx = px2 - px1;
-    int dy = py2 - py1;
-    int len2 = dx*dx + dy*dy;
-    if (len2 > (TILE_SIZE * TILE_SIZE * 3))
-        return false;
-
-    if (isPointOnMargin(px1, py1) && isPointOnMargin(px2, py2))
-        return false;
-    if ((px1 == px2) && (px1 <= MARGIN_PIXELS || px1 >= TILE_SIZE - MARGIN_PIXELS))
-        return false;
-    if ((py1 == py2) && (py1 <= MARGIN_PIXELS || py1 >= TILE_SIZE - MARGIN_PIXELS))
-        return false;
-    return true;
 }
 
 /**
@@ -985,99 +917,6 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
         }
     }
 }
-
-/**
-* @brief Draws the border of a polygon on a sprite, with special handling for margin points.
-*
-* @details This function draws the border of a polygon defined by the given vertex arrays (px, py) on the provided TFT_eSprite object (map). 
-*          It uses different colors for lines connecting margin points and non-margin points, and can optionally skip drawing lines between two margin points if fillPolygons is false.
-*          The function takes into account offsets for positioning within a larger context and ensures that drawing is constrained within the tile boundaries.
-*
-* @param map The TFT_eSprite object where the polygon border will be drawn.
-* @param px Array of x-coordinates of the polygon vertices.
-* @param py Array of y-coordinates of the polygon vertices.
-* @param numPoints The number of vertices in the polygon.
-* @param borderColor The color to use for drawing the border lines (in RGB565 format).
-* @param fillColor The color to use for lines between margin points (in RGB565 format).
-* @param xOffset The x-offset to apply when drawing the polygon border.
-* @param yOffset The y-offset to apply when drawing the polygon border.
-*/
-void Maps::drawPolygonBorder(TFT_eSprite &map, const int *px, const int *py, const int numPoints, const uint16_t borderColor, const uint16_t fillColor, const int xOffset, const int yOffset)
-{
-    if (numPoints < 2)
-        return;
-
-    // Cache first point margin for closing segment
-    const bool marginFirst = isPointOnMargin(px[0], py[0]);
-    bool marginA = marginFirst;
-
-    for (uint32_t i = 0; i < numPoints - 1; ++i)
-    {
-        const bool marginB = isPointOnMargin(px[i+1], py[i+1]);
-        const uint16_t color = (marginA && marginB) ? fillColor : borderColor;
-
-        const int x0 = px[i] + xOffset;
-        const int y0 = py[i] + yOffset;
-        const int x1 = px[i+1] + xOffset;
-        const int y1 = py[i+1] + yOffset;
-
-        if (x0 >= 0 && x0 <= TILE_SIZE + xOffset && y0 >= 0 && y0 <= TILE_SIZE + yOffset &&
-            x1 >= 0 && x1 <= TILE_SIZE + xOffset && y1 >= 0 && y1 <= TILE_SIZE + yOffset)
-        {
-            if (fillPolygons)
-            {
-                if (!(marginA && marginB))
-                    map.drawLine(x0, y0, x1, y1, color);
-                else
-                {
-                    map.drawLine(x0, y0, x1, y1, fillColor);
-                    map.drawPixel(x0, y0, borderColor);
-                    map.drawPixel(x1, y1, borderColor);
-                }
-            }
-            else if (!(marginA && marginB))
-                map.drawLine(x0, y0, x1, y1, borderColor);
-            else
-            {
-                map.drawLine(x0, y0, x1, y1, TFT_WHITE);
-                map.drawPixel(x0, y0, borderColor);
-                map.drawPixel(x1, y1, borderColor);
-            }
-        }
-        marginA = marginB;  // Reuse for next iteration
-    }
-    // Closing segment: last point to first point
-    const bool marginB = marginFirst;  // Reuse cached first point
-    const uint16_t color = (marginA && marginB) ? fillColor : borderColor;
-    const int x0 = px[numPoints-1] + xOffset;
-    const int y0 = py[numPoints-1] + yOffset;
-    const int x1 = px[0] + xOffset;
-    const int y1 = py[0] + yOffset;
-
-    if (x0 >= 0 && x0 <= TILE_SIZE + xOffset && y0 >= 0 && y0 <= TILE_SIZE + yOffset &&
-        x1 >= 0 && x1 <= TILE_SIZE + xOffset && y1 >= 0 && y1 <= TILE_SIZE + yOffset)
-    {
-        if (fillPolygons)
-        {
-            if (!(marginA && marginB))
-                map.drawLine(x0, y0, x1, y1, color);
-            else
-            {
-                map.drawLine(x0, y0, x1, y1, fillColor);
-                map.drawPixel(x0, y0, borderColor);
-                map.drawPixel(x1, y1, borderColor);
-            }
-        }
-        else if (!(marginA && marginB))
-            map.drawLine(x0, y0, x1, y1, borderColor);
-        else
-        {
-            map.drawLine(x0, y0, x1, y1, TFT_WHITE);
-            map.drawPixel(x0, y0, borderColor);
-            map.drawPixel(x1, y1, borderColor);
-        }
-    }
-}   
 
 /**
  * @brief Initialize tile cache system
@@ -1251,21 +1090,6 @@ void Maps::initPrefetchSystem()
         return;
     }
 
-    // Create render sprite for background rendering
-    prefetchRenderSprite = new TFT_eSprite(&tft);
-    prefetchRenderSprite->setColorDepth(16);
-    if (!prefetchRenderSprite->createSprite(mapTileSize, mapTileSize))
-    {
-        ESP_LOGE(TAG, "Failed to create prefetch render sprite");
-        vSemaphoreDelete(prefetchMutex);
-        prefetchMutex = nullptr;
-        vQueueDelete(prefetchQueue);
-        prefetchQueue = nullptr;
-        delete prefetchRenderSprite;
-        prefetchRenderSprite = nullptr;
-        return;
-    }
-
     // Start prefetch task on Core 0 (same as GPS, low priority)
     prefetchTaskRunning = true;
     BaseType_t result = xTaskCreatePinnedToCore(
@@ -1282,9 +1106,6 @@ void Maps::initPrefetchSystem()
     {
         ESP_LOGE(TAG, "Failed to create prefetch task");
         prefetchTaskRunning = false;
-        prefetchRenderSprite->deleteSprite();
-        delete prefetchRenderSprite;
-        prefetchRenderSprite = nullptr;
         vSemaphoreDelete(prefetchMutex);
         prefetchMutex = nullptr;
         vQueueDelete(prefetchQueue);
@@ -1311,13 +1132,6 @@ void Maps::stopPrefetchSystem()
     vTaskDelay(pdMS_TO_TICKS(200));
 
     // Clean up resources
-    if (prefetchRenderSprite)
-    {
-        prefetchRenderSprite->deleteSprite();
-        delete prefetchRenderSprite;
-        prefetchRenderSprite = nullptr;
-    }
-
     if (prefetchMutex)
     {
         vSemaphoreDelete(prefetchMutex);

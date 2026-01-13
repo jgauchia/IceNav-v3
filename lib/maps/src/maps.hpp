@@ -92,7 +92,6 @@ class Maps
         static QueueHandle_t prefetchQueue;                                         /**< Queue for prefetch requests */
         static TaskHandle_t prefetchTaskHandle;                                     /**< Prefetch task handle */
         static SemaphoreHandle_t prefetchMutex;                                     /**< Mutex for prefetch sprite access */
-        static TFT_eSprite* prefetchRenderSprite;                                   /**< Sprite for background rendering */
         static volatile bool prefetchTaskRunning;                                   /**< Flag to control task lifecycle */
 
         static void prefetchTask(void* pvParameters);                               /**< Background prefetch task (runs on Core 0) */
@@ -102,7 +101,6 @@ class Maps
         TFT_eSprite mapTempSprite = TFT_eSprite(&tft);                              /**< Full map sprite (not showed) */
         TFT_eSprite mapSprite = TFT_eSprite(&tft);                                  /**< Screen map sprite (showed) */
         TFT_eSprite preloadSprite = TFT_eSprite(&tft);                              /**< Preload sprite for scroll (reusable) */
-        TFT_eSprite tileRenderSprite = TFT_eSprite(&tft);                           /**< Tile render sprite for cache miss (reusable) */
         float destLat, destLon;                                                     /**< Waypoint destination latitude and longitude */
         uint8_t zoomLevel;                                                          /**< Zoom level for map display */
         ScreenCoord navArrowPosition; 												/**< Navigation Arrow position on screen */
@@ -121,16 +119,11 @@ class Maps
         void showNoMap(TFT_eSprite &map);
         void panMap(int8_t dx, int8_t dy);
 
-        uint16_t darkenRGB565(const uint16_t color, const float amount);  					/**< Darken RGB565 color by a given fraction */
+        uint16_t darkenRGB565(const uint16_t color, const float amount = 0.4f);  					/**< Darken RGB565 color by a given fraction */
         bool isPointOnMargin(const int px, const int py);									/**< Check if a point is on the margin of the tile */
-        bool isNear(int val, int target, int tol);											/**< Check if a value is near a target within a tolerance */
-        bool shouldDrawLine(const int px1, const int py1, const int px2, const int py2);	/**< Determine if a line should be drawn based on its endpoints */
         void fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, 
                                 const int numPoints, const uint16_t color,	
                                 const int xOffset, const int yOffset);						/**< Fill a polygon using the scanline algorithm */
-        void drawPolygonBorder(TFT_eSprite &map, const int *px, const int *py,
-                                const int numPoints, const uint16_t borderColor, const uint16_t fillColor,
-                                const int xOffset, const int yOffset);						/**< Draw the border of a polygon with margin handling */
         
         
         // Tile cache methods
