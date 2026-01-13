@@ -1097,7 +1097,7 @@ void Maps::initPrefetchSystem()
         "PrefetchTask",         // Task name
         8192,                   // Stack size (8KB)
         this,                   // Pass Maps instance for renderTile access
-        2,                      // Priority (higher for faster prefetch)
+        1,                      // Priority
         &prefetchTaskHandle,    // Task handle
         0                       // Core 0
     );

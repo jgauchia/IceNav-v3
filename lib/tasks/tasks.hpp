@@ -20,8 +20,6 @@
 #include "globalGpxDef.h"
 #include "lvglFuncs.hpp"
 
-#define TASK_SLEEP_PERIOD_MS 5 /**< Sleep period for tasks in milliseconds */
-
 /**
  * @struct SensorData
  * @brief Holds the latest synchronized data from all non-GPS sensors.

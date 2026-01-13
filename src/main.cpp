@@ -7,7 +7,6 @@
  */
 
 #include <Arduino.h>
-#include <stdint.h>
 #include "i2c_espidf.hpp"
 #include <SPI.h>
 #include <WiFi.h>
@@ -16,6 +15,8 @@
 #include <esp_log.h>
 #include <ESPmDNS.h>
 #include <SolarCalculator.h>
+
+#define TASK_SLEEP_PERIOD_MS 5 /**< Sleep period for main loop in milliseconds */
 
 // Hardware includes
 #include "hal.hpp"

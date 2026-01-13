@@ -12,7 +12,6 @@
 #include "tasks.hpp"
 #include "mainScr.hpp"
 
-TaskHandle_t LVGLTaskHandler;      /**< Handle for the LVGL task */
 xSemaphoreHandle gpsMutex;         /**< Mutex for GPS resource protection */
 extern Gps gps;                    /**< Global GPS instance for data processing */
 SensorData globalSensorData;       /**< Global sensor data instance */
@@ -68,7 +67,7 @@ void gpsTask(void *pvParameters)
  */
 void initGpsTask()
 {
-    xTaskCreatePinnedToCore(gpsTask, PSTR("GPS Task"), 8192, NULL, 1, NULL, 0);
+    xTaskCreatePinnedToCore(gpsTask, PSTR("GPS Task"), 4096, NULL, 2, NULL, 0);
     vTaskDelay(pdMS_TO_TICKS(500));
 }
 
@@ -76,7 +75,7 @@ void initGpsTask()
  * @brief Command-line interface processing task
  *
  * @details Handles CLI operations including command parsing, execution, and response
- *          generation. Runs on core 1 with 20KB stack size to handle complex CLI
+ *          generation. Runs on core 1 with 12KB stack size to handle complex CLI
  *          operations and network communications. The task processes commands at
  *          60ms intervals to maintain responsive user interaction.
  *
@@ -98,10 +97,10 @@ void cliTask(void *param)
 /**
  * @brief Initialize CLI processing task
  *
- * @details Creates and starts the CLI task on core 1 with 20KB stack size and priority 1.
+ * @details Creates and starts the CLI task on core 0 with 12KB stack size and priority 1.
  *          Only compiled when CLI functionality is enabled (not DISABLE_CLI).
  */
-void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 20000, NULL, 1, NULL, 1); }
+void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 12288, NULL, 1, NULL, 0); }
 
 #endif
 
@@ -164,7 +163,7 @@ void sensorTask(void *pvParameters)
  */
 void initSensorTask()
 {
-    xTaskCreatePinnedToCore(sensorTask, "Sensor Task", 4096, NULL, 1, NULL, 0);
+    xTaskCreatePinnedToCore(sensorTask, "Sensor Task", 4096, NULL, 1, NULL, 1);
 }
 
 
