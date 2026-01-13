@@ -280,8 +280,17 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
     Maps::mapScrWidth = mapWidth;
 
     // Reserve PSRAM for buffer map
-    Maps::mapTempSprite.deleteSprite();
-    Maps::mapTempSprite.createSprite(tileHeight, tileWidth);
+    Maps::mapTempSprite.createSprite(Maps::tileWidth, Maps::tileHeight); // Remove setColorDepth(8)
+    float mapTempSpriteSizeMB = (float)Maps::tileWidth * Maps::tileHeight * 2 / (1024 * 1024); // Revert *1 to *2
+    ESP_LOGI(TAG, "mapTempSprite: %dx%d, %.2fMB (permanent)", Maps::tileWidth, Maps::tileHeight, mapTempSpriteSizeMB); // Remove ", 8-bit"
+
+
+    // 2. mapSprite: El buffer para el canvas LVGL (también 768x768). Permanente. (~1.12MB)
+    // Ocupa ~1.12MB, asignado una única vez al inicio.
+    Maps::mapSprite.createSprite(Maps::tileWidth, Maps::tileHeight); // Remove setColorDepth(8)
+    Maps::mapBuffer = Maps::mapSprite.getBuffer(); // Enlazar este buffer al canvas LVGL
+    float mapSpriteSizeMB = (float)Maps::tileWidth * Maps::tileHeight * 2 / (1024 * 1024); // Revert *1 to *2
+    ESP_LOGI(TAG, "mapSprite: %dx%d, %.2fMB (permanent)", Maps::tileWidth, Maps::tileHeight, mapSpriteSizeMB); // Remove ", 8-bit"
 
     // Pre-allocate scroll sprites (avoid allocation during scroll)
     Maps::preloadSprite.deleteSprite();
@@ -319,7 +328,7 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
  */
 void Maps::deleteMapScrSprites()
 {
-    Maps::mapSprite.deleteSprite();
+
     Maps::preloadSprite.deleteSprite();
     Maps::tileRenderSprite.deleteSprite();
 
@@ -335,8 +344,7 @@ void Maps::deleteMapScrSprites()
  */
 void Maps::createMapScrSprites()
 {
-    // Create 768x768 sprite for virtual canvas (allows smooth panning)
-    Maps::mapBuffer = Maps::mapSprite.createSprite(tileWidth, tileHeight);
+    Maps::mapBuffer = Maps::mapSprite.getBuffer(); // Asegurar que el puntero esté correcto
 }
 
 /**

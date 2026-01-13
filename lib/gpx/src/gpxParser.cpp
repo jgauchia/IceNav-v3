@@ -7,6 +7,8 @@
  */
 
 #include "gpxParser.hpp"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 /**
  * @brief Helper function to format float values to a specific number of decimal places
@@ -404,17 +406,17 @@ bool GPXParser::loadTrack(TrackVector& trackData)
 
     ESP_LOGI(TAGGPX, "Track has %d points", pointCount);
 
-    if (pointCount > 0)
-    {
-        try {
-            trackData.reserve(trackData.size() + pointCount);
-        } catch (const std::bad_alloc& e) {
-            ESP_LOGE(TAGGPX, "Failed to reserve memory for %d points: %s", pointCount, e.what());
-            return false;
-        }
-    }
-
-    // Iterate through <trk> elements
+            if (pointCount > 0)
+            {
+                // Log para diagnosticar la disponibilidad de PSRAM justo antes de intentar la reserva
+                printf("PSRAM largest block before reserve: %zu bytes\n", heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM));
+                vTaskDelay(pdMS_TO_TICKS(100)); // Small delay to flush log buffer
+                try {                                            trackData.reserve(trackData.size() + pointCount);
+                                        } catch (const std::bad_alloc& e) {
+                                            ESP_LOGE(TAGGPX, "Failed to reserve memory for %d points: %s", pointCount, e.what());
+                                            return false;
+                                        }
+                                    }    // Iterate through <trk> elements
     for (tinyxml2::XMLElement* trk = root->FirstChildElement(gpxTrackTag); trk != nullptr; trk = trk->NextSiblingElement(gpxTrackTag))
     {
         // Iterate through <trkseg> elements
