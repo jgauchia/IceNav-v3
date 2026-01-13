@@ -376,73 +376,58 @@ bool GPXParser::addWaypoint(const wayPoint& wp)
 */
 bool GPXParser::loadTrack(TrackVector& trackData)
 {
-    tinyxml2::XMLDocument doc;
-    tinyxml2::XMLError result = doc.LoadFile(filePath.c_str());
-    if (result != tinyxml2::XML_SUCCESS)
+    FILE* file = fopen(filePath.c_str(), "r");
+    if (!file)
     {
         ESP_LOGE(TAGGPX, "Failed to load file: %s", filePath.c_str());
         return false;
     }
 
-    tinyxml2::XMLElement* root = doc.RootElement();
-    if (!root)
+    char line[256];
+    while (fgets(line, sizeof(line), file))
     {
-        ESP_LOGE(TAGGPX, "Failed to get root element in file: %s", filePath.c_str());
-        return false;
-    }
-
-    // Pre-count points to reserve memory and avoid fragmentation
-    size_t pointCount = 0;
-    for (tinyxml2::XMLElement* trk = root->FirstChildElement(gpxTrackTag); trk != nullptr; trk = trk->NextSiblingElement(gpxTrackTag))
-    {
-        for (tinyxml2::XMLElement* trkseg = trk->FirstChildElement("trkseg"); trkseg != nullptr; trkseg = trkseg->NextSiblingElement("trkseg"))
+        // Simple and fast parsing for <trkpt ... lat="..." lon="...">
+        if (strstr(line, "<trkpt"))
         {
-            for (tinyxml2::XMLElement* trkpt = trkseg->FirstChildElement("trkpt"); trkpt != nullptr; trkpt = trkpt->NextSiblingElement("trkpt"))
-            {
-                pointCount++;
+            wayPoint point = {0};
+            bool latFound = false;
+            bool lonFound = false;
+
+            // Search for lat/lon in current line
+            // Helper lambda to parse attributes
+            auto parseAttrs = [&](char* str) {
+                char* pLat = strstr(str, "lat=\"");
+                if (!pLat) pLat = strstr(str, "lat='");
+                if (pLat) {
+                    point.lat = strtof(pLat + 5, nullptr);
+                    latFound = true;
+                }
+
+                char* pLon = strstr(str, "lon=\"");
+                if (!pLon) pLon = strstr(str, "lon='");
+                if (pLon) {
+                    point.lon = strtof(pLon + 5, nullptr);
+                    lonFound = true;
+                }
+            };
+
+            parseAttrs(line);
+
+            // If not found, read next lines until we find them or close tag
+            while ((!latFound || !lonFound) && fgets(line, sizeof(line), file)) {
+                if (strstr(line, ">")) break; // End of tag properties
+                parseAttrs(line);
             }
-        }
-    }
 
-    ESP_LOGI(TAGGPX, "Track has %d points", pointCount);
-
-            if (pointCount > 0)
+            if (latFound && lonFound)
             {
-                // Log para diagnosticar la disponibilidad de PSRAM justo antes de intentar la reserva
-                printf("PSRAM largest block before reserve: %zu bytes\n", heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM));
-                vTaskDelay(pdMS_TO_TICKS(100)); // Small delay to flush log buffer
-                try {                                            trackData.reserve(trackData.size() + pointCount);
-                                        } catch (const std::bad_alloc& e) {
-                                            ESP_LOGE(TAGGPX, "Failed to reserve memory for %d points: %s", pointCount, e.what());
-                                            return false;
-                                        }
-                                    }    // Iterate through <trk> elements
-    for (tinyxml2::XMLElement* trk = root->FirstChildElement(gpxTrackTag); trk != nullptr; trk = trk->NextSiblingElement(gpxTrackTag))
-    {
-        // Iterate through <trkseg> elements
-        for (tinyxml2::XMLElement* trkseg = trk->FirstChildElement("trkseg"); trkseg != nullptr; trkseg = trkseg->NextSiblingElement("trkseg"))
-        {
-            // Iterate through <trkpt> elements
-            for (tinyxml2::XMLElement* trkpt = trkseg->FirstChildElement("trkpt"); trkpt != nullptr; trkpt = trkpt->NextSiblingElement("trkpt"))
-            {
-                wayPoint point = {0};
-
-                // Extract latitude and longitude
-                trkpt->QueryFloatAttribute(gpxLatElem, &point.lat);
-                trkpt->QueryFloatAttribute(gpxLonElem, &point.lon);
-
-                // // Extract optional elements
-                // tinyxml2::XMLElement* ele = trkpt->FirstChildElement("ele");
-                // if (ele) point.ele = static_cast<float>(ele->DoubleText());
-
-                // tinyxml2::XMLElement* time = trkpt->FirstChildElement("time");
-                // if (time) point.time = strdup(time->GetText());
-
                 trackData.push_back(point);
             }
         }
     }
 
+    fclose(file);
+    ESP_LOGI(TAGGPX, "Track loaded. Points: %d", trackData.size());
     return true;
 }
 
