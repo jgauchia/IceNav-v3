@@ -1415,6 +1415,9 @@ void Maps::renderNavPoint(const NavFeature& feature, const NavBbox& viewport, TF
  */
 void Maps::renderNavFeature(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map)
 {
+    // Pause display during vector feature rendering to avoid SD conflicts
+    waitScreenRefresh = true;
+    
     switch (feature.geomType)
     {
         case NavGeomType::LineString:
@@ -1551,6 +1554,9 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
 
     uint64_t totalTime = esp_timer_get_time() - startTime;
     ESP_LOGI(TAG, "NAV Render: %llu ms", totalTime / 1000);
+
+    // Resume display after vector rendering
+    waitScreenRefresh = false;
 
     return true;
 }

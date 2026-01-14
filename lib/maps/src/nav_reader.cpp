@@ -118,6 +118,10 @@ bool NavReader::readHeader()
  */
 size_t NavReader::readAllFeatures(std::vector<NavFeature>& features, uint8_t maxZoom, const NavBbox* viewport)
 {
+    // Pause display during NAV file reading to avoid SD conflicts
+    extern bool waitScreenRefresh;
+    waitScreenRefresh = true;
+
     if (!file_ || !headerValid_)
         return 0;
 
@@ -195,6 +199,10 @@ size_t NavReader::readAllFeatures(std::vector<NavFeature>& features, uint8_t max
         features.push_back(std::move(feature));
         count++;
     }
+
+    // Resume display after NAV file reading
+    extern bool waitScreenRefresh;
+    waitScreenRefresh = false;
 
     return count;
 }
