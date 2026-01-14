@@ -161,6 +161,11 @@ void setup()
     storage.initSPIFFS();
     battery.initADC();
 
+    // Delay before TFT initialization to prevent I2C bus contention
+    #ifdef ENABLE_COMPASS
+        vTaskDelay(pdMS_TO_TICKS(50));
+    #endif
+
     initTFT();
     createGpxFolders();
 

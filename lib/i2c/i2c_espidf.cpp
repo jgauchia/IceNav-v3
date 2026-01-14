@@ -70,12 +70,10 @@ bool I2CNative::begin(int sda, int scl, uint32_t freq)
         return false;
     }
 
-    // Stability improvements:
-    // 1. Maximize hardware timeout (approx 13ms) to allow clock stretching
     i2c_set_timeout(i2cPort, 0xFFFFF); 
-    
-    // 2. Enable hardware filter to reject noise pulses < 7 cycles
     i2c_filter_enable(i2cPort, 7);
+    if (i2c_set_period(i2cPort, conf.master.clk_speed / 2, conf.master.clk_speed / 4) != ESP_OK)
+        ESP_LOGW(TAG, "Failed to set I2C timing period");
 
     initialized = true;
     ESP_LOGI(TAG, "I2C bus initialized (SDA:%d, SCL:%d, %lu Hz)", sda, scl, freq);

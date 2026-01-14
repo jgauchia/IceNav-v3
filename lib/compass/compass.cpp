@@ -90,7 +90,7 @@ bool QMC5883L_Driver::begin(uint8_t addr)
         ESP_LOGE(TAG, "QMC5883L soft reset failed");
         return false;
     }
-    vTaskDelay(pdMS_TO_TICKS(10));
+    vTaskDelay(pdMS_TO_TICKS(20));
 
     // Set/Reset period
     if (!write8(QMC5883L_REG_SET_RST, 0x01))
@@ -239,7 +239,7 @@ bool HMC5883L_Driver::begin(uint8_t addr)
     // Mode: Continuous measurement
     write8(HMC5883L_REG_MODE, 0x00);
 
-    vTaskDelay(pdMS_TO_TICKS(10));
+    vTaskDelay(pdMS_TO_TICKS(20));
 
     return true;
 }

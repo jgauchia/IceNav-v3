@@ -151,6 +151,18 @@ esp_err_t Storage::initSD()
 }
 
 /**
+ * @brief Deinitialize SD card
+ * @details Unmounts SD card and frees SPI bus if not using SPI_SHARED
+ */
+void Storage::deinitSD()
+{
+	#ifndef SPI_SHARED
+		if (isSdLoaded && card != nullptr)
+			esp_vfs_fat_sdcard_unmount("/sdcard", card);
+	#endif
+}
+
+/**
  * @brief Initialize SPIFFS filesystem
  * @return esp_err_t result code
  */
