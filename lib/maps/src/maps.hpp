@@ -190,6 +190,12 @@ class Maps
         uint8_t navLastZoom_;
         bool navNeedsRender_;
 
+        // Fixed-point scaling for vector rendering
+        int32_t navScaleX_;
+        int32_t navScaleY_;
+        int32_t navMinLon_;
+        int32_t navMaxLat_;
+
         // Zero-Allocation Projection Pipeline
         std::vector<int16_t> projBuf16X;
         std::vector<int16_t> projBuf16Y;

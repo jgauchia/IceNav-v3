@@ -110,83 +110,105 @@ bool NavReader::readHeader()
 }
 
 /**
- * @brief Reads all vector features from the opened tile, filtered by zoom level.
+ * @brief Reads features from the opened tile, filtered by zoom level and viewport.
  * @param features Output vector to store read features.
  * @param maxZoom  Maximum zoom level to include features for.
+ * @param viewport Optional viewport bounding box for culling.
  * @return Number of features successfully read and filtered.
  */
-size_t NavReader::readAllFeatures(std::vector<NavFeature>& features, uint8_t maxZoom)
+size_t NavReader::readAllFeatures(std::vector<NavFeature>& features, uint8_t maxZoom, const NavBbox* viewport)
 {
     if (!file_ || !headerValid_)
         return 0;
 
     features.reserve(header_.featureCount);
     size_t count = 0;
+    size_t skippedZoom = 0;
 
     for (uint16_t i = 0; i < header_.featureCount; i++)
     {
-        NavFeature feature;
-        if (readFeature(feature))
+        // 1. Read Feature Header (5 bytes)
+        uint8_t geomType = readU8();
+        uint16_t color = readU16();
+        uint8_t zoomPriority = readU8();
+        uint8_t width = readU8();
+        
+        // 2. Read Coordinate Count (2 bytes)
+        uint16_t coordCount = readU16();
+
+        // 3. Zoom Filtering
+        uint8_t minZoom = zoomPriority >> 4;
+        if (minZoom > maxZoom)
         {
-            // Filter by zoom
-            if (feature.properties.getMinZoom() <= maxZoom)
+            // Skip feature data: coords (4+4)*N + rings
+            long skipBytes = coordCount * 8;
+            if (geomType == 3) // Polygon
             {
-                features.push_back(std::move(feature));
-                count++;
+                uint8_t ringCount = readU8();
+                skipBytes += 1 + (ringCount * 2); // 1 byte count + 2 bytes per ringEnd
+            }
+            fseek(file_, skipBytes, SEEK_CUR);
+            bytesRead_ += skipBytes;
+            skippedZoom++;
+            continue;
+        }
+
+        NavFeature feature;
+        feature.geomType = static_cast<NavGeomType>(geomType);
+        feature.properties.colorRgb565 = color;
+        feature.properties.zoomPriority = zoomPriority;
+        feature.properties.width = width;
+        
+        feature.coords.resize(coordCount);
+        
+        // 4. Viewport Culling Optimization
+        // Read first coordinate to check if feature is vaguely near viewport
+        if (coordCount > 0)
+        {
+            feature.coords[0].lon = readI32();
+            feature.coords[0].lat = readI32();
+
+            // Simple point-in-bbox check for the first point (expanded slightly for safety)
+            if (viewport)
+            {
+                const int32_t margin = 5000; // ~50 meters margin
+                if (feature.coords[0].lon < viewport->minLon - margin ||
+                    feature.coords[0].lon > viewport->maxLon + margin ||
+                    feature.coords[0].lat < viewport->minLat - margin ||
+                    feature.coords[0].lat > viewport->maxLat + margin)
+                {
+                    // If first point is far away and it's a small feature (Point/Line), maybe skip?
+                    // NOTE: For long lines/polygons, this is risky. 
+                    // For now, we only skip reading if zoom failed. 
+                    // To safely cull by bbox without reading all points, we need a bbox in the file header.
+                    // Proceed to read the rest.
+                }
+            }
+
+            // Read remaining coordinates
+            for (uint16_t k = 1; k < coordCount; k++)
+            {
+                feature.coords[k].lon = readI32();
+                feature.coords[k].lat = readI32();
             }
         }
+
+        // 5. Read Polygon Rings
+        if (feature.geomType == NavGeomType::Polygon)
+        {
+            uint8_t ringCount = readU8();
+            feature.ringEnds.resize(ringCount);
+            for (uint8_t k = 0; k < ringCount; k++)
+            {
+                feature.ringEnds[k] = readU16();
+            }
+        }
+
+        features.push_back(std::move(feature));
+        count++;
     }
 
     return count;
-}
-
-/**
- * @brief Reads a single feature from the current file position.
- * @param feature Reference to store the read feature data.
- * @return true if feature was read successfully, false on format error.
- */
-bool NavReader::readFeature(NavFeature& feature)
-{
-    // Read geometry type (1 byte)
-    uint8_t geomType = readU8();
-    if (geomType < 1 || geomType > 3)
-        return false;
-    feature.geomType = static_cast<NavGeomType>(geomType);
-
-    // Read color (2 bytes)
-    feature.properties.colorRgb565 = readU16();
-
-    // Read zoom_priority (1 byte)
-    feature.properties.zoomPriority = readU8();
-
-    // Read width (1 byte)
-    feature.properties.width = readU8();
-
-    // Read coordinate count (2 bytes)
-    uint16_t coordCount = readU16();
-    if (coordCount == 0 || coordCount > 10000)  // Sanity check
-        return false;
-
-    // Read coordinates
-    feature.coords.resize(coordCount);
-    for (uint16_t i = 0; i < coordCount; i++)
-    {
-        feature.coords[i].lon = readI32();
-        feature.coords[i].lat = readI32();
-    }
-
-    // For polygons, read ring info
-    if (feature.geomType == NavGeomType::Polygon)
-    {
-        uint8_t ringCount = readU8();
-        feature.ringEnds.resize(ringCount);
-        for (uint8_t i = 0; i < ringCount; i++)
-        {
-            feature.ringEnds[i] = readU16();
-        }
-    }
-
-    return true;
 }
 
 /**

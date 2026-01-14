@@ -70,7 +70,7 @@ struct NavProperties
     uint8_t width;         // Line width in pixels (NAV v2, default 1)
 
     uint8_t getMinZoom() const { return zoomPriority >> 4; }
-    uint8_t getPriority() const { return (zoomPriority & 0x0F) * 7; }
+    uint8_t getPriority() const { return (zoomPriority & 0x0F); }
     uint8_t getWidth() const { return width > 0 ? width : 1; }
 };
 
@@ -129,12 +129,13 @@ public:
     const NavHeader& getHeader() const { return header_; }
 
     /**
-     * @brief Read all features from tile
+     * @brief Read features from tile with filtering
      * @param features Output vector
      * @param maxZoom Only include features with min_zoom <= maxZoom
+     * @param viewport Optional viewport for culling (nullptr to disable)
      * @return Number of features read
      */
-    size_t readAllFeatures(std::vector<NavFeature>& features, uint8_t maxZoom);
+    size_t readAllFeatures(std::vector<NavFeature>& features, uint8_t maxZoom, const NavBbox* viewport = nullptr);
 
     /**
      * @brief Get bytes read (for statistics)

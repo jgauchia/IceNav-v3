@@ -396,6 +396,7 @@ void Maps::generateMap(uint8_t zoom)
             navLastLon_ = lon;
             navLastZoom_ = zoom;
             navNeedsRender_ = false;
+            Maps::redrawMap = true;
         }
         return;
     }
@@ -1219,17 +1220,14 @@ void Maps::enqueueSurroundingTiles(uint32_t centerX, uint32_t centerY, uint8_t z
  */
 void Maps::navCoordToPixel(int32_t lon, int32_t lat, const NavBbox& viewport, int16_t& px, int16_t& py)
 {
-    // Use integer math then convert to float for final calculation
-    const float viewWidth = static_cast<float>(viewport.maxLon - viewport.minLon);
-    const float viewHeight = static_cast<float>(viewport.maxLat - viewport.minLat);
-    const float xNorm = static_cast<float>(lon - viewport.minLon) / viewWidth;
-    const float yNorm = static_cast<float>(viewport.maxLat - lat) / viewHeight; // Y inverted
+    // Use pre-calculated fixed-point scales
+    // px = (lon - minLon) * scaleX >> 16
+    // py = (maxLat - lat) * scaleY >> 16
+    const int32_t pxRaw = static_cast<int32_t>((static_cast<int64_t>(lon - navMinLon_) * navScaleX_) >> 16);
+    const int32_t pyRaw = static_cast<int32_t>((static_cast<int64_t>(navMaxLat_ - lat) * navScaleY_) >> 16);
 
-    const int32_t pxRaw = static_cast<int32_t>(xNorm * static_cast<float>(tileWidth));
-    const int32_t pyRaw = static_cast<int32_t>(yNorm * static_cast<float>(tileHeight));
-
-    px = static_cast<int16_t>(std::max(-1000, std::min(2000, pxRaw)));
-    py = static_cast<int16_t>(std::max(-1000, std::min(2000, pyRaw)));
+    px = static_cast<int16_t>(std::max((int32_t)-1000, std::min((int32_t)2000, pxRaw)));
+    py = static_cast<int16_t>(std::max((int32_t)-1000, std::min((int32_t)2000, pyRaw)));
 }
 
 /**
@@ -1260,17 +1258,27 @@ void Maps::renderNavLineString(const NavFeature& feature, const NavBbox& viewpor
     int16_t minPx = INT16_MAX, maxPx = INT16_MIN;
     int16_t minPy = INT16_MAX, maxPy = INT16_MIN;
 
+    size_t validPoints = 0;
     for (size_t i = 0; i < numCoords; i++)
     {
-        navCoordToPixel(feature.coords[i].lon, feature.coords[i].lat, viewport, pxArr[i], pyArr[i]);
-        minPx = std::min(minPx, pxArr[i]);
-        maxPx = std::max(maxPx, pxArr[i]);
-        minPy = std::min(minPy, pyArr[i]);
-        maxPy = std::max(maxPy, pyArr[i]);
+        int16_t px, py;
+        navCoordToPixel(feature.coords[i].lon, feature.coords[i].lat, viewport, px, py);
+        
+        // Sub-pixel culling: skip if same as last point
+        if (validPoints > 0 && px == pxArr[validPoints-1] && py == pyArr[validPoints-1])
+            continue;
+
+        pxArr[validPoints] = px;
+        pyArr[validPoints] = py;
+        minPx = std::min(minPx, px);
+        maxPx = std::max(maxPx, px);
+        minPy = std::min(minPy, py);
+        maxPy = std::max(maxPy, py);
+        validPoints++;
     }
 
-    // Bbox culling: skip if completely outside screen
-    if (maxPx < 0 || minPx >= tileWidth || maxPy < 0 || minPy >= tileHeight)
+    // Bbox culling: skip if completely outside screen or not enough points
+    if (validPoints < 2 || maxPx < 0 || minPx >= tileWidth || maxPy < 0 || minPy >= tileHeight)
         return;
 
     uint16_t color = feature.properties.colorRgb565;
@@ -1282,7 +1290,7 @@ void Maps::renderNavLineString(const NavFeature& feature, const NavBbox& viewpor
         map.fillCircle(pxArr[0], pyArr[0], width / 2, color);
     }
 
-    for (size_t i = 1; i < numCoords; i++)
+    for (size_t i = 1; i < validPoints; i++)
     {
         if (width <= 2)
         {
@@ -1332,20 +1340,27 @@ void Maps::renderNavPolygon(const NavFeature& feature, const NavBbox& viewport, 
     int minPx = INT_MAX, maxPx = INT_MIN;
     int minPy = INT_MAX, maxPy = INT_MIN;
 
+    size_t validPoints = 0;
     for (size_t i = 0; i < numPoints; i++)
     {
         int16_t x, y;
         navCoordToPixel(feature.coords[i].lon, feature.coords[i].lat, viewport, x, y);
-        px[i] = x;
-        py[i] = y;
+        
+        // Sub-pixel culling: skip if same as last point
+        if (validPoints > 0 && x == px[validPoints-1] && y == py[validPoints-1])
+            continue;
+
+        px[validPoints] = x;
+        py[validPoints] = y;
         minPx = std::min(minPx, (int)x);
         maxPx = std::max(maxPx, (int)x);
         minPy = std::min(minPy, (int)y);
         maxPy = std::max(maxPy, (int)y);
+        validPoints++;
     }
 
-    // Bbox culling: skip if completely outside screen
-    if (maxPx < 0 || minPx >= tileWidth || maxPy < 0 || minPy >= tileHeight)
+    // Bbox culling: skip if completely outside screen or not enough points
+    if (validPoints < 3 || maxPx < 0 || minPx >= tileWidth || maxPy < 0 || minPy >= tileHeight)
         return;
 
     // Skip polygons with oversized bbox (likely crossing tile boundary incorrectly)
@@ -1359,12 +1374,12 @@ void Maps::renderNavPolygon(const NavFeature& feature, const NavBbox& viewport, 
 
     if (fillPolygons)
     {
-        fillPolygonGeneral(map, px, py, numPoints, fillColor, 0, 0);
+        fillPolygonGeneral(map, px, py, validPoints, fillColor, 0, 0);
     }
 
-    for (size_t i = 0; i < numPoints; i++)
+    for (size_t i = 0; i < validPoints; i++)
     {
-        size_t next = (i + 1) % numPoints;
+        size_t next = (i + 1) % validPoints;
         map.drawLine(px[i], py[i], px[next], py[next], borderColor);
     }
 }
@@ -1456,15 +1471,19 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
     viewport.minLat = static_cast<int32_t>(minLatF * COORD_SCALE);
     viewport.maxLat = static_cast<int32_t>(maxLatF * COORD_SCALE);
 
+    // Pre-calculate fixed-point scale factors (16.16 fixed point)
+    // tileWidth << 16 might overflow int32, but we use int64 for the calculation
+    navScaleX_ = static_cast<int32_t>((static_cast<int64_t>(tileWidth) << 16) / (viewport.maxLon - viewport.minLon));
+    navScaleY_ = static_cast<int32_t>((static_cast<int64_t>(tileHeight) << 16) / (viewport.maxLat - viewport.minLat));
+    navMinLon_ = viewport.minLon;
+    navMaxLat_ = viewport.maxLat;
+
     // Clear map with white background
     map.fillSprite(TFT_WHITE);
 
-    // Collect features from all tiles
-    struct RenderItem {
-        NavFeature feature;
-        uint8_t priority;
-    };
-    std::vector<RenderItem> renderQueue;
+    // Layered Render Queue (Buckets 0-15)
+    // Eliminates expensive std::sort by grouping features by priority during read
+    std::vector<NavFeature> layers[16];
 
     // Load 3x3 tiles around center
     for (int dy = -1; dy <= 1; dy++)
@@ -1482,50 +1501,48 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
             if (!reader.open(tilePath))
                 continue;
 
-            std::vector<NavFeature> features;
-            reader.readAllFeatures(features, zoom);
+            // Direct read into layered buckets
+            std::vector<NavFeature> tileFeatures;
+            reader.readAllFeatures(tileFeatures, zoom, &viewport);
 
-            for (const auto& feature : features)
+            for (auto& feature : tileFeatures)
             {
-                renderQueue.push_back({feature, feature.properties.getPriority()});
+                uint8_t priority = feature.properties.getPriority();
+                if (priority < 16)
+                    layers[priority].push_back(std::move(feature));
             }
-
             reader.close();
-            vTaskDelay(pdMS_TO_TICKS(10));
-            taskYIELD();
+            // Removed taskDelay/yield here to speed up bulk reading
+            // Yield only once per full render or per tile row if needed
         }
+        taskYIELD(); // Yield per row
     }
 
-    // Sort by priority (needed when combining multiple tiles)
-    std::sort(renderQueue.begin(), renderQueue.end(),
-              [](const RenderItem& a, const RenderItem& b) {
-                  return a.priority < b.priority;
-              });
-
-    // Render all features
-    for (const auto& item : renderQueue)
+    // Render layers in order (0 to 15)
+    for (int p = 0; p < 16; p++)
     {
-        // Bbox Pre-Culling
-        if (item.feature.coords.empty()) continue;
-
-        int32_t fMinLon = INT32_MAX, fMaxLon = INT32_MIN;
-        int32_t fMinLat = INT32_MAX, fMaxLat = INT32_MIN;
-
-        for (const auto& c : item.feature.coords)
+        for (const auto& feature : layers[p])
         {
-            if (c.lon < fMinLon) fMinLon = c.lon;
-            if (c.lon > fMaxLon) fMaxLon = c.lon;
-            if (c.lat < fMinLat) fMinLat = c.lat;
-            if (c.lat > fMaxLat) fMaxLat = c.lat;
-        }
+            // Bbox Pre-Culling
+            if (feature.coords.empty()) continue;
 
-        if (fMinLon > viewport.maxLon || fMaxLon < viewport.minLon || 
-            fMinLat > viewport.maxLat || fMaxLat < viewport.minLat)
-        {
-            continue;
-        }
+            int32_t fMinLon = INT32_MAX, fMaxLon = INT32_MIN;
+            int32_t fMinLat = INT32_MAX, fMaxLat = INT32_MIN;
 
-        renderNavFeature(item.feature, viewport, map);
+            for (const auto& c : feature.coords)
+            {
+                if (c.lon < fMinLon) fMinLon = c.lon;
+                if (c.lon > fMaxLon) fMaxLon = c.lon;
+                if (c.lat < fMinLat) fMinLat = c.lat;
+                if (c.lat > fMaxLat) fMaxLat = c.lat;
+            }
+
+            if (fMinLon > viewport.maxLon || fMaxLon < viewport.minLon || 
+                fMinLat > viewport.maxLat || fMaxLat < viewport.minLat)
+                continue;
+
+            renderNavFeature(feature, viewport, map);
+        }
     }
 
     return true;
