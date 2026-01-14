@@ -84,26 +84,26 @@ void NavReader::close()
  */
 bool NavReader::readHeader()
 {
-    // Read magic (4 bytes)
-    uint8_t magic[4];
-    if (fread(magic, 1, 4, file_) != 4)
+    // Read entire header (Magic 4, Count 2, Bbox 16 = 22 bytes)
+    uint8_t h[22];
+    if (fread(h, 1, 22, file_) != 22)
         return false;
-    bytesRead_ += 4;
+    bytesRead_ += 22;
 
-    if (memcmp(magic, NAV_MAGIC, 4) != 0)
+    if (memcmp(h, NAV_MAGIC, 4) != 0)
     {
         ESP_LOGE(TAG, "Invalid magic bytes");
         return false;
     }
 
-    // Read feature count (2 bytes)
-    header_.featureCount = readU16();
-
-    // Read bbox (16 bytes)
-    header_.bbox.minLon = readI32();
-    header_.bbox.minLat = readI32();
-    header_.bbox.maxLon = readI32();
-    header_.bbox.maxLat = readI32();
+    // Little-endian parsing
+    header_.featureCount = h[4] | (h[5] << 8);
+    
+    // Bbox parsing (4-byte signed integers)
+    memcpy(&header_.bbox.minLon, &h[6], 4);
+    memcpy(&header_.bbox.minLat, &h[10], 4);
+    memcpy(&header_.bbox.maxLon, &h[14], 4);
+    memcpy(&header_.bbox.maxLat, &h[18], 4);
 
     headerValid_ = true;
     return true;
@@ -127,25 +127,32 @@ size_t NavReader::readAllFeatures(std::vector<NavFeature>& features, uint8_t max
 
     for (uint16_t i = 0; i < header_.featureCount; i++)
     {
-        // 1. Read Feature Header (5 bytes)
-        uint8_t geomType = readU8();
-        uint16_t color = readU16();
-        uint8_t zoomPriority = readU8();
-        uint8_t width = readU8();
-        
-        // 2. Read Coordinate Count (2 bytes)
-        uint16_t coordCount = readU16();
+        // 1. Read Feature Header (7 bytes): Type(1), Color(2), Zoom(1), Width(1), Count(2)
+        uint8_t hBuf[7];
+        if (fread(hBuf, 1, 7, file_) != 7) break;
+        bytesRead_ += 7;
+
+        uint8_t geomType = hBuf[0];
+        // Little-endian parsing
+        uint16_t color = hBuf[1] | (hBuf[2] << 8);
+        uint8_t zoomPriority = hBuf[3];
+        uint8_t width = hBuf[4];
+        uint16_t coordCount = hBuf[5] | (hBuf[6] << 8);
 
         // 3. Zoom Filtering
         uint8_t minZoom = zoomPriority >> 4;
         if (minZoom > maxZoom)
         {
-            // Skip feature data: coords (4+4)*N + rings
-            long skipBytes = coordCount * 8;
+            // Skip feature data: coords (8 bytes each) + rings
+            long skipBytes = (long)coordCount * 8;
             if (geomType == 3) // Polygon
             {
-                uint8_t ringCount = readU8();
-                skipBytes += 1 + (ringCount * 2); // 1 byte count + 2 bytes per ringEnd
+                uint8_t ringCount = 0;
+                if (fread(&ringCount, 1, 1, file_) == 1)
+                {
+                    bytesRead_++;
+                    skipBytes += (ringCount * 2); 
+                }
             }
             fseek(file_, skipBytes, SEEK_CUR);
             bytesRead_ += skipBytes;
@@ -159,48 +166,29 @@ size_t NavReader::readAllFeatures(std::vector<NavFeature>& features, uint8_t max
         feature.properties.zoomPriority = zoomPriority;
         feature.properties.width = width;
         
+        // 4. Bulk Read Coordinates
         feature.coords.resize(coordCount);
-        
-        // 4. Viewport Culling Optimization
-        // Read first coordinate to check if feature is vaguely near viewport
         if (coordCount > 0)
         {
-            feature.coords[0].lon = readI32();
-            feature.coords[0].lat = readI32();
-
-            // Simple point-in-bbox check for the first point (expanded slightly for safety)
-            if (viewport)
-            {
-                const int32_t margin = 5000; // ~50 meters margin
-                if (feature.coords[0].lon < viewport->minLon - margin ||
-                    feature.coords[0].lon > viewport->maxLon + margin ||
-                    feature.coords[0].lat < viewport->minLat - margin ||
-                    feature.coords[0].lat > viewport->maxLat + margin)
-                {
-                    // If first point is far away and it's a small feature (Point/Line), maybe skip?
-                    // NOTE: For long lines/polygons, this is risky. 
-                    // For now, we only skip reading if zoom failed. 
-                    // To safely cull by bbox without reading all points, we need a bbox in the file header.
-                    // Proceed to read the rest.
-                }
-            }
-
-            // Read remaining coordinates
-            for (uint16_t k = 1; k < coordCount; k++)
-            {
-                feature.coords[k].lon = readI32();
-                feature.coords[k].lat = readI32();
-            }
+            size_t bytesToRead = coordCount * 8; // 2 * int32
+            if (fread(feature.coords.data(), 1, bytesToRead, file_) != bytesToRead) break;
+            bytesRead_ += bytesToRead;
         }
 
         // 5. Read Polygon Rings
         if (feature.geomType == NavGeomType::Polygon)
         {
-            uint8_t ringCount = readU8();
-            feature.ringEnds.resize(ringCount);
-            for (uint8_t k = 0; k < ringCount; k++)
+            uint8_t ringCount = 0;
+            if (fread(&ringCount, 1, 1, file_) == 1)
             {
-                feature.ringEnds[k] = readU16();
+                bytesRead_++;
+                if (ringCount > 0)
+                {
+                    feature.ringEnds.resize(ringCount);
+                    size_t ringBytes = ringCount * 2;
+                    if (fread(feature.ringEnds.data(), 1, ringBytes, file_) != ringBytes) break;
+                    bytesRead_ += ringBytes;
+                }
             }
         }
 
@@ -209,46 +197,4 @@ size_t NavReader::readAllFeatures(std::vector<NavFeature>& features, uint8_t max
     }
 
     return count;
-}
-
-/**
- * @brief Helper to read an 8-bit unsigned integer from file.
- * @return The value read.
- */
-uint8_t NavReader::readU8()
-{
-    uint8_t value = 0;
-    if (fread(&value, 1, 1, file_) == 1)
-        bytesRead_ += 1;
-    return value;
-}
-
-/**
- * @brief Helper to read a 16-bit unsigned integer (little-endian) from file.
- * @return The value read.
- */
-uint16_t NavReader::readU16()
-{
-    uint8_t buf[2];
-    if (fread(buf, 1, 2, file_) == 2)
-    {
-        bytesRead_ += 2;
-        return buf[0] | (buf[1] << 8);
-    }
-    return 0;
-}
-
-/**
- * @brief Helper to read a 32-bit signed integer (little-endian) from file.
- * @return The value read.
- */
-int32_t NavReader::readI32()
-{
-    uint8_t buf[4];
-    if (fread(buf, 1, 4, file_) == 4)
-    {
-        bytesRead_ += 4;
-        return buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24);
-    }
-    return 0;
 }

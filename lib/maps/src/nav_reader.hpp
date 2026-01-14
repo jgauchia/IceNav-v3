@@ -155,9 +155,4 @@ private:
 
     bool readHeader();
     bool readFeature(NavFeature& feature);
-
-    // Read helpers (little-endian)
-    uint8_t readU8();
-    uint16_t readU16();
-    int32_t readI32();
 };

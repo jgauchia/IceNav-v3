@@ -1448,6 +1448,7 @@ void Maps::renderNavFeature(const NavFeature& feature, const NavBbox& viewport, 
  */
 bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT_eSprite& map)
 {
+    uint64_t startTime = esp_timer_get_time();
     // Calculate center tile coordinates using Web Mercator projection
     const float latRad = centerLat * (float)M_PI / 180.0f;
     const float n = static_cast<float>(1u << zoom);
@@ -1521,6 +1522,9 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
     // Render layers in order (0 to 15)
     for (int p = 0; p < 16; p++)
     {
+        // Yield to allow I2C/System tasks to process (prevents 'ack wait' errors)
+        taskYIELD();
+
         for (const auto& feature : layers[p])
         {
             // Bbox Pre-Culling
@@ -1544,6 +1548,9 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
             renderNavFeature(feature, viewport, map);
         }
     }
+
+    uint64_t totalTime = esp_timer_get_time() - startTime;
+    ESP_LOGI(TAG, "NAV Render: %llu ms", totalTime / 1000);
 
     return true;
 }
