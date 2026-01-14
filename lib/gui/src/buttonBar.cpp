@@ -217,21 +217,11 @@ void createButtonBarScr()
     lv_obj_set_flex_flow(buttonBar, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(buttonBar, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_FLOATING);
-    lv_obj_set_style_radius(buttonBar, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_border_color(buttonBar, lv_color_white(), 0);
-    lv_obj_set_style_border_width(buttonBar, 1, 0);
-    lv_obj_set_style_border_opa(buttonBar,LV_OPA_20,0);
-    lv_obj_set_style_bg_color(buttonBar, lv_color_black(), 0);
-    lv_obj_set_style_bg_opa(buttonBar, 210, 0);
-    lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_FLOATING);
+    lv_obj_add_style(buttonBar, &styleFloatingBar, 0);
+    lv_obj_set_style_pad_column(buttonBar, 10, 0);
     lv_obj_set_size(buttonBar, 50 * scaleBut, 50 * scaleBut);
-    lv_obj_align(buttonBar, LV_ALIGN_BOTTOM_RIGHT, 0, 0 );
-    lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
-
-    static lv_style_t style;
-    lv_style_init(&style);
-    lv_style_set_pad_column(&style, 10);
-    lv_obj_add_style(buttonBar, &style, 0);
+    lv_obj_align(buttonBar, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
+    lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
 
     menuBtn = lv_img_create(mainScreen);
     lv_img_set_src(menuBtn, menuIconFile);
@@ -289,23 +279,13 @@ void loadOptions()
 {
     option = lv_obj_create(lv_scr_act());
     lv_obj_remove_style_all(option);
-
-    lv_obj_set_style_radius(option, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_border_color(option, lv_color_white(), 0);
-    lv_obj_set_style_border_width(option, 1, 0);
-    lv_obj_set_style_border_opa(option,LV_OPA_20,0);
-    lv_obj_set_style_bg_color(option, lv_color_black(), 0);
-    lv_obj_set_style_bg_opa(option, 210, 0);
+    lv_obj_add_style(option, &styleFloatingBar, 0);
     lv_obj_set_flex_flow(option, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(option, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(option, 10, 0);
     lv_obj_set_size(option, TFT_WIDTH, 50 * scaleBut);
     lv_obj_clear_flag(option, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_align(option, LV_ALIGN_BOTTOM_LEFT, 0, 0);
-
-    static lv_style_t style;
-    lv_style_init(&style);
-    lv_style_set_pad_column(&style, 10);
-    lv_obj_add_style(option, &style, 0);
     
     lv_obj_t *imgBtn;
     

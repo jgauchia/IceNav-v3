@@ -7,13 +7,14 @@
  */
 
 #include "notifyBar.hpp"
+#include "tasks.hpp"
 
 lv_obj_t *mainScreen;         /**< Main screen */
 lv_obj_t *notifyBarIcons;     /**< Notification bar icons container object. */
 lv_obj_t *notifyBarHour;      /**< Notification bar hour display object. */
 
-Storage storage;
-Battery battery;
+extern Storage storage;
+extern Battery battery;
 extern Gps gps;
 
 /**
@@ -115,7 +116,7 @@ void updateNotifyBarTimer(lv_timer_t *t)
         lv_led_off(gpsFix);
 
     #ifdef ENABLE_TEMP
-    tempValue = (uint8_t)(bme.readTemperature() + tempOffset);
+    tempValue = (uint8_t)(globalSensorData.temperature + tempOffset);
     if (tempValue != tempOld)
     {
         lv_obj_send_event(temp, LV_EVENT_VALUE_CHANGED, NULL);
@@ -123,7 +124,7 @@ void updateNotifyBarTimer(lv_timer_t *t)
     }
     #endif
 
-    battLevel = battery.readBattery();
+    battLevel = globalSensorData.batteryPercent;
     if (battLevel != battLevelOld)
     {
         lv_obj_send_event(battIcon, LV_EVENT_VALUE_CHANGED, NULL);
@@ -152,14 +153,11 @@ void createNotifyBar()
     lv_obj_set_flex_align(notifyBarHour, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(notifyBarHour, LV_OBJ_FLAG_SCROLLABLE);
 
-    static lv_style_t styleBar;
-    lv_style_init(&styleBar);
-    lv_style_set_bg_opa(&styleBar, LV_OPA_0);
-    lv_style_set_border_opa(&styleBar, LV_OPA_0);
-    lv_style_set_text_font(&styleBar, fontDefault);
-    lv_obj_add_style(notifyBarIcons, &styleBar, LV_PART_MAIN);
-    lv_obj_add_style(notifyBarHour, &styleBar, LV_PART_MAIN);
-    
+    lv_obj_add_style(notifyBarIcons, &styleTransparent, LV_PART_MAIN);
+    lv_obj_add_style(notifyBarHour, &styleTransparent, LV_PART_MAIN);
+    lv_obj_set_style_text_font(notifyBarIcons, fontDefault, 0);
+    lv_obj_set_style_text_font(notifyBarHour, fontDefault, 0);
+
     gpsTime = lv_label_create(notifyBarHour);
     lv_obj_set_style_text_font(gpsTime, fontLarge, 0);
     lv_label_set_text_fmt(gpsTime, timeFormat, 0, 0, 0);

@@ -77,8 +77,8 @@ class QMC5883L_Driver
 public:
     QMC5883L_Driver();
     bool begin(uint8_t addr = QMC5883L_ADDRESS);
-    void setDataRate(uint8_t rate);
-    void setSamples(uint8_t samples);
+    bool setDataRate(uint8_t rate);
+    bool setSamples(uint8_t samples);
     void readRaw(float &x, float &y, float &z);
 
 private:
@@ -86,7 +86,7 @@ private:
     uint8_t ctrl1Value;
 
     uint8_t read8(uint8_t reg);
-    void write8(uint8_t reg, uint8_t value);
+    bool write8(uint8_t reg, uint8_t value);
     int16_t read16(uint8_t reg);
 };
 

@@ -11,14 +11,19 @@
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
 #include "driver/gpio.h"
+#include "esp_log.h" // Added for debugging
 
-// ESP-IDF native millis() replacement
+/**
+ * @brief Get system uptime in milliseconds using ESP-IDF timer.
+ * @return uint32_t Milliseconds since boot.
+ */
 static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 lv_display_t *display; /**< LVGL display driver */
 
 lv_obj_t *searchSatScreen; /**< Search Satellite Screen object. */
 lv_obj_t *splashScr;       /**< Splash Screen object. */
+lv_timer_t *mainTimer;     /**< Main Screen Timer */
 lv_style_t styleThemeBkg;  /**< Main background style object. */
 lv_style_t styleObjectBkg; /**< Object background style. */
 lv_style_t styleObjectSel; /**< Object selected style. */
@@ -90,6 +95,11 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     static bool pinchActive = false;
     static int lastZoomDir = ZOOM_NONE;    
     static unsigned long lastTime = 0;
+    
+    // Variables for drag detection
+    static int16_t startX = -1, startY = -1;
+    static bool isDrag = false;
+    const int DRAG_THRESHOLD = 30; // Increased threshold to 30px
 
     int count = tft.getTouch(touchRaw, TOUCH_MAX_POINTS);
 
@@ -99,6 +109,7 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     if (count == 0)
     {
         data->state = LV_INDEV_STATE_RELEASED;
+        startX = -1; 
 
         if (pinchActive && lastZoomDir != 0)
         {
@@ -115,10 +126,20 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
         if (countTouchReleases)
         {
             countTouchReleases = false;
-            uint32_t touchReleaseTime = millis_idf();
-            if (!firstTouchReleaseTime)
-                firstTouchReleaseTime = touchReleaseTime;
-            numberTouchReleases++;
+            
+            if (!isDrag)
+            {
+                uint32_t touchReleaseTime = millis_idf();
+                if (!firstTouchReleaseTime)
+                    firstTouchReleaseTime = touchReleaseTime;
+                numberTouchReleases++;
+            }
+            else
+            {
+                numberTouchReleases = 0;
+                firstTouchReleaseTime = 0;
+            }
+            isDrag = false;
         }
 
         if (millis_idf() - firstTouchReleaseTime > TOUCH_DOUBLE_TOUCH_INTERVAL)
@@ -146,6 +167,20 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
             {
                 data->point.x = TFT_WIDTH - touchRaw[count-1].y;
                 data->point.y = touchRaw[count-1].x;
+            }
+
+            if (startX == -1)
+            {
+                startX = data->point.x;
+                startY = data->point.y;
+                isDrag = false;
+            }
+            else if (!isDrag)
+            {
+                if (abs(data->point.x - startX) > DRAG_THRESHOLD || abs(data->point.y - startY) > DRAG_THRESHOLD)
+                {
+                    isDrag = true;
+                }
             }
 
             countTouchReleases = true;
@@ -354,7 +389,8 @@ void lv_tick_task(void *arg)
 void initLVGL()
 {
     lv_init();
-    
+    initSharedStyles();
+
     display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
     lv_display_set_flush_cb(display, displayFlush);
     lv_display_set_flush_wait_cb(display, NULL);
@@ -458,5 +494,8 @@ void loadMainScreen()
         lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
     else
         lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+    
+    if (mainTimer) lv_timer_resume(mainTimer);
+
     lv_screen_load(mainScreen);
 }

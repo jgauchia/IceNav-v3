@@ -38,7 +38,7 @@ LV_IMG_DECLARE(outtrack);
  * @param lastIdx   Index of the last known closest point.
  * @return          Index of the closest waypoint found in the track.
  */
-int findClosestTrackPoint(float userLat, float userLon, const std::vector<wayPoint>& track, int lastIdx, const NavConfig& config)
+int findClosestTrackPoint(float userLat, float userLon, const TrackVector& track, int lastIdx, const NavConfig& config)
 {
     int n = (int)track.size();
     int window = config.searchWindow;
@@ -137,7 +137,7 @@ void advanceTurnIndex(const std::vector<TurnPoint>& turns, NavState& state, int 
  * @param state Navigation state
  * @return Index of the next valid turn, or -1 if none found
  */
-int findNextValidTurn(const std::vector<wayPoint>& track, const std::vector<TurnPoint>& turns, 
+int findNextValidTurn(const TrackVector& track, const std::vector<TurnPoint>& turns, 
                       float userLat, float userLon, NavState& state, const NavConfig& config)
 {
     for (int i = state.nextTurnIdx; i < turns.size(); ++i)
@@ -223,7 +223,7 @@ void displayTurnIcon(float distanceToNextEvent, float abs_angle, bool derecha, f
  */
 void updateNavigation(
     float userLat, float userLon, float userHeading, float speed_kmh,
-    const std::vector<wayPoint>& track,
+    const TrackVector& track,
     const std::vector<TurnPoint>& turns,
     NavState& state,
     float minAngleForCurve,

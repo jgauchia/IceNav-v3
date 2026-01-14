@@ -11,6 +11,8 @@
 #include <stddef.h>
 #include "driver/i2c.h"
 #include "esp_err.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 
 // I2C Configuration
 // Speed: 100000=100kHz (standard), 400000=400kHz (fast)
@@ -30,10 +32,22 @@ public:
     bool writeBytes(uint8_t addr, uint8_t reg, const uint8_t* buffer, size_t len);
     bool isInitialized() const { return initialized; }
 
+    bool lock(TickType_t timeout = pdMS_TO_TICKS(I2C_TIMEOUT_MS)) {
+        if (!initialized || i2cMutex == nullptr) return false;
+        return xSemaphoreTake(i2cMutex, timeout) == pdTRUE;
+    }
+
+    void unlock() {
+        if (initialized && i2cMutex != nullptr) {
+            xSemaphoreGive(i2cMutex);
+        }
+    }
+
 private:
     i2c_port_t i2cPort;
     bool initialized;
-    static constexpr int I2C_TIMEOUT_MS = 100;
+    SemaphoreHandle_t i2cMutex;
+    static constexpr int I2C_TIMEOUT_MS = 500;
 };
 
 extern I2CNative i2c;

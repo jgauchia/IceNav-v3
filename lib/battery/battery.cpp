@@ -8,6 +8,9 @@
 
 #include "battery.hpp"
 
+// Global Battery instance
+Battery battery;
+
 /**
  * @brief Constructs a Battery monitoring object for voltage measurement and percentage calculation.
  */
@@ -71,14 +74,14 @@ float Battery::readBattery()
         esp_rom_delay_us(150);
     }
 
-    voltage = sum / 100.0;
+    voltage = sum / 100.0f;
     // Custom board has a divider circuit
-    constexpr float R1 = 100000.0; // Resistance of R1 (100K)
-    constexpr float R2 = 100000.0; // Resistance of R2 (100K)
-    voltage = (voltage * V_REF) / 4096.0;
+    constexpr float R1 = 100000.0f; // Resistance of R1 (100K)
+    constexpr float R2 = 100000.0f; // Resistance of R2 (100K)
+    voltage = (voltage * V_REF) / 4096.0f;
     voltage = voltage * ((R1 + R2) / R2);
-    voltage = roundf(voltage * 100) / 100;
-    output = ((voltage - batteryMin) / (batteryMax - batteryMin)) * 100;
+    voltage = roundf(voltage * 100.0f) / 100.0f;
+    output = ((voltage - batteryMin) / (batteryMax - batteryMin)) * 100.0f;
 
     return (output <= 500) ? output : 0.0f;
 }

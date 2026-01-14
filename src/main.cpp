@@ -7,7 +7,6 @@
  */
 
 #include <Arduino.h>
-#include <stdint.h>
 #include "i2c_espidf.hpp"
 #include <SPI.h>
 #include <WiFi.h>
@@ -16,6 +15,8 @@
 #include <esp_log.h>
 #include <ESPmDNS.h>
 #include <SolarCalculator.h>
+
+#define TASK_SLEEP_PERIOD_MS 5 /**< Sleep period for main loop in milliseconds */
 
 // Hardware includes
 #include "hal.hpp"
@@ -57,12 +58,11 @@ extern Storage storage;
 extern Battery battery;
 extern Power power;
 extern Maps mapView;
-extern Gps gps;
 #ifdef ENABLE_COMPASS
     Compass compass;
 #endif
 
-std::vector<wayPoint> trackData;     /**< Vector for storing track data */
+TrackVector trackData;     /**< Vector for storing track data */
 std::vector<TurnPoint> turnPoints;   /**< Vector for storing turn points */
 
 #include "navigation.hpp"
@@ -115,8 +115,8 @@ void calculateSun()
 void setup()
 {
     gpsMutex = xSemaphoreCreateMutex();
-    esp_log_level_set("*", ESP_LOG_DEBUG);
-    esp_log_level_set("storage", ESP_LOG_DEBUG);
+    // esp_log_level_set("*", ESP_LOG_DEBUG);
+    // esp_log_level_set("storage", ESP_LOG_DEBUG);
 
     lutInit = initTrigLUT();
 
@@ -161,13 +161,17 @@ void setup()
     storage.initSPIFFS();
     battery.initADC();
 
+    // Delay before TFT initialization to prevent I2C bus contention
+    #ifdef ENABLE_COMPASS
+        vTaskDelay(pdMS_TO_TICKS(50));
+    #endif
+
     initTFT();
     createGpxFolders();
 
     mapView.initMap(tft.height() - 27, tft.width());
 
     // Initialize performance optimizations
-    mapView.initUnifiedPool();
 
     loadPreferences();
     gps.init();
@@ -179,6 +183,7 @@ void setup()
     gps.gpsData.longitude = gps.getLon();
 
     initGpsTask();
+    initSensorTask();
 
     #ifndef DISABLE_CLI
         initCLI();
@@ -202,7 +207,18 @@ void setup()
         ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     splashScreen();
-    lv_screen_load(searchSatScreen);
+
+    // If GPS already has fix, skip search screen and go directly to main
+    if (isGpsFixed)
+    {
+        isSearchingSat = false;
+        loadMainScreen();
+    }
+    else
+    {
+        lv_timer_resume(searchTimer);
+        lv_screen_load(searchSatScreen);
+    }
 }
 
 /**

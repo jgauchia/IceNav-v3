@@ -7,6 +7,7 @@
  */
 
 #include "mainScr.hpp"
+#include "tasks.hpp"
 
 bool isMainScreen = false;    
 bool isScrolled = true;      
@@ -40,7 +41,6 @@ lv_obj_t *btnZoomIn;
 lv_obj_t *btnZoomOut;
 
 lv_obj_t *mapCanvas;          /**< LVGL for the map canvas */
-lv_layer_t canvasMapLayer;    /**< LVGL drawing layer for the map canvas */
 
 extern Maps mapView;
 
@@ -169,40 +169,42 @@ void updateMainScreen(lv_timer_t *t)
 {
     if (isScrolled && isMainScreen)
     {
+        #ifdef ENABLE_COMPASS
+            if (!waitScreenRefresh)
+                heading = globalSensorData.heading;
+        #else
+            heading = gps.gpsData.heading;
+        #endif
+
+        if (gps.hasLocationChange())
+        {
+            lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
+            lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
+        }
+
         switch (activeTile)
         {
         case COMPASS:
-            #ifdef ENABLE_COMPASS
-                if (!waitScreenRefresh)
-                    heading = compass.getHeading();
-                if (compass.isUpdated())
-                    lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
-            #endif
-            #ifndef ENABLE_COMPASS
-                heading = gps.gpsData.heading;
-                lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
-            #endif
-            if (gps.hasLocationChange())
+            static int lastHeadingComp = -1;
+            if (heading != lastHeadingComp)
             {
-                lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
-                lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
+                lastHeadingComp = heading;
+                lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
             }
-            if (gps.isAltitudeChanged())
+
+            static int16_t lastAltMain = -32768;
+            if (gps.gpsData.altitude != lastAltMain)
+            {
+                lastAltMain = gps.gpsData.altitude;
                 lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
+            }
+
             if (gps.isSpeedChanged())
                 lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
             break;
 
         case MAP:
-            #ifdef ENABLE_COMPASS
-            if (mapSet.mapRotationComp)
-                heading = compass.getHeading();
-            else
-                heading = gps.gpsData.heading;
-            #else
-                heading = gps.gpsData.heading;
-            #endif
-                lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
+            lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
             break;
 
         case NAV:
@@ -228,12 +230,31 @@ void updateMainScreen(lv_timer_t *t)
  */
 void updateMap(lv_event_t *event)
 {
+    // Force redraw in GPS mode to handle rotation/movement
+    if (mapView.followGps) mapView.redrawMap = true;
+
     mapView.generateMap(zoom);
 
     if (mapView.redrawMap)
     {
         mapView.displayMap();
-        lv_canvas_set_buffer(mapCanvas, mapView.mapBuffer, tft.width(), tft.height()-27, LV_COLOR_FORMAT_RGB565_SWAPPED);
+        // Virtual canvas for smooth panning
+        lv_canvas_set_buffer(mapCanvas, mapView.mapBuffer, Maps::tileWidth, Maps::tileHeight, LV_COLOR_FORMAT_RGB565_SWAPPED);
+        mapView.redrawMap = false;
+    }
+
+    // Position canvas for viewport
+    int16_t baseX = (tft.width() - Maps::tileWidth) / 2;
+    int16_t baseY = ((tft.height() - 27) - Maps::tileHeight) / 2;
+    if (mapView.followGps)
+    {
+        // GPS mode: center is already correct from pushRotated, no offset needed
+        lv_obj_set_pos(mapCanvas, baseX, baseY);
+    }
+    else
+    {
+        // Manual mode: apply panning offsets for smooth scroll
+        lv_obj_set_pos(mapCanvas, baseX - mapView.offsetX, baseY - mapView.offsetY);
     }
 
     if (mapSet.showMapSpeed)
@@ -263,8 +284,12 @@ void updateSatTrack(lv_event_t *event)
         lv_label_set_text_fmt(vdopLabel, "VDOP: %.1f", gps.gpsData.vdop);
     }
 
-    if (gps.isAltitudeChanged())
+    static int16_t lastAltSat = -32768;
+    if (gps.gpsData.altitude != lastAltSat)
+    {
+        lastAltSat = gps.gpsData.altitude;
         lv_label_set_text_fmt(altLabel, "ALT: %4dm.", gps.gpsData.altitude);
+    }
 
     drawSatSNR();
     drawSatSky();
@@ -283,6 +308,7 @@ void mapToolBarEvent(lv_event_t *event)
 
     showMapToolBar = !showMapToolBar;
     canScrollMap = !canScrollMap;
+    isScrollingMap = false;
 
     if (!showMapToolBar)
     {
@@ -356,6 +382,7 @@ void scrollMapEvent(lv_event_t *event)
                 break;
             }
         
+            case LV_EVENT_RELEASED:
             case LV_EVENT_PRESS_LOST:
             {
                 lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
@@ -403,10 +430,10 @@ void updateNavEvent(lv_event_t *event)
     else
     {
         #ifdef ENABLE_COMPASS
-            float wptCourse = calcCourse(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon) - compass.getHeading();
+            float wptCourse = calcCourse(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon) - heading;
         #endif
         #ifndef ENABLE_COMPASS
-            float wptCourse = calcCourse(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon) - gps.gpsData.heading;
+            float wptCourse = calcCourse(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon) - heading;
         #endif
             lv_img_set_angle(arrowNav, (wptCourse * 10));
     }
@@ -421,11 +448,11 @@ void updateNavEvent(lv_event_t *event)
  */
 void createMapCanvas(_lv_obj_t *screen)
 {
-    // static lv_color_t *cbuf = (lv_color_t*)heap_caps_aligned_alloc(16, (tft.width()*tft.height()*sizeof(lv_color_t)), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);;
     mapCanvas = lv_canvas_create(screen);
-    // lv_canvas_set_buffer(mapCanvas, cbuf, tft.width(), tft.height(), LV_COLOR_FORMAT_RGB565);
-    // lv_canvas_fill_bg(mapCanvas, lv_color_white(), LV_OPA_100);
-    // lv_canvas_init_layer(constCanvas, &canvasMapLayer);
+    // Hide scrollbars for virtual canvas
+    lv_obj_set_scrollbar_mode(mapCanvas, LV_SCROLLBAR_MODE_OFF);
+    // Prevent canvas from affecting parent scroll
+    lv_obj_add_flag(mapCanvas, LV_OBJ_FLAG_FLOATING);
 }
 
 /**
@@ -446,10 +473,7 @@ void createMainScr()
     satTrackTile = lv_tileview_add_tile(tilesScreen, 3, 0, LV_DIR_LEFT);
     lv_obj_set_size(tilesScreen, TFT_WIDTH, TFT_HEIGHT - 25);
     lv_obj_set_pos(tilesScreen, 0, 25);
-    static lv_style_t styleScroll;
-    lv_style_init(&styleScroll);
-    lv_style_set_bg_color(&styleScroll, lv_color_hex(0xFFFFFF));
-    lv_obj_add_style(tilesScreen, &styleScroll, LV_PART_SCROLLBAR);
+    lv_obj_add_style(tilesScreen, &styleScrollbarWhite, LV_PART_SCROLLBAR);
     // Main Screen Events
     lv_obj_add_event_cb(tilesScreen, getActTile, LV_EVENT_SCROLL_END, NULL);
     lv_obj_add_event_cb(tilesScreen, scrollTile, LV_EVENT_SCROLL_BEGIN, NULL);

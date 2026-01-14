@@ -18,7 +18,7 @@ bool gpxWaypoint = false;
 bool gpxTrack = false;
 bool isTrackLoaded = false;
 
-extern std::vector<wayPoint> trackData;   /**< Vector containing track waypoints */
+extern TrackVector trackData;   /**< Vector containing track waypoints */
 extern std::vector<TurnPoint> turnPoints; /**< Vector containing turn points */
 
 lv_obj_t *listGPXScreen;                /**< Add Waypoint screen */
@@ -53,7 +53,7 @@ void gpxListEvent(lv_event_t *event)
                 gpxFileFolder = String(trkFolder) + "/" + gpxFile;
 
             GPXParser gpx(gpxFileFolder.c_str());
-            
+
             if (!sel.isEmpty())
             {
                 switch (gpxAction)
@@ -64,7 +64,7 @@ void gpxListEvent(lv_event_t *event)
                         {
                             loadWpt = gpx.getWaypointInfo(gpxName.c_str());
                             LV_IMG_DECLARE(navup);
-                            lv_img_set_src(arrowNav, &navup);        
+                            lv_img_set_src(arrowNav, &navup);
 
                             if (loadWpt.lat != 0 && loadWpt.lon != 0)
                             {
@@ -85,9 +85,12 @@ void gpxListEvent(lv_event_t *event)
 
                         if (gpxTrack)
                         {
-                            gpx.loadTrack(trackData);  
-                            turnPoints = gpx.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, trackData);       
-                            isTrackLoaded = true;
+                            isTrackLoaded = false;
+                            trackData.clear();
+                            trackData.shrink_to_fit();
+                            gpx.loadTrack(trackData);
+                            turnPoints = gpx.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, trackData);
+                            isTrackLoaded = !trackData.empty();
                             lv_obj_clear_flag(turnByTurn,LV_OBJ_FLAG_HIDDEN);
                             mapView.updateMap();
                             lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
@@ -133,7 +136,7 @@ void gpxListEvent(lv_event_t *event)
                         if (gpxTrack)
                             gpx.deleteTagByName(gpxTrackTag, gpxName.c_str());
 
-                        loadMainScreen(); 
+                        loadMainScreen();
                         break;
                     default:
                         break;
@@ -204,7 +207,7 @@ void updateGpxListScreen()
                 totalGpx++;
             }
         }
-    } 
+    }
 
     if (isTrackOpt)
     {

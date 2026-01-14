@@ -24,6 +24,9 @@ extern const uint8_t SD_CLK;  /**< Clock pin for SD card */
 
 static const char *TAG = "Storage";
 
+// Global Storage instance
+Storage storage;
+
 /**
  * @brief Formats a byte size as a human-readable string with appropriate units.
  *
@@ -80,7 +83,7 @@ esp_err_t Storage::initSD()
 		.sclk_io_num = (gpio_num_t)SD_CLK,
 		.quadwp_io_num = -1,
 		.quadhd_io_num = -1,
-		.max_transfer_sz = 32768,
+		.max_transfer_sz = 4096,
 		.flags = 0,
 		.intr_flags = 0};
 
@@ -95,13 +98,12 @@ esp_err_t Storage::initSD()
 		return ret;
 	}
 
-
 	ESP_LOGI(TAG, "Initializing SD card");
 
 	esp_vfs_fat_mount_config_t mount_config = {
 		.format_if_mount_failed = false,
-		.max_files = 12,
-		.allocation_unit_size = 8192};
+		.max_files = 20,  // 9 NAV tiles + other files
+		.allocation_unit_size = 4096};
 
 	ret = esp_vfs_fat_sdspi_mount("/sdcard", &host, &slot_config, &mount_config, &card);
 	if (ret != ESP_OK)
@@ -145,6 +147,18 @@ esp_err_t Storage::initSD()
 			isSdLoaded = true;
 			return ESP_OK;
 		}
+	#endif
+}
+
+/**
+ * @brief Deinitialize SD card
+ * @details Unmounts SD card and frees SPI bus if not using SPI_SHARED
+ */
+void Storage::deinitSD()
+{
+	#ifndef SPI_SHARED
+		if (isSdLoaded && card != nullptr)
+			esp_vfs_fat_sdcard_unmount("/sdcard", card);
 	#endif
 }
 
