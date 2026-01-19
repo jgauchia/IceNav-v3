@@ -13,6 +13,24 @@
 #include "settings.hpp"
 #include "maps.hpp"
 
+/**
+ * @brief Screen state tracking structure for performance optimization.
+ *
+ * @details Stores previous values of screen data to prevent unnecessary LVGL updates.
+ * Implements dirty flag pattern to only redraw when values actually change.
+ */
+struct ScreenState 
+{
+    int lastHeading = -1;
+    int16_t lastAltitude = -32768;
+    float lastLat = NAN;
+    float lastLon = NAN;
+    float lastSpeed = -1;
+    bool needsRedraw = true;
+};
+
+extern struct ScreenState screenState;
+
 static lv_obj_t *mapSettingsOptions;   /**< Map settings options container object. */
 static lv_obj_t *mapSwitch;            /**< Map enable/disable switch object. */
 static lv_obj_t *mapType;              /**< Map type selection object. */

@@ -112,9 +112,27 @@ void hideMapWidgets()
 }
 
 /**
- * @brief Get the active tile
+ * @brief Screen state tracking structure for performance optimization.
  *
- * @details Handles the tileview scroll event, updates the active tile index, and manages map/widget visibility and bar status.
+ * @details Stores previous values of screen data to prevent unnecessary LVGL updates.
+ * Implements dirty flag pattern to only redraw when values actually change.
+ */
+struct ScreenState 
+{
+    int lastHeading = -1;
+    int16_t lastAltitude = -32768;
+    float lastLat = NAN;
+    float lastLon = NAN;
+    float lastSpeed = -1;
+    bool needsRedraw = true;
+};
+
+ScreenState screenState;
+
+/**
+ * @brief Get active tile
+ *
+ * @details Handles tileview scroll event, updates active tile index, and manages map/widget visibility and bar status.
  *
  * @param event LVGL event pointer.
  */
@@ -124,6 +142,7 @@ void getActTile(lv_event_t *event)
     {
         isScrolled = true;
         mapView.redrawMap = true;
+        screenState.needsRedraw = true;
 
         if (activeTile == MAP)
         {
@@ -158,6 +177,7 @@ void scrollTile(lv_event_t *event)
     isReady = false;
     mapView.redrawMap = false;
     mapView.deleteMapScrSprites();
+    screenState.needsRedraw = true;
 }
 
 /**
@@ -167,48 +187,77 @@ void scrollTile(lv_event_t *event)
  */
 void updateMainScreen(lv_timer_t *t)
 {
-    if (isScrolled && isMainScreen)
+    if (isScrolled && isMainScreen || isScrollingMap)
     {
         #ifdef ENABLE_COMPASS
             if (!waitScreenRefresh)
+            {
                 heading = globalSensorData.heading;
+            }
         #else
-            heading = gps.gpsData.heading;
+            {
+                heading = gps.gpsData.heading;
+            }
         #endif
 
         if (gps.hasLocationChange())
         {
-            lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
-            lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
+            if (gps.gpsData.latitude != screenState.lastLat || 
+                gps.gpsData.longitude != screenState.lastLon)
+            {
+                screenState.lastLat = gps.gpsData.latitude;
+                screenState.lastLon = gps.gpsData.longitude;
+                screenState.needsRedraw = true;
+                lv_obj_send_event(latitude, LV_EVENT_VALUE_CHANGED, NULL);
+                lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
+            }
         }
 
         switch (activeTile)
         {
         case COMPASS:
-            static int lastHeadingComp = -1;
-            if (heading != lastHeadingComp)
+            if (heading != screenState.lastHeading)
             {
-                lastHeadingComp = heading;
+                screenState.lastHeading = heading;
+                screenState.needsRedraw = true;
                 lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
             }
 
-            static int16_t lastAltMain = -32768;
-            if (gps.gpsData.altitude != lastAltMain)
+            if (gps.gpsData.altitude != screenState.lastAltitude)
             {
-                lastAltMain = gps.gpsData.altitude;
+                screenState.lastAltitude = gps.gpsData.altitude;
+                screenState.needsRedraw = true;
                 lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
             }
 
             if (gps.isSpeedChanged())
+            {
+                screenState.needsRedraw = true;
                 lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
+            }
             break;
 
         case MAP:
-            lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
+            // Check if heading changed for map rotation
+            if (heading != screenState.lastHeading)
+            {
+                screenState.lastHeading = heading;
+                screenState.needsRedraw = true;
+            }
+            
+            if (screenState.needsRedraw)
+            {
+                lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
+                screenState.needsRedraw = false;
+            }
             break;
 
         case NAV:
-            lv_obj_send_event(navTile, LV_EVENT_VALUE_CHANGED, NULL);
+            if (screenState.needsRedraw)
+            {
+                lv_obj_send_event(navTile, LV_EVENT_VALUE_CHANGED, NULL);
+                screenState.needsRedraw = false;
+            }
             break;
 
         case SATTRACK:
@@ -376,6 +425,7 @@ void scrollMapEvent(lv_event_t *event)
                 {
                     mapView.scrollMap(-dx, -dy);
                     lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+                    screenState.needsRedraw = true;
                     last_x = p.x;
                     last_y = p.y;
                 }
@@ -407,7 +457,8 @@ void zoomEvent(lv_event_t *event)
         zoom++;
     else if ( obj == btnZoomOut && ( zoom <= maxZoom && zoom > minZoom ) )
         zoom--;
-    lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+    screenState.needsRedraw = true;
+    lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
     lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
 }
 
@@ -477,6 +528,7 @@ void createMainScr()
     // Main Screen Events
     lv_obj_add_event_cb(tilesScreen, getActTile, LV_EVENT_SCROLL_END, NULL);
     lv_obj_add_event_cb(tilesScreen, scrollTile, LV_EVENT_SCROLL_BEGIN, NULL);
+    lv_obj_add_event_cb(tilesScreen, getActTile, LV_EVENT_SCROLL, NULL);
 
     // ********** Compass Tile **********
     // Compass Widget
