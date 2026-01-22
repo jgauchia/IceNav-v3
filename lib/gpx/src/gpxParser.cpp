@@ -144,30 +144,14 @@ bool GPXParser::deleteTagByName(const char* tag, const char* name)
         if (nameElement && strcmp(nameElement->GetText(), name) == 0)
         {
             root->DeleteChild(Tag);
-            result = doc.SaveFile(filePath.c_str());
-            if (result != tinyxml2::XML_SUCCESS)
-            {
-                ESP_LOGE(TAGGPX, "Failed to save file: %s", filePath.c_str());
-                return false;
-            }
+             result = doc.SaveFile(filePath.c_str());
+             if (result != tinyxml2::XML_SUCCESS)
+             {
+                 ESP_LOGE(TAGGPX, "Failed to save file: %s", filePath.c_str());
+                 return false;
+             }
 
-            // if (!root->FirstChildElement(gpxWaypointTag))
-            // {
-            //   if (!root->FirstChildElement(gpxTrackTag))
-            //   {
-            //     if (remove(filePath.c_str()) != 0)
-            //     {
-            //       ESP_LOGE(TAGGPX, "Failed to delete file: %s", filePath.c_str());
-            //       return false;
-            //     }
-            //     ESP_LOGI(TAGGPX, "File %s deleted as it had no waypoints or tracks left", filePath.c_str());
-            //   }
-            //   else
-            //   {
-            //     ESP_LOGI(TAGGPX, "File %s not deleted as it contains tracks but no waypoints", filePath.c_str());
-            //   }
-            // }
-            return true;
+             return true;
         }
     }
 
@@ -321,17 +305,9 @@ bool GPXParser::addWaypoint(const wayPoint& wp)
     // element->SetText(wp.desc ? wp.desc : "");
     // newWpt->InsertEndChild(element);
 
-    element = doc.NewElement(gpxSrcElem);
-    element->SetText(wp.src ? wp.src : "IceNav");
-    newWpt->InsertEndChild(element);
-
-    // element = doc.NewElement(gpxSymElem);
-    // element->SetText(wp.sym ? wp.sym : "");
-    // newWpt->InsertEndChild(element);
-
-    // element = doc.NewElement(gpxTypeElem);
-    // element->SetText(wp.type ? wp.type : "");
-    // newWpt->InsertEndChild(element);
+     element = doc.NewElement(gpxSrcElem);
+     element->SetText(wp.src ? wp.src : "IceNav");
+     newWpt->InsertEndChild(element);
 
     element = doc.NewElement(gpxSatElem);
     element->SetText(wp.sat);

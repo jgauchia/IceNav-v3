@@ -15,6 +15,20 @@
 #include <cstdint>
 #include "tasks.hpp"
 #include "mainScr.hpp"
+#include "../../images/src/bruj.h"
+#include "../../images/src/compass.h"
+#include "../../images/src/waypoint.h"
+#include "../../images/src/navfinish.h"
+#include "../../images/src/straight.h"
+#include "../../images/src/slleft.h"
+#include "../../images/src/slright.h"
+#include "../../images/src/tleft.h"
+#include "../../images/src/tright.h"
+#include "../../images/src/uleft.h"
+#include "../../images/src/uright.h"
+#include "../../images/src/finish.h"
+#include "../../images/src/outtrack.h"
+#include "globalGpxDef.h"
 
 extern Compass compass;
 extern Gps gps;
@@ -275,12 +289,8 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
     Maps::mapScrHeight = mapHeight;
     Maps::mapScrWidth = mapWidth;
 
-    // 1. mapTempSprite: El canvas virtual de rendering de 3x3 tiles (768x768). Permanente. (~1.1MB)
-    // Ocupa ~1.1MB de PSRAM, asignado una única vez al inicio.
     Maps::mapTempSprite.createSprite(Maps::tileWidth, Maps::tileHeight);
 
-    // 2. mapSprite: El buffer para el canvas LVGL (también 768x768). Permanente. (~1.1MB)
-    // Ocupa ~1.1MB, asignado una única vez al inicio.
     Maps::mapSprite.createSprite(Maps::tileWidth, Maps::tileHeight);
     Maps::mapBuffer = Maps::mapSprite.getBuffer(); // Enlazar este buffer al canvas LVGL
 

@@ -9,13 +9,6 @@
 #include "searchSatScr.hpp"
 #include "esp_timer.h"
 
-/**
- * @brief Get system uptime in milliseconds using ESP-IDF timer.
- * @return uint32_t Milliseconds since boot.
- */
-static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
-
-static unsigned long millisActual = 0;        /**< Stores the current timestamp in milliseconds */
 static bool skipSearch = false;               /**< Flag to indicate if satellite search should be skipped */
 bool isSearchingSat = true;                   /**< Flag to indicate if satellite search is in progress */
 extern uint8_t activeTile;                    /**< Index of the currently active tile */

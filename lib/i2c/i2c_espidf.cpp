@@ -165,7 +165,7 @@ bool I2CNative::write8(uint8_t addr, uint8_t reg, uint8_t value)
 
             if (ret == ESP_OK)
             {
-                return true; // Éxito
+                return true;
             }
             ESP_LOGW(TAG, "Write8 failed for 0x%02X reg 0x%02X (attempt %d/%d): %s", addr, reg, i + 1, retries, esp_err_to_name(ret));
             vTaskDelay(pdMS_TO_TICKS(5 * (i + 1)));
@@ -218,7 +218,7 @@ size_t I2CNative::readBytes(uint8_t addr, uint8_t reg, uint8_t* buffer, size_t l
 
             if (ret == ESP_OK)
             {
-                return len; // Éxito
+                return len;
             }
             ESP_LOGW(TAG, "ReadBytes failed for 0x%02X reg 0x%02X (attempt %d/%d): %s", addr, reg, i + 1, retries, esp_err_to_name(ret));
             vTaskDelay(pdMS_TO_TICKS(5 * (i + 1)));
@@ -267,7 +267,7 @@ size_t I2CNative::readBytesRaw(uint8_t addr, uint8_t* buffer, size_t len)
 
             if (ret == ESP_OK)
             {
-                return len; // Éxito
+                return len;
             }
             ESP_LOGW(TAG, "ReadBytesRaw failed for 0x%02X (attempt %d/%d): %s", addr, i + 1, retries, esp_err_to_name(ret));
             vTaskDelay(pdMS_TO_TICKS(5 * (i + 1)));
@@ -314,7 +314,7 @@ bool I2CNative::writeBytes(uint8_t addr, uint8_t reg, const uint8_t* buffer, siz
 
             if (ret == ESP_OK)
             {
-                return true; // Éxito
+                return true;
             }
             ESP_LOGW(TAG, "WriteBytes failed for 0x%02X reg 0x%02X (attempt %d/%d): %s", addr, reg, i + 1, retries, esp_err_to_name(ret));
             vTaskDelay(pdMS_TO_TICKS(5 * (i + 1)));

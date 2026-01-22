@@ -8,10 +8,7 @@
 
 #include <Arduino.h>
 #include "i2c_espidf.hpp"
-#include <SPI.h>
 #include <WiFi.h>
-#include <esp_wifi.h>
-#include <esp_bt.h>
 #include <esp_log.h>
 #include <ESPmDNS.h>
 #include <SolarCalculator.h>
