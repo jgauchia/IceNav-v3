@@ -23,9 +23,7 @@ extern TrackVector trackData; /**< Vector containing track waypoints */
 const char* TAG = "Maps";
 
 // Tile cache system static variables
-std::vector<Maps::CachedTile> Maps::tileCache;
-size_t Maps::maxCachedTiles = 0;
-uint32_t Maps::cacheAccessCounter = 0;
+uint32_t Maps::maxCachedTiles = 0;
 
 // Background prefetch system static variables (multi-core)
 QueueHandle_t Maps::prefetchQueue = nullptr;
@@ -306,8 +304,7 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
     projBuf32Y.reserve(2048);
     polyScanlineBuf.reserve(2048);
     
-    // Initialize tile cache system
-    initTileCache();
+
 
     // Initialize background prefetch system (multi-core)
     initPrefetchSystem();
@@ -324,7 +321,7 @@ void Maps::deleteMapScrSprites()
     Maps::preloadSprite.deleteSprite();
 
     // Clear tile cache to free memory
-    clearTileCache();
+
 }
 
 /**
@@ -358,12 +355,7 @@ void Maps::generateMap(uint8_t zoom)
         if (!prefetchTaskRunning) initPrefetchSystem();
     }
 
-    // Clear cache if zoom level changed (tiles are not compatible between zoom levels)
-    if (Maps::zoomLevel != zoom && Maps::zoomLevel != 0)
-    {
-        ESP_LOGI(TAG, "Zoom level changed from %d to %d - clearing cache", Maps::zoomLevel, zoom);
-        clearTileCache();
-    }
+
 
     Maps::zoomLevel = zoom;
 
@@ -930,70 +922,12 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
     }
 }
 
-/**
- * @brief Initialize tile cache system
- *
- * @details Initializes the tile cache system by clearing existing cache, reserving space for the maximum number of cached tiles,
- *          resetting the access counter, and logging the cache capacity for debugging purposes.
- */
-void Maps::initTileCache()
-{
-    tileCache.clear();
-
-    // Calculate cache size based on available PSRAM
-    // Each cached tile uses mapTileSize * mapTileSize * 2 bytes (RGB565)
-    const size_t tileSizeBytes = mapTileSize * mapTileSize * 2;  // 256*256*2 = 128KB per tile
-    #ifdef BOARD_HAS_PSRAM
-        // Fixed cache size: 3 tiles (1 row/column for prefetch)
-        maxCachedTiles = 3;
-    #else
-        // Without PSRAM, disable cache
-        maxCachedTiles = 0;
-    #endif
-
-    tileCache.reserve(maxCachedTiles);
-    cacheAccessCounter = 0;
-}
 
 
-/**
- * @brief Calculate hash for tile identification
- *
- * @details Creates a simple hash from the file path for cache lookup.
- *
- * @param filePath The file path to hash.
- * @return Hash value for the file path.
- */
-uint32_t Maps::calculateTileHash(const char* filePath)
-{
-    uint32_t hash = 0;
-    const char* p = filePath;
-    while (*p) 
-    {
-        hash = hash * 31 + *p;
-        p++;
-    }
-    return hash;
-}
 
-/**
- * @brief Clear all cached tiles
- *
- * @details Frees all cached tiles and clears the cache.
- */
-void Maps::clearTileCache()
-{
-    for (auto& cachedTile : tileCache)
-    {
-        if (cachedTile.sprite) 
-        {
-            cachedTile.sprite->deleteSprite();
-            delete cachedTile.sprite;
-        }
-    }
-    tileCache.clear();
-    cacheAccessCounter = 0;
-}
+
+
+
 
 /**
  * @brief Background prefetch task that runs on Core 0
@@ -1020,37 +954,16 @@ void Maps::prefetchTask(void* pvParameters)
         // Wait for a request with timeout
         if (xQueueReceive(prefetchQueue, &request, pdMS_TO_TICKS(100)) == pdTRUE)
         {
-            if (prefetchMutex && xSemaphoreTake(prefetchMutex, pdMS_TO_TICKS(50)) == pdTRUE)
+            // FS Warming: pre-read file to trigger SD/VFS cache
+            FILE* pngFile = fopen(request.filePath, "rb");
+            if (pngFile)
             {
-                // Check if already cached using hash
-                uint32_t tileHash = mapsInstance->calculateTileHash(request.filePath);
-                bool alreadyCached = false;
-                for (const auto& cachedTile : tileCache)
-                {
-                    if (cachedTile.isValid && cachedTile.tileHash == tileHash)
-                    {
-                        alreadyCached = true;
-                        break;
-                    }
-                }
-
-                if (!alreadyCached)
-                {
-                    // FS Warming: pre-read file to trigger SD/VFS cache
-                    FILE* pngFile = fopen(request.filePath, "rb");
-                    if (pngFile)
-                    {
-                        static char warmingBuffer[1024]; // Small static buffer to save stack
-                        while (fread(warmingBuffer, 1, sizeof(warmingBuffer), pngFile) > 0) {}
-                        fclose(pngFile);
-                    }
-                }
-                xSemaphoreGive(prefetchMutex);
+                static char warmingBuffer[1024]; // Small static buffer to save stack
+                while (fread(warmingBuffer, 1, sizeof(warmingBuffer), pngFile) > 0) {}
+                fclose(pngFile);
             }
-            taskYIELD();
         }
     }
-
     vTaskDelete(NULL);
 }
 

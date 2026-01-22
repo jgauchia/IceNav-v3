@@ -42,14 +42,7 @@ class Maps
             float lon;          /**< Longitude of the tile center */
         };
         
-        struct CachedTile		/**< Cached tile structure */
-        {
-            TFT_eSprite* sprite;    /**< Rendered tile sprite */
-            uint32_t tileHash;     /**< Hash for tile identification */
-            uint32_t lastAccess;   /**< Last access timestamp for LRU */
-            bool isValid;          /**< Cache entry validity */
-            char filePath[255];    /**< Original file path */
-        };
+
 
         struct PolygonBounds	/**< Polygon bounding box structure */
         {
@@ -77,10 +70,8 @@ class Maps
         static const uint16_t mapTileSize = 256;                             	     /**< Map tile size */
         static const uint16_t scrollThreshold = 180;                                  /**< Smooth scroll threshold (for 768x768 canvas) */
 
-        // Tile cache system
-        static std::vector<CachedTile> tileCache;                                   /**< Tile cache storage */
-        static size_t maxCachedTiles;                                               /**< Maximum cached tiles based on hardware */
-        static uint32_t cacheAccessCounter;                                         /**< Counter for LRU algorithm */
+        // Prefetch system
+        static size_t maxCachedTiles;                                               /**< Maximum cached tiles (0 for FS only) */
         
         // Background preload system (multi-core)
         struct PrefetchRequest      /**< Background prefetch request structure */
@@ -126,9 +117,8 @@ class Maps
         
         
         // Tile cache methods
-        void initTileCache();                                                         /**< Initialize tile cache system */
-        void clearTileCache();                                                       /**< Clear all cached tiles */
-        uint32_t calculateTileHash(const char* filePath);                           /**< Calculate hash for tile identification */
+
+
 
         // Background prefetch methods (multi-core)
         void initPrefetchSystem();                                                  /**< Initialize background prefetch system */
