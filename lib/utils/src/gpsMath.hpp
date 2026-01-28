@@ -109,7 +109,8 @@ static inline __attribute__((always_inline)) float cosLUT(float rad)
 
 
 float calcDist(float lat1, float lon1, float lat2, float lon2);
-char *latFormatString(float lat);
-char *lonFormatString(float lon);
+float calcDistSq(float lat1, float lon1, float lat2, float lon2);
 float calcCourse(float lat1, float lon1, float lat2, float lon2);
 float calcAngleDiff(float a, float b);
+char *latFormatString(float lat);
+char *lonFormatString(float lon);

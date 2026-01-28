@@ -65,31 +65,62 @@ bool initTrigLUT()
  */
 float calcDist(float lat1, float lon1, float lat2, float lon2)
 {
-	lat1 = DEG2RAD(lat1);
-	lon1 = DEG2RAD(lon1);
-	lat2 = DEG2RAD(lat2);
-	lon2 = DEG2RAD(lon2);
- 	float dlat = lat2 - lat1;
-    float dlon = lon2 - lon1;
+    // Simple Last Value Cache (LVC)
+    static float last_lat1 = 0, last_lon1 = 0, last_lat2 = 0, last_lon2 = 0;
+    static float last_dist = -1.0f;
+
+    if (lat1 == last_lat1 && lon1 == last_lon1 && lat2 == last_lat2 && lon2 == last_lon2)
+        return last_dist;
+
+	float lat1_rad = DEG2RAD(lat1);
+	float lon1_rad = DEG2RAD(lon1);
+	float lat2_rad = DEG2RAD(lat2);
+	float lon2_rad = DEG2RAD(lon2);
+ 	float dlat = lat2_rad - lat1_rad;
+    float dlon = lon2_rad - lon1_rad;
 
     float a, c;
 
     if (lutInit)
     {
         a = sinLUT(dlat * 0.5f) * sinLUT(dlat * 0.5f) +
-            cosLUT(lat1) * cosLUT(lat2) *
+            cosLUT(lat1_rad) * cosLUT(lat2_rad) *
             sinLUT(dlon * 0.5f) * sinLUT(dlon * 0.5f);
     }
     else
     {
         a = sinf(dlat * 0.5f) * sinf(dlat * 0.5f) +
-            cosf(lat1) * cosf(lat2) *
+            cosf(lat1_rad) * cosf(lat2_rad) *
             sinf(dlon * 0.5f) * sinf(dlon * 0.5f);
     }
 
     c = 2.0f * atan2f(sqrtf(a), sqrtf(1.0f - a));
+    last_dist = EARTH_RADIUS * c;
+    
+    // Update cache
+    last_lat1 = lat1; last_lon1 = lon1; last_lat2 = lat2; last_lon2 = lon2;
 
-    return EARTH_RADIUS * c;
+    return last_dist;
+}
+
+/**
+ * @brief Fast squared distance calculation using Equirectangular approximation.
+ * 
+ * @details Valid for short distances. Returns distance squared in meters^2 to avoid costly sqrtf.
+ *          Useful for comparing distances in loops. Expects coordinates in RADIANS.
+ * 
+ * @param lat1_rad Latitude 1 (radians)
+ * @param lon1_rad Longitude 1 (radians)
+ * @param lat2_rad Latitude 2 (radians)
+ * @param lon2_rad Longitude 2 (radians)
+ * @return Squared distance in meters^2
+ */
+float calcDistSq(float lat1_rad, float lon1_rad, float lat2_rad, float lon2_rad)
+{
+    float x = (lon2_rad - lon1_rad) * cosf((lat1_rad + lat2_rad) / 2.0f);
+    float y = lat2_rad - lat1_rad;
+
+    return (x * x + y * y);
 }
 
 /**

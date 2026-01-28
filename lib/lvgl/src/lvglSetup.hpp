@@ -8,7 +8,7 @@
 
 #pragma once
 
-#define LV_TICK_PERIOD_MS 5
+#define LV_TICK_PERIOD_MS 10
 
 #include "lvgl_private.h"
 #include "globalGpxDef.h"

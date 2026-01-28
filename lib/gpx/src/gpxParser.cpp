@@ -340,11 +340,15 @@ bool GPXParser::addWaypoint(const wayPoint& wp)
     return result == tinyxml2::XML_SUCCESS;
 }
 
+#include "gpsMath.hpp"
+extern std::vector<TrackSegment> trackIndex;
+
 /**
 * @brief Load GPX track data and store coordinates from '<trk>' structure.
 *
 * @details Loads all track points from the `<trk>` structure in the GPX file, extracting latitude and longitude for each `<trkpt>`,
 * 		   and stores them as `wayPoint` structures in the provided vector. Pre-reserves memory to avoid heap fragmentation.
+*          Also computes accumulated distance and builds a spatial index (TrackSegments) for fast search.
 *          Returns true if the operation was successful, or false on error.
 *
 * @param trackData Vector to store track points (each point is a wayPoint).
@@ -358,6 +362,15 @@ bool GPXParser::loadTrack(TrackVector& trackData)
         ESP_LOGE(TAGGPX, "Failed to load file: %s", filePath.c_str());
         return false;
     }
+
+    // Estimate number of points to reserve memory
+    fseek(file, 0, SEEK_END);
+    long fileSize = ftell(file);
+    rewind(file);
+    size_t estimatedPoints = fileSize / 50; // Approx 50 bytes per point
+    trackData.reserve(estimatedPoints);
+    trackIndex.clear(); // Clear previous index
+    ESP_LOGI(TAGGPX, "Reserving memory for approx %d points", estimatedPoints);
 
     char line[256];
     while (fgets(line, sizeof(line), file))
@@ -403,6 +416,59 @@ bool GPXParser::loadTrack(TrackVector& trackData)
     }
 
     fclose(file);
+
+    // Post-processing: Calculate accumulated distance and build Spatial Index
+    if (!trackData.empty())
+    {
+        float totalDist = 0;
+        trackData[0].accumDist = 0;
+        
+        // Configuration for Spatial Indexing
+        const int SEGMENT_SIZE = 100; // Points per segment
+        TrackSegment currentSeg;
+        currentSeg.startIdx = 0;
+        currentSeg.minLat = 90.0f; currentSeg.maxLat = -90.0f;
+        currentSeg.minLon = 180.0f; currentSeg.maxLon = -180.0f;
+
+        for (size_t i = 0; i < trackData.size(); ++i)
+        {
+            // Accumulate distance
+            if (i > 0)
+            {
+                float d = calcDist(trackData[i-1].lat, trackData[i-1].lon, trackData[i].lat, trackData[i].lon);
+                totalDist += d;
+                trackData[i].accumDist = totalDist;
+            }
+
+            // Update Segment Bounding Box
+            if (trackData[i].lat < currentSeg.minLat) currentSeg.minLat = trackData[i].lat;
+            if (trackData[i].lat > currentSeg.maxLat) currentSeg.maxLat = trackData[i].lat;
+            if (trackData[i].lon < currentSeg.minLon) currentSeg.minLon = trackData[i].lon;
+            if (trackData[i].lon > currentSeg.maxLon) currentSeg.maxLon = trackData[i].lon;
+
+            // Close Segment if full or last point
+            if ((i + 1) % SEGMENT_SIZE == 0 || i == trackData.size() - 1)
+            {
+                currentSeg.endIdx = i;
+                // Add a small buffer to Bounding Box (e.g., 50m ~ 0.0005 deg) to account for GPS error
+                const float BUFFER = 0.0005f; 
+                currentSeg.minLat -= BUFFER; currentSeg.maxLat += BUFFER;
+                currentSeg.minLon -= BUFFER; currentSeg.maxLon += BUFFER;
+                
+                trackIndex.push_back(currentSeg);
+                
+                // Reset for next segment
+                if (i < trackData.size() - 1)
+                {
+                    currentSeg.startIdx = i + 1;
+                    currentSeg.minLat = 90.0f; currentSeg.maxLat = -90.0f;
+                    currentSeg.minLon = 180.0f; currentSeg.maxLon = -180.0f;
+                }
+            }
+        }
+        ESP_LOGI(TAGGPX, "Index built. Segments: %d, Total Dist: %.1f m", trackIndex.size(), totalDist);
+    }
+
     ESP_LOGI(TAGGPX, "Track loaded. Points: %d", trackData.size());
     return true;
 }
@@ -462,12 +528,12 @@ std::vector<TurnPoint> GPXParser::getTurnPointsSlidingWindow(
                                     trackData[i + windowSize].lat, trackData[i + windowSize].lon);
         float diff = calcAngleDiff(brgEnd, brgStart);
 
-        accumDist += calcDist(trackData[i - 1].lat, trackData[i - 1].lon,
-                              trackData[i].lat, trackData[i].lon);
+        // Use pre-calculated accumulated distance
+        float currentAccumDist = trackData[i].accumDist;
 
         if (std::fabs(diff) > sharpTurnDeg)
         {
-            turnPoints.push_back({static_cast<int>(i), diff, accumDist});
+            turnPoints.push_back({static_cast<int>(i), diff, currentAccumDist});
             continue;
         }
 
@@ -475,7 +541,7 @@ std::vector<TurnPoint> GPXParser::getTurnPointsSlidingWindow(
             continue;
 
         if (std::fabs(diff) > thresholdDeg)
-            turnPoints.push_back({static_cast<int>(i), diff, accumDist});
+            turnPoints.push_back({static_cast<int>(i), diff, currentAccumDist});
     }
 
     return turnPoints;

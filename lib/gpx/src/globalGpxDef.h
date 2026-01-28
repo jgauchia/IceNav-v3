@@ -36,6 +36,21 @@ struct wayPoint
     float     hdop;    /**< Horizontal dilution of precision. */
     float     vdop;    /**< Vertical dilution of precision. */
     float     pdop;    /**< Position dilution of precision. */
+    float     accumDist; /**< Accumulated distance from start (meters). */
+};
+
+/**
+ * @brief Track Segment for Spatial Indexing
+ *
+ * @details Represents a segment of the track with its bounding box.
+ *          Used for hierarchical search (O(log n)) instead of linear search.
+ */
+struct TrackSegment
+{
+    int startIdx;
+    int endIdx;
+    float minLat, maxLat;
+    float minLon, maxLon;
 };
 
 /**

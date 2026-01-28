@@ -23,59 +23,104 @@ LV_IMG_DECLARE(uright);
 LV_IMG_DECLARE(finish);
 LV_IMG_DECLARE(outtrack);
 
+// UI Throttling state
+static const void* lastIconShown = nullptr;
+static int lastDistShown = -1;
+
+extern std::vector<TrackSegment> trackIndex;
+
 /**
- * @brief Finds the closest track point index to the user's current position using an adaptive local/global search.
+ * @brief Finds the closest track point index to the user's current position using an adaptive hierarchical search.
  *
- * @details This function locates the closest waypoint in the GPX track to the current GPS coordinates.
- *          - Initially performs a localized search within a window around the last known closest index (`lastIdx`) to optimize performance.
- *          - If the distance to the closest point is too large (>30m) or the previous index is invalid, a full search of the track is triggered.
- *          - Prevents undesired small backward jumps due to GPS noise by ignoring points slightly behind the last index (<5 positions).
- *          - Returns the best matching index based on minimum haversine distance.
+ * @details Locates the closest waypoint in the GPX track to the current GPS coordinates.
+ *          - Optimization: Uses Spatial Indexing and Squared Distance comparisons for O(log n) performance.
+ *          - Performance: Operates on squared distances and radian-preconverted coordinates to minimize CPU overhead.
  *
- * @param userLat   Current latitude of the user.
- * @param userLon   Current longitude of the user.
+ * @param userLat   Current latitude of the user (degrees).
+ * @param userLon   Current longitude of the user (degrees).
  * @param track     The vector of wayPoints representing the full track.
  * @param lastIdx   Index of the last known closest point.
+ * @param config    Navigation configuration parameters.
  * @return          Index of the closest waypoint found in the track.
  */
 int findClosestTrackPoint(float userLat, float userLon, const TrackVector& track, int lastIdx, const NavConfig& config)
 {
     int n = (int)track.size();
-    int window = config.searchWindow;
-    float minDist = std::numeric_limits<float>::max();
+    float minDistSq = std::numeric_limits<float>::max();
     int closestIdx = -1;
 
-    // If last index is invalid or near track edges, force global search
-    bool forceGlobal = lastIdx < 0 || lastIdx >= n;
+    // Convert user coordinates to radians once for all loop iterations
+    const float uLatRad = DEG2RAD(userLat);
+    const float uLonRad = DEG2RAD(userLon);
 
-    int start = forceGlobal ? 0 : std::max(0, lastIdx - window);
-    int end   = forceGlobal ? n - 1 : std::min(n - 1, lastIdx + window);
+    // Pre-calculate squared thresholds in angular units (radians^2) for performance
+    // formula: angular_dist = metric_dist / EARTH_RADIUS
+    const float invEarthRadius = 1.0f / EARTH_RADIUS;
+    const float fastPathThresholdSq = (20.0f * invEarthRadius) * (20.0f * invEarthRadius);
+    const float offTrackThresholdSq = (config.offTrackThreshold * invEarthRadius) * (config.offTrackThreshold * invEarthRadius);
 
-    for (int i = start; i <= end; ++i) 
+    // Fast local search: checks a small window around the last known position
+    if (lastIdx >= 0 && lastIdx < n)
     {
-        float d = calcDist(userLat, userLon, track[i].lat, track[i].lon);
-        if (d < minDist) 
-        {
-            minDist = d;
-            closestIdx = i;
-        }
-    }
+        int window = config.searchWindow;
+        int start = std::max(0, lastIdx - 10); 
+        int end   = std::min(n - 1, lastIdx + window);
 
-    // If user is far from last known point, perform full search
-    if (!forceGlobal && minDist > config.offTrackThreshold) 
-    {
-        for (int i = 0; i < n; ++i) 
+        for (int i = start; i <= end; ++i) 
         {
-            float d = calcDist(userLat, userLon, track[i].lat, track[i].lon);
-            if (d < minDist) 
+            float dSq = calcDistSq(uLatRad, uLonRad, DEG2RAD(track[i].lat), DEG2RAD(track[i].lon));
+            if (dSq < minDistSq) 
             {
-                minDist = d;
+                minDistSq = dSq;
                 closestIdx = i;
             }
         }
+        
+        if (minDistSq < fastPathThresholdSq) 
+             return closestIdx;
     }
 
-    // Avoid small backward jumps (likely due to GPS noise)
+    // Hierarchical Global Search: scans the TrackSegment index if local search fails
+    if (closestIdx == -1 || minDistSq > offTrackThresholdSq) 
+    {
+        if (!trackIndex.empty())
+        {
+            minDistSq = std::numeric_limits<float>::max();
+            closestIdx = -1;
+            
+            for (const auto& seg : trackIndex)
+            {
+                if (userLat <= seg.maxLat && userLat >= seg.minLat &&
+                    userLon <= seg.maxLon && userLon >= seg.minLon)
+                {
+                    for (int i = seg.startIdx; i <= seg.endIdx; ++i)
+                    {
+                        float dSq = calcDistSq(uLatRad, uLonRad, DEG2RAD(track[i].lat), DEG2RAD(track[i].lon));
+                        if (dSq < minDistSq)
+                        {
+                            minDistSq = dSq;
+                            closestIdx = i;
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            for (int i = 0; i < n; ++i) 
+            {
+                float dSq = calcDistSq(uLatRad, uLonRad, DEG2RAD(track[i].lat), DEG2RAD(track[i].lon));
+                if (dSq < minDistSq) 
+                {
+                    minDistSq = dSq;
+                    closestIdx = i;
+                }
+            }
+        }
+    }
+    
+    if (closestIdx == -1) return std::max(0, lastIdx);
+
     if (closestIdx < lastIdx && (lastIdx - closestIdx) < config.maxBackwardJump)
         return lastIdx;
 
@@ -96,7 +141,11 @@ void handleOffTrackCondition(float distToTrack, NavState& state, int closestIdx,
 {
     if (distToTrack > config.offTrackThreshold) 
     {
-        lv_img_set_src(turnImg, &outtrack);
+        if (lastIconShown != &outtrack)
+        {
+            lv_img_set_src(turnImg, &outtrack);
+            lastIconShown = &outtrack;
+        }
 
         // Save current turn index if just detected off-track
         if (!state.isOffTrack) 
@@ -138,54 +187,70 @@ void advanceTurnIndex(const std::vector<TurnPoint>& turns, NavState& state, int 
  * @return Index of the next valid turn, or -1 if none found
  */
 int findNextValidTurn(const TrackVector& track, const std::vector<TurnPoint>& turns, 
-                      float userLat, float userLon, NavState& state, const NavConfig& config)
+                      float userLat, float userLon, int closestIdx, NavState& state, const NavConfig& config)
 {
     for (int i = state.nextTurnIdx; i < turns.size(); ++i)
     {
-        const float turnLat = track[turns[i].idx].lat;
-        const float turnLon = track[turns[i].idx].lon;
-        const float distanceToTurn = calcDist(userLat, userLon, turnLat, turnLon);
-
-        if (distanceToTurn < config.minTurnDistance)
+        // Only skip turns that are physically behind our current track index
+        if (turns[i].idx <= closestIdx)
             continue;
 
-        if (distanceToTurn > config.maxTurnDistance) 
-        {
-            ESP_LOGW("NAV", "Skipping suspicious turn at index %d (dist=%.1f)", i, distanceToTurn);
-            continue;
-        }
-
-        return i; // Valid turn found
+        return i; // Found the next logical turn
     }
     
-    return -1; // No valid turn found
+    return -1; // Truly no more turns
 }
 
 /**
- * @brief Display appropriate turn icon based on distance and angle
+ * @brief Updates turn-by-turn navigation status and on-screen instructions.
+
+
+/**
+ * @brief Calculates the closest point on a line segment to a given point.
  *
- * @details Shows the correct directional icon based on distance to turn and angle.
+ * @details Projects the user coordinates onto the segment formed by two track points (A and B).
+ *          - Geographic Scaling: Applies a cosine latitude factor for accurate projection on Earth's surface.
+ *          - Performance: Uses pre-calculated squared distances and radian coordinates.
  *
- * @param distanceToNextEvent Distance to the next turn event
- * @param abs_angle Absolute value of the turn angle
- * @param derecha True if turn is to the right
- * @param warnDist Warning distance threshold
- * @param minAngleForCurve Minimum angle for curve classification
+ * @param pLat User latitude.
+ * @param pLon User longitude.
+ * @param aLat Segment start latitude.
+ * @param aLon Segment start longitude.
+ * @param bLat Segment end latitude.
+ * @param bLon Segment end longitude.
+ * @param outLat Output for projected latitude.
+ * @param outLon Output for projected longitude.
+ * @return Squared distance to the segment in meters^2.
  */
-void displayTurnIcon(float distanceToNextEvent, float abs_angle, bool derecha, float warnDist, float minAngleForCurve)
+float projectOnSegment(float pLat, float pLon, float aLat, float aLon, float bLat, float bLon, float& outLat, float& outLon)
 {
-    // Display turn icon only within warning distance
-    if (distanceToNextEvent <= warnDist)
+    // Apply cosine factor to longitude for correct spatial projection
+    float cosFactor = cosf(DEG2RAD((aLat + bLat) / 2.0f));
+    
+    float dLat = bLat - aLat;
+    float dLon = (bLon - aLon) * cosFactor;
+    float pLatRel = pLat - aLat;
+    float pLonRel = (pLon - aLon) * cosFactor;
+
+    float denom = dLat * dLat + dLon * dLon;
+    if (denom == 0)
     {
-        if (abs_angle >= minAngleForCurve && abs_angle < 60.0f) 
-            lv_img_set_src(turnImg, derecha ? &slright : &slleft);
-        else if (abs_angle >= 60.0f) 
-            lv_img_set_src(turnImg, derecha ? &tright : &tleft);
-        else 
-            lv_img_set_src(turnImg, &straight);
+        outLat = aLat;
+        outLon = aLon;
+        return calcDistSq(DEG2RAD(pLat), DEG2RAD(pLon), DEG2RAD(aLat), DEG2RAD(aLon));
     }
-    else
-        lv_img_set_src(turnImg, &straight);
+
+    // Projection factor t using scaled coordinates for geographic accuracy
+    float t = (pLatRel * dLat + pLonRel * dLon) / denom;
+    
+    // Clamp t to [0, 1] to stay within the segment
+    if (t < 0) t = 0;
+    if (t > 1) t = 1;
+
+    outLat = aLat + t * (bLat - aLat);
+    outLon = aLon + t * (bLon - aLon);
+
+    return calcDistSq(DEG2RAD(pLat), DEG2RAD(pLon), DEG2RAD(outLat), DEG2RAD(outLon));
 }
 
 /**
@@ -194,24 +259,14 @@ void displayTurnIcon(float distanceToNextEvent, float abs_angle, bool derecha, f
  * @details Determines the user's current position relative to a GPX track and selects the next valid
  * navigation event (turn) from a list of preprocessed `TurnPoint` entries.
  *
- * The function handles:
- * - Real-time distance calculation to the track and the upcoming turn.
- * - Resynchronization in case of GPS drift, off-track situations, or user jumps.
- * - Prevention of regressions in track index to avoid flickering icons.
- * - Filtering of suspicious or invalid turns based on distance thresholds.
- * - Display of appropriate directional icons (left, right, straight, finish, out-of-track).
- *
  * Main logic steps:
  * - Use `findClosestTrackPoint()` to locate the closest point in the track to the current position.
- * - If off-track (>30m), mark the navigation state as off-route and restore `nextTurnIdx` using `lastValidTurnIdx`.
- * - Advance `nextTurnIdx` if the corresponding turn has been passed already.
- * - Skip suspiciously distant turn events (>2000m) to avoid invalid guidance.
- * - Classify turns by angular threshold into straight, soft, or hard turns.
- * - Show directional icon if within `warnDist`, or fallback to "straight ahead".
- * - Round distance to next event to the nearest 5 meters and update the display label.
+ * - Project user position onto adjacent segments for smooth coordinate tracking and accurate distance.
+ * - Handles off-track condition with a squared distance threshold.
+ * - Advances turn index and updates directional icons based on Euclidean distance to upcoming events.
  *
- * @param userLat             Current latitude.
- * @param userLon             Current longitude.
+ * @param userLat             Current latitude (degrees).
+ * @param userLon             Current longitude (degrees).
  * @param userHeading         Current heading (in degrees).
  * @param speed_kmh           Current speed in km/h.
  * @param track               Vector of GPX track waypoints.
@@ -232,7 +287,50 @@ void updateNavigation(
 )
 {
     int closestIdx = findClosestTrackPoint(userLat, userLon, track, state.lastTrackIdx, config);
-    float distToTrack = calcDist(userLat, userLon, track[closestIdx].lat, track[closestIdx].lon);
+    
+    // Convert to radians for optimized projection calculation
+    const float uLatRad = DEG2RAD(userLat);
+    const float uLonRad = DEG2RAD(userLon);
+
+    // Projection on segments for smooth tracking
+    float pLat = track[closestIdx].lat;
+    float pLon = track[closestIdx].lon;
+
+    // Check segments around closestIdx to find the real projection
+    float bestLat = pLat, bestLon = pLon;
+    float minDistSq = calcDistSq(uLatRad, uLonRad, DEG2RAD(pLat), DEG2RAD(pLon));
+
+    // Check previous segment
+    if (closestIdx > 0)
+    {
+        float tLat, tLon;
+        float dSq = projectOnSegment(userLat, userLon, track[closestIdx - 1].lat, track[closestIdx - 1].lon, 
+                                   track[closestIdx].lat, track[closestIdx].lon, tLat, tLon);
+        if (dSq < minDistSq)
+        {
+            minDistSq = dSq;
+            bestLat = tLat;
+            bestLon = tLon;
+        }
+    }
+
+    // Check next segment
+    if (closestIdx < track.size() - 1)
+    {
+        float tLat, tLon;
+        float dSq = projectOnSegment(userLat, userLon, track[closestIdx].lat, track[closestIdx].lon, 
+                                   track[closestIdx + 1].lat, track[closestIdx + 1].lon, tLat, tLon);
+        if (dSq < minDistSq)
+        {
+            minDistSq = dSq;
+            bestLat = tLat;
+            bestLon = tLon;
+        }
+    }
+
+    float distToTrack = sqrtf(minDistSq) * EARTH_RADIUS; 
+    state.projLat = bestLat;
+    state.projLon = bestLon;
 
     // Handle off-track condition
     if (distToTrack > config.offTrackThreshold) 
@@ -246,6 +344,9 @@ void updateNavigation(
     {
         state.nextTurnIdx = state.lastValidTurnIdx;
         state.isOffTrack = false;
+        // Reset trackers to force update after state change
+        lastIconShown = nullptr;
+        lastDistShown = -1;
     }
 
     // Advance turn index if turns have been passed
@@ -254,17 +355,25 @@ void updateNavigation(
     // No more turns remaining
     if (state.nextTurnIdx >= turns.size()) 
     {
-        lv_img_set_src(turnImg, &finish);
+        if (lastIconShown != &finish)
+        {
+            lv_img_set_src(turnImg, &finish);
+            lastIconShown = &finish;
+        }
         state.lastTrackIdx = closestIdx;
         return;
     }
 
     // Find next valid turn
-    int nextEventIdx = findNextValidTurn(track, turns, userLat, userLon, state, config);
+    int nextEventIdx = findNextValidTurn(track, turns, userLat, userLon, closestIdx, state, config);
     
     if (nextEventIdx == -1) 
     {
-        lv_img_set_src(turnImg, &finish);
+        if (lastIconShown != &finish)
+        {
+            lv_img_set_src(turnImg, &finish);
+            lastIconShown = &finish;
+        }
         state.lastTrackIdx = closestIdx;
         return;
     }
@@ -274,14 +383,31 @@ void updateNavigation(
     const float turnLon = track[turns[nextEventIdx].idx].lon;
     const float distanceToNextEvent = calcDist(userLat, userLon, turnLat, turnLon);
     const float abs_angle = fabsf(turns[nextEventIdx].angle);
-    const bool derecha = (turns[nextEventIdx].angle > 0.0f);
+    const bool isRight = (turns[nextEventIdx].angle > 0.0f);
 
-    // Display appropriate turn icon
-    displayTurnIcon(distanceToNextEvent, abs_angle, derecha, warnDist, minAngleForCurve);
+    // Determine appropriate turn icon
+    const void* currentIcon = &straight;
+    if (distanceToNextEvent <= warnDist)
+    {
+        if (abs_angle >= minAngleForCurve && abs_angle < 60.0f) 
+            currentIcon = isRight ? &slright : &slleft;
+        else if (abs_angle >= 60.0f) 
+            currentIcon = isRight ? &tright : &tleft;
+    }
 
-    // Update distance label
+    if (currentIcon != lastIconShown)
+    {
+        lv_img_set_src(turnImg, currentIcon);
+        lastIconShown = currentIcon;
+    }
+
+    // Update distance label only if rounded value changes
     int roundedDist = ((int)distanceToNextEvent / 5) * 5;
-    lv_label_set_text_fmt(turnDistLabel, "%4d", roundedDist);
+    if (roundedDist != lastDistShown)
+    {
+        lv_label_set_text_fmt(turnDistLabel, "%4d", roundedDist);
+        lastDistShown = roundedDist;
+    }
 
     state.lastTrackIdx = closestIdx;
 }

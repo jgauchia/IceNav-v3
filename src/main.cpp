@@ -13,7 +13,7 @@
 #include <ESPmDNS.h>
 #include <SolarCalculator.h>
 
-#define TASK_SLEEP_PERIOD_MS 5 /**< Sleep period for main loop in milliseconds */
+int taskSleepPeriod = 10; /**< Sleep period for main loop in milliseconds */
 
 // Hardware includes
 #include "hal.hpp"
@@ -60,6 +60,7 @@ extern Maps mapView;
 #endif
 
 TrackVector trackData;     /**< Vector for storing track data */
+std::vector<TrackSegment> trackIndex; /**< Vector for spatial indexing of the track */
 std::vector<TurnPoint> turnPoints;   /**< Vector for storing turn points */
 
 #include "navigation.hpp"
@@ -230,7 +231,21 @@ void loop()
     if (!waitScreenRefresh)
     {
         lv_timer_handler();
-        vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
+
+        // Adaptive Refresh Logic
+        // 10ms: High performance (scrolling, interacting)
+        // 20ms: Active navigation
+        // 50ms: Idle/Standby
+        if (gps.gpsData.speed > 0)
+            taskSleepPeriod = 20;
+        else
+            taskSleepPeriod = 50;
+
+        // If map is being scrolled or interacted with, force high performance
+        if (lv_disp_get_inactive_time(NULL) < 1000)
+             taskSleepPeriod = 10;
+
+        vTaskDelay(pdMS_TO_TICKS(taskSleepPeriod));
     }
 
     // Process web server tasks (directory deletion)
@@ -252,8 +267,13 @@ void loop()
             simConfig.offTrackThreshold = 75.0f;   // More tolerant for simulation
             simConfig.maxBackwardJump = 10;        // Allow more backward movement
             
-            updateNavigation(gps.gpsData.latitude, gps.gpsData.longitude, gps.gpsData.heading, gps.gpsData.speed,
-                             trackData, turnPoints, navState, 20, 200, simConfig);
+            static unsigned long lastNavUpdate = 0;
+            if (millis() - lastNavUpdate > 100)
+            {
+                lastNavUpdate = millis();
+                updateNavigation(gps.gpsData.latitude, gps.gpsData.longitude, gps.gpsData.heading, gps.gpsData.speed,
+                                trackData, turnPoints, navState, 20, 200, simConfig);
+            }
         }
     }
 }
