@@ -86,7 +86,7 @@ void drawProgressBar(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t per
     uint16_t barHeight = h - 2 * margin;
     uint16_t barWidth  = w - 2 * margin;
     upgradeSprite.drawRoundRect(x, y, w, h, 3, frameColor);
-    upgradeSprite.fillRect(x + margin, y + margin, barWidth * percent / 100.0, barHeight, barColor);
+    upgradeSprite.fillRect(x + margin, y + margin, barWidth * percent / 100.0f, barHeight, barColor);
 }
 
 /**

@@ -12,7 +12,7 @@
 #include "globalGuiDef.h"
 
 extern lv_obj_t *searchSatScreen;                                    /**< Search Satellite Screen  */
-static lv_timer_t *searchTimer;                                      /**< Timer for satellite search process */
+extern lv_timer_t *searchTimer;                                      /**< Timer for satellite search process */
 static const char* textSearch = "Searching for satellites";  /**< Search status message  */
 static const char* satIconFile = "/sat.bin";                 /**< Path to satellite icon file */
 static const char *skipIconFile = "/skip.bin";               /**< Path to skip icon file */

@@ -69,10 +69,10 @@ void loadPreferences()
 {
     cfg.init("ICENAV");
     #ifdef ENABLE_COMPASS
-        compass.setOffsets(cfg.getFloat(PKEYS::KCOMP_OFFSET_X, 0.0), cfg.getFloat(PKEYS::KCOMP_OFFSET_Y, 0.0));
-        compass.setDeclinationAngle(cfg.getFloat(PKEYS::KDECL_ANG, 0.22));
+        compass.setOffsets(cfg.getFloat(PKEYS::KCOMP_OFFSET_X, 0.0f), cfg.getFloat(PKEYS::KCOMP_OFFSET_Y, 0.0f));
+        compass.setDeclinationAngle(cfg.getFloat(PKEYS::KDECL_ANG, 0.22f));
         compass.enableKalmanFilter(cfg.getBool(PKEYS::KKALM_FIL, false));
-        compass.setKalmanFilterConst(cfg.getFloat(PKEYS::KKALM_Q, 0.01),cfg.getFloat(PKEYS::KKALM_R, 0.1));
+        compass.setKalmanFilterConst(cfg.getFloat(PKEYS::KKALM_Q, 0.01f),cfg.getFloat(PKEYS::KKALM_R, 0.1f));
     #endif  
     mapSet.mapRotationComp = cfg.getBool(PKEYS::KMAP_ROT_MODE, false);
     mapSet.showMapCompass = cfg.getBool(PKEYS::KMAP_COMPASS, true);
@@ -118,7 +118,7 @@ void loadPreferences()
         sunPosY = cfg.isKey(CONFKEYS::KSUN_Y) ? cfg.getInt(CONFKEYS::KSPEED_Y, speedPosY) : 110;
     #endif
 
-    battery.setBatteryLevels(cfg.getFloat(PKEYS::KVMAX_BATT, 4.2), cfg.getFloat(PKEYS::KVMIN_BATT, 3.6));
+    battery.setBatteryLevels(cfg.getFloat(PKEYS::KVMAX_BATT, 4.2f), cfg.getFloat(PKEYS::KVMIN_BATT, 3.6f));
     printSettings();
 }
 

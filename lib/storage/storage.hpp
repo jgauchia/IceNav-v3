@@ -173,6 +173,7 @@ class Storage
         esp_err_t initSD();
         esp_err_t initSPIFFS();
         SDCardInfo getSDCardInfo();
+        void deinitSD();
         bool getSdLoaded() const;
         FILE *open(const char *path, const char *mode);
         int close(FILE *file);

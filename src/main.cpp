@@ -7,15 +7,13 @@
  */
 
 #include <Arduino.h>
-#include <stdint.h>
 #include "i2c_espidf.hpp"
-#include <SPI.h>
 #include <WiFi.h>
-#include <esp_wifi.h>
-#include <esp_bt.h>
 #include <esp_log.h>
 #include <ESPmDNS.h>
 #include <SolarCalculator.h>
+
+int taskSleepPeriod = 10; /**< Sleep period for main loop in milliseconds */
 
 // Hardware includes
 #include "hal.hpp"
@@ -57,12 +55,12 @@ extern Storage storage;
 extern Battery battery;
 extern Power power;
 extern Maps mapView;
-extern Gps gps;
 #ifdef ENABLE_COMPASS
     Compass compass;
 #endif
 
-std::vector<wayPoint> trackData;     /**< Vector for storing track data */
+TrackVector trackData;     /**< Vector for storing track data */
+std::vector<TrackSegment> trackIndex; /**< Vector for spatial indexing of the track */
 std::vector<TurnPoint> turnPoints;   /**< Vector for storing turn points */
 
 #include "navigation.hpp"
@@ -115,8 +113,8 @@ void calculateSun()
 void setup()
 {
     gpsMutex = xSemaphoreCreateMutex();
-    esp_log_level_set("*", ESP_LOG_DEBUG);
-    esp_log_level_set("storage", ESP_LOG_DEBUG);
+    // esp_log_level_set("*", ESP_LOG_DEBUG);
+    // esp_log_level_set("storage", ESP_LOG_DEBUG);
 
     lutInit = initTrigLUT();
 
@@ -161,13 +159,17 @@ void setup()
     storage.initSPIFFS();
     battery.initADC();
 
+    // Delay before TFT initialization to prevent I2C bus contention
+    #ifdef ENABLE_COMPASS
+        vTaskDelay(pdMS_TO_TICKS(50));
+    #endif
+
     initTFT();
     createGpxFolders();
 
     mapView.initMap(tft.height() - 27, tft.width());
 
     // Initialize performance optimizations
-    mapView.initUnifiedPool();
 
     loadPreferences();
     gps.init();
@@ -179,6 +181,7 @@ void setup()
     gps.gpsData.longitude = gps.getLon();
 
     initGpsTask();
+    initSensorTask();
 
     #ifndef DISABLE_CLI
         initCLI();
@@ -198,11 +201,21 @@ void setup()
         configureWebServer();
     }
 
-    if (WiFi.getMode() == WIFI_OFF)
-        ESP_ERROR_CHECK(esp_event_loop_create_default());
+
 
     splashScreen();
-    lv_screen_load(searchSatScreen);
+
+    // If GPS already has fix, skip search screen and go directly to main
+    if (isGpsFixed)
+    {
+        isSearchingSat = false;
+        loadMainScreen();
+    }
+    else
+    {
+        lv_timer_resume(searchTimer);
+        lv_screen_load(searchSatScreen);
+    }
 }
 
 /**
@@ -218,7 +231,21 @@ void loop()
     if (!waitScreenRefresh)
     {
         lv_timer_handler();
-        vTaskDelay(pdMS_TO_TICKS(TASK_SLEEP_PERIOD_MS));
+
+        // Adaptive Refresh Logic
+        // 10ms: High performance (scrolling, interacting)
+        // 20ms: Active navigation
+        // 50ms: Idle/Standby
+        if (gps.gpsData.speed > 0)
+            taskSleepPeriod = 20;
+        else
+            taskSleepPeriod = 50;
+
+        // If map is being scrolled or interacted with, force high performance
+        if (lv_disp_get_inactive_time(NULL) < 1000)
+             taskSleepPeriod = 10;
+
+        vTaskDelay(pdMS_TO_TICKS(taskSleepPeriod));
     }
 
     // Process web server tasks (directory deletion)
@@ -240,8 +267,13 @@ void loop()
             simConfig.offTrackThreshold = 75.0f;   // More tolerant for simulation
             simConfig.maxBackwardJump = 10;        // Allow more backward movement
             
-            updateNavigation(gps.gpsData.latitude, gps.gpsData.longitude, gps.gpsData.heading, gps.gpsData.speed,
-                             trackData, turnPoints, navState, 20, 200, simConfig);
+            static unsigned long lastNavUpdate = 0;
+            if (millis() - lastNavUpdate > 100)
+            {
+                lastNavUpdate = millis();
+                updateNavigation(gps.gpsData.latitude, gps.gpsData.longitude, gps.gpsData.heading, gps.gpsData.speed,
+                                trackData, turnPoints, navState, 20, 200, simConfig);
+            }
         }
     }
 }

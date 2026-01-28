@@ -75,9 +75,11 @@ void wcli_info(char *args, Stream *response)
     if (psramTotal > 0)
     {
         size_t psramFree = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+        size_t psramLargestBlock = heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM);
         response->printf("PSRAM total\t: %zu bytes\r\n", psramTotal);
         response->printf("PSRAM used\t: %zu bytes\r\n", psramTotal - psramFree);
         response->printf("PSRAM free\t: %zu bytes\r\n", psramFree);
+        response->printf("PSRAM largest\t: %zu bytes\r\n", psramLargestBlock);
     }
     uint32_t flash_size = 0;
     esp_flash_get_size(NULL, &flash_size);

@@ -13,8 +13,7 @@ extern Gps gps;
 extern wayPoint loadWpt;
 extern wayPoint addWpt;
 String gpxFileFolder;
-// bool gpxWaypoint;
-// bool gpxTrack;
+
 
 lv_obj_t *gpxDetailScreen;  /**< Waypoint detail screen */
 lv_obj_t *gpxTag;

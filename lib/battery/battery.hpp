@@ -25,7 +25,7 @@ class Battery
     private:
         float batteryMax; 					/**< Maximum (full charge) voltage. */
         float batteryMin;					/**< Minimum (empty) voltage. */
-        static constexpr float V_REF = 3.3; /**< ADC reference voltage. */
+        static constexpr float V_REF = 3.3f; /**< ADC reference voltage. */
 
     public:
         Battery();
