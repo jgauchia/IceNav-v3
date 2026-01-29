@@ -100,7 +100,7 @@ static bool getPngSize(const char* filename, uint16_t *width, uint16_t *height)
 
     uint8_t table[32];
 
-    fread(table, sizeof(uint8_t), 32, file);
+    storage.read(file, table, 32);
 
     *width=table[16]*256*256*256+table[17]*256*256+table[18]*256+table[19];
     *height=table[20]*256*256*256+table[21]*256*256+table[22]*256+table[23];

@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <vector>
+#include "esp_heap_caps.h"
 
 /**
  * @brief NAV format constants
@@ -81,78 +82,27 @@ struct NavFeature
 {
     NavGeomType geomType;
     NavProperties properties;
-    std::vector<NavCoord> coords;
-    std::vector<uint16_t> ringEnds;  // For polygons
-};
-
-/**
- * @brief NAV tile header
- */
-struct NavHeader
-{
-    uint16_t featureCount;
-    NavBbox bbox;
+    NavCoord* coords = nullptr;
+    uint16_t coordCount = 0;
+    uint16_t* ringEnds = nullptr;
+    uint8_t ringCount = 0;
 };
 
 /**
  * @brief NAV tile reader
  *
- * Simple sequential reader for NAV binary tiles.
- * No spatial index needed - tiles are small and read entirely.
+ * Efficient memory-based reader for NAV binary tiles.
  */
 class NavReader
 {
 public:
-    NavReader();
-    ~NavReader();
-
     /**
-     * @brief Open and read NAV tile
-     * @param path Path to .nav file
-     * @return true if successful
+     * @brief Load entire file to memory and read features
+     * @param path File path
+     * @param features Output features
+     * @param maxZoom Zoom filter
+     * @param tileBuffer Buffer to store file data (must be pre-allocated or will be allocated)
+     * @param bufferSize Size of tileBuffer
      */
-    bool open(const char* path);
-
-    /**
-     * @brief Close file handle
-     */
-    void close();
-
-    /**
-     * @brief Check if file is open
-     */
-    bool isOpen() const { return file_ != nullptr; }
-
-    /**
-     * @brief Get tile header
-     */
-    const NavHeader& getHeader() const { return header_; }
-
-    /**
-     * @brief Read features from tile with filtering
-     * @param features Output vector
-     * @param maxZoom Only include features with min_zoom <= maxZoom
-     * @param viewport Optional viewport for culling (nullptr to disable)
-     * @return Number of features read
-     */
-    size_t readAllFeatures(std::vector<NavFeature>& features, uint8_t maxZoom, const NavBbox* viewport = nullptr);
-
-    /**
-     * @brief Get bytes read (for statistics)
-     */
-    size_t getBytesRead() const { return bytesRead_; }
-
-    /**
-     * @brief Reset bytes counter
-     */
-    void resetBytesRead() { bytesRead_ = 0; }
-
-private:
-    FILE* file_;
-    NavHeader header_;
-    size_t bytesRead_;
-    bool headerValid_;
-
-    bool readHeader();
-    bool readFeature(NavFeature& feature);
+    static size_t readAllFeaturesMemory(const char* path, std::vector<NavFeature>& features, uint8_t maxZoom, uint8_t*& tileBuffer, size_t& bufferSize);
 };

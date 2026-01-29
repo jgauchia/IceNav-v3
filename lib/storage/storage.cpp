@@ -57,7 +57,11 @@ namespace
 /**
  * @brief Storage Class constructor
  */
-Storage::Storage() : isSdLoaded(false), card(nullptr) {}
+Storage::Storage() : isSdLoaded(false), card(nullptr) 
+{
+	dmaBuffer = (uint8_t *)heap_caps_malloc(DMA_BUF_SIZE, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+	readMutex = xSemaphoreCreateMutex();
+}
 
 /**
  * @brief Initialize the SD card
@@ -83,7 +87,7 @@ esp_err_t Storage::initSD()
 		.sclk_io_num = (gpio_num_t)SD_CLK,
 		.quadwp_io_num = -1,
 		.quadhd_io_num = -1,
-		.max_transfer_sz = 4096,
+		.max_transfer_sz = DMA_BUF_SIZE,
 		.flags = 0,
 		.intr_flags = 0};
 
@@ -103,7 +107,7 @@ esp_err_t Storage::initSD()
 	esp_vfs_fat_mount_config_t mount_config = {
 		.format_if_mount_failed = false,
 		.max_files = 20,  // 9 NAV tiles + other files
-		.allocation_unit_size = 4096};
+		.allocation_unit_size = DMA_BUF_SIZE};
 
 	ret = esp_vfs_fat_sdspi_mount("/sdcard", &host, &slot_config, &mount_config, &card);
 	if (ret != ESP_OK)
@@ -280,7 +284,7 @@ bool Storage::getSdLoaded() const
  */
 FILE *Storage::open(const char *path, const char *mode)
 {
-  	return fopen(path, mode);
+	return fopen(path, mode);
 }
 
 /**
@@ -316,9 +320,27 @@ size_t Storage::size(const char *path)
  */
 size_t Storage::read(FILE *file, uint8_t *buffer, size_t size)
 {
-	if (!file)
+	if (!file || !buffer || !dmaBuffer)
 		return 0;
-	return fread(buffer, 1, size, file);
+
+	size_t totalRead = 0;
+
+	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+		return 0;
+
+	while (totalRead < size)
+	{
+		size_t toRead = (size - totalRead > DMA_BUF_SIZE) ? DMA_BUF_SIZE : (size - totalRead);
+		size_t r = fread(dmaBuffer, 1, toRead, file);
+		
+		if (r == 0) break;
+
+		memcpy(buffer + totalRead, dmaBuffer, r);
+		totalRead += r;
+	}
+
+	xSemaphoreGive(readMutex);
+	return totalRead;
 }
 
 /**
@@ -330,9 +352,7 @@ size_t Storage::read(FILE *file, uint8_t *buffer, size_t size)
  */
 size_t Storage::read(FILE *file, char *buffer, size_t size)
 {
-	if (!file)
-		return 0;
-	return fread(buffer, 1, size, file);
+	return read(file, reinterpret_cast<uint8_t *>(buffer), size);
 }
 
 /**

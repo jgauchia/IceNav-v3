@@ -969,7 +969,7 @@ void Maps::prefetchTask(void* pvParameters)
             if (pngFile)
             {
                 static char warmingBuffer[1024]; // Small static buffer to save stack
-                while (fread(warmingBuffer, 1, sizeof(warmingBuffer), pngFile) > 0) {}
+                while (storage.read(pngFile, warmingBuffer, sizeof(warmingBuffer)) > 0) {}
                 fclose(pngFile);
             }
         }
@@ -1162,10 +1162,10 @@ void Maps::navCoordToPixel(int32_t lon, int32_t lat, const NavBbox& viewport, in
  */
 void Maps::renderNavLineString(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map)
 {
-    if (feature.coords.size() < 2)
+    if (feature.coordCount < 2)
         return;
 
-    const size_t numCoords = feature.coords.size();
+    const size_t numCoords = feature.coordCount;
     
     // Zero-Allocation Projection Pipeline
     if (projBuf16X.capacity() < numCoords) projBuf16X.reserve(numCoords * 1.5);
@@ -1244,10 +1244,10 @@ void Maps::renderNavLineString(const NavFeature& feature, const NavBbox& viewpor
  */
 void Maps::renderNavPolygon(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map)
 {
-    if (feature.coords.size() < 3)
+    if (feature.coordCount < 3)
         return;
 
-    size_t numPoints = feature.coords.size();
+    size_t numPoints = feature.coordCount;
     
     // Zero-Allocation Projection Pipeline
     if (projBuf32X.capacity() < numPoints) projBuf32X.reserve(numPoints * 1.5);
@@ -1316,7 +1316,7 @@ void Maps::renderNavPolygon(const NavFeature& feature, const NavBbox& viewport, 
  */
 void Maps::renderNavPoint(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map)
 {
-    if (feature.coords.empty())
+    if (feature.coordCount == 0)
         return;
 
     int16_t px, py;
@@ -1408,9 +1408,10 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
     // Clear map with white background
     map.fillSprite(TFT_WHITE);
 
-    // Layered Render Queue (Buckets 0-15)
-    // Eliminates expensive std::sort by grouping features by priority during read
-    std::vector<NavFeature> layers[16];
+    // Persistent buffer for tile loading (reused for all 9 tiles to prevent fragmentation)
+    uint8_t* tileLoadBuffer = nullptr;
+    size_t tileLoadBufferSize = 0;
+    size_t totalTheoreticalPSRAM = 0;
 
     // Load 3x3 tiles around center
     for (int dy = -1; dy <= 1; dy++)
@@ -1424,59 +1425,43 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
             snprintf(tilePath, sizeof(tilePath), mapVectorFolder,
                      zoom, tileX, tileY);
 
-            NavReader reader;
-            if (!reader.open(tilePath))
+            std::vector<NavFeature> tileLayers[16];
+            std::vector<NavFeature> tileFeatures;
+            
+            // New super-fast memory loading
+            size_t featuresRead = NavReader::readAllFeaturesMemory(tilePath, tileFeatures, zoom, tileLoadBuffer, tileLoadBufferSize);
+            if (featuresRead == 0)
                 continue;
 
-            // Direct read into layered buckets
-            std::vector<NavFeature> tileFeatures;
-            reader.readAllFeatures(tileFeatures, zoom, &viewport);
+            totalTheoreticalPSRAM += tileLoadBufferSize;
 
             for (auto& feature : tileFeatures)
             {
                 uint8_t priority = feature.properties.getPriority();
                 if (priority < 16)
-                    layers[priority].push_back(std::move(feature));
+                    tileLayers[priority].push_back(std::move(feature));
             }
-            reader.close();
-            // Removed taskDelay/yield here to speed up bulk reading
-            // Yield only once per full render or per tile row if needed
+
+            // Render layers of THIS tile in order (0 to 15)
+            for (int p = 0; p < 16; p++)
+            {
+                for (auto& feature : tileLayers[p])
+                {
+                    if (feature.coordCount == 0 || !feature.coords) continue;
+                    renderNavFeature(feature, viewport, map);
+                }
+                tileLayers[p].clear();
+            }
         }
         taskYIELD(); // Yield per row
     }
 
-    // Render layers in order (0 to 15)
-    for (int p = 0; p < 16; p++)
-    {
-        // Yield to allow I2C/System tasks to process (prevents 'ack wait' errors)
-        taskYIELD();
-
-        for (const auto& feature : layers[p])
-        {
-            // Bbox Pre-Culling
-            if (feature.coords.empty()) continue;
-
-            int32_t fMinLon = INT32_MAX, fMaxLon = INT32_MIN;
-            int32_t fMinLat = INT32_MAX, fMaxLat = INT32_MIN;
-
-            for (const auto& c : feature.coords)
-            {
-                if (c.lon < fMinLon) fMinLon = c.lon;
-                if (c.lon > fMaxLon) fMaxLon = c.lon;
-                if (c.lat < fMinLat) fMinLat = c.lat;
-                if (c.lat > fMaxLat) fMaxLat = c.lat;
-            }
-
-            if (fMinLon > viewport.maxLon || fMaxLon < viewport.minLon || 
-                fMinLat > viewport.maxLat || fMaxLat < viewport.minLat)
-                continue;
-
-            renderNavFeature(feature, viewport, map);
-        }
-    }
+    if (tileLoadBuffer)
+        heap_caps_free(tileLoadBuffer);
 
     uint64_t totalTime = esp_timer_get_time() - startTime;
-    ESP_LOGI(TAG, "NAV Render: %llu ms", totalTime / 1000);
+    ESP_LOGI(TAG, "NAV Render: %llu ms. Theoretical PSRAM for 9 tiles: %u bytes", 
+             totalTime / 1000, totalTheoreticalPSRAM);
 
     // Resume display after vector rendering
     waitScreenRefresh = false;

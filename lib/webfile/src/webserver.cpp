@@ -553,7 +553,7 @@ static esp_err_t file_handler(httpd_req_t *req)
         }
 
         size_t read;
-        while ((read = fread(chunk, 1, 4096, file)) > 0)
+        while ((read = storage.read(file, chunk, 4096)) > 0)
         {
             if (httpd_resp_send_chunk(req, chunk, read) != ESP_OK)
             {

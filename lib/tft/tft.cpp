@@ -54,7 +54,7 @@ void touchCalibrate()
         if (repeatCalib)
             remove(calibrationFile);
         else
-            if (fread((char *)calData, sizeof(char), 16, f))
+            if (storage.read(f, (char *)calData, 16))
             {
                 calDataOK = 1;
                 storage.close(f);

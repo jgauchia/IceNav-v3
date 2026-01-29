@@ -14,6 +14,8 @@
 #include "driver/sdspi_host.h"
 #include "sdmmc_cmd.h"
 #include "Stream.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -43,6 +45,47 @@ struct SDCardInfo
     std::string total_space;  /**< Total space as a string */
     std::string free_space;   /**< Free space as a string */
     std::string used_space;   /**< Used space as a string */
+};
+
+/**
+ * @class Storage
+ * @brief Storage class for SD and SPIFFS operations
+ *
+ * @details Provides an abstraction for file and directory operations on SD cards and SPIFFS,
+ * 			including initialization, basic file I/O, and SD card information retrieval.
+ */
+class Storage
+{
+    private:
+        bool isSdLoaded;           /**< Indicates if the SD card is loaded */
+        sdmmc_card_t *card;        /**< Pointer to the SD card descriptor */
+        uint8_t *dmaBuffer;        /**< Persistent buffer for DMA-safe reads */
+        static constexpr size_t DMA_BUF_SIZE = 16384; 
+        SemaphoreHandle_t readMutex; /**< Mutex to protect dmaBuffer */
+
+    public:
+        Storage();
+
+        esp_err_t initSD();
+        esp_err_t initSPIFFS();
+        SDCardInfo getSDCardInfo();
+        void deinitSD();
+        bool getSdLoaded() const;
+        FILE *open(const char *path, const char *mode);
+        int close(FILE *file);
+        bool exists(const char *path);
+        bool mkdir(const char *path);
+        bool remove(const char *path);
+        bool rmdir(const char *path);
+        size_t size(const char *path);
+        size_t read(FILE* file, uint8_t* buffer, size_t size);
+        size_t read(FILE* file, char* buffer, size_t size);
+        size_t write(FILE* file, const uint8_t* buffer, size_t size);
+        size_t write(FILE* file, const char* buffer, size_t size);
+        int seek(FILE* file, long offset, int whence);
+        int print(FILE* file, const char* str);
+        int println(FILE* file, const char* str);
+        size_t fileAvailable(FILE* file);
 };
 
 /**
@@ -91,9 +134,8 @@ class FileStream : public Stream
         */
         virtual size_t read(uint8_t *buffer, size_t size)
         {
-            if (!file)
-                return 0;
-            return fread(buffer, 1, size, file);
+            extern Storage storage;
+            return storage.read(file, buffer, size);
         }
 
         /**
@@ -104,9 +146,8 @@ class FileStream : public Stream
         */
         virtual size_t readBytes(char *buffer, size_t length) override
         {
-            if (!file)
-                return 0;
-            return fread(buffer, 1, length, file);
+            extern Storage storage;
+            return storage.read(file, buffer, length);
         }
 
         /**
@@ -152,42 +193,4 @@ class FileStream : public Stream
 
     private:
         FILE *file; /**< Pointer to the wrapped C FILE object */
-};
-
-/**
- * @class Storage
- * @brief Storage class for SD and SPIFFS operations
- *
- * @details Provides an abstraction for file and directory operations on SD cards and SPIFFS,
- * 			including initialization, basic file I/O, and SD card information retrieval.
- */
-class Storage
-{
-    private:
-        bool isSdLoaded;           /**< Indicates if the SD card is loaded */
-        sdmmc_card_t *card;        /**< Pointer to the SD card descriptor */
-
-    public:
-        Storage();
-
-        esp_err_t initSD();
-        esp_err_t initSPIFFS();
-        SDCardInfo getSDCardInfo();
-        void deinitSD();
-        bool getSdLoaded() const;
-        FILE *open(const char *path, const char *mode);
-        int close(FILE *file);
-        bool exists(const char *path);
-        bool mkdir(const char *path);
-        bool remove(const char *path);
-        bool rmdir(const char *path);
-        size_t size(const char *path);
-        size_t read(FILE* file, uint8_t* buffer, size_t size);
-        size_t read(FILE* file, char* buffer, size_t size);
-        size_t write(FILE* file, const uint8_t* buffer, size_t size);
-        size_t write(FILE* file, const char* buffer, size_t size);
-        int seek(FILE* file, long offset, int whence);
-        int print(FILE* file, const char* str);
-        int println(FILE* file, const char* str);
-        size_t fileAvailable(FILE* file);
 };
