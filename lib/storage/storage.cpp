@@ -57,10 +57,8 @@ namespace
 /**
  * @brief Storage Class constructor
  */
-Storage::Storage() : isSdLoaded(false), card(nullptr) 
+Storage::Storage() : isSdLoaded(false), card(nullptr), dmaBuffer(nullptr), readMutex(nullptr) 
 {
-	dmaBuffer = (uint8_t *)heap_caps_malloc(DMA_BUF_SIZE, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
-	readMutex = xSemaphoreCreateMutex();
 }
 
 /**
@@ -69,6 +67,12 @@ Storage::Storage() : isSdLoaded(false), card(nullptr)
  */
 esp_err_t Storage::initSD()
 {
+	if (!dmaBuffer)
+		dmaBuffer = (uint8_t *)heap_caps_malloc(DMA_BUF_SIZE, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+	
+	if (!readMutex)
+		readMutex = xSemaphoreCreateMutex();
+
 	#ifndef SPI_SHARED
 
 	esp_err_t ret;

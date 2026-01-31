@@ -86,6 +86,9 @@ struct NavFeature
     uint16_t coordCount = 0;
     uint16_t* ringEnds = nullptr;
     uint8_t ringCount = 0;
+    
+    // Feature bounding box for fast culling
+    NavBbox bbox;
 };
 
 /**

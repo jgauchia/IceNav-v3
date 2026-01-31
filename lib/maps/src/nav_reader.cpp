@@ -26,13 +26,19 @@ static const char* TAG = "NavReader";
  */
 size_t NavReader::readAllFeaturesMemory(const char* path, std::vector<NavFeature>& features, uint8_t maxZoom, uint8_t*& tileBuffer, size_t& bufferSize)
 {
-    size_t fileSize = storage.size(path);
-    if (fileSize == 0)
-        return 0;
-
     FILE* f = storage.open(path, "rb");
     if (!f)
         return 0;
+
+    fseek(f, 0, SEEK_END);
+    size_t fileSize = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    if (fileSize == 0)
+    {
+        storage.close(f);
+        return 0;
+    }
 
     if (fileSize > bufferSize)
     {
@@ -94,6 +100,27 @@ size_t NavReader::readAllFeaturesMemory(const char* path, std::vector<NavFeature
         feature.properties.width = width;
         feature.coordCount = coordCount;
         feature.coords = (NavCoord*)p;
+        
+        // Calculate Bbox on the fly
+        if (coordCount > 0)
+        {
+            int32_t minLon = INT32_MAX, maxLon = INT32_MIN;
+            int32_t minLat = INT32_MAX, maxLat = INT32_MIN;
+            NavCoord* c = feature.coords;
+            
+            for (int k = 0; k < coordCount; k++)
+            {
+                if (c[k].lon < minLon) minLon = c[k].lon;
+                if (c[k].lon > maxLon) maxLon = c[k].lon;
+                if (c[k].lat < minLat) minLat = c[k].lat;
+                if (c[k].lat > maxLat) maxLat = c[k].lat;
+            }
+            feature.bbox.minLon = minLon;
+            feature.bbox.maxLon = maxLon;
+            feature.bbox.minLat = minLat;
+            feature.bbox.maxLat = maxLat;
+        }
+        
         p += (coordCount * 8);
 
         if (feature.geomType == NavGeomType::Polygon)

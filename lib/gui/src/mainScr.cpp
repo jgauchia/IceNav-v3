@@ -124,6 +124,8 @@ struct ScreenState
     float lastLat = NAN;
     float lastLon = NAN;
     float lastSpeed = -1;
+    int16_t lastOffsetX = 0;
+    int16_t lastOffsetY = 0;
     bool needsRedraw = true;
 };
 
@@ -238,6 +240,15 @@ void updateMainScreen(lv_timer_t *t)
             break;
 
         case MAP:
+            // Continuous physics update for smooth mobile-style inertia
+            if (isScrollingMap || mapView.offsetX != screenState.lastOffsetX || mapView.offsetY != screenState.lastOffsetY)
+            {
+                mapView.scrollMap(0, 0);
+                screenState.lastOffsetX = mapView.offsetX;
+                screenState.lastOffsetY = mapView.offsetY;
+                screenState.needsRedraw = true;
+            }
+
             // Check if heading changed for map rotation
             if (heading != screenState.lastHeading)
             {
@@ -397,9 +408,8 @@ void scrollMapEvent(lv_event_t *event)
         lv_event_code_t code = lv_event_get_code(event);
         lv_indev_t * indev = lv_event_get_indev(event);
         static int last_x = 0, last_y = 0;
-        static int dx = 0, dy = 0;
+        static bool dragStarted = false;
         lv_point_t p;
-
 
         switch (code)
         {
@@ -408,6 +418,7 @@ void scrollMapEvent(lv_event_t *event)
                 lv_indev_get_point(indev, &p);
                 last_x = p.x;
                 last_y = p.y;
+                dragStarted = false;
                 isScrollingMap = true;
                 break;
             }
@@ -415,16 +426,22 @@ void scrollMapEvent(lv_event_t *event)
             case LV_EVENT_PRESSING:
             {
                 lv_indev_get_point(indev, &p);
-
                 int dx = p.x - last_x;
                 int dy = p.y - last_y;
 
-                const int SCROLL_THRESHOLD = 5; 
+                if (!dragStarted)
+                {
+                    const int START_THRESHOLD = 12;
+                    if (abs(dx) > START_THRESHOLD || abs(dy) > START_THRESHOLD)
+                    {
+                        dragStarted = true;
+                        lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+                    }
+                }
 
-                if (abs(dx) > SCROLL_THRESHOLD || abs(dy) > SCROLL_THRESHOLD) 
+                if (dragStarted)
                 {
                     mapView.scrollMap(-dx, -dy);
-                    lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
                     screenState.needsRedraw = true;
                     last_x = p.x;
                     last_y = p.y;
@@ -437,6 +454,7 @@ void scrollMapEvent(lv_event_t *event)
             {
                 lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
                 isScrollingMap = false;
+                dragStarted = false;
                 break;
             }
         }

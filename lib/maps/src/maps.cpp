@@ -292,7 +292,7 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
     Maps::mapTempSprite.createSprite(Maps::tileWidth, Maps::tileHeight);
 
     Maps::mapSprite.createSprite(Maps::tileWidth, Maps::tileHeight);
-    Maps::mapBuffer = Maps::mapSprite.getBuffer(); // Enlazar este buffer al canvas LVGL
+    Maps::mapBuffer = Maps::mapSprite.getBuffer(); // Link this buffer to the LVGL canvas
 
     // Pre-allocate scroll sprites (avoid allocation during scroll)
     Maps::preloadSprite.deleteSprite();
@@ -312,7 +312,6 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
     projBuf16Y.reserve(2048);
     projBuf32X.reserve(2048);
     projBuf32Y.reserve(2048);
-    polyScanlineBuf.reserve(2048);
     
 
 
@@ -342,7 +341,7 @@ void Maps::deleteMapScrSprites()
  */
 void Maps::createMapScrSprites()
 {
-    Maps::mapBuffer = Maps::mapSprite.getBuffer(); // Asegurar que el puntero esté correcto
+    Maps::mapBuffer = Maps::mapSprite.getBuffer(); // Ensure the pointer is correct
 }
 
 /**
@@ -355,53 +354,75 @@ void Maps::createMapScrSprites()
  */
 void Maps::generateMap(uint8_t zoom)
 {
-    // Dynamic Prefetch System Control
-    if (mapSet.vectorMap)
-    {
-        if (prefetchTaskRunning) stopPrefetchSystem();
-    }
-    else
-    {
-        if (!prefetchTaskRunning) initPrefetchSystem();
-    }
-
-
-
-    Maps::zoomLevel = zoom;
-
-    const float lat = Maps::followGps ? gps.gpsData.latitude : Maps::currentMapTile.lat;
-    const float lon = Maps::followGps ? gps.gpsData.longitude : Maps::currentMapTile.lon;
-
-    // NAV vector map rendering path
-    if (mapSet.vectorMap)
-    {
-        // Check if position changed enough to require re-render
-        // Use ~10m threshold (approx 0.0001 degrees)
-        constexpr float POS_THRESHOLD = 0.0001f;
-        bool posChanged = fabsf(lat - navLastLat_) > POS_THRESHOLD ||
-                          fabsf(lon - navLastLon_) > POS_THRESHOLD ||
-                          zoom != navLastZoom_;
-
-        if (posChanged || navNeedsRender_)
+        // Dynamic Prefetch System Control
+        if (mapSet.vectorMap)
         {
-            // Fill with background color before rendering to avoid black areas during scroll
-            Maps::mapTempSprite.fillScreen(0xE6D2);  // Light beige/tan map background
-            Maps::isMapFound = renderNavViewport(lat, lon, zoom, Maps::mapTempSprite);
-            if (!Maps::isMapFound)
-            {
-                ESP_LOGW(TAG, "NAV: No map data found");
-                Maps::mapTempSprite.fillScreen(TFT_BLACK);
-                Maps::showNoMap(Maps::mapTempSprite);
-            }
-            // Update cache
-            navLastLat_ = lat;
-            navLastLon_ = lon;
-            navLastZoom_ = zoom;
-            navNeedsRender_ = false;
-            Maps::redrawMap = true;
+            if (prefetchTaskRunning)
+                stopPrefetchSystem();
         }
-        return;
-    }
+        else
+        {
+            if (!prefetchTaskRunning)
+                initPrefetchSystem();
+        }
+    
+    
+    
+        Maps::zoomLevel = zoom;
+    
+        const float lat = Maps::followGps ? gps.gpsData.latitude : Maps::currentMapTile.lat;
+        const float lon = Maps::followGps ? gps.gpsData.longitude : Maps::currentMapTile.lon;
+    
+        // NAV vector map rendering path
+        if (mapSet.vectorMap)
+        {
+            // Check if position changed enough to require re-render
+            // Use ~55m threshold (approx 0.0005 degrees) to avoid blocking UI too often
+            constexpr float POS_THRESHOLD = 0.0005f;
+            bool posChanged = fabsf(lat - navLastLat_) > POS_THRESHOLD ||
+                              fabsf(lon - navLastLon_) > POS_THRESHOLD ||
+                              zoom != navLastZoom_;
+    
+            if (posChanged || navNeedsRender_)
+            {
+                // Fill with background color before rendering to avoid black areas during scroll
+                Maps::mapTempSprite.fillScreen(0xE6D2);  // Light beige/tan map background
+                Maps::isMapFound = renderNavViewport(lat, lon, zoom, Maps::mapTempSprite);
+                
+                if (Maps::isMapFound)
+                {
+                    // Render Track on top of Vector Map
+                    for (size_t i = 1; i < trackData.size(); ++i)
+                    {
+                        const auto &p1 = trackData[i - 1];
+                        const auto &p2 = trackData[i];
+    
+                        int16_t x1, y1, x2, y2;
+                        navCoordToPixel(static_cast<int32_t>(p1.lon * COORD_SCALE), 
+                                        static_cast<int32_t>(p1.lat * COORD_SCALE), {}, x1, y1);
+                        navCoordToPixel(static_cast<int32_t>(p2.lon * COORD_SCALE), 
+                                        static_cast<int32_t>(p2.lat * COORD_SCALE), {}, x2, y2);
+                        
+                        if ((x1 >= 0 && x1 < tileWidth && y1 >= 0 && y1 < tileHeight) ||
+                            (x2 >= 0 && x2 < tileWidth && y2 >= 0 && y2 < tileHeight))
+                            Maps::mapTempSprite.drawWideLine(x1, y1, x2, y2, 3, TFT_BLUE);
+                    }
+                }
+                else
+                {
+                    ESP_LOGW(TAG, "NAV: No map data found");
+                    Maps::mapTempSprite.fillScreen(TFT_BLACK);
+                    Maps::showNoMap(Maps::mapTempSprite);
+                }
+                // Update cache
+                navLastLat_ = lat;
+                navLastLon_ = lon;
+                navLastZoom_ = zoom;
+                navNeedsRender_ = false;
+                Maps::redrawMap = true;
+            }
+            return;
+        }
 
     // Legacy PNG tile rendering path
     bool foundRoundMap = false;
@@ -629,116 +650,97 @@ void Maps::centerOnGps(float lat, float lon)
  */
 void Maps::scrollMap(int16_t dx, int16_t dy)
 {
-    // Base physics parameters
-    const float baseFriction = 0.92f;    // Friction when finger lifted
-    const float maxSpeed = 25.0f;        // Absolute max speed limit
-    const float smoothingFactor = 0.3f;  // Smooth finger speed changes (0-1)
+    static float vX = 0.0f, vY = 0.0f;
+    const float friction = 0.70f; 
 
-    static float speedX = 0.0f, speedY = 0.0f;
-    static float smoothedFingerSpeed = 0.0f;  // Smoothed finger velocity
-    static bool prefetchTriggeredX = false;
-    static bool prefetchTriggeredY = false;
-    static int8_t lastPrefetchDirX = 0;
-    static int8_t lastPrefetchDirY = 0;
+    if (dx != 0 || dy != 0)
+    {
+        // Direct 1:1 manipulation while finger is moving
+        Maps::offsetX += dx;
+        Maps::offsetY += dy;
+        
+        // Track velocity with smoothing
+        vX = vX * 0.3f + (float)dx * 0.7f;
+        vY = vY * 0.3f + (float)dy * 0.7f;
+        
+        Maps::followGps = false;
+    }
+    else
+    {
+        // Apply kinetic inertia
+        Maps::offsetX += (int16_t)vX;
+        Maps::offsetY += (int16_t)vY;
+        
+        vX *= friction;
+        vY *= friction;
+        
+        if (fabsf(vX) < 0.2f && fabsf(vY) < 0.2f)
+        {
+            vX = 0;
+            vY = 0;
+        }
+    }
 
-    // Detect finger velocity from delta
-    const float instantFingerSpeed = sqrtf(dx * dx + dy * dy);
-
-    // Smooth the finger speed to handle acceleration/deceleration
-    smoothedFingerSpeed = smoothedFingerSpeed * (1.0f - smoothingFactor) +
-                          instantFingerSpeed * smoothingFactor;
-
-    const bool fingerActive = (instantFingerSpeed > 0.5f);
-
-    // Dynamic responsiveness based on smoothed finger speed
-    // Slow movement: more precise (0.7), Fast movement: more responsive (1.0)
-    const float responsiveness = fingerActive ?
-        fminf(1.0f, 0.7f + smoothedFingerSpeed * 0.025f) : 0.0f;
-
-    // Less friction while finger is active, more when released (inertia)
-    const float friction = fingerActive ? 0.6f : baseFriction;
-
-    // Physics: velocity = previous * friction + input * responsiveness
-    speedX = speedX * friction + dx * responsiveness;
-    speedY = speedY * friction + dy * responsiveness;
-
-    const float absSpeedX = fabsf(speedX);
-    const float absSpeedY = fabsf(speedY);
-
-    if (absSpeedX > maxSpeed) speedX = (speedX > 0) ? maxSpeed : -maxSpeed;
-    if (absSpeedY > maxSpeed) speedY = (speedY > 0) ? maxSpeed : -maxSpeed;
-
-    Maps::offsetX += (int16_t)speedX;
-    Maps::offsetY += (int16_t)speedY;
-
-    // Calculate max offsets based on screen size (leave 10px safety margin)
     const int16_t maxOffsetX = (tileWidth - mapScrWidth) / 2 - 10;
     const int16_t maxOffsetY = (tileHeight - mapScrHeight) / 2 - 10;
 
-    // Clamp offsets to prevent canvas edge from showing
-    if (Maps::offsetX > maxOffsetX) Maps::offsetX = maxOffsetX;
-    if (Maps::offsetX < -maxOffsetX) Maps::offsetX = -maxOffsetX;
-    if (Maps::offsetY > maxOffsetY) Maps::offsetY = maxOffsetY;
-    if (Maps::offsetY < -maxOffsetY) Maps::offsetY = -maxOffsetY;
+    if (Maps::offsetX > maxOffsetX)
+    {
+        Maps::offsetX = maxOffsetX;
+        vX = 0;
+    }
+    if (Maps::offsetX < -maxOffsetX)
+    {
+        Maps::offsetX = -maxOffsetX;
+        vX = 0;
+    }
+    if (Maps::offsetY > maxOffsetY)
+    {
+        Maps::offsetY = maxOffsetY;
+        vY = 0;
+    }
+    if (Maps::offsetY < -maxOffsetY)
+    {
+        Maps::offsetY = -maxOffsetY;
+        vY = 0;
+    }
 
     Maps::scrollUpdated = false;
-    Maps::followGps = false;
 
-    // Dynamic threshold based on available margin (can't exceed maxOffset)
-    const int16_t thresholdX = std::min((int16_t)Maps::scrollThreshold, maxOffsetX);
-    const int16_t thresholdY = std::min((int16_t)Maps::scrollThreshold, maxOffsetY);
-    const int16_t threshold = std::min(thresholdX, thresholdY);
+    int16_t dynamicThresholdX = maxOffsetX - 30;
+    if (dynamicThresholdX < 50)
+        dynamicThresholdX = 50;
+        
+    int16_t dynamicThresholdY = maxOffsetY - 30;
+    if (dynamicThresholdY < 50)
+        dynamicThresholdY = 50;
+
     const int16_t tileSize = Maps::mapTileSize;
-    const int16_t prefetchThreshold = threshold / 2;  // Anticipate prefetch at 50% of threshold
 
-    // Detect scroll direction and trigger anticipatory prefetch
-    int8_t dirX = (speedX > 0.5f) ? 1 : (speedX < -0.5f) ? -1 : 0;
-    int8_t dirY = (speedY > 0.5f) ? 1 : (speedY < -0.5f) ? -1 : 0;
-
-    // Reset prefetch trigger if direction changed
-    if (dirX != lastPrefetchDirX) { prefetchTriggeredX = false; lastPrefetchDirX = dirX; }
-    if (dirY != lastPrefetchDirY) { prefetchTriggeredY = false; lastPrefetchDirY = dirY; }
-
-    // Anticipatory prefetch: trigger when approaching threshold (before tile change)
-    if (!prefetchTriggeredX && dirX != 0 && abs(Maps::offsetX) > prefetchThreshold)
-    {
-        enqueueSurroundingTiles(Maps::currentMapTile.tilex, Maps::currentMapTile.tiley, Maps::zoomLevel, dirX, 0);
-        prefetchTriggeredX = true;
-    }
-    if (!prefetchTriggeredY && dirY != 0 && abs(Maps::offsetY) > prefetchThreshold)
-    {
-        enqueueSurroundingTiles(Maps::currentMapTile.tilex, Maps::currentMapTile.tiley, Maps::zoomLevel, 0, dirY);
-        prefetchTriggeredY = true;
-    }
-
-    if (Maps::offsetX <= -threshold)
+    if (Maps::offsetX <= -dynamicThresholdX)
     {
         Maps::tileX--;
         Maps::offsetX += tileSize;
         Maps::scrollUpdated = true;
-        prefetchTriggeredX = false;  // Reset for next tile
     }
-    else if (Maps::offsetX >= threshold)
+    else if (Maps::offsetX >= dynamicThresholdX)
     {
         Maps::tileX++;
         Maps::offsetX -= tileSize;
         Maps::scrollUpdated = true;
-        prefetchTriggeredX = false;  // Reset for next tile
     }
 
-    if (Maps::offsetY <= -threshold)
+    if (Maps::offsetY <= -dynamicThresholdY)
     {
         Maps::tileY--;
         Maps::offsetY += tileSize;
         Maps::scrollUpdated = true;
-        prefetchTriggeredY = false;  // Reset for next tile
     }
-    else if (Maps::offsetY >= threshold)
+    else if (Maps::offsetY >= dynamicThresholdY)
     {
         Maps::tileY++;
         Maps::offsetY -= tileSize;
         Maps::scrollUpdated = true;
-        prefetchTriggeredY = false;  // Reset for next tile
     }
 
     if (Maps::scrollUpdated)
@@ -746,10 +748,15 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
         const int8_t deltaTileX = Maps::tileX - Maps::lastTileX;
         const int8_t deltaTileY = Maps::tileY - Maps::lastTileY;
         Maps::panMap(deltaTileX, deltaTileY);
-        Maps::preloadTiles(deltaTileX, deltaTileY);
+        
+        if (mapSet.vectorMap)
+            navNeedsRender_ = true; 
+        else
+            Maps::preloadTiles(deltaTileX, deltaTileY);
+
         Maps::lastTileX = Maps::tileX;
         Maps::lastTileY = Maps::tileY;
-        Maps::redrawMap = true; // Force redraw to sync image with new offsets
+        Maps::redrawMap = true;
     }
 }
 
@@ -860,7 +867,8 @@ uint16_t Maps::darkenRGB565(const uint16_t color, const float amount)
  */
 bool Maps::isPointOnMargin(const int px, const int py)
 {
-    return (px <= MARGIN_PIXELS || px >= TILE_SIZE - MARGIN_PIXELS || py <= MARGIN_PIXELS || py >= TILE_SIZE - MARGIN_PIXELS);
+    return (px <= MARGIN_PIXELS || px >= (int)mapTileSize - 1 - MARGIN_PIXELS || 
+            py <= MARGIN_PIXELS || py >= (int)mapTileSize - 1 - MARGIN_PIXELS);
 }
 
 /**
@@ -880,55 +888,114 @@ bool Maps::isPointOnMargin(const int px, const int py)
  */
 void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset)
 {
-    int miny = py[0], maxy = py[0];
-    for (int i = 1; i < numPoints; ++i) 
+    if (numPoints < 3) return;
+
+    int minY = INT_MAX, maxY = INT_MIN;
+    for (int i = 0; i < numPoints; i++)
     {
-        if (py[i] < miny) 
-            miny = py[i];
-        if (py[i] > maxy)
-            maxy = py[i];
+        if (py[i] < minY) minY = py[i];
+        if (py[i] > maxY) maxY = py[i];
     }
 
-    int *xints = nullptr;
+    if (maxY < 0 || minY >= (int)tileHeight) return;
+
+    edgePool.clear();
     
-    // Use persistent buffer for coordinate arrays
-    if (polyScanlineBuf.capacity() < numPoints) polyScanlineBuf.reserve(numPoints);
-    // No resize needed as we use it as a raw buffer and track count via 'nodes'
-    xints = polyScanlineBuf.data();
+    int bucketCount = maxY - minY + 1;
+    edgeBuckets.clear();
+    edgeBuckets.resize(bucketCount, nullptr);
 
-    if (!xints)
-        return;
-
-    for (int y = miny; y <= maxy; ++y)
+    for (int i = 0; i < numPoints; i++)
     {
-        int nodes = 0;
-        for (int i = 0, j = numPoints - 1; i < numPoints; j = i++) 
+        int next = (i + 1) % numPoints;
+        int x1 = px[i], y1 = py[i];
+        int x2 = px[next], y2 = py[next];
+        if (y1 == y2) continue;
+
+        Edge e;
+        if (y1 < y2)
         {
-            if ((py[i] < y && py[j] >= y) || (py[j] < y && py[i] >= y))
-                xints[nodes++] = static_cast<int>(px[i] + (y - py[i]) * (px[j] - px[i]) / (py[j] - py[i]));
+            e.yMax = y2;
+            e.xVal = x1 << 16;
+            e.slope = ((x2 - x1) << 16) / (y2 - y1);
+            e.next = edgeBuckets[y1 - minY];
+            edgePool.push_back(e);
+            edgeBuckets[y1 - minY] = &edgePool.back();
         }
-        if (nodes > 1) 
+        else
         {
-            std::sort(xints, xints + nodes);
-            for (int i = 0; i < nodes; i += 2) 
+            e.yMax = y1;
+            e.xVal = x2 << 16;
+            e.slope = ((x1 - x2) << 16) / (y1 - y2);
+            e.next = edgeBuckets[y2 - minY];
+            edgePool.push_back(e);
+            edgeBuckets[y2 - minY] = &edgePool.back();
+        }
+    }
+
+    Edge* activeHead = nullptr;
+    for (int y = minY; y <= maxY; y++)
+    {
+        Edge* e = edgeBuckets[y - minY];
+        while (e)
+        {
+            Edge* nextE = e->next;
+            e->next = activeHead;
+            activeHead = e;
+            e = nextE;
+        }
+
+        Edge** curr = &activeHead;
+        while (*curr)
+        {
+            if ((*curr)->yMax <= y)
+                *curr = (*curr)->next;
+            else
+                curr = &((*curr)->next);
+        }
+
+        if (!activeHead) continue;
+
+        Edge* sorted = nullptr;
+        Edge* active = activeHead;
+        while (active)
+        {
+            Edge* nextActive = active->next;
+            if (!sorted || active->xVal < sorted->xVal)
             {
-                if (i + 1 < nodes) 
-                {
-                    int x0 = xints[i] + xOffset;
-                    int x1 = xints[i + 1] + xOffset;
-                    int yy = y + yOffset;
-                    if (yy >= 0 && yy < tileHeight + yOffset)
-                    {
-                        if (x0 < 0)
-                            x0 = 0;
-                        if (x1 > tileWidth + xOffset)
-                            x1 = tileWidth + xOffset;
-                        if (x1 > x0)
-                            map.drawFastHLine(x0, yy, x1 - x0, color);
-                    }
-                }
+                active->next = sorted;
+                sorted = active;
+            }
+            else
+            {
+                Edge* s = sorted;
+                while (s->next && s->next->xVal < active->xVal)
+                    s = s->next;
+                active->next = s->next;
+                s->next = active;
+            }
+            active = nextActive;
+        }
+        activeHead = sorted;
+
+        int yy = y + yOffset;
+        if (yy >= 0 && yy < (int)tileHeight)
+        {
+            Edge* left = activeHead;
+            while (left && left->next)
+            {
+                Edge* right = left->next;
+                int xStart = (left->xVal >> 16) + xOffset;
+                int xEnd = (right->xVal >> 16) + xOffset;
+                if (xStart < 0) xStart = 0;
+                if (xEnd > (int)tileWidth) xEnd = (int)tileWidth;
+                if (xEnd > xStart)
+                    map.writeFastHLine(xStart, yy, xEnd - xStart, color);
+                left = right->next;
             }
         }
+        for (Edge* a = activeHead; a; a = a->next)
+            a->xVal += a->slope;
     }
 }
 
@@ -1182,21 +1249,27 @@ void Maps::renderNavLineString(const NavFeature& feature, const NavBbox& viewpor
     int16_t minPy = INT16_MAX, maxPy = INT16_MIN;
 
     size_t validPoints = 0;
+    int16_t lastPx = -32768, lastPy = -32768;
+
     for (size_t i = 0; i < numCoords; i++)
     {
         int16_t px, py;
         navCoordToPixel(feature.coords[i].lon, feature.coords[i].lat, viewport, px, py);
         
-        // Sub-pixel culling: skip if same as last point
-        if (validPoints > 0 && px == pxArr[validPoints-1] && py == pyArr[validPoints-1])
+        // Sub-pixel culling: skip if resolving to the same pixel as last valid point
+        if (validPoints > 0 && px == lastPx && py == lastPy)
             continue;
 
         pxArr[validPoints] = px;
         pyArr[validPoints] = py;
-        minPx = std::min(minPx, px);
-        maxPx = std::max(maxPx, px);
-        minPy = std::min(minPy, py);
-        maxPy = std::max(maxPy, py);
+        
+        if (px < minPx) minPx = px;
+        if (px > maxPx) maxPx = px;
+        if (py < minPy) minPy = py;
+        if (py > maxPy) maxPy = py;
+
+        lastPx = px;
+        lastPy = py;
         validPoints++;
     }
 
@@ -1264,21 +1337,27 @@ void Maps::renderNavPolygon(const NavFeature& feature, const NavBbox& viewport, 
     int minPy = INT_MAX, maxPy = INT_MIN;
 
     size_t validPoints = 0;
+    int16_t lastPx = -32768, lastPy = -32768;
+
     for (size_t i = 0; i < numPoints; i++)
     {
         int16_t x, y;
         navCoordToPixel(feature.coords[i].lon, feature.coords[i].lat, viewport, x, y);
         
         // Sub-pixel culling: skip if same as last point
-        if (validPoints > 0 && x == px[validPoints-1] && y == py[validPoints-1])
+        if (validPoints > 0 && x == lastPx && y == lastPy)
             continue;
 
         px[validPoints] = x;
         py[validPoints] = y;
-        minPx = std::min(minPx, (int)x);
-        maxPx = std::max(maxPx, (int)x);
-        minPy = std::min(minPy, (int)y);
-        maxPy = std::max(maxPy, (int)y);
+        
+        if ((int)x < minPx) minPx = (int)x;
+        if ((int)x > maxPx) maxPx = (int)x;
+        if ((int)y < minPy) minPy = (int)y;
+        if ((int)y > maxPy) maxPy = (int)y;
+
+        lastPx = x;
+        lastPy = y;
         validPoints++;
     }
 
@@ -1408,12 +1487,13 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
     // Clear map with white background
     map.fillSprite(TFT_WHITE);
 
-    // Persistent buffer for tile loading (reused for all 9 tiles to prevent fragmentation)
-    uint8_t* tileLoadBuffer = nullptr;
-    size_t tileLoadBufferSize = 0;
+    // List to keep track of PSRAM buffers for the 9 tiles
+    std::vector<uint8_t*> tileBuffers;
+    std::vector<NavFeature> globalLayers[16];
     size_t totalTheoreticalPSRAM = 0;
 
-    // Load 3x3 tiles around center
+    uint64_t tLoadStart = esp_timer_get_time();
+
     for (int dy = -1; dy <= 1; dy++)
     {
         for (int dx = -1; dx <= 1; dx++)
@@ -1425,43 +1505,66 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
             snprintf(tilePath, sizeof(tilePath), mapVectorFolder,
                      zoom, tileX, tileY);
 
-            std::vector<NavFeature> tileLayers[16];
+            uint8_t* tileBuffer = nullptr;
+            size_t tileBufferSize = 0;
             std::vector<NavFeature> tileFeatures;
             
-            // New super-fast memory loading
-            size_t featuresRead = NavReader::readAllFeaturesMemory(tilePath, tileFeatures, zoom, tileLoadBuffer, tileLoadBufferSize);
-            if (featuresRead == 0)
+            // Fast memory loading (allocates new buffer for each tile)
+            if (NavReader::readAllFeaturesMemory(tilePath, tileFeatures, zoom, tileBuffer, tileBufferSize) == 0)
                 continue;
 
-            totalTheoreticalPSRAM += tileLoadBufferSize;
+            tileBuffers.push_back(tileBuffer);
+            totalTheoreticalPSRAM += tileBufferSize;
 
             for (auto& feature : tileFeatures)
             {
                 uint8_t priority = feature.properties.getPriority();
                 if (priority < 16)
-                    tileLayers[priority].push_back(std::move(feature));
-            }
-
-            // Render layers of THIS tile in order (0 to 15)
-            for (int p = 0; p < 16; p++)
-            {
-                for (auto& feature : tileLayers[p])
-                {
-                    if (feature.coordCount == 0 || !feature.coords) continue;
-                    renderNavFeature(feature, viewport, map);
-                }
-                tileLayers[p].clear();
+                    globalLayers[priority].push_back(std::move(feature));
             }
         }
         taskYIELD(); // Yield per row
     }
 
-    if (tileLoadBuffer)
-        heap_caps_free(tileLoadBuffer);
+    uint64_t tRenderStart = esp_timer_get_time();
 
-    uint64_t totalTime = esp_timer_get_time() - startTime;
-    ESP_LOGI(TAG, "NAV Render: %llu ms. Theoretical PSRAM for 9 tiles: %u bytes", 
-             totalTime / 1000, totalTheoreticalPSRAM);
+    map.startWrite();
+
+    for (int p = 0; p < 16; p++)
+    {
+        // Yield to allow I2C/System tasks to process
+        taskYIELD();
+
+        for (auto& feature : globalLayers[p])
+        {
+            if (feature.coordCount == 0 || !feature.coords)
+                continue;
+            
+            // Fast BBox Culling
+            if (feature.bbox.minLon > viewport.maxLon || feature.bbox.maxLon < viewport.minLon ||
+                feature.bbox.minLat > viewport.maxLat || feature.bbox.maxLat < viewport.minLat)
+                continue;
+
+            renderNavFeature(feature, viewport, map);
+        }
+        globalLayers[p].clear();
+    }
+
+    map.endWrite();
+
+    uint64_t tCleanupStart = esp_timer_get_time();
+
+    for (auto buffer : tileBuffers)
+        heap_caps_free(buffer);
+
+    uint64_t tEnd = esp_timer_get_time();
+    
+    ESP_LOGI(TAG, "NAV Stats - Load: %llu ms, Render: %llu ms, Free: %llu ms. Total: %llu ms. PSRAM: %u B", 
+             (tRenderStart - tLoadStart) / 1000, 
+             (tCleanupStart - tRenderStart) / 1000,
+             (tEnd - tCleanupStart) / 1000,
+             (tEnd - startTime) / 1000,
+             static_cast<uint32_t>(totalTheoreticalPSRAM));
 
     // Resume display after vector rendering
     waitScreenRefresh = false;

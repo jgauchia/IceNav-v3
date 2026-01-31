@@ -44,12 +44,6 @@ class Maps
         
 
 
-        struct PolygonBounds	/**< Polygon bounding box structure */
-        {
-            int minX, minY, maxX, maxY; /**< Bounding box coordinates */
-            bool isValid;               /**< Bounds are valid */
-        };
-        
         struct tileBounds		/**< Map boundaries structure */
         {
             float lat_min;	   /**< Minimum latitude */
@@ -64,11 +58,8 @@ class Maps
             uint16_t posY; 		/**< Y position on screen */
         };
 
-        static constexpr int TILE_SIZE = 255;
-        static constexpr int TILE_SIZE_PLUS_ONE = 256;
         static constexpr int MARGIN_PIXELS = 1;
         static const uint16_t mapTileSize = 256;                             	     /**< Map tile size */
-        static const uint16_t scrollThreshold = 180;                                  /**< Smooth scroll threshold (for 768x768 canvas) */
 
         // Prefetch system
         static size_t maxCachedTiles;                                               /**< Maximum cached tiles (0 for FS only) */
@@ -191,6 +182,15 @@ class Maps
         std::vector<int16_t> projBuf16Y;
         std::vector<int> projBuf32X;
         std::vector<int> projBuf32Y;
-        std::vector<int> polyScanlineBuf;
+
+        // AEL Polygon optimization
+        struct Edge {
+            int yMax;
+            int xVal;       // Fixed point 16.16
+            int slope;      // Fixed point 16.16
+            Edge* next;     // For bucket sort linked list
+        };
+        std::vector<Edge*> edgeBuckets;
+        std::vector<Edge> edgePool;
 };
 
