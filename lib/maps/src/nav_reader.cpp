@@ -63,65 +63,45 @@ size_t NavReader::readAllFeaturesMemory(const char* path, std::vector<NavFeature
 
     // Parsing from memory
     uint8_t* p = tileBuffer;
-    if (memcmp(p, NAV_MAGIC, 4) != 0)
+    NavTileHeader* tileHeader = (NavTileHeader*)p;
+    
+    if (memcmp(tileHeader->magic, NAV_MAGIC, 4) != 0)
         return 0;
     
-    uint16_t featureCount = p[4] | (p[5] << 8);
+    uint16_t featureCount = tileHeader->featureCount;
     features.reserve(featureCount);
     
-    p += 22; // Skip header (Magic 4, Count 2, Bbox 16)
+    p += sizeof(NavTileHeader); // 22 bytes
     size_t count = 0;
 
     for (uint16_t i = 0; i < featureCount; i++)
     {
-        uint8_t geomType = p[0];
-        uint16_t color = p[1] | (p[2] << 8);
-        uint8_t zoomPriority = p[3];
-        uint8_t width = p[4];
-        uint16_t coordCount = p[5] | (p[6] << 8);
-        p += 7;
+        NavFeatureHeader* featHeader = (NavFeatureHeader*)p;
+        p += sizeof(NavFeatureHeader); // 12 bytes
 
-        uint8_t minZoom = zoomPriority >> 4;
+        uint8_t minZoom = featHeader->zoomPriority >> 4;
         if (minZoom > maxZoom)
         {
-            p += (coordCount * 8);
-            if (geomType == 3) // Polygon
+            p += (featHeader->coordCount * 4); // Skip coordinates
+            if (featHeader->geomType == 3) // Polygon
             {
                 uint8_t ringCount = *p++;
-                p += (ringCount * 2);
+                p += (ringCount * 2); // Skip ring ends
             }
             continue;
         }
 
         NavFeature feature;
-        feature.geomType = static_cast<NavGeomType>(geomType);
-        feature.properties.colorRgb565 = color;
-        feature.properties.zoomPriority = zoomPriority;
-        feature.properties.width = width;
-        feature.coordCount = coordCount;
+        feature.geomType = static_cast<NavGeomType>(featHeader->geomType);
+        feature.properties.colorRgb565 = featHeader->colorRgb565;
+        feature.properties.zoomPriority = featHeader->zoomPriority;
+        feature.properties.width = featHeader->widthPixels;
+        feature.objBbox = { featHeader->bbox[0], featHeader->bbox[1], featHeader->bbox[2], featHeader->bbox[3] };
+        feature.coordCount = featHeader->coordCount;
+        
+        // Zero-copy coordinate pointer
         feature.coords = (NavCoord*)p;
-        
-        // Calculate Bbox on the fly
-        if (coordCount > 0)
-        {
-            int32_t minLon = INT32_MAX, maxLon = INT32_MIN;
-            int32_t minLat = INT32_MAX, maxLat = INT32_MIN;
-            NavCoord* c = feature.coords;
-            
-            for (int k = 0; k < coordCount; k++)
-            {
-                if (c[k].lon < minLon) minLon = c[k].lon;
-                if (c[k].lon > maxLon) maxLon = c[k].lon;
-                if (c[k].lat < minLat) minLat = c[k].lat;
-                if (c[k].lat > maxLat) maxLat = c[k].lat;
-            }
-            feature.bbox.minLon = minLon;
-            feature.bbox.maxLon = maxLon;
-            feature.bbox.minLat = minLat;
-            feature.bbox.maxLat = maxLat;
-        }
-        
-        p += (coordCount * 8);
+        p += (feature.coordCount * 4);
 
         if (feature.geomType == NavGeomType::Polygon)
         {

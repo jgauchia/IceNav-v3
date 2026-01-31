@@ -147,84 +147,51 @@ log "Verification: Source $TOTAL_FILES | Destination $DEST_FILES"
 [[ $TOTAL_FILES -eq $DEST_FILES ]] && success "Sync completed in $((RSYNC_END - RSYNC_START))s" || warn "File count mismatch!"
 
 # STEP 9: Sample integrity check
-echo -e "${YELLOW}9. Sample integrity check...${NC}"
-
+log "Verifying random samples..."
 SAMPLE_COUNT=0
 SAMPLE_ERRORS=0
 
-for file in $(shuf -n 10 "$FILELIST"); do
+shuf -n 10 "$FILELIST" | while read -r file; do
     SAMPLE_COUNT=$((SAMPLE_COUNT + 1))
-    src_file="$SOURCE/$file"
-    dest_file="$DESTINATION/$SOURCE_FOLDER_NAME/$file"
-
-    if [ -f "$dest_file" ] && cmp -s "$src_file" "$dest_file" 2>/dev/null; then
-        echo "   ✓ $file"
+    if [[ -f "$DESTINATION/$SOURCE_NAME/$file" ]]; then
+        if cmp -s "$SOURCE/$file" "$DESTINATION/$SOURCE_NAME/$file"; then
+            echo -e "  ${GREEN}✓${NC} $file"
+        else
+            echo -e "  ${RED}✗${NC} $file (Content mismatch)"
+            SAMPLE_ERRORS=$((SAMPLE_ERRORS + 1))
+        fi
     else
-        echo "   ✗ $file"
+        echo -e "  ${RED}✗${NC} $file (Missing at destination)"
         SAMPLE_ERRORS=$((SAMPLE_ERRORS + 1))
     fi
 done
 
-if [ $SAMPLE_ERRORS -eq 0 ]; then
-    echo -e "${GREEN}   ✓ All samples verified OK${NC}"
-fi
-
-# STEP 10: Final sync and unmount
-echo -e "${YELLOW}10. Finalizing...${NC}"
+# STEP 10: Finalizing
+log "Finalizing..."
 sync
-sleep 2
-
-sudo umount "$DESTINATION"
 sleep 1
-
-echo -e "${GREEN}   ✓ Device unmounted safely${NC}"
+sudo umount "$DESTINATION"
+success "Device unmounted safely"
 
 # Performance stats
-TOTAL_TIME=$RSYNC_TIME
-if [ $TOTAL_TIME -gt 0 ]; then
-    AVG_SPEED=$((SOURCE_SIZE / 1024 / 1024 / TOTAL_TIME))
-    FILES_PER_SEC=$((TOTAL_FILES / TOTAL_TIME))
-else
-    AVG_SPEED="N/A"
-    FILES_PER_SEC="N/A"
-fi
+TOTAL_TIME=$((RSYNC_END - RSYNC_START))
+if [[ $TOTAL_TIME -le 0 ]]; then TOTAL_TIME=1; fi
+AVG_SPEED=$((SOURCE_SIZE / 1024 / 1024 / TOTAL_TIME))
 
 echo ""
-if [ "$MODE" = "full" ]; then
-    echo -e "${MAGENTA}═══════════════════════════════════════════${NC}"
-    echo -e "${MAGENTA}    FULL SYNC COMPLETED - ZERO FRAGMENTATION${NC}"
-    echo -e "${MAGENTA}═══════════════════════════════════════════${NC}"
-else
-    echo -e "${GREEN}═══════════════════════════════════════════${NC}"
-    echo -e "${GREEN}    INCREMENTAL SYNC COMPLETED${NC}"
-    echo -e "${GREEN}═══════════════════════════════════════════${NC}"
-fi
-echo -e "${GREEN}End: $(date)${NC}"
-echo ""
-echo "Performance Summary:"
-echo "  Files: $TOTAL_FILES"
-echo "  Size: $SOURCE_SIZE_HUMAN"
-echo "  Time: ${TOTAL_TIME}s ($((TOTAL_TIME / 60))m $((TOTAL_TIME % 60))s)"
-echo "  Speed: ${AVG_SPEED}MB/s"
-echo "  Files/sec: $FILES_PER_SEC"
-echo "  Verification: $((SAMPLE_COUNT - SAMPLE_ERRORS))/$SAMPLE_COUNT OK"
-echo ""
+log "-------------------------------------------"
+log "  Sync Summary"
+log "-------------------------------------------"
+log "  Files:      $TOTAL_FILES"
+log "  Size:       $(format_bytes $SOURCE_SIZE)"
+log "  Time:       ${TOTAL_TIME}s"
+log "  Speed:      ${AVG_SPEED} MB/s"
+log "-------------------------------------------"
 
-if [ "$MODE" = "full" ]; then
-    echo -e "${MAGENTA}✓ OPTIMAL: Files written sequentially, zero fragmentation${NC}"
-    echo -e "${CYAN}  This SD is now optimized for maximum read performance${NC}"
+if [[ "$MODE" == "full" ]]; then
+    success "FULL SYNC COMPLETED - ZERO FRAGMENTATION"
 else
-    echo -e "${YELLOW}⚠ FRAGMENTATION WARNING:${NC}"
-    echo -e "${YELLOW}  Multiple incremental syncs cause fragmentation${NC}"
-    echo -e "${YELLOW}  Recommend: Run 'full' mode periodically to defragment${NC}"
-    echo -e "${CYAN}  Example: ./$(basename $0) $SOURCE $DESTINATION $DEVICE full${NC}"
+    success "INCREMENTAL SYNC COMPLETED"
 fi
 
-echo ""
-if [ $SAMPLE_ERRORS -eq 0 ]; then
-    echo -e "${GREEN}✓ SYNC SUCCESSFUL${NC}"
-    exit 0
-else
-    echo -e "${YELLOW}⚠ SYNC COMPLETED with warnings${NC}"
-    exit 1
-fi
+exit 0

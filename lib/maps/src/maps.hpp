@@ -104,7 +104,8 @@ class Maps
         bool isPointOnMargin(const int px, const int py);									/**< Check if a point is on the margin of the tile */
         void fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, 
                                 const int numPoints, const uint16_t color,	
-                                const int xOffset, const int yOffset);						/**< Fill a polygon using the scanline algorithm */
+                                const int xOffset, const int yOffset,
+                                uint8_t ringCount = 1, uint16_t* ringEnds = nullptr);						/**< Fill a polygon using the scanline algorithm */
         
         
         // Tile cache methods
@@ -160,22 +161,21 @@ class Maps
     private:
         // NAV tile rendering helpers
         void renderNavFeature(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map);
-        void renderNavLineString(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map);
-        void renderNavPolygon(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map);
-        void renderNavPoint(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map);
-        void navCoordToPixel(int32_t lon, int32_t lat, const NavBbox& viewport, int16_t& px, int16_t& py);
+        void renderNavLineString(const NavFeature& feature, TFT_eSprite& map);
+        void renderNavPolygon(const NavFeature& feature, TFT_eSprite& map);
+        void renderNavPoint(const NavFeature& feature, TFT_eSprite& map);
+        void navCoordToPixel(const NavFeature& feature, const NavCoord& coord, int16_t& px, int16_t& py);
+        void latLonToPixel(float lat, float lon, int16_t& px, int16_t& py);
 
         // NAV render cache (avoid re-render when stationary)
         float navLastLat_;
         float navLastLon_;
         uint8_t navLastZoom_;
         bool navNeedsRender_;
-
-        // Fixed-point scaling for vector rendering
-        int32_t navScaleX_;
-        int32_t navScaleY_;
-        int32_t navMinLon_;
-        int32_t navMaxLat_;
+        
+        // Viewport top-left in tile units for arbitrary projection (GPX tracks)
+        float navTlTileX_;
+        float navTlTileY_;
 
         // Zero-Allocation Projection Pipeline
         std::vector<int16_t> projBuf16X;
@@ -188,9 +188,10 @@ class Maps
             int yMax;
             int xVal;       // Fixed point 16.16
             int slope;      // Fixed point 16.16
-            Edge* next;     // For bucket sort linked list
+            int nextInBucket; 
+            int nextActive;
         };
-        std::vector<Edge*> edgeBuckets;
+        std::vector<int> edgeBuckets;
         std::vector<Edge> edgePool;
 };
 

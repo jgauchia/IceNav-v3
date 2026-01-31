@@ -31,6 +31,35 @@ enum class NavGeomType : uint8_t
     Polygon = 3
 };
 
+#pragma pack(push, 1)
+/**
+ * @brief NAV Tile Header (22 bytes)
+ */
+struct NavTileHeader
+{
+    char magic[4];          // "NAV1"
+    uint16_t featureCount;  // Little-Endian
+    int32_t minLon;         // scaled 1e7
+    int32_t minLat;
+    int32_t maxLon;
+    int32_t maxLat;
+};
+
+/**
+ * @brief NAV Feature Header (12 bytes aligned)
+ */
+struct NavFeatureHeader
+{
+    uint8_t geomType;       // 1=Point, 2=LineString, 3=Polygon
+    uint16_t colorRgb565;   // Little-Endian
+    uint8_t zoomPriority;   // High: min_zoom, Low: priority
+    uint8_t widthPixels;    // 1-15
+    uint8_t bbox[4];        // [x1, y1, x2, y2] normalized 0-255
+    uint16_t coordCount;    // Total points
+    uint8_t padding;        // Always 0x00
+};
+#pragma pack(pop)
+
 /**
  * @brief Bounding box (int32 scaled coordinates)
  */
@@ -49,16 +78,20 @@ struct NavBbox
 };
 
 /**
- * @brief Single coordinate (int32 scaled)
+ * @brief Object-level Bounding Box (normalized 0-255)
+ */
+struct NavObjBbox
+{
+    uint8_t x1, y1, x2, y2;
+};
+
+/**
+ * @brief Single coordinate (int16 relative to tile 0-4096)
  */
 struct NavCoord
 {
-    int32_t lon;
-    int32_t lat;
-
-    // Convert to double
-    double lonF() const { return static_cast<double>(lon) / COORD_SCALE; }
-    double latF() const { return static_cast<double>(lat) / COORD_SCALE; }
+    int16_t x;
+    int16_t y;
 };
 
 /**
@@ -67,12 +100,11 @@ struct NavCoord
 struct NavProperties
 {
     uint16_t colorRgb565;
-    uint8_t zoomPriority;  // High nibble = min_zoom, low nibble = priority/7
-    uint8_t width;         // Line width in pixels (NAV v2, default 1)
+    uint8_t zoomPriority;  // High nibble = min_zoom, low nibble = priority
+    uint8_t width;         // Line width in pixels
 
     uint8_t getMinZoom() const { return zoomPriority >> 4; }
     uint8_t getPriority() const { return (zoomPriority & 0x0F); }
-    uint8_t getWidth() const { return width > 0 ? width : 1; }
 };
 
 /**
@@ -82,13 +114,15 @@ struct NavFeature
 {
     NavGeomType geomType;
     NavProperties properties;
+    NavObjBbox objBbox;
     NavCoord* coords = nullptr;
     uint16_t coordCount = 0;
     uint16_t* ringEnds = nullptr;
     uint8_t ringCount = 0;
     
-    // Feature bounding box for fast culling
-    NavBbox bbox;
+    // Pixel offset of the tile top-left relative to viewport top-left
+    int16_t tilePixelOffsetX;
+    int16_t tilePixelOffsetY;
 };
 
 /**

@@ -386,7 +386,7 @@ void Maps::generateMap(uint8_t zoom)
             if (posChanged || navNeedsRender_)
             {
                 // Fill with background color before rendering to avoid black areas during scroll
-                Maps::mapTempSprite.fillScreen(0xE6D2);  // Light beige/tan map background
+                Maps::mapTempSprite.fillScreen(TFT_WHITE);  // Light beige/tan map background
                 Maps::isMapFound = renderNavViewport(lat, lon, zoom, Maps::mapTempSprite);
                 
                 if (Maps::isMapFound)
@@ -398,10 +398,8 @@ void Maps::generateMap(uint8_t zoom)
                         const auto &p2 = trackData[i];
     
                         int16_t x1, y1, x2, y2;
-                        navCoordToPixel(static_cast<int32_t>(p1.lon * COORD_SCALE), 
-                                        static_cast<int32_t>(p1.lat * COORD_SCALE), {}, x1, y1);
-                        navCoordToPixel(static_cast<int32_t>(p2.lon * COORD_SCALE), 
-                                        static_cast<int32_t>(p2.lat * COORD_SCALE), {}, x2, y2);
+                        latLonToPixel(p1.lat, p1.lon, x1, y1);
+                        latLonToPixel(p2.lat, p2.lon, x2, y2);
                         
                         if ((x1 >= 0 && x1 < tileWidth && y1 >= 0 && y1 < tileHeight) ||
                             (x2 >= 0 && x2 < tileWidth && y2 >= 0 && y2 < tileHeight))
@@ -655,11 +653,9 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
 
     if (dx != 0 || dy != 0)
     {
-        // Direct 1:1 manipulation while finger is moving
         Maps::offsetX += dx;
         Maps::offsetY += dy;
         
-        // Track velocity with smoothing
         vX = vX * 0.3f + (float)dx * 0.7f;
         vY = vY * 0.3f + (float)dy * 0.7f;
         
@@ -667,7 +663,6 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
     }
     else
     {
-        // Apply kinetic inertia
         Maps::offsetX += (int16_t)vX;
         Maps::offsetY += (int16_t)vY;
         
@@ -707,11 +702,12 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
 
     Maps::scrollUpdated = false;
 
-    int16_t dynamicThresholdX = maxOffsetX - 30;
+    // Lower threshold to 64px (1/4 tile) for smoother scrolling with 4x4 coverage
+    int16_t dynamicThresholdX = maxOffsetX - 64;
     if (dynamicThresholdX < 50)
         dynamicThresholdX = 50;
         
-    int16_t dynamicThresholdY = maxOffsetY - 30;
+    int16_t dynamicThresholdY = maxOffsetY - 64;
     if (dynamicThresholdY < 50)
         dynamicThresholdY = 50;
 
@@ -750,7 +746,10 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
         Maps::panMap(deltaTileX, deltaTileY);
         
         if (mapSet.vectorMap)
-            navNeedsRender_ = true; 
+        {
+            navNeedsRender_ = true;
+            generateMap(zoomLevel); // Force immediate regeneration
+        } 
         else
             Maps::preloadTiles(deltaTileX, deltaTileY);
 
@@ -882,11 +881,13 @@ bool Maps::isPointOnMargin(const int px, const int py)
  * @param px Array of x-coordinates of the polygon vertices.
  * @param py Array of y-coordinates of the polygon vertices.
  * @param numPoints The number of vertices in the polygon.
- * @param c The color to fill the polygon with (in RGB565 format).
+ * @param color The color to fill the polygon with (in RGB565 format).
  * @param xOffset The x-offset to apply when drawing the polygon.
  * @param yOffset The y-offset to apply when drawing the polygon.
+ * @param ringCount Number of polygon rings (1 exterior + n holes).
+ * @param ringEnds Array of cumulative end indices for each ring.
  */
-void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset)
+void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset, uint8_t ringCount, uint16_t* ringEnds)
 {
     if (numPoints < 3) return;
 
@@ -900,102 +901,129 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
     if (maxY < 0 || minY >= (int)tileHeight) return;
 
     edgePool.clear();
-    
     int bucketCount = maxY - minY + 1;
-    edgeBuckets.clear();
-    edgeBuckets.resize(bucketCount, nullptr);
+    edgeBuckets.assign(bucketCount, -1);
 
-    for (int i = 0; i < numPoints; i++)
+    // If no ring info provided, treat as single ring
+    uint8_t count = (ringCount == 0) ? 1 : ringCount;
+    uint16_t defaultEnds[1] = { (uint16_t)numPoints };
+    uint16_t* ends = (ringEnds == nullptr) ? defaultEnds : ringEnds;
+
+    int ringStart = 0;
+    for (uint8_t r = 0; r < count; r++)
     {
-        int next = (i + 1) % numPoints;
-        int x1 = px[i], y1 = py[i];
-        int x2 = px[next], y2 = py[next];
-        if (y1 == y2) continue;
+        int ringEnd = ends[r];
+        int ringNumPoints = ringEnd - ringStart;
+        if (ringNumPoints < 3)
+        {
+            ringStart = ringEnd;
+            continue;
+        }
 
-        Edge e;
-        if (y1 < y2)
+        for (int i = 0; i < ringNumPoints; i++)
         {
-            e.yMax = y2;
-            e.xVal = x1 << 16;
-            e.slope = ((x2 - x1) << 16) / (y2 - y1);
-            e.next = edgeBuckets[y1 - minY];
-            edgePool.push_back(e);
-            edgeBuckets[y1 - minY] = &edgePool.back();
+            int next = (i + 1) % ringNumPoints;
+            int x1 = px[ringStart + i], y1 = py[ringStart + i];
+            int x2 = px[ringStart + next], y2 = py[ringStart + next];
+            if (y1 == y2) continue;
+
+            Edge e;
+            e.nextActive = -1;
+            if (y1 < y2)
+            {
+                e.yMax = y2;
+                e.xVal = x1 << 16;
+                e.slope = ((x2 - x1) << 16) / (y2 - y1);
+                e.nextInBucket = edgeBuckets[y1 - minY];
+                edgePool.push_back(e);
+                edgeBuckets[y1 - minY] = edgePool.size() - 1;
+            }
+            else
+            {
+                e.yMax = y1;
+                e.xVal = x2 << 16;
+                e.slope = ((x1 - x2) << 16) / (y1 - y2);
+                e.nextInBucket = edgeBuckets[y2 - minY];
+                edgePool.push_back(e);
+                edgeBuckets[y2 - minY] = edgePool.size() - 1;
+            }
         }
-        else
-        {
-            e.yMax = y1;
-            e.xVal = x2 << 16;
-            e.slope = ((x1 - x2) << 16) / (y1 - y2);
-            e.next = edgeBuckets[y2 - minY];
-            edgePool.push_back(e);
-            edgeBuckets[y2 - minY] = &edgePool.back();
-        }
+        ringStart = ringEnd;
     }
 
-    Edge* activeHead = nullptr;
+    int activeHead = -1;
+    // Clip the loop to the visible viewport range
+    int startY = std::max(minY, -yOffset);
+    int endY = std::min(maxY, (int)tileHeight - 1 - yOffset);
+
     for (int y = minY; y <= maxY; y++)
     {
-        Edge* e = edgeBuckets[y - minY];
-        while (e)
+        // Add new edges from bucket to active list
+        int eIdx = edgeBuckets[y - minY];
+        while (eIdx != -1)
         {
-            Edge* nextE = e->next;
-            e->next = activeHead;
-            activeHead = e;
-            e = nextE;
+            int nextIdx = edgePool[eIdx].nextInBucket;
+            edgePool[eIdx].nextActive = activeHead;
+            activeHead = eIdx;
+            eIdx = nextIdx;
         }
 
-        Edge** curr = &activeHead;
-        while (*curr)
+        // Remove finished edges from active list
+        int* pCurrIdx = &activeHead;
+        while (*pCurrIdx != -1)
         {
-            if ((*curr)->yMax <= y)
-                *curr = (*curr)->next;
+            if (edgePool[*pCurrIdx].yMax <= y)
+                *pCurrIdx = edgePool[*pCurrIdx].nextActive;
             else
-                curr = &((*curr)->next);
+                pCurrIdx = &(edgePool[*pCurrIdx].nextActive);
         }
 
-        if (!activeHead) continue;
+        if (activeHead == -1) continue;
 
-        Edge* sorted = nullptr;
-        Edge* active = activeHead;
-        while (active)
+        // Draw scanline only if within visible Y range
+        if (y >= startY && y <= endY)
         {
-            Edge* nextActive = active->next;
-            if (!sorted || active->xVal < sorted->xVal)
+            // Sort active list by xVal (needed for every scanline)
+            int sorted = -1;
+            int active = activeHead;
+            while (active != -1)
             {
-                active->next = sorted;
-                sorted = active;
+                int nextActive = edgePool[active].nextActive;
+                if (sorted == -1 || edgePool[active].xVal < edgePool[sorted].xVal)
+                {
+                    edgePool[active].nextActive = sorted;
+                    sorted = active;
+                }
+                else
+                {
+                    int s = sorted;
+                    while (edgePool[s].nextActive != -1 && edgePool[edgePool[s].nextActive].xVal < edgePool[active].xVal)
+                        s = edgePool[s].nextActive;
+                    edgePool[active].nextActive = edgePool[s].nextActive;
+                    edgePool[s].nextActive = active;
+                }
+                active = nextActive;
             }
-            else
-            {
-                Edge* s = sorted;
-                while (s->next && s->next->xVal < active->xVal)
-                    s = s->next;
-                active->next = s->next;
-                s->next = active;
-            }
-            active = nextActive;
-        }
-        activeHead = sorted;
+            activeHead = sorted;
 
-        int yy = y + yOffset;
-        if (yy >= 0 && yy < (int)tileHeight)
-        {
-            Edge* left = activeHead;
-            while (left && left->next)
+            int yy = y + yOffset;
+            int left = activeHead;
+            while (left != -1 && edgePool[left].nextActive != -1)
             {
-                Edge* right = left->next;
-                int xStart = (left->xVal >> 16) + xOffset;
-                int xEnd = (right->xVal >> 16) + xOffset;
+                int right = edgePool[left].nextActive;
+                int xStart = (edgePool[left].xVal >> 16) + xOffset;
+                int xEnd = (edgePool[right].xVal >> 16) + xOffset;
                 if (xStart < 0) xStart = 0;
                 if (xEnd > (int)tileWidth) xEnd = (int)tileWidth;
                 if (xEnd > xStart)
-                    map.writeFastHLine(xStart, yy, xEnd - xStart, color);
-                left = right->next;
+                    map.drawFastHLine(xStart, yy, xEnd - xStart, color);
+                left = edgePool[right].nextActive;
             }
         }
-        for (Edge* a = activeHead; a; a = a->next)
-            a->xVal += a->slope;
+        
+        // Update xVal for next scanline (must do this even for non-visible lines to keep state)
+        for (int a = activeHead; a != -1; a = edgePool[a].nextActive)
+            edgePool[a].xVal += edgePool[a].slope;
     }
 }
 
@@ -1195,30 +1223,25 @@ void Maps::enqueueSurroundingTiles(uint32_t centerX, uint32_t centerY, uint8_t z
     }
 }
         
-// ============================================================================
-// NAV Tile-based Rendering Implementation
-// ============================================================================
+/**
+ * @brief Project arbitrary Lat/Lon coordinates to current NAV viewport pixels.
+ * @details Used for rendering GPX tracks or waypoints on top of vector maps.
+ */
+void Maps::latLonToPixel(float lat, float lon, int16_t& px, int16_t& py)
+{
+    const float latRad = lat * (float)M_PI / 180.0f;
+    // Use the cached zoom from the last renderNavViewport call
+    const float n = static_cast<float>(1u << navLastZoom_);
+    const float tx = (lon + 180.0f) / 360.0f * n;
+    const float ty = (1.0f - logf(tanf(latRad) + 1.0f / cosf(latRad)) / (float)M_PI) / 2.0f * n;
+
+    px = static_cast<int16_t>((tx - navTlTileX_) * 256.0f);
+    py = static_cast<int16_t>((ty - navTlTileY_) * 256.0f);
+}
 
 /**
- * @brief Convert int32 scaled coordinates to pixel coordinates
- *
- * @param lon Longitude (scaled by COORD_SCALE)
- * @param lat Latitude (scaled by COORD_SCALE)
- * @param viewport Viewport bounding box (scaled coords)
- * @param px Output pixel X
- * @param py Output pixel Y
- */
-void Maps::navCoordToPixel(int32_t lon, int32_t lat, const NavBbox& viewport, int16_t& px, int16_t& py)
-{
-    // Use pre-calculated fixed-point scales
-    // px = (lon - minLon) * scaleX >> 16
-    // py = (maxLat - lat) * scaleY >> 16
-    const int32_t pxRaw = static_cast<int32_t>((static_cast<int64_t>(lon - navMinLon_) * navScaleX_) >> 16);
-    const int32_t pyRaw = static_cast<int32_t>((static_cast<int64_t>(navMaxLat_ - lat) * navScaleY_) >> 16);
+ * @brief Convert pre-projected NAV coordinate to screen pixels.
 
-    px = static_cast<int16_t>(std::max((int32_t)-1000, std::min((int32_t)2000, pxRaw)));
-    py = static_cast<int16_t>(std::max((int32_t)-1000, std::min((int32_t)2000, pyRaw)));
-}
 
 /**
  * @brief Render a LineString feature with bbox culling.
@@ -1227,18 +1250,22 @@ void Maps::navCoordToPixel(int32_t lon, int32_t lat, const NavBbox& viewport, in
  * @param viewport Current view bounding box for projection.
  * @param map      Target sprite to draw on.
  */
-void Maps::renderNavLineString(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map)
+/**
+ * @brief Render a LineString feature with bbox culling and round joins.
+ * 
+ * @param feature  The vector line feature to render.
+ * @param map      Target sprite to draw on.
+ */
+void Maps::renderNavLineString(const NavFeature& feature, TFT_eSprite& map)
 {
     if (feature.coordCount < 2)
         return;
 
     const size_t numCoords = feature.coordCount;
     
-    // Zero-Allocation Projection Pipeline
     if (projBuf16X.capacity() < numCoords) projBuf16X.reserve(numCoords * 1.5);
     if (projBuf16Y.capacity() < numCoords) projBuf16Y.reserve(numCoords * 1.5);
     
-    // Resize without reallocating if capacity is sufficient
     projBuf16X.resize(numCoords);
     projBuf16Y.resize(numCoords);
 
@@ -1254,9 +1281,8 @@ void Maps::renderNavLineString(const NavFeature& feature, const NavBbox& viewpor
     for (size_t i = 0; i < numCoords; i++)
     {
         int16_t px, py;
-        navCoordToPixel(feature.coords[i].lon, feature.coords[i].lat, viewport, px, py);
+        navCoordToPixel(feature, feature.coords[i], px, py);
         
-        // Sub-pixel culling: skip if resolving to the same pixel as last valid point
         if (validPoints > 0 && px == lastPx && py == lastPy)
             continue;
 
@@ -1273,37 +1299,21 @@ void Maps::renderNavLineString(const NavFeature& feature, const NavBbox& viewpor
         validPoints++;
     }
 
-    // Bbox culling: skip if completely outside screen or not enough points
     if (validPoints < 2 || maxPx < 0 || minPx >= tileWidth || maxPy < 0 || minPy >= tileHeight)
         return;
 
     uint16_t color = feature.properties.colorRgb565;
-    uint8_t width = feature.properties.getWidth();
-
-    // For thick lines, add round join at first vertex
-    if (width > 2)
-    {
-        map.fillCircle(pxArr[0], pyArr[0], width / 2, color);
-    }
+    uint8_t width = feature.properties.width > 0 ? feature.properties.width : 1;
 
     for (size_t i = 1; i < validPoints; i++)
     {
-        if (width <= 2)
+        if (width == 1)
         {
-            // Fast path for thin lines
             map.drawLine(pxArr[i-1], pyArr[i-1], pxArr[i], pyArr[i], color);
-            if (width == 2)
-            {
-                // Draw parallel line for width 2
-                map.drawLine(pxArr[i-1]+1, pyArr[i-1], pxArr[i]+1, pyArr[i], color);
-            }
         }
         else
         {
-            // Use drawWideLine for thicker lines
             map.drawWideLine(pxArr[i-1], pyArr[i-1], pxArr[i], pyArr[i], width, color);
-            // Round join at vertex to smooth curves
-            map.fillCircle(pxArr[i], pyArr[i], width / 2, color);
         }
     }
 }
@@ -1312,21 +1322,18 @@ void Maps::renderNavLineString(const NavFeature& feature, const NavBbox& viewpor
  * @brief Render a Polygon feature with bbox culling.
  * 
  * @param feature  The vector polygon feature to render.
- * @param viewport Current view bounding box for projection.
  * @param map      Target sprite to draw on.
  */
-void Maps::renderNavPolygon(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map)
+void Maps::renderNavPolygon(const NavFeature& feature, TFT_eSprite& map)
 {
     if (feature.coordCount < 3)
         return;
 
     size_t numPoints = feature.coordCount;
     
-    // Zero-Allocation Projection Pipeline
     if (projBuf32X.capacity() < numPoints) projBuf32X.reserve(numPoints * 1.5);
     if (projBuf32Y.capacity() < numPoints) projBuf32Y.reserve(numPoints * 1.5);
 
-    // Resize without reallocating if capacity is sufficient
     projBuf32X.resize(numPoints);
     projBuf32Y.resize(numPoints);
 
@@ -1336,53 +1343,40 @@ void Maps::renderNavPolygon(const NavFeature& feature, const NavBbox& viewport, 
     int minPx = INT_MAX, maxPx = INT_MIN;
     int minPy = INT_MAX, maxPy = INT_MIN;
 
-    size_t validPoints = 0;
-    int16_t lastPx = -32768, lastPy = -32768;
-
     for (size_t i = 0; i < numPoints; i++)
     {
         int16_t x, y;
-        navCoordToPixel(feature.coords[i].lon, feature.coords[i].lat, viewport, x, y);
+        navCoordToPixel(feature, feature.coords[i], x, y);
         
-        // Sub-pixel culling: skip if same as last point
-        if (validPoints > 0 && x == lastPx && y == lastPy)
-            continue;
-
-        px[validPoints] = x;
-        py[validPoints] = y;
+        px[i] = x;
+        py[i] = y;
         
-        if ((int)x < minPx) minPx = (int)x;
-        if ((int)x > maxPx) maxPx = (int)x;
-        if ((int)y < minPy) minPy = (int)y;
-        if ((int)y > maxPy) maxPy = (int)y;
-
-        lastPx = x;
-        lastPy = y;
-        validPoints++;
+        if (x < minPx) minPx = x;
+        if (x > maxPx) maxPx = x;
+        if (y < minPy) minPy = y;
+        if (y > maxPy) maxPy = y;
     }
 
-    // Bbox culling: skip if completely outside screen or not enough points
-    if (validPoints < 3 || maxPx < 0 || minPx >= tileWidth || maxPy < 0 || minPy >= tileHeight)
-        return;
-
-    // Skip polygons with oversized bbox (likely crossing tile boundary incorrectly)
-    int bboxWidth = maxPx - minPx;
-    int bboxHeight = maxPy - minPy;
-    if (bboxWidth > tileWidth * 2 || bboxHeight > tileHeight * 2)
+    if (maxPx < 0 || minPx >= tileWidth || maxPy < 0 || minPy >= tileHeight)
         return;
 
     uint16_t fillColor = feature.properties.colorRgb565;
-    uint16_t borderColor = darkenRGB565(feature.properties.colorRgb565, 0.3f);
+    uint16_t borderColor = darkenRGB565(fillColor, 0.15f);
 
     if (fillPolygons)
     {
-        fillPolygonGeneral(map, px, py, validPoints, fillColor, 0, 0);
+        fillPolygonGeneral(map, px, py, numPoints, fillColor, 0, 0, feature.ringCount, feature.ringEnds);
     }
 
-    for (size_t i = 0; i < validPoints; i++)
+    // Draw outline only for the exterior ring (ring 0)
+    int extEnd = (feature.ringCount > 0) ? feature.ringEnds[0] : numPoints;
+    if (extEnd >= 3)
     {
-        size_t next = (i + 1) % validPoints;
-        map.drawLine(px[i], py[i], px[next], py[next], borderColor);
+        for (int i = 0; i < extEnd; i++)
+        {
+            int next = (i + 1 == extEnd) ? 0 : i + 1;
+            map.drawLine(px[i], py[i], px[next], py[next], borderColor);
+        }
     }
 }
 
@@ -1390,16 +1384,15 @@ void Maps::renderNavPolygon(const NavFeature& feature, const NavBbox& viewport, 
  * @brief Render a Point feature.
  * 
  * @param feature  The vector point feature to render.
- * @param viewport Current view bounding box for projection.
  * @param map      Target sprite to draw on.
  */
-void Maps::renderNavPoint(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map)
+void Maps::renderNavPoint(const NavFeature& feature, TFT_eSprite& map)
 {
     if (feature.coordCount == 0)
         return;
 
     int16_t px, py;
-    navCoordToPixel(feature.coords[0].lon, feature.coords[0].lat, viewport, px, py);
+    navCoordToPixel(feature, feature.coords[0], px, py);
 
     if (px >= 0 && px < tileWidth && py >= 0 && py < tileHeight)
     {
@@ -1412,26 +1405,23 @@ void Maps::renderNavPoint(const NavFeature& feature, const NavBbox& viewport, TF
  * @brief Render a single NAV feature based on geometry type.
  * 
  * @param feature  The feature to render.
- * @param viewport Current view bounding box for projection.
+ * @param viewport Current view bounding box (Ignored in new format).
  * @param map      Target sprite to draw on.
  */
 void Maps::renderNavFeature(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map)
 {
-    // Pause display during vector feature rendering to avoid SD conflicts
-    waitScreenRefresh = true;
-    
     switch (feature.geomType)
     {
         case NavGeomType::LineString:
-            renderNavLineString(feature, viewport, map);
+            renderNavLineString(feature, map);
             break;
 
         case NavGeomType::Polygon:
-            renderNavPolygon(feature, viewport, map);
+            renderNavPolygon(feature, map);
             break;
 
         case NavGeomType::Point:
-            renderNavPoint(feature, viewport, map);
+            renderNavPoint(feature, map);
             break;
 
         default:
@@ -1440,13 +1430,21 @@ void Maps::renderNavFeature(const NavFeature& feature, const NavBbox& viewport, 
 }
 
 /**
+ * @brief Convert pre-projected NAV coordinate to screen pixels.
+ * @details Uses bit-shifting for ultra-fast calculation (0-4096 range).
+ */
+void Maps::navCoordToPixel(const NavFeature& feature, const NavCoord& coord, int16_t& px, int16_t& py)
+{
+    px = feature.tilePixelOffsetX + (coord.x >> 4);
+    py = feature.tilePixelOffsetY + (coord.y >> 4);
+}
+
+/**
  * @brief Render NAV viewport
- *
  * @details Main entry point for NAV tile rendering. Loads 3x3 tile grid,
- *          sorts features by priority, and renders to sprite.
- *
- * @param centerLat Center latitude
- * @param centerLon Center longitude
+ * uses pre-calculated projections and BBox culling for maximum performance.
+ * @param centerLat Viewport center latitude
+ * @param centerLon Viewport center longitude
  * @param zoom Zoom level
  * @param map Target sprite for rendering
  * @return true if rendering succeeded
@@ -1454,121 +1452,115 @@ void Maps::renderNavFeature(const NavFeature& feature, const NavBbox& viewport, 
 bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT_eSprite& map)
 {
     uint64_t startTime = esp_timer_get_time();
-    // Calculate center tile coordinates using Web Mercator projection
-    const float latRad = centerLat * (float)M_PI / 180.0f;
-    const float n = static_cast<float>(1u << zoom);
-    const int centerTileX = static_cast<int>((centerLon + 180.0f) / 360.0f * n);
-    const int centerTileY = static_cast<int>((1.0f - logf(tanf(latRad) + 1.0f / cosf(latRad)) / (float)M_PI) / 2.0f * n);
+    waitScreenRefresh = true;
+    
+    const double latRad = (double)centerLat * M_PI / 180.0;
+    const double n = pow(2.0, (double)zoom);
+    const float centerTileX = (float)((centerLon + 180.0) / 360.0 * n);
+    const float centerTileY = (float)((1.0 - log(tan(latRad) + 1.0 / cos(latRad)) / M_PI) / 2.0 * n);
 
-    // Calculate viewport bbox (in scaled int32 coordinates)
-    const int minTileX = centerTileX - 1;
-    const int maxTileX = centerTileX + 2;
-    const int minTileY = centerTileY - 1;
-    const int maxTileY = centerTileY + 2;
+    navTlTileX_ = centerTileX - 1.5f;
+    navTlTileY_ = centerTileY - 1.5f;
+    navLastZoom_ = zoom;
 
-    const float maxLatF = atanf(sinhf((float)M_PI * (1.0f - 2.0f * static_cast<float>(minTileY) / n))) * 180.0f / (float)M_PI;
-    const float minLonF = static_cast<float>(minTileX) / n * 360.0f - 180.0f;
-    const float minLatF = atanf(sinhf((float)M_PI * (1.0f - 2.0f * static_cast<float>(maxTileY) / n))) * 180.0f / (float)M_PI;
-    const float maxLonF = static_cast<float>(maxTileX) / n * 360.0f - 180.0f;
+    const int minTileX = (int)floorf(navTlTileX_);
+    const int minTileY = (int)floorf(navTlTileY_);
 
-    NavBbox viewport;
-    viewport.minLon = static_cast<int32_t>(minLonF * COORD_SCALE);
-    viewport.maxLon = static_cast<int32_t>(maxLonF * COORD_SCALE);
-    viewport.minLat = static_cast<int32_t>(minLatF * COORD_SCALE);
-    viewport.maxLat = static_cast<int32_t>(maxLatF * COORD_SCALE);
-
-    // Pre-calculate fixed-point scale factors (16.16 fixed point)
-    // tileWidth << 16 might overflow int32, but we use int64 for the calculation
-    navScaleX_ = static_cast<int32_t>((static_cast<int64_t>(tileWidth) << 16) / (viewport.maxLon - viewport.minLon));
-    navScaleY_ = static_cast<int32_t>((static_cast<int64_t>(tileHeight) << 16) / (viewport.maxLat - viewport.minLat));
-    navMinLon_ = viewport.minLon;
-    navMaxLat_ = viewport.maxLat;
-
-    // Clear map with white background
     map.fillSprite(TFT_WHITE);
 
-    // List to keep track of PSRAM buffers for the 9 tiles
     std::vector<uint8_t*> tileBuffers;
     std::vector<NavFeature> globalLayers[16];
+    // Pre-reserve to avoid reallocations
+    for (int i = 0; i < 16; i++) globalLayers[i].reserve(256);
+    
     size_t totalTheoreticalPSRAM = 0;
-
     uint64_t tLoadStart = esp_timer_get_time();
 
-    for (int dy = -1; dy <= 1; dy++)
+    for (int dy = 0; dy < 4; dy++)
     {
-        for (int dx = -1; dx <= 1; dx++)
+        for (int dx = 0; dx < 4; dx++)
         {
-            int tileX = centerTileX + dx;
-            int tileY = centerTileY + dy;
+            int tileX = minTileX + dx;
+            int tileY = minTileY + dy;
 
             char tilePath[128];
-            snprintf(tilePath, sizeof(tilePath), mapVectorFolder,
-                     zoom, tileX, tileY);
+            snprintf(tilePath, sizeof(tilePath), mapVectorFolder, zoom, tileX, tileY);
 
             uint8_t* tileBuffer = nullptr;
             size_t tileBufferSize = 0;
             std::vector<NavFeature> tileFeatures;
             
-            // Fast memory loading (allocates new buffer for each tile)
-            if (NavReader::readAllFeaturesMemory(tilePath, tileFeatures, zoom, tileBuffer, tileBufferSize) == 0)
-                continue;
+            NavReader::readAllFeaturesMemory(tilePath, tileFeatures, zoom, tileBuffer, tileBufferSize);
+            
+            if (tileBuffer)
+            {
+                tileBuffers.push_back(tileBuffer);
+                totalTheoreticalPSRAM += tileBufferSize;
+            }
 
-            tileBuffers.push_back(tileBuffer);
-            totalTheoreticalPSRAM += tileBufferSize;
+            if (tileFeatures.empty()) continue;
+
+            const int16_t offsetX = (int16_t)((float(tileX) - navTlTileX_) * 256.0f);
+            const int16_t offsetY = (int16_t)((float(tileY) - navTlTileY_) * 256.0f);
 
             for (auto& feature : tileFeatures)
             {
+                feature.tilePixelOffsetX = offsetX;
+                feature.tilePixelOffsetY = offsetY;
+                
                 uint8_t priority = feature.properties.getPriority();
                 if (priority < 16)
                     globalLayers[priority].push_back(std::move(feature));
             }
         }
-        taskYIELD(); // Yield per row
     }
 
     uint64_t tRenderStart = esp_timer_get_time();
-
     map.startWrite();
 
     for (int p = 0; p < 16; p++)
     {
-        // Yield to allow I2C/System tasks to process
-        taskYIELD();
-
-        for (auto& feature : globalLayers[p])
+        if (globalLayers[p].empty()) continue;
+        
+        for (const auto& feature : globalLayers[p])
         {
-            if (feature.coordCount == 0 || !feature.coords)
-                continue;
-            
-            // Fast BBox Culling
-            if (feature.bbox.minLon > viewport.maxLon || feature.bbox.maxLon < viewport.minLon ||
-                feature.bbox.minLat > viewport.maxLat || feature.bbox.maxLat < viewport.minLat)
-                continue;
+            const int16_t minX = feature.tilePixelOffsetX + feature.objBbox.x1;
+            const int16_t minY = feature.tilePixelOffsetY + feature.objBbox.y1;
+            const int16_t maxX = feature.tilePixelOffsetX + feature.objBbox.x2;
+            const int16_t maxY = feature.tilePixelOffsetY + feature.objBbox.y2;
 
-            renderNavFeature(feature, viewport, map);
+            if (minX > 768 || maxX < 0 || minY > 768 || maxY < 0) continue;
+
+            map.setClipRect(feature.tilePixelOffsetX, feature.tilePixelOffsetY, 256, 256);
+            renderNavFeature(feature, {}, map);
         }
         globalLayers[p].clear();
+        taskYIELD();
     }
 
+    map.clearClipRect();
     map.endWrite();
 
-    uint64_t tCleanupStart = esp_timer_get_time();
+    uint64_t tRenderEnd = esp_timer_get_time();
+    uint64_t tFreeStart = esp_timer_get_time();
 
-    for (auto buffer : tileBuffers)
+    for (auto* buffer : tileBuffers)
+    {
         heap_caps_free(buffer);
+    }
 
-    uint64_t tEnd = esp_timer_get_time();
-    
-    ESP_LOGI(TAG, "NAV Stats - Load: %llu ms, Render: %llu ms, Free: %llu ms. Total: %llu ms. PSRAM: %u B", 
-             (tRenderStart - tLoadStart) / 1000, 
-             (tCleanupStart - tRenderStart) / 1000,
-             (tEnd - tCleanupStart) / 1000,
-             (tEnd - startTime) / 1000,
-             static_cast<uint32_t>(totalTheoreticalPSRAM));
+    uint64_t tFreeEnd = esp_timer_get_time();
+    uint64_t endTime = esp_timer_get_time();
 
-    // Resume display after vector rendering
+    ESP_LOGI(TAG, "NAV Stats - Load: %llu ms, Render: %llu ms, Free: %llu ms. Total: %llu ms. PSRAM: %u B",
+             (tRenderStart - tLoadStart) / 1000,
+             (tRenderEnd - tRenderStart) / 1000,
+             (tFreeEnd - tFreeStart) / 1000,
+             (endTime - startTime) / 1000,
+             totalTheoreticalPSRAM);
+
     waitScreenRefresh = false;
-
     return true;
 }
+
 
