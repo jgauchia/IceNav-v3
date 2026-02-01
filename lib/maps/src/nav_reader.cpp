@@ -11,86 +11,68 @@
 #include "storage.hpp"
 
 extern Storage storage;
-
 static const char* TAG = "NavReader";
 
 /**
  * @brief Load entire file to memory and read features using zero-copy pointers.
- * 
  * @param path File path to the .nav tile.
- * @param features Output vector to store pointers to data within tileBuffer.
+ * @param features Output vector to store feature objects.
  * @param maxZoom Maximum zoom level to filter features.
- * @param tileBuffer Pointer to the PSRAM buffer (will be reallocated if too small).
+ * @param tileBuffer Reference to the PSRAM buffer.
  * @param bufferSize Current size of the tileBuffer.
- * @return Number of features loaded and filtered.
+ * @return Number of features loaded.
  */
 size_t NavReader::readAllFeaturesMemory(const char* path, std::vector<NavFeature>& features, uint8_t maxZoom, uint8_t*& tileBuffer, size_t& bufferSize)
 {
     FILE* f = storage.open(path, "rb");
-    if (!f)
-        return 0;
-
+    if (!f) return 0;
     fseek(f, 0, SEEK_END);
     size_t fileSize = ftell(f);
     fseek(f, 0, SEEK_SET);
-
     if (fileSize == 0)
     {
         storage.close(f);
         return 0;
     }
-
     if (fileSize > bufferSize)
     {
-        if (tileBuffer)
-            heap_caps_free(tileBuffer);
-        bufferSize = fileSize + 4096; // Some extra room
+        if (tileBuffer) heap_caps_free(tileBuffer);
+        bufferSize = fileSize + 4096;
         tileBuffer = (uint8_t*)heap_caps_malloc(bufferSize, MALLOC_CAP_SPIRAM);
     }
-
     if (!tileBuffer)
     {
         storage.close(f);
         return 0;
     }
-
     if (storage.read(f, tileBuffer, fileSize) != fileSize)
     {
         storage.close(f);
         return 0;
     }
     storage.close(f);
-
-    // Parsing from memory
     uint8_t* p = tileBuffer;
     NavTileHeader* tileHeader = (NavTileHeader*)p;
-    
-    if (memcmp(tileHeader->magic, NAV_MAGIC, 4) != 0)
-        return 0;
-    
+    if (memcmp(tileHeader->magic, NAV_MAGIC, 4) != 0) return 0;
     uint16_t featureCount = tileHeader->featureCount;
     features.reserve(featureCount);
-    
-    p += sizeof(NavTileHeader); // 22 bytes
+    p += sizeof(NavTileHeader);
     size_t count = 0;
-
     for (uint16_t i = 0; i < featureCount; i++)
     {
         NavFeatureHeader* featHeader = (NavFeatureHeader*)p;
-        p += sizeof(NavFeatureHeader); // 12 bytes
-
+        p += sizeof(NavFeatureHeader);
         uint8_t minZoom = featHeader->zoomPriority >> 4;
         if (minZoom > maxZoom)
         {
-            p += (featHeader->coordCount * 4); // Skip coordinates
-            if (featHeader->geomType == 3) // Polygon
+            p += (featHeader->coordCount * 4);
+            if (featHeader->geomType == 3)
             {
                 uint16_t ringCount = p[0] | (p[1] << 8);
-                p += 2 + (ringCount * 2); // Skip ring ends
+                p += 2 + (ringCount * 2);
             }
             continue;
         }
-
         NavFeature feature;
         feature.geomType = static_cast<NavGeomType>(featHeader->geomType);
         feature.properties.colorRgb565 = featHeader->colorRgb565;
@@ -98,11 +80,8 @@ size_t NavReader::readAllFeaturesMemory(const char* path, std::vector<NavFeature
         feature.properties.width = featHeader->widthPixels;
         feature.objBbox = { featHeader->bbox[0], featHeader->bbox[1], featHeader->bbox[2], featHeader->bbox[3] };
         feature.coordCount = featHeader->coordCount;
-        
-        // Zero-copy coordinate pointer
         feature.coords = (NavCoord*)p;
         p += (feature.coordCount * 4);
-
         if (feature.geomType == NavGeomType::Polygon)
         {
             feature.ringCount = p[0] | (p[1] << 8);
@@ -113,10 +92,8 @@ size_t NavReader::readAllFeaturesMemory(const char* path, std::vector<NavFeature
                 p += (feature.ringCount * 2);
             }
         }
-
         features.push_back(std::move(feature));
         count++;
     }
-
     return count;
 }

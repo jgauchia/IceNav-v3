@@ -18,18 +18,17 @@ uint8_t activeTile = 0;
 uint8_t gpxAction = WPT_NONE;
 int heading = 0;              
 
-extern uint32_t DOUBLE_TOUCH_EVENT; /**< Event code for double touch gesture */
-
+extern uint32_t DOUBLE_TOUCH_EVENT;
 extern Compass compass;
 extern Gps gps;
 extern wayPoint loadWpt;
 
 #ifdef LARGE_SCREEN
-    uint8_t toolBarOffset = 100;  /**< Toolbar offset for large screens */
-    uint8_t toolBarSpace = 60;    /**< Toolbar spacing for large screens */
+    uint8_t toolBarOffset = 100;
+    uint8_t toolBarSpace = 60;
 #else
-    uint8_t toolBarOffset = 80;   /**< Toolbar offset for standard screens */
-    uint8_t toolBarSpace = 50;    /**< Toolbar spacing for standard screens */
+    uint8_t toolBarOffset = 80;
+    uint8_t toolBarSpace = 50;
 #endif
 
 lv_obj_t *tilesScreen;
@@ -39,16 +38,11 @@ lv_obj_t *mapTile;
 lv_obj_t *satTrackTile;
 lv_obj_t *btnZoomIn;
 lv_obj_t *btnZoomOut;
-
-lv_obj_t *mapCanvas;          /**< LVGL for the map canvas */
-
+lv_obj_t *mapCanvas;
 extern Maps mapView;
 
 /**
  * @brief Update compass screen event
- *
- * @details Updates the compass screen UI elements (heading, coordinates, altitude, speed, sunrise/sunset) with current GPS and heading data when the relevant event is triggered.
- *
  * @param event LVGL event pointer.
  */
 void updateCompassScr(lv_event_t *event)
@@ -76,31 +70,21 @@ void updateCompassScr(lv_event_t *event)
 
 /**
  * @brief Show Map Widgets.
- *
- * @details Displays or hides map-related UI widgets based on map user settings 
  */
 void showMapWidgets()
 {
     lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(zoomWidget, LV_OBJ_FLAG_HIDDEN);
-    if (mapSet.showMapSpeed)
-        lv_obj_clear_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
-    else
-        lv_obj_add_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
-    if (mapSet.showMapCompass)
-        lv_obj_clear_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
-    else
-        lv_obj_add_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
-    if (mapSet.showMapScale)
-        lv_obj_clear_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
-    else
-        lv_obj_add_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
+    if (mapSet.showMapSpeed) lv_obj_clear_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
+    else lv_obj_add_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
+    if (mapSet.showMapCompass) lv_obj_clear_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
+    else lv_obj_add_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
+    if (mapSet.showMapScale) lv_obj_clear_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
+    else lv_obj_add_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
 }
 
 /**
  * @brief Hide Map Widgets.
- *
- * @details Hides all map-related UI widgets on the screen.
  */
 void hideMapWidgets()
 {
@@ -113,9 +97,6 @@ void hideMapWidgets()
 
 /**
  * @brief Screen state tracking structure for performance optimization.
- *
- * @details Stores previous values of screen data to prevent unnecessary LVGL updates.
- * Implements dirty flag pattern to only redraw when values actually change.
  */
 struct ScreenState 
 {
@@ -128,14 +109,10 @@ struct ScreenState
     int16_t lastOffsetY = 0;
     bool needsRedraw = true;
 };
-
 ScreenState screenState;
 
 /**
  * @brief Get active tile
- *
- * @details Handles tileview scroll event, updates active tile index, and manages map/widget visibility and bar status.
- *
  * @param event LVGL event pointer.
  */
 void getActTile(lv_event_t *event)
@@ -145,32 +122,22 @@ void getActTile(lv_event_t *event)
         isScrolled = true;
         mapView.redrawMap = true;
         screenState.needsRedraw = true;
-
         if (activeTile == MAP)
         {
             mapView.createMapScrSprites();
-            if (mapView.isMapFound)
-                showMapWidgets();
-            else
-                hideMapWidgets();
+            if (mapView.isMapFound) showMapWidgets();
+            else hideMapWidgets();
         }
-
-        if (isBarOpen)
-        lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
+        if (isBarOpen) lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
     }
     else
         isReady = true;
-
     lv_obj_t *actTile = lv_tileview_get_tile_act(tilesScreen);
-    lv_coord_t tileX = lv_obj_get_x(actTile) / TFT_WIDTH;
-    activeTile = tileX;
+    activeTile = lv_obj_get_x(actTile) / TFT_WIDTH;
 }
 
 /**
  * @brief Tile start scrolling event
- *
- * @details Handles the beginning of a tile scroll event by resetting scroll and map redraw flags and deleting map screen sprites.
- *
  * @param event LVGL event pointer.
  */
 void scrollTile(lv_event_t *event)
@@ -183,25 +150,18 @@ void scrollTile(lv_event_t *event)
 }
 
 /**
- * @brief Update Main Screen.
- *
- * @details Periodically updates the active main screen tiles and its widgets 
+ * @brief Update Main Screen periodically
+ * @param t LVGL timer.
  */
 void updateMainScreen(lv_timer_t *t)
 {
     if (isScrolled && isMainScreen || isScrollingMap)
     {
         #ifdef ENABLE_COMPASS
-            if (!waitScreenRefresh)
-            {
-                heading = globalSensorData.heading;
-            }
+            heading = globalSensorData.heading;
         #else
-            {
-                heading = gps.gpsData.heading;
-            }
+            heading = gps.gpsData.heading;
         #endif
-
         if (gps.hasLocationChange())
         {
             if (gps.gpsData.latitude != screenState.lastLat || 
@@ -214,7 +174,6 @@ void updateMainScreen(lv_timer_t *t)
                 lv_obj_send_event(longitude, LV_EVENT_VALUE_CHANGED, NULL);
             }
         }
-
         switch (activeTile)
         {
         case COMPASS:
@@ -224,23 +183,19 @@ void updateMainScreen(lv_timer_t *t)
                 screenState.needsRedraw = true;
                 lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
             }
-
             if (gps.gpsData.altitude != screenState.lastAltitude)
             {
                 screenState.lastAltitude = gps.gpsData.altitude;
                 screenState.needsRedraw = true;
                 lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
             }
-
             if (gps.isSpeedChanged())
             {
                 screenState.needsRedraw = true;
                 lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
             }
             break;
-
         case MAP:
-            // Continuous physics update for smooth mobile-style inertia
             if (isScrollingMap || mapView.offsetX != screenState.lastOffsetX || mapView.offsetY != screenState.lastOffsetY)
             {
                 mapView.scrollMap(0, 0);
@@ -248,21 +203,17 @@ void updateMainScreen(lv_timer_t *t)
                 screenState.lastOffsetY = mapView.offsetY;
                 screenState.needsRedraw = true;
             }
-
-            // Check if heading changed for map rotation
             if (heading != screenState.lastHeading)
             {
                 screenState.lastHeading = heading;
                 screenState.needsRedraw = true;
             }
-            
             if (screenState.needsRedraw)
             {
                 lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
                 screenState.needsRedraw = false;
             }
             break;
-
         case NAV:
             if (screenState.needsRedraw)
             {
@@ -270,70 +221,40 @@ void updateMainScreen(lv_timer_t *t)
                 screenState.needsRedraw = false;
             }
             break;
-
         case SATTRACK:
             lv_obj_send_event(satTrackTile, LV_EVENT_VALUE_CHANGED, NULL);
             break;
-
-        default:
-            break;
+        default: break;
         }
     }
 }
 
 /**
  * @brief Update map event
- *
- * @details Handles map update events by generating and displaying the map (vector or render), updating map speed, scale, and compass widgets according to current settings.
- *
  * @param event LVGL event pointer.
  */
 void updateMap(lv_event_t *event)
 {
-    // Force redraw in GPS mode to handle rotation/movement
     if (mapView.followGps) mapView.redrawMap = true;
-
     mapView.generateMap(zoom);
-
     if (mapView.redrawMap)
     {
         mapView.displayMap();
-        // Virtual canvas for smooth panning
         lv_canvas_set_buffer(mapCanvas, mapView.mapBuffer, Maps::tileWidth, Maps::tileHeight, LV_COLOR_FORMAT_RGB565_SWAPPED);
         mapView.redrawMap = false;
     }
-
-    // Position canvas for viewport
     int16_t baseX = (tft.width() - Maps::tileWidth) / 2;
     int16_t baseY = ((tft.height() - 27) - Maps::tileHeight) / 2;
-    if (mapView.followGps)
-    {
-        // GPS mode: center is already correct from pushRotated, no offset needed
-        lv_obj_set_pos(mapCanvas, baseX, baseY);
-    }
-    else
-    {
-        // Manual mode: apply panning offsets for smooth scroll
-        lv_obj_set_pos(mapCanvas, baseX - mapView.offsetX, baseY - mapView.offsetY);
-    }
-
-    if (mapSet.showMapSpeed)
-        lv_label_set_text_fmt(mapSpeedLabel, "%3d", gps.gpsData.speed);     
-    
-    if (mapSet.showMapScale)
-        lv_label_set_text_fmt(scaleLabel, "%s", map_scale[zoom]);
-
-    if (mapSet.showMapCompass)
-    {
-        if (mapSet.compassRotation)
-        lv_img_set_angle(mapCompassImg, -(heading * 10));
-    }
+    if (mapView.followGps) lv_obj_set_pos(mapCanvas, baseX, baseY);
+    else lv_obj_set_pos(mapCanvas, baseX - mapView.offsetX, baseY - mapView.offsetY);
+    if (mapSet.showMapSpeed) lv_label_set_text_fmt(mapSpeedLabel, "%3d", gps.gpsData.speed);     
+    if (mapSet.showMapScale) lv_label_set_text_fmt(scaleLabel, "%s", map_scale[zoom]);
+    if (mapSet.showMapCompass && mapSet.compassRotation) lv_img_set_angle(mapCompassImg, -(heading * 10));
 }
 
 /**
- * @brief Update Satellite Tracking.
- *
- * @details Handles satellite tracking update events by refreshing DOP, altitude labels, and updating satellite SNR and sky plots.
+ * @brief Update Satellite Tracking
+ * @param event LVGL event pointer.
  */
 void updateSatTrack(lv_event_t *event)
 {
@@ -343,33 +264,25 @@ void updateSatTrack(lv_event_t *event)
         lv_label_set_text_fmt(hdopLabel, "HDOP: %.1f", gps.gpsData.hdop);
         lv_label_set_text_fmt(vdopLabel, "VDOP: %.1f", gps.gpsData.vdop);
     }
-
     static int16_t lastAltSat = -32768;
     if (gps.gpsData.altitude != lastAltSat)
     {
         lastAltSat = gps.gpsData.altitude;
         lv_label_set_text_fmt(altLabel, "ALT: %4dm.", gps.gpsData.altitude);
     }
-
     drawSatSNR();
     drawSatSky();
 }
 
 /**
- * @brief Map Tool Bar Event.
- *
- * @details Handles map toolbar visibility toggling, zoom button states, map scrollability, and map centering on GPS.
- *
+ * @brief Map Tool Bar Event
  * @param event LVGL event pointer.
  */
 void mapToolBarEvent(lv_event_t *event)
 {
-    lv_event_code_t code = lv_event_get_code(event);
-
     showMapToolBar = !showMapToolBar;
     canScrollMap = !canScrollMap;
     isScrollingMap = false;
-
     if (!showMapToolBar)
     {
         lv_obj_clear_flag(btnZoomOut, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
@@ -387,18 +300,13 @@ void mapToolBarEvent(lv_event_t *event)
         lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
-        if (!mapView.followGps)
-            lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
-        else
-            lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+        if (!mapView.followGps) lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+        else lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
     }
 }
 
 /**
- * @brief Scroll Map Event.
- *
- * @details Handles map scrolling gestures, updating the map view position 
- *
+ * @brief Scroll Map Event
  * @param event LVGL event pointer.
  */
 void scrollMapEvent(lv_event_t *event)
@@ -410,25 +318,20 @@ void scrollMapEvent(lv_event_t *event)
         static int last_x = 0, last_y = 0;
         static bool dragStarted = false;
         lv_point_t p;
-
         switch (code)
         {
             case LV_EVENT_PRESSED:
-            {
                 lv_indev_get_point(indev, &p);
                 last_x = p.x;
                 last_y = p.y;
                 dragStarted = false;
                 isScrollingMap = true;
                 break;
-            }
-        
             case LV_EVENT_PRESSING:
             {
                 lv_indev_get_point(indev, &p);
                 int dx = p.x - last_x;
                 int dy = p.y - last_y;
-
                 if (!dragStarted)
                 {
                     const int START_THRESHOLD = 12;
@@ -438,7 +341,6 @@ void scrollMapEvent(lv_event_t *event)
                         lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
                     }
                 }
-
                 if (dragStarted)
                 {
                     mapView.scrollMap(-dx, -dy);
@@ -448,48 +350,39 @@ void scrollMapEvent(lv_event_t *event)
                 }
                 break;
             }
-        
             case LV_EVENT_RELEASED:
             case LV_EVENT_PRESS_LOST:
-            {
                 lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
                 isScrollingMap = false;
                 dragStarted = false;
                 break;
-            }
+            default: break;
         }
     }
 }
 
 /**
- * @brief Zoom Event Toolbar.
- *
- * @details Handles zoom in/out toolbar events, updates zoom level, manages map position, and refreshes the map
- *
+ * @brief Zoom Event
  * @param event LVGL event pointer.
  */
 void zoomEvent(lv_event_t *event)
 {
     lv_obj_t *obj = (lv_obj_t *)lv_event_get_current_target(event);
-    if ( obj == btnZoomIn && ( zoom >= minZoom && zoom < maxZoom ) )
-        zoom++;
-    else if ( obj == btnZoomOut && ( zoom <= maxZoom && zoom > minZoom ) )
-        zoom--;
+    if ( obj == btnZoomIn && ( zoom >= minZoom && zoom < maxZoom ) ) zoom++;
+    else if ( obj == btnZoomOut && ( zoom <= maxZoom && zoom > minZoom ) ) zoom--;
     screenState.needsRedraw = true;
     lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
     lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
 }
 
 /**
- * @brief Handles navigation waypoint screen updates 
- *
+ * @brief Update Navigation info
  * @param event LVGL event pointer.
  */
 void updateNavEvent(lv_event_t *event)
 {
     int wptDistance = (int)calcDist(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon);
     lv_label_set_text_fmt(distNav, "%d m.", wptDistance);
-
     if (wptDistance == 0)
     {
         LV_IMG_DECLARE(navfinish);
@@ -498,42 +391,28 @@ void updateNavEvent(lv_event_t *event)
     }
     else
     {
-        #ifdef ENABLE_COMPASS
-            float wptCourse = calcCourse(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon) - heading;
-        #endif
-        #ifndef ENABLE_COMPASS
-            float wptCourse = calcCourse(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon) - heading;
-        #endif
-            lv_img_set_angle(arrowNav, (wptCourse * 10));
+        float wptCourse = calcCourse(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon) - heading;
+        lv_img_set_angle(arrowNav, (wptCourse * 10));
     }
 }
 
 /**
- * @brief Create Canvas for Map.
- *
- * @details Initializes and creates the canvas object for rendering the map on the specified screen.
- *
- * @param screen Pointer to the LVGL screen object.
+ * @brief Create Canvas for Map
+ * @param screen LVGL screen pointer.
  */
 void createMapCanvas(_lv_obj_t *screen)
 {
     mapCanvas = lv_canvas_create(screen);
-    // Hide scrollbars for virtual canvas
     lv_obj_set_scrollbar_mode(mapCanvas, LV_SCROLLBAR_MODE_OFF);
-    // Prevent canvas from affecting parent scroll
     lv_obj_add_flag(mapCanvas, LV_OBJ_FLAG_FLOATING);
 }
 
 /**
- * @brief Create Main Screen.
- *
- * @details Initializes and configures the main screen and its tiles, widgets, and event callbacks 
+ * @brief Create Main Screen structure
  */
 void createMainScr()
 {
     mainScreen = lv_obj_create(NULL);
-
-    // Main Screen Tiles
     tilesScreen = lv_tileview_create(mainScreen);
     compassTile = lv_tileview_add_tile(tilesScreen, 0, 0, LV_DIR_RIGHT);
     mapTile = lv_tileview_add_tile(tilesScreen, 1, 0, (lv_dir_t)(LV_DIR_LEFT | LV_DIR_RIGHT));
@@ -543,23 +422,14 @@ void createMainScr()
     lv_obj_set_size(tilesScreen, TFT_WIDTH, TFT_HEIGHT - 25);
     lv_obj_set_pos(tilesScreen, 0, 25);
     lv_obj_add_style(tilesScreen, &styleScrollbarWhite, LV_PART_SCROLLBAR);
-    // Main Screen Events
     lv_obj_add_event_cb(tilesScreen, getActTile, LV_EVENT_SCROLL_END, NULL);
     lv_obj_add_event_cb(tilesScreen, scrollTile, LV_EVENT_SCROLL_BEGIN, NULL);
     lv_obj_add_event_cb(tilesScreen, getActTile, LV_EVENT_SCROLL, NULL);
-
-    // ********** Compass Tile **********
-    // Compass Widget
     compassWidget(compassTile);
-    // Position widget
     positionWidget(compassTile);
-    // Altitude widget
     altitudeWidget(compassTile);
-    // Speed widget
     speedWidget(compassTile);
-    // Sunrise/Sunset widget
     sunWidget(compassTile);
-    // Compass Tile Events
     lv_obj_add_event_cb(compassHeading, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(latitude, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(longitude, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
@@ -567,23 +437,13 @@ void createMainScr()
     lv_obj_add_event_cb(speedLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(sunriseLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(sunsetLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
-
-    // ********** Map Tile **********
-    // Map Canvas 
     createMapCanvas(mapTile);
-    // Navigation Arrow Widget
     navArrowWidget(mapTile);
-    // Map zoom Widget
     mapZoomWidget(mapTile);
-    // Map speed Widget
     mapSpeedWidget(mapTile);
-    // Map compass Widget
     mapCompassWidget(mapTile);
-    // Map scale Widget
     mapScaleWidget(mapTile);
-    // Turn by Turn navigation widget
-      turnByTurnWidget(mapTile);
-    // Map Tile Toolbar
+    turnByTurnWidget(mapTile);
     btnZoomOut = lv_img_create(mapTile);
     lv_img_set_src(btnZoomOut, zoomOutIconFile);
     lv_img_set_zoom(btnZoomOut,buttonScale);
@@ -610,20 +470,14 @@ void createMainScr()
         lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
     }
-    // Map Tile Events
     lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_VALUE_CHANGED, NULL);
     DOUBLE_TOUCH_EVENT = lv_event_register_id();
     lv_obj_add_event_cb(mapTile, mapToolBarEvent, (lv_event_code_t)DOUBLE_TOUCH_EVENT, NULL);
     lv_obj_add_event_cb(mapTile, scrollMapEvent, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(btnZoomOut, zoomEvent, LV_EVENT_CLICKED, NULL);
     lv_obj_add_event_cb(btnZoomIn, zoomEvent, LV_EVENT_CLICKED, NULL);
-
-    // ********** Navigation Tile **********
     navigationScr(navTile);
-    // Navigation Tile Events
     lv_obj_add_event_cb(navTile, updateNavEvent, LV_EVENT_VALUE_CHANGED, NULL);
-
-    // ********** Satellite Tracking and info Tile **********
     satelliteScr(satTrackTile);
     #ifdef BOARD_HAS_PSRAM
         #ifndef TDECK_ESP32S3
@@ -637,6 +491,5 @@ void createMainScr()
             drawSatConst();
         #endif
     #endif
-    // Satellite Tracking Event
     lv_obj_add_event_cb(satTrackTile, updateSatTrack, LV_EVENT_VALUE_CHANGED, NULL);
 }

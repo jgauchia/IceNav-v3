@@ -33,28 +33,16 @@
 extern Compass compass;
 extern Gps gps;
 extern Storage storage;
-extern TrackVector trackData; /**< Vector containing track waypoints */
+extern TrackVector trackData;
 const char* TAG = "Maps";
-
-// Tile cache system static variables
-uint32_t Maps::maxCachedTiles = 0;
-
-// Background prefetch system static variables (multi-core)
-QueueHandle_t Maps::prefetchQueue = nullptr;
-TaskHandle_t Maps::prefetchTaskHandle = nullptr;
-SemaphoreHandle_t Maps::prefetchMutex = nullptr;
-volatile bool Maps::prefetchTaskRunning = false;
-
 
 /**
  * @brief Map Class constructor
- *
- * @details Initializes the Maps class with default polygon filling enabled and logs completion status.
+ * @details Initializes the Maps class with default polygon filling enabled and reserves memory in Internal RAM.
  */
 Maps::Maps() : fillPolygons(true),
                navLastLat_(0), navLastLon_(0), navLastZoom_(0), navNeedsRender_(true)
 {
-    // Reserve memory in Internal RAM to avoid fragmentation and reallocations
     projBuf16X.reserve(1024);
     projBuf16Y.reserve(1024);
     projBuf32X.reserve(1024);
@@ -64,11 +52,7 @@ Maps::Maps() : fillPolygons(true),
 }
 
 /**
- * @brief Get pixel X position from OpenStreetMap Render map longitude
- *
- * @details Converts a longitude value to the corresponding pixel X position
- * 			for a given zoom level and tile size in an OpenStreetMap render map.
- *
+ * @brief Get pixel X position from longitude
  * @param f_lon Longitude coordinate.
  * @param zoom Zoom level.
  * @param tileSize Size of the map tile in pixels.
@@ -80,11 +64,7 @@ uint16_t Maps::lon2posx(float f_lon, uint8_t zoom, uint16_t tileSize)
 }
 
 /**
- * @brief Get pixel Y position from OpenStreetMap Render map latitude
- *
- * @details Converts a latitude value to the corresponding pixel Y position
- * 			for a given zoom level and tile size in an OpenStreetMap render map.
- *
+ * @brief Get pixel Y position from latitude
  * @param f_lat Latitude coordinate.
  * @param zoom Zoom level.
  * @param tileSize Size of the map tile in pixels.
@@ -101,13 +81,9 @@ uint16_t Maps::lat2posy(float f_lat, uint8_t zoom, uint16_t tileSize)
 
 /**
  * @brief Get TileX for OpenStreetMap files
- *
- * @details Converts a longitude value to the corresponding tile X index (folder) for OpenStreetMap files,
- * 			for a given zoom level.
- *
  * @param f_lon Longitude coordinate.
  * @param zoom Zoom level.
- * @return X tile index (folder).
+ * @return X tile index.
  */
 uint32_t Maps::lon2tilex(float f_lon, uint8_t zoom)
 {
@@ -118,13 +94,9 @@ uint32_t Maps::lon2tilex(float f_lon, uint8_t zoom)
 
 /**
  * @brief Get TileY for OpenStreetMap files
- *
- * @details Converts a latitude value to the corresponding tile Y index (file) for OpenStreetMap files,
- * 			for a given zoom level.
- *
  * @param f_lat Latitude coordinate.
  * @param zoom Zoom level.
- * @return Y tile index (file).
+ * @return Y tile index.
  */
 uint32_t Maps::lat2tiley(float f_lat, uint8_t zoom)
 {
@@ -137,11 +109,7 @@ uint32_t Maps::lat2tiley(float f_lat, uint8_t zoom)
 }
 
 /**
- * @brief Get Longitude from OpenStreetMap files
- *
- * @details Converts a tile X index to the corresponding longitude value for OpenStreetMap files,
- * 			for a given zoom level.
- *
+ * @brief Get Longitude from tile X
  * @param tileX Tile X index.
  * @param zoom Zoom level.
  * @return Longitude coordinate.
@@ -152,11 +120,7 @@ float Maps::tilex2lon(uint32_t tileX, uint8_t zoom)
 }
 
 /**
- * @brief Get Latitude from OpenStreetMap files
- *
- * @details Converts a tile Y index to the corresponding latitude value for OpenStreetMap files,
- * 			for a given zoom level.
- *
+ * @brief Get Latitude from tile Y
  * @param tileY Tile Y index.
  * @param zoom Zoom level.
  * @return Latitude coordinate.
@@ -169,16 +133,13 @@ float Maps::tiley2lat(uint32_t tileY, uint8_t zoom)
 }
 
 /**
- * @brief Get the map tile structure from GPS Coordinates
- *
- * @details Constructs a MapTile structure from the given GPS coordinates, zoom level, and optional tile offsets.
- *
+ * @brief Get map tile structure from GPS Coordinates
  * @param lon Longitude coordinate.
  * @param lat Latitude coordinate.
  * @param zoomLevel Zoom level.
  * @param offsetX Tile offset X.
  * @param offsetY Tile offset Y.
- * @return MapTile structure containing tile indices, file path, zoom, and GPS coordinates.
+ * @return MapTile structure.
  */
 Maps::MapTile Maps::getMapTile(float lon, float lat, uint8_t zoomLevel, int8_t offsetX, int8_t offsetY)
 {
@@ -188,21 +149,16 @@ Maps::MapTile Maps::getMapTile(float lon, float lat, uint8_t zoomLevel, int8_t o
     data.zoom = zoomLevel;
     data.lat = lat; 
     data.lon = lon;
-    
     snprintf(data.file, sizeof(data.file), mapRenderFolder, zoomLevel, data.tilex, data.tiley);
-
     return data;
 }
 
 /**
- * @brief Get min and max longitude and latitude from tile
- *
- * @details Returns the geographic boundaries (min/max longitude and latitude) for the specified tile coordinates and zoom level.
- *
+ * @brief Get geographic boundaries of a tile
  * @param tileX Tile X coordinate.
  * @param tileY Tile Y coordinate.
  * @param zoom Zoom level.
- * @return tileBounds Structure containing min and max longitude and latitude.
+ * @return tileBounds structure.
  */
 Maps::tileBounds Maps::getTileBounds(uint32_t tileX, uint32_t tileY, uint8_t zoom)
 {
@@ -216,13 +172,10 @@ Maps::tileBounds Maps::getTileBounds(uint32_t tileX, uint32_t tileY, uint8_t zoo
 
 /**
  * @brief Check if coordinates are in map bounds
- *
- * @details Checks if the latitude and longitude are within the specified tileBounds.
- *
  * @param lat Latitude to check.
  * @param lon Longitude to check.
- * @param bound Map bounds to check against.
- * @return true if the coordinate is inside the bounds, false otherwise.
+ * @param bound Map bounds.
+ * @return true if inside bounds.
  */
 bool Maps::isCoordInBounds(float lat, float lon, tileBounds bound)
 {
@@ -231,15 +184,12 @@ bool Maps::isCoordInBounds(float lat, float lon, tileBounds bound)
 }
 
 /**
- * @brief Convert GPS Coordinates to screen position (with offsets)
- *
- * @details Converts the given longitude and latitude to screen coordinates at a specific zoom level and tile size.
- *
- * @param lon Longitude in degrees.
- * @param lat Latitude in degrees.
- * @param zoomLevel Zoom level of the map.
- * @param tileSize Size of a single map tile in pixels.
- * @return ScreenCoord Screen position (x, y) corresponding to the GPS coordinates.
+ * @brief Convert GPS Coordinates to screen position
+ * @param lon Longitude.
+ * @param lat Latitude.
+ * @param zoomLevel Zoom level.
+ * @param tileSize Tile size.
+ * @return ScreenCoord structure.
  */
 Maps::ScreenCoord Maps::coord2ScreenPos(float lon, float lat, uint8_t zoomLevel, uint16_t tileSize)
 {
@@ -250,31 +200,24 @@ Maps::ScreenCoord Maps::coord2ScreenPos(float lon, float lat, uint8_t zoomLevel,
 }
 
 /**
- * @brief Get position X,Y in render map for a coordinate
- *
- * @details Converts latitude and longitude into pixel X,Y positions on the rendered map, given the map bounds.
- *
- * @param lat Latitude of the coordinate.
- * @param lon Longitude of the coordinate.
- * @param bound Map bounds (min/max lat/lon) of the tile.
- * @param pixelX Pointer to store the computed X position on the map.
- * @param pixelY Pointer to store the computed Y position on the map.
+ * @brief Convert coordinates to map pixels
+ * @param lat Latitude.
+ * @param lon Longitude.
+ * @param bound Tile boundaries.
+ * @param pixelX Output X pixel.
+ * @param pixelY Output Y pixel.
  */
 void Maps::coords2map(float lat, float lon, tileBounds bound, uint16_t *pixelX, uint16_t *pixelY)
 {
     float lon_ratio = (lon - bound.lon_min) / (bound.lon_max - bound.lon_min);
     float lat_ratio = (bound.lat_max - lat) / (bound.lat_max - bound.lat_min);
-
     *pixelX = (uint16_t)(lon_ratio * Maps::tileWidth);
     *pixelY = (uint16_t)(lat_ratio * Maps::tileHeight);
 }
 
 /**
- * @brief Load No Map Image
- *
- * @details Draws a "No Map Found" PNG image 
- *
- * @param map Reference to the TFT_eSprite map object.
+ * @brief Load No Map image
+ * @param map Target sprite.
  */
 void Maps::showNoMap(TFT_eSprite &map)
 {
@@ -283,242 +226,145 @@ void Maps::showNoMap(TFT_eSprite &map)
 }
 
 /**
- * @brief Init map size
- *
- * @details Initializes the map screen size and allocates buffer space for rendering the map.
- * 			Also resets map tile state and navigation arrow position, and sets default map bounds.
- *
- * @param mapHeight  Screen map size height.
- * @param mapWidth   Screen map size width.
+ * @brief Initialize map sprites and variables
+ * @param mapHeight Screen height.
+ * @param mapWidth Screen width.
  */
 void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
 {
     Maps::mapScrHeight = mapHeight;
     Maps::mapScrWidth = mapWidth;
-
     Maps::mapTempSprite.createSprite(Maps::tileWidth, Maps::tileHeight);
-
     Maps::mapSprite.createSprite(Maps::tileWidth, Maps::tileHeight);
-    Maps::mapBuffer = Maps::mapSprite.getBuffer(); // Link this buffer to the LVGL canvas
-
-    // Pre-allocate scroll sprites (avoid allocation during scroll)
+    Maps::mapBuffer = Maps::mapSprite.getBuffer();
     Maps::preloadSprite.deleteSprite();
     Maps::preloadSprite.createSprite(mapTileSize * 2, mapTileSize * 2);
-
-    Maps::oldMapTile = {};     // Old Map tile coordinates and zoom
-    Maps::currentMapTile = {}; // Current Map tile coordinates and zoom
-    Maps::roundMapTile = {};    // Boundaries Map tiles
-    Maps::navArrowPosition = {0, 0};              // Map Arrow position
-
+    Maps::oldMapTile = {};
+    Maps::currentMapTile = {};
+    Maps::roundMapTile = {};
+    Maps::navArrowPosition = {0, 0};
     Maps::totalBounds = {90.0f, -90.0f, 180.0f, -180.0f};
-
-    // Initialize background prefetch system (multi-core)
-    initPrefetchSystem();
 }
 
 /**
- * @brief Delete map screen and release PSRAM
- *
- * @details Deletes the main map sprite to free up PSRAM.
+ * @brief Delete map sprites
  */
 void Maps::deleteMapScrSprites()
 {
-
     Maps::preloadSprite.deleteSprite();
-
-    // Clear tile cache to free memory
-
 }
 
 /**
- * @brief Create map screen
- *
- * @details Creates the main map sprite with 768x768 for virtual canvas scrolling.
- *          This allows smooth panning without re-rendering.
+ * @brief Create map sprites
  */
 void Maps::createMapScrSprites()
 {
-    Maps::mapBuffer = Maps::mapSprite.getBuffer(); // Ensure the pointer is correct
+    Maps::mapBuffer = Maps::mapSprite.getBuffer();
 }
 
 /**
- * @brief Generate map
- *
- * @details Generates the main map by compositing the center and surrounding tiles based on the current zoom level.
- * 			Handles missing tiles, updates map bounds, overlays missing map notifications, and draws tracks if available.
- *
- * @param zoom Zoom Level
+ * @brief Generate the map based on current position and zoom
+ * @param zoom Current zoom level.
  */
 void Maps::generateMap(uint8_t zoom)
 {
-        // Dynamic Prefetch System Control
-        if (mapSet.vectorMap)
-        {
-            if (prefetchTaskRunning)
-                stopPrefetchSystem();
-        }
-        else
-        {
-            if (!prefetchTaskRunning)
-                initPrefetchSystem();
-        }
-    
-    
-    
-        Maps::zoomLevel = zoom;
-    
-        const float lat = Maps::followGps ? gps.gpsData.latitude : Maps::currentMapTile.lat;
-        const float lon = Maps::followGps ? gps.gpsData.longitude : Maps::currentMapTile.lon;
-    
-        // NAV vector map rendering path
-        if (mapSet.vectorMap)
-        {
-            // Check if position changed enough to require re-render
-            // Use ~55m threshold (approx 0.0005 degrees) to avoid blocking UI too often
-            constexpr float POS_THRESHOLD = 0.0005f;
-            bool posChanged = fabsf(lat - navLastLat_) > POS_THRESHOLD ||
-                              fabsf(lon - navLastLon_) > POS_THRESHOLD ||
-                              zoom != navLastZoom_;
-    
-            if (posChanged || navNeedsRender_)
-            {
-                // Fill with background color before rendering to avoid black areas during scroll
-                Maps::mapTempSprite.fillScreen(TFT_WHITE);  // Light beige/tan map background
-                Maps::isMapFound = renderNavViewport(lat, lon, zoom, Maps::mapTempSprite);
-                
-                if (Maps::isMapFound)
-                {
-                    // Render Track on top of Vector Map
-                    for (size_t i = 1; i < trackData.size(); ++i)
-                    {
-                        const auto &p1 = trackData[i - 1];
-                        const auto &p2 = trackData[i];
-    
-                        int16_t x1, y1, x2, y2;
-                        latLonToPixel(p1.lat, p1.lon, x1, y1);
-                        latLonToPixel(p2.lat, p2.lon, x2, y2);
-                        
-                        if ((x1 >= 0 && x1 < tileWidth && y1 >= 0 && y1 < tileHeight) ||
-                            (x2 >= 0 && x2 < tileWidth && y2 >= 0 && y2 < tileHeight))
-                            Maps::mapTempSprite.drawWideLine(x1, y1, x2, y2, 3, TFT_BLUE);
-                    }
-                }
-                else
-                {
-                    ESP_LOGW(TAG, "NAV: No map data found");
-                    Maps::mapTempSprite.fillScreen(TFT_BLACK);
-                    Maps::showNoMap(Maps::mapTempSprite);
-                }
-                // Update cache
-                navLastLat_ = lat;
-                navLastLon_ = lon;
-                navLastZoom_ = zoom;
-                navNeedsRender_ = false;
-                Maps::redrawMap = true;
-            }
-            return;
-        }
+    Maps::zoomLevel = zoom;
+    const float lat = Maps::followGps ? gps.gpsData.latitude : Maps::currentMapTile.lat;
+    const float lon = Maps::followGps ? gps.gpsData.longitude : Maps::currentMapTile.lon;
 
-    // Legacy PNG tile rendering path
-    bool foundRoundMap = false;
-    bool missingMap = false;
+    if (mapSet.vectorMap)
+    {
+        constexpr float POS_THRESHOLD = 0.0005f;
+        bool posChanged = fabsf(lat - navLastLat_) > POS_THRESHOLD ||
+                          fabsf(lon - navLastLon_) > POS_THRESHOLD ||
+                          zoom != navLastZoom_;
+        if (posChanged || navNeedsRender_)
+        {
+            Maps::mapTempSprite.fillScreen(TFT_WHITE);
+            Maps::isMapFound = renderNavViewport(lat, lon, zoom, Maps::mapTempSprite);
+            if (Maps::isMapFound)
+            {
+                for (size_t i = 1; i < trackData.size(); ++i)
+                {
+                    const auto &p1 = trackData[i - 1];
+                    const auto &p2 = trackData[i];
+                    int16_t x1, y1, x2, y2;
+                    latLonToPixel(p1.lat, p1.lon, x1, y1);
+                    latLonToPixel(p2.lat, p2.lon, x2, y2);
+                    if ((x1 >= 0 && x1 < tileWidth && y1 >= 0 && y1 < tileHeight) ||
+                        (x2 >= 0 && x2 < tileWidth && y2 >= 0 && y2 < tileHeight))
+                        Maps::mapTempSprite.drawWideLine(x1, y1, x2, y2, 3, TFT_BLUE);
+                }
+            }
+            else
+            {
+                ESP_LOGW(TAG, "NAV: No map data found");
+                Maps::mapTempSprite.fillScreen(TFT_BLACK);
+                Maps::showNoMap(Maps::mapTempSprite);
+            }
+            navLastLat_ = lat;
+            navLastLon_ = lon;
+            navLastZoom_ = zoom;
+            navNeedsRender_ = false;
+            Maps::redrawMap = true;
+        }
+        return;
+    }
 
     Maps::currentMapTile = Maps::getMapTile(lon, lat, Maps::zoomLevel, 0, 0);
-
-    // Detects if tile changes from actual GPS position
     if (strcmp(Maps::currentMapTile.file, Maps::oldMapTile.file) != 0 ||
         Maps::currentMapTile.zoom != Maps::oldMapTile.zoom ||
         Maps::currentMapTile.tilex != Maps::oldMapTile.tilex ||
         Maps::currentMapTile.tiley != Maps::oldMapTile.tiley)
     {
         const int16_t size = Maps::mapTileSize;
-
         Maps::mapTempSprite.fillScreen(TFT_WHITE);
-
         Maps::isMapFound = Maps::mapTempSprite.drawPngFile(Maps::currentMapTile.file, size, size);
-
-        
         Maps::oldMapTile = Maps::currentMapTile;
-        strcpy(Maps::oldMapTile.file, Maps::currentMapTile.file);
-
         if (!Maps::isMapFound)
         {
-            ESP_LOGI(TAG, "No Map Found!");
-            Maps::isMapFound = false;
             Maps::mapTempSprite.fillScreen(TFT_BLACK);
             Maps::showNoMap(Maps::mapTempSprite);
         }
         else
         {
-            Maps::totalBounds = Maps::getTileBounds(
-                Maps::currentMapTile.tilex, Maps::currentMapTile.tiley, Maps::zoomLevel);
-
-            const int8_t startX = -1;
-            const int8_t startY = -1;
-
-            for (int8_t y = startY; y <= startY + 2; y++)
+            Maps::totalBounds = Maps::getTileBounds(Maps::currentMapTile.tilex, Maps::currentMapTile.tiley, Maps::zoomLevel);
+            bool missingMap = false;
+            for (int8_t y = -1; y <= 1; y++)
             {
-                const int16_t offsetY = (y - startY) * size;
-
-                for (int8_t x = startX; x <= startX + 2; x++)
+                for (int8_t x = -1; x <= 1; x++)
                 {
-                    if (x == 0 && y == 0) continue; // Skip center tile
-
-                    const int16_t offsetX = (x - startX) * size;
-
-                    Maps::roundMapTile = getMapTile(
-                        Maps::currentMapTile.lon, Maps::currentMapTile.lat,
-                        Maps::zoomLevel, x, y);
- 
-                    foundRoundMap = Maps::mapTempSprite.drawPngFile(Maps::roundMapTile.file, offsetX, offsetY);
-
-                    if (!foundRoundMap)
+                    if (x == 0 && y == 0) continue;
+                    const int16_t offsetX = (x + 1) * size;
+                    const int16_t offsetY = (y + 1) * size;
+                    Maps::roundMapTile = getMapTile(Maps::currentMapTile.lon, Maps::currentMapTile.lat, Maps::zoomLevel, x, y);
+                    if (!Maps::mapTempSprite.drawPngFile(Maps::roundMapTile.file, offsetX, offsetY))
                     {
                         Maps::mapTempSprite.fillRect(offsetX, offsetY, size, size, TFT_BLACK);
-                        Maps::mapTempSprite.drawPngFile(noMapFile,
-                            offsetX + size / 2 - 50,
-                            offsetY + size / 2 - 50);
+                        Maps::mapTempSprite.drawPngFile(noMapFile, offsetX + size / 2 - 50, offsetY + size / 2 - 50);
                         missingMap = true;
                     }
                     else
                     {
-                        const tileBounds currentBounds = Maps::getTileBounds(
-                            Maps::roundMapTile.tilex, Maps::roundMapTile.tiley, Maps::zoomLevel);
-
-                        if (currentBounds.lat_min < Maps::totalBounds.lat_min)
-                            Maps::totalBounds.lat_min = currentBounds.lat_min;
-                        if (currentBounds.lat_max > Maps::totalBounds.lat_max)
-                            Maps::totalBounds.lat_max = currentBounds.lat_max;
-                        if (currentBounds.lon_min < Maps::totalBounds.lon_min)
-                            Maps::totalBounds.lon_min = currentBounds.lon_min;
-                        if (currentBounds.lon_max > Maps::totalBounds.lon_max)
-                            Maps::totalBounds.lon_max = currentBounds.lon_max;
+                        const tileBounds currentBounds = Maps::getTileBounds(Maps::roundMapTile.tilex, Maps::roundMapTile.tiley, Maps::zoomLevel);
+                        if (currentBounds.lat_min < Maps::totalBounds.lat_min) Maps::totalBounds.lat_min = currentBounds.lat_min;
+                        if (currentBounds.lat_max > Maps::totalBounds.lat_max) Maps::totalBounds.lat_max = currentBounds.lat_max;
+                        if (currentBounds.lon_min < Maps::totalBounds.lon_min) Maps::totalBounds.lon_min = currentBounds.lon_min;
+                        if (currentBounds.lon_max > Maps::totalBounds.lon_max) Maps::totalBounds.lon_max = currentBounds.lon_max;
                     }
                 }
             }
-
-            if (!missingMap)
-            {
-                if (Maps::isCoordInBounds(Maps::destLat, Maps::destLon, Maps::totalBounds))
-                {
-                    Maps::coords2map(Maps::destLat, Maps::destLon,
-                        Maps::totalBounds, &wptPosX, &wptPosY);
-                }
-            }
+            if (!missingMap && Maps::isCoordInBounds(Maps::destLat, Maps::destLon, Maps::totalBounds))
+                Maps::coords2map(Maps::destLat, Maps::destLon, Maps::totalBounds, &wptPosX, &wptPosY);
             else
             {
                 Maps::wptPosX = -1;
                 Maps::wptPosY = -1;
             }
-
-            Maps::redrawMap = true;
-            
-
             for (size_t i = 1; i < trackData.size(); ++i)
             {
                 const auto &p1 = trackData[i - 1];
                 const auto &p2 = trackData[i];
-
                 if (p1.lon > Maps::totalBounds.lon_min && p1.lon < Maps::totalBounds.lon_max &&
                     p1.lat > Maps::totalBounds.lat_min && p1.lat < Maps::totalBounds.lat_max &&
                     p2.lon > Maps::totalBounds.lon_min && p2.lon < Maps::totalBounds.lon_max &&
@@ -530,16 +376,13 @@ void Maps::generateMap(uint8_t zoom)
                     Maps::mapTempSprite.drawWideLine(x1, y1, x2, y2, 2, TFT_BLUE);
                 }
             }
-
+            Maps::redrawMap = true;
         }
     }
 }
 
 /**
- * @brief Display Map
- *
- * @details Displays the map on the screen with proper rotation, waypoint overlay, and GPS navigation arrow positioning.
- *          Handles both GPS-following mode and manual panning mode with appropriate pivot points and rotations.
+ * @brief Display the map on screen with rotation
  */
 void Maps::displayMap()
 {
@@ -548,18 +391,13 @@ void Maps::displayMap()
         Maps::mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
         return;
     }
-
     uint16_t mapHeading = 0;
 #ifdef ENABLE_COMPASS
     mapHeading = mapSet.mapRotationComp ? globalSensorData.heading : gps.gpsData.heading;
 #else
     mapHeading = gps.gpsData.heading;
 #endif
-
     Maps::mapTempSprite.pushImage(Maps::wptPosX - 8, Maps::wptPosY - 8, 16, 16, (uint16_t *)waypoint, TFT_BLACK);
-
-    const uint16_t size = Maps::mapTileSize;
-
     if (Maps::followGps)
     {
         const float lat = gps.gpsData.latitude;
@@ -570,19 +408,13 @@ void Maps::displayMap()
         Maps::mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
     }
     else
-    {
-        // Manual mode: copy without rotation, viewport controlled by LVGL lv_obj_set_pos
         Maps::mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
-    }
 }
 
 /**
- * @brief Set Waypoint coords in Map
- *
- * @details Sets the latitude and longitude for the waypoint on the map.
- *
- * @param wptLat Waypoint Latitude
- * @param wptLon Waypoint Longitude
+ * @brief Set waypoint coordinates
+ * @param wptLat Latitude.
+ * @param wptLon Longitude.
  */
 void Maps::setWaypoint(float wptLat, float wptLon)
 {
@@ -591,9 +423,7 @@ void Maps::setWaypoint(float wptLat, float wptLon)
 }
 
 /**
- * @brief Refresh current map
- *
- * @details Resets the old map tile and marks the position as moved, causing the map to be updated/redrawn.
+ * @brief Mark map for redraw
  */
 void Maps::updateMap()
 {
@@ -601,13 +431,9 @@ void Maps::updateMap()
 }
 
 /**
- * @brief Pan current map
- *
- * @details Moves the map view by the given tile offsets in the X (longitude) and Y (latitude) directions.
- * 			Updates the current map tile coordinates and recalculates the corresponding longitude and latitude.
- *
- * @param dx Tile offset in X direction (east-west)
- * @param dy Tile offset in Y direction (north-south)
+ * @brief Panning map by tile offsets
+ * @param dx X offset.
+ * @param dy Y offset.
  */
 void Maps::panMap(int8_t dx, int8_t dy)
 {
@@ -618,12 +444,9 @@ void Maps::panMap(int8_t dx, int8_t dy)
 }
 
 /**
- * @brief Center map on current GPS location
- *
- * @details Sets the map to follow the GPS and centers the map tile indices and coordinates on the current GPS location.
- *
- * @param lat GPS Latitude
- * @param lon GPS Longitude
+ * @brief Center map on GPS position
+ * @param lat Latitude.
+ * @param lon Longitude.
  */
 void Maps::centerOnGps(float lat, float lon)
 {
@@ -635,81 +458,46 @@ void Maps::centerOnGps(float lat, float lon)
 }
 
 /**
- * @brief Smooth scroll current map
- *
- * @details Smoothly scrolls the map view with inertia and friction, updating tile indices and offsets as needed.
- * 			Handles transitions when the scroll offset surpasses a threshold, triggering tile panning and preloading.
- *
- * @param dx Delta X input for scrolling
- * @param dy Delta Y input for scrolling
+ * @brief Smooth scroll the map with inertia
+ * @param dx Delta X.
+ * @param dy Delta Y.
  */
 void Maps::scrollMap(int16_t dx, int16_t dy)
 {
     static float vX = 0.0f, vY = 0.0f;
     const float friction = 0.70f; 
-
     if (dx != 0 || dy != 0)
     {
         Maps::offsetX += dx;
         Maps::offsetY += dy;
-        
         vX = vX * 0.3f + (float)dx * 0.7f;
         vY = vY * 0.3f + (float)dy * 0.7f;
-        
         Maps::followGps = false;
     }
     else
     {
         Maps::offsetX += (int16_t)vX;
         Maps::offsetY += (int16_t)vY;
-        
         vX *= friction;
         vY *= friction;
-        
         if (fabsf(vX) < 0.2f && fabsf(vY) < 0.2f)
         {
             vX = 0;
             vY = 0;
         }
     }
-
     const int16_t maxOffsetX = (tileWidth - mapScrWidth) / 2 - 10;
     const int16_t maxOffsetY = (tileHeight - mapScrHeight) / 2 - 10;
-
-    if (Maps::offsetX > maxOffsetX)
-    {
-        Maps::offsetX = maxOffsetX;
-        vX = 0;
-    }
-    if (Maps::offsetX < -maxOffsetX)
-    {
-        Maps::offsetX = -maxOffsetX;
-        vX = 0;
-    }
-    if (Maps::offsetY > maxOffsetY)
-    {
-        Maps::offsetY = maxOffsetY;
-        vY = 0;
-    }
-    if (Maps::offsetY < -maxOffsetY)
-    {
-        Maps::offsetY = -maxOffsetY;
-        vY = 0;
-    }
-
+    if (Maps::offsetX > maxOffsetX) { Maps::offsetX = maxOffsetX; vX = 0; }
+    if (Maps::offsetX < -maxOffsetX) { Maps::offsetX = -maxOffsetX; vX = 0; }
+    if (Maps::offsetY > maxOffsetY) { Maps::offsetY = maxOffsetY; vY = 0; }
+    if (Maps::offsetY < -maxOffsetY) { Maps::offsetY = -maxOffsetY; vY = 0; }
     Maps::scrollUpdated = false;
-
-    // Lower threshold to 64px (1/4 tile) for smoother scrolling with 4x4 coverage
     int16_t dynamicThresholdX = maxOffsetX - 64;
-    if (dynamicThresholdX < 50)
-        dynamicThresholdX = 50;
-        
+    if (dynamicThresholdX < 50) dynamicThresholdX = 50;
     int16_t dynamicThresholdY = maxOffsetY - 64;
-    if (dynamicThresholdY < 50)
-        dynamicThresholdY = 50;
-
+    if (dynamicThresholdY < 50) dynamicThresholdY = 50;
     const int16_t tileSize = Maps::mapTileSize;
-
     if (Maps::offsetX <= -dynamicThresholdX)
     {
         Maps::tileX--;
@@ -722,7 +510,6 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
         Maps::offsetX -= tileSize;
         Maps::scrollUpdated = true;
     }
-
     if (Maps::offsetY <= -dynamicThresholdY)
     {
         Maps::tileY--;
@@ -735,21 +522,18 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
         Maps::offsetY -= tileSize;
         Maps::scrollUpdated = true;
     }
-
     if (Maps::scrollUpdated)
     {
         const int8_t deltaTileX = Maps::tileX - Maps::lastTileX;
         const int8_t deltaTileY = Maps::tileY - Maps::lastTileY;
         Maps::panMap(deltaTileX, deltaTileY);
-        
         if (mapSet.vectorMap)
         {
             navNeedsRender_ = true;
-            generateMap(zoomLevel); // Force immediate regeneration
+            generateMap(zoomLevel);
         } 
         else
             Maps::preloadTiles(deltaTileX, deltaTileY);
-
         Maps::lastTileX = Maps::tileX;
         Maps::lastTileY = Maps::tileY;
         Maps::redrawMap = true;
@@ -757,57 +541,34 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
 }
 
 /**
- * @brief Preload Tiles for map scrolling
- *
- * @details Preloads map tiles in the direction of scrolling to enable smooth transitions.
- * 			Loads one or two tiles into a temporary sprite and uses it to update the main map buffer.
- *
- * @param dirX Direction to preload tiles in X (-1 for left, 1 for right, 0 for no horizontal scroll)
- * @param dirY Direction to preload tiles in Y (-1 for up, 1 for down, 0 for no vertical scroll)
+ * @brief Preload PNG tiles in scroll direction
+ * @param dirX Direction X.
+ * @param dirY Direction Y.
  */
 void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 {
     const int16_t tileSize = mapTileSize;
     const int16_t preloadWidth  = (dirX != 0) ? tileSize : tileSize * 2;
     const int16_t preloadHeight = (dirY != 0) ? tileSize : tileSize * 2;
-
-    // Ensure sprites are created (lazy init if needed)
     if (!preloadSprite.getBuffer())
         preloadSprite.createSprite(mapTileSize * 2, mapTileSize * 2);
-
     const int16_t startX = tileX + dirX;
     const int16_t startY = tileY + dirY;
-
     for (int8_t i = 0; i < 2; ++i)
     {
         const int16_t tileToLoadX = startX + ((dirX == 0) ? i - 1 : 0);
         const int16_t tileToLoadY = startY + ((dirY == 0) ? i - 1 : 0);
-
-        // Calculate correct coordinates for the tile being preloaded
         float tileLon = (tileToLoadX / (1 << Maps::zoomLevel)) * 360.0f - 180.0f;
         float tileLat = 90.0f - (tileToLoadY / (1 << Maps::zoomLevel)) * 180.0f;
-
-        Maps::roundMapTile = Maps::getMapTile(
-            tileLon,
-            tileLat,
-            Maps::zoomLevel,
-            tileToLoadX,
-            tileToLoadY
-        );
-
+        Maps::roundMapTile = Maps::getMapTile(tileLon, tileLat, Maps::zoomLevel, tileToLoadX, tileToLoadY);
         const int16_t offsetX = (dirX != 0) ? i * tileSize : 0;
         const int16_t offsetY = (dirY != 0) ? i * tileSize : 0;
-
         bool foundTile = false;
-
-        // Try to load tile from file (PNG only - FGB uses full viewport re-render)
         if (!mapSet.vectorMap)
             foundTile = preloadSprite.drawPngFile(Maps::roundMapTile.file, offsetX, offsetY);
-
         if (!foundTile)
             preloadSprite.fillRect(offsetX, offsetY, tileSize, tileSize, TFT_LIGHTGREY);
     }
-
     if (dirX != 0)
     {
         mapTempSprite.scroll(dirX * tileSize, 0);
@@ -820,92 +581,53 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
         const int16_t pushY = (dirY > 0) ? tileSize * 2 : 0;
         mapTempSprite.pushImage(0, pushY, preloadWidth, preloadHeight, preloadSprite.frameBuffer(0));
     }
-
 }
 
-
 /**
- * @brief Darkens an RGB565 color by a specified amount.
- *
- * @details This function extracts the red, green, and blue components from the input RGB565 color value,
- *          multiplies each component by (1.0 - amount), and recombines them into a new RGB565 value.
- *
- * @param color The original RGB565 color value.
- * @param amount The fraction to darken each color component (default is 0.4).
- * @return The darkened RGB565 color value.
+ * @brief Darken a color
+ * @param color RGB565 color.
+ * @param amount Darkening fraction.
+ * @return Darkened color.
  */
 uint16_t Maps::darkenRGB565(const uint16_t color, const float amount)
 {
     uint8_t r = (color >> 11) & 0x1F;
     uint8_t g = (color >> 5) & 0x3F;
     uint8_t b = color & 0x1F;
-
     r = static_cast<uint8_t>(r * (1.0f - amount));
     g = static_cast<uint8_t>(g * (1.0f - amount));
     b = static_cast<uint8_t>(b * (1.0f - amount));
-
-        return ((r << 11) | (g << 5) | b);
-
-    }
-
-    
-
- /**
- * @brief Checks if a point lies on the margin of a tile.
- *
- * @details This function determines whether the given point (px, py) is located within the margin area of a tile, as defined by the MARGIN_PIXELS constant. 
- *          The margin is considered on any side of the tile (left, right, top, or bottom) if the point's coordinates are less than or equal to MARGIN_PIXELS,
- *          or greater than or equal to TILE_SIZE minus MARGIN_PIXELS.
- *
- * @param px The x-coordinate of the point.
- * @param py The y-coordinate of the point.
- * @return true if the point is on the margin, false otherwise.
- */
-bool Maps::isPointOnMargin(const int px, const int py)
-{
-    return (px <= MARGIN_PIXELS || px >= (int)mapTileSize - 1 - MARGIN_PIXELS || 
-            py <= MARGIN_PIXELS || py >= (int)mapTileSize - 1 - MARGIN_PIXELS);
+    return ((r << 11) | (g << 5) | b);
 }
 
 /**
- * @brief Fill a polygon using an optimized scanline (AEL) algorithm.
- *
- * @details This implementation supports complex polygons with holes (multi-ring) and 
- *          uses a "fast-forward" optimization to skip non-visible scanlines.
- *          Structures are allocated in Internal RAM for maximum performance.
- *
- * @param map Target sprite to draw on.
- * @param px Array of x-coordinates of the polygon vertices.
- * @param py Array of y-coordinates of the polygon vertices.
- * @param numPoints The number of vertices in the polygon.
- * @param color The color to fill the polygon with (in RGB565 format).
- * @param xOffset The x-offset to apply when drawing the polygon.
- * @param yOffset The y-offset to apply when drawing the polygon.
- * @param ringCount Number of polygon rings (1 exterior + n holes). Supports up to 65535 rings.
- * @param ringEnds Array of cumulative end indices for each ring.
+ * @brief Fill a polygon using AEL scanline algorithm
+ * @param map Target sprite.
+ * @param px X coordinates.
+ * @param py Y coordinates.
+ * @param numPoints Vertex count.
+ * @param color Fill color.
+ * @param xOffset X offset.
+ * @param yOffset Y offset.
+ * @param ringCount Multi-ring count.
+ * @param ringEnds Cumulative ring indices.
  */
 void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset, uint16_t ringCount, uint16_t* ringEnds)
 {
     if (numPoints < 3) return;
-
     int minY = INT_MAX, maxY = INT_MIN;
     for (int i = 0; i < numPoints; i++)
     {
         if (py[i] < minY) minY = py[i];
         if (py[i] > maxY) maxY = py[i];
     }
-
     if (maxY < 0 || minY >= (int)tileHeight) return;
-
     edgePool.clear();
     int bucketCount = maxY - minY + 1;
     edgeBuckets.assign(bucketCount, -1);
-
-    // If no ring info provided, treat as single ring
     uint16_t count = (ringCount == 0) ? 1 : ringCount;
     uint16_t defaultEnds[1] = { (uint16_t)numPoints };
     uint16_t* ends = (ringEnds == nullptr) ? defaultEnds : ringEnds;
-
     int ringStart = 0;
     for (uint16_t r = 0; r < count; r++)
     {
@@ -916,14 +638,12 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
             ringStart = ringEnd;
             continue;
         }
-
         for (int i = 0; i < ringNumPoints; i++)
         {
             int next = (i + 1) % ringNumPoints;
             int x1 = px[ringStart + i], y1 = py[ringStart + i];
             int x2 = px[ringStart + next], y2 = py[ringStart + next];
             if (y1 == y2) continue;
-
             Edge e;
             e.nextActive = -1;
             if (y1 < y2)
@@ -947,13 +667,9 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
         }
         ringStart = ringEnd;
     }
-
     int activeHead = -1;
-    // Clip the loop to the visible viewport range
     int startY = std::max(minY, -yOffset);
     int endY = std::min(maxY, (int)tileHeight - 1 - yOffset);
-
-    // 1. Fast-forward: Add edges that start before the visible range and jump to startY
     if (startY > minY)
     {
         for (int y = minY; y < startY; y++)
@@ -962,14 +678,12 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
             while (eIdx != -1)
             {
                 int nextIdx = edgePool[eIdx].nextInBucket;
-                // Update xVal directly to its position at startY
                 edgePool[eIdx].xVal += edgePool[eIdx].slope * (startY - y);
                 edgePool[eIdx].nextActive = activeHead;
                 activeHead = eIdx;
                 eIdx = nextIdx;
             }
         }
-        // Remove edges that finish before reaching the visible range
         int* pCurrIdx = &activeHead;
         while (*pCurrIdx != -1)
         {
@@ -979,11 +693,8 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
                 pCurrIdx = &(edgePool[*pCurrIdx].nextActive);
         }
     }
-
-    // 2. Main loop: Process only visible scanlines
     for (int y = startY; y <= endY; y++)
     {
-        // Add new edges from bucket to active list
         int eIdx = edgeBuckets[y - minY];
         while (eIdx != -1)
         {
@@ -992,8 +703,6 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
             activeHead = eIdx;
             eIdx = nextIdx;
         }
-
-        // Remove finished edges from active list
         int* pCurrIdx = &activeHead;
         while (*pCurrIdx != -1)
         {
@@ -1002,10 +711,7 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
             else
                 pCurrIdx = &(edgePool[*pCurrIdx].nextActive);
         }
-
         if (activeHead == -1) continue;
-
-        // Sort active list by xVal (needed for every scanline)
         int sorted = -1;
         int active = activeHead;
         while (active != -1)
@@ -1027,7 +733,6 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
             active = nextActive;
         }
         activeHead = sorted;
-
         int yy = y + yOffset;
         int left = activeHead;
         while (left != -1 && edgePool[left].nextActive != -1)
@@ -1041,294 +746,65 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
                 map.drawFastHLine(xStart, yy, xEnd - xStart, color);
             left = edgePool[right].nextActive;
         }
-        
-        // Update xVal for next scanline
         for (int a = activeHead; a != -1; a = edgePool[a].nextActive)
             edgePool[a].xVal += edgePool[a].slope;
     }
 }
 
-
-
-
-
-
-
-
 /**
- * @brief Background prefetch task that runs on Core 0
- *
- * @details Continuously processes the prefetch queue, loading tiles into cache in the background.
- *          Runs at low priority to not interfere with GPS task on the same core.
- *
- * @param pvParameters Maps instance pointer for accessing renderTile
- */
-void Maps::prefetchTask(void* pvParameters)
-{
-    Maps* mapsInstance = static_cast<Maps*>(pvParameters);
-    PrefetchRequest request;
-
-    while (prefetchTaskRunning)
-    {
-        // Only run when in PNG Map mode and showing the Map tile on main screen
-        if (mapSet.vectorMap || lv_screen_active() != mainScreen || activeTile != MAP)
-        {
-            vTaskDelay(pdMS_TO_TICKS(1000));
-            continue;
-        }
-
-        // Wait for a request with timeout
-        if (xQueueReceive(prefetchQueue, &request, pdMS_TO_TICKS(100)) == pdTRUE)
-        {
-            // FS Warming: pre-read file to trigger SD/VFS cache
-            FILE* pngFile = fopen(request.filePath, "rb");
-            if (pngFile)
-            {
-                static char warmingBuffer[1024]; // Small static buffer to save stack
-                while (storage.read(pngFile, warmingBuffer, sizeof(warmingBuffer)) > 0) {}
-                fclose(pngFile);
-            }
-        }
-    }
-    vTaskDelete(NULL);
-}
-
-/**
- * @brief Initialize the background prefetch system
- *
- * @details Creates the prefetch queue, mutex, render sprite, and starts the prefetch task on Core 0.
- */
-void Maps::initPrefetchSystem()
-{
-    if (prefetchTaskRunning || mapSet.vectorMap)
-        return;
-
-    // Create queue for prefetch requests (hold up to 16 requests)
-    prefetchQueue = xQueueCreate(16, sizeof(PrefetchRequest));
-    if (!prefetchQueue)
-    {
-        ESP_LOGE(TAG, "Failed to create prefetch queue");
-        return;
-    }
-
-    // Create mutex for sprite access
-    prefetchMutex = xSemaphoreCreateMutex();
-    if (!prefetchMutex)
-    {
-        ESP_LOGE(TAG, "Failed to create prefetch mutex");
-        vQueueDelete(prefetchQueue);
-        prefetchQueue = nullptr;
-        return;
-    }
-
-    // Start prefetch task on Core 0 (same as GPS, low priority)
-    prefetchTaskRunning = true;
-    BaseType_t result = xTaskCreatePinnedToCore(
-        prefetchTask,           // Task function
-        "PrefetchTask",         // Task name
-        3072,                   // Stack size (3KB)
-        this,                   // Pass Maps instance for renderTile access
-        1,                      // Priority
-        &prefetchTaskHandle,    // Task handle
-        0                       // Core 0
-    );
-
-    if (result != pdPASS)
-    {
-        ESP_LOGE(TAG, "Failed to create prefetch task");
-        prefetchTaskRunning = false;
-        vSemaphoreDelete(prefetchMutex);
-        prefetchMutex = nullptr;
-        vQueueDelete(prefetchQueue);
-        prefetchQueue = nullptr;
-        return;
-    }
-
-}
-
-/**
- * @brief Stop the background prefetch system
- *
- * @details Signals the prefetch task to stop and cleans up resources.
- */
-void Maps::stopPrefetchSystem()
-{
-    if (!prefetchTaskRunning)
-        return;
-
-
-    prefetchTaskRunning = false;
-
-    // Wait for task to finish (with timeout)
-    vTaskDelay(pdMS_TO_TICKS(200));
-
-    // Clean up resources
-    if (prefetchMutex)
-    {
-        vSemaphoreDelete(prefetchMutex);
-        prefetchMutex = nullptr;
-    }
-
-    if (prefetchQueue)
-    {
-        vQueueDelete(prefetchQueue);
-        prefetchQueue = nullptr;
-    }
-
-    prefetchTaskHandle = nullptr;
-
-}
-
-/**
- * @brief Enqueue a tile for background prefetch
- *
- * @details Adds a tile to the prefetch queue for background loading. Non-blocking.
- *
- * @param filePath Path to the tile file
- */
-void Maps::enqueuePrefetch(const char* filePath)
-{
-    if (!prefetchQueue || !prefetchTaskRunning)
-        return;
-
-    PrefetchRequest request;
-    strncpy(request.filePath, filePath, sizeof(request.filePath) - 1);
-    request.filePath[sizeof(request.filePath) - 1] = '\0';
-
-    // Non-blocking enqueue (don't wait if queue is full)
-    xQueueSend(prefetchQueue, &request, 0);
-}
-
-/**
- * @brief Enqueue tiles in scroll direction for background prefetch
- *
- * @details Enqueues multiple rows/columns of tiles ahead in the scroll direction.
- *          Number of rows/columns based on cache capacity (min 3, max cache size, multiples of 3).
- *
- * @param centerX X coordinate of center tile
- * @param centerY Y coordinate of center tile
- * @param zoom Current zoom level
- * @param dirX Scroll direction X (-1 left, 0 none, 1 right)
- * @param dirY Scroll direction Y (-1 up, 0 none, 1 down)
- */
-void Maps::enqueueSurroundingTiles(uint32_t centerX, uint32_t centerY, uint8_t zoom, int8_t dirX, int8_t dirY)
-{
-    // FGB uses full viewport re-render, no tile prefetch needed
-    if (!prefetchQueue || !prefetchTaskRunning || mapSet.vectorMap)
-        return;
-
-    if (dirX == 0 && dirY == 0)
-        return;
-
-    // Prefetch only 1 row/column (3 tiles) in scroll direction at distance 2
-    for (int offset = -1; offset <= 1; offset++)
-    {
-        uint32_t tileX, tileY;
-
-        if (dirX != 0)
-        {
-            // Horizontal scroll: prefetch 1 column
-            tileX = centerX + (dirX * 2);
-            tileY = centerY + offset;
-        }
-        else
-        {
-            // Vertical scroll: prefetch 1 row
-            tileX = centerX + offset;
-            tileY = centerY + (dirY * 2);
-        }
-
-        char filePath[255];
-        snprintf(filePath, sizeof(filePath), mapRenderFolder, zoom, tileX, tileY);
-        enqueuePrefetch(filePath);
-    }
-}
-        
-/**
- * @brief Project arbitrary Lat/Lon coordinates to current NAV viewport pixels.
- * @details Used for rendering GPX tracks or waypoints on top of vector maps.
+ * @brief Project Lat/Lon coordinates to NAV viewport pixels
+ * @param lat Latitude coordinate.
+ * @param lon Longitude coordinate.
+ * @param px Output X pixel coordinate.
+ * @param py Output Y pixel coordinate.
  */
 void Maps::latLonToPixel(float lat, float lon, int16_t& px, int16_t& py)
 {
     const float latRad = lat * (float)M_PI / 180.0f;
-    // Use the cached zoom from the last renderNavViewport call
     const float n = static_cast<float>(1u << navLastZoom_);
     const float tx = (lon + 180.0f) / 360.0f * n;
     const float ty = (1.0f - logf(tanf(latRad) + 1.0f / cosf(latRad)) / (float)M_PI) / 2.0f * n;
-
     px = static_cast<int16_t>((tx - navTlTileX_) * 256.0f);
     py = static_cast<int16_t>((ty - navTlTileY_) * 256.0f);
 }
 
 /**
- * @brief Convert pre-projected NAV coordinate to screen pixels.
-
-
-/**
- * @brief Render a LineString feature with bbox culling.
- * 
- * @param feature  The vector line feature to render.
- * @param viewport Current view bounding box for projection.
- * @param map      Target sprite to draw on.
- */
-/**
- * @brief Render a LineString feature with bbox culling and round joins.
- * 
- * @param feature  The vector line feature to render.
- * @param map      Target sprite to draw on.
+ * @brief Render a NAV LineString feature
+ * @param feature NavFeature object.
+ * @param map Target sprite.
  */
 void Maps::renderNavLineString(const NavFeature& feature, TFT_eSprite& map)
 {
-    if (feature.coordCount < 2)
-        return;
-
+    if (feature.coordCount < 2) return;
     const size_t numCoords = feature.coordCount;
-    
-    if (projBuf16X.capacity() < numCoords)
-        projBuf16X.reserve(numCoords * 1.5);
-
-    if (projBuf16Y.capacity() < numCoords)
-        projBuf16Y.reserve(numCoords * 1.5);
-    
+    if (projBuf16X.capacity() < numCoords) projBuf16X.reserve(numCoords * 1.5);
+    if (projBuf16Y.capacity() < numCoords) projBuf16Y.reserve(numCoords * 1.5);
     projBuf16X.resize(numCoords);
     projBuf16Y.resize(numCoords);
-
     int16_t* pxArr = projBuf16X.data();
     int16_t* pyArr = projBuf16Y.data();
-
     int16_t minPx = INT16_MAX, maxPx = INT16_MIN;
     int16_t minPy = INT16_MAX, maxPy = INT16_MIN;
-
     size_t validPoints = 0;
     int16_t lastPx = -32768, lastPy = -32768;
-
     for (size_t i = 0; i < numCoords; i++)
     {
         int16_t px, py;
         navCoordToPixel(feature, feature.coords[i], px, py);
-        
-        if (validPoints > 0 && px == lastPx && py == lastPy)
-            continue;
-
+        if (validPoints > 0 && px == lastPx && py == lastPy) continue;
         pxArr[validPoints] = px;
         pyArr[validPoints] = py;
-        
         if (px < minPx) minPx = px;
         if (px > maxPx) maxPx = px;
         if (py < minPy) minPy = py;
         if (py > maxPy) maxPy = py;
-
         lastPx = px;
         lastPy = py;
         validPoints++;
     }
-
-    if (validPoints < 2 || maxPx < 0 || minPx >= tileWidth || maxPy < 0 || minPy >= tileHeight)
-        return;
-
+    if (validPoints < 2 || maxPx < 0 || minPx >= tileWidth || maxPy < 0 || minPy >= tileHeight) return;
     uint16_t color = feature.properties.colorRgb565;
     uint8_t width = feature.properties.width > 0 ? feature.properties.width : 1;
-
     for (size_t i = 1; i < validPoints; i++)
     {
         if (width == 1)
@@ -1339,57 +815,38 @@ void Maps::renderNavLineString(const NavFeature& feature, TFT_eSprite& map)
 }
 
 /**
- * @brief Render a Polygon feature with bbox culling.
- * 
- * @param feature  The vector polygon feature to render.
- * @param map      Target sprite to draw on.
+ * @brief Render a NAV Polygon feature
+ * @param feature NavFeature object.
+ * @param map Target sprite.
  */
 void Maps::renderNavPolygon(const NavFeature& feature, TFT_eSprite& map)
 {
-    if (feature.coordCount < 3)
-        return;
-
+    if (feature.coordCount < 3) return;
     size_t numPoints = feature.coordCount;
-    
-    if (projBuf32X.capacity() < numPoints)
-        projBuf32X.reserve(numPoints * 1.5);
-
-    if (projBuf32Y.capacity() < numPoints)
-        projBuf32Y.reserve(numPoints * 1.5);
-
+    if (projBuf32X.capacity() < numPoints) projBuf32X.reserve(numPoints * 1.5);
+    if (projBuf32Y.capacity() < numPoints) projBuf32Y.reserve(numPoints * 1.5);
     projBuf32X.resize(numPoints);
     projBuf32Y.resize(numPoints);
-
     int* px = projBuf32X.data();
     int* py = projBuf32Y.data();
-
     int minPx = INT_MAX, maxPx = INT_MIN;
     int minPy = INT_MAX, maxPy = INT_MIN;
-
     for (size_t i = 0; i < numPoints; i++)
     {
         int16_t x, y;
         navCoordToPixel(feature, feature.coords[i], x, y);
-        
         px[i] = x;
         py[i] = y;
-        
         if (x < minPx) minPx = x;
         if (x > maxPx) maxPx = x;
         if (y < minPy) minPy = y;
         if (y > maxPy) maxPy = y;
     }
-
-    if (maxPx < 0 || minPx >= tileWidth || maxPy < 0 || minPy >= tileHeight)
-        return;
-
+    if (maxPx < 0 || minPx >= tileWidth || maxPy < 0 || minPy >= tileHeight) return;
     uint16_t fillColor = feature.properties.colorRgb565;
     uint16_t borderColor = darkenRGB565(fillColor, 0.15f);
-
     if (fillPolygons)
         fillPolygonGeneral(map, px, py, numPoints, fillColor, 0, 0, feature.ringCount, feature.ringEnds);
-
-    // Draw outline only for the exterior ring (ring 0)
     int extEnd = (feature.ringCount > 0) ? feature.ringEnds[0] : numPoints;
     if (extEnd >= 3)
     {
@@ -1402,57 +859,42 @@ void Maps::renderNavPolygon(const NavFeature& feature, TFT_eSprite& map)
 }
 
 /**
- * @brief Render a Point feature.
- * 
- * @param feature  The vector point feature to render.
- * @param map      Target sprite to draw on.
+ * @brief Render a NAV Point feature
+ * @param feature NavFeature object.
+ * @param map Target sprite.
  */
 void Maps::renderNavPoint(const NavFeature& feature, TFT_eSprite& map)
 {
-    if (feature.coordCount == 0)
-        return;
-
+    if (feature.coordCount == 0) return;
     int16_t px, py;
     navCoordToPixel(feature, feature.coords[0], px, py);
-
     if (px >= 0 && px < tileWidth && py >= 0 && py < tileHeight)
-    {
-        uint16_t color = feature.properties.colorRgb565;
-        map.fillCircle(px, py, 3, color);
-    }
+        map.fillCircle(px, py, 3, feature.properties.colorRgb565);
 }
 
 /**
- * @brief Render a single NAV feature based on geometry type.
- * 
- * @param feature  The feature to render.
- * @param viewport Current view bounding box (Ignored in new format).
- * @param map      Target sprite to draw on.
+ * @brief Render a single NAV feature
+ * @param feature NavFeature to render.
+ * @param viewport Current viewport bbox.
+ * @param map Target sprite.
  */
 void Maps::renderNavFeature(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map)
 {
     switch (feature.geomType)
     {
-        case NavGeomType::LineString:
-            renderNavLineString(feature, map);
-            break;
-
-        case NavGeomType::Polygon:
-            renderNavPolygon(feature, map);
-            break;
-
-        case NavGeomType::Point:
-            renderNavPoint(feature, map);
-            break;
-
-        default:
-            break;
+        case NavGeomType::LineString: renderNavLineString(feature, map); break;
+        case NavGeomType::Polygon: renderNavPolygon(feature, map); break;
+        case NavGeomType::Point: renderNavPoint(feature, map); break;
+        default: break;
     }
 }
 
 /**
- * @brief Convert pre-projected NAV coordinate to screen pixels.
- * @details Uses bit-shifting for ultra-fast calculation (0-4096 range).
+ * @brief Convert internal NAV coordinate to pixels
+ * @param feature Current NavFeature context.
+ * @param coord NavCoord (0-4096).
+ * @param px Output X pixel.
+ * @param py Output Y pixel.
  */
 void Maps::navCoordToPixel(const NavFeature& feature, const NavCoord& coord, int16_t& px, int16_t& py)
 {
@@ -1461,133 +903,87 @@ void Maps::navCoordToPixel(const NavFeature& feature, const NavCoord& coord, int
 }
 
 /**
- * @brief Render NAV viewport
- * @details Main entry point for NAV tile rendering. Loads 3x3 tile grid,
- * uses pre-calculated projections and BBox culling for maximum performance.
- * @param centerLat Viewport center latitude
- * @param centerLon Viewport center longitude
- * @param zoom Zoom level
- * @param map Target sprite for rendering
- * @return true if rendering succeeded
+ * @brief Main entry point for NAV viewport rendering
+ * @param centerLat Center latitude.
+ * @param centerLon Center longitude.
+ * @param zoom Zoom level.
+ * @param map Target sprite.
+ * @return true if successful.
  */
 bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT_eSprite& map)
 {
     uint64_t startTime = esp_timer_get_time();
-    waitScreenRefresh = true;
-    
     const double latRad = (double)centerLat * M_PI / 180.0;
     const double n = pow(2.0, (double)zoom);
     const float centerTileX = (float)((centerLon + 180.0) / 360.0 * n);
     const float centerTileY = (float)((1.0 - log(tan(latRad) + 1.0 / cos(latRad)) / M_PI) / 2.0 * n);
-
-    // Align to tile grid to match PNG rendering system
-    // We want the center tile of our 3x3 (or 4x4) grid to be the one containing the GPS
     const int centerTileIdxX = (int)floorf(centerTileX);
     const int centerTileIdxY = (int)floorf(centerTileY);
-    
-    // Top-left of the rendering area (1 tile offset from center tile to ensure 3x3 or 4x4 coverage)
     navTlTileX_ = (float)(centerTileIdxX - 1);
     navTlTileY_ = (float)(centerTileIdxY - 1);
     navLastZoom_ = zoom;
-
-    const int minTileX = centerTileIdxX - 1;
-    const int minTileY = centerTileIdxY - 1;
-
     map.fillSprite(TFT_WHITE);
-
     std::vector<uint8_t*> tileBuffers;
     std::vector<NavFeature> globalLayers[16];
-    // Pre-reserve to avoid reallocations
     for (int i = 0; i < 16; i++) globalLayers[i].reserve(256);
-    
     size_t totalTheoreticalPSRAM = 0;
     uint64_t tLoadStart = esp_timer_get_time();
-
     for (int dy = 0; dy < 4; dy++)
     {
         for (int dx = 0; dx < 4; dx++)
         {
-            int tileX = minTileX + dx;
-            int tileY = minTileY + dy;
-
+            int tileX = (centerTileIdxX - 1) + dx;
+            int tileY = (centerTileIdxY - 1) + dy;
             char tilePath[128];
             snprintf(tilePath, sizeof(tilePath), mapVectorFolder, zoom, tileX, tileY);
-
             uint8_t* tileBuffer = nullptr;
             size_t tileBufferSize = 0;
             std::vector<NavFeature> tileFeatures;
-            
             NavReader::readAllFeaturesMemory(tilePath, tileFeatures, zoom, tileBuffer, tileBufferSize);
-            
             if (tileBuffer)
             {
                 tileBuffers.push_back(tileBuffer);
                 totalTheoreticalPSRAM += tileBufferSize;
             }
-
             if (tileFeatures.empty()) continue;
-
             const int16_t offsetX = (int16_t)((float(tileX) - navTlTileX_) * 256.0f);
             const int16_t offsetY = (int16_t)((float(tileY) - navTlTileY_) * 256.0f);
-
             for (auto& feature : tileFeatures)
             {
                 feature.tilePixelOffsetX = offsetX;
                 feature.tilePixelOffsetY = offsetY;
-                
                 uint8_t priority = feature.properties.getPriority();
-                if (priority < 16)
-                    globalLayers[priority].push_back(std::move(feature));
+                if (priority < 16) globalLayers[priority].push_back(std::move(feature));
             }
         }
     }
-
     uint64_t tRenderStart = esp_timer_get_time();
     map.startWrite();
-
     for (int p = 0; p < 16; p++)
     {
         if (globalLayers[p].empty()) continue;
-        
         for (const auto& feature : globalLayers[p])
         {
             const int16_t minX = feature.tilePixelOffsetX + feature.objBbox.x1;
             const int16_t minY = feature.tilePixelOffsetY + feature.objBbox.y1;
             const int16_t maxX = feature.tilePixelOffsetX + feature.objBbox.x2;
             const int16_t maxY = feature.tilePixelOffsetY + feature.objBbox.y2;
-
             if (minX > 768 || maxX < 0 || minY > 768 || maxY < 0) continue;
-
             map.setClipRect(feature.tilePixelOffsetX, feature.tilePixelOffsetY, 256, 256);
             renderNavFeature(feature, {}, map);
         }
         globalLayers[p].clear();
         taskYIELD();
     }
-
     map.clearClipRect();
     map.endWrite();
-
     uint64_t tRenderEnd = esp_timer_get_time();
-    uint64_t tFreeStart = esp_timer_get_time();
-
-    for (auto* buffer : tileBuffers)
-    {
-        heap_caps_free(buffer);
-    }
-
-    uint64_t tFreeEnd = esp_timer_get_time();
+    for (auto* buffer : tileBuffers) heap_caps_free(buffer);
     uint64_t endTime = esp_timer_get_time();
-
-    ESP_LOGI(TAG, "NAV Stats - Load: %llu ms, Render: %llu ms, Free: %llu ms. Total: %llu ms. PSRAM: %u B",
+    ESP_LOGI(TAG, "NAV Stats - Load: %llu ms, Render: %llu ms, Total: %llu ms. PSRAM: %u B",
              (tRenderStart - tLoadStart) / 1000,
              (tRenderEnd - tRenderStart) / 1000,
-             (tFreeEnd - tFreeStart) / 1000,
              (endTime - startTime) / 1000,
              totalTheoreticalPSRAM);
-
-    waitScreenRefresh = false;
     return true;
 }
-
-

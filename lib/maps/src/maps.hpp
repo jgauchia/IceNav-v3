@@ -28,7 +28,6 @@
 /**
  * @class Maps
  * @brief Maps class for handling vector and raster map rendering, navigation, and viewport management.
- *
  */
 class Maps
 {
@@ -42,8 +41,6 @@ class Maps
             float lat;          /**< Latitude of the tile center */
             float lon;          /**< Longitude of the tile center */
         };
-        
-
 
         struct tileBounds		/**< Map boundaries structure */
         {
@@ -59,24 +56,7 @@ class Maps
             uint16_t posY; 		/**< Y position on screen */
         };
 
-        static constexpr int MARGIN_PIXELS = 1;
         static const uint16_t mapTileSize = 256;                             	     /**< Map tile size */
-
-        // Prefetch system
-        static size_t maxCachedTiles;                                               /**< Maximum cached tiles (0 for FS only) */
-        
-        // Background preload system (multi-core)
-        struct PrefetchRequest      /**< Background prefetch request structure */
-        {
-            char filePath[255];         /**< Tile file path to prefetch */
-        };
-
-        static QueueHandle_t prefetchQueue;                                         /**< Queue for prefetch requests */
-        static TaskHandle_t prefetchTaskHandle;                                     /**< Prefetch task handle */
-        static SemaphoreHandle_t prefetchMutex;                                     /**< Mutex for prefetch sprite access */
-        static volatile bool prefetchTaskRunning;                                   /**< Flag to control task lifecycle */
-
-        static void prefetchTask(void* pvParameters);                               /**< Background prefetch task (runs on Core 0) */
 
         tileBounds totalBounds; 													/**< Map boundaries */
         uint16_t wptPosX, wptPosY;                                                  /**< Waypoint position on screen map */
@@ -100,24 +80,11 @@ class Maps
         void coords2map(float lat, float lon, tileBounds bound, uint16_t *pixelX, uint16_t *pixelY);
         void showNoMap(TFT_eSprite &map);
         void panMap(int8_t dx, int8_t dy);
-
         uint16_t darkenRGB565(const uint16_t color, const float amount = 0.4f);  					/**< Darken RGB565 color by a given fraction */
-        bool isPointOnMargin(const int px, const int py);									/**< Check if a point is on the margin of the tile */
         void fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, 
                                 const int numPoints, const uint16_t color,	
                                 const int xOffset, const int yOffset,
                                 uint16_t ringCount = 1, uint16_t* ringEnds = nullptr);						/**< Fill a polygon using the scanline algorithm and multi-ring support */
-        
-        
-        // Tile cache methods
-
-
-
-        // Background prefetch methods (multi-core)
-        void initPrefetchSystem();                                                  /**< Initialize background prefetch system */
-        void stopPrefetchSystem();                                                  /**< Stop background prefetch system */
-        void enqueuePrefetch(const char* filePath);              /**< Enqueue tile for background prefetch */
-        void enqueueSurroundingTiles(uint32_t centerX, uint32_t centerY, uint8_t zoom, int8_t dirX, int8_t dirY); /**< Enqueue tiles in scroll direction */
 
     public:
         // Virtual canvas dimensions (public for external access)
@@ -141,7 +108,6 @@ class Maps
         bool scrollUpdated = false;                                    /**< Flag to indicate when map was scrolled and needs to update */
         int8_t lastTileX = 0;                                          /**< Last Map tile x counter */
         int8_t lastTileY = 0;                                          /**< Last Map tile y counter */
-
 
         Maps();
         MapTile getMapTile(float lon, float lat, uint8_t zoomLevel, int8_t offsetX, int8_t offsetY);
@@ -195,4 +161,3 @@ class Maps
         std::vector<int, InternalAllocator<int>> edgeBuckets;
         std::vector<Edge, InternalAllocator<Edge>> edgePool;
 };
-
