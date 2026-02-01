@@ -233,8 +233,8 @@ SDCardInfo Storage::getSDCardInfo()
 				tot_sect = (fs->n_fatent - 2) * fs->csize;
 				fre_sect = fre_clust * fs->csize;
 
-				uint64_t total_space_bytes = tot_sect / 2 ;
-				uint64_t free_space_bytes = fre_sect / 2 ;
+				uint64_t total_space_bytes = (uint64_t)tot_sect * 512;
+				uint64_t free_space_bytes = (uint64_t)fre_sect * 512;
 				uint64_t used_space_bytes = total_space_bytes - free_space_bytes;
 
 				info.total_space = formatSize(total_space_bytes);
