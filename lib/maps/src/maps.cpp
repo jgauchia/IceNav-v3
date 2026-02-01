@@ -54,6 +54,13 @@ volatile bool Maps::prefetchTaskRunning = false;
 Maps::Maps() : fillPolygons(true),
                navLastLat_(0), navLastLon_(0), navLastZoom_(0), navNeedsRender_(true)
 {
+    // Reserve memory in Internal RAM to avoid fragmentation and reallocations
+    projBuf16X.reserve(1024);
+    projBuf16Y.reserve(1024);
+    projBuf32X.reserve(1024);
+    projBuf32Y.reserve(1024);
+    edgePool.reserve(1024);
+    edgeBuckets.reserve(tileHeight);
 }
 
 /**
@@ -304,16 +311,6 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
     Maps::navArrowPosition = {0, 0};              // Map Arrow position
 
     Maps::totalBounds = {90.0f, -90.0f, 180.0f, -180.0f};
-
-    // Pre-allocate projection buffers to avoid runtime allocation
-    // 2048 points is sufficient for most complex features (roads, boundaries)
-    // This works with or without PSRAM, utilizing available heap
-    projBuf16X.reserve(2048);
-    projBuf16Y.reserve(2048);
-    projBuf32X.reserve(2048);
-    projBuf32Y.reserve(2048);
-    
-
 
     // Initialize background prefetch system (multi-core)
     initPrefetchSystem();
@@ -871,23 +868,23 @@ bool Maps::isPointOnMargin(const int px, const int py)
 }
 
 /**
- * @brief Fills a polygon on a sprite using the scanline algorithm.
+ * @brief Fill a polygon using an optimized scanline (AEL) algorithm.
  *
- * @details This function fills a polygon defined by the given vertex arrays (px, py) on the provided TFT_eSprite object (map) using the specified color (c). 
- *          It calculates the intersection points of the polygon with each scanline and draws horizontal lines between pairs of intersection points to fill the polygon.
- *          The function takes into account offsets for positioning within a larger context and ensures that drawing is constrained within the tile boundaries.
+ * @details This implementation supports complex polygons with holes (multi-ring) and 
+ *          uses a "fast-forward" optimization to skip non-visible scanlines.
+ *          Structures are allocated in Internal RAM for maximum performance.
  *
- * @param map The TFT_eSprite object where the polygon will be drawn.
+ * @param map Target sprite to draw on.
  * @param px Array of x-coordinates of the polygon vertices.
  * @param py Array of y-coordinates of the polygon vertices.
  * @param numPoints The number of vertices in the polygon.
  * @param color The color to fill the polygon with (in RGB565 format).
  * @param xOffset The x-offset to apply when drawing the polygon.
  * @param yOffset The y-offset to apply when drawing the polygon.
- * @param ringCount Number of polygon rings (1 exterior + n holes).
+ * @param ringCount Number of polygon rings (1 exterior + n holes). Supports up to 65535 rings.
  * @param ringEnds Array of cumulative end indices for each ring.
  */
-void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset, uint8_t ringCount, uint16_t* ringEnds)
+void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset, uint16_t ringCount, uint16_t* ringEnds)
 {
     if (numPoints < 3) return;
 
@@ -905,12 +902,12 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
     edgeBuckets.assign(bucketCount, -1);
 
     // If no ring info provided, treat as single ring
-    uint8_t count = (ringCount == 0) ? 1 : ringCount;
+    uint16_t count = (ringCount == 0) ? 1 : ringCount;
     uint16_t defaultEnds[1] = { (uint16_t)numPoints };
     uint16_t* ends = (ringEnds == nullptr) ? defaultEnds : ringEnds;
 
     int ringStart = 0;
-    for (uint8_t r = 0; r < count; r++)
+    for (uint16_t r = 0; r < count; r++)
     {
         int ringEnd = ends[r];
         int ringNumPoints = ringEnd - ringStart;
@@ -956,7 +953,35 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
     int startY = std::max(minY, -yOffset);
     int endY = std::min(maxY, (int)tileHeight - 1 - yOffset);
 
-    for (int y = minY; y <= maxY; y++)
+    // 1. Fast-forward: Add edges that start before the visible range and jump to startY
+    if (startY > minY)
+    {
+        for (int y = minY; y < startY; y++)
+        {
+            int eIdx = edgeBuckets[y - minY];
+            while (eIdx != -1)
+            {
+                int nextIdx = edgePool[eIdx].nextInBucket;
+                // Update xVal directly to its position at startY
+                edgePool[eIdx].xVal += edgePool[eIdx].slope * (startY - y);
+                edgePool[eIdx].nextActive = activeHead;
+                activeHead = eIdx;
+                eIdx = nextIdx;
+            }
+        }
+        // Remove edges that finish before reaching the visible range
+        int* pCurrIdx = &activeHead;
+        while (*pCurrIdx != -1)
+        {
+            if (edgePool[*pCurrIdx].yMax <= startY)
+                *pCurrIdx = edgePool[*pCurrIdx].nextActive;
+            else
+                pCurrIdx = &(edgePool[*pCurrIdx].nextActive);
+        }
+    }
+
+    // 2. Main loop: Process only visible scanlines
+    for (int y = startY; y <= endY; y++)
     {
         // Add new edges from bucket to active list
         int eIdx = edgeBuckets[y - minY];
@@ -980,48 +1005,44 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
 
         if (activeHead == -1) continue;
 
-        // Draw scanline only if within visible Y range
-        if (y >= startY && y <= endY)
+        // Sort active list by xVal (needed for every scanline)
+        int sorted = -1;
+        int active = activeHead;
+        while (active != -1)
         {
-            // Sort active list by xVal (needed for every scanline)
-            int sorted = -1;
-            int active = activeHead;
-            while (active != -1)
+            int nextActive = edgePool[active].nextActive;
+            if (sorted == -1 || edgePool[active].xVal < edgePool[sorted].xVal)
             {
-                int nextActive = edgePool[active].nextActive;
-                if (sorted == -1 || edgePool[active].xVal < edgePool[sorted].xVal)
-                {
-                    edgePool[active].nextActive = sorted;
-                    sorted = active;
-                }
-                else
-                {
-                    int s = sorted;
-                    while (edgePool[s].nextActive != -1 && edgePool[edgePool[s].nextActive].xVal < edgePool[active].xVal)
-                        s = edgePool[s].nextActive;
-                    edgePool[active].nextActive = edgePool[s].nextActive;
-                    edgePool[s].nextActive = active;
-                }
-                active = nextActive;
+                edgePool[active].nextActive = sorted;
+                sorted = active;
             }
-            activeHead = sorted;
+            else
+            {
+                int s = sorted;
+                while (edgePool[s].nextActive != -1 && edgePool[edgePool[s].nextActive].xVal < edgePool[active].xVal)
+                    s = edgePool[s].nextActive;
+                edgePool[active].nextActive = edgePool[s].nextActive;
+                edgePool[s].nextActive = active;
+            }
+            active = nextActive;
+        }
+        activeHead = sorted;
 
-            int yy = y + yOffset;
-            int left = activeHead;
-            while (left != -1 && edgePool[left].nextActive != -1)
-            {
-                int right = edgePool[left].nextActive;
-                int xStart = (edgePool[left].xVal >> 16) + xOffset;
-                int xEnd = (edgePool[right].xVal >> 16) + xOffset;
-                if (xStart < 0) xStart = 0;
-                if (xEnd > (int)tileWidth) xEnd = (int)tileWidth;
-                if (xEnd > xStart)
-                    map.drawFastHLine(xStart, yy, xEnd - xStart, color);
-                left = edgePool[right].nextActive;
-            }
+        int yy = y + yOffset;
+        int left = activeHead;
+        while (left != -1 && edgePool[left].nextActive != -1)
+        {
+            int right = edgePool[left].nextActive;
+            int xStart = (edgePool[left].xVal >> 16) + xOffset;
+            int xEnd = (edgePool[right].xVal >> 16) + xOffset;
+            if (xStart < 0) xStart = 0;
+            if (xEnd > (int)tileWidth) xEnd = (int)tileWidth;
+            if (xEnd > xStart)
+                map.drawFastHLine(xStart, yy, xEnd - xStart, color);
+            left = edgePool[right].nextActive;
         }
         
-        // Update xVal for next scanline (must do this even for non-visible lines to keep state)
+        // Update xVal for next scanline
         for (int a = activeHead; a != -1; a = edgePool[a].nextActive)
             edgePool[a].xVal += edgePool[a].slope;
     }
@@ -1263,8 +1284,11 @@ void Maps::renderNavLineString(const NavFeature& feature, TFT_eSprite& map)
 
     const size_t numCoords = feature.coordCount;
     
-    if (projBuf16X.capacity() < numCoords) projBuf16X.reserve(numCoords * 1.5);
-    if (projBuf16Y.capacity() < numCoords) projBuf16Y.reserve(numCoords * 1.5);
+    if (projBuf16X.capacity() < numCoords)
+        projBuf16X.reserve(numCoords * 1.5);
+
+    if (projBuf16Y.capacity() < numCoords)
+        projBuf16Y.reserve(numCoords * 1.5);
     
     projBuf16X.resize(numCoords);
     projBuf16Y.resize(numCoords);
@@ -1308,13 +1332,9 @@ void Maps::renderNavLineString(const NavFeature& feature, TFT_eSprite& map)
     for (size_t i = 1; i < validPoints; i++)
     {
         if (width == 1)
-        {
-            map.drawLine(pxArr[i-1], pyArr[i-1], pxArr[i], pyArr[i], color);
-        }
+            map.drawLine(pxArr[i - 1], pyArr[i - 1], pxArr[i], pyArr[i], color);
         else
-        {
-            map.drawWideLine(pxArr[i-1], pyArr[i-1], pxArr[i], pyArr[i], width, color);
-        }
+            map.drawWideLine(pxArr[i - 1], pyArr[i - 1], pxArr[i], pyArr[i], width, color);
     }
 }
 
@@ -1331,8 +1351,11 @@ void Maps::renderNavPolygon(const NavFeature& feature, TFT_eSprite& map)
 
     size_t numPoints = feature.coordCount;
     
-    if (projBuf32X.capacity() < numPoints) projBuf32X.reserve(numPoints * 1.5);
-    if (projBuf32Y.capacity() < numPoints) projBuf32Y.reserve(numPoints * 1.5);
+    if (projBuf32X.capacity() < numPoints)
+        projBuf32X.reserve(numPoints * 1.5);
+
+    if (projBuf32Y.capacity() < numPoints)
+        projBuf32Y.reserve(numPoints * 1.5);
 
     projBuf32X.resize(numPoints);
     projBuf32Y.resize(numPoints);
@@ -1364,9 +1387,7 @@ void Maps::renderNavPolygon(const NavFeature& feature, TFT_eSprite& map)
     uint16_t borderColor = darkenRGB565(fillColor, 0.15f);
 
     if (fillPolygons)
-    {
         fillPolygonGeneral(map, px, py, numPoints, fillColor, 0, 0, feature.ringCount, feature.ringEnds);
-    }
 
     // Draw outline only for the exterior ring (ring 0)
     int extEnd = (feature.ringCount > 0) ? feature.ringEnds[0] : numPoints;
@@ -1459,12 +1480,18 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
     const float centerTileX = (float)((centerLon + 180.0) / 360.0 * n);
     const float centerTileY = (float)((1.0 - log(tan(latRad) + 1.0 / cos(latRad)) / M_PI) / 2.0 * n);
 
-    navTlTileX_ = centerTileX - 1.5f;
-    navTlTileY_ = centerTileY - 1.5f;
+    // Align to tile grid to match PNG rendering system
+    // We want the center tile of our 3x3 (or 4x4) grid to be the one containing the GPS
+    const int centerTileIdxX = (int)floorf(centerTileX);
+    const int centerTileIdxY = (int)floorf(centerTileY);
+    
+    // Top-left of the rendering area (1 tile offset from center tile to ensure 3x3 or 4x4 coverage)
+    navTlTileX_ = (float)(centerTileIdxX - 1);
+    navTlTileY_ = (float)(centerTileIdxY - 1);
     navLastZoom_ = zoom;
 
-    const int minTileX = (int)floorf(navTlTileX_);
-    const int minTileY = (int)floorf(navTlTileY_);
+    const int minTileX = centerTileIdxX - 1;
+    const int minTileY = centerTileIdxY - 1;
 
     map.fillSprite(TFT_WHITE);
 

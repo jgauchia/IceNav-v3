@@ -23,6 +23,7 @@
 #include "mapVars.h"
 #include "storage.hpp"
 #include "nav_reader.hpp"
+#include "InternalAllocator.hpp"
 
 /**
  * @class Maps
@@ -105,7 +106,7 @@ class Maps
         void fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, 
                                 const int numPoints, const uint16_t color,	
                                 const int xOffset, const int yOffset,
-                                uint8_t ringCount = 1, uint16_t* ringEnds = nullptr);						/**< Fill a polygon using the scanline algorithm */
+                                uint16_t ringCount = 1, uint16_t* ringEnds = nullptr);						/**< Fill a polygon using the scanline algorithm and multi-ring support */
         
         
         // Tile cache methods
@@ -178,10 +179,10 @@ class Maps
         float navTlTileY_;
 
         // Zero-Allocation Projection Pipeline
-        std::vector<int16_t> projBuf16X;
-        std::vector<int16_t> projBuf16Y;
-        std::vector<int> projBuf32X;
-        std::vector<int> projBuf32Y;
+        std::vector<int16_t, InternalAllocator<int16_t>> projBuf16X;
+        std::vector<int16_t, InternalAllocator<int16_t>> projBuf16Y;
+        std::vector<int, InternalAllocator<int>> projBuf32X;
+        std::vector<int, InternalAllocator<int>> projBuf32Y;
 
         // AEL Polygon optimization
         struct Edge {
@@ -191,7 +192,7 @@ class Maps
             int nextInBucket; 
             int nextActive;
         };
-        std::vector<int> edgeBuckets;
-        std::vector<Edge> edgePool;
+        std::vector<int, InternalAllocator<int>> edgeBuckets;
+        std::vector<Edge, InternalAllocator<Edge>> edgePool;
 };
 
