@@ -48,7 +48,6 @@ extern Gps gps;
 void editWidget(lv_event_t *event)
 {
     lv_event_code_t code = lv_event_get_code(event);
-    
     if (code == LV_EVENT_LONG_PRESSED)
         canMoveWidget = !canMoveWidget;
 }
@@ -93,20 +92,15 @@ void dragWidget(lv_event_t *event)
             lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
             widgetSelected = true;
         }
-
         lv_indev_t *indev = lv_indev_get_act();
         if (indev == NULL)
-        return;
-        
+            return;
         lv_point_t vect;
         lv_indev_get_vect(indev, &vect);
-        
         lv_coord_t x = lv_obj_get_x(obj) + vect.x;
         lv_coord_t y = lv_obj_get_y(obj) + vect.y;
         lv_coord_t width = lv_obj_get_width(obj);
         lv_coord_t height = lv_obj_get_height(obj);
-        
-        // Limit drag area
         if (x > 0 && y > 0 && (x + width) < TFT_WIDTH && (y + height) < TFT_HEIGHT - 25)
         {
             lv_obj_set_pos(obj, x, y);
@@ -388,17 +382,13 @@ void turnByTurnWidget(lv_obj_t *screen)
     lv_obj_set_flex_align(turnByTurn, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_add_style(turnByTurn, &styleMapWidget, 0);
     lv_obj_align(turnByTurn, LV_ALIGN_TOP_RIGHT, 0, 60);
-
-
     turnImg = lv_img_create(turnByTurn);
     lv_img_set_src(turnImg, &straight);
-    
     turnDistLabel = lv_label_create(turnByTurn);
     lv_obj_set_style_text_font(turnDistLabel, &lv_font_montserrat_18, 0);
     lv_label_set_text_fmt(turnDistLabel, "%4d", 0);
     lv_obj_t *obj = lv_label_create(turnByTurn);
     lv_obj_set_style_text_font(obj, &lv_font_montserrat_18, 0);
     lv_label_set_text_static(obj,"m.");
-
     lv_obj_add_flag(turnByTurn,LV_OBJ_FLAG_HIDDEN);
 }

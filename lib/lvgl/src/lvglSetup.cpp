@@ -11,7 +11,7 @@
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
 #include "driver/gpio.h"
-#include "esp_log.h" // Added for debugging
+#include "esp_log.h"
 
 /**
  * @brief Get system uptime in milliseconds using ESP-IDF timer.
@@ -178,9 +178,7 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
             else if (!isDrag)
             {
                 if (abs(data->point.x - startX) > DRAG_THRESHOLD || abs(data->point.y - startY) > DRAG_THRESHOLD)
-                {
                     isDrag = true;
-                }
             }
 
             countTouchReleases = true;
@@ -495,7 +493,8 @@ void loadMainScreen()
     else
         lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
     
-    if (mainTimer) lv_timer_resume(mainTimer);
+    if (mainTimer)
+        lv_timer_resume(mainTimer);
 
     lv_screen_load(mainScreen);
 }

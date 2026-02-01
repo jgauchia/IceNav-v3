@@ -65,7 +65,6 @@ class Storage
 
     public:
         Storage();
-
         esp_err_t initSD();
         esp_err_t initSPIFFS();
         SDCardInfo getSDCardInfo();

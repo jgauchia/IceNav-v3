@@ -109,10 +109,8 @@ void createSettingsScr()
     lv_obj_set_style_pad_row(settingsButtons, 20, 0);
     lv_obj_set_flex_flow(settingsButtons, LV_FLEX_FLOW_COLUMN);
     lv_obj_add_style(settingsButtons, &styleTransparent, LV_PART_MAIN);
-
     lv_obj_t *btnLabel;
     lv_obj_t *btn;
-
     #ifdef ENABLE_COMPASS
         // Compass Calibration
         btn = lv_btn_create(settingsButtons);
@@ -123,7 +121,6 @@ void createSettingsScr()
         lv_obj_center(btnLabel);
         lv_obj_add_event_cb(btn, compassCalib, LV_EVENT_CLICKED, NULL);
     #endif
-
     #ifdef TOUCH_INPUT
         // Touch Calibration
         btn = lv_btn_create(settingsButtons);
@@ -134,7 +131,6 @@ void createSettingsScr()
         lv_obj_center(btnLabel);
         lv_obj_add_event_cb(btn, touchCalib, LV_EVENT_CLICKED, NULL);
     #endif
-
     // Map Settings
     btn = lv_btn_create(settingsButtons);
     lv_obj_set_size(btn, TFT_WIDTH - 30, 40 * scale);
@@ -143,7 +139,6 @@ void createSettingsScr()
     lv_label_set_text_static(btnLabel, "Map Settings");
     lv_obj_center(btnLabel);
     lv_obj_add_event_cb(btn, mapSettings, LV_EVENT_CLICKED, NULL);
-
     // Device Settings
     btn = lv_btn_create(settingsButtons);
     lv_obj_set_size(btn, TFT_WIDTH - 30, 40 * scale);
@@ -152,7 +147,6 @@ void createSettingsScr()
     lv_label_set_text_static(btnLabel, "Device Settings");
     lv_obj_center(btnLabel);
     lv_obj_add_event_cb(btn, deviceSettings, LV_EVENT_CLICKED, NULL);
-
     // Back button
     btn = lv_btn_create(settingsButtons);
     lv_obj_set_size(btn, TFT_WIDTH - 30, 40 * scale);

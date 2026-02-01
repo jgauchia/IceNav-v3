@@ -14,7 +14,6 @@ extern wayPoint loadWpt;
 extern wayPoint addWpt;
 String gpxFileFolder;
 
-
 lv_obj_t *gpxDetailScreen;  /**< Waypoint detail screen */
 lv_obj_t *gpxTag;
 lv_obj_t *gpxTagValue;
@@ -41,7 +40,6 @@ static void gpxDetailScreenEvent(lv_event_t *event)
             {    
                 createWptFile();
                 GPXParser gpx;
-
                 switch (gpxAction)
                 {
                 case WPT_ADD:
@@ -64,14 +62,12 @@ static void gpxDetailScreenEvent(lv_event_t *event)
                     }
                     break;
                 }
-
                 isMainScreen = true;
                 mapView.redrawMap = true;
                 gpxAction = WPT_NONE;
                 lv_refr_now(display);
                 loadMainScreen();
             }
-
             if ( lv_indev_get_key(lv_indev_active()) == 35 ) // # Key (ESCAPE)
             { 
                 isMainScreen = true;
@@ -90,10 +86,8 @@ static void gpxDetailScreenEvent(lv_event_t *event)
             tft.setRotation(0);
             lv_display_set_rotation(display,LV_DISPLAY_ROTATION_0);
         }
-        
         createWptFile();
         GPXParser gpx;
-
         switch (gpxAction)
         {
         case WPT_ADD:
@@ -116,7 +110,6 @@ static void gpxDetailScreenEvent(lv_event_t *event)
             }
             break;
         }
-
         isMainScreen = true;
         mapView.redrawMap = true;
         gpxAction = WPT_NONE;
@@ -170,12 +163,10 @@ static void rotateScreen(lv_event_t *event)
 static void gpxTagNameEvent(lv_event_t *event)
 {
     lv_event_code_t code = lv_event_get_code(event);
-
     if(code == LV_EVENT_CLICKED)
     {
         createWptFile();
         GPXParser gpx;
-
         switch (gpxAction)
         {
         case WPT_ADD:
@@ -197,7 +188,6 @@ static void gpxTagNameEvent(lv_event_t *event)
             }
             break;
         }
-
         isMainScreen = true;
         mapView.redrawMap = true;
         gpxAction = WPT_NONE;
@@ -244,7 +234,6 @@ void updateWaypoint(uint8_t action)
 void createGpxDetailScreen()
 {
     gpxDetailScreen = lv_obj_create(NULL);
-
     gpxTagValue = lv_textarea_create(gpxDetailScreen);
     lv_textarea_set_one_line(gpxTagValue, true);
     lv_obj_align(gpxTagValue, LV_ALIGN_TOP_MID, 0, 40);
@@ -256,12 +245,10 @@ void createGpxDetailScreen()
         lv_keyboard_set_mode(keyboard,LV_KEYBOARD_MODE_TEXT_UPPER);
         lv_keyboard_set_textarea(keyboard, gpxTagValue);
     #endif
-
     #ifdef TDECK_ESP32S3
         lv_group_add_obj(scrGroup, gpxTagValue);
         lv_group_focus_obj(gpxTagValue);
     #endif
-
     #ifndef TDECK_ESP32S3
         // Rotate Screen button
         static lv_style_t editBtnStyleOn;
@@ -278,8 +265,6 @@ void createGpxDetailScreen()
         lv_label_set_text(rotateScreenLbl, LV_SYMBOL_LOOP);
         lv_obj_center(rotateScreenLbl);
     #endif
-
-
     gpxTag = lv_label_create(gpxDetailScreen);
     lv_obj_set_style_text_font(gpxTag, fontOptions, 0);
     lv_label_set_text_static(gpxTag, LV_SYMBOL_LEFT " Waypoint Name:");
@@ -287,22 +272,18 @@ void createGpxDetailScreen()
     lv_obj_align(gpxTag,LV_ALIGN_TOP_LEFT,10,10);
     lv_obj_add_flag(gpxTag, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(gpxTag, gpxTagNameEvent, LV_EVENT_ALL, NULL);
-
     labelLat = lv_label_create(gpxDetailScreen);
     lv_obj_set_style_text_font(labelLat, fontOptions, 0);
     lv_label_set_text_static(labelLat, "Lat:");
     lv_obj_set_pos(labelLat, 10, 90);
-
     labelLon = lv_label_create(gpxDetailScreen);
     lv_obj_set_style_text_font(labelLon, fontOptions, 0);
     lv_label_set_text_static(labelLon, "Lon:");
     lv_obj_set_pos(labelLon, 10, 120);
-
     labelLatValue = lv_label_create(gpxDetailScreen);
     lv_obj_set_style_text_font(labelLatValue, fontOptions, 0);
     lv_label_set_text_static(labelLatValue, latFormatString(addWpt.lat));
     lv_obj_set_pos(labelLatValue, 60, 90);
-    
     labelLonValue = lv_label_create(gpxDetailScreen);
     lv_obj_set_style_text_font(labelLonValue, fontOptions, 0);
     lv_label_set_text_static(labelLonValue, lonFormatString(addWpt.lon));

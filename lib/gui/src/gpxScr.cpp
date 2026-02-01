@@ -186,7 +186,6 @@ void updateGpxListScreen()
     lv_obj_clean(listGPXScreen);
     lv_table_set_row_count(listGPXScreen, 1);
     isMainScreen = false;
-
     showMsg(LV_SYMBOL_DOWNLOAD," Getting files...");
     if (isWaypointOpt)
     {
@@ -194,12 +193,10 @@ void updateGpxListScreen()
         gpxTrack = false;
         uint16_t totalGpx = 1;
         std::map<std::string, std::vector<std::string>> waypointByFile = GPXParser::getTagElementList(gpxWaypointTag, gpxNameElem, wptFolder);
-
         for (std::map<std::string, std::vector<std::string>>::const_iterator it = waypointByFile.begin(); it != waypointByFile.end(); ++it)
         {
             const std::string& fileName = it->first;
             const std::vector<std::string>& waypointNames = it->second;
-
             for (const std::string& gpxTagValue : waypointNames)
             {
                 lv_table_set_cell_value_fmt(listGPXScreen, totalGpx, 0, LV_SYMBOL_GPS " - %s", gpxTagValue.c_str());
@@ -208,19 +205,16 @@ void updateGpxListScreen()
             }
         }
     }
-
     if (isTrackOpt)
     {
         gpxWaypoint = false;
         gpxTrack = true;
         uint16_t totalGpx = 1;
         std::map<std::string, std::vector<std::string>> tracksByFile = GPXParser::getTagElementList(gpxTrackTag, gpxNameElem, trkFolder);
-
         for (std::map<std::string, std::vector<std::string>>::const_iterator it = tracksByFile.begin(); it != tracksByFile.end(); ++it)
         {
             const std::string& fileName = it->first;
             const std::vector<std::string>& trackNames = it->second;
-
             for (const std::string& trackName : trackNames)
             {
                 lv_table_set_cell_value_fmt(listGPXScreen, totalGpx, 0, LV_SYMBOL_SHUFFLE " - %s", trackName.c_str());

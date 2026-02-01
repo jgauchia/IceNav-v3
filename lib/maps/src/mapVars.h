@@ -1,14 +1,12 @@
 /**
- * @file mapsVars.h
+ * @file mapVars.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief  Maps vars and structures
+ * @brief  Maps variables and structures
  * @version 0.2.4
  * @date 2025-12
  */
 
 #pragma once
-
-
 
 static const char *mapRenderFolder = "/sdcard/MAP/%u/%u/%u.png"; /**< Render Maps file folder */
 static const char *mapVectorFolder = "/sdcard/NAVMAP/%d/%d/%d.nav"; /**< Vector Maps file folder */

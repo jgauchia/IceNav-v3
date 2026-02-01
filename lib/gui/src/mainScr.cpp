@@ -11,7 +11,6 @@
 
 bool isMainScreen = false;    
 bool isScrolled = true;      
-bool isReady = false;        
 bool isScrollingMap = false;  
 bool canScrollMap = false;   
 uint8_t activeTile = 0;      
@@ -43,6 +42,9 @@ extern Maps mapView;
 
 /**
  * @brief Update compass screen event
+ *
+ * @details Updates the compass screen UI elements (heading, coordinates, altitude, speed, sunrise/sunset) with current GPS and heading data when the relevant event is triggered.
+ *
  * @param event LVGL event pointer.
  */
 void updateCompassScr(lv_event_t *event)
@@ -70,21 +72,31 @@ void updateCompassScr(lv_event_t *event)
 
 /**
  * @brief Show Map Widgets.
+ *
+ * @details Displays or hides map-related UI widgets based on map user settings 
  */
 void showMapWidgets()
 {
     lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(zoomWidget, LV_OBJ_FLAG_HIDDEN);
-    if (mapSet.showMapSpeed) lv_obj_clear_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
-    else lv_obj_add_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
-    if (mapSet.showMapCompass) lv_obj_clear_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
-    else lv_obj_add_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
-    if (mapSet.showMapScale) lv_obj_clear_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
-    else lv_obj_add_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
+    if (mapSet.showMapSpeed)
+        lv_obj_clear_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
+    else
+        lv_obj_add_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
+    if (mapSet.showMapCompass)
+        lv_obj_clear_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
+    else
+        lv_obj_add_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
+    if (mapSet.showMapScale)
+        lv_obj_clear_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
+    else
+        lv_obj_add_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
 }
 
 /**
  * @brief Hide Map Widgets.
+ *
+ * @details Hides all map-related UI widgets on the screen.
  */
 void hideMapWidgets()
 {
@@ -97,6 +109,9 @@ void hideMapWidgets()
 
 /**
  * @brief Screen state tracking structure for performance optimization.
+ *
+ * @details Stores previous values of screen data to prevent unnecessary LVGL updates.
+ * Implements dirty flag pattern to only redraw when values actually change.
  */
 struct ScreenState 
 {
@@ -113,45 +128,49 @@ ScreenState screenState;
 
 /**
  * @brief Get active tile
+ *
+ * @details Handles tileview scroll event, updates active tile index, and manages map/widget visibility and bar status.
+ *
  * @param event LVGL event pointer.
  */
 void getActTile(lv_event_t *event)
 {
-    if (isReady)
+    isScrolled = true;
+    mapView.redrawMap = true;
+    screenState.needsRedraw = true;
+    if (activeTile == MAP)
     {
-        isScrolled = true;
-        mapView.redrawMap = true;
-        screenState.needsRedraw = true;
-        if (activeTile == MAP)
-        {
-            mapView.createMapScrSprites();
-            if (mapView.isMapFound) showMapWidgets();
-            else hideMapWidgets();
-        }
-        if (isBarOpen) lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
+        mapView.createMapScrSprites();
+        if (mapView.isMapFound)
+            showMapWidgets();
+        else
+            hideMapWidgets();
     }
-    else
-        isReady = true;
+    if (isBarOpen)
+        lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
     lv_obj_t *actTile = lv_tileview_get_tile_act(tilesScreen);
     activeTile = lv_obj_get_x(actTile) / TFT_WIDTH;
 }
 
 /**
  * @brief Tile start scrolling event
+ *
+ * @details Handles the beginning of a tile scroll event by resetting scroll and map redraw flags and deleting map screen sprites.
+ *
  * @param event LVGL event pointer.
  */
 void scrollTile(lv_event_t *event)
 {
     isScrolled = false;
-    isReady = false;
     mapView.redrawMap = false;
     mapView.deleteMapScrSprites();
     screenState.needsRedraw = true;
 }
 
 /**
- * @brief Update Main Screen periodically
- * @param t LVGL timer.
+ * @brief Update Main Screen.
+ *
+ * @details Periodically updates the active main screen tiles and its widgets 
  */
 void updateMainScreen(lv_timer_t *t)
 {
@@ -231,11 +250,15 @@ void updateMainScreen(lv_timer_t *t)
 
 /**
  * @brief Update map event
+ *
+ * @details Handles map update events by generating and displaying the map (vector or render), updating map speed, scale, and compass widgets according to current settings.
+ *
  * @param event LVGL event pointer.
  */
 void updateMap(lv_event_t *event)
 {
-    if (mapView.followGps) mapView.redrawMap = true;
+    if (mapView.followGps)
+        mapView.redrawMap = true;
     mapView.generateMap(zoom);
     if (mapView.redrawMap)
     {
@@ -245,16 +268,22 @@ void updateMap(lv_event_t *event)
     }
     int16_t baseX = (tft.width() - Maps::tileWidth) / 2;
     int16_t baseY = ((tft.height() - 27) - Maps::tileHeight) / 2;
-    if (mapView.followGps) lv_obj_set_pos(mapCanvas, baseX, baseY);
-    else lv_obj_set_pos(mapCanvas, baseX - mapView.offsetX, baseY - mapView.offsetY);
-    if (mapSet.showMapSpeed) lv_label_set_text_fmt(mapSpeedLabel, "%3d", gps.gpsData.speed);     
-    if (mapSet.showMapScale) lv_label_set_text_fmt(scaleLabel, "%s", map_scale[zoom]);
-    if (mapSet.showMapCompass && mapSet.compassRotation) lv_img_set_angle(mapCompassImg, -(heading * 10));
+    if (mapView.followGps)
+        lv_obj_set_pos(mapCanvas, baseX, baseY);
+    else
+        lv_obj_set_pos(mapCanvas, baseX - mapView.offsetX, baseY - mapView.offsetY);
+    if (mapSet.showMapSpeed)
+        lv_label_set_text_fmt(mapSpeedLabel, "%3d", gps.gpsData.speed);     
+    if (mapSet.showMapScale)
+        lv_label_set_text_fmt(scaleLabel, "%s", map_scale[zoom]);
+    if (mapSet.showMapCompass && mapSet.compassRotation)
+        lv_img_set_angle(mapCompassImg, -(heading * 10));
 }
 
 /**
- * @brief Update Satellite Tracking
- * @param event LVGL event pointer.
+ * @brief Update Satellite Tracking.
+ *
+ * @details Handles satellite tracking update events by refreshing DOP, altitude labels, and updating satellite SNR and sky plots.
  */
 void updateSatTrack(lv_event_t *event)
 {
@@ -275,7 +304,10 @@ void updateSatTrack(lv_event_t *event)
 }
 
 /**
- * @brief Map Tool Bar Event
+ * @brief Map Tool Bar Event.
+ *
+ * @details Handles map toolbar visibility toggling, zoom button states, map scrollability, and map centering on GPS.
+ *
  * @param event LVGL event pointer.
  */
 void mapToolBarEvent(lv_event_t *event)
@@ -300,13 +332,18 @@ void mapToolBarEvent(lv_event_t *event)
         lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
-        if (!mapView.followGps) lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
-        else lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+        if (!mapView.followGps)
+            lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+        else
+            lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
     }
 }
 
 /**
- * @brief Scroll Map Event
+ * @brief Scroll Map Event.
+ *
+ * @details Handles map scrolling gestures, updating the map view position 
+ *
  * @param event LVGL event pointer.
  */
 void scrollMapEvent(lv_event_t *event)
@@ -362,21 +399,27 @@ void scrollMapEvent(lv_event_t *event)
 }
 
 /**
- * @brief Zoom Event
+ * @brief Zoom Event Toolbar.
+ *
+ * @details Handles zoom in/out toolbar events, updates zoom level, manages map position, and refreshes the map
+ *
  * @param event LVGL event pointer.
  */
 void zoomEvent(lv_event_t *event)
 {
     lv_obj_t *obj = (lv_obj_t *)lv_event_get_current_target(event);
-    if ( obj == btnZoomIn && ( zoom >= minZoom && zoom < maxZoom ) ) zoom++;
-    else if ( obj == btnZoomOut && ( zoom <= maxZoom && zoom > minZoom ) ) zoom--;
+    if ( obj == btnZoomIn && ( zoom >= minZoom && zoom < maxZoom ) )
+        zoom++;
+    else if ( obj == btnZoomOut && ( zoom <= maxZoom && zoom > minZoom ) )
+        zoom--;
     screenState.needsRedraw = true;
     lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
     lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
 }
 
 /**
- * @brief Update Navigation info
+ * @brief Handles navigation waypoint screen updates 
+ *
  * @param event LVGL event pointer.
  */
 void updateNavEvent(lv_event_t *event)
@@ -397,8 +440,11 @@ void updateNavEvent(lv_event_t *event)
 }
 
 /**
- * @brief Create Canvas for Map
- * @param screen LVGL screen pointer.
+ * @brief Create Canvas for Map.
+ *
+ * @details Initializes and creates the canvas object for rendering the map on the specified screen.
+ *
+ * @param screen Pointer to the LVGL screen object.
  */
 void createMapCanvas(_lv_obj_t *screen)
 {
@@ -408,7 +454,9 @@ void createMapCanvas(_lv_obj_t *screen)
 }
 
 /**
- * @brief Create Main Screen structure
+ * @brief Create Main Screen.
+ *
+ * @details Initializes and configures the main screen and its tiles, widgets, and event callbacks 
  */
 void createMainScr()
 {
