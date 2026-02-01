@@ -141,17 +141,27 @@ class Maps
         void redrawTrack();
 
     private:
+        enum TileType
+        {
+            TILE_NAV,
+            TILE_PNG
+        };
+
         struct PendingTile
         {
             uint32_t x;                                                             /**< Tile X coordinate */
             uint32_t y;                                                             /**< Tile Y coordinate */
             int16_t screenX;                                                        /**< X position in sprite */
             int16_t screenY;                                                        /**< Y position in sprite */
+            TileType type;                                                          /**< Type of tile (NAV or PNG) */
         };
         std::vector<PendingTile> pendingTiles;                                      /**< Queue for asynchronous tile rendering */
-        SemaphoreHandle_t mapMutex;                                                 /**< Mutex for thread-safe sprite access */
-        TaskHandle_t navRenderTaskHandle;                                           /**< Handle for the background render task */
-        static void navRenderTask(void* pvParameters);                              /**< Background task function */
+        SemaphoreHandle_t mapMutex;                                                 /**< Mutex for thread-safe access */
+        TaskHandle_t mapRenderTaskHandle;                                           /**< Handle for the background render task */
+        static void mapRenderTask(void* pvParameters);                              /**< Background task function */
+
+        // NAV tile rendering methods
+        void renderPngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, TFT_eSprite &map);
 
         // NAV render state
         float navLastLat_;

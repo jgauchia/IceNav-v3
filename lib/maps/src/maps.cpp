@@ -52,7 +52,7 @@ Maps::Maps() : fillPolygons(true),
     edgeBuckets.reserve(tileHeight);
 
     mapMutex = xSemaphoreCreateMutex();
-    xTaskCreatePinnedToCore(navRenderTask, "NavRenderTask", 8192, this, 1, &navRenderTaskHandle, 0);
+    xTaskCreatePinnedToCore(mapRenderTask, "MapRenderTask", 8192, this, 1, &mapRenderTaskHandle, 0);
 }
 
 /**
@@ -267,10 +267,6 @@ void Maps::createMapScrSprites()
 }
 
 /**
- * @brief Generate the map based on current position and zoom
- * @param zoom Current zoom level.
- */
-/**
  * @brief Redraw the current track on the map sprite.
  * @param map Target sprite.
  */
@@ -297,6 +293,10 @@ void Maps::redrawTrack()
     trackNeedsRedraw = true;
 }
 
+/**
+ * @brief Generate the map based on current position and zoom
+ * @param zoom Current zoom level.
+ */
 void Maps::generateMap(uint8_t zoom)
 {
     Maps::zoomLevel = zoom;
@@ -354,24 +354,22 @@ void Maps::generateMap(uint8_t zoom)
                     pendingTiles.clear();
                     if (dx != 0)
                     {
-                        int targetX = (dx > 0) ? 2 : 0;
-                        mapTempSprite.fillRect(targetX * 256, 0, 256, 768, TFT_WHITE);
-                        for (int y = 0; y < 3; y++)
-                            pendingTiles.push_back({(uint32_t)(currentTlX + targetX), (uint32_t)(currentTlY + y), (int16_t)(targetX * 256), (int16_t)(y * 256)});
-                    }
-                    
+                                            int targetX = (dx > 0) ? 2 : 0;
+                                            mapTempSprite.fillRect(targetX * 256, 0, 256, 768, TFT_WHITE);
+                                            for (int y = 0; y < 3; y++)
+                                                pendingTiles.push_back({(uint32_t)(currentTlX + targetX), (uint32_t)(currentTlY + y), (int16_t)(targetX * 256), (int16_t)(y * 256), TILE_NAV});
+                                        }                    
                     if (dy != 0)
                     {
-                        int targetY = (dy > 0) ? 2 : 0;
-                        mapTempSprite.fillRect(0, targetY * 256, 768, 256, TFT_WHITE);
-                        for (int x = 0; x < 3; x++)
-                        {
-                            if (dx != 0 && x == ((dx > 0) ? 2 : 0))
-                                continue;
-                            pendingTiles.push_back({(uint32_t)(currentTlX + x), (uint32_t)(currentTlY + targetY), (int16_t)(x * 256), (int16_t)(targetY * 256)});
-                        }
-                    }
-                    xSemaphoreGive(mapMutex);
+                                            int targetY = (dy > 0) ? 2 : 0;
+                                            mapTempSprite.fillRect(0, targetY * 256, 768, 256, TFT_WHITE);
+                                            for (int x = 0; x < 3; x++)
+                                            {
+                                                if (dx != 0 && x == ((dx > 0) ? 2 : 0))
+                                                    continue;
+                                                pendingTiles.push_back({(uint32_t)(currentTlX + x), (uint32_t)(currentTlY + targetY), (int16_t)(x * 256), (int16_t)(targetY * 256), TILE_NAV});
+                                            }
+                                        }                    xSemaphoreGive(mapMutex);
                 }
 
                 navLastLat_ = lat;
@@ -464,10 +462,12 @@ void Maps::generateMap(uint8_t zoom)
 }
 
 /**
- * @brief Background task for NAV tile rendering on Core 0.
+ * @brief Background task for tile rendering on Core 0.
+ * @details Monitors the pendingTiles queue and renders both NAV and PNG tiles asynchronously.
+ *          Uses mapMutex to ensure thread-safe access to the mapTempSprite.
  * @param pvParameters Pointer to the Maps instance.
  */
-void Maps::navRenderTask(void* pvParameters)
+void Maps::mapRenderTask(void* pvParameters)
 {
     Maps* instance = (Maps*)pvParameters;
     while (1)
@@ -480,11 +480,14 @@ void Maps::navRenderTask(void* pvParameters)
                 {
                     PendingTile t = instance->pendingTiles.back();
                     instance->pendingTiles.pop_back();
-                    instance->renderNavTile(t.x, t.y, instance->zoomLevel, t.screenX, t.screenY, instance->mapTempSprite);
-                    
+                    if (t.type == TILE_NAV)
+                        instance->renderNavTile(t.x, t.y, instance->zoomLevel, t.screenX, t.screenY, instance->mapTempSprite);
+                    else if (t.type == TILE_PNG)
+                        instance->renderPngTile(t.x, t.y, instance->zoomLevel, t.screenX, t.screenY, instance->mapTempSprite);
                     if (instance->pendingTiles.empty())
                     {
-                        instance->drawTrack(instance->mapTempSprite);
+                        if (mapSet.vectorMap)
+                            instance->drawTrack(instance->mapTempSprite);
                         instance->redrawMap = true;
                     }
                 }
@@ -492,6 +495,28 @@ void Maps::navRenderTask(void* pvParameters)
             }
         }
         vTaskDelay(1);
+    }
+}
+
+/**
+ * @brief Render a single PNG tile at a specific sprite position.
+ * @details Constructs the file path and uses drawPngFile to render the tile. 
+ *          Clears the area with black/no-map if the file is not found.
+ * @param tileX Tile X coordinate.
+ * @param tileY Tile Y coordinate.
+ * @param zoom Zoom level.
+ * @param screenX X position in the target sprite.
+ * @param screenY Y position in the target sprite.
+ * @param map Target sprite.
+ */
+void Maps::renderPngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, TFT_eSprite &map)
+{
+    char tilePath[128];
+    snprintf(tilePath, sizeof(tilePath), mapRenderFolder, zoom, tileX, tileY);
+    if (!map.drawPngFile(tilePath, screenX, screenY))
+    {
+        map.fillRect(screenX, screenY, mapTileSize, mapTileSize, TFT_BLACK);
+        map.drawPngFile(noMapFile, screenX + mapTileSize / 2 - 50, screenY + mapTileSize / 2 - 50);
     }
 }
 
@@ -1023,14 +1048,6 @@ void Maps::navCoordToPixel(const NavFeature& feature, const NavCoord& coord, int
 }
 
 /**
- * @brief Main entry point for NAV viewport rendering
- * @param centerLat Center latitude.
- * @param centerLon Center longitude.
- * @param zoom Zoom level.
- * @param map Target sprite.
- * @return true if successful.
- */
-/**
  * @brief Main entry point for NAV viewport rendering. Renders a full grid.
  * @param centerLat Center latitude.
  * @param centerLon Center longitude.
@@ -1056,7 +1073,7 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
         for (int dy = 0; dy < 3; dy++)
         {
             for (int dx = 0; dx < 3; dx++)
-                pendingTiles.push_back({(uint32_t)(centerTileIdxX - 1 + dx), (uint32_t)(centerTileIdxY - 1 + dy), (int16_t)(dx * 256), (int16_t)(dy * 256)});
+                pendingTiles.push_back({(uint32_t)(centerTileIdxX - 1 + dx), (uint32_t)(centerTileIdxY - 1 + dy), (int16_t)(dx * 256), (int16_t)(dy * 256), TILE_NAV});
         }
         xSemaphoreGive(mapMutex);
     }
