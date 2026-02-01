@@ -85,8 +85,8 @@ size_t NavReader::readAllFeaturesMemory(const char* path, std::vector<NavFeature
             p += (featHeader->coordCount * 4); // Skip coordinates
             if (featHeader->geomType == 3) // Polygon
             {
-                uint8_t ringCount = *p++;
-                p += (ringCount * 2); // Skip ring ends
+                uint16_t ringCount = p[0] | (p[1] << 8);
+                p += 2 + (ringCount * 2); // Skip ring ends
             }
             continue;
         }
@@ -105,7 +105,8 @@ size_t NavReader::readAllFeaturesMemory(const char* path, std::vector<NavFeature
 
         if (feature.geomType == NavGeomType::Polygon)
         {
-            feature.ringCount = *p++;
+            feature.ringCount = p[0] | (p[1] << 8);
+            p += 2;
             if (feature.ringCount > 0)
             {
                 feature.ringEnds = (uint16_t*)p;

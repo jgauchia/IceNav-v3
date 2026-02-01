@@ -118,7 +118,7 @@ struct NavFeature
     NavCoord* coords = nullptr;
     uint16_t coordCount = 0;
     uint16_t* ringEnds = nullptr;
-    uint8_t ringCount = 0;
+    uint16_t ringCount = 0;
     
     // Pixel offset of the tile top-left relative to viewport top-left
     int16_t tilePixelOffsetX;
