@@ -93,6 +93,7 @@ void gpxListEvent(lv_event_t *event)
                             isTrackLoaded = !trackData.empty();
                             lv_obj_clear_flag(turnByTurn,LV_OBJ_FLAG_HIDDEN);
                             mapView.updateMap();
+                            mapView.redrawTrack();
                             lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
                         }
                         closeMsg();

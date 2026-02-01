@@ -124,6 +124,7 @@ class Maps
 
         // NAV tile rendering methods
         bool renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT_eSprite &map);
+        void renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, TFT_eSprite &map);
 
     private:
         // NAV tile rendering helpers
@@ -133,12 +134,32 @@ class Maps
         void renderNavPoint(const NavFeature& feature, TFT_eSprite& map);
         void navCoordToPixel(const NavFeature& feature, const NavCoord& coord, int16_t& px, int16_t& py);
         void latLonToPixel(float lat, float lon, int16_t& px, int16_t& py);
+        void drawTrack(TFT_eSprite &map);
 
-        // NAV render cache (avoid re-render when stationary)
+    public:
+        bool trackNeedsRedraw = false;                                              /**< Flag to indicate if track needs immediate redraw */
+        void redrawTrack();
+
+    private:
+        struct PendingTile
+        {
+            uint32_t x;                                                             /**< Tile X coordinate */
+            uint32_t y;                                                             /**< Tile Y coordinate */
+            int16_t screenX;                                                        /**< X position in sprite */
+            int16_t screenY;                                                        /**< Y position in sprite */
+        };
+        std::vector<PendingTile> pendingTiles;                                      /**< Queue for asynchronous tile rendering */
+        SemaphoreHandle_t mapMutex;                                                 /**< Mutex for thread-safe sprite access */
+        TaskHandle_t navRenderTaskHandle;                                           /**< Handle for the background render task */
+        static void navRenderTask(void* pvParameters);                              /**< Background task function */
+
+        // NAV render state
         float navLastLat_;
         float navLastLon_;
         uint8_t navLastZoom_;
         bool navNeedsRender_;
+        int8_t navDirX = 0;                                                         /**< Last movement direction X */
+        int8_t navDirY = 0;                                                         /**< Last movement direction Y */
         
         // Viewport top-left in tile units for arbitrary projection (GPX tracks)
         float navTlTileX_;

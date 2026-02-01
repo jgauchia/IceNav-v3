@@ -79,10 +79,6 @@ void splashScreen()
 {
     setTime = false;
 
-    // Preload Map
-    mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
-    mapView.generateMap(zoom);
-  
     #ifdef ICENAV_BOARD
         millisActual = millis_idf();
 
@@ -100,12 +96,18 @@ void splashScreen()
             lv_task_handler();  
             vTaskDelay(5);
         }     
+
         lv_obj_fade_out(splashScr, 2500,0);
         for( int i=0; i < 300; i++ )
         {
             lv_task_handler();  
             vTaskDelay(5);
         }     
+
+        // Preload Map at the very end when all animations are gone
+        mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
+        mapView.generateMap(zoom);
+
         lv_obj_delete(splashScr);
     #else
         tftOff();
@@ -176,10 +178,14 @@ void splashScreen()
         {
             tft.setBrightness(fadeIn);
             if (fadeIn == 0)
-            splashSprite.pushSprite(0,0);
+                splashSprite.pushSprite(0,0);
             millisActual = millis_idf();
             while (millis_idf() < millisActual + 15);
         }
+
+        // Preload Map while logo is fully visible
+        mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
+        mapView.generateMap(zoom);
 
         while (millis_idf() < millisActual + 100);
 
