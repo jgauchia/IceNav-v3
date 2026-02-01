@@ -139,6 +139,7 @@ class Maps
     public:
         bool trackNeedsRedraw = false;                                              /**< Flag to indicate if track needs immediate redraw */
         void redrawTrack();
+        bool isRendering() const { return !pendingTiles.empty(); }                  /**< Check if background rendering is active */
 
     private:
         enum TileType
@@ -168,13 +169,18 @@ class Maps
         float navLastLon_;
         uint8_t navLastZoom_;
         bool navNeedsRender_;
-        int8_t navDirX = 0;                                                         /**< Last movement direction X */
-        int8_t navDirY = 0;                                                         /**< Last movement direction Y */
         
         // Viewport top-left in tile units for arbitrary projection (GPX tracks)
         float navTlTileX_;
         float navTlTileY_;
 
+        // Physics for Natural Scroll
+    public:
+        float velocityX = 0.0f;                                                     /**< Current horizontal velocity (px/ms) */
+        float velocityY = 0.0f;                                                     /**< Current vertical velocity (px/ms) */
+        const float friction = 0.95f;                                               /**< Friction factor for inertia deceleration */
+
+    private:
         // Zero-Allocation Projection Pipeline
         std::vector<int16_t, InternalAllocator<int16_t>> projBuf16X;
         std::vector<int16_t, InternalAllocator<int16_t>> projBuf16Y;

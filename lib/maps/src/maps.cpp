@@ -42,7 +42,7 @@ const char* TAG = "Maps";
  */
 Maps::Maps() : fillPolygons(true),
                navLastLat_(0), navLastLon_(0), navLastZoom_(0), navNeedsRender_(true),
-               navTlTileX_(-1), navTlTileY_(-1), navDirX(0), navDirY(0)
+               navTlTileX_(-1), navTlTileY_(-1)
 {
     projBuf16X.reserve(1024);
     projBuf16Y.reserve(1024);
@@ -345,8 +345,9 @@ void Maps::generateMap(uint8_t zoom)
                 needsFullRender = true;
             else if (dx != 0 || dy != 0)
             {
-                if (xSemaphoreTake(mapMutex, pdMS_TO_TICKS(50)) == pdTRUE)
+                if (xSemaphoreTake(mapMutex, pdMS_TO_TICKS(100)) == pdTRUE)
                 {
+                    // Visual shift and coordinate update MUST happen together under Mutex
                     mapTempSprite.scroll(-dx * 256, -dy * 256);
                     navTlTileX_ = (float)currentTlX;
                     navTlTileY_ = (float)currentTlY;
@@ -354,22 +355,23 @@ void Maps::generateMap(uint8_t zoom)
                     pendingTiles.clear();
                     if (dx != 0)
                     {
-                                            int targetX = (dx > 0) ? 2 : 0;
-                                            mapTempSprite.fillRect(targetX * 256, 0, 256, 768, TFT_WHITE);
-                                            for (int y = 0; y < 3; y++)
-                                                pendingTiles.push_back({(uint32_t)(currentTlX + targetX), (uint32_t)(currentTlY + y), (int16_t)(targetX * 256), (int16_t)(y * 256), TILE_NAV});
-                                        }                    
+                        int targetX = (dx > 0) ? 2 : 0;
+                        mapTempSprite.fillRect(targetX * 256, 0, 256, 768, TFT_WHITE);
+                        for (int y = 0; y < 3; y++)
+                            pendingTiles.push_back({(uint32_t)(currentTlX + targetX), (uint32_t)(currentTlY + y), (int16_t)(targetX * 256), (int16_t)(y * 256), TILE_NAV});
+                    }
                     if (dy != 0)
                     {
-                                            int targetY = (dy > 0) ? 2 : 0;
-                                            mapTempSprite.fillRect(0, targetY * 256, 768, 256, TFT_WHITE);
-                                            for (int x = 0; x < 3; x++)
-                                            {
-                                                if (dx != 0 && x == ((dx > 0) ? 2 : 0))
-                                                    continue;
-                                                pendingTiles.push_back({(uint32_t)(currentTlX + x), (uint32_t)(currentTlY + targetY), (int16_t)(x * 256), (int16_t)(targetY * 256), TILE_NAV});
-                                            }
-                                        }                    xSemaphoreGive(mapMutex);
+                        int targetY = (dy > 0) ? 2 : 0;
+                        mapTempSprite.fillRect(0, targetY * 256, 768, 256, TFT_WHITE);
+                        for (int x = 0; x < 3; x++)
+                        {
+                            if (dx != 0 && x == ((dx > 0) ? 2 : 0))
+                                continue;
+                            pendingTiles.push_back({(uint32_t)(currentTlX + x), (uint32_t)(currentTlY + targetY), (int16_t)(x * 256), (int16_t)(targetY * 256), TILE_NAV});
+                        }
+                    }
+                    xSemaphoreGive(mapMutex);
                 }
 
                 navLastLat_ = lat;
@@ -474,9 +476,9 @@ void Maps::mapRenderTask(void* pvParameters)
     {
         if (!instance->pendingTiles.empty())
         {
-            if (xSemaphoreTake(instance->mapMutex, pdMS_TO_TICKS(500)) == pdTRUE)
+            if (xSemaphoreTake(instance->mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
             {
-                while (!instance->pendingTiles.empty())
+                if (!instance->pendingTiles.empty())
                 {
                     PendingTile t = instance->pendingTiles.back();
                     instance->pendingTiles.pop_back();
@@ -486,8 +488,7 @@ void Maps::mapRenderTask(void* pvParameters)
                         instance->renderPngTile(t.x, t.y, instance->zoomLevel, t.screenX, t.screenY, instance->mapTempSprite);
                     if (instance->pendingTiles.empty())
                     {
-                        if (mapSet.vectorMap)
-                            instance->drawTrack(instance->mapTempSprite);
+                        instance->drawTrack(instance->mapTempSprite);
                         instance->redrawMap = true;
                     }
                 }
@@ -609,34 +610,33 @@ void Maps::centerOnGps(float lat, float lon)
  */
 void Maps::scrollMap(int16_t dx, int16_t dy)
 {
-    static float vX = 0.0f, vY = 0.0f;
-    const float friction = 0.70f; 
     if (dx != 0 || dy != 0)
     {
+        // Apply elastic resistance if we are beyond the threshold (128px)
+        // This helps both NAV (gives time to Core 0) and PNG (smoothes the jump)
+        const int16_t softLimit = 128;
+        if (abs(Maps::offsetX) > softLimit && ((dx > 0 && Maps::offsetX > 0) || (dx < 0 && Maps::offsetX < 0)))
+            dx /= 2;
+        if (abs(Maps::offsetY) > softLimit && ((dy > 0 && Maps::offsetY > 0) || (dy < 0 && Maps::offsetY < 0)))
+            dy /= 2;
+
         Maps::offsetX += dx;
         Maps::offsetY += dy;
-        vX = vX * 0.3f + (float)dx * 0.7f;
-        vY = vY * 0.3f + (float)dy * 0.7f;
         Maps::followGps = false;
     }
-    else
-    {
-        Maps::offsetX += (int16_t)vX;
-        Maps::offsetY += (int16_t)vY;
-        vX *= friction;
-        vY *= friction;
-        if (fabsf(vX) < 0.2f && fabsf(vY) < 0.2f)
-        {
-            vX = 0;
-            vY = 0;
-        }
-    }
+
     const int16_t maxOffsetX = (tileWidth - mapScrWidth) / 2 - 10;
     const int16_t maxOffsetY = (tileHeight - mapScrHeight) / 2 - 10;
-    if (Maps::offsetX > maxOffsetX) { Maps::offsetX = maxOffsetX; vX = 0; }
-    if (Maps::offsetX < -maxOffsetX) { Maps::offsetX = -maxOffsetX; vX = 0; }
-    if (Maps::offsetY > maxOffsetY) { Maps::offsetY = maxOffsetY; vY = 0; }
-    if (Maps::offsetY < -maxOffsetY) { Maps::offsetY = -maxOffsetY; vY = 0; }
+
+    if (Maps::offsetX > maxOffsetX)
+        Maps::offsetX = maxOffsetX;
+    if (Maps::offsetX < -maxOffsetX)
+        Maps::offsetX = -maxOffsetX;
+    if (Maps::offsetY > maxOffsetY)
+        Maps::offsetY = maxOffsetY;
+    if (Maps::offsetY < -maxOffsetY)
+        Maps::offsetY = -maxOffsetY;
+
     Maps::scrollUpdated = false;
     const int16_t threshold = 128;
     const int16_t tileSize = Maps::mapTileSize;
@@ -666,19 +666,15 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
         Maps::offsetY -= tileSize;
         Maps::scrollUpdated = true;
     }
+
     if (Maps::scrollUpdated)
     {
         const int8_t deltaTileX = Maps::tileX - Maps::lastTileX;
         const int8_t deltaTileY = Maps::tileY - Maps::lastTileY;
         Maps::panMap(deltaTileX, deltaTileY);
-        if (mapSet.vectorMap)
-        {
-            navDirX = deltaTileX;
-            navDirY = deltaTileY;
-            generateMap(zoomLevel);
-        } 
-        else
+        if (!mapSet.vectorMap)
             Maps::preloadTiles(deltaTileX, deltaTileY);
+        generateMap(zoomLevel);
         Maps::lastTileX = Maps::tileX;
         Maps::lastTileY = Maps::tileY;
         Maps::redrawMap = true;
@@ -1049,6 +1045,8 @@ void Maps::navCoordToPixel(const NavFeature& feature, const NavCoord& coord, int
 
 /**
  * @brief Main entry point for NAV viewport rendering. Renders a full grid.
+ * @details Calculates the top-left tile based on current GPS coordinates and prepares 
+ *          a 3x3 grid of tiles for asynchronous rendering.
  * @param centerLat Center latitude.
  * @param centerLon Center longitude.
  * @param zoom Zoom level.
@@ -1061,11 +1059,9 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
     const double n = pow(2.0, (double)zoom);
     const int centerTileIdxX = (int)floorf((float)((centerLon + 180.0) / 360.0 * n));
     const int centerTileIdxY = (int)floorf((float)((1.0 - log(tan(latRad) + 1.0 / cos(latRad)) / M_PI) / 2.0 * n));
-
     navTlTileX_ = (float)(centerTileIdxX - 1);
     navTlTileY_ = (float)(centerTileIdxY - 1);
     navLastZoom_ = zoom;
-
     if (xSemaphoreTake(mapMutex, pdMS_TO_TICKS(100)) == pdTRUE)
     {
         map.fillSprite(TFT_WHITE);
@@ -1077,12 +1073,12 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
         }
         xSemaphoreGive(mapMutex);
     }
-
     return true;
 }
 
 /**
  * @brief Render a single NAV tile at a specific sprite position.
+ * @details Loads the binary NAV data from SD and renders geometries according to priority layers.
  * @param tileX Tile X coordinate.
  * @param tileY Tile Y coordinate.
  * @param zoom Zoom level.
@@ -1094,37 +1090,37 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
 {
     char tilePath[128];
     snprintf(tilePath, sizeof(tilePath), mapVectorFolder, zoom, tileX, tileY);
-
     std::vector<NavFeature> tileFeatures;
     uint8_t* tileBuffer = nullptr;
     size_t tileBufferSize = 0;
-
     if (NavReader::readAllFeaturesMemory(tilePath, tileFeatures, zoom, tileBuffer, tileBufferSize) == 0)
     {
-        if (tileBuffer) heap_caps_free(tileBuffer);
+        if (tileBuffer)
+            heap_caps_free(tileBuffer);
         return;
     }
-
     std::vector<NavFeature> layers[16];
     for (auto& feature : tileFeatures)
     {
         feature.tilePixelOffsetX = screenX;
         feature.tilePixelOffsetY = screenY;
         uint8_t priority = feature.properties.getPriority();
-        if (priority < 16) layers[priority].push_back(feature);
+        if (priority < 16)
+            layers[priority].push_back(feature);
     }
-
     map.startWrite();
     for (int p = 0; p < 16; p++)
     {
-        if (layers[p].empty()) continue;
+        if (layers[p].empty())
+            continue;
         for (const auto& feature : layers[p])
         {
             const int16_t minX = feature.tilePixelOffsetX + feature.objBbox.x1;
             const int16_t minY = feature.tilePixelOffsetY + feature.objBbox.y1;
             const int16_t maxX = feature.tilePixelOffsetX + feature.objBbox.x2;
             const int16_t maxY = feature.tilePixelOffsetY + feature.objBbox.y2;
-            if (minX > 768 || maxX < 0 || minY > 768 || maxY < 0) continue;
+            if (minX > 768 || maxX < 0 || minY > 768 || maxY < 0)
+                continue;
             map.setClipRect(screenX, screenY, 256, 256);
             renderNavFeature(feature, {}, map);
         }
@@ -1132,6 +1128,6 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
     }
     map.clearClipRect();
     map.endWrite();
-
-    if (tileBuffer) heap_caps_free(tileBuffer);
+    if (tileBuffer)
+        heap_caps_free(tileBuffer);
 }

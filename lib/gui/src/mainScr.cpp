@@ -257,6 +257,36 @@ void updateMainScreen(lv_timer_t *t)
  */
 void updateMap(lv_event_t *event)
 {
+    static uint32_t last_update_time = 0;
+    uint32_t current_time = (uint32_t)(esp_timer_get_time() / 1000);
+    uint32_t dt = (last_update_time > 0) ? (current_time - last_update_time) : 0;
+    last_update_time = current_time;
+
+    // Apply inertia if not currently dragging
+    if (!isScrollingMap && (mapView.velocityX != 0 || mapView.velocityY != 0))
+    {
+        if (dt > 0 && dt < 100) // Avoid jumps on long pauses
+        {
+            float dx = mapView.velocityX * dt;
+            float dy = mapView.velocityY * dt;
+            
+            mapView.scrollMap((int16_t)dx, (int16_t)dy);
+            
+            // Dynamic friction: heavier if still loading tiles
+            float currentFriction = mapView.isRendering() ? 0.85f : mapView.friction;
+            mapView.velocityX *= currentFriction;
+            mapView.velocityY *= currentFriction;
+            
+            // Stop if too slow
+            if (abs(mapView.velocityX) < 0.01f)
+                mapView.velocityX = 0;
+            if (abs(mapView.velocityY) < 0.01f)
+                mapView.velocityY = 0;
+                
+            screenState.needsRedraw = true;
+        }
+    }
+
     if (mapView.followGps)
         mapView.redrawMap = true;
     mapView.generateMap(zoom);
@@ -342,7 +372,8 @@ void mapToolBarEvent(lv_event_t *event)
 /**
  * @brief Scroll Map Event.
  *
- * @details Handles map scrolling gestures, updating the map view position 
+ * @details Handles map scrolling gestures, updating the map view position and calculating
+ *          real-time velocity (px/ms) for inertial movement.
  *
  * @param event LVGL event pointer.
  */
@@ -353,22 +384,32 @@ void scrollMapEvent(lv_event_t *event)
         lv_event_code_t code = lv_event_get_code(event);
         lv_indev_t * indev = lv_event_get_indev(event);
         static int last_x = 0, last_y = 0;
+        static uint32_t last_time = 0;
         static bool dragStarted = false;
         lv_point_t p;
+
         switch (code)
         {
             case LV_EVENT_PRESSED:
                 lv_indev_get_point(indev, &p);
                 last_x = p.x;
                 last_y = p.y;
+                last_time = (uint32_t)(esp_timer_get_time() / 1000);
                 dragStarted = false;
                 isScrollingMap = true;
+                // Stop any ongoing inertia when touching the screen
+                mapView.velocityX = 0;
+                mapView.velocityY = 0;
                 break;
+
             case LV_EVENT_PRESSING:
             {
                 lv_indev_get_point(indev, &p);
+                uint32_t current_time = (uint32_t)(esp_timer_get_time() / 1000);
                 int dx = p.x - last_x;
                 int dy = p.y - last_y;
+                uint32_t dt = current_time - last_time;
+
                 if (!dragStarted)
                 {
                     const int START_THRESHOLD = 12;
@@ -378,21 +419,38 @@ void scrollMapEvent(lv_event_t *event)
                         lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
                     }
                 }
-                if (dragStarted)
+
+                if (dragStarted && dt > 0)
                 {
+                    // Move map manually
                     mapView.scrollMap(-dx, -dy);
+                    
+                    // Sample velocity: pixels per millisecond (filtered)
+                    float weight = 0.7f;
+                    mapView.velocityX = mapView.velocityX * (1.0f - weight) + (-(float)dx / (float)dt) * weight;
+                    mapView.velocityY = mapView.velocityY * (1.0f - weight) + (-(float)dy / (float)dt) * weight;
+
                     screenState.needsRedraw = true;
                     last_x = p.x;
                     last_y = p.y;
+                    last_time = current_time;
                 }
                 break;
             }
+
             case LV_EVENT_RELEASED:
             case LV_EVENT_PRESS_LOST:
                 lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
                 isScrollingMap = false;
                 dragStarted = false;
+                
+                // If velocity is very low, just stop it
+                if (abs(mapView.velocityX) < 0.1f)
+                    mapView.velocityX = 0;
+                if (abs(mapView.velocityY) < 0.1f)
+                    mapView.velocityY = 0;
                 break;
+
             default: break;
         }
     }
