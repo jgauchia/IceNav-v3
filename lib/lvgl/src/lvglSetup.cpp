@@ -402,12 +402,17 @@ void initLVGL()
     #ifdef BOARD_HAS_PSRAM
         assert(heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
 
+#ifdef T4_S3
+        // T4_S3: Use half screen buffer to save PSRAM for the 1024x1024 map canvas
+        DRAW_BUF_SIZE = (TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t) / 2);
+#else
         if ( heap_caps_get_total_size(MALLOC_CAP_SPIRAM) >= 4000000 )
             // >4Mb PSRAM
             DRAW_BUF_SIZE = TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t);
         else
             // 2Mb PSRAM
             DRAW_BUF_SIZE = ( TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t) / 8);
+#endif
 
         log_v("LVGL: allocating %u bytes PSRAM for draw buffer",DRAW_BUF_SIZE * 2);
         lv_color_t * drawBuf1 = (lv_color_t *)heap_caps_aligned_alloc(16, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);

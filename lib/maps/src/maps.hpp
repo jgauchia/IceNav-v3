@@ -88,8 +88,15 @@ class Maps
 
     public:
         // Virtual canvas dimensions (public for external access)
+#ifdef T4_S3
+        static const uint16_t tileWidth = 1024;                                     /**< Virtual canvas width */
+        static const uint16_t tileHeight = 1024;                                    /**< Virtual canvas height */
+        static const uint8_t tilesGrid = 4;                                         /**< Tiles grid size (4x4) */
+#else
         static const uint16_t tileWidth = 768;                                      /**< Virtual canvas width */
         static const uint16_t tileHeight = 768;                                     /**< Virtual canvas height */
+        static const uint8_t tilesGrid = 3;                                         /**< Tiles grid size (3x3) */
+#endif
 
         bool fillPolygons;                                             /**< Flag for polygon filling */
         void* mapBuffer;                                               /**< Pointer to map screen sprite */
