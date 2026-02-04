@@ -394,73 +394,72 @@ void Maps::generateMap(uint8_t zoom)
         return;
     }
 
-    Maps::currentMapTile = Maps::getMapTile(lon, lat, Maps::zoomLevel, 0, 0);
-    if (strcmp(Maps::currentMapTile.file, Maps::oldMapTile.file) != 0 ||
-        Maps::currentMapTile.zoom != Maps::oldMapTile.zoom ||
-        Maps::currentMapTile.tilex != Maps::oldMapTile.tilex ||
-        Maps::currentMapTile.tiley != Maps::oldMapTile.tiley)
+    const uint32_t centerTileIdxX = lon2tilex(lon, zoom);
+    const uint32_t centerTileIdxY = lat2tiley(lat, zoom);
+
+    if (centerTileIdxX != Maps::oldMapTile.tilex || centerTileIdxY != Maps::oldMapTile.tiley || zoom != Maps::oldMapTile.zoom)
     {
-        const int16_t size = Maps::mapTileSize;
-        Maps::mapTempSprite.fillScreen(TFT_WHITE);
-        Maps::isMapFound = Maps::mapTempSprite.drawPngFile(Maps::currentMapTile.file, size, size);
-        Maps::oldMapTile = Maps::currentMapTile;
-        if (!Maps::isMapFound)
+        Maps::oldMapTile.tilex = centerTileIdxX;
+        Maps::oldMapTile.tiley = centerTileIdxY;
+        Maps::oldMapTile.zoom = zoom;
+
+        const int8_t gridOffset = tilesGrid / 2;
+        const int32_t tlX = (int32_t)centerTileIdxX - gridOffset;
+        const int32_t tlY = (int32_t)centerTileIdxY - gridOffset;
+
+        // Update top-left for track drawing (latLonToPixel)
+        navTlTileX_ = (float)tlX;
+        navTlTileY_ = (float)tlY;
+        navLastZoom_ = zoom;
+
+        Maps::mapTempSprite.fillSprite(TFT_WHITE);
+        Maps::totalBounds = {90.0f, -90.0f, 180.0f, -180.0f};
+        bool centerFound = false;
+
+        for (int gy = 0; gy < tilesGrid; gy++)
         {
-            Maps::mapTempSprite.fillScreen(TFT_BLACK);
-            Maps::showNoMap(Maps::mapTempSprite);
+            for (int gx = 0; gx < tilesGrid; gx++)
+            {
+                uint32_t tx = tlX + gx;
+                uint32_t ty = tlY + gy;
+                int16_t sx = gx * mapTileSize;
+                int16_t sy = gy * mapTileSize;
+
+                char tilePath[128];
+                snprintf(tilePath, sizeof(tilePath), mapRenderFolder, zoom, tx, ty);
+                
+                if (mapTempSprite.drawPngFile(tilePath, sx, sy))
+                {
+                    if (tx == centerTileIdxX && ty == centerTileIdxY) centerFound = true;
+                    
+                    const tileBounds currentBounds = Maps::getTileBounds(tx, ty, zoom);
+                    if (currentBounds.lat_min < Maps::totalBounds.lat_min) Maps::totalBounds.lat_min = currentBounds.lat_min;
+                    if (currentBounds.lat_max > Maps::totalBounds.lat_max) Maps::totalBounds.lat_max = currentBounds.lat_max;
+                    if (currentBounds.lon_min < Maps::totalBounds.lon_min) Maps::totalBounds.lon_min = currentBounds.lon_min;
+                    if (currentBounds.lon_max > Maps::totalBounds.lon_max) Maps::totalBounds.lon_max = currentBounds.lon_max;
+                }
+                else
+                {
+                    mapTempSprite.fillRect(sx, sy, 256, 256, TFT_BLACK);
+                    mapTempSprite.drawPngFile(noMapFile, sx + 256 / 2 - 50, sy + 256 / 2 - 50);
+                }
+            }
         }
+
+        Maps::isMapFound = centerFound;
+        if (!centerFound)
+            showNoMap(mapTempSprite);
+
+        if (Maps::isMapFound && Maps::isCoordInBounds(Maps::destLat, Maps::destLon, Maps::totalBounds))
+            Maps::coords2map(Maps::destLat, Maps::destLon, Maps::totalBounds, &wptPosX, &wptPosY);
         else
         {
-            Maps::totalBounds = Maps::getTileBounds(Maps::currentMapTile.tilex, Maps::currentMapTile.tiley, Maps::zoomLevel);
-            bool missingMap = false;
-            for (int8_t y = -1; y <= 1; y++)
-            {
-                for (int8_t x = -1; x <= 1; x++)
-                {
-                    if (x == 0 && y == 0) continue;
-                    const int16_t offsetX = (x + 1) * size;
-                    const int16_t offsetY = (y + 1) * size;
-                    Maps::roundMapTile = getMapTile(Maps::currentMapTile.lon, Maps::currentMapTile.lat, Maps::zoomLevel, x, y);
-                    if (!Maps::mapTempSprite.drawPngFile(Maps::roundMapTile.file, offsetX, offsetY))
-                    {
-                        Maps::mapTempSprite.fillRect(offsetX, offsetY, size, size, TFT_BLACK);
-                        Maps::mapTempSprite.drawPngFile(noMapFile, offsetX + size / 2 - 50, offsetY + size / 2 - 50);
-                        missingMap = true;
-                    }
-                    else
-                    {
-                        const tileBounds currentBounds = Maps::getTileBounds(Maps::roundMapTile.tilex, Maps::roundMapTile.tiley, Maps::zoomLevel);
-                        if (currentBounds.lat_min < Maps::totalBounds.lat_min) Maps::totalBounds.lat_min = currentBounds.lat_min;
-                        if (currentBounds.lat_max > Maps::totalBounds.lat_max) Maps::totalBounds.lat_max = currentBounds.lat_max;
-                        if (currentBounds.lon_min < Maps::totalBounds.lon_min) Maps::totalBounds.lon_min = currentBounds.lon_min;
-                        if (currentBounds.lon_max > Maps::totalBounds.lon_max) Maps::totalBounds.lon_max = currentBounds.lon_max;
-                    }
-                }
-            }
-            if (!missingMap && Maps::isCoordInBounds(Maps::destLat, Maps::destLon, Maps::totalBounds))
-                Maps::coords2map(Maps::destLat, Maps::destLon, Maps::totalBounds, &wptPosX, &wptPosY);
-            else
-            {
-                Maps::wptPosX = -1;
-                Maps::wptPosY = -1;
-            }
-            for (size_t i = 1; i < trackData.size(); ++i)
-            {
-                const auto &p1 = trackData[i - 1];
-                const auto &p2 = trackData[i];
-                if (p1.lon > Maps::totalBounds.lon_min && p1.lon < Maps::totalBounds.lon_max &&
-                    p1.lat > Maps::totalBounds.lat_min && p1.lat < Maps::totalBounds.lat_max &&
-                    p2.lon > Maps::totalBounds.lon_min && p2.lon < Maps::totalBounds.lon_max &&
-                    p2.lat > Maps::totalBounds.lat_min && p2.lat < Maps::totalBounds.lat_max)
-                {
-                    uint16_t x1, y1, x2, y2;
-                    Maps::coords2map(p1.lat, p1.lon, Maps::totalBounds, &x1, &y1);
-                    Maps::coords2map(p2.lat, p2.lon, Maps::totalBounds, &x2, &y2);
-                    Maps::mapTempSprite.drawWideLine(x1, y1, x2, y2, 2, TFT_BLUE);
-                }
-            }
-            Maps::redrawMap = true;
+            Maps::wptPosX = -1;
+            Maps::wptPosY = -1;
         }
+
+        drawTrack(mapTempSprite);
+        Maps::redrawMap = true;
     }
 }
 
