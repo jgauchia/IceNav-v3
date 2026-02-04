@@ -150,8 +150,8 @@ void splashScreen()
         splashSprite.drawString(statusString, 0, tft.height() - 50*margin);
 
         memset(&statusString[0], 0, sizeof(statusString));
-        size_t freeHeap = esp_get_free_heap_size();
-        size_t totalHeap = heap_caps_get_total_size(MALLOC_CAP_8BIT);
+        size_t freeHeap = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+        size_t totalHeap = heap_caps_get_total_size(MALLOC_CAP_INTERNAL);
         sprintf(statusString, statusLine2, (freeHeap / 1024), (freeHeap * 100) / totalHeap);
         splashSprite.drawString(statusString, 0, tft.height() - 40*margin);
 
