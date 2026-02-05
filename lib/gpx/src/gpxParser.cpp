@@ -50,6 +50,7 @@ std::map<std::string, std::vector<std::string>> GPXParser::getTagElementList(con
         ESP_LOGE(TAGGPX, "Failed to open folder: %s", folderPath.c_str());
         return elementsByFile;
     }
+
     struct dirent* entry;
     while ((entry = readdir(dir)) != nullptr)
     {
@@ -60,25 +61,38 @@ std::map<std::string, std::vector<std::string>> GPXParser::getTagElementList(con
             {
                 std::string filePath = folderPath + "/" + fileName;
                 std::vector<std::string> elementValue;
-                tinyxml2::XMLDocument doc;
-                if (doc.LoadFile(filePath.c_str()) == tinyxml2::XML_SUCCESS)
+
+                FILE* file = fopen(filePath.c_str(), "r");
+                if (file)
                 {
-                    tinyxml2::XMLElement* root = doc.RootElement();
-                    if (root)
+                    char line[256];
+                    std::string startTag = "<" + std::string(tag);
+                    std::string searchElement = "<" + std::string(element) + ">";
+                    std::string endElement = "</" + std::string(element) + ">";
+                    bool inTargetTag = false;
+
+                    while (fgets(line, sizeof(line), file))
                     {
-                        for (tinyxml2::XMLElement* Tag = root->FirstChildElement(tag); Tag!= nullptr; Tag = Tag->NextSiblingElement(tag))
+                        if (strstr(line, startTag.c_str()))
+                            inTargetTag = true;
+
+                        if (inTargetTag)
                         {
-                            tinyxml2::XMLElement* valueElement = Tag->FirstChildElement(element);
-                            if (valueElement)
+                            char* s = strstr(line, searchElement.c_str());
+                            if (s)
                             {
-                                const char* value = valueElement->GetText();
-                                if (value) elementValue.push_back(value);
+                                s += searchElement.length();
+                                char* e = strstr(s, endElement.c_str());
+                                if (e)
+                                {
+                                    elementValue.push_back(std::string(s, e - s));
+                                    inTargetTag = false; // Reset for next tag occurrence
+                                }
                             }
                         }
                     }
-                    else ESP_LOGE(TAGGPX, "Failed to get root element in file: %s", filePath.c_str());
+                    fclose(file);
                 }
-                else ESP_LOGE(TAGGPX, "Failed to load GPX file: %s", filePath.c_str());
                 elementsByFile[fileName] = elementValue;
             }
         }
