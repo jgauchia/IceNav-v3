@@ -299,7 +299,16 @@ void Maps::redrawTrack()
  */
 void Maps::generateMap(uint8_t zoom)
 {
-    Maps::zoomLevel = zoom;
+    if (zoom != Maps::zoomLevel)
+    {
+        Maps::zoomLevel = zoom;
+        // Sync currentMapTile with new zoom to avoid coordinate jumps in panMap
+        Maps::currentMapTile.zoom = zoom;
+        Maps::currentMapTile.tilex = Maps::lon2tilex(Maps::currentMapTile.lon, zoom);
+        Maps::currentMapTile.tiley = Maps::lat2tiley(Maps::currentMapTile.lat, zoom);
+        resetScrollState();
+    }
+
     const float lat = Maps::followGps ? gps.gpsData.latitude : Maps::currentMapTile.lat;
     const float lon = Maps::followGps ? gps.gpsData.longitude : Maps::currentMapTile.lon;
 
@@ -600,12 +609,27 @@ void Maps::panMap(int8_t dx, int8_t dy)
 void Maps::centerOnGps(float lat, float lon)
 {
     Maps::followGps = true;
+    Maps::currentMapTile.zoom = Maps::zoomLevel;
     Maps::currentMapTile.tilex = Maps::lon2tilex(lon, Maps::currentMapTile.zoom);
     Maps::currentMapTile.tiley = Maps::lat2tiley(lat, Maps::currentMapTile.zoom);
     Maps::currentMapTile.lat = lat;
     Maps::currentMapTile.lon = lon;
+    resetScrollState();
+}
+
+/**
+ * @brief Reset all scroll offsets and counters
+ */
+void Maps::resetScrollState()
+{
+    Maps::tileX = 0;
+    Maps::tileY = 0;
+    Maps::lastTileX = 0;
+    Maps::lastTileY = 0;
     Maps::offsetX = 0;
     Maps::offsetY = 0;
+    Maps::velocityX = 0;
+    Maps::velocityY = 0;
 }
 
 /**
@@ -762,7 +786,7 @@ uint16_t Maps::darkenRGB565(const uint16_t color, const float amount)
  * @param ringCount Multi-ring count.
  * @param ringEnds Cumulative ring indices.
  */
-void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset, uint16_t ringCount, uint16_t* ringEnds)
+void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset, uint16_t ringCount, const uint16_t* ringEnds)
 {
     if (numPoints < 3) return;
     int minY = INT_MAX, maxY = INT_MIN;
@@ -777,7 +801,7 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
     edgeBuckets.assign(bucketCount, -1);
     uint16_t count = (ringCount == 0) ? 1 : ringCount;
     uint16_t defaultEnds[1] = { (uint16_t)numPoints };
-    uint16_t* ends = (ringEnds == nullptr) ? defaultEnds : ringEnds;
+    const uint16_t* ends = (ringEnds == nullptr) ? defaultEnds : ringEnds;
     int ringStart = 0;
     for (uint16_t r = 0; r < count; r++)
     {
@@ -996,7 +1020,7 @@ void Maps::renderNavPolygon(const NavFeature& feature, TFT_eSprite& map)
     uint16_t fillColor = feature.properties.colorRgb565;
     uint16_t borderColor = darkenRGB565(fillColor, 0.15f);
     if (fillPolygons)
-        fillPolygonGeneral(map, px, py, numPoints, fillColor, 0, 0, feature.ringCount, feature.ringEnds);
+        fillPolygonGeneral(map, px, py, numPoints, fillColor, 0, 0, feature.ringCount, feature.ringEnds.data());
     int extEnd = (feature.ringCount > 0) ? feature.ringEnds[0] : numPoints;
     if (extEnd >= 3)
     {
@@ -1025,10 +1049,9 @@ void Maps::renderNavPoint(const NavFeature& feature, TFT_eSprite& map)
 /**
  * @brief Render a single NAV feature
  * @param feature NavFeature to render.
- * @param viewport Current viewport bbox.
  * @param map Target sprite.
  */
-void Maps::renderNavFeature(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map)
+void Maps::renderNavFeature(const NavFeature& feature, TFT_eSprite& map)
 {
     switch (feature.geomType)
     {
@@ -1109,6 +1132,13 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
             heap_caps_free(tileBuffer);
         return;
     }
+    
+    // Free file buffer early as features now own their data
+    if (tileBuffer) {
+        heap_caps_free(tileBuffer);
+        tileBuffer = nullptr;
+    }
+
     std::vector<NavFeature> layers[16];
     for (auto& feature : tileFeatures)
     {
@@ -1116,7 +1146,7 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
         feature.tilePixelOffsetY = screenY;
         uint8_t priority = feature.properties.getPriority();
         if (priority < 16)
-            layers[priority].push_back(feature);
+            layers[priority].push_back(std::move(feature));
     }
     map.startWrite();
     for (int p = 0; p < 16; p++)
@@ -1132,12 +1162,10 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
             if (minX > (int16_t)tileWidth || maxX < 0 || minY > (int16_t)tileHeight || maxY < 0)
                 continue;
             map.setClipRect(screenX, screenY, 256, 256);
-            renderNavFeature(feature, {}, map);
+            renderNavFeature(feature, map);
         }
         taskYIELD();
     }
     map.clearClipRect();
     map.endWrite();
-    if (tileBuffer)
-        heap_caps_free(tileBuffer);
 }

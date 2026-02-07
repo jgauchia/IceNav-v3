@@ -84,7 +84,7 @@ class Maps
         void fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, 
                                 const int numPoints, const uint16_t color,	
                                 const int xOffset, const int yOffset,
-                                uint16_t ringCount = 1, uint16_t* ringEnds = nullptr);						/**< Fill a polygon using the scanline algorithm and multi-ring support */
+                                uint16_t ringCount = 1, const uint16_t* ringEnds = nullptr);						/**< Fill a polygon using the scanline algorithm and multi-ring support */
 
     public:
         // Virtual canvas dimensions (public for external access)
@@ -128,6 +128,7 @@ class Maps
         void centerOnGps(float lat, float lon);
         void scrollMap(int16_t dx, int16_t dy);
         void preloadTiles(int8_t dirX, int8_t dirY);
+        void resetScrollState();
 
         // NAV tile rendering methods
         bool renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT_eSprite &map);
@@ -135,7 +136,7 @@ class Maps
 
     private:
         // NAV tile rendering helpers
-        void renderNavFeature(const NavFeature& feature, const NavBbox& viewport, TFT_eSprite& map);
+        void renderNavFeature(const NavFeature& feature, TFT_eSprite& map);
         void renderNavLineString(const NavFeature& feature, TFT_eSprite& map);
         void renderNavPolygon(const NavFeature& feature, TFT_eSprite& map);
         void renderNavPoint(const NavFeature& feature, TFT_eSprite& map);

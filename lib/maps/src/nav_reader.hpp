@@ -56,7 +56,7 @@ struct NavFeatureHeader
     uint8_t widthPixels;    // 1-15
     uint8_t bbox[4];        // [x1, y1, x2, y2] normalized 0-255
     uint16_t coordCount;    // Total points
-    uint8_t padding;        // Always 0x00
+    uint16_t payloadSize;   // Total bytes of payload (coords + rings)
 };
 #pragma pack(pop)
 
@@ -115,9 +115,9 @@ struct NavFeature
     NavGeomType geomType;
     NavProperties properties;
     NavObjBbox objBbox;
-    NavCoord* coords = nullptr;
+    std::vector<NavCoord> coords;
     uint16_t coordCount = 0;
-    uint16_t* ringEnds = nullptr;
+    std::vector<uint16_t> ringEnds;
     uint16_t ringCount = 0;
     
     // Pixel offset of the tile top-left relative to viewport top-left
