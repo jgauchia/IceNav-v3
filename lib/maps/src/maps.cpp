@@ -973,7 +973,6 @@ void Maps::renderNavLineString(const NavFeature& feature, TFT_eSprite& map)
         prevPy = py;
     }
 }
-
 /**
  * @brief Render a NAV Polygon feature
  * @param feature NavFeature object.
@@ -1044,7 +1043,6 @@ void Maps::renderNavPolygon(const NavFeature& feature, TFT_eSprite& map)
         }
     }
 }
-
 /**
  * @brief Render a NAV Point feature
  * @param feature NavFeature object.
@@ -1062,12 +1060,6 @@ void Maps::renderNavPoint(const NavFeature& feature, TFT_eSprite& map)
     if (px >= 0 && px < (int)tileWidth && py >= 0 && py < (int)tileHeight)
         map.fillCircle(px, py, 3, feature.properties.colorRgb565);
 }
-
-/**
- * @brief Render a single NAV feature
- * @param feature NavFeature to render.
- * @param map Target sprite.
- */
 void Maps::renderNavFeature(const NavFeature& feature, TFT_eSprite& map)
 {
     switch (feature.geomType)
@@ -1078,24 +1070,8 @@ void Maps::renderNavFeature(const NavFeature& feature, TFT_eSprite& map)
         default: break;
     }
 }
-
-/**
- * @brief Convert internal NAV coordinate to pixels
- * @param feature Current NavFeature context.
- * @param coord NavCoord (0-4096).
- * @param px Output X pixel.
- * @param py Output Y pixel.
- */
-void Maps::navCoordToPixel(const NavFeature& feature, const NavCoord& coord, int16_t& px, int16_t& py)
-{
-    px = feature.tilePixelOffsetX + (coord.x >> 4);
-    py = feature.tilePixelOffsetY + (coord.y >> 4);
-}
-
 /**
  * @brief Main entry point for NAV viewport rendering. Renders a full grid.
- * @details Calculates the top-left tile based on current GPS coordinates and prepares 
- *          a grid of tiles (dynamic size based on tilesGrid) for asynchronous rendering.
  * @param centerLat Center latitude.
  * @param centerLon Center longitude.
  * @param zoom Zoom level.
@@ -1125,7 +1101,6 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
     }
     return true;
 }
-
 /**
  * @brief Render a single NAV tile at a specific sprite position.
  * @details Loads the binary NAV data from SD and renders geometries according to priority layers.

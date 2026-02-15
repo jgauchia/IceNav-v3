@@ -86,15 +86,6 @@ struct NavObjBbox
 };
 
 /**
- * @brief Single coordinate (int16 relative to tile 0-4096)
- */
-struct NavCoord
-{
-    int16_t x;
-    int16_t y;
-};
-
-/**
  * @brief Feature properties
  */
 struct NavProperties

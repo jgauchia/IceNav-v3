@@ -23,7 +23,6 @@
 #include "mapVars.h"
 #include "storage.hpp"
 #include "nav_reader.hpp"
-#include "InternalAllocator.hpp"
 #include "PsramAllocator.hpp"
 
 /**
@@ -124,7 +123,6 @@ class Maps
         void renderNavLineString(const NavFeature& feature, TFT_eSprite& map);
         void renderNavPolygon(const NavFeature& feature, TFT_eSprite& map);
         void renderNavPoint(const NavFeature& feature, TFT_eSprite& map);
-        void navCoordToPixel(const NavFeature& feature, const NavCoord& coord, int16_t& px, int16_t& py);
         void latLonToPixel(float lat, float lon, int16_t& px, int16_t& py);
         void drawTrack(TFT_eSprite &map);
     public:
