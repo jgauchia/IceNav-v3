@@ -44,13 +44,10 @@ Maps::Maps() : fillPolygons(true),
                navLastLat_(0), navLastLon_(0), navLastZoom_(0), navNeedsRender_(true),
                navTlTileX_(-1), navTlTileY_(-1)
 {
-    projBuf16X.reserve(1024);
-    projBuf16Y.reserve(1024);
     projBuf32X.reserve(1024);
     projBuf32Y.reserve(1024);
     edgePool.reserve(1024);
     edgeBuckets.reserve(tileHeight);
-
     mapMutex = xSemaphoreCreateMutex();
     xTaskCreatePinnedToCore(mapRenderTask, "MapRenderTask", 8192, this, 1, &mapRenderTaskHandle, 0);
 }
@@ -949,42 +946,31 @@ void Maps::latLonToPixel(float lat, float lon, int16_t& px, int16_t& py)
  */
 void Maps::renderNavLineString(const NavFeature& feature, TFT_eSprite& map)
 {
-    if (feature.coordCount < 2) return;
-    const size_t numCoords = feature.coordCount;
-    if (projBuf16X.capacity() < numCoords) projBuf16X.reserve(numCoords * 1.5);
-    if (projBuf16Y.capacity() < numCoords) projBuf16Y.reserve(numCoords * 1.5);
-    projBuf16X.resize(numCoords);
-    projBuf16Y.resize(numCoords);
-    int16_t* pxArr = projBuf16X.data();
-    int16_t* pyArr = projBuf16Y.data();
-    int16_t minPx = INT16_MAX, maxPx = INT16_MIN;
-    int16_t minPy = INT16_MAX, maxPy = INT16_MIN;
-    size_t validPoints = 0;
-    int16_t lastPx = -32768, lastPy = -32768;
-    for (size_t i = 0; i < numCoords; i++)
-    {
-        int16_t px, py;
-        navCoordToPixel(feature, feature.coords[i], px, py);
-        if (validPoints > 0 && px == lastPx && py == lastPy) continue;
-        pxArr[validPoints] = px;
-        pyArr[validPoints] = py;
-        if (px < minPx) minPx = px;
-        if (px > maxPx) maxPx = px;
-        if (py < minPy) minPy = py;
-        if (py > maxPy) maxPy = py;
-        lastPx = px;
-        lastPy = py;
-        validPoints++;
-    }
-    if (validPoints < 2 || maxPx < 0 || minPx >= tileWidth || maxPy < 0 || minPy >= tileHeight) return;
+    if (feature.coordCount < 2)
+        return;
+    uint8_t* p = feature.payloadPtr;
+    int32_t lastX = 0, lastY = 0;
+    int16_t prevPx = 0, prevPy = 0;
     uint16_t color = feature.properties.colorRgb565;
     uint8_t width = feature.properties.width > 0 ? feature.properties.width : 1;
-    for (size_t i = 1; i < validPoints; i++)
+    for (uint16_t i = 0; i < feature.coordCount; i++)
     {
-        if (width == 1)
-            map.drawLine(pxArr[i - 1], pyArr[i - 1], pxArr[i], pyArr[i], color);
-        else
-            map.drawWideLine(pxArr[i - 1], pyArr[i - 1], pxArr[i], pyArr[i], width, color);
+        lastX += NavReader::decodeZigZag(NavReader::readVarInt(p));
+        lastY += NavReader::decodeZigZag(NavReader::readVarInt(p));
+        int16_t px = feature.tilePixelOffsetX + (lastX >> 4);
+        int16_t py = feature.tilePixelOffsetY + (lastY >> 4);
+        if (i > 0 && (px != prevPx || py != prevPy))
+        {
+            if (!((px < 0 && prevPx < 0) || (px >= (int)tileWidth && prevPx >= (int)tileWidth) || (py < 0 && prevPy < 0) || (py >= (int)tileHeight && prevPy >= (int)tileHeight)))
+            {
+                if (width == 1)
+                    map.drawLine(prevPx, prevPy, px, py, color);
+                else
+                    map.drawWideLine(prevPx, prevPy, px, py, width, color);
+            }
+        }
+        prevPx = px;
+        prevPy = py;
     }
 }
 
@@ -995,33 +981,60 @@ void Maps::renderNavLineString(const NavFeature& feature, TFT_eSprite& map)
  */
 void Maps::renderNavPolygon(const NavFeature& feature, TFT_eSprite& map)
 {
-    if (feature.coordCount < 3) return;
+    if (feature.coordCount < 3 || feature.coordCount > MAX_POLYGON_POINTS)
+        return;
     size_t numPoints = feature.coordCount;
-    if (projBuf32X.capacity() < numPoints) projBuf32X.reserve(numPoints * 1.5);
-    if (projBuf32Y.capacity() < numPoints) projBuf32Y.reserve(numPoints * 1.5);
+    if (projBuf32X.capacity() < numPoints)
+        projBuf32X.reserve(numPoints * 1.5);
+    if (projBuf32Y.capacity() < numPoints)
+        projBuf32Y.reserve(numPoints * 1.5);
     projBuf32X.resize(numPoints);
     projBuf32Y.resize(numPoints);
     int* px = projBuf32X.data();
     int* py = projBuf32Y.data();
-    int minPx = INT_MAX, maxPx = INT_MIN;
-    int minPy = INT_MAX, maxPy = INT_MIN;
+    uint8_t* p = feature.payloadPtr;
+    int32_t lastX = 0, lastY = 0;
+    int minPx = INT_MAX, maxPx = INT_MIN, minPy = INT_MAX, maxPy = INT_MIN;
     for (size_t i = 0; i < numPoints; i++)
     {
-        int16_t x, y;
-        navCoordToPixel(feature, feature.coords[i], x, y);
-        px[i] = x;
-        py[i] = y;
-        if (x < minPx) minPx = x;
-        if (x > maxPx) maxPx = x;
-        if (y < minPy) minPy = y;
-        if (y > maxPy) maxPy = y;
+        lastX += NavReader::decodeZigZag(NavReader::readVarInt(p));
+        lastY += NavReader::decodeZigZag(NavReader::readVarInt(p));
+        px[i] = feature.tilePixelOffsetX + (lastX >> 4);
+        py[i] = feature.tilePixelOffsetY + (lastY >> 4);
+        if (px[i] < minPx)
+            minPx = px[i];
+        if (px[i] > maxPx)
+            maxPx = px[i];
+        if (py[i] < minPy)
+            minPy = py[i];
+        if (py[i] > maxPy)
+            maxPy = py[i];
     }
-    if (maxPx < 0 || minPx >= tileWidth || maxPy < 0 || minPy >= tileHeight) return;
+    if (maxPx < 0 || minPx >= (int)tileWidth || maxPy < 0 || minPy >= (int)tileHeight)
+        return;
     uint16_t fillColor = feature.properties.colorRgb565;
     uint16_t borderColor = darkenRGB565(fillColor, 0.15f);
+    uint16_t ringCount = 0;
+    const uint16_t* ringEndsPtr = nullptr;
+    std::vector<uint16_t> ringEnds;
+    if ((size_t)(p - feature.payloadPtr) < feature.payloadSize)
+    {
+        ringCount = p[0] | (p[1] << 8);
+        p += 2;
+        if (ringCount > 0)
+        {
+            ringEnds.reserve(ringCount);
+            for (int r = 0; r < ringCount; r++)
+            {
+                ringEnds.push_back(p[0] | (p[1] << 8));
+                p += 2;
+            }
+            ringEndsPtr = ringEnds.data();
+        }
+    }
     if (fillPolygons)
-        fillPolygonGeneral(map, px, py, numPoints, fillColor, 0, 0, feature.ringCount, feature.ringEnds.data());
-    int extEnd = (feature.ringCount > 0) ? feature.ringEnds[0] : numPoints;
+        fillPolygonGeneral(map, px, py, numPoints, fillColor, 0, 0, ringCount, ringEndsPtr);
+    int extEnd = (ringCount > 0) ? ringEnds[0] : numPoints;
     if (extEnd >= 3)
     {
         for (int i = 0; i < extEnd; i++)
@@ -1039,10 +1052,14 @@ void Maps::renderNavPolygon(const NavFeature& feature, TFT_eSprite& map)
  */
 void Maps::renderNavPoint(const NavFeature& feature, TFT_eSprite& map)
 {
-    if (feature.coordCount == 0) return;
-    int16_t px, py;
-    navCoordToPixel(feature, feature.coords[0], px, py);
-    if (px >= 0 && px < tileWidth && py >= 0 && py < tileHeight)
+    if (feature.coordCount == 0)
+        return;
+    uint8_t* p = feature.payloadPtr;
+    int32_t x = NavReader::decodeZigZag(NavReader::readVarInt(p));
+    int32_t y = NavReader::decodeZigZag(NavReader::readVarInt(p));
+    int16_t px = feature.tilePixelOffsetX + (x >> 4);
+    int16_t py = feature.tilePixelOffsetY + (y >> 4);
+    if (px >= 0 && px < (int)tileWidth && py >= 0 && py < (int)tileHeight)
         map.fillCircle(px, py, 3, feature.properties.colorRgb565);
 }
 
@@ -1132,13 +1149,6 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
             heap_caps_free(tileBuffer);
         return;
     }
-    
-    // Free file buffer early as features now own their data
-    if (tileBuffer) {
-        heap_caps_free(tileBuffer);
-        tileBuffer = nullptr;
-    }
-
     std::vector<NavFeature> layers[16];
     for (auto& feature : tileFeatures)
     {
@@ -1168,4 +1178,6 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
     }
     map.clearClipRect();
     map.endWrite();
+    if (tileBuffer)
+        heap_caps_free(tileBuffer);
 }

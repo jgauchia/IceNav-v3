@@ -108,17 +108,16 @@ struct NavProperties
 };
 
 /**
- * @brief Parsed NAV feature
+ * @brief Parsed NAV feature (Lightweight view into PSRAM buffer)
  */
 struct NavFeature
 {
     NavGeomType geomType;
     NavProperties properties;
     NavObjBbox objBbox;
-    std::vector<NavCoord> coords;
+    uint8_t* payloadPtr = nullptr;
     uint16_t coordCount = 0;
-    std::vector<uint16_t> ringEnds;
-    uint16_t ringCount = 0;
+    uint16_t payloadSize = 0;
     
     // Pixel offset of the tile top-left relative to viewport top-left
     int16_t tilePixelOffsetX;
@@ -142,4 +141,25 @@ public:
      * @param bufferSize Size of tileBuffer
      */
     static size_t readAllFeaturesMemory(const char* path, std::vector<NavFeature>& features, uint8_t maxZoom, uint8_t*& tileBuffer, size_t& bufferSize);
+
+    // --- Static Helpers for Streaming Decoding ---
+    
+    static inline int32_t readVarInt(uint8_t*& p)
+    {
+        int32_t result = 0;
+        int shift = 0;
+        while (true)
+        {
+            uint8_t byte = *p++;
+            result |= (byte & 0x7F) << shift;
+            if ((byte & 0x80) == 0) break;
+            shift += 7;
+        }
+        return result;
+    }
+
+    static inline int32_t decodeZigZag(int32_t n)
+    {
+        return (n >> 1) ^ -(n & 1);
+    }
 };
