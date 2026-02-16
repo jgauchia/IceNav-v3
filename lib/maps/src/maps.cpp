@@ -1149,7 +1149,6 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
             map.setClipRect(screenX, screenY, 256, 256);
             renderNavFeature(feature, map);
         }
-        taskYIELD();
     }
     map.clearClipRect();
     map.endWrite();
