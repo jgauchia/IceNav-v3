@@ -252,6 +252,7 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
  */
 void Maps::deleteMapScrSprites()
 {
+    NavReader::closePack();
     Maps::preloadSprite.deleteSprite();
 }
 
@@ -1113,12 +1114,10 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
  */
 void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, TFT_eSprite &map)
 {
-    char tilePath[128];
-    snprintf(tilePath, sizeof(tilePath), mapVectorFolder, zoom, tileX, tileY);
     std::vector<NavFeature> tileFeatures;
     uint8_t* tileBuffer = nullptr;
     size_t tileBufferSize = 0;
-    if (NavReader::readAllFeaturesMemory(tilePath, tileFeatures, zoom, tileBuffer, tileBufferSize) == 0)
+    if (NavReader::readAllFeaturesMemory(tileX, tileY, zoom, tileFeatures, zoom, tileBuffer, tileBufferSize) == 0)
     {
         if (tileBuffer)
             heap_caps_free(tileBuffer);
