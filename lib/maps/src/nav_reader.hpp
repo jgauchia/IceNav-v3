@@ -28,7 +28,8 @@ enum class NavGeomType : uint8_t
 {
     Point = 1,
     LineString = 2,
-    Polygon = 3
+    Polygon = 3,
+    Text = 4
 };
 
 #pragma pack(push, 1)
@@ -92,10 +93,12 @@ struct NavProperties
 {
     uint16_t colorRgb565;
     uint8_t zoomPriority;  // High nibble = min_zoom, low nibble = priority
-    uint8_t width;         // Line width in pixels
+    uint8_t widthPixels;   // Bit 7 = needs_casing, bits 0-6 = actual width
 
     uint8_t getMinZoom() const { return zoomPriority >> 4; }
     uint8_t getPriority() const { return (zoomPriority & 0x0F); }
+    bool needsCasing() const { return (widthPixels & 0x80) != 0; }
+    uint8_t getWidth() const { return (widthPixels & 0x7F); }
 };
 
 /**
@@ -144,6 +147,7 @@ private:
     static FILE* packFile;
     static uint8_t currentZoom;
     static uint32_t tileCount;
+    static uint32_t indexOff;
     static bool openPack(uint8_t zoom);
     static bool findTileInPack(uint32_t tileX, uint32_t tileY, uint32_t& offset, uint32_t& size);
 

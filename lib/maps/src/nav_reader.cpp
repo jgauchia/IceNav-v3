@@ -9,6 +9,7 @@ static const char* TAG = "NavReader";
 FILE* NavReader::packFile = nullptr;
 uint8_t NavReader::currentZoom = 0;
 uint32_t NavReader::tileCount = 0;
+uint32_t NavReader::indexOff = 0;
 
 /**
  * @brief Open a packed tile container for the given zoom level.
@@ -26,7 +27,7 @@ bool NavReader::openPack(uint8_t zoom)
     if (!packFile)
         return false;
     char magic[4];
-    if (storage.read(packFile, (uint8_t*)magic, 4) != 4 || memcmp(magic, "NPK1", 4) != 0)
+    if (storage.read(packFile, (uint8_t*)magic, 4) != 4 || memcmp(magic, "NPK2", 4) != 0)
     {
         ESP_LOGE(TAG, "Invalid packed magic for %s", path);
         closePack();
@@ -39,12 +40,16 @@ bool NavReader::openPack(uint8_t zoom)
         closePack();
         return false;
     }
-    if (storage.read(packFile, (uint8_t*)&tileCount, 4) != 4)
+    // NPK2 Header: tile_count(4), y_min(4), y_max(4), ytable_off(4), index_off(4) = 20 bytes
+    uint32_t extraHeader[5];
+    if (storage.read(packFile, (uint8_t*)extraHeader, 20) != 20)
     {
-        ESP_LOGE(TAG, "Failed to read tile count in packed file for %s", path);
+        ESP_LOGE(TAG, "Failed to read NPK2 extra header for %s", path);
         closePack();
         return false;
     }
+    tileCount = extraHeader[0];
+    indexOff = extraHeader[4];
     currentZoom = zoom;
     return true;
 }
@@ -60,6 +65,7 @@ void NavReader::closePack()
     }
     currentZoom = 0;
     tileCount = 0;
+    indexOff = 0;
 }
 /**
  * @brief Search for a tile in the open pack using binary search.
@@ -71,15 +77,15 @@ void NavReader::closePack()
  */
 bool NavReader::findTileInPack(uint32_t tileX, uint32_t tileY, uint32_t& offset, uint32_t& size)
 {
-    if (!packFile)
+    if (!packFile || tileCount == 0)
         return false;
     int32_t low = 0;
     int32_t high = tileCount - 1;
     while (low <= high)
     {
         int32_t mid = low + (high - low) / 2;
-        storage.seek(packFile, 9 + (mid * 16), SEEK_SET);
-        uint32_t entry[2];
+        storage.seek(packFile, indexOff + (mid * 16), SEEK_SET);
+        uint32_t entry[2]; // x, y
         if (storage.read(packFile, (uint8_t*)entry, 8) != 8)
             return false;
         if (entry[1] < tileY || (entry[1] == tileY && entry[0] < tileX))
@@ -157,7 +163,7 @@ size_t NavReader::readAllFeaturesMemory(uint32_t tileX, uint32_t tileY, uint8_t 
         feature.geomType = static_cast<NavGeomType>(featHeader->geomType);
         feature.properties.colorRgb565 = featHeader->colorRgb565;
         feature.properties.zoomPriority = featHeader->zoomPriority;
-        feature.properties.width = featHeader->widthPixels;
+        feature.properties.widthPixels = featHeader->widthPixels;
         feature.objBbox = { featHeader->bbox[0], featHeader->bbox[1], featHeader->bbox[2], featHeader->bbox[3] };
         feature.coordCount = featHeader->coordCount;
         feature.payloadSize = featHeader->payloadSize;

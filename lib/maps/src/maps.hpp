@@ -53,6 +53,10 @@ class Maps
             uint16_t posX;
             uint16_t posY;
         };
+        struct LabelRect
+        {
+            int16_t x, y, w, h;
+        };
         static const uint16_t mapTileSize = 256;
         tileBounds totalBounds;
         uint16_t wptPosX, wptPosY;
@@ -119,10 +123,11 @@ class Maps
         bool renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT_eSprite &map);
         void renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, TFT_eSprite &map);
     private:
-        void renderNavFeature(const NavFeature& feature, TFT_eSprite& map);
-        void renderNavLineString(const NavFeature& feature, TFT_eSprite& map);
+        void renderNavFeature(const NavFeature& feature, TFT_eSprite& map, uint8_t pass, std::vector<LabelRect>& placedLabels);
+        void renderNavLineString(const NavFeature& feature, TFT_eSprite& map, bool isCasing = false);
         void renderNavPolygon(const NavFeature& feature, TFT_eSprite& map);
         void renderNavPoint(const NavFeature& feature, TFT_eSprite& map);
+        void renderNavText(const NavFeature& feature, TFT_eSprite& map, std::vector<struct LabelRect>& placedLabels);
         void latLonToPixel(float lat, float lon, int16_t& px, int16_t& py);
         void drawTrack(TFT_eSprite &map);
     public:
