@@ -152,6 +152,7 @@ class Maps
         std::vector<int, PsramAllocator<int>> projBuf32Y;
         std::vector<int16_t, PsramAllocator<int16_t>> decodedCoords;
         std::vector<FeatureRef, PsramAllocator<FeatureRef>> featurePool;
+        std::vector<uint16_t, PsramAllocator<uint16_t>> passIndices[4];
         std::vector<uint16_t, PsramAllocator<uint16_t>> ringEndsCache;
         std::vector<LabelRect, PsramAllocator<LabelRect>> placedLabelsCache;
         void renderNavFeature(const FeatureRef& ref, TFT_eSprite& map, uint8_t pass, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels);

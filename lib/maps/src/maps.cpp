@@ -51,6 +51,8 @@ Maps::Maps() : fillPolygons(true),
     edgePool.reserve(16384);
     edgeBuckets.reserve(tileHeight);
     featurePool.reserve(4096);
+    for (int i = 0; i < 4; i++)
+        passIndices[i].reserve(2048);
     ringEndsCache.reserve(1024);
     placedLabelsCache.reserve(1024);
     navDataCache.reserve(NAV_DATA_CACHE_SIZE);
@@ -1193,10 +1195,10 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
     navTlTileX_ = (float)(centerTileIdxX - gridOffset);
     navTlTileY_ = (float)(centerTileIdxY - gridOffset);
     navLastZoom_ = zoom;
-    if (xSemaphoreTake(mapMutex, pdMS_TO_TICKS(100)) == pdTRUE)
+    if (xSemaphoreTake(mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
     {
-        map.fillSprite(0xF7BE); // Default OSM beige background
         pendingTiles.clear();
+        map.fillSprite(0xF7BE);
         for (int dy = 0; dy < tilesGrid; dy++)
             for (int dx = 0; dx < tilesGrid; dx++)
                 pendingTiles.push_back({(uint32_t)(centerTileIdxX - gridOffset + dx), (uint32_t)(centerTileIdxY - gridOffset + dy), (int16_t)(dx * 256), (int16_t)(dy * 256), TILE_NAV});
@@ -1270,6 +1272,8 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
         navDataCache.push_back({data, size, tileHash, ++cacheCounter});
     }
     featurePool.clear();
+    for (int i = 0; i < 4; i++)
+        passIndices[i].clear();
     if (dataSize < 22)
         return;
     uint16_t feature_count;
@@ -1284,7 +1288,7 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
         memcpy(&colorRgb565, p + 1, 2);
         uint8_t zp = p[3];
         uint8_t wp = p[4];
-        uint8_t x1 = p[5], y1 = p[6], x2 = p[7], y2 = p[8];
+        uint8_t bx1 = p[5], by1 = p[6], bx2 = p[7], by2 = p[8];
         uint16_t cc;
         memcpy(&cc, p + 9, 2);
         uint16_t ps;
@@ -1293,8 +1297,29 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
             break;
         if ((zp >> 4) <= zoom)
         {
+            if (screenX + bx2 < 0 || screenX + bx1 > (int)tileWidth || screenY + by2 < 0 || screenY + by1 > (int)tileHeight)
+            {
+                p += 13 + ps;
+                continue;
+            }
             if (featurePool.size() < featurePool.capacity())
-                featurePool.push_back({p + 13, (NavGeomType)geomType, ps, cc, screenX, screenY, colorRgb565, (uint8_t)(wp & 0x7F), (wp & 0x80) != 0, x1, y1, x2, y2, (uint8_t)(zp & 0x0F)});
+            {
+                uint16_t poolIdx = featurePool.size();
+                bool isCasing = (wp & 0x80) != 0;
+                featurePool.push_back({p + 13, (NavGeomType)geomType, ps, cc, screenX, screenY, colorRgb565, (uint8_t)(wp & 0x7F), isCasing, bx1, by1, bx2, by2, (uint8_t)(zp & 0x0F)});
+                if (geomType == (uint8_t)NavGeomType::Text)
+                    passIndices[3].push_back(poolIdx);
+                else
+                {
+                    if (geomType == (uint8_t)NavGeomType::LineString && isCasing)
+                    {
+                        passIndices[1].push_back(poolIdx);
+                        passIndices[2].push_back(poolIdx);
+                    }
+                    else
+                        passIndices[0].push_back(poolIdx);
+                }
+            }
         }
         p += 13 + ps;
     }
@@ -1306,15 +1331,11 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
     }
     placedLabelsCache.clear();
     map.startWrite();
-    for (int pass = 1; pass <= 4; pass++)
+    map.setClipRect(screenX, screenY, 256, 256);
+    for (int pass = 0; pass < 4; pass++)
     {
-        for (const auto& ref : featurePool)
-        {
-            if (screenX + ref.x2 < 0 || screenX + ref.x1 > (int)tileWidth || screenY + ref.y2 < 0 || screenY + ref.y1 > (int)tileHeight)
-                continue;
-            map.setClipRect(screenX, screenY, 256, 256);
-            renderNavFeature(ref, map, pass, placedLabelsCache);
-        }
+        for (uint16_t poolIdx : passIndices[pass])
+            renderNavFeature(featurePool[poolIdx], map, pass + 1, placedLabelsCache);
         taskYIELD();
     }
     map.clearClipRect();
