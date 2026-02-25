@@ -1297,6 +1297,15 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
                 p += 13 + ps;
                 continue;
             }
+            // Size-based Culling (Discard sub-pixel features)
+            if (geomType == (uint8_t)NavGeomType::Polygon || geomType == (uint8_t)NavGeomType::LineString)
+            {
+                if ((bx2 - bx1) < 1 && (by2 - by1) < 1)
+                {
+                    p += 13 + ps;
+                    continue;
+                }
+            }
             if (featurePool.size() < featurePool.capacity())
             {
                 bool isCasing = (wp & 0x80) != 0;
