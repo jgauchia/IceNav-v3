@@ -1106,28 +1106,21 @@ void Maps::renderNavPoint(const FeatureRef& ref, TFT_eSprite& map)
  */
 void Maps::renderNavFeature(const FeatureRef& ref, TFT_eSprite& map, uint8_t pass, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels)
 {
-    switch (pass)
+    if (pass == 1)
     {
-        case 1: // Ground pass
-            if (ref.geomType == NavGeomType::Polygon)
-                renderNavPolygon(ref, map);
-            else if (ref.geomType == NavGeomType::Point)
-                renderNavPoint(ref, map);
-            else if (ref.geomType == NavGeomType::LineString && !ref.casing)
-                renderNavLineString(ref, map, false);
-            break;
-        case 2: // Casing pass
-            if (ref.geomType == NavGeomType::LineString && ref.casing)
-                renderNavLineString(ref, map, true);
-            break;
-        case 3: // Core pass
-            if (ref.geomType == NavGeomType::LineString && ref.casing)
-                renderNavLineString(ref, map, false);
-            break;
-        case 4: // Text pass
-            if (ref.geomType == NavGeomType::Text)
-                renderNavText(ref, map, placedLabels);
-            break;
+        if (ref.geomType == NavGeomType::Polygon)
+            renderNavPolygon(ref, map);
+        else if (ref.geomType == NavGeomType::Point)
+            renderNavPoint(ref, map);
+        else if (ref.geomType == NavGeomType::LineString)
+            renderNavLineString(ref, map, ref.casing);
+    }
+    else if (pass == 2)
+    {
+        if (ref.geomType == NavGeomType::LineString && ref.casing)
+            renderNavLineString(ref, map, false);
+        else if (ref.geomType == NavGeomType::Text)
+            renderNavText(ref, map, placedLabels);
     }
 }
 
@@ -1319,26 +1312,24 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
             return a.priority < b.priority;
         });
     }
-    // 2. Build pass lists from the now stable/sorted pool
-    for (int i = 0; i < 4; i++)
+    // 2. Build pass lists (Optimized for 2 passes)
+    for (int i = 0; i < 2; i++)
         passIndices[i].clear();
     for (uint16_t poolIdx = 0; poolIdx < (uint16_t)featurePool.size(); poolIdx++)
     {
         const auto& ref = featurePool[poolIdx];
-        if (ref.geomType == NavGeomType::Text)
-            passIndices[3].push_back(poolIdx);
-        else if (ref.geomType == NavGeomType::LineString && ref.casing)
+        if (ref.geomType == NavGeomType::Text || (ref.geomType == NavGeomType::LineString && ref.casing))
         {
-            passIndices[1].push_back(poolIdx);
-            passIndices[2].push_back(poolIdx);
+            passIndices[0].push_back(poolIdx); // Casing in Pass 1
+            passIndices[1].push_back(poolIdx); // Core/Text in Pass 2
         }
         else
-            passIndices[0].push_back(poolIdx);
+            passIndices[0].push_back(poolIdx); // Polygons/Points/Simple Lines in Pass 1
     }
     placedLabelsCache.clear();
     map.startWrite();
     map.setClipRect(screenX, screenY, 256, 256);
-    for (int pass = 0; pass < 4; pass++)
+    for (int pass = 0; pass < 2; pass++)
     {
         for (uint16_t poolIdx : passIndices[pass])
             renderNavFeature(featurePool[poolIdx], map, pass + 1, placedLabelsCache);
