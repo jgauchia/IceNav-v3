@@ -192,6 +192,10 @@ class Maps
         float navTlTileX_;
         float navTlTileY_;
         uint64_t viewportStartTime;
+        uint64_t totalLoadTime;
+        uint64_t totalProcessTime;
+        uint64_t totalDrawTime;
+        uint32_t totalFeaturesDrawn;
     public:
         float velocityX = 0.0f;
         float velocityY = 0.0f;

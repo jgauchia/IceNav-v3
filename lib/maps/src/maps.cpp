@@ -507,7 +507,13 @@ void Maps::mapRenderTask(void* pvParameters)
                         instance->drawTrack(instance->mapTempSprite);
                         instance->redrawMap = true;
                         uint64_t endTime = esp_timer_get_time();
-                        ESP_LOGI(TAG, "Full Viewport Render: %llu ms", (endTime - instance->viewportStartTime) / 1000);
+                        ESP_LOGI(TAG, "Zoom: %u | Full Render: %llu ms | Load: %llu ms | Proc: %llu ms | Draw: %llu ms | Features: %u", 
+                                 instance->zoomLevel,
+                                 (endTime - instance->viewportStartTime) / 1000,
+                                 instance->totalLoadTime / 1000,
+                                 instance->totalProcessTime / 1000,
+                                 instance->totalDrawTime / 1000,
+                                 instance->totalFeaturesDrawn);
                     }
                 }
                 xSemaphoreGive(instance->mapMutex);
@@ -1191,6 +1197,10 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
     navTlTileY_ = (float)(centerTileIdxY - gridOffset);
     navLastZoom_ = zoom;
     viewportStartTime = esp_timer_get_time();
+    totalLoadTime = 0;
+    totalProcessTime = 0;
+    totalDrawTime = 0;
+    totalFeaturesDrawn = 0;
     if (xSemaphoreTake(mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
     {
         pendingTiles.clear();
@@ -1214,6 +1224,7 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
  */
 void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, TFT_eSprite &map)
 {
+    uint64_t tStart = esp_timer_get_time();
     uint32_t tileHash = (uint32_t(zoom) << 28) | (uint32_t(tileX & 0x3FFF) << 14) | uint32_t(tileY & 0x3FFF);
     uint8_t* data = nullptr;
     size_t dataSize = 0;
@@ -1267,6 +1278,8 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
         }
         navDataCache.push_back({data, size, tileHash, ++cacheCounter});
     }
+    uint64_t tLoadEnd = esp_timer_get_time();
+    totalLoadTime += (tLoadEnd - tStart);
     featurePool.clear();
     if (dataSize < 22)
         return;
@@ -1291,13 +1304,11 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
             break;
         if ((zp >> 4) <= zoom)
         {
-            // Total Spatial Culling (Discard features outside large viewport)
             if (screenX + bx2 < 0 || screenX + bx1 > (int)tileWidth || screenY + by2 < 0 || screenY + by1 > (int)tileHeight)
             {
                 p += 13 + ps;
                 continue;
             }
-            // Size-based Culling (Discard sub-pixel features)
             if (geomType == (uint8_t)NavGeomType::Polygon || geomType == (uint8_t)NavGeomType::LineString)
             {
                 if ((bx2 - bx1) < 1 && (by2 - by1) < 1)
@@ -1314,14 +1325,12 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
         }
         p += 13 + ps;
     }
-    // 1. Sort the pool by priority first
     if (!featurePool.empty())
     {
         std::sort(featurePool.begin(), featurePool.end(), [](const FeatureRef& a, const FeatureRef& b) {
             return a.priority < b.priority;
         });
     }
-    // 2. Build pass lists (Optimized for 2 passes)
     for (int i = 0; i < 2; i++)
         passIndices[i].clear();
     for (uint16_t poolIdx = 0; poolIdx < (uint16_t)featurePool.size(); poolIdx++)
@@ -1329,13 +1338,15 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
         const auto& ref = featurePool[poolIdx];
         if (ref.geomType == NavGeomType::Text || (ref.geomType == NavGeomType::LineString && ref.casing))
         {
-            passIndices[0].push_back(poolIdx); // Casing in Pass 1
-            passIndices[1].push_back(poolIdx); // Core/Text in Pass 2
+            passIndices[0].push_back(poolIdx);
+            passIndices[1].push_back(poolIdx);
         }
         else
-            passIndices[0].push_back(poolIdx); // Polygons/Points/Simple Lines in Pass 1
+            passIndices[0].push_back(poolIdx);
     }
+    totalProcessTime += (esp_timer_get_time() - tLoadEnd);
     placedLabelsCache.clear();
+    uint64_t tDrawStart = esp_timer_get_time();
     map.startWrite();
     map.setClipRect(screenX, screenY, 256, 256);
     for (int pass = 0; pass < 2; pass++)
@@ -1346,4 +1357,6 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
     }
     map.clearClipRect();
     map.endWrite();
+    totalDrawTime += (esp_timer_get_time() - tDrawStart);
+    totalFeaturesDrawn += featurePool.size();
 }
