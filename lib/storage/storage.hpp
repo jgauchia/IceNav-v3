@@ -60,7 +60,7 @@ class Storage
         bool isSdLoaded;           /**< Indicates if the SD card is loaded */
         sdmmc_card_t *card;        /**< Pointer to the SD card descriptor */
         uint8_t *dmaBuffer;        /**< Persistent buffer for DMA-safe reads */
-        static constexpr size_t DMA_BUF_SIZE = 16384; 
+        static constexpr size_t DMA_BUF_SIZE = 32768; 
         SemaphoreHandle_t readMutex; /**< Mutex to protect dmaBuffer */
 
     public:
