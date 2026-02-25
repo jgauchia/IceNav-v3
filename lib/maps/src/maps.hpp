@@ -191,6 +191,7 @@ class Maps
         bool navNeedsRender_;
         float navTlTileX_;
         float navTlTileY_;
+        uint64_t viewportStartTime;
     public:
         float velocityX = 0.0f;
         float velocityY = 0.0f;

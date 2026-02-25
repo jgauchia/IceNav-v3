@@ -506,6 +506,8 @@ void Maps::mapRenderTask(void* pvParameters)
                     {
                         instance->drawTrack(instance->mapTempSprite);
                         instance->redrawMap = true;
+                        uint64_t endTime = esp_timer_get_time();
+                        ESP_LOGI(TAG, "Full Viewport Render: %llu ms", (endTime - instance->viewportStartTime) / 1000);
                     }
                 }
                 xSemaphoreGive(instance->mapMutex);
@@ -1195,6 +1197,7 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
     navTlTileX_ = (float)(centerTileIdxX - gridOffset);
     navTlTileY_ = (float)(centerTileIdxY - gridOffset);
     navLastZoom_ = zoom;
+    viewportStartTime = esp_timer_get_time();
     if (xSemaphoreTake(mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
     {
         pendingTiles.clear();
@@ -1272,8 +1275,6 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
         navDataCache.push_back({data, size, tileHash, ++cacheCounter});
     }
     featurePool.clear();
-    for (int i = 0; i < 4; i++)
-        passIndices[i].clear();
     if (dataSize < 22)
         return;
     uint16_t feature_count;
@@ -1297,6 +1298,7 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
             break;
         if ((zp >> 4) <= zoom)
         {
+            // Total Spatial Culling (Discard features outside large viewport)
             if (screenX + bx2 < 0 || screenX + bx1 > (int)tileWidth || screenY + by2 < 0 || screenY + by1 > (int)tileHeight)
             {
                 p += 13 + ps;
@@ -1304,30 +1306,34 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
             }
             if (featurePool.size() < featurePool.capacity())
             {
-                uint16_t poolIdx = featurePool.size();
                 bool isCasing = (wp & 0x80) != 0;
                 featurePool.push_back({p + 13, (NavGeomType)geomType, ps, cc, screenX, screenY, colorRgb565, (uint8_t)(wp & 0x7F), isCasing, bx1, by1, bx2, by2, (uint8_t)(zp & 0x0F)});
-                if (geomType == (uint8_t)NavGeomType::Text)
-                    passIndices[3].push_back(poolIdx);
-                else
-                {
-                    if (geomType == (uint8_t)NavGeomType::LineString && isCasing)
-                    {
-                        passIndices[1].push_back(poolIdx);
-                        passIndices[2].push_back(poolIdx);
-                    }
-                    else
-                        passIndices[0].push_back(poolIdx);
-                }
             }
         }
         p += 13 + ps;
     }
+    // 1. Sort the pool by priority first
     if (!featurePool.empty())
     {
         std::sort(featurePool.begin(), featurePool.end(), [](const FeatureRef& a, const FeatureRef& b) {
             return a.priority < b.priority;
         });
+    }
+    // 2. Build pass lists from the now stable/sorted pool
+    for (int i = 0; i < 4; i++)
+        passIndices[i].clear();
+    for (uint16_t poolIdx = 0; poolIdx < (uint16_t)featurePool.size(); poolIdx++)
+    {
+        const auto& ref = featurePool[poolIdx];
+        if (ref.geomType == NavGeomType::Text)
+            passIndices[3].push_back(poolIdx);
+        else if (ref.geomType == NavGeomType::LineString && ref.casing)
+        {
+            passIndices[1].push_back(poolIdx);
+            passIndices[2].push_back(poolIdx);
+        }
+        else
+            passIndices[0].push_back(poolIdx);
     }
     placedLabelsCache.clear();
     map.startWrite();
