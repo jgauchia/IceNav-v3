@@ -112,7 +112,7 @@ bool NavReader::findTileInPack(uint32_t tileX, uint32_t tileY, uint32_t& offset,
  * @param bufferSize Current size of the tileBuffer.
  * @return Number of features loaded.
  */
-size_t NavReader::readAllFeaturesMemory(uint32_t tileX, uint32_t tileY, uint8_t zoom, std::vector<NavFeature>& features, uint8_t maxZoom, uint8_t*& tileBuffer, size_t& bufferSize)
+size_t NavReader::readAllFeaturesMemory(uint32_t tileX, uint32_t tileY, uint8_t zoom, std::vector<NavFeature, PsramAllocator<NavFeature>>& features, uint8_t maxZoom, uint8_t*& tileBuffer, size_t& bufferSize)
 {
     if (!openPack(zoom))
         return 0;

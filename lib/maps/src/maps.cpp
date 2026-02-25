@@ -13,6 +13,7 @@
 #include <cmath>
 #include <climits>
 #include <cstdint>
+#include "esp_task_wdt.h"
 #include "tasks.hpp"
 #include "mainScr.hpp"
 #include "../../images/src/bruj.h"
@@ -44,12 +45,17 @@ Maps::Maps() : fillPolygons(true),
                navLastLat_(0), navLastLon_(0), navLastZoom_(0), navNeedsRender_(true),
                navTlTileX_(-1), navTlTileY_(-1)
 {
-    projBuf32X.reserve(1024);
-    projBuf32Y.reserve(1024);
-    edgePool.reserve(1024);
+    projBuf32X.reserve(16384);
+    projBuf32Y.reserve(16384);
+    decodedCoords.reserve(16384);
+    edgePool.reserve(16384);
     edgeBuckets.reserve(tileHeight);
+    featurePool.reserve(4096);
+    ringEndsCache.reserve(1024);
+    placedLabelsCache.reserve(1024);
+    navDataCache.reserve(NAV_DATA_CACHE_SIZE);
     mapMutex = xSemaphoreCreateMutex();
-    xTaskCreatePinnedToCore(mapRenderTask, "MapRenderTask", 8192, this, 1, &mapRenderTaskHandle, 0);
+    xTaskCreatePinnedToCore(mapRenderTask, "MapRenderTask", 16384, this, 1, &mapRenderTaskHandle, 0);
 }
 
 /**
@@ -941,74 +947,82 @@ void Maps::latLonToPixel(float lat, float lon, int16_t& px, int16_t& py)
 }
 
 /**
- * @brief Render a NAV LineString feature
- * @param feature NavFeature object.
+ * @brief Render a NAV LineString feature.
+ * @param ref FeatureRef structure.
  * @param map Target sprite.
+ * @param isCasing True if rendering bridge borders.
  */
-void Maps::renderNavLineString(const NavFeature& feature, TFT_eSprite& map, bool isCasing)
+void Maps::renderNavLineString(const FeatureRef& ref, TFT_eSprite& map, bool isCasing)
 {
-    if (feature.coordCount < 2)
+    if (ref.coordCount < 2)
         return;
-    uint8_t* p = feature.payloadPtr;
-    int32_t lastX = 0, lastY = 0;
-    int16_t prevPx = 0, prevPy = 0;
-    uint16_t color = feature.properties.colorRgb565;
-    uint8_t widthRaw = feature.properties.getWidth();
-    float widthF = (widthRaw == 0 ? 2 : widthRaw) / 2.0f;
-    
+    size_t needed = ref.coordCount * 2;
+    decodedCoords.resize(needed);
+    uint8_t* p = ref.ptr;
+    int16_t prevX = 0, prevY = 0;
+    for (uint16_t i = 0; i < ref.coordCount; i++)
+    {
+        prevX += (int16_t)NavReader::decodeZigZag(NavReader::readVarInt(p));
+        prevY += (int16_t)NavReader::decodeZigZag(NavReader::readVarInt(p));
+        decodedCoords[i * 2] = prevX;
+        decodedCoords[i * 2 + 1] = prevY;
+    }
+    uint16_t color = ref.color;
+    float widthF = (ref.width == 0 ? 2 : ref.width) / 2.0f;
     if (isCasing)
     {
         color = darkenRGB565(color, 0.3f);
         widthF += 1.0f;
     }
-    
-    for (uint16_t i = 0; i < feature.coordCount; i++)
+    int16_t lastPx = -32768, lastPy = -32768;
+    for (uint16_t i = 0; i < ref.coordCount; i++)
     {
-        lastX += NavReader::decodeZigZag(NavReader::readVarInt(p));
-        lastY += NavReader::decodeZigZag(NavReader::readVarInt(p));
-        int16_t px = feature.tilePixelOffsetX + (lastX >> 4);
-        int16_t py = feature.tilePixelOffsetY + (lastY >> 4);
-        if (i > 0 && (px != prevPx || py != prevPy))
+        int16_t px = ref.tileOffsetX + (decodedCoords[i * 2] >> 4);
+        int16_t py = ref.tileOffsetY + (decodedCoords[i * 2 + 1] >> 4);
+        if (i > 0 && (px != lastPx || py != lastPy))
         {
-            if (!((px < 0 && prevPx < 0) || (px >= (int)tileWidth && prevPx >= (int)tileWidth) || (py < 0 && prevPy < 0) || (py >= (int)tileHeight && prevPy >= (int)tileHeight)))
+            if (!((px < 0 && lastPx < 0) || (px >= (int)tileWidth && lastPx >= (int)tileWidth) || (py < 0 && lastPy < 0) || (py >= (int)tileHeight && lastPy >= (int)tileHeight)))
             {
                 if (widthF <= 1.0f)
-                    map.drawLine(prevPx, prevPy, px, py, color);
+                    map.drawLine(lastPx, lastPy, px, py, color);
                 else
-                    map.drawWideLine(prevPx, prevPy, px, py, widthF, color);
+                    map.drawWideLine(lastPx, lastPy, px, py, widthF, color);
             }
         }
-        prevPx = px;
-        prevPy = py;
+        lastPx = px;
+        lastPy = py;
     }
 }
+
 /**
- * @brief Render a NAV Polygon feature
- * @param feature NavFeature object.
+ * @brief Render a NAV Polygon feature.
+ * @param ref FeatureRef structure.
  * @param map Target sprite.
  */
-void Maps::renderNavPolygon(const NavFeature& feature, TFT_eSprite& map)
+void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
 {
-    if (feature.coordCount < 3 || feature.coordCount > MAX_POLYGON_POINTS)
+    if (ref.coordCount < 3 || ref.coordCount > MAX_POLYGON_POINTS)
         return;
-    size_t numPoints = feature.coordCount;
-    if (projBuf32X.capacity() < numPoints)
-        projBuf32X.reserve(numPoints * 1.5);
-    if (projBuf32Y.capacity() < numPoints)
-        projBuf32Y.reserve(numPoints * 1.5);
-    projBuf32X.resize(numPoints);
-    projBuf32Y.resize(numPoints);
+    size_t needed = ref.coordCount * 2;
+    decodedCoords.resize(needed);
+    uint8_t* p = ref.ptr;
+    int16_t prevX = 0, prevY = 0;
+    for (uint16_t i = 0; i < ref.coordCount; i++)
+    {
+        prevX += (int16_t)NavReader::decodeZigZag(NavReader::readVarInt(p));
+        prevY += (int16_t)NavReader::decodeZigZag(NavReader::readVarInt(p));
+        decodedCoords[i * 2] = prevX;
+        decodedCoords[i * 2 + 1] = prevY;
+    }
+    projBuf32X.resize(ref.coordCount);
+    projBuf32Y.resize(ref.coordCount);
     int* px = projBuf32X.data();
     int* py = projBuf32Y.data();
-    uint8_t* p = feature.payloadPtr;
-    int32_t lastX = 0, lastY = 0;
     int minPx = INT_MAX, maxPx = INT_MIN, minPy = INT_MAX, maxPy = INT_MIN;
-    for (size_t i = 0; i < numPoints; i++)
+    for (size_t i = 0; i < ref.coordCount; i++)
     {
-        lastX += NavReader::decodeZigZag(NavReader::readVarInt(p));
-        lastY += NavReader::decodeZigZag(NavReader::readVarInt(p));
-        px[i] = feature.tilePixelOffsetX + (lastX >> 4);
-        py[i] = feature.tilePixelOffsetY + (lastY >> 4);
+        px[i] = ref.tileOffsetX + (decodedCoords[i * 2] >> 4);
+        py[i] = ref.tileOffsetY + (decodedCoords[i * 2 + 1] >> 4);
         if (px[i] < minPx)
             minPx = px[i];
         if (px[i] > maxPx)
@@ -1020,39 +1034,37 @@ void Maps::renderNavPolygon(const NavFeature& feature, TFT_eSprite& map)
     }
     if (maxPx < 0 || minPx >= (int)tileWidth || maxPy < 0 || minPy >= (int)tileHeight)
         return;
-    uint16_t fillColor = feature.properties.colorRgb565;
-    uint16_t borderColor = darkenRGB565(fillColor, 0.15f);
     uint16_t ringCount = 0;
     const uint16_t* ringEndsPtr = nullptr;
-    std::vector<uint16_t> ringEnds;
-    if ((size_t)(p - feature.payloadPtr) < feature.payloadSize)
+    ringEndsCache.clear();
+    if ((size_t)(p - ref.ptr) < ref.payloadSize)
     {
         ringCount = p[0] | (p[1] << 8);
         p += 2;
         if (ringCount > 0)
         {
-            ringEnds.reserve(ringCount);
-            for (int r = 0; r < ringCount; r++)
+            if (ringCount > ringEndsCache.capacity())
+                ringCount = ringEndsCache.capacity();
+            for (int r = 0; r < (int)ringCount; r++)
             {
-                ringEnds.push_back(p[0] | (p[1] << 8));
+                ringEndsCache.push_back(p[0] | (p[1] << 8));
                 p += 2;
             }
-            ringEndsPtr = ringEnds.data();
+            ringEndsPtr = ringEndsCache.data();
         }
     }
     if (fillPolygons)
-        fillPolygonGeneral(map, px, py, numPoints, fillColor, 0, 0, ringCount, ringEndsPtr);
-    
-    // Building outline (bit 7 of widthPixels), z16+ only
-    if (feature.properties.needsCasing() && navLastZoom_ >= 16)
+        fillPolygonGeneral(map, px, py, ref.coordCount, ref.color, 0, 0, ringCount, ringEndsPtr);
+    if (ref.casing && navLastZoom_ >= 16)
     {
-        uint16_t outlineColor = darkenRGB565(fillColor, 0.35f);
+        uint16_t outlineColor = darkenRGB565(ref.color, 0.35f);
         int ringStart = 0;
         uint16_t numRings = (ringCount > 0) ? ringCount : 1;
         for (uint16_t r = 0; r < numRings; r++)
         {
-            uint16_t ringEnd = (ringEndsPtr && r < ringCount) ? ringEndsPtr[r] : numPoints;
-            if (ringEnd > numPoints) ringEnd = numPoints;
+            uint16_t ringEnd = (ringEndsPtr && r < ringCount) ? ringEndsPtr[r] : ref.coordCount;
+            if (ringEnd > ref.coordCount)
+                ringEnd = ref.coordCount;
             for (uint16_t j = ringStart; j < ringEnd; j++)
             {
                 uint16_t next = (j + 1 < ringEnd) ? j + 1 : ringStart;
@@ -1062,93 +1074,105 @@ void Maps::renderNavPolygon(const NavFeature& feature, TFT_eSprite& map)
         }
     }
 }
+
 /**
- * @brief Render a NAV Point feature
- * @param feature NavFeature object.
+ * @brief Render a NAV Point feature.
+ * @param ref FeatureRef structure.
  * @param map Target sprite.
  */
-void Maps::renderNavPoint(const NavFeature& feature, TFT_eSprite& map)
+void Maps::renderNavPoint(const FeatureRef& ref, TFT_eSprite& map)
 {
-    if (feature.coordCount == 0)
+    if (ref.coordCount == 0)
         return;
-    uint8_t* p = feature.payloadPtr;
+    uint8_t* p = ref.ptr;
     int32_t x = NavReader::decodeZigZag(NavReader::readVarInt(p));
     int32_t y = NavReader::decodeZigZag(NavReader::readVarInt(p));
-    int16_t px = feature.tilePixelOffsetX + (x >> 4);
-    int16_t py = feature.tilePixelOffsetY + (y >> 4);
+    int16_t px = ref.tileOffsetX + (x >> 4);
+    int16_t py = ref.tileOffsetY + (y >> 4);
     if (px >= 0 && px < (int)tileWidth && py >= 0 && py < (int)tileHeight)
-        map.fillCircle(px, py, 3, feature.properties.colorRgb565);
+        map.fillCircle(px, py, 3, ref.color);
 }
-void Maps::renderNavFeature(const NavFeature& feature, TFT_eSprite& map, uint8_t pass, std::vector<LabelRect>& placedLabels)
+
+/**
+ * @brief Dispatch feature rendering based on pass and geometry type.
+ * @param ref FeatureRef structure.
+ * @param map Target sprite.
+ * @param pass Current rendering pass (1-4).
+ * @param placedLabels Persistent buffer for label collision detection.
+ */
+void Maps::renderNavFeature(const FeatureRef& ref, TFT_eSprite& map, uint8_t pass, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels)
 {
     switch (pass)
     {
         case 1: // Ground pass
-            if (feature.geomType == NavGeomType::Polygon) renderNavPolygon(feature, map);
-            else if (feature.geomType == NavGeomType::Point) renderNavPoint(feature, map);
-            else if (feature.geomType == NavGeomType::LineString && !feature.properties.needsCasing()) renderNavLineString(feature, map, false);
+            if (ref.geomType == NavGeomType::Polygon)
+                renderNavPolygon(ref, map);
+            else if (ref.geomType == NavGeomType::Point)
+                renderNavPoint(ref, map);
+            else if (ref.geomType == NavGeomType::LineString && !ref.casing)
+                renderNavLineString(ref, map, false);
             break;
         case 2: // Casing pass
-            if (feature.geomType == NavGeomType::LineString && feature.properties.needsCasing()) renderNavLineString(feature, map, true);
+            if (ref.geomType == NavGeomType::LineString && ref.casing)
+                renderNavLineString(ref, map, true);
             break;
         case 3: // Core pass
-            if (feature.geomType == NavGeomType::LineString && feature.properties.needsCasing()) renderNavLineString(feature, map, false);
+            if (ref.geomType == NavGeomType::LineString && ref.casing)
+                renderNavLineString(ref, map, false);
             break;
         case 4: // Text pass
-            if (feature.geomType == NavGeomType::Text) renderNavText(feature, map, placedLabels);
+            if (ref.geomType == NavGeomType::Text)
+                renderNavText(ref, map, placedLabels);
             break;
     }
 }
+
 /**
  * @brief Render a NAV Text feature with collision detection.
- * @param feature NavFeature object.
+ * @param ref FeatureRef structure.
  * @param map Target sprite.
- * @param placedLabels Vector of already placed label rectangles.
+ * @param placedLabels Persistent buffer for label collision detection.
  */
-void Maps::renderNavText(const NavFeature& feature, TFT_eSprite& map, std::vector<LabelRect>& placedLabels)
+void Maps::renderNavText(const FeatureRef& ref, TFT_eSprite& map, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels)
 {
-    uint8_t* p = feature.payloadPtr;
+    uint8_t* p = ref.ptr;
     int16_t tx, ty;
     memcpy(&tx, p, 2);
     memcpy(&ty, p + 2, 2);
-    int16_t px = feature.tilePixelOffsetX + (tx >> 4);
-    int16_t py = feature.tilePixelOffsetY + (ty >> 4);
+    int16_t px = ref.tileOffsetX + (tx >> 4);
+    int16_t py = ref.tileOffsetY + (ty >> 4);
     uint8_t textLen = p[4];
-    if (textLen == 0 || textLen >= 128) return;
+    if (textLen == 0 || textLen >= 128)
+        return;
     char textBuf[128];
     memcpy(textBuf, p + 5, textLen);
     textBuf[textLen] = '\0';
-    
-    // Scale font based on widthPixels (0=small, 1=medium, 2=large)
-    uint8_t fontSize = feature.properties.getWidth();
-    float scale = (fontSize == 0) ? 0.8f : (fontSize == 1) ? 1.0f : 1.2f;
+    float scale = (ref.width == 0) ? 0.8f : (ref.width == 1) ? 1.0f : 1.2f;
     map.setTextSize(scale);
-    
     int tw = map.textWidth(textBuf);
     int th = map.fontHeight();
     int lx = px - tw / 2;
     int ly = py - th;
     const int PAD = 4;
-    
-    if (lx + tw < 0 || lx >= (int)tileWidth || ly + th < 0 || ly >= (int)tileHeight) return;
-    
+    if (lx + tw < 0 || lx >= (int)tileWidth || ly + th < 0 || ly >= (int)tileHeight)
+        return;
     bool collision = false;
     for (const auto& r : placedLabels)
     {
-        if (lx - PAD < r.x + r.w && lx + tw + PAD > r.x &&
-            ly - PAD < r.y + r.h && ly + th + PAD > r.y)
+        if (lx - PAD < r.x + r.w && lx + tw + PAD > r.x && ly - PAD < r.y + r.h && ly + th + PAD > r.y)
         {
             collision = true;
             break;
         }
     }
-    if (collision) return;
-    
-    map.setTextColor(feature.properties.colorRgb565);
+    if (collision)
+        return;
+    map.setTextColor(ref.color);
     map.setTextDatum(lgfx::top_center);
     map.drawString(textBuf, px, ly);
     map.setTextDatum(lgfx::top_left);
-    placedLabels.push_back({(int16_t)lx, (int16_t)ly, (int16_t)tw, (int16_t)th});
+    if (placedLabels.size() < placedLabels.capacity())
+        placedLabels.push_back({(int16_t)lx, (int16_t)ly, (int16_t)tw, (int16_t)th});
 }
 
 /**
@@ -1192,50 +1216,107 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
  */
 void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, TFT_eSprite &map)
 {
-    std::vector<NavFeature> tileFeatures;
-    uint8_t* tileBuffer = nullptr;
-    size_t tileBufferSize = 0;
-    if (NavReader::readAllFeaturesMemory(tileX, tileY, zoom, tileFeatures, zoom, tileBuffer, tileBufferSize) == 0)
+    uint32_t tileHash = (uint32_t(zoom) << 28) | (uint32_t(tileX & 0x3FFF) << 14) | uint32_t(tileY & 0x3FFF);
+    uint8_t* data = nullptr;
+    size_t dataSize = 0;
+    int cacheIdx = -1;
+    for (int i = 0; i < (int)navDataCache.size(); i++)
     {
-        if (tileBuffer)
-            heap_caps_free(tileBuffer);
+        if (navDataCache[i].tileHash == tileHash)
+        {
+            cacheIdx = i;
+            break;
+        }
+    }
+    if (cacheIdx >= 0)
+    {
+        data = navDataCache[cacheIdx].data;
+        dataSize = navDataCache[cacheIdx].size;
+        navDataCache[cacheIdx].lastAccess = ++cacheCounter;
+    }
+    else
+    {
+        if (!NavReader::openPack(zoom))
+            return;
+        uint32_t offset, size;
+        if (!NavReader::findTileInPack(tileX, tileY, offset, size))
+            return;
+        data = (uint8_t*)heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
+        if (!data)
+        {
+            for (auto& entry : navDataCache)
+                heap_caps_free(entry.data);
+            navDataCache.clear();
+            data = (uint8_t*)heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
+            if (!data)
+                return;
+        }
+        storage.seek(NavReader::packFile, offset, SEEK_SET);
+        if (storage.read(NavReader::packFile, data, size) != size)
+        {
+            heap_caps_free(data);
+            return;
+        }
+        dataSize = size;
+        if (navDataCache.size() >= NAV_DATA_CACHE_SIZE)
+        {
+            int lru = 0;
+            for (int i = 1; i < (int)navDataCache.size(); i++)
+                if (navDataCache[i].lastAccess < navDataCache[lru].lastAccess)
+                    lru = i;
+            heap_caps_free(navDataCache[lru].data);
+            navDataCache.erase(navDataCache.begin() + lru);
+        }
+        navDataCache.push_back({data, size, tileHash, ++cacheCounter});
+    }
+    featurePool.clear();
+    if (dataSize < 22)
         return;
-    }
-    std::vector<NavFeature> layers[16];
-    for (auto& feature : tileFeatures)
+    uint16_t feature_count;
+    memcpy(&feature_count, data + 4, 2);
+    uint8_t* p = data + 22;
+    for (uint16_t i = 0; i < feature_count; i++)
     {
-        feature.tilePixelOffsetX = screenX;
-        feature.tilePixelOffsetY = screenY;
-        uint8_t priority = feature.properties.getPriority();
-        if (priority < 16)
-            layers[priority].push_back(std::move(feature));
+        if (p + 13 > data + dataSize)
+            break;
+        uint8_t geomType = p[0];
+        uint16_t colorRgb565;
+        memcpy(&colorRgb565, p + 1, 2);
+        uint8_t zp = p[3];
+        uint8_t wp = p[4];
+        uint8_t x1 = p[5], y1 = p[6], x2 = p[7], y2 = p[8];
+        uint16_t cc;
+        memcpy(&cc, p + 9, 2);
+        uint16_t ps;
+        memcpy(&ps, p + 11, 2);
+        if (p + 13 + ps > data + dataSize)
+            break;
+        if ((zp >> 4) <= zoom)
+        {
+            if (featurePool.size() < featurePool.capacity())
+                featurePool.push_back({p + 13, (NavGeomType)geomType, ps, cc, screenX, screenY, colorRgb565, (uint8_t)(wp & 0x7F), (wp & 0x80) != 0, x1, y1, x2, y2, (uint8_t)(zp & 0x0F)});
+        }
+        p += 13 + ps;
     }
-    
-    std::vector<LabelRect> placedLabels;
-    placedLabels.reserve(64);
-    
+    if (!featurePool.empty())
+    {
+        std::sort(featurePool.begin(), featurePool.end(), [](const FeatureRef& a, const FeatureRef& b) {
+            return a.priority < b.priority;
+        });
+    }
+    placedLabelsCache.clear();
     map.startWrite();
     for (int pass = 1; pass <= 4; pass++)
     {
-        for (int p = 0; p < 16; p++)
+        for (const auto& ref : featurePool)
         {
-            if (layers[p].empty())
+            if (screenX + ref.x2 < 0 || screenX + ref.x1 > (int)tileWidth || screenY + ref.y2 < 0 || screenY + ref.y1 > (int)tileHeight)
                 continue;
-            for (const auto& feature : layers[p])
-            {
-                const int16_t minX = feature.tilePixelOffsetX + (feature.objBbox.x1 << 0);
-                const int16_t minY = feature.tilePixelOffsetY + (feature.objBbox.y1 << 0);
-                const int16_t maxX = feature.tilePixelOffsetX + (feature.objBbox.x2 << 0);
-                const int16_t maxY = feature.tilePixelOffsetY + (feature.objBbox.y2 << 0);
-                if (minX > (int16_t)tileWidth || maxX < 0 || minY > (int16_t)tileHeight || maxY < 0)
-                    continue;
-                map.setClipRect(screenX, screenY, 256, 256);
-                renderNavFeature(feature, map, pass, placedLabels);
-            }
+            map.setClipRect(screenX, screenY, 256, 256);
+            renderNavFeature(ref, map, pass, placedLabelsCache);
         }
+        taskYIELD();
     }
     map.clearClipRect();
     map.endWrite();
-    if (tileBuffer)
-        heap_caps_free(tileBuffer);
 }

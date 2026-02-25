@@ -123,11 +123,42 @@ class Maps
         bool renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT_eSprite &map);
         void renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, TFT_eSprite &map);
     private:
-        void renderNavFeature(const NavFeature& feature, TFT_eSprite& map, uint8_t pass, std::vector<LabelRect>& placedLabels);
-        void renderNavLineString(const NavFeature& feature, TFT_eSprite& map, bool isCasing = false);
-        void renderNavPolygon(const NavFeature& feature, TFT_eSprite& map);
-        void renderNavPoint(const NavFeature& feature, TFT_eSprite& map);
-        void renderNavText(const NavFeature& feature, TFT_eSprite& map, std::vector<struct LabelRect>& placedLabels);
+        struct FeatureRef
+        {
+            uint8_t* ptr;
+            NavGeomType geomType;
+            uint16_t payloadSize;
+            uint16_t coordCount;
+            int16_t tileOffsetX;
+            int16_t tileOffsetY;
+            uint16_t color;
+            uint8_t width;
+            bool casing;
+            uint8_t x1, y1, x2, y2;
+            uint8_t priority;
+        };
+        struct NavDataCache
+        {
+            uint8_t* data;
+            size_t size;
+            uint32_t tileHash;
+            uint32_t lastAccess;
+        };
+        static const uint8_t NAV_DATA_CACHE_SIZE = 16;
+        std::vector<NavDataCache, PsramAllocator<NavDataCache>> navDataCache;
+        uint32_t cacheCounter = 0;
+        static const uint16_t MAX_POLYGON_POINTS = 16384;
+        std::vector<int, PsramAllocator<int>> projBuf32X;
+        std::vector<int, PsramAllocator<int>> projBuf32Y;
+        std::vector<int16_t, PsramAllocator<int16_t>> decodedCoords;
+        std::vector<FeatureRef, PsramAllocator<FeatureRef>> featurePool;
+        std::vector<uint16_t, PsramAllocator<uint16_t>> ringEndsCache;
+        std::vector<LabelRect, PsramAllocator<LabelRect>> placedLabelsCache;
+        void renderNavFeature(const FeatureRef& ref, TFT_eSprite& map, uint8_t pass, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels);
+        void renderNavLineString(const FeatureRef& ref, TFT_eSprite& map, bool isCasing = false);
+        void renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map);
+        void renderNavPoint(const FeatureRef& ref, TFT_eSprite& map);
+        void renderNavText(const FeatureRef& ref, TFT_eSprite& map, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels);
         void latLonToPixel(float lat, float lon, int16_t& px, int16_t& py);
         void drawTrack(TFT_eSprite &map);
     public:
@@ -164,9 +195,6 @@ class Maps
         float velocityY = 0.0f;
         const float friction = 0.95f;
     private:
-        static const uint16_t MAX_POLYGON_POINTS = 5000;
-        std::vector<int, PsramAllocator<int>> projBuf32X;
-        std::vector<int, PsramAllocator<int>> projBuf32Y;
         struct Edge
         {
             int yMax;

@@ -14,6 +14,7 @@
 #include <cstdio>
 #include <vector>
 #include "esp_heap_caps.h"
+#include "PsramAllocator.hpp"
 
 /**
  * @brief NAV format constants
@@ -126,6 +127,7 @@ struct NavFeature
 class NavReader
 {
 public:
+    static FILE* packFile;
     /**
      * @brief Load tile features from the packed container.
      * @param tileX Tile X coordinate.
@@ -137,19 +139,19 @@ public:
      * @param bufferSize Size of tileBuffer.
      * @return Number of features loaded.
      */
-    static size_t readAllFeaturesMemory(uint32_t tileX, uint32_t tileY, uint8_t zoom, std::vector<NavFeature>& features, uint8_t maxZoom, uint8_t*& tileBuffer, size_t& bufferSize);
+    static size_t readAllFeaturesMemory(uint32_t tileX, uint32_t tileY, uint8_t zoom, std::vector<NavFeature, PsramAllocator<NavFeature>>& features, uint8_t maxZoom, uint8_t*& tileBuffer, size_t& bufferSize);
 
     /**
      * @brief Closes the currently open packed file.
      */
     static void closePack();
+    static bool openPack(uint8_t zoom);
+    static bool findTileInPack(uint32_t tileX, uint32_t tileY, uint32_t& offset, uint32_t& size);
+
 private:
-    static FILE* packFile;
     static uint8_t currentZoom;
     static uint32_t tileCount;
     static uint32_t indexOff;
-    static bool openPack(uint8_t zoom);
-    static bool findTileInPack(uint32_t tileX, uint32_t tileY, uint32_t& offset, uint32_t& size);
 
 public:
     // --- Static Helpers for Streaming Decoding ---
