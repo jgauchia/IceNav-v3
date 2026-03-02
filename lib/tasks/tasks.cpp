@@ -128,19 +128,12 @@ void sensorTask(void *pvParameters)
     uint16_t slowCounter = 0;
     while (1)
     {
-        // Suspend sensor readings during map scroll to prioritize map rendering
-        if (isScrollingMap)
-        {
-            vTaskDelay(pdMS_TO_TICKS(100));
-            continue;
-        }
-
         #ifdef ENABLE_COMPASS
             globalSensorData.heading = compass.getHeading();
         #endif
 
-        // Read slow sensors every ~1.5 seconds (75 * 20ms)
-        if (slowCounter++ >= 75) 
+        // Read slow sensors every ~1.5 seconds (150 * 10ms)
+        if (slowCounter++ >= 150) 
         {
             #ifdef BME280
                 globalSensorData.temperature = bme.readTemperature();
@@ -152,7 +145,7 @@ void sensorTask(void *pvParameters)
             slowCounter = 0;
         }
 
-        vTaskDelay(pdMS_TO_TICKS(20));
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
 

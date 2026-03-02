@@ -508,7 +508,7 @@ void Compass::init()
         ESP_LOGE(TAG, "QMC5883L initialization failed");
         return;
     }
-    comp.setDataRate(2);    // 100Hz
+    comp.setDataRate(3);    // 200Hz
     comp.setSamples(2);     // 128 oversampling
     ESP_LOGI(TAG, "QMC5883L init OK");
 #endif

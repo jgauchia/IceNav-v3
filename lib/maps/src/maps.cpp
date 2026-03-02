@@ -563,7 +563,7 @@ void Maps::displayMap()
 {
     if (!Maps::isMapFound)
     {
-        Maps::mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
+        Maps::mapTempSprite.pushSprite(&mapSprite, 0, 0);
         return;
     }
 
@@ -576,7 +576,10 @@ void Maps::displayMap()
 #else
     mapHeading = gps.gpsData.heading;
 #endif
+    
     Maps::mapTempSprite.pushImage(Maps::wptPosX - 8, Maps::wptPosY - 8, 16, 16, (uint16_t *)waypoint, TFT_BLACK);
+    
+    tft.startWrite();
     if (Maps::followGps)
     {
         const float lat = gps.gpsData.latitude;
@@ -588,7 +591,11 @@ void Maps::displayMap()
         Maps::mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
     }
     else
-        Maps::mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
+    {
+        // Universal fast transfer using direct buffer pointer
+        mapSprite.pushImage(0, 0, tileWidth, tileHeight, (uint16_t*)mapTempSprite.getBuffer());
+    }
+    tft.endWrite();
 
     xSemaphoreGive(mapMutex);
 }
