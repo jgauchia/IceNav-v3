@@ -147,7 +147,8 @@ class Maps
         static const uint8_t NAV_DATA_CACHE_SIZE = 12;
         std::vector<NavDataCache, PsramAllocator<NavDataCache>> navDataCache;
         uint32_t cacheCounter = 0;
-        static const uint16_t MAX_POLYGON_POINTS = 16384;
+        static const uint16_t MAX_POLYGON_POINTS = 4096;
+        static const uint16_t MAX_FEATURE_POOL_SIZE = 4096;
         std::vector<int, PsramAllocator<int>> projBuf32X;
         std::vector<int, PsramAllocator<int>> projBuf32Y;
         std::vector<int16_t, PsramAllocator<int16_t>> decodedCoords;

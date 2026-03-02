@@ -45,12 +45,12 @@ Maps::Maps() : fillPolygons(true),
                navLastLat_(0), navLastLon_(0), navLastZoom_(0), navNeedsRender_(true),
                navTlTileX_(-1), navTlTileY_(-1)
 {
-    projBuf32X.reserve(16384);
-    projBuf32Y.reserve(16384);
-    decodedCoords.reserve(16384);
-    edgePool.reserve(16384);
+    projBuf32X.reserve(MAX_POLYGON_POINTS);
+    projBuf32Y.reserve(MAX_POLYGON_POINTS);
+    decodedCoords.reserve(MAX_POLYGON_POINTS * 2);
+    edgePool.reserve(MAX_POLYGON_POINTS);
     edgeBuckets.reserve(tileHeight);
-    featurePool.reserve(4096);
+    featurePool.reserve(MAX_FEATURE_POOL_SIZE);
     for (int i = 0; i < 4; i++)
         passIndices[i].reserve(2048);
     ringEndsCache.reserve(1024);
@@ -1014,17 +1014,20 @@ void Maps::renderNavLineString(const FeatureRef& ref, TFT_eSprite& map, bool isC
 {
     if (ref.coordCount < 2)
         return;
-    size_t needed = ref.coordCount * 2;
-    decodedCoords.resize(needed);
+    
+    decodedCoords.resize(ref.coordCount * 2);
+    int16_t* coords = decodedCoords.data();
     uint8_t* p = ref.ptr;
-    int16_t prevX = 0, prevY = 0;
+    int32_t curX = 0, curY = 0;
+    
     for (uint16_t i = 0; i < ref.coordCount; i++)
     {
-        prevX += (int16_t)NavReader::decodeZigZag(NavReader::readVarInt(p));
-        prevY += (int16_t)NavReader::decodeZigZag(NavReader::readVarInt(p));
-        decodedCoords[i * 2] = prevX;
-        decodedCoords[i * 2 + 1] = prevY;
+        curX += NavReader::decodeZigZag(NavReader::readVarInt(p));
+        curY += NavReader::decodeZigZag(NavReader::readVarInt(p));
+        coords[i * 2] = ref.tileOffsetX + (curX >> 4);
+        coords[i * 2 + 1] = ref.tileOffsetY + (curY >> 4);
     }
+
     uint16_t color = ref.color;
     float widthF = (ref.width == 0 ? 2 : ref.width) / 2.0f;
     if (isCasing)
@@ -1035,8 +1038,8 @@ void Maps::renderNavLineString(const FeatureRef& ref, TFT_eSprite& map, bool isC
     int16_t lastPx = -32768, lastPy = -32768;
     for (uint16_t i = 0; i < ref.coordCount; i++)
     {
-        int16_t px = ref.tileOffsetX + (decodedCoords[i * 2] >> 4);
-        int16_t py = ref.tileOffsetY + (decodedCoords[i * 2 + 1] >> 4);
+        int16_t px = coords[i * 2];
+        int16_t py = coords[i * 2 + 1];
         if (i > 0 && (px != lastPx || py != lastPy))
         {
             if (!((px < 0 && lastPx < 0) || (px >= (int)tileWidth && lastPx >= (int)tileWidth) || (py < 0 && lastPy < 0) || (py >= (int)tileHeight && lastPy >= (int)tileHeight)))
@@ -1061,17 +1064,20 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
 {
     if (ref.coordCount < 3 || ref.coordCount > MAX_POLYGON_POINTS)
         return;
-    size_t needed = ref.coordCount * 2;
-    decodedCoords.resize(needed);
+    
+    decodedCoords.resize(ref.coordCount * 2);
+    int16_t* coords = decodedCoords.data();
     uint8_t* p = ref.ptr;
-    int16_t prevX = 0, prevY = 0;
+    int32_t curX = 0, curY = 0;
+    
     for (uint16_t i = 0; i < ref.coordCount; i++)
     {
-        prevX += (int16_t)NavReader::decodeZigZag(NavReader::readVarInt(p));
-        prevY += (int16_t)NavReader::decodeZigZag(NavReader::readVarInt(p));
-        decodedCoords[i * 2] = prevX;
-        decodedCoords[i * 2 + 1] = prevY;
+        curX += NavReader::decodeZigZag(NavReader::readVarInt(p));
+        curY += NavReader::decodeZigZag(NavReader::readVarInt(p));
+        coords[i * 2] = ref.tileOffsetX + (curX >> 4);
+        coords[i * 2 + 1] = ref.tileOffsetY + (curY >> 4);
     }
+
     projBuf32X.resize(ref.coordCount);
     projBuf32Y.resize(ref.coordCount);
     int* px = projBuf32X.data();
@@ -1079,8 +1085,8 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
     int minPx = INT_MAX, maxPx = INT_MIN, minPy = INT_MAX, maxPy = INT_MIN;
     for (size_t i = 0; i < ref.coordCount; i++)
     {
-        px[i] = ref.tileOffsetX + (decodedCoords[i * 2] >> 4);
-        py[i] = ref.tileOffsetY + (decodedCoords[i * 2 + 1] >> 4);
+        px[i] = coords[i * 2];
+        py[i] = coords[i * 2 + 1];
         if (px[i] < minPx)
             minPx = px[i];
         if (px[i] > maxPx)
@@ -1369,7 +1375,7 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
                     continue;
                 }
             }
-            if (featurePool.size() < featurePool.capacity())
+            if (featurePool.size() < MAX_FEATURE_POOL_SIZE)
             {
                 bool isCasing = (wp & 0x80) != 0;
                 featurePool.push_back({p + 13, (NavGeomType)geomType, ps, cc, screenX, screenY, colorRgb565, (uint8_t)(wp & 0x7F), isCasing, bx1, by1, bx2, by2, (uint8_t)(zp & 0x0F)});
