@@ -144,7 +144,7 @@ class Maps
             uint32_t tileHash;
             uint32_t lastAccess;
         };
-        static const uint8_t NAV_DATA_CACHE_SIZE = 16;
+        static const uint8_t NAV_DATA_CACHE_SIZE = 12;
         std::vector<NavDataCache, PsramAllocator<NavDataCache>> navDataCache;
         uint32_t cacheCounter = 0;
         static const uint16_t MAX_POLYGON_POINTS = 16384;
