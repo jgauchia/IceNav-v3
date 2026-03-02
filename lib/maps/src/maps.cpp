@@ -1319,13 +1319,15 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
         uint32_t offset, size;
         if (!NavReader::findTileInPack(tileX, tileY, offset, size))
             return;
-        data = (uint8_t*)heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
+        
+        // Use 512-byte alignment for native SD sector compatibility
+        data = (uint8_t*)heap_caps_aligned_alloc(512, size, MALLOC_CAP_SPIRAM);
         if (!data)
         {
             for (auto& entry : navDataCache)
                 heap_caps_free(entry.data);
             navDataCache.clear();
-            data = (uint8_t*)heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
+            data = (uint8_t*)heap_caps_aligned_alloc(512, size, MALLOC_CAP_SPIRAM);
             if (!data)
                 return;
         }
