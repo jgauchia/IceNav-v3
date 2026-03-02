@@ -196,6 +196,8 @@ class Maps
         uint64_t totalProcessTime;
         uint64_t totalDrawTime;
         uint32_t totalFeaturesDrawn;
+        uint16_t cacheHits;
+        uint16_t cacheMisses;
     public:
         float velocityX = 0.0f;
         float velocityY = 0.0f;

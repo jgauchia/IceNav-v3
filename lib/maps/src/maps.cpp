@@ -347,6 +347,10 @@ void Maps::generateMap(uint8_t zoom)
         if (!zoomChanged && !tileChanged && !navNeedsRender_ && pendingTiles.empty())
             return;
 
+        // Skip if queue is already full to prevent task flooding during fast scroll
+        if (pendingTiles.size() > 9)
+            return;
+
         bool needsFullRender = zoomChanged || navNeedsRender_ || (navTlTileX_ == -1);
 
         if (!needsFullRender && !tileChanged)
@@ -507,13 +511,16 @@ void Maps::mapRenderTask(void* pvParameters)
                         instance->drawTrack(instance->mapTempSprite);
                         instance->redrawMap = true;
                         uint64_t endTime = esp_timer_get_time();
-                        ESP_LOGI(TAG, "Zoom: %u | Full Render: %llu ms | Load: %llu ms | Proc: %llu ms | Draw: %llu ms | Features: %u", 
+                        ESP_LOGI(TAG, "Zoom: %u | Full Render: %llu ms | Load: %llu ms | Proc: %llu ms | Draw: %llu ms | Features: %u | Cache H/M: %u/%u | PSRAM: %u KB", 
                                  instance->zoomLevel,
                                  (endTime - instance->viewportStartTime) / 1000,
                                  instance->totalLoadTime / 1000,
                                  instance->totalProcessTime / 1000,
                                  instance->totalDrawTime / 1000,
-                                 instance->totalFeaturesDrawn);
+                                 instance->totalFeaturesDrawn,
+                                 instance->cacheHits,
+                                 instance->cacheMisses,
+                                 ESP.getFreePsram() / 1024);
                     }
                 }
                 xSemaphoreGive(instance->mapMutex);
@@ -721,6 +728,16 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
         Maps::panMap(deltaTileX, deltaTileY);
         if (!mapSet.vectorMap)
             Maps::preloadTiles(deltaTileX, deltaTileY);
+        
+        // Reset telemetry for this scroll movement
+        viewportStartTime = esp_timer_get_time();
+        totalLoadTime = 0;
+        totalProcessTime = 0;
+        totalDrawTime = 0;
+        totalFeaturesDrawn = 0;
+        cacheHits = 0;
+        cacheMisses = 0;
+
         generateMap(zoomLevel);
         Maps::lastTileX = Maps::tileX;
         Maps::lastTileY = Maps::tileY;
@@ -1201,6 +1218,8 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
     totalProcessTime = 0;
     totalDrawTime = 0;
     totalFeaturesDrawn = 0;
+    cacheHits = 0;
+    cacheMisses = 0;
     if (xSemaphoreTake(mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
     {
         pendingTiles.clear();
@@ -1242,9 +1261,11 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
         data = navDataCache[cacheIdx].data;
         dataSize = navDataCache[cacheIdx].size;
         navDataCache[cacheIdx].lastAccess = ++cacheCounter;
+        cacheHits++;
     }
     else
     {
+        cacheMisses++;
         if (!NavReader::openPack(zoom))
             return;
         uint32_t offset, size;
