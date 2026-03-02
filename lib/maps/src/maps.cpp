@@ -410,6 +410,10 @@ void Maps::generateMap(uint8_t zoom)
             navLastZoom_ = zoom;
             navNeedsRender_ = false;
         }
+
+        latLonToPixel(destLat, destLon, (int16_t&)wptPosX, (int16_t&)wptPosY);
+        drawTrack(mapTempSprite);
+        Maps::redrawMap = true;
         return;
     }
 
