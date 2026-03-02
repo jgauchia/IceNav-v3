@@ -900,6 +900,7 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
     }
     for (int y = startY; y <= endY; y++)
     {
+        bool changed = false;
         int eIdx = edgeBuckets[y - minY];
         while (eIdx != -1)
         {
@@ -907,37 +908,67 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
             edgePool[eIdx].nextActive = activeHead;
             activeHead = eIdx;
             eIdx = nextIdx;
+            changed = true;
         }
         int* pCurrIdx = &activeHead;
         while (*pCurrIdx != -1)
         {
             if (edgePool[*pCurrIdx].yMax <= y)
+            {
                 *pCurrIdx = edgePool[*pCurrIdx].nextActive;
+                changed = true;
+            }
             else
                 pCurrIdx = &(edgePool[*pCurrIdx].nextActive);
         }
         if (activeHead == -1) continue;
-        int sorted = -1;
-        int active = activeHead;
-        while (active != -1)
+        if (changed)
         {
-            int nextActive = edgePool[active].nextActive;
-            if (sorted == -1 || edgePool[active].xVal < edgePool[sorted].xVal)
+            int sorted = -1;
+            int active = activeHead;
+            while (active != -1)
             {
-                edgePool[active].nextActive = sorted;
-                sorted = active;
+                int nextActive = edgePool[active].nextActive;
+                if (sorted == -1 || edgePool[active].xVal < edgePool[sorted].xVal)
+                {
+                    edgePool[active].nextActive = sorted;
+                    sorted = active;
+                }
+                else
+                {
+                    int s = sorted;
+                    while (edgePool[s].nextActive != -1 && edgePool[edgePool[s].nextActive].xVal < edgePool[active].xVal)
+                        s = edgePool[s].nextActive;
+                    edgePool[active].nextActive = edgePool[s].nextActive;
+                    edgePool[s].nextActive = active;
+                }
+                active = nextActive;
             }
-            else
-            {
-                int s = sorted;
-                while (edgePool[s].nextActive != -1 && edgePool[edgePool[s].nextActive].xVal < edgePool[active].xVal)
-                    s = edgePool[s].nextActive;
-                edgePool[active].nextActive = edgePool[s].nextActive;
-                edgePool[s].nextActive = active;
-            }
-            active = nextActive;
+            activeHead = sorted;
         }
-        activeHead = sorted;
+        else
+        {
+            bool swapped = true;
+            while (swapped)
+            {
+                swapped = false;
+                int* pPrev = &activeHead;
+                int curr = activeHead;
+                while (curr != -1 && edgePool[curr].nextActive != -1)
+                {
+                    int next = edgePool[curr].nextActive;
+                    if (edgePool[curr].xVal > edgePool[next].xVal)
+                    {
+                        edgePool[curr].nextActive = edgePool[next].nextActive;
+                        edgePool[next].nextActive = curr;
+                        *pPrev = next;
+                        swapped = true;
+                    }
+                    pPrev = &((*pPrev == curr) ? edgePool[curr].nextActive : *pPrev);
+                    curr = *pPrev;
+                }
+            }
+        }
         int yy = y + yOffset;
         int left = activeHead;
         while (left != -1 && edgePool[left].nextActive != -1)
