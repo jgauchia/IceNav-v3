@@ -374,33 +374,32 @@ void Maps::generateMap(uint8_t zoom)
         Maps::totalBounds = {90.0f, -90.0f, 180.0f, -180.0f};
         bool centerFound = false;
 
-        for (int gy = 0; gy < tilesGrid; gy++)
+        static const int8_t spiralOrder[9][2] = {{1,1}, {0,1}, {1,0}, {2,1}, {1,2}, {0,0}, {2,0}, {0,2}, {2,2}};
+        for (int i = 0; i < 9; i++)
         {
-            for (int gx = 0; gx < tilesGrid; gx++)
-            {
-                uint32_t tx = tlX + gx;
-                uint32_t ty = tlY + gy;
-                int16_t sx = gx * mapTileSize;
-                int16_t sy = gy * mapTileSize;
+            int gx = spiralOrder[i][0], gy = spiralOrder[i][1];
+            uint32_t tx = tlX + gx;
+            uint32_t ty = tlY + gy;
+            int16_t sx = gx * mapTileSize;
+            int16_t sy = gy * mapTileSize;
 
-                char tilePath[128];
-                snprintf(tilePath, sizeof(tilePath), mapRenderFolder, zoom, tx, ty);
+            char tilePath[128];
+            snprintf(tilePath, sizeof(tilePath), mapRenderFolder, zoom, tx, ty);
+            
+            if (mapTempSprite.drawPngFile(tilePath, sx, sy))
+            {
+                if (tx == centerTileIdxX && ty == centerTileIdxY) centerFound = true;
                 
-                if (mapTempSprite.drawPngFile(tilePath, sx, sy))
-                {
-                    if (tx == centerTileIdxX && ty == centerTileIdxY) centerFound = true;
-                    
-                    const tileBounds currentBounds = Maps::getTileBounds(tx, ty, zoom);
-                    if (currentBounds.lat_min < Maps::totalBounds.lat_min) Maps::totalBounds.lat_min = currentBounds.lat_min;
-                    if (currentBounds.lat_max > Maps::totalBounds.lat_max) Maps::totalBounds.lat_max = currentBounds.lat_max;
-                    if (currentBounds.lon_min < Maps::totalBounds.lon_min) Maps::totalBounds.lon_min = currentBounds.lon_min;
-                    if (currentBounds.lon_max > Maps::totalBounds.lon_max) Maps::totalBounds.lon_max = currentBounds.lon_max;
-                }
-                else
-                {
-                    mapTempSprite.fillRect(sx, sy, 256, 256, TFT_BLACK);
-                    mapTempSprite.drawPngFile(noMapFile, sx + 256 / 2 - 50, sy + 256 / 2 - 50);
-                }
+                const tileBounds currentBounds = Maps::getTileBounds(tx, ty, zoom);
+                if (currentBounds.lat_min < Maps::totalBounds.lat_min) Maps::totalBounds.lat_min = currentBounds.lat_min;
+                if (currentBounds.lat_max > Maps::totalBounds.lat_max) Maps::totalBounds.lat_max = currentBounds.lat_max;
+                if (currentBounds.lon_min < Maps::totalBounds.lon_min) Maps::totalBounds.lon_min = currentBounds.lon_min;
+                if (currentBounds.lon_max > Maps::totalBounds.lon_max) Maps::totalBounds.lon_max = currentBounds.lon_max;
+            }
+            else
+            {
+                mapTempSprite.fillRect(sx, sy, 256, 256, TFT_BLACK);
+                mapTempSprite.drawPngFile(noMapFile, sx + 256 / 2 - 50, sy + 256 / 2 - 50);
             }
         }
 
@@ -1245,9 +1244,14 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
             redrawMap = true;
         }
         pendingTiles.clear();
-        for (int dy = 0; dy < tilesGrid; dy++)
-            for (int dx = 0; dx < tilesGrid; dx++)
-                pendingTiles.push_back({(uint32_t)(centerTileIdxX - gridOffset + dx), (uint32_t)(centerTileIdxY - gridOffset + dy), (int16_t)(dx * 256), (int16_t)(dy * 256), TILE_NAV});
+        // Spiral order for 3x3 grid (queued in reverse for pop_back processing): 
+        // 1. Corners, 2. Sides, 3. Center
+        static const int8_t spiralOrder[9][2] = {{0,0}, {2,0}, {0,2}, {2,2}, {0,1}, {1,0}, {2,1}, {1,2}, {1,1}};
+        for (int i = 0; i < 9; i++)
+        {
+            int dx = spiralOrder[i][0], dy = spiralOrder[i][1];
+            pendingTiles.push_back({(uint32_t)(centerTileIdxX - gridOffset + dx), (uint32_t)(centerTileIdxY - gridOffset + dy), (int16_t)(dx * 256), (int16_t)(dy * 256), TILE_NAV});
+        }
         xSemaphoreGive(mapMutex);
     }
     return true;
