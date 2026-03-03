@@ -444,14 +444,27 @@ void Maps::mapRenderTask(void* pvParameters)
                     instance->featurePool.clear();
                     instance->decodedCoords.clear();
                     for (int i = 0; i < 16; i++) instance->layers[i].clear();
-                    instance->mapTempSprite.fillSprite(0xF7BE);
                 }
                 while (!instance->pendingTiles.empty())
                 {
                     PendingTile t = instance->pendingTiles.back();
                     instance->pendingTiles.pop_back();
                     if (t.type == TILE_NAV) instance->renderNavTile(t.x, t.y, instance->zoomLevel, t.screenX, t.screenY, instance->mapTempSprite);
-                    else if (t.type == TILE_PNG) instance->renderPngTile(t.x, t.y, instance->zoomLevel, t.screenX, t.screenY, instance->mapTempSprite);
+                    else if (t.type == TILE_PNG)
+                    {
+                        instance->renderPngTile(t.x, t.y, instance->zoomLevel, t.screenX, t.screenY, instance->mapTempSprite);
+                        // Release mutex between PNG tiles to keep UI/Scroll alive
+                        xSemaphoreGive(instance->mapMutex);
+                        vTaskDelay(1);
+                        if (xSemaphoreTake(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE) break;
+                    }
+                }
+                if (!mapSet.vectorMap)
+                {
+                    instance->drawTrack(instance->mapTempSprite);
+                    instance->redrawMap = true;
+                    xSemaphoreGive(instance->mapMutex);
+                    continue;
                 }
                 instance->placedLabelsCache.clear();
                 instance->totalFeaturesDrawn = (uint32_t)instance->featurePool.size();
@@ -1216,16 +1229,21 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
     const int8_t gridOffset = tilesGrid / 2;
     navTlTileX_ = (float)(centerTileIdxX - gridOffset);
     navTlTileY_ = (float)(centerTileIdxY - gridOffset);
+    bool zoomChanged = (zoom != navLastZoom_);
     navLastZoom_ = zoom;
-    viewportStartTime = esp_timer_get_time();
-    totalLoadTime = 0;
-    totalProcessTime = 0;
-    totalDrawTime = 0;
-    totalFeaturesDrawn = 0;
-    cacheHits = 0;
-    cacheMisses = 0;
+    if (mapSet.vectorMap)
+    {
+        viewportStartTime = esp_timer_get_time();
+        totalLoadTime = 0; totalProcessTime = 0; totalDrawTime = 0;
+        totalFeaturesDrawn = 0; cacheHits = 0; cacheMisses = 0;
+    }
     if (xSemaphoreTake(mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
     {
+        if (zoomChanged)
+        {
+            map.fillSprite(0xF7BE);
+            redrawMap = true;
+        }
         pendingTiles.clear();
         for (int dy = 0; dy < tilesGrid; dy++)
             for (int dx = 0; dx < tilesGrid; dx++)
@@ -1293,8 +1311,12 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
         }
         navDataCache.push_back({data, size, tileHash, ++cacheCounter, true});
     }
-    uint64_t tLoadEnd = esp_timer_get_time();
-    totalLoadTime += (tLoadEnd - tStart);
+    uint64_t tLoadEnd = 0;
+    if (mapSet.vectorMap)
+    {
+        tLoadEnd = esp_timer_get_time();
+        totalLoadTime += (tLoadEnd - tStart);
+    }
     if (dataSize < 22) return;
     uint16_t feature_count;
     memcpy(&feature_count, data + 4, 2);
@@ -1330,5 +1352,5 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
         }
         p += 13 + ps;
     }
-    totalProcessTime += (esp_timer_get_time() - tLoadEnd);
+    totalProcessTime += (mapSet.vectorMap) ? (esp_timer_get_time() - tLoadEnd) : 0;
 }
