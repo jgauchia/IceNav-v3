@@ -107,6 +107,11 @@ class Maps
         bool scrollUpdated = false;
         int8_t lastTileX = 0;
         int8_t lastTileY = 0;
+        // Event Sync (Phase 12)
+        EventGroupHandle_t mapEventGroup;
+        static const uint32_t MAP_EVENT_START = (1 << 0);
+        static const uint32_t MAP_EVENT_DONE  = (1 << 1);
+        static const uint32_t MAP_EVENT_ERROR = (1 << 2);
         Maps();
         MapTile getMapTile(float lon, float lat, uint8_t zoomLevel, int8_t offsetX, int8_t offsetY);
         void initMap(uint16_t mapHeight, uint16_t mapWidth);

@@ -56,6 +56,7 @@ Maps::Maps() : fillPolygons(true),
     placedLabelsCache.reserve(1024);
     navDataCache.reserve(NAV_DATA_CACHE_SIZE);
     mapMutex = xSemaphoreCreateMutex();
+    mapEventGroup = xEventGroupCreate();
     xTaskCreatePinnedToCore(mapRenderTask, "MapRenderTask", 16384, this, 1, &mapRenderTaskHandle, 0);
 }
 
@@ -417,6 +418,7 @@ void Maps::generateMap(uint8_t zoom)
 
         drawTrack(mapTempSprite);
         Maps::redrawMap = true;
+        xEventGroupSetBits(mapEventGroup, MAP_EVENT_DONE);
     }
 }
 
@@ -440,6 +442,8 @@ void Maps::mapRenderTask(void* pvParameters)
                 lastZoom = instance->zoomLevel;
                 if (fullReset)
                 {
+                    xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_DONE | MAP_EVENT_ERROR);
+                    xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_START);
                     instance->featurePool.clear();
                     instance->decodedCoords.clear();
                     for (int i = 0; i < 16; i++) instance->layers[i].clear();
@@ -462,6 +466,8 @@ void Maps::mapRenderTask(void* pvParameters)
                 {
                     instance->drawTrack(instance->mapTempSprite);
                     instance->redrawMap = true;
+                    xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
+                    xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
                     xSemaphoreGive(instance->mapMutex);
                     continue;
                 }
@@ -489,6 +495,8 @@ void Maps::mapRenderTask(void* pvParameters)
                 for (auto& entry : instance->navDataCache) entry.isPinned = false;
                 instance->drawTrack(instance->mapTempSprite);
                 instance->redrawMap = true;
+                xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
+                xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
                 xSemaphoreGive(instance->mapMutex);
                 uint64_t endTime = esp_timer_get_time();
                 ESP_LOGI(TAG, "Zoom: %u | Full Render: %llu ms | Load: %llu ms | Proc: %llu ms | Draw: %llu ms | Features: %u | Cache H/M: %u/%u | PSRAM: %u KB", 

@@ -287,11 +287,28 @@ void updateMap(lv_event_t *event)
         }
     }
 
-    if (mapView.followGps)
-        mapView.redrawMap = true;
-    mapView.generateMap(zoom);
-    if (mapView.redrawMap)
+    static uint32_t lastRotTime = 0;
+    static float lastRotHeading = -1.0f;
+    if (mapView.followGps && !isScrollingMap)
     {
+        mapView.redrawMap = true;
+        float currHead = mapSet.mapRotationComp ? globalSensorData.heading : (float)gps.gpsData.heading;
+        uint32_t now = millis();
+        if (!(xEventGroupGetBits(mapView.mapEventGroup) & Maps::MAP_EVENT_START))
+        {
+            if (now - lastRotTime > 50 && abs(currHead - lastRotHeading) > 1.0f)
+            {
+                xEventGroupSetBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
+                lastRotTime = now; lastRotHeading = currHead;
+            }
+        }
+    }
+    mapView.generateMap(zoom);
+    if (mapView.redrawMap && !mapSet.vectorMap)
+        xEventGroupSetBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
+    if (xEventGroupGetBits(mapView.mapEventGroup) & Maps::MAP_EVENT_DONE)
+    {
+        xEventGroupClearBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
         mapView.displayMap();
         lv_canvas_set_buffer(mapCanvas, mapView.mapBuffer, Maps::tileWidth, Maps::tileHeight, LV_COLOR_FORMAT_RGB565_SWAPPED);
         mapView.redrawMap = false;
