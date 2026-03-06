@@ -1,8 +1,17 @@
+/**
+ * @file nav_reader.cpp
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @brief  Binary NAV file reader and tile container manager
+ * @version 0.2.4
+ * @date 2025-12
+ */
+
 #include "nav_reader.hpp"
 #include <cstring>
 #include "esp_log.h"
 #include "storage.hpp"
 #include "mapVars.h"
+
 extern Storage storage;
 static const char* TAG = "NavReader";
 
@@ -20,12 +29,15 @@ bool NavReader::openPack(uint8_t zoom)
 {
     if (packFile && currentZoom == zoom)
         return true;
+
     closePack();
+
     char path[64];
     snprintf(path, sizeof(path), mapVectorFolder, zoom);
     packFile = storage.open(path, "rb");
     if (!packFile)
         return false;
+
     char magic[4];
     if (storage.read(packFile, (uint8_t*)magic, 4) != 4 || memcmp(magic, "NPK2", 4) != 0)
     {
@@ -33,6 +45,7 @@ bool NavReader::openPack(uint8_t zoom)
         closePack();
         return false;
     }
+
     uint8_t fileZoom;
     if (storage.read(packFile, &fileZoom, 1) != 1 || fileZoom != zoom)
     {
@@ -40,6 +53,7 @@ bool NavReader::openPack(uint8_t zoom)
         closePack();
         return false;
     }
+
     // NPK2 Header: tile_count(4), y_min(4), y_max(4), ytable_off(4), index_off(4) = 20 bytes
     uint32_t extraHeader[5];
     if (storage.read(packFile, (uint8_t*)extraHeader, 20) != 20)
@@ -48,11 +62,14 @@ bool NavReader::openPack(uint8_t zoom)
         closePack();
         return false;
     }
+
     tileCount = extraHeader[0];
     indexOff = extraHeader[4];
     currentZoom = zoom;
+
     return true;
 }
+
 /**
  * @brief Close the currently open packed container.
  */
@@ -63,10 +80,12 @@ void NavReader::closePack()
         storage.close(packFile);
         packFile = nullptr;
     }
+
     currentZoom = 0;
     tileCount = 0;
     indexOff = 0;
 }
+
 /**
  * @brief Search for a tile in the open pack using binary search.
  * @param tileX Tile X coordinate.
@@ -79,15 +98,19 @@ bool NavReader::findTileInPack(uint32_t tileX, uint32_t tileY, uint32_t& offset,
 {
     if (!packFile || tileCount == 0)
         return false;
+
     int32_t low = 0;
     int32_t high = tileCount - 1;
+
     while (low <= high)
     {
         int32_t mid = low + (high - low) / 2;
         storage.seek(packFile, indexOff + (mid * 16), SEEK_SET);
+
         uint32_t entry[2]; // x, y
         if (storage.read(packFile, (uint8_t*)entry, 8) != 8)
             return false;
+
         if (entry[1] < tileY || (entry[1] == tileY && entry[0] < tileX))
             low = mid + 1;
         else if (entry[1] > tileY || (entry[1] == tileY && entry[0] > tileX))
@@ -96,8 +119,10 @@ bool NavReader::findTileInPack(uint32_t tileX, uint32_t tileY, uint32_t& offset,
         {
             if (storage.read(packFile, (uint8_t*)&offset, 4) != 4 || storage.read(packFile, (uint8_t*)&size, 4) != 4)
                 return false;
+
             return true;
         }
     }
+
     return false;
 }
