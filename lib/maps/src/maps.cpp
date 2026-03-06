@@ -1033,14 +1033,21 @@ void Maps::renderNavLineString(const FeatureRef& ref, TFT_eSprite& map, bool isC
 
     int16_t lastPx = -32768;
     int16_t lastPy = -32768;
+    int16_t lodThreshold;
+    if (navLastZoom_ >= 15)
+        lodThreshold = 2;
+    else
+        lodThreshold = 1;
+
     for (uint16_t i = 0; i < ref.coordCount; i++)
     {
         int16_t px = coords[i * 2];
         int16_t py = coords[i * 2 + 1];
         if (i > 0)
         {
-            if (abs(px - lastPx) < 1 && abs(py - lastPy) < 1)
+            if (abs(px - lastPx) < lodThreshold && abs(py - lastPy) < lodThreshold)
                 continue;
+
             if (!((px < 0 && lastPx < 0) || (px >= (int)tileWidth && lastPx >= (int)tileWidth) || (py < 0 && lastPy < 0) || (py >= (int)tileHeight && lastPy >= (int)tileHeight)))
             {
                 if (widthF <= 1.0f)
