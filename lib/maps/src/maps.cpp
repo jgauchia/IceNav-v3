@@ -1025,20 +1025,18 @@ void Maps::renderNavLineString(const FeatureRef& ref, TFT_eSprite& map, bool isC
     int16_t lastPx = -32768, lastPy = -32768;
     for (uint16_t i = 0; i < ref.coordCount; i++)
     {
-        int16_t px = coords[i * 2];
-        int16_t py = coords[i * 2 + 1];
-        if (i > 0 && (px != lastPx || py != lastPy))
+        int16_t px = coords[i * 2], py = coords[i * 2 + 1];
+        if (i > 0)
         {
+            // Skip points that are too close (LOD filtering)
+            if (abs(px - lastPx) < 1 && abs(py - lastPy) < 1) continue;
             if (!((px < 0 && lastPx < 0) || (px >= (int)tileWidth && lastPx >= (int)tileWidth) || (py < 0 && lastPy < 0) || (py >= (int)tileHeight && lastPy >= (int)tileHeight)))
             {
-                if (widthF <= 1.0f)
-                    map.drawLine(lastPx, lastPy, px, py, color);
-                else
-                    map.drawWideLine(lastPx, lastPy, px, py, widthF, color);
+                if (widthF <= 1.0f) map.drawLine(lastPx, lastPy, px, py, color);
+                else map.drawWideLine(lastPx, lastPy, px, py, widthF, color);
             }
         }
-        lastPx = px;
-        lastPy = py;
+        lastPx = px; lastPy = py;
     }
 }
 
@@ -1065,47 +1063,49 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
         coords[i * 2 + 1] = ref.tileOffsetY + (curY >> 4);
     }
 
-    projBuf32X.resize(ref.coordCount);
-    projBuf32Y.resize(ref.coordCount);
-    int* px = projBuf32X.data();
-    int* py = projBuf32Y.data();
-    int minPx = INT_MAX, maxPx = INT_MIN, minPy = INT_MAX, maxPy = INT_MIN;
-    for (size_t i = 0; i < ref.coordCount; i++)
-    {
-        px[i] = coords[i * 2];
-        py[i] = coords[i * 2 + 1];
-        if (px[i] < minPx)
-            minPx = px[i];
-        if (px[i] > maxPx)
-            maxPx = px[i];
-        if (py[i] < minPy)
-            minPy = py[i];
-        if (py[i] > maxPy)
-            maxPy = py[i];
-    }
-    if (maxPx < 0 || minPx >= (int)tileWidth || maxPy < 0 || minPy >= (int)tileHeight)
-        return;
+    uint8_t* p_rings = p;
     uint16_t ringCount = 0;
     const uint16_t* ringEndsPtr = nullptr;
     ringEndsCache.clear();
-    if ((size_t)(p - ref.ptr) < ref.payloadSize)
+    if ((size_t)(p_rings - ref.ptr) < ref.payloadSize)
     {
-        ringCount = p[0] | (p[1] << 8);
-        p += 2;
+        ringCount = p_rings[0] | (p_rings[1] << 8);
         if (ringCount > 0)
         {
-            if (ringCount > ringEndsCache.capacity())
-                ringCount = ringEndsCache.capacity();
+            uint8_t* p_curr_ring = p_rings + 2;
             for (int r = 0; r < (int)ringCount; r++)
             {
-                ringEndsCache.push_back(p[0] | (p[1] << 8));
-                p += 2;
+                ringEndsCache.push_back(p_curr_ring[0] | (p_curr_ring[1] << 8));
+                p_curr_ring += 2;
             }
             ringEndsPtr = ringEndsCache.data();
         }
     }
+    
+    projBuf32X.resize(ref.coordCount);
+    projBuf32Y.resize(ref.coordCount);
+    int minPx = INT_MAX, maxPx = INT_MIN, minPy = INT_MAX, maxPy = INT_MIN;
+    int16_t lastX = -32768, lastY = -32768;
+    uint16_t actualPoints = 0;
+    for (size_t i = 0; i < ref.coordCount; i++)
+    {
+        int16_t curX = coords[i * 2], curY = coords[i * 2 + 1];
+        if (ringCount == 0 && i > 0 && abs(curX - lastX) < 1 && abs(curY - lastY) < 1 && i < ref.coordCount - 1) continue;
+        projBuf32X[actualPoints] = curX;
+        projBuf32Y[actualPoints] = curY;
+        if (curX < minPx) minPx = curX;
+        if (curX > maxPx) maxPx = curX;
+        if (curY < minPy) minPy = curY;
+        if (curY > maxPy) maxPy = curY;
+        lastX = curX; lastY = curY;
+        actualPoints++;
+    }
+    if (maxPx < 0 || minPx >= (int)tileWidth || maxPy < 0 || minPy >= (int)tileHeight)
+        return;
+    int* px = projBuf32X.data();
+    int* py = projBuf32Y.data();
     if (fillPolygons)
-        fillPolygonGeneral(map, px, py, ref.coordCount, ref.color, 0, 0, ringCount, ringEndsPtr);
+        fillPolygonGeneral(map, px, py, actualPoints, ref.color, 0, 0, ringCount, ringEndsPtr);
     if (ref.casing && navLastZoom_ >= 16)
     {
         uint16_t outlineColor = darkenRGB565(ref.color, 0.35f);
@@ -1113,9 +1113,9 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
         uint16_t numRings = (ringCount > 0) ? ringCount : 1;
         for (uint16_t r = 0; r < numRings; r++)
         {
-            uint16_t ringEnd = (ringEndsPtr && r < ringCount) ? ringEndsPtr[r] : ref.coordCount;
-            if (ringEnd > ref.coordCount)
-                ringEnd = ref.coordCount;
+            uint16_t ringEnd = (ringEndsPtr && r < ringCount) ? ringEndsPtr[r] : actualPoints;
+            if (ringEnd > actualPoints)
+                ringEnd = actualPoints;
             for (uint16_t j = ringStart; j < ringEnd; j++)
             {
                 uint16_t next = (j + 1 < ringEnd) ? j + 1 : ringStart;
@@ -1349,7 +1349,10 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
                 p += 13 + ps;
                 continue;
             }
-            if ((geomType == (uint8_t)NavGeomType::Polygon || geomType == (uint8_t)NavGeomType::LineString) && (bx2 - bx1) < 1 && (by2 - by1) < 1)
+            // Phase 13: Semantic size filter based on zoom
+            int16_t dimX = bx2 - bx1, dimY = by2 - by1;
+            uint8_t minDim = (zoom >= 9 && zoom <= 11) ? 3 : 1; 
+            if ((geomType == (uint8_t)NavGeomType::Polygon || geomType == (uint8_t)NavGeomType::LineString) && dimX < minDim && dimY < minDim)
             {
                 p += 13 + ps;
                 continue;
