@@ -437,6 +437,15 @@ void Maps::mapRenderTask(void* pvParameters)
                 {
                     xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_DONE | MAP_EVENT_ERROR);
                     xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_START);
+                    
+                    if (instance->zoomLevel != lastZoom)
+                    {
+                        for (auto& entry : instance->navDataCache)
+                            heap_caps_free(entry.data);
+                        
+                        instance->navDataCache.clear();
+                    }
+
                     instance->featurePool.clear();
                     instance->decodedCoords.clear();
                     for (int i = 0; i < 16; i++)
