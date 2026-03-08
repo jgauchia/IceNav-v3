@@ -1008,33 +1008,48 @@ void Maps::renderNavLineString(const FeatureRef& ref, TFT_eSprite& map, bool isC
 {
     if (ref.coordCount < 2)
         return;
+
+    if (isCasing)
+    {
+        if (ref.priority < 13)
+            return;
+    }
     
     decodedCoords.resize(ref.coordCount * 2);
     int16_t* coords = decodedCoords.data();
     uint8_t* p = ref.ptr;
     int32_t curX = 0;
     int32_t curY = 0;
+    int16_t tOffX = ref.tileOffsetX;
+    int16_t tOffY = ref.tileOffsetY;
     
     for (uint16_t i = 0; i < ref.coordCount; i++)
     {
         curX += NavReader::decodeZigZag(NavReader::readVarInt(p));
         curY += NavReader::decodeZigZag(NavReader::readVarInt(p));
-        coords[i * 2] = ref.tileOffsetX + (curX >> 4);
-        coords[i * 2 + 1] = ref.tileOffsetY + (curY >> 4);
+        coords[i * 2] = tOffX + (curX >> 4);
+        coords[i * 2 + 1] = tOffY + (curY >> 4);
     }
 
-    uint16_t color = ref.color;
+    uint16_t color;
+    if (isCasing)
+        color = darkenRGB565(ref.color, 0.3f);
+    else
+        color = ref.color;
+
     float widthF = (ref.width == 0 ? 2 : ref.width) / 2.0f;
     if (isCasing)
-    {
-        color = darkenRGB565(color, 0.3f);
         widthF += 1.0f;
-    }
 
     int16_t lastPx = -32768;
     int16_t lastPy = -32768;
+    int16_t w = (int16_t)tileWidth;
+    int16_t h = (int16_t)tileHeight;
     int16_t lodThreshold;
+
     if (navLastZoom_ >= 15)
+        lodThreshold = 3;
+    else if (navLastZoom_ >= 13)
         lodThreshold = 2;
     else
         lodThreshold = 1;
@@ -1046,11 +1061,14 @@ void Maps::renderNavLineString(const FeatureRef& ref, TFT_eSprite& map, bool isC
         if (i > 0)
         {
             if (abs(px - lastPx) < lodThreshold && abs(py - lastPy) < lodThreshold)
-                continue;
-
-            if (!((px < 0 && lastPx < 0) || (px >= (int)tileWidth && lastPx >= (int)tileWidth) || (py < 0 && lastPy < 0) || (py >= (int)tileHeight && lastPy >= (int)tileHeight)))
             {
-                if (widthF <= 1.0f)
+                if (i < ref.coordCount - 1)
+                    continue;
+            }
+
+            if (!((px < 0 && lastPx < 0) || (px >= w && lastPx >= w) || (py < 0 && lastPy < 0) || (py >= h && lastPy >= h)))
+            {
+                if (widthF <= 1.1f)
                     map.drawLine(lastPx, lastPy, px, py, color);
                 else
                     map.drawWideLine(lastPx, lastPy, px, py, widthF, color);
