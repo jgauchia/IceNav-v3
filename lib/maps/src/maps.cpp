@@ -40,8 +40,7 @@ const char* TAG = "Maps";
 /**
  * @brief Map Class constructor
  */
-Maps::Maps() : fillPolygons(true),
-               navLastZoom_(0), 
+Maps::Maps() : navLastZoom_(0), 
                navNeedsRender_(true),
                navTlTileX_(-1), 
                navTlTileY_(-1)
@@ -1162,21 +1161,36 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
         return;
     int* px = projBuf32X.data();
     int* py = projBuf32Y.data();
-    if (fillPolygons)
-        fillPolygonGeneral(map, px, py, actualPoints, ref.color, 0, 0, ringCount, ringEndsPtr);
+    fillPolygonGeneral(map, px, py, actualPoints, ref.color, 0, 0, ringCount, ringEndsPtr);
     if (ref.casing && navLastZoom_ >= 16)
     {
         uint16_t outlineColor = darkenRGB565(ref.color, 0.35f);
         int ringStart = 0;
-        uint16_t numRings = (ringCount > 0) ? ringCount : 1;
+        uint16_t numRings;
+        if (ringCount > 0)
+            numRings = ringCount;
+        else
+            numRings = 1;
+
         for (uint16_t r = 0; r < numRings; r++)
         {
-            uint16_t ringEnd = (ringEndsPtr && r < ringCount) ? ringEndsPtr[r] : actualPoints;
+            uint16_t ringEnd;
+            if (ringEndsPtr && r < ringCount)
+                ringEnd = ringEndsPtr[r];
+            else
+                ringEnd = actualPoints;
+
             if (ringEnd > actualPoints)
                 ringEnd = actualPoints;
+
             for (uint16_t j = ringStart; j < ringEnd; j++)
             {
-                uint16_t next = (j + 1 < ringEnd) ? j + 1 : ringStart;
+                uint16_t next;
+                if (j + 1 < ringEnd)
+                    next = j + 1;
+                else
+                    next = ringStart;
+
                 map.drawLine(px[j], py[j], px[next], py[next], outlineColor);
             }
             ringStart = ringEnd;

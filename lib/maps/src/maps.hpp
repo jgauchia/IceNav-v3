@@ -103,7 +103,6 @@ public:
     static const uint8_t tilesGrid = 3;
 #endif
 
-    bool fillPolygons;
     void* mapBuffer;
     uint16_t mapScrHeight;
     uint16_t mapScrWidth;
