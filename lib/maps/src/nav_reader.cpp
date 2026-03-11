@@ -22,6 +22,7 @@ uint32_t NavReader::indexOff = 0;
 
 /**
  * @brief Open a packed tile container for the given zoom level.
+ *s
  * @param zoom Zoom level.
  * @return True if successful.
  */

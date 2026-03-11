@@ -59,7 +59,8 @@ public:
         {
             uint8_t byte = *p++;
             result |= (byte & 0x7F) << shift;
-            if ((byte & 0x80) == 0) break;
+            if ((byte & 0x80) == 0)
+                break;
             shift += 7;
         }
         return result;

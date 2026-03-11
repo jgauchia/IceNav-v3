@@ -9,15 +9,18 @@ struct PsramAllocator {
     PsramAllocator() = default;
     template <class U> constexpr PsramAllocator(const PsramAllocator<U>&) noexcept {}
     [[nodiscard]] T* allocate(std::size_t n) {
-        if (n > std::size_t(-1) / sizeof(T)) throw std::bad_alloc();
+        if (n > std::size_t(-1) / sizeof(T)) 
+            throw std::bad_alloc();
         
         // Try PSRAM first
         void* p = heap_caps_malloc(n * sizeof(T), MALLOC_CAP_SPIRAM);
         
         // Fallback to internal RAM if PSRAM fails or is not available
-        if (!p) p = malloc(n * sizeof(T));
+        if (!p) 
+            p = malloc(n * sizeof(T));
         
-        if (!p) throw std::bad_alloc();
+        if (!p) 
+            throw std::bad_alloc();
         return static_cast<T*>(p);
     }
     void deallocate(T* p, std::size_t) noexcept {

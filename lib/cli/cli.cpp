@@ -2,7 +2,7 @@
  * @file cli.cpp
  * @author @Hpsaturn
  * @brief  Network CLI and custom internal commands
- * @version Using https://github.com/hpsaturn/esp32-wifi-cli.git
+ * @version 0.2.4
  * @date 2025-12
  */
 
@@ -168,25 +168,27 @@ void wcli_scshot(char *args, Stream *response)
  *
  * @details Shows only basic keys unless 'all' is specified.
  * 
- * @details CLI command: klist
  */
 void wcli_klist(char *args, Stream *response)
 {
     Pair<String, String> operands = wcli.parseCommand(args);
     String opt = operands.first();
     int key_count = PKEYS::KUSER+1;
-    if (opt.equals("all")) key_count = 0; // Only show the basic keys to configure
+    if (opt.equals("all"))
+        key_count = 0; // Only show the basic keys to configure
     response->printf("\n%11s \t%s \t%s \r\n", "KEYNAME", "DEFINED", "VALUE");
     response->printf("\n%11s \t%s \t%s \r\n", "=======", "=======", "=====");
 
     for (int i = key_count; i < PKEYS::KCOUNT; i++)
     {
-        if (i == PKEYS::KUSER) continue;
+        if (i == PKEYS::KUSER) 
+            continue;
         String key = cfg.getKey((CONFKEYS)i);
         bool isDefined = cfg.isKey(key);
         String defined = isDefined ? "custom " : "default";
         String value = "";
-        if (isDefined) value = cfg.getValue(key);
+        if (isDefined) 
+            value = cfg.getValue(key);
         response->printf("%11s \t%s \t%s \r\n", key, defined.c_str(), value.c_str());
     }
 }

@@ -101,6 +101,7 @@ class FileStream : public Stream
 
         /**
         * @brief Returns the number of bytes available to read from the file.
+        *
         * @return Number of available bytes, or 0 if file is nullptr.
         */
         virtual int available() override
@@ -116,6 +117,7 @@ class FileStream : public Stream
 
         /**
         * @brief Reads a single byte from the file.
+        *
         * @return The byte read, or -1 if file is nullptr or EOF.
         */
         virtual int read() override
@@ -127,6 +129,7 @@ class FileStream : public Stream
 
         /**
         * @brief Reads up to size bytes into the buffer.
+        *
         * @param buffer Buffer to store read bytes
         * @param size Maximum number of bytes to read
         * @return Number of bytes actually read
@@ -139,6 +142,7 @@ class FileStream : public Stream
 
         /**
         * @brief Reads up to length bytes into the buffer (char version).
+        *
         * @param buffer Buffer to store read bytes
         * @param length Maximum number of bytes to read
         * @return Number of bytes actually read
@@ -151,6 +155,7 @@ class FileStream : public Stream
 
         /**
         * @brief Peeks at the next byte in the file without advancing the file pointer.
+        *
         * @return The next byte, or -1 if file is nullptr or EOF.
         */
         virtual int peek() override
@@ -165,6 +170,7 @@ class FileStream : public Stream
 
         /**
         * @brief Flushes the file output buffer.
+        *
         */
         virtual void flush() override
         {

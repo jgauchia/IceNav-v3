@@ -2,8 +2,8 @@
  * @file InternalAllocator.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Native ESP-IDF Internal RAM Allocator for STL containers
- * @version 0.1.0
- * @date 2026-02
+ * @version 0.2.4
+ * @date 2025-12
  */
 
 #pragma once
@@ -15,6 +15,7 @@
 
 /**
  * @brief Allocator that forces memory allocation in Internal RAM using ESP-IDF native API.
+ *
  * @tparam T Type of elements to allocate
  */
 template <class T>
@@ -27,12 +28,15 @@ struct InternalAllocator {
     constexpr InternalAllocator(const InternalAllocator<U>&) noexcept {}
     
     [[nodiscard]] T* allocate(std::size_t n) {
-        if (n == 0) return nullptr;
-        if (n > static_cast<std::size_t>(-1) / sizeof(T)) throw std::bad_alloc();
+        if (n == 0) 
+            return nullptr;
+        if (n > static_cast<std::size_t>(-1) / sizeof(T)) 
+            throw std::bad_alloc();
         
         // Use heap_caps_malloc to force allocation in Internal RAM with 8-bit alignment
         void* p = heap_caps_malloc(n * sizeof(T), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
-        if (!p) {
+        if (!p) 
+        {
             ESP_LOGE("InternalAlloc", "Failed to allocate %u bytes in Internal RAM", (unsigned int)(n * sizeof(T)));
             throw std::bad_alloc();
         }

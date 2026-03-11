@@ -160,6 +160,7 @@ esp_err_t Storage::initSD()
 
 /**
  * @brief Deinitialize SD card
+ *
  * @details Unmounts SD card and frees SPI bus if not using SPI_SHARED
  */
 void Storage::deinitSD()
@@ -172,6 +173,7 @@ void Storage::deinitSD()
 
 /**
  * @brief Initialize SPIFFS filesystem
+ *
  * @return esp_err_t result code
  */
 esp_err_t Storage::initSPIFFS()
@@ -210,6 +212,7 @@ esp_err_t Storage::initSPIFFS()
 
 /**
  * @brief Get SD card information
+ *
  * @return SDCardInfo structure containing SD card details
  */
 SDCardInfo Storage::getSDCardInfo()
@@ -273,6 +276,7 @@ SDCardInfo Storage::getSDCardInfo()
 
 /**
  * @brief Check if SD card is loaded
+ *
  * @return true if SD card is loaded, false otherwise
  */
 bool Storage::getSdLoaded() const
@@ -282,6 +286,7 @@ bool Storage::getSdLoaded() const
 
 /**
  * @brief Open a file at the specified path
+ *
  * @param path File path
  * @param mode File open mode
  * @return FILE* pointer to opened file, or nullptr on failure
@@ -293,6 +298,7 @@ FILE *Storage::open(const char *path, const char *mode)
 
 /**
  * @brief Close an open file
+ *
  * @param file FILE* pointer to file
  * @return Result of fclose (0 on success, EOF on error)
  */
@@ -337,7 +343,8 @@ size_t Storage::read(FILE *file, uint8_t *buffer, size_t size)
 		size_t toRead = (size - totalRead > DMA_BUF_SIZE) ? DMA_BUF_SIZE : (size - totalRead);
 		size_t r = fread(dmaBuffer, 1, toRead, file);
 		
-		if (r == 0) break;
+		if (r == 0) 
+			break;
 
 		memcpy(buffer + totalRead, dmaBuffer, r);
 		totalRead += r;
@@ -349,6 +356,7 @@ size_t Storage::read(FILE *file, uint8_t *buffer, size_t size)
 
 /**
  * @brief Read from a file into a char buffer
+ *
  * @param file FILE* pointer
  * @param buffer Buffer to read into
  * @param size Number of bytes to read
@@ -361,6 +369,7 @@ size_t Storage::read(FILE *file, char *buffer, size_t size)
 
 /**
  * @brief Write from a uint8_t buffer to a file
+ *
  * @param file FILE* pointer
  * @param buffer Buffer to write from
  * @param size Number of bytes to write
@@ -375,6 +384,7 @@ size_t Storage::write(FILE *file, const uint8_t *buffer, size_t size)
 
 /**
  * @brief Write from a char buffer to a file
+ *
  * @param file FILE* pointer
  * @param buffer Buffer to write from
  * @param size Number of bytes to write
@@ -389,6 +399,7 @@ size_t Storage::write(FILE *file, const char *buffer, size_t size)
 
 /**
  * @brief Check if a file or directory exists
+ *
  * @param path File or directory path
  * @return true if it exists, false otherwise
  */
@@ -400,6 +411,7 @@ bool Storage::exists(const char *path)
 
 /**
  * @brief Create a directory
+ *
  * @param path Directory path
  * @return true on success, false on failure
  */
@@ -410,6 +422,7 @@ bool Storage::mkdir(const char *path)
 
 /**
  * @brief Remove a file
+ *
  * @param path File path
  * @return true on success, false on failure
  */
@@ -420,6 +433,7 @@ bool Storage::remove(const char *path)
 
 /**
  * @brief Remove a directory
+ *
  * @param path Directory path
  * @return true on success, false on failure
  */
@@ -430,6 +444,7 @@ bool Storage::rmdir(const char *path)
 
 /**
  * @brief Set the file position indicator
+ *
  * @param file FILE* pointer
  * @param offset Offset in bytes
  * @param whence Position from where offset is added (SEEK_SET, SEEK_CUR, SEEK_END)
@@ -444,6 +459,7 @@ int Storage::seek(FILE *file, long offset, int whence)
 
 /**
  * @brief Print a string to a file
+ *
  * @param file FILE* pointer
  * @param str String to print
  * @return Number of characters written, or a negative value if an error occurs
@@ -457,6 +473,7 @@ int Storage::print(FILE *file, const char *str)
 
 /**
  * @brief Print a string with a newline to a file
+ *
  * @param file FILE* pointer
  * @param str String to print
  * @return Number of characters written, or a negative value if an error occurs
@@ -470,6 +487,7 @@ int Storage::println(FILE *file, const char *str)
 
 /**
  * @brief Get number of available bytes left in the file
+ *
  * @param file FILE* pointer
  * @return Number of available bytes
  */

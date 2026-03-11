@@ -32,6 +32,7 @@ QMC5883L_Driver::QMC5883L_Driver() : i2cAddr(QMC5883L_ADDRESS), ctrl1Value(0x01)
 
 /**
  * @brief Reads a single byte from a register.
+ *
  * @param reg Register address.
  * @return Register value.
  */
@@ -42,6 +43,7 @@ uint8_t QMC5883L_Driver::read8(uint8_t reg)
 
 /**
  * @brief Writes a single byte to a register.
+ *
  * @param reg Register address.
  * @param value Value to write.
  * @return true if write successful, false on error.
@@ -53,6 +55,7 @@ bool QMC5883L_Driver::write8(uint8_t reg, uint8_t value)
 
 /**
  * @brief Reads a 16-bit value from two consecutive registers (LSB first).
+ *
  * @param reg Starting register address.
  * @return 16-bit signed value.
  */
@@ -149,15 +152,11 @@ void QMC5883L_Driver::readRaw(float &x, float &y, float &z)
     // 1. Check Data Ready (Bit 0 of Status Register 0x06)
     uint8_t status = read8(QMC5883L_REG_STATUS);
     if ((status & 0x01) == 0)
-    {
         return;
-    }
 
     uint8_t buffer[6];
     if (i2c.readBytes(i2cAddr, QMC5883L_REG_DATA, buffer, 6) != 6)
-    {
         return;
-    }
 
     x = (int16_t)(buffer[0] | (buffer[1] << 8));
     y = (int16_t)(buffer[2] | (buffer[3] << 8));
@@ -177,6 +176,7 @@ HMC5883L_Driver::HMC5883L_Driver() : i2cAddr(HMC5883L_ADDRESS), configAValue(0x7
 
 /**
  * @brief Reads a single byte from a register.
+ *
  * @param reg Register address.
  * @return Register value.
  */
@@ -187,6 +187,7 @@ uint8_t HMC5883L_Driver::read8(uint8_t reg)
 
 /**
  * @brief Writes a single byte to a register.
+ *
  * @param reg Register address.
  * @param value Value to write.
  */
@@ -280,15 +281,11 @@ void HMC5883L_Driver::readRaw(float &x, float &y, float &z)
     // Check Data Ready (Bit 0 of Status Register 0x09)
     uint8_t status = read8(HMC5883L_REG_STATUS);
     if ((status & 0x01) == 0)
-    {
         return;
-    }
 
     uint8_t buffer[6];
     if (i2c.readBytes(i2cAddr, HMC5883L_REG_DATA, buffer, 6) != 6)
-    {
         return;
-    }
 
     // HMC5883L order: X MSB, X LSB, Z MSB, Z LSB, Y MSB, Y LSB
     x = (int16_t)((buffer[0] << 8) | buffer[1]);
@@ -322,6 +319,7 @@ uint8_t MPU9250_Driver::read8(uint8_t addr, uint8_t reg)
 
 /**
  * @brief Writes a single byte to a register.
+ *
  * @param addr I2C device address.
  * @param reg Register address.
  * @param value Value to write.
@@ -333,6 +331,7 @@ void MPU9250_Driver::write8(uint8_t addr, uint8_t reg, uint8_t value)
 
 /**
  * @brief Reads a 16-bit value from two consecutive registers (LSB first).
+ *
  * @param addr I2C device address.
  * @param reg Starting register address.
  * @return 16-bit signed value.
@@ -442,18 +441,21 @@ void MPU9250_Driver::readSensor()
 
 /**
  * @brief Gets X-axis magnetic field in microtesla.
+ *
  * @return Magnetic field in microtesla (uT).
  */
 float MPU9250_Driver::getMagX_uT() { return magX; }
 
 /**
  * @brief Gets Y-axis magnetic field in microtesla.
+ *
  * @return Magnetic field in microtesla (uT).
  */
 float MPU9250_Driver::getMagY_uT() { return magY; }
 
 /**
  * @brief Gets Z-axis magnetic field in microtesla.
+ *
  * @return Magnetic field in microtesla (uT).
  */
 float MPU9250_Driver::getMagZ_uT() { return magZ; }
@@ -526,6 +528,7 @@ void Compass::init()
 
 /**
  * @brief Reads raw X, Y, Z magnetometer data from the compass sensor.
+ *
  * @param x Reference variable for X-axis.
  * @param y Reference variable for Y-axis.
  * @param z Reference variable for Z-axis.
@@ -580,9 +583,7 @@ int Compass::getHeading()
         headingSmooth = kalmanFilter.update(heading);
     }
     else
-    {
         headingSmooth = heading;
-    }
 
     headingPrevious = heading;
 
@@ -631,13 +632,13 @@ void Compass::calibrate()
     static const lgfx::v1::GFXfont *fontLarge;
 
     #ifdef LARGE_SCREEN
-    fontSmall = &fonts::DejaVu18;
-    fontLarge = &fonts::DejaVu40;
-    static const float scale = 1.0f;
+        fontSmall = &fonts::DejaVu18;
+        fontLarge = &fonts::DejaVu40;
+        static const float scale = 1.0f;
     #else
-    fontSmall = &fonts::DejaVu12;
-    fontLarge = &fonts::DejaVu24;
-    static const float scale = 0.75f;
+        fontSmall = &fonts::DejaVu12;
+        fontLarge = &fonts::DejaVu24;
+        static const float scale = 0.75f;
     #endif
 
     compassCalSprite.createSprite(tft.width(), tft.height());
@@ -715,6 +716,7 @@ void Compass::calibrate()
 
 /**
  * @brief Sets the magnetic declination angle for heading correction.
+ *
  * @param angle Declination angle in radians.
  */
 void Compass::setDeclinationAngle(float angle)
@@ -724,6 +726,7 @@ void Compass::setDeclinationAngle(float angle)
 
 /**
  * @brief Sets the calibration offsets for the X and Y axes.
+ *
  * @param offsetX X-axis offset.
  * @param offsetY Y-axis offset.
  */
@@ -735,6 +738,7 @@ void Compass::setOffsets(float offsetX, float offsetY)
 
 /**
  * @brief Enables or disables the Kalman filter for compass heading smoothing.
+ *
  * @param enabled True to enable, false to disable.
  */
 void Compass::enableKalmanFilter(bool enabled)
@@ -744,6 +748,7 @@ void Compass::enableKalmanFilter(bool enabled)
 
 /**
  * @brief Sets the Kalman filter process and measurement noise constants.
+ *
  * @param processNoise Process noise covariance (0-1).
  * @param measureNoise Measurement noise covariance (0-1).
  */
@@ -754,6 +759,7 @@ void Compass::setKalmanFilterConst(float processNoise, float measureNoise)
 
 /**
  * @brief Wraps an angle to the range [-pi, pi].
+ *
  * @param angle Angle in radians.
  * @return Wrapped angle in radians.
  */
@@ -768,6 +774,7 @@ float Compass::wrapToPi(float angle)
 
 /**
  * @brief Unwraps an angle to avoid discontinuity across the [-pi, pi] boundary.
+ *
  * @param angle Current angle in radians.
  * @param previousAngle Previous angle in radians.
  * @return Unwrapped angle in radians.

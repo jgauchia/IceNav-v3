@@ -15,21 +15,34 @@
 
 /**
  * @brief Get system uptime in milliseconds using ESP-IDF timer.
+ *
  * @return uint32_t Milliseconds since boot.
  */
 static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
+/**
+ * @brief Get the ESP Chip Model 
+ * 
+ * @return const char* 
+ */
 static const char* getChipModel()
 {
     esp_chip_info_t chip_info;
     esp_chip_info(&chip_info);
-    switch (chip_info.model) {
-        case CHIP_ESP32:   return "ESP32";
-        case CHIP_ESP32S2: return "ESP32-S2";
-        case CHIP_ESP32S3: return "ESP32-S3";
-        case CHIP_ESP32C3: return "ESP32-C3";
-        case CHIP_ESP32H2: return "ESP32-H2";
-        default:           return "Unknown";
+    switch (chip_info.model)
+    {
+        case CHIP_ESP32:   
+            return "ESP32";
+        case CHIP_ESP32S2: 
+            return "ESP32-S2";
+        case CHIP_ESP32S3: 
+            return "ESP32-S3";
+        case CHIP_ESP32C3: 
+            return "ESP32-C3";
+        case CHIP_ESP32H2: 
+            return "ESP32-H2";
+        default:           
+            return "Unknown";
     }
 }
 

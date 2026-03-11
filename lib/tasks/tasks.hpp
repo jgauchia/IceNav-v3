@@ -24,7 +24,8 @@
  * @struct SensorData
  * @brief Holds the latest synchronized data from all non-GPS sensors.
  */
-struct SensorData {
+struct SensorData 
+{
     float batteryPercent = 0.0f;
     int16_t altitude = 0;
     int heading = 0;

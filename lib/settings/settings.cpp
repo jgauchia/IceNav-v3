@@ -17,7 +17,6 @@ NAVIGATION navSet;
 
 /**
  * @brief Zoom Levels and Default zoom
- *
  */
 uint8_t minZoom = 0;         /**< Minimum Zoom Level */
 uint8_t maxZoom = 0;         /**< Maximum Zoom Level */
@@ -32,7 +31,6 @@ uint8_t zoom = 0;            /**< Current Zoom Level */
 
 /**
  * @brief Global variables definition for device preferences & config.
- *
  */
 uint8_t  defaultZoom    = 0;    /**< Default Zoom Value */
 uint8_t  defBright      = 255;  /**< Default Brightness */

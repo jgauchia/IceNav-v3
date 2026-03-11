@@ -16,6 +16,7 @@ I2CNative i2c;
 
 /**
  * @brief Constructs I2CNative with uninitialized state.
+ *
  * @details Initializes the I2C port identifier to I2C_NUM_0 by default and resets the mutex.
  */
 I2CNative::I2CNative() : i2cPort(I2C_NUM_0), initialized(false), i2cMutex(nullptr)
@@ -24,6 +25,7 @@ I2CNative::I2CNative() : i2cPort(I2C_NUM_0), initialized(false), i2cMutex(nullpt
 
 /**
  * @brief Destructor - cleans up I2C resources.
+ *
  * @details Ensures the I2C driver is uninstalled and resources are freed.
  */
 I2CNative::~I2CNative()
@@ -33,6 +35,7 @@ I2CNative::~I2CNative()
 
 /**
  * @brief Initializes the I2C bus with specific pins and frequency.
+ *
  * @param sda  GPIO pin number for SDA line.
  * @param scl  GPIO pin number for SCL line.
  * @param freq I2C clock frequency in Hz.
@@ -44,9 +47,7 @@ bool I2CNative::begin(int sda, int scl, uint32_t freq)
         return true;
 
     if (i2cMutex == nullptr)
-    {
         i2cMutex = xSemaphoreCreateMutex();
-    }
 
     i2c_config_t conf = {};
     conf.mode = I2C_MODE_MASTER;
@@ -82,6 +83,7 @@ bool I2CNative::begin(int sda, int scl, uint32_t freq)
 
 /**
  * @brief Deinitializes the I2C bus.
+ *
  * @details Deletes the I2C driver and marks the instance as uninitialized.
  */
 void I2CNative::end()
@@ -96,6 +98,7 @@ void I2CNative::end()
 
 /**
  * @brief Reads a single byte from a register.
+ *
  * @param addr I2C device address.
  * @param reg  Register address to read from.
  * @return Value read from the register, or 0 on error.
@@ -134,6 +137,7 @@ uint8_t I2CNative::read8(uint8_t addr, uint8_t reg)
 
 /**
  * @brief Writes a single byte to a register.
+ *
  * @param addr  I2C device address.
  * @param reg   Register address to write to.
  * @param value Value to write to the register.
@@ -164,9 +168,8 @@ bool I2CNative::write8(uint8_t addr, uint8_t reg, uint8_t value)
             xSemaphoreGive(i2cMutex);
 
             if (ret == ESP_OK)
-            {
                 return true;
-            }
+
             ESP_LOGW(TAG, "Write8 failed for 0x%02X reg 0x%02X (attempt %d/%d): %s", addr, reg, i + 1, retries, esp_err_to_name(ret));
             vTaskDelay(pdMS_TO_TICKS(5 * (i + 1)));
         }
@@ -175,11 +178,12 @@ bool I2CNative::write8(uint8_t addr, uint8_t reg, uint8_t value)
     }
 
     ESP_LOGE(TAG, "Write8 failed for 0x%02X reg 0x%02X after %d retries. Last error: %s", addr, reg, retries, esp_err_to_name(ret));
-    return false; // Todos los reintentos fallaron
+    return false; 
 }
 
 /**
  * @brief Reads multiple bytes from a register.
+ *
  * @param addr   I2C device address.
  * @param reg    Register address to start reading from.
  * @param buffer Pointer to the buffer to store data.
@@ -217,9 +221,8 @@ size_t I2CNative::readBytes(uint8_t addr, uint8_t reg, uint8_t* buffer, size_t l
             xSemaphoreGive(i2cMutex);
 
             if (ret == ESP_OK)
-            {
                 return len;
-            }
+
             ESP_LOGW(TAG, "ReadBytes failed for 0x%02X reg 0x%02X (attempt %d/%d): %s", addr, reg, i + 1, retries, esp_err_to_name(ret));
             vTaskDelay(pdMS_TO_TICKS(5 * (i + 1)));
         }
@@ -228,11 +231,12 @@ size_t I2CNative::readBytes(uint8_t addr, uint8_t reg, uint8_t* buffer, size_t l
     }
 
     ESP_LOGE(TAG, "ReadBytes failed for 0x%02X reg 0x%02X after %d retries. Last error: %s", addr, reg, retries, esp_err_to_name(ret));
-    return 0; // Todos los reintentos fallaron
+    return 0; 
 }
 
 /**
  * @brief Reads multiple bytes without register (direct read).
+ *
  * @param addr   I2C device address.
  * @param buffer Pointer to the buffer to store data.
  * @param len    Number of bytes to read.
@@ -266,9 +270,8 @@ size_t I2CNative::readBytesRaw(uint8_t addr, uint8_t* buffer, size_t len)
             xSemaphoreGive(i2cMutex);
 
             if (ret == ESP_OK)
-            {
                 return len;
-            }
+
             ESP_LOGW(TAG, "ReadBytesRaw failed for 0x%02X (attempt %d/%d): %s", addr, i + 1, retries, esp_err_to_name(ret));
             vTaskDelay(pdMS_TO_TICKS(5 * (i + 1)));
         }
@@ -277,11 +280,12 @@ size_t I2CNative::readBytesRaw(uint8_t addr, uint8_t* buffer, size_t len)
     }
 
     ESP_LOGE(TAG, "ReadBytesRaw failed for 0x%02X after %d retries. Last error: %s", addr, retries, esp_err_to_name(ret));
-    return 0; // Todos los reintentos fallaron
+    return 0; 
 }
 
 /**
  * @brief Writes multiple bytes to a register.
+ *
  * @param addr   I2C device address.
  * @param reg    Register address to start writing to.
  * @param buffer Pointer to the data buffer to write.
@@ -313,9 +317,8 @@ bool I2CNative::writeBytes(uint8_t addr, uint8_t reg, const uint8_t* buffer, siz
             xSemaphoreGive(i2cMutex);
 
             if (ret == ESP_OK)
-            {
                 return true;
-            }
+
             ESP_LOGW(TAG, "WriteBytes failed for 0x%02X reg 0x%02X (attempt %d/%d): %s", addr, reg, i + 1, retries, esp_err_to_name(ret));
             vTaskDelay(pdMS_TO_TICKS(5 * (i + 1)));
         }
@@ -324,5 +327,5 @@ bool I2CNative::writeBytes(uint8_t addr, uint8_t reg, const uint8_t* buffer, siz
     }
 
     ESP_LOGE(TAG, "WriteBytes failed for 0x%02X reg 0x%02X after %d retries. Last error: %s", addr, reg, retries, esp_err_to_name(ret));
-    return false; // Todos los reintentos fallaron
+    return false; 
 }

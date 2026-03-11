@@ -16,12 +16,14 @@
 
 /**
  * @brief Get system uptime in milliseconds using ESP-IDF timer.
+ *
  * @return uint32_t Milliseconds since boot.
  */
 static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 /**
  * @brief Measure pulse width on a GPIO pin (ESP-IDF native)
+ *
  * @param pin GPIO pin number
  * @param state State to measure (0=LOW, 1=HIGH)
  * @param timeout Timeout in microseconds
@@ -262,8 +264,6 @@ void Gps::getGPSData()
     }
 
 }
-
-
 
 /**
  * @brief Detect the baud rate of the incoming GPS signal on a given RX pin.
@@ -537,9 +537,7 @@ void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refr
                         pointsAdvanced++;
                     } 
                     else
-                    {
                         break; // Not enough accumulated distance
-                    }
                 }
                 
                 // Update simulation index to the final point
@@ -580,14 +578,14 @@ void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refr
                         filteredHeading += adaptationRate * headingDiff;
                     } 
                     else 
-                    {
                         // Initialize with target heading
                         filteredHeading = targetHeading;
-                    }
                     
                     // Normalize final heading
-                    if (filteredHeading < 0.0f) filteredHeading += 360.0f;
-                    if (filteredHeading >= 360.0f) filteredHeading -= 360.0f;
+                    if (filteredHeading < 0.0f) 
+                        filteredHeading += 360.0f;
+                    if (filteredHeading >= 360.0f) 
+                        filteredHeading -= 360.0f;
                 }
 
                 // --- Final output ---

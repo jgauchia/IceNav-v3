@@ -22,7 +22,6 @@ static uint32_t firstTouchReleaseTime = 0;      /**< Timestamp of the first touc
 
 /**
  * @brief Zoom gesture direction enumeration
- * 
  */
 typedef enum 
 {

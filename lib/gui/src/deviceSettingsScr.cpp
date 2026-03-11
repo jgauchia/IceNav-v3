@@ -126,7 +126,6 @@ static lv_obj_t *createBrightSlider(lv_obj_t *parent, const char *icon, const ch
 
 /**
  * @brief Creates the Device Settings screen 
- *
  */
 void createDeviceSettingsScr()
 {

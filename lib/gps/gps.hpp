@@ -46,7 +46,6 @@ static const char *GPS_RATE_PCAS[] = {"$PCAS02,1000*2E\r\n", "$PCAS02,500*1A\r\n
 
 /**
  * @brief Satellite Constellation Canvas Definition
- *
  */
 static const uint8_t canvasOffset = 15;          					    /**< Offset from the edge to start drawing the satellite constellation canvas */
 static const uint8_t canvasSize = 180;							    /**< Total size (width and height) of the constellation canvas */

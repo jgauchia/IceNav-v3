@@ -63,30 +63,30 @@ void updateNotifyBar(lv_event_t *event)
     {
         switch (gps.gpsData.fixMode)
         {
-        case gps_fix::STATUS_NONE:
-            lv_label_set_text_static(obj, "----");
-            break;
-        case gps_fix::STATUS_STD:
-            lv_label_set_text_static(obj, " 3D ");
-            break;
-        case gps_fix::STATUS_DGPS:
-            lv_label_set_text_static(obj, "DGPS");
-            break;
-        case gps_fix::STATUS_PPS:
-            lv_label_set_text_static(obj, "PPS");
-            break;
-        case gps_fix::STATUS_RTK_FLOAT:
-            lv_label_set_text_static(obj, "RTK");
-            break;
-        case gps_fix::STATUS_RTK_FIXED:
-            lv_label_set_text_static(obj, "RTK");
-            break;
-        case gps_fix::STATUS_TIME_ONLY: 
-            lv_label_set_text_static(obj, "TIME");
-            break;       
-        case gps_fix::STATUS_EST:
-            lv_label_set_text_static(obj, "EST");
-            break;  
+            case gps_fix::STATUS_NONE:
+                lv_label_set_text_static(obj, "----");
+                break;
+            case gps_fix::STATUS_STD:
+                lv_label_set_text_static(obj, " 3D ");
+                break;
+            case gps_fix::STATUS_DGPS:
+                lv_label_set_text_static(obj, "DGPS");
+                break;
+            case gps_fix::STATUS_PPS:
+                lv_label_set_text_static(obj, "PPS");
+                break;
+            case gps_fix::STATUS_RTK_FLOAT:
+                lv_label_set_text_static(obj, "RTK");
+                break;
+            case gps_fix::STATUS_RTK_FIXED:
+                lv_label_set_text_static(obj, "RTK");
+                break;
+            case gps_fix::STATUS_TIME_ONLY: 
+                lv_label_set_text_static(obj, "TIME");
+                break;       
+            case gps_fix::STATUS_EST:
+                lv_label_set_text_static(obj, "EST");
+                break;  
         }
     }
 

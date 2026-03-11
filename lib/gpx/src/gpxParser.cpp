@@ -15,6 +15,7 @@ extern std::vector<TrackSegment> trackIndex;
 
 /**
  * @brief Helper function to format float values
+ *
  * @param value Value to format.
  * @param precision Decimal places.
  * @return Formatted string.
@@ -28,6 +29,7 @@ std::string formatFloat(float value, int precision)
 
 /**
  * @brief Constructs a GPXParser
+ *
  * @param filePath Path to the GPX file.
  */
 GPXParser::GPXParser(const char* filePath) : filePath(filePath) {}
@@ -36,6 +38,7 @@ GPXParser::~GPXParser() {}
 
 /**
  * @brief Retrieve tag elements value list from all GPX files in a folder.
+ *
  * @param tag XML tag (e.g., "wpt").
  * @param element XML element (e.g., "name").
  * @param folderPath Folder path.
@@ -103,6 +106,7 @@ std::map<std::string, std::vector<std::string>> GPXParser::getTagElementList(con
 
 /**
  * @brief Delete a tag from the GPX file by name.
+ *
  * @param tag XML tag.
  * @param name Name to match.
  * @return true if successful.
@@ -127,12 +131,12 @@ bool GPXParser::deleteTagByName(const char* tag, const char* name)
         if (nameElement && strcmp(nameElement->GetText(), name) == 0)
         {
             root->DeleteChild(Tag);
-             if (doc.SaveFile(filePath.c_str()) != tinyxml2::XML_SUCCESS)
-             {
-                 ESP_LOGE(TAGGPX, "Failed to save file: %s", filePath.c_str());
-                 return false;
-             }
-             return true;
+            if (doc.SaveFile(filePath.c_str()) != tinyxml2::XML_SUCCESS)
+            {
+                ESP_LOGE(TAGGPX, "Failed to save file: %s", filePath.c_str());
+                return false;
+            }
+            return true;
         }
     }
     return false;
@@ -140,6 +144,7 @@ bool GPXParser::deleteTagByName(const char* tag, const char* name)
 
 /**
  * @brief Retrieve waypoint details for a given name.
+ *
  * @param name Waypoint name.
  * @return wayPoint structure.
  */
@@ -166,31 +171,42 @@ wayPoint GPXParser::getWaypointInfo(const char* name)
         wpt->QueryFloatAttribute(gpxLonElem, &wp.lon);
         tinyxml2::XMLElement* element = nullptr;
         element = wpt->FirstChildElement(gpxEleElem);
-        if (element) wp.ele = static_cast<float>(element->DoubleText());
+        if (element) 
+            wp.ele = static_cast<float>(element->DoubleText());
         element = wpt->FirstChildElement(gpxTimeElem);
-        if (element) wp.time = strdup(element->GetText());
+        if (element)
+            wp.time = strdup(element->GetText());
         element = wpt->FirstChildElement(gpxDescElem);
-        if (element) wp.desc = strdup(element->GetText());
+        if (element) 
+            wp.desc = strdup(element->GetText());
         element = wpt->FirstChildElement(gpxSrcElem);
-        if (element) wp.src = strdup(element->GetText());
+        if (element) 
+            wp.src = strdup(element->GetText());
         element = wpt->FirstChildElement(gpxSymElem);
-        if (element) wp.sym = strdup(element->GetText());
+        if (element) 
+            wp.sym = strdup(element->GetText());
         element = wpt->FirstChildElement(gpxTypeElem);
-        if (element) wp.type = strdup(element->GetText());
+        if (element) 
+            wp.type = strdup(element->GetText());
         element = wpt->FirstChildElement(gpxSatElem);
-        if (element) wp.sat = static_cast<uint8_t>(element->UnsignedText());
+        if (element) 
+            wp.sat = static_cast<uint8_t>(element->UnsignedText());
         element = wpt->FirstChildElement(gpxHdopElem);
-        if (element) wp.hdop = static_cast<float>(element->DoubleText());
+        if (element) 
+            wp.hdop = static_cast<float>(element->DoubleText());
         element = wpt->FirstChildElement(gpxVdopElem);
-        if (element) wp.vdop = static_cast<float>(element->DoubleText());
+        if (element) 
+            wp.vdop = static_cast<float>(element->DoubleText());
         element = wpt->FirstChildElement(gpxPdopElem);
-        if (element) wp.pdop = static_cast<float>(element->DoubleText());
+        if (element) 
+            wp.pdop = static_cast<float>(element->DoubleText());
     }
     return wp;
 }
 
 /**
  * @brief Add a new waypoint to the GPX file
+ *
  * @param wp Waypoint structure.
  * @return true if successful.
  */
@@ -234,20 +250,24 @@ bool GPXParser::addWaypoint(const wayPoint& wp)
     element->SetText(wp.pdop);
     newWpt->InsertEndChild(element);
     tinyxml2::XMLElement* lastWpt = root->LastChildElement(gpxWaypointTag);
-    if (lastWpt) root->InsertAfterChild(lastWpt, newWpt);
-    else root->InsertFirstChild(newWpt);
+    if (lastWpt) 
+        root->InsertAfterChild(lastWpt, newWpt);
+    else 
+        root->InsertFirstChild(newWpt);
     return doc.SaveFile(filePath.c_str()) == tinyxml2::XML_SUCCESS;
 }
 
 /**
 * @brief Load GPX track data using stream-based parsing.
+*
 * @param trackData Vector to store points.
 * @return true if successful.
 */
 bool GPXParser::loadTrack(TrackVector& trackData)
 {
     FILE* file = fopen(filePath.c_str(), "r");
-    if (!file) return false;
+    if (!file) 
+        return false;
     fseek(file, 0, SEEK_END);
     long fileSize = ftell(file);
     rewind(file);
@@ -263,18 +283,30 @@ bool GPXParser::loadTrack(TrackVector& trackData)
             bool latFound = false, lonFound = false;
             auto parseAttrs = [&](char* str) {
                 char* pLat = strstr(str, "lat=\"");
-                if (!pLat) pLat = strstr(str, "lat='");
-                if (pLat) { point.lat = strtof(pLat + 5, nullptr); latFound = true; }
+                if (!pLat)
+                    pLat = strstr(str, "lat='");
+                if (pLat)
+                { 
+                    point.lat = strtof(pLat + 5, nullptr); 
+                    latFound = true; 
+                }
                 char* pLon = strstr(str, "lon=\"");
-                if (!pLon) pLon = strstr(str, "lon='");
-                if (pLon) { point.lon = strtof(pLon + 5, nullptr); lonFound = true; }
+                if (!pLon) 
+                    pLon = strstr(str, "lon='");
+                if (pLon) 
+                { 
+                    point.lon = strtof(pLon + 5, nullptr); 
+                    lonFound = true; 
+                }
             };
             parseAttrs(line);
             while ((!latFound || !lonFound) && fgets(line, sizeof(line), file)) {
-                if (strstr(line, ">")) break;
+                if (strstr(line, ">"))
+                    break;
                 parseAttrs(line);
             }
-            if (latFound && lonFound) trackData.push_back(point);
+            if (latFound && lonFound) 
+                trackData.push_back(point);
         }
     }
     fclose(file);
@@ -295,10 +327,14 @@ bool GPXParser::loadTrack(TrackVector& trackData)
                 totalDist += d;
                 trackData[i].accumDist = totalDist;
             }
-            if (trackData[i].lat < currentSeg.minLat) currentSeg.minLat = trackData[i].lat;
-            if (trackData[i].lat > currentSeg.maxLat) currentSeg.maxLat = trackData[i].lat;
-            if (trackData[i].lon < currentSeg.minLon) currentSeg.minLon = trackData[i].lon;
-            if (trackData[i].lon > currentSeg.maxLon) currentSeg.maxLon = trackData[i].lon;
+            if (trackData[i].lat < currentSeg.minLat) 
+                currentSeg.minLat = trackData[i].lat;
+            if (trackData[i].lat > currentSeg.maxLat) 
+                currentSeg.maxLat = trackData[i].lat;
+            if (trackData[i].lon < currentSeg.minLon) 
+                currentSeg.minLon = trackData[i].lon;
+            if (trackData[i].lon > currentSeg.maxLon) 
+                currentSeg.maxLon = trackData[i].lon;
             if ((i + 1) % SEGMENT_SIZE == 0 || i == trackData.size() - 1)
             {
                 currentSeg.endIdx = i;
@@ -321,6 +357,7 @@ bool GPXParser::loadTrack(TrackVector& trackData)
 
 /**
  * @brief Detects turn points using sliding window
+ *
  * @param thresholdDeg Min angle.
  * @param minDist Min distance.
  * @param sharpTurnDeg Sharp turn threshold.
@@ -342,10 +379,15 @@ std::vector<TurnPoint> GPXParser::getTurnPointsSlidingWindow(
         for (int j = int(i - windowSize); j < int(i + windowSize); ++j)
         {
             float d = calcDist(trackData[j].lat, trackData[j].lon, trackData[j + 1].lat, trackData[j + 1].lon);
-            if (d > 200.0f) { skipWindow = true; break; }
+            if (d > 200.0f) 
+            { 
+                skipWindow = true; 
+                break; 
+            }
             distWindow += d;
         }
-        if (skipWindow) continue;
+        if (skipWindow) 
+            continue;
         float brgStart = calcCourse(trackData[i - windowSize].lat, trackData[i - windowSize].lon, trackData[i].lat, trackData[i].lon);
         float brgEnd   = calcCourse(trackData[i].lat, trackData[i].lon, trackData[i + windowSize].lat, trackData[i + windowSize].lon);
         float diff = calcAngleDiff(brgEnd, brgStart);
@@ -354,8 +396,10 @@ std::vector<TurnPoint> GPXParser::getTurnPointsSlidingWindow(
             turnPoints.push_back({static_cast<int>(i), diff, trackData[i].accumDist});
             continue;
         }
-        if (distWindow < minDist) continue;
-        if (std::fabs(diff) > thresholdDeg) turnPoints.push_back({static_cast<int>(i), diff, trackData[i].accumDist});
+        if (distWindow < minDist) 
+            continue;
+        if (std::fabs(diff) > thresholdDeg) 
+            turnPoints.push_back({static_cast<int>(i), diff, trackData[i].accumDist});
     }
     return turnPoints;
 }

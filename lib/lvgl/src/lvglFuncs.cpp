@@ -121,7 +121,6 @@ void showMsg(const char* symbol, const char* message)
 
 /**
  * @brief Close message dialog.
- *
  */
 void closeMsg()
 {

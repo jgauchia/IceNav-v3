@@ -46,9 +46,9 @@ static bool captureScreenshot(const char *filename, Stream *response)
     {
         size_t err = storage.write(file, (uint8_t *)png, dlen);
         if (err != 0)
-        response->println("Screenshot saved");
+            response->println("Screenshot saved");
         else
-        response->println("Error writing screenshot");
+            response->println("Error writing screenshot");
         free(png);
         storage.close(file);
         result = true;
@@ -107,9 +107,7 @@ static void captureScreenshot(const char *filename, const char *pc_ip, uint16_t 
         uint8_t buffer[512];
         size = storage.read(file, buffer, sizeof(buffer));
         if (size > 0)
-        {
-        client.write(buffer, size);
-        }
+            client.write(buffer, size);
     }
 
     storage.close(file);

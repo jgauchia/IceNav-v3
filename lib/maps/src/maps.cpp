@@ -65,6 +65,7 @@ Maps::Maps() : navLastZoom_(0),
 
 /**
  * @brief Get pixel X position from longitude
+ *
  * @param f_lon Longitude coordinate.
  * @param zoom Zoom level.
  * @param tileSize Size of the map tile in pixels.
@@ -78,6 +79,7 @@ uint16_t Maps::lon2posx(float f_lon, uint8_t zoom, uint16_t tileSize)
 
 /**
  * @brief Get pixel Y position from latitude
+ *
  * @param f_lat Latitude coordinate.
  * @param zoom Zoom level.
  * @param tileSize Size of the map tile in pixels.
@@ -95,6 +97,7 @@ uint16_t Maps::lat2posy(float f_lat, uint8_t zoom, uint16_t tileSize)
 
 /**
  * @brief Get TileX for OSM files
+ *
  * @param f_lon Longitude coordinate.
  * @param zoom Zoom level.
  * @return X tile index.
@@ -109,6 +112,7 @@ uint32_t Maps::lon2tilex(float f_lon, uint8_t zoom)
 
 /**
  * @brief Get TileY for OSM files
+ *
  * @param f_lat Latitude coordinate.
  * @param zoom Zoom level.
  * @return Y tile index.
@@ -126,6 +130,7 @@ uint32_t Maps::lat2tiley(float f_lat, uint8_t zoom)
 
 /**
  * @brief Get Longitude from tile X
+ *
  * @param tileX Tile X index.
  * @param zoom Zoom level.
  * @return Longitude coordinate.
@@ -138,6 +143,7 @@ float Maps::tilex2lon(uint32_t tileX, uint8_t zoom)
 
 /**
  * @brief Get Latitude from tile Y
+ *
  * @param tileY Tile Y index.
  * @param zoom Zoom level.
  * @return Latitude coordinate.
@@ -151,6 +157,13 @@ float Maps::tiley2lat(uint32_t tileY, uint8_t zoom)
 
 /**
  * @brief Get map tile structure from GPS Coordinates
+ * 
+ * @param lon Longitude
+ * @param lat Latitude
+ * @param zoomLevel Zoom level
+ * @param offsetX X Screen tile offset
+ * @param offsetY Y Screen tile offset
+ * @return Maps::MapTile structure
  */
 Maps::MapTile Maps::getMapTile(float lon, float lat, uint8_t zoomLevel, int8_t offsetX, int8_t offsetY)
 {
@@ -166,6 +179,11 @@ Maps::MapTile Maps::getMapTile(float lon, float lat, uint8_t zoomLevel, int8_t o
 
 /**
  * @brief Get geographic boundaries of a tile
+ * 
+ * @param tileX X Tile
+ * @param tileY Y Tile
+ * @param zoom Zoom level
+ * @return Maps::tileBounds structure
  */
 Maps::tileBounds Maps::getTileBounds(uint32_t tileX, uint32_t tileY, uint8_t zoom)
 {
@@ -179,6 +197,11 @@ Maps::tileBounds Maps::getTileBounds(uint32_t tileX, uint32_t tileY, uint8_t zoo
 
 /**
  * @brief Check if coordinates are in map bounds
+ * 
+ * @param lat Latitude
+ * @param lon Longitude
+ * @param bound Tile boundaries
+ * @return true if coordinates are in map bounds otherwise false
  */
 bool Maps::isCoordInBounds(float lat, float lon, tileBounds bound)
 {
@@ -195,6 +218,12 @@ bool Maps::isCoordInBounds(float lat, float lon, tileBounds bound)
 
 /**
  * @brief Convert GPS Coordinates to screen position
+ * 
+ * @param lon Longitude
+ * @param lat Latitude
+ * @param zoomLevel Zoom level
+ * @param tileSize Tile size
+ * @return Maps::ScreenCoord x,y screen position
  */
 Maps::ScreenCoord Maps::coord2ScreenPos(float lon, float lat, uint8_t zoomLevel, uint16_t tileSize)
 {
@@ -206,6 +235,12 @@ Maps::ScreenCoord Maps::coord2ScreenPos(float lon, float lat, uint8_t zoomLevel,
 
 /**
  * @brief Convert coordinates to map pixels
+ * 
+ * @param lat Latitude
+ * @param lon Longitude
+ * @param bound Tile boundaries
+ * @param pixelX X pixel
+ * @param pixelY Y pixel
  */
 void Maps::coords2map(float lat, float lon, tileBounds bound, uint16_t *pixelX, uint16_t *pixelY)
 {
@@ -226,8 +261,12 @@ void Maps::showNoMap(TFT_eSprite &map)
     map.drawCenterString("NO MAP FOUND", (Maps::mapScrWidth / 2), (Maps::mapScrHeight >> 1) + 65, &fonts::DejaVu18);
 }
 
+
 /**
  * @brief Initialize map sprites and variables
+ * 
+ * @param mapHeight Map height
+ * @param mapWidth Map width
  */
 void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
 {
@@ -292,6 +331,8 @@ void Maps::redrawTrack()
 
 /**
  * @brief Generate the map grid
+ * 
+ * @param zoom Zoom level
  */
 void Maps::generateMap(uint8_t zoom)
 {
@@ -548,6 +589,13 @@ void Maps::mapRenderTask(void* pvParameters)
 
 /**
  * @brief Render a single PNG tile
+ * 
+ * @param tileX X Tile
+ * @param tileY Y Tile
+ * @param zoom Zoom level
+ * @param screenX X PNG position on sprite
+ * @param screenY Y PNG position on sprite
+ * @param map Map sprite
  */
 void Maps::renderPngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, TFT_eSprite &map)
 {
@@ -575,11 +623,11 @@ void Maps::displayMap()
         return;
 
     uint16_t mapHeading = 0;
-#ifdef ENABLE_COMPASS
-    mapHeading = mapSet.mapRotationComp ? globalSensorData.heading : gps.gpsData.heading;
-#else
-    mapHeading = gps.gpsData.heading;
-#endif
+    #ifdef ENABLE_COMPASS
+        mapHeading = mapSet.mapRotationComp ? globalSensorData.heading : gps.gpsData.heading;
+    #else
+        mapHeading = gps.gpsData.heading;
+    #endif
     
     Maps::mapTempSprite.pushImage(Maps::wptPosX - 8, Maps::wptPosY - 8, 16, 16, (uint16_t *)waypoint, TFT_BLACK);
     tft.startWrite();
@@ -603,6 +651,9 @@ void Maps::displayMap()
 
 /**
  * @brief Set waypoint coordinates
+ * 
+ * @param wptLat Waypoint latitude
+ * @param wptLon Waypoint longitude
  */
 void Maps::setWaypoint(float wptLat, float wptLon)
 {
@@ -621,6 +672,9 @@ void Maps::updateMap()
 
 /**
  * @brief Panning map by tile offsets
+ * 
+ * @param dx X scroll offset
+ * @param dy Y scroll offset
  */
 void Maps::panMap(int8_t dx, int8_t dy)
 {
@@ -632,6 +686,9 @@ void Maps::panMap(int8_t dx, int8_t dy)
 
 /**
  * @brief Center map on GPS position
+ * 
+ * @param lat GPS Latitude
+ * @param lon GPS Longitude
  */
 void Maps::centerOnGps(float lat, float lon)
 {
@@ -661,6 +718,9 @@ void Maps::resetScrollState()
 
 /**
  * @brief Smooth scroll the map
+ * 
+ * @param dx X scroll offset
+ * @param dy Y scroll offset
  */
 void Maps::scrollMap(int16_t dx, int16_t dy)
 {
@@ -690,11 +750,11 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
         Maps::offsetY = -maxOffsetY;
 
     scrollUpdated = false;
-#ifdef T4_S3
-    const int16_t threshold = 160;
-#else
-    const int16_t threshold = 128;
-#endif
+    #ifdef T4_S3
+        const int16_t threshold = 160;
+    #else
+        const int16_t threshold = 128;
+    #endif
     const int16_t tileSize = Maps::mapTileSize;
 
     if (Maps::offsetX <= -threshold)
@@ -745,9 +805,12 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
     }
 }
 
-/**
- * @brief Preload PNG tiles
- */
+ /**
+  * @brief Preload PNG tiles
+  * 
+  * @param dirX X direction 
+  * @param dirY Y direction
+  */
 void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 {
     const int16_t tileSize = mapTileSize;
@@ -791,6 +854,10 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 
 /**
  * @brief Darken a color
+ * 
+ * @param color 
+ * @param amount Dark amount
+ * @return uint16_t Darken color
  */
 uint16_t Maps::darkenRGB565(const uint16_t color, const float amount)
 {
@@ -804,7 +871,22 @@ uint16_t Maps::darkenRGB565(const uint16_t color, const float amount)
 }
 
 /**
- * @brief Fill a polygon using AEL scanline algorithm
+ * @brief Fills a polygon (including shapes with holes/rings) using the Scanline AEL algorithm.
+ * 
+ * @details This function implements the Active Edge List (AEL) algorithm to rasterize convex, 
+ *          concave, or complex polygons composed of multiple rings. It utilizes 16-bit 
+ *          fixed-point arithmetic for edge slopes and sub-pixel X-coordinate precision 
+ *          to ensure smooth transitions between scanlines.
+ * 
+ * @param map        Reference to the target TFT_eSprite where the polygon is rendered.
+ * @param px         Array of X-coordinates for the vertices.
+ * @param py         Array of Y-coordinates for the vertices.
+ * @param numPoints  Total count of vertices across all rings.
+ * @param color      16-bit (RGB565) color for the fill.
+ * @param xOffset    Horizontal translation applied to the final drawing coordinates.
+ * @param yOffset    Vertical translation applied to the final drawing coordinates.
+ * @param ringCount  The number of independent rings (use 0 or 1 for simple polygons).
+ * @param ringEnds   Array containing the end indices for each ring in the px/py arrays. 
  */
 void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset, uint16_t ringCount, const uint16_t* ringEnds)
 {
@@ -997,7 +1079,17 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
 }
 
 /**
- * @brief Project Lat/Lon to pixels
+ * @brief Projects geographic coordinates (Latitude/Longitude) to local pixel coordinates.
+ * 
+ * @details This function performs a Web Mercator projection to convert WGS84 decimal degrees 
+ *          into global tile coordinates based on the current zoom level (@p navLastZoom_). 
+ *          It then transforms these into local pixel offsets relative to the top-left 
+ *          tile of the current viewport (navTlTileX_, navTlTileY_).
+ *  
+ * @param lat  Latitude in decimal degrees 
+ * @param lon  Longitude in decimal degrees 
+ * @param px   Calculated horizontal pixel position relative to the current map view.
+ * @param py   Calculated vertical pixel position relative to the current map view.
  */
 void Maps::latLonToPixel(float lat, float lon, int16_t& px, int16_t& py)
 {
@@ -1010,7 +1102,17 @@ void Maps::latLonToPixel(float lat, float lon, int16_t& px, int16_t& py)
 }
 
 /**
- * @brief Render a NAV LineString
+ * @brief Renders a NAVLineString (roads, paths, etc.) onto a sprite.
+ * 
+ * @details This function decodes compressed vector data and draws it as a series of 
+ *          connected segments. It supports "casing" (drawing a slightly wider, darker 
+ *          background line to create an outline effect) and applies dynamic Level of 
+ *          Detail (LOD) filtering based on the current zoom level to optimize performance.
+ *
+ * @param ref Reference to the feature data, including coordinates and style.
+ * @param map The target TFT_eSprite for rendering.
+ * @param isCasing  If true, renders the line outline (wider and darkened). 
+ *                  If false, renders the main line body.
  */
 void Maps::renderNavLineString(const FeatureRef& ref, TFT_eSprite& map, bool isCasing)
 {
@@ -1088,7 +1190,16 @@ void Maps::renderNavLineString(const FeatureRef& ref, TFT_eSprite& map, bool isC
 }
 
 /**
- * @brief Render a NAV Polygon
+ * @brief Renders a NAV polygon (parks, water, buildings) onto a sprite.
+ * 
+ * @details This function processes encoded vector data to reconstruct polygon geometry, 
+ *          including support for multiple rings (holes or multi-part polygons). It includes 
+ *          coordinate simplification for performance and optional outline (casing) rendering 
+ *          at high zoom levels.
+ *
+ * @param ref  Reference to the feature data, including vertex pointers, 
+ *             colors, and styling metadata.
+ * @param map  The target TFT_eSprite where the polygon and its outline will be drawn.
  */
 void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
 {
@@ -1199,7 +1310,13 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
 }
 
 /**
- * @brief Render a NAV Point
+ * @brief Renders a NAV point (POI) as a filled circle.
+ * 
+ * @details Decodes the point's coordinates using ZigZag/VarInt, applies the tile offset, 
+ *          and draws a circle at the resulting position if it falls within the tile bounds.
+ * 
+ * @param ref Reference to the point feature data and styling.
+ * @param map The target sprite for rendering.
  */
 void Maps::renderNavPoint(const FeatureRef& ref, TFT_eSprite& map)
 {
@@ -1215,7 +1332,16 @@ void Maps::renderNavPoint(const FeatureRef& ref, TFT_eSprite& map)
 }
 
 /**
- * @brief Dispatch feature rendering
+ * @brief Dispatches rendering calls based on geometry type and render pass.
+ * 
+ * @details Orchestrates the drawing sequence in two phases:
+ *          - **Pass 1:** Renders Polygons, Points, and LineString outlines (casing).
+ *          - **Pass 2:** Renders LineString main bodies and Text labels.
+ * 
+ * @param ref Reference to the feature data and styling metadata.
+ * @param map The target sprite for rendering.
+ * @param pass The rendering stage (1 for base/background, 2 for foreground/text).
+ * @param placedLabels  Tracking list for collision detection and label placement.
  */
 void Maps::renderNavFeature(const FeatureRef& ref, TFT_eSprite& map, uint8_t pass, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels)
 {
@@ -1238,7 +1364,16 @@ void Maps::renderNavFeature(const FeatureRef& ref, TFT_eSprite& map, uint8_t pas
 }
 
 /**
- * @brief Render a NAV Text
+ * @brief Renders NAV text labels with collision detection.
+ * 
+ * @details Decodes label coordinates and text content from the feature payload, then
+ *          checks for overlaps against previously placed labels using a padding-aware 
+ *          AABB (Axis-Aligned Bounding Box) test. If no collision is found, the text 
+ *          is drawn and its bounds are added to the placedLabels list.
+ * 
+ * @param ref Reference to the text feature data (coords, length, string).
+ * @param map The target sprite for rendering.
+ * @param placedLabels  Vector tracking occupied screen areas to prevent overlapping text.
  */
 void Maps::renderNavText(const FeatureRef& ref, TFT_eSprite& map, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels)
 {
@@ -1284,7 +1419,13 @@ void Maps::renderNavText(const FeatureRef& ref, TFT_eSprite& map, std::vector<La
 }
 
 /**
- * @brief Entry point for viewport rendering
+ * @brief Initializes and prepares viewport for rendering.
+ * 
+ * @param centerLat Latitude of the viewport center.
+ * @param centerLon Longitude of the viewport center.
+ * @param zoom Target zoom level.
+ * @param map Reference to the sprite used for rendering.
+ * @return true if the viewport was successfully initialized.
  */
 bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT_eSprite& map)
 {
@@ -1328,7 +1469,20 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
 }
 
 /**
- * @brief Render a single NAV tile
+ * @brief Fetches and decodes a single NAV tile from cache or storage.
+ * 
+ * @details Manages a LRU (Least Recently Used) cache in PSRAM for tile data. It opens 
+ *          the corresponding zoom-level pack file, locates the tile via hash, and 
+ *          extracts features into the featurePool. Includes view-frustum culling 
+ *          and Level of Detail (LOD) filtering to skip features that are too small 
+ *          or off-screen.
+ * 
+ * @param tileX The global X index of the tile.
+ * @param tileY The global Y index of the tile.
+ * @param zoom  The current map zoom level.
+ * @param screenX The horizontal pixel offset on the target sprite.
+ * @param screenY The vertical pixel offset on the target sprite.
+ * @param map The target sprite for metadata updates (timing/stats).
  */
 void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, TFT_eSprite &map)
 {

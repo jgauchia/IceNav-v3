@@ -105,11 +105,11 @@ void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 12288, NULL, 1
 #endif
 
 #ifdef BME280
-extern BME280_Driver bme;
+    extern BME280_Driver bme;
 #endif
-extern Battery battery;
+    extern Battery battery;
 #ifdef ENABLE_COMPASS
-extern Compass compass;
+    extern Compass compass;
 #endif
 
 /**

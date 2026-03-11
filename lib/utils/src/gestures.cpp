@@ -10,6 +10,7 @@
 
 /**
  * @brief Detects movement for pinch-zoom with automatic dynamic threshold
+ *
  * @param prev Previous touch points.
  * @param curr Current touch points.
  * @param dt_ms Time delta in ms.
@@ -34,7 +35,9 @@
         thresholdIn  *= 0.7f;
         thresholdOut *= 0.5f;
     }
-    if (delta > thresholdOut) return ZOOM_IN;
-    else if (delta < -thresholdIn) return ZOOM_OUT;
+    if (delta > thresholdOut) 
+        return ZOOM_IN;
+    else if (delta < -thresholdIn) 
+        return ZOOM_OUT;
     return ZOOM_NONE;
 }

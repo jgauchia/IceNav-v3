@@ -42,24 +42,24 @@ static void gpxDetailScreenEvent(lv_event_t *event)
                 GPXParser gpx;
                 switch (gpxAction)
                 {
-                case WPT_ADD:
-                    addWpt.name = (char *)lv_textarea_get_text(tagName);
-                    if (strcmp(addWpt.name,"") != 0)
-                    {
-                        gpx.filePath = wptFile;
-                        gpx.addWaypoint(addWpt);
-                    }
-                    break;
-                case GPX_EDIT:
-                    char *newName = (char *)lv_textarea_get_text(tagName);
-                    if (strcmp(loadWpt.name, newName) != 0)
-                    {
-                        gpx.filePath = gpxFileFolder.c_str();
-                        if (gpxWaypoint)
-                            gpx.editTagAttrOrElem(gpxWaypointTag, nullptr, gpxNameElem, loadWpt.name, newName);
-                        if (gpxTrack)
-                            gpx.editTagAttrOrElem(gpxTrackTag, nullptr, gpxNameElem, loadWpt.name, newName);
-                    }
+                    case WPT_ADD:
+                        addWpt.name = (char *)lv_textarea_get_text(tagName);
+                        if (strcmp(addWpt.name,"") != 0)
+                        {
+                            gpx.filePath = wptFile;
+                            gpx.addWaypoint(addWpt);
+                        }
+                        break;
+                    case GPX_EDIT:
+                        char *newName = (char *)lv_textarea_get_text(tagName);
+                        if (strcmp(loadWpt.name, newName) != 0)
+                        {
+                            gpx.filePath = gpxFileFolder.c_str();
+                            if (gpxWaypoint)
+                                gpx.editTagAttrOrElem(gpxWaypointTag, nullptr, gpxNameElem, loadWpt.name, newName);
+                            if (gpxTrack)
+                                gpx.editTagAttrOrElem(gpxTrackTag, nullptr, gpxNameElem, loadWpt.name, newName);
+                        }
                     break;
                 }
                 isMainScreen = true;
@@ -90,24 +90,24 @@ static void gpxDetailScreenEvent(lv_event_t *event)
         GPXParser gpx;
         switch (gpxAction)
         {
-        case WPT_ADD:
-            addWpt.name = (char *)lv_textarea_get_text(tagName);
-            if (strcmp(addWpt.name,"") != 0)
-            {
-                gpx.filePath = wptFile;
-                gpx.addWaypoint(addWpt);
-            }
-            break;
-        case GPX_EDIT:
-            char *newName = (char *)lv_textarea_get_text(tagName);
-            if (strcmp(loadWpt.name, newName) != 0)
-            {
-                gpx.filePath = gpxFileFolder.c_str();
-                if (gpxWaypoint)
-                    gpx.editTagAttrOrElem(gpxWaypointTag, nullptr, gpxNameElem, loadWpt.name, newName);
-                if (gpxTrack)
-                    gpx.editTagAttrOrElem(gpxTrackTag, nullptr, gpxNameElem, loadWpt.name, newName);
-            }
+            case WPT_ADD:
+                addWpt.name = (char *)lv_textarea_get_text(tagName);
+                if (strcmp(addWpt.name,"") != 0)
+                {
+                    gpx.filePath = wptFile;
+                    gpx.addWaypoint(addWpt);
+                }
+                break;
+            case GPX_EDIT:
+                char *newName = (char *)lv_textarea_get_text(tagName);
+                if (strcmp(loadWpt.name, newName) != 0)
+                {
+                    gpx.filePath = gpxFileFolder.c_str();
+                    if (gpxWaypoint)
+                        gpx.editTagAttrOrElem(gpxWaypointTag, nullptr, gpxNameElem, loadWpt.name, newName);
+                    if (gpxTrack)
+                        gpx.editTagAttrOrElem(gpxTrackTag, nullptr, gpxNameElem, loadWpt.name, newName);
+                }
             break;
         }
         isMainScreen = true;
@@ -169,23 +169,23 @@ static void gpxTagNameEvent(lv_event_t *event)
         GPXParser gpx;
         switch (gpxAction)
         {
-        case WPT_ADD:
-            addWpt.name = (char *)lv_textarea_get_text(gpxTagValue);
-            if (strcmp(addWpt.name,"") != 0)
-            {
-                gpx.filePath = wptFile;
-                gpx.addWaypoint(addWpt);
-            }
-        case GPX_EDIT:
-            char *newName = (char *)lv_textarea_get_text(gpxTagValue);
-            if (strcmp(loadWpt.name, newName) != 0)
-            {
-                gpx.filePath = gpxFileFolder.c_str();
-                if (gpxWaypoint)
-                    gpx.editTagAttrOrElem(gpxWaypointTag, nullptr, gpxNameElem, loadWpt.name, newName);
-                if (gpxTrack)
-                    gpx.editTagAttrOrElem(gpxTrackTag, nullptr, gpxNameElem, loadWpt.name, newName);
-            }
+            case WPT_ADD:
+                addWpt.name = (char *)lv_textarea_get_text(gpxTagValue);
+                if (strcmp(addWpt.name,"") != 0)
+                {
+                    gpx.filePath = wptFile;
+                    gpx.addWaypoint(addWpt);
+                }
+            case GPX_EDIT:
+                char *newName = (char *)lv_textarea_get_text(gpxTagValue);
+                if (strcmp(loadWpt.name, newName) != 0)
+                {
+                    gpx.filePath = gpxFileFolder.c_str();
+                    if (gpxWaypoint)
+                        gpx.editTagAttrOrElem(gpxWaypointTag, nullptr, gpxNameElem, loadWpt.name, newName);
+                    if (gpxTrack)
+                        gpx.editTagAttrOrElem(gpxTrackTag, nullptr, gpxNameElem, loadWpt.name, newName);
+                }
             break;
         }
         isMainScreen = true;

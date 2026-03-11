@@ -27,6 +27,7 @@ BME280_Driver::BME280_Driver() : i2cAddr(BME_ADDRESS), t_fine(0) {}
 
 /**
  * @brief Reads a single byte from a register.
+ *
  * @param reg Register address.
  * @return Register value.
  */
@@ -37,6 +38,7 @@ uint8_t BME280_Driver::read8(uint8_t reg)
 
 /**
  * @brief Reads a 16-bit value from two consecutive registers (LSB first).
+ *
  * @param reg Starting register address.
  * @return 16-bit unsigned value in little-endian format.
  */
@@ -49,6 +51,7 @@ uint16_t BME280_Driver::read16_LE(uint8_t reg)
 
 /**
  * @brief Reads a signed 16-bit value from two consecutive registers (LSB first).
+ *
  * @param reg Starting register address.
  * @return 16-bit signed value in little-endian format.
  */
@@ -59,6 +62,7 @@ int16_t BME280_Driver::readS16_LE(uint8_t reg)
 
 /**
  * @brief Writes a single byte to a register.
+ *
  * @param reg Register address.
  * @param value Value to write.
  */
