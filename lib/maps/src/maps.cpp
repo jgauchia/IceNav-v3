@@ -273,7 +273,7 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
     Maps::mapScrHeight = mapHeight;
     Maps::mapScrWidth = mapWidth;
     Maps::mapTempSprite.createSprite(Maps::tileWidth, Maps::tileHeight);
-    Maps::mapSprite.createSprite(Maps::tileWidth, Maps::tileHeight);
+    Maps::mapSprite.createSprite(mapWidth, mapHeight);
     Maps::mapBuffer = Maps::mapSprite.getBuffer();
     Maps::preloadSprite.deleteSprite();
     Maps::preloadSprite.createSprite(mapTileSize * 2, mapTileSize * 2);
@@ -648,7 +648,7 @@ void Maps::renderPngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
 }
 
 /**
- * @brief Display the map on screen with rotation
+ * @brief Display the map on screen with rotation and dynamic cropping.
  */
 void Maps::displayMap()
 {
@@ -677,12 +677,24 @@ void Maps::displayMap()
         const float lon = gps.gpsData.longitude;
         const int8_t gridOffset = tilesGrid / 2;
         Maps::navArrowPosition = Maps::coord2ScreenPos(lon, lat, Maps::zoomLevel, Maps::mapTileSize);
+        
+        // Pivot in large source sprite (GPS position)
         Maps::mapTempSprite.setPivot(gridOffset * mapTileSize + Maps::navArrowPosition.posX,
                                      gridOffset * mapTileSize + Maps::navArrowPosition.posY);
+        
+        // Pivot in small destination sprite (Center of viewport)
+        Maps::mapSprite.setPivot(mapScrWidth / 2, mapScrHeight / 2);
+        
+        // Rotate and crop directly to mapSprite
         Maps::mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
     }
     else
-        mapSprite.pushImage(0, 0, tileWidth, tileHeight, (uint16_t*)mapTempSprite.getBuffer());
+    {
+        // Manual panning: crop central part of grid adjusted by offsetX/offsetY
+        int16_t cropX = (tileWidth - mapScrWidth) / 2 + offsetX;
+        int16_t cropY = (tileHeight - mapScrHeight) / 2 + offsetY;
+        mapTempSprite.pushSprite(&mapSprite, -cropX, -cropY);
+    }
 
     tft.endWrite();
     xSemaphoreGive(mapMutex);

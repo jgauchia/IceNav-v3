@@ -311,23 +311,12 @@ void updateMap(lv_event_t *event)
     {
         xEventGroupClearBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
         mapView.displayMap();
-        lv_canvas_set_buffer(mapCanvas, mapView.mapBuffer, Maps::tileWidth, Maps::tileHeight, LV_COLOR_FORMAT_RGB565_SWAPPED);
+        lv_canvas_set_buffer(mapCanvas, mapView.mapBuffer, mapView.mapScrWidth, mapView.mapScrHeight, LV_COLOR_FORMAT_RGB565_SWAPPED);
         mapView.redrawMap = false;
     }
-    int16_t baseX = (tft.width() - Maps::tileWidth) / 2;
-    int16_t baseY = ((tft.height() - 27) - Maps::tileHeight) / 2;
 
-#ifdef T4_S3
-    int16_t targetX = (mapView.followGps) ? baseX : (baseX - mapView.offsetX);
-    int16_t targetY = (mapView.followGps) ? baseY : (baseY - mapView.offsetY);
-    // Force even X coordinate for RM690B0 AMOLED panel
-    lv_obj_set_pos(mapCanvas, targetX & ~1, targetY);
-#else
-    if (mapView.followGps)
-        lv_obj_set_pos(mapCanvas, baseX, baseY);
-    else
-        lv_obj_set_pos(mapCanvas, baseX - mapView.offsetX, baseY - mapView.offsetY);
-#endif
+    lv_obj_set_pos(mapCanvas, 0, 0);
+
     if (mapSet.showMapSpeed)
         lv_label_set_text_fmt(mapSpeedLabel, "%3d", gps.gpsData.speed);     
     if (mapSet.showMapScale)
