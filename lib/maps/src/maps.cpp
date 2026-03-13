@@ -273,6 +273,7 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
     Maps::mapScrHeight = mapHeight;
     Maps::mapScrWidth = mapWidth;
     Maps::mapTempSprite.createSprite(Maps::tileWidth, Maps::tileHeight);
+    Maps::mapTempSprite.loadFont("/spiffs/font.vlw");
     Maps::mapSprite.createSprite(mapWidth, mapHeight);
     Maps::mapBuffer = Maps::mapSprite.getBuffer();
     Maps::preloadSprite.deleteSprite();
@@ -1451,15 +1452,20 @@ void Maps::renderNavText(const FeatureRef& ref, TFT_eSprite& map, std::vector<La
     char textBuf[128];
     memcpy(textBuf, p + 5, textLen);
     textBuf[textLen] = '\0';
-    float scale = (ref.width == 0) ? 0.8f : (ref.width == 1) ? 1.0f : 1.2f;
+
+    // Scales adjusted for sharpness: base size 1.0 prevents VLW distortion
+    float scale = (ref.width == 0) ? 1.0f : (ref.width == 1) ? 1.2f : 1.5f;
     map.setTextSize(scale);
+
     int tw = map.textWidth(textBuf);
     int th = map.fontHeight();
     int lx = px - tw / 2;
     int ly = py - th;
     const int PAD = 4;
+
     if (lx + tw < 0 || lx >= (int)tileWidth || ly + th < 0 || ly >= (int)tileHeight)
         return;
+
     bool collision = false;
     for (const auto& r : placedLabels)
     {
@@ -1469,12 +1475,15 @@ void Maps::renderNavText(const FeatureRef& ref, TFT_eSprite& map, std::vector<La
             break;
         }
     }
+
     if (collision)
         return;
+
     map.setTextColor(ref.color);
     map.setTextDatum(lgfx::top_center);
     map.drawString(textBuf, px, ly);
     map.setTextDatum(lgfx::top_left);
+
     if (placedLabels.size() < placedLabels.capacity())
         placedLabels.push_back({(int16_t)lx, (int16_t)ly, (int16_t)tw, (int16_t)th});
 }
