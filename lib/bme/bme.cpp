@@ -23,7 +23,29 @@ uint8_t tempOld = 0;
  *
  * @details Initializes with default I2C address and resets t_fine compensation value.
  */
-BME280_Driver::BME280_Driver() : i2cAddr(BME_ADDRESS), t_fine(0) {}
+BME280_Driver::BME280_Driver() : 
+    i2cAddr(BME_ADDRESS), 
+    t_fine(0)
+{
+    dig_T1 = 0;
+    dig_T2 = 0;
+    dig_T3 = 0;
+    dig_P1 = 0;
+    dig_P2 = 0;
+    dig_P3 = 0;
+    dig_P4 = 0;
+    dig_P5 = 0;
+    dig_P6 = 0;
+    dig_P7 = 0;
+    dig_P8 = 0;
+    dig_P9 = 0;
+    dig_H1 = 0;
+    dig_H2 = 0;
+    dig_H3 = 0;
+    dig_H4 = 0;
+    dig_H5 = 0;
+    dig_H6 = 0;
+}
 
 /**
  * @brief Reads a single byte from a register.

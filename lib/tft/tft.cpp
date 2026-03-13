@@ -18,7 +18,7 @@ bool waitScreenRefresh = false;
 extern Storage storage;
 
 /**
- * @brief Turn on TFT Sleep Mode for ILI9488
+ * @brief Turn on TFT (Wake up Mode) for ILI9488
  */
 void tftOn(uint8_t brightness)
 {
@@ -28,7 +28,7 @@ void tftOn(uint8_t brightness)
 }
 
 /**
- * @brief Turn off TFT Wake up Mode for ILI9488
+ * @brief Turn off TFT (Sleep Mode) for ILI9488
  */
 void tftOff()
 {

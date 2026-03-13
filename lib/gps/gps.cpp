@@ -74,7 +74,18 @@ static const char* TAG = "GPS";
 /**
  * @brief Default constructor for Gps class.
  */
-Gps::Gps() {}
+Gps::Gps()
+{
+    previousSpeed = 0;
+    previousAltitude = 0;
+    previousLatitude = 0.0f;
+    previousLongitude = 0.0f;
+    previousHdop = 0.0f;
+    previousPdop = 0.0f;
+    previousVdop = 0.0f;
+    memset(&gpsData, 0, sizeof(GPSDATA));
+    memset(&satTracker, 0, sizeof(satTracker));
+}
 
 /**
  * @brief Init GPS and custom NMEA parsing.

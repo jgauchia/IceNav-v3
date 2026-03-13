@@ -86,8 +86,14 @@ void wcli_info(char *args, Stream *response)
     response->printf("Flash size\t: %u bytes\r\n", flash_size);
     const esp_partition_t *running = esp_ota_get_running_partition();
     esp_image_metadata_t metadata;
-    esp_partition_pos_t part_pos = {.offset = running->address, .size = running->size};
-    if (running && esp_image_verify(ESP_IMAGE_VERIFY, &part_pos, &metadata) == ESP_OK)
+    bool imageValid = false;
+    if (running)
+    {
+        esp_partition_pos_t part_pos = { .offset = running->address, .size = running->size };
+        if (esp_image_verify(ESP_IMAGE_VERIFY, &part_pos, &metadata) == ESP_OK)
+            imageValid = true;
+    }
+    if (imageValid)
         response->printf("Program size\t: %u bytes\r\n", metadata.image_len);
     else
         response->printf("Program size\t: unknown\r\n");

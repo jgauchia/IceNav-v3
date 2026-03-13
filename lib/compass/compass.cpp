@@ -486,6 +486,7 @@ Compass::Compass()
         kalmanFilterEnabled(true),
         kalmanFilter(0.01f, 0.1f, 1.0f, 0.0f)
 {
+    previousDegrees = 0;
 }
 
 /**
