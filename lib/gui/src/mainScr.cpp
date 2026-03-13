@@ -307,7 +307,8 @@ void updateMap(lv_event_t *event)
     mapView.generateMap(zoom);
     if (mapView.redrawMap && !mapSet.vectorMap)
         xEventGroupSetBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
-    if (xEventGroupGetBits(mapView.mapEventGroup) & Maps::MAP_EVENT_DONE)
+
+    if (isScrollingMap || (xEventGroupGetBits(mapView.mapEventGroup) & Maps::MAP_EVENT_DONE))
     {
         xEventGroupClearBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
         mapView.displayMap();
