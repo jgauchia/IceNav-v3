@@ -567,40 +567,50 @@ void Maps::mapRenderTask(void* pvParameters)
                 uint32_t lastYield = millis();
                 uint32_t loopCounter = 0;
 
-                for (int i = 0; i < 16; i++)
+                for (uint8_t pass = 1; pass <= 2; pass++)
                 {
-                    const auto& layer = instance->layers[i];
-                    if (layer.empty())
-                        continue;
-
-                    uint8_t pass = (i == 15) ? 2 : 1;
-                    for (uint16_t idx : layer)
+                    for (int i = 0; i < 16; i++)
                     {
-                        if ((++loopCounter & 15) == 0)
+                        const auto& layer = instance->layers[i];
+                        if (layer.empty())
+                            continue;
+
+                        for (uint16_t idx : layer)
                         {
-                            uint32_t now = millis();
-                            if (now - lastYield > 20)
+                            if ((++loopCounter & 15) == 0)
                             {
-                                instance->mapTempSprite.endWrite();
-                                vTaskDelay(1);
-                                instance->mapTempSprite.startWrite();
-                                lastYield = millis();
+                                uint32_t now = millis();
+                                if (now - lastYield > 20)
+                                {
+                                    instance->mapTempSprite.endWrite();
+                                    vTaskDelay(1);
+                                    instance->mapTempSprite.startWrite();
+                                    lastYield = millis();
+                                }
+                            }
+
+                            uint64_t tFeatStart = esp_timer_get_time();
+                            const auto& feat = instance->featurePool[idx];
+                            instance->renderNavFeature(feat, instance->mapTempSprite, pass, instance->placedLabelsCache);
+                            uint64_t tFeatEnd = esp_timer_get_time();
+
+                            if (pass == 1)
+                            {
+                                if (feat.geomType == NavGeomType::Polygon)
+                                    instance->drawPolyTime += (tFeatEnd - tFeatStart);
+                                else if (feat.geomType == NavGeomType::LineString)
+                                    instance->drawLineTime += (tFeatEnd - tFeatStart);
+                            }
+                            else
+                            {
+                                if (feat.geomType == NavGeomType::Text)
+                                    instance->drawLabelTime += (tFeatEnd - tFeatStart);
+                                else if (feat.geomType == NavGeomType::LineString)
+                                    instance->drawLineTime += (tFeatEnd - tFeatStart);
                             }
                         }
-
-                        uint64_t tFeatStart = esp_timer_get_time();
-                        const auto& feat = instance->featurePool[idx];
-                        instance->renderNavFeature(feat, instance->mapTempSprite, pass, instance->placedLabelsCache);
-                        uint64_t tFeatEnd = esp_timer_get_time();
-
-                        if (feat.geomType == NavGeomType::Polygon)
-                            instance->drawPolyTime += (tFeatEnd - tFeatStart);
-                        else if (feat.geomType == NavGeomType::LineString)
-                            instance->drawLineTime += (tFeatEnd - tFeatStart);
-                        else
-                            instance->drawLabelTime += (tFeatEnd - tFeatStart);
+                        esp_task_wdt_reset();
                     }
-                    esp_task_wdt_reset();
                 }
 
                 instance->mapTempSprite.endWrite();
