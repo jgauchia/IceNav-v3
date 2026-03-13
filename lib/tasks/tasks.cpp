@@ -128,24 +128,26 @@ void sensorTask(void *pvParameters)
     uint16_t slowCounter = 0;
     while (1)
     {
+        // Reduce I2C bus load during manual map scrolling
+        if (isScrollingMap)
+            vTaskDelay(pdMS_TO_TICKS(100));
+
         #ifdef ENABLE_COMPASS
             globalSensorData.heading = compass.getHeading();
         #endif
 
-        // Read slow sensors every ~1.5 seconds (150 * 10ms)
-        if (slowCounter++ >= 150) 
+        // Read slow sensors every ~1.5 seconds (75 * 20ms)
+        if (slowCounter++ >= 75) 
         {
             #ifdef BME280
-                globalSensorData.temperature = bme.readTemperature();
-                globalSensorData.pressure = bme.readPressure();
-                globalSensorData.humidity = bme.readHumidity();
-                globalSensorData.altitude = (int16_t)bme.readAltitude();
+                bme.readAll(globalSensorData.temperature, globalSensorData.pressure, globalSensorData.humidity);
+                globalSensorData.altitude = (int16_t)bme.readAltitude(globalSensorData.pressure);
             #endif
             globalSensorData.batteryPercent = battery.readBattery();
             slowCounter = 0;
         }
 
-        vTaskDelay(pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(20));
     }
 }
 
