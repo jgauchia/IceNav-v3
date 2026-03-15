@@ -196,7 +196,7 @@ void updateMainScreen(lv_timer_t *t)
         switch (activeTile)
         {
             case COMPASS:
-                if (heading != screenState.lastHeading)
+                if (abs(heading - screenState.lastHeading) > 1)
                 {
                     screenState.lastHeading = heading;
                     screenState.needsRedraw = true;
@@ -215,14 +215,14 @@ void updateMainScreen(lv_timer_t *t)
                 }
                 break;
             case MAP:
-                if (isScrollingMap || mapView.offsetX != screenState.lastOffsetX || mapView.offsetY != screenState.lastOffsetY || mapView.redrawMap)
+                if (mapView.offsetX != screenState.lastOffsetX || mapView.offsetY != screenState.lastOffsetY || mapView.redrawMap)
                 {
                     mapView.scrollMap(0, 0);
                     screenState.lastOffsetX = mapView.offsetX;
                     screenState.lastOffsetY = mapView.offsetY;
                     screenState.needsRedraw = true;
                 }
-                if (heading != screenState.lastHeading)
+                if (abs(heading - screenState.lastHeading) > 1)
                 {
                     screenState.lastHeading = heading;
                     screenState.needsRedraw = true;
@@ -241,7 +241,12 @@ void updateMainScreen(lv_timer_t *t)
                 }
                 break;
             case SATTRACK:
-                lv_obj_send_event(satTrackTile, LV_EVENT_VALUE_CHANGED, NULL);
+                static uint8_t lastSats = 0;
+                if (gps.isDOPChanged() || gps.hasLocationChange() || gps.gpsData.satInView != lastSats)
+                {
+                    lastSats = gps.gpsData.satInView;
+                    lv_obj_send_event(satTrackTile, LV_EVENT_VALUE_CHANGED, NULL);
+                }
                 break;
             default: 
                 break;
@@ -292,13 +297,13 @@ void updateMap(lv_event_t *event)
     static float lastRotHeading = -1.0f;
     if (mapView.followGps && !isScrollingMap)
     {
-        mapView.redrawMap = true;
         float currHead = mapSet.mapRotationComp ? globalSensorData.heading : (float)gps.gpsData.heading;
         uint32_t now = millis();
         if (!(xEventGroupGetBits(mapView.mapEventGroup) & Maps::MAP_EVENT_START))
         {
-            if (now - lastRotTime > 50 && abs(currHead - lastRotHeading) > 1.0f)
+            if (gps.hasLocationChange() || (now - lastRotTime > 50 && abs(currHead - lastRotHeading) > 1.0f))
             {
+                mapView.redrawMap = true;
                 xEventGroupSetBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
                 lastRotTime = now; lastRotHeading = currHead;
             }
@@ -308,8 +313,11 @@ void updateMap(lv_event_t *event)
     if (mapView.redrawMap && !mapSet.vectorMap)
         xEventGroupSetBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
 
-    if (isScrollingMap || (xEventGroupGetBits(mapView.mapEventGroup) & Maps::MAP_EVENT_DONE))
+    static int16_t lastDispX = -32768, lastDispY = -32768;
+    if (mapView.offsetX != lastDispX || mapView.offsetY != lastDispY || (xEventGroupGetBits(mapView.mapEventGroup) & Maps::MAP_EVENT_DONE))
     {
+        lastDispX = mapView.offsetX;
+        lastDispY = mapView.offsetY;
         xEventGroupClearBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
         mapView.displayMap();
         lv_canvas_set_buffer(mapCanvas, mapView.mapBuffer, mapView.mapScrWidth, mapView.mapScrHeight, LV_COLOR_FORMAT_RGB565_SWAPPED);
@@ -541,6 +549,11 @@ void createMapCanvas(_lv_obj_t *screen)
 void createMainScr()
 {
     mainScreen = lv_obj_create(NULL);
+    #ifdef ENABLE_COMPASS
+        screenState.lastHeading = globalSensorData.heading;
+    #else
+        screenState.lastHeading = gps.gpsData.heading;
+    #endif
     tilesScreen = lv_tileview_create(mainScreen);
     compassTile = lv_tileview_add_tile(tilesScreen, 0, 0, LV_DIR_RIGHT);
     mapTile = lv_tileview_add_tile(tilesScreen, 1, 0, (lv_dir_t)(LV_DIR_LEFT | LV_DIR_RIGHT));

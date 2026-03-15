@@ -198,7 +198,10 @@ void createMapSettingsScr()
     checkCompass = lv_checkbox_create(list);
     lv_obj_align_to(checkCompass, list, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_checkbox_set_text(checkCompass, " ");
-    lv_obj_add_state(checkCompass, (lv_state_t)mapSet.showMapCompass);
+    if (mapSet.showMapCompass)
+        lv_obj_add_state(checkCompass, LV_STATE_CHECKED);
+    else
+        lv_obj_remove_state(checkCompass, LV_STATE_CHECKED);
     lv_obj_add_event_cb(checkCompass, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
     // Compass Rotation
     list = lv_list_add_btn(mapSettingsOptions, NULL, "Compass Rotation");
@@ -208,7 +211,10 @@ void createMapSettingsScr()
     checkCompassRot = lv_checkbox_create(list);
     lv_obj_align_to(checkCompassRot, list, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_checkbox_set_text(checkCompassRot, " ");
-    lv_obj_add_state(checkCompassRot, (lv_state_t)mapSet.compassRotation);
+    if (mapSet.compassRotation)
+        lv_obj_add_state(checkCompassRot, LV_STATE_CHECKED);
+    else
+        lv_obj_remove_state(checkCompassRot, LV_STATE_CHECKED);
     lv_obj_add_event_cb(checkCompassRot, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
     // Show Speed
     list = lv_list_add_btn(mapSettingsOptions, NULL, "Show Speed");
@@ -218,7 +224,10 @@ void createMapSettingsScr()
     checkSpeed = lv_checkbox_create(list);
     lv_obj_align_to(checkSpeed, list, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_checkbox_set_text(checkSpeed, " ");
-    lv_obj_add_state(checkSpeed, (lv_state_t)mapSet.showMapSpeed);
+    if (mapSet.showMapSpeed)
+        lv_obj_add_state(checkSpeed, LV_STATE_CHECKED);
+    else
+        lv_obj_remove_state(checkSpeed, LV_STATE_CHECKED);
     lv_obj_add_event_cb(checkSpeed, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
     // Show Map Scale
     list = lv_list_add_btn(mapSettingsOptions, NULL, "Show Map Scale");
@@ -228,7 +237,10 @@ void createMapSettingsScr()
     checkScale = lv_checkbox_create(list);
     lv_obj_align_to(checkScale, list, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_checkbox_set_text(checkScale, " ");
-    lv_obj_add_state(checkScale, (lv_state_t)mapSet.showMapScale);
+    if (mapSet.showMapScale)
+        lv_obj_add_state(checkScale, LV_STATE_CHECKED);
+    else
+        lv_obj_remove_state(checkScale, LV_STATE_CHECKED);
     lv_obj_add_event_cb(checkScale, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
     // Back button
     btnBack = lv_btn_create(mapSettingsScreen);
