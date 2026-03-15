@@ -101,7 +101,19 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     static bool isDrag = false;
     const int DRAG_THRESHOLD = 30; // Increased threshold to 30px
 
-    int count = tft.getTouch(touchRaw, TOUCH_MAX_POINTS);
+    int count = 0;
+
+    #ifdef ICENAV_BOARD
+        // Protect I2C bus access for FT5x06 on shared bus
+        // Try lock without waiting. If bus busy, skip this touch frame.
+        if (i2c.lock(0)) 
+        {
+            count = tft.getTouch(touchRaw, TOUCH_MAX_POINTS);
+            i2c.unlock();
+        }
+    #else
+        count = tft.getTouch(touchRaw, TOUCH_MAX_POINTS);
+    #endif
 
     unsigned long now = millis_idf();
     float dt_ms = (now > lastTime) ? (float)(now - lastTime) : 1.0f;
