@@ -1,46 +1,87 @@
 /**
  * @file PsramAllocator.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief  PSRAM Allocator for STL containers (falls back to Internal if no PSRAM)
- * @version 0.1.0
- * @date 2026-02
+ * @brief Memory allocators for PSRAM and Internal SRAM
+ * @version 0.2.4
+ * @date 2025-12
  */
 
 #pragma once
-#include <cstddef>
-#include <new>
-#include "esp_heap_caps.h"
-#include "esp_log.h"
 
+#include <cstddef>
+#include <memory>
+#include "esp_heap_caps.h"
+
+/**
+ * @struct PsramAllocator
+ * @brief Allocator that forces memory into SPIRAM (PSRAM)
+ */
 template <class T>
-struct PsramAllocator {
+struct PsramAllocator
+{
     typedef T value_type;
+
     PsramAllocator() = default;
-    template <class U> 
-    constexpr PsramAllocator(const PsramAllocator<U>&) noexcept {}
-    
-    [[nodiscard]] T* allocate(std::size_t n) {
-        if (n == 0) return nullptr;
-        if (n > static_cast<std::size_t>(-1) / sizeof(T)) throw std::bad_alloc();
-        
-        // Try SPIRAM first, fallback to Internal 8BIT if not available or failed
-        void* p = heap_caps_malloc(n * sizeof(T), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-        if (!p) {
-            p = heap_caps_malloc(n * sizeof(T), MALLOC_CAP_8BIT);
-        }
-        if (!p) {
-            ESP_LOGE("PsramAlloc", "Failed to allocate %u bytes", (unsigned int)(n * sizeof(T)));
-            throw std::bad_alloc();
-        }
-        return static_cast<T*>(p);
+
+    template <class U>
+    PsramAllocator(const PsramAllocator<U>&) {}
+
+    T* allocate(std::size_t n)
+    {
+        return static_cast<T*>(heap_caps_malloc(n * sizeof(T), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
     }
-    
-    void deallocate(T* p, std::size_t) noexcept {
+
+    void deallocate(T* p, std::size_t)
+    {
         heap_caps_free(p);
     }
 };
 
 template <class T, class U>
-bool operator==(const PsramAllocator<T>&, const PsramAllocator<U>&) { return true; }
+bool operator==(const PsramAllocator<T>&, const PsramAllocator<U>&)
+{
+    return true;
+}
+
 template <class T, class U>
-bool operator!=(const PsramAllocator<T>&, const PsramAllocator<U>&) { return false; }
+bool operator!=(const PsramAllocator<T>&, const PsramAllocator<U>&)
+{
+    return false;
+}
+
+/**
+ * @struct InternalRamAllocator
+ * @brief Allocator that forces memory into Internal SRAM for performance
+ */
+template <class T>
+struct InternalRamAllocator
+{
+    typedef T value_type;
+
+    InternalRamAllocator() = default;
+
+    template <class U>
+    InternalRamAllocator(const InternalRamAllocator<U>&) {}
+
+    T* allocate(std::size_t n)
+    {
+        return static_cast<T*>(heap_caps_malloc(n * sizeof(T), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
+    }
+
+    void deallocate(T* p, std::size_t)
+    {
+        heap_caps_free(p);
+    }
+};
+
+template <class T, class U>
+bool operator==(const InternalRamAllocator<T>&, const InternalRamAllocator<U>&)
+{
+    return true;
+}
+
+template <class T, class U>
+bool operator!=(const InternalRamAllocator<T>&, const InternalRamAllocator<U>&)
+{
+    return false;
+}

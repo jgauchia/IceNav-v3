@@ -17,7 +17,6 @@ NAVIGATION navSet;
 
 /**
  * @brief Zoom Levels and Default zoom
- *
  */
 uint8_t minZoom = 0;         /**< Minimum Zoom Level */
 uint8_t maxZoom = 0;         /**< Maximum Zoom Level */
@@ -32,7 +31,6 @@ uint8_t zoom = 0;            /**< Current Zoom Level */
 
 /**
  * @brief Global variables definition for device preferences & config.
- *
  */
 uint8_t  defaultZoom    = 0;    /**< Default Zoom Value */
 uint8_t  defBright      = 255;  /**< Default Brightness */
@@ -80,7 +78,6 @@ void loadPreferences()
     mapSet.showMapSpeed = cfg.getBool(PKEYS::KMAP_SPEED, true);
     mapSet.vectorMap = cfg.getBool(PKEYS::KMAP_VECTOR, false);
     mapSet.showMapScale = cfg.getBool(PKEYS::KMAP_SCALE, true);
-    mapSet.fillPolygons = cfg.getBool(PKEYS::KFILL_POL, false);
     navSet.simNavigation = cfg.getBool(PKEYS::KSIM_NAV, false);
     gpsBaud = cfg.getShort(PKEYS::KGPS_SPEED, 4);
     gpsUpdate = cfg.getShort(PKEYS::KGPS_RATE, 3);

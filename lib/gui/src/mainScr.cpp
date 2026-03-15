@@ -195,55 +195,56 @@ void updateMainScreen(lv_timer_t *t)
         }
         switch (activeTile)
         {
-        case COMPASS:
-            if (heading != screenState.lastHeading)
-            {
-                screenState.lastHeading = heading;
-                screenState.needsRedraw = true;
-                lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
-            }
-            if (gps.gpsData.altitude != screenState.lastAltitude)
-            {
-                screenState.lastAltitude = gps.gpsData.altitude;
-                screenState.needsRedraw = true;
-                lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
-            }
-            if (gps.isSpeedChanged())
-            {
-                screenState.needsRedraw = true;
-                lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
-            }
-            break;
-        case MAP:
-            if (isScrollingMap || mapView.offsetX != screenState.lastOffsetX || mapView.offsetY != screenState.lastOffsetY || mapView.redrawMap)
-            {
-                mapView.scrollMap(0, 0);
-                screenState.lastOffsetX = mapView.offsetX;
-                screenState.lastOffsetY = mapView.offsetY;
-                screenState.needsRedraw = true;
-            }
-            if (heading != screenState.lastHeading)
-            {
-                screenState.lastHeading = heading;
-                screenState.needsRedraw = true;
-            }
-            if (screenState.needsRedraw)
-            {
-                lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
-                screenState.needsRedraw = false;
-            }
-            break;
-        case NAV:
-            if (screenState.needsRedraw)
-            {
-                lv_obj_send_event(navTile, LV_EVENT_VALUE_CHANGED, NULL);
-                screenState.needsRedraw = false;
-            }
-            break;
-        case SATTRACK:
-            lv_obj_send_event(satTrackTile, LV_EVENT_VALUE_CHANGED, NULL);
-            break;
-        default: break;
+            case COMPASS:
+                if (heading != screenState.lastHeading)
+                {
+                    screenState.lastHeading = heading;
+                    screenState.needsRedraw = true;
+                    lv_obj_send_event(compassHeading, LV_EVENT_VALUE_CHANGED, NULL);
+                }
+                if (gps.gpsData.altitude != screenState.lastAltitude)
+                {
+                    screenState.lastAltitude = gps.gpsData.altitude;
+                    screenState.needsRedraw = true;
+                    lv_obj_send_event(altitude, LV_EVENT_VALUE_CHANGED, NULL);
+                }
+                if (gps.isSpeedChanged())
+                {
+                    screenState.needsRedraw = true;
+                    lv_obj_send_event(speedLabel, LV_EVENT_VALUE_CHANGED, NULL);
+                }
+                break;
+            case MAP:
+                if (isScrollingMap || mapView.offsetX != screenState.lastOffsetX || mapView.offsetY != screenState.lastOffsetY || mapView.redrawMap)
+                {
+                    mapView.scrollMap(0, 0);
+                    screenState.lastOffsetX = mapView.offsetX;
+                    screenState.lastOffsetY = mapView.offsetY;
+                    screenState.needsRedraw = true;
+                }
+                if (heading != screenState.lastHeading)
+                {
+                    screenState.lastHeading = heading;
+                    screenState.needsRedraw = true;
+                }
+                if (screenState.needsRedraw)
+                {
+                    lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
+                    screenState.needsRedraw = false;
+                }
+                break;
+            case NAV:
+                if (screenState.needsRedraw)
+                {
+                    lv_obj_send_event(navTile, LV_EVENT_VALUE_CHANGED, NULL);
+                    screenState.needsRedraw = false;
+                }
+                break;
+            case SATTRACK:
+                lv_obj_send_event(satTrackTile, LV_EVENT_VALUE_CHANGED, NULL);
+                break;
+            default: 
+                break;
         }
     }
 }
@@ -287,29 +288,36 @@ void updateMap(lv_event_t *event)
         }
     }
 
-    if (mapView.followGps)
-        mapView.redrawMap = true;
-    mapView.generateMap(zoom);
-    if (mapView.redrawMap)
+    static uint32_t lastRotTime = 0;
+    static float lastRotHeading = -1.0f;
+    if (mapView.followGps && !isScrollingMap)
     {
+        mapView.redrawMap = true;
+        float currHead = mapSet.mapRotationComp ? globalSensorData.heading : (float)gps.gpsData.heading;
+        uint32_t now = millis();
+        if (!(xEventGroupGetBits(mapView.mapEventGroup) & Maps::MAP_EVENT_START))
+        {
+            if (now - lastRotTime > 50 && abs(currHead - lastRotHeading) > 1.0f)
+            {
+                xEventGroupSetBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
+                lastRotTime = now; lastRotHeading = currHead;
+            }
+        }
+    }
+    mapView.generateMap(zoom);
+    if (mapView.redrawMap && !mapSet.vectorMap)
+        xEventGroupSetBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
+
+    if (isScrollingMap || (xEventGroupGetBits(mapView.mapEventGroup) & Maps::MAP_EVENT_DONE))
+    {
+        xEventGroupClearBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
         mapView.displayMap();
-        lv_canvas_set_buffer(mapCanvas, mapView.mapBuffer, Maps::tileWidth, Maps::tileHeight, LV_COLOR_FORMAT_RGB565_SWAPPED);
+        lv_canvas_set_buffer(mapCanvas, mapView.mapBuffer, mapView.mapScrWidth, mapView.mapScrHeight, LV_COLOR_FORMAT_RGB565_SWAPPED);
         mapView.redrawMap = false;
     }
-    int16_t baseX = (tft.width() - Maps::tileWidth) / 2;
-    int16_t baseY = ((tft.height() - 27) - Maps::tileHeight) / 2;
 
-#ifdef T4_S3
-    int16_t targetX = (mapView.followGps) ? baseX : (baseX - mapView.offsetX);
-    int16_t targetY = (mapView.followGps) ? baseY : (baseY - mapView.offsetY);
-    // Force even X coordinate for RM690B0 AMOLED panel
-    lv_obj_set_pos(mapCanvas, targetX & ~1, targetY);
-#else
-    if (mapView.followGps)
-        lv_obj_set_pos(mapCanvas, baseX, baseY);
-    else
-        lv_obj_set_pos(mapCanvas, baseX - mapView.offsetX, baseY - mapView.offsetY);
-#endif
+    lv_obj_set_pos(mapCanvas, 0, 0);
+
     if (mapSet.showMapSpeed)
         lv_label_set_text_fmt(mapSpeedLabel, "%3d", gps.gpsData.speed);     
     if (mapSet.showMapScale)
@@ -447,8 +455,10 @@ void scrollMapEvent(lv_event_t *event)
                 }
                 break;
             }
-
+            
             case LV_EVENT_RELEASED:
+                break;
+
             case LV_EVENT_PRESS_LOST:
                 lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
                 isScrollingMap = false;

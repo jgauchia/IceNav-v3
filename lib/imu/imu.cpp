@@ -29,6 +29,7 @@ MPU6050_Driver::MPU6050_Driver()
 
 /**
  * @brief Reads a single byte from a register.
+ *
  * @param reg Register address.
  * @return Register value.
  */
@@ -39,6 +40,7 @@ uint8_t MPU6050_Driver::read8(uint8_t reg)
 
 /**
  * @brief Writes a single byte to a register.
+ *
  * @param reg Register address.
  * @param value Value to write.
  */
@@ -49,6 +51,7 @@ void MPU6050_Driver::write8(uint8_t reg, uint8_t value)
 
 /**
  * @brief Reads a 16-bit value from two consecutive registers (MSB first).
+ *
  * @param reg Starting register address.
  * @return 16-bit signed value.
  */
@@ -97,10 +100,18 @@ void MPU6050_Driver::setAccelRange(uint8_t range)
     write8(0x1C, range << 3);
     switch (range)
     {
-        case 0: accelScale = 16384.0f; break;
-        case 1: accelScale = 8192.0f; break;
-        case 2: accelScale = 4096.0f; break;
-        case 3: accelScale = 2048.0f; break;
+        case 0: 
+            accelScale = 16384.0f; 
+            break;
+        case 1: 
+            accelScale = 8192.0f; 
+            break;
+        case 2: 
+            accelScale = 4096.0f; 
+            break;
+        case 3: 
+            accelScale = 2048.0f; 
+            break;
     }
 }
 
@@ -116,10 +127,18 @@ void MPU6050_Driver::setGyroRange(uint8_t range)
     write8(0x1B, range << 3);
     switch (range)
     {
-        case 0: gyroScale = 131.0f; break;
-        case 1: gyroScale = 65.5f; break;
-        case 2: gyroScale = 32.8f; break;
-        case 3: gyroScale = 16.4f; break;
+        case 0: 
+            gyroScale = 131.0f;
+            break;
+        case 1: 
+            gyroScale = 65.5f; 
+            break;
+        case 2: 
+            gyroScale = 32.8f; 
+            break;
+        case 3: 
+            gyroScale = 16.4f; 
+            break;
     }
 }
 

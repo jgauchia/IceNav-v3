@@ -147,7 +147,10 @@ class KalmanFilter
 {
     public:
         KalmanFilter(float processNoise, float measurementNoise, float estimateError, float initialEstimate)
-            : q(processNoise), r(measurementNoise), p(estimateError), x(initialEstimate) {}
+            : q(processNoise), r(measurementNoise), p(estimateError), x(initialEstimate) 
+        {
+            k = 0.0f;
+        }
 
         /**
         * @brief Updates the state estimate using the Kalman filter algorithm for angular measurements.

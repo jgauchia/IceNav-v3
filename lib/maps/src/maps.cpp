@@ -13,6 +13,7 @@
 #include <cmath>
 #include <climits>
 #include <cstdint>
+#include "esp_task_wdt.h"
 #include "tasks.hpp"
 #include "mainScr.hpp"
 #include "../../images/src/bruj.h"
@@ -38,22 +39,33 @@ const char* TAG = "Maps";
 
 /**
  * @brief Map Class constructor
- * @details Initializes the Maps class with default polygon filling enabled and reserves memory in Internal RAM.
  */
-Maps::Maps() : fillPolygons(true),
-               navLastLat_(0), navLastLon_(0), navLastZoom_(0), navNeedsRender_(true),
-               navTlTileX_(-1), navTlTileY_(-1)
+Maps::Maps() : navLastZoom_(0), 
+               navNeedsRender_(true),
+               navTlTileX_(-1), 
+               navTlTileY_(-1)
 {
-    projBuf32X.reserve(1024);
-    projBuf32Y.reserve(1024);
-    edgePool.reserve(1024);
+    projBuf32X.reserve(MAX_POLYGON_POINTS);
+    projBuf32Y.reserve(MAX_POLYGON_POINTS);
+    decodedCoords.reserve(MAX_POLYGON_POINTS * 2);
+    edgePool.reserve(MAX_POLYGON_POINTS);
     edgeBuckets.reserve(tileHeight);
+    featurePool.reserve(MAX_FEATURE_POOL_SIZE);
+
+    for (int i = 0; i < 16; i++)
+        layers[i].reserve(1024);
+
+    ringEndsCache.reserve(1024);
+    placedLabelsCache.reserve(1024);
+    navDataCache.reserve(NAV_DATA_CACHE_SIZE);
     mapMutex = xSemaphoreCreateMutex();
-    xTaskCreatePinnedToCore(mapRenderTask, "MapRenderTask", 8192, this, 1, &mapRenderTaskHandle, 0);
+    mapEventGroup = xEventGroupCreate();
+    xTaskCreatePinnedToCore(mapRenderTask, "MapRenderTask", 16384, this, 1, &mapRenderTaskHandle, 0);
 }
 
 /**
  * @brief Get pixel X position from longitude
+ *
  * @param f_lon Longitude coordinate.
  * @param zoom Zoom level.
  * @param tileSize Size of the map tile in pixels.
@@ -61,11 +73,13 @@ Maps::Maps() : fillPolygons(true),
  */
 uint16_t Maps::lon2posx(float f_lon, uint8_t zoom, uint16_t tileSize)
 {
-    return static_cast<uint16_t>(((f_lon + 180.0f) / 360.0f * (1 << zoom) * tileSize)) % tileSize;
+    uint32_t scale = 1 << zoom;
+    return static_cast<uint16_t>(((f_lon + 180.0f) / 360.0f * scale * tileSize)) % tileSize;
 }
 
 /**
  * @brief Get pixel Y position from latitude
+ *
  * @param f_lat Latitude coordinate.
  * @param zoom Zoom level.
  * @param tileSize Size of the map tile in pixels.
@@ -76,25 +90,29 @@ uint16_t Maps::lat2posy(float f_lat, uint8_t zoom, uint16_t tileSize)
     float lat_rad = f_lat * static_cast<float>(M_PI) / 180.0f;
     float siny = tanf(lat_rad) + 1.0f / cosf(lat_rad);
     float merc_n = logf(siny);
-    float scale = (1 << zoom) * tileSize;
-    return static_cast<uint16_t>(((1.0f - merc_n / static_cast<float>(M_PI)) / 2.0f * scale)) % tileSize;
+    uint32_t scale = 1 << zoom;
+    float total_scale = scale * tileSize;
+    return static_cast<uint16_t>(((1.0f - merc_n / static_cast<float>(M_PI)) / 2.0f * total_scale)) % tileSize;
 }
 
 /**
- * @brief Get TileX for OpenStreetMap files
+ * @brief Get TileX for OSM files
+ *
  * @param f_lon Longitude coordinate.
  * @param zoom Zoom level.
  * @return X tile index.
  */
 uint32_t Maps::lon2tilex(float f_lon, uint8_t zoom)
 {
-    float rawTile = (f_lon + 180.0f) / 360.0f * (1 << zoom);
+    uint32_t scale = 1 << zoom;
+    float rawTile = (f_lon + 180.0f) / 360.0f * scale;
     rawTile += 1e-6f;
     return static_cast<uint32_t>(rawTile);
 }
 
 /**
- * @brief Get TileY for OpenStreetMap files
+ * @brief Get TileY for OSM files
+ *
  * @param f_lat Latitude coordinate.
  * @param zoom Zoom level.
  * @return Y tile index.
@@ -104,24 +122,28 @@ uint32_t Maps::lat2tiley(float f_lat, uint8_t zoom)
     float lat_rad = f_lat * static_cast<float>(M_PI) / 180.0f;
     float siny = tanf(lat_rad) + 1.0f / cosf(lat_rad);
     float merc_n = logf(siny);
-    float rawTile = (1.0f - merc_n / static_cast<float>(M_PI)) / 2.0f * (1 << zoom);
+    uint32_t scale = 1 << zoom;
+    float rawTile = (1.0f - merc_n / static_cast<float>(M_PI)) / 2.0f * scale;
     rawTile += 1e-6f;
     return static_cast<uint32_t>(rawTile);
 }
 
 /**
  * @brief Get Longitude from tile X
+ *
  * @param tileX Tile X index.
  * @param zoom Zoom level.
  * @return Longitude coordinate.
  */
 float Maps::tilex2lon(uint32_t tileX, uint8_t zoom)
 {
-    return static_cast<float>(tileX) * 360.0f / (1 << zoom) - 180.0f;
+    uint32_t scale = 1 << zoom;
+    return static_cast<float>(tileX) * 360.0f / scale - 180.0f;
 }
 
 /**
  * @brief Get Latitude from tile Y
+ *
  * @param tileY Tile Y index.
  * @param zoom Zoom level.
  * @return Latitude coordinate.
@@ -135,12 +157,13 @@ float Maps::tiley2lat(uint32_t tileY, uint8_t zoom)
 
 /**
  * @brief Get map tile structure from GPS Coordinates
- * @param lon Longitude coordinate.
- * @param lat Latitude coordinate.
- * @param zoomLevel Zoom level.
- * @param offsetX Tile offset X.
- * @param offsetY Tile offset Y.
- * @return MapTile structure.
+ * 
+ * @param lon Longitude
+ * @param lat Latitude
+ * @param zoomLevel Zoom level
+ * @param offsetX X Screen tile offset
+ * @param offsetY Y Screen tile offset
+ * @return Maps::MapTile structure
  */
 Maps::MapTile Maps::getMapTile(float lon, float lat, uint8_t zoomLevel, int8_t offsetX, int8_t offsetY)
 {
@@ -156,10 +179,11 @@ Maps::MapTile Maps::getMapTile(float lon, float lat, uint8_t zoomLevel, int8_t o
 
 /**
  * @brief Get geographic boundaries of a tile
- * @param tileX Tile X coordinate.
- * @param tileY Tile Y coordinate.
- * @param zoom Zoom level.
- * @return tileBounds structure.
+ * 
+ * @param tileX X Tile
+ * @param tileY Y Tile
+ * @param zoom Zoom level
+ * @return Maps::tileBounds structure
  */
 Maps::tileBounds Maps::getTileBounds(uint32_t tileX, uint32_t tileY, uint8_t zoom)
 {
@@ -173,24 +197,33 @@ Maps::tileBounds Maps::getTileBounds(uint32_t tileX, uint32_t tileY, uint8_t zoo
 
 /**
  * @brief Check if coordinates are in map bounds
- * @param lat Latitude to check.
- * @param lon Longitude to check.
- * @param bound Map bounds.
- * @return true if inside bounds.
+ * 
+ * @param lat Latitude
+ * @param lon Longitude
+ * @param bound Tile boundaries
+ * @return true if coordinates are in map bounds otherwise false
  */
 bool Maps::isCoordInBounds(float lat, float lon, tileBounds bound)
 {
-    return (lat >= bound.lat_min && lat <= bound.lat_max &&
-            lon >= bound.lon_min && lon <= bound.lon_max);
+    if (lat < bound.lat_min)
+        return false;
+    if (lat > bound.lat_max)
+        return false;
+    if (lon < bound.lon_min)
+        return false;
+    if (lon > bound.lon_max)
+        return false;
+    return true;
 }
 
 /**
  * @brief Convert GPS Coordinates to screen position
- * @param lon Longitude.
- * @param lat Latitude.
- * @param zoomLevel Zoom level.
- * @param tileSize Tile size.
- * @return ScreenCoord structure.
+ * 
+ * @param lon Longitude
+ * @param lat Latitude
+ * @param zoomLevel Zoom level
+ * @param tileSize Tile size
+ * @return Maps::ScreenCoord x,y screen position
  */
 Maps::ScreenCoord Maps::coord2ScreenPos(float lon, float lat, uint8_t zoomLevel, uint16_t tileSize)
 {
@@ -202,11 +235,12 @@ Maps::ScreenCoord Maps::coord2ScreenPos(float lon, float lat, uint8_t zoomLevel,
 
 /**
  * @brief Convert coordinates to map pixels
- * @param lat Latitude.
- * @param lon Longitude.
- * @param bound Tile boundaries.
- * @param pixelX Output X pixel.
- * @param pixelY Output Y pixel.
+ * 
+ * @param lat Latitude
+ * @param lon Longitude
+ * @param bound Tile boundaries
+ * @param pixelX X pixel
+ * @param pixelY Y pixel
  */
 void Maps::coords2map(float lat, float lon, tileBounds bound, uint16_t *pixelX, uint16_t *pixelY)
 {
@@ -218,25 +252,29 @@ void Maps::coords2map(float lat, float lon, tileBounds bound, uint16_t *pixelX, 
 
 /**
  * @brief Load No Map image
- * @param map Target sprite.
  */
 void Maps::showNoMap(TFT_eSprite &map)
 {
-    map.drawPngFile(noMapFile, (Maps::mapScrWidth / 2) - 50, (Maps::mapScrHeight / 2) - 50);
+    int16_t centerX = (Maps::mapScrWidth / 2) - 50;
+    int16_t centerY = (Maps::mapScrHeight / 2) - 50;
+    map.drawPngFile(noMapFile, centerX, centerY);
     map.drawCenterString("NO MAP FOUND", (Maps::mapScrWidth / 2), (Maps::mapScrHeight >> 1) + 65, &fonts::DejaVu18);
 }
 
+
 /**
  * @brief Initialize map sprites and variables
- * @param mapHeight Screen height.
- * @param mapWidth Screen width.
+ * 
+ * @param mapHeight Map height
+ * @param mapWidth Map width
  */
 void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
 {
     Maps::mapScrHeight = mapHeight;
     Maps::mapScrWidth = mapWidth;
     Maps::mapTempSprite.createSprite(Maps::tileWidth, Maps::tileHeight);
-    Maps::mapSprite.createSprite(Maps::tileWidth, Maps::tileHeight);
+    Maps::mapTempSprite.loadFont("/spiffs/font.vlw");
+    Maps::mapSprite.createSprite(mapWidth, mapHeight);
     Maps::mapBuffer = Maps::mapSprite.getBuffer();
     Maps::preloadSprite.deleteSprite();
     Maps::preloadSprite.createSprite(mapTileSize * 2, mapTileSize * 2);
@@ -257,7 +295,7 @@ void Maps::deleteMapScrSprites()
 }
 
 /**
- * @brief Create map sprites
+ * @brief Reassign map buffer pointer
  */
 void Maps::createMapScrSprites()
 {
@@ -265,8 +303,7 @@ void Maps::createMapScrSprites()
 }
 
 /**
- * @brief Redraw the current track on the map sprite.
- * @param map Target sprite.
+ * @brief Draw current track on map
  */
 void Maps::drawTrack(TFT_eSprite &map)
 {
@@ -274,17 +311,19 @@ void Maps::drawTrack(TFT_eSprite &map)
     {
         const auto &p1 = trackData[i - 1];
         const auto &p2 = trackData[i];
-        int16_t x1, y1, x2, y2;
+        int16_t x1;
+        int16_t y1;
+        int16_t x2;
+        int16_t y2;
         latLonToPixel(p1.lat, p1.lon, x1, y1);
         latLonToPixel(p2.lat, p2.lon, x2, y2);
-        if ((x1 >= 0 && x1 < tileWidth && y1 >= 0 && y1 < tileHeight) ||
-            (x2 >= 0 && x2 < tileWidth && y2 >= 0 && y2 < tileHeight))
+        if ((x1 >= 0 && x1 < tileWidth && y1 >= 0 && y1 < tileHeight) || (x2 >= 0 && x2 < tileWidth && y2 >= 0 && y2 < tileHeight))
             map.drawWideLine(x1, y1, x2, y2, 3, TFT_BLUE);
     }
 }
 
 /**
- * @brief Force a redraw of the track on the next map update.
+ * @brief Request track redraw
  */
 void Maps::redrawTrack()
 {
@@ -292,15 +331,15 @@ void Maps::redrawTrack()
 }
 
 /**
- * @brief Generate the map based on current position and zoom
- * @param zoom Current zoom level.
+ * @brief Generate the map grid
+ * 
+ * @param zoom Zoom level
  */
 void Maps::generateMap(uint8_t zoom)
 {
     if (zoom != Maps::zoomLevel)
     {
         Maps::zoomLevel = zoom;
-        // Sync currentMapTile with new zoom to avoid coordinate jumps in panMap
         Maps::currentMapTile.zoom = zoom;
         Maps::currentMapTile.tilex = Maps::lon2tilex(Maps::currentMapTile.lon, zoom);
         Maps::currentMapTile.tiley = Maps::lat2tiley(Maps::currentMapTile.lat, zoom);
@@ -316,15 +355,12 @@ void Maps::generateMap(uint8_t zoom)
         const double n = pow(2.0, (double)zoom);
         const int centerTileIdxX = (int)floorf((float)((lon + 180.0) / 360.0 * n));
         const int centerTileIdxY = (int)floorf((float)((1.0 - log(tan(latRad) + 1.0 / cos(latRad)) / M_PI) / 2.0 * n));
-        
         const int8_t gridOffset = tilesGrid / 2;
         const int32_t currentTlX = (int32_t)centerTileIdxX - gridOffset;
         const int32_t currentTlY = (int32_t)centerTileIdxY - gridOffset;
-        
         bool zoomChanged = (zoom != navLastZoom_);
         bool tileChanged = (currentTlX != (int32_t)navTlTileX_ || currentTlY != (int32_t)navTlTileY_);
-        
-        // Handle immediate track redraw even if map hasn't moved
+
         if (trackNeedsRedraw)
         {
             if (xSemaphoreTake(mapMutex, pdMS_TO_TICKS(100)) == pdTRUE)
@@ -339,65 +375,15 @@ void Maps::generateMap(uint8_t zoom)
         if (!zoomChanged && !tileChanged && !navNeedsRender_ && pendingTiles.empty())
             return;
 
-        bool needsFullRender = zoomChanged || navNeedsRender_ || (navTlTileX_ == -1);
-
-        if (!needsFullRender && !tileChanged)
+        if (pendingTiles.size() > (tilesGrid * tilesGrid))
             return;
 
-        if (!needsFullRender)
-        {
-            int32_t dx = currentTlX - (int32_t)navTlTileX_;
-            int32_t dy = currentTlY - (int32_t)navTlTileY_;
-            
-            if (abs(dx) > 1 || abs(dy) > 1)
-                needsFullRender = true;
-            else if (dx != 0 || dy != 0)
-            {
-                if (xSemaphoreTake(mapMutex, pdMS_TO_TICKS(100)) == pdTRUE)
-                {
-                    // Visual shift and coordinate update MUST happen together under Mutex
-                    mapTempSprite.scroll(-(int16_t)dx * 256, -(int16_t)dy * 256);
-                    navTlTileX_ = (float)currentTlX;
-                    navTlTileY_ = (float)currentTlY;
-                    
-                    pendingTiles.clear();
-                    if (dx != 0)
-                    {
-                        int32_t targetX = (dx > 0) ? (tilesGrid - 1) : 0;
-                        mapTempSprite.fillRect((int16_t)targetX * 256, 0, 256, tileHeight, TFT_WHITE);
-                        for (int y = 0; y < tilesGrid; y++)
-                            pendingTiles.push_back({(uint32_t)(currentTlX + targetX), (uint32_t)(currentTlY + y), (int16_t)(targetX * 256), (int16_t)(y * 256), TILE_NAV});
-                    }
-                    if (dy != 0)
-                    {
-                        int32_t targetY = (dy > 0) ? (tilesGrid - 1) : 0;
-                        mapTempSprite.fillRect(0, (int16_t)targetY * 256, tileWidth, 256, TFT_WHITE);
-                        for (int x = 0; x < tilesGrid; x++)
-                        {
-                            if (dx != 0 && x == ((dx > 0) ? (tilesGrid - 1) : 0))
-                                continue;
-                            pendingTiles.push_back({(uint32_t)(currentTlX + x), (uint32_t)(currentTlY + targetY), (int16_t)(x * 256), (int16_t)(targetY * 256), TILE_NAV});
-                        }
-                    }
-                    xSemaphoreGive(mapMutex);
-                }
-
-                navLastLat_ = lat;
-                navLastLon_ = lon;
-                navNeedsRender_ = false;
-                navLastZoom_ = zoom;
-                return;
-            }
-        }
-        
-        if (needsFullRender)
-        {
-            Maps::isMapFound = renderNavViewport(lat, lon, zoom, Maps::mapTempSprite);
-            navLastLat_ = lat;
-            navLastLon_ = lon;
-            navLastZoom_ = zoom;
-            navNeedsRender_ = false;
-        }
+        Maps::isMapFound = renderNavViewport(lat, lon, zoom, Maps::mapTempSprite);
+        navLastZoom_ = zoom;
+        navNeedsRender_ = false;
+        latLonToPixel(destLat, destLon, (int16_t&)wptPosX, (int16_t&)wptPosY);
+        drawTrack(mapTempSprite);
+        Maps::redrawMap = true;
         return;
     }
 
@@ -409,46 +395,85 @@ void Maps::generateMap(uint8_t zoom)
         Maps::oldMapTile.tilex = centerTileIdxX;
         Maps::oldMapTile.tiley = centerTileIdxY;
         Maps::oldMapTile.zoom = zoom;
-
         const int8_t gridOffset = tilesGrid / 2;
         const int32_t tlX = (int32_t)centerTileIdxX - gridOffset;
         const int32_t tlY = (int32_t)centerTileIdxY - gridOffset;
-
-        // Update top-left for track drawing (latLonToPixel)
         navTlTileX_ = (float)tlX;
         navTlTileY_ = (float)tlY;
         navLastZoom_ = zoom;
-
         Maps::mapTempSprite.fillSprite(TFT_WHITE);
         Maps::totalBounds = {90.0f, -90.0f, 180.0f, -180.0f};
         bool centerFound = false;
 
-        for (int gy = 0; gy < tilesGrid; gy++)
+        if (tilesGrid == 3)
         {
-            for (int gx = 0; gx < tilesGrid; gx++)
+            static const int8_t spiralOrder[9][2] = {{1,1}, {0,1}, {1,0}, {2,1}, {1,2}, {0,0}, {2,0}, {0,2}, {2,2}};
+            for (int i = 0; i < 9; i++)
             {
+                int gx = spiralOrder[i][0];
+                int gy = spiralOrder[i][1];
                 uint32_t tx = tlX + gx;
                 uint32_t ty = tlY + gy;
                 int16_t sx = gx * mapTileSize;
                 int16_t sy = gy * mapTileSize;
-
                 char tilePath[128];
                 snprintf(tilePath, sizeof(tilePath), mapRenderFolder, zoom, tx, ty);
-                
+
                 if (mapTempSprite.drawPngFile(tilePath, sx, sy))
                 {
-                    if (tx == centerTileIdxX && ty == centerTileIdxY) centerFound = true;
-                    
+                    if (tx == centerTileIdxX && ty == centerTileIdxY)
+                        centerFound = true;
+
                     const tileBounds currentBounds = Maps::getTileBounds(tx, ty, zoom);
-                    if (currentBounds.lat_min < Maps::totalBounds.lat_min) Maps::totalBounds.lat_min = currentBounds.lat_min;
-                    if (currentBounds.lat_max > Maps::totalBounds.lat_max) Maps::totalBounds.lat_max = currentBounds.lat_max;
-                    if (currentBounds.lon_min < Maps::totalBounds.lon_min) Maps::totalBounds.lon_min = currentBounds.lon_min;
-                    if (currentBounds.lon_max > Maps::totalBounds.lon_max) Maps::totalBounds.lon_max = currentBounds.lon_max;
+                    if (currentBounds.lat_min < Maps::totalBounds.lat_min)
+                        Maps::totalBounds.lat_min = currentBounds.lat_min;
+                    if (currentBounds.lat_max > Maps::totalBounds.lat_max)
+                        Maps::totalBounds.lat_max = currentBounds.lat_max;
+                    if (currentBounds.lon_min < Maps::totalBounds.lon_min)
+                        Maps::totalBounds.lon_min = currentBounds.lon_min;
+                    if (currentBounds.lon_max > Maps::totalBounds.lon_max)
+                        Maps::totalBounds.lon_max = currentBounds.lon_max;
                 }
                 else
                 {
                     mapTempSprite.fillRect(sx, sy, 256, 256, TFT_BLACK);
                     mapTempSprite.drawPngFile(noMapFile, sx + 256 / 2 - 50, sy + 256 / 2 - 50);
+                }
+            }
+        }
+        else
+        {
+            for (int gy = 0; gy < tilesGrid; gy++)
+            {
+                for (int gx = 0; gx < tilesGrid; gx++)
+                {
+                    uint32_t tx = tlX + gx;
+                    uint32_t ty = tlY + gy;
+                    int16_t sx = gx * mapTileSize;
+                    int16_t sy = gy * mapTileSize;
+                    char tilePath[128];
+                    snprintf(tilePath, sizeof(tilePath), mapRenderFolder, zoom, tx, ty);
+
+                    if (mapTempSprite.drawPngFile(tilePath, sx, sy))
+                    {
+                        if (tx == centerTileIdxX && ty == centerTileIdxY)
+                            centerFound = true;
+
+                        const tileBounds currentBounds = Maps::getTileBounds(tx, ty, zoom);
+                        if (currentBounds.lat_min < Maps::totalBounds.lat_min)
+                            Maps::totalBounds.lat_min = currentBounds.lat_min;
+                        if (currentBounds.lat_max > Maps::totalBounds.lat_max)
+                            Maps::totalBounds.lat_max = currentBounds.lat_max;
+                        if (currentBounds.lon_min < Maps::totalBounds.lon_min)
+                            Maps::totalBounds.lon_min = currentBounds.lon_min;
+                        if (currentBounds.lon_max > Maps::totalBounds.lon_max)
+                            Maps::totalBounds.lon_max = currentBounds.lon_max;
+                    }
+                    else
+                    {
+                        mapTempSprite.fillRect(sx, sy, 256, 256, TFT_BLACK);
+                        mapTempSprite.drawPngFile(noMapFile, sx + 256 / 2 - 50, sy + 256 / 2 - 50);
+                    }
                 }
             }
         }
@@ -467,40 +492,145 @@ void Maps::generateMap(uint8_t zoom)
 
         drawTrack(mapTempSprite);
         Maps::redrawMap = true;
+        xEventGroupSetBits(mapEventGroup, MAP_EVENT_DONE);
     }
 }
 
 /**
- * @brief Background task for tile rendering on Core 0.
- * @details Monitors the pendingTiles queue and renders both NAV and PNG tiles asynchronously.
- *          Uses mapMutex to ensure thread-safe access to the mapTempSprite.
- * @param pvParameters Pointer to the Maps instance.
+ * @brief Background task for map rendering
  */
 void Maps::mapRenderTask(void* pvParameters)
 {
     Maps* instance = (Maps*)pvParameters;
+    uint8_t lastZoom = 0;
+
     while (1)
     {
         if (!instance->pendingTiles.empty())
         {
             if (xSemaphoreTake(instance->mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
             {
-                if (!instance->pendingTiles.empty())
+                bool fullReset = (instance->zoomLevel != lastZoom) || (instance->pendingTiles.size() >= (tilesGrid * tilesGrid));
+                lastZoom = instance->zoomLevel;
+
+                if (fullReset)
+                {
+                    xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_DONE | MAP_EVENT_ERROR);
+                    xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_START);
+                    
+                    if (instance->zoomLevel != lastZoom)
+                    {
+                        for (auto& entry : instance->navDataCache)
+                            heap_caps_free(entry.data);
+                        
+                        instance->navDataCache.clear();
+                    }
+
+                    instance->featurePool.clear();
+                    instance->decodedCoords.clear();
+                    for (int i = 0; i < 16; i++)
+                        instance->layers[i].clear();
+                }
+
+                while (!instance->pendingTiles.empty())
                 {
                     PendingTile t = instance->pendingTiles.back();
                     instance->pendingTiles.pop_back();
                     if (t.type == TILE_NAV)
                         instance->renderNavTile(t.x, t.y, instance->zoomLevel, t.screenX, t.screenY, instance->mapTempSprite);
                     else if (t.type == TILE_PNG)
-                        instance->renderPngTile(t.x, t.y, instance->zoomLevel, t.screenX, t.screenY, instance->mapTempSprite);
-                    
-                    if (instance->pendingTiles.empty())
                     {
-                        instance->drawTrack(instance->mapTempSprite);
-                        instance->redrawMap = true;
+                        instance->renderPngTile(t.x, t.y, instance->zoomLevel, t.screenX, t.screenY, instance->mapTempSprite);
+                        xSemaphoreGive(instance->mapMutex);
+                        vTaskDelay(1);
+                        if (xSemaphoreTake(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE)
+                            break;
                     }
                 }
+
+                if (!mapSet.vectorMap)
+                {
+                    instance->drawTrack(instance->mapTempSprite);
+                    instance->redrawMap = true;
+                    xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
+                    xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
+                    xSemaphoreGive(instance->mapMutex);
+                    continue;
+                }
+
+                instance->placedLabelsCache.clear();
+                instance->totalFeaturesDrawn = (uint32_t)instance->featurePool.size();
+                instance->drawPolyTime = 0;
+                instance->drawLineTime = 0;
+                instance->drawLabelTime = 0;
+                uint64_t tDrawStart = esp_timer_get_time();
+                instance->mapTempSprite.startWrite();
+                uint32_t lastYield = millis();
+                uint32_t loopCounter = 0;
+
+                for (uint8_t pass = 1; pass <= 2; pass++)
+                {
+                    for (int i = 0; i < 16; i++)
+                    {
+                        const auto& layer = instance->layers[i];
+                        if (layer.empty())
+                            continue;
+
+                        for (uint16_t idx : layer)
+                        {
+                            if ((++loopCounter & 15) == 0)
+                            {
+                                uint32_t now = millis();
+                                if (now - lastYield > 20)
+                                {
+                                    instance->mapTempSprite.endWrite();
+                                    vTaskDelay(1);
+                                    instance->mapTempSprite.startWrite();
+                                    lastYield = millis();
+                                }
+                            }
+
+                            uint64_t tFeatStart = esp_timer_get_time();
+                            const auto& feat = instance->featurePool[idx];
+                            instance->renderNavFeature(feat, instance->mapTempSprite, pass, instance->placedLabelsCache);
+                            uint64_t tFeatEnd = esp_timer_get_time();
+
+                            if (pass == 1)
+                            {
+                                if (feat.geomType == NavGeomType::Polygon)
+                                    instance->drawPolyTime += (tFeatEnd - tFeatStart);
+                                else if (feat.geomType == NavGeomType::LineString)
+                                    instance->drawLineTime += (tFeatEnd - tFeatStart);
+                            }
+                            else
+                            {
+                                if (feat.geomType == NavGeomType::Text)
+                                    instance->drawLabelTime += (tFeatEnd - tFeatStart);
+                                else if (feat.geomType == NavGeomType::LineString)
+                                    instance->drawLineTime += (tFeatEnd - tFeatStart);
+                            }
+                        }
+                        esp_task_wdt_reset();
+                    }
+                }
+
+                instance->mapTempSprite.endWrite();
+                instance->totalDrawTime = esp_timer_get_time() - tDrawStart;
+                for (auto& entry : instance->navDataCache)
+                    entry.isPinned = false;
+
+                instance->drawTrack(instance->mapTempSprite);
+                instance->redrawMap = true;
+                xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
+                xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
                 xSemaphoreGive(instance->mapMutex);
+
+                uint64_t endTime = esp_timer_get_time();
+                ESP_LOGI(TAG, "Z%u | Full: %llu ms | Load: %llu ms | Draw: %llu (P:%llu L:%llu T:%llu) | Feat: %u | PSRAM: %u KB", 
+                         instance->zoomLevel, (endTime - instance->viewportStartTime) / 1000,
+                         instance->totalLoadTime / 1000, instance->totalDrawTime / 1000,
+                         instance->drawPolyTime / 1000, instance->drawLineTime / 1000, instance->drawLabelTime / 1000,
+                         instance->totalFeaturesDrawn, ESP.getFreePsram() / 1024);
             }
         }
         vTaskDelay(1);
@@ -508,15 +638,14 @@ void Maps::mapRenderTask(void* pvParameters)
 }
 
 /**
- * @brief Render a single PNG tile at a specific sprite position.
- * @details Constructs the file path and uses drawPngFile to render the tile. 
- *          Clears the area with black/no-map if the file is not found.
- * @param tileX Tile X coordinate.
- * @param tileY Tile Y coordinate.
- * @param zoom Zoom level.
- * @param screenX X position in the target sprite.
- * @param screenY Y position in the target sprite.
- * @param map Target sprite.
+ * @brief Render a single PNG tile
+ * 
+ * @param tileX X Tile
+ * @param tileY Y Tile
+ * @param zoom Zoom level
+ * @param screenX X PNG position on sprite
+ * @param screenY Y PNG position on sprite
+ * @param map Map sprite
  */
 void Maps::renderPngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, TFT_eSprite &map)
 {
@@ -530,13 +659,13 @@ void Maps::renderPngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
 }
 
 /**
- * @brief Display the map on screen with rotation
+ * @brief Display the map on screen with rotation and dynamic cropping.
  */
 void Maps::displayMap()
 {
     if (!Maps::isMapFound)
     {
-        Maps::mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
+        Maps::mapTempSprite.pushSprite(&mapSprite, 0, 0);
         return;
     }
 
@@ -544,32 +673,49 @@ void Maps::displayMap()
         return;
 
     uint16_t mapHeading = 0;
-#ifdef ENABLE_COMPASS
-    mapHeading = mapSet.mapRotationComp ? globalSensorData.heading : gps.gpsData.heading;
-#else
-    mapHeading = gps.gpsData.heading;
-#endif
+    #ifdef ENABLE_COMPASS
+        mapHeading = mapSet.mapRotationComp ? globalSensorData.heading : gps.gpsData.heading;
+    #else
+        mapHeading = gps.gpsData.heading;
+    #endif
+    
     Maps::mapTempSprite.pushImage(Maps::wptPosX - 8, Maps::wptPosY - 8, 16, 16, (uint16_t *)waypoint, TFT_BLACK);
+    tft.startWrite();
+
     if (Maps::followGps)
     {
         const float lat = gps.gpsData.latitude;
         const float lon = gps.gpsData.longitude;
         const int8_t gridOffset = tilesGrid / 2;
         Maps::navArrowPosition = Maps::coord2ScreenPos(lon, lat, Maps::zoomLevel, Maps::mapTileSize);
+        
+        // Pivot in large source sprite (GPS position)
         Maps::mapTempSprite.setPivot(gridOffset * mapTileSize + Maps::navArrowPosition.posX,
                                      gridOffset * mapTileSize + Maps::navArrowPosition.posY);
+        
+        // Pivot in small destination sprite (Center of viewport)
+        Maps::mapSprite.setPivot(mapScrWidth / 2, mapScrHeight / 2);
+        
+        // Rotate and crop directly to mapSprite
         Maps::mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
     }
     else
-        Maps::mapTempSprite.pushSprite(&mapSprite, 0, 0, TFT_TRANSPARENT);
+    {
+        // Manual panning: crop central part of grid adjusted by offsetX/offsetY
+        int16_t cropX = (tileWidth - mapScrWidth) / 2 + offsetX;
+        int16_t cropY = (tileHeight - mapScrHeight) / 2 + offsetY;
+        mapTempSprite.pushSprite(&mapSprite, -cropX, -cropY);
+    }
 
+    tft.endWrite();
     xSemaphoreGive(mapMutex);
 }
 
 /**
  * @brief Set waypoint coordinates
- * @param wptLat Latitude.
- * @param wptLon Longitude.
+ * 
+ * @param wptLat Waypoint latitude
+ * @param wptLon Waypoint longitude
  */
 void Maps::setWaypoint(float wptLat, float wptLon)
 {
@@ -588,8 +734,9 @@ void Maps::updateMap()
 
 /**
  * @brief Panning map by tile offsets
- * @param dx X offset.
- * @param dy Y offset.
+ * 
+ * @param dx X scroll offset
+ * @param dy Y scroll offset
  */
 void Maps::panMap(int8_t dx, int8_t dy)
 {
@@ -601,8 +748,9 @@ void Maps::panMap(int8_t dx, int8_t dy)
 
 /**
  * @brief Center map on GPS position
- * @param lat Latitude.
- * @param lon Longitude.
+ * 
+ * @param lat GPS Latitude
+ * @param lon GPS Longitude
  */
 void Maps::centerOnGps(float lat, float lon)
 {
@@ -616,31 +764,30 @@ void Maps::centerOnGps(float lat, float lon)
 }
 
 /**
- * @brief Reset all scroll offsets and counters
+ * @brief Reset all scroll offsets
  */
 void Maps::resetScrollState()
 {
-    Maps::tileX = 0;
-    Maps::tileY = 0;
-    Maps::lastTileX = 0;
-    Maps::lastTileY = 0;
-    Maps::offsetX = 0;
-    Maps::offsetY = 0;
-    Maps::velocityX = 0;
-    Maps::velocityY = 0;
+    tileX = 0;
+    tileY = 0;
+    lastTileX = 0;
+    lastTileY = 0;
+    offsetX = 0;
+    offsetY = 0;
+    velocityX = 0;
+    velocityY = 0;
 }
 
 /**
- * @brief Smooth scroll the map with inertia
- * @param dx Delta X.
- * @param dy Delta Y.
+ * @brief Smooth scroll the map
+ * 
+ * @param dx X scroll offset
+ * @param dy Y scroll offset
  */
 void Maps::scrollMap(int16_t dx, int16_t dy)
 {
     if (dx != 0 || dy != 0)
     {
-        // Apply elastic resistance if we are beyond the threshold (128px)
-        // This helps both NAV (gives time to Core 0) and PNG (smoothes the jump)
         const int16_t softLimit = 128;
         if (abs(Maps::offsetX) > softLimit && ((dx > 0 && Maps::offsetX > 0) || (dx < 0 && Maps::offsetX < 0)))
             dx /= 2;
@@ -664,68 +811,79 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
     if (Maps::offsetY < -maxOffsetY)
         Maps::offsetY = -maxOffsetY;
 
-    Maps::scrollUpdated = false;
-#ifdef T4_S3
-    const int16_t threshold = 160;
-#else
-    const int16_t threshold = 128;
-#endif
+    scrollUpdated = false;
+    #ifdef T4_S3
+        const int16_t threshold = 160;
+    #else
+        const int16_t threshold = 128;
+    #endif
     const int16_t tileSize = Maps::mapTileSize;
 
     if (Maps::offsetX <= -threshold)
     {
-        Maps::tileX--;
+        tileX--;
         Maps::offsetX += tileSize;
-        Maps::scrollUpdated = true;
+        scrollUpdated = true;
     }
     else if (Maps::offsetX >= threshold)
     {
-        Maps::tileX++;
+        tileX++;
         Maps::offsetX -= tileSize;
-        Maps::scrollUpdated = true;
+        scrollUpdated = true;
     }
 
     if (Maps::offsetY <= -threshold)
     {
-        Maps::tileY--;
+        tileY--;
         Maps::offsetY += tileSize;
-        Maps::scrollUpdated = true;
+        scrollUpdated = true;
     }
     else if (Maps::offsetY >= threshold)
     {
-        Maps::tileY++;
+        tileY++;
         Maps::offsetY -= tileSize;
-        Maps::scrollUpdated = true;
+        scrollUpdated = true;
     }
 
-    if (Maps::scrollUpdated)
+    if (scrollUpdated)
     {
-        const int8_t deltaTileX = Maps::tileX - Maps::lastTileX;
-        const int8_t deltaTileY = Maps::tileY - Maps::lastTileY;
+        const int8_t deltaTileX = tileX - lastTileX;
+        const int8_t deltaTileY = tileY - lastTileY;
         Maps::panMap(deltaTileX, deltaTileY);
         if (!mapSet.vectorMap)
             Maps::preloadTiles(deltaTileX, deltaTileY);
+
+        viewportStartTime = esp_timer_get_time();
+        totalLoadTime = 0;
+        totalProcessTime = 0;
+        totalDrawTime = 0;
+        totalFeaturesDrawn = 0;
+        cacheHits = 0;
+        cacheMisses = 0;
         generateMap(zoomLevel);
-        Maps::lastTileX = Maps::tileX;
-        Maps::lastTileY = Maps::tileY;
+        lastTileX = tileX;
+        lastTileY = tileY;
         Maps::redrawMap = true;
     }
 }
 
-/**
- * @brief Preload PNG tiles in scroll direction
- * @param dirX Direction X.
- * @param dirY Direction Y.
- */
+ /**
+  * @brief Preload PNG tiles
+  * 
+  * @param dirX X direction 
+  * @param dirY Y direction
+  */
 void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 {
     const int16_t tileSize = mapTileSize;
-    const int16_t preloadWidth  = (dirX != 0) ? tileSize : tileSize * 2;
+    const int16_t preloadWidth = (dirX != 0) ? tileSize : tileSize * 2;
     const int16_t preloadHeight = (dirY != 0) ? tileSize : tileSize * 2;
     if (!preloadSprite.getBuffer())
         preloadSprite.createSprite(mapTileSize * 2, mapTileSize * 2);
+
     const int16_t startX = tileX + dirX;
     const int16_t startY = tileY + dirY;
+
     for (int8_t i = 0; i < 2; ++i)
     {
         const int16_t tileToLoadX = startX + ((dirX == 0) ? i - 1 : 0);
@@ -741,6 +899,7 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
         if (!foundTile)
             preloadSprite.fillRect(offsetX, offsetY, tileSize, tileSize, TFT_LIGHTGREY);
     }
+
     if (dirX != 0)
     {
         mapTempSprite.scroll(dirX * tileSize, 0);
@@ -757,9 +916,10 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 
 /**
  * @brief Darken a color
- * @param color RGB565 color.
- * @param amount Darkening fraction.
- * @return Darkened color.
+ * 
+ * @param color 
+ * @param amount Dark amount
+ * @return uint16_t Darken color
  */
 uint16_t Maps::darkenRGB565(const uint16_t color, const float amount)
 {
@@ -773,27 +933,41 @@ uint16_t Maps::darkenRGB565(const uint16_t color, const float amount)
 }
 
 /**
- * @brief Fill a polygon using AEL scanline algorithm
- * @param map Target sprite.
- * @param px X coordinates.
- * @param py Y coordinates.
- * @param numPoints Vertex count.
- * @param color Fill color.
- * @param xOffset X offset.
- * @param yOffset Y offset.
- * @param ringCount Multi-ring count.
- * @param ringEnds Cumulative ring indices.
+ * @brief Fills a polygon (including shapes with holes/rings) using the Scanline AEL algorithm.
+ * 
+ * @details This function implements the Active Edge List (AEL) algorithm to rasterize convex, 
+ *          concave, or complex polygons composed of multiple rings. It utilizes 16-bit 
+ *          fixed-point arithmetic for edge slopes and sub-pixel X-coordinate precision 
+ *          to ensure smooth transitions between scanlines.
+ * 
+ * @param map        Reference to the target TFT_eSprite where the polygon is rendered.
+ * @param px         Array of X-coordinates for the vertices.
+ * @param py         Array of Y-coordinates for the vertices.
+ * @param numPoints  Total count of vertices across all rings.
+ * @param color      16-bit (RGB565) color for the fill.
+ * @param xOffset    Horizontal translation applied to the final drawing coordinates.
+ * @param yOffset    Vertical translation applied to the final drawing coordinates.
+ * @param ringCount  The number of independent rings (use 0 or 1 for simple polygons).
+ * @param ringEnds   Array containing the end indices for each ring in the px/py arrays. 
  */
 void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset, uint16_t ringCount, const uint16_t* ringEnds)
 {
-    if (numPoints < 3) return;
-    int minY = INT_MAX, maxY = INT_MIN;
+    if (numPoints < 3)
+        return;
+
+    int minY = INT_MAX;
+    int maxY = INT_MIN;
     for (int i = 0; i < numPoints; i++)
     {
-        if (py[i] < minY) minY = py[i];
-        if (py[i] > maxY) maxY = py[i];
+        if (py[i] < minY)
+            minY = py[i];
+        if (py[i] > maxY)
+            maxY = py[i];
     }
-    if (maxY < 0 || minY >= (int)tileHeight) return;
+
+    if (maxY < 0 || minY >= (int)tileHeight)
+        return;
+
     edgePool.clear();
     int bucketCount = maxY - minY + 1;
     edgeBuckets.assign(bucketCount, -1);
@@ -801,6 +975,7 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
     uint16_t defaultEnds[1] = { (uint16_t)numPoints };
     const uint16_t* ends = (ringEnds == nullptr) ? defaultEnds : ringEnds;
     int ringStart = 0;
+
     for (uint16_t r = 0; r < count; r++)
     {
         int ringEnd = ends[r];
@@ -813,9 +988,12 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
         for (int i = 0; i < ringNumPoints; i++)
         {
             int next = (i + 1) % ringNumPoints;
-            int x1 = px[ringStart + i], y1 = py[ringStart + i];
-            int x2 = px[ringStart + next], y2 = py[ringStart + next];
-            if (y1 == y2) continue;
+            int x1 = px[ringStart + i];
+            int y1 = py[ringStart + i];
+            int x2 = px[ringStart + next];
+            int y2 = py[ringStart + next];
+            if (y1 == y2)
+                continue;
             Edge e;
             e.nextActive = -1;
             if (y1 < y2)
@@ -839,9 +1017,11 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
         }
         ringStart = ringEnd;
     }
+
     int activeHead = -1;
     int startY = std::max(minY, -yOffset);
     int endY = std::min(maxY, (int)tileHeight - 1 - yOffset);
+
     if (startY > minY)
     {
         for (int y = minY; y < startY; y++)
@@ -865,8 +1045,10 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
                 pCurrIdx = &(edgePool[*pCurrIdx].nextActive);
         }
     }
+
     for (int y = startY; y <= endY; y++)
     {
+        bool changed = false;
         int eIdx = edgeBuckets[y - minY];
         while (eIdx != -1)
         {
@@ -874,37 +1056,70 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
             edgePool[eIdx].nextActive = activeHead;
             activeHead = eIdx;
             eIdx = nextIdx;
+            changed = true;
         }
         int* pCurrIdx = &activeHead;
         while (*pCurrIdx != -1)
         {
             if (edgePool[*pCurrIdx].yMax <= y)
+            {
                 *pCurrIdx = edgePool[*pCurrIdx].nextActive;
+                changed = true;
+            }
             else
                 pCurrIdx = &(edgePool[*pCurrIdx].nextActive);
         }
-        if (activeHead == -1) continue;
-        int sorted = -1;
-        int active = activeHead;
-        while (active != -1)
+        if (activeHead == -1)
+            continue;
+
+        if (changed)
         {
-            int nextActive = edgePool[active].nextActive;
-            if (sorted == -1 || edgePool[active].xVal < edgePool[sorted].xVal)
+            int sorted = -1;
+            int active = activeHead;
+            while (active != -1)
             {
-                edgePool[active].nextActive = sorted;
-                sorted = active;
+                int nextActive = edgePool[active].nextActive;
+                if (sorted == -1 || edgePool[active].xVal < edgePool[sorted].xVal)
+                {
+                    edgePool[active].nextActive = sorted;
+                    sorted = active;
+                }
+                else
+                {
+                    int s = sorted;
+                    while (edgePool[s].nextActive != -1 && edgePool[edgePool[s].nextActive].xVal < edgePool[active].xVal)
+                        s = edgePool[s].nextActive;
+                    edgePool[active].nextActive = edgePool[s].nextActive;
+                    edgePool[s].nextActive = active;
+                }
+                active = nextActive;
             }
-            else
-            {
-                int s = sorted;
-                while (edgePool[s].nextActive != -1 && edgePool[edgePool[s].nextActive].xVal < edgePool[active].xVal)
-                    s = edgePool[s].nextActive;
-                edgePool[active].nextActive = edgePool[s].nextActive;
-                edgePool[s].nextActive = active;
-            }
-            active = nextActive;
+            activeHead = sorted;
         }
-        activeHead = sorted;
+        else
+        {
+            bool swapped = true;
+            while (swapped)
+            {
+                swapped = false;
+                int* pPrev = &activeHead;
+                int curr = activeHead;
+                while (curr != -1 && edgePool[curr].nextActive != -1)
+                {
+                    int next = edgePool[curr].nextActive;
+                    if (edgePool[curr].xVal > edgePool[next].xVal)
+                    {
+                        edgePool[curr].nextActive = edgePool[next].nextActive;
+                        edgePool[next].nextActive = curr;
+                        *pPrev = next;
+                        swapped = true;
+                    }
+                    pPrev = &((*pPrev == curr) ? edgePool[curr].nextActive : *pPrev);
+                    curr = *pPrev;
+                }
+            }
+        }
+
         int yy = y + yOffset;
         int left = activeHead;
         while (left != -1 && edgePool[left].nextActive != -1)
@@ -912,8 +1127,10 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
             int right = edgePool[left].nextActive;
             int xStart = (edgePool[left].xVal >> 16) + xOffset;
             int xEnd = (edgePool[right].xVal >> 16) + xOffset;
-            if (xStart < 0) xStart = 0;
-            if (xEnd > (int)tileWidth) xEnd = (int)tileWidth;
+            if (xStart < 0)
+                xStart = 0;
+            if (xEnd > (int)tileWidth)
+                xEnd = (int)tileWidth;
             if (xEnd > xStart)
                 map.drawFastHLine(xStart, yy, xEnd - xStart, color);
             left = edgePool[right].nextActive;
@@ -924,11 +1141,17 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
 }
 
 /**
- * @brief Project Lat/Lon coordinates to NAV viewport pixels
- * @param lat Latitude coordinate.
- * @param lon Longitude coordinate.
- * @param px Output X pixel coordinate.
- * @param py Output Y pixel coordinate.
+ * @brief Projects geographic coordinates (Latitude/Longitude) to local pixel coordinates.
+ * 
+ * @details This function performs a Web Mercator projection to convert WGS84 decimal degrees 
+ *          into global tile coordinates based on the current zoom level (@p navLastZoom_). 
+ *          It then transforms these into local pixel offsets relative to the top-left 
+ *          tile of the current viewport (navTlTileX_, navTlTileY_).
+ *  
+ * @param lat  Latitude in decimal degrees 
+ * @param lon  Longitude in decimal degrees 
+ * @param px   Calculated horizontal pixel position relative to the current map view.
+ * @param py   Calculated vertical pixel position relative to the current map view.
  */
 void Maps::latLonToPixel(float lat, float lon, int16_t& px, int16_t& py)
 {
@@ -941,143 +1164,338 @@ void Maps::latLonToPixel(float lat, float lon, int16_t& px, int16_t& py)
 }
 
 /**
- * @brief Render a NAV LineString feature
- * @param feature NavFeature object.
- * @param map Target sprite.
+ * @brief Renders a NAVLineString (roads, paths, etc.) onto a sprite.
+ * 
+ * @details This function decodes compressed vector data and draws it as a series of 
+ *          connected segments. It supports "casing" (drawing a slightly wider, darker 
+ *          background line to create an outline effect) and applies dynamic Level of 
+ *          Detail (LOD) filtering based on the current zoom level to optimize performance.
+ *
+ * @param ref Reference to the feature data, including coordinates and style.
+ * @param map The target TFT_eSprite for rendering.
+ * @param isCasing  If true, renders the line outline (wider and darkened). 
+ *                  If false, renders the main line body.
  */
-void Maps::renderNavLineString(const NavFeature& feature, TFT_eSprite& map)
+void Maps::renderNavLineString(const FeatureRef& ref, TFT_eSprite& map, bool isCasing)
 {
-    if (feature.coordCount < 2)
+    if (ref.coordCount < 2)
         return;
-    uint8_t* p = feature.payloadPtr;
-    int32_t lastX = 0, lastY = 0;
-    int16_t prevPx = 0, prevPy = 0;
-    uint16_t color = feature.properties.colorRgb565;
-    uint8_t width = feature.properties.width > 0 ? feature.properties.width : 1;
-    for (uint16_t i = 0; i < feature.coordCount; i++)
+
+    if (isCasing)
     {
-        lastX += NavReader::decodeZigZag(NavReader::readVarInt(p));
-        lastY += NavReader::decodeZigZag(NavReader::readVarInt(p));
-        int16_t px = feature.tilePixelOffsetX + (lastX >> 4);
-        int16_t py = feature.tilePixelOffsetY + (lastY >> 4);
-        if (i > 0 && (px != prevPx || py != prevPy))
+        if (ref.priority < 13)
+            return;
+    }
+    
+    decodedCoords.resize(ref.coordCount * 2);
+    int16_t* coords = decodedCoords.data();
+    uint8_t* p = ref.ptr;
+    int32_t curX = 0;
+    int32_t curY = 0;
+    int16_t tOffX = ref.tileOffsetX;
+    int16_t tOffY = ref.tileOffsetY;
+    
+    for (uint16_t i = 0; i < ref.coordCount; i++)
+    {
+        curX += NavReader::decodeZigZag(NavReader::readVarInt(p));
+        curY += NavReader::decodeZigZag(NavReader::readVarInt(p));
+        coords[i * 2] = tOffX + (curX >> 4);
+        coords[i * 2 + 1] = tOffY + (curY >> 4);
+    }
+
+    uint16_t color;
+    if (isCasing)
+        color = darkenRGB565(ref.color, 0.3f);
+    else
+        color = ref.color;
+
+    float widthF = (ref.width == 0 ? 2 : ref.width) / 2.0f;
+    if (isCasing)
+        widthF += 1.0f;
+
+    int16_t lastPx = -32768;
+    int16_t lastPy = -32768;
+    int16_t w = (int16_t)tileWidth;
+    int16_t h = (int16_t)tileHeight;
+    int16_t lodThreshold;
+
+    if (navLastZoom_ >= 15)
+        lodThreshold = 3;
+    else if (navLastZoom_ >= 13)
+        lodThreshold = 2;
+    else
+        lodThreshold = 1;
+
+    for (uint16_t i = 0; i < ref.coordCount; i++)
+    {
+        int16_t px = coords[i * 2];
+        int16_t py = coords[i * 2 + 1];
+        if (i > 0)
         {
-            if (!((px < 0 && prevPx < 0) || (px >= (int)tileWidth && prevPx >= (int)tileWidth) || (py < 0 && prevPy < 0) || (py >= (int)tileHeight && prevPy >= (int)tileHeight)))
+            if (abs(px - lastPx) < lodThreshold && abs(py - lastPy) < lodThreshold)
             {
-                if (width == 1)
-                    map.drawLine(prevPx, prevPy, px, py, color);
+                if (i < ref.coordCount - 1)
+                    continue;
+            }
+
+            if (!((px < 0 && lastPx < 0) || (px >= w && lastPx >= w) || (py < 0 && lastPy < 0) || (py >= h && lastPy >= h)))
+            {
+                if (widthF <= 1.1f)
+                    map.drawLine(lastPx, lastPy, px, py, color);
                 else
-                    map.drawWideLine(prevPx, prevPy, px, py, width, color);
+                    map.drawWideLine(lastPx, lastPy, px, py, widthF, color);
             }
         }
-        prevPx = px;
-        prevPy = py;
+        lastPx = px;
+        lastPy = py;
     }
 }
+
 /**
- * @brief Render a NAV Polygon feature
- * @param feature NavFeature object.
- * @param map Target sprite.
+ * @brief Renders a NAV polygon (parks, water, buildings) onto a sprite.
+ * 
+ * @details This function processes encoded vector data to reconstruct polygon geometry, 
+ *          including support for multiple rings (holes or multi-part polygons). It includes 
+ *          coordinate simplification for performance and optional outline (casing) rendering 
+ *          at high zoom levels.
+ *
+ * @param ref  Reference to the feature data, including vertex pointers, 
+ *             colors, and styling metadata.
+ * @param map  The target TFT_eSprite where the polygon and its outline will be drawn.
  */
-void Maps::renderNavPolygon(const NavFeature& feature, TFT_eSprite& map)
+void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
 {
-    if (feature.coordCount < 3 || feature.coordCount > MAX_POLYGON_POINTS)
+    if (ref.coordCount < 3 || ref.coordCount > MAX_POLYGON_POINTS)
         return;
-    size_t numPoints = feature.coordCount;
-    if (projBuf32X.capacity() < numPoints)
-        projBuf32X.reserve(numPoints * 1.5);
-    if (projBuf32Y.capacity() < numPoints)
-        projBuf32Y.reserve(numPoints * 1.5);
-    projBuf32X.resize(numPoints);
-    projBuf32Y.resize(numPoints);
-    int* px = projBuf32X.data();
-    int* py = projBuf32Y.data();
-    uint8_t* p = feature.payloadPtr;
-    int32_t lastX = 0, lastY = 0;
-    int minPx = INT_MAX, maxPx = INT_MIN, minPy = INT_MAX, maxPy = INT_MIN;
-    for (size_t i = 0; i < numPoints; i++)
+    
+    decodedCoords.resize(ref.coordCount * 2);
+    int16_t* coords = decodedCoords.data();
+    uint8_t* p = ref.ptr;
+    int32_t curX = 0;
+    int32_t curY = 0;
+    
+    for (uint16_t i = 0; i < ref.coordCount; i++)
     {
-        lastX += NavReader::decodeZigZag(NavReader::readVarInt(p));
-        lastY += NavReader::decodeZigZag(NavReader::readVarInt(p));
-        px[i] = feature.tilePixelOffsetX + (lastX >> 4);
-        py[i] = feature.tilePixelOffsetY + (lastY >> 4);
-        if (px[i] < minPx)
-            minPx = px[i];
-        if (px[i] > maxPx)
-            maxPx = px[i];
-        if (py[i] < minPy)
-            minPy = py[i];
-        if (py[i] > maxPy)
-            maxPy = py[i];
+        curX += NavReader::decodeZigZag(NavReader::readVarInt(p));
+        curY += NavReader::decodeZigZag(NavReader::readVarInt(p));
+        coords[i * 2] = ref.tileOffsetX + (curX >> 4);
+        coords[i * 2 + 1] = ref.tileOffsetY + (curY >> 4);
+    }
+
+    uint8_t* p_rings = p;
+    uint16_t ringCount = 0;
+    const uint16_t* ringEndsPtr = nullptr;
+    ringEndsCache.clear();
+    if ((size_t)(p_rings - ref.ptr) < ref.payloadSize)
+    {
+        ringCount = p_rings[0] | (p_rings[1] << 8);
+        if (ringCount > 0)
+        {
+            uint8_t* p_curr_ring = p_rings + 2;
+            for (int r = 0; r < (int)ringCount; r++)
+            {
+                ringEndsCache.push_back(p_curr_ring[0] | (p_curr_ring[1] << 8));
+                p_curr_ring += 2;
+            }
+            ringEndsPtr = ringEndsCache.data();
+        }
+    }
+    
+    projBuf32X.resize(ref.coordCount);
+    projBuf32Y.resize(ref.coordCount);
+    int minPx = INT_MAX;
+    int maxPx = INT_MIN;
+    int minPy = INT_MAX;
+    int maxPy = INT_MIN;
+    int16_t lastX = -32768;
+    int16_t lastY = -32768;
+    uint16_t actualPoints = 0;
+    for (size_t i = 0; i < ref.coordCount; i++)
+    {
+        int16_t curX = coords[i * 2];
+        int16_t curY = coords[i * 2 + 1];
+        if (ringCount == 0 && i > 0 && abs(curX - lastX) < 1 && abs(curY - lastY) < 1 && i < ref.coordCount - 1)
+            continue;
+        projBuf32X[actualPoints] = curX;
+        projBuf32Y[actualPoints] = curY;
+        if (curX < minPx)
+            minPx = curX;
+        if (curX > maxPx)
+            maxPx = curX;
+        if (curY < minPy)
+            minPy = curY;
+        if (curY > maxPy)
+            maxPy = curY;
+        lastX = curX;
+        lastY = curY;
+        actualPoints++;
     }
     if (maxPx < 0 || minPx >= (int)tileWidth || maxPy < 0 || minPy >= (int)tileHeight)
         return;
-    uint16_t fillColor = feature.properties.colorRgb565;
-    uint16_t borderColor = darkenRGB565(fillColor, 0.15f);
-    uint16_t ringCount = 0;
-    const uint16_t* ringEndsPtr = nullptr;
-    std::vector<uint16_t> ringEnds;
-    if ((size_t)(p - feature.payloadPtr) < feature.payloadSize)
+    int* px = projBuf32X.data();
+    int* py = projBuf32Y.data();
+    fillPolygonGeneral(map, px, py, actualPoints, ref.color, 0, 0, ringCount, ringEndsPtr);
+    if (ref.casing && navLastZoom_ >= 16)
     {
-        ringCount = p[0] | (p[1] << 8);
-        p += 2;
+        uint16_t outlineColor = darkenRGB565(ref.color, 0.35f);
+        int ringStart = 0;
+        uint16_t numRings;
         if (ringCount > 0)
+            numRings = ringCount;
+        else
+            numRings = 1;
+
+        for (uint16_t r = 0; r < numRings; r++)
         {
-            ringEnds.reserve(ringCount);
-            for (int r = 0; r < ringCount; r++)
+            uint16_t ringEnd;
+            if (ringEndsPtr && r < ringCount)
+                ringEnd = ringEndsPtr[r];
+            else
+                ringEnd = actualPoints;
+
+            if (ringEnd > actualPoints)
+                ringEnd = actualPoints;
+
+            for (uint16_t j = ringStart; j < ringEnd; j++)
             {
-                ringEnds.push_back(p[0] | (p[1] << 8));
-                p += 2;
+                uint16_t next;
+                if (j + 1 < ringEnd)
+                    next = j + 1;
+                else
+                    next = ringStart;
+
+                map.drawLine(px[j], py[j], px[next], py[next], outlineColor);
             }
-            ringEndsPtr = ringEnds.data();
-        }
-    }
-    if (fillPolygons)
-        fillPolygonGeneral(map, px, py, numPoints, fillColor, 0, 0, ringCount, ringEndsPtr);
-    int extEnd = (ringCount > 0) ? ringEnds[0] : numPoints;
-    if (extEnd >= 3)
-    {
-        for (int i = 0; i < extEnd; i++)
-        {
-            int next = (i + 1 == extEnd) ? 0 : i + 1;
-            map.drawLine(px[i], py[i], px[next], py[next], borderColor);
+            ringStart = ringEnd;
         }
     }
 }
+
 /**
- * @brief Render a NAV Point feature
- * @param feature NavFeature object.
- * @param map Target sprite.
+ * @brief Renders a NAV point (POI) as a filled circle.
+ * 
+ * @details Decodes the point's coordinates using ZigZag/VarInt, applies the tile offset, 
+ *          and draws a circle at the resulting position if it falls within the tile bounds.
+ * 
+ * @param ref Reference to the point feature data and styling.
+ * @param map The target sprite for rendering.
  */
-void Maps::renderNavPoint(const NavFeature& feature, TFT_eSprite& map)
+void Maps::renderNavPoint(const FeatureRef& ref, TFT_eSprite& map)
 {
-    if (feature.coordCount == 0)
+    if (ref.coordCount == 0)
         return;
-    uint8_t* p = feature.payloadPtr;
+    uint8_t* p = ref.ptr;
     int32_t x = NavReader::decodeZigZag(NavReader::readVarInt(p));
     int32_t y = NavReader::decodeZigZag(NavReader::readVarInt(p));
-    int16_t px = feature.tilePixelOffsetX + (x >> 4);
-    int16_t py = feature.tilePixelOffsetY + (y >> 4);
+    int16_t px = ref.tileOffsetX + (x >> 4);
+    int16_t py = ref.tileOffsetY + (y >> 4);
     if (px >= 0 && px < (int)tileWidth && py >= 0 && py < (int)tileHeight)
-        map.fillCircle(px, py, 3, feature.properties.colorRgb565);
+        map.fillCircle(px, py, 3, ref.color);
 }
-void Maps::renderNavFeature(const NavFeature& feature, TFT_eSprite& map)
+
+/**
+ * @brief Dispatches rendering calls based on geometry type and render pass.
+ * 
+ * @details Orchestrates the drawing sequence in two phases:
+ *          - **Pass 1:** Renders Polygons, Points, and LineString outlines (casing).
+ *          - **Pass 2:** Renders LineString main bodies and Text labels.
+ * 
+ * @param ref Reference to the feature data and styling metadata.
+ * @param map The target sprite for rendering.
+ * @param pass The rendering stage (1 for base/background, 2 for foreground/text).
+ * @param placedLabels  Tracking list for collision detection and label placement.
+ */
+void Maps::renderNavFeature(const FeatureRef& ref, TFT_eSprite& map, uint8_t pass, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels)
 {
-    switch (feature.geomType)
+    if (pass == 1)
     {
-        case NavGeomType::LineString: renderNavLineString(feature, map); break;
-        case NavGeomType::Polygon: renderNavPolygon(feature, map); break;
-        case NavGeomType::Point: renderNavPoint(feature, map); break;
-        default: break;
+        if (ref.geomType == NavGeomType::Polygon)
+            renderNavPolygon(ref, map);
+        else if (ref.geomType == NavGeomType::Point)
+            renderNavPoint(ref, map);
+        else if (ref.geomType == NavGeomType::LineString)
+            renderNavLineString(ref, map, ref.casing);
+    }
+    else if (pass == 2)
+    {
+        if (ref.geomType == NavGeomType::LineString && ref.casing)
+            renderNavLineString(ref, map, false);
+        else if (ref.geomType == NavGeomType::Text)
+            renderNavText(ref, map, placedLabels);
     }
 }
+
 /**
- * @brief Main entry point for NAV viewport rendering. Renders a full grid.
- * @param centerLat Center latitude.
- * @param centerLon Center longitude.
- * @param zoom Zoom level.
- * @param map Target sprite.
- * @return true if successful.
+ * @brief Renders NAV text labels with collision detection.
+ * 
+ * @details Decodes label coordinates and text content from the feature payload, then
+ *          checks for overlaps against previously placed labels using a padding-aware 
+ *          AABB (Axis-Aligned Bounding Box) test. If no collision is found, the text 
+ *          is drawn and its bounds are added to the placedLabels list.
+ * 
+ * @param ref Reference to the text feature data (coords, length, string).
+ * @param map The target sprite for rendering.
+ * @param placedLabels  Vector tracking occupied screen areas to prevent overlapping text.
+ */
+void Maps::renderNavText(const FeatureRef& ref, TFT_eSprite& map, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels)
+{
+    uint8_t* p = ref.ptr;
+    int16_t tx;
+    int16_t ty;
+    memcpy(&tx, p, 2);
+    memcpy(&ty, p + 2, 2);
+    int16_t px = ref.tileOffsetX + (tx >> 4);
+    int16_t py = ref.tileOffsetY + (ty >> 4);
+    uint8_t textLen = p[4];
+    if (textLen == 0 || textLen >= 128)
+        return;
+    char textBuf[128];
+    memcpy(textBuf, p + 5, textLen);
+    textBuf[textLen] = '\0';
+
+    // Scales adjusted for sharpness: base size 1.0 prevents VLW distortion
+    float scale = (ref.width == 0) ? 1.0f : (ref.width == 1) ? 1.2f : 1.5f;
+    map.setTextSize(scale);
+
+    int tw = map.textWidth(textBuf);
+    int th = map.fontHeight();
+    int lx = px - tw / 2;
+    int ly = py - th;
+    const int PAD = 4;
+
+    if (lx + tw < 0 || lx >= (int)tileWidth || ly + th < 0 || ly >= (int)tileHeight)
+        return;
+
+    bool collision = false;
+    for (const auto& r : placedLabels)
+    {
+        if (lx - PAD < r.x + r.w && lx + tw + PAD > r.x && ly - PAD < r.y + r.h && ly + th + PAD > r.y)
+        {
+            collision = true;
+            break;
+        }
+    }
+
+    if (collision)
+        return;
+
+    map.setTextColor(ref.color);
+    map.setTextDatum(lgfx::top_center);
+    map.drawString(textBuf, px, ly);
+    map.setTextDatum(lgfx::top_left);
+
+    if (placedLabels.size() < placedLabels.capacity())
+        placedLabels.push_back({(int16_t)lx, (int16_t)ly, (int16_t)tw, (int16_t)th});
+}
+
+/**
+ * @brief Initializes and prepares viewport for rendering.
+ * 
+ * @param centerLat Latitude of the viewport center.
+ * @param centerLon Longitude of the viewport center.
+ * @param zoom Target zoom level.
+ * @param map Reference to the sprite used for rendering.
+ * @return true if the viewport was successfully initialized.
  */
 bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT_eSprite& map)
 {
@@ -1088,69 +1506,178 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
     const int8_t gridOffset = tilesGrid / 2;
     navTlTileX_ = (float)(centerTileIdxX - gridOffset);
     navTlTileY_ = (float)(centerTileIdxY - gridOffset);
+    bool zoomChanged = (zoom != navLastZoom_);
     navLastZoom_ = zoom;
-    if (xSemaphoreTake(mapMutex, pdMS_TO_TICKS(100)) == pdTRUE)
+    if (mapSet.vectorMap)
     {
-        map.fillSprite(TFT_WHITE);
-        pendingTiles.clear();
-        for (int dy = 0; dy < tilesGrid; dy++)
+        viewportStartTime = esp_timer_get_time();
+        totalLoadTime = 0;
+        totalProcessTime = 0;
+        totalDrawTime = 0;
+        totalFeaturesDrawn = 0;
+        cacheHits = 0;
+        cacheMisses = 0;
+    }
+    if (xSemaphoreTake(mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
+    {
+        if (zoomChanged)
         {
-            for (int dx = 0; dx < tilesGrid; dx++)
+            map.fillSprite(0xF7BE);
+            redrawMap = true;
+        }
+        pendingTiles.clear();
+        if (tilesGrid == 3)
+        {
+            static const int8_t spiralOrder[9][2] = {{0,0}, {2,0}, {0,2}, {2,2}, {0,1}, {1,0}, {2,1}, {1,2}, {1,1}};
+            for (int i = 0; i < 9; i++)
+            {
+                int dx = spiralOrder[i][0];
+                int dy = spiralOrder[i][1];
                 pendingTiles.push_back({(uint32_t)(centerTileIdxX - gridOffset + dx), (uint32_t)(centerTileIdxY - gridOffset + dy), (int16_t)(dx * 256), (int16_t)(dy * 256), TILE_NAV});
+            }
+        }
+        else
+        {
+            for (int dy = 0; dy < tilesGrid; dy++)
+            {
+                for (int dx = 0; dx < tilesGrid; dx++)
+                {
+                    pendingTiles.push_back({(uint32_t)(centerTileIdxX - gridOffset + dx), (uint32_t)(centerTileIdxY - gridOffset + dy), (int16_t)(dx * 256), (int16_t)(dy * 256), TILE_NAV});
+                }
+            }
         }
         xSemaphoreGive(mapMutex);
     }
     return true;
 }
+
 /**
- * @brief Render a single NAV tile at a specific sprite position.
- * @details Loads the binary NAV data from SD and renders geometries according to priority layers.
- * @param tileX Tile X coordinate.
- * @param tileY Tile Y coordinate.
- * @param zoom Zoom level.
- * @param screenX X position in the target sprite.
- * @param screenY Y position in the target sprite.
- * @param map Target sprite.
+ * @brief Fetches and decodes a single NAV tile from cache or storage.
+ * 
+ * @details Manages a LRU (Least Recently Used) cache in PSRAM for tile data. It opens 
+ *          the corresponding zoom-level pack file, locates the tile via hash, and 
+ *          extracts features into the featurePool. Includes view-frustum culling 
+ *          and Level of Detail (LOD) filtering to skip features that are too small 
+ *          or off-screen.
+ * 
+ * @param tileX The global X index of the tile.
+ * @param tileY The global Y index of the tile.
+ * @param zoom  The current map zoom level.
+ * @param screenX The horizontal pixel offset on the target sprite.
+ * @param screenY The vertical pixel offset on the target sprite.
+ * @param map The target sprite for metadata updates (timing/stats).
  */
 void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, TFT_eSprite &map)
 {
-    std::vector<NavFeature> tileFeatures;
-    uint8_t* tileBuffer = nullptr;
-    size_t tileBufferSize = 0;
-    if (NavReader::readAllFeaturesMemory(tileX, tileY, zoom, tileFeatures, zoom, tileBuffer, tileBufferSize) == 0)
+    uint64_t tStart = esp_timer_get_time();
+    uint32_t tileHash = (uint32_t(zoom) << 28) | (uint32_t(tileX & 0x3FFF) << 14) | uint32_t(tileY & 0x3FFF);
+    uint8_t* data = nullptr;
+    size_t dataSize = 0;
+    int cacheIdx = -1;
+    for (int i = 0; i < (int)navDataCache.size(); i++)
     {
-        if (tileBuffer)
-            heap_caps_free(tileBuffer);
-        return;
-    }
-    std::vector<NavFeature> layers[16];
-    for (auto& feature : tileFeatures)
-    {
-        feature.tilePixelOffsetX = screenX;
-        feature.tilePixelOffsetY = screenY;
-        uint8_t priority = feature.properties.getPriority();
-        if (priority < 16)
-            layers[priority].push_back(std::move(feature));
-    }
-    map.startWrite();
-    for (int p = 0; p < 16; p++)
-    {
-        if (layers[p].empty())
-            continue;
-        for (const auto& feature : layers[p])
+        if (navDataCache[i].tileHash == tileHash)
         {
-            const int16_t minX = feature.tilePixelOffsetX + feature.objBbox.x1;
-            const int16_t minY = feature.tilePixelOffsetY + feature.objBbox.y1;
-            const int16_t maxX = feature.tilePixelOffsetX + feature.objBbox.x2;
-            const int16_t maxY = feature.tilePixelOffsetY + feature.objBbox.y2;
-            if (minX > (int16_t)tileWidth || maxX < 0 || minY > (int16_t)tileHeight || maxY < 0)
-                continue;
-            map.setClipRect(screenX, screenY, 256, 256);
-            renderNavFeature(feature, map);
+            cacheIdx = i;
+            break;
         }
     }
-    map.clearClipRect();
-    map.endWrite();
-    if (tileBuffer)
-        heap_caps_free(tileBuffer);
+    if (cacheIdx >= 0)
+    {
+        data = navDataCache[cacheIdx].data;
+        dataSize = navDataCache[cacheIdx].size;
+        navDataCache[cacheIdx].lastAccess = ++cacheCounter;
+        navDataCache[cacheIdx].isPinned = true;
+        cacheHits++;
+    }
+    else
+    {
+        cacheMisses++;
+        if (!NavReader::openPack(zoom))
+            return;
+        uint32_t offset;
+        uint32_t size;
+        if (!NavReader::findTileInPack(tileX, tileY, offset, size))
+            return;
+        data = (uint8_t*)heap_caps_aligned_alloc(512, size, MALLOC_CAP_SPIRAM);
+        if (!data)
+        {
+            for (int i = (int)navDataCache.size()-1; i >= 0; i--)
+                if (!navDataCache[i].isPinned) { heap_caps_free(navDataCache[i].data); navDataCache.erase(navDataCache.begin() + i); }
+            data = (uint8_t*)heap_caps_aligned_alloc(512, size, MALLOC_CAP_SPIRAM);
+            if (!data)
+                return;
+        }
+        storage.seek(NavReader::packFile, offset, SEEK_SET);
+        if (storage.read(NavReader::packFile, data, size) != size)
+        {
+            heap_caps_free(data);
+            return;
+        }
+        dataSize = size;
+        if (navDataCache.size() >= NAV_DATA_CACHE_SIZE)
+        {
+            int lru = -1;
+            for (int i = 0; i < (int)navDataCache.size(); i++)
+                if (!navDataCache[i].isPinned && (lru == -1 || navDataCache[i].lastAccess < navDataCache[lru].lastAccess)) lru = i;
+            if (lru != -1) { heap_caps_free(navDataCache[lru].data); navDataCache.erase(navDataCache.begin() + lru); }
+        }
+        navDataCache.push_back({data, size, tileHash, ++cacheCounter, true});
+    }
+    uint64_t tLoadEnd = 0;
+    if (mapSet.vectorMap)
+    {
+        tLoadEnd = esp_timer_get_time();
+        totalLoadTime += (tLoadEnd - tStart);
+    }
+    if (dataSize < 22)
+        return;
+    uint16_t feature_count;
+    memcpy(&feature_count, data + 4, 2);
+    uint8_t* p = data + 22;
+    for (uint16_t i = 0; i < feature_count; i++)
+    {
+        if (p + 13 > data + dataSize)
+            break;
+        uint8_t geomType = p[0];
+        uint8_t zp = p[3];
+        uint8_t wp = p[4];
+        uint8_t bx1 = p[5];
+        uint8_t by1 = p[6];
+        uint8_t bx2 = p[7];
+        uint8_t by2 = p[8];
+        uint16_t colorRgb565;
+        uint16_t cc;
+        uint16_t ps;
+        memcpy(&colorRgb565, p + 1, 2);
+        memcpy(&cc, p + 9, 2);
+        memcpy(&ps, p + 11, 2);
+        if (p + 13 + ps > data + dataSize)
+            break;
+        if ((zp >> 4) <= zoom)
+        {
+            if (screenX + bx2 < 0 || screenX + bx1 > (int)tileWidth || screenY + by2 < 0 || screenY + by1 > (int)tileHeight)
+            {
+                p += 13 + ps;
+                continue;
+            }
+            int16_t dimX = bx2 - bx1;
+            int16_t dimY = by2 - by1;
+            uint8_t minDim = (zoom >= 9 && zoom <= 11) ? 3 : 1;
+            if ((geomType == (uint8_t)NavGeomType::Polygon || geomType == (uint8_t)NavGeomType::LineString) && dimX < minDim && dimY < minDim)
+            {
+                p += 13 + ps;
+                continue;
+            }
+            if (featurePool.size() < MAX_FEATURE_POOL_SIZE)
+            {
+                uint16_t poolIdx = (uint16_t)featurePool.size();
+                featurePool.push_back({p + 13, (NavGeomType)geomType, ps, cc, screenX, screenY, colorRgb565, (uint8_t)(wp & 0x7F), (wp & 0x80) != 0, bx1, by1, bx2, by2, (uint8_t)(zp & 0x0F)});
+                uint8_t priority = zp & 0x0F;
+                if (priority < 16)
+                    layers[priority].push_back(poolIdx);
+            }
+        }
+        p += 13 + ps;
+    }
 }

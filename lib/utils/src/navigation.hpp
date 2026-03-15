@@ -15,20 +15,6 @@
 #include "lvgl.h"
 
 /**
- * @brief Persistent navigation state for turn-by-turn guidance.
- *
- * @details This structure maintains the state of the navigation system during GPX-based turn-by-turn routing.
- *          It tracks both current and upcoming turn indices and handles off-track situations gracefully.
- *          
- *          Fields:
- *          - lastTrackIdx: Index of the last closest track point matched to the user's current position.
- *          - nextTurnIdx: Index of the next turn point in the list of detected turns.
- *          - lastValidTurnIdx: Backup index of the last valid nextTurnIdx before going off-track, used to restore state.
- *          - isOffTrack: Flag indicating whether the user is currently considered off the track.
- *
- *          This structure should persist across navigation updates to manage context and prevent redundant alerts.
- */
-/**
  * @brief Navigation configuration parameters
  *
  * @details Contains configurable parameters for navigation behavior.
@@ -43,6 +29,20 @@ struct NavConfig
     int maxBackwardJump = 8;         /**< Maximum backward positions to prevent GPS noise jumps */
 };
 
+/**
+ * @brief Persistent navigation state for turn-by-turn guidance.
+ *
+ * @details This structure maintains the state of the navigation system during GPX-based turn-by-turn routing.
+ *          It tracks both current and upcoming turn indices and handles off-track situations gracefully.
+ *          
+ *          Fields:
+ *          - lastTrackIdx: Index of the last closest track point matched to the user's current position.
+ *          - nextTurnIdx: Index of the next turn point in the list of detected turns.
+ *          - lastValidTurnIdx: Backup index of the last valid nextTurnIdx before going off-track, used to restore state.
+ *          - isOffTrack: Flag indicating whether the user is currently considered off the track.
+ *
+ *          This structure should persist across navigation updates to manage context and prevent redundant alerts.
+ */
 struct NavState 
 {
     int lastTrackIdx = 0;

@@ -58,9 +58,7 @@ void searchGPS(lv_timer_t *searchTimer)
         return;
     }
     else
-    {
         fixConfirmCount = 0;  // Reset if fix lost
-    }
 
     if (skipSearch)
     {

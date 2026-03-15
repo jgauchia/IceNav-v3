@@ -1,17 +1,28 @@
+/**
+ * @file nav_reader.cpp
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @brief  Binary NAV file reader and tile container manager
+ * @version 0.2.4
+ * @date 2025-12
+ */
+
 #include "nav_reader.hpp"
 #include <cstring>
 #include "esp_log.h"
 #include "storage.hpp"
 #include "mapVars.h"
+
 extern Storage storage;
 static const char* TAG = "NavReader";
 
 FILE* NavReader::packFile = nullptr;
 uint8_t NavReader::currentZoom = 0;
 uint32_t NavReader::tileCount = 0;
+uint32_t NavReader::indexOff = 0;
 
 /**
  * @brief Open a packed tile container for the given zoom level.
+ *s
  * @param zoom Zoom level.
  * @return True if successful.
  */
@@ -19,19 +30,23 @@ bool NavReader::openPack(uint8_t zoom)
 {
     if (packFile && currentZoom == zoom)
         return true;
+
     closePack();
+
     char path[64];
     snprintf(path, sizeof(path), mapVectorFolder, zoom);
     packFile = storage.open(path, "rb");
     if (!packFile)
         return false;
+
     char magic[4];
-    if (storage.read(packFile, (uint8_t*)magic, 4) != 4 || memcmp(magic, "NPK1", 4) != 0)
+    if (storage.read(packFile, (uint8_t*)magic, 4) != 4 || memcmp(magic, "NPK2", 4) != 0)
     {
         ESP_LOGE(TAG, "Invalid packed magic for %s", path);
         closePack();
         return false;
     }
+
     uint8_t fileZoom;
     if (storage.read(packFile, &fileZoom, 1) != 1 || fileZoom != zoom)
     {
@@ -39,15 +54,23 @@ bool NavReader::openPack(uint8_t zoom)
         closePack();
         return false;
     }
-    if (storage.read(packFile, (uint8_t*)&tileCount, 4) != 4)
+
+    // NPK2 Header: tile_count(4), y_min(4), y_max(4), ytable_off(4), index_off(4) = 20 bytes
+    uint32_t extraHeader[5];
+    if (storage.read(packFile, (uint8_t*)extraHeader, 20) != 20)
     {
-        ESP_LOGE(TAG, "Failed to read tile count in packed file for %s", path);
+        ESP_LOGE(TAG, "Failed to read NPK2 extra header for %s", path);
         closePack();
         return false;
     }
+
+    tileCount = extraHeader[0];
+    indexOff = extraHeader[4];
     currentZoom = zoom;
+
     return true;
 }
+
 /**
  * @brief Close the currently open packed container.
  */
@@ -58,9 +81,12 @@ void NavReader::closePack()
         storage.close(packFile);
         packFile = nullptr;
     }
+
     currentZoom = 0;
     tileCount = 0;
+    indexOff = 0;
 }
+
 /**
  * @brief Search for a tile in the open pack using binary search.
  * @param tileX Tile X coordinate.
@@ -71,17 +97,21 @@ void NavReader::closePack()
  */
 bool NavReader::findTileInPack(uint32_t tileX, uint32_t tileY, uint32_t& offset, uint32_t& size)
 {
-    if (!packFile)
+    if (!packFile || tileCount == 0)
         return false;
+
     int32_t low = 0;
     int32_t high = tileCount - 1;
+
     while (low <= high)
     {
         int32_t mid = low + (high - low) / 2;
-        storage.seek(packFile, 9 + (mid * 16), SEEK_SET);
-        uint32_t entry[2];
+        storage.seek(packFile, indexOff + (mid * 16), SEEK_SET);
+
+        uint32_t entry[2]; // x, y
         if (storage.read(packFile, (uint8_t*)entry, 8) != 8)
             return false;
+
         if (entry[1] < tileY || (entry[1] == tileY && entry[0] < tileX))
             low = mid + 1;
         else if (entry[1] > tileY || (entry[1] == tileY && entry[0] > tileX))
@@ -90,81 +120,10 @@ bool NavReader::findTileInPack(uint32_t tileX, uint32_t tileY, uint32_t& offset,
         {
             if (storage.read(packFile, (uint8_t*)&offset, 4) != 4 || storage.read(packFile, (uint8_t*)&size, 4) != 4)
                 return false;
+
             return true;
         }
     }
+
     return false;
-}
-/**
- * @brief Load tile features from the packed container.
- * @param tileX Tile X coordinate.
- * @param tileY Tile Y coordinate.
- * @param zoom Zoom level.
- * @param features Output vector to store feature objects.
- * @param maxZoom Maximum zoom level to filter features.
- * @param tileBuffer Reference to the PSRAM buffer.
- * @param bufferSize Current size of the tileBuffer.
- * @return Number of features loaded.
- */
-size_t NavReader::readAllFeaturesMemory(uint32_t tileX, uint32_t tileY, uint8_t zoom, std::vector<NavFeature>& features, uint8_t maxZoom, uint8_t*& tileBuffer, size_t& bufferSize)
-{
-    if (!openPack(zoom))
-        return 0;
-    uint32_t offset, fileSize;
-    if (!findTileInPack(tileX, tileY, offset, fileSize))
-        return 0;
-    if (fileSize == 0)
-        return 0;
-    if (fileSize > bufferSize)
-    {
-        if (tileBuffer)
-            heap_caps_free(tileBuffer);
-        bufferSize = fileSize + 4096;
-        tileBuffer = (uint8_t*)heap_caps_malloc(bufferSize, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-        if (!tileBuffer)
-            tileBuffer = (uint8_t*)heap_caps_malloc(bufferSize, MALLOC_CAP_8BIT);
-    }
-    if (!tileBuffer)
-    {
-        ESP_LOGE(TAG, "Failed to allocate PSRAM buffer for map tile");
-        return 0;
-    }
-    storage.seek(packFile, offset, SEEK_SET);
-    if (storage.read(packFile, tileBuffer, fileSize) != fileSize)
-        return 0;
-    uint8_t* p = tileBuffer;
-    NavTileHeader* tileHeader = (NavTileHeader*)p;
-    if (memcmp(tileHeader->magic, NAV_MAGIC, 4) != 0)
-    {
-        ESP_LOGE(TAG, "Invalid NAV magic");
-        return 0;
-    }
-    uint16_t featureCount = tileHeader->featureCount;
-    features.reserve(featureCount);
-    p += sizeof(NavTileHeader);
-    size_t count = 0;
-    for (uint16_t i = 0; i < featureCount; i++)
-    {
-        NavFeatureHeader* featHeader = (NavFeatureHeader*)p;
-        p += sizeof(NavFeatureHeader);
-        uint8_t minZoom = featHeader->zoomPriority >> 4;
-        if (minZoom > maxZoom)
-        {
-            p += featHeader->payloadSize;
-            continue;
-        }
-        NavFeature feature;
-        feature.geomType = static_cast<NavGeomType>(featHeader->geomType);
-        feature.properties.colorRgb565 = featHeader->colorRgb565;
-        feature.properties.zoomPriority = featHeader->zoomPriority;
-        feature.properties.width = featHeader->widthPixels;
-        feature.objBbox = { featHeader->bbox[0], featHeader->bbox[1], featHeader->bbox[2], featHeader->bbox[3] };
-        feature.coordCount = featHeader->coordCount;
-        feature.payloadSize = featHeader->payloadSize;
-        feature.payloadPtr = p;
-        p += featHeader->payloadSize;
-        features.push_back(std::move(feature));
-        count++;
-    }
-    return count;
 }

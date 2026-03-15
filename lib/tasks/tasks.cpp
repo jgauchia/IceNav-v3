@@ -105,11 +105,11 @@ void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 12288, NULL, 1
 #endif
 
 #ifdef BME280
-extern BME280_Driver bme;
+    extern BME280_Driver bme;
 #endif
-extern Battery battery;
+    extern Battery battery;
 #ifdef ENABLE_COMPASS
-extern Compass compass;
+    extern Compass compass;
 #endif
 
 /**
@@ -128,12 +128,9 @@ void sensorTask(void *pvParameters)
     uint16_t slowCounter = 0;
     while (1)
     {
-        // Suspend sensor readings during map scroll to prioritize map rendering
+        // Reduce I2C bus load during manual map scrolling
         if (isScrollingMap)
-        {
             vTaskDelay(pdMS_TO_TICKS(100));
-            continue;
-        }
 
         #ifdef ENABLE_COMPASS
             globalSensorData.heading = compass.getHeading();
@@ -143,10 +140,8 @@ void sensorTask(void *pvParameters)
         if (slowCounter++ >= 75) 
         {
             #ifdef BME280
-                globalSensorData.temperature = bme.readTemperature();
-                globalSensorData.pressure = bme.readPressure();
-                globalSensorData.humidity = bme.readHumidity();
-                globalSensorData.altitude = (int16_t)bme.readAltitude();
+                bme.readAll(globalSensorData.temperature, globalSensorData.pressure, globalSensorData.humidity);
+                globalSensorData.altitude = (int16_t)bme.readAltitude(globalSensorData.pressure);
             #endif
             globalSensorData.batteryPercent = battery.readBattery();
             slowCounter = 0;

@@ -137,7 +137,6 @@ void setup()
     loadPreferences();
     gps.init();
     initLVGL();
-    mapView.fillPolygons = mapSet.fillPolygons;
     gps.gpsData.latitude = gps.getLat();
     gps.gpsData.longitude = gps.getLon();
     initGpsTask();
