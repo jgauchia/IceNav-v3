@@ -161,4 +161,44 @@ void initSensorTask()
     xTaskCreatePinnedToCore(sensorTask, "Sensor Task", 4096, NULL, 1, NULL, 0);
 }
 
+/**
+ * @brief GUI management task
+ *
+ * @details Handles the LVGL timer handler and UI refresh logic. It runs on core 1
+ *          with high priority to ensure smooth user interaction. Includes adaptive
+ *          sleep logic to save power when the UI is inactive or the device is stationary.
+ *
+ * @param pvParameters Task parameters (unused)
+ */
+void guiTask(void *pvParameters)
+{
+    uint8_t sleepPeriod = 10;
+    while (1)
+    {
+        lv_timer_handler();
+
+        if (gps.gpsData.speed > 0)
+            sleepPeriod = 20;
+        else
+            sleepPeriod = 50;
+
+        if (lv_disp_get_inactive_time(NULL) < 1000)
+            sleepPeriod = 10;
+
+        vTaskDelay(pdMS_TO_TICKS(sleepPeriod));
+    }
+}
+
+/**
+ * @brief Initialize GUI management task
+ *
+ * @details Creates and starts the GUI task on core 1 with 8KB stack and priority 3.
+ *          This ensures that UI updates and touch events are processed with the
+ *          highest application priority.
+ */
+void initGuiTask()
+{
+    xTaskCreatePinnedToCore(guiTask, "GUI Task", 8192, NULL, 3, NULL, 1);
+}
+
 

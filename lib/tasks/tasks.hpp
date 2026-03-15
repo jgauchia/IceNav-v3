@@ -44,6 +44,10 @@ void sensorTask(void *pvParameters);
 
 void initSensorTask();
 
+void guiTask(void *pvParameters);
+
+void initGuiTask();
+
 #ifndef DISABLE_CLI
     /**
      * @brief CLI processing task function

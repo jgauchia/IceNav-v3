@@ -141,16 +141,19 @@ void setup()
     gps.gpsData.longitude = gps.getLon();
     initGpsTask();
     initSensorTask();
+    initGuiTask();
     #ifndef DISABLE_CLI
         initCLI();
         initCLITask();
     #endif
     if (WiFi.status() == WL_CONNECTED)
     {
-        if (!MDNS.begin(hostname)) log_e("nDNS init error");
+        if (!MDNS.begin(hostname))
+            log_e("nDNS init error");
         log_i("mDNS initialized");
     }
-    if (WiFi.status() == WL_CONNECTED && enableWeb) configureWebServer();
+    if (WiFi.status() == WL_CONNECTED && enableWeb)
+        configureWebServer();
     splashScreen();
     if (isGpsFixed)
     {
@@ -169,23 +172,22 @@ void setup()
  */
 void loop()
 {
-    lv_timer_handler();
-    if (gps.gpsData.speed > 0) taskSleepPeriod = 20;
-    else taskSleepPeriod = 50;
-    if (lv_disp_get_inactive_time(NULL) < 1000) taskSleepPeriod = 10;
-    vTaskDelay(pdMS_TO_TICKS(taskSleepPeriod));
+    if (enableWeb)
+        processWebServerTasks();
 
-    if (enableWeb) processWebServerTasks();
     if (isTrackLoaded)
     {
-        if (navSet.simNavigation) gps.simFakeGPS(trackData,120,1000);
-        if (gps.gpsData.speed !=0)
+        if (navSet.simNavigation)
+            gps.simFakeGPS(trackData, 120, 1000);
+
+        if (gps.gpsData.speed != 0)
         {
             NavConfig simConfig;
             simConfig.searchWindow = 150;
             simConfig.offTrackThreshold = 75.0f;
             simConfig.maxBackwardJump = 10;
             static unsigned long lastNavUpdate = 0;
+
             if (millis() - lastNavUpdate > 100)
             {
                 lastNavUpdate = millis();
@@ -194,4 +196,6 @@ void loop()
             }
         }
     }
+
+    vTaskDelay(pdMS_TO_TICKS(10));
 }
