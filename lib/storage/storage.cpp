@@ -63,81 +63,81 @@ Storage::Storage() : isSdLoaded(false), card(nullptr), dmaBuffer(nullptr), readM
 
 /**
  * @brief Initialize the SD card
- * @return esp_err_t result code
+ *
+ * @details Sets up the SPI bus and mounts the FAT filesystem using ESP-IDF VFS.
+ *          Optimized for ESP32-S3 with 64-byte aligned DMA buffers and automatic
+ *          sector size detection.
+ *
+ * @return esp_err_t result code (ESP_OK on success)
  */
 esp_err_t Storage::initSD()
 {
 	if (!dmaBuffer)
-		dmaBuffer = (uint8_t *)heap_caps_malloc(DMA_BUF_SIZE, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+		dmaBuffer = (uint8_t *)heap_caps_aligned_alloc(64, DMA_BUF_SIZE, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
 	
 	if (!readMutex)
 		readMutex = xSemaphoreCreateMutex();
 
 	#ifndef SPI_SHARED
+		esp_err_t ret;
 
-	esp_err_t ret;
+		sdmmc_host_t host = SDSPI_HOST_DEFAULT();
+		host.slot = SPI2_HOST;
 
-	sdmmc_host_t host = SDSPI_HOST_DEFAULT();
-	host.slot = SPI2_HOST;
+		sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
+		slot_config.gpio_cs = (gpio_num_t)SD_CS;
+		slot_config.host_id = (spi_host_device_t)host.slot;
 
-	sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
-	slot_config.gpio_cs = (gpio_num_t)SD_CS;
-	slot_config.host_id = (spi_host_device_t)host.slot;
+		// SPI bus configuration
+		spi_bus_config_t bus_cfg = {
+			.mosi_io_num = (gpio_num_t)SD_MOSI,
+			.miso_io_num = (gpio_num_t)SD_MISO,
+			.sclk_io_num = (gpio_num_t)SD_CLK,
+			.quadwp_io_num = -1,
+			.quadhd_io_num = -1,
+			.max_transfer_sz = DMA_BUF_SIZE,
+			.flags = SPICOMMON_BUSFLAG_MASTER,
+			.intr_flags = 0
+		};
 
-	// SPI bus configuration
-	spi_bus_config_t bus_cfg = {
-		.mosi_io_num = (gpio_num_t)SD_MOSI,
-		.miso_io_num = (gpio_num_t)SD_MISO,
-		.sclk_io_num = (gpio_num_t)SD_CLK,
-		.quadwp_io_num = -1,
-		.quadhd_io_num = -1,
-		.max_transfer_sz = DMA_BUF_SIZE,
-		.flags = 0,
-		.intr_flags = 0};
+		// Adjust the SPI speed (frequency)
+		host.max_freq_khz = 20000;
 
-	// Adjust the SPI speed (frequency)
-	host.max_freq_khz = 20000;
-
-	// Initialize the SPI bus
-	ret = spi_bus_initialize((spi_host_device_t)host.slot, &bus_cfg, SPI_DMA_CH_AUTO);
-	if (ret != ESP_OK)
-	{
-		ESP_LOGE(TAG, "Failed to initialize SPI bus.");
-		return ret;
-	}
-
-	ESP_LOGI(TAG, "Initializing SD card");
-
-	esp_vfs_fat_mount_config_t mount_config = {
-		.format_if_mount_failed = false,
-		.max_files = 20,  // 9 NAV tiles + other files
-		.allocation_unit_size = DMA_BUF_SIZE};
-
-	ret = esp_vfs_fat_sdspi_mount("/sdcard", &host, &slot_config, &mount_config, &card);
-	if (ret != ESP_OK)
-	{
-		if (ret == ESP_FAIL)
+		// Initialize the SPI bus
+		ret = spi_bus_initialize((spi_host_device_t)host.slot, &bus_cfg, SPI_DMA_CH_AUTO);
+		if (ret != ESP_OK)
 		{
-			ESP_LOGE(TAG, "Failed to mount filesystem. "
-						"If you want the card to be formatted, set format_if_mount_failed = true.");
+			ESP_LOGE(TAG, "Failed to initialize SPI bus.");
+			return ret;
+		}
+
+		ESP_LOGI(TAG, "Initializing SD card");
+
+		esp_vfs_fat_mount_config_t mount_config = {
+			.format_if_mount_failed = false,
+			.max_files = 20,
+			.allocation_unit_size = 0 // Auto-detect native sector size for performance
+		};
+
+		ret = esp_vfs_fat_sdspi_mount("/sdcard", &host, &slot_config, &mount_config, &card);
+		if (ret != ESP_OK)
+		{
+			if (ret == ESP_FAIL)
+				ESP_LOGE(TAG, "Failed to mount filesystem.");
+			else
+				ESP_LOGE(TAG, "Failed to initialize the card (%s).", esp_err_to_name(ret));
+			
+			return ret;
 		}
 		else
 		{
-			ESP_LOGE(TAG, "Failed to initialize the card (%s). "
-						"Make sure SD card lines have pull-up resistors in place.",
-						esp_err_to_name(ret));
+			ESP_LOGI(TAG, "SD card initialized successfully");
+			sdmmc_card_print_info(stdout, card);
+			isSdLoaded = true;
+			return ESP_OK;
 		}
-		return ret;
-	}
-	else
-	{
-		ESP_LOGI(TAG, "SD card initialized successfully");
-		sdmmc_card_print_info(stdout, card);
-		isSdLoaded = true;
-
-		return ESP_OK;
-	}
 	#else
+		// Arduino-compatible path for shared SPI buses
 		pinMode(SD_CS, OUTPUT);
 		digitalWrite(SD_CS, LOW);
 
@@ -165,10 +165,17 @@ esp_err_t Storage::initSD()
  */
 void Storage::deinitSD()
 {
+	if (!isSdLoaded)
+		return;
+
 	#ifndef SPI_SHARED
-		if (isSdLoaded && card != nullptr)
+		if (card != nullptr)
 			esp_vfs_fat_sdcard_unmount("/sdcard", card);
+	#else
+		SD.end();
 	#endif
+	
+	isSdLoaded = false;
 }
 
 /**
@@ -181,11 +188,12 @@ esp_err_t Storage::initSPIFFS()
 	ESP_LOGI(TAG, "Initializing SPIFFS");
 
 	esp_vfs_spiffs_conf_t conf =
-		{
-			.base_path = "/spiffs",
-			.partition_label = NULL,
-			.max_files = 5,
-			.format_if_mount_failed = false};
+	{
+		.base_path = "/spiffs",
+		.partition_label = NULL,
+		.max_files = 5,
+		.format_if_mount_failed = false
+	};
 
 	esp_err_t ret = esp_vfs_spiffs_register(&conf);
 
@@ -200,7 +208,8 @@ esp_err_t Storage::initSPIFFS()
 		return ESP_FAIL;
 	}
 
-	size_t total = 0, used = 0;
+	size_t total = 0;
+	size_t used = 0;
 	ret = esp_spiffs_info(NULL, &total, &used);
 	if (ret != ESP_OK)
 		ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s)", esp_err_to_name(ret));
@@ -229,15 +238,14 @@ SDCardInfo Storage::getSDCardInfo()
 			info.card_type = (card->ocr && SD_OCR_SDHC_CAP) ? "SDHC/SDXC" : "SDSC";
 
 			FATFS *fs;
-			DWORD fre_clust, fre_sect, tot_sect;
+			DWORD fre_clust;
+			DWORD tot_sect;
 
-			if (f_getfree("0:",&fre_clust, &fs) == FR_OK)
+			if (f_getfree("0:", &fre_clust, &fs) == FR_OK)
 			{
 				tot_sect = (fs->n_fatent - 2) * fs->csize;
-				fre_sect = fre_clust * fs->csize;
-
 				uint64_t total_space_bytes = (uint64_t)tot_sect * 512;
-				uint64_t free_space_bytes = (uint64_t)fre_sect * 512;
+				uint64_t free_space_bytes = (uint64_t)(fre_clust * fs->csize) * 512;
 				uint64_t used_space_bytes = total_space_bytes - free_space_bytes;
 
 				info.total_space = formatSize(total_space_bytes);
@@ -323,35 +331,55 @@ size_t Storage::size(const char *path)
 
 /**
  * @brief Read from a file into a uint8_t buffer
- * @param file FILE* pointer
- * @param buffer Buffer to read into
- * @param size Number of bytes to read
- * @return Number of bytes read
+ *
+ * @details Optimized read operation that detects if the target buffer is DMA-capable (SRAM).
+ *          If it is, it performs a direct read using fread. For non-DMA buffers (like PSRAM),
+ *          it falls back to a chunked read using an intermediate internal DMA buffer.
+ *
+ * @param file   FILE* pointer to the open file.
+ * @param buffer Pointer to the destination buffer.
+ * @param size   Number of bytes to read.
+ * @return size_t Number of bytes successfully read.
  */
 size_t Storage::read(FILE *file, uint8_t *buffer, size_t size)
 {
-	if (!file || !buffer || !dmaBuffer)
-		return 0;
+    if (!file || !buffer)
+        return 0;
 
-	size_t totalRead = 0;
+    size_t totalRead = 0;
 
-	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
-		return 0;
+    if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+        return 0;
 
-	while (totalRead < size)
-	{
-		size_t toRead = (size - totalRead > DMA_BUF_SIZE) ? DMA_BUF_SIZE : (size - totalRead);
-		size_t r = fread(dmaBuffer, 1, toRead, file);
-		
-		if (r == 0) 
-			break;
+    if (esp_ptr_internal(buffer))
+    {
+        // High speed direct read for SRAM buffers
+        totalRead = fread(buffer, 1, size, file);
+    }
+    else
+    {
+        // Chunked read using intermediate internal DMA buffer for PSRAM
+        if (!dmaBuffer)
+        {
+            xSemaphoreGive(readMutex);
+            return 0;
+        }
 
-		memcpy(buffer + totalRead, dmaBuffer, r);
-		totalRead += r;
-	}
+        while (totalRead < size)
+        {
+            size_t toRead = (size - totalRead > DMA_BUF_SIZE) ? DMA_BUF_SIZE : (size - totalRead);
+            size_t r = fread(dmaBuffer, 1, toRead, file);
 
-	xSemaphoreGive(readMutex);
-	return totalRead;
+            if (r == 0)
+                break;
+
+            memcpy(buffer + totalRead, dmaBuffer, r);
+            totalRead += r;
+        }
+    }
+
+    xSemaphoreGive(readMutex);
+    return totalRead;
 }
 
 /**
@@ -501,5 +529,3 @@ size_t Storage::fileAvailable(FILE *file)
 	fseek(file, current_pos, SEEK_SET);
 	return end_pos - current_pos;
 }
-
-
