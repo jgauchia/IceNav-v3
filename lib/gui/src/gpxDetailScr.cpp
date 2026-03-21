@@ -31,19 +31,18 @@ bool isScreenRotated = false;
 static void gpxDetailScreenEvent(lv_event_t *event)
 {
     lv_event_code_t code = lv_event_get_code(event);
-    lv_obj_t *tagName = (lv_obj_t *)lv_event_get_target(event);
 
     #ifdef TDECK_ESP32S3
         if (code == LV_EVENT_KEY)
         {
-            if ( lv_indev_get_key(lv_indev_active()) == 13 ) // Enter Key
+            if (lv_indev_get_key(lv_indev_active()) == 13) // Enter Key
             {    
                 createWptFile();
                 GPXParser gpx;
                 switch (gpxAction)
                 {
                     case WPT_ADD:
-                        addWpt.name = (char *)lv_textarea_get_text(tagName);
+                        addWpt.name = (char *)lv_textarea_get_text(gpxTagValue);
                         if (strcmp(addWpt.name,"") != 0)
                         {
                             gpx.filePath = wptFile;
@@ -51,7 +50,7 @@ static void gpxDetailScreenEvent(lv_event_t *event)
                         }
                         break;
                     case GPX_EDIT:
-                        char *newName = (char *)lv_textarea_get_text(tagName);
+                        char *newName = (char *)lv_textarea_get_text(gpxTagValue);
                         if (strcmp(loadWpt.name, newName) != 0)
                         {
                             gpx.filePath = gpxFileFolder.c_str();
@@ -68,7 +67,7 @@ static void gpxDetailScreenEvent(lv_event_t *event)
                 lv_refr_now(display);
                 loadMainScreen();
             }
-            if ( lv_indev_get_key(lv_indev_active()) == 35 ) // # Key (ESCAPE)
+            if (lv_indev_get_key(lv_indev_active()) == 35) // # Key (ESCAPE)
             { 
                 isMainScreen = true;
                 mapView.redrawMap = true;
@@ -84,14 +83,14 @@ static void gpxDetailScreenEvent(lv_event_t *event)
         if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
         {
             tft.setRotation(0);
-            lv_display_set_rotation(display,LV_DISPLAY_ROTATION_0);
+            lv_display_set_rotation(display, LV_DISPLAY_ROTATION_0);
         }
         createWptFile();
         GPXParser gpx;
         switch (gpxAction)
         {
             case WPT_ADD:
-                addWpt.name = (char *)lv_textarea_get_text(tagName);
+                addWpt.name = (char *)lv_textarea_get_text(gpxTagValue);
                 if (strcmp(addWpt.name,"") != 0)
                 {
                     gpx.filePath = wptFile;
@@ -99,7 +98,7 @@ static void gpxDetailScreenEvent(lv_event_t *event)
                 }
                 break;
             case GPX_EDIT:
-                char *newName = (char *)lv_textarea_get_text(tagName);
+                char *newName = (char *)lv_textarea_get_text(gpxTagValue);
                 if (strcmp(loadWpt.name, newName) != 0)
                 {
                     gpx.filePath = gpxFileFolder.c_str();
