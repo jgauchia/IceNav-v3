@@ -50,7 +50,11 @@ void Power::powerDeepSleep()
         gpio_deep_sleep_hold_en();
     #endif
 
-    esp_sleep_enable_ext1_wakeup(1ull << BOARD_BOOT_PIN, ESP_EXT1_WAKEUP_ANY_LOW);
+    #if defined(CONFIG_IDF_TARGET_ESP32)
+        esp_sleep_enable_ext0_wakeup((gpio_num_t)BOARD_BOOT_PIN, 0);
+    #else
+        esp_sleep_enable_ext1_wakeup(1ull << BOARD_BOOT_PIN, ESP_EXT1_WAKEUP_ANY_LOW);
+    #endif
     esp_deep_sleep_start();
 }
 
@@ -77,7 +81,11 @@ void Power::powerLightSleepTimer(int millis)
  */
 void Power::powerLightSleep()
 {
-    esp_sleep_enable_ext1_wakeup(1ull << BOARD_BOOT_PIN, ESP_EXT1_WAKEUP_ANY_LOW);
+    #if defined(CONFIG_IDF_TARGET_ESP32)
+        esp_sleep_enable_ext0_wakeup((gpio_num_t)BOARD_BOOT_PIN, 0);
+    #else
+        esp_sleep_enable_ext1_wakeup(1ull << BOARD_BOOT_PIN, ESP_EXT1_WAKEUP_ANY_LOW);
+    #endif
     esp_light_sleep_start();
 }
 

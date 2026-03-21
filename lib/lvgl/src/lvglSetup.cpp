@@ -411,30 +411,32 @@ void initLVGL()
     #endif
     
     size_t DRAW_BUF_SIZE = 0;
+    lv_color_t *drawBuf1 = nullptr;
+    lv_color_t *drawBuf2 = nullptr;
     
-    #ifdef BOARD_HAS_PSRAM
+    #if defined(BOARD_HAS_PSRAM) || defined(CONFIG_SPIRAM_SUPPORT)
         assert(heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
 
-    #ifdef T4_S3
+        #ifdef T4_S3
             // T4_S3: Use half screen buffer to save PSRAM for the 1024x1024 map canvas
             DRAW_BUF_SIZE = (TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t) / 2);
-    #else
-            if ( heap_caps_get_total_size(MALLOC_CAP_SPIRAM) >= 4000000 )
+        #else
+            if (heap_caps_get_total_size(MALLOC_CAP_SPIRAM) >= 4000000)
                 // >4Mb PSRAM
                 DRAW_BUF_SIZE = TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t);
             else
                 // 2Mb PSRAM
-                DRAW_BUF_SIZE = ( TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t) / 8);
-    #endif
+                DRAW_BUF_SIZE = (TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t) / 8);
+        #endif
 
-        log_v("LVGL: allocating %u bytes PSRAM for draw buffer",DRAW_BUF_SIZE * 2);
-        lv_color_t * drawBuf1 = (lv_color_t *)heap_caps_aligned_alloc(64, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
-        lv_color_t * drawBuf2 = (lv_color_t *)heap_caps_aligned_alloc(64, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
+        log_v("LVGL: allocating %u bytes PSRAM for draw buffers", DRAW_BUF_SIZE * 2);
+        drawBuf1 = (lv_color_t *)heap_caps_aligned_alloc(64, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
+        drawBuf2 = (lv_color_t *)heap_caps_aligned_alloc(64, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
         lv_display_set_buffers(display, drawBuf1, drawBuf2, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
     #else
-        DRAW_BUF_SIZE =  TFT_WIDTH * TFT_HEIGHT / 10  * sizeof(lv_color_t);
-        log_v("LVGL: allocating %u bytes RAM for draw buffer",DRAW_BUF_SIZE);
-        lv_color_t * drawBuf1[DRAW_BUF_SIZE / 4];
+        DRAW_BUF_SIZE = (TFT_WIDTH * TFT_HEIGHT / 10) * sizeof(lv_color_t);
+        log_v("LVGL: allocating %u bytes SRAM for draw buffer", DRAW_BUF_SIZE);
+        drawBuf1 = (lv_color_t *)heap_caps_malloc(DRAW_BUF_SIZE, MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA);
         lv_display_set_buffers(display, drawBuf1, NULL, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
     #endif
     
