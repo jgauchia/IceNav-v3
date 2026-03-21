@@ -88,7 +88,6 @@ esp_err_t Storage::initSD()
 		slot_config.gpio_cs = (gpio_num_t)SD_CS;
 		slot_config.host_id = (spi_host_device_t)host.slot;
 
-		// SPI bus configuration
 		spi_bus_config_t bus_cfg = {
 			.mosi_io_num = (gpio_num_t)SD_MOSI,
 			.miso_io_num = (gpio_num_t)SD_MISO,
@@ -100,10 +99,8 @@ esp_err_t Storage::initSD()
 			.intr_flags = 0
 		};
 
-		// Adjust the SPI speed (frequency)
 		host.max_freq_khz = 20000;
 
-		// Initialize the SPI bus
 		ret = spi_bus_initialize((spi_host_device_t)host.slot, &bus_cfg, SPI_DMA_CH_AUTO);
 		if (ret != ESP_OK)
 		{
@@ -116,7 +113,7 @@ esp_err_t Storage::initSD()
 		esp_vfs_fat_mount_config_t mount_config = {
 			.format_if_mount_failed = false,
 			.max_files = 20,
-			.allocation_unit_size = 0 // Auto-detect native sector size for performance
+			.allocation_unit_size = 0 
 		};
 
 		ret = esp_vfs_fat_sdspi_mount("/sdcard", &host, &slot_config, &mount_config, &card);
@@ -137,7 +134,6 @@ esp_err_t Storage::initSD()
 			return ESP_OK;
 		}
 	#else
-		// Arduino-compatible path for shared SPI buses
 		pinMode(SD_CS, OUTPUT);
 		digitalWrite(SD_CS, LOW);
 
@@ -301,7 +297,12 @@ bool Storage::getSdLoaded() const
  */
 FILE *Storage::open(const char *path, const char *mode)
 {
-	return fopen(path, mode);
+	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+		return nullptr;
+
+	FILE *file = fopen(path, mode);
+	xSemaphoreGive(readMutex);
+	return file;
 }
 
 /**
@@ -312,7 +313,12 @@ FILE *Storage::open(const char *path, const char *mode)
  */
 int Storage::close(FILE *file)
 {
- 	return fclose(file);
+	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+		return EOF;
+
+	int res = fclose(file);
+	xSemaphoreGive(readMutex);
+ 	return res;
 }
 
 /**
@@ -324,7 +330,13 @@ int Storage::close(FILE *file)
 size_t Storage::size(const char *path)
 {
 	struct stat st;
-	if (stat(path, &st) == 0)
+	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+		return 0;
+
+	int res = stat(path, &st);
+	xSemaphoreGive(readMutex);
+
+	if (res == 0)
 		return st.st_size; 
 	return 0;
 }
@@ -353,12 +365,10 @@ size_t Storage::read(FILE *file, uint8_t *buffer, size_t size)
 
     if (esp_ptr_internal(buffer))
     {
-        // High speed direct read for SRAM buffers
         totalRead = fread(buffer, 1, size, file);
     }
     else
     {
-        // Chunked read using intermediate internal DMA buffer for PSRAM
         if (!dmaBuffer)
         {
             xSemaphoreGive(readMutex);
@@ -407,7 +417,13 @@ size_t Storage::write(FILE *file, const uint8_t *buffer, size_t size)
 {
 	if (!file)
 		return 0;
-	return fwrite(buffer, 1, size, file);
+
+	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+		return 0;
+
+	size_t res = fwrite(buffer, 1, size, file);
+	xSemaphoreGive(readMutex);
+	return res;
 }
 
 /**
@@ -422,7 +438,13 @@ size_t Storage::write(FILE *file, const char *buffer, size_t size)
 {
 	if (!file)
 		return 0;
-	return fwrite(buffer, 1, size, file);
+
+	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+		return 0;
+
+	size_t res = fwrite(buffer, 1, size, file);
+	xSemaphoreGive(readMutex);
+	return res;
 }
 
 /**
@@ -434,7 +456,12 @@ size_t Storage::write(FILE *file, const char *buffer, size_t size)
 bool Storage::exists(const char *path)
 {
 	struct stat st;
-	return stat(path, &st) == 0;
+	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+		return false;
+
+	int res = stat(path, &st);
+	xSemaphoreGive(readMutex);
+	return res == 0;
 }
 
 /**
@@ -445,7 +472,12 @@ bool Storage::exists(const char *path)
  */
 bool Storage::mkdir(const char *path)
 {
-	return ::mkdir(path, 0777) == 0;
+	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+		return false;
+
+	int res = ::mkdir(path, 0777);
+	xSemaphoreGive(readMutex);
+	return res == 0;
 }
 
 /**
@@ -456,7 +488,12 @@ bool Storage::mkdir(const char *path)
  */
 bool Storage::remove(const char *path)
 {
-  	return ::remove(path) == 0;
+	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+		return false;
+
+  	int res = ::remove(path);
+	xSemaphoreGive(readMutex);
+	return res == 0;
 }
 
 /**
@@ -467,7 +504,12 @@ bool Storage::remove(const char *path)
  */
 bool Storage::rmdir(const char *path)
 {
-	return ::rmdir(path) == 0;
+	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+		return false;
+
+	int res = ::rmdir(path);
+	xSemaphoreGive(readMutex);
+	return res == 0;
 }
 
 /**
@@ -482,7 +524,13 @@ int Storage::seek(FILE *file, long offset, int whence)
 {
 	if (!file)
 		return -1;
-	return fseek(file, offset, whence);
+
+	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+		return -1;
+
+	int res = fseek(file, offset, whence);
+	xSemaphoreGive(readMutex);
+	return res;
 }
 
 /**
@@ -496,7 +544,13 @@ int Storage::print(FILE *file, const char *str)
 {
 	if (!file)
 		return -1;
-	return fprintf(file, "%s", str);
+
+	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+		return -1;
+
+	int res = fprintf(file, "%s", str);
+	xSemaphoreGive(readMutex);
+	return res;
 }
 
 /**
@@ -510,7 +564,13 @@ int Storage::println(FILE *file, const char *str)
 {
 	if (!file)
 		return -1;
-	return fprintf(file, "%s\n", str);
+
+	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+		return -1;
+
+	int res = fprintf(file, "%s\n", str);
+	xSemaphoreGive(readMutex);
+	return res;
 }
 
 /**
@@ -523,9 +583,14 @@ size_t Storage::fileAvailable(FILE *file)
 {
 	if (!file)
 		return 0;
+
+	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+		return 0;
+
 	long current_pos = ftell(file);
 	fseek(file, 0, SEEK_END);
 	long end_pos = ftell(file);
 	fseek(file, current_pos, SEEK_SET);
+	xSemaphoreGive(readMutex);
 	return end_pos - current_pos;
 }
