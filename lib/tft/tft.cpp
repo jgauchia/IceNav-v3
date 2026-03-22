@@ -75,18 +75,28 @@ void touchCalibrate()
             fontLarge = &fonts::DejaVu24;
         #endif
 
-        TFT_eSprite touchSprite = TFT_eSprite(&tft);  
-        touchSprite.createSprite(tft.width(), tft.height());  
-
-        touchSprite.drawCenterString("TOUCH THE ARROW MARKER.", tft.width() >> 1, tft.height() >> 1, fontSmall);
-        touchSprite.pushSprite(0,0);
+        #ifndef NO_PSRAM
+            TFT_eSprite touchSprite = TFT_eSprite(&tft);  
+            touchSprite.createSprite(tft.width(), tft.height());  
+            touchSprite.drawCenterString("TOUCH THE ARROW MARKER.", tft.width() >> 1, tft.height() >> 1, fontSmall);
+            touchSprite.pushSprite(0,0);
+        #else
+            tft.drawCenterString("TOUCH THE ARROW MARKER.", tft.width() >> 1, tft.height() >> 1, fontSmall);
+        #endif
 
         tft.calibrateTouch(calData, TFT_WHITE, TFT_BLACK, std::max(tft.width(), tft.height()) >> 3);
-        touchSprite.drawCenterString("DONE!", tft.width() >> 1, (tft.height() >> 1) + (tft.fontHeight(fontSmall) * 2), fontLarge);
-        touchSprite.pushSprite(0,0);
-        vTaskDelay(pdMS_TO_TICKS(500));
-        touchSprite.drawCenterString("TOUCH TO CONTINUE.", tft.width() >> 1, (tft.height() >> 1) + (tft.fontHeight(fontLarge) * 2), fontSmall);
-        touchSprite.pushSprite(0,0);
+
+        #ifndef NO_PSRAM
+            touchSprite.drawCenterString("DONE!", tft.width() >> 1, (tft.height() >> 1) + (tft.fontHeight(fontSmall) * 2), fontLarge);
+            touchSprite.pushSprite(0,0);
+            vTaskDelay(pdMS_TO_TICKS(500));
+            touchSprite.drawCenterString("TOUCH TO CONTINUE.", tft.width() >> 1, (tft.height() >> 1) + (tft.fontHeight(fontLarge) * 2), fontSmall);
+            touchSprite.pushSprite(0,0);
+        #else
+            tft.drawCenterString("DONE!", tft.width() >> 1, (tft.height() >> 1) + (tft.fontHeight(fontSmall) * 2), fontLarge);
+            vTaskDelay(pdMS_TO_TICKS(500));
+            tft.drawCenterString("TOUCH TO CONTINUE.", tft.width() >> 1, (tft.height() >> 1) + (tft.fontHeight(fontLarge) * 2), fontSmall);
+        #endif
 
         FILE* f = storage.open(calibrationFile, "w");
         if (f)
@@ -101,7 +111,9 @@ void touchCalibrate()
         uint16_t touchX, touchY;
         while (!tft.getTouch(&touchX, &touchY));
 
-        touchSprite.deleteSprite();
+        #ifndef NO_PSRAM
+            touchSprite.deleteSprite();
+        #endif
     }
 }
 

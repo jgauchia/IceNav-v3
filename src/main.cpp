@@ -133,38 +133,54 @@ void setup()
     #endif
     initTFT();
     createGpxFolders();
-    mapView.initMap(tft.height() - 27, tft.width());
+
+    //mapView.initMap(tft.height() - 27, tft.width());
+
     loadPreferences();
+
+    #ifdef ELECROW_MINER
+        log_i("Miner: Free RAM after Prefs: %u KB", (uint32_t)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024));
+        log_i("Miner: Largest Block: %u KB", (uint32_t)(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL) / 1024));
+    #endif
+
     gps.init();
-    initLVGL();
+    //initLVGL();
+
+    #ifdef ELECROW_MINER
+        log_i("Miner: Free RAM after LVGL: %u KB", (uint32_t)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024));
+    #endif
+
     gps.gpsData.latitude = gps.getLat();
     gps.gpsData.longitude = gps.getLon();
+
     initGpsTask();
     initSensorTask();
-    initGuiTask();
+    //initGuiTask();
+    
     #ifndef DISABLE_CLI
         initCLI();
         initCLITask();
     #endif
-    if (WiFi.status() == WL_CONNECTED)
-    {
-        if (!MDNS.begin(hostname))
-            log_e("nDNS init error");
-        log_i("mDNS initialized");
-    }
-    if (WiFi.status() == WL_CONNECTED && enableWeb)
-        configureWebServer();
+
+    #ifdef ELECROW_MINER
+        WiFi.mode(WIFI_OFF);
+    #endif
+
+    #ifndef DISABLE_WIFI
+        if (WiFi.status() == WL_CONNECTED)
+        {
+            if (!MDNS.begin(hostname))
+                log_e("nDNS init error");
+            log_i("mDNS initialized");
+        }
+    #endif
+
+    #if !defined(DISABLE_WEB_SERVER) && !defined(DISABLE_WIFI)
+        if (WiFi.status() == WL_CONNECTED && enableWeb)
+            configureWebServer();
+    #endif
+
     splashScreen();
-    if (isGpsFixed)
-    {
-        isSearchingSat = false;
-        loadMainScreen();
-    }
-    else
-    {
-        lv_timer_resume(searchTimer);
-        lv_screen_load(searchSatScreen);
-    }
 }
 
 /**
@@ -172,8 +188,10 @@ void setup()
  */
 void loop()
 {
-    if (enableWeb)
-        processWebServerTasks();
+    #ifndef DISABLE_WEB_SERVER
+        if (enableWeb)
+            processWebServerTasks();
+    #endif
 
     if (isTrackLoaded)
     {

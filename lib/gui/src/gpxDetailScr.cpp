@@ -8,7 +8,6 @@
 
 #include "gpxDetailScr.hpp"
 
-extern Maps mapView;
 extern Gps gps;
 extern wayPoint loadWpt;
 extern wayPoint addWpt;

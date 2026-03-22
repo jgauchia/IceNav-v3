@@ -47,7 +47,6 @@ static const char* getChipModel()
 }
 
 static unsigned long millisActual = 0; /**< Current value of the system timer in milliseconds */
-extern Maps mapView;
 extern Gps gps;
 
 /**
@@ -125,64 +124,79 @@ void splashScreen()
     #else
         tftOff();
         
-        TFT_eSprite splashSprite = TFT_eSprite(&tft);  
-        splashSprite.createSprite(tft.width(), tft.height());  
+        static uint16_t pngHeight = 0;
+        static uint16_t pngWidth = 0;
+        static uint8_t margin = 0;
+        char statusString[50] = "";
+
+        getPngSize(logoFile, &pngWidth, &pngHeight);
 
         tft.fillScreen(TFT_BLACK);
         millisActual = millis_idf();
         tft.setBrightness(0);
 
-        static uint16_t pngHeight = 0;
-        static uint16_t pngWidth = 0;
-        static uint8_t margin = 0;
+        #ifdef ELECROW_MINER
+            tft.drawPngFile(logoFile, (tft.width() / 2) - (pngWidth / 2), (tft.height() / 2) - pngHeight);
 
-        getPngSize(logoFile, &pngWidth, &pngHeight);
-        splashSprite.fillScreen(TFT_BLACK);
-        splashSprite.drawPngFile(logoFile, (tft.width() / 2) - (pngWidth / 2), (tft.height() / 2) - pngHeight);
-
-        #ifdef T4_S3
-            splashSprite.setTextSize(2);
-            margin = 2;
-        #else
-            splashSprite.setTextSize(1);
+            tft.setTextSize(1);
             margin = 1;
+
+            tft.setTextColor(TFT_WHITE, TFT_BLACK);
+
+            tft.drawCenterString("Map data from OpenStreetMap.", tft.width() >> 1, tft.height() - 120*margin);
+            tft.drawCenterString("(c) OpenStreetMap", tft.width() >> 1, tft.height() - 110*margin);
+            tft.drawCenterString("(c) OpenStreetMap contributors", tft.width() >> 1, tft.height() - 100*margin);
+
+            tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+        #else
+            TFT_eSprite splashSprite = TFT_eSprite(&tft);  
+            splashSprite.createSprite(tft.width(), tft.height());  
+            splashSprite.fillScreen(TFT_BLACK);
+            splashSprite.drawPngFile(logoFile, (tft.width() / 2) - (pngWidth / 2), (tft.height() / 2) - pngHeight);
+
+            #ifdef T4_S3
+                splashSprite.setTextSize(2);
+                margin = 2;
+            #else
+                splashSprite.setTextSize(1);
+                margin = 1;
+            #endif
+            splashSprite.setTextColor(TFT_WHITE, TFT_BLACK);
+
+            splashSprite.drawCenterString("Map data from OpenStreetMap.", tft.width() >> 1, tft.height() - 120*margin);
+            splashSprite.drawCenterString("(c) OpenStreetMap", tft.width() >> 1, tft.height() - 110*margin);
+            splashSprite.drawCenterString("(c) OpenStreetMap contributors", tft.width() >> 1, tft.height() - 100*margin);
+
+            splashSprite.setTextColor(TFT_YELLOW, TFT_BLACK);
+
+            memset(&statusString[0], 0, sizeof(statusString));
+            rtc_cpu_freq_config_t freq_config;
+            rtc_clk_cpu_freq_get_config(&freq_config);
+            sprintf(statusString, statusLine1, getChipModel(), (int)freq_config.freq_mhz);
+            splashSprite.drawString(statusString, 0, tft.height() - 50*margin);
+
+            memset(&statusString[0], 0, sizeof(statusString));
+            size_t freeHeap = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+            size_t totalHeap = heap_caps_get_total_size(MALLOC_CAP_INTERNAL);
+            sprintf(statusString, statusLine2, (freeHeap / 1024), (freeHeap * 100) / totalHeap);
+            splashSprite.drawString(statusString, 0, tft.height() - 40*margin);
+
+            memset(&statusString[0], 0, sizeof(statusString));
+            sprintf(statusString, statusLine3, heap_caps_get_total_size(MALLOC_CAP_SPIRAM), heap_caps_get_total_size(MALLOC_CAP_SPIRAM) - heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+            splashSprite.drawString(statusString, 0, tft.height() - 30*margin);
+
+            memset(&statusString[0], 0, sizeof(statusString));
+            sprintf(statusString, statusLine4, String(VERSION), String(REVISION));
+            splashSprite.drawString(statusString, 0, tft.height() - 20*margin);
+
+            memset(&statusString[0], 0, sizeof(statusString));
+            sprintf(statusString, statusLine5, String(FLAVOR));
+            splashSprite.drawString(statusString, 0, tft.height() - 10*margin);
+
+            memset(&statusString[0], 0, sizeof(statusString));
+            splashSprite.setTextColor(TFT_WHITE, TFT_BLACK);
         #endif
-        splashSprite.setTextColor(TFT_WHITE, TFT_BLACK);
 
-        splashSprite.drawCenterString("Map data from OpenStreetMap.", tft.width() >> 1, tft.height() - 120*margin);
-        splashSprite.drawCenterString("(c) OpenStreetMap", tft.width() >> 1, tft.height() - 110*margin);
-        splashSprite.drawCenterString("(c) OpenStreetMap contributors", tft.width() >> 1, tft.height() - 100*margin);
-
-        char statusString[50] = "";
-        splashSprite.setTextColor(TFT_YELLOW, TFT_BLACK);
-
-        memset(&statusString[0], 0, sizeof(statusString));
-        rtc_cpu_freq_config_t freq_config;
-        rtc_clk_cpu_freq_get_config(&freq_config);
-        sprintf(statusString, statusLine1, getChipModel(), (int)freq_config.freq_mhz);
-        splashSprite.drawString(statusString, 0, tft.height() - 50*margin);
-
-        memset(&statusString[0], 0, sizeof(statusString));
-        size_t freeHeap = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
-        size_t totalHeap = heap_caps_get_total_size(MALLOC_CAP_INTERNAL);
-        sprintf(statusString, statusLine2, (freeHeap / 1024), (freeHeap * 100) / totalHeap);
-        splashSprite.drawString(statusString, 0, tft.height() - 40*margin);
-
-        memset(&statusString[0], 0, sizeof(statusString));
-        sprintf(statusString, statusLine3, heap_caps_get_total_size(MALLOC_CAP_SPIRAM), heap_caps_get_total_size(MALLOC_CAP_SPIRAM) - heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
-        splashSprite.drawString(statusString, 0, tft.height() - 30*margin);
-
-        memset(&statusString[0], 0, sizeof(statusString));
-        sprintf(statusString, statusLine4, String(VERSION), String(REVISION));
-        splashSprite.drawString(statusString, 0, tft.height() - 20*margin);
-
-        memset(&statusString[0], 0, sizeof(statusString));
-        sprintf(statusString, statusLine5, String(FLAVOR));
-        splashSprite.drawString(statusString, 0, tft.height() - 10*margin);
-
-        memset(&statusString[0], 0, sizeof(statusString));
-        splashSprite.setTextColor(TFT_WHITE, TFT_BLACK);
-        
         const uint8_t maxBrightness = 255;
 
         tftOn(0);
@@ -190,15 +204,19 @@ void splashScreen()
         for (uint8_t fadeIn = 0; fadeIn <= (maxBrightness - 1); fadeIn++)
         {
             tft.setBrightness(fadeIn);
-            if (fadeIn == 0)
-                splashSprite.pushSprite(0,0);
+            #ifndef ELECROW_MINER
+                if (fadeIn == 0)
+                    splashSprite.pushSprite(0,0);
+            #endif
             millisActual = millis_idf();
             while (millis_idf() < millisActual + 15);
         }
 
-        // Preload Map while logo is fully visible
-        mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
-        mapView.generateMap(zoom);
+        #ifndef ELECROW_MINER
+            // Preload Map while logo is fully visible
+            mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
+            mapView.generateMap(zoom);
+        #endif
 
         while (millis_idf() < millisActual + 100);
 
@@ -215,7 +233,9 @@ void splashScreen()
 
         tft.setBrightness(defBright);
     
-        splashSprite.deleteSprite();
+        #ifndef ELECROW_MINER
+            splashSprite.deleteSprite();
+        #endif
     #endif
 }
 

@@ -8,6 +8,7 @@
 
 #include "lvglSetup.hpp"
 #include "i2c_espidf.hpp"
+#include "power.hpp"
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
 #include "driver/gpio.h"

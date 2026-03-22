@@ -16,8 +16,6 @@ extern lv_obj_t *mapCompassImg;
 extern lv_obj_t *scaleWidget;
 extern lv_obj_t *zoomLabel;
 
-extern Maps mapView;
-
 /**
  * @brief Handles events for map settings UI elements, updating configuration, UI visibility, and persistent storage as needed.
  *

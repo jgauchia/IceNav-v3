@@ -82,7 +82,11 @@ esp_err_t Storage::initSD()
 		esp_err_t ret;
 
 		sdmmc_host_t host = SDSPI_HOST_DEFAULT();
-		host.slot = SPI2_HOST;
+		#ifdef ELECROW_MINER
+			host.slot = VSPI_HOST;
+		#else
+			host.slot = SPI2_HOST;
+		#endif
 
 		sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
 		slot_config.gpio_cs = (gpio_num_t)SD_CS;

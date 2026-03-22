@@ -45,6 +45,7 @@ Maps::Maps() : navLastZoom_(0),
                navTlTileX_(-1), 
                navTlTileY_(-1)
 {
+#ifndef ELECROW_MINER
     projBuf32X.reserve(MAX_POLYGON_POINTS);
     projBuf32Y.reserve(MAX_POLYGON_POINTS);
     decodedCoords.reserve(MAX_POLYGON_POINTS * 2);
@@ -58,9 +59,12 @@ Maps::Maps() : navLastZoom_(0),
     ringEndsCache.reserve(1024);
     placedLabelsCache.reserve(1024);
     navDataCache.reserve(NAV_DATA_CACHE_SIZE);
+#endif
     mapMutex = xSemaphoreCreateMutex();
     mapEventGroup = xEventGroupCreate();
+#ifndef ELECROW_MINER
     xTaskCreatePinnedToCore(mapRenderTask, "MapRenderTask", 16384, this, 1, &mapRenderTaskHandle, 0);
+#endif
 }
 
 /**

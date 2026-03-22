@@ -40,7 +40,15 @@
  * - LV_STDLIB_RTTHREAD:    RT-Thread implementation
  * - LV_STDLIB_CUSTOM:      Implement the functions externally
  */
-#define LV_USE_STDLIB_MALLOC    LV_STDLIB_BUILTIN
+#if defined(BOARD_HAS_PSRAM) || defined(CONFIG_SPIRAM_SUPPORT)
+    #define LV_USE_STDLIB_MALLOC    LV_STDLIB_BUILTIN
+#else
+    #define LV_USE_STDLIB_MALLOC    LV_STDLIB_CUSTOM
+    #define LV_STDLIB_INCLUDE       <esp_heap_caps.h>
+    #define LV_MALLOC(size)         heap_caps_malloc(size, MALLOC_CAP_8BIT)
+    #define LV_REALLOC(ptr, size)   heap_caps_realloc(ptr, size, MALLOC_CAP_8BIT)
+    #define LV_FREE(ptr)            heap_caps_free(ptr)
+#endif
 
 /** Possible values
  * - LV_STDLIB_BUILTIN:     LVGL's built in implementation
@@ -69,11 +77,7 @@
 
 #if LV_USE_STDLIB_MALLOC == LV_STDLIB_BUILTIN
     /*Size of the memory available for `lv_malloc()` in bytes (>= 2kB)*/
-    #if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(ARDUINO_ESP32_S3)
-        #define LV_MEM_SIZE (128 * 1024U)          /*[bytes] (PSRAM)*/
-    #else
-        #define LV_MEM_SIZE (48 * 1024U)           /*[bytes] (SRAM)*/
-    #endif
+    #define LV_MEM_SIZE (128 * 1024U)          /*[bytes] (PSRAM)*/
 
     /*Size of the memory expand for `lv_malloc()` in bytes*/
     #define LV_MEM_POOL_EXPAND_SIZE (64 * 1024U) 
@@ -82,12 +86,10 @@
     #define LV_MEM_ADR 0     /*0: unused*/
     /*Instead of an address give a memory allocator that will be called to get a memory pool for LVGL. E.g. my_malloc*/
     #if LV_MEM_ADR == 0
-        #if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(ARDUINO_ESP32_S3)
-            #define LV_MEM_POOL_INCLUDE <esp32-hal-psram.h>
-            #define LV_MEM_POOL_ALLOC ps_malloc  
-            #define LV_MEM_POOL_FREE free
-            #define LV_MEM_POOL_REALLOC ps_realloc  
-        #endif
+        #define LV_MEM_POOL_INCLUDE <esp32-hal-psram.h>
+        #define LV_MEM_POOL_ALLOC ps_malloc  
+        #define LV_MEM_POOL_FREE free
+        #define LV_MEM_POOL_REALLOC ps_realloc  
     #endif
 #endif  /*LV_USE_STDLIB_MALLOC == LV_STDLIB_BUILTIN*/
 
@@ -114,7 +116,11 @@
  * - LV_OS_WINDOWS
  * - LV_OS_MQX
  * - LV_OS_CUSTOM */
-#define LV_USE_OS   LV_OS_FREERTOS
+#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(ARDUINO_ESP32_S3)
+    #define LV_USE_OS   LV_OS_FREERTOS
+#else
+    #define LV_USE_OS   LV_OS_NONE
+#endif
 
 #if LV_USE_OS == LV_OS_CUSTOM
     #define LV_OS_CUSTOM_INCLUDE <stdint.h>
@@ -150,7 +156,11 @@
  * and can't be drawn in chunks. */
 
 /** The target buffer size for simple layer chunks. */
-#define LV_DRAW_LAYER_SIMPLE_BUF_SIZE    (128 * 1024)    /**< [bytes]*/
+#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(ARDUINO_ESP32_S3)
+    #define LV_DRAW_LAYER_SIMPLE_BUF_SIZE    (128 * 1024)    /**< [bytes]*/
+#else
+    #define LV_DRAW_LAYER_SIMPLE_BUF_SIZE    (8 * 1024)      /**< [bytes]*/
+#endif
 
 /* Limit the max allocated memory for simple and transformed layers.
  * It should be at least `LV_DRAW_LAYER_SIMPLE_BUF_SIZE` sized but if transformed layers are also used
@@ -161,7 +171,11 @@
 /** Stack size of drawing thread.
  * NOTE: If FreeType or ThorVG is enabled, it is recommended to set it to 32KB or more.
  */
-#define LV_DRAW_THREAD_STACK_SIZE    (8 * 1024)         /**< [bytes]*/
+#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(ARDUINO_ESP32_S3)
+    #define LV_DRAW_THREAD_STACK_SIZE    (8 * 1024)         /**< [bytes]*/
+#else
+    #define LV_DRAW_THREAD_STACK_SIZE    (4 * 1024)         /**< [bytes]*/
+#endif
 
 /** Thread priority of the drawing task.
  *  Higher values mean higher priority.

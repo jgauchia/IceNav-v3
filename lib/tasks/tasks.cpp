@@ -100,7 +100,7 @@ void cliTask(void *param)
  * @details Creates and starts the CLI task on core 0 with 12KB stack size and priority 1.
  *          Only compiled when CLI functionality is enabled (not DISABLE_CLI).
  */
-void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 12288, NULL, 1, NULL, 0); }
+void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 3072, NULL, 1, NULL, 0); }
 
 #endif
 

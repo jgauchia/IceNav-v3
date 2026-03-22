@@ -172,12 +172,17 @@ private:
         bool isPinned;
     };
 
+#if defined(BOARD_HAS_PSRAM) || defined(CONFIG_SPIRAM_SUPPORT)
     static const uint8_t NAV_DATA_CACHE_SIZE = 12;
+    static const uint32_t MAX_FEATURE_POOL_SIZE = 16384;
+#else
+    static const uint8_t NAV_DATA_CACHE_SIZE = 4;
+    static const uint32_t MAX_FEATURE_POOL_SIZE = 2048;
+#endif
     std::vector<NavDataCache, PsramAllocator<NavDataCache>> navDataCache;
     uint32_t cacheCounter = 0;
 
     static const uint16_t MAX_POLYGON_POINTS = 1024;
-    static const uint32_t MAX_FEATURE_POOL_SIZE = 16384;
 
     std::vector<int, PsramAllocator<int>> projBuf32X;
     std::vector<int, PsramAllocator<int>> projBuf32Y;
@@ -252,3 +257,5 @@ private:
     std::vector<int, PsramAllocator<int>> edgeBuckets;
     std::vector<Edge, PsramAllocator<Edge>> edgePool;
 };
+
+extern Maps mapView;

@@ -8,7 +8,6 @@
 
 #include "buttonBar.hpp"
 
-extern Maps mapView;
 bool isWaypointOpt;
 bool isTrackOpt;
 bool isOptionLoaded = false;

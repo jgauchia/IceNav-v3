@@ -38,7 +38,6 @@ lv_obj_t *satTrackTile;
 lv_obj_t *btnZoomIn;
 lv_obj_t *btnZoomOut;
 lv_obj_t *mapCanvas;
-extern Maps mapView;
 
 /**
  * @brief Update compass screen event

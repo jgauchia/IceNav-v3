@@ -36,6 +36,8 @@
     #include "MAKERF_ESP32S3.hpp"
 #elif defined(ELECROW_ESP32)
     #include "ELECROW_ESP32.hpp"
+#elif defined(ELECROW_MINER)
+    #include "ELECROW_MINER.hpp"
 #else
     #error "No Panel defined!"
 #endif

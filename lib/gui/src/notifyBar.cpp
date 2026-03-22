@@ -7,6 +7,7 @@
  */
 
 #include "notifyBar.hpp"
+#include <WiFi.h>
 #include "tasks.hpp"
 
 lv_obj_t *mainScreen;         /**< Main screen */
@@ -92,10 +93,14 @@ void updateNotifyBar(lv_event_t *event)
 
     if (obj == wifi)
     {
-        if (WiFi.status() == WL_CONNECTED)
-            lv_label_set_text_static(obj, LV_SYMBOL_WIFI);
-        else
+        #ifndef DISABLE_WIFI
+            if (WiFi.status() == WL_CONNECTED)
+                lv_label_set_text_static(obj, LV_SYMBOL_WIFI);
+            else
+                lv_label_set_text_static(obj," ");
+        #else
             lv_label_set_text_static(obj," ");
+        #endif
     }
 }
 

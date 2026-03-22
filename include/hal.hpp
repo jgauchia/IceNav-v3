@@ -146,6 +146,33 @@
     extern const uint8_t SD_CLK = 3;
 #endif 
 
+#ifdef ELECROW_MINER
+    #define I2C_SDA_PIN   GPIO_NUM_22    
+    #define I2C_SCL_PIN   GPIO_NUM_21
+
+    uint8_t GPS_TX = 16;
+    uint8_t GPS_RX = 17;
+
+    extern const uint8_t BOARD_BOOT_PIN = 0;
+
+    extern const uint8_t TFT_SPI_SCLK = GPIO_NUM_14;
+    extern const uint8_t TFT_SPI_MOSI = GPIO_NUM_13;
+    extern const uint8_t TFT_SPI_MISO = GPIO_NUM_4;
+    extern const uint8_t TFT_SPI_DC   = GPIO_NUM_2;
+    extern const uint8_t TFT_SPI_CS   = GPIO_NUM_15;
+    extern const uint8_t TFT_SPI_RST  = -1;
+
+    extern const uint8_t TCH_SPI_SCLK = GPIO_NUM_14;
+    extern const uint8_t TCH_SPI_MOSI = GPIO_NUM_13;
+    extern const uint8_t TCH_SPI_MISO = GPIO_NUM_4;
+    extern const uint8_t TCH_SPI_INT  = GPIO_NUM_36;
+    extern const uint8_t TCH_SPI_CS   = GPIO_NUM_33;
+
+    extern const uint8_t SD_CS = GPIO_NUM_5;
+    extern const uint8_t SD_MISO = GPIO_NUM_19;
+    extern const uint8_t SD_MOSI = GPIO_NUM_23;
+    extern const uint8_t SD_CLK = GPIO_NUM_18;
+#endif
 /**
  * @brief TFT Invert color
  *

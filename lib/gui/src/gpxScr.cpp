@@ -9,7 +9,6 @@
 #include "gpxScr.hpp"
 #include "esp_log.h"
 
-extern Maps mapView;
 extern Storage storage;
 extern wayPoint loadWpt;
 extern bool isWaypointOpt;
