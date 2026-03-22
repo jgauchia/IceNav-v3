@@ -53,7 +53,7 @@ void gpsTask(void *pvParameters)
 
             xSemaphoreGive(gpsMutex);
 
-            vTaskDelay(1); /// portTICK_PERIOD_MS);
+            vTaskDelay(1); 
         }
     }
 }
@@ -61,13 +61,13 @@ void gpsTask(void *pvParameters)
 /**
  * @brief Initialize GPS processing task
  *
- * @details Creates and starts the GPS task on core 0 with 8KB stack size and priority 1.
+ * @details Creates and starts the GPS task on core 0 with 2560 bytes stack size and priority 1.
  *          Includes a 500ms delay after task creation to ensure proper initialization
  *          before other system components attempt to access GPS data.
  */
 void initGpsTask()
 {
-    xTaskCreatePinnedToCore(gpsTask, PSTR("GPS Task"), 4096, NULL, 2, NULL, 0);
+    xTaskCreatePinnedToCore(gpsTask, PSTR("GPS Task"), 2560, NULL, 2, NULL, 0);
     vTaskDelay(pdMS_TO_TICKS(500));
 }
 
@@ -154,11 +154,11 @@ void sensorTask(void *pvParameters)
 /**
  * @brief Initialize sensor processing task
  *
- * @details Creates and starts the sensor task on core 0 with 4KB stack and priority 1.
+ * @details Creates and starts the sensor task on core 0 with 2560 bytes stack and priority 1.
  */
 void initSensorTask()
 {
-    xTaskCreatePinnedToCore(sensorTask, "Sensor Task", 4096, NULL, 1, NULL, 0);
+    xTaskCreatePinnedToCore(sensorTask, "Sensor Task", 2560, NULL, 1, NULL, 0);
 }
 
 /**
