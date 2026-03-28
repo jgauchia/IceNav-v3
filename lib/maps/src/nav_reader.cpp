@@ -55,17 +55,18 @@ bool NavReader::openPack(uint8_t zoom)
         return false;
     }
 
-    // NPK2 Header: tile_count(4), y_min(4), y_max(4), ytable_off(4), index_off(4) = 20 bytes
-    uint32_t extraHeader[5];
-    if (storage.read(packFile, (uint8_t*)extraHeader, 20) != 20)
+    // NPK2 Header: 
+    // tile_count(4), index_off(4), reserved[4](16) = 24 bytes
+    uint32_t headerData[2]; // count, indexOff
+    if (storage.read(packFile, (uint8_t*)headerData, 8) != 8)
     {
-        ESP_LOGE(TAG, "Failed to read NPK2 extra header for %s", path);
+        ESP_LOGE(TAG, "Failed to read NPK2 header for %s", path);
         closePack();
         return false;
     }
 
-    tileCount = extraHeader[0];
-    indexOff = extraHeader[4];
+    tileCount = headerData[0];
+    indexOff = headerData[1];
     currentZoom = zoom;
 
     return true;
@@ -88,7 +89,7 @@ void NavReader::closePack()
 }
 
 /**
- * @brief Search for a tile in the open pack using binary search.
+ * @brief Search for a tile in the open pack using global Hilbert binary search.
  * @param tileX Tile X coordinate.
  * @param tileY Tile Y coordinate.
  * @param offset Output offset.
@@ -100,21 +101,22 @@ bool NavReader::findTileInPack(uint32_t tileX, uint32_t tileY, uint32_t& offset,
     if (!packFile || tileCount == 0)
         return false;
 
+    uint64_t targetH = xyToHilbert(tileX, tileY, currentZoom);
     int32_t low = 0;
-    int32_t high = tileCount - 1;
+    int32_t high = (int32_t)tileCount - 1;
 
     while (low <= high)
     {
         int32_t mid = low + (high - low) / 2;
         storage.seek(packFile, indexOff + (mid * 16), SEEK_SET);
 
-        uint32_t entry[2]; // x, y
-        if (storage.read(packFile, (uint8_t*)entry, 8) != 8)
+        uint64_t entryH;
+        if (storage.read(packFile, (uint8_t*)&entryH, 8) != 8)
             return false;
 
-        if (entry[1] < tileY || (entry[1] == tileY && entry[0] < tileX))
+        if (entryH < targetH)
             low = mid + 1;
-        else if (entry[1] > tileY || (entry[1] == tileY && entry[0] > tileX))
+        else if (entryH > targetH)
             high = mid - 1;
         else
         {

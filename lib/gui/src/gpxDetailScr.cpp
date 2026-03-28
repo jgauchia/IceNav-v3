@@ -174,6 +174,7 @@ static void gpxTagNameEvent(lv_event_t *event)
                     gpx.filePath = wptFile;
                     gpx.addWaypoint(addWpt);
                 }
+                break;
             case GPX_EDIT:
                 char *newName = (char *)lv_textarea_get_text(gpxTagValue);
                 if (strcmp(loadWpt.name, newName) != 0)
