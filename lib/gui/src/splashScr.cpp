@@ -148,6 +148,33 @@ void splashScreen()
             tft.drawCenterString("(c) OpenStreetMap contributors", tft.width() >> 1, tft.height() - 100*margin);
 
             tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+
+            memset(&statusString[0], 0, sizeof(statusString));
+            rtc_cpu_freq_config_t freq_config;
+            rtc_clk_cpu_freq_get_config(&freq_config);
+            sprintf(statusString, statusLine1, getChipModel(), (int)freq_config.freq_mhz);
+            tft.drawString(statusString, 0, tft.height() - 50*margin);
+
+            memset(&statusString[0], 0, sizeof(statusString));
+            size_t freeHeap = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+            size_t totalHeap = heap_caps_get_total_size(MALLOC_CAP_INTERNAL);
+            sprintf(statusString, statusLine2, (freeHeap / 1024), (freeHeap * 100) / totalHeap);
+            tft.drawString(statusString, 0, tft.height() - 40*margin);
+
+            memset(&statusString[0], 0, sizeof(statusString));
+            sprintf(statusString, statusLine3, heap_caps_get_total_size(MALLOC_CAP_SPIRAM), heap_caps_get_total_size(MALLOC_CAP_SPIRAM) - heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+            tft.drawString(statusString, 0, tft.height() - 30*margin);
+
+            memset(&statusString[0], 0, sizeof(statusString));
+            sprintf(statusString, statusLine4, String(VERSION), String(REVISION));
+            tft.drawString(statusString, 0, tft.height() - 20*margin);
+
+            memset(&statusString[0], 0, sizeof(statusString));
+            sprintf(statusString, statusLine5, String(FLAVOR));
+            tft.drawString(statusString, 0, tft.height() - 10*margin);
+
+            memset(&statusString[0], 0, sizeof(statusString));
+            tft.setTextColor(TFT_WHITE, TFT_BLACK);
         #else
             TFT_eSprite splashSprite = TFT_eSprite(&tft);  
             splashSprite.createSprite(tft.width(), tft.height());  
