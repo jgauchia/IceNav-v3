@@ -491,7 +491,7 @@ void Maps::generateMap(uint8_t zoom)
         }
 
         drawTrack(mapTempSprite);
-        Maps::redrawMap = true;
+        redrawMap = true;
         xEventGroupSetBits(mapEventGroup, MAP_EVENT_DONE);
     }
 }
@@ -559,11 +559,6 @@ void Maps::mapRenderTask(void* pvParameters)
                 }
 
                 instance->placedLabelsCache.clear();
-                instance->totalFeaturesDrawn = (uint32_t)instance->featurePool.size();
-                instance->drawPolyTime = 0;
-                instance->drawLineTime = 0;
-                instance->drawLabelTime = 0;
-                uint64_t tDrawStart = esp_timer_get_time();
                 instance->mapTempSprite.startWrite();
                 uint32_t lastYield = millis();
                 uint32_t loopCounter = 0;
@@ -590,32 +585,14 @@ void Maps::mapRenderTask(void* pvParameters)
                                 }
                             }
 
-                            uint64_t tFeatStart = esp_timer_get_time();
                             const auto& feat = instance->featurePool[idx];
                             instance->renderNavFeature(feat, instance->mapTempSprite, pass, instance->placedLabelsCache);
-                            uint64_t tFeatEnd = esp_timer_get_time();
-
-                            if (pass == 1)
-                            {
-                                if (feat.geomType == NavGeomType::Polygon)
-                                    instance->drawPolyTime += (tFeatEnd - tFeatStart);
-                                else if (feat.geomType == NavGeomType::LineString)
-                                    instance->drawLineTime += (tFeatEnd - tFeatStart);
-                            }
-                            else
-                            {
-                                if (feat.geomType == NavGeomType::Text)
-                                    instance->drawLabelTime += (tFeatEnd - tFeatStart);
-                                else if (feat.geomType == NavGeomType::LineString)
-                                    instance->drawLineTime += (tFeatEnd - tFeatStart);
-                            }
                         }
                         esp_task_wdt_reset();
                     }
                 }
 
                 instance->mapTempSprite.endWrite();
-                instance->totalDrawTime = esp_timer_get_time() - tDrawStart;
                 for (auto& entry : instance->navDataCache)
                     entry.isPinned = false;
 
@@ -624,13 +601,6 @@ void Maps::mapRenderTask(void* pvParameters)
                 xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
                 xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
                 xSemaphoreGive(instance->mapMutex);
-
-                uint64_t endTime = esp_timer_get_time();
-                ESP_LOGI(TAG, "Z%u | Full: %llu ms | Load: %llu ms | Draw: %llu (P:%llu L:%llu T:%llu) | Feat: %u | PSRAM: %u KB", 
-                         instance->zoomLevel, (endTime - instance->viewportStartTime) / 1000,
-                         instance->totalLoadTime / 1000, instance->totalDrawTime / 1000,
-                         instance->drawPolyTime / 1000, instance->drawLineTime / 1000, instance->drawLabelTime / 1000,
-                         instance->totalFeaturesDrawn, ESP.getFreePsram() / 1024);
             }
         }
         vTaskDelay(1);
@@ -853,13 +823,6 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
         if (!mapSet.vectorMap)
             Maps::preloadTiles(deltaTileX, deltaTileY);
 
-        viewportStartTime = esp_timer_get_time();
-        totalLoadTime = 0;
-        totalProcessTime = 0;
-        totalDrawTime = 0;
-        totalFeaturesDrawn = 0;
-        cacheHits = 0;
-        cacheMisses = 0;
         generateMap(zoomLevel);
         lastTileX = tileX;
         lastTileY = tileY;
@@ -1508,16 +1471,6 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
     navTlTileY_ = (float)(centerTileIdxY - gridOffset);
     bool zoomChanged = (zoom != navLastZoom_);
     navLastZoom_ = zoom;
-    if (mapSet.vectorMap)
-    {
-        viewportStartTime = esp_timer_get_time();
-        totalLoadTime = 0;
-        totalProcessTime = 0;
-        totalDrawTime = 0;
-        totalFeaturesDrawn = 0;
-        cacheHits = 0;
-        cacheMisses = 0;
-    }
     if (xSemaphoreTake(mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
     {
         if (zoomChanged)
@@ -1624,12 +1577,7 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
         }
         navDataCache.push_back({data, size, tileHash, ++cacheCounter, true});
     }
-    uint64_t tLoadEnd = 0;
-    if (mapSet.vectorMap)
-    {
-        tLoadEnd = esp_timer_get_time();
-        totalLoadTime += (tLoadEnd - tStart);
-    }
+
     if (dataSize < 22)
         return;
     uint16_t feature_count;
