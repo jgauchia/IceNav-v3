@@ -34,7 +34,7 @@ void gpsTask(void *pvParameters)
     ESP_LOGV(TAG, "Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
     while (1)
     {
-        if ( xSemaphoreTake(gpsMutex, portMAX_DELAY) == pdTRUE )
+        if ( xSemaphoreTake(gpsMutex, pdMS_TO_TICKS(100)) == pdTRUE )
         {
             if (nmea_output_enable)
             {
@@ -52,16 +52,15 @@ void gpsTask(void *pvParameters)
             }
 
             xSemaphoreGive(gpsMutex);
-
-            vTaskDelay(1); /// portTICK_PERIOD_MS);
         }
+        vTaskDelay(1);
     }
 }
 
 /**
  * @brief Initialize GPS processing task
  *
- * @details Creates and starts the GPS task on core 0 with 8KB stack size and priority 1.
+ * @details Creates and starts the GPS task on core 0 with 4KB stack size and priority 2.
  *          Includes a 500ms delay after task creation to ensure proper initialization
  *          before other system components attempt to access GPS data.
  */
@@ -75,7 +74,7 @@ void initGpsTask()
  * @brief Command-line interface processing task
  *
  * @details Handles CLI operations including command parsing, execution, and response
- *          generation. Runs on core 1 with 12KB stack size to handle complex CLI
+ *          generation. Runs on core 1 with 4KB stack size to handle complex CLI
  *          operations and network communications. The task processes commands at
  *          60ms intervals to maintain responsive user interaction.
  *
@@ -97,10 +96,10 @@ void cliTask(void *param)
 /**
  * @brief Initialize CLI processing task
  *
- * @details Creates and starts the CLI task on core 0 with 12KB stack size and priority 1.
+ * @details Creates and starts the CLI task on core 1 with 4KB stack size and priority 1.
  *          Only compiled when CLI functionality is enabled (not DISABLE_CLI).
  */
-void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 12288, NULL, 1, NULL, 0); }
+void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 4096, NULL, 1, NULL, 1); }
 
 #endif
 
@@ -200,5 +199,3 @@ void initGuiTask()
 {
     xTaskCreatePinnedToCore(guiTask, "GUI Task", 8192, NULL, 3, NULL, 1);
 }
-
-
