@@ -17,7 +17,6 @@ NAVIGATION navSet;
 
 /**
  * @brief Zoom Levels and Default zoom
- *
  */
 uint8_t minZoom = 0;         /**< Minimum Zoom Level */
 uint8_t maxZoom = 0;         /**< Maximum Zoom Level */
@@ -32,7 +31,6 @@ uint8_t zoom = 0;            /**< Current Zoom Level */
 
 /**
  * @brief Global variables definition for device preferences & config.
- *
  */
 uint8_t  defaultZoom    = 0;    /**< Default Zoom Value */
 uint8_t  defBright      = 255;  /**< Default Brightness */
@@ -69,10 +67,10 @@ void loadPreferences()
 {
     cfg.init("ICENAV");
     #ifdef ENABLE_COMPASS
-        compass.setOffsets(cfg.getFloat(PKEYS::KCOMP_OFFSET_X, 0.0), cfg.getFloat(PKEYS::KCOMP_OFFSET_Y, 0.0));
-        compass.setDeclinationAngle(cfg.getFloat(PKEYS::KDECL_ANG, 0.22));
+        compass.setOffsets(cfg.getFloat(PKEYS::KCOMP_OFFSET_X, 0.0f), cfg.getFloat(PKEYS::KCOMP_OFFSET_Y, 0.0f));
+        compass.setDeclinationAngle(cfg.getFloat(PKEYS::KDECL_ANG, 0.22f));
         compass.enableKalmanFilter(cfg.getBool(PKEYS::KKALM_FIL, false));
-        compass.setKalmanFilterConst(cfg.getFloat(PKEYS::KKALM_Q, 0.01),cfg.getFloat(PKEYS::KKALM_R, 0.1));
+        compass.setKalmanFilterConst(cfg.getFloat(PKEYS::KKALM_Q, 0.01f),cfg.getFloat(PKEYS::KKALM_R, 0.1f));
     #endif  
     mapSet.mapRotationComp = cfg.getBool(PKEYS::KMAP_ROT_MODE, false);
     mapSet.showMapCompass = cfg.getBool(PKEYS::KMAP_COMPASS, true);
@@ -80,7 +78,6 @@ void loadPreferences()
     mapSet.showMapSpeed = cfg.getBool(PKEYS::KMAP_SPEED, true);
     mapSet.vectorMap = cfg.getBool(PKEYS::KMAP_VECTOR, false);
     mapSet.showMapScale = cfg.getBool(PKEYS::KMAP_SCALE, true);
-    mapSet.fillPolygons = cfg.getBool(PKEYS::KFILL_POL, false);
     navSet.simNavigation = cfg.getBool(PKEYS::KSIM_NAV, false);
     gpsBaud = cfg.getShort(PKEYS::KGPS_SPEED, 4);
     gpsUpdate = cfg.getShort(PKEYS::KGPS_RATE, 3);
@@ -118,7 +115,7 @@ void loadPreferences()
         sunPosY = cfg.isKey(CONFKEYS::KSUN_Y) ? cfg.getInt(CONFKEYS::KSPEED_Y, speedPosY) : 110;
     #endif
 
-    battery.setBatteryLevels(cfg.getFloat(PKEYS::KVMAX_BATT, 4.2), cfg.getFloat(PKEYS::KVMIN_BATT, 3.6));
+    battery.setBatteryLevels(cfg.getFloat(PKEYS::KVMAX_BATT, 4.2f), cfg.getFloat(PKEYS::KVMIN_BATT, 3.6f));
     printSettings();
 }
 

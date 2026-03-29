@@ -12,7 +12,7 @@
 #include "tft.hpp"
 
 #define TOUCH_MAX_POINTS 2                  /**< Maximum number of supported touch points */
-#define TOUCH_DOUBLE_TOUCH_INTERVAL 150     /**< Interval (ms) to detect double touch */
+#define TOUCH_DOUBLE_TOUCH_INTERVAL 200     /**< Interval (ms) to detect double touch */
 #define SPEED_FAST 1.0f                     /**< Fast gesture speed threshold (px/ms) */
 #define SPEED_SLOW 0.3f                     /**< Slow gesture speed threshold (px/ms) */
 
@@ -22,7 +22,6 @@ static uint32_t firstTouchReleaseTime = 0;      /**< Timestamp of the first touc
 
 /**
  * @brief Zoom gesture direction enumeration
- * 
  */
 typedef enum 
 {

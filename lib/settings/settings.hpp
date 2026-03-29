@@ -22,8 +22,6 @@
  */
 extern uint8_t minZoom;         /**< Minimum Zoom Level */
 extern uint8_t maxZoom;         /**< Maximum Zoom Level */
-extern uint8_t defZoomRender;   /**< Default Zoom Level for rendering map */
-extern uint8_t defZoomVector;   /**< Default Zoom Level for vector map */
 extern uint8_t zoom;            /**< Current Zoom Level */
 extern uint8_t defBright;       /**< Default screen brightness */
 extern uint8_t defaultZoom;     /**< Default Zoom Value */
@@ -73,7 +71,6 @@ struct MAP
     bool showMapSpeed;      /**< Show speed in map screen */
     bool vectorMap;         /**< Map type: true for vector, false for rendered */
     bool showMapScale;      /**< Show map scale on screen */
-    bool fillPolygons;      /**< Flag for polygon filling */
 };
 extern MAP mapSet; /**< Global instance for map settings */
 

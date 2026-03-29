@@ -2,7 +2,7 @@
  * @file cli.hpp
  * @author @Hpsaturn
  * @brief  Network CLI and custom internal commands
- * @version Using https://github.com/hpsaturn/esp32-wifi-cli.git
+ * @version 0.2.4
  * @date 2025-12
  */
 

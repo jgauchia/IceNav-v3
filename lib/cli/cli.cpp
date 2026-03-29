@@ -2,7 +2,7 @@
  * @file cli.cpp
  * @author @Hpsaturn
  * @brief  Network CLI and custom internal commands
- * @version Using https://github.com/hpsaturn/esp32-wifi-cli.git
+ * @version 0.2.4
  * @date 2025-12
  */
 
@@ -75,17 +75,25 @@ void wcli_info(char *args, Stream *response)
     if (psramTotal > 0)
     {
         size_t psramFree = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+        size_t psramLargestBlock = heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM);
         response->printf("PSRAM total\t: %zu bytes\r\n", psramTotal);
         response->printf("PSRAM used\t: %zu bytes\r\n", psramTotal - psramFree);
         response->printf("PSRAM free\t: %zu bytes\r\n", psramFree);
+        response->printf("PSRAM largest\t: %zu bytes\r\n", psramLargestBlock);
     }
     uint32_t flash_size = 0;
     esp_flash_get_size(NULL, &flash_size);
     response->printf("Flash size\t: %u bytes\r\n", flash_size);
     const esp_partition_t *running = esp_ota_get_running_partition();
     esp_image_metadata_t metadata;
-    esp_partition_pos_t part_pos = {.offset = running->address, .size = running->size};
-    if (running && esp_image_verify(ESP_IMAGE_VERIFY, &part_pos, &metadata) == ESP_OK)
+    bool imageValid = false;
+    if (running)
+    {
+        esp_partition_pos_t part_pos = { .offset = running->address, .size = running->size };
+        if (esp_image_verify(ESP_IMAGE_VERIFY, &part_pos, &metadata) == ESP_OK)
+            imageValid = true;
+    }
+    if (imageValid)
         response->printf("Program size\t: %u bytes\r\n", metadata.image_len);
     else
         response->printf("Program size\t: unknown\r\n");
@@ -166,25 +174,27 @@ void wcli_scshot(char *args, Stream *response)
  *
  * @details Shows only basic keys unless 'all' is specified.
  * 
- * @details CLI command: klist
  */
 void wcli_klist(char *args, Stream *response)
 {
     Pair<String, String> operands = wcli.parseCommand(args);
     String opt = operands.first();
     int key_count = PKEYS::KUSER+1;
-    if (opt.equals("all")) key_count = 0; // Only show the basic keys to configure
+    if (opt.equals("all"))
+        key_count = 0; // Only show the basic keys to configure
     response->printf("\n%11s \t%s \t%s \r\n", "KEYNAME", "DEFINED", "VALUE");
     response->printf("\n%11s \t%s \t%s \r\n", "=======", "=======", "=====");
 
     for (int i = key_count; i < PKEYS::KCOUNT; i++)
     {
-        if (i == PKEYS::KUSER) continue;
+        if (i == PKEYS::KUSER) 
+            continue;
         String key = cfg.getKey((CONFKEYS)i);
         bool isDefined = cfg.isKey(key);
         String defined = isDefined ? "custom " : "default";
         String value = "";
-        if (isDefined) value = cfg.getValue(key);
+        if (isDefined) 
+            value = cfg.getValue(key);
         response->printf("%11s \t%s \t%s \r\n", key, defined.c_str(), value.c_str());
     }
 }

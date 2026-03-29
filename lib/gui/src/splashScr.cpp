@@ -13,19 +13,36 @@
 #include "esp_chip_info.h"
 #include "soc/rtc.h"
 
+/**
+ * @brief Get system uptime in milliseconds using ESP-IDF timer.
+ *
+ * @return uint32_t Milliseconds since boot.
+ */
 static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
+/**
+ * @brief Get the ESP Chip Model 
+ * 
+ * @return const char* 
+ */
 static const char* getChipModel()
 {
     esp_chip_info_t chip_info;
     esp_chip_info(&chip_info);
-    switch (chip_info.model) {
-        case CHIP_ESP32:   return "ESP32";
-        case CHIP_ESP32S2: return "ESP32-S2";
-        case CHIP_ESP32S3: return "ESP32-S3";
-        case CHIP_ESP32C3: return "ESP32-C3";
-        case CHIP_ESP32H2: return "ESP32-H2";
-        default:           return "Unknown";
+    switch (chip_info.model)
+    {
+        case CHIP_ESP32:   
+            return "ESP32";
+        case CHIP_ESP32S2: 
+            return "ESP32-S2";
+        case CHIP_ESP32S3: 
+            return "ESP32-S3";
+        case CHIP_ESP32C3: 
+            return "ESP32-C3";
+        case CHIP_ESP32H2: 
+            return "ESP32-H2";
+        default:           
+            return "Unknown";
     }
 }
 
@@ -75,10 +92,6 @@ void splashScreen()
 {
     setTime = false;
 
-    // Preload Map
-    mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
-    mapView.generateMap(zoom);
-  
     #ifdef ICENAV_BOARD
         millisActual = millis_idf();
 
@@ -96,12 +109,18 @@ void splashScreen()
             lv_task_handler();  
             vTaskDelay(5);
         }     
+
         lv_obj_fade_out(splashScr, 2500,0);
         for( int i=0; i < 300; i++ )
         {
             lv_task_handler();  
             vTaskDelay(5);
         }     
+
+        // Preload Map at the very end when all animations are gone
+        mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
+        mapView.generateMap(zoom);
+
         lv_obj_delete(splashScr);
     #else
         tftOff();
@@ -144,8 +163,8 @@ void splashScreen()
         splashSprite.drawString(statusString, 0, tft.height() - 50*margin);
 
         memset(&statusString[0], 0, sizeof(statusString));
-        size_t freeHeap = esp_get_free_heap_size();
-        size_t totalHeap = heap_caps_get_total_size(MALLOC_CAP_8BIT);
+        size_t freeHeap = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+        size_t totalHeap = heap_caps_get_total_size(MALLOC_CAP_INTERNAL);
         sprintf(statusString, statusLine2, (freeHeap / 1024), (freeHeap * 100) / totalHeap);
         splashSprite.drawString(statusString, 0, tft.height() - 40*margin);
 
@@ -172,10 +191,14 @@ void splashScreen()
         {
             tft.setBrightness(fadeIn);
             if (fadeIn == 0)
-            splashSprite.pushSprite(0,0);
+                splashSprite.pushSprite(0,0);
             millisActual = millis_idf();
             while (millis_idf() < millisActual + 15);
         }
+
+        // Preload Map while logo is fully visible
+        mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
+        mapView.generateMap(zoom);
 
         while (millis_idf() < millisActual + 100);
 

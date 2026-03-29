@@ -8,7 +8,10 @@
 
 #include "power.hpp"
 
+#include "storage.hpp"
+
 extern const uint8_t BOARD_BOOT_PIN; /**< External declaration for the board's boot pin number. */
+extern Storage storage;
 
 /**
  * @brief Power Class constructor
@@ -87,7 +90,12 @@ void Power::powerOffPeripherals()
 {
     tftOff();
     tft.fillScreen(TFT_BLACK);
-    spi_bus_free(SPI2_HOST);
+    
+    // Properly deinitialize SD card before freeing SPI bus (only if not SPI_SHARED)
+    #ifndef SPI_SHARED
+        storage.deinitSD();
+        spi_bus_free(SPI2_HOST);
+    #endif
     i2c.end();
 }
 

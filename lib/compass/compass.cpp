@@ -11,6 +11,10 @@
 #include <freertos/task.h>
 #include "esp_timer.h"
 
+/**
+ * @brief Get system uptime in milliseconds using ESP-IDF timer.
+ * @return uint32_t Milliseconds since boot.
+ */
 static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 static const char* TAG = "Compass";
@@ -28,6 +32,7 @@ QMC5883L_Driver::QMC5883L_Driver() : i2cAddr(QMC5883L_ADDRESS), ctrl1Value(0x01)
 
 /**
  * @brief Reads a single byte from a register.
+ *
  * @param reg Register address.
  * @return Register value.
  */
@@ -38,16 +43,19 @@ uint8_t QMC5883L_Driver::read8(uint8_t reg)
 
 /**
  * @brief Writes a single byte to a register.
+ *
  * @param reg Register address.
  * @param value Value to write.
+ * @return true if write successful, false on error.
  */
-void QMC5883L_Driver::write8(uint8_t reg, uint8_t value)
+bool QMC5883L_Driver::write8(uint8_t reg, uint8_t value)
 {
-    i2c.write8(i2cAddr, reg, value);
+    return i2c.write8(i2cAddr, reg, value);
 }
 
 /**
  * @brief Reads a 16-bit value from two consecutive registers (LSB first).
+ *
  * @param reg Starting register address.
  * @return 16-bit signed value.
  */
@@ -61,8 +69,8 @@ int16_t QMC5883L_Driver::read16(uint8_t reg)
 /**
  * @brief Initializes the QMC5883L magnetometer.
  *
- * @details Performs soft reset, configures SET/RESET period, and sets
- *          continuous mode with 10Hz ODR, 2G range, 512 oversampling.
+ * @details Verifies chip ID, performs soft reset, configures SET/RESET period,
+ *          and sets continuous mode with 10Hz ODR, 2G range, 512 oversampling.
  *
  * @param addr I2C address (default 0x0D).
  * @return true if initialization successful, false otherwise.
@@ -71,17 +79,37 @@ bool QMC5883L_Driver::begin(uint8_t addr)
 {
     i2cAddr = addr;
 
+    // Check Chip ID (QMC5883L ID is usually 0xFF)
+    uint8_t chipID = read8(QMC5883L_REG_CHIP_ID);
+    if (chipID != 0xFF)
+    {
+        ESP_LOGE(TAG, "QMC5883L not found at 0x%02X, Chip ID: 0x%02X (expected 0xFF)", addr, chipID);
+        return false;
+    }
+
     // Soft reset
-    write8(QMC5883L_REG_CTRL2, 0x80);
-    vTaskDelay(pdMS_TO_TICKS(10));
+    if (!write8(QMC5883L_REG_CTRL2, 0x80))
+    {
+        ESP_LOGE(TAG, "QMC5883L soft reset failed");
+        return false;
+    }
+    vTaskDelay(pdMS_TO_TICKS(20));
 
     // Set/Reset period
-    write8(QMC5883L_REG_SET_RST, 0x01);
+    if (!write8(QMC5883L_REG_SET_RST, 0x01))
+    {
+        ESP_LOGE(TAG, "QMC5883L SET/RST config failed");
+        return false;
+    }
 
     // Control register 1: Continuous mode, 10Hz ODR, 2G range, 512x oversampling
     // Bits: OSR[7:6]=00(512), RNG[5:4]=00(2G), ODR[3:2]=00(10Hz), MODE[1:0]=01(Continuous)
     ctrl1Value = 0x01;  // Continuous mode, 10Hz, 2G, 512 OSR
-    write8(QMC5883L_REG_CTRL1, ctrl1Value);
+    if (!write8(QMC5883L_REG_CTRL1, ctrl1Value))
+    {
+        ESP_LOGE(TAG, "QMC5883L CTRL1 config failed");
+        return false;
+    }
 
     vTaskDelay(pdMS_TO_TICKS(10));
 
@@ -92,22 +120,24 @@ bool QMC5883L_Driver::begin(uint8_t addr)
  * @brief Sets the output data rate.
  *
  * @param rate 0=10Hz, 1=50Hz, 2=100Hz, 3=200Hz.
+ * @return true if successful, false on error.
  */
-void QMC5883L_Driver::setDataRate(uint8_t rate)
+bool QMC5883L_Driver::setDataRate(uint8_t rate)
 {
     ctrl1Value = (ctrl1Value & 0xF3) | ((rate & 0x03) << 2);
-    write8(QMC5883L_REG_CTRL1, ctrl1Value);
+    return write8(QMC5883L_REG_CTRL1, ctrl1Value);
 }
 
 /**
  * @brief Sets the oversampling rate.
  *
  * @param samples 0=512, 1=256, 2=128, 3=64.
+ * @return true if successful, false on error.
  */
-void QMC5883L_Driver::setSamples(uint8_t samples)
+bool QMC5883L_Driver::setSamples(uint8_t samples)
 {
     ctrl1Value = (ctrl1Value & 0x3F) | ((samples & 0x03) << 6);
-    write8(QMC5883L_REG_CTRL1, ctrl1Value);
+    return write8(QMC5883L_REG_CTRL1, ctrl1Value);
 }
 
 /**
@@ -119,8 +149,14 @@ void QMC5883L_Driver::setSamples(uint8_t samples)
  */
 void QMC5883L_Driver::readRaw(float &x, float &y, float &z)
 {
+    // 1. Check Data Ready (Bit 0 of Status Register 0x06)
+    uint8_t status = read8(QMC5883L_REG_STATUS);
+    if ((status & 0x01) == 0)
+        return;
+
     uint8_t buffer[6];
-    i2c.readBytes(i2cAddr, QMC5883L_REG_DATA, buffer, 6);
+    if (i2c.readBytes(i2cAddr, QMC5883L_REG_DATA, buffer, 6) != 6)
+        return;
 
     x = (int16_t)(buffer[0] | (buffer[1] << 8));
     y = (int16_t)(buffer[2] | (buffer[3] << 8));
@@ -140,6 +176,7 @@ HMC5883L_Driver::HMC5883L_Driver() : i2cAddr(HMC5883L_ADDRESS), configAValue(0x7
 
 /**
  * @brief Reads a single byte from a register.
+ *
  * @param reg Register address.
  * @return Register value.
  */
@@ -150,6 +187,7 @@ uint8_t HMC5883L_Driver::read8(uint8_t reg)
 
 /**
  * @brief Writes a single byte to a register.
+ *
  * @param reg Register address.
  * @param value Value to write.
  */
@@ -202,7 +240,7 @@ bool HMC5883L_Driver::begin(uint8_t addr)
     // Mode: Continuous measurement
     write8(HMC5883L_REG_MODE, 0x00);
 
-    vTaskDelay(pdMS_TO_TICKS(10));
+    vTaskDelay(pdMS_TO_TICKS(20));
 
     return true;
 }
@@ -240,8 +278,14 @@ void HMC5883L_Driver::setSamples(uint8_t samples)
  */
 void HMC5883L_Driver::readRaw(float &x, float &y, float &z)
 {
+    // Check Data Ready (Bit 0 of Status Register 0x09)
+    uint8_t status = read8(HMC5883L_REG_STATUS);
+    if ((status & 0x01) == 0)
+        return;
+
     uint8_t buffer[6];
-    i2c.readBytes(i2cAddr, HMC5883L_REG_DATA, buffer, 6);
+    if (i2c.readBytes(i2cAddr, HMC5883L_REG_DATA, buffer, 6) != 6)
+        return;
 
     // HMC5883L order: X MSB, X LSB, Z MSB, Z LSB, Y MSB, Y LSB
     x = (int16_t)((buffer[0] << 8) | buffer[1]);
@@ -275,6 +319,7 @@ uint8_t MPU9250_Driver::read8(uint8_t addr, uint8_t reg)
 
 /**
  * @brief Writes a single byte to a register.
+ *
  * @param addr I2C device address.
  * @param reg Register address.
  * @param value Value to write.
@@ -286,6 +331,7 @@ void MPU9250_Driver::write8(uint8_t addr, uint8_t reg, uint8_t value)
 
 /**
  * @brief Reads a 16-bit value from two consecutive registers (LSB first).
+ *
  * @param addr I2C device address.
  * @param reg Starting register address.
  * @return 16-bit signed value.
@@ -394,19 +440,22 @@ void MPU9250_Driver::readSensor()
 }
 
 /**
- * @brief Gets X-axis magnetic field.
+ * @brief Gets X-axis magnetic field in microtesla.
+ *
  * @return Magnetic field in microtesla (uT).
  */
 float MPU9250_Driver::getMagX_uT() { return magX; }
 
 /**
- * @brief Gets Y-axis magnetic field.
+ * @brief Gets Y-axis magnetic field in microtesla.
+ *
  * @return Magnetic field in microtesla (uT).
  */
 float MPU9250_Driver::getMagY_uT() { return magY; }
 
 /**
- * @brief Gets Z-axis magnetic field.
+ * @brief Gets Z-axis magnetic field in microtesla.
+ *
  * @return Magnetic field in microtesla (uT).
  */
 float MPU9250_Driver::getMagZ_uT() { return magZ; }
@@ -431,12 +480,13 @@ float MPU9250_Driver::getMagZ_uT() { return magZ; }
  * @brief Compass class constructor with default filter and calibration values.
  */
 Compass::Compass()
-        : declinationAngle(0.22), offX(0.0), offY(0.0),
-        headingSmooth(0.0), headingPrevious(0.0),
-        minX(0.0), maxX(0.0), minY(0.0), maxY(0.0),
+        : declinationAngle(0.22f), offX(0.0f), offY(0.0f),
+        headingSmooth(0.0f), headingPrevious(0.0f),
+        minX(0.0f), maxX(0.0f), minY(0.0f), maxY(0.0f),
         kalmanFilterEnabled(true),
-        kalmanFilter(0.01, 0.1, 1.0, 0.0)
+        kalmanFilter(0.01f, 0.1f, 1.0f, 0.0f)
 {
+    previousDegrees = 0;
 }
 
 /**
@@ -461,7 +511,7 @@ void Compass::init()
         ESP_LOGE(TAG, "QMC5883L initialization failed");
         return;
     }
-    comp.setDataRate(2);    // 100Hz
+    comp.setDataRate(3);    // 200Hz
     comp.setSamples(2);     // 128 oversampling
     ESP_LOGI(TAG, "QMC5883L init OK");
 #endif
@@ -479,6 +529,7 @@ void Compass::init()
 
 /**
  * @brief Reads raw X, Y, Z magnetometer data from the compass sensor.
+ *
  * @param x Reference variable for X-axis.
  * @param y Reference variable for Y-axis.
  * @param z Reference variable for Z-axis.
@@ -533,9 +584,7 @@ int Compass::getHeading()
         headingSmooth = kalmanFilter.update(heading);
     }
     else
-    {
         headingSmooth = heading;
-    }
 
     headingPrevious = heading;
 
@@ -573,24 +622,24 @@ bool Compass::isUpdated()
 void Compass::calibrate()
 {
     bool cal = 1;
-    float y = 0.0;
-    float x = 0.0;
-    float z = 0.0;
+    float y = 0.0f;
+    float x = 0.0f;
+    float z = 0.0f;
     uint16_t touchX, touchY;
 
-    TFT_eSprite compassCalSprite = TFT_eSprite(&tft);  
+    TFT_eSprite compassCalSprite = TFT_eSprite(&tft);
 
     static const lgfx::v1::GFXfont *fontSmall;
     static const lgfx::v1::GFXfont *fontLarge;
 
     #ifdef LARGE_SCREEN
-    fontSmall = &fonts::DejaVu18;
-    fontLarge = &fonts::DejaVu40;
-    static const float scale = 1.0f;
+        fontSmall = &fonts::DejaVu18;
+        fontLarge = &fonts::DejaVu40;
+        static const float scale = 1.0f;
     #else
-    fontSmall = &fonts::DejaVu12;
-    fontLarge = &fonts::DejaVu24;
-    static const float scale = 0.75f;
+        fontSmall = &fonts::DejaVu12;
+        fontLarge = &fonts::DejaVu24;
+        static const float scale = 0.75f;
     #endif
 
     compassCalSprite.createSprite(tft.width(), tft.height());
@@ -668,6 +717,7 @@ void Compass::calibrate()
 
 /**
  * @brief Sets the magnetic declination angle for heading correction.
+ *
  * @param angle Declination angle in radians.
  */
 void Compass::setDeclinationAngle(float angle)
@@ -677,6 +727,7 @@ void Compass::setDeclinationAngle(float angle)
 
 /**
  * @brief Sets the calibration offsets for the X and Y axes.
+ *
  * @param offsetX X-axis offset.
  * @param offsetY Y-axis offset.
  */
@@ -688,6 +739,7 @@ void Compass::setOffsets(float offsetX, float offsetY)
 
 /**
  * @brief Enables or disables the Kalman filter for compass heading smoothing.
+ *
  * @param enabled True to enable, false to disable.
  */
 void Compass::enableKalmanFilter(bool enabled)
@@ -697,6 +749,7 @@ void Compass::enableKalmanFilter(bool enabled)
 
 /**
  * @brief Sets the Kalman filter process and measurement noise constants.
+ *
  * @param processNoise Process noise covariance (0-1).
  * @param measureNoise Measurement noise covariance (0-1).
  */
@@ -707,6 +760,7 @@ void Compass::setKalmanFilterConst(float processNoise, float measureNoise)
 
 /**
  * @brief Wraps an angle to the range [-pi, pi].
+ *
  * @param angle Angle in radians.
  * @return Wrapped angle in radians.
  */
@@ -721,6 +775,7 @@ float Compass::wrapToPi(float angle)
 
 /**
  * @brief Unwraps an angle to avoid discontinuity across the [-pi, pi] boundary.
+ *
  * @param angle Current angle in radians.
  * @param previousAngle Previous angle in radians.
  * @return Unwrapped angle in radians.

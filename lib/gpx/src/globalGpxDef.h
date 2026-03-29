@@ -9,26 +9,12 @@
 #pragma once
 
 #include <stdint.h>
+#include <vector>
+#include "PsramAllocator.hpp"
 
 static const char* wptFile = "/sdcard/WPT/waypoint.gpx"; /**< Path to the waypoint GPX file on the SD card. */
 static const char* wptFolder = "/sdcard/WPT";            /**< Path to the waypoint folder on the SD card. */
 static const char* trkFolder = "/sdcard/TRK";            /**< Path to the track folder on the SD card. */
-
-/**
- * @brief Waypoint action enum
- *
- * @details Enumeration of possible actions for GPX waypoints.
- */
-enum gpxAction_t
-{
-    WPT_NONE,   /**< No waypoint action. */
-    WPT_ADD,    /**< Add a new waypoint. */
-    GPX_LOAD,   /**< Load waypoints from GPX file. */
-    GPX_EDIT,   /**< Edit an existing waypoint. */
-    GPX_DEL,    /**< Delete a waypoint. */
-};
-
-extern uint8_t gpxAction; /**< Indicates the current GPX waypoint action to be performed. */
 
 /**
  * @brief Waypoint Structure
@@ -50,7 +36,43 @@ struct wayPoint
     float     hdop;    /**< Horizontal dilution of precision. */
     float     vdop;    /**< Vertical dilution of precision. */
     float     pdop;    /**< Position dilution of precision. */
+    float     accumDist; /**< Accumulated distance from start (meters). */
 };
+
+/**
+ * @brief Track Segment for Spatial Indexing
+ *
+ * @details Represents a segment of the track with its bounding box.
+ *          Used for hierarchical search (O(log n)) instead of linear search.
+ */
+struct TrackSegment
+{
+    int startIdx;
+    int endIdx;
+    float minLat, maxLat;
+    float minLon, maxLon;
+};
+
+/**
+ * @brief Track Vector Type using PSRAM Allocator
+ */
+typedef std::vector<wayPoint, PsramAllocator<wayPoint>> TrackVector;
+
+/**
+ * @brief Waypoint action enum
+ *
+ * @details Enumeration of possible actions for GPX waypoints.
+ */
+enum gpxAction_t
+{
+    WPT_NONE,   /**< No waypoint action. */
+    WPT_ADD,    /**< Add a new waypoint. */
+    GPX_LOAD,   /**< Load waypoints from GPX file. */
+    GPX_EDIT,   /**< Edit an existing waypoint. */
+    GPX_DEL,    /**< Delete a waypoint. */
+};
+
+extern uint8_t gpxAction; /**< Indicates the current GPX waypoint action to be performed. */
 
 /**
  * @brief Track turn points structure

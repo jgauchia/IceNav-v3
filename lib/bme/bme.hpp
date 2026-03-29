@@ -58,6 +58,7 @@ class BME280_Driver
         float readPressure();
         float readHumidity();
         float readAltitude(float seaLevelPressure = 101325.0f);
+        void readAll(float &temp, float &pres, float &humi);
 };
 
 extern BME280_Driver bme;

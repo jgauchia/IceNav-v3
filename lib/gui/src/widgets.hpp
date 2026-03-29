@@ -12,12 +12,8 @@
 #include "gpsMath.hpp"
 #include "settings.hpp"
 #include "mapVars.h"
+#include "styles.hpp"
 
-/**
- * @brief Widget objects
- *
- * @details Declarations for UI widget objects 
- */
 extern lv_obj_t *latitude;         /**< Latitude label */
 extern lv_obj_t *longitude;        /**< Longitude label */
 extern lv_obj_t *compassHeading;   /**< Compass heading label */

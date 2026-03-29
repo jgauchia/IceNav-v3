@@ -58,9 +58,7 @@ static void upgradeEvent(lv_event_t *event)
     createMsgUpgrade();
     lv_screen_load(msgUpgrade);
     if (!checkFileUpgrade())
-    {
         lv_label_set_text_static(msgUprgdText, LV_SYMBOL_WARNING " No Firmware found!");
-    }
     else
     {
         lv_label_set_text_static(msgUprgdText, LV_SYMBOL_WARNING " Firmware found!");
@@ -76,16 +74,13 @@ static void upgradeEvent(lv_event_t *event)
 static lv_obj_t *createBrightText(lv_obj_t *parent, const char *icon, const char *txt)
 {
     lv_obj_t *obj = lv_menu_cont_create(parent);
-
     lv_obj_t *img = NULL;
     lv_obj_t *label = NULL;
-
     if (icon) 
     {
         img = lv_img_create(obj);
         lv_img_set_src(img, icon);
     }
-
     if (txt) 
     {
         label = lv_label_create(obj);
@@ -93,13 +88,11 @@ static lv_obj_t *createBrightText(lv_obj_t *parent, const char *icon, const char
         lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR);
         lv_obj_set_flex_grow(label, 1);
     }
-
     if (icon && txt)
     {
         lv_obj_add_flag(img, LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
         lv_obj_swap(img, label);
     }
-
     return obj;
 }
 
@@ -120,25 +113,19 @@ static lv_obj_t *createBrightSlider(lv_obj_t *parent, const char *icon, const ch
                                int32_t val, lv_event_cb_t cb, lv_event_code_t filter)
 {
     lv_obj_t *obj = createBrightText(parent, icon, txt);
-
     lv_obj_t *slider = lv_slider_create(obj);
     lv_obj_set_width(slider,TFT_WIDTH - 80);
     lv_slider_set_range(slider, min, max);
     lv_slider_set_value(slider, val, LV_ANIM_OFF);
-
     if (cb != NULL) 
         lv_obj_add_event_cb(slider, cb, filter, NULL);
-
-
     if (icon == NULL) 
         lv_obj_add_flag(slider, LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
-
     return slider;
 }
 
 /**
  * @brief Creates the Device Settings screen 
- *
  */
 void createDeviceSettingsScr()
 {
@@ -146,12 +133,10 @@ void createDeviceSettingsScr()
     deviceSettingsScreen = lv_obj_create(NULL);
     deviceSettingsOptions = lv_list_create(deviceSettingsScreen);
     lv_obj_set_size(deviceSettingsOptions, TFT_WIDTH, TFT_HEIGHT - 60);
-    
     lv_obj_t *label;
     lv_obj_t *list;
     lv_obj_t *btn;
     lv_obj_t *dropdown;
-    
     // GPS Speed
     list = lv_list_add_btn(deviceSettingsOptions, NULL, "GPS\nSpeed");
     lv_obj_set_style_text_font(list, fontOptions, 0);
@@ -165,7 +150,6 @@ void createDeviceSettingsScr()
     lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
     lv_obj_set_width(dropdown,TFT_WIDTH / 3);
     lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"speed");
-    
     // GPS Update rate
     list = lv_list_add_btn(deviceSettingsOptions, NULL, "GPS\nUpdate rate");
     lv_obj_set_style_text_font(list, fontOptions, 0);
@@ -185,7 +169,6 @@ void createDeviceSettingsScr()
     lv_obj_set_width(dropdown,TFT_WIDTH / 3);
     lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
     lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"rate");
-
     // Upgrade button
     list = lv_list_add_btn(deviceSettingsOptions, NULL, NULL);
     btn = lv_btn_create(list);
@@ -195,10 +178,8 @@ void createDeviceSettingsScr()
     lv_label_set_text_static(label, "Firmware Upgrade");
     lv_obj_center(label);
     lv_obj_add_event_cb(btn, upgradeEvent, LV_EVENT_CLICKED, NULL);
-
     // Brightness Slider
     createBrightSlider(deviceSettingsOptions, LV_SYMBOL_SETTINGS, "Brightness", 5, 255, defBright, brightnessEvent, LV_EVENT_VALUE_CHANGED);
-    
     // Back button
     btn = lv_btn_create(deviceSettingsScreen);
     lv_obj_set_size(btn, TFT_WIDTH - 30, 40 * scale);

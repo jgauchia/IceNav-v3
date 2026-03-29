@@ -6,7 +6,6 @@
  * @date 2025-12
  */
 
-#include <stdio.h>
 #include <string.h>
 
 /**

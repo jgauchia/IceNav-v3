@@ -1,5 +1,10 @@
 .pio
 .vscode
 assets
-docs/MIGRATION_PENDING.md
-docs/OPTIMIZATION_STATE.md
+GEMINI.md
+CHANGELOG.md
+tile_viewer.py
+ESP32_RENDER.md
+map_engine.cpp
+ui_map_manager.cpp
+nav_types.h

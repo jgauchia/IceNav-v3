@@ -12,14 +12,14 @@
 #include <cmath>
 
 #ifndef M_PI
-#define M_PI 3.14159265358979323846
+#define M_PI 3.14159265358979323846f
 #endif
 #ifndef TWO_PI
-#define TWO_PI (2.0 * M_PI)
+#define TWO_PI (2.0f * M_PI)
 #endif
 
-#define EARTH_RADIUS 6378137             /**< Earth radius in meters */
-#define METER_PER_PIXELS 156543.03       /**< Meters per pixel at zoom level 0 (latitude 0) */
+#define EARTH_RADIUS 6378137.0f          /**< Earth radius in meters */
+#define METER_PER_PIXELS 156543.03f      /**< Meters per pixel at zoom level 0 (latitude 0) */
 #define LUT_SIZE 65536                      /**< Number of entries in the lookup tables */
 static const float LUT_RES = (TWO_PI / (float)LUT_SIZE); /**< Angular resolution (radians per LUT step) */
 
@@ -36,7 +36,7 @@ extern bool lutInit;
  */
 static inline __attribute__((always_inline)) float DEG2RAD(float deg)
 {
-    return deg * (M_PI / 180.0);
+    return deg * (M_PI / 180.0f);
 }
 
 /**
@@ -45,13 +45,10 @@ static inline __attribute__((always_inline)) float DEG2RAD(float deg)
  * @param rad Angle in radians.
  * @return Angle in degrees.
  */
-static inline __attribute__((always_inline)) float RAD2DEG(float rad) 
+static inline __attribute__((always_inline)) float RAD2DEG(float rad)
 {
-    return rad * (180.0 / M_PI);
+    return rad * (180.0f / M_PI);
 }
-
-extern float midLat;                    /**< Midpoint between two latitudes */
-extern float midLon;                    /**< Midpoint between two longitudes */
 
 static const char *degreeFormat = "%03d\xC2\xB0 %02d\' %.2f\" %c"; /**< Format string for degrees (DDD°MM'SS" + hemisphere) */
 static const char* TAGMATH = "MATH";
@@ -112,9 +109,8 @@ static inline __attribute__((always_inline)) float cosLUT(float rad)
 
 
 float calcDist(float lat1, float lon1, float lat2, float lon2);
-void calcMidPoint(float lat1, float lon1, float lat2, float lon2);
-float mapFloat(float x, float inMin, float inMax, float outMin, float outMax);
-char *latFormatString(float lat);
-char *lonFormatString(float lon);
+float calcDistSq(float lat1, float lon1, float lat2, float lon2);
 float calcCourse(float lat1, float lon1, float lat2, float lon2);
 float calcAngleDiff(float a, float b);
+char *latFormatString(float lat);
+char *lonFormatString(float lon);

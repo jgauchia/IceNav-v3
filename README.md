@@ -80,6 +80,7 @@ Currently, IceNav works with the following hardware setups and specs
 | [ELECROW ESP32 Terminal](https://www.elecrow.com/esp-terminal-with-esp32-3-5-inch-parallel-480x320-tft-capacitive-touch-display-rgb-by-chip-ili9488.html) |  16M  |  8M   | ``` [env:ELECROW_ESP32] ```  | ✔️ YES [^1] [^2]|
 | [MAKERFABS ESP32S3](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) |  16M  |  2M   | ``` [env:MAKERF_ESP32S3] ``` |  🚧 TESTING    |
 | [LILYGO T-DECK](https://www.lilygo.cc/products/t-deck) |  16M  |  8M   | ``` [env:TDECK_ESP32S3] ``` |  ✔️ YES    |
+| [LILYGO T-DECK PLUS](https://lilygo.cc/en-us/products/t-deck-plus-1) | 16M | 8M | ``` [env:TDECK_ESP32S3] ``` |  🚧 TESTING    |
 | [LILYGO T4-S3](https://lilygo.cc/products/t4-s3) | 16M | 8M | ``` [env:T4_S3] ``` | 🚧 TESTING    |
 
 If the board has a BOOT button (GPIO0) it is possible to use power saving functions.
@@ -152,7 +153,7 @@ On SD Card map tiles (256x256 PNG Format) should be stored, in these folders str
 
 Vectorized maps for IceNav can be generated using the Tile-Generator utility, which is available on GitHub at [jgauchia/Tile-Generator](https://github.com/jgauchia/Tile-Generator). This script allows you to convert map data into the required vector tile format compatible with IceNav. Please refer to the Tile-Generator repository for detailed instructions and usage examples on generating and preparing your own vector map files.
 
-      [ 📁 VECTMAP ]
+      [ 📁 NAVMAP ]
             |________ [ 📁 zoom folder (number) ]
                                  |__________________ [ 📁 tile X folder (number) ]
                                                                 |_______________________ 🗺️ tile Y file.bin
@@ -260,7 +261,6 @@ Some extra details:
     mapComp     custom          true           Show compass in map
  mapCompRot     custom          true           Rotate map with the compass
      simNav     custom          false          Indicates whether navigation simulation mode is enabled or disabled
-   fillPoly     custom          true           Fill polygons in vectorized map
       gpsTX     custom          43             GPS Tx gpio
       gpsRX     custom          44             GPS Rx gpio
      defLAT     custom          52.5200        Default latitude

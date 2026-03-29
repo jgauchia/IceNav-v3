@@ -1,7 +1,7 @@
 /**
  * @file mainScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief  LVGL - Main Screen
+ * @brief  LVGL - Main Screen definitions
  * @version 0.1.9
  * @date 2025-12
  */
@@ -9,7 +9,6 @@
 #pragma once
 
 #include "maps.hpp"
-
 #include "globalGuiDef.h"
 #include "buttonBar.hpp"
 #include "widgets.hpp"
@@ -23,7 +22,6 @@ extern lv_timer_t *mainTimer;    /**< Main Screen Timer */
 
 extern bool isScrolled;          /**< Flag to indicate when tileview was scrolled */
 extern bool isMainScreen;        /**< Flag to indicate main screen is selected */
-extern bool isReady;             /**< Flag to indicate when tileview scroll was finished */
 extern bool canScrollMap;        /**< Flag to indicate if map can be scrolled */
 extern bool isScrollingMap;      /**< Flag to indicate if map is scrolling */
 
@@ -38,15 +36,14 @@ static const char *zoomOutIconFile = "/zoomout.bin"; /**< Zoom out icon file pat
  */
 enum tileName
 {
-    COMPASS,   /**< Compass screen */
-    MAP,       /**< Map screen */
-    NAV,       /**< Navigation screen */
-    SATTRACK,  /**< Satellite track screen */
+    COMPASS,   /**< Compass screen (Tile 0) */
+    MAP,       /**< Map screen (Tile 1) */
+    NAV,       /**< Navigation screen (Tile 2) */
+    SATTRACK,  /**< Satellite track screen (Tile 3) */
 };
 
 /**
  * @brief Main Screen Tiles
- *
  * @details LVGL tile objects for main application screens.
  */
 extern lv_obj_t *compassTile;    /**< Compass screen tile */
@@ -56,7 +53,6 @@ extern lv_obj_t *satTrackTile;   /**< Satellite track screen tile */
 
 /**
  * @brief Map Toolbar Buttons
- *
  * @details Toolbar button objects and toolbar layout configuration.
  */
 extern lv_obj_t *btnZoomIn;       /**< Toolbar button for zooming in */
@@ -64,14 +60,10 @@ extern lv_obj_t *btnZoomOut;      /**< Toolbar button for zooming out */
 extern uint8_t toolBarOffset;     /**< Offset for toolbar positioning */
 extern uint8_t toolBarSpace;      /**< Space between toolbar buttons */
 
-
 void updateCompassScr(lv_event_t * event);
-
 void getActTile(lv_event_t *event);
 void scrollTile(lv_event_t *event);
-
 void updateMainScreen(lv_timer_t *t);
-
 void updateMap(lv_event_t *event);
 void updateSatTrack(lv_event_t *event);
 void mapToolBarEvent(lv_event_t *event);

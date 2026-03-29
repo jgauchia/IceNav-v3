@@ -14,10 +14,16 @@
 #include "esp_timer.h"
 #include "driver/gpio.h"
 
+/**
+ * @brief Get system uptime in milliseconds using ESP-IDF timer.
+ *
+ * @return uint32_t Milliseconds since boot.
+ */
 static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 /**
  * @brief Measure pulse width on a GPIO pin (ESP-IDF native)
+ *
  * @param pin GPIO pin number
  * @param state State to measure (0=LOW, 1=HIGH)
  * @param timeout Timeout in microseconds
@@ -57,16 +63,29 @@ static unsigned long pulseIn_idf(int pin, int state, unsigned long timeout)
 extern lv_obj_t *sunriseLabel; 	   /**< Label object for displaying the sunrise time. */
 bool setTime = true;        	   /**< Indicates if the system time should be set from GPS. */
 bool isGpsFixed = false;           /**< Indicates whether a valid GPS fix has been acquired. */
-bool isTimeFixed = false; 	       /**< Indicates whether the system time has been fixed using GPS. */
 long gpsBaudDetected = 0;   	   /**< Detected GPS baud rate. */
 bool nmea_output_enable = false;   /**< Enables or disables NMEA output. */
 gps_fix fix;             	       /**< Latest parsed GPS fix data. */
 NMEAGPS GPS;              	       /**< NMEAGPS parser instance. */
+Gps gps;                           /**< Global GPS instance */
 
 static const char* TAG = "GPS";
 
-Gps::Gps() {}
-
+/**
+ * @brief Default constructor for Gps class.
+ */
+Gps::Gps()
+{
+    previousSpeed = 0;
+    previousAltitude = 0;
+    previousLatitude = 0.0f;
+    previousLongitude = 0.0f;
+    previousHdop = 0.0f;
+    previousPdop = 0.0f;
+    previousVdop = 0.0f;
+    memset(&gpsData, 0, sizeof(GPSDATA));
+    memset(&satTracker, 0, sizeof(satTracker));
+}
 
 /**
  * @brief Init GPS and custom NMEA parsing.
@@ -130,14 +149,14 @@ float Gps::getLat()
 {
     if (fix.valid.location)
         return fix.latitude();
-    else if (cfg.getFloat(PKEYS::KLAT_DFL, 0.0) != 0.0)
-        return cfg.getFloat(PKEYS::KLAT_DFL, 0.0);
+    else if (cfg.getFloat(PKEYS::KLAT_DFL, 0.0f) != 0.0f)
+        return cfg.getFloat(PKEYS::KLAT_DFL, 0.0f);
     else
     {
         #ifdef DEFAULT_LAT
             return DEFAULT_LAT;
         #else
-            return 0.0;
+            return 0.0f;
         #endif
     }
 }
@@ -154,14 +173,14 @@ float Gps::getLon()
 {
     if (fix.valid.location)
         return fix.longitude();
-    else if (cfg.getFloat(PKEYS::KLON_DFL, 0.0) != 0.0)
-        return cfg.getFloat(PKEYS::KLON_DFL, 0.0);
+    else if (cfg.getFloat(PKEYS::KLON_DFL, 0.0f) != 0.0f)
+        return cfg.getFloat(PKEYS::KLON_DFL, 0.0f);
     else
     {
         #ifdef DEFAULT_LON
             return DEFAULT_LON;
         #else
-            return 0.0;
+            return 0.0f;
         #endif
     }
 }
@@ -243,7 +262,9 @@ void Gps::getGPSData()
         satTracker[i].active = GPS.satellites[i].tracked;
         strncpy(satTracker[i].talker_id, GPS.satellites[i].talker_id, 3);
 
-        int H = canvasRadius * (90 - satTracker[i].elev) / 90;
+        // Clamp elevation between 0 and 90 degrees
+        int8_t clampedElev = std::max((int8_t)0, std::min((int8_t)90, (int8_t)satTracker[i].elev));
+        int H = canvasRadius * (90 - clampedElev) / 90;
 
         float azimRad = DEG2RAD((float)satTracker[i].azim);
         float sinAzim = lutInit ? sinLUT(azimRad) : sinf(azimRad);
@@ -254,8 +275,6 @@ void Gps::getGPSData()
     }
 
 }
-
-
 
 /**
  * @brief Detect the baud rate of the incoming GPS signal on a given RX pin.
@@ -468,7 +487,7 @@ void Gps::setLocalTime(NeoGPS::time_t gpsTime, const char* tz)
  * @param speed Simulated speed in km/h to assign to the GPS data.
  * @param refresh Simulation update rate refresh in ms
  */
-void Gps::simFakeGPS(const std::vector<wayPoint>& trackData, uint16_t speed, uint16_t refresh)
+void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refresh)
 {
     if (millis_idf() - lastSimulationTime > refresh)
     {
@@ -529,9 +548,7 @@ void Gps::simFakeGPS(const std::vector<wayPoint>& trackData, uint16_t speed, uin
                         pointsAdvanced++;
                     } 
                     else
-                    {
                         break; // Not enough accumulated distance
-                    }
                 }
                 
                 // Update simulation index to the final point
@@ -572,14 +589,14 @@ void Gps::simFakeGPS(const std::vector<wayPoint>& trackData, uint16_t speed, uin
                         filteredHeading += adaptationRate * headingDiff;
                     } 
                     else 
-                    {
                         // Initialize with target heading
                         filteredHeading = targetHeading;
-                    }
                     
                     // Normalize final heading
-                    if (filteredHeading < 0.0f) filteredHeading += 360.0f;
-                    if (filteredHeading >= 360.0f) filteredHeading -= 360.0f;
+                    if (filteredHeading < 0.0f) 
+                        filteredHeading += 360.0f;
+                    if (filteredHeading >= 360.0f) 
+                        filteredHeading -= 360.0f;
                 }
 
                 // --- Final output ---

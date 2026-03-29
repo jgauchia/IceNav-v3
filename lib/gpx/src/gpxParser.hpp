@@ -59,8 +59,8 @@ class GPXParser
         bool deleteTagByName(const char* tag, const char* name);
         wayPoint getWaypointInfo(const char* name);
         bool addWaypoint(const wayPoint& wp);
-        bool loadTrack(std::vector<wayPoint>& trackData);
-        std::vector<TurnPoint> getTurnPointsSlidingWindow(float thresholdDeg, float minDist, float sharpTurnDeg,int windowSize, const std::vector<wayPoint>& trackData);
+        bool loadTrack(TrackVector& trackData);
+        std::vector<TurnPoint> getTurnPointsSlidingWindow(float thresholdDeg, float minDist, float sharpTurnDeg,int windowSize, const TrackVector& trackData);
 
         std::string filePath;
 };
@@ -103,34 +103,34 @@ bool GPXParser::editTagAttrOrElem(const char* tag, const char* attribute, const 
     {
         if (attribute)
         {
-        const char* attrValue = tagElement->Attribute(attribute);
-        if (attrValue && oldValueStr == attrValue)
-        {
-            tagElement->SetAttribute(attribute, newValueStr.c_str()); 
-            result = doc.SaveFile(filePath.c_str());
-            if (result != tinyxml2::XML_SUCCESS)
+            const char* attrValue = tagElement->Attribute(attribute);
+            if (attrValue && oldValueStr == attrValue)
             {
-                ESP_LOGE(TAGGPX, "Failed to save file: %s", filePath.c_str());
-                return false;
+                tagElement->SetAttribute(attribute, newValueStr.c_str()); 
+                result = doc.SaveFile(filePath.c_str());
+                if (result != tinyxml2::XML_SUCCESS)
+                {
+                    ESP_LOGE(TAGGPX, "Failed to save file: %s", filePath.c_str());
+                    return false;
+                }
+                return true; 
             }
-            return true; 
-        }
         }
         else if (element)
         {
-        tinyxml2::XMLElement* childElement = tagElement->FirstChildElement(element);
-        if (childElement && childElement->GetText() && oldValueStr == childElement->GetText())
-        {
-            childElement->SetText(newValueStr.c_str());
-            result = doc.SaveFile(filePath.c_str());
-            if (result != tinyxml2::XML_SUCCESS)
+            tinyxml2::XMLElement* childElement = tagElement->FirstChildElement(element);
+            if (childElement && childElement->GetText() && oldValueStr == childElement->GetText())
             {
-                ESP_LOGE(TAGGPX, "Failed to save file: %s", filePath.c_str());
-                return false;
+                childElement->SetText(newValueStr.c_str());
+                result = doc.SaveFile(filePath.c_str());
+                if (result != tinyxml2::XML_SUCCESS)
+                {
+                    ESP_LOGE(TAGGPX, "Failed to save file: %s", filePath.c_str());
+                    return false;
+                }
+                return true; 
             }
-            return true; 
-        }
-        }
+            }
     }
 
     ESP_LOGE(TAGGPX, "Attribute/Element '%s' with value '%s' not found for tag '%s' in file: %s",
