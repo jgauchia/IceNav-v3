@@ -229,14 +229,6 @@ private:
     float renderLat_;
     float renderLon_;
 
-    uint64_t viewportStartTime;
-    uint64_t totalLoadTime;
-    uint64_t totalProcessTime;
-    uint64_t totalDrawTime;
-    uint64_t drawPolyTime;
-    uint64_t drawLineTime;
-    uint64_t drawLabelTime;
-    uint32_t totalFeaturesDrawn;
     uint16_t cacheHits;
     uint16_t cacheMisses;
 
