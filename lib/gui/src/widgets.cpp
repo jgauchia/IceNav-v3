@@ -2,8 +2,8 @@
  * @file widgets.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Widgets
- * @version 0.2.4
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  */
 
 #include "widgets.hpp"
@@ -48,7 +48,6 @@ extern Gps gps;
 void editWidget(lv_event_t *event)
 {
     lv_event_code_t code = lv_event_get_code(event);
-    
     if (code == LV_EVENT_LONG_PRESSED)
         canMoveWidget = !canMoveWidget;
 }
@@ -93,20 +92,15 @@ void dragWidget(lv_event_t *event)
             lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
             widgetSelected = true;
         }
-
         lv_indev_t *indev = lv_indev_get_act();
         if (indev == NULL)
-        return;
-        
+            return;
         lv_point_t vect;
         lv_indev_get_vect(indev, &vect);
-        
         lv_coord_t x = lv_obj_get_x(obj) + vect.x;
         lv_coord_t y = lv_obj_get_y(obj) + vect.y;
         lv_coord_t width = lv_obj_get_width(obj);
         lv_coord_t height = lv_obj_get_height(obj);
-        
-        // Limit drag area
         if (x > 0 && y > 0 && (x + width) < TFT_WIDTH && (y + height) < TFT_HEIGHT - 25)
         {
             lv_obj_set_pos(obj, x, y);
@@ -297,11 +291,7 @@ void mapZoomWidget(lv_obj_t *screen)
     lv_obj_clear_flag(zoomWidget, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(zoomWidget, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(zoomWidget, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_bg_color(zoomWidget, lv_color_black(), 0);
-    lv_obj_set_style_bg_opa(zoomWidget, 128, 0);
-    lv_obj_set_style_border_color(zoomWidget, lv_color_black(), 0);
-    lv_obj_set_style_border_width(zoomWidget, 1, 0);
-    lv_obj_set_style_border_opa(zoomWidget,128,0);
+    lv_obj_add_style(zoomWidget, &styleMapWidget, 0);
     lv_obj_t *img = lv_img_create(zoomWidget);
     lv_img_set_src(img, zoomIconFile);
     zoomLabel = lv_label_create(zoomWidget);
@@ -322,11 +312,7 @@ void mapSpeedWidget(lv_obj_t *screen)
     lv_obj_clear_flag(mapSpeed, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(mapSpeed, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(mapSpeed, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_bg_color(mapSpeed, lv_color_black(), 0);
-    lv_obj_set_style_bg_opa(mapSpeed, 128, 0);
-    lv_obj_set_style_border_color(mapSpeed, lv_color_black(), 0);
-    lv_obj_set_style_border_width(mapSpeed, 1, 0);
-    lv_obj_set_style_border_opa(mapSpeed,128,0);
+    lv_obj_add_style(mapSpeed, &styleMapWidget, 0);
     lv_obj_align(mapSpeed, LV_ALIGN_BOTTOM_LEFT, 0, -1);
     lv_obj_t *img = lv_img_create(mapSpeed);
     lv_img_set_src(img, mapSpeedIconFile);
@@ -346,11 +332,7 @@ void mapCompassWidget(lv_obj_t *screen)
     miniCompass = lv_obj_create(screen);
     lv_obj_set_size(miniCompass, 50, 50);
     lv_obj_clear_flag(miniCompass, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_bg_color(miniCompass, lv_color_black(), 0);
-    lv_obj_set_style_bg_opa(miniCompass, 128, 0);
-    lv_obj_set_style_border_color(miniCompass, lv_color_black(), 0);
-    lv_obj_set_style_border_width(miniCompass, 1, 0);
-    lv_obj_set_style_border_opa(miniCompass,128,0);
+    lv_obj_add_style(miniCompass, &styleMapWidget, 0);
     lv_obj_set_align(miniCompass, LV_ALIGN_TOP_RIGHT);
     mapCompassImg = lv_img_create(miniCompass);
     LV_IMG_DECLARE(compassMap);
@@ -371,11 +353,7 @@ void mapScaleWidget(lv_obj_t *screen)
     lv_obj_clear_flag(scaleWidget, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(scaleWidget, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(scaleWidget, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_bg_color(scaleWidget, lv_color_black(), 0);
-    lv_obj_set_style_bg_opa(scaleWidget, 128, 0);
-    lv_obj_set_style_border_color(scaleWidget, lv_color_black(), 0);
-    lv_obj_set_style_border_width(scaleWidget, 1, 0);
-    lv_obj_set_style_border_opa(scaleWidget,128,0);
+    lv_obj_add_style(scaleWidget, &styleMapWidget, 0);
     lv_obj_align(scaleWidget, LV_ALIGN_BOTTOM_LEFT, 102, -1);
     lv_obj_add_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
     scaleLabel = lv_label_create(scaleWidget);
@@ -402,22 +380,15 @@ void turnByTurnWidget(lv_obj_t *screen)
     lv_obj_clear_flag(turnByTurn, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(turnByTurn, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(turnByTurn, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_bg_opa(turnByTurn, 128, 0);
-    lv_obj_set_style_border_color(turnByTurn, lv_color_black(), 0);
-    lv_obj_set_style_border_width(turnByTurn, 1, 0);
-    lv_obj_set_style_border_opa(turnByTurn,128,0);
+    lv_obj_add_style(turnByTurn, &styleMapWidget, 0);
     lv_obj_align(turnByTurn, LV_ALIGN_TOP_RIGHT, 0, 60);
-
-
     turnImg = lv_img_create(turnByTurn);
     lv_img_set_src(turnImg, &straight);
-    
     turnDistLabel = lv_label_create(turnByTurn);
     lv_obj_set_style_text_font(turnDistLabel, &lv_font_montserrat_18, 0);
     lv_label_set_text_fmt(turnDistLabel, "%4d", 0);
     lv_obj_t *obj = lv_label_create(turnByTurn);
     lv_obj_set_style_text_font(obj, &lv_font_montserrat_18, 0);
     lv_label_set_text_static(obj,"m.");
-
     lv_obj_add_flag(turnByTurn,LV_OBJ_FLAG_HIDDEN);
 }

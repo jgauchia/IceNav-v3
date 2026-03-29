@@ -2,13 +2,13 @@
  * @file tft.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief TFT definition and functions
- * @version 0.2.4
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  */
 
 #pragma once
 
-#include <Arduino.h>
+#include <stdint.h>
 #include "storage.hpp"
 #include "panelSelect.hpp"
 
@@ -20,7 +20,7 @@
 #include <LGFX_TFT_eSPI.hpp>
 
 extern TFT_eSPI tft;                                      /**< TFT display object */
-static const char* calibrationFile PROGMEM = "/spiffs/TouchCal"; /**< Touch calibration file path */
+static const char* calibrationFile = "/spiffs/TouchCal"; /**< Touch calibration file path */
 extern bool repeatCalib;                                 /**< Flag to repeat touch calibration */
 
 extern uint16_t TFT_WIDTH;                               /**< TFT display width in pixels */

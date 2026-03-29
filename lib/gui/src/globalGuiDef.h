@@ -1,8 +1,8 @@
 /**
  * @file globalGuiDef.h
  * @brief  Global GUI Variables
- * @version 0.2.4
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  */
 
 #pragma once
@@ -40,19 +40,7 @@ extern bool isTrackLoaded;              /**< Flag to know if track is loaded */
 
 extern Storage storage;
 
-#ifdef LARGE_SCREEN
-    static const lv_font_t *fontDefault     = &lv_font_montserrat_14;  /**< Default font for large screens */
-    static const lv_font_t *fontSmall       = &lv_font_montserrat_10;  /**< Small font for large screens */
-    static const lv_font_t *fontSatInfo     = &lv_font_montserrat_16;  /**< Satellite info font for large screens */
-    static const lv_font_t *fontMedium      = &lv_font_montserrat_16;  /**< Medium font for large screens */
-    static const lv_font_t *fontLarge       = &lv_font_montserrat_20;  /**< Large font for large screens */
-    static const lv_font_t *fontLargeMedium = &lv_font_montserrat_24;  /**< Large-medium font for large screens */
-    static const lv_font_t *fontVeryLarge   = &lv_font_montserrat_48;  /**< Very large font for large screens */
-    static const lv_font_t *fontOptions     = &lv_font_montserrat_18;  /**< Options font for large screens */
-    static const float scale                = 1.0f;                    /**< UI scale for large screens */
-    static const float scaleBut             = 1.0f;                    /**< Button scale for large screens */
-    static const float scaleSatInfo         = 1.0f;                    /**< Satellite info scale for large screens */
-#elif T4_S3
+#ifdef T4_S3
     static const lv_font_t *fontDefault     = &lv_font_montserrat_18;  /**< Default font for large screens */
     static const lv_font_t *fontSmall       = &lv_font_montserrat_14;  /**< Small font for large screens */
     static const lv_font_t *fontSatInfo     = &lv_font_montserrat_20;  /**< Satellite info font for large screens */
@@ -65,6 +53,18 @@ extern Storage storage;
     static const float scaleBut             = 1.5f;                    /**< Button scale for large screens */
     static const float scaleSatInfo         = 1.5f;                    /**< Satellite info scale for large screens */
     static const float imgAlign             = 1.2f;                    /**< Image alignment scale for large screens */
+#elif defined(LARGE_SCREEN)
+    static const lv_font_t *fontDefault     = &lv_font_montserrat_14;  /**< Default font for large screens */
+    static const lv_font_t *fontSmall       = &lv_font_montserrat_10;  /**< Small font for large screens */
+    static const lv_font_t *fontSatInfo     = &lv_font_montserrat_16;  /**< Satellite info font for large screens */
+    static const lv_font_t *fontMedium      = &lv_font_montserrat_16;  /**< Medium font for large screens */
+    static const lv_font_t *fontLarge       = &lv_font_montserrat_20;  /**< Large font for large screens */
+    static const lv_font_t *fontLargeMedium = &lv_font_montserrat_24;  /**< Large-medium font for large screens */
+    static const lv_font_t *fontVeryLarge   = &lv_font_montserrat_48;  /**< Very large font for large screens */
+    static const lv_font_t *fontOptions     = &lv_font_montserrat_18;  /**< Options font for large screens */
+    static const float scale                = 1.0f;                    /**< UI scale for large screens */
+    static const float scaleBut             = 1.0f;                    /**< Button scale for large screens */
+    static const float scaleSatInfo         = 1.0f;                    /**< Satellite info scale for large screens */
 #else
     static const lv_font_t *fontDefault     = &lv_font_montserrat_12;  /**< Default font for small screens */
     static const lv_font_t *fontSmall       = &lv_font_montserrat_8;   /**< Small font for small screens */
@@ -100,7 +100,7 @@ static bool getPngSize(const char* filename, uint16_t *width, uint16_t *height)
 
     uint8_t table[32];
 
-    fread(table, sizeof(uint8_t), 32, file);
+    storage.read(file, table, 32);
 
     *width=table[16]*256*256*256+table[17]*256*256+table[18]*256+table[19];
     *height=table[20]*256*256*256+table[21]*256*256+table[22]*256+table[23];

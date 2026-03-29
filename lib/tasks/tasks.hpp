@@ -2,8 +2,8 @@
  * @file tasks.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Core Tasks header definitions for GPS and CLI management
- * @version 0.2.4
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  * @details This header defines the interface for FreeRTOS tasks used for GPS data processing
  *          and CLI interface management. It provides function declarations and configuration
  *          constants for task management.
@@ -20,18 +20,33 @@
 #include "globalGpxDef.h"
 #include "lvglFuncs.hpp"
 
-#define TASK_SLEEP_PERIOD_MS 5 /**< Sleep period for tasks in milliseconds */
-
 /**
- * @brief GPS data processing task function
- * @param pvParameters Task parameters (unused)
+ * @struct SensorData
+ * @brief Holds the latest synchronized data from all non-GPS sensors.
  */
+struct SensorData 
+{
+    float batteryPercent = 0.0f;
+    int16_t altitude = 0;
+    int heading = 0;
+    float temperature = 0.0f;
+    float pressure = 0.0f;
+    float humidity = 0.0f;
+};
+
+extern SensorData globalSensorData;
+
 void gpsTask(void *pvParameters);
 
-/**
- * @brief Initialize GPS processing task
- */
 void initGpsTask();
+
+void sensorTask(void *pvParameters);
+
+void initSensorTask();
+
+void guiTask(void *pvParameters);
+
+void initGuiTask();
 
 #ifndef DISABLE_CLI
     /**

@@ -2,22 +2,20 @@
  * @file buttonBar.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Button Bar 
- * @version 0.2.4
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  */
 
 #include "buttonBar.hpp"
 
 extern Maps mapView;
-
 bool isWaypointOpt;
 bool isTrackOpt;
 bool isOptionLoaded = false;
 bool isBarOpen = false;
-
-lv_obj_t *settingsScreen; /**< Settings screen object. */
-lv_obj_t *buttonBar;      /**< Button bar object. */
-lv_obj_t *menuBtn;        /**< Menu button object. */
+lv_obj_t *settingsScreen;
+lv_obj_t *buttonBar;
+lv_obj_t *menuBtn;
 
 /**
  * @brief Handles button events on the button bar, triggering actions and UI changes based on the selected option.
@@ -38,9 +36,7 @@ void buttonBarEvent(lv_event_t *event)
         lv_anim_set_duration(&a, 250);
         lv_anim_start(&a);
     }
-
     char *option = (char *)lv_event_get_user_data(event);
-
     if (strcmp(option,"addwpt") == 0)
     {
         gpxAction = WPT_ADD;
@@ -52,7 +48,6 @@ void buttonBarEvent(lv_event_t *event)
         updateWaypoint(gpxAction);
         lv_screen_load(gpxDetailScreen);
     }
-
     if (strcmp(option,"waypoint") == 0)
     {
         isWaypointOpt = true;
@@ -138,7 +133,6 @@ void optionEvent(lv_event_t *event)
         lv_obj_del(option);
         lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
     }
-
     isOptionLoaded = false;
     isWaypointOpt = false;
     isTrackOpt = false;
@@ -155,8 +149,7 @@ void hideShowAnim(void * var, int32_t v)
 {
     lv_obj_t * obj = (lv_obj_t*)var;
     int32_t max_w = lv_obj_get_width(lv_obj_get_parent(obj)) - LV_DPX(4);
-    int32_t w;
-    w = lv_map(v, 0, 256, LV_DPX(60) * scaleBut, max_w);
+    int32_t w = lv_map(v, 0, 256, LV_DPX(60) * scaleBut, max_w);
     lv_obj_set_width(obj, w);
     if (v == 0)
     {
@@ -207,32 +200,19 @@ void hideShowEvent(lv_event_t * e)
 
 /**
  * @brief Creates and configures the floating button bar screen with menu and action buttons.
- *
  */
 void createButtonBarScr()
 {
-    // Button Bar
     buttonBar = lv_obj_create(mainScreen);
     lv_obj_remove_style_all(buttonBar);
     lv_obj_set_flex_flow(buttonBar, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(buttonBar, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_FLOATING);
-    lv_obj_set_style_radius(buttonBar, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_border_color(buttonBar, lv_color_white(), 0);
-    lv_obj_set_style_border_width(buttonBar, 1, 0);
-    lv_obj_set_style_border_opa(buttonBar,LV_OPA_20,0);
-    lv_obj_set_style_bg_color(buttonBar, lv_color_black(), 0);
-    lv_obj_set_style_bg_opa(buttonBar, 210, 0);
-    lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_FLOATING);
+    lv_obj_add_style(buttonBar, &styleFloatingBar, 0);
+    lv_obj_set_style_pad_column(buttonBar, 10, 0);
     lv_obj_set_size(buttonBar, 50 * scaleBut, 50 * scaleBut);
-    lv_obj_align(buttonBar, LV_ALIGN_BOTTOM_RIGHT, 0, 0 );
-    lv_obj_add_flag(buttonBar,LV_OBJ_FLAG_HIDDEN);
-
-    static lv_style_t style;
-    lv_style_init(&style);
-    lv_style_set_pad_column(&style, 10);
-    lv_obj_add_style(buttonBar, &style, 0);
-
+    lv_obj_align(buttonBar, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
+    lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
     menuBtn = lv_img_create(mainScreen);
     lv_img_set_src(menuBtn, menuIconFile);
     lv_obj_add_flag(menuBtn, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
@@ -241,9 +221,7 @@ void createButtonBarScr()
     lv_obj_add_event_cb(menuBtn, hideShowEvent, LV_EVENT_ALL, buttonBar);
     lv_obj_set_size(menuBtn, 48 * scaleBut, 48 * scaleBut);
     lv_obj_align(menuBtn, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
-
     lv_obj_t *imgBtn;
-    
     // Add Waypoint Button
     imgBtn = lv_img_create(buttonBar);
     lv_img_set_src(imgBtn,addWptIconFile);
@@ -252,7 +230,6 @@ void createButtonBarScr()
     lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
     lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(imgBtn, buttonBarEvent, LV_EVENT_PRESSED, (char*)"addwpt");
-
     // Waypoint Button
     imgBtn = lv_img_create(buttonBar);
     lv_img_set_src(imgBtn, waypointIconFile);
@@ -261,7 +238,6 @@ void createButtonBarScr()
     lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
     lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(imgBtn, buttonBarEvent, LV_EVENT_PRESSED, (char*)"waypoint");
-    
     // Track Button
     imgBtn = lv_img_create(buttonBar);
     lv_img_set_src(imgBtn, trackIconFile);
@@ -270,7 +246,6 @@ void createButtonBarScr()
     lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
     lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(imgBtn, buttonBarEvent, LV_EVENT_PRESSED, (char*)"track");
-    
     // Settings Button
     imgBtn = lv_img_create(buttonBar);
     lv_img_set_src(imgBtn, settingsIconFile);
@@ -283,32 +258,19 @@ void createButtonBarScr()
 
 /**
  * @brief Loads the waypoint/track options modal dialog and creates option buttons.
- *
  */
 void loadOptions()
 {
     option = lv_obj_create(lv_scr_act());
     lv_obj_remove_style_all(option);
-
-    lv_obj_set_style_radius(option, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_border_color(option, lv_color_white(), 0);
-    lv_obj_set_style_border_width(option, 1, 0);
-    lv_obj_set_style_border_opa(option,LV_OPA_20,0);
-    lv_obj_set_style_bg_color(option, lv_color_black(), 0);
-    lv_obj_set_style_bg_opa(option, 210, 0);
+    lv_obj_add_style(option, &styleFloatingBar, 0);
     lv_obj_set_flex_flow(option, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(option, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(option, 10, 0);
     lv_obj_set_size(option, TFT_WIDTH, 50 * scaleBut);
     lv_obj_clear_flag(option, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_align(option, LV_ALIGN_BOTTOM_LEFT, 0, 0);
-
-    static lv_style_t style;
-    lv_style_init(&style);
-    lv_style_set_pad_column(&style, 10);
-    lv_obj_add_style(option, &style, 0);
-    
     lv_obj_t *imgBtn;
-    
     // if (isTrackOpt)
     // {
     //   // Save Button
@@ -317,7 +279,6 @@ void loadOptions()
     //   lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
     //   lv_obj_add_event_cb(imgBtn, optionEvent, LV_EVENT_PRESSED, (char*)"save");
     // }
-    
     // Load Button
     imgBtn = lv_img_create(option);
     lv_img_set_src(imgBtn, loadIconFile);
@@ -327,7 +288,6 @@ void loadOptions()
     lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_align(imgBtn,LV_ALIGN_BOTTOM_LEFT, 0, -40);
     lv_obj_add_event_cb(imgBtn, optionEvent, LV_EVENT_PRESSED, (char*)"load");
-
     // Edit Button
     imgBtn = lv_img_create(option);
     lv_img_set_src(imgBtn, editIconFile);
@@ -336,7 +296,6 @@ void loadOptions()
     lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
     lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(imgBtn, optionEvent, LV_EVENT_PRESSED, (char*)"edit");
-
     // Delete Button
     imgBtn = lv_img_create(option);
     lv_img_set_src(imgBtn, deleteIconFile);
@@ -345,7 +304,6 @@ void loadOptions()
     lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
     lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(imgBtn, optionEvent, LV_EVENT_PRESSED, (char*)"delete");
-
     // Exit Button
     imgBtn = lv_img_create(option);
     lv_img_set_src(imgBtn, exitIconFile);

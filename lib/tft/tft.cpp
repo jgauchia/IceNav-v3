@@ -2,11 +2,13 @@
  * @file tft.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief TFT definition and functions
- * @version 0.2.4
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  */
 
 #include "tft.hpp"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 TFT_eSPI tft = TFT_eSPI();
 bool repeatCalib = false;
@@ -16,19 +18,17 @@ bool waitScreenRefresh = false;
 extern Storage storage;
 
 /**
- * @brief Turn on TFT Sleep Mode for ILI9488
- *
+ * @brief Turn on TFT (Wake up Mode) for ILI9488
  */
 void tftOn(uint8_t brightness)
 {
     tft.writecommand(0x11);
-    delay(120);
+    vTaskDelay(pdMS_TO_TICKS(120));
     tft.setBrightness(brightness);
 }
 
 /**
- * @brief Turn off TFT Wake up Mode for ILI9488
- *
+ * @brief Turn off TFT (Sleep Mode) for ILI9488
  */
 void tftOff()
 {
@@ -38,7 +38,6 @@ void tftOff()
 
 /**
  * @brief Touch calibrate
- *
  */
 void touchCalibrate()
 {
@@ -52,7 +51,7 @@ void touchCalibrate()
         if (repeatCalib)
             remove(calibrationFile);
         else
-            if (fread((char *)calData, sizeof(char), 16, f))
+            if (storage.read(f, (char *)calData, 16))
             {
                 calDataOK = 1;
                 storage.close(f);
@@ -85,7 +84,7 @@ void touchCalibrate()
         tft.calibrateTouch(calData, TFT_WHITE, TFT_BLACK, std::max(tft.width(), tft.height()) >> 3);
         touchSprite.drawCenterString("DONE!", tft.width() >> 1, (tft.height() >> 1) + (tft.fontHeight(fontSmall) * 2), fontLarge);
         touchSprite.pushSprite(0,0);
-        delay(500);
+        vTaskDelay(pdMS_TO_TICKS(500));
         touchSprite.drawCenterString("TOUCH TO CONTINUE.", tft.width() >> 1, (tft.height() >> 1) + (tft.fontHeight(fontLarge) * 2), fontSmall);
         touchSprite.pushSprite(0,0);
 
@@ -108,7 +107,6 @@ void touchCalibrate()
 
 /**
  * @brief Init TFT display
- *
  */
 void initTFT()
 {

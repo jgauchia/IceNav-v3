@@ -2,14 +2,14 @@
  * @file navScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Navigation screen 
- * @version 0.2.4
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  */
 
 #pragma once
 
 #include "globalGuiDef.h"
-#include "navup.h"
+#include "../../images/src/navup.h"
 
 /**
  * @brief Navigation Tile screen objects.

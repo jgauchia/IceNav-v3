@@ -6,7 +6,7 @@
 ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 * Note: Under development (experimental features under devel branch)
 * There is the possibility to use two types of maps: Rendered Maps or Tiles (large files), and Vector Maps (small files).
-* Recommended to use an ESP32-S3 with PSRAM and a screen with a parallel bus for optimal performance, although other ESP models and SPI screens also yield good results.
+* Recommended to use an ESP32-S3 with PSRAM and a screen with a parallel bus for optimal performance, although SPI screens also yield good results.
 
 <table>
   <tr>
@@ -69,17 +69,18 @@ Currently, IceNav works with the following hardware setups and specs
  
 > [!IMPORTANT]
 > Please review the platformio.ini file to choose the appropriate environment as well as the different build flags for your correct setup.
+> Support for ESP32-S2 is discontinued due to IRAM issues.
 
 ### Boards
 
 |                        | FLASH | PSRAM | Environment                  | Full Support |
 |:-----------------------|:-----:|:-----:|:-----------------------------|--------------|
 | ICENAV (Custom ESP32S3) |  16M  |  8M   | ``` [env:ICENAV_BOARD] ```   |    ✔️ YES      |
-| ESP32                  |  16M  |  4M   | ``` [env:ESP32_N16R4] ```    |    ✔️ YES      |
 | ESP32S3                |  16M  |  8M   | ``` [env:ESP32S3_N16R8] ```  |    ✔️ YES      |
 | [ELECROW ESP32 Terminal](https://www.elecrow.com/esp-terminal-with-esp32-3-5-inch-parallel-480x320-tft-capacitive-touch-display-rgb-by-chip-ili9488.html) |  16M  |  8M   | ``` [env:ELECROW_ESP32] ```  | ✔️ YES [^1] [^2]|
 | [MAKERFABS ESP32S3](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) |  16M  |  2M   | ``` [env:MAKERF_ESP32S3] ``` |  🚧 TESTING    |
 | [LILYGO T-DECK](https://www.lilygo.cc/products/t-deck) |  16M  |  8M   | ``` [env:TDECK_ESP32S3] ``` |  ✔️ YES    |
+| [LILYGO T-DECK PLUS](https://lilygo.cc/en-us/products/t-deck-plus-1) | 16M | 8M | ``` [env:TDECK_ESP32S3] ``` |  🚧 TESTING    |
 | [LILYGO T4-S3](https://lilygo.cc/products/t4-s3) | 16M | 8M | ``` [env:T4_S3] ``` | 🚧 TESTING    |
 
 If the board has a BOOT button (GPIO0) it is possible to use power saving functions.
@@ -108,22 +109,21 @@ To do this, simply include the following Build Flag in the required env in platf
 
 ### Modules
 
-|             | Type          | Build Flags [^3]                   | lib_deps [^5] (**no common environment**)              |
-|:------------|:--------------|:-----------------------------------|:-------------------------------------------------------|
-|             | 🔋 Batt. Monitor | ```-DADC1``` or ```-DADC2``` <br> ```-DBATT_PIN=ADCn_CHANNEL_x``` |                       |   
-| AT6558D     | 🛰️ GPS        | ```-DAT6558D_GPS```                |                                                        |
-| HMC5883L    | 🧭 Compass    | ```-DHMC5883L```                   | ```dfrobot/DFRobot_QMC5883@1.0.0```                   |
-| QMC5883     | 🧭 Compass    | ```-DQMC5883```                    | ```dfrobot/DFRobot_QMC5883@1.0.0```                   |
-| MPU9250     | 🧭 IMU (Compass) | ```-DIMU_MPU9250```                | ```bolderflight/Bolder Flight Systems MPU9250@1.0.2```|
-| BME280      | 🌡️ Temp <br> ☁️ Pres <br> 💧 Hum | ```-DBME280```                     | ```adafruit/Adafruit Unified Sensor@1.1.14``` <br> ```adafruit/Adafruit BusIO@1.16.2``` <br> ```adafruit/Adafruit BME280 Library@2.2.4```|
-| MPU6050     | 📳 IMU | ```-DMPU6050```                     | ```adafruit/Adafruit Unified Sensor@1.1.14``` <br> ```adafruit/Adafruit BusIO@1.16.2``` <br> ```adafruit/Adafruit MPU6050@^2.2.6```|
+|             | Type          | Build Flags [^3]                   | 
+|:------------|:--------------|:-----------------------------------|
+|             | 🔋 Batt. Monitor | ```-DADC1``` or ```-DADC2``` <br> ```-DBATT_PIN=ADCn_CHANNEL_x``` |  
+| AT6558D     | 🛰️ GPS        | ```-DAT6558D_GPS```                |
+| HMC5883L    | 🧭 Compass    | ```-DHMC5883L```                   |
+| QMC5883     | 🧭 Compass    | ```-DQMC5883```                    |
+| MPU9250     | 🧭 IMU (Compass) | ```-DIMU_MPU9250```                | 
+| BME280      | 🌡️ Temp <br> ☁️ Pres <br> 💧 Hum | ```-DBME280```                     |
+| MPU6050     | 📳 IMU | ```-DMPU6050```                     |
 
 
 [^1]: For ELECROW board UART port is shared with USB connection, GPS pinout are mapped to IO19 and IO40 (Analog and Digital Port). If CLI isn't used is possible to attach GPS module to UART port but for upload the firmware (change pinout at **hal.hpp**), the module should be disconnected.
 [^2]: See **hal.hpp** for pinouts configuration
 [^3]: **platformio.ini** file under the build_flags section
 [^4]: If Touch SPI is wired to the same SPI of ILI9488 ensure that TFT MISO line has 3-STATE for screenshots (read GRAM) or leave out 
-[^5]: You need to add libraries dependencies if the buid flag requires
 
 Other setups like another sensors types, etc... not listed in the specs, now **They are not included**
 
@@ -153,7 +153,7 @@ On SD Card map tiles (256x256 PNG Format) should be stored, in these folders str
 
 Vectorized maps for IceNav can be generated using the Tile-Generator utility, which is available on GitHub at [jgauchia/Tile-Generator](https://github.com/jgauchia/Tile-Generator). This script allows you to convert map data into the required vector tile format compatible with IceNav. Please refer to the Tile-Generator repository for detailed instructions and usage examples on generating and preparing your own vector map files.
 
-      [ 📁 VECTMAP ]
+      [ 📁 NAVMAP ]
             |________ [ 📁 zoom folder (number) ]
                                  |__________________ [ 📁 tile X folder (number) ]
                                                                 |_______________________ 🗺️ tile Y file.bin
@@ -179,7 +179,7 @@ Download link: [tools/mass_copy/rsync_copy.sh](tools/mass_copy/rsync_copy.sh)
 > [!IMPORTANT]
 >Please install first [PlatformIO](http://platformio.org/) open source ecosystem for IoT development compatible with **Arduino** IDE and its command line tools (Windows, MacOs and Linux). Also, you may need to install [git](http://git-scm.com/) in your system.
 > 
->For ESP32 board run:
+>For ICENAV board run:
 > 
 >```bash
 >pio run --target upload
@@ -261,7 +261,6 @@ Some extra details:
     mapComp     custom          true           Show compass in map
  mapCompRot     custom          true           Rotate map with the compass
      simNav     custom          false          Indicates whether navigation simulation mode is enabled or disabled
-   fillPoly     custom          true           Fill polygons in vectorized map
       gpsTX     custom          43             GPS Tx gpio
       gpsRX     custom          44             GPS Rx gpio
      defLAT     custom          52.5200        Default latitude

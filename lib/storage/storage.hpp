@@ -2,8 +2,8 @@
  * @file storage.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Storage definition and functions
- * @version 0.2.4
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  */
 
 #pragma once
@@ -14,6 +14,8 @@
 #include "driver/sdspi_host.h"
 #include "sdmmc_cmd.h"
 #include "Stream.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -46,6 +48,46 @@ struct SDCardInfo
 };
 
 /**
+ * @class Storage
+ * @brief Storage class for SD and SPIFFS operations
+ *
+ * @details Provides an abstraction for file and directory operations on SD cards and SPIFFS,
+ * 			including initialization, basic file I/O, and SD card information retrieval.
+ */
+class Storage
+{
+    private:
+        bool isSdLoaded;           /**< Indicates if the SD card is loaded */
+        sdmmc_card_t *card;        /**< Pointer to the SD card descriptor */
+        uint8_t *dmaBuffer;        /**< Persistent buffer for DMA-safe reads */
+        static constexpr size_t DMA_BUF_SIZE = 32768; 
+        SemaphoreHandle_t readMutex; /**< Mutex to protect dmaBuffer */
+
+    public:
+        Storage();
+        esp_err_t initSD();
+        esp_err_t initSPIFFS();
+        SDCardInfo getSDCardInfo();
+        void deinitSD();
+        bool getSdLoaded() const;
+        FILE *open(const char *path, const char *mode);
+        int close(FILE *file);
+        bool exists(const char *path);
+        bool mkdir(const char *path);
+        bool remove(const char *path);
+        bool rmdir(const char *path);
+        size_t size(const char *path);
+        size_t read(FILE* file, uint8_t* buffer, size_t size);
+        size_t read(FILE* file, char* buffer, size_t size);
+        size_t write(FILE* file, const uint8_t* buffer, size_t size);
+        size_t write(FILE* file, const char* buffer, size_t size);
+        int seek(FILE* file, long offset, int whence);
+        int print(FILE* file, const char* str);
+        int println(FILE* file, const char* str);
+        size_t fileAvailable(FILE* file);
+};
+
+/**
  * @class FileStream
  * @brief FileStream class to wrap FILE* operations as a Stream
  *
@@ -59,6 +101,7 @@ class FileStream : public Stream
 
         /**
         * @brief Returns the number of bytes available to read from the file.
+        *
         * @return Number of available bytes, or 0 if file is nullptr.
         */
         virtual int available() override
@@ -74,6 +117,7 @@ class FileStream : public Stream
 
         /**
         * @brief Reads a single byte from the file.
+        *
         * @return The byte read, or -1 if file is nullptr or EOF.
         */
         virtual int read() override
@@ -85,32 +129,33 @@ class FileStream : public Stream
 
         /**
         * @brief Reads up to size bytes into the buffer.
+        *
         * @param buffer Buffer to store read bytes
         * @param size Maximum number of bytes to read
         * @return Number of bytes actually read
         */
         virtual size_t read(uint8_t *buffer, size_t size)
         {
-            if (!file)
-                return 0;
-            return fread(buffer, 1, size, file);
+            extern Storage storage;
+            return storage.read(file, buffer, size);
         }
 
         /**
         * @brief Reads up to length bytes into the buffer (char version).
+        *
         * @param buffer Buffer to store read bytes
         * @param length Maximum number of bytes to read
         * @return Number of bytes actually read
         */
         virtual size_t readBytes(char *buffer, size_t length) override
         {
-            if (!file)
-                return 0;
-            return fread(buffer, 1, length, file);
+            extern Storage storage;
+            return storage.read(file, buffer, length);
         }
 
         /**
         * @brief Peeks at the next byte in the file without advancing the file pointer.
+        *
         * @return The next byte, or -1 if file is nullptr or EOF.
         */
         virtual int peek() override
@@ -125,6 +170,7 @@ class FileStream : public Stream
 
         /**
         * @brief Flushes the file output buffer.
+        *
         */
         virtual void flush() override
         {
@@ -152,41 +198,4 @@ class FileStream : public Stream
 
     private:
         FILE *file; /**< Pointer to the wrapped C FILE object */
-};
-
-/**
- * @class Storage
- * @brief Storage class for SD and SPIFFS operations
- *
- * @details Provides an abstraction for file and directory operations on SD cards and SPIFFS,
- * 			including initialization, basic file I/O, and SD card information retrieval.
- */
-class Storage
-{
-    private:
-        bool isSdLoaded;           /**< Indicates if the SD card is loaded */
-        sdmmc_card_t *card;        /**< Pointer to the SD card descriptor */
-
-    public:
-        Storage();
-
-        esp_err_t initSD();
-        esp_err_t initSPIFFS();
-        SDCardInfo getSDCardInfo();
-        bool getSdLoaded() const;
-        FILE *open(const char *path, const char *mode);
-        int close(FILE *file);
-        bool exists(const char *path);
-        bool mkdir(const char *path);
-        bool remove(const char *path);
-        bool rmdir(const char *path);
-        size_t size(const char *path);
-        size_t read(FILE* file, uint8_t* buffer, size_t size);
-        size_t read(FILE* file, char* buffer, size_t size);
-        size_t write(FILE* file, const uint8_t* buffer, size_t size);
-        size_t write(FILE* file, const char* buffer, size_t size);
-        int seek(FILE* file, long offset, int whence);
-        int print(FILE* file, const char* str);
-        int println(FILE* file, const char* str);
-        size_t fileAvailable(FILE* file);
 };

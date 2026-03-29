@@ -2,14 +2,21 @@
  * @file cli.cpp
  * @author @Hpsaturn
  * @brief  Network CLI and custom internal commands
- * @version Using https://github.com/hpsaturn/esp32-wifi-cli.git
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  */
 
 #ifndef DISABLE_CLI
 #include "cli.hpp"
+#include "esp_heap_caps.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include "esp_system.h"
+#include "esp_flash.h"
+#include "esp_ota_ops.h"
+#include "esp_image_format.h"
 
-static const char logo[] PROGMEM =
+static const char logo[] =
 "\r\n"
 "░▒▓█▓▒░  ░▒▓██████▓▒░  ░▒▓████████▓▒░ ░▒▓███████▓▒░   ░▒▓██████▓▒░  ░▒▓█▓▒░░▒▓█▓▒░ \r\n"
 "░▒▓█▓▒░ ░▒▓█▓▒░░▒▓█▓▒░ ░▒▓█▓▒░        ░▒▓█▓▒░░▒▓█▓▒░ ░▒▓█▓▒░░▒▓█▓▒░ ░▒▓█▓▒░░▒▓█▓▒░ \r\n"
@@ -22,7 +29,7 @@ static const char logo[] PROGMEM =
 ""
 ;
 
-static const char* TAG PROGMEM = "CLI";
+static const char* TAG = "CLI";
 
 extern Power power;
 
@@ -33,7 +40,7 @@ extern Power power;
  */
 void wcli_reboot(char *args, Stream *response)
 {
-    ESP.restart();
+    esp_restart();
 }
 
 /**
@@ -60,18 +67,36 @@ void wcli_info(char *args, Stream *response)
 
     response->println();
     wcli.status(response);
-    response->printf("Total Memory\t: %3.0iKb\r\n",ESP.getHeapSize()/1000);
+    response->printf("Total Memory\t: %3.0iKb\r\n",heap_caps_get_total_size(MALLOC_CAP_8BIT)/1000);
     response->printf("SPIFFS total\t: %u bytes\r\n", totalSPIFFS);
     response->printf("SPIFFS used\t: %u bytes\r\n", usedSPIFFS);
     response->printf("SPIFFS free\t: %u bytes\r\n", freeSPIFFS);
-    if (psramFound())
+    size_t psramTotal = heap_caps_get_total_size(MALLOC_CAP_SPIRAM);
+    if (psramTotal > 0)
     {
-        response->printf("PSRAM total\t: %u bytes\r\n", ESP.getPsramSize());
-        response->printf("PSRAM used\t: %u bytes\r\n", ESP.getPsramSize()-ESP.getFreePsram());
-        response->printf("PSRAM free\t: %u bytes\r\n", ESP.getFreePsram());
+        size_t psramFree = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+        size_t psramLargestBlock = heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM);
+        response->printf("PSRAM total\t: %zu bytes\r\n", psramTotal);
+        response->printf("PSRAM used\t: %zu bytes\r\n", psramTotal - psramFree);
+        response->printf("PSRAM free\t: %zu bytes\r\n", psramFree);
+        response->printf("PSRAM largest\t: %zu bytes\r\n", psramLargestBlock);
     }
-    response->printf("Flash size\t: %u bytes\r\n", ESP.getFlashChipSize());
-    response->printf("Program size\t: %u bytes\r\n", ESP.getSketchSize());
+    uint32_t flash_size = 0;
+    esp_flash_get_size(NULL, &flash_size);
+    response->printf("Flash size\t: %u bytes\r\n", flash_size);
+    const esp_partition_t *running = esp_ota_get_running_partition();
+    esp_image_metadata_t metadata;
+    bool imageValid = false;
+    if (running)
+    {
+        esp_partition_pos_t part_pos = { .offset = running->address, .size = running->size };
+        if (esp_image_verify(ESP_IMAGE_VERIFY, &part_pos, &metadata) == ESP_OK)
+            imageValid = true;
+    }
+    if (imageValid)
+        response->printf("Program size\t: %u bytes\r\n", metadata.image_len);
+    else
+        response->printf("Program size\t: unknown\r\n");
     if (enableWeb)
         response->println("Web file server\t: \033[1;32menabled\033[0;37m");
     else
@@ -149,25 +174,27 @@ void wcli_scshot(char *args, Stream *response)
  *
  * @details Shows only basic keys unless 'all' is specified.
  * 
- * @details CLI command: klist
  */
 void wcli_klist(char *args, Stream *response)
 {
     Pair<String, String> operands = wcli.parseCommand(args);
     String opt = operands.first();
     int key_count = PKEYS::KUSER+1;
-    if (opt.equals("all")) key_count = 0; // Only show the basic keys to configure
+    if (opt.equals("all"))
+        key_count = 0; // Only show the basic keys to configure
     response->printf("\n%11s \t%s \t%s \r\n", "KEYNAME", "DEFINED", "VALUE");
     response->printf("\n%11s \t%s \t%s \r\n", "=======", "=======", "=====");
 
     for (int i = key_count; i < PKEYS::KCOUNT; i++)
     {
-        if (i == PKEYS::KUSER) continue;
+        if (i == PKEYS::KUSER) 
+            continue;
         String key = cfg.getKey((CONFKEYS)i);
         bool isDefined = cfg.isKey(key);
         String defined = isDefined ? "custom " : "default";
         String value = "";
-        if (isDefined) value = cfg.getValue(key);
+        if (isDefined) 
+            value = cfg.getValue(key);
         response->printf("%11s \t%s \t%s \r\n", key, defined.c_str(), value.c_str());
     }
 }
@@ -205,7 +232,7 @@ void wcli_abort_handler()
     if (nmea_output_enable)
     {
         nmea_output_enable = false;
-        delay(100);
+        vTaskDelay(pdMS_TO_TICKS(100));
         Serial.println("\r\nCancel NMEA output!");
     } 
 }

@@ -2,11 +2,12 @@
  * @file lvglFuncs.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL custom functions
- * @version 0.2.4
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  */
 
 #include "lvglFuncs.hpp"
+#include "esp_system.h"
 
 lv_obj_t *msgDialog;     /**< Message dialog object. */
 
@@ -73,7 +74,7 @@ void objUnselect(_lv_obj_t *obj)
 void restartTimerCb(lv_timer_t *timer)
 {
     if (lv_timer_get_idle() != 0)
-        ESP.restart();
+        esp_restart();
 }
 
 /**
@@ -120,7 +121,6 @@ void showMsg(const char* symbol, const char* message)
 
 /**
  * @brief Close message dialog.
- *
  */
 void closeMsg()
 {

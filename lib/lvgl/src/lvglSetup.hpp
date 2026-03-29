@@ -2,13 +2,13 @@
  * @file lvglSetup.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Screen implementation
- * @version 0.2.4
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  */
 
 #pragma once
 
-#define LV_TICK_PERIOD_MS 5
+#define LV_TICK_PERIOD_MS 10
 
 #include "lvgl_private.h"
 #include "globalGpxDef.h"
@@ -24,6 +24,7 @@
 #include "mapSettingsScr.hpp"
 #include "gestures.hpp"
 #include "maps.hpp"
+#include "styles.hpp"
 
 static uint32_t objectColor = 0x303030; /**< Default display driver color definition. */
 

@@ -2,12 +2,10 @@
  * @file timezone.c
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  POSIX timezone (TZ)
- * @version 0.2.4
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  */
 
-#include <pgmspace.h>
-#include <stdio.h>
 #include <string.h>
 
 /**
@@ -27,7 +25,7 @@ typedef struct
  *
  * @details Array contains mappings of IANA time zone names to their corresponding POSIX time zone strings.
  */
-static const posix_tz posix_tz_db[] PROGMEM = {
+static const posix_tz posix_tz_db[] = {
     {"Africa/Abidjan", "GMT0"},
     {"Africa/Accra", "GMT0"},
     {"Africa/Addis_Ababa", "EAT-3"},

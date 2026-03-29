@@ -2,13 +2,12 @@
  * @file gpxParser.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  GPX Parser class
- * @version 0.2.4
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  */
 
 #pragma once
 
-#include <Arduino.h>
 #include <string>
 #include <vector>
 #include <map>
@@ -21,23 +20,23 @@
 #include "globalGpxDef.h"
 #include "gpsMath.hpp"
 
-static const char* TAGGPX PROGMEM = "GPXParser";
+static const char* TAGGPX = "GPXParser";
 
-static const char* gpxWaypointTag PROGMEM = "wpt";   /**< GPX waypoint tag. */
-static const char* gpxTrackTag PROGMEM    = "trk";   /**< GPX track tag. */
-static const char* gpxNameElem PROGMEM    = "name";  /**< GPX name element. */
-static const char* gpxLatElem PROGMEM     = "lat";   /**< GPX latitude attribute. */
-static const char* gpxLonElem PROGMEM     = "lon";   /**< GPX longitude attribute. */
-static const char* gpxEleElem PROGMEM     = "ele";   /**< GPX elevation element. */
-static const char* gpxTimeElem PROGMEM    = "time";  /**< GPX time element. */
-static const char* gpxDescElem PROGMEM    = "desc";  /**< GPX description element. */
-static const char* gpxSrcElem PROGMEM     = "src";   /**< GPX source element. */
-static const char* gpxSymElem PROGMEM     = "sym";   /**< GPX symbol element. */
-static const char* gpxTypeElem PROGMEM    = "type";  /**< GPX type element. */
-static const char* gpxSatElem PROGMEM     = "sat";   /**< GPX satellites element. */
-static const char* gpxHdopElem PROGMEM    = "hdop";  /**< GPX horizontal dilution of precision element. */
-static const char* gpxVdopElem PROGMEM    = "vdop";  /**< GPX vertical dilution of precision element. */
-static const char* gpxPdopElem PROGMEM    = "pdop";  /**< GPX position dilution of precision element. */
+static const char* gpxWaypointTag = "wpt";   /**< GPX waypoint tag. */
+static const char* gpxTrackTag    = "trk";   /**< GPX track tag. */
+static const char* gpxNameElem    = "name";  /**< GPX name element. */
+static const char* gpxLatElem     = "lat";   /**< GPX latitude attribute. */
+static const char* gpxLonElem     = "lon";   /**< GPX longitude attribute. */
+static const char* gpxEleElem     = "ele";   /**< GPX elevation element. */
+static const char* gpxTimeElem    = "time";  /**< GPX time element. */
+static const char* gpxDescElem    = "desc";  /**< GPX description element. */
+static const char* gpxSrcElem     = "src";   /**< GPX source element. */
+static const char* gpxSymElem     = "sym";   /**< GPX symbol element. */
+static const char* gpxTypeElem    = "type";  /**< GPX type element. */
+static const char* gpxSatElem     = "sat";   /**< GPX satellites element. */
+static const char* gpxHdopElem    = "hdop";  /**< GPX horizontal dilution of precision element. */
+static const char* gpxVdopElem    = "vdop";  /**< GPX vertical dilution of precision element. */
+static const char* gpxPdopElem    = "pdop";  /**< GPX position dilution of precision element. */
 
 
 /**
@@ -60,8 +59,8 @@ class GPXParser
         bool deleteTagByName(const char* tag, const char* name);
         wayPoint getWaypointInfo(const char* name);
         bool addWaypoint(const wayPoint& wp);
-        bool loadTrack(std::vector<wayPoint>& trackData);
-        std::vector<TurnPoint> getTurnPointsSlidingWindow(float thresholdDeg, float minDist, float sharpTurnDeg,int windowSize, const std::vector<wayPoint>& trackData);
+        bool loadTrack(TrackVector& trackData);
+        std::vector<TurnPoint> getTurnPointsSlidingWindow(float thresholdDeg, float minDist, float sharpTurnDeg,int windowSize, const TrackVector& trackData);
 
         std::string filePath;
 };
@@ -104,34 +103,34 @@ bool GPXParser::editTagAttrOrElem(const char* tag, const char* attribute, const 
     {
         if (attribute)
         {
-        const char* attrValue = tagElement->Attribute(attribute);
-        if (attrValue && oldValueStr == attrValue)
-        {
-            tagElement->SetAttribute(attribute, newValueStr.c_str()); 
-            result = doc.SaveFile(filePath.c_str());
-            if (result != tinyxml2::XML_SUCCESS)
+            const char* attrValue = tagElement->Attribute(attribute);
+            if (attrValue && oldValueStr == attrValue)
             {
-                ESP_LOGE(TAGGPX, "Failed to save file: %s", filePath.c_str());
-                return false;
+                tagElement->SetAttribute(attribute, newValueStr.c_str()); 
+                result = doc.SaveFile(filePath.c_str());
+                if (result != tinyxml2::XML_SUCCESS)
+                {
+                    ESP_LOGE(TAGGPX, "Failed to save file: %s", filePath.c_str());
+                    return false;
+                }
+                return true; 
             }
-            return true; 
-        }
         }
         else if (element)
         {
-        tinyxml2::XMLElement* childElement = tagElement->FirstChildElement(element);
-        if (childElement && childElement->GetText() && oldValueStr == childElement->GetText())
-        {
-            childElement->SetText(newValueStr.c_str());
-            result = doc.SaveFile(filePath.c_str());
-            if (result != tinyxml2::XML_SUCCESS)
+            tinyxml2::XMLElement* childElement = tagElement->FirstChildElement(element);
+            if (childElement && childElement->GetText() && oldValueStr == childElement->GetText())
             {
-                ESP_LOGE(TAGGPX, "Failed to save file: %s", filePath.c_str());
-                return false;
+                childElement->SetText(newValueStr.c_str());
+                result = doc.SaveFile(filePath.c_str());
+                if (result != tinyxml2::XML_SUCCESS)
+                {
+                    ESP_LOGE(TAGGPX, "Failed to save file: %s", filePath.c_str());
+                    return false;
+                }
+                return true; 
             }
-            return true; 
-        }
-        }
+            }
     }
 
     ESP_LOGE(TAGGPX, "Attribute/Element '%s' with value '%s' not found for tag '%s' in file: %s",

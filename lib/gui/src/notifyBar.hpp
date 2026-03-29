@@ -2,8 +2,8 @@
  * @file notifyBar.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief LVGL - Notify Bar Screen
- * @version 0.2.4
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  */
 
 #pragma once
@@ -13,6 +13,7 @@
 #include "storage.hpp"
 #include "battery.hpp"
 #include "settings.hpp"
+#include "styles.hpp"
 
 /**
  * @brief Notify Bar screen objects.
@@ -38,7 +39,7 @@ static float battLevelOld = 0;   /**< Previous battery level value. */
  *
  * @details Format string for displaying time in HH:MM:SS format
  */
-static const char* timeFormat PROGMEM = "%02d:%02d:%02d";
+static const char* timeFormat = "%02d:%02d:%02d";
 
 void updateNotifyBar(lv_event_t *event);
 void updateNotifyBarTimer(lv_timer_t *t);

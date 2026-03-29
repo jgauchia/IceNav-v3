@@ -2,8 +2,8 @@
  * @file widgets.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Widgets
- * @version 0.2.4
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  */
 
 #pragma once
@@ -12,12 +12,8 @@
 #include "gpsMath.hpp"
 #include "settings.hpp"
 #include "mapVars.h"
+#include "styles.hpp"
 
-/**
- * @brief Widget objects
- *
- * @details Declarations for UI widget objects 
- */
 extern lv_obj_t *latitude;         /**< Latitude label */
 extern lv_obj_t *longitude;        /**< Longitude label */
 extern lv_obj_t *compassHeading;   /**< Compass heading label */
@@ -50,15 +46,15 @@ static lv_coord_t newY = 0;              /**< New Y coordinate for widget moveme
 
 extern bool isScrolled;                  /**< Flag to indicate when tileview was scrolled */
 
-static const char *arrowIconFile PROGMEM      = "/arrow.bin";       /**< Compass arrow icon */
-static const char *positionIconFile PROGMEM   = "/pin.bin";         /**< Position icon */
-static const char *altitudeIconFile PROGMEM   = "/altit.bin";       /**< Altitude icon */
-static const char *speedIconFile PROGMEM      = "/speed.bin";       /**< Speed icon */
-static const char *sunriseIconFile PROGMEM    = "/sunrise.bin";     /**< Sunrise icon */
-static const char *sunsetIconFile PROGMEM     = "/sunset.bin";      /**< Sunset icon */
-static const char *navArrowIconFile PROGMEM   = "/navarrow.bin";    /**< Navigation arrow icon */
-static const char *zoomIconFile PROGMEM       = "/zoom.bin";        /**< Zoom map icon */
-static const char *mapSpeedIconFile PROGMEM   = "/mapspeed.bin";    /**< Speed map icon */
+static const char *arrowIconFile      = "/arrow.bin";       /**< Compass arrow icon */
+static const char *positionIconFile   = "/pin.bin";         /**< Position icon */
+static const char *altitudeIconFile   = "/altit.bin";       /**< Altitude icon */
+static const char *speedIconFile      = "/speed.bin";       /**< Speed icon */
+static const char *sunriseIconFile    = "/sunrise.bin";     /**< Sunrise icon */
+static const char *sunsetIconFile     = "/sunset.bin";      /**< Sunset icon */
+static const char *navArrowIconFile   = "/navarrow.bin";    /**< Navigation arrow icon */
+static const char *zoomIconFile       = "/zoom.bin";        /**< Zoom map icon */
+static const char *mapSpeedIconFile   = "/mapspeed.bin";    /**< Speed map icon */
 
 
 void positionWidget(lv_obj_t *screen);

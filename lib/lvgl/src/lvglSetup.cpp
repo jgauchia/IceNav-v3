@@ -2,16 +2,29 @@
  * @file lvglSetup.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Screen implementation
- * @version 0.2.4
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  */
 
 #include "lvglSetup.hpp"
+#include "i2c_espidf.hpp"
+#include "esp_heap_caps.h"
+#include "esp_timer.h"
+#include "driver/gpio.h"
+#include "esp_log.h"
+
+/**
+ * @brief Get system uptime in milliseconds using ESP-IDF timer.
+ *
+ * @return uint32_t Milliseconds since boot.
+ */
+static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 lv_display_t *display; /**< LVGL display driver */
 
 lv_obj_t *searchSatScreen; /**< Search Satellite Screen object. */
 lv_obj_t *splashScr;       /**< Splash Screen object. */
+lv_timer_t *mainTimer;     /**< Main Screen Timer */
 lv_style_t styleThemeBkg;  /**< Main background style object. */
 lv_style_t styleObjectBkg; /**< Object background style. */
 lv_style_t styleObjectSel; /**< Object selected style. */
@@ -26,7 +39,6 @@ Maps mapView;
 
 /**
  * @brief LVGL round callback for T4-S3
- *
  */
 static void lv_rounder_cb(lv_event_t *event)
 {
@@ -83,15 +95,33 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     static bool pinchActive = false;
     static int lastZoomDir = ZOOM_NONE;    
     static unsigned long lastTime = 0;
+    
+    // Variables for drag detection
+    static int16_t startX = -1, startY = -1;
+    static bool isDrag = false;
+    const int DRAG_THRESHOLD = 30; // Increased threshold to 30px
 
-    int count = tft.getTouch(touchRaw, TOUCH_MAX_POINTS);
+    int count = 0;
 
-    unsigned long now = millis();
+    #ifdef ICENAV_BOARD
+        // Protect I2C bus access for FT5x06 on shared bus
+        // Try lock without waiting. If bus busy, skip this touch frame.
+        if (i2c.lock(0)) 
+        {
+            count = tft.getTouch(touchRaw, TOUCH_MAX_POINTS);
+            i2c.unlock();
+        }
+    #else
+        count = tft.getTouch(touchRaw, TOUCH_MAX_POINTS);
+    #endif
+
+    unsigned long now = millis_idf();
     float dt_ms = (now > lastTime) ? (float)(now - lastTime) : 1.0f;
 
     if (count == 0)
     {
         data->state = LV_INDEV_STATE_RELEASED;
+        startX = -1; 
 
         if (pinchActive && lastZoomDir != 0)
         {
@@ -108,13 +138,23 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
         if (countTouchReleases)
         {
             countTouchReleases = false;
-            uint32_t touchReleaseTime = millis();
-            if (!firstTouchReleaseTime)
-                firstTouchReleaseTime = touchReleaseTime;
-            numberTouchReleases++;
+            
+            if (!isDrag)
+            {
+                uint32_t touchReleaseTime = millis_idf();
+                if (!firstTouchReleaseTime)
+                    firstTouchReleaseTime = touchReleaseTime;
+                numberTouchReleases++;
+            }
+            else
+            {
+                numberTouchReleases = 0;
+                firstTouchReleaseTime = 0;
+            }
+            isDrag = false;
         }
 
-        if (millis() - firstTouchReleaseTime > TOUCH_DOUBLE_TOUCH_INTERVAL)
+        if (millis_idf() - firstTouchReleaseTime > TOUCH_DOUBLE_TOUCH_INTERVAL)
         {
             if (numberTouchReleases == 2)
             {
@@ -139,6 +179,18 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
             {
                 data->point.x = TFT_WIDTH - touchRaw[count-1].y;
                 data->point.y = touchRaw[count-1].x;
+            }
+
+            if (startX == -1)
+            {
+                startX = data->point.x;
+                startY = data->point.y;
+                isDrag = false;
+            }
+            else if (!isDrag)
+            {
+                if (abs(data->point.x - startX) > DRAG_THRESHOLD || abs(data->point.y - startY) > DRAG_THRESHOLD)
+                    isDrag = true;
             }
 
             countTouchReleases = true;
@@ -167,7 +219,8 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     }
 }
 
-#ifdef TDECK_ESP32S3 
+#ifdef TDECK_ESP32S3
+
 /**
  * @brief Reads a key value from the T-DECK keyboard via I2C.
  *
@@ -175,12 +228,8 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
  */
 uint32_t keypadGetKey()
 {
-    char key_ch = 0;
-    Wire.requestFrom(0x55, 1);
-    while (Wire.available() > 0) 
-    {
-        key_ch = Wire.read();
-    }
+    uint8_t key_ch = 0;
+    i2c.readBytesRaw(0x55, &key_ch, 1);
     return key_ch;
 }
 
@@ -264,7 +313,7 @@ void gpioClickEvent(lv_event_t *event)
  */
 uint8_t gpioGetBut()
 {
-    return digitalRead(BOARD_BOOT_PIN);
+    return gpio_get_level((gpio_num_t)BOARD_BOOT_PIN);
 }
 
 #endif
@@ -351,7 +400,8 @@ void lv_tick_task(void *arg)
 void initLVGL()
 {
     lv_init();
-    
+    initSharedStyles();
+
     display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
     lv_display_set_flush_cb(display, displayFlush);
     lv_display_set_flush_wait_cb(display, NULL);
@@ -361,25 +411,32 @@ void initLVGL()
     #endif
     
     size_t DRAW_BUF_SIZE = 0;
+    lv_color_t *drawBuf1 = nullptr;
+    lv_color_t *drawBuf2 = nullptr;
     
-    #ifdef BOARD_HAS_PSRAM
-        assert(ESP.getFreePsram());
+    #if defined(BOARD_HAS_PSRAM) || defined(CONFIG_SPIRAM_SUPPORT)
+        assert(heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
 
-        if ( ESP.getPsramSize() >= 4000000 )
-            // >4Mb PSRAM
-            DRAW_BUF_SIZE = TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t);
-        else
-            // 2Mb PSRAM
-            DRAW_BUF_SIZE = ( TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t) / 8);
+        #ifdef T4_S3
+            // T4_S3: Use half screen buffer to save PSRAM for the 1024x1024 map canvas
+            DRAW_BUF_SIZE = (TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t) / 2);
+        #else
+            if (heap_caps_get_total_size(MALLOC_CAP_SPIRAM) >= 4000000)
+                // >4Mb PSRAM
+                DRAW_BUF_SIZE = TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t);
+            else
+                // 2Mb PSRAM
+                DRAW_BUF_SIZE = (TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t) / 8);
+        #endif
 
-        log_v("LVGL: allocating %u bytes PSRAM for draw buffer",DRAW_BUF_SIZE * 2);
-        lv_color_t * drawBuf1 = (lv_color_t *)heap_caps_aligned_alloc(16, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
-        lv_color_t * drawBuf2 = (lv_color_t *)heap_caps_aligned_alloc(16, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
+        log_v("LVGL: allocating %u bytes PSRAM for draw buffers", DRAW_BUF_SIZE * 2);
+        drawBuf1 = (lv_color_t *)heap_caps_aligned_alloc(64, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
+        drawBuf2 = (lv_color_t *)heap_caps_aligned_alloc(64, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
         lv_display_set_buffers(display, drawBuf1, drawBuf2, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
     #else
-        DRAW_BUF_SIZE =  TFT_WIDTH * TFT_HEIGHT / 10  * sizeof(lv_color_t);
-        log_v("LVGL: allocating %u bytes RAM for draw buffer",DRAW_BUF_SIZE);
-        lv_color_t * drawBuf1[DRAW_BUF_SIZE / 4];
+        DRAW_BUF_SIZE = (TFT_WIDTH * TFT_HEIGHT / 10) * sizeof(lv_color_t);
+        log_v("LVGL: allocating %u bytes SRAM for draw buffer", DRAW_BUF_SIZE);
+        drawBuf1 = (lv_color_t *)heap_caps_malloc(DRAW_BUF_SIZE, MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA);
         lv_display_set_buffers(display, drawBuf1, NULL, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
     #endif
     
@@ -455,5 +512,9 @@ void loadMainScreen()
         lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
     else
         lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+    
+    if (mainTimer)
+        lv_timer_resume(mainTimer);
+
     lv_screen_load(mainScreen);
 }

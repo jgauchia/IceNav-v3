@@ -2,13 +2,16 @@
  * @file power.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ESP32 Power Management functions
- * @version 0.2.4
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  */
 
 #include "power.hpp"
 
+#include "storage.hpp"
+
 extern const uint8_t BOARD_BOOT_PIN; /**< External declaration for the board's boot pin number. */
+extern Storage storage;
 
 /**
  * @brief Power Class constructor
@@ -19,10 +22,9 @@ extern const uint8_t BOARD_BOOT_PIN; /**< External declaration for the board's b
 Power::Power()
 {
     #ifdef DISABLE_RADIO
-        WiFi.disconnect(true);
-        WiFi.mode(WIFI_OFF);
-        btStop();
+        esp_wifi_disconnect();
         esp_wifi_stop();
+        esp_wifi_deinit();
         esp_bt_controller_disable();
     #endif
 }
@@ -39,7 +41,7 @@ void Power::powerDeepSleep()
     esp_bt_controller_disable();
     esp_wifi_stop();
     esp_deep_sleep_disable_rom_logging();
-    delay(10);
+    vTaskDelay(pdMS_TO_TICKS(10));
 
     #ifdef ICENAV_BOARD
         // If you need other peripherals to maintain power, please set the IO port to hold
@@ -88,8 +90,13 @@ void Power::powerOffPeripherals()
 {
     tftOff();
     tft.fillScreen(TFT_BLACK);
-    SPI.end();
-    Wire.end();
+    
+    // Properly deinitialize SD card before freeing SPI bus (only if not SPI_SHARED)
+    #ifndef SPI_SHARED
+        storage.deinitSD();
+        spi_bus_free(SPI2_HOST);
+    #endif
+    i2c.end();
 }
 
 /**
@@ -107,9 +114,9 @@ void Power::deviceSuspend()
     tftOff();
     powerLightSleep();
     tftOn(brightness);
-    while (digitalRead(BOARD_BOOT_PIN) != 1)
-    { 
-        delay(5);
+    while (gpio_get_level((gpio_num_t)BOARD_BOOT_PIN) != 1)
+    {
+        vTaskDelay(pdMS_TO_TICKS(5));
     };
     log_v("Exited sleep mode");
 }

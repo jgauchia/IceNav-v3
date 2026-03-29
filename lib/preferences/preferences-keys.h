@@ -23,7 +23,6 @@
   X(KMAP_COMPASS, "mapComp", BOOL)       \
   X(KMAP_COMP_ROT, "mapCompRot", BOOL)   \
   X(KSIM_NAV, "simNav", BOOL)            \
-  X(KFILL_POL, "fillPoly", BOOL)         \
   X(KGPS_TX, "gpsTX", UINT)              \
   X(KGPS_RX, "gpsRX", UINT)              \
   X(KLAT_DFL, "defLAT", FLOAT)          \

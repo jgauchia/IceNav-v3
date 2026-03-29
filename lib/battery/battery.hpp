@@ -2,13 +2,14 @@
  * @file battery.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Battery monitor definition and functions
- * @version 0.2.4
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  */
 
 #pragma once
 
-#include <Arduino.h>
+#include <cmath>
+#include <esp_rom_sys.h>
 #include <driver/adc.h>
 #include <esp_adc_cal.h>
 
@@ -24,7 +25,7 @@ class Battery
     private:
         float batteryMax; 					/**< Maximum (full charge) voltage. */
         float batteryMin;					/**< Minimum (empty) voltage. */
-        static constexpr float V_REF = 3.3; /**< ADC reference voltage. */
+        static constexpr float V_REF = 3.3f; /**< ADC reference voltage. */
 
     public:
         Battery();

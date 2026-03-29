@@ -1,3 +1,10 @@
 .pio
 .vscode
 assets
+GEMINI.md
+CHANGELOG.md
+tile_viewer.py
+ESP32_RENDER.md
+map_engine.cpp
+ui_map_manager.cpp
+nav_types.h

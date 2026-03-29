@@ -2,15 +2,18 @@
  * @file firmUpgrade.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Firmware upgrade from SD functions
- * @version 0.2.4
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  */
 
  #include "firmUpgrade.hpp"
+ #include <freertos/FreeRTOS.h>
+ #include <freertos/task.h>
+ #include "esp_system.h"
 
  extern Storage storage;
 
- static const char* TAG PROGMEM = "Firmware Update";
+ static const char* TAG = "Firmware Update";
 
 TFT_eSprite upgradeSprite = TFT_eSprite(&tft);  
 
@@ -83,7 +86,7 @@ void drawProgressBar(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t per
     uint16_t barHeight = h - 2 * margin;
     uint16_t barWidth  = w - 2 * margin;
     upgradeSprite.drawRoundRect(x, y, w, h, 3, frameColor);
-    upgradeSprite.fillRect(x + margin, y + margin, barWidth * percent / 100.0, barHeight, barColor);
+    upgradeSprite.fillRect(x + margin, y + margin, barWidth * percent / 100.0f, barHeight, barColor);
 }
 
 /**
@@ -115,7 +118,7 @@ void onUpgrdProcess(size_t currSize, size_t totalSize)
  */
 void onUpgrdEnd()
 {
-    delay(500);
+    vTaskDelay(pdMS_TO_TICKS(500));
     ESP_LOGI(TAG, "Rebooting ESP32: ");
-    ESP.restart();
+    esp_restart();
 }

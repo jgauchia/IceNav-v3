@@ -2,16 +2,18 @@
  * @file power.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ESP32 Power Management functions
- * @version 0.2.4
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  */
 
 #pragma once
 
-#include <Wire.h>
-#include <SPI.h>
-#include <WiFi.h>
+#include "i2c_espidf.hpp"
 #include <driver/rtc_io.h>
+#include <driver/gpio.h>
+#include <driver/spi_master.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 #include <esp_bt.h>
 #include <esp_bt_main.h>
 #include <esp_wifi.h>

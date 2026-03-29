@@ -2,27 +2,90 @@
  * @file gps.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  GPS definition and functions
- * @version 0.2.4
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  */
 
 #include "gps.hpp"
 #include "lvgl.h"
 #include "widgets.hpp"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include "esp_timer.h"
+#include "driver/gpio.h"
+
+/**
+ * @brief Get system uptime in milliseconds using ESP-IDF timer.
+ *
+ * @return uint32_t Milliseconds since boot.
+ */
+static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
+
+/**
+ * @brief Measure pulse width on a GPIO pin (ESP-IDF native)
+ *
+ * @param pin GPIO pin number
+ * @param state State to measure (0=LOW, 1=HIGH)
+ * @param timeout Timeout in microseconds
+ * @return Pulse width in microseconds, or 0 if timeout
+ */
+static unsigned long pulseIn_idf(int pin, int state, unsigned long timeout)
+{
+    gpio_num_t gpio = (gpio_num_t)pin;
+    int64_t start = esp_timer_get_time();
+    int64_t timeout_us = timeout;
+
+    // Wait for any previous pulse to end
+    while (gpio_get_level(gpio) == state)
+    {
+        if ((esp_timer_get_time() - start) > timeout_us)
+            return 0;
+    }
+
+    // Wait for pulse to start
+    while (gpio_get_level(gpio) != state)
+    {
+        if ((esp_timer_get_time() - start) > timeout_us)
+            return 0;
+    }
+    int64_t pulseStart = esp_timer_get_time();
+
+    // Wait for pulse to end
+    while (gpio_get_level(gpio) == state)
+    {
+        if ((esp_timer_get_time() - start) > timeout_us)
+            return 0;
+    }
+
+    return (unsigned long)(esp_timer_get_time() - pulseStart);
+}
 
 extern lv_obj_t *sunriseLabel; 	   /**< Label object for displaying the sunrise time. */
 bool setTime = true;        	   /**< Indicates if the system time should be set from GPS. */
 bool isGpsFixed = false;           /**< Indicates whether a valid GPS fix has been acquired. */
-bool isTimeFixed = false; 	       /**< Indicates whether the system time has been fixed using GPS. */
 long gpsBaudDetected = 0;   	   /**< Detected GPS baud rate. */
 bool nmea_output_enable = false;   /**< Enables or disables NMEA output. */
 gps_fix fix;             	       /**< Latest parsed GPS fix data. */
 NMEAGPS GPS;              	       /**< NMEAGPS parser instance. */
+Gps gps;                           /**< Global GPS instance */
 
-static const char* TAG PROGMEM = "GPS";
+static const char* TAG = "GPS";
 
-Gps::Gps() {}
-
+/**
+ * @brief Default constructor for Gps class.
+ */
+Gps::Gps()
+{
+    previousSpeed = 0;
+    previousAltitude = 0;
+    previousLatitude = 0.0f;
+    previousLongitude = 0.0f;
+    previousHdop = 0.0f;
+    previousPdop = 0.0f;
+    previousVdop = 0.0f;
+    memset(&gpsData, 0, sizeof(GPSDATA));
+    memset(&satTracker, 0, sizeof(satTracker));
+}
 
 /**
  * @brief Init GPS and custom NMEA parsing.
@@ -60,17 +123,17 @@ void Gps::init()
         // GPS+BDS+GLONASS
         gpsPort.println("$PCAS04,7*1E\r\n");
         gpsPort.flush();
-        delay(100);
+        vTaskDelay(pdMS_TO_TICKS(100));
 
         // Update Rate
         gpsPort.println(GPS_RATE_PCAS[gpsUpdate]);
         gpsPort.flush();
-        delay(100);
+        vTaskDelay(pdMS_TO_TICKS(100));
 
         // Set NMEA 4.1
         gpsPort.println("$PCAS05,2*1A\r\n");
         gpsPort.flush();
-        delay(100);
+        vTaskDelay(pdMS_TO_TICKS(100));
     #endif
 }
 
@@ -86,14 +149,14 @@ float Gps::getLat()
 {
     if (fix.valid.location)
         return fix.latitude();
-    else if (cfg.getFloat(PKEYS::KLAT_DFL, 0.0) != 0.0)
-        return cfg.getFloat(PKEYS::KLAT_DFL, 0.0);
+    else if (cfg.getFloat(PKEYS::KLAT_DFL, 0.0f) != 0.0f)
+        return cfg.getFloat(PKEYS::KLAT_DFL, 0.0f);
     else
     {
         #ifdef DEFAULT_LAT
             return DEFAULT_LAT;
         #else
-            return 0.0;
+            return 0.0f;
         #endif
     }
 }
@@ -110,14 +173,14 @@ float Gps::getLon()
 {
     if (fix.valid.location)
         return fix.longitude();
-    else if (cfg.getFloat(PKEYS::KLON_DFL, 0.0) != 0.0)
-        return cfg.getFloat(PKEYS::KLON_DFL, 0.0);
+    else if (cfg.getFloat(PKEYS::KLON_DFL, 0.0f) != 0.0f)
+        return cfg.getFloat(PKEYS::KLON_DFL, 0.0f);
     else
     {
         #ifdef DEFAULT_LON
             return DEFAULT_LON;
         #else
-            return 0.0;
+            return 0.0f;
         #endif
     }
 }
@@ -199,7 +262,9 @@ void Gps::getGPSData()
         satTracker[i].active = GPS.satellites[i].tracked;
         strncpy(satTracker[i].talker_id, GPS.satellites[i].talker_id, 3);
 
-        int H = canvasRadius * (90 - satTracker[i].elev) / 90;
+        // Clamp elevation between 0 and 90 degrees
+        int8_t clampedElev = std::max((int8_t)0, std::min((int8_t)90, (int8_t)satTracker[i].elev));
+        int H = canvasRadius * (90 - clampedElev) / 90;
 
         float azimRad = DEG2RAD((float)satTracker[i].azim);
         float sinAzim = lutInit ? sinLUT(azimRad) : sinf(azimRad);
@@ -210,8 +275,6 @@ void Gps::getGPSData()
     }
 
 }
-
-
 
 /**
  * @brief Detect the baud rate of the incoming GPS signal on a given RX pin.
@@ -225,12 +288,12 @@ void Gps::getGPSData()
 long Gps::detectRate(int rxPin)
 {
     long rate = 10000, x = 2000;
-    pinMode(rxPin, INPUT);     // make sure Serial in is a input pin
-    digitalWrite(rxPin, HIGH); // pull up enabled just for noise protection
+    gpio_set_direction((gpio_num_t)rxPin, GPIO_MODE_INPUT);
+    gpio_set_pull_mode((gpio_num_t)rxPin, GPIO_PULLUP_ONLY);
 
     for (int i = 0; i < 5; i++)
     {
-        x = pulseIn(rxPin, LOW, 125000); // measure the next zero bit width
+        x = pulseIn_idf(rxPin, 0, 125000); // measure the next zero bit width
         if (x < 1)
             continue;
         rate = x < rate ? x : rate;
@@ -424,11 +487,11 @@ void Gps::setLocalTime(NeoGPS::time_t gpsTime, const char* tz)
  * @param speed Simulated speed in km/h to assign to the GPS data.
  * @param refresh Simulation update rate refresh in ms
  */
-void Gps::simFakeGPS(const std::vector<wayPoint>& trackData, uint16_t speed, uint16_t refresh)
+void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refresh)
 {
-    if (millis() - lastSimulationTime > refresh) 
-    {  
-        lastSimulationTime = millis();
+    if (millis_idf() - lastSimulationTime > refresh)
+    {
+        lastSimulationTime = millis_idf();
 
         if (simulationIndex < (int)trackData.size() - 2) 
         {
@@ -485,9 +548,7 @@ void Gps::simFakeGPS(const std::vector<wayPoint>& trackData, uint16_t speed, uin
                         pointsAdvanced++;
                     } 
                     else
-                    {
                         break; // Not enough accumulated distance
-                    }
                 }
                 
                 // Update simulation index to the final point
@@ -528,14 +589,14 @@ void Gps::simFakeGPS(const std::vector<wayPoint>& trackData, uint16_t speed, uin
                         filteredHeading += adaptationRate * headingDiff;
                     } 
                     else 
-                    {
                         // Initialize with target heading
                         filteredHeading = targetHeading;
-                    }
                     
                     // Normalize final heading
-                    if (filteredHeading < 0.0f) filteredHeading += 360.0f;
-                    if (filteredHeading >= 360.0f) filteredHeading -= 360.0f;
+                    if (filteredHeading < 0.0f) 
+                        filteredHeading += 360.0f;
+                    if (filteredHeading >= 360.0f) 
+                        filteredHeading -= 360.0f;
                 }
 
                 // --- Final output ---
