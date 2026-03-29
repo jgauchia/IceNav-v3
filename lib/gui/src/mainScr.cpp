@@ -80,17 +80,17 @@ void showMapWidgets()
     lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(zoomWidget, LV_OBJ_FLAG_HIDDEN);
     if (mapSet.showMapSpeed)
-        lv_obj_clear_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(mapSpeed, LV_OBJ_FLAG_HIDDEN);
     else
-        lv_obj_add_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(mapSpeed, LV_OBJ_FLAG_HIDDEN);
     if (mapSet.showMapCompass)
-        lv_obj_clear_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(miniCompass, LV_OBJ_FLAG_HIDDEN);
     else
-        lv_obj_add_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(miniCompass, LV_OBJ_FLAG_HIDDEN);
     if (mapSet.showMapScale)
-        lv_obj_clear_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(scaleWidget, LV_OBJ_FLAG_HIDDEN);
     else
-        lv_obj_add_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(scaleWidget, LV_OBJ_FLAG_HIDDEN);
 }
 
 /**
@@ -315,7 +315,8 @@ void updateMap(lv_event_t *event)
     if (mapView.redrawMap && !mapSet.vectorMap)
         xEventGroupSetBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
 
-    static int16_t lastDispX = -32768, lastDispY = -32768;
+    static int16_t lastDispX = -32768;
+    static int16_t lastDispY = -32768;
     if (mapView.offsetX != lastDispX || mapView.offsetY != lastDispY || (xEventGroupGetBits(mapView.mapEventGroup) & Maps::MAP_EVENT_DONE))
     {
         lastDispX = mapView.offsetX;

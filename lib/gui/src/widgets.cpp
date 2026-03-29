@@ -359,7 +359,7 @@ void mapScaleWidget(lv_obj_t *screen)
     scaleLabel = lv_label_create(scaleWidget);
     lv_obj_set_style_text_font(scaleLabel, &lv_font_montserrat_12, 0);
     lv_label_set_text_fmt(scaleLabel, "%s", map_scale[zoom]);
-    lv_obj_t * scale = lv_scale_create(scaleWidget);
+    lv_obj_t *scale = lv_scale_create(scaleWidget);
     lv_scale_set_mode(scale, LV_SCALE_MODE_HORIZONTAL_BOTTOM);
     lv_scale_set_label_show(scale, false);
     lv_obj_set_size(scale, 60, 10);
@@ -390,5 +390,5 @@ void turnByTurnWidget(lv_obj_t *screen)
     lv_obj_t *obj = lv_label_create(turnByTurn);
     lv_obj_set_style_text_font(obj, &lv_font_montserrat_18, 0);
     lv_label_set_text_static(obj,"m.");
-    lv_obj_add_flag(turnByTurn,LV_OBJ_FLAG_HIDDEN);
-}
+    lv_obj_add_flag(turnByTurn, LV_OBJ_FLAG_HIDDEN);
+    }
