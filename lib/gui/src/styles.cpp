@@ -2,7 +2,7 @@
  * @file styles.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Shared styles implementation
- * @version 0.2.4
+ * @version 0.2.5
  * @date 2025-01
  */
 

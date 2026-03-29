@@ -2,7 +2,7 @@
  * @file styles.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Shared styles definitions
- * @version 0.2.4
+ * @version 0.2.5
  * @date 2025-01
  */
 

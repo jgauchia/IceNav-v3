@@ -2,8 +2,8 @@
  * @file satInfoScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Satellite info screen 
- * @version 0.2.4
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  */
 #include "satInfoScr.hpp"
 lv_obj_t *pdopLabel;

@@ -1,8 +1,8 @@
 /**
  * @file compass.hpp
  * @brief Compass definition and functions - Native ESP-IDF drivers
- * @version 0.2.4
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  */
 
 #pragma once

@@ -2,8 +2,8 @@
  * @file timezone.c
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  POSIX timezone (TZ)
- * @version 0.2.4
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  */
 
 #include <string.h>

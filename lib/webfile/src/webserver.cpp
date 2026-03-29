@@ -2,8 +2,8 @@
  * @file webserver.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Web file server functions implementation
- * @version 0.2.4
- * @date 2025-12
+ * @version 0.2.5
+ * @date 2026-04
  */
 
 #include "webserver.h"
