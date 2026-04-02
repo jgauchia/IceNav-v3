@@ -117,6 +117,24 @@ static void async_map_update_cb(void * user_data)
 }
 
 /**
+ * @brief Observer callback for map position updates (GPS)
+ *
+ * @details Triggers map redraws automatically when position changes,
+ *          but only if Follow GPS mode is active. Uses lv_async_call
+ *          to delegate rendering to the UI thread (Core 1).
+ *
+ * @param observer Pointer to the observer.
+ * @param subject Pointer to the subject.
+ */
+static void map_position_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+{
+    if (activeTile != MAP || isScrollingMap || !mapView.followGps)
+        return;
+
+    lv_async_call(async_map_update_cb, NULL);
+}
+
+/**
  * @brief Observer callback for map heading updates (Compass or GPS)
  *
  * @details Triggers map redraws automatically when heading changes significantly,
@@ -545,6 +563,8 @@ void createMainScr()
     speedWidget(compassTile);
     sunWidget(compassTile);
     lv_subject_add_observer_obj(&subject_heading, map_heading_observer_cb, mapTile, NULL);
+    lv_subject_add_observer_obj(&subject_lat, map_position_observer_cb, mapTile, NULL);
+    lv_subject_add_observer_obj(&subject_lon, map_position_observer_cb, mapTile, NULL);
     lv_obj_add_event_cb(sunriseLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(sunsetLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
     createMapCanvas(mapTile);
