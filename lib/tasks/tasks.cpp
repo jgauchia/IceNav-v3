@@ -11,12 +11,14 @@
 
 #include "tasks.hpp"
 #include "mainScr.hpp"
+#include "lv_subjects.hpp"
+#include <WiFi.h>
 
-xSemaphoreHandle gpsMutex;         /**< Mutex for GPS resource protection */
-extern Gps gps;                    /**< Global GPS instance for data processing */
-SensorData globalSensorData;       /**< Global sensor data instance */
+xSemaphoreHandle gpsMutex;
+extern Gps gps;
+SensorData globalSensorData;
 
-static const char* TAG = "Task"; /**< Logging tag for task operations */
+static const char* TAG = "Task";
 
 /**
  * @brief GPS data processing task
@@ -49,6 +51,20 @@ void gpsTask(void *pvParameters)
             {
                 fix = GPS.read();
                 gps.getGPSData();
+                
+                if (isMainScreen && !canMoveWidget && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
+                {
+                    lv_subject_set_int(&subject_speed, (int32_t)gps.gpsData.speed);
+                    lv_subject_set_int(&subject_altitude, (int32_t)gps.gpsData.altitude);
+                    lv_subject_set_int(&subject_lat, (int32_t)(gps.gpsData.latitude * 1000000.0f));
+                    lv_subject_set_int(&subject_lon, (int32_t)(gps.gpsData.longitude * 1000000.0f));
+                    lv_subject_set_int(&subject_sats, (int32_t)gps.gpsData.satellites);
+                    lv_subject_set_int(&subject_fix_mode, (int32_t)gps.gpsData.fixMode);
+                    lv_subject_set_int(&subject_is_fixed, isGpsFixed ? 1 : 0);
+                    if (!mapSet.mapRotationComp)
+                        lv_subject_set_int(&subject_heading, (int32_t)gps.gpsData.heading);
+                    xSemaphoreGive(lvgl_mutex);
+                }
             }
 
             xSemaphoreGive(gpsMutex);
@@ -125,24 +141,103 @@ void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 4096, NULL, 1,
 void sensorTask(void *pvParameters)
 {
     uint16_t slowCounter = 0;
+    static time_t lastTimeSent = 0;
+
     while (1)
     {
-        // Reduce I2C bus load during manual map scrolling
-        if (isScrollingMap)
+        if (isScrollingMap || canMoveWidget)
+        {
             vTaskDelay(pdMS_TO_TICKS(100));
+            continue; 
+        }
 
         #ifdef ENABLE_COMPASS
             globalSensorData.heading = compass.getHeading();
+            if (isMainScreen && !canMoveWidget && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
+            {
+                if (mapSet.mapRotationComp)
+                    lv_subject_set_int(&subject_heading, globalSensorData.heading);
+                xSemaphoreGive(lvgl_mutex);
+            }
         #endif
 
-        // Read slow sensors every ~1.5 seconds (75 * 20ms)
+        // Update time subject once per second (from reliable sensorTask loop)
+        time_t now = time(NULL);
+        if (now != lastTimeSent)
+        {
+            if (isMainScreen && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(50)) == pdTRUE)
+            {
+                lv_subject_set_int(&subject_time, (int32_t)now);
+                lv_subject_notify(&subject_time);
+                lastTimeSent = now;
+                xSemaphoreGive(lvgl_mutex);
+            }
+        }
+
         if (slowCounter++ >= 75) 
         {
             #ifdef BME280
                 bme.readAll(globalSensorData.temperature, globalSensorData.pressure, globalSensorData.humidity);
                 globalSensorData.altitude = (int16_t)bme.readAltitude(globalSensorData.pressure);
             #endif
+            
+            #ifdef ENABLE_TEMP
+            static uint8_t lastTempSent = 255;
+            uint8_t currentTemp = (uint8_t)(globalSensorData.temperature + tempOffset);
+            if (isMainScreen && currentTemp != lastTempSent)
+            {
+                if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(10)) == pdTRUE)
+                {
+                    lv_subject_set_int(&subject_temp, (int32_t)currentTemp);
+                    lastTempSent = currentTemp;
+                    xSemaphoreGive(lvgl_mutex);
+                }
+            }
+            #endif
+
+            static bool lastWifiState = false;
+            bool currentWifiState = (WiFi.status() == WL_CONNECTED);
+            if (currentWifiState != lastWifiState)
+            {
+                if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(10)) == pdTRUE)
+                {
+                    lv_subject_set_int(&subject_wifi, currentWifiState ? 1 : 0);
+                    lastWifiState = currentWifiState;
+                    xSemaphoreGive(lvgl_mutex);
+                }
+            }
+
             globalSensorData.batteryPercent = battery.readBattery();
+            static int lastSentValue = -1;
+            int current = (int)globalSensorData.batteryPercent;
+            
+            auto getLevel = [](int v) 
+            {
+                if (v > 110) 
+                    return 5;
+                if (v > 80)  
+                    return 4;
+                if (v > 60)  
+                    return 3;
+                if (v > 40)  
+                    return 2;
+                if (v > 20)  
+                    return 1;
+                return 0;
+            };
+
+            bool thresholdCrossed = getLevel(current) != getLevel(lastSentValue);
+            bool significantChange = abs(current - lastSentValue) >= 3;
+
+            if (isMainScreen && !canMoveWidget && (thresholdCrossed || significantChange))
+            {
+                if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
+                {
+                    lv_subject_set_int(&subject_battery, (int32_t)current);
+                    lastSentValue = current;
+                    xSemaphoreGive(lvgl_mutex);
+                }
+            }
             slowCounter = 0;
         }
 
@@ -171,20 +266,21 @@ void initSensorTask()
  */
 void guiTask(void *pvParameters)
 {
-    uint8_t sleepPeriod = 10;
     while (1)
     {
-        lv_timer_handler();
-
-        if (gps.gpsData.speed > 0)
-            sleepPeriod = 20;
-        else
-            sleepPeriod = 50;
-
-        if (lv_disp_get_inactive_time(NULL) < 1000)
-            sleepPeriod = 10;
-
-        vTaskDelay(pdMS_TO_TICKS(sleepPeriod));
+        uint32_t wait_ms = 10;
+        if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, portMAX_DELAY) == pdTRUE)
+        {
+            wait_ms = lv_timer_handler();
+            xSemaphoreGive(lvgl_mutex);
+        }
+        
+        if (wait_ms > 100) 
+            wait_ms = 100;
+        if (wait_ms < 5) 
+            wait_ms = 5;
+        
+        vTaskDelay(pdMS_TO_TICKS(wait_ms));
     }
 }
 

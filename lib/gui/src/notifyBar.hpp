@@ -32,8 +32,6 @@ static lv_obj_t *wifi;         /**< WiFi status object. */
 static float battLevel = 0;      /**< Current battery level value. */
 static float battLevelOld = 0;   /**< Previous battery level value. */
 
-#define UPDATE_NOTIFY_PERIOD 1000 /**< Notify Bar update time in milliseconds. */
-
 /**
  * @brief Temperature values.
  *
@@ -41,6 +39,4 @@ static float battLevelOld = 0;   /**< Previous battery level value. */
  */
 static const char* timeFormat = "%02d:%02d:%02d";
 
-void updateNotifyBar(lv_event_t *event);
-void updateNotifyBarTimer(lv_timer_t *t);
 void createNotifyBar();

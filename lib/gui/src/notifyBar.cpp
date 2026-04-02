@@ -8,6 +8,7 @@
 
 #include "notifyBar.hpp"
 #include "tasks.hpp"
+#include "lv_subjects.hpp"
 
 lv_obj_t *mainScreen;         /**< Main screen */
 lv_obj_t *notifyBarIcons;     /**< Notification bar icons container object. */
@@ -18,118 +19,200 @@ extern Battery battery;
 extern Gps gps;
 
 /**
- * @brief Handles notify bar update events, refreshing display elements
- *
- * @param event LVGL event pointer.
+ * @brief Observer callback for battery icon updates
+ * 
+ * @details Updates the battery symbol based on the percentage from subject_battery.
+ * 
+ * @param observer Pointer to the observer.
+ * @param subject Pointer to the subject.
  */
-void updateNotifyBar(lv_event_t *event)
+static void battery_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
 {
-    lv_obj_t *obj = (lv_obj_t *)lv_event_get_target(event);
-    
-    if (obj == gpsTime)
+    int32_t level = lv_subject_get_int(subject);
+    lv_obj_t *obj = (lv_obj_t *)lv_observer_get_target_obj(observer);
+
+    if (level <= 500 && level > 110)
+        lv_label_set_text_static(obj, "  " LV_SYMBOL_CHARGE);
+    else if (level <= 110 && level > 80)
+        lv_label_set_text_static(obj, LV_SYMBOL_BATTERY_FULL);
+    else if (level <= 80 && level > 60)
+        lv_label_set_text_static(obj, LV_SYMBOL_BATTERY_3);
+    else if (level <= 60 && level > 40)
+        lv_label_set_text_static(obj, LV_SYMBOL_BATTERY_2);
+    else if (level <= 40 && level > 20)
+        lv_label_set_text_static(obj, LV_SYMBOL_BATTERY_1);
+    else if (level <= 20)
+        lv_label_set_text_static(obj, LV_SYMBOL_BATTERY_EMPTY);
+}
+
+/**
+ * @brief Observer callback for GPS time updates
+ * 
+ * @details Formats the unix timestamp into a local time string HH:MM:SS and updates the label.
+ * 
+ * @param observer Pointer to the observer.
+ * @param subject Pointer to the subject containing unix timestamp.
+ */
+static void time_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+{
+    lv_obj_t *obj = (lv_obj_t *)lv_observer_get_target_obj(observer);
+    if (obj == NULL)
+        return;
+
+    time_t localTime = (time_t)lv_subject_get_int(subject);
+    struct tm local_tm;
+    struct tm *now = localtime_r(&localTime, &local_tm);
+
+    lv_label_set_text_fmt(obj, timeFormat, now->tm_hour, now->tm_min, now->tm_sec);
+}
+
+/**
+ * @brief Observer callback for GPS satellites count
+ * 
+ * @details Updates the satellites count label.
+ * 
+ * @param observer Pointer to the observer.
+ * @param subject Pointer to the subject containing satellites count.
+ */
+static void sats_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+{
+    lv_obj_t *obj = (lv_obj_t *)lv_observer_get_target_obj(observer);
+    if (obj == NULL)
+        return;
+
+    int32_t sats = lv_subject_get_int(subject);
+    lv_label_set_text_fmt(obj, LV_SYMBOL_GPS "%2d", (int)sats);
+}
+
+/**
+ * @brief Observer callback for GPS fix mode
+ * 
+ * @details Updates the fix mode text indicator.
+ * 
+ * @param observer Pointer to the observer.
+ * @param subject Pointer to the subject containing fix mode.
+ */
+static void fix_mode_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+{
+    lv_obj_t *obj = (lv_obj_t *)lv_observer_get_target_obj(observer);
+    if (obj == NULL)
+        return;
+
+    int32_t mode = lv_subject_get_int(subject);
+    switch (mode)
     {
-        struct tm local_tm;
-        time_t localTime = time(NULL);
-        struct tm *now = localtime_r(&localTime,&local_tm);
-
-        lv_label_set_text_fmt(obj, timeFormat, now->tm_hour, now->tm_min, now->tm_sec);
-    }
-
-    #ifdef ENABLE_TEMP
-        if (obj == temp)
-            lv_label_set_text_fmt(obj, "%02d\xC2\xB0", tempValue);
-    #endif
-
-    if (obj == gpsCount)
-        lv_label_set_text_fmt(obj, LV_SYMBOL_GPS "%2d", gps.gpsData.satellites);
-
-    if (obj == battIcon)
-    {
-        if (battLevel <= 500 && battLevel > 110)
-            lv_label_set_text_static(obj, "  " LV_SYMBOL_CHARGE);
-        else if (battLevel <= 110 && battLevel > 80)
-            lv_label_set_text_static(obj, LV_SYMBOL_BATTERY_FULL);
-        else if (battLevel <= 80 && battLevel > 60)
-            lv_label_set_text_static(obj, LV_SYMBOL_BATTERY_3);
-        else if (battLevel <= 60 && battLevel > 40)
-            lv_label_set_text_static(obj, LV_SYMBOL_BATTERY_2);
-        else if (battLevel <= 40 && battLevel > 20)
-            lv_label_set_text_static(obj, LV_SYMBOL_BATTERY_1);
-        else if (battLevel <= 20)
-            lv_label_set_text_static(obj, LV_SYMBOL_BATTERY_EMPTY);
-    }
-
-    if (obj == gpsFixMode)
-    {
-        switch (gps.gpsData.fixMode)
-        {
-            case gps_fix::STATUS_NONE:
-                lv_label_set_text_static(obj, "----");
-                break;
-            case gps_fix::STATUS_STD:
-                lv_label_set_text_static(obj, " 3D ");
-                break;
-            case gps_fix::STATUS_DGPS:
-                lv_label_set_text_static(obj, "DGPS");
-                break;
-            case gps_fix::STATUS_PPS:
-                lv_label_set_text_static(obj, "PPS");
-                break;
-            case gps_fix::STATUS_RTK_FLOAT:
-                lv_label_set_text_static(obj, "RTK");
-                break;
-            case gps_fix::STATUS_RTK_FIXED:
-                lv_label_set_text_static(obj, "RTK");
-                break;
-            case gps_fix::STATUS_TIME_ONLY: 
-                lv_label_set_text_static(obj, "TIME");
-                break;       
-            case gps_fix::STATUS_EST:
-                lv_label_set_text_static(obj, "EST");
-                break;  
-        }
-    }
-
-    if (obj == wifi)
-    {
-        if (WiFi.status() == WL_CONNECTED)
-            lv_label_set_text_static(obj, LV_SYMBOL_WIFI);
-        else
-            lv_label_set_text_static(obj," ");
+        case gps_fix::STATUS_NONE:
+            lv_label_set_text_static(obj, "----");
+            break;
+        case gps_fix::STATUS_STD:
+            lv_label_set_text_static(obj, " 3D ");
+            break;
+        case gps_fix::STATUS_DGPS:
+            lv_label_set_text_static(obj, "DGPS");
+            break;
+        case gps_fix::STATUS_PPS:
+            lv_label_set_text_static(obj, "PPS");
+            break;
+        case gps_fix::STATUS_RTK_FLOAT:
+            lv_label_set_text_static(obj, "RTK");
+            break;
+        case gps_fix::STATUS_RTK_FIXED:
+            lv_label_set_text_static(obj, "RTK");
+            break;
+        case gps_fix::STATUS_TIME_ONLY: 
+            lv_label_set_text_static(obj, "TIME");
+            break;       
+        case gps_fix::STATUS_EST:
+            lv_label_set_text_static(obj, "EST");
+            break;  
     }
 }
 
 /**
- * @brief Periodic timer callback to update notify bar information
- *
+ * @brief LED animation callback for GPS Fix indicator
  */
-void updateNotifyBarTimer(lv_timer_t *t)
+static void led_anim_cb(void * var, int32_t v)
 {
-    lv_obj_send_event(gpsTime, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_obj_send_event(gpsCount, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_obj_send_event(gpsFixMode, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_obj_send_event(wifi, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_led_set_brightness((lv_obj_t *)var, v);
+}
+
+/**
+ * @brief Observer callback for GPS fix status
+ * 
+ * @details Toggles LED animation based on fix status.
+ * 
+ * @param observer Pointer to the observer.
+ * @param subject Pointer to the subject containing boolean fix state.
+ */
+static void is_fixed_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+{
+    lv_obj_t *obj = (lv_obj_t *)lv_observer_get_target_obj(observer);
+    if (obj == NULL)
+        return;
+
+    int32_t is_fixed = lv_subject_get_int(subject);
     
-    if (isGpsFixed)
-        lv_led_toggle(gpsFix);
+    // Stop any running animations on this LED
+    lv_anim_delete(obj, NULL);
+
+    if (is_fixed)
+    {
+        lv_anim_t a;
+        lv_anim_init(&a);
+        lv_anim_set_var(&a, obj);
+        lv_anim_set_exec_cb(&a, led_anim_cb);
+        lv_anim_set_values(&a, 10, 255);
+        lv_anim_set_time(&a, 500);
+        lv_anim_set_playback_time(&a, 500);
+        lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
+        lv_anim_start(&a);
+    }
     else
-        lv_led_off(gpsFix);
-
-    #ifdef ENABLE_TEMP
-    tempValue = (uint8_t)(globalSensorData.temperature + tempOffset);
-    if (tempValue != tempOld)
     {
-        lv_obj_send_event(temp, LV_EVENT_VALUE_CHANGED, NULL);
-        tempOld = tempValue;
+        lv_led_set_brightness(obj, 0);
     }
-    #endif
+}
 
-    battLevel = globalSensorData.batteryPercent;
-    if (battLevel != battLevelOld)
-    {
-        lv_obj_send_event(battIcon, LV_EVENT_VALUE_CHANGED, NULL);
-        battLevelOld = battLevel;
-    }
+#ifdef ENABLE_TEMP
+/**
+ * @brief Observer callback for temperature updates
+ * 
+ * @details Formats the temperature value and updates the label.
+ * 
+ * @param observer Pointer to the observer.
+ * @param subject Pointer to the subject containing temperature.
+ */
+static void temp_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+{
+    lv_obj_t *obj = (lv_obj_t *)lv_observer_get_target_obj(observer);
+    if (obj == NULL)
+        return;
+
+    int32_t temp_val = lv_subject_get_int(subject);
+    lv_label_set_text_fmt(obj, "%02d\xC2\xB0", (int)temp_val);
+}
+#endif
+
+/**
+ * @brief Observer callback for WiFi status
+ * 
+ * @details Updates the WiFi symbol based on connection state.
+ * 
+ * @param observer Pointer to the observer.
+ * @param subject Pointer to the subject containing boolean WiFi state.
+ */
+static void wifi_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+{
+    lv_obj_t *obj = (lv_obj_t *)lv_observer_get_target_obj(observer);
+    if (obj == NULL)
+        return;
+
+    int32_t is_connected = lv_subject_get_int(subject);
+    
+    if (is_connected)
+        lv_label_set_text_static(obj, LV_SYMBOL_WIFI);
+    else
+        lv_label_set_text_static(obj, " ");
 }
 
 /**
@@ -161,16 +244,16 @@ void createNotifyBar()
     gpsTime = lv_label_create(notifyBarHour);
     lv_obj_set_style_text_font(gpsTime, fontLarge, 0);
     lv_label_set_text_fmt(gpsTime, timeFormat, 0, 0, 0);
-    lv_obj_add_event_cb(gpsTime, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_subject_add_observer_obj(&subject_time, time_observer_cb, gpsTime, NULL);
     
     wifi = lv_label_create(notifyBarIcons);
     lv_label_set_text_static(wifi, " ");
-    lv_obj_add_event_cb(wifi, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_subject_add_observer_obj(&subject_wifi, wifi_observer_cb, wifi, NULL);
 
     #ifdef ENABLE_TEMP
         temp = lv_label_create(notifyBarIcons);
         lv_label_set_text_static(temp, "--\xC2\xB0");
-        lv_obj_add_event_cb(temp, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
+        lv_subject_add_observer_obj(&subject_temp, temp_observer_cb, temp, NULL);
     #endif
     
     if (storage.getSdLoaded())
@@ -181,22 +264,20 @@ void createNotifyBar()
 
     gpsCount = lv_label_create(notifyBarIcons);
     lv_label_set_text_fmt(gpsCount, LV_SYMBOL_GPS "%2d", 0);
-    lv_obj_add_event_cb(gpsCount, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_subject_add_observer_obj(&subject_sats, sats_observer_cb, gpsCount, NULL);
     
     gpsFix = lv_led_create(notifyBarIcons);
     lv_led_set_color(gpsFix, lv_palette_main(LV_PALETTE_RED));
     lv_obj_set_size(gpsFix, 7, 7);
     lv_led_off(gpsFix);
+    lv_subject_add_observer_obj(&subject_is_fixed, is_fixed_observer_cb, gpsFix, NULL);
     
     gpsFixMode = lv_label_create(notifyBarIcons);
     lv_obj_set_style_text_font(gpsFixMode, fontSmall, 0);
     lv_label_set_text_static(gpsFixMode, "----");
-    lv_obj_add_event_cb(gpsFixMode, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_subject_add_observer_obj(&subject_fix_mode, fix_mode_observer_cb, gpsFixMode, NULL);
     
     battIcon = lv_label_create(notifyBarIcons);
     lv_label_set_text_static(battIcon, LV_SYMBOL_BATTERY_EMPTY);
-    lv_obj_add_event_cb(battIcon, updateNotifyBar, LV_EVENT_VALUE_CHANGED, NULL);
-    
-    lv_timer_t *timerNotifyBar = lv_timer_create(updateNotifyBarTimer, UPDATE_NOTIFY_PERIOD, NULL);
-    lv_timer_ready(timerNotifyBar);
+    lv_subject_add_observer_obj(&subject_battery, battery_observer_cb, battIcon, NULL);
 }
