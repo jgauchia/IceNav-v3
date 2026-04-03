@@ -118,6 +118,10 @@ public:
     int16_t lastTileY = 0;
     int16_t offsetX = 0;
     int16_t offsetY = 0;
+    int16_t displayOffsetX = 0;
+    int16_t displayOffsetY = 0;
+    int16_t pendingDx = 0;
+    int16_t pendingDy = 0;
     float velocityX = 0.0f;
     float velocityY = 0.0f;
     const float friction = 0.95f;

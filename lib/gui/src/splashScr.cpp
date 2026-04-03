@@ -7,6 +7,7 @@
  */
 
 #include "splashScr.hpp"
+#include "lv_subjects.hpp"
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
 #include "esp_system.h"
@@ -121,7 +122,11 @@ void splashScreen()
         mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
         mapView.generateMap(zoom);
 
-        lv_obj_delete(splashScr);
+        if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
+        {
+            lv_obj_delete(splashScr);
+            xSemaphoreGive(lvgl_mutex);
+        }
     #else
         tftOff();
         

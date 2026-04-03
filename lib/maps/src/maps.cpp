@@ -60,7 +60,7 @@ Maps::Maps() : navLastZoom_(0),
     navDataCache.reserve(NAV_DATA_CACHE_SIZE);
     mapMutex = xSemaphoreCreateMutex();
     mapEventGroup = xEventGroupCreate();
-    xTaskCreatePinnedToCore(mapRenderTask, "MapRenderTask", 16384, this, 1, &mapRenderTaskHandle, 0);
+    xTaskCreatePinnedToCore(mapRenderTask, "MapRenderTask", 8192, this, 2, &mapRenderTaskHandle, 1);
 }
 
 /**
@@ -346,20 +346,21 @@ void Maps::generateMap(uint8_t zoom)
         resetScrollState();
     }
 
-    const float lat = Maps::followGps ? gps.gpsData.latitude : Maps::currentMapTile.lat;
-    const float lon = Maps::followGps ? gps.gpsData.longitude : Maps::currentMapTile.lon;
+    const float baseLat = Maps::followGps ? gps.gpsData.latitude : Maps::currentMapTile.lat;
+    const float baseLon = Maps::followGps ? gps.gpsData.longitude : Maps::currentMapTile.lon;
 
     if (mapSet.vectorMap)
     {
-        const double latRad = (double)lat * M_PI / 180.0;
-        const double n = pow(2.0, (double)zoom);
-        const int centerTileIdxX = (int)floorf((float)((lon + 180.0) / 360.0 * n));
-        const int centerTileIdxY = (int)floorf((float)((1.0 - log(tan(latRad) + 1.0 / cos(latRad)) / M_PI) / 2.0 * n));
+        const uint32_t centerTileIdxX = lon2tilex(baseLon, zoom);
+        const uint32_t centerTileIdxY = lat2tiley(baseLat, zoom);
         const int8_t gridOffset = tilesGrid / 2;
         const int32_t currentTlX = (int32_t)centerTileIdxX - gridOffset;
         const int32_t currentTlY = (int32_t)centerTileIdxY - gridOffset;
         bool zoomChanged = (zoom != navLastZoom_);
         bool tileChanged = (currentTlX != (int32_t)navTlTileX_ || currentTlY != (int32_t)navTlTileY_);
+
+        if (zoomChanged)
+            navNeedsRender_ = true;
 
         if (trackNeedsRedraw)
         {
@@ -378,7 +379,7 @@ void Maps::generateMap(uint8_t zoom)
         if (pendingTiles.size() > (tilesGrid * tilesGrid))
             return;
 
-        Maps::isMapFound = renderNavViewport(lat, lon, zoom, Maps::mapTempSprite);
+        Maps::isMapFound = renderNavViewport(baseLat, baseLon, zoom, Maps::mapTempSprite);
         navLastZoom_ = zoom;
         navNeedsRender_ = false;
         latLonToPixel(destLat, destLon, (int16_t&)wptPosX, (int16_t&)wptPosY);
@@ -387,8 +388,8 @@ void Maps::generateMap(uint8_t zoom)
         return;
     }
 
-    const uint32_t centerTileIdxX = lon2tilex(lon, zoom);
-    const uint32_t centerTileIdxY = lat2tiley(lat, zoom);
+    const uint32_t centerTileIdxX = lon2tilex(baseLon, zoom);
+    const uint32_t centerTileIdxY = lat2tiley(baseLat, zoom);
 
     if (centerTileIdxX != Maps::oldMapTile.tilex || centerTileIdxY != Maps::oldMapTile.tiley || zoom != Maps::oldMapTile.zoom)
     {
@@ -596,11 +597,18 @@ void Maps::mapRenderTask(void* pvParameters)
                 for (auto& entry : instance->navDataCache)
                     entry.isPinned = false;
 
+                instance->displayOffsetX = instance->offsetX;
+                instance->displayOffsetY = instance->offsetY;
+                instance->lastTileX = instance->tileX;
+                instance->lastTileY = instance->tileY;
+
                 instance->drawTrack(instance->mapTempSprite);
                 instance->redrawMap = true;
                 xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
                 xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
                 xSemaphoreGive(instance->mapMutex);
+                extern void triggerMapRedraw();
+                triggerMapRedraw();
             }
         }
         vTaskDelay(1);
@@ -671,9 +679,9 @@ void Maps::displayMap()
     }
     else
     {
-        // Manual panning: crop central part of grid adjusted by offsetX/offsetY
-        int16_t cropX = (tileWidth - mapScrWidth) / 2 + offsetX;
-        int16_t cropY = (tileHeight - mapScrHeight) / 2 + offsetY;
+        // Manual panning: crop central part of grid adjusted by displayOffsetX/offsetY
+        int16_t cropX = (tileWidth - mapScrWidth) / 2 + displayOffsetX;
+        int16_t cropY = (tileHeight - mapScrHeight) / 2 + displayOffsetY;
         mapTempSprite.pushSprite(&mapSprite, -cropX, -cropY);
     }
 
@@ -744,6 +752,10 @@ void Maps::resetScrollState()
     lastTileY = 0;
     offsetX = 0;
     offsetY = 0;
+    displayOffsetX = 0;
+    displayOffsetY = 0;
+    pendingDx = 0;
+    pendingDy = 0;
     velocityX = 0;
     velocityY = 0;
 }
@@ -756,21 +768,36 @@ void Maps::resetScrollState()
  */
 void Maps::scrollMap(int16_t dx, int16_t dy)
 {
+    pendingDx += dx;
+    pendingDy += dy;
+
+    if (xSemaphoreTake(mapMutex, pdMS_TO_TICKS(10)) != pdTRUE)
+        return;
+
+    dx = pendingDx;
+    dy = pendingDy;
+    pendingDx = 0;
+    pendingDy = 0;
+
     if (dx != 0 || dy != 0)
     {
-        const int16_t softLimit = 128;
-        if (abs(Maps::offsetX) > softLimit && ((dx > 0 && Maps::offsetX > 0) || (dx < 0 && Maps::offsetX < 0)))
-            dx /= 2;
-        if (abs(Maps::offsetY) > softLimit && ((dy > 0 && Maps::offsetY > 0) || (dy < 0 && Maps::offsetY < 0)))
-            dy /= 2;
+        const int16_t threshold = 128;
+        // Elastic factor: reduces movement as we approach or exceed the threshold
+        float factorX = 1.0f;
+        float factorY = 1.0f;
+        
+        if (abs(Maps::offsetX) > threshold / 2)
+            factorX = 1.0f - (float)abs(Maps::offsetX) / (float)tileWidth;
+        if (abs(Maps::offsetY) > threshold / 2)
+            factorY = 1.0f - (float)abs(Maps::offsetY) / (float)tileHeight;
 
-        Maps::offsetX += dx;
-        Maps::offsetY += dy;
+        Maps::offsetX += (int16_t)((float)dx * factorX);
+        Maps::offsetY += (int16_t)((float)dy * factorY);
         Maps::followGps = false;
     }
 
-    const int16_t maxOffsetX = (tileWidth - mapScrWidth) / 2 - 10;
-    const int16_t maxOffsetY = (tileHeight - mapScrHeight) / 2 - 10;
+    const int16_t maxOffsetX = (tileWidth - mapScrWidth) / 2 - 5;
+    const int16_t maxOffsetY = (tileHeight - mapScrHeight) / 2 - 5;
 
     if (Maps::offsetX > maxOffsetX)
         Maps::offsetX = maxOffsetX;
@@ -789,26 +816,26 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
     #endif
     const int16_t tileSize = Maps::mapTileSize;
 
-    if (Maps::offsetX <= -threshold)
+    while (Maps::offsetX <= -threshold)
     {
         tileX--;
         Maps::offsetX += tileSize;
         scrollUpdated = true;
     }
-    else if (Maps::offsetX >= threshold)
+    while (Maps::offsetX >= threshold)
     {
         tileX++;
         Maps::offsetX -= tileSize;
         scrollUpdated = true;
     }
 
-    if (Maps::offsetY <= -threshold)
+    while (Maps::offsetY <= -threshold)
     {
         tileY--;
         Maps::offsetY += tileSize;
         scrollUpdated = true;
     }
-    else if (Maps::offsetY >= threshold)
+    while (Maps::offsetY >= threshold)
     {
         tileY++;
         Maps::offsetY -= tileSize;
@@ -822,12 +849,29 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
         Maps::panMap(deltaTileX, deltaTileY);
         if (!mapSet.vectorMap)
             Maps::preloadTiles(deltaTileX, deltaTileY);
+        else
+            updateMap(); // Force vector re-render on tile threshold
 
         generateMap(zoomLevel);
-        lastTileX = tileX;
-        lastTileY = tileY;
         Maps::redrawMap = true;
     }
+
+    if (pendingTiles.empty())
+    {
+        displayOffsetX = offsetX;
+        displayOffsetY = offsetY;
+        lastTileX = tileX;
+        lastTileY = tileY;
+    }
+    else
+    {
+        // When rendering is pending (after a swap), we stay at the virtual relative position
+        // to avoid jumping until the new grid is complete.
+        displayOffsetX = offsetX + (tileX - lastTileX) * mapTileSize;
+        displayOffsetY = offsetY + (tileY - lastTileY) * mapTileSize;
+    }
+    
+    xSemaphoreGive(mapMutex);
 }
 
  /**
@@ -1462,10 +1506,8 @@ void Maps::renderNavText(const FeatureRef& ref, TFT_eSprite& map, std::vector<La
  */
 bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT_eSprite& map)
 {
-    const double latRad = (double)centerLat * M_PI / 180.0;
-    const double n = pow(2.0, (double)zoom);
-    const int centerTileIdxX = (int)floorf((float)((centerLon + 180.0) / 360.0 * n));
-    const int centerTileIdxY = (int)floorf((float)((1.0 - log(tan(latRad) + 1.0 / cos(latRad)) / M_PI) / 2.0 * n));
+    const uint32_t centerTileIdxX = lon2tilex(centerLon, zoom);
+    const uint32_t centerTileIdxY = lat2tiley(centerLat, zoom);
     const int8_t gridOffset = tilesGrid / 2;
     navTlTileX_ = (float)(centerTileIdxX - gridOffset);
     navTlTileY_ = (float)(centerTileIdxY - gridOffset);
@@ -1473,11 +1515,8 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
     navLastZoom_ = zoom;
     if (xSemaphoreTake(mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
     {
-        if (zoomChanged)
-        {
-            map.fillSprite(0xF7BE);
-            redrawMap = true;
-        }
+        map.fillSprite(0xF7BE);
+        redrawMap = true;
         pendingTiles.clear();
         if (tilesGrid == 3)
         {
