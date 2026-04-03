@@ -100,18 +100,9 @@ void hideMapWidgets()
 }
 
 /**
- * @brief Screen state tracking structure for performance optimization.
- *
- * @details Stores previous values of screen data to prevent unnecessary LVGL updates.
- * Implements dirty flag pattern to only redraw when values actually change.
+ * @brief Global heading state for map observer filtering.
  */
-struct ScreenState
-{
-    int lastHeading = -1;
-    int16_t lastOffsetX = 0;
-    int16_t lastOffsetY = 0;
-    bool needsRedraw = true;
-};ScreenState screenState;
+static int global_last_heading = -1;
 
 /**
  * @brief Async callback to delegate map redrawing to UI thread (Core 1)
@@ -157,9 +148,9 @@ static void map_heading_observer_cb(lv_observer_t *observer, lv_subject_t *subje
 
     int32_t newHeading = lv_subject_get_int(subject);
     
-    if (abs(newHeading - screenState.lastHeading) > 1)
+    if (abs(newHeading - global_last_heading) > 1)
     {
-        screenState.lastHeading = newHeading;
+        global_last_heading = newHeading;
         lv_async_call(async_map_update_cb, NULL);
     }
 }
@@ -200,7 +191,6 @@ void getActTile(lv_event_t *event)
 {
     isScrolled = true;
     mapView.redrawMap = true;
-    screenState.needsRedraw = true;
     if (activeTile == MAP)
     {
         mapView.createMapScrSprites();
@@ -229,7 +219,6 @@ void scrollTile(lv_event_t *event)
     isScrolled = false;
     mapView.redrawMap = false;
     mapView.deleteMapScrSprites();
-    screenState.needsRedraw = true;
 }
 
 /**
@@ -285,7 +274,6 @@ void updateMap(lv_event_t *event)
         lastDispX = mapView.offsetX;
         lastDispY = mapView.offsetY;
         lastRenderedHeading = currentHeading;
-        screenState.lastHeading = currentHeading;
         xEventGroupClearBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
         mapView.displayMap();
         lv_canvas_set_buffer(mapCanvas, mapView.mapBuffer, mapView.mapScrWidth, mapView.mapScrHeight, LV_COLOR_FORMAT_RGB565_SWAPPED);
@@ -345,7 +333,6 @@ void mapToolBarEvent(lv_event_t *event)
         mapView.centerOnGps(gps.gpsData.latitude, gps.gpsData.longitude);
         lv_subject_set_int(&subject_map_state, MAP_MODE_FOLLOW);
         mapView.updateMap();
-        screenState.needsRedraw = true;
         lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
         lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
     }
@@ -387,7 +374,6 @@ void map_inertia_timer_cb(lv_timer_t * t)
         if (abs(mapView.velocityY) < 0.1f)
             mapView.velocityY = 0;
 
-        screenState.needsRedraw = true;
         lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
     }
     else
@@ -457,7 +443,6 @@ void scrollMapEvent(lv_event_t *event)
                     float weight = 0.7f;
                     mapView.velocityX = mapView.velocityX * (1.0f - weight) + (-(float)dx / (float)dt) * weight;
                     mapView.velocityY = mapView.velocityY * (1.0f - weight) + (-(float)dy / (float)dt) * weight;
-                    screenState.needsRedraw = true;
                     last_x = p.x;
                     last_y = p.y;
                     last_time = current_time;
@@ -504,7 +489,6 @@ void zoomEvent(lv_event_t *event)
         zoom--;
     
     mapView.updateMap();
-    screenState.needsRedraw = true;
     lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
     lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
 }
