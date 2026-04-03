@@ -10,12 +10,18 @@
 #include "tasks.hpp"
 #include "lv_subjects.hpp"
 
+#define MAP_MODE_FOLLOW 0
+#define MAP_MODE_MANUAL 1
+#define MAP_MODE_INERTIA 2
+
 bool isMainScreen = false;
 bool isScrolled = true;      
 bool isScrollingMap = false;  
 bool canScrollMap = false;   
 uint8_t activeTile = 0;
 uint8_t gpxAction = WPT_NONE;
+
+lv_timer_t *map_inertia_timer = NULL;
 
 extern uint32_t DOUBLE_TOUCH_EVENT;extern Compass compass;
 extern Gps gps;
@@ -128,7 +134,7 @@ static void async_map_update_cb(void * user_data)
  */
 static void map_position_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
 {
-    if (activeTile != MAP || isScrollingMap || !mapView.followGps)
+    if (activeTile != MAP || lv_subject_get_int(&subject_map_state) != MAP_MODE_FOLLOW)
         return;
 
     lv_async_call(async_map_update_cb, NULL);
@@ -146,7 +152,7 @@ static void map_position_observer_cb(lv_observer_t *observer, lv_subject_t *subj
  */
 static void map_heading_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
 {
-    if (activeTile != MAP || canMoveWidget || isScrollingMap)
+    if (activeTile != MAP || canMoveWidget || lv_subject_get_int(&subject_map_state) != MAP_MODE_FOLLOW)
         return;
 
     int32_t newHeading = lv_subject_get_int(subject);
@@ -236,21 +242,7 @@ void updateMainScreen(lv_timer_t *t)
     if (isScrolled && isMainScreen || isScrollingMap)
     {
         switch (activeTile)
-        {            case MAP:
-                if (!canMoveWidget && (mapView.offsetX != screenState.lastOffsetX || mapView.offsetY != screenState.lastOffsetY || mapView.redrawMap))
-                {
-                    mapView.scrollMap(0, 0);
-                    screenState.lastOffsetX = mapView.offsetX;
-                    screenState.lastOffsetY = mapView.offsetY;
-                    screenState.needsRedraw = true;
-                }
-                
-                if (!canMoveWidget && screenState.needsRedraw)
-                {
-                    lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
-                    screenState.needsRedraw = false;
-                }
-                break;
+        {
             case SATTRACK:
                 static uint8_t lastSats = 0;
                 if (gps.isDOPChanged() || gps.hasLocationChange() || gps.gpsData.satInView != lastSats)
@@ -274,56 +266,26 @@ void updateMainScreen(lv_timer_t *t)
  */
 void updateMap(lv_event_t *event)
 {
-    static uint32_t last_update_time = 0;
-    uint32_t current_time = (uint32_t)(esp_timer_get_time() / 1000);
-    uint32_t dt = (last_update_time > 0) ? (current_time - last_update_time) : 0;
-    last_update_time = current_time;
-
-    if (!isScrollingMap && (mapView.velocityX != 0 || mapView.velocityY != 0))
-    {
-        if (dt > 0 && dt < 100) 
-        {
-            float dx = mapView.velocityX * dt;
-            float dy = mapView.velocityY * dt;
-            mapView.scrollMap((int16_t)dx, (int16_t)dy);
-            float currentFriction = mapView.isRendering() ? 0.85f : mapView.friction;
-            mapView.velocityX *= currentFriction;
-            mapView.velocityY *= currentFriction;
-            if (abs(mapView.velocityX) < 0.01f)
-                mapView.velocityX = 0;
-            if (abs(mapView.velocityY) < 0.01f)
-                mapView.velocityY = 0;
-            screenState.needsRedraw = true;
-        }
-    }
-
-    static uint32_t lastRotTime = 0;
-    static float lastRotHeading = -1.0f;
-    if (mapView.followGps && !isScrollingMap)
-    {
-        float currHead = (float)lv_subject_get_int(&subject_heading);
-        uint32_t now = millis();
-        if (!(xEventGroupGetBits(mapView.mapEventGroup) & Maps::MAP_EVENT_START))
-        {
-            if (gps.hasLocationChange() || (now - lastRotTime > 50 && abs(currHead - lastRotHeading) > 1.0f))
-            {
-                mapView.redrawMap = true;
-                xEventGroupSetBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
-                lastRotTime = now; 
-                lastRotHeading = currHead;
-            }
-        }
-    }
     mapView.generateMap(zoom);
     if (mapView.redrawMap && !mapSet.vectorMap)
         xEventGroupSetBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
 
     static int16_t lastDispX = -32768;
     static int16_t lastDispY = -32768;
-    if (mapView.offsetX != lastDispX || mapView.offsetY != lastDispY || (xEventGroupGetBits(mapView.mapEventGroup) & Maps::MAP_EVENT_DONE))
+    static int32_t lastRenderedHeading = -1;
+    
+    int32_t currentHeading = lv_subject_get_int(&subject_heading);
+    bool headingChanged = (abs(currentHeading - lastRenderedHeading) > 1);
+
+    if (mapView.offsetX != lastDispX || 
+        mapView.offsetY != lastDispY || 
+        (headingChanged && mapView.followGps) ||
+        (xEventGroupGetBits(mapView.mapEventGroup) & Maps::MAP_EVENT_DONE))
     {
         lastDispX = mapView.offsetX;
         lastDispY = mapView.offsetY;
+        lastRenderedHeading = currentHeading;
+        screenState.lastHeading = currentHeading;
         xEventGroupClearBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
         mapView.displayMap();
         lv_canvas_set_buffer(mapCanvas, mapView.mapBuffer, mapView.mapScrWidth, mapView.mapScrHeight, LV_COLOR_FORMAT_RGB565_SWAPPED);
@@ -336,7 +298,8 @@ void updateMap(lv_event_t *event)
         lv_label_set_text_fmt(mapSpeedLabel, "%3d", gps.gpsData.speed);
     if (mapSet.showMapScale)
         lv_label_set_text_fmt(scaleLabel, "%s", map_scale[zoom]);
-    }
+}
+
 /**
  * @brief Update Satellite Tracking.
  *
@@ -380,9 +343,11 @@ void mapToolBarEvent(lv_event_t *event)
         lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
         mapView.centerOnGps(gps.gpsData.latitude, gps.gpsData.longitude);
+        lv_subject_set_int(&subject_map_state, MAP_MODE_FOLLOW);
         mapView.updateMap();
         screenState.needsRedraw = true;
         lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
     }
     else
     {
@@ -395,6 +360,40 @@ void mapToolBarEvent(lv_event_t *event)
             lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
         else
             lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+/**
+ * @brief Timer callback for map inertia motor.
+ *
+ * @details Calculates the inertia movement based on velocity and applies friction.
+ *          Updates the map position and triggers redrawing.
+ */
+void map_inertia_timer_cb(lv_timer_t * t)
+{
+    float dt = 20.0f; // Fixed period defined in createMainScr()
+    if (mapView.velocityX != 0 || mapView.velocityY != 0)
+    {
+        float dx = mapView.velocityX * dt;
+        float dy = mapView.velocityY * dt;
+        mapView.scrollMap((int16_t)dx, (int16_t)dy);
+
+        float currentFriction = mapView.isRendering() ? 0.85f : mapView.friction;
+        mapView.velocityX *= currentFriction;
+        mapView.velocityY *= currentFriction;
+
+        if (abs(mapView.velocityX) < 0.1f)
+            mapView.velocityX = 0;
+        if (abs(mapView.velocityY) < 0.1f)
+            mapView.velocityY = 0;
+
+        screenState.needsRedraw = true;
+        lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
+    }
+    else
+    {
+        lv_timer_pause(t);
+        lv_subject_set_int(&subject_map_state, MAP_MODE_MANUAL);
     }
 }
 
@@ -429,6 +428,9 @@ void scrollMapEvent(lv_event_t *event)
                 isScrollingMap = true;
                 mapView.velocityX = 0;
                 mapView.velocityY = 0;
+                lv_subject_set_int(&subject_map_state, MAP_MODE_MANUAL);
+                if (map_inertia_timer != NULL)
+                    lv_timer_pause(map_inertia_timer);
                 break;
 
             case LV_EVENT_PRESSING:
@@ -459,19 +461,26 @@ void scrollMapEvent(lv_event_t *event)
                     last_x = p.x;
                     last_y = p.y;
                     last_time = current_time;
+                    lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
                 }
                 break;
             }
             case LV_EVENT_RELEASED:
-                break;
             case LV_EVENT_PRESS_LOST:
                 lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
                 isScrollingMap = false;
                 dragStarted = false;
-                if (abs(mapView.velocityX) < 0.1f)
+                if (abs(mapView.velocityX) > 0.1f || abs(mapView.velocityY) > 0.1f)
+                {
+                    lv_subject_set_int(&subject_map_state, MAP_MODE_INERTIA);
+                    if (map_inertia_timer != NULL)
+                        lv_timer_resume(map_inertia_timer);
+                }
+                else
+                {
                     mapView.velocityX = 0;
-                if (abs(mapView.velocityY) < 0.1f)
                     mapView.velocityY = 0;
+                }
                 break;
             default: 
                 break;
@@ -612,6 +621,9 @@ void createMainScr()
     lv_subject_add_observer_obj(&subject_heading, nav_data_observer_cb, navTile, NULL);
     lv_obj_add_event_cb(navTile, updateNavEvent, LV_EVENT_VALUE_CHANGED, NULL);
     satelliteScr(satTrackTile);
+    map_inertia_timer = lv_timer_create(map_inertia_timer_cb, 20, NULL);
+    lv_timer_pause(map_inertia_timer);
+    
     #ifdef BOARD_HAS_PSRAM
         #ifndef TDECK_ESP32S3
             createConstCanvas(satTrackTile);

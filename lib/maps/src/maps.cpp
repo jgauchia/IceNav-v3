@@ -671,9 +671,9 @@ void Maps::displayMap()
     }
     else
     {
-        // Manual panning: crop central part of grid adjusted by offsetX/offsetY
-        int16_t cropX = (tileWidth - mapScrWidth) / 2 + offsetX;
-        int16_t cropY = (tileHeight - mapScrHeight) / 2 + offsetY;
+        // Manual panning: crop central part of grid adjusted by displayOffsetX/offsetY
+        int16_t cropX = (tileWidth - mapScrWidth) / 2 + displayOffsetX;
+        int16_t cropY = (tileHeight - mapScrHeight) / 2 + displayOffsetY;
         mapTempSprite.pushSprite(&mapSprite, -cropX, -cropY);
     }
 
@@ -744,6 +744,8 @@ void Maps::resetScrollState()
     lastTileY = 0;
     offsetX = 0;
     offsetY = 0;
+    displayOffsetX = 0;
+    displayOffsetY = 0;
     velocityX = 0;
     velocityY = 0;
 }
@@ -756,21 +758,28 @@ void Maps::resetScrollState()
  */
 void Maps::scrollMap(int16_t dx, int16_t dy)
 {
+    if (xSemaphoreTake(mapMutex, pdMS_TO_TICKS(50)) != pdTRUE)
+        return;
+
     if (dx != 0 || dy != 0)
     {
-        const int16_t softLimit = 128;
-        if (abs(Maps::offsetX) > softLimit && ((dx > 0 && Maps::offsetX > 0) || (dx < 0 && Maps::offsetX < 0)))
-            dx /= 2;
-        if (abs(Maps::offsetY) > softLimit && ((dy > 0 && Maps::offsetY > 0) || (dy < 0 && Maps::offsetY < 0)))
-            dy /= 2;
+        const int16_t threshold = 128;
+        // Elastic factor: reduces movement as we approach or exceed the threshold
+        float factorX = 1.0f;
+        float factorY = 1.0f;
+        
+        if (abs(Maps::offsetX) > threshold / 2)
+            factorX = 1.0f - (float)abs(Maps::offsetX) / (float)tileWidth;
+        if (abs(Maps::offsetY) > threshold / 2)
+            factorY = 1.0f - (float)abs(Maps::offsetY) / (float)tileHeight;
 
-        Maps::offsetX += dx;
-        Maps::offsetY += dy;
+        Maps::offsetX += (int16_t)((float)dx * factorX);
+        Maps::offsetY += (int16_t)((float)dy * factorY);
         Maps::followGps = false;
     }
 
-    const int16_t maxOffsetX = (tileWidth - mapScrWidth) / 2 - 10;
-    const int16_t maxOffsetY = (tileHeight - mapScrHeight) / 2 - 10;
+    const int16_t maxOffsetX = (tileWidth - mapScrWidth) / 2 - 5;
+    const int16_t maxOffsetY = (tileHeight - mapScrHeight) / 2 - 5;
 
     if (Maps::offsetX > maxOffsetX)
         Maps::offsetX = maxOffsetX;
@@ -824,10 +833,25 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
             Maps::preloadTiles(deltaTileX, deltaTileY);
 
         generateMap(zoomLevel);
-        lastTileX = tileX;
-        lastTileY = tileY;
         Maps::redrawMap = true;
     }
+
+    if (pendingTiles.empty())
+    {
+        displayOffsetX = offsetX;
+        displayOffsetY = offsetY;
+        lastTileX = tileX;
+        lastTileY = tileY;
+    }
+    else
+    {
+        // When rendering is pending (after a swap), we stay at the virtual relative position
+        // to avoid jumping until the new grid is complete.
+        displayOffsetX = offsetX + (tileX - lastTileX) * mapTileSize;
+        displayOffsetY = offsetY + (tileY - lastTileY) * mapTileSize;
+    }
+    
+    xSemaphoreGive(mapMutex);
 }
 
  /**

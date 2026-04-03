@@ -26,6 +26,7 @@ extern lv_subject_t subject_sats;
 extern lv_subject_t subject_fix_mode;
 extern lv_subject_t subject_is_fixed;
 extern lv_subject_t subject_wifi;
+extern lv_subject_t subject_map_state;
 
 #ifdef ENABLE_TEMP
 extern lv_subject_t subject_temp;

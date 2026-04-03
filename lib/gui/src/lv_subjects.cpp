@@ -22,6 +22,7 @@ lv_subject_t subject_sats;
 lv_subject_t subject_fix_mode;
 lv_subject_t subject_is_fixed;
 lv_subject_t subject_wifi;
+lv_subject_t subject_map_state;
 
 #ifdef ENABLE_TEMP
 lv_subject_t subject_temp;
@@ -47,6 +48,7 @@ void init_lv_subjects()
     lv_subject_init_int(&subject_fix_mode, 0);
     lv_subject_init_int(&subject_is_fixed, 0);
     lv_subject_init_int(&subject_wifi, 0);
+    lv_subject_init_int(&subject_map_state, 0);
     
     #ifdef ENABLE_TEMP
     lv_subject_init_int(&subject_temp, 0);
