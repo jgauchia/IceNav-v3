@@ -346,11 +346,25 @@ void Maps::generateMap(uint8_t zoom)
         resetScrollState();
     }
 
-    const float lat = Maps::followGps ? gps.gpsData.latitude : Maps::currentMapTile.lat;
-    const float lon = Maps::followGps ? gps.gpsData.longitude : Maps::currentMapTile.lon;
+    const float baseLat = Maps::followGps ? gps.gpsData.latitude : Maps::currentMapTile.lat;
+    const float baseLon = Maps::followGps ? gps.gpsData.longitude : Maps::currentMapTile.lon;
 
     if (mapSet.vectorMap)
     {
+        float lat = baseLat;
+        float lon = baseLon;
+
+        // Apply sub-tile precision for NAV manual panning
+        if (!Maps::followGps)
+        {
+            float scale = static_cast<float>(1 << zoom);
+            float fractionalTileX = static_cast<float>(Maps::currentMapTile.tilex) - ((float)Maps::displayOffsetX / 256.0f);
+            float fractionalTileY = static_cast<float>(Maps::currentMapTile.tiley) - ((float)Maps::displayOffsetY / 256.0f);
+            lon = fractionalTileX * 360.0f / scale - 180.0f;
+            float n = static_cast<float>(M_PI) * (1.0f - 2.0f * fractionalTileY / scale);
+            lat = 180.0f / static_cast<float>(M_PI) * atanf(sinhf(n));
+        }
+
         const double latRad = (double)lat * M_PI / 180.0;
         const double n = pow(2.0, (double)zoom);
         const int centerTileIdxX = (int)floorf((float)((lon + 180.0) / 360.0 * n));
@@ -360,6 +374,9 @@ void Maps::generateMap(uint8_t zoom)
         const int32_t currentTlY = (int32_t)centerTileIdxY - gridOffset;
         bool zoomChanged = (zoom != navLastZoom_);
         bool tileChanged = (currentTlX != (int32_t)navTlTileX_ || currentTlY != (int32_t)navTlTileY_);
+
+        if (zoomChanged)
+            navNeedsRender_ = true;
 
         if (trackNeedsRedraw)
         {
@@ -387,8 +404,8 @@ void Maps::generateMap(uint8_t zoom)
         return;
     }
 
-    const uint32_t centerTileIdxX = lon2tilex(lon, zoom);
-    const uint32_t centerTileIdxY = lat2tiley(lat, zoom);
+    const uint32_t centerTileIdxX = lon2tilex(baseLon, zoom);
+    const uint32_t centerTileIdxY = lat2tiley(baseLat, zoom);
 
     if (centerTileIdxX != Maps::oldMapTile.tilex || centerTileIdxY != Maps::oldMapTile.tiley || zoom != Maps::oldMapTile.zoom)
     {
@@ -601,6 +618,8 @@ void Maps::mapRenderTask(void* pvParameters)
                 xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
                 xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
                 xSemaphoreGive(instance->mapMutex);
+                extern void triggerMapRedraw();
+                triggerMapRedraw();
             }
         }
         vTaskDelay(1);

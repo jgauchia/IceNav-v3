@@ -114,6 +114,14 @@ static void async_map_update_cb(void * user_data)
 }
 
 /**
+ * @brief Thread-safe trigger for map redrawing from background tasks
+ */
+void triggerMapRedraw()
+{
+    lv_async_call(async_map_update_cb, NULL);
+}
+
+/**
  * @brief Observer callback for map position updates (GPS)
  *
  * @details Triggers map redraws automatically when position changes,
