@@ -58,10 +58,10 @@ Maps::Maps() : navLastZoom_(0),
     ringEndsCache.reserve(1024);
     placedLabelsCache.reserve(1024);
     navDataCache.reserve(NAV_DATA_CACHE_SIZE);
-    mapMutex = xSemaphoreCreateMutex();
+    mapMutex = xSemaphoreCreateRecursiveMutex();
     mapEventGroup = xEventGroupCreate();
-    xTaskCreatePinnedToCore(mapRenderTask, "MapRenderTask", 8192, this, 2, &mapRenderTaskHandle, 1);
-}
+    xTaskCreatePinnedToCore(mapRenderTask, "MapRenderTask", 8192, this, 2, &mapRenderTaskHandle, 0);
+    }
 
 /**
  * @brief Get pixel X position from longitude
@@ -364,12 +364,12 @@ void Maps::generateMap(uint8_t zoom)
 
         if (trackNeedsRedraw)
         {
-            if (xSemaphoreTake(mapMutex, pdMS_TO_TICKS(100)) == pdTRUE)
+            if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(100)) == pdTRUE)
             {
                 drawTrack(mapTempSprite);
                 trackNeedsRedraw = false;
                 Maps::redrawMap = true;
-                xSemaphoreGive(mapMutex);
+                xSemaphoreGiveRecursive(mapMutex);
             }
         }
 
@@ -509,9 +509,16 @@ void Maps::mapRenderTask(void* pvParameters)
     {
         if (!instance->pendingTiles.empty())
         {
-            if (xSemaphoreTake(instance->mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
+            if (xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
             {
-                bool fullReset = (instance->zoomLevel != lastZoom) || (instance->pendingTiles.size() >= (tilesGrid * tilesGrid));
+                if (instance->mapTempSprite.getBuffer() == nullptr)
+                {
+                    xSemaphoreGiveRecursive(instance->mapMutex);
+                    vTaskDelay(pdMS_TO_TICKS(100));
+                    continue;
+                }
+                bool zoomChanged = (instance->zoomLevel != lastZoom);
+                bool fullReset = zoomChanged || (instance->pendingTiles.size() >= (tilesGrid * tilesGrid));
                 lastZoom = instance->zoomLevel;
 
                 if (fullReset)
@@ -519,7 +526,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_DONE | MAP_EVENT_ERROR);
                     xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_START);
                     
-                    if (instance->zoomLevel != lastZoom)
+                    if (zoomChanged)
                     {
                         for (auto& entry : instance->navDataCache)
                             heap_caps_free(entry.data);
@@ -533,20 +540,49 @@ void Maps::mapRenderTask(void* pvParameters)
                         instance->layers[i].clear();
                 }
 
+                bool aborted = false;
                 while (!instance->pendingTiles.empty())
                 {
                     PendingTile t = instance->pendingTiles.back();
                     instance->pendingTiles.pop_back();
                     if (t.type == TILE_NAV)
+                    {
                         instance->renderNavTile(t.x, t.y, instance->zoomLevel, t.screenX, t.screenY, instance->mapTempSprite);
+                        xSemaphoreGiveRecursive(instance->mapMutex);
+                        vTaskDelay(1);
+                        if (xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE)
+                        {
+                            aborted = true;
+                            break;
+                        }
+                        if (instance->pendingTiles.size() >= (tilesGrid * tilesGrid))
+                        {
+                            aborted = true;
+                            break; // We have the mutex, outer block will release it
+                        }
+                    }
                     else if (t.type == TILE_PNG)
                     {
                         instance->renderPngTile(t.x, t.y, instance->zoomLevel, t.screenX, t.screenY, instance->mapTempSprite);
-                        xSemaphoreGive(instance->mapMutex);
+                        xSemaphoreGiveRecursive(instance->mapMutex);
                         vTaskDelay(1);
-                        if (xSemaphoreTake(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE)
+                        if (xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE)
+                        {
+                            aborted = true;
                             break;
+                        }
+                        if (instance->pendingTiles.size() >= (tilesGrid * tilesGrid))
+                        {
+                            aborted = true;
+                            break; // We have the mutex, outer block will release it
+                        }
                     }
+                }
+
+                if (aborted)
+                {
+                    xSemaphoreGiveRecursive(instance->mapMutex);
+                    continue;
                 }
 
                 if (!mapSet.vectorMap)
@@ -555,7 +591,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     instance->redrawMap = true;
                     xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
                     xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
-                    xSemaphoreGive(instance->mapMutex);
+                    xSemaphoreGiveRecursive(instance->mapMutex);
                     continue;
                 }
 
@@ -564,9 +600,9 @@ void Maps::mapRenderTask(void* pvParameters)
                 uint32_t lastYield = millis();
                 uint32_t loopCounter = 0;
 
-                for (uint8_t pass = 1; pass <= 2; pass++)
+                for (uint8_t pass = 1; pass <= 2 && !aborted; pass++)
                 {
-                    for (int i = 0; i < 16; i++)
+                    for (int i = 0; i < 16 && !aborted; i++)
                     {
                         const auto& layer = instance->layers[i];
                         if (layer.empty())
@@ -580,7 +616,18 @@ void Maps::mapRenderTask(void* pvParameters)
                                 if (now - lastYield > 20)
                                 {
                                     instance->mapTempSprite.endWrite();
+                                    xSemaphoreGiveRecursive(instance->mapMutex);
                                     vTaskDelay(1);
+                                    if (xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE)
+                                    {
+                                        aborted = true;
+                                        break;
+                                    }
+                                    if (!instance->pendingTiles.empty())
+                                    {
+                                        aborted = true;
+                                        break;
+                                    }
                                     instance->mapTempSprite.startWrite();
                                     lastYield = millis();
                                 }
@@ -591,6 +638,13 @@ void Maps::mapRenderTask(void* pvParameters)
                         }
                         esp_task_wdt_reset();
                     }
+                }
+
+                if (aborted)
+                {
+                    if (xSemaphoreGetMutexHolder(instance->mapMutex) == xTaskGetCurrentTaskHandle())
+                        xSemaphoreGiveRecursive(instance->mapMutex);
+                    continue;
                 }
 
                 instance->mapTempSprite.endWrite();
@@ -606,7 +660,7 @@ void Maps::mapRenderTask(void* pvParameters)
                 instance->redrawMap = true;
                 xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
                 xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
-                xSemaphoreGive(instance->mapMutex);
+                xSemaphoreGiveRecursive(instance->mapMutex);
                 extern void triggerMapRedraw();
                 triggerMapRedraw();
             }
@@ -647,7 +701,7 @@ void Maps::displayMap()
         return;
     }
 
-    if (xSemaphoreTake(mapMutex, pdMS_TO_TICKS(50)) != pdTRUE)
+    if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(50)) != pdTRUE)
         return;
 
     uint16_t mapHeading = 0;
@@ -686,7 +740,7 @@ void Maps::displayMap()
     }
 
     tft.endWrite();
-    xSemaphoreGive(mapMutex);
+    xSemaphoreGiveRecursive(mapMutex);
 }
 
 /**
@@ -771,7 +825,7 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
     pendingDx += dx;
     pendingDy += dy;
 
-    if (xSemaphoreTake(mapMutex, pdMS_TO_TICKS(10)) != pdTRUE)
+    if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(10)) != pdTRUE)
         return;
 
     dx = pendingDx;
@@ -871,7 +925,7 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
         displayOffsetY = offsetY + (tileY - lastTileY) * mapTileSize;
     }
     
-    xSemaphoreGive(mapMutex);
+    xSemaphoreGiveRecursive(mapMutex);
 }
 
  /**
@@ -1513,7 +1567,7 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
     navTlTileY_ = (float)(centerTileIdxY - gridOffset);
     bool zoomChanged = (zoom != navLastZoom_);
     navLastZoom_ = zoom;
-    if (xSemaphoreTake(mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
+    if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
     {
         map.fillSprite(0xF7BE);
         redrawMap = true;
@@ -1538,7 +1592,7 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
                 }
             }
         }
-        xSemaphoreGive(mapMutex);
+        xSemaphoreGiveRecursive(mapMutex);
     }
     return true;
 }

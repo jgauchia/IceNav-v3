@@ -109,8 +109,9 @@ static int global_last_heading = -1;
  */
 static void async_map_update_cb(void * user_data)
 {
-    if (mapTile != NULL)
-        lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
+    if (!isMainScreen || mapCanvas == NULL || mapTile == NULL)
+        return;
+    lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
 }
 
 /**
@@ -263,6 +264,9 @@ void updateMainScreen(lv_timer_t *t)
  */
 void updateMap(lv_event_t *event)
 {
+    if (!isMainScreen || mapCanvas == NULL)
+        return;
+
     mapView.generateMap(zoom);
     if (mapView.redrawMap && !mapSet.vectorMap)
         xEventGroupSetBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
@@ -563,9 +567,6 @@ void createMainScr()
     altitudeWidget(compassTile);
     speedWidget(compassTile);
     sunWidget(compassTile);
-    lv_subject_add_observer_obj(&subject_heading, map_heading_observer_cb, mapTile, NULL);
-    lv_subject_add_observer_obj(&subject_lat, map_position_observer_cb, mapTile, NULL);
-    lv_subject_add_observer_obj(&subject_lon, map_position_observer_cb, mapTile, NULL);
     lv_obj_add_event_cb(sunriseLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(sunsetLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
     createMapCanvas(mapTile);
@@ -575,6 +576,9 @@ void createMainScr()
     mapCompassWidget(mapTile);
     mapScaleWidget(mapTile);
     turnByTurnWidget(mapTile);
+    lv_subject_add_observer_obj(&subject_heading, map_heading_observer_cb, mapTile, NULL);
+    lv_subject_add_observer_obj(&subject_lat, map_position_observer_cb, mapTile, NULL);
+    lv_subject_add_observer_obj(&subject_lon, map_position_observer_cb, mapTile, NULL);
     btnZoomOut = lv_img_create(mapTile);
     lv_img_set_src(btnZoomOut, zoomOutIconFile);
     lv_img_set_zoom(btnZoomOut,buttonScale);
