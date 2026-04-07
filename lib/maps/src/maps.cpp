@@ -595,6 +595,9 @@ void Maps::mapRenderTask(void* pvParameters)
                     continue;
                 }
 
+                if (instance->mapTempSprite.getBuffer())
+                    instance->mapTempSprite.fillSprite(0xF7BE);
+
                 instance->placedLabelsCache.clear();
                 instance->mapTempSprite.startWrite();
                 uint32_t lastYield = millis();
@@ -1569,7 +1572,6 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
     navLastZoom_ = zoom;
     if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
     {
-        map.fillSprite(0xF7BE);
         redrawMap = true;
         pendingTiles.clear();
         if (tilesGrid == 3)
