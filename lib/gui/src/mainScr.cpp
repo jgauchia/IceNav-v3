@@ -109,9 +109,40 @@ static int global_last_heading = -1;
  */
 static void async_map_update_cb(void * user_data)
 {
-    if (!isMainScreen || mapCanvas == NULL || mapTile == NULL)
+    if (!isMainScreen || mapCanvas == NULL)
         return;
-    lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
+
+    mapView.generateMap(zoom);
+    if (mapView.redrawMap && !mapSet.vectorMap)
+        xEventGroupSetBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
+
+    static int16_t lastDispX = -32768;
+    static int16_t lastDispY = -32768;
+    static int32_t lastRenderedHeading = -1;
+    
+    int32_t currentHeading = lv_subject_get_int(&subject_heading);
+    bool headingChanged = (abs(currentHeading - lastRenderedHeading) > 1);
+
+    if (mapView.offsetX != lastDispX || 
+        mapView.offsetY != lastDispY || 
+        (headingChanged && mapView.followGps) ||
+        (xEventGroupGetBits(mapView.mapEventGroup) & Maps::MAP_EVENT_DONE))
+    {
+        lastDispX = mapView.offsetX;
+        lastDispY = mapView.offsetY;
+        lastRenderedHeading = currentHeading;
+        xEventGroupClearBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
+        mapView.displayMap();
+        lv_canvas_set_buffer(mapCanvas, mapView.mapBuffer, mapView.mapScrWidth, mapView.mapScrHeight, LV_COLOR_FORMAT_RGB565_SWAPPED);
+        mapView.redrawMap = false;
+    }
+
+    lv_obj_set_pos(mapCanvas, 0, 0);
+
+    if (mapSet.showMapSpeed)
+        lv_label_set_text_fmt(mapSpeedLabel, "%3d", gps.gpsData.speed);
+    if (mapSet.showMapScale)
+        lv_label_set_text_fmt(scaleLabel, "%s", map_scale[zoom]);
 }
 
 /**
@@ -135,6 +166,23 @@ void triggerMapRedraw()
 static void map_position_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
 {
     if (activeTile != MAP || lv_subject_get_int(&subject_map_state) != MAP_MODE_FOLLOW)
+        return;
+
+    lv_async_call(async_map_update_cb, NULL);
+}
+
+/**
+ * @brief Observer callback for map offset updates (Scroll or Inertia)
+ *
+ * @details Triggers map redraws automatically when manual offset changes.
+ *          Uses lv_async_call to delegate rendering to the UI thread (Core 1).
+ *
+ * @param observer Pointer to the observer.
+ * @param subject Pointer to the subject.
+ */
+static void map_offset_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+{
+    if (activeTile != MAP)
         return;
 
     lv_async_call(async_map_update_cb, NULL);
@@ -264,40 +312,7 @@ void updateMainScreen(lv_timer_t *t)
  */
 void updateMap(lv_event_t *event)
 {
-    if (!isMainScreen || mapCanvas == NULL)
-        return;
-
-    mapView.generateMap(zoom);
-    if (mapView.redrawMap && !mapSet.vectorMap)
-        xEventGroupSetBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
-
-    static int16_t lastDispX = -32768;
-    static int16_t lastDispY = -32768;
-    static int32_t lastRenderedHeading = -1;
-    
-    int32_t currentHeading = lv_subject_get_int(&subject_heading);
-    bool headingChanged = (abs(currentHeading - lastRenderedHeading) > 1);
-
-    if (mapView.offsetX != lastDispX || 
-        mapView.offsetY != lastDispY || 
-        (headingChanged && mapView.followGps) ||
-        (xEventGroupGetBits(mapView.mapEventGroup) & Maps::MAP_EVENT_DONE))
-    {
-        lastDispX = mapView.offsetX;
-        lastDispY = mapView.offsetY;
-        lastRenderedHeading = currentHeading;
-        xEventGroupClearBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
-        mapView.displayMap();
-        lv_canvas_set_buffer(mapCanvas, mapView.mapBuffer, mapView.mapScrWidth, mapView.mapScrHeight, LV_COLOR_FORMAT_RGB565_SWAPPED);
-        mapView.redrawMap = false;
-    }
-
-    lv_obj_set_pos(mapCanvas, 0, 0);
-
-    if (mapSet.showMapSpeed)
-        lv_label_set_text_fmt(mapSpeedLabel, "%3d", gps.gpsData.speed);
-    if (mapSet.showMapScale)
-        lv_label_set_text_fmt(scaleLabel, "%s", map_scale[zoom]);
+    lv_async_call(async_map_update_cb, NULL);
 }
 
 /**
@@ -346,7 +361,8 @@ void mapToolBarEvent(lv_event_t *event)
         lv_subject_set_int(&subject_map_state, MAP_MODE_FOLLOW);
         mapView.updateMap();
         lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
+        lv_subject_set_int(&subject_map_offset_x, mapView.offsetX);
+        lv_subject_set_int(&subject_map_offset_y, mapView.offsetY);
     }
     else
     {
@@ -386,7 +402,8 @@ void map_inertia_timer_cb(lv_timer_t * t)
         if (abs(mapView.velocityY) < 0.1f)
             mapView.velocityY = 0;
 
-        lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
+        lv_subject_set_int(&subject_map_offset_x, mapView.offsetX);
+        lv_subject_set_int(&subject_map_offset_y, mapView.offsetY);
     }
     else
     {
@@ -458,7 +475,8 @@ void scrollMapEvent(lv_event_t *event)
                     last_x = p.x;
                     last_y = p.y;
                     last_time = current_time;
-                    lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
+                    lv_subject_set_int(&subject_map_offset_x, mapView.offsetX);
+                    lv_subject_set_int(&subject_map_offset_y, mapView.offsetY);
                 }
                 break;
             }
@@ -501,7 +519,8 @@ void zoomEvent(lv_event_t *event)
         zoom--;
     
     mapView.updateMap();
-    lv_obj_send_event(mapTile, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_subject_set_int(&subject_map_offset_x, mapView.offsetX);
+    lv_subject_set_int(&subject_map_offset_y, mapView.offsetY);
     lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
 }
 
@@ -606,6 +625,8 @@ void createMainScr()
         lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
     }
     lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_subject_add_observer_obj(&subject_map_offset_x, map_offset_observer_cb, mapTile, NULL);
+    lv_subject_add_observer_obj(&subject_map_offset_y, map_offset_observer_cb, mapTile, NULL);
     DOUBLE_TOUCH_EVENT = lv_event_register_id();
     lv_obj_add_event_cb(mapTile, mapToolBarEvent, (lv_event_code_t)DOUBLE_TOUCH_EVENT, NULL);
     lv_obj_add_event_cb(mapTile, scrollMapEvent, LV_EVENT_ALL, NULL);

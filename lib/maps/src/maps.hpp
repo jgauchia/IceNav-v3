@@ -230,8 +230,6 @@ private:
     bool navNeedsRender_;
     float navTlTileX_;
     float navTlTileY_;
-    float renderLat_;
-    float renderLon_;
 
     uint16_t cacheHits;
     uint16_t cacheMisses;
