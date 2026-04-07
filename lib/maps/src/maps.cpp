@@ -1539,6 +1539,10 @@ void Maps::renderNavText(const FeatureRef& ref, TFT_eSprite& map, std::vector<La
     bool collision = false;
     for (const auto& r : placedLabels)
     {
+        // Fast Y-axis rejection before expensive AABB tests
+        if (abs(ly - r.y) > th + PAD * 2)
+            continue;
+
         if (lx - PAD < r.x + r.w && lx + tw + PAD > r.x && ly - PAD < r.y + r.h && ly + th + PAD > r.y)
         {
             collision = true;
