@@ -191,7 +191,6 @@ private:
     std::vector<uint16_t, PsramAllocator<uint16_t>> ringEndsCache;
     std::vector<LabelRect, PsramAllocator<LabelRect>> placedLabelsCache;
 
-    void renderNavFeature(const FeatureRef& ref, TFT_eSprite& map, uint8_t pass, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels);
     void renderNavLineString(const FeatureRef& ref, TFT_eSprite& map, bool isCasing = false);
     void renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map);
     void renderNavPoint(const FeatureRef& ref, TFT_eSprite& map);

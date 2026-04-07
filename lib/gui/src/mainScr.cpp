@@ -363,6 +363,7 @@ void mapToolBarEvent(lv_event_t *event)
         lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
         lv_subject_set_int(&subject_map_offset_x, mapView.offsetX);
         lv_subject_set_int(&subject_map_offset_y, mapView.offsetY);
+        triggerMapRedraw();
     }
     else
     {
@@ -521,6 +522,7 @@ void zoomEvent(lv_event_t *event)
     mapView.updateMap();
     lv_subject_set_int(&subject_map_offset_x, mapView.offsetX);
     lv_subject_set_int(&subject_map_offset_y, mapView.offsetY);
+    triggerMapRedraw();
     lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
 }
 

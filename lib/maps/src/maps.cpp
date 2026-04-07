@@ -603,44 +603,82 @@ void Maps::mapRenderTask(void* pvParameters)
                 uint32_t lastYield = millis();
                 uint32_t loopCounter = 0;
 
-                for (uint8_t pass = 1; pass <= 2 && !aborted; pass++)
+                for (int i = 0; i < 16 && !aborted; i++)
                 {
-                    for (int i = 0; i < 16 && !aborted; i++)
+                    const auto& layer = instance->layers[i];
+                    if (layer.empty())
+                        continue;
+
+                    // Pass 1: Polygons, Points, and LineString Outlines (Casing)
+                    for (uint16_t idx : layer)
                     {
-                        const auto& layer = instance->layers[i];
-                        if (layer.empty())
-                            continue;
-
-                        for (uint16_t idx : layer)
+                        if ((++loopCounter & 31) == 0)
                         {
-                            if ((++loopCounter & 15) == 0)
+                            uint32_t now = millis();
+                            if (now - lastYield > 40)
                             {
-                                uint32_t now = millis();
-                                if (now - lastYield > 20)
+                                instance->mapTempSprite.endWrite();
+                                xSemaphoreGiveRecursive(instance->mapMutex);
+                                vTaskDelay(pdMS_TO_TICKS(2));
+                                if (xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE)
                                 {
-                                    instance->mapTempSprite.endWrite();
-                                    xSemaphoreGiveRecursive(instance->mapMutex);
-                                    vTaskDelay(1);
-                                    if (xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE)
-                                    {
-                                        aborted = true;
-                                        break;
-                                    }
-                                    if (!instance->pendingTiles.empty())
-                                    {
-                                        aborted = true;
-                                        break;
-                                    }
-                                    instance->mapTempSprite.startWrite();
-                                    lastYield = millis();
+                                    aborted = true;
+                                    break;
                                 }
+                                if (!instance->pendingTiles.empty())
+                                {
+                                    aborted = true;
+                                    break;
+                                }
+                                instance->mapTempSprite.startWrite();
+                                lastYield = millis();
                             }
-
-                            const auto& feat = instance->featurePool[idx];
-                            instance->renderNavFeature(feat, instance->mapTempSprite, pass, instance->placedLabelsCache);
                         }
-                        esp_task_wdt_reset();
+
+                        const auto& feat = instance->featurePool[idx];
+                        if (feat.geomType == NavGeomType::Polygon)
+                            instance->renderNavPolygon(feat, instance->mapTempSprite);
+                        else if (feat.geomType == NavGeomType::Point)
+                            instance->renderNavPoint(feat, instance->mapTempSprite);
+                        else if (feat.geomType == NavGeomType::LineString)
+                            instance->renderNavLineString(feat, instance->mapTempSprite, feat.casing);
                     }
+
+                    if (aborted) break;
+
+                    // Pass 2: LineString bodies and Texts
+                    for (uint16_t idx : layer)
+                    {
+                        if ((++loopCounter & 31) == 0)
+                        {
+                            uint32_t now = millis();
+                            if (now - lastYield > 40)
+                            {
+                                instance->mapTempSprite.endWrite();
+                                xSemaphoreGiveRecursive(instance->mapMutex);
+                                vTaskDelay(pdMS_TO_TICKS(2));
+                                if (xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE)
+                                {
+                                    aborted = true;
+                                    break;
+                                }
+                                if (!instance->pendingTiles.empty())
+                                {
+                                    aborted = true;
+                                    break;
+                                }
+                                instance->mapTempSprite.startWrite();
+                                lastYield = millis();
+                            }
+                        }
+
+                        const auto& feat = instance->featurePool[idx];
+                        if (feat.geomType == NavGeomType::LineString && feat.casing)
+                            instance->renderNavLineString(feat, instance->mapTempSprite, false);
+                        else if (feat.geomType == NavGeomType::Text)
+                            instance->renderNavText(feat, instance->mapTempSprite, instance->placedLabelsCache);
+                    }
+                    esp_task_wdt_reset();
                 }
 
                 if (aborted)
@@ -1455,38 +1493,6 @@ void Maps::renderNavPoint(const FeatureRef& ref, TFT_eSprite& map)
     int16_t py = ref.tileOffsetY + (y >> 4);
     if (px >= 0 && px < (int)tileWidth && py >= 0 && py < (int)tileHeight)
         map.fillCircle(px, py, 3, ref.color);
-}
-
-/**
- * @brief Dispatches rendering calls based on geometry type and render pass.
- * 
- * @details Orchestrates the drawing sequence in two phases:
- *          - **Pass 1:** Renders Polygons, Points, and LineString outlines (casing).
- *          - **Pass 2:** Renders LineString main bodies and Text labels.
- * 
- * @param ref Reference to the feature data and styling metadata.
- * @param map The target sprite for rendering.
- * @param pass The rendering stage (1 for base/background, 2 for foreground/text).
- * @param placedLabels  Tracking list for collision detection and label placement.
- */
-void Maps::renderNavFeature(const FeatureRef& ref, TFT_eSprite& map, uint8_t pass, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels)
-{
-    if (pass == 1)
-    {
-        if (ref.geomType == NavGeomType::Polygon)
-            renderNavPolygon(ref, map);
-        else if (ref.geomType == NavGeomType::Point)
-            renderNavPoint(ref, map);
-        else if (ref.geomType == NavGeomType::LineString)
-            renderNavLineString(ref, map, ref.casing);
-    }
-    else if (pass == 2)
-    {
-        if (ref.geomType == NavGeomType::LineString && ref.casing)
-            renderNavLineString(ref, map, false);
-        else if (ref.geomType == NavGeomType::Text)
-            renderNavText(ref, map, placedLabels);
-    }
 }
 
 /**
