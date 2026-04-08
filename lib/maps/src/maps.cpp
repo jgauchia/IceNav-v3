@@ -53,10 +53,10 @@ Maps::Maps() : navLastZoom_(0),
     featurePool.reserve(MAX_FEATURE_POOL_SIZE);
 
     for (int i = 0; i < 16; i++)
-        layers[i].reserve(1024);
+        layers[i].reserve(MAX_FEATURE_POOL_SIZE / 4);
 
-    ringEndsCache.reserve(1024);
-    placedLabelsCache.reserve(1024);
+    ringEndsCache.reserve(MAX_POLYGON_POINTS);
+    placedLabelsCache.reserve(512);
     navDataCache.reserve(NAV_DATA_CACHE_SIZE);
     mapMutex = xSemaphoreCreateRecursiveMutex();
     mapEventGroup = xEventGroupCreate();
@@ -613,7 +613,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     // Pass 1: Polygons, Points, and LineString Outlines (Casing)
                     for (uint16_t idx : layer)
                     {
-                        if ((++loopCounter & 31) == 0)
+                        if ((++loopCounter & 127) == 0)
                         {
                             uint32_t now = millis();
                             if (now - lastYield > 40)
@@ -650,7 +650,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     // Pass 2: LineString bodies and Texts
                     for (uint16_t idx : layer)
                     {
-                        if ((++loopCounter & 31) == 0)
+                        if ((++loopCounter & 127) == 0)
                         {
                             uint32_t now = millis();
                             if (now - lastYield > 40)
@@ -1028,6 +1028,13 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
  */
 uint16_t Maps::darkenRGB565(const uint16_t color, const float amount)
 {
+    static uint16_t lastInColor = 0;
+    static float lastAmount = -1.0f;
+    static uint16_t lastOutColor = 0;
+
+    if (color == lastInColor && amount == lastAmount)
+        return lastOutColor;
+
     uint16_t factor = (uint16_t)((1.0f - amount) * 256.0f);
     uint8_t r = (color >> 11) & 0x1F;
     uint8_t g = (color >> 5) & 0x3F;
@@ -1035,7 +1042,11 @@ uint16_t Maps::darkenRGB565(const uint16_t color, const float amount)
     r = static_cast<uint8_t>((r * factor) >> 8);
     g = static_cast<uint8_t>((g * factor) >> 8);
     b = static_cast<uint8_t>((b * factor) >> 8);
-    return ((r << 11) | (g << 5) | b);
+    
+    lastInColor = color;
+    lastAmount = amount;
+    lastOutColor = ((r << 11) | (g << 5) | b);
+    return lastOutColor;
 }
 
 /**
@@ -1293,7 +1304,8 @@ void Maps::renderNavLineString(const FeatureRef& ref, TFT_eSprite& map, bool isC
             return;
     }
     
-    decodedCoords.resize(ref.coordCount * 2);
+    if (ref.coordCount * 2 > decodedCoords.capacity())
+        return;
     int16_t* coords = decodedCoords.data();
     uint8_t* p = ref.ptr;
     int32_t curX = 0;
@@ -1374,7 +1386,8 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
     if (ref.coordCount < 3 || ref.coordCount > MAX_POLYGON_POINTS)
         return;
     
-    decodedCoords.resize(ref.coordCount * 2);
+    if (ref.coordCount * 2 > decodedCoords.capacity())
+        return;
     int16_t* coords = decodedCoords.data();
     uint8_t* p = ref.ptr;
     int32_t curX = 0;
@@ -1407,8 +1420,8 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
         }
     }
     
-    projBuf32X.resize(ref.coordCount);
-    projBuf32Y.resize(ref.coordCount);
+    if (ref.coordCount > projBuf32X.capacity())
+        return;
     int minPx = INT_MAX;
     int maxPx = INT_MIN;
     int minPy = INT_MAX;
