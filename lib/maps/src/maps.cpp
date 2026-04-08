@@ -600,7 +600,6 @@ void Maps::mapRenderTask(void* pvParameters)
 
                 instance->placedLabelsCache.clear();
                 instance->mapTempSprite.startWrite();
-                uint32_t renderStart = millis();
                 uint32_t lastYield = millis();
                 uint32_t loopCounter = 0;
 
@@ -688,8 +687,6 @@ void Maps::mapRenderTask(void* pvParameters)
                         xSemaphoreGiveRecursive(instance->mapMutex);
                     continue;
                 }
-
-                ESP_LOGI("MAP", "NAV Render total time: %lu ms", (unsigned long)(millis() - renderStart));
 
                 instance->mapTempSprite.endWrite();
                 for (auto& entry : instance->navDataCache)
