@@ -1416,11 +1416,19 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
     int16_t lastX = -32768;
     int16_t lastY = -32768;
     uint16_t actualPoints = 0;
+    int16_t lodThreshold;
+    if (navLastZoom_ <= 12)
+        lodThreshold = 3;
+    else if (navLastZoom_ <= 14)
+        lodThreshold = 2;
+    else
+        lodThreshold = 1;
+
     for (size_t i = 0; i < ref.coordCount; i++)
     {
         int16_t curX = coords[i * 2];
         int16_t curY = coords[i * 2 + 1];
-        if (ringCount == 0 && i > 0 && abs(curX - lastX) < 1 && abs(curY - lastY) < 1 && i < ref.coordCount - 1)
+        if (ringCount == 0 && i > 0 && abs(curX - lastX) < lodThreshold && abs(curY - lastY) < lodThreshold && i < ref.coordCount - 1)
             continue;
         projBuf32X[actualPoints] = curX;
         projBuf32Y[actualPoints] = curY;
@@ -1527,34 +1535,57 @@ void Maps::renderNavText(const FeatureRef& ref, TFT_eSprite& map, std::vector<La
     memcpy(textBuf, p + 5, textLen);
     textBuf[textLen] = '\0';
 
+    // Fast-reject for labels clearly outside the viewport
+    if (px < -100 || px > (int)tileWidth + 100 || py < -50 || py > (int)tileHeight + 50)
+        return;
+
     // Scales adjusted for sharpness: base size 1.0 prevents VLW distortion
     float scale = (ref.width == 0) ? 1.0f : (ref.width == 1) ? 1.2f : 1.5f;
     map.setTextSize(scale);
 
-    int tw = map.textWidth(textBuf);
+    // Fast heuristic pre-check (Assume average char width ~8-10px scaled)
+    int estimatedWidth = textLen * (8 * scale);
     int th = map.fontHeight();
+    int elx = px - estimatedWidth / 2;
+    int ely = py - th;
+    const int PAD = 4;
+
+    bool fastCollision = false;
+    for (const auto& r : placedLabels)
+    {
+        if (elx - PAD < r.x + r.w && elx + estimatedWidth + PAD > r.x && 
+            ely - PAD < r.y + r.h && ely + th + PAD > r.y)
+        {
+            fastCollision = true;
+            break;
+        }
+    }
+
+    // Only if fast check is safe, we calculate precise width
+    int tw = map.textWidth(textBuf);
     int lx = px - tw / 2;
     int ly = py - th;
-    const int PAD = 4;
 
     if (lx + tw < 0 || lx >= (int)tileWidth || ly + th < 0 || ly >= (int)tileHeight)
         return;
 
-    bool collision = false;
+    // If fast check already found a collision, we can double-check with precise width
+    // or just skip to save CPU if the heuristic was close enough.
+    // Let's do a precise check now that we have the real 'tw'
+    bool preciseCollision = false;
     for (const auto& r : placedLabels)
     {
-        // Fast Y-axis rejection before expensive AABB tests
         if (abs(ly - r.y) > th + PAD * 2)
             continue;
 
         if (lx - PAD < r.x + r.w && lx + tw + PAD > r.x && ly - PAD < r.y + r.h && ly + th + PAD > r.y)
         {
-            collision = true;
+            preciseCollision = true;
             break;
         }
     }
 
-    if (collision)
+    if (preciseCollision)
         return;
 
     map.setTextColor(ref.color);
