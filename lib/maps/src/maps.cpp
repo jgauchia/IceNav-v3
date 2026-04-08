@@ -53,15 +53,15 @@ Maps::Maps() : navLastZoom_(0),
     featurePool.reserve(MAX_FEATURE_POOL_SIZE);
 
     for (int i = 0; i < 16; i++)
-        layers[i].reserve(1024);
+        layers[i].reserve(MAX_FEATURE_POOL_SIZE / 4);
 
-    ringEndsCache.reserve(1024);
-    placedLabelsCache.reserve(1024);
+    ringEndsCache.reserve(MAX_POLYGON_POINTS);
+    placedLabelsCache.reserve(512);
     navDataCache.reserve(NAV_DATA_CACHE_SIZE);
-    mapMutex = xSemaphoreCreateMutex();
+    mapMutex = xSemaphoreCreateRecursiveMutex();
     mapEventGroup = xEventGroupCreate();
-    xTaskCreatePinnedToCore(mapRenderTask, "MapRenderTask", 16384, this, 1, &mapRenderTaskHandle, 0);
-}
+    xTaskCreatePinnedToCore(mapRenderTask, "MapRenderTask", 8192, this, 2, &mapRenderTaskHandle, 0);
+    }
 
 /**
  * @brief Get pixel X position from longitude
@@ -346,29 +346,30 @@ void Maps::generateMap(uint8_t zoom)
         resetScrollState();
     }
 
-    const float lat = Maps::followGps ? gps.gpsData.latitude : Maps::currentMapTile.lat;
-    const float lon = Maps::followGps ? gps.gpsData.longitude : Maps::currentMapTile.lon;
+    const float baseLat = Maps::followGps ? gps.gpsData.latitude : Maps::currentMapTile.lat;
+    const float baseLon = Maps::followGps ? gps.gpsData.longitude : Maps::currentMapTile.lon;
 
     if (mapSet.vectorMap)
     {
-        const double latRad = (double)lat * M_PI / 180.0;
-        const double n = pow(2.0, (double)zoom);
-        const int centerTileIdxX = (int)floorf((float)((lon + 180.0) / 360.0 * n));
-        const int centerTileIdxY = (int)floorf((float)((1.0 - log(tan(latRad) + 1.0 / cos(latRad)) / M_PI) / 2.0 * n));
+        const uint32_t centerTileIdxX = lon2tilex(baseLon, zoom);
+        const uint32_t centerTileIdxY = lat2tiley(baseLat, zoom);
         const int8_t gridOffset = tilesGrid / 2;
         const int32_t currentTlX = (int32_t)centerTileIdxX - gridOffset;
         const int32_t currentTlY = (int32_t)centerTileIdxY - gridOffset;
         bool zoomChanged = (zoom != navLastZoom_);
         bool tileChanged = (currentTlX != (int32_t)navTlTileX_ || currentTlY != (int32_t)navTlTileY_);
 
+        if (zoomChanged)
+            navNeedsRender_ = true;
+
         if (trackNeedsRedraw)
         {
-            if (xSemaphoreTake(mapMutex, pdMS_TO_TICKS(100)) == pdTRUE)
+            if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(100)) == pdTRUE)
             {
                 drawTrack(mapTempSprite);
                 trackNeedsRedraw = false;
                 Maps::redrawMap = true;
-                xSemaphoreGive(mapMutex);
+                xSemaphoreGiveRecursive(mapMutex);
             }
         }
 
@@ -378,7 +379,7 @@ void Maps::generateMap(uint8_t zoom)
         if (pendingTiles.size() > (tilesGrid * tilesGrid))
             return;
 
-        Maps::isMapFound = renderNavViewport(lat, lon, zoom, Maps::mapTempSprite);
+        Maps::isMapFound = renderNavViewport(baseLat, baseLon, zoom, Maps::mapTempSprite);
         navLastZoom_ = zoom;
         navNeedsRender_ = false;
         latLonToPixel(destLat, destLon, (int16_t&)wptPosX, (int16_t&)wptPosY);
@@ -387,8 +388,8 @@ void Maps::generateMap(uint8_t zoom)
         return;
     }
 
-    const uint32_t centerTileIdxX = lon2tilex(lon, zoom);
-    const uint32_t centerTileIdxY = lat2tiley(lat, zoom);
+    const uint32_t centerTileIdxX = lon2tilex(baseLon, zoom);
+    const uint32_t centerTileIdxY = lat2tiley(baseLat, zoom);
 
     if (centerTileIdxX != Maps::oldMapTile.tilex || centerTileIdxY != Maps::oldMapTile.tiley || zoom != Maps::oldMapTile.zoom)
     {
@@ -508,9 +509,16 @@ void Maps::mapRenderTask(void* pvParameters)
     {
         if (!instance->pendingTiles.empty())
         {
-            if (xSemaphoreTake(instance->mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
+            if (xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
             {
-                bool fullReset = (instance->zoomLevel != lastZoom) || (instance->pendingTiles.size() >= (tilesGrid * tilesGrid));
+                if (instance->mapTempSprite.getBuffer() == nullptr)
+                {
+                    xSemaphoreGiveRecursive(instance->mapMutex);
+                    vTaskDelay(pdMS_TO_TICKS(100));
+                    continue;
+                }
+                bool zoomChanged = (instance->zoomLevel != lastZoom);
+                bool fullReset = zoomChanged || (instance->pendingTiles.size() >= (tilesGrid * tilesGrid));
                 lastZoom = instance->zoomLevel;
 
                 if (fullReset)
@@ -518,7 +526,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_DONE | MAP_EVENT_ERROR);
                     xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_START);
                     
-                    if (instance->zoomLevel != lastZoom)
+                    if (zoomChanged)
                     {
                         for (auto& entry : instance->navDataCache)
                             heap_caps_free(entry.data);
@@ -532,20 +540,49 @@ void Maps::mapRenderTask(void* pvParameters)
                         instance->layers[i].clear();
                 }
 
+                bool aborted = false;
                 while (!instance->pendingTiles.empty())
                 {
                     PendingTile t = instance->pendingTiles.back();
                     instance->pendingTiles.pop_back();
                     if (t.type == TILE_NAV)
+                    {
                         instance->renderNavTile(t.x, t.y, instance->zoomLevel, t.screenX, t.screenY, instance->mapTempSprite);
+                        xSemaphoreGiveRecursive(instance->mapMutex);
+                        vTaskDelay(1);
+                        if (xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE)
+                        {
+                            aborted = true;
+                            break;
+                        }
+                        if (instance->pendingTiles.size() >= (tilesGrid * tilesGrid))
+                        {
+                            aborted = true;
+                            break; // We have the mutex, outer block will release it
+                        }
+                    }
                     else if (t.type == TILE_PNG)
                     {
                         instance->renderPngTile(t.x, t.y, instance->zoomLevel, t.screenX, t.screenY, instance->mapTempSprite);
-                        xSemaphoreGive(instance->mapMutex);
+                        xSemaphoreGiveRecursive(instance->mapMutex);
                         vTaskDelay(1);
-                        if (xSemaphoreTake(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE)
+                        if (xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE)
+                        {
+                            aborted = true;
                             break;
+                        }
+                        if (instance->pendingTiles.size() >= (tilesGrid * tilesGrid))
+                        {
+                            aborted = true;
+                            break; // We have the mutex, outer block will release it
+                        }
                     }
+                }
+
+                if (aborted)
+                {
+                    xSemaphoreGiveRecursive(instance->mapMutex);
+                    continue;
                 }
 
                 if (!mapSet.vectorMap)
@@ -554,53 +591,119 @@ void Maps::mapRenderTask(void* pvParameters)
                     instance->redrawMap = true;
                     xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
                     xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
-                    xSemaphoreGive(instance->mapMutex);
+                    xSemaphoreGiveRecursive(instance->mapMutex);
                     continue;
                 }
+
+                if (instance->mapTempSprite.getBuffer())
+                    instance->mapTempSprite.fillSprite(0xF7BE);
 
                 instance->placedLabelsCache.clear();
                 instance->mapTempSprite.startWrite();
                 uint32_t lastYield = millis();
                 uint32_t loopCounter = 0;
 
-                for (uint8_t pass = 1; pass <= 2; pass++)
+                for (int i = 0; i < 16 && !aborted; i++)
                 {
-                    for (int i = 0; i < 16; i++)
+                    const auto& layer = instance->layers[i];
+                    if (layer.empty())
+                        continue;
+
+                    // Pass 1: Polygons, Points, and LineString Outlines (Casing)
+                    for (uint16_t idx : layer)
                     {
-                        const auto& layer = instance->layers[i];
-                        if (layer.empty())
-                            continue;
-
-                        for (uint16_t idx : layer)
+                        if ((++loopCounter & 127) == 0)
                         {
-                            if ((++loopCounter & 15) == 0)
+                            uint32_t now = millis();
+                            if (now - lastYield > 40)
                             {
-                                uint32_t now = millis();
-                                if (now - lastYield > 20)
+                                instance->mapTempSprite.endWrite();
+                                xSemaphoreGiveRecursive(instance->mapMutex);
+                                vTaskDelay(pdMS_TO_TICKS(2));
+                                if (xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE)
                                 {
-                                    instance->mapTempSprite.endWrite();
-                                    vTaskDelay(1);
-                                    instance->mapTempSprite.startWrite();
-                                    lastYield = millis();
+                                    aborted = true;
+                                    break;
                                 }
+                                if (!instance->pendingTiles.empty())
+                                {
+                                    aborted = true;
+                                    break;
+                                }
+                                instance->mapTempSprite.startWrite();
+                                lastYield = millis();
                             }
-
-                            const auto& feat = instance->featurePool[idx];
-                            instance->renderNavFeature(feat, instance->mapTempSprite, pass, instance->placedLabelsCache);
                         }
-                        esp_task_wdt_reset();
+
+                        const auto& feat = instance->featurePool[idx];
+                        if (feat.geomType == NavGeomType::Polygon)
+                            instance->renderNavPolygon(feat, instance->mapTempSprite);
+                        else if (feat.geomType == NavGeomType::Point)
+                            instance->renderNavPoint(feat, instance->mapTempSprite);
+                        else if (feat.geomType == NavGeomType::LineString)
+                            instance->renderNavLineString(feat, instance->mapTempSprite, feat.casing);
                     }
+
+                    if (aborted) break;
+
+                    // Pass 2: LineString bodies and Texts
+                    for (uint16_t idx : layer)
+                    {
+                        if ((++loopCounter & 127) == 0)
+                        {
+                            uint32_t now = millis();
+                            if (now - lastYield > 40)
+                            {
+                                instance->mapTempSprite.endWrite();
+                                xSemaphoreGiveRecursive(instance->mapMutex);
+                                vTaskDelay(pdMS_TO_TICKS(2));
+                                if (xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE)
+                                {
+                                    aborted = true;
+                                    break;
+                                }
+                                if (!instance->pendingTiles.empty())
+                                {
+                                    aborted = true;
+                                    break;
+                                }
+                                instance->mapTempSprite.startWrite();
+                                lastYield = millis();
+                            }
+                        }
+
+                        const auto& feat = instance->featurePool[idx];
+                        if (feat.geomType == NavGeomType::LineString && feat.casing)
+                            instance->renderNavLineString(feat, instance->mapTempSprite, false);
+                        else if (feat.geomType == NavGeomType::Text)
+                            instance->renderNavText(feat, instance->mapTempSprite, instance->placedLabelsCache);
+                    }
+                    esp_task_wdt_reset();
+                }
+
+                if (aborted)
+                {
+                    if (xSemaphoreGetMutexHolder(instance->mapMutex) == xTaskGetCurrentTaskHandle())
+                        xSemaphoreGiveRecursive(instance->mapMutex);
+                    continue;
                 }
 
                 instance->mapTempSprite.endWrite();
                 for (auto& entry : instance->navDataCache)
                     entry.isPinned = false;
 
+                instance->displayOffsetX = instance->offsetX;
+                instance->displayOffsetY = instance->offsetY;
+                instance->lastTileX = instance->tileX;
+                instance->lastTileY = instance->tileY;
+
                 instance->drawTrack(instance->mapTempSprite);
                 instance->redrawMap = true;
                 xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
                 xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
-                xSemaphoreGive(instance->mapMutex);
+                xSemaphoreGiveRecursive(instance->mapMutex);
+                extern void triggerMapRedraw();
+                triggerMapRedraw();
             }
         }
         vTaskDelay(1);
@@ -639,7 +742,7 @@ void Maps::displayMap()
         return;
     }
 
-    if (xSemaphoreTake(mapMutex, pdMS_TO_TICKS(50)) != pdTRUE)
+    if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(50)) != pdTRUE)
         return;
 
     uint16_t mapHeading = 0;
@@ -671,14 +774,14 @@ void Maps::displayMap()
     }
     else
     {
-        // Manual panning: crop central part of grid adjusted by offsetX/offsetY
-        int16_t cropX = (tileWidth - mapScrWidth) / 2 + offsetX;
-        int16_t cropY = (tileHeight - mapScrHeight) / 2 + offsetY;
+        // Manual panning: crop central part of grid adjusted by displayOffsetX/offsetY
+        int16_t cropX = (tileWidth - mapScrWidth) / 2 + displayOffsetX;
+        int16_t cropY = (tileHeight - mapScrHeight) / 2 + displayOffsetY;
         mapTempSprite.pushSprite(&mapSprite, -cropX, -cropY);
     }
 
     tft.endWrite();
-    xSemaphoreGive(mapMutex);
+    xSemaphoreGiveRecursive(mapMutex);
 }
 
 /**
@@ -744,6 +847,10 @@ void Maps::resetScrollState()
     lastTileY = 0;
     offsetX = 0;
     offsetY = 0;
+    displayOffsetX = 0;
+    displayOffsetY = 0;
+    pendingDx = 0;
+    pendingDy = 0;
     velocityX = 0;
     velocityY = 0;
 }
@@ -756,21 +863,36 @@ void Maps::resetScrollState()
  */
 void Maps::scrollMap(int16_t dx, int16_t dy)
 {
+    pendingDx += dx;
+    pendingDy += dy;
+
+    if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(10)) != pdTRUE)
+        return;
+
+    dx = pendingDx;
+    dy = pendingDy;
+    pendingDx = 0;
+    pendingDy = 0;
+
     if (dx != 0 || dy != 0)
     {
-        const int16_t softLimit = 128;
-        if (abs(Maps::offsetX) > softLimit && ((dx > 0 && Maps::offsetX > 0) || (dx < 0 && Maps::offsetX < 0)))
-            dx /= 2;
-        if (abs(Maps::offsetY) > softLimit && ((dy > 0 && Maps::offsetY > 0) || (dy < 0 && Maps::offsetY < 0)))
-            dy /= 2;
+        const int16_t threshold = 128;
+        // Elastic factor: reduces movement as we approach or exceed the threshold
+        float factorX = 1.0f;
+        float factorY = 1.0f;
+        
+        if (abs(Maps::offsetX) > threshold / 2)
+            factorX = 1.0f - (float)abs(Maps::offsetX) / (float)tileWidth;
+        if (abs(Maps::offsetY) > threshold / 2)
+            factorY = 1.0f - (float)abs(Maps::offsetY) / (float)tileHeight;
 
-        Maps::offsetX += dx;
-        Maps::offsetY += dy;
+        Maps::offsetX += (int16_t)((float)dx * factorX);
+        Maps::offsetY += (int16_t)((float)dy * factorY);
         Maps::followGps = false;
     }
 
-    const int16_t maxOffsetX = (tileWidth - mapScrWidth) / 2 - 10;
-    const int16_t maxOffsetY = (tileHeight - mapScrHeight) / 2 - 10;
+    const int16_t maxOffsetX = (tileWidth - mapScrWidth) / 2 - 5;
+    const int16_t maxOffsetY = (tileHeight - mapScrHeight) / 2 - 5;
 
     if (Maps::offsetX > maxOffsetX)
         Maps::offsetX = maxOffsetX;
@@ -789,26 +911,26 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
     #endif
     const int16_t tileSize = Maps::mapTileSize;
 
-    if (Maps::offsetX <= -threshold)
+    while (Maps::offsetX <= -threshold)
     {
         tileX--;
         Maps::offsetX += tileSize;
         scrollUpdated = true;
     }
-    else if (Maps::offsetX >= threshold)
+    while (Maps::offsetX >= threshold)
     {
         tileX++;
         Maps::offsetX -= tileSize;
         scrollUpdated = true;
     }
 
-    if (Maps::offsetY <= -threshold)
+    while (Maps::offsetY <= -threshold)
     {
         tileY--;
         Maps::offsetY += tileSize;
         scrollUpdated = true;
     }
-    else if (Maps::offsetY >= threshold)
+    while (Maps::offsetY >= threshold)
     {
         tileY++;
         Maps::offsetY -= tileSize;
@@ -822,12 +944,29 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
         Maps::panMap(deltaTileX, deltaTileY);
         if (!mapSet.vectorMap)
             Maps::preloadTiles(deltaTileX, deltaTileY);
+        else
+            updateMap(); // Force vector re-render on tile threshold
 
         generateMap(zoomLevel);
-        lastTileX = tileX;
-        lastTileY = tileY;
         Maps::redrawMap = true;
     }
+
+    if (pendingTiles.empty())
+    {
+        displayOffsetX = offsetX;
+        displayOffsetY = offsetY;
+        lastTileX = tileX;
+        lastTileY = tileY;
+    }
+    else
+    {
+        // When rendering is pending (after a swap), we stay at the virtual relative position
+        // to avoid jumping until the new grid is complete.
+        displayOffsetX = offsetX + (tileX - lastTileX) * mapTileSize;
+        displayOffsetY = offsetY + (tileY - lastTileY) * mapTileSize;
+    }
+    
+    xSemaphoreGiveRecursive(mapMutex);
 }
 
  /**
@@ -886,13 +1025,25 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
  */
 uint16_t Maps::darkenRGB565(const uint16_t color, const float amount)
 {
+    static uint16_t lastInColor = 0;
+    static float lastAmount = -1.0f;
+    static uint16_t lastOutColor = 0;
+
+    if (color == lastInColor && amount == lastAmount)
+        return lastOutColor;
+
+    uint16_t factor = (uint16_t)((1.0f - amount) * 256.0f);
     uint8_t r = (color >> 11) & 0x1F;
     uint8_t g = (color >> 5) & 0x3F;
     uint8_t b = color & 0x1F;
-    r = static_cast<uint8_t>(r * (1.0f - amount));
-    g = static_cast<uint8_t>(g * (1.0f - amount));
-    b = static_cast<uint8_t>(b * (1.0f - amount));
-    return ((r << 11) | (g << 5) | b);
+    r = static_cast<uint8_t>((r * factor) >> 8);
+    g = static_cast<uint8_t>((g * factor) >> 8);
+    b = static_cast<uint8_t>((b * factor) >> 8);
+    
+    lastInColor = color;
+    lastAmount = amount;
+    lastOutColor = ((r << 11) | (g << 5) | b);
+    return lastOutColor;
 }
 
 /**
@@ -1150,7 +1301,8 @@ void Maps::renderNavLineString(const FeatureRef& ref, TFT_eSprite& map, bool isC
             return;
     }
     
-    decodedCoords.resize(ref.coordCount * 2);
+    if (ref.coordCount * 2 > decodedCoords.capacity())
+        return;
     int16_t* coords = decodedCoords.data();
     uint8_t* p = ref.ptr;
     int32_t curX = 0;
@@ -1182,9 +1334,9 @@ void Maps::renderNavLineString(const FeatureRef& ref, TFT_eSprite& map, bool isC
     int16_t h = (int16_t)tileHeight;
     int16_t lodThreshold;
 
-    if (navLastZoom_ >= 15)
+    if (navLastZoom_ <= 12)
         lodThreshold = 3;
-    else if (navLastZoom_ >= 13)
+    else if (navLastZoom_ <= 14)
         lodThreshold = 2;
     else
         lodThreshold = 1;
@@ -1231,7 +1383,8 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
     if (ref.coordCount < 3 || ref.coordCount > MAX_POLYGON_POINTS)
         return;
     
-    decodedCoords.resize(ref.coordCount * 2);
+    if (ref.coordCount * 2 > decodedCoords.capacity())
+        return;
     int16_t* coords = decodedCoords.data();
     uint8_t* p = ref.ptr;
     int32_t curX = 0;
@@ -1264,8 +1417,8 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
         }
     }
     
-    projBuf32X.resize(ref.coordCount);
-    projBuf32Y.resize(ref.coordCount);
+    if (ref.coordCount > projBuf32X.capacity())
+        return;
     int minPx = INT_MAX;
     int maxPx = INT_MIN;
     int minPy = INT_MAX;
@@ -1273,11 +1426,19 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
     int16_t lastX = -32768;
     int16_t lastY = -32768;
     uint16_t actualPoints = 0;
+    int16_t lodThreshold;
+    if (navLastZoom_ <= 12)
+        lodThreshold = 3;
+    else if (navLastZoom_ <= 14)
+        lodThreshold = 2;
+    else
+        lodThreshold = 1;
+
     for (size_t i = 0; i < ref.coordCount; i++)
     {
         int16_t curX = coords[i * 2];
         int16_t curY = coords[i * 2 + 1];
-        if (ringCount == 0 && i > 0 && abs(curX - lastX) < 1 && abs(curY - lastY) < 1 && i < ref.coordCount - 1)
+        if (ringCount == 0 && i > 0 && abs(curX - lastX) < lodThreshold && abs(curY - lastY) < lodThreshold && i < ref.coordCount - 1)
             continue;
         projBuf32X[actualPoints] = curX;
         projBuf32Y[actualPoints] = curY;
@@ -1357,38 +1518,6 @@ void Maps::renderNavPoint(const FeatureRef& ref, TFT_eSprite& map)
 }
 
 /**
- * @brief Dispatches rendering calls based on geometry type and render pass.
- * 
- * @details Orchestrates the drawing sequence in two phases:
- *          - **Pass 1:** Renders Polygons, Points, and LineString outlines (casing).
- *          - **Pass 2:** Renders LineString main bodies and Text labels.
- * 
- * @param ref Reference to the feature data and styling metadata.
- * @param map The target sprite for rendering.
- * @param pass The rendering stage (1 for base/background, 2 for foreground/text).
- * @param placedLabels  Tracking list for collision detection and label placement.
- */
-void Maps::renderNavFeature(const FeatureRef& ref, TFT_eSprite& map, uint8_t pass, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels)
-{
-    if (pass == 1)
-    {
-        if (ref.geomType == NavGeomType::Polygon)
-            renderNavPolygon(ref, map);
-        else if (ref.geomType == NavGeomType::Point)
-            renderNavPoint(ref, map);
-        else if (ref.geomType == NavGeomType::LineString)
-            renderNavLineString(ref, map, ref.casing);
-    }
-    else if (pass == 2)
-    {
-        if (ref.geomType == NavGeomType::LineString && ref.casing)
-            renderNavLineString(ref, map, false);
-        else if (ref.geomType == NavGeomType::Text)
-            renderNavText(ref, map, placedLabels);
-    }
-}
-
-/**
  * @brief Renders NAV text labels with collision detection.
  * 
  * @details Decodes label coordinates and text content from the feature payload, then
@@ -1416,30 +1545,57 @@ void Maps::renderNavText(const FeatureRef& ref, TFT_eSprite& map, std::vector<La
     memcpy(textBuf, p + 5, textLen);
     textBuf[textLen] = '\0';
 
+    // Fast-reject for labels clearly outside the viewport
+    if (px < -100 || px > (int)tileWidth + 100 || py < -50 || py > (int)tileHeight + 50)
+        return;
+
     // Scales adjusted for sharpness: base size 1.0 prevents VLW distortion
     float scale = (ref.width == 0) ? 1.0f : (ref.width == 1) ? 1.2f : 1.5f;
     map.setTextSize(scale);
 
-    int tw = map.textWidth(textBuf);
+    // Fast heuristic pre-check (Assume average char width ~8-10px scaled)
+    int estimatedWidth = textLen * (8 * scale);
     int th = map.fontHeight();
-    int lx = px - tw / 2;
-    int ly = py - th;
+    int elx = px - estimatedWidth / 2;
+    int ely = py - th;
     const int PAD = 4;
 
-    if (lx + tw < 0 || lx >= (int)tileWidth || ly + th < 0 || ly >= (int)tileHeight)
-        return;
-
-    bool collision = false;
+    bool fastCollision = false;
     for (const auto& r : placedLabels)
     {
-        if (lx - PAD < r.x + r.w && lx + tw + PAD > r.x && ly - PAD < r.y + r.h && ly + th + PAD > r.y)
+        if (elx - PAD < r.x + r.w && elx + estimatedWidth + PAD > r.x && 
+            ely - PAD < r.y + r.h && ely + th + PAD > r.y)
         {
-            collision = true;
+            fastCollision = true;
             break;
         }
     }
 
-    if (collision)
+    // Only if fast check is safe, we calculate precise width
+    int tw = map.textWidth(textBuf);
+    int lx = px - tw / 2;
+    int ly = py - th;
+
+    if (lx + tw < 0 || lx >= (int)tileWidth || ly + th < 0 || ly >= (int)tileHeight)
+        return;
+
+    // If fast check already found a collision, we can double-check with precise width
+    // or just skip to save CPU if the heuristic was close enough.
+    // Let's do a precise check now that we have the real 'tw'
+    bool preciseCollision = false;
+    for (const auto& r : placedLabels)
+    {
+        if (abs(ly - r.y) > th + PAD * 2)
+            continue;
+
+        if (lx - PAD < r.x + r.w && lx + tw + PAD > r.x && ly - PAD < r.y + r.h && ly + th + PAD > r.y)
+        {
+            preciseCollision = true;
+            break;
+        }
+    }
+
+    if (preciseCollision)
         return;
 
     map.setTextColor(ref.color);
@@ -1462,22 +1618,16 @@ void Maps::renderNavText(const FeatureRef& ref, TFT_eSprite& map, std::vector<La
  */
 bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT_eSprite& map)
 {
-    const double latRad = (double)centerLat * M_PI / 180.0;
-    const double n = pow(2.0, (double)zoom);
-    const int centerTileIdxX = (int)floorf((float)((centerLon + 180.0) / 360.0 * n));
-    const int centerTileIdxY = (int)floorf((float)((1.0 - log(tan(latRad) + 1.0 / cos(latRad)) / M_PI) / 2.0 * n));
+    const uint32_t centerTileIdxX = lon2tilex(centerLon, zoom);
+    const uint32_t centerTileIdxY = lat2tiley(centerLat, zoom);
     const int8_t gridOffset = tilesGrid / 2;
     navTlTileX_ = (float)(centerTileIdxX - gridOffset);
     navTlTileY_ = (float)(centerTileIdxY - gridOffset);
     bool zoomChanged = (zoom != navLastZoom_);
     navLastZoom_ = zoom;
-    if (xSemaphoreTake(mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
+    if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
     {
-        if (zoomChanged)
-        {
-            map.fillSprite(0xF7BE);
-            redrawMap = true;
-        }
+        redrawMap = true;
         pendingTiles.clear();
         if (tilesGrid == 3)
         {
@@ -1499,7 +1649,7 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT
                 }
             }
         }
-        xSemaphoreGive(mapMutex);
+        xSemaphoreGiveRecursive(mapMutex);
     }
     return true;
 }

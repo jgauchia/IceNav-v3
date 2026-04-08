@@ -26,7 +26,6 @@ extern bool canScrollMap;        /**< Flag to indicate if map can be scrolled */
 extern bool isScrollingMap;      /**< Flag to indicate if map is scrolling */
 
 extern uint8_t activeTile;       /**< Active Tile in TileView control */
-extern int heading;              /**< Heading value (Compass or GPS) */
 
 static const char *zoomInIconFile = "/zoomin.bin";   /**< Zoom in icon file path */
 static const char *zoomOutIconFile = "/zoomout.bin"; /**< Zoom out icon file path */

@@ -6,12 +6,15 @@
  * @date 2026-04
  */
 
+#include "../../gui/src/lv_subjects.hpp"
 #include "lvglSetup.hpp"
 #include "i2c_espidf.hpp"
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
+
+SemaphoreHandle_t lvgl_mutex = NULL;
 
 /**
  * @brief Get system uptime in milliseconds using ESP-IDF timer.
@@ -399,7 +402,9 @@ void lv_tick_task(void *arg)
  */
 void initLVGL()
 {
+    lvgl_mutex = xSemaphoreCreateMutex();
     lv_init();
+    init_lv_subjects();
     initSharedStyles();
 
     display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);

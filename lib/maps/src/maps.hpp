@@ -118,6 +118,10 @@ public:
     int16_t lastTileY = 0;
     int16_t offsetX = 0;
     int16_t offsetY = 0;
+    int16_t displayOffsetX = 0;
+    int16_t displayOffsetY = 0;
+    int16_t pendingDx = 0;
+    int16_t pendingDy = 0;
     float velocityX = 0.0f;
     float velocityY = 0.0f;
     const float friction = 0.95f;
@@ -187,7 +191,6 @@ private:
     std::vector<uint16_t, PsramAllocator<uint16_t>> ringEndsCache;
     std::vector<LabelRect, PsramAllocator<LabelRect>> placedLabelsCache;
 
-    void renderNavFeature(const FeatureRef& ref, TFT_eSprite& map, uint8_t pass, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels);
     void renderNavLineString(const FeatureRef& ref, TFT_eSprite& map, bool isCasing = false);
     void renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map);
     void renderNavPoint(const FeatureRef& ref, TFT_eSprite& map);
@@ -226,8 +229,6 @@ private:
     bool navNeedsRender_;
     float navTlTileX_;
     float navTlTileY_;
-    float renderLat_;
-    float renderLon_;
 
     uint16_t cacheHits;
     uint16_t cacheMisses;
