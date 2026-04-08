@@ -600,6 +600,7 @@ void Maps::mapRenderTask(void* pvParameters)
 
                 instance->placedLabelsCache.clear();
                 instance->mapTempSprite.startWrite();
+                uint32_t renderStart = millis();
                 uint32_t lastYield = millis();
                 uint32_t loopCounter = 0;
 
@@ -687,6 +688,8 @@ void Maps::mapRenderTask(void* pvParameters)
                         xSemaphoreGiveRecursive(instance->mapMutex);
                     continue;
                 }
+
+                ESP_LOGI("MAP", "NAV Render total time: %lu ms", (unsigned long)(millis() - renderStart));
 
                 instance->mapTempSprite.endWrite();
                 for (auto& entry : instance->navDataCache)
@@ -1025,12 +1028,13 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
  */
 uint16_t Maps::darkenRGB565(const uint16_t color, const float amount)
 {
+    uint16_t factor = (uint16_t)((1.0f - amount) * 256.0f);
     uint8_t r = (color >> 11) & 0x1F;
     uint8_t g = (color >> 5) & 0x3F;
     uint8_t b = color & 0x1F;
-    r = static_cast<uint8_t>(r * (1.0f - amount));
-    g = static_cast<uint8_t>(g * (1.0f - amount));
-    b = static_cast<uint8_t>(b * (1.0f - amount));
+    r = static_cast<uint8_t>((r * factor) >> 8);
+    g = static_cast<uint8_t>((g * factor) >> 8);
+    b = static_cast<uint8_t>((b * factor) >> 8);
     return ((r << 11) | (g << 5) | b);
 }
 
@@ -1321,9 +1325,9 @@ void Maps::renderNavLineString(const FeatureRef& ref, TFT_eSprite& map, bool isC
     int16_t h = (int16_t)tileHeight;
     int16_t lodThreshold;
 
-    if (navLastZoom_ >= 15)
+    if (navLastZoom_ <= 12)
         lodThreshold = 3;
-    else if (navLastZoom_ >= 13)
+    else if (navLastZoom_ <= 14)
         lodThreshold = 2;
     else
         lodThreshold = 1;
