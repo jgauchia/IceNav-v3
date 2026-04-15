@@ -289,14 +289,6 @@ void updateMainScreen(lv_timer_t *t)
     {
         switch (activeTile)
         {
-            case SATTRACK:
-                static uint8_t lastSats = 0;
-                if (gps.isDOPChanged() || gps.hasLocationChange() || gps.gpsData.satInView != lastSats)
-                {
-                    lastSats = gps.gpsData.satInView;
-                    lv_obj_send_event(satTrackTile, LV_EVENT_VALUE_CHANGED, NULL);
-                }
-                break;
             default: 
                 break;
         }
@@ -313,29 +305,6 @@ void updateMainScreen(lv_timer_t *t)
 void updateMap(lv_event_t *event)
 {
     lv_async_call(async_map_update_cb, NULL);
-}
-
-/**
- * @brief Update Satellite Tracking.
- *
- * @details Handles satellite tracking update events by refreshing DOP, altitude labels, and updating satellite SNR and sky plots.
- */
-void updateSatTrack(lv_event_t *event)
-{
-    if (gps.isDOPChanged())
-    {
-        lv_label_set_text_fmt(pdopLabel, "PDOP: %.1f", gps.gpsData.pdop);
-        lv_label_set_text_fmt(hdopLabel, "HDOP: %.1f", gps.gpsData.hdop);
-        lv_label_set_text_fmt(vdopLabel, "VDOP: %.1f", gps.gpsData.vdop);
-    }
-    static int16_t lastAltSat = -32768;
-    if (gps.gpsData.altitude != lastAltSat)
-    {
-        lastAltSat = gps.gpsData.altitude;
-        lv_label_set_text_fmt(altLabel, "ALT: %4dm.", gps.gpsData.altitude);
-    }
-    drawSatSNR();
-    drawSatSky();
 }
 
 /**
@@ -655,7 +624,6 @@ void createMainScr()
             drawSatConst();
         #endif
     #endif
-    lv_obj_add_event_cb(satTrackTile, updateSatTrack, LV_EVENT_VALUE_CHANGED, NULL);
 
     if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
     {

@@ -64,7 +64,6 @@ void getActTile(lv_event_t *event);
 void scrollTile(lv_event_t *event);
 void updateMainScreen(lv_timer_t *t);
 void updateMap(lv_event_t *event);
-void updateSatTrack(lv_event_t *event);
 void mapToolBarEvent(lv_event_t *event);
 void scrollMapEvent(lv_event_t *event);
 void zoomEvent(lv_event_t *event);

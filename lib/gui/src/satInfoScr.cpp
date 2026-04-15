@@ -6,6 +6,10 @@
  * @date 2026-04
  */
 #include "satInfoScr.hpp"
+#include "lv_subjects.hpp"
+#include "globalGuiDef.h"
+#include "mainScr.hpp"
+
 lv_obj_t *pdopLabel;
 lv_obj_t *hdopLabel;
 lv_obj_t *vdopLabel;
@@ -16,6 +20,58 @@ lv_obj_t *satelliteBar;
 lv_chart_series_t *satelliteBarSerie; 
 lv_obj_t *constMsg;
 extern Gps gps;
+
+/**
+ * @brief Observer callbacks for DOP labels
+ */
+static void pdop_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+{
+    lv_obj_t * label = (lv_obj_t *)lv_observer_get_target(observer);
+    lv_label_set_text_fmt(label, "PDOP: %.1f", lv_subject_get_int(subject) / 10.0f);
+}
+
+static void hdop_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+{
+    lv_obj_t * label = (lv_obj_t *)lv_observer_get_target(observer);
+    lv_label_set_text_fmt(label, "HDOP: %.1f", lv_subject_get_int(subject) / 10.0f);
+}
+
+static void vdop_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+{
+    lv_obj_t * label = (lv_obj_t *)lv_observer_get_target(observer);
+    lv_label_set_text_fmt(label, "VDOP: %.1f", lv_subject_get_int(subject) / 10.0f);
+}
+
+/**
+ * @brief Observer callback for Altitude label
+ */
+static void alt_sat_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+{
+    lv_obj_t * label = (lv_obj_t *)lv_observer_get_target(observer);
+    lv_label_set_text_fmt(label, "ALT: %4dm.", lv_subject_get_int(subject));
+}
+
+/**
+ * @brief Async callback to redraw Satellite SNR and Sky charts
+ */
+static void async_sats_update_cb(void * user_data)
+{
+    if (activeTile != SATTRACK)
+        return;
+    drawSatSNR();
+    drawSatSky();
+}
+
+/**
+ * @brief Observer callback for complex satellite data changes
+ */
+static void sats_data_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+{
+    if (activeTile != SATTRACK)
+        return;
+    lv_async_call(async_sats_update_cb, NULL);
+}
+
 /**
  * @brief SNR Bar draw event.
  *
@@ -163,6 +219,16 @@ void satelliteScr(_lv_obj_t *screen)
         lv_obj_set_style_text_font(labels[i], fontDefault, 0);
         lv_label_set_text_fmt(labels[i], texts[i], 0);
     }
+    
+    // Bind labels to their respective subjects
+    lv_subject_add_observer_obj(&subject_pdop, pdop_observer_cb, pdopLabel, NULL);
+    lv_subject_add_observer_obj(&subject_hdop, hdop_observer_cb, hdopLabel, NULL);
+    lv_subject_add_observer_obj(&subject_vdop, vdop_observer_cb, vdopLabel, NULL);
+    lv_subject_add_observer_obj(&subject_altitude, alt_sat_observer_cb, altLabel, NULL);
+
+    // Bind the satellite data trigger
+    lv_subject_add_observer_obj(&subject_sats_data_trigger, sats_data_observer_cb, infoGrid, NULL);
+
     lv_obj_t * barCont = lv_obj_create(screen);
     lv_obj_set_pos(barCont, 0, 5);
 #ifdef TDECK_ESP32S3

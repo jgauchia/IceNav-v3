@@ -59,6 +59,10 @@ void gpsTask(void *pvParameters)
                     lv_subject_set_int(&subject_lat, (int32_t)(gps.gpsData.latitude * 1000000.0f));
                     lv_subject_set_int(&subject_lon, (int32_t)(gps.gpsData.longitude * 1000000.0f));
                     lv_subject_set_int(&subject_sats, (int32_t)gps.gpsData.satellites);
+                    lv_subject_set_int(&subject_pdop, (int32_t)(gps.gpsData.pdop * 10.0f));
+                    lv_subject_set_int(&subject_hdop, (int32_t)(gps.gpsData.hdop * 10.0f));
+                    lv_subject_set_int(&subject_vdop, (int32_t)(gps.gpsData.vdop * 10.0f));
+                    lv_subject_set_int(&subject_sats_data_trigger, lv_subject_get_int(&subject_sats_data_trigger) + 1);
                     lv_subject_set_int(&subject_fix_mode, (int32_t)gps.gpsData.fixMode);
                     lv_subject_set_int(&subject_is_fixed, isGpsFixed ? 1 : 0);
                     if (!mapSet.mapRotationComp)
