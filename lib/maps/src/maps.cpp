@@ -40,11 +40,14 @@ const char* TAG = "Maps";
 /**
  * @brief Map Class constructor
  */
-Maps::Maps() : navLastZoom_(0), 
+Maps::Maps() : navLastZoom_(0),
                navNeedsRender_(true),
-               navTlTileX_(-1), 
-               navTlTileY_(-1)
-{
+               navTlTileX_(-1),
+               navTlTileY_(-1),
+               lastRenderedHeading(0xFFFF),
+               lastRenderedArrowPos({-32768, -32768}),
+               lastRenderedDisplayOffsetX(-32768),
+               lastRenderedDisplayOffsetY(-32768){
     projBuf32X.reserve(MAX_POLYGON_POINTS);
     projBuf32Y.reserve(MAX_POLYGON_POINTS);
     decodedCoords.reserve(MAX_POLYGON_POINTS * 2);
@@ -383,7 +386,6 @@ void Maps::generateMap(uint8_t zoom)
         navLastZoom_ = zoom;
         navNeedsRender_ = false;
         latLonToPixel(destLat, destLon, (int16_t&)wptPosX, (int16_t&)wptPosY);
-        drawTrack(mapTempSprite);
         Maps::redrawMap = true;
         return;
     }
@@ -491,8 +493,12 @@ void Maps::generateMap(uint8_t zoom)
             Maps::wptPosY = -1;
         }
 
-        drawTrack(mapTempSprite);
-        redrawMap = true;
+        if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(100)) == pdTRUE)
+        {
+            drawTrack(mapTempSprite);
+            redrawMap = true;
+            xSemaphoreGiveRecursive(mapMutex);
+        }
         xEventGroupSetBits(mapEventGroup, MAP_EVENT_DONE);
     }
 }
@@ -762,6 +768,21 @@ void Maps::displayMap()
         const int8_t gridOffset = tilesGrid / 2;
         Maps::navArrowPosition = Maps::coord2ScreenPos(lon, lat, Maps::zoomLevel, Maps::mapTileSize);
         
+        // Hysteresis: Skip expensive pushRotated if visual change is minimal and no redraw is forced
+        if (!Maps::redrawMap)
+        {
+            if (mapHeading == lastRenderedHeading &&
+                navArrowPosition.posX == lastRenderedArrowPos.posX &&
+                navArrowPosition.posY == lastRenderedArrowPos.posY)
+            {
+                tft.endWrite();
+                xSemaphoreGiveRecursive(mapMutex);
+                return;
+            }
+        }
+        lastRenderedHeading = mapHeading;
+        lastRenderedArrowPos = navArrowPosition;
+
         // Pivot in large source sprite (GPS position)
         Maps::mapTempSprite.setPivot(gridOffset * mapTileSize + Maps::navArrowPosition.posX,
                                      gridOffset * mapTileSize + Maps::navArrowPosition.posY);
@@ -774,12 +795,27 @@ void Maps::displayMap()
     }
     else
     {
+        // Hysteresis: Skip pushSprite if visual change is minimal and no redraw is forced
+        if (!Maps::redrawMap)
+        {
+            if (displayOffsetX == lastRenderedDisplayOffsetX &&
+                displayOffsetY == lastRenderedDisplayOffsetY)
+            {
+                tft.endWrite();
+                xSemaphoreGiveRecursive(mapMutex);
+                return;
+            }
+        }
+        lastRenderedDisplayOffsetX = displayOffsetX;
+        lastRenderedDisplayOffsetY = displayOffsetY;
+
         // Manual panning: crop central part of grid adjusted by displayOffsetX/offsetY
         int16_t cropX = (tileWidth - mapScrWidth) / 2 + displayOffsetX;
         int16_t cropY = (tileHeight - mapScrHeight) / 2 + displayOffsetY;
         mapTempSprite.pushSprite(&mapSprite, -cropX, -cropY);
     }
 
+    Maps::redrawMap = false;
     tft.endWrite();
     xSemaphoreGiveRecursive(mapMutex);
 }

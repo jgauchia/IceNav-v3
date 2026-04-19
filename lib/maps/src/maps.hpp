@@ -115,7 +115,11 @@ public:
     int16_t tileX = 0;
     int16_t tileY = 0;
     int16_t lastTileX = 0;
-    int16_t lastTileY = 0;
+    int16_t lastTileY;
+    uint16_t lastRenderedHeading;
+    ScreenCoord lastRenderedArrowPos;
+    int16_t lastRenderedDisplayOffsetX;
+    int16_t lastRenderedDisplayOffsetY;
     int16_t offsetX = 0;
     int16_t offsetY = 0;
     int16_t displayOffsetX = 0;
