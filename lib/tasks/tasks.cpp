@@ -80,13 +80,13 @@ void gpsTask(void *pvParameters)
 /**
  * @brief Initialize GPS processing task
  *
- * @details Creates and starts the GPS task on core 0 with 4KB stack size and priority 2.
+ * @details Creates and starts the GPS task on core 0 with 3KB stack size and priority 2.
  *          Includes a 500ms delay after task creation to ensure proper initialization
  *          before other system components attempt to access GPS data.
  */
 void initGpsTask()
 {
-    xTaskCreatePinnedToCore(gpsTask, PSTR("GPS Task"), 4096, NULL, 2, NULL, 0);
+    xTaskCreatePinnedToCore(gpsTask, PSTR("GPS Task"), 3072, NULL, 2, NULL, 0);
     vTaskDelay(pdMS_TO_TICKS(500));
 }
 
@@ -94,7 +94,7 @@ void initGpsTask()
  * @brief Command-line interface processing task
  *
  * @details Handles CLI operations including command parsing, execution, and response
- *          generation. Runs on core 1 with 4KB stack size to handle complex CLI
+ *          generation. Runs on core 1 with 3KB stack size to handle complex CLI
  *          operations and network communications. The task processes commands at
  *          60ms intervals to maintain responsive user interaction.
  *
@@ -116,10 +116,10 @@ void cliTask(void *param)
 /**
  * @brief Initialize CLI processing task
  *
- * @details Creates and starts the CLI task on core 1 with 4KB stack size and priority 1.
+ * @details Creates and starts the CLI task on core 1 with 3KB stack size and priority 1.
  *          Only compiled when CLI functionality is enabled (not DISABLE_CLI).
  */
-void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 4096, NULL, 1, NULL, 1); }
+void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 3072, NULL, 1, NULL, 1); }
 
 #endif
 
@@ -252,11 +252,11 @@ void sensorTask(void *pvParameters)
 /**
  * @brief Initialize sensor processing task
  *
- * @details Creates and starts the sensor task on core 0 with 4KB stack and priority 1.
+ * @details Creates and starts the sensor task on core 0 with 3KB stack and priority 1.
  */
 void initSensorTask()
 {
-    xTaskCreatePinnedToCore(sensorTask, "Sensor Task", 4096, NULL, 1, NULL, 0);
+    xTaskCreatePinnedToCore(sensorTask, "Sensor Task", 3072, NULL, 1, NULL, 0);
 }
 
 /**

@@ -63,7 +63,7 @@ Maps::Maps() : navLastZoom_(0),
     navDataCache.reserve(NAV_DATA_CACHE_SIZE);
     mapMutex = xSemaphoreCreateRecursiveMutex();
     mapEventGroup = xEventGroupCreate();
-    xTaskCreatePinnedToCore(mapRenderTask, "MapRenderTask", 8192, this, 2, &mapRenderTaskHandle, 0);
+    xTaskCreatePinnedToCore(mapRenderTask, "MapRenderTask", 4096, this, 2, &mapRenderTaskHandle, 0);
     }
 
 /**
