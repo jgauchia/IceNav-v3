@@ -42,7 +42,8 @@ lv_obj_t *mapTile;
 lv_obj_t *satTrackTile;
 lv_obj_t *btnZoomIn;
 lv_obj_t *btnZoomOut;
-lv_obj_t *mapCanvas;
+lv_obj_t *mapImage;
+static lv_image_dsc_t map_img_dsc;
 extern Maps mapView;
 
 /**
@@ -109,7 +110,7 @@ static int global_last_heading = -1;
  */
 static void async_map_update_cb(void * user_data)
 {
-    if (!isMainScreen || mapCanvas == NULL)
+    if (!isMainScreen || mapImage == NULL)
         return;
 
     mapView.generateMap(zoom);
@@ -133,11 +134,12 @@ static void async_map_update_cb(void * user_data)
         lastRenderedHeading = currentHeading;
         xEventGroupClearBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
         mapView.displayMap();
-        lv_canvas_set_buffer(mapCanvas, mapView.mapBuffer, mapView.mapScrWidth, mapView.mapScrHeight, LV_COLOR_FORMAT_RGB565_SWAPPED);
+        map_img_dsc.data = (const uint8_t *)mapView.mapBuffer;
+        lv_obj_invalidate(mapImage);
         mapView.redrawMap = false;
     }
 
-    lv_obj_set_pos(mapCanvas, 0, 0);
+    lv_obj_set_pos(mapImage, 0, 0);
 
     if (mapSet.showMapSpeed)
         lv_label_set_text_fmt(mapSpeedLabel, "%3d", gps.gpsData.speed);
@@ -502,17 +504,29 @@ void updateNavEvent(lv_event_t *event)
 }
 
 /**
- * @brief Create Canvas for Map.
+ * @brief Create Image for Map.
  *
- * @details Initializes and creates the canvas object for rendering the map on the specified screen.
+ * @details Initializes and creates the image object for rendering the map on the specified screen.
  *
  * @param screen Pointer to the LVGL screen object.
  */
-void createMapCanvas(_lv_obj_t *screen)
+void createMapImage(_lv_obj_t *screen)
 {
-    mapCanvas = lv_canvas_create(screen);
-    lv_obj_set_scrollbar_mode(mapCanvas, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_add_flag(mapCanvas, LV_OBJ_FLAG_FLOATING);
+    mapImage = lv_image_create(screen);
+    lv_obj_set_scrollbar_mode(mapImage, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_add_flag(mapImage, LV_OBJ_FLAG_FLOATING);
+
+    // Initialize Image Descriptor for LVGL 9
+    map_img_dsc.header.magic = LV_IMAGE_HEADER_MAGIC;
+    map_img_dsc.header.cf = LV_COLOR_FORMAT_RGB565_SWAPPED;
+    map_img_dsc.header.flags = 0;
+    map_img_dsc.header.w = mapView.mapScrWidth;
+    map_img_dsc.header.h = mapView.mapScrHeight;
+    map_img_dsc.header.stride = mapView.mapScrWidth * 2;
+    map_img_dsc.data_size = mapView.mapScrWidth * mapView.mapScrHeight * 2;
+    map_img_dsc.data = (const uint8_t *)mapView.mapBuffer;
+
+    lv_image_set_src(mapImage, &map_img_dsc);
 }
 
 /**
@@ -542,7 +556,7 @@ void createMainScr()
     sunWidget(compassTile);
     lv_obj_add_event_cb(sunriseLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(sunsetLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
-    createMapCanvas(mapTile);
+    createMapImage(mapTile);
     navArrowWidget(mapTile);
     mapZoomWidget(mapTile);
     mapSpeedWidget(mapTile);

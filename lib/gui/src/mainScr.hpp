@@ -64,7 +64,7 @@ void mapToolBarEvent(lv_event_t *event);
 void scrollMapEvent(lv_event_t *event);
 void zoomEvent(lv_event_t *event);
 void updateNavEvent(lv_event_t *event);
-void createMapCanvas(_lv_obj_t *screen);
+void createMapImage(_lv_obj_t *screen);
 void showMapWidgets();
 void hideMapWidgets();
 void createMainScr();
