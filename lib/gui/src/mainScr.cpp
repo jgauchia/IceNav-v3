@@ -279,23 +279,6 @@ void scrollTile(lv_event_t *event)
 }
 
 /**
- * @brief Update Main Screen.
- *
- * @details Periodically updates the active main screen tiles and its widgets 
- */
-void updateMainScreen(lv_timer_t *t)
-{
-    if (isScrolled && isMainScreen || isScrollingMap)
-    {
-        switch (activeTile)
-        {
-            default: 
-                break;
-        }
-    }
-}
-
-/**
  * @brief Update map event
  *
  * @details Handles map update events by generating and displaying the map (vector or render), updating map speed, scale, and compass widgets according to current settings.

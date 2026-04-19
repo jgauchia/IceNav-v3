@@ -17,9 +17,6 @@
 #include "compass.hpp"
 #include "navigation.hpp"
 
-extern lv_timer_t *mainTimer;    /**< Main Screen Timer */
-#define UPDATE_MAINSCR_PERIOD 30 /**< Main Screen update period (ms) */
-
 extern bool isScrolled;          /**< Flag to indicate when tileview was scrolled */
 extern bool isMainScreen;        /**< Flag to indicate main screen is selected */
 extern bool canScrollMap;        /**< Flag to indicate if map can be scrolled */
@@ -62,7 +59,6 @@ extern uint8_t toolBarSpace;      /**< Space between toolbar buttons */
 void updateCompassScr(lv_event_t * event);
 void getActTile(lv_event_t *event);
 void scrollTile(lv_event_t *event);
-void updateMainScreen(lv_timer_t *t);
 void updateMap(lv_event_t *event);
 void mapToolBarEvent(lv_event_t *event);
 void scrollMapEvent(lv_event_t *event);
