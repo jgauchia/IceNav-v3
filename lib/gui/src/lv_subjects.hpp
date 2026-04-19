@@ -48,9 +48,6 @@ extern SemaphoreHandle_t lvgl_mutex;
  */
 extern volatile bool canMoveWidget;
 
-/**
- * @brief Initialize all telemetry subjects
- * 
- * @details Call this function during LVGL setup to prepare the subjects for observers.
- */
 void init_lv_subjects();
+
+void notify_all_subjects();

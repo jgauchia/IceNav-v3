@@ -513,4 +513,8 @@ void loadMainScreen()
         lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
 
     lv_screen_load(mainScreen);
+    
+    notify_all_subjects();
+    extern void triggerMapRedraw();
+    triggerMapRedraw();
 }

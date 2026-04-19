@@ -66,3 +66,34 @@ void init_lv_subjects()
     lv_subject_init_int(&subject_temp, 0);
     #endif
 }
+
+/**
+ * @brief Manually trigger all telemetry observers
+ * 
+ * @details Forces a refresh of all reactive UI components by notifying their subjects.
+ */
+void notify_all_subjects()
+{
+    lv_subject_notify(&subject_heading);
+    lv_subject_notify(&subject_battery);
+    lv_subject_notify(&subject_speed);
+    lv_subject_notify(&subject_altitude);
+    lv_subject_notify(&subject_lat);
+    lv_subject_notify(&subject_lon);
+    lv_subject_notify(&subject_time);
+    lv_subject_notify(&subject_sats);
+    lv_subject_notify(&subject_pdop);
+    lv_subject_notify(&subject_hdop);
+    lv_subject_notify(&subject_vdop);
+    lv_subject_notify(&subject_sats_data_trigger);
+    lv_subject_notify(&subject_fix_mode);
+    lv_subject_notify(&subject_is_fixed);
+    lv_subject_notify(&subject_wifi);
+    lv_subject_notify(&subject_map_state);
+    lv_subject_notify(&subject_map_offset_x);
+    lv_subject_notify(&subject_map_offset_y);
+
+    #ifdef ENABLE_TEMP
+    lv_subject_notify(&subject_temp);
+    #endif
+}

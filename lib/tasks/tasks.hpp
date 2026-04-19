@@ -49,14 +49,7 @@ void guiTask(void *pvParameters);
 void initGuiTask();
 
 #ifndef DISABLE_CLI
-    /**
-     * @brief CLI processing task function
-     * @param param Task parameters (unused)
-     */
     void cliTask(void *param);
     
-    /**
-     * @brief Initialize CLI processing task
-     */
     void initCLITask();
 #endif
