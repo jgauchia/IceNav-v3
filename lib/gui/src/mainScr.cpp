@@ -608,20 +608,17 @@ void createMainScr()
     satelliteScr(satTrackTile);
     map_inertia_timer = lv_timer_create(map_inertia_timer_cb, 20, NULL);
     lv_timer_pause(map_inertia_timer);
-    
+
     #ifdef BOARD_HAS_PSRAM
         #ifndef TDECK_ESP32S3
-            createConstCanvas(satTrackTile);
-            drawSatConst();
-            lv_obj_set_pos(constCanvas, (TFT_WIDTH / 2) - canvasCenter_X, 240);
+            createSatRadar(satTrackTile);
+            lv_obj_set_pos(satRadar, (TFT_WIDTH / 2) - canvasCenter_X, 240);
         #endif
         #ifdef TDECK_ESP32S3
-            createConstCanvas(constMsg);
-            lv_obj_align(constCanvas, LV_ALIGN_CENTER, 0, 0);
-            drawSatConst();
+            createSatRadar(constMsg);
+            lv_obj_align(satRadar, LV_ALIGN_CENTER, 0, 0);
         #endif
     #endif
-
     if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
     {
         lv_subject_set_int(&subject_lat, (int32_t)(gps.getLat() * 1000000.0f));

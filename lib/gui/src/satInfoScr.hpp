@@ -38,25 +38,20 @@ extern lv_obj_t *pdopLabel;          /**< Label for PDOP value. */
 extern lv_obj_t *hdopLabel;          /**< Label for HDOP value. */
 extern lv_obj_t *vdopLabel;          /**< Label for VDOP value. */
 extern lv_obj_t *altLabel;           /**< Label for altitude value. */
-extern lv_obj_t *constCanvas;        /**< Canvas for constellation visualization. */
+extern lv_obj_t *satRadar;           /**< Object for constellation visualization. */
 extern lv_obj_t *satelliteBar;       /**< Chart object for satellite signal bar. */
 extern lv_chart_series_t *satelliteBarSerie; /**< Series for satellite signal bar chart. */
 extern lv_obj_t *constMsg;           /**< Label for constellation status messages. */
 
 /**
- * @brief Satellite Constellation Layer Canvas Definition.
- *
- * @details Definitions for the color and layers used for drawing the satellite constellation on the canvas.
+ * @brief Satellite Constellation Drawing Definitions.
  */
-#define CONSTEL_COLOR lv_color_hex(0x515a5a)    /**< Color used for the constellation canvas background. */
-extern lv_layer_t canvasLayer;                  /**< Layer for the base canvas drawing. */
+#define CONSTEL_COLOR lv_color_hex(0x515a5a)    /**< Color used for the constellation background. */
 
 
 void satelliteBarDrawEvent(lv_event_t *event);
 void constSatEvent(lv_event_t *event);
 void closeConstSatEvent(lv_event_t *event);
-void createConstCanvas(_lv_obj_t *screen);
+void createSatRadar(_lv_obj_t *screen);
 void satelliteScr(_lv_obj_t *screen);
 void drawSatSNR();
-void drawSatConst();
-void drawSatSky();
