@@ -70,7 +70,6 @@ private:
     uint16_t wptPosY;
     TFT_eSprite mapTempSprite = TFT_eSprite(&tft);
     TFT_eSprite mapSprite = TFT_eSprite(&tft);
-    TFT_eSprite preloadSprite = TFT_eSprite(&tft);
     float destLat;
     float destLon;
     uint8_t zoomLevel;

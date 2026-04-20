@@ -279,8 +279,6 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
     Maps::mapTempSprite.loadFont("/spiffs/font.vlw");
     Maps::mapSprite.createSprite(mapWidth, mapHeight);
     Maps::mapBuffer = Maps::mapSprite.getBuffer();
-    Maps::preloadSprite.deleteSprite();
-    Maps::preloadSprite.createSprite(mapTileSize * 2, mapTileSize * 2);
     Maps::oldMapTile = {};
     Maps::currentMapTile = {};
     Maps::roundMapTile = {};
@@ -294,7 +292,6 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
 void Maps::deleteMapScrSprites()
 {
     NavReader::closePack();
-    Maps::preloadSprite.deleteSprite();
 }
 
 /**
@@ -1014,13 +1011,13 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
 void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 {
     const int16_t tileSize = mapTileSize;
-    const int16_t preloadWidth = (dirX != 0) ? tileSize : tileSize * 2;
-    const int16_t preloadHeight = (dirY != 0) ? tileSize : tileSize * 2;
-    if (!preloadSprite.getBuffer())
-        preloadSprite.createSprite(mapTileSize * 2, mapTileSize * 2);
-
     const int16_t startX = tileX + dirX;
     const int16_t startY = tileY + dirY;
+
+    if (dirX != 0)
+        mapTempSprite.scroll(dirX * tileSize, 0);
+    else if (dirY != 0)
+        mapTempSprite.scroll(0, dirY * tileSize);
 
     for (int8_t i = 0; i < 2; ++i)
     {
@@ -1029,26 +1026,16 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
         float tileLon = (tileToLoadX / (1 << Maps::zoomLevel)) * 360.0f - 180.0f;
         float tileLat = 90.0f - (tileToLoadY / (1 << Maps::zoomLevel)) * 180.0f;
         Maps::roundMapTile = Maps::getMapTile(tileLon, tileLat, Maps::zoomLevel, tileToLoadX, tileToLoadY);
-        const int16_t offsetX = (dirX != 0) ? i * tileSize : 0;
-        const int16_t offsetY = (dirY != 0) ? i * tileSize : 0;
-        bool foundTile = false;
-        if (!mapSet.vectorMap)
-            foundTile = preloadSprite.drawPngFile(Maps::roundMapTile.file, offsetX, offsetY);
-        if (!foundTile)
-            preloadSprite.fillRect(offsetX, offsetY, tileSize, tileSize, TFT_LIGHTGREY);
-    }
+        
+        // Calculate the grid coordinates in the mapTempSprite
+        // Grid is based on tilesGrid (3 or 4)
+        int16_t gx = (tileToLoadX - (int32_t)navTlTileX_);
+        int16_t gy = (tileToLoadY - (int32_t)navTlTileY_);
+        int16_t sx = gx * tileSize;
+        int16_t sy = gy * tileSize;
 
-    if (dirX != 0)
-    {
-        mapTempSprite.scroll(dirX * tileSize, 0);
-        const int16_t pushX = (dirX > 0) ? tileSize * 2 : 0;
-        mapTempSprite.pushImage(pushX, 0, preloadWidth, preloadHeight, preloadSprite.frameBuffer(0));
-    }
-    else if (dirY != 0)
-    {
-        mapTempSprite.scroll(0, dirY * tileSize);
-        const int16_t pushY = (dirY > 0) ? tileSize * 2 : 0;
-        mapTempSprite.pushImage(0, pushY, preloadWidth, preloadHeight, preloadSprite.frameBuffer(0));
+        if (!mapTempSprite.drawPngFile(Maps::roundMapTile.file, sx, sy))
+            mapTempSprite.fillRect(sx, sy, tileSize, tileSize, TFT_LIGHTGREY);
     }
 }
 

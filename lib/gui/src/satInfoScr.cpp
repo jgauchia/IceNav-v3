@@ -251,7 +251,7 @@ static void sat_radar_draw_cb(lv_event_t * e)
     dscSat.radius = 8;
     dscSat.opa = LV_OPA_70;
 
-    for (int i = 0; i < gps.gpsData.satInView; i++) 
+    for (int i = 0; i < gps.gpsData.satInView && i < MAX_SATELLLITES_IN_VIEW; i++) 
     {
         if ( strcmp(gps.satTracker[i].talker_id,"GP") == 0 )
             dscSat.color = gps.satTracker[i].active ? GP_ACTIVE_COLOR : GP_INACTIVE_COLOR;
@@ -403,7 +403,7 @@ void drawSatSNR()
     {
         lv_chart_set_value_by_id(satelliteBar, satelliteBarSerie, i, LV_CHART_POINT_NONE);
     }
-    for (int i = 0; i < gps.gpsData.satInView; ++i)
+    for (int i = 0; i < gps.gpsData.satInView && i < MAX_SATELLLITES_IN_VIEW; ++i)
     {
         if (gps.satTracker[i].snr > 0)
             lv_chart_set_value_by_id(satelliteBar, satelliteBarSerie, i, gps.satTracker[i].snr);
