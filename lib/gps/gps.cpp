@@ -520,21 +520,27 @@ void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refr
                 
                 // Advance through track points until we've covered the expected distance
                 int currentIndex = simulationIndex;
-                int pointsAdvanced = 0;
-                const float maxSegmentDist = 100.0f; // Filter out unrealistic jumps (>100m)
+                const float maxSegmentDist = 5000.0f; // Allow long segments (e.g. 5km)
                 
                 // Add expected distance to accumulated distance
                 accumulatedDist += expectedDist;
                 
-                // Limit to prevent infinite loops
-                while (currentIndex < (int)trackData.size() - 1 && pointsAdvanced < 10) 
+                // Limit to prevent infinite loops (end of track only)
+                while (currentIndex < (int)trackData.size() - 1) 
                 { 
                     int nextIndex = currentIndex + 1;
                     float segmentDist = calcDist(trackData[currentIndex].lat, trackData[currentIndex].lon,
                                                 trackData[nextIndex].lat, trackData[nextIndex].lon);
                     
-                    // Skip unrealistic jumps or duplicate points
-                    if (segmentDist > maxSegmentDist || segmentDist < 0.1f) 
+                    // Skip duplicate points
+                    if (segmentDist < 0.1f) 
+                    {
+                        currentIndex = nextIndex;
+                        continue;
+                    }
+
+                    // Skip unrealistic jumps
+                    if (segmentDist > maxSegmentDist)
                     {
                         currentIndex = nextIndex;
                         continue;
@@ -545,7 +551,6 @@ void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refr
                     {
                         accumulatedDist -= segmentDist;
                         currentIndex = nextIndex;
-                        pointsAdvanced++;
                     } 
                     else
                         break; // Not enough accumulated distance
@@ -612,7 +617,7 @@ void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refr
         } 
         else 
         {
-            ESP_LOGI(TAG,"End of GPS signal simulation");
+            // End of simulation reached
         }
     }
 } 

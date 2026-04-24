@@ -12,7 +12,6 @@
 static bool skipSearch = false;               /**< Flag to indicate if satellite search should be skipped */
 bool isSearchingSat = true;                   /**< Flag to indicate if satellite search is in progress */
 extern uint8_t activeTile;                    /**< Index of the currently active tile */
-extern lv_timer_t *mainTimer;                 /**< Main Screen Timer */
 lv_timer_t *searchTimer;                      /**< Timer for satellite search process */
 
 /**
@@ -28,10 +27,8 @@ void buttonEvent(lv_event_t *event)
     if (strcmp(option,"skip") == 0)
         skipSearch = true;
     if (strcmp(option,"settings") == 0)
-        lv_screen_load(settingsScreen); 
-    lv_timer_resume(mainTimer);
+        lv_screen_load(settingsScreen);
 }
-
 /**
  * @brief Search valid GPS signal
  *
@@ -51,7 +48,6 @@ void searchGPS(lv_timer_t *searchTimer)
         {
             fixConfirmCount = 0;
             lv_timer_del(searchTimer);
-            lv_timer_resume(mainTimer);
             isSearchingSat = false;
             loadMainScreen();
         }
@@ -82,7 +78,6 @@ void createSearchSatScr()
 {
     searchTimer = lv_timer_create(searchGPS, 100, NULL);
     lv_timer_pause(searchTimer);
-    lv_timer_pause(mainTimer);
 
     searchSatScreen = lv_obj_create(NULL);
 

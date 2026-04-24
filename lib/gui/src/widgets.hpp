@@ -40,7 +40,6 @@ void dragWidget(lv_event_t *event);
 void unselectWidget(lv_event_t *event);
 
 static bool widgetSelected = false;      /**< Widget selection state */
-static bool canMoveWidget = false;       /**< Permission to move widget */
 static lv_coord_t newX = 0;              /**< New X coordinate for widget movement */
 static lv_coord_t newY = 0;              /**< New Y coordinate for widget movement */
 
