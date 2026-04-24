@@ -120,18 +120,27 @@ static void async_map_update_cb(void * user_data)
     static int16_t lastDispX = -32768;
     static int16_t lastDispY = -32768;
     static int32_t lastRenderedHeading = -1;
+    static float lastRenderedLat = -1.0f;
+    static float lastRenderedLon = -1.0f;
     
     int32_t currentHeading = lv_subject_get_int(&subject_heading);
+    float currentLat = gps.gpsData.latitude;
+    float currentLon = gps.gpsData.longitude;
+
     bool headingChanged = (abs(currentHeading - lastRenderedHeading) > 1);
+    bool positionChanged = (currentLat != lastRenderedLat || currentLon != lastRenderedLon);
 
     if (mapView.offsetX != lastDispX || 
         mapView.offsetY != lastDispY || 
-        (headingChanged && mapView.followGps) ||
+        ((headingChanged || positionChanged) && mapView.followGps) ||
+        mapView.redrawMap ||
         (xEventGroupGetBits(mapView.mapEventGroup) & Maps::MAP_EVENT_DONE))
     {
         lastDispX = mapView.offsetX;
         lastDispY = mapView.offsetY;
         lastRenderedHeading = currentHeading;
+        lastRenderedLat = currentLat;
+        lastRenderedLon = currentLon;
         xEventGroupClearBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
         mapView.displayMap();
         map_img_dsc.data = (const uint8_t *)mapView.mapBuffer;
