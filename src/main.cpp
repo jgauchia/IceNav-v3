@@ -43,6 +43,7 @@ extern xSemaphoreHandle gpsMutex;
 #include "power.hpp"
 #include "gpxParser.hpp"
 #include "maps.hpp"
+#include "lv_subjects.hpp"
 
 extern Storage storage;
 extern Battery battery;
@@ -178,7 +179,18 @@ void loop()
     if (isTrackLoaded)
     {
         if (navSet.simNavigation)
+        {
+            float oldLat = gps.gpsData.latitude;
             gps.simFakeGPS(trackData, 120, 1000);
+            if (gps.gpsData.latitude != oldLat && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
+            {
+                lv_subject_set_int(&subject_lat, (int32_t)(gps.gpsData.latitude * 1000000.0f));
+                lv_subject_set_int(&subject_lon, (int32_t)(gps.gpsData.longitude * 1000000.0f));
+                lv_subject_set_int(&subject_heading, (int32_t)gps.gpsData.heading);
+                lv_subject_set_int(&subject_speed, (int32_t)gps.gpsData.speed);
+                xSemaphoreGive(lvgl_mutex);
+            }
+        }
 
         if (gps.gpsData.speed != 0)
         {
@@ -191,8 +203,12 @@ void loop()
             if (millis() - lastNavUpdate > 100)
             {
                 lastNavUpdate = millis();
-                updateNavigation(gps.gpsData.latitude, gps.gpsData.longitude, gps.gpsData.heading, gps.gpsData.speed,
-                                trackData, turnPoints, navState, 20, 200, simConfig);
+                if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(50)) == pdTRUE)
+                {
+                    updateNavigation(gps.gpsData.latitude, gps.gpsData.longitude, gps.gpsData.heading, gps.gpsData.speed,
+                                    trackData, turnPoints, navState, 20, 200, simConfig);
+                    xSemaphoreGive(lvgl_mutex);
+                }
             }
         }
     }
