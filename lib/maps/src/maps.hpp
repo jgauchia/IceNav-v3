@@ -2,8 +2,8 @@
  * @file maps.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com) - Render Maps
  * @brief  Maps draw class
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #pragma once

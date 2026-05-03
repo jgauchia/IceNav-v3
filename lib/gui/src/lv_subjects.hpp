@@ -2,8 +2,8 @@
  * @file lv_subjects.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Observer Pattern - Subjects for telemetry data
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #pragma once

@@ -2,8 +2,8 @@
  * @file firmUpgrade.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Firmware upgrade from SD functions
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #pragma once

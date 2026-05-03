@@ -2,8 +2,8 @@
  * @file nav_reader.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Binary NAV file reader and tile container manager
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #include "nav_reader.hpp"

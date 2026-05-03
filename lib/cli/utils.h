@@ -2,8 +2,8 @@
  * @file utils.h
  * @author @Hpsaturn
  * @brief  Network CLI and custom internal commands
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #pragma once

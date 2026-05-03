@@ -2,8 +2,8 @@
  * @file satInfoScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Satellite info screen 
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 #include "satInfoScr.hpp"
 #include "lv_subjects.hpp"
