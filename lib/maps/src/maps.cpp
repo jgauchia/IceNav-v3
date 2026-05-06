@@ -7,12 +7,8 @@
  */
 
 #include "maps.hpp"
-#include <vector>
-#include <algorithm>
-#include <cstring>
 #include <cmath>
 #include <climits>
-#include <cstdint>
 #include "esp_task_wdt.h"
 #include "tasks.hpp"
 #include "mainScr.hpp"
@@ -29,7 +25,6 @@
 #include "../../images/src/uright.h"
 #include "../../images/src/finish.h"
 #include "../../images/src/outtrack.h"
-#include "globalGpxDef.h"
 
 extern Compass compass;
 extern Gps gps;
@@ -1714,11 +1709,9 @@ void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
         dataSize = navDataCache[cacheIdx].size;
         navDataCache[cacheIdx].lastAccess = ++cacheCounter;
         navDataCache[cacheIdx].isPinned = true;
-        cacheHits++;
     }
     else
     {
-        cacheMisses++;
         if (!NavReader::openPack(zoom))
             return;
         uint32_t offset;

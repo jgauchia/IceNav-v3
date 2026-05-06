@@ -15,7 +15,6 @@
 #include "utils.h"
 #include "gps.hpp"
 #include "power.hpp"
-#include <NMEAGPS.h>
 
 void initCLI();
 

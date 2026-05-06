@@ -8,7 +8,6 @@
 
 #pragma once
 
-#include "lvgl.h"
 #include "firmUpgrade.hpp"
 #include "globalGuiDef.h"
 

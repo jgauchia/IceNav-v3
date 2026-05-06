@@ -20,13 +20,7 @@ int taskSleepPeriod = 10;
 #include "storage.hpp"
 #include "tft.hpp"
 
-#ifdef HMC5883L
-    #include "compass.hpp"
-#endif
-#ifdef QMC5883
-    #include "compass.hpp"
-#endif
-#ifdef IMU_MPU9250
+#if defined(HMC5883L) || defined(QMC5883) || defined(IMU_MPU9250)
     #include "compass.hpp"
 #endif
 #ifdef BME280

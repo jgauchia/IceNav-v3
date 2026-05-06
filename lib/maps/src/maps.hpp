@@ -233,9 +233,6 @@ private:
     float navTlTileX_;
     float navTlTileY_;
 
-    uint16_t cacheHits;
-    uint16_t cacheMisses;
-
     struct Edge
     {
         int yMax;

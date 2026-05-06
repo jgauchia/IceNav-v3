@@ -11,8 +11,6 @@
 #include "globalGuiDef.h"
 #include "tasks.hpp"
 #include "storage.hpp"
-#include "battery.hpp"
-#include "settings.hpp"
 #include "styles.hpp"
 
 /**

@@ -7,7 +7,6 @@
  */
 #include "satInfoScr.hpp"
 #include "lv_subjects.hpp"
-#include "globalGuiDef.h"
 #include "mainScr.hpp"
 
 lv_obj_t *pdopLabel;
