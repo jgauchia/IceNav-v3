@@ -16,6 +16,28 @@ extern Storage storage;
 static const char* TAG = "GPX file struct";
 
 /**
+ * @brief Create a folder on storage if it does not already exist.
+ *
+ * @details Checks for the existence of the specified folder and creates it if missing.
+ *          Logs the result of the operation.
+ *
+ * @param folder Absolute path of the folder to create.
+ */
+static void createFolderIfNotExists(const char* folder)
+{
+    if (!storage.exists(folder))
+    {
+        ESP_LOGI(TAG, "%s folder not exists", folder);
+        if (storage.mkdir(folder))
+            ESP_LOGI(TAG, "%s folder created", folder);
+        else
+            ESP_LOGE(TAG, "%s folder not created", folder);
+    }
+    else
+        ESP_LOGI(TAG, "%s folder exists", folder);
+}
+
+/**
  * @brief Create GPX folders structure
  *
  * @details Checks for the existence of the TRK and WPT folders on storage. Creates them if they do not exist,
@@ -23,27 +45,8 @@ static const char* TAG = "GPX file struct";
  */
 void createGpxFolders()
 {
-    if (!storage.exists(trkFolder))
-    {
-        ESP_LOGI(TAG,"TRK folder not exists");
-        if (storage.mkdir(trkFolder))
-            ESP_LOGI(TAG, "TRK folder created");
-        else
-            ESP_LOGE(TAG, "TRK folder not created");
-    }
-    else
-        ESP_LOGI(TAG,"TRK folder exists");
-
-    if (!storage.exists(wptFolder))
-    {
-        ESP_LOGI(TAG,"WPT folder not exists");
-        if (storage.mkdir(wptFolder))
-            ESP_LOGI(TAG, "WPT folder created");
-        else
-            ESP_LOGE(TAG, "WPT folder not created");
-    }
-    else
-        ESP_LOGI(TAG,"WPT folder exists");
+    createFolderIfNotExists(trkFolder);
+    createFolderIfNotExists(wptFolder);
 }
 
 /**
