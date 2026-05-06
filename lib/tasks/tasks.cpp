@@ -16,7 +16,11 @@
 
 xSemaphoreHandle gpsMutex;
 extern Gps gps;
-SensorData globalSensorData;
+SensorData globalSensorData = {};
+
+static constexpr TickType_t MUTEX_TIMEOUT_GPS  = pdMS_TO_TICKS(100);
+static constexpr TickType_t MUTEX_TIMEOUT_TIME = pdMS_TO_TICKS(50);
+static constexpr TickType_t MUTEX_TIMEOUT_SLOW = pdMS_TO_TICKS(10);
 
 static const char* TAG = "Task";
 
@@ -36,7 +40,7 @@ void gpsTask(void *pvParameters)
     ESP_LOGV(TAG, "Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
     while (1)
     {
-        if ( xSemaphoreTake(gpsMutex, pdMS_TO_TICKS(100)) == pdTRUE )
+        if ( gpsMutex != NULL && xSemaphoreTake(gpsMutex, MUTEX_TIMEOUT_GPS) == pdTRUE )
         {
             if (nmea_output_enable)
             {
@@ -170,7 +174,7 @@ void sensorTask(void *pvParameters)
         time_t now = time(NULL);
         if (now != lastTimeSent)
         {
-            if (isMainScreen && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(50)) == pdTRUE)
+            if (isMainScreen && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, MUTEX_TIMEOUT_TIME) == pdTRUE)
             {
                 lv_subject_set_int(&subject_time, (int32_t)now);
                 lv_subject_notify(&subject_time);
@@ -191,7 +195,7 @@ void sensorTask(void *pvParameters)
             uint8_t currentTemp = (uint8_t)(globalSensorData.temperature + tempOffset);
             if (isMainScreen && currentTemp != lastTempSent)
             {
-                if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(10)) == pdTRUE)
+                if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, MUTEX_TIMEOUT_SLOW) == pdTRUE)
                 {
                     lv_subject_set_int(&subject_temp, (int32_t)currentTemp);
                     lastTempSent = currentTemp;
@@ -204,7 +208,7 @@ void sensorTask(void *pvParameters)
             bool currentWifiState = (WiFi.status() == WL_CONNECTED);
             if (currentWifiState != lastWifiState)
             {
-                if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(10)) == pdTRUE)
+                if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, MUTEX_TIMEOUT_SLOW) == pdTRUE)
                 {
                     lv_subject_set_int(&subject_wifi, currentWifiState ? 1 : 0);
                     lastWifiState = currentWifiState;
@@ -216,17 +220,17 @@ void sensorTask(void *pvParameters)
             static int lastSentValue = -1;
             int current = (int)globalSensorData.batteryPercent;
             
-            auto getLevel = [](int v) 
+            static auto getLevel = [](int v)
             {
-                if (v > 110) 
+                if (v > 110)
                     return 5;
-                if (v > 80)  
+                if (v > 80)
                     return 4;
-                if (v > 60)  
+                if (v > 60)
                     return 3;
-                if (v > 40)  
+                if (v > 40)
                     return 2;
-                if (v > 20)  
+                if (v > 20)
                     return 1;
                 return 0;
             };
