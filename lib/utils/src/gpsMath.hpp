@@ -24,8 +24,8 @@
 static const float LUT_RES = (TWO_PI / (float)LUT_SIZE); /**< Angular resolution (radians per LUT step) */
 
 // Lookup tables (allocated in PSRAM if available, else in normal RAM)
-static float* sinLut = NULL;
-static float* cosLut = NULL;
+extern float* sinLut;
+extern float* cosLut;
 extern bool lutInit;
 
 /**

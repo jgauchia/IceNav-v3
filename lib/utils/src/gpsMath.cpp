@@ -12,6 +12,8 @@
 #include "esp_heap_caps.h"
 
 bool lutInit = false;
+float* sinLut = NULL;
+float* cosLut = NULL;
 
 /**
  * @brief Initialize lookup tables for sine and cosine
