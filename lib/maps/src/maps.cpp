@@ -54,12 +54,27 @@ Maps::Maps() : navLastZoom_(0),
         layers[i].reserve(MAX_FEATURE_POOL_SIZE / 4);
 
     ringEndsCache.reserve(MAX_POLYGON_POINTS);
-    placedLabelsCache.reserve(512);
+    placedLabelsCache.reserve(MAX_PLACED_LABELS);
     navDataCache.reserve(NAV_DATA_CACHE_SIZE);
     mapMutex = xSemaphoreCreateRecursiveMutex();
     mapEventGroup = xEventGroupCreate();
     xTaskCreatePinnedToCore(mapRenderTask, "MapRenderTask", 4096, this, 2, &mapRenderTaskHandle, 0);
     }
+
+/**
+ * @brief Computes the Mercator northing (merc_n) from a latitude in degrees.
+ *
+ * @details Shared helper used by lat2posy() and lat2tiley() to avoid duplicating
+ *          the same trigonometric projection calculation.
+ *
+ * @param f_lat Latitude in degrees.
+ * @return Mercator northing value (natural log of the secant-tangent term).
+ */
+static float calcMercatorN(float f_lat)
+{
+    float lat_rad = f_lat * static_cast<float>(M_PI) / 180.0f;
+    return logf(tanf(lat_rad) + 1.0f / cosf(lat_rad));
+}
 
 /**
  * @brief Get pixel X position from longitude
@@ -85,9 +100,7 @@ uint16_t Maps::lon2posx(float f_lon, uint8_t zoom, uint16_t tileSize)
  */
 uint16_t Maps::lat2posy(float f_lat, uint8_t zoom, uint16_t tileSize)
 {
-    float lat_rad = f_lat * static_cast<float>(M_PI) / 180.0f;
-    float siny = tanf(lat_rad) + 1.0f / cosf(lat_rad);
-    float merc_n = logf(siny);
+    float merc_n = calcMercatorN(f_lat);
     uint32_t scale = 1 << zoom;
     float total_scale = scale * tileSize;
     return static_cast<uint16_t>(((1.0f - merc_n / static_cast<float>(M_PI)) / 2.0f * total_scale)) % tileSize;
@@ -117,9 +130,7 @@ uint32_t Maps::lon2tilex(float f_lon, uint8_t zoom)
  */
 uint32_t Maps::lat2tiley(float f_lat, uint8_t zoom)
 {
-    float lat_rad = f_lat * static_cast<float>(M_PI) / 180.0f;
-    float siny = tanf(lat_rad) + 1.0f / cosf(lat_rad);
-    float merc_n = logf(siny);
+    float merc_n = calcMercatorN(f_lat);
     uint32_t scale = 1 << zoom;
     float rawTile = (1.0f - merc_n / static_cast<float>(M_PI)) / 2.0f * scale;
     rawTile += 1e-6f;
@@ -1041,6 +1052,22 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
  * @param amount Dark amount
  * @return uint16_t Darken color
  */
+/**
+ * @brief Returns the LOD (Level of Detail) skip threshold in pixels for the given zoom level.
+ *
+ * @details Used by renderNavLineString() and renderNavPolygon() to skip coordinate pairs
+ *          that are too close together to be visually relevant at the current zoom.
+ *
+ * @param zoom Current map zoom level.
+ * @return Pixel distance threshold below which coordinates are skipped.
+ */
+static int16_t getLODThreshold(uint8_t zoom)
+{
+    if (zoom <= 12) return 3;
+    if (zoom <= 14) return 2;
+    return 1;
+}
+
 uint16_t Maps::darkenRGB565(const uint16_t color, const float amount)
 {
     static uint16_t lastInColor = 0;
@@ -1350,14 +1377,7 @@ void Maps::renderNavLineString(const FeatureRef& ref, TFT_eSprite& map, bool isC
     int16_t lastPy = -32768;
     int16_t w = (int16_t)tileWidth;
     int16_t h = (int16_t)tileHeight;
-    int16_t lodThreshold;
-
-    if (navLastZoom_ <= 12)
-        lodThreshold = 3;
-    else if (navLastZoom_ <= 14)
-        lodThreshold = 2;
-    else
-        lodThreshold = 1;
+    const int16_t lodThreshold = getLODThreshold(navLastZoom_);
 
     for (uint16_t i = 0; i < ref.coordCount; i++)
     {
@@ -1444,13 +1464,7 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
     int16_t lastX = -32768;
     int16_t lastY = -32768;
     uint16_t actualPoints = 0;
-    int16_t lodThreshold;
-    if (navLastZoom_ <= 12)
-        lodThreshold = 3;
-    else if (navLastZoom_ <= 14)
-        lodThreshold = 2;
-    else
-        lodThreshold = 1;
+    const int16_t lodThreshold = getLODThreshold(navLastZoom_);
 
     for (size_t i = 0; i < ref.coordCount; i++)
     {

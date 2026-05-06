@@ -185,6 +185,7 @@ private:
 
     static const uint16_t MAX_POLYGON_POINTS = 1024;
     static const uint32_t MAX_FEATURE_POOL_SIZE = 16384;
+    static const uint16_t MAX_PLACED_LABELS = 512;
 
     std::vector<int, PsramAllocator<int>> projBuf32X;
     std::vector<int, PsramAllocator<int>> projBuf32Y;
