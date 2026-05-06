@@ -196,6 +196,29 @@ float calcAngleDiff(float a, float b)
 }
 
 /**
+ * @brief Formats a coordinate (latitude or longitude) into a degrees°minutes'seconds"H string.
+ *
+ * @details Shared implementation used by latFormatString() and lonFormatString().
+ *          Converts a decimal degree value to DMS notation with hemisphere indicator.
+ *
+ * @param value     Coordinate value in decimal degrees.
+ * @param posHemi   Hemisphere character for positive values (e.g. 'N' or 'E').
+ * @param negHemi   Hemisphere character for negative values (e.g. 'S' or 'W').
+ * @param buf       Output buffer to write the formatted string.
+ * @param bufSize   Size of the output buffer.
+ */
+static void formatCoordinate(float value, char posHemi, char negHemi, char *buf, size_t bufSize)
+{
+    char hemi = (value < 0.0f) ? negHemi : posHemi;
+    float absVal = fabsf(value);
+    uint16_t deg = static_cast<uint16_t>(absVal);
+    absVal = (absVal - deg) * 60.0f;
+    uint8_t min = static_cast<uint8_t>(absVal);
+    absVal = (absVal - min) * 60.0f;
+    snprintf(buf, bufSize, degreeFormat, deg, min, absVal, hemi);
+}
+
+/**
  * @brief Format latitude in degrees°minutes'seconds"N/S string.
  *
  * @details Converts a float latitude into a formatted string using degrees, minutes,
@@ -207,24 +230,8 @@ float calcAngleDiff(float a, float b)
  */
 char *latFormatString(float lat)
 {
-    char N_S = 'N';
-    float absLatitude = lat;
-    uint16_t deg;
-    uint8_t min;
     static char s_buf[64];
-
-    if (lat < 0.0f)
-    {
-        N_S = 'S';
-        absLatitude = fabsf(lat);
-    }
-
-    deg = static_cast<uint16_t>(absLatitude);
-    absLatitude = (absLatitude - deg) * 60.0f;
-    min = static_cast<uint8_t>(absLatitude);
-    absLatitude = (absLatitude - min) * 60.0f;
-
-    sprintf(s_buf, degreeFormat, deg, min, absLatitude, N_S);
+    formatCoordinate(lat, 'N', 'S', s_buf, sizeof(s_buf));
     return s_buf;
 }
 
@@ -240,23 +247,7 @@ char *latFormatString(float lat)
  */
 char *lonFormatString(float lon)
 {
-    char E_W = 'E';
-    float absLongitude = lon;
-    uint16_t deg;
-    uint8_t min;
     static char s_buf[64];
-
-    if (lon < 0.0f)
-    {
-        E_W = 'W';
-        absLongitude = fabsf(lon);
-    }
-
-    deg = static_cast<uint16_t>(absLongitude);
-    absLongitude = (absLongitude - deg) * 60.0f;
-    min = static_cast<uint8_t>(absLongitude);
-    absLongitude = (absLongitude - min) * 60.0f;
-
-    sprintf(s_buf, degreeFormat, deg, min, absLongitude, E_W);
+    formatCoordinate(lon, 'E', 'W', s_buf, sizeof(s_buf));
     return s_buf;
 }
