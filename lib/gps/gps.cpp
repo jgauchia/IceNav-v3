@@ -245,11 +245,11 @@ void Gps::getGPSData()
 
     // HDOP , PDOP , VDOP
     if (fix.valid.hdop)
-        gpsData.hdop = (float)fix.hdop / 1000;
+        gpsData.hdop = fix.hdop / 1000.0f;
     if (fix.valid.pdop)
-        gpsData.pdop = (float)fix.pdop / 1000;
+        gpsData.pdop = fix.pdop / 1000.0f;
     if (fix.valid.vdop)
-        gpsData.vdop = (float)fix.vdop / 1000;
+        gpsData.vdop = fix.vdop / 1000.0f;
 
     // // Satellite info
     gpsData.satInView = (uint8_t)GPS.sat_count;
@@ -312,7 +312,7 @@ long Gps::detectRate(int rxPin)
 long Gps::autoBaud()
 {
     long rate = detectRate(GPS_RX) + detectRate(GPS_RX) + detectRate(GPS_RX);
-    rate = rate / 3l;
+    rate = rate / 3;
     long baud = 0;
     /*
         Time	Baud Rate
