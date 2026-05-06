@@ -159,6 +159,7 @@ void sensorTask(void *pvParameters)
             globalSensorData.heading = compass.getHeading();
             if (isMainScreen && !canMoveWidget && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
             {
+                lv_subject_set_int(&subject_compass_heading, globalSensorData.heading);
                 if (mapSet.mapRotationComp)
                     lv_subject_set_int(&subject_heading, globalSensorData.heading);
                 xSemaphoreGive(lvgl_mutex);

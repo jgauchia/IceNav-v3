@@ -220,7 +220,7 @@ void compassWidget(lv_obj_t *screen)
     lv_obj_set_style_text_font(compassHeading, fontVeryLarge, 0);
     lv_label_set_text_static(compassHeading, "---\xC2\xB0");
     
-    lv_subject_add_observer_obj(&subject_heading, compass_observer_cb, obj, NULL);
+    lv_subject_add_observer_obj(&subject_compass_heading, compass_observer_cb, obj, NULL);
     
     objUnselect(obj);
     lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);

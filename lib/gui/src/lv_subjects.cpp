@@ -12,6 +12,7 @@
 #include <time.h>
 
 lv_subject_t subject_heading;
+lv_subject_t subject_compass_heading;
 lv_subject_t subject_battery;
 lv_subject_t subject_speed;
 lv_subject_t subject_altitude;
@@ -44,6 +45,7 @@ volatile bool canMoveWidget = false;
 void init_lv_subjects()
 {
     lv_subject_init_int(&subject_heading, 0);
+    lv_subject_init_int(&subject_compass_heading, 0);
     lv_subject_init_int(&subject_battery, 0);
     lv_subject_init_int(&subject_speed, 0);
     lv_subject_init_int(&subject_altitude, 0);
@@ -75,6 +77,7 @@ void init_lv_subjects()
 void notify_all_subjects()
 {
     lv_subject_notify(&subject_heading);
+    lv_subject_notify(&subject_compass_heading);
     lv_subject_notify(&subject_battery);
     lv_subject_notify(&subject_speed);
     lv_subject_notify(&subject_altitude);

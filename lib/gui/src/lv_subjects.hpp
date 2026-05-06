@@ -16,6 +16,7 @@
  * @brief Global subjects for reactive UI updates
  */
 extern lv_subject_t subject_heading;
+extern lv_subject_t subject_compass_heading;
 extern lv_subject_t subject_battery;
 extern lv_subject_t subject_speed;
 extern lv_subject_t subject_altitude;
