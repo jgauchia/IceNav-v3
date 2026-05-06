@@ -19,6 +19,7 @@ static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1
 
 static const char* TAG = "Compass";
 
+
 // ============================================================================
 // QMC5883L Native Driver Implementation
 // ============================================================================
@@ -158,7 +159,7 @@ void QMC5883L_Driver::readRaw(float &x, float &y, float &z)
     if (i2c.readBytes(i2cAddr, QMC5883L_REG_DATA, buffer, 6) != 6)
         return;
 
-    x = (int16_t)(buffer[0] | (buffer[1] << 8));
+    x = (int16_t)(buffer[0] | (buffer[1] << 8));  // LSB first (little-endian)
     y = (int16_t)(buffer[2] | (buffer[3] << 8));
     z = (int16_t)(buffer[4] | (buffer[5] << 8));
 }
@@ -287,7 +288,7 @@ void HMC5883L_Driver::readRaw(float &x, float &y, float &z)
     if (i2c.readBytes(i2cAddr, HMC5883L_REG_DATA, buffer, 6) != 6)
         return;
 
-    // HMC5883L order: X MSB, X LSB, Z MSB, Z LSB, Y MSB, Y LSB
+    // HMC5883L order: X MSB, X LSB, Z MSB, Z LSB, Y MSB, Y LSB (big-endian)
     x = (int16_t)((buffer[0] << 8) | buffer[1]);
     z = (int16_t)((buffer[2] << 8) | buffer[3]);
     y = (int16_t)((buffer[4] << 8) | buffer[5]);
