@@ -13,6 +13,8 @@
 extern const uint8_t BOARD_BOOT_PIN; /**< External declaration for the board's boot pin number. */
 extern Storage storage;
 
+static const char *TAG = "Power";
+
 /**
  * @brief Power Class constructor
  *
@@ -38,8 +40,10 @@ Power::Power()
 void Power::powerDeepSleep()
 {
     esp_bluedroid_disable();
-    esp_bt_controller_disable();
-    esp_wifi_stop();
+    if (esp_bt_controller_disable() != ESP_OK)
+        ESP_LOGE(TAG, "Failed to disable BT controller");
+    if (esp_wifi_stop() != ESP_OK)
+        ESP_LOGE(TAG, "Failed to stop WiFi");
     esp_deep_sleep_disable_rom_logging();
     vTaskDelay(pdMS_TO_TICKS(10));
 
@@ -65,7 +69,6 @@ void Power::powerDeepSleep()
 void Power::powerLightSleepTimer(int millis)
 {
     esp_sleep_enable_timer_wakeup(millis * 1000);
-    esp_err_t rtc_gpio_hold_en(gpio_num_t GPIO_NUM_5);
     esp_light_sleep_start();
 }
 
@@ -94,7 +97,8 @@ void Power::powerOffPeripherals()
     // Properly deinitialize SD card before freeing SPI bus (only if not SPI_SHARED)
     #ifndef SPI_SHARED
         storage.deinitSD();
-        spi_bus_free(SPI2_HOST);
+        if (spi_bus_free(SPI2_HOST) != ESP_OK)
+            ESP_LOGE(TAG, "Failed to free SPI bus");
     #endif
     i2c.end();
 }
