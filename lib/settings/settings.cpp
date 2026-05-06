@@ -111,8 +111,8 @@ void loadPreferences()
         altitudePosY = cfg.isKey(CONFKEYS::KALTITUDE_Y) ? cfg.getInt(CONFKEYS::KALTITUDE_Y, altitudePosY) : 57;
         speedPosX = cfg.isKey(CONFKEYS::KSPEED_X) ? cfg.getInt(CONFKEYS::KSPEED_X, speedPosX) : 3;
         speedPosY = cfg.isKey(CONFKEYS::KSPEED_Y) ? cfg.getInt(CONFKEYS::KSPEED_Y, speedPosY) : 94;
-        sunPosX = cfg.isKey(CONFKEYS::KSUN_X) ? cfg.getInt(CONFKEYS::KSPEED_X, speedPosX) : 3;
-        sunPosY = cfg.isKey(CONFKEYS::KSUN_Y) ? cfg.getInt(CONFKEYS::KSPEED_Y, speedPosY) : 110;
+        sunPosX = cfg.isKey(CONFKEYS::KSUN_X) ? cfg.getInt(CONFKEYS::KSUN_X, sunPosX) : 3;
+        sunPosY = cfg.isKey(CONFKEYS::KSUN_Y) ? cfg.getInt(CONFKEYS::KSUN_Y, sunPosY) : 110;
     #endif
 
     battery.setBatteryLevels(cfg.getFloat(PKEYS::KVMAX_BATT, 4.2f), cfg.getFloat(PKEYS::KVMIN_BATT, 3.6f));
@@ -200,12 +200,10 @@ void saveWidgetPos(char *widget, uint16_t posX, uint16_t posY)
 {
     const char *strX = "X";
     const char *strY = "Y";
-    char widgetX[30] = "";
-    char widgetY[30] = "";
-    strcat(widgetX, widget);
-    strcat(widgetX, strX);
-    strcat(widgetY, widget);
-    strcat(widgetY, strY);
+    char widgetX[30];
+    char widgetY[30];
+    snprintf(widgetX, sizeof(widgetX), "%sX", widget);
+    snprintf(widgetY, sizeof(widgetY), "%sY", widget);
 
     cfg.saveInt(widgetX, posX);
     cfg.saveInt(widgetY, posY);
