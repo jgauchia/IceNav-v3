@@ -691,7 +691,17 @@ static esp_err_t upload_handler(httpd_req_t *req)
     size_t firstBoundaryLen = strlen(firstBoundary);
 
     // Allocate working buffer
-    size_t bufSize = 32768;
+    static constexpr size_t UPLOAD_BUF_SIZE = 32768;
+    static constexpr size_t MAX_UPLOAD_SIZE = 512UL * 1024 * 1024; // 512 MB
+
+    if ((size_t)req->content_len > MAX_UPLOAD_SIZE)
+    {
+        waitScreenRefresh = false;
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "File too large");
+        return ESP_FAIL;
+    }
+
+    size_t bufSize = UPLOAD_BUF_SIZE;
     uint8_t* buf = (uint8_t*)heap_caps_malloc(bufSize, MALLOC_CAP_8BIT);
     if (!buf)
     {
