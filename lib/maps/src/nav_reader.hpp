@@ -21,6 +21,23 @@
  */
 static constexpr uint8_t NAV_MAGIC[4] = {'N', 'A', 'V', '1'};
 
+// NAV tile binary format offsets (tile header)
+static constexpr uint8_t NAV_TILE_HDR_FEAT_COUNT_OFF = 4;   ///< 2 bytes: feature count
+static constexpr uint8_t NAV_TILE_HDR_SIZE           = 22;  ///< total tile header size
+
+// NAV feature record offsets (relative to feature start pointer)
+static constexpr uint8_t NAV_FEAT_GEOM_OFF           = 0;   ///< 1 byte: geometry type
+static constexpr uint8_t NAV_FEAT_COLOR_OFF          = 1;   ///< 2 bytes: RGB565 color
+static constexpr uint8_t NAV_FEAT_ZP_OFF             = 3;   ///< 1 byte: zoom+priority packed
+static constexpr uint8_t NAV_FEAT_WP_OFF             = 4;   ///< 1 byte: width+casing packed
+static constexpr uint8_t NAV_FEAT_BX1_OFF            = 5;   ///< 1 byte: bounding box x1
+static constexpr uint8_t NAV_FEAT_BY1_OFF            = 6;   ///< 1 byte: bounding box y1
+static constexpr uint8_t NAV_FEAT_BX2_OFF            = 7;   ///< 1 byte: bounding box x2
+static constexpr uint8_t NAV_FEAT_BY2_OFF            = 8;   ///< 1 byte: bounding box y2
+static constexpr uint8_t NAV_FEAT_COORD_COUNT_OFF    = 9;   ///< 2 bytes: coordinate count
+static constexpr uint8_t NAV_FEAT_PAYLOAD_SIZE_OFF   = 11;  ///< 2 bytes: payload size
+static constexpr uint8_t NAV_FEAT_HDR_SIZE           = 13;  ///< total feature header size
+
 /**
  * @brief Geometry types
  */

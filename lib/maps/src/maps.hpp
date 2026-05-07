@@ -105,7 +105,7 @@ public:
     void* mapBuffer;
     uint16_t mapScrHeight;
     uint16_t mapScrWidth;
-    bool redrawMap = true;
+    volatile bool redrawMap = true;
     bool followGps = true;
     bool isMapFound = false;
     MapTile oldMapTile;
@@ -205,7 +205,7 @@ private:
 public:
     bool trackNeedsRedraw = false;
     void redrawTrack();
-    bool isRendering() const { return !pendingTiles.empty(); }
+    bool isRendering() const { return pendingTilesNotEmpty_; }
 
 private:
     enum TileType
@@ -228,11 +228,20 @@ private:
     TaskHandle_t mapRenderTaskHandle;
     static void mapRenderTask(void* pvParameters);
     void renderPngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, TFT_eSprite &map);
+    bool loadPngTileIntoSprite(int32_t tlX, int32_t tlY, int gx, int gy,
+                               uint32_t centerTileIdxX, uint32_t centerTileIdxY,
+                               uint8_t zoom, bool& centerFound);
+    void enqueueTileGrid(uint32_t centerTileIdxX, uint32_t centerTileIdxY, TileType type);
+    uint8_t* navCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t zoom, size_t& outDataSize);
+    void navDecodeFeatures(const uint8_t* data, size_t dataSize, int16_t screenX, int16_t screenY, uint8_t zoom);
+    static void drawThickLine(TFT_eSprite& map, int16_t x0, int16_t y0,
+                              int16_t x1, int16_t y1, uint8_t width, uint16_t color);
 
     uint8_t navLastZoom_;
     bool navNeedsRender_;
     float navTlTileX_;
     float navTlTileY_;
+    volatile bool pendingTilesNotEmpty_ = false;
 
     struct Edge
     {
