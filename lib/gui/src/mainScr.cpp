@@ -53,14 +53,12 @@ extern Maps mapView;
  *
  * @param event LVGL event pointer.
  */
-void updateCompassScr(lv_event_t *event)
+void updateCompassScr(lv_observer_t *observer, lv_subject_t *subject)
 {
-    lv_obj_t *obj = (lv_obj_t *)lv_event_get_current_target(event);
-    if (obj == sunriseLabel)
-    {
-        lv_label_set_text_static(obj, gps.gpsData.sunriseHour);
-        lv_label_set_text_static(sunsetLabel, gps.gpsData.sunsetHour);
-    }
+    if (gps.gpsData.sunriseHour[0] == '\0')
+        return;
+    lv_label_set_text_static(sunriseLabel, gps.gpsData.sunriseHour);
+    lv_label_set_text_static(sunsetLabel, gps.gpsData.sunsetHour);
 }
 
 /**
@@ -563,8 +561,7 @@ void createMainScr()
     altitudeWidget(compassTile);
     speedWidget(compassTile);
     sunWidget(compassTile);
-    lv_obj_add_event_cb(sunriseLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_obj_add_event_cb(sunsetLabel, updateCompassScr, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_subject_add_observer(&subject_sunrise, updateCompassScr, NULL);
     createMapImage(mapTile);
     navArrowWidget(mapTile);
     mapZoomWidget(mapTile);

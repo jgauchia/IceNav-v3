@@ -34,6 +34,7 @@ extern lv_subject_t subject_wifi;
 extern lv_subject_t subject_map_state;
 extern lv_subject_t subject_map_offset_x;
 extern lv_subject_t subject_map_offset_y;
+extern lv_subject_t subject_sunrise;
 
 #ifdef ENABLE_TEMP
 extern lv_subject_t subject_temp;

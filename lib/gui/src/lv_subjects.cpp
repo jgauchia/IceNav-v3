@@ -30,6 +30,7 @@ lv_subject_t subject_wifi;
 lv_subject_t subject_map_state;
 lv_subject_t subject_map_offset_x;
 lv_subject_t subject_map_offset_y;
+lv_subject_t subject_sunrise;
 
 #ifdef ENABLE_TEMP
 lv_subject_t subject_temp;
@@ -63,6 +64,7 @@ void init_lv_subjects()
     lv_subject_init_int(&subject_map_state, 0);
     lv_subject_init_int(&subject_map_offset_x, 0);
     lv_subject_init_int(&subject_map_offset_y, 0);
+    lv_subject_init_int(&subject_sunrise, 0);
     
     #ifdef ENABLE_TEMP
     lv_subject_init_int(&subject_temp, 0);
@@ -95,6 +97,7 @@ void notify_all_subjects()
     lv_subject_notify(&subject_map_state);
     lv_subject_notify(&subject_map_offset_x);
     lv_subject_notify(&subject_map_offset_y);
+    lv_subject_notify(&subject_sunrise);
 
     #ifdef ENABLE_TEMP
     lv_subject_notify(&subject_temp);

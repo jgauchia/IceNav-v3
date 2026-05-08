@@ -56,7 +56,7 @@ extern lv_obj_t *btnZoomOut;      /**< Toolbar button for zooming out */
 extern uint8_t toolBarOffset;     /**< Offset for toolbar positioning */
 extern uint8_t toolBarSpace;      /**< Space between toolbar buttons */
 
-void updateCompassScr(lv_event_t * event);
+void updateCompassScr(lv_observer_t *observer, lv_subject_t *subject);
 void getActTile(lv_event_t *event);
 void scrollTile(lv_event_t *event);
 void updateMap(lv_event_t *event);

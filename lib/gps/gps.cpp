@@ -9,6 +9,7 @@
 #include "gps.hpp"
 #include "../../include/hal.hpp"
 #include "lvgl.h"
+#include "../gui/src/lv_subjects.hpp"
 #include "widgets.hpp"
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -64,7 +65,6 @@ static unsigned long pulseIn_idf(int pin, int state, unsigned long timeout)
 uint8_t GPS_TX = GPS_TX_DEFAULT;
 uint8_t GPS_RX = GPS_RX_DEFAULT;
 
-extern lv_obj_t *sunriseLabel; 	   /**< Label object for displaying the sunrise time. */
 bool setTime = true;        	   /**< Indicates if the system time should be set from GPS. */
 bool isGpsFixed = false;           /**< Indicates whether a valid GPS fix has been acquired. */
 long gpsBaudDetected = 0;   	   /**< Detected GPS baud rate. */
@@ -224,7 +224,7 @@ void Gps::getGPSData()
             // Calculate Sunrise and Sunset only one time when date & time was valid
             calculateSun();
             setTime = true;
-            lv_obj_send_event(sunriseLabel, LV_EVENT_VALUE_CHANGED, NULL);
+            lv_subject_set_int(&subject_sunrise, lv_subject_get_int(&subject_sunrise) + 1);
         }
     }
 
