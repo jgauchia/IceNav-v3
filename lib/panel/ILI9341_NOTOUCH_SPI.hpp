@@ -12,19 +12,7 @@
 #define LGFX_USE_V1
 
 #include "LovyanGFX.hpp"
-
-extern const uint8_t TFT_SPI_SCLK;
-extern const uint8_t TFT_SPI_MOSI;
-extern const uint8_t TFT_SPI_MISO;
-extern const uint8_t TFT_SPI_DC;
-extern const uint8_t TFT_SPI_CS;
-extern const uint8_t TFT_SPI_RST;
-extern const uint8_t TCH_SPI_SCLK;
-extern const uint8_t TCH_SPI_MOSI;
-extern const uint8_t TCH_SPI_MISO;
-extern const uint8_t TCH_SPI_INT;
-extern const uint8_t TCH_SPI_CS;
-extern const bool TFT_INVERT;
+#include "../../include/hal.hpp"
 
 class LGFX : public lgfx::LGFX_Device
 {
@@ -39,7 +27,6 @@ class LGFX : public lgfx::LGFX_Device
             {
                 auto cfg = _bus_instance.config();
                 cfg.spi_host = SPI2_HOST;
-                cfg.spi_host = HSPI_HOST;
                 cfg.spi_mode = 0;
                 cfg.freq_write = 79999999;
                 cfg.freq_read = 27000000;

@@ -9,8 +9,7 @@
 #include "power.hpp"
 
 #include "storage.hpp"
-
-extern const uint8_t BOARD_BOOT_PIN; /**< External declaration for the board's boot pin number. */
+#include "../../include/hal.hpp"
 extern Storage storage;
 
 static const char *TAG = "Power";

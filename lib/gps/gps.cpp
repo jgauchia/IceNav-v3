@@ -7,6 +7,7 @@
  */
 
 #include "gps.hpp"
+#include "../../include/hal.hpp"
 #include "lvgl.h"
 #include "widgets.hpp"
 #include <freertos/FreeRTOS.h>
@@ -59,6 +60,9 @@ static unsigned long pulseIn_idf(int pin, int state, unsigned long timeout)
 
     return (unsigned long)(esp_timer_get_time() - pulseStart);
 }
+
+uint8_t GPS_TX = GPS_TX_DEFAULT;
+uint8_t GPS_RX = GPS_RX_DEFAULT;
 
 extern lv_obj_t *sunriseLabel; 	   /**< Label object for displaying the sunrise time. */
 bool setTime = true;        	   /**< Indicates if the system time should be set from GPS. */

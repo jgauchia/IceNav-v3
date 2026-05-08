@@ -13,19 +13,7 @@
 #define TOUCH_INPUT
 
 #include "LovyanGFX.hpp"
-
-extern const uint8_t TFT_SPI_SCLK;
-extern const uint8_t TFT_SPI_MOSI;
-extern const uint8_t TFT_SPI_MISO;
-extern const uint8_t TFT_SPI_DC;
-extern const uint8_t TFT_SPI_CS;
-extern const uint8_t TFT_SPI_RST;
-extern const uint8_t TCH_SPI_SCLK;
-extern const uint8_t TCH_SPI_MOSI;
-extern const uint8_t TCH_SPI_MISO;
-extern const uint8_t TCH_SPI_INT;
-extern const uint8_t TCH_SPI_CS;
-extern const bool TFT_INVERT;
+#include "../../include/hal.hpp"
 
 class LGFX : public lgfx::LGFX_Device
 {

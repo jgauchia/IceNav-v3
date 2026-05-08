@@ -8,6 +8,7 @@
 
 #include "../../gui/src/lv_subjects.hpp"
 #include "lvglSetup.hpp"
+#include "../../../include/hal.hpp"
 #include "i2c_espidf.hpp"
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
@@ -260,7 +261,6 @@ void IRAM_ATTR keypadRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 
 #ifdef POWER_SAVE
 
-extern const uint8_t BOARD_BOOT_PIN; /**< GPIO pin number used for board boot functionality. */
 
 /**
  * @brief Reads GPIO button state for LVGL input device.

@@ -7,6 +7,7 @@
  */
 
 #include "storage.hpp"
+#include "../../include/hal.hpp"
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "esp_vfs_fat.h"
@@ -16,11 +17,6 @@
 #include <iomanip>
 
 #define SD_OCR_SDHC_CAP (1 << 30) /**< SD card SDHC capacity flag */
-
-extern const uint8_t SD_CS;   /**< Chip Select pin for SD card */
-extern const uint8_t SD_MISO; /**< MISO pin for SD card */
-extern const uint8_t SD_MOSI; /**< MOSI pin for SD card */
-extern const uint8_t SD_CLK;  /**< Clock pin for SD card */
 
 static const char *TAG = "Storage";
 

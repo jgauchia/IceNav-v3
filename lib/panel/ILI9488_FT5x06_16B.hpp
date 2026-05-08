@@ -11,30 +11,7 @@
 #define LGFX_USE_V1
 
 #include <LovyanGFX.hpp>
-
-extern const uint8_t TCH_I2C_PORT;
-extern const uint8_t TCH_I2C_SDA;
-extern const uint8_t TCH_I2C_SCL;
-extern const uint8_t TCH_I2C_INT;
-extern const uint8_t TFT_WR;
-extern const uint8_t TFT_RD;
-extern const uint8_t TFT_RS;
-extern const uint8_t TFT_D0;
-extern const uint8_t TFT_D1;
-extern const uint8_t TFT_D2;
-extern const uint8_t TFT_D3;
-extern const uint8_t TFT_D4;
-extern const uint8_t TFT_D5;
-extern const uint8_t TFT_D6;
-extern const uint8_t TFT_D7;
-extern const uint8_t TFT_D8;
-extern const uint8_t TFT_D9;
-extern const uint8_t TFT_D10;
-extern const uint8_t TFT_D11;
-extern const uint8_t TFT_D12;
-extern const uint8_t TFT_D13;
-extern const uint8_t TFT_D14;
-extern const uint8_t TFT_D15;
+#include "../../include/hal.hpp"
 
 #define LARGE_SCREEN
 #define TOUCH_INPUT
