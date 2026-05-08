@@ -56,6 +56,9 @@ void gpsTask(void *pvParameters)
                 fix = GPS.read();
                 gps.getGPSData();
                 
+                /* Non-blocking: gpsTask (core 0) never waits on the GUI task (core 1).
+                   If lvgl_mutex is taken, subject updates are skipped for this cycle.
+                   Intentional — the GPS task must not stall waiting for LVGL. */
                 if (isMainScreen && !canMoveWidget && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
                 {
                     lv_subject_set_int(&subject_speed, (int32_t)gps.gpsData.speed);
@@ -161,6 +164,8 @@ void sensorTask(void *pvParameters)
 
         #ifdef ENABLE_COMPASS
             globalSensorData.heading = compass.getHeading();
+            /* Non-blocking: same rationale as gpsTask — sensor readings are
+               best-effort; if LVGL holds the mutex this cycle is discarded. */
             if (isMainScreen && !canMoveWidget && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
             {
                 lv_subject_set_int(&subject_compass_heading, globalSensorData.heading);

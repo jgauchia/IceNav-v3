@@ -43,6 +43,8 @@ Maps::Maps() : navLastZoom_(0),
                lastRenderedArrowPos({-32768, -32768}),
                lastRenderedDisplayOffsetX(-32768),
                lastRenderedDisplayOffsetY(-32768){
+    static_assert(Maps::MAX_FEATURE_POOL_SIZE <= 65535U,
+        "featurePool index stored as uint16_t — pool size must not exceed 65535");
     projBuf32X.reserve(MAX_POLYGON_POINTS);
     projBuf32Y.reserve(MAX_POLYGON_POINTS);
     decodedCoords.reserve(MAX_POLYGON_POINTS * 2);
@@ -287,7 +289,6 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
     Maps::mapBuffer = Maps::mapSprite.getBuffer();
     Maps::oldMapTile = {};
     Maps::currentMapTile = {};
-    Maps::roundMapTile = {};
     Maps::navArrowPosition = {0, 0};
     Maps::totalBounds = {90.0f, -90.0f, 180.0f, -180.0f};
 }
@@ -456,9 +457,8 @@ void Maps::generateMap(uint8_t zoom)
 
         if (tilesGrid == 3)
         {
-            static const int8_t spiralOrder[9][2] = {{1,1}, {0,1}, {1,0}, {2,1}, {1,2}, {0,0}, {2,0}, {0,2}, {2,2}};
             for (int i = 0; i < 9; i++)
-                loadPngTileIntoSprite(tlX, tlY, spiralOrder[i][0], spiralOrder[i][1],
+                loadPngTileIntoSprite(tlX, tlY, PNG_SPIRAL_ORDER[i][0], PNG_SPIRAL_ORDER[i][1],
                                       centerTileIdxX, centerTileIdxY, zoom, centerFound);
         }
         else
@@ -998,8 +998,8 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
         const int16_t tileToLoadY = startY + ((dirY == 0) ? i - 1 : 0);
         float tileLon = (tileToLoadX / (1 << Maps::zoomLevel)) * 360.0f - 180.0f;
         float tileLat = 90.0f - (tileToLoadY / (1 << Maps::zoomLevel)) * 180.0f;
-        Maps::roundMapTile = Maps::getMapTile(tileLon, tileLat, Maps::zoomLevel, tileToLoadX, tileToLoadY);
-        
+        MapTile roundMapTile = Maps::getMapTile(tileLon, tileLat, Maps::zoomLevel, tileToLoadX, tileToLoadY);
+
         // Calculate the grid coordinates in the mapTempSprite
         // Grid is based on tilesGrid (3 or 4)
         int16_t gx = (tileToLoadX - (int32_t)navTlTileX_);
@@ -1007,7 +1007,7 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
         int16_t sx = gx * tileSize;
         int16_t sy = gy * tileSize;
 
-        if (!mapTempSprite.drawPngFile(Maps::roundMapTile.file, sx, sy))
+        if (!mapTempSprite.drawPngFile(roundMapTile.file, sx, sy))
             mapTempSprite.fillRect(sx, sy, tileSize, tileSize, TFT_LIGHTGREY);
     }
 }
@@ -1616,11 +1616,10 @@ void Maps::enqueueTileGrid(uint32_t centerTileIdxX, uint32_t centerTileIdxY, Til
     const int8_t gridOffset = tilesGrid / 2;
     if (tilesGrid == 3)
     {
-        static const int8_t spiralOrder[9][2] = {{0,0},{2,0},{0,2},{2,2},{0,1},{1,0},{2,1},{1,2},{1,1}};
         for (int i = 0; i < 9; i++)
         {
-            int dx = spiralOrder[i][0];
-            int dy = spiralOrder[i][1];
+            int dx = NAV_SPIRAL_ORDER[i][0];
+            int dy = NAV_SPIRAL_ORDER[i][1];
             pendingTiles.push_back({(uint32_t)(centerTileIdxX - gridOffset + dx),
                                     (uint32_t)(centerTileIdxY - gridOffset + dy),
                                     (int16_t)(dx * 256), (int16_t)(dy * 256), type});

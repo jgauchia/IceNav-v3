@@ -110,7 +110,6 @@ public:
     bool isMapFound = false;
     MapTile oldMapTile;
     MapTile currentMapTile;
-    MapTile roundMapTile;
     int16_t tileX = 0;
     int16_t tileY = 0;
     int16_t lastTileX = 0;

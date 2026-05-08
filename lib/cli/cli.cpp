@@ -112,10 +112,8 @@ void wcli_info(char *args, Stream *response)
  * 
  * @details CLI command: wipe
  */
-void wcli_swipe(char *args, Stream *response)
+void wcli_wipe(char *args, Stream *response)
 {
-    Pair<String, String> operands = wcli.parseCommand(args);
-    String deviceId = operands.first();
     response->println("Clearing device to defaults..");
     wcli.clearSettings();
     cfg.clear();
@@ -288,7 +286,7 @@ void initShell()
     // Main Commands:
     wcli.add("reboot", &wcli_reboot, "\tperform a ESP32 reboot");
     wcli.add("poweroff", &wcli_poweroff, "\tperform a ESP32 deep sleep");
-    wcli.add("wipe", &wcli_swipe, "\t\twipe preferences to factory default");
+    wcli.add("wipe", &wcli_wipe, "\t\twipe preferences to factory default");
     wcli.add("info", &wcli_info, "\t\tget device information");
     wcli.add("clear", &wcli_clear, "\t\tclear shell");
     wcli.add("scshot", &wcli_scshot, "\tscreenshot to SD or sending a PC");

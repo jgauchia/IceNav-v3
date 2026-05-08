@@ -19,3 +19,11 @@ static const char *map_scale[] = {"5000 Km", "2500 Km", "1500 Km",
                                         "150 m", "80 m", "40 m",
                                         "20 m", "10 m"
                                         }; /**< Scale label for map */
+
+/** PNG tile load order: spiral from center outward. */
+static constexpr int8_t PNG_SPIRAL_ORDER[9][2] =
+    {{1,1},{0,1},{1,0},{2,1},{1,2},{0,0},{2,0},{0,2},{2,2}};
+
+/** NAV tile enqueue order: corners first, then edges, center last. */
+static constexpr int8_t NAV_SPIRAL_ORDER[9][2] =
+    {{0,0},{2,0},{0,2},{2,2},{0,1},{1,0},{2,1},{1,2},{1,1}};

@@ -513,7 +513,10 @@ void loadMainScreen()
         lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
 
     lv_screen_load(mainScreen);
-    
+
+    /* Force notification to all observers even if values have not changed.
+       lv_subject_set_int suppresses callbacks when the value is identical;
+       widgets need to re-render their initial state after a screen transition. */
     notify_all_subjects();
     extern void triggerMapRedraw();
     triggerMapRedraw();
