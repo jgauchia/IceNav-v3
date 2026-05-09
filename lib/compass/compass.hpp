@@ -79,7 +79,7 @@ public:
     bool begin(uint8_t addr = QMC5883L_ADDRESS);
     bool setDataRate(uint8_t rate);
     bool setSamples(uint8_t samples);
-    void readRaw(float &x, float &y, float &z);
+    bool readRaw(float &x, float &y, float &z);
 
 private:
     uint8_t i2cAddr;
@@ -101,7 +101,7 @@ public:
     bool begin(uint8_t addr = HMC5883L_ADDRESS);
     void setDataRate(uint8_t rate);
     void setSamples(uint8_t samples);
-    void readRaw(float &x, float &y, float &z);
+    bool readRaw(float &x, float &y, float &z);
 
 private:
     uint8_t i2cAddr;
@@ -217,7 +217,7 @@ class Compass
     public:
         Compass();
         void init();
-        void read(float &x, float &y, float &z);
+        bool read(float &x, float &y, float &z);
         int getHeading();
         bool isUpdated();
         void calibrate();
