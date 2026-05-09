@@ -125,7 +125,7 @@ static void async_map_update_cb(void * user_data)
     float currentLat = gps.gpsData.latitude;
     float currentLon = gps.gpsData.longitude;
 
-    bool headingChanged = (abs(currentHeading - lastRenderedHeading) > 1);
+    bool headingChanged = (abs(currentHeading - lastRenderedHeading) > 2);
     bool positionChanged = (currentLat != lastRenderedLat || currentLon != lastRenderedLon);
 
     if (mapView.offsetX != lastDispX || 
@@ -214,7 +214,7 @@ static void map_heading_observer_cb(lv_observer_t *observer, lv_subject_t *subje
 
     int32_t newHeading = lv_subject_get_int(subject);
     
-    if (abs(newHeading - global_last_heading) > 1)
+    if (abs(newHeading - global_last_heading) > 2)
     {
         global_last_heading = newHeading;
         lv_async_call(async_map_update_cb, NULL);
