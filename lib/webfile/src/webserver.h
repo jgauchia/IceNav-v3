@@ -2,8 +2,8 @@
  * @file webserver.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Web file server functions declarations
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #pragma once
@@ -24,8 +24,6 @@ static const char* hostname = "icenav";
 static String oldDir = "";
 static String newDir = "";
 static String currentDir = "";
-static String createDir = "";
-static uint8_t nextSlash = 0;
 static bool updateList = true;
 static bool deleteDir = false;
 static String deletePath = "";

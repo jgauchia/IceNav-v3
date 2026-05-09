@@ -2,8 +2,8 @@
  * @file gpxDetailScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - GPX Tag detail Screen
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #include "gpxDetailScr.hpp"

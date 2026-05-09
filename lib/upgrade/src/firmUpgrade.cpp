@@ -2,8 +2,8 @@
  * @file firmUpgrade.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Firmware upgrade from SD functions
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
  #include "firmUpgrade.hpp"
@@ -99,10 +99,10 @@ void drawProgressBar(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t per
  */
 void onUpgrdProcess(size_t currSize, size_t totalSize)
 {
-    float progress = (currSize * 100) / totalSize;
+    float progress = (float)currSize * 100.0f / (float)totalSize;
     ESP_LOGV(TAG, "Firmware Upgrade process %d ...", (int)progress);
     char strProgress[30];
-    sprintf(strProgress,"Upgrading... %d%%",(int)progress);
+    snprintf(strProgress, sizeof(strProgress), "Upgrading... %d%%", (int)progress);
     upgradeSprite.drawCenterString(strProgress, tft.width() >> 1, (tft.height() >> 1)+25, &fonts::FreeSans9pt7b);
     drawProgressBar(40,tft.height() >> 1,TFT_WIDTH - 80,20,(int)progress,TFT_WHITE,TFT_BLUE);
     if ((int)progress == 100)

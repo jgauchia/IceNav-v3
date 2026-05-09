@@ -2,12 +2,11 @@
  * @file gpxScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - GPX list screen
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #include "gpxScr.hpp"
-#include "esp_log.h"
 
 extern Maps mapView;
 extern Storage storage;
@@ -22,8 +21,6 @@ extern TrackVector trackData;   /**< Vector containing track waypoints */
 extern std::vector<TurnPoint> turnPoints; /**< Vector containing turn points */
 
 lv_obj_t *listGPXScreen;                /**< Add Waypoint screen */
-
-static const char* TAG = "GPX List Screen";
 
 /**
  * @brief Waypoint list event handler. Handles long-press events on the GPX waypoint list for load, edit, or delete actions.

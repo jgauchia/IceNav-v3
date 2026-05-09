@@ -2,8 +2,8 @@
  * @file mapSettingsScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Map Settings screen
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #include "mapSettingsScr.hpp"
@@ -50,7 +50,6 @@ static void mapSettingsEvents(lv_event_t *event)
             zoom = defaultZoom;
             lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
             cfg.saveUInt(PKEYS::KDEF_ZOOM, defaultZoom);
-            screenState.needsRedraw = true;
         }
     }
 
@@ -63,7 +62,6 @@ static void mapSettingsEvents(lv_event_t *event)
             zoom = defaultZoom;
             lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
             cfg.saveUInt(PKEYS::KDEF_ZOOM, defaultZoom);
-            screenState.needsRedraw = true;
         }
     }
 

@@ -2,8 +2,8 @@
  * @file notifyBar.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief LVGL - Notify Bar Screen
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #pragma once
@@ -11,8 +11,6 @@
 #include "globalGuiDef.h"
 #include "tasks.hpp"
 #include "storage.hpp"
-#include "battery.hpp"
-#include "settings.hpp"
 #include "styles.hpp"
 
 /**
@@ -32,8 +30,6 @@ static lv_obj_t *wifi;         /**< WiFi status object. */
 static float battLevel = 0;      /**< Current battery level value. */
 static float battLevelOld = 0;   /**< Previous battery level value. */
 
-#define UPDATE_NOTIFY_PERIOD 1000 /**< Notify Bar update time in milliseconds. */
-
 /**
  * @brief Temperature values.
  *
@@ -41,6 +37,4 @@ static float battLevelOld = 0;   /**< Previous battery level value. */
  */
 static const char* timeFormat = "%02d:%02d:%02d";
 
-void updateNotifyBar(lv_event_t *event);
-void updateNotifyBarTimer(lv_timer_t *t);
 void createNotifyBar();

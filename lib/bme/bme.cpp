@@ -2,14 +2,15 @@
  * @file bme.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  BME280 Sensor functions - Native ESP-IDF driver
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #include "bme.hpp"
 
 #ifdef BME280
 
+#include <algorithm>
 #include <cmath>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -20,38 +21,19 @@ uint8_t tempOld = 0;
 
 /**
  * @brief Constructs BME280 driver with default configuration.
- *
- * @details Initializes with default I2C address and resets t_fine compensation value.
  */
-BME280_Driver::BME280_Driver() : 
-    i2cAddr(BME_ADDRESS), 
+BME280_Driver::BME280_Driver() :
+    i2cAddr(BME_ADDRESS),
+    dig_T1(0), dig_T2(0), dig_T3(0),
+    dig_P1(0), dig_P2(0), dig_P3(0), dig_P4(0), dig_P5(0),
+    dig_P6(0), dig_P7(0), dig_P8(0), dig_P9(0),
+    dig_H1(0), dig_H2(0), dig_H3(0), dig_H4(0), dig_H5(0), dig_H6(0),
     t_fine(0)
 {
-    dig_T1 = 0;
-    dig_T2 = 0;
-    dig_T3 = 0;
-    dig_P1 = 0;
-    dig_P2 = 0;
-    dig_P3 = 0;
-    dig_P4 = 0;
-    dig_P5 = 0;
-    dig_P6 = 0;
-    dig_P7 = 0;
-    dig_P8 = 0;
-    dig_P9 = 0;
-    dig_H1 = 0;
-    dig_H2 = 0;
-    dig_H3 = 0;
-    dig_H4 = 0;
-    dig_H5 = 0;
-    dig_H6 = 0;
 }
 
 /**
  * @brief Reads a single byte from a register.
- *
- * @param reg Register address.
- * @return Register value.
  */
 uint8_t BME280_Driver::read8(uint8_t reg)
 {
@@ -60,9 +42,6 @@ uint8_t BME280_Driver::read8(uint8_t reg)
 
 /**
  * @brief Reads a 16-bit value from two consecutive registers (LSB first).
- *
- * @param reg Starting register address.
- * @return 16-bit unsigned value in little-endian format.
  */
 uint16_t BME280_Driver::read16_LE(uint8_t reg)
 {
@@ -72,21 +51,7 @@ uint16_t BME280_Driver::read16_LE(uint8_t reg)
 }
 
 /**
- * @brief Reads a signed 16-bit value from two consecutive registers (LSB first).
- *
- * @param reg Starting register address.
- * @return 16-bit signed value in little-endian format.
- */
-int16_t BME280_Driver::readS16_LE(uint8_t reg)
-{
-    return (int16_t)read16_LE(reg);
-}
-
-/**
  * @brief Writes a single byte to a register.
- *
- * @param reg Register address.
- * @param value Value to write.
  */
 void BME280_Driver::write8(uint8_t reg, uint8_t value)
 {
@@ -102,21 +67,21 @@ void BME280_Driver::write8(uint8_t reg, uint8_t value)
 void BME280_Driver::readCoefficients()
 {
     dig_T1 = read16_LE(0x88);
-    dig_T2 = readS16_LE(0x8A);
-    dig_T3 = readS16_LE(0x8C);
+    dig_T2 = (int16_t)read16_LE(0x8A);
+    dig_T3 = (int16_t)read16_LE(0x8C);
 
     dig_P1 = read16_LE(0x8E);
-    dig_P2 = readS16_LE(0x90);
-    dig_P3 = readS16_LE(0x92);
-    dig_P4 = readS16_LE(0x94);
-    dig_P5 = readS16_LE(0x96);
-    dig_P6 = readS16_LE(0x98);
-    dig_P7 = readS16_LE(0x9A);
-    dig_P8 = readS16_LE(0x9C);
-    dig_P9 = readS16_LE(0x9E);
+    dig_P2 = (int16_t)read16_LE(0x90);
+    dig_P3 = (int16_t)read16_LE(0x92);
+    dig_P4 = (int16_t)read16_LE(0x94);
+    dig_P5 = (int16_t)read16_LE(0x96);
+    dig_P6 = (int16_t)read16_LE(0x98);
+    dig_P7 = (int16_t)read16_LE(0x9A);
+    dig_P8 = (int16_t)read16_LE(0x9C);
+    dig_P9 = (int16_t)read16_LE(0x9E);
 
     dig_H1 = read8(0xA1);
-    dig_H2 = readS16_LE(0xE1);
+    dig_H2 = (int16_t)read16_LE(0xE1);
     dig_H3 = read8(0xE3);
     dig_H4 = ((int16_t)read8(0xE4) << 4) | (read8(0xE5) & 0x0F);
     dig_H5 = ((int16_t)read8(0xE6) << 4) | (read8(0xE5) >> 4);
@@ -154,57 +119,75 @@ bool BME280_Driver::begin(uint8_t addr)
 }
 
 /**
- * @brief Reads temperature from sensor.
- *
- * @details Reads raw 20-bit ADC value from temperature registers and applies
- *          compensation formula using factory calibration coefficients.
- *          Updates internal t_fine value used by pressure and humidity calculations.
- *
- * @return Temperature in degrees Celsius.
+ * @brief Reads raw 20-bit temperature ADC value from registers 0xFA-0xFC.
  */
-float BME280_Driver::readTemperature()
+int32_t BME280_Driver::readRawT()
 {
-    uint8_t buffer[3];
-    i2c.readBytes(i2cAddr, 0xFA, buffer, 3);
-
-    int32_t adc_T = buffer[0];
-    adc_T <<= 8;
-    adc_T |= buffer[1];
-    adc_T <<= 8;
-    adc_T |= buffer[2];
-    adc_T >>= 4;
-
-    int32_t var1 = ((((adc_T >> 3) - ((int32_t)dig_T1 << 1))) * ((int32_t)dig_T2)) >> 11;
-    int32_t var2 = (((((adc_T >> 4) - ((int32_t)dig_T1)) * ((adc_T >> 4) - ((int32_t)dig_T1))) >> 12) * ((int32_t)dig_T3)) >> 14;
-
-    t_fine = var1 + var2;
-    float T = (t_fine * 5 + 128) >> 8;
-    return T / 100.0f;
+    uint8_t buf[3];
+    i2c.readBytes(i2cAddr, 0xFA, buf, 3);
+    int32_t adc = buf[0];
+    adc <<= 8;
+    adc |= buf[1];
+    adc <<= 8;
+    adc |= buf[2];
+    return adc >> 4;
 }
 
 /**
- * @brief Reads atmospheric pressure from sensor.
- *
- * @details Reads raw 20-bit ADC value from pressure registers and applies
- *          compensation formula using factory calibration coefficients.
- *          Internally calls readTemperature() to update t_fine value.
- *
- * @return Pressure in Pascals (Pa).
+ * @brief Reads raw 20-bit pressure ADC value from registers 0xF7-0xF9.
  */
-float BME280_Driver::readPressure()
+int32_t BME280_Driver::readRawP()
 {
-    readTemperature();
+    uint8_t buf[3];
+    i2c.readBytes(i2cAddr, 0xF7, buf, 3);
+    int32_t adc = buf[0];
+    adc <<= 8;
+    adc |= buf[1];
+    adc <<= 8;
+    adc |= buf[2];
+    return adc >> 4;
+}
 
-    uint8_t buffer[3];
-    i2c.readBytes(i2cAddr, 0xF7, buffer, 3);
+/**
+ * @brief Reads raw 16-bit humidity ADC value from registers 0xFD-0xFE.
+ */
+int32_t BME280_Driver::readRawH()
+{
+    uint8_t buf[2];
+    i2c.readBytes(i2cAddr, 0xFD, buf, 2);
+    int32_t adc = buf[0];
+    adc <<= 8;
+    adc |= buf[1];
+    return adc;
+}
 
-    int32_t adc_P = buffer[0];
-    adc_P <<= 8;
-    adc_P |= buffer[1];
-    adc_P <<= 8;
-    adc_P |= buffer[2];
-    adc_P >>= 4;
+/**
+ * @brief Applies Bosch compensation formula to raw temperature ADC.
+ *
+ * @details Updates t_fine, which must be current before calling compensatePressure
+ *          or compensateHumidity.
+ *
+ * @param adc_T Raw 20-bit temperature ADC value.
+ * @return Temperature in degrees Celsius.
+ */
+float BME280_Driver::compensateTemperature(int32_t adc_T)
+{
+    int32_t var1 = ((((adc_T >> 3) - ((int32_t)dig_T1 << 1))) * ((int32_t)dig_T2)) >> 11;
+    int32_t var2 = (((((adc_T >> 4) - ((int32_t)dig_T1)) * ((adc_T >> 4) - ((int32_t)dig_T1))) >> 12) * ((int32_t)dig_T3)) >> 14;
+    t_fine = var1 + var2;
+    return ((t_fine * 5 + 128) >> 8) / 100.0f;
+}
 
+/**
+ * @brief Applies Bosch compensation formula to raw pressure ADC.
+ *
+ * @details Requires t_fine to be up to date (call compensateTemperature first).
+ *
+ * @param adc_P Raw 20-bit pressure ADC value.
+ * @return Pressure in Pascals (Pa), or 0 if sensor not ready.
+ */
+float BME280_Driver::compensatePressure(int32_t adc_P)
+{
     int64_t var1 = ((int64_t)t_fine) - 128000;
     int64_t var2 = var1 * var1 * (int64_t)dig_P6;
     var2 = var2 + ((var1 * (int64_t)dig_P5) << 17);
@@ -213,93 +196,102 @@ float BME280_Driver::readPressure()
     var1 = (((((int64_t)1) << 47) + var1)) * ((int64_t)dig_P1) >> 33;
 
     if (var1 == 0)
-        return 0;
+        return 0.0f;
 
     int64_t p = 1048576 - adc_P;
     p = (((p << 31) - var2) * 3125) / var1;
     var1 = (((int64_t)dig_P9) * (p >> 13) * (p >> 13)) >> 25;
     var2 = (((int64_t)dig_P8) * p) >> 19;
-
     p = ((p + var1 + var2) >> 8) + (((int64_t)dig_P7) << 4);
     return (float)p / 256.0f;
 }
 
 /**
+ * @brief Applies Bosch compensation formula to raw humidity ADC.
+ *
+ * @details Requires t_fine to be up to date (call compensateTemperature first).
+ *
+ * @param adc_H Raw 16-bit humidity ADC value.
+ * @return Relative humidity in percentage (%RH).
+ */
+float BME280_Driver::compensateHumidity(int32_t adc_H)
+{
+    int32_t v = t_fine - (int32_t)76800;
+
+    v = (((((adc_H << 14) - (((int32_t)dig_H4) << 20) -
+            (((int32_t)dig_H5) * v)) +
+           ((int32_t)16384)) >>
+          15) *
+         (((((((v * ((int32_t)dig_H6)) >> 10) *
+              (((v * ((int32_t)dig_H3)) >> 11) + ((int32_t)32768))) >>
+             10) +
+            ((int32_t)2097152)) *
+               ((int32_t)dig_H2) +
+           8192) >>
+          14));
+
+    v = v - (((((v >> 15) * (v >> 15)) >> 7) * ((int32_t)dig_H1)) >> 4);
+
+    v = std::max<int32_t>(v, 0);
+    v = std::min<int32_t>(v, 419430400);
+
+    return (float)(v >> 12) / 1024.0f;
+}
+
+/**
+ * @brief Reads temperature from sensor.
+ *
+ * @details Reads raw ADC and applies compensation formula. Updates t_fine.
+ *
+ * @return Temperature in degrees Celsius.
+ */
+float BME280_Driver::readTemperature()
+{
+    return compensateTemperature(readRawT());
+}
+
+/**
+ * @brief Reads atmospheric pressure from sensor.
+ *
+ * @details Reads temperature first to update t_fine, then reads and compensates pressure.
+ *
+ * @return Pressure in Pascals (Pa).
+ */
+float BME280_Driver::readPressure()
+{
+    compensateTemperature(readRawT());
+    return compensatePressure(readRawP());
+}
+
+/**
  * @brief Reads relative humidity from sensor.
  *
- * @details Reads raw 16-bit ADC value from humidity registers and applies
- *          compensation formula using factory calibration coefficients.
- *          Internally calls readTemperature() to update t_fine value.
+ * @details Reads temperature first to update t_fine, then reads and compensates humidity.
  *
  * @return Relative humidity in percentage (%RH).
  */
 float BME280_Driver::readHumidity()
 {
-    readTemperature();
-
-    uint8_t buffer[2];
-    i2c.readBytes(i2cAddr, 0xFD, buffer, 2);
-
-    int32_t adc_H = buffer[0];
-    adc_H <<= 8;
-    adc_H |= buffer[1];
-
-    int32_t v_x1_u32r = (t_fine - ((int32_t)76800));
-
-    v_x1_u32r = (((((adc_H << 14) - (((int32_t)dig_H4) << 20) -
-                   (((int32_t)dig_H5) * v_x1_u32r)) +
-                  ((int32_t)16384)) >>
-                 15) *
-                (((((((v_x1_u32r * ((int32_t)dig_H6)) >> 10) *
-                     (((v_x1_u32r * ((int32_t)dig_H3)) >> 11) + ((int32_t)32768))) >>
-                    10) +
-                   ((int32_t)2097152)) *
-                      ((int32_t)dig_H2) +
-                  8192) >>
-                 14));
-
-    v_x1_u32r = (v_x1_u32r - (((((v_x1_u32r >> 15) * (v_x1_u32r >> 15)) >> 7) *
-                               ((int32_t)dig_H1)) >>
-                              4));
-
-    v_x1_u32r = (v_x1_u32r < 0) ? 0 : v_x1_u32r;
-    v_x1_u32r = (v_x1_u32r > 419430400) ? 419430400 : v_x1_u32r;
-
-    float h = (v_x1_u32r >> 12);
-    return h / 1024.0f;
+    compensateTemperature(readRawT());
+    return compensateHumidity(readRawH());
 }
 
 /**
  * @brief Reads all sensor data (T, P, H) in one burst read.
  *
  * @details Performs a single 8-byte I2C transaction to read raw data from
- *          0xF7 to 0xFE, then applies all compensation formulas.
- *          This reduces I2C bus traffic and prevents task collisions.
+ *          0xF7 to 0xFE, then applies all compensation formulas in order.
+ *          This minimises I2C bus traffic and avoids repeated t_fine recalculation.
  *
- * @param temp Reference to store temperature (C).
+ * @param temp Reference to store temperature (°C).
  * @param pres Reference to store pressure (Pa).
  * @param humi Reference to store humidity (%RH).
  */
 void BME280_Driver::readAll(float &temp, float &pres, float &humi)
 {
     uint8_t buffer[8];
-    // Read 8 bytes burst: 0xF7-0xF9 (P), 0xFA-0xFC (T), 0xFD-0xFE (H)
     i2c.readBytes(i2cAddr, 0xF7, buffer, 8);
 
-    // 1. Process Raw Temperature
-    int32_t adc_T = buffer[3];
-    adc_T <<= 8;
-    adc_T |= buffer[4];
-    adc_T <<= 8;
-    adc_T |= buffer[5];
-    adc_T >>= 4;
-
-    int32_t var1_T = ((((adc_T >> 3) - ((int32_t)dig_T1 << 1))) * ((int32_t)dig_T2)) >> 11;
-    int32_t var2_T = (((((adc_T >> 4) - ((int32_t)dig_T1)) * ((adc_T >> 4) - ((int32_t)dig_T1))) >> 12) * ((int32_t)dig_T3)) >> 14;
-    t_fine = var1_T + var2_T;
-    temp = ((t_fine * 5 + 128) >> 8) / 100.0f;
-
-    // 2. Process Raw Pressure
     int32_t adc_P = buffer[0];
     adc_P <<= 8;
     adc_P |= buffer[1];
@@ -307,50 +299,20 @@ void BME280_Driver::readAll(float &temp, float &pres, float &humi)
     adc_P |= buffer[2];
     adc_P >>= 4;
 
-    int64_t var1_P = ((int64_t)t_fine) - 128000;
-    int64_t var2_P = var1_P * var1_P * (int64_t)dig_P6;
-    var2_P = var2_P + ((var1_P * (int64_t)dig_P5) << 17);
-    var2_P = var2_P + (((int64_t)dig_P4) << 35);
-    var1_P = ((var1_P * var1_P * (int64_t)dig_P3) >> 8) + ((var1_P * (int64_t)dig_P2) << 12);
-    var1_P = (((((int64_t)1) << 47) + var1_P)) * ((int64_t)dig_P1) >> 33;
+    int32_t adc_T = buffer[3];
+    adc_T <<= 8;
+    adc_T |= buffer[4];
+    adc_T <<= 8;
+    adc_T |= buffer[5];
+    adc_T >>= 4;
 
-    if (var1_P != 0)
-    {
-        int64_t p = 1048576 - adc_P;
-        p = (((p << 31) - var2_P) * 3125) / var1_P;
-        int64_t v1_p = (((int64_t)dig_P9) * (p >> 13) * (p >> 13)) >> 25;
-        int64_t v2_p = (((int64_t)dig_P8) * p) >> 19;
-        p = ((p + v1_p + v2_p) >> 8) + (((int64_t)dig_P7) << 4);
-        pres = (float)p / 256.0f;
-    }
-    else
-        pres = 0;
-
-    // 3. Process Raw Humidity
     int32_t adc_H = buffer[6];
     adc_H <<= 8;
     adc_H |= buffer[7];
 
-    int32_t v_x1_u32r = (t_fine - ((int32_t)76800));
-    v_x1_u32r = (((((adc_H << 14) - (((int32_t)dig_H4) << 20) -
-                   (((int32_t)dig_H5) * v_x1_u32r)) +
-                  ((int32_t)16384)) >>
-                 15) *
-                (((((((v_x1_u32r * ((int32_t)dig_H6)) >> 10) *
-                     (((v_x1_u32r * ((int32_t)dig_H3)) >> 11) + ((int32_t)32768))) >>
-                    10) +
-                   ((int32_t)2097152)) *
-                      ((int32_t)dig_H2) +
-                  8192) >>
-                 14));
-
-    v_x1_u32r = (v_x1_u32r - (((((v_x1_u32r >> 15) * (v_x1_u32r >> 15)) >> 7) *
-                               ((int32_t)dig_H1)) >>
-                              4));
-
-    v_x1_u32r = (v_x1_u32r < 0) ? 0 : v_x1_u32r;
-    v_x1_u32r = (v_x1_u32r > 419430400) ? 419430400 : v_x1_u32r;
-    humi = (v_x1_u32r >> 12) / 1024.0f;
+    temp = compensateTemperature(adc_T);
+    pres = compensatePressure(adc_P);
+    humi = compensateHumidity(adc_H);
 }
 
 /**
@@ -370,8 +332,6 @@ float BME280_Driver::readAltitude(float seaLevelPressure)
 
 /**
  * @brief Initializes the BME280 sensor.
- *
- * @details Calls bme.begin() to initialize hardware with default I2C address.
  */
 void initBME()
 {

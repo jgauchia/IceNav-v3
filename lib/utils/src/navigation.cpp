@@ -2,8 +2,8 @@
  * @file navigation.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief Navigation functions
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #include "navigation.hpp"
@@ -352,28 +352,29 @@ void updateNavigation(
     // Advance turn index if turns have been passed
     advanceTurnIndex(turns, state, closestIdx);
 
-    // No more turns remaining
-    if (state.nextTurnIdx >= turns.size()) 
+    auto showFinish = [&]()
     {
         if (lastIconShown != &finish)
         {
             lv_img_set_src(turnImg, &finish);
             lastIconShown = &finish;
         }
+    };
+
+    // No more turns remaining
+    if (state.nextTurnIdx >= turns.size())
+    {
+        showFinish();
         state.lastTrackIdx = closestIdx;
         return;
     }
 
     // Find next valid turn
     int nextEventIdx = findNextValidTurn(track, turns, userLat, userLon, closestIdx, state, config);
-    
-    if (nextEventIdx == -1) 
+
+    if (nextEventIdx == -1)
     {
-        if (lastIconShown != &finish)
-        {
-            lv_img_set_src(turnImg, &finish);
-            lastIconShown = &finish;
-        }
+        showFinish();
         state.lastTrackIdx = closestIdx;
         return;
     }

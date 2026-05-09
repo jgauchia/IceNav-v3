@@ -2,8 +2,8 @@
  * @file ILI9488_NOTOUCH_8B.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LOVYANGFX TFT driver for ILI9488 8 Bits parallel  Without Touch controller
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #pragma once
@@ -11,21 +11,7 @@
 #define LGFX_USE_V1
 
 #include <LovyanGFX.hpp>
-
-extern const uint8_t TFT_WR;
-extern const uint8_t TFT_RD;
-extern const uint8_t TFT_RS;
-extern const uint8_t TFT_RST;
-extern const uint8_t TFT_CS;
-
-extern const uint8_t TFT_D0;
-extern const uint8_t TFT_D1;
-extern const uint8_t TFT_D2;
-extern const uint8_t TFT_D3;
-extern const uint8_t TFT_D4;
-extern const uint8_t TFT_D5;
-extern const uint8_t TFT_D6;
-extern const uint8_t TFT_D7;
+#include "../../include/hal.hpp"
 
 #define LARGE_SCREEN
 

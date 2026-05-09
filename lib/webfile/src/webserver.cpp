@@ -2,8 +2,8 @@
  * @file webserver.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Web file server functions implementation
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #include "webserver.h"
@@ -349,6 +349,7 @@ static bool deleteDirRecursive(const char *dirPath)
 static bool createDirectories(String filepath)
 {
     uint8_t lastSlash = 0;
+    uint8_t nextSlash = 0;
     while (true)
     {
         nextSlash = filepath.indexOf('/', lastSlash + 1);
@@ -691,7 +692,17 @@ static esp_err_t upload_handler(httpd_req_t *req)
     size_t firstBoundaryLen = strlen(firstBoundary);
 
     // Allocate working buffer
-    size_t bufSize = 32768;
+    static constexpr size_t UPLOAD_BUF_SIZE = 32768;
+    static constexpr size_t MAX_UPLOAD_SIZE = 512UL * 1024 * 1024; // 512 MB
+
+    if ((size_t)req->content_len > MAX_UPLOAD_SIZE)
+    {
+        waitScreenRefresh = false;
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "File too large");
+        return ESP_FAIL;
+    }
+
+    size_t bufSize = UPLOAD_BUF_SIZE;
     uint8_t* buf = (uint8_t*)heap_caps_malloc(bufSize, MALLOC_CAP_8BIT);
     if (!buf)
     {
@@ -706,6 +717,7 @@ static esp_err_t upload_handler(httpd_req_t *req)
     int remaining = req->content_len;
     size_t bufUsed = 0;
     bool firstPart = true;
+    bool writeError = false;
 
     while (remaining > 0 || bufUsed > 0)
     {
@@ -735,7 +747,11 @@ static esp_err_t upload_handler(httpd_req_t *req)
             size_t safeWrite = (bufUsed > boundaryLen + 4) ? bufUsed - boundaryLen - 4 : 0;
             if (safeWrite > 0)
             {
-                fwrite(buf, 1, safeWrite, file);
+                if (fwrite(buf, 1, safeWrite, file) != safeWrite)
+                {
+                    ESP_LOGE(WEB_TAG, "fwrite error (SD full?)");
+                    writeError = true;
+                }
                 memmove(buf, buf + safeWrite, bufUsed - safeWrite);
                 bufUsed -= safeWrite;
             }
@@ -747,12 +763,20 @@ static esp_err_t upload_handler(httpd_req_t *req)
                 {
                     size_t dataLen = finalBoundary - buf;
                     if (dataLen > 0)
-                        fwrite(buf, 1, dataLen, file);
+                        if (fwrite(buf, 1, dataLen, file) != dataLen)
+                        {
+                            ESP_LOGE(WEB_TAG, "fwrite error (SD full?)");
+                            writeError = true;
+                        }
                     bufUsed = 0;
                 }
                 else
                 {
-                    fwrite(buf, 1, bufUsed, file);
+                    if (fwrite(buf, 1, bufUsed, file) != bufUsed)
+                    {
+                        ESP_LOGE(WEB_TAG, "fwrite error (SD full?)");
+                        writeError = true;
+                    }
                     bufUsed = 0;
                 }
             }
@@ -767,7 +791,11 @@ static esp_err_t upload_handler(httpd_req_t *req)
             {
                 size_t dataLen = boundaryPos - buf;
                 if (dataLen > 0)
-                    fwrite(buf, 1, dataLen, file);
+                    if (fwrite(buf, 1, dataLen, file) != dataLen)
+                    {
+                        ESP_LOGE(WEB_TAG, "fwrite error (SD full?)");
+                        writeError = true;
+                    }
                 storage.close(file);
                 file = NULL;
                 ESP_LOGI(WEB_TAG, "File uploaded: %s", currentFilename);
@@ -857,7 +885,11 @@ static esp_err_t upload_handler(httpd_req_t *req)
             uint8_t* finalBoundary = findBytes(buf, bufUsed, (const uint8_t*)boundary, boundaryLen);
             size_t writeLen = finalBoundary ? (finalBoundary - buf) : bufUsed;
             if (writeLen > 0)
-                fwrite(buf, 1, writeLen, file);
+                if (fwrite(buf, 1, writeLen, file) != writeLen)
+                {
+                    ESP_LOGE(WEB_TAG, "fwrite error (SD full?)");
+                    writeError = true;
+                }
         }
         storage.close(file);
         ESP_LOGI(WEB_TAG, "File uploaded: %s", currentFilename);
@@ -866,8 +898,14 @@ static esp_err_t upload_handler(httpd_req_t *req)
 
     heap_caps_free(buf);
     waitScreenRefresh = false;
-    updateList = true;
 
+    if (writeError)
+    {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Write error (SD full?)");
+        return ESP_FAIL;
+    }
+
+    updateList = true;
     char response[64];
     snprintf(response, sizeof(response), "Upload complete: %d file(s)", filesUploaded);
     httpd_resp_send(req, response, strlen(response));

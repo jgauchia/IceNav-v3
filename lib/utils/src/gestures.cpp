@@ -2,8 +2,8 @@
  * @file gestures.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Touch gestures functions
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #include "gestures.hpp"
@@ -22,7 +22,7 @@
     float distCurr = hypotf(curr[0].x - curr[1].x, curr[0].y - curr[1].y);
     float delta = distCurr - distPrev;
     float speed = (dt_ms > 0.0f) ? fabsf(delta) / dt_ms : 0.0f;
-    float diag = hypotf(tft.width(), tft.height()); // calculated once
+    static const float diag = hypotf(tft.width(), tft.height());
     float thresholdIn  = 0.03f  * diag;
     float thresholdOut = 0.012f * diag;
     if (speed > SPEED_FAST) 

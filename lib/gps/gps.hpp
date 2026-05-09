@@ -2,8 +2,8 @@
  * @file gps.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  GPS definition and functions
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #pragma once
@@ -40,7 +40,7 @@ extern bool nmea_output_enable;  /**< Enables or disables NMEA output. */
 class Gps;
 extern Gps gps; /**< Global GPS instance */
 
-static unsigned long GPS_BAUD[] = {4800, 9600, 19200, 0}; /**< Supported GPS baud rates. */
+static const unsigned long GPS_BAUD[] = {4800, 9600, 19200, 0}; /**< Supported GPS baud rates. */
 static const char *GPS_BAUD_PCAS[] = {"$PCAS01,0*1C\r\n", "$PCAS01,1*1D\r\n", "$PCAS01,2*1E\r\n"}; /**< NMEA command strings to set baud rate for PCAS modules. */
 static const char *GPS_RATE_PCAS[] = {"$PCAS02,1000*2E\r\n", "$PCAS02,500*1A\r\n", "$PCAS02,250*18\r\n", "$PCAS02,200*1D\r\n", "$PCAS02,100*1E\r\n"}; /**< NMEA command strings to set update rate for PCAS modules. */
 

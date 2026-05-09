@@ -2,8 +2,8 @@
  * @file gpsMath.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Math and various functions
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #pragma once
@@ -24,8 +24,8 @@
 static const float LUT_RES = (TWO_PI / (float)LUT_SIZE); /**< Angular resolution (radians per LUT step) */
 
 // Lookup tables (allocated in PSRAM if available, else in normal RAM)
-static float* sinLut = NULL;
-static float* cosLut = NULL;
+extern float* sinLut;
+extern float* cosLut;
 extern bool lutInit;
 
 /**

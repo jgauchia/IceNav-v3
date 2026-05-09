@@ -2,8 +2,8 @@
  * @file gpxParser.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  GPX Parser class
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #pragma once

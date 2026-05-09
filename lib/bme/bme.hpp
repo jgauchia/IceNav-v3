@@ -2,8 +2,8 @@
  * @file bme.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  BME280 Sensor functions - Native ESP-IDF driver
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #pragma once
@@ -47,9 +47,15 @@ class BME280_Driver
 
         uint8_t read8(uint8_t reg);
         uint16_t read16_LE(uint8_t reg);
-        int16_t readS16_LE(uint8_t reg);
         void write8(uint8_t reg, uint8_t value);
         void readCoefficients();
+
+        int32_t readRawT();
+        int32_t readRawP();
+        int32_t readRawH();
+        float compensateTemperature(int32_t adc_T);
+        float compensatePressure(int32_t adc_P);
+        float compensateHumidity(int32_t adc_H);
 
     public:
         BME280_Driver();

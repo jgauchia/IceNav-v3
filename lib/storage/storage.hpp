@@ -2,8 +2,8 @@
  * @file storage.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Storage definition and functions
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #pragma once
@@ -97,7 +97,7 @@ class Storage
 class FileStream : public Stream
 {
     public:
-        FileStream(FILE *file) : file(file) {}
+        FileStream(FILE *file) : file(file), fileSize_(-1) {}
 
         /**
         * @brief Returns the number of bytes available to read from the file.
@@ -108,11 +108,15 @@ class FileStream : public Stream
         {
             if (!file)
                 return 0;
+            if (fileSize_ < 0)
+            {
+                long pos = ftell(file);
+                fseek(file, 0, SEEK_END);
+                fileSize_ = ftell(file);
+                fseek(file, pos, SEEK_SET);
+            }
             long current_pos = ftell(file);
-            fseek(file, 0, SEEK_END);
-            long end_pos = ftell(file);
-            fseek(file, current_pos, SEEK_SET);
-            return end_pos - current_pos;
+            return (fileSize_ > current_pos) ? (int)(fileSize_ - current_pos) : 0;
         }
 
         /**
@@ -197,5 +201,6 @@ class FileStream : public Stream
         }
 
     private:
-        FILE *file; /**< Pointer to the wrapped C FILE object */
+        FILE *file;       /**< Pointer to the wrapped C FILE object */
+        long fileSize_;   /**< Cached file size; -1 until first available() call */
 };

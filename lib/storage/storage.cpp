@@ -2,11 +2,12 @@
  * @file storage.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Storage definition and functions
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #include "storage.hpp"
+#include "../../include/hal.hpp"
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "esp_vfs_fat.h"
@@ -16,11 +17,6 @@
 #include <iomanip>
 
 #define SD_OCR_SDHC_CAP (1 << 30) /**< SD card SDHC capacity flag */
-
-extern const uint8_t SD_CS;   /**< Chip Select pin for SD card */
-extern const uint8_t SD_MISO; /**< MISO pin for SD card */
-extern const uint8_t SD_MOSI; /**< MOSI pin for SD card */
-extern const uint8_t SD_CLK;  /**< Clock pin for SD card */
 
 static const char *TAG = "Storage";
 
@@ -74,9 +70,19 @@ esp_err_t Storage::initSD()
 {
 	if (!dmaBuffer)
 		dmaBuffer = (uint8_t *)heap_caps_aligned_alloc(64, DMA_BUF_SIZE, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
-	
+	if (!dmaBuffer)
+	{
+		ESP_LOGE(TAG, "Failed to allocate DMA buffer");
+		return ESP_ERR_NO_MEM;
+	}
+
 	if (!readMutex)
 		readMutex = xSemaphoreCreateMutex();
+	if (!readMutex)
+	{
+		ESP_LOGE(TAG, "Failed to create read mutex");
+		return ESP_ERR_NO_MEM;
+	}
 
 	#ifndef SPI_SHARED
 		esp_err_t ret;
@@ -123,7 +129,7 @@ esp_err_t Storage::initSD()
 				ESP_LOGE(TAG, "Failed to mount filesystem.");
 			else
 				ESP_LOGE(TAG, "Failed to initialize the card (%s).", esp_err_to_name(ret));
-			
+			spi_bus_free((spi_host_device_t)host.slot);
 			return ret;
 		}
 		else

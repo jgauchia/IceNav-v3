@@ -2,16 +2,20 @@
  * @file lvglSetup.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Screen implementation
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
+#include "../../gui/src/lv_subjects.hpp"
 #include "lvglSetup.hpp"
+#include "../../../include/hal.hpp"
 #include "i2c_espidf.hpp"
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
+
+SemaphoreHandle_t lvgl_mutex = NULL;
 
 /**
  * @brief Get system uptime in milliseconds using ESP-IDF timer.
@@ -24,7 +28,6 @@ lv_display_t *display; /**< LVGL display driver */
 
 lv_obj_t *searchSatScreen; /**< Search Satellite Screen object. */
 lv_obj_t *splashScr;       /**< Splash Screen object. */
-lv_timer_t *mainTimer;     /**< Main Screen Timer */
 lv_style_t styleThemeBkg;  /**< Main background style object. */
 lv_style_t styleObjectBkg; /**< Object background style. */
 lv_style_t styleObjectSel; /**< Object selected style. */
@@ -258,7 +261,6 @@ void IRAM_ATTR keypadRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 
 #ifdef POWER_SAVE
 
-extern const uint8_t BOARD_BOOT_PIN; /**< GPIO pin number used for board boot functionality. */
 
 /**
  * @brief Reads GPIO button state for LVGL input device.
@@ -399,7 +401,9 @@ void lv_tick_task(void *arg)
  */
 void initLVGL()
 {
+    lvgl_mutex = xSemaphoreCreateMutex();
     lv_init();
+    init_lv_subjects();
     initSharedStyles();
 
     display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
@@ -469,13 +473,8 @@ void initLVGL()
         lv_indev_add_event_cb(indev_gpio, gpioLongEvent, LV_EVENT_LONG_PRESSED, NULL);
         lv_indev_add_event_cb(indev_gpio, gpioClickEvent, LV_EVENT_SHORT_CLICKED, NULL);
     #endif
-    
-    //  Create Main Timer
-    mainTimer = lv_timer_create(updateMainScreen, UPDATE_MAINSCR_PERIOD, NULL);
-    lv_timer_ready(mainTimer);
 
-    modifyTheme();
-    
+    modifyTheme();    
     //  Create Screens
     #ifdef ICENAV_BOARD
         createLVGLSplashScreen();
@@ -512,9 +511,13 @@ void loadMainScreen()
         lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
     else
         lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
-    
-    if (mainTimer)
-        lv_timer_resume(mainTimer);
 
     lv_screen_load(mainScreen);
+
+    /* Force notification to all observers even if values have not changed.
+       lv_subject_set_int suppresses callbacks when the value is identical;
+       widgets need to re-render their initial state after a screen transition. */
+    notify_all_subjects();
+    extern void triggerMapRedraw();
+    triggerMapRedraw();
 }

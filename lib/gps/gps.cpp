@@ -2,12 +2,14 @@
  * @file gps.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  GPS definition and functions
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #include "gps.hpp"
+#include "../../include/hal.hpp"
 #include "lvgl.h"
+#include "../gui/src/lv_subjects.hpp"
 #include "widgets.hpp"
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -60,7 +62,9 @@ static unsigned long pulseIn_idf(int pin, int state, unsigned long timeout)
     return (unsigned long)(esp_timer_get_time() - pulseStart);
 }
 
-extern lv_obj_t *sunriseLabel; 	   /**< Label object for displaying the sunrise time. */
+uint8_t GPS_TX = GPS_TX_DEFAULT;
+uint8_t GPS_RX = GPS_RX_DEFAULT;
+
 bool setTime = true;        	   /**< Indicates if the system time should be set from GPS. */
 bool isGpsFixed = false;           /**< Indicates whether a valid GPS fix has been acquired. */
 long gpsBaudDetected = 0;   	   /**< Detected GPS baud rate. */
@@ -220,7 +224,7 @@ void Gps::getGPSData()
             // Calculate Sunrise and Sunset only one time when date & time was valid
             calculateSun();
             setTime = true;
-            lv_obj_send_event(sunriseLabel, LV_EVENT_VALUE_CHANGED, NULL);
+            lv_subject_set_int(&subject_sunrise, lv_subject_get_int(&subject_sunrise) + 1);
         }
     }
 
@@ -245,11 +249,11 @@ void Gps::getGPSData()
 
     // HDOP , PDOP , VDOP
     if (fix.valid.hdop)
-        gpsData.hdop = (float)fix.hdop / 1000;
+        gpsData.hdop = fix.hdop / 1000.0f;
     if (fix.valid.pdop)
-        gpsData.pdop = (float)fix.pdop / 1000;
+        gpsData.pdop = fix.pdop / 1000.0f;
     if (fix.valid.vdop)
-        gpsData.vdop = (float)fix.vdop / 1000;
+        gpsData.vdop = fix.vdop / 1000.0f;
 
     // // Satellite info
     gpsData.satInView = (uint8_t)GPS.sat_count;
@@ -312,7 +316,7 @@ long Gps::detectRate(int rxPin)
 long Gps::autoBaud()
 {
     long rate = detectRate(GPS_RX) + detectRate(GPS_RX) + detectRate(GPS_RX);
-    rate = rate / 3l;
+    rate = rate / 3;
     long baud = 0;
     /*
         Time	Baud Rate
@@ -520,21 +524,27 @@ void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refr
                 
                 // Advance through track points until we've covered the expected distance
                 int currentIndex = simulationIndex;
-                int pointsAdvanced = 0;
-                const float maxSegmentDist = 100.0f; // Filter out unrealistic jumps (>100m)
+                const float maxSegmentDist = 5000.0f; // Allow long segments (e.g. 5km)
                 
                 // Add expected distance to accumulated distance
                 accumulatedDist += expectedDist;
                 
-                // Limit to prevent infinite loops
-                while (currentIndex < (int)trackData.size() - 1 && pointsAdvanced < 10) 
+                // Limit to prevent infinite loops (end of track only)
+                while (currentIndex < (int)trackData.size() - 1) 
                 { 
                     int nextIndex = currentIndex + 1;
                     float segmentDist = calcDist(trackData[currentIndex].lat, trackData[currentIndex].lon,
                                                 trackData[nextIndex].lat, trackData[nextIndex].lon);
                     
-                    // Skip unrealistic jumps or duplicate points
-                    if (segmentDist > maxSegmentDist || segmentDist < 0.1f) 
+                    // Skip duplicate points
+                    if (segmentDist < 0.1f) 
+                    {
+                        currentIndex = nextIndex;
+                        continue;
+                    }
+
+                    // Skip unrealistic jumps
+                    if (segmentDist > maxSegmentDist)
                     {
                         currentIndex = nextIndex;
                         continue;
@@ -545,7 +555,6 @@ void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refr
                     {
                         accumulatedDist -= segmentDist;
                         currentIndex = nextIndex;
-                        pointsAdvanced++;
                     } 
                     else
                         break; // Not enough accumulated distance
@@ -612,7 +621,7 @@ void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refr
         } 
         else 
         {
-            ESP_LOGI(TAG,"End of GPS signal simulation");
+            // End of simulation reached
         }
     }
 } 

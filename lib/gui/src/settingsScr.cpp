@@ -2,8 +2,8 @@
  * @file settingsScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Settings Screen
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #include "settingsScr.hpp"
@@ -23,7 +23,6 @@ static void back(lv_event_t *event)
 {
     if (isSearchingSat)
     {
-        lv_timer_pause(mainTimer);
         searchTimer = lv_timer_create(searchGPS, 100, NULL);
         lv_timer_ready(searchTimer);
         lv_screen_load(searchSatScreen);

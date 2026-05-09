@@ -2,8 +2,8 @@
  * @file gpxParser.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  GPX Parser class
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #include "gpxParser.hpp"
@@ -128,7 +128,7 @@ bool GPXParser::deleteTagByName(const char* tag, const char* name)
     for (tinyxml2::XMLElement* Tag = root->FirstChildElement(tag); Tag != nullptr; Tag = Tag->NextSiblingElement(tag))
     {
         tinyxml2::XMLElement* nameElement = Tag->FirstChildElement(gpxNameElem);
-        if (nameElement && strcmp(nameElement->GetText(), name) == 0)
+        if (nameElement && nameElement->GetText() && strcmp(nameElement->GetText(), name) == 0)
         {
             root->DeleteChild(Tag);
             if (doc.SaveFile(filePath.c_str()) != tinyxml2::XML_SUCCESS)
@@ -258,6 +258,20 @@ bool GPXParser::addWaypoint(const wayPoint& wp)
 }
 
 /**
+ * @brief Updates the bounding box of a TrackSegment to include the given point.
+ *
+ * @param seg   TrackSegment whose bounds are updated.
+ * @param point wayPoint to include in the bounding box.
+ */
+static void updateBounds(TrackSegment& seg, const wayPoint& point)
+{
+    if (point.lat < seg.minLat) seg.minLat = point.lat;
+    if (point.lat > seg.maxLat) seg.maxLat = point.lat;
+    if (point.lon < seg.minLon) seg.minLon = point.lon;
+    if (point.lon > seg.maxLon) seg.maxLon = point.lon;
+}
+
+/**
 * @brief Load GPX track data using stream-based parsing.
 *
 * @param trackData Vector to store points.
@@ -327,14 +341,7 @@ bool GPXParser::loadTrack(TrackVector& trackData)
                 totalDist += d;
                 trackData[i].accumDist = totalDist;
             }
-            if (trackData[i].lat < currentSeg.minLat) 
-                currentSeg.minLat = trackData[i].lat;
-            if (trackData[i].lat > currentSeg.maxLat) 
-                currentSeg.maxLat = trackData[i].lat;
-            if (trackData[i].lon < currentSeg.minLon) 
-                currentSeg.minLon = trackData[i].lon;
-            if (trackData[i].lon > currentSeg.maxLon) 
-                currentSeg.maxLon = trackData[i].lon;
+            updateBounds(currentSeg, trackData[i]);
             if ((i + 1) % SEGMENT_SIZE == 0 || i == trackData.size() - 1)
             {
                 currentSeg.endIdx = i;

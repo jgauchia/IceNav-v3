@@ -1,8 +1,8 @@
 /**
  * @file compass.cpp
  * @brief Compass definition and functions - Native ESP-IDF drivers
- * @version 0.2.5
- * @date 2026-04
+ * @version 0.2.6
+ * @date 2026-05
  */
 
 #include "compass.hpp"
@@ -18,6 +18,7 @@
 static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 static const char* TAG = "Compass";
+
 
 // ============================================================================
 // QMC5883L Native Driver Implementation
@@ -147,20 +148,21 @@ bool QMC5883L_Driver::setSamples(uint8_t samples)
  * @param y Reference for Y-axis raw value.
  * @param z Reference for Z-axis raw value.
  */
-void QMC5883L_Driver::readRaw(float &x, float &y, float &z)
+bool QMC5883L_Driver::readRaw(float &x, float &y, float &z)
 {
     // 1. Check Data Ready (Bit 0 of Status Register 0x06)
     uint8_t status = read8(QMC5883L_REG_STATUS);
     if ((status & 0x01) == 0)
-        return;
+        return false;
 
     uint8_t buffer[6];
     if (i2c.readBytes(i2cAddr, QMC5883L_REG_DATA, buffer, 6) != 6)
-        return;
+        return false;
 
-    x = (int16_t)(buffer[0] | (buffer[1] << 8));
+    x = (int16_t)(buffer[0] | (buffer[1] << 8));  // LSB first (little-endian)
     y = (int16_t)(buffer[2] | (buffer[3] << 8));
     z = (int16_t)(buffer[4] | (buffer[5] << 8));
+    return true;
 }
 
 // ============================================================================
@@ -276,21 +278,22 @@ void HMC5883L_Driver::setSamples(uint8_t samples)
  * @param y Reference for Y-axis raw value.
  * @param z Reference for Z-axis raw value.
  */
-void HMC5883L_Driver::readRaw(float &x, float &y, float &z)
+bool HMC5883L_Driver::readRaw(float &x, float &y, float &z)
 {
     // Check Data Ready (Bit 0 of Status Register 0x09)
     uint8_t status = read8(HMC5883L_REG_STATUS);
     if ((status & 0x01) == 0)
-        return;
+        return false;
 
     uint8_t buffer[6];
     if (i2c.readBytes(i2cAddr, HMC5883L_REG_DATA, buffer, 6) != 6)
-        return;
+        return false;
 
-    // HMC5883L order: X MSB, X LSB, Z MSB, Z LSB, Y MSB, Y LSB
+    // HMC5883L order: X MSB, X LSB, Z MSB, Z LSB, Y MSB, Y LSB (big-endian)
     x = (int16_t)((buffer[0] << 8) | buffer[1]);
     z = (int16_t)((buffer[2] << 8) | buffer[3]);
     y = (int16_t)((buffer[4] << 8) | buffer[5]);
+    return true;
 }
 
 // ============================================================================
@@ -534,14 +537,16 @@ void Compass::init()
  * @param y Reference variable for Y-axis.
  * @param z Reference variable for Z-axis.
  */
-void Compass::read(float &x, float &y, float &z)
+bool Compass::read(float &x, float &y, float &z)
 {
+    bool newData = false;
+
 #ifdef HMC5883L
-    comp.readRaw(x, y, z);
+    newData = comp.readRaw(x, y, z);
 #endif
 
 #ifdef QMC5883
-    comp.readRaw(x, y, z);
+    newData = comp.readRaw(x, y, z);
 #endif
 
 #ifdef IMU_MPU9250
@@ -549,11 +554,15 @@ void Compass::read(float &x, float &y, float &z)
     x = IMU.getMagX_uT();
     y = IMU.getMagY_uT();
     z = IMU.getMagZ_uT();
+    newData = true;
 #endif
 
 #ifdef ICENAV_BOARD
-    y = y * -1;
+    if (newData)
+        y = y * -1;
 #endif
+
+    return newData;
 }
 
 /**
@@ -569,7 +578,15 @@ int Compass::getHeading()
     float y = 0.0f;
     float z = 0.0f;
 
-    read(x, y, z);
+    if (!read(x, y, z))
+    {
+        int headingDeg = static_cast<int>(headingSmooth * (180.0f / M_PI));
+        if (headingDeg < 0)
+            headingDeg += 360;
+        if (headingDeg >= 360)
+            headingDeg -= 360;
+        return headingDeg;
+    }
 
     float hx = x - offX;
     float hy = y - offY;
