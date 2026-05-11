@@ -28,7 +28,9 @@ struct PsramAllocator
 
     T* allocate(std::size_t n)
     {
-        return static_cast<T*>(heap_caps_malloc(n * sizeof(T), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+        void* ptr = heap_caps_malloc(n * sizeof(T), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+        if (!ptr) throw std::bad_alloc();
+        return static_cast<T*>(ptr);
     }
 
     void deallocate(T* p, std::size_t)

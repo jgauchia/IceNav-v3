@@ -433,6 +433,11 @@ void Maps::generateMap(uint8_t zoom)
         navLastZoom_ = zoom;
         navNeedsRender_ = false;
         latLonToPixel(destLat, destLon, (int16_t&)wptPosX, (int16_t&)wptPosY);
+        if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(100)) == pdTRUE)                                                         
+        {                                                                                                                            
+            drawTrack(mapTempSprite);                                                                                                
+            xSemaphoreGiveRecursive(mapMutex);                                                                                       
+        }                  
         Maps::redrawMap = true;
         return;
     }

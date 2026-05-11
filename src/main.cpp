@@ -10,6 +10,7 @@
 #include "i2c_espidf.hpp"
 #include <WiFi.h>
 #include <esp_log.h>
+#include <atomic>
 #include <ESPmDNS.h>
 #include <SolarCalculator.h>
 
@@ -38,6 +39,7 @@ extern xSemaphoreHandle gpsMutex;
 #include "gpxParser.hpp"
 #include "maps.hpp"
 #include "lv_subjects.hpp"
+#include "router.hpp"
 
 extern Storage storage;
 extern Battery battery;
@@ -50,6 +52,11 @@ extern Maps mapView;
 TrackVector trackData;
 std::vector<TrackSegment> trackIndex;
 std::vector<TurnPoint> turnPoints;
+
+float                  routeDstLat       = 0.0f;
+float                  routeDstLon       = 0.0f;
+std::atomic<bool>      rerouteRequested  {false};
+SemaphoreHandle_t      routeMutex        = nullptr;
 
 #include "navigation.hpp"
 NavState navState;
@@ -88,7 +95,8 @@ void calculateSun()
  */
 void setup()
 {
-    gpsMutex = xSemaphoreCreateMutex();
+    gpsMutex   = xSemaphoreCreateMutex();
+    routeMutex = xSemaphoreCreateMutex();
     lutInit = initTrigLUT();
     #ifdef POWER_SAVE
         pinMode(BOARD_BOOT_PIN, INPUT_PULLUP);
@@ -169,6 +177,56 @@ void loop()
 {
     if (enableWeb)
         processWebServerTasks();
+
+    if (rerouteRequested.exchange(false))
+    {
+        printf("DEBUG: Starting route calculation from (%.6f, %.6f) to (%.6f, %.6f)\n", gps.gpsData.latitude, gps.gpsData.longitude, routeDstLat, routeDstLon);
+        TrackVector newRoute;
+        uint32_t t0 = millis();
+        RouterResult res = router.route(gps.gpsData.latitude, gps.gpsData.longitude,
+                                        routeDstLat, routeDstLon, newRoute);
+        printf("DEBUG: Route calculation done in %lu ms, result=%d, waypoints=%u\n",
+               (unsigned long)(millis() - t0), (int)res, (unsigned)newRoute.size());
+        if (res == RouterResult::OK)
+        {
+            isTrackLoaded = false;
+            trackData.clear();
+            trackData.shrink_to_fit();
+
+            if (xSemaphoreTake(routeMutex, pdMS_TO_TICKS(500)) == pdTRUE)
+            {
+                trackData = std::move(newRoute);
+
+                if (!trackData.empty())
+                {
+                    trackData[0].accumDist = 0.0f;
+                    for (size_t i = 1; i < trackData.size(); ++i)
+                    {
+                        float d = calcDist(trackData[i-1].lat, trackData[i-1].lon,
+                                           trackData[i].lat,   trackData[i].lon);
+                        trackData[i].accumDist = trackData[i-1].accumDist + d;
+                    }
+                }
+
+                GPXParser gpxTmp;
+                turnPoints    = gpxTmp.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, trackData);
+                navState      = NavState{};
+                isTrackLoaded = !trackData.empty();
+                xSemaphoreGive(routeMutex);
+            }
+
+            mapView.updateMap();
+            mapView.redrawTrack();
+        }
+        if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(50)) == pdTRUE)
+        {
+            lv_subject_set_int(&subject_rerouting, 0);
+            lv_obj_send_event(navTile, LV_EVENT_VALUE_CHANGED, NULL);
+            lv_obj_clear_flag(turnByTurn, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+            xSemaphoreGive(lvgl_mutex);
+        }
+    }
 
     if (isTrackLoaded)
     {

@@ -7,6 +7,8 @@
  */
 
 #include "gpxScr.hpp"
+#include "lv_subjects.hpp"
+#include "router.hpp"
 
 extern Maps mapView;
 extern Storage storage;
@@ -73,6 +75,12 @@ void gpxListEvent(lv_event_t *event)
 
                                 mapView.setWaypoint(loadWpt.lat, loadWpt.lon);
                                 mapView.updateMap();
+
+                                routeDstLat = loadWpt.lat;
+                                routeDstLon = loadWpt.lon;
+                                lv_subject_set_int(&subject_rerouting, 1);
+                                lv_subject_set_int(&subject_nav_active, 2);
+                                rerouteRequested.store(true);
 
                                 lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
                             }

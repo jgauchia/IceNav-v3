@@ -31,6 +31,8 @@ lv_subject_t subject_map_state;
 lv_subject_t subject_map_offset_x;
 lv_subject_t subject_map_offset_y;
 lv_subject_t subject_sunrise;
+lv_subject_t subject_nav_active;
+lv_subject_t subject_rerouting;
 
 #ifdef ENABLE_TEMP
 lv_subject_t subject_temp;
@@ -65,7 +67,9 @@ void init_lv_subjects()
     lv_subject_init_int(&subject_map_offset_x, 0);
     lv_subject_init_int(&subject_map_offset_y, 0);
     lv_subject_init_int(&subject_sunrise, 0);
-    
+    lv_subject_init_int(&subject_nav_active, 0);
+    lv_subject_init_int(&subject_rerouting, 0);
+
     #ifdef ENABLE_TEMP
     lv_subject_init_int(&subject_temp, 0);
     #endif

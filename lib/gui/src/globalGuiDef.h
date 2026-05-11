@@ -10,6 +10,9 @@
 #include <lvgl.h>
 #include "tft.hpp"
 #include "storage.hpp"
+#include <atomic>
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 
 extern lv_display_t *display; /**< LVGL Display Driver */
 
@@ -37,6 +40,10 @@ extern lv_obj_t *menuBtn;               /**< Button Menu */
 extern lv_obj_t *gpxTagValue;           /**< Add/Edit Waypoint screen text area */
 extern bool isScreenRotated;            /**< Flag to know if screen is rotated */
 extern bool isTrackLoaded;              /**< Flag to know if track is loaded */
+extern float             routeDstLat;   /**< Router destination latitude */
+extern float             routeDstLon;   /**< Router destination longitude */
+extern std::atomic<bool> rerouteRequested; /**< Flag to trigger A* route calculation */
+extern SemaphoreHandle_t routeMutex;    /**< Mutex protecting trackData during route updates */
 
 extern Storage storage;
 

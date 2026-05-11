@@ -82,6 +82,7 @@ class Storage
         size_t write(FILE* file, const uint8_t* buffer, size_t size);
         size_t write(FILE* file, const char* buffer, size_t size);
         int seek(FILE* file, long offset, int whence);
+        size_t seekAndRead(FILE* file, long offset, uint8_t* buffer, size_t size);
         int print(FILE* file, const char* str);
         int println(FILE* file, const char* str);
         size_t fileAvailable(FILE* file);
