@@ -29,9 +29,9 @@ struct CellIndexEntry
 {
     int32_t  lat_e4;         // lat × 10000, snapped to 0.1° grid
     int32_t  lon_e4;         // lon × 10000, snapped to 0.1° grid
-    uint32_t node_offset;    // global index of first node
+    uint32_t node_offset;    // global index of first node (for cellForNode / nearestNode)
     uint16_t node_count;
-    uint32_t edge_offset;    // global index of first edge
+    uint32_t data_offset;    // byte offset from start of data block: cell stores [nodes][edges] contiguously
     uint16_t edge_count;
 };
 static_assert(sizeof(CellIndexEntry) == 20, "CellIndexEntry size mismatch");

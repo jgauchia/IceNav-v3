@@ -52,8 +52,7 @@ private:
     mutable uint32_t            lru_clock_ = 0;
 
     mutable FILE*   file_               = nullptr;
-    uint32_t        nodes_base_offset_  = 0;
-    uint32_t        edges_base_offset_  = 0;
+    uint32_t        data_base_offset_   = 0;   // byte offset in file where cell data blocks start
     uint32_t        totalNodes_         = 0;
     bool            loaded_             = false;
 

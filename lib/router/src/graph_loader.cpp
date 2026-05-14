@@ -61,7 +61,8 @@ bool GraphLoader::load(float src_lat, float src_lon, float dst_lat, float dst_lo
     storage.read(f, reinterpret_cast<uint8_t*>(cellIndex_.data()),
                  hdr.cell_count * sizeof(CellIndexEntry));
 
-    nodes_base_offset_ = sizeof(RouteFileHeader) + hdr.cell_count * sizeof(CellIndexEntry);
+    // Data block starts immediately after header + index.
+    data_base_offset_ = sizeof(RouteFileHeader) + hdr.cell_count * sizeof(CellIndexEntry);
 
     totalNodes_ = 0;
     for (const auto& c : cellIndex_)
@@ -69,12 +70,11 @@ bool GraphLoader::load(float src_lat, float src_lon, float dst_lat, float dst_lo
         uint32_t end = c.node_offset + c.node_count;
         if (end > totalNodes_) totalNodes_ = end;
     }
-    edges_base_offset_ = nodes_base_offset_ + totalNodes_ * sizeof(RouteNode);
 
     printf("DEBUG GL: index loaded — %lu cells, %lu total nodes\n",
            (unsigned long)hdr.cell_count, (unsigned long)totalNodes_);
-    printf("DEBUG GL: nodes_base=0x%lx, edges_base=0x%lx\n",
-           (unsigned long)nodes_base_offset_, (unsigned long)edges_base_offset_);
+    printf("DEBUG GL: data_base=0x%lx\n",
+           (unsigned long)data_base_offset_);
 
     file_   = f;
     loaded_ = true;
@@ -194,23 +194,23 @@ GraphLoader::PageData* GraphLoader::fetchPage(uint32_t cell_idx) const
         return nullptr;
     }
 
+    uint32_t file_offset = data_base_offset_ + c.data_offset;
+
     if (c.node_count > 0)
-        storage.seekAndRead(file_,
-                            nodes_base_offset_ + c.node_offset * sizeof(RouteNode),
+        storage.seekAndRead(file_, file_offset,
                             reinterpret_cast<uint8_t*>(page.nodes.data()), node_bytes);
 
     if (c.edge_count > 0)
-        storage.seekAndRead(file_,
-                            edges_base_offset_ + c.edge_offset * sizeof(RouteEdge),
+        storage.seekAndRead(file_, file_offset + node_bytes,
                             reinterpret_cast<uint8_t*>(page.edges.data()), edge_bytes);
 
     printf("DEBUG GL: loaded page cell=%lu (%u nodes, %u edges, %lu KB)\n",
            (unsigned long)cell_idx, c.node_count, c.edge_count,
            (unsigned long)(needed / 1024));
 
-    auto [ins_it, ok] = pageCache_.emplace(cell_idx, std::move(page));
-    if (!ok) return nullptr;
-    return &ins_it->second;
+    auto res = pageCache_.emplace(cell_idx, std::move(page));
+    if (!res.second) return nullptr;
+    return &res.first->second;
 }
 
 /**
@@ -261,10 +261,12 @@ bool GraphLoader::getNode(uint32_t gi, RouteNode& out_node) const
         return true;
     }
 
-    // Fallback: read directly from SD
+    // Fallback: read directly from SD using the cell's data_offset.
     if (!file_) return false;
-    return storage.seekAndRead(file_,
-                               nodes_base_offset_ + gi * sizeof(RouteNode),
+    const CellIndexEntry& cb = cellIndex_[ci];
+    uint32_t local = gi - cb.node_offset;
+    uint32_t file_off = data_base_offset_ + cb.data_offset + local * sizeof(RouteNode);
+    return storage.seekAndRead(file_, file_off,
                                reinterpret_cast<uint8_t*>(&out_node),
                                sizeof(RouteNode)) == sizeof(RouteNode);
 }
@@ -378,10 +380,12 @@ bool GraphLoader::getEdgesForNode(uint32_t gi, RouteEdge* buf, uint32_t& count) 
     count = rel_e_end - rel_e_start;
     if (count > MAX_EDGES_PER_NODE_GL) { count = 0; return true; }
 
+    // Edge block starts after the node block within this cell's data_offset.
     size_t bytes = count * sizeof(RouteEdge);
-    uint32_t ge_start = cell.edge_offset + rel_e_start;
-    return storage.seekAndRead(file_,
-                               edges_base_offset_ + ge_start * sizeof(RouteEdge),
+    uint32_t edges_start = data_base_offset_ + cell.data_offset
+                         + cell.node_count * sizeof(RouteNode)
+                         + rel_e_start * sizeof(RouteEdge);
+    return storage.seekAndRead(file_, edges_start,
                                reinterpret_cast<uint8_t*>(buf),
                                bytes) == bytes;
 }
@@ -394,9 +398,8 @@ void GraphLoader::unload()
     if (file_) { storage.close(file_); file_ = nullptr; }
     cellIndex_.clear();
     pageCache_.clear();
-    lru_clock_          = 0;
-    nodes_base_offset_  = 0;
-    edges_base_offset_  = 0;
-    totalNodes_         = 0;
-    loaded_             = false;
+    lru_clock_         = 0;
+    data_base_offset_  = 0;
+    totalNodes_        = 0;
+    loaded_            = false;
 }
