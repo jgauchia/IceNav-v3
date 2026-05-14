@@ -181,12 +181,22 @@ void loop()
     if (rerouteRequested.exchange(false))
     {
         printf("DEBUG: Starting route calculation from (%.6f, %.6f) to (%.6f, %.6f)\n", gps.gpsData.latitude, gps.gpsData.longitude, routeDstLat, routeDstLon);
+        if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
+        {
+            showMsg(LV_SYMBOL_REFRESH, " Calculating route...");
+            xSemaphoreGive(lvgl_mutex);
+        }
         TrackVector newRoute;
         uint32_t t0 = millis();
         RouterResult res = router.route(gps.gpsData.latitude, gps.gpsData.longitude,
                                         routeDstLat, routeDstLon, newRoute);
         printf("DEBUG: Route calculation done in %lu ms, result=%d, waypoints=%u\n",
                (unsigned long)(millis() - t0), (int)res, (unsigned)newRoute.size());
+        if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
+        {
+            closeMsg();
+            xSemaphoreGive(lvgl_mutex);
+        }
         if (res == RouterResult::OK)
         {
             isTrackLoaded = false;
