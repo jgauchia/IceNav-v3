@@ -2,7 +2,7 @@
  * @file graph_loader.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ROUTE.bin paged graph loader with on-demand PSRAM cache
- * @version 0.3.0
+ * @version 0.2.6
  * @date 2026-05
  */
 
@@ -10,7 +10,6 @@
 #include "storage.hpp"
 #include <cmath>
 #include <cstring>
-#include <cstdio>
 #include "esp_heap_caps.h"
 
 extern Storage storage;
@@ -35,10 +34,7 @@ bool GraphLoader::load(float src_lat, float src_lon, float dst_lat, float dst_lo
 
     FILE* f = storage.open(ROUTE_BIN_PATH, "rb");
     if (!f)
-    {
-        printf("DEBUG GL: cannot open %s\n", ROUTE_BIN_PATH);
         return false;
-    }
 
     RouteFileHeader hdr;
     if (storage.read(f, reinterpret_cast<uint8_t*>(&hdr), sizeof(hdr)) != sizeof(hdr))
@@ -49,13 +45,9 @@ bool GraphLoader::load(float src_lat, float src_lon, float dst_lat, float dst_lo
 
     if (memcmp(hdr.magic, ROUTE_MAGIC, 4) != 0)
     {
-        printf("DEBUG GL: bad magic\n");
         storage.close(f);
         return false;
     }
-
-    printf("DEBUG GL: sub_step_e4=%lu, cell_count=%lu\n",
-           (unsigned long)hdr.sub_step_e4, (unsigned long)hdr.cell_count);
 
     cellIndex_.resize(hdr.cell_count);
     storage.read(f, reinterpret_cast<uint8_t*>(cellIndex_.data()),
@@ -70,11 +62,6 @@ bool GraphLoader::load(float src_lat, float src_lon, float dst_lat, float dst_lo
         uint32_t end = c.node_offset + c.node_count;
         if (end > totalNodes_) totalNodes_ = end;
     }
-
-    printf("DEBUG GL: index loaded — %lu cells, %lu total nodes\n",
-           (unsigned long)hdr.cell_count, (unsigned long)totalNodes_);
-    printf("DEBUG GL: data_base=0x%lx\n",
-           (unsigned long)data_base_offset_);
 
     file_   = f;
     loaded_ = true;
@@ -134,8 +121,6 @@ void GraphLoader::evictLRU() const
             oldest_key   = kv.first;
         }
     }
-    printf("DEBUG GL: evict page cell_idx=%lu (lru=%lu)\n",
-           (unsigned long)oldest_key, (unsigned long)oldest_stamp);
     pageCache_.erase(oldest_key);
 }
 
@@ -171,13 +156,7 @@ GraphLoader::PageData* GraphLoader::fetchPage(uint32_t cell_idx) const
     // Re-check PSRAM after potential eviction
     avail = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
     if (needed + (64 * 1024) > avail)
-    {
-        printf("DEBUG GL: fetchPage cell=%lu skipped (need %lu KB, free %lu KB)\n",
-               (unsigned long)cell_idx,
-               (unsigned long)(needed / 1024),
-               (unsigned long)(avail / 1024));
         return nullptr;
-    }
 
     PageData page;
     page.cell_idx  = cell_idx;
@@ -190,7 +169,6 @@ GraphLoader::PageData* GraphLoader::fetchPage(uint32_t cell_idx) const
     }
     catch (const std::bad_alloc&)
     {
-        printf("DEBUG GL: fetchPage bad_alloc cell=%lu\n", (unsigned long)cell_idx);
         return nullptr;
     }
 
@@ -204,10 +182,6 @@ GraphLoader::PageData* GraphLoader::fetchPage(uint32_t cell_idx) const
         storage.seekAndRead(file_, file_offset + node_bytes,
                             reinterpret_cast<uint8_t*>(page.edges.data()), edge_bytes);
 
-    printf("DEBUG GL: loaded page cell=%lu (%u nodes, %u edges, %lu KB)\n",
-           (unsigned long)cell_idx, c.node_count, c.edge_count,
-           (unsigned long)(needed / 1024));
-
     auto res = pageCache_.emplace(cell_idx, std::move(page));
     if (!res.second) return nullptr;
     return &res.first->second;
@@ -219,9 +193,6 @@ GraphLoader::PageData* GraphLoader::fetchPage(uint32_t cell_idx) const
 void GraphLoader::preloadBbox(float lat_min, float lat_max,
                               float lon_min, float lon_max) const
 {
-    uint32_t loaded = 0;
-    uint32_t skipped = 0;
-
     for (uint32_t i = 0; i < (uint32_t)cellIndex_.size(); ++i)
     {
         const CellIndexEntry& c = cellIndex_[i];
@@ -232,13 +203,8 @@ void GraphLoader::preloadBbox(float lat_min, float lat_max,
         if (cell_lat + 0.1f < lat_min || cell_lat > lat_max) continue;
         if (cell_lon + 0.1f < lon_min || cell_lon > lon_max) continue;
 
-        if (fetchPage(i)) loaded++;
-        else              skipped++;
+        fetchPage(i);
     }
-
-    printf("DEBUG GL: preloadBbox lat=[%.2f,%.2f] lon=[%.2f,%.2f] -> %lu loaded, %lu skipped\n",
-           lat_min, lat_max, lon_min, lon_max,
-           (unsigned long)loaded, (unsigned long)skipped);
 }
 
 /**
@@ -319,8 +285,6 @@ uint32_t GraphLoader::nearestNode(float lat, float lon) const
         if (best_d < 1e30f) break;  // found something — skip wider pass
     }
 
-    printf("DEBUG GL: nearestNode(%.5f,%.5f) -> gi=%lu (d2=%.8f)\n",
-           lat, lon, (unsigned long)best_i, best_d);
     return best_i;
 }
 
