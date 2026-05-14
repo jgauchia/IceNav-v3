@@ -1,8 +1,8 @@
 /**
  * @file route_types.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief  ROUTE.bin v2 binary format structs
- * @version 0.2.6
+ * @brief  ROUTE.bin binary format structs (0.1° subcell grid)
+ * @version 0.3.0
  * @date 2026-05
  */
 
@@ -10,51 +10,49 @@
 #include <cstdint>
 
 static constexpr char     ROUTE_MAGIC[4]   = {'R','O','U','T'};
-static constexpr uint8_t  ROUTE_VERSION    = 2;
 static constexpr char     ROUTE_BIN_PATH[] = "/sdcard/ROUTE/ROUTE.bin";
 
 #pragma pack(push, 1)
 
+// File header — 32 bytes
 struct RouteFileHeader
 {
     char     magic[4];
-    uint8_t  version;
-    uint8_t  reserved[3];
+    uint32_t sub_step_e4;   // 1000 = 0.1° cells
     uint32_t cell_count;
-    uint32_t reserved2[4];
+    uint32_t reserved[5];
 };
-static_assert(sizeof(RouteFileHeader) == 28, "RouteFileHeader size mismatch");
+static_assert(sizeof(RouteFileHeader) == 32, "RouteFileHeader size mismatch");
 
+// Per-cell index entry — 20 bytes
 struct CellIndexEntry
 {
-    int16_t  lat_floor;
-    int16_t  lon_floor;
-    uint32_t node_offset;  // global index of first node in this cell
-    uint32_t node_count;
-    uint32_t edge_offset;  // global index of first edge in this cell
-    uint32_t edge_count;
-    uint32_t reserved;
+    int32_t  lat_e4;         // lat × 10000, snapped to 0.1° grid
+    int32_t  lon_e4;         // lon × 10000, snapped to 0.1° grid
+    uint32_t node_offset;    // global index of first node
+    uint16_t node_count;
+    uint32_t edge_offset;    // global index of first edge
+    uint16_t edge_count;
 };
-static_assert(sizeof(CellIndexEntry) == 24, "CellIndexEntry size mismatch");
+static_assert(sizeof(CellIndexEntry) == 20, "CellIndexEntry size mismatch");
 
 struct RouteNode
 {
     float    lat;
     float    lon;
-    uint32_t edge_offset;  // relative to this cell's edge block
+    uint32_t edge_offset;    // relative to this cell's edge block
 };
 static_assert(sizeof(RouteNode) == 12, "RouteNode size mismatch");
 
 struct RouteEdge
 {
-    uint32_t dst_node;     // global node index
-    uint32_t cost;         // tenths of second
+    uint32_t dst_node;       // global node index (absolute)
+    uint32_t cost;           // tenths of second
     uint16_t dist_m;
     uint8_t  flags;
-    uint16_t name_idx;
     uint8_t  reserved;
 };
-static_assert(sizeof(RouteEdge) == 14, "RouteEdge size mismatch");
+static_assert(sizeof(RouteEdge) == 12, "RouteEdge size mismatch");
 
 #pragma pack(pop)
 

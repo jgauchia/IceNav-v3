@@ -38,6 +38,15 @@ struct AStarState
 // within ~5% of optimal on real road networks.
 static constexpr float ASTAR_WEIGHT = 1.5f;
 
+/**
+* @brief Calculates the heuristic estimated cost between a node and the destination.
+* 
+* @param node ID of the current node to evaluate.
+* @param dst_cached Cached destination node data for performance.
+* @param cos_dst_lat Pre-calculated cosine of destination latitude for longitude compensation.
+* @param graph GraphLoader reference to access node coordinates.
+* @return Estimated cost to reach the destination, scaled by ASTAR_WEIGHT.
+*/
 static uint32_t heuristic(uint32_t node, const RouteNode& dst_cached, float cos_dst_lat,
                           const GraphLoader& graph)
 {
@@ -101,13 +110,15 @@ TrackVector astarRoute(const GraphLoader& graph, uint32_t src_node, uint32_t dst
         uint32_t edge_count = 0;
         if (!graph.getEdgesForNode(u, edge_buf, edge_count)) continue;
 
-        uint32_t current_g = g_cost.count(u) ? g_cost[u] : INF;
+        auto g_it = g_cost.find(u);
+        uint32_t current_g = (g_it != g_cost.end()) ? g_it->second : INF;
 
         for (uint32_t ei = 0; ei < edge_count; ++ei)
         {
             const RouteEdge& e = edge_buf[ei];
             uint32_t ng = current_g + e.cost;
-            uint32_t neighbor_g = g_cost.count(e.dst_node) ? g_cost[e.dst_node] : INF;
+            auto nb_it = g_cost.find(e.dst_node);
+            uint32_t neighbor_g = (nb_it != g_cost.end()) ? nb_it->second : INF;
 
             if (ng < neighbor_g)
             {
@@ -126,15 +137,13 @@ TrackVector astarRoute(const GraphLoader& graph, uint32_t src_node, uint32_t dst
     while (cur != UINT32_MAX)
     {
         RouteNode n;
-        if (graph.getNode(cur, n)) {
-            wayPoint wp{};
-            wp.lat = n.lat;
-            wp.lon = n.lon;
-            result.push_back(wp);
-            cur = prev.count(cur) ? prev[cur] : UINT32_MAX;
-        } else {
-            break;
-        }
+        if (!graph.getNode(cur, n)) break;
+        wayPoint wp{};
+        wp.lat = n.lat;
+        wp.lon = n.lon;
+        result.push_back(wp);
+        auto p_it = prev.find(cur);
+        cur = (p_it != prev.end()) ? p_it->second : UINT32_MAX;
     }
     std::reverse(result.begin(), result.end());
     return result;

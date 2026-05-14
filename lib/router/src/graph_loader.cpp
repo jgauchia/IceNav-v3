@@ -1,8 +1,8 @@
 /**
  * @file graph_loader.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief  ROUTE.bin v2 graph loader — active-cell nodes in PSRAM, edges via persistent FILE*
- * @version 0.2.6
+ * @brief  ROUTE.bin paged graph loader with on-demand PSRAM cache
+ * @version 0.3.0
  * @date 2026-05
  */
 
@@ -18,11 +18,10 @@ extern Storage storage;
 GraphLoader graphLoader;
 
 /**
- * @brief Load graph index and cache active-cell nodes from ROUTE.bin.
+ * @brief Load the cell index from ROUTE.bin and preload cells covering the src↔dst bbox.
  *
- * Opens the file, reads the header and cell index, caches nodes for the
- * cells nearest to src and dst in PSRAM, and keeps the FILE* open for
- * subsequent edge reads.
+ * Only the index is held in internal RAM. Cell node/edge data is loaded on-demand
+ * into a PSRAM page cache (PAGE_CACHE_MAX entries, LRU eviction).
  *
  * @param src_lat Source latitude in degrees
  * @param src_lon Source longitude in degrees
@@ -48,15 +47,19 @@ bool GraphLoader::load(float src_lat, float src_lon, float dst_lat, float dst_lo
         return false;
     }
 
-    if (memcmp(hdr.magic, ROUTE_MAGIC, 4) != 0 || hdr.version != ROUTE_VERSION)
+    if (memcmp(hdr.magic, ROUTE_MAGIC, 4) != 0)
     {
-        printf("DEBUG GL: bad magic or version\n");
+        printf("DEBUG GL: bad magic\n");
         storage.close(f);
         return false;
     }
 
+    printf("DEBUG GL: sub_step_e4=%lu, cell_count=%lu\n",
+           (unsigned long)hdr.sub_step_e4, (unsigned long)hdr.cell_count);
+
     cellIndex_.resize(hdr.cell_count);
-    storage.read(f, reinterpret_cast<uint8_t*>(cellIndex_.data()), hdr.cell_count * sizeof(CellIndexEntry));
+    storage.read(f, reinterpret_cast<uint8_t*>(cellIndex_.data()),
+                 hdr.cell_count * sizeof(CellIndexEntry));
 
     nodes_base_offset_ = sizeof(RouteFileHeader) + hdr.cell_count * sizeof(CellIndexEntry);
 
@@ -68,75 +71,178 @@ bool GraphLoader::load(float src_lat, float src_lon, float dst_lat, float dst_lo
     }
     edges_base_offset_ = nodes_base_offset_ + totalNodes_ * sizeof(RouteNode);
 
-    printf("DEBUG GL: loading cells=%lu, total_nodes=%lu\n", (unsigned long)hdr.cell_count, (unsigned long)totalNodes_);
+    printf("DEBUG GL: index loaded — %lu cells, %lu total nodes\n",
+           (unsigned long)hdr.cell_count, (unsigned long)totalNodes_);
+    printf("DEBUG GL: nodes_base=0x%lx, edges_base=0x%lx\n",
+           (unsigned long)nodes_base_offset_, (unsigned long)edges_base_offset_);
 
-    // Try to cache nodes in PSRAM with decreasing bbox margins (0° → 0.5° → 1°).
-    // Each attempt checks free PSRAM before allocating to avoid a guaranteed failure.
-    static const float MARGINS[] = {0.0f, 0.5f, 1.0f};
-    bool cacheLoaded = false;
-
-    for (float margin : MARGINS)
-    {
-        float blmin = floorf(fminf(src_lat, dst_lat)) - margin;
-        float blmax = floorf(fmaxf(src_lat, dst_lat)) + margin;
-        float bnmin = floorf(fminf(src_lon, dst_lon)) - margin;
-        float bnmax = floorf(fmaxf(src_lon, dst_lon)) + margin;
-
-        uint32_t cache_first = totalNodes_;
-        uint32_t cache_last  = 0;
-
-        for (const auto& c : cellIndex_)
-        {
-            if (c.lat_floor < (int16_t)blmin || c.lat_floor > (int16_t)blmax) continue;
-            if (c.lon_floor < (int16_t)bnmin || c.lon_floor > (int16_t)bnmax) continue;
-            if (c.node_offset < cache_first) cache_first = c.node_offset;
-            uint32_t end = c.node_offset + c.node_count;
-            if (end > cache_last) cache_last = end;
-        }
-
-        if (cache_first >= cache_last) continue;
-
-        uint32_t count  = cache_last - cache_first;
-        size_t   needed = (size_t)count * sizeof(RouteNode);
-        size_t   avail  = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
-
-        printf("DEBUG GL: margin=%.1f -> %lu nodes (%lu KB), PSRAM free=%lu KB\n",
-               margin, (unsigned long)count, (unsigned long)(needed / 1024), (unsigned long)(avail / 1024));
-
-        if (needed + (256 * 1024) > avail)
-        {
-            printf("DEBUG GL: skip margin=%.1f (not enough PSRAM)\n", margin);
-            continue;
-        }
-
-        try { nodeCache_.resize(count); }
-        catch (const std::bad_alloc&)
-        {
-            nodeCache_.clear();
-            printf("DEBUG GL: bad_alloc at margin=%.1f\n", margin);
-            continue;
-        }
-
-        storage.seekAndRead(f, nodes_base_offset_ + cache_first * sizeof(RouteNode),
-                            reinterpret_cast<uint8_t*>(nodeCache_.data()), needed);
-        nodeCache_base_  = cache_first;
-        nodeCache_count_ = count;
-        printf("DEBUG GL: nodeCache OK — %lu nodes, margin=%.1f\n", (unsigned long)count, margin);
-        cacheLoaded = true;
-        break;
-    }
-
-    if (!cacheLoaded)
-        printf("DEBUG GL: no PSRAM cache — all node reads will hit SD\n");
-
-    // Keep the file open for edge reads during A*
     file_   = f;
     loaded_ = true;
+
+    // Preload cells that cover the src↔dst bounding box (+ 0.1° margin = 1 cell width)
+    float lat_min = fminf(src_lat, dst_lat) - 0.1f;
+    float lat_max = fmaxf(src_lat, dst_lat) + 0.1f;
+    float lon_min = fminf(src_lon, dst_lon) - 0.1f;
+    float lon_max = fmaxf(src_lon, dst_lon) + 0.1f;
+    preloadBbox(lat_min, lat_max, lon_min, lon_max);
+
     return true;
 }
 
 /**
- * @brief Read a single node — from PSRAM cache if available, otherwise from SD.
+ * @brief Return the cellIndex_ index for the cell owning global node gi.
+ *
+ * Uses binary search on node_offset (cellIndex_ is sorted ascending by it).
+ */
+uint32_t GraphLoader::cellForNode(uint32_t gi) const
+{
+    if (cellIndex_.empty()) return UINT32_MAX;
+
+    // Find the last cell whose node_offset <= gi.
+    uint32_t lo = 0;
+    uint32_t hi = (uint32_t)cellIndex_.size() - 1;
+    while (lo < hi)
+    {
+        uint32_t mid = lo + (hi - lo + 1) / 2;
+        if (cellIndex_[mid].node_offset <= gi)
+            lo = mid;
+        else
+            hi = mid - 1;
+    }
+
+    const CellIndexEntry& c = cellIndex_[lo];
+    if (gi >= c.node_offset && gi < c.node_offset + c.node_count)
+        return lo;
+    return UINT32_MAX;
+}
+
+/**
+ * @brief Evict the page with the lowest LRU stamp from pageCache_.
+ */
+void GraphLoader::evictLRU() const
+{
+    if (pageCache_.empty()) return;
+
+    uint32_t oldest_key   = 0;
+    uint32_t oldest_stamp = UINT32_MAX;
+
+    for (const auto& kv : pageCache_)
+    {
+        if (kv.second.lru_stamp < oldest_stamp)
+        {
+            oldest_stamp = kv.second.lru_stamp;
+            oldest_key   = kv.first;
+        }
+    }
+    printf("DEBUG GL: evict page cell_idx=%lu (lru=%lu)\n",
+           (unsigned long)oldest_key, (unsigned long)oldest_stamp);
+    pageCache_.erase(oldest_key);
+}
+
+/**
+ * @brief Load a cell's nodes and edges into the page cache.
+ *
+ * Evicts the LRU page if the cache is full. Returns nullptr if the load fails
+ * or there is insufficient PSRAM.
+ *
+ * @param cell_idx Index into cellIndex_
+ * @return Pointer to the loaded PageData, or nullptr on failure
+ */
+GraphLoader::PageData* GraphLoader::fetchPage(uint32_t cell_idx) const
+{
+    auto it = pageCache_.find(cell_idx);
+    if (it != pageCache_.end())
+    {
+        it->second.lru_stamp = ++lru_clock_;
+        return &it->second;
+    }
+
+    if (!file_) return nullptr;
+
+    const CellIndexEntry& c = cellIndex_[cell_idx];
+    size_t node_bytes = c.node_count * sizeof(RouteNode);
+    size_t edge_bytes = c.edge_count * sizeof(RouteEdge);
+    size_t needed     = node_bytes + edge_bytes;
+    size_t avail      = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+
+    if (pageCache_.size() >= PAGE_CACHE_MAX)
+        evictLRU();
+
+    // Re-check PSRAM after potential eviction
+    avail = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+    if (needed + (64 * 1024) > avail)
+    {
+        printf("DEBUG GL: fetchPage cell=%lu skipped (need %lu KB, free %lu KB)\n",
+               (unsigned long)cell_idx,
+               (unsigned long)(needed / 1024),
+               (unsigned long)(avail / 1024));
+        return nullptr;
+    }
+
+    PageData page;
+    page.cell_idx  = cell_idx;
+    page.lru_stamp = ++lru_clock_;
+
+    try
+    {
+        page.nodes.resize(c.node_count);
+        page.edges.resize(c.edge_count);
+    }
+    catch (const std::bad_alloc&)
+    {
+        printf("DEBUG GL: fetchPage bad_alloc cell=%lu\n", (unsigned long)cell_idx);
+        return nullptr;
+    }
+
+    if (c.node_count > 0)
+        storage.seekAndRead(file_,
+                            nodes_base_offset_ + c.node_offset * sizeof(RouteNode),
+                            reinterpret_cast<uint8_t*>(page.nodes.data()), node_bytes);
+
+    if (c.edge_count > 0)
+        storage.seekAndRead(file_,
+                            edges_base_offset_ + c.edge_offset * sizeof(RouteEdge),
+                            reinterpret_cast<uint8_t*>(page.edges.data()), edge_bytes);
+
+    printf("DEBUG GL: loaded page cell=%lu (%u nodes, %u edges, %lu KB)\n",
+           (unsigned long)cell_idx, c.node_count, c.edge_count,
+           (unsigned long)(needed / 1024));
+
+    auto [ins_it, ok] = pageCache_.emplace(cell_idx, std::move(page));
+    if (!ok) return nullptr;
+    return &ins_it->second;
+}
+
+/**
+ * @brief Preload all cells whose grid square overlaps the given lat/lon bbox.
+ */
+void GraphLoader::preloadBbox(float lat_min, float lat_max,
+                              float lon_min, float lon_max) const
+{
+    uint32_t loaded = 0;
+    uint32_t skipped = 0;
+
+    for (uint32_t i = 0; i < (uint32_t)cellIndex_.size(); ++i)
+    {
+        const CellIndexEntry& c = cellIndex_[i];
+        float cell_lat = c.lat_e4 / 10000.0f;
+        float cell_lon = c.lon_e4 / 10000.0f;
+
+        // Cell occupies [cell_lat, cell_lat+0.1°) × [cell_lon, cell_lon+0.1°)
+        if (cell_lat + 0.1f < lat_min || cell_lat > lat_max) continue;
+        if (cell_lon + 0.1f < lon_min || cell_lon > lon_max) continue;
+
+        if (fetchPage(i)) loaded++;
+        else              skipped++;
+    }
+
+    printf("DEBUG GL: preloadBbox lat=[%.2f,%.2f] lon=[%.2f,%.2f] -> %lu loaded, %lu skipped\n",
+           lat_min, lat_max, lon_min, lon_max,
+           (unsigned long)loaded, (unsigned long)skipped);
+}
+
+/**
+ * @brief Read a single node — from page cache if available, otherwise from SD.
  *
  * @param gi Global node index
  * @param out_node Output node
@@ -144,34 +250,30 @@ bool GraphLoader::load(float src_lat, float src_lon, float dst_lat, float dst_lo
  */
 bool GraphLoader::getNode(uint32_t gi, RouteNode& out_node) const
 {
-    if (nodeCache_count_ > 0 && gi >= nodeCache_base_ && gi < nodeCache_base_ + nodeCache_count_)
+    uint32_t ci = cellForNode(gi);
+    if (ci == UINT32_MAX) return false;
+
+    PageData* page = fetchPage(ci);
+    if (page)
     {
-        out_node = nodeCache_[gi - nodeCache_base_];
+        uint32_t local = gi - cellIndex_[ci].node_offset;
+        out_node = page->nodes[local];
         return true;
     }
+
+    // Fallback: read directly from SD
     if (!file_) return false;
-    return storage.seekAndRead(file_, nodes_base_offset_ + gi * sizeof(RouteNode),
-                               reinterpret_cast<uint8_t*>(&out_node), sizeof(RouteNode)) == sizeof(RouteNode);
+    return storage.seekAndRead(file_,
+                               nodes_base_offset_ + gi * sizeof(RouteNode),
+                               reinterpret_cast<uint8_t*>(&out_node),
+                               sizeof(RouteNode)) == sizeof(RouteNode);
 }
 
 /**
- * @brief Read a single edge directly from SD via the persistent FILE*.
+ * @brief Find the nearest graph node to the given coordinates.
  *
- * @param ei Global edge index
- * @param out_edge Output edge
- * @return true if successful
- */
-bool GraphLoader::getEdge(uint32_t ei, RouteEdge& out_edge) const
-{
-    if (!file_) return false;
-    return storage.seekAndRead(file_, edges_base_offset_ + ei * sizeof(RouteEdge),
-                               reinterpret_cast<uint8_t*>(&out_edge), sizeof(RouteEdge)) == sizeof(RouteEdge);
-}
-
-/**
- * @brief Find the nearest node to the given coordinates.
- *
- * Only searches cells within ±1.5° of the target to avoid a full scan.
+ * Searches only pages already in the PSRAM cache to avoid SD I/O and cache
+ * eviction. Tries ±0.3° first; expands to ±1.0° if no cached page is found.
  *
  * @param lat Latitude in degrees
  * @param lon Longitude in degrees
@@ -183,218 +285,118 @@ uint32_t GraphLoader::nearestNode(float lat, float lon) const
     float    best_d  = 1e30f;
     float    cos_lat = cosf(lat * 3.14159265f / 180.f);
 
-    for (const auto& cell : cellIndex_)
+    // Two-pass: tight radius first, wider only if nothing found in cache.
+    static constexpr float RADII[2] = { 0.3f, 1.0f };
+
+    for (float radius : RADII)
     {
-        if (cell.lat_floor > (int16_t)(lat + 1.5f) || cell.lat_floor < (int16_t)(lat - 1.5f)) continue;
-        if (cell.lon_floor > (int16_t)(lon + 1.5f) || cell.lon_floor < (int16_t)(lon - 1.5f)) continue;
-
-        bool fully_cached = nodeCache_count_ > 0
-                         && cell.node_offset >= nodeCache_base_
-                         && (cell.node_offset + cell.node_count) <= (nodeCache_base_ + nodeCache_count_);
-
-        if (fully_cached)
+        for (uint32_t ci = 0; ci < (uint32_t)cellIndex_.size(); ++ci)
         {
+            const CellIndexEntry& cell = cellIndex_[ci];
+            float cell_lat = cell.lat_e4 / 10000.0f;
+            float cell_lon = cell.lon_e4 / 10000.0f;
+
+            if (cell_lat > lat + radius || cell_lat + 0.1f < lat - radius) continue;
+            if (cell_lon > lon + radius || cell_lon + 0.1f < lon - radius) continue;
+
+            // Only search pages already in PSRAM — never trigger an SD load here.
+            auto it = pageCache_.find(ci);
+            if (it == pageCache_.end()) continue;
+            const PageData& page = it->second;
+
             for (uint32_t j = 0; j < cell.node_count; ++j)
             {
-                const RouteNode& n = nodeCache_[cell.node_offset + j - nodeCache_base_];
+                const RouteNode& n = page.nodes[j];
                 float dlat = n.lat - lat;
                 float dlon = (n.lon - lon) * cos_lat;
                 float d    = dlat * dlat + dlon * dlon;
                 if (d < best_d) { best_d = d; best_i = cell.node_offset + j; }
             }
         }
-        else if (file_)
-        {
-            // Cell not in PSRAM cache — read node-by-node from SD (no heap alloc)
-            RouteNode n;
-            for (uint32_t j = 0; j < cell.node_count; ++j)
-            {
-                long off = (long)(nodes_base_offset_ + (cell.node_offset + j) * sizeof(RouteNode));
-                if (storage.seekAndRead(file_, off, reinterpret_cast<uint8_t*>(&n), sizeof(RouteNode)) != sizeof(RouteNode))
-                    continue;
-                float dlat = n.lat - lat;
-                float dlon = (n.lon - lon) * cos_lat;
-                float d    = dlat * dlat + dlon * dlon;
-                if (d < best_d) { best_d = d; best_i = cell.node_offset + j; }
-            }
-        }
+
+        if (best_d < 1e30f) break;  // found something — skip wider pass
     }
-    printf("DEBUG GL: nearestNode(%.5f,%.5f) -> gi=%lu\n", lat, lon, (unsigned long)best_i);
+
+    printf("DEBUG GL: nearestNode(%.5f,%.5f) -> gi=%lu (d2=%.8f)\n",
+           lat, lon, (unsigned long)best_i, best_d);
     return best_i;
 }
 
 /**
- * @brief Resolve the global edge range [e_start, e_end) for a node.
- *
- * RouteNode::edge_offset is relative to the cell's edge block, so
- * the global index is cell.edge_offset + node.edge_offset.
- *
- * @param gi     Global node index
- * @param e_start Output: first global edge index
- * @param e_end   Output: one-past-last global edge index
- */
-void GraphLoader::edgeForNode(uint32_t gi, uint32_t& e_start, uint32_t& e_end) const
-{
-    for (const auto& cell : cellIndex_)
-    {
-        if (gi < cell.node_offset || gi >= cell.node_offset + cell.node_count) continue;
-
-        RouteNode n;
-        if (!getNode(gi, n)) { e_start = 0; e_end = 0; return; }
-
-        e_start = cell.edge_offset + n.edge_offset;
-
-        uint32_t local_idx = gi - cell.node_offset;
-        if (local_idx + 1 < cell.node_count)
-        {
-            RouteNode next;
-            if (getNode(gi + 1, next))
-                e_end = cell.edge_offset + next.edge_offset;
-            else
-                e_end = e_start;
-        }
-        else
-        {
-            e_end = cell.edge_offset + cell.edge_count;
-        }
-        return;
-    }
-    e_start = 0; e_end = 0;
-}
-
-/**
- * @brief Cache edges for nodes within the src↔dst bbox + margin in PSRAM.
- *
- * Scans the nodeCache to find the contiguous edge range covering all nodes
- * that fall inside the bounding box. Loads that range with a single read.
- * Falls back silently if PSRAM is insufficient — getEdgesForNode will hit SD.
- *
- * @param src_lat Source latitude
- * @param src_lon Source longitude
- * @param dst_lat Destination latitude
- * @param dst_lon Destination longitude
- * @param margin  Degrees of padding around the bbox (default 0.05° ≈ 5.5 km)
- * @return true if the edge cache was loaded successfully
- */
-bool GraphLoader::buildEdgeCache(float src_lat, float src_lon,
-                                 float dst_lat, float dst_lon, float margin)
-{
-    if (nodeCache_count_ == 0 || !file_) return false;
-
-    float lat_min = fminf(src_lat, dst_lat) - margin;
-    float lat_max = fmaxf(src_lat, dst_lat) + margin;
-    float lon_min = fminf(src_lon, dst_lon) - margin;
-    float lon_max = fmaxf(src_lon, dst_lon) + margin;
-
-    for (const auto& cell : cellIndex_)
-    {
-        if (cell.node_offset < nodeCache_base_ ||
-            cell.node_offset + cell.node_count > nodeCache_base_ + nodeCache_count_) continue;
-
-        uint32_t e_first = UINT32_MAX;
-        uint32_t e_last  = 0;
-
-        for (uint32_t j = 0; j < cell.node_count; ++j)
-        {
-            const RouteNode& n = nodeCache_[cell.node_offset + j - nodeCache_base_];
-            if (n.lat < lat_min || n.lat > lat_max) continue;
-            if (n.lon < lon_min || n.lon > lon_max) continue;
-
-            uint32_t ge_start = cell.edge_offset + n.edge_offset;
-            if (ge_start < e_first) e_first = ge_start;
-
-            uint32_t ge_end;
-            if (j + 1 < cell.node_count)
-            {
-                const RouteNode& next = nodeCache_[cell.node_offset + j + 1 - nodeCache_base_];
-                ge_end = cell.edge_offset + next.edge_offset;
-            }
-            else
-                ge_end = cell.edge_offset + cell.edge_count;
-            if (ge_end > e_last) e_last = ge_end;
-        }
-
-        if (e_first >= e_last) continue;
-
-        uint32_t count  = e_last - e_first;
-        size_t   needed = (size_t)count * sizeof(RouteEdge);
-        size_t   avail  = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
-
-        printf("DEBUG GL: edge bbox cache %lu edges (%lu KB), PSRAM free=%lu KB\n",
-               (unsigned long)count, (unsigned long)(needed / 1024),
-               (unsigned long)(avail / 1024));
-
-        if (needed + (256 * 1024) > avail)
-        {
-            printf("DEBUG GL: edge cache skip (not enough PSRAM)\n");
-            return false;
-        }
-
-        try { edgeCache_.resize(count); }
-        catch (const std::bad_alloc&)
-        {
-            edgeCache_.clear();
-            printf("DEBUG GL: edge cache bad_alloc\n");
-            return false;
-        }
-
-        storage.seekAndRead(file_,
-                            edges_base_offset_ + e_first * sizeof(RouteEdge),
-                            reinterpret_cast<uint8_t*>(edgeCache_.data()), needed);
-        edgeCache_base_  = e_first;
-        edgeCache_count_ = count;
-        printf("DEBUG GL: edgeCache OK — %lu edges (base=%lu)\n",
-               (unsigned long)count, (unsigned long)e_first);
-        return true;
-    }
-    return false;
-}
-
-/**
- * @brief Read all edges for a node — from PSRAM edge cache if available, otherwise from SD.
+ * @brief Read all edges for a node — from page cache if available, otherwise from SD.
  *
  * @param gi    Global node index
- * @param buf   Caller-supplied buffer (must fit MAX_EDGES_PER_NODE entries)
+ * @param buf   Caller-supplied buffer (must fit MAX_EDGES_PER_NODE_GL entries)
  * @param count Output: number of edges read
  * @return true on success (count may be 0 for leaf nodes)
  */
 bool GraphLoader::getEdgesForNode(uint32_t gi, RouteEdge* buf, uint32_t& count) const
 {
-    uint32_t e_start, e_end;
-    edgeForNode(gi, e_start, e_end);
-    if (e_end <= e_start) { count = 0; return true; }
-    count = e_end - e_start;
-    if (count > MAX_EDGES_PER_NODE_GL) { count = 0; return true; }
+    uint32_t ci = cellForNode(gi);
+    if (ci == UINT32_MAX) { count = 0; return true; }
 
-    if (edgeCache_count_ > 0 &&
-        e_start >= edgeCache_base_ &&
-        e_end   <= edgeCache_base_ + edgeCache_count_)
+    const CellIndexEntry& cell  = cellIndex_[ci];
+    uint32_t local_idx          = gi - cell.node_offset;
+
+    PageData* page = fetchPage(ci);
+
+    uint32_t rel_e_start;
+    uint32_t rel_e_end;
+
+    if (page)
     {
-        memcpy(buf, &edgeCache_[e_start - edgeCache_base_], count * sizeof(RouteEdge));
+        rel_e_start = page->nodes[local_idx].edge_offset;
+        if (local_idx + 1 < cell.node_count)
+            rel_e_end = page->nodes[local_idx + 1].edge_offset;
+        else
+            rel_e_end = cell.edge_count;
+
+        count = rel_e_end - rel_e_start;
+        if (count > MAX_EDGES_PER_NODE_GL) { count = 0; return true; }
+
+        memcpy(buf, &page->edges[rel_e_start], count * sizeof(RouteEdge));
         return true;
     }
 
-    if (!file_) return false;
+    // Fallback: read from SD without page cache
+    if (!file_) { count = 0; return false; }
+
+    RouteNode n, nxt;
+    if (!getNode(gi, n)) { count = 0; return false; }
+    rel_e_start = n.edge_offset;
+
+    if (local_idx + 1 < cell.node_count)
+    {
+        if (getNode(gi + 1, nxt))
+            rel_e_end = nxt.edge_offset;
+        else
+            rel_e_end = rel_e_start;
+    }
+    else
+        rel_e_end = cell.edge_count;
+
+    count = rel_e_end - rel_e_start;
+    if (count > MAX_EDGES_PER_NODE_GL) { count = 0; return true; }
+
     size_t bytes = count * sizeof(RouteEdge);
+    uint32_t ge_start = cell.edge_offset + rel_e_start;
     return storage.seekAndRead(file_,
-                               edges_base_offset_ + e_start * sizeof(RouteEdge),
+                               edges_base_offset_ + ge_start * sizeof(RouteEdge),
                                reinterpret_cast<uint8_t*>(buf),
                                bytes) == bytes;
 }
 
 /**
- * @brief Unload graph data, close FILE*, and free PSRAM cache.
+ * @brief Unload all graph data, close FILE*, and free PSRAM page cache.
  */
 void GraphLoader::unload()
 {
     if (file_) { storage.close(file_); file_ = nullptr; }
     cellIndex_.clear();
-    nodeCache_.clear();
-    nodeCache_base_  = 0;
-    nodeCache_count_ = 0;
-    edgeCache_.clear();
-    edgeCache_base_  = 0;
-    edgeCache_count_ = 0;
-    totalNodes_      = 0;
-    loaded_          = false;
+    pageCache_.clear();
+    lru_clock_          = 0;
+    nodes_base_offset_  = 0;
+    edges_base_offset_  = 0;
+    totalNodes_         = 0;
+    loaded_             = false;
 }

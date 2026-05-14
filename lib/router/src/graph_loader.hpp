@@ -1,8 +1,8 @@
 /**
  * @file graph_loader.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief  ROUTE.bin v2 graph loader — active-cell nodes in PSRAM, edges via persistent FILE*
- * @version 0.2.6
+ * @brief  ROUTE.bin paged graph loader with on-demand PSRAM cache
+ * @version 0.3.0
  * @date 2026-05
  */
 
@@ -10,47 +10,62 @@
 #include <cstdio>
 #include <cstdint>
 #include <vector>
+#include <unordered_map>
 #include "route_types.hpp"
 #include "PsramAllocator.hpp"
 
 static constexpr uint32_t MAX_EDGES_PER_NODE_GL = 64;
 
+// Maximum number of pages (subcells) to keep in PSRAM cache simultaneously.
+// Each page holds nodes + edges for one 0.1°×0.1° cell.
+// At ~1 MB free PSRAM and ~10-20 KB/page average, 48 pages ≈ 500–960 KB.
+static constexpr uint32_t PAGE_CACHE_MAX = 48;
+
 class GraphLoader
 {
 public:
     bool     load(float src_lat, float src_lon, float dst_lat, float dst_lon);
-    bool     buildEdgeCache(float src_lat, float src_lon, float dst_lat, float dst_lon,
-                            float margin = 0.05f);
     void     unload();
     bool     isLoaded() const { return loaded_; }
 
     uint32_t nearestNode(float lat, float lon) const;
-    void     edgeForNode(uint32_t gi, uint32_t& e_start, uint32_t& e_end) const;
     bool     getNode(uint32_t gi, RouteNode& out_node) const;
-    bool     getEdge(uint32_t ei, RouteEdge& out_edge) const;
     bool     getEdgesForNode(uint32_t gi, RouteEdge* buf, uint32_t& count) const;
     uint32_t totalNodes() const { return totalNodes_; }
+    void     preloadBbox(float lat_min, float lat_max, float lon_min, float lon_max) const;
 
 private:
+    struct PageData
+    {
+        std::vector<RouteNode, PsramAllocator<RouteNode>> nodes;
+        std::vector<RouteEdge, PsramAllocator<RouteEdge>> edges;
+        uint32_t cell_idx;      // index into cellIndex_
+        uint32_t lru_stamp;     // incremented on each access
+    };
+
+    using PageMap = std::unordered_map<uint32_t, PageData,
+                        std::hash<uint32_t>, std::equal_to<uint32_t>,
+                        PsramAllocator<std::pair<const uint32_t, PageData>>>;
+
     std::vector<CellIndexEntry> cellIndex_;
+    mutable PageMap             pageCache_;
+    mutable uint32_t            lru_clock_ = 0;
 
-    // Nodes of active cells cached in PSRAM
-    std::vector<RouteNode, PsramAllocator<RouteNode>> nodeCache_;
-    uint32_t nodeCache_base_  = 0;
-    uint32_t nodeCache_count_ = 0;
+    mutable FILE*   file_               = nullptr;
+    uint32_t        nodes_base_offset_  = 0;
+    uint32_t        edges_base_offset_  = 0;
+    uint32_t        totalNodes_         = 0;
+    bool            loaded_             = false;
 
-    // Edges for the src↔dst bbox window cached in PSRAM (best-effort)
-    std::vector<RouteEdge, PsramAllocator<RouteEdge>> edgeCache_;
-    uint32_t edgeCache_base_  = 0;
-    uint32_t edgeCache_count_ = 0;
+    // Returns cell index for the global node gi, or UINT32_MAX if not found.
+    uint32_t cellForNode(uint32_t gi) const;
 
-    // Persistent FILE* kept open for the lifetime of a routing session
-    mutable FILE* file_ = nullptr;
+    // Ensures the page for cell_idx is loaded in pageCache_. Returns pointer or nullptr.
+    PageData* fetchPage(uint32_t cell_idx) const;
 
-    uint32_t nodes_base_offset_ = 0;
-    uint32_t edges_base_offset_ = 0;
-    uint32_t totalNodes_        = 0;
-    bool     loaded_            = false;
+    // Evict the least-recently-used page.
+    void evictLRU() const;
+
 };
 
 extern GraphLoader graphLoader;
