@@ -35,6 +35,8 @@ extern lv_subject_t subject_map_state;
 extern lv_subject_t subject_map_offset_x;
 extern lv_subject_t subject_map_offset_y;
 extern lv_subject_t subject_sunrise;
+extern lv_subject_t subject_nav_active;   // 0=inactive, 1=GPX track, 2=A* route
+extern lv_subject_t subject_rerouting;    // 0=normal, 1=calculating route
 
 #ifdef ENABLE_TEMP
 extern lv_subject_t subject_temp;

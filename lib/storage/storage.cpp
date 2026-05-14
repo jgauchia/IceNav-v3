@@ -539,6 +539,34 @@ int Storage::seek(FILE *file, long offset, int whence)
 	return res;
 }
 
+size_t Storage::seekAndRead(FILE *file, long offset, uint8_t *buffer, size_t size)
+{
+    if (!file || !buffer) return 0;
+    size_t totalRead = 0;
+    if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE) return 0;
+    fseek(file, offset, SEEK_SET);
+    if (esp_ptr_internal(buffer))
+    {
+        totalRead = fread(buffer, 1, size, file);
+    }
+    else
+    {
+        if (dmaBuffer)
+        {
+            while (totalRead < size)
+            {
+                size_t toRead = (size - totalRead > DMA_BUF_SIZE) ? DMA_BUF_SIZE : (size - totalRead);
+                size_t r = fread(dmaBuffer, 1, toRead, file);
+                if (r == 0) break;
+                memcpy(buffer + totalRead, dmaBuffer, r);
+                totalRead += r;
+            }
+        }
+    }
+    xSemaphoreGive(readMutex);
+    return totalRead;
+}
+
 /**
  * @brief Print a string to a file
  *
