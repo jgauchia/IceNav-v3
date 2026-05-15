@@ -180,7 +180,7 @@ void loop()
 
     if (rerouteRequested.exchange(false))
     {
-        if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
+        if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, portMAX_DELAY) == pdTRUE)
         {
             showMsg(LV_SYMBOL_REFRESH, " Calculating route...");
             xSemaphoreGive(lvgl_mutex);
