@@ -17,18 +17,14 @@ extern Storage storage;
 GraphLoader graphLoader;
 
 /**
- * @brief Load the cell index from ROUTE.bin and preload cells covering the src↔dst bbox.
+ * @brief Load the cell index from ROUTE.bin.
  *
  * Only the index is held in internal RAM. Cell node/edge data is loaded on-demand
  * into a PSRAM page cache (PAGE_CACHE_MAX entries, LRU eviction).
  *
- * @param src_lat Source latitude in degrees
- * @param src_lon Source longitude in degrees
- * @param dst_lat Destination latitude in degrees
- * @param dst_lon Destination longitude in degrees
  * @return true on success, false if file missing or format error
  */
-bool GraphLoader::load(float src_lat, float src_lon, float dst_lat, float dst_lon)
+bool GraphLoader::load()
 {
     unload();
 
@@ -65,13 +61,6 @@ bool GraphLoader::load(float src_lat, float src_lon, float dst_lat, float dst_lo
 
     file_   = f;
     loaded_ = true;
-
-    // Preload cells that cover the src↔dst bounding box (+ 0.1° margin = 1 cell width)
-    float lat_min = fminf(src_lat, dst_lat) - 0.1f;
-    float lat_max = fmaxf(src_lat, dst_lat) + 0.1f;
-    float lon_min = fminf(src_lon, dst_lon) - 0.1f;
-    float lon_max = fmaxf(src_lon, dst_lon) + 0.1f;
-    preloadBbox(lat_min, lat_max, lon_min, lon_max);
 
     return true;
 }
@@ -188,22 +177,25 @@ GraphLoader::PageData* GraphLoader::fetchPage(uint32_t cell_idx) const
 }
 
 /**
- * @brief Preload all cells whose grid square overlaps the given lat/lon bbox.
+ * @brief Preload the single cell that contains the given lat/lon point.
+ *
+ * Used before nearestNode() to ensure the cell is in PSRAM cache.
+ *
+ * @param lat Latitude in degrees
+ * @param lon Longitude in degrees
  */
-void GraphLoader::preloadBbox(float lat_min, float lat_max,
-                              float lon_min, float lon_max) const
+void GraphLoader::preloadPoint(float lat, float lon) const
 {
+    int32_t lat_e4 = (int32_t)(floorf(lat * 10000.f / 500.f) * 500.f);
+    int32_t lon_e4 = (int32_t)(floorf(lon * 10000.f / 500.f) * 500.f);
+
     for (uint32_t i = 0; i < (uint32_t)cellIndex_.size(); ++i)
     {
-        const CellIndexEntry& c = cellIndex_[i];
-        float cell_lat = c.lat_e4 / 10000.0f;
-        float cell_lon = c.lon_e4 / 10000.0f;
-
-        // Cell occupies [cell_lat, cell_lat+0.1°) × [cell_lon, cell_lon+0.1°)
-        if (cell_lat + 0.1f < lat_min || cell_lat > lat_max) continue;
-        if (cell_lon + 0.1f < lon_min || cell_lon > lon_max) continue;
-
-        fetchPage(i);
+        if (cellIndex_[i].lat_e4 == lat_e4 && cellIndex_[i].lon_e4 == lon_e4)
+        {
+            fetchPage(i);
+            return;
+        }
     }
 }
 
