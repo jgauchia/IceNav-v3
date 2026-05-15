@@ -18,7 +18,7 @@ static constexpr char     ROUTE_BIN_PATH[] = "/sdcard/ROUTE/ROUTE.bin";
 struct RouteFileHeader
 {
     char     magic[4];
-    uint32_t sub_step_e4;   // 1000 = 0.1° cells
+    uint32_t sub_step_e4;   // 500 = 0.05° cells
     uint32_t cell_count;
     uint32_t reserved[5];
 };

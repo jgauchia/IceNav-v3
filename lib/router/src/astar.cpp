@@ -15,7 +15,6 @@
 #include <unordered_map>
 #include "PsramAllocator.hpp"
 #include "graph_loader.hpp"
-
 struct AStarState
 {
     uint32_t f;

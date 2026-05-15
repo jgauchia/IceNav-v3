@@ -24,7 +24,7 @@ static constexpr uint32_t PAGE_CACHE_MAX = 48;
 class GraphLoader
 {
 public:
-    bool     load(float src_lat, float src_lon, float dst_lat, float dst_lon);
+    bool     load();
     void     unload();
     bool     isLoaded() const { return loaded_; }
 
@@ -32,7 +32,7 @@ public:
     bool     getNode(uint32_t gi, RouteNode& out_node) const;
     bool     getEdgesForNode(uint32_t gi, RouteEdge* buf, uint32_t& count) const;
     uint32_t totalNodes() const { return totalNodes_; }
-    void     preloadBbox(float lat_min, float lat_max, float lon_min, float lon_max) const;
+    void     preloadPoint(float lat, float lon) const;
 
 private:
     struct PageData
