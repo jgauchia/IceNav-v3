@@ -19,7 +19,6 @@ extern Gps gps;
 SensorData globalSensorData = {};
 
 static constexpr TickType_t MUTEX_TIMEOUT_GPS  = pdMS_TO_TICKS(100);
-static constexpr TickType_t MUTEX_TIMEOUT_TIME = pdMS_TO_TICKS(50);
 static constexpr TickType_t MUTEX_TIMEOUT_SLOW = pdMS_TO_TICKS(10);
 
 static const char* TAG = "Task";
@@ -179,7 +178,7 @@ void sensorTask(void *pvParameters)
         time_t now = time(NULL);
         if (now != lastTimeSent)
         {
-            if (isMainScreen && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, MUTEX_TIMEOUT_TIME) == pdTRUE)
+            if (isMainScreen && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
             {
                 lv_subject_set_int(&subject_time, (int32_t)now);
                 lv_subject_notify(&subject_time);
