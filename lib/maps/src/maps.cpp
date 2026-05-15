@@ -53,7 +53,10 @@ Maps::Maps() : navLastZoom_(0),
     featurePool.reserve(MAX_FEATURE_POOL_SIZE);
 
     for (int i = 0; i < 16; i++)
+    {
         layers[i].reserve(MAX_FEATURE_POOL_SIZE / 4);
+        layersCasing[i].reserve(MAX_FEATURE_POOL_SIZE / 8);
+    }
 
     ringEndsCache.reserve(MAX_POLYGON_POINTS);
     placedLabelsCache.reserve(MAX_PLACED_LABELS);
@@ -524,19 +527,36 @@ void Maps::mapRenderTask(void* pvParameters)
                 {
                     xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_DONE | MAP_EVENT_ERROR);
                     xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_START);
-                    
+
                     if (zoomChanged)
                     {
                         for (auto& entry : instance->navDataCache)
                             heap_caps_free(entry.data);
-                        
+
                         instance->navDataCache.clear();
                     }
 
                     instance->featurePool.clear();
                     instance->decodedCoords.clear();
                     for (int i = 0; i < 16; i++)
+                    {
                         instance->layers[i].clear();
+                        instance->layersCasing[i].clear();
+                    }
+
+                    if (mapSet.vectorMap)
+                    {
+                        const uint8_t n = (uint8_t)instance->pendingTiles.size();
+                        uint32_t txs[16];
+                        uint32_t tys[16];
+                        for (uint8_t i = 0; i < n && i < 16; i++)
+                        {
+                            txs[i] = instance->pendingTiles[i].x;
+                            tys[i] = instance->pendingTiles[i].y;
+                        }
+                        NavReader::openPack(instance->zoomLevel);
+                        NavReader::prefetchIndexRange(txs, tys, n, instance->zoomLevel);
+                    }
                 }
 
                 // Yields mutex briefly so other tasks can run between tile renders.
@@ -640,7 +660,23 @@ void Maps::mapRenderTask(void* pvParameters)
 
                     if (aborted) break;
 
-                    // Pass 2: LineString bodies and Texts
+                    // Pass 2: LineString bodies (from pre-separated casing list) and Texts
+                    for (uint16_t idx : instance->layersCasing[i])
+                    {
+                        if ((++loopCounter & 127) == 0)
+                        {
+                            uint32_t now = millis();
+                            if (now - lastYield > 40)
+                            {
+                                if (yieldFeature()) { aborted = true; break; }
+                                lastYield = millis();
+                            }
+                        }
+                        instance->renderNavLineString(instance->featurePool[idx], instance->mapTempSprite, false);
+                    }
+
+                    if (aborted) break;
+
                     for (uint16_t idx : layer)
                     {
                         if ((++loopCounter & 127) == 0)
@@ -652,12 +688,8 @@ void Maps::mapRenderTask(void* pvParameters)
                                 lastYield = millis();
                             }
                         }
-
-                        const auto& feat = instance->featurePool[idx];
-                        if (feat.geomType == NavGeomType::LineString && feat.casing)
-                            instance->renderNavLineString(feat, instance->mapTempSprite, false);
-                        else if (feat.geomType == NavGeomType::Text)
-                            instance->renderNavText(feat, instance->mapTempSprite, instance->placedLabelsCache);
+                        if (instance->featurePool[idx].geomType == NavGeomType::Text)
+                            instance->renderNavText(instance->featurePool[idx], instance->mapTempSprite, instance->placedLabelsCache);
                     }
                     esp_task_wdt_reset();
                 }
@@ -680,6 +712,7 @@ void Maps::mapRenderTask(void* pvParameters)
 
                 instance->drawTrack(instance->mapTempSprite);
                 instance->redrawMap = true;
+
                 xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
                 xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
                 xSemaphoreGiveRecursive(instance->mapMutex);
@@ -1086,6 +1119,14 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
     if (numPoints < 3)
         return;
 
+    uint16_t* buf = (uint16_t*)map.getBuffer();
+    uint32_t stride = 0;
+    uint16_t rawColor = (color >> 8) | (color << 8);
+    if (buf)
+        stride = map.bufferLength() / (tileHeight * 2);
+    else
+        ESP_LOGE(TAG, "fillPoly FALLBACK buf=null");
+
     int minY = INT_MAX;
     int maxY = INT_MIN;
     for (int i = 0; i < numPoints; i++)
@@ -1235,7 +1276,18 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
             if (xEnd > (int)tileWidth)
                 xEnd = (int)tileWidth;
             if (xEnd > xStart)
-                map.drawFastHLine(xStart, yy, xEnd - xStart, color);
+            {
+                if (buf && yy >= 0 && yy < (int)tileHeight)
+                {
+                    uint16_t* row = buf + (uint32_t)yy * stride + xStart;
+                    int len = xEnd - xStart;
+                    uint16_t* end = row + len;
+                    while (row < end)
+                        *row++ = rawColor;
+                }
+                else
+                    map.drawFastHLine(xStart, yy, xEnd - xStart, color);
+            }
             left = edgePool[right].nextActive;
         }
         for (int a = activeHead; a != -1; a = edgePool[a].nextActive)
@@ -1705,8 +1757,10 @@ uint8_t* Maps::navCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t zoom
 
     if (!NavReader::openPack(zoom))
         return nullptr;
+
     uint32_t offset;
     uint32_t size;
+
     if (!NavReader::findTileInPack(tileX, tileY, offset, size))
         return nullptr;
 
@@ -1726,8 +1780,7 @@ uint8_t* Maps::navCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t zoom
             return nullptr;
     }
 
-    storage.seek(NavReader::packFile, offset, SEEK_SET);
-    if (storage.read(NavReader::packFile, data, size) != size)
+    if (storage.seekAndRead(NavReader::packFile, offset, data, size) != size)
     {
         heap_caps_free(data);
         return nullptr;
@@ -1808,10 +1861,15 @@ void Maps::navDecodeFeatures(const uint8_t* data, size_t dataSize, int16_t scree
             if (featurePool.size() < MAX_FEATURE_POOL_SIZE)
             {
                 uint16_t poolIdx = (uint16_t)featurePool.size();
-                featurePool.push_back({(uint8_t*)(p + NAV_FEAT_HDR_SIZE), (NavGeomType)geomType, ps, cc, screenX, screenY, colorRgb565, (uint8_t)(wp & 0x7F), (wp & 0x80) != 0, bx1, by1, bx2, by2, (uint8_t)(zp & 0x0F)});
+                bool hasCasing = (wp & 0x80) != 0;
+                featurePool.push_back({(uint8_t*)(p + NAV_FEAT_HDR_SIZE), (NavGeomType)geomType, ps, cc, screenX, screenY, colorRgb565, (uint8_t)(wp & 0x7F), hasCasing, bx1, by1, bx2, by2, (uint8_t)(zp & 0x0F)});
                 uint8_t priority = zp & 0x0F;
                 if (priority < 16)
+                {
                     layers[priority].push_back(poolIdx);
+                    if (geomType == (uint8_t)NavGeomType::LineString && hasCasing)
+                        layersCasing[priority].push_back(poolIdx);
+                }
             }
         }
         p += NAV_FEAT_HDR_SIZE + ps;

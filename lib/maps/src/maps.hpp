@@ -191,6 +191,7 @@ private:
     std::vector<int16_t, PsramAllocator<int16_t>> decodedCoords;
     std::vector<FeatureRef, PsramAllocator<FeatureRef>> featurePool;
     std::vector<uint16_t, PsramAllocator<uint16_t>> layers[16];
+    std::vector<uint16_t, PsramAllocator<uint16_t>> layersCasing[16];
     std::vector<uint16_t, PsramAllocator<uint16_t>> ringEndsCache;
     std::vector<LabelRect, PsramAllocator<LabelRect>> placedLabelsCache;
 
