@@ -151,12 +151,21 @@ On SD Card map tiles (256x256 PNG Format) should be stored, in these folders str
 
 ## SD Vectorized Map File structure 
 
-Vectorized maps for IceNav can be generated using the Tile-Generator utility, which is available on GitHub at [jgauchia/Tile-Generator](https://github.com/jgauchia/Tile-Generator). This script allows you to convert map data into the required vector tile format compatible with IceNav. Please refer to the Tile-Generator repository for detailed instructions and usage examples on generating and preparing your own vector map files.
+Vectorized maps for IceNav can be generated using the **nav_generator** utility, which is available on GitHub at [jgauchia/Tile-Generator](https://github.com/jgauchia/Tile-Generator). This program allows you to convert map data into the required vector tile format compatible with IceNav. Please refer to the Tile-Generator repository for detailed instructions and usage examples on generating and preparing your own vector map files.
+
+On SD Card vectorized files should be stored, in these folders structure:
 
       [ 📁 NAVMAP ]
-            |________ [ 📁 zoom folder (number) ]
-                                 |__________________ [ 📁 tile X folder (number) ]
-                                                                |_______________________ 🗺️ tile Y file.bin
+            |_______ 🗺️ Zzoom file.bin
+
+## SD A* Route File structure
+
+A* Route files for IceNav can be generated using the **route_generator** utility, which is available on GitHub at [jgauchia/Tile-Generator](https://github.com/jgauchia/Tile-Generator). TThis program allows you to generate the A* route files required for IceNav navigation. Please refer to the Tile-Generator repository for detailed instructions and usage examples on generating and preparing your own route files.
+
+On SD Card route files should be stored, in these folders structure:
+
+      [ 📁 ROUTE ]
+            |_______ 🔀 ROUTE.bin
 
 ## Mass Copy Script for Map Tiles
 
