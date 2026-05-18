@@ -9,6 +9,7 @@
 #include "mainScr.hpp"
 #include "tasks.hpp"
 #include "lv_subjects.hpp"
+#include "climbAnalyzer.hpp"
 
 #define MAP_MODE_FOLLOW 0
 #define MAP_MODE_MANUAL 1
@@ -23,9 +24,13 @@ uint8_t gpxAction = WPT_NONE;
 
 lv_timer_t *map_inertia_timer = NULL;
 
-extern uint32_t DOUBLE_TOUCH_EVENT;extern Compass compass;
+extern uint32_t DOUBLE_TOUCH_EVENT;
+extern Compass compass;
 extern Gps gps;
 extern wayPoint loadWpt;
+extern TrackVector trackData;
+extern ClimbAnalyzer climbAnalyzer;
+extern bool isTrackLoaded;
 
 #ifdef LARGE_SCREEN
     uint8_t toolBarOffset = 100;
@@ -104,6 +109,150 @@ void hideMapWidgets()
 static int global_last_heading = -1;
 
 /**
+ * @brief Find the track index closest to the current GPS position.
+ *
+ * @details When hint >= 0, searches only within ±50 points of hint to avoid
+ *          jumping to a wrong segment on tracks that pass near themselves.
+ *          Falls back to a full scan when hint < 0 (first call).
+ *
+ * @param lat  Current latitude.
+ * @param lon  Current longitude.
+ * @param hint Previous nearest index, or -1 for a full scan.
+ * @return Nearest track point index, or -1 if track is empty.
+ */
+static int nearestTrackIdx(float lat, float lon, int hint = -1)
+{
+    if (trackData.empty())
+        return -1;
+    int n = (int)trackData.size();
+    int from = 0;
+    int to   = n - 1;
+    if (hint >= 0)
+    {
+        from = hint - 50;
+        to   = hint + 50;
+        if (from < 0)   from = 0;
+        if (to >= n)    to   = n - 1;
+    }
+    float bestDist = 1e30f;
+    int   bestIdx  = from;
+    for (int i = from; i <= to; ++i)
+    {
+        float dlat = trackData[i].lat - lat;
+        float dlon = trackData[i].lon - lon;
+        float d = dlat * dlat + dlon * dlon;
+        if (d < bestDist) { bestDist = d; bestIdx = i; }
+    }
+    return bestIdx;
+}
+
+/**
+ * @brief Update climb subjects from current GPS position.
+ *
+ * @details Runs on Core 1 via the map async callback. In simulation mode uses
+ *          simulationIndex directly; in real GPS mode searches the nearest track
+ *          point within ±50 of the previous index for stability.
+ *          Activates the overlay when within CLIMB_ANTICIPATION_M of a segment
+ *          start and keeps it visible until distRem reaches zero — no intermediate
+ *          deactivations from GPS noise.
+ */
+static void updateclimb()
+{
+    static int activeSegIdx = -1;
+    static int lastIdx      = -1;
+    static int prevSegIdx   = -1;
+
+    if (!isTrackLoaded || !climbAnalyzer.hasClimbs())
+        return;
+
+    int idx = navSet.simNavigation
+              ? gps.getSimulationIndex()
+              : nearestTrackIdx(gps.gpsData.latitude, gps.gpsData.longitude, lastIdx);
+    if (idx < 0)
+        return;
+
+    const std::vector<ClimbSegment>& segs = climbAnalyzer.segments();
+
+    if (activeSegIdx >= (int)segs.size())
+    {
+        activeSegIdx = -1;
+        lastIdx      = -1;
+        prevSegIdx   = -1;
+    }
+
+    // Search for a segment to activate if none active yet
+    if (activeSegIdx < 0)
+    {
+        float curDist = trackData[idx].accumDist;
+        for (int i = 0; i < (int)segs.size(); ++i)
+        {
+            float segStartDist = trackData[segs[i].startIdx].accumDist;
+            float segEndDist   = trackData[segs[i].endIdx].accumDist;
+            if (curDist <= segEndDist && segStartDist - curDist <= CLIMB_ANTICIPATION_M)
+            {
+                activeSegIdx = i;
+                break;
+            }
+        }
+    }
+
+    if (activeSegIdx < 0)
+        return;
+
+    const ClimbSegment* activeSeg = &segs[activeSegIdx];
+
+    float curDist      = trackData[idx].accumDist;
+    float segStartDist = trackData[activeSeg->startIdx].accumDist;
+    float segEndDist   = trackData[activeSeg->endIdx].accumDist;
+    float distRem;
+    if (curDist < segStartDist)
+        distRem = segStartDist - curDist;
+    else
+        distRem = (segEndDist > curDist) ? (segEndDist - curDist) : 0.0f;
+
+    // Deactivate only when distance reaches zero
+    if (distRem == 0.0f)
+    {
+        activeSegIdx = -1;
+        lastIdx      = -1;
+        prevSegIdx   = -1;
+        lv_subject_set_int(&subject_climb_active, 0);
+        return;
+    }
+
+    float segEndEle = trackData[activeSeg->endIdx].ele;
+    float curEle    = trackData[idx].ele;
+    float gainRem   = (segEndEle > curEle) ? (segEndEle - curEle) : 0.0f;
+    int   ahead     = (idx + 5 < (int)trackData.size()) ? idx + 5 : (int)trackData.size() - 1;
+    float ddist     = trackData[ahead].accumDist - curDist;
+    float dele      = trackData[ahead].ele - curEle;
+    float grade     = (ddist > 1.0f) ? (dele / ddist * 100.0f) : 0.0f;
+    if (grade < 0.0f) grade = 0.0f;
+
+    if (activeSegIdx != prevSegIdx)
+    {
+        prevSegIdx = activeSegIdx;
+        lv_subject_set_int(&subject_climb_seg,        activeSegIdx + 1);
+        lv_subject_set_int(&subject_climb_total,      (int32_t)segs.size());
+        lv_subject_set_int(&subject_climb_cat,        climbCategory(activeSeg->totalDist, activeSeg->avgGrade));
+        lv_subject_set_int(&subject_climb_avg_grade,  (int32_t)(activeSeg->avgGrade * 10.0f));
+        lv_subject_set_int(&subject_climb_total_dist, (int32_t)activeSeg->totalDist);
+        lv_subject_set_int(&subject_climb_total_gain, (int32_t)activeSeg->totalGain);
+    }
+    int32_t approaching = (curDist < segStartDist) ? 1 : 0;
+    lv_subject_set_int(&subject_climb_approaching, approaching);
+
+    lastIdx = idx;
+    lv_subject_set_int(&subject_climb_dist,  (int32_t)distRem);
+    lv_subject_set_int(&subject_climb_gain,  (int32_t)gainRem);
+    lv_subject_set_int(&subject_climb_grade, (int32_t)(grade * 10.0f));
+    if (lv_subject_get_int(&subject_climb_active) != 1)
+        lv_subject_set_int(&subject_climb_active, 1);
+    if (lv_subject_get_int(&subject_climb_idx) != (int32_t)idx)
+        lv_subject_set_int(&subject_climb_idx, (int32_t)idx);
+}
+
+/**
  * @brief Async callback to delegate map redrawing to UI thread (Core 1)
  */
 static void async_map_update_cb(void * user_data)
@@ -147,6 +296,7 @@ static void async_map_update_cb(void * user_data)
     }
 
     lv_obj_set_pos(mapImage, 0, 0);
+    updateclimb();
 
     if (mapSet.showMapSpeed)
         lv_label_set_text_fmt(mapSpeedLabel, "%3d", gps.gpsData.speed);
@@ -219,6 +369,395 @@ static void map_heading_observer_cb(lv_observer_t *observer, lv_subject_t *subje
         global_last_heading = newHeading;
         lv_async_call(async_map_update_cb, NULL);
     }
+}
+
+// Sprite used to render the static elevation profile with LovyanGFX primitives.
+// climbBuf: contiguous PSRAM buffer [RGB565 W*2*H bytes | alpha W*H bytes].
+// Layout matches LV_COLOR_FORMAT_RGB565A8 expected by lv_draw_buf_init.
+static TFT_eSprite   climbSprite       = TFT_eSprite(&tft);
+static uint8_t      *climbBuf          = nullptr;
+static lv_draw_buf_t climbDrawBuf;
+static bool          climbProfileBuilt = false;
+static int           climbLastSegStart = -1;
+static int           climbLastPosX     = -1;
+static int           climbLastYTop     = -1;
+
+// Rows reserved at the top of the canvas for the ▼ position triangle
+static constexpr int TRI_ROWS    = 5;
+static constexpr int TRI_GAP     = 2; // blank rows between triangle tip and bar top
+static constexpr int TRI_MARGIN  = TRI_ROWS + TRI_GAP + 1; // profile starts below this row
+
+/**
+ * @brief Return the LovyanGFX RGB888 color for a given local grade value.
+ *
+ * @param avgGrade Local grade in percent (clamped to >= 0 by the caller).
+ * @return lgfx::rgb888_t Color: red >=9%, orange >=6%, yellow >=3%, green otherwise.
+ */
+static lgfx::rgb888_t climbSegmentColor(float avgGrade)
+{
+    if (avgGrade >= 9.0f) return lgfx::rgb888_t(0xFF, 0x00, 0x00);
+    if (avgGrade >= 6.0f) return lgfx::rgb888_t(0xFF, 0x66, 0x00);
+    if (avgGrade >= 3.0f) return lgfx::rgb888_t(0xFF, 0xAA, 0x00);
+    return lgfx::rgb888_t(0x00, 0xC8, 0x00);
+}
+
+/**
+ * @brief Compute the canvas row for a given elevation value.
+ *
+ * @details Maps ele into [TRI_MARGIN, H-1] with the profile origin at the bottom.
+ *          Clamps both ends so the result is always a valid row index.
+ *
+ * @param ele      Elevation to map (meters).
+ * @param minEle   Minimum elevation of the visible window (meters).
+ * @param eleRange Elevation span of the visible window (meters, >= 1).
+ * @param H        Canvas height in pixels.
+ * @return int     Canvas row index in [TRI_MARGIN, H-1].
+ */
+static int calcYTop(float ele, float minEle, float eleRange, int H)
+{
+    int y = TRI_MARGIN + (int)((1.0f - (ele - minEle) / eleRange) * (H - 1 - TRI_MARGIN));
+    if (y < TRI_MARGIN) y = TRI_MARGIN;
+    if (y >= H)         y = H - 1;
+    return y;
+}
+
+/**
+ * @brief Build the static elevation profile into climbSprite using LovyanGFX primitives.
+ *
+ * @details Renders the full-track or zoomed profile once. Iterates over canvas columns
+ *          (W passes) to find elevation and color per column, then draws a filled
+ *          vertical bar with drawFastVLine. O(W) — fast even on ESP32-S3.
+ *          After rendering, passes the sprite buffer to lv_canvas_set_buffer so LVGL
+ *          displays it without any copy.
+ *
+ * @param startPt  First trackData index of the visible window.
+ * @param endPt    Last  trackData index of the visible window.
+ */
+static void buildClimbProfile(int startPt, int endPt)
+{
+    if (climbCanvas == NULL || trackData.size() < 2) return;
+
+    int W = lv_obj_get_width(climbCanvas);
+    int H = lv_obj_get_height(climbCanvas);
+    if (W <= 0 || H <= 0) return;
+
+    // Recreate sprite and unified RGB565A8 buffer if size changed
+    if (climbSprite.width() != W || climbSprite.height() != H)
+    {
+        climbSprite.deleteSprite();
+        climbSprite.setColorDepth(16);
+        climbSprite.createSprite(W, H);
+
+        if (climbBuf != nullptr)
+            heap_caps_free(climbBuf);
+        // RGB565 (W*2*H) + A8 mask (W*H) contiguous buffer in PSRAM
+        climbBuf = (uint8_t *)heap_caps_malloc(W * 2 * H + W * H, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    }
+    if (climbBuf == nullptr) return;
+
+    climbSprite.fillScreen(TFT_BLACK);
+
+    float distStart = trackData[startPt].accumDist;
+    float distEnd   = trackData[endPt].accumDist;
+    float distRange = distEnd - distStart;
+    if (distRange < 1.0f) return;
+
+    float minEle = trackData[startPt].ele;
+    float maxEle = trackData[startPt].ele;
+    for (int i = startPt + 1; i <= endPt; ++i)
+    {
+        if (trackData[i].ele < minEle) minEle = trackData[i].ele;
+        if (trackData[i].ele > maxEle) maxEle = trackData[i].ele;
+    }
+    float eleRange = maxEle - minEle;
+    if (eleRange < 1.0f) eleRange = 1.0f;
+
+    const auto &segs = climbAnalyzer.segments();
+
+    uint8_t *alphaBuf = climbBuf + W * 2 * H;
+    memset(alphaBuf, 0x00, W * H);
+
+    // Linear cursor through trackData — O(n) total across all W columns
+    int trkCursor = startPt;
+
+    for (int x = 0; x < W; ++x)
+    {
+        float colDist = distStart + (float)x / (float)(W - 1) * distRange;
+
+        while (trkCursor < endPt - 1 && trackData[trkCursor + 1].accumDist < colDist)
+            ++trkCursor;
+
+        float d0 = trackData[trkCursor].accumDist;
+        float d1 = trackData[trkCursor + 1].accumDist;
+        float e0 = trackData[trkCursor].ele;
+        float e1 = trackData[trkCursor + 1].ele;
+        float t  = (d1 > d0) ? (colDist - d0) / (d1 - d0) : 0.0f;
+        float ele = e0 + t * (e1 - e0);
+
+        int yTop = calcYTop(ele, minEle, eleRange, H);
+
+        lgfx::rgb888_t col(0x00, 0xC8, 0x00);
+        for (const auto &seg : segs)
+        {
+            if (colDist >= trackData[seg.startIdx].accumDist &&
+                colDist <= trackData[seg.endIdx].accumDist)
+            {
+                // Local grade over a 50m window centred on colDist
+                float wHalf = 25.0f;
+                float dA = colDist - wHalf;
+                float dB = colDist + wHalf;
+                if (dA < trackData[seg.startIdx].accumDist) dA = trackData[seg.startIdx].accumDist;
+                if (dB > trackData[seg.endIdx].accumDist)   dB = trackData[seg.endIdx].accumDist;
+                int maxIdx = (int)trackData.size() - 1;
+                int ia = trkCursor;
+                while (ia > 0 && trackData[ia].accumDist > dA) --ia;
+                while (ia < maxIdx && trackData[ia + 1].accumDist < dA) ++ia;
+                float ta = (ia < maxIdx && trackData[ia + 1].accumDist > trackData[ia].accumDist)
+                           ? (dA - trackData[ia].accumDist) / (trackData[ia + 1].accumDist - trackData[ia].accumDist)
+                           : 0.0f;
+                float eleA = trackData[ia].ele + ta * (ia < maxIdx ? (trackData[ia + 1].ele - trackData[ia].ele) : 0.0f);
+                int ib = ia;
+                while (ib < maxIdx && trackData[ib + 1].accumDist < dB) ++ib;
+                float tb = (ib < maxIdx && trackData[ib + 1].accumDist > trackData[ib].accumDist)
+                           ? (dB - trackData[ib].accumDist) / (trackData[ib + 1].accumDist - trackData[ib].accumDist)
+                           : 0.0f;
+                float eleB = trackData[ib].ele + tb * (ib < maxIdx ? (trackData[ib + 1].ele - trackData[ib].ele) : 0.0f);
+                float winDist = dB - dA;
+                float localGrade = (winDist > 1.0f) ? ((eleB - eleA) / winDist * 100.0f) : 0.0f;
+                if (localGrade < 0.0f) localGrade = 0.0f;
+                col = climbSegmentColor(localGrade);
+                break;
+            }
+        }
+
+        climbSprite.drawFastVLine(x, yTop, H - yTop, col);
+
+        // Alpha mask: opaque only where the bar is drawn
+        for (int y = yTop; y < H; ++y)
+            alphaBuf[y * W + x] = 0xFF;
+    }
+
+    // Copy sprite buffer byte-by-byte swapping pairs: LovyanGFX stores RGB565
+    // with bytes already swapped for the ILI9488 bus. RGB565A8 expects unswapped
+    // RGB565, so undo the hardware swap here.
+    const uint8_t *src = (const uint8_t *)climbSprite.getBuffer();
+    for (int i = 0; i < W * H; ++i)
+    {
+        climbBuf[i * 2]     = src[i * 2 + 1];
+        climbBuf[i * 2 + 1] = src[i * 2];
+    }
+
+    uint32_t stride = (uint32_t)W * 2;
+    lv_draw_buf_init(&climbDrawBuf, (uint32_t)W, (uint32_t)H,
+                     LV_COLOR_FORMAT_RGB565A8, stride,
+                     climbBuf, stride * (uint32_t)H + (uint32_t)W * (uint32_t)H);
+    lv_canvas_set_draw_buf(climbCanvas, &climbDrawBuf);
+    lv_obj_invalidate(climbCanvas);
+    climbProfileBuilt = true;
+}
+
+// Triangle pixel mask per row (▼): widest at top, 1px tip at bottom
+static const int triMask[TRI_ROWS] = { 9, 7, 5, 3, 1 };
+
+/**
+ * @brief Draw a white vertical line + ▼ triangle above the bar to mark GPS position.
+ *
+ * @details Restores the previous marker area (column + triangle), then draws the white
+ *          line within the bar and a ▼ triangle in the TRI_MARGIN zone above yTop.
+ *
+ * @param posX  Canvas column index for the current GPS position.
+ * @param yTop  Top row of the profile bar at posX (already offset by TRI_MARGIN).
+ */
+static void updateClimbMarker(int posX, int yTop)
+{
+    if (climbCanvas == NULL || climbBuf == nullptr) return;
+
+    int W = climbSprite.width();
+    int H = climbSprite.height();
+    if (W <= 0 || H <= 0) return;
+
+    const uint8_t *src   = (const uint8_t *)climbSprite.getBuffer();
+    uint8_t       *alpha = climbBuf + W * 2 * H;
+
+    auto restorePixel = [&](int x, int y)
+    {
+        if (x < 0 || x >= W || y < 0 || y >= H) return;
+        int i = y * W + x;
+        climbBuf[i * 2]     = src[i * 2 + 1];
+        climbBuf[i * 2 + 1] = src[i * 2];
+        uint16_t px = ((uint16_t)src[i * 2 + 1] << 8) | src[i * 2];
+        alpha[y * W + x] = (px == 0x0000) ? 0x00 : 0xFF;
+    };
+
+    // Restore previous column and triangle
+    if (climbLastPosX >= 0 && climbLastPosX < W)
+    {
+        for (int y = 0; y < H; ++y)
+            restorePixel(climbLastPosX, y);
+
+        for (int r = 0; r < TRI_ROWS; ++r)
+        {
+            int y    = climbLastYTop - TRI_GAP - TRI_ROWS + r;
+            int half = triMask[r] / 2;
+            for (int dx = -half; dx <= half; ++dx)
+                restorePixel(climbLastPosX + dx, y);
+        }
+    }
+
+    if (posX >= 0 && posX < W)
+    {
+        // White line inside the bar
+        for (int y = 0; y < H; ++y)
+        {
+            int i = y * W + posX;
+            uint16_t px = ((uint16_t)src[i * 2 + 1] << 8) | src[i * 2];
+            if (px != 0x0000)
+            {
+                climbBuf[i * 2]     = 0xFF;
+                climbBuf[i * 2 + 1] = 0xFF;
+                alpha[y * W + posX] = 0xFF;
+            }
+        }
+
+        // ▼ triangle in the reserved margin above yTop, with TRI_GAP blank rows
+        for (int r = 0; r < TRI_ROWS; ++r)
+        {
+            int y    = yTop - TRI_GAP - TRI_ROWS + r;
+            int half = triMask[r] / 2;
+            for (int dx = -half; dx <= half; ++dx)
+            {
+                int tx = posX + dx;
+                if (tx < 0 || tx >= W || y < 0 || y >= H) continue;
+                int i = y * W + tx;
+                climbBuf[i * 2]     = 0xFF;
+                climbBuf[i * 2 + 1] = 0xFF;
+                alpha[y * W + tx]   = 0xFF;
+            }
+        }
+
+        climbLastPosX = posX;
+        climbLastYTop = yTop;
+    }
+
+    lv_obj_invalidate(climbCanvas);
+}
+
+/**
+ * @brief Observer callback for subject_climb_active — controls overlay visibility only.
+ */
+static void climb_active_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+{
+    if (climbOverlay == NULL) return;
+
+    if (lv_subject_get_int(&subject_climb_active) == 0)
+    {
+        lv_obj_add_flag(climbOverlay, LV_OBJ_FLAG_HIDDEN);
+        climbProfileBuilt = false;
+        climbLastSegStart = -1;
+        climbLastPosX     = -1;
+        climbLastYTop     = -1;
+    }
+    else
+    {
+        lv_obj_clear_flag(climbOverlay, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+/**
+ * @brief Observer callback for subject_climb_idx — updates labels, profile and marker.
+ *
+ * @details Only called when active==1. Finds the active segment using the same
+ *          anticipation window as updateclimb() so buildClimbProfile is invoked
+ *          from the first frame the overlay appears, not only once inside the climb.
+ */
+static void climb_idx_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+{
+    if (climbOverlay == NULL) return;
+    if (lv_subject_get_int(&subject_climb_active) == 0) return;
+
+    int32_t dist      = lv_subject_get_int(&subject_climb_dist);
+    int32_t gain      = lv_subject_get_int(&subject_climb_gain);
+    int32_t grade10   = lv_subject_get_int(&subject_climb_grade);
+    float   grade     = grade10 / 10.0f;
+    int32_t activeIdx = lv_subject_get_int(&subject_climb_idx);
+
+    int32_t seg_num   = lv_subject_get_int(&subject_climb_seg);
+    int32_t seg_total = lv_subject_get_int(&subject_climb_total);
+    int32_t cat       = lv_subject_get_int(&subject_climb_cat);
+    int32_t avg10     = lv_subject_get_int(&subject_climb_avg_grade);
+    int32_t tot_dist  = lv_subject_get_int(&subject_climb_total_dist);
+    int32_t tot_gain  = lv_subject_get_int(&subject_climb_total_gain);
+    int32_t appr      = lv_subject_get_int(&subject_climb_approaching);
+
+    lv_label_set_text_fmt(climbTotalDistLabel, "%.1fkm", tot_dist / 1000.0f);
+    lv_label_set_text_fmt(climbTotalGainLabel, "%dm D+", tot_gain);
+    lv_label_set_text_fmt(climbAvgGradeLabel,  "avg %.1f%%", avg10 / 10.0f);
+    lv_label_set_text_fmt(climbSegLabel, "%d/%d", seg_num, seg_total);
+
+    static const char *catStr[] = { "", "HC", "CAT 1", "CAT 2", "CAT 3", "CAT 4" };
+    lv_label_set_text_static(climbCatLabel, (cat >= 0 && cat <= 5) ? catStr[cat] : "");
+
+    if (appr)
+        lv_label_set_text_fmt(climbDistLabel, LV_SYMBOL_RIGHT " %dm", dist);
+    else
+        lv_label_set_text_fmt(climbDistLabel, LV_SYMBOL_UP " %dm", dist);
+    lv_label_set_text_fmt(climbGainLabel, "%dm D+", gain);
+    lv_label_set_text_fmt(climbGradeLabel, "%.1f%%", grade);
+
+    int W = lv_obj_get_width(climbCanvas);
+    if (W <= 0) return;
+
+    // Same anticipation condition as updateclimb() — covers pre-climb phase too
+    const std::vector<ClimbSegment>& segs = climbAnalyzer.segments();
+    float curDistObs = trackData[(int)activeIdx].accumDist;
+    const ClimbSegment* seg = nullptr;
+    for (const ClimbSegment& s : segs)
+    {
+        float segStartDist = trackData[s.startIdx].accumDist;
+        float segEndDist   = trackData[s.endIdx].accumDist;
+        if (curDistObs <= segEndDist && segStartDist - curDistObs <= CLIMB_ANTICIPATION_M)
+        {
+            seg = &s;
+            break;
+        }
+    }
+    if (seg == nullptr) return;
+
+    float preStartDist = trackData[seg->startIdx].accumDist - CLIMB_ANTICIPATION_M;
+    int startPt = seg->startIdx;
+    while (startPt > 0 && trackData[startPt - 1].accumDist >= preStartDist)
+        --startPt;
+
+    int endPt  = seg->endIdx;
+    float dRange = trackData[endPt].accumDist - trackData[startPt].accumDist;
+    float dPos   = curDistObs - trackData[startPt].accumDist;
+    int posX = (dRange > 0.0f) ? (int)(dPos / dRange * (W - 1)) : 0;
+    if (posX < 0) posX = 0;
+    if (posX >= W) posX = W - 1;
+
+    if (!climbProfileBuilt || seg->startIdx != climbLastSegStart)
+    {
+        climbLastPosX = -1;
+        climbLastYTop = -1;
+        buildClimbProfile(startPt, endPt);
+        climbLastSegStart = seg->startIdx;
+    }
+
+    // Compute yTop at posX using the same formula as buildClimbProfile
+    int H = lv_obj_get_height(climbCanvas);
+    float minEle = trackData[startPt].ele;
+    float maxEle = trackData[startPt].ele;
+    for (int i = startPt + 1; i <= endPt; ++i)
+    {
+        if (trackData[i].ele < minEle) minEle = trackData[i].ele;
+        if (trackData[i].ele > maxEle) maxEle = trackData[i].ele;
+    }
+    float eleRange = maxEle - minEle;
+    if (eleRange < 1.0f) eleRange = 1.0f;
+    float curEleObs = trackData[(int)activeIdx].ele;
+    int yTop = calcYTop(curEleObs, minEle, eleRange, H);
+
+    updateClimbMarker(posX, yTop);
 }
 
 /**
@@ -569,6 +1108,9 @@ void createMainScr()
     mapCompassWidget(mapTile);
     mapScaleWidget(mapTile);
     turnByTurnWidget(mapTile);
+    climbWidget(mapTile);
+    lv_subject_add_observer_obj(&subject_climb_active, climb_active_observer_cb, climbOverlay, NULL);
+    lv_subject_add_observer_obj(&subject_climb_idx,    climb_idx_observer_cb,    climbOverlay, NULL);
     lv_subject_add_observer_obj(&subject_heading, map_heading_observer_cb, mapTile, NULL);
     lv_subject_add_observer_obj(&subject_lat, map_position_observer_cb, mapTile, NULL);
     lv_subject_add_observer_obj(&subject_lon, map_position_observer_cb, mapTile, NULL);

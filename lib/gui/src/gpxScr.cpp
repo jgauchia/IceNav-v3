@@ -9,6 +9,7 @@
 #include "gpxScr.hpp"
 #include "lv_subjects.hpp"
 #include "router.hpp"
+#include "climbAnalyzer.hpp"
 
 extern Maps mapView;
 extern Storage storage;
@@ -19,8 +20,9 @@ bool gpxWaypoint = false;
 bool gpxTrack = false;
 bool isTrackLoaded = false;
 
-extern TrackVector trackData;   /**< Vector containing track waypoints */
+extern TrackVector trackData;             /**< Vector containing track waypoints */
 extern std::vector<TurnPoint> turnPoints; /**< Vector containing turn points */
+extern ClimbAnalyzer climbAnalyzer;       /**< Climb profile analyzer */
 
 lv_obj_t *listGPXScreen;                /**< Add Waypoint screen */
 
@@ -93,7 +95,9 @@ void gpxListEvent(lv_event_t *event)
                             isTrackLoaded = false;
                             trackData.clear();
                             trackData.shrink_to_fit();
+                            climbAnalyzer.clear();
                             gpx.loadTrack(trackData);
+                            climbAnalyzer.analyze(trackData);
                             turnPoints = gpx.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, trackData);
                             isTrackLoaded = !trackData.empty();
                             lv_obj_clear_flag(turnByTurn,LV_OBJ_FLAG_HIDDEN);

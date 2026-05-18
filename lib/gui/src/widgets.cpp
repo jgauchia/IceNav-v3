@@ -29,6 +29,16 @@ lv_obj_t *scaleLabel;
 lv_obj_t *turnByTurn;
 lv_obj_t *turnDistLabel;
 lv_obj_t *turnImg;
+lv_obj_t *climbOverlay;
+lv_obj_t *climbDistLabel;
+lv_obj_t *climbGainLabel;
+lv_obj_t *climbGradeLabel;
+lv_obj_t *climbCanvas;
+lv_obj_t *climbSegLabel        = nullptr;
+lv_obj_t *climbCatLabel        = nullptr;
+lv_obj_t *climbTotalDistLabel  = nullptr;
+lv_obj_t *climbTotalGainLabel  = nullptr;
+lv_obj_t *climbAvgGradeLabel   = nullptr;
 
 LV_IMG_DECLARE(straight);
 LV_IMG_DECLARE(slleft);
@@ -456,7 +466,7 @@ void mapScaleWidget(lv_obj_t *screen)
 /**
  * @brief Turn By Turn Navigation widget
  *
- * @param screen Pointer to the LVGL screen object where the navigationwidget will be created.
+ * @param screen Pointer to the LVGL screen object where the navigation widget will be created.
  */
 void turnByTurnWidget(lv_obj_t *screen)
 {
@@ -476,4 +486,86 @@ void turnByTurnWidget(lv_obj_t *screen)
     lv_obj_set_style_text_font(obj, &lv_font_montserrat_18, 0);
     lv_label_set_text_static(obj, "m.");
     lv_obj_add_flag(turnByTurn, LV_OBJ_FLAG_HIDDEN);
+}
+
+/**
+ * @brief climb overlay widget
+ *
+ * @details Semi-transparent bar anchored at the bottom of the map tile.
+ *          Shows remaining climb distance, elevation gain, current grade,
+ *          and an elevation-profile canvas. Hidden by default; shown/hidden
+ *          by the climb observer in mainScr.cpp.
+ *
+ * @param screen Pointer to the LVGL screen object where the widget will be created.
+ */
+void climbWidget(lv_obj_t *screen)
+{
+    static const int canvasH   = (int)(70 * scale);
+    static const int padV      = (int)(4 * scale);
+    static const int bottomOff = (int)(37 * scale);
+    static const int canvasW   = TFT_WIDTH - 8;
+
+    climbOverlay = lv_obj_create(screen);
+    lv_obj_set_width(climbOverlay, TFT_WIDTH);
+    lv_obj_set_height(climbOverlay, LV_SIZE_CONTENT);
+    lv_obj_clear_flag(climbOverlay, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(climbOverlay, LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_add_style(climbOverlay, &styleMapWidget, 0);
+    lv_obj_set_style_pad_ver(climbOverlay, padV, 0);
+    lv_obj_set_style_pad_hor(climbOverlay, 4, 0);
+    lv_obj_set_flex_flow(climbOverlay, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(climbOverlay, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_row(climbOverlay, padV, 0);
+    lv_obj_align(climbOverlay, LV_ALIGN_BOTTOM_MID, 0, -bottomOff);
+
+    // Static row: total dist | total gain | avg grade | category | segment N/M
+    lv_obj_t *rowStatic = lv_obj_create(climbOverlay);
+    lv_obj_set_width(rowStatic, lv_pct(100));
+    lv_obj_set_height(rowStatic, LV_SIZE_CONTENT);
+    lv_obj_clear_flag(rowStatic, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(rowStatic, LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_set_style_bg_opa(rowStatic, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(rowStatic, 0, 0);
+    lv_obj_set_style_pad_all(rowStatic, 0, 0);
+    lv_obj_set_flex_flow(rowStatic, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(rowStatic, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+
+    auto makeLabel = [](lv_obj_t *parent, lv_obj_t *&out, const lv_font_t *font, const char *initText)
+    {
+        out = lv_label_create(parent);
+        lv_obj_set_style_text_font(out, font, 0);
+        lv_obj_set_style_text_color(out, lv_color_white(), 0);
+        lv_label_set_text_static(out, initText);
+    };
+
+    makeLabel(rowStatic, climbTotalDistLabel,  fontSmall,  "---km");
+    makeLabel(rowStatic, climbTotalGainLabel,  fontSmall,  "---m D+");
+    makeLabel(rowStatic, climbAvgGradeLabel,   fontSmall,  "avg -.-");
+    makeLabel(rowStatic, climbCatLabel,        fontSmall,  "");
+    makeLabel(rowStatic, climbSegLabel,        fontSmall,  "-/-");
+
+    // Dynamic row: remaining dist | remaining gain | current grade
+    lv_obj_t *row = lv_obj_create(climbOverlay);
+    lv_obj_set_width(row, lv_pct(100));
+    lv_obj_set_height(row, LV_SIZE_CONTENT);
+    lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(row, LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(row, 0, 0);
+    lv_obj_set_style_pad_all(row, 0, 0);
+    lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(row, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+
+    makeLabel(row, climbDistLabel,  fontMedium, LV_SYMBOL_UP " ---m");
+    makeLabel(row, climbGainLabel,  fontMedium, "--m D+");
+    makeLabel(row, climbGradeLabel, fontMedium, "-.-% ");
+
+    // Elevation profile canvas — buffer set by buildClimbProfile() in mainScr.cpp
+    climbCanvas = lv_canvas_create(climbOverlay);
+    lv_obj_set_width(climbCanvas, canvasW);
+    lv_obj_set_height(climbCanvas, canvasH);
+    lv_obj_set_style_bg_opa(climbCanvas, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(climbCanvas, 0, 0);
+
+    lv_obj_add_flag(climbOverlay, LV_OBJ_FLAG_HIDDEN);
 }

@@ -100,7 +100,7 @@ void initGpsTask()
  * @brief Command-line interface processing task
  *
  * @details Handles CLI operations including command parsing, execution, and response
- *          generation. Runs on core 1 with 3KB stack size to handle complex CLI
+ *          generation. Runs on core 1 with 16KB stack size to handle complex CLI
  *          operations and network communications. The task processes commands at
  *          60ms intervals to maintain responsive user interaction.
  *
@@ -122,10 +122,10 @@ void cliTask(void *param)
 /**
  * @brief Initialize CLI processing task
  *
- * @details Creates and starts the CLI task on core 1 with 3KB stack size and priority 1.
+ * @details Creates and starts the CLI task on core 1 with 16KB stack size and priority 1.
  *          Only compiled when CLI functionality is enabled (not DISABLE_CLI).
  */
-void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 3072, NULL, 1, NULL, 1); }
+void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 16384, NULL, 1, NULL, 1); }
 
 #endif
 
