@@ -19,7 +19,7 @@ static constexpr int TRI_ROWS   = 5;
 static constexpr int TRI_GAP    = 2;
 static constexpr int TRI_MARGIN = TRI_ROWS + TRI_GAP + 1;
 
-static const int triMask[TRI_ROWS] = { 9, 7, 5, 3, 1 };
+extern const int triMask[TRI_ROWS];
 
 struct ClimbSegment
 {

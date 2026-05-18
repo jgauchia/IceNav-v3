@@ -10,6 +10,8 @@
 #include "navigation.hpp"
 #include "lvgl.h"
 
+const int triMask[TRI_ROWS] = { 9, 7, 5, 3, 1 };
+
 extern lv_subject_t subject_climb_active;
 extern lv_subject_t subject_climb_dist;
 extern lv_subject_t subject_climb_gain;
