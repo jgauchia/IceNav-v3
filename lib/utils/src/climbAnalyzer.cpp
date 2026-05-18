@@ -7,6 +7,21 @@
  */
 
 #include "climbAnalyzer.hpp"
+#include "navigation.hpp"
+#include "lvgl.h"
+
+extern lv_subject_t subject_climb_active;
+extern lv_subject_t subject_climb_dist;
+extern lv_subject_t subject_climb_gain;
+extern lv_subject_t subject_climb_grade;
+extern lv_subject_t subject_climb_idx;
+extern lv_subject_t subject_climb_seg;
+extern lv_subject_t subject_climb_total;
+extern lv_subject_t subject_climb_cat;
+extern lv_subject_t subject_climb_avg_grade;
+extern lv_subject_t subject_climb_total_dist;
+extern lv_subject_t subject_climb_total_gain;
+extern lv_subject_t subject_climb_approaching;
 
 /**
  * @brief Apply a simple moving-average smoothing to the raw elevation array.
@@ -132,4 +147,153 @@ int climbCategory(float totalDist, float avgGrade)
     if (score >= 1500.0f) return 3;
     if (score >= 800.0f)  return 4;
     return 5;
+}
+
+/**
+ * @brief Return packed RGB888 color for a given local grade value.
+ *
+ * @param avgGrade Local grade in percent (>= 0).
+ * @return uint32_t  0xRRGGBB: red >=9%, orange >=6%, yellow >=3%, green otherwise.
+ */
+uint32_t climbSegmentColor(float avgGrade)
+{
+    if (avgGrade >= 9.0f) return 0xFF0000u;
+    if (avgGrade >= 6.0f) return 0xFF6600u;
+    if (avgGrade >= 3.0f) return 0xFFAA00u;
+    return 0x00C800u;
+}
+
+/**
+ * @brief Compute the canvas row for a given elevation value.
+ *
+ * @details Maps ele into [TRI_MARGIN, H-1] with the profile origin at the bottom.
+ *
+ * @param ele      Elevation to map (meters).
+ * @param minEle   Minimum elevation of the visible window (meters).
+ * @param eleRange Elevation span of the visible window (meters, >= 1).
+ * @param H        Canvas height in pixels.
+ * @return int     Canvas row index in [TRI_MARGIN, H-1].
+ */
+int calcYTop(float ele, float minEle, float eleRange, int H)
+{
+    int y = TRI_MARGIN + (int)((1.0f - (ele - minEle) / eleRange) * (H - 1 - TRI_MARGIN));
+    if (y < TRI_MARGIN) y = TRI_MARGIN;
+    if (y >= H)         y = H - 1;
+    return y;
+}
+
+/**
+ * @brief Reset all state including detected segments and position tracking.
+ */
+void ClimbAnalyzer::clear()
+{
+    segments_.clear();
+    activeSegIdx_ = -1;
+    lastIdx_      = -1;
+    prevSegIdx_   = -1;
+}
+
+/**
+ * @brief Update climb subjects from current GPS position.
+ *
+ * @details Runs on Core 1 via the map async callback. In simulation mode uses
+ *          simIndex directly; in real GPS mode calls findClosestTrackPoint within
+ *          the configured search window. Activates the overlay when within
+ *          CLIMB_ANTICIPATION_M of a segment start and keeps it visible until
+ *          distRem reaches zero.
+ *
+ * @param lat      Current latitude.
+ * @param lon      Current longitude.
+ * @param simMode  True when simulation navigation is active.
+ * @param simIndex Current simulation track index.
+ * @param track    Loaded track points with ele and accumDist populated.
+ */
+void ClimbAnalyzer::updatePosition(float lat, float lon, bool simMode, int simIndex, const TrackVector& track)
+{
+    if (track.empty() || !hasClimbs())
+        return;
+
+    int idx = simMode
+              ? simIndex
+              : findClosestTrackPoint(lat, lon, track, lastIdx_);
+    if (idx < 0)
+        return;
+
+    const std::vector<ClimbSegment>& segs = segments_;
+
+    if (activeSegIdx_ >= (int)segs.size())
+    {
+        activeSegIdx_ = -1;
+        lastIdx_      = -1;
+        prevSegIdx_   = -1;
+    }
+
+    if (activeSegIdx_ < 0)
+    {
+        float curDist = track[idx].accumDist;
+        for (int i = 0; i < (int)segs.size(); ++i)
+        {
+            float segStartDist = track[segs[i].startIdx].accumDist;
+            float segEndDist   = track[segs[i].endIdx].accumDist;
+            if (curDist <= segEndDist && segStartDist - curDist <= CLIMB_ANTICIPATION_M)
+            {
+                activeSegIdx_ = i;
+                break;
+            }
+        }
+    }
+
+    if (activeSegIdx_ < 0)
+        return;
+
+    const ClimbSegment* activeSeg = &segs[activeSegIdx_];
+
+    float curDist      = track[idx].accumDist;
+    float segStartDist = track[activeSeg->startIdx].accumDist;
+    float segEndDist   = track[activeSeg->endIdx].accumDist;
+    float distRem;
+    if (curDist < segStartDist)
+        distRem = segStartDist - curDist;
+    else
+        distRem = (segEndDist > curDist) ? (segEndDist - curDist) : 0.0f;
+
+    if (distRem == 0.0f)
+    {
+        activeSegIdx_ = -1;
+        lastIdx_      = -1;
+        prevSegIdx_   = -1;
+        lv_subject_set_int(&subject_climb_active, 0);
+        return;
+    }
+
+    float segEndEle = track[activeSeg->endIdx].ele;
+    float curEle    = track[idx].ele;
+    float gainRem   = (segEndEle > curEle) ? (segEndEle - curEle) : 0.0f;
+    int   ahead     = (idx + 5 < (int)track.size()) ? idx + 5 : (int)track.size() - 1;
+    float ddist     = track[ahead].accumDist - curDist;
+    float dele      = track[ahead].ele - curEle;
+    float grade     = (ddist > 1.0f) ? (dele / ddist * 100.0f) : 0.0f;
+    if (grade < 0.0f) grade = 0.0f;
+
+    if (activeSegIdx_ != prevSegIdx_)
+    {
+        prevSegIdx_ = activeSegIdx_;
+        lv_subject_set_int(&subject_climb_seg,        activeSegIdx_ + 1);
+        lv_subject_set_int(&subject_climb_total,      (int32_t)segs.size());
+        lv_subject_set_int(&subject_climb_cat,        climbCategory(activeSeg->totalDist, activeSeg->avgGrade));
+        lv_subject_set_int(&subject_climb_avg_grade,  (int32_t)(activeSeg->avgGrade * 10.0f));
+        lv_subject_set_int(&subject_climb_total_dist, (int32_t)activeSeg->totalDist);
+        lv_subject_set_int(&subject_climb_total_gain, (int32_t)activeSeg->totalGain);
+    }
+    int32_t approaching = (curDist < segStartDist) ? 1 : 0;
+    lv_subject_set_int(&subject_climb_approaching, approaching);
+
+    lastIdx_ = idx;
+    lv_subject_set_int(&subject_climb_dist,  (int32_t)distRem);
+    lv_subject_set_int(&subject_climb_gain,  (int32_t)gainRem);
+    lv_subject_set_int(&subject_climb_grade, (int32_t)(grade * 10.0f));
+    if (lv_subject_get_int(&subject_climb_active) != 1)
+        lv_subject_set_int(&subject_climb_active, 1);
+    if (lv_subject_get_int(&subject_climb_idx) != (int32_t)idx)
+        lv_subject_set_int(&subject_climb_idx, (int32_t)idx);
 }
