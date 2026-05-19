@@ -75,6 +75,7 @@ class Gps
         bool isAltitudeChanged();
         bool hasLocationChange();
         bool isDOPChanged();
+        int  getSimulationIndex() const { return simulationIndex; }
 
         /**
         * @struct GPSDATA

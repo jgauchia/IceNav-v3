@@ -120,6 +120,12 @@ static void mapSettingsEvents(lv_event_t *event)
         else
             lv_obj_add_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
     }
+
+    if (obj == checkClimb)
+    {
+        mapSet.showClimb = lv_obj_has_state(obj, LV_STATE_CHECKED);
+        cfg.saveBool(PKEYS::KMAP_CLIMB, mapSet.showClimb);
+    }
 }
 
 /**
@@ -240,6 +246,19 @@ void createMapSettingsScr()
     else
         lv_obj_remove_state(checkScale, LV_STATE_CHECKED);
     lv_obj_add_event_cb(checkScale, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
+    // Show Climb Analyzer
+    list = lv_list_add_btn(mapSettingsOptions, NULL, "Climb Analyzer");
+    lv_obj_set_style_text_font(list, fontOptions, 0);
+    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
+    checkClimb = lv_checkbox_create(list);
+    lv_obj_align_to(checkClimb, list, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_checkbox_set_text(checkClimb, " ");
+    if (mapSet.showClimb)
+        lv_obj_add_state(checkClimb, LV_STATE_CHECKED);
+    else
+        lv_obj_remove_state(checkClimb, LV_STATE_CHECKED);
+    lv_obj_add_event_cb(checkClimb, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
     // Back button
     btnBack = lv_btn_create(mapSettingsScreen);
     lv_obj_set_size(btnBack, TFT_WIDTH - 30, 40 * scale);
