@@ -151,7 +151,8 @@ static void async_map_update_cb(void * user_data)
     }
 
     lv_obj_set_pos(mapImage, 0, 0);
-    climbAnalyzer.updatePosition(gps.gpsData.latitude, gps.gpsData.longitude, navSet.simNavigation, gps.getSimulationIndex(), trackData);
+    if (mapSet.showClimb)
+        climbAnalyzer.updatePosition(gps.gpsData.latitude, gps.gpsData.longitude, navSet.simNavigation, gps.getSimulationIndex(), trackData);
 
     if (mapSet.showMapSpeed)
         lv_label_set_text_fmt(mapSpeedLabel, "%3d", gps.gpsData.speed);

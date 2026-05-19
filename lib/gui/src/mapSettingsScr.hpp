@@ -26,6 +26,7 @@ static lv_obj_t *checkCompassRot;      /**< Checkbox for enabling compass rotati
 static lv_obj_t *checkSpeed;           /**< Checkbox for displaying speed on the map. */
 static lv_obj_t *checkScale;           /**< Checkbox for displaying map scale. */
 static lv_obj_t *checkFullScreen;      /**< Checkbox for enabling fullscreen map display. */
+static lv_obj_t *checkClimb;           /**< Checkbox for displaying Climb Analyzer */
 
 
 static void mapSettingsEvents(lv_event_t *event);

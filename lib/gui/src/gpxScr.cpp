@@ -97,7 +97,8 @@ void gpxListEvent(lv_event_t *event)
                             trackData.shrink_to_fit();
                             climbAnalyzer.clear();
                             gpx.loadTrack(trackData);
-                            climbAnalyzer.analyze(trackData);
+                            if (mapSet.showClimb)
+                                climbAnalyzer.analyze(trackData);
                             turnPoints = gpx.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, trackData);
                             isTrackLoaded = !trackData.empty();
                             lv_obj_clear_flag(turnByTurn,LV_OBJ_FLAG_HIDDEN);
