@@ -15,6 +15,7 @@
 #include <freertos/task.h>
 #include "esp_timer.h"
 #include "driver/gpio.h"
+#include <SolarCalculator.h>
 
 /**
  * @brief Get system uptime in milliseconds using ESP-IDF timer.
@@ -624,4 +625,29 @@ void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refr
             // End of simulation reached
         }
     }
+}
+
+static double transit, sunrise, sunset;
+
+/**
+ * @brief Calculate Sunrise and Sunset based on current GPS position and date.
+ */
+void calculateSun()
+{
+    calcSunriseSunset(2000 + fix.dateTime.year,
+                        fix.dateTime.month,
+                        fix.dateTime.date,
+                        gps.gpsData.latitude,
+                        gps.gpsData.longitude,
+                        transit,
+                        sunrise,
+                        sunset);
+    int hours = (int)sunrise + gps.gpsData.UTC;
+    int minutes = (int)round(((sunrise + gps.gpsData.UTC) - hours) * 60);
+    snprintf(gps.gpsData.sunriseHour, 6, "%02d:%02d", hours, minutes);
+    hours = (int)sunset + gps.gpsData.UTC;
+    minutes = (int)round(((sunset + gps.gpsData.UTC) - hours) * 60);
+    snprintf(gps.gpsData.sunsetHour, 6, "%02d:%02d", hours, minutes);
+    log_i("Sunrise: %s", gps.gpsData.sunriseHour);
+    log_i("Sunset: %s", gps.gpsData.sunsetHour);
 } 

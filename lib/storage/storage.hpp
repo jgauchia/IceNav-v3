@@ -88,6 +88,8 @@ class Storage
         size_t fileAvailable(FILE* file);
 };
 
+extern Storage storage;
+
 /**
  * @class FileStream
  * @brief FileStream class to wrap FILE* operations as a Stream
@@ -141,7 +143,6 @@ class FileStream : public Stream
         */
         virtual size_t read(uint8_t *buffer, size_t size)
         {
-            extern Storage storage;
             return storage.read(file, buffer, size);
         }
 
@@ -154,7 +155,6 @@ class FileStream : public Stream
         */
         virtual size_t readBytes(char *buffer, size_t length) override
         {
-            extern Storage storage;
             return storage.read(file, buffer, length);
         }
 

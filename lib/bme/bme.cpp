@@ -16,46 +16,18 @@
 #include <freertos/task.h>
 
 BME280_Driver bme = BME280_Driver();
-uint8_t tempValue = 0;
-uint8_t tempOld = 0;
 
 /**
  * @brief Constructs BME280 driver with default configuration.
  */
 BME280_Driver::BME280_Driver() :
-    i2cAddr(BME_ADDRESS),
+    I2CDriverBase(BME_ADDRESS),
     dig_T1(0), dig_T2(0), dig_T3(0),
     dig_P1(0), dig_P2(0), dig_P3(0), dig_P4(0), dig_P5(0),
     dig_P6(0), dig_P7(0), dig_P8(0), dig_P9(0),
     dig_H1(0), dig_H2(0), dig_H3(0), dig_H4(0), dig_H5(0), dig_H6(0),
     t_fine(0)
 {
-}
-
-/**
- * @brief Reads a single byte from a register.
- */
-uint8_t BME280_Driver::read8(uint8_t reg)
-{
-    return i2c.read8(i2cAddr, reg);
-}
-
-/**
- * @brief Reads a 16-bit value from two consecutive registers (LSB first).
- */
-uint16_t BME280_Driver::read16_LE(uint8_t reg)
-{
-    uint8_t buffer[2];
-    i2c.readBytes(i2cAddr, reg, buffer, 2);
-    return (uint16_t)((buffer[1] << 8) | buffer[0]);
-}
-
-/**
- * @brief Writes a single byte to a register.
- */
-void BME280_Driver::write8(uint8_t reg, uint8_t value)
-{
-    i2c.write8(i2cAddr, reg, value);
 }
 
 /**
@@ -66,22 +38,22 @@ void BME280_Driver::write8(uint8_t reg, uint8_t value)
  */
 void BME280_Driver::readCoefficients()
 {
-    dig_T1 = read16_LE(0x88);
-    dig_T2 = (int16_t)read16_LE(0x8A);
-    dig_T3 = (int16_t)read16_LE(0x8C);
+    dig_T1 = read16LE(0x88);
+    dig_T2 = (int16_t)read16LE(0x8A);
+    dig_T3 = (int16_t)read16LE(0x8C);
 
-    dig_P1 = read16_LE(0x8E);
-    dig_P2 = (int16_t)read16_LE(0x90);
-    dig_P3 = (int16_t)read16_LE(0x92);
-    dig_P4 = (int16_t)read16_LE(0x94);
-    dig_P5 = (int16_t)read16_LE(0x96);
-    dig_P6 = (int16_t)read16_LE(0x98);
-    dig_P7 = (int16_t)read16_LE(0x9A);
-    dig_P8 = (int16_t)read16_LE(0x9C);
-    dig_P9 = (int16_t)read16_LE(0x9E);
+    dig_P1 = read16LE(0x8E);
+    dig_P2 = (int16_t)read16LE(0x90);
+    dig_P3 = (int16_t)read16LE(0x92);
+    dig_P4 = (int16_t)read16LE(0x94);
+    dig_P5 = (int16_t)read16LE(0x96);
+    dig_P6 = (int16_t)read16LE(0x98);
+    dig_P7 = (int16_t)read16LE(0x9A);
+    dig_P8 = (int16_t)read16LE(0x9C);
+    dig_P9 = (int16_t)read16LE(0x9E);
 
     dig_H1 = read8(0xA1);
-    dig_H2 = (int16_t)read16_LE(0xE1);
+    dig_H2 = (int16_t)read16LE(0xE1);
     dig_H3 = read8(0xE3);
     dig_H4 = ((int16_t)read8(0xE4) << 4) | (read8(0xE5) & 0x0F);
     dig_H5 = ((int16_t)read8(0xE6) << 4) | (read8(0xE5) >> 4);

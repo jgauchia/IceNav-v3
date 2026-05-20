@@ -50,6 +50,11 @@ lv_obj_t *mapImage;
 static lv_image_dsc_t map_img_dsc;
 extern Maps mapView;
 
+static constexpr float MAP_INERTIA_FRICTION   = 0.85f; /**< Velocity damping factor applied each inertia tick. */
+static constexpr float MAP_INERTIA_VEL_THRESH = 0.1f;  /**< Velocity below which inertia scroll is stopped. */
+static constexpr float MAP_HEADING_THRESHOLD  = 2.0f;  /**< Minimum heading change (degrees) that triggers a map redraw. */
+static constexpr float MAP_VELOCITY_WEIGHT    = 0.7f;  /**< EMA weight for velocity estimation during drag. */
+
 /**
  * @brief Update compass screen event
  *
@@ -129,7 +134,7 @@ static void async_map_update_cb(void * user_data)
     float currentLat = gps.gpsData.latitude;
     float currentLon = gps.gpsData.longitude;
 
-    bool headingChanged = (abs(currentHeading - lastRenderedHeading) > 2);
+    bool headingChanged = (abs(currentHeading - lastRenderedHeading) > MAP_HEADING_THRESHOLD);
     bool positionChanged = (currentLat != lastRenderedLat || currentLon != lastRenderedLon);
 
     if (mapView.offsetX != lastDispX || 
@@ -220,7 +225,7 @@ static void map_heading_observer_cb(lv_observer_t *observer, lv_subject_t *subje
 
     int32_t newHeading = lv_subject_get_int(subject);
     
-    if (abs(newHeading - global_last_heading) > 2)
+    if (abs(newHeading - global_last_heading) > MAP_HEADING_THRESHOLD)
     {
         global_last_heading = newHeading;
         lv_async_call(async_map_update_cb, NULL);
@@ -654,6 +659,29 @@ void updateMap(lv_event_t *event)
 }
 
 /**
+ * @brief Shows or hides the zoom in/out buttons.
+ *
+ * @param show true to make buttons visible and interactive, false to hide them.
+ */
+static void setZoomButtonsVisible(bool show)
+{
+    if (show)
+    {
+        lv_obj_add_flag(btnZoomOut, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
+        lv_obj_add_flag(btnZoomIn, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
+        lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
+    }
+    else
+    {
+        lv_obj_clear_flag(btnZoomOut, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
+        lv_obj_clear_flag(btnZoomIn, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
+        lv_obj_add_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+/**
  * @brief Map Tool Bar Event.
  *
  * @details Handles map toolbar visibility toggling, zoom button states, map scrollability, and map centering on GPS.
@@ -667,10 +695,7 @@ void mapToolBarEvent(lv_event_t *event)
     isScrollingMap = false;
     if (!showMapToolBar)
     {
-        lv_obj_clear_flag(btnZoomOut, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
-        lv_obj_clear_flag(btnZoomIn, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
-        lv_obj_add_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
+        setZoomButtonsVisible(false);
         lv_obj_add_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
         mapView.centerOnGps(gps.gpsData.latitude, gps.gpsData.longitude);
         lv_subject_set_int(&subject_map_state, MAP_MODE_FOLLOW);
@@ -682,10 +707,7 @@ void mapToolBarEvent(lv_event_t *event)
     }
     else
     {
-        lv_obj_add_flag(btnZoomOut, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
-        lv_obj_add_flag(btnZoomIn, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
-        lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
+        setZoomButtonsVisible(true);
         lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
         if (!mapView.followGps)
             lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
@@ -709,13 +731,13 @@ void map_inertia_timer_cb(lv_timer_t * t)
         float dy = mapView.velocityY * dt;
         mapView.scrollMap((int16_t)dx, (int16_t)dy);
 
-        float currentFriction = mapView.isRendering() ? 0.85f : mapView.friction;
+        float currentFriction = mapView.isRendering() ? MAP_INERTIA_FRICTION : mapView.friction;
         mapView.velocityX *= currentFriction;
         mapView.velocityY *= currentFriction;
 
-        if (abs(mapView.velocityX) < 0.1f)
+        if (abs(mapView.velocityX) < MAP_INERTIA_VEL_THRESH)
             mapView.velocityX = 0;
-        if (abs(mapView.velocityY) < 0.1f)
+        if (abs(mapView.velocityY) < MAP_INERTIA_VEL_THRESH)
             mapView.velocityY = 0;
 
         lv_subject_set_int(&subject_map_offset_x, mapView.offsetX);
@@ -785,9 +807,8 @@ void scrollMapEvent(lv_event_t *event)
                 if (dragStarted && dt > 0)
                 {
                     mapView.scrollMap(-dx, -dy);
-                    float weight = 0.7f;
-                    mapView.velocityX = mapView.velocityX * (1.0f - weight) + (-(float)dx / (float)dt) * weight;
-                    mapView.velocityY = mapView.velocityY * (1.0f - weight) + (-(float)dy / (float)dt) * weight;
+                    mapView.velocityX = mapView.velocityX * (1.0f - MAP_VELOCITY_WEIGHT) + (-(float)dx / (float)dt) * MAP_VELOCITY_WEIGHT;
+                    mapView.velocityY = mapView.velocityY * (1.0f - MAP_VELOCITY_WEIGHT) + (-(float)dy / (float)dt) * MAP_VELOCITY_WEIGHT;
                     last_x = p.x;
                     last_y = p.y;
                     last_time = current_time;
@@ -801,7 +822,7 @@ void scrollMapEvent(lv_event_t *event)
                 lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
                 isScrollingMap = false;
                 dragStarted = false;
-                if (abs(mapView.velocityX) > 0.1f || abs(mapView.velocityY) > 0.1f)
+                if (abs(mapView.velocityX) > MAP_INERTIA_VEL_THRESH || abs(mapView.velocityY) > MAP_INERTIA_VEL_THRESH)
                 {
                     lv_subject_set_int(&subject_map_state, MAP_MODE_INERTIA);
                     if (map_inertia_timer != NULL)
@@ -915,6 +936,7 @@ void createMainScr()
     altitudeWidget(compassTile);
     speedWidget(compassTile);
     sunWidget(compassTile);
+    // mainScreen never destroyed — manual observer intentional (updateCompassScr targets two labels, no single obj)
     lv_subject_add_observer(&subject_sunrise, updateCompassScr, NULL);
     createMapImage(mapTile);
     navArrowWidget(mapTile);
@@ -969,6 +991,7 @@ void createMainScr()
     lv_subject_add_observer_obj(&subject_heading, nav_data_observer_cb, navTile, NULL);
     lv_obj_add_event_cb(navTile, updateNavEvent, LV_EVENT_VALUE_CHANGED, NULL);
     satelliteScr(satTrackTile);
+    // timer is permanent — mainScreen is never destroyed
     map_inertia_timer = lv_timer_create(map_inertia_timer_cb, 20, NULL);
     lv_timer_pause(map_inertia_timer);
 

@@ -20,7 +20,6 @@
 
 static const char *TAG = "Storage";
 
-// Global Storage instance
 Storage storage;
 
 /**

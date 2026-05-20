@@ -13,7 +13,7 @@
 #include "gpxParser.hpp"
 #include "buttonBar.hpp"
 
-extern String gpxFileFolder;  /**< GPX file folder path */
+extern char gpxFileFolder[128];  /**< GPX file folder path */
 extern bool gpxTrack;         /**< Track mode flag */
 extern bool gpxWaypoint;      /**< Waypoint mode flag */
 

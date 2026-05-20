@@ -13,15 +13,14 @@
 #define ENABLE_TEMP
 
 #include "i2c_espidf.hpp"
+#include "i2c_driver_base.hpp"
 #include <cstdint>
 
 #define BME_ADDRESS 0x76
 
-class BME280_Driver
+class BME280_Driver : public I2CDriverBase
 {
     private:
-        uint8_t i2cAddr;
-
         uint16_t dig_T1;
         int16_t dig_T2;
         int16_t dig_T3;
@@ -45,9 +44,6 @@ class BME280_Driver
 
         int32_t t_fine;
 
-        uint8_t read8(uint8_t reg);
-        uint16_t read16_LE(uint8_t reg);
-        void write8(uint8_t reg, uint8_t value);
         void readCoefficients();
 
         int32_t readRawT();
@@ -57,19 +53,18 @@ class BME280_Driver
         float compensatePressure(int32_t adc_P);
         float compensateHumidity(int32_t adc_H);
 
-    public:
-        BME280_Driver();
-        bool begin(uint8_t addr = BME_ADDRESS);
         float readTemperature();
         float readPressure();
         float readHumidity();
+
+    public:
+        BME280_Driver();
+        bool begin(uint8_t addr = BME_ADDRESS);
         float readAltitude(float seaLevelPressure = 101325.0f);
         void readAll(float &temp, float &pres, float &humi);
 };
 
 extern BME280_Driver bme;
-extern uint8_t tempValue;
-extern uint8_t tempOld;
 
 void initBME();
 

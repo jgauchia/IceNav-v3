@@ -30,7 +30,7 @@ extern Compass compass;
 extern Gps gps;
 extern Storage storage;
 extern TrackVector trackData;
-const char* TAG = "Maps";
+static const char* TAG = "Maps";
 
 /**
  * @brief Map Class constructor
@@ -256,7 +256,7 @@ Maps::ScreenCoord Maps::coord2ScreenPos(float lon, float lat, uint8_t zoomLevel,
  * @param pixelX X pixel
  * @param pixelY Y pixel
  */
-void Maps::coords2map(float lat, float lon, tileBounds bound, uint16_t *pixelX, uint16_t *pixelY)
+void Maps::coords2map(float lat, float lon, const tileBounds& bound, uint16_t *pixelX, uint16_t *pixelY)
 {
     float lon_ratio = (lon - bound.lon_min) / (bound.lon_max - bound.lon_min);
     float lat_ratio = (bound.lat_max - lat) / (bound.lat_max - bound.lat_min);
@@ -504,7 +504,7 @@ void Maps::generateMap(uint8_t zoom)
  */
 void Maps::mapRenderTask(void* pvParameters)
 {
-    Maps* instance = (Maps*)pvParameters;
+    Maps* instance = static_cast<Maps*>(pvParameters);
     uint8_t lastZoom = 0;
 
     while (1)
@@ -1119,7 +1119,7 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
     if (numPoints < 3)
         return;
 
-    uint16_t* buf = (uint16_t*)map.getBuffer();
+    uint16_t* buf = static_cast<uint16_t*>(map.getBuffer());
     uint32_t stride = 0;
     uint16_t rawColor = (color >> 8) | (color << 8);
     if (buf)
@@ -1764,7 +1764,7 @@ uint8_t* Maps::navCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t zoom
     if (!NavReader::findTileInPack(tileX, tileY, offset, size))
         return nullptr;
 
-    uint8_t* data = (uint8_t*)heap_caps_aligned_alloc(512, size, MALLOC_CAP_SPIRAM);
+    uint8_t* data = static_cast<uint8_t*>(heap_caps_aligned_alloc(512, size, MALLOC_CAP_SPIRAM));
     if (!data)
     {
         for (int i = (int)navDataCache.size() - 1; i >= 0; i--)
@@ -1775,7 +1775,7 @@ uint8_t* Maps::navCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t zoom
                 navDataCache.erase(navDataCache.begin() + i);
             }
         }
-        data = (uint8_t*)heap_caps_aligned_alloc(512, size, MALLOC_CAP_SPIRAM);
+        data = static_cast<uint8_t*>(heap_caps_aligned_alloc(512, size, MALLOC_CAP_SPIRAM));
         if (!data)
             return nullptr;
     }

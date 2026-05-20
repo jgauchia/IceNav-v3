@@ -12,7 +12,6 @@
 #include <esp_log.h>
 #include <atomic>
 #include <ESPmDNS.h>
-#include <SolarCalculator.h>
 
 int taskSleepPeriod = 10;
 
@@ -62,35 +61,10 @@ SemaphoreHandle_t      routeMutex        = nullptr;
 
 #include "navigation.hpp"
 NavState navState;
-static double transit, sunrise, sunset;
-
 #include "timezone.c"
-#include "settings.hpp" 
+#include "settings.hpp"
 #include "lvglSetup.hpp"
 #include "tasks.hpp"
-
-/**
- * @brief Calculate Sunrise and Sunset based on current GPS position and date.
- */
-void calculateSun()
-{
-    calcSunriseSunset(2000 + fix.dateTime.year, 
-                        fix.dateTime.month, 
-                        fix.dateTime.date,
-                        gps.gpsData.latitude, 
-                        gps.gpsData.longitude,
-                        transit, 
-                        sunrise, 
-                        sunset);
-    int hours = (int)sunrise + gps.gpsData.UTC;
-    int minutes = (int)round(((sunrise + gps.gpsData.UTC) - hours) * 60);
-    snprintf(gps.gpsData.sunriseHour, 6, "%02d:%02d", hours, minutes);         
-    hours = (int)sunset +  gps.gpsData.UTC;
-    minutes = (int)round(((sunset +  gps.gpsData.UTC) - hours) * 60);
-    snprintf(gps.gpsData.sunsetHour, 6, "%02d:%02d", hours, minutes); 
-    log_i("Sunrise: %s",gps.gpsData.sunriseHour);
-    log_i("Sunset: %s",gps.gpsData.sunsetHour);               
-}
 
 /**
  * @brief Initialize the ESP32 GPS Navigator system

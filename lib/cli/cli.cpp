@@ -249,14 +249,14 @@ void wcli_webfile(char *args, Stream *response)
         response->println(F("missing parameter use: webfile \033[1;32menable/disable\033[0;37m"));
     else
     {
-        if(commands.equals("enable"))
+        if (commands.equals("enable"))
         {
             cfg.saveBool(PKEYS::KWEB_FILE, true);
             response->println("");
             response->printf("Web file server \033[1;32menabled\033[0;37m\r\n");
             response->println("Please reboot device");
         }
-        if(commands.equals("disable"))
+        if (commands.equals("disable"))
         {
             cfg.saveBool(PKEYS::KWEB_FILE, false);
             response->println("");

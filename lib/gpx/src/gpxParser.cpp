@@ -11,8 +11,6 @@
 #include <freertos/task.h>
 #include "gpsMath.hpp"
 
-extern std::vector<TrackSegment> trackIndex;
-
 /**
  * @brief Helper function to format float values
  *
