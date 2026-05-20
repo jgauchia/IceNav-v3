@@ -13,20 +13,17 @@
 #define ENABLE_IMU
 
 #include "i2c_espidf.hpp"
+#include "i2c_driver_base.hpp"
 #include <cstdint>
 
 #define MPU6050_ADDRESS 0x68
 
-class MPU6050_Driver
+class MPU6050_Driver : public I2CDriverBase
 {
     private:
-        uint8_t i2cAddr;
         float accelScale;
         float gyroScale;
 
-        uint8_t read8(uint8_t reg);
-        void write8(uint8_t reg, uint8_t value);
-        int16_t read16(uint8_t reg);
         void getAccel(float &x, float &y, float &z);
         void getGyro(float &x, float &y, float &z);
         float getTemp();

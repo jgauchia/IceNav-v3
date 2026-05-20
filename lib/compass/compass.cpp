@@ -30,43 +30,7 @@ static const char* TAG = "Compass";
  *
  * @details Initializes with default I2C address and control register value.
  */
-QMC5883L_Driver::QMC5883L_Driver() : i2cAddr(QMC5883L_ADDRESS), ctrl1Value(0x01) {}
-
-/**
- * @brief Reads a single byte from a register.
- *
- * @param reg Register address.
- * @return Register value.
- */
-uint8_t QMC5883L_Driver::read8(uint8_t reg)
-{
-    return i2c.read8(i2cAddr, reg);
-}
-
-/**
- * @brief Writes a single byte to a register.
- *
- * @param reg Register address.
- * @param value Value to write.
- * @return true if write successful, false on error.
- */
-bool QMC5883L_Driver::write8(uint8_t reg, uint8_t value)
-{
-    return i2c.write8(i2cAddr, reg, value);
-}
-
-/**
- * @brief Reads a 16-bit value from two consecutive registers (LSB first).
- *
- * @param reg Starting register address.
- * @return 16-bit signed value.
- */
-int16_t QMC5883L_Driver::read16(uint8_t reg)
-{
-    uint8_t buffer[2];
-    i2c.readBytes(i2cAddr, reg, buffer, 2);
-    return (int16_t)(buffer[0] | (buffer[1] << 8));
-}
+QMC5883L_Driver::QMC5883L_Driver() : I2CDriverBase(QMC5883L_ADDRESS), ctrl1Value(0x01) {}
 
 /**
  * @brief Initializes the QMC5883L magnetometer.
@@ -175,41 +139,7 @@ bool QMC5883L_Driver::readRaw(float &x, float &y, float &z)
  *
  * @details Initializes with default I2C address and config register value.
  */
-HMC5883L_Driver::HMC5883L_Driver() : i2cAddr(HMC5883L_ADDRESS), configAValue(0x70) {}
-
-/**
- * @brief Reads a single byte from a register.
- *
- * @param reg Register address.
- * @return Register value.
- */
-uint8_t HMC5883L_Driver::read8(uint8_t reg)
-{
-    return i2c.read8(i2cAddr, reg);
-}
-
-/**
- * @brief Writes a single byte to a register.
- *
- * @param reg Register address.
- * @param value Value to write.
- */
-void HMC5883L_Driver::write8(uint8_t reg, uint8_t value)
-{
-    i2c.write8(i2cAddr, reg, value);
-}
-
-/**
- * @brief Reads a 16-bit value from two consecutive registers (MSB first).
- * @param reg Starting register address.
- * @return 16-bit signed value.
- */
-int16_t HMC5883L_Driver::read16(uint8_t reg)
-{
-    uint8_t buffer[2];
-    i2c.readBytes(i2cAddr, reg, buffer, 2);
-    return (int16_t)((buffer[0] << 8) | buffer[1]);
-}
+HMC5883L_Driver::HMC5883L_Driver() : I2CDriverBase(HMC5883L_ADDRESS), configAValue(0x70) {}
 
 /**
  * @brief Initializes the HMC5883L magnetometer.

@@ -13,15 +13,14 @@
 #define ENABLE_TEMP
 
 #include "i2c_espidf.hpp"
+#include "i2c_driver_base.hpp"
 #include <cstdint>
 
 #define BME_ADDRESS 0x76
 
-class BME280_Driver
+class BME280_Driver : public I2CDriverBase
 {
     private:
-        uint8_t i2cAddr;
-
         uint16_t dig_T1;
         int16_t dig_T2;
         int16_t dig_T3;
@@ -45,9 +44,6 @@ class BME280_Driver
 
         int32_t t_fine;
 
-        uint8_t read8(uint8_t reg);
-        uint16_t read16_LE(uint8_t reg);
-        void write8(uint8_t reg, uint8_t value);
         void readCoefficients();
 
         int32_t readRawT();

@@ -9,6 +9,7 @@
 
 #include <EasyPreferences.hpp>
 #include "i2c_espidf.hpp"
+#include "i2c_driver_base.hpp"
 
 // QMC5883L Register definitions
 #define QMC5883L_ADDRESS      0x0D
@@ -71,7 +72,7 @@
  * @class QMC5883L_Driver
  * @brief Native ESP-IDF driver for QMC5883L magnetometer.
  */
-class QMC5883L_Driver
+class QMC5883L_Driver : public I2CDriverBase
 {
 public:
     QMC5883L_Driver();
@@ -81,19 +82,14 @@ public:
     bool readRaw(float &x, float &y, float &z);
 
 private:
-    uint8_t i2cAddr;
     uint8_t ctrl1Value;
-
-    uint8_t read8(uint8_t reg);
-    bool write8(uint8_t reg, uint8_t value);
-    int16_t read16(uint8_t reg);
 };
 
 /**
  * @class HMC5883L_Driver
  * @brief Native ESP-IDF driver for HMC5883L magnetometer.
  */
-class HMC5883L_Driver
+class HMC5883L_Driver : public I2CDriverBase
 {
 public:
     HMC5883L_Driver();
@@ -103,12 +99,7 @@ public:
     bool readRaw(float &x, float &y, float &z);
 
 private:
-    uint8_t i2cAddr;
     uint8_t configAValue;
-
-    uint8_t read8(uint8_t reg);
-    void write8(uint8_t reg, uint8_t value);
-    int16_t read16(uint8_t reg);
 };
 
 /**
