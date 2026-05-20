@@ -27,8 +27,6 @@ LV_IMG_DECLARE(outtrack);
 static const void* lastIconShown = nullptr;
 static int lastDistShown = -1;
 
-extern std::vector<TrackSegment> trackIndex;
-
 /**
  * @brief Finds the closest track point index to the user's current position using an adaptive hierarchical search.
  *

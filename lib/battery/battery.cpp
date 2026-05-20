@@ -14,10 +14,8 @@ Battery battery;
 /**
  * @brief Constructs a Battery monitoring object for voltage measurement and percentage calculation.
  */
-Battery::Battery()
+Battery::Battery() : batteryMax(0.0f), batteryMin(0.0f)
 {
-    batteryMax = 0.0f;
-    batteryMin = 0.0f;
 }
 
 /**

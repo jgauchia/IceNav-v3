@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include "tft.hpp"
 #include <EasyPreferences.hpp>
 #include "i2c_espidf.hpp"
 
@@ -152,15 +151,6 @@ class KalmanFilter
             k = 0.0f;
         }
 
-        /**
-        * @brief Updates the state estimate using the Kalman filter algorithm for angular measurements.
-        *
-        * @details Applies the Kalman filter update step, taking into account the wrapped angular measurement,
-        * 		   and updates the internal state and covariance variables accordingly.
-        *
-        * @param measurement The new angle measurement to incorporate (in radians).
-        * @return float The updated state estimate (in radians, wrapped to [-π, π]).
-        */
         float update(float measurement)
         {
             measurement = wrapToPi(measurement);

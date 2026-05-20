@@ -16,8 +16,6 @@
 #include <freertos/task.h>
 
 BME280_Driver bme = BME280_Driver();
-uint8_t tempValue = 0;
-uint8_t tempOld = 0;
 
 /**
  * @brief Constructs BME280 driver with default configuration.

@@ -52,6 +52,19 @@ LV_IMG_DECLARE(finish);
 extern Gps gps;
 
 /**
+ * @brief Registers the standard drag/edit/unselect event callbacks on a widget object.
+ *
+ * @param obj  LVGL object to register events on.
+ * @param tag  String tag passed as user data to drag and unselect callbacks.
+ */
+static void registerWidgetEvents(lv_obj_t *obj, const char *tag)
+{
+    lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);
+    lv_obj_add_event_cb(obj, dragWidget, LV_EVENT_PRESSING, (char *)tag);
+    lv_obj_add_event_cb(obj, unselectWidget, LV_EVENT_RELEASED, (char *)tag);
+}
+
+/**
  * @brief Observer callback for compass updates
  * 
  * @details Updates both the heading label and the compass image rotation.
@@ -193,9 +206,7 @@ void positionWidget(lv_obj_t *screen)
     lv_obj_align(img, LV_ALIGN_TOP_LEFT, -15, -10);
     
     objUnselect(obj);
-    lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);
-    lv_obj_add_event_cb(obj, dragWidget, LV_EVENT_PRESSING, (char *)"Coords_");
-    lv_obj_add_event_cb(obj, unselectWidget, LV_EVENT_RELEASED, (char *)"Coords_");
+    registerWidgetEvents(obj, "Coords_");
 }
 
 /**
@@ -233,9 +244,7 @@ void compassWidget(lv_obj_t *screen)
     lv_subject_add_observer_obj(&subject_compass_heading, compass_observer_cb, obj, NULL);
     
     objUnselect(obj);
-    lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);
-    lv_obj_add_event_cb(obj, dragWidget, LV_EVENT_PRESSING, (char *)"Compass_");
-    lv_obj_add_event_cb(obj, unselectWidget, LV_EVENT_RELEASED, (char *)"Compass_");
+    registerWidgetEvents(obj, "Compass_");
 }
 
 /**
@@ -264,9 +273,7 @@ void altitudeWidget(lv_obj_t *screen)
     lv_obj_update_layout(altitude);
     
     objUnselect(obj);
-    lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);
-    lv_obj_add_event_cb(obj, dragWidget, LV_EVENT_PRESSING, (char *)"Altitude_");
-    lv_obj_add_event_cb(obj, unselectWidget, LV_EVENT_RELEASED, (char *)"Altitude_");
+    registerWidgetEvents(obj, "Altitude_");
 }
 
 /**
@@ -295,9 +302,7 @@ void speedWidget(lv_obj_t *screen)
     lv_obj_update_layout(speedLabel);
     
     objUnselect(obj);
-    lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);
-    lv_obj_add_event_cb(obj, dragWidget, LV_EVENT_PRESSING, (char *)"Speed_");
-    lv_obj_add_event_cb(obj, unselectWidget, LV_EVENT_RELEASED, (char *)"Speed_");
+    registerWidgetEvents(obj, "Speed_");
 }
 
 /**
@@ -334,9 +339,7 @@ void sunWidget(lv_obj_t *screen)
     lv_obj_update_layout(sunsetLabel);
     
     objUnselect(obj);
-    lv_obj_add_event_cb(obj, editWidget, LV_EVENT_LONG_PRESSED, NULL);
-    lv_obj_add_event_cb(obj, dragWidget, LV_EVENT_PRESSING, (char *)"Sun_");
-    lv_obj_add_event_cb(obj, unselectWidget, LV_EVENT_RELEASED, (char *)"Sun_");
+    registerWidgetEvents(obj, "Sun_");
 }
 
 /**

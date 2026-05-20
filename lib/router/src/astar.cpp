@@ -35,7 +35,8 @@ struct AStarState
 // In urban graphs (actual speed ~40 km/h vs assumed 130 km/h), the unweighted h
 // underestimates by ~3x, causing near-Dijkstra behavior. 1.5x keeps route quality
 // within ~5% of optimal on real road networks.
-static constexpr float ASTAR_WEIGHT = 1.5f;
+static constexpr float ASTAR_WEIGHT       = 1.5f;    /**< Heuristic inflation factor — trades optimality for speed. */
+static constexpr float METERS_PER_DEGREE  = 111319.0f; /**< Approximate metres per degree of latitude at the equator. */
 
 /**
 * @brief Calculates the heuristic estimated cost between a node and the destination.
@@ -53,7 +54,7 @@ static uint32_t heuristic(uint32_t node, const RouteNode& dst_cached, float cos_
     if (!graph.getNode(node, a)) return 0;
     float dlat = dst_cached.lat - a.lat;
     float dlon  = (dst_cached.lon - a.lon) * cos_dst_lat;
-    float dist  = sqrtf(dlat * dlat + dlon * dlon) * 111319.f;
+    float dist  = sqrtf(dlat * dlat + dlon * dlon) * METERS_PER_DEGREE;
     return (uint32_t)(dist / 36.1f * 10.f * ASTAR_WEIGHT);
 }
 

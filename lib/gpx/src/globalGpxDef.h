@@ -72,7 +72,8 @@ enum gpxAction_t
     GPX_DEL,    /**< Delete a waypoint. */
 };
 
-extern uint8_t gpxAction; /**< Indicates the current GPX waypoint action to be performed. */
+extern uint8_t gpxAction;                          /**< Indicates the current GPX waypoint action to be performed. */
+extern std::vector<TrackSegment> trackIndex;       /**< Spatial index of track segments for O(log n) search. */
 
 /**
  * @brief Track turn points structure

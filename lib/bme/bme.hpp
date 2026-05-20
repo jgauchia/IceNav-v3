@@ -57,19 +57,18 @@ class BME280_Driver
         float compensatePressure(int32_t adc_P);
         float compensateHumidity(int32_t adc_H);
 
-    public:
-        BME280_Driver();
-        bool begin(uint8_t addr = BME_ADDRESS);
         float readTemperature();
         float readPressure();
         float readHumidity();
+
+    public:
+        BME280_Driver();
+        bool begin(uint8_t addr = BME_ADDRESS);
         float readAltitude(float seaLevelPressure = 101325.0f);
         void readAll(float &temp, float &pres, float &humi);
 };
 
 extern BME280_Driver bme;
-extern uint8_t tempValue;
-extern uint8_t tempOld;
 
 void initBME();
 

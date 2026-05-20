@@ -20,24 +20,18 @@ lv_obj_t *constMsg;
 extern Gps gps;
 
 /**
- * @brief Observer callbacks for DOP labels
+ * @brief Observer callback for DOP labels (PDOP, HDOP, VDOP).
+ *
+ * @param observer LVGL observer pointer; target is the label object.
+ * @param subject  Subject carrying the DOP value scaled by 10.
+ *
+ * @details user_data must be a string literal with the prefix ("PDOP", "HDOP" or "VDOP").
  */
-static void pdop_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+static void dop_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
 {
-    lv_obj_t * label = (lv_obj_t *)lv_observer_get_target(observer);
-    lv_label_set_text_fmt(label, "PDOP: %.1f", lv_subject_get_int(subject) / 10.0f);
-}
-
-static void hdop_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
-{
-    lv_obj_t * label = (lv_obj_t *)lv_observer_get_target(observer);
-    lv_label_set_text_fmt(label, "HDOP: %.1f", lv_subject_get_int(subject) / 10.0f);
-}
-
-static void vdop_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
-{
-    lv_obj_t * label = (lv_obj_t *)lv_observer_get_target(observer);
-    lv_label_set_text_fmt(label, "VDOP: %.1f", lv_subject_get_int(subject) / 10.0f);
+    lv_obj_t *label = (lv_obj_t *)lv_observer_get_target(observer);
+    const char *prefix = (const char *)lv_observer_get_user_data(observer);
+    lv_label_set_text_fmt(label, "%s: %.1f", prefix, lv_subject_get_int(subject) / 10.0f);
 }
 
 /**
@@ -87,13 +81,13 @@ void satelliteBarDrawEvent(lv_event_t * event)
     {
         lv_draw_task_t * drawTask = lv_event_get_draw_task(event);
         lv_draw_dsc_base_t * base_dsc = (lv_draw_dsc_base_t *)lv_draw_task_get_draw_dsc(drawTask);
-        if(base_dsc->part == LV_PART_ITEMS)
+        if (base_dsc->part == LV_PART_ITEMS)
         {
             uint16_t dscId = base_dsc->id2;
             if (lv_draw_task_get_type(drawTask) == LV_DRAW_TASK_TYPE_FILL) 
             {
                 lv_draw_fill_dsc_t * fill_dsc = lv_draw_task_get_fill_dsc(drawTask);
-                if(fill_dsc) 
+                if (fill_dsc)
                 {
                     if ( strcmp(gps.satTracker[dscId].talker_id,"GP") == 0 )
                         fill_dsc->color = gps.satTracker[dscId].active ? GP_ACTIVE_COLOR : GP_INACTIVE_COLOR;
@@ -111,10 +105,10 @@ void satelliteBarDrawEvent(lv_event_t * event)
     if (e == LV_EVENT_DRAW_POST_END) 
     {
         lv_layer_t * layer = lv_event_get_layer(event);
-        static char label_bufs[MAX_SATELLLITES_IN_VIEW][2][8];
+        static char label_bufs[MAX_SATELLITES_IN_VIEW][2][8];
         lv_area_t chartObjCoords;
         lv_obj_get_coords(obj, &chartObjCoords);
-        for (uint16_t i = 0; i < gps.gpsData.satInView && i < MAX_SATELLLITES_IN_VIEW; i++) 
+        for (uint16_t i = 0; i < gps.gpsData.satInView && i < MAX_SATELLITES_IN_VIEW; i++) 
         {
             lv_point_t p;
             lv_chart_get_point_pos_by_id(obj, lv_chart_get_series_next(obj, NULL), i, &p);
@@ -250,7 +244,7 @@ static void sat_radar_draw_cb(lv_event_t * e)
     dscSat.radius = 8;
     dscSat.opa = LV_OPA_70;
 
-    for (int i = 0; i < gps.gpsData.satInView && i < MAX_SATELLLITES_IN_VIEW; i++) 
+    for (int i = 0; i < gps.gpsData.satInView && i < MAX_SATELLITES_IN_VIEW; i++) 
     {
         if ( strcmp(gps.satTracker[i].talker_id,"GP") == 0 )
             dscSat.color = gps.satTracker[i].active ? GP_ACTIVE_COLOR : GP_INACTIVE_COLOR;
@@ -265,7 +259,7 @@ static void sat_radar_draw_cb(lv_event_t * e)
         dscSat.center.y = obj_area.y1 + gps.satTracker[i].posY;
         lv_draw_arc(layer, &dscSat);
 
-        static char buf[MAX_SATELLLITES_IN_VIEW][8];
+        static char buf[MAX_SATELLITES_IN_VIEW][8];
         lv_snprintf(buf[i], sizeof(buf[i]), "%d", gps.satTracker[i].satNum);
         lv_draw_label_dsc_t dscSatLabel;
         lv_draw_label_dsc_init(&dscSatLabel);
@@ -319,15 +313,16 @@ void satelliteScr(_lv_obj_t *screen)
     altLabel = lv_label_create(infoGrid);
     lv_obj_t *labels[] = {pdopLabel, hdopLabel, vdopLabel, altLabel};
     const char *texts[] = {"PDOP: %.1f", "HDOP: %.1f", "VDOP: %.1f", "ALT: %4dm."};
-    for(int i=0; i<4; i++) {
+    for (int i = 0; i < 4; i++)
+    {
         lv_obj_set_style_text_font(labels[i], fontDefault, 0);
         lv_label_set_text_fmt(labels[i], texts[i], 0);
     }
     
     // Bind labels to their respective subjects
-    lv_subject_add_observer_obj(&subject_pdop, pdop_observer_cb, pdopLabel, NULL);
-    lv_subject_add_observer_obj(&subject_hdop, hdop_observer_cb, hdopLabel, NULL);
-    lv_subject_add_observer_obj(&subject_vdop, vdop_observer_cb, vdopLabel, NULL);
+    lv_subject_add_observer_obj(&subject_pdop, dop_observer_cb, pdopLabel, (void *)"PDOP");
+    lv_subject_add_observer_obj(&subject_hdop, dop_observer_cb, hdopLabel, (void *)"HDOP");
+    lv_subject_add_observer_obj(&subject_vdop, dop_observer_cb, vdopLabel, (void *)"VDOP");
     lv_subject_add_observer_obj(&subject_altitude, alt_sat_observer_cb, altLabel, NULL);
 
     // Bind the satellite data trigger
@@ -350,7 +345,8 @@ void satelliteScr(_lv_obj_t *screen)
     const char* gnssNames[] = {"GPS", "GLONASS", "BEIDOU"};
     lv_color_t activeColors[] = {GP_ACTIVE_COLOR, GL_ACTIVE_COLOR, BD_ACTIVE_COLOR};
     lv_color_t inactiveColors[] = {GP_INACTIVE_COLOR, GL_INACTIVE_COLOR, BD_INACTIVE_COLOR};
-    for(int i=0; i<3; i++) {
+    for (int i = 0; i < 3; i++)
+    {
         lv_obj_t *gnssLabel = lv_label_create(barCont);
         lv_obj_set_style_text_font(gnssLabel, fontSatInfo, 0);
         lv_obj_set_width(gnssLabel, 90);
@@ -373,7 +369,7 @@ void satelliteScr(_lv_obj_t *screen)
     lv_obj_set_style_pad_gap(satelliteBar, -7, LV_PART_ITEMS | LV_STATE_DEFAULT);
     lv_obj_set_style_pad_column(satelliteBar, 2, 0);
     lv_obj_set_style_pad_bottom(satelliteBar, 20, 0);
-    lv_chart_set_point_count(satelliteBar, MAX_SATELLLITES_IN_VIEW );
+    lv_chart_set_point_count(satelliteBar, MAX_SATELLITES_IN_VIEW );
     lv_obj_add_event_cb(satelliteBar, satelliteBarDrawEvent, LV_EVENT_DRAW_TASK_ADDED, NULL);
     lv_obj_add_event_cb(satelliteBar, satelliteBarDrawEvent, LV_EVENT_DRAW_POST_END, NULL);
     lv_obj_add_flag(satelliteBar, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
@@ -398,11 +394,11 @@ void satelliteScr(_lv_obj_t *screen)
  */
 void drawSatSNR()
 {
-    for (int i = 0; i < MAX_SATELLLITES_IN_VIEW ; i++)
+    for (int i = 0; i < MAX_SATELLITES_IN_VIEW ; i++)
     {
         lv_chart_set_value_by_id(satelliteBar, satelliteBarSerie, i, LV_CHART_POINT_NONE);
     }
-    for (int i = 0; i < gps.gpsData.satInView && i < MAX_SATELLLITES_IN_VIEW; ++i)
+    for (int i = 0; i < gps.gpsData.satInView && i < MAX_SATELLITES_IN_VIEW; ++i)
     {
         if (gps.satTracker[i].snr > 0)
             lv_chart_set_value_by_id(satelliteBar, satelliteBarSerie, i, gps.satTracker[i].snr);

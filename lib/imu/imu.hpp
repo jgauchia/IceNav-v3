@@ -27,15 +27,15 @@ class MPU6050_Driver
         uint8_t read8(uint8_t reg);
         void write8(uint8_t reg, uint8_t value);
         int16_t read16(uint8_t reg);
+        void getAccel(float &x, float &y, float &z);
+        void getGyro(float &x, float &y, float &z);
+        float getTemp();
 
     public:
         MPU6050_Driver();
         bool begin(uint8_t addr = MPU6050_ADDRESS);
         void setAccelRange(uint8_t range);
         void setGyroRange(uint8_t range);
-        void getAccel(float &x, float &y, float &z);
-        void getGyro(float &x, float &y, float &z);
-        float getTemp();
         void readAll(float &ax, float &ay, float &az,
                      float &gx, float &gy, float &gz, float &temp);
 };

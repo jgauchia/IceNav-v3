@@ -6,6 +6,7 @@
  */
 
 #include "compass.hpp"
+#include "tft.hpp"
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -483,13 +484,14 @@ float MPU9250_Driver::getMagZ_uT() { return magZ; }
  * @brief Compass class constructor with default filter and calibration values.
  */
 Compass::Compass()
-        : declinationAngle(0.22f), offX(0.0f), offY(0.0f),
-        headingSmooth(0.0f), headingPrevious(0.0f),
-        minX(0.0f), maxX(0.0f), minY(0.0f), maxY(0.0f),
-        kalmanFilterEnabled(true),
-        kalmanFilter(0.01f, 0.1f, 1.0f, 0.0f)
+        : declinationAngle(0.22f), // default ~12.6 deg (Barcelona) in radians
+          offX(0.0f), offY(0.0f),
+          headingSmooth(0.0f), headingPrevious(0.0f),
+          minX(0.0f), maxX(0.0f), minY(0.0f), maxY(0.0f),
+          kalmanFilterEnabled(true),
+          kalmanFilter(0.01f, 0.1f, 1.0f, 0.0f),
+          previousDegrees(0)
 {
-    previousDegrees = 0;
 }
 
 /**
