@@ -24,11 +24,11 @@ class MPU6050_Driver : public I2CDriverBase
         float accelScale;
         float gyroScale;
 
-        void getAccel(float &x, float &y, float &z);
         void getGyro(float &x, float &y, float &z);
         float getTemp();
 
     public:
+        void getAccel(float &x, float &y, float &z);
         MPU6050_Driver();
         bool begin(uint8_t addr = MPU6050_ADDRESS);
         void setAccelRange(uint8_t range);
