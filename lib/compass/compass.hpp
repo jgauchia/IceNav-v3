@@ -11,6 +11,10 @@
 #include "i2c_espidf.hpp"
 #include "i2c_driver_base.hpp"
 
+#ifdef MPU6050
+    #include "imu.hpp"
+#endif
+
 // QMC5883L Register definitions
 #define QMC5883L_ADDRESS      0x0D
 #define QMC5883L_REG_DATA     0x00
@@ -38,10 +42,12 @@
 // Samples: 0=1, 1=2, 2=4, 3=8
 
 // MPU9250/AK8963 Register definitions
-#define MPU9250_ADDRESS       0x68
-#define MPU9250_REG_WHO_AM_I  0x75
-#define MPU9250_REG_PWR_MGMT1 0x6B
-#define MPU9250_REG_INT_PIN   0x37
+#define MPU9250_ADDRESS         0x68
+#define MPU9250_REG_WHO_AM_I    0x75
+#define MPU9250_REG_PWR_MGMT1   0x6B
+#define MPU9250_REG_INT_PIN     0x37
+#define MPU9250_REG_ACCEL_XOUT  0x3B
+#define MPU9250_REG_ACCEL_CFG   0x1C
 
 #define AK8963_ADDRESS        0x0C
 #define AK8963_REG_WIA        0x00
@@ -112,6 +118,7 @@ public:
     MPU9250_Driver();
     bool begin(uint8_t addr = MPU9250_ADDRESS);
     void readSensor();
+    void readAccel(float &ax, float &ay, float &az);
     float getMagX_uT();
     float getMagY_uT();
     float getMagZ_uT();
@@ -121,6 +128,7 @@ private:
     uint8_t akAddr;
     float magX, magY, magZ;
     float asaX, asaY, asaZ;
+    float accelScale;
 
     uint8_t read8(uint8_t addr, uint8_t reg);
     void write8(uint8_t addr, uint8_t reg, uint8_t value);
