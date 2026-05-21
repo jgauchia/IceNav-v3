@@ -16,7 +16,10 @@
         "-DAT6558D_GPS",
         "-DQMC5883",
         "-DBME280",
-        "-DMPU6050"
+        "-DMPU6050",
+        "-DIMU_ACCEL_X_SIGN=-1",
+        "-DIMU_ACCEL_Y_SIGN=1",
+        "-DIMU_ACCEL_Z_SIGN=-1"
       ],
       "f_cpu": "240000000L",
       "f_flash": "80000000L",

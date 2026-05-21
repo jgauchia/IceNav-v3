@@ -74,6 +74,18 @@
     #define ENABLE_IMU
 #endif
 
+#ifdef ENABLE_IMU
+    #ifndef IMU_ACCEL_X_SIGN
+        #define IMU_ACCEL_X_SIGN 1
+    #endif
+    #ifndef IMU_ACCEL_Y_SIGN
+        #define IMU_ACCEL_Y_SIGN 1
+    #endif
+    #ifndef IMU_ACCEL_Z_SIGN
+        #define IMU_ACCEL_Z_SIGN 1
+    #endif
+#endif
+
 /**
  * @class QMC5883L_Driver
  * @brief Native ESP-IDF driver for QMC5883L magnetometer.

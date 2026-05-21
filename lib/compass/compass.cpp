@@ -562,12 +562,12 @@ int Compass::getHeading()
         IMU.readAccel(ax, ay, az);
     #endif
 
-    #ifdef ICENAV_BOARD
-        az = -az;
-    #endif
+    ax = ax * IMU_ACCEL_X_SIGN;
+    ay = ay * IMU_ACCEL_Y_SIGN;
+    az = az * IMU_ACCEL_Z_SIGN;
 
     float pitch = atan2f(ay, sqrtf(ax * ax + az * az));
-    float roll  = atan2f(-ax, az);
+    float roll  = atan2f(ax, az);
 
     float sinPitch = sinf(pitch);
     float cosPitch = cosf(pitch);

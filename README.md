@@ -128,6 +128,20 @@ To do this, simply include the following Build Flag in the required env in platf
 Other setups like another sensors types, etc... not listed in the specs, now **They are not included**
 
 If you wish to add any other type of sensor, module, etc., you can create a PR without any problem, and we will try to implement it. Thank you!
+
+### IMU Accelerometer Axis Configuration
+
+When using an IMU for tilt-compensated heading (`-DMPU6050` or `-DIMU_MPU9250`), the physical mounting orientation must be configured via build flags.
+
+| Flag | Default | Description |
+|:-----|:--------|:------------|
+| `-DIMU_ACCEL_X_SIGN` | `1` | Sign applied to raw ax (+1 or -1) |
+| `-DIMU_ACCEL_Y_SIGN` | `1` | Sign applied to raw ay (+1 or -1) |
+| `-DIMU_ACCEL_Z_SIGN` | `1` | Sign applied to raw az (+1 or -1) |
+
+The correct value for each axis depends on how the IMU is physically mounted. If tilting the device causes the heading to drift instead of remaining stable, invert the sign of the affected axis.
+
+These flags can be set either in the board definition JSON (`boards/*.json`) under `extra_flags`, or in `platformio.ini` under `build_flags` for the target environment.
 </details>
 
 ## Wiring
