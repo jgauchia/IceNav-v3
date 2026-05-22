@@ -284,6 +284,7 @@ Some extra details:
     mapComp     custom          true           Show compass in map
  mapCompRot     custom          true           Rotate map with the compass
   showClimb     custom          true           Show Climb analyzer when following track 
+      map3D     custom          true           Show Pseudo 3D view when navigating track or waypoint
      simNav     custom          false          Indicates whether navigation simulation mode is enabled or disabled
       gpsTX     custom          43             GPS Tx gpio
       gpsRX     custom          44             GPS Rx gpio

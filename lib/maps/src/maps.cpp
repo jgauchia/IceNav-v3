@@ -42,7 +42,9 @@ Maps::Maps() : navLastZoom_(0),
                lastRenderedHeading(0xFFFF),
                lastRenderedArrowPos({-32768, -32768}),
                lastRenderedDisplayOffsetX(-32768),
-               lastRenderedDisplayOffsetY(-32768){
+               lastRenderedDisplayOffsetY(-32768),
+               _mapTilt(60.0f),
+               _focalLength(300.0f){
     static_assert(Maps::MAX_FEATURE_POOL_SIZE <= 65535U,
         "featurePool index stored as uint16_t — pool size must not exceed 65535");
     projBuf32X.reserve(MAX_POLYGON_POINTS);
@@ -419,6 +421,7 @@ void Maps::generateMap(uint8_t zoom)
         {
             if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(100)) == pdTRUE)
             {
+                update3DCache();
                 drawTrack(mapTempSprite);
                 trackNeedsRedraw = false;
                 Maps::redrawMap = true;
@@ -436,11 +439,12 @@ void Maps::generateMap(uint8_t zoom)
         navLastZoom_ = zoom;
         navNeedsRender_ = false;
         latLonToPixel(destLat, destLon, (int16_t&)wptPosX, (int16_t&)wptPosY);
-        if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(100)) == pdTRUE)                                                         
-        {                                                                                                                            
-            drawTrack(mapTempSprite);                                                                                                
-            xSemaphoreGiveRecursive(mapMutex);                                                                                       
-        }                  
+        if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(100)) == pdTRUE)
+        {
+            update3DCache();
+            drawTrack(mapTempSprite);
+            xSemaphoreGiveRecursive(mapMutex);
+        }
         Maps::redrawMap = true;
         return;
     }
@@ -625,6 +629,7 @@ void Maps::mapRenderTask(void* pvParameters)
                 if (instance->mapTempSprite.getBuffer())
                     instance->mapTempSprite.fillSprite(0xF7BE);
 
+                instance->update3DCache();
                 instance->placedLabelsCache.clear();
                 instance->mapTempSprite.startWrite();
                 uint32_t lastYield = millis();
@@ -775,8 +780,8 @@ void Maps::displayMap()
         const float lon = gps.gpsData.longitude;
         const int8_t gridOffset = tilesGrid / 2;
         Maps::navArrowPosition = Maps::coord2ScreenPos(lon, lat, Maps::zoomLevel, Maps::mapTileSize);
-        
-        // Hysteresis: Skip expensive pushRotated if visual change is minimal and no redraw is forced
+
+        // Hysteresis: skip redraw if nothing changed
         if (!Maps::redrawMap)
         {
             if (mapHeading == lastRenderedHeading &&
@@ -791,15 +796,18 @@ void Maps::displayMap()
         lastRenderedHeading = mapHeading;
         lastRenderedArrowPos = navArrowPosition;
 
-        // Pivot in large source sprite (GPS position)
-        Maps::mapTempSprite.setPivot(gridOffset * mapTileSize + Maps::navArrowPosition.posX,
-                                     gridOffset * mapTileSize + Maps::navArrowPosition.posY);
-        
-        // Pivot in small destination sprite (Center of viewport)
-        Maps::mapSprite.setPivot(mapScrWidth / 2, mapScrHeight / 2);
-        
-        // Rotate and crop directly to mapSprite
-        Maps::mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
+        if (_use3DCache)
+        {
+            // 3D mode: scanline perspective transform with heading baked in
+            apply3DPerspective(mapHeading);
+        }
+        else
+        {
+            Maps::mapTempSprite.setPivot(gridOffset * mapTileSize + Maps::navArrowPosition.posX,
+                                         gridOffset * mapTileSize + Maps::navArrowPosition.posY);
+            Maps::mapSprite.setPivot(mapScrWidth / 2, mapScrHeight / 2);
+            Maps::mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
+        }
     }
     else
     {
@@ -838,15 +846,120 @@ void Maps::setWaypoint(float wptLat, float wptLon)
 {
     Maps::destLat = wptLat;
     Maps::destLon = wptLon;
+    Maps::hasWaypoint = true;
 }
 
 /**
  * @brief Mark map for redraw
  */
+/**
+ * @brief Returns true when there is an active navigation target (track or waypoint).
+ */
+bool Maps::isNavActive() const
+{
+    if (trackData.size() > 0)
+        return true;
+    if (hasWaypoint)
+        return true;
+    return false;
+}
+
+void Maps::update3DCache()
+{
+    _use3DCache = mapSet.map3D && mapSet.vectorMap && isNavActive() && !_scrolling;
+}
+
+/**
+ * @brief Applies a perspective scanline transform from mapTempSprite to mapSprite.
+ *
+ * @details Reads the 2D tile-space sprite (mapTempSprite), applies heading rotation and
+ *          perspective projection in a single scanline pass, and writes directly into
+ *          mapSprite (the viewport buffer). The GPS position is placed at the lower third
+ *          of the viewport. For each output scanline Y, the corresponding ground-plane Y
+ *          in the source sprite is computed via inverse perspective, then each pixel X is
+ *          sampled by rotating back from heading-up screen space to tile space.
+ *
+ * @param heading  Current map heading in degrees (0 = north up, 90 = east up).
+ */
+void Maps::apply3DPerspective(uint16_t heading)
+{
+    uint16_t* src = static_cast<uint16_t*>(mapTempSprite.getBuffer());
+    uint16_t* dst = static_cast<uint16_t*>(mapSprite.getBuffer());
+    if (!src || !dst)
+        return;
+
+    const int srcW = (int)(mapTempSprite.bufferLength() / (tileHeight * 2));
+    const int srcH = (int)tileHeight;
+    const int dstW = (int)mapScrWidth;
+    const int dstH = (int)mapScrHeight;
+    const int dstStride = (int)(mapSprite.bufferLength() / (mapScrHeight * 2));
+
+    // GPS position in tile-space (center of the tile grid)
+    const int8_t gridOffset = tilesGrid / 2;
+    const int gpsTileX = gridOffset * mapTileSize + (int)navArrowPosition.posX;
+    const int gpsTileY = gridOffset * mapTileSize + (int)navArrowPosition.posY;
+
+    // GPS lands at lower third of the viewport
+    const int gpsScreenY = dstH * 3 / 4;
+
+    // Heading rotation: rotate tile-space coords so heading points up
+    const float headingRad = static_cast<float>(heading) * (static_cast<float>(M_PI) / 180.0f);
+    const float cosH = cosf(headingRad);
+    const float sinH = sinf(headingRad);
+
+    // Perspective parameters: horizon at top quarter of screen
+    const int horizonScreenY = dstH / 5;
+    const float tiltRad = _mapTilt * (static_cast<float>(M_PI) / 180.0f);
+
+    // Sky color: soft blue ~#A8C8E8 (byte-swapped for direct buffer write)
+    const uint16_t skyColor = 0x5DAE;
+
+    for (int y = 0; y < dstH; y++)
+    {
+        uint16_t* dstRow = dst + y * dstStride;
+
+        if (y <= horizonScreenY)
+        {
+            for (int x = 0; x < dstW; x++)
+                dstRow[x] = skyColor;
+            continue;
+        }
+
+        // t=0 at horizon, t=1 at GPS screen position
+        float t = static_cast<float>(y - horizonScreenY) / static_cast<float>(gpsScreenY - horizonScreenY);
+        if (t <= 0.0f)
+            continue;
+
+        float scale = t / cosf(tiltRad);
+
+        // Positive srcRelY = ahead (up in heading-up view = forward direction)
+        float srcRelY = (_focalLength / scale) * (1.0f - t) / t;
+
+        for (int x = 0; x < dstW; x++)
+        {
+            float screenXRel = static_cast<float>(x) - static_cast<float>(dstW) * 0.5f;
+            float srcRelX = screenXRel / scale;
+
+            // Rotate from heading-up back to tile-space
+            float tileRelX =  srcRelX * cosH + srcRelY * sinH;
+            float tileRelY = -srcRelX * sinH + srcRelY * cosH;
+
+            int sx = gpsTileX + (int)(tileRelX);
+            int sy = gpsTileY - (int)(tileRelY);
+
+            if (sx >= 0 && sx < srcW && sy >= 0 && sy < srcH)
+                dstRow[x] = src[sy * srcW + sx];
+            else
+                dstRow[x] = skyColor;
+        }
+    }
+}
+
 void Maps::updateMap()
 {
     Maps::oldMapTile = {};
     navNeedsRender_ = true;
+    update3DCache();
 }
 
 /**
@@ -872,6 +985,7 @@ void Maps::panMap(int8_t dx, int8_t dy)
 void Maps::centerOnGps(float lat, float lon)
 {
     Maps::followGps = true;
+    _scrolling = false;
     Maps::currentMapTile.zoom = Maps::zoomLevel;
     Maps::currentMapTile.tilex = Maps::lon2tilex(lon, Maps::currentMapTile.zoom);
     Maps::currentMapTile.tiley = Maps::lat2tiley(lat, Maps::currentMapTile.zoom);
@@ -909,6 +1023,7 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
 {
     pendingDx += dx;
     pendingDy += dy;
+    _scrolling = true;
 
     if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(10)) != pdTRUE)
         return;
@@ -1417,6 +1532,7 @@ void Maps::renderNavLineString(const FeatureRef& ref, TFT_eSprite& map, bool isC
     {
         int16_t px = coords[i * 2];
         int16_t py = coords[i * 2 + 1];
+
         if (i > 0)
         {
             if (abs(px - lastPx) < lodThreshold && abs(py - lastPy) < lodThreshold)
@@ -1506,14 +1622,10 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
             continue;
         projBuf32X[actualPoints] = curX;
         projBuf32Y[actualPoints] = curY;
-        if (curX < minPx)
-            minPx = curX;
-        if (curX > maxPx)
-            maxPx = curX;
-        if (curY < minPy)
-            minPy = curY;
-        if (curY > maxPy)
-            maxPy = curY;
+        if (curX < minPx) minPx = curX;
+        if (curX > maxPx) maxPx = curX;
+        if (curY < minPy) minPy = curY;
+        if (curY > maxPy) maxPy = curY;
         lastX = curX;
         lastY = curY;
         actualPoints++;
@@ -1577,6 +1689,7 @@ void Maps::renderNavPoint(const FeatureRef& ref, TFT_eSprite& map)
     int32_t y = NavReader::decodeZigZag(NavReader::readVarInt(p));
     int16_t px = ref.tileOffsetX + (x >> 4);
     int16_t py = ref.tileOffsetY + (y >> 4);
+
     if (px >= 0 && px < (int)tileWidth && py >= 0 && py < (int)tileHeight)
         map.fillCircle(px, py, 3, ref.color);
 }

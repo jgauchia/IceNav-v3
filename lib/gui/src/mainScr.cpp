@@ -153,6 +153,11 @@ static void async_map_update_cb(void * user_data)
         map_img_dsc.data = (const uint8_t *)mapView.mapBuffer;
         lv_obj_invalidate(mapImage);
         mapView.redrawMap = false;
+
+        if (mapView.is3DActive())
+            lv_obj_align(navArrow, LV_ALIGN_BOTTOM_MID, 0, -(mapView.mapScrHeight / 4));
+        else
+            lv_obj_align(navArrow, LV_ALIGN_CENTER, 0, 0);
     }
 
     lv_obj_set_pos(mapImage, 0, 0);

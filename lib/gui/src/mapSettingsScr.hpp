@@ -27,6 +27,8 @@ static lv_obj_t *checkSpeed;           /**< Checkbox for displaying speed on the
 static lv_obj_t *checkScale;           /**< Checkbox for displaying map scale. */
 static lv_obj_t *checkFullScreen;      /**< Checkbox for enabling fullscreen map display. */
 static lv_obj_t *checkClimb;           /**< Checkbox for displaying Climb Analyzer */
+static lv_obj_t *check3DMap;           /**< Checkbox for enabling 3D perspective view (vector only) */
+static lv_obj_t *list3DMap;            /**< List row container for the 3D Map option */
 
 
 static void mapSettingsEvents(lv_event_t *event);

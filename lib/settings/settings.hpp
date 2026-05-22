@@ -72,6 +72,7 @@ struct MAP
     bool vectorMap;         /**< Map type: true for vector, false for rendered */
     bool showMapScale;      /**< Show map scale on screen */
     bool showClimb;         /**< Show Climb analyzer */
+    bool map3D;             /**< Enable pseudo-3D perspective view */
 };
 extern MAP mapSet; /**< Global instance for map settings */
 

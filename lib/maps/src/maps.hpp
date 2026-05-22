@@ -70,8 +70,9 @@ private:
     uint16_t wptPosY;
     TFT_eSprite mapTempSprite = TFT_eSprite(&tft);
     TFT_eSprite mapSprite = TFT_eSprite(&tft);
-    float destLat;
-    float destLon;
+    float destLat = 0.0f;
+    float destLon = 0.0f;
+    bool hasWaypoint = false;
     uint8_t zoomLevel;
     ScreenCoord navArrowPosition;
 
@@ -90,6 +91,15 @@ private:
     void panMap(int8_t dx, int8_t dy);
     uint16_t darkenRGB565(const uint16_t color, const float amount = 0.4f);
     void fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset, uint16_t ringCount = 1, const uint16_t* ringEnds = nullptr);
+
+    float _mapTilt;
+    float _focalLength;
+    bool _scrolling = false;
+    bool _use3DCache = false;
+
+    bool isNavActive() const;
+    void update3DCache();
+    void apply3DPerspective(uint16_t heading);
 
 public:
 #ifdef T4_S3
@@ -206,6 +216,7 @@ public:
     bool trackNeedsRedraw = false;
     void redrawTrack();
     bool isRendering() const { return pendingTilesNotEmpty_; }
+    bool is3DActive() const { return _use3DCache; }
 
 private:
     enum TileType
