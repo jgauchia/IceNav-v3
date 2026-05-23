@@ -35,7 +35,6 @@ extern lv_subject_t subject_map_state;
 extern lv_subject_t subject_map_offset_x;
 extern lv_subject_t subject_map_offset_y;
 extern lv_subject_t subject_sunrise;
-extern lv_subject_t subject_nav_active;   // 0=inactive, 1=GPX track, 2=A* route
 extern lv_subject_t subject_rerouting;    // 0=normal, 1=calculating route
 extern lv_subject_t subject_climb_active; // 0=hidden, 1=visible
 extern lv_subject_t subject_climb_dist;   // remaining climb distance (meters, int)
@@ -49,6 +48,7 @@ extern lv_subject_t subject_climb_avg_grade;   // avgGrade * 10 (int)
 extern lv_subject_t subject_climb_total_dist;  // totalDist of segment (meters, int)
 extern lv_subject_t subject_climb_total_gain;  // totalGain of segment (meters, int)
 extern lv_subject_t subject_climb_approaching; // 0=inside climb, 1=approaching start
+extern lv_subject_t subject_map_3d;            // 0=2D view, 1=pseudo-3D view
 
 #ifdef ENABLE_TEMP
 extern lv_subject_t subject_temp;

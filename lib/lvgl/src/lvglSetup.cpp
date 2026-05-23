@@ -105,14 +105,22 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     const int DRAG_THRESHOLD = 30; // Increased threshold to 30px
 
     int count = 0;
+    static lv_indev_state_t lastTouchState = LV_INDEV_STATE_RELEASED;
+    static lv_point_t lastTouchPoint = {0, 0};
 
     #ifdef ICENAV_BOARD
-        // Protect I2C bus access for FT5x06 on shared bus
-        // Try lock without waiting. If bus busy, skip this touch frame.
-        if (i2c.lock(0)) 
+        // Protect I2C bus access for FT5x06 on shared bus.
+        // If bus is busy, hold the last reported state to avoid glitching the long-press timer.
+        if (i2c.lock(0))
         {
             count = tft.getTouch(touchRaw, TOUCH_MAX_POINTS);
             i2c.unlock();
+        }
+        else
+        {
+            data->state = lastTouchState;
+            data->point = lastTouchPoint;
+            return;
         }
     #else
         count = tft.getTouch(touchRaw, TOUCH_MAX_POINTS);
@@ -124,7 +132,8 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     if (count == 0)
     {
         data->state = LV_INDEV_STATE_RELEASED;
-        startX = -1; 
+        lastTouchState = LV_INDEV_STATE_RELEASED;
+        startX = -1;
 
         if (pinchActive && lastZoomDir != 0)
         {
@@ -141,23 +150,33 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
         if (countTouchReleases)
         {
             countTouchReleases = false;
-            
+
             if (!isDrag)
             {
                 uint32_t touchReleaseTime = millis_idf();
                 if (!firstTouchReleaseTime)
+                {
                     firstTouchReleaseTime = touchReleaseTime;
-                numberTouchReleases++;
+                    lastTouchReleaseTime = touchReleaseTime;
+                    numberTouchReleases++;
+                }
+                else if (touchReleaseTime - lastTouchReleaseTime >= TOUCH_DOUBLE_TAP_MIN_INTERVAL
+                         && numberTouchReleases < 2)
+                {
+                    lastTouchReleaseTime = touchReleaseTime;
+                    numberTouchReleases++;
+                }
             }
             else
             {
                 numberTouchReleases = 0;
                 firstTouchReleaseTime = 0;
+                lastTouchReleaseTime = 0;
             }
             isDrag = false;
         }
 
-        if (millis_idf() - firstTouchReleaseTime > TOUCH_DOUBLE_TOUCH_INTERVAL)
+        if (firstTouchReleaseTime && millis_idf() - firstTouchReleaseTime > TOUCH_DOUBLE_TOUCH_INTERVAL)
         {
             if (numberTouchReleases == 2)
             {
@@ -167,7 +186,8 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 
             numberTouchReleases = 0;
             firstTouchReleaseTime = 0;
-        }  
+            lastTouchReleaseTime = 0;
+        }
     }
     else
     {
@@ -202,6 +222,8 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
             lastZoomDir = ZOOM_NONE;
             lastTime = now;
             data->state = LV_INDEV_STATE_PRESSED;
+            lastTouchState = LV_INDEV_STATE_PRESSED;
+            lastTouchPoint = data->point;
         }
         else if (count == 2)
         {

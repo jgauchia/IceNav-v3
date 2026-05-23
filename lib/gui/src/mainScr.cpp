@@ -46,6 +46,8 @@ lv_obj_t *mapTile;
 lv_obj_t *satTrackTile;
 lv_obj_t *btnZoomIn;
 lv_obj_t *btnZoomOut;
+lv_obj_t *btnToggle3D;
+static lv_obj_t *toggle3DImg;
 lv_obj_t *mapImage;
 static lv_image_dsc_t map_img_dsc;
 extern Maps mapView;
@@ -153,6 +155,11 @@ static void async_map_update_cb(void * user_data)
         map_img_dsc.data = (const uint8_t *)mapView.mapBuffer;
         lv_obj_invalidate(mapImage);
         mapView.redrawMap = false;
+
+        if (mapView.is3DActive())
+            lv_obj_align(navArrow, LV_ALIGN_BOTTOM_MID, 0, -(mapView.mapScrHeight / 4));
+        else
+            lv_obj_align(navArrow, LV_ALIGN_CENTER, 0, 0);
     }
 
     lv_obj_set_pos(mapImage, 0, 0);
@@ -171,6 +178,17 @@ static void async_map_update_cb(void * user_data)
 void triggerMapRedraw()
 {
     lv_async_call(async_map_update_cb, NULL);
+}
+
+/**
+ * @brief Toggle 3D/2D map view event callback.
+ *
+ * @param event LVGL event pointer.
+ */
+static void toggle3DEvent(lv_event_t *event)
+{
+    int32_t current = lv_subject_get_int(&subject_map_3d);
+    lv_subject_set_int(&subject_map_3d, current ? 0 : 1);
 }
 
 /**
@@ -606,6 +624,24 @@ static void nav_data_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
 }
 
 /**
+ * @brief Observer callback for subject_map_3d — toggles pseudo-3D perspective in real time.
+ *
+ * @details Synchronizes mapSet.map3D with the subject value, invalidates the tile cache,
+ *          and schedules an immediate redraw via lv_async_call.
+ *
+ * @param observer Pointer to the observer.
+ * @param subject Pointer to the subject.
+ */
+static void map_3d_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+{
+    mapSet.map3D = (lv_subject_get_int(subject) != 0);
+    if (toggle3DImg != NULL)
+        lv_img_set_src(toggle3DImg, mapSet.map3D ? toggle3DIconFile : toggle2DIconFile);
+    mapView.updateMap();
+    triggerMapRedraw();
+}
+
+/**
  * @brief Get active tile
  *
  * @details Handles tileview scroll event, updates active tile index, and manages map/widget visibility and bar status.
@@ -990,6 +1026,19 @@ void createMainScr()
     lv_subject_add_observer_obj(&subject_lon, nav_data_observer_cb, navTile, NULL);
     lv_subject_add_observer_obj(&subject_heading, nav_data_observer_cb, navTile, NULL);
     lv_obj_add_event_cb(navTile, updateNavEvent, LV_EVENT_VALUE_CHANGED, NULL);
+    btnToggle3D = lv_obj_create(mapTile);
+    lv_obj_set_size(btnToggle3D, 60, 60);
+    lv_obj_clear_flag(btnToggle3D, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_style(btnToggle3D, &styleMapWidget, 0);
+    lv_obj_add_flag(btnToggle3D, (lv_obj_flag_t)(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_FLOATING));
+    lv_obj_align(btnToggle3D, LV_ALIGN_TOP_RIGHT, 0, 170);
+    toggle3DImg = lv_img_create(btnToggle3D);
+    lv_img_set_zoom(toggle3DImg, buttonScale);
+    lv_obj_center(toggle3DImg);
+    lv_obj_add_flag(btnToggle3D, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_event_cb(btnToggle3D, toggle3DEvent, LV_EVENT_CLICKED, NULL);
+    lv_subject_set_int(&subject_map_3d, mapSet.map3D ? 1 : 0);
+    lv_subject_add_observer_obj(&subject_map_3d, map_3d_observer_cb, mapTile, NULL);
     satelliteScr(satTrackTile);
     // timer is permanent — mainScreen is never destroyed
     map_inertia_timer = lv_timer_create(map_inertia_timer_cb, 20, NULL);

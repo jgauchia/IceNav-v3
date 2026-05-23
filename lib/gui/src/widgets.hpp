@@ -64,6 +64,8 @@ static const char *sunsetIconFile     = "/sunset.bin";      /**< Sunset icon */
 static const char *navArrowIconFile   = "/navarrow.bin";    /**< Navigation arrow icon */
 static const char *zoomIconFile       = "/zoom.bin";        /**< Zoom map icon */
 static const char *mapSpeedIconFile   = "/mapspeed.bin";    /**< Speed map icon */
+static const char *toggle3DIconFile   = "/2dview.bin";        /**< 3D map mode toggle icon */
+static const char *toggle2DIconFile   = "/3dview.bin";    /**< 2D map mode toggle icon */
 
 
 void positionWidget(lv_obj_t *screen);
