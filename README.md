@@ -35,9 +35,9 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 |:-:|:-:|:-:|:-:|:-:|
 | Rendered Map | Vectorized Map | Navigation Screen | Navigation Screen | Satellite Info |
 
-|<img src="images/dev/addwpt_n.jpg">|<img src="images/dev/addwpt_l.jpg">|<img src="images/dev/wptlist.jpg">|
-|:-:|:-:|:-:|
-| Add Waypoint | Add Waypoint (landscape) | Waypoint List |
+|<img src="images/dev/addwpt_n.jpg">|<img src="images/dev/addwpt_l.jpg">|<img src="images/dev/wptlist.jpg">|<img src="images/dev/3dMap.png">|
+|:-:|:-:|:-:|:-:|
+| Add Waypoint | Add Waypoint (landscape) | Waypoint List | 3D Map view |
 
 |<img src="images/dev/settings.jpg">|<img src="images/dev/compasscal.jpg">|<img src="images/dev/touchcal.jpg">|<img src="images/dev/mapsettings.jpg">|<img src="images/dev/devicesettings.png">|
 |:-:|:-:|:-:|:-:|:-:|
