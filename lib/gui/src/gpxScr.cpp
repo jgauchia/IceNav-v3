@@ -25,6 +25,7 @@ extern std::vector<TurnPoint> turnPoints; /**< Vector containing turn points */
 extern ClimbAnalyzer climbAnalyzer;       /**< Climb profile analyzer */
 
 lv_obj_t *listGPXScreen;                /**< Add Waypoint screen */
+static bool longPressHandled = false;   /**< Guard to prevent repeated long-press action per gesture */
 
 /**
  * @brief Loads a GPX waypoint or track from the selected file.
@@ -150,8 +151,12 @@ void gpxListEvent(lv_event_t *event)
     uint32_t row;
     uint32_t col;
 
-    if (code == LV_EVENT_LONG_PRESSED)
+    if (code == LV_EVENT_RELEASED)
+        longPressHandled = false;
+
+    if (code == LV_EVENT_LONG_PRESSED && !longPressHandled)
     {
+        longPressHandled = true;
         lv_table_get_selected_cell(obj, &row, &col);
 
         if (row != 0)
@@ -218,6 +223,7 @@ void createGpxListScreen()
  */
 void updateGpxListScreen()
 {
+    longPressHandled = false;
     lv_obj_clean(listGPXScreen);
     lv_table_set_row_count(listGPXScreen, 1);
     isMainScreen = false;
