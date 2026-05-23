@@ -45,6 +45,10 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
         if (loadWpt.lat != 0 && loadWpt.lon != 0)
         {
             lv_obj_clear_flag(navTile, LV_OBJ_FLAG_HIDDEN);
+            if (mapSet.vectorMap)
+                lv_obj_clear_flag(btnToggle3D, LV_OBJ_FLAG_HIDDEN);
+            else
+                lv_obj_add_flag(btnToggle3D, LV_OBJ_FLAG_HIDDEN);
 
             lv_label_set_text_fmt(latNav, "%s", latFormatString(loadWpt.lat));
             lv_label_set_text_fmt(lonNav, "%s", lonFormatString(loadWpt.lon));
@@ -56,13 +60,15 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
             routeDstLat = loadWpt.lat;
             routeDstLon = loadWpt.lon;
             lv_subject_set_int(&subject_rerouting, 1);
-            lv_subject_set_int(&subject_nav_active, 2);
             rerouteRequested.store(true);
 
             lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
         }
         else
+        {
             lv_obj_add_flag(navTile, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(btnToggle3D, LV_OBJ_FLAG_HIDDEN);
+        }
     }
 
     if (gpxTrack)
@@ -76,6 +82,8 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
             climbAnalyzer.analyze(trackData);
         turnPoints = gpx.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, trackData);
         isTrackLoaded = !trackData.empty();
+        if (isTrackLoaded && mapSet.vectorMap)
+            lv_obj_clear_flag(btnToggle3D, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(turnByTurn, LV_OBJ_FLAG_HIDDEN);
         mapView.updateMap();
         mapView.redrawTrack();
@@ -186,6 +194,7 @@ void gpxListEvent(lv_event_t *event)
         else if (row == 0)
         {
             lv_obj_add_flag(navTile, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(btnToggle3D, LV_OBJ_FLAG_HIDDEN);
             loadMainScreen();
         }
     }

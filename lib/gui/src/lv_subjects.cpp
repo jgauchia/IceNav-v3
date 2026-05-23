@@ -31,7 +31,6 @@ lv_subject_t subject_map_state;
 lv_subject_t subject_map_offset_x;
 lv_subject_t subject_map_offset_y;
 lv_subject_t subject_sunrise;
-lv_subject_t subject_nav_active;
 lv_subject_t subject_rerouting;
 lv_subject_t subject_climb_active;
 lv_subject_t subject_climb_dist;
@@ -45,6 +44,7 @@ lv_subject_t subject_climb_avg_grade;
 lv_subject_t subject_climb_total_dist;
 lv_subject_t subject_climb_total_gain;
 lv_subject_t subject_climb_approaching;
+lv_subject_t subject_map_3d;
 
 #ifdef ENABLE_TEMP
 lv_subject_t subject_temp;
@@ -79,7 +79,6 @@ void init_lv_subjects()
     lv_subject_init_int(&subject_map_offset_x, 0);
     lv_subject_init_int(&subject_map_offset_y, 0);
     lv_subject_init_int(&subject_sunrise, 0);
-    lv_subject_init_int(&subject_nav_active, 0);
     lv_subject_init_int(&subject_rerouting, 0);
     lv_subject_init_int(&subject_climb_active, 0);
     lv_subject_init_int(&subject_climb_dist, 0);
@@ -93,6 +92,7 @@ void init_lv_subjects()
     lv_subject_init_int(&subject_climb_total_dist,  0);
     lv_subject_init_int(&subject_climb_total_gain,  0);
     lv_subject_init_int(&subject_climb_approaching, 0);
+    lv_subject_init_int(&subject_map_3d, 0);
 
     #ifdef ENABLE_TEMP
     lv_subject_init_int(&subject_temp, 0);

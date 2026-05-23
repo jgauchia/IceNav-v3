@@ -427,10 +427,10 @@ static void mini_compass_observer_cb(lv_observer_t *observer, lv_subject_t *subj
 void mapCompassWidget(lv_obj_t *screen)
 {
     miniCompass = lv_obj_create(screen);
-    lv_obj_set_size(miniCompass, 50, 50);
+    lv_obj_set_size(miniCompass, 60, 60);
     lv_obj_clear_flag(miniCompass, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_style(miniCompass, &styleMapWidget, 0);
-    lv_obj_set_align(miniCompass, LV_ALIGN_TOP_RIGHT);
+    lv_obj_align(miniCompass, LV_ALIGN_TOP_RIGHT, 0, 0);
     mapCompassImg = lv_img_create(miniCompass);
     LV_IMG_DECLARE(compassMap);
     lv_img_set_src(mapCompassImg, &compassMap);
@@ -479,7 +479,7 @@ void turnByTurnWidget(lv_obj_t *screen)
     lv_obj_set_flex_flow(turnByTurn, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(turnByTurn, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_add_style(turnByTurn, &styleMapWidget, 0);
-    lv_obj_align(turnByTurn, LV_ALIGN_TOP_RIGHT, 0, 60);
+    lv_obj_align(turnByTurn, LV_ALIGN_TOP_RIGHT, 0, 65);
     turnImg = lv_img_create(turnByTurn);
     lv_img_set_src(turnImg, &straight);
     turnDistLabel = lv_label_create(turnByTurn);
