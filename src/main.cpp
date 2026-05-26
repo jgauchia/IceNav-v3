@@ -2,7 +2,7 @@
  * @file main.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ICENAV - ESP32 GPS Navigator main code
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 

@@ -2,7 +2,7 @@
  * @file astar.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  A* routing algorithm implementation
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 

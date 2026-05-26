@@ -2,7 +2,7 @@
  * @file lv_subjects.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Observer Pattern - Implementation of telemetry subjects
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 

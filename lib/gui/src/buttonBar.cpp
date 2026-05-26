@@ -2,7 +2,7 @@
  * @file buttonBar.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Button Bar 
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 

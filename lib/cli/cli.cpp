@@ -2,7 +2,7 @@
  * @file cli.cpp
  * @author @Hpsaturn
  * @brief  Network CLI and custom internal commands
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 
