@@ -2,7 +2,7 @@
  * @file maps.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com) - Render Maps
  * @brief  Maps draw class
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 
@@ -30,7 +30,7 @@ extern Compass compass;
 extern Gps gps;
 extern Storage storage;
 extern TrackVector trackData;
-const char* TAG = "Maps";
+static const char* TAG = "Maps";
 
 /**
  * @brief Map Class constructor
@@ -42,7 +42,9 @@ Maps::Maps() : navLastZoom_(0),
                lastRenderedHeading(0xFFFF),
                lastRenderedArrowPos({-32768, -32768}),
                lastRenderedDisplayOffsetX(-32768),
-               lastRenderedDisplayOffsetY(-32768){
+               lastRenderedDisplayOffsetY(-32768),
+               _mapTilt(60.0f),
+               _focalLength(300.0f){
     static_assert(Maps::MAX_FEATURE_POOL_SIZE <= 65535U,
         "featurePool index stored as uint16_t — pool size must not exceed 65535");
     projBuf32X.reserve(MAX_POLYGON_POINTS);
@@ -53,7 +55,10 @@ Maps::Maps() : navLastZoom_(0),
     featurePool.reserve(MAX_FEATURE_POOL_SIZE);
 
     for (int i = 0; i < 16; i++)
+    {
         layers[i].reserve(MAX_FEATURE_POOL_SIZE / 4);
+        layersCasing[i].reserve(MAX_FEATURE_POOL_SIZE / 8);
+    }
 
     ringEndsCache.reserve(MAX_POLYGON_POINTS);
     placedLabelsCache.reserve(MAX_PLACED_LABELS);
@@ -253,7 +258,7 @@ Maps::ScreenCoord Maps::coord2ScreenPos(float lon, float lat, uint8_t zoomLevel,
  * @param pixelX X pixel
  * @param pixelY Y pixel
  */
-void Maps::coords2map(float lat, float lon, tileBounds bound, uint16_t *pixelX, uint16_t *pixelY)
+void Maps::coords2map(float lat, float lon, const tileBounds& bound, uint16_t *pixelX, uint16_t *pixelY)
 {
     float lon_ratio = (lon - bound.lon_min) / (bound.lon_max - bound.lon_min);
     float lat_ratio = (bound.lat_max - lat) / (bound.lat_max - bound.lat_min);
@@ -416,6 +421,7 @@ void Maps::generateMap(uint8_t zoom)
         {
             if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(100)) == pdTRUE)
             {
+                update3DCache();
                 drawTrack(mapTempSprite);
                 trackNeedsRedraw = false;
                 Maps::redrawMap = true;
@@ -433,6 +439,12 @@ void Maps::generateMap(uint8_t zoom)
         navLastZoom_ = zoom;
         navNeedsRender_ = false;
         latLonToPixel(destLat, destLon, (int16_t&)wptPosX, (int16_t&)wptPosY);
+        if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(100)) == pdTRUE)
+        {
+            update3DCache();
+            drawTrack(mapTempSprite);
+            xSemaphoreGiveRecursive(mapMutex);
+        }
         Maps::redrawMap = true;
         return;
     }
@@ -496,7 +508,7 @@ void Maps::generateMap(uint8_t zoom)
  */
 void Maps::mapRenderTask(void* pvParameters)
 {
-    Maps* instance = (Maps*)pvParameters;
+    Maps* instance = static_cast<Maps*>(pvParameters);
     uint8_t lastZoom = 0;
 
     while (1)
@@ -519,19 +531,36 @@ void Maps::mapRenderTask(void* pvParameters)
                 {
                     xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_DONE | MAP_EVENT_ERROR);
                     xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_START);
-                    
+
                     if (zoomChanged)
                     {
                         for (auto& entry : instance->navDataCache)
                             heap_caps_free(entry.data);
-                        
+
                         instance->navDataCache.clear();
                     }
 
                     instance->featurePool.clear();
                     instance->decodedCoords.clear();
                     for (int i = 0; i < 16; i++)
+                    {
                         instance->layers[i].clear();
+                        instance->layersCasing[i].clear();
+                    }
+
+                    if (mapSet.vectorMap)
+                    {
+                        const uint8_t n = (uint8_t)instance->pendingTiles.size();
+                        uint32_t txs[16];
+                        uint32_t tys[16];
+                        for (uint8_t i = 0; i < n && i < 16; i++)
+                        {
+                            txs[i] = instance->pendingTiles[i].x;
+                            tys[i] = instance->pendingTiles[i].y;
+                        }
+                        NavReader::openPack(instance->zoomLevel);
+                        NavReader::prefetchIndexRange(txs, tys, n, instance->zoomLevel);
+                    }
                 }
 
                 // Yields mutex briefly so other tasks can run between tile renders.
@@ -600,6 +629,7 @@ void Maps::mapRenderTask(void* pvParameters)
                 if (instance->mapTempSprite.getBuffer())
                     instance->mapTempSprite.fillSprite(0xF7BE);
 
+                instance->update3DCache();
                 instance->placedLabelsCache.clear();
                 instance->mapTempSprite.startWrite();
                 uint32_t lastYield = millis();
@@ -635,7 +665,23 @@ void Maps::mapRenderTask(void* pvParameters)
 
                     if (aborted) break;
 
-                    // Pass 2: LineString bodies and Texts
+                    // Pass 2: LineString bodies (from pre-separated casing list) and Texts
+                    for (uint16_t idx : instance->layersCasing[i])
+                    {
+                        if ((++loopCounter & 127) == 0)
+                        {
+                            uint32_t now = millis();
+                            if (now - lastYield > 40)
+                            {
+                                if (yieldFeature()) { aborted = true; break; }
+                                lastYield = millis();
+                            }
+                        }
+                        instance->renderNavLineString(instance->featurePool[idx], instance->mapTempSprite, false);
+                    }
+
+                    if (aborted) break;
+
                     for (uint16_t idx : layer)
                     {
                         if ((++loopCounter & 127) == 0)
@@ -647,12 +693,8 @@ void Maps::mapRenderTask(void* pvParameters)
                                 lastYield = millis();
                             }
                         }
-
-                        const auto& feat = instance->featurePool[idx];
-                        if (feat.geomType == NavGeomType::LineString && feat.casing)
-                            instance->renderNavLineString(feat, instance->mapTempSprite, false);
-                        else if (feat.geomType == NavGeomType::Text)
-                            instance->renderNavText(feat, instance->mapTempSprite, instance->placedLabelsCache);
+                        if (instance->featurePool[idx].geomType == NavGeomType::Text)
+                            instance->renderNavText(instance->featurePool[idx], instance->mapTempSprite, instance->placedLabelsCache);
                     }
                     esp_task_wdt_reset();
                 }
@@ -675,6 +717,7 @@ void Maps::mapRenderTask(void* pvParameters)
 
                 instance->drawTrack(instance->mapTempSprite);
                 instance->redrawMap = true;
+
                 xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
                 xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
                 xSemaphoreGiveRecursive(instance->mapMutex);
@@ -737,8 +780,8 @@ void Maps::displayMap()
         const float lon = gps.gpsData.longitude;
         const int8_t gridOffset = tilesGrid / 2;
         Maps::navArrowPosition = Maps::coord2ScreenPos(lon, lat, Maps::zoomLevel, Maps::mapTileSize);
-        
-        // Hysteresis: Skip expensive pushRotated if visual change is minimal and no redraw is forced
+
+        // Hysteresis: skip redraw if nothing changed
         if (!Maps::redrawMap)
         {
             if (mapHeading == lastRenderedHeading &&
@@ -753,15 +796,18 @@ void Maps::displayMap()
         lastRenderedHeading = mapHeading;
         lastRenderedArrowPos = navArrowPosition;
 
-        // Pivot in large source sprite (GPS position)
-        Maps::mapTempSprite.setPivot(gridOffset * mapTileSize + Maps::navArrowPosition.posX,
-                                     gridOffset * mapTileSize + Maps::navArrowPosition.posY);
-        
-        // Pivot in small destination sprite (Center of viewport)
-        Maps::mapSprite.setPivot(mapScrWidth / 2, mapScrHeight / 2);
-        
-        // Rotate and crop directly to mapSprite
-        Maps::mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
+        if (_use3DCache)
+        {
+            // 3D mode: scanline perspective transform with heading baked in
+            apply3DPerspective(mapHeading);
+        }
+        else
+        {
+            Maps::mapTempSprite.setPivot(gridOffset * mapTileSize + Maps::navArrowPosition.posX,
+                                         gridOffset * mapTileSize + Maps::navArrowPosition.posY);
+            Maps::mapSprite.setPivot(mapScrWidth / 2, mapScrHeight / 2);
+            Maps::mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
+        }
     }
     else
     {
@@ -800,15 +846,120 @@ void Maps::setWaypoint(float wptLat, float wptLon)
 {
     Maps::destLat = wptLat;
     Maps::destLon = wptLon;
+    Maps::hasWaypoint = true;
 }
 
 /**
  * @brief Mark map for redraw
  */
+/**
+ * @brief Returns true when there is an active navigation target (track or waypoint).
+ */
+bool Maps::isNavActive() const
+{
+    if (trackData.size() > 0)
+        return true;
+    if (hasWaypoint)
+        return true;
+    return false;
+}
+
+void Maps::update3DCache()
+{
+    _use3DCache = mapSet.map3D && mapSet.vectorMap && isNavActive() && !_scrolling;
+}
+
+/**
+ * @brief Applies a perspective scanline transform from mapTempSprite to mapSprite.
+ *
+ * @details Reads the 2D tile-space sprite (mapTempSprite), applies heading rotation and
+ *          perspective projection in a single scanline pass, and writes directly into
+ *          mapSprite (the viewport buffer). The GPS position is placed at the lower third
+ *          of the viewport. For each output scanline Y, the corresponding ground-plane Y
+ *          in the source sprite is computed via inverse perspective, then each pixel X is
+ *          sampled by rotating back from heading-up screen space to tile space.
+ *
+ * @param heading  Current map heading in degrees (0 = north up, 90 = east up).
+ */
+void Maps::apply3DPerspective(uint16_t heading)
+{
+    uint16_t* src = static_cast<uint16_t*>(mapTempSprite.getBuffer());
+    uint16_t* dst = static_cast<uint16_t*>(mapSprite.getBuffer());
+    if (!src || !dst)
+        return;
+
+    const int srcW = (int)(mapTempSprite.bufferLength() / (tileHeight * 2));
+    const int srcH = (int)tileHeight;
+    const int dstW = (int)mapScrWidth;
+    const int dstH = (int)mapScrHeight;
+    const int dstStride = (int)(mapSprite.bufferLength() / (mapScrHeight * 2));
+
+    // GPS position in tile-space (center of the tile grid)
+    const int8_t gridOffset = tilesGrid / 2;
+    const int gpsTileX = gridOffset * mapTileSize + (int)navArrowPosition.posX;
+    const int gpsTileY = gridOffset * mapTileSize + (int)navArrowPosition.posY;
+
+    // GPS lands at lower third of the viewport
+    const int gpsScreenY = dstH * 3 / 4;
+
+    // Heading rotation: rotate tile-space coords so heading points up
+    const float headingRad = static_cast<float>(heading) * (static_cast<float>(M_PI) / 180.0f);
+    const float cosH = cosf(headingRad);
+    const float sinH = sinf(headingRad);
+
+    // Perspective parameters: horizon at top quarter of screen
+    const int horizonScreenY = dstH / 5;
+    const float tiltRad = _mapTilt * (static_cast<float>(M_PI) / 180.0f);
+
+    // Sky color: soft blue ~#A8C8E8 (byte-swapped for direct buffer write)
+    const uint16_t skyColor = 0x5DAE;
+
+    for (int y = 0; y < dstH; y++)
+    {
+        uint16_t* dstRow = dst + y * dstStride;
+
+        if (y <= horizonScreenY)
+        {
+            for (int x = 0; x < dstW; x++)
+                dstRow[x] = skyColor;
+            continue;
+        }
+
+        // t=0 at horizon, t=1 at GPS screen position
+        float t = static_cast<float>(y - horizonScreenY) / static_cast<float>(gpsScreenY - horizonScreenY);
+        if (t <= 0.0f)
+            continue;
+
+        float scale = t / cosf(tiltRad);
+
+        // Positive srcRelY = ahead (up in heading-up view = forward direction)
+        float srcRelY = (_focalLength / scale) * (1.0f - t) / t;
+
+        for (int x = 0; x < dstW; x++)
+        {
+            float screenXRel = static_cast<float>(x) - static_cast<float>(dstW) * 0.5f;
+            float srcRelX = screenXRel / scale;
+
+            // Rotate from heading-up back to tile-space
+            float tileRelX =  srcRelX * cosH + srcRelY * sinH;
+            float tileRelY = -srcRelX * sinH + srcRelY * cosH;
+
+            int sx = gpsTileX + (int)(tileRelX);
+            int sy = gpsTileY - (int)(tileRelY);
+
+            if (sx >= 0 && sx < srcW && sy >= 0 && sy < srcH)
+                dstRow[x] = src[sy * srcW + sx];
+            else
+                dstRow[x] = skyColor;
+        }
+    }
+}
+
 void Maps::updateMap()
 {
     Maps::oldMapTile = {};
     navNeedsRender_ = true;
+    update3DCache();
 }
 
 /**
@@ -834,6 +985,7 @@ void Maps::panMap(int8_t dx, int8_t dy)
 void Maps::centerOnGps(float lat, float lon)
 {
     Maps::followGps = true;
+    _scrolling = false;
     Maps::currentMapTile.zoom = Maps::zoomLevel;
     Maps::currentMapTile.tilex = Maps::lon2tilex(lon, Maps::currentMapTile.zoom);
     Maps::currentMapTile.tiley = Maps::lat2tiley(lat, Maps::currentMapTile.zoom);
@@ -871,6 +1023,7 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
 {
     pendingDx += dx;
     pendingDy += dy;
+    _scrolling = true;
 
     if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(10)) != pdTRUE)
         return;
@@ -1081,6 +1234,14 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
     if (numPoints < 3)
         return;
 
+    uint16_t* buf = static_cast<uint16_t*>(map.getBuffer());
+    uint32_t stride = 0;
+    uint16_t rawColor = (color >> 8) | (color << 8);
+    if (buf)
+        stride = map.bufferLength() / (tileHeight * 2);
+    else
+        ESP_LOGE(TAG, "fillPoly FALLBACK buf=null");
+
     int minY = INT_MAX;
     int maxY = INT_MIN;
     for (int i = 0; i < numPoints; i++)
@@ -1230,7 +1391,18 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
             if (xEnd > (int)tileWidth)
                 xEnd = (int)tileWidth;
             if (xEnd > xStart)
-                map.drawFastHLine(xStart, yy, xEnd - xStart, color);
+            {
+                if (buf && yy >= 0 && yy < (int)tileHeight)
+                {
+                    uint16_t* row = buf + (uint32_t)yy * stride + xStart;
+                    int len = xEnd - xStart;
+                    uint16_t* end = row + len;
+                    while (row < end)
+                        *row++ = rawColor;
+                }
+                else
+                    map.drawFastHLine(xStart, yy, xEnd - xStart, color);
+            }
             left = edgePool[right].nextActive;
         }
         for (int a = activeHead; a != -1; a = edgePool[a].nextActive)
@@ -1360,6 +1532,7 @@ void Maps::renderNavLineString(const FeatureRef& ref, TFT_eSprite& map, bool isC
     {
         int16_t px = coords[i * 2];
         int16_t py = coords[i * 2 + 1];
+
         if (i > 0)
         {
             if (abs(px - lastPx) < lodThreshold && abs(py - lastPy) < lodThreshold)
@@ -1449,14 +1622,10 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
             continue;
         projBuf32X[actualPoints] = curX;
         projBuf32Y[actualPoints] = curY;
-        if (curX < minPx)
-            minPx = curX;
-        if (curX > maxPx)
-            maxPx = curX;
-        if (curY < minPy)
-            minPy = curY;
-        if (curY > maxPy)
-            maxPy = curY;
+        if (curX < minPx) minPx = curX;
+        if (curX > maxPx) maxPx = curX;
+        if (curY < minPy) minPy = curY;
+        if (curY > maxPy) maxPy = curY;
         lastX = curX;
         lastY = curY;
         actualPoints++;
@@ -1520,6 +1689,7 @@ void Maps::renderNavPoint(const FeatureRef& ref, TFT_eSprite& map)
     int32_t y = NavReader::decodeZigZag(NavReader::readVarInt(p));
     int16_t px = ref.tileOffsetX + (x >> 4);
     int16_t py = ref.tileOffsetY + (y >> 4);
+
     if (px >= 0 && px < (int)tileWidth && py >= 0 && py < (int)tileHeight)
         map.fillCircle(px, py, 3, ref.color);
 }
@@ -1700,12 +1870,14 @@ uint8_t* Maps::navCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t zoom
 
     if (!NavReader::openPack(zoom))
         return nullptr;
+
     uint32_t offset;
     uint32_t size;
+
     if (!NavReader::findTileInPack(tileX, tileY, offset, size))
         return nullptr;
 
-    uint8_t* data = (uint8_t*)heap_caps_aligned_alloc(512, size, MALLOC_CAP_SPIRAM);
+    uint8_t* data = static_cast<uint8_t*>(heap_caps_aligned_alloc(512, size, MALLOC_CAP_SPIRAM));
     if (!data)
     {
         for (int i = (int)navDataCache.size() - 1; i >= 0; i--)
@@ -1716,13 +1888,12 @@ uint8_t* Maps::navCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t zoom
                 navDataCache.erase(navDataCache.begin() + i);
             }
         }
-        data = (uint8_t*)heap_caps_aligned_alloc(512, size, MALLOC_CAP_SPIRAM);
+        data = static_cast<uint8_t*>(heap_caps_aligned_alloc(512, size, MALLOC_CAP_SPIRAM));
         if (!data)
             return nullptr;
     }
 
-    storage.seek(NavReader::packFile, offset, SEEK_SET);
-    if (storage.read(NavReader::packFile, data, size) != size)
+    if (storage.seekAndRead(NavReader::packFile, offset, data, size) != size)
     {
         heap_caps_free(data);
         return nullptr;
@@ -1803,10 +1974,15 @@ void Maps::navDecodeFeatures(const uint8_t* data, size_t dataSize, int16_t scree
             if (featurePool.size() < MAX_FEATURE_POOL_SIZE)
             {
                 uint16_t poolIdx = (uint16_t)featurePool.size();
-                featurePool.push_back({(uint8_t*)(p + NAV_FEAT_HDR_SIZE), (NavGeomType)geomType, ps, cc, screenX, screenY, colorRgb565, (uint8_t)(wp & 0x7F), (wp & 0x80) != 0, bx1, by1, bx2, by2, (uint8_t)(zp & 0x0F)});
+                bool hasCasing = (wp & 0x80) != 0;
+                featurePool.push_back({(uint8_t*)(p + NAV_FEAT_HDR_SIZE), (NavGeomType)geomType, ps, cc, screenX, screenY, colorRgb565, (uint8_t)(wp & 0x7F), hasCasing, bx1, by1, bx2, by2, (uint8_t)(zp & 0x0F)});
                 uint8_t priority = zp & 0x0F;
                 if (priority < 16)
+                {
                     layers[priority].push_back(poolIdx);
+                    if (geomType == (uint8_t)NavGeomType::LineString && hasCasing)
+                        layersCasing[priority].push_back(poolIdx);
+                }
             }
         }
         p += NAV_FEAT_HDR_SIZE + ps;

@@ -1,15 +1,19 @@
 /**
  * @file compass.hpp
  * @brief Compass definition and functions - Native ESP-IDF drivers
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 
 #pragma once
 
-#include "tft.hpp"
 #include <EasyPreferences.hpp>
 #include "i2c_espidf.hpp"
+#include "i2c_driver_base.hpp"
+
+#ifdef MPU6050
+    #include "imu.hpp"
+#endif
 
 // QMC5883L Register definitions
 #define QMC5883L_ADDRESS      0x0D
@@ -38,10 +42,12 @@
 // Samples: 0=1, 1=2, 2=4, 3=8
 
 // MPU9250/AK8963 Register definitions
-#define MPU9250_ADDRESS       0x68
-#define MPU9250_REG_WHO_AM_I  0x75
-#define MPU9250_REG_PWR_MGMT1 0x6B
-#define MPU9250_REG_INT_PIN   0x37
+#define MPU9250_ADDRESS         0x68
+#define MPU9250_REG_WHO_AM_I    0x75
+#define MPU9250_REG_PWR_MGMT1   0x6B
+#define MPU9250_REG_INT_PIN     0x37
+#define MPU9250_REG_ACCEL_XOUT  0x3B
+#define MPU9250_REG_ACCEL_CFG   0x1C
 
 #define AK8963_ADDRESS        0x0C
 #define AK8963_REG_WIA        0x00
@@ -68,11 +74,23 @@
     #define ENABLE_IMU
 #endif
 
+#ifdef ENABLE_IMU
+    #ifndef IMU_ACCEL_X_SIGN
+        #define IMU_ACCEL_X_SIGN 1
+    #endif
+    #ifndef IMU_ACCEL_Y_SIGN
+        #define IMU_ACCEL_Y_SIGN 1
+    #endif
+    #ifndef IMU_ACCEL_Z_SIGN
+        #define IMU_ACCEL_Z_SIGN 1
+    #endif
+#endif
+
 /**
  * @class QMC5883L_Driver
  * @brief Native ESP-IDF driver for QMC5883L magnetometer.
  */
-class QMC5883L_Driver
+class QMC5883L_Driver : public I2CDriverBase
 {
 public:
     QMC5883L_Driver();
@@ -82,19 +100,14 @@ public:
     bool readRaw(float &x, float &y, float &z);
 
 private:
-    uint8_t i2cAddr;
     uint8_t ctrl1Value;
-
-    uint8_t read8(uint8_t reg);
-    bool write8(uint8_t reg, uint8_t value);
-    int16_t read16(uint8_t reg);
 };
 
 /**
  * @class HMC5883L_Driver
  * @brief Native ESP-IDF driver for HMC5883L magnetometer.
  */
-class HMC5883L_Driver
+class HMC5883L_Driver : public I2CDriverBase
 {
 public:
     HMC5883L_Driver();
@@ -104,12 +117,7 @@ public:
     bool readRaw(float &x, float &y, float &z);
 
 private:
-    uint8_t i2cAddr;
     uint8_t configAValue;
-
-    uint8_t read8(uint8_t reg);
-    void write8(uint8_t reg, uint8_t value);
-    int16_t read16(uint8_t reg);
 };
 
 /**
@@ -122,6 +130,7 @@ public:
     MPU9250_Driver();
     bool begin(uint8_t addr = MPU9250_ADDRESS);
     void readSensor();
+    void readAccel(float &ax, float &ay, float &az);
     float getMagX_uT();
     float getMagY_uT();
     float getMagZ_uT();
@@ -131,6 +140,7 @@ private:
     uint8_t akAddr;
     float magX, magY, magZ;
     float asaX, asaY, asaZ;
+    float accelScale;
 
     uint8_t read8(uint8_t addr, uint8_t reg);
     void write8(uint8_t addr, uint8_t reg, uint8_t value);
@@ -152,15 +162,6 @@ class KalmanFilter
             k = 0.0f;
         }
 
-        /**
-        * @brief Updates the state estimate using the Kalman filter algorithm for angular measurements.
-        *
-        * @details Applies the Kalman filter update step, taking into account the wrapped angular measurement,
-        * 		   and updates the internal state and covariance variables accordingly.
-        *
-        * @param measurement The new angle measurement to incorporate (in radians).
-        * @return float The updated state estimate (in radians, wrapped to [-π, π]).
-        */
         float update(float measurement)
         {
             measurement = wrapToPi(measurement);

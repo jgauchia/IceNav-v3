@@ -2,7 +2,7 @@
  * @file imu.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  IMU definition and functions - Native ESP-IDF driver
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 
@@ -25,42 +25,7 @@ MPU6050_Driver mpu = MPU6050_Driver();
  *          for ±2g accelerometer and ±250°/s gyroscope ranges.
  */
 MPU6050_Driver::MPU6050_Driver()
-    : i2cAddr(MPU6050_ADDRESS), accelScale(16384.0f), gyroScale(131.0f) {}
-
-/**
- * @brief Reads a single byte from a register.
- *
- * @param reg Register address.
- * @return Register value.
- */
-uint8_t MPU6050_Driver::read8(uint8_t reg)
-{
-    return i2c.read8(i2cAddr, reg);
-}
-
-/**
- * @brief Writes a single byte to a register.
- *
- * @param reg Register address.
- * @param value Value to write.
- */
-void MPU6050_Driver::write8(uint8_t reg, uint8_t value)
-{
-    i2c.write8(i2cAddr, reg, value);
-}
-
-/**
- * @brief Reads a 16-bit value from two consecutive registers (MSB first).
- *
- * @param reg Starting register address.
- * @return 16-bit signed value.
- */
-int16_t MPU6050_Driver::read16(uint8_t reg)
-{
-    uint8_t buffer[2];
-    i2c.readBytes(i2cAddr, reg, buffer, 2);
-    return (int16_t)((buffer[0] << 8) | buffer[1]);
-}
+    : I2CDriverBase(MPU6050_ADDRESS), accelScale(16384.0f), gyroScale(131.0f) {}
 
 /**
  * @brief Initializes the MPU6050 sensor.

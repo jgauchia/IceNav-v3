@@ -2,7 +2,7 @@
  * @file mapSettingsScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Map Settings screen
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 
@@ -119,6 +119,27 @@ static void mapSettingsEvents(lv_event_t *event)
             lv_obj_clear_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
         else
             lv_obj_add_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
+    }
+
+    if (obj == checkClimb)
+    {
+        mapSet.showClimb = lv_obj_has_state(obj, LV_STATE_CHECKED);
+        cfg.saveBool(PKEYS::KMAP_CLIMB, mapSet.showClimb);
+    }
+
+    if (obj == check3DMap)
+    {
+        mapSet.map3D = lv_obj_has_state(obj, LV_STATE_CHECKED);
+        cfg.saveBool(PKEYS::KMAP_3D, mapSet.map3D);
+        mapView.updateMap();
+    }
+
+    if (obj == mapType)
+    {
+        if (mapSet.vectorMap)
+            lv_obj_clear_flag(list3DMap, LV_OBJ_FLAG_HIDDEN);
+        else
+            lv_obj_add_flag(list3DMap, LV_OBJ_FLAG_HIDDEN);
     }
 }
 
@@ -240,6 +261,34 @@ void createMapSettingsScr()
     else
         lv_obj_remove_state(checkScale, LV_STATE_CHECKED);
     lv_obj_add_event_cb(checkScale, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
+    // Show Climb Analyzer
+    list = lv_list_add_btn(mapSettingsOptions, NULL, "Climb Analyzer");
+    lv_obj_set_style_text_font(list, fontOptions, 0);
+    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
+    checkClimb = lv_checkbox_create(list);
+    lv_obj_align_to(checkClimb, list, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_checkbox_set_text(checkClimb, " ");
+    if (mapSet.showClimb)
+        lv_obj_add_state(checkClimb, LV_STATE_CHECKED);
+    else
+        lv_obj_remove_state(checkClimb, LV_STATE_CHECKED);
+    lv_obj_add_event_cb(checkClimb, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
+    // 3D Map View (vector only)
+    list3DMap = lv_list_add_btn(mapSettingsOptions, NULL, "3D Navigation Map View");
+    lv_obj_set_style_text_font(list3DMap, fontOptions, 0);
+    lv_obj_clear_flag(list3DMap, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_align(list3DMap, LV_ALIGN_LEFT_MID);
+    check3DMap = lv_checkbox_create(list3DMap);
+    lv_obj_align_to(check3DMap, list3DMap, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_checkbox_set_text(check3DMap, " ");
+    if (mapSet.map3D)
+        lv_obj_add_state(check3DMap, LV_STATE_CHECKED);
+    else
+        lv_obj_remove_state(check3DMap, LV_STATE_CHECKED);
+    if (!mapSet.vectorMap)
+        lv_obj_add_flag(list3DMap, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_event_cb(check3DMap, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
     // Back button
     btnBack = lv_btn_create(mapSettingsScreen);
     lv_obj_set_size(btnBack, TFT_WIDTH - 30, 40 * scale);

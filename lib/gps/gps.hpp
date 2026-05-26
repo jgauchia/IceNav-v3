@@ -2,7 +2,7 @@
  * @file gps.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  GPS definition and functions
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 
@@ -19,7 +19,7 @@ extern uint8_t GPS_TX; /**< GPS TX pin number. */
 extern uint8_t GPS_RX; /**< GPS RX pin number. */
 
 #define MAX_SATELLITES 120		   /**< Maximum number of satellites supported. */
-#define MAX_SATELLLITES_IN_VIEW 32 /**< Maximum number of satellites in view. */
+#define MAX_SATELLITES_IN_VIEW 32 /**< Maximum number of satellites in view. */
 
 #define DEBUG_PORT Serial 		/**< Serial port used for debug output. */
 #define gpsPort Serial2			/**< Serial port used for GPS communication. */
@@ -75,6 +75,7 @@ class Gps
         bool isAltitudeChanged();
         bool hasLocationChange();
         bool isDOPChanged();
+        int  getSimulationIndex() const { return simulationIndex; }
 
         /**
         * @struct GPSDATA

@@ -2,7 +2,7 @@
  * @file navigation.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief Navigation functions
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 
@@ -26,8 +26,6 @@ LV_IMG_DECLARE(outtrack);
 // UI Throttling state
 static const void* lastIconShown = nullptr;
 static int lastDistShown = -1;
-
-extern std::vector<TrackSegment> trackIndex;
 
 /**
  * @brief Finds the closest track point index to the user's current position using an adaptive hierarchical search.

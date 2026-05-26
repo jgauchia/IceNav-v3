@@ -2,7 +2,7 @@
  * @file lv_subjects.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Observer Pattern - Implementation of telemetry subjects
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 
@@ -31,6 +31,20 @@ lv_subject_t subject_map_state;
 lv_subject_t subject_map_offset_x;
 lv_subject_t subject_map_offset_y;
 lv_subject_t subject_sunrise;
+lv_subject_t subject_rerouting;
+lv_subject_t subject_climb_active;
+lv_subject_t subject_climb_dist;
+lv_subject_t subject_climb_gain;
+lv_subject_t subject_climb_grade;
+lv_subject_t subject_climb_idx;
+lv_subject_t subject_climb_seg;
+lv_subject_t subject_climb_total;
+lv_subject_t subject_climb_cat;
+lv_subject_t subject_climb_avg_grade;
+lv_subject_t subject_climb_total_dist;
+lv_subject_t subject_climb_total_gain;
+lv_subject_t subject_climb_approaching;
+lv_subject_t subject_map_3d;
 
 #ifdef ENABLE_TEMP
 lv_subject_t subject_temp;
@@ -65,7 +79,21 @@ void init_lv_subjects()
     lv_subject_init_int(&subject_map_offset_x, 0);
     lv_subject_init_int(&subject_map_offset_y, 0);
     lv_subject_init_int(&subject_sunrise, 0);
-    
+    lv_subject_init_int(&subject_rerouting, 0);
+    lv_subject_init_int(&subject_climb_active, 0);
+    lv_subject_init_int(&subject_climb_dist, 0);
+    lv_subject_init_int(&subject_climb_gain, 0);
+    lv_subject_init_int(&subject_climb_grade, 0);
+    lv_subject_init_int(&subject_climb_idx,         0);
+    lv_subject_init_int(&subject_climb_seg,         0);
+    lv_subject_init_int(&subject_climb_total,       0);
+    lv_subject_init_int(&subject_climb_cat,         0);
+    lv_subject_init_int(&subject_climb_avg_grade,   0);
+    lv_subject_init_int(&subject_climb_total_dist,  0);
+    lv_subject_init_int(&subject_climb_total_gain,  0);
+    lv_subject_init_int(&subject_climb_approaching, 0);
+    lv_subject_init_int(&subject_map_3d, 0);
+
     #ifdef ENABLE_TEMP
     lv_subject_init_int(&subject_temp, 0);
     #endif
@@ -98,6 +126,10 @@ void notify_all_subjects()
     lv_subject_notify(&subject_map_offset_x);
     lv_subject_notify(&subject_map_offset_y);
     lv_subject_notify(&subject_sunrise);
+    lv_subject_notify(&subject_climb_active);
+    lv_subject_notify(&subject_climb_dist);
+    lv_subject_notify(&subject_climb_gain);
+    lv_subject_notify(&subject_climb_grade);
 
     #ifdef ENABLE_TEMP
     lv_subject_notify(&subject_temp);

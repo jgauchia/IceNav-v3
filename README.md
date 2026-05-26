@@ -35,9 +35,9 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 |:-:|:-:|:-:|:-:|:-:|
 | Rendered Map | Vectorized Map | Navigation Screen | Navigation Screen | Satellite Info |
 
-|<img src="images/dev/addwpt_n.jpg">|<img src="images/dev/addwpt_l.jpg">|<img src="images/dev/wptlist.jpg">|
-|:-:|:-:|:-:|
-| Add Waypoint | Add Waypoint (landscape) | Waypoint List |
+|<img src="images/dev/addwpt_n.jpg">|<img src="images/dev/addwpt_l.jpg">|<img src="images/dev/wptlist.jpg">|<img src="images/dev/3dMap.png">|
+|:-:|:-:|:-:|:-:|
+| Add Waypoint | Add Waypoint (landscape) | Waypoint List | 3D Map view |
 
 |<img src="images/dev/settings.jpg">|<img src="images/dev/compasscal.jpg">|<img src="images/dev/touchcal.jpg">|<img src="images/dev/mapsettings.jpg">|<img src="images/dev/devicesettings.png">|
 |:-:|:-:|:-:|:-:|:-:|
@@ -128,6 +128,20 @@ To do this, simply include the following Build Flag in the required env in platf
 Other setups like another sensors types, etc... not listed in the specs, now **They are not included**
 
 If you wish to add any other type of sensor, module, etc., you can create a PR without any problem, and we will try to implement it. Thank you!
+
+### IMU Accelerometer Axis Configuration
+
+When using an IMU for tilt-compensated heading (`-DMPU6050` or `-DIMU_MPU9250`), the physical mounting orientation must be configured via build flags.
+
+| Flag | Default | Description |
+|:-----|:--------|:------------|
+| `-DIMU_ACCEL_X_SIGN` | `1` | Sign applied to raw ax (+1 or -1) |
+| `-DIMU_ACCEL_Y_SIGN` | `1` | Sign applied to raw ay (+1 or -1) |
+| `-DIMU_ACCEL_Z_SIGN` | `1` | Sign applied to raw az (+1 or -1) |
+
+The correct value for each axis depends on how the IMU is physically mounted. If tilting the device causes the heading to drift instead of remaining stable, invert the sign of the affected axis.
+
+These flags can be set either in the board definition JSON (`boards/*.json`) under `extra_flags`, or in `platformio.ini` under `build_flags` for the target environment.
 </details>
 
 ## Wiring
@@ -151,12 +165,21 @@ On SD Card map tiles (256x256 PNG Format) should be stored, in these folders str
 
 ## SD Vectorized Map File structure 
 
-Vectorized maps for IceNav can be generated using the Tile-Generator utility, which is available on GitHub at [jgauchia/Tile-Generator](https://github.com/jgauchia/Tile-Generator). This script allows you to convert map data into the required vector tile format compatible with IceNav. Please refer to the Tile-Generator repository for detailed instructions and usage examples on generating and preparing your own vector map files.
+Vectorized maps for IceNav can be generated using the **nav_generator** utility, which is available on GitHub at [jgauchia/Tile-Generator](https://github.com/jgauchia/Tile-Generator). This program allows you to convert map data into the required vector tile format compatible with IceNav. Please refer to the Tile-Generator repository for detailed instructions and usage examples on generating and preparing your own vector map files.
+
+On SD Card vectorized files should be stored, in these folders structure:
 
       [ 📁 NAVMAP ]
-            |________ [ 📁 zoom folder (number) ]
-                                 |__________________ [ 📁 tile X folder (number) ]
-                                                                |_______________________ 🗺️ tile Y file.bin
+            |_______ 🗺️ Zzoom file.bin
+
+## SD A* Route File structure
+
+A* Route files for IceNav can be generated using the **route_generator** utility, which is available on GitHub at [jgauchia/Tile-Generator](https://github.com/jgauchia/Tile-Generator). TThis program allows you to generate the A* route files required for IceNav navigation. Please refer to the Tile-Generator repository for detailed instructions and usage examples on generating and preparing your own route files.
+
+On SD Card route files should be stored, in these folders structure:
+
+      [ 📁 ROUTE ]
+            |_______ 🔀 ROUTE.bin
 
 ## Mass Copy Script for Map Tiles
 
@@ -260,6 +283,8 @@ Some extra details:
    mapScale     custom          true           Show scale meter in map
     mapComp     custom          true           Show compass in map
  mapCompRot     custom          true           Rotate map with the compass
+  showClimb     custom          true           Show Climb analyzer when following track 
+      map3D     custom          true           Show Pseudo 3D view when navigating track or waypoint
      simNav     custom          false          Indicates whether navigation simulation mode is enabled or disabled
       gpsTX     custom          43             GPS Tx gpio
       gpsRX     custom          44             GPS Rx gpio

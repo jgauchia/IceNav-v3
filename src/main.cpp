@@ -2,7 +2,7 @@
  * @file main.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ICENAV - ESP32 GPS Navigator main code
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 
@@ -10,8 +10,8 @@
 #include "i2c_espidf.hpp"
 #include <WiFi.h>
 #include <esp_log.h>
+#include <atomic>
 #include <ESPmDNS.h>
-#include <SolarCalculator.h>
 
 int taskSleepPeriod = 10;
 
@@ -36,8 +36,10 @@ extern xSemaphoreHandle gpsMutex;
 #include "battery.hpp"
 #include "power.hpp"
 #include "gpxParser.hpp"
+#include "climbAnalyzer.hpp"
 #include "maps.hpp"
 #include "lv_subjects.hpp"
+#include "router.hpp"
 
 extern Storage storage;
 extern Battery battery;
@@ -50,45 +52,27 @@ extern Maps mapView;
 TrackVector trackData;
 std::vector<TrackSegment> trackIndex;
 std::vector<TurnPoint> turnPoints;
+ClimbAnalyzer climbAnalyzer;
+
+float                  routeDstLat       = 0.0f;
+float                  routeDstLon       = 0.0f;
+std::atomic<bool>      rerouteRequested  {false};
+SemaphoreHandle_t      routeMutex        = nullptr;
 
 #include "navigation.hpp"
 NavState navState;
-static double transit, sunrise, sunset;
-
 #include "timezone.c"
-#include "settings.hpp" 
+#include "settings.hpp"
 #include "lvglSetup.hpp"
 #include "tasks.hpp"
-
-/**
- * @brief Calculate Sunrise and Sunset based on current GPS position and date.
- */
-void calculateSun()
-{
-    calcSunriseSunset(2000 + fix.dateTime.year, 
-                        fix.dateTime.month, 
-                        fix.dateTime.date,
-                        gps.gpsData.latitude, 
-                        gps.gpsData.longitude,
-                        transit, 
-                        sunrise, 
-                        sunset);
-    int hours = (int)sunrise + gps.gpsData.UTC;
-    int minutes = (int)round(((sunrise + gps.gpsData.UTC) - hours) * 60);
-    snprintf(gps.gpsData.sunriseHour, 6, "%02d:%02d", hours, minutes);         
-    hours = (int)sunset +  gps.gpsData.UTC;
-    minutes = (int)round(((sunset +  gps.gpsData.UTC) - hours) * 60);
-    snprintf(gps.gpsData.sunsetHour, 6, "%02d:%02d", hours, minutes); 
-    log_i("Sunrise: %s",gps.gpsData.sunriseHour);
-    log_i("Sunset: %s",gps.gpsData.sunsetHour);               
-}
 
 /**
  * @brief Initialize the ESP32 GPS Navigator system
  */
 void setup()
 {
-    gpsMutex = xSemaphoreCreateMutex();
+    gpsMutex   = xSemaphoreCreateMutex();
+    routeMutex = xSemaphoreCreateMutex();
     lutInit = initTrigLUT();
     #ifdef POWER_SAVE
         pinMode(BOARD_BOOT_PIN, INPUT_PULLUP);
@@ -170,12 +154,68 @@ void loop()
     if (enableWeb)
         processWebServerTasks();
 
+    if (rerouteRequested.exchange(false))
+    {
+        if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, portMAX_DELAY) == pdTRUE)
+        {
+            showMsg(LV_SYMBOL_REFRESH, " Calculating route...");
+            xSemaphoreGive(lvgl_mutex);
+        }
+        TrackVector newRoute;
+        RouterResult res = router.route(gps.gpsData.latitude, gps.gpsData.longitude,
+                                        routeDstLat, routeDstLon, newRoute);
+        if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
+        {
+            closeMsg();
+            xSemaphoreGive(lvgl_mutex);
+        }
+        if (res == RouterResult::OK)
+        {
+            isTrackLoaded = false;
+            trackData.clear();
+            trackData.shrink_to_fit();
+
+            if (xSemaphoreTake(routeMutex, pdMS_TO_TICKS(500)) == pdTRUE)
+            {
+                trackData = std::move(newRoute);
+
+                if (!trackData.empty())
+                {
+                    trackData[0].accumDist = 0.0f;
+                    for (size_t i = 1; i < trackData.size(); ++i)
+                    {
+                        float d = calcDist(trackData[i-1].lat, trackData[i-1].lon,
+                                           trackData[i].lat,   trackData[i].lon);
+                        trackData[i].accumDist = trackData[i-1].accumDist + d;
+                    }
+                }
+
+                GPXParser gpxTmp;
+                turnPoints    = gpxTmp.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, trackData);
+                navState      = NavState{};
+                isTrackLoaded = !trackData.empty();
+                xSemaphoreGive(routeMutex);
+            }
+
+            mapView.updateMap();
+            mapView.redrawTrack();
+        }
+        if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(50)) == pdTRUE)
+        {
+            lv_subject_set_int(&subject_rerouting, 0);
+            lv_obj_send_event(navTile, LV_EVENT_VALUE_CHANGED, NULL);
+            lv_obj_clear_flag(turnByTurn, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+            xSemaphoreGive(lvgl_mutex);
+        }
+    }
+
     if (isTrackLoaded)
     {
         if (navSet.simNavigation)
         {
             float oldLat = gps.gpsData.latitude;
-            gps.simFakeGPS(trackData, 120, 1000);
+            gps.simFakeGPS(trackData, 15, 1000);
             if (gps.gpsData.latitude != oldLat && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
             {
                 lv_subject_set_int(&subject_lat, (int32_t)(gps.gpsData.latitude * 1000000.0f));

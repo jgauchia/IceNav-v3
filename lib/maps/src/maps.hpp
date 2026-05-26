@@ -2,7 +2,7 @@
  * @file maps.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com) - Render Maps
  * @brief  Maps draw class
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 
@@ -70,8 +70,9 @@ private:
     uint16_t wptPosY;
     TFT_eSprite mapTempSprite = TFT_eSprite(&tft);
     TFT_eSprite mapSprite = TFT_eSprite(&tft);
-    float destLat;
-    float destLon;
+    float destLat = 0.0f;
+    float destLon = 0.0f;
+    bool hasWaypoint = false;
     uint8_t zoomLevel;
     ScreenCoord navArrowPosition;
 
@@ -85,11 +86,20 @@ private:
     tileBounds getTileBounds(uint32_t tileX, uint32_t tileY, uint8_t zoom);
     bool isCoordInBounds(float lat, float lon, tileBounds bound);
     ScreenCoord coord2ScreenPos(float lon, float lat, uint8_t zoomLevel, uint16_t tileSize);
-    void coords2map(float lat, float lon, tileBounds bound, uint16_t *pixelX, uint16_t *pixelY);
+    void coords2map(float lat, float lon, const tileBounds& bound, uint16_t *pixelX, uint16_t *pixelY);
     void showNoMap(TFT_eSprite &map);
     void panMap(int8_t dx, int8_t dy);
     uint16_t darkenRGB565(const uint16_t color, const float amount = 0.4f);
     void fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset, uint16_t ringCount = 1, const uint16_t* ringEnds = nullptr);
+
+    float _mapTilt;
+    float _focalLength;
+    bool _scrolling = false;
+    bool _use3DCache = false;
+
+    bool isNavActive() const;
+    void update3DCache();
+    void apply3DPerspective(uint16_t heading);
 
 public:
 #ifdef T4_S3
@@ -191,6 +201,7 @@ private:
     std::vector<int16_t, PsramAllocator<int16_t>> decodedCoords;
     std::vector<FeatureRef, PsramAllocator<FeatureRef>> featurePool;
     std::vector<uint16_t, PsramAllocator<uint16_t>> layers[16];
+    std::vector<uint16_t, PsramAllocator<uint16_t>> layersCasing[16];
     std::vector<uint16_t, PsramAllocator<uint16_t>> ringEndsCache;
     std::vector<LabelRect, PsramAllocator<LabelRect>> placedLabelsCache;
 
@@ -205,6 +216,7 @@ public:
     bool trackNeedsRedraw = false;
     void redrawTrack();
     bool isRendering() const { return pendingTilesNotEmpty_; }
+    bool is3DActive() const { return _use3DCache; }
 
 private:
     enum TileType

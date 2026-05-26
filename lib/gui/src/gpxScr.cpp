@@ -2,11 +2,14 @@
  * @file gpxScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - GPX list screen
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 
 #include "gpxScr.hpp"
+#include "lv_subjects.hpp"
+#include "router.hpp"
+#include "climbAnalyzer.hpp"
 
 extern Maps mapView;
 extern Storage storage;
@@ -17,10 +20,132 @@ bool gpxWaypoint = false;
 bool gpxTrack = false;
 bool isTrackLoaded = false;
 
-extern TrackVector trackData;   /**< Vector containing track waypoints */
+extern TrackVector trackData;             /**< Vector containing track waypoints */
 extern std::vector<TurnPoint> turnPoints; /**< Vector containing turn points */
+extern ClimbAnalyzer climbAnalyzer;       /**< Climb profile analyzer */
 
 lv_obj_t *listGPXScreen;                /**< Add Waypoint screen */
+static bool longPressHandled = false;   /**< Guard to prevent repeated long-press action per gesture */
+
+/**
+ * @brief Loads a GPX waypoint or track from the selected file.
+ *
+ * @param gpx    Initialised GPXParser for the selected file.
+ * @param gpxName Name of the selected entry (without icon prefix).
+ */
+static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
+{
+    showMsg(LV_SYMBOL_DOWNLOAD, " Loading data...");
+    if (gpxWaypoint)
+    {
+        loadWpt = gpx.getWaypointInfo(gpxName);
+        LV_IMG_DECLARE(navup);
+        lv_img_set_src(arrowNav, &navup);
+
+        if (loadWpt.lat != 0 && loadWpt.lon != 0)
+        {
+            lv_obj_clear_flag(navTile, LV_OBJ_FLAG_HIDDEN);
+            if (mapSet.vectorMap)
+                lv_obj_clear_flag(btnToggle3D, LV_OBJ_FLAG_HIDDEN);
+            else
+                lv_obj_add_flag(btnToggle3D, LV_OBJ_FLAG_HIDDEN);
+
+            lv_label_set_text_fmt(latNav, "%s", latFormatString(loadWpt.lat));
+            lv_label_set_text_fmt(lonNav, "%s", lonFormatString(loadWpt.lon));
+            lv_label_set_text_fmt(nameNav, "%s", loadWpt.name);
+
+            mapView.setWaypoint(loadWpt.lat, loadWpt.lon);
+            mapView.updateMap();
+
+            routeDstLat = loadWpt.lat;
+            routeDstLon = loadWpt.lon;
+            lv_subject_set_int(&subject_rerouting, 1);
+            rerouteRequested.store(true);
+
+            lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+        }
+        else
+        {
+            lv_obj_add_flag(navTile, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(btnToggle3D, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+
+    if (gpxTrack)
+    {
+        isTrackLoaded = false;
+        trackData.clear();
+        trackData.shrink_to_fit();
+        climbAnalyzer.clear();
+        gpx.loadTrack(trackData);
+        if (mapSet.showClimb)
+            climbAnalyzer.analyze(trackData);
+        turnPoints = gpx.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, trackData);
+        isTrackLoaded = !trackData.empty();
+        if (isTrackLoaded && mapSet.vectorMap)
+            lv_obj_clear_flag(btnToggle3D, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(turnByTurn, LV_OBJ_FLAG_HIDDEN);
+        mapView.updateMap();
+        mapView.redrawTrack();
+        lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+    }
+    closeMsg();
+    loadMainScreen();
+}
+
+/**
+ * @brief Opens the GPX detail screen to edit the name of the selected waypoint or track.
+ *
+ * @param gpx    Initialised GPXParser for the selected file.
+ * @param gpxName Name of the selected entry (without icon prefix).
+ */
+static void handleGpxEdit(GPXParser &gpx, const char *gpxName)
+{
+    isMainScreen = false;
+    mapView.redrawMap = false;
+
+    if (gpxWaypoint)
+    {
+        loadWpt = gpx.getWaypointInfo(gpxName);
+        lv_textarea_set_text(gpxTagValue, loadWpt.name);
+        lv_label_set_text_static(gpxTag, LV_SYMBOL_LEFT " Waypoint Name:");
+        lv_obj_clear_flag(labelLat, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(labelLatValue, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(labelLon, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(labelLonValue, LV_OBJ_FLAG_HIDDEN);
+    }
+
+    if (gpxTrack)
+    {
+        loadWpt.name = strdup(gpxName);
+        lv_textarea_set_text(gpxTagValue, loadWpt.name);
+        lv_label_set_text_static(gpxTag, LV_SYMBOL_LEFT " Track Name:");
+        lv_obj_add_flag(labelLat, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(labelLatValue, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(labelLon, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(labelLonValue, LV_OBJ_FLAG_HIDDEN);
+    }
+
+    isScreenRotated = false;
+    lv_obj_set_width(gpxTagValue, tft.width() - 10);
+    updateWaypoint(gpxAction);
+    lv_screen_load(gpxDetailScreen);
+}
+
+/**
+ * @brief Deletes the selected GPX waypoint or track from its file.
+ *
+ * @param gpx    Initialised GPXParser for the selected file.
+ * @param gpxName Name of the selected entry (without icon prefix).
+ */
+static void handleGpxDelete(GPXParser &gpx, const char *gpxName)
+{
+    if (gpxWaypoint)
+        gpx.deleteTagByName(gpxWaypointTag, gpxName);
+    if (gpxTrack)
+        gpx.deleteTagByName(gpxTrackTag, gpxName);
+    loadMainScreen();
+}
 
 /**
  * @brief Waypoint list event handler. Handles long-press events on the GPX waypoint list for load, edit, or delete actions.
@@ -34,116 +159,42 @@ void gpxListEvent(lv_event_t *event)
     uint32_t row;
     uint32_t col;
 
-    if (code == LV_EVENT_LONG_PRESSED)
+    if (code == LV_EVENT_RELEASED)
+        longPressHandled = false;
+
+    if (code == LV_EVENT_LONG_PRESSED && !longPressHandled)
     {
+        longPressHandled = true;
         lv_table_get_selected_cell(obj, &row, &col);
 
         if (row != 0)
         {
-            String sel = String(lv_table_get_cell_value(obj, row, col));
-            String gpxName = sel.substring(6,sel.length());
-            String gpxFile = String(lv_table_get_cell_value(obj, row, col+1));
+            const char *sel = lv_table_get_cell_value(obj, row, col);
+            const char *gpxName = (strlen(sel) > 6) ? sel + 6 : sel;
+            const char *gpxFile = lv_table_get_cell_value(obj, row, col + 1);
 
             if (gpxWaypoint)
-                gpxFileFolder = String(wptFolder) + "/" + gpxFile;
+                snprintf(gpxFileFolder, sizeof(gpxFileFolder), "%s/%s", wptFolder, gpxFile);
             else if (gpxTrack)
-                gpxFileFolder = String(trkFolder) + "/" + gpxFile;
+                snprintf(gpxFileFolder, sizeof(gpxFileFolder), "%s/%s", trkFolder, gpxFile);
 
-            GPXParser gpx(gpxFileFolder.c_str());
+            GPXParser gpx(gpxFileFolder);
 
-            if (!sel.isEmpty())
+            if (sel != nullptr && sel[0] != '\0')
             {
                 switch (gpxAction)
                 {
-                    case GPX_LOAD:
-                        showMsg(LV_SYMBOL_DOWNLOAD, " Loading data...");
-                        if (gpxWaypoint)
-                        {
-                            loadWpt = gpx.getWaypointInfo(gpxName.c_str());
-                            LV_IMG_DECLARE(navup);
-                            lv_img_set_src(arrowNav, &navup);
-
-                            if (loadWpt.lat != 0 && loadWpt.lon != 0)
-                            {
-                                lv_obj_clear_flag(navTile, LV_OBJ_FLAG_HIDDEN);
-
-                                lv_label_set_text_fmt(latNav, "%s", latFormatString(loadWpt.lat));
-                                lv_label_set_text_fmt(lonNav, "%s", lonFormatString(loadWpt.lon));
-                                lv_label_set_text_fmt(nameNav, "%s", loadWpt.name);
-
-                                mapView.setWaypoint(loadWpt.lat, loadWpt.lon);
-                                mapView.updateMap();
-
-                                lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
-                            }
-                            else
-                                lv_obj_add_flag(navTile, LV_OBJ_FLAG_HIDDEN);
-                        }
-
-                        if (gpxTrack)
-                        {
-                            isTrackLoaded = false;
-                            trackData.clear();
-                            trackData.shrink_to_fit();
-                            gpx.loadTrack(trackData);
-                            turnPoints = gpx.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, trackData);
-                            isTrackLoaded = !trackData.empty();
-                            lv_obj_clear_flag(turnByTurn,LV_OBJ_FLAG_HIDDEN);
-                            mapView.updateMap();
-                            mapView.redrawTrack();
-                            lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
-                        }
-                        closeMsg();
-                        loadMainScreen();
-                        break;
-                    case GPX_EDIT:
-                        isMainScreen = false;
-                        mapView.redrawMap = false;
-
-                        if (gpxWaypoint)
-                        {
-                            loadWpt = gpx.getWaypointInfo(gpxName.c_str());
-                            lv_textarea_set_text(gpxTagValue, loadWpt.name);
-                            lv_label_set_text_static(gpxTag, LV_SYMBOL_LEFT " Waypoint Name:");
-                            lv_obj_clear_flag(labelLat, LV_OBJ_FLAG_HIDDEN);
-                            lv_obj_clear_flag(labelLatValue, LV_OBJ_FLAG_HIDDEN);
-                            lv_obj_clear_flag(labelLon, LV_OBJ_FLAG_HIDDEN);
-                            lv_obj_clear_flag(labelLonValue, LV_OBJ_FLAG_HIDDEN);
-                        }
-
-                        if (gpxTrack)
-                        {
-                            loadWpt.name = strdup(gpxName.c_str());
-                            lv_textarea_set_text(gpxTagValue, loadWpt.name);
-                            lv_label_set_text_static(gpxTag, LV_SYMBOL_LEFT " Track Name:");
-                            lv_obj_add_flag(labelLat, LV_OBJ_FLAG_HIDDEN);
-                            lv_obj_add_flag(labelLatValue, LV_OBJ_FLAG_HIDDEN);
-                            lv_obj_add_flag(labelLon, LV_OBJ_FLAG_HIDDEN);
-                            lv_obj_add_flag(labelLonValue, LV_OBJ_FLAG_HIDDEN);
-                        }
-
-                        isScreenRotated = false;
-                        lv_obj_set_width(gpxTagValue, tft.width() - 10);
-                        updateWaypoint(gpxAction);
-                        lv_screen_load(gpxDetailScreen);
-
-                        break;
-                    case GPX_DEL:
-                        if (gpxWaypoint)
-                            gpx.deleteTagByName(gpxWaypointTag, gpxName.c_str());
-                        if (gpxTrack)
-                            gpx.deleteTagByName(gpxTrackTag, gpxName.c_str());
-
-                        loadMainScreen();
-                        break;
-                    default:
-                        break;
+                    case GPX_LOAD:   handleGpxLoad(gpx, gpxName);   break;
+                    case GPX_EDIT:   handleGpxEdit(gpx, gpxName);   break;
+                    case GPX_DEL:    handleGpxDelete(gpx, gpxName); break;
+                    default:         break;
                 }
             }
         }
         else if (row == 0)
         {
             lv_obj_add_flag(navTile, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(btnToggle3D, LV_OBJ_FLAG_HIDDEN);
             loadMainScreen();
         }
     }
@@ -181,6 +232,7 @@ void createGpxListScreen()
  */
 void updateGpxListScreen()
 {
+    longPressHandled = false;
     lv_obj_clean(listGPXScreen);
     lv_table_set_row_count(listGPXScreen, 1);
     isMainScreen = false;

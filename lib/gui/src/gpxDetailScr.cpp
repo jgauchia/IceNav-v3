@@ -2,7 +2,7 @@
  * @file gpxDetailScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - GPX Tag detail Screen
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 
@@ -12,7 +12,7 @@ extern Maps mapView;
 extern Gps gps;
 extern wayPoint loadWpt;
 extern wayPoint addWpt;
-String gpxFileFolder;
+char gpxFileFolder[128] = "";
 
 lv_obj_t *gpxDetailScreen;  /**< Waypoint detail screen */
 lv_obj_t *gpxTag;
@@ -53,7 +53,7 @@ static void gpxDetailScreenEvent(lv_event_t *event)
                         char *newName = (char *)lv_textarea_get_text(gpxTagValue);
                         if (strcmp(loadWpt.name, newName) != 0)
                         {
-                            gpx.filePath = gpxFileFolder.c_str();
+                            gpx.filePath = gpxFileFolder;
                             if (gpxWaypoint)
                                 gpx.editTagAttrOrElem(gpxWaypointTag, nullptr, gpxNameElem, loadWpt.name, newName);
                             if (gpxTrack)
@@ -101,7 +101,7 @@ static void gpxDetailScreenEvent(lv_event_t *event)
                 char *newName = (char *)lv_textarea_get_text(gpxTagValue);
                 if (strcmp(loadWpt.name, newName) != 0)
                 {
-                    gpx.filePath = gpxFileFolder.c_str();
+                    gpx.filePath = gpxFileFolder;
                     if (gpxWaypoint)
                         gpx.editTagAttrOrElem(gpxWaypointTag, nullptr, gpxNameElem, loadWpt.name, newName);
                     if (gpxTrack)
@@ -162,7 +162,7 @@ static void rotateScreen(lv_event_t *event)
 static void gpxTagNameEvent(lv_event_t *event)
 {
     lv_event_code_t code = lv_event_get_code(event);
-    if(code == LV_EVENT_CLICKED)
+    if (code == LV_EVENT_CLICKED)
     {
         createWptFile();
         GPXParser gpx;
@@ -180,7 +180,7 @@ static void gpxTagNameEvent(lv_event_t *event)
                 char *newName = (char *)lv_textarea_get_text(gpxTagValue);
                 if (strcmp(loadWpt.name, newName) != 0)
                 {
-                    gpx.filePath = gpxFileFolder.c_str();
+                    gpx.filePath = gpxFileFolder;
                     if (gpxWaypoint)
                         gpx.editTagAttrOrElem(gpxWaypointTag, nullptr, gpxNameElem, loadWpt.name, newName);
                     if (gpxTrack)

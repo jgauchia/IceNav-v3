@@ -2,13 +2,14 @@
  * @file mainScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Main Screen
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 
 #include "mainScr.hpp"
 #include "tasks.hpp"
 #include "lv_subjects.hpp"
+#include "climbAnalyzer.hpp"
 
 #define MAP_MODE_FOLLOW 0
 #define MAP_MODE_MANUAL 1
@@ -23,9 +24,12 @@ uint8_t gpxAction = WPT_NONE;
 
 lv_timer_t *map_inertia_timer = NULL;
 
-extern uint32_t DOUBLE_TOUCH_EVENT;extern Compass compass;
+extern uint32_t DOUBLE_TOUCH_EVENT;
+extern Compass compass;
 extern Gps gps;
 extern wayPoint loadWpt;
+extern TrackVector trackData;
+extern ClimbAnalyzer climbAnalyzer;
 
 #ifdef LARGE_SCREEN
     uint8_t toolBarOffset = 100;
@@ -42,9 +46,16 @@ lv_obj_t *mapTile;
 lv_obj_t *satTrackTile;
 lv_obj_t *btnZoomIn;
 lv_obj_t *btnZoomOut;
+lv_obj_t *btnToggle3D;
+static lv_obj_t *toggle3DImg;
 lv_obj_t *mapImage;
 static lv_image_dsc_t map_img_dsc;
 extern Maps mapView;
+
+static constexpr float MAP_INERTIA_FRICTION   = 0.85f; /**< Velocity damping factor applied each inertia tick. */
+static constexpr float MAP_INERTIA_VEL_THRESH = 0.1f;  /**< Velocity below which inertia scroll is stopped. */
+static constexpr float MAP_HEADING_THRESHOLD  = 2.0f;  /**< Minimum heading change (degrees) that triggers a map redraw. */
+static constexpr float MAP_VELOCITY_WEIGHT    = 0.7f;  /**< EMA weight for velocity estimation during drag. */
 
 /**
  * @brief Update compass screen event
@@ -125,7 +136,7 @@ static void async_map_update_cb(void * user_data)
     float currentLat = gps.gpsData.latitude;
     float currentLon = gps.gpsData.longitude;
 
-    bool headingChanged = (abs(currentHeading - lastRenderedHeading) > 2);
+    bool headingChanged = (abs(currentHeading - lastRenderedHeading) > MAP_HEADING_THRESHOLD);
     bool positionChanged = (currentLat != lastRenderedLat || currentLon != lastRenderedLon);
 
     if (mapView.offsetX != lastDispX || 
@@ -144,9 +155,16 @@ static void async_map_update_cb(void * user_data)
         map_img_dsc.data = (const uint8_t *)mapView.mapBuffer;
         lv_obj_invalidate(mapImage);
         mapView.redrawMap = false;
+
+        if (mapView.is3DActive())
+            lv_obj_align(navArrow, LV_ALIGN_BOTTOM_MID, 0, -(mapView.mapScrHeight / 4));
+        else
+            lv_obj_align(navArrow, LV_ALIGN_CENTER, 0, 0);
     }
 
     lv_obj_set_pos(mapImage, 0, 0);
+    if (mapSet.showClimb)
+        climbAnalyzer.updatePosition(gps.gpsData.latitude, gps.gpsData.longitude, navSet.simNavigation, gps.getSimulationIndex(), trackData);
 
     if (mapSet.showMapSpeed)
         lv_label_set_text_fmt(mapSpeedLabel, "%3d", gps.gpsData.speed);
@@ -160,6 +178,17 @@ static void async_map_update_cb(void * user_data)
 void triggerMapRedraw()
 {
     lv_async_call(async_map_update_cb, NULL);
+}
+
+/**
+ * @brief Toggle 3D/2D map view event callback.
+ *
+ * @param event LVGL event pointer.
+ */
+static void toggle3DEvent(lv_event_t *event)
+{
+    int32_t current = lv_subject_get_int(&subject_map_3d);
+    lv_subject_set_int(&subject_map_3d, current ? 0 : 1);
 }
 
 /**
@@ -214,11 +243,359 @@ static void map_heading_observer_cb(lv_observer_t *observer, lv_subject_t *subje
 
     int32_t newHeading = lv_subject_get_int(subject);
     
-    if (abs(newHeading - global_last_heading) > 2)
+    if (abs(newHeading - global_last_heading) > MAP_HEADING_THRESHOLD)
     {
         global_last_heading = newHeading;
         lv_async_call(async_map_update_cb, NULL);
     }
+}
+
+// Sprite used to render the static elevation profile with LovyanGFX primitives.
+// climbBuf: contiguous PSRAM buffer [RGB565 W*2*H bytes | alpha W*H bytes].
+// Layout matches LV_COLOR_FORMAT_RGB565A8 expected by lv_draw_buf_init.
+static TFT_eSprite   climbSprite       = TFT_eSprite(&tft);
+static uint8_t      *climbBuf          = nullptr;
+static lv_draw_buf_t climbDrawBuf;
+static bool          climbProfileBuilt = false;
+static int           climbLastSegStart = -1;
+static int           climbLastPosX     = -1;
+static int           climbLastYTop     = -1;
+
+/**
+ * @brief Build the static elevation profile into climbSprite using LovyanGFX primitives.
+ *
+ * @details Renders the full-track or zoomed profile once. Iterates over canvas columns
+ *          (W passes) to find elevation and color per column, then draws a filled
+ *          vertical bar with drawFastVLine. O(W) — fast even on ESP32-S3.
+ *          After rendering, passes the sprite buffer to lv_canvas_set_buffer so LVGL
+ *          displays it without any copy.
+ *
+ * @param startPt  First trackData index of the visible window.
+ * @param endPt    Last  trackData index of the visible window.
+ */
+static void buildClimbProfile(int startPt, int endPt)
+{
+    if (climbCanvas == NULL || trackData.size() < 2) return;
+
+    int W = lv_obj_get_width(climbCanvas);
+    int H = lv_obj_get_height(climbCanvas);
+    if (W <= 0 || H <= 0) return;
+
+    // Recreate sprite and unified RGB565A8 buffer if size changed
+    if (climbSprite.width() != W || climbSprite.height() != H)
+    {
+        climbSprite.deleteSprite();
+        climbSprite.setColorDepth(16);
+        climbSprite.createSprite(W, H);
+
+        if (climbBuf != nullptr)
+            heap_caps_free(climbBuf);
+        // RGB565 (W*2*H) + A8 mask (W*H) contiguous buffer in PSRAM
+        climbBuf = (uint8_t *)heap_caps_malloc(W * 2 * H + W * H, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    }
+    if (climbBuf == nullptr) return;
+
+    climbSprite.fillScreen(TFT_BLACK);
+
+    float distStart = trackData[startPt].accumDist;
+    float distEnd   = trackData[endPt].accumDist;
+    float distRange = distEnd - distStart;
+    if (distRange < 1.0f) return;
+
+    float minEle = trackData[startPt].ele;
+    float maxEle = trackData[startPt].ele;
+    for (int i = startPt + 1; i <= endPt; ++i)
+    {
+        if (trackData[i].ele < minEle) minEle = trackData[i].ele;
+        if (trackData[i].ele > maxEle) maxEle = trackData[i].ele;
+    }
+    float eleRange = maxEle - minEle;
+    if (eleRange < 1.0f) eleRange = 1.0f;
+
+    const auto &segs = climbAnalyzer.segments();
+    auto toCol = [](uint32_t rgb) { return lgfx::rgb888_t((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF); };
+
+    uint8_t *alphaBuf = climbBuf + W * 2 * H;
+    memset(alphaBuf, 0x00, W * H);
+
+    // Linear cursor through trackData — O(n) total across all W columns
+    int trkCursor = startPt;
+
+    for (int x = 0; x < W; ++x)
+    {
+        float colDist = distStart + (float)x / (float)(W - 1) * distRange;
+
+        while (trkCursor < endPt - 1 && trackData[trkCursor + 1].accumDist < colDist)
+            ++trkCursor;
+
+        float d0 = trackData[trkCursor].accumDist;
+        float d1 = trackData[trkCursor + 1].accumDist;
+        float e0 = trackData[trkCursor].ele;
+        float e1 = trackData[trkCursor + 1].ele;
+        float t  = (d1 > d0) ? (colDist - d0) / (d1 - d0) : 0.0f;
+        float ele = e0 + t * (e1 - e0);
+
+        int yTop = calcYTop(ele, minEle, eleRange, H);
+
+        lgfx::rgb888_t col = toCol(0x00C800u);
+        for (const auto &seg : segs)
+        {
+            if (colDist >= trackData[seg.startIdx].accumDist &&
+                colDist <= trackData[seg.endIdx].accumDist)
+            {
+                // Local grade over a 50m window centred on colDist
+                float wHalf = 25.0f;
+                float dA = colDist - wHalf;
+                float dB = colDist + wHalf;
+                if (dA < trackData[seg.startIdx].accumDist) dA = trackData[seg.startIdx].accumDist;
+                if (dB > trackData[seg.endIdx].accumDist)   dB = trackData[seg.endIdx].accumDist;
+                int maxIdx = (int)trackData.size() - 1;
+                int ia = trkCursor;
+                while (ia > 0 && trackData[ia].accumDist > dA) --ia;
+                while (ia < maxIdx && trackData[ia + 1].accumDist < dA) ++ia;
+                float ta = (ia < maxIdx && trackData[ia + 1].accumDist > trackData[ia].accumDist)
+                           ? (dA - trackData[ia].accumDist) / (trackData[ia + 1].accumDist - trackData[ia].accumDist)
+                           : 0.0f;
+                float eleA = trackData[ia].ele + ta * (ia < maxIdx ? (trackData[ia + 1].ele - trackData[ia].ele) : 0.0f);
+                int ib = ia;
+                while (ib < maxIdx && trackData[ib + 1].accumDist < dB) ++ib;
+                float tb = (ib < maxIdx && trackData[ib + 1].accumDist > trackData[ib].accumDist)
+                           ? (dB - trackData[ib].accumDist) / (trackData[ib + 1].accumDist - trackData[ib].accumDist)
+                           : 0.0f;
+                float eleB = trackData[ib].ele + tb * (ib < maxIdx ? (trackData[ib + 1].ele - trackData[ib].ele) : 0.0f);
+                float winDist = dB - dA;
+                float localGrade = (winDist > 1.0f) ? ((eleB - eleA) / winDist * 100.0f) : 0.0f;
+                if (localGrade < 0.0f) localGrade = 0.0f;
+                col = toCol(climbSegmentColor(localGrade));
+                break;
+            }
+        }
+
+        climbSprite.drawFastVLine(x, yTop, H - yTop, col);
+
+        // Alpha mask: opaque only where the bar is drawn
+        for (int y = yTop; y < H; ++y)
+            alphaBuf[y * W + x] = 0xFF;
+    }
+
+    // Copy sprite buffer byte-by-byte swapping pairs: LovyanGFX stores RGB565
+    // with bytes already swapped for the ILI9488 bus. RGB565A8 expects unswapped
+    // RGB565, so undo the hardware swap here.
+    const uint8_t *src = (const uint8_t *)climbSprite.getBuffer();
+    for (int i = 0; i < W * H; ++i)
+    {
+        climbBuf[i * 2]     = src[i * 2 + 1];
+        climbBuf[i * 2 + 1] = src[i * 2];
+    }
+
+    uint32_t stride = (uint32_t)W * 2;
+    lv_draw_buf_init(&climbDrawBuf, (uint32_t)W, (uint32_t)H,
+                     LV_COLOR_FORMAT_RGB565A8, stride,
+                     climbBuf, stride * (uint32_t)H + (uint32_t)W * (uint32_t)H);
+    lv_canvas_set_draw_buf(climbCanvas, &climbDrawBuf);
+    lv_obj_invalidate(climbCanvas);
+    climbProfileBuilt = true;
+}
+
+/**
+ * @brief Draw a white vertical line + ▼ triangle above the bar to mark GPS position.
+ *
+ * @details Restores the previous marker area (column + triangle), then draws the white
+ *          line within the bar and a ▼ triangle in the TRI_MARGIN zone above yTop.
+ *
+ * @param posX  Canvas column index for the current GPS position.
+ * @param yTop  Top row of the profile bar at posX (already offset by TRI_MARGIN).
+ */
+static void updateClimbMarker(int posX, int yTop)
+{
+    if (climbCanvas == NULL || climbBuf == nullptr) return;
+
+    int W = climbSprite.width();
+    int H = climbSprite.height();
+    if (W <= 0 || H <= 0) return;
+
+    const uint8_t *src   = (const uint8_t *)climbSprite.getBuffer();
+    uint8_t       *alpha = climbBuf + W * 2 * H;
+
+    auto restorePixel = [&](int x, int y)
+    {
+        if (x < 0 || x >= W || y < 0 || y >= H) return;
+        int i = y * W + x;
+        climbBuf[i * 2]     = src[i * 2 + 1];
+        climbBuf[i * 2 + 1] = src[i * 2];
+        uint16_t px = ((uint16_t)src[i * 2 + 1] << 8) | src[i * 2];
+        alpha[y * W + x] = (px == 0x0000) ? 0x00 : 0xFF;
+    };
+
+    // Restore previous column and triangle
+    if (climbLastPosX >= 0 && climbLastPosX < W)
+    {
+        for (int y = 0; y < H; ++y)
+            restorePixel(climbLastPosX, y);
+
+        for (int r = 0; r < TRI_ROWS; ++r)
+        {
+            int y    = climbLastYTop - TRI_GAP - TRI_ROWS + r;
+            int half = triMask[r] / 2;
+            for (int dx = -half; dx <= half; ++dx)
+                restorePixel(climbLastPosX + dx, y);
+        }
+    }
+
+    if (posX >= 0 && posX < W)
+    {
+        // White line inside the bar
+        for (int y = 0; y < H; ++y)
+        {
+            int i = y * W + posX;
+            uint16_t px = ((uint16_t)src[i * 2 + 1] << 8) | src[i * 2];
+            if (px != 0x0000)
+            {
+                climbBuf[i * 2]     = 0xFF;
+                climbBuf[i * 2 + 1] = 0xFF;
+                alpha[y * W + posX] = 0xFF;
+            }
+        }
+
+        // ▼ triangle in the reserved margin above yTop, with TRI_GAP blank rows
+        for (int r = 0; r < TRI_ROWS; ++r)
+        {
+            int y    = yTop - TRI_GAP - TRI_ROWS + r;
+            int half = triMask[r] / 2;
+            for (int dx = -half; dx <= half; ++dx)
+            {
+                int tx = posX + dx;
+                if (tx < 0 || tx >= W || y < 0 || y >= H) continue;
+                int i = y * W + tx;
+                climbBuf[i * 2]     = 0xFF;
+                climbBuf[i * 2 + 1] = 0xFF;
+                alpha[y * W + tx]   = 0xFF;
+            }
+        }
+
+        climbLastPosX = posX;
+        climbLastYTop = yTop;
+    }
+
+    lv_obj_invalidate(climbCanvas);
+}
+
+/**
+ * @brief Observer callback for subject_climb_active — controls overlay visibility only.
+ */
+static void climb_active_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+{
+    if (climbOverlay == NULL) return;
+
+    if (lv_subject_get_int(&subject_climb_active) == 0)
+    {
+        lv_obj_add_flag(climbOverlay, LV_OBJ_FLAG_HIDDEN);
+        climbProfileBuilt = false;
+        climbLastSegStart = -1;
+        climbLastPosX     = -1;
+        climbLastYTop     = -1;
+    }
+    else
+    {
+        lv_obj_clear_flag(climbOverlay, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+/**
+ * @brief Observer callback for subject_climb_idx — updates labels, profile and marker.
+ *
+ * @details Only called when active==1. Finds the active segment using the same
+ *          anticipation window as updatePosition() so buildClimbProfile is invoked
+ *          from the first frame the overlay appears, not only once inside the climb.
+ */
+static void climb_idx_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+{
+    if (climbOverlay == NULL) return;
+    if (lv_subject_get_int(&subject_climb_active) == 0) return;
+
+    int32_t dist      = lv_subject_get_int(&subject_climb_dist);
+    int32_t gain      = lv_subject_get_int(&subject_climb_gain);
+    int32_t grade10   = lv_subject_get_int(&subject_climb_grade);
+    float   grade     = grade10 / 10.0f;
+    int32_t activeIdx = lv_subject_get_int(&subject_climb_idx);
+
+    int32_t seg_num   = lv_subject_get_int(&subject_climb_seg);
+    int32_t seg_total = lv_subject_get_int(&subject_climb_total);
+    int32_t cat       = lv_subject_get_int(&subject_climb_cat);
+    int32_t avg10     = lv_subject_get_int(&subject_climb_avg_grade);
+    int32_t tot_dist  = lv_subject_get_int(&subject_climb_total_dist);
+    int32_t tot_gain  = lv_subject_get_int(&subject_climb_total_gain);
+    int32_t appr      = lv_subject_get_int(&subject_climb_approaching);
+
+    lv_label_set_text_fmt(climbTotalDistLabel, "%.1fkm", tot_dist / 1000.0f);
+    lv_label_set_text_fmt(climbTotalGainLabel, "%dm D+", tot_gain);
+    lv_label_set_text_fmt(climbAvgGradeLabel,  "avg %.1f%%", avg10 / 10.0f);
+    lv_label_set_text_fmt(climbSegLabel, "%d/%d", seg_num, seg_total);
+
+    static const char *catStr[] = { "", "HC", "CAT 1", "CAT 2", "CAT 3", "CAT 4" };
+    lv_label_set_text_static(climbCatLabel, (cat >= 0 && cat <= 5) ? catStr[cat] : "");
+
+    if (appr)
+        lv_label_set_text_fmt(climbDistLabel, LV_SYMBOL_RIGHT " %dm", dist);
+    else
+        lv_label_set_text_fmt(climbDistLabel, LV_SYMBOL_UP " %dm", dist);
+    lv_label_set_text_fmt(climbGainLabel, "%dm D+", gain);
+    lv_label_set_text_fmt(climbGradeLabel, "%.1f%%", grade);
+
+    int W = lv_obj_get_width(climbCanvas);
+    if (W <= 0) return;
+
+    // Same anticipation condition as updatePosition() — covers pre-climb phase too
+    const std::vector<ClimbSegment>& segs = climbAnalyzer.segments();
+    float curDistObs = trackData[(int)activeIdx].accumDist;
+    const ClimbSegment* seg = nullptr;
+    for (const ClimbSegment& s : segs)
+    {
+        float segStartDist = trackData[s.startIdx].accumDist;
+        float segEndDist   = trackData[s.endIdx].accumDist;
+        if (curDistObs <= segEndDist && segStartDist - curDistObs <= CLIMB_ANTICIPATION_M)
+        {
+            seg = &s;
+            break;
+        }
+    }
+    if (seg == nullptr) return;
+
+    float preStartDist = trackData[seg->startIdx].accumDist - CLIMB_ANTICIPATION_M;
+    int startPt = seg->startIdx;
+    while (startPt > 0 && trackData[startPt - 1].accumDist >= preStartDist)
+        --startPt;
+
+    int endPt  = seg->endIdx;
+    float dRange = trackData[endPt].accumDist - trackData[startPt].accumDist;
+    float dPos   = curDistObs - trackData[startPt].accumDist;
+    int posX = (dRange > 0.0f) ? (int)(dPos / dRange * (W - 1)) : 0;
+    if (posX < 0) posX = 0;
+    if (posX >= W) posX = W - 1;
+
+    if (!climbProfileBuilt || seg->startIdx != climbLastSegStart)
+    {
+        climbLastPosX = -1;
+        climbLastYTop = -1;
+        buildClimbProfile(startPt, endPt);
+        climbLastSegStart = seg->startIdx;
+    }
+
+    // Compute yTop at posX using the same formula as buildClimbProfile
+    int H = lv_obj_get_height(climbCanvas);
+    float minEle = trackData[startPt].ele;
+    float maxEle = trackData[startPt].ele;
+    for (int i = startPt + 1; i <= endPt; ++i)
+    {
+        if (trackData[i].ele < minEle) minEle = trackData[i].ele;
+        if (trackData[i].ele > maxEle) maxEle = trackData[i].ele;
+    }
+    float eleRange = maxEle - minEle;
+    if (eleRange < 1.0f) eleRange = 1.0f;
+    float curEleObs = trackData[(int)activeIdx].ele;
+    int yTop = calcYTop(curEleObs, minEle, eleRange, H);
+
+    updateClimbMarker(posX, yTop);
 }
 
 /**
@@ -244,6 +621,24 @@ static void nav_data_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
     if (activeTile != NAV)
         return;
     lv_async_call(async_nav_update_cb, NULL);
+}
+
+/**
+ * @brief Observer callback for subject_map_3d — toggles pseudo-3D perspective in real time.
+ *
+ * @details Synchronizes mapSet.map3D with the subject value, invalidates the tile cache,
+ *          and schedules an immediate redraw via lv_async_call.
+ *
+ * @param observer Pointer to the observer.
+ * @param subject Pointer to the subject.
+ */
+static void map_3d_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+{
+    mapSet.map3D = (lv_subject_get_int(subject) != 0);
+    if (toggle3DImg != NULL)
+        lv_img_set_src(toggle3DImg, mapSet.map3D ? toggle3DIconFile : toggle2DIconFile);
+    mapView.updateMap();
+    triggerMapRedraw();
 }
 
 /**
@@ -300,6 +695,29 @@ void updateMap(lv_event_t *event)
 }
 
 /**
+ * @brief Shows or hides the zoom in/out buttons.
+ *
+ * @param show true to make buttons visible and interactive, false to hide them.
+ */
+static void setZoomButtonsVisible(bool show)
+{
+    if (show)
+    {
+        lv_obj_add_flag(btnZoomOut, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
+        lv_obj_add_flag(btnZoomIn, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
+        lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
+    }
+    else
+    {
+        lv_obj_clear_flag(btnZoomOut, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
+        lv_obj_clear_flag(btnZoomIn, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
+        lv_obj_add_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+/**
  * @brief Map Tool Bar Event.
  *
  * @details Handles map toolbar visibility toggling, zoom button states, map scrollability, and map centering on GPS.
@@ -313,10 +731,7 @@ void mapToolBarEvent(lv_event_t *event)
     isScrollingMap = false;
     if (!showMapToolBar)
     {
-        lv_obj_clear_flag(btnZoomOut, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
-        lv_obj_clear_flag(btnZoomIn, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
-        lv_obj_add_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
+        setZoomButtonsVisible(false);
         lv_obj_add_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
         mapView.centerOnGps(gps.gpsData.latitude, gps.gpsData.longitude);
         lv_subject_set_int(&subject_map_state, MAP_MODE_FOLLOW);
@@ -328,10 +743,7 @@ void mapToolBarEvent(lv_event_t *event)
     }
     else
     {
-        lv_obj_add_flag(btnZoomOut, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
-        lv_obj_add_flag(btnZoomIn, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
-        lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
+        setZoomButtonsVisible(true);
         lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
         if (!mapView.followGps)
             lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
@@ -355,13 +767,13 @@ void map_inertia_timer_cb(lv_timer_t * t)
         float dy = mapView.velocityY * dt;
         mapView.scrollMap((int16_t)dx, (int16_t)dy);
 
-        float currentFriction = mapView.isRendering() ? 0.85f : mapView.friction;
+        float currentFriction = mapView.isRendering() ? MAP_INERTIA_FRICTION : mapView.friction;
         mapView.velocityX *= currentFriction;
         mapView.velocityY *= currentFriction;
 
-        if (abs(mapView.velocityX) < 0.1f)
+        if (abs(mapView.velocityX) < MAP_INERTIA_VEL_THRESH)
             mapView.velocityX = 0;
-        if (abs(mapView.velocityY) < 0.1f)
+        if (abs(mapView.velocityY) < MAP_INERTIA_VEL_THRESH)
             mapView.velocityY = 0;
 
         lv_subject_set_int(&subject_map_offset_x, mapView.offsetX);
@@ -431,9 +843,8 @@ void scrollMapEvent(lv_event_t *event)
                 if (dragStarted && dt > 0)
                 {
                     mapView.scrollMap(-dx, -dy);
-                    float weight = 0.7f;
-                    mapView.velocityX = mapView.velocityX * (1.0f - weight) + (-(float)dx / (float)dt) * weight;
-                    mapView.velocityY = mapView.velocityY * (1.0f - weight) + (-(float)dy / (float)dt) * weight;
+                    mapView.velocityX = mapView.velocityX * (1.0f - MAP_VELOCITY_WEIGHT) + (-(float)dx / (float)dt) * MAP_VELOCITY_WEIGHT;
+                    mapView.velocityY = mapView.velocityY * (1.0f - MAP_VELOCITY_WEIGHT) + (-(float)dy / (float)dt) * MAP_VELOCITY_WEIGHT;
                     last_x = p.x;
                     last_y = p.y;
                     last_time = current_time;
@@ -447,7 +858,7 @@ void scrollMapEvent(lv_event_t *event)
                 lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
                 isScrollingMap = false;
                 dragStarted = false;
-                if (abs(mapView.velocityX) > 0.1f || abs(mapView.velocityY) > 0.1f)
+                if (abs(mapView.velocityX) > MAP_INERTIA_VEL_THRESH || abs(mapView.velocityY) > MAP_INERTIA_VEL_THRESH)
                 {
                     lv_subject_set_int(&subject_map_state, MAP_MODE_INERTIA);
                     if (map_inertia_timer != NULL)
@@ -561,6 +972,7 @@ void createMainScr()
     altitudeWidget(compassTile);
     speedWidget(compassTile);
     sunWidget(compassTile);
+    // mainScreen never destroyed — manual observer intentional (updateCompassScr targets two labels, no single obj)
     lv_subject_add_observer(&subject_sunrise, updateCompassScr, NULL);
     createMapImage(mapTile);
     navArrowWidget(mapTile);
@@ -569,6 +981,9 @@ void createMainScr()
     mapCompassWidget(mapTile);
     mapScaleWidget(mapTile);
     turnByTurnWidget(mapTile);
+    climbWidget(mapTile);
+    lv_subject_add_observer_obj(&subject_climb_active, climb_active_observer_cb, climbOverlay, NULL);
+    lv_subject_add_observer_obj(&subject_climb_idx,    climb_idx_observer_cb,    climbOverlay, NULL);
     lv_subject_add_observer_obj(&subject_heading, map_heading_observer_cb, mapTile, NULL);
     lv_subject_add_observer_obj(&subject_lat, map_position_observer_cb, mapTile, NULL);
     lv_subject_add_observer_obj(&subject_lon, map_position_observer_cb, mapTile, NULL);
@@ -611,7 +1026,21 @@ void createMainScr()
     lv_subject_add_observer_obj(&subject_lon, nav_data_observer_cb, navTile, NULL);
     lv_subject_add_observer_obj(&subject_heading, nav_data_observer_cb, navTile, NULL);
     lv_obj_add_event_cb(navTile, updateNavEvent, LV_EVENT_VALUE_CHANGED, NULL);
+    btnToggle3D = lv_obj_create(mapTile);
+    lv_obj_set_size(btnToggle3D, 60, 60);
+    lv_obj_clear_flag(btnToggle3D, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_style(btnToggle3D, &styleMapWidget, 0);
+    lv_obj_add_flag(btnToggle3D, (lv_obj_flag_t)(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_FLOATING));
+    lv_obj_align(btnToggle3D, LV_ALIGN_TOP_RIGHT, 0, 170);
+    toggle3DImg = lv_img_create(btnToggle3D);
+    lv_img_set_zoom(toggle3DImg, buttonScale);
+    lv_obj_center(toggle3DImg);
+    lv_obj_add_flag(btnToggle3D, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_event_cb(btnToggle3D, toggle3DEvent, LV_EVENT_CLICKED, NULL);
+    lv_subject_set_int(&subject_map_3d, mapSet.map3D ? 1 : 0);
+    lv_subject_add_observer_obj(&subject_map_3d, map_3d_observer_cb, mapTile, NULL);
     satelliteScr(satTrackTile);
+    // timer is permanent — mainScreen is never destroyed
     map_inertia_timer = lv_timer_create(map_inertia_timer_cb, 20, NULL);
     lv_timer_pause(map_inertia_timer);
 

@@ -1,11 +1,12 @@
 /**
  * @file compass.cpp
  * @brief Compass definition and functions - Native ESP-IDF drivers
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 
 #include "compass.hpp"
+#include "tft.hpp"
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -29,43 +30,7 @@ static const char* TAG = "Compass";
  *
  * @details Initializes with default I2C address and control register value.
  */
-QMC5883L_Driver::QMC5883L_Driver() : i2cAddr(QMC5883L_ADDRESS), ctrl1Value(0x01) {}
-
-/**
- * @brief Reads a single byte from a register.
- *
- * @param reg Register address.
- * @return Register value.
- */
-uint8_t QMC5883L_Driver::read8(uint8_t reg)
-{
-    return i2c.read8(i2cAddr, reg);
-}
-
-/**
- * @brief Writes a single byte to a register.
- *
- * @param reg Register address.
- * @param value Value to write.
- * @return true if write successful, false on error.
- */
-bool QMC5883L_Driver::write8(uint8_t reg, uint8_t value)
-{
-    return i2c.write8(i2cAddr, reg, value);
-}
-
-/**
- * @brief Reads a 16-bit value from two consecutive registers (LSB first).
- *
- * @param reg Starting register address.
- * @return 16-bit signed value.
- */
-int16_t QMC5883L_Driver::read16(uint8_t reg)
-{
-    uint8_t buffer[2];
-    i2c.readBytes(i2cAddr, reg, buffer, 2);
-    return (int16_t)(buffer[0] | (buffer[1] << 8));
-}
+QMC5883L_Driver::QMC5883L_Driver() : I2CDriverBase(QMC5883L_ADDRESS), ctrl1Value(0x01) {}
 
 /**
  * @brief Initializes the QMC5883L magnetometer.
@@ -174,41 +139,7 @@ bool QMC5883L_Driver::readRaw(float &x, float &y, float &z)
  *
  * @details Initializes with default I2C address and config register value.
  */
-HMC5883L_Driver::HMC5883L_Driver() : i2cAddr(HMC5883L_ADDRESS), configAValue(0x70) {}
-
-/**
- * @brief Reads a single byte from a register.
- *
- * @param reg Register address.
- * @return Register value.
- */
-uint8_t HMC5883L_Driver::read8(uint8_t reg)
-{
-    return i2c.read8(i2cAddr, reg);
-}
-
-/**
- * @brief Writes a single byte to a register.
- *
- * @param reg Register address.
- * @param value Value to write.
- */
-void HMC5883L_Driver::write8(uint8_t reg, uint8_t value)
-{
-    i2c.write8(i2cAddr, reg, value);
-}
-
-/**
- * @brief Reads a 16-bit value from two consecutive registers (MSB first).
- * @param reg Starting register address.
- * @return 16-bit signed value.
- */
-int16_t HMC5883L_Driver::read16(uint8_t reg)
-{
-    uint8_t buffer[2];
-    i2c.readBytes(i2cAddr, reg, buffer, 2);
-    return (int16_t)((buffer[0] << 8) | buffer[1]);
-}
+HMC5883L_Driver::HMC5883L_Driver() : I2CDriverBase(HMC5883L_ADDRESS), configAValue(0x70) {}
 
 /**
  * @brief Initializes the HMC5883L magnetometer.
@@ -307,7 +238,8 @@ bool HMC5883L_Driver::readRaw(float &x, float &y, float &z)
  */
 MPU9250_Driver::MPU9250_Driver()
     : mpuAddr(MPU9250_ADDRESS), akAddr(AK8963_ADDRESS),
-      magX(0), magY(0), magZ(0), asaX(1), asaY(1), asaZ(1) {}
+      magX(0), magY(0), magZ(0), asaX(1), asaY(1), asaZ(1),
+      accelScale(16384.0f) {}
 
 /**
  * @brief Reads a single byte from a register.
@@ -344,6 +276,25 @@ int16_t MPU9250_Driver::read16LE(uint8_t addr, uint8_t reg)
     uint8_t buffer[2];
     i2c.readBytes(addr, reg, buffer, 2);
     return (int16_t)(buffer[0] | (buffer[1] << 8));
+}
+
+
+/**
+ * @brief Reads accelerometer data from the MPU9250.
+ *
+ * @details Reads 6 bytes starting at ACCEL_XOUT_H and converts to g units.
+ *
+ * @param ax X-axis acceleration in g.
+ * @param ay Y-axis acceleration in g.
+ * @param az Z-axis acceleration in g.
+ */
+void MPU9250_Driver::readAccel(float &ax, float &ay, float &az)
+{
+    uint8_t buffer[6];
+    i2c.readBytes(mpuAddr, MPU9250_REG_ACCEL_XOUT, buffer, 6);
+    ax = (int16_t)((buffer[0] << 8) | buffer[1]) / accelScale;
+    ay = (int16_t)((buffer[2] << 8) | buffer[3]) / accelScale;
+    az = (int16_t)((buffer[4] << 8) | buffer[5]) / accelScale;
 }
 
 /**
@@ -408,6 +359,10 @@ bool MPU9250_Driver::begin(uint8_t addr)
     // Set continuous measurement mode 2 (100Hz) with 16-bit resolution
     write8(akAddr, AK8963_REG_CNTL1, 0x16);
     vTaskDelay(pdMS_TO_TICKS(10));
+
+    // Configure accelerometer: ±2g range (accelScale = 16384)
+    write8(mpuAddr, MPU9250_REG_ACCEL_CFG, 0x00);
+    accelScale = 16384.0f;
 
     return true;
 }
@@ -483,13 +438,14 @@ float MPU9250_Driver::getMagZ_uT() { return magZ; }
  * @brief Compass class constructor with default filter and calibration values.
  */
 Compass::Compass()
-        : declinationAngle(0.22f), offX(0.0f), offY(0.0f),
-        headingSmooth(0.0f), headingPrevious(0.0f),
-        minX(0.0f), maxX(0.0f), minY(0.0f), maxY(0.0f),
-        kalmanFilterEnabled(true),
-        kalmanFilter(0.01f, 0.1f, 1.0f, 0.0f)
+        : declinationAngle(0.22f), // default ~12.6 deg (Barcelona) in radians
+          offX(0.0f), offY(0.0f),
+          headingSmooth(0.0f), headingPrevious(0.0f),
+          minX(0.0f), maxX(0.0f), minY(0.0f), maxY(0.0f),
+          kalmanFilterEnabled(true),
+          kalmanFilter(0.01f, 0.1f, 1.0f, 0.0f),
+          previousDegrees(0)
 {
-    previousDegrees = 0;
 }
 
 /**
@@ -568,7 +524,8 @@ bool Compass::read(float &x, float &y, float &z)
 /**
  * @brief Calculates the heading (in degrees) from the magnetometer data.
  *
- * @details Applies calibration offsets and applies a Kalman filter if enabled.
+ * @details Applies calibration offsets, tilt compensation via IMU accelerometer
+ *          (when available), and Kalman filter if enabled.
  *
  * @return Heading in degrees.
  */
@@ -591,7 +548,40 @@ int Compass::getHeading()
     float hx = x - offX;
     float hy = y - offY;
 
+#ifdef ENABLE_IMU
+    float hz = z;
+    float ax = 0.0f;
+    float ay = 0.0f;
+    float az = 1.0f;
+
+    #ifdef MPU6050
+        mpu.getAccel(ax, ay, az);
+    #endif
+
+    #ifdef IMU_MPU9250
+        IMU.readAccel(ax, ay, az);
+    #endif
+
+    ax = ax * IMU_ACCEL_X_SIGN;
+    ay = ay * IMU_ACCEL_Y_SIGN;
+    az = az * IMU_ACCEL_Z_SIGN;
+
+    float pitch = atan2f(ay, sqrtf(ax * ax + az * az));
+    float roll  = atan2f(ax, az);
+
+    float sinPitch = sinf(pitch);
+    float cosPitch = cosf(pitch);
+    float sinRoll  = sinf(roll);
+    float cosRoll  = cosf(roll);
+
+    float hxc = hx * cosPitch + hz * sinPitch;
+    float hyc = hx * sinRoll * sinPitch + hy * cosRoll - hz * sinRoll * cosPitch;
+
+    float heading = atan2f(hyc, hxc);
+#else
     float heading = atan2f(hy, hx);
+#endif
+
     heading += declinationAngle;
     heading = wrapToPi(heading);
 
@@ -705,6 +695,7 @@ void Compass::calibrate()
         compassCalSprite.drawString(timeString, (tft.width() >> 1), 280 * scale);
 
         memset(&timeString[0], 0, sizeof(timeString));
+
 
         compassCalSprite.pushSprite(0,0);
 

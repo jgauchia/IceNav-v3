@@ -2,7 +2,7 @@
  * @file settings.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Settings functions
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 
@@ -78,6 +78,8 @@ void loadPreferences()
     mapSet.showMapSpeed = cfg.getBool(PKEYS::KMAP_SPEED, true);
     mapSet.vectorMap = cfg.getBool(PKEYS::KMAP_VECTOR, false);
     mapSet.showMapScale = cfg.getBool(PKEYS::KMAP_SCALE, true);
+    mapSet.showClimb = cfg.getBool(PKEYS::KMAP_CLIMB, false);
+    mapSet.map3D = cfg.getBool(PKEYS::KMAP_3D, false);
     navSet.simNavigation = cfg.getBool(PKEYS::KSIM_NAV, false);
     gpsBaud = cfg.getShort(PKEYS::KGPS_SPEED, 4);
     gpsUpdate = cfg.getShort(PKEYS::KGPS_RATE, 3);

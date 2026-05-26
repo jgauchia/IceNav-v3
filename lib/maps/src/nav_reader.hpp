@@ -1,7 +1,7 @@
 /**
  * @file nav_reader.hpp
  * @brief NAV tile reader for ESP32 - IceNav Navigation Tiles
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  *
  * NAV format uses int32 coordinates (scaled by 1e7) for compact storage.
@@ -61,6 +61,7 @@ public:
     static void closePack();
     static bool openPack(uint8_t zoom);
     static bool findTileInPack(uint32_t tileX, uint32_t tileY, uint32_t& offset, uint32_t& size);
+    static void prefetchIndexRange(const uint32_t* tileXs, const uint32_t* tileYs, uint8_t count, uint8_t zoom);
 
     /**
      * @brief Convert (x,y) tile coordinates to Hilbert index.
@@ -79,6 +80,16 @@ public:
         }
         return d;
     }
+
+    struct IndexEntry
+    {
+        uint64_t hilbert;
+        uint32_t offset;
+        uint32_t size;
+    };
+
+    static IndexEntry* ramIndex;
+    static uint32_t    ramIndexCount;
 
 private:
     static uint8_t currentZoom;

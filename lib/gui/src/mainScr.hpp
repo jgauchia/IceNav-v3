@@ -2,7 +2,7 @@
  * @file mainScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Main Screen definitions
- * @version 0.1.9
+ * @version 0.2.7
  * @date 2026-05
  */
 
@@ -53,6 +53,7 @@ extern lv_obj_t *satTrackTile;   /**< Satellite track screen tile */
  */
 extern lv_obj_t *btnZoomIn;       /**< Toolbar button for zooming in */
 extern lv_obj_t *btnZoomOut;      /**< Toolbar button for zooming out */
+extern lv_obj_t *btnToggle3D;     /**< Toggle 3D/2D map view button */
 extern uint8_t toolBarOffset;     /**< Offset for toolbar positioning */
 extern uint8_t toolBarSpace;      /**< Space between toolbar buttons */
 

@@ -2,7 +2,7 @@
  * @file notifyBar.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief LVGL - Notify Bar Screen
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 
@@ -18,11 +18,18 @@ extern Storage storage;
 extern Battery battery;
 extern Gps gps;
 
+static constexpr int32_t BATT_CHARGING_MAX = 500; /**< Level above which battery is considered charging. */
+static constexpr int32_t BATT_FULL         = 110; /**< Level threshold for full battery icon. */
+static constexpr int32_t BATT_HIGH         =  80; /**< Level threshold for high battery icon. */
+static constexpr int32_t BATT_MED          =  60; /**< Level threshold for medium battery icon. */
+static constexpr int32_t BATT_LOW          =  40; /**< Level threshold for low battery icon. */
+static constexpr int32_t BATT_CRITICAL     =  20; /**< Level threshold for critical (empty) battery icon. */
+
 /**
  * @brief Observer callback for battery icon updates
- * 
+ *
  * @details Updates the battery symbol based on the percentage from subject_battery.
- * 
+ *
  * @param observer Pointer to the observer.
  * @param subject Pointer to the subject.
  */
@@ -31,17 +38,17 @@ static void battery_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
     int32_t level = lv_subject_get_int(subject);
     lv_obj_t *obj = (lv_obj_t *)lv_observer_get_target_obj(observer);
 
-    if (level <= 500 && level > 110)
+    if (level <= BATT_CHARGING_MAX && level > BATT_FULL)
         lv_label_set_text_static(obj, "  " LV_SYMBOL_CHARGE);
-    else if (level <= 110 && level > 80)
+    else if (level <= BATT_FULL && level > BATT_HIGH)
         lv_label_set_text_static(obj, LV_SYMBOL_BATTERY_FULL);
-    else if (level <= 80 && level > 60)
+    else if (level <= BATT_HIGH && level > BATT_MED)
         lv_label_set_text_static(obj, LV_SYMBOL_BATTERY_3);
-    else if (level <= 60 && level > 40)
+    else if (level <= BATT_MED && level > BATT_LOW)
         lv_label_set_text_static(obj, LV_SYMBOL_BATTERY_2);
-    else if (level <= 40 && level > 20)
+    else if (level <= BATT_LOW && level > BATT_CRITICAL)
         lv_label_set_text_static(obj, LV_SYMBOL_BATTERY_1);
-    else if (level <= 20)
+    else if (level <= BATT_CRITICAL)
         lv_label_set_text_static(obj, LV_SYMBOL_BATTERY_EMPTY);
 }
 

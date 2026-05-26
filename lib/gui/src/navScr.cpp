@@ -2,7 +2,7 @@
  * @file navScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Navigation screen 
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 
@@ -82,4 +82,5 @@ void navigationScr(_lv_obj_t *screen)
     lv_obj_align(arrowNav, LV_ALIGN_CENTER, 0, 100);
     lv_img_set_zoom(arrowNav, iconScale);
 #endif
+
 }

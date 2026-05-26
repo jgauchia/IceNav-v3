@@ -2,7 +2,7 @@
  * @file tasks.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Core Tasks implementation for GPS and CLI management
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  * @details This file contains the implementation of FreeRTOS tasks for GPS data processing
  *          and CLI interface management. It handles thread-safe GPS data reading and
@@ -19,7 +19,6 @@ extern Gps gps;
 SensorData globalSensorData = {};
 
 static constexpr TickType_t MUTEX_TIMEOUT_GPS  = pdMS_TO_TICKS(100);
-static constexpr TickType_t MUTEX_TIMEOUT_TIME = pdMS_TO_TICKS(50);
 static constexpr TickType_t MUTEX_TIMEOUT_SLOW = pdMS_TO_TICKS(10);
 
 static const char* TAG = "Task";
@@ -101,7 +100,7 @@ void initGpsTask()
  * @brief Command-line interface processing task
  *
  * @details Handles CLI operations including command parsing, execution, and response
- *          generation. Runs on core 1 with 3KB stack size to handle complex CLI
+ *          generation. Runs on core 1 with 16KB stack size to handle complex CLI
  *          operations and network communications. The task processes commands at
  *          60ms intervals to maintain responsive user interaction.
  *
@@ -112,7 +111,7 @@ void cliTask(void *param)
 {
     ESP_LOGV(TAG, "CLI Task - running on core %d", xPortGetCoreID());
     ESP_LOGV(TAG, "Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
-    while(1) 
+    while (1)
     {
         wcli.loop();
         vTaskDelay(60 / portTICK_PERIOD_MS);
@@ -123,10 +122,10 @@ void cliTask(void *param)
 /**
  * @brief Initialize CLI processing task
  *
- * @details Creates and starts the CLI task on core 1 with 3KB stack size and priority 1.
+ * @details Creates and starts the CLI task on core 1 with 16KB stack size and priority 1.
  *          Only compiled when CLI functionality is enabled (not DISABLE_CLI).
  */
-void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 3072, NULL, 1, NULL, 1); }
+void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 16384, NULL, 1, NULL, 1); }
 
 #endif
 
@@ -179,7 +178,7 @@ void sensorTask(void *pvParameters)
         time_t now = time(NULL);
         if (now != lastTimeSent)
         {
-            if (isMainScreen && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, MUTEX_TIMEOUT_TIME) == pdTRUE)
+            if (isMainScreen && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
             {
                 lv_subject_set_int(&subject_time, (int32_t)now);
                 lv_subject_notify(&subject_time);

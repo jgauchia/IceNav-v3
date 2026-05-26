@@ -2,7 +2,7 @@
  * @file settings.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Settings functions
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 
@@ -71,6 +71,8 @@ struct MAP
     bool showMapSpeed;      /**< Show speed in map screen */
     bool vectorMap;         /**< Map type: true for vector, false for rendered */
     bool showMapScale;      /**< Show map scale on screen */
+    bool showClimb;         /**< Show Climb analyzer */
+    bool map3D;             /**< Enable pseudo-3D perspective view */
 };
 extern MAP mapSet; /**< Global instance for map settings */
 

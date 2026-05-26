@@ -2,7 +2,7 @@
  * @file storage.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Storage definition and functions
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 
@@ -60,7 +60,7 @@ class Storage
         bool isSdLoaded;           /**< Indicates if the SD card is loaded */
         sdmmc_card_t *card;        /**< Pointer to the SD card descriptor */
         uint8_t *dmaBuffer;        /**< Persistent buffer for DMA-safe reads */
-        static constexpr size_t DMA_BUF_SIZE = 32768; 
+        static constexpr size_t DMA_BUF_SIZE = 32768;
         SemaphoreHandle_t readMutex; /**< Mutex to protect dmaBuffer */
 
     public:
@@ -82,10 +82,13 @@ class Storage
         size_t write(FILE* file, const uint8_t* buffer, size_t size);
         size_t write(FILE* file, const char* buffer, size_t size);
         int seek(FILE* file, long offset, int whence);
+        size_t seekAndRead(FILE* file, long offset, uint8_t* buffer, size_t size);
         int print(FILE* file, const char* str);
         int println(FILE* file, const char* str);
         size_t fileAvailable(FILE* file);
 };
+
+extern Storage storage;
 
 /**
  * @class FileStream
@@ -140,7 +143,6 @@ class FileStream : public Stream
         */
         virtual size_t read(uint8_t *buffer, size_t size)
         {
-            extern Storage storage;
             return storage.read(file, buffer, size);
         }
 
@@ -153,7 +155,6 @@ class FileStream : public Stream
         */
         virtual size_t readBytes(char *buffer, size_t length) override
         {
-            extern Storage storage;
             return storage.read(file, buffer, length);
         }
 

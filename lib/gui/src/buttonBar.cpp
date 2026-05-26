@@ -2,7 +2,7 @@
  * @file buttonBar.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Button Bar 
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 
@@ -26,7 +26,7 @@ void buttonBarEvent(lv_event_t *event)
 {
     lv_obj_t * obj = (lv_obj_t*)lv_event_get_target(event);
     lv_obj_t * buttonBar = lv_obj_get_parent(obj);
-    if(lv_obj_get_width(buttonBar) > LV_HOR_RES / 2)
+    if (lv_obj_get_width(buttonBar) > LV_HOR_RES / 2)
     {
         lv_anim_t a;
         lv_anim_init(&a);
@@ -95,35 +95,28 @@ void optionEvent(lv_event_t *event)
         isMainScreen = false;
         lv_obj_del(option);
         updateGpxListScreen();
-        if (isTrackOpt)
-            lv_table_set_cell_value(listGPXScreen, 0, 0, LV_SYMBOL_LEFT " Tracks");
-        if (isWaypointOpt)
-            lv_table_set_cell_value(listGPXScreen, 0, 0, LV_SYMBOL_LEFT " Waypoints");
-        lv_screen_load(listGPXScreen);
     }
-    if (strcmp(action,"edit") == 0)
+    else if (strcmp(action,"edit") == 0)
     {
         gpxAction = GPX_EDIT;
         isMainScreen = false;
         lv_obj_del(option);
         updateGpxListScreen();
-        if (isTrackOpt)
-            lv_table_set_cell_value(listGPXScreen, 0, 0, LV_SYMBOL_LEFT " Tracks");
-        if (isWaypointOpt)
-            lv_table_set_cell_value(listGPXScreen, 0, 0, LV_SYMBOL_LEFT " Waypoints");
-        lv_screen_load(listGPXScreen);
     }
-    if (strcmp(action,"delete") == 0)
+    else if (strcmp(action,"delete") == 0)
     {
         gpxAction = GPX_DEL;
         isMainScreen = false;
         lv_obj_del(option);
         updateGpxListScreen();
+    }
+    if (gpxAction == GPX_LOAD || gpxAction == GPX_EDIT || gpxAction == GPX_DEL)
+    {
         if (isTrackOpt)
             lv_table_set_cell_value(listGPXScreen, 0, 0, LV_SYMBOL_LEFT " Tracks");
         if (isWaypointOpt)
             lv_table_set_cell_value(listGPXScreen, 0, 0, LV_SYMBOL_LEFT " Waypoints");
-        lv_screen_load(listGPXScreen);   
+        lv_screen_load(listGPXScreen);
     }
     if (strcmp(action,"exit") == 0)
     {
@@ -172,10 +165,10 @@ void hideShowAnim(void * var, int32_t v)
  */
 void hideShowEvent(lv_event_t * e)
 {
-    if(lv_event_get_code(e) == LV_EVENT_CLICKED) 
+    if (lv_event_get_code(e) == LV_EVENT_CLICKED)
     {
         lv_obj_t * buttonBar = (lv_obj_t *)lv_event_get_user_data(e);
-        if(lv_obj_get_width(buttonBar) < LV_HOR_RES / 2)
+        if (lv_obj_get_width(buttonBar) < LV_HOR_RES / 2)
         {
             lv_anim_t a;
             lv_anim_init(&a);

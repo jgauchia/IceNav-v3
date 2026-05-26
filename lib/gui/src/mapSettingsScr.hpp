@@ -2,7 +2,7 @@
  * @file mapSettingsScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Map Settings screen
- * @version 0.2.6
+ * @version 0.2.7
  * @date 2026-05
  */
 
@@ -26,6 +26,9 @@ static lv_obj_t *checkCompassRot;      /**< Checkbox for enabling compass rotati
 static lv_obj_t *checkSpeed;           /**< Checkbox for displaying speed on the map. */
 static lv_obj_t *checkScale;           /**< Checkbox for displaying map scale. */
 static lv_obj_t *checkFullScreen;      /**< Checkbox for enabling fullscreen map display. */
+static lv_obj_t *checkClimb;           /**< Checkbox for displaying Climb Analyzer */
+static lv_obj_t *check3DMap;           /**< Checkbox for enabling 3D perspective view (vector only) */
+static lv_obj_t *list3DMap;            /**< List row container for the 3D Map option */
 
 
 static void mapSettingsEvents(lv_event_t *event);

@@ -2,8 +2,8 @@
  * @file styles.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Shared styles implementation
- * @version 0.2.6
- * @date 2025-01
+ * @version 0.2.7
+ * @date 2026-05
  */
 
 #include "styles.hpp"
