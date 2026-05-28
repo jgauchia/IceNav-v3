@@ -8,6 +8,7 @@
 
 #include "graph_loader.hpp"
 #include "storage.hpp"
+#include "settings.hpp"
 #include <cmath>
 #include <cstring>
 #include "esp_heap_caps.h"
@@ -28,7 +29,7 @@ bool GraphLoader::load()
 {
     unload();
 
-    FILE* f = storage.open(ROUTE_BIN_PATH, "rb");
+    FILE* f = storage.open(routeBinPath(navSet.routeSpeed), "rb");
     if (!f)
         return false;
 

@@ -179,7 +179,14 @@ A* Route files for IceNav can be generated using the **route_generator** utility
 On SD Card route files should be stored, in these folders structure:
 
       [ 📁 ROUTE ]
-            |_______ 🔀 ROUTE.bin
+            |_______ [ 📁 CAR ] 
+            |             |_______ 🔀 ROUTE.bin
+            |
+            |_______ [ 📁 BIKE ] 
+            |             |_______ 🔀 ROUTE.bin
+            |
+            |_______ [ 📁 WALK ] 
+                          |_______ 🔀 ROUTE.bin                                                    
 
 ## Mass Copy Script for Map Tiles
 
@@ -299,6 +306,8 @@ Some extra details:
   kalmanFil     custom          true           Enable compass Kalman Filter
     kalmanQ     custom          0.00500000     Def. Kalman Filter const. Process noise covariance (0-1)
     kalmanR     custom          0.60000000     Def. Kalman Filter const. Measurement noise covariance (0-1)
+ routeSpeed     custom          130            Max speed (km/h) for A* heuristic: 130=car, 25=bike, 5=walk. Selects ROUTE/CAR|BIKE|WALK/ROUTE.bin on SD card.
+
 
 ```          
 

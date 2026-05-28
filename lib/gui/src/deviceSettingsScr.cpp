@@ -10,6 +10,8 @@
 
 lv_obj_t *deviceSettingsScreen; /**< Device Settings Screen. */
 
+static const uint16_t ROUTE_SPEED_VALUES[] = {130, 25, 5}; /**< Speed (km/h) per routing profile index: car, bike, pedestrian. */
+
 /**
  * @brief Handles device settings events, updating configuration based on user selection.
  *
@@ -28,6 +30,12 @@ static void deviceSettingsEvent(lv_event_t *event)
     {
         gpsUpdate = lv_dropdown_get_selected(obj);
         saveGPSUpdateRate(gpsUpdate);
+    }
+    if (strcmp(option, "routeprofile") == 0)
+    {
+        uint16_t idx = lv_dropdown_get_selected(obj);
+        navSet.routeSpeed = ROUTE_SPEED_VALUES[idx];
+        cfg.saveShort(PKEYS::KROUTE_SPEED, (int16_t)navSet.routeSpeed);
     }
     if (strcmp(option, "back") == 0)
     {
@@ -169,6 +177,24 @@ void createDeviceSettingsScr()
     lv_obj_set_width(dropdown,TFT_WIDTH / 3);
     lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
     lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"rate");
+    // Routing Profile
+    list = lv_list_add_btn(deviceSettingsOptions, NULL, "Routing\nProfile");
+    lv_obj_set_style_text_font(list, fontOptions, 0);
+    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_align(list, LV_ALIGN_OUT_LEFT_BOTTOM);
+    dropdown = lv_dropdown_create(list);
+    lv_dropdown_set_options(dropdown, "Car\nBike\nWalk");
+    {
+        uint16_t profileIdx = 0;
+        if (navSet.routeSpeed <= 5) profileIdx = 2;
+        else if (navSet.routeSpeed <= 25) profileIdx = 1;
+        lv_dropdown_set_selected(dropdown, profileIdx);
+    }
+    item = lv_dropdown_get_list(dropdown);
+    lv_obj_set_style_bg_color(item, lv_color_hex(objectColor), LV_PART_SELECTED | LV_STATE_CHECKED);
+    lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
+    lv_obj_set_width(dropdown, TFT_WIDTH / 3);
+    lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"routeprofile");
     // Upgrade button
     list = lv_list_add_btn(deviceSettingsOptions, NULL, NULL);
     btn = lv_btn_create(list);

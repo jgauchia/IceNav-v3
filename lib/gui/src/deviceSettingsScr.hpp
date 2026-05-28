@@ -12,6 +12,7 @@
 #include "upgradeScr.hpp"
 #include "lvglSetup.hpp"
 #include "firmUpgrade.hpp"
+#include "settings.hpp"
 
 static lv_obj_t *deviceSettingsOptions; /**< Device settings options */
 
