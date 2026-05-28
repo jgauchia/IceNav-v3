@@ -174,7 +174,7 @@ On SD Card vectorized files should be stored, in these folders structure:
 
 ## SD A* Route File structure
 
-A* Route files for IceNav can be generated using the **route_generator** utility, which is available on GitHub at [jgauchia/Tile-Generator](https://github.com/jgauchia/Tile-Generator). TThis program allows you to generate the A* route files required for IceNav navigation. Please refer to the Tile-Generator repository for detailed instructions and usage examples on generating and preparing your own route files.
+A* Route files for IceNav can be generated using the **route_generator** utility, which is available on GitHub at [jgauchia/Tile-Generator](https://github.com/jgauchia/Tile-Generator). This program allows you to generate the A* route files required for IceNav navigation. Please refer to the Tile-Generator repository for detailed instructions and usage examples on generating and preparing your own route files.
 
 On SD Card route files should be stored, in these folders structure:
 
