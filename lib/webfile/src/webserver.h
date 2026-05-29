@@ -8,25 +8,25 @@
 
 #pragma once
 
-#include <Arduino.h>
+#include <string>
+#include <vector>
 #include "storage.hpp"
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "esp_heap_caps.h"
 #include "esp_system.h"
 #include <esp_task_wdt.h>
-#include <vector>
 
 static const char* WEB_TAG = "WebServer";
 static const char* hostname = "icenav";
 
 // Global state
-static String oldDir = "";
-static String newDir = "";
+static std::string oldDir = "";
+static std::string newDir = "";
 static bool updateList = true;
 static bool deleteDir = false;
-static String deletePath = "";
-static String statusMessage = "";
+static std::string deletePath = "";
+static std::string statusMessage = "";
 static bool statusPending = false;
 
 static const int FILES_PER_PAGE = 10;
@@ -40,25 +40,25 @@ extern bool waitScreenRefresh;
  */
 struct FileEntry
 {
-    String name;
+    std::string name;
     bool isDirectory;
     size_t size;
 };
 static std::vector<FileEntry> fileCache;
 
 // Function declarations for webserver.cpp
-static String humanReadableSize(uint64_t bytes);
-static int extractNumber(const String& str, int& pos);
-static bool naturalCompare(const String& a, const String& b);
+static std::string humanReadableSize(uint64_t bytes);
+static int extractNumber(const std::string& str, int& pos);
+static bool naturalCompare(const std::string& a, const std::string& b);
 static bool compareFileEntries(const FileEntry& a, const FileEntry& b);
 static void sortFileCache();
-static void cacheDirectoryContent(const String& dir);
+static void cacheDirectoryContent(const std::string& dir);
 static bool getQueryParam(httpd_req_t *req, const char* param, char* value, size_t maxLen);
 static void urlDecode(char* str);
-static String listFiles(bool ishtml, int page);
+static std::string listFiles(bool ishtml, int page);
 static bool deleteDirRecursive(const char *dirPath);
-static bool createDirectories(String filepath);
-static String processTemplate(const char* html);
+static bool createDirectories(const std::string& filepath);
+static std::string processTemplate(const char* html);
 static esp_err_t root_handler(httpd_req_t *req);
 static esp_err_t status_handler(httpd_req_t *req);
 static esp_err_t listfiles_handler(httpd_req_t *req);
