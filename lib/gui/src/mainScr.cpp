@@ -64,7 +64,7 @@ static constexpr float MAP_VELOCITY_WEIGHT    = 0.7f;  /**< EMA weight for veloc
  *
  * @param event LVGL event pointer.
  */
-void updateCompassScr(lv_observer_t *observer, lv_subject_t *subject)
+static void updateCompassScr(lv_observer_t *observer, lv_subject_t *subject)
 {
     if (gps.gpsData.sunriseHour[0] == '\0')
         return;
@@ -77,7 +77,7 @@ void updateCompassScr(lv_observer_t *observer, lv_subject_t *subject)
  *
  * @details Displays or hides map-related UI widgets based on map user settings 
  */
-void showMapWidgets()
+static void showMapWidgets()
 {
     lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(zoomWidget, LV_OBJ_FLAG_HIDDEN);
@@ -100,7 +100,7 @@ void showMapWidgets()
  *
  * @details Hides all map-related UI widgets on the screen.
  */
-void hideMapWidgets()
+static void hideMapWidgets()
 {
     lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);  
     lv_obj_add_flag(zoomWidget, LV_OBJ_FLAG_HIDDEN);
@@ -672,7 +672,7 @@ static void map_3d_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
  *
  * @param event LVGL event pointer.
  */
-void getActTile(lv_event_t *event)
+static void getActTile(lv_event_t *event)
 {
     isScrolled = true;
     mapView.redrawMap = true;
@@ -699,7 +699,7 @@ void getActTile(lv_event_t *event)
  *
  * @param event LVGL event pointer.
  */
-void scrollTile(lv_event_t *event)
+static void scrollTile(lv_event_t *event)
 {
     isScrolled = false;
     mapView.redrawMap = false;
@@ -713,7 +713,7 @@ void scrollTile(lv_event_t *event)
  *
  * @param event LVGL event pointer.
  */
-void updateMap(lv_event_t *event)
+static void updateMap(lv_event_t *event)
 {
     lv_async_call(async_map_update_cb, NULL);
 }
@@ -748,7 +748,7 @@ static void setZoomButtonsVisible(bool show)
  *
  * @param event LVGL event pointer.
  */
-void mapToolBarEvent(lv_event_t *event)
+static void mapToolBarEvent(lv_event_t *event)
 {
     showMapToolBar = !showMapToolBar;
     canScrollMap = !canScrollMap;
@@ -782,7 +782,7 @@ void mapToolBarEvent(lv_event_t *event)
  * @details Calculates the inertia movement based on velocity and applies friction.
  *          Updates the map position and triggers redrawing.
  */
-void map_inertia_timer_cb(lv_timer_t * t)
+static void map_inertia_timer_cb(lv_timer_t * t)
 {
     float dt = 20.0f; // Fixed period defined in createMainScr()
     if (mapView.velocityX != 0 || mapView.velocityY != 0)
@@ -818,7 +818,7 @@ void map_inertia_timer_cb(lv_timer_t * t)
  *
  * @param event LVGL event pointer.
  */
-void scrollMapEvent(lv_event_t *event)
+static void scrollMapEvent(lv_event_t *event)
 {
     if (canScrollMap)
     {
@@ -907,7 +907,7 @@ void scrollMapEvent(lv_event_t *event)
  *
  * @param event LVGL event pointer.
  */
-void zoomEvent(lv_event_t *event)
+static void zoomEvent(lv_event_t *event)
 {
     lv_obj_t *obj = (lv_obj_t *)lv_event_get_current_target(event);
     if ( obj == btnZoomIn && ( zoom >= minZoom && zoom < maxZoom ) )
@@ -927,7 +927,7 @@ void zoomEvent(lv_event_t *event)
  *
  * @param event LVGL event pointer.
  */
-void updateNavEvent(lv_event_t *event)
+static void updateNavEvent(lv_event_t *event)
 {
     int wptDistance = (int)calcDist(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon);
     lv_label_set_text_fmt(distNav, "%d m.", wptDistance);
@@ -952,7 +952,7 @@ void updateNavEvent(lv_event_t *event)
  *
  * @param screen Pointer to the LVGL screen object.
  */
-void createMapImage(_lv_obj_t *screen)
+static void createMapImage(_lv_obj_t *screen)
 {
     mapImage = lv_image_create(screen);
     lv_obj_set_scrollbar_mode(mapImage, LV_SCROLLBAR_MODE_OFF);

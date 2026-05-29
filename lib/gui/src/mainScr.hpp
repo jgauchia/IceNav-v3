@@ -57,15 +57,4 @@ extern lv_obj_t *btnToggle3D;     /**< Toggle 3D/2D map view button */
 extern uint8_t toolBarOffset;     /**< Offset for toolbar positioning */
 extern uint8_t toolBarSpace;      /**< Space between toolbar buttons */
 
-void updateCompassScr(lv_observer_t *observer, lv_subject_t *subject);
-void getActTile(lv_event_t *event);
-void scrollTile(lv_event_t *event);
-void updateMap(lv_event_t *event);
-void mapToolBarEvent(lv_event_t *event);
-void scrollMapEvent(lv_event_t *event);
-void zoomEvent(lv_event_t *event);
-void updateNavEvent(lv_event_t *event);
-void createMapImage(_lv_obj_t *screen);
-void showMapWidgets();
-void hideMapWidgets();
 void createMainScr();
