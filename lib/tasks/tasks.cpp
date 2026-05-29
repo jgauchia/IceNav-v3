@@ -448,5 +448,5 @@ void navTask(void *pvParameters)
  */
 void initNavTask()
 {
-    xTaskCreatePinnedToCore(navTask, "Nav Task", 6144, NULL, 1, NULL, 1);
+    xTaskCreatePinnedToCore(navTask, "Nav Task", 6144, NULL, 2, NULL, 1);
 }
