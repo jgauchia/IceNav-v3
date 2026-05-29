@@ -128,7 +128,7 @@ static void cacheDirectoryContent(const String& dir)
         closedir(dp);
     }
 
-    currentDir = dir;
+
     sortFileCache();
 }
 
@@ -219,7 +219,7 @@ static String listFiles(bool ishtml, int page)
             {
                 returnText += "<img src=\"folder\"> <a href='#' onclick='changeDirectory(\"" + entry.name + "\")'>" + entry.name + "</a>";
                 returnText += "</td><td style=\"text-align:center\">dir</td>";
-                returnText += "<td></td>";
+                returnText += "<td><button class=\"button\" onclick=\"downloadFolder('" + entry.name + "')\"><img src=\"down\"> Download (ZIP)</button></td>";
                 returnText += "<td><button class=\"button\" onclick=\"downloadDeleteButton('" + entry.name + "', 'deldir')\"><img src=\"del\"> Delete</button></td>";
             }
             else
@@ -471,7 +471,6 @@ static esp_err_t changedirectory_handler(httpd_req_t *req)
         if (oldDir != "/..")
         {
             oldDir = oldDir.substring(0, oldDir.lastIndexOf("/"));
-            currentDir = "";
             String response = "Path:" + oldDir;
             httpd_resp_send(req, response.c_str(), response.length());
         }
@@ -487,7 +486,6 @@ static esp_err_t changedirectory_handler(httpd_req_t *req)
             oldDir = oldDir + newDir;
         else
             oldDir = newDir;
-        currentDir = "";
         String response = "Path:" + oldDir;
         httpd_resp_send(req, response.c_str(), response.length());
     }
@@ -587,6 +585,64 @@ static esp_err_t file_handler(httpd_req_t *req)
 }
 
 /**
+ * @brief List all files in a folder recursively, one path per line
+ */
+static esp_err_t listfolder_handler(httpd_req_t *req)
+{
+    char folderParam[128] = "";
+    if (!getQueryParam(req, "path", folderParam, sizeof(folderParam)))
+    {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "ERROR: path parameter required");
+        return ESP_FAIL;
+    }
+
+    urlDecode(folderParam);
+
+    String basePath = "/sdcard" + oldDir + "/" + String(folderParam);
+    String result = "";
+
+    std::stack<std::string> dirStack;
+    dirStack.push(std::string(basePath.c_str()));
+
+    while (!dirStack.empty())
+    {
+        std::string currentPath = dirStack.top();
+        dirStack.pop();
+
+        DIR* dp = opendir(currentPath.c_str());
+        if (!dp)
+            continue;
+
+        struct dirent* ep;
+        while ((ep = readdir(dp)))
+        {
+            if (strcmp(ep->d_name, ".") == 0 || strcmp(ep->d_name, "..") == 0)
+                continue;
+
+            std::string entryPath = currentPath + "/" + std::string(ep->d_name);
+
+            if (ep->d_type == DT_DIR)
+            {
+                dirStack.push(entryPath);
+            }
+            else
+            {
+                String relPath = String(entryPath.c_str()).substring(strlen("/sdcard") + oldDir.length());
+                struct stat st;
+                size_t fileSize = (stat(entryPath.c_str(), &st) == 0) ? st.st_size : 0;
+                result += relPath + "|" + String(fileSize) + "\n";
+            }
+        }
+        closedir(dp);
+        esp_task_wdt_reset();
+    }
+
+    httpd_resp_set_type(req, "text/plain");
+    httpd_resp_send(req, result.c_str(), result.length());
+    return ESP_OK;
+}
+
+/**
  * @brief Reboot handler
  */
 static esp_err_t reboot_handler(httpd_req_t *req)
@@ -637,6 +693,45 @@ static esp_err_t sendSpiffsImage(httpd_req_t *req, const char *imageFile)
     return ESP_FAIL;
 }
 
+/**
+ * @brief Send JS file from SPIFFS
+ */
+static esp_err_t sendSpiffsJS(httpd_req_t *req, const char *jsFile)
+{
+    FILE *file = storage.open(jsFile, "r");
+    if (!file)
+    {
+        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "JS file not found");
+        return ESP_FAIL;
+    }
+
+    httpd_resp_set_type(req, "application/javascript");
+
+    char* chunk = (char*)heap_caps_malloc(4096, MALLOC_CAP_8BIT);
+    if (!chunk)
+    {
+        storage.close(file);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Memory allocation failed");
+        return ESP_FAIL;
+    }
+
+    size_t read;
+    while ((read = storage.read(file, chunk, 4096)) > 0)
+    {
+        if (httpd_resp_send_chunk(req, chunk, read) != ESP_OK)
+        {
+            heap_caps_free(chunk);
+            storage.close(file);
+            return ESP_FAIL;
+        }
+    }
+
+    heap_caps_free(chunk);
+    storage.close(file);
+    httpd_resp_send_chunk(req, NULL, 0);
+    return ESP_OK;
+}
+
 // Image handlers
 static esp_err_t logo_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/LOGO_LARGE.png"); }
 static esp_err_t files_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/file.png"); }
@@ -646,6 +741,7 @@ static esp_err_t up_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/sp
 static esp_err_t del_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/delete.png"); }
 static esp_err_t reb_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/reboot.png"); }
 static esp_err_t list_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/list.png"); }
+static esp_err_t jszip_handler(httpd_req_t *req) { return sendSpiffsJS(req, "/spiffs/jszip.min.js"); }
 
 /**
  * @brief Find byte sequence in buffer (like memmem but portable)
@@ -931,23 +1027,6 @@ void setWebStatus(const char* message, bool refresh)
 }
 
 /**
- * @brief Check if directory deletion is pending
- */
-bool isDeleteDirPending()
-{
-    return deleteDir;
-}
-
-/**
- * @brief Get delete path and clear flag
- */
-String getDeletePath()
-{
-    deleteDir = false;
-    return deletePath;
-}
-
-/**
  * @brief Process directory deletion (call from main loop)
  */
 void processWebServerTasks()
@@ -969,7 +1048,7 @@ void processWebServerTasks()
 void configureWebServer()
 {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-    config.max_uri_handlers = 20;
+    config.max_uri_handlers = 17;
     config.stack_size = 8192;
     config.lru_purge_enable = true;
 
@@ -989,6 +1068,7 @@ void configureWebServer()
     httpd_uri_t uri_listfiles = { .uri = "/listfiles", .method = HTTP_GET, .handler = listfiles_handler };
     httpd_uri_t uri_changedirectory = { .uri = "/changedirectory", .method = HTTP_GET, .handler = changedirectory_handler };
     httpd_uri_t uri_file = { .uri = "/file", .method = HTTP_GET, .handler = file_handler };
+    httpd_uri_t uri_listfolder = { .uri = "/listfolder", .method = HTTP_GET, .handler = listfolder_handler };
     httpd_uri_t uri_reboot = { .uri = "/reboot", .method = HTTP_GET, .handler = reboot_handler };
     httpd_uri_t uri_upload = { .uri = "/", .method = HTTP_POST, .handler = upload_handler };
 
@@ -1000,12 +1080,14 @@ void configureWebServer()
     httpd_uri_t uri_del = { .uri = "/del", .method = HTTP_GET, .handler = del_handler };
     httpd_uri_t uri_reb = { .uri = "/reb", .method = HTTP_GET, .handler = reb_handler };
     httpd_uri_t uri_list = { .uri = "/list", .method = HTTP_GET, .handler = list_handler };
+    httpd_uri_t uri_jszip = { .uri = "/jszip", .method = HTTP_GET, .handler = jszip_handler };
 
     httpd_register_uri_handler(webServer, &uri_root);
     httpd_register_uri_handler(webServer, &uri_status);
     httpd_register_uri_handler(webServer, &uri_listfiles);
     httpd_register_uri_handler(webServer, &uri_changedirectory);
     httpd_register_uri_handler(webServer, &uri_file);
+    httpd_register_uri_handler(webServer, &uri_listfolder);
     httpd_register_uri_handler(webServer, &uri_reboot);
     httpd_register_uri_handler(webServer, &uri_upload);
     httpd_register_uri_handler(webServer, &uri_logo);
@@ -1016,6 +1098,7 @@ void configureWebServer()
     httpd_register_uri_handler(webServer, &uri_del);
     httpd_register_uri_handler(webServer, &uri_reb);
     httpd_register_uri_handler(webServer, &uri_list);
+    httpd_register_uri_handler(webServer, &uri_jszip);
 
     httpd_register_err_handler(webServer, HTTPD_404_NOT_FOUND, notfound_handler);
 

@@ -23,7 +23,6 @@ static const char* hostname = "icenav";
 // Global state
 static String oldDir = "";
 static String newDir = "";
-static String currentDir = "";
 static bool updateList = true;
 static bool deleteDir = false;
 static String deletePath = "";
@@ -67,6 +66,8 @@ static esp_err_t changedirectory_handler(httpd_req_t *req);
 static esp_err_t file_handler(httpd_req_t *req);
 static esp_err_t reboot_handler(httpd_req_t *req);
 static esp_err_t sendSpiffsImage(httpd_req_t *req, const char *imageFile);
+static esp_err_t sendSpiffsJS(httpd_req_t *req, const char *jsFile);
+static esp_err_t listfolder_handler(httpd_req_t *req);
 static uint8_t* findBytes(uint8_t* haystack, size_t haystackLen, const uint8_t* needle, size_t needleLen);
 static esp_err_t upload_handler(httpd_req_t *req);
 static esp_err_t notfound_handler(httpd_req_t *req, httpd_err_code_t err);
@@ -83,8 +84,6 @@ static esp_err_t list_handler(httpd_req_t *req);
 
 // Public interface functions
 void setWebStatus(const char* message, bool refresh);
-bool isDeleteDirPending();
-String getDeletePath();
 void processWebServerTasks();
 void configureWebServer();
 void stopWebServer();
