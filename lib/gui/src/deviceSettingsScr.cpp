@@ -186,8 +186,10 @@ void createDeviceSettingsScr()
     lv_dropdown_set_options(dropdown, "Car\nBike\nWalk");
     {
         uint16_t profileIdx = 0;
-        if (navSet.routeSpeed <= 5) profileIdx = 2;
-        else if (navSet.routeSpeed <= 25) profileIdx = 1;
+        if (navSet.routeSpeed <= 5)
+            profileIdx = 2;
+        else if (navSet.routeSpeed <= 25)
+            profileIdx = 1;
         lv_dropdown_set_selected(dropdown, profileIdx);
     }
     item = lv_dropdown_get_list(dropdown);

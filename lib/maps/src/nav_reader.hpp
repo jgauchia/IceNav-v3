@@ -68,7 +68,8 @@ public:
      */
     static uint64_t xyToHilbert(uint32_t x, uint32_t y, uint8_t z)
     {
-        uint32_t rx, ry;
+        uint32_t rx;
+        uint32_t ry;
         uint64_t d = 0;
         uint32_t n = 1 << z;
         for (uint32_t s = n / 2; s > 0; s /= 2)

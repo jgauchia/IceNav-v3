@@ -632,7 +632,8 @@ void Compass::calibrate()
     float y = 0.0f;
     float x = 0.0f;
     float z = 0.0f;
-    uint16_t touchX, touchY;
+    uint16_t touchX;
+    uint16_t touchY;
 
     TFT_eSprite compassCalSprite = TFT_eSprite(&tft);
 

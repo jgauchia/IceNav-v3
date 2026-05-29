@@ -144,10 +144,14 @@ void ClimbAnalyzer::analyze(const TrackVector& trackData)
 int climbCategory(float totalDist, float avgGrade)
 {
     float score = totalDist * avgGrade * avgGrade / 100.0f;
-    if (score >= 8000.0f) return 1;
-    if (score >= 3500.0f) return 2;
-    if (score >= 1500.0f) return 3;
-    if (score >= 800.0f)  return 4;
+    if (score >= 8000.0f)
+        return 1;
+    if (score >= 3500.0f)
+        return 2;
+    if (score >= 1500.0f)
+        return 3;
+    if (score >= 800.0f)
+        return 4;
     return 5;
 }
 
@@ -159,9 +163,12 @@ int climbCategory(float totalDist, float avgGrade)
  */
 uint32_t climbSegmentColor(float avgGrade)
 {
-    if (avgGrade >= 9.0f) return 0xFF0000u;
-    if (avgGrade >= 6.0f) return 0xFF6600u;
-    if (avgGrade >= 3.0f) return 0xFFAA00u;
+    if (avgGrade >= 9.0f)
+        return 0xFF0000u;
+    if (avgGrade >= 6.0f)
+        return 0xFF6600u;
+    if (avgGrade >= 3.0f)
+        return 0xFFAA00u;
     return 0x00C800u;
 }
 
@@ -179,8 +186,10 @@ uint32_t climbSegmentColor(float avgGrade)
 int calcYTop(float ele, float minEle, float eleRange, int H)
 {
     int y = TRI_MARGIN + (int)((1.0f - (ele - minEle) / eleRange) * (H - 1 - TRI_MARGIN));
-    if (y < TRI_MARGIN) y = TRI_MARGIN;
-    if (y >= H)         y = H - 1;
+    if (y < TRI_MARGIN)
+        y = TRI_MARGIN;
+    if (y >= H)
+        y = H - 1;
     return y;
 }
 
@@ -275,7 +284,8 @@ void ClimbAnalyzer::updatePosition(float lat, float lon, bool simMode, int simIn
     float ddist     = track[ahead].accumDist - curDist;
     float dele      = track[ahead].ele - curEle;
     float grade     = (ddist > 1.0f) ? (dele / ddist * 100.0f) : 0.0f;
-    if (grade < 0.0f) grade = 0.0f;
+    if (grade < 0.0f)
+        grade = 0.0f;
 
     if (activeSegIdx_ != prevSegIdx_)
     {

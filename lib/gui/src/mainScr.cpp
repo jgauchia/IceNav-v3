@@ -275,11 +275,13 @@ static int           climbLastYTop     = -1;
  */
 static void buildClimbProfile(int startPt, int endPt)
 {
-    if (climbCanvas == NULL || trackData.size() < 2) return;
+    if (climbCanvas == NULL || trackData.size() < 2)
+        return;
 
     int W = lv_obj_get_width(climbCanvas);
     int H = lv_obj_get_height(climbCanvas);
-    if (W <= 0 || H <= 0) return;
+    if (W <= 0 || H <= 0)
+        return;
 
     // Recreate sprite and unified RGB565A8 buffer if size changed
     if (climbSprite.width() != W || climbSprite.height() != H)
@@ -293,24 +295,29 @@ static void buildClimbProfile(int startPt, int endPt)
         // RGB565 (W*2*H) + A8 mask (W*H) contiguous buffer in PSRAM
         climbBuf = (uint8_t *)heap_caps_malloc(W * 2 * H + W * H, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
     }
-    if (climbBuf == nullptr) return;
+    if (climbBuf == nullptr)
+        return;
 
     climbSprite.fillScreen(TFT_BLACK);
 
     float distStart = trackData[startPt].accumDist;
     float distEnd   = trackData[endPt].accumDist;
     float distRange = distEnd - distStart;
-    if (distRange < 1.0f) return;
+    if (distRange < 1.0f)
+        return;
 
     float minEle = trackData[startPt].ele;
     float maxEle = trackData[startPt].ele;
     for (int i = startPt + 1; i <= endPt; ++i)
     {
-        if (trackData[i].ele < minEle) minEle = trackData[i].ele;
-        if (trackData[i].ele > maxEle) maxEle = trackData[i].ele;
+        if (trackData[i].ele < minEle)
+            minEle = trackData[i].ele;
+        if (trackData[i].ele > maxEle)
+            maxEle = trackData[i].ele;
     }
     float eleRange = maxEle - minEle;
-    if (eleRange < 1.0f) eleRange = 1.0f;
+    if (eleRange < 1.0f)
+        eleRange = 1.0f;
 
     const auto &segs = climbAnalyzer.segments();
     auto toCol = [](uint32_t rgb) { return lgfx::rgb888_t((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF); };
@@ -347,8 +354,10 @@ static void buildClimbProfile(int startPt, int endPt)
                 float wHalf = 25.0f;
                 float dA = colDist - wHalf;
                 float dB = colDist + wHalf;
-                if (dA < trackData[seg.startIdx].accumDist) dA = trackData[seg.startIdx].accumDist;
-                if (dB > trackData[seg.endIdx].accumDist)   dB = trackData[seg.endIdx].accumDist;
+                if (dA < trackData[seg.startIdx].accumDist)
+                    dA = trackData[seg.startIdx].accumDist;
+                if (dB > trackData[seg.endIdx].accumDist)
+                    dB = trackData[seg.endIdx].accumDist;
                 int maxIdx = (int)trackData.size() - 1;
                 int ia = trkCursor;
                 while (ia > 0 && trackData[ia].accumDist > dA) --ia;
@@ -365,7 +374,8 @@ static void buildClimbProfile(int startPt, int endPt)
                 float eleB = trackData[ib].ele + tb * (ib < maxIdx ? (trackData[ib + 1].ele - trackData[ib].ele) : 0.0f);
                 float winDist = dB - dA;
                 float localGrade = (winDist > 1.0f) ? ((eleB - eleA) / winDist * 100.0f) : 0.0f;
-                if (localGrade < 0.0f) localGrade = 0.0f;
+                if (localGrade < 0.0f)
+                    localGrade = 0.0f;
                 col = toCol(climbSegmentColor(localGrade));
                 break;
             }
@@ -408,18 +418,21 @@ static void buildClimbProfile(int startPt, int endPt)
  */
 static void updateClimbMarker(int posX, int yTop)
 {
-    if (climbCanvas == NULL || climbBuf == nullptr) return;
+    if (climbCanvas == NULL || climbBuf == nullptr)
+        return;
 
     int W = climbSprite.width();
     int H = climbSprite.height();
-    if (W <= 0 || H <= 0) return;
+    if (W <= 0 || H <= 0)
+        return;
 
     const uint8_t *src   = (const uint8_t *)climbSprite.getBuffer();
     uint8_t       *alpha = climbBuf + W * 2 * H;
 
     auto restorePixel = [&](int x, int y)
     {
-        if (x < 0 || x >= W || y < 0 || y >= H) return;
+        if (x < 0 || x >= W || y < 0 || y >= H)
+            return;
         int i = y * W + x;
         climbBuf[i * 2]     = src[i * 2 + 1];
         climbBuf[i * 2 + 1] = src[i * 2];
@@ -465,7 +478,8 @@ static void updateClimbMarker(int posX, int yTop)
             for (int dx = -half; dx <= half; ++dx)
             {
                 int tx = posX + dx;
-                if (tx < 0 || tx >= W || y < 0 || y >= H) continue;
+                if (tx < 0 || tx >= W || y < 0 || y >= H)
+                    continue;
                 int i = y * W + tx;
                 climbBuf[i * 2]     = 0xFF;
                 climbBuf[i * 2 + 1] = 0xFF;
@@ -485,7 +499,8 @@ static void updateClimbMarker(int posX, int yTop)
  */
 static void climb_active_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
 {
-    if (climbOverlay == NULL) return;
+    if (climbOverlay == NULL)
+        return;
 
     if (lv_subject_get_int(&subject_climb_active) == 0)
     {
@@ -510,8 +525,10 @@ static void climb_active_observer_cb(lv_observer_t *observer, lv_subject_t *subj
  */
 static void climb_idx_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
 {
-    if (climbOverlay == NULL) return;
-    if (lv_subject_get_int(&subject_climb_active) == 0) return;
+    if (climbOverlay == NULL)
+        return;
+    if (lv_subject_get_int(&subject_climb_active) == 0)
+        return;
 
     int32_t dist      = lv_subject_get_int(&subject_climb_dist);
     int32_t gain      = lv_subject_get_int(&subject_climb_gain);
@@ -543,7 +560,8 @@ static void climb_idx_observer_cb(lv_observer_t *observer, lv_subject_t *subject
     lv_label_set_text_fmt(climbGradeLabel, "%.1f%%", grade);
 
     int W = lv_obj_get_width(climbCanvas);
-    if (W <= 0) return;
+    if (W <= 0)
+        return;
 
     // Same anticipation condition as updatePosition() — covers pre-climb phase too
     const std::vector<ClimbSegment>& segs = climbAnalyzer.segments();
@@ -559,7 +577,8 @@ static void climb_idx_observer_cb(lv_observer_t *observer, lv_subject_t *subject
             break;
         }
     }
-    if (seg == nullptr) return;
+    if (seg == nullptr)
+        return;
 
     float preStartDist = trackData[seg->startIdx].accumDist - CLIMB_ANTICIPATION_M;
     int startPt = seg->startIdx;
@@ -570,8 +589,10 @@ static void climb_idx_observer_cb(lv_observer_t *observer, lv_subject_t *subject
     float dRange = trackData[endPt].accumDist - trackData[startPt].accumDist;
     float dPos   = curDistObs - trackData[startPt].accumDist;
     int posX = (dRange > 0.0f) ? (int)(dPos / dRange * (W - 1)) : 0;
-    if (posX < 0) posX = 0;
-    if (posX >= W) posX = W - 1;
+    if (posX < 0)
+        posX = 0;
+    if (posX >= W)
+        posX = W - 1;
 
     if (!climbProfileBuilt || seg->startIdx != climbLastSegStart)
     {
@@ -587,11 +608,14 @@ static void climb_idx_observer_cb(lv_observer_t *observer, lv_subject_t *subject
     float maxEle = trackData[startPt].ele;
     for (int i = startPt + 1; i <= endPt; ++i)
     {
-        if (trackData[i].ele < minEle) minEle = trackData[i].ele;
-        if (trackData[i].ele > maxEle) maxEle = trackData[i].ele;
+        if (trackData[i].ele < minEle)
+            minEle = trackData[i].ele;
+        if (trackData[i].ele > maxEle)
+            maxEle = trackData[i].ele;
     }
     float eleRange = maxEle - minEle;
-    if (eleRange < 1.0f) eleRange = 1.0f;
+    if (eleRange < 1.0f)
+        eleRange = 1.0f;
     float curEleObs = trackData[(int)activeIdx].ele;
     int yTop = calcYTop(curEleObs, minEle, eleRange, H);
 

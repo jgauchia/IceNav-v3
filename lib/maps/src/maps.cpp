@@ -663,7 +663,8 @@ void Maps::mapRenderTask(void* pvParameters)
                             instance->renderNavLineString(feat, instance->mapTempSprite, feat.casing);
                     }
 
-                    if (aborted) break;
+                    if (aborted)
+                        break;
 
                     // Pass 2: LineString bodies (from pre-separated casing list) and Texts
                     for (uint16_t idx : instance->layersCasing[i])
@@ -680,7 +681,8 @@ void Maps::mapRenderTask(void* pvParameters)
                         instance->renderNavLineString(instance->featurePool[idx], instance->mapTempSprite, false);
                     }
 
-                    if (aborted) break;
+                    if (aborted)
+                        break;
 
                     for (uint16_t idx : layer)
                     {
@@ -1176,8 +1178,10 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
  */
 static int16_t getLODThreshold(uint8_t zoom)
 {
-    if (zoom <= 12) return 3;
-    if (zoom <= 14) return 2;
+    if (zoom <= 12)
+        return 3;
+    if (zoom <= 14)
+        return 2;
     return 1;
 }
 
@@ -1622,10 +1626,14 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
             continue;
         projBuf32X[actualPoints] = curX;
         projBuf32Y[actualPoints] = curY;
-        if (curX < minPx) minPx = curX;
-        if (curX > maxPx) maxPx = curX;
-        if (curY < minPy) minPy = curY;
-        if (curY > maxPy) maxPy = curY;
+        if (curX < minPx)
+            minPx = curX;
+        if (curX > maxPx)
+            maxPx = curX;
+        if (curY < minPy)
+            minPy = curY;
+        if (curY > maxPy)
+            maxPy = curY;
         lastX = curX;
         lastY = curY;
         actualPoints++;

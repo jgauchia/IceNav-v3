@@ -98,7 +98,8 @@ void touchCalibrate()
         else
             log_e("Calibration not saved!");
 
-        uint16_t touchX, touchY;
+        uint16_t touchX;
+        uint16_t touchY;
         while (!tft.getTouch(&touchX, &touchY));
 
         touchSprite.deleteSprite();

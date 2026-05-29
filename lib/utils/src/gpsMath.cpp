@@ -81,7 +81,8 @@ float calcDist(float lat1, float lon1, float lat2, float lon2)
  	float dlat = lat2_rad - lat1_rad;
     float dlon = lon2_rad - lon1_rad;
 
-    float a, c;
+    float a;
+    float c;
 
     if (lutInit)
     {
@@ -144,8 +145,12 @@ float calcCourse(float lat1, float lon1, float lat2, float lon2)
     lat2 = DEG2RAD(lat2);
     float dLon = DEG2RAD(lon2 - lon1);
 
-    float sin_dLon, cos_dLon;
-    float sin_lat1, cos_lat1, sin_lat2, cos_lat2;
+    float sin_dLon;
+    float cos_dLon;
+    float sin_lat1;
+    float cos_lat1;
+    float sin_lat2;
+    float cos_lat2;
 
     if (lutInit)
     {
@@ -190,8 +195,10 @@ float calcCourse(float lat1, float lon1, float lat2, float lon2)
 float calcAngleDiff(float a, float b)
 {
     float diff = a - b;
-    while (diff > 180.0f) diff -= 360.0f;
-    while (diff < -180.0f) diff += 360.0f;
+    while (diff > 180.0f)
+        diff -= 360.0f;
+    while (diff < -180.0f)
+        diff += 360.0f;
     return diff;
 }
 

@@ -117,7 +117,8 @@ int findClosestTrackPoint(float userLat, float userLon, const TrackVector& track
         }
     }
     
-    if (closestIdx == -1) return std::max(0, lastIdx);
+    if (closestIdx == -1)
+        return std::max(0, lastIdx);
 
     if (closestIdx < lastIdx && (lastIdx - closestIdx) < config.maxBackwardJump)
         return lastIdx;
@@ -242,8 +243,10 @@ float projectOnSegment(float pLat, float pLon, float aLat, float aLon, float bLa
     float t = (pLatRel * dLat + pLonRel * dLon) / denom;
     
     // Clamp t to [0, 1] to stay within the segment
-    if (t < 0) t = 0;
-    if (t > 1) t = 1;
+    if (t < 0)
+        t = 0;
+    if (t > 1)
+        t = 1;
 
     outLat = aLat + t * (bLat - aLat);
     outLon = aLon + t * (bLon - aLon);
@@ -295,14 +298,16 @@ void updateNavigation(
     float pLon = track[closestIdx].lon;
 
     // Check segments around closestIdx to find the real projection
-    float bestLat = pLat, bestLon = pLon;
+    float bestLat = pLat;
+    float bestLon = pLon;
     float minDistSq = calcDistSq(uLatRad, uLonRad, DEG2RAD(pLat), DEG2RAD(pLon));
 
     // Check previous segment
     if (closestIdx > 0)
     {
-        float tLat, tLon;
-        float dSq = projectOnSegment(userLat, userLon, track[closestIdx - 1].lat, track[closestIdx - 1].lon, 
+        float tLat;
+        float tLon;
+        float dSq = projectOnSegment(userLat, userLon, track[closestIdx - 1].lat, track[closestIdx - 1].lon,
                                    track[closestIdx].lat, track[closestIdx].lon, tLat, tLon);
         if (dSq < minDistSq)
         {
@@ -315,8 +320,9 @@ void updateNavigation(
     // Check next segment
     if (closestIdx < track.size() - 1)
     {
-        float tLat, tLon;
-        float dSq = projectOnSegment(userLat, userLon, track[closestIdx].lat, track[closestIdx].lon, 
+        float tLat;
+        float tLon;
+        float dSq = projectOnSegment(userLat, userLon, track[closestIdx].lat, track[closestIdx].lon,
                                    track[closestIdx + 1].lat, track[closestIdx + 1].lon, tLat, tLon);
         if (dSq < minDistSq)
         {
