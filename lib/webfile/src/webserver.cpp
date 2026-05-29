@@ -741,7 +741,7 @@ static esp_err_t up_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/sp
 static esp_err_t del_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/delete.png"); }
 static esp_err_t reb_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/reboot.png"); }
 static esp_err_t list_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/list.png"); }
-static esp_err_t jszip_handler(httpd_req_t *req) { return sendSpiffsJS(req, "/spiffs/jszip.min.js"); }
+static esp_err_t jszip_handler(httpd_req_t *req) { return sendSpiffsJS(req, "/spiffs/utils/jszip.min.js"); }
 
 /**
  * @brief Find byte sequence in buffer (like memmem but portable)
