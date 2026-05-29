@@ -81,9 +81,10 @@ extern MAP mapSet; /**< Global instance for map settings */
  *
  * @details Contains navigation configuration 
  */
-struct NAVIGATION 
+struct NAVIGATION
 {
     bool simNavigation;     /**< Indicates whether navigation simulation mode is enabled or disabled. */
+    uint16_t routeSpeed;    /**< Max speed (km/h) for A* heuristic: 130=car, 25=bike, 5=walk. Selects ROUTE/CAR|BIKE|WALK/ROUTE.bin on SD card. */
 };
 extern NAVIGATION navSet; /**< Global instance for navigation settings */
 

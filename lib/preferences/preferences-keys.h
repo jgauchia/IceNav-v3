@@ -38,4 +38,5 @@
   X(KKALM_FIL, "kalmanFil", BOOL)        \
   X(KKALM_Q, "kalmanQ", FLOAT)           \
   X(KKALM_R, "kalmanR", FLOAT)           \
+  X(KROUTE_SPEED, "routeSpeed", SHORT)   \
   X(KCOUNT, "KCOUNT", UNKNOWN)

@@ -81,6 +81,7 @@ void loadPreferences()
     mapSet.showClimb = cfg.getBool(PKEYS::KMAP_CLIMB, false);
     mapSet.map3D = cfg.getBool(PKEYS::KMAP_3D, false);
     navSet.simNavigation = cfg.getBool(PKEYS::KSIM_NAV, false);
+    navSet.routeSpeed = cfg.getShort(PKEYS::KROUTE_SPEED, 130);
     gpsBaud = cfg.getShort(PKEYS::KGPS_SPEED, 4);
     gpsUpdate = cfg.getShort(PKEYS::KGPS_RATE, 3);
     compassPosX = cfg.getInt(PKEYS::KCOMP_X, (TFT_WIDTH / 2) - (100 * scale));
