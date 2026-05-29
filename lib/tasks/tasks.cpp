@@ -160,7 +160,7 @@ void sensorTask(void *pvParameters)
         if (isScrollingMap || canMoveWidget)
         {
             vTaskDelay(pdMS_TO_TICKS(100));
-            continue; 
+            continue;
         }
 
         #ifdef ENABLE_COMPASS
@@ -189,7 +189,7 @@ void sensorTask(void *pvParameters)
             }
         }
 
-        if (slowCounter++ >= 75) 
+        if (slowCounter++ >= 75)
         {
             #ifdef BME280
                 bme.readAll(globalSensorData.temperature, globalSensorData.pressure, globalSensorData.humidity);
