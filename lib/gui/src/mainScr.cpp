@@ -28,7 +28,9 @@ uint8_t gpxAction = WPT_NONE;
 lv_timer_t *map_inertia_timer = NULL;
 
 extern uint32_t DOUBLE_TOUCH_EVENT;
-extern Compass compass;
+#ifdef ENABLE_COMPASS
+    extern Compass compass;
+#endif
 extern Gps gps;
 extern wayPoint loadWpt;
 extern TrackVector trackData;

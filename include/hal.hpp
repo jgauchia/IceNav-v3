@@ -149,4 +149,5 @@
  */
 static constexpr bool TFT_INVERT = true;
 
+void initHAL();
 

@@ -53,7 +53,9 @@ bool     calculateDST   = false;/**< Daylight Saving Time calculation flag */
 
 
 extern Battery battery;
-extern Compass compass;
+#ifdef ENABLE_COMPASS
+    extern Compass compass;
+#endif
 extern Gps gps;
 
 /**

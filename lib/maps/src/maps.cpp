@@ -26,7 +26,9 @@
 #include "../../images/src/finish.h"
 #include "../../images/src/outtrack.h"
 
-extern Compass compass;
+#ifdef ENABLE_COMPASS
+    extern Compass compass;
+#endif
 extern Gps gps;
 extern Storage storage;
 extern TrackVector trackData;
