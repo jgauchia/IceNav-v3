@@ -52,11 +52,14 @@ void gpsTask(void *pvParameters)
                 }
             } 
 
-            while (GPS.available( gpsPort )) 
+            bool satDataUpdated = false;
+            while (GPS.available( gpsPort ))
             {
                 fix = GPS.read();
                 gps.getGPSData();
-                
+                if (gps.gpsData.satInView > 0)
+                    satDataUpdated = true;
+
                 /* Non-blocking: gpsTask (core 0) never waits on the GUI task (core 1).
                    If lvgl_mutex is taken, subject updates are skipped for this cycle.
                    Intentional — the GPS task must not stall waiting for LVGL. */
@@ -70,13 +73,18 @@ void gpsTask(void *pvParameters)
                     lv_subject_set_int(&subject_pdop, (int32_t)(gps.gpsData.pdop * 10.0f));
                     lv_subject_set_int(&subject_hdop, (int32_t)(gps.gpsData.hdop * 10.0f));
                     lv_subject_set_int(&subject_vdop, (int32_t)(gps.gpsData.vdop * 10.0f));
-                    lv_subject_set_int(&subject_sats_data_trigger, lv_subject_get_int(&subject_sats_data_trigger) + 1);
                     lv_subject_set_int(&subject_fix_mode, (int32_t)gps.gpsData.fixMode);
                     lv_subject_set_int(&subject_is_fixed, isGpsFixed ? 1 : 0);
                     if (!mapSet.mapRotationComp)
                         lv_subject_set_int(&subject_heading, (int32_t)gps.gpsData.heading);
                     xSemaphoreGive(lvgl_mutex);
                 }
+            }
+
+            if (satDataUpdated && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
+            {
+                lv_subject_set_int(&subject_sats_data_trigger, lv_subject_get_int(&subject_sats_data_trigger) + 1);
+                xSemaphoreGive(lvgl_mutex);
             }
 
             xSemaphoreGive(gpsMutex);
