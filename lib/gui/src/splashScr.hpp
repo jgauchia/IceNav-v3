@@ -15,12 +15,12 @@
 
 #ifdef LARGE_SCREEN
     #ifdef ICENAV_BOARD
-        static const char* logoFile = "/spiffs/LOGO_NEW.png"; /**< Path to the large logo image for large screens */
+        static const char* logoFile = "/spiffs/gfx/LOGO_NEW.png"; /**< Path to the large logo image for large screens */
     #else
-        static const char* logoFile = "/spiffs/LOGO_LARGE.png"; /**< Path to the large logo image for large screens */
+        static const char* logoFile = "/spiffs/gfx/LOGO_LARGE.png"; /**< Path to the large logo image for large screens */
     #endif
 #else
-    static const char* logoFile = "/spiffs/LOGO_SMALL.png"; /**< Path to the small logo image for smaller screens */
+    static const char* logoFile = "/spiffs/gfx/LOGO_SMALL.png"; /**< Path to the small logo image for smaller screens */
 #endif
 
 static const char* statusLine1 = "Model:%s %dMhz";             /**< Format string for model and CPU frequency */

@@ -289,7 +289,7 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
     Maps::mapScrHeight = mapHeight;
     Maps::mapScrWidth = mapWidth;
     Maps::mapTempSprite.createSprite(Maps::tileWidth, Maps::tileHeight);
-    Maps::mapTempSprite.loadFont("/spiffs/font.vlw");
+    Maps::mapTempSprite.loadFont("/spiffs/font/font.vlw");
     Maps::mapSprite.createSprite(mapWidth, mapHeight);
     Maps::mapBuffer = Maps::mapSprite.getBuffer();
     Maps::oldMapTile = {};

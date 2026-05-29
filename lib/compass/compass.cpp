@@ -653,7 +653,7 @@ void Compass::calibrate()
     compassCalSprite.fillScreen(TFT_BLACK);
 
     compassCalSprite.drawCenterString("ROTATE THE DEVICE", tft.width() >> 1, 10 * scale, fontSmall);
-    compassCalSprite.drawPngFile(PSTR("/spiffs/turn.png"), (tft.width() / 2) - 50, 60 * scale);
+    compassCalSprite.drawPngFile(PSTR("/spiffs/gfx/turn.png"), (tft.width() / 2) - 50, 60 * scale);
     compassCalSprite.drawCenterString("TOUCH TO START", tft.width() >> 1, 200 * scale, fontSmall);
     compassCalSprite.drawCenterString("COMPASS CALIBRATION", tft.width() >> 1, 230 * scale, fontSmall);
     compassCalSprite.pushSprite(0,0);

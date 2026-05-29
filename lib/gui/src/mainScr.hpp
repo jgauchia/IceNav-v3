@@ -24,8 +24,8 @@ extern bool isScrollingMap;      /**< Flag to indicate if map is scrolling */
 
 extern uint8_t activeTile;       /**< Active Tile in TileView control */
 
-static const char *zoomInIconFile = "/zoomin.bin";   /**< Zoom in icon file path */
-static const char *zoomOutIconFile = "/zoomout.bin"; /**< Zoom out icon file path */
+static const char *zoomInIconFile = "/gfx/zoomin.bin";   /**< Zoom in icon file path */
+static const char *zoomOutIconFile = "/gfx/zoomout.bin"; /**< Zoom out icon file path */
 
 /**
  * @brief Enum for identifying different tile screens in the application.
