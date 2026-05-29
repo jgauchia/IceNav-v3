@@ -12,6 +12,8 @@
 #include "tasks.hpp"
 #include "mainScr.hpp"
 #include "lv_subjects.hpp"
+#include "router.hpp"
+#include "gpxParser.hpp"
 #include <WiFi.h>
 
 xSemaphoreHandle gpsMutex;
@@ -307,4 +309,144 @@ void guiTask(void *pvParameters)
 void initGuiTask()
 {
     xTaskCreatePinnedToCore(guiTask, "GUI Task", 8192, NULL, 3, NULL, 1);
+}
+
+extern TrackVector            trackData;
+extern std::vector<TurnPoint> turnPoints;
+extern NavState               navState;
+extern float                  routeDstLat;
+extern float                  routeDstLon;
+extern std::atomic<bool>      rerouteRequested;
+extern SemaphoreHandle_t      routeMutex;
+extern Maps                   mapView;
+
+/**
+ * @brief Navigation and routing task
+ *
+ * @details Handles route recalculation when rerouteRequested is set, then continuously
+ *          runs turn-by-turn navigation updates at 10 Hz when a track is loaded and
+ *          the vehicle is moving. Route calculation (A*) and navigation updates both
+ *          run on core 1 alongside the GUI task; routeMutex protects shared track data.
+ *
+ * @param pvParameters Task parameters (unused)
+ */
+void navTask(void *pvParameters)
+{
+    ESP_LOGV(TAG, "Nav Task - running on core %d", xPortGetCoreID());
+
+    static NavConfig navConfig;
+    navConfig.searchWindow      = 150;
+    navConfig.offTrackThreshold = 75.0f;
+    navConfig.maxBackwardJump   = 10;
+
+    static unsigned long lastNavUpdate = 0;
+
+    while (1)
+    {
+        if (rerouteRequested.exchange(false))
+        {
+            if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, portMAX_DELAY) == pdTRUE)
+            {
+                showMsg(LV_SYMBOL_REFRESH, " Calculating route...");
+                xSemaphoreGive(lvgl_mutex);
+            }
+
+            TrackVector newRoute;
+            RouterResult res = router.route(gps.gpsData.latitude, gps.gpsData.longitude,
+                                            routeDstLat, routeDstLon, newRoute);
+
+            if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
+            {
+                closeMsg();
+                xSemaphoreGive(lvgl_mutex);
+            }
+
+            if (res == RouterResult::OK)
+            {
+                isTrackLoaded = false;
+                trackData.clear();
+                trackData.shrink_to_fit();
+
+                if (xSemaphoreTake(routeMutex, pdMS_TO_TICKS(500)) == pdTRUE)
+                {
+                    trackData = std::move(newRoute);
+
+                    if (!trackData.empty())
+                    {
+                        trackData[0].accumDist = 0.0f;
+                        for (size_t i = 1; i < trackData.size(); ++i)
+                        {
+                            float d = calcDist(trackData[i-1].lat, trackData[i-1].lon,
+                                               trackData[i].lat,   trackData[i].lon);
+                            trackData[i].accumDist = trackData[i-1].accumDist + d;
+                        }
+                    }
+
+                    GPXParser gpxTmp;
+                    turnPoints    = gpxTmp.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, trackData);
+                    navState      = NavState{};
+                    isTrackLoaded = !trackData.empty();
+                    xSemaphoreGive(routeMutex);
+                }
+
+                mapView.updateMap();
+                mapView.redrawTrack();
+            }
+
+            if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(50)) == pdTRUE)
+            {
+                lv_subject_set_int(&subject_rerouting, 0);
+                lv_obj_send_event(navTile, LV_EVENT_VALUE_CHANGED, NULL);
+                lv_obj_clear_flag(turnByTurn, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+                xSemaphoreGive(lvgl_mutex);
+            }
+        }
+
+        if (isTrackLoaded)
+        {
+            if (navSet.simNavigation)
+            {
+                float oldLat = gps.gpsData.latitude;
+                gps.simFakeGPS(trackData, 15, 1000);
+                if (gps.gpsData.latitude != oldLat && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
+                {
+                    lv_subject_set_int(&subject_lat,     (int32_t)(gps.gpsData.latitude  * 1000000.0f));
+                    lv_subject_set_int(&subject_lon,     (int32_t)(gps.gpsData.longitude * 1000000.0f));
+                    lv_subject_set_int(&subject_heading, (int32_t)gps.gpsData.heading);
+                    lv_subject_set_int(&subject_speed,   (int32_t)gps.gpsData.speed);
+                    xSemaphoreGive(lvgl_mutex);
+                }
+            }
+
+            if (gps.gpsData.speed != 0)
+            {
+                unsigned long now = (unsigned long)(esp_timer_get_time() / 1000ULL);
+                if (now - lastNavUpdate > 100)
+                {
+                    lastNavUpdate = now;
+                    if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(50)) == pdTRUE)
+                    {
+                        updateNavigation(gps.gpsData.latitude, gps.gpsData.longitude,
+                                         gps.gpsData.heading,  gps.gpsData.speed,
+                                         trackData, turnPoints, navState,
+                                         20, 200, navConfig);
+                        xSemaphoreGive(lvgl_mutex);
+                    }
+                }
+            }
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+}
+
+/**
+ * @brief Initialize navigation task
+ *
+ * @details Creates and starts the nav task on core 1 with 6KB stack and priority 1.
+ */
+void initNavTask()
+{
+    xTaskCreatePinnedToCore(navTask, "Nav Task", 6144, NULL, 1, NULL, 1);
 }

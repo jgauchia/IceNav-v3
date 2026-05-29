@@ -50,6 +50,10 @@ void initGuiTask();
 
 #ifndef DISABLE_CLI
     void cliTask(void *param);
-    
+
     void initCLITask();
 #endif
+
+void navTask(void *pvParameters);
+
+void initNavTask();

@@ -121,6 +121,7 @@ void setup()
     initGpsTask();
     initSensorTask();
     initGuiTask();
+    initNavTask();
     #ifndef DISABLE_CLI
         initCLI();
         initCLITask();
@@ -153,99 +154,6 @@ void loop()
 {
     if (enableWeb)
         processWebServerTasks();
-
-    if (rerouteRequested.exchange(false))
-    {
-        if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, portMAX_DELAY) == pdTRUE)
-        {
-            showMsg(LV_SYMBOL_REFRESH, " Calculating route...");
-            xSemaphoreGive(lvgl_mutex);
-        }
-        TrackVector newRoute;
-        RouterResult res = router.route(gps.gpsData.latitude, gps.gpsData.longitude,
-                                        routeDstLat, routeDstLon, newRoute);
-        if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
-        {
-            closeMsg();
-            xSemaphoreGive(lvgl_mutex);
-        }
-        if (res == RouterResult::OK)
-        {
-            isTrackLoaded = false;
-            trackData.clear();
-            trackData.shrink_to_fit();
-
-            if (xSemaphoreTake(routeMutex, pdMS_TO_TICKS(500)) == pdTRUE)
-            {
-                trackData = std::move(newRoute);
-
-                if (!trackData.empty())
-                {
-                    trackData[0].accumDist = 0.0f;
-                    for (size_t i = 1; i < trackData.size(); ++i)
-                    {
-                        float d = calcDist(trackData[i-1].lat, trackData[i-1].lon,
-                                           trackData[i].lat,   trackData[i].lon);
-                        trackData[i].accumDist = trackData[i-1].accumDist + d;
-                    }
-                }
-
-                GPXParser gpxTmp;
-                turnPoints    = gpxTmp.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, trackData);
-                navState      = NavState{};
-                isTrackLoaded = !trackData.empty();
-                xSemaphoreGive(routeMutex);
-            }
-
-            mapView.updateMap();
-            mapView.redrawTrack();
-        }
-        if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(50)) == pdTRUE)
-        {
-            lv_subject_set_int(&subject_rerouting, 0);
-            lv_obj_send_event(navTile, LV_EVENT_VALUE_CHANGED, NULL);
-            lv_obj_clear_flag(turnByTurn, LV_OBJ_FLAG_HIDDEN);
-            lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
-            xSemaphoreGive(lvgl_mutex);
-        }
-    }
-
-    if (isTrackLoaded)
-    {
-        if (navSet.simNavigation)
-        {
-            float oldLat = gps.gpsData.latitude;
-            gps.simFakeGPS(trackData, 15, 1000);
-            if (gps.gpsData.latitude != oldLat && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
-            {
-                lv_subject_set_int(&subject_lat, (int32_t)(gps.gpsData.latitude * 1000000.0f));
-                lv_subject_set_int(&subject_lon, (int32_t)(gps.gpsData.longitude * 1000000.0f));
-                lv_subject_set_int(&subject_heading, (int32_t)gps.gpsData.heading);
-                lv_subject_set_int(&subject_speed, (int32_t)gps.gpsData.speed);
-                xSemaphoreGive(lvgl_mutex);
-            }
-        }
-
-        if (gps.gpsData.speed != 0)
-        {
-            NavConfig simConfig;
-            simConfig.searchWindow = 150;
-            simConfig.offTrackThreshold = 75.0f;
-            simConfig.maxBackwardJump = 10;
-            static unsigned long lastNavUpdate = 0;
-
-            if (millis() - lastNavUpdate > 100)
-            {
-                lastNavUpdate = millis();
-                if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(50)) == pdTRUE)
-                {
-                    updateNavigation(gps.gpsData.latitude, gps.gpsData.longitude, gps.gpsData.heading, gps.gpsData.speed,
-                                    trackData, turnPoints, navState, 20, 200, simConfig);
-                    xSemaphoreGive(lvgl_mutex);
-                }
-            }
-        }
-    }
 
     vTaskDelay(pdMS_TO_TICKS(10));
 }
