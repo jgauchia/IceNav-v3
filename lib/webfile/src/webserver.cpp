@@ -16,29 +16,32 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <cstring>
+#include <cstdio>
 
 /**
  * @brief Convert bytes to Human Readable Size
  */
-static String humanReadableSize(uint64_t bytes)
+static std::string humanReadableSize(uint64_t bytes)
 {
+    char buf[32];
     if (bytes < 1024)
-        return String(bytes) + " B";
+        snprintf(buf, sizeof(buf), "%llu B", (unsigned long long)bytes);
     else if (bytes < (1024 * 1024))
-        return String(bytes / 1024.0) + " KB";
-    else if (bytes < (1024 * 1024 * 1024))
-        return String(bytes / (1024.0 * 1024.0)) + " MB";
+        snprintf(buf, sizeof(buf), "%.2f KB", bytes / 1024.0);
+    else if (bytes < (1024ULL * 1024 * 1024))
+        snprintf(buf, sizeof(buf), "%.2f MB", bytes / (1024.0 * 1024.0));
     else
-        return String(bytes / (1024.0 * 1024.0 * 1024.0)) + " GB";
+        snprintf(buf, sizeof(buf), "%.2f GB", bytes / (1024.0 * 1024.0 * 1024.0));
+    return std::string(buf);
 }
 
 /**
  * @brief Extract numeric part from string
  */
-static int extractNumber(const String& str, int& pos)
+static int extractNumber(const std::string& str, int& pos)
 {
     int num = 0;
-    while (pos < (int)str.length() && isdigit(str[pos]))
+    while (pos < (int)str.size() && isdigit(str[pos]))
     {
         num = num * 10 + (str[pos] - '0');
         pos++;
@@ -49,10 +52,11 @@ static int extractNumber(const String& str, int& pos)
 /**
  * @brief Natural compare for sorting
  */
-static bool naturalCompare(const String& a, const String& b)
+static bool naturalCompare(const std::string& a, const std::string& b)
 {
-    int i = 0, j = 0;
-    while (i < (int)a.length() && j < (int)b.length())
+    int i = 0;
+    int j = 0;
+    while (i < (int)a.size() && j < (int)b.size())
     {
         if (isdigit(a[i]) && isdigit(b[j]))
         {
@@ -69,7 +73,7 @@ static bool naturalCompare(const String& a, const String& b)
             j++;
         }
     }
-    return a.length() < b.length();
+    return a.size() < b.size();
 }
 
 /**
@@ -93,10 +97,10 @@ static void sortFileCache()
 /**
  * @brief Cache directory content
  */
-static void cacheDirectoryContent(const String& dir)
+static void cacheDirectoryContent(const std::string& dir)
 {
     fileCache.clear();
-    String fullDir = "/sdcard" + dir;
+    std::string fullDir = "/sdcard" + dir;
 
     DIR* dp = opendir(fullDir.c_str());
     if (dp != nullptr)
@@ -105,12 +109,12 @@ static void cacheDirectoryContent(const String& dir)
         while ((ep = readdir(dp)))
         {
             FileEntry entry;
-            entry.name = String(ep->d_name);
+            entry.name = std::string(ep->d_name);
             entry.isDirectory = (ep->d_type == DT_DIR);
 
             if (!entry.isDirectory)
             {
-                String filePath = fullDir + "/" + entry.name;
+                std::string filePath = fullDir + "/" + entry.name;
                 FILE* file = fopen(filePath.c_str(), "r");
                 if (file)
                 {
@@ -128,7 +132,6 @@ static void cacheDirectoryContent(const String& dir)
         closedir(dp);
     }
 
-    currentDir = dir;
     sortFileCache();
 }
 
@@ -160,7 +163,8 @@ static bool getQueryParam(httpd_req_t *req, const char* param, char* value, size
 static void urlDecode(char* str)
 {
     char* dst = str;
-    char a, b;
+    char a;
+    char b;
     while (*str)
     {
         if ((*str == '%') && ((a = str[1]) && (b = str[2])) && (isxdigit(a) && isxdigit(b)))
@@ -190,9 +194,9 @@ static void urlDecode(char* str)
 /**
  * @brief List files HTML generation
  */
-static String listFiles(bool ishtml, int page)
+static std::string listFiles(bool ishtml, int page)
 {
-    String returnText = "";
+    std::string returnText = "";
     int startIdx = page * FILES_PER_PAGE;
     int endIdx = startIdx + FILES_PER_PAGE;
 
@@ -219,7 +223,7 @@ static String listFiles(bool ishtml, int page)
             {
                 returnText += "<img src=\"folder\"> <a href='#' onclick='changeDirectory(\"" + entry.name + "\")'>" + entry.name + "</a>";
                 returnText += "</td><td style=\"text-align:center\">dir</td>";
-                returnText += "<td></td>";
+                returnText += "<td><button class=\"button\" onclick=\"downloadFolder('" + entry.name + "')\"><img src=\"down\"> Download (ZIP)</button></td>";
                 returnText += "<td><button class=\"button\" onclick=\"downloadDeleteButton('" + entry.name + "', 'deldir')\"><img src=\"del\"> Delete</button></td>";
             }
             else
@@ -239,20 +243,28 @@ static String listFiles(bool ishtml, int page)
 
     if (ishtml)
     {
+        char pageBuf[128];
+        int totalPages = (int)(fileCache.size() / FILES_PER_PAGE) + 1;
+
         returnText += "</table></div><p></p><p>";
         returnText += "<tr align='left'>";
         if (page > 0)
         {
-            returnText += "<ti><button class=\"button\" onclick='loadPage(" + String(0) + ")'>First</button></ti>";
-            returnText += "<ti><button class=\"button\" onclick='loadPage(" + String(page - 1) + ")'>Prev</button></ti>";
+            snprintf(pageBuf, sizeof(pageBuf), "<ti><button class=\"button\" onclick='loadPage(%d)'>First</button></ti>", 0);
+            returnText += pageBuf;
+            snprintf(pageBuf, sizeof(pageBuf), "<ti><button class=\"button\" onclick='loadPage(%d)'>Prev</button></ti>", page - 1);
+            returnText += pageBuf;
         }
 
-        returnText += "<ti><span> Page " + String(page + 1) + "/" + String((fileCache.size() / 10) + 1) + " </span></ti>";
+        snprintf(pageBuf, sizeof(pageBuf), "<ti><span> Page %d/%d </span></ti>", page + 1, totalPages);
+        returnText += pageBuf;
 
         if ((int)fileCache.size() > endIdx)
         {
-            returnText += "<ti><button class=\"button\" onclick='loadPage(" + String(page + 1) + ")'>Next</button></ti>";
-            returnText += "<ti><button class=\"button\" onclick='loadPage(" + String((fileCache.size() / 10)) + ")'>Last</button></ti>";
+            snprintf(pageBuf, sizeof(pageBuf), "<ti><button class=\"button\" onclick='loadPage(%d)'>Next</button></ti>", page + 1);
+            returnText += pageBuf;
+            snprintf(pageBuf, sizeof(pageBuf), "<ti><button class=\"button\" onclick='loadPage(%d)'>Last</button></ti>", totalPages - 1);
+            returnText += pageBuf;
         }
         returnText += "</tr></p>";
     }
@@ -308,9 +320,7 @@ static bool deleteDirRecursive(const char *dirPath)
             }
 
             if (S_ISDIR(entryStat.st_mode))
-            {
                 dirStack.push(std::string(entryPath));
-            }
             else
             {
                 if (remove(entryPath) != 0)
@@ -346,16 +356,15 @@ static bool deleteDirRecursive(const char *dirPath)
 /**
  * @brief Create directories for upload
  */
-static bool createDirectories(String filepath)
+static bool createDirectories(const std::string& filepath)
 {
-    uint8_t lastSlash = 0;
-    uint8_t nextSlash = 0;
+    size_t lastSlash = 0;
     while (true)
     {
-        nextSlash = filepath.indexOf('/', lastSlash + 1);
-        String dir = filepath.substring(0, nextSlash);
+        size_t nextSlash = filepath.find('/', lastSlash + 1);
+        std::string dir = filepath.substr(0, nextSlash);
+        std::string newDirPath = "/sdcard" + oldDir + "/" + dir;
 
-        String newDirPath = "/sdcard" + oldDir + "/" + dir;
         if (!storage.exists(newDirPath.c_str()))
         {
             if (!storage.mkdir(newDirPath.c_str()))
@@ -365,7 +374,7 @@ static bool createDirectories(String filepath)
             }
             ESP_LOGI(WEB_TAG, "Directory %s created", newDirPath.c_str());
         }
-        if (nextSlash == 255) break;
+        if (nextSlash == std::string::npos) break;
         lastSlash = nextSlash;
 
         esp_task_wdt_reset();
@@ -376,16 +385,28 @@ static bool createDirectories(String filepath)
 /**
  * @brief Replace template variables
  */
-static String processTemplate(const char* html)
+static std::string processTemplate(const char* html)
 {
-    String result = String(html);
+    std::string result = std::string(html);
     SDCardInfo info = storage.getSDCardInfo();
 
-    result.replace("%FIRMWARE%", String(VERSION) + " - Rev: " + String(REVISION));
-    result.replace("%FREEFS%", info.free_space.c_str());
-    result.replace("%USEDFS%", info.used_space.c_str());
-    result.replace("%TOTALFS%", info.total_space.c_str());
-    result.replace("%TYPEFS%", info.card_type.c_str());
+    std::string firmware = std::string(VERSION) + " - Rev: " + std::to_string(REVISION);
+
+    auto replaceAll = [](std::string& s, const std::string& from, const std::string& to)
+    {
+        size_t pos = 0;
+        while ((pos = s.find(from, pos)) != std::string::npos)
+        {
+            s.replace(pos, from.size(), to);
+            pos += to.size();
+        }
+    };
+
+    replaceAll(result, "%FIRMWARE%", firmware);
+    replaceAll(result, "%FREEFS%",   info.free_space);
+    replaceAll(result, "%USEDFS%",   info.used_space);
+    replaceAll(result, "%TOTALFS%",  info.total_space);
+    replaceAll(result, "%TYPEFS%",   info.card_type);
 
     return result;
 }
@@ -397,9 +418,9 @@ static String processTemplate(const char* html)
  */
 static esp_err_t root_handler(httpd_req_t *req)
 {
-    String html = processTemplate(index_html);
+    std::string html = processTemplate(index_html);
     httpd_resp_set_type(req, "text/html");
-    httpd_resp_send(req, html.c_str(), html.length());
+    httpd_resp_send(req, html.c_str(), html.size());
     return ESP_OK;
 }
 
@@ -410,10 +431,17 @@ static esp_err_t status_handler(httpd_req_t *req)
 {
     httpd_resp_set_type(req, "application/json");
 
-    String response = "{\"refresh\":";
+    std::string escaped = "";
+    for (char c : statusMessage)
+    {
+        if (c == '"' || c == '\\') escaped += '\\';
+        escaped += c;
+    }
+
+    std::string response = "{\"refresh\":";
     response += statusPending ? "true" : "false";
     response += ",\"message\":\"";
-    response += statusMessage;
+    response += escaped;
     response += "\"}";
 
     if (statusPending)
@@ -422,7 +450,7 @@ static esp_err_t status_handler(httpd_req_t *req)
         statusMessage = "";
     }
 
-    httpd_resp_send(req, response.c_str(), response.length());
+    httpd_resp_send(req, response.c_str(), response.size());
     return ESP_OK;
 }
 
@@ -441,9 +469,9 @@ static esp_err_t listfiles_handler(httpd_req_t *req)
         cacheDirectoryContent(oldDir);
     }
 
-    String html = listFiles(true, page);
+    std::string html = listFiles(true, page);
     httpd_resp_set_type(req, "text/html");
-    httpd_resp_send(req, html.c_str(), html.length());
+    httpd_resp_send(req, html.c_str(), html.size());
     return ESP_OK;
 }
 
@@ -461,7 +489,7 @@ static esp_err_t changedirectory_handler(httpd_req_t *req)
 
     urlDecode(dirParam);
     updateList = false;
-    newDir = String(dirParam);
+    newDir = std::string(dirParam);
 
     ESP_LOGI(WEB_TAG, "new dir %s", newDir.c_str());
     ESP_LOGI(WEB_TAG, "old dir %s", oldDir.c_str());
@@ -470,10 +498,10 @@ static esp_err_t changedirectory_handler(httpd_req_t *req)
     {
         if (oldDir != "/..")
         {
-            oldDir = oldDir.substring(0, oldDir.lastIndexOf("/"));
-            currentDir = "";
-            String response = "Path:" + oldDir;
-            httpd_resp_send(req, response.c_str(), response.length());
+            size_t lastSlash = oldDir.rfind('/');
+            oldDir = (lastSlash != std::string::npos) ? oldDir.substr(0, lastSlash) : "";
+            std::string response = "Path:" + oldDir;
+            httpd_resp_send(req, response.c_str(), response.size());
         }
         else
         {
@@ -487,9 +515,8 @@ static esp_err_t changedirectory_handler(httpd_req_t *req)
             oldDir = oldDir + newDir;
         else
             oldDir = newDir;
-        currentDir = "";
-        String response = "Path:" + oldDir;
-        httpd_resp_send(req, response.c_str(), response.length());
+        std::string response = "Path:" + oldDir;
+        httpd_resp_send(req, response.c_str(), response.size());
     }
 
     cacheDirectoryContent(oldDir);
@@ -512,7 +539,7 @@ static esp_err_t file_handler(httpd_req_t *req)
     }
 
     urlDecode(fileName);
-    String path = "/sdcard" + oldDir + "/" + String(fileName);
+    std::string path = "/sdcard" + oldDir + "/" + std::string(fileName);
 
     ESP_LOGI(WEB_TAG, "File operation: %s on %s", fileAction, path.c_str());
 
@@ -520,8 +547,8 @@ static esp_err_t file_handler(httpd_req_t *req)
     {
         deletePath = path;
         deleteDir = true;
-        String response = "Deleting Folder: " + String(fileName) + " please wait...";
-        httpd_resp_send(req, response.c_str(), response.length());
+        std::string response = std::string("Deleting Folder: ") + fileName + " please wait...";
+        httpd_resp_send(req, response.c_str(), response.size());
         updateList = true;
         return ESP_OK;
     }
@@ -542,7 +569,9 @@ static esp_err_t file_handler(httpd_req_t *req)
 
         httpd_resp_set_type(req, "application/octet-stream");
 
-        String disposition = "attachment; filename=\"" + path.substring(path.lastIndexOf('/') + 1) + "\"";
+        size_t lastSlash = path.rfind('/');
+        std::string filename = (lastSlash != std::string::npos) ? path.substr(lastSlash + 1) : path;
+        std::string disposition = "attachment; filename=\"" + filename + "\"";
         httpd_resp_set_hdr(req, "Content-Disposition", disposition.c_str());
 
         char* chunk = (char*)heap_caps_malloc(4096, MALLOC_CAP_8BIT);
@@ -573,8 +602,8 @@ static esp_err_t file_handler(httpd_req_t *req)
     {
         storage.close(file);
         storage.remove(path.c_str());
-        String response = "Deleted File: " + String(fileName);
-        httpd_resp_send(req, response.c_str(), response.length());
+        std::string response = std::string("Deleted File: ") + fileName;
+        httpd_resp_send(req, response.c_str(), response.size());
         updateList = true;
         return ESP_OK;
     }
@@ -584,6 +613,67 @@ static esp_err_t file_handler(httpd_req_t *req)
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "ERROR: invalid action param supplied");
         return ESP_FAIL;
     }
+}
+
+/**
+ * @brief List all files in a folder recursively, one path per line
+ */
+static esp_err_t listfolder_handler(httpd_req_t *req)
+{
+    char folderParam[128] = "";
+    if (!getQueryParam(req, "path", folderParam, sizeof(folderParam)))
+    {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "ERROR: path parameter required");
+        return ESP_FAIL;
+    }
+
+    urlDecode(folderParam);
+
+    std::string basePath = "/sdcard" + oldDir + "/" + std::string(folderParam);
+    std::string result = "";
+    size_t prefixLen = std::string("/sdcard").size() + oldDir.size();
+
+    std::stack<std::string> dirStack;
+    dirStack.push(basePath);
+
+    while (!dirStack.empty())
+    {
+        std::string currentPath = dirStack.top();
+        dirStack.pop();
+
+        DIR* dp = opendir(currentPath.c_str());
+        if (!dp)
+            continue;
+
+        struct dirent* ep;
+        while ((ep = readdir(dp)))
+        {
+            if (strcmp(ep->d_name, ".") == 0 || strcmp(ep->d_name, "..") == 0)
+                continue;
+
+            std::string entryPath = currentPath + "/" + std::string(ep->d_name);
+
+            if (ep->d_type == DT_DIR)
+            {
+                dirStack.push(entryPath);
+            }
+            else
+            {
+                std::string relPath = entryPath.substr(prefixLen);
+                struct stat st;
+                size_t fileSize = (stat(entryPath.c_str(), &st) == 0) ? st.st_size : 0;
+                char sizeBuf[32];
+                snprintf(sizeBuf, sizeof(sizeBuf), "%zu", fileSize);
+                result += relPath + "|" + sizeBuf + "\n";
+            }
+        }
+        closedir(dp);
+        esp_task_wdt_reset();
+    }
+
+    httpd_resp_set_type(req, "text/plain");
+    httpd_resp_send(req, result.c_str(), result.size());
+    return ESP_OK;
 }
 
 /**
@@ -637,6 +727,45 @@ static esp_err_t sendSpiffsImage(httpd_req_t *req, const char *imageFile)
     return ESP_FAIL;
 }
 
+/**
+ * @brief Send JS file from SPIFFS
+ */
+static esp_err_t sendSpiffsJS(httpd_req_t *req, const char *jsFile)
+{
+    FILE *file = storage.open(jsFile, "r");
+    if (!file)
+    {
+        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "JS file not found");
+        return ESP_FAIL;
+    }
+
+    httpd_resp_set_type(req, "application/javascript");
+
+    char* chunk = (char*)heap_caps_malloc(4096, MALLOC_CAP_8BIT);
+    if (!chunk)
+    {
+        storage.close(file);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Memory allocation failed");
+        return ESP_FAIL;
+    }
+
+    size_t read;
+    while ((read = storage.read(file, chunk, 4096)) > 0)
+    {
+        if (httpd_resp_send_chunk(req, chunk, read) != ESP_OK)
+        {
+            heap_caps_free(chunk);
+            storage.close(file);
+            return ESP_FAIL;
+        }
+    }
+
+    heap_caps_free(chunk);
+    storage.close(file);
+    httpd_resp_send_chunk(req, NULL, 0);
+    return ESP_OK;
+}
+
 // Image handlers
 static esp_err_t logo_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/LOGO_LARGE.png"); }
 static esp_err_t files_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/file.png"); }
@@ -646,6 +775,7 @@ static esp_err_t up_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/sp
 static esp_err_t del_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/delete.png"); }
 static esp_err_t reb_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/reboot.png"); }
 static esp_err_t list_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/list.png"); }
+static esp_err_t jszip_handler(httpd_req_t *req) { return sendSpiffsJS(req, "/spiffs/utils/jszip.min.js"); }
 
 /**
  * @brief Find byte sequence in buffer (like memmem but portable)
@@ -681,19 +811,16 @@ static esp_err_t upload_handler(httpd_req_t *req)
     }
     boundaryPtr += 9;
 
-    // Build boundary with \r\n-- prefix (between parts)
     char boundary[128];
     snprintf(boundary, sizeof(boundary), "\r\n--%s", boundaryPtr);
     size_t boundaryLen = strlen(boundary);
 
-    // First boundary doesn't have \r\n prefix
     char firstBoundary[128];
     snprintf(firstBoundary, sizeof(firstBoundary), "--%s", boundaryPtr);
     size_t firstBoundaryLen = strlen(firstBoundary);
 
-    // Allocate working buffer
     static constexpr size_t UPLOAD_BUF_SIZE = 32768;
-    static constexpr size_t MAX_UPLOAD_SIZE = 512UL * 1024 * 1024; // 512 MB
+    static constexpr size_t MAX_UPLOAD_SIZE = 512UL * 1024 * 1024;
 
     if ((size_t)req->content_len > MAX_UPLOAD_SIZE)
     {
@@ -721,7 +848,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
 
     while (remaining > 0 || bufUsed > 0)
     {
-        // Read more data if buffer has space and data remains
         if (remaining > 0 && bufUsed < bufSize - 8192)
         {
             int toRead = (remaining < 8192) ? remaining : 8192;
@@ -736,14 +862,12 @@ static esp_err_t upload_handler(httpd_req_t *req)
             bufUsed += recv;
         }
 
-        // Search for boundary
         const char* searchBoundary = firstPart ? firstBoundary : boundary;
         size_t searchLen = firstPart ? firstBoundaryLen : boundaryLen;
         uint8_t* boundaryPos = findBytes(buf, bufUsed, (const uint8_t*)searchBoundary, searchLen);
 
         if (!boundaryPos && file)
         {
-            // No boundary found - write data keeping buffer for potential split boundary
             size_t safeWrite = (bufUsed > boundaryLen + 4) ? bufUsed - boundaryLen - 4 : 0;
             if (safeWrite > 0)
             {
@@ -757,7 +881,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
             }
             if (remaining == 0 && bufUsed > 0)
             {
-                // End of data, check for final boundary
                 uint8_t* finalBoundary = findBytes(buf, bufUsed, (const uint8_t*)boundary, boundaryLen);
                 if (finalBoundary)
                 {
@@ -786,7 +909,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
 
         if (boundaryPos)
         {
-            // Close previous file if open
             if (file)
             {
                 size_t dataLen = boundaryPos - buf;
@@ -802,36 +924,30 @@ static esp_err_t upload_handler(httpd_req_t *req)
                 filesUploaded++;
             }
 
-            // Move past boundary
             size_t offset = (boundaryPos - buf) + searchLen;
             firstPart = false;
 
-            // Check for final boundary (--)
             if (offset + 2 <= bufUsed && buf[offset] == '-' && buf[offset + 1] == '-')
             {
                 bufUsed = 0;
                 break;
             }
 
-            // Skip CRLF after boundary
             if (offset + 2 <= bufUsed && buf[offset] == '\r' && buf[offset + 1] == '\n')
                 offset += 2;
 
-            // Shift buffer
             memmove(buf, buf + offset, bufUsed - offset);
             bufUsed -= offset;
 
-            // Find end of headers (\r\n\r\n)
             uint8_t* headerEnd = findBytes(buf, bufUsed, (const uint8_t*)"\r\n\r\n", 4);
             if (!headerEnd && remaining > 0)
             {
                 esp_task_wdt_reset();
-                continue; // Need more data for headers
+                continue;
             }
 
             if (headerEnd)
             {
-                // Extract filename from headers
                 *headerEnd = '\0';
                 char* fnStart = strstr((char*)buf, "filename=\"");
                 if (fnStart)
@@ -846,11 +962,10 @@ static esp_err_t upload_handler(httpd_req_t *req)
                             memcpy(currentFilename, fnStart, fnLen);
                             currentFilename[fnLen] = '\0';
 
-                            // Create directories if path contains /
                             char* lastSlash = strrchr(currentFilename, '/');
                             if (lastSlash)
                             {
-                                String pathDir = String(currentFilename).substring(0, lastSlash - currentFilename);
+                                std::string pathDir = std::string(currentFilename, lastSlash - currentFilename);
                                 createDirectories(pathDir);
                             }
 
@@ -863,7 +978,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
                     }
                 }
 
-                // Move past headers
                 size_t headerLen = (headerEnd - buf) + 4;
                 memmove(buf, buf + headerLen, bufUsed - headerLen);
                 bufUsed -= headerLen;
@@ -876,12 +990,10 @@ static esp_err_t upload_handler(httpd_req_t *req)
             break;
     }
 
-    // Close any remaining file
     if (file)
     {
         if (bufUsed > 0)
         {
-            // Strip trailing boundary if present
             uint8_t* finalBoundary = findBytes(buf, bufUsed, (const uint8_t*)boundary, boundaryLen);
             size_t writeLen = finalBoundary ? (finalBoundary - buf) : bufUsed;
             if (writeLen > 0)
@@ -926,25 +1038,8 @@ static esp_err_t notfound_handler(httpd_req_t *req, httpd_err_code_t err)
  */
 void setWebStatus(const char* message, bool refresh)
 {
-    statusMessage = String(message);
+    statusMessage = std::string(message);
     statusPending = refresh;
-}
-
-/**
- * @brief Check if directory deletion is pending
- */
-bool isDeleteDirPending()
-{
-    return deleteDir;
-}
-
-/**
- * @brief Get delete path and clear flag
- */
-String getDeletePath()
-{
-    deleteDir = false;
-    return deletePath;
 }
 
 /**
@@ -989,6 +1084,7 @@ void configureWebServer()
     httpd_uri_t uri_listfiles = { .uri = "/listfiles", .method = HTTP_GET, .handler = listfiles_handler };
     httpd_uri_t uri_changedirectory = { .uri = "/changedirectory", .method = HTTP_GET, .handler = changedirectory_handler };
     httpd_uri_t uri_file = { .uri = "/file", .method = HTTP_GET, .handler = file_handler };
+    httpd_uri_t uri_listfolder = { .uri = "/listfolder", .method = HTTP_GET, .handler = listfolder_handler };
     httpd_uri_t uri_reboot = { .uri = "/reboot", .method = HTTP_GET, .handler = reboot_handler };
     httpd_uri_t uri_upload = { .uri = "/", .method = HTTP_POST, .handler = upload_handler };
 
@@ -1000,12 +1096,14 @@ void configureWebServer()
     httpd_uri_t uri_del = { .uri = "/del", .method = HTTP_GET, .handler = del_handler };
     httpd_uri_t uri_reb = { .uri = "/reb", .method = HTTP_GET, .handler = reb_handler };
     httpd_uri_t uri_list = { .uri = "/list", .method = HTTP_GET, .handler = list_handler };
+    httpd_uri_t uri_jszip = { .uri = "/jszip", .method = HTTP_GET, .handler = jszip_handler };
 
     httpd_register_uri_handler(webServer, &uri_root);
     httpd_register_uri_handler(webServer, &uri_status);
     httpd_register_uri_handler(webServer, &uri_listfiles);
     httpd_register_uri_handler(webServer, &uri_changedirectory);
     httpd_register_uri_handler(webServer, &uri_file);
+    httpd_register_uri_handler(webServer, &uri_listfolder);
     httpd_register_uri_handler(webServer, &uri_reboot);
     httpd_register_uri_handler(webServer, &uri_upload);
     httpd_register_uri_handler(webServer, &uri_logo);
@@ -1016,6 +1114,7 @@ void configureWebServer()
     httpd_register_uri_handler(webServer, &uri_del);
     httpd_register_uri_handler(webServer, &uri_reb);
     httpd_register_uri_handler(webServer, &uri_list);
+    httpd_register_uri_handler(webServer, &uri_jszip);
 
     httpd_register_err_handler(webServer, HTTPD_404_NOT_FOUND, notfound_handler);
 
