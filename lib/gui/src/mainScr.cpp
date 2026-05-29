@@ -15,6 +15,9 @@
 #define MAP_MODE_MANUAL 1
 #define MAP_MODE_INERTIA 2
 
+static const char *zoomInIconFile = "/gfx/zoomin.bin";
+static const char *zoomOutIconFile = "/gfx/zoomout.bin";
+
 bool isMainScreen = false;
 bool isScrolled = true;      
 bool isScrollingMap = false;  

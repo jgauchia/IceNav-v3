@@ -17,15 +17,11 @@
 #include "compass.hpp"
 #include "navigation.hpp"
 
-extern bool isScrolled;          /**< Flag to indicate when tileview was scrolled */
 extern bool isMainScreen;        /**< Flag to indicate main screen is selected */
 extern bool canScrollMap;        /**< Flag to indicate if map can be scrolled */
 extern bool isScrollingMap;      /**< Flag to indicate if map is scrolling */
 
 extern uint8_t activeTile;       /**< Active Tile in TileView control */
-
-static const char *zoomInIconFile = "/gfx/zoomin.bin";   /**< Zoom in icon file path */
-static const char *zoomOutIconFile = "/gfx/zoomout.bin"; /**< Zoom out icon file path */
 
 /**
  * @brief Enum for identifying different tile screens in the application.
@@ -57,4 +53,5 @@ extern lv_obj_t *btnToggle3D;     /**< Toggle 3D/2D map view button */
 extern uint8_t toolBarOffset;     /**< Offset for toolbar positioning */
 extern uint8_t toolBarSpace;      /**< Space between toolbar buttons */
 
+void triggerMapRedraw();
 void createMainScr();

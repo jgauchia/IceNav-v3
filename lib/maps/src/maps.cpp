@@ -723,7 +723,6 @@ void Maps::mapRenderTask(void* pvParameters)
                 xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
                 xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
                 xSemaphoreGiveRecursive(instance->mapMutex);
-                extern void triggerMapRedraw();
                 triggerMapRedraw();
             }
         }
