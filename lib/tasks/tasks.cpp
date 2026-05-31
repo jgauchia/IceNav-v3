@@ -17,6 +17,7 @@
 #include <WiFi.h>
 
 xSemaphoreHandle gpsMutex;
+TaskHandle_t gpsTaskHandle = NULL;
 extern Gps gps;
 SensorData globalSensorData = {};
 
@@ -161,7 +162,7 @@ void gpsTask(void *pvParameters)
  */
 void initGpsTask()
 {
-    xTaskCreatePinnedToCore(gpsTask, PSTR("GPS Task"), 4096, NULL, 2, NULL, 0);
+    xTaskCreatePinnedToCore(gpsTask, PSTR("GPS Task"), 4096, NULL, 2, &gpsTaskHandle, 0);
     vTaskDelay(pdMS_TO_TICKS(500));
 }
 

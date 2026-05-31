@@ -16,6 +16,10 @@
 #include "esp_timer.h"
 #include "driver/gpio.h"
 #include <SolarCalculator.h>
+#include <time.h>
+
+extern RTC_DATA_ATTR time_t rtcSavedTime;
+extern RTC_DATA_ATTR bool   rtcTimeValid;
 
 /**
  * @brief Get system uptime in milliseconds using ESP-IDF timer.
@@ -122,6 +126,15 @@ void buildPcas03(char *out, size_t outSize, uint8_t rateIdx)
  */
 void Gps::init()
 {
+    if (rtcTimeValid && rtcSavedTime > 0)
+    {
+        struct timeval tv = { .tv_sec = rtcSavedTime, .tv_usec = 0 };
+        settimeofday(&tv, NULL);
+        setTime = true;
+        rtcTimeValid = false;
+        ESP_LOGI("GPS", "Time restored from RTC: %lld", (long long)rtcSavedTime);
+    }
+
     gpsPort.setRxBufferSize(2048);
 
     if (gpsBaud != 3)

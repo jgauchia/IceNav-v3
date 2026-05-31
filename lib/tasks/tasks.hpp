@@ -51,6 +51,8 @@ extern portMUX_TYPE nmeaDebugMux;
 extern char    nmeaRawBuf[NMEA_RAW_LINES][NMEA_RAW_LEN];
 extern uint8_t nmeaRawHead;  /**< Index of the next slot to write (oldest line). */
 
+extern TaskHandle_t gpsTaskHandle;
+
 void gpsTask(void *pvParameters);
 
 void initGpsTask();

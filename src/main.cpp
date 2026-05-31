@@ -12,8 +12,6 @@
 #include <atomic>
 #include <ESPmDNS.h>
 
-int taskSleepPeriod = 10;
-
 #include "hal.hpp"
 #include "gps.hpp"
 #include "storage.hpp"
