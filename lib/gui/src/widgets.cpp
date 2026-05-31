@@ -221,12 +221,13 @@ void compassWidget(lv_obj_t *screen)
     lv_obj_set_pos(obj, compassPosX, compassPosY);
     lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     
+    LV_IMG_DECLARE(arrow);
     lv_obj_t *img = lv_img_create(obj);
-    lv_img_set_src(img, arrowIconFile);
+    lv_img_set_src(img, &arrow);
     lv_obj_align(img, LV_ALIGN_CENTER, 0, -30);
     lv_img_set_zoom(img, iconScale);
     lv_obj_update_layout(img);
-    
+
     LV_IMG_DECLARE(bruj);
     compassImg = lv_img_create(obj);
     lv_img_set_src(compassImg, &bruj);

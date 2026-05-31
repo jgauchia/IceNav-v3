@@ -55,7 +55,6 @@ static lv_coord_t newY = 0;              /**< New Y coordinate for widget moveme
 
 extern bool isScrolled;                  /**< Flag to indicate when tileview was scrolled */
 
-static const char *arrowIconFile      = "/gfx/arrow.bin";       /**< Compass arrow icon */
 static const char *positionIconFile   = "/gfx/pin.bin";         /**< Position icon */
 static const char *altitudeIconFile   = "/gfx/altit.bin";       /**< Altitude icon */
 static const char *speedIconFile      = "/gfx/speed.bin";       /**< Speed icon */
