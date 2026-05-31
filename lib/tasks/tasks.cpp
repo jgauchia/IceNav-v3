@@ -37,6 +37,14 @@ static constexpr TickType_t MUTEX_TIMEOUT_SLOW = pdMS_TO_TICKS(10);
 
 static const char* TAG = "Task";
 
+static struct
+{
+    time_t  lastTimeSent  = 0;
+    uint8_t lastTempSent  = 255;
+    bool    lastWifiState = false;
+    int     lastSentValue = -1;
+} sensorState;
+
 /**
  * @brief GPS data processing task
  *
@@ -221,7 +229,6 @@ void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 16384, NULL, 1
 void sensorTask(void *pvParameters)
 {
     uint16_t slowCounter = 0;
-    static time_t lastTimeSent = 0;
 
     while (1)
     {
@@ -246,13 +253,13 @@ void sensorTask(void *pvParameters)
 
         // Update time subject once per second (from reliable sensorTask loop)
         time_t now = time(NULL);
-        if (now != lastTimeSent)
+        if (now != sensorState.lastTimeSent)
         {
             if (isMainScreen && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
             {
                 lv_subject_set_int(&subject_time, (int32_t)now);
                 lv_subject_notify(&subject_time);
-                lastTimeSent = now;
+                sensorState.lastTimeSent = now;
                 xSemaphoreGive(lvgl_mutex);
             }
         }
@@ -263,37 +270,34 @@ void sensorTask(void *pvParameters)
                 bme.readAll(globalSensorData.temperature, globalSensorData.pressure, globalSensorData.humidity);
                 globalSensorData.altitude = (int16_t)bme.readAltitude(globalSensorData.pressure);
             #endif
-            
+
             #ifdef ENABLE_TEMP
-            static uint8_t lastTempSent = 255;
             uint8_t currentTemp = (uint8_t)(globalSensorData.temperature + tempOffset);
-            if (isMainScreen && currentTemp != lastTempSent)
+            if (isMainScreen && currentTemp != sensorState.lastTempSent)
             {
                 if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, MUTEX_TIMEOUT_SLOW) == pdTRUE)
                 {
                     lv_subject_set_int(&subject_temp, (int32_t)currentTemp);
-                    lastTempSent = currentTemp;
+                    sensorState.lastTempSent = currentTemp;
                     xSemaphoreGive(lvgl_mutex);
                 }
             }
             #endif
 
-            static bool lastWifiState = false;
             bool currentWifiState = (WiFi.status() == WL_CONNECTED);
-            if (currentWifiState != lastWifiState)
+            if (currentWifiState != sensorState.lastWifiState)
             {
                 if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, MUTEX_TIMEOUT_SLOW) == pdTRUE)
                 {
                     lv_subject_set_int(&subject_wifi, currentWifiState ? 1 : 0);
-                    lastWifiState = currentWifiState;
+                    sensorState.lastWifiState = currentWifiState;
                     xSemaphoreGive(lvgl_mutex);
                 }
             }
 
             globalSensorData.batteryPercent = battery.readBattery();
-            static int lastSentValue = -1;
             int current = (int)globalSensorData.batteryPercent;
-            
+
             static auto getLevel = [](int v)
             {
                 if (v > 110)
@@ -309,15 +313,15 @@ void sensorTask(void *pvParameters)
                 return 0;
             };
 
-            bool thresholdCrossed = getLevel(current) != getLevel(lastSentValue);
-            bool significantChange = abs(current - lastSentValue) >= 3;
+            bool thresholdCrossed = getLevel(current) != getLevel(sensorState.lastSentValue);
+            bool significantChange = abs(current - sensorState.lastSentValue) >= 3;
 
             if (isMainScreen && !canMoveWidget && (thresholdCrossed || significantChange))
             {
                 if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
                 {
                     lv_subject_set_int(&subject_battery, (int32_t)current);
-                    lastSentValue = current;
+                    sensorState.lastSentValue = current;
                     xSemaphoreGive(lvgl_mutex);
                 }
             }
