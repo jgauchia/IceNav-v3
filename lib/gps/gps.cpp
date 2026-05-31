@@ -254,7 +254,7 @@ void Gps::getGPSData()
         {
             log_v("Get date, time, Sunrise and Sunset");
             // Set ESP RTC - Local time
-            String TZ = cfg.isKey(CONFKEYS::KDEF_TZ) ? cfg.getString(CONFKEYS::KDEF_TZ, TZ) : "UTC";
+            String TZ = cfg.isKey(CONFKEYS::KDEF_TZ) ? cfg.getString(CONFKEYS::KDEF_TZ, "") : "UTC";
             setLocalTime(fix.dateTime,getPosixTZ(TZ.c_str()));
             // Calculate Sunrise and Sunset only one time when date & time was valid
             calculateSun();
