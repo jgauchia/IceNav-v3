@@ -216,6 +216,21 @@ void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 16384, NULL, 1
     extern Compass compass;
 #endif
 
+static int getBatteryLevel(int v)
+{
+    if (v > 110)
+        return 5;
+    if (v > 80)
+        return 4;
+    if (v > 60)
+        return 3;
+    if (v > 40)
+        return 2;
+    if (v > 20)
+        return 1;
+    return 0;
+}
+
 /**
  * @brief Sensor data processing task
  *
@@ -324,22 +339,7 @@ void sensorTask(void *pvParameters)
             }
             int current = (int)rawBattery;
 
-            static auto getLevel = [](int v)
-            {
-                if (v > 110)
-                    return 5;
-                if (v > 80)
-                    return 4;
-                if (v > 60)
-                    return 3;
-                if (v > 40)
-                    return 2;
-                if (v > 20)
-                    return 1;
-                return 0;
-            };
-
-            bool thresholdCrossed = getLevel(current) != getLevel(sensorState.lastSentValue);
+            bool thresholdCrossed = getBatteryLevel(current) != getBatteryLevel(sensorState.lastSentValue);
             bool significantChange = abs(current - sensorState.lastSentValue) >= 3;
 
             if (isMainScreen && !canMoveWidget && (thresholdCrossed || significantChange))
