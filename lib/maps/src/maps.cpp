@@ -1656,19 +1656,19 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
     uint8_t* p_rings = p;
     uint16_t ringCount = 0;
     const uint16_t* ringEndsPtr = nullptr;
-    ringEndsCache.clear();
     if ((size_t)(p_rings - ref.ptr) < ref.payloadSize)
     {
         ringCount = p_rings[0] | (p_rings[1] << 8);
-        if (ringCount > 0)
+        if (ringCount > 0 && ringCount <= ringEndsCache.capacity())
         {
             uint8_t* p_curr_ring = p_rings + 2;
+            uint16_t* dst = ringEndsCache.data();
             for (int r = 0; r < (int)ringCount; r++)
             {
-                ringEndsCache.push_back(p_curr_ring[0] | (p_curr_ring[1] << 8));
+                dst[r] = p_curr_ring[0] | (p_curr_ring[1] << 8);
                 p_curr_ring += 2;
             }
-            ringEndsPtr = ringEndsCache.data();
+            ringEndsPtr = dst;
         }
     }
 
