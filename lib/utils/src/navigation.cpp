@@ -28,6 +28,15 @@ static const void* lastIconShown = nullptr;
 static int lastDistShown = -1;
 
 /**
+ * @brief Resets UI throttling state so the first update of a new navigation session always redraws widgets.
+ */
+void resetNavigationUI()
+{
+    lastIconShown = nullptr;
+    lastDistShown = -1;
+}
+
+/**
  * @brief Finds the closest track point index to the user's current position using an adaptive hierarchical search.
  *
  * @details Locates the closest waypoint in the GPX track to the current GPS coordinates.
@@ -363,6 +372,7 @@ void updateNavigation(
             lv_img_set_src(turnImg, &finish);
             lastIconShown = &finish;
         }
+        state.isFinished = true;
     };
 
     // No more turns remaining

@@ -23,6 +23,7 @@ bool isTrackLoaded = false;
 extern TrackVector trackData;             /**< Vector containing track waypoints */
 extern std::vector<TurnPoint> turnPoints; /**< Vector containing turn points */
 extern ClimbAnalyzer climbAnalyzer;       /**< Climb profile analyzer */
+extern NavState navState;
 
 lv_obj_t *listGPXScreen;                /**< Add Waypoint screen */
 static bool longPressHandled = false;   /**< Guard to prevent repeated long-press action per gesture */
@@ -44,6 +45,13 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
 
         if (loadWpt.lat != 0 && loadWpt.lon != 0)
         {
+            isTrackLoaded = false;
+            trackData.clear();
+            trackData.shrink_to_fit();
+            navState = NavState{};
+            resetNavigationUI();
+            mapView.redrawTrack();
+
             lv_obj_clear_flag(navTile, LV_OBJ_FLAG_HIDDEN);
             if (mapSet.vectorMap)
                 lv_obj_clear_flag(btnToggle3D, LV_OBJ_FLAG_HIDDEN);
@@ -76,6 +84,8 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
         isTrackLoaded = false;
         trackData.clear();
         trackData.shrink_to_fit();
+        navState = NavState{};
+        resetNavigationUI();
         climbAnalyzer.clear();
         gpx.loadTrack(trackData);
         if (mapSet.showClimb)

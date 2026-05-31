@@ -43,16 +43,18 @@ struct NavConfig
  *
  *          This structure should persist across navigation updates to manage context and prevent redundant alerts.
  */
-struct NavState 
+struct NavState
 {
     int lastTrackIdx = 0;
     int nextTurnIdx = 0;
-    int lastValidTurnIdx = 0;  
-    bool isOffTrack = false;   
+    int lastValidTurnIdx = 0;
+    bool isOffTrack = false;
+    bool isFinished = false;
     float projLat = 0;    /**< Projected latitude on the track segment. */
     float projLon = 0;    /**< Projected longitude on the track segment. */
 };
 
+void resetNavigationUI();
 int findClosestTrackPoint(float userLat, float userLon, const TrackVector& track, int lastIdx, const NavConfig& config = NavConfig{});
 void handleOffTrackCondition(float distToTrack, NavState& state, int closestIdx, const NavConfig& config = NavConfig{});
 void advanceTurnIndex(const std::vector<TurnPoint>& turns, NavState& state, int closestIdx);

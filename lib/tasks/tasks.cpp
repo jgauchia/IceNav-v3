@@ -483,6 +483,7 @@ void navTask(void *pvParameters)
                     GPXParser gpxTmp;
                     turnPoints    = gpxTmp.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, trackData);
                     navState      = NavState{};
+                    resetNavigationUI();
                     isTrackLoaded = !trackData.empty();
                     xSemaphoreGive(routeMutex);
                 }
@@ -529,6 +530,8 @@ void navTask(void *pvParameters)
                                          gps.gpsData.heading,  gps.gpsData.speed,
                                          trackData, turnPoints, navState,
                                          20, 200, navConfig);
+                        if (navState.isFinished && lv_subject_get_int(&subject_map_3d) != 0)
+                            lv_subject_set_int(&subject_map_3d, 0);
                         xSemaphoreGive(lvgl_mutex);
                     }
                 }
