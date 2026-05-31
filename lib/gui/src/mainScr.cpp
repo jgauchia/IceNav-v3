@@ -257,18 +257,21 @@ static void map_heading_observer_cb(lv_observer_t *observer, lv_subject_t *subje
 }
 
 // Sprite used to render the static elevation profile with LovyanGFX primitives.
-// climbBuf: contiguous PSRAM buffer [RGB565 W*2*H bytes | alpha W*H bytes].
+// buf: contiguous PSRAM buffer [RGB565 W*2*H bytes | alpha W*H bytes].
 // Layout matches LV_COLOR_FORMAT_RGB565A8 expected by lv_draw_buf_init.
-static TFT_eSprite   climbSprite       = TFT_eSprite(&tft);
-static uint8_t      *climbBuf          = nullptr;
-static lv_draw_buf_t climbDrawBuf;
-static bool          climbProfileBuilt = false;
-static int           climbLastSegStart = -1;
-static int           climbLastPosX     = -1;
-static int           climbLastYTop     = -1;
+static struct
+{
+    TFT_eSprite   sprite       = TFT_eSprite(&tft);
+    uint8_t      *buf          = nullptr;
+    lv_draw_buf_t drawBuf      = {};
+    bool          profileBuilt = false;
+    int           lastSegStart = -1;
+    int           lastPosX     = -1;
+    int           lastYTop     = -1;
+} climbState;
 
 /**
- * @brief Build the static elevation profile into climbSprite using LovyanGFX primitives.
+ * @brief Build the static elevation profile into climbState.sprite using LovyanGFX primitives.
  *
  * @details Renders the full-track or zoomed profile once. Iterates over canvas columns
  *          (W passes) to find elevation and color per column, then draws a filled
@@ -290,21 +293,21 @@ static void buildClimbProfile(int startPt, int endPt)
         return;
 
     // Recreate sprite and unified RGB565A8 buffer if size changed
-    if (climbSprite.width() != W || climbSprite.height() != H)
+    if (climbState.sprite.width() != W || climbState.sprite.height() != H)
     {
-        climbSprite.deleteSprite();
-        climbSprite.setColorDepth(16);
-        climbSprite.createSprite(W, H);
+        climbState.sprite.deleteSprite();
+        climbState.sprite.setColorDepth(16);
+        climbState.sprite.createSprite(W, H);
 
-        if (climbBuf != nullptr)
-            heap_caps_free(climbBuf);
+        if (climbState.buf != nullptr)
+            heap_caps_free(climbState.buf);
         // RGB565 (W*2*H) + A8 mask (W*H) contiguous buffer in PSRAM
-        climbBuf = (uint8_t *)heap_caps_malloc(W * 2 * H + W * H, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+        climbState.buf = (uint8_t *)heap_caps_malloc(W * 2 * H + W * H, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
     }
-    if (climbBuf == nullptr)
+    if (climbState.buf == nullptr)
         return;
 
-    climbSprite.fillScreen(TFT_BLACK);
+    climbState.sprite.fillScreen(TFT_BLACK);
 
     float distStart = trackData[startPt].accumDist;
     float distEnd   = trackData[endPt].accumDist;
@@ -328,7 +331,7 @@ static void buildClimbProfile(int startPt, int endPt)
     const auto &segs = climbAnalyzer.segments();
     auto toCol = [](uint32_t rgb) { return lgfx::rgb888_t((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF); };
 
-    uint8_t *alphaBuf = climbBuf + W * 2 * H;
+    uint8_t *alphaBuf = climbState.buf + W * 2 * H;
     memset(alphaBuf, 0x00, W * H);
 
     // Linear cursor through trackData — O(n) total across all W columns
@@ -387,7 +390,7 @@ static void buildClimbProfile(int startPt, int endPt)
             }
         }
 
-        climbSprite.drawFastVLine(x, yTop, H - yTop, col);
+        climbState.sprite.drawFastVLine(x, yTop, H - yTop, col);
 
         // Alpha mask: opaque only where the bar is drawn
         for (int y = yTop; y < H; ++y)
@@ -397,20 +400,20 @@ static void buildClimbProfile(int startPt, int endPt)
     // Copy sprite buffer byte-by-byte swapping pairs: LovyanGFX stores RGB565
     // with bytes already swapped for the ILI9488 bus. RGB565A8 expects unswapped
     // RGB565, so undo the hardware swap here.
-    const uint8_t *src = (const uint8_t *)climbSprite.getBuffer();
+    const uint8_t *src = (const uint8_t *)climbState.sprite.getBuffer();
     for (int i = 0; i < W * H; ++i)
     {
-        climbBuf[i * 2]     = src[i * 2 + 1];
-        climbBuf[i * 2 + 1] = src[i * 2];
+        climbState.buf[i * 2]     = src[i * 2 + 1];
+        climbState.buf[i * 2 + 1] = src[i * 2];
     }
 
     uint32_t stride = (uint32_t)W * 2;
-    lv_draw_buf_init(&climbDrawBuf, (uint32_t)W, (uint32_t)H,
+    lv_draw_buf_init(&climbState.drawBuf, (uint32_t)W, (uint32_t)H,
                      LV_COLOR_FORMAT_RGB565A8, stride,
-                     climbBuf, stride * (uint32_t)H + (uint32_t)W * (uint32_t)H);
-    lv_canvas_set_draw_buf(climbCanvas, &climbDrawBuf);
+                     climbState.buf, stride * (uint32_t)H + (uint32_t)W * (uint32_t)H);
+    lv_canvas_set_draw_buf(climbCanvas, &climbState.drawBuf);
     lv_obj_invalidate(climbCanvas);
-    climbProfileBuilt = true;
+    climbState.profileBuilt = true;
 }
 
 /**
@@ -424,40 +427,40 @@ static void buildClimbProfile(int startPt, int endPt)
  */
 static void updateClimbMarker(int posX, int yTop)
 {
-    if (climbCanvas == NULL || climbBuf == nullptr)
+    if (climbCanvas == NULL || climbState.buf == nullptr)
         return;
 
-    int W = climbSprite.width();
-    int H = climbSprite.height();
+    int W = climbState.sprite.width();
+    int H = climbState.sprite.height();
     if (W <= 0 || H <= 0)
         return;
 
-    const uint8_t *src   = (const uint8_t *)climbSprite.getBuffer();
-    uint8_t       *alpha = climbBuf + W * 2 * H;
+    const uint8_t *src   = (const uint8_t *)climbState.sprite.getBuffer();
+    uint8_t       *alpha = climbState.buf + W * 2 * H;
 
     auto restorePixel = [&](int x, int y)
     {
         if (x < 0 || x >= W || y < 0 || y >= H)
             return;
         int i = y * W + x;
-        climbBuf[i * 2]     = src[i * 2 + 1];
-        climbBuf[i * 2 + 1] = src[i * 2];
+        climbState.buf[i * 2]     = src[i * 2 + 1];
+        climbState.buf[i * 2 + 1] = src[i * 2];
         uint16_t px = ((uint16_t)src[i * 2 + 1] << 8) | src[i * 2];
         alpha[y * W + x] = (px == 0x0000) ? 0x00 : 0xFF;
     };
 
     // Restore previous column and triangle
-    if (climbLastPosX >= 0 && climbLastPosX < W)
+    if (climbState.lastPosX >= 0 && climbState.lastPosX < W)
     {
         for (int y = 0; y < H; ++y)
-            restorePixel(climbLastPosX, y);
+            restorePixel(climbState.lastPosX, y);
 
         for (int r = 0; r < TRI_ROWS; ++r)
         {
-            int y    = climbLastYTop - TRI_GAP - TRI_ROWS + r;
+            int y    = climbState.lastYTop - TRI_GAP - TRI_ROWS + r;
             int half = triMask[r] / 2;
             for (int dx = -half; dx <= half; ++dx)
-                restorePixel(climbLastPosX + dx, y);
+                restorePixel(climbState.lastPosX + dx, y);
         }
     }
 
@@ -470,8 +473,8 @@ static void updateClimbMarker(int posX, int yTop)
             uint16_t px = ((uint16_t)src[i * 2 + 1] << 8) | src[i * 2];
             if (px != 0x0000)
             {
-                climbBuf[i * 2]     = 0xFF;
-                climbBuf[i * 2 + 1] = 0xFF;
+                climbState.buf[i * 2]     = 0xFF;
+                climbState.buf[i * 2 + 1] = 0xFF;
                 alpha[y * W + posX] = 0xFF;
             }
         }
@@ -487,14 +490,14 @@ static void updateClimbMarker(int posX, int yTop)
                 if (tx < 0 || tx >= W || y < 0 || y >= H)
                     continue;
                 int i = y * W + tx;
-                climbBuf[i * 2]     = 0xFF;
-                climbBuf[i * 2 + 1] = 0xFF;
+                climbState.buf[i * 2]     = 0xFF;
+                climbState.buf[i * 2 + 1] = 0xFF;
                 alpha[y * W + tx]   = 0xFF;
             }
         }
 
-        climbLastPosX = posX;
-        climbLastYTop = yTop;
+        climbState.lastPosX = posX;
+        climbState.lastYTop = yTop;
     }
 
     lv_obj_invalidate(climbCanvas);
@@ -511,10 +514,10 @@ static void climb_active_observer_cb(lv_observer_t *observer, lv_subject_t *subj
     if (lv_subject_get_int(&subject_climb_active) == 0)
     {
         lv_obj_add_flag(climbOverlay, LV_OBJ_FLAG_HIDDEN);
-        climbProfileBuilt = false;
-        climbLastSegStart = -1;
-        climbLastPosX     = -1;
-        climbLastYTop     = -1;
+        climbState.profileBuilt = false;
+        climbState.lastSegStart = -1;
+        climbState.lastPosX     = -1;
+        climbState.lastYTop     = -1;
     }
     else
     {
@@ -600,12 +603,12 @@ static void climb_idx_observer_cb(lv_observer_t *observer, lv_subject_t *subject
     if (posX >= W)
         posX = W - 1;
 
-    if (!climbProfileBuilt || seg->startIdx != climbLastSegStart)
+    if (!climbState.profileBuilt || seg->startIdx != climbState.lastSegStart)
     {
-        climbLastPosX = -1;
-        climbLastYTop = -1;
+        climbState.lastPosX = -1;
+        climbState.lastYTop = -1;
         buildClimbProfile(startPt, endPt);
-        climbLastSegStart = seg->startIdx;
+        climbState.lastSegStart = seg->startIdx;
     }
 
     // Compute yTop at posX using the same formula as buildClimbProfile
