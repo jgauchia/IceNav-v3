@@ -51,6 +51,8 @@ void gpsTask(void *pvParameters)
 {
     ESP_LOGV(TAG, "GPS Task - running on core %d", xPortGetCoreID());
     ESP_LOGV(TAG, "Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
+    char    lineBuf[NMEA_RAW_LEN] = {};
+    uint8_t lineLen = 0;
     while (1)
     {
         if ( gpsMutex != NULL && xSemaphoreTake(gpsMutex, MUTEX_TIMEOUT_GPS) == pdTRUE )
@@ -68,8 +70,6 @@ void gpsTask(void *pvParameters)
                 // as GPS.available() would consume) while mirroring each complete
                 // sentence into the raw ring buffer for the debug tile. Parsing is
                 // unaffected; capture is purely a side effect.
-                static char    lineBuf[NMEA_RAW_LEN];
-                static uint8_t lineLen = 0;
 
                 while (gpsPort.available())
                 {
