@@ -691,7 +691,7 @@ static void getActTile(lv_event_t *event)
             hideMapWidgets();
     }
     if (isBarOpen)
-        lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
+        closeOptionsPanel();
     lv_obj_t *actTile = lv_tileview_get_tile_act(tilesScreen);
     if (actTile == NULL) 
         return;

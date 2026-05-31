@@ -11,7 +11,7 @@
 #include "mainScr.hpp"
 #include "storage.hpp"
 #include "gpxParser.hpp"
-#include "buttonBar.hpp"
+#include "optionsPanel.hpp"
 
 extern char gpxFileFolder[128];  /**< GPX file folder path */
 extern bool gpxTrack;         /**< Track mode flag */

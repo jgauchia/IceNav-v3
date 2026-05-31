@@ -35,8 +35,9 @@ extern lv_group_t *keyGroup;            /**< GPIO group */
 
 extern bool needReboot;                 /**< Flag to force device reboot */
 extern bool isSearchingSat;             /**< Flag to indicate that device is searching for satellites */
-extern lv_obj_t *buttonBar;             /**< Button Bar */
+extern lv_obj_t *optionsPanel;          /**< Options Panel */
 extern lv_obj_t *menuBtn;               /**< Button Menu */
+extern lv_obj_t *optionsScrim;          /**< Bottom sheet dim scrim */
 extern lv_obj_t *gpxTagValue;           /**< Add/Edit Waypoint screen text area */
 extern bool isScreenRotated;            /**< Flag to know if screen is rotated */
 extern bool isTrackLoaded;              /**< Flag to know if track is loaded */

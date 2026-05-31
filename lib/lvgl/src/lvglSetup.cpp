@@ -507,7 +507,7 @@ void initLVGL()
     createSettingsScr();
     createMapSettingsScr();
     createDeviceSettingsScr();
-    createButtonBarScr();
+    createOptionsPanel();
     createGpxDetailScreen();
     createGpxListScreen();
 
@@ -528,7 +528,8 @@ void loadMainScreen()
     isSearchingSat = false;
     gpxAction = WPT_NONE;
     lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(optionsScrim, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_y(optionsPanel, TFT_HEIGHT);
     if (mapView.isMapFound)
         lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
     else
