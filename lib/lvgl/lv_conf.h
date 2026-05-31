@@ -70,7 +70,7 @@
 #if LV_USE_STDLIB_MALLOC == LV_STDLIB_BUILTIN
     /*Size of the memory available for `lv_malloc()` in bytes (>= 2kB)*/
     #if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(ARDUINO_ESP32_S3)
-        #define LV_MEM_SIZE (128 * 1024U)          /*[bytes] (PSRAM)*/
+        #define LV_MEM_SIZE (256 * 1024U)          /*[bytes] (PSRAM)*/
     #else
         #define LV_MEM_SIZE (48 * 1024U)           /*[bytes] (SRAM)*/
     #endif
@@ -460,11 +460,11 @@
  *  If size is not set to 0, the decoder will fail to decode when the cache is full.
  *  If size is 0, the cache function is not enabled and the decoded memory will be
  *  released immediately after use. */
-#define LV_CACHE_DEF_SIZE       (32 * 1024)
+#define LV_CACHE_DEF_SIZE       (128 * 1024)
 
 /** Default number of image header cache entries. The cache is used to store the headers of images
  *  The main logic is like `LV_CACHE_DEF_SIZE` but for image headers. */
-#define LV_IMAGE_HEADER_CACHE_DEF_CNT 20
+#define LV_IMAGE_HEADER_CACHE_DEF_CNT 32
 
 /** Number of stops allowed per gradient. Increase this to allow more stops.
  *  This adds (sizeof(lv_color_t) + 1) bytes per additional stop. */

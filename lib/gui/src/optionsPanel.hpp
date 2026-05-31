@@ -1,7 +1,7 @@
 /**
- * @file buttonBar.hpp
+ * @file optionsPanel.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief  LVGL - Button Bar
+ * @brief  LVGL - Options Panel
  * @version 0.2.7
  * @date 2026-05
  */
@@ -20,21 +20,19 @@ static const char *saveIconFile = "/gfx/save.bin";         /**< Save icon file p
 static const char *loadIconFile = "/gfx/load.bin";         /**< Load icon file path. */
 static const char *editIconFile = "/gfx/edit.bin";         /**< Edit icon file path. */
 static const char *deleteIconFile = "/gfx/delete.bin";     /**< Delete icon file path. */
-static const char *menuIconFile = "/gfx/menu.bin";         /**< Menu icon file path. */
 static const char *addWptIconFile = "/gfx/addwpt.bin";     /**< Add Waypoint icon file path. */
-static const char *exitIconFile = "/gfx/exit.bin";         /**< Exit icon file path. */
-
-static lv_obj_t *option; /**< Pointer to the currently selected option object (LVGL). */
 
 extern bool isWaypointOpt;  /**< Waypoint Option selected. */
 extern bool isTrackOpt;     /**< Track Option selected. */
-extern bool isOptionLoaded; /**< Option selected & loaded. */
-extern bool isBarOpen;      /**< Flag to determine if Button Bar is open. */
+extern bool isBarOpen;      /**< Flag to determine if options panel is open. */
+extern bool isSubPanelOpen; /**< Flag to determine if sub-panel is open. */
 
-
-void buttonBarEvent(lv_event_t *event);
+void optionsPanelEvent(lv_event_t *event);
 void optionEvent(lv_event_t *event);
 void hideShowEvent(lv_event_t * e);
-void hideShowAnim(void * var, int32_t v);
-void createButtonBarScr();
-void loadOptions();
+void slideAnim(void * var, int32_t v);
+void openOptionsPanel();
+void closeOptionsPanel();
+void openSubPanel();
+void closeSubPanel();
+void createOptionsPanel();

@@ -10,7 +10,7 @@
 
 #include "maps.hpp"
 #include "globalGuiDef.h"
-#include "buttonBar.hpp"
+#include "optionsPanel.hpp"
 #include "widgets.hpp"
 #include "navScr.hpp"
 #include "satInfoScr.hpp"

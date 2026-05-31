@@ -22,28 +22,32 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 
 ## Screenshots
 
-|<img src="images/dev/splash.png">|<img src="images/dev/compass.jpg">|<img src="images/dev/mapnav.jpg">|<img src="images/dev/satelliteinfo.jpg">|
-|:-:|:-:|:-:|:-:|
+|<img src="images/dev/splash2.png">|<img src="images/dev/splash.png">|<img src="images/dev/compass.png">|<img src="images/dev/mapnav.png">|<img src="images/dev/satelliteinfo.png">|
+|:-:|:-:|:-:|:-:|:-:|
 
 <details><summary>See more...</summary>
   
-|<img src="images/dev/splash.png">|<img src="images/dev/searchsat.jpg">|<img src="images/dev/compass.jpg">|<img src="images/dev/options.jpg">|<img src="images/dev/wptopt.jpg">|
+|<img src="images/dev/splash.png">|<img src="images/dev/searchsat.jpg">|<img src="images/dev/compass.png">|<img src="images/dev/options.png">|<img src="images/dev/wptopt.png">|
 |:-:|:-:|:-:|:-:|:-:|
-| Splash Screen | Search Satellite | Compass | Main Options | Wpt/Track Options |
+| Splash Screen | Search Satellite | Compass | Main Options | Waypoint/Track Options |
 
-|<img src="images/dev/rendermap.jpg">|<img src="images/dev/vectormap.jpg">|<img src="images/dev/navscreen.jpg">|<img src="images/dev/navscreen2.jpg">|<img src="images/dev/satelliteinfo.jpg">|
+|<img src="images/dev/rendermap.png">|<img src="images/dev/vectormap.png">|<img src="images/dev/navscreen.png">|<img src="images/dev/navscreen2.png">|<img src="images/dev/satelliteinfo.png">|
 |:-:|:-:|:-:|:-:|:-:|
 | Rendered Map | Vectorized Map | Navigation Screen | Navigation Screen | Satellite Info |
 
-|<img src="images/dev/nmeadebug.png">|<img src="images/dev/addwpt_n.jpg">|<img src="images/dev/addwpt_l.jpg">|<img src="images/dev/wptlist.jpg">|<img src="images/dev/3dMap.png">|
+|<img src="images/dev/nmeadebug.png">|<img src="images/dev/addwpt_n.jpg">|<img src="images/dev/wptlist.jpg">|<img src="images/dev/tracklist.png">|<img src="images/dev/3dMap.png">|
 |:-:|:-:|:-:|:-:|:-:|
-| NMEA Debug | Add Waypoint | Add Waypoint (landscape) | Waypoint List | 3D Map view |
+| NMEA Debug | Add Waypoint | Waypoint List | Track List | 3D Map view |
+
+|<img src="images/dev/climb.png">|
+|:-:|
+| CLimb Analyzer | 
 
 |<img src="images/dev/settings.jpg">|<img src="images/dev/compasscal.jpg">|<img src="images/dev/touchcal.jpg">|<img src="images/dev/mapsettings.png">|<img src="images/dev/devicesettings.png">|
 |:-:|:-:|:-:|:-:|:-:|
 | Settings | Compass Calibration | Touch Calibration | Map Settings | Device Settings |
 
-LilyGo T-DECK
+### LilyGo T-DECK
 
 |<img src="images/dev/tdeck/main.png">|<img src="images/dev/tdeck/map.png">|<img src="images/dev/tdeck/map_waypoint.png">|
 |:-:|:-:|:-:|
@@ -54,10 +58,10 @@ LilyGo T-DECK
 | Navigation Screen | Edit Waypoint | Satellite Info |
 
 ### WiFi CLI Manager
-![WifiCLI](https://github.com/jgauchia/IceNav-v3/assets/1075178/a7f8af18-2c34-436d-8fef-995540312cb2)
+<img src="images/dev/cli.png">
 
 ### Web File Server 
-![webfile](https://github.com/user-attachments/assets/ce38f3b6-d8ab-4540-8d01-a2b393cc5898)
+<img src="images/dev/webfile.png">
 
 </details>
 
