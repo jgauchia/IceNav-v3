@@ -913,9 +913,13 @@ void Maps::apply3DPerspective(uint16_t heading)
     // Perspective parameters: horizon at top quarter of screen
     const int horizonScreenY = dstH / 5;
     const float tiltRad = _mapTilt * (static_cast<float>(M_PI) / 180.0f);
+    const float invCosTilt = 1.0f / cosf(tiltRad);
 
     // Sky color: soft blue ~#A8C8E8 (byte-swapped for direct buffer write)
     const uint16_t skyColor = 0x5DAE;
+
+    const float halfW = static_cast<float>(dstW) * 0.5f;
+    const float invSpan = 1.0f / static_cast<float>(gpsScreenY - horizonScreenY);
 
     for (int y = 0; y < dstH; y++)
     {
@@ -929,31 +933,72 @@ void Maps::apply3DPerspective(uint16_t heading)
         }
 
         // t=0 at horizon, t=1 at GPS screen position
-        float t = static_cast<float>(y - horizonScreenY) / static_cast<float>(gpsScreenY - horizonScreenY);
+        float t = static_cast<float>(y - horizonScreenY) * invSpan;
         if (t <= 0.0f)
             continue;
 
-        float scale = t / cosf(tiltRad);
+        float scale = t * invCosTilt;
+        float invScale = 1.0f / scale;
 
         // Positive srcRelY = ahead (up in heading-up view = forward direction)
-        float srcRelY = (_focalLength / scale) * (1.0f - t) / t;
+        float srcRelY = (_focalLength * invScale) * (1.0f - t) / t;
 
-        for (int x = 0; x < dstW; x++)
+        // sx/sy are linear in x; accumulate in Q16 fixed point so the inner loop
+        // drops the per-pixel division, multiplies and float->int conversions.
+        const float dsxF = invScale * cosH;
+        const float dsyF = invScale * sinH;
+
+        const float sxStart = static_cast<float>(gpsTileX) + (-halfW * invScale) * cosH + srcRelY * sinH;
+        const float syStart = static_cast<float>(gpsTileY) - ((halfW * invScale) * sinH + srcRelY * cosH);
+        const float sxEnd = sxStart + dsxF * static_cast<float>(dstW);
+        const float syEnd = syStart + dsyF * static_cast<float>(dstW);
+
+        // Q16 holds +-32767 integer range; rows near the horizon can exceed it.
+        // Valid tile coords stay within a few thousand, so a conservative limit
+        // routes any extreme (overflow-prone) row to the float fallback.
+        const float Q16_LIMIT = 8000.0f;
+        bool fitsQ16 = fabsf(sxStart) < Q16_LIMIT && fabsf(syStart) < Q16_LIMIT &&
+                       fabsf(sxEnd) < Q16_LIMIT && fabsf(syEnd) < Q16_LIMIT;
+
+        if (fitsQ16)
         {
-            float screenXRel = static_cast<float>(x) - static_cast<float>(dstW) * 0.5f;
-            float srcRelX = screenXRel / scale;
+            int32_t sxFix = static_cast<int32_t>(sxStart * 65536.0f);
+            int32_t syFix = static_cast<int32_t>(syStart * 65536.0f);
+            const int32_t dsxFix = static_cast<int32_t>(dsxF * 65536.0f);
+            const int32_t dsyFix = static_cast<int32_t>(dsyF * 65536.0f);
 
-            // Rotate from heading-up back to tile-space
-            float tileRelX =  srcRelX * cosH + srcRelY * sinH;
-            float tileRelY = -srcRelX * sinH + srcRelY * cosH;
+            for (int x = 0; x < dstW; x++)
+            {
+                int sx = sxFix >> 16;
+                int sy = syFix >> 16;
 
-            int sx = gpsTileX + (int)(tileRelX);
-            int sy = gpsTileY - (int)(tileRelY);
+                if (sx >= 0 && sx < srcW && sy >= 0 && sy < srcH)
+                    dstRow[x] = src[sy * srcW + sx];
+                else
+                    dstRow[x] = skyColor;
 
-            if (sx >= 0 && sx < srcW && sy >= 0 && sy < srcH)
-                dstRow[x] = src[sy * srcW + sx];
-            else
-                dstRow[x] = skyColor;
+                sxFix += dsxFix;
+                syFix += dsyFix;
+            }
+        }
+        else
+        {
+            float sxF = sxStart;
+            float syF = syStart;
+
+            for (int x = 0; x < dstW; x++)
+            {
+                int sx = (int)sxF;
+                int sy = (int)syF;
+
+                if (sx >= 0 && sx < srcW && sy >= 0 && sy < srcH)
+                    dstRow[x] = src[sy * srcW + sx];
+                else
+                    dstRow[x] = skyColor;
+
+                sxF += dsxF;
+                syF += dsyF;
+            }
         }
     }
 }
