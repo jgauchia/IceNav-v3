@@ -13,8 +13,7 @@
 #include "esp_vfs_fat.h"
 #include "driver/sdspi_host.h"
 #include <cmath>
-#include <sstream>
-#include <iomanip>
+#include <cstdio>
 
 #define SD_OCR_SDHC_CAP (1 << 30) /**< SD card SDHC capacity flag */
 
@@ -43,9 +42,9 @@ namespace
 			order++;
 			formatted_size /= 1024;
 		}
-		std::ostringstream oss;
-		oss << std::fixed << std::setprecision(2) << formatted_size << " " << suffixes[order];
-		return oss.str();
+		char buf[16];
+		snprintf(buf, sizeof(buf), "%.2f %s", formatted_size, suffixes[order]);
+		return std::string(buf);
 	}
 }
 
