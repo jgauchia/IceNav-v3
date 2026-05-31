@@ -263,15 +263,21 @@ void Gps::getGPSData()
     // Time and Date
     if (fix.valid.time && fix.valid.date)
     {
+        static uint8_t lastSunDay = 0xFF;
         if (!setTime)
         {
             log_v("Get date, time, Sunrise and Sunset");
-            // Set ESP RTC - Local time
             String TZ = cfg.isKey(CONFKEYS::KDEF_TZ) ? cfg.getString(CONFKEYS::KDEF_TZ, "") : "UTC";
-            setLocalTime(fix.dateTime,getPosixTZ(TZ.c_str()));
-            // Calculate Sunrise and Sunset only one time when date & time was valid
+            setLocalTime(fix.dateTime, getPosixTZ(TZ.c_str()));
             calculateSun();
+            lastSunDay = fix.dateTime.date;
             setTime = true;
+            lv_subject_set_int(&subject_sunrise, lv_subject_get_int(&subject_sunrise) + 1);
+        }
+        else if (fix.dateTime.date != lastSunDay)
+        {
+            calculateSun();
+            lastSunDay = fix.dateTime.date;
             lv_subject_set_int(&subject_sunrise, lv_subject_get_int(&subject_sunrise) + 1);
         }
     }
@@ -608,13 +614,12 @@ void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refr
     }
 }
 
-static double transit, sunrise, sunset;
-
 /**
  * @brief Calculate Sunrise and Sunset based on current GPS position and date.
  */
 void calculateSun()
 {
+    double transit, sunrise, sunset;
     calcSunriseSunset(2000 + fix.dateTime.year,
                         fix.dateTime.month,
                         fix.dateTime.date,
@@ -631,4 +636,4 @@ void calculateSun()
     snprintf(gps.gpsData.sunsetHour, 6, "%02d:%02d", hours, minutes);
     log_i("Sunrise: %s", gps.gpsData.sunriseHour);
     log_i("Sunset: %s", gps.gpsData.sunsetHour);
-} 
+}
