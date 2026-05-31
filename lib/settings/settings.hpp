@@ -56,6 +56,7 @@ extern uint16_t sunPosY;        /**< Sunrise/Sunset widget position Y */
 extern bool enableWeb;          /**< Enable or disable web file server */
 extern int8_t tempOffset;       /**< BME temperature sensor offset */
 extern bool calculateDST;       /**< Daylight Saving Time calculation flag */
+extern bool nmeaDebugTileEnabled; /**< Show the NMEA debug tile */
 
 /**
  * @brief Structure for map settings

@@ -12,13 +12,26 @@
 #include "tasks.hpp"
 #include "mainScr.hpp"
 #include "lv_subjects.hpp"
+#include "router.hpp"
+#include "gpxParser.hpp"
 #include <WiFi.h>
 
 xSemaphoreHandle gpsMutex;
 extern Gps gps;
 SensorData globalSensorData = {};
 
-static constexpr TickType_t MUTEX_TIMEOUT_GPS  = pdMS_TO_TICKS(100);
+// Debug NMEA stats — written by gpsTask, read by GUI
+uint32_t nmeaDebugOk     = 0;
+uint32_t nmeaDebugErr    = 0;
+uint32_t nmeaDebugCycles = 0;
+uint8_t  nmeaLastMsg     = 0;   // last GPS.nmeaMessage seen per cycle
+portMUX_TYPE nmeaDebugMux = portMUX_INITIALIZER_UNLOCKED;
+
+// Raw NMEA sentence ring buffer — written by gpsTask, read by debug tile
+char    nmeaRawBuf[NMEA_RAW_LINES][NMEA_RAW_LEN] = {};
+uint8_t nmeaRawHead = 0;
+
+static constexpr TickType_t MUTEX_TIMEOUT_GPS  = pdMS_TO_TICKS(15);
 static constexpr TickType_t MUTEX_TIMEOUT_SLOW = pdMS_TO_TICKS(10);
 
 static const char* TAG = "Task";
@@ -41,40 +54,96 @@ void gpsTask(void *pvParameters)
     {
         if ( gpsMutex != NULL && xSemaphoreTake(gpsMutex, MUTEX_TIMEOUT_GPS) == pdTRUE )
         {
+            bool satDataUpdated = false;
+
             if (nmea_output_enable)
             {
                 while (gpsPort.available())
-                {
-                    char c = gpsPort.read();
-                    Serial.print(c);
-                }
-            } 
-
-            while (GPS.available( gpsPort )) 
+                    Serial.write(gpsPort.read());
+            }
+            else
             {
-                fix = GPS.read();
-                gps.getGPSData();
-                
-                /* Non-blocking: gpsTask (core 0) never waits on the GUI task (core 1).
-                   If lvgl_mutex is taken, subject updates are skipped for this cycle.
-                   Intentional — the GPS task must not stall waiting for LVGL. */
-                if (isMainScreen && !canMoveWidget && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
+                // Feed the parser one character at a time (same bytes, same order
+                // as GPS.available() would consume) while mirroring each complete
+                // sentence into the raw ring buffer for the debug tile. Parsing is
+                // unaffected; capture is purely a side effect.
+                static char    lineBuf[NMEA_RAW_LEN];
+                static uint8_t lineLen = 0;
+
+                while (gpsPort.available())
                 {
-                    lv_subject_set_int(&subject_speed, (int32_t)gps.gpsData.speed);
-                    lv_subject_set_int(&subject_altitude, (int32_t)gps.gpsData.altitude);
-                    lv_subject_set_int(&subject_lat, (int32_t)(gps.gpsData.latitude * 1000000.0f));
-                    lv_subject_set_int(&subject_lon, (int32_t)(gps.gpsData.longitude * 1000000.0f));
-                    lv_subject_set_int(&subject_sats, (int32_t)gps.gpsData.satellites);
-                    lv_subject_set_int(&subject_pdop, (int32_t)(gps.gpsData.pdop * 10.0f));
-                    lv_subject_set_int(&subject_hdop, (int32_t)(gps.gpsData.hdop * 10.0f));
-                    lv_subject_set_int(&subject_vdop, (int32_t)(gps.gpsData.vdop * 10.0f));
-                    lv_subject_set_int(&subject_sats_data_trigger, lv_subject_get_int(&subject_sats_data_trigger) + 1);
-                    lv_subject_set_int(&subject_fix_mode, (int32_t)gps.gpsData.fixMode);
-                    lv_subject_set_int(&subject_is_fixed, isGpsFixed ? 1 : 0);
-                    if (!mapSet.mapRotationComp)
-                        lv_subject_set_int(&subject_heading, (int32_t)gps.gpsData.heading);
-                    xSemaphoreGive(lvgl_mutex);
+                    char c = (char)gpsPort.read();
+
+                    if (c == '\n' || c == '\r')
+                    {
+                        if (lineLen > 0)
+                        {
+                            lineBuf[lineLen] = '\0';
+                            portENTER_CRITICAL(&nmeaDebugMux);
+                            strncpy(nmeaRawBuf[nmeaRawHead], lineBuf, NMEA_RAW_LEN - 1);
+                            nmeaRawBuf[nmeaRawHead][NMEA_RAW_LEN - 1] = '\0';
+                            nmeaRawHead = (nmeaRawHead + 1) % NMEA_RAW_LINES;
+                            portEXIT_CRITICAL(&nmeaDebugMux);
+                            lineLen = 0;
+                        }
+                    }
+                    else if (lineLen < NMEA_RAW_LEN - 1)
+                    {
+                        lineBuf[lineLen++] = c;
+                    }
+
+                    // handle() returns DECODE_COMPLETED at the end of every
+                    // sentence, but a fix is only buffered once the interval
+                    // closes (LAST_SENTENCE_IN_INTERVAL). Read only when one is
+                    // actually available, exactly like GPS.available() does.
+                    if (GPS.handle((uint8_t)c) == NMEAGPS::DECODE_COMPLETED && GPS.available())
+                    {
+                        fix = GPS.read();
+                        gps.getGPSData();
+
+                        portENTER_CRITICAL(&nmeaDebugMux);
+                        nmeaDebugOk    = GPS.statistics.ok;
+                        nmeaDebugErr   = GPS.statistics.errors;
+                        nmeaLastMsg    = (uint8_t)GPS.nmeaMessage;
+                        nmeaDebugCycles++;
+                        portEXIT_CRITICAL(&nmeaDebugMux);
+
+                        // Only flag a satellite-data update when this cycle actually
+                        // carried GSV (sat_count > 0). With GSV decimated to ~1Hz the
+                        // intermediate cycles report 0, so this avoids redrawing the
+                        // constellation at the full rate with unchanged data.
+                        if (GPS.sat_count > 0)
+                            satDataUpdated = true;
+                    }
                 }
+            }
+
+            /* Non-blocking: gpsTask (core 0) never waits on the GUI task (core 1).
+               If lvgl_mutex is taken, subject updates are skipped for this cycle.
+               Intentional — the GPS task must not stall waiting for LVGL. */
+            if (isMainScreen && !canMoveWidget && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
+            {
+                lv_subject_set_int(&subject_speed, (int32_t)gps.gpsData.speed);
+                lv_subject_set_int(&subject_altitude, (int32_t)gps.gpsData.altitude);
+                lv_subject_set_int(&subject_lat, (int32_t)(gps.gpsData.latitude * 1000000.0f));
+                lv_subject_set_int(&subject_lon, (int32_t)(gps.gpsData.longitude * 1000000.0f));
+                lv_subject_set_int(&subject_sats, (int32_t)gps.gpsData.satellites);
+                lv_subject_set_int(&subject_pdop, (int32_t)(gps.gpsData.pdop * 10.0f));
+                lv_subject_set_int(&subject_hdop, (int32_t)(gps.gpsData.hdop * 10.0f));
+                lv_subject_set_int(&subject_vdop, (int32_t)(gps.gpsData.vdop * 10.0f));
+                lv_subject_set_int(&subject_fix_mode, (int32_t)gps.gpsData.fixMode);
+                lv_subject_set_int(&subject_is_fixed, isGpsFixed ? 1 : 0);
+                if (!mapSet.mapRotationComp)
+                    lv_subject_set_int(&subject_heading, (int32_t)gps.gpsData.heading);
+                xSemaphoreGive(lvgl_mutex);
+            }
+
+            if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
+            {
+                if (satDataUpdated)
+                    lv_subject_set_int(&subject_sats_data_trigger, lv_subject_get_int(&subject_sats_data_trigger) + 1);
+                lv_subject_set_int(&subject_nmea_debug_trigger, lv_subject_get_int(&subject_nmea_debug_trigger) + 1);
+                xSemaphoreGive(lvgl_mutex);
             }
 
             xSemaphoreGive(gpsMutex);
@@ -86,13 +155,13 @@ void gpsTask(void *pvParameters)
 /**
  * @brief Initialize GPS processing task
  *
- * @details Creates and starts the GPS task on core 0 with 3KB stack size and priority 2.
+ * @details Creates and starts the GPS task on core 0 with 4KB stack size and priority 2.
  *          Includes a 500ms delay after task creation to ensure proper initialization
  *          before other system components attempt to access GPS data.
  */
 void initGpsTask()
 {
-    xTaskCreatePinnedToCore(gpsTask, PSTR("GPS Task"), 3072, NULL, 2, NULL, 0);
+    xTaskCreatePinnedToCore(gpsTask, PSTR("GPS Task"), 4096, NULL, 2, NULL, 0);
     vTaskDelay(pdMS_TO_TICKS(500));
 }
 
@@ -158,7 +227,7 @@ void sensorTask(void *pvParameters)
         if (isScrollingMap || canMoveWidget)
         {
             vTaskDelay(pdMS_TO_TICKS(100));
-            continue; 
+            continue;
         }
 
         #ifdef ENABLE_COMPASS
@@ -187,7 +256,7 @@ void sensorTask(void *pvParameters)
             }
         }
 
-        if (slowCounter++ >= 75) 
+        if (slowCounter++ >= 75)
         {
             #ifdef BME280
                 bme.readAll(globalSensorData.temperature, globalSensorData.pressure, globalSensorData.humidity);
@@ -307,4 +376,144 @@ void guiTask(void *pvParameters)
 void initGuiTask()
 {
     xTaskCreatePinnedToCore(guiTask, "GUI Task", 8192, NULL, 3, NULL, 1);
+}
+
+extern TrackVector            trackData;
+extern std::vector<TurnPoint> turnPoints;
+extern NavState               navState;
+extern float                  routeDstLat;
+extern float                  routeDstLon;
+extern std::atomic<bool>      rerouteRequested;
+extern SemaphoreHandle_t      routeMutex;
+extern Maps                   mapView;
+
+/**
+ * @brief Navigation and routing task
+ *
+ * @details Handles route recalculation when rerouteRequested is set, then continuously
+ *          runs turn-by-turn navigation updates at 10 Hz when a track is loaded and
+ *          the vehicle is moving. Route calculation (A*) and navigation updates both
+ *          run on core 1 alongside the GUI task; routeMutex protects shared track data.
+ *
+ * @param pvParameters Task parameters (unused)
+ */
+void navTask(void *pvParameters)
+{
+    ESP_LOGV(TAG, "Nav Task - running on core %d", xPortGetCoreID());
+
+    static NavConfig navConfig;
+    navConfig.searchWindow      = 150;
+    navConfig.offTrackThreshold = 75.0f;
+    navConfig.maxBackwardJump   = 10;
+
+    static unsigned long lastNavUpdate = 0;
+
+    while (1)
+    {
+        if (rerouteRequested.exchange(false))
+        {
+            if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, portMAX_DELAY) == pdTRUE)
+            {
+                showMsg(LV_SYMBOL_REFRESH, " Calculating route...");
+                xSemaphoreGive(lvgl_mutex);
+            }
+
+            TrackVector newRoute;
+            RouterResult res = router.route(gps.gpsData.latitude, gps.gpsData.longitude,
+                                            routeDstLat, routeDstLon, newRoute);
+
+            if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
+            {
+                closeMsg();
+                xSemaphoreGive(lvgl_mutex);
+            }
+
+            if (res == RouterResult::OK)
+            {
+                isTrackLoaded = false;
+                trackData.clear();
+                trackData.shrink_to_fit();
+
+                if (xSemaphoreTake(routeMutex, pdMS_TO_TICKS(500)) == pdTRUE)
+                {
+                    trackData = std::move(newRoute);
+
+                    if (!trackData.empty())
+                    {
+                        trackData[0].accumDist = 0.0f;
+                        for (size_t i = 1; i < trackData.size(); ++i)
+                        {
+                            float d = calcDist(trackData[i-1].lat, trackData[i-1].lon,
+                                               trackData[i].lat,   trackData[i].lon);
+                            trackData[i].accumDist = trackData[i-1].accumDist + d;
+                        }
+                    }
+
+                    GPXParser gpxTmp;
+                    turnPoints    = gpxTmp.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, trackData);
+                    navState      = NavState{};
+                    isTrackLoaded = !trackData.empty();
+                    xSemaphoreGive(routeMutex);
+                }
+
+                mapView.updateMap();
+                mapView.redrawTrack();
+            }
+
+            if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(50)) == pdTRUE)
+            {
+                lv_subject_set_int(&subject_rerouting, 0);
+                lv_obj_send_event(navTile, LV_EVENT_VALUE_CHANGED, NULL);
+                lv_obj_clear_flag(turnByTurn, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+                xSemaphoreGive(lvgl_mutex);
+            }
+        }
+
+        if (isTrackLoaded)
+        {
+            if (navSet.simNavigation)
+            {
+                float oldLat = gps.gpsData.latitude;
+                gps.simFakeGPS(trackData, 15, 1000);
+                if (gps.gpsData.latitude != oldLat && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
+                {
+                    lv_subject_set_int(&subject_lat,     (int32_t)(gps.gpsData.latitude  * 1000000.0f));
+                    lv_subject_set_int(&subject_lon,     (int32_t)(gps.gpsData.longitude * 1000000.0f));
+                    lv_subject_set_int(&subject_heading, (int32_t)gps.gpsData.heading);
+                    lv_subject_set_int(&subject_speed,   (int32_t)gps.gpsData.speed);
+                    xSemaphoreGive(lvgl_mutex);
+                }
+            }
+
+            if (gps.gpsData.speed != 0)
+            {
+                unsigned long now = (unsigned long)(esp_timer_get_time() / 1000ULL);
+                if (now - lastNavUpdate > 100)
+                {
+                    lastNavUpdate = now;
+                    if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(50)) == pdTRUE)
+                    {
+                        updateNavigation(gps.gpsData.latitude, gps.gpsData.longitude,
+                                         gps.gpsData.heading,  gps.gpsData.speed,
+                                         trackData, turnPoints, navState,
+                                         20, 200, navConfig);
+                        xSemaphoreGive(lvgl_mutex);
+                    }
+                }
+            }
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+}
+
+/**
+ * @brief Initialize navigation task
+ *
+ * @details Creates and starts the nav task on core 1 with 6KB stack and priority 1.
+ */
+void initNavTask()
+{
+    xTaskCreatePinnedToCore(navTask, "Nav Task", 6144, NULL, 2, NULL, 1);
 }

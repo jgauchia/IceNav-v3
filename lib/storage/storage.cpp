@@ -540,9 +540,11 @@ int Storage::seek(FILE *file, long offset, int whence)
 
 size_t Storage::seekAndRead(FILE *file, long offset, uint8_t *buffer, size_t size)
 {
-    if (!file || !buffer) return 0;
+    if (!file || !buffer)
+        return 0;
     size_t totalRead = 0;
-    if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE) return 0;
+    if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+        return 0;
     fseek(file, offset, SEEK_SET);
     if (esp_ptr_internal(buffer))
     {
@@ -556,7 +558,8 @@ size_t Storage::seekAndRead(FILE *file, long offset, uint8_t *buffer, size_t siz
             {
                 size_t toRead = (size - totalRead > DMA_BUF_SIZE) ? DMA_BUF_SIZE : (size - totalRead);
                 size_t r = fread(dmaBuffer, 1, toRead, file);
-                if (r == 0) break;
+                if (r == 0)
+                    break;
                 memcpy(buffer + totalRead, dmaBuffer, r);
                 totalRead += r;
             }

@@ -540,6 +540,5 @@ void loadMainScreen()
        lv_subject_set_int suppresses callbacks when the value is identical;
        widgets need to re-render their initial state after a screen transition. */
     notify_all_subjects();
-    extern void triggerMapRedraw();
     triggerMapRedraw();
 }

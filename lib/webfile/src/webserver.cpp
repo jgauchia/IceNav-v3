@@ -169,12 +169,18 @@ static void urlDecode(char* str)
     {
         if ((*str == '%') && ((a = str[1]) && (b = str[2])) && (isxdigit(a) && isxdigit(b)))
         {
-            if (a >= 'a') a -= 'a' - 'A';
-            if (a >= 'A') a -= ('A' - 10);
-            else a -= '0';
-            if (b >= 'a') b -= 'a' - 'A';
-            if (b >= 'A') b -= ('A' - 10);
-            else b -= '0';
+            if (a >= 'a')
+                a -= 'a' - 'A';
+            if (a >= 'A')
+                a -= ('A' - 10);
+            else
+                a -= '0';
+            if (b >= 'a')
+                b -= 'a' - 'A';
+            if (b >= 'A')
+                b -= ('A' - 10);
+            else
+                b -= '0';
             *dst++ = 16 * a + b;
             str += 3;
         }
@@ -374,7 +380,8 @@ static bool createDirectories(const std::string& filepath)
             }
             ESP_LOGI(WEB_TAG, "Directory %s created", newDirPath.c_str());
         }
-        if (nextSlash == std::string::npos) break;
+        if (nextSlash == std::string::npos)
+            break;
         lastSlash = nextSlash;
 
         esp_task_wdt_reset();
@@ -434,7 +441,8 @@ static esp_err_t status_handler(httpd_req_t *req)
     std::string escaped = "";
     for (char c : statusMessage)
     {
-        if (c == '"' || c == '\\') escaped += '\\';
+        if (c == '"' || c == '\\')
+            escaped += '\\';
         escaped += c;
     }
 
@@ -767,14 +775,14 @@ static esp_err_t sendSpiffsJS(httpd_req_t *req, const char *jsFile)
 }
 
 // Image handlers
-static esp_err_t logo_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/LOGO_LARGE.png"); }
-static esp_err_t files_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/file.png"); }
-static esp_err_t folder_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/folder.png"); }
-static esp_err_t down_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/download.png"); }
-static esp_err_t up_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/upload.png"); }
-static esp_err_t del_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/delete.png"); }
-static esp_err_t reb_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/reboot.png"); }
-static esp_err_t list_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/list.png"); }
+static esp_err_t logo_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/gfx/LOGO_LARGE.png"); }
+static esp_err_t files_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/gfx/file.png"); }
+static esp_err_t folder_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/gfx/folder.png"); }
+static esp_err_t down_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/gfx/download.png"); }
+static esp_err_t up_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/gfx/upload.png"); }
+static esp_err_t del_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/gfx/delete.png"); }
+static esp_err_t reb_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/gfx/reboot.png"); }
+static esp_err_t list_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/gfx/list.png"); }
 static esp_err_t jszip_handler(httpd_req_t *req) { return sendSpiffsJS(req, "/spiffs/utils/jszip.min.js"); }
 
 /**
@@ -782,7 +790,8 @@ static esp_err_t jszip_handler(httpd_req_t *req) { return sendSpiffsJS(req, "/sp
  */
 static uint8_t* findBytes(uint8_t* haystack, size_t haystackLen, const uint8_t* needle, size_t needleLen)
 {
-    if (needleLen > haystackLen) return NULL;
+    if (needleLen > haystackLen)
+        return NULL;
     for (size_t i = 0; i <= haystackLen - needleLen; i++)
     {
         if (memcmp(haystack + i, needle, needleLen) == 0)

@@ -26,7 +26,9 @@
 #include "../../images/src/finish.h"
 #include "../../images/src/outtrack.h"
 
-extern Compass compass;
+#ifdef ENABLE_COMPASS
+    extern Compass compass;
+#endif
 extern Gps gps;
 extern Storage storage;
 extern TrackVector trackData;
@@ -289,7 +291,7 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
     Maps::mapScrHeight = mapHeight;
     Maps::mapScrWidth = mapWidth;
     Maps::mapTempSprite.createSprite(Maps::tileWidth, Maps::tileHeight);
-    Maps::mapTempSprite.loadFont("/spiffs/font.vlw");
+    Maps::mapTempSprite.loadFont("/spiffs/font/font.vlw");
     Maps::mapSprite.createSprite(mapWidth, mapHeight);
     Maps::mapBuffer = Maps::mapSprite.getBuffer();
     Maps::oldMapTile = {};
@@ -663,7 +665,8 @@ void Maps::mapRenderTask(void* pvParameters)
                             instance->renderNavLineString(feat, instance->mapTempSprite, feat.casing);
                     }
 
-                    if (aborted) break;
+                    if (aborted)
+                        break;
 
                     // Pass 2: LineString bodies (from pre-separated casing list) and Texts
                     for (uint16_t idx : instance->layersCasing[i])
@@ -680,7 +683,8 @@ void Maps::mapRenderTask(void* pvParameters)
                         instance->renderNavLineString(instance->featurePool[idx], instance->mapTempSprite, false);
                     }
 
-                    if (aborted) break;
+                    if (aborted)
+                        break;
 
                     for (uint16_t idx : layer)
                     {
@@ -696,6 +700,7 @@ void Maps::mapRenderTask(void* pvParameters)
                         if (instance->featurePool[idx].geomType == NavGeomType::Text)
                             instance->renderNavText(instance->featurePool[idx], instance->mapTempSprite, instance->placedLabelsCache);
                     }
+
                     esp_task_wdt_reset();
                 }
 
@@ -707,6 +712,7 @@ void Maps::mapRenderTask(void* pvParameters)
                 }
 
                 instance->mapTempSprite.endWrite();
+
                 for (auto& entry : instance->navDataCache)
                     entry.isPinned = false;
 
@@ -721,7 +727,6 @@ void Maps::mapRenderTask(void* pvParameters)
                 xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
                 xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
                 xSemaphoreGiveRecursive(instance->mapMutex);
-                extern void triggerMapRedraw();
                 triggerMapRedraw();
             }
         }
@@ -910,9 +915,13 @@ void Maps::apply3DPerspective(uint16_t heading)
     // Perspective parameters: horizon at top quarter of screen
     const int horizonScreenY = dstH / 5;
     const float tiltRad = _mapTilt * (static_cast<float>(M_PI) / 180.0f);
+    const float invCosTilt = 1.0f / cosf(tiltRad);
 
     // Sky color: soft blue ~#A8C8E8 (byte-swapped for direct buffer write)
     const uint16_t skyColor = 0x5DAE;
+
+    const float halfW = static_cast<float>(dstW) * 0.5f;
+    const float invSpan = 1.0f / static_cast<float>(gpsScreenY - horizonScreenY);
 
     for (int y = 0; y < dstH; y++)
     {
@@ -926,31 +935,72 @@ void Maps::apply3DPerspective(uint16_t heading)
         }
 
         // t=0 at horizon, t=1 at GPS screen position
-        float t = static_cast<float>(y - horizonScreenY) / static_cast<float>(gpsScreenY - horizonScreenY);
+        float t = static_cast<float>(y - horizonScreenY) * invSpan;
         if (t <= 0.0f)
             continue;
 
-        float scale = t / cosf(tiltRad);
+        float scale = t * invCosTilt;
+        float invScale = 1.0f / scale;
 
         // Positive srcRelY = ahead (up in heading-up view = forward direction)
-        float srcRelY = (_focalLength / scale) * (1.0f - t) / t;
+        float srcRelY = (_focalLength * invScale) * (1.0f - t) / t;
 
-        for (int x = 0; x < dstW; x++)
+        // sx/sy are linear in x; accumulate in Q16 fixed point so the inner loop
+        // drops the per-pixel division, multiplies and float->int conversions.
+        const float dsxF = invScale * cosH;
+        const float dsyF = invScale * sinH;
+
+        const float sxStart = static_cast<float>(gpsTileX) + (-halfW * invScale) * cosH + srcRelY * sinH;
+        const float syStart = static_cast<float>(gpsTileY) - ((halfW * invScale) * sinH + srcRelY * cosH);
+        const float sxEnd = sxStart + dsxF * static_cast<float>(dstW);
+        const float syEnd = syStart + dsyF * static_cast<float>(dstW);
+
+        // Q16 holds +-32767 integer range; rows near the horizon can exceed it.
+        // Valid tile coords stay within a few thousand, so a conservative limit
+        // routes any extreme (overflow-prone) row to the float fallback.
+        const float Q16_LIMIT = 8000.0f;
+        bool fitsQ16 = fabsf(sxStart) < Q16_LIMIT && fabsf(syStart) < Q16_LIMIT &&
+                       fabsf(sxEnd) < Q16_LIMIT && fabsf(syEnd) < Q16_LIMIT;
+
+        if (fitsQ16)
         {
-            float screenXRel = static_cast<float>(x) - static_cast<float>(dstW) * 0.5f;
-            float srcRelX = screenXRel / scale;
+            int32_t sxFix = static_cast<int32_t>(sxStart * 65536.0f);
+            int32_t syFix = static_cast<int32_t>(syStart * 65536.0f);
+            const int32_t dsxFix = static_cast<int32_t>(dsxF * 65536.0f);
+            const int32_t dsyFix = static_cast<int32_t>(dsyF * 65536.0f);
 
-            // Rotate from heading-up back to tile-space
-            float tileRelX =  srcRelX * cosH + srcRelY * sinH;
-            float tileRelY = -srcRelX * sinH + srcRelY * cosH;
+            for (int x = 0; x < dstW; x++)
+            {
+                int sx = sxFix >> 16;
+                int sy = syFix >> 16;
 
-            int sx = gpsTileX + (int)(tileRelX);
-            int sy = gpsTileY - (int)(tileRelY);
+                if (sx >= 0 && sx < srcW && sy >= 0 && sy < srcH)
+                    dstRow[x] = src[sy * srcW + sx];
+                else
+                    dstRow[x] = skyColor;
 
-            if (sx >= 0 && sx < srcW && sy >= 0 && sy < srcH)
-                dstRow[x] = src[sy * srcW + sx];
-            else
-                dstRow[x] = skyColor;
+                sxFix += dsxFix;
+                syFix += dsyFix;
+            }
+        }
+        else
+        {
+            float sxF = sxStart;
+            float syF = syStart;
+
+            for (int x = 0; x < dstW; x++)
+            {
+                int sx = (int)sxF;
+                int sy = (int)syF;
+
+                if (sx >= 0 && sx < srcW && sy >= 0 && sy < srcH)
+                    dstRow[x] = src[sy * srcW + sx];
+                else
+                    dstRow[x] = skyColor;
+
+                sxF += dsxF;
+                syF += dsyF;
+            }
         }
     }
 }
@@ -1176,9 +1226,20 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
  */
 static int16_t getLODThreshold(uint8_t zoom)
 {
-    if (zoom <= 12) return 3;
-    if (zoom <= 14) return 2;
+    if (zoom <= 12)
+        return 3;
+    if (zoom <= 14)
+        return 2;
     return 1;
+}
+
+static uint32_t getPolygonAreaCullThreshold(uint8_t zoom)
+{
+    if (zoom <= 12)
+        return 256;
+    if (zoom <= 15)
+        return 64;
+    return 0;
 }
 
 /**
@@ -1568,7 +1629,7 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
 {
     if (ref.coordCount < 3 || ref.coordCount > MAX_POLYGON_POINTS)
         return;
-    
+
     if (ref.coordCount * 2 > decodedCoords.capacity())
         return;
     int16_t* coords = decodedCoords.data();
@@ -1602,7 +1663,7 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
             ringEndsPtr = ringEndsCache.data();
         }
     }
-    
+
     if (ref.coordCount > projBuf32X.capacity())
         return;
     int minPx = INT_MAX;
@@ -1622,16 +1683,21 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
             continue;
         projBuf32X[actualPoints] = curX;
         projBuf32Y[actualPoints] = curY;
-        if (curX < minPx) minPx = curX;
-        if (curX > maxPx) maxPx = curX;
-        if (curY < minPy) minPy = curY;
-        if (curY > maxPy) maxPy = curY;
+        if (curX < minPx)
+            minPx = curX;
+        if (curX > maxPx)
+            maxPx = curX;
+        if (curY < minPy)
+            minPy = curY;
+        if (curY > maxPy)
+            maxPy = curY;
         lastX = curX;
         lastY = curY;
         actualPoints++;
     }
     if (maxPx < 0 || minPx >= (int)tileWidth || maxPy < 0 || minPy >= (int)tileHeight)
         return;
+
     int* px = projBuf32X.data();
     int* py = projBuf32Y.data();
     fillPolygonGeneral(map, px, py, actualPoints, ref.color, 0, 0, ringCount, ringEndsPtr);
@@ -1971,10 +2037,21 @@ void Maps::navDecodeFeatures(const uint8_t* data, size_t dataSize, int16_t scree
                 p += NAV_FEAT_HDR_SIZE + ps;
                 continue;
             }
+
+            bool hasCasingHdr = (wp & 0x80) != 0;
+            if (geomType == (uint8_t)NavGeomType::Polygon && !hasCasingHdr)
+            {
+                uint32_t areaCullThreshold = getPolygonAreaCullThreshold(zoom);
+                if (areaCullThreshold > 0 && (uint32_t)dimX * (uint32_t)dimY < areaCullThreshold)
+                {
+                    p += NAV_FEAT_HDR_SIZE + ps;
+                    continue;
+                }
+            }
             if (featurePool.size() < MAX_FEATURE_POOL_SIZE)
             {
                 uint16_t poolIdx = (uint16_t)featurePool.size();
-                bool hasCasing = (wp & 0x80) != 0;
+                bool hasCasing = hasCasingHdr;
                 featurePool.push_back({(uint8_t*)(p + NAV_FEAT_HDR_SIZE), (NavGeomType)geomType, ps, cc, screenX, screenY, colorRgb565, (uint8_t)(wp & 0x7F), hasCasing, bx1, by1, bx2, by2, (uint8_t)(zp & 0x0F)});
                 uint8_t priority = zp & 0x0F;
                 if (priority < 16)

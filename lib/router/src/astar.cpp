@@ -52,7 +52,8 @@ static uint32_t heuristic(uint32_t node, const RouteNode& dst_cached, float cos_
                           const GraphLoader& graph, float maxSpeedMs)
 {
     RouteNode a;
-    if (!graph.getNode(node, a)) return 0;
+    if (!graph.getNode(node, a))
+        return 0;
     float dlat = dst_cached.lat - a.lat;
     float dlon  = (dst_cached.lon - a.lon) * cos_dst_lat;
     float dist  = sqrtf(dlat * dlat + dlon * dlon) * METERS_PER_DEGREE;
@@ -76,7 +77,8 @@ TrackVector astarRoute(const GraphLoader& graph, uint32_t src_node, uint32_t dst
     TrackVector result;
 
     RouteNode dst_cached;
-    if (!graph.getNode(dst_node, dst_cached)) return result;
+    if (!graph.getNode(dst_node, dst_cached))
+        return result;
     float cos_dst_lat = cosf(dst_cached.lat * 3.14159265f / 180.f);
 
     using U32U32Map = std::unordered_map<uint32_t, uint32_t,
@@ -106,12 +108,15 @@ TrackVector astarRoute(const GraphLoader& graph, uint32_t src_node, uint32_t dst
         // Lazy deletion: discard stale PQ entries instead of a separate visited set.
         // Saves ~180 KB PSRAM and reduces max PQ size from O(E) to O(V).
         auto it = g_cost.find(u);
-        if (it != g_cost.end() && top.g > it->second) continue;
-        if (u == dst_node) break;
+        if (it != g_cost.end() && top.g > it->second)
+            continue;
+        if (u == dst_node)
+            break;
 
         RouteEdge edge_buf[MAX_EDGES_PER_NODE_GL];
         uint32_t edge_count = 0;
-        if (!graph.getEdgesForNode(u, edge_buf, edge_count)) continue;
+        if (!graph.getEdgesForNode(u, edge_buf, edge_count))
+            continue;
 
         auto g_it = g_cost.find(u);
         uint32_t current_g = (g_it != g_cost.end()) ? g_it->second : INF;
@@ -140,7 +145,8 @@ TrackVector astarRoute(const GraphLoader& graph, uint32_t src_node, uint32_t dst
     while (cur != UINT32_MAX)
     {
         RouteNode n;
-        if (!graph.getNode(cur, n)) break;
+        if (!graph.getNode(cur, n))
+            break;
         wayPoint wp{};
         wp.lat = n.lat;
         wp.lon = n.lon;

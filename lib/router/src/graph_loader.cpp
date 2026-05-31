@@ -57,7 +57,8 @@ bool GraphLoader::load()
     for (const auto& c : cellIndex_)
     {
         uint32_t end = c.node_offset + c.node_count;
-        if (end > totalNodes_) totalNodes_ = end;
+        if (end > totalNodes_)
+            totalNodes_ = end;
     }
 
     file_   = f;
@@ -73,7 +74,8 @@ bool GraphLoader::load()
  */
 uint32_t GraphLoader::cellForNode(uint32_t gi) const
 {
-    if (cellIndex_.empty()) return UINT32_MAX;
+    if (cellIndex_.empty())
+        return UINT32_MAX;
 
     // Find the last cell whose node_offset <= gi.
     uint32_t lo = 0;
@@ -98,7 +100,8 @@ uint32_t GraphLoader::cellForNode(uint32_t gi) const
  */
 void GraphLoader::evictLRU() const
 {
-    if (pageCache_.empty()) return;
+    if (pageCache_.empty())
+        return;
 
     uint32_t oldest_key   = 0;
     uint32_t oldest_stamp = UINT32_MAX;
@@ -132,7 +135,8 @@ GraphLoader::PageData* GraphLoader::fetchPage(uint32_t cell_idx) const
         return &it->second;
     }
 
-    if (!file_) return nullptr;
+    if (!file_)
+        return nullptr;
 
     const CellIndexEntry& c = cellIndex_[cell_idx];
     size_t node_bytes = c.node_count * sizeof(RouteNode);
@@ -173,7 +177,8 @@ GraphLoader::PageData* GraphLoader::fetchPage(uint32_t cell_idx) const
                             reinterpret_cast<uint8_t*>(page.edges.data()), edge_bytes);
 
     auto res = pageCache_.emplace(cell_idx, std::move(page));
-    if (!res.second) return nullptr;
+    if (!res.second)
+        return nullptr;
     return &res.first->second;
 }
 
@@ -210,7 +215,8 @@ void GraphLoader::preloadPoint(float lat, float lon) const
 bool GraphLoader::getNode(uint32_t gi, RouteNode& out_node) const
 {
     uint32_t ci = cellForNode(gi);
-    if (ci == UINT32_MAX) return false;
+    if (ci == UINT32_MAX)
+        return false;
 
     PageData* page = fetchPage(ci);
     if (page)
@@ -221,7 +227,8 @@ bool GraphLoader::getNode(uint32_t gi, RouteNode& out_node) const
     }
 
     // Fallback: read directly from SD using the cell's data_offset.
-    if (!file_) return false;
+    if (!file_)
+        return false;
     const CellIndexEntry& cb = cellIndex_[ci];
     uint32_t local = gi - cb.node_offset;
     uint32_t file_off = data_base_offset_ + cb.data_offset + local * sizeof(RouteNode);
@@ -257,12 +264,15 @@ uint32_t GraphLoader::nearestNode(float lat, float lon) const
             float cell_lat = cell.lat_e4 / 10000.0f;
             float cell_lon = cell.lon_e4 / 10000.0f;
 
-            if (cell_lat > lat + radius || cell_lat + 0.1f < lat - radius) continue;
-            if (cell_lon > lon + radius || cell_lon + 0.1f < lon - radius) continue;
+            if (cell_lat > lat + radius || cell_lat + 0.1f < lat - radius)
+                continue;
+            if (cell_lon > lon + radius || cell_lon + 0.1f < lon - radius)
+                continue;
 
             // Only search pages already in PSRAM — never trigger an SD load here.
             auto it = pageCache_.find(ci);
-            if (it == pageCache_.end()) continue;
+            if (it == pageCache_.end())
+                continue;
             const PageData& page = it->second;
 
             for (uint32_t j = 0; j < cell.node_count; ++j)

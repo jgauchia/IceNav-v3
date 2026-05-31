@@ -122,8 +122,10 @@ void NavReader::prefetchIndexRange(const uint32_t* tileXs, const uint32_t* tileY
     for (uint8_t i = 0; i < count; i++)
     {
         uint64_t h = xyToHilbert(tileXs[i], tileYs[i], zoom);
-        if (h < hMin) hMin = h;
-        if (h > hMax) hMax = h;
+        if (h < hMin)
+            hMin = h;
+        if (h > hMax)
+            hMax = h;
     }
 
     // Binary search for first entry >= hMin
@@ -135,22 +137,35 @@ void NavReader::prefetchIndexRange(const uint32_t* tileXs, const uint32_t* tileY
         int32_t mid = lo + (hi - lo) / 2;
         storage.seek(packFile, indexOff + (uint32_t)mid * 16, SEEK_SET);
         uint64_t h;
-        if (storage.read(packFile, (uint8_t*)&h, 8) != 8) return;
-        if (h < hMin) lo = mid + 1;
-        else { idxLow = mid; hi = mid - 1; }
+        if (storage.read(packFile, (uint8_t*)&h, 8) != 8)
+            return;
+        if (h < hMin)
+            lo = mid + 1;
+        else
+        {
+            idxLow = mid;
+            hi = mid - 1;
+        }
     }
 
     // Binary search for last entry <= hMax
-    lo = 0; hi = (int32_t)tileCount - 1;
+    lo = 0;
+    hi = (int32_t)tileCount - 1;
     int32_t idxHigh = -1;
     while (lo <= hi)
     {
         int32_t mid = lo + (hi - lo) / 2;
         storage.seek(packFile, indexOff + (uint32_t)mid * 16, SEEK_SET);
         uint64_t h;
-        if (storage.read(packFile, (uint8_t*)&h, 8) != 8) return;
-        if (h > hMax) hi = mid - 1;
-        else { idxHigh = mid; lo = mid + 1; }
+        if (storage.read(packFile, (uint8_t*)&h, 8) != 8)
+            return;
+        if (h > hMax)
+            hi = mid - 1;
+        else
+        {
+            idxHigh = mid;
+            lo = mid + 1;
+        }
     }
 
     if (idxLow > idxHigh || idxHigh < 0)
@@ -231,7 +246,8 @@ bool NavReader::findTileInPack(uint32_t tileX, uint32_t tileY, uint32_t& offset,
             high = mid - 1;
         else
         {
-            if (storage.read(packFile, (uint8_t*)&offset, 4) != 4 || storage.read(packFile, (uint8_t*)&size, 4) != 4)
+            if (storage.read(packFile, (uint8_t*)&offset, 4) != 4 ||
+                storage.read(packFile, (uint8_t*)&size, 4) != 4)
                 return false;
             return true;
         }

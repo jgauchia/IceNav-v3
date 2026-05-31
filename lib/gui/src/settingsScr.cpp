@@ -10,7 +10,9 @@
 
 bool needReboot = false; /**< Flag to indicate if a system reboot is required */
 
-extern Compass compass;
+#ifdef ENABLE_COMPASS
+    extern Compass compass;
+#endif
 
 /**
  * @brief Back button event
