@@ -700,6 +700,7 @@ void Maps::mapRenderTask(void* pvParameters)
                         if (instance->featurePool[idx].geomType == NavGeomType::Text)
                             instance->renderNavText(instance->featurePool[idx], instance->mapTempSprite, instance->placedLabelsCache);
                     }
+
                     esp_task_wdt_reset();
                 }
 
@@ -711,6 +712,7 @@ void Maps::mapRenderTask(void* pvParameters)
                 }
 
                 instance->mapTempSprite.endWrite();
+
                 for (auto& entry : instance->navDataCache)
                     entry.isPinned = false;
 
@@ -1231,6 +1233,15 @@ static int16_t getLODThreshold(uint8_t zoom)
     return 1;
 }
 
+static uint32_t getPolygonAreaCullThreshold(uint8_t zoom)
+{
+    if (zoom <= 12)
+        return 256;
+    if (zoom <= 15)
+        return 64;
+    return 0;
+}
+
 /**
  * @brief Darken a color
  * 
@@ -1618,7 +1629,7 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
 {
     if (ref.coordCount < 3 || ref.coordCount > MAX_POLYGON_POINTS)
         return;
-    
+
     if (ref.coordCount * 2 > decodedCoords.capacity())
         return;
     int16_t* coords = decodedCoords.data();
@@ -1652,7 +1663,7 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
             ringEndsPtr = ringEndsCache.data();
         }
     }
-    
+
     if (ref.coordCount > projBuf32X.capacity())
         return;
     int minPx = INT_MAX;
@@ -1686,6 +1697,7 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
     }
     if (maxPx < 0 || minPx >= (int)tileWidth || maxPy < 0 || minPy >= (int)tileHeight)
         return;
+
     int* px = projBuf32X.data();
     int* py = projBuf32Y.data();
     fillPolygonGeneral(map, px, py, actualPoints, ref.color, 0, 0, ringCount, ringEndsPtr);
@@ -2025,10 +2037,21 @@ void Maps::navDecodeFeatures(const uint8_t* data, size_t dataSize, int16_t scree
                 p += NAV_FEAT_HDR_SIZE + ps;
                 continue;
             }
+
+            bool hasCasingHdr = (wp & 0x80) != 0;
+            if (geomType == (uint8_t)NavGeomType::Polygon && !hasCasingHdr)
+            {
+                uint32_t areaCullThreshold = getPolygonAreaCullThreshold(zoom);
+                if (areaCullThreshold > 0 && (uint32_t)dimX * (uint32_t)dimY < areaCullThreshold)
+                {
+                    p += NAV_FEAT_HDR_SIZE + ps;
+                    continue;
+                }
+            }
             if (featurePool.size() < MAX_FEATURE_POOL_SIZE)
             {
                 uint16_t poolIdx = (uint16_t)featurePool.size();
-                bool hasCasing = (wp & 0x80) != 0;
+                bool hasCasing = hasCasingHdr;
                 featurePool.push_back({(uint8_t*)(p + NAV_FEAT_HDR_SIZE), (NavGeomType)geomType, ps, cc, screenX, screenY, colorRgb565, (uint8_t)(wp & 0x7F), hasCasing, bx1, by1, bx2, by2, (uint8_t)(zp & 0x0F)});
                 uint8_t priority = zp & 0x0F;
                 if (priority < 16)
