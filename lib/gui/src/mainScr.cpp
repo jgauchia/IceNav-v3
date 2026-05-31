@@ -115,10 +115,24 @@ static void hideMapWidgets()
     lv_obj_add_flag(scaleWidget, LV_OBJ_FLAG_HIDDEN);
 }
 
-/**
- * @brief Global heading state for map observer filtering.
- */
 static int global_last_heading = -1;
+
+static struct
+{
+    int16_t lastDispX          = -32768;
+    int16_t lastDispY          = -32768;
+    int32_t lastRenderedHeading = -1;
+    float   lastRenderedLat    = -1.0f;
+    float   lastRenderedLon    = -1.0f;
+} mapRenderState;
+
+static struct
+{
+    int      last_x       = 0;
+    int      last_y       = 0;
+    uint32_t last_time    = 0;
+    bool     dragStarted  = false;
+} scrollState;
 
 /**
  * @brief Async callback to delegate map redrawing to UI thread (Core 1)
@@ -132,30 +146,24 @@ static void async_map_update_cb(void * user_data)
     if (mapView.redrawMap && !mapSet.vectorMap)
         xEventGroupSetBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
 
-    static int16_t lastDispX = -32768;
-    static int16_t lastDispY = -32768;
-    static int32_t lastRenderedHeading = -1;
-    static float lastRenderedLat = -1.0f;
-    static float lastRenderedLon = -1.0f;
-    
     int32_t currentHeading = lv_subject_get_int(&subject_heading);
     float currentLat = gps.gpsData.latitude;
     float currentLon = gps.gpsData.longitude;
 
-    bool headingChanged = (abs(currentHeading - lastRenderedHeading) > MAP_HEADING_THRESHOLD);
-    bool positionChanged = (currentLat != lastRenderedLat || currentLon != lastRenderedLon);
+    bool headingChanged = (abs(currentHeading - mapRenderState.lastRenderedHeading) > MAP_HEADING_THRESHOLD);
+    bool positionChanged = (currentLat != mapRenderState.lastRenderedLat || currentLon != mapRenderState.lastRenderedLon);
 
-    if (mapView.offsetX != lastDispX || 
-        mapView.offsetY != lastDispY || 
+    if (mapView.offsetX != mapRenderState.lastDispX ||
+        mapView.offsetY != mapRenderState.lastDispY ||
         ((headingChanged || positionChanged) && mapView.followGps) ||
         mapView.redrawMap ||
         (xEventGroupGetBits(mapView.mapEventGroup) & Maps::MAP_EVENT_DONE))
     {
-        lastDispX = mapView.offsetX;
-        lastDispY = mapView.offsetY;
-        lastRenderedHeading = currentHeading;
-        lastRenderedLat = currentLat;
-        lastRenderedLon = currentLon;
+        mapRenderState.lastDispX           = mapView.offsetX;
+        mapRenderState.lastDispY           = mapView.offsetY;
+        mapRenderState.lastRenderedHeading = currentHeading;
+        mapRenderState.lastRenderedLat     = currentLat;
+        mapRenderState.lastRenderedLon     = currentLon;
         xEventGroupClearBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
         mapView.displayMap();
         map_img_dsc.data = (const uint8_t *)mapView.mapBuffer;
@@ -833,20 +841,16 @@ static void scrollMapEvent(lv_event_t *event)
     {
         lv_event_code_t code = lv_event_get_code(event);
         lv_indev_t * indev = lv_event_get_indev(event);
-        static int last_x = 0;
-        static int last_y = 0;
-        static uint32_t last_time = 0;
-        static bool dragStarted = false;
         lv_point_t p;
 
         switch (code)
         {
             case LV_EVENT_PRESSED:
                 lv_indev_get_point(indev, &p);
-                last_x = p.x;
-                last_y = p.y;
-                last_time = (uint32_t)(esp_timer_get_time() / 1000);
-                dragStarted = false;
+                scrollState.last_x      = p.x;
+                scrollState.last_y      = p.y;
+                scrollState.last_time   = (uint32_t)(esp_timer_get_time() / 1000);
+                scrollState.dragStarted = false;
                 isScrollingMap = true;
                 mapView.velocityX = 0;
                 mapView.velocityY = 0;
@@ -859,28 +863,28 @@ static void scrollMapEvent(lv_event_t *event)
             {
                 lv_indev_get_point(indev, &p);
                 uint32_t current_time = (uint32_t)(esp_timer_get_time() / 1000);
-                int dx = p.x - last_x;
-                int dy = p.y - last_y;
-                uint32_t dt = current_time - last_time;
+                int dx = p.x - scrollState.last_x;
+                int dy = p.y - scrollState.last_y;
+                uint32_t dt = current_time - scrollState.last_time;
 
-                if (!dragStarted)
+                if (!scrollState.dragStarted)
                 {
                     const int START_THRESHOLD = 12;
                     if (abs(dx) > START_THRESHOLD || abs(dy) > START_THRESHOLD)
                     {
-                        dragStarted = true;
+                        scrollState.dragStarted = true;
                         lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
                     }
                 }
 
-                if (dragStarted && dt > 0)
+                if (scrollState.dragStarted && dt > 0)
                 {
                     mapView.scrollMap(-dx, -dy);
                     mapView.velocityX = mapView.velocityX * (1.0f - MAP_VELOCITY_WEIGHT) + (-(float)dx / (float)dt) * MAP_VELOCITY_WEIGHT;
                     mapView.velocityY = mapView.velocityY * (1.0f - MAP_VELOCITY_WEIGHT) + (-(float)dy / (float)dt) * MAP_VELOCITY_WEIGHT;
-                    last_x = p.x;
-                    last_y = p.y;
-                    last_time = current_time;
+                    scrollState.last_x    = p.x;
+                    scrollState.last_y    = p.y;
+                    scrollState.last_time = current_time;
                     lv_subject_set_int(&subject_map_offset_x, mapView.offsetX);
                     lv_subject_set_int(&subject_map_offset_y, mapView.offsetY);
                 }
@@ -890,7 +894,7 @@ static void scrollMapEvent(lv_event_t *event)
             case LV_EVENT_PRESS_LOST:
                 lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
                 isScrollingMap = false;
-                dragStarted = false;
+                scrollState.dragStarted = false;
                 if (abs(mapView.velocityX) > MAP_INERTIA_VEL_THRESH || abs(mapView.velocityY) > MAP_INERTIA_VEL_THRESH)
                 {
                     lv_subject_set_int(&subject_map_state, MAP_MODE_INERTIA);
