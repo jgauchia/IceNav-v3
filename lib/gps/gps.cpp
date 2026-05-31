@@ -81,13 +81,6 @@ static const char* TAG = "GPS";
  */
 Gps::Gps()
 {
-    previousSpeed = 0;
-    previousAltitude = 0;
-    previousLatitude = 0.0f;
-    previousLongitude = 0.0f;
-    previousHdop = 0.0f;
-    previousPdop = 0.0f;
-    previousVdop = 0.0f;
     memset(&gpsData, 0, sizeof(GPSDATA));
     memset(&satTracker, 0, sizeof(satTracker));
 }
@@ -405,78 +398,6 @@ long Gps::autoBaud()
         baud = 0;
 
     return baud;
-}
-
-/**
- * @brief Check if the speed has changed.
- *
- * @details Compares the current speed with the previous value and updates the previous value if changed.
- *
- * @return true if speed has changed, false otherwise.
- */
-bool Gps::isSpeedChanged()
-{
-    if (gpsData.speed != previousSpeed)
-    {
-        previousSpeed = gpsData.speed;
-        return true;
-    }
-    return false;
-}
-
-/**
- * @brief Check if the altitude has changed.
- *
- * @details Compares the current altitude with the previous value and updates the previous value if changed.
- *
- * @return true if altitude has changed, false otherwise.
- */
-bool Gps::isAltitudeChanged()
-{
-    if (gpsData.altitude != previousAltitude)
-    {
-        previousAltitude = gpsData.altitude;
-        return true;
-    }
-    return false;
-}
-
-
-/**
- * @brief Check if the latitude or longitude has changed.
- *
- * @details Compares the current latitude and longitude with the previous values and updates them if changed.
- *
- * @return true if latitude or longitude has changed, false otherwise.
- */
-bool Gps::hasLocationChange()
-{
-    if (gpsData.latitude != previousLatitude || gpsData.longitude != previousLongitude)
-    {
-        previousLatitude = gpsData.latitude;
-        previousLongitude = gpsData.longitude;
-        return true;
-    }
-    return false;
-}
-
-/**
- * @brief Check if the PDOP, HDOP, or VDOP has changed.
- *
- * @details Compares the current DOP values with the previous values and updates them if changed.
- *
- * @return true if PDOP, HDOP, or VDOP has changed, false otherwise.
- */
-bool Gps::isDOPChanged()
-{
-    if (gpsData.pdop != previousPdop || gpsData.hdop != previousHdop || gpsData.vdop != previousVdop)
-    {
-        previousPdop = gpsData.pdop;
-        previousHdop = gpsData.hdop;
-        previousVdop = gpsData.vdop;
-        return true;
-    }
-    return false;
 }
 
 /**

@@ -74,10 +74,6 @@ class Gps
         void getGPSData();
         long detectRate(int rxPin);
         long autoBaud();
-        bool isSpeedChanged();
-        bool isAltitudeChanged();
-        bool hasLocationChange();
-        bool isDOPChanged();
         int  getSimulationIndex() const { return simulationIndex; }
 
         /**
@@ -119,14 +115,6 @@ class Gps
         } satTracker[MAX_SATELLITES];
 
     private:
-        uint16_t previousSpeed;      /**< Previous speed value for change detection. */
-        int16_t previousAltitude;    /**< Previous altitude value for change detection. */
-        float previousLatitude;     /**< Previous latitude for change detection. */
-        float previousLongitude;    /**< Previous longitude for change detection. */
-        float previousHdop;          /**< Previous HDOP for change detection. */
-        float previousPdop;          /**< Previous PDOP for change detection. */
-        float previousVdop;          /**< Previous VDOP for change detection. */
-
         /**
         * @brief Variables for "fake" GPS signal from loaded track (simulation)
         * 
