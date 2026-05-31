@@ -7,6 +7,7 @@
  */
 
 #include "optionsPanel.hpp"
+#include "menu.h"
 
 extern Maps mapView;
 bool isWaypointOpt  = false;
@@ -455,8 +456,9 @@ void createOptionsPanel()
     lv_obj_align(menuBtnWrap, LV_ALIGN_BOTTOM_RIGHT, -4, -4);
     lv_obj_add_event_cb(menuBtnWrap, hideShowEvent, LV_EVENT_ALL, NULL);
     menuBtn = menuBtnWrap;
+    LV_IMG_DECLARE(menu);
     lv_obj_t *menuIcon = lv_img_create(menuBtnWrap);
-    lv_img_set_src(menuIcon, menuIconFile);
+    lv_img_set_src(menuIcon, &menu);
     lv_img_set_zoom(menuIcon, buttonScale);
     lv_obj_update_layout(menuIcon);
     lv_obj_set_size(menuIcon, iconSize, iconSize);

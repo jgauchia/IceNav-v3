@@ -20,7 +20,6 @@ static const char *saveIconFile = "/gfx/save.bin";         /**< Save icon file p
 static const char *loadIconFile = "/gfx/load.bin";         /**< Load icon file path. */
 static const char *editIconFile = "/gfx/edit.bin";         /**< Edit icon file path. */
 static const char *deleteIconFile = "/gfx/delete.bin";     /**< Delete icon file path. */
-static const char *menuIconFile = "/gfx/menu.bin";         /**< Menu icon file path. */
 static const char *addWptIconFile = "/gfx/addwpt.bin";     /**< Add Waypoint icon file path. */
 
 extern bool isWaypointOpt;  /**< Waypoint Option selected. */
