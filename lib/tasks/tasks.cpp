@@ -17,6 +17,7 @@
 #include <WiFi.h>
 
 xSemaphoreHandle gpsMutex;
+SemaphoreHandle_t sensorMutex = NULL;
 TaskHandle_t gpsTaskHandle = NULL;
 extern Gps gps;
 SensorData globalSensorData = {};
@@ -239,16 +240,23 @@ void sensorTask(void *pvParameters)
         }
 
         #ifdef ENABLE_COMPASS
-            globalSensorData.heading = compass.getHeading();
+        {
+            int newHeading = compass.getHeading();
+            if (sensorMutex != NULL && xSemaphoreTake(sensorMutex, portMAX_DELAY) == pdTRUE)
+            {
+                globalSensorData.heading = newHeading;
+                xSemaphoreGive(sensorMutex);
+            }
             /* Non-blocking: same rationale as gpsTask — sensor readings are
                best-effort; if LVGL holds the mutex this cycle is discarded. */
             if (isMainScreen && !canMoveWidget && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
             {
-                lv_subject_set_int(&subject_compass_heading, globalSensorData.heading);
+                lv_subject_set_int(&subject_compass_heading, newHeading);
                 if (mapSet.mapRotationComp)
-                    lv_subject_set_int(&subject_heading, globalSensorData.heading);
+                    lv_subject_set_int(&subject_heading, newHeading);
                 xSemaphoreGive(lvgl_mutex);
             }
+        }
         #endif
 
         // Update time subject once per second (from reliable sensorTask loop)
@@ -267,8 +275,21 @@ void sensorTask(void *pvParameters)
         if (slowCounter++ >= 75)
         {
             #ifdef BME280
-                bme.readAll(globalSensorData.temperature, globalSensorData.pressure, globalSensorData.humidity);
-                globalSensorData.altitude = (int16_t)bme.readAltitude(globalSensorData.pressure);
+            {
+                float t = 0.0f;
+                float p = 0.0f;
+                float h = 0.0f;
+                bme.readAll(t, p, h);
+                int16_t alt = (int16_t)bme.readAltitude(p);
+                if (sensorMutex != NULL && xSemaphoreTake(sensorMutex, portMAX_DELAY) == pdTRUE)
+                {
+                    globalSensorData.temperature = t;
+                    globalSensorData.pressure    = p;
+                    globalSensorData.humidity    = h;
+                    globalSensorData.altitude    = alt;
+                    xSemaphoreGive(sensorMutex);
+                }
+            }
             #endif
 
             #ifdef ENABLE_TEMP
@@ -295,8 +316,13 @@ void sensorTask(void *pvParameters)
                 }
             }
 
-            globalSensorData.batteryPercent = battery.readBattery();
-            int current = (int)globalSensorData.batteryPercent;
+            float rawBattery = battery.readBattery();
+            if (sensorMutex != NULL && xSemaphoreTake(sensorMutex, portMAX_DELAY) == pdTRUE)
+            {
+                globalSensorData.batteryPercent = rawBattery;
+                xSemaphoreGive(sensorMutex);
+            }
+            int current = (int)rawBattery;
 
             static auto getLevel = [](int v)
             {

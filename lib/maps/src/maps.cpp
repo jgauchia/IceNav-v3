@@ -771,7 +771,15 @@ void Maps::displayMap()
 
     uint16_t mapHeading = 0;
     #ifdef ENABLE_COMPASS
-        mapHeading = mapSet.mapRotationComp ? globalSensorData.heading : gps.gpsData.heading;
+    {
+        int sensorHeading = 0;
+        if (sensorMutex != NULL && xSemaphoreTake(sensorMutex, pdMS_TO_TICKS(5)) == pdTRUE)
+        {
+            sensorHeading = globalSensorData.heading;
+            xSemaphoreGive(sensorMutex);
+        }
+        mapHeading = mapSet.mapRotationComp ? (uint16_t)sensorHeading : gps.gpsData.heading;
+    }
     #else
         mapHeading = gps.gpsData.heading;
     #endif

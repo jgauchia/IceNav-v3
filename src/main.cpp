@@ -55,8 +55,9 @@ NavState navState;
  */
 void setup()
 {
-    gpsMutex   = xSemaphoreCreateMutex();
-    routeMutex = xSemaphoreCreateMutex();
+    gpsMutex     = xSemaphoreCreateMutex();
+    routeMutex   = xSemaphoreCreateMutex();
+    sensorMutex  = xSemaphoreCreateMutex();
     lutInit = initTrigLUT();
     initHAL();
     storage.initSD();

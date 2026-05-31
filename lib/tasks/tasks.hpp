@@ -35,6 +35,7 @@ struct SensorData
 };
 
 extern SensorData globalSensorData;
+extern SemaphoreHandle_t sensorMutex;
 
 // NMEA debug stats — written by gpsTask, read by debug tile
 extern uint32_t nmeaDebugOk;
