@@ -35,11 +35,11 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 |:-:|:-:|:-:|:-:|:-:|
 | Rendered Map | Vectorized Map | Navigation Screen | Navigation Screen | Satellite Info |
 
-|<img src="images/dev/addwpt_n.jpg">|<img src="images/dev/addwpt_l.jpg">|<img src="images/dev/wptlist.jpg">|<img src="images/dev/3dMap.png">|
-|:-:|:-:|:-:|:-:|
-| Add Waypoint | Add Waypoint (landscape) | Waypoint List | 3D Map view |
+|<img src="images/dev/nmeadebug.png">|<img src="images/dev/addwpt_n.jpg">|<img src="images/dev/addwpt_l.jpg">|<img src="images/dev/wptlist.jpg">|<img src="images/dev/3dMap.png">|
+|:-:|:-:|:-:|:-:|:-:|
+| NMEA Debug | Add Waypoint | Add Waypoint (landscape) | Waypoint List | 3D Map view |
 
-|<img src="images/dev/settings.jpg">|<img src="images/dev/compasscal.jpg">|<img src="images/dev/touchcal.jpg">|<img src="images/dev/mapsettings.jpg">|<img src="images/dev/devicesettings.png">|
+|<img src="images/dev/settings.jpg">|<img src="images/dev/compasscal.jpg">|<img src="images/dev/touchcal.jpg">|<img src="images/dev/mapsettings.png">|<img src="images/dev/devicesettings.png">|
 |:-:|:-:|:-:|:-:|:-:|
 | Settings | Compass Calibration | Touch Calibration | Map Settings | Device Settings |
 
@@ -307,6 +307,7 @@ Some extra details:
     kalmanQ     custom          0.00500000     Def. Kalman Filter const. Process noise covariance (0-1)
     kalmanR     custom          0.60000000     Def. Kalman Filter const. Measurement noise covariance (0-1)
  routeSpeed     custom          130            Max speed (km/h) for A* heuristic: 130=car, 25=bike, 5=walk. Selects ROUTE/CAR|BIKE|WALK/ROUTE.bin on SD card.
+nmeaDbgTile     custom          false          Show the NMEA debug tile 
 
 
 ```          

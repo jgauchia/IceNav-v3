@@ -990,8 +990,11 @@ void createMainScr()
     mapTile = lv_tileview_add_tile(tilesScreen, 1, 0, (lv_dir_t)(LV_DIR_LEFT | LV_DIR_RIGHT));
     navTile = lv_tileview_add_tile(tilesScreen, 2, 0, (lv_dir_t)(LV_DIR_LEFT | LV_DIR_RIGHT));
     lv_obj_add_flag(navTile, LV_OBJ_FLAG_HIDDEN);
-    satTrackTile = lv_tileview_add_tile(tilesScreen, 3, 0, (lv_dir_t)(LV_DIR_LEFT | LV_DIR_RIGHT));
-    nmeaDebugTile = lv_tileview_add_tile(tilesScreen, 4, 0, LV_DIR_LEFT);
+    // The satellite tile keeps a right swipe only when the NMEA debug tile exists.
+    lv_dir_t satTileDir = nmeaDebugTileEnabled ? (lv_dir_t)(LV_DIR_LEFT | LV_DIR_RIGHT) : LV_DIR_LEFT;
+    satTrackTile = lv_tileview_add_tile(tilesScreen, 3, 0, satTileDir);
+    if (nmeaDebugTileEnabled)
+        nmeaDebugTile = lv_tileview_add_tile(tilesScreen, 4, 0, LV_DIR_LEFT);
     lv_obj_set_size(tilesScreen, TFT_WIDTH, TFT_HEIGHT - 25);
     lv_obj_set_pos(tilesScreen, 0, 25);
     lv_obj_add_style(tilesScreen, &styleScrollbarWhite, LV_PART_SCROLLBAR);
@@ -1071,7 +1074,8 @@ void createMainScr()
     lv_subject_set_int(&subject_map_3d, mapSet.map3D ? 1 : 0);
     lv_subject_add_observer_obj(&subject_map_3d, map_3d_observer_cb, mapTile, NULL);
     satelliteScr(satTrackTile);
-    nmeaDebugScr(nmeaDebugTile);
+    if (nmeaDebugTileEnabled)
+        nmeaDebugScr(nmeaDebugTile);
     // timer is permanent — mainScreen is never destroyed
     map_inertia_timer = lv_timer_create(map_inertia_timer_cb, 20, NULL);
     lv_timer_pause(map_inertia_timer);

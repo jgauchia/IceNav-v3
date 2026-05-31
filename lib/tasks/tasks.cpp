@@ -27,6 +27,10 @@ uint32_t nmeaDebugCycles = 0;
 uint8_t  nmeaLastMsg     = 0;   // last GPS.nmeaMessage seen per cycle
 portMUX_TYPE nmeaDebugMux = portMUX_INITIALIZER_UNLOCKED;
 
+// Raw NMEA sentence ring buffer — written by gpsTask, read by debug tile
+char    nmeaRawBuf[NMEA_RAW_LINES][NMEA_RAW_LEN] = {};
+uint8_t nmeaRawHead = 0;
+
 static constexpr TickType_t MUTEX_TIMEOUT_GPS  = pdMS_TO_TICKS(15);
 static constexpr TickType_t MUTEX_TIMEOUT_SLOW = pdMS_TO_TICKS(10);
 
@@ -59,24 +63,58 @@ void gpsTask(void *pvParameters)
             }
             else
             {
-                while (GPS.available( gpsPort ))
+                // Feed the parser one character at a time (same bytes, same order
+                // as GPS.available() would consume) while mirroring each complete
+                // sentence into the raw ring buffer for the debug tile. Parsing is
+                // unaffected; capture is purely a side effect.
+                static char    lineBuf[NMEA_RAW_LEN];
+                static uint8_t lineLen = 0;
+
+                while (gpsPort.available())
                 {
-                    fix = GPS.read();
-                    gps.getGPSData();
+                    char c = (char)gpsPort.read();
 
-                    portENTER_CRITICAL(&nmeaDebugMux);
-                    nmeaDebugOk    = GPS.statistics.ok;
-                    nmeaDebugErr   = GPS.statistics.errors;
-                    nmeaLastMsg    = (uint8_t)GPS.nmeaMessage;
-                    nmeaDebugCycles++;
-                    portEXIT_CRITICAL(&nmeaDebugMux);
+                    if (c == '\n' || c == '\r')
+                    {
+                        if (lineLen > 0)
+                        {
+                            lineBuf[lineLen] = '\0';
+                            portENTER_CRITICAL(&nmeaDebugMux);
+                            strncpy(nmeaRawBuf[nmeaRawHead], lineBuf, NMEA_RAW_LEN - 1);
+                            nmeaRawBuf[nmeaRawHead][NMEA_RAW_LEN - 1] = '\0';
+                            nmeaRawHead = (nmeaRawHead + 1) % NMEA_RAW_LINES;
+                            portEXIT_CRITICAL(&nmeaDebugMux);
+                            lineLen = 0;
+                        }
+                    }
+                    else if (lineLen < NMEA_RAW_LEN - 1)
+                    {
+                        lineBuf[lineLen++] = c;
+                    }
 
-                    // Only flag a satellite-data update when this cycle actually
-                    // carried GSV (sat_count > 0). With GSV decimated to ~1Hz the
-                    // intermediate cycles report 0, so this avoids redrawing the
-                    // constellation at the full rate with unchanged data.
-                    if (GPS.sat_count > 0)
-                        satDataUpdated = true;
+                    // handle() returns DECODE_COMPLETED at the end of every
+                    // sentence, but a fix is only buffered once the interval
+                    // closes (LAST_SENTENCE_IN_INTERVAL). Read only when one is
+                    // actually available, exactly like GPS.available() does.
+                    if (GPS.handle((uint8_t)c) == NMEAGPS::DECODE_COMPLETED && GPS.available())
+                    {
+                        fix = GPS.read();
+                        gps.getGPSData();
+
+                        portENTER_CRITICAL(&nmeaDebugMux);
+                        nmeaDebugOk    = GPS.statistics.ok;
+                        nmeaDebugErr   = GPS.statistics.errors;
+                        nmeaLastMsg    = (uint8_t)GPS.nmeaMessage;
+                        nmeaDebugCycles++;
+                        portEXIT_CRITICAL(&nmeaDebugMux);
+
+                        // Only flag a satellite-data update when this cycle actually
+                        // carried GSV (sat_count > 0). With GSV decimated to ~1Hz the
+                        // intermediate cycles report 0, so this avoids redrawing the
+                        // constellation at the full rate with unchanged data.
+                        if (GPS.sat_count > 0)
+                            satDataUpdated = true;
+                    }
                 }
             }
 
@@ -117,13 +155,13 @@ void gpsTask(void *pvParameters)
 /**
  * @brief Initialize GPS processing task
  *
- * @details Creates and starts the GPS task on core 0 with 3KB stack size and priority 2.
+ * @details Creates and starts the GPS task on core 0 with 4KB stack size and priority 2.
  *          Includes a 500ms delay after task creation to ensure proper initialization
  *          before other system components attempt to access GPS data.
  */
 void initGpsTask()
 {
-    xTaskCreatePinnedToCore(gpsTask, PSTR("GPS Task"), 3072, NULL, 2, NULL, 0);
+    xTaskCreatePinnedToCore(gpsTask, PSTR("GPS Task"), 4096, NULL, 2, NULL, 0);
     vTaskDelay(pdMS_TO_TICKS(500));
 }
 

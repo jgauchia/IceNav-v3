@@ -43,6 +43,14 @@ extern uint32_t nmeaDebugCycles;
 extern uint8_t  nmeaLastMsg;
 extern portMUX_TYPE nmeaDebugMux;
 
+// Raw NMEA sentence ring buffer — written by gpsTask, read by debug tile.
+// Captures each complete sentence as it is fed to the parser, without
+// disabling parsing. Protected by nmeaDebugMux.
+#define NMEA_RAW_LINES 12   /**< Number of sentences kept in the ring buffer. */
+#define NMEA_RAW_LEN   88   /**< Max bytes stored per sentence (incl. terminator). */
+extern char    nmeaRawBuf[NMEA_RAW_LINES][NMEA_RAW_LEN];
+extern uint8_t nmeaRawHead;  /**< Index of the next slot to write (oldest line). */
+
 void gpsTask(void *pvParameters);
 
 void initGpsTask();

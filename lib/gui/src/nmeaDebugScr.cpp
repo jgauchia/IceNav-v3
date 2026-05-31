@@ -12,6 +12,8 @@
 #include "mainScr.hpp"
 #include <NMEAGPS.h>
 #include "esp_timer.h"
+#include <cstring>
+#include <cstdio>
 
 extern NMEAGPS GPS;
 extern gps_fix  fix;
@@ -26,6 +28,7 @@ static lv_obj_t *dbgFixLabel;
 static lv_obj_t *dbgSatsLabel;
 static lv_obj_t *dbgBufLabel;
 static lv_obj_t *dbgHintLabel;
+static lv_obj_t *dbgRawLabel;
 
 static uint32_t prevOk    = 0;
 static uint32_t prevCycle = 0;
@@ -97,6 +100,31 @@ static void nmea_debug_observer_cb(lv_observer_t *observer, lv_subject_t *subjec
     lv_label_set_text_fmt(dbgBufLabel, "UART buf  : %d bytes", avail);
 
     lv_label_set_text(dbgHintLabel, "Cfg last: $RMC (NMEAGPS_cfg.h)");
+
+    // Raw NMEA: snapshot the ring buffer under the lock, then format outside it
+    // to keep the critical section (interrupts disabled) as short as possible.
+    static char rawSnap[NMEA_RAW_LINES][NMEA_RAW_LEN];
+    uint8_t head;
+    portENTER_CRITICAL(&nmeaDebugMux);
+    head = nmeaRawHead;
+    memcpy(rawSnap, nmeaRawBuf, sizeof(rawSnap));
+    portEXIT_CRITICAL(&nmeaDebugMux);
+
+    // static to keep it off the (limited) observer/timer-context stack
+    static char rawDump[NMEA_RAW_LINES * NMEA_RAW_LEN];
+    size_t pos = 0;
+    for (uint8_t i = 0; i < NMEA_RAW_LINES; i++)
+    {
+        uint8_t idx = (head + i) % NMEA_RAW_LINES;
+        if (rawSnap[idx][0] == '\0')
+            continue;
+        int written = snprintf(rawDump + pos, sizeof(rawDump) - pos, "%s\n", rawSnap[idx]);
+        if (written < 0 || (size_t)written >= sizeof(rawDump) - pos)
+            break;
+        pos += written;
+    }
+    rawDump[pos] = '\0';
+    lv_label_set_text(dbgRawLabel, rawDump);
 }
 
 /**
@@ -117,7 +145,8 @@ void nmeaDebugScr(_lv_obj_t *screen)
     lv_obj_add_style(cont, &styleTransparent, LV_PART_MAIN);
     lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(cont, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
-    lv_obj_clear_flag(cont, LV_OBJ_FLAG_SCROLLABLE);
+    // Stats + raw dump may exceed the tile height; allow vertical scroll.
+    lv_obj_set_scroll_dir(cont, LV_DIR_VER);
 
     auto makeLabel = [&](lv_obj_t *&label, const char *init)
     {
@@ -136,6 +165,14 @@ void nmeaDebugScr(_lv_obj_t *screen)
     makeLabel(dbgSatsLabel,    "Sats used : --");
     makeLabel(dbgBufLabel,     "UART buf  : --");
     makeLabel(dbgHintLabel,    "Cfg last: $RMC");
+
+    // Raw NMEA mirror: last sentences fed to the parser, small monospace-ish font
+    dbgRawLabel = lv_label_create(cont);
+    lv_obj_set_width(dbgRawLabel, TFT_WIDTH - 10);
+    lv_obj_set_style_text_font(dbgRawLabel, fontSmall, 0);
+    lv_obj_set_style_text_color(dbgRawLabel, lv_palette_main(LV_PALETTE_LIGHT_GREEN), 0);
+    lv_label_set_long_mode(dbgRawLabel, LV_LABEL_LONG_WRAP);
+    lv_label_set_text(dbgRawLabel, "");
 
     lv_subject_add_observer_obj(&subject_nmea_debug_trigger,
                                 nmea_debug_observer_cb, cont, NULL);

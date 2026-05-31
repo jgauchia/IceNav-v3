@@ -50,6 +50,7 @@ bool     enableWeb      = true; /**< Enable or disable web file server */
 bool     showMapToolBar = false;/**< Show Map Toolbar */
 int8_t   tempOffset     = 0;    /**< BME Temperature offset */
 bool     calculateDST   = false;/**< Daylight Saving Time calculation flag */
+bool     nmeaDebugTileEnabled = false; /**< Show the NMEA debug tile */
 
 
 extern Battery battery;
@@ -105,6 +106,7 @@ void loadPreferences()
     GPS_RX = cfg.getUInt(PKEYS::KGPS_RX, GPS_RX);
     enableWeb = cfg.getBool(PKEYS::KWEB_FILE, enableWeb);
     tempOffset = cfg.getInt(PKEYS::KTEMP_OFFS, 0);
+    nmeaDebugTileEnabled = cfg.getBool(PKEYS::KNMEA_DEBUG, false);
 
     // Default Widgets positions
     #ifdef TDECK_ESP32S3

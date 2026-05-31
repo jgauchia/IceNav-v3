@@ -37,10 +37,24 @@ static void deviceSettingsEvent(lv_event_t *event)
         navSet.routeSpeed = ROUTE_SPEED_VALUES[idx];
         cfg.saveShort(PKEYS::KROUTE_SPEED, (int16_t)navSet.routeSpeed);
     }
+    if (strcmp(option, "nmeadbg") == 0)
+    {
+        nmeaDebugTileEnabled = lv_obj_has_state(obj, LV_STATE_CHECKED);
+        cfg.saveBool(PKEYS::KNMEA_DEBUG, nmeaDebugTileEnabled);
+        // The main screen tiles are built once at boot; a restart is needed
+        // to add or remove the debug tile.
+        needReboot = true;
+    }
     if (strcmp(option, "back") == 0)
     {
         cfg.saveUInt(PKEYS::KDEF_BRIGT, defBright);
-        lv_screen_load(settingsScreen);
+        if (needReboot)
+        {
+            lv_obj_delete(deviceSettingsScreen);
+            showRestartScr();
+        }
+        else
+            lv_screen_load(settingsScreen);
     }
 }
 
@@ -197,6 +211,18 @@ void createDeviceSettingsScr()
     lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
     lv_obj_set_width(dropdown, TFT_WIDTH / 3);
     lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"routeprofile");
+    // NMEA Debug Tile
+    list = lv_list_add_btn(deviceSettingsOptions, NULL, "NMEA Debug\nTile");
+    lv_obj_set_style_text_font(list, fontOptions, 0);
+    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
+    lv_obj_t *nmeaDbgSwitch = lv_switch_create(list);
+    if (nmeaDebugTileEnabled)
+        lv_obj_add_state(nmeaDbgSwitch, LV_STATE_CHECKED);
+    else
+        lv_obj_clear_state(nmeaDbgSwitch, LV_STATE_CHECKED);
+    lv_obj_align_to(nmeaDbgSwitch, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
+    lv_obj_add_event_cb(nmeaDbgSwitch, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"nmeadbg");
     // Upgrade button
     list = lv_list_add_btn(deviceSettingsOptions, NULL, NULL);
     btn = lv_btn_create(list);
