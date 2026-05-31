@@ -41,7 +41,7 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 
 |<img src="images/dev/climb.png">|
 |:-:|
-| CLimb Analyzer | 
+| Climb Analyzer | 
 
 |<img src="images/dev/settings.jpg">|<img src="images/dev/compasscal.jpg">|<img src="images/dev/touchcal.jpg">|<img src="images/dev/mapsettings.png">|<img src="images/dev/devicesettings.png">|
 |:-:|:-:|:-:|:-:|:-:|
