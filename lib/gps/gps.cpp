@@ -93,17 +93,45 @@ Gps::Gps()
 }
 
 /**
+ * @brief Build a $PCAS03 command string with adaptive sentence rates.
+ *
+ * @details At 9600 baud the link cannot carry the full sentence set (GGA + GSA*3 +
+ * 			GSV*3 + RMC, ~595 bytes with fix) faster than ~1Hz. To keep position
+ * 			(GGA/RMC) fluid at the selected rate while still delivering DOP and the
+ * 			satellite constellation, GSA and GSV are decimated to roughly 1Hz by
+ * 			emitting them once every N fixes, where N equals the rate in Hz. The NMEA
+ * 			checksum is computed over the payload and appended.
+ *
+ * @param out     Output buffer for the full "$PCAS03,...*CC\r\n" string.
+ * @param outSize Size of the output buffer.
+ * @param rateIdx Update rate index into GPS_RATE_HZ.
+ */
+void buildPcas03(char *out, size_t outSize, uint8_t rateIdx)
+{
+    uint8_t n = GPS_RATE_HZ[rateIdx];
+
+    char payload[40];
+    snprintf(payload, sizeof(payload), "PCAS03,1,0,%u,%u,1,0,0,0,0,0,0", n, n);
+
+    uint8_t crc = 0;
+    for (const char *p = payload; *p; ++p)
+        crc ^= (uint8_t)*p;
+
+    snprintf(out, outSize, "$%s*%02X\r\n", payload, crc);
+}
+
+/**
  * @brief Init GPS and custom NMEA parsing.
  *
  * @details Initializes the GPS port with the appropriate baud rate and buffer size.
- * 			If a specific baud rate is not set (gpsBaud != 4), it uses the predefined baud rate array.
+ * 			If a specific baud rate is not set (gpsBaud != 3), it uses the predefined baud rate array.
  *			Otherwise, it attempts to auto-detect the baud rate.
  */
 void Gps::init()
 {
-    gpsPort.setRxBufferSize(1024);
+    gpsPort.setRxBufferSize(2048);
 
-    if (gpsBaud != 4)
+    if (gpsBaud != 3)
         gpsPort.begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
     else
     {
@@ -135,10 +163,23 @@ void Gps::init()
         gpsPort.flush();
         vTaskDelay(pdMS_TO_TICKS(100));
 
+        // Active sentences: GGA + RMC at full rate, GSA + GSV decimated to ~1Hz
+        // (disable GLL, VTG, ZDA, TXT). Keeps the 9600 link within budget at >1Hz.
+        char pcas03[40];
+        buildPcas03(pcas03, sizeof(pcas03), gpsUpdate);
+        gpsPort.println(pcas03);
+        gpsPort.flush();
+        vTaskDelay(pdMS_TO_TICKS(100));
+
         // Set NMEA 4.1
         gpsPort.println("$PCAS05,2*1A\r\n");
         gpsPort.flush();
         vTaskDelay(pdMS_TO_TICKS(100));
+
+        // Save config to flash
+        gpsPort.println("$PCAS00*01\r\n");
+        gpsPort.flush();
+        vTaskDelay(pdMS_TO_TICKS(200));
     #endif
 }
 
@@ -256,27 +297,33 @@ void Gps::getGPSData()
     if (fix.valid.vdop)
         gpsData.vdop = fix.vdop / 1000.0f;
 
-    // // Satellite info
-    gpsData.satInView = (uint8_t)GPS.sat_count;
-    for (uint8_t i = 0; i < gpsData.satInView; i++)
+    // Satellite info: GSV may be decimated (emitted at ~1Hz while GGA/RMC run
+    // at the full rate), so cycles without GSV report sat_count == 0. Keep the
+    // last known constellation in those cycles instead of clearing it, so the
+    // SNR bars and sky radar stay populated between GSV updates.
+    if (GPS.sat_count > 0)
     {
-        satTracker[i].satNum = (uint8_t)GPS.satellites[i].id;
-        satTracker[i].elev = (uint8_t)GPS.satellites[i].elevation;
-        satTracker[i].azim = (uint16_t)GPS.satellites[i].azimuth;
-        satTracker[i].snr = (uint8_t)GPS.satellites[i].snr;
-        satTracker[i].active = GPS.satellites[i].tracked;
-        strncpy(satTracker[i].talker_id, GPS.satellites[i].talker_id, 3);
+        gpsData.satInView = (uint8_t)GPS.sat_count;
+        for (uint8_t i = 0; i < gpsData.satInView; i++)
+        {
+            satTracker[i].satNum = (uint8_t)GPS.satellites[i].id;
+            satTracker[i].elev = (uint8_t)GPS.satellites[i].elevation;
+            satTracker[i].azim = (uint16_t)GPS.satellites[i].azimuth;
+            satTracker[i].snr = (uint8_t)GPS.satellites[i].snr;
+            satTracker[i].active = GPS.satellites[i].tracked;
+            strncpy(satTracker[i].talker_id, GPS.satellites[i].talker_id, 3);
 
-        // Clamp elevation between 0 and 90 degrees
-        int8_t clampedElev = std::max((int8_t)0, std::min((int8_t)90, (int8_t)satTracker[i].elev));
-        int H = canvasRadius * (90 - clampedElev) / 90;
+            // Clamp elevation between 0 and 90 degrees
+            int8_t clampedElev = std::max((int8_t)0, std::min((int8_t)90, (int8_t)satTracker[i].elev));
+            int H = canvasRadius * (90 - clampedElev) / 90;
 
-        float azimRad = DEG2RAD((float)satTracker[i].azim);
-        float sinAzim = lutInit ? sinLUT(azimRad) : sinf(azimRad);
-        float cosAzim = lutInit ? cosLUT(azimRad) : cosf(azimRad);
+            float azimRad = DEG2RAD((float)satTracker[i].azim);
+            float sinAzim = lutInit ? sinLUT(azimRad) : sinf(azimRad);
+            float cosAzim = lutInit ? cosLUT(azimRad) : cosf(azimRad);
 
-        satTracker[i].posX = canvasCenter_X + H * sinAzim;
-        satTracker[i].posY = canvasCenter_Y - H * cosAzim;
+            satTracker[i].posX = canvasCenter_X + H * sinAzim;
+            satTracker[i].posY = canvasCenter_Y - H * cosAzim;
+        }
     }
 
 }

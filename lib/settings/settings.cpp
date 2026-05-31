@@ -144,16 +144,17 @@ void saveGPSBaud(uint16_t gpsBaud)
             gpsPort.flush();
             gpsPort.println(GPS_BAUD_PCAS[gpsBaud]);
             gpsPort.flush();
+            vTaskDelay(pdMS_TO_TICKS(200));
             gpsPort.println("$PCAS00*01\r\n");
             gpsPort.flush();
-            vTaskDelay(pdMS_TO_TICKS(500));
+            vTaskDelay(pdMS_TO_TICKS(1000));
         #endif
         gpsPort.flush();
         gpsPort.end();
-        vTaskDelay(pdMS_TO_TICKS(500));
-        gpsPort.setRxBufferSize(1024);
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        gpsPort.setRxBufferSize(2048);
         gpsPort.begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
-        vTaskDelay(pdMS_TO_TICKS(500));
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
     else
     {
@@ -164,7 +165,7 @@ void saveGPSBaud(uint16_t gpsBaud)
             gpsPort.flush();
             gpsPort.end();
             vTaskDelay(pdMS_TO_TICKS(500));
-            gpsPort.setRxBufferSize(1024);
+            gpsPort.setRxBufferSize(2048);
             gpsPort.begin(gpsBaudDetected, SERIAL_8N1, GPS_RX, GPS_TX);
             vTaskDelay(pdMS_TO_TICKS(500));
         }
@@ -186,9 +187,18 @@ void saveGPSUpdateRate(uint16_t gpsUpdateRate)
         gpsPort.flush();
         gpsPort.println(GPS_RATE_PCAS[gpsUpdateRate]);
         gpsPort.flush();
+        vTaskDelay(pdMS_TO_TICKS(100));
+        // Re-decimate GSA/GSV for the new rate so the 9600 link stays within budget
+        char pcas03[40];
+        buildPcas03(pcas03, sizeof(pcas03), gpsUpdateRate);
+        gpsPort.println(pcas03);
+        gpsPort.flush();
+        vTaskDelay(pdMS_TO_TICKS(100));
         gpsPort.println("$PCAS00*01\r\n");
         gpsPort.flush();
         vTaskDelay(pdMS_TO_TICKS(500));
+        while (gpsPort.available())
+            gpsPort.read();
     #endif
 }
 

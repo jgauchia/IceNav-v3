@@ -14,6 +14,7 @@
 #include "widgets.hpp"
 #include "navScr.hpp"
 #include "satInfoScr.hpp"
+#include "nmeaDebugScr.hpp"
 #include "compass.hpp"
 #include "navigation.hpp"
 
@@ -28,20 +29,22 @@ extern uint8_t activeTile;       /**< Active Tile in TileView control */
  */
 enum tileName
 {
-    COMPASS,   /**< Compass screen (Tile 0) */
-    MAP,       /**< Map screen (Tile 1) */
-    NAV,       /**< Navigation screen (Tile 2) */
-    SATTRACK,  /**< Satellite track screen (Tile 3) */
+    COMPASS,    /**< Compass screen (Tile 0) */
+    MAP,        /**< Map screen (Tile 1) */
+    NAV,        /**< Navigation screen (Tile 2) */
+    SATTRACK,   /**< Satellite track screen (Tile 3) */
+    DEBUG_NMEA, /**< NMEA debug screen (Tile 4) — temporary */
 };
 
 /**
  * @brief Main Screen Tiles
  * @details LVGL tile objects for main application screens.
  */
-extern lv_obj_t *compassTile;    /**< Compass screen tile */
-extern lv_obj_t *navTile;        /**< Navigation screen tile */
-extern lv_obj_t *mapTile;        /**< Map screen tile */
-extern lv_obj_t *satTrackTile;   /**< Satellite track screen tile */
+extern lv_obj_t *compassTile;     /**< Compass screen tile */
+extern lv_obj_t *navTile;         /**< Navigation screen tile */
+extern lv_obj_t *mapTile;         /**< Map screen tile */
+extern lv_obj_t *satTrackTile;    /**< Satellite track screen tile */
+extern lv_obj_t *nmeaDebugTile;   /**< NMEA debug tile (temporary) */
 
 /**
  * @brief Map Toolbar Buttons

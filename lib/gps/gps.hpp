@@ -43,6 +43,9 @@ extern Gps gps; /**< Global GPS instance */
 static const unsigned long GPS_BAUD[] = {4800, 9600, 19200, 0}; /**< Supported GPS baud rates. */
 static const char *GPS_BAUD_PCAS[] = {"$PCAS01,0*1C\r\n", "$PCAS01,1*1D\r\n", "$PCAS01,2*1E\r\n"}; /**< NMEA command strings to set baud rate for PCAS modules. */
 static const char *GPS_RATE_PCAS[] = {"$PCAS02,1000*2E\r\n", "$PCAS02,500*1A\r\n", "$PCAS02,250*18\r\n", "$PCAS02,200*1D\r\n", "$PCAS02,100*1E\r\n"}; /**< NMEA command strings to set update rate for PCAS modules. */
+static const uint8_t GPS_RATE_HZ[] = {1, 2, 4, 5, 10}; /**< Update rate in Hz per GPS_RATE_PCAS index. */
+
+void buildPcas03(char *out, size_t outSize, uint8_t rateIdx); /**< Builds a $PCAS03 command with GSA/GSV decimated to ~1Hz for the given rate index. @param out Output buffer. @param outSize Buffer size. @param rateIdx Update rate index. */
 
 /**
  * @brief Satellite Constellation Canvas Definition

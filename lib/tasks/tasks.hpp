@@ -36,6 +36,13 @@ struct SensorData
 
 extern SensorData globalSensorData;
 
+// NMEA debug stats — written by gpsTask, read by debug tile
+extern uint32_t nmeaDebugOk;
+extern uint32_t nmeaDebugErr;
+extern uint32_t nmeaDebugCycles;
+extern uint8_t  nmeaLastMsg;
+extern portMUX_TYPE nmeaDebugMux;
+
 void gpsTask(void *pvParameters);
 
 void initGpsTask();

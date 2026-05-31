@@ -20,7 +20,14 @@ xSemaphoreHandle gpsMutex;
 extern Gps gps;
 SensorData globalSensorData = {};
 
-static constexpr TickType_t MUTEX_TIMEOUT_GPS  = pdMS_TO_TICKS(100);
+// Debug NMEA stats — written by gpsTask, read by GUI
+uint32_t nmeaDebugOk     = 0;
+uint32_t nmeaDebugErr    = 0;
+uint32_t nmeaDebugCycles = 0;
+uint8_t  nmeaLastMsg     = 0;   // last GPS.nmeaMessage seen per cycle
+portMUX_TYPE nmeaDebugMux = portMUX_INITIALIZER_UNLOCKED;
+
+static constexpr TickType_t MUTEX_TIMEOUT_GPS  = pdMS_TO_TICKS(15);
 static constexpr TickType_t MUTEX_TIMEOUT_SLOW = pdMS_TO_TICKS(10);
 
 static const char* TAG = "Task";
@@ -43,47 +50,61 @@ void gpsTask(void *pvParameters)
     {
         if ( gpsMutex != NULL && xSemaphoreTake(gpsMutex, MUTEX_TIMEOUT_GPS) == pdTRUE )
         {
+            bool satDataUpdated = false;
+
             if (nmea_output_enable)
             {
                 while (gpsPort.available())
-                {
-                    char c = gpsPort.read();
-                    Serial.print(c);
-                }
-            } 
-
-            bool satDataUpdated = false;
-            while (GPS.available( gpsPort ))
+                    Serial.write(gpsPort.read());
+            }
+            else
             {
-                fix = GPS.read();
-                gps.getGPSData();
-                if (gps.gpsData.satInView > 0)
-                    satDataUpdated = true;
-
-                /* Non-blocking: gpsTask (core 0) never waits on the GUI task (core 1).
-                   If lvgl_mutex is taken, subject updates are skipped for this cycle.
-                   Intentional — the GPS task must not stall waiting for LVGL. */
-                if (isMainScreen && !canMoveWidget && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
+                while (GPS.available( gpsPort ))
                 {
-                    lv_subject_set_int(&subject_speed, (int32_t)gps.gpsData.speed);
-                    lv_subject_set_int(&subject_altitude, (int32_t)gps.gpsData.altitude);
-                    lv_subject_set_int(&subject_lat, (int32_t)(gps.gpsData.latitude * 1000000.0f));
-                    lv_subject_set_int(&subject_lon, (int32_t)(gps.gpsData.longitude * 1000000.0f));
-                    lv_subject_set_int(&subject_sats, (int32_t)gps.gpsData.satellites);
-                    lv_subject_set_int(&subject_pdop, (int32_t)(gps.gpsData.pdop * 10.0f));
-                    lv_subject_set_int(&subject_hdop, (int32_t)(gps.gpsData.hdop * 10.0f));
-                    lv_subject_set_int(&subject_vdop, (int32_t)(gps.gpsData.vdop * 10.0f));
-                    lv_subject_set_int(&subject_fix_mode, (int32_t)gps.gpsData.fixMode);
-                    lv_subject_set_int(&subject_is_fixed, isGpsFixed ? 1 : 0);
-                    if (!mapSet.mapRotationComp)
-                        lv_subject_set_int(&subject_heading, (int32_t)gps.gpsData.heading);
-                    xSemaphoreGive(lvgl_mutex);
+                    fix = GPS.read();
+                    gps.getGPSData();
+
+                    portENTER_CRITICAL(&nmeaDebugMux);
+                    nmeaDebugOk    = GPS.statistics.ok;
+                    nmeaDebugErr   = GPS.statistics.errors;
+                    nmeaLastMsg    = (uint8_t)GPS.nmeaMessage;
+                    nmeaDebugCycles++;
+                    portEXIT_CRITICAL(&nmeaDebugMux);
+
+                    // Only flag a satellite-data update when this cycle actually
+                    // carried GSV (sat_count > 0). With GSV decimated to ~1Hz the
+                    // intermediate cycles report 0, so this avoids redrawing the
+                    // constellation at the full rate with unchanged data.
+                    if (GPS.sat_count > 0)
+                        satDataUpdated = true;
                 }
             }
 
-            if (satDataUpdated && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
+            /* Non-blocking: gpsTask (core 0) never waits on the GUI task (core 1).
+               If lvgl_mutex is taken, subject updates are skipped for this cycle.
+               Intentional — the GPS task must not stall waiting for LVGL. */
+            if (isMainScreen && !canMoveWidget && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
             {
-                lv_subject_set_int(&subject_sats_data_trigger, lv_subject_get_int(&subject_sats_data_trigger) + 1);
+                lv_subject_set_int(&subject_speed, (int32_t)gps.gpsData.speed);
+                lv_subject_set_int(&subject_altitude, (int32_t)gps.gpsData.altitude);
+                lv_subject_set_int(&subject_lat, (int32_t)(gps.gpsData.latitude * 1000000.0f));
+                lv_subject_set_int(&subject_lon, (int32_t)(gps.gpsData.longitude * 1000000.0f));
+                lv_subject_set_int(&subject_sats, (int32_t)gps.gpsData.satellites);
+                lv_subject_set_int(&subject_pdop, (int32_t)(gps.gpsData.pdop * 10.0f));
+                lv_subject_set_int(&subject_hdop, (int32_t)(gps.gpsData.hdop * 10.0f));
+                lv_subject_set_int(&subject_vdop, (int32_t)(gps.gpsData.vdop * 10.0f));
+                lv_subject_set_int(&subject_fix_mode, (int32_t)gps.gpsData.fixMode);
+                lv_subject_set_int(&subject_is_fixed, isGpsFixed ? 1 : 0);
+                if (!mapSet.mapRotationComp)
+                    lv_subject_set_int(&subject_heading, (int32_t)gps.gpsData.heading);
+                xSemaphoreGive(lvgl_mutex);
+            }
+
+            if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
+            {
+                if (satDataUpdated)
+                    lv_subject_set_int(&subject_sats_data_trigger, lv_subject_get_int(&subject_sats_data_trigger) + 1);
+                lv_subject_set_int(&subject_nmea_debug_trigger, lv_subject_get_int(&subject_nmea_debug_trigger) + 1);
                 xSemaphoreGive(lvgl_mutex);
             }
 

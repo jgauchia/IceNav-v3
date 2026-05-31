@@ -45,6 +45,7 @@ lv_subject_t subject_climb_total_dist;
 lv_subject_t subject_climb_total_gain;
 lv_subject_t subject_climb_approaching;
 lv_subject_t subject_map_3d;
+lv_subject_t subject_nmea_debug_trigger;
 
 #ifdef ENABLE_TEMP
 lv_subject_t subject_temp;
@@ -93,6 +94,7 @@ void init_lv_subjects()
     lv_subject_init_int(&subject_climb_total_gain,  0);
     lv_subject_init_int(&subject_climb_approaching, 0);
     lv_subject_init_int(&subject_map_3d, 0);
+    lv_subject_init_int(&subject_nmea_debug_trigger, 0);
 
     #ifdef ENABLE_TEMP
     lv_subject_init_int(&subject_temp, 0);
