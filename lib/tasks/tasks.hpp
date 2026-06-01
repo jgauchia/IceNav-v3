@@ -60,6 +60,7 @@ extern char    nmeaRawBuf[NMEA_RAW_LINES][NMEA_RAW_LEN];
 extern uint8_t nmeaRawHead;  /**< Index of the next slot to write (oldest line). */
 
 extern TaskHandle_t gpsTaskHandle;
+extern TaskHandle_t guiTaskHandle;
 
 void gpsTask(void *pvParameters);
 

@@ -87,6 +87,7 @@ void setup()
     }
     if (WiFi.status() == WL_CONNECTED && enableWeb)
         configureWebServer();
+    vTaskSuspend(guiTaskHandle);
     splashScreen();
     if (isGpsFixed)
     {
@@ -98,6 +99,7 @@ void setup()
         lv_timer_resume(searchTimer);
         lv_screen_load(searchSatScreen);
     }
+    vTaskResume(guiTaskHandle);
 }
 
 /**

@@ -432,9 +432,11 @@ void guiTask(void *pvParameters)
  *          This ensures that UI updates and touch events are processed with the
  *          highest application priority.
  */
+TaskHandle_t guiTaskHandle = NULL;
+
 void initGuiTask()
 {
-    xTaskCreatePinnedToCore(guiTask, "GUI Task", 8192, NULL, 3, NULL, 1);
+    xTaskCreatePinnedToCore(guiTask, "GUI Task", 8192, NULL, 3, &guiTaskHandle, 1);
 }
 
 extern TrackVector            trackData;
