@@ -482,7 +482,6 @@ void navTask(void *pvParameters)
 
                     GPXParser gpxTmp;
                     turnPoints    = gpxTmp.getTurnPointsSlidingWindow(10.0f, 5, 45.0f, 3, trackData);
-                    ESP_LOGI(TAG, "[NAV] route waypoints=%d turnPoints=%d", (int)trackData.size(), (int)turnPoints.size());
                     navState      = NavState{};
                     gps.resetSimulation();
                     resetNavigationUI();

@@ -11,6 +11,7 @@
 #include "router.hpp"
 #include "climbAnalyzer.hpp"
 #include "gps.hpp"
+#include "gpsMath.hpp"
 
 extern Maps mapView;
 extern Storage storage;
@@ -91,6 +92,33 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
         resetNavigationUI();
         climbAnalyzer.clear();
         gpx.loadTrack(trackData);
+
+        if (!trackData.empty())
+        {
+            float distToStart = calcDist(gps.gpsData.latitude, gps.gpsData.longitude,
+                                         trackData[0].lat, trackData[0].lon);
+            if (distToStart > 50.0f)
+            {
+                TrackVector approachRoute;
+                RouterResult res = router.route(gps.gpsData.latitude, gps.gpsData.longitude,
+                                                trackData[0].lat, trackData[0].lon, approachRoute);
+                if (res == RouterResult::OK && !approachRoute.empty())
+                {
+                    approachRoute.pop_back();
+                    approachRoute.insert(approachRoute.end(), trackData.begin(), trackData.end());
+                    trackData = std::move(approachRoute);
+                }
+            }
+
+            trackData[0].accumDist = 0.0f;
+            for (size_t i = 1; i < trackData.size(); ++i)
+            {
+                float d = calcDist(trackData[i-1].lat, trackData[i-1].lon,
+                                   trackData[i].lat,   trackData[i].lon);
+                trackData[i].accumDist = trackData[i-1].accumDist + d;
+            }
+        }
+
         if (mapSet.showClimb)
             climbAnalyzer.analyze(trackData);
         turnPoints = gpx.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, trackData);
