@@ -9,6 +9,7 @@
 #include "lv_subjects.hpp"
 #include "gps.hpp"
 #include "bme.hpp"
+#include "settings.hpp"
 #include <time.h>
 
 lv_subject_t subject_heading;
@@ -97,7 +98,17 @@ void init_lv_subjects()
     lv_subject_init_int(&subject_nmea_debug_trigger, 0);
 
     #ifdef ENABLE_TEMP
-    lv_subject_init_int(&subject_temp, 0);
+    {
+        #ifdef BME280
+        float t = 0.0f;
+        float p = 0.0f;
+        float h = 0.0f;
+        bme.readAll(t, p, h);
+        lv_subject_init_int(&subject_temp, (int32_t)(t + tempOffset));
+        #else
+        lv_subject_init_int(&subject_temp, 0);
+        #endif
+    }
     #endif
 }
 
