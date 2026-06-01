@@ -20,6 +20,9 @@
 #include "splashScr.hpp"
 #include "notifyBar.hpp"
 #include "settingsScr.hpp"
+#if defined(BATT_PIN) || defined(BME280) || defined(ENABLE_IMU) || defined(ENABLE_COMPASS)
+#include "sensorScr.hpp"
+#endif
 #include "deviceSettingsScr.hpp"
 #include "mapSettingsScr.hpp"
 #include "gestures.hpp"

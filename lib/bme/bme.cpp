@@ -296,10 +296,9 @@ void BME280_Driver::readAll(float &temp, float &pres, float &humi)
  * @param seaLevelPressure Reference sea level pressure in Pascals (default 101325 Pa).
  * @return Estimated altitude in meters.
  */
-float BME280_Driver::readAltitude(float seaLevelPressure)
+float BME280_Driver::readAltitude(float pressure)
 {
-    float pressure = readPressure();
-    return 44330.0f * (1.0f - powf(pressure / seaLevelPressure, 0.1903f));
+    return 44330.0f * (1.0f - powf(pressure / 101325.0f, 0.1903f));
 }
 
 /**

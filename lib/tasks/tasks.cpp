@@ -15,6 +15,9 @@
 #include "router.hpp"
 #include "gpxParser.hpp"
 #include <WiFi.h>
+#ifdef ENABLE_IMU
+    #include "imu.hpp"
+#endif
 
 xSemaphoreHandle gpsMutex;
 SemaphoreHandle_t sensorMutex = NULL;
@@ -287,7 +290,7 @@ void sensorTask(void *pvParameters)
             }
         }
 
-        if (slowCounter++ >= 75)
+        if (slowCounter++ >= 25)
         {
             #ifdef BME280
             {
@@ -335,8 +338,33 @@ void sensorTask(void *pvParameters)
             if (sensorMutex != NULL && xSemaphoreTake(sensorMutex, portMAX_DELAY) == pdTRUE)
             {
                 globalSensorData.batteryPercent = rawBattery;
+                globalSensorData.batteryVoltage = battery.lastVoltage();
                 xSemaphoreGive(sensorMutex);
             }
+
+            #ifdef ENABLE_IMU
+            {
+                float ax = 0.0f;
+                float ay = 0.0f;
+                float az = 0.0f;
+                float gx = 0.0f;
+                float gy = 0.0f;
+                float gz = 0.0f;
+                float imuTemp = 0.0f;
+                mpu.readAll(ax, ay, az, gx, gy, gz, imuTemp);
+                if (sensorMutex != NULL && xSemaphoreTake(sensorMutex, portMAX_DELAY) == pdTRUE)
+                {
+                    globalSensorData.accelX = ax;
+                    globalSensorData.accelY = ay;
+                    globalSensorData.accelZ = az;
+                    globalSensorData.gyroX  = gx;
+                    globalSensorData.gyroY  = gy;
+                    globalSensorData.gyroZ  = gz;
+                    xSemaphoreGive(sensorMutex);
+                }
+            }
+            #endif
+
             int current = (int)rawBattery;
 
             bool thresholdCrossed = getBatteryLevel(current) != getBatteryLevel(sensorState.lastSentValue);

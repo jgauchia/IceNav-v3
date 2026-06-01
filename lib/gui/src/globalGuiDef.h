@@ -27,6 +27,7 @@ extern lv_obj_t *notifyBarHour;         /**< Notify Bar Hour */
 extern lv_obj_t *settingsScreen;        /**< Settings Screen */
 extern lv_obj_t *mapSettingsScreen;     /**< Map Settings Screen */
 extern lv_obj_t *deviceSettingsScreen;  /**< Device Settings Screen */
+extern lv_obj_t *sensorScreen;          /**< Sensor Info Screen */
 extern lv_obj_t *gpxDetailScreen;       /**< Add Waypoint Screen */
 extern lv_obj_t *listGPXScreen;         /**< List Waypoint Screen */
 
