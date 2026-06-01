@@ -60,7 +60,7 @@ class BME280_Driver : public I2CDriverBase
     public:
         BME280_Driver();
         bool begin(uint8_t addr = BME_ADDRESS);
-        float readAltitude(float seaLevelPressure = 101325.0f);
+        float readAltitude(float pressure);
         void readAll(float &temp, float &pres, float &humi);
 };
 

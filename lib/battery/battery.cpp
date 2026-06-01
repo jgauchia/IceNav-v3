@@ -83,6 +83,7 @@ float Battery::readBattery()
     voltage = (voltage * V_REF) / 4096.0f;
     voltage = voltage * ((R1 + R2) / R2);
     voltage = roundf(voltage * 100.0f) / 100.0f;
+    lastVolt = voltage;
     output = ((voltage - batteryMin) / (batteryMax - batteryMin)) * 100.0f;
 
     return (output <= 500) ? output : 0.0f;

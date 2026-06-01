@@ -505,6 +505,9 @@ void initLVGL()
     createMainScr();
     createNotifyBar();
     createSettingsScr();
+    #if defined(BATT_PIN) || defined(BME280) || defined(ENABLE_IMU) || defined(ENABLE_COMPASS)
+    createSensorScr();
+    #endif
     createMapSettingsScr();
     createDeviceSettingsScr();
     createOptionsPanel();

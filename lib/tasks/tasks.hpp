@@ -24,14 +24,21 @@
  * @struct SensorData
  * @brief Holds the latest synchronized data from all non-GPS sensors.
  */
-struct SensorData 
+struct SensorData
 {
-    float batteryPercent = 0.0f;
-    int16_t altitude = 0;
-    int heading = 0;
-    float temperature = 0.0f;
-    float pressure = 0.0f;
-    float humidity = 0.0f;
+    float batteryPercent  = 0.0f;
+    float batteryVoltage  = 0.0f;
+    int16_t altitude      = 0;
+    int heading           = 0;
+    float temperature     = 0.0f;
+    float pressure        = 0.0f;
+    float humidity        = 0.0f;
+    float accelX          = 0.0f;
+    float accelY          = 0.0f;
+    float accelZ          = 0.0f;
+    float gyroX           = 0.0f;
+    float gyroY           = 0.0f;
+    float gyroZ           = 0.0f;
 };
 
 extern SensorData globalSensorData;
