@@ -1207,9 +1207,14 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
     {
         const int16_t tileToLoadX = startX + ((dirX == 0) ? i - 1 : 0);
         const int16_t tileToLoadY = startY + ((dirY == 0) ? i - 1 : 0);
-        float tileLon = (tileToLoadX / (1 << Maps::zoomLevel)) * 360.0f - 180.0f;
-        float tileLat = 90.0f - (tileToLoadY / (1 << Maps::zoomLevel)) * 180.0f;
-        MapTile roundMapTile = Maps::getMapTile(tileLon, tileLat, Maps::zoomLevel, tileToLoadX, tileToLoadY);
+        MapTile roundMapTile;
+        roundMapTile.tilex = tileToLoadX;
+        roundMapTile.tiley = tileToLoadY;
+        roundMapTile.zoom  = Maps::zoomLevel;
+        roundMapTile.lat   = Maps::tiley2lat(tileToLoadY, Maps::zoomLevel);
+        roundMapTile.lon   = Maps::tilex2lon(tileToLoadX, Maps::zoomLevel);
+        snprintf(roundMapTile.file, sizeof(roundMapTile.file), mapRenderFolder,
+                 Maps::zoomLevel, tileToLoadX, tileToLoadY);
 
         // Calculate the grid coordinates in the mapTempSprite
         // Grid is based on tilesGrid (3 or 4)
