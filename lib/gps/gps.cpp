@@ -485,7 +485,7 @@ void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refr
     {
         lastSimulationTime = millis_idf();
 
-        if (simulationIndex < (int)trackData.size() - 2) 
+        if (simulationIndex < (int)trackData.size() - 1)
         {
             if (simulationIndex == 0)
             {
@@ -606,10 +606,12 @@ void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refr
                 lastSimLon = rawLon;
             }
             simulationIndex++;
-        } 
-        else 
+        }
+        else
         {
-            // End of simulation reached
+            gpsData.latitude  = trackData.back().lat;
+            gpsData.longitude = trackData.back().lon;
+            gpsData.speed     = 0;
         }
     }
 }

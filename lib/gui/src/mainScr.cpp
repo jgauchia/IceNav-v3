@@ -944,7 +944,7 @@ static void updateNavEvent(lv_event_t *event)
 {
     int wptDistance = (int)calcDist(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon);
     lv_label_set_text_fmt(distNav, "%d m.", wptDistance);
-    if (wptDistance == 0)
+    if (wptDistance <= 30)
     {
         LV_IMG_DECLARE(navfinish);
         lv_img_set_src(arrowNav, &navfinish);

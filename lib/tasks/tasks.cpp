@@ -481,8 +481,10 @@ void navTask(void *pvParameters)
                     }
 
                     GPXParser gpxTmp;
-                    turnPoints    = gpxTmp.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, trackData);
+                    turnPoints    = gpxTmp.getTurnPointsSlidingWindow(10.0f, 5, 45.0f, 3, trackData);
+                    ESP_LOGI(TAG, "[NAV] route waypoints=%d turnPoints=%d", (int)trackData.size(), (int)turnPoints.size());
                     navState      = NavState{};
+                    gps.resetSimulation();
                     resetNavigationUI();
                     isTrackLoaded = !trackData.empty();
                     xSemaphoreGive(routeMutex);
@@ -518,7 +520,7 @@ void navTask(void *pvParameters)
                 }
             }
 
-            if (gps.gpsData.speed != 0)
+            if (gps.gpsData.speed != 0 || navSet.simNavigation)
             {
                 unsigned long now = (unsigned long)(esp_timer_get_time() / 1000ULL);
                 if (now - lastNavUpdate > 100)
@@ -530,8 +532,6 @@ void navTask(void *pvParameters)
                                          gps.gpsData.heading,  gps.gpsData.speed,
                                          trackData, turnPoints, navState,
                                          20, 200, navConfig);
-                        if (navState.isFinished && lv_subject_get_int(&subject_map_3d) != 0)
-                            lv_subject_set_int(&subject_map_3d, 0);
                         xSemaphoreGive(lvgl_mutex);
                     }
                 }

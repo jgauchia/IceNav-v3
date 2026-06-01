@@ -75,6 +75,7 @@ class Gps
         long detectRate(int rxPin);
         long autoBaud();
         int  getSimulationIndex() const { return simulationIndex; }
+        void resetSimulation() { simulationIndex = 0; accumulatedDist = 0.0f; lastSimulationTime = 0; smoothedLat = 0.0f; smoothedLon = 0.0f; }
 
         /**
         * @struct GPSDATA

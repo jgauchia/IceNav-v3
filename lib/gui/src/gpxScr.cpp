@@ -10,9 +10,11 @@
 #include "lv_subjects.hpp"
 #include "router.hpp"
 #include "climbAnalyzer.hpp"
+#include "gps.hpp"
 
 extern Maps mapView;
 extern Storage storage;
+extern Gps gps;
 extern wayPoint loadWpt;
 extern bool isWaypointOpt;
 extern bool isTrackOpt;
@@ -85,6 +87,7 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
         trackData.clear();
         trackData.shrink_to_fit();
         navState = NavState{};
+        gps.resetSimulation();
         resetNavigationUI();
         climbAnalyzer.clear();
         gpx.loadTrack(trackData);

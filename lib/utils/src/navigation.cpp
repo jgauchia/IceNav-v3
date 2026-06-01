@@ -365,6 +365,8 @@ void updateNavigation(
     // Advance turn index if turns have been passed
     advanceTurnIndex(turns, state, closestIdx);
 
+    const float distToEnd = calcDist(userLat, userLon, track.back().lat, track.back().lon);
+
     auto showFinish = [&]()
     {
         if (lastIconShown != &finish)
@@ -375,10 +377,28 @@ void updateNavigation(
         state.isFinished = true;
     };
 
+    auto showStraightToEnd = [&]()
+    {
+        if (lastIconShown != &straight)
+        {
+            lv_img_set_src(turnImg, &straight);
+            lastIconShown = &straight;
+        }
+        int roundedDist = ((int)distToEnd / 5) * 5;
+        if (roundedDist != lastDistShown)
+        {
+            lv_label_set_text_fmt(turnDistLabel, "%4d", roundedDist);
+            lastDistShown = roundedDist;
+        }
+    };
+
     // No more turns remaining
     if (state.nextTurnIdx >= turns.size())
     {
-        showFinish();
+        if (distToEnd <= 30.0f)
+            showFinish();
+        else
+            showStraightToEnd();
         state.lastTrackIdx = closestIdx;
         return;
     }
@@ -388,7 +408,10 @@ void updateNavigation(
 
     if (nextEventIdx == -1)
     {
-        showFinish();
+        if (distToEnd <= 30.0f)
+            showFinish();
+        else
+            showStraightToEnd();
         state.lastTrackIdx = closestIdx;
         return;
     }

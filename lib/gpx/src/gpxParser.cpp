@@ -413,6 +413,7 @@ std::vector<TurnPoint> GPXParser::getTurnPointsSlidingWindow(
     if (trackData.size() < 2 * windowSize + 1)
         return turnPoints;
     turnPoints.reserve(trackData.size() / 20);
+    float maxDiff = 0.0f;
     for (size_t i = windowSize; i < trackData.size() - windowSize; ++i)
     {
         float distWindow = 0.0f;
@@ -420,27 +421,29 @@ std::vector<TurnPoint> GPXParser::getTurnPointsSlidingWindow(
         for (int j = int(i - windowSize); j < int(i + windowSize); ++j)
         {
             float d = calcDist(trackData[j].lat, trackData[j].lon, trackData[j + 1].lat, trackData[j + 1].lon);
-            if (d > 200.0f) 
-            { 
-                skipWindow = true; 
-                break; 
+            if (d > 200.0f)
+            {
+                skipWindow = true;
+                break;
             }
             distWindow += d;
         }
-        if (skipWindow) 
+        if (skipWindow)
             continue;
         float brgStart = calcCourse(trackData[i - windowSize].lat, trackData[i - windowSize].lon, trackData[i].lat, trackData[i].lon);
         float brgEnd   = calcCourse(trackData[i].lat, trackData[i].lon, trackData[i + windowSize].lat, trackData[i + windowSize].lon);
         float diff = calcAngleDiff(brgEnd, brgStart);
+        if (std::fabs(diff) > maxDiff) maxDiff = std::fabs(diff);
         if (std::fabs(diff) > sharpTurnDeg)
         {
             turnPoints.push_back({static_cast<int>(i), diff, trackData[i].accumDist});
             continue;
         }
-        if (distWindow < minDist) 
+        if (distWindow < minDist)
             continue;
-        if (std::fabs(diff) > thresholdDeg) 
+        if (std::fabs(diff) > thresholdDeg)
             turnPoints.push_back({static_cast<int>(i), diff, trackData[i].accumDist});
     }
+    ESP_LOGE("GPX", "[TURNS] waypoints=%d maxAngle=%.1f turnPoints=%d", (int)trackData.size(), maxDiff, (int)turnPoints.size());
     return turnPoints;
 }
