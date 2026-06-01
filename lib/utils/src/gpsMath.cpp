@@ -67,13 +67,6 @@ bool initTrigLUT()
  */
 float calcDist(float lat1, float lon1, float lat2, float lon2)
 {
-    // Simple Last Value Cache (LVC)
-    static float last_lat1 = 0, last_lon1 = 0, last_lat2 = 0, last_lon2 = 0;
-    static float last_dist = -1.0f;
-
-    if (lat1 == last_lat1 && lon1 == last_lon1 && lat2 == last_lat2 && lon2 == last_lon2)
-        return last_dist;
-
 	float lat1_rad = DEG2RAD(lat1);
 	float lon1_rad = DEG2RAD(lon1);
 	float lat2_rad = DEG2RAD(lat2);
@@ -98,12 +91,7 @@ float calcDist(float lat1, float lon1, float lat2, float lon2)
     }
 
     c = 2.0f * atan2f(sqrtf(a), sqrtf(1.0f - a));
-    last_dist = EARTH_RADIUS * c;
-    
-    // Update cache
-    last_lat1 = lat1; last_lon1 = lon1; last_lat2 = lat2; last_lon2 = lon2;
-
-    return last_dist;
+    return EARTH_RADIUS * c;
 }
 
 /**

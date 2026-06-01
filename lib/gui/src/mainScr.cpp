@@ -704,9 +704,11 @@ static void getActTile(lv_event_t *event)
     if (isBarOpen)
         closeOptionsPanel();
     lv_obj_t *actTile = lv_tileview_get_tile_act(tilesScreen);
-    if (actTile == NULL) 
+    if (actTile == NULL)
         return;
     activeTile = lv_obj_get_x(actTile) / TFT_WIDTH;
+    if (activeTile == NAV && navTile != NULL)
+        lv_obj_send_event(navTile, LV_EVENT_VALUE_CHANGED, NULL);
 }
 
 /**
