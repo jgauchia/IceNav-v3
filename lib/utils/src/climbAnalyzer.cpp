@@ -61,7 +61,7 @@ static void smoothElevation(const TrackVector& trackData, std::vector<float>& sm
  *
  * @param trackData Loaded track points with ele and accumDist populated.
  */
-void ClimbAnalyzer::analyze(const TrackVector& trackData)
+void ClimbAnalyzer::analyze(const TrackVector& trackData, int startOffset)
 {
     segments_.clear();
     if (trackData.size() < 2)
@@ -99,8 +99,8 @@ void ClimbAnalyzer::analyze(const TrackVector& trackData)
                 if (segDist >= CLIMB_MIN_DIST_M && avgGrade >= CLIMB_MIN_GRADE)
                 {
                     ClimbSegment seg;
-                    seg.startIdx  = startIdx;
-                    seg.endIdx    = (int)(i - 1);
+                    seg.startIdx  = startOffset + startIdx;
+                    seg.endIdx    = startOffset + (int)(i - 1);
                     seg.totalDist = segDist;
                     seg.totalGain = gainAcc;
                     seg.avgGrade  = avgGrade;
@@ -122,8 +122,8 @@ void ClimbAnalyzer::analyze(const TrackVector& trackData)
         if (segDist >= CLIMB_MIN_DIST_M && avgGrade >= CLIMB_MIN_GRADE)
         {
             ClimbSegment seg;
-            seg.startIdx  = startIdx;
-            seg.endIdx    = lastIdx;
+            seg.startIdx  = startOffset + startIdx;
+            seg.endIdx    = startOffset + lastIdx;
             seg.totalDist = segDist;
             seg.totalGain = segGain;
             seg.avgGrade  = avgGrade;

@@ -536,7 +536,7 @@ void navTask(void *pvParameters)
             if (navSet.simNavigation)
             {
                 float oldLat = gps.gpsData.latitude;
-                gps.simFakeGPS(trackData, 15, 1000);
+                gps.simFakeGPS(trackData, 40, 500);
                 if (gps.gpsData.latitude != oldLat && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
                 {
                     lv_subject_set_int(&subject_lat,     (int32_t)(gps.gpsData.latitude  * 1000000.0f));

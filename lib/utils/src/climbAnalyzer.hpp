@@ -33,7 +33,7 @@ struct ClimbSegment
 class ClimbAnalyzer
 {
 public:
-    void analyze(const TrackVector& trackData);
+    void analyze(const TrackVector& trackData, int startOffset = 0);
     bool hasClimbs() const { return !segments_.empty(); }
     const std::vector<ClimbSegment>& segments() const { return segments_; }
     void clear();

@@ -93,6 +93,7 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
         climbAnalyzer.clear();
         gpx.loadTrack(trackData);
 
+        size_t gpxStartIdx = 0;
         if (!trackData.empty())
         {
             float distToStart = calcDist(gps.gpsData.latitude, gps.gpsData.longitude,
@@ -104,23 +105,35 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
                                                 trackData[0].lat, trackData[0].lon, approachRoute);
                 if (res == RouterResult::OK && !approachRoute.empty())
                 {
+                    gpxStartIdx = approachRoute.size() - 1;
                     approachRoute.pop_back();
                     approachRoute.insert(approachRoute.end(), trackData.begin(), trackData.end());
                     trackData = std::move(approachRoute);
                 }
             }
 
-            trackData[0].accumDist = 0.0f;
-            for (size_t i = 1; i < trackData.size(); ++i)
+            if (gpxStartIdx > 0)
             {
-                float d = calcDist(trackData[i-1].lat, trackData[i-1].lon,
-                                   trackData[i].lat,   trackData[i].lon);
-                trackData[i].accumDist = trackData[i-1].accumDist + d;
+                // Recalculate accumDist only for the approach segment, then offset
+                // the GPX points so the full track has a continuous distance axis.
+                trackData[0].accumDist = 0.0f;
+                for (size_t i = 1; i <= gpxStartIdx; ++i)
+                {
+                    float d = calcDist(trackData[i-1].lat, trackData[i-1].lon,
+                                       trackData[i].lat,   trackData[i].lon);
+                    trackData[i].accumDist = trackData[i-1].accumDist + d;
+                }
+                float approachDist = trackData[gpxStartIdx].accumDist;
+                for (size_t i = gpxStartIdx + 1; i < trackData.size(); ++i)
+                    trackData[i].accumDist += approachDist;
             }
         }
 
         if (mapSet.showClimb)
-            climbAnalyzer.analyze(trackData);
+        {
+            TrackVector gpxOnly(trackData.begin() + gpxStartIdx, trackData.end());
+            climbAnalyzer.analyze(gpxOnly, (int)gpxStartIdx);
+        }
         turnPoints = gpx.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, trackData);
         isTrackLoaded = !trackData.empty();
         if (isTrackLoaded && mapSet.vectorMap)

@@ -276,6 +276,9 @@ static struct
     int           lastSegStart = -1;
     int           lastPosX     = -1;
     int           lastYTop     = -1;
+    float         minEle       = 0.0f;
+    float         maxEle       = 0.0f;
+    float         eleRange     = 1.0f;
 } climbState;
 
 /**
@@ -335,6 +338,10 @@ static void buildClimbProfile(int startPt, int endPt)
     float eleRange = maxEle - minEle;
     if (eleRange < 1.0f)
         eleRange = 1.0f;
+
+    climbState.minEle   = minEle;
+    climbState.maxEle   = maxEle;
+    climbState.eleRange = eleRange;
 
     const auto &segs = climbAnalyzer.segments();
     auto toCol = [](uint32_t rgb) { return lgfx::rgb888_t((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF); };
@@ -619,22 +626,9 @@ static void climb_idx_observer_cb(lv_observer_t *observer, lv_subject_t *subject
         climbState.lastSegStart = seg->startIdx;
     }
 
-    // Compute yTop at posX using the same formula as buildClimbProfile
     int H = lv_obj_get_height(climbCanvas);
-    float minEle = trackData[startPt].ele;
-    float maxEle = trackData[startPt].ele;
-    for (int i = startPt + 1; i <= endPt; ++i)
-    {
-        if (trackData[i].ele < minEle)
-            minEle = trackData[i].ele;
-        if (trackData[i].ele > maxEle)
-            maxEle = trackData[i].ele;
-    }
-    float eleRange = maxEle - minEle;
-    if (eleRange < 1.0f)
-        eleRange = 1.0f;
     float curEleObs = trackData[(int)activeIdx].ele;
-    int yTop = calcYTop(curEleObs, minEle, eleRange, H);
+    int yTop = calcYTop(curEleObs, climbState.minEle, climbState.eleRange, H);
 
     updateClimbMarker(posX, yTop);
 }
