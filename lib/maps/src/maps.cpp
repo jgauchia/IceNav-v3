@@ -1330,7 +1330,8 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
         return;
 
     edgePool.clear();
-    int bucketCount = maxY - minY + 1;
+    int clampedMaxY = std::min(maxY, (int)tileHeight - 1);
+    int bucketCount = clampedMaxY - minY + 1;
     if ((int)edgeBuckets.size() < bucketCount)
         edgeBuckets.resize(bucketCount, -1);
     else
@@ -1357,6 +1358,9 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
             int x2 = px[ringStart + next];
             int y2 = py[ringStart + next];
             if (y1 == y2)
+                continue;
+            int startBucketY = (y1 < y2) ? y1 : y2;
+            if (startBucketY > clampedMaxY)
                 continue;
             Edge e;
             e.nextActive = -1;
