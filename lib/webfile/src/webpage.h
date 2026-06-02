@@ -2,8 +2,8 @@
  * @file webpage.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Web file server page
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 const char index_html[] = R"rawliteral(
@@ -97,6 +97,7 @@ const char index_html[] = R"rawliteral(
                 }
         </style>
 
+        <script src="/jszip"></script>
     </head>
 
     <body onload="refresh()">
@@ -383,6 +384,97 @@ const char index_html[] = R"rawliteral(
             function abortHandler(event)
             {
                 _("status").innerHTML = "inUpload Aborted";
+            }
+
+            function downloadFolder(folderName)
+            {
+                _("status").innerHTML = "Preparing folder download...";
+
+                var bar = document.createElement('progress');
+                bar.id = "folderBar";
+                bar.value = 0;
+                bar.max = 100;
+                bar.style = "width:372px;display:block;margin:4px 0;";
+                _("status").insertAdjacentElement('afterend', bar);
+
+                fetch('/listfolder?path=' + encodeURIComponent(folderName))
+                    .then(response => response.text())
+                    .then(async function(data) {
+                        var lines = data.split('\n').filter(f => f.trim() !== '');
+                        if (lines.length === 0) {
+                            _("status").innerHTML = "Folder is empty";
+                            bar.remove();
+                            return;
+                        }
+                        var files = lines.map(function(l) {
+                            var parts = l.split('|');
+                            return { path: parts[0], size: parseInt(parts[1]) || 0 };
+                        });
+                        var totalBytes = files.reduce(function(acc, f) { return acc + f.size; }, 0);
+                        var doneBytes = 0;
+                        function fmtBytes(b) {
+                            if (b < 1024) return b + " B";
+                            if (b < 1048576) return (b / 1024).toFixed(1) + " KB";
+                            return (b / 1048576).toFixed(1) + " MB";
+                        }
+                        var zip = new JSZip();
+                        var errors = 0;
+                        for (var i = 0; i < files.length; i++) {
+                            var filePath = files[i].path;
+                            var fileName = filePath.substring(filePath.lastIndexOf('/') + 1);
+                            var url = '/file?name=' + encodeURIComponent(filePath) + '&action=download';
+                            try {
+                                var resp = await fetch(url);
+                                if (!resp.ok) throw new Error("HTTP " + resp.status);
+                                var reader = resp.body.getReader();
+                                var chunks = [];
+                                var fileBytes = 0;
+                                while (true) {
+                                    var result = await reader.read();
+                                    if (result.done) break;
+                                    chunks.push(result.value);
+                                    fileBytes += result.value.byteLength;
+                                    _("status").innerHTML = "Fetching " + (i + 1) + "/" + files.length + ": " + fileName + " | " + fmtBytes(doneBytes + fileBytes) + " / " + fmtBytes(totalBytes);
+                                    bar.value = Math.round(((doneBytes + fileBytes) / totalBytes) * 90);
+                                }
+                                var merged = new Uint8Array(fileBytes);
+                                var offset = 0;
+                                for (var c = 0; c < chunks.length; c++) {
+                                    merged.set(chunks[c], offset);
+                                    offset += chunks[c].byteLength;
+                                }
+                                var zipPath = filePath.replace(/^\//, '');
+                                zip.file(zipPath, merged);
+                                doneBytes += fileBytes;
+                            } catch(e) {
+                                errors++;
+                                _("status").innerHTML = "Error fetching " + fileName + ": " + e.message;
+                                await new Promise(r => setTimeout(r, 1500));
+                            }
+                        }
+                        _("status").innerHTML = "Generating ZIP...";
+                        bar.value = 95;
+                        var content = await zip.generateAsync(
+                            { type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } },
+                            function(meta) { bar.value = 95 + Math.round(meta.percent / 20); }
+                        );
+                        bar.value = 100;
+                        var a = document.createElement('a');
+                        a.href = URL.createObjectURL(content);
+                        a.download = folderName + ".zip";
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(a.href);
+                        bar.remove();
+                        var msg = "Downloaded " + folderName + ".zip (" + (files.length - errors) + "/" + files.length + " files, " + fmtBytes(doneBytes) + ")";
+                        if (errors > 0) msg += " - " + errors + " error(s)";
+                        _("status").innerHTML = msg;
+                    })
+                    .catch(function(err) {
+                        bar.remove();
+                        _("status").innerHTML = "Error: " + err;
+                    });
             }
         }
         </script>

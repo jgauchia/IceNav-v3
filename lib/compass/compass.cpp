@@ -1,8 +1,8 @@
 /**
  * @file compass.cpp
  * @brief Compass definition and functions - Native ESP-IDF drivers
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #include "compass.hpp"
@@ -632,7 +632,8 @@ void Compass::calibrate()
     float y = 0.0f;
     float x = 0.0f;
     float z = 0.0f;
-    uint16_t touchX, touchY;
+    uint16_t touchX;
+    uint16_t touchY;
 
     TFT_eSprite compassCalSprite = TFT_eSprite(&tft);
 
@@ -653,7 +654,7 @@ void Compass::calibrate()
     compassCalSprite.fillScreen(TFT_BLACK);
 
     compassCalSprite.drawCenterString("ROTATE THE DEVICE", tft.width() >> 1, 10 * scale, fontSmall);
-    compassCalSprite.drawPngFile(PSTR("/spiffs/turn.png"), (tft.width() / 2) - 50, 60 * scale);
+    compassCalSprite.drawPngFile(PSTR("/spiffs/gfx/turn.png"), (tft.width() / 2) - 50, 60 * scale);
     compassCalSprite.drawCenterString("TOUCH TO START", tft.width() >> 1, 200 * scale, fontSmall);
     compassCalSprite.drawCenterString("COMPASS CALIBRATION", tft.width() >> 1, 230 * scale, fontSmall);
     compassCalSprite.pushSprite(0,0);

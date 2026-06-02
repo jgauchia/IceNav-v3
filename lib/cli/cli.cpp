@@ -2,8 +2,8 @@
  * @file cli.cpp
  * @author @Hpsaturn
  * @brief  Network CLI and custom internal commands
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #ifndef DISABLE_CLI
@@ -61,7 +61,9 @@ void wcli_poweroff(char *args, Stream *response)
 void wcli_info(char *args, Stream *response)
 {
     setlocale(LC_NUMERIC, "");
-    size_t totalSPIFFS, usedSPIFFS, freeSPIFFS = 0;
+    size_t totalSPIFFS;
+    size_t usedSPIFFS;
+    size_t freeSPIFFS = 0;
     esp_spiffs_info(NULL, &totalSPIFFS, &usedSPIFFS);
     freeSPIFFS = totalSPIFFS - usedSPIFFS;
 
@@ -272,7 +274,8 @@ void wcli_webfile(char *args, Stream *response)
 void initRemoteShell()
 {
     #ifndef DISABLE_CLI_TELNET 
-        if (wcli.isTelnetRunning()) wcli.shellTelnet->attachLogo(logo);
+        if (wcli.isTelnetRunning())
+            wcli.shellTelnet->attachLogo(logo);
     #endif
 }
 

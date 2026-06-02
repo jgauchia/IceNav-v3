@@ -2,13 +2,14 @@
  * @file router.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Router implementation — combines GraphLoader and A*
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #include "router.hpp"
 #include "esp_timer.h"
 #include "esp_log.h"
+#include "settings.hpp"
 
 static const char* TAG_ROUTER = "ROUTER";
 
@@ -46,7 +47,7 @@ RouterResult Router::route(float src_lat, float src_lon,
     uint32_t src_node = loader_.nearestNode(src_lat, src_lon);
     uint32_t dst_node = loader_.nearestNode(dst_lat, dst_lon);
 
-    out_track = astarRoute(loader_, src_node, dst_node);
+    out_track = astarRoute(loader_, src_node, dst_node, (float)navSet.routeSpeed);
 
     int64_t t_end = esp_timer_get_time();
     int64_t elapsed_us = t_end - t_start;

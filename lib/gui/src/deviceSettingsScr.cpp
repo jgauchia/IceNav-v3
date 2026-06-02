@@ -2,13 +2,15 @@
  * @file deviceSettingsScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Device Settings Screen
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #include "deviceSettingsScr.hpp"
 
 lv_obj_t *deviceSettingsScreen; /**< Device Settings Screen. */
+
+static const uint16_t ROUTE_SPEED_VALUES[] = {130, 25, 5}; /**< Speed (km/h) per routing profile index: car, bike, pedestrian. */
 
 /**
  * @brief Handles device settings events, updating configuration based on user selection.
@@ -29,10 +31,30 @@ static void deviceSettingsEvent(lv_event_t *event)
         gpsUpdate = lv_dropdown_get_selected(obj);
         saveGPSUpdateRate(gpsUpdate);
     }
+    if (strcmp(option, "routeprofile") == 0)
+    {
+        uint16_t idx = lv_dropdown_get_selected(obj);
+        navSet.routeSpeed = ROUTE_SPEED_VALUES[idx];
+        cfg.saveShort(PKEYS::KROUTE_SPEED, (int16_t)navSet.routeSpeed);
+    }
+    if (strcmp(option, "nmeadbg") == 0)
+    {
+        nmeaDebugTileEnabled = lv_obj_has_state(obj, LV_STATE_CHECKED);
+        cfg.saveBool(PKEYS::KNMEA_DEBUG, nmeaDebugTileEnabled);
+        // The main screen tiles are built once at boot; a restart is needed
+        // to add or remove the debug tile.
+        needReboot = true;
+    }
     if (strcmp(option, "back") == 0)
     {
         cfg.saveUInt(PKEYS::KDEF_BRIGT, defBright);
-        lv_screen_load(settingsScreen);
+        if (needReboot)
+        {
+            lv_obj_delete(deviceSettingsScreen);
+            showRestartScr();
+        }
+        else
+            lv_screen_load(settingsScreen);
     }
 }
 
@@ -169,6 +191,38 @@ void createDeviceSettingsScr()
     lv_obj_set_width(dropdown,TFT_WIDTH / 3);
     lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
     lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"rate");
+    // Routing Profile
+    list = lv_list_add_btn(deviceSettingsOptions, NULL, "Routing\nProfile");
+    lv_obj_set_style_text_font(list, fontOptions, 0);
+    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_align(list, LV_ALIGN_OUT_LEFT_BOTTOM);
+    dropdown = lv_dropdown_create(list);
+    lv_dropdown_set_options(dropdown, "Car\nBike\nWalk");
+    {
+        uint16_t profileIdx = 0;
+        if (navSet.routeSpeed <= 5)
+            profileIdx = 2;
+        else if (navSet.routeSpeed <= 25)
+            profileIdx = 1;
+        lv_dropdown_set_selected(dropdown, profileIdx);
+    }
+    item = lv_dropdown_get_list(dropdown);
+    lv_obj_set_style_bg_color(item, lv_color_hex(objectColor), LV_PART_SELECTED | LV_STATE_CHECKED);
+    lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
+    lv_obj_set_width(dropdown, TFT_WIDTH / 3);
+    lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"routeprofile");
+    // NMEA Debug Tile
+    list = lv_list_add_btn(deviceSettingsOptions, NULL, "NMEA Debug\nTile");
+    lv_obj_set_style_text_font(list, fontOptions, 0);
+    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
+    lv_obj_t *nmeaDbgSwitch = lv_switch_create(list);
+    if (nmeaDebugTileEnabled)
+        lv_obj_add_state(nmeaDbgSwitch, LV_STATE_CHECKED);
+    else
+        lv_obj_clear_state(nmeaDbgSwitch, LV_STATE_CHECKED);
+    lv_obj_align_to(nmeaDbgSwitch, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
+    lv_obj_add_event_cb(nmeaDbgSwitch, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"nmeadbg");
     // Upgrade button
     list = lv_list_add_btn(deviceSettingsOptions, NULL, NULL);
     btn = lv_btn_create(list);

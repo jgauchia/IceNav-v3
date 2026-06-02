@@ -2,12 +2,20 @@
  * @file widgets.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Widgets
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #include "widgets.hpp"
 #include "lv_subjects.hpp"
+#include "sunrise.h"
+#include "sunset.h"
+#include "navarrow.h"
+#include "zoom.h"
+#include "altit.h"
+#include "pin.h"
+#include "speedIcon.h"
+#include "mapspeed.h"
 
 lv_obj_t *compassHeading;
 lv_obj_t *compassImg;
@@ -194,8 +202,9 @@ void positionWidget(lv_obj_t *screen)
     lv_obj_set_style_text_font(longitude, fontMedium, 0);
     lv_subject_add_observer_obj(&subject_lon, position_observer_cb, longitude, NULL);
     
+    LV_IMG_DECLARE(pin);
     lv_obj_t *img = lv_img_create(obj);
-    lv_img_set_src(img, positionIconFile);
+    lv_img_set_src(img, &pin);
     lv_img_set_zoom(img, iconScale);
     
     lv_obj_update_layout(latitude);
@@ -221,12 +230,13 @@ void compassWidget(lv_obj_t *screen)
     lv_obj_set_pos(obj, compassPosX, compassPosY);
     lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     
+    LV_IMG_DECLARE(arrow);
     lv_obj_t *img = lv_img_create(obj);
-    lv_img_set_src(img, arrowIconFile);
+    lv_img_set_src(img, &arrow);
     lv_obj_align(img, LV_ALIGN_CENTER, 0, -30);
     lv_img_set_zoom(img, iconScale);
     lv_obj_update_layout(img);
-    
+
     LV_IMG_DECLARE(bruj);
     compassImg = lv_img_create(obj);
     lv_img_set_src(compassImg, &bruj);
@@ -261,8 +271,9 @@ void altitudeWidget(lv_obj_t *screen)
     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(obj, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     
+    LV_IMG_DECLARE(altit);
     lv_obj_t *img = lv_img_create(obj);
-    lv_img_set_src(img, altitudeIconFile);
+    lv_img_set_src(img, &altit);
     lv_img_set_zoom(img, iconScale);
     lv_obj_update_layout(img);
     
@@ -290,8 +301,9 @@ void speedWidget(lv_obj_t *screen)
     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(obj, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     
+    LV_IMG_DECLARE(speedIcon);
     lv_obj_t *img = lv_img_create(obj);
-    lv_img_set_src(img, speedIconFile);
+    lv_img_set_src(img, &speedIcon);
     lv_img_set_zoom(img, iconScale);
     lv_obj_update_layout(img);
     
@@ -320,17 +332,19 @@ void sunWidget(lv_obj_t *screen)
     lv_obj_set_flex_align(obj, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     
     lv_obj_t *img;
+    LV_IMG_DECLARE(sunrise);
+    LV_IMG_DECLARE(sunset);
     img = lv_img_create(obj);
-    lv_img_set_src(img, sunriseIconFile);
+    lv_img_set_src(img, &sunrise);
     lv_img_set_zoom(img, iconScale);
     lv_obj_update_layout(img);
-    
+
     sunriseLabel = lv_label_create(obj);
     lv_label_set_text_static(sunriseLabel, "--:--");
     lv_obj_update_layout(sunriseLabel);
-    
+
     img = lv_img_create(obj);
-    lv_img_set_src(img, sunsetIconFile);
+    lv_img_set_src(img, &sunset);
     lv_img_set_zoom(img, iconScale);
     lv_obj_update_layout(img);
     
@@ -349,8 +363,9 @@ void sunWidget(lv_obj_t *screen)
  */
 void navArrowWidget(lv_obj_t *screen)
 {
+    LV_IMG_DECLARE(navarrow);
     navArrow = lv_img_create(screen);
-    lv_img_set_src(navArrow, navArrowIconFile);
+    lv_img_set_src(navArrow, &navarrow);
     lv_obj_align(navArrow, LV_ALIGN_CENTER, 0, 0);
     lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
 }
@@ -368,8 +383,9 @@ void mapZoomWidget(lv_obj_t *screen)
     lv_obj_set_flex_flow(zoomWidget, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(zoomWidget, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_add_style(zoomWidget, &styleMapWidget, 0);
+    LV_IMG_DECLARE(zoomIcon);
     lv_obj_t *img = lv_img_create(zoomWidget);
-    lv_img_set_src(img, zoomIconFile);
+    lv_img_set_src(img, &zoomIcon);
     zoomLabel = lv_label_create(zoomWidget);
     lv_obj_set_style_text_font(zoomLabel, &lv_font_montserrat_20, 0);
     lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
@@ -391,7 +407,8 @@ void mapSpeedWidget(lv_obj_t *screen)
     lv_obj_add_style(mapSpeed, &styleMapWidget, 0);
     lv_obj_align(mapSpeed, LV_ALIGN_BOTTOM_LEFT, 0, -1);
     lv_obj_t *img = lv_img_create(mapSpeed);
-    lv_img_set_src(img, mapSpeedIconFile);
+    LV_IMG_DECLARE(mapspeed);
+    lv_img_set_src(img, &mapspeed);
     mapSpeedLabel = lv_label_create(mapSpeed);
     lv_obj_set_style_text_font(mapSpeedLabel, &lv_font_montserrat_20, 0);
     lv_label_set_text_fmt(mapSpeedLabel, "%3d", 0);

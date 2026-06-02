@@ -38,4 +38,6 @@
   X(KKALM_FIL, "kalmanFil", BOOL)        \
   X(KKALM_Q, "kalmanQ", FLOAT)           \
   X(KKALM_R, "kalmanR", FLOAT)           \
+  X(KROUTE_SPEED, "routeSpeed", SHORT)   \
+  X(KNMEA_DEBUG, "nmeaDbgTile", BOOL)    \
   X(KCOUNT, "KCOUNT", UNKNOWN)

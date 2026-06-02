@@ -2,8 +2,8 @@
  * @file styles.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Shared styles definitions
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #pragma once
@@ -12,7 +12,8 @@
 
 extern lv_style_t styleTransparent;     /**< Transparent container (bg_opa=0, border_opa=0) */
 extern lv_style_t styleMapWidget;       /**< Semi-transparent map overlay widget */
-extern lv_style_t styleFloatingBar;     /**< Floating button bar style */
 extern lv_style_t styleScrollbarWhite;  /**< White scrollbar for tileview */
+extern lv_style_t styleScrim;           /**< Full screen dim scrim behind bottom sheet */
+extern lv_style_t styleBottomSheet;     /**< Bottom sheet panel style */
 
 void initSharedStyles();

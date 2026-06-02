@@ -2,13 +2,14 @@
  * @file lv_subjects.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Observer Pattern - Implementation of telemetry subjects
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #include "lv_subjects.hpp"
 #include "gps.hpp"
 #include "bme.hpp"
+#include "settings.hpp"
 #include <time.h>
 
 lv_subject_t subject_heading;
@@ -45,6 +46,7 @@ lv_subject_t subject_climb_total_dist;
 lv_subject_t subject_climb_total_gain;
 lv_subject_t subject_climb_approaching;
 lv_subject_t subject_map_3d;
+lv_subject_t subject_nmea_debug_trigger;
 
 #ifdef ENABLE_TEMP
 lv_subject_t subject_temp;
@@ -93,9 +95,20 @@ void init_lv_subjects()
     lv_subject_init_int(&subject_climb_total_gain,  0);
     lv_subject_init_int(&subject_climb_approaching, 0);
     lv_subject_init_int(&subject_map_3d, 0);
+    lv_subject_init_int(&subject_nmea_debug_trigger, 0);
 
     #ifdef ENABLE_TEMP
-    lv_subject_init_int(&subject_temp, 0);
+    {
+        #ifdef BME280
+        float t = 0.0f;
+        float p = 0.0f;
+        float h = 0.0f;
+        bme.readAll(t, p, h);
+        lv_subject_init_int(&subject_temp, (int32_t)(t + tempOffset));
+        #else
+        lv_subject_init_int(&subject_temp, 0);
+        #endif
+    }
     #endif
 }
 

@@ -2,8 +2,8 @@
  * @file gpxParser.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  GPX Parser class
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #include "gpxParser.hpp"
@@ -150,9 +150,11 @@ wayPoint GPXParser::getWaypointInfo(const char* name)
 {
     wayPoint wp = {0};
     tinyxml2::XMLDocument doc;
-    if (doc.LoadFile(filePath.c_str()) != tinyxml2::XML_SUCCESS) return wp;
+    if (doc.LoadFile(filePath.c_str()) != tinyxml2::XML_SUCCESS)
+        return wp;
     tinyxml2::XMLElement* root = doc.RootElement();
-    if (!root) return wp;
+    if (!root)
+        return wp;
     tinyxml2::XMLElement* wpt = nullptr;
     for (wpt = root->FirstChildElement(gpxWaypointTag); wpt != nullptr; wpt = wpt->NextSiblingElement(gpxWaypointTag))
     {
@@ -216,9 +218,11 @@ bool GPXParser::addWaypoint(const wayPoint& wp)
     char textFmt[30];
     strftime(textFmt, sizeof(textFmt), "%Y-%m-%dT%H:%M:%SZ", tmUTCwpt);
     tinyxml2::XMLDocument doc;
-    if (doc.LoadFile(filePath.c_str()) != tinyxml2::XML_SUCCESS) return false;
+    if (doc.LoadFile(filePath.c_str()) != tinyxml2::XML_SUCCESS)
+        return false;
     tinyxml2::XMLElement* root = doc.RootElement();
-    if (!root) return false;
+    if (!root)
+        return false;
     tinyxml2::XMLElement* newWpt = doc.NewElement(gpxWaypointTag);
     newWpt->SetAttribute(gpxLatElem, formatFloat(wp.lat, 6).c_str());
     newWpt->SetAttribute(gpxLonElem, formatFloat(wp.lon, 6).c_str());
@@ -263,10 +267,14 @@ bool GPXParser::addWaypoint(const wayPoint& wp)
  */
 static void updateBounds(TrackSegment& seg, const wayPoint& point)
 {
-    if (point.lat < seg.minLat) seg.minLat = point.lat;
-    if (point.lat > seg.maxLat) seg.maxLat = point.lat;
-    if (point.lon < seg.minLon) seg.minLon = point.lon;
-    if (point.lon > seg.maxLon) seg.maxLon = point.lon;
+    if (point.lat < seg.minLat)
+        seg.minLat = point.lat;
+    if (point.lat > seg.maxLat)
+        seg.maxLat = point.lat;
+    if (point.lon < seg.minLon)
+        seg.minLon = point.lon;
+    if (point.lon > seg.maxLon)
+        seg.maxLon = point.lon;
 }
 
 /**
@@ -292,7 +300,8 @@ bool GPXParser::loadTrack(TrackVector& trackData)
         if (strstr(line, "<trkpt"))
         {
             wayPoint point = {0};
-            bool latFound = false, lonFound = false;
+            bool latFound = false;
+            bool lonFound = false;
             auto parseAttrs = [&](char* str) {
                 char* pLat = strstr(str, "lat=\"");
                 if (!pLat)
@@ -312,7 +321,8 @@ bool GPXParser::loadTrack(TrackVector& trackData)
                 }
             };
             parseAttrs(line);
-            while ((!latFound || !lonFound) && fgets(line, sizeof(line), file)) {
+            while ((!latFound || !lonFound) && fgets(line, sizeof(line), file))
+            {
                 if (strstr(line, ">"))
                     break;
                 parseAttrs(line);
@@ -400,7 +410,8 @@ std::vector<TurnPoint> GPXParser::getTurnPointsSlidingWindow(
     int windowSize, const TrackVector& trackData)
 {
     std::vector<TurnPoint> turnPoints;
-    if (trackData.size() < 2 * windowSize + 1) return turnPoints;
+    if (trackData.size() < 2 * windowSize + 1)
+        return turnPoints;
     turnPoints.reserve(trackData.size() / 20);
     for (size_t i = windowSize; i < trackData.size() - windowSize; ++i)
     {
@@ -409,14 +420,14 @@ std::vector<TurnPoint> GPXParser::getTurnPointsSlidingWindow(
         for (int j = int(i - windowSize); j < int(i + windowSize); ++j)
         {
             float d = calcDist(trackData[j].lat, trackData[j].lon, trackData[j + 1].lat, trackData[j + 1].lon);
-            if (d > 200.0f) 
-            { 
-                skipWindow = true; 
-                break; 
+            if (d > 200.0f)
+            {
+                skipWindow = true;
+                break;
             }
             distWindow += d;
         }
-        if (skipWindow) 
+        if (skipWindow)
             continue;
         float brgStart = calcCourse(trackData[i - windowSize].lat, trackData[i - windowSize].lon, trackData[i].lat, trackData[i].lon);
         float brgEnd   = calcCourse(trackData[i].lat, trackData[i].lon, trackData[i + windowSize].lat, trackData[i + windowSize].lon);
@@ -426,9 +437,9 @@ std::vector<TurnPoint> GPXParser::getTurnPointsSlidingWindow(
             turnPoints.push_back({static_cast<int>(i), diff, trackData[i].accumDist});
             continue;
         }
-        if (distWindow < minDist) 
+        if (distWindow < minDist)
             continue;
-        if (std::fabs(diff) > thresholdDeg) 
+        if (std::fabs(diff) > thresholdDeg)
             turnPoints.push_back({static_cast<int>(i), diff, trackData[i].accumDist});
     }
     return turnPoints;

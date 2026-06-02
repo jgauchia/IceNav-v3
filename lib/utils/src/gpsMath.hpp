@@ -2,8 +2,8 @@
  * @file gpsMath.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Math and various functions
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #pragma once
@@ -67,7 +67,8 @@ static inline __attribute__((always_inline)) float sinLUT(float rad)
         return sinf(rad);
 
     rad -= TWO_PI * floorf(rad / TWO_PI);
-    if (rad < 0.0f) rad += TWO_PI;
+    if (rad < 0.0f)
+        rad += TWO_PI;
 
     float index = rad / LUT_RES;
     int idx_low = (int)index;
@@ -93,7 +94,7 @@ static inline __attribute__((always_inline)) float cosLUT(float rad)
 
 	// Normalize angle to [0, TWO_PI)
 	rad -= TWO_PI * floorf(rad / TWO_PI);
-	if (rad < 0.0f) 
+	if (rad < 0.0f)
         rad += TWO_PI;
 
 	float index = rad / (float)LUT_RES;

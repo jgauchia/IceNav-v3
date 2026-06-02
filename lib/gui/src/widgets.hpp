@@ -2,8 +2,8 @@
  * @file widgets.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Widgets
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #pragma once
@@ -55,17 +55,8 @@ static lv_coord_t newY = 0;              /**< New Y coordinate for widget moveme
 
 extern bool isScrolled;                  /**< Flag to indicate when tileview was scrolled */
 
-static const char *arrowIconFile      = "/arrow.bin";       /**< Compass arrow icon */
-static const char *positionIconFile   = "/pin.bin";         /**< Position icon */
-static const char *altitudeIconFile   = "/altit.bin";       /**< Altitude icon */
-static const char *speedIconFile      = "/speed.bin";       /**< Speed icon */
-static const char *sunriseIconFile    = "/sunrise.bin";     /**< Sunrise icon */
-static const char *sunsetIconFile     = "/sunset.bin";      /**< Sunset icon */
-static const char *navArrowIconFile   = "/navarrow.bin";    /**< Navigation arrow icon */
-static const char *zoomIconFile       = "/zoom.bin";        /**< Zoom map icon */
-static const char *mapSpeedIconFile   = "/mapspeed.bin";    /**< Speed map icon */
-static const char *toggle3DIconFile   = "/2dview.bin";        /**< 3D map mode toggle icon */
-static const char *toggle2DIconFile   = "/3dview.bin";    /**< 2D map mode toggle icon */
+static const char *toggle3DIconFile   = "/gfx/2dview.bin";      /**< 3D map mode toggle icon */
+static const char *toggle2DIconFile   = "/gfx/3dview.bin";      /**< 2D map mode toggle icon */
 
 
 void positionWidget(lv_obj_t *screen);

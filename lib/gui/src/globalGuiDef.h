@@ -1,8 +1,8 @@
 /**
  * @file globalGuiDef.h
  * @brief  Global GUI Variables
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #pragma once
@@ -27,6 +27,7 @@ extern lv_obj_t *notifyBarHour;         /**< Notify Bar Hour */
 extern lv_obj_t *settingsScreen;        /**< Settings Screen */
 extern lv_obj_t *mapSettingsScreen;     /**< Map Settings Screen */
 extern lv_obj_t *deviceSettingsScreen;  /**< Device Settings Screen */
+extern lv_obj_t *sensorScreen;          /**< Sensor Info Screen */
 extern lv_obj_t *gpxDetailScreen;       /**< Add Waypoint Screen */
 extern lv_obj_t *listGPXScreen;         /**< List Waypoint Screen */
 
@@ -35,8 +36,9 @@ extern lv_group_t *keyGroup;            /**< GPIO group */
 
 extern bool needReboot;                 /**< Flag to force device reboot */
 extern bool isSearchingSat;             /**< Flag to indicate that device is searching for satellites */
-extern lv_obj_t *buttonBar;             /**< Button Bar */
+extern lv_obj_t *optionsPanel;          /**< Options Panel */
 extern lv_obj_t *menuBtn;               /**< Button Menu */
+extern lv_obj_t *optionsScrim;          /**< Bottom sheet dim scrim */
 extern lv_obj_t *gpxTagValue;           /**< Add/Edit Waypoint screen text area */
 extern bool isScreenRotated;            /**< Flag to know if screen is rotated */
 extern bool isTrackLoaded;              /**< Flag to know if track is loaded */

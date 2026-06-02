@@ -2,8 +2,8 @@
  * @file navigation.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief Navigation functions
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #include "navigation.hpp"
@@ -26,6 +26,15 @@ LV_IMG_DECLARE(outtrack);
 // UI Throttling state
 static const void* lastIconShown = nullptr;
 static int lastDistShown = -1;
+
+/**
+ * @brief Resets UI throttling state so the first update of a new navigation session always redraws widgets.
+ */
+void resetNavigationUI()
+{
+    lastIconShown = nullptr;
+    lastDistShown = -1;
+}
 
 /**
  * @brief Finds the closest track point index to the user's current position using an adaptive hierarchical search.
@@ -117,7 +126,8 @@ int findClosestTrackPoint(float userLat, float userLon, const TrackVector& track
         }
     }
     
-    if (closestIdx == -1) return std::max(0, lastIdx);
+    if (closestIdx == -1)
+        return std::max(0, lastIdx);
 
     if (closestIdx < lastIdx && (lastIdx - closestIdx) < config.maxBackwardJump)
         return lastIdx;
@@ -242,8 +252,10 @@ float projectOnSegment(float pLat, float pLon, float aLat, float aLon, float bLa
     float t = (pLatRel * dLat + pLonRel * dLon) / denom;
     
     // Clamp t to [0, 1] to stay within the segment
-    if (t < 0) t = 0;
-    if (t > 1) t = 1;
+    if (t < 0)
+        t = 0;
+    if (t > 1)
+        t = 1;
 
     outLat = aLat + t * (bLat - aLat);
     outLon = aLon + t * (bLon - aLon);
@@ -295,14 +307,16 @@ void updateNavigation(
     float pLon = track[closestIdx].lon;
 
     // Check segments around closestIdx to find the real projection
-    float bestLat = pLat, bestLon = pLon;
+    float bestLat = pLat;
+    float bestLon = pLon;
     float minDistSq = calcDistSq(uLatRad, uLonRad, DEG2RAD(pLat), DEG2RAD(pLon));
 
     // Check previous segment
     if (closestIdx > 0)
     {
-        float tLat, tLon;
-        float dSq = projectOnSegment(userLat, userLon, track[closestIdx - 1].lat, track[closestIdx - 1].lon, 
+        float tLat;
+        float tLon;
+        float dSq = projectOnSegment(userLat, userLon, track[closestIdx - 1].lat, track[closestIdx - 1].lon,
                                    track[closestIdx].lat, track[closestIdx].lon, tLat, tLon);
         if (dSq < minDistSq)
         {
@@ -315,8 +329,9 @@ void updateNavigation(
     // Check next segment
     if (closestIdx < track.size() - 1)
     {
-        float tLat, tLon;
-        float dSq = projectOnSegment(userLat, userLon, track[closestIdx].lat, track[closestIdx].lon, 
+        float tLat;
+        float tLon;
+        float dSq = projectOnSegment(userLat, userLon, track[closestIdx].lat, track[closestIdx].lon,
                                    track[closestIdx + 1].lat, track[closestIdx + 1].lon, tLat, tLon);
         if (dSq < minDistSq)
         {
@@ -350,6 +365,8 @@ void updateNavigation(
     // Advance turn index if turns have been passed
     advanceTurnIndex(turns, state, closestIdx);
 
+    const float distToEnd = calcDist(userLat, userLon, track.back().lat, track.back().lon);
+
     auto showFinish = [&]()
     {
         if (lastIconShown != &finish)
@@ -357,12 +374,31 @@ void updateNavigation(
             lv_img_set_src(turnImg, &finish);
             lastIconShown = &finish;
         }
+        state.isFinished = true;
+    };
+
+    auto showStraightToEnd = [&]()
+    {
+        if (lastIconShown != &straight)
+        {
+            lv_img_set_src(turnImg, &straight);
+            lastIconShown = &straight;
+        }
+        int roundedDist = ((int)distToEnd / 5) * 5;
+        if (roundedDist != lastDistShown)
+        {
+            lv_label_set_text_fmt(turnDistLabel, "%4d", roundedDist);
+            lastDistShown = roundedDist;
+        }
     };
 
     // No more turns remaining
     if (state.nextTurnIdx >= turns.size())
     {
-        showFinish();
+        if (distToEnd <= 30.0f)
+            showFinish();
+        else
+            showStraightToEnd();
         state.lastTrackIdx = closestIdx;
         return;
     }
@@ -372,7 +408,10 @@ void updateNavigation(
 
     if (nextEventIdx == -1)
     {
-        showFinish();
+        if (distToEnd <= 30.0f)
+            showFinish();
+        else
+            showStraightToEnd();
         state.lastTrackIdx = closestIdx;
         return;
     }

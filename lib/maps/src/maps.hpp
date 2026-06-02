@@ -2,8 +2,8 @@
  * @file maps.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com) - Render Maps
  * @brief  Maps draw class
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #pragma once
@@ -100,6 +100,9 @@ private:
     bool isNavActive() const;
     void update3DCache();
     void apply3DPerspective(uint16_t heading);
+    void preloadTiles(int8_t dirX, int8_t dirY);
+    bool renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT_eSprite &map);
+    void renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, TFT_eSprite &map);
 
 public:
 #ifdef T4_S3
@@ -155,10 +158,7 @@ public:
     void updateMap();
     void centerOnGps(float lat, float lon);
     void scrollMap(int16_t dx, int16_t dy);
-    void preloadTiles(int8_t dirX, int8_t dirY);
     void resetScrollState();
-    bool renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT_eSprite &map);
-    void renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, TFT_eSprite &map);
 
 private:
     struct FeatureRef

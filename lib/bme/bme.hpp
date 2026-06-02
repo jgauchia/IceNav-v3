@@ -2,8 +2,8 @@
  * @file bme.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  BME280 Sensor functions - Native ESP-IDF driver
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #pragma once
@@ -60,7 +60,7 @@ class BME280_Driver : public I2CDriverBase
     public:
         BME280_Driver();
         bool begin(uint8_t addr = BME_ADDRESS);
-        float readAltitude(float seaLevelPressure = 101325.0f);
+        float readAltitude(float pressure);
         void readAll(float &temp, float &pres, float &humi);
 };
 

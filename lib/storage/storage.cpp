@@ -2,8 +2,8 @@
  * @file storage.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Storage definition and functions
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #include "storage.hpp"
@@ -13,8 +13,7 @@
 #include "esp_vfs_fat.h"
 #include "driver/sdspi_host.h"
 #include <cmath>
-#include <sstream>
-#include <iomanip>
+#include <cstdio>
 
 #define SD_OCR_SDHC_CAP (1 << 30) /**< SD card SDHC capacity flag */
 
@@ -43,9 +42,9 @@ namespace
 			order++;
 			formatted_size /= 1024;
 		}
-		std::ostringstream oss;
-		oss << std::fixed << std::setprecision(2) << formatted_size << " " << suffixes[order];
-		return oss.str();
+		char buf[16];
+		snprintf(buf, sizeof(buf), "%.2f %s", formatted_size, suffixes[order]);
+		return std::string(buf);
 	}
 }
 
@@ -540,9 +539,11 @@ int Storage::seek(FILE *file, long offset, int whence)
 
 size_t Storage::seekAndRead(FILE *file, long offset, uint8_t *buffer, size_t size)
 {
-    if (!file || !buffer) return 0;
+    if (!file || !buffer)
+        return 0;
     size_t totalRead = 0;
-    if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE) return 0;
+    if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+        return 0;
     fseek(file, offset, SEEK_SET);
     if (esp_ptr_internal(buffer))
     {
@@ -556,7 +557,8 @@ size_t Storage::seekAndRead(FILE *file, long offset, uint8_t *buffer, size_t siz
             {
                 size_t toRead = (size - totalRead > DMA_BUF_SIZE) ? DMA_BUF_SIZE : (size - totalRead);
                 size_t r = fread(dmaBuffer, 1, toRead, file);
-                if (r == 0) break;
+                if (r == 0)
+                    break;
                 memcpy(buffer + totalRead, dmaBuffer, r);
                 totalRead += r;
             }

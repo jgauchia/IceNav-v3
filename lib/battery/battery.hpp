@@ -2,8 +2,8 @@
  * @file battery.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Battery monitor definition and functions
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #pragma once
@@ -23,8 +23,9 @@
 class Battery
 {
     private:
-        float batteryMax; 					/**< Maximum (full charge) voltage. */
-        float batteryMin;					/**< Minimum (empty) voltage. */
+        float batteryMax;                    /**< Maximum (full charge) voltage. */
+        float batteryMin;                    /**< Minimum (empty) voltage. */
+        float lastVolt   = 0.0f;             /**< Last measured voltage (V). */
         static constexpr float V_REF = 3.3f; /**< ADC reference voltage. */
 
     public:
@@ -33,4 +34,5 @@ class Battery
         void initADC();
         void setBatteryLevels(float maxVoltage, float minVoltage);
         float readBattery();
+        float lastVoltage() const { return lastVolt; }
 };

@@ -2,8 +2,8 @@
  * @file lvglSetup.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Screen implementation
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #include "../../gui/src/lv_subjects.hpp"
@@ -505,9 +505,12 @@ void initLVGL()
     createMainScr();
     createNotifyBar();
     createSettingsScr();
+    #if defined(BATT_PIN) || defined(BME280) || defined(ENABLE_IMU) || defined(ENABLE_COMPASS)
+    createSensorScr();
+    #endif
     createMapSettingsScr();
     createDeviceSettingsScr();
-    createButtonBarScr();
+    createOptionsPanel();
     createGpxDetailScreen();
     createGpxListScreen();
 
@@ -528,7 +531,8 @@ void loadMainScreen()
     isSearchingSat = false;
     gpxAction = WPT_NONE;
     lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(optionsScrim, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_y(optionsPanel, TFT_HEIGHT);
     if (mapView.isMapFound)
         lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
     else
@@ -540,6 +544,5 @@ void loadMainScreen()
        lv_subject_set_int suppresses callbacks when the value is identical;
        widgets need to re-render their initial state after a screen transition. */
     notify_all_subjects();
-    extern void triggerMapRedraw();
     triggerMapRedraw();
 }

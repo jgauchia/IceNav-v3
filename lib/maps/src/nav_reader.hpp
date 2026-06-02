@@ -1,8 +1,8 @@
 /**
  * @file nav_reader.hpp
  * @brief NAV tile reader for ESP32 - IceNav Navigation Tiles
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  *
  * NAV format uses int32 coordinates (scaled by 1e7) for compact storage.
  * Simple binary format optimized for ESP32 sequential reading.
@@ -68,7 +68,8 @@ public:
      */
     static uint64_t xyToHilbert(uint32_t x, uint32_t y, uint8_t z)
     {
-        uint32_t rx, ry;
+        uint32_t rx;
+        uint32_t ry;
         uint64_t d = 0;
         uint32_t n = 1 << z;
         for (uint32_t s = n / 2; s > 0; s /= 2)

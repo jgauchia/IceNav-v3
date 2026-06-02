@@ -2,8 +2,8 @@
  * @file gpsMath.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Math and various functions
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #include "gpsMath.hpp"
@@ -67,13 +67,6 @@ bool initTrigLUT()
  */
 float calcDist(float lat1, float lon1, float lat2, float lon2)
 {
-    // Simple Last Value Cache (LVC)
-    static float last_lat1 = 0, last_lon1 = 0, last_lat2 = 0, last_lon2 = 0;
-    static float last_dist = -1.0f;
-
-    if (lat1 == last_lat1 && lon1 == last_lon1 && lat2 == last_lat2 && lon2 == last_lon2)
-        return last_dist;
-
 	float lat1_rad = DEG2RAD(lat1);
 	float lon1_rad = DEG2RAD(lon1);
 	float lat2_rad = DEG2RAD(lat2);
@@ -81,7 +74,8 @@ float calcDist(float lat1, float lon1, float lat2, float lon2)
  	float dlat = lat2_rad - lat1_rad;
     float dlon = lon2_rad - lon1_rad;
 
-    float a, c;
+    float a;
+    float c;
 
     if (lutInit)
     {
@@ -97,12 +91,7 @@ float calcDist(float lat1, float lon1, float lat2, float lon2)
     }
 
     c = 2.0f * atan2f(sqrtf(a), sqrtf(1.0f - a));
-    last_dist = EARTH_RADIUS * c;
-    
-    // Update cache
-    last_lat1 = lat1; last_lon1 = lon1; last_lat2 = lat2; last_lon2 = lon2;
-
-    return last_dist;
+    return EARTH_RADIUS * c;
 }
 
 /**
@@ -144,8 +133,12 @@ float calcCourse(float lat1, float lon1, float lat2, float lon2)
     lat2 = DEG2RAD(lat2);
     float dLon = DEG2RAD(lon2 - lon1);
 
-    float sin_dLon, cos_dLon;
-    float sin_lat1, cos_lat1, sin_lat2, cos_lat2;
+    float sin_dLon;
+    float cos_dLon;
+    float sin_lat1;
+    float cos_lat1;
+    float sin_lat2;
+    float cos_lat2;
 
     if (lutInit)
     {
@@ -190,8 +183,10 @@ float calcCourse(float lat1, float lon1, float lat2, float lon2)
 float calcAngleDiff(float a, float b)
 {
     float diff = a - b;
-    while (diff > 180.0f) diff -= 360.0f;
-    while (diff < -180.0f) diff += 360.0f;
+    while (diff > 180.0f)
+        diff -= 360.0f;
+    while (diff < -180.0f)
+        diff += 360.0f;
     return diff;
 }
 

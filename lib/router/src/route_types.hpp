@@ -2,15 +2,25 @@
  * @file route_types.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ROUTE.bin binary format structs (0.1° subcell grid)
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #pragma once
 #include <cstdint>
 
-static constexpr char     ROUTE_MAGIC[4]   = {'R','O','U','T'};
-static constexpr char     ROUTE_BIN_PATH[] = "/sdcard/ROUTE/ROUTE.bin";
+static constexpr char ROUTE_MAGIC[4] = {'R','O','U','T'};
+
+// Returns the ROUTE.bin path for the given max-speed preference (km/h).
+// Must match the subdirectory layout produced by route_generator: CAR / BIKE / WALK.
+static inline const char* routeBinPath(uint16_t routeSpeed)
+{
+    if (routeSpeed <= 5)
+        return "/sdcard/ROUTE/WALK/ROUTE.bin";
+    if (routeSpeed <= 25)
+        return "/sdcard/ROUTE/BIKE/ROUTE.bin";
+    return "/sdcard/ROUTE/CAR/ROUTE.bin";
+}
 
 #pragma pack(push, 1)
 

@@ -2,8 +2,8 @@
  * @file lv_subjects.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Observer Pattern - Subjects for telemetry data
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #pragma once
@@ -49,6 +49,7 @@ extern lv_subject_t subject_climb_total_dist;  // totalDist of segment (meters, 
 extern lv_subject_t subject_climb_total_gain;  // totalGain of segment (meters, int)
 extern lv_subject_t subject_climb_approaching; // 0=inside climb, 1=approaching start
 extern lv_subject_t subject_map_3d;            // 0=2D view, 1=pseudo-3D view
+extern lv_subject_t subject_nmea_debug_trigger; // increments each GPS cycle (debug tile)
 
 #ifdef ENABLE_TEMP
 extern lv_subject_t subject_temp;

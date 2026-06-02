@@ -2,8 +2,8 @@
  * @file gps.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  GPS definition and functions
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #pragma once
@@ -43,6 +43,9 @@ extern Gps gps; /**< Global GPS instance */
 static const unsigned long GPS_BAUD[] = {4800, 9600, 19200, 0}; /**< Supported GPS baud rates. */
 static const char *GPS_BAUD_PCAS[] = {"$PCAS01,0*1C\r\n", "$PCAS01,1*1D\r\n", "$PCAS01,2*1E\r\n"}; /**< NMEA command strings to set baud rate for PCAS modules. */
 static const char *GPS_RATE_PCAS[] = {"$PCAS02,1000*2E\r\n", "$PCAS02,500*1A\r\n", "$PCAS02,250*18\r\n", "$PCAS02,200*1D\r\n", "$PCAS02,100*1E\r\n"}; /**< NMEA command strings to set update rate for PCAS modules. */
+static const uint8_t GPS_RATE_HZ[] = {1, 2, 4, 5, 10}; /**< Update rate in Hz per GPS_RATE_PCAS index. */
+
+void buildPcas03(char *out, size_t outSize, uint8_t rateIdx); /**< Builds a $PCAS03 command with GSA/GSV decimated to ~1Hz for the given rate index. @param out Output buffer. @param outSize Buffer size. @param rateIdx Update rate index. */
 
 /**
  * @brief Satellite Constellation Canvas Definition
@@ -71,11 +74,8 @@ class Gps
         void getGPSData();
         long detectRate(int rxPin);
         long autoBaud();
-        bool isSpeedChanged();
-        bool isAltitudeChanged();
-        bool hasLocationChange();
-        bool isDOPChanged();
         int  getSimulationIndex() const { return simulationIndex; }
+        void resetSimulation() { simulationIndex = 0; accumulatedDist = 0.0f; lastSimulationTime = 0; smoothedLat = 0.0f; smoothedLon = 0.0f; }
 
         /**
         * @struct GPSDATA
@@ -116,14 +116,6 @@ class Gps
         } satTracker[MAX_SATELLITES];
 
     private:
-        uint16_t previousSpeed;      /**< Previous speed value for change detection. */
-        int16_t previousAltitude;    /**< Previous altitude value for change detection. */
-        float previousLatitude;     /**< Previous latitude for change detection. */
-        float previousLongitude;    /**< Previous longitude for change detection. */
-        float previousHdop;          /**< Previous HDOP for change detection. */
-        float previousPdop;          /**< Previous PDOP for change detection. */
-        float previousVdop;          /**< Previous VDOP for change detection. */
-
         /**
         * @brief Variables for "fake" GPS signal from loaded track (simulation)
         * 

@@ -2,8 +2,8 @@
  * @file tft.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief TFT definition and functions
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #include "tft.hpp"
@@ -98,7 +98,8 @@ void touchCalibrate()
         else
             log_e("Calibration not saved!");
 
-        uint16_t touchX, touchY;
+        uint16_t touchX;
+        uint16_t touchY;
         while (!tft.getTouch(&touchX, &touchY));
 
         touchSprite.deleteSprite();

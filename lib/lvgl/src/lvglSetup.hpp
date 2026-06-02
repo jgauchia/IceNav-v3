@@ -2,8 +2,8 @@
  * @file lvglSetup.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Screen implementation
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #pragma once
@@ -20,6 +20,9 @@
 #include "splashScr.hpp"
 #include "notifyBar.hpp"
 #include "settingsScr.hpp"
+#if defined(BATT_PIN) || defined(BME280) || defined(ENABLE_IMU) || defined(ENABLE_COMPASS)
+#include "sensorScr.hpp"
+#endif
 #include "deviceSettingsScr.hpp"
 #include "mapSettingsScr.hpp"
 #include "gestures.hpp"

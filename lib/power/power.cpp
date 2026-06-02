@@ -2,17 +2,23 @@
  * @file power.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ESP32 Power Management functions
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #include "power.hpp"
 
 #include "storage.hpp"
 #include "../../include/hal.hpp"
+#include "lvgl.h"
+#include "globalGuiDef.h"
+#include <time.h>
 extern Storage storage;
 
 static const char *TAG = "Power";
+
+RTC_DATA_ATTR time_t rtcSavedTime = 0;
+RTC_DATA_ATTR bool   rtcTimeValid = false;
 
 /**
  * @brief Power Class constructor
@@ -53,22 +59,11 @@ void Power::powerDeepSleep()
         gpio_deep_sleep_hold_en();
     #endif
 
+    rtcSavedTime = time(NULL);
+    rtcTimeValid = (rtcSavedTime > 0);
+
     esp_sleep_enable_ext1_wakeup(1ull << BOARD_BOOT_PIN, ESP_EXT1_WAKEUP_ANY_LOW);
     esp_deep_sleep_start();
-}
-
-/**
- * @brief Sleep Mode Timer
- *
- * @details Puts the device into light sleep mode for a specified duration.
- * 			Enables timer wakeup and starts light sleep.
- *
- * @param millis Duration of light sleep in milliseconds
- */
-void Power::powerLightSleepTimer(int millis)
-{
-    esp_sleep_enable_timer_wakeup(millis * 1000);
-    esp_light_sleep_start();
 }
 
 /**
@@ -115,7 +110,15 @@ void Power::deviceSuspend()
     closeMsg();
     lv_refr_now(display);
     tftOff();
+
+    if (gpsTaskHandle != NULL)
+        vTaskSuspend(gpsTaskHandle);
+
     powerLightSleep();
+
+    if (gpsTaskHandle != NULL)
+        vTaskResume(gpsTaskHandle);
+
     tftOn(brightness);
     while (gpio_get_level((gpio_num_t)BOARD_BOOT_PIN) != 1)
     {

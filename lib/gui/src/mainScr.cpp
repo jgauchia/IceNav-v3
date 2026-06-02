@@ -2,8 +2,8 @@
  * @file mainScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Main Screen
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #include "mainScr.hpp"
@@ -15,6 +15,9 @@
 #define MAP_MODE_MANUAL 1
 #define MAP_MODE_INERTIA 2
 
+static const char *zoomInIconFile = "/gfx/zoomin.bin";
+static const char *zoomOutIconFile = "/gfx/zoomout.bin";
+
 bool isMainScreen = false;
 bool isScrolled = true;      
 bool isScrollingMap = false;  
@@ -25,7 +28,9 @@ uint8_t gpxAction = WPT_NONE;
 lv_timer_t *map_inertia_timer = NULL;
 
 extern uint32_t DOUBLE_TOUCH_EVENT;
-extern Compass compass;
+#ifdef ENABLE_COMPASS
+    extern Compass compass;
+#endif
 extern Gps gps;
 extern wayPoint loadWpt;
 extern TrackVector trackData;
@@ -44,6 +49,7 @@ lv_obj_t *compassTile;
 lv_obj_t *navTile;
 lv_obj_t *mapTile;
 lv_obj_t *satTrackTile;
+lv_obj_t *nmeaDebugTile;
 lv_obj_t *btnZoomIn;
 lv_obj_t *btnZoomOut;
 lv_obj_t *btnToggle3D;
@@ -64,7 +70,7 @@ static constexpr float MAP_VELOCITY_WEIGHT    = 0.7f;  /**< EMA weight for veloc
  *
  * @param event LVGL event pointer.
  */
-void updateCompassScr(lv_observer_t *observer, lv_subject_t *subject)
+static void updateCompassScr(lv_observer_t *observer, lv_subject_t *subject)
 {
     if (gps.gpsData.sunriseHour[0] == '\0')
         return;
@@ -77,7 +83,7 @@ void updateCompassScr(lv_observer_t *observer, lv_subject_t *subject)
  *
  * @details Displays or hides map-related UI widgets based on map user settings 
  */
-void showMapWidgets()
+static void showMapWidgets()
 {
     lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(zoomWidget, LV_OBJ_FLAG_HIDDEN);
@@ -100,7 +106,7 @@ void showMapWidgets()
  *
  * @details Hides all map-related UI widgets on the screen.
  */
-void hideMapWidgets()
+static void hideMapWidgets()
 {
     lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);  
     lv_obj_add_flag(zoomWidget, LV_OBJ_FLAG_HIDDEN);
@@ -109,10 +115,24 @@ void hideMapWidgets()
     lv_obj_add_flag(scaleWidget, LV_OBJ_FLAG_HIDDEN);
 }
 
-/**
- * @brief Global heading state for map observer filtering.
- */
 static int global_last_heading = -1;
+
+static struct
+{
+    int16_t lastDispX          = -32768;
+    int16_t lastDispY          = -32768;
+    int32_t lastRenderedHeading = -1;
+    float   lastRenderedLat    = -1.0f;
+    float   lastRenderedLon    = -1.0f;
+} mapRenderState;
+
+static struct
+{
+    int      last_x       = 0;
+    int      last_y       = 0;
+    uint32_t last_time    = 0;
+    bool     dragStarted  = false;
+} scrollState;
 
 /**
  * @brief Async callback to delegate map redrawing to UI thread (Core 1)
@@ -126,30 +146,24 @@ static void async_map_update_cb(void * user_data)
     if (mapView.redrawMap && !mapSet.vectorMap)
         xEventGroupSetBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
 
-    static int16_t lastDispX = -32768;
-    static int16_t lastDispY = -32768;
-    static int32_t lastRenderedHeading = -1;
-    static float lastRenderedLat = -1.0f;
-    static float lastRenderedLon = -1.0f;
-    
     int32_t currentHeading = lv_subject_get_int(&subject_heading);
     float currentLat = gps.gpsData.latitude;
     float currentLon = gps.gpsData.longitude;
 
-    bool headingChanged = (abs(currentHeading - lastRenderedHeading) > MAP_HEADING_THRESHOLD);
-    bool positionChanged = (currentLat != lastRenderedLat || currentLon != lastRenderedLon);
+    bool headingChanged = (abs(currentHeading - mapRenderState.lastRenderedHeading) > MAP_HEADING_THRESHOLD);
+    bool positionChanged = (currentLat != mapRenderState.lastRenderedLat || currentLon != mapRenderState.lastRenderedLon);
 
-    if (mapView.offsetX != lastDispX || 
-        mapView.offsetY != lastDispY || 
+    if (mapView.offsetX != mapRenderState.lastDispX ||
+        mapView.offsetY != mapRenderState.lastDispY ||
         ((headingChanged || positionChanged) && mapView.followGps) ||
         mapView.redrawMap ||
         (xEventGroupGetBits(mapView.mapEventGroup) & Maps::MAP_EVENT_DONE))
     {
-        lastDispX = mapView.offsetX;
-        lastDispY = mapView.offsetY;
-        lastRenderedHeading = currentHeading;
-        lastRenderedLat = currentLat;
-        lastRenderedLon = currentLon;
+        mapRenderState.lastDispX           = mapView.offsetX;
+        mapRenderState.lastDispY           = mapView.offsetY;
+        mapRenderState.lastRenderedHeading = currentHeading;
+        mapRenderState.lastRenderedLat     = currentLat;
+        mapRenderState.lastRenderedLon     = currentLon;
         xEventGroupClearBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
         mapView.displayMap();
         map_img_dsc.data = (const uint8_t *)mapView.mapBuffer;
@@ -251,18 +265,24 @@ static void map_heading_observer_cb(lv_observer_t *observer, lv_subject_t *subje
 }
 
 // Sprite used to render the static elevation profile with LovyanGFX primitives.
-// climbBuf: contiguous PSRAM buffer [RGB565 W*2*H bytes | alpha W*H bytes].
+// buf: contiguous PSRAM buffer [RGB565 W*2*H bytes | alpha W*H bytes].
 // Layout matches LV_COLOR_FORMAT_RGB565A8 expected by lv_draw_buf_init.
-static TFT_eSprite   climbSprite       = TFT_eSprite(&tft);
-static uint8_t      *climbBuf          = nullptr;
-static lv_draw_buf_t climbDrawBuf;
-static bool          climbProfileBuilt = false;
-static int           climbLastSegStart = -1;
-static int           climbLastPosX     = -1;
-static int           climbLastYTop     = -1;
+static struct
+{
+    TFT_eSprite   sprite       = TFT_eSprite(&tft);
+    uint8_t      *buf          = nullptr;
+    lv_draw_buf_t drawBuf      = {};
+    bool          profileBuilt = false;
+    int           lastSegStart = -1;
+    int           lastPosX     = -1;
+    int           lastYTop     = -1;
+    float         minEle       = 0.0f;
+    float         maxEle       = 0.0f;
+    float         eleRange     = 1.0f;
+} climbState;
 
 /**
- * @brief Build the static elevation profile into climbSprite using LovyanGFX primitives.
+ * @brief Build the static elevation profile into climbState.sprite using LovyanGFX primitives.
  *
  * @details Renders the full-track or zoomed profile once. Iterates over canvas columns
  *          (W passes) to find elevation and color per column, then draws a filled
@@ -275,47 +295,58 @@ static int           climbLastYTop     = -1;
  */
 static void buildClimbProfile(int startPt, int endPt)
 {
-    if (climbCanvas == NULL || trackData.size() < 2) return;
+    if (climbCanvas == NULL || trackData.size() < 2)
+        return;
 
     int W = lv_obj_get_width(climbCanvas);
     int H = lv_obj_get_height(climbCanvas);
-    if (W <= 0 || H <= 0) return;
+    if (W <= 0 || H <= 0)
+        return;
 
     // Recreate sprite and unified RGB565A8 buffer if size changed
-    if (climbSprite.width() != W || climbSprite.height() != H)
+    if (climbState.sprite.width() != W || climbState.sprite.height() != H)
     {
-        climbSprite.deleteSprite();
-        climbSprite.setColorDepth(16);
-        climbSprite.createSprite(W, H);
+        climbState.sprite.deleteSprite();
+        climbState.sprite.setColorDepth(16);
+        climbState.sprite.createSprite(W, H);
 
-        if (climbBuf != nullptr)
-            heap_caps_free(climbBuf);
+        if (climbState.buf != nullptr)
+            heap_caps_free(climbState.buf);
         // RGB565 (W*2*H) + A8 mask (W*H) contiguous buffer in PSRAM
-        climbBuf = (uint8_t *)heap_caps_malloc(W * 2 * H + W * H, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+        climbState.buf = (uint8_t *)heap_caps_malloc(W * 2 * H + W * H, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
     }
-    if (climbBuf == nullptr) return;
+    if (climbState.buf == nullptr)
+        return;
 
-    climbSprite.fillScreen(TFT_BLACK);
+    climbState.sprite.fillScreen(TFT_BLACK);
 
     float distStart = trackData[startPt].accumDist;
     float distEnd   = trackData[endPt].accumDist;
     float distRange = distEnd - distStart;
-    if (distRange < 1.0f) return;
+    if (distRange < 1.0f)
+        return;
 
     float minEle = trackData[startPt].ele;
     float maxEle = trackData[startPt].ele;
     for (int i = startPt + 1; i <= endPt; ++i)
     {
-        if (trackData[i].ele < minEle) minEle = trackData[i].ele;
-        if (trackData[i].ele > maxEle) maxEle = trackData[i].ele;
+        if (trackData[i].ele < minEle)
+            minEle = trackData[i].ele;
+        if (trackData[i].ele > maxEle)
+            maxEle = trackData[i].ele;
     }
     float eleRange = maxEle - minEle;
-    if (eleRange < 1.0f) eleRange = 1.0f;
+    if (eleRange < 1.0f)
+        eleRange = 1.0f;
+
+    climbState.minEle   = minEle;
+    climbState.maxEle   = maxEle;
+    climbState.eleRange = eleRange;
 
     const auto &segs = climbAnalyzer.segments();
     auto toCol = [](uint32_t rgb) { return lgfx::rgb888_t((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF); };
 
-    uint8_t *alphaBuf = climbBuf + W * 2 * H;
+    uint8_t *alphaBuf = climbState.buf + W * 2 * H;
     memset(alphaBuf, 0x00, W * H);
 
     // Linear cursor through trackData — O(n) total across all W columns
@@ -347,8 +378,10 @@ static void buildClimbProfile(int startPt, int endPt)
                 float wHalf = 25.0f;
                 float dA = colDist - wHalf;
                 float dB = colDist + wHalf;
-                if (dA < trackData[seg.startIdx].accumDist) dA = trackData[seg.startIdx].accumDist;
-                if (dB > trackData[seg.endIdx].accumDist)   dB = trackData[seg.endIdx].accumDist;
+                if (dA < trackData[seg.startIdx].accumDist)
+                    dA = trackData[seg.startIdx].accumDist;
+                if (dB > trackData[seg.endIdx].accumDist)
+                    dB = trackData[seg.endIdx].accumDist;
                 int maxIdx = (int)trackData.size() - 1;
                 int ia = trkCursor;
                 while (ia > 0 && trackData[ia].accumDist > dA) --ia;
@@ -365,13 +398,14 @@ static void buildClimbProfile(int startPt, int endPt)
                 float eleB = trackData[ib].ele + tb * (ib < maxIdx ? (trackData[ib + 1].ele - trackData[ib].ele) : 0.0f);
                 float winDist = dB - dA;
                 float localGrade = (winDist > 1.0f) ? ((eleB - eleA) / winDist * 100.0f) : 0.0f;
-                if (localGrade < 0.0f) localGrade = 0.0f;
+                if (localGrade < 0.0f)
+                    localGrade = 0.0f;
                 col = toCol(climbSegmentColor(localGrade));
                 break;
             }
         }
 
-        climbSprite.drawFastVLine(x, yTop, H - yTop, col);
+        climbState.sprite.drawFastVLine(x, yTop, H - yTop, col);
 
         // Alpha mask: opaque only where the bar is drawn
         for (int y = yTop; y < H; ++y)
@@ -381,20 +415,20 @@ static void buildClimbProfile(int startPt, int endPt)
     // Copy sprite buffer byte-by-byte swapping pairs: LovyanGFX stores RGB565
     // with bytes already swapped for the ILI9488 bus. RGB565A8 expects unswapped
     // RGB565, so undo the hardware swap here.
-    const uint8_t *src = (const uint8_t *)climbSprite.getBuffer();
+    const uint8_t *src = (const uint8_t *)climbState.sprite.getBuffer();
     for (int i = 0; i < W * H; ++i)
     {
-        climbBuf[i * 2]     = src[i * 2 + 1];
-        climbBuf[i * 2 + 1] = src[i * 2];
+        climbState.buf[i * 2]     = src[i * 2 + 1];
+        climbState.buf[i * 2 + 1] = src[i * 2];
     }
 
     uint32_t stride = (uint32_t)W * 2;
-    lv_draw_buf_init(&climbDrawBuf, (uint32_t)W, (uint32_t)H,
+    lv_draw_buf_init(&climbState.drawBuf, (uint32_t)W, (uint32_t)H,
                      LV_COLOR_FORMAT_RGB565A8, stride,
-                     climbBuf, stride * (uint32_t)H + (uint32_t)W * (uint32_t)H);
-    lv_canvas_set_draw_buf(climbCanvas, &climbDrawBuf);
+                     climbState.buf, stride * (uint32_t)H + (uint32_t)W * (uint32_t)H);
+    lv_canvas_set_draw_buf(climbCanvas, &climbState.drawBuf);
     lv_obj_invalidate(climbCanvas);
-    climbProfileBuilt = true;
+    climbState.profileBuilt = true;
 }
 
 /**
@@ -408,37 +442,40 @@ static void buildClimbProfile(int startPt, int endPt)
  */
 static void updateClimbMarker(int posX, int yTop)
 {
-    if (climbCanvas == NULL || climbBuf == nullptr) return;
+    if (climbCanvas == NULL || climbState.buf == nullptr)
+        return;
 
-    int W = climbSprite.width();
-    int H = climbSprite.height();
-    if (W <= 0 || H <= 0) return;
+    int W = climbState.sprite.width();
+    int H = climbState.sprite.height();
+    if (W <= 0 || H <= 0)
+        return;
 
-    const uint8_t *src   = (const uint8_t *)climbSprite.getBuffer();
-    uint8_t       *alpha = climbBuf + W * 2 * H;
+    const uint8_t *src   = (const uint8_t *)climbState.sprite.getBuffer();
+    uint8_t       *alpha = climbState.buf + W * 2 * H;
 
     auto restorePixel = [&](int x, int y)
     {
-        if (x < 0 || x >= W || y < 0 || y >= H) return;
+        if (x < 0 || x >= W || y < 0 || y >= H)
+            return;
         int i = y * W + x;
-        climbBuf[i * 2]     = src[i * 2 + 1];
-        climbBuf[i * 2 + 1] = src[i * 2];
+        climbState.buf[i * 2]     = src[i * 2 + 1];
+        climbState.buf[i * 2 + 1] = src[i * 2];
         uint16_t px = ((uint16_t)src[i * 2 + 1] << 8) | src[i * 2];
         alpha[y * W + x] = (px == 0x0000) ? 0x00 : 0xFF;
     };
 
     // Restore previous column and triangle
-    if (climbLastPosX >= 0 && climbLastPosX < W)
+    if (climbState.lastPosX >= 0 && climbState.lastPosX < W)
     {
         for (int y = 0; y < H; ++y)
-            restorePixel(climbLastPosX, y);
+            restorePixel(climbState.lastPosX, y);
 
         for (int r = 0; r < TRI_ROWS; ++r)
         {
-            int y    = climbLastYTop - TRI_GAP - TRI_ROWS + r;
+            int y    = climbState.lastYTop - TRI_GAP - TRI_ROWS + r;
             int half = triMask[r] / 2;
             for (int dx = -half; dx <= half; ++dx)
-                restorePixel(climbLastPosX + dx, y);
+                restorePixel(climbState.lastPosX + dx, y);
         }
     }
 
@@ -451,8 +488,8 @@ static void updateClimbMarker(int posX, int yTop)
             uint16_t px = ((uint16_t)src[i * 2 + 1] << 8) | src[i * 2];
             if (px != 0x0000)
             {
-                climbBuf[i * 2]     = 0xFF;
-                climbBuf[i * 2 + 1] = 0xFF;
+                climbState.buf[i * 2]     = 0xFF;
+                climbState.buf[i * 2 + 1] = 0xFF;
                 alpha[y * W + posX] = 0xFF;
             }
         }
@@ -465,16 +502,17 @@ static void updateClimbMarker(int posX, int yTop)
             for (int dx = -half; dx <= half; ++dx)
             {
                 int tx = posX + dx;
-                if (tx < 0 || tx >= W || y < 0 || y >= H) continue;
+                if (tx < 0 || tx >= W || y < 0 || y >= H)
+                    continue;
                 int i = y * W + tx;
-                climbBuf[i * 2]     = 0xFF;
-                climbBuf[i * 2 + 1] = 0xFF;
+                climbState.buf[i * 2]     = 0xFF;
+                climbState.buf[i * 2 + 1] = 0xFF;
                 alpha[y * W + tx]   = 0xFF;
             }
         }
 
-        climbLastPosX = posX;
-        climbLastYTop = yTop;
+        climbState.lastPosX = posX;
+        climbState.lastYTop = yTop;
     }
 
     lv_obj_invalidate(climbCanvas);
@@ -485,15 +523,16 @@ static void updateClimbMarker(int posX, int yTop)
  */
 static void climb_active_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
 {
-    if (climbOverlay == NULL) return;
+    if (climbOverlay == NULL)
+        return;
 
     if (lv_subject_get_int(&subject_climb_active) == 0)
     {
         lv_obj_add_flag(climbOverlay, LV_OBJ_FLAG_HIDDEN);
-        climbProfileBuilt = false;
-        climbLastSegStart = -1;
-        climbLastPosX     = -1;
-        climbLastYTop     = -1;
+        climbState.profileBuilt = false;
+        climbState.lastSegStart = -1;
+        climbState.lastPosX     = -1;
+        climbState.lastYTop     = -1;
     }
     else
     {
@@ -510,8 +549,10 @@ static void climb_active_observer_cb(lv_observer_t *observer, lv_subject_t *subj
  */
 static void climb_idx_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
 {
-    if (climbOverlay == NULL) return;
-    if (lv_subject_get_int(&subject_climb_active) == 0) return;
+    if (climbOverlay == NULL)
+        return;
+    if (lv_subject_get_int(&subject_climb_active) == 0)
+        return;
 
     int32_t dist      = lv_subject_get_int(&subject_climb_dist);
     int32_t gain      = lv_subject_get_int(&subject_climb_gain);
@@ -543,7 +584,8 @@ static void climb_idx_observer_cb(lv_observer_t *observer, lv_subject_t *subject
     lv_label_set_text_fmt(climbGradeLabel, "%.1f%%", grade);
 
     int W = lv_obj_get_width(climbCanvas);
-    if (W <= 0) return;
+    if (W <= 0)
+        return;
 
     // Same anticipation condition as updatePosition() — covers pre-climb phase too
     const std::vector<ClimbSegment>& segs = climbAnalyzer.segments();
@@ -559,7 +601,8 @@ static void climb_idx_observer_cb(lv_observer_t *observer, lv_subject_t *subject
             break;
         }
     }
-    if (seg == nullptr) return;
+    if (seg == nullptr)
+        return;
 
     float preStartDist = trackData[seg->startIdx].accumDist - CLIMB_ANTICIPATION_M;
     int startPt = seg->startIdx;
@@ -570,30 +613,22 @@ static void climb_idx_observer_cb(lv_observer_t *observer, lv_subject_t *subject
     float dRange = trackData[endPt].accumDist - trackData[startPt].accumDist;
     float dPos   = curDistObs - trackData[startPt].accumDist;
     int posX = (dRange > 0.0f) ? (int)(dPos / dRange * (W - 1)) : 0;
-    if (posX < 0) posX = 0;
-    if (posX >= W) posX = W - 1;
+    if (posX < 0)
+        posX = 0;
+    if (posX >= W)
+        posX = W - 1;
 
-    if (!climbProfileBuilt || seg->startIdx != climbLastSegStart)
+    if (!climbState.profileBuilt || seg->startIdx != climbState.lastSegStart)
     {
-        climbLastPosX = -1;
-        climbLastYTop = -1;
+        climbState.lastPosX = -1;
+        climbState.lastYTop = -1;
         buildClimbProfile(startPt, endPt);
-        climbLastSegStart = seg->startIdx;
+        climbState.lastSegStart = seg->startIdx;
     }
 
-    // Compute yTop at posX using the same formula as buildClimbProfile
     int H = lv_obj_get_height(climbCanvas);
-    float minEle = trackData[startPt].ele;
-    float maxEle = trackData[startPt].ele;
-    for (int i = startPt + 1; i <= endPt; ++i)
-    {
-        if (trackData[i].ele < minEle) minEle = trackData[i].ele;
-        if (trackData[i].ele > maxEle) maxEle = trackData[i].ele;
-    }
-    float eleRange = maxEle - minEle;
-    if (eleRange < 1.0f) eleRange = 1.0f;
     float curEleObs = trackData[(int)activeIdx].ele;
-    int yTop = calcYTop(curEleObs, minEle, eleRange, H);
+    int yTop = calcYTop(curEleObs, climbState.minEle, climbState.eleRange, H);
 
     updateClimbMarker(posX, yTop);
 }
@@ -648,7 +683,7 @@ static void map_3d_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
  *
  * @param event LVGL event pointer.
  */
-void getActTile(lv_event_t *event)
+static void getActTile(lv_event_t *event)
 {
     isScrolled = true;
     mapView.redrawMap = true;
@@ -661,11 +696,13 @@ void getActTile(lv_event_t *event)
             hideMapWidgets();
     }
     if (isBarOpen)
-        lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_HIDDEN);
+        closeOptionsPanel();
     lv_obj_t *actTile = lv_tileview_get_tile_act(tilesScreen);
-    if (actTile == NULL) 
+    if (actTile == NULL)
         return;
     activeTile = lv_obj_get_x(actTile) / TFT_WIDTH;
+    if (activeTile == NAV && navTile != NULL)
+        lv_obj_send_event(navTile, LV_EVENT_VALUE_CHANGED, NULL);
 }
 
 /**
@@ -675,7 +712,7 @@ void getActTile(lv_event_t *event)
  *
  * @param event LVGL event pointer.
  */
-void scrollTile(lv_event_t *event)
+static void scrollTile(lv_event_t *event)
 {
     isScrolled = false;
     mapView.redrawMap = false;
@@ -689,7 +726,7 @@ void scrollTile(lv_event_t *event)
  *
  * @param event LVGL event pointer.
  */
-void updateMap(lv_event_t *event)
+static void updateMap(lv_event_t *event)
 {
     lv_async_call(async_map_update_cb, NULL);
 }
@@ -724,7 +761,7 @@ static void setZoomButtonsVisible(bool show)
  *
  * @param event LVGL event pointer.
  */
-void mapToolBarEvent(lv_event_t *event)
+static void mapToolBarEvent(lv_event_t *event)
 {
     showMapToolBar = !showMapToolBar;
     canScrollMap = !canScrollMap;
@@ -758,7 +795,7 @@ void mapToolBarEvent(lv_event_t *event)
  * @details Calculates the inertia movement based on velocity and applies friction.
  *          Updates the map position and triggers redrawing.
  */
-void map_inertia_timer_cb(lv_timer_t * t)
+static void map_inertia_timer_cb(lv_timer_t * t)
 {
     float dt = 20.0f; // Fixed period defined in createMainScr()
     if (mapView.velocityX != 0 || mapView.velocityY != 0)
@@ -794,26 +831,22 @@ void map_inertia_timer_cb(lv_timer_t * t)
  *
  * @param event LVGL event pointer.
  */
-void scrollMapEvent(lv_event_t *event)
+static void scrollMapEvent(lv_event_t *event)
 {
     if (canScrollMap)
     {
         lv_event_code_t code = lv_event_get_code(event);
         lv_indev_t * indev = lv_event_get_indev(event);
-        static int last_x = 0;
-        static int last_y = 0;
-        static uint32_t last_time = 0;
-        static bool dragStarted = false;
         lv_point_t p;
 
         switch (code)
         {
             case LV_EVENT_PRESSED:
                 lv_indev_get_point(indev, &p);
-                last_x = p.x;
-                last_y = p.y;
-                last_time = (uint32_t)(esp_timer_get_time() / 1000);
-                dragStarted = false;
+                scrollState.last_x      = p.x;
+                scrollState.last_y      = p.y;
+                scrollState.last_time   = (uint32_t)(esp_timer_get_time() / 1000);
+                scrollState.dragStarted = false;
                 isScrollingMap = true;
                 mapView.velocityX = 0;
                 mapView.velocityY = 0;
@@ -826,28 +859,28 @@ void scrollMapEvent(lv_event_t *event)
             {
                 lv_indev_get_point(indev, &p);
                 uint32_t current_time = (uint32_t)(esp_timer_get_time() / 1000);
-                int dx = p.x - last_x;
-                int dy = p.y - last_y;
-                uint32_t dt = current_time - last_time;
+                int dx = p.x - scrollState.last_x;
+                int dy = p.y - scrollState.last_y;
+                uint32_t dt = current_time - scrollState.last_time;
 
-                if (!dragStarted)
+                if (!scrollState.dragStarted)
                 {
                     const int START_THRESHOLD = 12;
                     if (abs(dx) > START_THRESHOLD || abs(dy) > START_THRESHOLD)
                     {
-                        dragStarted = true;
+                        scrollState.dragStarted = true;
                         lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
                     }
                 }
 
-                if (dragStarted && dt > 0)
+                if (scrollState.dragStarted && dt > 0)
                 {
                     mapView.scrollMap(-dx, -dy);
                     mapView.velocityX = mapView.velocityX * (1.0f - MAP_VELOCITY_WEIGHT) + (-(float)dx / (float)dt) * MAP_VELOCITY_WEIGHT;
                     mapView.velocityY = mapView.velocityY * (1.0f - MAP_VELOCITY_WEIGHT) + (-(float)dy / (float)dt) * MAP_VELOCITY_WEIGHT;
-                    last_x = p.x;
-                    last_y = p.y;
-                    last_time = current_time;
+                    scrollState.last_x    = p.x;
+                    scrollState.last_y    = p.y;
+                    scrollState.last_time = current_time;
                     lv_subject_set_int(&subject_map_offset_x, mapView.offsetX);
                     lv_subject_set_int(&subject_map_offset_y, mapView.offsetY);
                 }
@@ -857,7 +890,7 @@ void scrollMapEvent(lv_event_t *event)
             case LV_EVENT_PRESS_LOST:
                 lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
                 isScrollingMap = false;
-                dragStarted = false;
+                scrollState.dragStarted = false;
                 if (abs(mapView.velocityX) > MAP_INERTIA_VEL_THRESH || abs(mapView.velocityY) > MAP_INERTIA_VEL_THRESH)
                 {
                     lv_subject_set_int(&subject_map_state, MAP_MODE_INERTIA);
@@ -883,7 +916,7 @@ void scrollMapEvent(lv_event_t *event)
  *
  * @param event LVGL event pointer.
  */
-void zoomEvent(lv_event_t *event)
+static void zoomEvent(lv_event_t *event)
 {
     lv_obj_t *obj = (lv_obj_t *)lv_event_get_current_target(event);
     if ( obj == btnZoomIn && ( zoom >= minZoom && zoom < maxZoom ) )
@@ -903,11 +936,11 @@ void zoomEvent(lv_event_t *event)
  *
  * @param event LVGL event pointer.
  */
-void updateNavEvent(lv_event_t *event)
+static void updateNavEvent(lv_event_t *event)
 {
     int wptDistance = (int)calcDist(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon);
     lv_label_set_text_fmt(distNav, "%d m.", wptDistance);
-    if (wptDistance == 0)
+    if (wptDistance <= 30)
     {
         LV_IMG_DECLARE(navfinish);
         lv_img_set_src(arrowNav, &navfinish);
@@ -928,7 +961,7 @@ void updateNavEvent(lv_event_t *event)
  *
  * @param screen Pointer to the LVGL screen object.
  */
-void createMapImage(_lv_obj_t *screen)
+static void createMapImage(_lv_obj_t *screen)
 {
     mapImage = lv_image_create(screen);
     lv_obj_set_scrollbar_mode(mapImage, LV_SCROLLBAR_MODE_OFF);
@@ -960,7 +993,11 @@ void createMainScr()
     mapTile = lv_tileview_add_tile(tilesScreen, 1, 0, (lv_dir_t)(LV_DIR_LEFT | LV_DIR_RIGHT));
     navTile = lv_tileview_add_tile(tilesScreen, 2, 0, (lv_dir_t)(LV_DIR_LEFT | LV_DIR_RIGHT));
     lv_obj_add_flag(navTile, LV_OBJ_FLAG_HIDDEN);
-    satTrackTile = lv_tileview_add_tile(tilesScreen, 3, 0, LV_DIR_LEFT);
+    // The satellite tile keeps a right swipe only when the NMEA debug tile exists.
+    lv_dir_t satTileDir = nmeaDebugTileEnabled ? (lv_dir_t)(LV_DIR_LEFT | LV_DIR_RIGHT) : LV_DIR_LEFT;
+    satTrackTile = lv_tileview_add_tile(tilesScreen, 3, 0, satTileDir);
+    if (nmeaDebugTileEnabled)
+        nmeaDebugTile = lv_tileview_add_tile(tilesScreen, 4, 0, LV_DIR_LEFT);
     lv_obj_set_size(tilesScreen, TFT_WIDTH, TFT_HEIGHT - 25);
     lv_obj_set_pos(tilesScreen, 0, 25);
     lv_obj_add_style(tilesScreen, &styleScrollbarWhite, LV_PART_SCROLLBAR);
@@ -1040,6 +1077,8 @@ void createMainScr()
     lv_subject_set_int(&subject_map_3d, mapSet.map3D ? 1 : 0);
     lv_subject_add_observer_obj(&subject_map_3d, map_3d_observer_cb, mapTile, NULL);
     satelliteScr(satTrackTile);
+    if (nmeaDebugTileEnabled)
+        nmeaDebugScr(nmeaDebugTile);
     // timer is permanent — mainScreen is never destroyed
     map_inertia_timer = lv_timer_create(map_inertia_timer_cb, 20, NULL);
     lv_timer_pause(map_inertia_timer);

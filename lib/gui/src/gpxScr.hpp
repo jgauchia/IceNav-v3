@@ -2,8 +2,8 @@
  * @file gpxScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - GPX list screen
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #pragma once
@@ -11,7 +11,7 @@
 #include "mainScr.hpp"
 #include "storage.hpp"
 #include "gpxParser.hpp"
-#include "buttonBar.hpp"
+#include "optionsPanel.hpp"
 
 extern char gpxFileFolder[128];  /**< GPX file folder path */
 extern bool gpxTrack;         /**< Track mode flag */

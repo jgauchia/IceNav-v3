@@ -2,8 +2,8 @@
  * @file astar.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  A* routing algorithm implementation
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #include "astar.hpp"
@@ -40,40 +40,45 @@ static constexpr float METERS_PER_DEGREE  = 111319.0f; /**< Approximate metres p
 
 /**
 * @brief Calculates the heuristic estimated cost between a node and the destination.
-* 
-* @param node ID of the current node to evaluate.
-* @param dst_cached Cached destination node data for performance.
+*
+* @param node        ID of the current node to evaluate.
+* @param dst_cached  Cached destination node data for performance.
 * @param cos_dst_lat Pre-calculated cosine of destination latitude for longitude compensation.
-* @param graph GraphLoader reference to access node coordinates.
+* @param graph       GraphLoader reference to access node coordinates.
+* @param maxSpeedMs  Maximum speed in m/s for the active routing profile.
 * @return Estimated cost to reach the destination, scaled by ASTAR_WEIGHT.
 */
 static uint32_t heuristic(uint32_t node, const RouteNode& dst_cached, float cos_dst_lat,
-                          const GraphLoader& graph)
+                          const GraphLoader& graph, float maxSpeedMs)
 {
     RouteNode a;
-    if (!graph.getNode(node, a)) return 0;
+    if (!graph.getNode(node, a))
+        return 0;
     float dlat = dst_cached.lat - a.lat;
     float dlon  = (dst_cached.lon - a.lon) * cos_dst_lat;
     float dist  = sqrtf(dlat * dlat + dlon * dlon) * METERS_PER_DEGREE;
-    return (uint32_t)(dist / 36.1f * 10.f * ASTAR_WEIGHT);
+    return (uint32_t)(dist / maxSpeedMs * 10.f * ASTAR_WEIGHT);
 }
 
 /**
  * @brief Compute an A* route between two global node indices.
  *
- * @param graph    Loaded graph (GraphLoader::load() must have succeeded)
- * @param src_node Global index of the source node
- * @param dst_node Global index of the destination node
+ * @param graph        Loaded graph (GraphLoader::load() must have succeeded)
+ * @param src_node     Global index of the source node
+ * @param dst_node     Global index of the destination node
+ * @param maxSpeedKmh  Maximum speed in km/h for the routing profile (car=130, bike=25, pedestrian=5)
  * @return TrackVector with route waypoints, or empty if no path found
  */
-TrackVector astarRoute(const GraphLoader& graph, uint32_t src_node, uint32_t dst_node)
+TrackVector astarRoute(const GraphLoader& graph, uint32_t src_node, uint32_t dst_node, float maxSpeedKmh)
 {
+    float maxSpeedMs = maxSpeedKmh / 3.6f;
     const uint32_t INF = UINT32_MAX;
 
     TrackVector result;
 
     RouteNode dst_cached;
-    if (!graph.getNode(dst_node, dst_cached)) return result;
+    if (!graph.getNode(dst_node, dst_cached))
+        return result;
     float cos_dst_lat = cosf(dst_cached.lat * 3.14159265f / 180.f);
 
     using U32U32Map = std::unordered_map<uint32_t, uint32_t,
@@ -93,7 +98,7 @@ TrackVector astarRoute(const GraphLoader& graph, uint32_t src_node, uint32_t dst
     PQ pq;
 
     g_cost[src_node] = 0;
-    pq.push({heuristic(src_node, dst_cached, cos_dst_lat, graph), 0u, src_node});
+    pq.push({heuristic(src_node, dst_cached, cos_dst_lat, graph, maxSpeedMs), 0u, src_node});
 
     while (!pq.empty())
     {
@@ -103,12 +108,15 @@ TrackVector astarRoute(const GraphLoader& graph, uint32_t src_node, uint32_t dst
         // Lazy deletion: discard stale PQ entries instead of a separate visited set.
         // Saves ~180 KB PSRAM and reduces max PQ size from O(E) to O(V).
         auto it = g_cost.find(u);
-        if (it != g_cost.end() && top.g > it->second) continue;
-        if (u == dst_node) break;
+        if (it != g_cost.end() && top.g > it->second)
+            continue;
+        if (u == dst_node)
+            break;
 
         RouteEdge edge_buf[MAX_EDGES_PER_NODE_GL];
         uint32_t edge_count = 0;
-        if (!graph.getEdgesForNode(u, edge_buf, edge_count)) continue;
+        if (!graph.getEdgesForNode(u, edge_buf, edge_count))
+            continue;
 
         auto g_it = g_cost.find(u);
         uint32_t current_g = (g_it != g_cost.end()) ? g_it->second : INF;
@@ -124,7 +132,7 @@ TrackVector astarRoute(const GraphLoader& graph, uint32_t src_node, uint32_t dst
             {
                 g_cost[e.dst_node] = ng;
                 prev[e.dst_node]   = u;
-                uint32_t h = heuristic(e.dst_node, dst_cached, cos_dst_lat, graph);
+                uint32_t h = heuristic(e.dst_node, dst_cached, cos_dst_lat, graph, maxSpeedMs);
                 pq.push({ng + h, ng, e.dst_node});
             }
         }
@@ -137,7 +145,8 @@ TrackVector astarRoute(const GraphLoader& graph, uint32_t src_node, uint32_t dst
     while (cur != UINT32_MAX)
     {
         RouteNode n;
-        if (!graph.getNode(cur, n)) break;
+        if (!graph.getNode(cur, n))
+            break;
         wayPoint wp{};
         wp.lat = n.lat;
         wp.lon = n.lon;

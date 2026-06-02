@@ -1,8 +1,8 @@
 /**
  * @file compass.hpp
  * @brief Compass definition and functions - Native ESP-IDF drivers
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #pragma once
@@ -138,8 +138,12 @@ public:
 private:
     uint8_t mpuAddr;
     uint8_t akAddr;
-    float magX, magY, magZ;
-    float asaX, asaY, asaZ;
+    float magX;
+    float magY;
+    float magZ;
+    float asaX;
+    float asaY;
+    float asaZ;
     float accelScale;
 
     uint8_t read8(uint8_t addr, uint8_t reg);

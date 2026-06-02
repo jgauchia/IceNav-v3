@@ -2,8 +2,8 @@
  * @file climbAnalyzer.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Climb profile analysis from loaded GPX track
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #include "climbAnalyzer.hpp"
@@ -61,7 +61,7 @@ static void smoothElevation(const TrackVector& trackData, std::vector<float>& sm
  *
  * @param trackData Loaded track points with ele and accumDist populated.
  */
-void ClimbAnalyzer::analyze(const TrackVector& trackData)
+void ClimbAnalyzer::analyze(const TrackVector& trackData, int startOffset)
 {
     segments_.clear();
     if (trackData.size() < 2)
@@ -99,8 +99,8 @@ void ClimbAnalyzer::analyze(const TrackVector& trackData)
                 if (segDist >= CLIMB_MIN_DIST_M && avgGrade >= CLIMB_MIN_GRADE)
                 {
                     ClimbSegment seg;
-                    seg.startIdx  = startIdx;
-                    seg.endIdx    = (int)(i - 1);
+                    seg.startIdx  = startOffset + startIdx;
+                    seg.endIdx    = startOffset + (int)(i - 1);
                     seg.totalDist = segDist;
                     seg.totalGain = gainAcc;
                     seg.avgGrade  = avgGrade;
@@ -122,8 +122,8 @@ void ClimbAnalyzer::analyze(const TrackVector& trackData)
         if (segDist >= CLIMB_MIN_DIST_M && avgGrade >= CLIMB_MIN_GRADE)
         {
             ClimbSegment seg;
-            seg.startIdx  = startIdx;
-            seg.endIdx    = lastIdx;
+            seg.startIdx  = startOffset + startIdx;
+            seg.endIdx    = startOffset + lastIdx;
             seg.totalDist = segDist;
             seg.totalGain = segGain;
             seg.avgGrade  = avgGrade;
@@ -144,10 +144,14 @@ void ClimbAnalyzer::analyze(const TrackVector& trackData)
 int climbCategory(float totalDist, float avgGrade)
 {
     float score = totalDist * avgGrade * avgGrade / 100.0f;
-    if (score >= 8000.0f) return 1;
-    if (score >= 3500.0f) return 2;
-    if (score >= 1500.0f) return 3;
-    if (score >= 800.0f)  return 4;
+    if (score >= 8000.0f)
+        return 1;
+    if (score >= 3500.0f)
+        return 2;
+    if (score >= 1500.0f)
+        return 3;
+    if (score >= 800.0f)
+        return 4;
     return 5;
 }
 
@@ -159,9 +163,12 @@ int climbCategory(float totalDist, float avgGrade)
  */
 uint32_t climbSegmentColor(float avgGrade)
 {
-    if (avgGrade >= 9.0f) return 0xFF0000u;
-    if (avgGrade >= 6.0f) return 0xFF6600u;
-    if (avgGrade >= 3.0f) return 0xFFAA00u;
+    if (avgGrade >= 9.0f)
+        return 0xFF0000u;
+    if (avgGrade >= 6.0f)
+        return 0xFF6600u;
+    if (avgGrade >= 3.0f)
+        return 0xFFAA00u;
     return 0x00C800u;
 }
 
@@ -179,8 +186,10 @@ uint32_t climbSegmentColor(float avgGrade)
 int calcYTop(float ele, float minEle, float eleRange, int H)
 {
     int y = TRI_MARGIN + (int)((1.0f - (ele - minEle) / eleRange) * (H - 1 - TRI_MARGIN));
-    if (y < TRI_MARGIN) y = TRI_MARGIN;
-    if (y >= H)         y = H - 1;
+    if (y < TRI_MARGIN)
+        y = TRI_MARGIN;
+    if (y >= H)
+        y = H - 1;
     return y;
 }
 
@@ -275,7 +284,8 @@ void ClimbAnalyzer::updatePosition(float lat, float lon, bool simMode, int simIn
     float ddist     = track[ahead].accumDist - curDist;
     float dele      = track[ahead].ele - curEle;
     float grade     = (ddist > 1.0f) ? (dele / ddist * 100.0f) : 0.0f;
-    if (grade < 0.0f) grade = 0.0f;
+    if (grade < 0.0f)
+        grade = 0.0f;
 
     if (activeSegIdx_ != prevSegIdx_)
     {

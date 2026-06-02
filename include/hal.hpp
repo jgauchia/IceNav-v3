@@ -2,8 +2,8 @@
  * @file hal.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Boards Pin definitions
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #pragma once
@@ -149,4 +149,5 @@
  */
 static constexpr bool TFT_INVERT = true;
 
+void initHAL();
 
