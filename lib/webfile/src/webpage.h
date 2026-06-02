@@ -2,8 +2,8 @@
  * @file webpage.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Web file server page
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 const char index_html[] = R"rawliteral(

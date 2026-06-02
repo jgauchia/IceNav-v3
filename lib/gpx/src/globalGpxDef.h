@@ -2,8 +2,8 @@
  * @file globalGpxDef.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Global GPX Variables
- * @version 0.2.7
- * @date 2026-05
+ * @version 0.2.8
+ * @date 2026-06
  */
 
 #pragma once
