@@ -318,8 +318,10 @@ void Maps::createMapScrSprites()
 
 /**
  * @brief Draw current track on map
+ *
+ * @param map Target sprite.
  */
-void Maps::drawTrack(TFT_eSprite &map)
+void Maps::drawTrack(TFT_eSprite& map)
 {
     for (size_t i = 1; i < trackData.size(); ++i)
     {
@@ -341,7 +343,7 @@ void Maps::drawTrack(TFT_eSprite &map)
  */
 void Maps::redrawTrack()
 {
-    trackNeedsRedraw = true;
+    navNeedsRender_ = true;
 }
 
 /**
@@ -419,18 +421,6 @@ void Maps::generateMap(uint8_t zoom)
         if (zoomChanged)
             navNeedsRender_ = true;
 
-        if (trackNeedsRedraw)
-        {
-            if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(100)) == pdTRUE)
-            {
-                update3DCache();
-                drawTrack(mapTempSprite);
-                trackNeedsRedraw = false;
-                Maps::redrawMap = true;
-                xSemaphoreGiveRecursive(mapMutex);
-            }
-        }
-
         if (!zoomChanged && !tileChanged && !navNeedsRender_ && pendingTiles.empty())
             return;
 
@@ -441,12 +431,6 @@ void Maps::generateMap(uint8_t zoom)
         navLastZoom_ = zoom;
         navNeedsRender_ = false;
         latLonToPixel(destLat, destLon, (int16_t&)wptPosX, (int16_t&)wptPosY);
-        if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(100)) == pdTRUE)
-        {
-            update3DCache();
-            drawTrack(mapTempSprite);
-            xSemaphoreGiveRecursive(mapMutex);
-        }
         Maps::redrawMap = true;
         return;
     }
@@ -1479,16 +1463,14 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
 
 /**
  * @brief Projects geographic coordinates (Latitude/Longitude) to local pixel coordinates.
- * 
- * @details This function performs a Web Mercator projection to convert WGS84 decimal degrees 
- *          into global tile coordinates based on the current zoom level (@p navLastZoom_). 
- *          It then transforms these into local pixel offsets relative to the top-left 
- *          tile of the current viewport (navTlTileX_, navTlTileY_).
- *  
- * @param lat  Latitude in decimal degrees 
- * @param lon  Longitude in decimal degrees 
- * @param px   Calculated horizontal pixel position relative to the current map view.
- * @param py   Calculated vertical pixel position relative to the current map view.
+ *
+ * @details Performs a Web Mercator projection to convert WGS84 decimal degrees into pixel
+ *          offsets relative to the top-left tile of a viewport.
+ *
+ * @param lat Latitude in decimal degrees.
+ * @param lon Longitude in decimal degrees.
+ * @param px  Output horizontal pixel position relative to the viewport.
+ * @param py  Output vertical pixel position relative to the viewport.
  */
 void Maps::latLonToPixel(float lat, float lon, int16_t& px, int16_t& py)
 {
