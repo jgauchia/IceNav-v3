@@ -15,16 +15,16 @@
 extern Storage storage;
 static const char* TAG = "NavReader";
 
-FILE* NavReader::packFile = nullptr;
-uint8_t NavReader::currentZoom = 0;
-uint32_t NavReader::tileCount = 0;
-uint32_t NavReader::indexOff = 0;
-NavReader::IndexEntry* NavReader::ramIndex = nullptr;
-uint32_t NavReader::ramIndexCount = 0;
+FILE*    NavReader::packFile    = nullptr;
+uint8_t  NavReader::currentZoom = 0;
+uint32_t NavReader::tilesWide   = 0;
+uint32_t NavReader::tilesHigh   = 0;
+uint32_t NavReader::minX        = 0;
+uint32_t NavReader::minY        = 0;
 
 /**
  * @brief Open a packed tile container for the given zoom level.
- *s
+ *
  * @param zoom Zoom level.
  * @return True if successful.
  */
@@ -57,18 +57,18 @@ bool NavReader::openPack(uint8_t zoom)
         return false;
     }
 
-    // NPK2 Header: 
-    // tile_count(4), index_off(4), reserved[4](16) = 24 bytes
-    uint32_t headerData[2]; // count, indexOff
-    if (storage.read(packFile, (uint8_t*)headerData, 8) != 8)
+    uint32_t hdrRest[4];
+    if (storage.read(packFile, (uint8_t*)hdrRest, 16) != 16)
     {
         ESP_LOGE(TAG, "Failed to read NPK2 header for %s", path);
         closePack();
         return false;
     }
 
-    tileCount = headerData[0];
-    indexOff = headerData[1];
+    tilesWide   = hdrRest[0];
+    tilesHigh   = hdrRest[1];
+    minX        = hdrRest[2];
+    minY        = hdrRest[3];
     currentZoom = zoom;
 
     return true;
@@ -85,173 +85,50 @@ void NavReader::closePack()
         packFile = nullptr;
     }
 
-    if (ramIndex)
-    {
-        heap_caps_free(ramIndex);
-        ramIndex = nullptr;
-    }
-
     currentZoom = 0;
-    tileCount = 0;
-    indexOff = 0;
-    ramIndexCount = 0;
+    tilesWide   = 0;
+    tilesHigh   = 0;
+    minX        = 0;
+    minY        = 0;
 }
 
 /**
- * @brief Search for a tile in the open pack using global Hilbert binary search.
- * @param tileX Tile X coordinate.
- * @param tileY Tile Y coordinate.
- * @param offset Output offset.
- * @param size Output size.
- * @return True if found.
+ * @brief Find a tile in the open pack using O(1) flat 2D index lookup.
+ *
+ * @param tileX  Absolute tile X coordinate.
+ * @param tileY  Absolute tile Y coordinate.
+ * @param offset Output: byte offset of tile data in the file.
+ * @param size   Output: byte size of tile data.
+ * @return True if tile exists and is non-empty.
  */
-void NavReader::prefetchIndexRange(const uint32_t* tileXs, const uint32_t* tileYs, uint8_t count, uint8_t zoom)
-{
-    if (!packFile || tileCount == 0 || count == 0)
-        return;
-
-    if (ramIndex)
-    {
-        heap_caps_free(ramIndex);
-        ramIndex = nullptr;
-        ramIndexCount = 0;
-    }
-
-    uint64_t hMin = UINT64_MAX;
-    uint64_t hMax = 0;
-    for (uint8_t i = 0; i < count; i++)
-    {
-        uint64_t h = xyToHilbert(tileXs[i], tileYs[i], zoom);
-        if (h < hMin)
-            hMin = h;
-        if (h > hMax)
-            hMax = h;
-    }
-
-    // Binary search for first entry >= hMin
-    int32_t lo = 0;
-    int32_t hi = (int32_t)tileCount - 1;
-    int32_t idxLow = (int32_t)tileCount;
-    while (lo <= hi)
-    {
-        int32_t mid = lo + (hi - lo) / 2;
-        storage.seek(packFile, indexOff + (uint32_t)mid * 16, SEEK_SET);
-        uint64_t h;
-        if (storage.read(packFile, (uint8_t*)&h, 8) != 8)
-            return;
-        if (h < hMin)
-            lo = mid + 1;
-        else
-        {
-            idxLow = mid;
-            hi = mid - 1;
-        }
-    }
-
-    // Binary search for last entry <= hMax
-    lo = 0;
-    hi = (int32_t)tileCount - 1;
-    int32_t idxHigh = -1;
-    while (lo <= hi)
-    {
-        int32_t mid = lo + (hi - lo) / 2;
-        storage.seek(packFile, indexOff + (uint32_t)mid * 16, SEEK_SET);
-        uint64_t h;
-        if (storage.read(packFile, (uint8_t*)&h, 8) != 8)
-            return;
-        if (h > hMax)
-            hi = mid - 1;
-        else
-        {
-            idxHigh = mid;
-            lo = mid + 1;
-        }
-    }
-
-    if (idxLow > idxHigh || idxHigh < 0)
-    {
-        ESP_LOGW(TAG, "prefetch z%u: no entries in Hilbert range", zoom);
-        return;
-    }
-
-    uint32_t rangeCount = (uint32_t)(idxHigh - idxLow + 1);
-    size_t rangeBytes = rangeCount * sizeof(IndexEntry);
-
-    ramIndex = (IndexEntry*)heap_caps_malloc(rangeBytes, MALLOC_CAP_SPIRAM);
-    if (!ramIndex)
-    {
-        ESP_LOGE(TAG, "prefetch z%u: alloc failed (%u KB)", zoom, (unsigned)(rangeBytes / 1024));
-        return;
-    }
-
-    storage.seek(packFile, indexOff + (uint32_t)idxLow * 16, SEEK_SET);
-    if (storage.read(packFile, (uint8_t*)ramIndex, rangeBytes) != rangeBytes)
-    {
-        heap_caps_free(ramIndex);
-        ramIndex = nullptr;
-        ESP_LOGE(TAG, "prefetch z%u: read failed", zoom);
-        return;
-    }
-
-    ramIndexCount = rangeCount;
-}
-
 bool NavReader::findTileInPack(uint32_t tileX, uint32_t tileY, uint32_t& offset, uint32_t& size)
 {
-    if (tileCount == 0)
+    if (!packFile || tilesWide == 0 || tilesHigh == 0)
         return false;
 
-    uint64_t targetH = xyToHilbert(tileX, tileY, currentZoom);
-
-    if (ramIndex && ramIndexCount > 0)
-    {
-        int32_t low = 0;
-        int32_t high = (int32_t)ramIndexCount - 1;
-        while (low <= high)
-        {
-            int32_t mid = low + (high - low) / 2;
-            uint64_t entryH = ramIndex[mid].hilbert;
-            if (entryH < targetH)
-                low = mid + 1;
-            else if (entryH > targetH)
-                high = mid - 1;
-            else
-            {
-                offset = ramIndex[mid].offset;
-                size   = ramIndex[mid].size;
-                return true;
-            }
-        }
-        return false;
-    }
-
-    if (!packFile)
+    if (tileX < minX || tileY < minY)
         return false;
 
-    int32_t low = 0;
-    int32_t high = (int32_t)tileCount - 1;
+    uint32_t xOff = tileX - minX;
+    uint32_t yOff = tileY - minY;
 
-    while (low <= high)
-    {
-        int32_t mid = low + (high - low) / 2;
-        storage.seek(packFile, indexOff + (mid * 16), SEEK_SET);
+    if (xOff >= tilesWide || yOff >= tilesHigh)
+        return false;
 
-        uint64_t entryH;
-        if (storage.read(packFile, (uint8_t*)&entryH, 8) != 8)
-            return false;
+    uint32_t flatIdx  = yOff * tilesWide + xOff;
+    uint32_t entryPos = 21u + flatIdx * 8u;
 
-        if (entryH < targetH)
-            low = mid + 1;
-        else if (entryH > targetH)
-            high = mid - 1;
-        else
-        {
-            if (storage.read(packFile, (uint8_t*)&offset, 4) != 4 ||
-                storage.read(packFile, (uint8_t*)&size, 4) != 4)
-                return false;
-            return true;
-        }
-    }
+    if (storage.seek(packFile, entryPos, SEEK_SET) != 0)
+        return false;
 
-    return false;
+    IndexEntry entry;
+    if (storage.read(packFile, (uint8_t*)&entry, sizeof(IndexEntry)) != sizeof(IndexEntry))
+        return false;
+
+    if (entry.size == 0)
+        return false;
+
+    offset = entry.offset;
+    size   = entry.size;
+    return true;
 }

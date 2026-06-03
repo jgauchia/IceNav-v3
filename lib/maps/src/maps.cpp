@@ -551,18 +551,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     }
 
                     if (mapSet.vectorMap)
-                    {
-                        const uint8_t n = (uint8_t)instance->pendingTiles.size();
-                        uint32_t txs[16];
-                        uint32_t tys[16];
-                        for (uint8_t i = 0; i < n && i < 16; i++)
-                        {
-                            txs[i] = instance->pendingTiles[i].x;
-                            tys[i] = instance->pendingTiles[i].y;
-                        }
                         NavReader::openPack(instance->zoomLevel);
-                        NavReader::prefetchIndexRange(txs, tys, n, instance->zoomLevel);
-                    }
                 }
 
                 // Yields mutex briefly so other tasks can run between tile renders.
