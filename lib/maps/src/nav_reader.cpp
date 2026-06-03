@@ -22,6 +22,10 @@ uint32_t NavReader::tilesHigh   = 0;
 uint32_t NavReader::minX        = 0;
 uint32_t NavReader::minY        = 0;
 
+NavReader::IndexEntry* NavReader::bandBuffer   = nullptr;
+uint32_t               NavReader::bandStartRow = 0;
+uint32_t               NavReader::bandRows     = 0;
+
 /**
  * @brief Open a packed tile container for the given zoom level.
  *
@@ -85,11 +89,74 @@ void NavReader::closePack()
         packFile = nullptr;
     }
 
+    freeBand();
+
     currentZoom = 0;
     tilesWide   = 0;
     tilesHigh   = 0;
     minX        = 0;
     minY        = 0;
+}
+
+/**
+ * @brief Release the PSRAM index band buffer.
+ */
+void NavReader::freeBand()
+{
+    if (bandBuffer)
+    {
+        heap_caps_free(bandBuffer);
+        bandBuffer = nullptr;
+    }
+
+    bandStartRow = 0;
+    bandRows     = 0;
+}
+
+/**
+ * @brief Load a horizontal band of index rows into PSRAM, centered on yOff.
+ *
+ * @param yOff Row offset (tileY - minY) to be covered by the band.
+ * @return True if the band buffer covers yOff after the call.
+ */
+bool NavReader::loadBand(uint32_t yOff)
+{
+    uint32_t rowBytes = tilesWide * sizeof(IndexEntry);
+    if (rowBytes == 0)
+        return false;
+
+    uint32_t maxRows = NAV_INDEX_BAND_BYTES / rowBytes;
+    if (maxRows == 0)
+        maxRows = 1;
+    if (maxRows > tilesHigh)
+        maxRows = tilesHigh;
+
+    if (!bandBuffer)
+    {
+        bandBuffer = static_cast<IndexEntry*>(heap_caps_malloc(maxRows * rowBytes, MALLOC_CAP_SPIRAM));
+        if (!bandBuffer)
+            return false;
+    }
+
+    uint32_t startRow;
+    if (yOff < maxRows / 2)
+        startRow = 0;
+    else
+        startRow = yOff - maxRows / 2;
+
+    if (startRow + maxRows > tilesHigh)
+        startRow = tilesHigh - maxRows;
+
+    uint32_t entryPos = 21u + startRow * tilesWide * sizeof(IndexEntry);
+    if (storage.seekAndRead(packFile, entryPos, (uint8_t*)bandBuffer, maxRows * rowBytes) != maxRows * rowBytes)
+    {
+        freeBand();
+        return false;
+    }
+
+    bandStartRow = startRow;
+    bandRows     = maxRows;
+    return true;
 }
 
 /**
@@ -115,15 +182,23 @@ bool NavReader::findTileInPack(uint32_t tileX, uint32_t tileY, uint32_t& offset,
     if (xOff >= tilesWide || yOff >= tilesHigh)
         return false;
 
-    uint32_t flatIdx  = yOff * tilesWide + xOff;
-    uint32_t entryPos = 21u + flatIdx * 8u;
-
-    if (storage.seek(packFile, entryPos, SEEK_SET) != 0)
-        return false;
+    bool inBand = bandBuffer && yOff >= bandStartRow && yOff < bandStartRow + bandRows;
+    if (!inBand)
+        inBand = loadBand(yOff) && yOff >= bandStartRow && yOff < bandStartRow + bandRows;
 
     IndexEntry entry;
-    if (storage.read(packFile, (uint8_t*)&entry, sizeof(IndexEntry)) != sizeof(IndexEntry))
-        return false;
+    if (inBand)
+    {
+        entry = bandBuffer[(yOff - bandStartRow) * tilesWide + xOff];
+    }
+    else
+    {
+        uint32_t entryPos = 21u + (yOff * tilesWide + xOff) * sizeof(IndexEntry);
+        if (storage.seek(packFile, entryPos, SEEK_SET) != 0)
+            return false;
+        if (storage.read(packFile, (uint8_t*)&entry, sizeof(IndexEntry)) != sizeof(IndexEntry))
+            return false;
+    }
 
     if (entry.size == 0)
         return false;

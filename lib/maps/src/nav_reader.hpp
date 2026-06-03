@@ -16,8 +16,6 @@
 #include "esp_heap_caps.h"
 #include "PsramAllocator.hpp"
 
-static constexpr uint8_t NAV_MAGIC[4] = {'N', 'A', 'V', '1'};
-
 static constexpr uint8_t NAV_TILE_HDR_FEAT_COUNT_OFF = 4;
 static constexpr uint8_t NAV_TILE_HDR_SIZE           = 22;
 
@@ -55,6 +53,8 @@ public:
         uint32_t size;
     };
 
+    static constexpr uint32_t NAV_INDEX_BAND_BYTES = 512u * 1024u;
+
 public:
     static inline int32_t readVarInt(uint8_t*& p)
     {
@@ -77,9 +77,16 @@ public:
     }
 
 private:
+    static bool loadBand(uint32_t yOff);
+    static void freeBand();
+
     static uint8_t  currentZoom;
     static uint32_t tilesWide;
     static uint32_t tilesHigh;
     static uint32_t minX;
     static uint32_t minY;
+
+    static IndexEntry* bandBuffer;
+    static uint32_t    bandStartRow;
+    static uint32_t    bandRows;
 };
