@@ -4,8 +4,9 @@
  * @version 0.2.8
  * @date 2026-06
  *
- * NAV format uses int32 coordinates (scaled by 1e7) for compact storage.
- * Simple binary format optimized for ESP32 sequential reading.
+ * NPK2 pack: MapHeader (23B) + flat 2D index + global RGB565 color palette + tile data.
+ * Each tile has a 6-byte header; features use an 8-byte fixed header (1-byte palette
+ * color index) followed by varint coord_count and payload_size.
  */
 
 #pragma once
@@ -16,20 +17,20 @@
 #include "esp_heap_caps.h"
 #include "PsramAllocator.hpp"
 
+static constexpr uint8_t NAV_PACK_HDR_SIZE           = 23;
+
 static constexpr uint8_t NAV_TILE_HDR_FEAT_COUNT_OFF = 4;
-static constexpr uint8_t NAV_TILE_HDR_SIZE           = 22;
+static constexpr uint8_t NAV_TILE_HDR_SIZE           = 6;
 
 static constexpr uint8_t NAV_FEAT_GEOM_OFF           = 0;
-static constexpr uint8_t NAV_FEAT_COLOR_OFF          = 1;
-static constexpr uint8_t NAV_FEAT_ZP_OFF             = 3;
-static constexpr uint8_t NAV_FEAT_WP_OFF             = 4;
-static constexpr uint8_t NAV_FEAT_BX1_OFF            = 5;
-static constexpr uint8_t NAV_FEAT_BY1_OFF            = 6;
-static constexpr uint8_t NAV_FEAT_BX2_OFF            = 7;
-static constexpr uint8_t NAV_FEAT_BY2_OFF            = 8;
-static constexpr uint8_t NAV_FEAT_COORD_COUNT_OFF    = 9;
-static constexpr uint8_t NAV_FEAT_PAYLOAD_SIZE_OFF   = 11;
-static constexpr uint8_t NAV_FEAT_HDR_SIZE           = 13;
+static constexpr uint8_t NAV_FEAT_COLOR_IDX_OFF      = 1;
+static constexpr uint8_t NAV_FEAT_ZP_OFF             = 2;
+static constexpr uint8_t NAV_FEAT_WP_OFF             = 3;
+static constexpr uint8_t NAV_FEAT_BX1_OFF            = 4;
+static constexpr uint8_t NAV_FEAT_BY1_OFF            = 5;
+static constexpr uint8_t NAV_FEAT_BX2_OFF            = 6;
+static constexpr uint8_t NAV_FEAT_BY2_OFF            = 7;
+static constexpr uint8_t NAV_FEAT_HDR_FIXED_SIZE     = 8;
 
 enum class NavGeomType : uint8_t
 {
@@ -55,7 +56,26 @@ public:
 
     static constexpr uint32_t NAV_INDEX_BAND_BYTES = 512u * 1024u;
 
-public:
+    static inline uint16_t paletteColor(uint8_t index)
+    {
+        return index < paletteCount ? colorPalette[index] : 0xFFFF;
+    }
+
+    static inline uint32_t readVarIntU(const uint8_t*& p)
+    {
+        uint32_t result = 0;
+        int shift = 0;
+        while (true)
+        {
+            uint8_t byte = *p++;
+            result |= (uint32_t)(byte & 0x7F) << shift;
+            if ((byte & 0x80) == 0)
+                break;
+            shift += 7;
+        }
+        return result;
+    }
+
     static inline int32_t readVarInt(uint8_t*& p)
     {
         int32_t result = 0;
@@ -89,4 +109,7 @@ private:
     static IndexEntry* bandBuffer;
     static uint32_t    bandStartRow;
     static uint32_t    bandRows;
+
+    static uint16_t* colorPalette;
+    static uint16_t  paletteCount;
 };

@@ -1317,6 +1317,8 @@ void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, co
     for (uint16_t r = 0; r < count; r++)
     {
         int ringEnd = ends[r];
+        if (ringEnd > numPoints)
+            ringEnd = numPoints;
         int ringNumPoints = ringEnd - ringStart;
         if (ringNumPoints < 3)
         {
@@ -1636,19 +1638,38 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
     uint8_t* p_rings = p;
     uint16_t ringCount = 0;
     const uint16_t* ringEndsPtr = nullptr;
-    if ((size_t)(p_rings - ref.ptr) < ref.payloadSize)
+    size_t ringOffset = (size_t)(p_rings - ref.ptr);
+    if (ringOffset + 2 <= ref.payloadSize)
     {
+        size_t ringBytesAvail = ref.payloadSize - ringOffset;
         ringCount = p_rings[0] | (p_rings[1] << 8);
-        if (ringCount > 0 && ringCount <= ringEndsCache.capacity())
+        if (ringCount > 0 && ringCount <= ringEndsCache.capacity() &&
+            (size_t)(2 + ringCount * 2) <= ringBytesAvail)
         {
             uint8_t* p_curr_ring = p_rings + 2;
             uint16_t* dst = ringEndsCache.data();
+            uint16_t prevEnd = 0;
+            bool valid = true;
             for (int r = 0; r < (int)ringCount; r++)
             {
-                dst[r] = p_curr_ring[0] | (p_curr_ring[1] << 8);
+                uint16_t ringEnd = p_curr_ring[0] | (p_curr_ring[1] << 8);
+                if (ringEnd <= prevEnd || ringEnd > ref.coordCount)
+                {
+                    valid = false;
+                    break;
+                }
+                dst[r] = ringEnd;
+                prevEnd = ringEnd;
                 p_curr_ring += 2;
             }
-            ringEndsPtr = dst;
+            if (valid)
+                ringEndsPtr = dst;
+            else
+                ringCount = 0;
+        }
+        else
+        {
+            ringCount = 0;
         }
     }
 
@@ -1991,30 +2012,33 @@ void Maps::navDecodeFeatures(const uint8_t* data, size_t dataSize, int16_t scree
     uint16_t feature_count;
     memcpy(&feature_count, data + NAV_TILE_HDR_FEAT_COUNT_OFF, 2);
     const uint8_t* p = data + NAV_TILE_HDR_SIZE;
+    const uint8_t* end = data + dataSize;
     for (uint16_t i = 0; i < feature_count; i++)
     {
-        if (p + NAV_FEAT_HDR_SIZE > data + dataSize)
+        if (p + NAV_FEAT_HDR_FIXED_SIZE > end)
             break;
         uint8_t geomType = p[NAV_FEAT_GEOM_OFF];
+        uint8_t colorIdx = p[NAV_FEAT_COLOR_IDX_OFF];
         uint8_t zp = p[NAV_FEAT_ZP_OFF];
         uint8_t wp = p[NAV_FEAT_WP_OFF];
         uint8_t bx1 = p[NAV_FEAT_BX1_OFF];
         uint8_t by1 = p[NAV_FEAT_BY1_OFF];
         uint8_t bx2 = p[NAV_FEAT_BX2_OFF];
         uint8_t by2 = p[NAV_FEAT_BY2_OFF];
-        uint16_t colorRgb565;
-        uint16_t cc;
-        uint16_t ps;
-        memcpy(&colorRgb565, p + NAV_FEAT_COLOR_OFF, 2);
-        memcpy(&cc, p + NAV_FEAT_COORD_COUNT_OFF, 2);
-        memcpy(&ps, p + NAV_FEAT_PAYLOAD_SIZE_OFF, 2);
-        if (p + NAV_FEAT_HDR_SIZE + ps > data + dataSize)
+
+        const uint8_t* hp = p + NAV_FEAT_HDR_FIXED_SIZE;
+        uint16_t cc = (uint16_t)NavReader::readVarIntU(hp);
+        uint16_t ps = (uint16_t)NavReader::readVarIntU(hp);
+        const uint8_t* payload = hp;
+        if (payload + ps > end)
             break;
+        uint16_t colorRgb565 = NavReader::paletteColor(colorIdx);
+
         if ((zp >> 4) <= zoom)
         {
             if (screenX + bx2 < 0 || screenX + bx1 > (int)tileWidth || screenY + by2 < 0 || screenY + by1 > (int)tileHeight)
             {
-                p += NAV_FEAT_HDR_SIZE + ps;
+                p = payload + ps;
                 continue;
             }
             int16_t dimX = bx2 - bx1;
@@ -2022,7 +2046,7 @@ void Maps::navDecodeFeatures(const uint8_t* data, size_t dataSize, int16_t scree
             uint8_t minDim = (zoom >= 9 && zoom <= 11) ? 3 : 1;
             if ((geomType == (uint8_t)NavGeomType::Polygon || geomType == (uint8_t)NavGeomType::LineString) && dimX < minDim && dimY < minDim)
             {
-                p += NAV_FEAT_HDR_SIZE + ps;
+                p = payload + ps;
                 continue;
             }
 
@@ -2032,7 +2056,7 @@ void Maps::navDecodeFeatures(const uint8_t* data, size_t dataSize, int16_t scree
                 uint32_t areaCullThreshold = getPolygonAreaCullThreshold(zoom);
                 if (areaCullThreshold > 0 && (uint32_t)dimX * (uint32_t)dimY < areaCullThreshold)
                 {
-                    p += NAV_FEAT_HDR_SIZE + ps;
+                    p = payload + ps;
                     continue;
                 }
             }
@@ -2040,7 +2064,7 @@ void Maps::navDecodeFeatures(const uint8_t* data, size_t dataSize, int16_t scree
             {
                 uint16_t poolIdx = (uint16_t)featurePool.size();
                 bool hasCasing = hasCasingHdr;
-                featurePool.push_back({(uint8_t*)(p + NAV_FEAT_HDR_SIZE), (NavGeomType)geomType, ps, cc, screenX, screenY, colorRgb565, (uint8_t)(wp & 0x7F), hasCasing, bx1, by1, bx2, by2, (uint8_t)(zp & 0x0F)});
+                featurePool.push_back({(uint8_t*)payload, (NavGeomType)geomType, ps, cc, screenX, screenY, colorRgb565, (uint8_t)(wp & 0x7F), hasCasing, bx1, by1, bx2, by2, (uint8_t)(zp & 0x0F)});
                 uint8_t priority = zp & 0x0F;
                 if (priority < 16)
                 {
@@ -2050,7 +2074,7 @@ void Maps::navDecodeFeatures(const uint8_t* data, size_t dataSize, int16_t scree
                 }
             }
         }
-        p += NAV_FEAT_HDR_SIZE + ps;
+        p = payload + ps;
     }
 }
 
