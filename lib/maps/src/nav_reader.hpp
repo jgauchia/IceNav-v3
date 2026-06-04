@@ -4,8 +4,9 @@
  * @version 0.2.8
  * @date 2026-06
  *
- * NAV format uses int32 coordinates (scaled by 1e7) for compact storage.
- * Simple binary format optimized for ESP32 sequential reading.
+ * NPK2 pack: MapHeader (23B) + flat 2D index + global RGB565 color palette + tile data.
+ * Each tile has a 6-byte header; features use an 8-byte fixed header (1-byte palette
+ * color index) followed by varint coord_count and payload_size.
  */
 
 #pragma once
@@ -16,31 +17,21 @@
 #include "esp_heap_caps.h"
 #include "PsramAllocator.hpp"
 
-/**
- * @brief NAV format constants
- */
-static constexpr uint8_t NAV_MAGIC[4] = {'N', 'A', 'V', '1'};
+static constexpr uint8_t NAV_PACK_HDR_SIZE           = 23;
 
-// NAV tile binary format offsets (tile header)
-static constexpr uint8_t NAV_TILE_HDR_FEAT_COUNT_OFF = 4;   ///< 2 bytes: feature count
-static constexpr uint8_t NAV_TILE_HDR_SIZE           = 22;  ///< total tile header size
+static constexpr uint8_t NAV_TILE_HDR_FEAT_COUNT_OFF = 4;
+static constexpr uint8_t NAV_TILE_HDR_SIZE           = 6;
 
-// NAV feature record offsets (relative to feature start pointer)
-static constexpr uint8_t NAV_FEAT_GEOM_OFF           = 0;   ///< 1 byte: geometry type
-static constexpr uint8_t NAV_FEAT_COLOR_OFF          = 1;   ///< 2 bytes: RGB565 color
-static constexpr uint8_t NAV_FEAT_ZP_OFF             = 3;   ///< 1 byte: zoom+priority packed
-static constexpr uint8_t NAV_FEAT_WP_OFF             = 4;   ///< 1 byte: width+casing packed
-static constexpr uint8_t NAV_FEAT_BX1_OFF            = 5;   ///< 1 byte: bounding box x1
-static constexpr uint8_t NAV_FEAT_BY1_OFF            = 6;   ///< 1 byte: bounding box y1
-static constexpr uint8_t NAV_FEAT_BX2_OFF            = 7;   ///< 1 byte: bounding box x2
-static constexpr uint8_t NAV_FEAT_BY2_OFF            = 8;   ///< 1 byte: bounding box y2
-static constexpr uint8_t NAV_FEAT_COORD_COUNT_OFF    = 9;   ///< 2 bytes: coordinate count
-static constexpr uint8_t NAV_FEAT_PAYLOAD_SIZE_OFF   = 11;  ///< 2 bytes: payload size
-static constexpr uint8_t NAV_FEAT_HDR_SIZE           = 13;  ///< total feature header size
+static constexpr uint8_t NAV_FEAT_GEOM_OFF           = 0;
+static constexpr uint8_t NAV_FEAT_COLOR_IDX_OFF      = 1;
+static constexpr uint8_t NAV_FEAT_ZP_OFF             = 2;
+static constexpr uint8_t NAV_FEAT_WP_OFF             = 3;
+static constexpr uint8_t NAV_FEAT_BX1_OFF            = 4;
+static constexpr uint8_t NAV_FEAT_BY1_OFF            = 5;
+static constexpr uint8_t NAV_FEAT_BX2_OFF            = 6;
+static constexpr uint8_t NAV_FEAT_BY2_OFF            = 7;
+static constexpr uint8_t NAV_FEAT_HDR_FIXED_SIZE     = 8;
 
-/**
- * @brief Geometry types
- */
 enum class NavGeomType : uint8_t
 {
     Point = 1,
@@ -49,11 +40,6 @@ enum class NavGeomType : uint8_t
     Text = 4
 };
 
-/**
- * @brief NAV tile reader
- *
- * Efficient memory-based reader for NAV binary tiles.
- */
 class NavReader
 {
 public:
@@ -61,58 +47,35 @@ public:
     static void closePack();
     static bool openPack(uint8_t zoom);
     static bool findTileInPack(uint32_t tileX, uint32_t tileY, uint32_t& offset, uint32_t& size);
-    static void prefetchIndexRange(const uint32_t* tileXs, const uint32_t* tileYs, uint8_t count, uint8_t zoom);
-
-    /**
-     * @brief Convert (x,y) tile coordinates to Hilbert index.
-     */
-    static uint64_t xyToHilbert(uint32_t x, uint32_t y, uint8_t z)
-    {
-        uint32_t rx;
-        uint32_t ry;
-        uint64_t d = 0;
-        uint32_t n = 1 << z;
-        for (uint32_t s = n / 2; s > 0; s /= 2)
-        {
-            rx = (x & s) > 0;
-            ry = (y & s) > 0;
-            d += static_cast<uint64_t>(s) * s * ((3 * rx) ^ ry);
-            hilbertRot(s, &x, &y, rx, ry);
-        }
-        return d;
-    }
 
     struct IndexEntry
     {
-        uint64_t hilbert;
         uint32_t offset;
         uint32_t size;
     };
 
-    static IndexEntry* ramIndex;
-    static uint32_t    ramIndexCount;
+    static constexpr uint32_t NAV_INDEX_BAND_BYTES = 512u * 1024u;
 
-private:
-    static uint8_t currentZoom;
-    static uint32_t tileCount;
-    static uint32_t indexOff;
-
-    static void hilbertRot(uint32_t n, uint32_t* x, uint32_t* y, uint32_t rx, uint32_t ry)
+    static inline uint16_t paletteColor(uint8_t index)
     {
-        if (ry == 0)
-        {
-            if (rx == 1)
-            {
-                *x = n - 1 - *x;
-                *y = n - 1 - *y;
-            }
-            uint32_t t = *x;
-            *x = *y;
-            *y = t;
-        }
+        return index < paletteCount ? colorPalette[index] : 0xFFFF;
     }
 
-public:
+    static inline uint32_t readVarIntU(const uint8_t*& p)
+    {
+        uint32_t result = 0;
+        int shift = 0;
+        while (true)
+        {
+            uint8_t byte = *p++;
+            result |= (uint32_t)(byte & 0x7F) << shift;
+            if ((byte & 0x80) == 0)
+                break;
+            shift += 7;
+        }
+        return result;
+    }
+
     static inline int32_t readVarInt(uint8_t*& p)
     {
         int32_t result = 0;
@@ -132,4 +95,21 @@ public:
     {
         return (n >> 1) ^ -(n & 1);
     }
+
+private:
+    static bool loadBand(uint32_t yOff);
+    static void freeBand();
+
+    static uint8_t  currentZoom;
+    static uint32_t tilesWide;
+    static uint32_t tilesHigh;
+    static uint32_t minX;
+    static uint32_t minY;
+
+    static IndexEntry* bandBuffer;
+    static uint32_t    bandStartRow;
+    static uint32_t    bandRows;
+
+    static uint16_t* colorPalette;
+    static uint16_t  paletteCount;
 };
