@@ -2,7 +2,7 @@
  * @file PsramAllocator.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief Memory allocators for PSRAM and Internal SRAM
- * @version 0.2.8
+ * @version 0.2.9
  * @date 2026-06
  */
 

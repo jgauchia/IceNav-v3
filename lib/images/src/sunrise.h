@@ -2,7 +2,7 @@
  * @file sunrise.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Sunrise icon image descriptor
- * @version 0.2.8
+ * @version 0.2.9
  * @date 2026-06
  */
 

@@ -2,7 +2,7 @@
  * @file maps.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com) - Render Maps
  * @brief  Maps draw class
- * @version 0.2.8
+ * @version 0.2.9
  * @date 2026-06
  */
 
@@ -210,10 +210,9 @@ private:
     void renderNavPoint(const FeatureRef& ref, TFT_eSprite& map);
     void renderNavText(const FeatureRef& ref, TFT_eSprite& map, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels);
     void latLonToPixel(float lat, float lon, int16_t& px, int16_t& py);
-    void drawTrack(TFT_eSprite &map);
+    void drawTrack(TFT_eSprite& map);
 
 public:
-    bool trackNeedsRedraw = false;
     void redrawTrack();
     bool isRendering() const { return pendingTilesNotEmpty_; }
     bool is3DActive() const { return _use3DCache; }
