@@ -32,8 +32,6 @@ static const char logo[] =
 
 static const char* TAG = "CLI";
 
-extern Power power;
-
 /**
  * @brief Reboots the ESP device.
  * 
@@ -51,7 +49,7 @@ void wcli_reboot(char *args, Stream *response)
  */
 void wcli_poweroff(char *args, Stream *response)
 {
-    power.deviceShutdown(); 
+    power().shutdown();
 }
 
 /**

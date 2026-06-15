@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include <LovyanGFX.hpp>
-#include "tft.hpp"
+#include <stdint.h>
+#include "input.hpp"
 
 #define TOUCH_MAX_POINTS 2                  /**< Maximum number of supported touch points */
 #define TOUCH_DOUBLE_TOUCH_INTERVAL 400     /**< Max interval (ms) between two taps to count as double touch */
@@ -32,4 +32,4 @@ typedef enum
     ZOOM_OUT          /**< Pinch in gesture detected (zoom out) */
 } zoom_dir;
 
-zoom_dir pinchZoom(const lgfx::touch_point_t prev[TOUCH_MAX_POINTS],const lgfx::touch_point_t curr[TOUCH_MAX_POINTS],float dt_ms);
+zoom_dir pinchZoom(const TouchPoint prev[TOUCH_MAX_POINTS],const TouchPoint curr[TOUCH_MAX_POINTS],float dt_ms);

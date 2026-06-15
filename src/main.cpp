@@ -19,7 +19,6 @@ extern xSemaphoreHandle gpsMutex;
 #include "connectivity.hpp"
 #include "fileServer.hpp"
 #include "battery.hpp"
-#include "power.hpp"
 #include "gpxParser.hpp"
 #include "climbAnalyzer.hpp"
 #include "maps.hpp"
@@ -28,7 +27,6 @@ extern xSemaphoreHandle gpsMutex;
 
 extern Storage storage;
 extern Battery battery;
-extern Power power;
 extern Maps mapView;
 
 TrackVector trackData;

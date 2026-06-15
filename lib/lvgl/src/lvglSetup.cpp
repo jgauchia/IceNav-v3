@@ -10,6 +10,8 @@
 #include "lvglSetup.hpp"
 #include "../../../include/hal.hpp"
 #include "display.hpp"
+#include "power.hpp"
+#include "input.hpp"
 #include "i2c_espidf.hpp"
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
@@ -30,7 +32,6 @@ lv_style_t styleObjectSel; /**< Object selected style. */
 lv_group_t *scrGroup;   /**< LVGL group for screen. */
 lv_group_t *keyGroup;   /**< LVGL group for GPIO keys. */
 
-Power power;
 uint32_t DOUBLE_TOUCH_EVENT; /**< Event identifier for double touch gesture. */
 
 Maps mapView;
@@ -93,8 +94,8 @@ void displayFlushWait(lv_display_t *disp)
  */
 void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 {
-    lgfx::touch_point_t touchRaw[TOUCH_MAX_POINTS];
-    static lgfx::touch_point_t touchPrev[TOUCH_MAX_POINTS];
+    TouchPoint touchRaw[TOUCH_MAX_POINTS];
+    static TouchPoint touchPrev[TOUCH_MAX_POINTS];
     static bool prevValid = false;
     static bool pinchActive = false;
     static int lastZoomDir = ZOOM_NONE;    
@@ -109,23 +110,16 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     static lv_indev_state_t lastTouchState = LV_INDEV_STATE_RELEASED;
     static lv_point_t lastTouchPoint = {0, 0};
 
-    #ifdef ICENAV_BOARD
-        // Protect I2C bus access for FT5x06 on shared bus.
-        // If bus is busy, hold the last reported state to avoid glitching the long-press timer.
-        if (i2c.lock(0))
-        {
-            count = tft.getTouch(touchRaw, TOUCH_MAX_POINTS);
-            i2c.unlock();
-        }
-        else
-        {
-            data->state = lastTouchState;
-            data->point = lastTouchPoint;
-            return;
-        }
-    #else
-        count = tft.getTouch(touchRaw, TOUCH_MAX_POINTS);
-    #endif
+    // If the controller could not be read (e.g. shared bus busy), hold the last
+    // reported state to avoid glitching the long-press timer.
+    int read = input().readTouch(touchRaw, TOUCH_MAX_POINTS);
+    if (read < 0)
+    {
+        data->state = lastTouchState;
+        data->point = lastTouchPoint;
+        return;
+    }
+    count = read;
 
     unsigned long now = millis_idf();
     float dt_ms = (now > lastTime) ? (float)(now - lastTime) : 1.0f;
@@ -316,7 +310,7 @@ void gpioLongEvent(lv_event_t *event)
 {
     showMsg(LV_SYMBOL_WARNING, " This device will shutdown shortly");
     vTaskDelay(2000);
-    power.deviceShutdown();
+    power().shutdown();
 }
 
 /**
@@ -328,7 +322,7 @@ void gpioClickEvent(lv_event_t *event)
 {
     showMsg(LV_SYMBOL_WARNING, " This device will sleep shortly");
     vTaskDelay(2000);
-    power.deviceSuspend();
+    power().suspend();
 }
 
 /**

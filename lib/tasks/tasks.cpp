@@ -16,6 +16,7 @@
 #include "router.hpp"
 #include "gpxParser.hpp"
 #include "connectivity.hpp"
+#include "sensors.hpp"
 #ifdef ENABLE_IMU
     #include "imu.hpp"
 #endif
@@ -228,13 +229,6 @@ void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 16384, NULL, 1
 
 #endif
 
-#ifdef BME280
-    extern BME280_Driver bme;
-#endif
-    extern Battery battery;
-#ifdef ENABLE_COMPASS
-    extern Compass compass;
-#endif
 
 static int getBatteryLevel(int v)
 {
@@ -274,9 +268,9 @@ void sensorTask(void *pvParameters)
             continue;
         }
 
-        #ifdef ENABLE_COMPASS
+        if (sensors().hasCompass())
         {
-            int newHeading = compass.getHeading();
+            int newHeading = sensors().heading();
             if (sensorMutex != NULL && xSemaphoreTake(sensorMutex, portMAX_DELAY) == pdTRUE)
             {
                 globalSensorData.heading = newHeading;
@@ -292,7 +286,6 @@ void sensorTask(void *pvParameters)
                 xSemaphoreGive(lvgl_mutex);
             }
         }
-        #endif
 
         // Update time subject once per second (from reliable sensorTask loop)
         time_t now = time(NULL);
@@ -309,23 +302,19 @@ void sensorTask(void *pvParameters)
 
         if (slowCounter++ >= 25)
         {
-            #ifdef BME280
+            if (sensors().hasAmbient())
             {
-                float t = 0.0f;
-                float p = 0.0f;
-                float h = 0.0f;
-                bme.readAll(t, p, h);
-                int16_t alt = (int16_t)bme.readAltitude(p);
+                AmbientData ambient;
+                sensors().readAmbient(ambient);
                 if (sensorMutex != NULL && xSemaphoreTake(sensorMutex, portMAX_DELAY) == pdTRUE)
                 {
-                    globalSensorData.temperature = t;
-                    globalSensorData.pressure    = p;
-                    globalSensorData.humidity    = h;
-                    globalSensorData.altitude    = alt;
+                    globalSensorData.temperature = ambient.temperature;
+                    globalSensorData.pressure    = ambient.pressure;
+                    globalSensorData.humidity    = ambient.humidity;
+                    globalSensorData.altitude    = (int16_t)ambient.altitude;
                     xSemaphoreGive(sensorMutex);
                 }
             }
-            #endif
 
             #ifdef ENABLE_TEMP
             uint8_t currentTemp = (uint8_t)(globalSensorData.temperature + tempOffset);
@@ -351,11 +340,11 @@ void sensorTask(void *pvParameters)
                 }
             }
 
-            float rawBattery = battery.readBattery();
+            float rawBattery = sensors().batteryLevel();
             if (sensorMutex != NULL && xSemaphoreTake(sensorMutex, portMAX_DELAY) == pdTRUE)
             {
                 globalSensorData.batteryPercent = rawBattery;
-                globalSensorData.batteryVoltage = battery.lastVoltage();
+                globalSensorData.batteryVoltage = sensors().batteryVoltage();
                 xSemaphoreGive(sensorMutex);
             }
 
