@@ -7,6 +7,7 @@
  */
 
 #include "settings.hpp"
+#include "logger.hpp"
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -107,6 +108,7 @@ void loadPreferences()
     enableWeb = cfg.getBool(PKEYS::KWEB_FILE, enableWeb);
     tempOffset = cfg.getInt(PKEYS::KTEMP_OFFS, 0);
     nmeaDebugTileEnabled = cfg.getBool(PKEYS::KNMEA_DEBUG, false);
+    gpxLogger.setProfile((uint8_t)cfg.getUInt(PKEYS::KLOG_PROFILE, 0));
 
     // Default Widgets positions
     #ifdef TDECK_ESP32S3

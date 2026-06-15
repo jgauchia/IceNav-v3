@@ -12,6 +12,7 @@
 #include "tasks.hpp"
 #include "mainScr.hpp"
 #include "lv_subjects.hpp"
+#include "logger.hpp"
 #include "router.hpp"
 #include "gpxParser.hpp"
 #include <WiFi.h>
@@ -113,6 +114,22 @@ void gpsTask(void *pvParameters)
                     {
                         fix = GPS.read();
                         gps.getGPSData();
+                        {
+                            LoggerGpsFix lgf;
+                            lgf.lat      = gps.gpsData.latitude;
+                            lgf.lon      = gps.gpsData.longitude;
+                            lgf.alt      = (int16_t)gps.gpsData.altitude;
+                            lgf.speedKmh = (float)gps.gpsData.speed;
+                            lgf.valid    = isGpsFixed && fix.valid.location;
+                            lgf.hasTime  = fix.valid.time && fix.valid.date;
+                            lgf.year     = (uint16_t)(2000 + fix.dateTime.year);
+                            lgf.month    = fix.dateTime.month;
+                            lgf.day      = fix.dateTime.date;
+                            lgf.hour     = fix.dateTime.hours;
+                            lgf.minute   = fix.dateTime.minutes;
+                            lgf.second   = fix.dateTime.seconds;
+                            gpxLogger.update(lgf);
+                        }
 
                         portENTER_CRITICAL(&nmeaDebugMux);
                         nmeaDebugOk    = GPS.statistics.ok;
