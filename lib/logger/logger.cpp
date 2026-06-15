@@ -15,21 +15,12 @@
 #include <math.h>
 #include <time.h>
 #include <stdlib_noniso.h>
+#include "gpsMath.hpp"
 
 GpxLogger gpxLogger;
 
 static constexpr float GAIN_MIN_M = 3.0f;    ///< Min altitude delta counted as gain/loss (m), rejects jitter (Garmin-style threshold)
 static constexpr float GAIN_MAX_M = 30.0f;   ///< Max plausible altitude delta between fixes (m), rejects GPS spikes
-
-/**
- * @brief Get system uptime in milliseconds.
- *
- * @return uint32_t Milliseconds since boot.
- */
-static inline uint32_t ms_now()
-{
-    return (uint32_t)(esp_timer_get_time() / 1000);
-}
 
 /**
  * @brief Haversine great-circle distance between two WGS-84 coordinates.
@@ -155,7 +146,7 @@ void GpxLogger::start()
     snprintf(trkName, sizeof(trkName), "<trk><name>%s</name>\n", trackName);
     storage.print(_file, trkName);
 
-    _startMs      = ms_now();
+    _startMs      = millis_idf();
     _lastLogMs    = _startMs;
     _lastUpdateMs = _startMs;
     _state        = LoggerState::RECORDING;
@@ -178,7 +169,7 @@ void GpxLogger::stop()
     if (xSemaphoreTake(_mutex, pdMS_TO_TICKS(100)) != pdTRUE)
         return;
 
-    uint32_t now = ms_now();
+    uint32_t now = millis_idf();
 
     _state = LoggerState::IDLE;
 
@@ -220,7 +211,7 @@ void GpxLogger::update(const LoggerGpsFix& gpsFix)
     if (_mutex == nullptr || xSemaphoreTake(_mutex, 0) != pdTRUE)
         return;
 
-    uint32_t now      = ms_now();
+    uint32_t now      = millis_idf();
     float    lat      = gpsFix.lat;
     float    lon      = gpsFix.lon;
     int16_t  alt      = gpsFix.alt;
@@ -374,7 +365,7 @@ void GpxLogger::_writeTrkpt(float lat, float lon, int16_t alt, float speedKmh, c
     _lastLon = lon;
     _lastAlt = (float)alt;
     _hasLast = true;
-    _lastLogMs = ms_now();
+    _lastLogMs = millis_idf();
 
     _flushCnt++;
     if (_flushCnt >= 10)

@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include <cmath>
+#include "esp_timer.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846f
@@ -52,6 +53,13 @@ static inline __attribute__((always_inline)) float RAD2DEG(float rad)
 
 static const char *degreeFormat = "%03d\xC2\xB0 %02d\' %.2f\" %c"; /**< Format string for degrees (DDD°MM'SS" + hemisphere) */
 static const char* TAGMATH = "MATH";
+
+/**
+ * @brief Get system uptime in milliseconds using ESP-IDF timer.
+ *
+ * @return uint32_t Milliseconds since boot.
+ */
+static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 bool initTrigLUT();
 

@@ -17,16 +17,10 @@
 #include "driver/gpio.h"
 #include <SolarCalculator.h>
 #include <time.h>
+#include "gpsMath.hpp"
 
 extern RTC_DATA_ATTR time_t rtcSavedTime;
 extern RTC_DATA_ATTR bool   rtcTimeValid;
-
-/**
- * @brief Get system uptime in milliseconds using ESP-IDF timer.
- *
- * @return uint32_t Milliseconds since boot.
- */
-static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 /**
  * @brief Measure pulse width on a GPIO pin (ESP-IDF native)

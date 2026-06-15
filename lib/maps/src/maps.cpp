@@ -607,7 +607,7 @@ void Maps::mapRenderTask(void* pvParameters)
                 instance->update3DCache();
                 instance->placedLabelsCache.clear();
                 instance->mapTempSprite.startWrite();
-                uint32_t lastYield = millis();
+                uint32_t lastYield = millis_idf();
                 uint32_t loopCounter = 0;
 
                 for (int i = 0; i < 16 && !aborted; i++)
@@ -621,11 +621,11 @@ void Maps::mapRenderTask(void* pvParameters)
                     {
                         if ((++loopCounter & 127) == 0)
                         {
-                            uint32_t now = millis();
+                            uint32_t now = millis_idf();
                             if (now - lastYield > 40)
                             {
                                 if (yieldFeature()) { aborted = true; break; }
-                                lastYield = millis();
+                                lastYield = millis_idf();
                             }
                         }
 
@@ -646,11 +646,11 @@ void Maps::mapRenderTask(void* pvParameters)
                     {
                         if ((++loopCounter & 127) == 0)
                         {
-                            uint32_t now = millis();
+                            uint32_t now = millis_idf();
                             if (now - lastYield > 40)
                             {
                                 if (yieldFeature()) { aborted = true; break; }
-                                lastYield = millis();
+                                lastYield = millis_idf();
                             }
                         }
                         instance->renderNavLineString(instance->featurePool[idx], instance->mapTempSprite, false);
@@ -663,11 +663,11 @@ void Maps::mapRenderTask(void* pvParameters)
                     {
                         if ((++loopCounter & 127) == 0)
                         {
-                            uint32_t now = millis();
+                            uint32_t now = millis_idf();
                             if (now - lastYield > 40)
                             {
                                 if (yieldFeature()) { aborted = true; break; }
-                                lastYield = millis();
+                                lastYield = millis_idf();
                             }
                         }
                         if (instance->featurePool[idx].geomType == NavGeomType::Text)
