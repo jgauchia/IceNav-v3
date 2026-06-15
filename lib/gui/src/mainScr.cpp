@@ -10,6 +10,7 @@
 #include "tasks.hpp"
 #include "lv_subjects.hpp"
 #include "climbAnalyzer.hpp"
+#include "logger.hpp"
 
 #define MAP_MODE_FOLLOW 0
 #define MAP_MODE_MANUAL 1
@@ -54,6 +55,14 @@ lv_obj_t *btnZoomIn;
 lv_obj_t *btnZoomOut;
 lv_obj_t *btnToggle3D;
 static lv_obj_t *toggle3DImg;
+
+static lv_obj_t  *btnRec         = nullptr;
+static lv_obj_t  *lblRec         = nullptr;
+static lv_obj_t  *circleRec      = nullptr;
+static lv_obj_t  *recHud         = nullptr;
+static lv_timer_t *recTimer      = nullptr;
+static lv_obj_t  *summaryOverlay = nullptr;
+static bool       recBlinkOn     = false;
 lv_obj_t *mapImage;
 static lv_image_dsc_t map_img_dsc;
 extern Maps mapView;
@@ -981,6 +990,218 @@ static void createMapImage(_lv_obj_t *screen)
 }
 
 /**
+ * @brief Close the summary overlay when the user taps OK.
+ *
+ * @param e LVGL event (LV_EVENT_CLICKED).
+ */
+static void summaryOkEvent(lv_event_t *e)
+{
+    if (summaryOverlay != nullptr && lv_obj_is_valid(summaryOverlay))
+    {
+        lv_obj_delete_async(summaryOverlay);
+        summaryOverlay = nullptr;
+    }
+}
+
+/**
+ * @brief Display the post-recording summary overlay.
+ *
+ * @details Shows distance, total time, moving time, speeds, elevation and
+ *          the GPX filename. Must be called while lvgl_mutex is held.
+ */
+static void showLoggerSummary()
+{
+    if (summaryOverlay != nullptr)
+        return;
+
+    const LoggerStats& s = gpxLogger.stats();
+
+    summaryOverlay = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(summaryOverlay, TFT_WIDTH, TFT_HEIGHT);
+    lv_obj_set_pos(summaryOverlay, 0, 0);
+    lv_obj_add_flag(summaryOverlay, LV_OBJ_FLAG_FLOATING);
+    lv_obj_set_style_bg_color(summaryOverlay, lv_color_black(), 0);
+    lv_obj_set_style_bg_opa(summaryOverlay, LV_OPA_70, 0);
+    lv_obj_set_style_border_width(summaryOverlay, 0, 0);
+    lv_obj_clear_flag(summaryOverlay, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t *card = lv_obj_create(summaryOverlay);
+    lv_obj_set_size(card, TFT_WIDTH - 20, TFT_HEIGHT - 50);
+    lv_obj_center(card);
+    lv_obj_set_style_bg_color(card, lv_color_make(25, 25, 25), 0);
+    lv_obj_set_style_pad_all(card, 10, 0);
+    lv_obj_clear_flag(card, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t *title = lv_label_create(card);
+    lv_label_set_text(title, LV_SYMBOL_OK " Track saved");
+    lv_obj_set_style_text_font(title, fontMedium, 0);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 0);
+
+    char buf[128];
+    char vbuf[24];
+    int  y = 30;
+
+    auto addRow = [&](const char *label, const char *val)
+    {
+        lv_obj_t *lbl = lv_label_create(card);
+        snprintf(buf, sizeof(buf), "%s  %s", label, val);
+        lv_label_set_text(lbl, buf);
+        lv_obj_set_style_text_font(lbl, fontSmall, 0);
+        lv_obj_set_pos(lbl, 0, y);
+        y += 18;
+    };
+
+    if (s.totalDistM >= 1000.0f)
+    {
+        dtostrf(s.totalDistM / 1000.0f, 5, 2, vbuf);
+        const char *p = vbuf; while (*p == ' ') p++;
+        char tmp[24]; snprintf(tmp, sizeof(tmp), "%s km", p);
+        addRow("Distance:", tmp);
+    }
+    else
+    {
+        snprintf(vbuf, sizeof(vbuf), "%d m", (int)s.totalDistM);
+        addRow("Distance:", vbuf);
+    }
+
+    snprintf(vbuf, sizeof(vbuf), "%02u:%02u", s.totalTimeSec / 60, s.totalTimeSec % 60);
+    addRow("Total time:", vbuf);
+
+    snprintf(vbuf, sizeof(vbuf), "%02u:%02u", s.movingTimeSec / 60, s.movingTimeSec % 60);
+    addRow("Moving time:", vbuf);
+
+    { char tmp[24]; dtostrf(s.maxSpeedKmh, 4, 1, tmp);
+      const char *p = tmp; while (*p == ' ') p++;
+      snprintf(vbuf, sizeof(vbuf), "%s km/h", p); }
+    addRow("Max speed:", vbuf);
+
+    { char tmp[24]; dtostrf(s.avgSpeedKmh, 4, 1, tmp);
+      const char *p = tmp; while (*p == ' ') p++;
+      snprintf(vbuf, sizeof(vbuf), "%s km/h", p); }
+    addRow("Avg speed:", vbuf);
+
+    snprintf(vbuf, sizeof(vbuf), "+%dm / -%dm", (int)s.gainPos, (int)s.gainNeg);
+    addRow("Elevation:", vbuf);
+
+    snprintf(vbuf, sizeof(vbuf), "%lu pts", (unsigned long)s.numPoints);
+    addRow("Points:", vbuf);
+
+    const char *fn    = s.filename;
+    const char *slash = strrchr(fn, '/');
+    addRow("File:", slash ? slash + 1 : fn);
+
+    lv_obj_t *btnOk = lv_btn_create(card);
+    lv_obj_set_size(btnOk, 80, 35);
+    lv_obj_align(btnOk, LV_ALIGN_BOTTOM_MID, 0, 0);
+    lv_obj_t *lblOk = lv_label_create(btnOk);
+    lv_label_set_text(lblOk, "OK");
+    lv_obj_center(lblOk);
+    lv_obj_add_event_cb(btnOk, summaryOkEvent, LV_EVENT_CLICKED, nullptr);
+}
+
+/**
+ * @brief Handle REC button click: toggle recording and update UI labels.
+ *
+ * @param e LVGL event (LV_EVENT_CLICKED).
+ */
+static void recBtnEvent(lv_event_t *e)
+{
+    lv_event_code_t code = lv_event_get_code(e);
+    if (code != LV_EVENT_CLICKED)
+        return;
+
+    LoggerState st = gpxLogger.state();
+    if (st == LoggerState::IDLE)
+    {
+        gpxLogger.start();
+        lv_obj_add_flag(circleRec, LV_OBJ_FLAG_HIDDEN);
+        lv_label_set_text(lblRec, LV_SYMBOL_STOP);
+        lv_obj_clear_flag(lblRec, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_style_bg_color(btnRec, lv_color_make(200, 0, 0), 0);
+    }
+    else
+    {
+        gpxLogger.stop();
+        lv_obj_clear_flag(circleRec, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(lblRec, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_style_bg_color(btnRec, lv_color_make(50, 50, 50), 0);
+        showLoggerSummary();
+    }
+}
+
+/**
+ * @brief 500 ms timer: blink the REC button and refresh the HUD label.
+ *
+ * @param t LVGL timer handle.
+ */
+static void recTimerCb(lv_timer_t *t)
+{
+    if (btnRec == nullptr)
+        return;
+
+    LoggerState st = gpxLogger.state();
+    recBlinkOn = !recBlinkOn;
+
+    // Hide button when following a route or navigating to a waypoint
+    bool navActive = isTrackLoaded || mapView.getHasWaypoint();
+    if (navActive && st == LoggerState::IDLE)
+    {
+        lv_obj_add_flag(btnRec, LV_OBJ_FLAG_HIDDEN);
+        return;
+    }
+    lv_obj_clear_flag(btnRec, LV_OBJ_FLAG_HIDDEN);
+
+    if (st == LoggerState::IDLE)
+    {
+        lv_obj_clear_flag(circleRec, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(lblRec, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_style_bg_color(btnRec, lv_color_make(50, 50, 50), 0);
+    }
+    else if (st == LoggerState::RECORDING)
+    {
+        lv_obj_add_flag(circleRec, LV_OBJ_FLAG_HIDDEN);
+        lv_label_set_text(lblRec, LV_SYMBOL_STOP);
+        lv_obj_clear_flag(lblRec, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_style_bg_color(btnRec,
+            recBlinkOn ? lv_color_make(200, 0, 0) : lv_color_make(80, 0, 0), 0);
+    }
+    else
+    {
+        lv_obj_add_flag(circleRec, LV_OBJ_FLAG_HIDDEN);
+        lv_label_set_text(lblRec, LV_SYMBOL_STOP);
+        lv_obj_clear_flag(lblRec, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_style_bg_color(btnRec, lv_color_make(200, 120, 0), 0);
+    }
+
+    if (recBlinkOn && recHud != nullptr)
+    {
+        if (st != LoggerState::IDLE)
+        {
+            lv_obj_clear_flag(recHud, LV_OBJ_FLAG_HIDDEN);
+            float    dist   = gpxLogger.stats().totalDistM;
+            uint32_t movMs  = gpxLogger.movingElapsedMs();
+            uint32_t movMin = (movMs / 1000) / 60;
+            uint32_t movSec = (movMs / 1000) % 60;
+            char buf[32];
+            if (dist >= 1000.0f)
+            {
+                char dbuf[12]; dtostrf(dist / 1000.0f, 5, 1, dbuf);
+                const char *p = dbuf; while (*p == ' ') p++;
+                snprintf(buf, sizeof(buf), "%skm  %02lu:%02lu", p, (unsigned long)movMin, (unsigned long)movSec);
+            }
+            else
+                snprintf(buf, sizeof(buf), "%dm  %02lu:%02lu",
+                    (int)dist, (unsigned long)movMin, (unsigned long)movSec);
+            lv_label_set_text(recHud, buf);
+        }
+        else
+        {
+            lv_obj_add_flag(recHud, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+}
+
+/**
  * @brief Create Main Screen.
  *
  * @details Initializes and configures the main screen and its tiles, widgets, and event callbacks 
@@ -1082,6 +1303,43 @@ void createMainScr()
     // timer is permanent — mainScreen is never destroyed
     map_inertia_timer = lv_timer_create(map_inertia_timer_cb, 20, NULL);
     lv_timer_pause(map_inertia_timer);
+
+    // ── GPX Logger REC button ─────────────────────────────────────────────
+    btnRec = lv_obj_create(mapTile);
+    lv_obj_set_size(btnRec, 50, 50);
+    lv_obj_clear_flag(btnRec, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_style(btnRec, &styleMapWidget, 0);
+    lv_obj_add_flag(btnRec, (lv_obj_flag_t)(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_FLOATING));
+    lv_obj_align_to(btnRec, zoomWidget, LV_ALIGN_OUT_BOTTOM_MID, 0, 5);
+    lv_obj_set_style_bg_color(btnRec, lv_color_make(50, 50, 50), 0);
+    circleRec = lv_obj_create(btnRec);
+    lv_obj_set_size(circleRec, 16, 16);
+    lv_obj_set_style_radius(circleRec, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(circleRec, lv_color_make(200, 0, 0), 0);
+    lv_obj_set_style_bg_opa(circleRec, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(circleRec, 0, 0);
+    lv_obj_clear_flag(circleRec, (lv_obj_flag_t)(LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE));
+    lv_obj_center(circleRec);
+    lblRec = lv_label_create(btnRec);
+    lv_label_set_text(lblRec, LV_SYMBOL_STOP);
+    lv_obj_set_style_text_font(lblRec, fontLarge, 0);
+    lv_obj_center(lblRec);
+    lv_obj_add_flag(lblRec, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_event_cb(btnRec, recBtnEvent, LV_EVENT_CLICKED, nullptr);
+
+    // ── HUD: distance + moving time ───────────────────────────────────────
+    recHud = lv_label_create(mapTile);
+    lv_label_set_text(recHud, "");
+    lv_obj_add_style(recHud, &styleMapWidget, 0);
+    lv_obj_set_style_text_font(recHud, fontMedium, 0);
+    lv_obj_set_style_text_color(recHud, lv_color_white(), 0);
+    lv_obj_add_flag(recHud, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_HIDDEN));
+    lv_obj_align_to(recHud, mapSpeed, LV_ALIGN_OUT_TOP_LEFT, 0, -3);
+
+    // ── Blink + HUD timer 500 ms ──────────────────────────────────────────
+    recTimer = lv_timer_create(recTimerCb, 500, nullptr);
+
+    gpxLogger.init();
 
     #ifdef BOARD_HAS_PSRAM
         #ifndef TDECK_ESP32S3

@@ -155,6 +155,7 @@ public:
     void generateMap(uint8_t zoom);
     void displayMap();
     void setWaypoint(float wptLat, float wptLon);
+    bool getHasWaypoint() const { return hasWaypoint; }
     void updateMap();
     void centerOnGps(float lat, float lon);
     void scrollMap(int16_t dx, int16_t dy);
