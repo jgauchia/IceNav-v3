@@ -8,6 +8,7 @@
 
 #ifndef DISABLE_CLI
 #include "cli.hpp"
+#include "connectivity.hpp"
 #include "esp_heap_caps.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -155,7 +156,7 @@ void wcli_scshot(char *args, Stream *response)
     }
     else
     {
-        if (!WiFi.isConnected()) 
+        if (!connectivity().isConnected())
         {
             response->println("Please connect your WiFi first!");
             return;

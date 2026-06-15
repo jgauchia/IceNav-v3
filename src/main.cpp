@@ -7,10 +7,8 @@
  */
 
 #include <Arduino.h>
-#include <WiFi.h>
 #include <esp_log.h>
 #include <atomic>
-#include <ESPmDNS.h>
 
 #include "hal.hpp"
 #include "gps.hpp"
@@ -18,8 +16,8 @@
 #include "tft.hpp"
 
 extern xSemaphoreHandle gpsMutex;
-#include "webpage.h"
-#include "webserver.h"
+#include "connectivity.hpp"
+#include "fileServer.hpp"
 #include "battery.hpp"
 #include "power.hpp"
 #include "gpxParser.hpp"
@@ -79,14 +77,9 @@ void setup()
         initCLI();
         initCLITask();
     #endif
-    if (WiFi.status() == WL_CONNECTED)
-    {
-        if (!MDNS.begin(hostname))
-            log_e("nDNS init error");
-        log_i("mDNS initialized");
-    }
-    if (WiFi.status() == WL_CONNECTED && enableWeb)
-        configureWebServer();
+    connectivity().begin();
+    if (connectivity().isConnected() && enableWeb)
+        fileServer().start();
     vTaskSuspend(guiTaskHandle);
     splashScreen();
     if (isGpsFixed)
@@ -108,7 +101,7 @@ void setup()
 void loop()
 {
     if (enableWeb)
-        processWebServerTasks();
+        fileServer().process();
 
     vTaskDelay(pdMS_TO_TICKS(10));
 }

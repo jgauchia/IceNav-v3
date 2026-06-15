@@ -7,6 +7,7 @@
  */
 
 #include "webserver.h"
+#include "fileServer.hpp"
 #include "webpage.h"
 #include <algorithm>
 #include <dirent.h>
@@ -1141,4 +1142,36 @@ void stopWebServer()
         webServer = NULL;
         ESP_LOGI(WEB_TAG, "Web server stopped");
     }
+}
+
+/**
+ * @class FileServerHttpd
+ * @brief Layer-0 file server implementation over the IDF HTTP server.
+ */
+class FileServerHttpd : public IFileServer
+{
+public:
+    void start() override
+    {
+        configureWebServer();
+    }
+
+    void stop() override
+    {
+        stopWebServer();
+    }
+
+    void process() override
+    {
+        processWebServerTasks();
+    }
+};
+
+/**
+ * @brief Provides the HTTP file server implementation as the Layer-1 singleton.
+ */
+IFileServer &fileServer()
+{
+    static FileServerHttpd instance;
+    return instance;
 }

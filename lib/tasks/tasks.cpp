@@ -15,7 +15,7 @@
 #include "logger.hpp"
 #include "router.hpp"
 #include "gpxParser.hpp"
-#include <WiFi.h>
+#include "connectivity.hpp"
 #ifdef ENABLE_IMU
     #include "imu.hpp"
 #endif
@@ -340,7 +340,7 @@ void sensorTask(void *pvParameters)
             }
             #endif
 
-            bool currentWifiState = (WiFi.status() == WL_CONNECTED);
+            bool currentWifiState = connectivity().isConnected();
             if (currentWifiState != sensorState.lastWifiState)
             {
                 if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, MUTEX_TIMEOUT_SLOW) == pdTRUE)
