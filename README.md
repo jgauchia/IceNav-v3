@@ -39,9 +39,13 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 |:-:|:-:|:-:|:-:|:-:|
 | NMEA Debug | Add Waypoint | Waypoint List | Track List | 3D Map view |
 
-|<img src="images/dev/climb.png">|<img src="images/dev/settings.png">|<img src="images/dev/compasscal.jpg">|<img src="images/dev/touchcal.jpg">|<img src="images/dev/mapsettings.png">|
-|:-:|:-:|:-:|:-:|:-:|
-| Climb Analyzer | Settings | Compass Calibration | Touch Calibration | Map Settings |
+|<img src="images/dev/gpslogger1.png">|<img src="images/dev/gpslogger2.png">|<img src="images/dev/climb.png">|
+|:-:|:-:|:-:|
+| GPS Logger | GPS Logger | Climb Analyzer |
+
+|<img src="images/dev/settings.png">|<img src="images/dev/compasscal.jpg">|<img src="images/dev/touchcal.jpg">|<img src="images/dev/mapsettings.png">|
+|:-:|:-:|:-:|:-:|
+| Settings | Compass Calibration | Touch Calibration | Map Settings |
 
 |<img src="images/dev/devicesettings.png">|<img src="images/dev/sensorinfo.png">|
 |:-:|:-:|

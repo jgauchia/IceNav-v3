@@ -1179,19 +1179,26 @@ static void recTimerCb(lv_timer_t *t)
         {
             lv_obj_clear_flag(recHud, LV_OBJ_FLAG_HIDDEN);
             float    dist   = gpxLogger.stats().totalDistM;
+            int32_t  gain   = gpxLogger.stats().gainPos;
+            float    grade  = gpxLogger.currentGrade();
             uint32_t movMs  = gpxLogger.movingElapsedMs();
             uint32_t movMin = (movMs / 1000) / 60;
             uint32_t movSec = (movMs / 1000) % 60;
-            char buf[32];
+            const char *arrow = (grade > 0.5f) ? LV_SYMBOL_UP : (grade < -0.5f) ? LV_SYMBOL_DOWN : "";
+            char gradeBuf[8];
+            dtostrf(grade < 0.0f ? -grade : grade, 4, 1, gradeBuf);
+            const char *g = gradeBuf; while (*g == ' ') g++;
+            char buf[80];
             if (dist >= 1000.0f)
             {
                 char dbuf[12]; dtostrf(dist / 1000.0f, 5, 1, dbuf);
                 const char *p = dbuf; while (*p == ' ') p++;
-                snprintf(buf, sizeof(buf), "%skm  %02lu:%02lu", p, (unsigned long)movMin, (unsigned long)movSec);
+                snprintf(buf, sizeof(buf), LV_SYMBOL_GPS " %skm  %02lu:%02lu\n" LV_SYMBOL_UP " %ldm  %s%s%%",
+                    p, (unsigned long)movMin, (unsigned long)movSec, (long)gain, arrow, g);
             }
             else
-                snprintf(buf, sizeof(buf), "%dm  %02lu:%02lu",
-                    (int)dist, (unsigned long)movMin, (unsigned long)movSec);
+                snprintf(buf, sizeof(buf), LV_SYMBOL_GPS " %dm  %02lu:%02lu\n" LV_SYMBOL_UP " %ldm  %s%s%%",
+                    (int)dist, (unsigned long)movMin, (unsigned long)movSec, (long)gain, arrow, g);
             lv_label_set_text(recHud, buf);
         }
         else
@@ -1334,7 +1341,7 @@ void createMainScr()
     lv_obj_set_style_text_font(recHud, fontMedium, 0);
     lv_obj_set_style_text_color(recHud, lv_color_white(), 0);
     lv_obj_add_flag(recHud, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_HIDDEN));
-    lv_obj_align_to(recHud, mapSpeed, LV_ALIGN_OUT_TOP_LEFT, 0, -3);
+    lv_obj_align_to(recHud, mapSpeed, LV_ALIGN_OUT_TOP_LEFT, 0, -25);
 
     // ── Blink + HUD timer 500 ms ──────────────────────────────────────────
     recTimer = lv_timer_create(recTimerCb, 500, nullptr);

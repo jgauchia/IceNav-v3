@@ -83,6 +83,7 @@ public:
     const LoggerStats& stats()           const { return _stats; }
     uint8_t            profileIndex()    const { return _profileIdx; }
     uint32_t           movingElapsedMs() const { return _movingMs; }
+    float              currentGrade()    const { return _lastGrade; }
 
 private:
     void     _writeTrkpt(float lat, float lon, int16_t alt, float speedKmh, const LoggerGpsFix& fix);
@@ -97,15 +98,16 @@ private:
     uint32_t _lastLogMs      = 0;
     uint32_t _lastUpdateMs   = 0;
     uint32_t _pauseStartMs   = 0;
-    uint32_t _pauseEnteredMs = 0;
-    uint32_t _pauseTotalMs   = 0;
     uint32_t _movingMs       = 0;
     uint32_t _flushCnt       = 0;
 
-    float _lastLat = 0.0f;
-    float _lastLon = 0.0f;
-    float _lastAlt = 0.0f;
-    bool  _hasLast = false;
+    float _lastLat      = 0.0f;
+    float _lastLon      = 0.0f;
+    float _lastAlt      = 0.0f;
+    float _lastGrade    = 0.0f;
+    float _gradeAccDist = 0.0f;
+    float _gradeAccAlt  = 0.0f;
+    bool  _hasLast      = false;
 
     float    _speedAccum = 0.0f;
     uint32_t _speedSamps = 0;

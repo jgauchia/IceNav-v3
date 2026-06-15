@@ -18,6 +18,9 @@
 
 GpxLogger gpxLogger;
 
+static constexpr float GAIN_MIN_M = 3.0f;    ///< Min altitude delta counted as gain/loss (m), rejects jitter (Garmin-style threshold)
+static constexpr float GAIN_MAX_M = 30.0f;   ///< Max plausible altitude delta between fixes (m), rejects GPS spikes
+
 /**
  * @brief Get system uptime in milliseconds.
  *
@@ -101,9 +104,11 @@ void GpxLogger::start()
     memset(&_stats, 0, sizeof(_stats));
     _segOpen       = false;
     _hasLast       = false;
+    _lastGrade     = 0.0f;
+    _gradeAccDist  = 0.0f;
+    _gradeAccAlt   = 0.0f;
     _flushCnt      = 0;
     _pauseStartMs  = 0;
-    _pauseTotalMs  = 0;
     _movingMs      = 0;
     _speedAccum    = 0.0f;
     _speedSamps    = 0;
@@ -175,9 +180,6 @@ void GpxLogger::stop()
 
     uint32_t now = ms_now();
 
-    if (_state == LoggerState::AUTO_PAUSE)
-        _pauseTotalMs += (now - _pauseEnteredMs);
-
     _state = LoggerState::IDLE;
 
     if (_file != nullptr)
@@ -239,8 +241,7 @@ void GpxLogger::update(const LoggerGpsFix& gpsFix)
                     storage.print(_file, "</trkseg>\n");
                     _segOpen = false;
                 }
-                _pauseEnteredMs = now;
-                _state          = LoggerState::AUTO_PAUSE;
+                _state = LoggerState::AUTO_PAUSE;
                 xSemaphoreGive(_mutex);
                 return;
             }
@@ -271,9 +272,8 @@ void GpxLogger::update(const LoggerGpsFix& gpsFix)
     {
         if (speedKmh >= prof.pauseSpeedKmh)
         {
-            _pauseTotalMs += (now - _pauseEnteredMs);
-            _pauseStartMs  = 0;
-            _state         = LoggerState::RECORDING;
+            _pauseStartMs = 0;
+            _state        = LoggerState::RECORDING;
         }
     }
 
@@ -335,11 +335,32 @@ void GpxLogger::_writeTrkpt(float lat, float lon, int16_t alt, float speedKmh, c
         float dist = loggerDist(_lastLat, _lastLon, lat, lon);
         _stats.totalDistM += dist;
 
-        float dAlt = (float)alt - _lastAlt;
-        if (dAlt > 0.5f)
-            _stats.gainPos += (int32_t)dAlt;
-        else if (dAlt < -0.5f)
-            _stats.gainNeg += (int32_t)(-dAlt);
+        // Elevation gain/loss is band-filtered to reject GPS altitude noise:
+        // changes below GAIN_MIN_M are micro-jitter, and changes above GAIN_MAX_M
+        // between consecutive fixes are implausible spikes (the AT6558D can jump
+        // tens/hundreds of metres on a single fix). Both are ignored, otherwise
+        // a short track shows absurd cumulative elevation (e.g. -385 m in 55 m).
+        float dAlt    = (float)alt - _lastAlt;
+        float absAlt  = (dAlt < 0.0f) ? -dAlt : dAlt;
+        if (absAlt >= GAIN_MIN_M && absAlt <= GAIN_MAX_M)
+        {
+            if (dAlt > 0.0f)
+                _stats.gainPos += (int32_t)dAlt;
+            else
+                _stats.gainNeg += (int32_t)(-dAlt);
+        }
+
+        // Accumulate over a ~30 m window: integer altitude (1 m steps) and short
+        // inter-point distances make the instantaneous grade jump wildly, so the
+        // grade is only recomputed once enough distance has been covered.
+        _gradeAccDist += dist;
+        _gradeAccAlt  += dAlt;
+        if (_gradeAccDist >= 30.0f)
+        {
+            _lastGrade    = (_gradeAccAlt / _gradeAccDist) * 100.0f;
+            _gradeAccDist = 0.0f;
+            _gradeAccAlt  = 0.0f;
+        }
     }
 
     if (speedKmh > _stats.maxSpeedKmh)
