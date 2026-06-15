@@ -192,6 +192,34 @@ On SD Card route files should be stored, in these folders structure:
             |_______ [ 📁 WALK ] 
                           |_______ 🔀 ROUTE.bin                                                    
 
+## SD Track Logger File structure
+
+IceNav includes a built-in GPX data logger that records your activity directly to the SD card. Recording is controlled from a **REC** button on the map screen, with adaptive sampling, auto-pause on low speed and a summary screen on stop.
+
+Tracks are stored as GPX 1.1 files in the `TRK` folder. This folder holds both the tracks recorded by the device (named after the local start time) and any external tracks you add manually — for example GPX files downloaded from the web or exported from other apps and tools:
+
+      [ 📁 TRK ]
+            |_______ 🛰️ YYYYMMDD_HHMMSS.gpx   (recorded by the device)
+            |_______ 🛰️ my_downloaded_route.gpx   (added manually)
+            |_______ ...
+
+The logger supports three activity profiles, selectable from **Settings → Device → Logger Profile**. The selected profile is stored in the `logProfile` preference `0` = Walk (default), `1` = Bike, `2` = Car. Each profile tunes the auto-pause threshold, sampling interval and minimum distance between points:
+
+| Profile | Pause speed | Pause delay | Min interval | Max interval | Min distance | Reference speed |
+|---------|-------------|-------------|--------------|--------------|--------------|-----------------|
+| Walk    | 0.5 km/h    | 5 s         | 1000 ms      | 5000 ms      | 2 m          | 10 km/h         |
+| Bike    | 2.0 km/h    | 10 s        | 2000 ms      | 15000 ms     | 8 m          | 40 km/h         |
+| Car     | 5.0 km/h    | 30 s        | 5000 ms      | 30000 ms     | 25 m         | 130 km/h        |
+
+## SD Waypoint File structure
+
+IceNav stores waypoints as GPX files in the `WPT` folder. Waypoints created on the device (from **Add Waypoint**) are saved to the default `waypoint.gpx` file. You can also add your own GPX files manually — for example waypoints downloaded from the web or exported from other apps and tools. Each file may contain a single `<wpt>` or multiple ones, and all `.gpx` files found in the folder are loaded:
+
+      [ 📁 WPT ]
+            |_______ 📍 waypoint.gpx   (created by the device)
+            |_______ 📍 my_waypoints.gpx   (added manually, one or more waypoints)
+            |_______ ...
+
 ## Mass Copy Script for Map Tiles
 
 For efficient transfer of millions of map tiles to SD cards or external storage devices, IceNav includes a high-performance mass copy script. This script is optimized for copying large numbers of small files (such as map tiles) and can reduce transfer time from hours to minutes.
@@ -312,6 +340,7 @@ Some extra details:
     kalmanR     custom          0.60000000     Def. Kalman Filter const. Measurement noise covariance (0-1)
  routeSpeed     custom          130            Max speed (km/h) for A* heuristic: 130=car, 25=bike, 5=walk. Selects ROUTE/CAR|BIKE|WALK/ROUTE.bin on SD card.
 nmeaDbgTile     custom          false          Show the NMEA debug tile 
+ logProfile     custom          0              GPX logger activity profile index: 0 = Walk (default), 1 = Bike, 2 = Car.
 
 
 ```          
@@ -353,22 +382,7 @@ The Web File Server will start automatically if default automatic network connec
 
 To access the Web File Server, simply use any browser and go to the following address: http://icenav.local
 
-## TO DO
-
-- [X] LVGL 9 Integration
-- [X] Support other resolutions and TFT models
-- [X] Support for ready-made boards 
-- [X] Wifi CLI Manager
-- [X] LVGL Optimization 
-- [X] GPX Integration
-- [ ] Multiple IMU's and Compass module implementation
-- [X] Power saving
-- [X] Vector maps
-- [X] Google Maps navigation style (turn by turn)
-- [X] Optimize code
-- [X] Fix bugs!
-- [X] Web file server
-      
+   
 
 ## Special thanks to....
 * [@hpsaturn](https://github.com/hpsaturn) Thanks to him and his knowledge, this project is no longer sitting in a drawer :smirk:.
