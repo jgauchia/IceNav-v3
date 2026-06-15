@@ -108,7 +108,7 @@ void Power::deviceSuspend()
 {
     int brightness = tft.getBrightness();
     closeMsg();
-    lv_refr_now(display);
+    lv_refr_now(display_drv);
     tftOff();
 
     if (gpsTaskHandle != NULL)

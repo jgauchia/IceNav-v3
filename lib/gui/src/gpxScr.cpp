@@ -12,6 +12,7 @@
 #include "climbAnalyzer.hpp"
 #include "gps.hpp"
 #include "gpsMath.hpp"
+#include "display.hpp"
 
 extern Maps mapView;
 extern Storage storage;
@@ -181,7 +182,7 @@ static void handleGpxEdit(GPXParser &gpx, const char *gpxName)
     }
 
     isScreenRotated = false;
-    lv_obj_set_width(gpxTagValue, tft.width() - 10);
+    lv_obj_set_width(gpxTagValue, display().width() - 10);
     updateWaypoint(gpxAction);
     lv_screen_load(gpxDetailScreen);
 }

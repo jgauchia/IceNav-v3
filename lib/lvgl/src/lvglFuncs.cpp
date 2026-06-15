@@ -116,7 +116,7 @@ void showMsg(const char* symbol, const char* message)
     snprintf(msg, sizeof(msg), "%s %s", symbol, message);
     lv_msgbox_add_text(msgDialog, msg);
     lv_obj_invalidate(msgDialog);
-    lv_refr_now(display);
+    lv_refr_now(display_drv);
 }
 
 /**

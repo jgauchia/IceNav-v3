@@ -7,6 +7,7 @@
  */
 
 #include "gpxDetailScr.hpp"
+#include "display.hpp"
 
 extern Maps mapView;
 extern Gps gps;
@@ -64,7 +65,7 @@ static void gpxDetailScreenEvent(lv_event_t *event)
                 isMainScreen = true;
                 mapView.redrawMap = true;
                 gpxAction = WPT_NONE;
-                lv_refr_now(display);
+                lv_refr_now(display_drv);
                 loadMainScreen();
             }
             if (lv_indev_get_key(lv_indev_active()) == 35) // # Key (ESCAPE)
@@ -72,7 +73,7 @@ static void gpxDetailScreenEvent(lv_event_t *event)
                 isMainScreen = true;
                 mapView.redrawMap = true;
                 gpxAction = WPT_NONE;
-                lv_refr_now(display);
+                lv_refr_now(display_drv);
                 loadMainScreen();
             }
         }
@@ -80,10 +81,10 @@ static void gpxDetailScreenEvent(lv_event_t *event)
 
     if (code == LV_EVENT_READY)
     {
-        if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
+        if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_270)
         {
-            tft.setRotation(0);
-            lv_display_set_rotation(display, LV_DISPLAY_ROTATION_0);
+            display().setRotation(0);
+            lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
         }
         createWptFile();
         GPXParser gpx;
@@ -112,21 +113,21 @@ static void gpxDetailScreenEvent(lv_event_t *event)
         isMainScreen = true;
         mapView.redrawMap = true;
         gpxAction = WPT_NONE;
-        lv_refr_now(display);
+        lv_refr_now(display_drv);
         loadMainScreen();
     }
 
     if (code == LV_EVENT_CANCEL)
     {
-        if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
+        if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_270)
         {
-            tft.setRotation(0);
-            lv_display_set_rotation(display,LV_DISPLAY_ROTATION_0);
+            display().setRotation(0);
+            lv_display_set_rotation(display_drv,LV_DISPLAY_ROTATION_0);
         }
         isMainScreen = true;
         mapView.redrawMap = true;
         gpxAction = WPT_NONE;
-        lv_refr_now(display);
+        lv_refr_now(display_drv);
         loadMainScreen();
     }
 }
@@ -142,16 +143,16 @@ static void rotateScreen(lv_event_t *event)
     log_v("%d",isScreenRotated);
     if (isScreenRotated)
     {
-        tft.setRotation(1);
-        lv_display_set_rotation(display, LV_DISPLAY_ROTATION_270); 
+        display().setRotation(1);
+        lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_270);
     }
     else
     {
-        tft.setRotation(0);
-        lv_display_set_rotation(display, LV_DISPLAY_ROTATION_0);
+        display().setRotation(0);
+        lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
     }
-    lv_obj_set_width(gpxTagValue, tft.width() -10);
-    lv_refr_now(display);
+    lv_obj_set_width(gpxTagValue, display().width() -10);
+    lv_refr_now(display_drv);
 }
 
 /**
@@ -191,7 +192,7 @@ static void gpxTagNameEvent(lv_event_t *event)
         isMainScreen = true;
         mapView.redrawMap = true;
         gpxAction = WPT_NONE;
-        lv_refr_now(display);
+        lv_refr_now(display_drv);
         loadMainScreen();
     }
 }
@@ -237,7 +238,7 @@ void createGpxDetailScreen()
     gpxTagValue = lv_textarea_create(gpxDetailScreen);
     lv_textarea_set_one_line(gpxTagValue, true);
     lv_obj_align(gpxTagValue, LV_ALIGN_TOP_MID, 0, 40);
-    lv_obj_set_width(gpxTagValue, tft.width() - 10);
+    lv_obj_set_width(gpxTagValue, display().width() - 10);
     lv_obj_add_state(gpxTagValue, LV_STATE_FOCUSED);
     lv_obj_add_event_cb(gpxTagValue, gpxDetailScreenEvent, LV_EVENT_ALL, gpxDetailScreen);
     #ifndef TDECK_ESP32S3

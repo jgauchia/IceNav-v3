@@ -1,7 +1,7 @@
 /**
- * @file displayBackend.hpp
+ * @file display.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief Layer-1 display backend interface
+ * @brief Layer-1 display interface
  * @version 0.2.9
  * @date 2026-06
  */
@@ -19,7 +19,7 @@ struct DisplayArea
 };
 
 /**
- * @class IDisplayBackend
+ * @class IDisplay
  * @brief Layer-1 contract for low-frequency display operations.
  *
  * @details Covers init, geometry, brightness and the LVGL flush path with DMA
@@ -27,18 +27,20 @@ struct DisplayArea
  *          renderer is MapCanvas (see mapCanvas.hpp), kept out of this virtual
  *          interface to avoid indirection in the rasterisation hot path.
  */
-class IDisplayBackend
+class IDisplay
 {
 public:
-    virtual ~IDisplayBackend() = default;
+    virtual ~IDisplay() = default;
     virtual void init() = 0;
     virtual uint16_t width() const = 0;
     virtual uint16_t height() const = 0;
     virtual void setBrightness(uint8_t value) = 0;
+    virtual void setRotation(uint8_t rotation) = 0;
+    virtual void clear(uint32_t color) = 0;
     virtual void sleepOn(uint8_t brightness) = 0;
     virtual void sleepOff() = 0;
     virtual void flush(const DisplayArea &area, uint16_t *pixels) = 0;
     virtual void waitFlushDone() = 0;
 };
 
-IDisplayBackend &displayBackend();
+IDisplay &display();

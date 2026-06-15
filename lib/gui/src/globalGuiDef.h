@@ -14,7 +14,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 
-extern lv_display_t *display; /**< LVGL Display Driver */
+extern lv_display_t *display_drv; /**< LVGL Display Driver */
 
 /**
  * @brief Screens definitions

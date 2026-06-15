@@ -1,11 +1,11 @@
 /**
- * @file displayBackendS3.cpp
+ * @file displayS3.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief ESP32-S3 display backend (LovyanGFX)
+ * @brief ESP32-S3 display implementation (LovyanGFX)
  * @date 2026-06
  */
 
-#include "displayBackend.hpp"
+#include "display.hpp"
 #include "mapCanvas.hpp"
 #include "tft.hpp"
 #include "panelSelect.hpp"
@@ -15,15 +15,15 @@
 #endif
 
 /**
- * @class DisplayBackendS3
- * @brief Layer-0 display backend for ESP32-S3 boards over LovyanGFX.
+ * @class DisplayS3
+ * @brief Layer-0 display implementation for ESP32-S3 boards over LovyanGFX.
  *
  * @details Wraps the existing global tft object and its helpers. The flush path
  *          starts the DMA transfer and returns; LVGL waits for the previous
  *          transfer through waitFlushDone() before reusing a draw buffer,
  *          overlapping rasterisation with the in-flight DMA.
  */
-class DisplayBackendS3 : public IDisplayBackend
+class DisplayS3 : public IDisplay
 {
 public:
     void init() override
@@ -44,6 +44,16 @@ public:
     void setBrightness(uint8_t value) override
     {
         tft.setBrightness(value);
+    }
+
+    void setRotation(uint8_t rotation) override
+    {
+        tft.setRotation(rotation);
+    }
+
+    void clear(uint32_t color) override
+    {
+        tft.fillScreen(color);
     }
 
     void sleepOn(uint8_t brightness) override
@@ -79,11 +89,11 @@ public:
 };
 
 /**
- * @brief Provides the S3 display backend as the Layer-1 singleton.
+ * @brief Provides the S3 display implementation as the Layer-1 singleton.
  */
-IDisplayBackend &displayBackend()
+IDisplay &display()
 {
-    static DisplayBackendS3 instance;
+    static DisplayS3 instance;
     return instance;
 }
 

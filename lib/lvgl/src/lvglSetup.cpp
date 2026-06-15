@@ -9,7 +9,7 @@
 #include "../../gui/src/lv_subjects.hpp"
 #include "lvglSetup.hpp"
 #include "../../../include/hal.hpp"
-#include "displayBackend.hpp"
+#include "display.hpp"
 #include "i2c_espidf.hpp"
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
@@ -19,7 +19,7 @@
 
 SemaphoreHandle_t lvgl_mutex = NULL;
 
-lv_display_t *display; /**< LVGL display driver */
+lv_display_t *display_drv; /**< LVGL display driver */
 
 lv_obj_t *searchSatScreen; /**< Search Satellite Screen object. */
 lv_obj_t *splashScr;       /**< Splash Screen object. */
@@ -66,7 +66,7 @@ static void lv_rounder_cb(lv_event_t *event)
 void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 {
     DisplayArea flushArea = { area->x1, area->y1, area->x2, area->y2 };
-    displayBackend().flush(flushArea, reinterpret_cast<uint16_t*>(px_map));
+    display().flush(flushArea, reinterpret_cast<uint16_t*>(px_map));
     lv_display_flush_ready(disp);
 }
 
@@ -82,7 +82,7 @@ void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *
 void displayFlushWait(lv_display_t *disp)
 {
     LV_UNUSED(disp);
-    displayBackend().waitFlushDone();
+    display().waitFlushDone();
 }
 
 /**
@@ -194,12 +194,12 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     {
         if (count == 1)
         {
-            if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_0)
+            if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_0)
             {
                 data->point.x = touchRaw[count-1].x;
                 data->point.y = touchRaw[count-1].y;
             }
-            else if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
+            else if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_270)
             {
                 data->point.x = TFT_WIDTH - touchRaw[count-1].y;
                 data->point.y = touchRaw[count-1].x;
@@ -429,12 +429,12 @@ void initLVGL()
     init_lv_subjects();
     initSharedStyles();
 
-    display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
-    lv_display_set_flush_cb(display, displayFlush);
-    lv_display_set_flush_wait_cb(display, displayFlushWait);
+    display_drv = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
+    lv_display_set_flush_cb(display_drv, displayFlush);
+    lv_display_set_flush_wait_cb(display_drv, displayFlushWait);
 
     #ifdef T4_S3
-        lv_display_add_event_cb(display, lv_rounder_cb, LV_EVENT_INVALIDATE_AREA, display);
+        lv_display_add_event_cb(display_drv, lv_rounder_cb, LV_EVENT_INVALIDATE_AREA, display_drv);
     #endif
     
     size_t DRAW_BUF_SIZE = 0;
@@ -459,12 +459,12 @@ void initLVGL()
         log_v("LVGL: allocating %u bytes PSRAM for draw buffers", DRAW_BUF_SIZE * 2);
         drawBuf1 = (lv_color_t *)heap_caps_aligned_alloc(64, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
         drawBuf2 = (lv_color_t *)heap_caps_aligned_alloc(64, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
-        lv_display_set_buffers(display, drawBuf1, drawBuf2, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
+        lv_display_set_buffers(display_drv, drawBuf1, drawBuf2, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
     #else
         DRAW_BUF_SIZE = (TFT_WIDTH * TFT_HEIGHT / 10) * sizeof(lv_color_t);
         log_v("LVGL: allocating %u bytes SRAM for draw buffer", DRAW_BUF_SIZE);
         drawBuf1 = (lv_color_t *)heap_caps_malloc(DRAW_BUF_SIZE, MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA);
-        lv_display_set_buffers(display, drawBuf1, NULL, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
+        lv_display_set_buffers(display_drv, drawBuf1, NULL, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
     #endif
     
     #ifdef TOUCH_INPUT

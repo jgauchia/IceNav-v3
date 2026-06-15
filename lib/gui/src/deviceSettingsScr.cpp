@@ -9,6 +9,7 @@
 #include "deviceSettingsScr.hpp"
 #include "logger.hpp"
 #include "loggerConfig.hpp"
+#include "display.hpp"
 
 lv_obj_t *deviceSettingsScreen; /**< Device Settings Screen. */
 
@@ -75,7 +76,7 @@ static void brightnessEvent(lv_event_t *e)
 {
     lv_obj_t *obj =(lv_obj_t*) lv_event_get_target(e);
     defBright =  lv_slider_get_value(obj);
-    tft.setBrightness(defBright);
+    display().setBrightness(defBright);
 }
 
 /**
