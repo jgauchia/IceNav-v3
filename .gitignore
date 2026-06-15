@@ -4,5 +4,5 @@ assets
 tile_viewer.py
 .clangd
 compile_commands.json
-GPX_LOGGER_IMPL.md
+
 
