@@ -271,7 +271,7 @@ void Maps::coords2map(float lat, float lon, const tileBounds& bound, uint16_t *p
 /**
  * @brief Load No Map image
  */
-void Maps::showNoMap(TFT_eSprite &map)
+void Maps::showNoMap(MapCanvas &map)
 {
     int16_t centerX = (Maps::mapScrWidth / 2) - 50;
     int16_t centerY = (Maps::mapScrHeight / 2) - 50;
@@ -321,7 +321,7 @@ void Maps::createMapScrSprites()
  *
  * @param map Target sprite.
  */
-void Maps::drawTrack(TFT_eSprite& map)
+void Maps::drawTrack(MapCanvas& map)
 {
     for (size_t i = 1; i < trackData.size(); ++i)
     {
@@ -717,7 +717,7 @@ void Maps::mapRenderTask(void* pvParameters)
  * @param screenY Y PNG position on sprite
  * @param map Map sprite
  */
-void Maps::renderPngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, TFT_eSprite &map)
+void Maps::renderPngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map)
 {
     char tilePath[128];
     snprintf(tilePath, sizeof(tilePath), mapRenderFolder, zoom, tileX, tileY);
@@ -758,7 +758,7 @@ void Maps::displayMap()
     #endif
     
     Maps::mapTempSprite.pushImage(Maps::wptPosX - 8, Maps::wptPosY - 8, 16, 16, (uint16_t *)waypoint, TFT_BLACK);
-    tft.startWrite();
+    mapCanvasParent()->startWrite();
 
     if (Maps::followGps)
     {
@@ -774,7 +774,7 @@ void Maps::displayMap()
                 navArrowPosition.posX == lastRenderedArrowPos.posX &&
                 navArrowPosition.posY == lastRenderedArrowPos.posY)
             {
-                tft.endWrite();
+                mapCanvasParent()->endWrite();
                 xSemaphoreGiveRecursive(mapMutex);
                 return;
             }
@@ -803,7 +803,7 @@ void Maps::displayMap()
             if (displayOffsetX == lastRenderedDisplayOffsetX &&
                 displayOffsetY == lastRenderedDisplayOffsetY)
             {
-                tft.endWrite();
+                mapCanvasParent()->endWrite();
                 xSemaphoreGiveRecursive(mapMutex);
                 return;
             }
@@ -818,7 +818,7 @@ void Maps::displayMap()
     }
 
     Maps::redrawMap = false;
-    tft.endWrite();
+    mapCanvasParent()->endWrite();
     xSemaphoreGiveRecursive(mapMutex);
 }
 
@@ -1266,7 +1266,7 @@ uint16_t Maps::darkenRGB565(const uint16_t color, const float amount)
  *          fixed-point arithmetic for edge slopes and sub-pixel X-coordinate precision 
  *          to ensure smooth transitions between scanlines.
  * 
- * @param map        Reference to the target TFT_eSprite where the polygon is rendered.
+ * @param map        Reference to the target MapCanvas where the polygon is rendered.
  * @param px         Array of X-coordinates for the vertices.
  * @param py         Array of Y-coordinates for the vertices.
  * @param numPoints  Total count of vertices across all rings.
@@ -1276,7 +1276,7 @@ uint16_t Maps::darkenRGB565(const uint16_t color, const float amount)
  * @param ringCount  The number of independent rings (use 0 or 1 for simple polygons).
  * @param ringEnds   Array containing the end indices for each ring in the px/py arrays. 
  */
-void Maps::fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset, uint16_t ringCount, const uint16_t* ringEnds)
+void Maps::fillPolygonGeneral(MapCanvas &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset, uint16_t ringCount, const uint16_t* ringEnds)
 {
     if (numPoints < 3)
         return;
@@ -1499,7 +1499,7 @@ void Maps::latLonToPixel(float lat, float lon, int16_t& px, int16_t& py)
  * @param width Line width in pixels.
  * @param color RGB565 color.
  */
-void Maps::drawThickLine(TFT_eSprite& map, int16_t x0, int16_t y0,
+void Maps::drawThickLine(MapCanvas& map, int16_t x0, int16_t y0,
                           int16_t x1, int16_t y1, uint8_t width, uint16_t color)
 {
     if (width <= 1)
@@ -1531,11 +1531,11 @@ void Maps::drawThickLine(TFT_eSprite& map, int16_t x0, int16_t y0,
  *          Detail (LOD) filtering based on the current zoom level to optimize performance.
  *
  * @param ref Reference to the feature data, including coordinates and style.
- * @param map The target TFT_eSprite for rendering.
+ * @param map The target MapCanvas for rendering.
  * @param isCasing  If true, renders the line outline (wider and darkened).
  *                  If false, renders the main line body.
  */
-void Maps::renderNavLineString(const FeatureRef& ref, TFT_eSprite& map, bool isCasing)
+void Maps::renderNavLineString(const FeatureRef& ref, MapCanvas& map, bool isCasing)
 {
     if (ref.coordCount < 2)
         return;
@@ -1613,9 +1613,9 @@ void Maps::renderNavLineString(const FeatureRef& ref, TFT_eSprite& map, bool isC
  *
  * @param ref  Reference to the feature data, including vertex pointers, 
  *             colors, and styling metadata.
- * @param map  The target TFT_eSprite where the polygon and its outline will be drawn.
+ * @param map  The target MapCanvas where the polygon and its outline will be drawn.
  */
-void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
+void Maps::renderNavPolygon(const FeatureRef& ref, MapCanvas& map)
 {
     if (ref.coordCount < 3 || ref.coordCount > MAX_POLYGON_POINTS)
         return;
@@ -1755,7 +1755,7 @@ void Maps::renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map)
  * @param ref Reference to the point feature data and styling.
  * @param map The target sprite for rendering.
  */
-void Maps::renderNavPoint(const FeatureRef& ref, TFT_eSprite& map)
+void Maps::renderNavPoint(const FeatureRef& ref, MapCanvas& map)
 {
     if (ref.coordCount == 0)
         return;
@@ -1781,7 +1781,7 @@ void Maps::renderNavPoint(const FeatureRef& ref, TFT_eSprite& map)
  * @param map The target sprite for rendering.
  * @param placedLabels  Vector tracking occupied screen areas to prevent overlapping text.
  */
-void Maps::renderNavText(const FeatureRef& ref, TFT_eSprite& map, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels)
+void Maps::renderNavText(const FeatureRef& ref, MapCanvas& map, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels)
 {
     uint8_t* p = ref.ptr;
     int16_t tx;
@@ -1890,7 +1890,7 @@ void Maps::enqueueTileGrid(uint32_t centerTileIdxX, uint32_t centerTileIdxY, Til
  * @param map Reference to the sprite used for rendering.
  * @return true if the viewport was successfully initialized.
  */
-bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT_eSprite& map)
+bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, MapCanvas& map)
 {
     const uint32_t centerTileIdxX = lon2tilex(centerLon, zoom);
     const uint32_t centerTileIdxY = lat2tiley(centerLat, zoom);
@@ -2088,7 +2088,7 @@ void Maps::navDecodeFeatures(const uint8_t* data, size_t dataSize, int16_t scree
  * @param screenY The vertical pixel offset on the target sprite.
  * @param map     The target sprite (unused, kept for API compatibility).
  */
-void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, TFT_eSprite &map)
+void Maps::renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map)
 {
     size_t dataSize = 0;
     uint8_t* data = navCacheLookupOrLoad(tileX, tileY, zoom, dataSize);

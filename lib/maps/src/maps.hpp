@@ -16,7 +16,7 @@
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
 #include "freertos/semphr.h"
-#include "tft.hpp"
+#include "mapCanvas.hpp"
 #include "gpsMath.hpp"
 #include "settings.hpp"
 #include "compass.hpp"
@@ -68,8 +68,8 @@ private:
     tileBounds totalBounds;
     uint16_t wptPosX;
     uint16_t wptPosY;
-    TFT_eSprite mapTempSprite = TFT_eSprite(&tft);
-    TFT_eSprite mapSprite = TFT_eSprite(&tft);
+    MapCanvas mapTempSprite = MapCanvas(mapCanvasParent());
+    MapCanvas mapSprite = MapCanvas(mapCanvasParent());
     float destLat = 0.0f;
     float destLon = 0.0f;
     bool hasWaypoint = false;
@@ -87,10 +87,10 @@ private:
     bool isCoordInBounds(float lat, float lon, tileBounds bound);
     ScreenCoord coord2ScreenPos(float lon, float lat, uint8_t zoomLevel, uint16_t tileSize);
     void coords2map(float lat, float lon, const tileBounds& bound, uint16_t *pixelX, uint16_t *pixelY);
-    void showNoMap(TFT_eSprite &map);
+    void showNoMap(MapCanvas &map);
     void panMap(int8_t dx, int8_t dy);
     uint16_t darkenRGB565(const uint16_t color, const float amount = 0.4f);
-    void fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset, uint16_t ringCount = 1, const uint16_t* ringEnds = nullptr);
+    void fillPolygonGeneral(MapCanvas &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset, uint16_t ringCount = 1, const uint16_t* ringEnds = nullptr);
 
     float _mapTilt;
     float _focalLength;
@@ -101,8 +101,8 @@ private:
     void update3DCache();
     void apply3DPerspective(uint16_t heading);
     void preloadTiles(int8_t dirX, int8_t dirY);
-    bool renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT_eSprite &map);
-    void renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, TFT_eSprite &map);
+    bool renderNavViewport(float centerLat, float centerLon, uint8_t zoom, MapCanvas &map);
+    void renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map);
 
 public:
 #ifdef T4_S3
@@ -206,12 +206,12 @@ private:
     std::vector<uint16_t, PsramAllocator<uint16_t>> ringEndsCache;
     std::vector<LabelRect, PsramAllocator<LabelRect>> placedLabelsCache;
 
-    void renderNavLineString(const FeatureRef& ref, TFT_eSprite& map, bool isCasing = false);
-    void renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map);
-    void renderNavPoint(const FeatureRef& ref, TFT_eSprite& map);
-    void renderNavText(const FeatureRef& ref, TFT_eSprite& map, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels);
+    void renderNavLineString(const FeatureRef& ref, MapCanvas& map, bool isCasing = false);
+    void renderNavPolygon(const FeatureRef& ref, MapCanvas& map);
+    void renderNavPoint(const FeatureRef& ref, MapCanvas& map);
+    void renderNavText(const FeatureRef& ref, MapCanvas& map, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels);
     void latLonToPixel(float lat, float lon, int16_t& px, int16_t& py);
-    void drawTrack(TFT_eSprite& map);
+    void drawTrack(MapCanvas& map);
 
 public:
     void redrawTrack();
@@ -238,14 +238,14 @@ private:
     SemaphoreHandle_t mapMutex;
     TaskHandle_t mapRenderTaskHandle;
     static void mapRenderTask(void* pvParameters);
-    void renderPngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, TFT_eSprite &map);
+    void renderPngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map);
     bool loadPngTileIntoSprite(int32_t tlX, int32_t tlY, int gx, int gy,
                                uint32_t centerTileIdxX, uint32_t centerTileIdxY,
                                uint8_t zoom, bool& centerFound);
     void enqueueTileGrid(uint32_t centerTileIdxX, uint32_t centerTileIdxY, TileType type);
     uint8_t* navCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t zoom, size_t& outDataSize);
     void navDecodeFeatures(const uint8_t* data, size_t dataSize, int16_t screenX, int16_t screenY, uint8_t zoom);
-    static void drawThickLine(TFT_eSprite& map, int16_t x0, int16_t y0,
+    static void drawThickLine(MapCanvas& map, int16_t x0, int16_t y0,
                               int16_t x1, int16_t y1, uint8_t width, uint16_t color);
 
     uint8_t navLastZoom_;

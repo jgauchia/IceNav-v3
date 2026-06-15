@@ -9,6 +9,7 @@
 #include "../../gui/src/lv_subjects.hpp"
 #include "lvglSetup.hpp"
 #include "../../../include/hal.hpp"
+#include "displayBackend.hpp"
 #include "i2c_espidf.hpp"
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
@@ -63,19 +64,25 @@ static void lv_rounder_cb(lv_event_t *event)
  * @param px_map Pointer to the pixel data to be displayed.
  */
 void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
-{ 
-    uint32_t w = (area->x2 - area->x1 + 1);
-    uint32_t h = (area->y2 - area->y1 + 1);
-    #ifdef T4_S3
-        tft.setAddrWindow(area->x1, area->y1, w , h);
-        tft.pushPixelsDMA((uint16_t*)px_map, w * h,true);
-    #else
-        tft.setSwapBytes(true);
-        tft.setAddrWindow(area->x1, area->y1, w, h);
-        tft.pushImageDMA(area->x1, area->y1, w, h, reinterpret_cast<uint16_t*>(px_map));
-        tft.setSwapBytes(false);
-    #endif
+{
+    DisplayArea flushArea = { area->x1, area->y1, area->x2, area->y2 };
+    displayBackend().flush(flushArea, reinterpret_cast<uint16_t*>(px_map));
     lv_display_flush_ready(disp);
+}
+
+/**
+ * @brief LVGL flush wait callback.
+ *
+ * @details Blocks until the in-flight DMA transfer started by displayFlush has
+ *          finished, before LVGL reuses a draw buffer. Overlaps rasterisation
+ *          of the next frame with the previous DMA transfer.
+ *
+ * @param disp Pointer to the LVGL display driver.
+ */
+void displayFlushWait(lv_display_t *disp)
+{
+    LV_UNUSED(disp);
+    displayBackend().waitFlushDone();
 }
 
 /**
@@ -424,7 +431,7 @@ void initLVGL()
 
     display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
     lv_display_set_flush_cb(display, displayFlush);
-    lv_display_set_flush_wait_cb(display, NULL);
+    lv_display_set_flush_wait_cb(display, displayFlushWait);
 
     #ifdef T4_S3
         lv_display_add_event_cb(display, lv_rounder_cb, LV_EVENT_INVALIDATE_AREA, display);
