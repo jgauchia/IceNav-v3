@@ -504,7 +504,7 @@ void Gps::setLocalTime(NeoGPS::time_t gpsTime, const char* tz)
  * @brief Simulates a GPS signal over a preloaded track.
  *
  * @details Advances through the provided track data, simulating GPS coordinates and heading.
- *          Applies random offset noise and smoothing to emulate realistic GPS signal behavior.
+ *          Applies position smoothing to follow the clean track trajectory.
  *          Updates the simulated GPS data every second if the step distance is above a threshold.
  *
  * @param trackData Vector of wayPoints representing the preloaded GPX track.
@@ -587,16 +587,9 @@ void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refr
                 rawLat = trackData[simulationIndex].lat;
                 rawLon = trackData[simulationIndex].lon;
 
-                // --- Apply smoothing BEFORE adding noise ---
+                // --- Apply smoothing to follow the clean track ---
                 smoothedLat = posAlpha * rawLat + (1.0f - posAlpha) * smoothedLat;
                 smoothedLon = posAlpha * rawLon + (1.0f - posAlpha) * smoothedLon;
-
-                // --- Small noise to simulate GPS jitter ---
-                float latOffset = random(-3, 3) / 100000.0f;  // Reduced noise for simulation
-                float lonOffset = random(-3, 3) / 100000.0f;
-
-                float noisyLat = smoothedLat + latOffset;
-                float noisyLon = smoothedLon + lonOffset;
 
                 // --- Realistic heading based on track direction ---
                 // Look ahead based on speed (faster = further lookahead)
@@ -629,8 +622,8 @@ void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refr
                 }
 
                 // --- Final output ---
-                gpsData.latitude = noisyLat;
-                gpsData.longitude = noisyLon;
+                gpsData.latitude = smoothedLat;
+                gpsData.longitude = smoothedLon;
                 gpsData.heading = filteredHeading;
                 gpsData.speed = speed;
 
