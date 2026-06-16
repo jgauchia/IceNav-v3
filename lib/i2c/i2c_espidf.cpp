@@ -71,7 +71,7 @@ bool I2CNative::begin(int sda, int scl, uint32_t freq)
         return false;
     }
 
-    i2c_set_timeout(i2cPort, 0xFFFFF); 
+    i2c_set_timeout(i2cPort, I2C_SCL_TIMEOUT_TOUT);
     i2c_filter_enable(i2cPort, 7);
     if (i2c_set_period(i2cPort, conf.master.clk_speed / 2, conf.master.clk_speed / 4) != ESP_OK)
         ESP_LOGW(TAG, "Failed to set I2C timing period");

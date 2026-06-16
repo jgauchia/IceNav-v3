@@ -51,6 +51,10 @@ private:
     SemaphoreHandle_t i2cMutex;
     static constexpr int I2C_MUTEX_TIMEOUT_MS = 15;
     static constexpr int I2C_BUS_TIMEOUT_MS   = 20;
+    // SCL stretch timeout as 2^tout source-clock cycles (APB 80 MHz).
+    // 2^17 = 131072 cycles ~= 1.6 ms: tolerates slow-sensor clock stretching
+    // while releasing a hung bus quickly (HW max 0x1F ~= 26 s).
+    static constexpr int I2C_SCL_TIMEOUT_TOUT = 17;
 };
 
 extern I2CNative i2c;
