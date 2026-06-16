@@ -67,44 +67,65 @@ void gpsTask(void *pvParameters)
     ESP_LOGV(TAG, "Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
     char    lineBuf[NMEA_RAW_LEN] = {};
     uint8_t lineLen = 0;
+    // Block-read scratch: sized to ~one NMEA sentence (NMEA_RAW_LEN = 88) with
+    // margin. The drain loop below reads repeatedly, so this only bounds how many
+    // bytes are handled per read() call, not how many can be processed per cycle;
+    // any larger backlog (driver RX buffer is 2048 B) is consumed in later passes.
+    uint8_t readBuf[128];
     while (1)
     {
-        if ( gpsMutex != NULL && xSemaphoreTake(gpsMutex, MUTEX_TIMEOUT_GPS) == pdTRUE )
+        bool satDataUpdated = false;
+
+        // Read the serial port and feed the parser WITHOUT holding gpsMutex.
+        // Parsing and raw capture only touch the NMEA decoder and the debug ring
+        // buffer; the published gps.gpsData snapshot is written under gpsMutex
+        // only when a fix is actually decoded (below). This keeps the GUI from
+        // ever waiting on the byte-level parsing loop.
+        if (nmea_output_enable)
         {
-            bool satDataUpdated = false;
+            int n;
+            while ((n = gpsPort.read(readBuf, sizeof(readBuf))) > 0)
+                Serial.write(readBuf, n);
+        }
+        else
+        {
+            // Raw sentence capture for the debug tile is only needed while that
+            // tile is on screen. When it is not, skip building lineBuf and its
+            // per-sentence critical section entirely. Reset any partial line so
+            // re-entering the tile mid-sentence cannot stitch a stale fragment
+            // onto the next captured sentence.
+            const bool captureRaw = (activeTile == DEBUG_NMEA);
+            if (!captureRaw)
+                lineLen = 0;
 
-            if (nmea_output_enable)
+            // Read in blocks and feed the parser byte by byte from the local
+            // buffer (same bytes, same order a per-byte read() would yield).
+            int n;
+            while ((n = gpsPort.read(readBuf, sizeof(readBuf))) > 0)
             {
-                while (gpsPort.available())
-                    Serial.write(gpsPort.read());
-            }
-            else
-            {
-                // Feed the parser one character at a time (same bytes, same order
-                // as GPS.available() would consume) while mirroring each complete
-                // sentence into the raw ring buffer for the debug tile. Parsing is
-                // unaffected; capture is purely a side effect.
-
-                while (gpsPort.available())
+                for (int i = 0; i < n; i++)
                 {
-                    char c = (char)gpsPort.read();
+                    char c = (char)readBuf[i];
 
-                    if (c == '\n' || c == '\r')
+                    if (captureRaw)
                     {
-                        if (lineLen > 0)
+                        if (c == '\n' || c == '\r')
                         {
-                            lineBuf[lineLen] = '\0';
-                            portENTER_CRITICAL(&nmeaDebugMux);
-                            strncpy(nmeaRawBuf[nmeaRawHead], lineBuf, NMEA_RAW_LEN - 1);
-                            nmeaRawBuf[nmeaRawHead][NMEA_RAW_LEN - 1] = '\0';
-                            nmeaRawHead = (nmeaRawHead + 1) % NMEA_RAW_LINES;
-                            portEXIT_CRITICAL(&nmeaDebugMux);
-                            lineLen = 0;
+                            if (lineLen > 0)
+                            {
+                                lineBuf[lineLen] = '\0';
+                                portENTER_CRITICAL(&nmeaDebugMux);
+                                strncpy(nmeaRawBuf[nmeaRawHead], lineBuf, NMEA_RAW_LEN - 1);
+                                nmeaRawBuf[nmeaRawHead][NMEA_RAW_LEN - 1] = '\0';
+                                nmeaRawHead = (nmeaRawHead + 1) % NMEA_RAW_LINES;
+                                portEXIT_CRITICAL(&nmeaDebugMux);
+                                lineLen = 0;
+                            }
                         }
-                    }
-                    else if (lineLen < NMEA_RAW_LEN - 1)
-                    {
-                        lineBuf[lineLen++] = c;
+                        else if (lineLen < NMEA_RAW_LEN - 1)
+                        {
+                            lineBuf[lineLen++] = c;
+                        }
                     }
 
                     // handle() returns DECODE_COMPLETED at the end of every
@@ -114,22 +135,27 @@ void gpsTask(void *pvParameters)
                     if (GPS.handle((uint8_t)c) == NMEAGPS::DECODE_COMPLETED && GPS.available())
                     {
                         fix = GPS.read();
-                        gps.getGPSData();
+
+                        if (gpsMutex != NULL && xSemaphoreTake(gpsMutex, MUTEX_TIMEOUT_GPS) == pdTRUE)
                         {
-                            LoggerGpsFix lgf;
-                            lgf.lat      = gps.gpsData.latitude;
-                            lgf.lon      = gps.gpsData.longitude;
-                            lgf.alt      = (int16_t)gps.gpsData.altitude;
-                            lgf.speedKmh = (float)gps.gpsData.speed;
-                            lgf.valid    = isGpsFixed && fix.valid.location;
-                            lgf.hasTime  = fix.valid.time && fix.valid.date;
-                            lgf.year     = (uint16_t)(2000 + fix.dateTime.year);
-                            lgf.month    = fix.dateTime.month;
-                            lgf.day      = fix.dateTime.date;
-                            lgf.hour     = fix.dateTime.hours;
-                            lgf.minute   = fix.dateTime.minutes;
-                            lgf.second   = fix.dateTime.seconds;
-                            gpxLogger.update(lgf);
+                            gps.getGPSData();
+                            {
+                                LoggerGpsFix lgf;
+                                lgf.lat      = gps.gpsData.latitude;
+                                lgf.lon      = gps.gpsData.longitude;
+                                lgf.alt      = (int16_t)gps.gpsData.altitude;
+                                lgf.speedKmh = (float)gps.gpsData.speed;
+                                lgf.valid    = isGpsFixed && fix.valid.location;
+                                lgf.hasTime  = fix.valid.time && fix.valid.date;
+                                lgf.year     = (uint16_t)(2000 + fix.dateTime.year);
+                                lgf.month    = fix.dateTime.month;
+                                lgf.day      = fix.dateTime.date;
+                                lgf.hour     = fix.dateTime.hours;
+                                lgf.minute   = fix.dateTime.minutes;
+                                lgf.second   = fix.dateTime.seconds;
+                                gpxLogger.update(lgf);
+                            }
+                            xSemaphoreGive(gpsMutex);
                         }
 
                         portENTER_CRITICAL(&nmeaDebugMux);
@@ -148,37 +174,36 @@ void gpsTask(void *pvParameters)
                     }
                 }
             }
-
-            /* Non-blocking: gpsTask (core 0) never waits on the GUI task (core 1).
-               If lvgl_mutex is taken, subject updates are skipped for this cycle.
-               Intentional — the GPS task must not stall waiting for LVGL. */
-            if (isMainScreen && !canMoveWidget && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
-            {
-                lv_subject_set_int(&subject_speed, (int32_t)gps.gpsData.speed);
-                lv_subject_set_int(&subject_altitude, (int32_t)gps.gpsData.altitude);
-                lv_subject_set_int(&subject_lat, (int32_t)(gps.gpsData.latitude * 1000000.0f));
-                lv_subject_set_int(&subject_lon, (int32_t)(gps.gpsData.longitude * 1000000.0f));
-                lv_subject_set_int(&subject_sats, (int32_t)gps.gpsData.satellites);
-                lv_subject_set_int(&subject_pdop, (int32_t)(gps.gpsData.pdop * 10.0f));
-                lv_subject_set_int(&subject_hdop, (int32_t)(gps.gpsData.hdop * 10.0f));
-                lv_subject_set_int(&subject_vdop, (int32_t)(gps.gpsData.vdop * 10.0f));
-                lv_subject_set_int(&subject_fix_mode, (int32_t)gps.gpsData.fixMode);
-                lv_subject_set_int(&subject_is_fixed, isGpsFixed ? 1 : 0);
-                if (!mapSet.mapRotationComp)
-                    lv_subject_set_int(&subject_heading, (int32_t)gps.gpsData.heading);
-                xSemaphoreGive(lvgl_mutex);
-            }
-
-            if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
-            {
-                if (satDataUpdated)
-                    lv_subject_set_int(&subject_sats_data_trigger, lv_subject_get_int(&subject_sats_data_trigger) + 1);
-                lv_subject_set_int(&subject_nmea_debug_trigger, lv_subject_get_int(&subject_nmea_debug_trigger) + 1);
-                xSemaphoreGive(lvgl_mutex);
-            }
-
-            xSemaphoreGive(gpsMutex);
         }
+
+        /* Non-blocking: gpsTask (core 0) never waits on the GUI task (core 1).
+           If lvgl_mutex is taken, subject updates are skipped for this cycle.
+           Intentional — the GPS task must not stall waiting for LVGL. */
+        if (isMainScreen && !canMoveWidget && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
+        {
+            lv_subject_set_int(&subject_speed, (int32_t)gps.gpsData.speed);
+            lv_subject_set_int(&subject_altitude, (int32_t)gps.gpsData.altitude);
+            lv_subject_set_int(&subject_lat, (int32_t)(gps.gpsData.latitude * 1000000.0f));
+            lv_subject_set_int(&subject_lon, (int32_t)(gps.gpsData.longitude * 1000000.0f));
+            lv_subject_set_int(&subject_sats, (int32_t)gps.gpsData.satellites);
+            lv_subject_set_int(&subject_pdop, (int32_t)(gps.gpsData.pdop * 10.0f));
+            lv_subject_set_int(&subject_hdop, (int32_t)(gps.gpsData.hdop * 10.0f));
+            lv_subject_set_int(&subject_vdop, (int32_t)(gps.gpsData.vdop * 10.0f));
+            lv_subject_set_int(&subject_fix_mode, (int32_t)gps.gpsData.fixMode);
+            lv_subject_set_int(&subject_is_fixed, isGpsFixed ? 1 : 0);
+            if (!mapSet.mapRotationComp)
+                lv_subject_set_int(&subject_heading, (int32_t)gps.gpsData.heading);
+            xSemaphoreGive(lvgl_mutex);
+        }
+
+        if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
+        {
+            if (satDataUpdated)
+                lv_subject_set_int(&subject_sats_data_trigger, lv_subject_get_int(&subject_sats_data_trigger) + 1);
+            lv_subject_set_int(&subject_nmea_debug_trigger, lv_subject_get_int(&subject_nmea_debug_trigger) + 1);
+            xSemaphoreGive(lvgl_mutex);
+        }
+
         vTaskDelay(1);
     }
 }
