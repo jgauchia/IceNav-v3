@@ -13,6 +13,8 @@
 #include <Streamers.h>
 #include "settings.hpp"
 #include <vector>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 
 extern uint8_t GPS_TX; /**< GPS TX pin number. */
@@ -72,6 +74,22 @@ class Gps
         float getLat();
         float getLon();
         void getGPSData();
+
+        /**
+        * @struct GpsSnapshot
+        * @brief Coherent copy of the position fields shared across cores.
+        */
+        struct GpsSnapshot
+        {
+            float    latitude;    /**< Latitude in decimal degrees. */
+            float    longitude;   /**< Longitude in decimal degrees. */
+            uint16_t heading;     /**< Heading in degrees. */
+            uint16_t speed;       /**< Speed in km/h. */
+        };
+
+        void publishSnapshot();
+        GpsSnapshot getSnapshot();
+
         long detectRate(int rxPin);
         long autoBaud();
         int  getSimulationIndex() const { return simulationIndex; }
@@ -116,9 +134,12 @@ class Gps
         } satTracker[MAX_SATELLITES];
 
     private:
+        GpsSnapshot snapshot = {};                              /**< Atomically published copy of {lat,lon,heading,speed} */
+        portMUX_TYPE snapshotMux = portMUX_INITIALIZER_UNLOCKED; /**< Spinlock guarding the snapshot, safe across cores */
+
         /**
         * @brief Variables for "fake" GPS signal from loaded track (simulation)
-        * 
+        *
         */
         const float posAlpha = 0.6f;           /**< Position smoothing factor, range 0 (no smoothing) to 1 (full smoothing) */
         const float headAlpha = 0.5f;          /**< Heading smoothing factor, controls how fast heading adapts */

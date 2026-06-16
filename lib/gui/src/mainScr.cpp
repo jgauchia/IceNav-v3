@@ -155,9 +155,10 @@ static void async_map_update_cb(void * user_data)
     if (mapView.redrawMap && !mapSet.vectorMap)
         xEventGroupSetBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
 
+    const Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
     int32_t currentHeading = lv_subject_get_int(&subject_heading);
-    float currentLat = gps.gpsData.latitude;
-    float currentLon = gps.gpsData.longitude;
+    float currentLat = gpsSnap.latitude;
+    float currentLon = gpsSnap.longitude;
 
     bool headingChanged = (abs(currentHeading - mapRenderState.lastRenderedHeading) > MAP_HEADING_THRESHOLD);
     bool positionChanged = (currentLat != mapRenderState.lastRenderedLat || currentLon != mapRenderState.lastRenderedLon);
@@ -187,10 +188,10 @@ static void async_map_update_cb(void * user_data)
 
     lv_obj_set_pos(mapImage, 0, 0);
     if (mapSet.showClimb)
-        climbAnalyzer.updatePosition(gps.gpsData.latitude, gps.gpsData.longitude, navSet.simNavigation, gps.getSimulationIndex(), trackData);
+        climbAnalyzer.updatePosition(currentLat, currentLon, navSet.simNavigation, gps.getSimulationIndex(), trackData);
 
     if (mapSet.showMapSpeed)
-        lv_label_set_text_fmt(mapSpeedLabel, "%3d", gps.gpsData.speed);
+        lv_label_set_text_fmt(mapSpeedLabel, "%3d", gpsSnap.speed);
     if (mapSet.showMapScale)
         lv_label_set_text_fmt(scaleLabel, "%s", map_scale[zoom]);
 }
@@ -779,7 +780,8 @@ static void mapToolBarEvent(lv_event_t *event)
     {
         setZoomButtonsVisible(false);
         lv_obj_add_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
-        mapView.centerOnGps(gps.gpsData.latitude, gps.gpsData.longitude);
+        const Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
+        mapView.centerOnGps(gpsSnap.latitude, gpsSnap.longitude);
         lv_subject_set_int(&subject_map_state, MAP_MODE_FOLLOW);
         mapView.updateMap();
         lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
@@ -947,7 +949,8 @@ static void zoomEvent(lv_event_t *event)
  */
 static void updateNavEvent(lv_event_t *event)
 {
-    int wptDistance = (int)calcDist(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon);
+    const Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
+    int wptDistance = (int)calcDist(gpsSnap.latitude, gpsSnap.longitude, loadWpt.lat, loadWpt.lon);
     lv_label_set_text_fmt(distNav, "%d m.", wptDistance);
     if (wptDistance <= 30)
     {
@@ -958,7 +961,7 @@ static void updateNavEvent(lv_event_t *event)
     else
     {
         float navHeading = (float)lv_subject_get_int(&subject_heading);
-        float wptCourse = calcCourse(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon) - navHeading;
+        float wptCourse = calcCourse(gpsSnap.latitude, gpsSnap.longitude, loadWpt.lat, loadWpt.lon) - navHeading;
         lv_img_set_angle(arrowNav, (wptCourse * 10));
     }
 }

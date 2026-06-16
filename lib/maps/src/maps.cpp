@@ -405,8 +405,9 @@ void Maps::generateMap(uint8_t zoom)
         resetScrollState();
     }
 
-    const float baseLat = Maps::followGps ? gps.gpsData.latitude : Maps::currentMapTile.lat;
-    const float baseLon = Maps::followGps ? gps.gpsData.longitude : Maps::currentMapTile.lon;
+    const Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
+    const float baseLat = Maps::followGps ? gpsSnap.latitude : Maps::currentMapTile.lat;
+    const float baseLon = Maps::followGps ? gpsSnap.longitude : Maps::currentMapTile.lon;
 
     if (mapSet.vectorMap)
     {
@@ -742,6 +743,8 @@ void Maps::displayMap()
     if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(50)) != pdTRUE)
         return;
 
+    const Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
+
     uint16_t mapHeading = 0;
     #ifdef ENABLE_COMPASS
     {
@@ -751,10 +754,10 @@ void Maps::displayMap()
             sensorHeading = globalSensorData.heading;
             xSemaphoreGive(sensorMutex);
         }
-        mapHeading = mapSet.mapRotationComp ? (uint16_t)sensorHeading : gps.gpsData.heading;
+        mapHeading = mapSet.mapRotationComp ? (uint16_t)sensorHeading : gpsSnap.heading;
     }
     #else
-        mapHeading = gps.gpsData.heading;
+        mapHeading = gpsSnap.heading;
     #endif
     
     Maps::mapTempSprite.pushImage(Maps::wptPosX - 8, Maps::wptPosY - 8, 16, 16, (uint16_t *)waypoint, TFT_BLACK);
@@ -762,8 +765,8 @@ void Maps::displayMap()
 
     if (Maps::followGps)
     {
-        const float lat = gps.gpsData.latitude;
-        const float lon = gps.gpsData.longitude;
+        const float lat = gpsSnap.latitude;
+        const float lon = gpsSnap.longitude;
         const int8_t gridOffset = tilesGrid / 2;
         Maps::navArrowPosition = Maps::coord2ScreenPos(lon, lat, Maps::zoomLevel, Maps::mapTileSize);
 

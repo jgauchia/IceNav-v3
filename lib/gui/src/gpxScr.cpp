@@ -97,12 +97,13 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
         size_t gpxStartIdx = 0;
         if (!trackData.empty())
         {
-            float distToStart = calcDist(gps.gpsData.latitude, gps.gpsData.longitude,
+            const Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
+            float distToStart = calcDist(gpsSnap.latitude, gpsSnap.longitude,
                                          trackData[0].lat, trackData[0].lon);
             if (distToStart > 50.0f)
             {
                 TrackVector approachRoute;
-                RouterResult res = router.route(gps.gpsData.latitude, gps.gpsData.longitude,
+                RouterResult res = router.route(gpsSnap.latitude, gpsSnap.longitude,
                                                 trackData[0].lat, trackData[0].lon, approachRoute);
                 if (res == RouterResult::OK && !approachRoute.empty())
                 {

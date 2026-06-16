@@ -207,8 +207,10 @@ void updateWaypoint(uint8_t action)
     switch (action)
     {
         case WPT_ADD:
-            addWpt.lat = gps.gpsData.latitude;
-            addWpt.lon = gps.gpsData.longitude;
+        {
+            const Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
+            addWpt.lat = gpsSnap.latitude;
+            addWpt.lon = gpsSnap.longitude;
             addWpt.ele = gps.gpsData.altitude;
             addWpt.sat = gps.gpsData.satellites;
             addWpt.hdop = gps.gpsData.hdop;
@@ -217,6 +219,7 @@ void updateWaypoint(uint8_t action)
             lv_label_set_text_static(labelLatValue, latFormatString(addWpt.lat));
             lv_label_set_text_static(labelLonValue, lonFormatString(addWpt.lon));
             break;
+        }
         case GPX_EDIT:
             lv_label_set_text_static(labelLatValue, latFormatString(loadWpt.lat));
             lv_label_set_text_static(labelLonValue, lonFormatString(loadWpt.lon));

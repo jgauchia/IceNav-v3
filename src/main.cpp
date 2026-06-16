@@ -67,6 +67,7 @@ void setup()
     initLVGL();
     gps.gpsData.latitude = gps.getLat();
     gps.gpsData.longitude = gps.getLon();
+    gps.publishSnapshot();
     initGpsTask();
     initSensorTask();
     initGuiTask();

@@ -485,8 +485,9 @@ void navTask(void *pvParameters)
                 xSemaphoreGive(lvgl_mutex);
             }
 
+            Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
             TrackVector newRoute;
-            RouterResult res = router.route(gps.gpsData.latitude, gps.gpsData.longitude,
+            RouterResult res = router.route(gpsSnap.latitude, gpsSnap.longitude,
                                             routeDstLat, routeDstLon, newRoute);
 
             if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
@@ -543,19 +544,21 @@ void navTask(void *pvParameters)
         {
             if (navSet.simNavigation)
             {
-                float oldLat = gps.gpsData.latitude;
+                float oldLat = gps.getSnapshot().latitude;
                 gps.simFakeGPS(trackData, 40, 500);
-                if (gps.gpsData.latitude != oldLat && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
+                Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
+                if (gpsSnap.latitude != oldLat && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
                 {
-                    lv_subject_set_int(&subject_lat,     (int32_t)(gps.gpsData.latitude  * 1000000.0f));
-                    lv_subject_set_int(&subject_lon,     (int32_t)(gps.gpsData.longitude * 1000000.0f));
-                    lv_subject_set_int(&subject_heading, (int32_t)gps.gpsData.heading);
-                    lv_subject_set_int(&subject_speed,   (int32_t)gps.gpsData.speed);
+                    lv_subject_set_int(&subject_lat,     (int32_t)(gpsSnap.latitude  * 1000000.0f));
+                    lv_subject_set_int(&subject_lon,     (int32_t)(gpsSnap.longitude * 1000000.0f));
+                    lv_subject_set_int(&subject_heading, (int32_t)gpsSnap.heading);
+                    lv_subject_set_int(&subject_speed,   (int32_t)gpsSnap.speed);
                     xSemaphoreGive(lvgl_mutex);
                 }
             }
 
-            if (gps.gpsData.speed != 0 || navSet.simNavigation)
+            Gps::GpsSnapshot navSnap = gps.getSnapshot();
+            if (navSnap.speed != 0 || navSet.simNavigation)
             {
                 unsigned long now = (unsigned long)(esp_timer_get_time() / 1000ULL);
                 if (now - lastNavUpdate > 100)
@@ -563,8 +566,8 @@ void navTask(void *pvParameters)
                     lastNavUpdate = now;
                     if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(50)) == pdTRUE)
                     {
-                        updateNavigation(gps.gpsData.latitude, gps.gpsData.longitude,
-                                         gps.gpsData.heading,  gps.gpsData.speed,
+                        updateNavigation(navSnap.latitude, navSnap.longitude,
+                                         navSnap.heading,  navSnap.speed,
                                          trackData, turnPoints, navState,
                                          20, 200, navConfig);
                         xSemaphoreGive(lvgl_mutex);

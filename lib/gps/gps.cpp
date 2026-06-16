@@ -332,6 +332,44 @@ void Gps::getGPSData()
         }
     }
 
+    publishSnapshot();
+}
+
+/**
+ * @brief Publish a coherent snapshot of the shared position fields.
+ *
+ * @details Copies {latitude, longitude, heading, speed} from gpsData into the
+ *          snapshot under a spinlock so cross-core consumers never observe a
+ *          half-written pair (e.g. new latitude with stale longitude). Called by
+ *          the producers (real fix in getGPSData, simulation in simFakeGPS) right
+ *          after they finish updating gpsData.
+ */
+void Gps::publishSnapshot()
+{
+    taskENTER_CRITICAL(&snapshotMux);
+    snapshot.latitude  = gpsData.latitude;
+    snapshot.longitude = gpsData.longitude;
+    snapshot.heading   = gpsData.heading;
+    snapshot.speed     = gpsData.speed;
+    taskEXIT_CRITICAL(&snapshotMux);
+}
+
+/**
+ * @brief Read a coherent snapshot of the shared position fields.
+ *
+ * @details Returns an atomic copy of {latitude, longitude, heading, speed} taken
+ *          under the spinlock. Consumers on any core work on the returned local
+ *          copy instead of reading gpsData directly.
+ *
+ * @return Coherent copy of the current position fields.
+ */
+Gps::GpsSnapshot Gps::getSnapshot()
+{
+    GpsSnapshot copy;
+    taskENTER_CRITICAL(&snapshotMux);
+    copy = snapshot;
+    taskEXIT_CRITICAL(&snapshotMux);
+    return copy;
 }
 
 /**
@@ -607,6 +645,8 @@ void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refr
             gpsData.longitude = trackData.back().lon;
             gpsData.speed     = 0;
         }
+
+        publishSnapshot();
     }
 }
 
