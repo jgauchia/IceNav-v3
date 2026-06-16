@@ -503,9 +503,10 @@ void Gps::setLocalTime(NeoGPS::time_t gpsTime, const char* tz)
 /**
  * @brief Simulates a GPS signal over a preloaded track.
  *
- * @details Advances through the provided track data, simulating GPS coordinates and heading.
- *          Applies position smoothing to follow the clean track trajectory.
- *          Updates the simulated GPS data every second if the step distance is above a threshold.
+ * @details Moves a virtual position along the track by interpolating within the current segment,
+ *          advancing the covered distance per refresh according to the requested speed. Heading
+ *          follows the current segment direction. Track gaps (segment cuts) are stepped over
+ *          without being traversed, so density of trackpoints does not affect smoothness.
  *
  * @param trackData Vector of wayPoints representing the preloaded GPX track.
  * @param speed Simulated speed in km/h to assign to the GPS data.
@@ -519,118 +520,74 @@ void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refr
 
         if (simulationIndex < (int)trackData.size() - 1)
         {
-            if (simulationIndex == 0)
+            const float maxSegmentDist = 5000.0f; // Track gap above this is a cut, not travelled
+
+            // Distance to advance this refresh: speed (km/h) over the elapsed refresh window
+            float stepDist = (speed * 1000.0f / 3600.0f) * (refresh / 1000.0f);
+            segmentProgress += stepDist;
+
+            // Walk forward over segments consuming the covered distance, interpolating inside
+            while (simulationIndex < (int)trackData.size() - 1)
             {
-                  // --- First point: initialize simulation state ---
-                smoothedLat = trackData[0].lat;
-                smoothedLon = trackData[0].lon;
-                lastSimLat = smoothedLat;
-                lastSimLon = smoothedLon;
-                filteredHeading = 0.0f;
-                accumulatedDist = 0.0f;  // Reset accumulated distance for new track
+                int nextIndex = simulationIndex + 1;
+                float segLen = calcDist(trackData[simulationIndex].lat, trackData[simulationIndex].lon,
+                                        trackData[nextIndex].lat, trackData[nextIndex].lon);
 
-                gpsData.latitude = smoothedLat;
-                gpsData.longitude = smoothedLon;
-                gpsData.heading = filteredHeading;
-                gpsData.speed = speed;
-            }
-            else
-            {
-                float rawLat = trackData[simulationIndex].lat;
-                float rawLon = trackData[simulationIndex].lon;
-
-                // Calculate expected distance based on speed and time
-                float expectedDist = (speed * 1000.0f) / 3600.0f;  // Convert km/h to m/s
-                
-                // Advance through track points until we've covered the expected distance
-                int currentIndex = simulationIndex;
-                const float maxSegmentDist = 5000.0f; // Allow long segments (e.g. 5km)
-                
-                // Add expected distance to accumulated distance
-                accumulatedDist += expectedDist;
-                
-                // Limit to prevent infinite loops (end of track only)
-                while (currentIndex < (int)trackData.size() - 1) 
-                { 
-                    int nextIndex = currentIndex + 1;
-                    float segmentDist = calcDist(trackData[currentIndex].lat, trackData[currentIndex].lon,
-                                                trackData[nextIndex].lat, trackData[nextIndex].lon);
-                    
-                    // Skip duplicate points
-                    if (segmentDist < 0.1f) 
-                    {
-                        currentIndex = nextIndex;
-                        continue;
-                    }
-
-                    // Skip unrealistic jumps
-                    if (segmentDist > maxSegmentDist)
-                    {
-                        currentIndex = nextIndex;
-                        continue;
-                    }
-                    
-                    // Check if we can advance to this point
-                    if (segmentDist <= accumulatedDist) 
-                    {
-                        accumulatedDist -= segmentDist;
-                        currentIndex = nextIndex;
-                    } 
-                    else
-                        break; // Not enough accumulated distance
-                }
-                
-                // Update simulation index to the final point
-                simulationIndex = currentIndex;
-                
-                // Update position to the final point
-                rawLat = trackData[simulationIndex].lat;
-                rawLon = trackData[simulationIndex].lon;
-
-                // --- Apply smoothing to follow the clean track ---
-                smoothedLat = posAlpha * rawLat + (1.0f - posAlpha) * smoothedLat;
-                smoothedLon = posAlpha * rawLon + (1.0f - posAlpha) * smoothedLon;
-
-                // --- Realistic heading based on track direction ---
-                // Look ahead based on speed (faster = further lookahead)
-                int lookAhead = min(max(3, speed / 20), (int)trackData.size() - simulationIndex - 1);
-                int targetIdx = simulationIndex + lookAhead;
-                
-                if (targetIdx < (int)trackData.size()) 
+                // Coincident points: collapse with no travel
+                if (segLen < 0.1f)
                 {
-                    // Calculate heading towards future track point
-                    float targetHeading = calcCourse(smoothedLat, smoothedLon,
-                                                    trackData[targetIdx].lat,
-                                                    trackData[targetIdx].lon);
-                    
-                    if (simulationIndex > 1) 
-                    {
-                        // Smooth transition to target heading (faster adaptation for higher speeds)
-                        float headingDiff = calcAngleDiff(targetHeading, filteredHeading);
-                        float adaptationRate = min(0.3f, 0.1f + (speed / 200.0f)); // 0.1-0.3 based on speed
-                        filteredHeading += adaptationRate * headingDiff;
-                    } 
-                    else 
-                        // Initialize with target heading
-                        filteredHeading = targetHeading;
-                    
-                    // Normalize final heading
-                    if (filteredHeading < 0.0f) 
-                        filteredHeading += 360.0f;
-                    if (filteredHeading >= 360.0f) 
-                        filteredHeading -= 360.0f;
+                    simulationIndex = nextIndex;
+                    continue;
                 }
 
-                // --- Final output ---
-                gpsData.latitude = smoothedLat;
-                gpsData.longitude = smoothedLon;
-                gpsData.heading = filteredHeading;
-                gpsData.speed = speed;
+                // Track cut (segment gap): jump to next point without traversing the gap
+                if (segLen > maxSegmentDist)
+                {
+                    simulationIndex = nextIndex;
+                    segmentProgress = 0.0f;
+                    continue;
+                }
 
-                lastSimLat = rawLat;
-                lastSimLon = rawLon;
+                // Still inside the current segment: interpolate and stop
+                if (segmentProgress < segLen)
+                    break;
+
+                // Segment fully covered: move on, keep the remainder for the next one
+                segmentProgress -= segLen;
+                simulationIndex = nextIndex;
             }
-            simulationIndex++;
+
+            // --- Interpolated position along the current segment ---
+            int nextIndex = min(simulationIndex + 1, (int)trackData.size() - 1);
+            float segLen = calcDist(trackData[simulationIndex].lat, trackData[simulationIndex].lon,
+                                    trackData[nextIndex].lat, trackData[nextIndex].lon);
+            float t = (segLen > 0.1f) ? (segmentProgress / segLen) : 0.0f;
+            if (t > 1.0f) t = 1.0f;
+
+            smoothedLat = trackData[simulationIndex].lat +
+                          t * (trackData[nextIndex].lat - trackData[simulationIndex].lat);
+            smoothedLon = trackData[simulationIndex].lon +
+                          t * (trackData[nextIndex].lon - trackData[simulationIndex].lon);
+
+            // --- Heading follows the current segment direction (smoothed) ---
+            if (nextIndex != simulationIndex)
+            {
+                float targetHeading = calcCourse(trackData[simulationIndex].lat, trackData[simulationIndex].lon,
+                                                 trackData[nextIndex].lat, trackData[nextIndex].lon);
+                float headingDiff = calcAngleDiff(targetHeading, filteredHeading);
+                filteredHeading += headAlpha * headingDiff;
+
+                if (filteredHeading < 0.0f)
+                    filteredHeading += 360.0f;
+                if (filteredHeading >= 360.0f)
+                    filteredHeading -= 360.0f;
+            }
+
+            // --- Final output ---
+            gpsData.latitude = smoothedLat;
+            gpsData.longitude = smoothedLon;
+            gpsData.heading = filteredHeading;
+            gpsData.speed = speed;
         }
         else
         {
