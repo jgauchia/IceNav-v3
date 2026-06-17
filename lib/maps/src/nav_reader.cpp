@@ -13,7 +13,7 @@
 #include "mapVars.h"
 
 extern Storage storage;
-static const char* TAG = "NavReader";
+static const char* TAG = "NAVREADER";
 
 FILE*    NavReader::packFile    = nullptr;
 uint8_t  NavReader::currentZoom = 0;

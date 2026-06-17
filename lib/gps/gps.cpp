@@ -260,7 +260,7 @@ void Gps::getGPSData()
         static uint8_t lastSunDay = 0xFF;
         if (!setTime)
         {
-            log_v("Get date, time, Sunrise and Sunset");
+            ESP_LOGV(TAG, "Get date, time, Sunrise and Sunset");
             String TZ = cfg.isKey(CONFKEYS::KDEF_TZ) ? cfg.getString(CONFKEYS::KDEF_TZ, "") : "UTC";
             setLocalTime(fix.dateTime, getPosixTZ(TZ.c_str()));
             calculateSun();
@@ -620,6 +620,6 @@ void calculateSun()
     hours = (int)sunset + gps.gpsData.UTC;
     minutes = (int)round(((sunset + gps.gpsData.UTC) - hours) * 60);
     snprintf(gps.gpsData.sunsetHour, 6, "%02d:%02d", hours, minutes);
-    log_i("Sunrise: %s", gps.gpsData.sunriseHour);
-    log_i("Sunset: %s", gps.gpsData.sunsetHour);
+    ESP_LOGI(TAG, "Sunrise: %s", gps.gpsData.sunriseHour);
+    ESP_LOGI(TAG, "Sunset: %s", gps.gpsData.sunsetHour);
 }

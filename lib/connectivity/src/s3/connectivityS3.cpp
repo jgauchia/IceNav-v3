@@ -13,7 +13,7 @@
 #include <ESPmDNS.h>
 #include <esp_log.h>
 
-static const char *CONN_TAG = "Connectivity";
+static const char *CONN_TAG = "CONNECTIVITY";
 static const char *CONN_HOSTNAME = "icenav";
 
 /**

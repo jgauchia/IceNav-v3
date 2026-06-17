@@ -32,7 +32,7 @@
 extern Gps gps;
 extern Storage storage;
 extern TrackVector trackData;
-static const char* TAG = "Maps";
+static const char* TAG = "MAPS";
 
 /**
  * @brief Map Class constructor

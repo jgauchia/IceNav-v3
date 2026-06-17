@@ -47,7 +47,7 @@ uint8_t nmeaRawHead = 0;
 static constexpr TickType_t MUTEX_TIMEOUT_GPS  = pdMS_TO_TICKS(15);
 static constexpr TickType_t MUTEX_TIMEOUT_SLOW = pdMS_TO_TICKS(10);
 
-static const char* TAG = "Task";
+static const char* TAG = "TASK";
 
 
 static struct
@@ -590,7 +590,7 @@ void navTask(void *pvParameters)
             Gps::GpsSnapshot navSnap = gps.getSnapshot();
             if (navSnap.speed != 0 || navSet.simNavigation)
             {
-                unsigned long now = (unsigned long)(esp_timer_get_time() / 1000ULL);
+                unsigned long now = (unsigned long)millis_idf();
                 if (now - lastNavUpdate > 100)
                 {
                     lastNavUpdate = now;

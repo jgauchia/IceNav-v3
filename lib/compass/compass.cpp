@@ -13,7 +13,7 @@
 #include "esp_timer.h"
 #include "gpsMath.hpp"
 
-static const char* TAG = "Compass";
+static const char* TAG = "COMPASS";
 
 
 // ============================================================================

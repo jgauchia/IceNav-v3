@@ -29,7 +29,7 @@ void closeMsg();
 
 extern Storage storage;
 
-static const char *TAG = "Power";
+static const char *TAG = "POWER";
 
 RTC_DATA_ATTR time_t rtcSavedTime = 0;
 RTC_DATA_ATTR bool   rtcTimeValid = false;
@@ -73,7 +73,7 @@ public:
         {
             vTaskDelay(pdMS_TO_TICKS(5));
         };
-        log_v("Exited sleep mode");
+        ESP_LOGV(TAG, "Exited sleep mode");
     }
 
     void shutdown() override

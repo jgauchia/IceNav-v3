@@ -8,6 +8,9 @@
 
 #include "gpxDetailScr.hpp"
 #include "display.hpp"
+#include <esp_log.h>
+
+static const char *TAG = "GPXDETAIL";
 
 extern Maps mapView;
 extern Gps gps;
@@ -140,7 +143,7 @@ static void gpxDetailScreenEvent(lv_event_t *event)
 static void rotateScreen(lv_event_t *event)
 {
     isScreenRotated = !isScreenRotated;
-    log_v("%d",isScreenRotated);
+    ESP_LOGV(TAG, "%d", isScreenRotated);
     if (isScreenRotated)
     {
         display().setRotation(1);

@@ -74,7 +74,7 @@ static void nmea_debug_observer_cb(lv_observer_t *observer, lv_subject_t *subjec
     lv_label_set_text_fmt(dbgSatsLabel,  "Sats used : %u",  fix.satellites);
 
     // Sentences/s and fix-cycles/s measured over the observation window
-    uint32_t nowMs = (uint32_t)(esp_timer_get_time() / 1000);
+    uint32_t nowMs = millis_idf();
     uint32_t dtMs  = nowMs - prevMs;
     if (dtMs >= 2000 && prevMs != 0)
     {

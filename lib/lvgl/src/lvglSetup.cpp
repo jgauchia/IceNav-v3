@@ -19,6 +19,8 @@
 #include "esp_log.h"
 #include "gpsMath.hpp"
 
+static const char *TAG = "LVGL";
+
 SemaphoreHandle_t lvgl_mutex = NULL;
 
 lv_display_t *display_drv; /**< LVGL display driver */
@@ -450,13 +452,13 @@ void initLVGL()
                 DRAW_BUF_SIZE = (TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t) / 8);
         #endif
 
-        log_v("LVGL: allocating %u bytes PSRAM for draw buffers", DRAW_BUF_SIZE * 2);
+        ESP_LOGV(TAG, "LVGL: allocating %u bytes PSRAM for draw buffers", DRAW_BUF_SIZE * 2);
         drawBuf1 = (lv_color_t *)heap_caps_aligned_alloc(64, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
         drawBuf2 = (lv_color_t *)heap_caps_aligned_alloc(64, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
         lv_display_set_buffers(display_drv, drawBuf1, drawBuf2, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
     #else
         DRAW_BUF_SIZE = (TFT_WIDTH * TFT_HEIGHT / 10) * sizeof(lv_color_t);
-        log_v("LVGL: allocating %u bytes SRAM for draw buffer", DRAW_BUF_SIZE);
+        ESP_LOGV(TAG, "LVGL: allocating %u bytes SRAM for draw buffer", DRAW_BUF_SIZE);
         drawBuf1 = (lv_color_t *)heap_caps_malloc(DRAW_BUF_SIZE, MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA);
         lv_display_set_buffers(display_drv, drawBuf1, NULL, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
     #endif

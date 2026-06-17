@@ -856,7 +856,7 @@ static void scrollMapEvent(lv_event_t *event)
                 lv_indev_get_point(indev, &p);
                 scrollState.last_x      = p.x;
                 scrollState.last_y      = p.y;
-                scrollState.last_time   = (uint32_t)(esp_timer_get_time() / 1000);
+                scrollState.last_time   = millis_idf();
                 scrollState.dragStarted = false;
                 isScrollingMap = true;
                 mapView.velocityX = 0;
@@ -869,7 +869,7 @@ static void scrollMapEvent(lv_event_t *event)
             case LV_EVENT_PRESSING:
             {
                 lv_indev_get_point(indev, &p);
-                uint32_t current_time = (uint32_t)(esp_timer_get_time() / 1000);
+                uint32_t current_time = millis_idf();
                 int dx = p.x - scrollState.last_x;
                 int dy = p.y - scrollState.last_y;
                 uint32_t dt = current_time - scrollState.last_time;

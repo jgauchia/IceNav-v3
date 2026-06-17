@@ -17,7 +17,7 @@
 
 #define SD_OCR_SDHC_CAP (1 << 30) /**< SD card SDHC capacity flag */
 
-static const char *TAG = "Storage";
+static const char *TAG = "STORAGE";
 
 Storage storage;
 

@@ -13,7 +13,7 @@
 
  extern Storage storage;
 
- static const char* TAG = "Firmware Update";
+ static const char* TAG = "FIRMWARE";
 
 TFT_eSprite upgradeSprite = TFT_eSprite(&tft);  
 
