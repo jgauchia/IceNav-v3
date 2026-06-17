@@ -23,7 +23,13 @@
 
 xSemaphoreHandle gpsMutex;
 SemaphoreHandle_t sensorMutex = NULL;
-TaskHandle_t gpsTaskHandle = NULL;
+TaskHandle_t gpsTaskHandle    = NULL;
+TaskHandle_t guiTaskHandle    = NULL;
+TaskHandle_t sensorTaskHandle = NULL;
+TaskHandle_t navTaskHandle    = NULL;
+#ifndef DISABLE_CLI
+TaskHandle_t cliTaskHandle    = NULL;
+#endif
 extern Gps gps;
 SensorData globalSensorData = {};
 
@@ -42,6 +48,7 @@ static constexpr TickType_t MUTEX_TIMEOUT_GPS  = pdMS_TO_TICKS(15);
 static constexpr TickType_t MUTEX_TIMEOUT_SLOW = pdMS_TO_TICKS(10);
 
 static const char* TAG = "Task";
+
 
 static struct
 {
@@ -225,9 +232,9 @@ void initGpsTask()
  * @brief Command-line interface processing task
  *
  * @details Handles CLI operations including command parsing, execution, and response
- *          generation. Runs on core 1 with 16KB stack size to handle complex CLI
- *          operations and network communications. The task processes commands at
- *          60ms intervals to maintain responsive user interaction.
+ *          generation. Runs on core 1 with 11KB stack size. Peak usage measured
+ *          at ~33KB with screenshot (scshot); 11KB provides 25% margin. The task
+ *          processes commands at 60ms intervals to maintain responsive user interaction.
  *
  * @param param Task parameters (unused in current implementation)
  */
@@ -247,10 +254,10 @@ void cliTask(void *param)
 /**
  * @brief Initialize CLI processing task
  *
- * @details Creates and starts the CLI task on core 1 with 16KB stack size and priority 1.
+ * @details Creates and starts the CLI task on core 1 with 11KB stack size and priority 1.
  *          Only compiled when CLI functionality is enabled (not DISABLE_CLI).
  */
-void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 16384, NULL, 1, NULL, 1); }
+void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 11264, NULL, 1, &cliTaskHandle, 1); }
 
 #endif
 
@@ -424,7 +431,7 @@ void sensorTask(void *pvParameters)
  */
 void initSensorTask()
 {
-    xTaskCreatePinnedToCore(sensorTask, "Sensor Task", 3072, NULL, 1, NULL, 0);
+    xTaskCreatePinnedToCore(sensorTask, "Sensor Task", 3072, NULL, 1, &sensorTaskHandle, 0);
 }
 
 /**
@@ -446,12 +453,12 @@ void guiTask(void *pvParameters)
             wait_ms = lv_timer_handler();
             xSemaphoreGive(lvgl_mutex);
         }
-        
-        if (wait_ms > 100) 
+
+        if (wait_ms > 100)
             wait_ms = 100;
-        if (wait_ms < 5) 
+        if (wait_ms < 5)
             wait_ms = 5;
-        
+
         vTaskDelay(pdMS_TO_TICKS(wait_ms));
     }
 }
@@ -459,15 +466,13 @@ void guiTask(void *pvParameters)
 /**
  * @brief Initialize GUI management task
  *
- * @details Creates and starts the GUI task on core 1 with 8KB stack and priority 3.
+ * @details Creates and starts the GUI task on core 1 with 9.5KB stack and priority 3.
  *          This ensures that UI updates and touch events are processed with the
  *          highest application priority.
  */
-TaskHandle_t guiTaskHandle = NULL;
-
 void initGuiTask()
 {
-    xTaskCreatePinnedToCore(guiTask, "GUI Task", 8192, NULL, 3, &guiTaskHandle, 1);
+    xTaskCreatePinnedToCore(guiTask, "GUI Task", 9728, NULL, 3, &guiTaskHandle, 1);
 }
 
 extern TrackVector            trackData;
@@ -608,9 +613,9 @@ void navTask(void *pvParameters)
 /**
  * @brief Initialize navigation task
  *
- * @details Creates and starts the nav task on core 1 with 6KB stack and priority 1.
+ * @details Creates and starts the nav task on core 1 with 3KB stack and priority 1.
  */
 void initNavTask()
 {
-    xTaskCreatePinnedToCore(navTask, "Nav Task", 6144, NULL, 2, NULL, 1);
+    xTaskCreatePinnedToCore(navTask, "Nav Task", 3072, NULL, 2, &navTaskHandle, 1);
 }

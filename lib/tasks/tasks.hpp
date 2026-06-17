@@ -61,6 +61,11 @@ extern uint8_t nmeaRawHead;  /**< Index of the next slot to write (oldest line).
 
 extern TaskHandle_t gpsTaskHandle;
 extern TaskHandle_t guiTaskHandle;
+extern TaskHandle_t sensorTaskHandle;
+extern TaskHandle_t navTaskHandle;
+#ifndef DISABLE_CLI
+extern TaskHandle_t cliTaskHandle;
+#endif
 
 void gpsTask(void *pvParameters);
 

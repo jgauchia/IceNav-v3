@@ -17,6 +17,7 @@
 #include "esp_ota_ops.h"
 #include "esp_image_format.h"
 
+
 static const char logo[] =
 "\r\n"
 "░▒▓█▓▒░  ░▒▓██████▓▒░  ░▒▓████████▓▒░ ░▒▓███████▓▒░   ░▒▓██████▓▒░  ░▒▓█▓▒░░▒▓█▓▒░ \r\n"
@@ -238,7 +239,7 @@ void wcli_abort_handler()
 
 /**
  * @brief Enables or disables the Web file server.
- * 
+ *
  * @details CLI command: webfile
  */
 void wcli_webfile(char *args, Stream *response)
