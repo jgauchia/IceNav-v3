@@ -8,6 +8,7 @@
 
 #include "graph_loader.hpp"
 #include "storage.hpp"
+#include "esp_log.h"
 #include "settings.hpp"
 #include <cmath>
 #include <cstring>
@@ -47,8 +48,13 @@ bool GraphLoader::load()
     }
 
     cellIndex_.resize(hdr.cell_count);
-    storage.read(f, reinterpret_cast<uint8_t*>(cellIndex_.data()),
-                 hdr.cell_count * sizeof(CellIndexEntry));
+    size_t indexBytes = hdr.cell_count * sizeof(CellIndexEntry);
+    if (storage.read(f, reinterpret_cast<uint8_t*>(cellIndex_.data()), indexBytes) != indexBytes)
+    {
+        ESP_LOGE("GraphLoader", "Partial read of cell index (%u cells)", hdr.cell_count);
+        storage.close(f);
+        return false;
+    }
 
     // Data block starts immediately after header + index.
     data_base_offset_ = sizeof(RouteFileHeader) + hdr.cell_count * sizeof(CellIndexEntry);

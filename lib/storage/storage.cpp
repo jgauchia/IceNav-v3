@@ -365,7 +365,10 @@ size_t Storage::read(FILE *file, uint8_t *buffer, size_t size)
     size_t totalRead = 0;
 
     if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+    {
+        ESP_LOGW(TAG, "read: mutex timeout (%u B)", (unsigned)size);
         return 0;
+    }
 
     if (esp_ptr_internal(buffer))
     {
@@ -543,7 +546,10 @@ size_t Storage::seekAndRead(FILE *file, long offset, uint8_t *buffer, size_t siz
         return 0;
     size_t totalRead = 0;
     if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+    {
+        ESP_LOGW(TAG, "seekAndRead: mutex timeout (off=%ld %u B)", offset, (unsigned)size);
         return 0;
+    }
     fseek(file, offset, SEEK_SET);
     if (esp_ptr_internal(buffer))
     {

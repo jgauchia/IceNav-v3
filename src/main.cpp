@@ -56,8 +56,12 @@ void setup()
     sensorMutex  = xSemaphoreCreateMutex();
     lutInit = initTrigLUT();
     initHAL();
-    storage.initSD();
-    storage.initSPIFFS();
+    bool sdOk     = (storage.initSD()     == ESP_OK);
+    bool spiffsOk = (storage.initSPIFFS() == ESP_OK);
+    if (!sdOk)
+        ESP_LOGE("main", "SD card init failed — map data unavailable");
+    if (!spiffsOk)
+        ESP_LOGE("main", "SPIFFS init failed — assets unavailable");
     battery.initADC();
     initTFT();
     createGpxFolders();
@@ -65,6 +69,11 @@ void setup()
     loadPreferences();
     gps.init();
     initLVGL();
+    if (!sdOk)
+    {
+        showMsg(LV_SYMBOL_WARNING, "SD card not found\nMap data unavailable");
+        vTaskDelay(pdMS_TO_TICKS(2000));
+    }
     gps.gpsData.latitude = gps.getLat();
     gps.gpsData.longitude = gps.getLon();
     gps.publishSnapshot();
