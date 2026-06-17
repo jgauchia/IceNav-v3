@@ -20,7 +20,7 @@
 #include <LGFX_TFT_eSPI.hpp>
 
 extern TFT_eSPI tft;                                      /**< TFT display object */
-static const char* calibrationFile = "/spiffs/TouchCal"; /**< Touch calibration file path */
+inline constexpr const char* calibrationFile = "/spiffs/TouchCal"; /**< Touch calibration file path */
 extern bool repeatCalib;                                 /**< Flag to repeat touch calibration */
 
 extern uint16_t TFT_WIDTH;                               /**< TFT display width in pixels */

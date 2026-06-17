@@ -16,6 +16,32 @@
 #include "gpsMath.hpp"
 #include "display.hpp"
 
+lv_obj_t *splashCanvas;
+
+extern Storage storage;
+
+/**
+ * @brief Get PNG width and height from file header.
+ *
+ * @param filename PNG file path on SD/SPIFFS.
+ * @param width Pointer to store the image width in pixels.
+ * @param height Pointer to store the image height in pixels.
+ * @return true if the file exists and dimensions were read successfully, false otherwise.
+ */
+bool getPngSize(const char* filename, uint16_t *width, uint16_t *height)
+{
+    FILE* file = storage.open(filename, "r");
+    if (!file)
+        return false;
+
+    uint8_t table[32];
+    storage.read(file, table, 32);
+    *width  = table[16] * 256 * 256 * 256 + table[17] * 256 * 256 + table[18] * 256 + table[19];
+    *height = table[20] * 256 * 256 * 256 + table[21] * 256 * 256 + table[22] * 256 + table[23];
+    storage.close(file);
+    return true;
+}
+
 /**
  * @brief Get the ESP Chip Model 
  * 
