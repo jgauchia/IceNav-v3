@@ -159,6 +159,7 @@ public:
     void updateMap();
     void centerOnGps(float lat, float lon);
     void scrollMap(int16_t dx, int16_t dy);
+    void commitScroll();
     void resetScrollState();
 
 private:
@@ -251,6 +252,7 @@ private:
 
     uint8_t navLastZoom_;
     bool navNeedsRender_;
+    bool navScrollDeferred_ = false;
     float navTlTileX_;
     float navTlTileY_;
     volatile bool pendingTilesNotEmpty_ = false;

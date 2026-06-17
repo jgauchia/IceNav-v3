@@ -40,7 +40,7 @@ static bool longPressHandled = false;   /**< Guard to prevent repeated long-pres
  */
 static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
 {
-    showMsg(LV_SYMBOL_DOWNLOAD, " Loading data...");
+    showMsg(LV_SYMBOL_DOWNLOAD, " Loading data...", false);
     if (gpxWaypoint)
     {
         loadWpt = gpx.getWaypointInfo(gpxName);

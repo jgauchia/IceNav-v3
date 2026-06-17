@@ -16,5 +16,5 @@ void objSelect(_lv_obj_t *obj);
 void objUnselect(_lv_obj_t *obj);
 void restartTimerCb(lv_timer_t *timer);
 void showRestartScr();
-void showMsg(const char* symbol, const char* message);
+void showMsg(const char* symbol, const char* message, bool refresh = true);
 void closeMsg();

@@ -511,7 +511,7 @@ void navTask(void *pvParameters)
         {
             if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, portMAX_DELAY) == pdTRUE)
             {
-                showMsg(LV_SYMBOL_REFRESH, " Calculating route...");
+                showMsg(LV_SYMBOL_REFRESH, " Calculating route...", false);
                 xSemaphoreGive(lvgl_mutex);
             }
 
@@ -617,7 +617,7 @@ void navTask(void *pvParameters)
  */
 void initNavTask()
 {
-    xTaskCreatePinnedToCore(navTask, "Nav Task", 3072, NULL, 2, &navTaskHandle, 1);
+    xTaskCreatePinnedToCore(navTask, "Nav Task", 6144, NULL, 2, &navTaskHandle, 1);
 }
 
 /**

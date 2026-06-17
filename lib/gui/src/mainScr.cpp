@@ -830,6 +830,8 @@ static void map_inertia_timer_cb(lv_timer_t * t)
     else
     {
         lv_timer_pause(t);
+        mapView.commitScroll();
+        triggerMapRedraw();
         lv_subject_set_int(&subject_map_state, MAP_MODE_MANUAL);
     }
 }
@@ -912,6 +914,8 @@ static void scrollMapEvent(lv_event_t *event)
                 {
                     mapView.velocityX = 0;
                     mapView.velocityY = 0;
+                    mapView.commitScroll();
+                    triggerMapRedraw();
                 }
                 break;
             default: 

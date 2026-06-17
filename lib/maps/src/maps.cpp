@@ -422,6 +422,9 @@ void Maps::generateMap(uint8_t zoom)
         if (zoomChanged)
             navNeedsRender_ = true;
 
+        if (navScrollDeferred_ && !zoomChanged && !navNeedsRender_)
+            return;
+
         if (!zoomChanged && !tileChanged && !navNeedsRender_ && pendingTiles.empty())
             return;
 
@@ -1045,6 +1048,7 @@ void Maps::resetScrollState()
     pendingDy = 0;
     velocityX = 0;
     velocityY = 0;
+    navScrollDeferred_ = false;
 }
 
 /**
@@ -1135,16 +1139,38 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
         const int8_t deltaTileX = tileX - lastTileX;
         const int8_t deltaTileY = tileY - lastTileY;
         Maps::panMap(deltaTileX, deltaTileY);
-        if (!mapSet.vectorMap)
-            Maps::preloadTiles(deltaTileX, deltaTileY);
-        else
-            updateMap(); // Force vector re-render on tile threshold
 
-        generateMap(zoomLevel);
+        if (!mapSet.vectorMap)
+        {
+            const bool singleStep = (abs(deltaTileX) == 1 && deltaTileY == 0) ||
+                                    (abs(deltaTileY) == 1 && deltaTileX == 0);
+            if (singleStep)
+                Maps::preloadTiles(deltaTileX, deltaTileY);
+            else
+                generateMap(zoomLevel);
+        }
+        else
+        {
+            const int16_t marginX = (tileWidth - mapScrWidth) / 2 - threshold;
+            const int16_t marginY = (tileHeight - mapScrHeight) / 2 - threshold;
+            const int16_t deferredX = offsetX + (tileX - lastTileX) * mapTileSize;
+            const int16_t deferredY = offsetY + (tileY - lastTileY) * mapTileSize;
+            const bool exceedsMargin = abs(deferredX) > marginX || abs(deferredY) > marginY;
+
+            if (_scrolling && !exceedsMargin)
+                navScrollDeferred_ = true;
+            else
+            {
+                navScrollDeferred_ = false;
+                updateMap();
+                generateMap(zoomLevel);
+            }
+        }
+
         Maps::redrawMap = true;
     }
 
-    if (pendingTiles.empty())
+    if (pendingTiles.empty() && !navScrollDeferred_)
     {
         displayOffsetX = offsetX;
         displayOffsetY = offsetY;
@@ -1153,55 +1179,109 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
     }
     else
     {
-        // When rendering is pending (after a swap), we stay at the virtual relative position
-        // to avoid jumping until the new grid is complete.
+        // When rendering is pending (after a swap) or deferred, we stay at the virtual relative
+        // position to avoid jumping until the new grid is complete.
         displayOffsetX = offsetX + (tileX - lastTileX) * mapTileSize;
         displayOffsetY = offsetY + (tileY - lastTileY) * mapTileSize;
     }
-    
+
+    xSemaphoreGiveRecursive(mapMutex);
+}
+
+/**
+ * @brief Flush a deferred vector re-render once the gesture settles.
+ *
+ * @details During an active drag or inertia, scrollMap() postpones the vector grid re-render and
+ *          keeps showing the already rasterized sprite shifted via displayOffset. This consolidates
+ *          the pending re-render at the new center once the movement stops (release or inertia end).
+ */
+void Maps::commitScroll()
+{
+    _scrolling = false;
+
+    if (!navScrollDeferred_)
+        return;
+
+    if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(10)) != pdTRUE)
+        return;
+
+    navScrollDeferred_ = false;
+    updateMap();
+    generateMap(zoomLevel);
+    Maps::redrawMap = true;
+
     xSemaphoreGiveRecursive(mapMutex);
 }
 
  /**
-  * @brief Preload PNG tiles
-  * 
-  * @param dirX X direction 
-  * @param dirY Y direction
+  * @brief Incrementally scroll the PNG grid by one tile row or column.
+  *
+  * @details Shifts the already rendered sprite one tile in the pan direction and loads only the
+  *          incoming edge tiles from SD instead of re-reading the whole grid. Advances the grid
+  *          anchor (navTlTileX_/navTlTileY_, oldMapTile) to the new top-left, recomputes totalBounds
+  *          from the grid corners, repositions the waypoint and redraws the track.
+  *
+  * @param dirX X pan direction (-1, 0, +1)
+  * @param dirY Y pan direction (-1, 0, +1)
   */
 void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 {
     const int16_t tileSize = mapTileSize;
-    const int16_t startX = tileX + dirX;
-    const int16_t startY = tileY + dirY;
+    const int8_t gridOffset = tilesGrid / 2;
+
+    const uint32_t centerTileIdxX = Maps::currentMapTile.tilex;
+    const uint32_t centerTileIdxY = Maps::currentMapTile.tiley;
+    const int32_t tlX = (int32_t)centerTileIdxX - gridOffset;
+    const int32_t tlY = (int32_t)centerTileIdxY - gridOffset;
 
     if (dirX != 0)
-        mapTempSprite.scroll(dirX * tileSize, 0);
+        mapTempSprite.scroll(-dirX * tileSize, 0);
     else if (dirY != 0)
-        mapTempSprite.scroll(0, dirY * tileSize);
+        mapTempSprite.scroll(0, -dirY * tileSize);
 
-    for (int8_t i = 0; i < 2; ++i)
+    navTlTileX_ = (float)tlX;
+    navTlTileY_ = (float)tlY;
+    Maps::oldMapTile.tilex = centerTileIdxX;
+    Maps::oldMapTile.tiley = centerTileIdxY;
+    Maps::oldMapTile.zoom  = Maps::zoomLevel;
+
+    bool centerFound = false;
+    if (dirX != 0)
     {
-        const int16_t tileToLoadX = startX + ((dirX == 0) ? i - 1 : 0);
-        const int16_t tileToLoadY = startY + ((dirY == 0) ? i - 1 : 0);
-        MapTile roundMapTile;
-        roundMapTile.tilex = tileToLoadX;
-        roundMapTile.tiley = tileToLoadY;
-        roundMapTile.zoom  = Maps::zoomLevel;
-        roundMapTile.lat   = Maps::tiley2lat(tileToLoadY, Maps::zoomLevel);
-        roundMapTile.lon   = Maps::tilex2lon(tileToLoadX, Maps::zoomLevel);
-        snprintf(roundMapTile.file, sizeof(roundMapTile.file), mapRenderFolder,
-                 Maps::zoomLevel, tileToLoadX, tileToLoadY);
-
-        // Calculate the grid coordinates in the mapTempSprite
-        // Grid is based on tilesGrid (3 or 4)
-        int16_t gx = (tileToLoadX - (int32_t)navTlTileX_);
-        int16_t gy = (tileToLoadY - (int32_t)navTlTileY_);
-        int16_t sx = gx * tileSize;
-        int16_t sy = gy * tileSize;
-
-        if (!mapTempSprite.drawPngFile(roundMapTile.file, sx, sy))
-            mapTempSprite.fillRect(sx, sy, tileSize, tileSize, TFT_LIGHTGREY);
+        const int gx = (dirX > 0) ? (tilesGrid - 1) : 0;
+        for (int gy = 0; gy < tilesGrid; gy++)
+            loadPngTileIntoSprite(tlX, tlY, gx, gy, centerTileIdxX, centerTileIdxY, Maps::zoomLevel, centerFound);
     }
+    else if (dirY != 0)
+    {
+        const int gy = (dirY > 0) ? (tilesGrid - 1) : 0;
+        for (int gx = 0; gx < tilesGrid; gx++)
+            loadPngTileIntoSprite(tlX, tlY, gx, gy, centerTileIdxX, centerTileIdxY, Maps::zoomLevel, centerFound);
+    }
+    (void)centerFound;
+
+    Maps::totalBounds = getTileBounds((uint32_t)tlX, (uint32_t)tlY, Maps::zoomLevel);
+    const tileBounds brBounds = getTileBounds((uint32_t)(tlX + tilesGrid - 1), (uint32_t)(tlY + tilesGrid - 1), Maps::zoomLevel);
+    if (brBounds.lat_min < totalBounds.lat_min)
+        totalBounds.lat_min = brBounds.lat_min;
+    if (brBounds.lat_max > totalBounds.lat_max)
+        totalBounds.lat_max = brBounds.lat_max;
+    if (brBounds.lon_min < totalBounds.lon_min)
+        totalBounds.lon_min = brBounds.lon_min;
+    if (brBounds.lon_max > totalBounds.lon_max)
+        totalBounds.lon_max = brBounds.lon_max;
+
+    if (Maps::isMapFound && Maps::isCoordInBounds(Maps::destLat, Maps::destLon, Maps::totalBounds))
+        Maps::coords2map(Maps::destLat, Maps::destLon, Maps::totalBounds, &wptPosX, &wptPosY);
+    else
+    {
+        Maps::wptPosX = -1;
+        Maps::wptPosY = -1;
+    }
+
+    drawTrack(mapTempSprite);
+    redrawMap = true;
+    xEventGroupSetBits(mapEventGroup, MAP_EVENT_DONE);
 }
 
 /**
