@@ -88,3 +88,6 @@ void initGuiTask();
 void navTask(void *pvParameters);
 
 void initNavTask();
+
+void suspendAllTasks();
+void resumeAllTasks();

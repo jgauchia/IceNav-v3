@@ -22,12 +22,12 @@
 #include "../../../../include/hal.hpp"
 #include "lvgl.h"
 #include "globalGuiDef.h"
+#include "taskControl.hpp"
 #include <time.h>
 
 void closeMsg();
 
 extern Storage storage;
-extern TaskHandle_t gpsTaskHandle;
 
 static const char *TAG = "Power";
 
@@ -62,13 +62,11 @@ public:
         lv_refr_now(display_drv);
         tftOff();
 
-        if (gpsTaskHandle != NULL)
-            vTaskSuspend(gpsTaskHandle);
+        suspendAllTasks();
 
         powerLightSleep();
 
-        if (gpsTaskHandle != NULL)
-            vTaskResume(gpsTaskHandle);
+        resumeAllTasks();
 
         tftOn(brightness);
         while (gpio_get_level((gpio_num_t)BOARD_BOOT_PIN) != 1)

@@ -619,3 +619,40 @@ void initNavTask()
 {
     xTaskCreatePinnedToCore(navTask, "Nav Task", 3072, NULL, 2, &navTaskHandle, 1);
 }
+
+/**
+ * @brief Suspends all FreeRTOS tasks before entering light sleep.
+ *
+ * @details Suspends GPS, sensor, navigation and map render tasks in dependency
+ *          order to avoid inconsistent state during device suspend.
+ */
+void suspendAllTasks()
+{
+    if (gpsTaskHandle != NULL)
+        vTaskSuspend(gpsTaskHandle);
+    if (sensorTaskHandle != NULL)
+        vTaskSuspend(sensorTaskHandle);
+    if (navTaskHandle != NULL)
+        vTaskSuspend(navTaskHandle);
+    TaskHandle_t renderHandle = mapView.renderTaskHandle();
+    if (renderHandle != NULL)
+        vTaskSuspend(renderHandle);
+}
+
+/**
+ * @brief Resumes all FreeRTOS tasks after returning from light sleep.
+ *
+ * @details Resumes tasks in reverse suspension order.
+ */
+void resumeAllTasks()
+{
+    TaskHandle_t renderHandle = mapView.renderTaskHandle();
+    if (renderHandle != NULL)
+        vTaskResume(renderHandle);
+    if (navTaskHandle != NULL)
+        vTaskResume(navTaskHandle);
+    if (sensorTaskHandle != NULL)
+        vTaskResume(sensorTaskHandle);
+    if (gpsTaskHandle != NULL)
+        vTaskResume(gpsTaskHandle);
+}

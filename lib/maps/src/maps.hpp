@@ -217,6 +217,7 @@ public:
     void redrawTrack();
     bool isRendering() const { return pendingTilesNotEmpty_; }
     bool is3DActive() const { return _use3DCache; }
+    TaskHandle_t renderTaskHandle() const { return mapRenderTaskHandle; }
 
 private:
     enum TileType
