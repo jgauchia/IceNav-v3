@@ -62,7 +62,7 @@ static inline const char* trimDtostrf(const char* buf)
  */
 void GpxLogger::init()
 {
-    _mutex = xSemaphoreCreateMutex();
+    mutex = xSemaphoreCreateMutex();
     if (!storage.exists(trkFolder))
         storage.mkdir(trkFolder);
 }
@@ -75,7 +75,7 @@ void GpxLogger::init()
 void GpxLogger::setProfile(uint8_t idx)
 {
     if (idx < LOGGER_PROFILE_COUNT)
-        _profileIdx = idx;
+        profileIdx = idx;
 }
 
 /**
@@ -86,23 +86,23 @@ void GpxLogger::setProfile(uint8_t idx)
  */
 void GpxLogger::start()
 {
-    if (_mutex == nullptr || _state != LoggerState::IDLE)
+    if (mutex == nullptr || loggerState != LoggerState::IDLE)
         return;
 
-    if (xSemaphoreTake(_mutex, pdMS_TO_TICKS(50)) != pdTRUE)
+    if (xSemaphoreTake(mutex, pdMS_TO_TICKS(50)) != pdTRUE)
         return;
 
-    memset(&_stats, 0, sizeof(_stats));
-    _segOpen       = false;
-    _hasLast       = false;
-    _lastGrade     = 0.0f;
-    _gradeAccDist  = 0.0f;
-    _gradeAccAlt   = 0.0f;
-    _flushCnt      = 0;
-    _pauseStartMs  = 0;
-    _movingMs      = 0;
-    _speedAccum    = 0.0f;
-    _speedSamps    = 0;
+    memset(&trackStats, 0, sizeof(trackStats));
+    segOpen       = false;
+    hasLast       = false;
+    lastGrade     = 0.0f;
+    gradeAccDist  = 0.0f;
+    gradeAccAlt   = 0.0f;
+    flushCnt      = 0;
+    pauseStartMs  = 0;
+    movingMs      = 0;
+    speedAccum    = 0.0f;
+    speedSamps    = 0;
 
     // Filename from system clock (already GPS-synced by gpsTask, local timezone via setenv("TZ"))
     char path[64];
@@ -116,7 +116,7 @@ void GpxLogger::start()
                  t.tm_hour, t.tm_min, t.tm_sec);
     }
 
-    strncpy(_stats.filename, path, sizeof(_stats.filename) - 1);
+    strncpy(trackStats.filename, path, sizeof(trackStats.filename) - 1);
 
     // Extract base name (YYYYMMDD_HHMMSS) — pointer past last '/', strip ".gpx"
     const char* base = strrchr(path, '/');
@@ -128,14 +128,14 @@ void GpxLogger::start()
     if (dot)
         *dot = '\0';
 
-    _file = storage.open(path, "w");
-    if (_file == nullptr)
+    file = storage.open(path, "w");
+    if (file == nullptr)
     {
-        xSemaphoreGive(_mutex);
+        xSemaphoreGive(mutex);
         return;
     }
 
-    storage.print(_file,
+    storage.print(file,
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
         "<gpx version=\"1.1\" creator=\"IceNav\"\n"
         "  xmlns=\"http://www.topografix.com/GPX/1/1\"\n"
@@ -144,14 +144,14 @@ void GpxLogger::start()
         "http://www.topografix.com/GPX/1/1/gpx.xsd\">\n");
     char trkName[48];
     snprintf(trkName, sizeof(trkName), "<trk><name>%s</name>\n", trackName);
-    storage.print(_file, trkName);
+    storage.print(file, trkName);
 
-    _startMs      = millis_idf();
-    _lastLogMs    = _startMs;
-    _lastUpdateMs = _startMs;
-    _state        = LoggerState::RECORDING;
+    startMs      = millis_idf();
+    lastLogMs    = startMs;
+    lastUpdateMs = startMs;
+    loggerState        = LoggerState::RECORDING;
 
-    xSemaphoreGive(_mutex);
+    xSemaphoreGive(mutex);
 }
 
 /**
@@ -163,38 +163,38 @@ void GpxLogger::start()
  */
 void GpxLogger::stop()
 {
-    if (_mutex == nullptr || _state == LoggerState::IDLE)
+    if (mutex == nullptr || loggerState == LoggerState::IDLE)
         return;
 
-    if (xSemaphoreTake(_mutex, pdMS_TO_TICKS(100)) != pdTRUE)
+    if (xSemaphoreTake(mutex, pdMS_TO_TICKS(100)) != pdTRUE)
         return;
 
     uint32_t now = millis_idf();
 
-    _state = LoggerState::IDLE;
+    loggerState = LoggerState::IDLE;
 
-    if (_file != nullptr)
+    if (file != nullptr)
     {
-        if (_segOpen)
-            storage.print(_file, "</trkseg>\n");
-        storage.print(_file, "</trk>\n</gpx>\n");
-        storage.close(_file);
-        _file = nullptr;
+        if (segOpen)
+            storage.print(file, "</trkseg>\n");
+        storage.print(file, "</trk>\n</gpx>\n");
+        storage.close(file);
+        file = nullptr;
     }
 
-    uint32_t totalMs  = (_startMs > 0) ? (now - _startMs) : 0;
-    _stats.totalTimeSec  = totalMs / 1000;
-    _stats.movingTimeSec = (_movingMs < totalMs) ? _movingMs / 1000 : _stats.totalTimeSec;
-    if (_speedSamps > 0)
-        _stats.avgSpeedKmh = _speedAccum / (float)_speedSamps;
+    uint32_t totalMs  = (startMs > 0) ? (now - startMs) : 0;
+    trackStats.totalTimeSec  = totalMs / 1000;
+    trackStats.movingTimeSec = (movingMs < totalMs) ? movingMs / 1000 : trackStats.totalTimeSec;
+    if (speedSamps > 0)
+        trackStats.avgSpeedKmh = speedAccum / (float)speedSamps;
 
-    xSemaphoreGive(_mutex);
+    xSemaphoreGive(mutex);
 }
 
 /**
  * @brief Hook called from gpsTask on every decoded GPS fix.
  *
- * @details Must be called while gpsMutex is held. Acquires _mutex with
+ * @details Must be called while gpsMutex is held. Acquires mutex with
  *          timeout 0 to avoid blocking the GPS task. Also tries lvgl_mutex
  *          with timeout 0 when the state changes, to notify the subject.
  *
@@ -202,13 +202,13 @@ void GpxLogger::stop()
  */
 void GpxLogger::update(const LoggerGpsFix& gpsFix)
 {
-    if (_state == LoggerState::IDLE)
+    if (loggerState == LoggerState::IDLE)
         return;
 
     if (!gpsFix.valid)
         return;
 
-    if (_mutex == nullptr || xSemaphoreTake(_mutex, 0) != pdTRUE)
+    if (mutex == nullptr || xSemaphoreTake(mutex, 0) != pdTRUE)
         return;
 
     uint32_t now      = millis_idf();
@@ -217,65 +217,65 @@ void GpxLogger::update(const LoggerGpsFix& gpsFix)
     int16_t  alt      = gpsFix.alt;
     float    speedKmh = gpsFix.speedKmh;
 
-    const LoggerProfile& prof = LOGGER_PROFILES[_profileIdx];
+    const LoggerProfile& prof = LOGGER_PROFILES[profileIdx];
 
-    if (_state == LoggerState::RECORDING)
+    if (loggerState == LoggerState::RECORDING)
     {
         if (speedKmh < prof.pauseSpeedKmh)
         {
-            if (_pauseStartMs == 0)
-                _pauseStartMs = now;
-            else if ((now - _pauseStartMs) >= (prof.pauseDelaySec * 1000U))
+            if (pauseStartMs == 0)
+                pauseStartMs = now;
+            else if ((now - pauseStartMs) >= (prof.pauseDelaySec * 1000U))
             {
-                if (_segOpen)
+                if (segOpen)
                 {
-                    storage.print(_file, "</trkseg>\n");
-                    _segOpen = false;
+                    storage.print(file, "</trkseg>\n");
+                    segOpen = false;
                 }
-                _state = LoggerState::AUTO_PAUSE;
-                xSemaphoreGive(_mutex);
+                loggerState = LoggerState::AUTO_PAUSE;
+                xSemaphoreGive(mutex);
                 return;
             }
         }
         else
         {
-            _pauseStartMs = 0;
-            uint32_t delta = now - _lastUpdateMs;
-            _movingMs    += delta;
+            pauseStartMs = 0;
+            uint32_t delta = now - lastUpdateMs;
+            movingMs    += delta;
         }
 
-        uint32_t interval = _adaptiveInterval(speedKmh);
-        if ((now - _lastLogMs) >= interval)
+        uint32_t interval = adaptiveInterval(speedKmh);
+        if ((now - lastLogMs) >= interval)
         {
-            float dist = _hasLast ? loggerDist(_lastLat, _lastLon, lat, lon) : prof.minDistM + 1.0f;
+            float dist = hasLast ? loggerDist(lastLat, lastLon, lat, lon) : prof.minDistM + 1.0f;
             if (dist >= prof.minDistM)
             {
-                if (!_segOpen)
+                if (!segOpen)
                 {
-                    storage.print(_file, "<trkseg>\n");
-                    _segOpen = true;
+                    storage.print(file, "<trkseg>\n");
+                    segOpen = true;
                 }
-                _writeTrkpt(lat, lon, alt, speedKmh, gpsFix);
+                writeTrkpt(lat, lon, alt, speedKmh, gpsFix);
             }
         }
     }
-    else if (_state == LoggerState::AUTO_PAUSE)
+    else if (loggerState == LoggerState::AUTO_PAUSE)
     {
         if (speedKmh >= prof.pauseSpeedKmh)
         {
-            _pauseStartMs = 0;
-            _state        = LoggerState::RECORDING;
+            pauseStartMs = 0;
+            loggerState        = LoggerState::RECORDING;
         }
     }
 
-    _lastUpdateMs = now;
-    xSemaphoreGive(_mutex);
+    lastUpdateMs = now;
+    xSemaphoreGive(mutex);
 }
 
 /**
  * @brief Write a single <trkpt> element to the open GPX file.
  *
- * @details Must be called while _mutex is held. Updates stats in place.
+ * @details Must be called while mutex is held. Updates stats in place.
  *
  * @param lat      Latitude in decimal degrees.
  * @param lon      Longitude in decimal degrees.
@@ -283,7 +283,7 @@ void GpxLogger::update(const LoggerGpsFix& gpsFix)
  * @param speedKmh Speed in km/h (converted to m/s in the XML extension).
  * @param gpsFix   GPS snapshot used for the timestamp.
  */
-void GpxLogger::_writeTrkpt(float lat, float lon, int16_t alt, float speedKmh, const LoggerGpsFix& gpsFix)
+void GpxLogger::writeTrkpt(float lat, float lon, int16_t alt, float speedKmh, const LoggerGpsFix& gpsFix)
 {
     char latBuf[14], lonBuf[14], altBuf[12], spdBuf[10];
     dtostrf(lat,             10, 6, latBuf);
@@ -318,60 +318,60 @@ void GpxLogger::_writeTrkpt(float lat, float lon, int16_t alt, float speedKmh, c
              "<extensions><speed>%s</speed></extensions></trkpt>\n",
              latS, lonS, altS, timeBuf, spdS);
 
-    storage.print(_file, line);
+    storage.print(file, line);
 
     // Update stats
-    if (_hasLast)
+    if (hasLast)
     {
-        float dist = loggerDist(_lastLat, _lastLon, lat, lon);
-        _stats.totalDistM += dist;
+        float dist = loggerDist(lastLat, lastLon, lat, lon);
+        trackStats.totalDistM += dist;
 
         // Elevation gain/loss is band-filtered to reject GPS altitude noise:
         // changes below GAIN_MIN_M are micro-jitter, and changes above GAIN_MAX_M
         // between consecutive fixes are implausible spikes (the AT6558D can jump
         // tens/hundreds of metres on a single fix). Both are ignored, otherwise
         // a short track shows absurd cumulative elevation (e.g. -385 m in 55 m).
-        float dAlt    = (float)alt - _lastAlt;
+        float dAlt    = (float)alt - lastAlt;
         float absAlt  = (dAlt < 0.0f) ? -dAlt : dAlt;
         if (absAlt >= GAIN_MIN_M && absAlt <= GAIN_MAX_M)
         {
             if (dAlt > 0.0f)
-                _stats.gainPos += (int32_t)dAlt;
+                trackStats.gainPos += (int32_t)dAlt;
             else
-                _stats.gainNeg += (int32_t)(-dAlt);
+                trackStats.gainNeg += (int32_t)(-dAlt);
         }
 
         // Accumulate over a ~30 m window: integer altitude (1 m steps) and short
         // inter-point distances make the instantaneous grade jump wildly, so the
         // grade is only recomputed once enough distance has been covered.
-        _gradeAccDist += dist;
-        _gradeAccAlt  += dAlt;
-        if (_gradeAccDist >= 30.0f)
+        gradeAccDist += dist;
+        gradeAccAlt  += dAlt;
+        if (gradeAccDist >= 30.0f)
         {
-            _lastGrade    = (_gradeAccAlt / _gradeAccDist) * 100.0f;
-            _gradeAccDist = 0.0f;
-            _gradeAccAlt  = 0.0f;
+            lastGrade    = (gradeAccAlt / gradeAccDist) * 100.0f;
+            gradeAccDist = 0.0f;
+            gradeAccAlt  = 0.0f;
         }
     }
 
-    if (speedKmh > _stats.maxSpeedKmh)
-        _stats.maxSpeedKmh = speedKmh;
+    if (speedKmh > trackStats.maxSpeedKmh)
+        trackStats.maxSpeedKmh = speedKmh;
 
-    _speedAccum += speedKmh;
-    _speedSamps++;
-    _stats.numPoints++;
+    speedAccum += speedKmh;
+    speedSamps++;
+    trackStats.numPoints++;
 
-    _lastLat = lat;
-    _lastLon = lon;
-    _lastAlt = (float)alt;
-    _hasLast = true;
-    _lastLogMs = millis_idf();
+    lastLat = lat;
+    lastLon = lon;
+    lastAlt = (float)alt;
+    hasLast = true;
+    lastLogMs = millis_idf();
 
-    _flushCnt++;
-    if (_flushCnt >= 10)
+    flushCnt++;
+    if (flushCnt >= 10)
     {
-        fflush(_file);
-        _flushCnt = 0;
+        fflush(file);
+        flushCnt = 0;
     }
 }
 
@@ -383,9 +383,9 @@ void GpxLogger::_writeTrkpt(float lat, float lon, int16_t alt, float speedKmh, c
  * @param speedKmh Current speed in km/h.
  * @return uint32_t Interval in milliseconds.
  */
-uint32_t GpxLogger::_adaptiveInterval(float speedKmh) const
+uint32_t GpxLogger::adaptiveInterval(float speedKmh) const
 {
-    const LoggerProfile& prof = LOGGER_PROFILES[_profileIdx];
+    const LoggerProfile& prof = LOGGER_PROFILES[profileIdx];
     float t = speedKmh / prof.maxSpeedKmh;
     if (t > 1.0f) t = 1.0f;
     if (t < 0.0f) t = 0.0f;

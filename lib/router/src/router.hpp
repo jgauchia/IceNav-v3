@@ -27,10 +27,10 @@ public:
                        float dst_lat, float dst_lon,
                        TrackVector& out_track);
     void unload();
-    bool isLoaded() const { return loader_.isLoaded(); }
+    bool isLoaded() const { return loader.isLoaded(); }
 
 private:
-    GraphLoader loader_;
+    GraphLoader loader;
 };
 
 extern Router router;

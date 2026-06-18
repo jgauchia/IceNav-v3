@@ -91,11 +91,11 @@ private:
     uint16_t darkenRGB565(const uint16_t color, const float amount = 0.4f);
     void fillPolygonGeneral(MapCanvas &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset, uint16_t ringCount = 1, const uint16_t* ringEnds = nullptr);
 
-    float _mapTilt;
-    float _focalLength;
-    bool _scrolling = false;
-    bool _inertia = false;
-    bool _use3DCache = false;
+    float mapTilt;
+    float focalLength;
+    bool scrolling = false;
+    bool inertia = false;
+    bool use3DCache = false;
 
     bool isNavActive() const;
     void update3DCache();
@@ -160,7 +160,7 @@ public:
     void centerOnGps(float lat, float lon);
     void scrollMap(int16_t dx, int16_t dy);
     void commitScroll();
-    void setInertia(bool active) { _inertia = active; }
+    void setInertia(bool active) { inertia = active; }
     void resetScrollState();
 
 private:
@@ -194,6 +194,7 @@ private:
     static const uint8_t NAV_DATA_CACHE_SIZE = 12;
     std::vector<NavDataCache, PsramAllocator<NavDataCache>> navDataCache;
     uint32_t cacheCounter = 0;
+    uint32_t lastPrefetchHash = 0;
 
     static const uint16_t MAX_POLYGON_POINTS = 1024;
     static const uint32_t MAX_FEATURE_POOL_SIZE = 16384;
@@ -218,9 +219,9 @@ private:
 
 public:
     void redrawTrack();
-    bool isRendering() const { return pendingTilesNotEmpty_; }
-    bool isScrollDeferred() const { return navScrollDeferred_; }
-    bool is3DActive() const { return _use3DCache; }
+    bool isRendering() const { return pendingTilesNotEmpty; }
+    bool isScrollDeferred() const { return navScrollDeferred; }
+    bool is3DActive() const { return use3DCache; }
     TaskHandle_t renderTaskHandle() const { return mapRenderTaskHandle; }
 
 private:
@@ -249,16 +250,17 @@ private:
                                uint8_t zoom, bool& centerFound);
     void enqueueTileGrid(uint32_t centerTileIdxX, uint32_t centerTileIdxY, TileType type);
     uint8_t* navCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t zoom, size_t& outDataSize);
+    void prefetchNextTile();
     void navDecodeFeatures(const uint8_t* data, size_t dataSize, int16_t screenX, int16_t screenY, uint8_t zoom);
     static void drawThickLine(MapCanvas& map, int16_t x0, int16_t y0,
                               int16_t x1, int16_t y1, uint8_t width, uint16_t color);
 
-    uint8_t navLastZoom_;
-    bool navNeedsRender_;
-    bool navScrollDeferred_ = false;
-    float navTlTileX_;
-    float navTlTileY_;
-    volatile bool pendingTilesNotEmpty_ = false;
+    uint8_t navLastZoom;
+    bool navNeedsRender;
+    bool navScrollDeferred = false;
+    float navTlTileX;
+    float navTlTileY;
+    volatile bool pendingTilesNotEmpty = false;
 
     struct Edge
     {

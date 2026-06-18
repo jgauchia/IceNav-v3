@@ -33,20 +33,21 @@ extern Gps gps;
 extern Storage storage;
 extern TrackVector trackData;
 static const char* TAG = "MAPS";
+static const uint16_t PREFETCH_MIN_SPEED_KMH = 5;
 
 /**
  * @brief Map Class constructor
  */
-Maps::Maps() : navLastZoom_(0),
-               navNeedsRender_(true),
-               navTlTileX_(-1),
-               navTlTileY_(-1),
+Maps::Maps() : navLastZoom(0),
+               navNeedsRender(true),
+               navTlTileX(-1),
+               navTlTileY(-1),
                lastRenderedHeading(0xFFFF),
                lastRenderedArrowPos({-32768, -32768}),
                lastRenderedDisplayOffsetX(-32768),
                lastRenderedDisplayOffsetY(-32768),
-               _mapTilt(60.0f),
-               _focalLength(300.0f){
+               mapTilt(60.0f),
+               focalLength(300.0f){
     static_assert(Maps::MAX_FEATURE_POOL_SIZE <= 65535U,
         "featurePool index stored as uint16_t — pool size must not exceed 65535");
     projBuf32X.reserve(MAX_POLYGON_POINTS);
@@ -349,7 +350,7 @@ void Maps::drawWaypoint(MapCanvas& map)
  */
 void Maps::redrawTrack()
 {
-    navNeedsRender_ = true;
+    navNeedsRender = true;
 }
 
 /**
@@ -422,24 +423,24 @@ void Maps::generateMap(uint8_t zoom)
         const int8_t gridOffset = tilesGrid / 2;
         const int32_t currentTlX = (int32_t)centerTileIdxX - gridOffset;
         const int32_t currentTlY = (int32_t)centerTileIdxY - gridOffset;
-        bool zoomChanged = (zoom != navLastZoom_);
-        bool tileChanged = (currentTlX != (int32_t)navTlTileX_ || currentTlY != (int32_t)navTlTileY_);
+        bool zoomChanged = (zoom != navLastZoom);
+        bool tileChanged = (currentTlX != (int32_t)navTlTileX || currentTlY != (int32_t)navTlTileY);
 
         if (zoomChanged)
-            navNeedsRender_ = true;
+            navNeedsRender = true;
 
-        if (navScrollDeferred_ && !zoomChanged && !navNeedsRender_)
+        if (navScrollDeferred && !zoomChanged && !navNeedsRender)
             return;
 
-        if (!zoomChanged && !tileChanged && !navNeedsRender_ && pendingTiles.empty())
+        if (!zoomChanged && !tileChanged && !navNeedsRender && pendingTiles.empty())
             return;
 
         if (pendingTiles.size() > (tilesGrid * tilesGrid))
             return;
 
         Maps::isMapFound = renderNavViewport(baseLat, baseLon, zoom, Maps::mapTempSprite);
-        navLastZoom_ = zoom;
-        navNeedsRender_ = false;
+        navLastZoom = zoom;
+        navNeedsRender = false;
         latLonToPixel(destLat, destLon, (int16_t&)wptPosX, (int16_t&)wptPosY);
         Maps::redrawMap = true;
         return;
@@ -456,15 +457,15 @@ void Maps::generateMap(uint8_t zoom)
         const int8_t gridOffset = tilesGrid / 2;
         const int32_t tlX = (int32_t)centerTileIdxX - gridOffset;
         const int32_t tlY = (int32_t)centerTileIdxY - gridOffset;
-        navTlTileX_ = (float)tlX;
-        navTlTileY_ = (float)tlY;
-        navLastZoom_ = zoom;
+        navTlTileX = (float)tlX;
+        navTlTileY = (float)tlY;
+        navLastZoom = zoom;
         Maps::isMapFound = true;
         Maps::redrawMap = true;
         if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
         {
             pendingTiles.clear();
-            pendingTilesNotEmpty_ = false;
+            pendingTilesNotEmpty = false;
             enqueueTileGrid(centerTileIdxX, centerTileIdxY, TILE_PNG);
             xSemaphoreGiveRecursive(mapMutex);
         }
@@ -556,7 +557,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     PendingTile t = instance->pendingTiles.back();
                     instance->pendingTiles.pop_back();
                     if (instance->pendingTiles.empty())
-                        instance->pendingTilesNotEmpty_ = false;
+                        instance->pendingTilesNotEmpty = false;
                     if (t.type == TILE_NAV)
                     {
                         instance->renderNavTile(t.x, t.y, instance->zoomLevel, t.screenX, t.screenY, instance->mapTempSprite);
@@ -577,8 +578,8 @@ void Maps::mapRenderTask(void* pvParameters)
 
                 if (!mapSet.vectorMap)
                 {
-                    const int32_t tlX = (int32_t)instance->navTlTileX_;
-                    const int32_t tlY = (int32_t)instance->navTlTileY_;
+                    const int32_t tlX = (int32_t)instance->navTlTileX;
+                    const int32_t tlY = (int32_t)instance->navTlTileY;
                     instance->totalBounds = instance->getTileBounds((uint32_t)tlX, (uint32_t)tlY, instance->zoomLevel);
                     const tileBounds brBounds = instance->getTileBounds((uint32_t)(tlX + tilesGrid - 1),
                                                                         (uint32_t)(tlY + tilesGrid - 1), instance->zoomLevel);
@@ -717,8 +718,63 @@ void Maps::mapRenderTask(void* pvParameters)
                 triggerMapRedraw();
             }
         }
+        else
+        {
+            instance->prefetchNextTile();
+        }
         vTaskDelay(1);
     }
+}
+
+/**
+ * @brief Predictively preloads the next NAV tile while the render task is idle.
+ *
+ * @details Runs only when the pending queue is empty (no active render). In vector
+ *          mode with GPS following and meaningful speed, it derives the next tile in
+ *          the heading direction and loads it into the LRU cache so it is ready when
+ *          the viewport reaches it. The preloaded entry is left unpinned so it stays
+ *          evictable. Throttled by tile hash to avoid reloading the same tile.
+ */
+void Maps::prefetchNextTile()
+{
+    if (!mapSet.vectorMap || !Maps::followGps)
+        return;
+
+    const Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
+    if (gpsSnap.speed < PREFETCH_MIN_SPEED_KMH)
+        return;
+
+    const uint32_t centerTileX = lon2tilex(gpsSnap.longitude, zoomLevel);
+    const uint32_t centerTileY = lat2tiley(gpsSnap.latitude, zoomLevel);
+
+    const uint8_t sector = (uint8_t)(((gpsSnap.heading + 22) % 360) / 45);
+    static const int8_t dirX[8] = {0, 1, 1, 1, 0, -1, -1, -1};
+    static const int8_t dirY[8] = {-1, -1, 0, 1, 1, 1, 0, -1};
+
+    const uint32_t targetX = centerTileX + dirX[sector];
+    const uint32_t targetY = centerTileY + dirY[sector];
+
+    const uint32_t targetHash = (uint32_t(zoomLevel) << 28) | (uint32_t(targetX & 0x3FFF) << 14) | uint32_t(targetY & 0x3FFF);
+    if (targetHash == lastPrefetchHash)
+        return;
+
+    if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(100)) != pdTRUE)
+        return;
+
+    size_t dataSize = 0;
+    navCacheLookupOrLoad(targetX, targetY, zoomLevel, dataSize);
+    lastPrefetchHash = targetHash;
+
+    for (auto& entry : navDataCache)
+    {
+        if (entry.tileHash == targetHash)
+        {
+            entry.isPinned = false;
+            break;
+        }
+    }
+
+    xSemaphoreGiveRecursive(mapMutex);
 }
 
 /**
@@ -797,7 +853,7 @@ void Maps::displayMap()
         lastRenderedHeading = mapHeading;
         lastRenderedArrowPos = navArrowPosition;
 
-        if (_use3DCache)
+        if (use3DCache)
         {
             // 3D mode: scanline perspective transform with heading baked in
             apply3DPerspective(mapHeading);
@@ -867,7 +923,7 @@ bool Maps::isNavActive() const
 
 void Maps::update3DCache()
 {
-    _use3DCache = mapSet.map3D && mapSet.vectorMap && isNavActive() && !_scrolling;
+    use3DCache = mapSet.map3D && mapSet.vectorMap && isNavActive() && !scrolling;
 }
 
 /**
@@ -910,7 +966,7 @@ void Maps::apply3DPerspective(uint16_t heading)
 
     // Perspective parameters: horizon at top quarter of screen
     const int horizonScreenY = dstH / 5;
-    const float tiltRad = _mapTilt * (static_cast<float>(M_PI) / 180.0f);
+    const float tiltRad = mapTilt * (static_cast<float>(M_PI) / 180.0f);
     const float invCosTilt = 1.0f / cosf(tiltRad);
 
     // Sky color: soft blue ~#A8C8E8 (byte-swapped for direct buffer write)
@@ -939,7 +995,7 @@ void Maps::apply3DPerspective(uint16_t heading)
         float invScale = 1.0f / scale;
 
         // Positive srcRelY = ahead (up in heading-up view = forward direction)
-        float srcRelY = (_focalLength * invScale) * (1.0f - t) / t;
+        float srcRelY = (focalLength * invScale) * (1.0f - t) / t;
 
         // sx/sy are linear in x; accumulate in Q16 fixed point so the inner loop
         // drops the per-pixel division, multiplies and float->int conversions.
@@ -1004,7 +1060,7 @@ void Maps::apply3DPerspective(uint16_t heading)
 void Maps::updateMap()
 {
     Maps::oldMapTile = {};
-    navNeedsRender_ = true;
+    navNeedsRender = true;
     update3DCache();
 }
 
@@ -1031,7 +1087,7 @@ void Maps::panMap(int8_t dx, int8_t dy)
 void Maps::centerOnGps(float lat, float lon)
 {
     Maps::followGps = true;
-    _scrolling = false;
+    scrolling = false;
     Maps::currentMapTile.zoom = Maps::zoomLevel;
     Maps::currentMapTile.tilex = Maps::lon2tilex(lon, Maps::currentMapTile.zoom);
     Maps::currentMapTile.tiley = Maps::lat2tiley(lat, Maps::currentMapTile.zoom);
@@ -1057,7 +1113,7 @@ void Maps::resetScrollState()
     pendingDy = 0;
     velocityX = 0;
     velocityY = 0;
-    navScrollDeferred_ = false;
+    navScrollDeferred = false;
 }
 
 /**
@@ -1070,7 +1126,7 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
 {
     pendingDx += dx;
     pendingDy += dy;
-    _scrolling = true;
+    scrolling = true;
 
     if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(10)) != pdTRUE)
         return;
@@ -1169,11 +1225,11 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
             // During inertia the re-render is postponed even past the grid margin (the stale
             // edge is tolerated until the flick stops) so the grid is not re-rasterized on every
             // crossing. A finger drag is slow enough to re-render when the margin is exceeded.
-            if (_scrolling && (_inertia || !exceedsMargin))
-                navScrollDeferred_ = true;
+            if (scrolling && (inertia || !exceedsMargin))
+                navScrollDeferred = true;
             else
             {
-                navScrollDeferred_ = false;
+                navScrollDeferred = false;
                 updateMap();
                 generateMap(zoomLevel);
             }
@@ -1182,7 +1238,7 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
         Maps::redrawMap = true;
     }
 
-    if (pendingTiles.empty() && !navScrollDeferred_)
+    if (pendingTiles.empty() && !navScrollDeferred)
     {
         displayOffsetX = offsetX;
         displayOffsetY = offsetY;
@@ -1209,15 +1265,15 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
  */
 void Maps::commitScroll()
 {
-    _scrolling = false;
+    scrolling = false;
 
-    if (!navScrollDeferred_)
+    if (!navScrollDeferred)
         return;
 
     if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(10)) != pdTRUE)
         return;
 
-    navScrollDeferred_ = false;
+    navScrollDeferred = false;
     updateMap();
     generateMap(zoomLevel);
     Maps::redrawMap = true;
@@ -1230,7 +1286,7 @@ void Maps::commitScroll()
   *
   * @details Shifts the already rendered sprite one tile in the pan direction and loads only the
   *          incoming edge tiles from SD instead of re-reading the whole grid. Advances the grid
-  *          anchor (navTlTileX_/navTlTileY_, oldMapTile) to the new top-left, recomputes totalBounds
+  *          anchor (navTlTileX/navTlTileY, oldMapTile) to the new top-left, recomputes totalBounds
   *          from the grid corners, repositions the waypoint and redraws the track.
   *
   * @param dirX X pan direction (-1, 0, +1)
@@ -1251,8 +1307,8 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
     else if (dirY != 0)
         mapTempSprite.scroll(0, -dirY * tileSize);
 
-    navTlTileX_ = (float)tlX;
-    navTlTileY_ = (float)tlY;
+    navTlTileX = (float)tlX;
+    navTlTileY = (float)tlY;
     Maps::oldMapTile.tilex = centerTileIdxX;
     Maps::oldMapTile.tiley = centerTileIdxY;
     Maps::oldMapTile.zoom  = Maps::zoomLevel;
@@ -1572,12 +1628,12 @@ void Maps::fillPolygonGeneral(MapCanvas &map, const int *px, const int *py, cons
  */
 void Maps::latLonToPixel(float lat, float lon, int16_t& px, int16_t& py)
 {
-    const float n = static_cast<float>(1u << navLastZoom_);
+    const float n = static_cast<float>(1u << navLastZoom);
     const float tx = (lon + 180.0f) / 360.0f * n;
     const float merc_n = calcMercatorN(lat);
     const float ty = (1.0f - merc_n / static_cast<float>(M_PI)) / 2.0f * n;
-    px = static_cast<int16_t>((tx - navTlTileX_) * 256.0f);
-    py = static_cast<int16_t>((ty - navTlTileY_) * 256.0f);
+    px = static_cast<int16_t>((tx - navTlTileX) * 256.0f);
+    py = static_cast<int16_t>((ty - navTlTileY) * 256.0f);
 }
 
 /**
@@ -1673,7 +1729,7 @@ void Maps::renderNavLineString(const FeatureRef& ref, MapCanvas& map, bool isCas
     int16_t lastPy = -32768;
     int16_t w = (int16_t)tileWidth;
     int16_t h = (int16_t)tileHeight;
-    const int16_t lodThreshold = getLODThreshold(navLastZoom_);
+    const int16_t lodThreshold = getLODThreshold(navLastZoom);
 
     for (uint16_t i = 0; i < ref.coordCount; i++)
     {
@@ -1778,7 +1834,7 @@ void Maps::renderNavPolygon(const FeatureRef& ref, MapCanvas& map)
     int16_t lastX = -32768;
     int16_t lastY = -32768;
     uint16_t actualPoints = 0;
-    const int16_t lodThreshold = getLODThreshold(navLastZoom_);
+    const int16_t lodThreshold = getLODThreshold(navLastZoom);
 
     for (size_t i = 0; i < ref.coordCount; i++)
     {
@@ -1806,7 +1862,7 @@ void Maps::renderNavPolygon(const FeatureRef& ref, MapCanvas& map)
     int* px = projBuf32X.data();
     int* py = projBuf32Y.data();
     fillPolygonGeneral(map, px, py, actualPoints, ref.color, 0, 0, ringCount, ringEndsPtr);
-    if (ref.casing && navLastZoom_ >= 16)
+    if (ref.casing && navLastZoom >= 16)
     {
         uint16_t outlineColor = darkenRGB565(ref.color, 0.35f);
         int ringStart = 0;
@@ -1974,7 +2030,7 @@ void Maps::enqueueTileGrid(uint32_t centerTileIdxX, uint32_t centerTileIdxY, Til
                                         (uint32_t)(centerTileIdxY - gridOffset + dy),
                                         (int16_t)(dx * 256), (int16_t)(dy * 256), type});
     }
-    pendingTilesNotEmpty_ = true;
+    pendingTilesNotEmpty = true;
 }
 
 /**
@@ -1991,15 +2047,15 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, Map
     const uint32_t centerTileIdxX = lon2tilex(centerLon, zoom);
     const uint32_t centerTileIdxY = lat2tiley(centerLat, zoom);
     const int8_t gridOffset = tilesGrid / 2;
-    navTlTileX_ = (float)(centerTileIdxX - gridOffset);
-    navTlTileY_ = (float)(centerTileIdxY - gridOffset);
-    bool zoomChanged = (zoom != navLastZoom_);
-    navLastZoom_ = zoom;
+    navTlTileX = (float)(centerTileIdxX - gridOffset);
+    navTlTileY = (float)(centerTileIdxY - gridOffset);
+    bool zoomChanged = (zoom != navLastZoom);
+    navLastZoom = zoom;
     if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
     {
         redrawMap = true;
         pendingTiles.clear();
-        pendingTilesNotEmpty_ = false;
+        pendingTilesNotEmpty = false;
         enqueueTileGrid(centerTileIdxX, centerTileIdxY, TILE_NAV);
         xSemaphoreGiveRecursive(mapMutex);
     }
