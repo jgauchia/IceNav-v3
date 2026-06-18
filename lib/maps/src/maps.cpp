@@ -269,18 +269,6 @@ void Maps::coords2map(float lat, float lon, const tileBounds& bound, uint16_t *p
 }
 
 /**
- * @brief Load No Map image
- */
-void Maps::showNoMap(MapCanvas &map)
-{
-    int16_t centerX = (Maps::mapScrWidth / 2) - 50;
-    int16_t centerY = (Maps::mapScrHeight / 2) - 50;
-    map.drawPngFile(noMapFile, centerX, centerY);
-    map.drawCenterString("NO MAP FOUND", (Maps::mapScrWidth / 2), (Maps::mapScrHeight >> 1) + 65, &fonts::DejaVu18);
-}
-
-
-/**
  * @brief Initialize map sprites and variables
  * 
  * @param mapHeight Map height
@@ -336,6 +324,24 @@ void Maps::drawTrack(MapCanvas& map)
         if ((x1 >= 0 && x1 < tileWidth && y1 >= 0 && y1 < tileHeight) || (x2 >= 0 && x2 < tileWidth && y2 >= 0 && y2 < tileHeight))
             map.drawWideLine(x1, y1, x2, y2, 3, TFT_BLUE);
     }
+}
+
+/**
+ * @brief Draw the waypoint marker onto the grid sprite.
+ *
+ * @details Stamps the marker in grid space (same coordinate frame as drawTrack) so it travels
+ *          with the grid during scroll and rotation, instead of being re-stamped every frame in
+ *          displayMap(). Drawn only when a waypoint is set and its grid position is in range.
+ *
+ * @param map Target sprite.
+ */
+void Maps::drawWaypoint(MapCanvas& map)
+{
+    if (!hasWaypoint)
+        return;
+    if (wptPosX >= tileWidth || wptPosY >= tileHeight)
+        return;
+    map.pushImage(wptPosX - 8, wptPosY - 8, 16, 16, (uint16_t *)waypoint, TFT_BLACK);
 }
 
 /**
@@ -453,43 +459,15 @@ void Maps::generateMap(uint8_t zoom)
         navTlTileX_ = (float)tlX;
         navTlTileY_ = (float)tlY;
         navLastZoom_ = zoom;
-        Maps::mapTempSprite.fillSprite(TFT_WHITE);
-        Maps::totalBounds = {90.0f, -90.0f, 180.0f, -180.0f};
-        bool centerFound = false;
-
-        if (tilesGrid == 3)
+        Maps::isMapFound = true;
+        Maps::redrawMap = true;
+        if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
         {
-            for (int i = 0; i < 9; i++)
-                loadPngTileIntoSprite(tlX, tlY, PNG_SPIRAL_ORDER[i][0], PNG_SPIRAL_ORDER[i][1],
-                                      centerTileIdxX, centerTileIdxY, zoom, centerFound);
-        }
-        else
-        {
-            for (int gy = 0; gy < tilesGrid; gy++)
-                for (int gx = 0; gx < tilesGrid; gx++)
-                    loadPngTileIntoSprite(tlX, tlY, gx, gy,
-                                          centerTileIdxX, centerTileIdxY, zoom, centerFound);
-        }
-
-        Maps::isMapFound = centerFound;
-        if (!centerFound)
-            showNoMap(mapTempSprite);
-
-        if (Maps::isMapFound && Maps::isCoordInBounds(Maps::destLat, Maps::destLon, Maps::totalBounds))
-            Maps::coords2map(Maps::destLat, Maps::destLon, Maps::totalBounds, &wptPosX, &wptPosY);
-        else
-        {
-            Maps::wptPosX = -1;
-            Maps::wptPosY = -1;
-        }
-
-        if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(100)) == pdTRUE)
-        {
-            drawTrack(mapTempSprite);
-            redrawMap = true;
+            pendingTiles.clear();
+            pendingTilesNotEmpty_ = false;
+            enqueueTileGrid(centerTileIdxX, centerTileIdxY, TILE_PNG);
             xSemaphoreGiveRecursive(mapMutex);
         }
-        xEventGroupSetBits(mapEventGroup, MAP_EVENT_DONE);
     }
 }
 
@@ -540,6 +518,8 @@ void Maps::mapRenderTask(void* pvParameters)
 
                     if (mapSet.vectorMap)
                         NavReader::openPack(instance->zoomLevel);
+                    else if (instance->mapTempSprite.getBuffer())
+                        instance->mapTempSprite.fillSprite(TFT_WHITE);
                 }
 
                 // Yields mutex briefly so other tasks can run between tile renders.
@@ -597,11 +577,40 @@ void Maps::mapRenderTask(void* pvParameters)
 
                 if (!mapSet.vectorMap)
                 {
+                    const int32_t tlX = (int32_t)instance->navTlTileX_;
+                    const int32_t tlY = (int32_t)instance->navTlTileY_;
+                    instance->totalBounds = instance->getTileBounds((uint32_t)tlX, (uint32_t)tlY, instance->zoomLevel);
+                    const tileBounds brBounds = instance->getTileBounds((uint32_t)(tlX + tilesGrid - 1),
+                                                                        (uint32_t)(tlY + tilesGrid - 1), instance->zoomLevel);
+                    if (brBounds.lat_min < instance->totalBounds.lat_min)
+                        instance->totalBounds.lat_min = brBounds.lat_min;
+                    if (brBounds.lat_max > instance->totalBounds.lat_max)
+                        instance->totalBounds.lat_max = brBounds.lat_max;
+                    if (brBounds.lon_min < instance->totalBounds.lon_min)
+                        instance->totalBounds.lon_min = brBounds.lon_min;
+                    if (brBounds.lon_max > instance->totalBounds.lon_max)
+                        instance->totalBounds.lon_max = brBounds.lon_max;
+
+                    if (instance->isMapFound && instance->isCoordInBounds(instance->destLat, instance->destLon, instance->totalBounds))
+                        instance->coords2map(instance->destLat, instance->destLon, instance->totalBounds, &instance->wptPosX, &instance->wptPosY);
+                    else
+                    {
+                        instance->wptPosX = -1;
+                        instance->wptPosY = -1;
+                    }
+
+                    instance->displayOffsetX = instance->offsetX;
+                    instance->displayOffsetY = instance->offsetY;
+                    instance->lastTileX = instance->tileX;
+                    instance->lastTileY = instance->tileY;
+
                     instance->drawTrack(instance->mapTempSprite);
+                    instance->drawWaypoint(instance->mapTempSprite);
                     instance->redrawMap = true;
                     xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
                     xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
                     xSemaphoreGiveRecursive(instance->mapMutex);
+                    triggerMapRedraw();
                     continue;
                 }
 
@@ -699,6 +708,7 @@ void Maps::mapRenderTask(void* pvParameters)
                 instance->lastTileY = instance->tileY;
 
                 instance->drawTrack(instance->mapTempSprite);
+                instance->drawWaypoint(instance->mapTempSprite);
                 instance->redrawMap = true;
 
                 xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
@@ -763,7 +773,6 @@ void Maps::displayMap()
         mapHeading = gpsSnap.heading;
     #endif
     
-    Maps::mapTempSprite.pushImage(Maps::wptPosX - 8, Maps::wptPosY - 8, 16, 16, (uint16_t *)waypoint, TFT_BLACK);
     mapCanvasParent()->startWrite();
 
     if (Maps::followGps)
@@ -1144,7 +1153,7 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
         {
             const bool singleStep = (abs(deltaTileX) == 1 && deltaTileY == 0) ||
                                     (abs(deltaTileY) == 1 && deltaTileX == 0);
-            if (singleStep)
+            if (singleStep && pendingTiles.empty())
                 Maps::preloadTiles(deltaTileX, deltaTileY);
             else
                 generateMap(zoomLevel);
@@ -1157,7 +1166,10 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
             const int16_t deferredY = offsetY + (tileY - lastTileY) * mapTileSize;
             const bool exceedsMargin = abs(deferredX) > marginX || abs(deferredY) > marginY;
 
-            if (_scrolling && !exceedsMargin)
+            // During inertia the re-render is postponed even past the grid margin (the stale
+            // edge is tolerated until the flick stops) so the grid is not re-rasterized on every
+            // crossing. A finger drag is slow enough to re-render when the margin is exceeded.
+            if (_scrolling && (_inertia || !exceedsMargin))
                 navScrollDeferred_ = true;
             else
             {
@@ -1280,6 +1292,7 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
     }
 
     drawTrack(mapTempSprite);
+    drawWaypoint(mapTempSprite);
     redrawMap = true;
     xEventGroupSetBits(mapEventGroup, MAP_EVENT_DONE);
 }

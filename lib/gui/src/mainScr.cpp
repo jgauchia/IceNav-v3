@@ -815,7 +815,8 @@ static void map_inertia_timer_cb(lv_timer_t * t)
         float dy = mapView.velocityY * dt;
         mapView.scrollMap((int16_t)dx, (int16_t)dy);
 
-        float currentFriction = mapView.isRendering() ? MAP_INERTIA_FRICTION : mapView.friction;
+        bool renderBusy = mapView.isRendering() || mapView.isScrollDeferred();
+        float currentFriction = renderBusy ? MAP_INERTIA_FRICTION : mapView.friction;
         mapView.velocityX *= currentFriction;
         mapView.velocityY *= currentFriction;
 
@@ -830,6 +831,7 @@ static void map_inertia_timer_cb(lv_timer_t * t)
     else
     {
         lv_timer_pause(t);
+        mapView.setInertia(false);
         mapView.commitScroll();
         triggerMapRedraw();
         lv_subject_set_int(&subject_map_state, MAP_MODE_MANUAL);
@@ -863,6 +865,7 @@ static void scrollMapEvent(lv_event_t *event)
                 isScrollingMap = true;
                 mapView.velocityX = 0;
                 mapView.velocityY = 0;
+                mapView.setInertia(false);
                 lv_subject_set_int(&subject_map_state, MAP_MODE_MANUAL);
                 if (map_inertia_timer != NULL)
                     lv_timer_pause(map_inertia_timer);
@@ -907,6 +910,7 @@ static void scrollMapEvent(lv_event_t *event)
                 if (abs(mapView.velocityX) > MAP_INERTIA_VEL_THRESH || abs(mapView.velocityY) > MAP_INERTIA_VEL_THRESH)
                 {
                     lv_subject_set_int(&subject_map_state, MAP_MODE_INERTIA);
+                    mapView.setInertia(true);
                     if (map_inertia_timer != NULL)
                         lv_timer_resume(map_inertia_timer);
                 }

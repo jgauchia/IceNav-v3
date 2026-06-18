@@ -87,7 +87,6 @@ private:
     bool isCoordInBounds(float lat, float lon, tileBounds bound);
     ScreenCoord coord2ScreenPos(float lon, float lat, uint8_t zoomLevel, uint16_t tileSize);
     void coords2map(float lat, float lon, const tileBounds& bound, uint16_t *pixelX, uint16_t *pixelY);
-    void showNoMap(MapCanvas &map);
     void panMap(int8_t dx, int8_t dy);
     uint16_t darkenRGB565(const uint16_t color, const float amount = 0.4f);
     void fillPolygonGeneral(MapCanvas &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset, uint16_t ringCount = 1, const uint16_t* ringEnds = nullptr);
@@ -95,6 +94,7 @@ private:
     float _mapTilt;
     float _focalLength;
     bool _scrolling = false;
+    bool _inertia = false;
     bool _use3DCache = false;
 
     bool isNavActive() const;
@@ -160,6 +160,7 @@ public:
     void centerOnGps(float lat, float lon);
     void scrollMap(int16_t dx, int16_t dy);
     void commitScroll();
+    void setInertia(bool active) { _inertia = active; }
     void resetScrollState();
 
 private:
@@ -213,10 +214,12 @@ private:
     void renderNavText(const FeatureRef& ref, MapCanvas& map, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels);
     void latLonToPixel(float lat, float lon, int16_t& px, int16_t& py);
     void drawTrack(MapCanvas& map);
+    void drawWaypoint(MapCanvas& map);
 
 public:
     void redrawTrack();
     bool isRendering() const { return pendingTilesNotEmpty_; }
+    bool isScrollDeferred() const { return navScrollDeferred_; }
     bool is3DActive() const { return _use3DCache; }
     TaskHandle_t renderTaskHandle() const { return mapRenderTaskHandle; }
 
