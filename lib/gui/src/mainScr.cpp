@@ -148,7 +148,7 @@ static struct
  */
 static void async_map_update_cb(void * user_data)
 {
-    if (!isMainScreen || mapImage == NULL)
+    if (!isMainScreen || mapImage == NULL || summaryOverlay != nullptr)
         return;
 
     mapView.generateMap(zoom);
@@ -227,7 +227,7 @@ static void toggle3DEvent(lv_event_t *event)
  */
 static void map_position_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
 {
-    if (activeTile != MAP || lv_subject_get_int(&subject_map_state) != MAP_MODE_FOLLOW)
+    if (activeTile != MAP || summaryOverlay != nullptr || lv_subject_get_int(&subject_map_state) != MAP_MODE_FOLLOW)
         return;
 
     lv_async_call(async_map_update_cb, NULL);
@@ -262,7 +262,7 @@ static void map_offset_observer_cb(lv_observer_t *observer, lv_subject_t *subjec
  */
 static void map_heading_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
 {
-    if (activeTile != MAP || canMoveWidget || lv_subject_get_int(&subject_map_state) != MAP_MODE_FOLLOW)
+    if (activeTile != MAP || canMoveWidget || summaryOverlay != nullptr || lv_subject_get_int(&subject_map_state) != MAP_MODE_FOLLOW)
         return;
 
     int32_t newHeading = lv_subject_get_int(subject);
@@ -1001,17 +1001,30 @@ static void createMapImage(_lv_obj_t *screen)
 }
 
 /**
+ * @brief Clear the overlay pointer once LVGL has actually destroyed it.
+ *
+ * @param e LVGL event (LV_EVENT_DELETE).
+ */
+static void summaryDeleteEvent(lv_event_t *e)
+{
+    summaryOverlay = nullptr;
+}
+
+/**
  * @brief Close the summary overlay when the user taps OK.
  *
  * @param e LVGL event (LV_EVENT_CLICKED).
  */
 static void summaryOkEvent(lv_event_t *e)
 {
-    if (summaryOverlay != nullptr && lv_obj_is_valid(summaryOverlay))
-    {
-        lv_obj_delete_async(summaryOverlay);
-        summaryOverlay = nullptr;
-    }
+    if (summaryOverlay == nullptr || !lv_obj_is_valid(summaryOverlay))
+        return;
+
+    if (lv_obj_has_flag(summaryOverlay, LV_OBJ_FLAG_HIDDEN))
+        return;
+
+    lv_obj_add_flag(summaryOverlay, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_delete_async(summaryOverlay);
 }
 
 /**
@@ -1035,6 +1048,7 @@ static void showLoggerSummary()
     lv_obj_set_style_bg_opa(summaryOverlay, LV_OPA_70, 0);
     lv_obj_set_style_border_width(summaryOverlay, 0, 0);
     lv_obj_clear_flag(summaryOverlay, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_event_cb(summaryOverlay, summaryDeleteEvent, LV_EVENT_DELETE, nullptr);
 
     lv_obj_t *card = lv_obj_create(summaryOverlay);
     lv_obj_set_size(card, TFT_WIDTH - 20, TFT_HEIGHT - 50);
