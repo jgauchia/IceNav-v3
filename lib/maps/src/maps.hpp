@@ -120,6 +120,7 @@ public:
     uint16_t mapScrWidth;
     volatile bool redrawMap = true;
     bool followGps = true;
+    float manualHeading = 0.0f;
     bool isMapFound = false;
     MapTile oldMapTile;
     MapTile currentMapTile;
@@ -131,6 +132,7 @@ public:
     ScreenCoord lastRenderedArrowPos;
     int16_t lastRenderedDisplayOffsetX;
     int16_t lastRenderedDisplayOffsetY;
+    float lastRenderedManualHeading = 0.0f;
     int16_t offsetX = 0;
     int16_t offsetY = 0;
     int16_t displayOffsetX = 0;

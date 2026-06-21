@@ -16,6 +16,7 @@
 #define TOUCH_DOUBLE_TAP_MIN_INTERVAL 80    /**< Min interval (ms) between releases to filter bounce */
 #define SPEED_FAST 1.0f                     /**< Fast gesture speed threshold (px/ms) */
 #define SPEED_SLOW 0.3f                     /**< Slow gesture speed threshold (px/ms) */
+#define ROTATE_ANGLE_THRESHOLD 1.5f         /**< Minimum angle delta (degrees) to register rotation */
 
 static bool countTouchReleases = false;         /**< Indicates if touch release events are being counted */
 static int numberTouchReleases = 0;             /**< Number of detected touch releases */
@@ -33,3 +34,4 @@ typedef enum
 } zoom_dir;
 
 zoom_dir pinchZoom(const TouchPoint prev[TOUCH_MAX_POINTS],const TouchPoint curr[TOUCH_MAX_POINTS],float dt_ms);
+float pinchRotate(const TouchPoint prev[TOUCH_MAX_POINTS], const TouchPoint curr[TOUCH_MAX_POINTS]);

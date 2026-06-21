@@ -812,27 +812,27 @@ void Maps::displayMap()
     if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(50)) != pdTRUE)
         return;
 
-    const Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
-
-    uint16_t mapHeading = 0;
-    #ifdef ENABLE_COMPASS
-    {
-        int sensorHeading = 0;
-        if (sensorMutex != NULL && xSemaphoreTake(sensorMutex, pdMS_TO_TICKS(5)) == pdTRUE)
-        {
-            sensorHeading = globalSensorData.heading;
-            xSemaphoreGive(sensorMutex);
-        }
-        mapHeading = mapSet.mapRotationComp ? (uint16_t)sensorHeading : gpsSnap.heading;
-    }
-    #else
-        mapHeading = gpsSnap.heading;
-    #endif
-    
     mapCanvasParent()->startWrite();
 
     if (Maps::followGps)
     {
+        const Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
+
+        uint16_t mapHeading = 0;
+        #ifdef ENABLE_COMPASS
+        {
+            int sensorHeading = 0;
+            if (sensorMutex != NULL && xSemaphoreTake(sensorMutex, pdMS_TO_TICKS(5)) == pdTRUE)
+            {
+                sensorHeading = globalSensorData.heading;
+                xSemaphoreGive(sensorMutex);
+            }
+            mapHeading = mapSet.mapRotationComp ? (uint16_t)sensorHeading : gpsSnap.heading;
+        }
+        #else
+            mapHeading = gpsSnap.heading;
+        #endif
+
         const float lat = gpsSnap.latitude;
         const float lon = gpsSnap.longitude;
         const int8_t gridOffset = tilesGrid / 2;
@@ -868,24 +868,35 @@ void Maps::displayMap()
     }
     else
     {
-        // Hysteresis: Skip pushSprite if visual change is minimal and no redraw is forced
         if (!Maps::redrawMap)
         {
             if (displayOffsetX == lastRenderedDisplayOffsetX &&
-                displayOffsetY == lastRenderedDisplayOffsetY)
+                displayOffsetY == lastRenderedDisplayOffsetY &&
+                manualHeading  == lastRenderedManualHeading)
             {
                 mapCanvasParent()->endWrite();
                 xSemaphoreGiveRecursive(mapMutex);
                 return;
             }
         }
-        lastRenderedDisplayOffsetX = displayOffsetX;
-        lastRenderedDisplayOffsetY = displayOffsetY;
+        lastRenderedDisplayOffsetX  = displayOffsetX;
+        lastRenderedDisplayOffsetY  = displayOffsetY;
+        lastRenderedManualHeading   = manualHeading;
 
-        // Manual panning: crop central part of grid adjusted by displayOffsetX/offsetY
-        int16_t cropX = (tileWidth - mapScrWidth) / 2 + displayOffsetX;
-        int16_t cropY = (tileHeight - mapScrHeight) / 2 + displayOffsetY;
-        mapTempSprite.pushSprite(&mapSprite, -cropX, -cropY);
+        if (manualHeading != 0.0f)
+        {
+            int16_t pivX = tileWidth  / 2 + displayOffsetX;
+            int16_t pivY = tileHeight / 2 + displayOffsetY;
+            Maps::mapTempSprite.setPivot(pivX, pivY);
+            Maps::mapSprite.setPivot(mapScrWidth / 2, mapScrHeight / 2);
+            Maps::mapTempSprite.pushRotated(&mapSprite, 360.0f - manualHeading, TFT_TRANSPARENT);
+        }
+        else
+        {
+            int16_t cropX = (tileWidth  - mapScrWidth)  / 2 + displayOffsetX;
+            int16_t cropY = (tileHeight - mapScrHeight) / 2 + displayOffsetY;
+            mapTempSprite.pushSprite(&mapSprite, -cropX, -cropY);
+        }
     }
 
     Maps::redrawMap = false;
@@ -1093,6 +1104,8 @@ void Maps::centerOnGps(float lat, float lon)
     Maps::currentMapTile.tiley = Maps::lat2tiley(lat, Maps::currentMapTile.zoom);
     Maps::currentMapTile.lat = lat;
     Maps::currentMapTile.lon = lon;
+    manualHeading = 0.0f;
+    lastRenderedManualHeading = 0.0f;
     resetScrollState();
 }
 
@@ -1124,6 +1137,16 @@ void Maps::resetScrollState()
  */
 void Maps::scrollMap(int16_t dx, int16_t dy)
 {
+    if (manualHeading != 0.0f)
+    {
+        float rad = manualHeading * (float)M_PI / 180.0f;
+        float c = cosf(rad);
+        float s = sinf(rad);
+        float dxR = (float)dx * c - (float)dy * s;
+        float dyR = (float)dx * s + (float)dy * c;
+        dx = (int16_t)dxR;
+        dy = (int16_t)dyR;
+    }
     pendingDx += dx;
     pendingDy += dy;
     scrolling = true;

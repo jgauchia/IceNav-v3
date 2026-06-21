@@ -21,6 +21,10 @@
 
 static const char *TAG = "LVGL";
 
+extern void triggerMapRedraw();
+
+volatile bool twoFingerGesture = false; /**< True while two touch points are reported; suppresses single-finger scroll during pinch/rotate. */
+
 SemaphoreHandle_t lvgl_mutex = NULL;
 
 lv_display_t *display_drv; /**< LVGL display driver */
@@ -100,7 +104,9 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     static TouchPoint touchPrev[TOUCH_MAX_POINTS];
     static bool prevValid = false;
     static bool pinchActive = false;
-    static int lastZoomDir = ZOOM_NONE;    
+    static int lastZoomDir = ZOOM_NONE;
+    static bool rotationLocked = false;
+    static bool zoomLocked = false;
     static unsigned long lastTime = 0;
     
     // Variables for drag detection
@@ -142,6 +148,9 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
         pinchActive = false;
         prevValid = false;
         lastZoomDir = ZOOM_NONE;
+        rotationLocked = false;
+        zoomLocked = false;
+        twoFingerGesture = false;
         lastTime = now;
 
         if (countTouchReleases)
@@ -217,6 +226,8 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
             pinchActive = false;
             prevValid = false;
             lastZoomDir = ZOOM_NONE;
+            rotationLocked = false;
+            zoomLocked = false;
             lastTime = now;
             data->state = LV_INDEV_STATE_PRESSED;
             lastTouchState = LV_INDEV_STATE_PRESSED;
@@ -224,13 +235,37 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
         }
         else if (count == 2)
         {
+            countTouchReleases = false;
+            numberTouchReleases = 0;
+            firstTouchReleaseTime = 0;
+            lastTouchReleaseTime = 0;
+            twoFingerGesture = true;
+
             if (prevValid)
             {
-                zoom_dir zoomDir = pinchZoom(touchPrev, touchRaw, dt_ms);
-                if (zoomDir != ZOOM_NONE && showMapToolBar)
+                if (showMapToolBar && !zoomLocked)
                 {
-                    pinchActive = true;
-                    lastZoomDir = zoomDir;
+                    float rotDelta = pinchRotate(touchPrev, touchRaw);
+                    if (rotDelta != 0.0f)
+                    {
+                        rotationLocked = true;
+                        mapView.followGps = false;
+                        mapView.manualHeading -= rotDelta;
+                        if (mapView.manualHeading >= 360.0f) mapView.manualHeading -= 360.0f;
+                        if (mapView.manualHeading <    0.0f) mapView.manualHeading += 360.0f;
+                        mapView.redrawMap = true;
+                        triggerMapRedraw();
+                    }
+                }
+                if (!rotationLocked)
+                {
+                    zoom_dir zoomDir = pinchZoom(touchPrev, touchRaw, dt_ms);
+                    if (zoomDir != ZOOM_NONE && showMapToolBar)
+                    {
+                        zoomLocked = true;
+                        pinchActive = true;
+                        lastZoomDir = zoomDir;
+                    }
                 }
             }
             touchPrev[0] = touchRaw[0];

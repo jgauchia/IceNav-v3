@@ -143,11 +143,15 @@ static struct
     bool     dragStarted  = false;
 } scrollState;
 
+static volatile bool redrawPending = false;
+
 /**
  * @brief Async callback to delegate map redrawing to UI thread (Core 1)
  */
 static void async_map_update_cb(void * user_data)
 {
+    __atomic_store_n(&redrawPending, false, __ATOMIC_SEQ_CST);
+
     if (!isMainScreen || mapImage == NULL || summaryOverlay != nullptr)
         return;
 
@@ -201,6 +205,8 @@ static void async_map_update_cb(void * user_data)
  */
 void triggerMapRedraw()
 {
+    if (__atomic_exchange_n(&redrawPending, true, __ATOMIC_SEQ_CST))
+        return;
     lv_async_call(async_map_update_cb, NULL);
 }
 
@@ -230,7 +236,7 @@ static void map_position_observer_cb(lv_observer_t *observer, lv_subject_t *subj
     if (activeTile != MAP || summaryOverlay != nullptr || lv_subject_get_int(&subject_map_state) != MAP_MODE_FOLLOW)
         return;
 
-    lv_async_call(async_map_update_cb, NULL);
+    triggerMapRedraw();
 }
 
 /**
@@ -247,7 +253,7 @@ static void map_offset_observer_cb(lv_observer_t *observer, lv_subject_t *subjec
     if (activeTile != MAP)
         return;
 
-    lv_async_call(async_map_update_cb, NULL);
+    triggerMapRedraw();
 }
 
 /**
@@ -270,7 +276,7 @@ static void map_heading_observer_cb(lv_observer_t *observer, lv_subject_t *subje
     if (abs(newHeading - global_last_heading) > MAP_HEADING_THRESHOLD)
     {
         global_last_heading = newHeading;
-        lv_async_call(async_map_update_cb, NULL);
+        triggerMapRedraw();
     }
 }
 
@@ -738,7 +744,7 @@ static void scrollTile(lv_event_t *event)
  */
 static void updateMap(lv_event_t *event)
 {
-    lv_async_call(async_map_update_cb, NULL);
+    triggerMapRedraw();
 }
 
 /**
@@ -848,9 +854,12 @@ static void map_inertia_timer_cb(lv_timer_t * t)
  */
 static void scrollMapEvent(lv_event_t *event)
 {
+    extern volatile bool twoFingerGesture;
     if (canScrollMap)
     {
         lv_event_code_t code = lv_event_get_code(event);
+        if (twoFingerGesture && code != LV_EVENT_RELEASED && code != LV_EVENT_PRESS_LOST)
+            return;
         lv_indev_t * indev = lv_event_get_indev(event);
         lv_point_t p;
 
