@@ -8,6 +8,7 @@
 
 #include "graph_loader.hpp"
 #include "storage.hpp"
+#include "esp_log.h"
 #include "settings.hpp"
 #include <cmath>
 #include <cstring>
@@ -46,67 +47,72 @@ bool GraphLoader::load()
         return false;
     }
 
-    cellIndex_.resize(hdr.cell_count);
-    storage.read(f, reinterpret_cast<uint8_t*>(cellIndex_.data()),
-                 hdr.cell_count * sizeof(CellIndexEntry));
-
-    // Data block starts immediately after header + index.
-    data_base_offset_ = sizeof(RouteFileHeader) + hdr.cell_count * sizeof(CellIndexEntry);
-
-    totalNodes_ = 0;
-    for (const auto& c : cellIndex_)
+    cellIndex.resize(hdr.cell_count);
+    size_t indexBytes = hdr.cell_count * sizeof(CellIndexEntry);
+    if (storage.read(f, reinterpret_cast<uint8_t*>(cellIndex.data()), indexBytes) != indexBytes)
     {
-        uint32_t end = c.node_offset + c.node_count;
-        if (end > totalNodes_)
-            totalNodes_ = end;
+        ESP_LOGE("GraphLoader", "Partial read of cell index (%u cells)", hdr.cell_count);
+        storage.close(f);
+        return false;
     }
 
-    file_   = f;
-    loaded_ = true;
+    // Data block starts immediately after header + index.
+    data_base_offset = sizeof(RouteFileHeader) + hdr.cell_count * sizeof(CellIndexEntry);
+
+    nodeCount = 0;
+    for (const auto& c : cellIndex)
+    {
+        uint32_t end = c.node_offset + c.node_count;
+        if (end > nodeCount)
+            nodeCount = end;
+    }
+
+    file   = f;
+    loaded = true;
 
     return true;
 }
 
 /**
- * @brief Return the cellIndex_ index for the cell owning global node gi.
+ * @brief Return the cellIndex index for the cell owning global node gi.
  *
- * Uses binary search on node_offset (cellIndex_ is sorted ascending by it).
+ * Uses binary search on node_offset (cellIndex is sorted ascending by it).
  */
 uint32_t GraphLoader::cellForNode(uint32_t gi) const
 {
-    if (cellIndex_.empty())
+    if (cellIndex.empty())
         return UINT32_MAX;
 
     // Find the last cell whose node_offset <= gi.
     uint32_t lo = 0;
-    uint32_t hi = (uint32_t)cellIndex_.size() - 1;
+    uint32_t hi = (uint32_t)cellIndex.size() - 1;
     while (lo < hi)
     {
         uint32_t mid = lo + (hi - lo + 1) / 2;
-        if (cellIndex_[mid].node_offset <= gi)
+        if (cellIndex[mid].node_offset <= gi)
             lo = mid;
         else
             hi = mid - 1;
     }
 
-    const CellIndexEntry& c = cellIndex_[lo];
+    const CellIndexEntry& c = cellIndex[lo];
     if (gi >= c.node_offset && gi < c.node_offset + c.node_count)
         return lo;
     return UINT32_MAX;
 }
 
 /**
- * @brief Evict the page with the lowest LRU stamp from pageCache_.
+ * @brief Evict the page with the lowest LRU stamp from pageCache.
  */
 void GraphLoader::evictLRU() const
 {
-    if (pageCache_.empty())
+    if (pageCache.empty())
         return;
 
     uint32_t oldest_key   = 0;
     uint32_t oldest_stamp = UINT32_MAX;
 
-    for (const auto& kv : pageCache_)
+    for (const auto& kv : pageCache)
     {
         if (kv.second.lru_stamp < oldest_stamp)
         {
@@ -114,7 +120,7 @@ void GraphLoader::evictLRU() const
             oldest_key   = kv.first;
         }
     }
-    pageCache_.erase(oldest_key);
+    pageCache.erase(oldest_key);
 }
 
 /**
@@ -123,28 +129,28 @@ void GraphLoader::evictLRU() const
  * Evicts the LRU page if the cache is full. Returns nullptr if the load fails
  * or there is insufficient PSRAM.
  *
- * @param cell_idx Index into cellIndex_
+ * @param cell_idx Index into cellIndex
  * @return Pointer to the loaded PageData, or nullptr on failure
  */
 GraphLoader::PageData* GraphLoader::fetchPage(uint32_t cell_idx) const
 {
-    auto it = pageCache_.find(cell_idx);
-    if (it != pageCache_.end())
+    auto it = pageCache.find(cell_idx);
+    if (it != pageCache.end())
     {
-        it->second.lru_stamp = ++lru_clock_;
+        it->second.lru_stamp = ++lru_clock;
         return &it->second;
     }
 
-    if (!file_)
+    if (!file)
         return nullptr;
 
-    const CellIndexEntry& c = cellIndex_[cell_idx];
+    const CellIndexEntry& c = cellIndex[cell_idx];
     size_t node_bytes = c.node_count * sizeof(RouteNode);
     size_t edge_bytes = c.edge_count * sizeof(RouteEdge);
     size_t needed     = node_bytes + edge_bytes;
     size_t avail      = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
 
-    if (pageCache_.size() >= PAGE_CACHE_MAX)
+    if (pageCache.size() >= PAGE_CACHE_MAX)
         evictLRU();
 
     // Re-check PSRAM after potential eviction
@@ -154,7 +160,7 @@ GraphLoader::PageData* GraphLoader::fetchPage(uint32_t cell_idx) const
 
     PageData page;
     page.cell_idx  = cell_idx;
-    page.lru_stamp = ++lru_clock_;
+    page.lru_stamp = ++lru_clock;
 
     try
     {
@@ -166,17 +172,17 @@ GraphLoader::PageData* GraphLoader::fetchPage(uint32_t cell_idx) const
         return nullptr;
     }
 
-    uint32_t file_offset = data_base_offset_ + c.data_offset;
+    uint32_t file_offset = data_base_offset + c.data_offset;
 
     if (c.node_count > 0)
-        storage.seekAndRead(file_, file_offset,
+        storage.seekAndRead(file, file_offset,
                             reinterpret_cast<uint8_t*>(page.nodes.data()), node_bytes);
 
     if (c.edge_count > 0)
-        storage.seekAndRead(file_, file_offset + node_bytes,
+        storage.seekAndRead(file, file_offset + node_bytes,
                             reinterpret_cast<uint8_t*>(page.edges.data()), edge_bytes);
 
-    auto res = pageCache_.emplace(cell_idx, std::move(page));
+    auto res = pageCache.emplace(cell_idx, std::move(page));
     if (!res.second)
         return nullptr;
     return &res.first->second;
@@ -195,9 +201,9 @@ void GraphLoader::preloadPoint(float lat, float lon) const
     int32_t lat_e4 = (int32_t)(floorf(lat * 10000.f / 500.f) * 500.f);
     int32_t lon_e4 = (int32_t)(floorf(lon * 10000.f / 500.f) * 500.f);
 
-    for (uint32_t i = 0; i < (uint32_t)cellIndex_.size(); ++i)
+    for (uint32_t i = 0; i < (uint32_t)cellIndex.size(); ++i)
     {
-        if (cellIndex_[i].lat_e4 == lat_e4 && cellIndex_[i].lon_e4 == lon_e4)
+        if (cellIndex[i].lat_e4 == lat_e4 && cellIndex[i].lon_e4 == lon_e4)
         {
             fetchPage(i);
             return;
@@ -221,18 +227,18 @@ bool GraphLoader::getNode(uint32_t gi, RouteNode& out_node) const
     PageData* page = fetchPage(ci);
     if (page)
     {
-        uint32_t local = gi - cellIndex_[ci].node_offset;
+        uint32_t local = gi - cellIndex[ci].node_offset;
         out_node = page->nodes[local];
         return true;
     }
 
     // Fallback: read directly from SD using the cell's data_offset.
-    if (!file_)
+    if (!file)
         return false;
-    const CellIndexEntry& cb = cellIndex_[ci];
+    const CellIndexEntry& cb = cellIndex[ci];
     uint32_t local = gi - cb.node_offset;
-    uint32_t file_off = data_base_offset_ + cb.data_offset + local * sizeof(RouteNode);
-    return storage.seekAndRead(file_, file_off,
+    uint32_t file_off = data_base_offset + cb.data_offset + local * sizeof(RouteNode);
+    return storage.seekAndRead(file, file_off,
                                reinterpret_cast<uint8_t*>(&out_node),
                                sizeof(RouteNode)) == sizeof(RouteNode);
 }
@@ -258,9 +264,9 @@ uint32_t GraphLoader::nearestNode(float lat, float lon) const
 
     for (float radius : RADII)
     {
-        for (uint32_t ci = 0; ci < (uint32_t)cellIndex_.size(); ++ci)
+        for (uint32_t ci = 0; ci < (uint32_t)cellIndex.size(); ++ci)
         {
-            const CellIndexEntry& cell = cellIndex_[ci];
+            const CellIndexEntry& cell = cellIndex[ci];
             float cell_lat = cell.lat_e4 / 10000.0f;
             float cell_lon = cell.lon_e4 / 10000.0f;
 
@@ -270,8 +276,8 @@ uint32_t GraphLoader::nearestNode(float lat, float lon) const
                 continue;
 
             // Only search pages already in PSRAM — never trigger an SD load here.
-            auto it = pageCache_.find(ci);
-            if (it == pageCache_.end())
+            auto it = pageCache.find(ci);
+            if (it == pageCache.end())
                 continue;
             const PageData& page = it->second;
 
@@ -304,7 +310,7 @@ bool GraphLoader::getEdgesForNode(uint32_t gi, RouteEdge* buf, uint32_t& count) 
     uint32_t ci = cellForNode(gi);
     if (ci == UINT32_MAX) { count = 0; return true; }
 
-    const CellIndexEntry& cell  = cellIndex_[ci];
+    const CellIndexEntry& cell  = cellIndex[ci];
     uint32_t local_idx          = gi - cell.node_offset;
 
     PageData* page = fetchPage(ci);
@@ -328,7 +334,7 @@ bool GraphLoader::getEdgesForNode(uint32_t gi, RouteEdge* buf, uint32_t& count) 
     }
 
     // Fallback: read from SD without page cache
-    if (!file_) { count = 0; return false; }
+    if (!file) { count = 0; return false; }
 
     RouteNode n, nxt;
     if (!getNode(gi, n)) { count = 0; return false; }
@@ -349,10 +355,10 @@ bool GraphLoader::getEdgesForNode(uint32_t gi, RouteEdge* buf, uint32_t& count) 
 
     // Edge block starts after the node block within this cell's data_offset.
     size_t bytes = count * sizeof(RouteEdge);
-    uint32_t edges_start = data_base_offset_ + cell.data_offset
+    uint32_t edges_start = data_base_offset + cell.data_offset
                          + cell.node_count * sizeof(RouteNode)
                          + rel_e_start * sizeof(RouteEdge);
-    return storage.seekAndRead(file_, edges_start,
+    return storage.seekAndRead(file, edges_start,
                                reinterpret_cast<uint8_t*>(buf),
                                bytes) == bytes;
 }
@@ -362,11 +368,11 @@ bool GraphLoader::getEdgesForNode(uint32_t gi, RouteEdge* buf, uint32_t& count) 
  */
 void GraphLoader::unload()
 {
-    if (file_) { storage.close(file_); file_ = nullptr; }
-    cellIndex_.clear();
-    pageCache_.clear();
-    lru_clock_         = 0;
-    data_base_offset_  = 0;
-    totalNodes_        = 0;
-    loaded_            = false;
+    if (file) { storage.close(file); file = nullptr; }
+    cellIndex.clear();
+    pageCache.clear();
+    lru_clock         = 0;
+    data_base_offset  = 0;
+    nodeCount        = 0;
+    loaded            = false;
 }

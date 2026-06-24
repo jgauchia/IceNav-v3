@@ -34,17 +34,17 @@ class ClimbAnalyzer
 {
 public:
     void analyze(const TrackVector& trackData, int startOffset = 0);
-    bool hasClimbs() const { return !segments_.empty(); }
-    const std::vector<ClimbSegment>& segments() const { return segments_; }
+    bool hasClimbs() const { return !detectedSegments.empty(); }
+    const std::vector<ClimbSegment>& segments() const { return detectedSegments; }
     void clear();
 
     void updatePosition(float lat, float lon, bool simMode, int simIndex, const TrackVector& track);
 
 private:
-    std::vector<ClimbSegment> segments_;
-    int activeSegIdx_ = -1;
-    int lastIdx_      = -1;
-    int prevSegIdx_   = -1;
+    std::vector<ClimbSegment> detectedSegments;
+    int activeSegIdx = -1;
+    int lastTrackIdx      = -1;
+    int prevSegIdx   = -1;
 };
 
 int      climbCategory(float totalDist, float avgGrade);

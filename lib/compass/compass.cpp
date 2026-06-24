@@ -11,14 +11,9 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include "esp_timer.h"
+#include "gpsMath.hpp"
 
-/**
- * @brief Get system uptime in milliseconds using ESP-IDF timer.
- * @return uint32_t Milliseconds since boot.
- */
-static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
-
-static const char* TAG = "Compass";
+static const char* TAG = "COMPASS";
 
 
 // ============================================================================

@@ -7,10 +7,8 @@
  */
 
 #include <Arduino.h>
-#include <WiFi.h>
 #include <esp_log.h>
 #include <atomic>
-#include <ESPmDNS.h>
 
 #include "hal.hpp"
 #include "gps.hpp"
@@ -18,10 +16,9 @@
 #include "tft.hpp"
 
 extern xSemaphoreHandle gpsMutex;
-#include "webpage.h"
-#include "webserver.h"
+#include "connectivity.hpp"
+#include "fileServer.hpp"
 #include "battery.hpp"
-#include "power.hpp"
 #include "gpxParser.hpp"
 #include "climbAnalyzer.hpp"
 #include "maps.hpp"
@@ -30,7 +27,6 @@ extern xSemaphoreHandle gpsMutex;
 
 extern Storage storage;
 extern Battery battery;
-extern Power power;
 extern Maps mapView;
 
 TrackVector trackData;
@@ -60,8 +56,12 @@ void setup()
     sensorMutex  = xSemaphoreCreateMutex();
     lutInit = initTrigLUT();
     initHAL();
-    storage.initSD();
-    storage.initSPIFFS();
+    bool sdOk     = (storage.initSD()     == ESP_OK);
+    bool spiffsOk = (storage.initSPIFFS() == ESP_OK);
+    if (!sdOk)
+        ESP_LOGE("main", "SD card init failed — map data unavailable");
+    if (!spiffsOk)
+        ESP_LOGE("main", "SPIFFS init failed — assets unavailable");
     battery.initADC();
     initTFT();
     createGpxFolders();
@@ -69,8 +69,14 @@ void setup()
     loadPreferences();
     gps.init();
     initLVGL();
+    if (!sdOk)
+    {
+        showMsg(LV_SYMBOL_WARNING, "SD card not found\nMap data unavailable");
+        vTaskDelay(pdMS_TO_TICKS(2000));
+    }
     gps.gpsData.latitude = gps.getLat();
     gps.gpsData.longitude = gps.getLon();
+    gps.publishSnapshot();
     initGpsTask();
     initSensorTask();
     initGuiTask();
@@ -79,14 +85,9 @@ void setup()
         initCLI();
         initCLITask();
     #endif
-    if (WiFi.status() == WL_CONNECTED)
-    {
-        if (!MDNS.begin(hostname))
-            log_e("nDNS init error");
-        log_i("mDNS initialized");
-    }
-    if (WiFi.status() == WL_CONNECTED && enableWeb)
-        configureWebServer();
+    connectivity().begin();
+    if (connectivity().isConnected() && enableWeb)
+        fileServer().start();
     vTaskSuspend(guiTaskHandle);
     splashScreen();
     if (isGpsFixed)
@@ -108,7 +109,7 @@ void setup()
 void loop()
 {
     if (enableWeb)
-        processWebServerTasks();
+        fileServer().process();
 
     vTaskDelay(pdMS_TO_TICKS(10));
 }

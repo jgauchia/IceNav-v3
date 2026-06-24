@@ -9,22 +9,25 @@
 #include "../../gui/src/lv_subjects.hpp"
 #include "lvglSetup.hpp"
 #include "../../../include/hal.hpp"
+#include "display.hpp"
+#include "power.hpp"
+#include "input.hpp"
 #include "i2c_espidf.hpp"
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
+#include "gpsMath.hpp"
+
+static const char *TAG = "LVGL";
+
+extern void triggerMapRedraw();
+
+volatile bool twoFingerGesture = false; /**< True while two touch points are reported; suppresses single-finger scroll during pinch/rotate. */
 
 SemaphoreHandle_t lvgl_mutex = NULL;
 
-/**
- * @brief Get system uptime in milliseconds using ESP-IDF timer.
- *
- * @return uint32_t Milliseconds since boot.
- */
-static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
-
-lv_display_t *display; /**< LVGL display driver */
+lv_display_t *display_drv; /**< LVGL display driver */
 
 lv_obj_t *searchSatScreen; /**< Search Satellite Screen object. */
 lv_obj_t *splashScr;       /**< Splash Screen object. */
@@ -35,7 +38,6 @@ lv_style_t styleObjectSel; /**< Object selected style. */
 lv_group_t *scrGroup;   /**< LVGL group for screen. */
 lv_group_t *keyGroup;   /**< LVGL group for GPIO keys. */
 
-Power power;
 uint32_t DOUBLE_TOUCH_EVENT; /**< Event identifier for double touch gesture. */
 
 Maps mapView;
@@ -69,19 +71,25 @@ static void lv_rounder_cb(lv_event_t *event)
  * @param px_map Pointer to the pixel data to be displayed.
  */
 void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
-{ 
-    uint32_t w = (area->x2 - area->x1 + 1);
-    uint32_t h = (area->y2 - area->y1 + 1);
-    #ifdef T4_S3
-        tft.setAddrWindow(area->x1, area->y1, w , h);
-        tft.pushPixelsDMA((uint16_t*)px_map, w * h,true);
-    #else
-        tft.setSwapBytes(true);
-        tft.setAddrWindow(area->x1, area->y1, w, h);
-        tft.pushImageDMA(area->x1, area->y1, w, h, reinterpret_cast<uint16_t*>(px_map));
-        tft.setSwapBytes(false);
-    #endif
+{
+    DisplayArea flushArea = { area->x1, area->y1, area->x2, area->y2 };
+    display().flush(flushArea, reinterpret_cast<uint16_t*>(px_map));
     lv_display_flush_ready(disp);
+}
+
+/**
+ * @brief LVGL flush wait callback.
+ *
+ * @details Blocks until the in-flight DMA transfer started by displayFlush has
+ *          finished, before LVGL reuses a draw buffer. Overlaps rasterisation
+ *          of the next frame with the previous DMA transfer.
+ *
+ * @param disp Pointer to the LVGL display driver.
+ */
+void displayFlushWait(lv_display_t *disp)
+{
+    LV_UNUSED(disp);
+    display().waitFlushDone();
 }
 
 /**
@@ -92,11 +100,13 @@ void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *
  */
 void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 {
-    lgfx::touch_point_t touchRaw[TOUCH_MAX_POINTS];
-    static lgfx::touch_point_t touchPrev[TOUCH_MAX_POINTS];
+    TouchPoint touchRaw[TOUCH_MAX_POINTS];
+    static TouchPoint touchPrev[TOUCH_MAX_POINTS];
     static bool prevValid = false;
     static bool pinchActive = false;
-    static int lastZoomDir = ZOOM_NONE;    
+    static int lastZoomDir = ZOOM_NONE;
+    static bool rotationLocked = false;
+    static bool zoomLocked = false;
     static unsigned long lastTime = 0;
     
     // Variables for drag detection
@@ -108,23 +118,16 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     static lv_indev_state_t lastTouchState = LV_INDEV_STATE_RELEASED;
     static lv_point_t lastTouchPoint = {0, 0};
 
-    #ifdef ICENAV_BOARD
-        // Protect I2C bus access for FT5x06 on shared bus.
-        // If bus is busy, hold the last reported state to avoid glitching the long-press timer.
-        if (i2c.lock(0))
-        {
-            count = tft.getTouch(touchRaw, TOUCH_MAX_POINTS);
-            i2c.unlock();
-        }
-        else
-        {
-            data->state = lastTouchState;
-            data->point = lastTouchPoint;
-            return;
-        }
-    #else
-        count = tft.getTouch(touchRaw, TOUCH_MAX_POINTS);
-    #endif
+    // If the controller could not be read (e.g. shared bus busy), hold the last
+    // reported state to avoid glitching the long-press timer.
+    int read = input().readTouch(touchRaw, TOUCH_MAX_POINTS);
+    if (read < 0)
+    {
+        data->state = lastTouchState;
+        data->point = lastTouchPoint;
+        return;
+    }
+    count = read;
 
     unsigned long now = millis_idf();
     float dt_ms = (now > lastTime) ? (float)(now - lastTime) : 1.0f;
@@ -145,6 +148,9 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
         pinchActive = false;
         prevValid = false;
         lastZoomDir = ZOOM_NONE;
+        rotationLocked = false;
+        zoomLocked = false;
+        twoFingerGesture = false;
         lastTime = now;
 
         if (countTouchReleases)
@@ -193,12 +199,12 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     {
         if (count == 1)
         {
-            if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_0)
+            if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_0)
             {
                 data->point.x = touchRaw[count-1].x;
                 data->point.y = touchRaw[count-1].y;
             }
-            else if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
+            else if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_270)
             {
                 data->point.x = TFT_WIDTH - touchRaw[count-1].y;
                 data->point.y = touchRaw[count-1].x;
@@ -220,6 +226,8 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
             pinchActive = false;
             prevValid = false;
             lastZoomDir = ZOOM_NONE;
+            rotationLocked = false;
+            zoomLocked = false;
             lastTime = now;
             data->state = LV_INDEV_STATE_PRESSED;
             lastTouchState = LV_INDEV_STATE_PRESSED;
@@ -227,13 +235,37 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
         }
         else if (count == 2)
         {
+            countTouchReleases = false;
+            numberTouchReleases = 0;
+            firstTouchReleaseTime = 0;
+            lastTouchReleaseTime = 0;
+            twoFingerGesture = true;
+
             if (prevValid)
             {
-                zoom_dir zoomDir = pinchZoom(touchPrev, touchRaw, dt_ms);
-                if (zoomDir != ZOOM_NONE && showMapToolBar)
+                if (showMapToolBar && !zoomLocked)
                 {
-                    pinchActive = true;
-                    lastZoomDir = zoomDir;
+                    float rotDelta = pinchRotate(touchPrev, touchRaw);
+                    if (rotDelta != 0.0f)
+                    {
+                        rotationLocked = true;
+                        mapView.followGps = false;
+                        mapView.manualHeading -= rotDelta;
+                        if (mapView.manualHeading >= 360.0f) mapView.manualHeading -= 360.0f;
+                        if (mapView.manualHeading <    0.0f) mapView.manualHeading += 360.0f;
+                        mapView.redrawMap = true;
+                        triggerMapRedraw();
+                    }
+                }
+                if (!rotationLocked)
+                {
+                    zoom_dir zoomDir = pinchZoom(touchPrev, touchRaw, dt_ms);
+                    if (zoomDir != ZOOM_NONE && showMapToolBar)
+                    {
+                        zoomLocked = true;
+                        pinchActive = true;
+                        lastZoomDir = zoomDir;
+                    }
                 }
             }
             touchPrev[0] = touchRaw[0];
@@ -315,7 +347,7 @@ void gpioLongEvent(lv_event_t *event)
 {
     showMsg(LV_SYMBOL_WARNING, " This device will shutdown shortly");
     vTaskDelay(2000);
-    power.deviceShutdown();
+    power().shutdown();
 }
 
 /**
@@ -327,7 +359,7 @@ void gpioClickEvent(lv_event_t *event)
 {
     showMsg(LV_SYMBOL_WARNING, " This device will sleep shortly");
     vTaskDelay(2000);
-    power.deviceSuspend();
+    power().suspend();
 }
 
 /**
@@ -428,12 +460,12 @@ void initLVGL()
     init_lv_subjects();
     initSharedStyles();
 
-    display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
-    lv_display_set_flush_cb(display, displayFlush);
-    lv_display_set_flush_wait_cb(display, NULL);
+    display_drv = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
+    lv_display_set_flush_cb(display_drv, displayFlush);
+    lv_display_set_flush_wait_cb(display_drv, displayFlushWait);
 
     #ifdef T4_S3
-        lv_display_add_event_cb(display, lv_rounder_cb, LV_EVENT_INVALIDATE_AREA, display);
+        lv_display_add_event_cb(display_drv, lv_rounder_cb, LV_EVENT_INVALIDATE_AREA, display_drv);
     #endif
     
     size_t DRAW_BUF_SIZE = 0;
@@ -455,15 +487,15 @@ void initLVGL()
                 DRAW_BUF_SIZE = (TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t) / 8);
         #endif
 
-        log_v("LVGL: allocating %u bytes PSRAM for draw buffers", DRAW_BUF_SIZE * 2);
+        ESP_LOGV(TAG, "LVGL: allocating %u bytes PSRAM for draw buffers", DRAW_BUF_SIZE * 2);
         drawBuf1 = (lv_color_t *)heap_caps_aligned_alloc(64, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
         drawBuf2 = (lv_color_t *)heap_caps_aligned_alloc(64, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
-        lv_display_set_buffers(display, drawBuf1, drawBuf2, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
+        lv_display_set_buffers(display_drv, drawBuf1, drawBuf2, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
     #else
         DRAW_BUF_SIZE = (TFT_WIDTH * TFT_HEIGHT / 10) * sizeof(lv_color_t);
-        log_v("LVGL: allocating %u bytes SRAM for draw buffer", DRAW_BUF_SIZE);
+        ESP_LOGV(TAG, "LVGL: allocating %u bytes SRAM for draw buffer", DRAW_BUF_SIZE);
         drawBuf1 = (lv_color_t *)heap_caps_malloc(DRAW_BUF_SIZE, MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA);
-        lv_display_set_buffers(display, drawBuf1, NULL, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
+        lv_display_set_buffers(display_drv, drawBuf1, NULL, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
     #endif
     
     #ifdef TOUCH_INPUT

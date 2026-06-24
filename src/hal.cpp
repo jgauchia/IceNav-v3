@@ -9,6 +9,9 @@
 #include <Arduino.h>
 #include "hal.hpp"
 #include "i2c_espidf.hpp"
+#ifdef POWER_SAVE
+    #include <esp_pm.h>
+#endif
 #if defined(HMC5883L) || defined(QMC5883) || defined(IMU_MPU9250)
     #include "compass.hpp"
     Compass compass;
@@ -29,6 +32,11 @@ void initHAL()
             gpio_hold_dis((gpio_num_t)BOARD_BOOT_PIN);
             gpio_deep_sleep_hold_dis();
         #endif
+        esp_pm_config_esp32s3_t pmConfig = {};
+        pmConfig.max_freq_mhz       = 240;
+        pmConfig.min_freq_mhz       = 40;
+        pmConfig.light_sleep_enable = false;
+        esp_pm_configure(&pmConfig);
     #endif
     #ifdef TDECK_ESP32S3
         pinMode(BOARD_POWERON, OUTPUT);

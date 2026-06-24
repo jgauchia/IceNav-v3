@@ -9,6 +9,7 @@
 #include "lv_subjects.hpp"
 #include "gps.hpp"
 #include "bme.hpp"
+#include "sensors.hpp"
 #include "settings.hpp"
 #include <time.h>
 
@@ -99,15 +100,14 @@ void init_lv_subjects()
 
     #ifdef ENABLE_TEMP
     {
-        #ifdef BME280
-        float t = 0.0f;
-        float p = 0.0f;
-        float h = 0.0f;
-        bme.readAll(t, p, h);
-        lv_subject_init_int(&subject_temp, (int32_t)(t + tempOffset));
-        #else
-        lv_subject_init_int(&subject_temp, 0);
-        #endif
+        if (sensors().hasAmbient())
+        {
+            AmbientData ambient;
+            sensors().readAmbient(ambient);
+            lv_subject_init_int(&subject_temp, (int32_t)(ambient.temperature + tempOffset));
+        }
+        else
+            lv_subject_init_int(&subject_temp, 0);
     }
     #endif
 }

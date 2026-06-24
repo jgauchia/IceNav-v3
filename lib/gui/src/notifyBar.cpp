@@ -13,6 +13,14 @@
 lv_obj_t *mainScreen;         /**< Main screen */
 lv_obj_t *notifyBarIcons;     /**< Notification bar icons container object. */
 lv_obj_t *notifyBarHour;      /**< Notification bar hour display object. */
+lv_obj_t *gpsTime;            /**< Time display object. */
+lv_obj_t *gpsCount;           /**< Satellite count object. */
+lv_obj_t *gpsFix;             /**< Satellite fix status object. */
+lv_obj_t *gpsFixMode;         /**< Satellite fix mode object. */
+lv_obj_t *battIcon;           /**< Battery level icon object. */
+lv_obj_t *sdCard;             /**< SD card icon object. */
+lv_obj_t *temp;               /**< Temperature display object. */
+lv_obj_t *wifi;               /**< WiFi status object. */
 
 extern Storage storage;
 extern Battery battery;

@@ -64,9 +64,9 @@ struct LoggerStats
  * @brief GPX Data Logger
  *
  * @details Thread-safe logger that hooks into gpsTask to write GPX 1.1 tracks.
- *          update() is called from gpsTask (holds gpsMutex) and uses _mutex
+ *          update() is called from gpsTask (holds gpsMutex) and uses mutex
  *          with timeout 0 to avoid blocking. start()/stop() are called from
- *          the UI thread (holds lvgl_mutex) and use _mutex with 100 ms timeout.
+ *          the UI thread (holds lvgl_mutex) and use mutex with 100 ms timeout.
  */
 class GpxLogger
 {
@@ -79,41 +79,41 @@ public:
     void stop();                ///< End current recording (called from UI)
     void setProfile(uint8_t idx);
 
-    LoggerState        state()           const { return _state; }
-    const LoggerStats& stats()           const { return _stats; }
-    uint8_t            profileIndex()    const { return _profileIdx; }
-    uint32_t           movingElapsedMs() const { return _movingMs; }
-    float              currentGrade()    const { return _lastGrade; }
+    LoggerState        state()           const { return loggerState; }
+    const LoggerStats& stats()           const { return trackStats; }
+    uint8_t            profileIndex()    const { return profileIdx; }
+    uint32_t           movingElapsedMs() const { return movingMs; }
+    float              currentGrade()    const { return lastGrade; }
 
 private:
-    void     _writeTrkpt(float lat, float lon, int16_t alt, float speedKmh, const LoggerGpsFix& fix);
-    uint32_t _adaptiveInterval(float speedKmh) const;
+    void     writeTrkpt(float lat, float lon, int16_t alt, float speedKmh, const LoggerGpsFix& fix);
+    uint32_t adaptiveInterval(float speedKmh) const;
 
-    volatile LoggerState _state         = LoggerState::IDLE;
-    FILE*                _file          = nullptr;
-    uint8_t              _profileIdx    = 0;
-    bool                 _segOpen       = false;
+    volatile LoggerState loggerState         = LoggerState::IDLE;
+    FILE*                file          = nullptr;
+    uint8_t              profileIdx    = 0;
+    bool                 segOpen       = false;
 
-    uint32_t _startMs        = 0;
-    uint32_t _lastLogMs      = 0;
-    uint32_t _lastUpdateMs   = 0;
-    uint32_t _pauseStartMs   = 0;
-    uint32_t _movingMs       = 0;
-    uint32_t _flushCnt       = 0;
+    uint32_t startMs        = 0;
+    uint32_t lastLogMs      = 0;
+    uint32_t lastUpdateMs   = 0;
+    uint32_t pauseStartMs   = 0;
+    uint32_t movingMs       = 0;
+    uint32_t flushCnt       = 0;
 
-    float _lastLat      = 0.0f;
-    float _lastLon      = 0.0f;
-    float _lastAlt      = 0.0f;
-    float _lastGrade    = 0.0f;
-    float _gradeAccDist = 0.0f;
-    float _gradeAccAlt  = 0.0f;
-    bool  _hasLast      = false;
+    float lastLat      = 0.0f;
+    float lastLon      = 0.0f;
+    float lastAlt      = 0.0f;
+    float lastGrade    = 0.0f;
+    float gradeAccDist = 0.0f;
+    float gradeAccAlt  = 0.0f;
+    bool  hasLast      = false;
 
-    float    _speedAccum = 0.0f;
-    uint32_t _speedSamps = 0;
+    float    speedAccum = 0.0f;
+    uint32_t speedSamps = 0;
 
-    LoggerStats       _stats = {};
-    SemaphoreHandle_t _mutex = nullptr;
+    LoggerStats       trackStats = {};
+    SemaphoreHandle_t mutex = nullptr;
 };
 
 extern GpxLogger gpxLogger;

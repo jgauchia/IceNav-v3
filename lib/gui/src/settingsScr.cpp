@@ -7,6 +7,7 @@
  */
 
 #include "settingsScr.hpp"
+#include "display.hpp"
 
 bool needReboot = false; /**< Flag to indicate if a system reboot is required */
 
@@ -43,11 +44,11 @@ static void back(lv_event_t *event)
 static void touchCalib(lv_event_t *event)
 {
     repeatCalib = true;
-    tft.fillScreen(TFT_BLACK);
+    display().clear(0x0000);
     touchCalibrate();
     repeatCalib = false;
     isMainScreen = false;
-    tft.fillScreen(TFT_BLACK);
+    display().clear(0x0000);
     lv_screen_load(settingsScreen);
     lv_obj_invalidate(lv_scr_act());
 }
@@ -62,9 +63,9 @@ static void touchCalib(lv_event_t *event)
 #ifdef ENABLE_COMPASS
 static void compassCalib(lv_event_t *event)
 {
-    tft.fillScreen(TFT_BLACK);
+    display().clear(0x0000);
     compass.calibrate();
-    tft.fillScreen(TFT_BLACK);
+    display().clear(0x0000);
     isMainScreen = false;
     lv_screen_load(settingsScreen);
     lv_obj_invalidate(lv_scr_act());

@@ -13,6 +13,8 @@
 #include <Streamers.h>
 #include "settings.hpp"
 #include <vector>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 
 extern uint8_t GPS_TX; /**< GPS TX pin number. */
@@ -40,10 +42,10 @@ extern bool nmea_output_enable;  /**< Enables or disables NMEA output. */
 class Gps;
 extern Gps gps; /**< Global GPS instance */
 
-static const unsigned long GPS_BAUD[] = {4800, 9600, 19200, 0}; /**< Supported GPS baud rates. */
-static const char *GPS_BAUD_PCAS[] = {"$PCAS01,0*1C\r\n", "$PCAS01,1*1D\r\n", "$PCAS01,2*1E\r\n"}; /**< NMEA command strings to set baud rate for PCAS modules. */
-static const char *GPS_RATE_PCAS[] = {"$PCAS02,1000*2E\r\n", "$PCAS02,500*1A\r\n", "$PCAS02,250*18\r\n", "$PCAS02,200*1D\r\n", "$PCAS02,100*1E\r\n"}; /**< NMEA command strings to set update rate for PCAS modules. */
-static const uint8_t GPS_RATE_HZ[] = {1, 2, 4, 5, 10}; /**< Update rate in Hz per GPS_RATE_PCAS index. */
+inline constexpr unsigned long GPS_BAUD[]    = {4800, 9600, 19200, 0}; /**< Supported GPS baud rates. */
+inline constexpr const char *GPS_BAUD_PCAS[] = {"$PCAS01,0*1C\r\n", "$PCAS01,1*1D\r\n", "$PCAS01,2*1E\r\n"}; /**< NMEA command strings to set baud rate for PCAS modules. */
+inline constexpr const char *GPS_RATE_PCAS[] = {"$PCAS02,1000*2E\r\n", "$PCAS02,500*1A\r\n", "$PCAS02,250*18\r\n", "$PCAS02,200*1D\r\n", "$PCAS02,100*1E\r\n"}; /**< NMEA command strings to set update rate for PCAS modules. */
+inline constexpr uint8_t GPS_RATE_HZ[]       = {1, 2, 4, 5, 10}; /**< Update rate in Hz per GPS_RATE_PCAS index. */
 
 void buildPcas03(char *out, size_t outSize, uint8_t rateIdx); /**< Builds a $PCAS03 command with GSA/GSV decimated to ~1Hz for the given rate index. @param out Output buffer. @param outSize Buffer size. @param rateIdx Update rate index. */
 
@@ -72,10 +74,26 @@ class Gps
         float getLat();
         float getLon();
         void getGPSData();
+
+        /**
+        * @struct GpsSnapshot
+        * @brief Coherent copy of the position fields shared across cores.
+        */
+        struct GpsSnapshot
+        {
+            float    latitude;    /**< Latitude in decimal degrees. */
+            float    longitude;   /**< Longitude in decimal degrees. */
+            uint16_t heading;     /**< Heading in degrees. */
+            uint16_t speed;       /**< Speed in km/h. */
+        };
+
+        void publishSnapshot();
+        GpsSnapshot getSnapshot();
+
         long detectRate(int rxPin);
         long autoBaud();
         int  getSimulationIndex() const { return simulationIndex; }
-        void resetSimulation() { simulationIndex = 0; accumulatedDist = 0.0f; lastSimulationTime = 0; smoothedLat = 0.0f; smoothedLon = 0.0f; }
+        void resetSimulation() { simulationIndex = 0; segmentProgress = 0.0f; lastSimulationTime = 0; smoothedLat = 0.0f; smoothedLon = 0.0f; }
 
         /**
         * @struct GPSDATA
@@ -116,20 +134,18 @@ class Gps
         } satTracker[MAX_SATELLITES];
 
     private:
+        GpsSnapshot snapshot = {};                              /**< Atomically published copy of {lat,lon,heading,speed} */
+        portMUX_TYPE snapshotMux = portMUX_INITIALIZER_UNLOCKED; /**< Spinlock guarding the snapshot, safe across cores */
+
         /**
         * @brief Variables for "fake" GPS signal from loaded track (simulation)
-        * 
+        *
         */
-        const float posAlpha = 0.6f;           /**< Position smoothing factor, range 0 (no smoothing) to 1 (full smoothing) */
         const float headAlpha = 0.5f;          /**< Heading smoothing factor, controls how fast heading adapts */
-        const float minStepDist = 3.0f;        /**< Minimum distance in meters between simulation steps to update */
-        const int headingLookahead = 5;        /**< Number of track points ahead used to calculate the heading */
-        float smoothedLat = 0.0f;              /**< Smoothed latitude after filtering */
-        float smoothedLon = 0.0f;              /**< Smoothed longitude after filtering */
+        float smoothedLat = 0.0f;              /**< Interpolated latitude along the current segment */
+        float smoothedLon = 0.0f;              /**< Interpolated longitude along the current segment */
         float filteredHeading = 0.0f;          /**< Smoothed heading after filtering */
-        float lastSimLat = 0.0f;       		   /**< Last simulated latitude used for step distance */
-        float lastSimLon = 0.0f;     	       /**< Last simulated longitude used for step distance */
-        float accumulatedDist = 0.0f;          /**< Accumulated distance for multi-second simulation */
+        float segmentProgress = 0.0f;          /**< Distance covered within the current track segment (m) */
         int simulationIndex = 0;                   /**< Current index in track simulation */
         unsigned long lastSimulationTime = 0;      /**< Timestamp of last simulation update in milliseconds */
 };

@@ -103,8 +103,10 @@ void showRestartScr()
  *
  * @param symbol LVGL symbol font
  * @param message Message
+ * @param refresh When true forces an immediate redraw; pass false when called from within an
+ *                LVGL event callback that also renders, to avoid a nested render.
  */
-void showMsg(const char* symbol, const char* message)
+void showMsg(const char* symbol, const char* message, bool refresh)
 {
     msgDialog = lv_msgbox_create(lv_scr_act());
     lv_obj_set_width(msgDialog,TFT_WIDTH);
@@ -116,7 +118,8 @@ void showMsg(const char* symbol, const char* message)
     snprintf(msg, sizeof(msg), "%s %s", symbol, message);
     lv_msgbox_add_text(msgDialog, msg);
     lv_obj_invalidate(msgDialog);
-    lv_refr_now(display);
+    if (refresh)
+        lv_refr_now(display_drv);
 }
 
 /**

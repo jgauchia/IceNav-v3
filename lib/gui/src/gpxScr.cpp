@@ -12,6 +12,7 @@
 #include "climbAnalyzer.hpp"
 #include "gps.hpp"
 #include "gpsMath.hpp"
+#include "display.hpp"
 
 extern Maps mapView;
 extern Storage storage;
@@ -39,7 +40,7 @@ static bool longPressHandled = false;   /**< Guard to prevent repeated long-pres
  */
 static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
 {
-    showMsg(LV_SYMBOL_DOWNLOAD, " Loading data...");
+    showMsg(LV_SYMBOL_DOWNLOAD, " Loading data...", false);
     if (gpxWaypoint)
     {
         loadWpt = gpx.getWaypointInfo(gpxName);
@@ -96,12 +97,13 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
         size_t gpxStartIdx = 0;
         if (!trackData.empty())
         {
-            float distToStart = calcDist(gps.gpsData.latitude, gps.gpsData.longitude,
+            const Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
+            float distToStart = calcDist(gpsSnap.latitude, gpsSnap.longitude,
                                          trackData[0].lat, trackData[0].lon);
             if (distToStart > 50.0f)
             {
                 TrackVector approachRoute;
-                RouterResult res = router.route(gps.gpsData.latitude, gps.gpsData.longitude,
+                RouterResult res = router.route(gpsSnap.latitude, gpsSnap.longitude,
                                                 trackData[0].lat, trackData[0].lon, approachRoute);
                 if (res == RouterResult::OK && !approachRoute.empty())
                 {
@@ -181,7 +183,7 @@ static void handleGpxEdit(GPXParser &gpx, const char *gpxName)
     }
 
     isScreenRotated = false;
-    lv_obj_set_width(gpxTagValue, tft.width() - 10);
+    lv_obj_set_width(gpxTagValue, display().width() - 10);
     updateWaypoint(gpxAction);
     lv_screen_load(gpxDetailScreen);
 }

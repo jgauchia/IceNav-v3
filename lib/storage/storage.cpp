@@ -17,7 +17,7 @@
 
 #define SD_OCR_SDHC_CAP (1 << 30) /**< SD card SDHC capacity flag */
 
-static const char *TAG = "Storage";
+static const char *TAG = "STORAGE";
 
 Storage storage;
 
@@ -365,7 +365,10 @@ size_t Storage::read(FILE *file, uint8_t *buffer, size_t size)
     size_t totalRead = 0;
 
     if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+    {
+        ESP_LOGW(TAG, "read: mutex timeout (%u B)", (unsigned)size);
         return 0;
+    }
 
     if (esp_ptr_internal(buffer))
     {
@@ -543,25 +546,35 @@ size_t Storage::seekAndRead(FILE *file, long offset, uint8_t *buffer, size_t siz
         return 0;
     size_t totalRead = 0;
     if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+    {
+        ESP_LOGW(TAG, "seekAndRead: mutex timeout (off=%ld %u B)", offset, (unsigned)size);
         return 0;
-    fseek(file, offset, SEEK_SET);
+    }
     if (esp_ptr_internal(buffer))
     {
+        fseek(file, offset, SEEK_SET);
         totalRead = fread(buffer, 1, size, file);
     }
-    else
+    else if (dmaBuffer)
     {
-        if (dmaBuffer)
+        long alignedOffset = offset - (offset % SD_SECTOR_SIZE);
+        size_t prefix = (size_t)(offset - alignedOffset);
+        fseek(file, alignedOffset, SEEK_SET);
+
+        size_t firstSkip = prefix;
+        while (totalRead < size)
         {
-            while (totalRead < size)
-            {
-                size_t toRead = (size - totalRead > DMA_BUF_SIZE) ? DMA_BUF_SIZE : (size - totalRead);
-                size_t r = fread(dmaBuffer, 1, toRead, file);
-                if (r == 0)
-                    break;
-                memcpy(buffer + totalRead, dmaBuffer, r);
-                totalRead += r;
-            }
+            size_t want = size - totalRead + firstSkip;
+            size_t toRead = (want > DMA_BUF_SIZE) ? DMA_BUF_SIZE : want;
+            size_t r = fread(dmaBuffer, 1, toRead, file);
+            if (r <= firstSkip)
+                break;
+            size_t usable = r - firstSkip;
+            if (usable > size - totalRead)
+                usable = size - totalRead;
+            memcpy(buffer + totalRead, dmaBuffer + firstSkip, usable);
+            totalRead += usable;
+            firstSkip = 0;
         }
     }
     xSemaphoreGive(readMutex);

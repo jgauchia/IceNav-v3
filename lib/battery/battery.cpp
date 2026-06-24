@@ -61,7 +61,8 @@ float Battery::readBattery()
     float voltage = 0.0; // Calculated voltage
     float output = 0.0;  // Output value
 
-    for (int i = 0; i < 100; i++)
+    static constexpr int ADC_SAMPLES = 16;
+    for (int i = 0; i < ADC_SAMPLES; i++)
     {
         #ifdef ADC1
             sum += (long)adc1_get_raw(BATT_PIN);
@@ -76,7 +77,7 @@ float Battery::readBattery()
         esp_rom_delay_us(150);
     }
 
-    voltage = sum / 100.0f;
+    voltage = sum / (float)ADC_SAMPLES;
     // Custom board has a divider circuit
     constexpr float R1 = 100000.0f; // Resistance of R1 (100K)
     constexpr float R2 = 100000.0f; // Resistance of R2 (100K)

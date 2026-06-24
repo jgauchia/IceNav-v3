@@ -60,8 +60,9 @@ class Storage
         bool isSdLoaded;           /**< Indicates if the SD card is loaded */
         sdmmc_card_t *card;        /**< Pointer to the SD card descriptor */
         uint8_t *dmaBuffer;        /**< Persistent buffer for DMA-safe reads */
-        static constexpr size_t DMA_BUF_SIZE = 32768;
-        SemaphoreHandle_t readMutex; /**< Mutex to protect dmaBuffer */
+        static constexpr size_t DMA_BUF_SIZE = 65536;
+        static constexpr size_t SD_SECTOR_SIZE = 512;
+        SemaphoreHandle_t readMutex; /**< Mutex serializing all SD/FATFS access and protecting dmaBuffer */
 
     public:
         Storage();
@@ -100,7 +101,7 @@ extern Storage storage;
 class FileStream : public Stream
 {
     public:
-        FileStream(FILE *file) : file(file), fileSize_(-1) {}
+        FileStream(FILE *file) : file(file), fileSize(-1) {}
 
         /**
         * @brief Returns the number of bytes available to read from the file.
@@ -111,15 +112,15 @@ class FileStream : public Stream
         {
             if (!file)
                 return 0;
-            if (fileSize_ < 0)
+            if (fileSize < 0)
             {
                 long pos = ftell(file);
                 fseek(file, 0, SEEK_END);
-                fileSize_ = ftell(file);
+                fileSize = ftell(file);
                 fseek(file, pos, SEEK_SET);
             }
             long current_pos = ftell(file);
-            return (fileSize_ > current_pos) ? (int)(fileSize_ - current_pos) : 0;
+            return (fileSize > current_pos) ? (int)(fileSize - current_pos) : 0;
         }
 
         /**
@@ -203,5 +204,5 @@ class FileStream : public Stream
 
     private:
         FILE *file;       /**< Pointer to the wrapped C FILE object */
-        long fileSize_;   /**< Cached file size; -1 until first available() call */
+        long fileSize;   /**< Cached file size; -1 until first available() call */
 };

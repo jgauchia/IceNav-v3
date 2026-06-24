@@ -15,14 +15,21 @@
 #include "logger.hpp"
 #include "router.hpp"
 #include "gpxParser.hpp"
-#include <WiFi.h>
+#include "connectivity.hpp"
+#include "sensors.hpp"
 #ifdef ENABLE_IMU
     #include "imu.hpp"
 #endif
 
 xSemaphoreHandle gpsMutex;
 SemaphoreHandle_t sensorMutex = NULL;
-TaskHandle_t gpsTaskHandle = NULL;
+TaskHandle_t gpsTaskHandle    = NULL;
+TaskHandle_t guiTaskHandle    = NULL;
+TaskHandle_t sensorTaskHandle = NULL;
+TaskHandle_t navTaskHandle    = NULL;
+#ifndef DISABLE_CLI
+TaskHandle_t cliTaskHandle    = NULL;
+#endif
 extern Gps gps;
 SensorData globalSensorData = {};
 
@@ -40,7 +47,8 @@ uint8_t nmeaRawHead = 0;
 static constexpr TickType_t MUTEX_TIMEOUT_GPS  = pdMS_TO_TICKS(15);
 static constexpr TickType_t MUTEX_TIMEOUT_SLOW = pdMS_TO_TICKS(10);
 
-static const char* TAG = "Task";
+static const char* TAG = "TASK";
+
 
 static struct
 {
@@ -66,44 +74,65 @@ void gpsTask(void *pvParameters)
     ESP_LOGV(TAG, "Stack size: %d", uxTaskGetStackHighWaterMark(NULL));
     char    lineBuf[NMEA_RAW_LEN] = {};
     uint8_t lineLen = 0;
+    // Block-read scratch: sized to ~one NMEA sentence (NMEA_RAW_LEN = 88) with
+    // margin. The drain loop below reads repeatedly, so this only bounds how many
+    // bytes are handled per read() call, not how many can be processed per cycle;
+    // any larger backlog (driver RX buffer is 2048 B) is consumed in later passes.
+    uint8_t readBuf[128];
     while (1)
     {
-        if ( gpsMutex != NULL && xSemaphoreTake(gpsMutex, MUTEX_TIMEOUT_GPS) == pdTRUE )
+        bool satDataUpdated = false;
+
+        // Read the serial port and feed the parser WITHOUT holding gpsMutex.
+        // Parsing and raw capture only touch the NMEA decoder and the debug ring
+        // buffer; the published gps.gpsData snapshot is written under gpsMutex
+        // only when a fix is actually decoded (below). This keeps the GUI from
+        // ever waiting on the byte-level parsing loop.
+        if (nmea_output_enable)
         {
-            bool satDataUpdated = false;
+            int n;
+            while ((n = gpsPort.read(readBuf, sizeof(readBuf))) > 0)
+                Serial.write(readBuf, n);
+        }
+        else
+        {
+            // Raw sentence capture for the debug tile is only needed while that
+            // tile is on screen. When it is not, skip building lineBuf and its
+            // per-sentence critical section entirely. Reset any partial line so
+            // re-entering the tile mid-sentence cannot stitch a stale fragment
+            // onto the next captured sentence.
+            const bool captureRaw = (activeTile == DEBUG_NMEA);
+            if (!captureRaw)
+                lineLen = 0;
 
-            if (nmea_output_enable)
+            // Read in blocks and feed the parser byte by byte from the local
+            // buffer (same bytes, same order a per-byte read() would yield).
+            int n;
+            while ((n = gpsPort.read(readBuf, sizeof(readBuf))) > 0)
             {
-                while (gpsPort.available())
-                    Serial.write(gpsPort.read());
-            }
-            else
-            {
-                // Feed the parser one character at a time (same bytes, same order
-                // as GPS.available() would consume) while mirroring each complete
-                // sentence into the raw ring buffer for the debug tile. Parsing is
-                // unaffected; capture is purely a side effect.
-
-                while (gpsPort.available())
+                for (int i = 0; i < n; i++)
                 {
-                    char c = (char)gpsPort.read();
+                    char c = (char)readBuf[i];
 
-                    if (c == '\n' || c == '\r')
+                    if (captureRaw)
                     {
-                        if (lineLen > 0)
+                        if (c == '\n' || c == '\r')
                         {
-                            lineBuf[lineLen] = '\0';
-                            portENTER_CRITICAL(&nmeaDebugMux);
-                            strncpy(nmeaRawBuf[nmeaRawHead], lineBuf, NMEA_RAW_LEN - 1);
-                            nmeaRawBuf[nmeaRawHead][NMEA_RAW_LEN - 1] = '\0';
-                            nmeaRawHead = (nmeaRawHead + 1) % NMEA_RAW_LINES;
-                            portEXIT_CRITICAL(&nmeaDebugMux);
-                            lineLen = 0;
+                            if (lineLen > 0)
+                            {
+                                lineBuf[lineLen] = '\0';
+                                portENTER_CRITICAL(&nmeaDebugMux);
+                                strncpy(nmeaRawBuf[nmeaRawHead], lineBuf, NMEA_RAW_LEN - 1);
+                                nmeaRawBuf[nmeaRawHead][NMEA_RAW_LEN - 1] = '\0';
+                                nmeaRawHead = (nmeaRawHead + 1) % NMEA_RAW_LINES;
+                                portEXIT_CRITICAL(&nmeaDebugMux);
+                                lineLen = 0;
+                            }
                         }
-                    }
-                    else if (lineLen < NMEA_RAW_LEN - 1)
-                    {
-                        lineBuf[lineLen++] = c;
+                        else if (lineLen < NMEA_RAW_LEN - 1)
+                        {
+                            lineBuf[lineLen++] = c;
+                        }
                     }
 
                     // handle() returns DECODE_COMPLETED at the end of every
@@ -113,22 +142,27 @@ void gpsTask(void *pvParameters)
                     if (GPS.handle((uint8_t)c) == NMEAGPS::DECODE_COMPLETED && GPS.available())
                     {
                         fix = GPS.read();
-                        gps.getGPSData();
+
+                        if (gpsMutex != NULL && xSemaphoreTake(gpsMutex, MUTEX_TIMEOUT_GPS) == pdTRUE)
                         {
-                            LoggerGpsFix lgf;
-                            lgf.lat      = gps.gpsData.latitude;
-                            lgf.lon      = gps.gpsData.longitude;
-                            lgf.alt      = (int16_t)gps.gpsData.altitude;
-                            lgf.speedKmh = (float)gps.gpsData.speed;
-                            lgf.valid    = isGpsFixed && fix.valid.location;
-                            lgf.hasTime  = fix.valid.time && fix.valid.date;
-                            lgf.year     = (uint16_t)(2000 + fix.dateTime.year);
-                            lgf.month    = fix.dateTime.month;
-                            lgf.day      = fix.dateTime.date;
-                            lgf.hour     = fix.dateTime.hours;
-                            lgf.minute   = fix.dateTime.minutes;
-                            lgf.second   = fix.dateTime.seconds;
-                            gpxLogger.update(lgf);
+                            gps.getGPSData();
+                            {
+                                LoggerGpsFix lgf;
+                                lgf.lat      = gps.gpsData.latitude;
+                                lgf.lon      = gps.gpsData.longitude;
+                                lgf.alt      = (int16_t)gps.gpsData.altitude;
+                                lgf.speedKmh = (float)gps.gpsData.speed;
+                                lgf.valid    = isGpsFixed && fix.valid.location;
+                                lgf.hasTime  = fix.valid.time && fix.valid.date;
+                                lgf.year     = (uint16_t)(2000 + fix.dateTime.year);
+                                lgf.month    = fix.dateTime.month;
+                                lgf.day      = fix.dateTime.date;
+                                lgf.hour     = fix.dateTime.hours;
+                                lgf.minute   = fix.dateTime.minutes;
+                                lgf.second   = fix.dateTime.seconds;
+                                gpxLogger.update(lgf);
+                            }
+                            xSemaphoreGive(gpsMutex);
                         }
 
                         portENTER_CRITICAL(&nmeaDebugMux);
@@ -147,37 +181,36 @@ void gpsTask(void *pvParameters)
                     }
                 }
             }
-
-            /* Non-blocking: gpsTask (core 0) never waits on the GUI task (core 1).
-               If lvgl_mutex is taken, subject updates are skipped for this cycle.
-               Intentional — the GPS task must not stall waiting for LVGL. */
-            if (isMainScreen && !canMoveWidget && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
-            {
-                lv_subject_set_int(&subject_speed, (int32_t)gps.gpsData.speed);
-                lv_subject_set_int(&subject_altitude, (int32_t)gps.gpsData.altitude);
-                lv_subject_set_int(&subject_lat, (int32_t)(gps.gpsData.latitude * 1000000.0f));
-                lv_subject_set_int(&subject_lon, (int32_t)(gps.gpsData.longitude * 1000000.0f));
-                lv_subject_set_int(&subject_sats, (int32_t)gps.gpsData.satellites);
-                lv_subject_set_int(&subject_pdop, (int32_t)(gps.gpsData.pdop * 10.0f));
-                lv_subject_set_int(&subject_hdop, (int32_t)(gps.gpsData.hdop * 10.0f));
-                lv_subject_set_int(&subject_vdop, (int32_t)(gps.gpsData.vdop * 10.0f));
-                lv_subject_set_int(&subject_fix_mode, (int32_t)gps.gpsData.fixMode);
-                lv_subject_set_int(&subject_is_fixed, isGpsFixed ? 1 : 0);
-                if (!mapSet.mapRotationComp)
-                    lv_subject_set_int(&subject_heading, (int32_t)gps.gpsData.heading);
-                xSemaphoreGive(lvgl_mutex);
-            }
-
-            if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
-            {
-                if (satDataUpdated)
-                    lv_subject_set_int(&subject_sats_data_trigger, lv_subject_get_int(&subject_sats_data_trigger) + 1);
-                lv_subject_set_int(&subject_nmea_debug_trigger, lv_subject_get_int(&subject_nmea_debug_trigger) + 1);
-                xSemaphoreGive(lvgl_mutex);
-            }
-
-            xSemaphoreGive(gpsMutex);
         }
+
+        /* Non-blocking: gpsTask (core 0) never waits on the GUI task (core 1).
+           If lvgl_mutex is taken, subject updates are skipped for this cycle.
+           Intentional — the GPS task must not stall waiting for LVGL. */
+        if (isMainScreen && !canMoveWidget && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
+        {
+            lv_subject_set_int(&subject_speed, (int32_t)gps.gpsData.speed);
+            lv_subject_set_int(&subject_altitude, (int32_t)gps.gpsData.altitude);
+            lv_subject_set_int(&subject_lat, (int32_t)(gps.gpsData.latitude * 1000000.0f));
+            lv_subject_set_int(&subject_lon, (int32_t)(gps.gpsData.longitude * 1000000.0f));
+            lv_subject_set_int(&subject_sats, (int32_t)gps.gpsData.satellites);
+            lv_subject_set_int(&subject_pdop, (int32_t)(gps.gpsData.pdop * 10.0f));
+            lv_subject_set_int(&subject_hdop, (int32_t)(gps.gpsData.hdop * 10.0f));
+            lv_subject_set_int(&subject_vdop, (int32_t)(gps.gpsData.vdop * 10.0f));
+            lv_subject_set_int(&subject_fix_mode, (int32_t)gps.gpsData.fixMode);
+            lv_subject_set_int(&subject_is_fixed, isGpsFixed ? 1 : 0);
+            if (!mapSet.mapRotationComp)
+                lv_subject_set_int(&subject_heading, (int32_t)gps.gpsData.heading);
+            xSemaphoreGive(lvgl_mutex);
+        }
+
+        if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
+        {
+            if (satDataUpdated)
+                lv_subject_set_int(&subject_sats_data_trigger, lv_subject_get_int(&subject_sats_data_trigger) + 1);
+            lv_subject_set_int(&subject_nmea_debug_trigger, lv_subject_get_int(&subject_nmea_debug_trigger) + 1);
+            xSemaphoreGive(lvgl_mutex);
+        }
+
         vTaskDelay(1);
     }
 }
@@ -199,9 +232,9 @@ void initGpsTask()
  * @brief Command-line interface processing task
  *
  * @details Handles CLI operations including command parsing, execution, and response
- *          generation. Runs on core 1 with 16KB stack size to handle complex CLI
- *          operations and network communications. The task processes commands at
- *          60ms intervals to maintain responsive user interaction.
+ *          generation. Runs on core 1 with 11KB stack size. Peak usage measured
+ *          at ~33KB with screenshot (scshot); 11KB provides 25% margin. The task
+ *          processes commands at 60ms intervals to maintain responsive user interaction.
  *
  * @param param Task parameters (unused in current implementation)
  */
@@ -221,20 +254,13 @@ void cliTask(void *param)
 /**
  * @brief Initialize CLI processing task
  *
- * @details Creates and starts the CLI task on core 1 with 16KB stack size and priority 1.
+ * @details Creates and starts the CLI task on core 1 with 11KB stack size and priority 1.
  *          Only compiled when CLI functionality is enabled (not DISABLE_CLI).
  */
-void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 16384, NULL, 1, NULL, 1); }
+void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 11264, NULL, 1, &cliTaskHandle, 1); }
 
 #endif
 
-#ifdef BME280
-    extern BME280_Driver bme;
-#endif
-    extern Battery battery;
-#ifdef ENABLE_COMPASS
-    extern Compass compass;
-#endif
 
 static int getBatteryLevel(int v)
 {
@@ -274,9 +300,9 @@ void sensorTask(void *pvParameters)
             continue;
         }
 
-        #ifdef ENABLE_COMPASS
+        if (sensors().hasCompass())
         {
-            int newHeading = compass.getHeading();
+            int newHeading = sensors().heading();
             if (sensorMutex != NULL && xSemaphoreTake(sensorMutex, portMAX_DELAY) == pdTRUE)
             {
                 globalSensorData.heading = newHeading;
@@ -292,7 +318,6 @@ void sensorTask(void *pvParameters)
                 xSemaphoreGive(lvgl_mutex);
             }
         }
-        #endif
 
         // Update time subject once per second (from reliable sensorTask loop)
         time_t now = time(NULL);
@@ -309,23 +334,19 @@ void sensorTask(void *pvParameters)
 
         if (slowCounter++ >= 25)
         {
-            #ifdef BME280
+            if (sensors().hasAmbient())
             {
-                float t = 0.0f;
-                float p = 0.0f;
-                float h = 0.0f;
-                bme.readAll(t, p, h);
-                int16_t alt = (int16_t)bme.readAltitude(p);
+                AmbientData ambient;
+                sensors().readAmbient(ambient);
                 if (sensorMutex != NULL && xSemaphoreTake(sensorMutex, portMAX_DELAY) == pdTRUE)
                 {
-                    globalSensorData.temperature = t;
-                    globalSensorData.pressure    = p;
-                    globalSensorData.humidity    = h;
-                    globalSensorData.altitude    = alt;
+                    globalSensorData.temperature = ambient.temperature;
+                    globalSensorData.pressure    = ambient.pressure;
+                    globalSensorData.humidity    = ambient.humidity;
+                    globalSensorData.altitude    = (int16_t)ambient.altitude;
                     xSemaphoreGive(sensorMutex);
                 }
             }
-            #endif
 
             #ifdef ENABLE_TEMP
             uint8_t currentTemp = (uint8_t)(globalSensorData.temperature + tempOffset);
@@ -340,7 +361,7 @@ void sensorTask(void *pvParameters)
             }
             #endif
 
-            bool currentWifiState = (WiFi.status() == WL_CONNECTED);
+            bool currentWifiState = connectivity().isConnected();
             if (currentWifiState != sensorState.lastWifiState)
             {
                 if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, MUTEX_TIMEOUT_SLOW) == pdTRUE)
@@ -351,11 +372,11 @@ void sensorTask(void *pvParameters)
                 }
             }
 
-            float rawBattery = battery.readBattery();
+            float rawBattery = sensors().batteryLevel();
             if (sensorMutex != NULL && xSemaphoreTake(sensorMutex, portMAX_DELAY) == pdTRUE)
             {
                 globalSensorData.batteryPercent = rawBattery;
-                globalSensorData.batteryVoltage = battery.lastVoltage();
+                globalSensorData.batteryVoltage = sensors().batteryVoltage();
                 xSemaphoreGive(sensorMutex);
             }
 
@@ -410,7 +431,7 @@ void sensorTask(void *pvParameters)
  */
 void initSensorTask()
 {
-    xTaskCreatePinnedToCore(sensorTask, "Sensor Task", 3072, NULL, 1, NULL, 0);
+    xTaskCreatePinnedToCore(sensorTask, "Sensor Task", 3072, NULL, 1, &sensorTaskHandle, 0);
 }
 
 /**
@@ -432,12 +453,12 @@ void guiTask(void *pvParameters)
             wait_ms = lv_timer_handler();
             xSemaphoreGive(lvgl_mutex);
         }
-        
-        if (wait_ms > 100) 
+
+        if (wait_ms > 100)
             wait_ms = 100;
-        if (wait_ms < 5) 
+        if (wait_ms < 5)
             wait_ms = 5;
-        
+
         vTaskDelay(pdMS_TO_TICKS(wait_ms));
     }
 }
@@ -445,15 +466,13 @@ void guiTask(void *pvParameters)
 /**
  * @brief Initialize GUI management task
  *
- * @details Creates and starts the GUI task on core 1 with 8KB stack and priority 3.
+ * @details Creates and starts the GUI task on core 1 with 9.5KB stack and priority 3.
  *          This ensures that UI updates and touch events are processed with the
  *          highest application priority.
  */
-TaskHandle_t guiTaskHandle = NULL;
-
 void initGuiTask()
 {
-    xTaskCreatePinnedToCore(guiTask, "GUI Task", 8192, NULL, 3, &guiTaskHandle, 1);
+    xTaskCreatePinnedToCore(guiTask, "GUI Task", 9728, NULL, 3, &guiTaskHandle, 1);
 }
 
 extern TrackVector            trackData;
@@ -492,12 +511,13 @@ void navTask(void *pvParameters)
         {
             if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, portMAX_DELAY) == pdTRUE)
             {
-                showMsg(LV_SYMBOL_REFRESH, " Calculating route...");
+                showMsg(LV_SYMBOL_REFRESH, " Calculating route...", false);
                 xSemaphoreGive(lvgl_mutex);
             }
 
+            Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
             TrackVector newRoute;
-            RouterResult res = router.route(gps.gpsData.latitude, gps.gpsData.longitude,
+            RouterResult res = router.route(gpsSnap.latitude, gpsSnap.longitude,
                                             routeDstLat, routeDstLon, newRoute);
 
             if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
@@ -554,28 +574,30 @@ void navTask(void *pvParameters)
         {
             if (navSet.simNavigation)
             {
-                float oldLat = gps.gpsData.latitude;
+                float oldLat = gps.getSnapshot().latitude;
                 gps.simFakeGPS(trackData, 40, 500);
-                if (gps.gpsData.latitude != oldLat && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
+                Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
+                if (gpsSnap.latitude != oldLat && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
                 {
-                    lv_subject_set_int(&subject_lat,     (int32_t)(gps.gpsData.latitude  * 1000000.0f));
-                    lv_subject_set_int(&subject_lon,     (int32_t)(gps.gpsData.longitude * 1000000.0f));
-                    lv_subject_set_int(&subject_heading, (int32_t)gps.gpsData.heading);
-                    lv_subject_set_int(&subject_speed,   (int32_t)gps.gpsData.speed);
+                    lv_subject_set_int(&subject_lat,     (int32_t)(gpsSnap.latitude  * 1000000.0f));
+                    lv_subject_set_int(&subject_lon,     (int32_t)(gpsSnap.longitude * 1000000.0f));
+                    lv_subject_set_int(&subject_heading, (int32_t)gpsSnap.heading);
+                    lv_subject_set_int(&subject_speed,   (int32_t)gpsSnap.speed);
                     xSemaphoreGive(lvgl_mutex);
                 }
             }
 
-            if (gps.gpsData.speed != 0 || navSet.simNavigation)
+            Gps::GpsSnapshot navSnap = gps.getSnapshot();
+            if (navSnap.speed != 0 || navSet.simNavigation)
             {
-                unsigned long now = (unsigned long)(esp_timer_get_time() / 1000ULL);
+                unsigned long now = (unsigned long)millis_idf();
                 if (now - lastNavUpdate > 100)
                 {
                     lastNavUpdate = now;
                     if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(50)) == pdTRUE)
                     {
-                        updateNavigation(gps.gpsData.latitude, gps.gpsData.longitude,
-                                         gps.gpsData.heading,  gps.gpsData.speed,
+                        updateNavigation(navSnap.latitude, navSnap.longitude,
+                                         navSnap.heading,  navSnap.speed,
                                          trackData, turnPoints, navState,
                                          20, 200, navConfig);
                         xSemaphoreGive(lvgl_mutex);
@@ -591,9 +613,46 @@ void navTask(void *pvParameters)
 /**
  * @brief Initialize navigation task
  *
- * @details Creates and starts the nav task on core 1 with 6KB stack and priority 1.
+ * @details Creates and starts the nav task on core 1 with 3KB stack and priority 1.
  */
 void initNavTask()
 {
-    xTaskCreatePinnedToCore(navTask, "Nav Task", 6144, NULL, 2, NULL, 1);
+    xTaskCreatePinnedToCore(navTask, "Nav Task", 6144, NULL, 2, &navTaskHandle, 1);
+}
+
+/**
+ * @brief Suspends all FreeRTOS tasks before entering light sleep.
+ *
+ * @details Suspends GPS, sensor, navigation and map render tasks in dependency
+ *          order to avoid inconsistent state during device suspend.
+ */
+void suspendAllTasks()
+{
+    if (gpsTaskHandle != NULL)
+        vTaskSuspend(gpsTaskHandle);
+    if (sensorTaskHandle != NULL)
+        vTaskSuspend(sensorTaskHandle);
+    if (navTaskHandle != NULL)
+        vTaskSuspend(navTaskHandle);
+    TaskHandle_t renderHandle = mapView.renderTaskHandle();
+    if (renderHandle != NULL)
+        vTaskSuspend(renderHandle);
+}
+
+/**
+ * @brief Resumes all FreeRTOS tasks after returning from light sleep.
+ *
+ * @details Resumes tasks in reverse suspension order.
+ */
+void resumeAllTasks()
+{
+    TaskHandle_t renderHandle = mapView.renderTaskHandle();
+    if (renderHandle != NULL)
+        vTaskResume(renderHandle);
+    if (navTaskHandle != NULL)
+        vTaskResume(navTaskHandle);
+    if (sensorTaskHandle != NULL)
+        vTaskResume(sensorTaskHandle);
+    if (gpsTaskHandle != NULL)
+        vTaskResume(gpsTaskHandle);
 }

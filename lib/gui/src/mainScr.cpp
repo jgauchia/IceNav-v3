@@ -143,21 +143,26 @@ static struct
     bool     dragStarted  = false;
 } scrollState;
 
+static volatile bool redrawPending = false;
+
 /**
  * @brief Async callback to delegate map redrawing to UI thread (Core 1)
  */
 static void async_map_update_cb(void * user_data)
 {
-    if (!isMainScreen || mapImage == NULL)
+    __atomic_store_n(&redrawPending, false, __ATOMIC_SEQ_CST);
+
+    if (!isMainScreen || mapImage == NULL || summaryOverlay != nullptr)
         return;
 
     mapView.generateMap(zoom);
     if (mapView.redrawMap && !mapSet.vectorMap)
         xEventGroupSetBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
 
+    const Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
     int32_t currentHeading = lv_subject_get_int(&subject_heading);
-    float currentLat = gps.gpsData.latitude;
-    float currentLon = gps.gpsData.longitude;
+    float currentLat = gpsSnap.latitude;
+    float currentLon = gpsSnap.longitude;
 
     bool headingChanged = (abs(currentHeading - mapRenderState.lastRenderedHeading) > MAP_HEADING_THRESHOLD);
     bool positionChanged = (currentLat != mapRenderState.lastRenderedLat || currentLon != mapRenderState.lastRenderedLon);
@@ -187,10 +192,10 @@ static void async_map_update_cb(void * user_data)
 
     lv_obj_set_pos(mapImage, 0, 0);
     if (mapSet.showClimb)
-        climbAnalyzer.updatePosition(gps.gpsData.latitude, gps.gpsData.longitude, navSet.simNavigation, gps.getSimulationIndex(), trackData);
+        climbAnalyzer.updatePosition(currentLat, currentLon, navSet.simNavigation, gps.getSimulationIndex(), trackData);
 
     if (mapSet.showMapSpeed)
-        lv_label_set_text_fmt(mapSpeedLabel, "%3d", gps.gpsData.speed);
+        lv_label_set_text_fmt(mapSpeedLabel, "%3d", gpsSnap.speed);
     if (mapSet.showMapScale)
         lv_label_set_text_fmt(scaleLabel, "%s", map_scale[zoom]);
 }
@@ -200,6 +205,8 @@ static void async_map_update_cb(void * user_data)
  */
 void triggerMapRedraw()
 {
+    if (__atomic_exchange_n(&redrawPending, true, __ATOMIC_SEQ_CST))
+        return;
     lv_async_call(async_map_update_cb, NULL);
 }
 
@@ -226,10 +233,10 @@ static void toggle3DEvent(lv_event_t *event)
  */
 static void map_position_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
 {
-    if (activeTile != MAP || lv_subject_get_int(&subject_map_state) != MAP_MODE_FOLLOW)
+    if (activeTile != MAP || summaryOverlay != nullptr || lv_subject_get_int(&subject_map_state) != MAP_MODE_FOLLOW)
         return;
 
-    lv_async_call(async_map_update_cb, NULL);
+    triggerMapRedraw();
 }
 
 /**
@@ -246,7 +253,7 @@ static void map_offset_observer_cb(lv_observer_t *observer, lv_subject_t *subjec
     if (activeTile != MAP)
         return;
 
-    lv_async_call(async_map_update_cb, NULL);
+    triggerMapRedraw();
 }
 
 /**
@@ -261,7 +268,7 @@ static void map_offset_observer_cb(lv_observer_t *observer, lv_subject_t *subjec
  */
 static void map_heading_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
 {
-    if (activeTile != MAP || canMoveWidget || lv_subject_get_int(&subject_map_state) != MAP_MODE_FOLLOW)
+    if (activeTile != MAP || canMoveWidget || summaryOverlay != nullptr || lv_subject_get_int(&subject_map_state) != MAP_MODE_FOLLOW)
         return;
 
     int32_t newHeading = lv_subject_get_int(subject);
@@ -269,7 +276,7 @@ static void map_heading_observer_cb(lv_observer_t *observer, lv_subject_t *subje
     if (abs(newHeading - global_last_heading) > MAP_HEADING_THRESHOLD)
     {
         global_last_heading = newHeading;
-        lv_async_call(async_map_update_cb, NULL);
+        triggerMapRedraw();
     }
 }
 
@@ -737,7 +744,7 @@ static void scrollTile(lv_event_t *event)
  */
 static void updateMap(lv_event_t *event)
 {
-    lv_async_call(async_map_update_cb, NULL);
+    triggerMapRedraw();
 }
 
 /**
@@ -779,7 +786,8 @@ static void mapToolBarEvent(lv_event_t *event)
     {
         setZoomButtonsVisible(false);
         lv_obj_add_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
-        mapView.centerOnGps(gps.gpsData.latitude, gps.gpsData.longitude);
+        const Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
+        mapView.centerOnGps(gpsSnap.latitude, gpsSnap.longitude);
         lv_subject_set_int(&subject_map_state, MAP_MODE_FOLLOW);
         mapView.updateMap();
         lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
@@ -813,7 +821,8 @@ static void map_inertia_timer_cb(lv_timer_t * t)
         float dy = mapView.velocityY * dt;
         mapView.scrollMap((int16_t)dx, (int16_t)dy);
 
-        float currentFriction = mapView.isRendering() ? MAP_INERTIA_FRICTION : mapView.friction;
+        bool renderBusy = mapView.isRendering() || mapView.isScrollDeferred();
+        float currentFriction = renderBusy ? MAP_INERTIA_FRICTION : mapView.friction;
         mapView.velocityX *= currentFriction;
         mapView.velocityY *= currentFriction;
 
@@ -828,6 +837,9 @@ static void map_inertia_timer_cb(lv_timer_t * t)
     else
     {
         lv_timer_pause(t);
+        mapView.setInertia(false);
+        mapView.commitScroll();
+        triggerMapRedraw();
         lv_subject_set_int(&subject_map_state, MAP_MODE_MANUAL);
     }
 }
@@ -842,9 +854,12 @@ static void map_inertia_timer_cb(lv_timer_t * t)
  */
 static void scrollMapEvent(lv_event_t *event)
 {
+    extern volatile bool twoFingerGesture;
     if (canScrollMap)
     {
         lv_event_code_t code = lv_event_get_code(event);
+        if (twoFingerGesture && code != LV_EVENT_RELEASED && code != LV_EVENT_PRESS_LOST)
+            return;
         lv_indev_t * indev = lv_event_get_indev(event);
         lv_point_t p;
 
@@ -854,11 +869,12 @@ static void scrollMapEvent(lv_event_t *event)
                 lv_indev_get_point(indev, &p);
                 scrollState.last_x      = p.x;
                 scrollState.last_y      = p.y;
-                scrollState.last_time   = (uint32_t)(esp_timer_get_time() / 1000);
+                scrollState.last_time   = millis_idf();
                 scrollState.dragStarted = false;
                 isScrollingMap = true;
                 mapView.velocityX = 0;
                 mapView.velocityY = 0;
+                mapView.setInertia(false);
                 lv_subject_set_int(&subject_map_state, MAP_MODE_MANUAL);
                 if (map_inertia_timer != NULL)
                     lv_timer_pause(map_inertia_timer);
@@ -867,7 +883,7 @@ static void scrollMapEvent(lv_event_t *event)
             case LV_EVENT_PRESSING:
             {
                 lv_indev_get_point(indev, &p);
-                uint32_t current_time = (uint32_t)(esp_timer_get_time() / 1000);
+                uint32_t current_time = millis_idf();
                 int dx = p.x - scrollState.last_x;
                 int dy = p.y - scrollState.last_y;
                 uint32_t dt = current_time - scrollState.last_time;
@@ -903,6 +919,7 @@ static void scrollMapEvent(lv_event_t *event)
                 if (abs(mapView.velocityX) > MAP_INERTIA_VEL_THRESH || abs(mapView.velocityY) > MAP_INERTIA_VEL_THRESH)
                 {
                     lv_subject_set_int(&subject_map_state, MAP_MODE_INERTIA);
+                    mapView.setInertia(true);
                     if (map_inertia_timer != NULL)
                         lv_timer_resume(map_inertia_timer);
                 }
@@ -910,6 +927,8 @@ static void scrollMapEvent(lv_event_t *event)
                 {
                     mapView.velocityX = 0;
                     mapView.velocityY = 0;
+                    mapView.commitScroll();
+                    triggerMapRedraw();
                 }
                 break;
             default: 
@@ -947,7 +966,8 @@ static void zoomEvent(lv_event_t *event)
  */
 static void updateNavEvent(lv_event_t *event)
 {
-    int wptDistance = (int)calcDist(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon);
+    const Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
+    int wptDistance = (int)calcDist(gpsSnap.latitude, gpsSnap.longitude, loadWpt.lat, loadWpt.lon);
     lv_label_set_text_fmt(distNav, "%d m.", wptDistance);
     if (wptDistance <= 30)
     {
@@ -958,7 +978,7 @@ static void updateNavEvent(lv_event_t *event)
     else
     {
         float navHeading = (float)lv_subject_get_int(&subject_heading);
-        float wptCourse = calcCourse(gps.gpsData.latitude, gps.gpsData.longitude, loadWpt.lat, loadWpt.lon) - navHeading;
+        float wptCourse = calcCourse(gpsSnap.latitude, gpsSnap.longitude, loadWpt.lat, loadWpt.lon) - navHeading;
         lv_img_set_angle(arrowNav, (wptCourse * 10));
     }
 }
@@ -990,17 +1010,30 @@ static void createMapImage(_lv_obj_t *screen)
 }
 
 /**
+ * @brief Clear the overlay pointer once LVGL has actually destroyed it.
+ *
+ * @param e LVGL event (LV_EVENT_DELETE).
+ */
+static void summaryDeleteEvent(lv_event_t *e)
+{
+    summaryOverlay = nullptr;
+}
+
+/**
  * @brief Close the summary overlay when the user taps OK.
  *
  * @param e LVGL event (LV_EVENT_CLICKED).
  */
 static void summaryOkEvent(lv_event_t *e)
 {
-    if (summaryOverlay != nullptr && lv_obj_is_valid(summaryOverlay))
-    {
-        lv_obj_delete_async(summaryOverlay);
-        summaryOverlay = nullptr;
-    }
+    if (summaryOverlay == nullptr || !lv_obj_is_valid(summaryOverlay))
+        return;
+
+    if (lv_obj_has_flag(summaryOverlay, LV_OBJ_FLAG_HIDDEN))
+        return;
+
+    lv_obj_add_flag(summaryOverlay, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_delete_async(summaryOverlay);
 }
 
 /**
@@ -1024,6 +1057,7 @@ static void showLoggerSummary()
     lv_obj_set_style_bg_opa(summaryOverlay, LV_OPA_70, 0);
     lv_obj_set_style_border_width(summaryOverlay, 0, 0);
     lv_obj_clear_flag(summaryOverlay, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_event_cb(summaryOverlay, summaryDeleteEvent, LV_EVENT_DELETE, nullptr);
 
     lv_obj_t *card = lv_obj_create(summaryOverlay);
     lv_obj_set_size(card, TFT_WIDTH - 20, TFT_HEIGHT - 50);

@@ -8,6 +8,13 @@ on:
       - '**/README.md'
 
 jobs:
+  layer-discipline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Layer 2/3 do not include Layer 0 headers
+        run: ./tools/check_layer_discipline.sh
+
   build:
     runs-on: ubuntu-latest
     strategy:

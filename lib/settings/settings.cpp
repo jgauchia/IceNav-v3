@@ -11,7 +11,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-static const char* TAG = "Settings";
+static const char* TAG = "SETTINGS";
 
 MAP mapSet;
 NAVIGATION navSet;
@@ -125,7 +125,7 @@ void loadPreferences()
     #endif
 
     battery.setBatteryLevels(cfg.getFloat(PKEYS::KVMAX_BATT, 4.2f), cfg.getFloat(PKEYS::KVMIN_BATT, 3.6f));
-    printSettings();
+    // printSettings();
 }
 
 /**
