@@ -2,7 +2,7 @@
  * @file powerS3.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief ESP32-S3 power management implementation (esp_sleep + light/deep sleep)
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 

@@ -1,7 +1,7 @@
 /**
  * @file nav_reader.hpp
  * @brief NAV tile reader for ESP32 - IceNav Navigation Tiles
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  *
  * NPK2 pack: MapHeader (23B) + flat 2D index + global RGB565 color palette + tile data.

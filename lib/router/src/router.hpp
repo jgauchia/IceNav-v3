@@ -2,7 +2,7 @@
  * @file router.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Public router interface — load graph and compute A* route
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 

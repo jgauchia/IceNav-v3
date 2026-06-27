@@ -2,7 +2,7 @@
  * @file i2c_espidf.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Native ESP-IDF I2C master wrapper - Replaces Arduino Wire.h
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 

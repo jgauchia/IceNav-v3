@@ -2,7 +2,7 @@
  * @file battery.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Battery monitor definition and functions
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 

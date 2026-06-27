@@ -2,7 +2,7 @@
  * @file webserver.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Web file server functions declarations
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 

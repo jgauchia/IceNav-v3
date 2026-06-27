@@ -2,7 +2,7 @@
  * @file LILYGO_TDECK.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com) and Antonio Vanegas @Hpsturn
  * @brief  LOVYANGFX TFT driver for Lilygo T-DECK biard
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 

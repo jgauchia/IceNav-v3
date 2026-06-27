@@ -2,7 +2,7 @@
  * @file panelSelect.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief Panel model select
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 

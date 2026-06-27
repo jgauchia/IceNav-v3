@@ -2,7 +2,7 @@
  * @file ILI9488_XPT2046_SPI.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LOVYANGFX TFT driver for LilyGo T4-S3
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
