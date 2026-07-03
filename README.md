@@ -295,6 +295,29 @@ Download link: [tools/mass_copy/rsync_copy.sh](tools/mass_copy/rsync_copy.sh)
 > pio run --target upload
 > ```
 
+## Crash diagnostics
+
+On every boot IceNav logs the reset reason (power-on, panic, watchdog, brownout...) to the serial monitor and appends it to `DIAG.log` in the SD card root, along with the firmware version.
+
+If the previous session ended in a crash, the ESP32 automatically stores a core dump in a dedicated flash partition. On the next boot with an SD card present, IceNav:
+
+- Appends a crash summary to `DIAG.log` (faulting task, program counter, exception cause and backtrace).
+- Copies the full core dump to `COREDUMP.elf` in the SD card root.
+- Erases the flash partition, ready for the next crash.
+
+To get a full decoded report (source file and line for each backtrace frame), analyze `COREDUMP.elf` on your PC with the `espcoredump.py` tool included with ESP-IDF/PlatformIO, using the ELF of the same firmware build (`.pio/build/<environment>/firmware.elf`):
+
+```bash
+espcoredump.py info_corefile -c COREDUMP.elf -t elf .pio/build/ICENAV_BOARD/firmware.elf
+```
+
+> [!TIP]
+> If there is no SD card inserted, the core dump is kept in flash (the serial monitor shows `coredump stored` at boot) and will be recovered on the first boot with an SD card. Alternatively it can be extracted over USB without SD card:
+>
+> ```bash
+> espcoredump.py --port /dev/ttyACM0 info_corefile .pio/build/ICENAV_BOARD/firmware.elf
+> ```
+
 ## CLI
 
 IceNav has a basic CLI accessible via Serial and optionally via Telnet if enabled (port 11000). When you access the CLI and type `help`, you should see the following commands:

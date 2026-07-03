@@ -22,6 +22,7 @@ extern xSemaphoreHandle gpsMutex;
 #include "gpxParser.hpp"
 #include "climbAnalyzer.hpp"
 #include "maps.hpp"
+#include "diag.hpp"
 #include "lv_subjects.hpp"
 #include "router.hpp"
 
@@ -62,6 +63,7 @@ void setup()
         ESP_LOGE("main", "SD card init failed — map data unavailable");
     if (!spiffsOk)
         ESP_LOGE("main", "SPIFFS init failed — assets unavailable");
+    diagBootReport();
     battery.initADC();
     initTFT();
     createGpxFolders();
