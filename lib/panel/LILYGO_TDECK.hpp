@@ -1,99 +1,31 @@
 /**
  * @file LILYGO_TDECK.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com) and Antonio Vanegas @Hpsturn
- * @brief  LOVYANGFX TFT driver for Lilygo T-DECK biard
+ * @brief  LOVYANGFX TFT driver for Lilygo T-DECK board
  * @version 0.3.0
  * @date 2026-06
  */
 
 #pragma once
 
-#define LGFX_USE_V1
-
 #define TOUCH_INPUT
 
-#include "LovyanGFX.hpp"
+#define PANEL_TYPE             lgfx::Panel_ST7789
+#define PANEL_BUS_SPI
+#define PANEL_FREQ_WRITE       40000000
+#define PANEL_FREQ_READ        16000000
+#define PANEL_PIN_RST          -1
+#define PANEL_WIDTH            240
+#define PANEL_HEIGHT           320
+#define PANEL_DUMMY_READ_PIXEL 16
+#define PANEL_DUMMY_READ_BITS  2
 
-class LGFX : public lgfx::LGFX_Device
-{
-    lgfx::Panel_ST7789  _panel_instance;
-    lgfx::Bus_SPI       _bus_instance;
-    lgfx::Light_PWM     _light_instance;
-    lgfx::Touch_GT911   _touch_instance;
+#define TOUCH_GT911
+#define TOUCH_I2C_ADDR         0x5D
+#define TOUCH_PIN_INT          TCH_I2C_INT
+#define TOUCH_PIN_SDA          I2C_SDA_PIN
+#define TOUCH_PIN_SCL          I2C_SCL_PIN
+#define TOUCH_X_MAX            239
+#define TOUCH_Y_MAX            319
 
-    public:
-        LGFX(void)
-        {
-            {
-                auto cfg = _bus_instance.config();
-                cfg.spi_host = SPI2_HOST;
-                cfg.spi_mode = 0;
-                cfg.use_lock = false;
-                cfg.freq_write = 40000000;
-                cfg.freq_read = 16000000;
-                cfg.spi_3wire = false;
-                cfg.dma_channel = SPI_DMA_CH_AUTO;
-                cfg.pin_sclk = GPIO_NUM_40;
-                cfg.pin_mosi = GPIO_NUM_41;
-                cfg.pin_miso = GPIO_NUM_38;
-                cfg.pin_dc = GPIO_NUM_11;
-                _bus_instance.config(cfg);
-                _panel_instance.setBus(&_bus_instance);
-            }
-
-            {
-                auto cfg = _panel_instance.config();
-                cfg.pin_cs = GPIO_NUM_12;
-                cfg.pin_rst = -1;
-                cfg.pin_busy = -1;
-                cfg.panel_width = 240;
-                cfg.panel_height = 320;
-                cfg.memory_width = 240;
-                cfg.memory_height = 320;
-                cfg.offset_x = 0;
-                cfg.offset_y = 0;
-                cfg.offset_rotation = 0;
-                cfg.dummy_read_pixel = 16;
-                cfg.dummy_read_bits = 2;
-                cfg.readable = true;
-                cfg.invert = false;
-                cfg.rgb_order = false;
-                cfg.dlen_16bit = false;
-                cfg.bus_shared = true;
-                _panel_instance.config(cfg);
-            }
-
-            {
-                auto cfg = _light_instance.config();
-                cfg.pin_bl = GPIO_NUM_42;
-                cfg.invert = false;
-                cfg.freq = 44100;
-                cfg.pwm_channel = 7;
-
-                _light_instance.config(cfg);
-                _panel_instance.setLight(&_light_instance);
-            }
-
-            {
-                auto cfg = _touch_instance.config();
-
-                cfg.x_min = 0;
-                cfg.x_max = 239;
-                cfg.y_min = 0;
-                cfg.y_max = 319;
-                cfg.pin_int = GPIO_NUM_16;
-                cfg.bus_shared = true;
-                cfg.offset_rotation = 0;
-
-                cfg.i2c_port = 0;
-                cfg.i2c_addr = 0x5D;   
-                cfg.pin_sda = GPIO_NUM_18;
-                cfg.pin_scl = GPIO_NUM_8;
-                cfg.freq = 400000;
-
-                _touch_instance.config(cfg);
-                _panel_instance.setTouch(&_touch_instance);
-            }
-            setPanel(&_panel_instance);
-        }
-};
+#include "lgfxCommon.hpp"

@@ -25,6 +25,29 @@
     static constexpr uint8_t SD_MISO = GPIO_NUM_41;
     static constexpr uint8_t SD_MOSI = GPIO_NUM_2;
     static constexpr uint8_t SD_CLK = GPIO_NUM_42;
+
+    static constexpr uint8_t TFT_WR  = GPIO_NUM_18;
+    static constexpr uint8_t TFT_RD  = GPIO_NUM_48;
+    static constexpr uint8_t TFT_RS  = GPIO_NUM_45;
+    static constexpr uint8_t TFT_D0  = GPIO_NUM_47;
+    static constexpr uint8_t TFT_D1  = GPIO_NUM_21;
+    static constexpr uint8_t TFT_D2  = GPIO_NUM_14;
+    static constexpr uint8_t TFT_D3  = GPIO_NUM_13;
+    static constexpr uint8_t TFT_D4  = GPIO_NUM_12;
+    static constexpr uint8_t TFT_D5  = GPIO_NUM_11;
+    static constexpr uint8_t TFT_D6  = GPIO_NUM_10;
+    static constexpr uint8_t TFT_D7  = GPIO_NUM_9;
+    static constexpr uint8_t TFT_D8  = GPIO_NUM_3;
+    static constexpr uint8_t TFT_D9  = GPIO_NUM_8;
+    static constexpr uint8_t TFT_D10 = GPIO_NUM_16;
+    static constexpr uint8_t TFT_D11 = GPIO_NUM_15;
+    static constexpr uint8_t TFT_D12 = GPIO_NUM_7;
+    static constexpr uint8_t TFT_D13 = GPIO_NUM_6;
+    static constexpr uint8_t TFT_D14 = GPIO_NUM_5;
+    static constexpr uint8_t TFT_D15 = GPIO_NUM_4;
+    static constexpr uint8_t TFT_BL  = GPIO_NUM_46;
+
+    static constexpr uint8_t TCH_I2C_INT = GPIO_NUM_40;
 #endif
 
 /**
@@ -49,6 +72,14 @@
     static constexpr uint8_t SD_MISO = GPIO_NUM_38;
     static constexpr uint8_t SD_MOSI = GPIO_NUM_41;
     static constexpr uint8_t SD_CLK = GPIO_NUM_40;
+
+    static constexpr uint8_t TFT_SPI_SCLK = GPIO_NUM_40;
+    static constexpr uint8_t TFT_SPI_MOSI = GPIO_NUM_41;
+    static constexpr uint8_t TFT_SPI_MISO = GPIO_NUM_38;
+    static constexpr uint8_t TFT_SPI_DC   = GPIO_NUM_11;
+    static constexpr uint8_t TFT_BL       = GPIO_NUM_42;
+
+    static constexpr uint8_t TCH_I2C_INT = GPIO_NUM_16;
 #endif
 
 /**
@@ -69,6 +100,27 @@
     static constexpr uint8_t SD_MISO = GPIO_NUM_41;
     static constexpr uint8_t SD_MOSI = GPIO_NUM_2;
     static constexpr uint8_t SD_CLK = GPIO_NUM_42;
+
+    static constexpr uint8_t TFT_WR  = GPIO_NUM_18;
+    static constexpr uint8_t TFT_RD  = GPIO_NUM_48;
+    static constexpr uint8_t TFT_RS  = GPIO_NUM_45;
+    static constexpr uint8_t TFT_D0  = GPIO_NUM_47;
+    static constexpr uint8_t TFT_D1  = GPIO_NUM_21;
+    static constexpr uint8_t TFT_D2  = GPIO_NUM_14;
+    static constexpr uint8_t TFT_D3  = GPIO_NUM_13;
+    static constexpr uint8_t TFT_D4  = GPIO_NUM_12;
+    static constexpr uint8_t TFT_D5  = GPIO_NUM_11;
+    static constexpr uint8_t TFT_D6  = GPIO_NUM_10;
+    static constexpr uint8_t TFT_D7  = GPIO_NUM_9;
+    static constexpr uint8_t TFT_D8  = GPIO_NUM_3;
+    static constexpr uint8_t TFT_D9  = GPIO_NUM_8;
+    static constexpr uint8_t TFT_D10 = GPIO_NUM_16;
+    static constexpr uint8_t TFT_D11 = GPIO_NUM_15;
+    static constexpr uint8_t TFT_D12 = GPIO_NUM_7;
+    static constexpr uint8_t TFT_D13 = GPIO_NUM_6;
+    static constexpr uint8_t TFT_D14 = GPIO_NUM_5;
+    static constexpr uint8_t TFT_D15 = GPIO_NUM_4;
+    static constexpr uint8_t TFT_BL  = GPIO_NUM_46;
 #endif
 
 /**
@@ -88,6 +140,30 @@
     static constexpr uint8_t SD_MISO = GPIO_NUM_41;
     static constexpr uint8_t SD_MOSI = GPIO_NUM_2;
     static constexpr uint8_t SD_CLK = GPIO_NUM_42;
+
+    static constexpr uint8_t TFT_WR  = GPIO_NUM_35;
+    static constexpr uint8_t TFT_RD  = GPIO_NUM_48;
+    static constexpr uint8_t TFT_RS  = GPIO_NUM_36;
+    static constexpr uint8_t TFT_D0  = GPIO_NUM_47;
+    static constexpr uint8_t TFT_D1  = GPIO_NUM_21;
+    static constexpr uint8_t TFT_D2  = GPIO_NUM_14;
+    static constexpr uint8_t TFT_D3  = GPIO_NUM_13;
+    static constexpr uint8_t TFT_D4  = GPIO_NUM_12;
+    static constexpr uint8_t TFT_D5  = GPIO_NUM_11;
+    static constexpr uint8_t TFT_D6  = GPIO_NUM_10;
+    static constexpr uint8_t TFT_D7  = GPIO_NUM_9;
+    static constexpr uint8_t TFT_D8  = GPIO_NUM_3;
+    static constexpr uint8_t TFT_D9  = GPIO_NUM_8;
+    static constexpr uint8_t TFT_D10 = GPIO_NUM_16;
+    static constexpr uint8_t TFT_D11 = GPIO_NUM_15;
+    static constexpr uint8_t TFT_D12 = GPIO_NUM_7;
+    static constexpr uint8_t TFT_D13 = GPIO_NUM_6;
+    static constexpr uint8_t TFT_D14 = GPIO_NUM_5;
+    static constexpr uint8_t TFT_D15 = GPIO_NUM_4;
+    static constexpr uint8_t TFT_CS  = GPIO_NUM_37;
+    static constexpr uint8_t TFT_BL  = GPIO_NUM_45;
+
+    static constexpr uint8_t TCH_I2C_INT = GPIO_NUM_40;
 #endif
 
 /**
