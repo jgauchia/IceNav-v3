@@ -223,35 +223,37 @@
 /**
  * @brief Waveshare ESP32-P4-WIFI6-Touch-LCD-3.5 pin definition
  *
- * @details Provisional pins. TODO: verificar contra el esquemático real.
+ * @details Display/touch/I2C/SD pins verified against the Waveshare BSP
+ *          (esp32_p4_wifi6_touch_lcd_35). BOOT, GPS UART and battery still TODO.
  */
 #ifdef WAVESHARE_P4_35
-    #define I2C_SDA_PIN   GPIO_NUM_7   // TODO: verificar (esquemático real)
-    #define I2C_SCL_PIN   GPIO_NUM_8   // TODO: verificar (esquemático real)
+    #define I2C_SDA_PIN   GPIO_NUM_7
+    #define I2C_SCL_PIN   GPIO_NUM_8
 
-    static constexpr uint8_t GPS_TX_DEFAULT = GPIO_NUM_37;  // TODO: verificar (esquemático real)
-    static constexpr uint8_t GPS_RX_DEFAULT = GPIO_NUM_38;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t GPS_TX_DEFAULT = GPIO_NUM_37;  // TODO: confirmar UART libre
+    static constexpr uint8_t GPS_RX_DEFAULT = GPIO_NUM_38;  // TODO: confirmar UART libre
 
-    static constexpr uint8_t BOARD_BOOT_PIN = GPIO_NUM_35;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t BOARD_BOOT_PIN = GPIO_NUM_35;  // TODO: confirmar pin BOOT
 
-    // ST7796 over SPI. TODO: verificar (esquemático real)
-    static constexpr uint8_t TFT_SCLK = GPIO_NUM_5;   // TODO: verificar (esquemático real)
-    static constexpr uint8_t TFT_MOSI = GPIO_NUM_6;   // TODO: verificar (esquemático real)
-    static constexpr uint8_t TFT_MISO = GPIO_NUM_9;   // TODO: verificar (esquemático real)
-    static constexpr uint8_t TFT_CS   = GPIO_NUM_10;  // TODO: verificar (esquemático real)
-    static constexpr uint8_t TFT_DC   = GPIO_NUM_11;  // TODO: verificar (esquemático real)
-    static constexpr uint8_t TFT_RST  = GPIO_NUM_12;  // TODO: verificar (esquemático real)
-    static constexpr uint8_t TFT_BL   = GPIO_NUM_13;  // TODO: verificar (esquemático real)
+    // ST7796 over SPI (no MISO on this board)
+    static constexpr uint8_t TFT_SCLK = GPIO_NUM_21;
+    static constexpr uint8_t TFT_MOSI = GPIO_NUM_20;
+    static constexpr uint8_t TFT_CS   = GPIO_NUM_23;
+    static constexpr uint8_t TFT_DC   = GPIO_NUM_26;
+    static constexpr uint8_t TFT_RST  = GPIO_NUM_27;
+    static constexpr uint8_t TFT_BL   = GPIO_NUM_28;
 
-    static constexpr uint8_t TCH_I2C_INT = GPIO_NUM_14;  // TODO: verificar (esquemático real)
+    // FT5x06/FT6336 capacitive touch (I2C shared bus)
+    static constexpr uint8_t TCH_I2C_INT = GPIO_NUM_50;
+    static constexpr uint8_t TCH_I2C_RST = GPIO_NUM_29;
 
-    // microSD over SDIO. TODO: verificar (esquemático real; SDMMC pendiente)
-    static constexpr uint8_t SD_CLK_SDIO = GPIO_NUM_43;  // TODO: verificar (esquemático real)
-    static constexpr uint8_t SD_CMD      = GPIO_NUM_44;  // TODO: verificar (esquemático real)
-    static constexpr uint8_t SD_D0       = GPIO_NUM_39;  // TODO: verificar (esquemático real)
-    static constexpr uint8_t SD_D1       = GPIO_NUM_40;  // TODO: verificar (esquemático real)
-    static constexpr uint8_t SD_D2       = GPIO_NUM_41;  // TODO: verificar (esquemático real)
-    static constexpr uint8_t SD_D3       = GPIO_NUM_42;  // TODO: verificar (esquemático real)
+    // microSD over SDIO, SDMMC slot 0, 4-bit (SDMMC pendiente de implementar)
+    static constexpr uint8_t SD_CLK_SDIO = GPIO_NUM_43;
+    static constexpr uint8_t SD_CMD      = GPIO_NUM_44;
+    static constexpr uint8_t SD_D0       = GPIO_NUM_39;
+    static constexpr uint8_t SD_D1       = GPIO_NUM_40;
+    static constexpr uint8_t SD_D2       = GPIO_NUM_41;
+    static constexpr uint8_t SD_D3       = GPIO_NUM_42;
 #endif
 
 /**
@@ -275,7 +277,6 @@
     // The real display is MIPI-DSI (esp_lcd backend), which replaces these.
     static constexpr uint8_t TFT_SCLK = GPIO_NUM_5;   // placeholder
     static constexpr uint8_t TFT_MOSI = GPIO_NUM_6;   // placeholder
-    static constexpr uint8_t TFT_MISO = GPIO_NUM_9;   // placeholder
     static constexpr uint8_t TFT_CS   = GPIO_NUM_10;  // placeholder
     static constexpr uint8_t TFT_DC   = GPIO_NUM_11;  // placeholder
     static constexpr uint8_t TFT_RST  = GPIO_NUM_12;  // placeholder

@@ -13,18 +13,18 @@
 
 #define PANEL_TYPE            lgfx::Panel_ST7796
 #define PANEL_BUS_SPI
-#define PANEL_FREQ_WRITE      40000000   // TODO: verificar (subir frecuencia tras validar)
+#define PANEL_FREQ_WRITE      40000000   // BSP uses 80 MHz; start conservative, raise after validating
 #define PANEL_FREQ_READ       16000000
 #define PANEL_PIN_SCLK        TFT_SCLK
 #define PANEL_PIN_MOSI        TFT_MOSI
-#define PANEL_PIN_MISO        TFT_MISO
+#define PANEL_PIN_MISO        -1
 #define PANEL_PIN_DC          TFT_DC
 #define PANEL_PIN_CS          TFT_CS
 #define PANEL_PIN_RST         TFT_RST
 #define PANEL_PIN_BL          TFT_BL
 #define PANEL_WIDTH           320
 #define PANEL_HEIGHT          480
-#define PANEL_INVERT          true       // TODO: verificar
+#define PANEL_INVERT          true       // BSP: esp_lcd_panel_invert_color(true)
 
 #define TOUCH_FT5x06
 #define TOUCH_PIN_INT         TCH_I2C_INT
