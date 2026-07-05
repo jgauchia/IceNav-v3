@@ -20,6 +20,22 @@
 #include <cstdio>
 
 /**
+ * @brief Feeds the Task WDT, subscribing the current task first if needed.
+ *
+ * @details httpd worker tasks are not registered with the Task WDT, so calling
+ *          esp_task_wdt_reset() directly logs "task not found" on IDF 5.x. This
+ *          adds the current task on demand (idempotent) before feeding.
+ */
+static void feedWatchdog()
+{
+    esp_err_t status = esp_task_wdt_status(NULL);
+    if (status == ESP_ERR_NOT_FOUND)
+        status = esp_task_wdt_add(NULL);
+    if (status == ESP_OK)
+        esp_task_wdt_reset();
+}
+
+/**
  * @brief Convert bytes to Human Readable Size
  */
 static std::string humanReadableSize(uint64_t bytes)
@@ -128,7 +144,7 @@ static void cacheDirectoryContent(const std::string& dir)
                 entry.size = 0;
 
             fileCache.push_back(entry);
-            esp_task_wdt_reset();
+            feedWatchdog();
         }
         closedir(dp);
     }
@@ -385,7 +401,7 @@ static bool createDirectories(const std::string& filepath)
             break;
         lastSlash = nextSlash;
 
-        esp_task_wdt_reset();
+        feedWatchdog();
     }
     return true;
 }
@@ -474,7 +490,7 @@ static esp_err_t listfiles_handler(httpd_req_t *req)
 
     if (updateList)
     {
-        esp_task_wdt_reset();
+        feedWatchdog();
         cacheDirectoryContent(oldDir);
     }
 
@@ -677,7 +693,7 @@ static esp_err_t listfolder_handler(httpd_req_t *req)
             }
         }
         closedir(dp);
-        esp_task_wdt_reset();
+        feedWatchdog();
     }
 
     httpd_resp_set_type(req, "text/plain");
@@ -913,7 +929,7 @@ static esp_err_t upload_handler(httpd_req_t *req)
                     bufUsed = 0;
                 }
             }
-            esp_task_wdt_reset();
+            feedWatchdog();
             continue;
         }
 
@@ -952,7 +968,7 @@ static esp_err_t upload_handler(httpd_req_t *req)
             uint8_t* headerEnd = findBytes(buf, bufUsed, (const uint8_t*)"\r\n\r\n", 4);
             if (!headerEnd && remaining > 0)
             {
-                esp_task_wdt_reset();
+                feedWatchdog();
                 continue;
             }
 
@@ -994,7 +1010,7 @@ static esp_err_t upload_handler(httpd_req_t *req)
             }
         }
 
-        esp_task_wdt_reset();
+        feedWatchdog();
 
         if (remaining == 0 && !boundaryPos)
             break;

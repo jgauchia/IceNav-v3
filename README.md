@@ -119,7 +119,7 @@ To do this, simply include the following Build Flag in the required env in platf
 
 |             | Type          | Build Flags [^3]                   | 
 |:------------|:--------------|:-----------------------------------|
-|             | 🔋 Batt. Monitor | ```-DADC1``` or ```-DADC2``` <br> ```-DBATT_PIN=ADCn_CHANNEL_x``` |  
+|             | 🔋 Batt. Monitor | ```-DBATT_ADC_UNIT=n``` (1 or 2) <br> ```-DBATT_ADC_CHANNEL=x``` |  
 | AT6558D     | 🛰️ GPS        | ```-DAT6558D_GPS```                |
 | HMC5883L    | 🧭 Compass    | ```-DHMC5883L```                   |
 | QMC5883     | 🧭 Compass    | ```-DQMC5883```                    |

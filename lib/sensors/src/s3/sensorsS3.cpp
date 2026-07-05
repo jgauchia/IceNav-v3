@@ -55,7 +55,7 @@ public:
 
     bool hasBattery() const override
     {
-        #ifdef BATT_PIN
+        #ifdef BATT_ADC_UNIT
             return true;
         #else
             return false;
@@ -94,7 +94,7 @@ public:
 
     float batteryLevel() override
     {
-        #ifdef BATT_PIN
+        #ifdef BATT_ADC_UNIT
             return battery.readBattery();
         #else
             return 0.0f;
@@ -103,7 +103,7 @@ public:
 
     float batteryVoltage() override
     {
-        #ifdef BATT_PIN
+        #ifdef BATT_ADC_UNIT
             return battery.lastVoltage();
         #else
             return 0.0f;

@@ -10,8 +10,9 @@
 
 #include <cmath>
 #include <esp_rom_sys.h>
-#include <driver/adc.h>
-#include <esp_adc_cal.h>
+#include <esp_adc/adc_oneshot.h>
+#include <esp_adc/adc_cali.h>
+#include <esp_adc/adc_cali_scheme.h>
 
 
 /**
@@ -27,6 +28,10 @@ class Battery
         float batteryMin;                    /**< Minimum (empty) voltage. */
         float lastVolt   = 0.0f;             /**< Last measured voltage (V). */
         static constexpr float V_REF = 3.3f; /**< ADC reference voltage. */
+
+        adc_oneshot_unit_handle_t adcHandle = nullptr; /**< ADC oneshot unit handle. */
+        adc_cali_handle_t caliHandle = nullptr;        /**< ADC calibration handle. */
+        bool caliEnabled = false;                      /**< Whether calibration is available. */
 
     public:
         Battery();

@@ -19,19 +19,33 @@ Battery::Battery() : batteryMax(0.0f), batteryMin(0.0f)
 }
 
 /**
- * @brief Initializes the ADC channel(s) required for battery voltage measurement.
+ * @brief Initializes the ADC channel required for battery voltage measurement.
  *
- * @details Configures the hardware ADC based on the ESP32 chip (ADC1 or ADC2).
+ * @details Configures the oneshot ADC unit and channel selected by BATT_ADC_UNIT and
+ *          BATT_ADC_CHANNEL, with 12 dB attenuation and 12 bit width, and sets up
+ *          curve-fitting calibration when available.
  */
 void Battery::initADC()
 {
-    #ifdef ADC1
-        adc1_config_width(ADC_WIDTH_BIT_12);
-        adc1_config_channel_atten(BATT_PIN, ADC_ATTEN_DB_12);
-    #endif
+    #ifdef BATT_ADC_UNIT
+        const adc_unit_t unit = (BATT_ADC_UNIT == 2) ? ADC_UNIT_2 : ADC_UNIT_1;
+        const adc_channel_t channel = (adc_channel_t)BATT_ADC_CHANNEL;
 
-    #ifdef ADC2
-        adc2_config_channel_atten(BATT_PIN, ADC_ATTEN_DB_12);
+        adc_oneshot_unit_init_cfg_t unitCfg = {};
+        unitCfg.unit_id = unit;
+        adc_oneshot_new_unit(&unitCfg, &adcHandle);
+
+        adc_oneshot_chan_cfg_t chanCfg = {};
+        chanCfg.atten = ADC_ATTEN_DB_12;
+        chanCfg.bitwidth = ADC_BITWIDTH_12;
+        adc_oneshot_config_channel(adcHandle, channel, &chanCfg);
+
+        adc_cali_curve_fitting_config_t caliCfg = {};
+        caliCfg.unit_id = unit;
+        caliCfg.chan = channel;
+        caliCfg.atten = ADC_ATTEN_DB_12;
+        caliCfg.bitwidth = ADC_BITWIDTH_12;
+        caliEnabled = (adc_cali_create_scheme_curve_fitting(&caliCfg, &caliHandle) == ESP_OK);
     #endif
 }
 
@@ -55,33 +69,40 @@ void Battery::setBatteryLevels(float maxVoltage, float minVoltage)
  *
  * @return float Percentage of battery charge (0–100% typically).
  */
-float Battery::readBattery() 
+float Battery::readBattery()
 {
     long sum = 0;        // Sum of samples taken
     float voltage = 0.0; // Calculated voltage
     float output = 0.0;  // Output value
 
     static constexpr int ADC_SAMPLES = 16;
-    for (int i = 0; i < ADC_SAMPLES; i++)
-    {
-        #ifdef ADC1
-            sum += (long)adc1_get_raw(BATT_PIN);
-        #endif
 
-        #ifdef ADC2
-            int readRaw;
-            esp_err_t r = adc2_get_raw(BATT_PIN, ADC_WIDTH_BIT_12, &readRaw);
-            if (r == ESP_OK)
+    #ifdef BATT_ADC_UNIT
+        const adc_channel_t channel = (adc_channel_t)BATT_ADC_CHANNEL;
+        for (int i = 0; i < ADC_SAMPLES; i++)
+        {
+            int readRaw = 0;
+            if (adc_oneshot_read(adcHandle, channel, &readRaw) == ESP_OK)
                 sum += (long)readRaw;
-        #endif
-        esp_rom_delay_us(150);
-    }
+            esp_rom_delay_us(150);
+        }
+    #endif
 
-    voltage = sum / (float)ADC_SAMPLES;
+    float meanRaw = sum / (float)ADC_SAMPLES;
     // Custom board has a divider circuit
     constexpr float R1 = 100000.0f; // Resistance of R1 (100K)
     constexpr float R2 = 100000.0f; // Resistance of R2 (100K)
-    voltage = (voltage * V_REF) / 4096.0f;
+
+    #ifdef BATT_ADC_UNIT
+        int caliMv = 0;
+        if (caliEnabled && adc_cali_raw_to_voltage(caliHandle, (int)lroundf(meanRaw), &caliMv) == ESP_OK)
+            voltage = caliMv / 1000.0f;
+        else
+            voltage = (meanRaw * V_REF) / 4096.0f;
+    #else
+        voltage = (meanRaw * V_REF) / 4096.0f;
+    #endif
+
     voltage = voltage * ((R1 + R2) / R2);
     voltage = roundf(voltage * 100.0f) / 100.0f;
     lastVolt = voltage;

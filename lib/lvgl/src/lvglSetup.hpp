@@ -20,7 +20,7 @@
 #include "splashScr.hpp"
 #include "notifyBar.hpp"
 #include "settingsScr.hpp"
-#if defined(BATT_PIN) || defined(BME280) || defined(ENABLE_IMU) || defined(ENABLE_COMPASS)
+#if defined(BATT_ADC_UNIT) || defined(BME280) || defined(ENABLE_IMU) || defined(ENABLE_COMPASS)
 #include "sensorScr.hpp"
 #endif
 #include "deviceSettingsScr.hpp"

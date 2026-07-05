@@ -14,8 +14,6 @@
 #include <driver/spi_master.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <esp_bt.h>
-#include <esp_bt_main.h>
 #include <esp_wifi.h>
 #include "tft.hpp"
 #include "storage.hpp"
@@ -51,7 +49,6 @@ public:
             esp_wifi_disconnect();
             esp_wifi_stop();
             esp_wifi_deinit();
-            esp_bt_controller_disable();
         #endif
     }
 
@@ -87,13 +84,10 @@ private:
      * @brief Deep Sleep Mode
      *
      * @details Puts the device into deep sleep mode to minimize power consumption.
-     * 			Disables Bluetooth and WiFi, configures wakeup sources, and starts deep sleep.
+     * 			Disables WiFi, configures wakeup sources, and starts deep sleep.
      */
     void powerDeepSleep()
     {
-        esp_bluedroid_disable();
-        if (esp_bt_controller_disable() != ESP_OK)
-            ESP_LOGE(TAG, "Failed to disable BT controller");
         if (esp_wifi_stop() != ESP_OK)
             ESP_LOGE(TAG, "Failed to stop WiFi");
         esp_deep_sleep_disable_rom_logging();

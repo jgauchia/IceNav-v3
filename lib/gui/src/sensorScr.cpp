@@ -14,7 +14,7 @@ lv_obj_t *sensorScreen = NULL;
 
 static lv_timer_t *sensorUpdateTimer = NULL;
 
-#ifdef BATT_PIN
+#ifdef BATT_ADC_UNIT
 static lv_obj_t *lblBattPct  = NULL;
 static lv_obj_t *lblBattVolt = NULL;
 static lv_obj_t *battBar     = NULL;
@@ -164,7 +164,7 @@ static void sensorUpdateCb(lv_timer_t *timer)
     else
         return;
 
-    #ifdef BATT_PIN
+    #ifdef BATT_ADC_UNIT
     {
         static char voltBuf[12];
         snprintf(voltBuf, sizeof(voltBuf), "%.2f V", snap.batteryVoltage);
@@ -315,7 +315,7 @@ void createSensorScr()
     lv_obj_set_scroll_dir(scroll, LV_DIR_VER);
     lv_obj_add_flag(scroll, LV_OBJ_FLAG_SCROLLABLE);
 
-    #ifdef BATT_PIN
+    #ifdef BATT_ADC_UNIT
     {
         lv_obj_t *card = createCard(scroll, "Battery");
 

@@ -9,7 +9,6 @@
 #include "maps.hpp"
 #include <cmath>
 #include <climits>
-#include "esp_task_wdt.h"
 #include "tasks.hpp"
 #include "mainScr.hpp"
 #include "navContext.hpp"
@@ -687,8 +686,6 @@ void Maps::mapRenderTask(void* pvParameters)
                         if (instance->featurePool[idx].geomType == NavGeomType::Text)
                             instance->renderNavText(instance->featurePool[idx], instance->mapTempSprite, instance->placedLabelsCache);
                     }
-
-                    esp_task_wdt_reset();
                 }
 
                 if (aborted)
