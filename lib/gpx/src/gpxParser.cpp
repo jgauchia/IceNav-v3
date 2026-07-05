@@ -10,6 +10,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include "gpsMath.hpp"
+#include "navContext.hpp"
 
 /**
  * @brief Helper function to format float values
@@ -293,7 +294,7 @@ bool GPXParser::loadTrack(TrackVector& trackData)
     rewind(file);
     size_t estimatedPoints = fileSize / 50;
     trackData.reserve(estimatedPoints);
-    trackIndex.clear();
+    navCtx.trackIndex.clear();
     char line[256];
     while (fgets(line, sizeof(line), file))
     {
@@ -381,7 +382,7 @@ bool GPXParser::loadTrack(TrackVector& trackData)
                 const float BUFFER = 0.0005f; 
                 currentSeg.minLat -= BUFFER; currentSeg.maxLat += BUFFER;
                 currentSeg.minLon -= BUFFER; currentSeg.maxLon += BUFFER;
-                trackIndex.push_back(currentSeg);
+                navCtx.trackIndex.push_back(currentSeg);
                 if (i < trackData.size() - 1)
                 {
                     currentSeg.startIdx = i + 1;
@@ -390,7 +391,7 @@ bool GPXParser::loadTrack(TrackVector& trackData)
                 }
             }
         }
-        ESP_LOGI(TAGGPX, "Index built. Segments: %d, Total Dist: %.1f m", (int)trackIndex.size(), totalDist);
+        ESP_LOGI(TAGGPX, "Index built. Segments: %d, Total Dist: %.1f m", (int)navCtx.trackIndex.size(), totalDist);
     }
     return true;
 }

@@ -12,6 +12,7 @@
 #include "esp_task_wdt.h"
 #include "tasks.hpp"
 #include "mainScr.hpp"
+#include "navContext.hpp"
 #include "../../images/src/bruj.h"
 #include "../../images/src/compass.h"
 #include "../../images/src/waypoint.h"
@@ -31,7 +32,6 @@
 #endif
 extern Gps gps;
 extern Storage storage;
-extern TrackVector trackData;
 static const char* TAG = "MAPS";
 static const uint16_t PREFETCH_MIN_SPEED_KMH = 5;
 
@@ -312,10 +312,10 @@ void Maps::createMapScrSprites()
  */
 void Maps::drawTrack(MapCanvas& map)
 {
-    for (size_t i = 1; i < trackData.size(); ++i)
+    for (size_t i = 1; i < navCtx.trackData.size(); ++i)
     {
-        const auto &p1 = trackData[i - 1];
-        const auto &p2 = trackData[i];
+        const auto &p1 = navCtx.trackData[i - 1];
+        const auto &p2 = navCtx.trackData[i];
         int16_t x1;
         int16_t y1;
         int16_t x2;
@@ -925,7 +925,7 @@ void Maps::setWaypoint(float wptLat, float wptLon)
  */
 bool Maps::isNavActive() const
 {
-    if (trackData.size() > 0)
+    if (navCtx.trackData.size() > 0)
         return true;
     if (hasWaypoint)
         return true;

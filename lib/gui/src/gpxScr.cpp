@@ -9,7 +9,7 @@
 #include "gpxScr.hpp"
 #include "lv_subjects.hpp"
 #include "router.hpp"
-#include "climbAnalyzer.hpp"
+#include "navContext.hpp"
 #include "gps.hpp"
 #include "gpsMath.hpp"
 #include "display.hpp"
@@ -23,11 +23,6 @@ extern bool isTrackOpt;
 bool gpxWaypoint = false;
 bool gpxTrack = false;
 bool isTrackLoaded = false;
-
-extern TrackVector trackData;             /**< Vector containing track waypoints */
-extern std::vector<TurnPoint> turnPoints; /**< Vector containing turn points */
-extern ClimbAnalyzer climbAnalyzer;       /**< Climb profile analyzer */
-extern NavState navState;
 
 lv_obj_t *listGPXScreen;                /**< Add Waypoint screen */
 static bool longPressHandled = false;   /**< Guard to prevent repeated long-press action per gesture */
@@ -50,9 +45,9 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
         if (loadWpt.lat != 0 && loadWpt.lon != 0)
         {
             isTrackLoaded = false;
-            trackData.clear();
-            trackData.shrink_to_fit();
-            navState = NavState{};
+            navCtx.trackData.clear();
+            navCtx.trackData.shrink_to_fit();
+            navCtx.navState = NavState{};
             resetNavigationUI();
             mapView.redrawTrack();
 
@@ -69,10 +64,10 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
             mapView.setWaypoint(loadWpt.lat, loadWpt.lon);
             mapView.updateMap();
 
-            routeDstLat = loadWpt.lat;
-            routeDstLon = loadWpt.lon;
+            navCtx.routeDstLat = loadWpt.lat;
+            navCtx.routeDstLon = loadWpt.lon;
             lv_subject_set_int(&subject_rerouting, 1);
-            rerouteRequested.store(true);
+            navCtx.rerouteRequested.store(true);
 
             lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
         }
@@ -86,31 +81,31 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
     if (gpxTrack)
     {
         isTrackLoaded = false;
-        trackData.clear();
-        trackData.shrink_to_fit();
-        navState = NavState{};
+        navCtx.trackData.clear();
+        navCtx.trackData.shrink_to_fit();
+        navCtx.navState = NavState{};
         gps.resetSimulation();
         resetNavigationUI();
-        climbAnalyzer.clear();
-        gpx.loadTrack(trackData);
+        navCtx.climbAnalyzer.clear();
+        gpx.loadTrack(navCtx.trackData);
 
         size_t gpxStartIdx = 0;
-        if (!trackData.empty())
+        if (!navCtx.trackData.empty())
         {
             const Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
             float distToStart = calcDist(gpsSnap.latitude, gpsSnap.longitude,
-                                         trackData[0].lat, trackData[0].lon);
+                                         navCtx.trackData[0].lat, navCtx.trackData[0].lon);
             if (distToStart > 50.0f)
             {
                 TrackVector approachRoute;
                 RouterResult res = router.route(gpsSnap.latitude, gpsSnap.longitude,
-                                                trackData[0].lat, trackData[0].lon, approachRoute);
+                                                navCtx.trackData[0].lat, navCtx.trackData[0].lon, approachRoute);
                 if (res == RouterResult::OK && !approachRoute.empty())
                 {
                     gpxStartIdx = approachRoute.size() - 1;
                     approachRoute.pop_back();
-                    approachRoute.insert(approachRoute.end(), trackData.begin(), trackData.end());
-                    trackData = std::move(approachRoute);
+                    approachRoute.insert(approachRoute.end(), navCtx.trackData.begin(), navCtx.trackData.end());
+                    navCtx.trackData = std::move(approachRoute);
                 }
             }
 
@@ -118,26 +113,26 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
             {
                 // Recalculate accumDist only for the approach segment, then offset
                 // the GPX points so the full track has a continuous distance axis.
-                trackData[0].accumDist = 0.0f;
+                navCtx.trackData[0].accumDist = 0.0f;
                 for (size_t i = 1; i <= gpxStartIdx; ++i)
                 {
-                    float d = calcDist(trackData[i-1].lat, trackData[i-1].lon,
-                                       trackData[i].lat,   trackData[i].lon);
-                    trackData[i].accumDist = trackData[i-1].accumDist + d;
+                    float d = calcDist(navCtx.trackData[i-1].lat, navCtx.trackData[i-1].lon,
+                                       navCtx.trackData[i].lat,   navCtx.trackData[i].lon);
+                    navCtx.trackData[i].accumDist = navCtx.trackData[i-1].accumDist + d;
                 }
-                float approachDist = trackData[gpxStartIdx].accumDist;
-                for (size_t i = gpxStartIdx + 1; i < trackData.size(); ++i)
-                    trackData[i].accumDist += approachDist;
+                float approachDist = navCtx.trackData[gpxStartIdx].accumDist;
+                for (size_t i = gpxStartIdx + 1; i < navCtx.trackData.size(); ++i)
+                    navCtx.trackData[i].accumDist += approachDist;
             }
         }
 
         if (mapSet.showClimb)
         {
-            TrackVector gpxOnly(trackData.begin() + gpxStartIdx, trackData.end());
-            climbAnalyzer.analyze(gpxOnly, (int)gpxStartIdx);
+            TrackVector gpxOnly(navCtx.trackData.begin() + gpxStartIdx, navCtx.trackData.end());
+            navCtx.climbAnalyzer.analyze(gpxOnly, (int)gpxStartIdx);
         }
-        turnPoints = gpx.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, trackData);
-        isTrackLoaded = !trackData.empty();
+        navCtx.turnPoints = gpx.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, navCtx.trackData);
+        isTrackLoaded = !navCtx.trackData.empty();
         if (isTrackLoaded && mapSet.vectorMap)
             lv_obj_clear_flag(btnToggle3D, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(turnByTurn, LV_OBJ_FLAG_HIDDEN);

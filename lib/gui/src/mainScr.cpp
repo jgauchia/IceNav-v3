@@ -9,7 +9,7 @@
 #include "mainScr.hpp"
 #include "tasks.hpp"
 #include "lv_subjects.hpp"
-#include "climbAnalyzer.hpp"
+#include "navContext.hpp"
 #include "logger.hpp"
 
 #define MAP_MODE_FOLLOW 0
@@ -34,8 +34,6 @@ extern uint32_t DOUBLE_TOUCH_EVENT;
 #endif
 extern Gps gps;
 extern wayPoint loadWpt;
-extern TrackVector trackData;
-extern ClimbAnalyzer climbAnalyzer;
 
 #ifdef LARGE_SCREEN
     uint8_t toolBarOffset = 100;
@@ -192,7 +190,7 @@ static void async_map_update_cb(void * user_data)
 
     lv_obj_set_pos(mapImage, 0, 0);
     if (mapSet.showClimb)
-        climbAnalyzer.updatePosition(currentLat, currentLon, navSet.simNavigation, gps.getSimulationIndex(), trackData);
+        navCtx.climbAnalyzer.updatePosition(currentLat, currentLon, navSet.simNavigation, gps.getSimulationIndex(), navCtx.trackData);
 
     if (mapSet.showMapSpeed)
         lv_label_set_text_fmt(mapSpeedLabel, "%3d", gpsSnap.speed);
@@ -306,12 +304,12 @@ static struct
  *          After rendering, passes the sprite buffer to lv_canvas_set_buffer so LVGL
  *          displays it without any copy.
  *
- * @param startPt  First trackData index of the visible window.
- * @param endPt    Last  trackData index of the visible window.
+ * @param startPt  First navCtx.trackData index of the visible window.
+ * @param endPt    Last  navCtx.trackData index of the visible window.
  */
 static void buildClimbProfile(int startPt, int endPt)
 {
-    if (climbCanvas == NULL || trackData.size() < 2)
+    if (climbCanvas == NULL || navCtx.trackData.size() < 2)
         return;
 
     int W = lv_obj_get_width(climbCanvas);
@@ -336,20 +334,20 @@ static void buildClimbProfile(int startPt, int endPt)
 
     climbState.sprite.fillScreen(TFT_BLACK);
 
-    float distStart = trackData[startPt].accumDist;
-    float distEnd   = trackData[endPt].accumDist;
+    float distStart = navCtx.trackData[startPt].accumDist;
+    float distEnd   = navCtx.trackData[endPt].accumDist;
     float distRange = distEnd - distStart;
     if (distRange < 1.0f)
         return;
 
-    float minEle = trackData[startPt].ele;
-    float maxEle = trackData[startPt].ele;
+    float minEle = navCtx.trackData[startPt].ele;
+    float maxEle = navCtx.trackData[startPt].ele;
     for (int i = startPt + 1; i <= endPt; ++i)
     {
-        if (trackData[i].ele < minEle)
-            minEle = trackData[i].ele;
-        if (trackData[i].ele > maxEle)
-            maxEle = trackData[i].ele;
+        if (navCtx.trackData[i].ele < minEle)
+            minEle = navCtx.trackData[i].ele;
+        if (navCtx.trackData[i].ele > maxEle)
+            maxEle = navCtx.trackData[i].ele;
     }
     float eleRange = maxEle - minEle;
     if (eleRange < 1.0f)
@@ -359,26 +357,26 @@ static void buildClimbProfile(int startPt, int endPt)
     climbState.maxEle   = maxEle;
     climbState.eleRange = eleRange;
 
-    const auto &segs = climbAnalyzer.segments();
+    const auto &segs = navCtx.climbAnalyzer.segments();
     auto toCol = [](uint32_t rgb) { return lgfx::rgb888_t((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF); };
 
     uint8_t *alphaBuf = climbState.buf + W * 2 * H;
     memset(alphaBuf, 0x00, W * H);
 
-    // Linear cursor through trackData — O(n) total across all W columns
+    // Linear cursor through navCtx.trackData — O(n) total across all W columns
     int trkCursor = startPt;
 
     for (int x = 0; x < W; ++x)
     {
         float colDist = distStart + (float)x / (float)(W - 1) * distRange;
 
-        while (trkCursor < endPt - 1 && trackData[trkCursor + 1].accumDist < colDist)
+        while (trkCursor < endPt - 1 && navCtx.trackData[trkCursor + 1].accumDist < colDist)
             ++trkCursor;
 
-        float d0 = trackData[trkCursor].accumDist;
-        float d1 = trackData[trkCursor + 1].accumDist;
-        float e0 = trackData[trkCursor].ele;
-        float e1 = trackData[trkCursor + 1].ele;
+        float d0 = navCtx.trackData[trkCursor].accumDist;
+        float d1 = navCtx.trackData[trkCursor + 1].accumDist;
+        float e0 = navCtx.trackData[trkCursor].ele;
+        float e1 = navCtx.trackData[trkCursor + 1].ele;
         float t  = (d1 > d0) ? (colDist - d0) / (d1 - d0) : 0.0f;
         float ele = e0 + t * (e1 - e0);
 
@@ -387,31 +385,31 @@ static void buildClimbProfile(int startPt, int endPt)
         lgfx::rgb888_t col = toCol(0x00C800u);
         for (const auto &seg : segs)
         {
-            if (colDist >= trackData[seg.startIdx].accumDist &&
-                colDist <= trackData[seg.endIdx].accumDist)
+            if (colDist >= navCtx.trackData[seg.startIdx].accumDist &&
+                colDist <= navCtx.trackData[seg.endIdx].accumDist)
             {
                 // Local grade over a 50m window centred on colDist
                 float wHalf = 25.0f;
                 float dA = colDist - wHalf;
                 float dB = colDist + wHalf;
-                if (dA < trackData[seg.startIdx].accumDist)
-                    dA = trackData[seg.startIdx].accumDist;
-                if (dB > trackData[seg.endIdx].accumDist)
-                    dB = trackData[seg.endIdx].accumDist;
-                int maxIdx = (int)trackData.size() - 1;
+                if (dA < navCtx.trackData[seg.startIdx].accumDist)
+                    dA = navCtx.trackData[seg.startIdx].accumDist;
+                if (dB > navCtx.trackData[seg.endIdx].accumDist)
+                    dB = navCtx.trackData[seg.endIdx].accumDist;
+                int maxIdx = (int)navCtx.trackData.size() - 1;
                 int ia = trkCursor;
-                while (ia > 0 && trackData[ia].accumDist > dA) --ia;
-                while (ia < maxIdx && trackData[ia + 1].accumDist < dA) ++ia;
-                float ta = (ia < maxIdx && trackData[ia + 1].accumDist > trackData[ia].accumDist)
-                           ? (dA - trackData[ia].accumDist) / (trackData[ia + 1].accumDist - trackData[ia].accumDist)
+                while (ia > 0 && navCtx.trackData[ia].accumDist > dA) --ia;
+                while (ia < maxIdx && navCtx.trackData[ia + 1].accumDist < dA) ++ia;
+                float ta = (ia < maxIdx && navCtx.trackData[ia + 1].accumDist > navCtx.trackData[ia].accumDist)
+                           ? (dA - navCtx.trackData[ia].accumDist) / (navCtx.trackData[ia + 1].accumDist - navCtx.trackData[ia].accumDist)
                            : 0.0f;
-                float eleA = trackData[ia].ele + ta * (ia < maxIdx ? (trackData[ia + 1].ele - trackData[ia].ele) : 0.0f);
+                float eleA = navCtx.trackData[ia].ele + ta * (ia < maxIdx ? (navCtx.trackData[ia + 1].ele - navCtx.trackData[ia].ele) : 0.0f);
                 int ib = ia;
-                while (ib < maxIdx && trackData[ib + 1].accumDist < dB) ++ib;
-                float tb = (ib < maxIdx && trackData[ib + 1].accumDist > trackData[ib].accumDist)
-                           ? (dB - trackData[ib].accumDist) / (trackData[ib + 1].accumDist - trackData[ib].accumDist)
+                while (ib < maxIdx && navCtx.trackData[ib + 1].accumDist < dB) ++ib;
+                float tb = (ib < maxIdx && navCtx.trackData[ib + 1].accumDist > navCtx.trackData[ib].accumDist)
+                           ? (dB - navCtx.trackData[ib].accumDist) / (navCtx.trackData[ib + 1].accumDist - navCtx.trackData[ib].accumDist)
                            : 0.0f;
-                float eleB = trackData[ib].ele + tb * (ib < maxIdx ? (trackData[ib + 1].ele - trackData[ib].ele) : 0.0f);
+                float eleB = navCtx.trackData[ib].ele + tb * (ib < maxIdx ? (navCtx.trackData[ib + 1].ele - navCtx.trackData[ib].ele) : 0.0f);
                 float winDist = dB - dA;
                 float localGrade = (winDist > 1.0f) ? ((eleB - eleA) / winDist * 100.0f) : 0.0f;
                 if (localGrade < 0.0f)
@@ -604,13 +602,13 @@ static void climb_idx_observer_cb(lv_observer_t *observer, lv_subject_t *subject
         return;
 
     // Same anticipation condition as updatePosition() — covers pre-climb phase too
-    const std::vector<ClimbSegment>& segs = climbAnalyzer.segments();
-    float curDistObs = trackData[(int)activeIdx].accumDist;
+    const std::vector<ClimbSegment>& segs = navCtx.climbAnalyzer.segments();
+    float curDistObs = navCtx.trackData[(int)activeIdx].accumDist;
     const ClimbSegment* seg = nullptr;
     for (const ClimbSegment& s : segs)
     {
-        float segStartDist = trackData[s.startIdx].accumDist;
-        float segEndDist   = trackData[s.endIdx].accumDist;
+        float segStartDist = navCtx.trackData[s.startIdx].accumDist;
+        float segEndDist   = navCtx.trackData[s.endIdx].accumDist;
         if (curDistObs <= segEndDist && segStartDist - curDistObs <= CLIMB_ANTICIPATION_M)
         {
             seg = &s;
@@ -620,14 +618,14 @@ static void climb_idx_observer_cb(lv_observer_t *observer, lv_subject_t *subject
     if (seg == nullptr)
         return;
 
-    float preStartDist = trackData[seg->startIdx].accumDist - CLIMB_ANTICIPATION_M;
+    float preStartDist = navCtx.trackData[seg->startIdx].accumDist - CLIMB_ANTICIPATION_M;
     int startPt = seg->startIdx;
-    while (startPt > 0 && trackData[startPt - 1].accumDist >= preStartDist)
+    while (startPt > 0 && navCtx.trackData[startPt - 1].accumDist >= preStartDist)
         --startPt;
 
     int endPt  = seg->endIdx;
-    float dRange = trackData[endPt].accumDist - trackData[startPt].accumDist;
-    float dPos   = curDistObs - trackData[startPt].accumDist;
+    float dRange = navCtx.trackData[endPt].accumDist - navCtx.trackData[startPt].accumDist;
+    float dPos   = curDistObs - navCtx.trackData[startPt].accumDist;
     int posX = (dRange > 0.0f) ? (int)(dPos / dRange * (W - 1)) : 0;
     if (posX < 0)
         posX = 0;
@@ -643,7 +641,7 @@ static void climb_idx_observer_cb(lv_observer_t *observer, lv_subject_t *subject
     }
 
     int H = lv_obj_get_height(climbCanvas);
-    float curEleObs = trackData[(int)activeIdx].ele;
+    float curEleObs = navCtx.trackData[(int)activeIdx].ele;
     int yTop = calcYTop(curEleObs, climbState.minEle, climbState.eleRange, H);
 
     updateClimbMarker(posX, yTop);

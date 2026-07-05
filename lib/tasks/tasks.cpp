@@ -15,6 +15,7 @@
 #include "logger.hpp"
 #include "router.hpp"
 #include "gpxParser.hpp"
+#include "navContext.hpp"
 #include "connectivity.hpp"
 #include "sensors.hpp"
 #ifdef ENABLE_IMU
@@ -475,14 +476,7 @@ void initGuiTask()
     xTaskCreatePinnedToCore(guiTask, "GUI Task", 9728, NULL, 3, &guiTaskHandle, 1);
 }
 
-extern TrackVector            trackData;
-extern std::vector<TurnPoint> turnPoints;
-extern NavState               navState;
-extern float                  routeDstLat;
-extern float                  routeDstLon;
-extern std::atomic<bool>      rerouteRequested;
-extern SemaphoreHandle_t      routeMutex;
-extern Maps                   mapView;
+extern Maps mapView;
 
 /**
  * @brief Navigation and routing task
@@ -507,7 +501,7 @@ void navTask(void *pvParameters)
 
     while (1)
     {
-        if (rerouteRequested.exchange(false))
+        if (navCtx.rerouteRequested.exchange(false))
         {
             if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, portMAX_DELAY) == pdTRUE)
             {
@@ -518,7 +512,7 @@ void navTask(void *pvParameters)
             Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
             TrackVector newRoute;
             RouterResult res = router.route(gpsSnap.latitude, gpsSnap.longitude,
-                                            routeDstLat, routeDstLon, newRoute);
+                                            navCtx.routeDstLat, navCtx.routeDstLon, newRoute);
 
             if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
             {
@@ -529,31 +523,31 @@ void navTask(void *pvParameters)
             if (res == RouterResult::OK)
             {
                 isTrackLoaded = false;
-                trackData.clear();
-                trackData.shrink_to_fit();
+                navCtx.trackData.clear();
+                navCtx.trackData.shrink_to_fit();
 
-                if (xSemaphoreTake(routeMutex, pdMS_TO_TICKS(500)) == pdTRUE)
+                if (xSemaphoreTake(navCtx.routeMutex, pdMS_TO_TICKS(500)) == pdTRUE)
                 {
-                    trackData = std::move(newRoute);
+                    navCtx.trackData = std::move(newRoute);
 
-                    if (!trackData.empty())
+                    if (!navCtx.trackData.empty())
                     {
-                        trackData[0].accumDist = 0.0f;
-                        for (size_t i = 1; i < trackData.size(); ++i)
+                        navCtx.trackData[0].accumDist = 0.0f;
+                        for (size_t i = 1; i < navCtx.trackData.size(); ++i)
                         {
-                            float d = calcDist(trackData[i-1].lat, trackData[i-1].lon,
-                                               trackData[i].lat,   trackData[i].lon);
-                            trackData[i].accumDist = trackData[i-1].accumDist + d;
+                            float d = calcDist(navCtx.trackData[i-1].lat, navCtx.trackData[i-1].lon,
+                                               navCtx.trackData[i].lat,   navCtx.trackData[i].lon);
+                            navCtx.trackData[i].accumDist = navCtx.trackData[i-1].accumDist + d;
                         }
                     }
 
                     GPXParser gpxTmp;
-                    turnPoints    = gpxTmp.getTurnPointsSlidingWindow(10.0f, 5, 45.0f, 3, trackData);
-                    navState      = NavState{};
+                    navCtx.turnPoints = gpxTmp.getTurnPointsSlidingWindow(10.0f, 5, 45.0f, 3, navCtx.trackData);
+                    navCtx.navState   = NavState{};
                     gps.resetSimulation();
                     resetNavigationUI();
-                    isTrackLoaded = !trackData.empty();
-                    xSemaphoreGive(routeMutex);
+                    isTrackLoaded = !navCtx.trackData.empty();
+                    xSemaphoreGive(navCtx.routeMutex);
                 }
 
                 mapView.updateMap();
@@ -575,7 +569,7 @@ void navTask(void *pvParameters)
             if (navSet.simNavigation)
             {
                 float oldLat = gps.getSnapshot().latitude;
-                gps.simFakeGPS(trackData, 40, 500);
+                gps.simFakeGPS(navCtx.trackData, 40, 500);
                 Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
                 if (gpsSnap.latitude != oldLat && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
                 {
@@ -598,7 +592,7 @@ void navTask(void *pvParameters)
                     {
                         updateNavigation(navSnap.latitude, navSnap.longitude,
                                          navSnap.heading,  navSnap.speed,
-                                         trackData, turnPoints, navState,
+                                         navCtx.trackData, navCtx.turnPoints, navCtx.navState,
                                          20, 200, navConfig);
                         xSemaphoreGive(lvgl_mutex);
                     }

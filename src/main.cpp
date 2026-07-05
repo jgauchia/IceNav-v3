@@ -8,40 +8,23 @@
 
 #include <Arduino.h>
 #include <esp_log.h>
-#include <atomic>
 
 #include "hal.hpp"
 #include "gps.hpp"
 #include "storage.hpp"
 #include "tft.hpp"
-
-extern xSemaphoreHandle gpsMutex;
 #include "connectivity.hpp"
 #include "fileServer.hpp"
 #include "battery.hpp"
-#include "gpxParser.hpp"
-#include "climbAnalyzer.hpp"
+#include "navContext.hpp"
 #include "maps.hpp"
 #include "diag.hpp"
 #include "lv_subjects.hpp"
-#include "router.hpp"
 
 extern Storage storage;
 extern Battery battery;
 extern Maps mapView;
 
-TrackVector trackData;
-std::vector<TrackSegment> trackIndex;
-std::vector<TurnPoint> turnPoints;
-ClimbAnalyzer climbAnalyzer;
-
-float                  routeDstLat       = 0.0f;
-float                  routeDstLon       = 0.0f;
-std::atomic<bool>      rerouteRequested  {false};
-SemaphoreHandle_t      routeMutex        = nullptr;
-
-#include "navigation.hpp"
-NavState navState;
 #include "timezone.c"
 #include "settings.hpp"
 #include "lvglSetup.hpp"
@@ -52,9 +35,9 @@ NavState navState;
  */
 void setup()
 {
-    gpsMutex     = xSemaphoreCreateMutex();
-    routeMutex   = xSemaphoreCreateMutex();
-    sensorMutex  = xSemaphoreCreateMutex();
+    gpsMutex          = xSemaphoreCreateMutex();
+    navCtx.routeMutex = xSemaphoreCreateMutex();
+    sensorMutex       = xSemaphoreCreateMutex();
     lutInit = initTrigLUT();
     initHAL();
     bool sdOk     = (storage.initSD()     == ESP_OK);

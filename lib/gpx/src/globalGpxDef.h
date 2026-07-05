@@ -73,7 +73,6 @@ enum gpxAction_t
 };
 
 extern uint8_t gpxAction;                          /**< Indicates the current GPX waypoint action to be performed. */
-extern std::vector<TrackSegment> trackIndex;       /**< Spatial index of track segments for O(log n) search. */
 
 /**
  * @brief Track turn points structure
