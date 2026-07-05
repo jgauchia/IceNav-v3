@@ -10,7 +10,6 @@
 #include <lvgl.h>
 #include "tft.hpp"
 #include "storage.hpp"
-#include <atomic>
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 
