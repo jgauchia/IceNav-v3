@@ -12,6 +12,7 @@
 #include "esp_log.h"
 #include "esp_vfs_fat.h"
 #include "driver/sdspi_host.h"
+#include "esp_memory_utils.h"
 #include <cmath>
 #include <cstdio>
 
@@ -82,7 +83,13 @@ esp_err_t Storage::initSD()
 		return ESP_ERR_NO_MEM;
 	}
 
-	#ifndef SPI_SHARED
+	#if CONFIG_IDF_TARGET_ESP32P4
+		// SD over SDIO (SDMMC) is not implemented yet. This skeleton lets the
+		// P4 environments build and degrade cleanly (no SD) until then.
+		ESP_LOGW(TAG, "SD over SDIO not implemented yet");
+		isSdLoaded = false;
+		return ESP_ERR_NOT_SUPPORTED;
+	#elif !defined(SPI_SHARED)
 		esp_err_t ret;
 
 		sdmmc_host_t host = SDSPI_HOST_DEFAULT();
@@ -168,13 +175,15 @@ void Storage::deinitSD()
 	if (!isSdLoaded)
 		return;
 
-	#ifndef SPI_SHARED
+	#if CONFIG_IDF_TARGET_ESP32P4
+		// SDMMC unmount is not implemented yet.
+	#elif !defined(SPI_SHARED)
 		if (card != nullptr)
 			esp_vfs_fat_sdcard_unmount("/sdcard", card);
 	#else
 		SD.end();
 	#endif
-	
+
 	isSdLoaded = false;
 }
 

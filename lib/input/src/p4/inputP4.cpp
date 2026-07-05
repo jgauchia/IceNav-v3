@@ -1,28 +1,28 @@
 /**
- * @file inputS3.cpp
+ * @file inputP4.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief ESP32-S3 touch input implementation (LovyanGFX panel controller)
+ * @brief ESP32-P4 touch input implementation (LovyanGFX panel controller)
  * @version 0.3.0
  * @date 2026-06
  */
 
 #include "sdkconfig.h"
-#if CONFIG_IDF_TARGET_ESP32S3
+#if CONFIG_IDF_TARGET_ESP32P4
 
 #include "input.hpp"
 #include "tft.hpp"
 #include "i2c_espidf.hpp"
 
 /**
- * @class InputS3
- * @brief Layer-0 touch implementation for ESP32-S3 boards over LovyanGFX.
+ * @class InputP4
+ * @brief Layer-0 touch implementation for ESP32-P4 boards over LovyanGFX.
  *
- * @details Reads raw points from the panel touch controller. On ICENAV_BOARD
- *          the FT5x06 shares the I2C bus, so access is guarded by the bus lock;
- *          when the bus is busy the read is reported as failed so the caller
- *          holds the previous state instead of glitching the gesture timers.
+ * @details For the 3.5" board the FT6336 shares the I2C bus, so access is guarded
+ *          by the bus lock exactly as on the S3 shared-bus panels; when the bus is
+ *          busy the read is reported as failed so the caller holds the previous
+ *          state. The 4.3" multitouch controller is added in a later phase.
  */
-class InputS3 : public IInput
+class InputP4 : public IInput
 {
 public:
     int readTouch(TouchPoint *points, uint8_t max) override
@@ -31,8 +31,8 @@ public:
         uint8_t toRead = (max < MAX_RAW_POINTS) ? max : MAX_RAW_POINTS;
         int count = 0;
 
-        #ifdef ICENAV_BOARD
-            // Protect I2C bus access for FT5x06 on shared bus.
+        #ifdef WAVESHARE_P4_35
+            // Protect I2C bus access for FT6336 on shared bus.
             if (i2c.lock(0))
             {
                 count = tft.getTouch(raw, toRead);
@@ -60,12 +60,12 @@ private:
 };
 
 /**
- * @brief Provides the S3 input implementation as the Layer-1 singleton.
+ * @brief Provides the P4 input implementation as the Layer-1 singleton.
  */
 IInput &input()
 {
-    static InputS3 instance;
+    static InputP4 instance;
     return instance;
 }
 
-#endif // CONFIG_IDF_TARGET_ESP32S3
+#endif // CONFIG_IDF_TARGET_ESP32P4

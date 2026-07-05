@@ -185,6 +185,7 @@
     static constexpr uint8_t TFT_SPI_DC   = GPIO_NUM_3;
     static constexpr uint8_t TFT_SPI_CS   = GPIO_NUM_10;
     static constexpr uint8_t TFT_SPI_RST  = GPIO_NUM_6;
+    static constexpr uint8_t TFT_BL       = GPIO_NUM_45;
 
     static constexpr uint8_t TCH_SPI_SCLK = GPIO_NUM_12;
     static constexpr uint8_t TCH_SPI_MOSI = GPIO_NUM_11;
@@ -217,6 +218,76 @@
     static constexpr uint8_t SD_MISO = GPIO_NUM_4;
     static constexpr uint8_t SD_MOSI = GPIO_NUM_2;
     static constexpr uint8_t SD_CLK = GPIO_NUM_3;
+#endif
+
+/**
+ * @brief Waveshare ESP32-P4-WIFI6-Touch-LCD-3.5 pin definition
+ *
+ * @details Provisional pins. TODO: verificar contra el esquemático real.
+ */
+#ifdef WAVESHARE_P4_35
+    #define I2C_SDA_PIN   GPIO_NUM_7   // TODO: verificar (esquemático real)
+    #define I2C_SCL_PIN   GPIO_NUM_8   // TODO: verificar (esquemático real)
+
+    static constexpr uint8_t GPS_TX_DEFAULT = GPIO_NUM_37;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t GPS_RX_DEFAULT = GPIO_NUM_38;  // TODO: verificar (esquemático real)
+
+    static constexpr uint8_t BOARD_BOOT_PIN = GPIO_NUM_35;  // TODO: verificar (esquemático real)
+
+    // ST7796 over SPI. TODO: verificar (esquemático real)
+    static constexpr uint8_t TFT_SCLK = GPIO_NUM_5;   // TODO: verificar (esquemático real)
+    static constexpr uint8_t TFT_MOSI = GPIO_NUM_6;   // TODO: verificar (esquemático real)
+    static constexpr uint8_t TFT_MISO = GPIO_NUM_9;   // TODO: verificar (esquemático real)
+    static constexpr uint8_t TFT_CS   = GPIO_NUM_10;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t TFT_DC   = GPIO_NUM_11;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t TFT_RST  = GPIO_NUM_12;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t TFT_BL   = GPIO_NUM_13;  // TODO: verificar (esquemático real)
+
+    static constexpr uint8_t TCH_I2C_INT = GPIO_NUM_14;  // TODO: verificar (esquemático real)
+
+    // microSD over SDIO. TODO: verificar (esquemático real; SDMMC pendiente)
+    static constexpr uint8_t SD_CLK_SDIO = GPIO_NUM_43;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t SD_CMD      = GPIO_NUM_44;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t SD_D0       = GPIO_NUM_39;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t SD_D1       = GPIO_NUM_40;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t SD_D2       = GPIO_NUM_41;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t SD_D3       = GPIO_NUM_42;  // TODO: verificar (esquemático real)
+#endif
+
+/**
+ * @brief Waveshare ESP32-P4-WIFI6-Touch-LCD-4.3 pin definition
+ *
+ * @details Provisional pins. TODO: verificar contra el esquemático real.
+ *          Display is MIPI-DSI; only the shared buses are sketched here.
+ */
+#ifdef WAVESHARE_P4_43
+    #define I2C_SDA_PIN   GPIO_NUM_7   // TODO: verificar (esquemático real)
+    #define I2C_SCL_PIN   GPIO_NUM_8   // TODO: verificar (esquemático real)
+
+    static constexpr uint8_t GPS_TX_DEFAULT = GPIO_NUM_37;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t GPS_RX_DEFAULT = GPIO_NUM_38;  // TODO: verificar (esquemático real)
+
+    static constexpr uint8_t BOARD_BOOT_PIN = GPIO_NUM_35;  // TODO: verificar (esquemático real)
+
+    static constexpr uint8_t TCH_I2C_INT = GPIO_NUM_14;  // TODO: verificar (esquemático real)
+
+    // Placeholder SPI pins only to satisfy the temporary LovyanGFX panel header.
+    // The real display is MIPI-DSI (esp_lcd backend), which replaces these.
+    static constexpr uint8_t TFT_SCLK = GPIO_NUM_5;   // placeholder
+    static constexpr uint8_t TFT_MOSI = GPIO_NUM_6;   // placeholder
+    static constexpr uint8_t TFT_MISO = GPIO_NUM_9;   // placeholder
+    static constexpr uint8_t TFT_CS   = GPIO_NUM_10;  // placeholder
+    static constexpr uint8_t TFT_DC   = GPIO_NUM_11;  // placeholder
+    static constexpr uint8_t TFT_RST  = GPIO_NUM_12;  // placeholder
+    static constexpr uint8_t TFT_BL   = GPIO_NUM_13;  // placeholder
+
+    // microSD over SDIO. TODO: verificar (esquemático real; SDMMC pendiente)
+    static constexpr uint8_t SD_CLK_SDIO = GPIO_NUM_43;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t SD_CMD      = GPIO_NUM_44;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t SD_D0       = GPIO_NUM_39;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t SD_D1       = GPIO_NUM_40;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t SD_D2       = GPIO_NUM_41;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t SD_D3       = GPIO_NUM_42;  // TODO: verificar (esquemático real)
 #endif
 
 /**

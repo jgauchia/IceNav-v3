@@ -1,32 +1,27 @@
 /**
- * @file displayS3.cpp
+ * @file displayP4.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief ESP32-S3 display implementation (LovyanGFX)
+ * @brief ESP32-P4 display implementation (LovyanGFX, SPI panel)
  * @date 2026-06
  */
 
 #include "sdkconfig.h"
-#if CONFIG_IDF_TARGET_ESP32S3
+#if CONFIG_IDF_TARGET_ESP32P4
 
 #include "display.hpp"
 #include "mapCanvas.hpp"
 #include "tft.hpp"
 #include "panelSelect.hpp"
 
-#ifdef T4_S3
-#include "LILYGO_T4_S3.hpp"
-#endif
-
 /**
- * @class DisplayS3
- * @brief Layer-0 display implementation for ESP32-S3 boards over LovyanGFX.
+ * @class DisplayP4
+ * @brief Layer-0 display implementation for ESP32-P4 boards over LovyanGFX.
  *
- * @details Wraps the existing global tft object and its helpers. The flush path
- *          starts the DMA transfer and returns; LVGL waits for the previous
- *          transfer through waitFlushDone() before reusing a draw buffer,
- *          overlapping rasterisation with the in-flight DMA.
+ * @details For the 3.5" board the panel is driven over SPI, so the S3 LovyanGFX
+ *          path applies unchanged. The MIPI-DSI variant of the 4.3" board is
+ *          added in a later phase behind an esp_lcd backend.
  */
-class DisplayS3 : public IDisplay
+class DisplayP4 : public IDisplay
 {
 public:
     void init() override
@@ -74,15 +69,10 @@ public:
         uint32_t w = area.x2 - area.x1 + 1;
         uint32_t h = area.y2 - area.y1 + 1;
         tft.waitDMA();
-        #ifdef T4_S3
-            tft.setAddrWindow(area.x1, area.y1, w, h);
-            tft.pushPixelsDMA(pixels, w * h, true);
-        #else
-            tft.setSwapBytes(true);
-            tft.setAddrWindow(area.x1, area.y1, w, h);
-            tft.pushImageDMA(area.x1, area.y1, w, h, pixels);
-            tft.setSwapBytes(false);
-        #endif
+        tft.setSwapBytes(true);
+        tft.setAddrWindow(area.x1, area.y1, w, h);
+        tft.pushImageDMA(area.x1, area.y1, w, h, pixels);
+        tft.setSwapBytes(false);
     }
 
     void waitFlushDone() override
@@ -92,11 +82,11 @@ public:
 };
 
 /**
- * @brief Provides the S3 display implementation as the Layer-1 singleton.
+ * @brief Provides the P4 display implementation as the Layer-1 singleton.
  */
 IDisplay &display()
 {
-    static DisplayS3 instance;
+    static DisplayP4 instance;
     return instance;
 }
 
@@ -108,4 +98,4 @@ LovyanGFX *mapCanvasParent()
     return &tft;
 }
 
-#endif // CONFIG_IDF_TARGET_ESP32S3
+#endif // CONFIG_IDF_TARGET_ESP32P4

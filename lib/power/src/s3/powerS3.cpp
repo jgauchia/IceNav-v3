@@ -6,6 +6,9 @@
  * @date 2026-06
  */
 
+#include "sdkconfig.h"
+#if CONFIG_IDF_TARGET_ESP32S3
+
 #include "power.hpp"
 
 #include "i2c_espidf.hpp"
@@ -147,3 +150,5 @@ IPower &power()
     static PowerS3 instance;
     return instance;
 }
+
+#endif // CONFIG_IDF_TARGET_ESP32S3
