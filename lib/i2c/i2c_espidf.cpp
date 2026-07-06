@@ -50,7 +50,13 @@ bool I2CNative::begin(int sda, int scl, uint32_t freq)
         i2cMutex = xSemaphoreCreateMutex();
 
     i2c_master_bus_config_t busCfg = {};
-    busCfg.i2c_port = I2C_NUM_0;
+    // The P4 shared touch/sensor bus is wired to I2C port 1 (as in the Waveshare
+    // BSP); the S3 boards use port 0.
+    #if CONFIG_IDF_TARGET_ESP32P4
+        busCfg.i2c_port = I2C_NUM_1;
+    #else
+        busCfg.i2c_port = I2C_NUM_0;
+    #endif
     busCfg.sda_io_num = (gpio_num_t)sda;
     busCfg.scl_io_num = (gpio_num_t)scl;
     busCfg.clk_source = I2C_CLK_SRC_DEFAULT;

@@ -230,8 +230,8 @@
     #define I2C_SDA_PIN   GPIO_NUM_7
     #define I2C_SCL_PIN   GPIO_NUM_8
 
-    static constexpr uint8_t GPS_TX_DEFAULT = GPIO_NUM_37;  // TODO: confirmar UART libre
-    static constexpr uint8_t GPS_RX_DEFAULT = GPIO_NUM_38;  // TODO: confirmar UART libre
+    static constexpr uint8_t GPS_TX_DEFAULT = GPIO_NUM_34;  // TODO: confirmar UART libre
+    static constexpr uint8_t GPS_RX_DEFAULT = GPIO_NUM_36;  // TODO: confirmar UART libre
 
     static constexpr uint8_t BOARD_BOOT_PIN = GPIO_NUM_35;  // TODO: confirmar pin BOOT
 

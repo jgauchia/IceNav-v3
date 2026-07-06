@@ -166,6 +166,8 @@ public:
     void resetScrollState();
 
 private:
+    void initResources();
+
     struct FeatureRef
     {
         uint8_t* ptr;

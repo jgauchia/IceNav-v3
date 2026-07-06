@@ -125,7 +125,7 @@ void splashScreen()
         lv_canvas_set_buffer(splashCanvas, splashBuffer, display().width(), display().height(), LV_COLOR_FORMAT_RGB565_SWAPPED);
         splashSprite.deleteSprite();
 
-        lv_screen_load_anim(splashScr, LV_SCR_LOAD_ANIM_FADE_OUT, 2500, 0, false);	
+        lv_screen_load_anim(splashScr, LV_SCR_LOAD_ANIM_FADE_OUT, 2500, 0, false);
         for (int i = 0; i < 1000; i++)
         {
             lv_task_handler();  

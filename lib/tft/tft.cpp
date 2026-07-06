@@ -130,7 +130,10 @@ void initTFT()
     tft.initDMA();
     tft.fillScreen(TFT_BLACK);
 
-    #ifdef TOUCH_INPUT
+    // The P4 board uses a capacitive controller (FT6336), which reports
+    // already-calibrated coordinates, so the resistive calibration flow is
+    // skipped here for now.
+    #if defined(TOUCH_INPUT) && !CONFIG_IDF_TARGET_ESP32P4
         touchCalibrate();
     #endif
 }

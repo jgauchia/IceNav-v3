@@ -37,6 +37,12 @@ env.Append(BUILD_FLAGS=[
     u'-D'+ flavor + '=1'
     ])
 
+# On ESP32-P4 an Espressif header (periph_ctrl.h) triggers -Wliteral-suffix.
+# The suppression flag is C++ only, so it is added to CXXFLAGS (not BUILD_FLAGS)
+# to avoid the "valid for C++ but not for C" warning on .c files.
+if flavor.startswith("WAVESHARE_P4"):
+    env.Append(CXXFLAGS=[u'-Wno-literal-suffix'])
+
 if dfl_lat != None and dfl_lon != None:
     print ("default lat: "+dfl_lat)
     print ("default lon: "+dfl_lon)

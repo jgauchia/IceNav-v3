@@ -50,7 +50,12 @@ void initHAL()
         digitalWrite(TFT_SPI_CS, HIGH);
         pinMode(SPI_MISO, INPUT_PULLUP);
     #endif
-    i2c.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+    // On P4 boards LovyanGFX owns the shared I2C bus (touch controller); the new
+    // i2c_master driver forbids a second owner of the same port, so i2c_espidf
+    // must not create its own bus here.
+    #if !CONFIG_IDF_TARGET_ESP32P4
+        i2c.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+    #endif
     #ifdef BME280
         initBME();
     #endif

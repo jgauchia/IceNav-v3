@@ -49,6 +49,19 @@ Maps::Maps() : navLastZoom(0),
                focalLength(300.0f){
     static_assert(Maps::MAX_FEATURE_POOL_SIZE <= 65535U,
         "featurePool index stored as uint16_t — pool size must not exceed 65535");
+    // PSRAM reservations, mutexes and the render task are created in initMap(),
+    // not here: on the ESP32-P4 the PSRAM and the scheduler are not ready during
+    // global C++ constructors, so allocating SPIRAM in this ctor aborts at boot.
+    }
+
+/**
+ * @brief Allocate PSRAM pools, sync primitives and start the render task.
+ *
+ * @details Split out of the constructor so it runs from setup(), when PSRAM and
+ *          the FreeRTOS scheduler are available.
+ */
+void Maps::initResources()
+{
     projBuf32X.reserve(MAX_POLYGON_POINTS);
     projBuf32Y.reserve(MAX_POLYGON_POINTS);
     decodedCoords.reserve(MAX_POLYGON_POINTS * 2);
@@ -276,6 +289,7 @@ void Maps::coords2map(float lat, float lon, const tileBounds& bound, uint16_t *p
  */
 void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
 {
+    initResources();
     Maps::mapScrHeight = mapHeight;
     Maps::mapScrWidth = mapWidth;
     Maps::mapTempSprite.createSprite(Maps::tileWidth, Maps::tileHeight);

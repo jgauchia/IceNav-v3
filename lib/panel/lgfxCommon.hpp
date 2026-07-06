@@ -230,6 +230,9 @@ class LGFX : public lgfx::LGFX_Device
                 cfg.pin_sda = TOUCH_PIN_SDA;
                 cfg.pin_scl = TOUCH_PIN_SCL;
                 cfg.freq = TOUCH_FREQ;
+                #ifdef TOUCH_PIN_RST
+                    cfg.pin_rst = TOUCH_PIN_RST;
+                #endif
                 touchInstance.config(cfg);
                 panelInstance.setTouch(&touchInstance);
             }

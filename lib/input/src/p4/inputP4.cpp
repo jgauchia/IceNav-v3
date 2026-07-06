@@ -1,9 +1,9 @@
 /**
  * @file inputP4.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief ESP32-P4 touch input implementation (LovyanGFX panel controller)
+ * @brief ESP32-P4 touch input implementation (FT6336 via LovyanGFX)
  * @version 0.3.0
- * @date 2026-06
+ * @date 2026-07
  */
 
 #include "sdkconfig.h"
@@ -11,16 +11,15 @@
 
 #include "input.hpp"
 #include "tft.hpp"
-#include "i2c_espidf.hpp"
 
 /**
  * @class InputP4
  * @brief Layer-0 touch implementation for ESP32-P4 boards over LovyanGFX.
  *
- * @details For the 3.5" board the FT6336 shares the I2C bus, so access is guarded
- *          by the bus lock exactly as on the S3 shared-bus panels; when the bus is
- *          busy the read is reported as failed so the caller holds the previous
- *          state. The 4.3" multitouch controller is added in a later phase.
+ * @details The FT6336 (FT5x06-compatible) is read through LovyanGFX's
+ *          Touch_FT5x06 driver, which owns the shared I2C bus (port 1):
+ *          the new i2c_master driver forbids two owners of the same port,
+ *          so i2c_espidf does not create its own bus on P4.
  */
 class InputP4 : public IInput
 {
@@ -29,22 +28,8 @@ public:
     {
         lgfx::touch_point_t raw[MAX_RAW_POINTS];
         uint8_t toRead = (max < MAX_RAW_POINTS) ? max : MAX_RAW_POINTS;
-        int count = 0;
 
-        #ifdef WAVESHARE_P4_35
-            // Protect I2C bus access for FT6336 on shared bus.
-            if (i2c.lock(0))
-            {
-                count = tft.getTouch(raw, toRead);
-                i2c.unlock();
-            }
-            else
-            {
-                return -1;
-            }
-        #else
-            count = tft.getTouch(raw, toRead);
-        #endif
+        int count = tft.getTouch(raw, toRead);
 
         for (int i = 0; i < count && i < toRead; i++)
         {
