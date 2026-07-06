@@ -530,7 +530,7 @@ void initLVGL()
 
     modifyTheme();    
     //  Create Screens
-    #ifdef ICENAV_BOARD
+    #ifdef SPLASH_FULLSCREEN
         createLVGLSplashScreen();
     #endif
     createSearchSatScr();

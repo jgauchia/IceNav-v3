@@ -10,10 +10,11 @@
 
 #define LARGE_SCREEN
 #define TOUCH_INPUT
+#define SPLASH_FULLSCREEN
 
 #define PANEL_TYPE            lgfx::Panel_ST7796
 #define PANEL_BUS_SPI
-#define PANEL_FREQ_WRITE      40000000   // BSP uses 80 MHz; start conservative, raise after validating
+#define PANEL_FREQ_WRITE      80000000   // BSP uses 80 MHz
 #define PANEL_FREQ_READ       16000000
 #define PANEL_PIN_SCLK        TFT_SCLK
 #define PANEL_PIN_MOSI        TFT_MOSI

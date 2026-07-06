@@ -114,7 +114,7 @@ void splashScreen()
 {
     setTime = false;
 
-    #ifdef ICENAV_BOARD
+    #ifdef SPLASH_FULLSCREEN
         millisActual = millis_idf();
 
         display().setBrightness(defBright);
