@@ -13,6 +13,9 @@
 #include "driver/sdmmc_host.h"
 #include "driver/sdspi_host.h"
 #include "sdmmc_cmd.h"
+#if CONFIG_IDF_TARGET_ESP32P4
+    #include "sd_pwr_ctrl_by_on_chip_ldo.h"
+#endif
 #include "Stream.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
@@ -59,6 +62,9 @@ class Storage
     private:
         bool isSdLoaded;           /**< Indicates if the SD card is loaded */
         sdmmc_card_t *card;        /**< Pointer to the SD card descriptor */
+        #if CONFIG_IDF_TARGET_ESP32P4
+            sd_pwr_ctrl_handle_t sdPwrCtrlHandle; /**< On-chip LDO power control handle for the SDMMC IO rail */
+        #endif
         uint8_t *dmaBuffer;        /**< Persistent buffer for DMA-safe reads */
         static constexpr size_t DMA_BUF_SIZE = 65536;
         static constexpr size_t SD_SECTOR_SIZE = 512;

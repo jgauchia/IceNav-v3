@@ -54,6 +54,15 @@ void setup()
     loadPreferences();
     gps.init();
     initLVGL();
+    #if CONFIG_IDF_TARGET_ESP32P4
+        // Warm up the LVGL flush/DMA path with a throwaway refresh before the
+        // splash screen. Without this, the first real lv_refr_now (inside
+        // lv_screen_load_anim) hangs forever in Bus_SPI::wait() — the SPI_USR
+        // busy-wait never clears because the panel's DMA/flush state was never
+        // armed by a prior transfer. Only reproduces with the SD card mounted.
+        lv_obj_invalidate(lv_scr_act());
+        lv_refr_now(display_drv);
+    #endif
     if (!sdOk)
     {
         showMsg(LV_SYMBOL_WARNING, "SD card not found\nMap data unavailable");

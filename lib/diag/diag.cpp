@@ -61,6 +61,12 @@ static bool copyCoredumpToSD()
     if (!part)
         return false;
 
+    if (size > part->size || (addr - part->address) > part->size)
+    {
+        ESP_LOGE(TAG, "Coredump size looks corrupt (size=%u part_size=%u), skipping copy", (unsigned)size, (unsigned)part->size);
+        return false;
+    }
+
     FILE *out = storage.open(COREDUMP_PATH, "wb");
     if (!out)
         return false;

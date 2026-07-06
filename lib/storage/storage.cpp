@@ -57,7 +57,11 @@ namespace
 /**
  * @brief Storage Class constructor
  */
-Storage::Storage() : isSdLoaded(false), card(nullptr), dmaBuffer(nullptr), readMutex(nullptr) 
+Storage::Storage() : isSdLoaded(false), card(nullptr),
+    #if CONFIG_IDF_TARGET_ESP32P4
+        sdPwrCtrlHandle(nullptr),
+    #endif
+    dmaBuffer(nullptr), readMutex(nullptr)
 {
 }
 
@@ -89,11 +93,56 @@ esp_err_t Storage::initSD()
 	}
 
 	#if CONFIG_IDF_TARGET_ESP32P4
-		// SD over SDIO (SDMMC) is not implemented yet. This skeleton lets the
-		// P4 environments build and degrade cleanly (no SD) until then.
-		ESP_LOGW(TAG, "SD over SDIO not implemented yet");
-		isSdLoaded = false;
-		return ESP_ERR_NOT_SUPPORTED;
+		esp_err_t ret;
+
+		sdmmc_host_t host = SDMMC_HOST_DEFAULT();
+		host.slot = SDMMC_HOST_SLOT_0;
+		host.max_freq_khz = SDMMC_FREQ_HIGHSPEED;
+
+		// The SDMMC IO rail on this board is powered through the P4's on-chip
+		// LDO (channel 4, per the Waveshare BSP), not a rail that is always on.
+		sd_pwr_ctrl_ldo_config_t ldo_config = { .ldo_chan_id = 4 };
+		ret = sd_pwr_ctrl_new_on_chip_ldo(&ldo_config, &sdPwrCtrlHandle);
+		if (ret != ESP_OK)
+		{
+			ESP_LOGE(TAG, "Failed to create SD power control driver (%s)", esp_err_to_name(ret));
+			return ret;
+		}
+		host.pwr_ctrl_handle = sdPwrCtrlHandle;
+
+		// Slot 0 is wired through the fixed IOMUX pins (SD_CLK_SDIO/SD_CMD/SD_D0-D3
+		// in hal.hpp match them exactly), so they do not need to be set here.
+		sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
+		slot_config.width = 4;
+		slot_config.flags |= SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
+
+		ESP_LOGI(TAG, "Initializing SD card (SDMMC)");
+
+		esp_vfs_fat_mount_config_t mount_config = {
+			.format_if_mount_failed = false,
+			.max_files = 20,
+			.allocation_unit_size = 0
+		};
+
+		ret = esp_vfs_fat_sdmmc_mount("/sdcard", &host, &slot_config, &mount_config, &card);
+		if (ret != ESP_OK)
+		{
+			if (ret == ESP_FAIL)
+				ESP_LOGE(TAG, "Failed to mount filesystem.");
+			else
+				ESP_LOGE(TAG, "Failed to initialize the card (%s).", esp_err_to_name(ret));
+			sd_pwr_ctrl_del_on_chip_ldo(sdPwrCtrlHandle);
+			sdPwrCtrlHandle = nullptr;
+			isSdLoaded = false;
+			return ret;
+		}
+		else
+		{
+			ESP_LOGI(TAG, "SD card initialized successfully");
+			sdmmc_card_print_info(stdout, card);
+			isSdLoaded = true;
+			return ESP_OK;
+		}
 	#elif !defined(SPI_SHARED)
 		esp_err_t ret;
 
@@ -180,13 +229,19 @@ void Storage::deinitSD()
 	if (!isSdLoaded)
 		return;
 
-	#if CONFIG_IDF_TARGET_ESP32P4
-		// SDMMC unmount is not implemented yet.
-	#elif !defined(SPI_SHARED)
+	#if CONFIG_IDF_TARGET_ESP32P4 || !defined(SPI_SHARED)
 		if (card != nullptr)
 			esp_vfs_fat_sdcard_unmount("/sdcard", card);
 	#else
 		SD.end();
+	#endif
+
+	#if CONFIG_IDF_TARGET_ESP32P4
+		if (sdPwrCtrlHandle != nullptr)
+		{
+			sd_pwr_ctrl_del_on_chip_ldo(sdPwrCtrlHandle);
+			sdPwrCtrlHandle = nullptr;
+		}
 	#endif
 
 	isSdLoaded = false;
