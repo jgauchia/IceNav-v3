@@ -411,6 +411,16 @@ The Web File Server will start automatically if default automatic network connec
 
 To access the Web File Server, simply use any browser and go to the following address: http://icenav.local
 
+**Known issue (ESP32-P4 boards):** uploading files crashes the device
+(`assert failed: sdio_rx_get_buffer`). This is a known upstream bug in the ESP-Hosted SDIO
+driver used for WiFi on the C6 co-processor
+([espressif/esp-hosted-mcu#144](https://github.com/espressif/esp-hosted-mcu/issues/144),
+[#184](https://github.com/espressif/esp-hosted-mcu/issues/184)), not fixable from this project.
+Two triggers confirmed: uploading a file larger than ~100KB, and uploading any file (even a
+few hundred bytes) into a new folder that has to be created on the SD card. Uploading into an
+existing folder works fine for small files. Downloading files is not affected. Track the
+upstream issues for a fix.
+
    
 
 ## Special thanks to....
