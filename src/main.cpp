@@ -75,6 +75,7 @@ void setup()
     initSensorTask();
     initGuiTask();
     initNavTask();
+    connectivity().setPins();
     #ifndef DISABLE_CLI
         initCLI();
         initCLITask();

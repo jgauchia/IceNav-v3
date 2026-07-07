@@ -254,6 +254,16 @@
     static constexpr uint8_t SD_D1       = GPIO_NUM_40;
     static constexpr uint8_t SD_D2       = GPIO_NUM_41;
     static constexpr uint8_t SD_D3       = GPIO_NUM_42;
+
+    // ESP32-C6FH8 co-processor (WiFi via esp-hosted), SDIO bus
+    // Verified against the Waveshare P4-3.5 schematic (ESP32-C6FH8 block).
+    static constexpr uint8_t C6_SDIO_CLK = GPIO_NUM_19;
+    static constexpr uint8_t C6_SDIO_CMD = GPIO_NUM_18;
+    static constexpr uint8_t C6_SDIO_D0  = GPIO_NUM_14;
+    static constexpr uint8_t C6_SDIO_D1  = GPIO_NUM_15;
+    static constexpr uint8_t C6_SDIO_D2  = GPIO_NUM_16;
+    static constexpr uint8_t C6_SDIO_D3  = GPIO_NUM_17;
+    static constexpr uint8_t C6_SDIO_RST = GPIO_NUM_54;
 #endif
 
 /**
@@ -289,6 +299,16 @@
     static constexpr uint8_t SD_D1       = GPIO_NUM_40;  // TODO: verificar (esquemático real)
     static constexpr uint8_t SD_D2       = GPIO_NUM_41;  // TODO: verificar (esquemático real)
     static constexpr uint8_t SD_D3       = GPIO_NUM_42;  // TODO: verificar (esquemático real)
+
+    // ESP32-C6FH8 co-processor (WiFi via esp-hosted), SDIO bus
+    // TODO: verificar (esquemático real; asumidos iguales a la 3.5")
+    static constexpr uint8_t C6_SDIO_CLK = GPIO_NUM_19;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t C6_SDIO_CMD = GPIO_NUM_18;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t C6_SDIO_D0  = GPIO_NUM_14;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t C6_SDIO_D1  = GPIO_NUM_15;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t C6_SDIO_D2  = GPIO_NUM_16;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t C6_SDIO_D3  = GPIO_NUM_17;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t C6_SDIO_RST = GPIO_NUM_54;  // TODO: verificar (esquemático real)
 #endif
 
 /**

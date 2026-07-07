@@ -25,14 +25,19 @@
  * @details httpd worker tasks are not registered with the Task WDT, so calling
  *          esp_task_wdt_reset() directly logs "task not found" on IDF 5.x. This
  *          adds the current task on demand (idempotent) before feeding.
+ *          On P4, httpd shares the SDIO bus with the WiFi co-processor (ESP-Hosted),
+ *          which can stall request handling past the WDT timeout; httpd is not a
+ *          real-time task, so it is left unsubscribed there instead.
  */
 static void feedWatchdog()
 {
+#if !CONFIG_IDF_TARGET_ESP32P4
     esp_err_t status = esp_task_wdt_status(NULL);
     if (status == ESP_ERR_NOT_FOUND)
         status = esp_task_wdt_add(NULL);
     if (status == ESP_OK)
         esp_task_wdt_reset();
+#endif
 }
 
 /**
@@ -616,6 +621,7 @@ static esp_err_t file_handler(httpd_req_t *req)
                 storage.close(file);
                 return ESP_FAIL;
             }
+            feedWatchdog();
         }
 
         heap_caps_free(chunk);
