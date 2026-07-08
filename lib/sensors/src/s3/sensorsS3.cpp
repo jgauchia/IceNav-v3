@@ -6,6 +6,9 @@
  * @date 2026-06
  */
 
+#include "sdkconfig.h"
+#if CONFIG_IDF_TARGET_ESP32S3
+
 #include "sensors.hpp"
 #include "battery.hpp"
 
@@ -109,6 +112,11 @@ public:
             return 0.0f;
         #endif
     }
+
+    bool isCharging() override
+    {
+        return false;
+    }
 };
 
 /**
@@ -119,3 +127,5 @@ ISensors &sensors()
     static SensorsS3 instance;
     return instance;
 }
+
+#endif // CONFIG_IDF_TARGET_ESP32S3

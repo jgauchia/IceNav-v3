@@ -81,11 +81,11 @@ Currently, IceNav works with the following hardware setups and specs
 
 ### Boards
 
-|                        | FLASH | PSRAM | Environment                  | Full Support |
+|                        | FLASH | PSRAM | Environment [^2]             | Full Support |
 |:-----------------------|:-----:|:-----:|:-----------------------------|--------------|
 | ICENAV (Custom ESP32S3) |  16M  |  8M   | ``` [env:ICENAV_BOARD] ```   |    ✔️ YES      |
 | ESP32S3                |  16M  |  8M   | ``` [env:ESP32S3_N16R8] ```  |    ✔️ YES      |
-| [ELECROW ESP32 Terminal](https://www.elecrow.com/esp-terminal-with-esp32-3-5-inch-parallel-480x320-tft-capacitive-touch-display-rgb-by-chip-ili9488.html) |  16M  |  8M   | ``` [env:ELECROW_ESP32] ```  | ✔️ YES [^1] [^2]|
+| [ELECROW ESP32 Terminal](https://www.elecrow.com/esp-terminal-with-esp32-3-5-inch-parallel-480x320-tft-capacitive-touch-display-rgb-by-chip-ili9488.html) |  16M  |  8M   | ``` [env:ELECROW_ESP32] ```  | ✔️ YES [^1] |
 | [MAKERFABS ESP32S3](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) |  16M  |  2M   | ``` [env:MAKERF_ESP32S3] ``` |  🚧 TESTING    |
 | [LILYGO T-DECK](https://www.lilygo.cc/products/t-deck) |  16M  |  8M   | ``` [env:TDECK_ESP32S3] ``` |  ✔️ YES    |
 | [LILYGO T-DECK PLUS](https://lilygo.cc/en-us/products/t-deck-plus-1) | 16M | 8M | ``` [env:TDECK_ESP32S3] ``` |  🚧 TESTING    |

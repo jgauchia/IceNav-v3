@@ -374,6 +374,15 @@ void sensorTask(void *pvParameters)
             }
 
             float rawBattery = sensors().batteryLevel();
+            // Boards without a real charging signal (S3, resistor-divider ADC)
+            // infer "charging" from the over-voltage percentage overshoot.
+            // Boards with a PMIC (P4, AXP2101) know it for a fact — force the
+            // same charging-icon range (level > 110) so notifyBar.cpp/
+            // sensorScr.cpp do not need a separate "charging" data path. Fixed
+            // to a flat 150 (not rawBattery + 110) so a bogus/absent battery
+            // reading while charging cannot fall outside that range.
+            if (sensors().isCharging())
+                rawBattery = 150.0f;
             if (sensorMutex != NULL && xSemaphoreTake(sensorMutex, portMAX_DELAY) == pdTRUE)
             {
                 globalSensorData.batteryPercent = rawBattery;

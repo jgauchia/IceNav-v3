@@ -65,6 +65,11 @@ public:
      * @brief Last measured battery voltage (V), or 0 if no battery monitor.
      */
     virtual float batteryVoltage() = 0;
+
+    /**
+     * @brief Whether the battery is currently charging, or false if unknown.
+     */
+    virtual bool isCharging() = 0;
 };
 
 ISensors &sensors();

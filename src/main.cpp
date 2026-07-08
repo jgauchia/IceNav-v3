@@ -20,6 +20,10 @@
 #include "maps.hpp"
 #include "diag.hpp"
 #include "lv_subjects.hpp"
+#ifdef WAVESHARE_P4_35
+    #include "axp2101.hpp"
+    extern Axp2101 axp2101;
+#endif
 
 extern Storage storage;
 extern Battery battery;
@@ -49,6 +53,11 @@ void setup()
     diagBootReport();
     battery.initADC();
     initTFT();
+    #ifdef WAVESHARE_P4_35
+        // AXP2101 shares the touch I2C bus, already brought up by initTFT()
+        // (LovyanGFX owns the port; see i2c_espidf's P4 guard).
+        axp2101.begin(TOUCH_I2C_PORT);
+    #endif
     createGpxFolders();
     mapView.initMap(tft.height() - 27, tft.width());
     loadPreferences();
