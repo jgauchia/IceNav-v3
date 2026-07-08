@@ -365,11 +365,18 @@ void gpioClickEvent(lv_event_t *event)
 /**
  * @brief Reads the state of the GPIO button pin.
  *
- * @return The current state of the GPIO button pin.
+ * @return The current state of the GPIO button pin (0 = pressed).
  */
 uint8_t gpioGetBut()
 {
-    return gpio_get_level((gpio_num_t)BOARD_BOOT_PIN);
+    // On the Waveshare P4-3.5 PWR_KEY idles low and goes high when pressed
+    // (opposite of the pull-up button wired on the S3 boards), measured on
+    // real hardware — the schematic predicts the opposite polarity.
+    #if CONFIG_IDF_TARGET_ESP32P4
+        return !gpio_get_level((gpio_num_t)BOARD_BOOT_PIN);
+    #else
+        return gpio_get_level((gpio_num_t)BOARD_BOOT_PIN);
+    #endif
 }
 
 #endif

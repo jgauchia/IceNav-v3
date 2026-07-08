@@ -1,7 +1,7 @@
 /**
  * @file powerP4.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief ESP32-P4 power management implementation (minimal skeleton)
+ * @brief ESP32-P4 power management implementation
  * @version 0.3.0
  * @date 2026-06
  */
@@ -35,13 +35,13 @@ RTC_DATA_ATTR bool   rtcTimeValid = false;
 
 /**
  * @class PowerP4
- * @brief Layer-0 power implementation for ESP32-P4 boards (skeleton).
+ * @brief Layer-0 power implementation for ESP32-P4 boards.
  *
- * @details Minimal sleep/shutdown flow so the P4 environments build and degrade
- *          safely. Wakeup sources, radio (ESP-Hosted C6) teardown and the final
- *          deep-sleep tuning are implemented in a later phase; on the P4 the radio
- *          lives in the C6 co-processor, so no local esp_wifi/esp_bt teardown
- *          applies here.
+ * @details Light sleep wakes on PWR_KEY via timer-based polling (see
+ *          powerLightSleep()). Deep sleep wakeup and radio (ESP-Hosted C6)
+ *          teardown are completed in the PMIC/battery phase, together with the
+ *          AXP2101 driver; on the P4 the radio lives in the C6 co-processor, so
+ *          no local esp_wifi/esp_bt teardown applies here.
  */
 class PowerP4 : public IPower
 {
@@ -60,7 +60,10 @@ public:
         resumeAllTasks();
 
         tftOn(brightness);
-        while (gpio_get_level((gpio_num_t)BOARD_BOOT_PIN) != 1)
+        // PWR_KEY idles low and goes high when pressed on this board (opposite
+        // of the S3 pull-up button), measured on real hardware — wait for it
+        // to go back low (released) instead of high.
+        while (gpio_get_level((gpio_num_t)BOARD_BOOT_PIN) != 0)
         {
             vTaskDelay(pdMS_TO_TICKS(5));
         };
@@ -77,8 +80,10 @@ private:
     /**
      * @brief Deep Sleep Mode (skeleton).
      *
-     * @details Saves RTC time and enters deep sleep. Wakeup source configuration
-     *          is completed in a later phase.
+     * @details Saves RTC time and enters deep sleep. PWR_KEY (GPIO49) cannot
+     *          wake the P4 from deep sleep (outside the RTC/LP GPIO range);
+     *          real wakeup is completed in the PMIC phase, delegated to the
+     *          AXP2101 (PWRON/PWROK), together with the AXP2101 I2C driver.
      */
     void powerDeepSleep()
     {
@@ -91,12 +96,24 @@ private:
         esp_deep_sleep_start();
     }
 
+    static constexpr uint64_t pollIntervalUs = 100000;
+
     /**
-     * @brief Light Sleep Mode (skeleton).
+     * @brief Light Sleep Mode.
+     *
+     * @details PWR_KEY (GPIO49) is outside the P4 RTC/LP GPIO range (0-15) and
+     *          cannot be used as an esp_sleep wakeup source on this chip, unlike
+     *          the S3 boot pin. The CPU is instead woken periodically by a timer
+     *          and polls the button between naps, exiting as soon as it reads
+     *          pressed (see gpioGetBut() for the P4 polarity fix).
      */
     void powerLightSleep()
     {
-        esp_light_sleep_start();
+        do
+        {
+            esp_sleep_enable_timer_wakeup(pollIntervalUs);
+            esp_light_sleep_start();
+        } while (gpio_get_level((gpio_num_t)BOARD_BOOT_PIN) == 0);
     }
 
     /**

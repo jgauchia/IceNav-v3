@@ -32,11 +32,13 @@ void initHAL()
             gpio_hold_dis((gpio_num_t)BOARD_BOOT_PIN);
             gpio_deep_sleep_hold_dis();
         #endif
-        esp_pm_config_esp32s3_t pmConfig = {};
-        pmConfig.max_freq_mhz       = 240;
-        pmConfig.min_freq_mhz       = 40;
-        pmConfig.light_sleep_enable = false;
-        esp_pm_configure(&pmConfig);
+        #if CONFIG_IDF_TARGET_ESP32S3
+            esp_pm_config_esp32s3_t pmConfig = {};
+            pmConfig.max_freq_mhz       = 240;
+            pmConfig.min_freq_mhz       = 40;
+            pmConfig.light_sleep_enable = false;
+            esp_pm_configure(&pmConfig);
+        #endif
     #endif
     #ifdef TDECK_ESP32S3
         pinMode(BOARD_POWERON, OUTPUT);
