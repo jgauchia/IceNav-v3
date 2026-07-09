@@ -130,10 +130,9 @@ void initTFT()
     tft.initDMA();
     tft.fillScreen(TFT_BLACK);
 
-    // The P4 board uses a capacitive controller (FT6336), which reports
-    // already-calibrated coordinates, so the resistive calibration flow is
-    // skipped here for now.
-    #if defined(TOUCH_INPUT) && !CONFIG_IDF_TARGET_ESP32P4
+    // Capacitive touch controllers report already-calibrated coordinates,
+    // so the resistive calibration flow only applies to XPT2046.
+    #if defined(TOUCH_INPUT) && defined(TOUCH_RESISTIVE)
         touchCalibrate();
     #endif
 }

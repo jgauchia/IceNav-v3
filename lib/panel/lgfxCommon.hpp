@@ -85,6 +85,12 @@
     #define TOUCH_OFFSET_ROTATION 0
 #endif
 
+#if defined(TOUCH_XPT2046)
+    #define TOUCH_RESISTIVE
+#elif defined(TOUCH_FT5x06) || defined(TOUCH_GT911)
+    #define TOUCH_CAPACITIVE
+#endif
+
 class LGFX : public lgfx::LGFX_Device
 {
     PANEL_TYPE panelInstance;
