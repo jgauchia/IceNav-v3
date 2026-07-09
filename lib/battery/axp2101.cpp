@@ -87,3 +87,21 @@ bool Axp2101::isCharging()
 
     return batteryCharging || (vbusPresent && !batteryPresent);
 }
+
+/**
+ * @brief Cuts all PMIC rails except RTCLDO (soft power-off).
+ *
+ * @details Writes REG10H bit0 ("Soft PWROFF", self-clearing). The PMIC then
+ *          drops PWROK/ESP_EN and the ESP32-P4 loses power entirely — this
+ *          call does not return on real hardware. Power-on afterwards is
+ *          handled autonomously by the PMIC when PWRON (the physical K1
+ *          button) is pressed, per the AXP2101's default POK power-on source
+ *          (datasheet 6.5.4.2); no further register configuration is needed.
+ */
+void Axp2101::softPowerOff()
+{
+    if (!inited)
+        return;
+
+    lgfx::i2c::writeRegister8(i2cPort, I2C_ADDR, REG_PMU_CONFIG, 0x01, 0x01);
+}

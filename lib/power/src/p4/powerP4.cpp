@@ -24,6 +24,11 @@
 #include "taskControl.hpp"
 #include <time.h>
 
+#ifdef WAVESHARE_P4_35
+    #include "axp2101.hpp"
+    extern Axp2101 axp2101;
+#endif
+
 void closeMsg();
 
 extern Storage storage;
@@ -78,12 +83,19 @@ public:
 
 private:
     /**
-     * @brief Deep Sleep Mode (skeleton).
+     * @brief Deep Sleep Mode.
      *
-     * @details Saves RTC time and enters deep sleep. PWR_KEY (GPIO49) cannot
-     *          wake the P4 from deep sleep (outside the RTC/LP GPIO range);
-     *          real wakeup is completed in the PMIC phase, delegated to the
-     *          AXP2101 (PWRON/PWROK), together with the AXP2101 I2C driver.
+     * @details Saves RTC time, then powers off. On WAVESHARE_P4_35 this
+     *          delegates the real power-off to the AXP2101 PMIC (soft
+     *          PWROFF, REG10H bit0): all rails except RTCLDO drop, including
+     *          ESP_EN, so the ESP32-P4 loses power entirely and this call
+     *          does not return. Power-on afterwards is handled autonomously
+     *          by the PMIC when PWRON (the physical button, wired directly
+     *          to the PMIC) is pressed — no ESP32-P4 wakeup source is
+     *          involved, consistent with PWR_KEY (GPIO49) being outside the
+     *          P4 RTC/LP GPIO range. On P4 boards without this PMIC, falls
+     *          back to esp_deep_sleep_start() (skeleton, no wakeup source
+     *          configured).
      */
     void powerDeepSleep()
     {
@@ -93,7 +105,11 @@ private:
         rtcSavedTime = time(NULL);
         rtcTimeValid = (rtcSavedTime > 0);
 
+#ifdef WAVESHARE_P4_35
+        axp2101.softPowerOff();
+#else
         esp_deep_sleep_start();
+#endif
     }
 
     static constexpr uint64_t pollIntervalUs = 100000;

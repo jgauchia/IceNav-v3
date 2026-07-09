@@ -29,6 +29,7 @@ class Axp2101
         static constexpr uint8_t I2C_ADDR       = 0x34;
         static constexpr uint8_t REG_STATUS1    = 0x00;   // bit3: battery present
         static constexpr uint8_t REG_STATUS2    = 0x01;   // bit5: battery is charging, bit0: VBUS available
+        static constexpr uint8_t REG_PMU_CONFIG = 0x10;   // bit0: soft PWROFF (RWAC, self-clearing)
         static constexpr uint8_t REG_ADC_ENABLE = 0x30;   // bit5: enable VBAT measurement
         static constexpr uint8_t REG_VBAT_H     = 0x34;   // 12-bit VBAT, left-aligned, 1 LSB ~= 1.1mV
         static constexpr uint8_t REG_VBAT_L     = 0x35;
@@ -39,4 +40,5 @@ class Axp2101
         float readBattery();
         bool isCharging();
         float lastVoltage() const { return lastVolt; }
+        void softPowerOff();
 };
