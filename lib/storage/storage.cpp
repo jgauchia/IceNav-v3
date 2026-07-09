@@ -97,7 +97,6 @@ esp_err_t Storage::initSD()
 
 		sdmmc_host_t host = SDMMC_HOST_DEFAULT();
 		host.slot = SDMMC_HOST_SLOT_0;
-		host.max_freq_khz = SDMMC_FREQ_HIGHSPEED;
 
 		// The SDMMC IO rail on this board is powered through the P4's on-chip
 		// LDO (channel 4, per the Waveshare BSP), not a rail that is always on.
@@ -116,13 +115,20 @@ esp_err_t Storage::initSD()
 		slot_config.width = 4;
 		slot_config.flags |= SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
 
-		ESP_LOGI(TAG, "Initializing SD card (SDMMC)");
-
 		esp_vfs_fat_mount_config_t mount_config = {
 			.format_if_mount_failed = false,
 			.max_files = 20,
 			.allocation_unit_size = 0
 		};
+
+		// SDMMC_FREQ_HIGHSPEED (40 MHz) is the real ceiling reachable through this
+		// driver's standard (non-UHS-I) negotiation path: sdmmc_enable_hs_mode_and_check
+		// caps card->max_freq_khz to it regardless of a higher host.max_freq_khz
+		// (sdmmc_sd.c). Actual UHS-I speeds (SDR50/DDR50/SDR104) need a 1.8V signal
+		// voltage switch + tuning, which this simple mount API does not perform.
+		host.max_freq_khz = SDMMC_FREQ_HIGHSPEED;
+
+		ESP_LOGI(TAG, "Initializing SD card (SDMMC)");
 
 		ret = esp_vfs_fat_sdmmc_mount("/sdcard", &host, &slot_config, &mount_config, &card);
 		if (ret != ESP_OK)
