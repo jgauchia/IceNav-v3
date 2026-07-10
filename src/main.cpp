@@ -32,6 +32,10 @@
     #include "compass.hpp"
     extern Compass compass;
 #endif
+#if defined(MPU6050) && defined(WAVESHARE_P4_35)
+    #include "imu.hpp"
+    extern MPU6050_Driver mpu;
+#endif
 
 extern Storage storage;
 extern Battery battery;
@@ -75,6 +79,10 @@ void setup()
         // Compass shares the same LovyanGFX-owned I2C bus; chip (QMC5883L
         // or HMC5883L) is auto-detected at runtime.
         compass.initShared(TOUCH_I2C_PORT);
+    #endif
+    #if defined(MPU6050) && defined(WAVESHARE_P4_35)
+        // IMU shares the same LovyanGFX-owned I2C bus.
+        mpu.beginShared(TOUCH_I2C_PORT);
     #endif
     createGpxFolders();
     mapView.initMap(tft.height() - 27, tft.width());

@@ -12,6 +12,7 @@
 
 #define ENABLE_IMU
 
+#include "sdkconfig.h"
 #include "i2c_espidf.hpp"
 #include "i2c_driver_base.hpp"
 #include <cstdint>
@@ -27,10 +28,20 @@ class MPU6050_Driver : public I2CDriverBase
         void getGyro(float &x, float &y, float &z);
         float getTemp();
 
+        #ifdef WAVESHARE_P4_35
+            int sharedI2cPort = -1;
+            uint8_t readSharedReg(uint8_t reg);
+            void writeSharedReg(uint8_t reg, uint8_t value);
+            void readSharedBytes(uint8_t reg, uint8_t *buffer, size_t len);
+        #endif
+
     public:
         void getAccel(float &x, float &y, float &z);
         MPU6050_Driver();
         bool begin(uint8_t addr = MPU6050_ADDRESS);
+        #ifdef WAVESHARE_P4_35
+            bool beginShared(int i2cPort, uint8_t addr = MPU6050_ADDRESS);
+        #endif
         void setAccelRange(uint8_t range);
         void setGyroRange(uint8_t range);
         void readAll(float &ax, float &ay, float &az,
