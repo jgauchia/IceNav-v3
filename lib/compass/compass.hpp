@@ -103,16 +103,12 @@ public:
     bool setSamples(uint8_t samples);
     bool readRaw(float &x, float &y, float &z);
 
-    #ifdef WAVESHARE_P4_35
+    #ifdef TOUCH_CAPACITIVE
         bool beginShared(int i2cPort, uint8_t addr = QMC5883L_ADDRESS);
-        bool readRawShared(float &x, float &y, float &z);
     #endif
 
 private:
     uint8_t ctrl1Value;
-    #ifdef WAVESHARE_P4_35
-        int sharedI2cPort = -1;
-    #endif
 };
 
 /**
@@ -128,16 +124,12 @@ public:
     void setSamples(uint8_t samples);
     bool readRaw(float &x, float &y, float &z);
 
-    #ifdef WAVESHARE_P4_35
+    #ifdef TOUCH_CAPACITIVE
         bool beginShared(int i2cPort, uint8_t addr = HMC5883L_ADDRESS);
-        bool readRawShared(float &x, float &y, float &z);
     #endif
 
 private:
     uint8_t configAValue;
-    #ifdef WAVESHARE_P4_35
-        int sharedI2cPort = -1;
-    #endif
 };
 
 /**
@@ -149,6 +141,9 @@ class MPU9250_Driver
 public:
     MPU9250_Driver();
     bool begin(uint8_t addr = MPU9250_ADDRESS);
+    #ifdef TOUCH_CAPACITIVE
+        bool beginShared(int i2cPort, uint8_t addr = MPU9250_ADDRESS);
+    #endif
     void readSensor();
     void readAccel(float &ax, float &ay, float &az);
     float getMagX_uT();
@@ -165,10 +160,15 @@ private:
     float asaY;
     float asaZ;
     float accelScale;
+    #ifdef TOUCH_CAPACITIVE
+        int i2cPort = -1;
+    #endif
 
     uint8_t read8(uint8_t addr, uint8_t reg);
     void write8(uint8_t addr, uint8_t reg, uint8_t value);
+    void readBytes(uint8_t addr, uint8_t reg, uint8_t *buffer, size_t len);
     int16_t read16LE(uint8_t addr, uint8_t reg);
+    bool bringUp(uint8_t addr);
 };
 
 #define COMPASS_CAL_TIME 16000 /**< Compass calibration duration in milliseconds. */

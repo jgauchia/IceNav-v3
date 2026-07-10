@@ -12,9 +12,6 @@
 #include <freertos/task.h>
 #include "esp_timer.h"
 #include "gpsMath.hpp"
-#ifdef WAVESHARE_P4_35
-    #include <LovyanGFX.hpp>
-#endif
 
 static const char* TAG = "COMPASS";
 
@@ -89,10 +86,6 @@ bool QMC5883L_Driver::begin(uint8_t addr)
 bool QMC5883L_Driver::setDataRate(uint8_t rate)
 {
     ctrl1Value = (ctrl1Value & 0xF3) | ((rate & 0x03) << 2);
-    #ifdef WAVESHARE_P4_35
-        if (sharedI2cPort >= 0)
-            return lgfx::i2c::writeRegister8(sharedI2cPort, i2cAddr, QMC5883L_REG_CTRL1, ctrl1Value).has_value();
-    #endif
     return write8(QMC5883L_REG_CTRL1, ctrl1Value);
 }
 
@@ -105,10 +98,6 @@ bool QMC5883L_Driver::setDataRate(uint8_t rate)
 bool QMC5883L_Driver::setSamples(uint8_t samples)
 {
     ctrl1Value = (ctrl1Value & 0x3F) | ((samples & 0x03) << 6);
-    #ifdef WAVESHARE_P4_35
-        if (sharedI2cPort >= 0)
-            return lgfx::i2c::writeRegister8(sharedI2cPort, i2cAddr, QMC5883L_REG_CTRL1, ctrl1Value).has_value();
-    #endif
     return write8(QMC5883L_REG_CTRL1, ctrl1Value);
 }
 
@@ -127,8 +116,7 @@ bool QMC5883L_Driver::readRaw(float &x, float &y, float &z)
         return false;
 
     uint8_t buffer[6];
-    if (i2c.readBytes(i2cAddr, QMC5883L_REG_DATA, buffer, 6) != 6)
-        return false;
+    readBytes(QMC5883L_REG_DATA, buffer, 6);
 
     x = (int16_t)(buffer[0] | (buffer[1] << 8));  // LSB first (little-endian)
     y = (int16_t)(buffer[2] | (buffer[3] << 8));
@@ -136,13 +124,13 @@ bool QMC5883L_Driver::readRaw(float &x, float &y, float &z)
     return true;
 }
 
-#ifdef WAVESHARE_P4_35
+#ifdef TOUCH_CAPACITIVE
 /**
  * @brief Initializes the QMC5883L over an I2C bus already owned by LovyanGFX.
  *
- * @details Shares the bus already brought up for the touch controller (and,
- *          on WAVESHARE_P4_35, the AXP2101 PMIC / BME280) instead of opening
- *          a second bus. Same bring-up sequence as begin().
+ * @details For boards where the touch panel is I2C (TOUCH_CAPACITIVE), shares
+ *          the bus already brought up for the touch controller instead of
+ *          opening a second bus. Same bring-up sequence as begin().
  *
  * @param i2cPort I2C port already initialized by LovyanGFX (touch bus).
  * @param addr    I2C address (default 0x0D).
@@ -150,42 +138,23 @@ bool QMC5883L_Driver::readRaw(float &x, float &y, float &z)
  */
 bool QMC5883L_Driver::beginShared(int i2cPort, uint8_t addr)
 {
-    sharedI2cPort = i2cPort;
+    I2CDriverBase::beginShared(i2cPort);
     i2cAddr = addr;
 
-    auto chipId = lgfx::i2c::readRegister8(i2cPort, addr, QMC5883L_REG_CHIP_ID);
-    if (!chipId.has_value() || chipId.value() != 0xFF)
+    uint8_t chipId = read8(QMC5883L_REG_CHIP_ID);
+    if (chipId != 0xFF)
         return false;
 
-    lgfx::i2c::writeRegister8(i2cPort, addr, QMC5883L_REG_CTRL2, 0x80);
+    write8(QMC5883L_REG_CTRL2, 0x80);
     vTaskDelay(pdMS_TO_TICKS(20));
 
-    lgfx::i2c::writeRegister8(i2cPort, addr, QMC5883L_REG_SET_RST, 0x01);
+    write8(QMC5883L_REG_SET_RST, 0x01);
 
     ctrl1Value = 0x01;
-    lgfx::i2c::writeRegister8(i2cPort, addr, QMC5883L_REG_CTRL1, ctrl1Value);
+    write8(QMC5883L_REG_CTRL1, ctrl1Value);
 
     vTaskDelay(pdMS_TO_TICKS(10));
 
-    return true;
-}
-
-/**
- * @brief Reads raw magnetometer data over the shared I2C bus.
- */
-bool QMC5883L_Driver::readRawShared(float &x, float &y, float &z)
-{
-    auto status = lgfx::i2c::readRegister8(sharedI2cPort, i2cAddr, QMC5883L_REG_STATUS);
-    if (!status.has_value() || (status.value() & 0x01) == 0)
-        return false;
-
-    uint8_t buffer[6];
-    if (!lgfx::i2c::readRegister(sharedI2cPort, i2cAddr, QMC5883L_REG_DATA, buffer, 6).has_value())
-        return false;
-
-    x = (int16_t)(buffer[0] | (buffer[1] << 8));
-    y = (int16_t)(buffer[2] | (buffer[3] << 8));
-    z = (int16_t)(buffer[4] | (buffer[5] << 8));
     return true;
 }
 #endif
@@ -246,13 +215,6 @@ bool HMC5883L_Driver::begin(uint8_t addr)
 void HMC5883L_Driver::setDataRate(uint8_t rate)
 {
     configAValue = (configAValue & 0xE3) | ((rate & 0x07) << 2);
-    #ifdef WAVESHARE_P4_35
-        if (sharedI2cPort >= 0)
-        {
-            lgfx::i2c::writeRegister8(sharedI2cPort, i2cAddr, HMC5883L_REG_CONFIG_A, configAValue);
-            return;
-        }
-    #endif
     write8(HMC5883L_REG_CONFIG_A, configAValue);
 }
 
@@ -264,13 +226,6 @@ void HMC5883L_Driver::setDataRate(uint8_t rate)
 void HMC5883L_Driver::setSamples(uint8_t samples)
 {
     configAValue = (configAValue & 0x9F) | ((samples & 0x03) << 5);
-    #ifdef WAVESHARE_P4_35
-        if (sharedI2cPort >= 0)
-        {
-            lgfx::i2c::writeRegister8(sharedI2cPort, i2cAddr, HMC5883L_REG_CONFIG_A, configAValue);
-            return;
-        }
-    #endif
     write8(HMC5883L_REG_CONFIG_A, configAValue);
 }
 
@@ -291,8 +246,7 @@ bool HMC5883L_Driver::readRaw(float &x, float &y, float &z)
         return false;
 
     uint8_t buffer[6];
-    if (i2c.readBytes(i2cAddr, HMC5883L_REG_DATA, buffer, 6) != 6)
-        return false;
+    readBytes(HMC5883L_REG_DATA, buffer, 6);
 
     // HMC5883L order: X MSB, X LSB, Z MSB, Z LSB, Y MSB, Y LSB (big-endian)
     x = (int16_t)((buffer[0] << 8) | buffer[1]);
@@ -301,13 +255,13 @@ bool HMC5883L_Driver::readRaw(float &x, float &y, float &z)
     return true;
 }
 
-#ifdef WAVESHARE_P4_35
+#ifdef TOUCH_CAPACITIVE
 /**
  * @brief Initializes the HMC5883L over an I2C bus already owned by LovyanGFX.
  *
- * @details Shares the bus already brought up for the touch controller (and,
- *          on WAVESHARE_P4_35, the AXP2101 PMIC / BME280) instead of opening
- *          a second bus. Same bring-up sequence as begin().
+ * @details For boards where the touch panel is I2C (TOUCH_CAPACITIVE), shares
+ *          the bus already brought up for the touch controller instead of
+ *          opening a second bus. Same bring-up sequence as begin().
  *
  * @param i2cPort I2C port already initialized by LovyanGFX (touch bus).
  * @param addr    I2C address (default 0x1E).
@@ -315,41 +269,20 @@ bool HMC5883L_Driver::readRaw(float &x, float &y, float &z)
  */
 bool HMC5883L_Driver::beginShared(int i2cPort, uint8_t addr)
 {
-    sharedI2cPort = i2cPort;
+    I2CDriverBase::beginShared(i2cPort);
     i2cAddr = addr;
 
-    auto idA = lgfx::i2c::readRegister8(i2cPort, addr, HMC5883L_REG_ID_A);
-    if (!idA.has_value() || idA.value() != 'H')
+    uint8_t idA = read8(HMC5883L_REG_ID_A);
+    if (idA != 'H')
         return false;
 
     configAValue = 0x70;
-    lgfx::i2c::writeRegister8(i2cPort, addr, HMC5883L_REG_CONFIG_A, configAValue);
-    lgfx::i2c::writeRegister8(i2cPort, addr, HMC5883L_REG_CONFIG_B, 0x20);
-    lgfx::i2c::writeRegister8(i2cPort, addr, HMC5883L_REG_MODE, 0x00);
+    write8(HMC5883L_REG_CONFIG_A, configAValue);
+    write8(HMC5883L_REG_CONFIG_B, 0x20);
+    write8(HMC5883L_REG_MODE, 0x00);
 
     vTaskDelay(pdMS_TO_TICKS(20));
 
-    return true;
-}
-
-/**
- * @brief Reads raw magnetometer data over the shared I2C bus.
- *
- * @details Note: HMC5883L data order is X, Z, Y (not X, Y, Z).
- */
-bool HMC5883L_Driver::readRawShared(float &x, float &y, float &z)
-{
-    auto status = lgfx::i2c::readRegister8(sharedI2cPort, i2cAddr, HMC5883L_REG_STATUS);
-    if (!status.has_value() || (status.value() & 0x01) == 0)
-        return false;
-
-    uint8_t buffer[6];
-    if (!lgfx::i2c::readRegister(sharedI2cPort, i2cAddr, HMC5883L_REG_DATA, buffer, 6).has_value())
-        return false;
-
-    x = (int16_t)((buffer[0] << 8) | buffer[1]);
-    z = (int16_t)((buffer[2] << 8) | buffer[3]);
-    y = (int16_t)((buffer[4] << 8) | buffer[5]);
     return true;
 }
 #endif
@@ -370,12 +303,24 @@ MPU9250_Driver::MPU9250_Driver()
 
 /**
  * @brief Reads a single byte from a register.
+ *
+ * @details Dispatches to the I2C bus already owned by LovyanGFX (touch panel
+ *          bus) once beginShared() has been called, otherwise falls back to
+ *          the standalone I2CNative bus.
+ *
  * @param addr I2C device address.
  * @param reg Register address.
  * @return Register value.
  */
 uint8_t MPU9250_Driver::read8(uint8_t addr, uint8_t reg)
 {
+    #ifdef TOUCH_CAPACITIVE
+        if (i2cPort >= 0)
+        {
+            auto result = lgfx::i2c::readRegister8(i2cPort, addr, reg);
+            return result.has_value() ? result.value() : 0;
+        }
+    #endif
     return i2c.read8(addr, reg);
 }
 
@@ -388,7 +333,34 @@ uint8_t MPU9250_Driver::read8(uint8_t addr, uint8_t reg)
  */
 void MPU9250_Driver::write8(uint8_t addr, uint8_t reg, uint8_t value)
 {
+    #ifdef TOUCH_CAPACITIVE
+        if (i2cPort >= 0)
+        {
+            lgfx::i2c::writeRegister8(i2cPort, addr, reg, value);
+            return;
+        }
+    #endif
     i2c.write8(addr, reg, value);
+}
+
+/**
+ * @brief Reads a burst of bytes starting at a register.
+ *
+ * @param addr   I2C device address.
+ * @param reg    Starting register address.
+ * @param buffer Destination buffer.
+ * @param len    Number of bytes to read.
+ */
+void MPU9250_Driver::readBytes(uint8_t addr, uint8_t reg, uint8_t *buffer, size_t len)
+{
+    #ifdef TOUCH_CAPACITIVE
+        if (i2cPort >= 0)
+        {
+            lgfx::i2c::readRegister(i2cPort, addr, reg, buffer, len);
+            return;
+        }
+    #endif
+    i2c.readBytes(addr, reg, buffer, len);
 }
 
 /**
@@ -401,7 +373,7 @@ void MPU9250_Driver::write8(uint8_t addr, uint8_t reg, uint8_t value)
 int16_t MPU9250_Driver::read16LE(uint8_t addr, uint8_t reg)
 {
     uint8_t buffer[2];
-    i2c.readBytes(addr, reg, buffer, 2);
+    readBytes(addr, reg, buffer, 2);
     return (int16_t)(buffer[0] | (buffer[1] << 8));
 }
 
@@ -418,7 +390,7 @@ int16_t MPU9250_Driver::read16LE(uint8_t addr, uint8_t reg)
 void MPU9250_Driver::readAccel(float &ax, float &ay, float &az)
 {
     uint8_t buffer[6];
-    i2c.readBytes(mpuAddr, MPU9250_REG_ACCEL_XOUT, buffer, 6);
+    readBytes(mpuAddr, MPU9250_REG_ACCEL_XOUT, buffer, 6);
     ax = (int16_t)((buffer[0] << 8) | buffer[1]) / accelScale;
     ay = (int16_t)((buffer[2] << 8) | buffer[3]) / accelScale;
     az = (int16_t)((buffer[4] << 8) | buffer[5]) / accelScale;
@@ -427,13 +399,41 @@ void MPU9250_Driver::readAccel(float &ax, float &ay, float &az)
 /**
  * @brief Initializes the MPU9250 and AK8963 magnetometer.
  *
- * @details Wakes up MPU9250, enables I2C bypass to access AK8963 directly,
- *          reads sensitivity adjustment values, and configures continuous mode.
- *
  * @param addr MPU9250 I2C address (default 0x68).
  * @return true if initialization successful, false otherwise.
  */
 bool MPU9250_Driver::begin(uint8_t addr)
+{
+    return bringUp(addr);
+}
+
+#ifdef TOUCH_CAPACITIVE
+/**
+ * @brief Initializes the MPU9250/AK8963 over an I2C bus already owned by LovyanGFX.
+ *
+ * @details Shares the bus already brought up for the touch controller instead
+ *          of opening a second bus — the new i2c_master driver forbids a
+ *          second owner of the same port. Same bring-up sequence as begin().
+ *
+ * @param i2cPort I2C port already initialized by LovyanGFX (touch bus).
+ * @param addr    MPU9250 I2C address (default 0x68).
+ * @return true if initialization successful, false otherwise.
+ */
+bool MPU9250_Driver::beginShared(int i2cPort, uint8_t addr)
+{
+    this->i2cPort = i2cPort;
+    return bringUp(addr);
+}
+#endif
+
+/**
+ * @brief Wakes up MPU9250, enables I2C bypass to access AK8963 directly,
+ *        reads sensitivity adjustment values, and configures continuous mode.
+ *
+ * @param addr MPU9250 I2C address (default 0x68).
+ * @return true if initialization successful, false otherwise.
+ */
+bool MPU9250_Driver::bringUp(uint8_t addr)
 {
     mpuAddr = addr;
 
@@ -509,7 +509,7 @@ void MPU9250_Driver::readSensor()
 
     // Read magnetometer data (6 bytes) + ST2 to complete read cycle
     uint8_t buffer[7];
-    i2c.readBytes(akAddr, AK8963_REG_DATA, buffer, 7);
+    readBytes(akAddr, AK8963_REG_DATA, buffer, 7);
 
     int16_t rawX = buffer[0] | (buffer[1] << 8);
     int16_t rawY = buffer[2] | (buffer[3] << 8);
@@ -671,9 +671,9 @@ bool Compass::read(float &x, float &y, float &z)
 
 #ifdef WAVESHARE_P4_35
     if (sharedChip == SharedChip::QMC5883L)
-        newData = compQmcShared.readRawShared(x, y, z);
+        newData = compQmcShared.readRaw(x, y, z);
     else if (sharedChip == SharedChip::HMC5883L)
-        newData = compHmcShared.readRawShared(x, y, z);
+        newData = compHmcShared.readRaw(x, y, z);
 #endif
 
 #ifdef HMC5883L

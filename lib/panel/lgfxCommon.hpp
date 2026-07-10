@@ -77,8 +77,8 @@
     #ifndef TOUCH_I2C_ADDR
         #define TOUCH_I2C_ADDR 0x38
     #endif
-    #ifndef TOUCH_I2C_PORT
-        #define TOUCH_I2C_PORT 0
+    #ifndef I2C_PORT
+        #define I2C_PORT 0
     #endif
 #endif
 #ifndef TOUCH_OFFSET_ROTATION
@@ -231,7 +231,7 @@ class LGFX : public lgfx::LGFX_Device
                 cfg.pin_int = TOUCH_PIN_INT;
                 cfg.bus_shared = true;
                 cfg.offset_rotation = TOUCH_OFFSET_ROTATION;
-                cfg.i2c_port = TOUCH_I2C_PORT;
+                cfg.i2c_port = I2C_PORT;
                 cfg.i2c_addr = TOUCH_I2C_ADDR;
                 cfg.pin_sda = TOUCH_PIN_SDA;
                 cfg.pin_scl = TOUCH_PIN_SCL;

@@ -21,7 +21,7 @@
 #define PANEL_INVERT          TFT_INVERT
 
 #define TOUCH_FT5x06
-#define TOUCH_I2C_PORT        TCH_I2C_PORT
+#define I2C_PORT              TCH_I2C_PORT
 #define TOUCH_PIN_INT         TCH_I2C_INT
 #define TOUCH_PIN_SDA         TCH_I2C_SDA
 #define TOUCH_PIN_SCL         TCH_I2C_SCL

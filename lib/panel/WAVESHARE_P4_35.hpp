@@ -36,7 +36,7 @@
 #define TOUCH_PIN_RST         TCH_I2C_RST
 #define TOUCH_PIN_SDA         I2C_SDA_PIN
 #define TOUCH_PIN_SCL         I2C_SCL_PIN
-#define TOUCH_I2C_PORT        1
+#define I2C_PORT              1
 #define TOUCH_X_MAX           319
 #define TOUCH_Y_MAX           479
 

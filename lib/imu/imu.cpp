@@ -13,40 +13,10 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <esp_log.h>
-#ifdef WAVESHARE_P4_35
-    #include <LovyanGFX.hpp>
-#endif
 
 static const char* TAG = "IMU";
 
 MPU6050_Driver mpu = MPU6050_Driver();
-
-#ifdef WAVESHARE_P4_35
-/**
- * @brief Reads a register over the I2C bus already owned by LovyanGFX.
- */
-uint8_t MPU6050_Driver::readSharedReg(uint8_t reg)
-{
-    auto result = lgfx::i2c::readRegister8(sharedI2cPort, i2cAddr, reg);
-    return result.has_value() ? result.value() : 0;
-}
-
-/**
- * @brief Writes a register over the I2C bus already owned by LovyanGFX.
- */
-void MPU6050_Driver::writeSharedReg(uint8_t reg, uint8_t value)
-{
-    lgfx::i2c::writeRegister8(sharedI2cPort, i2cAddr, reg, value);
-}
-
-/**
- * @brief Reads a burst of bytes over the I2C bus already owned by LovyanGFX.
- */
-void MPU6050_Driver::readSharedBytes(uint8_t reg, uint8_t *buffer, size_t len)
-{
-    lgfx::i2c::readRegister(sharedI2cPort, i2cAddr, reg, buffer, len);
-}
-#endif
 
 /**
  * @brief Constructs MPU6050 driver with default configuration.
@@ -83,12 +53,12 @@ bool MPU6050_Driver::begin(uint8_t addr)
     return true;
 }
 
-#ifdef WAVESHARE_P4_35
+#ifdef TOUCH_CAPACITIVE
 /**
  * @brief Initializes the MPU6050 sensor over an I2C bus already owned by LovyanGFX.
  *
- * @details Shares the bus already brought up for the touch controller (and,
- *          on WAVESHARE_P4_35, the AXP2101 PMIC/BME280/compass) instead of
+ * @details For boards where the touch panel is I2C (TOUCH_CAPACITIVE), shares
+ *          the bus already brought up for the touch controller instead of
  *          opening a second bus — the new i2c_master driver forbids a second
  *          owner of the same port. Same bring-up sequence as begin().
  *
@@ -98,14 +68,14 @@ bool MPU6050_Driver::begin(uint8_t addr)
  */
 bool MPU6050_Driver::beginShared(int i2cPort, uint8_t addr)
 {
-    sharedI2cPort = i2cPort;
+    I2CDriverBase::beginShared(i2cPort);
     i2cAddr = addr;
 
-    uint8_t whoAmI = readSharedReg(0x75);
+    uint8_t whoAmI = read8(0x75);
     if (whoAmI != 0x68)
         return false;
 
-    writeSharedReg(0x6B, 0x00);
+    write8(0x6B, 0x00);
     vTaskDelay(pdMS_TO_TICKS(100));
 
     setAccelRange(0);
@@ -124,14 +94,7 @@ bool MPU6050_Driver::beginShared(int i2cPort, uint8_t addr)
  */
 void MPU6050_Driver::setAccelRange(uint8_t range)
 {
-    #ifdef WAVESHARE_P4_35
-        if (sharedI2cPort >= 0)
-            writeSharedReg(0x1C, range << 3);
-        else
-            write8(0x1C, range << 3);
-    #else
-        write8(0x1C, range << 3);
-    #endif
+    write8(0x1C, range << 3);
     switch (range)
     {
         case 0: 
@@ -158,14 +121,7 @@ void MPU6050_Driver::setAccelRange(uint8_t range)
  */
 void MPU6050_Driver::setGyroRange(uint8_t range)
 {
-    #ifdef WAVESHARE_P4_35
-        if (sharedI2cPort >= 0)
-            writeSharedReg(0x1B, range << 3);
-        else
-            write8(0x1B, range << 3);
-    #else
-        write8(0x1B, range << 3);
-    #endif
+    write8(0x1B, range << 3);
     switch (range)
     {
         case 0: 
@@ -195,17 +151,6 @@ void MPU6050_Driver::setGyroRange(uint8_t range)
  */
 void MPU6050_Driver::getAccel(float &x, float &y, float &z)
 {
-    #ifdef WAVESHARE_P4_35
-        if (sharedI2cPort >= 0)
-        {
-            uint8_t buf[6];
-            readSharedBytes(0x3B, buf, 6);
-            x = (int16_t)((buf[0] << 8) | buf[1]) / accelScale;
-            y = (int16_t)((buf[2] << 8) | buf[3]) / accelScale;
-            z = (int16_t)((buf[4] << 8) | buf[5]) / accelScale;
-            return;
-        }
-    #endif
     x = read16(0x3B) / accelScale;
     y = read16(0x3D) / accelScale;
     z = read16(0x3F) / accelScale;
@@ -261,12 +206,7 @@ void MPU6050_Driver::readAll(float &ax, float &ay, float &az,
                               float &gx, float &gy, float &gz, float &temp)
 {
     uint8_t buffer[14];
-    #ifdef WAVESHARE_P4_35
-        if (sharedI2cPort >= 0)
-            readSharedBytes(0x3B, buffer, 14);
-        else
-    #endif
-        i2c.readBytes(i2cAddr, 0x3B, buffer, 14);
+    readBytes(0x3B, buffer, 14);
 
     ax = (int16_t)((buffer[0] << 8) | buffer[1]) / accelScale;
     ay = (int16_t)((buffer[2] << 8) | buffer[3]) / accelScale;

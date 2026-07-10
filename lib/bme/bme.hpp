@@ -58,17 +58,10 @@ class BME280_Driver : public I2CDriverBase
         float readPressure();
         float readHumidity();
 
-        #ifdef WAVESHARE_P4_35
-            int sharedI2cPort = -1;
-            uint8_t readSharedReg(uint8_t reg);
-            void writeSharedReg(uint8_t reg, uint8_t value);
-            void readSharedBytes(uint8_t reg, uint8_t *buffer, size_t len);
-        #endif
-
     public:
         BME280_Driver();
         bool begin(uint8_t addr = BME_ADDRESS);
-        #ifdef WAVESHARE_P4_35
+        #ifdef TOUCH_CAPACITIVE
             bool beginShared(int i2cPort, uint8_t addr = BME_ADDRESS);
         #endif
         float readAltitude(float pressure);
