@@ -224,15 +224,15 @@
  * @brief Waveshare ESP32-P4-WIFI6-Touch-LCD-3.5 pin definition
  *
  * @details Display/touch/I2C/SD/power-button/battery (AXP2101 PMIC, shared
- *          I2C bus) pins verified against the Waveshare BSP and schematic
- *          (esp32_p4_wifi6_touch_lcd_35). GPS UART still TODO.
+ *          I2C bus)/GPS UART pins verified against the Waveshare BSP and
+ *          schematic (esp32_p4_wifi6_touch_lcd_35).
  */
 #ifdef WAVESHARE_P4_35
     #define I2C_SDA_PIN   GPIO_NUM_7
     #define I2C_SCL_PIN   GPIO_NUM_8
 
-    static constexpr uint8_t GPS_TX_DEFAULT = GPIO_NUM_34;  // TODO: confirmar UART libre
-    static constexpr uint8_t GPS_RX_DEFAULT = GPIO_NUM_36;  // TODO: confirmar UART libre
+    static constexpr uint8_t GPS_RX_DEFAULT = GPIO_NUM_2;
+    static constexpr uint8_t GPS_TX_DEFAULT = GPIO_NUM_3;
 
     // Power button: PWR_KEY, wired to the AXP2101 PMIC (not the P4 strapping
     // BOOT pin). Verified against the schematic (PMIC block).
