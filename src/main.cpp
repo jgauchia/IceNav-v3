@@ -28,6 +28,10 @@
     #include "bme.hpp"
     extern BME280_Driver bme;
 #endif
+#if defined(COMPASS_AUTO) && defined(WAVESHARE_P4_35)
+    #include "compass.hpp"
+    extern Compass compass;
+#endif
 
 extern Storage storage;
 extern Battery battery;
@@ -66,6 +70,11 @@ void setup()
         // BME280 shares the same LovyanGFX-owned I2C bus as the touch
         // controller and the AXP2101 PMIC.
         bme.beginShared(TOUCH_I2C_PORT);
+    #endif
+    #if defined(COMPASS_AUTO) && defined(WAVESHARE_P4_35)
+        // Compass shares the same LovyanGFX-owned I2C bus; chip (QMC5883L
+        // or HMC5883L) is auto-detected at runtime.
+        compass.initShared(TOUCH_I2C_PORT);
     #endif
     createGpxFolders();
     mapView.initMap(tft.height() - 27, tft.width());

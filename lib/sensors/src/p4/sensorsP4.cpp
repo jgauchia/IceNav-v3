@@ -23,22 +23,33 @@
     extern BME280_Driver bme;
 #endif
 
+#ifdef WAVESHARE_P4_35
+    // Compass chip (QMC5883L/HMC5883L) is auto-detected at runtime — no
+    // fixed compile-time flag on this board, see Compass::initShared().
+    #include "compass.hpp"
+    extern Compass compass;
+#endif
+
 /**
  * @class SensorsP4
  * @brief Layer-0 sensors facade for ESP32-P4 boards.
  *
  * @details Battery readings are delegated to the AXP2101 PMIC driver on
  *          boards that carry it (WAVESHARE_P4_35). Ambient readings are
- *          delegated to the BME280 driver, shared with the touch I2C bus.
- *          Compass is not wired up yet on this platform (parked pending a
- *          sensor test PCB), so it reports as absent.
+ *          delegated to the BME280 driver, and compass readings to the
+ *          auto-detected QMC5883L/HMC5883L driver, both shared with the
+ *          touch I2C bus.
  */
 class SensorsP4 : public ISensors
 {
 public:
     bool hasCompass() const override
     {
-        return false;
+        #ifdef WAVESHARE_P4_35
+            return compass.isDetected();
+        #else
+            return false;
+        #endif
     }
 
     bool hasAmbient() const override
@@ -61,7 +72,11 @@ public:
 
     int heading() override
     {
-        return 0;
+        #ifdef WAVESHARE_P4_35
+            return compass.isDetected() ? compass.getHeading() : 0;
+        #else
+            return 0;
+        #endif
     }
 
     bool readAmbient(AmbientData &data) override

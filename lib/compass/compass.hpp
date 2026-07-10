@@ -69,6 +69,10 @@
     #define ENABLE_COMPASS
 #endif
 
+#if defined(COMPASS_AUTO) && defined(WAVESHARE_P4_35)
+    #define ENABLE_COMPASS
+#endif
+
 #ifdef IMU_MPU9250
     #define ENABLE_COMPASS
     #define ENABLE_IMU
@@ -99,8 +103,16 @@ public:
     bool setSamples(uint8_t samples);
     bool readRaw(float &x, float &y, float &z);
 
+    #ifdef WAVESHARE_P4_35
+        bool beginShared(int i2cPort, uint8_t addr = QMC5883L_ADDRESS);
+        bool readRawShared(float &x, float &y, float &z);
+    #endif
+
 private:
     uint8_t ctrl1Value;
+    #ifdef WAVESHARE_P4_35
+        int sharedI2cPort = -1;
+    #endif
 };
 
 /**
@@ -116,8 +128,16 @@ public:
     void setSamples(uint8_t samples);
     bool readRaw(float &x, float &y, float &z);
 
+    #ifdef WAVESHARE_P4_35
+        bool beginShared(int i2cPort, uint8_t addr = HMC5883L_ADDRESS);
+        bool readRawShared(float &x, float &y, float &z);
+    #endif
+
 private:
     uint8_t configAValue;
+    #ifdef WAVESHARE_P4_35
+        int sharedI2cPort = -1;
+    #endif
 };
 
 /**
@@ -222,6 +242,10 @@ class Compass
     public:
         Compass();
         void init();
+        #ifdef WAVESHARE_P4_35
+            bool initShared(int i2cPort);
+            bool isDetected() const { return sharedChip != SharedChip::NONE; }
+        #endif
         bool read(float &x, float &y, float &z);
         int getHeading();
         bool isUpdated();
@@ -232,6 +256,10 @@ class Compass
         void setKalmanFilterConst(float processNoise, float measureNoise);
 
     private:
+        #ifdef WAVESHARE_P4_35
+            enum class SharedChip { NONE, QMC5883L, HMC5883L };
+            SharedChip sharedChip = SharedChip::NONE;
+        #endif
         float declinationAngle;       /**< Magnetic declination angle (in radians or degrees, depending on use). */
         float offX;                   /**< Magnetometer offset for X axis. */
         float offY;                   /**< Magnetometer offset for Y axis. */

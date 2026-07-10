@@ -12,6 +12,9 @@
 #include <freertos/task.h>
 #include "esp_timer.h"
 #include "gpsMath.hpp"
+#ifdef WAVESHARE_P4_35
+    #include <LovyanGFX.hpp>
+#endif
 
 static const char* TAG = "COMPASS";
 
@@ -86,6 +89,10 @@ bool QMC5883L_Driver::begin(uint8_t addr)
 bool QMC5883L_Driver::setDataRate(uint8_t rate)
 {
     ctrl1Value = (ctrl1Value & 0xF3) | ((rate & 0x03) << 2);
+    #ifdef WAVESHARE_P4_35
+        if (sharedI2cPort >= 0)
+            return lgfx::i2c::writeRegister8(sharedI2cPort, i2cAddr, QMC5883L_REG_CTRL1, ctrl1Value).has_value();
+    #endif
     return write8(QMC5883L_REG_CTRL1, ctrl1Value);
 }
 
@@ -98,6 +105,10 @@ bool QMC5883L_Driver::setDataRate(uint8_t rate)
 bool QMC5883L_Driver::setSamples(uint8_t samples)
 {
     ctrl1Value = (ctrl1Value & 0x3F) | ((samples & 0x03) << 6);
+    #ifdef WAVESHARE_P4_35
+        if (sharedI2cPort >= 0)
+            return lgfx::i2c::writeRegister8(sharedI2cPort, i2cAddr, QMC5883L_REG_CTRL1, ctrl1Value).has_value();
+    #endif
     return write8(QMC5883L_REG_CTRL1, ctrl1Value);
 }
 
@@ -124,6 +135,60 @@ bool QMC5883L_Driver::readRaw(float &x, float &y, float &z)
     z = (int16_t)(buffer[4] | (buffer[5] << 8));
     return true;
 }
+
+#ifdef WAVESHARE_P4_35
+/**
+ * @brief Initializes the QMC5883L over an I2C bus already owned by LovyanGFX.
+ *
+ * @details Shares the bus already brought up for the touch controller (and,
+ *          on WAVESHARE_P4_35, the AXP2101 PMIC / BME280) instead of opening
+ *          a second bus. Same bring-up sequence as begin().
+ *
+ * @param i2cPort I2C port already initialized by LovyanGFX (touch bus).
+ * @param addr    I2C address (default 0x0D).
+ * @return true if initialization successful, false otherwise.
+ */
+bool QMC5883L_Driver::beginShared(int i2cPort, uint8_t addr)
+{
+    sharedI2cPort = i2cPort;
+    i2cAddr = addr;
+
+    auto chipId = lgfx::i2c::readRegister8(i2cPort, addr, QMC5883L_REG_CHIP_ID);
+    if (!chipId.has_value() || chipId.value() != 0xFF)
+        return false;
+
+    lgfx::i2c::writeRegister8(i2cPort, addr, QMC5883L_REG_CTRL2, 0x80);
+    vTaskDelay(pdMS_TO_TICKS(20));
+
+    lgfx::i2c::writeRegister8(i2cPort, addr, QMC5883L_REG_SET_RST, 0x01);
+
+    ctrl1Value = 0x01;
+    lgfx::i2c::writeRegister8(i2cPort, addr, QMC5883L_REG_CTRL1, ctrl1Value);
+
+    vTaskDelay(pdMS_TO_TICKS(10));
+
+    return true;
+}
+
+/**
+ * @brief Reads raw magnetometer data over the shared I2C bus.
+ */
+bool QMC5883L_Driver::readRawShared(float &x, float &y, float &z)
+{
+    auto status = lgfx::i2c::readRegister8(sharedI2cPort, i2cAddr, QMC5883L_REG_STATUS);
+    if (!status.has_value() || (status.value() & 0x01) == 0)
+        return false;
+
+    uint8_t buffer[6];
+    if (!lgfx::i2c::readRegister(sharedI2cPort, i2cAddr, QMC5883L_REG_DATA, buffer, 6).has_value())
+        return false;
+
+    x = (int16_t)(buffer[0] | (buffer[1] << 8));
+    y = (int16_t)(buffer[2] | (buffer[3] << 8));
+    z = (int16_t)(buffer[4] | (buffer[5] << 8));
+    return true;
+}
+#endif
 
 // ============================================================================
 // HMC5883L Native Driver Implementation
@@ -181,6 +246,13 @@ bool HMC5883L_Driver::begin(uint8_t addr)
 void HMC5883L_Driver::setDataRate(uint8_t rate)
 {
     configAValue = (configAValue & 0xE3) | ((rate & 0x07) << 2);
+    #ifdef WAVESHARE_P4_35
+        if (sharedI2cPort >= 0)
+        {
+            lgfx::i2c::writeRegister8(sharedI2cPort, i2cAddr, HMC5883L_REG_CONFIG_A, configAValue);
+            return;
+        }
+    #endif
     write8(HMC5883L_REG_CONFIG_A, configAValue);
 }
 
@@ -192,6 +264,13 @@ void HMC5883L_Driver::setDataRate(uint8_t rate)
 void HMC5883L_Driver::setSamples(uint8_t samples)
 {
     configAValue = (configAValue & 0x9F) | ((samples & 0x03) << 5);
+    #ifdef WAVESHARE_P4_35
+        if (sharedI2cPort >= 0)
+        {
+            lgfx::i2c::writeRegister8(sharedI2cPort, i2cAddr, HMC5883L_REG_CONFIG_A, configAValue);
+            return;
+        }
+    #endif
     write8(HMC5883L_REG_CONFIG_A, configAValue);
 }
 
@@ -221,6 +300,59 @@ bool HMC5883L_Driver::readRaw(float &x, float &y, float &z)
     y = (int16_t)((buffer[4] << 8) | buffer[5]);
     return true;
 }
+
+#ifdef WAVESHARE_P4_35
+/**
+ * @brief Initializes the HMC5883L over an I2C bus already owned by LovyanGFX.
+ *
+ * @details Shares the bus already brought up for the touch controller (and,
+ *          on WAVESHARE_P4_35, the AXP2101 PMIC / BME280) instead of opening
+ *          a second bus. Same bring-up sequence as begin().
+ *
+ * @param i2cPort I2C port already initialized by LovyanGFX (touch bus).
+ * @param addr    I2C address (default 0x1E).
+ * @return true if initialization successful, false otherwise.
+ */
+bool HMC5883L_Driver::beginShared(int i2cPort, uint8_t addr)
+{
+    sharedI2cPort = i2cPort;
+    i2cAddr = addr;
+
+    auto idA = lgfx::i2c::readRegister8(i2cPort, addr, HMC5883L_REG_ID_A);
+    if (!idA.has_value() || idA.value() != 'H')
+        return false;
+
+    configAValue = 0x70;
+    lgfx::i2c::writeRegister8(i2cPort, addr, HMC5883L_REG_CONFIG_A, configAValue);
+    lgfx::i2c::writeRegister8(i2cPort, addr, HMC5883L_REG_CONFIG_B, 0x20);
+    lgfx::i2c::writeRegister8(i2cPort, addr, HMC5883L_REG_MODE, 0x00);
+
+    vTaskDelay(pdMS_TO_TICKS(20));
+
+    return true;
+}
+
+/**
+ * @brief Reads raw magnetometer data over the shared I2C bus.
+ *
+ * @details Note: HMC5883L data order is X, Z, Y (not X, Y, Z).
+ */
+bool HMC5883L_Driver::readRawShared(float &x, float &y, float &z)
+{
+    auto status = lgfx::i2c::readRegister8(sharedI2cPort, i2cAddr, HMC5883L_REG_STATUS);
+    if (!status.has_value() || (status.value() & 0x01) == 0)
+        return false;
+
+    uint8_t buffer[6];
+    if (!lgfx::i2c::readRegister(sharedI2cPort, i2cAddr, HMC5883L_REG_DATA, buffer, 6).has_value())
+        return false;
+
+    x = (int16_t)((buffer[0] << 8) | buffer[1]);
+    z = (int16_t)((buffer[2] << 8) | buffer[3]);
+    y = (int16_t)((buffer[4] << 8) | buffer[5]);
+    return true;
+}
+#endif
 
 // ============================================================================
 // MPU9250/AK8963 Native Driver Implementation
@@ -429,6 +561,13 @@ float MPU9250_Driver::getMagZ_uT() { return magZ; }
     MPU9250_Driver IMU = MPU9250_Driver();
 #endif
 
+#ifdef WAVESHARE_P4_35
+    // P4 has no fixed HMC5883L/QMC5883 compile-time flag: which chip is
+    // physically present is auto-detected at runtime in Compass::initShared().
+    QMC5883L_Driver compQmcShared = QMC5883L_Driver();
+    HMC5883L_Driver compHmcShared = HMC5883L_Driver();
+#endif
+
 /**
  * @brief Compass class constructor with default filter and calibration values.
  */
@@ -481,6 +620,44 @@ void Compass::init()
 #endif
 }
 
+#ifdef WAVESHARE_P4_35
+/**
+ * @brief Initializes the compass over an I2C bus already owned by LovyanGFX,
+ *        auto-detecting whether the physical chip is a QMC5883L or HMC5883L.
+ *
+ * @details No fixed HMC5883L/QMC5883 compile-time flag exists for this board:
+ *          tries QMC5883L first (chip ID check), then HMC5883L, and keeps
+ *          whichever responds. Shares the bus already brought up for the
+ *          touch controller (and the AXP2101 PMIC / BME280).
+ *
+ * @param i2cPort I2C port already initialized by LovyanGFX (touch bus).
+ * @return true if a compass chip was detected and initialized.
+ */
+bool Compass::initShared(int i2cPort)
+{
+    if (compQmcShared.beginShared(i2cPort))
+    {
+        compQmcShared.setDataRate(3);   // 200Hz
+        compQmcShared.setSamples(2);    // 128 oversampling
+        sharedChip = SharedChip::QMC5883L;
+        ESP_LOGI(TAG, "QMC5883L init OK (auto-detected)");
+        return true;
+    }
+
+    if (compHmcShared.beginShared(i2cPort))
+    {
+        compHmcShared.setDataRate(6);   // 75Hz
+        compHmcShared.setSamples(0);    // 1 sample
+        sharedChip = SharedChip::HMC5883L;
+        ESP_LOGI(TAG, "HMC5883L init OK (auto-detected)");
+        return true;
+    }
+
+    ESP_LOGE(TAG, "No compass detected (tried QMC5883L, HMC5883L)");
+    return false;
+}
+#endif
+
 /**
  * @brief Reads raw X, Y, Z magnetometer data from the compass sensor.
  *
@@ -491,6 +668,13 @@ void Compass::init()
 bool Compass::read(float &x, float &y, float &z)
 {
     bool newData = false;
+
+#ifdef WAVESHARE_P4_35
+    if (sharedChip == SharedChip::QMC5883L)
+        newData = compQmcShared.readRawShared(x, y, z);
+    else if (sharedChip == SharedChip::HMC5883L)
+        newData = compHmcShared.readRawShared(x, y, z);
+#endif
 
 #ifdef HMC5883L
     newData = comp.readRaw(x, y, z);

@@ -12,7 +12,7 @@
 #ifdef POWER_SAVE
     #include <esp_pm.h>
 #endif
-#if defined(HMC5883L) || defined(QMC5883) || defined(IMU_MPU9250)
+#if defined(HMC5883L) || defined(QMC5883) || defined(IMU_MPU9250) || (defined(COMPASS_AUTO) && defined(WAVESHARE_P4_35))
     #include "compass.hpp"
     Compass compass;
 #endif
@@ -65,6 +65,8 @@ void initHAL()
         compass.init();
         vTaskDelay(pdMS_TO_TICKS(50));
     #endif
+    // On WAVESHARE_P4_35, compass init happens in main.cpp via
+    // compass.initShared() (shares the LovyanGFX-owned I2C bus), not here.
     #ifdef ENABLE_IMU
         initIMU();
     #endif
