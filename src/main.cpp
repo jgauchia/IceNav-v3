@@ -24,6 +24,10 @@
     #include "axp2101.hpp"
     extern Axp2101 axp2101;
 #endif
+#ifdef BME280
+    #include "bme.hpp"
+    extern BME280_Driver bme;
+#endif
 
 extern Storage storage;
 extern Battery battery;
@@ -57,6 +61,11 @@ void setup()
         // AXP2101 shares the touch I2C bus, already brought up by initTFT()
         // (LovyanGFX owns the port; see i2c_espidf's P4 guard).
         axp2101.begin(TOUCH_I2C_PORT);
+    #endif
+    #if defined(BME280) && defined(WAVESHARE_P4_35)
+        // BME280 shares the same LovyanGFX-owned I2C bus as the touch
+        // controller and the AXP2101 PMIC.
+        bme.beginShared(TOUCH_I2C_PORT);
     #endif
     createGpxFolders();
     mapView.initMap(tft.height() - 27, tft.width());

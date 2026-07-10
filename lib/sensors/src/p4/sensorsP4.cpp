@@ -18,14 +18,20 @@
     extern Axp2101 axp2101;
 #endif
 
+#ifdef BME280
+    #include "bme.hpp"
+    extern BME280_Driver bme;
+#endif
+
 /**
  * @class SensorsP4
  * @brief Layer-0 sensors facade for ESP32-P4 boards.
  *
  * @details Battery readings are delegated to the AXP2101 PMIC driver on
- *          boards that carry it (WAVESHARE_P4_35). Compass and ambient
- *          sensors are not wired up yet on this platform (F06, parked
- *          pending a sensor test PCB), so they report as absent.
+ *          boards that carry it (WAVESHARE_P4_35). Ambient readings are
+ *          delegated to the BME280 driver, shared with the touch I2C bus.
+ *          Compass is not wired up yet on this platform (parked pending a
+ *          sensor test PCB), so it reports as absent.
  */
 class SensorsP4 : public ISensors
 {
@@ -37,7 +43,11 @@ public:
 
     bool hasAmbient() const override
     {
-        return false;
+        #ifdef BME280
+            return true;
+        #else
+            return false;
+        #endif
     }
 
     bool hasBattery() const override
@@ -56,11 +66,23 @@ public:
 
     bool readAmbient(AmbientData &data) override
     {
-        data.temperature = 0.0f;
-        data.pressure    = 0.0f;
-        data.humidity    = 0.0f;
-        data.altitude    = 0.0f;
-        return false;
+        #ifdef BME280
+            float t = 0.0f;
+            float p = 0.0f;
+            float h = 0.0f;
+            bme.readAll(t, p, h);
+            data.temperature = t;
+            data.pressure    = p;
+            data.humidity    = h;
+            data.altitude    = bme.readAltitude(p);
+            return true;
+        #else
+            data.temperature = 0.0f;
+            data.pressure    = 0.0f;
+            data.humidity    = 0.0f;
+            data.altitude    = 0.0f;
+            return false;
+        #endif
     }
 
     float batteryLevel() override

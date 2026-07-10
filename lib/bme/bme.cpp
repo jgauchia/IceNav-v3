@@ -14,8 +14,38 @@
 #include <cmath>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#ifdef WAVESHARE_P4_35
+    #include <LovyanGFX.hpp>
+#endif
 
 BME280_Driver bme = BME280_Driver();
+
+#ifdef WAVESHARE_P4_35
+/**
+ * @brief Reads a register over the I2C bus already owned by LovyanGFX.
+ */
+uint8_t BME280_Driver::readSharedReg(uint8_t reg)
+{
+    auto result = lgfx::i2c::readRegister8(sharedI2cPort, i2cAddr, reg);
+    return result.has_value() ? result.value() : 0;
+}
+
+/**
+ * @brief Writes a register over the I2C bus already owned by LovyanGFX.
+ */
+void BME280_Driver::writeSharedReg(uint8_t reg, uint8_t value)
+{
+    lgfx::i2c::writeRegister8(sharedI2cPort, i2cAddr, reg, value);
+}
+
+/**
+ * @brief Reads a burst of bytes over the I2C bus already owned by LovyanGFX.
+ */
+void BME280_Driver::readSharedBytes(uint8_t reg, uint8_t *buffer, size_t len)
+{
+    lgfx::i2c::readRegister(sharedI2cPort, i2cAddr, reg, buffer, len);
+}
+#endif
 
 /**
  * @brief Constructs BME280 driver with default configuration.
@@ -38,6 +68,37 @@ BME280_Driver::BME280_Driver() :
  */
 void BME280_Driver::readCoefficients()
 {
+    #ifdef WAVESHARE_P4_35
+        if (sharedI2cPort >= 0)
+        {
+            uint8_t buf[2];
+            readSharedBytes(0x88, buf, 2); dig_T1 = (uint16_t)((buf[1] << 8) | buf[0]);
+            readSharedBytes(0x8A, buf, 2); dig_T2 = (int16_t)((buf[1] << 8) | buf[0]);
+            readSharedBytes(0x8C, buf, 2); dig_T3 = (int16_t)((buf[1] << 8) | buf[0]);
+
+            readSharedBytes(0x8E, buf, 2); dig_P1 = (uint16_t)((buf[1] << 8) | buf[0]);
+            readSharedBytes(0x90, buf, 2); dig_P2 = (int16_t)((buf[1] << 8) | buf[0]);
+            readSharedBytes(0x92, buf, 2); dig_P3 = (int16_t)((buf[1] << 8) | buf[0]);
+            readSharedBytes(0x94, buf, 2); dig_P4 = (int16_t)((buf[1] << 8) | buf[0]);
+            readSharedBytes(0x96, buf, 2); dig_P5 = (int16_t)((buf[1] << 8) | buf[0]);
+            readSharedBytes(0x98, buf, 2); dig_P6 = (int16_t)((buf[1] << 8) | buf[0]);
+            readSharedBytes(0x9A, buf, 2); dig_P7 = (int16_t)((buf[1] << 8) | buf[0]);
+            readSharedBytes(0x9C, buf, 2); dig_P8 = (int16_t)((buf[1] << 8) | buf[0]);
+            readSharedBytes(0x9E, buf, 2); dig_P9 = (int16_t)((buf[1] << 8) | buf[0]);
+
+            dig_H1 = readSharedReg(0xA1);
+            readSharedBytes(0xE1, buf, 2); dig_H2 = (int16_t)((buf[1] << 8) | buf[0]);
+            dig_H3 = readSharedReg(0xE3);
+            uint8_t e4 = readSharedReg(0xE4);
+            uint8_t e5 = readSharedReg(0xE5);
+            uint8_t e6 = readSharedReg(0xE6);
+            dig_H4 = ((int16_t)e4 << 4) | (e5 & 0x0F);
+            dig_H5 = ((int16_t)e6 << 4) | (e5 >> 4);
+            dig_H6 = (int8_t)readSharedReg(0xE7);
+            return;
+        }
+    #endif
+
     dig_T1 = read16LE(0x88);
     dig_T2 = (int16_t)read16LE(0x8A);
     dig_T3 = (int16_t)read16LE(0x8C);
@@ -90,13 +151,53 @@ bool BME280_Driver::begin(uint8_t addr)
     return true;
 }
 
+#ifdef WAVESHARE_P4_35
+/**
+ * @brief Initializes the BME280 sensor over an I2C bus already owned by LovyanGFX.
+ *
+ * @details Shares the bus already brought up for the touch controller (and,
+ *          on WAVESHARE_P4_35, the AXP2101 PMIC) instead of opening a second
+ *          bus — the new i2c_master driver forbids a second owner of the
+ *          same port. Same bring-up sequence as begin().
+ *
+ * @param i2cPort I2C port already initialized by LovyanGFX (touch bus).
+ * @param addr    I2C address (default 0x76 or 0x77).
+ * @return true if initialization successful, false otherwise.
+ */
+bool BME280_Driver::beginShared(int i2cPort, uint8_t addr)
+{
+    sharedI2cPort = i2cPort;
+    i2cAddr = addr;
+
+    uint8_t chipId = readSharedReg(0xD0);
+    if (chipId != 0x60)
+        return false;
+
+    writeSharedReg(0xE0, 0xB6);
+    vTaskDelay(pdMS_TO_TICKS(10));
+
+    readCoefficients();
+
+    writeSharedReg(0xF2, 0x01);
+    writeSharedReg(0xF4, 0x27);
+    writeSharedReg(0xF5, 0xA0);
+
+    return true;
+}
+#endif
+
 /**
  * @brief Reads raw 20-bit temperature ADC value from registers 0xFA-0xFC.
  */
 int32_t BME280_Driver::readRawT()
 {
     uint8_t buf[3];
-    i2c.readBytes(i2cAddr, 0xFA, buf, 3);
+    #ifdef WAVESHARE_P4_35
+        if (sharedI2cPort >= 0)
+            readSharedBytes(0xFA, buf, 3);
+        else
+    #endif
+        i2c.readBytes(i2cAddr, 0xFA, buf, 3);
     int32_t adc = buf[0];
     adc <<= 8;
     adc |= buf[1];
@@ -111,7 +212,12 @@ int32_t BME280_Driver::readRawT()
 int32_t BME280_Driver::readRawP()
 {
     uint8_t buf[3];
-    i2c.readBytes(i2cAddr, 0xF7, buf, 3);
+    #ifdef WAVESHARE_P4_35
+        if (sharedI2cPort >= 0)
+            readSharedBytes(0xF7, buf, 3);
+        else
+    #endif
+        i2c.readBytes(i2cAddr, 0xF7, buf, 3);
     int32_t adc = buf[0];
     adc <<= 8;
     adc |= buf[1];
@@ -126,7 +232,12 @@ int32_t BME280_Driver::readRawP()
 int32_t BME280_Driver::readRawH()
 {
     uint8_t buf[2];
-    i2c.readBytes(i2cAddr, 0xFD, buf, 2);
+    #ifdef WAVESHARE_P4_35
+        if (sharedI2cPort >= 0)
+            readSharedBytes(0xFD, buf, 2);
+        else
+    #endif
+        i2c.readBytes(i2cAddr, 0xFD, buf, 2);
     int32_t adc = buf[0];
     adc <<= 8;
     adc |= buf[1];
@@ -262,7 +373,12 @@ float BME280_Driver::readHumidity()
 void BME280_Driver::readAll(float &temp, float &pres, float &humi)
 {
     uint8_t buffer[8];
-    i2c.readBytes(i2cAddr, 0xF7, buffer, 8);
+    #ifdef WAVESHARE_P4_35
+        if (sharedI2cPort >= 0)
+            readSharedBytes(0xF7, buffer, 8);
+        else
+    #endif
+        i2c.readBytes(i2cAddr, 0xF7, buffer, 8);
 
     int32_t adc_P = buffer[0];
     adc_P <<= 8;
