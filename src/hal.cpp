@@ -9,10 +9,7 @@
 #include <Arduino.h>
 #include "hal.hpp"
 #include "i2c_espidf.hpp"
-// TOUCH_CAPACITIVE is a #define from lgfxCommon.hpp, only visible once the
-// panel header (via panelSelect.hpp) has been included in this translation
-// unit — include it unconditionally so the macro resolves regardless of
-// include order (see i2c_driver_base.hpp for the same pattern).
+// Included unconditionally so TOUCH_CAPACITIVE resolves regardless of include order.
 #include "panelSelect.hpp"
 #ifdef POWER_SAVE
     #include <esp_pm.h>
@@ -57,11 +54,11 @@ void initHAL()
         digitalWrite(TFT_SPI_CS, HIGH);
         pinMode(SPI_MISO, INPUT_PULLUP);
     #endif
-    // On boards where the touch panel is I2C (TOUCH_CAPACITIVE), LovyanGFX
-    // owns the shared I2C bus; the new i2c_master driver forbids a second
-    // owner of the same port, so i2c_espidf must not create its own bus
-    // here. All I2C sensor init (BME280, compass, IMU) then happens in
-    // main.cpp, after initTFT(), sharing that bus instead.
+    #ifdef WAVESHARE_P4_43
+        pinMode(TFT_BL_EN, OUTPUT);
+        digitalWrite(TFT_BL_EN, HIGH);
+    #endif
+    // On TOUCH_CAPACITIVE boards, LovyanGFX owns the I2C bus, so skip it here.
     #ifndef TOUCH_CAPACITIVE
         i2c.begin(I2C_SDA_PIN, I2C_SCL_PIN);
         #ifdef BME280

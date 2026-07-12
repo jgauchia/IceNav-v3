@@ -41,6 +41,12 @@
 #ifndef PANEL_PIN_BL
     #define PANEL_PIN_BL TFT_BL
 #endif
+#ifndef PANEL_LIGHT_FREQ
+    #define PANEL_LIGHT_FREQ 44100
+#endif
+#ifndef PANEL_LIGHT_INVERT
+    #define PANEL_LIGHT_INVERT false
+#endif
 #ifndef PANEL_BUS_SHARED
     #if defined(PANEL_BUS_SPI) && !defined(SPI_SHARED)
         #define PANEL_BUS_SHARED false
@@ -229,8 +235,8 @@ class LGFX : public lgfx::LGFX_Device
             {
                 auto cfg = lightInstance.config();
                 cfg.pin_bl = PANEL_PIN_BL;
-                cfg.invert = false;
-                cfg.freq = 44100;
+                cfg.invert = PANEL_LIGHT_INVERT;
+                cfg.freq = PANEL_LIGHT_FREQ;
                 cfg.pwm_channel = 7;
                 lightInstance.config(cfg);
                 panelInstance.setLight(&lightInstance);

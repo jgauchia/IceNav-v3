@@ -25,14 +25,17 @@ namespace lgfx
             // Panel_Device::init() toggles reset mid bus bring-up.
             bool init(bool use_reset) override
             {
-                if (_lines_buffer != nullptr) { return false; }
+                if (_lines_buffer != nullptr)
+                    return false;
 
                 auto bus = getBusDSI();
-                if (bus == nullptr) { return false; }
-                if (!bus->init())
-                {
+                if (bus == nullptr)
                     return false;
-                }
+                if (!bus->init())
+                    return false;
+
+                if (_light)
+                    _light->init(0);
 
                 if (use_reset && _cfg.pin_rst >= 0)
                 {
@@ -53,9 +56,7 @@ namespace lgfx
                 if (result)
                 {
                     if (!_refresh_done_sem)
-                    {
                         _refresh_done_sem = xSemaphoreCreateBinary();
-                    }
                     if (_refresh_done_sem)
                     {
                         esp_lcd_dpi_panel_event_callbacks_t callbacks = {};
@@ -70,9 +71,7 @@ namespace lgfx
             void waitDisplay(void) override
             {
                 if (_refresh_done_sem)
-                {
                     xSemaphoreTake(_refresh_done_sem, pdMS_TO_TICKS(100));
-                }
             }
 
             esp_lcd_panel_handle_t panelHandle(void) const { return _disp_panel_handle; }
@@ -91,12 +90,14 @@ namespace lgfx
             bool build_line_array(void)
             {
                 auto ptr = (uint8_t*)_config_detail.buffer;
-                if (ptr == nullptr) { return false; }
+                if (ptr == nullptr)
+                    return false;
 
                 const auto height = _cfg.panel_height;
                 size_t la_size = height * sizeof(void*);
                 uint8_t** lineArray = (uint8_t**)heap_alloc_dma(la_size);
-                if (nullptr == lineArray) { return false; }
+                if (nullptr == lineArray)
+                    return false;
                 memset(lineArray, 0, la_size);
 
                 const size_t line_length = ((_cfg.panel_width * _write_bits >> 3) + 3) & ~3;

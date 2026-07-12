@@ -274,8 +274,9 @@
 
     static constexpr uint8_t BOARD_BOOT_PIN = GPIO_NUM_49;
 
-    static constexpr uint8_t TFT_RST = GPIO_NUM_27;
-    static constexpr uint8_t TFT_BL  = GPIO_NUM_26;
+    static constexpr uint8_t TFT_RST   = GPIO_NUM_27;
+    static constexpr uint8_t TFT_BL    = GPIO_NUM_26;
+    static constexpr uint8_t TFT_BL_EN = GPIO_NUM_33;
 
     static constexpr uint8_t TCH_I2C_RST = GPIO_NUM_23;
 

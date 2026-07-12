@@ -16,12 +16,13 @@
 #define PANEL_BUS_DSI
 #define PANEL_PIN_RST          TFT_RST
 #define PANEL_PIN_BL           TFT_BL
+#define PANEL_LIGHT_FREQ       5000
+#define PANEL_LIGHT_INVERT     true
 #define PANEL_WIDTH            480
 #define PANEL_HEIGHT           800
 #define PANEL_INVERT           false
 #define PANEL_RGB_ORDER        true
 
-// MIPI-DSI bus and DPI timing from the Waveshare BSP (esp32_p4_wifi6_touch_lcd_4_3).
 #define PANEL_DSI_LANE_NUM     2
 #define PANEL_DSI_LANE_MBPS    500
 #define PANEL_DSI_LDO_CHAN     3
@@ -35,7 +36,6 @@
 #define PANEL_DSI_VSYNC_PULSE_WIDTH   8
 #define PANEL_DSI_VSYNC_FRONT_PORCH   60
 
-// No INT pin on this BSP (GPIO_NUM_NC).
 #define TOUCH_GT911
 #define TOUCH_PIN_INT          -1
 #define TOUCH_PIN_RST          TCH_I2C_RST
