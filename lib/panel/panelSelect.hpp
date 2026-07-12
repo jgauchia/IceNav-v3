@@ -39,10 +39,7 @@
 #elif defined(WAVESHARE_P4_35)
     #include "WAVESHARE_P4_35.hpp"
 #elif defined(WAVESHARE_P4_43)
-    // Placeholder: the 4.3" panel is MIPI-DSI (esp_lcd backend, added later).
-    // LovyanGFX cannot drive DSI, so the SPI header is reused only so the
-    // environment links until the real DSI panel is provided.
-    #include "WAVESHARE_P4_35.hpp"
+    #include "WAVESHARE_P4_43.hpp"
 #else
     #error "No Panel defined!"
 #endif

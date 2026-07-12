@@ -90,8 +90,8 @@ Currently, IceNav works with the following hardware setups and specs
 | [LILYGO T-DECK](https://www.lilygo.cc/products/t-deck) |  16M  |  8M   | ``` [env:TDECK_ESP32S3] ``` |  ✔️ YES    |
 | [LILYGO T-DECK PLUS](https://lilygo.cc/en-us/products/t-deck-plus-1) | 16M | 8M | ``` [env:TDECK_ESP32S3] ``` |  🚧 TESTING    |
 | [LILYGO T4-S3](https://lilygo.cc/products/t4-s3) | 16M | 8M | ``` [env:T4_S3] ``` | ✔️ YES    |
-| [WAVESHARE ESP32-P4-WIFI6 3.5inch Smart Vision ](https://www.waveshare.com/product/arduino/boards-kits/esp32-p4/esp32-p4-wifi6-touch-lcd-3.5.htm) | 16M | 32M | ``` [env:WAVESHARE_P4_35] ``` | 🚧 TESTING    |
-| [WAVESHARE ESP32-P4-WIFI6 4.3inch Development Board](https://www.waveshare.com/product/arduino/boards-kits/esp32-p4/esp32-p4-wifi6-touch-lcd-4.3.htm) | 32M | 32M | ``` [env:WAVESHARE_P4_43] ``` | 🚧 TODO    |
+| [WAVESHARE ESP32-P4-WIFI6 3.5inch Smart Vision ](https://www.waveshare.com/product/arduino/boards-kits/esp32-p4/esp32-p4-wifi6-touch-lcd-3.5.htm) | 16M | 32M | ``` [env:WAVESHARE_P4_35] ``` | ✔️ YES    |
+| [WAVESHARE ESP32-P4-WIFI6 4.3inch Development Board](https://www.waveshare.com/product/arduino/boards-kits/esp32-p4/esp32-p4-wifi6-touch-lcd-4.3.htm) | 32M | 32M | ``` [env:WAVESHARE_P4_43] ``` | 🚧 TESTING    |
 
 If the board has a BOOT button (GPIO0) it is possible to use power saving functions.
 To do this, simply include the following Build Flag in the required env in platformio.ini

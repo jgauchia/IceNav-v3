@@ -234,11 +234,8 @@
     static constexpr uint8_t GPS_RX_DEFAULT = GPIO_NUM_2;
     static constexpr uint8_t GPS_TX_DEFAULT = GPIO_NUM_3;
 
-    // Power button: PWR_KEY, wired to the AXP2101 PMIC (not the P4 strapping
-    // BOOT pin). Verified against the schematic (PMIC block).
     static constexpr uint8_t BOARD_BOOT_PIN = GPIO_NUM_49;
 
-    // ST7796 over SPI (no MISO on this board)
     static constexpr uint8_t TFT_SCLK = GPIO_NUM_21;
     static constexpr uint8_t TFT_MOSI = GPIO_NUM_20;
     static constexpr uint8_t TFT_CS   = GPIO_NUM_23;
@@ -246,11 +243,9 @@
     static constexpr uint8_t TFT_RST  = GPIO_NUM_27;
     static constexpr uint8_t TFT_BL   = GPIO_NUM_28;
 
-    // FT5x06/FT6336 capacitive touch (I2C shared bus)
     static constexpr uint8_t TCH_I2C_INT = GPIO_NUM_50;
     static constexpr uint8_t TCH_I2C_RST = GPIO_NUM_29;
 
-    // microSD over SDIO, SDMMC slot 0, 4-bit (SDMMC pendiente de implementar)
     static constexpr uint8_t SD_CLK_SDIO = GPIO_NUM_43;
     static constexpr uint8_t SD_CMD      = GPIO_NUM_44;
     static constexpr uint8_t SD_D0       = GPIO_NUM_39;
@@ -258,8 +253,6 @@
     static constexpr uint8_t SD_D2       = GPIO_NUM_41;
     static constexpr uint8_t SD_D3       = GPIO_NUM_42;
 
-    // ESP32-C6FH8 co-processor (WiFi via esp-hosted), SDIO bus
-    // Verified against the Waveshare P4-3.5 schematic (ESP32-C6FH8 block).
     static constexpr uint8_t C6_SDIO_CLK = GPIO_NUM_19;
     static constexpr uint8_t C6_SDIO_CMD = GPIO_NUM_18;
     static constexpr uint8_t C6_SDIO_D0  = GPIO_NUM_14;
@@ -271,47 +264,35 @@
 
 /**
  * @brief Waveshare ESP32-P4-WIFI6-Touch-LCD-4.3 pin definition
- *
- * @details Provisional pins. TODO: verificar contra el esquemático real.
- *          Display is MIPI-DSI; only the shared buses are sketched here.
  */
 #ifdef WAVESHARE_P4_43
-    #define I2C_SDA_PIN   GPIO_NUM_7   // TODO: verificar (esquemático real)
-    #define I2C_SCL_PIN   GPIO_NUM_8   // TODO: verificar (esquemático real)
+    #define I2C_SDA_PIN   GPIO_NUM_7
+    #define I2C_SCL_PIN   GPIO_NUM_8
 
-    static constexpr uint8_t GPS_TX_DEFAULT = GPIO_NUM_37;  // TODO: verificar (esquemático real)
-    static constexpr uint8_t GPS_RX_DEFAULT = GPIO_NUM_38;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t GPS_RX_DEFAULT = GPIO_NUM_2;
+    static constexpr uint8_t GPS_TX_DEFAULT = GPIO_NUM_3;
 
-    static constexpr uint8_t BOARD_BOOT_PIN = GPIO_NUM_35;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t BOARD_BOOT_PIN = GPIO_NUM_49;
 
-    static constexpr uint8_t TCH_I2C_INT = GPIO_NUM_14;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t TFT_RST = GPIO_NUM_27;
+    static constexpr uint8_t TFT_BL  = GPIO_NUM_26;
 
-    // Placeholder SPI pins only to satisfy the temporary LovyanGFX panel header.
-    // The real display is MIPI-DSI (esp_lcd backend), which replaces these.
-    static constexpr uint8_t TFT_SCLK = GPIO_NUM_5;   // placeholder
-    static constexpr uint8_t TFT_MOSI = GPIO_NUM_6;   // placeholder
-    static constexpr uint8_t TFT_CS   = GPIO_NUM_10;  // placeholder
-    static constexpr uint8_t TFT_DC   = GPIO_NUM_11;  // placeholder
-    static constexpr uint8_t TFT_RST  = GPIO_NUM_12;  // placeholder
-    static constexpr uint8_t TFT_BL   = GPIO_NUM_13;  // placeholder
+    static constexpr uint8_t TCH_I2C_RST = GPIO_NUM_23;
 
-    // microSD over SDIO. TODO: verificar (esquemático real; SDMMC pendiente)
-    static constexpr uint8_t SD_CLK_SDIO = GPIO_NUM_43;  // TODO: verificar (esquemático real)
-    static constexpr uint8_t SD_CMD      = GPIO_NUM_44;  // TODO: verificar (esquemático real)
-    static constexpr uint8_t SD_D0       = GPIO_NUM_39;  // TODO: verificar (esquemático real)
-    static constexpr uint8_t SD_D1       = GPIO_NUM_40;  // TODO: verificar (esquemático real)
-    static constexpr uint8_t SD_D2       = GPIO_NUM_41;  // TODO: verificar (esquemático real)
-    static constexpr uint8_t SD_D3       = GPIO_NUM_42;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t SD_CLK_SDIO = GPIO_NUM_43;
+    static constexpr uint8_t SD_CMD      = GPIO_NUM_44;
+    static constexpr uint8_t SD_D0       = GPIO_NUM_39;
+    static constexpr uint8_t SD_D1       = GPIO_NUM_40;
+    static constexpr uint8_t SD_D2       = GPIO_NUM_41;
+    static constexpr uint8_t SD_D3       = GPIO_NUM_42;
 
-    // ESP32-C6FH8 co-processor (WiFi via esp-hosted), SDIO bus
-    // TODO: verificar (esquemático real; asumidos iguales a la 3.5")
-    static constexpr uint8_t C6_SDIO_CLK = GPIO_NUM_19;  // TODO: verificar (esquemático real)
-    static constexpr uint8_t C6_SDIO_CMD = GPIO_NUM_18;  // TODO: verificar (esquemático real)
-    static constexpr uint8_t C6_SDIO_D0  = GPIO_NUM_14;  // TODO: verificar (esquemático real)
-    static constexpr uint8_t C6_SDIO_D1  = GPIO_NUM_15;  // TODO: verificar (esquemático real)
-    static constexpr uint8_t C6_SDIO_D2  = GPIO_NUM_16;  // TODO: verificar (esquemático real)
-    static constexpr uint8_t C6_SDIO_D3  = GPIO_NUM_17;  // TODO: verificar (esquemático real)
-    static constexpr uint8_t C6_SDIO_RST = GPIO_NUM_54;  // TODO: verificar (esquemático real)
+    static constexpr uint8_t C6_SDIO_CLK = GPIO_NUM_19;
+    static constexpr uint8_t C6_SDIO_CMD = GPIO_NUM_18;
+    static constexpr uint8_t C6_SDIO_D0  = GPIO_NUM_14;
+    static constexpr uint8_t C6_SDIO_D1  = GPIO_NUM_15;
+    static constexpr uint8_t C6_SDIO_D2  = GPIO_NUM_16;
+    static constexpr uint8_t C6_SDIO_D3  = GPIO_NUM_17;
+    static constexpr uint8_t C6_SDIO_RST = GPIO_NUM_54;
 #endif
 
 /**

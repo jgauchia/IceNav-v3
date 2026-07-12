@@ -478,7 +478,7 @@ void initLVGL()
     size_t DRAW_BUF_SIZE = 0;
     lv_color_t *drawBuf1 = nullptr;
     lv_color_t *drawBuf2 = nullptr;
-    
+
     #if defined(BOARD_HAS_PSRAM) || defined(CONFIG_SPIRAM_SUPPORT)
         assert(heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
 
@@ -504,7 +504,7 @@ void initLVGL()
         drawBuf1 = (lv_color_t *)heap_caps_malloc(DRAW_BUF_SIZE, MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA);
         lv_display_set_buffers(display_drv, drawBuf1, NULL, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
     #endif
-    
+
     #ifdef TOUCH_INPUT
         lv_indev_t *indev_drv = lv_indev_create();
         lv_indev_set_type(indev_drv, LV_INDEV_TYPE_POINTER);

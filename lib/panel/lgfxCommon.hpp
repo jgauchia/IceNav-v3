@@ -13,6 +13,10 @@
 #include <LovyanGFX.hpp>
 #include "../../include/hal.hpp"
 
+#if defined(PANEL_BUS_DSI)
+    #include "Panel_ST7701_DSI.hpp"
+#endif
+
 #ifndef PANEL_OFFSET_X
     #define PANEL_OFFSET_X 0
 #endif
@@ -101,6 +105,8 @@ class LGFX : public lgfx::LGFX_Device
     lgfx::Bus_Parallel8 busInstance;
 #elif defined(PANEL_BUS_PARALLEL16)
     lgfx::Bus_Parallel16 busInstance;
+#elif defined(PANEL_BUS_DSI)
+    lgfx::Bus_DSI busInstance;
 #else
     #error "No panel bus defined!"
 #endif
@@ -132,6 +138,16 @@ class LGFX : public lgfx::LGFX_Device
                 cfg.pin_mosi = PANEL_PIN_MOSI;
                 cfg.pin_miso = PANEL_PIN_MISO;
                 cfg.pin_dc = PANEL_PIN_DC;
+                busInstance.config(cfg);
+                panelInstance.setBus(&busInstance);
+            }
+#elif defined(PANEL_BUS_DSI)
+            {
+                auto cfg = busInstance.config();
+                cfg.lane_mbps = PANEL_DSI_LANE_MBPS;
+                cfg.lane_num = PANEL_DSI_LANE_NUM;
+                cfg.ldo_voltage_mv = PANEL_DSI_LDO_MV;
+                cfg.ldo_chan_id = PANEL_DSI_LDO_CHAN;
                 busInstance.config(cfg);
                 panelInstance.setBus(&busInstance);
             }
@@ -168,7 +184,11 @@ class LGFX : public lgfx::LGFX_Device
 
             {
                 auto cfg = panelInstance.config();
-                cfg.pin_cs = PANEL_PIN_CS;
+                #if defined(PANEL_BUS_SPI)
+                    cfg.pin_cs = PANEL_PIN_CS;
+                #else
+                    cfg.pin_cs = -1;
+                #endif
                 cfg.pin_rst = PANEL_PIN_RST;
                 cfg.pin_busy = -1;
                 cfg.panel_width = PANEL_WIDTH;
@@ -191,6 +211,20 @@ class LGFX : public lgfx::LGFX_Device
                 cfg.bus_shared = PANEL_BUS_SHARED;
                 panelInstance.config(cfg);
             }
+
+            #if defined(PANEL_BUS_DSI)
+            {
+                auto cfg = panelInstance.config_detail();
+                cfg.dpi_freq_mhz = PANEL_DSI_DPI_FREQ_MHZ;
+                cfg.hsync_back_porch = PANEL_DSI_HSYNC_BACK_PORCH;
+                cfg.hsync_pulse_width = PANEL_DSI_HSYNC_PULSE_WIDTH;
+                cfg.hsync_front_porch = PANEL_DSI_HSYNC_FRONT_PORCH;
+                cfg.vsync_back_porch = PANEL_DSI_VSYNC_BACK_PORCH;
+                cfg.vsync_pulse_width = PANEL_DSI_VSYNC_PULSE_WIDTH;
+                cfg.vsync_front_porch = PANEL_DSI_VSYNC_FRONT_PORCH;
+                panelInstance.config_detail(cfg);
+            }
+            #endif
 
             {
                 auto cfg = lightInstance.config();

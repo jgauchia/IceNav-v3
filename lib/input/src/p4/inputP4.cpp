@@ -1,7 +1,7 @@
 /**
  * @file inputP4.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief ESP32-P4 touch input implementation (FT6336 via LovyanGFX)
+ * @brief ESP32-P4 touch input implementation (LovyanGFX)
  * @version 0.3.0
  * @date 2026-07
  */
@@ -15,11 +15,6 @@
 /**
  * @class InputP4
  * @brief Layer-0 touch implementation for ESP32-P4 boards over LovyanGFX.
- *
- * @details The FT6336 (FT5x06-compatible) is read through LovyanGFX's
- *          Touch_FT5x06 driver, which owns the shared I2C bus (port 1):
- *          the new i2c_master driver forbids two owners of the same port,
- *          so i2c_espidf does not create its own bus on P4.
  */
 class InputP4 : public IInput
 {
