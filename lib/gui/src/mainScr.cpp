@@ -1244,6 +1244,7 @@ static void recTimerCb(lv_timer_t *t)
 void createMainScr()
 {
     mainScreen = lv_obj_create(NULL);
+    lv_obj_clear_flag(mainScreen, LV_OBJ_FLAG_SCROLLABLE);
     tilesScreen = lv_tileview_create(mainScreen);
     compassTile = lv_tileview_add_tile(tilesScreen, 0, 0, LV_DIR_RIGHT);
     mapTile = lv_tileview_add_tile(tilesScreen, 1, 0, (lv_dir_t)(LV_DIR_LEFT | LV_DIR_RIGHT));
