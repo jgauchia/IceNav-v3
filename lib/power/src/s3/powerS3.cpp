@@ -70,9 +70,7 @@ public:
 
         tftOn(brightness);
         while (gpio_get_level((gpio_num_t)BOARD_BOOT_PIN) != 1)
-        {
             vTaskDelay(pdMS_TO_TICKS(5));
-        };
         ESP_LOGV(TAG, "Exited sleep mode");
     }
 

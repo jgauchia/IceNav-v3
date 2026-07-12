@@ -222,9 +222,7 @@ bool NavReader::findTileInPack(uint32_t tileX, uint32_t tileY, uint32_t& offset,
 
     IndexEntry entry;
     if (inBand)
-    {
         entry = bandBuffer[(yOff - bandStartRow) * tilesWide + xOff];
-    }
     else
     {
         uint32_t entryPos = NAV_PACK_HDR_SIZE + (yOff * tilesWide + xOff) * sizeof(IndexEntry);

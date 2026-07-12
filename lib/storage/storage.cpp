@@ -481,9 +481,7 @@ size_t Storage::read(FILE *file, uint8_t *buffer, size_t size)
     }
 
     if (esp_ptr_internal(buffer))
-    {
         totalRead = fread(buffer, 1, size, file);
-    }
     else
     {
         if (!dmaBuffer)

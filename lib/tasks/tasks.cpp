@@ -131,9 +131,7 @@ void gpsTask(void *pvParameters)
                             }
                         }
                         else if (lineLen < NMEA_RAW_LEN - 1)
-                        {
                             lineBuf[lineLen++] = c;
-                        }
                     }
 
                     // handle() returns DECODE_COMPLETED at the end of every

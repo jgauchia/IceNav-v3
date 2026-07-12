@@ -730,9 +730,7 @@ void Maps::mapRenderTask(void* pvParameters)
             }
         }
         else
-        {
             instance->prefetchNextTile();
-        }
         vTaskDelay(1);
     }
 }
@@ -865,10 +863,8 @@ void Maps::displayMap()
         lastRenderedArrowPos = navArrowPosition;
 
         if (use3DCache)
-        {
             // 3D mode: scanline perspective transform with heading baked in
             apply3DPerspective(mapHeading);
-        }
         else
         {
             Maps::mapTempSprite.setPivot(gridOffset * mapTileSize + Maps::navArrowPosition.posX,
@@ -1854,9 +1850,7 @@ void Maps::renderNavPolygon(const FeatureRef& ref, MapCanvas& map)
                 ringCount = 0;
         }
         else
-        {
             ringCount = 0;
-        }
     }
 
     if (ref.coordCount > projBuf32X.capacity())

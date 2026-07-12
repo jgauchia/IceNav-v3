@@ -212,9 +212,7 @@ static void urlDecode(char* str)
             str++;
         }
         else
-        {
             *dst++ = *str++;
-        }
     }
     *dst = '\0';
 }
@@ -264,9 +262,7 @@ static std::string listFiles(bool ishtml, int page)
             returnText += "</tr>";
         }
         else
-        {
             returnText += "File: " + entry.name + " Size: " + humanReadableSize(entry.size) + "\n";
-        }
     }
 
     if (ishtml)
@@ -685,9 +681,7 @@ static esp_err_t listfolder_handler(httpd_req_t *req)
             std::string entryPath = currentPath + "/" + std::string(ep->d_name);
 
             if (ep->d_type == DT_DIR)
-            {
                 dirStack.push(entryPath);
-            }
             else
             {
                 std::string relPath = entryPath.substr(prefixLen);

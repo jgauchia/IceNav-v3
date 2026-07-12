@@ -69,9 +69,7 @@ public:
         // of the S3 pull-up button), measured on real hardware — wait for it
         // to go back low (released) instead of high.
         while (gpio_get_level((gpio_num_t)BOARD_BOOT_PIN) != 0)
-        {
             vTaskDelay(pdMS_TO_TICKS(5));
-        };
         ESP_LOGV(TAG, "Exited sleep mode");
     }
 

@@ -183,9 +183,7 @@ static void is_fixed_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
         lv_anim_start(&a);
     }
     else
-    {
         lv_led_set_brightness(obj, 0);
-    }
 }
 
 #ifdef ENABLE_TEMP

@@ -549,9 +549,7 @@ static void climb_active_observer_cb(lv_observer_t *observer, lv_subject_t *subj
         climbState.lastYTop     = -1;
     }
     else
-    {
         lv_obj_clear_flag(climbOverlay, LV_OBJ_FLAG_HIDDEN);
-    }
 }
 
 /**
@@ -1234,9 +1232,7 @@ static void recTimerCb(lv_timer_t *t)
             lv_label_set_text(recHud, buf);
         }
         else
-        {
             lv_obj_add_flag(recHud, LV_OBJ_FLAG_HIDDEN);
-        }
     }
 }
 

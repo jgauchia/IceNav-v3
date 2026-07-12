@@ -395,9 +395,7 @@ void satelliteScr(_lv_obj_t *screen)
 void drawSatSNR()
 {
     for (int i = 0; i < MAX_SATELLITES_IN_VIEW ; i++)
-    {
         lv_chart_set_value_by_id(satelliteBar, satelliteBarSerie, i, LV_CHART_POINT_NONE);
-    }
     for (int i = 0; i < gps.gpsData.satInView && i < MAX_SATELLITES_IN_VIEW; ++i)
     {
         if (gps.satTracker[i].snr > 0)

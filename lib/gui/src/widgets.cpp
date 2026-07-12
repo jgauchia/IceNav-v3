@@ -116,9 +116,7 @@ void editWidget(lv_event_t *event)
 {
     lv_event_code_t code = lv_event_get_code(event);
     if (code == LV_EVENT_LONG_PRESSED)
-    {
         canMoveWidget = true;
-    }
 }
 
 /**
