@@ -123,8 +123,7 @@ To do this, simply include the following Build Flag in the required env in platf
 |:------------|:--------------|:-----------------------------------|
 |             | 🔋 Batt. Monitor | ```-DBATT_ADC_UNIT=n``` (1 or 2) <br> ```-DBATT_ADC_CHANNEL=x``` |  
 | AT6558D     | 🛰️ GPS        | ```-DAT6558D_GPS```                |
-| HMC5883L    | 🧭 Compass    | ```-DHMC5883L```                   |
-| QMC5883     | 🧭 Compass    | ```-DQMC5883```                    |
+| HMC5883L / QMC5883 | 🧭 Compass (auto-detected) | ```-DCOMPASS_AUTO```        |
 | MPU9250     | 🧭 IMU (Compass) | ```-DIMU_MPU9250```                | 
 | BME280      | 🌡️ Temp <br> ☁️ Pres <br> 💧 Hum | ```-DBME280```                     |
 | MPU6050     | 📳 IMU | ```-DMPU6050```                     |

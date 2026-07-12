@@ -14,7 +14,7 @@
 
 // compass.hpp derives ENABLE_COMPASS from the board magnetometer/IMU macros,
 // so it must be included before that macro is queried below.
-#if defined(HMC5883L) || defined(QMC5883) || defined(IMU_MPU9250)
+#if defined(COMPASS_AUTO) || defined(IMU_MPU9250)
     #include "compass.hpp"
     extern Compass compass;
 #endif

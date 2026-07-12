@@ -61,15 +61,7 @@
 // Mode: 0=PowerDown, 1=Single, 2=Continuous8Hz, 6=Continuous100Hz
 // Resolution: 0=14bit, 1=16bit (bit 4)
 
-#ifdef HMC5883L
-    #define ENABLE_COMPASS
-#endif
-
-#ifdef QMC5883
-    #define ENABLE_COMPASS
-#endif
-
-#if defined(COMPASS_AUTO) && defined(WAVESHARE_P4_35)
+#ifdef COMPASS_AUTO
     #define ENABLE_COMPASS
 #endif
 
@@ -242,8 +234,8 @@ class Compass
     public:
         Compass();
         void init();
-        #ifdef WAVESHARE_P4_35
-            bool initShared(int i2cPort);
+        #ifdef COMPASS_AUTO
+            bool initShared(int i2cPort = -1);
             bool isDetected() const { return sharedChip != SharedChip::NONE; }
         #endif
         bool read(float &x, float &y, float &z);
@@ -256,7 +248,7 @@ class Compass
         void setKalmanFilterConst(float processNoise, float measureNoise);
 
     private:
-        #ifdef WAVESHARE_P4_35
+        #ifdef COMPASS_AUTO
             enum class SharedChip { NONE, QMC5883L, HMC5883L };
             SharedChip sharedChip = SharedChip::NONE;
         #endif

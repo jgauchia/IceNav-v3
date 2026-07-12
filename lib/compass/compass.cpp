@@ -549,21 +549,13 @@ float MPU9250_Driver::getMagZ_uT() { return magZ; }
 // Global Compass Instances
 // ============================================================================
 
-#ifdef HMC5883L
-    HMC5883L_Driver comp = HMC5883L_Driver();
-#endif
-
-#ifdef QMC5883
-    QMC5883L_Driver comp = QMC5883L_Driver();
-#endif
-
 #ifdef IMU_MPU9250
     MPU9250_Driver IMU = MPU9250_Driver();
 #endif
 
-#ifdef WAVESHARE_P4_35
-    // P4 has no fixed HMC5883L/QMC5883 compile-time flag: which chip is
-    // physically present is auto-detected at runtime in Compass::initShared().
+#ifdef COMPASS_AUTO
+    // No fixed HMC5883L/QMC5883 compile-time flag: which chip is physically
+    // present is auto-detected at runtime in Compass::initShared().
     QMC5883L_Driver compQmcShared = QMC5883L_Driver();
     HMC5883L_Driver compHmcShared = HMC5883L_Driver();
 #endif
@@ -587,30 +579,13 @@ Compass::Compass()
  */
 void Compass::init()
 {
-#ifdef HMC5883L
-    if (!comp.begin())
-    {
-        ESP_LOGE(TAG, "HMC5883L initialization failed");
-        return;
-    }
-    comp.setDataRate(6);    // 75Hz
-    comp.setSamples(0);     // 1 sample
-    ESP_LOGI(TAG, "HMC5883L init OK");
-#endif
-
-#ifdef QMC5883
-    if (!comp.begin())
-    {
-        ESP_LOGE(TAG, "QMC5883L initialization failed");
-        return;
-    }
-    comp.setDataRate(3);    // 200Hz
-    comp.setSamples(2);     // 128 oversampling
-    ESP_LOGI(TAG, "QMC5883L init OK");
-#endif
-
 #ifdef IMU_MPU9250
-    if (!IMU.begin())
+    #ifdef TOUCH_CAPACITIVE
+        bool imuOk = IMU.beginShared(I2C_PORT);
+    #else
+        bool imuOk = IMU.begin();
+    #endif
+    if (!imuOk)
     {
         ESP_LOGE(TAG, "MPU9250/AK8963 initialization failed");
         ESP_LOGE(TAG, "Check IMU wiring or try cycling power");
@@ -620,22 +595,31 @@ void Compass::init()
 #endif
 }
 
-#ifdef WAVESHARE_P4_35
+#ifdef COMPASS_AUTO
 /**
- * @brief Initializes the compass over an I2C bus already owned by LovyanGFX,
- *        auto-detecting whether the physical chip is a QMC5883L or HMC5883L.
+ * @brief Initializes the compass, auto-detecting whether the physical chip
+ *        is a QMC5883L or HMC5883L.
  *
  * @details No fixed HMC5883L/QMC5883 compile-time flag exists for this board:
  *          tries QMC5883L first (chip ID check), then HMC5883L, and keeps
- *          whichever responds. Shares the bus already brought up for the
- *          touch controller (and the AXP2101 PMIC / BME280).
+ *          whichever responds. On boards with an I2C touch panel
+ *          (TOUCH_CAPACITIVE), pass the lgfx I2C port already brought up by
+ *          LovyanGFX to share that bus (also used by the AXP2101 PMIC /
+ *          BME280 where present). On boards without an I2C touch panel,
+ *          i2cPort is ignored and a standalone I2CNative bus is used instead.
  *
- * @param i2cPort I2C port already initialized by LovyanGFX (touch bus).
+ * @param i2cPort lgfx I2C port already initialized by LovyanGFX (ignored on
+ *                boards without an I2C touch panel).
  * @return true if a compass chip was detected and initialized.
  */
 bool Compass::initShared(int i2cPort)
 {
-    if (compQmcShared.beginShared(i2cPort))
+    #ifdef TOUCH_CAPACITIVE
+        bool qmcOk = (i2cPort >= 0) ? compQmcShared.beginShared(i2cPort) : compQmcShared.begin();
+    #else
+        bool qmcOk = compQmcShared.begin();
+    #endif
+    if (qmcOk)
     {
         compQmcShared.setDataRate(3);   // 200Hz
         compQmcShared.setSamples(2);    // 128 oversampling
@@ -644,7 +628,12 @@ bool Compass::initShared(int i2cPort)
         return true;
     }
 
-    if (compHmcShared.beginShared(i2cPort))
+    #ifdef TOUCH_CAPACITIVE
+        bool hmcOk = (i2cPort >= 0) ? compHmcShared.beginShared(i2cPort) : compHmcShared.begin();
+    #else
+        bool hmcOk = compHmcShared.begin();
+    #endif
+    if (hmcOk)
     {
         compHmcShared.setDataRate(6);   // 75Hz
         compHmcShared.setSamples(0);    // 1 sample
@@ -669,19 +658,11 @@ bool Compass::read(float &x, float &y, float &z)
 {
     bool newData = false;
 
-#ifdef WAVESHARE_P4_35
+#ifdef COMPASS_AUTO
     if (sharedChip == SharedChip::QMC5883L)
         newData = compQmcShared.readRaw(x, y, z);
     else if (sharedChip == SharedChip::HMC5883L)
         newData = compHmcShared.readRaw(x, y, z);
-#endif
-
-#ifdef HMC5883L
-    newData = comp.readRaw(x, y, z);
-#endif
-
-#ifdef QMC5883
-    newData = comp.readRaw(x, y, z);
 #endif
 
 #ifdef IMU_MPU9250

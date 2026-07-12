@@ -1,64 +1,64 @@
 {
-    "build": {
-      "arduino":{
-        "ldscript": "esp32s3_out.ld",
-        "partitions": "default_16MB.csv",
-        "memory_type": "qio_opi"
-      },
-      "core": "esp32",
-      "extra_flags": [
-        "-DBOARD_HAS_PSRAM",
-        "-DARDUINO_USB_MODE=1",
-        "-DARDUINO_USB_CDC_ON_BOOT=1",
-        "-DPOWER_SAVE",
-        "-DBATT_ADC_UNIT=2",
-        "-DBATT_ADC_CHANNEL=6",
-        "-DAT6558D_GPS",
-        "-DQMC5883",
-        "-DBME280",
-        "-DMPU6050",
-        "-DIMU_ACCEL_X_SIGN=-1",
-        "-DIMU_ACCEL_Y_SIGN=1",
-        "-DIMU_ACCEL_Z_SIGN=-1"
-      ],
-      "f_cpu": "240000000L",
-      "f_flash": "80000000L",
-      "flash_mode": "qio",
-      "psram_type": "opi",
-      "hwids": [
-        [
-          "0x303A",
-          "0x1001"
-        ]
-      ],
-      "mcu": "esp32s3",
-      "variant": "esp32s3"
+  "build": {
+    "arduino": {
+      "ldscript": "esp32s3_out.ld",
+      "partitions": "default_16MB.csv",
+      "memory_type": "qio_opi"
     },
-    "connectivity": [
-      "wifi",
-      "bluetooth"
+    "core": "esp32",
+    "extra_flags": [
+      "-DBOARD_HAS_PSRAM",
+      "-DARDUINO_USB_MODE=1",
+      "-DARDUINO_USB_CDC_ON_BOOT=1",
+      "-DPOWER_SAVE",
+      "-DBATT_ADC_UNIT=2",
+      "-DBATT_ADC_CHANNEL=6",
+      "-DAT6558D_GPS",
+      "-DCOMPASS_AUTO",
+      "-DBME280",
+      "-DMPU6050",
+      "-DIMU_ACCEL_X_SIGN=-1",
+      "-DIMU_ACCEL_Y_SIGN=1",
+      "-DIMU_ACCEL_Z_SIGN=-1"
     ],
-    "debug": {
-      "default_tool": "esp-builtin",
-      "onboard_tools": [
-        "esp-builtin"
-      ],
-      "openocd_target": "esp32s3.cfg"
-    },
-    "frameworks": [
-      "arduino",
-      "espidf"
+    "f_cpu": "240000000L",
+    "f_flash": "80000000L",
+    "flash_mode": "qio",
+    "psram_type": "opi",
+    "hwids": [
+      [
+        "0x303A",
+        "0x1001"
+      ]
     ],
-    "name": "IceNav Custom Board ESP32-S3-N16R8V (16 MB QD, 8MB PSRAM)",
-    "upload": {
-      "flash_size": "16MB",
-      "maximum_ram_size": 327680,
-      "maximum_size": 16777216,
-      "use_1200bps_touch": true,
-      "wait_for_upload_port": true,
-      "require_upload_port": true,
-      "speed": 921600
-    },
-    "url": "https://github.com/jgauchia/IceNav-v3",
-    "vendor": "IceNav"
-  }
+    "mcu": "esp32s3",
+    "variant": "esp32s3"
+  },
+  "connectivity": [
+    "wifi",
+    "bluetooth"
+  ],
+  "debug": {
+    "default_tool": "esp-builtin",
+    "onboard_tools": [
+      "esp-builtin"
+    ],
+    "openocd_target": "esp32s3.cfg"
+  },
+  "frameworks": [
+    "arduino",
+    "espidf"
+  ],
+  "name": "IceNav Custom Board ESP32-S3-N16R8V (16 MB QD, 8MB PSRAM)",
+  "upload": {
+    "flash_size": "16MB",
+    "maximum_ram_size": 327680,
+    "maximum_size": 16777216,
+    "use_1200bps_touch": true,
+    "wait_for_upload_port": true,
+    "require_upload_port": true,
+    "speed": 921600
+  },
+  "url": "https://github.com/jgauchia/IceNav-v3",
+  "vendor": "IceNav"
+}

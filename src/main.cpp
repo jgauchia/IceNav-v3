@@ -28,11 +28,11 @@
     #include "bme.hpp"
     extern BME280_Driver bme;
 #endif
-#if defined(COMPASS_AUTO) && defined(WAVESHARE_P4_35)
+#if defined(COMPASS_AUTO) || defined(IMU_MPU9250)
     #include "compass.hpp"
     extern Compass compass;
 #endif
-#if defined(MPU6050) && defined(WAVESHARE_P4_35)
+#ifdef MPU6050
     #include "imu.hpp"
     extern MPU6050_Driver mpu;
 #endif
@@ -70,17 +70,21 @@ void setup()
         // (LovyanGFX owns the port; see i2c_espidf's P4 guard).
         axp2101.begin(I2C_PORT);
     #endif
-    #if defined(BME280) && defined(WAVESHARE_P4_35)
+    #if defined(BME280) && defined(TOUCH_CAPACITIVE)
         // BME280 shares the same LovyanGFX-owned I2C bus as the touch
-        // controller and the AXP2101 PMIC.
+        // controller (and, on WAVESHARE_P4_35, the AXP2101 PMIC).
         bme.beginShared(I2C_PORT);
     #endif
-    #if defined(COMPASS_AUTO) && defined(WAVESHARE_P4_35)
+    #if defined(COMPASS_AUTO) && defined(TOUCH_CAPACITIVE)
         // Compass shares the same LovyanGFX-owned I2C bus; chip (QMC5883L
         // or HMC5883L) is auto-detected at runtime.
         compass.initShared(I2C_PORT);
+    #elif defined(IMU_MPU9250) && defined(TOUCH_CAPACITIVE)
+        // Compass (MPU9250/AK8963) shares the same LovyanGFX-owned I2C bus.
+        compass.init();
+        vTaskDelay(pdMS_TO_TICKS(50));
     #endif
-    #if defined(MPU6050) && defined(WAVESHARE_P4_35)
+    #if defined(MPU6050) && defined(TOUCH_CAPACITIVE)
         // IMU shares the same LovyanGFX-owned I2C bus.
         mpu.beginShared(I2C_PORT);
     #endif
