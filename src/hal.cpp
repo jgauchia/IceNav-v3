@@ -35,7 +35,7 @@ void initHAL()
             gpio_deep_sleep_hold_dis();
         #endif
         #if CONFIG_IDF_TARGET_ESP32S3
-            esp_pm_config_esp32s3_t pmConfig = {};
+            esp_pm_config_t pmConfig = {};
             pmConfig.max_freq_mhz       = 240;
             pmConfig.min_freq_mhz       = 40;
             pmConfig.light_sleep_enable = false;

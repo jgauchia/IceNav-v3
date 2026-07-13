@@ -43,6 +43,17 @@ env.Append(BUILD_FLAGS=[
 if flavor.startswith("WAVESHARE_P4"):
     env.Append(CXXFLAGS=[u'-Wno-literal-suffix'])
 
+# LVGL 9's style selector idiom (LV_PART_x | LV_STATE_y) mixes two distinct
+# enum types by design; deprecated in C++20 but not a bug in our code.
+env.Append(CXXFLAGS=[u'-Wno-deprecated-enum-enum-conversion'])
+
+# NeoGPS fork (lib_deps) compares two distinct nmea/ubx enum types internally.
+env.Append(CXXFLAGS=[u'-Wno-enum-compare'])
+
+# Shellminator (lib_deps) calls the deprecated NetworkServer::available()
+# (renamed to accept() in Arduino core 3.x).
+env.Append(CXXFLAGS=[u'-Wno-deprecated-declarations'])
+
 if dfl_lat != None and dfl_lon != None:
     print ("default lat: "+dfl_lat)
     print ("default lon: "+dfl_lon)
