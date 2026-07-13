@@ -303,6 +303,11 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
     initResources();
     Maps::mapScrHeight = mapHeight;
     Maps::mapScrWidth = mapWidth;
+    // focalLength was tuned for ICENAV_BOARD's viewport (320x480 panel, minus
+    // the 27px status bar). Scaling it by height keeps the ground X/Y aspect
+    // ratio consistent on screens with a different width/height ratio (4.3").
+    constexpr float referenceHeight = 480.0f - 27.0f;
+    Maps::focalLength = 300.0f * (static_cast<float>(mapHeight) / referenceHeight);
     Maps::mapTempSprite.createSprite(Maps::tileWidth, Maps::tileHeight);
     Maps::mapTempSprite.loadFont("/spiffs/font/font.vlw");
     Maps::mapSprite.createSprite(mapWidth, mapHeight);
