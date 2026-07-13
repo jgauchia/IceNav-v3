@@ -289,6 +289,17 @@ void Maps::coords2map(float lat, float lon, const tileBounds& bound, uint16_t *p
  */
 void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
 {
+    // Grid must cover the largest screen dimension with at least half a tile
+    // of scroll margin on each side; grows one tile at a time from the 3x3
+    // baseline instead of forcing extra tiles every board pays for.
+    const uint16_t maxScreenDim = std::max(mapHeight, mapWidth);
+    uint8_t neededGrid = 3;
+    while ((neededGrid * mapTileSize - maxScreenDim) / 2 < mapTileSize / 2)
+        neededGrid++;
+    Maps::tilesGrid = neededGrid;
+    Maps::tileWidth = neededGrid * mapTileSize;
+    Maps::tileHeight = neededGrid * mapTileSize;
+
     initResources();
     Maps::mapScrHeight = mapHeight;
     Maps::mapScrWidth = mapWidth;
@@ -506,7 +517,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     continue;
                 }
                 bool zoomChanged = (instance->zoomLevel != lastZoom);
-                bool fullReset = zoomChanged || (instance->pendingTiles.size() >= (tilesGrid * tilesGrid));
+                bool fullReset = zoomChanged || (instance->pendingTiles.size() >= (size_t)(instance->tilesGrid * instance->tilesGrid));
                 lastZoom = instance->zoomLevel;
 
                 if (fullReset)
@@ -544,7 +555,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     vTaskDelay(1);
                     if (xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE)
                         return true;
-                    if (instance->pendingTiles.size() >= (size_t)(tilesGrid * tilesGrid))
+                    if (instance->pendingTiles.size() >= (size_t)(instance->tilesGrid * instance->tilesGrid))
                         return true;
                     return false;
                 };
@@ -594,8 +605,8 @@ void Maps::mapRenderTask(void* pvParameters)
                     const int32_t tlX = (int32_t)instance->navTlTileX;
                     const int32_t tlY = (int32_t)instance->navTlTileY;
                     instance->totalBounds = instance->getTileBounds((uint32_t)tlX, (uint32_t)tlY, instance->zoomLevel);
-                    const tileBounds brBounds = instance->getTileBounds((uint32_t)(tlX + tilesGrid - 1),
-                                                                        (uint32_t)(tlY + tilesGrid - 1), instance->zoomLevel);
+                    const tileBounds brBounds = instance->getTileBounds((uint32_t)(tlX + instance->tilesGrid - 1),
+                                                                        (uint32_t)(tlY + instance->tilesGrid - 1), instance->zoomLevel);
                     if (brBounds.lat_min < instance->totalBounds.lat_min)
                         instance->totalBounds.lat_min = brBounds.lat_min;
                     if (brBounds.lat_max > instance->totalBounds.lat_max)

@@ -105,15 +105,9 @@ private:
     void renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map);
 
 public:
-#ifdef T4_S3
-    static const uint16_t tileWidth = 1024;
-    static const uint16_t tileHeight = 1024;
-    static const uint8_t tilesGrid = 4;
-#else
-    static const uint16_t tileWidth = 768;
-    static const uint16_t tileHeight = 768;
-    static const uint8_t tilesGrid = 3;
-#endif
+    uint16_t tileWidth;
+    uint16_t tileHeight;
+    uint8_t tilesGrid;
 
     void* mapBuffer;
     uint16_t mapScrHeight;
