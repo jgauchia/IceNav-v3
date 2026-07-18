@@ -314,7 +314,7 @@ void satelliteScr(_lv_obj_t *screen)
     lv_obj_add_style(satContainer, &styleTransparent, LV_PART_MAIN);
     lv_obj_set_style_pad_all(satContainer, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_row(satContainer, (int)(5 * scaleSatInfo), LV_PART_MAIN);
-
+    lv_obj_set_scrollbar_mode(satContainer, LV_SCROLLBAR_MODE_OFF);
     lv_obj_t * barCont = lv_obj_create(satContainer);
 #ifdef TDECK_ESP32S3
     lv_obj_set_size(barCont, TFT_WIDTH, 145);
