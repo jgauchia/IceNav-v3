@@ -225,19 +225,20 @@ static void sat_radar_draw_cb(lv_event_t * e)
     dscLabel.font = fontDefault;
     dscLabel.align = LV_TEXT_ALIGN_CENTER;
     int half_w = (int)(10 * scaleSatInfo);
-    int half_h = fontDefault->line_height / 2;
-    int cardOffset = canvasRadius + (int)(10 * scaleSatInfo);
+    int fontAscent = fontDefault->line_height - fontDefault->base_line;
+    int fontHalfH = fontDefault->line_height / 2;
+    int cardOffset = canvasRadius + 3 + fontAscent - fontHalfH;
     dscLabel.text = "N";
-    lv_area_t labelPos = {obj_area.x1 + canvasCenter_X - half_w, obj_area.y1 + canvasCenter_Y - cardOffset - half_h, obj_area.x1 + canvasCenter_X + half_w, obj_area.y1 + canvasCenter_Y - cardOffset + half_h};
+    lv_area_t labelPos = {obj_area.x1 + canvasCenter_X - half_w, obj_area.y1 + canvasCenter_Y - cardOffset - fontHalfH, obj_area.x1 + canvasCenter_X + half_w, obj_area.y1 + canvasCenter_Y - cardOffset + fontHalfH};
     lv_draw_label(layer, &dscLabel, &labelPos);
     dscLabel.text = "S";
-    labelPos = {obj_area.x1 + canvasCenter_X - half_w, obj_area.y1 + canvasCenter_Y + cardOffset - half_h, obj_area.x1 + canvasCenter_X + half_w, obj_area.y1 + canvasCenter_Y + cardOffset + half_h};
+    labelPos = {obj_area.x1 + canvasCenter_X - half_w, obj_area.y1 + canvasCenter_Y + cardOffset - fontHalfH, obj_area.x1 + canvasCenter_X + half_w, obj_area.y1 + canvasCenter_Y + cardOffset + fontHalfH};
     lv_draw_label(layer, &dscLabel, &labelPos);
     dscLabel.text = "E";
-    labelPos = {obj_area.x1 + canvasCenter_X + cardOffset - half_w, obj_area.y1 + canvasCenter_Y - half_h, obj_area.x1 + canvasCenter_X + cardOffset + half_w, obj_area.y1 + canvasCenter_Y + half_h};
+    labelPos = {obj_area.x1 + canvasCenter_X + cardOffset - half_w, obj_area.y1 + canvasCenter_Y - fontHalfH, obj_area.x1 + canvasCenter_X + cardOffset + half_w, obj_area.y1 + canvasCenter_Y + fontHalfH};
     lv_draw_label(layer, &dscLabel, &labelPos);
     dscLabel.text = "W";
-    labelPos = {obj_area.x1 + canvasCenter_X - cardOffset - half_w, obj_area.y1 + canvasCenter_Y - half_h, obj_area.x1 + canvasCenter_X - cardOffset + half_w, obj_area.y1 + canvasCenter_Y + half_h};
+    labelPos = {obj_area.x1 + canvasCenter_X - cardOffset - half_w, obj_area.y1 + canvasCenter_Y - fontHalfH, obj_area.x1 + canvasCenter_X - cardOffset + half_w, obj_area.y1 + canvasCenter_Y + fontHalfH};
     lv_draw_label(layer, &dscLabel, &labelPos);
 
     // 3. Draw Satellites

@@ -58,6 +58,9 @@ void buildPcas03(char *out, size_t outSize, uint8_t rateIdx); /**< Builds a $PCA
 #elif defined(T4_S3)
   static const uint16_t canvasOffset = 25;
   static const uint16_t canvasSize = 200;
+#elif defined(LARGE_SCREEN)
+  static const uint16_t canvasOffset = 15;
+  static const uint16_t canvasSize = 190;
 #else
   static const uint16_t canvasOffset = 15;
   static const uint16_t canvasSize = 180;
