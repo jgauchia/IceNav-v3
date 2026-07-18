@@ -53,10 +53,26 @@ extern Storage storage;
     inline constexpr const lv_font_t *fontLargeMedium = &lv_font_montserrat_28;  /**< Large-medium font for large screens */
     inline constexpr const lv_font_t *fontVeryLarge   = &lv_font_montserrat_48;  /**< Very large font for large screens */
     inline constexpr const lv_font_t *fontOptions     = &lv_font_montserrat_22;  /**< Options font for large screens */
+    inline constexpr const lv_font_t *fontSplash      = &lv_font_montserrat_16;  /**< Splash screen font for large screens */
+    inline constexpr const lv_font_t *fontSplashVersion = &lv_font_montserrat_24; /**< Splash screen version font for large screens */
     inline constexpr float scale                      = 1.5f;                    /**< UI scale for large screens */
     inline constexpr float scaleBut                   = 1.5f;                    /**< Button scale for large screens */
-    inline constexpr float scaleSatInfo               = 1.5f;                    /**< Satellite info scale for large screens */
+    inline constexpr float scaleSatInfo               = 1.0f;                    /**< Satellite info scale for T4_S3 */
     inline constexpr float imgAlign                   = 1.2f;                    /**< Image alignment scale for large screens */
+#elif defined(EXTRA_LARGE_SCREEN)
+    inline constexpr const lv_font_t *fontDefault     = &lv_font_montserrat_18;  /**< Default font for extra large screens */
+    inline constexpr const lv_font_t *fontSmall       = &lv_font_montserrat_14;  /**< Small font for extra large screens */
+    inline constexpr const lv_font_t *fontSatInfo     = &lv_font_montserrat_20;  /**< Satellite info font for extra large screens */
+    inline constexpr const lv_font_t *fontMedium      = &lv_font_montserrat_20;  /**< Medium font for extra large screens */
+    inline constexpr const lv_font_t *fontLarge       = &lv_font_montserrat_24;  /**< Large font for extra large screens */
+    inline constexpr const lv_font_t *fontLargeMedium = &lv_font_montserrat_28;  /**< Large-medium font for extra large screens */
+    inline constexpr const lv_font_t *fontVeryLarge   = &lv_font_montserrat_48;  /**< Very large font for extra large screens */
+    inline constexpr const lv_font_t *fontOptions     = &lv_font_montserrat_22;  /**< Options font for extra large screens */
+    inline constexpr const lv_font_t *fontSplash      = &lv_font_montserrat_16;  /**< Splash screen font for extra large screens */
+    inline constexpr const lv_font_t *fontSplashVersion = &lv_font_montserrat_24; /**< Splash screen version font for extra large screens */
+    inline constexpr float scale                      = 1.5f;                    /**< UI scale for extra large screens */
+    inline constexpr float scaleBut                   = 1.5f;                    /**< Button scale for extra large screens */
+    inline constexpr float scaleSatInfo               = 1.5f;                    /**< Satellite info scale for extra large screens */
 #elif defined(LARGE_SCREEN)
     inline constexpr const lv_font_t *fontDefault     = &lv_font_montserrat_14;  /**< Default font for large screens */
     inline constexpr const lv_font_t *fontSmall       = &lv_font_montserrat_10;  /**< Small font for large screens */
@@ -66,6 +82,8 @@ extern Storage storage;
     inline constexpr const lv_font_t *fontLargeMedium = &lv_font_montserrat_24;  /**< Large-medium font for large screens */
     inline constexpr const lv_font_t *fontVeryLarge   = &lv_font_montserrat_48;  /**< Very large font for large screens */
     inline constexpr const lv_font_t *fontOptions     = &lv_font_montserrat_18;  /**< Options font for large screens */
+    inline constexpr const lv_font_t *fontSplash      = &lv_font_montserrat_12;  /**< Splash screen font for large screens */
+    inline constexpr const lv_font_t *fontSplashVersion = &lv_font_montserrat_18; /**< Splash screen version font for large screens */
     inline constexpr float scale                      = 1.0f;                    /**< UI scale for large screens */
     inline constexpr float scaleBut                   = 1.0f;                    /**< Button scale for large screens */
     inline constexpr float scaleSatInfo               = 1.0f;                    /**< Satellite info scale for large screens */
@@ -78,6 +96,8 @@ extern Storage storage;
     inline constexpr const lv_font_t *fontLargeMedium = &lv_font_montserrat_16;  /**< Large-medium font for small screens */
     inline constexpr const lv_font_t *fontVeryLarge   = &lv_font_montserrat_38;  /**< Very large font for small screens */
     inline constexpr const lv_font_t *fontOptions     = &lv_font_montserrat_12;  /**< Options font for small screens */
+    inline constexpr const lv_font_t *fontSplash      = &lv_font_montserrat_12;  /**< Splash screen font for small screens */
+    inline constexpr const lv_font_t *fontSplashVersion = &lv_font_montserrat_16; /**< Splash screen version font for small screens */
     inline constexpr float scale                      = 0.75f;                   /**< UI scale for small screens */
     inline constexpr float scaleBut                   = 0.60f;                   /**< Button scale for small screens */
     inline constexpr float scaleSatInfo               = 0.80f;                   /**< Satellite info scale for small screens */

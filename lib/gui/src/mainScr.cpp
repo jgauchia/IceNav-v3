@@ -35,12 +35,15 @@ extern uint32_t DOUBLE_TOUCH_EVENT;
 extern Gps gps;
 extern wayPoint loadWpt;
 
-#ifdef LARGE_SCREEN
-    uint8_t toolBarOffset = 100;
-    uint8_t toolBarSpace = 60;
+#ifdef EXTRA_LARGE_SCREEN
+    int toolBarOffset = (int)(100 * scaleBut);
+    int toolBarSpace  = (int)(60 * scaleBut);
+#elif defined(LARGE_SCREEN)
+    int toolBarOffset = 100;
+    int toolBarSpace  = 60;
 #else
-    uint8_t toolBarOffset = 80;
-    uint8_t toolBarSpace = 50;
+    int toolBarOffset = 80;
+    int toolBarSpace  = 50;
 #endif
 
 lv_obj_t *tilesScreen;
@@ -183,7 +186,12 @@ static void async_map_update_cb(void * user_data)
         mapView.redrawMap = false;
 
         if (mapView.is3DActive())
-            lv_obj_align(navArrow, LV_ALIGN_BOTTOM_MID, 0, -(mapView.mapScrHeight / 4));
+        {
+            int navOffset = mapView.mapScrHeight / 4;
+            if (climbOverlay != NULL && !lv_obj_has_flag(climbOverlay, LV_OBJ_FLAG_HIDDEN))
+                navOffset += lv_obj_get_height(climbOverlay) / 2;
+            lv_obj_align(navArrow, LV_ALIGN_BOTTOM_MID, 0, -navOffset);
+        }
         else
             lv_obj_align(navArrow, LV_ALIGN_CENTER, 0, 0);
     }
@@ -1059,26 +1067,51 @@ static void showLoggerSummary()
     lv_obj_set_size(card, TFT_WIDTH - 20, TFT_HEIGHT - 50);
     lv_obj_center(card);
     lv_obj_set_style_bg_color(card, lv_color_make(25, 25, 25), 0);
+#if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
+    lv_obj_set_style_pad_all(card, (int)(10 * scale), 0);
+#else
     lv_obj_set_style_pad_all(card, 10, 0);
+#endif
     lv_obj_clear_flag(card, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t *title = lv_label_create(card);
     lv_label_set_text(title, LV_SYMBOL_OK " Track saved");
+#if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
+    lv_obj_set_style_text_font(title, fontLarge, 0);
+#elif defined(LARGE_SCREEN)
+    lv_obj_set_style_text_font(title, fontLarge, 0);
+#else
     lv_obj_set_style_text_font(title, fontMedium, 0);
+#endif
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 0);
 
     char buf[128];
     char vbuf[24];
-    int  y = 30;
+    int  y;
+#if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
+    y = (int)(35 * scale);
+#else
+    y = 30;
+#endif
 
     auto addRow = [&](const char *label, const char *val)
     {
         lv_obj_t *lbl = lv_label_create(card);
         snprintf(buf, sizeof(buf), "%s  %s", label, val);
         lv_label_set_text(lbl, buf);
+#if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
+        lv_obj_set_style_text_font(lbl, fontDefault, 0);
+#elif defined(LARGE_SCREEN)
+        lv_obj_set_style_text_font(lbl, fontDefault, 0);
+#else
         lv_obj_set_style_text_font(lbl, fontSmall, 0);
+#endif
         lv_obj_set_pos(lbl, 0, y);
+#if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
+        y += (int)(20 * scale);
+#else
         y += 18;
+#endif
     };
 
     if (s.totalDistM >= 1000.0f)
@@ -1121,10 +1154,17 @@ static void showLoggerSummary()
     addRow("File:", slash ? slash + 1 : fn);
 
     lv_obj_t *btnOk = lv_btn_create(card);
+#if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
+    lv_obj_set_size(btnOk, (int)(80 * scaleBut), (int)(35 * scaleBut));
+#else
     lv_obj_set_size(btnOk, 80, 35);
+#endif
     lv_obj_align(btnOk, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_t *lblOk = lv_label_create(btnOk);
     lv_label_set_text(lblOk, "OK");
+#if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
+    lv_obj_set_style_text_font(lblOk, fontDefault, 0);
+#endif
     lv_obj_center(lblOk);
     lv_obj_add_event_cb(btnOk, summaryOkEvent, LV_EVENT_CLICKED, nullptr);
 }
@@ -1321,11 +1361,19 @@ void createMainScr()
     lv_subject_add_observer_obj(&subject_heading, nav_data_observer_cb, navTile, NULL);
     lv_obj_add_event_cb(navTile, updateNavEvent, LV_EVENT_VALUE_CHANGED, NULL);
     btnToggle3D = lv_obj_create(mapTile);
+#if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
+    lv_obj_set_size(btnToggle3D, (int)(60 * scaleBut), (int)(60 * scaleBut));
+#else
     lv_obj_set_size(btnToggle3D, 60, 60);
+#endif
     lv_obj_clear_flag(btnToggle3D, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_style(btnToggle3D, &styleMapWidget, 0);
     lv_obj_add_flag(btnToggle3D, (lv_obj_flag_t)(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_FLOATING));
+#if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
+    lv_obj_align(btnToggle3D, LV_ALIGN_TOP_RIGHT, 0, (int)(170 * scale));
+#else
     lv_obj_align(btnToggle3D, LV_ALIGN_TOP_RIGHT, 0, 170);
+#endif
     toggle3DImg = lv_img_create(btnToggle3D);
     lv_img_set_zoom(toggle3DImg, buttonScale);
     lv_obj_center(toggle3DImg);
@@ -1342,14 +1390,26 @@ void createMainScr()
 
     // ── GPX Logger REC button ─────────────────────────────────────────────
     btnRec = lv_obj_create(mapTile);
+#if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
+    lv_obj_set_size(btnRec, (int)(50 * scaleBut), (int)(50 * scaleBut));
+#else
     lv_obj_set_size(btnRec, 50, 50);
+#endif
     lv_obj_clear_flag(btnRec, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_style(btnRec, &styleMapWidget, 0);
     lv_obj_add_flag(btnRec, (lv_obj_flag_t)(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_FLOATING));
+#if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
+    lv_obj_align_to(btnRec, zoomWidget, LV_ALIGN_OUT_BOTTOM_MID, 0, (int)(5 * scaleBut));
+#else
     lv_obj_align_to(btnRec, zoomWidget, LV_ALIGN_OUT_BOTTOM_MID, 0, 5);
+#endif
     lv_obj_set_style_bg_color(btnRec, lv_color_make(50, 50, 50), 0);
     circleRec = lv_obj_create(btnRec);
+#if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
+    lv_obj_set_size(circleRec, (int)(16 * scaleBut), (int)(16 * scaleBut));
+#else
     lv_obj_set_size(circleRec, 16, 16);
+#endif
     lv_obj_set_style_radius(circleRec, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_bg_color(circleRec, lv_color_make(200, 0, 0), 0);
     lv_obj_set_style_bg_opa(circleRec, LV_OPA_COVER, 0);
@@ -1370,7 +1430,11 @@ void createMainScr()
     lv_obj_set_style_text_font(recHud, fontMedium, 0);
     lv_obj_set_style_text_color(recHud, lv_color_white(), 0);
     lv_obj_add_flag(recHud, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_HIDDEN));
+#if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
+    lv_obj_align_to(recHud, mapSpeed, LV_ALIGN_OUT_TOP_LEFT, 0, (int)(-25 * scale));
+#else
     lv_obj_align_to(recHud, mapSpeed, LV_ALIGN_OUT_TOP_LEFT, 0, -25);
+#endif
 
     // ── Blink + HUD timer 500 ms ──────────────────────────────────────────
     recTimer = lv_timer_create(recTimerCb, 500, nullptr);
@@ -1378,10 +1442,6 @@ void createMainScr()
     gpxLogger.init();
 
     #ifdef BOARD_HAS_PSRAM
-        #ifndef TDECK_ESP32S3
-            createSatRadar(satTrackTile);
-            lv_obj_set_pos(satRadar, (TFT_WIDTH / 2) - canvasCenter_X, 240);
-        #endif
         #ifdef TDECK_ESP32S3
             createSatRadar(constMsg);
             lv_obj_align(satRadar, LV_ALIGN_CENTER, 0, 0);

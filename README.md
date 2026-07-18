@@ -29,7 +29,7 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
   
 |<img src="images/dev/splash.png">|<img src="images/dev/searchsat.jpg">|<img src="images/dev/compass.png">|<img src="images/dev/options.png">|<img src="images/dev/wptopt.png">|
 |:-:|:-:|:-:|:-:|:-:|
-| Splash Screen | Search Satellite | Compass | Main Options | Waypoint/Track Options |
+| Splash Screen | Search Satellite | Compass[^5] | Main Options | Waypoint/Track Options |
 
 |<img src="images/dev/rendermap.png">|<img src="images/dev/vectormap.png">|<img src="images/dev/navscreen.png">|<img src="images/dev/navscreen2.png">|<img src="images/dev/satelliteinfo.png">|
 |:-:|:-:|:-:|:-:|:-:|
@@ -133,6 +133,7 @@ To do this, simply include the following Build Flag in the required env in platf
 [^2]: See **hal.hpp** for pinouts configuration
 [^3]: **platformio.ini** file under the build_flags section
 [^4]: If Touch SPI is wired to the same SPI of ILI9488 ensure that TFT MISO line has 3-STATE for screenshots (read GRAM) or leave out 
+[^5]: Widgets are draggable
 
 Other setups like another sensors types, etc... not listed in the specs, now **They are not included**
 

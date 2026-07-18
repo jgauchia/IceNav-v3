@@ -9,6 +9,7 @@
 #pragma once
 
 #define LARGE_SCREEN
+#define EXTRA_LARGE_SCREEN
 #define TOUCH_INPUT
 #define SPLASH_FULLSCREEN
 

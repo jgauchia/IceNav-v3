@@ -990,8 +990,10 @@ void Maps::apply3DPerspective(uint16_t heading)
     const int gpsTileX = gridOffset * mapTileSize + (int)navArrowPosition.posX;
     const int gpsTileY = gridOffset * mapTileSize + (int)navArrowPosition.posY;
 
-    // GPS lands at lower third of the viewport
-    const int gpsScreenY = dstH * 3 / 4;
+    // GPS lands at lower third of the viewport; shift up when climb overlay visible
+    int gpsScreenY = dstH * 3 / 4;
+    if (climbOverlay != NULL && !lv_obj_has_flag(climbOverlay, LV_OBJ_FLAG_HIDDEN))
+        gpsScreenY -= lv_obj_get_height(climbOverlay) / 2;
 
     // Heading rotation: rotate tile-space coords so heading points up
     const float headingRad = static_cast<float>(heading) * (static_cast<float>(M_PI) / 180.0f);

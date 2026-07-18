@@ -34,6 +34,7 @@
  *
  * @details Objects used in the satellite tracking tile 
  */
+extern lv_obj_t *infoGrid;           /**< Grid for DOP/ALT labels. */
 extern lv_obj_t *pdopLabel;          /**< Label for PDOP value. */
 extern lv_obj_t *hdopLabel;          /**< Label for HDOP value. */
 extern lv_obj_t *vdopLabel;          /**< Label for VDOP value. */

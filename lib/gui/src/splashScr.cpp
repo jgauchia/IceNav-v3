@@ -92,14 +92,14 @@ void createLVGLSplashScreen()
     lv_obj_set_style_border_opa(osmInfo, 0, 0);
     lv_obj_t *label;
     label = lv_label_create(osmInfo);
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_12, 0);
+    lv_obj_set_style_text_font(label, fontSplash, 0);
     lv_label_set_text(label, "Map data from OpenStreetMap - (c)OpenStreetMap");
     label = lv_label_create(osmInfo);
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_12, 0);
+    lv_obj_set_style_text_font(label, fontSplash, 0);
     lv_label_set_text(label, "(c)OpenStreetMap contributors");
     lv_obj_set_align(osmInfo, LV_ALIGN_BOTTOM_MID);
     label = lv_label_create(splashScr);
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_18, 0);
+    lv_obj_set_style_text_font(label, fontSplashVersion, 0);
     lv_label_set_text_fmt(label,statusLine4, String(VERSION).c_str(), String(REVISION).c_str());
     lv_obj_set_align(label, LV_ALIGN_CENTER);
     lv_obj_set_y(label, -130 * scale);
