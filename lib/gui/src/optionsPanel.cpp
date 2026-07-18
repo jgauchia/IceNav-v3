@@ -22,6 +22,16 @@ lv_obj_t *optionsScrim;
 
 static lv_obj_t *subPanel;
 
+static lv_obj_t *cellAddWpt;
+static lv_obj_t *iconAddWpt;
+static lv_obj_t *lblAddWpt;
+static lv_obj_t *cellWaypoint;
+static lv_obj_t *iconWaypoint;
+static lv_obj_t *lblWaypoint;
+static lv_obj_t *cellTrack;
+static lv_obj_t *iconTrack;
+static lv_obj_t *lblTrack;
+
 /**
  * @brief Handles main panel events, triggering actions based on the selected option.
  *
@@ -331,8 +341,9 @@ static void scrimEvent(lv_event_t *e)
  * @param cellW    Cell width in pixels.
  * @param cellH    Cell height in pixels.
  */
-static void createOptionCell(lv_obj_t *parent, const char *iconSrc, const char *label, char *action,
-                             lv_event_cb_t cb, int32_t cellW, int32_t cellH)
+static lv_obj_t *createOptionCell(lv_obj_t *parent, const char *iconSrc, const char *label, char *action,
+                                  lv_event_cb_t cb, int32_t cellW, int32_t cellH,
+                                  lv_obj_t **outIcon, lv_obj_t **outLbl)
 {
     int32_t iconSize = (int)(cellW * 0.55f);
 
@@ -361,6 +372,13 @@ static void createOptionCell(lv_obj_t *parent, const char *iconSrc, const char *
     lv_obj_set_width(lbl, cellW - (int)(8 * scaleBut));
     lv_label_set_long_mode(lbl, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_text_align(lbl, LV_TEXT_ALIGN_CENTER, 0);
+
+    if (outIcon != nullptr)
+        *outIcon = img;
+    if (outLbl != nullptr)
+        *outLbl = lbl;
+
+    return cell;
 }
 
 /**
@@ -408,10 +426,23 @@ void createOptionsPanel()
     lv_obj_clear_flag(optionsPanel, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(optionsPanel, LV_OBJ_FLAG_FLOATING);
 
-    createOptionCell(optionsPanel, addWptIconFile,   "Add Waypoint", (char*)"addwpt",   optionsPanelEvent, cellW, cellH);
-    createOptionCell(optionsPanel, waypointIconFile, "Waypoints",    (char*)"waypoint", optionsPanelEvent, cellW, cellH);
-    createOptionCell(optionsPanel, trackIconFile,    "Tracks",       (char*)"track",    optionsPanelEvent, cellW, cellH);
-    createOptionCell(optionsPanel, settingsIconFile, "Settings",     (char*)"settings", optionsPanelEvent, cellW, cellH);
+    cellAddWpt   = createOptionCell(optionsPanel, addWptIconFile,   "Add Waypoint", (char*)"addwpt",   optionsPanelEvent, cellW, cellH, &iconAddWpt, &lblAddWpt);
+    cellWaypoint = createOptionCell(optionsPanel, waypointIconFile, "Waypoints",    (char*)"waypoint", optionsPanelEvent, cellW, cellH, &iconWaypoint, &lblWaypoint);
+    cellTrack    = createOptionCell(optionsPanel, trackIconFile,    "Tracks",       (char*)"track",    optionsPanelEvent, cellW, cellH, &iconTrack, &lblTrack);
+    createOptionCell(optionsPanel, settingsIconFile, "Settings",     (char*)"settings", optionsPanelEvent, cellW, cellH, nullptr, nullptr);
+
+    if (!storage.getSdLoaded())
+    {
+        lv_obj_t *inactiveCells[] = {cellAddWpt, cellWaypoint, cellTrack};
+        lv_obj_t *inactiveIcons[] = {iconAddWpt, iconWaypoint, iconTrack};
+        lv_obj_t *inactiveLbls[]  = {lblAddWpt, lblWaypoint, lblTrack};
+        for (int i = 0; i < 3; i++)
+        {
+            lv_obj_clear_flag(inactiveCells[i], LV_OBJ_FLAG_CLICKABLE);
+            lv_obj_set_style_img_opa(inactiveIcons[i], LV_OPA_30, 0);
+            lv_obj_set_style_text_color(inactiveLbls[i], lv_color_make(128, 128, 128), 0);
+        }
+    }
 
     // Sub-panel cell sizing: same criteria as main panel
     int32_t subCols  = 3;
@@ -437,9 +468,9 @@ void createOptionsPanel()
     lv_obj_clear_flag(subPanel, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(subPanel, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_HIDDEN));
 
-    createOptionCell(subPanel, loadIconFile,   "Load",   (char*)"load",   optionEvent, subCellW, subCellH);
-    createOptionCell(subPanel, editIconFile,   "Edit",   (char*)"edit",   optionEvent, subCellW, subCellH);
-    createOptionCell(subPanel, deleteIconFile, "Delete", (char*)"delete", optionEvent, subCellW, subCellH);
+    createOptionCell(subPanel, loadIconFile,   "Load",   (char*)"load",   optionEvent, subCellW, subCellH, nullptr, nullptr);
+    createOptionCell(subPanel, editIconFile,   "Edit",   (char*)"edit",   optionEvent, subCellW, subCellH, nullptr, nullptr);
+    createOptionCell(subPanel, deleteIconFile, "Delete", (char*)"delete", optionEvent, subCellW, subCellH, nullptr, nullptr);
 
     // Floating menu button (FAB)
     int32_t fabSize  = (int)(44 * scaleBut);

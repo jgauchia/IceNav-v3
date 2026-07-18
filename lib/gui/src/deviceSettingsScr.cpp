@@ -221,18 +221,21 @@ void createDeviceSettingsScr()
     lv_obj_set_width(dropdown, TFT_WIDTH / 3);
     lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"routeprofile");
     // Logger Profile
-    list = lv_list_add_btn(deviceSettingsOptions, NULL, "Logger\nProfile");
-    lv_obj_set_style_text_font(list, fontOptions, 0);
-    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_set_align(list, LV_ALIGN_OUT_LEFT_BOTTOM);
-    dropdown = lv_dropdown_create(list);
-    lv_dropdown_set_options(dropdown, "Walk\nBike\nCar");
-    lv_dropdown_set_selected(dropdown, gpxLogger.profileIndex());
-    item = lv_dropdown_get_list(dropdown);
-    lv_obj_set_style_bg_color(item, lv_color_hex(objectColor), LV_PART_SELECTED | LV_STATE_CHECKED);
-    lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
-    lv_obj_set_width(dropdown, TFT_WIDTH / 3);
-    lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"logprofile");
+    if (storage.getSdLoaded())
+    {
+        list = lv_list_add_btn(deviceSettingsOptions, NULL, "Logger\nProfile");
+        lv_obj_set_style_text_font(list, fontOptions, 0);
+        lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_set_align(list, LV_ALIGN_OUT_LEFT_BOTTOM);
+        dropdown = lv_dropdown_create(list);
+        lv_dropdown_set_options(dropdown, "Walk\nBike\nCar");
+        lv_dropdown_set_selected(dropdown, gpxLogger.profileIndex());
+        item = lv_dropdown_get_list(dropdown);
+        lv_obj_set_style_bg_color(item, lv_color_hex(objectColor), LV_PART_SELECTED | LV_STATE_CHECKED);
+        lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
+        lv_obj_set_width(dropdown, TFT_WIDTH / 3);
+        lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"logprofile");
+    }
     // NMEA Debug Tile
     list = lv_list_add_btn(deviceSettingsOptions, NULL, "NMEA Debug\nTile");
     lv_obj_set_style_text_font(list, fontOptions, 0);

@@ -159,7 +159,8 @@ void gpsTask(void *pvParameters)
                                 lgf.hour     = fix.dateTime.hours;
                                 lgf.minute   = fix.dateTime.minutes;
                                 lgf.second   = fix.dateTime.seconds;
-                                gpxLogger.update(lgf);
+                                if (storage.getSdLoaded())
+                                    gpxLogger.update(lgf);
                             }
                             xSemaphoreGive(gpsMutex);
                         }

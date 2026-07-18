@@ -1210,6 +1210,13 @@ static void recTimerCb(lv_timer_t *t)
         return;
 
     LoggerState st = gpxLogger.state();
+
+    if (!storage.getSdLoaded() && st == LoggerState::IDLE)
+    {
+        lv_obj_add_flag(btnRec, LV_OBJ_FLAG_HIDDEN);
+        return;
+    }
+
     recBlinkOn = !recBlinkOn;
 
     // Hide button when following a route or navigating to a waypoint
@@ -1389,57 +1396,58 @@ void createMainScr()
     lv_timer_pause(map_inertia_timer);
 
     // ── GPX Logger REC button ─────────────────────────────────────────────
-    btnRec = lv_obj_create(mapTile);
-#if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
-    lv_obj_set_size(btnRec, (int)(50 * scaleBut), (int)(50 * scaleBut));
-#else
-    lv_obj_set_size(btnRec, 50, 50);
-#endif
-    lv_obj_clear_flag(btnRec, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_style(btnRec, &styleMapWidget, 0);
-    lv_obj_add_flag(btnRec, (lv_obj_flag_t)(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_FLOATING));
-#if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
-    lv_obj_align_to(btnRec, zoomWidget, LV_ALIGN_OUT_BOTTOM_MID, 0, (int)(5 * scaleBut));
-#else
-    lv_obj_align_to(btnRec, zoomWidget, LV_ALIGN_OUT_BOTTOM_MID, 0, 5);
-#endif
-    lv_obj_set_style_bg_color(btnRec, lv_color_make(50, 50, 50), 0);
-    circleRec = lv_obj_create(btnRec);
-#if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
-    lv_obj_set_size(circleRec, (int)(16 * scaleBut), (int)(16 * scaleBut));
-#else
-    lv_obj_set_size(circleRec, 16, 16);
-#endif
-    lv_obj_set_style_radius(circleRec, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_bg_color(circleRec, lv_color_make(200, 0, 0), 0);
-    lv_obj_set_style_bg_opa(circleRec, LV_OPA_COVER, 0);
-    lv_obj_set_style_border_width(circleRec, 0, 0);
-    lv_obj_clear_flag(circleRec, (lv_obj_flag_t)(LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE));
-    lv_obj_center(circleRec);
-    lblRec = lv_label_create(btnRec);
-    lv_label_set_text(lblRec, LV_SYMBOL_STOP);
-    lv_obj_set_style_text_font(lblRec, fontLarge, 0);
-    lv_obj_center(lblRec);
-    lv_obj_add_flag(lblRec, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_event_cb(btnRec, recBtnEvent, LV_EVENT_CLICKED, nullptr);
+    if (storage.getSdLoaded())
+    {
+        btnRec = lv_obj_create(mapTile);
+    #if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
+        lv_obj_set_size(btnRec, (int)(50 * scaleBut), (int)(50 * scaleBut));
+    #else
+        lv_obj_set_size(btnRec, 50, 50);
+    #endif
+        lv_obj_clear_flag(btnRec, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_add_style(btnRec, &styleMapWidget, 0);
+        lv_obj_add_flag(btnRec, (lv_obj_flag_t)(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_FLOATING));
+    #if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
+        lv_obj_align_to(btnRec, zoomWidget, LV_ALIGN_OUT_BOTTOM_MID, 0, (int)(5 * scaleBut));
+    #else
+        lv_obj_align_to(btnRec, zoomWidget, LV_ALIGN_OUT_BOTTOM_MID, 0, 5);
+    #endif
+        lv_obj_set_style_bg_color(btnRec, lv_color_make(50, 50, 50), 0);
+        circleRec = lv_obj_create(btnRec);
+    #if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
+        lv_obj_set_size(circleRec, (int)(16 * scaleBut), (int)(16 * scaleBut));
+    #else
+        lv_obj_set_size(circleRec, 16, 16);
+    #endif
+        lv_obj_set_style_radius(circleRec, LV_RADIUS_CIRCLE, 0);
+        lv_obj_set_style_bg_color(circleRec, lv_color_make(200, 0, 0), 0);
+        lv_obj_set_style_bg_opa(circleRec, LV_OPA_COVER, 0);
+        lv_obj_set_style_border_width(circleRec, 0, 0);
+        lv_obj_clear_flag(circleRec, (lv_obj_flag_t)(LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE));
+        lv_obj_center(circleRec);
+        lblRec = lv_label_create(btnRec);
+        lv_label_set_text(lblRec, LV_SYMBOL_STOP);
+        lv_obj_set_style_text_font(lblRec, fontLarge, 0);
+        lv_obj_center(lblRec);
+        lv_obj_add_flag(lblRec, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_event_cb(btnRec, recBtnEvent, LV_EVENT_CLICKED, nullptr);
 
-    // ── HUD: distance + moving time ───────────────────────────────────────
-    recHud = lv_label_create(mapTile);
-    lv_label_set_text(recHud, "");
-    lv_obj_add_style(recHud, &styleMapWidget, 0);
-    lv_obj_set_style_text_font(recHud, fontMedium, 0);
-    lv_obj_set_style_text_color(recHud, lv_color_white(), 0);
-    lv_obj_add_flag(recHud, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_HIDDEN));
-#if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
-    lv_obj_align_to(recHud, mapSpeed, LV_ALIGN_OUT_TOP_LEFT, 0, (int)(-25 * scale));
-#else
-    lv_obj_align_to(recHud, mapSpeed, LV_ALIGN_OUT_TOP_LEFT, 0, -25);
-#endif
+        recHud = lv_label_create(mapTile);
+        lv_label_set_text(recHud, "");
+        lv_obj_add_style(recHud, &styleMapWidget, 0);
+        lv_obj_set_style_text_font(recHud, fontMedium, 0);
+        lv_obj_set_style_text_color(recHud, lv_color_white(), 0);
+        lv_obj_add_flag(recHud, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_HIDDEN));
+    #if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
+        lv_obj_align_to(recHud, mapSpeed, LV_ALIGN_OUT_TOP_LEFT, 0, (int)(-25 * scale));
+    #else
+        lv_obj_align_to(recHud, mapSpeed, LV_ALIGN_OUT_TOP_LEFT, 0, -25);
+    #endif
 
-    // ── Blink + HUD timer 500 ms ──────────────────────────────────────────
-    recTimer = lv_timer_create(recTimerCb, 500, nullptr);
+        recTimer = lv_timer_create(recTimerCb, 500, nullptr);
 
-    gpxLogger.init();
+        gpxLogger.init();
+    }
 
     #ifdef BOARD_HAS_PSRAM
         #ifdef TDECK_ESP32S3
