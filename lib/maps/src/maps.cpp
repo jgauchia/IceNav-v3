@@ -352,7 +352,7 @@ void Maps::drawTrack(MapCanvas& map)
         latLonToPixel(p1.lat, p1.lon, x1, y1);
         latLonToPixel(p2.lat, p2.lon, x2, y2);
         if ((x1 >= 0 && x1 < tileWidth && y1 >= 0 && y1 < tileHeight) || (x2 >= 0 && x2 < tileWidth && y2 >= 0 && y2 < tileHeight))
-            map.drawWideLine(x1, y1, x2, y2, 3, TFT_BLUE);
+            map.drawWideLine(x1, y1, x2, y2, 3, 0x6298);
     }
 }
 
