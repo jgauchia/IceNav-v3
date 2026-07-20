@@ -72,8 +72,10 @@ static void lv_rounder_cb(lv_event_t *event)
  */
 void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 {
+    uint32_t start = millis();
     DisplayArea flushArea = { area->x1, area->y1, area->x2, area->y2 };
     display().flush(flushArea, reinterpret_cast<uint16_t*>(px_map));
+    ESP_LOGI("PERF", "displayFlush %lu ms", millis() - start);
     lv_display_flush_ready(disp);
 }
 

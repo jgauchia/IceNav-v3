@@ -23,9 +23,7 @@
     extern BME280_Driver bme;
 #endif
 
-#ifdef WAVESHARE_P4_35
-    // Compass chip (QMC5883L/HMC5883L) is auto-detected at runtime — no
-    // fixed compile-time flag on this board, see Compass::initShared().
+#ifdef COMPASS_AUTO
     #include "compass.hpp"
     extern Compass compass;
 #endif
@@ -45,7 +43,7 @@ class SensorsP4 : public ISensors
 public:
     bool hasCompass() const override
     {
-        #ifdef WAVESHARE_P4_35
+        #ifdef COMPASS_AUTO
             return compass.isDetected();
         #else
             return false;
@@ -72,7 +70,7 @@ public:
 
     int heading() override
     {
-        #ifdef WAVESHARE_P4_35
+        #ifdef COMPASS_AUTO
             return compass.isDetected() ? compass.getHeading() : 0;
         #else
             return 0;

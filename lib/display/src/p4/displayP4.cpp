@@ -12,6 +12,8 @@
 #include "mapCanvas.hpp"
 #include "tft.hpp"
 #include "panelSelect.hpp"
+#include "esp_log.h"
+static const char *TAG = "PERF";
 #ifdef PANEL_BUS_DSI
     #include <esp_lcd_panel_ops.h>
     #include <esp_heap_caps.h>
@@ -76,6 +78,7 @@ public:
 
     void flush(const DisplayArea &area, uint16_t *pixels) override
     {
+        uint32_t start = millis();
         #ifdef PANEL_BUS_DSI
             // Partial writes race the continuous DSI scanout (tearing):
             // accumulate areas in a shadow buffer, blit full frames on vsync.
@@ -110,6 +113,7 @@ public:
             tft.pushImageDMA(area.x1, area.y1, w, h, pixels);
             tft.setSwapBytes(false);
         #endif
+        ESP_LOGI(TAG, "flush %lu ms", millis() - start);
     }
 
     void waitFlushDone() override
