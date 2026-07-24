@@ -74,6 +74,7 @@ void Maps::initResources()
     {
         layers[i].reserve(MAX_FEATURE_POOL_SIZE / 4);
         layersCasing[i].reserve(MAX_FEATURE_POOL_SIZE / 8);
+        layersText[i].reserve(MAX_FEATURE_POOL_SIZE / 16);
     }
 
     ringEndsCache.reserve(MAX_POLYGON_POINTS);
@@ -547,6 +548,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     {
                         instance->layers[i].clear();
                         instance->layersCasing[i].clear();
+                        instance->layersText[i].clear();
                     }
 
                     if (mapSet.vectorMap)
@@ -695,7 +697,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     if (aborted)
                         break;
 
-                    // Pass 2: LineString bodies (from pre-separated casing list) and Texts
+                    // Pass 2: LineString bodies (from pre-separated casing list)
                     for (uint16_t idx : instance->layersCasing[i])
                     {
                         if ((++loopCounter & 127) == 0)
@@ -713,7 +715,11 @@ void Maps::mapRenderTask(void* pvParameters)
                     if (aborted)
                         break;
 
-                    for (uint16_t idx : layer)
+                }
+
+                for (int i = 0; i < 16 && !aborted; i++)
+                {
+                    for (uint16_t idx : instance->layersText[i])
                     {
                         if ((++loopCounter & 127) == 0)
                         {
@@ -724,8 +730,7 @@ void Maps::mapRenderTask(void* pvParameters)
                                 lastYield = millis_idf();
                             }
                         }
-                        if (instance->featurePool[idx].geomType == NavGeomType::Text)
-                            instance->renderNavText(instance->featurePool[idx], instance->mapTempSprite, instance->placedLabelsCache);
+                        instance->renderNavText(instance->featurePool[idx], instance->mapTempSprite, instance->placedLabelsCache);
                     }
                 }
 
@@ -2287,7 +2292,10 @@ void Maps::navDecodeFeatures(const uint8_t* data, size_t dataSize, int16_t scree
                 uint8_t priority = zp & 0x0F;
                 if (priority < 16)
                 {
-                    layers[priority].push_back(poolIdx);
+                    if (geomType == (uint8_t)NavGeomType::Text)
+                        layersText[priority].push_back(poolIdx);
+                    else
+                        layers[priority].push_back(poolIdx);
                     if (geomType == (uint8_t)NavGeomType::LineString && hasCasing)
                         layersCasing[priority].push_back(poolIdx);
                 }
