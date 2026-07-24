@@ -25,6 +25,11 @@
 #include "nav_reader.hpp"
 #include "PsramAllocator.hpp"
 
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+#include "driver/ppa.h"
+#include "esp_cache.h"
+#endif
+
 /**
  * @class Maps
  * @brief Class for handling map rendering and display
@@ -197,6 +202,11 @@ private:
     static const uint16_t MAX_POLYGON_POINTS = 1024;
     static const uint32_t MAX_FEATURE_POOL_SIZE = 16384;
     static const uint16_t MAX_PLACED_LABELS = 512;
+
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    ppa_client_handle_t ppaFillClient = nullptr;
+    ppa_client_handle_t ppaBlendClient = nullptr;
+#endif
 
     std::vector<int, PsramAllocator<int>> projBuf32X;
     std::vector<int, PsramAllocator<int>> projBuf32Y;

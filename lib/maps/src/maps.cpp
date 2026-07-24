@@ -8,11 +8,22 @@
 
 #include "maps.hpp"
 #include "esp_log.h"
+#include "esp_heap_caps.h"
 #include <cmath>
 #include <climits>
 #include "tasks.hpp"
 #include "mainScr.hpp"
 #include "navContext.hpp"
+
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+static inline uint32_t rgb565_to_argb8888(uint16_t c)
+{
+    uint8_t r = ((c >> 11) & 0x1F) * 255 / 31;
+    uint8_t g = ((c >> 5) & 0x3F) * 255 / 63;
+    uint8_t b = (c & 0x1F) * 255 / 31;
+    return 0xFF000000 | (r << 16) | (g << 8) | b;
+}
+#endif
 #include "../../images/src/bruj.h"
 #include "../../images/src/compass.h"
 #include "../../images/src/waypoint.h"
@@ -82,6 +93,22 @@ void Maps::initResources()
     navDataCache.reserve(NAV_DATA_CACHE_SIZE);
     mapMutex = xSemaphoreCreateRecursiveMutex();
     mapEventGroup = xEventGroupCreate();
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    if (ppaFillClient == nullptr)
+    {
+        ppa_client_config_t cfg = {};
+        cfg.oper_type = PPA_OPERATION_FILL;
+        cfg.max_pending_trans_num = 1;
+        ppa_register_client(&cfg, &ppaFillClient);
+    }
+    if (ppaBlendClient == nullptr)
+    {
+        ppa_client_config_t cfg = {};
+        cfg.oper_type = PPA_OPERATION_BLEND;
+        cfg.max_pending_trans_num = 1;
+        ppa_register_client(&cfg, &ppaBlendClient);
+    }
+#endif
     xTaskCreatePinnedToCore(mapRenderTask, "MapRenderTask", 4096, this, 2, &mapRenderTaskHandle, 0);
     }
 
@@ -311,6 +338,18 @@ void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
     constexpr float referenceHeight = 480.0f - 27.0f;
     Maps::focalLength = 300.0f * (static_cast<float>(mapHeight) / referenceHeight);
     Maps::mapTempSprite.createSprite(Maps::tileWidth, Maps::tileHeight);
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    {
+        uint8_t* buf = static_cast<uint8_t*>(Maps::mapTempSprite.getBuffer());
+        if (buf && ((uint32_t)buf & 0x7F) != 0)
+        {
+            size_t bufSize = Maps::tileWidth * Maps::tileHeight * 2;
+            uint8_t* alignedBuf = static_cast<uint8_t*>(heap_caps_aligned_alloc(128, bufSize, MALLOC_CAP_SPIRAM));
+            if (alignedBuf)
+                Maps::mapTempSprite.setBuffer(alignedBuf, Maps::tileWidth, Maps::tileHeight);
+        }
+    }
+#endif
     Maps::mapTempSprite.loadFont("/spiffs/font/font.vlw");
     Maps::mapSprite.createSprite(mapWidth, mapHeight);
     Maps::mapBuffer = Maps::mapSprite.getBuffer();
@@ -434,7 +473,6 @@ bool Maps::loadPngTileIntoSprite(int32_t tlX, int32_t tlY, int gx, int gy,
  */
 void Maps::generateMap(uint8_t zoom)
 {
-    uint32_t perfStart = millis();
     if (zoom != Maps::zoomLevel)
     {
         Maps::zoomLevel = zoom;
@@ -502,7 +540,6 @@ void Maps::generateMap(uint8_t zoom)
             xSemaphoreGiveRecursive(mapMutex);
         }
     }
-    ESP_LOGI(TAG, "generateMap %lu ms", millis() - perfStart);
 }
 
 /**
@@ -555,9 +592,32 @@ void Maps::mapRenderTask(void* pvParameters)
                         NavReader::openPack(instance->zoomLevel);
                     else if (instance->mapTempSprite.getBuffer())
                     {
-                        uint32_t perfStart = millis();
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+                        uint8_t* buf = static_cast<uint8_t*>(instance->mapTempSprite.getBuffer());
+                        if (((uint32_t)buf & 0x7F) == 0)
+                        {
+                            ppa_fill_oper_config_t cfg = {};
+                            cfg.fill_argb_color.val = rgb565_to_argb8888(TFT_WHITE);
+                            cfg.out.buffer = buf;
+                            cfg.out.buffer_size = instance->tileWidth * instance->tileHeight * 2;
+                            cfg.out.pic_w = instance->tileWidth;
+                            cfg.out.pic_h = instance->tileHeight;
+                            cfg.out.block_offset_x = 0;
+                            cfg.out.block_offset_y = 0;
+                            cfg.out.fill_cm = PPA_FILL_COLOR_MODE_RGB565;
+                            cfg.fill_block_w = instance->tileWidth;
+                            cfg.fill_block_h = instance->tileHeight;
+                            cfg.mode = PPA_TRANS_MODE_BLOCKING;
+                            ppa_do_fill(instance->ppaFillClient, &cfg);
+                            esp_cache_msync(buf, instance->tileWidth * instance->tileHeight * 2, ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_TYPE_DATA);
+                        }
+                        else
+                        {
+                            instance->mapTempSprite.fillSprite(TFT_WHITE);
+                        }
+#else
                         instance->mapTempSprite.fillSprite(TFT_WHITE);
-                        ESP_LOGI(TAG, "fillSprite %lu ms", millis() - perfStart);
+#endif
                     }
                 }
 
@@ -655,9 +715,32 @@ void Maps::mapRenderTask(void* pvParameters)
 
                 if (instance->mapTempSprite.getBuffer())
                 {
-                    uint32_t perfStart = millis();
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+                    uint8_t* buf = static_cast<uint8_t*>(instance->mapTempSprite.getBuffer());
+                    if (((uint32_t)buf & 0x7F) == 0)
+                    {
+                        ppa_fill_oper_config_t cfg = {};
+                        cfg.fill_argb_color.val = rgb565_to_argb8888(0xF7BE);
+                        cfg.out.buffer = buf;
+                        cfg.out.buffer_size = instance->tileWidth * instance->tileHeight * 2;
+                        cfg.out.pic_w = instance->tileWidth;
+                        cfg.out.pic_h = instance->tileHeight;
+                        cfg.out.block_offset_x = 0;
+                        cfg.out.block_offset_y = 0;
+                        cfg.out.fill_cm = PPA_FILL_COLOR_MODE_RGB565;
+                        cfg.fill_block_w = instance->tileWidth;
+                        cfg.fill_block_h = instance->tileHeight;
+                        cfg.mode = PPA_TRANS_MODE_BLOCKING;
+                        ppa_do_fill(instance->ppaFillClient, &cfg);
+                        esp_cache_msync(buf, instance->tileWidth * instance->tileHeight * 2, ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_TYPE_DATA);
+                    }
+                    else
+                    {
+                        instance->mapTempSprite.fillSprite(0xF7BE);
+                    }
+#else
                     instance->mapTempSprite.fillSprite(0xF7BE);
-                    ESP_LOGI(TAG, "fillSprite %lu ms", millis() - perfStart);
+#endif
                 }
 
                 instance->update3DCache();
@@ -853,7 +936,6 @@ void Maps::displayMap()
     if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(50)) != pdTRUE)
         return;
 
-    uint32_t perfStart = millis();
     mapCanvasParent()->startWrite();
 
     if (Maps::followGps)
@@ -903,9 +985,7 @@ void Maps::displayMap()
             Maps::mapTempSprite.setPivot(gridOffset * mapTileSize + Maps::navArrowPosition.posX,
                                          gridOffset * mapTileSize + Maps::navArrowPosition.posY);
             Maps::mapSprite.setPivot(mapScrWidth / 2, mapScrHeight / 2);
-            uint32_t perfStart = millis();
             Maps::mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
-            ESP_LOGI(TAG, "pushRotated %lu ms", millis() - perfStart);
         }
     }
     else
@@ -931,9 +1011,7 @@ void Maps::displayMap()
             int16_t pivY = tileHeight / 2 + displayOffsetY;
             Maps::mapTempSprite.setPivot(pivX, pivY);
             Maps::mapSprite.setPivot(mapScrWidth / 2, mapScrHeight / 2);
-            uint32_t perfStart = millis();
             Maps::mapTempSprite.pushRotated(&mapSprite, 360.0f - manualHeading, TFT_TRANSPARENT);
-            ESP_LOGI(TAG, "pushRotated %lu ms", millis() - perfStart);
         }
         else
         {
@@ -944,7 +1022,6 @@ void Maps::displayMap()
     }
 
     Maps::redrawMap = false;
-    ESP_LOGI(TAG, "displayMap %lu ms", millis() - perfStart);
     mapCanvasParent()->endWrite();
     xSemaphoreGiveRecursive(mapMutex);
 }
@@ -1364,7 +1441,6 @@ void Maps::commitScroll()
   */
 void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 {
-    uint32_t perfStart = millis();
     const int16_t tileSize = mapTileSize;
     const int8_t gridOffset = tilesGrid / 2;
 
@@ -1421,7 +1497,6 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
     drawTrack(mapTempSprite);
     drawWaypoint(mapTempSprite);
     redrawMap = true;
-    ESP_LOGI(TAG, "preloadTiles %lu ms", millis() - perfStart);
     xEventGroupSetBits(mapEventGroup, MAP_EVENT_DONE);
 }
 
@@ -1505,7 +1580,6 @@ void Maps::fillPolygonGeneral(MapCanvas &map, const int *px, const int *py, cons
     if (numPoints < 3)
         return;
 
-    uint32_t perfStart = millis();
     uint16_t* buf = static_cast<uint16_t*>(map.getBuffer());
     uint32_t stride = 0;
     uint16_t rawColor = (color >> 8) | (color << 8);
@@ -1686,7 +1760,6 @@ void Maps::fillPolygonGeneral(MapCanvas &map, const int *px, const int *py, cons
         for (int a = activeHead; a != -1; a = edgePool[a].nextActive)
             edgePool[a].xVal += edgePool[a].slope;
     }
-    ESP_LOGD(TAG, "fillPolygonGeneral %lu ms", millis() - perfStart);
 }
 
 /**
