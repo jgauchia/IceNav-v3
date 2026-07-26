@@ -927,8 +927,6 @@ void Maps::renderPngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
  */
 void Maps::displayMap()
 {
-    uint32_t dmT0 = millis();
-
     if (!Maps::isMapFound)
     {
         Maps::mapTempSprite.pushSprite(&mapSprite, 0, 0);
@@ -1026,8 +1024,6 @@ void Maps::displayMap()
     Maps::redrawMap = false;
     mapCanvasParent()->endWrite();
     xSemaphoreGiveRecursive(mapMutex);
-
-    ESP_LOGI("PERF", "displayMap %lu ms", millis() - dmT0);
 }
 
 /**
@@ -1077,8 +1073,6 @@ void Maps::update3DCache()
  */
 void Maps::apply3DPerspective(uint16_t heading)
 {
-    uint32_t t0 = millis();
-
     uint16_t* src = static_cast<uint16_t*>(mapTempSprite.getBuffer());
     uint16_t* dst = static_cast<uint16_t*>(mapSprite.getBuffer());
     if (!src || !dst)
@@ -1169,8 +1163,6 @@ void Maps::apply3DPerspective(uint16_t heading)
             syFix += dsyFix;
         }
     }
-
-    ESP_LOGI("PERF", "apply3DPerspective %lu ms", millis() - t0);
 }
 
 void Maps::updateMap()

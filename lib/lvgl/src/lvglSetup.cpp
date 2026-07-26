@@ -72,10 +72,8 @@ static void lv_rounder_cb(lv_event_t *event)
  */
 void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 {
-    uint32_t start = millis();
     DisplayArea flushArea = { area->x1, area->y1, area->x2, area->y2 };
     display().flush(flushArea, reinterpret_cast<uint16_t*>(px_map));
-    ESP_LOGI("PERF", "displayFlush %lu ms", millis() - start);
     lv_display_flush_ready(disp);
 }
 
@@ -505,6 +503,12 @@ void initLVGL()
         ESP_LOGV(TAG, "LVGL: allocating %u bytes SRAM for draw buffer", DRAW_BUF_SIZE);
         drawBuf1 = (lv_color_t *)heap_caps_malloc(DRAW_BUF_SIZE, MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA);
         lv_display_set_buffers(display_drv, drawBuf1, NULL, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
+    #endif
+
+    // DSI panels need full-frame flush to avoid tearing; the shadow buffer is
+    // eliminated and LVGL sends draw buffers directly to the DSI controller.
+    #ifdef PANEL_BUS_DSI
+        lv_display_set_render_mode(display_drv, LV_DISPLAY_RENDER_MODE_FULL);
     #endif
 
     #ifdef TOUCH_INPUT
