@@ -927,6 +927,8 @@ void Maps::renderPngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
  */
 void Maps::displayMap()
 {
+    uint32_t dmT0 = millis();
+
     if (!Maps::isMapFound)
     {
         Maps::mapTempSprite.pushSprite(&mapSprite, 0, 0);
@@ -1024,6 +1026,8 @@ void Maps::displayMap()
     Maps::redrawMap = false;
     mapCanvasParent()->endWrite();
     xSemaphoreGiveRecursive(mapMutex);
+
+    ESP_LOGI("PERF", "displayMap %lu ms", millis() - dmT0);
 }
 
 /**
@@ -1073,6 +1077,8 @@ void Maps::update3DCache()
  */
 void Maps::apply3DPerspective(uint16_t heading)
 {
+    uint32_t t0 = millis();
+
     uint16_t* src = static_cast<uint16_t*>(mapTempSprite.getBuffer());
     uint16_t* dst = static_cast<uint16_t*>(mapSprite.getBuffer());
     if (!src || !dst)
@@ -1139,57 +1145,32 @@ void Maps::apply3DPerspective(uint16_t heading)
 
         const float sxStart = static_cast<float>(gpsTileX) + (-halfW * invScale) * cosH + srcRelY * sinH;
         const float syStart = static_cast<float>(gpsTileY) - ((halfW * invScale) * sinH + srcRelY * cosH);
-        const float sxEnd = sxStart + dsxF * static_cast<float>(dstW);
-        const float syEnd = syStart + dsyF * static_cast<float>(dstW);
 
-        // Q16 holds +-32767 integer range; rows near the horizon can exceed it.
-        // Valid tile coords stay within a few thousand, so a conservative limit
-        // routes any extreme (overflow-prone) row to the float fallback.
-        const float Q16_LIMIT = 8000.0f;
-        bool fitsQ16 = fabsf(sxStart) < Q16_LIMIT && fabsf(syStart) < Q16_LIMIT &&
-                       fabsf(sxEnd) < Q16_LIMIT && fabsf(syEnd) < Q16_LIMIT;
+        const float CLAMP = 30000.0f;
+        float sxC = fmaxf(-CLAMP, fminf(CLAMP, sxStart));
+        float syC = fmaxf(-CLAMP, fminf(CLAMP, syStart));
 
-        if (fitsQ16)
+        int32_t sxFix = static_cast<int32_t>(sxC * 65536.0f);
+        int32_t syFix = static_cast<int32_t>(syC * 65536.0f);
+        const int32_t dsxFix = static_cast<int32_t>(dsxF * 65536.0f);
+        const int32_t dsyFix = static_cast<int32_t>(dsyF * 65536.0f);
+
+        for (int x = 0; x < dstW; x++)
         {
-            int32_t sxFix = static_cast<int32_t>(sxStart * 65536.0f);
-            int32_t syFix = static_cast<int32_t>(syStart * 65536.0f);
-            const int32_t dsxFix = static_cast<int32_t>(dsxF * 65536.0f);
-            const int32_t dsyFix = static_cast<int32_t>(dsyF * 65536.0f);
+            int sx = sxFix >> 16;
+            int sy = syFix >> 16;
 
-            for (int x = 0; x < dstW; x++)
-            {
-                int sx = sxFix >> 16;
-                int sy = syFix >> 16;
+            if (sx >= 0 && sx < srcW && sy >= 0 && sy < srcH)
+                dstRow[x] = src[sy * srcW + sx];
+            else
+                dstRow[x] = skyColor;
 
-                if (sx >= 0 && sx < srcW && sy >= 0 && sy < srcH)
-                    dstRow[x] = src[sy * srcW + sx];
-                else
-                    dstRow[x] = skyColor;
-
-                sxFix += dsxFix;
-                syFix += dsyFix;
-            }
-        }
-        else
-        {
-            float sxF = sxStart;
-            float syF = syStart;
-
-            for (int x = 0; x < dstW; x++)
-            {
-                int sx = (int)sxF;
-                int sy = (int)syF;
-
-                if (sx >= 0 && sx < srcW && sy >= 0 && sy < srcH)
-                    dstRow[x] = src[sy * srcW + sx];
-                else
-                    dstRow[x] = skyColor;
-
-                sxF += dsxF;
-                syF += dsyF;
-            }
+            sxFix += dsxFix;
+            syFix += dsyFix;
         }
     }
+
+    ESP_LOGI("PERF", "apply3DPerspective %lu ms", millis() - t0);
 }
 
 void Maps::updateMap()
