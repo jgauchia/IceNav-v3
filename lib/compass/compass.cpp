@@ -673,7 +673,7 @@ bool Compass::read(float &x, float &y, float &z)
     newData = true;
 #endif
 
-#ifdef ICENAV_BOARD
+#if defined(ICENAV_BOARD) || defined(WAVESHARE_P4_43)
     if (newData)
         y = y * -1;
 #endif
