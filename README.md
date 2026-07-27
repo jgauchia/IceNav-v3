@@ -73,7 +73,7 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 
 Currently, IceNav works with the following hardware setups and specs
 
-**Highly recommended an ESP32S3 with PSRAM and 320x480 Screen** 
+**Highly recommended an ESP32S3 or ESP32P4 with PSRAM and 320x480 Screen** 
  
 > [!IMPORTANT]
 > Please review the platformio.ini file to choose the appropriate environment as well as the different build flags for your correct setup.
@@ -93,6 +93,15 @@ Currently, IceNav works with the following hardware setups and specs
 | [WAVESHARE ESP32-P4-WIFI6 3.5inch Smart Vision ](https://www.waveshare.com/product/arduino/boards-kits/esp32-p4/esp32-p4-wifi6-touch-lcd-3.5.htm) | 16M | 32M | ``` [env:WAVESHARE_P4_35] ``` | ✔️ YES    |
 | [WAVESHARE ESP32-P4-WIFI6 4.3inch Development Board](https://www.waveshare.com/product/arduino/boards-kits/esp32-p4/esp32-p4-wifi6-touch-lcd-4.3.htm) | 32M | 32M | ``` [env:WAVESHARE_P4_43] ``` | 🚧 TESTING    |
 
+
+> [!IMPORTANT]
+> Known Issue: ESP32-P4 + ESP32-C6 — Reboots with SD + WiFi 
+>On boards that pair an ESP32-P4 with an ESP32-C6 co-processor (e.g. WAVESHARE_P4_43), enabling WiFi while an SD card is mounted via SDMMC can cause intermittent crashes or reboots. The backtrace typically shows `sdio_read` → `xRingbufferCreateStatic`.
+>**Root cause:** The SDMMC peripheral is shared between the SD card slot and the C6 SDIO link. The ESP-Hosted MCU firmware does not properly serialise concurrent access, leading to a corrupted ring buffer allocation and a system panic.
+>This is a known ESP-Hosted firmware bug, tracked upstream at https://github.com/espressif/esp-hosted-mcu/issues/144 and #184. Espressif has acknowledged it; a fix is expected in a future release.
+>**Workaround:** Disable WiFi via CLI Settings 
+
+
 If the board has a BOOT button (GPIO0) it is possible to use power saving functions.
 To do this, simply include the following Build Flag in the required env in platformio.ini
 
@@ -101,6 +110,8 @@ To do this, simply include the following Build Flag in the required env in platf
 > [!IMPORTANT]
 > Currently, this project can run on any board with an ESP32S3 and at least a 320x480 TFT screen. The idea is to support all existing boards on the market that I can get to work, so if you don't want to use the specific IceNav board, please feel free to create an issue, and I will look into providing support.
 > Any help or contribution is always welcome
+
+
 
 ### Screens
 
