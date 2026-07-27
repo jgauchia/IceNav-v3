@@ -44,6 +44,7 @@ extern Maps mapView;
 #include "timezone.c"
 #include "settings.hpp"
 #include "lvglSetup.hpp"
+#include "mainScr.hpp"
 #include "tasks.hpp"
 
 /**
@@ -135,6 +136,7 @@ void setup()
         lv_screen_load(searchSatScreen);
     }
     vTaskResume(guiTaskHandle);
+    forceMapRedraw();
 }
 
 /**

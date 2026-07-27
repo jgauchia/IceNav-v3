@@ -137,11 +137,14 @@ void splashScreen()
         {
             lv_task_handler();  
             vTaskDelay(5);
-        }     
+        }
 
-        // Preload Map at the very end when all animations are gone
+        // Preload map and wait for tiles to finish before proceeding.
         mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
         mapView.generateMap(zoom);
+        TickType_t waitStart = xTaskGetTickCount();
+        while (mapView.isRendering() && (xTaskGetTickCount() - waitStart) < pdMS_TO_TICKS(5000))
+            vTaskDelay(pdMS_TO_TICKS(50));
 
         if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
         {
@@ -209,6 +212,11 @@ void splashScreen()
         memset(&statusString[0], 0, sizeof(statusString));
         splashSprite.setTextColor(TFT_WHITE, TFT_BLACK);
         
+        // Preload Map early so the background render task has time
+        // to load tiles during the splash screen (~3.8 s of fade).
+        mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
+        mapView.generateMap(zoom);
+
         const uint8_t maxBrightness = 255;
 
         tftOn(0);
@@ -221,10 +229,6 @@ void splashScreen()
             millisActual = millis_idf();
             while (millis_idf() < millisActual + 15);
         }
-
-        // Preload Map while logo is fully visible
-        mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
-        mapView.generateMap(zoom);
 
         while (millis_idf() < millisActual + 100);
 
@@ -240,6 +244,11 @@ void splashScreen()
         while (millis_idf() < millisActual + 100);
 
         display().setBrightness(defBright);
+
+        // Wait for map tiles to finish loading before proceeding.
+        TickType_t waitStart = xTaskGetTickCount();
+        while (mapView.isRendering() && (xTaskGetTickCount() - waitStart) < pdMS_TO_TICKS(5000))
+            vTaskDelay(pdMS_TO_TICKS(50));
     
         splashSprite.deleteSprite();
     #endif

@@ -217,6 +217,19 @@ void triggerMapRedraw()
 }
 
 /**
+ * @brief Force map redraw from non-LVGL context
+ *
+ * @details Unconditionally resets the redraw guard and queues an
+ *          async callback. Use after vTaskResume(guiTaskHandle) to
+ *          ensure a fresh render from a stable LVGL task context.
+ */
+void forceMapRedraw()
+{
+    __atomic_store_n(&redrawPending, false, __ATOMIC_SEQ_CST);
+    lv_async_call(async_map_update_cb, NULL);
+}
+
+/**
  * @brief Toggle 3D/2D map view event callback.
  *
  * @param event LVGL event pointer.

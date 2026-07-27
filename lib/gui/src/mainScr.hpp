@@ -57,4 +57,5 @@ extern int toolBarOffset;     /**< Offset for toolbar positioning */
 extern int toolBarSpace;      /**< Space between toolbar buttons */
 
 void triggerMapRedraw();
+void forceMapRedraw();
 void createMainScr();
