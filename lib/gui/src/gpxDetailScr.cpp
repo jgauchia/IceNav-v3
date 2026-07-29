@@ -25,7 +25,6 @@ lv_obj_t *labelLat;
 lv_obj_t *labelLatValue;
 lv_obj_t *labelLon;
 lv_obj_t *labelLonValue;
-bool isScreenRotated = false;
 
 /**
  * @brief GPX Detail Screen event handler. Handles key and ready/cancel events for adding or editing GPX waypoints.
@@ -84,9 +83,11 @@ static void gpxDetailScreenEvent(lv_event_t *event)
 
     if (code == LV_EVENT_READY)
     {
-        if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_270)
+        if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_90)
         {
+#ifndef PANEL_BUS_DSI
             display().setRotation(0);
+#endif
             lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
         }
         createWptFile();
@@ -122,10 +123,12 @@ static void gpxDetailScreenEvent(lv_event_t *event)
 
     if (code == LV_EVENT_CANCEL)
     {
-        if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_270)
+        if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_90)
         {
+#ifndef PANEL_BUS_DSI
             display().setRotation(0);
-            lv_display_set_rotation(display_drv,LV_DISPLAY_ROTATION_0);
+#endif
+            lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
         }
         isMainScreen = true;
         mapView.redrawMap = true;
@@ -142,19 +145,24 @@ static void gpxDetailScreenEvent(lv_event_t *event)
  */
 static void rotateScreen(lv_event_t *event)
 {
-    isScreenRotated = !isScreenRotated;
-    ESP_LOGV(TAG, "%d", isScreenRotated);
-    if (isScreenRotated)
+    bool isRotated = (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_90);
+    ESP_LOGV(TAG, "%d", !isRotated);
+    if (!isRotated)
     {
-        display().setRotation(1);
-        lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_270);
+#ifndef PANEL_BUS_DSI
+        display().setRotation(3);
+#endif
+        lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_90);
     }
     else
     {
+#ifndef PANEL_BUS_DSI
         display().setRotation(0);
+#endif
         lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
     }
-    lv_obj_set_width(gpxTagValue, display().width() -10);
+    lv_obj_set_width(gpxTagValue, lv_display_get_horizontal_resolution(display_drv) - 10);
+    lv_obj_set_size(gpxDetailScreen, lv_display_get_horizontal_resolution(display_drv), lv_display_get_vertical_resolution(display_drv));
     lv_refr_now(display_drv);
 }
 
@@ -244,7 +252,7 @@ void createGpxDetailScreen()
     gpxTagValue = lv_textarea_create(gpxDetailScreen);
     lv_textarea_set_one_line(gpxTagValue, true);
     lv_obj_align(gpxTagValue, LV_ALIGN_TOP_MID, 0, 40);
-    lv_obj_set_width(gpxTagValue, display().width() - 10);
+    lv_obj_set_width(gpxTagValue, lv_display_get_horizontal_resolution(display_drv) - 10);
     lv_obj_add_state(gpxTagValue, LV_STATE_FOCUSED);
     lv_obj_add_event_cb(gpxTagValue, gpxDetailScreenEvent, LV_EVENT_ALL, gpxDetailScreen);
     #ifndef TDECK_ESP32S3

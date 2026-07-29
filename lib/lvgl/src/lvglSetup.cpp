@@ -199,16 +199,8 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     {
         if (count == 1)
         {
-            if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_0)
-            {
-                data->point.x = touchRaw[count-1].x;
-                data->point.y = touchRaw[count-1].y;
-            }
-            else if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_270)
-            {
-                data->point.x = TFT_WIDTH - touchRaw[count-1].y;
-                data->point.y = touchRaw[count-1].x;
-            }
+            data->point.x = touchRaw[count-1].x;
+            data->point.y = touchRaw[count-1].y;
 
             if (startX == -1)
             {
@@ -241,11 +233,26 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
             lastTouchReleaseTime = 0;
             twoFingerGesture = true;
 
+            TouchPoint touchMapped[2];
+            for (int i = 0; i < 2; i++)
+            {
+                if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_90)
+                {
+                    touchMapped[i].x = touchRaw[i].y;
+                    touchMapped[i].y = (TFT_WIDTH - 1) - touchRaw[i].x;
+                }
+                else
+                {
+                    touchMapped[i].x = touchRaw[i].x;
+                    touchMapped[i].y = touchRaw[i].y;
+                }
+            }
+
             if (prevValid)
             {
                 if (showMapToolBar && !zoomLocked)
                 {
-                    float rotDelta = pinchRotate(touchPrev, touchRaw);
+                    float rotDelta = pinchRotate(touchPrev, touchMapped);
                     if (rotDelta != 0.0f)
                     {
                         rotationLocked = true;
@@ -259,7 +266,7 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
                 }
                 if (!rotationLocked)
                 {
-                    zoom_dir zoomDir = pinchZoom(touchPrev, touchRaw, dt_ms);
+                    zoom_dir zoomDir = pinchZoom(touchPrev, touchMapped, dt_ms);
                     if (zoomDir != ZOOM_NONE && showMapToolBar)
                     {
                         zoomLocked = true;
@@ -268,8 +275,8 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
                     }
                 }
             }
-            touchPrev[0] = touchRaw[0];
-            touchPrev[1] = touchRaw[1];
+            touchPrev[0] = touchMapped[0];
+            touchPrev[1] = touchMapped[1];
             prevValid = true;
             lastTime = now;
         }
@@ -568,10 +575,26 @@ void initLVGL()
  */
 void loadMainScreen()
 {
+    if (lv_display_get_rotation(display_drv) != LV_DISPLAY_ROTATION_0)
+    {
+#ifndef PANEL_BUS_DSI
+        display().setRotation(0);
+#endif
+        lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
+    }
     isMainScreen = true;
     isScrolled = true;
     isSearchingSat = false;
     gpxAction = WPT_NONE;
+
+    if (lv_display_get_rotation(display_drv) != LV_DISPLAY_ROTATION_0)
+    {
+#ifndef PANEL_BUS_DSI
+        display().setRotation(0);
+#endif
+        lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
+    }
+
     lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(optionsScrim, LV_OBJ_FLAG_HIDDEN);
     lv_obj_set_y(optionsPanel, TFT_HEIGHT);

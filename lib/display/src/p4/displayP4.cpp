@@ -16,6 +16,7 @@
 
 #ifdef PANEL_BUS_DSI
     #include <esp_lcd_panel_ops.h>
+    #include "esp_heap_caps.h"
 #endif
 
 /**
@@ -70,7 +71,28 @@ public:
         #ifdef PANEL_BUS_DSI
             // LVGL render mode FULL guarantees one flush per frame with the
             // full-screen draw buffer — no shadow copy needed.
-            esp_lcd_panel_draw_bitmap(static_cast<PANEL_TYPE *>(tft.getPanel())->panelHandle(), 0, 0, TFT_WIDTH, TFT_HEIGHT, pixels);
+            // area reflects the logical (post-rotation) dimensions.
+            int32_t w = area.x2 - area.x1 + 1;
+            int32_t h = area.y2 - area.y1 + 1;
+            
+            if (w == tft.height() && h == tft.width()) {
+                // Rotated 270 degrees (Logical is 800x480, physical is 480x800)
+                uint16_t* rotBuf = (uint16_t*)heap_caps_malloc(tft.width() * tft.height() * 2, MALLOC_CAP_SPIRAM);
+                if (rotBuf) {
+                    for (int y = 0; y < h; y++) {
+                        for (int x = 0; x < w; x++) {
+                            int dst_x = tft.width() - 1 - y;
+                            int dst_y = x;
+                            rotBuf[dst_x + dst_y * tft.width()] = pixels[x + y * w];
+                        }
+                    }
+                    esp_lcd_panel_draw_bitmap(static_cast<PANEL_TYPE *>(tft.getPanel())->panelHandle(), 0, 0, tft.width(), tft.height(), rotBuf);
+                    tft.waitDisplay();
+                    heap_caps_free(rotBuf);
+                    return;
+                }
+            }
+            esp_lcd_panel_draw_bitmap(static_cast<PANEL_TYPE *>(tft.getPanel())->panelHandle(), 0, 0, tft.width(), tft.height(), pixels);
         #else
             uint32_t w = area.x2 - area.x1 + 1;
             uint32_t h = area.y2 - area.y1 + 1;

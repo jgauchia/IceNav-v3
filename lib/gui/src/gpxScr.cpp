@@ -177,7 +177,6 @@ static void handleGpxEdit(GPXParser &gpx, const char *gpxName)
         lv_obj_add_flag(labelLonValue, LV_OBJ_FLAG_HIDDEN);
     }
 
-    isScreenRotated = false;
     lv_obj_set_width(gpxTagValue, display().width() - 10);
     updateWaypoint(gpxAction);
     lv_screen_load(gpxDetailScreen);

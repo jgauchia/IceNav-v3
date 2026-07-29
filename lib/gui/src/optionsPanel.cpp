@@ -47,7 +47,6 @@ void optionsPanelEvent(lv_event_t *event)
         isMainScreen = false;
         mapView.redrawMap = false;
         lv_textarea_set_text(gpxTagValue, "");
-        isScreenRotated = false;
         lv_obj_set_width(gpxTagValue, display().width() - 10);
         updateWaypoint(gpxAction);
         lv_screen_load(gpxDetailScreen);
