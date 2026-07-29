@@ -89,9 +89,17 @@ float Battery::readBattery()
     #endif
 
     float meanRaw = sum / (float)ADC_SAMPLES;
-    // Custom board has a divider circuit
-    constexpr float R1 = 100000.0f; // Resistance of R1 (100K)
-    constexpr float R2 = 100000.0f; // Resistance of R2 (100K)
+
+    #ifdef BATT_DIVIDER_R1
+        constexpr float R1 = BATT_DIVIDER_R1;
+    #else
+        constexpr float R1 = 100000.0f;
+    #endif
+    #ifdef BATT_DIVIDER_R2
+        constexpr float R2 = BATT_DIVIDER_R2;
+    #else
+        constexpr float R2 = 100000.0f;
+    #endif
 
     #ifdef BATT_ADC_UNIT
         int caliMv = 0;
@@ -105,6 +113,14 @@ float Battery::readBattery()
 
     voltage = voltage * ((R1 + R2) / R2);
     voltage = roundf(voltage * 100.0f) / 100.0f;
+
+    if (lastMeanRaw > 0.0f && meanRaw > lastMeanRaw + 3.0f)
+        chargingInferred = true;
+    else if (voltage >= batteryMax)
+        chargingInferred = true;
+    else if (meanRaw <= lastMeanRaw)
+        chargingInferred = false;
+    lastMeanRaw = meanRaw;
     lastVolt = voltage;
     output = ((voltage - batteryMin) / (batteryMax - batteryMin)) * 100.0f;
 

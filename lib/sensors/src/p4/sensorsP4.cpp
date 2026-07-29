@@ -18,6 +18,11 @@
     extern Axp2101 axp2101;
 #endif
 
+#ifdef BATT_ADC_UNIT
+    #include "battery.hpp"
+    extern Battery battery;
+#endif
+
 #ifdef BME280
     #include "bme.hpp"
     extern BME280_Driver bme;
@@ -61,7 +66,7 @@ public:
 
     bool hasBattery() const override
     {
-        #ifdef WAVESHARE_P4_35
+        #if defined(WAVESHARE_P4_35) || defined(BATT_ADC_UNIT)
             return true;
         #else
             return false;
@@ -102,6 +107,8 @@ public:
     {
         #ifdef WAVESHARE_P4_35
             return axp2101.readBattery();
+        #elif defined(BATT_ADC_UNIT)
+            return battery.readBattery();
         #else
             return 0.0f;
         #endif
@@ -111,6 +118,8 @@ public:
     {
         #ifdef WAVESHARE_P4_35
             return axp2101.lastVoltage();
+        #elif defined(BATT_ADC_UNIT)
+            return battery.lastVoltage();
         #else
             return 0.0f;
         #endif
@@ -121,7 +130,7 @@ public:
         #ifdef WAVESHARE_P4_35
             return axp2101.isCharging();
         #else
-            return false;
+            return battery.isChargingInferred();
         #endif
     }
 };

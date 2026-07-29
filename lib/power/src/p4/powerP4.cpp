@@ -38,6 +38,15 @@ static const char *TAG = "POWER";
 RTC_DATA_ATTR time_t rtcSavedTime = 0;
 RTC_DATA_ATTR bool   rtcTimeValid = false;
 
+static inline uint8_t getBootPin()
+{
+    #ifdef INVERT_BOOT_PIN
+        return !gpio_get_level((gpio_num_t)BOARD_BOOT_PIN);
+    #else
+        return gpio_get_level((gpio_num_t)BOARD_BOOT_PIN);
+    #endif
+}
+
 /**
  * @class PowerP4
  * @brief Layer-0 power implementation for ESP32-P4 boards.
@@ -65,10 +74,8 @@ public:
         resumeAllTasks();
 
         tftOn(brightness);
-        // PWR_KEY idles low and goes high when pressed on this board (opposite
-        // of the S3 pull-up button), measured on real hardware — wait for it
-        // to go back low (released) instead of high.
-        while (gpio_get_level((gpio_num_t)BOARD_BOOT_PIN) != 0)
+        // Wait for button release after wake (getBootPin returns 0 = pressed)
+        while (getBootPin() == 0)
             vTaskDelay(pdMS_TO_TICKS(5));
         ESP_LOGV(TAG, "Exited sleep mode");
     }
@@ -119,7 +126,7 @@ private:
      *          cannot be used as an esp_sleep wakeup source on this chip, unlike
      *          the S3 boot pin. The CPU is instead woken periodically by a timer
      *          and polls the button between naps, exiting as soon as it reads
-     *          pressed (see gpioGetBut() for the P4 polarity fix).
+     *          pressed (getBootPin returns 0 = pressed).
      */
     void powerLightSleep()
     {
@@ -127,7 +134,7 @@ private:
         {
             esp_sleep_enable_timer_wakeup(pollIntervalUs);
             esp_light_sleep_start();
-        } while (gpio_get_level((gpio_num_t)BOARD_BOOT_PIN) == 0);
+        } while (getBootPin() != 0);
     }
 
     /**

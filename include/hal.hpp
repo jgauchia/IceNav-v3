@@ -272,7 +272,7 @@
     static constexpr uint8_t GPS_RX_DEFAULT = GPIO_NUM_2;
     static constexpr uint8_t GPS_TX_DEFAULT = GPIO_NUM_3;
 
-    static constexpr uint8_t BOARD_BOOT_PIN = GPIO_NUM_49;
+    static constexpr uint8_t BOARD_BOOT_PIN = GPIO_NUM_35;   // BOOT button (active LOW)
 
     static constexpr uint8_t TFT_RST   = GPIO_NUM_27;
     static constexpr uint8_t TFT_BL    = GPIO_NUM_26;

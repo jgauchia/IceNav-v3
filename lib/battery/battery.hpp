@@ -33,6 +33,9 @@ class Battery
         adc_cali_handle_t caliHandle = nullptr;        /**< ADC calibration handle. */
         bool caliEnabled = false;                      /**< Whether calibration is available. */
 
+        float lastMeanRaw = 0.0f;            /**< Previous raw ADC average for charging inference. */
+        bool chargingInferred = false;       /**< Whether battery voltage is trending up (charging). */
+
     public:
         Battery();
 
@@ -40,4 +43,6 @@ class Battery
         void setBatteryLevels(float maxVoltage, float minVoltage);
         float readBattery();
         float lastVoltage() const { return lastVolt; }
+        float maxVoltage() const  { return batteryMax; }
+        bool isChargingInferred() const { return chargingInferred; } /**< Whether raw ADC trend or voltage ≥ max suggests charging. */
 };

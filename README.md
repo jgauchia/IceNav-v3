@@ -102,10 +102,11 @@ Currently, IceNav works with the following hardware setups and specs
 >**Workaround:** Disable WiFi via CLI Settings 
 
 
-If the board has a BOOT button (GPIO0) it is possible to use power saving functions.
-To do this, simply include the following Build Flag in the required env in platformio.ini
+If the board has a BOOT button it is possible to use power saving functions.
+To do this, simply include the following Build Flags in the required env in platformio.ini
 
 ```-DPOWER_SAVE``` <br>
+```-DINVERT_BOOT_PIN``` (if the button signal is inverted, e.g. Waveshare P4 boards) <br>
 
 > [!IMPORTANT]
 > Currently, this project can run on any board with an ESP32S3 and at least a 320x480 TFT screen. The idea is to support all existing boards on the market that I can get to work, so if you don't want to use the specific IceNav board, please feel free to create an issue, and I will look into providing support.
@@ -132,7 +133,7 @@ To do this, simply include the following Build Flag in the required env in platf
 
 |             | Type          | Build Flags [^3]                   | 
 |:------------|:--------------|:-----------------------------------|
-|             | 🔋 Batt. Monitor | ```-DBATT_ADC_UNIT=n``` (1 or 2) <br> ```-DBATT_ADC_CHANNEL=x``` |  
+|             | 🔋 Batt. Monitor | ```-DBATT_ADC_UNIT=n``` (1 or 2) <br> ```-DBATT_ADC_CHANNEL=x``` <br> ```-DBATT_DIVIDER_R1=n``` (default 100000) <br> ```-DBATT_DIVIDER_R2=n``` (default 100000) |  
 | AT6558D     | 🛰️ GPS        | ```-DAT6558D_GPS```                |
 | HMC5883L / QMC5883 | 🧭 Compass (auto-detected) | ```-DCOMPASS_AUTO```        |
 | MPU9250     | 🧭 IMU (Compass) | ```-DIMU_MPU9250```                | 

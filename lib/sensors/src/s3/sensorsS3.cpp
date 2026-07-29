@@ -115,7 +115,7 @@ public:
 
     bool isCharging() override
     {
-        return false;
+        return battery.isChargingInferred();
     }
 };
 
