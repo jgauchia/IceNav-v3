@@ -25,6 +25,7 @@ lv_obj_t *labelLat;
 lv_obj_t *labelLatValue;
 lv_obj_t *labelLon;
 lv_obj_t *labelLonValue;
+static bool isScreenRotated = false;
 
 /**
  * @brief GPX Detail Screen event handler. Handles key and ready/cancel events for adding or editing GPX waypoints.
@@ -83,13 +84,18 @@ static void gpxDetailScreenEvent(lv_event_t *event)
 
     if (code == LV_EVENT_READY)
     {
-        if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_90)
+#ifdef PANEL_BUS_DSI
+        if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_270)
         {
-#ifndef PANEL_BUS_DSI
-            display().setRotation(0);
-#endif
             lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
         }
+#else
+        if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_270)
+        {
+            display().setRotation(0);
+            lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
+        }
+#endif
         createWptFile();
         GPXParser gpx;
         switch (gpxAction)
@@ -123,13 +129,18 @@ static void gpxDetailScreenEvent(lv_event_t *event)
 
     if (code == LV_EVENT_CANCEL)
     {
-        if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_90)
+#ifdef PANEL_BUS_DSI
+        if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_270)
         {
-#ifndef PANEL_BUS_DSI
-            display().setRotation(0);
-#endif
             lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
         }
+#else
+        if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_270)
+        {
+            display().setRotation(0);
+            lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
+        }
+#endif
         isMainScreen = true;
         mapView.redrawMap = true;
         gpxAction = WPT_NONE;
@@ -145,25 +156,37 @@ static void gpxDetailScreenEvent(lv_event_t *event)
  */
 static void rotateScreen(lv_event_t *event)
 {
-    bool isRotated = (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_90);
+#ifdef PANEL_BUS_DSI
+    constexpr lv_display_rotation_t ROTATED = LV_DISPLAY_ROTATION_270;
+    bool isRotated = (lv_display_get_rotation(display_drv) == ROTATED);
     ESP_LOGV(TAG, "%d", !isRotated);
     if (!isRotated)
     {
-#ifndef PANEL_BUS_DSI
-        display().setRotation(3);
-#endif
-        lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_90);
+        lv_display_set_rotation(display_drv, ROTATED);
     }
     else
     {
-#ifndef PANEL_BUS_DSI
-        display().setRotation(0);
-#endif
         lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
     }
     lv_obj_set_width(gpxTagValue, lv_display_get_horizontal_resolution(display_drv) - 10);
     lv_obj_set_size(gpxDetailScreen, lv_display_get_horizontal_resolution(display_drv), lv_display_get_vertical_resolution(display_drv));
     lv_refr_now(display_drv);
+#else
+    isScreenRotated = !isScreenRotated;
+    ESP_LOGV(TAG, "%d", isScreenRotated);
+    if (isScreenRotated)
+    {
+        display().setRotation(1);
+        lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_270);
+    }
+    else
+    {
+        display().setRotation(0);
+        lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
+    }
+    lv_obj_set_width(gpxTagValue, display().width() - 10);
+    lv_refr_now(display_drv);
+#endif
 }
 
 /**
