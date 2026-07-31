@@ -85,7 +85,7 @@ static void gpxDetailScreenEvent(lv_event_t *event)
     if (code == LV_EVENT_READY)
     {
 #ifdef PANEL_BUS_DSI
-        if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_270)
+        if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_90)
         {
             lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
         }
@@ -130,7 +130,7 @@ static void gpxDetailScreenEvent(lv_event_t *event)
     if (code == LV_EVENT_CANCEL)
     {
 #ifdef PANEL_BUS_DSI
-        if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_270)
+        if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_90)
         {
             lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
         }
@@ -157,12 +157,11 @@ static void gpxDetailScreenEvent(lv_event_t *event)
 static void rotateScreen(lv_event_t *event)
 {
 #ifdef PANEL_BUS_DSI
-    constexpr lv_display_rotation_t ROTATED = LV_DISPLAY_ROTATION_270;
-    bool isRotated = (lv_display_get_rotation(display_drv) == ROTATED);
+    bool isRotated = (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_90);
     ESP_LOGV(TAG, "%d", !isRotated);
     if (!isRotated)
     {
-        lv_display_set_rotation(display_drv, ROTATED);
+        lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_90);
     }
     else
     {

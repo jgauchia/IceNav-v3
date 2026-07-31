@@ -200,10 +200,10 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
         if (count == 1)
         {
 #ifdef PANEL_BUS_DSI
-            if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_270)
+            if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_90)
             {
-                data->point.x = (TFT_HEIGHT - 1) - touchRaw[count-1].y;
-                data->point.y = touchRaw[count-1].x;
+                data->point.x = (TFT_WIDTH - 1) - touchRaw[count-1].x;
+                data->point.y = (TFT_HEIGHT - 1) - touchRaw[count-1].y;
             }
             else
             {
@@ -258,10 +258,10 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 #ifdef PANEL_BUS_DSI
             for (int i = 0; i < 2; i++)
             {
-                if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_270)
+                if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_90)
                 {
-                    touchMapped[i].x = (TFT_HEIGHT - 1) - touchRaw[i].y;
-                    touchMapped[i].y = touchRaw[i].x;
+                    touchMapped[i].x = touchRaw[i].y;
+                    touchMapped[i].y = (TFT_WIDTH - 1) - touchRaw[i].x;
                 }
                 else
                 {
