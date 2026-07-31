@@ -80,6 +80,8 @@ static inline __attribute__((always_inline)) float sinLUT(float rad)
 
     float index = rad / LUT_RES;
     int idx_low = (int)index;
+    if (idx_low >= LUT_SIZE)
+        idx_low = LUT_SIZE - 1;
     int idx_high = (idx_low + 1) % LUT_SIZE;
 
     float frac = index - idx_low;
@@ -107,6 +109,8 @@ static inline __attribute__((always_inline)) float cosLUT(float rad)
 
 	float index = rad / (float)LUT_RES;
 	int idx_low = (int)index;
+	if (idx_low >= LUT_SIZE)
+		idx_low = LUT_SIZE - 1;
 	int idx_high = (idx_low + 1) % LUT_SIZE;
 
 	float frac = index - idx_low;
