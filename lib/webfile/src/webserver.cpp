@@ -20,27 +20,6 @@
 #include <cstdio>
 
 /**
- * @brief Feeds the Task WDT, subscribing the current task first if needed.
- *
- * @details httpd worker tasks are not registered with the Task WDT, so calling
- *          esp_task_wdt_reset() directly logs "task not found" on IDF 5.x. This
- *          adds the current task on demand (idempotent) before feeding.
- *          On P4, httpd shares the SDIO bus with the WiFi co-processor (ESP-Hosted),
- *          which can stall request handling past the WDT timeout; httpd is not a
- *          real-time task, so it is left unsubscribed there instead.
- */
-static void feedWatchdog()
-{
-#if !CONFIG_IDF_TARGET_ESP32P4
-    esp_err_t status = esp_task_wdt_status(NULL);
-    if (status == ESP_ERR_NOT_FOUND)
-        status = esp_task_wdt_add(NULL);
-    if (status == ESP_OK)
-        esp_task_wdt_reset();
-#endif
-}
-
-/**
  * @brief Convert bytes to Human Readable Size
  */
 static std::string humanReadableSize(uint64_t bytes)
@@ -149,7 +128,6 @@ static void cacheDirectoryContent(const std::string& dir)
                 entry.size = 0;
 
             fileCache.push_back(entry);
-            feedWatchdog();
         }
         closedir(dp);
     }
@@ -401,8 +379,6 @@ static bool createDirectories(const std::string& filepath)
         if (nextSlash == std::string::npos)
             break;
         lastSlash = nextSlash;
-
-        feedWatchdog();
     }
     return true;
 }
@@ -491,7 +467,6 @@ static esp_err_t listfiles_handler(httpd_req_t *req)
 
     if (updateList)
     {
-        feedWatchdog();
         cacheDirectoryContent(oldDir);
     }
 
@@ -617,7 +592,6 @@ static esp_err_t file_handler(httpd_req_t *req)
                 storage.close(file);
                 return ESP_FAIL;
             }
-            feedWatchdog();
         }
 
         heap_caps_free(chunk);
@@ -693,7 +667,6 @@ static esp_err_t listfolder_handler(httpd_req_t *req)
             }
         }
         closedir(dp);
-        feedWatchdog();
     }
 
     httpd_resp_set_type(req, "text/plain");
@@ -929,7 +902,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
                     bufUsed = 0;
                 }
             }
-            feedWatchdog();
             continue;
         }
 
@@ -968,7 +940,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
             uint8_t* headerEnd = findBytes(buf, bufUsed, (const uint8_t*)"\r\n\r\n", 4);
             if (!headerEnd && remaining > 0)
             {
-                feedWatchdog();
                 continue;
             }
 
@@ -1009,8 +980,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
                 bufUsed -= headerLen;
             }
         }
-
-        feedWatchdog();
 
         if (remaining == 0 && !boundaryPos)
             break;
