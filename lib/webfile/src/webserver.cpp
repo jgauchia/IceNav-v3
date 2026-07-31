@@ -185,12 +185,12 @@ static bool getQueryParam(httpd_req_t *req, const char* param, char* value, size
 static void urlDecode(char* str)
 {
     char* dst = str;
-    char a;
-    char b;
     while (*str)
     {
-        if ((*str == '%') && ((a = str[1]) && (b = str[2])) && (isxdigit(a) && isxdigit(b)))
+        if ((*str == '%') && str[1] && str[2] && (isxdigit((unsigned char)str[1]) && isxdigit((unsigned char)str[2])))
         {
+            unsigned char a = (unsigned char)str[1];
+            unsigned char b = (unsigned char)str[2];
             if (a >= 'a')
                 a -= 'a' - 'A';
             if (a >= 'A')
@@ -203,7 +203,7 @@ static void urlDecode(char* str)
                 b -= ('A' - 10);
             else
                 b -= '0';
-            *dst++ = 16 * a + b;
+            *dst++ = (char)(16 * a + b);
             str += 3;
         }
         else if (*str == '+')
