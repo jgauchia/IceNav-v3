@@ -153,6 +153,7 @@ class Gps
         *
         */
         const float headAlpha = 0.5f;          /**< Heading smoothing factor, controls how fast heading adapts */
+        static constexpr float SIM_MAX_SEGMENT_DIST = 50000.0f; /**< Track segment (m) above this is treated as a cut, not travelled */
         float smoothedLat = 0.0f;              /**< Interpolated latitude along the current segment */
         float smoothedLon = 0.0f;              /**< Interpolated longitude along the current segment */
         float filteredHeading = 0.0f;          /**< Smoothed heading after filtering */

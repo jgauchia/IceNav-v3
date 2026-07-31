@@ -207,16 +207,16 @@ void ClimbAnalyzer::clear()
 /**
  * @brief Update climb subjects from current GPS position.
  *
- * @details Runs on Core 1 via the map async callback. In simulation mode uses
- *          simIndex directly; in real GPS mode calls findClosestTrackPoint within
- *          the configured search window. Activates the overlay when within
- *          CLIMB_ANTICIPATION_M of a segment start and keeps it visible until
- *          distRem reaches zero.
+ * @details Runs on Core 1 via the map async callback. Derives the closest track
+ *          point from the current position within the configured search window
+ *          (same path for simulation and real GPS). Activates the overlay when
+ *          within CLIMB_ANTICIPATION_M of a segment start and keeps it visible
+ *          until distRem reaches zero.
  *
  * @param lat      Current latitude.
  * @param lon      Current longitude.
- * @param simMode  True when simulation navigation is active.
- * @param simIndex Current simulation track index.
+ * @param simMode  True when simulation navigation is active (unused).
+ * @param simIndex Current simulation track index (unused).
  * @param track    Loaded track points with ele and accumDist populated.
  */
 void ClimbAnalyzer::updatePosition(float lat, float lon, bool simMode, int simIndex, const TrackVector& track)
@@ -224,9 +224,9 @@ void ClimbAnalyzer::updatePosition(float lat, float lon, bool simMode, int simIn
     if (track.empty() || !hasClimbs())
         return;
 
-    int idx = simMode
-              ? simIndex
-              : findClosestTrackPoint(lat, lon, track, lastTrackIdx);
+    int idx = findClosestTrackPoint(lat, lon, track, lastTrackIdx);
+    (void)simMode;
+    (void)simIndex;
     if (idx < 0)
         return;
 

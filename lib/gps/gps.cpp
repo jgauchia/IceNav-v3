@@ -520,7 +520,7 @@ void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refr
 
         if (simulationIndex < (int)trackData.size() - 1)
         {
-            const float maxSegmentDist = 5000.0f; // Track gap above this is a cut, not travelled
+            const float maxSegmentDist = SIM_MAX_SEGMENT_DIST; // Track gap above this is a cut, not travelled
 
             // Distance to advance this refresh: speed (km/h) over the elapsed refresh window
             float stepDist = (speed * 1000.0f / 3600.0f) * (refresh / 1000.0f);
