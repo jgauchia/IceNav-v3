@@ -349,7 +349,12 @@ void sensorTask(void *pvParameters)
             }
 
             #ifdef ENABLE_TEMP
-            uint8_t currentTemp = (uint8_t)(globalSensorData.temperature + tempOffset);
+            uint8_t currentTemp = 20;
+            if (sensorMutex != NULL && xSemaphoreTake(sensorMutex, pdMS_TO_TICKS(50)) == pdTRUE)
+            {
+                currentTemp = (uint8_t)(globalSensorData.temperature + tempOffset);
+                xSemaphoreGive(sensorMutex);
+            }
             if (isMainScreen && currentTemp != sensorState.lastTempSent)
             {
                 if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, MUTEX_TIMEOUT_SLOW) == pdTRUE)
