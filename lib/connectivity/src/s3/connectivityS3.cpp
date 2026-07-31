@@ -7,7 +7,7 @@
 
 #include "connectivity.hpp"
 
-#if !defined(RADIO_NONE)
+#if !defined(RADIO_NONE) && !CONFIG_IDF_TARGET_ESP32P4
 
 #include <WiFi.h>
 #include <ESPmDNS.h>
@@ -52,4 +52,4 @@ IConnectivity &connectivity()
     return instance;
 }
 
-#endif // !RADIO_NONE
+#endif // !RADIO_NONE && !CONFIG_IDF_TARGET_ESP32P4

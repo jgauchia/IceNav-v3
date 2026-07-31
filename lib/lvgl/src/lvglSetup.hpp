@@ -20,7 +20,7 @@
 #include "splashScr.hpp"
 #include "notifyBar.hpp"
 #include "settingsScr.hpp"
-#if defined(BATT_PIN) || defined(BME280) || defined(ENABLE_IMU) || defined(ENABLE_COMPASS)
+#if defined(BATT_ADC_UNIT) || defined(WAVESHARE_P4_35) || defined(BME280) || defined(ENABLE_IMU) || defined(ENABLE_COMPASS)
 #include "sensorScr.hpp"
 #endif
 #include "deviceSettingsScr.hpp"
@@ -31,16 +31,16 @@
 static uint32_t objectColor = 0x303030;
  /**< Default display driver color definition. */
 
-void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map);
+void displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map);
 void displayFlushWait(lv_display_t *disp);
-void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data);
-#ifdef TDECK_ESP32S3 
-    void IRAM_ATTR keypadRead(lv_indev_t *indev_driver, lv_indev_data_t *data);
+void touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data);
+#ifdef TDECK_ESP32S3
+    void keypadRead(lv_indev_t *indev_driver, lv_indev_data_t *data);
     uint32_t keypadGetKey();
 #endif
 #ifdef POWER_SAVE
     static const uint16_t longPressTime = 1000; /**< Long press time threshold in milliseconds. */
-    void IRAM_ATTR gpioRead(lv_indev_t *indev_driver, lv_indev_data_t *data);
+    void gpioRead(lv_indev_t *indev_driver, lv_indev_data_t *data);
     void gpioLongEvent(lv_event_t *event);
     void gpioClickEvent(lv_event_t *event);
     uint8_t gpioGetBut();

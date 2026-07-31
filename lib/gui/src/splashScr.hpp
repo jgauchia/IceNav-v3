@@ -13,8 +13,10 @@
 #include "maps.hpp"
 #include "gps.hpp"
 
-#ifdef LARGE_SCREEN
-    #ifdef ICENAV_BOARD
+#ifdef WAVESHARE_P4_43
+    inline constexpr const char* logoFile = "/spiffs/gfx/LOGO_460_800.png"; /**< Path to the large logo image for large screens */
+#elif defined(LARGE_SCREEN)
+    #ifdef SPLASH_FULLSCREEN
         inline constexpr const char* logoFile = "/spiffs/gfx/LOGO_NEW.png"; /**< Path to the large logo image for large screens */
     #else
         inline constexpr const char* logoFile = "/spiffs/gfx/LOGO_LARGE.png"; /**< Path to the large logo image for large screens */

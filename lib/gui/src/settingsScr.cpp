@@ -34,10 +34,11 @@ static void back(lv_event_t *event)
         loadMainScreen();
 }
 
+#if defined(TOUCH_INPUT) && defined(TOUCH_RESISTIVE)
 /**
  * @brief Touch Calibration
  *
- * @details Handles the touch calibration event. 
+ * @details Handles the touch calibration event.
  *
  * @param event LVGL event pointer.
  */
@@ -52,6 +53,7 @@ static void touchCalib(lv_event_t *event)
     lv_screen_load(settingsScreen);
     lv_obj_invalidate(lv_scr_act());
 }
+#endif
 
 /**
  * @brief Compass Calibration
@@ -103,7 +105,7 @@ static void deviceSettings(lv_event_t *event)
  *
  * @param event LVGL event pointer.
  */
-#if defined(BATT_PIN) || defined(BME280) || defined(ENABLE_IMU) || defined(ENABLE_COMPASS)
+#if defined(BATT_ADC_UNIT) || defined(WAVESHARE_P4_35) || defined(BME280) || defined(ENABLE_IMU) || defined(ENABLE_COMPASS)
 static void sensorInfo(lv_event_t *event)
 {
     lv_screen_load(sensorScreen);
@@ -137,7 +139,7 @@ void createSettingsScr()
         lv_obj_center(btnLabel);
         lv_obj_add_event_cb(btn, compassCalib, LV_EVENT_CLICKED, NULL);
     #endif
-    #ifdef TOUCH_INPUT
+    #if defined(TOUCH_INPUT) && defined(TOUCH_RESISTIVE)
         // Touch Calibration
         btn = lv_btn_create(settingsButtons);
         lv_obj_set_size(btn, TFT_WIDTH - 30, 40 * scale);
@@ -163,7 +165,7 @@ void createSettingsScr()
     lv_label_set_text_static(btnLabel, "Device Settings");
     lv_obj_center(btnLabel);
     lv_obj_add_event_cb(btn, deviceSettings, LV_EVENT_CLICKED, NULL);
-    #if defined(BATT_PIN) || defined(BME280) || defined(ENABLE_IMU) || defined(ENABLE_COMPASS)
+    #if defined(BATT_ADC_UNIT) || defined(WAVESHARE_P4_35) || defined(BME280) || defined(ENABLE_IMU) || defined(ENABLE_COMPASS)
     // Sensor Info
     btn = lv_btn_create(settingsButtons);
     lv_obj_set_size(btn, TFT_WIDTH - 30, 40 * scale);

@@ -52,11 +52,22 @@ void buildPcas03(char *out, size_t outSize, uint8_t rateIdx); /**< Builds a $PCA
 /**
  * @brief Satellite Constellation Canvas Definition
  */
-static const uint8_t canvasOffset = 15;          					    /**< Offset from the edge to start drawing the satellite constellation canvas */
-static const uint8_t canvasSize = 180;							    /**< Total size (width and height) of the constellation canvas */
-static const uint8_t canvasCenter_X = canvasSize / 2;				/**< X coordinate of the canvas center */
-static const uint8_t canvasCenter_Y = canvasSize / 2;				/**< Y coordinate of the canvas center */
-static const uint8_t canvasRadius = canvasCenter_X - canvasOffset;	/**< Radius of the drawable area for the constellation */
+#if defined(EXTRA_LARGE_SCREEN)
+  static const uint16_t canvasOffset = 25;
+  static const uint16_t canvasSize = 285;
+#elif defined(T4_S3)
+  static const uint16_t canvasOffset = 25;
+  static const uint16_t canvasSize = 200;
+#elif defined(LARGE_SCREEN)
+  static const uint16_t canvasOffset = 15;
+  static const uint16_t canvasSize = 190;
+#else
+  static const uint16_t canvasOffset = 15;
+  static const uint16_t canvasSize = 180;
+#endif
+static const uint16_t canvasCenter_X = canvasSize / 2;
+static const uint16_t canvasCenter_Y = canvasSize / 2;
+static const uint16_t canvasRadius = canvasCenter_X - canvasOffset;
 
 
 /**

@@ -6,7 +6,7 @@
 ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 * Note: Under development (experimental features under devel branch)
 * There is the possibility to use two types of maps: Rendered Maps or Tiles (large files), and Vector Maps (small files).
-* Recommended to use an ESP32-S3 with PSRAM and a screen with a parallel bus for optimal performance, although SPI screens also yield good results.
+* Recommended to use an ESP32-S3 or ESP32-P4 with PSRAM and a screen with a parallel bus for optimal performance, although SPI screens also yield good results.
 
 <table>
   <tr>
@@ -29,7 +29,7 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
   
 |<img src="images/dev/splash.png">|<img src="images/dev/searchsat.jpg">|<img src="images/dev/compass.png">|<img src="images/dev/options.png">|<img src="images/dev/wptopt.png">|
 |:-:|:-:|:-:|:-:|:-:|
-| Splash Screen | Search Satellite | Compass | Main Options | Waypoint/Track Options |
+| Splash Screen | Search Satellite | Compass[^5] | Main Options | Waypoint/Track Options |
 
 |<img src="images/dev/rendermap.png">|<img src="images/dev/vectormap.png">|<img src="images/dev/navscreen.png">|<img src="images/dev/navscreen2.png">|<img src="images/dev/satelliteinfo.png">|
 |:-:|:-:|:-:|:-:|:-:|
@@ -73,7 +73,7 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 
 Currently, IceNav works with the following hardware setups and specs
 
-**Highly recommended an ESP32S3 with PSRAM and 320x480 Screen** 
+**Highly recommended an ESP32S3 or ESP32P4 with PSRAM and 320x480 Screen** 
  
 > [!IMPORTANT]
 > Please review the platformio.ini file to choose the appropriate environment as well as the different build flags for your correct setup.
@@ -81,24 +81,38 @@ Currently, IceNav works with the following hardware setups and specs
 
 ### Boards
 
-|                        | FLASH | PSRAM | Environment                  | Full Support |
+|                        | FLASH | PSRAM | Environment [^2]             | Full Support |
 |:-----------------------|:-----:|:-----:|:-----------------------------|--------------|
 | ICENAV (Custom ESP32S3) |  16M  |  8M   | ``` [env:ICENAV_BOARD] ```   |    ✔️ YES      |
 | ESP32S3                |  16M  |  8M   | ``` [env:ESP32S3_N16R8] ```  |    ✔️ YES      |
-| [ELECROW ESP32 Terminal](https://www.elecrow.com/esp-terminal-with-esp32-3-5-inch-parallel-480x320-tft-capacitive-touch-display-rgb-by-chip-ili9488.html) |  16M  |  8M   | ``` [env:ELECROW_ESP32] ```  | ✔️ YES [^1] [^2]|
+| [ELECROW ESP32 Terminal](https://www.elecrow.com/esp-terminal-with-esp32-3-5-inch-parallel-480x320-tft-capacitive-touch-display-rgb-by-chip-ili9488.html) |  16M  |  8M   | ``` [env:ELECROW_ESP32] ```  | ✔️ YES [^1] |
 | [MAKERFABS ESP32S3](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) |  16M  |  2M   | ``` [env:MAKERF_ESP32S3] ``` |  🚧 TESTING    |
 | [LILYGO T-DECK](https://www.lilygo.cc/products/t-deck) |  16M  |  8M   | ``` [env:TDECK_ESP32S3] ``` |  ✔️ YES    |
 | [LILYGO T-DECK PLUS](https://lilygo.cc/en-us/products/t-deck-plus-1) | 16M | 8M | ``` [env:TDECK_ESP32S3] ``` |  🚧 TESTING    |
-| [LILYGO T4-S3](https://lilygo.cc/products/t4-s3) | 16M | 8M | ``` [env:T4_S3] ``` | 🚧 TESTING    |
+| [LILYGO T4-S3](https://lilygo.cc/products/t4-s3) | 16M | 8M | ``` [env:T4_S3] ``` | ✔️ YES    |
+| [WAVESHARE ESP32-P4-WIFI6 3.5inch Smart Vision ](https://www.waveshare.com/product/arduino/boards-kits/esp32-p4/esp32-p4-wifi6-touch-lcd-3.5.htm) | 16M | 32M | ``` [env:WAVESHARE_P4_35] ``` | ✔️ YES    |
+| [WAVESHARE ESP32-P4-WIFI6 4.3inch Development Board](https://www.waveshare.com/product/arduino/boards-kits/esp32-p4/esp32-p4-wifi6-touch-lcd-4.3.htm) | 32M | 32M | ``` [env:WAVESHARE_P4_43] ``` | ✔️ YES   |
 
-If the board has a BOOT button (GPIO0) it is possible to use power saving functions.
-To do this, simply include the following Build Flag in the required env in platformio.ini
+
+> [!IMPORTANT]
+> Known Issue: ESP32-P4 + ESP32-C6 — Reboots with SD + WiFi 
+>On boards that pair an ESP32-P4 with an ESP32-C6 co-processor (e.g. WAVESHARE_P4_43), enabling WiFi while an SD card is mounted via SDMMC can cause intermittent crashes or reboots. The backtrace typically shows `sdio_read` → `xRingbufferCreateStatic`.
+>**Root cause:** The SDMMC peripheral is shared between the SD card slot and the C6 SDIO link. The ESP-Hosted MCU firmware does not properly serialise concurrent access, leading to a corrupted ring buffer allocation and a system panic.
+>This is a known ESP-Hosted firmware bug, tracked upstream at https://github.com/espressif/esp-hosted-mcu/issues/144 and #184. Espressif has acknowledged it; a fix is expected in a future release.
+>**Workaround:** Disable WiFi via CLI Settings 
+
+
+If the board has a BOOT button it is possible to use power saving functions.
+To do this, simply include the following Build Flags in the required env in platformio.ini
 
 ```-DPOWER_SAVE``` <br>
+```-DINVERT_BOOT_PIN``` (if the button signal is inverted, e.g. Waveshare P4 boards) <br>
 
 > [!IMPORTANT]
 > Currently, this project can run on any board with an ESP32S3 and at least a 320x480 TFT screen. The idea is to support all existing boards on the market that I can get to work, so if you don't want to use the specific IceNav board, please feel free to create an issue, and I will look into providing support.
 > Any help or contribution is always welcome
+
+
 
 ### Screens
 
@@ -119,10 +133,9 @@ To do this, simply include the following Build Flag in the required env in platf
 
 |             | Type          | Build Flags [^3]                   | 
 |:------------|:--------------|:-----------------------------------|
-|             | 🔋 Batt. Monitor | ```-DADC1``` or ```-DADC2``` <br> ```-DBATT_PIN=ADCn_CHANNEL_x``` |  
+|             | 🔋 Batt. Monitor | ```-DBATT_ADC_UNIT=n``` (1 or 2) <br> ```-DBATT_ADC_CHANNEL=x``` <br> ```-DBATT_DIVIDER_R1=n``` (default 100000) <br> ```-DBATT_DIVIDER_R2=n``` (default 100000) |  
 | AT6558D     | 🛰️ GPS        | ```-DAT6558D_GPS```                |
-| HMC5883L    | 🧭 Compass    | ```-DHMC5883L```                   |
-| QMC5883     | 🧭 Compass    | ```-DQMC5883```                    |
+| HMC5883L / QMC5883 | 🧭 Compass (auto-detected) | ```-DCOMPASS_AUTO```        |
 | MPU9250     | 🧭 IMU (Compass) | ```-DIMU_MPU9250```                | 
 | BME280      | 🌡️ Temp <br> ☁️ Pres <br> 💧 Hum | ```-DBME280```                     |
 | MPU6050     | 📳 IMU | ```-DMPU6050```                     |
@@ -132,6 +145,7 @@ To do this, simply include the following Build Flag in the required env in platf
 [^2]: See **hal.hpp** for pinouts configuration
 [^3]: **platformio.ini** file under the build_flags section
 [^4]: If Touch SPI is wired to the same SPI of ILI9488 ensure that TFT MISO line has 3-STATE for screenshots (read GRAM) or leave out 
+[^5]: Widgets are draggable
 
 Other setups like another sensors types, etc... not listed in the specs, now **They are not included**
 
@@ -409,11 +423,22 @@ The Web File Server will start automatically if default automatic network connec
 
 To access the Web File Server, simply use any browser and go to the following address: http://icenav.local
 
+**Known issue (ESP32-P4 boards):** uploading files crashes the device
+(`assert failed: sdio_rx_get_buffer`). This is a known upstream bug in the ESP-Hosted SDIO
+driver used for WiFi on the C6 co-processor
+([espressif/esp-hosted-mcu#144](https://github.com/espressif/esp-hosted-mcu/issues/144),
+[#184](https://github.com/espressif/esp-hosted-mcu/issues/184)), not fixable from this project.
+Two triggers confirmed: uploading a file larger than ~100KB, and uploading any file (even a
+few hundred bytes) into a new folder that has to be created on the SD card. Uploading into an
+existing folder works fine for small files. Downloading files is not affected. Track the
+upstream issues for a fix.
+
    
 
 ## Special thanks to....
 * [@hpsaturn](https://github.com/hpsaturn) Thanks to him and his knowledge, this project is no longer sitting in a drawer :smirk:.
 * [@Xinyuan-LilyGO](https://github.com/Xinyuan-LilyGO) for provide me hardware to test it.
+* [@waveshareteam](https://github.com/waveshareteam) for provide me latest ESP32P4 hardware to test it.
 * [@Elecrow-RD](https://github.com/Elecrow-RD)  For your interest in my project and for providing me with hardware to test it.
 * [@pcbway](https://github.com/pcbway) for bringing a first prototype of the IceNav PCB to reality :muscle:
 * [@lovyan03](https://github.com/lovyan03/LovyanGFX) for his library; I still have a lot to learn from it.

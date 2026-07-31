@@ -13,6 +13,10 @@
 #include <LovyanGFX.hpp>
 #include "../../include/hal.hpp"
 
+#if defined(PANEL_BUS_DSI)
+    #include "Panel_ST7701_DSI.hpp"
+#endif
+
 #ifndef PANEL_OFFSET_X
     #define PANEL_OFFSET_X 0
 #endif
@@ -36,6 +40,12 @@
 #endif
 #ifndef PANEL_PIN_BL
     #define PANEL_PIN_BL TFT_BL
+#endif
+#ifndef PANEL_LIGHT_FREQ
+    #define PANEL_LIGHT_FREQ 44100
+#endif
+#ifndef PANEL_LIGHT_INVERT
+    #define PANEL_LIGHT_INVERT false
 #endif
 #ifndef PANEL_BUS_SHARED
     #if defined(PANEL_BUS_SPI) && !defined(SPI_SHARED)
@@ -77,12 +87,18 @@
     #ifndef TOUCH_I2C_ADDR
         #define TOUCH_I2C_ADDR 0x38
     #endif
-    #ifndef TOUCH_I2C_PORT
-        #define TOUCH_I2C_PORT 0
+    #ifndef I2C_PORT
+        #define I2C_PORT 0
     #endif
 #endif
 #ifndef TOUCH_OFFSET_ROTATION
     #define TOUCH_OFFSET_ROTATION 0
+#endif
+
+#if defined(TOUCH_XPT2046)
+    #define TOUCH_RESISTIVE
+#elif defined(TOUCH_FT5x06) || defined(TOUCH_GT911)
+    #define TOUCH_CAPACITIVE
 #endif
 
 class LGFX : public lgfx::LGFX_Device
@@ -95,6 +111,8 @@ class LGFX : public lgfx::LGFX_Device
     lgfx::Bus_Parallel8 busInstance;
 #elif defined(PANEL_BUS_PARALLEL16)
     lgfx::Bus_Parallel16 busInstance;
+#elif defined(PANEL_BUS_DSI)
+    lgfx::Bus_DSI busInstance;
 #else
     #error "No panel bus defined!"
 #endif
@@ -126,6 +144,16 @@ class LGFX : public lgfx::LGFX_Device
                 cfg.pin_mosi = PANEL_PIN_MOSI;
                 cfg.pin_miso = PANEL_PIN_MISO;
                 cfg.pin_dc = PANEL_PIN_DC;
+                busInstance.config(cfg);
+                panelInstance.setBus(&busInstance);
+            }
+#elif defined(PANEL_BUS_DSI)
+            {
+                auto cfg = busInstance.config();
+                cfg.lane_mbps = PANEL_DSI_LANE_MBPS;
+                cfg.lane_num = PANEL_DSI_LANE_NUM;
+                cfg.ldo_voltage_mv = PANEL_DSI_LDO_MV;
+                cfg.ldo_chan_id = PANEL_DSI_LDO_CHAN;
                 busInstance.config(cfg);
                 panelInstance.setBus(&busInstance);
             }
@@ -162,7 +190,11 @@ class LGFX : public lgfx::LGFX_Device
 
             {
                 auto cfg = panelInstance.config();
-                cfg.pin_cs = PANEL_PIN_CS;
+                #if defined(PANEL_BUS_SPI)
+                    cfg.pin_cs = PANEL_PIN_CS;
+                #else
+                    cfg.pin_cs = -1;
+                #endif
                 cfg.pin_rst = PANEL_PIN_RST;
                 cfg.pin_busy = -1;
                 cfg.panel_width = PANEL_WIDTH;
@@ -186,11 +218,25 @@ class LGFX : public lgfx::LGFX_Device
                 panelInstance.config(cfg);
             }
 
+            #if defined(PANEL_BUS_DSI)
+            {
+                auto cfg = panelInstance.config_detail();
+                cfg.dpi_freq_mhz = PANEL_DSI_DPI_FREQ_MHZ;
+                cfg.hsync_back_porch = PANEL_DSI_HSYNC_BACK_PORCH;
+                cfg.hsync_pulse_width = PANEL_DSI_HSYNC_PULSE_WIDTH;
+                cfg.hsync_front_porch = PANEL_DSI_HSYNC_FRONT_PORCH;
+                cfg.vsync_back_porch = PANEL_DSI_VSYNC_BACK_PORCH;
+                cfg.vsync_pulse_width = PANEL_DSI_VSYNC_PULSE_WIDTH;
+                cfg.vsync_front_porch = PANEL_DSI_VSYNC_FRONT_PORCH;
+                panelInstance.config_detail(cfg);
+            }
+            #endif
+
             {
                 auto cfg = lightInstance.config();
                 cfg.pin_bl = PANEL_PIN_BL;
-                cfg.invert = false;
-                cfg.freq = 44100;
+                cfg.invert = PANEL_LIGHT_INVERT;
+                cfg.freq = PANEL_LIGHT_FREQ;
                 cfg.pwm_channel = 7;
                 lightInstance.config(cfg);
                 panelInstance.setLight(&lightInstance);
@@ -225,11 +271,14 @@ class LGFX : public lgfx::LGFX_Device
                 cfg.pin_int = TOUCH_PIN_INT;
                 cfg.bus_shared = true;
                 cfg.offset_rotation = TOUCH_OFFSET_ROTATION;
-                cfg.i2c_port = TOUCH_I2C_PORT;
+                cfg.i2c_port = I2C_PORT;
                 cfg.i2c_addr = TOUCH_I2C_ADDR;
                 cfg.pin_sda = TOUCH_PIN_SDA;
                 cfg.pin_scl = TOUCH_PIN_SCL;
                 cfg.freq = TOUCH_FREQ;
+                #ifdef TOUCH_PIN_RST
+                    cfg.pin_rst = TOUCH_PIN_RST;
+                #endif
                 touchInstance.config(cfg);
                 panelInstance.setTouch(&touchInstance);
             }

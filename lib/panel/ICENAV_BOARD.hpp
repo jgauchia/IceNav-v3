@@ -10,6 +10,7 @@
 
 #define LARGE_SCREEN
 #define TOUCH_INPUT
+#define SPLASH_FULLSCREEN
 
 #define PANEL_TYPE            lgfx::Panel_ILI9488
 #define PANEL_BUS_PARALLEL16

@@ -131,9 +131,7 @@ void gpsTask(void *pvParameters)
                             }
                         }
                         else if (lineLen < NMEA_RAW_LEN - 1)
-                        {
                             lineBuf[lineLen++] = c;
-                        }
                     }
 
                     // handle() returns DECODE_COMPLETED at the end of every
@@ -161,7 +159,8 @@ void gpsTask(void *pvParameters)
                                 lgf.hour     = fix.dateTime.hours;
                                 lgf.minute   = fix.dateTime.minutes;
                                 lgf.second   = fix.dateTime.seconds;
-                                gpxLogger.update(lgf);
+                                if (storage.getSdLoaded())
+                                    gpxLogger.update(lgf);
                             }
                             xSemaphoreGive(gpsMutex);
                         }
@@ -374,6 +373,15 @@ void sensorTask(void *pvParameters)
             }
 
             float rawBattery = sensors().batteryLevel();
+            // Boards without a real charging signal (S3, resistor-divider ADC)
+            // infer "charging" from the over-voltage percentage overshoot.
+            // Boards with a PMIC (P4, AXP2101) know it for a fact — force the
+            // same charging-icon range (level > 110) so notifyBar.cpp/
+            // sensorScr.cpp do not need a separate "charging" data path. Fixed
+            // to a flat 150 (not rawBattery + 110) so a bogus/absent battery
+            // reading while charging cannot fall outside that range.
+            if (sensors().isCharging())
+                rawBattery = 150.0f;
             if (sensorMutex != NULL && xSemaphoreTake(sensorMutex, portMAX_DELAY) == pdTRUE)
             {
                 globalSensorData.batteryPercent = rawBattery;

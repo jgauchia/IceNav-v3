@@ -25,7 +25,7 @@ lv_obj_t *labelLat;
 lv_obj_t *labelLatValue;
 lv_obj_t *labelLon;
 lv_obj_t *labelLonValue;
-bool isScreenRotated = false;
+static bool isScreenRotated = false;
 
 /**
  * @brief GPX Detail Screen event handler. Handles key and ready/cancel events for adding or editing GPX waypoints.
@@ -84,11 +84,18 @@ static void gpxDetailScreenEvent(lv_event_t *event)
 
     if (code == LV_EVENT_READY)
     {
+#ifdef PANEL_BUS_DSI
+        if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_90)
+        {
+            lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
+        }
+#else
         if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_270)
         {
             display().setRotation(0);
             lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
         }
+#endif
         createWptFile();
         GPXParser gpx;
         switch (gpxAction)
@@ -122,11 +129,18 @@ static void gpxDetailScreenEvent(lv_event_t *event)
 
     if (code == LV_EVENT_CANCEL)
     {
+#ifdef PANEL_BUS_DSI
+        if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_90)
+        {
+            lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
+        }
+#else
         if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_270)
         {
             display().setRotation(0);
-            lv_display_set_rotation(display_drv,LV_DISPLAY_ROTATION_0);
+            lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
         }
+#endif
         isMainScreen = true;
         mapView.redrawMap = true;
         gpxAction = WPT_NONE;
@@ -142,6 +156,21 @@ static void gpxDetailScreenEvent(lv_event_t *event)
  */
 static void rotateScreen(lv_event_t *event)
 {
+#ifdef PANEL_BUS_DSI
+    bool isRotated = (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_90);
+    ESP_LOGV(TAG, "%d", !isRotated);
+    if (!isRotated)
+    {
+        lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_90);
+    }
+    else
+    {
+        lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
+    }
+    lv_obj_set_width(gpxTagValue, lv_display_get_horizontal_resolution(display_drv) - 10);
+    lv_obj_set_size(gpxDetailScreen, lv_display_get_horizontal_resolution(display_drv), lv_display_get_vertical_resolution(display_drv));
+    lv_refr_now(display_drv);
+#else
     isScreenRotated = !isScreenRotated;
     ESP_LOGV(TAG, "%d", isScreenRotated);
     if (isScreenRotated)
@@ -154,8 +183,9 @@ static void rotateScreen(lv_event_t *event)
         display().setRotation(0);
         lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
     }
-    lv_obj_set_width(gpxTagValue, display().width() -10);
+    lv_obj_set_width(gpxTagValue, display().width() - 10);
     lv_refr_now(display_drv);
+#endif
 }
 
 /**
@@ -244,7 +274,7 @@ void createGpxDetailScreen()
     gpxTagValue = lv_textarea_create(gpxDetailScreen);
     lv_textarea_set_one_line(gpxTagValue, true);
     lv_obj_align(gpxTagValue, LV_ALIGN_TOP_MID, 0, 40);
-    lv_obj_set_width(gpxTagValue, display().width() - 10);
+    lv_obj_set_width(gpxTagValue, lv_display_get_horizontal_resolution(display_drv) - 10);
     lv_obj_add_state(gpxTagValue, LV_STATE_FOCUSED);
     lv_obj_add_event_cb(gpxTagValue, gpxDetailScreenEvent, LV_EVENT_ALL, gpxDetailScreen);
     #ifndef TDECK_ESP32S3

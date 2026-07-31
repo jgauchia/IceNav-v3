@@ -9,7 +9,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
 #include "esp_err.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
@@ -46,15 +46,25 @@ public:
     }
 
 private:
-    i2c_port_t i2cPort;
+    i2c_master_bus_handle_t busHandle;
+    uint32_t busFreq;
     bool initialized;
     SemaphoreHandle_t i2cMutex;
     static constexpr int I2C_MUTEX_TIMEOUT_MS = 15;
     static constexpr int I2C_BUS_TIMEOUT_MS   = 20;
-    // SCL stretch timeout as 2^tout source-clock cycles (APB 80 MHz).
-    // 2^17 = 131072 cycles ~= 1.6 ms: tolerates slow-sensor clock stretching
-    // while releasing a hung bus quickly (HW max 0x1F ~= 26 s).
-    static constexpr int I2C_SCL_TIMEOUT_TOUT = 17;
+
+    // The new i2c_master driver requires one device handle per address.
+    // Handles are created lazily and cached; the sensor set is small.
+    static constexpr int MAX_DEVICES = 8;
+    struct DeviceEntry
+    {
+        uint8_t addr;
+        i2c_master_dev_handle_t handle;
+    };
+    DeviceEntry devices[MAX_DEVICES];
+    int deviceCount;
+
+    i2c_master_dev_handle_t deviceFor(uint8_t addr);
 };
 
 extern I2CNative i2c;

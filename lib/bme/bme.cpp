@@ -90,13 +90,48 @@ bool BME280_Driver::begin(uint8_t addr)
     return true;
 }
 
+#ifdef TOUCH_CAPACITIVE
+/**
+ * @brief Initializes the BME280 sensor over an I2C bus already owned by LovyanGFX.
+ *
+ * @details For boards where the touch panel is I2C (TOUCH_CAPACITIVE), shares
+ *          the bus already brought up for the touch controller instead of
+ *          opening a second bus — the new i2c_master driver forbids a second
+ *          owner of the same port. Same bring-up sequence as begin().
+ *
+ * @param i2cPort I2C port already initialized by LovyanGFX (touch bus).
+ * @param addr    I2C address (default 0x76 or 0x77).
+ * @return true if initialization successful, false otherwise.
+ */
+bool BME280_Driver::beginShared(int i2cPort, uint8_t addr)
+{
+    I2CDriverBase::beginShared(i2cPort);
+    i2cAddr = addr;
+
+    uint8_t chipId = read8(0xD0);
+    if (chipId != 0x60)
+        return false;
+
+    write8(0xE0, 0xB6);
+    vTaskDelay(pdMS_TO_TICKS(10));
+
+    readCoefficients();
+
+    write8(0xF2, 0x01);
+    write8(0xF4, 0x27);
+    write8(0xF5, 0xA0);
+
+    return true;
+}
+#endif
+
 /**
  * @brief Reads raw 20-bit temperature ADC value from registers 0xFA-0xFC.
  */
 int32_t BME280_Driver::readRawT()
 {
     uint8_t buf[3];
-    i2c.readBytes(i2cAddr, 0xFA, buf, 3);
+    readBytes(0xFA, buf, 3);
     int32_t adc = buf[0];
     adc <<= 8;
     adc |= buf[1];
@@ -111,7 +146,7 @@ int32_t BME280_Driver::readRawT()
 int32_t BME280_Driver::readRawP()
 {
     uint8_t buf[3];
-    i2c.readBytes(i2cAddr, 0xF7, buf, 3);
+    readBytes(0xF7, buf, 3);
     int32_t adc = buf[0];
     adc <<= 8;
     adc |= buf[1];
@@ -126,7 +161,7 @@ int32_t BME280_Driver::readRawP()
 int32_t BME280_Driver::readRawH()
 {
     uint8_t buf[2];
-    i2c.readBytes(i2cAddr, 0xFD, buf, 2);
+    readBytes(0xFD, buf, 2);
     int32_t adc = buf[0];
     adc <<= 8;
     adc |= buf[1];
@@ -262,7 +297,7 @@ float BME280_Driver::readHumidity()
 void BME280_Driver::readAll(float &temp, float &pres, float &humi)
 {
     uint8_t buffer[8];
-    i2c.readBytes(i2cAddr, 0xF7, buffer, 8);
+    readBytes(0xF7, buffer, 8);
 
     int32_t adc_P = buffer[0];
     adc_P <<= 8;

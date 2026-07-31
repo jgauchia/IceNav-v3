@@ -24,7 +24,9 @@ uint8_t maxZoom = 0;         /**< Maximum Zoom Level */
 uint8_t defZoom = 15;        /**< Default Zoom Level for rendered map */
 uint8_t zoom = 0;            /**< Current Zoom Level */
 
-#ifdef LARGE_SCREEN
+#ifdef EXTRA_LARGE_SCREEN
+    static const float scale = 1.5f;   /**< Scale factor for extra large screens */
+#elif defined(LARGE_SCREEN)
     static const float scale = 1.0f;   /**< Scale factor for large screens */
 #else
     static const float scale = 0.75f;  /**< Scale factor for small screens */
@@ -86,18 +88,18 @@ void loadPreferences()
     mapSet.map3D = cfg.getBool(PKEYS::KMAP_3D, false);
     navSet.simNavigation = cfg.getBool(PKEYS::KSIM_NAV, false);
     navSet.routeSpeed = cfg.getShort(PKEYS::KROUTE_SPEED, 130);
-    gpsBaud = cfg.getShort(PKEYS::KGPS_SPEED, 4);
+    gpsBaud = cfg.getShort(PKEYS::KGPS_SPEED, 3);
     gpsUpdate = cfg.getShort(PKEYS::KGPS_RATE, 3);
     compassPosX = cfg.getInt(PKEYS::KCOMP_X, (TFT_WIDTH / 2) - (100 * scale));
-    compassPosY = cfg.getInt(PKEYS::KCOMP_Y, 80);
+    compassPosY = cfg.getInt(PKEYS::KCOMP_Y, 80 * scale);
     coordPosX = cfg.getInt(PKEYS::KCOORD_X, (TFT_WIDTH / 2) - (90 * scale));
-    coordPosY = cfg.getInt(PKEYS::KCOORD_Y, 30);
+    coordPosY = cfg.getInt(PKEYS::KCOORD_Y, 30 * scale);
     altitudePosX = cfg.getInt(PKEYS::KALTITUDE_X, 8);
-    altitudePosY = cfg.getInt(PKEYS::KALTITUDE_Y, TFT_HEIGHT - 170);
+    altitudePosY = cfg.getInt(PKEYS::KALTITUDE_Y, TFT_HEIGHT - (170 * scale));
     speedPosX = cfg.getInt(PKEYS::KSPEED_X, 1);
-    speedPosY = cfg.getInt(PKEYS::KSPEED_Y, TFT_HEIGHT - 130);
+    speedPosY = cfg.getInt(PKEYS::KSPEED_Y, TFT_HEIGHT - (130 * scale));
     sunPosX = cfg.getInt(PKEYS::KSUN_X, 170);
-    sunPosY = cfg.getInt(PKEYS::KSUN_Y, TFT_HEIGHT - 170);
+    sunPosY = cfg.getInt(PKEYS::KSUN_Y, TFT_HEIGHT - (170 * scale));
     defBright = cfg.getUInt(PKEYS::KDEF_BRIGT, 254);
     minZoom = 6;
     maxZoom = 17;

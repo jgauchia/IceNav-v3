@@ -130,7 +130,9 @@ void initTFT()
     tft.initDMA();
     tft.fillScreen(TFT_BLACK);
 
-    #ifdef TOUCH_INPUT
+    // Capacitive touch controllers report already-calibrated coordinates,
+    // so the resistive calibration flow only applies to XPT2046.
+    #if defined(TOUCH_INPUT) && defined(TOUCH_RESISTIVE)
         touchCalibrate();
     #endif
 }

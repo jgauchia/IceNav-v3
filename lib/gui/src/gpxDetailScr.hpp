@@ -18,7 +18,6 @@ extern lv_obj_t *labelLat;         /**< Latitude label */
 extern lv_obj_t *labelLatValue;    /**< Latitude value label */
 extern lv_obj_t *labelLon;         /**< Longitude label */
 extern lv_obj_t *labelLonValue;    /**< Longitude value label */
-extern bool isScreenRotated;       /**< Flag to know if screen is rotated */
 
 void loadMainScreen();
 

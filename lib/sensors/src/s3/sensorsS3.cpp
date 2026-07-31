@@ -6,12 +6,15 @@
  * @date 2026-06
  */
 
+#include "sdkconfig.h"
+#if CONFIG_IDF_TARGET_ESP32S3
+
 #include "sensors.hpp"
 #include "battery.hpp"
 
 // compass.hpp derives ENABLE_COMPASS from the board magnetometer/IMU macros,
 // so it must be included before that macro is queried below.
-#if defined(HMC5883L) || defined(QMC5883) || defined(IMU_MPU9250)
+#if defined(COMPASS_AUTO) || defined(IMU_MPU9250)
     #include "compass.hpp"
     extern Compass compass;
 #endif
@@ -55,7 +58,7 @@ public:
 
     bool hasBattery() const override
     {
-        #ifdef BATT_PIN
+        #ifdef BATT_ADC_UNIT
             return true;
         #else
             return false;
@@ -94,7 +97,7 @@ public:
 
     float batteryLevel() override
     {
-        #ifdef BATT_PIN
+        #ifdef BATT_ADC_UNIT
             return battery.readBattery();
         #else
             return 0.0f;
@@ -103,11 +106,16 @@ public:
 
     float batteryVoltage() override
     {
-        #ifdef BATT_PIN
+        #ifdef BATT_ADC_UNIT
             return battery.lastVoltage();
         #else
             return 0.0f;
         #endif
+    }
+
+    bool isCharging() override
+    {
+        return battery.isChargingInferred();
     }
 };
 
@@ -119,3 +127,5 @@ ISensors &sensors()
     static SensorsS3 instance;
     return instance;
 }
+
+#endif // CONFIG_IDF_TARGET_ESP32S3

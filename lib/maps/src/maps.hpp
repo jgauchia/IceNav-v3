@@ -25,6 +25,11 @@
 #include "nav_reader.hpp"
 #include "PsramAllocator.hpp"
 
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+#include "driver/ppa.h"
+#include "esp_cache.h"
+#endif
+
 /**
  * @class Maps
  * @brief Class for handling map rendering and display
@@ -105,15 +110,9 @@ private:
     void renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map);
 
 public:
-#ifdef T4_S3
-    static const uint16_t tileWidth = 1024;
-    static const uint16_t tileHeight = 1024;
-    static const uint8_t tilesGrid = 4;
-#else
-    static const uint16_t tileWidth = 768;
-    static const uint16_t tileHeight = 768;
-    static const uint8_t tilesGrid = 3;
-#endif
+    uint16_t tileWidth;
+    uint16_t tileHeight;
+    uint8_t tilesGrid;
 
     void* mapBuffer;
     uint16_t mapScrHeight;
@@ -166,6 +165,8 @@ public:
     void resetScrollState();
 
 private:
+    void initResources();
+
     struct FeatureRef
     {
         uint8_t* ptr;
@@ -202,12 +203,18 @@ private:
     static const uint32_t MAX_FEATURE_POOL_SIZE = 16384;
     static const uint16_t MAX_PLACED_LABELS = 512;
 
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    ppa_client_handle_t ppaFillClient = nullptr;
+    ppa_client_handle_t ppaBlendClient = nullptr;
+#endif
+
     std::vector<int, PsramAllocator<int>> projBuf32X;
     std::vector<int, PsramAllocator<int>> projBuf32Y;
     std::vector<int16_t, PsramAllocator<int16_t>> decodedCoords;
     std::vector<FeatureRef, PsramAllocator<FeatureRef>> featurePool;
     std::vector<uint16_t, PsramAllocator<uint16_t>> layers[16];
     std::vector<uint16_t, PsramAllocator<uint16_t>> layersCasing[16];
+    std::vector<uint16_t, PsramAllocator<uint16_t>> layersText[16];
     std::vector<uint16_t, PsramAllocator<uint16_t>> ringEndsCache;
     std::vector<LabelRect, PsramAllocator<LabelRect>> placedLabelsCache;
 

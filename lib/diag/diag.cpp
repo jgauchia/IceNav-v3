@@ -61,6 +61,12 @@ static bool copyCoredumpToSD()
     if (!part)
         return false;
 
+    if (size > part->size || (addr - part->address) > part->size)
+    {
+        ESP_LOGE(TAG, "Coredump size looks corrupt (size=%u part_size=%u), skipping copy", (unsigned)size, (unsigned)part->size);
+        return false;
+    }
+
     FILE *out = storage.open(COREDUMP_PATH, "wb");
     if (!out)
         return false;
@@ -109,22 +115,32 @@ static void logCoredumpSummary(FILE *log)
     snprintf(line, sizeof(line), "Crash task: %s  PC: 0x%08lx", summary.exc_task,
              (unsigned long)summary.exc_pc);
     storage.println(log, line);
-    snprintf(line, sizeof(line), "Exception cause: %lu  vaddr: 0x%08lx",
-             (unsigned long)summary.ex_info.exc_cause, (unsigned long)summary.ex_info.exc_vaddr);
-    storage.println(log, line);
 
-    if (summary.exc_bt_info.depth > 0)
-    {
-        storage.print(log, "Backtrace:");
-        for (uint32_t i = 0; i < summary.exc_bt_info.depth && i < 16; i++)
+    #if __XTENSA__
+        // Xtensa (ESP32-S3): cause/vaddr plus a resolved on-device backtrace.
+        snprintf(line, sizeof(line), "Exception cause: %lu  vaddr: 0x%08lx",
+                 (unsigned long)summary.ex_info.exc_cause, (unsigned long)summary.ex_info.exc_vaddr);
+        storage.println(log, line);
+
+        if (summary.exc_bt_info.depth > 0)
         {
-            snprintf(line, sizeof(line), " 0x%08lx", (unsigned long)summary.exc_bt_info.bt[i]);
-            storage.print(log, line);
+            storage.print(log, "Backtrace:");
+            for (uint32_t i = 0; i < summary.exc_bt_info.depth && i < 16; i++)
+            {
+                snprintf(line, sizeof(line), " 0x%08lx", (unsigned long)summary.exc_bt_info.bt[i]);
+                storage.print(log, line);
+            }
+            if (summary.exc_bt_info.corrupted)
+                storage.print(log, " (corrupted)");
+            storage.println(log, "");
         }
-        if (summary.exc_bt_info.corrupted)
-            storage.print(log, " (corrupted)");
-        storage.println(log, "");
-    }
+    #else
+        // RISC-V (ESP32-P4): mcause/mtval; the backtrace is a raw stack dump that
+        // must be resolved off-device with GDB or the ELF, so it is not printed here.
+        snprintf(line, sizeof(line), "Exception mcause: %lu  mtval: 0x%08lx",
+                 (unsigned long)summary.ex_info.mcause, (unsigned long)summary.ex_info.mtval);
+        storage.println(log, line);
+    #endif
 }
 
 /**

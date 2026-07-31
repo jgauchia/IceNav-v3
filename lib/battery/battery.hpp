@@ -10,8 +10,9 @@
 
 #include <cmath>
 #include <esp_rom_sys.h>
-#include <driver/adc.h>
-#include <esp_adc_cal.h>
+#include <esp_adc/adc_oneshot.h>
+#include <esp_adc/adc_cali.h>
+#include <esp_adc/adc_cali_scheme.h>
 
 
 /**
@@ -28,6 +29,13 @@ class Battery
         float lastVolt   = 0.0f;             /**< Last measured voltage (V). */
         static constexpr float V_REF = 3.3f; /**< ADC reference voltage. */
 
+        adc_oneshot_unit_handle_t adcHandle = nullptr; /**< ADC oneshot unit handle. */
+        adc_cali_handle_t caliHandle = nullptr;        /**< ADC calibration handle. */
+        bool caliEnabled = false;                      /**< Whether calibration is available. */
+
+        float lastMeanRaw = 0.0f;            /**< Previous raw ADC average for charging inference. */
+        bool chargingInferred = false;       /**< Whether battery voltage is trending up (charging). */
+
     public:
         Battery();
 
@@ -35,4 +43,6 @@ class Battery
         void setBatteryLevels(float maxVoltage, float minVoltage);
         float readBattery();
         float lastVoltage() const { return lastVolt; }
+        float maxVoltage() const  { return batteryMax; }
+        bool isChargingInferred() const { return chargingInferred; } /**< Whether raw ADC trend or voltage ≥ max suggests charging. */
 };

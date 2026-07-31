@@ -36,6 +36,10 @@
     #include "MAKERF_ESP32S3.hpp"
 #elif defined(ELECROW_ESP32)
     #include "ELECROW_ESP32.hpp"
+#elif defined(WAVESHARE_P4_35)
+    #include "WAVESHARE_P4_35.hpp"
+#elif defined(WAVESHARE_P4_43)
+    #include "WAVESHARE_P4_43.hpp"
 #else
     #error "No Panel defined!"
 #endif

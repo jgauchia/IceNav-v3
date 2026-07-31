@@ -7,12 +7,23 @@
  */
 
 #include "maps.hpp"
+#include "esp_log.h"
+#include "esp_heap_caps.h"
 #include <cmath>
 #include <climits>
-#include "esp_task_wdt.h"
 #include "tasks.hpp"
 #include "mainScr.hpp"
 #include "navContext.hpp"
+
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+static inline uint32_t rgb565_to_argb8888(uint16_t c)
+{
+    uint8_t r = ((c >> 11) & 0x1F) * 255 / 31;
+    uint8_t g = ((c >> 5) & 0x3F) * 255 / 63;
+    uint8_t b = (c & 0x1F) * 255 / 31;
+    return 0xFF000000 | (r << 16) | (g << 8) | b;
+}
+#endif
 #include "../../images/src/bruj.h"
 #include "../../images/src/compass.h"
 #include "../../images/src/waypoint.h"
@@ -50,6 +61,19 @@ Maps::Maps() : navLastZoom(0),
                focalLength(300.0f){
     static_assert(Maps::MAX_FEATURE_POOL_SIZE <= 65535U,
         "featurePool index stored as uint16_t — pool size must not exceed 65535");
+    // PSRAM reservations, mutexes and the render task are created in initMap(),
+    // not here: on the ESP32-P4 the PSRAM and the scheduler are not ready during
+    // global C++ constructors, so allocating SPIRAM in this ctor aborts at boot.
+    }
+
+/**
+ * @brief Allocate PSRAM pools, sync primitives and start the render task.
+ *
+ * @details Split out of the constructor so it runs from setup(), when PSRAM and
+ *          the FreeRTOS scheduler are available.
+ */
+void Maps::initResources()
+{
     projBuf32X.reserve(MAX_POLYGON_POINTS);
     projBuf32Y.reserve(MAX_POLYGON_POINTS);
     decodedCoords.reserve(MAX_POLYGON_POINTS * 2);
@@ -61,6 +85,7 @@ Maps::Maps() : navLastZoom(0),
     {
         layers[i].reserve(MAX_FEATURE_POOL_SIZE / 4);
         layersCasing[i].reserve(MAX_FEATURE_POOL_SIZE / 8);
+        layersText[i].reserve(MAX_FEATURE_POOL_SIZE / 16);
     }
 
     ringEndsCache.reserve(MAX_POLYGON_POINTS);
@@ -68,6 +93,22 @@ Maps::Maps() : navLastZoom(0),
     navDataCache.reserve(NAV_DATA_CACHE_SIZE);
     mapMutex = xSemaphoreCreateRecursiveMutex();
     mapEventGroup = xEventGroupCreate();
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    if (ppaFillClient == nullptr)
+    {
+        ppa_client_config_t cfg = {};
+        cfg.oper_type = PPA_OPERATION_FILL;
+        cfg.max_pending_trans_num = 1;
+        ppa_register_client(&cfg, &ppaFillClient);
+    }
+    if (ppaBlendClient == nullptr)
+    {
+        ppa_client_config_t cfg = {};
+        cfg.oper_type = PPA_OPERATION_BLEND;
+        cfg.max_pending_trans_num = 1;
+        ppa_register_client(&cfg, &ppaBlendClient);
+    }
+#endif
     xTaskCreatePinnedToCore(mapRenderTask, "MapRenderTask", 4096, this, 2, &mapRenderTaskHandle, 0);
     }
 
@@ -277,9 +318,38 @@ void Maps::coords2map(float lat, float lon, const tileBounds& bound, uint16_t *p
  */
 void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
 {
+    // Grid must cover the largest screen dimension with at least half a tile
+    // of scroll margin on each side; grows one tile at a time from the 3x3
+    // baseline instead of forcing extra tiles every board pays for.
+    const uint16_t maxScreenDim = std::max(mapHeight, mapWidth);
+    uint8_t neededGrid = 3;
+    while ((neededGrid * mapTileSize - maxScreenDim) / 2 < mapTileSize / 2)
+        neededGrid++;
+    Maps::tilesGrid = neededGrid;
+    Maps::tileWidth = neededGrid * mapTileSize;
+    Maps::tileHeight = neededGrid * mapTileSize;
+
+    initResources();
     Maps::mapScrHeight = mapHeight;
     Maps::mapScrWidth = mapWidth;
+    // focalLength was tuned for ICENAV_BOARD's viewport (320x480 panel, minus
+    // the 27px status bar). Scaling it by height keeps the ground X/Y aspect
+    // ratio consistent on screens with a different width/height ratio (4.3").
+    constexpr float referenceHeight = 480.0f - 27.0f;
+    Maps::focalLength = 300.0f * (static_cast<float>(mapHeight) / referenceHeight);
     Maps::mapTempSprite.createSprite(Maps::tileWidth, Maps::tileHeight);
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    {
+        uint8_t* buf = static_cast<uint8_t*>(Maps::mapTempSprite.getBuffer());
+        if (buf && ((uint32_t)buf & 0x7F) != 0)
+        {
+            size_t bufSize = Maps::tileWidth * Maps::tileHeight * 2;
+            uint8_t* alignedBuf = static_cast<uint8_t*>(heap_caps_aligned_alloc(128, bufSize, MALLOC_CAP_SPIRAM));
+            if (alignedBuf)
+                Maps::mapTempSprite.setBuffer(alignedBuf, Maps::tileWidth, Maps::tileHeight);
+        }
+    }
+#endif
     Maps::mapTempSprite.loadFont("/spiffs/font/font.vlw");
     Maps::mapSprite.createSprite(mapWidth, mapHeight);
     Maps::mapBuffer = Maps::mapSprite.getBuffer();
@@ -323,7 +393,7 @@ void Maps::drawTrack(MapCanvas& map)
         latLonToPixel(p1.lat, p1.lon, x1, y1);
         latLonToPixel(p2.lat, p2.lon, x2, y2);
         if ((x1 >= 0 && x1 < tileWidth && y1 >= 0 && y1 < tileHeight) || (x2 >= 0 && x2 < tileWidth && y2 >= 0 && y2 < tileHeight))
-            map.drawWideLine(x1, y1, x2, y2, 3, TFT_BLUE);
+            map.drawWideLine(x1, y1, x2, y2, 3, 0x6298);
     }
 }
 
@@ -493,7 +563,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     continue;
                 }
                 bool zoomChanged = (instance->zoomLevel != lastZoom);
-                bool fullReset = zoomChanged || (instance->pendingTiles.size() >= (tilesGrid * tilesGrid));
+                bool fullReset = zoomChanged || (instance->pendingTiles.size() >= (size_t)(instance->tilesGrid * instance->tilesGrid));
                 lastZoom = instance->zoomLevel;
 
                 if (fullReset)
@@ -515,12 +585,40 @@ void Maps::mapRenderTask(void* pvParameters)
                     {
                         instance->layers[i].clear();
                         instance->layersCasing[i].clear();
+                        instance->layersText[i].clear();
                     }
 
                     if (mapSet.vectorMap)
                         NavReader::openPack(instance->zoomLevel);
                     else if (instance->mapTempSprite.getBuffer())
+                    {
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+                        uint8_t* buf = static_cast<uint8_t*>(instance->mapTempSprite.getBuffer());
+                        if (((uint32_t)buf & 0x7F) == 0)
+                        {
+                            ppa_fill_oper_config_t cfg = {};
+                            cfg.fill_argb_color.val = rgb565_to_argb8888(TFT_WHITE);
+                            cfg.out.buffer = buf;
+                            cfg.out.buffer_size = instance->tileWidth * instance->tileHeight * 2;
+                            cfg.out.pic_w = instance->tileWidth;
+                            cfg.out.pic_h = instance->tileHeight;
+                            cfg.out.block_offset_x = 0;
+                            cfg.out.block_offset_y = 0;
+                            cfg.out.fill_cm = PPA_FILL_COLOR_MODE_RGB565;
+                            cfg.fill_block_w = instance->tileWidth;
+                            cfg.fill_block_h = instance->tileHeight;
+                            cfg.mode = PPA_TRANS_MODE_BLOCKING;
+                            ppa_do_fill(instance->ppaFillClient, &cfg);
+                            esp_cache_msync(buf, instance->tileWidth * instance->tileHeight * 2, ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_TYPE_DATA);
+                        }
+                        else
+                        {
+                            instance->mapTempSprite.fillSprite(TFT_WHITE);
+                        }
+#else
                         instance->mapTempSprite.fillSprite(TFT_WHITE);
+#endif
+                    }
                 }
 
                 // Yields mutex briefly so other tasks can run between tile renders.
@@ -531,7 +629,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     vTaskDelay(1);
                     if (xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE)
                         return true;
-                    if (instance->pendingTiles.size() >= (size_t)(tilesGrid * tilesGrid))
+                    if (instance->pendingTiles.size() >= (size_t)(instance->tilesGrid * instance->tilesGrid))
                         return true;
                     return false;
                 };
@@ -581,8 +679,8 @@ void Maps::mapRenderTask(void* pvParameters)
                     const int32_t tlX = (int32_t)instance->navTlTileX;
                     const int32_t tlY = (int32_t)instance->navTlTileY;
                     instance->totalBounds = instance->getTileBounds((uint32_t)tlX, (uint32_t)tlY, instance->zoomLevel);
-                    const tileBounds brBounds = instance->getTileBounds((uint32_t)(tlX + tilesGrid - 1),
-                                                                        (uint32_t)(tlY + tilesGrid - 1), instance->zoomLevel);
+                    const tileBounds brBounds = instance->getTileBounds((uint32_t)(tlX + instance->tilesGrid - 1),
+                                                                        (uint32_t)(tlY + instance->tilesGrid - 1), instance->zoomLevel);
                     if (brBounds.lat_min < instance->totalBounds.lat_min)
                         instance->totalBounds.lat_min = brBounds.lat_min;
                     if (brBounds.lat_max > instance->totalBounds.lat_max)
@@ -616,7 +714,34 @@ void Maps::mapRenderTask(void* pvParameters)
                 }
 
                 if (instance->mapTempSprite.getBuffer())
+                {
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+                    uint8_t* buf = static_cast<uint8_t*>(instance->mapTempSprite.getBuffer());
+                    if (((uint32_t)buf & 0x7F) == 0)
+                    {
+                        ppa_fill_oper_config_t cfg = {};
+                        cfg.fill_argb_color.val = rgb565_to_argb8888(0xF7BE);
+                        cfg.out.buffer = buf;
+                        cfg.out.buffer_size = instance->tileWidth * instance->tileHeight * 2;
+                        cfg.out.pic_w = instance->tileWidth;
+                        cfg.out.pic_h = instance->tileHeight;
+                        cfg.out.block_offset_x = 0;
+                        cfg.out.block_offset_y = 0;
+                        cfg.out.fill_cm = PPA_FILL_COLOR_MODE_RGB565;
+                        cfg.fill_block_w = instance->tileWidth;
+                        cfg.fill_block_h = instance->tileHeight;
+                        cfg.mode = PPA_TRANS_MODE_BLOCKING;
+                        ppa_do_fill(instance->ppaFillClient, &cfg);
+                        esp_cache_msync(buf, instance->tileWidth * instance->tileHeight * 2, ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_TYPE_DATA);
+                    }
+                    else
+                    {
+                        instance->mapTempSprite.fillSprite(0xF7BE);
+                    }
+#else
                     instance->mapTempSprite.fillSprite(0xF7BE);
+#endif
+                }
 
                 instance->update3DCache();
                 instance->placedLabelsCache.clear();
@@ -655,7 +780,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     if (aborted)
                         break;
 
-                    // Pass 2: LineString bodies (from pre-separated casing list) and Texts
+                    // Pass 2: LineString bodies (from pre-separated casing list)
                     for (uint16_t idx : instance->layersCasing[i])
                     {
                         if ((++loopCounter & 127) == 0)
@@ -673,7 +798,11 @@ void Maps::mapRenderTask(void* pvParameters)
                     if (aborted)
                         break;
 
-                    for (uint16_t idx : layer)
+                }
+
+                for (int i = 0; i < 16 && !aborted; i++)
+                {
+                    for (uint16_t idx : instance->layersText[i])
                     {
                         if ((++loopCounter & 127) == 0)
                         {
@@ -684,11 +813,8 @@ void Maps::mapRenderTask(void* pvParameters)
                                 lastYield = millis_idf();
                             }
                         }
-                        if (instance->featurePool[idx].geomType == NavGeomType::Text)
-                            instance->renderNavText(instance->featurePool[idx], instance->mapTempSprite, instance->placedLabelsCache);
+                        instance->renderNavText(instance->featurePool[idx], instance->mapTempSprite, instance->placedLabelsCache);
                     }
-
-                    esp_task_wdt_reset();
                 }
 
                 if (aborted)
@@ -719,9 +845,7 @@ void Maps::mapRenderTask(void* pvParameters)
             }
         }
         else
-        {
             instance->prefetchNextTile();
-        }
         vTaskDelay(1);
     }
 }
@@ -854,10 +978,8 @@ void Maps::displayMap()
         lastRenderedArrowPos = navArrowPosition;
 
         if (use3DCache)
-        {
             // 3D mode: scanline perspective transform with heading baked in
             apply3DPerspective(mapHeading);
-        }
         else
         {
             Maps::mapTempSprite.setPivot(gridOffset * mapTileSize + Maps::navArrowPosition.posX,
@@ -967,8 +1089,10 @@ void Maps::apply3DPerspective(uint16_t heading)
     const int gpsTileX = gridOffset * mapTileSize + (int)navArrowPosition.posX;
     const int gpsTileY = gridOffset * mapTileSize + (int)navArrowPosition.posY;
 
-    // GPS lands at lower third of the viewport
-    const int gpsScreenY = dstH * 3 / 4;
+    // GPS lands at lower third of the viewport; shift up when climb overlay visible
+    int gpsScreenY = dstH * 3 / 4;
+    if (climbOverlay != NULL && !lv_obj_has_flag(climbOverlay, LV_OBJ_FLAG_HIDDEN))
+        gpsScreenY -= lv_obj_get_height(climbOverlay) / 2;
 
     // Heading rotation: rotate tile-space coords so heading points up
     const float headingRad = static_cast<float>(heading) * (static_cast<float>(M_PI) / 180.0f);
@@ -1015,55 +1139,28 @@ void Maps::apply3DPerspective(uint16_t heading)
 
         const float sxStart = static_cast<float>(gpsTileX) + (-halfW * invScale) * cosH + srcRelY * sinH;
         const float syStart = static_cast<float>(gpsTileY) - ((halfW * invScale) * sinH + srcRelY * cosH);
-        const float sxEnd = sxStart + dsxF * static_cast<float>(dstW);
-        const float syEnd = syStart + dsyF * static_cast<float>(dstW);
 
-        // Q16 holds +-32767 integer range; rows near the horizon can exceed it.
-        // Valid tile coords stay within a few thousand, so a conservative limit
-        // routes any extreme (overflow-prone) row to the float fallback.
-        const float Q16_LIMIT = 8000.0f;
-        bool fitsQ16 = fabsf(sxStart) < Q16_LIMIT && fabsf(syStart) < Q16_LIMIT &&
-                       fabsf(sxEnd) < Q16_LIMIT && fabsf(syEnd) < Q16_LIMIT;
+        const float CLAMP = 30000.0f;
+        float sxC = fmaxf(-CLAMP, fminf(CLAMP, sxStart));
+        float syC = fmaxf(-CLAMP, fminf(CLAMP, syStart));
 
-        if (fitsQ16)
+        int32_t sxFix = static_cast<int32_t>(sxC * 65536.0f);
+        int32_t syFix = static_cast<int32_t>(syC * 65536.0f);
+        const int32_t dsxFix = static_cast<int32_t>(dsxF * 65536.0f);
+        const int32_t dsyFix = static_cast<int32_t>(dsyF * 65536.0f);
+
+        for (int x = 0; x < dstW; x++)
         {
-            int32_t sxFix = static_cast<int32_t>(sxStart * 65536.0f);
-            int32_t syFix = static_cast<int32_t>(syStart * 65536.0f);
-            const int32_t dsxFix = static_cast<int32_t>(dsxF * 65536.0f);
-            const int32_t dsyFix = static_cast<int32_t>(dsyF * 65536.0f);
+            int sx = sxFix >> 16;
+            int sy = syFix >> 16;
 
-            for (int x = 0; x < dstW; x++)
-            {
-                int sx = sxFix >> 16;
-                int sy = syFix >> 16;
+            if (sx >= 0 && sx < srcW && sy >= 0 && sy < srcH)
+                dstRow[x] = src[sy * srcW + sx];
+            else
+                dstRow[x] = skyColor;
 
-                if (sx >= 0 && sx < srcW && sy >= 0 && sy < srcH)
-                    dstRow[x] = src[sy * srcW + sx];
-                else
-                    dstRow[x] = skyColor;
-
-                sxFix += dsxFix;
-                syFix += dsyFix;
-            }
-        }
-        else
-        {
-            float sxF = sxStart;
-            float syF = syStart;
-
-            for (int x = 0; x < dstW; x++)
-            {
-                int sx = (int)sxF;
-                int sy = (int)syF;
-
-                if (sx >= 0 && sx < srcW && sy >= 0 && sy < srcH)
-                    dstRow[x] = src[sy * srcW + sx];
-                else
-                    dstRow[x] = skyColor;
-
-                sxF += dsxF;
-                syF += dsyF;
-            }
+            sxFix += dsxFix;
+            syFix += dsyFix;
         }
     }
 }
@@ -1843,9 +1940,7 @@ void Maps::renderNavPolygon(const FeatureRef& ref, MapCanvas& map)
                 ringCount = 0;
         }
         else
-        {
             ringCount = 0;
-        }
     }
 
     if (ref.coordCount > projBuf32X.capacity())
@@ -2243,7 +2338,10 @@ void Maps::navDecodeFeatures(const uint8_t* data, size_t dataSize, int16_t scree
                 uint8_t priority = zp & 0x0F;
                 if (priority < 16)
                 {
-                    layers[priority].push_back(poolIdx);
+                    if (geomType == (uint8_t)NavGeomType::Text)
+                        layersText[priority].push_back(poolIdx);
+                    else
+                        layers[priority].push_back(poolIdx);
                     if (geomType == (uint8_t)NavGeomType::LineString && hasCasing)
                         layersCasing[priority].push_back(poolIdx);
                 }

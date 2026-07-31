@@ -26,8 +26,7 @@ extern Storage storage;
 extern Battery battery;
 extern Gps gps;
 
-static constexpr int32_t BATT_CHARGING_MAX = 500; /**< Level above which battery is considered charging. */
-static constexpr int32_t BATT_FULL         = 110; /**< Level threshold for full battery icon. */
+static constexpr int32_t BATT_FULL         = 100; /**< Level threshold for full battery icon. */
 static constexpr int32_t BATT_HIGH         =  80; /**< Level threshold for high battery icon. */
 static constexpr int32_t BATT_MED          =  60; /**< Level threshold for medium battery icon. */
 static constexpr int32_t BATT_LOW          =  40; /**< Level threshold for low battery icon. */
@@ -46,7 +45,7 @@ static void battery_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
     int32_t level = lv_subject_get_int(subject);
     lv_obj_t *obj = (lv_obj_t *)lv_observer_get_target_obj(observer);
 
-    if (level <= BATT_CHARGING_MAX && level > BATT_FULL)
+    if (level > BATT_FULL)
         lv_label_set_text_static(obj, "  " LV_SYMBOL_CHARGE);
     else if (level <= BATT_FULL && level > BATT_HIGH)
         lv_label_set_text_static(obj, LV_SYMBOL_BATTERY_FULL);
@@ -183,9 +182,7 @@ static void is_fixed_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
         lv_anim_start(&a);
     }
     else
-    {
         lv_led_set_brightness(obj, 0);
-    }
 }
 
 #ifdef ENABLE_TEMP

@@ -116,9 +116,7 @@ void editWidget(lv_event_t *event)
 {
     lv_event_code_t code = lv_event_get_code(event);
     if (code == LV_EVENT_LONG_PRESSED)
-    {
         canMoveWidget = true;
-    }
 }
 
 /**
@@ -189,30 +187,41 @@ void dragWidget(lv_event_t *event)
  */
 void positionWidget(lv_obj_t *screen)
 {
-    lv_obj_t *obj = lv_obj_create(screen);  
-    lv_obj_set_height(obj, 40);
+    lv_obj_t *obj = lv_obj_create(screen);
+    lv_obj_set_height(obj, 40 * scale);
     lv_obj_set_pos(obj, coordPosX, coordPosY);
     lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
-    
-    latitude = lv_label_create(obj);
-    lv_obj_set_style_text_font(latitude, fontMedium, 0);
-    lv_subject_add_observer_obj(&subject_lat, position_observer_cb, latitude, NULL);
-    
-    longitude = lv_label_create(obj);
-    lv_obj_set_style_text_font(longitude, fontMedium, 0);
-    lv_subject_add_observer_obj(&subject_lon, position_observer_cb, longitude, NULL);
-    
+    lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(obj, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_left(obj, 6 * scale, 0);
+    lv_obj_set_style_pad_right(obj, 8 * scale, 0);
+    lv_obj_set_style_pad_gap(obj, 8 * scale, 0);
+    lv_obj_set_style_pad_all(obj, 2 * scale, 0);
+
     LV_IMG_DECLARE(pin);
     lv_obj_t *img = lv_img_create(obj);
     lv_img_set_src(img, &pin);
     lv_img_set_zoom(img, iconScale);
-    
-    lv_obj_update_layout(latitude);
-    lv_obj_update_layout(img);
-    lv_obj_set_width(obj, lv_obj_get_width(latitude) + 40);
-    lv_obj_align(latitude, LV_ALIGN_TOP_LEFT, 15, -12);
-    lv_obj_align(longitude, LV_ALIGN_TOP_LEFT, 15, 3);
-    lv_obj_align(img, LV_ALIGN_TOP_LEFT, -15, -10);
+
+    lv_obj_t *colCoords = lv_obj_create(obj);
+    lv_obj_remove_style_all(colCoords);
+    lv_obj_clear_flag(colCoords, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_clear_flag(colCoords, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_width(colCoords, LV_SIZE_CONTENT);
+    lv_obj_set_height(colCoords, LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(colCoords, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(colCoords, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
+    lv_obj_set_style_pad_gap(colCoords, 0, 0);
+
+    latitude = lv_label_create(colCoords);
+    lv_obj_set_style_text_font(latitude, fontMedium, 0);
+    lv_subject_add_observer_obj(&subject_lat, position_observer_cb, latitude, NULL);
+
+    longitude = lv_label_create(colCoords);
+    lv_obj_set_style_text_font(longitude, fontMedium, 0);
+    lv_subject_add_observer_obj(&subject_lon, position_observer_cb, longitude, NULL);
+
+    lv_obj_set_width(obj, LV_SIZE_CONTENT);
     
     objUnselect(obj);
     registerWidgetEvents(obj, "Coords_");
@@ -233,7 +242,7 @@ void compassWidget(lv_obj_t *screen)
     LV_IMG_DECLARE(arrow);
     lv_obj_t *img = lv_img_create(obj);
     lv_img_set_src(img, &arrow);
-    lv_obj_align(img, LV_ALIGN_CENTER, 0, -30);
+    lv_obj_align(img, LV_ALIGN_CENTER, 0, (int)(-30 * scale));
     lv_img_set_zoom(img, iconScale);
     lv_obj_update_layout(img);
 
@@ -246,8 +255,8 @@ void compassWidget(lv_obj_t *screen)
     lv_img_set_pivot(compassImg, 100, 100);
     
     compassHeading = lv_label_create(obj);
-    lv_obj_set_height(compassHeading, 45);
-    lv_obj_align(compassHeading, LV_ALIGN_CENTER, 0, 20);
+    lv_obj_set_height(compassHeading, LV_SIZE_CONTENT);
+    lv_obj_align(compassHeading, LV_ALIGN_CENTER, 0, (int)(20 * scale));
     lv_obj_set_style_text_font(compassHeading, fontVeryLarge, 0);
     lv_label_set_text_static(compassHeading, "---\xC2\xB0");
     
@@ -269,15 +278,20 @@ void altitudeWidget(lv_obj_t *screen)
     lv_obj_set_pos(obj, altitudePosX, altitudePosY);
     lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(obj, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    
+    lv_obj_set_flex_align(obj, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_left(obj, 8 * scale, 0);
+    lv_obj_set_style_pad_gap(obj, 12 * scale, 0);
+
     LV_IMG_DECLARE(altit);
     lv_obj_t *img = lv_img_create(obj);
     lv_img_set_src(img, &altit);
     lv_img_set_zoom(img, iconScale);
     lv_obj_update_layout(img);
-    
-    lv_obj_set_width(obj, 150);
+
+    int calculatedWidth;
+    calculatedWidth = (int)(52.0f * scale + 4.0f * fontLargeMedium->line_height);
+    lv_obj_set_width(obj, calculatedWidth);
+
     altitude = lv_label_create(obj);
     lv_obj_set_style_text_font(altitude, fontLargeMedium, 0);
     lv_label_bind_text(altitude, &subject_altitude, "%d m.");
@@ -299,15 +313,20 @@ void speedWidget(lv_obj_t *screen)
     lv_obj_set_pos(obj, speedPosX, speedPosY);
     lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(obj, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    
+    lv_obj_set_flex_align(obj, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_left(obj, 8 * scale, 0);
+    lv_obj_set_style_pad_gap(obj, 12 * scale, 0);
+
     LV_IMG_DECLARE(speedIcon);
     lv_obj_t *img = lv_img_create(obj);
     lv_img_set_src(img, &speedIcon);
     lv_img_set_zoom(img, iconScale);
     lv_obj_update_layout(img);
-    
-    lv_obj_set_width(obj, 170);
+
+    int calculatedWidth;
+    calculatedWidth = (int)(52.0f * scale + 5.0f * fontLargeMedium->line_height);
+    lv_obj_set_width(obj, calculatedWidth);
+
     speedLabel = lv_label_create(obj);
     lv_obj_set_style_text_font(speedLabel, fontLargeMedium, 0);
     lv_label_bind_text(speedLabel, &subject_speed, "%d Km/h");
@@ -324,34 +343,55 @@ void speedWidget(lv_obj_t *screen)
  */
 void sunWidget(lv_obj_t *screen)
 {
-    lv_obj_t *obj = lv_obj_create(screen);
-    lv_obj_set_size(obj, 120, 60 * scale);
-    lv_obj_set_pos(obj, sunPosX, sunPosY);
-    lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW_WRAP);
-    lv_obj_set_flex_align(obj, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    
-    lv_obj_t *img;
     LV_IMG_DECLARE(sunrise);
     LV_IMG_DECLARE(sunset);
-    img = lv_img_create(obj);
-    lv_img_set_src(img, &sunrise);
-    lv_img_set_zoom(img, iconScale);
-    lv_obj_update_layout(img);
 
-    sunriseLabel = lv_label_create(obj);
+    int calculatedWidth;
+    calculatedWidth = (int)(40.0f * scale + 3.2f * fontMedium->line_height);
+
+    lv_obj_t *obj = lv_obj_create(screen);
+    lv_obj_set_size(obj, calculatedWidth, 60 * scale);
+    lv_obj_set_pos(obj, sunPosX, sunPosY);
+    lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(obj, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
+    lv_obj_set_style_pad_gap(obj, 2 * scale, 0);
+    lv_obj_set_style_pad_all(obj, 2 * scale, 0);
+
+    lv_obj_t *rowRise = lv_obj_create(obj);
+    lv_obj_remove_style_all(rowRise);
+    lv_obj_clear_flag(rowRise, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_width(rowRise, LV_PCT(100));
+    lv_obj_set_height(rowRise, LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(rowRise, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(rowRise, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_gap(rowRise, 12 * scale, 0);
+
+    lv_obj_t *imgRise = lv_img_create(rowRise);
+    lv_img_set_src(imgRise, &sunrise);
+    lv_img_set_zoom(imgRise, iconScale);
+
+    sunriseLabel = lv_label_create(rowRise);
+    lv_obj_set_style_text_font(sunriseLabel, fontMedium, 0);
     lv_label_set_text_static(sunriseLabel, "--:--");
-    lv_obj_update_layout(sunriseLabel);
 
-    img = lv_img_create(obj);
-    lv_img_set_src(img, &sunset);
-    lv_img_set_zoom(img, iconScale);
-    lv_obj_update_layout(img);
-    
-    sunsetLabel = lv_label_create(obj);
+    lv_obj_t *rowSet = lv_obj_create(obj);
+    lv_obj_remove_style_all(rowSet);
+    lv_obj_clear_flag(rowSet, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_width(rowSet, LV_PCT(100));
+    lv_obj_set_height(rowSet, LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(rowSet, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(rowSet, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_gap(rowSet, 12 * scale, 0);
+
+    lv_obj_t *imgSet = lv_img_create(rowSet);
+    lv_img_set_src(imgSet, &sunset);
+    lv_img_set_zoom(imgSet, iconScale);
+
+    sunsetLabel = lv_label_create(rowSet);
+    lv_obj_set_style_text_font(sunsetLabel, fontMedium, 0);
     lv_label_set_text_static(sunsetLabel, "--:--");
-    lv_obj_update_layout(sunsetLabel);
-    
+
     objUnselect(obj);
     registerWidgetEvents(obj, "Sun_");
 }
@@ -366,6 +406,7 @@ void navArrowWidget(lv_obj_t *screen)
     LV_IMG_DECLARE(navarrow);
     navArrow = lv_img_create(screen);
     lv_img_set_src(navArrow, &navarrow);
+    lv_img_set_zoom(navArrow, iconScale);
     lv_obj_align(navArrow, LV_ALIGN_CENTER, 0, 0);
     lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
 }
@@ -377,8 +418,15 @@ void navArrowWidget(lv_obj_t *screen)
  */
 void mapZoomWidget(lv_obj_t *screen)
 {
+    const lv_font_t *widgetFont;
+#if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
+    widgetFont = &lv_font_montserrat_22;
+#else
+    widgetFont = &lv_font_montserrat_20;
+#endif
+
     zoomWidget = lv_obj_create(screen);
-    lv_obj_set_size(zoomWidget, 64, 32);
+    lv_obj_set_size(zoomWidget, (int)(64 * scale), (int)(32 * scale));
     lv_obj_clear_flag(zoomWidget, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(zoomWidget, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(zoomWidget, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
@@ -386,8 +434,9 @@ void mapZoomWidget(lv_obj_t *screen)
     LV_IMG_DECLARE(zoomIcon);
     lv_obj_t *img = lv_img_create(zoomWidget);
     lv_img_set_src(img, &zoomIcon);
+    lv_img_set_zoom(img, iconScale);
     zoomLabel = lv_label_create(zoomWidget);
-    lv_obj_set_style_text_font(zoomLabel, &lv_font_montserrat_20, 0);
+    lv_obj_set_style_text_font(zoomLabel, widgetFont, 0);
     lv_label_set_text_fmt(zoomLabel, "%2d", zoom);
     lv_obj_add_flag(zoomWidget, LV_OBJ_FLAG_HIDDEN);
 }
@@ -399,8 +448,15 @@ void mapZoomWidget(lv_obj_t *screen)
  */
 void mapSpeedWidget(lv_obj_t *screen)
 {
+    const lv_font_t *widgetFont;
+#if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
+    widgetFont = &lv_font_montserrat_22;
+#else
+    widgetFont = &lv_font_montserrat_20;
+#endif
+
     mapSpeed = lv_obj_create(screen);
-    lv_obj_set_size(mapSpeed, 100, 32);
+    lv_obj_set_size(mapSpeed, (int)(100 * scale), (int)(32 * scale));
     lv_obj_clear_flag(mapSpeed, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(mapSpeed, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(mapSpeed, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
@@ -409,8 +465,9 @@ void mapSpeedWidget(lv_obj_t *screen)
     lv_obj_t *img = lv_img_create(mapSpeed);
     LV_IMG_DECLARE(mapspeed);
     lv_img_set_src(img, &mapspeed);
+    lv_img_set_zoom(img, iconScale);
     mapSpeedLabel = lv_label_create(mapSpeed);
-    lv_obj_set_style_text_font(mapSpeedLabel, &lv_font_montserrat_20, 0);
+    lv_obj_set_style_text_font(mapSpeedLabel, widgetFont, 0);
     lv_label_set_text_fmt(mapSpeedLabel, "%3d", 0);
     lv_obj_add_flag(mapSpeed, LV_OBJ_FLAG_HIDDEN);
 }
@@ -444,13 +501,14 @@ static void mini_compass_observer_cb(lv_observer_t *observer, lv_subject_t *subj
 void mapCompassWidget(lv_obj_t *screen)
 {
     miniCompass = lv_obj_create(screen);
-    lv_obj_set_size(miniCompass, 60, 60);
+    lv_obj_set_size(miniCompass, (int)(60 * scale), (int)(60 * scale));
     lv_obj_clear_flag(miniCompass, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_style(miniCompass, &styleMapWidget, 0);
     lv_obj_align(miniCompass, LV_ALIGN_TOP_RIGHT, 0, 0);
     mapCompassImg = lv_img_create(miniCompass);
     LV_IMG_DECLARE(compassMap);
     lv_img_set_src(mapCompassImg, &compassMap);
+    lv_img_set_zoom(mapCompassImg, iconScale);
     lv_obj_set_align(mapCompassImg, LV_ALIGN_CENTER);
     lv_obj_add_flag(miniCompass, LV_OBJ_FLAG_HIDDEN);
     lv_subject_add_observer_obj(&subject_heading, mini_compass_observer_cb, mapCompassImg, NULL);
@@ -464,23 +522,23 @@ void mapCompassWidget(lv_obj_t *screen)
 void mapScaleWidget(lv_obj_t *screen)
 {
     scaleWidget = lv_obj_create(screen);
-    lv_obj_set_size(scaleWidget, 100, 32);
+    lv_obj_set_size(scaleWidget, (int)(100 * scale), (int)(32 * scale));
     lv_obj_clear_flag(scaleWidget, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(scaleWidget, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(scaleWidget, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_add_style(scaleWidget, &styleMapWidget, 0);
-    lv_obj_align(scaleWidget, LV_ALIGN_BOTTOM_LEFT, 102, -1);
+    lv_obj_align(scaleWidget, LV_ALIGN_BOTTOM_LEFT, (int)(102 * scale), -1);
     lv_obj_add_flag(scaleWidget, LV_OBJ_FLAG_HIDDEN);
     scaleLabel = lv_label_create(scaleWidget);
-    lv_obj_set_style_text_font(scaleLabel, &lv_font_montserrat_12, 0);
+    lv_obj_set_style_text_font(scaleLabel, fontSmall, 0);
     lv_label_set_text_fmt(scaleLabel, "%s", map_scale[zoom]);
-    lv_obj_t *scale = lv_scale_create(scaleWidget);
-    lv_scale_set_mode(scale, LV_SCALE_MODE_HORIZONTAL_BOTTOM);
-    lv_scale_set_label_show(scale, false);
-    lv_obj_set_size(scale, 60, 10);
-    lv_scale_set_total_tick_count(scale, 2);
-    lv_scale_set_major_tick_every(scale, 2);
-    lv_scale_set_range(scale, 10, 20);
+    lv_obj_t *scaleBar = lv_scale_create(scaleWidget);
+    lv_scale_set_mode(scaleBar, LV_SCALE_MODE_HORIZONTAL_BOTTOM);
+    lv_scale_set_label_show(scaleBar, false);
+    lv_obj_set_size(scaleBar, (int)(60 * scale), (int)(10 * scale));
+    lv_scale_set_total_tick_count(scaleBar, 2);
+    lv_scale_set_major_tick_every(scaleBar, 2);
+    lv_scale_set_range(scaleBar, 10, 20);
 }
 
 /**
@@ -491,19 +549,27 @@ void mapScaleWidget(lv_obj_t *screen)
 void turnByTurnWidget(lv_obj_t *screen)
 {
     turnByTurn = lv_obj_create(screen);
-    lv_obj_set_size(turnByTurn, 60, 100);
+    lv_obj_set_size(turnByTurn, (int)(60 * scale), (int)(100 * scale));
     lv_obj_clear_flag(turnByTurn, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(turnByTurn, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(turnByTurn, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_add_style(turnByTurn, &styleMapWidget, 0);
-    lv_obj_align(turnByTurn, LV_ALIGN_TOP_RIGHT, 0, 65);
+    lv_obj_align(turnByTurn, LV_ALIGN_TOP_RIGHT, 0, (int)(65 * scale));
     turnImg = lv_img_create(turnByTurn);
     lv_img_set_src(turnImg, &straight);
+    lv_img_set_zoom(turnImg, iconScale);
+    const lv_font_t *widgetFont;
+#if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
+    widgetFont = &lv_font_montserrat_22;
+#else
+    widgetFont = &lv_font_montserrat_18;
+#endif
+
     turnDistLabel = lv_label_create(turnByTurn);
-    lv_obj_set_style_text_font(turnDistLabel, &lv_font_montserrat_18, 0);
+    lv_obj_set_style_text_font(turnDistLabel, widgetFont, 0);
     lv_label_set_text_fmt(turnDistLabel, "%4d", 0);
     lv_obj_t *obj = lv_label_create(turnByTurn);
-    lv_obj_set_style_text_font(obj, &lv_font_montserrat_18, 0);
+    lv_obj_set_style_text_font(obj, widgetFont, 0);
     lv_label_set_text_static(obj, "m.");
     lv_obj_add_flag(turnByTurn, LV_OBJ_FLAG_HIDDEN);
 }
@@ -532,7 +598,7 @@ void climbWidget(lv_obj_t *screen)
     lv_obj_add_flag(climbOverlay, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_add_style(climbOverlay, &styleMapWidget, 0);
     lv_obj_set_style_pad_ver(climbOverlay, padV, 0);
-    lv_obj_set_style_pad_hor(climbOverlay, 4, 0);
+    lv_obj_set_style_pad_hor(climbOverlay, (int)(4 * scale), 0);
     lv_obj_set_flex_flow(climbOverlay, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(climbOverlay, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_row(climbOverlay, padV, 0);

@@ -21,7 +21,7 @@ static void touchCalib(lv_event_t *event);
 static void compassCalib(lv_event_t *event);
 static void mapSettings(lv_event_t *event);
 static void deviceSettings(lv_event_t *event);
-#if defined(BATT_PIN) || defined(BME280) || defined(ENABLE_IMU) || defined(ENABLE_COMPASS)
+#if defined(BATT_ADC_UNIT) || defined(WAVESHARE_P4_35) || defined(BME280) || defined(ENABLE_IMU) || defined(ENABLE_COMPASS)
 static void sensorInfo(lv_event_t *event);
 #endif
 

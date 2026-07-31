@@ -92,14 +92,14 @@ void createLVGLSplashScreen()
     lv_obj_set_style_border_opa(osmInfo, 0, 0);
     lv_obj_t *label;
     label = lv_label_create(osmInfo);
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_12, 0);
+    lv_obj_set_style_text_font(label, fontSplash, 0);
     lv_label_set_text(label, "Map data from OpenStreetMap - (c)OpenStreetMap");
     label = lv_label_create(osmInfo);
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_12, 0);
+    lv_obj_set_style_text_font(label, fontSplash, 0);
     lv_label_set_text(label, "(c)OpenStreetMap contributors");
     lv_obj_set_align(osmInfo, LV_ALIGN_BOTTOM_MID);
     label = lv_label_create(splashScr);
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_18, 0);
+    lv_obj_set_style_text_font(label, fontSplashVersion, 0);
     lv_label_set_text_fmt(label,statusLine4, String(VERSION).c_str(), String(REVISION).c_str());
     lv_obj_set_align(label, LV_ALIGN_CENTER);
     lv_obj_set_y(label, -130 * scale);
@@ -114,7 +114,7 @@ void splashScreen()
 {
     setTime = false;
 
-    #ifdef ICENAV_BOARD
+    #ifdef SPLASH_FULLSCREEN
         millisActual = millis_idf();
 
         display().setBrightness(defBright);
@@ -125,7 +125,7 @@ void splashScreen()
         lv_canvas_set_buffer(splashCanvas, splashBuffer, display().width(), display().height(), LV_COLOR_FORMAT_RGB565_SWAPPED);
         splashSprite.deleteSprite();
 
-        lv_screen_load_anim(splashScr, LV_SCR_LOAD_ANIM_FADE_OUT, 2500, 0, false);	
+        lv_screen_load_anim(splashScr, LV_SCR_LOAD_ANIM_FADE_OUT, 2500, 0, false);
         for (int i = 0; i < 1000; i++)
         {
             lv_task_handler();  
@@ -137,11 +137,14 @@ void splashScreen()
         {
             lv_task_handler();  
             vTaskDelay(5);
-        }     
+        }
 
-        // Preload Map at the very end when all animations are gone
+        // Preload map and wait for tiles to finish before proceeding.
         mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
         mapView.generateMap(zoom);
+        TickType_t waitStart = xTaskGetTickCount();
+        while (mapView.isRendering() && (xTaskGetTickCount() - waitStart) < pdMS_TO_TICKS(5000))
+            vTaskDelay(pdMS_TO_TICKS(50));
 
         if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
         {
@@ -209,6 +212,11 @@ void splashScreen()
         memset(&statusString[0], 0, sizeof(statusString));
         splashSprite.setTextColor(TFT_WHITE, TFT_BLACK);
         
+        // Preload Map early so the background render task has time
+        // to load tiles during the splash screen (~3.8 s of fade).
+        mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
+        mapView.generateMap(zoom);
+
         const uint8_t maxBrightness = 255;
 
         tftOn(0);
@@ -221,10 +229,6 @@ void splashScreen()
             millisActual = millis_idf();
             while (millis_idf() < millisActual + 15);
         }
-
-        // Preload Map while logo is fully visible
-        mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
-        mapView.generateMap(zoom);
 
         while (millis_idf() < millisActual + 100);
 
@@ -240,6 +244,11 @@ void splashScreen()
         while (millis_idf() < millisActual + 100);
 
         display().setBrightness(defBright);
+
+        // Wait for map tiles to finish loading before proceeding.
+        TickType_t waitStart = xTaskGetTickCount();
+        while (mapView.isRendering() && (xTaskGetTickCount() - waitStart) < pdMS_TO_TICKS(5000))
+            vTaskDelay(pdMS_TO_TICKS(50));
     
         splashSprite.deleteSprite();
     #endif

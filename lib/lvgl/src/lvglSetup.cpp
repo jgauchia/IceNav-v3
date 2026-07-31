@@ -199,6 +199,18 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     {
         if (count == 1)
         {
+#ifdef PANEL_BUS_DSI
+            if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_90)
+            {
+                data->point.x = (TFT_WIDTH - 1) - touchRaw[count-1].x;
+                data->point.y = (TFT_HEIGHT - 1) - touchRaw[count-1].y;
+            }
+            else
+            {
+                data->point.x = touchRaw[count-1].x;
+                data->point.y = touchRaw[count-1].y;
+            }
+#else
             if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_0)
             {
                 data->point.x = touchRaw[count-1].x;
@@ -209,6 +221,7 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
                 data->point.x = TFT_WIDTH - touchRaw[count-1].y;
                 data->point.y = touchRaw[count-1].x;
             }
+#endif
 
             if (startX == -1)
             {
@@ -241,11 +254,31 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
             lastTouchReleaseTime = 0;
             twoFingerGesture = true;
 
+            TouchPoint touchMapped[2];
+#ifdef PANEL_BUS_DSI
+            for (int i = 0; i < 2; i++)
+            {
+                if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_90)
+                {
+                    touchMapped[i].x = touchRaw[i].y;
+                    touchMapped[i].y = (TFT_WIDTH - 1) - touchRaw[i].x;
+                }
+                else
+                {
+                    touchMapped[i].x = touchRaw[i].x;
+                    touchMapped[i].y = touchRaw[i].y;
+                }
+            }
+#else
+            touchMapped[0] = touchRaw[0];
+            touchMapped[1] = touchRaw[1];
+#endif
+
             if (prevValid)
             {
                 if (showMapToolBar && !zoomLocked)
                 {
-                    float rotDelta = pinchRotate(touchPrev, touchRaw);
+                    float rotDelta = pinchRotate(touchPrev, touchMapped);
                     if (rotDelta != 0.0f)
                     {
                         rotationLocked = true;
@@ -259,7 +292,7 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
                 }
                 if (!rotationLocked)
                 {
-                    zoom_dir zoomDir = pinchZoom(touchPrev, touchRaw, dt_ms);
+                    zoom_dir zoomDir = pinchZoom(touchPrev, touchMapped, dt_ms);
                     if (zoomDir != ZOOM_NONE && showMapToolBar)
                     {
                         zoomLocked = true;
@@ -268,8 +301,8 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
                     }
                 }
             }
-            touchPrev[0] = touchRaw[0];
-            touchPrev[1] = touchRaw[1];
+            touchPrev[0] = touchMapped[0];
+            touchPrev[1] = touchMapped[1];
             prevValid = true;
             lastTime = now;
         }
@@ -365,11 +398,15 @@ void gpioClickEvent(lv_event_t *event)
 /**
  * @brief Reads the state of the GPIO button pin.
  *
- * @return The current state of the GPIO button pin.
+ * @return The current state of the GPIO button pin (0 = pressed).
  */
 uint8_t gpioGetBut()
 {
-    return gpio_get_level((gpio_num_t)BOARD_BOOT_PIN);
+    #ifdef INVERT_BOOT_PIN
+        return !gpio_get_level((gpio_num_t)BOARD_BOOT_PIN);
+    #else
+        return gpio_get_level((gpio_num_t)BOARD_BOOT_PIN);
+    #endif
 }
 
 #endif
@@ -471,7 +508,7 @@ void initLVGL()
     size_t DRAW_BUF_SIZE = 0;
     lv_color_t *drawBuf1 = nullptr;
     lv_color_t *drawBuf2 = nullptr;
-    
+
     #if defined(BOARD_HAS_PSRAM) || defined(CONFIG_SPIRAM_SUPPORT)
         assert(heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
 
@@ -497,7 +534,13 @@ void initLVGL()
         drawBuf1 = (lv_color_t *)heap_caps_malloc(DRAW_BUF_SIZE, MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA);
         lv_display_set_buffers(display_drv, drawBuf1, NULL, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
     #endif
-    
+
+    // DSI panels need full-frame flush to avoid tearing; the shadow buffer is
+    // eliminated and LVGL sends draw buffers directly to the DSI controller.
+    #ifdef PANEL_BUS_DSI
+        lv_display_set_render_mode(display_drv, LV_DISPLAY_RENDER_MODE_FULL);
+    #endif
+
     #ifdef TOUCH_INPUT
         lv_indev_t *indev_drv = lv_indev_create();
         lv_indev_set_type(indev_drv, LV_INDEV_TYPE_POINTER);
@@ -530,14 +573,14 @@ void initLVGL()
 
     modifyTheme();    
     //  Create Screens
-    #ifdef ICENAV_BOARD
+    #ifdef SPLASH_FULLSCREEN
         createLVGLSplashScreen();
     #endif
     createSearchSatScr();
     createMainScr();
     createNotifyBar();
     createSettingsScr();
-    #if defined(BATT_PIN) || defined(BME280) || defined(ENABLE_IMU) || defined(ENABLE_COMPASS)
+    #if defined(BATT_ADC_UNIT) || defined(WAVESHARE_P4_35) || defined(BME280) || defined(ENABLE_IMU) || defined(ENABLE_COMPASS)
     createSensorScr();
     #endif
     createMapSettingsScr();
@@ -558,10 +601,26 @@ void initLVGL()
  */
 void loadMainScreen()
 {
+    if (lv_display_get_rotation(display_drv) != LV_DISPLAY_ROTATION_0)
+    {
+#ifndef PANEL_BUS_DSI
+        display().setRotation(0);
+#endif
+        lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
+    }
     isMainScreen = true;
     isScrolled = true;
     isSearchingSat = false;
     gpxAction = WPT_NONE;
+
+    if (lv_display_get_rotation(display_drv) != LV_DISPLAY_ROTATION_0)
+    {
+#ifndef PANEL_BUS_DSI
+        display().setRotation(0);
+#endif
+        lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
+    }
+
     lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(optionsScrim, LV_OBJ_FLAG_HIDDEN);
     lv_obj_set_y(optionsPanel, TFT_HEIGHT);

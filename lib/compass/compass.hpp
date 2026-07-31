@@ -61,11 +61,7 @@
 // Mode: 0=PowerDown, 1=Single, 2=Continuous8Hz, 6=Continuous100Hz
 // Resolution: 0=14bit, 1=16bit (bit 4)
 
-#ifdef HMC5883L
-    #define ENABLE_COMPASS
-#endif
-
-#ifdef QMC5883
+#ifdef COMPASS_AUTO
     #define ENABLE_COMPASS
 #endif
 
@@ -99,6 +95,10 @@ public:
     bool setSamples(uint8_t samples);
     bool readRaw(float &x, float &y, float &z);
 
+    #ifdef TOUCH_CAPACITIVE
+        bool beginShared(int i2cPort, uint8_t addr = QMC5883L_ADDRESS);
+    #endif
+
 private:
     uint8_t ctrl1Value;
 };
@@ -116,6 +116,10 @@ public:
     void setSamples(uint8_t samples);
     bool readRaw(float &x, float &y, float &z);
 
+    #ifdef TOUCH_CAPACITIVE
+        bool beginShared(int i2cPort, uint8_t addr = HMC5883L_ADDRESS);
+    #endif
+
 private:
     uint8_t configAValue;
 };
@@ -129,6 +133,9 @@ class MPU9250_Driver
 public:
     MPU9250_Driver();
     bool begin(uint8_t addr = MPU9250_ADDRESS);
+    #ifdef TOUCH_CAPACITIVE
+        bool beginShared(int i2cPort, uint8_t addr = MPU9250_ADDRESS);
+    #endif
     void readSensor();
     void readAccel(float &ax, float &ay, float &az);
     float getMagX_uT();
@@ -145,10 +152,15 @@ private:
     float asaY;
     float asaZ;
     float accelScale;
+    #ifdef TOUCH_CAPACITIVE
+        int i2cPort = -1;
+    #endif
 
     uint8_t read8(uint8_t addr, uint8_t reg);
     void write8(uint8_t addr, uint8_t reg, uint8_t value);
+    void readBytes(uint8_t addr, uint8_t reg, uint8_t *buffer, size_t len);
     int16_t read16LE(uint8_t addr, uint8_t reg);
+    bool bringUp(uint8_t addr);
 };
 
 #define COMPASS_CAL_TIME 16000 /**< Compass calibration duration in milliseconds. */
@@ -222,6 +234,10 @@ class Compass
     public:
         Compass();
         void init();
+        #ifdef COMPASS_AUTO
+            bool initShared(int i2cPort = -1);
+            bool isDetected() const { return sharedChip != SharedChip::NONE; }
+        #endif
         bool read(float &x, float &y, float &z);
         int getHeading();
         bool isUpdated();
@@ -232,6 +248,10 @@ class Compass
         void setKalmanFilterConst(float processNoise, float measureNoise);
 
     private:
+        #ifdef COMPASS_AUTO
+            enum class SharedChip { NONE, QMC5883L, HMC5883L };
+            SharedChip sharedChip = SharedChip::NONE;
+        #endif
         float declinationAngle;       /**< Magnetic declination angle (in radians or degrees, depending on use). */
         float offX;                   /**< Magnetometer offset for X axis. */
         float offY;                   /**< Magnetometer offset for Y axis. */

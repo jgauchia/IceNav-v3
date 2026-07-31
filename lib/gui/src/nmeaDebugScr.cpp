@@ -151,7 +151,7 @@ void nmeaDebugScr(_lv_obj_t *screen)
     auto makeLabel = [&](lv_obj_t *&label, const char *init)
     {
         label = lv_label_create(cont);
-        lv_obj_set_style_text_font(label, &lv_font_montserrat_14, 0);
+        lv_obj_set_style_text_font(label, fontSmall, 0);
         lv_obj_set_style_text_color(label, lv_color_white(), 0);
         lv_label_set_text(label, init);
     };

@@ -6,6 +6,9 @@
  * @date 2026-06
  */
 
+#include "sdkconfig.h"
+#if CONFIG_IDF_TARGET_ESP32S3
+
 #include "power.hpp"
 
 #include "i2c_espidf.hpp"
@@ -14,8 +17,6 @@
 #include <driver/spi_master.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <esp_bt.h>
-#include <esp_bt_main.h>
 #include <esp_wifi.h>
 #include "tft.hpp"
 #include "storage.hpp"
@@ -51,7 +52,6 @@ public:
             esp_wifi_disconnect();
             esp_wifi_stop();
             esp_wifi_deinit();
-            esp_bt_controller_disable();
         #endif
     }
 
@@ -70,9 +70,7 @@ public:
 
         tftOn(brightness);
         while (gpio_get_level((gpio_num_t)BOARD_BOOT_PIN) != 1)
-        {
             vTaskDelay(pdMS_TO_TICKS(5));
-        };
         ESP_LOGV(TAG, "Exited sleep mode");
     }
 
@@ -87,13 +85,10 @@ private:
      * @brief Deep Sleep Mode
      *
      * @details Puts the device into deep sleep mode to minimize power consumption.
-     * 			Disables Bluetooth and WiFi, configures wakeup sources, and starts deep sleep.
+     * 			Disables WiFi, configures wakeup sources, and starts deep sleep.
      */
     void powerDeepSleep()
     {
-        esp_bluedroid_disable();
-        if (esp_bt_controller_disable() != ESP_OK)
-            ESP_LOGE(TAG, "Failed to disable BT controller");
         if (esp_wifi_stop() != ESP_OK)
             ESP_LOGE(TAG, "Failed to stop WiFi");
         esp_deep_sleep_disable_rom_logging();
@@ -153,3 +148,5 @@ IPower &power()
     static PowerS3 instance;
     return instance;
 }
+
+#endif // CONFIG_IDF_TARGET_ESP32S3
