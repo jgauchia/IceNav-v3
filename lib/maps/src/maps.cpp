@@ -313,10 +313,10 @@ void Maps::coords2map(float lat, float lon, const tileBounds& bound, uint16_t *p
 /**
  * @brief Initialize map sprites and variables
  * 
- * @param mapHeight Map height
  * @param mapWidth Map width
+ * @param mapHeight Map height
  */
-void Maps::initMap(uint16_t mapHeight, uint16_t mapWidth)
+void Maps::initMap(uint16_t mapWidth, uint16_t mapHeight)
 {
     // Grid must cover the largest screen dimension with at least half a tile
     // of scroll margin on each side; grows one tile at a time from the 3x3

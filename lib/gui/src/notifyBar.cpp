@@ -26,12 +26,6 @@ extern Storage storage;
 extern Battery battery;
 extern Gps gps;
 
-static constexpr int32_t BATT_FULL         = 100; /**< Level threshold for full battery icon. */
-static constexpr int32_t BATT_HIGH         =  80; /**< Level threshold for high battery icon. */
-static constexpr int32_t BATT_MED          =  60; /**< Level threshold for medium battery icon. */
-static constexpr int32_t BATT_LOW          =  40; /**< Level threshold for low battery icon. */
-static constexpr int32_t BATT_CRITICAL     =  20; /**< Level threshold for critical (empty) battery icon. */
-
 /**
  * @brief Observer callback for battery icon updates
  *

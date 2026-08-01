@@ -15,7 +15,6 @@
 #include "esp_log.h"
 #include "esp_heap_caps.h"
 #include "esp_system.h"
-#include <esp_task_wdt.h>
 
 static const char* WEB_TAG = "WebServer";
 static const char* hostname = "icenav";

@@ -16,6 +16,17 @@
 
 
 /**
+ * @brief Battery percentage thresholds (0-100%, charge sentinel above 100).
+ */
+static constexpr int32_t BATT_CHARGE     = 110; /**< Charge sentinel: forced value when charging. */
+static constexpr int32_t BATT_FULL       = 100; /**< Level threshold for full battery icon. */
+static constexpr int32_t BATT_HIGH       =  80; /**< Level threshold for high battery icon. */
+static constexpr int32_t BATT_MED        =  60; /**< Level threshold for medium battery icon. */
+static constexpr int32_t BATT_LOW        =  40; /**< Level threshold for low battery icon. */
+static constexpr int32_t BATT_CRITICAL   =  20; /**< Level threshold for critical (empty) battery icon. */
+
+
+/**
  * @class Battery
  * @brief Provides battery voltage monitoring and charge estimation.
  *

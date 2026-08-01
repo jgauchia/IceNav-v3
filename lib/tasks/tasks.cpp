@@ -262,17 +262,25 @@ void initCLITask() { xTaskCreatePinnedToCore(cliTask, "cliTask ", 11264, NULL, 1
 #endif
 
 
+/**
+ * @brief Converts a battery percentage to a 0-5 level indicator.
+ *
+ * @details Values above the charge sentinel map to level 5.
+ *
+ * @param v Battery percentage.
+ * @return Level 0-5.
+ */
 static int getBatteryLevel(int v)
 {
-    if (v > 110)
+    if (v > BATT_CHARGE)
         return 5;
-    if (v > 80)
+    if (v > BATT_HIGH)
         return 4;
-    if (v > 60)
+    if (v > BATT_MED)
         return 3;
-    if (v > 40)
+    if (v > BATT_LOW)
         return 2;
-    if (v > 20)
+    if (v > BATT_CRITICAL)
         return 1;
     return 0;
 }
@@ -349,7 +357,12 @@ void sensorTask(void *pvParameters)
             }
 
             #ifdef ENABLE_TEMP
-            uint8_t currentTemp = (uint8_t)(globalSensorData.temperature + tempOffset);
+            uint8_t currentTemp = 20;
+            if (sensorMutex != NULL && xSemaphoreTake(sensorMutex, pdMS_TO_TICKS(50)) == pdTRUE)
+            {
+                currentTemp = (uint8_t)(globalSensorData.temperature + tempOffset);
+                xSemaphoreGive(sensorMutex);
+            }
             if (isMainScreen && currentTemp != sensorState.lastTempSent)
             {
                 if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, MUTEX_TIMEOUT_SLOW) == pdTRUE)

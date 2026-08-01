@@ -150,7 +150,7 @@ public:
 
     Maps();
     MapTile getMapTile(float lon, float lat, uint8_t zoomLevel, int8_t offsetX, int8_t offsetY);
-    void initMap(uint16_t mapHeight, uint16_t mapWidth);
+    void initMap(uint16_t mapWidth, uint16_t mapHeight);
     void deleteMapScrSprites();
     void createMapScrSprites();
     void generateMap(uint8_t zoom);
