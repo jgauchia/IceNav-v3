@@ -28,7 +28,7 @@
 #include "gestures.hpp"
 #include "styles.hpp"
 
-static uint32_t objectColor = 0x303030;
+inline constexpr uint32_t objectColor = 0x303030;
  /**< Default display driver color definition. */
 
 void displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map);
