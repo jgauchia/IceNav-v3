@@ -345,7 +345,7 @@ SDCardInfo Storage::getSDCardInfo()
 			info.capacity = formatSize((uint64_t)(card->csd.capacity) * card->csd.sector_size);
 			info.sector_size = card->csd.sector_size;
 			info.read_block_len = card->csd.read_block_len;
-			info.card_type = (card->ocr && SD_OCR_SDHC_CAP) ? "SDHC/SDXC" : "SDSC";
+			info.card_type = (card->ocr & SD_OCR_SDHC_CAP) ? "SDHC/SDXC" : "SDSC";
 
 			FATFS *fs;
 			DWORD fre_clust;
