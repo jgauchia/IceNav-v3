@@ -14,6 +14,8 @@
 #include "panelSelect.hpp"
 #include "esp_log.h"
 
+#include <string.h>
+
 #ifdef PANEL_BUS_DSI
     #include <esp_lcd_panel_ops.h>
     #include "esp_heap_caps.h"
@@ -88,16 +90,22 @@ public:
                     }
                     esp_lcd_panel_draw_bitmap(static_cast<PANEL_TYPE *>(tft.getPanel())->panelHandle(), 0, 0, tft.width(), tft.height(), rotBuf);
                     tft.waitDisplay();
+                    if (_captureBuffer != nullptr)
+                        memcpy(_captureBuffer, rotBuf, _captureWidth * _captureHeight * sizeof(uint16_t));
                     heap_caps_free(rotBuf);
                     return;
                 }
             }
+            if (_captureBuffer != nullptr)
+                captureArea(area, pixels);
             esp_lcd_panel_draw_bitmap(static_cast<PANEL_TYPE *>(tft.getPanel())->panelHandle(), 0, 0, tft.width(), tft.height(), pixels);
         #else
             uint32_t w = area.x2 - area.x1 + 1;
             uint32_t h = area.y2 - area.y1 + 1;
             tft.waitDMA();
             tft.waitDisplay();
+            if (_captureBuffer != nullptr)
+                captureArea(area, pixels);
             tft.setSwapBytes(true);
             tft.setAddrWindow(area.x1, area.y1, w, h);
             tft.pushImageDMA(area.x1, area.y1, w, h, pixels);
@@ -113,6 +121,34 @@ public:
             tft.waitDMA();
         #endif
     }
+
+    bool beginCapture(uint16_t *buffer, uint16_t width, uint16_t height) override
+    {
+        _captureBuffer = buffer;
+        _captureWidth = width;
+        _captureHeight = height;
+        return true;
+    }
+
+    void endCapture() override
+    {
+        _captureBuffer = nullptr;
+        _captureWidth = 0;
+        _captureHeight = 0;
+    }
+
+private:
+    void captureArea(const DisplayArea &area, uint16_t *pixels)
+    {
+        uint32_t w = area.x2 - area.x1 + 1;
+        uint32_t h = area.y2 - area.y1 + 1;
+        for (uint32_t y = 0; y < h; ++y)
+            memcpy(_captureBuffer + (area.y1 + y) * _captureWidth + area.x1, pixels + y * w, w * sizeof(uint16_t));
+    }
+
+    uint16_t *_captureBuffer = nullptr;
+    uint16_t _captureWidth = 0;
+    uint16_t _captureHeight = 0;
 };
 
 /**

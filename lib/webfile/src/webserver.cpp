@@ -791,11 +791,21 @@ static uint8_t* findBytes(uint8_t* haystack, size_t haystackLen, const uint8_t* 
 }
 
 /**
+ * @brief RAII guard that pauses the GUI task while an operation that must
+ *        not race with LVGL rendering runs (e.g. screenshot or file upload).
+ */
+struct ScreenRefreshGuard
+{
+    ScreenRefreshGuard() { waitScreenRefresh = true; }
+    ~ScreenRefreshGuard() { waitScreenRefresh = false; }
+};
+
+/**
  * @brief File upload handler - supports multiple files in single request
  */
 static esp_err_t upload_handler(httpd_req_t *req)
 {
-    waitScreenRefresh = true;
+    ScreenRefreshGuard refreshGuard;
 
     // Get content type to parse boundary
     char contentType[256] = "";
@@ -804,7 +814,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
     char* boundaryPtr = strstr(contentType, "boundary=");
     if (!boundaryPtr)
     {
-        waitScreenRefresh = false;
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "No boundary found");
         return ESP_FAIL;
     }
@@ -823,7 +832,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
 
     if ((size_t)req->content_len > MAX_UPLOAD_SIZE)
     {
-        waitScreenRefresh = false;
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "File too large");
         return ESP_FAIL;
     }
@@ -832,7 +840,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
     uint8_t* buf = (uint8_t*)heap_caps_malloc(bufSize, MALLOC_CAP_8BIT);
     if (!buf)
     {
-        waitScreenRefresh = false;
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Memory allocation failed");
         return ESP_FAIL;
     }
@@ -1004,7 +1011,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
     }
 
     heap_caps_free(buf);
-    waitScreenRefresh = false;
 
     if (writeError)
     {

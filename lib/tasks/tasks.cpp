@@ -470,7 +470,7 @@ void guiTask(void *pvParameters)
     while (1)
     {
         uint32_t wait_ms = 10;
-        if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, portMAX_DELAY) == pdTRUE)
+        if (!waitScreenRefresh && lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, portMAX_DELAY) == pdTRUE)
         {
             wait_ms = lv_timer_handler();
             xSemaphoreGive(lvgl_mutex);
