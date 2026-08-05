@@ -10,7 +10,7 @@
 
 #define LV_TICK_PERIOD_MS 10
 
-#include "lvgl_private.h"
+#include <lvgl.h>
 #include "globalGpxDef.h"
 #include "tasks.hpp"
 #include "cli.hpp"
