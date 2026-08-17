@@ -1723,8 +1723,7 @@ void Maps::commitScroll()
  * @brief Incrementally scroll the vector grid by one tile row or column.
  *
  * @details Keeps the already rasterized map pixels, clears only the incoming edge and queues
- *          that edge for the render task. S3 continues to use the existing full-grid vector
- *          renderer until its own validation is complete.
+ *          that edge for the render task. The same incremental path is shared by P4 and S3.
  *
  * @param dirX X pan direction (-1, 0, +1)
  * @param dirY Y pan direction (-1, 0, +1)
@@ -2557,7 +2556,6 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, Map
     navTlTileX = (float)(centerTileIdxX - gridOffset);
     navTlTileY = (float)(centerTileIdxY - gridOffset);
     navIncrementalRenderPending = false;
-    bool zoomChanged = (zoom != navLastZoom);
     navLastZoom = zoom;
     if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
     {
