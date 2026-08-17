@@ -75,6 +75,9 @@ private:
     uint16_t wptPosY;
     MapCanvas mapTempSprite = MapCanvas(mapCanvasParent());
     MapCanvas mapSprite = MapCanvas(mapCanvasParent());
+    MapCanvas pngStagingSprite = MapCanvas(mapCanvasParent());
+    uint32_t pngStagedHash = 0;
+    bool pngStagingValid = false;
     float destLat = 0.0f;
     float destLon = 0.0f;
     bool hasWaypoint = false;
@@ -192,9 +195,14 @@ private:
         uint32_t tileHash;
         uint32_t lastAccess;
         bool isPinned;
+        uint8_t pinLeft;
     };
 
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    static const uint8_t NAV_DATA_CACHE_SIZE = 48;
+#else
     static const uint8_t NAV_DATA_CACHE_SIZE = 12;
+#endif
     std::vector<NavDataCache, PsramAllocator<NavDataCache>> navDataCache;
     uint32_t cacheCounter = 0;
     uint32_t lastPrefetchHash = 0;
@@ -254,6 +262,8 @@ private:
     TaskHandle_t mapRenderTaskHandle;
     static void mapRenderTask(void* pvParameters);
     void renderPngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map);
+    void prefetchPngTile();
+    bool tryApplyStagedPng(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map);
     bool loadPngTileIntoSprite(int32_t tlX, int32_t tlY, int gx, int gy,
                                uint32_t centerTileIdxX, uint32_t centerTileIdxY,
                                uint8_t zoom, bool& centerFound);

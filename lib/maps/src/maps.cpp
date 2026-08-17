@@ -45,6 +45,11 @@ extern Gps gps;
 extern Storage storage;
 static const char* TAG = "MAPS";
 static const uint16_t PREFETCH_MIN_SPEED_KMH = 5;
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+static const uint8_t PREFETCH_PIN_FRAMES = 4;
+static const uint8_t PREFETCH_MAX_LOAD_PER_PASS = 4;
+#endif
+static const float PREFETCH_MIN_DRAG_VELOCITY = 0.5f;
 
 /**
  * @brief Map Class constructor
@@ -350,6 +355,19 @@ void Maps::initMap(uint16_t mapWidth, uint16_t mapHeight)
         }
     }
 #endif
+    Maps::pngStagingSprite.createSprite(256, 256);
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    {
+        uint8_t* buf = static_cast<uint8_t*>(Maps::pngStagingSprite.getBuffer());
+        if (buf && ((uint32_t)buf & 0x7F) != 0)
+        {
+            size_t bufSize = 256 * 256 * 2;
+            uint8_t* alignedBuf = static_cast<uint8_t*>(heap_caps_aligned_alloc(128, bufSize, MALLOC_CAP_SPIRAM));
+            if (alignedBuf)
+                Maps::pngStagingSprite.setBuffer(alignedBuf, 256, 256);
+        }
+    }
+#endif
     Maps::mapTempSprite.loadFont("/spiffs/font/font.vlw");
     Maps::mapSprite.createSprite(mapWidth, mapHeight);
     Maps::mapBuffer = Maps::mapSprite.getBuffer();
@@ -444,6 +462,21 @@ bool Maps::loadPngTileIntoSprite(int32_t tlX, int32_t tlY, int gx, int gy,
     uint32_t ty = (uint32_t)(tlY + gy);
     int16_t sx = (int16_t)(gx * mapTileSize);
     int16_t sy = (int16_t)(gy * mapTileSize);
+    if (tryApplyStagedPng(tx, ty, zoom, sx, sy, mapTempSprite))
+    {
+        if (tx == centerTileIdxX && ty == centerTileIdxY)
+            centerFound = true;
+        const tileBounds currentBounds = getTileBounds(tx, ty, zoom);
+        if (currentBounds.lat_min < totalBounds.lat_min)
+            totalBounds.lat_min = currentBounds.lat_min;
+        if (currentBounds.lat_max > totalBounds.lat_max)
+            totalBounds.lat_max = currentBounds.lat_max;
+        if (currentBounds.lon_min < totalBounds.lon_min)
+            totalBounds.lon_min = currentBounds.lon_min;
+        if (currentBounds.lon_max > totalBounds.lon_max)
+            totalBounds.lon_max = currentBounds.lon_max;
+        return true;
+    }
     char tilePath[128];
     snprintf(tilePath, sizeof(tilePath), mapRenderFolder, zoom, tx, ty);
     if (mapTempSprite.drawPngFile(tilePath, sx, sy))
@@ -827,7 +860,12 @@ void Maps::mapRenderTask(void* pvParameters)
                 instance->mapTempSprite.endWrite();
 
                 for (auto& entry : instance->navDataCache)
-                    entry.isPinned = false;
+                {
+                    if (entry.pinLeft > 0)
+                        entry.pinLeft--;
+                    else
+                        entry.isPinned = false;
+                }
 
                 instance->displayOffsetX = instance->offsetX;
                 instance->displayOffsetY = instance->offsetY;
@@ -844,24 +882,125 @@ void Maps::mapRenderTask(void* pvParameters)
                 triggerMapRedraw();
             }
         }
-        else
+        else if (mapSet.vectorMap)
             instance->prefetchNextTile();
+        else
+            instance->prefetchPngTile();
         vTaskDelay(1);
     }
 }
 
 /**
- * @brief Predictively preloads the next NAV tile while the render task is idle.
+ * @brief Predictively preloads NAV tiles while the render task is idle.
  *
- * @details Runs only when the pending queue is empty (no active render). In vector
- *          mode with GPS following and meaningful speed, it derives the next tile in
- *          the heading direction and loads it into the LRU cache so it is ready when
- *          the viewport reaches it. The preloaded entry is left unpinned so it stays
- *          evictable. Throttled by tile hash to avoid reloading the same tile.
+ * @details Runs only when the pending queue is empty (no active render). On ESP32-P4
+ *          it loads the leading border of the next grid (Chebyshev radius
+ *          tilesGrid/2 + 1), ordered by dot product with the movement direction (GPS
+ *          heading while following, drag velocity otherwise), so a tile crossing or a
+ *          90 degree turn does not stall on an SD read. Loaded tiles stay pinned for
+ *          PREFETCH_PIN_FRAMES render cycles. On the other targets the single-tile
+ *          heading prefetch is kept unchanged.
  */
 void Maps::prefetchNextTile()
 {
-    if (!mapSet.vectorMap || !Maps::followGps)
+    if (!mapSet.vectorMap)
+        return;
+
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    float dirTileX;
+    float dirTileY;
+    uint32_t centerTileX;
+    uint32_t centerTileY;
+
+    if (Maps::followGps)
+    {
+        const Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
+        if (gpsSnap.speed < PREFETCH_MIN_SPEED_KMH)
+            return;
+        const float rad = gpsSnap.heading * (float)M_PI / 180.0f;
+        dirTileX = sinf(rad);
+        dirTileY = -cosf(rad);
+        centerTileX = lon2tilex(gpsSnap.longitude, zoomLevel);
+        centerTileY = lat2tiley(gpsSnap.latitude, zoomLevel);
+    }
+    else
+    {
+        if (fabsf(velocityX) < PREFETCH_MIN_DRAG_VELOCITY && fabsf(velocityY) < PREFETCH_MIN_DRAG_VELOCITY)
+            return;
+        dirTileX = velocityX;
+        dirTileY = velocityY;
+        centerTileX = currentMapTile.tilex;
+        centerTileY = currentMapTile.tiley;
+    }
+
+    if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(100)) != pdTRUE)
+        return;
+
+    const int16_t radius = (int16_t)tilesGrid / 2 + 1;
+    struct Neighbor
+    {
+        int16_t dx;
+        int16_t dy;
+        float dot;
+    };
+    Neighbor ring[64];
+    uint8_t n = 0;
+    for (int16_t dy = -radius; dy <= radius; dy++)
+    {
+        for (int16_t dx = -radius; dx <= radius; dx++)
+        {
+            if (std::abs(dx) < radius && std::abs(dy) < radius)
+                continue;
+            if (dx == 0 && dy == 0)
+                continue;
+            const float dot = (float)dx * dirTileX + (float)dy * dirTileY;
+            if (dot < 0.0f)
+                continue;
+            ring[n].dx = dx;
+            ring[n].dy = dy;
+            ring[n].dot = dot;
+            n++;
+        }
+    }
+    std::sort(ring, ring + n, [](const Neighbor& a, const Neighbor& b) { return a.dot > b.dot; });
+
+    uint8_t loadedInPass = 0;
+    for (uint8_t i = 0; i < n && loadedInPass < PREFETCH_MAX_LOAD_PER_PASS; i++)
+    {
+        const uint32_t targetX = centerTileX + ring[i].dx;
+        const uint32_t targetY = centerTileY + ring[i].dy;
+        const uint32_t targetHash = (uint32_t(zoomLevel) << 28) | (uint32_t(targetX & 0x3FFF) << 14) | uint32_t(targetY & 0x3FFF);
+
+        bool present = false;
+        for (const auto& entry : navDataCache)
+        {
+            if (entry.tileHash == targetHash)
+            {
+                present = true;
+                break;
+            }
+        }
+        if (present)
+            continue;
+
+        size_t dataSize = 0;
+        if (!navCacheLookupOrLoad(targetX, targetY, zoomLevel, dataSize))
+            continue;
+
+        for (auto& entry : navDataCache)
+        {
+            if (entry.tileHash == targetHash)
+            {
+                entry.pinLeft = PREFETCH_PIN_FRAMES;
+                break;
+            }
+        }
+        loadedInPass++;
+    }
+
+    xSemaphoreGiveRecursive(mapMutex);
+#else
+    if (!Maps::followGps)
         return;
 
     const Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
@@ -899,6 +1038,112 @@ void Maps::prefetchNextTile()
     }
 
     xSemaphoreGiveRecursive(mapMutex);
+#endif
+}
+
+/**
+ * @brief Predictively decodes the next PNG tile into the staging sprite.
+ *
+ * @details Runs only when the render queue is empty. Stages the leading edge tile of
+ *          the next grid (Chebyshev radius tilesGrid/2 + 1) in the movement direction
+ *          (GPS heading while following, drag velocity otherwise) so the next scroll
+ *          crossing can blit it instead of decoding from SD.
+ */
+void Maps::prefetchPngTile()
+{
+    if (mapSet.vectorMap)
+        return;
+    if (pngStagingSprite.getBuffer() == nullptr)
+        return;
+
+    float dirTileX = 0.0f;
+    float dirTileY = 0.0f;
+    uint32_t centerTileX;
+    uint32_t centerTileY;
+
+    if (Maps::followGps)
+    {
+        const Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
+        if (gpsSnap.speed < PREFETCH_MIN_SPEED_KMH)
+            return;
+        const float rad = gpsSnap.heading * (float)M_PI / 180.0f;
+        dirTileX = sinf(rad);
+        dirTileY = -cosf(rad);
+        centerTileX = lon2tilex(gpsSnap.longitude, zoomLevel);
+        centerTileY = lat2tiley(gpsSnap.latitude, zoomLevel);
+    }
+    else
+    {
+        if (fabsf(velocityX) < PREFETCH_MIN_DRAG_VELOCITY && fabsf(velocityY) < PREFETCH_MIN_DRAG_VELOCITY)
+            return;
+        dirTileX = velocityX;
+        dirTileY = velocityY;
+        centerTileX = currentMapTile.tilex;
+        centerTileY = currentMapTile.tiley;
+    }
+
+    const int32_t radius = (int32_t)tilesGrid / 2 + 1;
+    const int32_t stepX = (dirTileX > 0.0f) ? radius : ((dirTileX < 0.0f) ? -radius : 0);
+    const int32_t stepY = (dirTileY > 0.0f) ? radius : ((dirTileY < 0.0f) ? -radius : 0);
+    if (stepX == 0 && stepY == 0)
+        return;
+
+    const uint32_t maxIdx = (uint32_t(1u) << zoomLevel) - 1u;
+    const int64_t txi = (int64_t)centerTileX + stepX;
+    const int64_t tyi = (int64_t)centerTileY + stepY;
+    const uint32_t targetX = (uint32_t)std::min<int64_t>(std::max<int64_t>(txi, 0), maxIdx);
+    const uint32_t targetY = (uint32_t)std::min<int64_t>(std::max<int64_t>(tyi, 0), maxIdx);
+
+    const uint32_t targetHash = (uint32_t(zoomLevel) << 28) | (uint32_t(targetX & 0x3FFF) << 14) | uint32_t(targetY & 0x3FFF);
+    if (pngStagingValid && pngStagedHash == targetHash)
+        return;
+
+    if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(100)) != pdTRUE)
+        return;
+
+    if (pngStagingValid && pngStagedHash == targetHash)
+    {
+        xSemaphoreGiveRecursive(mapMutex);
+        return;
+    }
+
+    pngStagingValid = false;
+    pngStagedHash = 0;
+
+    char tilePath[128];
+    snprintf(tilePath, sizeof(tilePath), mapRenderFolder, zoomLevel, targetX, targetY);
+
+    int16_t stageX = 0;
+    int16_t stageY = 0;
+    if (pngStagingSprite.drawPngFile(tilePath, stageX, stageY))
+    {
+        pngStagedHash = targetHash;
+        pngStagingValid = true;
+    }
+
+    xSemaphoreGiveRecursive(mapMutex);
+}
+
+/**
+ * @brief Blits the staged PNG tile if it matches the requested tile hash.
+ *
+ * @details Consumes the staging buffer so the next crossing re-stages. Returns false
+ *          when there is no valid staged tile for this position; the caller then falls
+ *          back to a synchronous PNG decode.
+ */
+bool Maps::tryApplyStagedPng(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map)
+{
+    if (!pngStagingValid)
+        return false;
+
+    const uint32_t hash = (uint32_t(zoom) << 28) | (uint32_t(tileX & 0x3FFF) << 14) | uint32_t(tileY & 0x3FFF);
+    if (hash != pngStagedHash)
+        return false;
+
+    map.pushImage(screenX, screenY, mapTileSize, mapTileSize, static_cast<uint16_t*>(pngStagingSprite.getBuffer()));
+    pngStagingValid = false;
+    pngStagedHash = 0;
+    return true;
 }
 
 /**
@@ -913,6 +1158,8 @@ void Maps::prefetchNextTile()
  */
 void Maps::renderPngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map)
 {
+    if (tryApplyStagedPng(tileX, tileY, zoom, screenX, screenY, map))
+        return;
     char tilePath[128];
     snprintf(tilePath, sizeof(tilePath), mapRenderFolder, zoom, tileX, tileY);
     if (!map.drawPngFile(tilePath, screenX, screenY))
@@ -2259,7 +2506,7 @@ uint8_t* Maps::navCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t zoom
         }
     }
 
-    navDataCache.push_back({data, size, tileHash, ++cacheCounter, true});
+    navDataCache.push_back({data, size, tileHash, ++cacheCounter, true, 0});
     outDataSize = size;
     return data;
 }
