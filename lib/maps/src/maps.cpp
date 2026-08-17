@@ -534,6 +534,8 @@ void Maps::generateMap(uint8_t zoom)
 
         if (navScrollDeferred && !zoomChanged && !navNeedsRender)
             return;
+        if (navIncrementalRenderPending)
+            return;
 
         if (!zoomChanged && !tileChanged && !navNeedsRender && pendingTiles.empty())
             return;
@@ -597,10 +599,12 @@ void Maps::mapRenderTask(void* pvParameters)
                 }
                 bool zoomChanged = (instance->zoomLevel != lastZoom);
                 bool fullReset = zoomChanged || (instance->pendingTiles.size() >= (size_t)(instance->tilesGrid * instance->tilesGrid));
+                bool incrementalRender = mapSet.vectorMap && instance->navIncrementalRenderPending && !fullReset;
                 lastZoom = instance->zoomLevel;
 
                 if (fullReset)
                 {
+                    instance->navIncrementalRenderPending = false;
                     xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_DONE | MAP_EVENT_ERROR);
                     xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_START);
 
@@ -654,32 +658,74 @@ void Maps::mapRenderTask(void* pvParameters)
                     }
                 }
 
+                if (incrementalRender)
+                {
+                    const int16_t shiftX = -instance->navIncrementalDirX * mapTileSize;
+                    const int16_t shiftY = -instance->navIncrementalDirY * mapTileSize;
+                    if (instance->navIncrementalDirX != 0)
+                    {
+                        instance->mapTempSprite.scroll(shiftX, 0);
+                        const int gx = (instance->navIncrementalDirX > 0) ? (instance->tilesGrid - 1) : 0;
+                        instance->mapTempSprite.fillRect(gx * mapTileSize, 0, mapTileSize, instance->tileHeight, 0xF7BE);
+                    }
+                    else
+                    {
+                        instance->mapTempSprite.scroll(0, shiftY);
+                        const int gy = (instance->navIncrementalDirY > 0) ? (instance->tilesGrid - 1) : 0;
+                        instance->mapTempSprite.fillRect(0, gy * mapTileSize, instance->tileWidth, mapTileSize, 0xF7BE);
+                    }
+                    for (auto& label : instance->placedLabelsCache)
+                    {
+                        label.x += shiftX;
+                        label.y += shiftY;
+                    }
+                    instance->placedLabelsCache.erase(std::remove_if(instance->placedLabelsCache.begin(), instance->placedLabelsCache.end(),
+                                                                      [instance](const LabelRect& label)
+                                                                      {
+                                                                          return label.x + label.w < 0 || label.y + label.h < 0 ||
+                                                                                 label.x >= (int16_t)instance->tileWidth ||
+                                                                                 label.y >= (int16_t)instance->tileHeight;
+                                                                      }),
+                                                       instance->placedLabelsCache.end());
+                    instance->featurePool.clear();
+                    instance->decodedCoords.clear();
+                    for (int i = 0; i < 16; i++)
+                    {
+                        instance->layers[i].clear();
+                        instance->layersCasing[i].clear();
+                        instance->layersText[i].clear();
+                    }
+                }
+
                 // Yields mutex briefly so other tasks can run between tile renders.
                 // Returns true if rendering should abort (mutex lost or new viewport pending).
                 auto yieldTile = [&]() -> bool
                 {
+                    if (incrementalRender)
+                        return false;
                     xSemaphoreGiveRecursive(instance->mapMutex);
                     vTaskDelay(1);
-                    if (xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE)
-                        return true;
-                    if (instance->pendingTiles.size() >= (size_t)(instance->tilesGrid * instance->tilesGrid))
-                        return true;
-                    return false;
+                    bool shouldAbort = xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE;
+                    if (!shouldAbort && instance->pendingTiles.size() >= (size_t)(instance->tilesGrid * instance->tilesGrid))
+                        shouldAbort = true;
+                    return shouldAbort;
                 };
 
                 // Yields mutex briefly between feature render passes (endWrite/startWrite around the pause).
                 // Returns true if rendering should abort.
                 auto yieldFeature = [&]() -> bool
                 {
+                    if (incrementalRender)
+                        return false;
                     instance->mapTempSprite.endWrite();
                     xSemaphoreGiveRecursive(instance->mapMutex);
                     vTaskDelay(pdMS_TO_TICKS(2));
-                    if (xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE)
-                        return true;
-                    if (!instance->pendingTiles.empty())
-                        return true;
-                    instance->mapTempSprite.startWrite();
-                    return false;
+                    bool shouldAbort = xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE;
+                    if (!shouldAbort && !instance->pendingTiles.empty())
+                        shouldAbort = true;
+                    if (!shouldAbort)
+                        instance->mapTempSprite.startWrite();
+                    return shouldAbort;
                 };
 
                 bool aborted = false;
@@ -746,7 +792,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     continue;
                 }
 
-                if (instance->mapTempSprite.getBuffer())
+                if (!incrementalRender && instance->mapTempSprite.getBuffer())
                 {
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
                     uint8_t* buf = static_cast<uint8_t*>(instance->mapTempSprite.getBuffer());
@@ -777,7 +823,8 @@ void Maps::mapRenderTask(void* pvParameters)
                 }
 
                 instance->update3DCache();
-                instance->placedLabelsCache.clear();
+                if (!incrementalRender)
+                    instance->placedLabelsCache.clear();
                 instance->mapTempSprite.startWrite();
                 uint32_t lastYield = millis_idf();
                 uint32_t loopCounter = 0;
@@ -858,7 +905,12 @@ void Maps::mapRenderTask(void* pvParameters)
                 }
 
                 instance->mapTempSprite.endWrite();
-
+                if (incrementalRender)
+                {
+                    instance->navIncrementalRenderPending = false;
+                    instance->navIncrementalDirX = 0;
+                    instance->navIncrementalDirY = 0;
+                }
                 for (auto& entry : instance->navDataCache)
                 {
                     if (entry.pinLeft > 0)
@@ -1471,6 +1523,7 @@ void Maps::resetScrollState()
     velocityX = 0;
     velocityY = 0;
     navScrollDeferred = false;
+    navIncrementalRenderPending = false;
 }
 
 /**
@@ -1583,22 +1636,34 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
         }
         else
         {
-            const int16_t marginX = (tileWidth - mapScrWidth) / 2 - threshold;
-            const int16_t marginY = (tileHeight - mapScrHeight) / 2 - threshold;
-            const int16_t deferredX = offsetX + (tileX - lastTileX) * mapTileSize;
-            const int16_t deferredY = offsetY + (tileY - lastTileY) * mapTileSize;
-            const bool exceedsMargin = abs(deferredX) > marginX || abs(deferredY) > marginY;
-
-            // During inertia the re-render is postponed even past the grid margin (the stale
-            // edge is tolerated until the flick stops) so the grid is not re-rasterized on every
-            // crossing. A finger drag is slow enough to re-render when the margin is exceeded.
-            if (scrolling && (inertia || !exceedsMargin))
-                navScrollDeferred = true;
+            const bool singleStep = (abs(deltaTileX) == 1 && deltaTileY == 0) ||
+                                    (abs(deltaTileY) == 1 && deltaTileX == 0);
+            if (singleStep && pendingTiles.empty() && !inertia && !followGps)
+            {
+                Maps::preloadVectorTiles(deltaTileX, deltaTileY);
+            }
             else
             {
-                navScrollDeferred = false;
-                updateMap();
-                generateMap(zoomLevel);
+                const int16_t marginX = (tileWidth - mapScrWidth) / 2 - threshold;
+                const int16_t marginY = (tileHeight - mapScrHeight) / 2 - threshold;
+                const int16_t deferredX = offsetX + (tileX - lastTileX) * mapTileSize;
+                const int16_t deferredY = offsetY + (tileY - lastTileY) * mapTileSize;
+                const bool exceedsMargin = abs(deferredX) > marginX || abs(deferredY) > marginY;
+
+                // During inertia the re-render is postponed even past the grid margin (the stale
+                // edge is tolerated until the flick stops) so the grid is not re-rasterized on every
+                // crossing. A finger drag is slow enough to re-render when the margin is exceeded.
+                if (scrolling && (inertia || !exceedsMargin))
+                    navScrollDeferred = true;
+                else
+                {
+                    navIncrementalRenderPending = false;
+                    pendingTiles.clear();
+                    pendingTilesNotEmpty = false;
+                    navScrollDeferred = false;
+                    updateMap();
+                    generateMap(zoomLevel);
+                }
             }
         }
 
@@ -1640,6 +1705,12 @@ void Maps::commitScroll()
     if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(10)) != pdTRUE)
         return;
 
+    if (navIncrementalRenderPending)
+    {
+        navIncrementalRenderPending = false;
+        pendingTiles.clear();
+        pendingTilesNotEmpty = false;
+    }
     navScrollDeferred = false;
     updateMap();
     generateMap(zoomLevel);
@@ -1648,8 +1719,79 @@ void Maps::commitScroll()
     xSemaphoreGiveRecursive(mapMutex);
 }
 
- /**
-  * @brief Incrementally scroll the PNG grid by one tile row or column.
+/**
+ * @brief Incrementally scroll the vector grid by one tile row or column.
+ *
+ * @details Keeps the already rasterized map pixels, clears only the incoming edge and queues
+ *          that edge for the render task. S3 continues to use the existing full-grid vector
+ *          renderer until its own validation is complete.
+ *
+ * @param dirX X pan direction (-1, 0, +1)
+ * @param dirY Y pan direction (-1, 0, +1)
+ */
+void Maps::preloadVectorTiles(int8_t dirX, int8_t dirY)
+{
+    const int16_t tileSize = mapTileSize;
+    const int8_t gridOffset = tilesGrid / 2;
+    const uint32_t centerTileIdxX = Maps::currentMapTile.tilex;
+    const uint32_t centerTileIdxY = Maps::currentMapTile.tiley;
+    const int32_t tlX = (int32_t)centerTileIdxX - gridOffset;
+    const int32_t tlY = (int32_t)centerTileIdxY - gridOffset;
+    navTlTileX = (float)tlX;
+    navTlTileY = (float)tlY;
+    Maps::oldMapTile.tilex = centerTileIdxX;
+    Maps::oldMapTile.tiley = centerTileIdxY;
+    Maps::oldMapTile.zoom  = Maps::zoomLevel;
+
+    Maps::totalBounds = getTileBounds((uint32_t)tlX, (uint32_t)tlY, Maps::zoomLevel);
+    const tileBounds brBounds = getTileBounds((uint32_t)(tlX + tilesGrid - 1),
+                                               (uint32_t)(tlY + tilesGrid - 1), Maps::zoomLevel);
+    if (brBounds.lat_min < totalBounds.lat_min)
+        totalBounds.lat_min = brBounds.lat_min;
+    if (brBounds.lat_max > totalBounds.lat_max)
+        totalBounds.lat_max = brBounds.lat_max;
+    if (brBounds.lon_min < totalBounds.lon_min)
+        totalBounds.lon_min = brBounds.lon_min;
+    if (brBounds.lon_max > totalBounds.lon_max)
+        totalBounds.lon_max = brBounds.lon_max;
+
+    if (Maps::isMapFound && Maps::isCoordInBounds(Maps::destLat, Maps::destLon, Maps::totalBounds))
+        Maps::coords2map(Maps::destLat, Maps::destLon, Maps::totalBounds, &wptPosX, &wptPosY);
+    else
+    {
+        Maps::wptPosX = -1;
+        Maps::wptPosY = -1;
+    }
+
+    pendingTiles.clear();
+    if (dirX != 0)
+    {
+        const int gx = (dirX > 0) ? (tilesGrid - 1) : 0;
+        const uint32_t tx = (uint32_t)(tlX + gx);
+        for (int gy = 0; gy < tilesGrid; gy++)
+            pendingTiles.push_back({tx, (uint32_t)(tlY + gy), (int16_t)(gx * tileSize), (int16_t)(gy * tileSize), TILE_NAV});
+    }
+    else if (dirY != 0)
+    {
+        const int gy = (dirY > 0) ? (tilesGrid - 1) : 0;
+        const uint32_t ty = (uint32_t)(tlY + gy);
+        for (int gx = 0; gx < tilesGrid; gx++)
+            pendingTiles.push_back({(uint32_t)(tlX + gx), ty, (int16_t)(gx * tileSize), (int16_t)(gy * tileSize), TILE_NAV});
+    }
+
+    navIncrementalDirX = dirX;
+    navIncrementalDirY = dirY;
+    navIncrementalRenderPending = true;
+    pendingTilesNotEmpty = true;
+    navScrollDeferred = false;
+    redrawMap = true;
+    xEventGroupClearBits(mapEventGroup, MAP_EVENT_DONE | MAP_EVENT_ERROR);
+    xEventGroupSetBits(mapEventGroup, MAP_EVENT_START);
+}
+
+/**
+   * @brief Incrementally scroll the PNG grid by one tile row or column.
+
   *
   * @details Shifts the already rendered sprite one tile in the pan direction and loads only the
   *          incoming edge tiles from SD instead of re-reading the whole grid. Advances the grid
@@ -2414,6 +2556,7 @@ bool Maps::renderNavViewport(float centerLat, float centerLon, uint8_t zoom, Map
     const int8_t gridOffset = tilesGrid / 2;
     navTlTileX = (float)(centerTileIdxX - gridOffset);
     navTlTileY = (float)(centerTileIdxY - gridOffset);
+    navIncrementalRenderPending = false;
     bool zoomChanged = (zoom != navLastZoom);
     navLastZoom = zoom;
     if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)

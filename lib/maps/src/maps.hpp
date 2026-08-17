@@ -109,6 +109,7 @@ private:
     void update3DCache();
     void apply3DPerspective(uint16_t heading);
     void preloadTiles(int8_t dirX, int8_t dirY);
+    void preloadVectorTiles(int8_t dirX, int8_t dirY);
     bool renderNavViewport(float centerLat, float centerLon, uint8_t zoom, MapCanvas &map);
     void renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map);
 
@@ -277,6 +278,9 @@ private:
     uint8_t navLastZoom;
     bool navNeedsRender;
     bool navScrollDeferred = false;
+    bool navIncrementalRenderPending = false;
+    int8_t navIncrementalDirX = 0;
+    int8_t navIncrementalDirY = 0;
     float navTlTileX;
     float navTlTileY;
     volatile bool pendingTilesNotEmpty = false;
