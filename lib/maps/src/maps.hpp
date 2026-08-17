@@ -109,9 +109,9 @@ private:
     void update3DCache();
     void apply3DPerspective(uint16_t heading);
     void preloadTiles(int8_t dirX, int8_t dirY);
-    void preloadVectorTiles(int8_t dirX, int8_t dirY);
-    bool renderNavViewport(float centerLat, float centerLon, uint8_t zoom, MapCanvas &map);
-    void renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map);
+    void preloadVectorTiles(int8_t dirX, int8_t dirY, uint8_t stepCount = 1);
+    bool renderVectorViewport(float centerLat, float centerLon, uint8_t zoom, MapCanvas &map);
+    void renderVectorTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map);
 
 public:
     uint16_t tileWidth;
@@ -204,7 +204,7 @@ private:
 #else
     static const uint8_t NAV_DATA_CACHE_SIZE = 12;
 #endif
-    std::vector<NavDataCache, PsramAllocator<NavDataCache>> navDataCache;
+    std::vector<NavDataCache, PsramAllocator<NavDataCache>> vectorCache;
     uint32_t cacheCounter = 0;
     uint32_t lastPrefetchHash = 0;
 
@@ -227,10 +227,10 @@ private:
     std::vector<uint16_t, PsramAllocator<uint16_t>> ringEndsCache;
     std::vector<LabelRect, PsramAllocator<LabelRect>> placedLabelsCache;
 
-    void renderNavLineString(const FeatureRef& ref, MapCanvas& map, bool isCasing = false);
-    void renderNavPolygon(const FeatureRef& ref, MapCanvas& map);
-    void renderNavPoint(const FeatureRef& ref, MapCanvas& map);
-    void renderNavText(const FeatureRef& ref, MapCanvas& map, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels);
+    void renderVectorLine(const FeatureRef& ref, MapCanvas& map, bool isCasing = false);
+    void renderVectorPolygon(const FeatureRef& ref, MapCanvas& map);
+    void renderVectorPoint(const FeatureRef& ref, MapCanvas& map);
+    void renderVectorText(const FeatureRef& ref, MapCanvas& map, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels);
     void latLonToPixel(float lat, float lon, int16_t& px, int16_t& py);
     void drawTrack(MapCanvas& map);
     void drawWaypoint(MapCanvas& map);
@@ -238,7 +238,7 @@ private:
 public:
     void redrawTrack();
     bool isRendering() const { return pendingTilesNotEmpty; }
-    bool isScrollDeferred() const { return navScrollDeferred; }
+    bool isScrollDeferred() const { return vectorDeferred; }
     bool is3DActive() const { return use3DCache; }
     TaskHandle_t renderTaskHandle() const { return mapRenderTaskHandle; }
 
@@ -258,7 +258,15 @@ private:
         TileType type;
     };
 
+    struct VectorStep
+    {
+        int8_t dirX;
+        int8_t dirY;
+        std::vector<PendingTile> tiles;
+    };
+
     std::vector<PendingTile> pendingTiles;
+    std::vector<VectorStep> vectorSteps;
     SemaphoreHandle_t mapMutex;
     TaskHandle_t mapRenderTaskHandle;
     static void mapRenderTask(void* pvParameters);
@@ -269,20 +277,22 @@ private:
                                uint32_t centerTileIdxX, uint32_t centerTileIdxY,
                                uint8_t zoom, bool& centerFound);
     void enqueueTileGrid(uint32_t centerTileIdxX, uint32_t centerTileIdxY, TileType type);
-    uint8_t* navCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t zoom, size_t& outDataSize);
+    void queueVectorStep(uint32_t centerTileIdxX, uint32_t centerTileIdxY,
+                         int8_t dirX, int8_t dirY);
+    uint8_t* vectorCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t zoom, size_t& outDataSize);
     void prefetchNextTile();
-    void navDecodeFeatures(const uint8_t* data, size_t dataSize, int16_t screenX, int16_t screenY, uint8_t zoom);
+    void decodeVectorFeatures(const uint8_t* data, size_t dataSize, int16_t screenX, int16_t screenY, uint8_t zoom);
     static void drawThickLine(MapCanvas& map, int16_t x0, int16_t y0,
                               int16_t x1, int16_t y1, uint8_t width, uint16_t color);
 
-    uint8_t navLastZoom;
-    bool navNeedsRender;
-    bool navScrollDeferred = false;
-    bool navIncrementalRenderPending = false;
-    int8_t navIncrementalDirX = 0;
-    int8_t navIncrementalDirY = 0;
-    float navTlTileX;
-    float navTlTileY;
+    uint8_t vectorZoom;
+    bool vectorNeedsRender;
+    bool vectorDeferred = false;
+    bool vectorPending = false;
+    int8_t vectorDirX = 0;
+    int8_t vectorDirY = 0;
+    float mapTlX;
+    float mapTlY;
     volatile bool pendingTilesNotEmpty = false;
 
     struct Edge
