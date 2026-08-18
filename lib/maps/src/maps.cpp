@@ -9,6 +9,9 @@
 #include "maps.hpp"
 #include "esp_log.h"
 #include "esp_heap_caps.h"
+#if defined(EXTRA_LARGE_SCREEN)
+#include "esp_timer.h"
+#endif
 #include <cmath>
 #include <climits>
 #include "tasks.hpp"
@@ -50,6 +53,27 @@ static const uint8_t PREFETCH_PIN_FRAMES = 4;
 static const uint8_t PREFETCH_MAX_LOAD_PER_PASS = 4;
 #endif
 static const float PREFETCH_MIN_DRAG_VELOCITY = 0.5f;
+
+static bool aggressiveLod = false;
+
+#if defined(EXTRA_LARGE_SCREEN)
+static uint32_t profPngStageHits = 0;
+static uint32_t profPngStageMisses = 0;
+static uint32_t profRenderSteps = 0;
+static uint32_t profRenderTotalUs = 0;
+static uint32_t profRenderDecodeUs = 0;
+static uint32_t profRenderPaintUs = 0;
+static uint32_t profRenderVecUs = 0;
+static uint32_t profRenderScrollUs = 0;
+static uint32_t profAggSteps = 0;
+static uint32_t profPaintAggUs = 0;
+static uint32_t profPaintNormUs = 0;
+static uint32_t profNormSteps = 0;
+static uint32_t profWaitCount = 0;
+static uint32_t profWaitUs = 0;
+static uint32_t profPreloadBands = 0;
+static uint32_t profPreloadTotalUs = 0;
+#endif
 
 /**
  * @brief Map Class constructor
@@ -368,6 +392,8 @@ void Maps::initMap(uint16_t mapWidth, uint16_t mapHeight)
         }
     }
 #endif
+    // LGFX scroll() fills the vacated band with the sprite base color (map background 0xF7BE).
+    Maps::mapTempSprite.setBaseColor(0xF7BE);
     Maps::mapTempSprite.loadFont("/spiffs/font/font.vlw");
     Maps::mapSprite.createSprite(mapWidth, mapHeight);
     Maps::mapBuffer = Maps::mapSprite.getBuffer();
@@ -622,6 +648,12 @@ void Maps::mapRenderTask(void* pvParameters)
                 bool vectorRender = mapSet.vectorMap && instance->vectorPending && !fullReset;
                 lastZoom = instance->zoomLevel;
 
+#if defined(EXTRA_LARGE_SCREEN)
+                const int64_t tStepStart = esp_timer_get_time();
+                int64_t tDecodeAcc = 0;
+                int64_t tPaintAcc = 0;
+#endif
+
                 if (fullReset)
                 {
                     instance->vectorPending = false;
@@ -680,20 +712,18 @@ void Maps::mapRenderTask(void* pvParameters)
 
                 if (vectorRender)
                 {
+#if defined(EXTRA_LARGE_SCREEN)
+                    const int64_t tVecStart = esp_timer_get_time();
+#endif
                     const int16_t shiftX = -instance->vectorDirX * mapTileSize;
                     const int16_t shiftY = -instance->vectorDirY * mapTileSize;
                     if (instance->vectorDirX != 0)
-                    {
                         instance->mapTempSprite.scroll(shiftX, 0);
-                        const int gx = (instance->vectorDirX > 0) ? (instance->tilesGrid - 1) : 0;
-                        instance->mapTempSprite.fillRect(gx * mapTileSize, 0, mapTileSize, instance->tileHeight, 0xF7BE);
-                    }
                     else
-                    {
                         instance->mapTempSprite.scroll(0, shiftY);
-                        const int gy = (instance->vectorDirY > 0) ? (instance->tilesGrid - 1) : 0;
-                        instance->mapTempSprite.fillRect(0, gy * mapTileSize, instance->tileWidth, mapTileSize, 0xF7BE);
-                    }
+#if defined(EXTRA_LARGE_SCREEN)
+                    profRenderScrollUs += (uint32_t)(esp_timer_get_time() - tVecStart);
+#endif
                     for (auto& label : instance->placedLabelsCache)
                     {
                         label.x += shiftX;
@@ -715,19 +745,46 @@ void Maps::mapRenderTask(void* pvParameters)
                         instance->layersCasing[i].clear();
                         instance->layersText[i].clear();
                     }
+#if defined(EXTRA_LARGE_SCREEN)
+                    profRenderVecUs += (uint32_t)(esp_timer_get_time() - tVecStart);
+#endif
                 }
 
                 // Yields mutex briefly so other tasks can run between tile renders.
                 // Returns true if rendering should abort (mutex lost or new viewport pending).
+                // During incremental vector render the mutex is only released between border tiles
+                // when the renderer is falling behind the finger (queued steps or pending scroll
+                // deltas); a slow single crossing stays atomic so the incoming edge is not left
+                // half-painted and no snapback occurs. The sequence aborts only if a fallback,
+                // commit or full-grid reset invalidated the current band.
+                bool stepBehindFinger = false;
                 auto yieldTile = [&]() -> bool
                 {
                     if (vectorRender)
-                        return false;
+                    {
+                        const int16_t halfTile = mapTileSize / 2;
+                        const bool behindFinger = !instance->vectorSteps.empty() ||
+                                                  abs(instance->pendingDx) >= halfTile ||
+                                                  abs(instance->pendingDy) >= halfTile;
+                        if (!behindFinger)
+                            return false;
+                        stepBehindFinger = true;
+                    }
                     xSemaphoreGiveRecursive(instance->mapMutex);
                     vTaskDelay(1);
                     bool shouldAbort = xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE;
-                    if (!shouldAbort && instance->pendingTiles.size() >= (size_t)(instance->tilesGrid * instance->tilesGrid))
-                        shouldAbort = true;
+                    if (!shouldAbort)
+                    {
+                        if (vectorRender)
+                        {
+                            if (!instance->vectorPending)
+                                shouldAbort = true;
+                            else if (instance->pendingTiles.size() >= (size_t)(instance->tilesGrid * instance->tilesGrid))
+                                shouldAbort = true;
+                        }
+                        else if (instance->pendingTiles.size() >= (size_t)(instance->tilesGrid * instance->tilesGrid))
+                            shouldAbort = true;
+                    }
                     return shouldAbort;
                 };
 
@@ -749,6 +806,9 @@ void Maps::mapRenderTask(void* pvParameters)
                 };
 
                 bool aborted = false;
+#if defined(EXTRA_LARGE_SCREEN)
+                const int64_t tDecodeStart = esp_timer_get_time();
+#endif
                 while (!instance->pendingTiles.empty())
                 {
                     PendingTile t = instance->pendingTiles.back();
@@ -766,6 +826,9 @@ void Maps::mapRenderTask(void* pvParameters)
                         if (yieldTile()) { aborted = true; break; }
                     }
                 }
+#if defined(EXTRA_LARGE_SCREEN)
+                tDecodeAcc += esp_timer_get_time() - tDecodeStart;
+#endif
 
                 if (aborted)
                 {
@@ -845,10 +908,14 @@ void Maps::mapRenderTask(void* pvParameters)
                 instance->update3DCache();
                 if (!vectorRender)
                     instance->placedLabelsCache.clear();
+                aggressiveLod = vectorRender && stepBehindFinger;
                 instance->mapTempSprite.startWrite();
                 uint32_t lastYield = millis_idf();
                 uint32_t loopCounter = 0;
 
+#if defined(EXTRA_LARGE_SCREEN)
+                const int64_t tPaintStart = esp_timer_get_time();
+#endif
                 for (int i = 0; i < 16 && !aborted; i++)
                 {
                     const auto& layer = instance->layers[i];
@@ -919,12 +986,46 @@ void Maps::mapRenderTask(void* pvParameters)
 
                 if (aborted)
                 {
+                    aggressiveLod = false;
                     if (xSemaphoreGetMutexHolder(instance->mapMutex) == xTaskGetCurrentTaskHandle())
                         xSemaphoreGiveRecursive(instance->mapMutex);
+
                     continue;
                 }
 
+#if defined(EXTRA_LARGE_SCREEN)
+                tPaintAcc += esp_timer_get_time() - tPaintStart;
+                profRenderSteps++;
+                profRenderTotalUs += (uint32_t)(esp_timer_get_time() - tStepStart);
+                profRenderDecodeUs += (uint32_t)tDecodeAcc;
+                profRenderPaintUs += (uint32_t)tPaintAcc;
+                if (aggressiveLod)
+                {
+                    profAggSteps++;
+                    profPaintAggUs += (uint32_t)tPaintAcc;
+                }
+                else
+                {
+                    profNormSteps++;
+                    profPaintNormUs += (uint32_t)tPaintAcc;
+                }
+                if ((profRenderSteps % 25) == 0)
+                    ESP_LOGI(TAG, "PROF render step: total=%u decode=%u paint=%u other=%u vec=%u scroll=%u agg=%u/%u aggP=%u normP=%u us (avg, %u steps)",
+                             profRenderTotalUs / profRenderSteps,
+                             profRenderDecodeUs / profRenderSteps,
+                             profRenderPaintUs / profRenderSteps,
+                             (profRenderTotalUs - profRenderDecodeUs - profRenderPaintUs) / profRenderSteps,
+                             profRenderVecUs / profRenderSteps,
+                             profRenderScrollUs / profRenderSteps,
+                             profAggSteps,
+                             profRenderSteps,
+                             profPaintAggUs / (profAggSteps ? profAggSteps : 1),
+                             profPaintNormUs / (profNormSteps ? profNormSteps : 1),
+                             profRenderSteps);
+#endif
+
                 instance->mapTempSprite.endWrite();
+                aggressiveLod = false;
                 const bool sequencePending = vectorRender && !instance->vectorSteps.empty();
                 if (vectorRender)
                 {
@@ -1218,15 +1319,28 @@ void Maps::prefetchPngTile()
 bool Maps::tryApplyStagedPng(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map)
 {
     if (!pngStagingValid)
+    {
+#if defined(EXTRA_LARGE_SCREEN)
+        profPngStageMisses++;
+#endif
         return false;
+    }
 
     const uint32_t hash = (uint32_t(zoom) << 28) | (uint32_t(tileX & 0x3FFF) << 14) | uint32_t(tileY & 0x3FFF);
     if (hash != pngStagedHash)
+    {
+#if defined(EXTRA_LARGE_SCREEN)
+        profPngStageMisses++;
+#endif
         return false;
+    }
 
     map.pushImage(screenX, screenY, mapTileSize, mapTileSize, static_cast<uint16_t*>(pngStagingSprite.getBuffer()));
     pngStagingValid = false;
     pngStagedHash = 0;
+#if defined(EXTRA_LARGE_SCREEN)
+    profPngStageHits++;
+#endif
     return true;
 }
 
@@ -1581,8 +1695,19 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
     pendingDy += dy;
     scrolling = true;
 
+#if defined(EXTRA_LARGE_SCREEN)
+    const int64_t tWaitStart = esp_timer_get_time();
+#endif
     if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(10)) != pdTRUE)
+    {
+#if defined(EXTRA_LARGE_SCREEN)
+        profWaitCount++;
+        profWaitUs += (uint32_t)(esp_timer_get_time() - tWaitStart);
+        if ((profWaitCount % 100) == 0)
+            ESP_LOGI(TAG, "PROF scrollMap mutex wait: %u waits, avg %u us", profWaitCount, profWaitUs / profWaitCount);
+#endif
         return;
+    }
 
     dx = pendingDx;
     dy = pendingDy;
@@ -1876,6 +2001,9 @@ void Maps::preloadVectorTiles(int8_t dirX, int8_t dirY, uint8_t stepCount)
  */
 void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 {
+#if defined(EXTRA_LARGE_SCREEN)
+    const int64_t tPreloadStart = esp_timer_get_time();
+#endif
     const int16_t tileSize = mapTileSize;
     const int8_t gridOffset = tilesGrid / 2;
 
@@ -1933,24 +2061,30 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
     drawWaypoint(mapTempSprite);
     redrawMap = true;
     xEventGroupSetBits(mapEventGroup, MAP_EVENT_DONE);
+#if defined(EXTRA_LARGE_SCREEN)
+    profPreloadBands++;
+    profPreloadTotalUs += (uint32_t)(esp_timer_get_time() - tPreloadStart);
+    if ((profPreloadBands % 10) == 0)
+        ESP_LOGI(TAG, "PROF preloadTiles PNG: avg %u us/band, stage hits=%u misses=%u (%u bands)",
+                 profPreloadTotalUs / profPreloadBands, profPngStageHits, profPngStageMisses, profPreloadBands);
+#endif
 }
 
 /**
  * @brief Returns the LOD (Level of Detail) skip threshold in pixels for the given zoom level.
  *
  * @details Used by renderVectorLine() and renderVectorPolygon() to skip coordinate pairs
- *          that are too close together to be visually relevant at the current zoom.
+ *          that are too close together to be visually relevant at the current zoom. While the
+ *          renderer is behind the finger during a fast drag (aggressiveLod) the threshold is
+ *          roughly doubled so fewer vertices are painted.
  *
  * @param zoom Current map zoom level.
  * @return Pixel distance threshold below which coordinates are skipped.
  */
 static int16_t getLODThreshold(uint8_t zoom)
 {
-    if (zoom <= 12)
-        return 3;
-    if (zoom <= 14)
-        return 2;
-    return 1;
+    const int16_t base = (zoom <= 12) ? 3 : (zoom <= 14) ? 2 : 1;
+    return aggressiveLod ? base * 2 + 1 : base;
 }
 
 static uint32_t getPolygonAreaCullThreshold(uint8_t zoom)
