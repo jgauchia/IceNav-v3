@@ -311,6 +311,6 @@ private:
         int nextActive;
     };
 
-    std::vector<int, PsramAllocator<int>> edgeBuckets;
-    std::vector<Edge, PsramAllocator<Edge>> edgePool;
+    std::vector<int> edgeBuckets;
+    std::vector<Edge> edgePool;
 };

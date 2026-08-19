@@ -9,7 +9,6 @@
 #include "maps.hpp"
 #include "esp_log.h"
 #include "esp_heap_caps.h"
-#include "esp_timer.h"
 #include <cmath>
 #include <climits>
 #include "tasks.hpp"
@@ -146,7 +145,7 @@ void Maps::initResources()
     }
 #endif
     xTaskCreatePinnedToCore(mapRenderTask, "MapRenderTask", 4096, this, 2, &mapRenderTaskHandle, 0);
-    }
+}
 
 /**
  * @brief Computes the Mercator northing (merc_n) from a latitude in degrees.
@@ -2195,23 +2194,25 @@ static uint32_t getPolygonAreaCullThreshold(uint8_t zoom)
  */
 uint16_t Maps::darkenRGB565(const uint16_t color, const float amount)
 {
+    // Integer-only fast path: precomputed factor avoids float in hot path
     static uint16_t lastInColor = 0;
-    static float lastAmount = -1.0f;
+    static uint16_t lastFactor = 0;
     static uint16_t lastOutColor = 0;
 
-    if (color == lastInColor && amount == lastAmount)
+    uint16_t factor = (uint16_t)((int)((1.0f - amount) * 256.0f));
+
+    if (color == lastInColor && factor == lastFactor)
         return lastOutColor;
 
-    uint16_t factor = (uint16_t)((1.0f - amount) * 256.0f);
     uint8_t r = (color >> 11) & 0x1F;
     uint8_t g = (color >> 5) & 0x3F;
     uint8_t b = color & 0x1F;
-    r = static_cast<uint8_t>((r * factor) >> 8);
-    g = static_cast<uint8_t>((g * factor) >> 8);
-    b = static_cast<uint8_t>((b * factor) >> 8);
+    r = (uint8_t)((r * factor) >> 8);
+    g = (uint8_t)((g * factor) >> 8);
+    b = (uint8_t)((b * factor) >> 8);
     
     lastInColor = color;
-    lastAmount = amount;
+    lastFactor = factor;
     lastOutColor = ((r << 11) | (g << 5) | b);
     return lastOutColor;
 }
@@ -2320,8 +2321,40 @@ void Maps::fillPolygonGeneral(MapCanvas &map, const int *px, const int *py, cons
     }
 
     int activeHead = -1;
+    auto insertActiveSorted = [&](int eIdx)
+    {
+        if (activeHead == -1 || edgePool[eIdx].xVal < edgePool[activeHead].xVal)
+        {
+            edgePool[eIdx].nextActive = activeHead;
+            activeHead = eIdx;
+        }
+        else
+        {
+            int s = activeHead;
+            while (edgePool[s].nextActive != -1 && edgePool[edgePool[s].nextActive].xVal < edgePool[eIdx].xVal)
+                s = edgePool[s].nextActive;
+            edgePool[eIdx].nextActive = edgePool[s].nextActive;
+            edgePool[s].nextActive = eIdx;
+        }
+    };
+    auto fixInversions = [&]()
+    {
+        int* pCurrIdx = &activeHead;
+        while (edgePool[*pCurrIdx].nextActive != -1)
+        {
+            int nxt = edgePool[*pCurrIdx].nextActive;
+            if (edgePool[nxt].xVal < edgePool[*pCurrIdx].xVal)
+            {
+                edgePool[*pCurrIdx].nextActive = edgePool[nxt].nextActive;
+                edgePool[nxt].nextActive = *pCurrIdx;
+                *pCurrIdx = nxt;
+            }
+            pCurrIdx = &(edgePool[*pCurrIdx].nextActive);
+        }
+    };
     int startY = std::max(minY, -yOffset);
     int endY = std::min(maxY, (int)tileHeight - 1 - yOffset);
+    bool inverted = false;
 
     if (startY > minY)
     {
@@ -2332,8 +2365,7 @@ void Maps::fillPolygonGeneral(MapCanvas &map, const int *px, const int *py, cons
             {
                 int nextIdx = edgePool[eIdx].nextInBucket;
                 edgePool[eIdx].xVal += edgePool[eIdx].slope * (startY - y);
-                edgePool[eIdx].nextActive = activeHead;
-                activeHead = eIdx;
+                insertActiveSorted(eIdx);
                 eIdx = nextIdx;
             }
         }
@@ -2349,14 +2381,6 @@ void Maps::fillPolygonGeneral(MapCanvas &map, const int *px, const int *py, cons
 
     for (int y = startY; y <= endY; y++)
     {
-        int eIdx = edgeBuckets[y - minY];
-        while (eIdx != -1)
-        {
-            int nextIdx = edgePool[eIdx].nextInBucket;
-            edgePool[eIdx].nextActive = activeHead;
-            activeHead = eIdx;
-            eIdx = nextIdx;
-        }
         int* pCurrIdx = &activeHead;
         while (*pCurrIdx != -1)
         {
@@ -2365,30 +2389,23 @@ void Maps::fillPolygonGeneral(MapCanvas &map, const int *px, const int *py, cons
             else
                 pCurrIdx = &(edgePool[*pCurrIdx].nextActive);
         }
-        if (activeHead == -1)
-            continue;
-
-        int sorted = -1;
-        int active = activeHead;
-        while (active != -1)
+        int eIdx = edgeBuckets[y - minY];
+        while (eIdx != -1)
         {
-            int nextActive = edgePool[active].nextActive;
-            if (sorted == -1 || edgePool[active].xVal < edgePool[sorted].xVal)
-            {
-                edgePool[active].nextActive = sorted;
-                sorted = active;
-            }
-            else
-            {
-                int s = sorted;
-                while (edgePool[s].nextActive != -1 && edgePool[edgePool[s].nextActive].xVal < edgePool[active].xVal)
-                    s = edgePool[s].nextActive;
-                edgePool[active].nextActive = edgePool[s].nextActive;
-                edgePool[s].nextActive = active;
-            }
-            active = nextActive;
+            int nextIdx = edgePool[eIdx].nextInBucket;
+            insertActiveSorted(eIdx);
+            eIdx = nextIdx;
         }
-        activeHead = sorted;
+        if (activeHead == -1)
+        {
+            inverted = false;
+            continue;
+        }
+        if (inverted)
+        {
+            fixInversions();
+            inverted = false;
+        }
 
         int yy = y + yOffset;
         int left = activeHead;
@@ -2416,8 +2433,17 @@ void Maps::fillPolygonGeneral(MapCanvas &map, const int *px, const int *py, cons
             }
             left = edgePool[right].nextActive;
         }
-        for (int a = activeHead; a != -1; a = edgePool[a].nextActive)
+        int a = activeHead;
+        edgePool[a].xVal += edgePool[a].slope;
+        int prevX = edgePool[a].xVal;
+        while (edgePool[a].nextActive != -1)
+        {
+            a = edgePool[a].nextActive;
             edgePool[a].xVal += edgePool[a].slope;
+            if (edgePool[a].xVal < prevX)
+                inverted = true;
+            prevX = edgePool[a].xVal;
+        }
     }
 }
 
@@ -2501,23 +2527,62 @@ void Maps::drawThickLine(MapCanvas& map, int16_t x0, int16_t y0,
 static void drawLineRaw(uint16_t* buf, uint32_t stride, int16_t x0, int16_t y0,
                         int16_t x1, int16_t y1, uint16_t rawColor, int16_t w, int16_t h)
 {
+    // Fast path: line fully inside tile — skip clipping entirely
+    if (x0 >= 0 && x0 < w && x1 >= 0 && x1 < w &&
+        y0 >= 0 && y0 < h && y1 >= 0 && y1 < h)
+    {
+        int sx = (x0 < x1) ? 1 : -1;
+        int sy = (y0 < y1) ? 1 : -1;
+        int dx = abs(x1 - x0);
+        int dy = -abs(y1 - y0);
+        int err = dx + dy;
+        while (true)
+        {
+            buf[(uint32_t)y0 * stride + x0] = rawColor;
+            if (x0 == x1 && y0 == y1)
+                break;
+            int e2 = 2 * err;
+            if (e2 >= dy)
+            {
+                err += dy;
+                x0 += sx;
+            }
+            if (e2 <= dx)
+            {
+                err += dx;
+                y0 += sy;
+            }
+        }
+        return;
+    }
+
+    // Cohen-Sutherland clipping with integer-only math (no float)
     int dx = x1 - x0;
     int dy = y1 - y0;
-    float u1 = 0.0f;
-    float u2 = 1.0f;
-    const float p[4] = { (float)-dx, (float)dx, (float)-dy, (float)dy };
-    const float q[4] = { (float)x0, (float)(w - 1 - x0), (float)y0, (float)(h - 1 - y0) };
+    int u1 = 0;
+    int u2 = 1 << 16;
+    int p0 = -dx, p1 = dx, p2 = -dy, p3 = dy;
+    int q0 = x0, q1 = w - 1 - x0, q2 = y0, q3 = h - 1 - y0;
+
     for (int i = 0; i < 4; i++)
     {
-        if (p[i] == 0.0f)
+        int pi, qi;
+        switch (i)
         {
-            if (q[i] < 0.0f)
+            case 0: pi = p0; qi = q0; break;
+            case 1: pi = p1; qi = q1; break;
+            case 2: pi = p2; qi = q2; break;
+            default: pi = p3; qi = q3; break;
+        }
+        if (pi == 0)
+        {
+            if (qi < 0)
                 return;
         }
         else
         {
-            float r = q[i] / p[i];
-            if (p[i] < 0.0f)
+            int32_t r = ((int32_t)qi << 16) / pi;
+            if (pi < 0)
             {
                 if (r > u2)
                     return;
@@ -2534,10 +2599,10 @@ static void drawLineRaw(uint16_t* buf, uint32_t stride, int16_t x0, int16_t y0,
         }
     }
 
-    int xs = (int)(x0 + u1 * dx + 0.5f);
-    int ys = (int)(y0 + u1 * dy + 0.5f);
-    int xe = (int)(x0 + u2 * dx + 0.5f);
-    int ye = (int)(y0 + u2 * dy + 0.5f);
+    int xs = x0 + (int)(((int32_t)dx * u1 + 32768) >> 16);
+    int ys = y0 + (int)(((int32_t)dy * u1 + 32768) >> 16);
+    int xe = x0 + (int)(((int32_t)dx * u2 + 32768) >> 16);
+    int ye = y0 + (int)(((int32_t)dy * u2 + 32768) >> 16);
 
     int sx = (xs < xe) ? 1 : -1;
     int sy = (ys < ye) ? 1 : -1;
@@ -2592,6 +2657,44 @@ static void drawThickLineRaw(uint16_t* buf, uint32_t stride, int16_t x0, int16_t
     int16_t dx = x1 - x0;
     int16_t dy = y1 - y0;
     int8_t half = (int8_t)(width / 2);
+
+    // Axis-aligned fast path: the parallel passes cover an exact rectangle,
+    // so fill it with one contiguous write per row instead of N Bresenhams.
+    if (dx == 0 || dy == 0)
+    {
+        int16_t xa;
+        int16_t xb;
+        int16_t ya;
+        int16_t yb;
+        if (dx == 0)
+        {
+            xa = x0 - half;
+            xb = x0 + half;
+            ya = (y0 < y1) ? y0 : y1;
+            yb = (y0 < y1) ? y1 : y0;
+        }
+        else
+        {
+            ya = y0 - half;
+            yb = y0 + half;
+            xa = (x0 < x1) ? x0 : x1;
+            xb = (x0 < x1) ? x1 : x0;
+        }
+        int16_t cx0 = (xa > 0) ? xa : 0;
+        int16_t cx1 = (xb < w - 1) ? xb : (w - 1);
+        int16_t cy0 = (ya > 0) ? ya : 0;
+        int16_t cy1 = (yb < h - 1) ? yb : (h - 1);
+        if (cx0 > cx1 || cy0 > cy1)
+            return;
+        for (int16_t yy = cy0; yy <= cy1; yy++)
+        {
+            uint16_t* p = buf + (uint32_t)yy * stride + cx0;
+            for (int16_t xx = cx0; xx <= cx1; xx++)
+                *p++ = rawColor;
+        }
+        return;
+    }
+
     if (abs(dx) >= abs(dy))
     {
         for (int8_t i = -half; i <= half; i++)
@@ -2963,7 +3066,9 @@ void Maps::renderVectorText(const FeatureRef& ref, MapCanvas& map, std::vector<L
     map.setTextDatum(lgfx::top_left);
 
     if (placedLabels.size() < placedLabels.capacity())
+    {
         placedLabels.push_back({(int16_t)lx, (int16_t)ly, (int16_t)tw, (int16_t)th});
+    }
 }
 
 /**
