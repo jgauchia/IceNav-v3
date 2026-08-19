@@ -73,6 +73,20 @@ static uint32_t profWaitCount = 0;
 static uint32_t profWaitUs = 0;
 static uint32_t profPreloadBands = 0;
 static uint32_t profPreloadTotalUs = 0;
+static uint32_t profGeomPolyUs = 0;
+static uint32_t profGeomPolyN = 0;
+static uint32_t profGeomLineUs = 0;
+static uint32_t profGeomLineN = 0;
+static uint32_t profGeomPointUs = 0;
+static uint32_t profGeomPointN = 0;
+static uint32_t profGeomTextUs = 0;
+static uint32_t profGeomTextN = 0;
+static uint32_t profFeatHi = 0;
+static uint32_t profFeatMid = 0;
+static uint32_t profFeatLo = 0;
+static uint32_t profCacheHits = 0;
+static uint32_t profCacheMisses = 0;
+static uint32_t profCacheSdUs = 0;
 #endif
 
 /**
@@ -657,6 +671,7 @@ void Maps::mapRenderTask(void* pvParameters)
                 if (fullReset)
                 {
                     instance->vectorPending = false;
+                    instance->vectorCapped = false;
                     xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_DONE | MAP_EVENT_ERROR);
                     xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_START);
 
@@ -909,6 +924,8 @@ void Maps::mapRenderTask(void* pvParameters)
                 if (!vectorRender)
                     instance->placedLabelsCache.clear();
                 aggressiveLod = vectorRender && stepBehindFinger;
+                if (aggressiveLod)
+                    instance->vectorCapped = true;
                 instance->mapTempSprite.startWrite();
                 uint32_t lastYield = millis_idf();
                 uint32_t loopCounter = 0;
@@ -918,6 +935,10 @@ void Maps::mapRenderTask(void* pvParameters)
 #endif
                 for (int i = 0; i < 16 && !aborted; i++)
                 {
+                    // While falling behind the finger, skip low-priority fill layers
+                    // (landuse/forest/parks) but keep the ground layer 0 and roads+.
+                    if (aggressiveLod && i > 0 && i < 7)
+                        continue;
                     const auto& layer = instance->layers[i];
                     if (layer.empty())
                         continue;
@@ -936,12 +957,33 @@ void Maps::mapRenderTask(void* pvParameters)
                         }
 
                         const auto& feat = instance->featurePool[idx];
+#if defined(EXTRA_LARGE_SCREEN)
+                        const int64_t tGeom = esp_timer_get_time();
+#endif
                         if (feat.geomType == NavGeomType::Polygon)
+                        {
                             instance->renderVectorPolygon(feat, instance->mapTempSprite);
+#if defined(EXTRA_LARGE_SCREEN)
+                            profGeomPolyUs += (uint32_t)(esp_timer_get_time() - tGeom);
+                            profGeomPolyN++;
+#endif
+                        }
                         else if (feat.geomType == NavGeomType::Point)
+                        {
                             instance->renderVectorPoint(feat, instance->mapTempSprite);
+#if defined(EXTRA_LARGE_SCREEN)
+                            profGeomPointUs += (uint32_t)(esp_timer_get_time() - tGeom);
+                            profGeomPointN++;
+#endif
+                        }
                         else if (feat.geomType == NavGeomType::LineString)
+                        {
                             instance->renderVectorLine(feat, instance->mapTempSprite, feat.casing);
+#if defined(EXTRA_LARGE_SCREEN)
+                            profGeomLineUs += (uint32_t)(esp_timer_get_time() - tGeom);
+                            profGeomLineN++;
+#endif
+                        }
                     }
 
                     if (aborted)
@@ -959,7 +1001,14 @@ void Maps::mapRenderTask(void* pvParameters)
                                 lastYield = millis_idf();
                             }
                         }
+#if defined(EXTRA_LARGE_SCREEN)
+                        const int64_t tGeom = esp_timer_get_time();
+#endif
                         instance->renderVectorLine(instance->featurePool[idx], instance->mapTempSprite, false);
+#if defined(EXTRA_LARGE_SCREEN)
+                        profGeomLineUs += (uint32_t)(esp_timer_get_time() - tGeom);
+                        profGeomLineN++;
+#endif
                     }
 
                     if (aborted)
@@ -967,20 +1016,30 @@ void Maps::mapRenderTask(void* pvParameters)
 
                 }
 
-                for (int i = 0; i < 16 && !aborted; i++)
+                if (!aggressiveLod)
                 {
-                    for (uint16_t idx : instance->layersText[i])
+                    for (int i = 0; i < 16 && !aborted; i++)
                     {
-                        if ((++loopCounter & 127) == 0)
+                        for (uint16_t idx : instance->layersText[i])
                         {
-                            uint32_t now = millis_idf();
-                            if (now - lastYield > 40)
+                            if ((++loopCounter & 127) == 0)
                             {
-                                if (yieldFeature()) { aborted = true; break; }
-                                lastYield = millis_idf();
+                                uint32_t now = millis_idf();
+                                if (now - lastYield > 40)
+                                {
+                                    if (yieldFeature()) { aborted = true; break; }
+                                    lastYield = millis_idf();
+                                }
                             }
+#if defined(EXTRA_LARGE_SCREEN)
+                            const int64_t tGeom = esp_timer_get_time();
+#endif
+                            instance->renderVectorText(instance->featurePool[idx], instance->mapTempSprite, instance->placedLabelsCache);
+#if defined(EXTRA_LARGE_SCREEN)
+                            profGeomTextUs += (uint32_t)(esp_timer_get_time() - tGeom);
+                            profGeomTextN++;
+#endif
                         }
-                        instance->renderVectorText(instance->featurePool[idx], instance->mapTempSprite, instance->placedLabelsCache);
                     }
                 }
 
@@ -1022,6 +1081,23 @@ void Maps::mapRenderTask(void* pvParameters)
                              profPaintAggUs / (profAggSteps ? profAggSteps : 1),
                              profPaintNormUs / (profNormSteps ? profNormSteps : 1),
                              profRenderSteps);
+                if ((profRenderSteps % 25) == 0)
+                    ESP_LOGI(TAG, "PROF geom: poly=%u/%ums line=%u/%ums pt=%u/%ums txt=%u/%ums feat hi=%u mid=%u lo=%u sdH=%u sdM=%u sd=%ums (avg, %u steps)",
+                             profGeomPolyN / profRenderSteps,
+                             profGeomPolyUs / profRenderSteps,
+                             profGeomLineN / profRenderSteps,
+                             profGeomLineUs / profRenderSteps,
+                             profGeomPointN / profRenderSteps,
+                             profGeomPointUs / profRenderSteps,
+                             profGeomTextN / profRenderSteps,
+                             profGeomTextUs / profRenderSteps,
+                             profFeatHi / profRenderSteps,
+                             profFeatMid / profRenderSteps,
+                             profFeatLo / profRenderSteps,
+                             profCacheHits / profRenderSteps,
+                             profCacheMisses / profRenderSteps,
+                             profCacheSdUs / profRenderSteps,
+                             profRenderSteps);
 #endif
 
                 instance->mapTempSprite.endWrite();
@@ -1035,6 +1111,13 @@ void Maps::mapRenderTask(void* pvParameters)
                         instance->vectorDirX = 0;
                         instance->vectorDirY = 0;
                     }
+                }
+                // After an aggressive sequence, repaint the full viewport once the finger
+                // stops so skipped low layers and text are restored at full detail.
+                if (vectorRender && instance->vectorCapped && !sequencePending)
+                {
+                    instance->vectorCapped = false;
+                    instance->enqueueTileGrid(instance->tileX, instance->tileY, TILE_NAV);
                 }
                 for (auto& entry : instance->vectorCache)
                 {
@@ -2391,6 +2474,130 @@ void Maps::drawThickLine(MapCanvas& map, int16_t x0, int16_t y0,
 }
 
 /**
+ * @brief Rasterizes a clipped line directly into the sprite framebuffer.
+ *
+ * @details Bresenham line clipped to the sprite bounds with a parametric
+ *          (Liang-Barsky) clip, writing RGB565 pixels straight into PSRAM the
+ *          same way the polygon scanline does, avoiding the per-segment LGFX
+ *          draw call overhead.
+ *
+ * @param buf      Framebuffer pointer (uint16_t elements).
+ * @param stride   Framebuffer stride in uint16_t elements.
+ * @param x0       Segment start X.
+ * @param y0       Segment start Y.
+ * @param x1       Segment end X.
+ * @param y1       Segment end Y.
+ * @param rawColor Color as stored in the framebuffer (byte-swapped RGB565).
+ * @param w        Sprite width.
+ * @param h        Sprite height.
+ */
+static void drawLineRaw(uint16_t* buf, uint32_t stride, int16_t x0, int16_t y0,
+                        int16_t x1, int16_t y1, uint16_t rawColor, int16_t w, int16_t h)
+{
+    int dx = x1 - x0;
+    int dy = y1 - y0;
+    float u1 = 0.0f;
+    float u2 = 1.0f;
+    const float p[4] = { (float)-dx, (float)dx, (float)-dy, (float)dy };
+    const float q[4] = { (float)x0, (float)(w - 1 - x0), (float)y0, (float)(h - 1 - y0) };
+    for (int i = 0; i < 4; i++)
+    {
+        if (p[i] == 0.0f)
+        {
+            if (q[i] < 0.0f)
+                return;
+        }
+        else
+        {
+            float r = q[i] / p[i];
+            if (p[i] < 0.0f)
+            {
+                if (r > u2)
+                    return;
+                if (r > u1)
+                    u1 = r;
+            }
+            else
+            {
+                if (r < u1)
+                    return;
+                if (r < u2)
+                    u2 = r;
+            }
+        }
+    }
+
+    int xs = (int)(x0 + u1 * dx + 0.5f);
+    int ys = (int)(y0 + u1 * dy + 0.5f);
+    int xe = (int)(x0 + u2 * dx + 0.5f);
+    int ye = (int)(y0 + u2 * dy + 0.5f);
+
+    int sx = (xs < xe) ? 1 : -1;
+    int sy = (ys < ye) ? 1 : -1;
+    dx = abs(xe - xs);
+    dy = -abs(ye - ys);
+    int err = dx + dy;
+    while (true)
+    {
+        buf[(uint32_t)ys * stride + xs] = rawColor;
+        if (xs == xe && ys == ye)
+            break;
+        int e2 = 2 * err;
+        if (e2 >= dy)
+        {
+            err += dy;
+            xs += sx;
+        }
+        if (e2 <= dx)
+        {
+            err += dx;
+            ys += sy;
+        }
+    }
+}
+
+/**
+ * @brief Draws a thick line directly into the framebuffer.
+ *
+ * @details Same offset-parallels approach as drawThickLine(), but rasterized
+ *          straight into PSRAM via drawLineRaw() instead of the LGFX API.
+ *
+ * @param buf      Framebuffer pointer (uint16_t elements).
+ * @param stride   Framebuffer stride in uint16_t elements.
+ * @param x0       Segment start X.
+ * @param y0       Segment start Y.
+ * @param x1       Segment end X.
+ * @param y1       Segment end Y.
+ * @param width    Line width in pixels.
+ * @param rawColor Color as stored in the framebuffer (byte-swapped RGB565).
+ * @param w        Sprite width.
+ * @param h        Sprite height.
+ */
+static void drawThickLineRaw(uint16_t* buf, uint32_t stride, int16_t x0, int16_t y0,
+                             int16_t x1, int16_t y1, uint8_t width, uint16_t rawColor,
+                             int16_t w, int16_t h)
+{
+    if (width <= 1)
+    {
+        drawLineRaw(buf, stride, x0, y0, x1, y1, rawColor, w, h);
+        return;
+    }
+    int16_t dx = x1 - x0;
+    int16_t dy = y1 - y0;
+    int8_t half = (int8_t)(width / 2);
+    if (abs(dx) >= abs(dy))
+    {
+        for (int8_t i = -half; i <= half; i++)
+            drawLineRaw(buf, stride, x0, y0 + i, x1, y1 + i, rawColor, w, h);
+    }
+    else
+    {
+        for (int8_t i = -half; i <= half; i++)
+            drawLineRaw(buf, stride, x0 + i, y0, x1 + i, y1, rawColor, w, h);
+    }
+}
+
+/**
  * @brief Renders a vector line (roads, paths, etc.) onto a sprite.
  *
  * @details This function decodes compressed vector data and draws it as a series of
@@ -2447,6 +2654,10 @@ void Maps::renderVectorLine(const FeatureRef& ref, MapCanvas& map, bool isCasing
     int16_t h = (int16_t)tileHeight;
     const int16_t lodThreshold = getLODThreshold(vectorZoom);
 
+    uint16_t* buf = static_cast<uint16_t*>(map.getBuffer());
+    uint32_t stride = buf ? (map.bufferLength() / (tileHeight * 2)) : 0;
+    uint16_t rawColor = (color >> 8) | (color << 8);
+
     for (uint16_t i = 0; i < ref.coordCount; i++)
     {
         int16_t px = coords[i * 2];
@@ -2463,7 +2674,10 @@ void Maps::renderVectorLine(const FeatureRef& ref, MapCanvas& map, bool isCasing
             if (!((px < 0 && lastPx < 0) || (px >= w && lastPx >= w) || (py < 0 && lastPy < 0) || (py >= h && lastPy >= h)))
             {
                 uint8_t iWidth = (widthF <= 1.1f) ? 1 : (uint8_t)(widthF + 0.5f);
-                drawThickLine(map, lastPx, lastPy, px, py, iWidth, color);
+                if (buf)
+                    drawThickLineRaw(buf, stride, lastPx, lastPy, px, py, iWidth, rawColor, w, h);
+                else
+                    drawThickLine(map, lastPx, lastPy, px, py, iWidth, color);
             }
         }
         lastPx = px;
@@ -2579,6 +2793,11 @@ void Maps::renderVectorPolygon(const FeatureRef& ref, MapCanvas& map)
     if (ref.casing && vectorZoom >= 16)
     {
         uint16_t outlineColor = darkenRGB565(ref.color, 0.35f);
+        uint16_t rawOutline = (outlineColor >> 8) | (outlineColor << 8);
+        uint16_t* buf = static_cast<uint16_t*>(map.getBuffer());
+        uint32_t stride = buf ? (map.bufferLength() / (tileHeight * 2)) : 0;
+        const int16_t w = (int16_t)tileWidth;
+        const int16_t h = (int16_t)tileHeight;
         int ringStart = 0;
         uint16_t numRings;
         if (ringCount > 0)
@@ -2605,7 +2824,10 @@ void Maps::renderVectorPolygon(const FeatureRef& ref, MapCanvas& map)
                 else
                     next = ringStart;
 
-                map.drawLine(px[j], py[j], px[next], py[next], outlineColor);
+                if (buf)
+                    drawLineRaw(buf, stride, px[j], py[j], px[next], py[next], rawOutline, w, h);
+                else
+                    map.drawLine(px[j], py[j], px[next], py[next], outlineColor);
             }
             ringStart = ringEnd;
         }
@@ -2631,8 +2853,34 @@ void Maps::renderVectorPoint(const FeatureRef& ref, MapCanvas& map)
     int16_t px = ref.tileOffsetX + (x >> 4);
     int16_t py = ref.tileOffsetY + (y >> 4);
 
-    if (px >= 0 && px < (int)tileWidth && py >= 0 && py < (int)tileHeight)
+    if (px < 0 || px >= (int)tileWidth || py < 0 || py >= (int)tileHeight)
+        return;
+
+    uint16_t* buf = static_cast<uint16_t*>(map.getBuffer());
+    if (!buf)
+    {
         map.fillCircle(px, py, 3, ref.color);
+        return;
+    }
+    uint32_t stride = map.bufferLength() / (tileHeight * 2);
+    uint16_t rawColor = (ref.color >> 8) | (ref.color << 8);
+    // Filled circle (radius 3) written directly to PSRAM.
+    for (int dy = -3; dy <= 3; dy++)
+    {
+        int rowY = py + dy;
+        if (rowY < 0 || rowY >= (int)tileHeight)
+            continue;
+        int halfW = (int)sqrtf((float)(9 - dy * dy));
+        int x0 = px - halfW;
+        int x1 = px + halfW;
+        if (x0 < 0)
+            x0 = 0;
+        if (x1 >= (int)tileWidth)
+            x1 = (int)tileWidth - 1;
+        uint16_t* row = buf + (uint32_t)rowY * stride + x0;
+        for (int x = x0; x <= x1; x++)
+            *row++ = rawColor;
+    }
 }
 
 /**
@@ -2810,6 +3058,9 @@ uint8_t* Maps::vectorCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t z
         vectorCache[cacheIdx].lastAccess = ++cacheCounter;
         vectorCache[cacheIdx].isPinned = true;
         outDataSize = vectorCache[cacheIdx].size;
+#if defined(EXTRA_LARGE_SCREEN)
+        profCacheHits++;
+#endif
         return vectorCache[cacheIdx].data;
     }
 
@@ -2838,11 +3089,18 @@ uint8_t* Maps::vectorCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t z
             return nullptr;
     }
 
+#if defined(EXTRA_LARGE_SCREEN)
+    const int64_t tSd = esp_timer_get_time();
+#endif
     if (storage.seekAndRead(NavReader::packFile, offset, data, size) != size)
     {
         heap_caps_free(data);
         return nullptr;
     }
+#if defined(EXTRA_LARGE_SCREEN)
+    profCacheMisses++;
+    profCacheSdUs += (uint32_t)(esp_timer_get_time() - tSd);
+#endif
 
     if (vectorCache.size() >= NAV_DATA_CACHE_SIZE)
     {
@@ -2936,6 +3194,14 @@ void Maps::decodeVectorFeatures(const uint8_t* data, size_t dataSize, int16_t sc
                 bool hasCasing = hasCasingHdr;
                 featurePool.push_back({(uint8_t*)payload, (NavGeomType)geomType, ps, cc, screenX, screenY, colorRgb565, (uint8_t)(wp & 0x7F), hasCasing, bx1, by1, bx2, by2, (uint8_t)(zp & 0x0F)});
                 uint8_t priority = zp & 0x0F;
+#if defined(EXTRA_LARGE_SCREEN)
+                if (priority >= 12)
+                    profFeatHi++;
+                else if (priority >= 7)
+                    profFeatMid++;
+                else
+                    profFeatLo++;
+#endif
                 if (priority < 16)
                 {
                     if (geomType == (uint8_t)NavGeomType::Text)

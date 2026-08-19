@@ -289,6 +289,7 @@ private:
     bool vectorNeedsRender;
     bool vectorDeferred = false;
     bool vectorPending = false;
+    bool vectorCapped = false;
     int8_t vectorDirX = 0;
     int8_t vectorDirY = 0;
     float mapTlX;
