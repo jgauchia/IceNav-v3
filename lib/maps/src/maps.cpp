@@ -9,9 +9,7 @@
 #include "maps.hpp"
 #include "esp_log.h"
 #include "esp_heap_caps.h"
-#if defined(EXTRA_LARGE_SCREEN)
 #include "esp_timer.h"
-#endif
 #include <cmath>
 #include <climits>
 #include "tasks.hpp"
@@ -56,37 +54,19 @@ static const float PREFETCH_MIN_DRAG_VELOCITY = 0.5f;
 
 static bool aggressiveLod = false;
 
-#if defined(EXTRA_LARGE_SCREEN)
-static uint32_t profPngStageHits = 0;
-static uint32_t profPngStageMisses = 0;
-static uint32_t profRenderSteps = 0;
-static uint32_t profRenderTotalUs = 0;
-static uint32_t profRenderDecodeUs = 0;
-static uint32_t profRenderPaintUs = 0;
-static uint32_t profRenderVecUs = 0;
-static uint32_t profRenderScrollUs = 0;
-static uint32_t profAggSteps = 0;
-static uint32_t profPaintAggUs = 0;
-static uint32_t profPaintNormUs = 0;
-static uint32_t profNormSteps = 0;
-static uint32_t profWaitCount = 0;
-static uint32_t profWaitUs = 0;
-static uint32_t profPreloadBands = 0;
-static uint32_t profPreloadTotalUs = 0;
-static uint32_t profGeomPolyUs = 0;
-static uint32_t profGeomPolyN = 0;
-static uint32_t profGeomLineUs = 0;
-static uint32_t profGeomLineN = 0;
-static uint32_t profGeomPointUs = 0;
-static uint32_t profGeomPointN = 0;
-static uint32_t profGeomTextUs = 0;
-static uint32_t profGeomTextN = 0;
-static uint32_t profFeatHi = 0;
-static uint32_t profFeatMid = 0;
-static uint32_t profFeatLo = 0;
-static uint32_t profCacheHits = 0;
-static uint32_t profCacheMisses = 0;
-static uint32_t profCacheSdUs = 0;
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+/**
+ * @brief PPA SRM completion callback (ISR context).
+ *
+ * @details Clears the in-flight flag pointed to by user_data so the render task
+ *          knows the DMA copy has finished. Returns false (no yield needed).
+ */
+static bool ppaSrmDoneCb(ppa_client_handle_t, ppa_event_data_t*, void* user_data)
+{
+    if (user_data)
+        *(volatile bool*)user_data = false;
+    return false;
+}
 #endif
 
 /**
@@ -150,6 +130,19 @@ void Maps::initResources()
         cfg.oper_type = PPA_OPERATION_BLEND;
         cfg.max_pending_trans_num = 1;
         ppa_register_client(&cfg, &ppaBlendClient);
+    }
+    if (ppaSrmClient == nullptr)
+    {
+        ppa_client_config_t cfg = {};
+        cfg.oper_type = PPA_OPERATION_SRM;
+        cfg.max_pending_trans_num = 1;
+        ppa_register_client(&cfg, &ppaSrmClient);
+    }
+    if (ppaSrmClient != nullptr)
+    {
+        ppa_event_callbacks_t cbs = {};
+        cbs.on_trans_done = ppaSrmDoneCb;
+        ppa_client_register_event_callbacks(ppaSrmClient, &cbs);
     }
 #endif
     xTaskCreatePinnedToCore(mapRenderTask, "MapRenderTask", 4096, this, 2, &mapRenderTaskHandle, 0);
@@ -383,13 +376,20 @@ void Maps::initMap(uint16_t mapWidth, uint16_t mapHeight)
     Maps::mapTempSprite.createSprite(Maps::tileWidth, Maps::tileHeight);
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
     {
-        uint8_t* buf = static_cast<uint8_t*>(Maps::mapTempSprite.getBuffer());
-        if (buf && ((uint32_t)buf & 0x7F) != 0)
+        // Two aligned PSRAM buffers so the incremental scroll can be done as an
+        // out-of-place PPA SRM copy followed by a buffer swap (see scrollVectorSprite).
+        const size_t bufSize = Maps::tileWidth * Maps::tileHeight * 2;
+        uint8_t* bufA = static_cast<uint8_t*>(heap_caps_aligned_alloc(128, bufSize, MALLOC_CAP_SPIRAM));
+        if (bufA)
         {
-            size_t bufSize = Maps::tileWidth * Maps::tileHeight * 2;
-            uint8_t* alignedBuf = static_cast<uint8_t*>(heap_caps_aligned_alloc(128, bufSize, MALLOC_CAP_SPIRAM));
-            if (alignedBuf)
-                Maps::mapTempSprite.setBuffer(alignedBuf, Maps::tileWidth, Maps::tileHeight);
+            Maps::mapTempSprite.setBuffer(bufA, Maps::tileWidth, Maps::tileHeight);
+            if (Maps::mapTempBufs[0] && Maps::mapTempBufs[0] != bufA)
+                heap_caps_free(Maps::mapTempBufs[0]);
+            Maps::mapTempBufs[0] = bufA;
+            uint8_t* bufB = static_cast<uint8_t*>(heap_caps_aligned_alloc(128, bufSize, MALLOC_CAP_SPIRAM));
+            if (Maps::mapTempBufs[1] && Maps::mapTempBufs[1] != bufB)
+                heap_caps_free(Maps::mapTempBufs[1]);
+            Maps::mapTempBufs[1] = bufB;
         }
     }
 #endif
@@ -662,12 +662,6 @@ void Maps::mapRenderTask(void* pvParameters)
                 bool vectorRender = mapSet.vectorMap && instance->vectorPending && !fullReset;
                 lastZoom = instance->zoomLevel;
 
-#if defined(EXTRA_LARGE_SCREEN)
-                const int64_t tStepStart = esp_timer_get_time();
-                int64_t tDecodeAcc = 0;
-                int64_t tPaintAcc = 0;
-#endif
-
                 if (fullReset)
                 {
                     instance->vectorPending = false;
@@ -727,18 +721,9 @@ void Maps::mapRenderTask(void* pvParameters)
 
                 if (vectorRender)
                 {
-#if defined(EXTRA_LARGE_SCREEN)
-                    const int64_t tVecStart = esp_timer_get_time();
-#endif
                     const int16_t shiftX = -instance->vectorDirX * mapTileSize;
                     const int16_t shiftY = -instance->vectorDirY * mapTileSize;
-                    if (instance->vectorDirX != 0)
-                        instance->mapTempSprite.scroll(shiftX, 0);
-                    else
-                        instance->mapTempSprite.scroll(0, shiftY);
-#if defined(EXTRA_LARGE_SCREEN)
-                    profRenderScrollUs += (uint32_t)(esp_timer_get_time() - tVecStart);
-#endif
+                    instance->scrollVectorSprite(shiftX, shiftY);
                     for (auto& label : instance->placedLabelsCache)
                     {
                         label.x += shiftX;
@@ -760,9 +745,6 @@ void Maps::mapRenderTask(void* pvParameters)
                         instance->layersCasing[i].clear();
                         instance->layersText[i].clear();
                     }
-#if defined(EXTRA_LARGE_SCREEN)
-                    profRenderVecUs += (uint32_t)(esp_timer_get_time() - tVecStart);
-#endif
                 }
 
                 // Yields mutex briefly so other tasks can run between tile renders.
@@ -821,9 +803,6 @@ void Maps::mapRenderTask(void* pvParameters)
                 };
 
                 bool aborted = false;
-#if defined(EXTRA_LARGE_SCREEN)
-                const int64_t tDecodeStart = esp_timer_get_time();
-#endif
                 while (!instance->pendingTiles.empty())
                 {
                     PendingTile t = instance->pendingTiles.back();
@@ -841,15 +820,26 @@ void Maps::mapRenderTask(void* pvParameters)
                         if (yieldTile()) { aborted = true; break; }
                     }
                 }
-#if defined(EXTRA_LARGE_SCREEN)
-                tDecodeAcc += esp_timer_get_time() - tDecodeStart;
-#endif
 
                 if (aborted)
                 {
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+                    // The active buffer was already swapped; never let displayMap
+                    // read it while the DMA copy is still writing it.
+                    while (instance->srmInFlight)
+                        vTaskDelay(1);
+#endif
                     xSemaphoreGiveRecursive(instance->mapMutex);
                     continue;
                 }
+
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+                // The SRM copy runs during the band decode above; wait for it to
+                // finish before painting over the copied region (track/waypoint
+                // draw into it too). Normally already done (decode > copy time).
+                while (instance->srmInFlight)
+                    vTaskDelay(1);
+#endif
 
                 if (!mapSet.vectorMap)
                 {
@@ -930,9 +920,6 @@ void Maps::mapRenderTask(void* pvParameters)
                 uint32_t lastYield = millis_idf();
                 uint32_t loopCounter = 0;
 
-#if defined(EXTRA_LARGE_SCREEN)
-                const int64_t tPaintStart = esp_timer_get_time();
-#endif
                 for (int i = 0; i < 16 && !aborted; i++)
                 {
                     // While falling behind the finger, skip low-priority fill layers
@@ -957,32 +944,17 @@ void Maps::mapRenderTask(void* pvParameters)
                         }
 
                         const auto& feat = instance->featurePool[idx];
-#if defined(EXTRA_LARGE_SCREEN)
-                        const int64_t tGeom = esp_timer_get_time();
-#endif
                         if (feat.geomType == NavGeomType::Polygon)
                         {
                             instance->renderVectorPolygon(feat, instance->mapTempSprite);
-#if defined(EXTRA_LARGE_SCREEN)
-                            profGeomPolyUs += (uint32_t)(esp_timer_get_time() - tGeom);
-                            profGeomPolyN++;
-#endif
                         }
                         else if (feat.geomType == NavGeomType::Point)
                         {
                             instance->renderVectorPoint(feat, instance->mapTempSprite);
-#if defined(EXTRA_LARGE_SCREEN)
-                            profGeomPointUs += (uint32_t)(esp_timer_get_time() - tGeom);
-                            profGeomPointN++;
-#endif
                         }
                         else if (feat.geomType == NavGeomType::LineString)
                         {
                             instance->renderVectorLine(feat, instance->mapTempSprite, feat.casing);
-#if defined(EXTRA_LARGE_SCREEN)
-                            profGeomLineUs += (uint32_t)(esp_timer_get_time() - tGeom);
-                            profGeomLineN++;
-#endif
                         }
                     }
 
@@ -1001,14 +973,7 @@ void Maps::mapRenderTask(void* pvParameters)
                                 lastYield = millis_idf();
                             }
                         }
-#if defined(EXTRA_LARGE_SCREEN)
-                        const int64_t tGeom = esp_timer_get_time();
-#endif
                         instance->renderVectorLine(instance->featurePool[idx], instance->mapTempSprite, false);
-#if defined(EXTRA_LARGE_SCREEN)
-                        profGeomLineUs += (uint32_t)(esp_timer_get_time() - tGeom);
-                        profGeomLineN++;
-#endif
                     }
 
                     if (aborted)
@@ -1031,14 +996,7 @@ void Maps::mapRenderTask(void* pvParameters)
                                     lastYield = millis_idf();
                                 }
                             }
-#if defined(EXTRA_LARGE_SCREEN)
-                            const int64_t tGeom = esp_timer_get_time();
-#endif
                             instance->renderVectorText(instance->featurePool[idx], instance->mapTempSprite, instance->placedLabelsCache);
-#if defined(EXTRA_LARGE_SCREEN)
-                            profGeomTextUs += (uint32_t)(esp_timer_get_time() - tGeom);
-                            profGeomTextN++;
-#endif
                         }
                     }
                 }
@@ -1051,54 +1009,6 @@ void Maps::mapRenderTask(void* pvParameters)
 
                     continue;
                 }
-
-#if defined(EXTRA_LARGE_SCREEN)
-                tPaintAcc += esp_timer_get_time() - tPaintStart;
-                profRenderSteps++;
-                profRenderTotalUs += (uint32_t)(esp_timer_get_time() - tStepStart);
-                profRenderDecodeUs += (uint32_t)tDecodeAcc;
-                profRenderPaintUs += (uint32_t)tPaintAcc;
-                if (aggressiveLod)
-                {
-                    profAggSteps++;
-                    profPaintAggUs += (uint32_t)tPaintAcc;
-                }
-                else
-                {
-                    profNormSteps++;
-                    profPaintNormUs += (uint32_t)tPaintAcc;
-                }
-                if ((profRenderSteps % 25) == 0)
-                    ESP_LOGI(TAG, "PROF render step: total=%u decode=%u paint=%u other=%u vec=%u scroll=%u agg=%u/%u aggP=%u normP=%u us (avg, %u steps)",
-                             profRenderTotalUs / profRenderSteps,
-                             profRenderDecodeUs / profRenderSteps,
-                             profRenderPaintUs / profRenderSteps,
-                             (profRenderTotalUs - profRenderDecodeUs - profRenderPaintUs) / profRenderSteps,
-                             profRenderVecUs / profRenderSteps,
-                             profRenderScrollUs / profRenderSteps,
-                             profAggSteps,
-                             profRenderSteps,
-                             profPaintAggUs / (profAggSteps ? profAggSteps : 1),
-                             profPaintNormUs / (profNormSteps ? profNormSteps : 1),
-                             profRenderSteps);
-                if ((profRenderSteps % 25) == 0)
-                    ESP_LOGI(TAG, "PROF geom: poly=%u/%ums line=%u/%ums pt=%u/%ums txt=%u/%ums feat hi=%u mid=%u lo=%u sdH=%u sdM=%u sd=%ums (avg, %u steps)",
-                             profGeomPolyN / profRenderSteps,
-                             profGeomPolyUs / profRenderSteps,
-                             profGeomLineN / profRenderSteps,
-                             profGeomLineUs / profRenderSteps,
-                             profGeomPointN / profRenderSteps,
-                             profGeomPointUs / profRenderSteps,
-                             profGeomTextN / profRenderSteps,
-                             profGeomTextUs / profRenderSteps,
-                             profFeatHi / profRenderSteps,
-                             profFeatMid / profRenderSteps,
-                             profFeatLo / profRenderSteps,
-                             profCacheHits / profRenderSteps,
-                             profCacheMisses / profRenderSteps,
-                             profCacheSdUs / profRenderSteps,
-                             profRenderSteps);
-#endif
 
                 instance->mapTempSprite.endWrite();
                 aggressiveLod = false;
@@ -1403,27 +1313,18 @@ bool Maps::tryApplyStagedPng(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16
 {
     if (!pngStagingValid)
     {
-#if defined(EXTRA_LARGE_SCREEN)
-        profPngStageMisses++;
-#endif
         return false;
     }
 
     const uint32_t hash = (uint32_t(zoom) << 28) | (uint32_t(tileX & 0x3FFF) << 14) | uint32_t(tileY & 0x3FFF);
     if (hash != pngStagedHash)
     {
-#if defined(EXTRA_LARGE_SCREEN)
-        profPngStageMisses++;
-#endif
         return false;
     }
 
     map.pushImage(screenX, screenY, mapTileSize, mapTileSize, static_cast<uint16_t*>(pngStagingSprite.getBuffer()));
     pngStagingValid = false;
     pngStagedHash = 0;
-#if defined(EXTRA_LARGE_SCREEN)
-    profPngStageHits++;
-#endif
     return true;
 }
 
@@ -1778,17 +1679,8 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
     pendingDy += dy;
     scrolling = true;
 
-#if defined(EXTRA_LARGE_SCREEN)
-    const int64_t tWaitStart = esp_timer_get_time();
-#endif
     if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(10)) != pdTRUE)
     {
-#if defined(EXTRA_LARGE_SCREEN)
-        profWaitCount++;
-        profWaitUs += (uint32_t)(esp_timer_get_time() - tWaitStart);
-        if ((profWaitCount % 100) == 0)
-            ESP_LOGI(TAG, "PROF scrollMap mutex wait: %u waits, avg %u us", profWaitCount, profWaitUs / profWaitCount);
-#endif
         return;
     }
 
@@ -1971,6 +1863,131 @@ void Maps::commitScroll()
 }
 
 /**
+ * @brief Shifts the vector map sprite by one tile in one axis.
+ *
+ * @details On the ESP32-P4 the carry-over region is copied out-of-place into a
+ *          second PSRAM buffer with a single non-blocking PPA SRM transaction
+ *          (no overlap, so it is safe). The copy runs on the PPA's own DMA while
+ *          the render task decodes the incoming band, so the transfer is hidden
+ *          behind the CPU-bound work instead of adding to the step. The vacated
+ *          border is cleared with a PPA fill, the sprite is switched to the
+ *          second buffer, and the caller waits for the SRM before painting over
+ *          the copied region. Falls back to the LGFX scroll on the other targets
+ *          or whenever the second buffer or the SRM client is unavailable.
+ *
+ * @param shiftX Pixel shift in X (0 for a vertical scroll).
+ * @param shiftY Pixel shift in Y (0 for a horizontal scroll).
+ */
+void Maps::scrollVectorSprite(int16_t shiftX, int16_t shiftY)
+{
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    uint8_t* cur = static_cast<uint8_t*>(mapTempSprite.getBuffer());
+    uint8_t* dst = nullptr;
+    if (mapTempBufs[0] && mapTempBufs[1])
+    {
+        if (cur == mapTempBufs[0])
+            dst = mapTempBufs[1];
+        else if (cur == mapTempBufs[1])
+            dst = mapTempBufs[0];
+    }
+    if (dst && ppaSrmClient)
+    {
+        // Never touch the inactive buffer while a previous copy is still running.
+        while (srmInFlight)
+            vTaskDelay(1);
+
+        const int16_t w = (int16_t)tileWidth;
+        const int16_t h = (int16_t)tileHeight;
+        const int16_t ts = (int16_t)mapTileSize;
+        int16_t srcX = 0, srcY = 0, dstX = 0, dstY = 0;
+        uint32_t copyW = 0, copyH = 0;
+        if (shiftX != 0)
+        {
+            copyW = (uint32_t)(w - abs(shiftX));
+            copyH = (uint32_t)h;
+            srcX = (shiftX < 0) ? (int16_t)(-shiftX) : 0;
+            dstX = (shiftX < 0) ? 0 : shiftX;
+        }
+        else
+        {
+            copyH = (uint32_t)(h - abs(shiftY));
+            copyW = (uint32_t)w;
+            srcY = (shiftY < 0) ? (int16_t)(-shiftY) : 0;
+            dstY = (shiftY < 0) ? 0 : shiftY;
+        }
+
+        ppa_srm_oper_config_t srm = {};
+        srm.in.buffer = cur;
+        srm.in.pic_w = (uint32_t)w;
+        srm.in.pic_h = (uint32_t)h;
+        srm.in.block_w = copyW;
+        srm.in.block_h = copyH;
+        srm.in.block_offset_x = (uint32_t)srcX;
+        srm.in.block_offset_y = (uint32_t)srcY;
+        srm.in.srm_cm = PPA_SRM_COLOR_MODE_RGB565;
+        srm.out.buffer = dst;
+        srm.out.buffer_size = (uint32_t)w * (uint32_t)h * 2;
+        srm.out.pic_w = (uint32_t)w;
+        srm.out.pic_h = (uint32_t)h;
+        srm.out.block_offset_x = (uint32_t)dstX;
+        srm.out.block_offset_y = (uint32_t)dstY;
+        srm.out.srm_cm = PPA_SRM_COLOR_MODE_RGB565;
+        srm.rotation_angle = PPA_SRM_ROTATION_ANGLE_0;
+        srm.scale_x = 1.0f;
+        srm.scale_y = 1.0f;
+        srm.mode = PPA_TRANS_MODE_NON_BLOCKING;
+        srm.user_data = (void*)&srmInFlight;
+        srmInFlight = true;
+        if (ppa_do_scale_rotate_mirror(ppaSrmClient, &srm) == ESP_OK)
+        {
+            // Discard stale CPU-cached lines in the vacated band only (the SRM
+            // driver already invalidates its own output window) so neither the DMA
+            // fill nor the SRM output gets clobbered by old cached content being
+            // written back afterwards.
+            if (shiftX != 0)
+            {
+                const uint32_t bandX = (shiftX < 0) ? (uint32_t)(w - ts) : 0;
+                for (uint32_t y = 0; y < (uint32_t)h; y++)
+                    esp_cache_msync(dst + y * (uint32_t)w * 2 + bandX * 2, (uint32_t)ts * 2,
+                                    ESP_CACHE_MSYNC_FLAG_DIR_M2C | ESP_CACHE_MSYNC_FLAG_TYPE_DATA);
+            }
+            else
+            {
+                const uint32_t bandY = (shiftY < 0) ? (uint32_t)(h - ts) : 0;
+                esp_cache_msync(dst + bandY * (uint32_t)w * 2, (uint32_t)ts * (uint32_t)w * 2,
+                                ESP_CACHE_MSYNC_FLAG_DIR_M2C | ESP_CACHE_MSYNC_FLAG_TYPE_DATA);
+            }
+
+            // Clear the vacated border before the incoming band is painted on it.
+            ppa_fill_oper_config_t fill = {};
+            fill.fill_argb_color.val = rgb565_to_argb8888(0xF7BE);
+            fill.out.buffer = dst;
+            fill.out.buffer_size = (uint32_t)w * (uint32_t)h * 2;
+            fill.out.pic_w = (uint32_t)w;
+            fill.out.pic_h = (uint32_t)h;
+            fill.out.block_offset_x = (shiftX != 0) ? ((shiftX < 0) ? (uint32_t)(w - ts) : 0) : 0;
+            fill.out.block_offset_y = (shiftY != 0) ? ((shiftY < 0) ? (uint32_t)(h - ts) : 0) : 0;
+            fill.out.fill_cm = PPA_FILL_COLOR_MODE_RGB565;
+            fill.fill_block_w = (shiftX != 0) ? (uint32_t)ts : (uint32_t)w;
+            fill.fill_block_h = (shiftY != 0) ? (uint32_t)ts : (uint32_t)h;
+            fill.mode = PPA_TRANS_MODE_BLOCKING;
+            ppa_do_fill(ppaFillClient, &fill);
+            esp_cache_msync(dst, (uint32_t)w * (uint32_t)h * 2,
+                            ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_TYPE_DATA);
+
+            mapTempSprite.setBuffer(dst, w, h);
+            return;
+        }
+        srmInFlight = false;
+    }
+#endif
+    if (shiftX != 0)
+        mapTempSprite.scroll(shiftX, 0);
+    else
+        mapTempSprite.scroll(0, shiftY);
+}
+
+/**
  * @brief Queue one incoming vector-map border for incremental rendering.
  *
  * @param centerTileIdxX Center tile X after the incremental step.
@@ -2084,9 +2101,6 @@ void Maps::preloadVectorTiles(int8_t dirX, int8_t dirY, uint8_t stepCount)
  */
 void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 {
-#if defined(EXTRA_LARGE_SCREEN)
-    const int64_t tPreloadStart = esp_timer_get_time();
-#endif
     const int16_t tileSize = mapTileSize;
     const int8_t gridOffset = tilesGrid / 2;
 
@@ -2144,13 +2158,6 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
     drawWaypoint(mapTempSprite);
     redrawMap = true;
     xEventGroupSetBits(mapEventGroup, MAP_EVENT_DONE);
-#if defined(EXTRA_LARGE_SCREEN)
-    profPreloadBands++;
-    profPreloadTotalUs += (uint32_t)(esp_timer_get_time() - tPreloadStart);
-    if ((profPreloadBands % 10) == 0)
-        ESP_LOGI(TAG, "PROF preloadTiles PNG: avg %u us/band, stage hits=%u misses=%u (%u bands)",
-                 profPreloadTotalUs / profPreloadBands, profPngStageHits, profPngStageMisses, profPreloadBands);
-#endif
 }
 
 /**
@@ -3058,9 +3065,6 @@ uint8_t* Maps::vectorCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t z
         vectorCache[cacheIdx].lastAccess = ++cacheCounter;
         vectorCache[cacheIdx].isPinned = true;
         outDataSize = vectorCache[cacheIdx].size;
-#if defined(EXTRA_LARGE_SCREEN)
-        profCacheHits++;
-#endif
         return vectorCache[cacheIdx].data;
     }
 
@@ -3089,18 +3093,11 @@ uint8_t* Maps::vectorCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t z
             return nullptr;
     }
 
-#if defined(EXTRA_LARGE_SCREEN)
-    const int64_t tSd = esp_timer_get_time();
-#endif
     if (storage.seekAndRead(NavReader::packFile, offset, data, size) != size)
     {
         heap_caps_free(data);
         return nullptr;
     }
-#if defined(EXTRA_LARGE_SCREEN)
-    profCacheMisses++;
-    profCacheSdUs += (uint32_t)(esp_timer_get_time() - tSd);
-#endif
 
     if (vectorCache.size() >= NAV_DATA_CACHE_SIZE)
     {
@@ -3194,14 +3191,6 @@ void Maps::decodeVectorFeatures(const uint8_t* data, size_t dataSize, int16_t sc
                 bool hasCasing = hasCasingHdr;
                 featurePool.push_back({(uint8_t*)payload, (NavGeomType)geomType, ps, cc, screenX, screenY, colorRgb565, (uint8_t)(wp & 0x7F), hasCasing, bx1, by1, bx2, by2, (uint8_t)(zp & 0x0F)});
                 uint8_t priority = zp & 0x0F;
-#if defined(EXTRA_LARGE_SCREEN)
-                if (priority >= 12)
-                    profFeatHi++;
-                else if (priority >= 7)
-                    profFeatMid++;
-                else
-                    profFeatLo++;
-#endif
                 if (priority < 16)
                 {
                     if (geomType == (uint8_t)NavGeomType::Text)

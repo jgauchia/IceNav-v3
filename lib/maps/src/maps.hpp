@@ -76,6 +76,10 @@ private:
     MapCanvas mapTempSprite = MapCanvas(mapCanvasParent());
     MapCanvas mapSprite = MapCanvas(mapCanvasParent());
     MapCanvas pngStagingSprite = MapCanvas(mapCanvasParent());
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    uint8_t* mapTempBufs[2] = { nullptr, nullptr };
+    volatile bool srmInFlight = false;
+#endif
     uint32_t pngStagedHash = 0;
     bool pngStagingValid = false;
     float destLat = 0.0f;
@@ -215,6 +219,7 @@ private:
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
     ppa_client_handle_t ppaFillClient = nullptr;
     ppa_client_handle_t ppaBlendClient = nullptr;
+    ppa_client_handle_t ppaSrmClient = nullptr;
 #endif
 
     std::vector<int, PsramAllocator<int>> projBuf32X;
@@ -279,6 +284,7 @@ private:
     void enqueueTileGrid(uint32_t centerTileIdxX, uint32_t centerTileIdxY, TileType type);
     void queueVectorStep(uint32_t centerTileIdxX, uint32_t centerTileIdxY,
                          int8_t dirX, int8_t dirY);
+    void scrollVectorSprite(int16_t shiftX, int16_t shiftY);
     uint8_t* vectorCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t zoom, size_t& outDataSize);
     void prefetchNextTile();
     void decodeVectorFeatures(const uint8_t* data, size_t dataSize, int16_t screenX, int16_t screenY, uint8_t zoom);
