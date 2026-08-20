@@ -1493,7 +1493,7 @@ void Maps::displayMap()
             Maps::mapTempSprite.setPivot(gridOffset * mapTileSize + Maps::navArrowPosition.posX,
                                          gridOffset * mapTileSize + Maps::navArrowPosition.posY);
             Maps::mapSprite.setPivot(mapScrWidth / 2, mapScrHeight / 2);
-            Maps::mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading, TFT_TRANSPARENT);
+            Maps::mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading);
         }
     }
     else
@@ -1519,7 +1519,7 @@ void Maps::displayMap()
             int16_t pivY = tileHeight / 2 + displayOffsetY;
             Maps::mapTempSprite.setPivot(pivX, pivY);
             Maps::mapSprite.setPivot(mapScrWidth / 2, mapScrHeight / 2);
-            Maps::mapTempSprite.pushRotated(&mapSprite, 360.0f - manualHeading, TFT_TRANSPARENT);
+            Maps::mapTempSprite.pushRotated(&mapSprite, 360.0f - manualHeading);
         }
         else
         {
