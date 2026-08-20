@@ -24,3 +24,4 @@ graft/
 AGENTS.md
 opencode.json
 sdkconfig.WAVESHARE_P4_35
+sdkconfig.ICENAV_BOARD
