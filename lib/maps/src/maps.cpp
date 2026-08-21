@@ -1636,13 +1636,14 @@ void Maps::apply3DPerspective(uint16_t heading)
 
     // Heading rotation: rotate tile-space coords so heading points up
     const float headingRad = static_cast<float>(heading) * (static_cast<float>(M_PI) / 180.0f);
-    const float cosH = cosf(headingRad);
-    const float sinH = sinf(headingRad);
+    const float cosH = lutInit ? cosLUT(headingRad) : cosf(headingRad);
+    const float sinH = lutInit ? sinLUT(headingRad) : sinf(headingRad);
 
     // Perspective parameters: horizon at top quarter of screen
     const int horizonScreenY = dstH / 5;
     const float tiltRad = mapTilt * (static_cast<float>(M_PI) / 180.0f);
-    const float invCosTilt = 1.0f / cosf(tiltRad);
+    const float cosTilt = lutInit ? cosLUT(tiltRad) : cosf(tiltRad);
+    const float invCosTilt = 1.0f / cosTilt;
 
     // Sky color: soft blue ~#A8C8E8 (byte-swapped for direct buffer write)
     const uint16_t skyColor = 0x5DAE;
@@ -1663,8 +1664,6 @@ void Maps::apply3DPerspective(uint16_t heading)
 
         // t=0 at horizon, t=1 at GPS screen position
         float t = static_cast<float>(y - horizonScreenY) * invSpan;
-        if (t <= 0.0f)
-            continue;
 
         float scale = t * invCosTilt;
         float invScale = 1.0f / scale;
@@ -1694,7 +1693,7 @@ void Maps::apply3DPerspective(uint16_t heading)
             int sx = sxFix >> 16;
             int sy = syFix >> 16;
 
-            if (sx >= 0 && sx < srcW && sy >= 0 && sy < srcH)
+            if ((uint32_t)sx < (uint32_t)srcW && (uint32_t)sy < (uint32_t)srcH)
                 dstRow[x] = src[sy * srcW + sx];
             else
                 dstRow[x] = skyColor;
