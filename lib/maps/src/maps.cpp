@@ -26,19 +26,7 @@ static inline uint32_t rgb565_to_argb8888(uint16_t c)
     return 0xFF000000 | (r << 16) | (g << 8) | b;
 }
 #endif
-#include "../../images/src/bruj.h"
-#include "../../images/src/compass.h"
 #include "../../images/src/waypoint.h"
-#include "../../images/src/navfinish.h"
-#include "../../images/src/straight.h"
-#include "../../images/src/slleft.h"
-#include "../../images/src/slright.h"
-#include "../../images/src/tleft.h"
-#include "../../images/src/tright.h"
-#include "../../images/src/uleft.h"
-#include "../../images/src/uright.h"
-#include "../../images/src/finish.h"
-#include "../../images/src/outtrack.h"
 
 #ifdef ENABLE_COMPASS
     extern Compass compass;
@@ -699,7 +687,10 @@ void Maps::requestGenerate(uint8_t zoom)
  * @brief Background task for map rendering.
  *
  * @details Renders full PNG/vector grids and consumes queued vector border steps without rebuilding
- *          the complete grid for each coalesced axial crossing.
+ *          the complete grid for each coalesced axial crossing. Also consumes generate requests
+ *          and, on ESP32-S3, the map composition (composeMap) when the view changed without new
+ *          tiles, gated by the MAP_EVENT_FREE handshake so the GUI can display the previous frame
+ *          first.
  *
  * @param pvParameters Pointer to the Maps instance passed to the FreeRTOS task.
  */
@@ -1703,9 +1694,6 @@ void Maps::setWaypoint(float wptLat, float wptLon)
 }
 
 /**
- * @brief Mark map for redraw
- */
-/**
  * @brief Returns true when there is an active navigation target (track or waypoint).
  */
 bool Maps::isNavActive() const
@@ -1825,6 +1813,13 @@ void Maps::apply3DPerspective(uint16_t heading)
     }
 }
 
+/**
+ * @brief Marks the map for a full redraw on the next render cycle.
+ *
+ * @details Clears the cached tile reference, forces the vector layers to
+ *          re-render and refreshes the 3D cache state. Called when the map
+ *          content needs to be rebuilt (e.g. track or mode changes).
+ */
 void Maps::updateMap()
 {
     Maps::oldMapTile = {};
