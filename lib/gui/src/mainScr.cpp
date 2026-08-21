@@ -134,6 +134,7 @@ static struct
     int32_t lastRenderedHeading = -1;
     float   lastRenderedLat    = -1.0f;
     float   lastRenderedLon    = -1.0f;
+    float   lastManualHeading  = 0.0f;
 } mapRenderState;
 
 static struct
@@ -147,7 +148,17 @@ static struct
 static volatile bool redrawPending = false;
 
 /**
- * @brief Async callback to delegate map redrawing to UI thread (Core 1)
+ * @brief Async callback on the UI thread that requests map composition and displays it.
+ *
+ * @details On ESP32-S3 requests a tile generate and marks a composition as
+ *          pending when the view changed (offset, heading, position, manual
+ *          heading or redraw). Once the render task signals MAP_EVENT_DONE,
+ *          invalidates the map image and forces a synchronous refresh,
+ *          re-arming MAP_EVENT_FREE so the render task can compose the next
+ *          frame. On ESP32-P4 composition stays on the GUI thread —
+ *          displayMap() is called directly when the view changed or a rendered
+ *          frame is ready (MAP_EVENT_DONE), and LVGL draws asynchronously
+ *          (original flow, no handshake latency).
  */
 static void async_map_update_cb(void * user_data)
 {
@@ -156,7 +167,7 @@ static void async_map_update_cb(void * user_data)
     if (!isMainScreen || mapImage == NULL || summaryOverlay != nullptr)
         return;
 
-    mapView.generateMap(zoom);
+    mapView.requestGenerate(zoom);
     if (mapView.redrawMap && !mapSet.vectorMap)
         xEventGroupSetBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
 
@@ -168,6 +179,11 @@ static void async_map_update_cb(void * user_data)
     bool headingChanged = (abs(currentHeading - mapRenderState.lastRenderedHeading) > MAP_HEADING_THRESHOLD);
     bool positionChanged = (currentLat != mapRenderState.lastRenderedLat || currentLon != mapRenderState.lastRenderedLon);
 
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    // ESP32-P4 keeps composition on the GUI thread (no handshake latency; the
+    // HW rotate fits the GUI budget). displayMap() takes the map mutex and
+    // applies its own hysteresis; the MAP_EVENT_DONE condition redraws as soon
+    // as the render task has a fresh frame.
     if (mapView.offsetX != mapRenderState.lastDispX ||
         mapView.offsetY != mapRenderState.lastDispY ||
         ((headingChanged || positionChanged) && mapView.followGps) ||
@@ -180,6 +196,9 @@ static void async_map_update_cb(void * user_data)
         mapRenderState.lastRenderedLat     = currentLat;
         mapRenderState.lastRenderedLon     = currentLon;
         xEventGroupClearBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
+        mapView.mapClimbShift = (climbOverlay != NULL && !lv_obj_has_flag(climbOverlay, LV_OBJ_FLAG_HIDDEN))
+                                    ? lv_obj_get_height(climbOverlay) / 2
+                                    : 0;
         mapView.displayMap();
         map_img_dsc.data = (const uint8_t *)mapView.mapBuffer;
         lv_obj_invalidate(mapImage);
@@ -195,6 +214,49 @@ static void async_map_update_cb(void * user_data)
         else
             lv_obj_align(navArrow, LV_ALIGN_CENTER, 0, 0);
     }
+#else
+    mapView.mapClimbShift = (climbOverlay != NULL && !lv_obj_has_flag(climbOverlay, LV_OBJ_FLAG_HIDDEN))
+                                ? lv_obj_get_height(climbOverlay) / 2
+                                : 0;
+
+    bool composeNeeded = (mapView.offsetX != mapRenderState.lastDispX ||
+                          mapView.offsetY != mapRenderState.lastDispY ||
+                          ((headingChanged || positionChanged) && mapView.followGps) ||
+                          mapView.manualHeading != mapRenderState.lastManualHeading ||
+                          mapView.redrawMap);
+
+    if (composeNeeded)
+    {
+        mapRenderState.lastDispX           = mapView.offsetX;
+        mapRenderState.lastDispY           = mapView.offsetY;
+        mapRenderState.lastRenderedHeading = currentHeading;
+        mapRenderState.lastRenderedLat     = currentLat;
+        mapRenderState.lastRenderedLon     = currentLon;
+        mapRenderState.lastManualHeading   = mapView.manualHeading;
+        xEventGroupClearBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
+        mapView.mapComposePending = true;
+        mapView.redrawMap = false;
+    }
+
+    if (xEventGroupGetBits(mapView.mapEventGroup) & Maps::MAP_EVENT_DONE)
+    {
+        xEventGroupClearBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
+        mapView.displayMap();
+        map_img_dsc.data = (const uint8_t *)mapView.mapBuffer;
+        lv_obj_invalidate(mapImage);
+        if (mapView.is3DActive())
+        {
+            int navOffset = mapView.mapScrHeight / 4;
+            if (climbOverlay != NULL && !lv_obj_has_flag(climbOverlay, LV_OBJ_FLAG_HIDDEN))
+                navOffset += lv_obj_get_height(climbOverlay) / 2;
+            lv_obj_align(navArrow, LV_ALIGN_BOTTOM_MID, 0, -navOffset);
+        }
+        else
+            lv_obj_align(navArrow, LV_ALIGN_CENTER, 0, 0);
+        lv_refr_now(lv_display_get_default());
+        xEventGroupSetBits(mapView.mapEventGroup, Maps::MAP_EVENT_FREE);
+    }
+#endif
 
     lv_obj_set_pos(mapImage, 0, 0);
     if (mapSet.showClimb)

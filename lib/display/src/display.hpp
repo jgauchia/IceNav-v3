@@ -41,6 +41,18 @@ public:
     virtual void sleepOff() = 0;
     virtual void flush(const DisplayArea &area, uint16_t *pixels) = 0;
     virtual void waitFlushDone() = 0;
+
+    virtual bool beginCapture(uint16_t *buffer, uint16_t width, uint16_t height)
+    {
+        (void)buffer;
+        (void)width;
+        (void)height;
+        return false;
+    }
+
+    virtual void endCapture()
+    {
+    }
 };
 
 IDisplay &display();

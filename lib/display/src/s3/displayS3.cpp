@@ -13,6 +13,8 @@
 #include "tft.hpp"
 #include "panelSelect.hpp"
 
+#include <string.h>
+
 #ifdef T4_S3
 #include "LILYGO_T4_S3.hpp"
 #endif
@@ -74,6 +76,11 @@ public:
         uint32_t w = area.x2 - area.x1 + 1;
         uint32_t h = area.y2 - area.y1 + 1;
         tft.waitDMA();
+        if (_captureBuffer != nullptr)
+        {
+            for (uint32_t y = 0; y < h; ++y)
+                memcpy(_captureBuffer + (area.y1 + y) * _captureWidth + area.x1, pixels + y * w, w * sizeof(uint16_t));
+        }
         #ifdef T4_S3
             tft.setAddrWindow(area.x1, area.y1, w, h);
             tft.pushPixelsDMA(pixels, w * h, true);
@@ -89,6 +96,24 @@ public:
     {
         tft.waitDMA();
     }
+
+    bool beginCapture(uint16_t *buffer, uint16_t width, uint16_t height) override
+    {
+        (void)height;
+        _captureBuffer = buffer;
+        _captureWidth = width;
+        return true;
+    }
+
+    void endCapture() override
+    {
+        _captureBuffer = nullptr;
+        _captureWidth = 0;
+    }
+
+private:
+    uint16_t *_captureBuffer = nullptr;
+    uint16_t _captureWidth = 0;
 };
 
 /**

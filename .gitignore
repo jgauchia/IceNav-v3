@@ -7,3 +7,18 @@ compile_commands.json
 
 
 compile-distributed.sh
+
+# pioarduino custom_sdkconfig: generated sdkconfig + CMake artifacts (regenerated on each libs recompile).
+sdkconfig.*
+CMakeLists.txt
+dependencies.lock
+.dummy/
+managed_components/
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+graft/
+.claude
+.ignore
+.mcp.json
+AGENTS.md
+opencode.json

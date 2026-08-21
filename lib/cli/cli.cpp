@@ -16,14 +16,71 @@
 #include "esp_flash.h"
 #include "esp_ota_ops.h"
 #include "esp_image_format.h"
+#include "display.hpp"
+#include "globalGuiDef.h"
+#include "lv_subjects.hpp"
+#include <lgfx/utility/lgfx_miniz.h>
 
 extern Storage storage;
-extern TFT_eSPI tft;
 
 static WiFiClient client;
 
 /**
- * @brief Captures a screenshot from the TFT display and saves it to the SD card.
+ * @brief Source descriptor for the screenshot PNG encoder.
+ */
+struct ScreenCaptureSource
+{
+    const uint16_t *buffer;   /**< RGB565 frame buffer. */
+    uint16_t width;           /**< Frame width in pixels. */
+};
+
+/**
+ * @brief PNG row callback that converts one RGB565 row to RGB888.
+ */
+static uint8_t *screenshotRowCallback(uint8_t *pImage, int flip, int w, int h, int y, int, void *target)
+{
+    auto src = static_cast<const ScreenCaptureSource *>(target);
+    uint32_t ypos = (flip ? (uint32_t)(h - 1 - y) : (uint32_t)y);
+    const uint16_t *row = src->buffer + (size_t)ypos * src->width;
+    uint8_t *dst = pImage;
+    for (int x = 0; x < w; ++x)
+    {
+        uint16_t c = row[x];
+        *dst++ = (uint8_t)((c >> 8) & 0xF8);
+        *dst++ = (uint8_t)((c >> 3) & 0xFC);
+        *dst++ = (uint8_t)((c << 3) & 0xF8);
+    }
+    return pImage;
+}
+
+/**
+ * @brief Encodes an RGB565 frame buffer to a PNG image in memory.
+ *
+ * @param datalen Pointer to store the resulting PNG length.
+ * @param frame   RGB565 frame buffer.
+ * @param width   Frame width in pixels.
+ * @param height  Frame height in pixels.
+ * @return Heap-allocated PNG data (caller frees) or nullptr on failure.
+ */
+static uint8_t *encodeScreenPng(size_t *datalen, const uint16_t *frame, uint16_t width, uint16_t height)
+{
+    uint8_t *rgbRow = (uint8_t *)malloc((size_t)width * 3);
+    if (!rgbRow)
+        return nullptr;
+
+    ScreenCaptureSource src = { frame, width };
+    uint8_t *png = (uint8_t *)tdefl_write_image_to_png_file_in_memory_ex_with_cb(
+        rgbRow, width, height, 3, datalen, 6, 0, (tdefl_get_png_row_func)screenshotRowCallback, &src);
+    free(rgbRow);
+    return png;
+}
+
+/**
+ * @brief Captures a screenshot of the current screen and saves it to the SD card.
+ *
+ * @details The frame is captured from the LVGL draw buffer during a synchronous
+ *          refresh instead of reading back the panel GRAM, so it does not depend
+ *          on panel readback support.
  *
  * @param filename Path where the screenshot will be saved.
  * @param response Stream to send operation messages.
@@ -31,11 +88,40 @@ static WiFiClient client;
  */
 bool captureScreenshot(const char *filename, Stream *response)
 {
-    size_t dlen;
-    uint8_t *png = (uint8_t *)tft.createPng(&dlen, 0, 0, tft.width(), tft.height());
+    const uint16_t width = display().width();
+    const uint16_t height = display().height();
+    uint16_t *frame = (uint16_t *)heap_caps_malloc((size_t)width * height * sizeof(uint16_t), MALLOC_CAP_SPIRAM);
+    if (!frame)
+    {
+        response->println("Failed to allocate screenshot buffer");
+        return false;
+    }
+
+    if (!display().beginCapture(frame, width, height))
+    {
+        response->println("Screenshot not supported on this display");
+        heap_caps_free(frame);
+        return false;
+    }
+
+    size_t dlen = 0;
+    uint8_t *png = nullptr;
+    waitScreenRefresh = true;
+    if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, portMAX_DELAY) == pdTRUE)
+    {
+        lv_obj_invalidate(lv_screen_active());
+        lv_refr_now(display_drv);
+        display().waitFlushDone();
+        xSemaphoreGive(lvgl_mutex);
+        png = (uint8_t *)encodeScreenPng(&dlen, frame, width, height);
+    }
+    display().endCapture();
+    waitScreenRefresh = false;
+    heap_caps_free(frame);
+
     if (!png)
     {
-        response->println("Filed to create PNG");
+        response->println("Failed to create PNG");
         return false;
     }
 
@@ -48,12 +134,12 @@ bool captureScreenshot(const char *filename, Stream *response)
             response->println("Screenshot saved");
         else
             response->println("Error writing screenshot");
-        free(png);
         storage.close(file);
         result = true;
     }
     else
         response->println("Failed to open file for writing");
+    free(png);
 
     return result;
 }
@@ -233,9 +319,7 @@ void wcli_scshot(char *args, Stream *response)
     {
         response->println("Saving to SD..");
 
-        waitScreenRefresh = true;
         captureScreenshot(SCREENSHOT_TEMP_FILE, response);
-        waitScreenRefresh = false;
         
         response->println("Note: is possible to send it to a PC using: scshot ip port");
     }
@@ -248,9 +332,7 @@ void wcli_scshot(char *args, Stream *response)
         }
         response->printf("Sending screenshot to %s:%i..\r\n", ip.c_str(), port);
 
-        waitScreenRefresh = true;
         captureScreenshot(SCREENSHOT_TEMP_FILE, ip.c_str(), port, response);
-        waitScreenRefresh = false;
     }
 }
 
