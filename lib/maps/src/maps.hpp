@@ -126,6 +126,8 @@ public:
     uint16_t mapScrHeight;
     uint16_t mapScrWidth;
     volatile bool redrawMap = true;
+    volatile bool mapComposePending = false;
+    int32_t mapClimbShift = 0;
     bool followGps = true;
     float manualHeading = 0.0f;
     bool isMapFound = false;
@@ -155,6 +157,7 @@ public:
     static const uint32_t MAP_EVENT_START = (1 << 0);
     static const uint32_t MAP_EVENT_DONE  = (1 << 1);
     static const uint32_t MAP_EVENT_ERROR = (1 << 2);
+    static const uint32_t MAP_EVENT_FREE  = (1 << 3);
 
     Maps();
     MapTile getMapTile(float lon, float lat, uint8_t zoomLevel, int8_t offsetX, int8_t offsetY);
@@ -163,6 +166,7 @@ public:
     void createMapScrSprites();
     void generateMap(uint8_t zoom);
     void requestGenerate(uint8_t zoom);
+    void composeMap();
     void displayMap();
     void setWaypoint(float wptLat, float wptLon);
     bool getHasWaypoint() const { return hasWaypoint; }

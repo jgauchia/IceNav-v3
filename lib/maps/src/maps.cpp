@@ -173,6 +173,7 @@ void Maps::initResources()
     vectorCache.reserve(NAV_DATA_CACHE_SIZE);
     mapMutex = xSemaphoreCreateRecursiveMutex();
     mapEventGroup = xEventGroupCreate();
+    xEventGroupSetBits(mapEventGroup, MAP_EVENT_FREE);
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
     if (ppaFillClient == nullptr)
     {
@@ -709,7 +710,7 @@ void Maps::mapRenderTask(void* pvParameters)
 
     while (1)
     {
-        if (!instance->pendingTiles.empty() || !instance->vectorSteps.empty() || instance->mapGeneratePending)
+        if (!instance->pendingTiles.empty() || !instance->vectorSteps.empty() || instance->mapGeneratePending || instance->mapComposePending)
         {
             if (xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
             {
@@ -745,11 +746,30 @@ void Maps::mapRenderTask(void* pvParameters)
 
                 // A generate request can early-return inside generateMap (no zoom,
                 // tile or scroll change); with no tiles or steps queued there is
-                // nothing to rasterize, so yield and idle instead of re-rendering
-                // the existing layers every cycle.
+                // nothing to rasterize. Only a pending composition (heading/offset
+                // change without new tiles) wakes this path: compose the latest
+                // frame directly and idle instead of re-rendering the layers.
+                // On ESP32-P4 composition stays on the GUI thread instead of the render task.
                 if (instance->pendingTiles.empty() && instance->vectorSteps.empty() && !vectorRender)
                 {
+                    bool composed = false;
+#if !defined(CONFIG_IDF_TARGET_ESP32P4)
+                    if (instance->mapComposePending)
+                    {
+                        EventBits_t freeBits = xEventGroupWaitBits(instance->mapEventGroup, MAP_EVENT_FREE, pdFALSE, pdTRUE, pdMS_TO_TICKS(50));
+                        if (freeBits & MAP_EVENT_FREE)
+                        {
+                            instance->mapComposePending = false;
+                            instance->composeMap();
+                            xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
+                            xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
+                            composed = true;
+                        }
+                    }
+#endif
                     xSemaphoreGiveRecursive(instance->mapMutex);
+                    if (composed)
+                        triggerMapRedraw();
                     continue;
                 }
 
@@ -973,6 +993,17 @@ void Maps::mapRenderTask(void* pvParameters)
                     instance->drawTrack(instance->mapTempSprite);
                     instance->drawWaypoint(instance->mapTempSprite);
                     instance->redrawMap = true;
+#if !defined(CONFIG_IDF_TARGET_ESP32P4)
+                    if (instance->mapComposePending)
+                    {
+                        EventBits_t freeBits = xEventGroupWaitBits(instance->mapEventGroup, MAP_EVENT_FREE, pdFALSE, pdTRUE, pdMS_TO_TICKS(50));
+                        if (freeBits & MAP_EVENT_FREE)
+                        {
+                            instance->mapComposePending = false;
+                            instance->composeMap();
+                        }
+                    }
+#endif
                     xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
                     xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
                     xSemaphoreGiveRecursive(instance->mapMutex);
@@ -1149,12 +1180,27 @@ void Maps::mapRenderTask(void* pvParameters)
                 instance->drawWaypoint(instance->mapTempSprite);
                 instance->redrawMap = true;
 
+                bool frameReady = true;
+#if !defined(CONFIG_IDF_TARGET_ESP32P4)
+                if (instance->mapComposePending && !sequencePending)
+                {
+                    EventBits_t freeBits = xEventGroupWaitBits(instance->mapEventGroup, MAP_EVENT_FREE, pdFALSE, pdTRUE, pdMS_TO_TICKS(50));
+                    if (freeBits & MAP_EVENT_FREE)
+                    {
+                        instance->mapComposePending = false;
+                        instance->composeMap();
+                    }
+                    else
+                        frameReady = false;
+                }
+#endif
+
                 if (sequencePending)
                 {
                     xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_DONE);
                     xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_START);
                 }
-                else
+                else if (frameReady)
                 {
                     xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
                     xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
@@ -1458,7 +1504,83 @@ void Maps::renderPngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
 }
 
 /**
- * @brief Display the map on screen with rotation and dynamic cropping.
+ * @brief Composes the tile sprite into the viewport buffer in the render task.
+ *
+ * @details Runs in the render task (core 0) under the map mutex, only on
+ *          ESP32-S3. Rotates or crops mapTempSprite into mapSprite depending
+ *          on the active mode (GPS follow, manual heading or 3D perspective).
+ *          The GUI only invalidates the LVGL image once MAP_EVENT_DONE is set,
+ *          so the CPU-heavy composition no longer blocks the UI thread. On
+ *          ESP32-P4 composition stays on the GUI thread inside displayMap().
+ */
+void Maps::composeMap()
+{
+    mapCanvasParent()->startWrite();
+
+    if (Maps::followGps)
+    {
+        const Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
+
+        uint16_t mapHeading = 0;
+        #ifdef ENABLE_COMPASS
+        {
+            int sensorHeading = 0;
+            if (sensorMutex != NULL && xSemaphoreTake(sensorMutex, pdMS_TO_TICKS(5)) == pdTRUE)
+            {
+                sensorHeading = globalSensorData.heading;
+                xSemaphoreGive(sensorMutex);
+            }
+            mapHeading = mapSet.mapRotationComp ? (uint16_t)sensorHeading : gpsSnap.heading;
+        }
+        #else
+            mapHeading = gpsSnap.heading;
+        #endif
+
+        const float lat = gpsSnap.latitude;
+        const float lon = gpsSnap.longitude;
+        const int8_t gridOffset = tilesGrid / 2;
+        Maps::navArrowPosition = Maps::coord2ScreenPos(lon, lat, Maps::zoomLevel, Maps::mapTileSize);
+
+        if (use3DCache)
+            apply3DPerspective(mapHeading);
+        else
+        {
+            Maps::mapTempSprite.setPivot(gridOffset * mapTileSize + Maps::navArrowPosition.posX,
+                                         gridOffset * mapTileSize + Maps::navArrowPosition.posY);
+            Maps::mapSprite.setPivot(mapScrWidth / 2, mapScrHeight / 2);
+            Maps::mapTempSprite.pushRotated(&mapSprite, 360 - mapHeading);
+        }
+    }
+    else
+    {
+        if (manualHeading != 0.0f)
+        {
+            int16_t pivX = tileWidth  / 2 + displayOffsetX;
+            int16_t pivY = tileHeight / 2 + displayOffsetY;
+            Maps::mapTempSprite.setPivot(pivX, pivY);
+            Maps::mapSprite.setPivot(mapScrWidth / 2, mapScrHeight / 2);
+            Maps::mapTempSprite.pushRotated(&mapSprite, 360.0f - manualHeading);
+        }
+        else
+        {
+            int16_t cropX = (tileWidth  - mapScrWidth)  / 2 + displayOffsetX;
+            int16_t cropY = (tileHeight - mapScrHeight) / 2 + displayOffsetY;
+            mapTempSprite.pushSprite(&mapSprite, -cropX, -cropY);
+        }
+    }
+
+    mapCanvasParent()->endWrite();
+}
+
+/**
+ * @brief Draws the initial placeholder frame until the map is found.
+ *
+ * @details While no GPS fix is available, pushes mapTempSprite into mapSprite
+ *          once. On ESP32-S3 the composition runs in the render task via
+ *          composeMap() and displayMap() is a no-op. On ESP32-P4 the compose
+ *          stays on the GUI thread to avoid the handshake latency: this method
+ *          applies the full rotation / perspective / crop transform under the
+ *          map mutex, with hysteresis when nothing changed.
  */
 void Maps::displayMap()
 {
@@ -1468,7 +1590,7 @@ void Maps::displayMap()
         Maps::mapTempSprite.pushSprite(&mapSprite, 0, 0);
         DBG_RET_DMAP();
     }
-
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
     if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(50)) != pdTRUE)
     {
         dbgDispMap.timeouts++;
@@ -1501,7 +1623,6 @@ void Maps::displayMap()
         const int8_t gridOffset = tilesGrid / 2;
         Maps::navArrowPosition = Maps::coord2ScreenPos(lon, lat, Maps::zoomLevel, Maps::mapTileSize);
 
-        // Hysteresis: skip redraw if nothing changed
         if (!Maps::redrawMap)
         {
             if (mapHeading == lastRenderedHeading &&
@@ -1517,7 +1638,6 @@ void Maps::displayMap()
         lastRenderedArrowPos = navArrowPosition;
 
         if (use3DCache)
-            // 3D mode: scanline perspective transform with heading baked in
             apply3DPerspective(mapHeading);
         else
         {
@@ -1564,6 +1684,9 @@ void Maps::displayMap()
     mapCanvasParent()->endWrite();
     xSemaphoreGiveRecursive(mapMutex);
     DBG_TICK_DMAP();
+#else
+    DBG_TICK_DMAP();
+#endif
 }
 
 /**
@@ -1630,9 +1753,7 @@ void Maps::apply3DPerspective(uint16_t heading)
     const int gpsTileY = gridOffset * mapTileSize + (int)navArrowPosition.posY;
 
     // GPS lands at lower third of the viewport; shift up when climb overlay visible
-    int gpsScreenY = dstH * 3 / 4;
-    if (climbOverlay != NULL && !lv_obj_has_flag(climbOverlay, LV_OBJ_FLAG_HIDDEN))
-        gpsScreenY -= lv_obj_get_height(climbOverlay) / 2;
+    int gpsScreenY = dstH * 3 / 4 - mapClimbShift;
 
     // Heading rotation: rotate tile-space coords so heading points up
     const float headingRad = static_cast<float>(heading) * (static_cast<float>(M_PI) / 180.0f);
