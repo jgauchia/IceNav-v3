@@ -156,7 +156,7 @@ static void async_map_update_cb(void * user_data)
     if (!isMainScreen || mapImage == NULL || summaryOverlay != nullptr)
         return;
 
-    mapView.generateMap(zoom);
+    mapView.requestGenerate(zoom);
     if (mapView.redrawMap && !mapSet.vectorMap)
         xEventGroupSetBits(mapView.mapEventGroup, Maps::MAP_EVENT_DONE);
 

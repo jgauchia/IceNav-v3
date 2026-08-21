@@ -679,6 +679,22 @@ void Maps::generateMap(uint8_t zoom)
 }
 
 /**
+ * @brief Request an asynchronous map regeneration.
+ *
+ * @details Non-blocking alternative to generateMap() for the GUI thread: the
+ *          request is consumed by the render task under its own mutex hold,
+ *          so the GUI never blocks on mapMutex during a full grid reset and
+ *          the request is never dropped by a mutex timeout.
+ *
+ * @param zoom Zoom level to generate.
+ */
+void Maps::requestGenerate(uint8_t zoom)
+{
+    mapGenerateZoom = zoom;
+    mapGeneratePending = true;
+}
+
+/**
  * @brief Background task for map rendering.
  *
  * @details Renders full PNG/vector grids and consumes queued vector border steps without rebuilding
@@ -693,7 +709,7 @@ void Maps::mapRenderTask(void* pvParameters)
 
     while (1)
     {
-        if (!instance->pendingTiles.empty() || !instance->vectorSteps.empty())
+        if (!instance->pendingTiles.empty() || !instance->vectorSteps.empty() || instance->mapGeneratePending)
         {
             if (xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
             {
@@ -703,6 +719,11 @@ void Maps::mapRenderTask(void* pvParameters)
                     xSemaphoreGiveRecursive(instance->mapMutex);
                     vTaskDelay(pdMS_TO_TICKS(100));
                     continue;
+                }
+                if (instance->mapGeneratePending)
+                {
+                    instance->mapGeneratePending = false;
+                    instance->generateMap(instance->mapGenerateZoom);
                 }
                 if (instance->pendingTiles.empty() && !instance->vectorSteps.empty())
                 {
@@ -721,6 +742,16 @@ void Maps::mapRenderTask(void* pvParameters)
                 bool fullReset = zoomChanged || (instance->pendingTiles.size() >= (size_t)(instance->tilesGrid * instance->tilesGrid));
                 bool vectorRender = mapSet.vectorMap && instance->vectorPending && !fullReset;
                 lastZoom = instance->zoomLevel;
+
+                // A generate request can early-return inside generateMap (no zoom,
+                // tile or scroll change); with no tiles or steps queued there is
+                // nothing to rasterize, so yield and idle instead of re-rendering
+                // the existing layers every cycle.
+                if (instance->pendingTiles.empty() && instance->vectorSteps.empty() && !vectorRender)
+                {
+                    xSemaphoreGiveRecursive(instance->mapMutex);
+                    continue;
+                }
 
                 if (fullReset)
                 {

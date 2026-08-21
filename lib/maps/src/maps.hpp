@@ -162,6 +162,7 @@ public:
     void deleteMapScrSprites();
     void createMapScrSprites();
     void generateMap(uint8_t zoom);
+    void requestGenerate(uint8_t zoom);
     void displayMap();
     void setWaypoint(float wptLat, float wptLon);
     bool getHasWaypoint() const { return hasWaypoint; }
@@ -274,6 +275,8 @@ private:
     std::vector<VectorStep> vectorSteps;
     SemaphoreHandle_t mapMutex;
     TaskHandle_t mapRenderTaskHandle;
+    volatile bool mapGeneratePending = false;
+    volatile uint8_t mapGenerateZoom = 0;
     static void mapRenderTask(void* pvParameters);
     void renderPngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map);
     void prefetchPngTile();
