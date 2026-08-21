@@ -9,7 +9,6 @@
 #include "maps.hpp"
 #include "esp_log.h"
 #include "esp_heap_caps.h"
-#include "esp_timer.h"
 #include <cmath>
 #include <climits>
 #include <cstdint>
@@ -42,62 +41,6 @@ static const uint8_t PREFETCH_MAX_LOAD_PER_PASS = 4;
 static const float PREFETCH_MIN_DRAG_VELOCITY = 0.5f;
 
 static bool aggressiveLod = false;
-
-// TEMP: timing for the S3 render decision — remove after measuring.
-struct DbgPhase
-{
-    const char* name;
-    uint32_t    n;
-    int64_t     sumUs;
-    int64_t     minUs;
-    int64_t     maxUs;
-    uint32_t    timeouts;
-};
-static DbgPhase dbgGenMap  = {"generateMap", 0, 0, INT64_MAX, 0, 0};
-static DbgPhase dbgDispMap = {"displayMap", 0, 0, INT64_MAX, 0, 0};
-static DbgPhase dbgRender  = {"renderCycle", 0, 0, INT64_MAX, 0, 0};
-static DbgPhase dbgTiles   = {"renderTiles", 0, 0, INT64_MAX, 0, 0};
-static DbgPhase dbgLayers  = {"renderLayers", 0, 0, INT64_MAX, 0, 0};
-
-static void dbgReport(DbgPhase& p)
-{
-    ESP_LOGI(TAG, "[DBG] %s: n=%u min=%lld avg=%lld max=%lld us timeouts=%u",
-             p.name, p.n, p.minUs, p.sumUs / (int64_t)p.n, p.maxUs, p.timeouts);
-    p.n = 0;
-    p.sumUs = 0;
-    p.minUs = INT64_MAX;
-    p.maxUs = 0;
-    p.timeouts = 0;
-}
-
-static inline void dbgTick(DbgPhase& p, int64_t us, uint32_t reportEvery, int64_t spikeUs)
-{
-    p.n++;
-    p.sumUs += us;
-    if (us < p.minUs)
-        p.minUs = us;
-    if (us > p.maxUs)
-        p.maxUs = us;
-    if (us > spikeUs)
-        ESP_LOGI(TAG, "[DBG] %s spike: %lld us (n=%u)", p.name, us, p.n);
-    if ((p.n & (reportEvery - 1)) == 0)
-        dbgReport(p);
-}
-
-#define DBG_RET_GMAP() \
-    do \
-    { \
-        dbgTick(dbgGenMap, esp_timer_get_time() - dbgT0, 128, 5000); \
-        return; \
-    } while (0)
-#define DBG_TICK_GMAP() dbgTick(dbgGenMap, esp_timer_get_time() - dbgT0, 128, 5000)
-#define DBG_RET_DMAP() \
-    do \
-    { \
-        dbgTick(dbgDispMap, esp_timer_get_time() - dbgT0, 32, 80000); \
-        return; \
-    } while (0)
-#define DBG_TICK_DMAP() dbgTick(dbgDispMap, esp_timer_get_time() - dbgT0, 32, 80000)
 
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
 /**
@@ -592,7 +535,6 @@ bool Maps::loadPngTileIntoSprite(int32_t tlX, int32_t tlY, int gx, int gy,
  */
 void Maps::generateMap(uint8_t zoom)
 {
-    const int64_t dbgT0 = esp_timer_get_time();
     if (zoom != Maps::zoomLevel)
     {
         Maps::zoomLevel = zoom;
@@ -620,23 +562,23 @@ void Maps::generateMap(uint8_t zoom)
             vectorNeedsRender = true;
 
         if (vectorDeferred && !zoomChanged && !vectorNeedsRender)
-            DBG_RET_GMAP();
+            return;
         if (vectorPending)
-            DBG_RET_GMAP();
+            return;
 
         if (!zoomChanged && !tileChanged && !vectorNeedsRender &&
             pendingTiles.empty() && vectorSteps.empty())
-            DBG_RET_GMAP();
+            return;
 
         if (pendingTiles.size() > (tilesGrid * tilesGrid))
-            DBG_RET_GMAP();
+            return;
 
         Maps::isMapFound = renderVectorViewport(baseLat, baseLon, zoom, Maps::mapTempSprite);
         vectorZoom = zoom;
         vectorNeedsRender = false;
         latLonToPixel(destLat, destLon, (int16_t&)wptPosX, (int16_t&)wptPosY);
         Maps::redrawMap = true;
-        DBG_RET_GMAP();
+        return;
     }
 
     const uint32_t centerTileIdxX = lon2tilex(baseLon, zoom);
@@ -664,7 +606,6 @@ void Maps::generateMap(uint8_t zoom)
             xSemaphoreGiveRecursive(mapMutex);
         }
     }
-    DBG_TICK_GMAP();
 }
 
 /**
@@ -705,7 +646,6 @@ void Maps::mapRenderTask(void* pvParameters)
         {
             if (xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
             {
-                const int64_t dbgT0 = esp_timer_get_time();
                 if (instance->mapTempSprite.getBuffer() == nullptr)
                 {
                     xSemaphoreGiveRecursive(instance->mapMutex);
@@ -930,7 +870,6 @@ void Maps::mapRenderTask(void* pvParameters)
                         if (yieldTile()) { aborted = true; break; }
                     }
                 }
-                const int64_t dbgT1 = esp_timer_get_time();
 
                 if (aborted)
                 {
@@ -998,8 +937,6 @@ void Maps::mapRenderTask(void* pvParameters)
                     xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
                     xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
                     xSemaphoreGiveRecursive(instance->mapMutex);
-                    dbgTick(dbgTiles, dbgT1 - dbgT0, 16, 100000);
-                    dbgTick(dbgRender, esp_timer_get_time() - dbgT0, 16, 100000);
                     triggerMapRedraw();
                     continue;
                 }
@@ -1134,7 +1071,6 @@ void Maps::mapRenderTask(void* pvParameters)
                     continue;
                 }
 
-                const int64_t dbgT2 = esp_timer_get_time();
                 instance->mapTempSprite.endWrite();
                 aggressiveLod = false;
                 const bool sequencePending = vectorRender && !instance->vectorSteps.empty();
@@ -1196,9 +1132,6 @@ void Maps::mapRenderTask(void* pvParameters)
                     xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
                     xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
                 }
-                dbgTick(dbgTiles, dbgT1 - dbgT0, 16, 100000);
-                dbgTick(dbgLayers, dbgT2 - dbgT1, 16, 100000);
-                dbgTick(dbgRender, esp_timer_get_time() - dbgT0, 16, 100000);
                 xSemaphoreGiveRecursive(instance->mapMutex);
                 triggerMapRedraw();
             }
@@ -1575,18 +1508,14 @@ void Maps::composeMap()
  */
 void Maps::displayMap()
 {
-    const int64_t dbgT0 = esp_timer_get_time();
     if (!Maps::isMapFound)
     {
         Maps::mapTempSprite.pushSprite(&mapSprite, 0, 0);
-        DBG_RET_DMAP();
+        return;
     }
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
     if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(50)) != pdTRUE)
-    {
-        dbgDispMap.timeouts++;
-        DBG_RET_DMAP();
-    }
+        return;
 
     mapCanvasParent()->startWrite();
 
@@ -1622,7 +1551,7 @@ void Maps::displayMap()
             {
                 mapCanvasParent()->endWrite();
                 xSemaphoreGiveRecursive(mapMutex);
-                DBG_RET_DMAP();
+                return;
             }
         }
         lastRenderedHeading = mapHeading;
@@ -1648,7 +1577,7 @@ void Maps::displayMap()
             {
                 mapCanvasParent()->endWrite();
                 xSemaphoreGiveRecursive(mapMutex);
-                DBG_RET_DMAP();
+                return;
             }
         }
         lastRenderedDisplayOffsetX  = displayOffsetX;
@@ -1674,9 +1603,6 @@ void Maps::displayMap()
     Maps::redrawMap = false;
     mapCanvasParent()->endWrite();
     xSemaphoreGiveRecursive(mapMutex);
-    DBG_TICK_DMAP();
-#else
-    DBG_TICK_DMAP();
 #endif
 }
 
