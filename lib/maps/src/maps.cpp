@@ -2617,9 +2617,11 @@ static void drawLineRaw(uint16_t* buf, uint32_t stride, int16_t x0, int16_t y0,
         int dx = abs(x1 - x0);
         int dy = -abs(y1 - y0);
         int err = dx + dy;
+        uint16_t* row = buf + (uint32_t)y0 * stride + x0;
+        int rowStep = sy * (int)stride;
         while (true)
         {
-            buf[(uint32_t)y0 * stride + x0] = rawColor;
+            *row = rawColor;
             if (x0 == x1 && y0 == y1)
                 break;
             int e2 = 2 * err;
@@ -2627,11 +2629,13 @@ static void drawLineRaw(uint16_t* buf, uint32_t stride, int16_t x0, int16_t y0,
             {
                 err += dy;
                 x0 += sx;
+                row += sx;
             }
             if (e2 <= dx)
             {
                 err += dx;
                 y0 += sy;
+                row += rowStep;
             }
         }
         return;
