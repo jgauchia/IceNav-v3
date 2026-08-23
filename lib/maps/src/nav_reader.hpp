@@ -4,9 +4,11 @@
  * @version 0.3.0
  * @date 2026-06
  *
- * NPK2 pack: MapHeader (23B) + flat 2D index + global RGB565 color palette + tile data.
- * Each tile has a 6-byte header; features use an 8-byte fixed header (1-byte palette
- * color index) followed by varint coord_count and payload_size.
+ * NPK2 pack: MapHeader (23B) + sparse index (u32 count, coverage bitmap, popcount rank
+ * table, compact 8B entries) + global RGB565 color palette + tile data. Coverage bitmap
+ * has one bit per grid cell; a rank table (u32 per 64 bitmap bytes = 512 cells) gives the
+ * compact-entry position in O(1). Each tile has a 6-byte header; features use an 8-byte
+ * fixed header (1-byte palette color index) followed by varint coord_count and payload_size.
  */
 
 #pragma once
@@ -18,6 +20,9 @@
 #include "PsramAllocator.hpp"
 
 static constexpr uint8_t NAV_PACK_HDR_SIZE           = 23;
+
+static constexpr uint8_t NAV_SPARSE_COUNT_SIZE       = 4;
+static constexpr uint8_t NAV_RANK_STRIDE_BYTES       = 64;
 
 static constexpr uint8_t NAV_TILE_HDR_FEAT_COUNT_OFF = 4;
 static constexpr uint8_t NAV_TILE_HDR_SIZE           = 6;
@@ -53,8 +58,6 @@ public:
         uint32_t offset;
         uint32_t size;
     };
-
-    static constexpr uint32_t NAV_INDEX_BAND_BYTES = 512u * 1024u;
 
     static inline uint16_t paletteColor(uint8_t index)
     {
@@ -97,18 +100,17 @@ public:
     }
 
 private:
-    static bool loadBand(uint32_t yOff);
-    static void freeBand();
-
     static uint8_t  currentZoom;
     static uint32_t tilesWide;
     static uint32_t tilesHigh;
     static uint32_t minX;
     static uint32_t minY;
 
-    static IndexEntry* bandBuffer;
-    static uint32_t    bandStartRow;
-    static uint32_t    bandRows;
+    static uint32_t indexBase;
+    static uint32_t rankBase;
+    static uint32_t entriesBase;
+    static uint32_t bitmapBytes;
+    static uint32_t indexCount;
 
     static uint16_t* colorPalette;
     static uint16_t  paletteCount;
