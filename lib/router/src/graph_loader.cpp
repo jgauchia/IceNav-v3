@@ -244,6 +244,30 @@ bool GraphLoader::getNode(uint32_t gi, RouteNode& out_node) const
 }
 
 /**
+ * @brief Read a single node's absolute coordinates (rebuilt from int16 cell offsets).
+ *
+ * @param gi    Global node index
+ * @param lat   Output latitude in degrees
+ * @param lon   Output longitude in degrees
+ * @return true if successful
+ */
+bool GraphLoader::getNodeCoords(uint32_t gi, float& lat, float& lon) const
+{
+    uint32_t ci = cellForNode(gi);
+    if (ci == UINT32_MAX)
+        return false;
+
+    RouteNode n;
+    if (!getNode(gi, n))
+        return false;
+
+    const CellIndexEntry& c = cellIndex[ci];
+    lat = nodeLatDeg(c.lat_e4, n.lat_off);
+    lon = nodeLonDeg(c.lon_e4, n.lon_off);
+    return true;
+}
+
+/**
  * @brief Find the nearest graph node to the given coordinates.
  *
  * Searches only pages already in the PSRAM cache to avoid SD I/O and cache
@@ -281,11 +305,16 @@ uint32_t GraphLoader::nearestNode(float lat, float lon) const
                 continue;
             const PageData& page = it->second;
 
+            // Cell centre (degrees), precomputed once per cell.
+            const float cell_center_lat = (cell.lat_e4 + 250) / 10000.0f;
+            const float cell_center_lon = (cell.lon_e4 + 250) / 10000.0f;
+            constexpr float STEP_DEG = 0.05f / 65536.0f;
+
             for (uint32_t j = 0; j < cell.node_count; ++j)
             {
                 const RouteNode& n = page.nodes[j];
-                float dlat = n.lat - lat;
-                float dlon = (n.lon - lon) * cos_lat;
+                float dlat = cell_center_lat + n.lat_off * STEP_DEG - lat;
+                float dlon = (cell_center_lon + n.lon_off * STEP_DEG - lon) * cos_lat;
                 float d    = dlat * dlat + dlon * dlon;
                 if (d < best_d) { best_d = d; best_i = cell.node_offset + j; }
             }

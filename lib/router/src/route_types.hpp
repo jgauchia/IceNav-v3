@@ -48,11 +48,22 @@ static_assert(sizeof(CellIndexEntry) == 20, "CellIndexEntry size mismatch");
 
 struct RouteNode
 {
-    float    lat;
-    float    lon;
-    uint32_t edge_offset;    // relative to this cell's edge block
+    int16_t  lat_off;       // (lat − cell_center_lat) / 0.05° × 65536, clamp ±32767
+    int16_t  lon_off;       // (lon − cell_center_lon) / 0.05° × 65536, clamp ±32767
+    uint32_t edge_offset;   // relative to this cell's edge block
 };
-static_assert(sizeof(RouteNode) == 12, "RouteNode size mismatch");
+static_assert(sizeof(RouteNode) == 8, "RouteNode size mismatch");
+
+// Rebuild absolute degrees from cell SW corner (lat_e4/lon_e4) + node offset.
+// Matches the generator's quantization: offset 0 = cell centre, 1 step ≈ 0.085 m.
+static inline float nodeLatDeg(int32_t cell_lat_e4, int16_t lat_off)
+{
+    return (cell_lat_e4 + 250) / 10000.0f + lat_off * (0.05f / 65536.0f);
+}
+static inline float nodeLonDeg(int32_t cell_lon_e4, int16_t lon_off)
+{
+    return (cell_lon_e4 + 250) / 10000.0f + lon_off * (0.05f / 65536.0f);
+}
 
 struct RouteEdge
 {

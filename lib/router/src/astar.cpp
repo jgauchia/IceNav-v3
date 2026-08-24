@@ -42,20 +42,21 @@ static constexpr float METERS_PER_DEGREE  = 111319.0f; /**< Approximate metres p
 * @brief Calculates the heuristic estimated cost between a node and the destination.
 *
 * @param node        ID of the current node to evaluate.
-* @param dst_cached  Cached destination node data for performance.
-* @param cos_dst_lat Pre-calculated cosine of destination latitude for longitude compensation.
+* @param dst_lat     Destination latitude in degrees.
+* @param dst_lon     Destination longitude in degrees.
+* @param cos_dst_lat Pre-computed cosine of destination latitude for longitude compensation.
 * @param graph       GraphLoader reference to access node coordinates.
 * @param maxSpeedMs  Maximum speed in m/s for the active routing profile.
 * @return Estimated cost to reach the destination, scaled by ASTAR_WEIGHT.
 */
-static uint32_t heuristic(uint32_t node, const RouteNode& dst_cached, float cos_dst_lat,
+static uint32_t heuristic(uint32_t node, float dst_lat, float dst_lon, float cos_dst_lat,
                           const GraphLoader& graph, float maxSpeedMs)
 {
-    RouteNode a;
-    if (!graph.getNode(node, a))
+    float alat, alon;
+    if (!graph.getNodeCoords(node, alat, alon))
         return 0;
-    float dlat = dst_cached.lat - a.lat;
-    float dlon  = (dst_cached.lon - a.lon) * cos_dst_lat;
+    float dlat  = dst_lat - alat;
+    float dlon  = (dst_lon - alon) * cos_dst_lat;
     float dist  = sqrtf(dlat * dlat + dlon * dlon) * METERS_PER_DEGREE;
     return (uint32_t)(dist / maxSpeedMs * 10.f * ASTAR_WEIGHT);
 }
@@ -76,10 +77,10 @@ TrackVector astarRoute(const GraphLoader& graph, uint32_t src_node, uint32_t dst
 
     TrackVector result;
 
-    RouteNode dst_cached;
-    if (!graph.getNode(dst_node, dst_cached))
+    float dst_lat, dst_lon;
+    if (!graph.getNodeCoords(dst_node, dst_lat, dst_lon))
         return result;
-    float cos_dst_lat = cosf(dst_cached.lat * 3.14159265f / 180.f);
+    float cos_dst_lat = cosf(dst_lat * 3.14159265f / 180.f);
 
     using U32U32Map = std::unordered_map<uint32_t, uint32_t,
         std::hash<uint32_t>, std::equal_to<uint32_t>,
@@ -98,7 +99,7 @@ TrackVector astarRoute(const GraphLoader& graph, uint32_t src_node, uint32_t dst
     PQ pq;
 
     g_cost[src_node] = 0;
-    pq.push({heuristic(src_node, dst_cached, cos_dst_lat, graph, maxSpeedMs), 0u, src_node});
+    pq.push({heuristic(src_node, dst_lat, dst_lon, cos_dst_lat, graph, maxSpeedMs), 0u, src_node});
 
     while (!pq.empty())
     {
@@ -132,7 +133,7 @@ TrackVector astarRoute(const GraphLoader& graph, uint32_t src_node, uint32_t dst
             {
                 g_cost[e.dst_node] = ng;
                 prev[e.dst_node]   = u;
-                uint32_t h = heuristic(e.dst_node, dst_cached, cos_dst_lat, graph, maxSpeedMs);
+                uint32_t h = heuristic(e.dst_node, dst_lat, dst_lon, cos_dst_lat, graph, maxSpeedMs);
                 pq.push({ng + h, ng, e.dst_node});
             }
         }
@@ -144,12 +145,12 @@ TrackVector astarRoute(const GraphLoader& graph, uint32_t src_node, uint32_t dst
     uint32_t cur = dst_node;
     while (cur != UINT32_MAX)
     {
-        RouteNode n;
-        if (!graph.getNode(cur, n))
+        float nlat, nlon;
+        if (!graph.getNodeCoords(cur, nlat, nlon))
             break;
         wayPoint wp{};
-        wp.lat = n.lat;
-        wp.lon = n.lon;
+        wp.lat = nlat;
+        wp.lon = nlon;
         result.push_back(wp);
         auto p_it = prev.find(cur);
         cur = (p_it != prev.end()) ? p_it->second : UINT32_MAX;

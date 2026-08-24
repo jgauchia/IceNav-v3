@@ -30,6 +30,7 @@ public:
 
     uint32_t nearestNode(float lat, float lon) const;
     bool     getNode(uint32_t gi, RouteNode& out_node) const;
+    bool     getNodeCoords(uint32_t gi, float& lat, float& lon) const;
     bool     getEdgesForNode(uint32_t gi, RouteEdge* buf, uint32_t& count) const;
     uint32_t totalNodes() const { return nodeCount; }
     void     preloadPoint(float lat, float lon) const;
