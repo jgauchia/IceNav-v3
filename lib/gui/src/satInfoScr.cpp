@@ -2,13 +2,14 @@
  * @file satInfoScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Satellite info screen 
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 #include "satInfoScr.hpp"
 #include "lv_subjects.hpp"
 #include "mainScr.hpp"
 
+lv_obj_t *infoGrid;
 lv_obj_t *pdopLabel;
 lv_obj_t *hdopLabel;
 lv_obj_t *vdopLabel;
@@ -123,10 +124,10 @@ void satelliteBarDrawEvent(lv_event_t * event)
                 dsc.text = label_bufs[i][0];
                 dsc.align = LV_TEXT_ALIGN_CENTER;
                 lv_area_t a;
-                a.x1 = centerX - 20;
-                a.x2 = centerX + 20;
-                a.y1 = chartObjCoords.y1 + p.y - 15;
-                a.y2 = a.y1 + 15;
+                a.x1 = centerX - (int)(20 * scaleSatInfo);
+                a.x2 = centerX + (int)(20 * scaleSatInfo);
+                a.y1 = chartObjCoords.y1 + p.y - (int)(15 * scaleSatInfo);
+                a.y2 = a.y1 + (int)(15 * scaleSatInfo);
                 lv_draw_label(layer, &dsc, &a);
             }
             lv_snprintf(label_bufs[i][1], 8, "%d", gps.satTracker[i].satNum);
@@ -137,9 +138,9 @@ void satelliteBarDrawEvent(lv_event_t * event)
             dscId.text = label_bufs[i][1];
             dscId.align = LV_TEXT_ALIGN_CENTER;
             lv_area_t aId;
-            aId.x1 = centerX - 20;
-            aId.x2 = centerX + 20;
-            aId.y1 = chartObjCoords.y2 - 16;
+            aId.x1 = centerX - (int)(20 * scaleSatInfo);
+            aId.x2 = centerX + (int)(20 * scaleSatInfo);
+            aId.y1 = chartObjCoords.y2 - (int)(16 * scaleSatInfo);
             aId.y2 = chartObjCoords.y2;
             lv_draw_label(layer, &dscId, &aId);
         }
@@ -190,7 +191,7 @@ static void sat_radar_draw_cb(lv_event_t * e)
     lv_draw_arc_dsc_t dscArc;
     lv_draw_arc_dsc_init(&dscArc);
     dscArc.color = CONSTEL_COLOR;
-    dscArc.width = 2;
+    dscArc.width = (int)(2 * scaleSatInfo);
     dscArc.center.x = obj_area.x1 + canvasCenter_X;
     dscArc.center.y = obj_area.y1 + canvasCenter_Y;
     dscArc.start_angle = 0;
@@ -205,7 +206,7 @@ static void sat_radar_draw_cb(lv_event_t * e)
     lv_draw_line_dsc_t dscLine;
     lv_draw_line_dsc_init(&dscLine);
     dscLine.color = CONSTEL_COLOR;
-    dscLine.width = 2;
+    dscLine.width = (int)(2 * scaleSatInfo);
     dscLine.p1.x = obj_area.x1 + canvasCenter_X;
     dscLine.p1.y = obj_area.y1 + canvasOffset;
     dscLine.p2.x = obj_area.x1 + canvasCenter_X;
@@ -217,31 +218,36 @@ static void sat_radar_draw_cb(lv_event_t * e)
     dscLine.p2.y = obj_area.y1 + canvasCenter_Y;
     lv_draw_line(layer, &dscLine);
 
-    // 2. Draw Cardinal Directions
+    // 2. Draw Cardinal Directions (outside the outer circle)
     lv_draw_label_dsc_t dscLabel;
     lv_draw_label_dsc_init(&dscLabel);
     dscLabel.color = CONSTEL_COLOR;
-    dscLabel.font = &lv_font_montserrat_12;
+    dscLabel.font = fontDefault;
+    dscLabel.align = LV_TEXT_ALIGN_CENTER;
+    int half_w = (int)(10 * scaleSatInfo);
+    int fontAscent = fontDefault->line_height - fontDefault->base_line;
+    int fontHalfH = fontDefault->line_height / 2;
+    int cardOffset = canvasRadius + 3 + fontAscent - fontHalfH;
     dscLabel.text = "N";
-    lv_area_t labelPos = {obj_area.x1 + canvasCenter_X - 5, obj_area.y1, obj_area.x1 + canvasCenter_X + 5, obj_area.y1 + 15};
+    lv_area_t labelPos = {obj_area.x1 + canvasCenter_X - half_w, obj_area.y1 + canvasCenter_Y - cardOffset - fontHalfH, obj_area.x1 + canvasCenter_X + half_w, obj_area.y1 + canvasCenter_Y - cardOffset + fontHalfH};
     lv_draw_label(layer, &dscLabel, &labelPos);
     dscLabel.text = "S";
-    labelPos = {obj_area.x1 + canvasCenter_X - 4, obj_area.y1 + canvasSize - 15, obj_area.x1 + canvasCenter_X + 4, obj_area.y1 + canvasSize};
+    labelPos = {obj_area.x1 + canvasCenter_X - half_w, obj_area.y1 + canvasCenter_Y + cardOffset - fontHalfH, obj_area.x1 + canvasCenter_X + half_w, obj_area.y1 + canvasCenter_Y + cardOffset + fontHalfH};
     lv_draw_label(layer, &dscLabel, &labelPos);
     dscLabel.text = "E";
-    labelPos = {obj_area.x1 + canvasSize - 12, obj_area.y1 + canvasCenter_Y - 7, obj_area.x1 + canvasSize, obj_area.y1 + canvasCenter_Y + 7};
+    labelPos = {obj_area.x1 + canvasCenter_X + cardOffset - half_w, obj_area.y1 + canvasCenter_Y - fontHalfH, obj_area.x1 + canvasCenter_X + cardOffset + half_w, obj_area.y1 + canvasCenter_Y + fontHalfH};
     lv_draw_label(layer, &dscLabel, &labelPos);
     dscLabel.text = "W";
-    labelPos = {obj_area.x1, obj_area.y1 + canvasCenter_Y - 7, obj_area.x1 + 15, obj_area.y1 + canvasCenter_Y + 7};
+    labelPos = {obj_area.x1 + canvasCenter_X - cardOffset - half_w, obj_area.y1 + canvasCenter_Y - fontHalfH, obj_area.x1 + canvasCenter_X - cardOffset + half_w, obj_area.y1 + canvasCenter_Y + fontHalfH};
     lv_draw_label(layer, &dscLabel, &labelPos);
 
     // 3. Draw Satellites
     lv_draw_arc_dsc_t dscSat;
     lv_draw_arc_dsc_init(&dscSat);
-    dscSat.width = 8;
+    dscSat.width = (int)(8 * scaleSatInfo);
     dscSat.start_angle = 0;
     dscSat.end_angle = 360;
-    dscSat.radius = 8;
+    dscSat.radius = (int)(8 * scaleSatInfo);
     dscSat.opa = LV_OPA_70;
 
     for (int i = 0; i < gps.gpsData.satInView && i < MAX_SATELLITES_IN_VIEW; i++) 
@@ -264,14 +270,14 @@ static void sat_radar_draw_cb(lv_event_t * e)
         lv_draw_label_dsc_t dscSatLabel;
         lv_draw_label_dsc_init(&dscSatLabel);
         dscSatLabel.color = lv_color_white();
-        dscSatLabel.font = &lv_font_montserrat_8;
+        dscSatLabel.font = fontSmall;
         dscSatLabel.text = buf[i];
         dscSatLabel.align = LV_TEXT_ALIGN_CENTER;
         lv_area_t satLabelArea;
-        satLabelArea.x1 = dscSat.center.x - 12;
-        satLabelArea.x2 = dscSat.center.x + 12;
-        satLabelArea.y1 = dscSat.center.y - 6;
-        satLabelArea.y2 = dscSat.center.y + 6;
+        satLabelArea.x1 = dscSat.center.x - (int)(12 * scaleSatInfo);
+        satLabelArea.x2 = dscSat.center.x + (int)(12 * scaleSatInfo);
+        satLabelArea.y1 = dscSat.center.y - (int)(6 * scaleSatInfo);
+        satLabelArea.y2 = dscSat.center.y + (int)(6 * scaleSatInfo);
         lv_draw_label(layer, &dscSatLabel, &satLabelArea);
     }
 }
@@ -301,7 +307,62 @@ void createSatRadar(_lv_obj_t *screen)
  */
 void satelliteScr(_lv_obj_t *screen)
 {
-    lv_obj_t *infoGrid = lv_obj_create(screen);
+    lv_obj_t *satContainer = lv_obj_create(screen);
+    lv_obj_set_size(satContainer, TFT_WIDTH, TFT_HEIGHT - 25);
+    lv_obj_set_flex_flow(satContainer, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(satContainer, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_add_style(satContainer, &styleTransparent, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(satContainer, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_row(satContainer, (int)(5 * scaleSatInfo), LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(satContainer, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_t * barCont = lv_obj_create(satContainer);
+#ifdef TDECK_ESP32S3
+    lv_obj_set_size(barCont, TFT_WIDTH, 145);
+#else
+    lv_obj_set_size(barCont, TFT_WIDTH, (int)(180 * scaleSatInfo));
+#endif
+    uint16_t barHeight = 120;
+#ifdef TDECK_ESP32S3
+    barHeight = 100;
+#else
+    barHeight = (uint16_t)(120 * scaleSatInfo);
+#endif
+    lv_obj_t * wrapper = lv_obj_create(barCont);
+    lv_obj_remove_style_all(wrapper);
+    lv_obj_set_size(wrapper, TFT_WIDTH * 2, barHeight);
+    const char* gnssNames[] = {"GPS", "GLONASS", "BEIDOU"};
+    lv_color_t activeColors[] = {GP_ACTIVE_COLOR, GL_ACTIVE_COLOR, BD_ACTIVE_COLOR};
+    lv_color_t inactiveColors[] = {GP_INACTIVE_COLOR, GL_INACTIVE_COLOR, BD_INACTIVE_COLOR};
+    for (int i = 0; i < 3; i++)
+    {
+        lv_obj_t *gnssLabel = lv_label_create(barCont);
+        lv_obj_set_style_text_font(gnssLabel, fontSatInfo, 0);
+        lv_obj_set_width(gnssLabel, (int)(90 * scaleSatInfo));
+        lv_obj_set_style_bg_color(gnssLabel, activeColors[i], 0);
+        lv_obj_set_style_bg_opa(gnssLabel, LV_OPA_100, 0);
+        lv_obj_set_style_border_color(gnssLabel, inactiveColors[i], 0);
+        lv_obj_set_style_border_width(gnssLabel, 1, 0);
+        lv_obj_set_style_border_opa(gnssLabel, LV_OPA_100, 0);
+        lv_label_set_text(gnssLabel, gnssNames[i]);
+        lv_obj_set_style_text_align(gnssLabel, LV_TEXT_ALIGN_CENTER, 0);
+        lv_obj_set_pos(gnssLabel, i * (int)(95 * scaleSatInfo), barHeight + (int)(7 * scaleSatInfo));
+    }
+    satelliteBar = lv_chart_create(wrapper);
+    lv_obj_set_size(satelliteBar, TFT_WIDTH * 2, barHeight);
+    lv_chart_set_div_line_count(satelliteBar, 10, 0);
+    lv_chart_set_range(satelliteBar, LV_CHART_AXIS_PRIMARY_Y, 0, 60);
+    satelliteBarSerie = lv_chart_add_series(satelliteBar, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
+    lv_chart_set_type(satelliteBar, LV_CHART_TYPE_BAR);
+    lv_obj_set_style_pad_all(satelliteBar, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_gap(satelliteBar, (int)(-7 * scaleSatInfo), LV_PART_ITEMS | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_column(satelliteBar, (int)(2 * scaleSatInfo), 0);
+    lv_obj_set_style_pad_bottom(satelliteBar, (int)(20 * scaleSatInfo), 0);
+    lv_chart_set_point_count(satelliteBar, MAX_SATELLITES_IN_VIEW );
+    lv_obj_add_event_cb(satelliteBar, satelliteBarDrawEvent, LV_EVENT_DRAW_TASK_ADDED, NULL);
+    lv_obj_add_event_cb(satelliteBar, satelliteBarDrawEvent, LV_EVENT_DRAW_POST_END, NULL);
+    lv_obj_add_flag(satelliteBar, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
+
+    infoGrid = lv_obj_create(satContainer);
     lv_obj_set_width(infoGrid, TFT_WIDTH);
     lv_obj_set_flex_align(infoGrid, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(infoGrid, LV_OBJ_FLAG_SCROLLABLE);
@@ -318,73 +379,26 @@ void satelliteScr(_lv_obj_t *screen)
         lv_obj_set_style_text_font(labels[i], fontDefault, 0);
         lv_label_set_text_fmt(labels[i], texts[i], 0);
     }
-    
-    // Bind labels to their respective subjects
     lv_subject_add_observer_obj(&subject_pdop, dop_observer_cb, pdopLabel, (void *)"PDOP");
     lv_subject_add_observer_obj(&subject_hdop, dop_observer_cb, hdopLabel, (void *)"HDOP");
     lv_subject_add_observer_obj(&subject_vdop, dop_observer_cb, vdopLabel, (void *)"VDOP");
     lv_subject_add_observer_obj(&subject_altitude, alt_sat_observer_cb, altLabel, NULL);
-
-    // Bind the satellite data trigger
     lv_subject_add_observer_obj(&subject_sats_data_trigger, sats_data_observer_cb, infoGrid, NULL);
+    lv_obj_set_height(infoGrid, 40 * scale);
 
-    lv_obj_t * barCont = lv_obj_create(screen);
-    lv_obj_set_pos(barCont, 0, 5);
 #ifdef TDECK_ESP32S3
-    lv_obj_set_size(barCont, TFT_WIDTH, 145);
-#else
-    lv_obj_set_size(barCont, TFT_WIDTH, 180);
-#endif
-    uint16_t barHeight = 120;
-#ifdef TDECK_ESP32S3
-    barHeight = 100;
-#endif
-    lv_obj_t * wrapper = lv_obj_create(barCont);
-    lv_obj_remove_style_all(wrapper);
-    lv_obj_set_size(wrapper, TFT_WIDTH * 2, barHeight);
-    const char* gnssNames[] = {"GPS", "GLONASS", "BEIDOU"};
-    lv_color_t activeColors[] = {GP_ACTIVE_COLOR, GL_ACTIVE_COLOR, BD_ACTIVE_COLOR};
-    lv_color_t inactiveColors[] = {GP_INACTIVE_COLOR, GL_INACTIVE_COLOR, BD_INACTIVE_COLOR};
-    for (int i = 0; i < 3; i++)
-    {
-        lv_obj_t *gnssLabel = lv_label_create(barCont);
-        lv_obj_set_style_text_font(gnssLabel, fontSatInfo, 0);
-        lv_obj_set_width(gnssLabel, 90);
-        lv_obj_set_style_bg_color(gnssLabel, activeColors[i], 0);
-        lv_obj_set_style_bg_opa(gnssLabel, LV_OPA_100, 0);
-        lv_obj_set_style_border_color(gnssLabel, inactiveColors[i], 0);
-        lv_obj_set_style_border_width(gnssLabel, 1, 0);
-        lv_obj_set_style_border_opa(gnssLabel, LV_OPA_100, 0);
-        lv_label_set_text(gnssLabel, gnssNames[i]);
-        lv_obj_set_style_text_align(gnssLabel, LV_TEXT_ALIGN_CENTER, 0);
-        lv_obj_set_pos(gnssLabel, i * 95, barHeight + 7);
-    }
-    satelliteBar = lv_chart_create(wrapper);
-    lv_obj_set_size(satelliteBar, TFT_WIDTH * 2, barHeight);
-    lv_chart_set_div_line_count(satelliteBar, 10, 0);
-    lv_chart_set_range(satelliteBar, LV_CHART_AXIS_PRIMARY_Y, 0, 60);
-    satelliteBarSerie = lv_chart_add_series(satelliteBar, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
-    lv_chart_set_type(satelliteBar, LV_CHART_TYPE_BAR);
-    lv_obj_set_style_pad_all(satelliteBar, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_gap(satelliteBar, -7, LV_PART_ITEMS | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_column(satelliteBar, 2, 0);
-    lv_obj_set_style_pad_bottom(satelliteBar, 20, 0);
-    lv_chart_set_point_count(satelliteBar, MAX_SATELLITES_IN_VIEW );
-    lv_obj_add_event_cb(satelliteBar, satelliteBarDrawEvent, LV_EVENT_DRAW_TASK_ADDED, NULL);
-    lv_obj_add_event_cb(satelliteBar, satelliteBarDrawEvent, LV_EVENT_DRAW_POST_END, NULL);
-    lv_obj_add_flag(satelliteBar, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
-#ifdef TDECK_ESP32S3
-    lv_obj_set_height(infoGrid, 35);
-    lv_obj_set_pos(infoGrid, 0, 150);
     lv_obj_add_event_cb(satelliteBar, constSatEvent, LV_EVENT_LONG_PRESSED, NULL);
     constMsg = lv_msgbox_create(screen);
     lv_obj_set_size(constMsg, 180, 185);
     lv_obj_set_align(constMsg, LV_ALIGN_CENTER);
     lv_obj_add_flag(constMsg, LV_OBJ_FLAG_HIDDEN); 
     lv_obj_add_event_cb(constMsg, closeConstSatEvent, LV_EVENT_LONG_PRESSED, NULL);
-#else
-    lv_obj_set_height(infoGrid, 40 * scale);
-    lv_obj_set_pos(infoGrid, 0, 190);
+#endif
+
+#ifdef BOARD_HAS_PSRAM
+    #ifndef TDECK_ESP32S3
+        createSatRadar(satContainer);
+    #endif
 #endif
 }
 /**
@@ -395,9 +409,7 @@ void satelliteScr(_lv_obj_t *screen)
 void drawSatSNR()
 {
     for (int i = 0; i < MAX_SATELLITES_IN_VIEW ; i++)
-    {
         lv_chart_set_value_by_id(satelliteBar, satelliteBarSerie, i, LV_CHART_POINT_NONE);
-    }
     for (int i = 0; i < gps.gpsData.satInView && i < MAX_SATELLITES_IN_VIEW; ++i)
     {
         if (gps.satTracker[i].snr > 0)

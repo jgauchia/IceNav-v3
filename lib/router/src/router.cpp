@@ -2,7 +2,7 @@
  * @file router.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Router implementation — combines GraphLoader and A*
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
@@ -35,19 +35,19 @@ RouterResult Router::route(float src_lat, float src_lon,
 {
     int64_t t_start = esp_timer_get_time();
 
-    if (!loader_.isLoaded())
+    if (!loader.isLoaded())
     {
-        if (!loader_.load())
+        if (!loader.load())
             return RouterResult::LOAD_ERROR;
     }
 
-    loader_.preloadPoint(src_lat, src_lon);
-    loader_.preloadPoint(dst_lat, dst_lon);
+    loader.preloadPoint(src_lat, src_lon);
+    loader.preloadPoint(dst_lat, dst_lon);
 
-    uint32_t src_node = loader_.nearestNode(src_lat, src_lon);
-    uint32_t dst_node = loader_.nearestNode(dst_lat, dst_lon);
+    uint32_t src_node = loader.nearestNode(src_lat, src_lon);
+    uint32_t dst_node = loader.nearestNode(dst_lat, dst_lon);
 
-    out_track = astarRoute(loader_, src_node, dst_node, (float)navSet.routeSpeed);
+    out_track = astarRoute(loader, src_node, dst_node, (float)navSet.routeSpeed);
 
     int64_t t_end = esp_timer_get_time();
     int64_t elapsed_us = t_end - t_start;
@@ -68,5 +68,5 @@ RouterResult Router::route(float src_lat, float src_lon,
  */
 void Router::unload()
 {
-    loader_.unload();
+    loader.unload();
 }

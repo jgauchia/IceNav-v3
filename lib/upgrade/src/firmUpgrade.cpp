@@ -2,7 +2,7 @@
  * @file firmUpgrade.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Firmware upgrade from SD functions
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
@@ -13,7 +13,7 @@
 
  extern Storage storage;
 
- static const char* TAG = "Firmware Update";
+ static const char* TAG = "FIRMWARE";
 
 TFT_eSprite upgradeSprite = TFT_eSprite(&tft);  
 

@@ -2,7 +2,7 @@
  * @file climbAnalyzer.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Climb profile analysis from loaded GPX track
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
@@ -51,7 +51,7 @@ static void smoothElevation(const TrackVector& trackData, std::vector<float>& sm
 }
 
 /**
- * @brief Scan the track and populate segments_ with qualifying climbs.
+ * @brief Scan the track and populate detectedSegments with qualifying climbs.
  *
  * @details Elevation is smoothed (window=15) before analysis to remove GPS noise
  *          that would otherwise fragment real climbs into sub-threshold fragments.
@@ -63,7 +63,7 @@ static void smoothElevation(const TrackVector& trackData, std::vector<float>& sm
  */
 void ClimbAnalyzer::analyze(const TrackVector& trackData, int startOffset)
 {
-    segments_.clear();
+    detectedSegments.clear();
     if (trackData.size() < 2)
         return;
 
@@ -104,7 +104,7 @@ void ClimbAnalyzer::analyze(const TrackVector& trackData, int startOffset)
                     seg.totalDist = segDist;
                     seg.totalGain = gainAcc;
                     seg.avgGrade  = avgGrade;
-                    segments_.push_back(seg);
+                    detectedSegments.push_back(seg);
                 }
                 startIdx = -1;
                 gainAcc  = 0.0f;
@@ -127,7 +127,7 @@ void ClimbAnalyzer::analyze(const TrackVector& trackData, int startOffset)
             seg.totalDist = segDist;
             seg.totalGain = segGain;
             seg.avgGrade  = avgGrade;
-            segments_.push_back(seg);
+            detectedSegments.push_back(seg);
         }
     }
 }
@@ -198,25 +198,25 @@ int calcYTop(float ele, float minEle, float eleRange, int H)
  */
 void ClimbAnalyzer::clear()
 {
-    segments_.clear();
-    activeSegIdx_ = -1;
-    lastIdx_      = -1;
-    prevSegIdx_   = -1;
+    detectedSegments.clear();
+    activeSegIdx = -1;
+    lastTrackIdx      = -1;
+    prevSegIdx   = -1;
 }
 
 /**
  * @brief Update climb subjects from current GPS position.
  *
- * @details Runs on Core 1 via the map async callback. In simulation mode uses
- *          simIndex directly; in real GPS mode calls findClosestTrackPoint within
- *          the configured search window. Activates the overlay when within
- *          CLIMB_ANTICIPATION_M of a segment start and keeps it visible until
- *          distRem reaches zero.
+ * @details Runs on Core 1 via the map async callback. Derives the closest track
+ *          point from the current position within the configured search window
+ *          (same path for simulation and real GPS). Activates the overlay when
+ *          within CLIMB_ANTICIPATION_M of a segment start and keeps it visible
+ *          until distRem reaches zero.
  *
  * @param lat      Current latitude.
  * @param lon      Current longitude.
- * @param simMode  True when simulation navigation is active.
- * @param simIndex Current simulation track index.
+ * @param simMode  True when simulation navigation is active (unused).
+ * @param simIndex Current simulation track index (unused).
  * @param track    Loaded track points with ele and accumDist populated.
  */
 void ClimbAnalyzer::updatePosition(float lat, float lon, bool simMode, int simIndex, const TrackVector& track)
@@ -224,22 +224,22 @@ void ClimbAnalyzer::updatePosition(float lat, float lon, bool simMode, int simIn
     if (track.empty() || !hasClimbs())
         return;
 
-    int idx = simMode
-              ? simIndex
-              : findClosestTrackPoint(lat, lon, track, lastIdx_);
+    int idx = findClosestTrackPoint(lat, lon, track, lastTrackIdx);
+    (void)simMode;
+    (void)simIndex;
     if (idx < 0)
         return;
 
-    const std::vector<ClimbSegment>& segs = segments_;
+    const std::vector<ClimbSegment>& segs = detectedSegments;
 
-    if (activeSegIdx_ >= (int)segs.size())
+    if (activeSegIdx >= (int)segs.size())
     {
-        activeSegIdx_ = -1;
-        lastIdx_      = -1;
-        prevSegIdx_   = -1;
+        activeSegIdx = -1;
+        lastTrackIdx      = -1;
+        prevSegIdx   = -1;
     }
 
-    if (activeSegIdx_ < 0)
+    if (activeSegIdx < 0)
     {
         float curDist = track[idx].accumDist;
         for (int i = 0; i < (int)segs.size(); ++i)
@@ -248,16 +248,16 @@ void ClimbAnalyzer::updatePosition(float lat, float lon, bool simMode, int simIn
             float segEndDist   = track[segs[i].endIdx].accumDist;
             if (curDist <= segEndDist && segStartDist - curDist <= CLIMB_ANTICIPATION_M)
             {
-                activeSegIdx_ = i;
+                activeSegIdx = i;
                 break;
             }
         }
     }
 
-    if (activeSegIdx_ < 0)
+    if (activeSegIdx < 0)
         return;
 
-    const ClimbSegment* activeSeg = &segs[activeSegIdx_];
+    const ClimbSegment* activeSeg = &segs[activeSegIdx];
 
     float curDist      = track[idx].accumDist;
     float segStartDist = track[activeSeg->startIdx].accumDist;
@@ -270,9 +270,9 @@ void ClimbAnalyzer::updatePosition(float lat, float lon, bool simMode, int simIn
 
     if (distRem == 0.0f)
     {
-        activeSegIdx_ = -1;
-        lastIdx_      = -1;
-        prevSegIdx_   = -1;
+        activeSegIdx = -1;
+        lastTrackIdx      = -1;
+        prevSegIdx   = -1;
         lv_subject_set_int(&subject_climb_active, 0);
         return;
     }
@@ -287,10 +287,10 @@ void ClimbAnalyzer::updatePosition(float lat, float lon, bool simMode, int simIn
     if (grade < 0.0f)
         grade = 0.0f;
 
-    if (activeSegIdx_ != prevSegIdx_)
+    if (activeSegIdx != prevSegIdx)
     {
-        prevSegIdx_ = activeSegIdx_;
-        lv_subject_set_int(&subject_climb_seg,        activeSegIdx_ + 1);
+        prevSegIdx = activeSegIdx;
+        lv_subject_set_int(&subject_climb_seg,        activeSegIdx + 1);
         lv_subject_set_int(&subject_climb_total,      (int32_t)segs.size());
         lv_subject_set_int(&subject_climb_cat,        climbCategory(activeSeg->totalDist, activeSeg->avgGrade));
         lv_subject_set_int(&subject_climb_avg_grade,  (int32_t)(activeSeg->avgGrade * 10.0f));
@@ -300,7 +300,7 @@ void ClimbAnalyzer::updatePosition(float lat, float lon, bool simMode, int simIn
     int32_t approaching = (curDist < segStartDist) ? 1 : 0;
     lv_subject_set_int(&subject_climb_approaching, approaching);
 
-    lastIdx_ = idx;
+    lastTrackIdx = idx;
     lv_subject_set_int(&subject_climb_dist,  (int32_t)distRem);
     lv_subject_set_int(&subject_climb_gain,  (int32_t)gainRem);
     lv_subject_set_int(&subject_climb_grade, (int32_t)(grade * 10.0f));

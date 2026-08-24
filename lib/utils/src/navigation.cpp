@@ -2,11 +2,12 @@
  * @file navigation.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief Navigation functions
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
 #include "navigation.hpp"
+#include "navContext.hpp"
 #include <limits>
 #include "esp_log.h"
 
@@ -90,12 +91,12 @@ int findClosestTrackPoint(float userLat, float userLon, const TrackVector& track
     // Hierarchical Global Search: scans the TrackSegment index if local search fails
     if (closestIdx == -1 || minDistSq > offTrackThresholdSq) 
     {
-        if (!trackIndex.empty())
+        if (!navCtx.trackIndex.empty())
         {
             minDistSq = std::numeric_limits<float>::max();
             closestIdx = -1;
             
-            for (const auto& seg : trackIndex)
+            for (const auto& seg : navCtx.trackIndex)
             {
                 if (userLat <= seg.maxLat && userLat >= seg.minLat &&
                     userLon <= seg.maxLon && userLon >= seg.minLon)

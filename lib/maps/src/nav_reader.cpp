@@ -2,7 +2,7 @@
  * @file nav_reader.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Binary NAV file reader and tile container manager
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
@@ -13,7 +13,7 @@
 #include "mapVars.h"
 
 extern Storage storage;
-static const char* TAG = "NavReader";
+static const char* TAG = "NAVREADER";
 
 FILE*    NavReader::packFile    = nullptr;
 uint8_t  NavReader::currentZoom = 0;
@@ -222,9 +222,7 @@ bool NavReader::findTileInPack(uint32_t tileX, uint32_t tileY, uint32_t& offset,
 
     IndexEntry entry;
     if (inBand)
-    {
         entry = bandBuffer[(yOff - bandStartRow) * tilesWide + xOff];
-    }
     else
     {
         uint32_t entryPos = NAV_PACK_HDR_SIZE + (yOff * tilesWide + xOff) * sizeof(IndexEntry);

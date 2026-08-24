@@ -2,7 +2,7 @@
  * @file imu.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  IMU definition and functions - Native ESP-IDF driver
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
@@ -52,6 +52,38 @@ bool MPU6050_Driver::begin(uint8_t addr)
 
     return true;
 }
+
+#ifdef TOUCH_CAPACITIVE
+/**
+ * @brief Initializes the MPU6050 sensor over an I2C bus already owned by LovyanGFX.
+ *
+ * @details For boards where the touch panel is I2C (TOUCH_CAPACITIVE), shares
+ *          the bus already brought up for the touch controller instead of
+ *          opening a second bus — the new i2c_master driver forbids a second
+ *          owner of the same port. Same bring-up sequence as begin().
+ *
+ * @param i2cPort I2C port already initialized by LovyanGFX (touch bus).
+ * @param addr    I2C address (default 0x68).
+ * @return true if initialization successful, false otherwise.
+ */
+bool MPU6050_Driver::beginShared(int i2cPort, uint8_t addr)
+{
+    I2CDriverBase::beginShared(i2cPort);
+    i2cAddr = addr;
+
+    uint8_t whoAmI = read8(0x75);
+    if (whoAmI != 0x68)
+        return false;
+
+    write8(0x6B, 0x00);
+    vTaskDelay(pdMS_TO_TICKS(100));
+
+    setAccelRange(0);
+    setGyroRange(0);
+
+    return true;
+}
+#endif
 
 /**
  * @brief Sets the accelerometer full-scale range.
@@ -174,7 +206,7 @@ void MPU6050_Driver::readAll(float &ax, float &ay, float &az,
                               float &gx, float &gy, float &gz, float &temp)
 {
     uint8_t buffer[14];
-    i2c.readBytes(i2cAddr, 0x3B, buffer, 14);
+    readBytes(0x3B, buffer, 14);
 
     ax = (int16_t)((buffer[0] << 8) | buffer[1]) / accelScale;
     ay = (int16_t)((buffer[2] << 8) | buffer[3]) / accelScale;

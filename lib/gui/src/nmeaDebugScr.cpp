@@ -2,7 +2,7 @@
  * @file nmeaDebugScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - NMEA Debug screen (temporary diagnostic tile)
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
@@ -74,7 +74,7 @@ static void nmea_debug_observer_cb(lv_observer_t *observer, lv_subject_t *subjec
     lv_label_set_text_fmt(dbgSatsLabel,  "Sats used : %u",  fix.satellites);
 
     // Sentences/s and fix-cycles/s measured over the observation window
-    uint32_t nowMs = (uint32_t)(esp_timer_get_time() / 1000);
+    uint32_t nowMs = millis_idf();
     uint32_t dtMs  = nowMs - prevMs;
     if (dtMs >= 2000 && prevMs != 0)
     {
@@ -151,7 +151,7 @@ void nmeaDebugScr(_lv_obj_t *screen)
     auto makeLabel = [&](lv_obj_t *&label, const char *init)
     {
         label = lv_label_create(cont);
-        lv_obj_set_style_text_font(label, &lv_font_montserrat_14, 0);
+        lv_obj_set_style_text_font(label, fontSmall, 0);
         lv_obj_set_style_text_color(label, lv_color_white(), 0);
         lv_label_set_text(label, init);
     };

@@ -2,11 +2,15 @@
  * @file gpxDetailScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - GPX Tag detail Screen
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
 #include "gpxDetailScr.hpp"
+#include "display.hpp"
+#include <esp_log.h>
+
+static const char *TAG = "GPXDETAIL";
 
 extern Maps mapView;
 extern Gps gps;
@@ -21,7 +25,7 @@ lv_obj_t *labelLat;
 lv_obj_t *labelLatValue;
 lv_obj_t *labelLon;
 lv_obj_t *labelLonValue;
-bool isScreenRotated = false;
+static bool isScreenRotated = false;
 
 /**
  * @brief GPX Detail Screen event handler. Handles key and ready/cancel events for adding or editing GPX waypoints.
@@ -64,7 +68,7 @@ static void gpxDetailScreenEvent(lv_event_t *event)
                 isMainScreen = true;
                 mapView.redrawMap = true;
                 gpxAction = WPT_NONE;
-                lv_refr_now(display);
+                lv_refr_now(display_drv);
                 loadMainScreen();
             }
             if (lv_indev_get_key(lv_indev_active()) == 35) // # Key (ESCAPE)
@@ -72,7 +76,7 @@ static void gpxDetailScreenEvent(lv_event_t *event)
                 isMainScreen = true;
                 mapView.redrawMap = true;
                 gpxAction = WPT_NONE;
-                lv_refr_now(display);
+                lv_refr_now(display_drv);
                 loadMainScreen();
             }
         }
@@ -80,11 +84,18 @@ static void gpxDetailScreenEvent(lv_event_t *event)
 
     if (code == LV_EVENT_READY)
     {
-        if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
+#ifdef PANEL_BUS_DSI
+        if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_90)
         {
-            tft.setRotation(0);
-            lv_display_set_rotation(display, LV_DISPLAY_ROTATION_0);
+            lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
         }
+#else
+        if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_270)
+        {
+            display().setRotation(0);
+            lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
+        }
+#endif
         createWptFile();
         GPXParser gpx;
         switch (gpxAction)
@@ -112,21 +123,28 @@ static void gpxDetailScreenEvent(lv_event_t *event)
         isMainScreen = true;
         mapView.redrawMap = true;
         gpxAction = WPT_NONE;
-        lv_refr_now(display);
+        lv_refr_now(display_drv);
         loadMainScreen();
     }
 
     if (code == LV_EVENT_CANCEL)
     {
-        if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
+#ifdef PANEL_BUS_DSI
+        if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_90)
         {
-            tft.setRotation(0);
-            lv_display_set_rotation(display,LV_DISPLAY_ROTATION_0);
+            lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
         }
+#else
+        if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_270)
+        {
+            display().setRotation(0);
+            lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
+        }
+#endif
         isMainScreen = true;
         mapView.redrawMap = true;
         gpxAction = WPT_NONE;
-        lv_refr_now(display);
+        lv_refr_now(display_drv);
         loadMainScreen();
     }
 }
@@ -138,20 +156,36 @@ static void gpxDetailScreenEvent(lv_event_t *event)
  */
 static void rotateScreen(lv_event_t *event)
 {
-    isScreenRotated = !isScreenRotated;
-    log_v("%d",isScreenRotated);
-    if (isScreenRotated)
+#ifdef PANEL_BUS_DSI
+    bool isRotated = (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_90);
+    ESP_LOGV(TAG, "%d", !isRotated);
+    if (!isRotated)
     {
-        tft.setRotation(1);
-        lv_display_set_rotation(display, LV_DISPLAY_ROTATION_270); 
+        lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_90);
     }
     else
     {
-        tft.setRotation(0);
-        lv_display_set_rotation(display, LV_DISPLAY_ROTATION_0);
+        lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
     }
-    lv_obj_set_width(gpxTagValue, tft.width() -10);
-    lv_refr_now(display);
+    lv_obj_set_width(gpxTagValue, lv_display_get_horizontal_resolution(display_drv) - 10);
+    lv_obj_set_size(gpxDetailScreen, lv_display_get_horizontal_resolution(display_drv), lv_display_get_vertical_resolution(display_drv));
+    lv_refr_now(display_drv);
+#else
+    isScreenRotated = !isScreenRotated;
+    ESP_LOGV(TAG, "%d", isScreenRotated);
+    if (isScreenRotated)
+    {
+        display().setRotation(1);
+        lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_270);
+    }
+    else
+    {
+        display().setRotation(0);
+        lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
+    }
+    lv_obj_set_width(gpxTagValue, display().width() - 10);
+    lv_refr_now(display_drv);
+#endif
 }
 
 /**
@@ -191,7 +225,7 @@ static void gpxTagNameEvent(lv_event_t *event)
         isMainScreen = true;
         mapView.redrawMap = true;
         gpxAction = WPT_NONE;
-        lv_refr_now(display);
+        lv_refr_now(display_drv);
         loadMainScreen();
     }
 }
@@ -206,8 +240,10 @@ void updateWaypoint(uint8_t action)
     switch (action)
     {
         case WPT_ADD:
-            addWpt.lat = gps.gpsData.latitude;
-            addWpt.lon = gps.gpsData.longitude;
+        {
+            const Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
+            addWpt.lat = gpsSnap.latitude;
+            addWpt.lon = gpsSnap.longitude;
             addWpt.ele = gps.gpsData.altitude;
             addWpt.sat = gps.gpsData.satellites;
             addWpt.hdop = gps.gpsData.hdop;
@@ -216,6 +252,7 @@ void updateWaypoint(uint8_t action)
             lv_label_set_text_static(labelLatValue, latFormatString(addWpt.lat));
             lv_label_set_text_static(labelLonValue, lonFormatString(addWpt.lon));
             break;
+        }
         case GPX_EDIT:
             lv_label_set_text_static(labelLatValue, latFormatString(loadWpt.lat));
             lv_label_set_text_static(labelLonValue, lonFormatString(loadWpt.lon));
@@ -237,7 +274,7 @@ void createGpxDetailScreen()
     gpxTagValue = lv_textarea_create(gpxDetailScreen);
     lv_textarea_set_one_line(gpxTagValue, true);
     lv_obj_align(gpxTagValue, LV_ALIGN_TOP_MID, 0, 40);
-    lv_obj_set_width(gpxTagValue, tft.width() - 10);
+    lv_obj_set_width(gpxTagValue, lv_display_get_horizontal_resolution(display_drv) - 10);
     lv_obj_add_state(gpxTagValue, LV_STATE_FOCUSED);
     lv_obj_add_event_cb(gpxTagValue, gpxDetailScreenEvent, LV_EVENT_ALL, gpxDetailScreen);
     #ifndef TDECK_ESP32S3

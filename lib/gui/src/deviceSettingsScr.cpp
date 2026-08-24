@@ -2,11 +2,14 @@
  * @file deviceSettingsScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Device Settings Screen
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
 #include "deviceSettingsScr.hpp"
+#include "logger.hpp"
+#include "loggerConfig.hpp"
+#include "display.hpp"
 
 lv_obj_t *deviceSettingsScreen; /**< Device Settings Screen. */
 
@@ -36,6 +39,12 @@ static void deviceSettingsEvent(lv_event_t *event)
         uint16_t idx = lv_dropdown_get_selected(obj);
         navSet.routeSpeed = ROUTE_SPEED_VALUES[idx];
         cfg.saveShort(PKEYS::KROUTE_SPEED, (int16_t)navSet.routeSpeed);
+    }
+    if (strcmp(option, "logprofile") == 0)
+    {
+        uint8_t idx = (uint8_t)lv_dropdown_get_selected(obj);
+        gpxLogger.setProfile(idx);
+        cfg.saveUInt(PKEYS::KLOG_PROFILE, (uint32_t)idx);
     }
     if (strcmp(option, "nmeadbg") == 0)
     {
@@ -67,7 +76,7 @@ static void brightnessEvent(lv_event_t *e)
 {
     lv_obj_t *obj =(lv_obj_t*) lv_event_get_target(e);
     defBright =  lv_slider_get_value(obj);
-    tft.setBrightness(defBright);
+    display().setBrightness(defBright);
 }
 
 /**
@@ -211,6 +220,22 @@ void createDeviceSettingsScr()
     lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
     lv_obj_set_width(dropdown, TFT_WIDTH / 3);
     lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"routeprofile");
+    // Logger Profile
+    if (storage.getSdLoaded())
+    {
+        list = lv_list_add_btn(deviceSettingsOptions, NULL, "Logger\nProfile");
+        lv_obj_set_style_text_font(list, fontOptions, 0);
+        lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_set_align(list, LV_ALIGN_OUT_LEFT_BOTTOM);
+        dropdown = lv_dropdown_create(list);
+        lv_dropdown_set_options(dropdown, "Walk\nBike\nCar");
+        lv_dropdown_set_selected(dropdown, gpxLogger.profileIndex());
+        item = lv_dropdown_get_list(dropdown);
+        lv_obj_set_style_bg_color(item, lv_color_hex(objectColor), LV_PART_SELECTED | LV_STATE_CHECKED);
+        lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
+        lv_obj_set_width(dropdown, TFT_WIDTH / 3);
+        lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"logprofile");
+    }
     // NMEA Debug Tile
     list = lv_list_add_btn(deviceSettingsOptions, NULL, "NMEA Debug\nTile");
     lv_obj_set_style_text_font(list, fontOptions, 0);

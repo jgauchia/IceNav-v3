@@ -2,20 +2,21 @@
  * @file gestures.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Touch gestures functions
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
 #pragma once
 
-#include <LovyanGFX.hpp>
-#include "tft.hpp"
+#include <stdint.h>
+#include "input.hpp"
 
 #define TOUCH_MAX_POINTS 2                  /**< Maximum number of supported touch points */
 #define TOUCH_DOUBLE_TOUCH_INTERVAL 400     /**< Max interval (ms) between two taps to count as double touch */
 #define TOUCH_DOUBLE_TAP_MIN_INTERVAL 80    /**< Min interval (ms) between releases to filter bounce */
 #define SPEED_FAST 1.0f                     /**< Fast gesture speed threshold (px/ms) */
 #define SPEED_SLOW 0.3f                     /**< Slow gesture speed threshold (px/ms) */
+#define ROTATE_ANGLE_THRESHOLD 1.5f         /**< Minimum angle delta (degrees) to register rotation */
 
 static bool countTouchReleases = false;         /**< Indicates if touch release events are being counted */
 static int numberTouchReleases = 0;             /**< Number of detected touch releases */
@@ -32,4 +33,5 @@ typedef enum
     ZOOM_OUT          /**< Pinch in gesture detected (zoom out) */
 } zoom_dir;
 
-zoom_dir pinchZoom(const lgfx::touch_point_t prev[TOUCH_MAX_POINTS],const lgfx::touch_point_t curr[TOUCH_MAX_POINTS],float dt_ms);
+zoom_dir pinchZoom(const TouchPoint prev[TOUCH_MAX_POINTS],const TouchPoint curr[TOUCH_MAX_POINTS],float dt_ms);
+float pinchRotate(const TouchPoint prev[TOUCH_MAX_POINTS], const TouchPoint curr[TOUCH_MAX_POINTS]);

@@ -2,7 +2,7 @@
  * @file imu.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  IMU definition and functions - Native ESP-IDF driver
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
@@ -12,6 +12,7 @@
 
 #define ENABLE_IMU
 
+#include "sdkconfig.h"
 #include "i2c_espidf.hpp"
 #include "i2c_driver_base.hpp"
 #include <cstdint>
@@ -31,6 +32,9 @@ class MPU6050_Driver : public I2CDriverBase
         void getAccel(float &x, float &y, float &z);
         MPU6050_Driver();
         bool begin(uint8_t addr = MPU6050_ADDRESS);
+        #ifdef TOUCH_CAPACITIVE
+            bool beginShared(int i2cPort, uint8_t addr = MPU6050_ADDRESS);
+        #endif
         void setAccelRange(uint8_t range);
         void setGyroRange(uint8_t range);
         void readAll(float &ax, float &ay, float &az,

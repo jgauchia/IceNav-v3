@@ -2,7 +2,7 @@
  * @file searchSatScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - GPS satellite search screen
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
@@ -82,18 +82,19 @@ void createSearchSatScr()
     searchSatScreen = lv_obj_create(NULL);
 
     lv_obj_t *label = lv_label_create(searchSatScreen);
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_18, 0);
+    lv_obj_set_style_text_font(label, fontOptions, 0);
     lv_label_set_text(label, textSearch);
     lv_obj_set_align(label, LV_ALIGN_CENTER);
-    lv_obj_set_y(label, -100);
+    lv_obj_set_y(label, -100 * scale);
 
     lv_obj_t *spinner = lv_spinner_create(searchSatScreen);
-    lv_obj_set_size(spinner, 130, 130);
+    lv_obj_set_size(spinner, 130 * scale, 130 * scale);
     lv_spinner_set_anim_params(spinner, 2000, 200);
     lv_obj_center(spinner);
 
     lv_obj_t *satImg = lv_img_create(searchSatScreen);
     lv_img_set_src(satImg, satIconFile);
+    lv_img_set_zoom(satImg, iconScale);
     lv_obj_set_align(satImg, LV_ALIGN_CENTER);
 
     // Button Bar

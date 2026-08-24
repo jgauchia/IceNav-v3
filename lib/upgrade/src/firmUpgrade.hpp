@@ -2,7 +2,7 @@
  * @file firmUpgrade.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Firmware upgrade from SD functions
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
@@ -14,7 +14,7 @@
 #include "upgradeScr.hpp"
 #include "storage.hpp"
 
-static const char *upgrdFile = "/sdcard/firmware.bin";  /**< Firmware upgrade file path */
+inline constexpr const char *upgrdFile = "/sdcard/firmware.bin";  /**< Firmware upgrade file path */
 
 bool checkFileUpgrade();
 void onUpgrdStart();

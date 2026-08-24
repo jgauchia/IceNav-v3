@@ -2,14 +2,19 @@
  * @file hal.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Hardware Abstraction Layer initialization
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
 #include <Arduino.h>
 #include "hal.hpp"
 #include "i2c_espidf.hpp"
-#if defined(HMC5883L) || defined(QMC5883) || defined(IMU_MPU9250)
+// Included unconditionally so TOUCH_CAPACITIVE resolves regardless of include order.
+#include "panelSelect.hpp"
+#ifdef POWER_SAVE
+    #include <esp_pm.h>
+#endif
+#if defined(IMU_MPU9250) || defined(COMPASS_AUTO)
     #include "compass.hpp"
     Compass compass;
 #endif
@@ -29,6 +34,13 @@ void initHAL()
             gpio_hold_dis((gpio_num_t)BOARD_BOOT_PIN);
             gpio_deep_sleep_hold_dis();
         #endif
+        #if CONFIG_IDF_TARGET_ESP32S3
+            esp_pm_config_t pmConfig = {};
+            pmConfig.max_freq_mhz       = 240;
+            pmConfig.min_freq_mhz       = 40;
+            pmConfig.light_sleep_enable = false;
+            esp_pm_configure(&pmConfig);
+        #endif
     #endif
     #ifdef TDECK_ESP32S3
         pinMode(BOARD_POWERON, OUTPUT);
@@ -42,15 +54,26 @@ void initHAL()
         digitalWrite(TFT_SPI_CS, HIGH);
         pinMode(SPI_MISO, INPUT_PULLUP);
     #endif
-    i2c.begin(I2C_SDA_PIN, I2C_SCL_PIN);
-    #ifdef BME280
-        initBME();
+    #ifdef WAVESHARE_P4_43
+        pinMode(TFT_BL_EN, OUTPUT);
+        digitalWrite(TFT_BL_EN, HIGH);
     #endif
-    #if defined(HMC5883L) || defined(QMC5883) || defined(IMU_MPU9250)
-        compass.init();
-        vTaskDelay(pdMS_TO_TICKS(50));
-    #endif
-    #ifdef ENABLE_IMU
-        initIMU();
+    // On TOUCH_CAPACITIVE boards, LovyanGFX owns the I2C bus, so skip it here.
+    #ifndef TOUCH_CAPACITIVE
+        i2c.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+        #ifdef BME280
+            initBME();
+        #endif
+        #ifdef IMU_MPU9250
+            compass.init();
+            vTaskDelay(pdMS_TO_TICKS(50));
+        #endif
+        #ifdef COMPASS_AUTO
+            compass.initShared();
+            vTaskDelay(pdMS_TO_TICKS(50));
+        #endif
+        #ifdef ENABLE_IMU
+            initIMU();
+        #endif
     #endif
 }

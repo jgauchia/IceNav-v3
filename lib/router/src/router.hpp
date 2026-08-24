@@ -2,7 +2,7 @@
  * @file router.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Public router interface — load graph and compute A* route
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
@@ -27,10 +27,10 @@ public:
                        float dst_lat, float dst_lon,
                        TrackVector& out_track);
     void unload();
-    bool isLoaded() const { return loader_.isLoaded(); }
+    bool isLoaded() const { return loader.isLoaded(); }
 
 private:
-    GraphLoader loader_;
+    GraphLoader loader;
 };
 
 extern Router router;

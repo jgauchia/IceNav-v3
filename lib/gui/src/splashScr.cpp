@@ -2,7 +2,7 @@
  * @file splashScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Splash screen - NOT LVGL
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
@@ -13,13 +13,34 @@
 #include "esp_system.h"
 #include "esp_chip_info.h"
 #include "soc/rtc.h"
+#include "gpsMath.hpp"
+#include "display.hpp"
+
+lv_obj_t *splashCanvas;
+
+extern Storage storage;
 
 /**
- * @brief Get system uptime in milliseconds using ESP-IDF timer.
+ * @brief Get PNG width and height from file header.
  *
- * @return uint32_t Milliseconds since boot.
+ * @param filename PNG file path on SD/SPIFFS.
+ * @param width Pointer to store the image width in pixels.
+ * @param height Pointer to store the image height in pixels.
+ * @return true if the file exists and dimensions were read successfully, false otherwise.
  */
-static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
+bool getPngSize(const char* filename, uint16_t *width, uint16_t *height)
+{
+    FILE* file = storage.open(filename, "r");
+    if (!file)
+        return false;
+
+    uint8_t table[32];
+    storage.read(file, table, 32);
+    *width  = table[16] * 256 * 256 * 256 + table[17] * 256 * 256 + table[18] * 256 + table[19];
+    *height = table[20] * 256 * 256 * 256 + table[21] * 256 * 256 + table[22] * 256 + table[23];
+    storage.close(file);
+    return true;
+}
 
 /**
  * @brief Get the ESP Chip Model 
@@ -62,7 +83,7 @@ void createLVGLSplashScreen()
     splashCanvas = lv_canvas_create(splashScr);
 
     lv_obj_t *osmInfo = lv_obj_create(splashScr);
-    lv_obj_set_width(osmInfo, tft.width());
+    lv_obj_set_width(osmInfo, display().width());
     lv_obj_set_height(osmInfo,50 * scale);
     lv_obj_clear_flag(osmInfo, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(osmInfo, LV_FLEX_FLOW_COLUMN);
@@ -71,14 +92,14 @@ void createLVGLSplashScreen()
     lv_obj_set_style_border_opa(osmInfo, 0, 0);
     lv_obj_t *label;
     label = lv_label_create(osmInfo);
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_12, 0);
+    lv_obj_set_style_text_font(label, fontSplash, 0);
     lv_label_set_text(label, "Map data from OpenStreetMap - (c)OpenStreetMap");
     label = lv_label_create(osmInfo);
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_12, 0);
+    lv_obj_set_style_text_font(label, fontSplash, 0);
     lv_label_set_text(label, "(c)OpenStreetMap contributors");
     lv_obj_set_align(osmInfo, LV_ALIGN_BOTTOM_MID);
     label = lv_label_create(splashScr);
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_18, 0);
+    lv_obj_set_style_text_font(label, fontSplashVersion, 0);
     lv_label_set_text_fmt(label,statusLine4, String(VERSION).c_str(), String(REVISION).c_str());
     lv_obj_set_align(label, LV_ALIGN_CENTER);
     lv_obj_set_y(label, -130 * scale);
@@ -93,18 +114,18 @@ void splashScreen()
 {
     setTime = false;
 
-    #ifdef ICENAV_BOARD
+    #ifdef SPLASH_FULLSCREEN
         millisActual = millis_idf();
 
-        tft.setBrightness(defBright);
+        display().setBrightness(defBright);
 
-        TFT_eSprite splashSprite = TFT_eSprite(&tft); 
-        void *splashBuffer = splashSprite.createSprite(tft.width(), tft.height());
+        TFT_eSprite splashSprite = TFT_eSprite(&tft);
+        void *splashBuffer = splashSprite.createSprite(display().width(), display().height());
         splashSprite.drawPngFile(logoFile, 0, 0);
-        lv_canvas_set_buffer(splashCanvas, splashBuffer, tft.width(), tft.height(), LV_COLOR_FORMAT_RGB565_SWAPPED);
+        lv_canvas_set_buffer(splashCanvas, splashBuffer, display().width(), display().height(), LV_COLOR_FORMAT_RGB565_SWAPPED);
         splashSprite.deleteSprite();
 
-        lv_screen_load_anim(splashScr, LV_SCR_LOAD_ANIM_FADE_OUT, 2500, 0, false);	
+        lv_screen_load_anim(splashScr, LV_SCR_LOAD_ANIM_FADE_OUT, 2500, 0, false);
         for (int i = 0; i < 1000; i++)
         {
             lv_task_handler();  
@@ -116,11 +137,14 @@ void splashScreen()
         {
             lv_task_handler();  
             vTaskDelay(5);
-        }     
+        }
 
-        // Preload Map at the very end when all animations are gone
+        // Preload map and wait for tiles to finish before proceeding.
         mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
         mapView.generateMap(zoom);
+        TickType_t waitStart = xTaskGetTickCount();
+        while (mapView.isRendering() && (xTaskGetTickCount() - waitStart) < pdMS_TO_TICKS(5000))
+            vTaskDelay(pdMS_TO_TICKS(50));
 
         if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
         {
@@ -130,12 +154,12 @@ void splashScreen()
     #else
         tftOff();
         
-        TFT_eSprite splashSprite = TFT_eSprite(&tft);  
-        splashSprite.createSprite(tft.width(), tft.height());  
+        TFT_eSprite splashSprite = TFT_eSprite(&tft);
+        splashSprite.createSprite(display().width(), display().height());
 
-        tft.fillScreen(TFT_BLACK);
+        display().clear(0x0000);
         millisActual = millis_idf();
-        tft.setBrightness(0);
+        display().setBrightness(0);
 
         static uint16_t pngHeight = 0;
         static uint16_t pngWidth = 0;
@@ -143,7 +167,7 @@ void splashScreen()
 
         getPngSize(logoFile, &pngWidth, &pngHeight);
         splashSprite.fillScreen(TFT_BLACK);
-        splashSprite.drawPngFile(logoFile, (tft.width() / 2) - (pngWidth / 2), (tft.height() / 2) - pngHeight);
+        splashSprite.drawPngFile(logoFile, (display().width() / 2) - (pngWidth / 2), (display().height() / 2) - pngHeight);
 
         #ifdef T4_S3
             splashSprite.setTextSize(2);
@@ -154,9 +178,9 @@ void splashScreen()
         #endif
         splashSprite.setTextColor(TFT_WHITE, TFT_BLACK);
 
-        splashSprite.drawCenterString("Map data from OpenStreetMap.", tft.width() >> 1, tft.height() - 120*margin);
-        splashSprite.drawCenterString("(c) OpenStreetMap", tft.width() >> 1, tft.height() - 110*margin);
-        splashSprite.drawCenterString("(c) OpenStreetMap contributors", tft.width() >> 1, tft.height() - 100*margin);
+        splashSprite.drawCenterString("Map data from OpenStreetMap.", display().width() >> 1, display().height() - 120*margin);
+        splashSprite.drawCenterString("(c) OpenStreetMap", display().width() >> 1, display().height() - 110*margin);
+        splashSprite.drawCenterString("(c) OpenStreetMap contributors", display().width() >> 1, display().height() - 100*margin);
 
         char statusString[50] = "";
         splashSprite.setTextColor(TFT_YELLOW, TFT_BLACK);
@@ -165,60 +189,66 @@ void splashScreen()
         rtc_cpu_freq_config_t freq_config;
         rtc_clk_cpu_freq_get_config(&freq_config);
         sprintf(statusString, statusLine1, getChipModel(), (int)freq_config.freq_mhz);
-        splashSprite.drawString(statusString, 0, tft.height() - 50*margin);
+        splashSprite.drawString(statusString, 0, display().height() - 50*margin);
 
         memset(&statusString[0], 0, sizeof(statusString));
         size_t freeHeap = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
         size_t totalHeap = heap_caps_get_total_size(MALLOC_CAP_INTERNAL);
         sprintf(statusString, statusLine2, (freeHeap / 1024), (freeHeap * 100) / totalHeap);
-        splashSprite.drawString(statusString, 0, tft.height() - 40*margin);
+        splashSprite.drawString(statusString, 0, display().height() - 40*margin);
 
         memset(&statusString[0], 0, sizeof(statusString));
         sprintf(statusString, statusLine3, heap_caps_get_total_size(MALLOC_CAP_SPIRAM), heap_caps_get_total_size(MALLOC_CAP_SPIRAM) - heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
-        splashSprite.drawString(statusString, 0, tft.height() - 30*margin);
+        splashSprite.drawString(statusString, 0, display().height() - 30*margin);
 
         memset(&statusString[0], 0, sizeof(statusString));
         sprintf(statusString, statusLine4, String(VERSION), String(REVISION));
-        splashSprite.drawString(statusString, 0, tft.height() - 20*margin);
+        splashSprite.drawString(statusString, 0, display().height() - 20*margin);
 
         memset(&statusString[0], 0, sizeof(statusString));
         sprintf(statusString, statusLine5, String(FLAVOR));
-        splashSprite.drawString(statusString, 0, tft.height() - 10*margin);
+        splashSprite.drawString(statusString, 0, display().height() - 10*margin);
 
         memset(&statusString[0], 0, sizeof(statusString));
         splashSprite.setTextColor(TFT_WHITE, TFT_BLACK);
         
+        // Preload Map early so the background render task has time
+        // to load tiles during the splash screen (~3.8 s of fade).
+        mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
+        mapView.generateMap(zoom);
+
         const uint8_t maxBrightness = 255;
 
         tftOn(0);
 
         for (uint8_t fadeIn = 0; fadeIn <= (maxBrightness - 1); fadeIn++)
         {
-            tft.setBrightness(fadeIn);
+            display().setBrightness(fadeIn);
             if (fadeIn == 0)
                 splashSprite.pushSprite(0,0);
             millisActual = millis_idf();
             while (millis_idf() < millisActual + 15);
         }
 
-        // Preload Map while logo is fully visible
-        mapView.currentMapTile = mapView.getMapTile(gps.gpsData.longitude, gps.gpsData.latitude, zoom, 0, 0);
-        mapView.generateMap(zoom);
-
         while (millis_idf() < millisActual + 100);
 
         for (uint8_t fadeOut = maxBrightness; fadeOut > 0; fadeOut--)
         {
-            tft.setBrightness(fadeOut);
+            display().setBrightness(fadeOut);
             millisActual = millis_idf();
             while (millis_idf() < millisActual + 15);
         }
 
-        tft.fillScreen(TFT_BLACK);
+        display().clear(0x0000);
 
         while (millis_idf() < millisActual + 100);
 
-        tft.setBrightness(defBright);
+        display().setBrightness(defBright);
+
+        // Wait for map tiles to finish loading before proceeding.
+        TickType_t waitStart = xTaskGetTickCount();
+        while (mapView.isRendering() && (xTaskGetTickCount() - waitStart) < pdMS_TO_TICKS(5000))
+            vTaskDelay(pdMS_TO_TICKS(50));
     
         splashSprite.deleteSprite();
     #endif

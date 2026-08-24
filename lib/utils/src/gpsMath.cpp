@@ -2,7 +2,7 @@
  * @file gpsMath.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Math and various functions
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
@@ -78,17 +78,13 @@ float calcDist(float lat1, float lon1, float lat2, float lon2)
     float c;
 
     if (lutInit)
-    {
         a = sinLUT(dlat * 0.5f) * sinLUT(dlat * 0.5f) +
             cosLUT(lat1_rad) * cosLUT(lat2_rad) *
             sinLUT(dlon * 0.5f) * sinLUT(dlon * 0.5f);
-    }
     else
-    {
         a = sinf(dlat * 0.5f) * sinf(dlat * 0.5f) +
             cosf(lat1_rad) * cosf(lat2_rad) *
             sinf(dlon * 0.5f) * sinf(dlon * 0.5f);
-    }
 
     c = 2.0f * atan2f(sqrtf(a), sqrtf(1.0f - a));
     return EARTH_RADIUS * c;
