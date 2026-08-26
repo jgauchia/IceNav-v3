@@ -30,7 +30,8 @@ struct RouteFileHeader
     char     magic[4];
     uint32_t sub_step_e4;   // 500 = 0.05° cells
     uint32_t cell_count;
-    uint32_t reserved[5];
+    uint32_t turn_count;    // number of TurnRestriction entries after the data block
+    uint32_t reserved[4];
 };
 static_assert(sizeof(RouteFileHeader) == 32, "RouteFileHeader size mismatch");
 
@@ -77,5 +78,14 @@ static_assert(sizeof(RouteEdge) == 12, "RouteEdge size mismatch");
 
 #pragma pack(pop)
 
-static inline uint8_t edge_highway_class(uint8_t f) { return (f >> 1) & 0x07; }
-static inline bool    edge_is_oneway(uint8_t f)     { return (f & 0x01) != 0; }
+// Turn restriction: prohibits travelling in_edge -> out_edge through via_node.
+// Edge indices are global (see route_generator.md).
+struct TurnRestriction
+{
+    uint32_t via_node;   // global node index
+    uint32_t in_edge;    // global edge index (entry)
+    uint32_t out_edge;   // global edge index (forbidden exit)
+};
+static_assert(sizeof(TurnRestriction) == 12, "TurnRestriction size mismatch");
+
+

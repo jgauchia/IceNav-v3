@@ -1,5 +1,5 @@
 /**
- * @file splashScr.hpp
+ * @file splashScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Splash screen - NOT LVGL
  * @version 0.3.0

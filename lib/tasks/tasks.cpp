@@ -571,8 +571,13 @@ void navTask(void *pvParameters)
                     xSemaphoreGive(navCtx.routeMutex);
                 }
 
-                mapView.updateMap();
+                // Queue a map render so the new route is drawn immediately.
+                // redrawTrack()/updateMap() only set render flags; triggerMapRedraw()
+                // is what wakes the GUI render pipeline (LV_EVENT_REFRESH sent later
+                // has no wired handler on mapTile).
                 mapView.redrawTrack();
+                mapView.updateMap();
+                triggerMapRedraw();
             }
 
             if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(50)) == pdTRUE)

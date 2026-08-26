@@ -62,11 +62,3 @@ RouterResult Router::route(float src_lat, float src_lon,
 
     return RouterResult::OK;
 }
-
-/**
- * @brief Unload the graph from PSRAM and reset loader state.
- */
-void Router::unload()
-{
-    loader.unload();
-}

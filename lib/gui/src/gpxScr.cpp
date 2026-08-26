@@ -1,5 +1,5 @@
 /**
- * @file gpxScr.hpp
+ * @file gpxScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - GPX list screen
  * @version 0.3.0
@@ -136,8 +136,8 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
         if (isTrackLoaded && mapSet.vectorMap)
             lv_obj_clear_flag(btnToggle3D, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(turnByTurn, LV_OBJ_FLAG_HIDDEN);
-        mapView.updateMap();
         mapView.redrawTrack();
+        mapView.updateMap();
         lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
     }
     closeMsg();
