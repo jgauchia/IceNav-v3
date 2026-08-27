@@ -66,6 +66,7 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
 
             navCtx.routeDstLat = loadWpt.lat;
             navCtx.routeDstLon = loadWpt.lon;
+            navCtx.wptNavActive.store(true);
             lv_subject_set_int(&subject_rerouting, 1);
             navCtx.rerouteRequested.store(true);
 
@@ -81,6 +82,7 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
     if (gpxTrack)
     {
         isTrackLoaded = false;
+        navCtx.wptNavActive.store(false);
         navCtx.trackData.clear();
         navCtx.trackData.shrink_to_fit();
         navCtx.navState = NavState{};

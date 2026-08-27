@@ -32,6 +32,7 @@ struct NavContext
     float routeDstLat = 0.0f;               /**< Router destination latitude */
     float routeDstLon = 0.0f;               /**< Router destination longitude */
     std::atomic<bool> rerouteRequested {false}; /**< Flag to trigger A* route calculation */
+    std::atomic<bool> wptNavActive {false};     /**< Waypoint navigation active: auto-reroute on deviation applies only to routed waypoint destinations */
     SemaphoreHandle_t routeMutex = nullptr; /**< Mutex protecting trackData during route updates */
 };
 

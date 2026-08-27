@@ -659,7 +659,11 @@ void navTask(void *pvParameters)
 
                         // Auto-reroute on sustained off-track: travelled distance
                         // off-route or time off-route, whichever comes first, with
-                        // a cooldown to avoid re-routing loops.
+                        // a cooldown to avoid re-routing loops (the first auto-reroute
+                        // after boot is exempt from the cooldown). Waypoint
+                        // navigation only: a loaded GPX track has no router
+                        // destination, so the deviation there just warns with the
+                        // off-track indicator.
                         if (navCtx.navState.isOffTrack)
                         {
                             if (!wasOffTrack)
@@ -676,8 +680,9 @@ void navTask(void *pvParameters)
 
                             bool offTime   = (now - offTrackSince) > AUTO_REROUTE_OFF_MS;
                             bool offDist   = offTrackDist > AUTO_REROUTE_OFF_DIST_M;
-                            bool cooldown  = (now - lastAutoReroute) > AUTO_REROUTE_COOLDOWN_MS;
-                            if (cooldown && (offTime || offDist))
+                            bool cooldown  = lastAutoReroute == 0 ||
+                                             (now - lastAutoReroute) > AUTO_REROUTE_COOLDOWN_MS;
+                            if (navCtx.wptNavActive.load() && cooldown && (offTime || offDist))
                             {
                                 lastAutoReroute = now;
                                 navCtx.rerouteRequested.store(true);
