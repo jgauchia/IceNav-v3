@@ -22,6 +22,14 @@
     #include "imu.hpp"
 #endif
 
+// Auto-reroute on sustained off-track: the most common pattern in car
+// navigators — recalculate when the user has travelled far enough off-route
+// OR been off-route long enough (whichever comes first), with a cooldown to
+// avoid re-routing loops.
+static constexpr uint32_t AUTO_REROUTE_OFF_MS      = 30000u; /**< Off-track time that triggers auto-reroute (ms) */
+static constexpr float    AUTO_REROUTE_OFF_DIST_M  = 200.0f; /**< Off-track travelled distance that triggers auto-reroute (m) */
+static constexpr uint32_t AUTO_REROUTE_COOLDOWN_MS = 60000u; /**< Minimum gap between auto-reroutes (ms) */
+
 xSemaphoreHandle gpsMutex;
 SemaphoreHandle_t sensorMutex = NULL;
 TaskHandle_t gpsTaskHandle    = NULL;
@@ -500,6 +508,26 @@ void initGuiTask()
 extern Maps mapView;
 
 /**
+ * @brief Applies the post-reroute UI state on the GUI thread.
+ *
+ * @details Scheduled with lv_async_call from navTask once a route calculation
+ *          finishes: clears the rerouting flag, refreshes the navigation tile,
+ *          reveals the turn-by-turn widget and refreshes the map tile. Running
+ *          on the GUI thread guarantees the update is applied even when the GUI
+ *          task is busy rendering a map frame, where a short mutex timeout from
+ *          a background task would silently drop it.
+ *
+ * @param userData Unused user data pointer required by lv_async_call.
+ */
+static void applyRerouteUiCb(void *userData)
+{
+    lv_subject_set_int(&subject_rerouting, 0);
+    lv_obj_send_event(navTile, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_clear_flag(turnByTurn, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+}
+
+/**
  * @brief Navigation and routing task
  *
  * @details Handles route recalculation when rerouteRequested is set, then continuously
@@ -519,6 +547,16 @@ void navTask(void *pvParameters)
     navConfig.maxBackwardJump   = 10;
 
     static unsigned long lastNavUpdate = 0;
+
+    // Auto-reroute debounce state: time/dist accumulated while off-track and
+    // the last auto-reroute instant (cooldown).
+    static bool          wasOffTrack     = false;
+    static unsigned long offTrackSince   = 0;
+    static float         offTrackDist    = 0.0f;
+    static float         prevNavLat      = 0.0f;
+    static float         prevNavLon      = 0.0f;
+    static bool          havePrevNav     = false;
+    static unsigned long lastAutoReroute = 0;
 
     while (1)
     {
@@ -580,12 +618,9 @@ void navTask(void *pvParameters)
                 triggerMapRedraw();
             }
 
-            if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(50)) == pdTRUE)
+            if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(500)) == pdTRUE)
             {
-                lv_subject_set_int(&subject_rerouting, 0);
-                lv_obj_send_event(navTile, LV_EVENT_VALUE_CHANGED, NULL);
-                lv_obj_clear_flag(turnByTurn, LV_OBJ_FLAG_HIDDEN);
-                lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+                lv_async_call(applyRerouteUiCb, NULL);
                 xSemaphoreGive(lvgl_mutex);
             }
         }
@@ -621,6 +656,42 @@ void navTask(void *pvParameters)
                                          navCtx.trackData, navCtx.turnPoints, navCtx.navState,
                                          20, 200, navConfig);
                         xSemaphoreGive(lvgl_mutex);
+
+                        // Auto-reroute on sustained off-track: travelled distance
+                        // off-route or time off-route, whichever comes first, with
+                        // a cooldown to avoid re-routing loops.
+                        if (navCtx.navState.isOffTrack)
+                        {
+                            if (!wasOffTrack)
+                            {
+                                wasOffTrack   = true;
+                                offTrackSince = now;
+                                offTrackDist  = 0.0f;
+                            }
+                            else if (havePrevNav)
+                            {
+                                offTrackDist += calcDist(prevNavLat, prevNavLon,
+                                                         navSnap.latitude, navSnap.longitude);
+                            }
+
+                            bool offTime   = (now - offTrackSince) > AUTO_REROUTE_OFF_MS;
+                            bool offDist   = offTrackDist > AUTO_REROUTE_OFF_DIST_M;
+                            bool cooldown  = (now - lastAutoReroute) > AUTO_REROUTE_COOLDOWN_MS;
+                            if (cooldown && (offTime || offDist))
+                            {
+                                lastAutoReroute = now;
+                                navCtx.rerouteRequested.store(true);
+                            }
+                        }
+                        else
+                        {
+                            wasOffTrack   = false;
+                            offTrackSince = 0;
+                            offTrackDist  = 0.0f;
+                        }
+                        prevNavLat  = navSnap.latitude;
+                        prevNavLon  = navSnap.longitude;
+                        havePrevNav = true;
                     }
                 }
             }

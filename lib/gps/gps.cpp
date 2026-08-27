@@ -18,6 +18,7 @@
 #include <SolarCalculator.h>
 #include <time.h>
 #include "gpsMath.hpp"
+#include <cmath>
 
 extern RTC_DATA_ATTR time_t rtcSavedTime;
 extern RTC_DATA_ATTR bool   rtcTimeValid;
@@ -568,6 +569,27 @@ void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refr
                           t * (trackData[nextIndex].lat - trackData[simulationIndex].lat);
             smoothedLon = trackData[simulationIndex].lon +
                           t * (trackData[nextIndex].lon - trackData[simulationIndex].lon);
+
+            // One-shot lateral deviation of the simulated fix: offsets the virtual
+            // position perpendicular to the current segment so an off-track
+            // condition can be exercised. The latch is not cleared by
+            // resetSimulation(), so the offset applies only once per boot — after
+            // the first reroute the simulation follows the route again.
+            if (!simOffsetUsed && SIM_OFFTRACK_M > 0.0f && nextIndex != simulationIndex)
+            {
+                float cosLat = cosf(smoothedLat * 3.14159265f / 180.0f);
+                float dlat   = trackData[nextIndex].lat - trackData[simulationIndex].lat;
+                float dlon   = (trackData[nextIndex].lon - trackData[simulationIndex].lon) * cosLat;
+                float len    = sqrtf(dlat * dlat + dlon * dlon);
+                if (len > 1e-9f && cosLat > 0.1f)
+                {
+                    simOffsetUsed = true;
+                    float offLat = (-dlon / len) * (SIM_OFFTRACK_M / 111319.0f);
+                    float offLon = ( dlat / len) * (SIM_OFFTRACK_M / (111319.0f * cosLat));
+                    smoothedLat += offLat;
+                    smoothedLon += offLon;
+                }
+            }
 
             // --- Heading follows the current segment direction (smoothed) ---
             if (nextIndex != simulationIndex)

@@ -154,10 +154,12 @@ class Gps
         */
         const float headAlpha = 0.5f;          /**< Heading smoothing factor, controls how fast heading adapts */
         static constexpr float SIM_MAX_SEGMENT_DIST = 50000.0f; /**< Track segment (m) above this is treated as a cut, not travelled */
+        static constexpr float SIM_OFFTRACK_M = 0.0f; /**< One-shot lateral offset (m) of the simulated fix; 0 disables */
         float smoothedLat = 0.0f;              /**< Interpolated latitude along the current segment */
         float smoothedLon = 0.0f;              /**< Interpolated longitude along the current segment */
         float filteredHeading = 0.0f;          /**< Smoothed heading after filtering */
         float segmentProgress = 0.0f;          /**< Distance covered within the current track segment (m) */
         int simulationIndex = 0;                   /**< Current index in track simulation */
         unsigned long lastSimulationTime = 0;      /**< Timestamp of last simulation update in milliseconds */
+        bool simOffsetUsed = false;                /**< Lateral offset already applied (once per boot) */
 };
