@@ -47,6 +47,7 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
             isTrackLoaded = false;
             navCtx.trackData.clear();
             navCtx.trackData.shrink_to_fit();
+            navCtx.trackIndex.clear();
             navCtx.navState = NavState{};
             resetNavigationUI();
             mapView.redrawTrack();
@@ -66,6 +67,7 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
 
             navCtx.routeDstLat = loadWpt.lat;
             navCtx.routeDstLon = loadWpt.lon;
+            navCtx.trkNavActive.store(false);
             navCtx.wptNavActive.store(true);
             lv_subject_set_int(&subject_rerouting, 1);
             navCtx.rerouteRequested.store(true);
@@ -127,6 +129,15 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
                     navCtx.trackData[i].accumDist += approachDist;
             }
         }
+
+        // Rebuild the segment index over the merged path: prepending the
+        // approach route shifted every GPX point index.
+        buildTrackIndex(navCtx.trackData);
+
+        // Sustained deviations during navigation rejoin the nearest point of
+        // the GPX track, which lives at trackGpxStart inside the merged path.
+        navCtx.trackGpxStart = (int)gpxStartIdx;
+        navCtx.trkNavActive.store(true);
 
         if (mapSet.showClimb)
         {

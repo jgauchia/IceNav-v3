@@ -279,6 +279,42 @@ static void updateBounds(TrackSegment& seg, const wayPoint& point)
 }
 
 /**
+* @brief Rebuilds the spatial segment index of a track vector into navCtx.trackIndex.
+*
+* @param trackData Vector of track points to index.
+*/
+void buildTrackIndex(TrackVector& trackData)
+{
+    navCtx.trackIndex.clear();
+    if (trackData.empty())
+        return;
+
+    const int SEGMENT_SIZE = 100;
+    TrackSegment currentSeg;
+    currentSeg.startIdx = 0;
+    currentSeg.minLat = 90.0f; currentSeg.maxLat = -90.0f;
+    currentSeg.minLon = 180.0f; currentSeg.maxLon = -180.0f;
+    for (size_t i = 0; i < trackData.size(); ++i)
+    {
+        updateBounds(currentSeg, trackData[i]);
+        if ((i + 1) % SEGMENT_SIZE == 0 || i == trackData.size() - 1)
+        {
+            currentSeg.endIdx = i;
+            const float BUFFER = 0.0005f; 
+            currentSeg.minLat -= BUFFER; currentSeg.maxLat += BUFFER;
+            currentSeg.minLon -= BUFFER; currentSeg.maxLon += BUFFER;
+            navCtx.trackIndex.push_back(currentSeg);
+            if (i < trackData.size() - 1)
+            {
+                currentSeg.startIdx = i + 1;
+                currentSeg.minLat = 90.0f; currentSeg.maxLat = -90.0f;
+                currentSeg.minLon = 180.0f; currentSeg.maxLon = -180.0f;
+            }
+        }
+    }
+}
+
+/**
 * @brief Load GPX track data using stream-based parsing.
 *
 * @param trackData Vector to store points.
@@ -294,7 +330,6 @@ bool GPXParser::loadTrack(TrackVector& trackData)
     rewind(file);
     size_t estimatedPoints = fileSize / 50;
     trackData.reserve(estimatedPoints);
-    navCtx.trackIndex.clear();
     char line[256];
     while (fgets(line, sizeof(line), file))
     {
@@ -351,11 +386,6 @@ bool GPXParser::loadTrack(TrackVector& trackData)
     {
         float totalDist = 0;
         trackData[0].accumDist = 0;
-        const int SEGMENT_SIZE = 100;
-        TrackSegment currentSeg;
-        currentSeg.startIdx = 0;
-        currentSeg.minLat = 90.0f; currentSeg.maxLat = -90.0f;
-        currentSeg.minLon = 180.0f; currentSeg.maxLon = -180.0f;
         for (size_t i = 0; i < trackData.size(); ++i)
         {
             if (i > 0)
@@ -375,22 +405,8 @@ bool GPXParser::loadTrack(TrackVector& trackData)
                 totalDist += d;
                 trackData[i].accumDist = totalDist;
             }
-            updateBounds(currentSeg, trackData[i]);
-            if ((i + 1) % SEGMENT_SIZE == 0 || i == trackData.size() - 1)
-            {
-                currentSeg.endIdx = i;
-                const float BUFFER = 0.0005f; 
-                currentSeg.minLat -= BUFFER; currentSeg.maxLat += BUFFER;
-                currentSeg.minLon -= BUFFER; currentSeg.maxLon += BUFFER;
-                navCtx.trackIndex.push_back(currentSeg);
-                if (i < trackData.size() - 1)
-                {
-                    currentSeg.startIdx = i + 1;
-                    currentSeg.minLat = 90.0f; currentSeg.maxLat = -90.0f;
-                    currentSeg.minLon = 180.0f; currentSeg.maxLon = -180.0f;
-                }
-            }
         }
+        buildTrackIndex(trackData);
         ESP_LOGI(TAGGPX, "Index built. Segments: %d, Total Dist: %.1f m", (int)navCtx.trackIndex.size(), totalDist);
     }
     return true;
