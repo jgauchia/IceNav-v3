@@ -30,7 +30,8 @@ struct RouteFileHeader
     char     magic[4];
     uint32_t sub_step_e4;   // 500 = 0.05° cells
     uint32_t cell_count;
-    uint32_t reserved[5];
+    uint32_t turn_count;    // number of TurnRestriction entries after the data block
+    uint32_t reserved[4];
 };
 static_assert(sizeof(RouteFileHeader) == 32, "RouteFileHeader size mismatch");
 
@@ -48,11 +49,22 @@ static_assert(sizeof(CellIndexEntry) == 20, "CellIndexEntry size mismatch");
 
 struct RouteNode
 {
-    float    lat;
-    float    lon;
-    uint32_t edge_offset;    // relative to this cell's edge block
+    int16_t  lat_off;       // (lat − cell_center_lat) / 0.05° × 65536, clamp ±32767
+    int16_t  lon_off;       // (lon − cell_center_lon) / 0.05° × 65536, clamp ±32767
+    uint32_t edge_offset;   // relative to this cell's edge block
 };
-static_assert(sizeof(RouteNode) == 12, "RouteNode size mismatch");
+static_assert(sizeof(RouteNode) == 8, "RouteNode size mismatch");
+
+// Rebuild absolute degrees from cell SW corner (lat_e4/lon_e4) + node offset.
+// Matches the generator's quantization: offset 0 = cell centre, 1 step ≈ 0.085 m.
+static inline float nodeLatDeg(int32_t cell_lat_e4, int16_t lat_off)
+{
+    return (cell_lat_e4 + 250) / 10000.0f + lat_off * (0.05f / 65536.0f);
+}
+static inline float nodeLonDeg(int32_t cell_lon_e4, int16_t lon_off)
+{
+    return (cell_lon_e4 + 250) / 10000.0f + lon_off * (0.05f / 65536.0f);
+}
 
 struct RouteEdge
 {
@@ -66,5 +78,14 @@ static_assert(sizeof(RouteEdge) == 12, "RouteEdge size mismatch");
 
 #pragma pack(pop)
 
-static inline uint8_t edge_highway_class(uint8_t f) { return (f >> 1) & 0x07; }
-static inline bool    edge_is_oneway(uint8_t f)     { return (f & 0x01) != 0; }
+// Turn restriction: prohibits travelling in_edge -> out_edge through via_node.
+// Edge indices are global (see route_generator.md).
+struct TurnRestriction
+{
+    uint32_t via_node;   // global node index
+    uint32_t in_edge;    // global edge index (entry)
+    uint32_t out_edge;   // global edge index (forbidden exit)
+};
+static_assert(sizeof(TurnRestriction) == 12, "TurnRestriction size mismatch");
+
+

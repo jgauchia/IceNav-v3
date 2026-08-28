@@ -1,7 +1,7 @@
 /**
  * @file graph_loader.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief  ROUTE.bin paged graph loader with on-demand PSRAM cache
+ * @brief  ROUTE.bin paged graph loader with on-demand PSRAM cache and turn-restriction support
  * @version 0.3.0
  * @date 2026-06
  */
@@ -10,13 +10,12 @@
 #include "storage.hpp"
 #include "esp_log.h"
 #include "settings.hpp"
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include "esp_heap_caps.h"
 
 extern Storage storage;
-
-GraphLoader graphLoader;
 
 /**
  * @brief Load the cell index from ROUTE.bin.
@@ -67,10 +66,89 @@ bool GraphLoader::load()
             nodeCount = end;
     }
 
+    // Global edge base per cell (cumulative edge_count) — used to map a cell-local
+    // edge to its global index for turn restrictions.
+    cellEdgeBase.assign(hdr.cell_count, 0);
+    uint32_t edge_acc = 0;
+    for (uint32_t i = 0; i < hdr.cell_count; ++i)
+    {
+        cellEdgeBase[i] = edge_acc;
+        edge_acc += cellIndex[i].edge_count;
+    }
+
+    // Read the turn-restriction table appended after the data block.
+    turnRestrictions.clear();
+    if (hdr.turn_count > 0)
+    {
+        turnRestrictions.resize(hdr.turn_count);
+        size_t table_bytes = hdr.turn_count * sizeof(TurnRestriction);
+        // Data block size = sum over cells of (nodes*sizeof + edges*sizeof);
+        // seek and read exactly at data_base + total_data_size.
+        uint32_t total_data = 0;
+        for (uint32_t i = 0; i < hdr.cell_count; ++i)
+            total_data += cellIndex[i].node_count * sizeof(RouteNode)
+                        + cellIndex[i].edge_count * sizeof(RouteEdge);
+        if (storage.seekAndRead(f, data_base_offset + total_data,
+                                reinterpret_cast<uint8_t*>(turnRestrictions.data()),
+                                table_bytes) != table_bytes)
+        {
+            ESP_LOGE("GraphLoader", "Partial read of turn restriction table");
+            turnRestrictions.clear();
+        }
+    }
+
+    // Sort by via_node so isTurnForbidden can binary-search a small range per node
+    // instead of scanning the whole table for every expanded edge.
+    std::sort(turnRestrictions.begin(), turnRestrictions.end(),
+              [](const TurnRestriction& a, const TurnRestriction& b)
+              { return a.via_node < b.via_node; });
+
     file   = f;
     loaded = true;
 
     return true;
+}
+
+/**
+ * @brief Absolute global edge index for a cell-local edge offset.
+ */
+uint32_t GraphLoader::edgeGlobalOffset(uint32_t cell_idx, uint32_t rel_edge) const
+{
+    if (cell_idx >= (uint32_t)cellEdgeBase.size())
+        return UINT32_MAX;
+    return cellEdgeBase[cell_idx] + rel_edge;
+}
+
+/**
+ * @brief Global edge index for a node-local edge offset.
+ *
+ * Resolves the owning cell of global node gi, then adds the local edge offset.
+ */
+uint32_t GraphLoader::edgeGlobalForNode(uint32_t gi, uint32_t rel_edge) const
+{
+    uint32_t ci = cellForNode(gi);
+    if (ci == UINT32_MAX)
+        return UINT32_MAX;
+    return edgeGlobalOffset(ci, rel_edge);
+}
+
+/**
+ * @brief Check whether the turn (in_edge -> out_edge) through via_node is forbidden.
+ *
+ * The table is sorted by via_node at load time; only the small range of entries
+ * sharing via_node is scanned (typically 1-2 entries per intersection).
+ */
+bool GraphLoader::isTurnForbidden(uint32_t via_node, uint32_t in_edge, uint32_t out_edge) const
+{
+    auto it = std::lower_bound(turnRestrictions.begin(), turnRestrictions.end(), via_node,
+                               [](const TurnRestriction& tr, uint32_t v)
+                               { return tr.via_node < v; });
+    for (; it != turnRestrictions.end() && it->via_node == via_node; ++it)
+    {
+        if (it->in_edge == in_edge && it->out_edge == out_edge)
+            return true;
+    }
+    return false;
 }
 
 /**
@@ -96,9 +174,7 @@ uint32_t GraphLoader::cellForNode(uint32_t gi) const
     }
 
     const CellIndexEntry& c = cellIndex[lo];
-    if (gi >= c.node_offset && gi < c.node_offset + c.node_count)
-        return lo;
-    return UINT32_MAX;
+    return (gi >= c.node_offset && gi < c.node_offset + c.node_count) ? lo : UINT32_MAX;
 }
 
 /**
@@ -173,14 +249,14 @@ GraphLoader::PageData* GraphLoader::fetchPage(uint32_t cell_idx) const
     }
 
     uint32_t file_offset = data_base_offset + c.data_offset;
-
+    bool ok = true;
     if (c.node_count > 0)
-        storage.seekAndRead(file, file_offset,
-                            reinterpret_cast<uint8_t*>(page.nodes.data()), node_bytes);
+        ok = storage.seekAndRead(file, file_offset,
+                            reinterpret_cast<uint8_t*>(page.nodes.data()), node_bytes) && ok;
 
     if (c.edge_count > 0)
-        storage.seekAndRead(file, file_offset + node_bytes,
-                            reinterpret_cast<uint8_t*>(page.edges.data()), edge_bytes);
+        ok = storage.seekAndRead(file, file_offset + node_bytes,
+                            reinterpret_cast<uint8_t*>(page.edges.data()), edge_bytes) && ok;
 
     auto res = pageCache.emplace(cell_idx, std::move(page));
     if (!res.second)
@@ -244,6 +320,30 @@ bool GraphLoader::getNode(uint32_t gi, RouteNode& out_node) const
 }
 
 /**
+ * @brief Read a single node's absolute coordinates (rebuilt from int16 cell offsets).
+ *
+ * @param gi    Global node index
+ * @param lat   Output latitude in degrees
+ * @param lon   Output longitude in degrees
+ * @return true if successful
+ */
+bool GraphLoader::getNodeCoords(uint32_t gi, float& lat, float& lon) const
+{
+    uint32_t ci = cellForNode(gi);
+    if (ci == UINT32_MAX)
+        return false;
+
+    RouteNode n;
+    if (!getNode(gi, n))
+        return false;
+
+    const CellIndexEntry& c = cellIndex[ci];
+    lat = nodeLatDeg(c.lat_e4, n.lat_off);
+    lon = nodeLonDeg(c.lon_e4, n.lon_off);
+    return true;
+}
+
+/**
  * @brief Find the nearest graph node to the given coordinates.
  *
  * Searches only pages already in the PSRAM cache to avoid SD I/O and cache
@@ -281,11 +381,16 @@ uint32_t GraphLoader::nearestNode(float lat, float lon) const
                 continue;
             const PageData& page = it->second;
 
+            // Cell centre (degrees), precomputed once per cell.
+            const float cell_center_lat = (cell.lat_e4 + 250) / 10000.0f;
+            const float cell_center_lon = (cell.lon_e4 + 250) / 10000.0f;
+            constexpr float STEP_DEG = 0.05f / 65536.0f;
+
             for (uint32_t j = 0; j < cell.node_count; ++j)
             {
                 const RouteNode& n = page.nodes[j];
-                float dlat = n.lat - lat;
-                float dlon = (n.lon - lon) * cos_lat;
+                float dlat = cell_center_lat + n.lat_off * STEP_DEG - lat;
+                float dlon = (cell_center_lon + n.lon_off * STEP_DEG - lon) * cos_lat;
                 float d    = dlat * dlat + dlon * dlon;
                 if (d < best_d) { best_d = d; best_i = cell.node_offset + j; }
             }
@@ -370,6 +475,8 @@ void GraphLoader::unload()
 {
     if (file) { storage.close(file); file = nullptr; }
     cellIndex.clear();
+    turnRestrictions.clear();
+    cellEdgeBase.clear();
     pageCache.clear();
     lru_clock         = 0;
     data_base_offset  = 0;

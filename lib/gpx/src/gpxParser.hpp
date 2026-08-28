@@ -66,6 +66,18 @@ class GPXParser
 };
 
 /**
+* @brief Rebuilds the spatial segment index of a track vector into navCtx.trackIndex.
+*
+* @details Splits the track into fixed-size segments with padded bounding boxes
+*          for the hierarchical global search in findClosestTrackPoint. Must be
+*          called again whenever the point vector is rebuilt (approach route
+*          prepended, rejoin route merged), since every point index shifts.
+*
+* @param trackData Vector of track points to index.
+*/
+void buildTrackIndex(TrackVector& trackData);
+
+/**
 * @brief Edit a tag, attribute, or element in the GPX file.
 *
 * @param tag XML tag name.

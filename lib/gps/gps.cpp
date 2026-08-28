@@ -18,6 +18,7 @@
 #include <SolarCalculator.h>
 #include <time.h>
 #include "gpsMath.hpp"
+#include <cmath>
 
 extern RTC_DATA_ATTR time_t rtcSavedTime;
 extern RTC_DATA_ATTR bool   rtcTimeValid;

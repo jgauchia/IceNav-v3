@@ -22,6 +22,41 @@
     #include "imu.hpp"
 #endif
 
+/**
+ * @brief Selects the off-track sensitivity from the active routing profile.
+ *
+ * @details navSet.routeSpeed selects the ROUTE.bin graph (5=walk, 25=bike,
+ *          above=car); the deviation thresholds follow the same profile:
+ *          at walking pace the sustained-time condition dominates, car speeds
+ *          need a tighter threshold and faster reaction, biking sits in
+ *          between. Values are initial tuning references to be refined in
+ *          field validation.
+ *
+ * @param config Navigation config to update (off-track threshold and reroute debounce).
+ */
+static void applyProfileNavParams(NavConfig &config)
+{
+    if (navSet.routeSpeed <= 5)         // WALK graph
+    {
+        config.offTrackThreshold = 75.0f;
+        config.rerouteOffTimeMs  = 30000u;
+        config.rerouteOffDistM   = 200.0f;
+    }
+    else if (navSet.routeSpeed <= 25)   // BIKE graph
+    {
+        config.offTrackThreshold = 65.0f;
+        config.rerouteOffTimeMs  = 30000u;
+        config.rerouteOffDistM   = 200.0f;
+    }
+    else                                // CAR graph
+    {
+        config.offTrackThreshold = 50.0f;
+        config.rerouteOffTimeMs  = 15000u;
+        config.rerouteOffDistM   = 200.0f;
+    }
+    config.rerouteCooldownMs = 60000u;
+}
+
 xSemaphoreHandle gpsMutex;
 SemaphoreHandle_t sensorMutex = NULL;
 TaskHandle_t gpsTaskHandle    = NULL;
@@ -47,6 +82,7 @@ uint8_t nmeaRawHead = 0;
 
 static constexpr TickType_t MUTEX_TIMEOUT_GPS  = pdMS_TO_TICKS(15);
 static constexpr TickType_t MUTEX_TIMEOUT_SLOW = pdMS_TO_TICKS(10);
+static constexpr uint32_t   REROUTE_MSG_MIN_MS = 2000u; /**< Minimum display time of the reroute progress message (ms) */
 
 static const char* TAG = "TASK";
 
@@ -500,6 +536,26 @@ void initGuiTask()
 extern Maps mapView;
 
 /**
+ * @brief Applies the post-reroute UI state on the GUI thread.
+ *
+ * @details Scheduled with lv_async_call from navTask once a route calculation
+ *          finishes: clears the rerouting flag, refreshes the navigation tile,
+ *          reveals the turn-by-turn widget and refreshes the map tile. Running
+ *          on the GUI thread guarantees the update is applied even when the GUI
+ *          task is busy rendering a map frame, where a short mutex timeout from
+ *          a background task would silently drop it.
+ *
+ * @param userData Unused user data pointer required by lv_async_call.
+ */
+static void applyRerouteUiCb(void *userData)
+{
+    lv_subject_set_int(&subject_rerouting, 0);
+    lv_obj_send_event(navTile, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_clear_flag(turnByTurn, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+}
+
+/**
  * @brief Navigation and routing task
  *
  * @details Handles route recalculation when rerouteRequested is set, then continuously
@@ -514,73 +570,182 @@ void navTask(void *pvParameters)
     ESP_LOGV(TAG, "Nav Task - running on core %d", xPortGetCoreID());
 
     static NavConfig navConfig;
-    navConfig.searchWindow      = 150;
-    navConfig.offTrackThreshold = 75.0f;
-    navConfig.maxBackwardJump   = 10;
+    navConfig.searchWindow    = 150;
+    navConfig.maxBackwardJump = 10;
+    // Off-track threshold and reroute debounce come from the active routing
+    // profile; refreshed on every navigation update (applyProfileNavParams).
 
     static unsigned long lastNavUpdate = 0;
 
+    // Auto-reroute debounce state: time/dist accumulated while off-track and
+    // the last auto-reroute instant (cooldown).
+    static bool          wasOffTrack     = false;
+    static unsigned long offTrackSince   = 0;
+    static float         offTrackDist    = 0.0f;
+    static float         prevNavLat      = 0.0f;
+    static float         prevNavLon      = 0.0f;
+    static bool          havePrevNav     = false;
+    static unsigned long lastAutoReroute = 0;
+    static bool          rerouteMsgOpen  = false;
+    static unsigned long rerouteMsgAt    = 0;
+
     while (1)
     {
+        // Close the reroute progress message once its minimum display time
+        // has elapsed, even when the route calculation was very fast.
+        if (rerouteMsgOpen && (unsigned long)millis_idf() - rerouteMsgAt >= REROUTE_MSG_MIN_MS)
+        {
+            if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
+            {
+                closeMsg();
+                rerouteMsgOpen = false;
+                xSemaphoreGive(lvgl_mutex);
+            }
+        }
+
         if (navCtx.rerouteRequested.exchange(false))
         {
+            // Reroute destination: the waypoint target for routed navigation,
+            // or the nearest point of the loaded GPX track when the deviation
+            // happens during track navigation (rejoin).
+            float  dstLat = navCtx.routeDstLat;
+            float  dstLon = navCtx.routeDstLon;
+            size_t rejoinIdx   = 0;
+            bool   rejoinTrack = false;
+
+            if (!navCtx.wptNavActive.load() &&
+                xSemaphoreTake(navCtx.routeMutex, pdMS_TO_TICKS(500)) == pdTRUE)
+            {
+                int k = navCtx.navState.lastTrackIdx;
+                if (k < navCtx.trackGpxStart)
+                    k = navCtx.trackGpxStart;
+                if (k >= 0 && k < (int)navCtx.trackData.size())
+                {
+                    dstLat      = navCtx.trackData[k].lat;
+                    dstLon      = navCtx.trackData[k].lon;
+                    rejoinIdx   = (size_t)k;
+                    rejoinTrack = true;
+                }
+                xSemaphoreGive(navCtx.routeMutex);
+            }
+
             if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, portMAX_DELAY) == pdTRUE)
             {
                 showMsg(LV_SYMBOL_REFRESH, " Calculating route...", false);
+                rerouteMsgOpen = true;
+                rerouteMsgAt   = (unsigned long)millis_idf();
                 xSemaphoreGive(lvgl_mutex);
             }
 
             Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
             TrackVector newRoute;
-            RouterResult res = router.route(gpsSnap.latitude, gpsSnap.longitude,
-                                            navCtx.routeDstLat, navCtx.routeDstLon, newRoute);
-
-            if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
-            {
-                closeMsg();
-                xSemaphoreGive(lvgl_mutex);
-            }
+            RouterResult res = RouterResult::NO_PATH;
+            if (navCtx.wptNavActive.load() || rejoinTrack)
+                res = router.route(gpsSnap.latitude, gpsSnap.longitude,
+                                   dstLat, dstLon, newRoute);
 
             if (res == RouterResult::OK)
             {
-                isTrackLoaded = false;
-                navCtx.trackData.clear();
-                navCtx.trackData.shrink_to_fit();
-
-                if (xSemaphoreTake(navCtx.routeMutex, pdMS_TO_TICKS(500)) == pdTRUE)
+                if (rejoinTrack)
                 {
-                    navCtx.trackData = std::move(newRoute);
+                    // Rejoin during GPX track navigation: prepend the new
+                    // approach route to the remaining track points and
+                    // recompose distance, segment index, turn points and
+                    // climb profile over the merged path.
+                    int approachLen = (int)newRoute.size() - 1;
 
-                    if (!navCtx.trackData.empty())
+                    if (xSemaphoreTake(navCtx.routeMutex, pdMS_TO_TICKS(500)) == pdTRUE)
                     {
-                        navCtx.trackData[0].accumDist = 0.0f;
-                        for (size_t i = 1; i < navCtx.trackData.size(); ++i)
+                        // Re-validate the rejoin point: the GUI may have loaded
+                        // another track while the route was being calculated.
+                        if (navCtx.trkNavActive.load() && rejoinIdx < navCtx.trackData.size() &&
+                            navCtx.trackData[rejoinIdx].lat == dstLat &&
+                            navCtx.trackData[rejoinIdx].lon == dstLon)
                         {
-                            float d = calcDist(navCtx.trackData[i-1].lat, navCtx.trackData[i-1].lon,
-                                               navCtx.trackData[i].lat,   navCtx.trackData[i].lon);
-                            navCtx.trackData[i].accumDist = navCtx.trackData[i-1].accumDist + d;
-                        }
-                    }
+                            if (!newRoute.empty())
+                                newRoute.pop_back();
+                            newRoute.insert(newRoute.end(),
+                                            navCtx.trackData.begin() + rejoinIdx,
+                                            navCtx.trackData.end());
+                            navCtx.trackData = std::move(newRoute);
 
-                    GPXParser gpxTmp;
-                    navCtx.turnPoints = gpxTmp.getTurnPointsSlidingWindow(10.0f, 5, 45.0f, 3, navCtx.trackData);
-                    navCtx.navState   = NavState{};
-                    gps.resetSimulation();
-                    resetNavigationUI();
-                    isTrackLoaded = !navCtx.trackData.empty();
-                    xSemaphoreGive(navCtx.routeMutex);
+                            if (!navCtx.trackData.empty())
+                            {
+                                navCtx.trackData[0].accumDist = 0.0f;
+                                for (size_t i = 1; i < navCtx.trackData.size(); ++i)
+                                {
+                                    float d = calcDist(navCtx.trackData[i-1].lat, navCtx.trackData[i-1].lon,
+                                                       navCtx.trackData[i].lat,   navCtx.trackData[i].lon);
+                                    navCtx.trackData[i].accumDist = navCtx.trackData[i-1].accumDist + d;
+                                }
+                            }
+
+                            navCtx.trackGpxStart = approachLen;
+                            buildTrackIndex(navCtx.trackData);
+
+                            GPXParser gpxTmp;
+                            navCtx.turnPoints = gpxTmp.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, navCtx.trackData);
+
+                            navCtx.climbAnalyzer.clear();
+                            if (mapSet.showClimb && navCtx.trackGpxStart < (int)navCtx.trackData.size())
+                            {
+                                TrackVector gpxOnly(navCtx.trackData.begin() + navCtx.trackGpxStart,
+                                                    navCtx.trackData.end());
+                                navCtx.climbAnalyzer.analyze(gpxOnly, navCtx.trackGpxStart);
+                            }
+
+                            navCtx.navState = NavState{};
+                            gps.resetSimulation();
+                            resetNavigationUI();
+                            isTrackLoaded = !navCtx.trackData.empty();
+                        }
+                        xSemaphoreGive(navCtx.routeMutex);
+                    }
+                }
+                else
+                {
+                    isTrackLoaded = false;
+                    navCtx.trackData.clear();
+                    navCtx.trackData.shrink_to_fit();
+                    navCtx.trackIndex.clear();
+
+                    if (xSemaphoreTake(navCtx.routeMutex, pdMS_TO_TICKS(500)) == pdTRUE)
+                    {
+                        navCtx.trackData = std::move(newRoute);
+
+                        if (!navCtx.trackData.empty())
+                        {
+                            navCtx.trackData[0].accumDist = 0.0f;
+                            for (size_t i = 1; i < navCtx.trackData.size(); ++i)
+                            {
+                                float d = calcDist(navCtx.trackData[i-1].lat, navCtx.trackData[i-1].lon,
+                                                   navCtx.trackData[i].lat,   navCtx.trackData[i].lon);
+                                navCtx.trackData[i].accumDist = navCtx.trackData[i-1].accumDist + d;
+                            }
+                        }
+
+                        GPXParser gpxTmp;
+                        navCtx.turnPoints = gpxTmp.getTurnPointsSlidingWindow(10.0f, 5, 45.0f, 3, navCtx.trackData);
+                        navCtx.navState   = NavState{};
+                        gps.resetSimulation();
+                        resetNavigationUI();
+                        isTrackLoaded = !navCtx.trackData.empty();
+                        xSemaphoreGive(navCtx.routeMutex);
+                    }
                 }
 
-                mapView.updateMap();
+                // Queue a map render so the new route is drawn immediately.
+                // redrawTrack()/updateMap() only set render flags; triggerMapRedraw()
+                // is what wakes the GUI render pipeline (LV_EVENT_REFRESH sent later
+                // has no wired handler on mapTile).
                 mapView.redrawTrack();
+                mapView.updateMap();
+                triggerMapRedraw();
             }
 
-            if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(50)) == pdTRUE)
+            if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(500)) == pdTRUE)
             {
-                lv_subject_set_int(&subject_rerouting, 0);
-                lv_obj_send_event(navTile, LV_EVENT_VALUE_CHANGED, NULL);
-                lv_obj_clear_flag(turnByTurn, LV_OBJ_FLAG_HIDDEN);
-                lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
+                lv_async_call(applyRerouteUiCb, NULL);
                 xSemaphoreGive(lvgl_mutex);
             }
         }
@@ -611,11 +776,53 @@ void navTask(void *pvParameters)
                     lastNavUpdate = now;
                     if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(50)) == pdTRUE)
                     {
+                        applyProfileNavParams(navConfig);
                         updateNavigation(navSnap.latitude, navSnap.longitude,
                                          navSnap.heading,  navSnap.speed,
                                          navCtx.trackData, navCtx.turnPoints, navCtx.navState,
                                          20, 200, navConfig);
                         xSemaphoreGive(lvgl_mutex);
+
+                        // Auto-reroute on sustained off-track: travelled distance
+                        // off-route or time off-route, whichever comes first, with
+                        // a cooldown to avoid re-routing loops (the first auto-reroute
+                        // after boot is exempt from the cooldown). Applies to routed
+                        // waypoint navigation and to GPX track navigation, where the
+                        // reroute rejoins the nearest point of the track.
+                        if (navCtx.navState.isOffTrack)
+                        {
+                            if (!wasOffTrack)
+                            {
+                                wasOffTrack   = true;
+                                offTrackSince = now;
+                                offTrackDist  = 0.0f;
+                            }
+                            else if (havePrevNav)
+                            {
+                                offTrackDist += calcDist(prevNavLat, prevNavLon,
+                                                         navSnap.latitude, navSnap.longitude);
+                            }
+
+                            bool offTime   = (now - offTrackSince) > navConfig.rerouteOffTimeMs;
+                            bool offDist   = offTrackDist > navConfig.rerouteOffDistM;
+                            bool cooldown  = lastAutoReroute == 0 ||
+                                             (now - lastAutoReroute) > navConfig.rerouteCooldownMs;
+                            if ((navCtx.wptNavActive.load() || navCtx.trkNavActive.load()) &&
+                                cooldown && (offTime || offDist))
+                            {
+                                lastAutoReroute = now;
+                                navCtx.rerouteRequested.store(true);
+                            }
+                        }
+                        else
+                        {
+                            wasOffTrack   = false;
+                            offTrackSince = 0;
+                            offTrackDist  = 0.0f;
+                        }
+                        prevNavLat  = navSnap.latitude;
+                        prevNavLon  = navSnap.longitude;
+                        havePrevNav = true;
                     }
                 }
             }
