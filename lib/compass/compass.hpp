@@ -240,7 +240,6 @@ class Compass
         #endif
         bool read(float &x, float &y, float &z);
         int getHeading();
-        bool isUpdated();
         void calibrate();
         void setDeclinationAngle(float angle);
         void setOffsets(float offsetX, float offsetY);
@@ -263,8 +262,6 @@ class Compass
         float maxY;                   /**< Maximum observed value for Y axis (for calibration). */
         bool kalmanFilterEnabled;     /**< True if the Kalman filter is enabled for heading smoothing. */
         KalmanFilter kalmanFilter;    /**< Kalman filter instance used for heading estimation. */
-        int previousDegrees;          /**< Previous heading in degrees (integer value). */
-
         float wrapToPi(float angle);
         float unwrapFromPi(float angle, float previousAngle);
 };

@@ -569,8 +569,7 @@ Compass::Compass()
           headingSmooth(0.0f), headingPrevious(0.0f),
           minX(0.0f), maxX(0.0f), minY(0.0f), maxY(0.0f),
           kalmanFilterEnabled(true),
-          kalmanFilter(0.01f, 0.1f, 1.0f, 0.0f),
-          previousDegrees(0)
+          kalmanFilter(0.01f, 0.1f, 1.0f, 0.0f)
 {
 }
 
@@ -760,24 +759,6 @@ int Compass::getHeading()
         headingDeg += 360;
 
     return headingDeg;
-}
-
-/**
- * @brief Checks if the compass heading has been updated since the last reading.
- *
- * @details Compares the current heading with the previous value to detect changes.
- *
- * @return true if updated, false otherwise.
- */
-bool Compass::isUpdated()
-{
-    int currentDegrees = getHeading();
-    if (currentDegrees != previousDegrees)
-    {
-        previousDegrees = currentDegrees;
-        return true;
-    }
-    return false;
 }
 
 /**
