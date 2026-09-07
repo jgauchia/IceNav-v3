@@ -27,6 +27,9 @@ struct NavConfig
     float minTurnDistance = 5.0f;    /**< Minimum distance for valid turn detection (meters) */
     float maxTurnDistance = 2000.0f; /**< Maximum distance for suspicious turn filtering (meters) */
     int maxBackwardJump = 8;         /**< Maximum backward positions to prevent GPS noise jumps */
+    uint32_t rerouteOffTimeMs = 30000u;  /**< Sustained off-track time that triggers an auto reroute (ms) */
+    float    rerouteOffDistM  = 200.0f;  /**< Off-track travelled distance that triggers an auto reroute (meters) */
+    uint32_t rerouteCooldownMs = 60000u; /**< Minimum gap between auto reroutes (ms) */
 };
 
 /**

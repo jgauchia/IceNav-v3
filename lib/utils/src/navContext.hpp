@@ -32,6 +32,9 @@ struct NavContext
     float routeDstLat = 0.0f;               /**< Router destination latitude */
     float routeDstLon = 0.0f;               /**< Router destination longitude */
     std::atomic<bool> rerouteRequested {false}; /**< Flag to trigger A* route calculation */
+    std::atomic<bool> wptNavActive {false};     /**< Waypoint navigation active: auto-reroute on deviation applies only to routed waypoint destinations */
+    std::atomic<bool> trkNavActive {false};     /**< GPX track navigation active: a sustained deviation triggers an automatic rejoin to the nearest track point */
+    int trackGpxStart = 0;                  /**< Index of the first GPX track point inside trackData (earlier points belong to the approach route) */
     SemaphoreHandle_t routeMutex = nullptr; /**< Mutex protecting trackData during route updates */
 };
 

@@ -1,5 +1,5 @@
 /**
- * @file mapSettingsScr.hpp
+ * @file mapSettingsScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Map Settings screen
  * @version 0.3.0

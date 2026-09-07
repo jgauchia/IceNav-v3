@@ -1,5 +1,5 @@
 /**
- * @file gpxScr.hpp
+ * @file gpxScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - GPX list screen
  * @version 0.3.0
@@ -47,6 +47,7 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
             isTrackLoaded = false;
             navCtx.trackData.clear();
             navCtx.trackData.shrink_to_fit();
+            navCtx.trackIndex.clear();
             navCtx.navState = NavState{};
             resetNavigationUI();
             mapView.redrawTrack();
@@ -66,6 +67,8 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
 
             navCtx.routeDstLat = loadWpt.lat;
             navCtx.routeDstLon = loadWpt.lon;
+            navCtx.trkNavActive.store(false);
+            navCtx.wptNavActive.store(true);
             lv_subject_set_int(&subject_rerouting, 1);
             navCtx.rerouteRequested.store(true);
 
@@ -81,6 +84,7 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
     if (gpxTrack)
     {
         isTrackLoaded = false;
+        navCtx.wptNavActive.store(false);
         navCtx.trackData.clear();
         navCtx.trackData.shrink_to_fit();
         navCtx.navState = NavState{};
@@ -126,6 +130,15 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
             }
         }
 
+        // Rebuild the segment index over the merged path: prepending the
+        // approach route shifted every GPX point index.
+        buildTrackIndex(navCtx.trackData);
+
+        // Sustained deviations during navigation rejoin the nearest point of
+        // the GPX track, which lives at trackGpxStart inside the merged path.
+        navCtx.trackGpxStart = (int)gpxStartIdx;
+        navCtx.trkNavActive.store(true);
+
         if (mapSet.showClimb)
         {
             TrackVector gpxOnly(navCtx.trackData.begin() + gpxStartIdx, navCtx.trackData.end());
@@ -136,8 +149,8 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
         if (isTrackLoaded && mapSet.vectorMap)
             lv_obj_clear_flag(btnToggle3D, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(turnByTurn, LV_OBJ_FLAG_HIDDEN);
-        mapView.updateMap();
         mapView.redrawTrack();
+        mapView.updateMap();
         lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
     }
     closeMsg();

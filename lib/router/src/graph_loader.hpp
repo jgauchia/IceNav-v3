@@ -30,9 +30,14 @@ public:
 
     uint32_t nearestNode(float lat, float lon) const;
     bool     getNode(uint32_t gi, RouteNode& out_node) const;
+    bool     getNodeCoords(uint32_t gi, float& lat, float& lon) const;
     bool     getEdgesForNode(uint32_t gi, RouteEdge* buf, uint32_t& count) const;
-    uint32_t totalNodes() const { return nodeCount; }
     void     preloadPoint(float lat, float lon) const;
+
+    // Turn restrictions (global edge index space).
+    uint32_t edgeGlobalOffset(uint32_t cell_idx, uint32_t rel_edge) const;
+    uint32_t edgeGlobalForNode(uint32_t gi, uint32_t rel_edge) const;
+    bool     isTurnForbidden(uint32_t via_node, uint32_t in_edge, uint32_t out_edge) const;
 
 private:
     struct PageData
@@ -48,6 +53,8 @@ private:
                         PsramAllocator<std::pair<const uint32_t, PageData>>>;
 
     std::vector<CellIndexEntry> cellIndex;
+    std::vector<TurnRestriction> turnRestrictions;
+    std::vector<uint32_t>       cellEdgeBase;   // global edge index base per cell
     mutable PageMap             pageCache;
     mutable uint32_t            lru_clock = 0;
 
@@ -67,4 +74,3 @@ private:
 
 };
 
-extern GraphLoader graphLoader;
