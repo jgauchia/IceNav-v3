@@ -1,0 +1,83 @@
+  name: Build binaries for Releases
+
+  on:
+    push:
+      tags:
+        - "*"
+    workflow_dispatch:
+
+  jobs:
+    compile_sketch:
+      name: ${{ matrix.board.env }}
+      runs-on: ubuntu-latest
+      strategy:
+        fail-fast: false
+        matrix:
+          board:
+            - { env: "ICENAV_BOARD"    , addr: 0x0000 }
+            - { env: "TDECK_ESP32S3"   , addr: 0x0000 }
+            - { env: "ELECROW_ESP32"   , addr: 0x0000 }
+            - { env: "MAKERF_ESP32S3"  , addr: 0x0000 }
+            - { env: "T4_S3"           , addr: 0x0000 }
+            #- { env: "ESP32S3_N16R8"   , addr: 0x0000 }
+
+      steps:
+          - uses: actions/checkout@v5
+
+          - id: build
+            name: setup Python
+            uses: actions/setup-python@v6
+            with:
+              python-version: "3.13"
+
+          - name: Install dependencies
+            run: |
+              pip install requests esptool platformio
+
+          - name: Run Compile
+            run: |
+              platformio run -e ${{ matrix.board.env }}
+
+              esptool.py --chip esp32s3 merge-bin -o IceNav_${{ matrix.board.env }}.bin \
+              ${{ matrix.board.addr }} .pio/build/${{ matrix.board.env }}/bootloader.bin \
+              0x8000 .pio/build/${{ matrix.board.env }}/partitions.bin \
+              0x10000 .pio/build/${{ matrix.board.env }}/firmware.bin
+
+          - name: Upload Artifacts
+            uses: actions/upload-artifact@v6
+            with:
+              name: Artifacts-${{ matrix.board.env }}
+              path: |
+                IceNav_*.bin
+              retention-days: 5
+              if-no-files-found: error
+
+    create_release:
+      runs-on: ubuntu-latest
+      environment: github_release
+      needs: [compile_sketch]
+      if: github.ref_type == 'tag'
+      permissions:
+        contents: write
+      steps:
+      - id: tag_version
+        name: Get Version
+        run: |
+          set -x
+          version=${{ github.ref_name }}
+          echo "version=${version}" > $GITHUB_OUTPUT
+
+      - uses: actions/download-artifact@v7
+        with:
+          merge-multiple: true
+
+      - name: Create Release ${{ steps.tag_version.outputs.version }}
+        uses: softprops/action-gh-release@v2
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          name: ${{ steps.tag_version.outputs.version }}
+          tag_name: ${{ steps.tag_version.outputs.version }}
+          generate_release_notes: true
+          files: |
+            IceNav_*.bin
