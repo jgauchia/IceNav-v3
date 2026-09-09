@@ -95,18 +95,18 @@ static void updateCompassScr(lv_observer_t *observer, lv_subject_t *subject)
  */
 static void showMapWidgets()
 {
-    lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_clear_flag(zoomWidget, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(zoomWidget, LV_OBJ_FLAG_HIDDEN);
     if (mapSet.showMapSpeed)
-        lv_obj_clear_flag(mapSpeed, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(mapSpeed, LV_OBJ_FLAG_HIDDEN);
     else
         lv_obj_add_flag(mapSpeed, LV_OBJ_FLAG_HIDDEN);
     if (mapSet.showMapCompass)
-        lv_obj_clear_flag(miniCompass, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(miniCompass, LV_OBJ_FLAG_HIDDEN);
     else
         lv_obj_add_flag(miniCompass, LV_OBJ_FLAG_HIDDEN);
     if (mapSet.showMapScale)
-        lv_obj_clear_flag(scaleWidget, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(scaleWidget, LV_OBJ_FLAG_HIDDEN);
     else
         lv_obj_add_flag(scaleWidget, LV_OBJ_FLAG_HIDDEN);
 }
@@ -632,7 +632,7 @@ static void climb_active_observer_cb(lv_observer_t *observer, lv_subject_t *subj
         climbState.lastYTop     = -1;
     }
     else
-        lv_obj_clear_flag(climbOverlay, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(climbOverlay, LV_OBJ_FLAG_HIDDEN);
 }
 
 /**
@@ -792,7 +792,7 @@ static void getActTile(lv_event_t *event)
     }
     if (isBarOpen)
         closeOptionsPanel();
-    lv_obj_t *actTile = lv_tileview_get_tile_act(tilesScreen);
+    lv_obj_t *actTile = lv_tileview_get_tile_active(tilesScreen);
     if (actTile == NULL)
         return;
     activeTile = lv_obj_get_x(actTile) / TFT_WIDTH;
@@ -837,13 +837,13 @@ static void setZoomButtonsVisible(bool show)
     {
         lv_obj_add_flag(btnZoomOut, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
         lv_obj_add_flag(btnZoomIn, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
-        lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
     }
     else
     {
-        lv_obj_clear_flag(btnZoomOut, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
-        lv_obj_clear_flag(btnZoomIn, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
+        lv_obj_remove_flag(btnZoomOut, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
+        lv_obj_remove_flag(btnZoomIn, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
         lv_obj_add_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
     }
@@ -869,7 +869,7 @@ static void mapToolBarEvent(lv_event_t *event)
         mapView.centerOnGps(gpsSnap.latitude, gpsSnap.longitude);
         lv_subject_set_int(&subject_map_state, MAP_MODE_FOLLOW);
         mapView.updateMap();
-        lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
         lv_subject_set_int(&subject_map_offset_x, mapView.offsetX);
         lv_subject_set_int(&subject_map_offset_y, mapView.offsetY);
         triggerMapRedraw();
@@ -877,11 +877,11 @@ static void mapToolBarEvent(lv_event_t *event)
     else
     {
         setZoomButtonsVisible(true);
-        lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_remove_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
         if (!mapView.followGps)
             lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
         else
-            lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
     }
 }
 
@@ -992,7 +992,7 @@ static void scrollMapEvent(lv_event_t *event)
             }
             case LV_EVENT_RELEASED:
             case LV_EVENT_PRESS_LOST:
-                lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_remove_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
                 isScrollingMap = false;
                 scrollState.dragStarted = false;
                 if (abs(mapView.velocityX) > MAP_INERTIA_VEL_THRESH || abs(mapView.velocityY) > MAP_INERTIA_VEL_THRESH)
@@ -1128,14 +1128,14 @@ static void showLoggerSummary()
 
     const LoggerStats& s = gpxLogger.stats();
 
-    summaryOverlay = lv_obj_create(lv_scr_act());
+    summaryOverlay = lv_obj_create(lv_screen_active());
     lv_obj_set_size(summaryOverlay, TFT_WIDTH, TFT_HEIGHT);
     lv_obj_set_pos(summaryOverlay, 0, 0);
     lv_obj_add_flag(summaryOverlay, LV_OBJ_FLAG_FLOATING);
     lv_obj_set_style_bg_color(summaryOverlay, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(summaryOverlay, LV_OPA_70, 0);
     lv_obj_set_style_border_width(summaryOverlay, 0, 0);
-    lv_obj_clear_flag(summaryOverlay, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(summaryOverlay, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_event_cb(summaryOverlay, summaryDeleteEvent, LV_EVENT_DELETE, nullptr);
 
     lv_obj_t *card = lv_obj_create(summaryOverlay);
@@ -1147,7 +1147,7 @@ static void showLoggerSummary()
 #else
     lv_obj_set_style_pad_all(card, 10, 0);
 #endif
-    lv_obj_clear_flag(card, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(card, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t *title = lv_label_create(card);
     lv_label_set_text(title, LV_SYMBOL_OK " Track saved");
@@ -1261,13 +1261,13 @@ static void recBtnEvent(lv_event_t *e)
         gpxLogger.start();
         lv_obj_add_flag(circleRec, LV_OBJ_FLAG_HIDDEN);
         lv_label_set_text(lblRec, LV_SYMBOL_STOP);
-        lv_obj_clear_flag(lblRec, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(lblRec, LV_OBJ_FLAG_HIDDEN);
         lv_obj_set_style_bg_color(btnRec, lv_color_make(200, 0, 0), 0);
     }
     else
     {
         gpxLogger.stop();
-        lv_obj_clear_flag(circleRec, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(circleRec, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(lblRec, LV_OBJ_FLAG_HIDDEN);
         lv_obj_set_style_bg_color(btnRec, lv_color_make(50, 50, 50), 0);
         showLoggerSummary();
@@ -1301,11 +1301,11 @@ static void recTimerCb(lv_timer_t *t)
         lv_obj_add_flag(btnRec, LV_OBJ_FLAG_HIDDEN);
         return;
     }
-    lv_obj_clear_flag(btnRec, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(btnRec, LV_OBJ_FLAG_HIDDEN);
 
     if (st == LoggerState::IDLE)
     {
-        lv_obj_clear_flag(circleRec, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(circleRec, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(lblRec, LV_OBJ_FLAG_HIDDEN);
         lv_obj_set_style_bg_color(btnRec, lv_color_make(50, 50, 50), 0);
     }
@@ -1313,7 +1313,7 @@ static void recTimerCb(lv_timer_t *t)
     {
         lv_obj_add_flag(circleRec, LV_OBJ_FLAG_HIDDEN);
         lv_label_set_text(lblRec, LV_SYMBOL_STOP);
-        lv_obj_clear_flag(lblRec, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(lblRec, LV_OBJ_FLAG_HIDDEN);
         lv_obj_set_style_bg_color(btnRec,
             recBlinkOn ? lv_color_make(200, 0, 0) : lv_color_make(80, 0, 0), 0);
     }
@@ -1321,7 +1321,7 @@ static void recTimerCb(lv_timer_t *t)
     {
         lv_obj_add_flag(circleRec, LV_OBJ_FLAG_HIDDEN);
         lv_label_set_text(lblRec, LV_SYMBOL_STOP);
-        lv_obj_clear_flag(lblRec, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(lblRec, LV_OBJ_FLAG_HIDDEN);
         lv_obj_set_style_bg_color(btnRec, lv_color_make(200, 120, 0), 0);
     }
 
@@ -1329,7 +1329,7 @@ static void recTimerCb(lv_timer_t *t)
     {
         if (st != LoggerState::IDLE)
         {
-            lv_obj_clear_flag(recHud, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(recHud, LV_OBJ_FLAG_HIDDEN);
             float    dist   = gpxLogger.stats().totalDistM;
             int32_t  gain   = gpxLogger.stats().gainPos;
             float    grade  = gpxLogger.currentGrade();
@@ -1366,7 +1366,7 @@ static void recTimerCb(lv_timer_t *t)
 void createMainScr()
 {
     mainScreen = lv_obj_create(NULL);
-    lv_obj_clear_flag(mainScreen, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(mainScreen, LV_OBJ_FLAG_SCROLLABLE);
     tilesScreen = lv_tileview_create(mainScreen);
     compassTile = lv_tileview_add_tile(tilesScreen, 0, 0, LV_DIR_RIGHT);
     mapTile = lv_tileview_add_tile(tilesScreen, 1, 0, (lv_dir_t)(LV_DIR_LEFT | LV_DIR_RIGHT));
@@ -1417,8 +1417,8 @@ void createMainScr()
     lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrHeight - (toolBarOffset + toolBarSpace));
     if (!showMapToolBar)
     {
-        lv_obj_clear_flag(btnZoomOut, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
-        lv_obj_clear_flag(btnZoomIn, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
+        lv_obj_remove_flag(btnZoomOut, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
+        lv_obj_remove_flag(btnZoomIn, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
         lv_obj_add_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
     }
@@ -1426,8 +1426,8 @@ void createMainScr()
     {
         lv_obj_add_flag(btnZoomOut, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
         lv_obj_add_flag(btnZoomIn, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
-        lv_obj_clear_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(btnZoomOut, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
     }
     lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_VALUE_CHANGED, NULL);
     lv_subject_add_observer_obj(&subject_map_offset_x, map_offset_observer_cb, mapTile, NULL);
@@ -1448,7 +1448,7 @@ void createMainScr()
 #else
     lv_obj_set_size(btnToggle3D, 60, 60);
 #endif
-    lv_obj_clear_flag(btnToggle3D, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(btnToggle3D, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_style(btnToggle3D, &styleMapWidget, 0);
     lv_obj_add_flag(btnToggle3D, (lv_obj_flag_t)(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_FLOATING));
 #if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
@@ -1479,7 +1479,7 @@ void createMainScr()
     #else
         lv_obj_set_size(btnRec, 50, 50);
     #endif
-        lv_obj_clear_flag(btnRec, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_remove_flag(btnRec, LV_OBJ_FLAG_SCROLLABLE);
         lv_obj_add_style(btnRec, &styleMapWidget, 0);
         lv_obj_add_flag(btnRec, (lv_obj_flag_t)(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_FLOATING));
     #if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
@@ -1498,7 +1498,7 @@ void createMainScr()
         lv_obj_set_style_bg_color(circleRec, lv_color_make(200, 0, 0), 0);
         lv_obj_set_style_bg_opa(circleRec, LV_OPA_COVER, 0);
         lv_obj_set_style_border_width(circleRec, 0, 0);
-        lv_obj_clear_flag(circleRec, (lv_obj_flag_t)(LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE));
+        lv_obj_remove_flag(circleRec, (lv_obj_flag_t)(LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE));
         lv_obj_center(circleRec);
         lblRec = lv_label_create(btnRec);
         lv_label_set_text(lblRec, LV_SYMBOL_STOP);

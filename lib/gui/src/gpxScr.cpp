@@ -52,9 +52,9 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
             resetNavigationUI();
             mapView.redrawTrack();
 
-            lv_obj_clear_flag(navTile, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(navTile, LV_OBJ_FLAG_HIDDEN);
             if (mapSet.vectorMap)
-                lv_obj_clear_flag(btnToggle3D, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_remove_flag(btnToggle3D, LV_OBJ_FLAG_HIDDEN);
             else
                 lv_obj_add_flag(btnToggle3D, LV_OBJ_FLAG_HIDDEN);
 
@@ -147,8 +147,8 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
         navCtx.turnPoints = gpx.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, navCtx.trackData);
         isTrackLoaded = !navCtx.trackData.empty();
         if (isTrackLoaded && mapSet.vectorMap)
-            lv_obj_clear_flag(btnToggle3D, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(turnByTurn, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(btnToggle3D, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(turnByTurn, LV_OBJ_FLAG_HIDDEN);
         mapView.redrawTrack();
         mapView.updateMap();
         lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
@@ -173,10 +173,10 @@ static void handleGpxEdit(GPXParser &gpx, const char *gpxName)
         loadWpt = gpx.getWaypointInfo(gpxName);
         lv_textarea_set_text(gpxTagValue, loadWpt.name);
         lv_label_set_text_static(gpxTag, LV_SYMBOL_LEFT " Waypoint Name:");
-        lv_obj_clear_flag(labelLat, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(labelLatValue, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(labelLon, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(labelLonValue, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(labelLat, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(labelLatValue, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(labelLon, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(labelLonValue, LV_OBJ_FLAG_HIDDEN);
     }
 
     if (gpxTrack)
@@ -272,7 +272,7 @@ void gpxListEvent(lv_event_t *event)
 void createGpxListScreen()
 {
     listGPXScreen = lv_table_create(NULL);
-    lv_table_set_col_cnt(listGPXScreen, 2);
+    lv_table_set_column_count(listGPXScreen, 2);
     lv_table_set_column_width(listGPXScreen,1,400);
     lv_obj_set_size(listGPXScreen, TFT_WIDTH, TFT_HEIGHT);
     lv_obj_set_style_text_font(listGPXScreen, fontMedium, 0);

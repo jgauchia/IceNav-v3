@@ -19,4 +19,4 @@
 #endif
 
 extern const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMAGE_NAVARROW uint8_t navarrow_map[];
-extern const lv_img_dsc_t navarrow;
+extern const lv_image_dsc_t navarrow;

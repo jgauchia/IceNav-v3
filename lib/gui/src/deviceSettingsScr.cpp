@@ -93,8 +93,8 @@ static void upgradeEvent(lv_event_t *event)
     else
     {
         lv_label_set_text_static(msgUprgdText, LV_SYMBOL_WARNING " Firmware found!");
-        lv_obj_clear_flag(btnMsgUpgrade,LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(contMeter,LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(btnMsgUpgrade,LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(contMeter,LV_OBJ_FLAG_HIDDEN);
     }
 }
 
@@ -171,7 +171,7 @@ void createDeviceSettingsScr()
     // GPS Speed
     list = lv_list_add_button(deviceSettingsOptions, NULL, "GPS\nSpeed");
     lv_obj_set_style_text_font(list, fontOptions, 0);
-    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_OUT_LEFT_BOTTOM);
     dropdown = lv_dropdown_create(list);
     lv_dropdown_set_options(dropdown, "4800\n9600\n19200\nAUTO");
@@ -184,7 +184,7 @@ void createDeviceSettingsScr()
     // GPS Update rate
     list = lv_list_add_button(deviceSettingsOptions, NULL, "GPS\nUpdate rate");
     lv_obj_set_style_text_font(list, fontOptions, 0);
-    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
     dropdown = lv_dropdown_create(list);
     lv_dropdown_set_options(dropdown, "1 Hz\n2 Hz\n4 Hz\n5 Hz\n10 Hz");
@@ -203,7 +203,7 @@ void createDeviceSettingsScr()
     // Routing Profile
     list = lv_list_add_button(deviceSettingsOptions, NULL, "Routing\nProfile");
     lv_obj_set_style_text_font(list, fontOptions, 0);
-    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_OUT_LEFT_BOTTOM);
     dropdown = lv_dropdown_create(list);
     lv_dropdown_set_options(dropdown, "Car\nBike\nWalk");
@@ -225,7 +225,7 @@ void createDeviceSettingsScr()
     {
         list = lv_list_add_button(deviceSettingsOptions, NULL, "Logger\nProfile");
         lv_obj_set_style_text_font(list, fontOptions, 0);
-        lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
         lv_obj_set_align(list, LV_ALIGN_OUT_LEFT_BOTTOM);
         dropdown = lv_dropdown_create(list);
         lv_dropdown_set_options(dropdown, "Walk\nBike\nCar");
@@ -239,13 +239,13 @@ void createDeviceSettingsScr()
     // NMEA Debug Tile
     list = lv_list_add_button(deviceSettingsOptions, NULL, "NMEA Debug\nTile");
     lv_obj_set_style_text_font(list, fontOptions, 0);
-    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
     lv_obj_t *nmeaDbgSwitch = lv_switch_create(list);
     if (nmeaDebugTileEnabled)
         lv_obj_add_state(nmeaDbgSwitch, LV_STATE_CHECKED);
     else
-        lv_obj_clear_state(nmeaDbgSwitch, LV_STATE_CHECKED);
+        lv_obj_remove_state(nmeaDbgSwitch, LV_STATE_CHECKED);
     lv_obj_align_to(nmeaDbgSwitch, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
     lv_obj_add_event_cb(nmeaDbgSwitch, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"nmeadbg");
     // Upgrade button

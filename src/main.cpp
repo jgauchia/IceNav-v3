@@ -116,7 +116,7 @@ void setup()
         // lv_screen_load_anim) hangs forever in Bus_SPI::wait() — the SPI_USR
         // busy-wait never clears because the panel's DMA/flush state was never
         // armed by a prior transfer. Only reproduces with the SD card mounted.
-        lv_obj_invalidate(lv_scr_act());
+        lv_obj_invalidate(lv_screen_active());
         lv_refr_now(display_drv);
     #endif
     if (!sdOk)

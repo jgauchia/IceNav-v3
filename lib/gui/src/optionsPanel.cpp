@@ -196,7 +196,7 @@ void openOptionsPanel()
         return;
     isBarOpen      = true;
     isScrollingMap = true;
-    lv_obj_clear_flag(optionsScrim, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(optionsScrim, LV_OBJ_FLAG_HIDDEN);
     lv_obj_set_y(optionsPanel, TFT_HEIGHT);
     lv_anim_t a;
     lv_anim_init(&a);
@@ -243,9 +243,9 @@ void openSubPanel()
         return;
     isSubPanelOpen = true;
     isScrollingMap = true;
-    lv_obj_clear_flag(optionsScrim, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_clear_flag(subPanel, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_clear_flag(optionsScrim, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(optionsScrim, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(subPanel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(optionsScrim, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_y(subPanel, TFT_HEIGHT);
     lv_anim_t a;
     lv_anim_init(&a);
@@ -354,7 +354,7 @@ static lv_obj_t *createOptionCell(lv_obj_t *parent, const char *iconSrc, const c
     lv_obj_set_flex_align(cell, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_all(cell, (int)(4 * scaleBut), 0);
     lv_obj_set_style_pad_gap(cell, (int)(4 * scaleBut), 0);
-    lv_obj_clear_flag(cell, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(cell, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(cell, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(cell, cb, LV_EVENT_PRESSED, action);
 
@@ -391,7 +391,7 @@ void createOptionsPanel()
     lv_obj_add_style(optionsScrim, &styleScrim, 0);
     lv_obj_set_size(optionsScrim, TFT_WIDTH, TFT_HEIGHT);
     lv_obj_set_pos(optionsScrim, 0, 0);
-    lv_obj_clear_flag(optionsScrim, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(optionsScrim, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(optionsScrim, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
     lv_obj_add_flag(optionsScrim, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_event_cb(optionsScrim, scrimEvent, LV_EVENT_CLICKED, NULL);
@@ -422,7 +422,7 @@ void createOptionsPanel()
     lv_obj_set_style_pad_gap(optionsPanel, pad, 0);
     lv_obj_set_size(optionsPanel, panelW, panelH);
     lv_obj_set_pos(optionsPanel, margin, TFT_HEIGHT);
-    lv_obj_clear_flag(optionsPanel, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(optionsPanel, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(optionsPanel, LV_OBJ_FLAG_FLOATING);
 
     cellAddWpt   = createOptionCell(optionsPanel, addWptIconFile,   "Add Waypoint", (char*)"addwpt",   optionsPanelEvent, cellW, cellH, &iconAddWpt, &lblAddWpt);
@@ -437,7 +437,7 @@ void createOptionsPanel()
         lv_obj_t *inactiveLbls[]  = {lblAddWpt, lblWaypoint, lblTrack};
         for (int i = 0; i < 3; i++)
         {
-            lv_obj_clear_flag(inactiveCells[i], LV_OBJ_FLAG_CLICKABLE);
+            lv_obj_remove_flag(inactiveCells[i], LV_OBJ_FLAG_CLICKABLE);
             lv_obj_set_style_image_opa(inactiveIcons[i], LV_OPA_30, 0);
             lv_obj_set_style_text_color(inactiveLbls[i], lv_color_make(128, 128, 128), 0);
         }
@@ -464,7 +464,7 @@ void createOptionsPanel()
     lv_obj_set_style_pad_gap(subPanel, pad, 0);
     lv_obj_set_size(subPanel, panelW, subH);
     lv_obj_set_pos(subPanel, margin, TFT_HEIGHT);
-    lv_obj_clear_flag(subPanel, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(subPanel, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(subPanel, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_HIDDEN));
 
     createOptionCell(subPanel, loadIconFile,   "Load",   (char*)"load",   optionEvent, subCellW, subCellH, nullptr, nullptr);
@@ -483,7 +483,7 @@ void createOptionsPanel()
     lv_obj_set_style_pad_all(menuBtnWrap, 0, 0);
     lv_obj_set_size(menuBtnWrap, fabSize, fabSize);
     lv_obj_add_flag(menuBtnWrap, (lv_obj_flag_t)(LV_OBJ_FLAG_FLOATING | LV_OBJ_FLAG_CLICKABLE));
-    lv_obj_clear_flag(menuBtnWrap, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(menuBtnWrap, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_align(menuBtnWrap, LV_ALIGN_BOTTOM_RIGHT, -4, -4);
     lv_obj_add_event_cb(menuBtnWrap, hideShowEvent, LV_EVENT_ALL, NULL);
     menuBtn = menuBtnWrap;

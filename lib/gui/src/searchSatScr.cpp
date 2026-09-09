@@ -47,7 +47,7 @@ void searchGPS(lv_timer_t *searchTimer)
         if (fixConfirmCount >= 5)
         {
             fixConfirmCount = 0;
-            lv_timer_del(searchTimer);
+            lv_timer_delete(searchTimer);
             isSearchingSat = false;
             loadMainScreen();
         }
@@ -60,7 +60,7 @@ void searchGPS(lv_timer_t *searchTimer)
     {
         skipSearch = false;  // Reset flag
         fixConfirmCount = 0;
-        lv_timer_del(searchTimer);
+        lv_timer_delete(searchTimer);
         isSearchingSat = false;
         zoom = defaultZoom;
         activeTile = 3;
@@ -103,7 +103,7 @@ void createSearchSatScr()
     lv_obj_set_pos(buttonBar, 0, TFT_HEIGHT - 80 * scaleBut);
     lv_obj_set_flex_flow(buttonBar, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(buttonBar, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(buttonBar, LV_OBJ_FLAG_SCROLLABLE);
     static lv_style_t styleBar;
     lv_style_init(&styleBar);
     lv_style_set_bg_opa(&styleBar, LV_OPA_0);

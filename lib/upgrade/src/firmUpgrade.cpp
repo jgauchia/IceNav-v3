@@ -55,7 +55,7 @@ void onUpgrdStart()
         {
             ESP_LOGE(TAG, "Upgrade error!");
             lv_label_set_text_static(msgUprgdText, LV_SYMBOL_WARNING " Upgrade error!");
-            lv_obj_clear_flag(btnMsgBack,LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(btnMsgBack,LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(contMeter,LV_OBJ_FLAG_HIDDEN);
         }
         upgradeSprite.deleteSprite();

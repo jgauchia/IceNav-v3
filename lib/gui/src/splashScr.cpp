@@ -85,7 +85,7 @@ void createLVGLSplashScreen()
     lv_obj_t *osmInfo = lv_obj_create(splashScr);
     lv_obj_set_width(osmInfo, display().width());
     lv_obj_set_height(osmInfo,50 * scale);
-    lv_obj_clear_flag(osmInfo, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(osmInfo, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(osmInfo, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(osmInfo, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_bg_opa(osmInfo, 0, 0);

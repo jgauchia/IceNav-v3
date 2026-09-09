@@ -54,7 +54,7 @@ void createMsgUpgrade()
     lv_obj_set_size(contText, lv_pct(100), LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(contText, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(contText, LV_FLEX_ALIGN_CENTER,  LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER);
-    lv_obj_clear_flag(contText,LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(contText,LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_border_color(contText,lv_color_black(),0);
 
     msgUprgdText = lv_label_create(contText);
@@ -65,7 +65,7 @@ void createMsgUpgrade()
     lv_obj_set_size(contMeter, lv_pct(100), LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(contMeter, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(contMeter, LV_FLEX_ALIGN_CENTER,  LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER);
-    lv_obj_clear_flag(contMeter,LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(contMeter,LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_border_color(contMeter,lv_color_black(),0);
     lv_obj_add_flag(contMeter,LV_OBJ_FLAG_HIDDEN);
 

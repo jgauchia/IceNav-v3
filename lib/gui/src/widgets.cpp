@@ -156,20 +156,20 @@ void dragWidget(lv_event_t *event)
         if (!widgetSelected)
         {
             objSelect(obj);
-            lv_obj_clear_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
+            lv_obj_remove_flag(tilesScreen, LV_OBJ_FLAG_SCROLLABLE);
             widgetSelected = true;
         }
         
-        lv_indev_t *indev = lv_indev_get_act();
+        lv_indev_t *indev = lv_indev_active();
         if (indev == NULL)
             return;
             
         lv_point_t vect;
         lv_indev_get_vect(indev, &vect);
-        lv_coord_t x = lv_obj_get_x(obj) + vect.x;
-        lv_coord_t y = lv_obj_get_y(obj) + vect.y;
-        lv_coord_t width = lv_obj_get_width(obj);
-        lv_coord_t height = lv_obj_get_height(obj);
+        int32_t x = lv_obj_get_x(obj) + vect.x;
+        int32_t y = lv_obj_get_y(obj) + vect.y;
+        int32_t width = lv_obj_get_width(obj);
+        int32_t height = lv_obj_get_height(obj);
         
         if (x > 0 && y > 0 && (x + width) < TFT_WIDTH && (y + height) < TFT_HEIGHT - 25)
         {
@@ -190,7 +190,7 @@ void positionWidget(lv_obj_t *screen)
     lv_obj_t *obj = lv_obj_create(screen);
     lv_obj_set_height(obj, 40 * scale);
     lv_obj_set_pos(obj, coordPosX, coordPosY);
-    lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(obj, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_left(obj, 6 * scale, 0);
@@ -205,8 +205,8 @@ void positionWidget(lv_obj_t *screen)
 
     lv_obj_t *colCoords = lv_obj_create(obj);
     lv_obj_remove_style_all(colCoords);
-    lv_obj_clear_flag(colCoords, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_clear_flag(colCoords, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(colCoords, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(colCoords, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_width(colCoords, LV_SIZE_CONTENT);
     lv_obj_set_height(colCoords, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(colCoords, LV_FLEX_FLOW_COLUMN);
@@ -237,7 +237,7 @@ void compassWidget(lv_obj_t *screen)
     lv_obj_t *obj = lv_obj_create(screen);
     lv_obj_set_size(obj, 200 * scale, 200 * scale);
     lv_obj_set_pos(obj, compassPosX, compassPosY);
-    lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     
     LV_IMG_DECLARE(arrow);
     lv_obj_t *img = lv_image_create(obj);
@@ -276,7 +276,7 @@ void altitudeWidget(lv_obj_t *screen)
     lv_obj_t *obj = lv_obj_create(screen);
     lv_obj_set_height(obj, 40 * scale);
     lv_obj_set_pos(obj, altitudePosX, altitudePosY);
-    lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(obj, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_left(obj, 8 * scale, 0);
@@ -311,7 +311,7 @@ void speedWidget(lv_obj_t *screen)
     lv_obj_t *obj = lv_obj_create(screen);
     lv_obj_set_height(obj, 40 * scale);
     lv_obj_set_pos(obj, speedPosX, speedPosY);
-    lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(obj, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_left(obj, 8 * scale, 0);
@@ -352,7 +352,7 @@ void sunWidget(lv_obj_t *screen)
     lv_obj_t *obj = lv_obj_create(screen);
     lv_obj_set_size(obj, calculatedWidth, 60 * scale);
     lv_obj_set_pos(obj, sunPosX, sunPosY);
-    lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(obj, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
     lv_obj_set_style_pad_gap(obj, 2 * scale, 0);
@@ -360,7 +360,7 @@ void sunWidget(lv_obj_t *screen)
 
     lv_obj_t *rowRise = lv_obj_create(obj);
     lv_obj_remove_style_all(rowRise);
-    lv_obj_clear_flag(rowRise, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(rowRise, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_width(rowRise, LV_PCT(100));
     lv_obj_set_height(rowRise, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(rowRise, LV_FLEX_FLOW_ROW);
@@ -377,7 +377,7 @@ void sunWidget(lv_obj_t *screen)
 
     lv_obj_t *rowSet = lv_obj_create(obj);
     lv_obj_remove_style_all(rowSet);
-    lv_obj_clear_flag(rowSet, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(rowSet, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_width(rowSet, LV_PCT(100));
     lv_obj_set_height(rowSet, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(rowSet, LV_FLEX_FLOW_ROW);
@@ -427,7 +427,7 @@ void mapZoomWidget(lv_obj_t *screen)
 
     zoomWidget = lv_obj_create(screen);
     lv_obj_set_size(zoomWidget, (int)(64 * scale), (int)(32 * scale));
-    lv_obj_clear_flag(zoomWidget, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(zoomWidget, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(zoomWidget, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(zoomWidget, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_add_style(zoomWidget, &styleMapWidget, 0);
@@ -457,7 +457,7 @@ void mapSpeedWidget(lv_obj_t *screen)
 
     mapSpeed = lv_obj_create(screen);
     lv_obj_set_size(mapSpeed, (int)(100 * scale), (int)(32 * scale));
-    lv_obj_clear_flag(mapSpeed, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(mapSpeed, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(mapSpeed, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(mapSpeed, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_add_style(mapSpeed, &styleMapWidget, 0);
@@ -502,7 +502,7 @@ void mapCompassWidget(lv_obj_t *screen)
 {
     miniCompass = lv_obj_create(screen);
     lv_obj_set_size(miniCompass, (int)(60 * scale), (int)(60 * scale));
-    lv_obj_clear_flag(miniCompass, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(miniCompass, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_style(miniCompass, &styleMapWidget, 0);
     lv_obj_align(miniCompass, LV_ALIGN_TOP_RIGHT, 0, 0);
     mapCompassImg = lv_image_create(miniCompass);
@@ -523,7 +523,7 @@ void mapScaleWidget(lv_obj_t *screen)
 {
     scaleWidget = lv_obj_create(screen);
     lv_obj_set_size(scaleWidget, (int)(100 * scale), (int)(32 * scale));
-    lv_obj_clear_flag(scaleWidget, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(scaleWidget, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(scaleWidget, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(scaleWidget, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_add_style(scaleWidget, &styleMapWidget, 0);
@@ -550,7 +550,7 @@ void turnByTurnWidget(lv_obj_t *screen)
 {
     turnByTurn = lv_obj_create(screen);
     lv_obj_set_size(turnByTurn, (int)(60 * scale), (int)(100 * scale));
-    lv_obj_clear_flag(turnByTurn, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(turnByTurn, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(turnByTurn, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(turnByTurn, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_add_style(turnByTurn, &styleMapWidget, 0);
@@ -594,7 +594,7 @@ void climbWidget(lv_obj_t *screen)
     climbOverlay = lv_obj_create(screen);
     lv_obj_set_width(climbOverlay, TFT_WIDTH);
     lv_obj_set_height(climbOverlay, LV_SIZE_CONTENT);
-    lv_obj_clear_flag(climbOverlay, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(climbOverlay, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(climbOverlay, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_add_style(climbOverlay, &styleMapWidget, 0);
     lv_obj_set_style_pad_ver(climbOverlay, padV, 0);
@@ -608,7 +608,7 @@ void climbWidget(lv_obj_t *screen)
     lv_obj_t *rowStatic = lv_obj_create(climbOverlay);
     lv_obj_set_width(rowStatic, lv_pct(100));
     lv_obj_set_height(rowStatic, LV_SIZE_CONTENT);
-    lv_obj_clear_flag(rowStatic, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(rowStatic, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(rowStatic, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_set_style_bg_opa(rowStatic, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(rowStatic, 0, 0);
@@ -634,7 +634,7 @@ void climbWidget(lv_obj_t *screen)
     lv_obj_t *row = lv_obj_create(climbOverlay);
     lv_obj_set_width(row, lv_pct(100));
     lv_obj_set_height(row, LV_SIZE_CONTENT);
-    lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(row, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(row, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(row, 0, 0);

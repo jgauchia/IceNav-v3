@@ -51,7 +51,7 @@ static void touchCalib(lv_event_t *event)
     isMainScreen = false;
     display().clear(0x0000);
     lv_screen_load(settingsScreen);
-    lv_obj_invalidate(lv_scr_act());
+    lv_obj_invalidate(lv_screen_active());
 }
 #endif
 
@@ -70,7 +70,7 @@ static void compassCalib(lv_event_t *event)
     display().clear(0x0000);
     isMainScreen = false;
     lv_screen_load(settingsScreen);
-    lv_obj_invalidate(lv_scr_act());
+    lv_obj_invalidate(lv_screen_active());
 }
 #endif
 

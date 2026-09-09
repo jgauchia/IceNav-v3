@@ -108,7 +108,7 @@ void showRestartScr()
  */
 void showMsg(const char* symbol, const char* message, bool refresh)
 {
-    msgDialog = lv_msgbox_create(lv_scr_act());
+    msgDialog = lv_msgbox_create(lv_screen_active());
     lv_obj_set_width(msgDialog,TFT_WIDTH);
     lv_obj_set_align(msgDialog,LV_ALIGN_CENTER);
     lv_obj_set_style_text_font(msgDialog, fontDefault, 0);
@@ -132,6 +132,6 @@ void closeMsg()
         msgDialog = nullptr;
         return;
     }
-    lv_obj_del(msgDialog);
+    lv_obj_delete(msgDialog);
     msgDialog = nullptr;
 }

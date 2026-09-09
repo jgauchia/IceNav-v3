@@ -551,7 +551,7 @@ static void applyRerouteUiCb(void *userData)
 {
     lv_subject_set_int(&subject_rerouting, 0);
     lv_obj_send_event(navTile, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_obj_clear_flag(turnByTurn, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(turnByTurn, LV_OBJ_FLAG_HIDDEN);
     lv_obj_send_event(mapTile, LV_EVENT_REFRESH, NULL);
 }
 

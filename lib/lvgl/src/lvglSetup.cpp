@@ -460,7 +460,7 @@ void modifyTheme()
     lv_style_set_bg_color(&styleObjectSel, lv_color_hex(0x757575));
     
     /*Initialize the new theme from the current theme*/
-    lv_theme_t *th_act = lv_disp_get_theme(NULL);
+    lv_theme_t *th_act = lv_display_get_theme(NULL);
     static lv_theme_t *th_new = nullptr;
     if (th_new == nullptr)
     {
@@ -471,7 +471,7 @@ void modifyTheme()
     }
 
     /*Assign the new theme to the current display*/
-    lv_disp_set_theme(NULL, th_new);
+    lv_display_set_theme(NULL, th_new);
 }
 
 /**
@@ -566,7 +566,7 @@ void initLVGL()
         lv_indev_set_long_press_time(indev_gpio, longPressTime);
 
         keyGroup = lv_group_create();
-        lv_group_add_obj(keyGroup,lv_scr_act());
+        lv_group_add_obj(keyGroup,lv_screen_active());
         lv_indev_set_group(indev_gpio, keyGroup);
 
         lv_indev_add_event_cb(indev_gpio, gpioLongEvent, LV_EVENT_LONG_PRESSED, NULL);
@@ -623,11 +623,11 @@ void loadMainScreen()
         lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
     }
 
-    lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(optionsScrim, LV_OBJ_FLAG_HIDDEN);
     lv_obj_set_y(optionsPanel, TFT_HEIGHT);
     if (mapView.isMapFound)
-        lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
     else
         lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
 

@@ -88,7 +88,7 @@ static void mapSettingsEvents(lv_event_t *event)
         mapSet.showMapCompass = lv_obj_has_state(obj, LV_STATE_CHECKED);
         cfg.saveBool(PKEYS::KMAP_COMPASS, mapSet.showMapCompass);
         if (mapSet.showMapCompass)
-            lv_obj_clear_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
         else
             lv_obj_add_flag(miniCompass,LV_OBJ_FLAG_HIDDEN);
     }
@@ -106,7 +106,7 @@ static void mapSettingsEvents(lv_event_t *event)
         mapSet.showMapSpeed = lv_obj_has_state(obj, LV_STATE_CHECKED);
         cfg.saveBool(PKEYS::KMAP_SPEED, mapSet.showMapSpeed);
         if (mapSet.showMapSpeed)
-            lv_obj_clear_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
         else
             lv_obj_add_flag(mapSpeed,LV_OBJ_FLAG_HIDDEN);
     }
@@ -116,7 +116,7 @@ static void mapSettingsEvents(lv_event_t *event)
         mapSet.showMapScale = lv_obj_has_state(obj, LV_STATE_CHECKED);
         cfg.saveBool(PKEYS::KMAP_SCALE, mapSet.showMapScale);
         if (mapSet.showMapScale)
-            lv_obj_clear_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
         else
             lv_obj_add_flag(scaleWidget,LV_OBJ_FLAG_HIDDEN);
     }
@@ -137,7 +137,7 @@ static void mapSettingsEvents(lv_event_t *event)
     if (obj == mapType)
     {
         if (mapSet.vectorMap)
-            lv_obj_clear_flag(list3DMap, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(list3DMap, LV_OBJ_FLAG_HIDDEN);
         else
             lv_obj_add_flag(list3DMap, LV_OBJ_FLAG_HIDDEN);
     }
@@ -157,7 +157,7 @@ void createMapSettingsScr()
     lv_obj_t *label;
     // Map Type
     list = lv_list_add_button(mapSettingsOptions, NULL, "Map Type\nRENDER/VECTOR");
-    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
     lv_obj_set_style_text_font(list, fontOptions, 0);
     mapType = lv_switch_create(list);
@@ -167,12 +167,12 @@ void createMapSettingsScr()
     if (mapSet.vectorMap)
         lv_obj_add_state(mapType, LV_STATE_CHECKED);
     else
-        lv_obj_clear_state(mapType, LV_STATE_CHECKED);
+        lv_obj_remove_state(mapType, LV_STATE_CHECKED);
     lv_obj_align_to(mapType, list, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_obj_add_event_cb(mapType, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
     // Map Rotation
     list = lv_list_add_button(mapSettingsOptions, NULL, "Map Rotation Mode\nHEADING/COMPASS");
-    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
     lv_obj_set_style_text_font(list, fontOptions, 0);
     mapSwitch = lv_switch_create(list);
@@ -182,12 +182,12 @@ void createMapSettingsScr()
     if (mapSet.mapRotationComp)
         lv_obj_add_state(mapSwitch, LV_STATE_CHECKED);
     else
-        lv_obj_clear_state(mapSwitch, LV_STATE_CHECKED);
+        lv_obj_remove_state(mapSwitch, LV_STATE_CHECKED);
     lv_obj_align_to(mapSwitch, list, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_obj_add_event_cb(mapSwitch, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
     // Default zoom level
     list = lv_list_add_button(mapSettingsOptions, NULL, "Default\nZoom Level");
-    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
     lv_obj_set_style_text_font(list, fontOptions, 0);
     zoomBtnUp = lv_button_create(list);
@@ -198,7 +198,7 @@ void createMapSettingsScr()
     zoomLevel = lv_spinbox_create(list);
     lv_spinbox_set_range(zoomLevel, minZoom, maxZoom);
     lv_obj_set_width(zoomLevel, 40 * scale);
-    lv_obj_clear_flag(zoomLevel, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(zoomLevel, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_text_font(zoomLevel, fontLarge, 0);
     lv_spinbox_set_value(zoomLevel, defaultZoom);
     lv_spinbox_set_digit_format(zoomLevel, 2, 0);
@@ -212,7 +212,7 @@ void createMapSettingsScr()
     // Show Compass
     list = lv_list_add_button(mapSettingsOptions, NULL, "Show Compass");
     lv_obj_set_style_text_font(list, fontOptions, 0);
-    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
     checkCompass = lv_checkbox_create(list);
     lv_obj_align_to(checkCompass, list, LV_ALIGN_RIGHT_MID, 0, 0);
@@ -225,7 +225,7 @@ void createMapSettingsScr()
     // Compass Rotation
     list = lv_list_add_button(mapSettingsOptions, NULL, "Compass Rotation");
     lv_obj_set_style_text_font(list, fontOptions, 0);
-    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
     checkCompassRot = lv_checkbox_create(list);
     lv_obj_align_to(checkCompassRot, list, LV_ALIGN_RIGHT_MID, 0, 0);
@@ -238,7 +238,7 @@ void createMapSettingsScr()
     // Show Speed
     list = lv_list_add_button(mapSettingsOptions, NULL, "Show Speed");
     lv_obj_set_style_text_font(list, fontOptions, 0);
-    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
     checkSpeed = lv_checkbox_create(list);
     lv_obj_align_to(checkSpeed, list, LV_ALIGN_RIGHT_MID, 0, 0);
@@ -251,7 +251,7 @@ void createMapSettingsScr()
     // Show Map Scale
     list = lv_list_add_button(mapSettingsOptions, NULL, "Show Map Scale");
     lv_obj_set_style_text_font(list, fontOptions, 0);
-    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
     checkScale = lv_checkbox_create(list);
     lv_obj_align_to(checkScale, list, LV_ALIGN_RIGHT_MID, 0, 0);
@@ -264,7 +264,7 @@ void createMapSettingsScr()
     // Show Climb Analyzer
     list = lv_list_add_button(mapSettingsOptions, NULL, "Climb Analyzer");
     lv_obj_set_style_text_font(list, fontOptions, 0);
-    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
     checkClimb = lv_checkbox_create(list);
     lv_obj_align_to(checkClimb, list, LV_ALIGN_RIGHT_MID, 0, 0);
@@ -277,7 +277,7 @@ void createMapSettingsScr()
     // 3D Map View (vector only)
     list3DMap = lv_list_add_button(mapSettingsOptions, NULL, "3D Navigation Map View");
     lv_obj_set_style_text_font(list3DMap, fontOptions, 0);
-    lv_obj_clear_flag(list3DMap, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(list3DMap, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list3DMap, LV_ALIGN_LEFT_MID);
     check3DMap = lv_checkbox_create(list3DMap);
     lv_obj_align_to(check3DMap, list3DMap, LV_ALIGN_RIGHT_MID, 0, 0);

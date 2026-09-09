@@ -157,7 +157,7 @@ void constSatEvent(lv_event_t *event)
 {
     lv_event_code_t code = lv_event_get_code(event);
     if (code == LV_EVENT_LONG_PRESSED)
-        lv_obj_clear_flag(constMsg,LV_OBJ_FLAG_HIDDEN); 
+        lv_obj_remove_flag(constMsg,LV_OBJ_FLAG_HIDDEN); 
 }
 /**
  * @brief Event for hiding the constellation map (only for T-DECK).
@@ -365,7 +365,7 @@ void satelliteScr(_lv_obj_t *screen)
     infoGrid = lv_obj_create(satContainer);
     lv_obj_set_width(infoGrid, TFT_WIDTH);
     lv_obj_set_flex_align(infoGrid, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_clear_flag(infoGrid, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(infoGrid, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(infoGrid, LV_FLEX_FLOW_ROW_WRAP);
     lv_obj_add_style(infoGrid, &styleTransparent, LV_PART_MAIN);
     pdopLabel = lv_label_create(infoGrid);

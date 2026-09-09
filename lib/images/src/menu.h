@@ -19,4 +19,4 @@
 #endif
 
 extern const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMAGE_MENU uint8_t menu_map[];
-extern const lv_img_dsc_t menu;
+extern const lv_image_dsc_t menu;
