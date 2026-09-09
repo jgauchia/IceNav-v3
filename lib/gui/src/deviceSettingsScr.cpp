@@ -109,8 +109,8 @@ static lv_obj_t *createBrightText(lv_obj_t *parent, const char *icon, const char
     lv_obj_t *label = NULL;
     if (icon) 
     {
-        img = lv_img_create(obj);
-        lv_img_set_src(img, icon);
+        img = lv_image_create(obj);
+        lv_image_set_src(img, icon);
     }
     if (txt) 
     {
@@ -169,7 +169,7 @@ void createDeviceSettingsScr()
     lv_obj_t *btn;
     lv_obj_t *dropdown;
     // GPS Speed
-    list = lv_list_add_btn(deviceSettingsOptions, NULL, "GPS\nSpeed");
+    list = lv_list_add_button(deviceSettingsOptions, NULL, "GPS\nSpeed");
     lv_obj_set_style_text_font(list, fontOptions, 0);
     lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_OUT_LEFT_BOTTOM);
@@ -182,7 +182,7 @@ void createDeviceSettingsScr()
     lv_obj_set_width(dropdown,TFT_WIDTH / 3);
     lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"speed");
     // GPS Update rate
-    list = lv_list_add_btn(deviceSettingsOptions, NULL, "GPS\nUpdate rate");
+    list = lv_list_add_button(deviceSettingsOptions, NULL, "GPS\nUpdate rate");
     lv_obj_set_style_text_font(list, fontOptions, 0);
     lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
@@ -201,7 +201,7 @@ void createDeviceSettingsScr()
     lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
     lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"rate");
     // Routing Profile
-    list = lv_list_add_btn(deviceSettingsOptions, NULL, "Routing\nProfile");
+    list = lv_list_add_button(deviceSettingsOptions, NULL, "Routing\nProfile");
     lv_obj_set_style_text_font(list, fontOptions, 0);
     lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_OUT_LEFT_BOTTOM);
@@ -223,7 +223,7 @@ void createDeviceSettingsScr()
     // Logger Profile
     if (storage.getSdLoaded())
     {
-        list = lv_list_add_btn(deviceSettingsOptions, NULL, "Logger\nProfile");
+        list = lv_list_add_button(deviceSettingsOptions, NULL, "Logger\nProfile");
         lv_obj_set_style_text_font(list, fontOptions, 0);
         lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
         lv_obj_set_align(list, LV_ALIGN_OUT_LEFT_BOTTOM);
@@ -237,7 +237,7 @@ void createDeviceSettingsScr()
         lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"logprofile");
     }
     // NMEA Debug Tile
-    list = lv_list_add_btn(deviceSettingsOptions, NULL, "NMEA Debug\nTile");
+    list = lv_list_add_button(deviceSettingsOptions, NULL, "NMEA Debug\nTile");
     lv_obj_set_style_text_font(list, fontOptions, 0);
     lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
@@ -249,8 +249,8 @@ void createDeviceSettingsScr()
     lv_obj_align_to(nmeaDbgSwitch, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
     lv_obj_add_event_cb(nmeaDbgSwitch, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"nmeadbg");
     // Upgrade button
-    list = lv_list_add_btn(deviceSettingsOptions, NULL, NULL);
-    btn = lv_btn_create(list);
+    list = lv_list_add_button(deviceSettingsOptions, NULL, NULL);
+    btn = lv_button_create(list);
     lv_obj_set_size(btn, TFT_WIDTH - 45, 40 * scale);
     label = lv_label_create(btn);
     lv_obj_set_style_text_font(label, fontLarge, 0);
@@ -260,7 +260,7 @@ void createDeviceSettingsScr()
     // Brightness Slider
     createBrightSlider(deviceSettingsOptions, LV_SYMBOL_SETTINGS, "Brightness", 5, 255, defBright, brightnessEvent, LV_EVENT_VALUE_CHANGED);
     // Back button
-    btn = lv_btn_create(deviceSettingsScreen);
+    btn = lv_button_create(deviceSettingsScreen);
     lv_obj_set_size(btn, TFT_WIDTH - 30, 40 * scale);
     label = lv_label_create(btn);
     lv_obj_set_style_text_font(label, fontLarge, 0);

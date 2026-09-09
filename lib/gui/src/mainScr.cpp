@@ -766,7 +766,7 @@ static void map_3d_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
 {
     mapSet.map3D = (lv_subject_get_int(subject) != 0);
     if (toggle3DImg != NULL)
-        lv_img_set_src(toggle3DImg, mapSet.map3D ? toggle3DIconFile : toggle2DIconFile);
+        lv_image_set_src(toggle3DImg, mapSet.map3D ? toggle3DIconFile : toggle2DIconFile);
     mapView.updateMap();
     triggerMapRedraw();
 }
@@ -1051,14 +1051,14 @@ static void updateNavEvent(lv_event_t *event)
     if (wptDistance <= 30)
     {
         LV_IMG_DECLARE(navfinish);
-        lv_img_set_src(arrowNav, &navfinish);
-        lv_img_set_angle(arrowNav, 0);
+        lv_image_set_src(arrowNav, &navfinish);
+        lv_image_set_rotation(arrowNav, 0);
     }
     else
     {
         float navHeading = (float)lv_subject_get_int(&subject_heading);
         float wptCourse = calcCourse(gpsSnap.latitude, gpsSnap.longitude, loadWpt.lat, loadWpt.lon) - navHeading;
-        lv_img_set_angle(arrowNav, (wptCourse * 10));
+        lv_image_set_rotation(arrowNav, (wptCourse * 10));
     }
 }
 
@@ -1228,7 +1228,7 @@ static void showLoggerSummary()
     const char *slash = strrchr(fn, '/');
     addRow("File:", slash ? slash + 1 : fn);
 
-    lv_obj_t *btnOk = lv_btn_create(card);
+    lv_obj_t *btnOk = lv_button_create(card);
 #if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
     lv_obj_set_size(btnOk, (int)(80 * scaleBut), (int)(35 * scaleBut));
 #else
@@ -1403,14 +1403,14 @@ void createMainScr()
     lv_subject_add_observer_obj(&subject_heading, map_heading_observer_cb, mapTile, NULL);
     lv_subject_add_observer_obj(&subject_lat, map_position_observer_cb, mapTile, NULL);
     lv_subject_add_observer_obj(&subject_lon, map_position_observer_cb, mapTile, NULL);
-    btnZoomOut = lv_img_create(mapTile);
-    lv_img_set_src(btnZoomOut, zoomOutIconFile);
-    lv_img_set_zoom(btnZoomOut,buttonScale);
+    btnZoomOut = lv_image_create(mapTile);
+    lv_image_set_src(btnZoomOut, zoomOutIconFile);
+    lv_image_set_scale(btnZoomOut,buttonScale);
     lv_obj_update_layout(btnZoomOut);
     lv_obj_set_size(btnZoomOut,  48 * scaleBut, 48 * scaleBut);
-    btnZoomIn = lv_img_create(mapTile);
-    lv_img_set_src(btnZoomIn, zoomInIconFile);
-    lv_img_set_zoom(btnZoomIn,buttonScale);
+    btnZoomIn = lv_image_create(mapTile);
+    lv_image_set_src(btnZoomIn, zoomInIconFile);
+    lv_image_set_scale(btnZoomIn,buttonScale);
     lv_obj_update_layout(btnZoomIn);
     lv_obj_set_size(btnZoomIn,  48 * scaleBut, 48 * scaleBut);
     lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrHeight - toolBarOffset);
@@ -1456,8 +1456,8 @@ void createMainScr()
 #else
     lv_obj_align(btnToggle3D, LV_ALIGN_TOP_RIGHT, 0, 170);
 #endif
-    toggle3DImg = lv_img_create(btnToggle3D);
-    lv_img_set_zoom(toggle3DImg, buttonScale);
+    toggle3DImg = lv_image_create(btnToggle3D);
+    lv_image_set_scale(toggle3DImg, buttonScale);
     lv_obj_center(toggle3DImg);
     lv_obj_add_flag(btnToggle3D, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_event_cb(btnToggle3D, toggle3DEvent, LV_EVENT_CLICKED, NULL);

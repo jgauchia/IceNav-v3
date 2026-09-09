@@ -40,7 +40,7 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
     {
         loadWpt = gpx.getWaypointInfo(gpxName);
         LV_IMG_DECLARE(navup);
-        lv_img_set_src(arrowNav, &navup);
+        lv_image_set_src(arrowNav, &navup);
 
         if (loadWpt.lat != 0 && loadWpt.lon != 0)
         {

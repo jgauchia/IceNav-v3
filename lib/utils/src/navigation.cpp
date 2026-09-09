@@ -152,7 +152,7 @@ void handleOffTrackCondition(float distToTrack, NavState& state, int closestIdx,
     {
         if (lastIconShown != &outtrack)
         {
-            lv_img_set_src(turnImg, &outtrack);
+            lv_image_set_src(turnImg, &outtrack);
             lastIconShown = &outtrack;
         }
 
@@ -372,7 +372,7 @@ void updateNavigation(
     {
         if (lastIconShown != &finish)
         {
-            lv_img_set_src(turnImg, &finish);
+            lv_image_set_src(turnImg, &finish);
             lastIconShown = &finish;
         }
         state.isFinished = true;
@@ -382,7 +382,7 @@ void updateNavigation(
     {
         if (lastIconShown != &straight)
         {
-            lv_img_set_src(turnImg, &straight);
+            lv_image_set_src(turnImg, &straight);
             lastIconShown = &straight;
         }
         int roundedDist = ((int)distToEnd / 5) * 5;
@@ -436,7 +436,7 @@ void updateNavigation(
 
     if (currentIcon != lastIconShown)
     {
-        lv_img_set_src(turnImg, currentIcon);
+        lv_image_set_src(turnImg, currentIcon);
         lastIconShown = currentIcon;
     }
 

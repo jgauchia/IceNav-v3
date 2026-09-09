@@ -358,9 +358,9 @@ static lv_obj_t *createOptionCell(lv_obj_t *parent, const char *iconSrc, const c
     lv_obj_add_flag(cell, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(cell, cb, LV_EVENT_PRESSED, action);
 
-    lv_obj_t *img = lv_img_create(cell);
-    lv_img_set_src(img, iconSrc);
-    lv_img_set_zoom(img, buttonScale);
+    lv_obj_t *img = lv_image_create(cell);
+    lv_image_set_src(img, iconSrc);
+    lv_image_set_scale(img, buttonScale);
     lv_obj_update_layout(img);
     lv_obj_set_style_size(img, iconSize, iconSize, 0);
 
@@ -438,7 +438,7 @@ void createOptionsPanel()
         for (int i = 0; i < 3; i++)
         {
             lv_obj_clear_flag(inactiveCells[i], LV_OBJ_FLAG_CLICKABLE);
-            lv_obj_set_style_img_opa(inactiveIcons[i], LV_OPA_30, 0);
+            lv_obj_set_style_image_opa(inactiveIcons[i], LV_OPA_30, 0);
             lv_obj_set_style_text_color(inactiveLbls[i], lv_color_make(128, 128, 128), 0);
         }
     }
@@ -488,9 +488,9 @@ void createOptionsPanel()
     lv_obj_add_event_cb(menuBtnWrap, hideShowEvent, LV_EVENT_ALL, NULL);
     menuBtn = menuBtnWrap;
     LV_IMG_DECLARE(menu);
-    lv_obj_t *menuIcon = lv_img_create(menuBtnWrap);
-    lv_img_set_src(menuIcon, &menu);
-    lv_img_set_zoom(menuIcon, buttonScale);
+    lv_obj_t *menuIcon = lv_image_create(menuBtnWrap);
+    lv_image_set_src(menuIcon, &menu);
+    lv_image_set_scale(menuIcon, buttonScale);
     lv_obj_update_layout(menuIcon);
     lv_obj_set_size(menuIcon, iconSize, iconSize);
     lv_obj_center(menuIcon);

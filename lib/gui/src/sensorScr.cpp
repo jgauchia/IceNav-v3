@@ -391,7 +391,7 @@ void createSensorScr()
     }
     #endif
 
-    lv_obj_t *btn = lv_btn_create(scroll);
+    lv_obj_t *btn = lv_button_create(scroll);
     lv_obj_set_size(btn, TFT_WIDTH - 30, (int)(40 * scale));
     lv_obj_t *btnLabel = lv_label_create(btn);
     lv_obj_set_style_text_font(btnLabel, fontLarge, 0);
