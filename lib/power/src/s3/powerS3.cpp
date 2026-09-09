@@ -61,9 +61,7 @@ public:
         closeMsg();
         lv_refr_now(display_drv);
         tftOff();
-
         suspendAllTasks();
-
         powerLightSleep();
 
         resumeAllTasks();
@@ -117,6 +115,11 @@ private:
     void powerLightSleep()
     {
         esp_sleep_enable_ext1_wakeup(1ull << BOARD_BOOT_PIN, ESP_EXT1_WAKEUP_ANY_LOW);
+        // ext1 routes the pad to RTC before sleeping, where the GPIO-matrix pull
+        // does not apply. Without a pull the pin floats low -> EXT1 ANY_LOW is
+        // already triggered -> sleep is rejected (cause=0) and the wake wait loop
+        // hangs. Keep the RTC pad pull-up so the pin stays high during sleep.
+        rtc_gpio_pullup_en((gpio_num_t)BOARD_BOOT_PIN);
         esp_light_sleep_start();
     }
 
