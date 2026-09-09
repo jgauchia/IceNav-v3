@@ -302,5 +302,8 @@
  */
 static constexpr bool TFT_INVERT = true;
 
+// P4 boards without PMIC poll the power button from deep sleep via RTC timer.
+static constexpr uint64_t POWEROFF_POLL_US = 1000000;
+
 void initHAL();
 

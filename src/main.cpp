@@ -8,6 +8,8 @@
 
 #include <Arduino.h>
 #include <esp_log.h>
+#include <esp_sleep.h>
+#include <driver/gpio.h>
 
 #include "hal.hpp"
 #include "gps.hpp"
@@ -52,6 +54,20 @@ extern Maps mapView;
  */
 void setup()
 {
+    #if defined(CONFIG_IDF_TARGET_ESP32P4) && !defined(WAVESHARE_P4_35)
+        // Power-off wakeup: re-sleep until the power button is pressed.
+        if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TIMER)
+        {
+            gpio_set_direction((gpio_num_t)BOARD_BOOT_PIN, GPIO_MODE_INPUT);
+            gpio_set_pull_mode((gpio_num_t)BOARD_BOOT_PIN, GPIO_PULLUP_ONLY);
+            if (gpio_get_level((gpio_num_t)BOARD_BOOT_PIN) != 0)
+            {
+                esp_sleep_enable_timer_wakeup(POWEROFF_POLL_US);
+                esp_deep_sleep_start();
+            }
+        }
+    #endif
+
     gpsMutex          = xSemaphoreCreateMutex();
     navCtx.routeMutex = xSemaphoreCreateMutex();
     sensorMutex       = xSemaphoreCreateMutex();

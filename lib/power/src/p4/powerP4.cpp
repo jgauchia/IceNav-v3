@@ -98,9 +98,9 @@ private:
      *          by the PMIC when PWRON (the physical button, wired directly
      *          to the PMIC) is pressed — no ESP32-P4 wakeup source is
      *          involved, consistent with PWR_KEY (GPIO49) being outside the
-     *          P4 RTC/LP GPIO range. On P4 boards without this PMIC, falls
-     *          back to esp_deep_sleep_start() (skeleton, no wakeup source
-     *          configured).
+     *          P4 RTC/LP GPIO range. On P4 boards without this PMIC, the
+     *          RTC timer wakes the chip periodically and setup() re-sleeps
+     *          it until the power button is pressed.
      */
     void powerDeepSleep()
     {
@@ -113,6 +113,8 @@ private:
 #ifdef WAVESHARE_P4_35
         axp2101.softPowerOff();
 #else
+        // Wake periodically so setup() can poll the power button.
+        esp_sleep_enable_timer_wakeup(POWEROFF_POLL_US);
         esp_deep_sleep_start();
 #endif
     }
