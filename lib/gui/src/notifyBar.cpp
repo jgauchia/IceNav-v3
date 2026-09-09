@@ -170,8 +170,8 @@ static void is_fixed_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
         lv_anim_set_var(&a, obj);
         lv_anim_set_exec_cb(&a, led_anim_cb);
         lv_anim_set_values(&a, 10, 255);
-        lv_anim_set_time(&a, 500);
-        lv_anim_set_playback_time(&a, 500);
+        lv_anim_set_duration(&a, 500);
+        lv_anim_set_reverse_duration(&a, 500);
         lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
         lv_anim_start(&a);
     }

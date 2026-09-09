@@ -116,7 +116,7 @@ static lv_obj_t *createBrightText(lv_obj_t *parent, const char *icon, const char
     {
         label = lv_label_create(obj);
         lv_label_set_text(label, txt);
-        lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR);
+        lv_label_set_long_mode(label, LV_LABEL_LONG_MODE_SCROLL_CIRCULAR);
         lv_obj_set_flex_grow(label, 1);
     }
     if (icon && txt)

@@ -30,7 +30,7 @@ void navigationScr(_lv_obj_t *screen)
 
     nameNav = lv_label_create(screen);
     lv_obj_set_style_text_font(nameNav, fontLargeMedium, 0);
-    lv_label_set_long_mode(nameNav, LV_LABEL_LONG_SCROLL_CIRCULAR);
+    lv_label_set_long_mode(nameNav, LV_LABEL_LONG_MODE_SCROLL_CIRCULAR);
     lv_obj_set_width(nameNav, TFT_WIDTH - 10);
 
     lv_obj_t *labelLat = lv_label_create(screen);

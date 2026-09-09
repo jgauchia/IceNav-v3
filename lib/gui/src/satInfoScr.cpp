@@ -350,7 +350,7 @@ void satelliteScr(_lv_obj_t *screen)
     satelliteBar = lv_chart_create(wrapper);
     lv_obj_set_size(satelliteBar, TFT_WIDTH * 2, barHeight);
     lv_chart_set_div_line_count(satelliteBar, 10, 0);
-    lv_chart_set_range(satelliteBar, LV_CHART_AXIS_PRIMARY_Y, 0, 60);
+    lv_chart_set_axis_range(satelliteBar, LV_CHART_AXIS_PRIMARY_Y, 0, 60);
     satelliteBarSerie = lv_chart_add_series(satelliteBar, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
     lv_chart_set_type(satelliteBar, LV_CHART_TYPE_BAR);
     lv_obj_set_style_pad_all(satelliteBar, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -409,13 +409,13 @@ void satelliteScr(_lv_obj_t *screen)
 void drawSatSNR()
 {
     for (int i = 0; i < MAX_SATELLITES_IN_VIEW ; i++)
-        lv_chart_set_value_by_id(satelliteBar, satelliteBarSerie, i, LV_CHART_POINT_NONE);
+        lv_chart_set_series_value_by_id(satelliteBar, satelliteBarSerie, i, LV_CHART_POINT_NONE);
     for (int i = 0; i < gps.gpsData.satInView && i < MAX_SATELLITES_IN_VIEW; ++i)
     {
         if (gps.satTracker[i].snr > 0)
-            lv_chart_set_value_by_id(satelliteBar, satelliteBarSerie, i, gps.satTracker[i].snr);
+            lv_chart_set_series_value_by_id(satelliteBar, satelliteBarSerie, i, gps.satTracker[i].snr);
         else
-            lv_chart_set_value_by_id(satelliteBar, satelliteBarSerie, i, LV_CHART_POINT_NONE);
+            lv_chart_set_series_value_by_id(satelliteBar, satelliteBarSerie, i, LV_CHART_POINT_NONE);
     }
     lv_chart_refresh(satelliteBar);
 }

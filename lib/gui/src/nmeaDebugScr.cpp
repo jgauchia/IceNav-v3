@@ -171,7 +171,7 @@ void nmeaDebugScr(_lv_obj_t *screen)
     lv_obj_set_width(dbgRawLabel, TFT_WIDTH - 10);
     lv_obj_set_style_text_font(dbgRawLabel, fontSmall, 0);
     lv_obj_set_style_text_color(dbgRawLabel, lv_palette_main(LV_PALETTE_LIGHT_GREEN), 0);
-    lv_label_set_long_mode(dbgRawLabel, LV_LABEL_LONG_WRAP);
+    lv_label_set_long_mode(dbgRawLabel, LV_LABEL_LONG_MODE_WRAP);
     lv_label_set_text(dbgRawLabel, "");
 
     lv_subject_add_observer_obj(&subject_nmea_debug_trigger,
