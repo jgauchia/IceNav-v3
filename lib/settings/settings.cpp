@@ -132,7 +132,7 @@ void loadPreferences()
  * @details Saves the GPS baud rate to persistent storage and configures the GPS port
  * 			accordingly. If not using auto baud detection, sends configuration commands
  * 			to the GPS module (AT6558D), resets the port, and sets the new baud rate.
- * 			If using auto baud detection (gpsBaud == 3), attempts to detect baud rate
+ * 			If using auto baud detection (gpsBaud == 4), attempts to detect baud rate
  * 			automatically and reconfigures the port.
  *
  * @param gpsBaud Baud rate index to save and configure
@@ -140,7 +140,7 @@ void loadPreferences()
 void saveGPSBaud(uint16_t gpsBaud)
 {
     cfg.saveShort(PKEYS::KGPS_SPEED, gpsBaud);
-    if (gpsBaud != 3)
+    if (gpsBaud != 4)
     {
         #ifdef AT6558D_GPS
             gpsPort.flush();
