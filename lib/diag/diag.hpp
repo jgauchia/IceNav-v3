@@ -9,3 +9,4 @@
 #pragma once
 
 void diagBootReport();
+const char *diagSnapshotMemory();

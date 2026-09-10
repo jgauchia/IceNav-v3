@@ -337,6 +337,30 @@ void wcli_scshot(char *args, Stream *response)
 }
 
 /**
+ * @brief Prints a memory snapshot: heap, LVGL pool and task stack watermarks.
+ *
+ * @details CLI command: mem. Same snapshot is appended to DIAG.log for
+ *          long-session comparison. Declared locally to avoid a cli->diag
+ *          include cycle (diag includes tasks.hpp -> cli.hpp).
+ */
+extern const char *diagSnapshotMemory();
+
+void wcli_mem(char *args, Stream *response)
+{
+    response->print(diagSnapshotMemory());
+    if (storage.getSdLoaded())
+    {
+        FILE *log = storage.open("/sdcard/DIAG.log", "a");
+        if (log)
+        {
+            storage.println(log, diagSnapshotMemory());
+            storage.close(log);
+            response->println("Snapshot appended to DIAG.log");
+        }
+    }
+}
+
+/**
  * @brief Lists user preference keys and their values.
  * @author @Hpsaturn. Method migrated from CanAirIO project  
  *
@@ -459,6 +483,7 @@ void initShell()
     wcli.add("poweroff", &wcli_poweroff, "\tperform a ESP32 deep sleep");
     wcli.add("wipe", &wcli_wipe, "\t\twipe preferences to factory default");
     wcli.add("info", &wcli_info, "\t\tget device information");
+    wcli.add("mem", &wcli_mem, "\t\tmemory snapshot (heap, LVGL, stacks)");
     wcli.add("clear", &wcli_clear, "\t\tclear shell");
     wcli.add("scshot", &wcli_scshot, "\tscreenshot to SD or sending a PC");
     wcli.add("webfile", &wcli_webfile, "\tenable/disable Web file server");

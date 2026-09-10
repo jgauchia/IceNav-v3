@@ -11,6 +11,11 @@
 #include "esp_log.h"
 #include "esp_core_dump.h"
 #include "esp_partition.h"
+#include "esp_heap_caps.h"
+#include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include <lvgl.h>
 #include "storage.hpp"
 #include "diag.hpp"
 
@@ -19,6 +24,12 @@ static const char *TAG = "diag";
 static const char *DIAG_LOG_PATH  = "/sdcard/DIAG.log";
 static const char *COREDUMP_PATH  = "/sdcard/COREDUMP.elf";
 static constexpr size_t DIAG_LOG_MAX_SIZE = 64 * 1024;
+
+extern TaskHandle_t guiTaskHandle;
+extern TaskHandle_t gpsTaskHandle;
+extern TaskHandle_t navTaskHandle;
+extern TaskHandle_t sensorTaskHandle;
+extern TaskHandle_t cliTaskHandle;
 
 /**
  * @brief Return a human-readable string for a reset reason
@@ -190,5 +201,76 @@ void diagBootReport()
         esp_core_dump_image_erase();
     }
 
+    storage.println(log, diagSnapshotMemory());
     storage.close(log);
+}
+
+// Task stacks not created yet report -1 as minimum free bytes
+static int taskStackWatermark(TaskHandle_t handle)
+{
+    if (handle == nullptr)
+        return -1;
+    UBaseType_t wm = uxTaskGetStackHighWaterMark(handle);
+    return (int)(wm * sizeof(StackType_t));
+}
+
+// Buffer reused by every snapshot; only the CLI task reads it
+static constexpr size_t MEM_SNAPSHOT_SIZE = 512;
+static char memSnapshot[MEM_SNAPSHOT_SIZE];
+
+/**
+ * @brief Build a memory snapshot: heap internal/PSRAM, LVGL pool and task stacks
+ *
+ * @return Pointer to a static buffer with the formatted snapshot
+ */
+const char *diagSnapshotMemory()
+{
+    multi_heap_info_t internal;
+    multi_heap_info_t psram;
+    heap_caps_get_info(&internal, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    heap_caps_get_info(&psram, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+
+    size_t off = 0;
+    off += snprintf(memSnapshot + off, MEM_SNAPSHOT_SIZE - off,
+                    "Heap internal: free %u  minEver %u  largestBlock %u\n",
+                    (unsigned)internal.total_free_bytes, (unsigned)internal.minimum_free_bytes,
+                    (unsigned)internal.largest_free_block);
+    if (off >= MEM_SNAPSHOT_SIZE)
+        return memSnapshot;
+    off += snprintf(memSnapshot + off, MEM_SNAPSHOT_SIZE - off,
+                    "Heap PSRAM:    free %u  minEver %u  largestBlock %u\n",
+                    (unsigned)psram.total_free_bytes, (unsigned)psram.minimum_free_bytes,
+                    (unsigned)psram.largest_free_block);
+    if (off >= MEM_SNAPSHOT_SIZE)
+        return memSnapshot;
+
+    if (lv_is_initialized())
+    {
+        lv_mem_monitor_t mon;
+        lv_mem_monitor(&mon);
+        off += snprintf(memSnapshot + off, MEM_SNAPSHOT_SIZE - off,
+                        "LVGL mem: used %u of %u, frag %u%%\n",
+                        (unsigned)(mon.total_size - mon.free_size), (unsigned)mon.total_size,
+                        mon.frag_pct);
+    }
+    else
+    {
+        off += snprintf(memSnapshot + off, MEM_SNAPSHOT_SIZE - off,
+                        "LVGL mem: not initialized\n");
+    }
+    if (off >= MEM_SNAPSHOT_SIZE)
+        return memSnapshot;
+
+    off += snprintf(memSnapshot + off, MEM_SNAPSHOT_SIZE - off,
+                    "Stack minFree bytes: GUI %d  GPS %d  Nav %d  Sensor %d  CLI %d  MapRender %d\n",
+                    taskStackWatermark(guiTaskHandle), taskStackWatermark(gpsTaskHandle),
+                    taskStackWatermark(navTaskHandle), taskStackWatermark(sensorTaskHandle),
+                    taskStackWatermark(cliTaskHandle), taskStackWatermark(xTaskGetHandle("MapRenderTask")));
+    if (off >= MEM_SNAPSHOT_SIZE)
+        return memSnapshot;
+
+    int64_t uptime = esp_timer_get_time() / 1000000LL;
+    snprintf(memSnapshot + off, MEM_SNAPSHOT_SIZE - off,
+             "--- mem snapshot uptime %lld s ---\n", (long long)uptime);
+    return memSnapshot;
 }
