@@ -2,13 +2,16 @@
  * @file tft.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief TFT definition and functions
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
 #include "tft.hpp"
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <esp_log.h>
+
+static const char *TAG = "TFT";
 
 TFT_eSPI tft = TFT_eSPI();
 bool repeatCalib = false;
@@ -58,7 +61,7 @@ void touchCalibrate()
             }
     }
     else
-        log_e("Touch calibration doesn't exists");
+        ESP_LOGE(TAG, "Touch calibration doesn't exists");
 
     if (calDataOK && !repeatCalib)
         tft.setTouchCalibrate(calData);
@@ -91,12 +94,12 @@ void touchCalibrate()
         FILE* f = storage.open(calibrationFile, "w");
         if (f)
         {
-            log_v("Calibration saved");
+            ESP_LOGV(TAG, "Calibration saved");
             fwrite((const unsigned char *)calData, sizeof(unsigned char), 16 ,f);
             storage.close(f);
         }
         else
-            log_e("Calibration not saved!");
+            ESP_LOGE(TAG, "Calibration not saved!");
 
         uint16_t touchX;
         uint16_t touchY;
@@ -127,7 +130,9 @@ void initTFT()
     tft.initDMA();
     tft.fillScreen(TFT_BLACK);
 
-    #ifdef TOUCH_INPUT
+    // Capacitive touch controllers report already-calibrated coordinates,
+    // so the resistive calibration flow only applies to XPT2046.
+    #if defined(TOUCH_INPUT) && defined(TOUCH_RESISTIVE)
         touchCalibrate();
     #endif
 }

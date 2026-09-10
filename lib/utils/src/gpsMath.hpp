@@ -2,7 +2,7 @@
  * @file gpsMath.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Math and various functions
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include <cmath>
+#include "esp_timer.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846f
@@ -50,8 +51,15 @@ static inline __attribute__((always_inline)) float RAD2DEG(float rad)
     return rad * (180.0f / M_PI);
 }
 
-static const char *degreeFormat = "%03d\xC2\xB0 %02d\' %.2f\" %c"; /**< Format string for degrees (DDD°MM'SS" + hemisphere) */
-static const char* TAGMATH = "MATH";
+inline constexpr const char *degreeFormat = "%03d\xC2\xB0 %02d\' %.2f\" %c"; /**< Format string for degrees (DDD°MM'SS" + hemisphere) */
+inline constexpr const char *TAGMATH      = "MATH";
+
+/**
+ * @brief Get system uptime in milliseconds using ESP-IDF timer.
+ *
+ * @return uint32_t Milliseconds since boot.
+ */
+static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 bool initTrigLUT();
 
@@ -72,6 +80,8 @@ static inline __attribute__((always_inline)) float sinLUT(float rad)
 
     float index = rad / LUT_RES;
     int idx_low = (int)index;
+    if (idx_low >= LUT_SIZE)
+        idx_low = LUT_SIZE - 1;
     int idx_high = (idx_low + 1) % LUT_SIZE;
 
     float frac = index - idx_low;
@@ -99,6 +109,8 @@ static inline __attribute__((always_inline)) float cosLUT(float rad)
 
 	float index = rad / (float)LUT_RES;
 	int idx_low = (int)index;
+	if (idx_low >= LUT_SIZE)
+		idx_low = LUT_SIZE - 1;
 	int idx_high = (idx_low + 1) % LUT_SIZE;
 
 	float frac = index - idx_low;

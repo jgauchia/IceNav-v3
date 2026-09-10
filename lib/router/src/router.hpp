@@ -2,7 +2,7 @@
  * @file router.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Public router interface — load graph and compute A* route
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
@@ -14,8 +14,6 @@
 enum class RouterResult
 {
     OK,
-    NO_GRAPH_FILE,
-    OUT_OF_MEMORY,
     NO_PATH,
     LOAD_ERROR,
 };
@@ -26,11 +24,9 @@ public:
     RouterResult route(float src_lat, float src_lon,
                        float dst_lat, float dst_lon,
                        TrackVector& out_track);
-    void unload();
-    bool isLoaded() const { return loader_.isLoaded(); }
 
 private:
-    GraphLoader loader_;
+    GraphLoader loader;
 };
 
 extern Router router;

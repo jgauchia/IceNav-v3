@@ -2,7 +2,7 @@
  * @file ILI9488_XPT2046_SPI.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LOVYANGFX TFT driver for LilyGo T4-S3
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
@@ -60,7 +60,7 @@ class LGFX : public lgfx::LGFX_Device
             {
                 auto cfg = _bus_instance.config();
 
-                cfg.freq_write = 80000000;
+                cfg.freq_write = 120000000;
                 cfg.freq_read  = 20000000; // irrelevant
 
                 cfg.pin_sclk  = GPIO_NUM_15;

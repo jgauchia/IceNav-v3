@@ -1,7 +1,7 @@
 /**
  * @file i2c_espidf.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
@@ -9,7 +9,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
 #include "esp_err.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
@@ -46,11 +46,25 @@ public:
     }
 
 private:
-    i2c_port_t i2cPort;
+    i2c_master_bus_handle_t busHandle;
+    uint32_t busFreq;
     bool initialized;
     SemaphoreHandle_t i2cMutex;
     static constexpr int I2C_MUTEX_TIMEOUT_MS = 15;
     static constexpr int I2C_BUS_TIMEOUT_MS   = 20;
+
+    // The new i2c_master driver requires one device handle per address.
+    // Handles are created lazily and cached; the sensor set is small.
+    static constexpr int MAX_DEVICES = 8;
+    struct DeviceEntry
+    {
+        uint8_t addr;
+        i2c_master_dev_handle_t handle;
+    };
+    DeviceEntry devices[MAX_DEVICES];
+    int deviceCount;
+
+    i2c_master_dev_handle_t deviceFor(uint8_t addr);
 };
 
 extern I2CNative i2c;

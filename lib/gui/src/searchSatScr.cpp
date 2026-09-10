@@ -2,7 +2,7 @@
  * @file searchSatScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - GPS satellite search screen
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
@@ -47,7 +47,7 @@ void searchGPS(lv_timer_t *searchTimer)
         if (fixConfirmCount >= 5)
         {
             fixConfirmCount = 0;
-            lv_timer_del(searchTimer);
+            lv_timer_delete(searchTimer);
             isSearchingSat = false;
             loadMainScreen();
         }
@@ -60,7 +60,7 @@ void searchGPS(lv_timer_t *searchTimer)
     {
         skipSearch = false;  // Reset flag
         fixConfirmCount = 0;
-        lv_timer_del(searchTimer);
+        lv_timer_delete(searchTimer);
         isSearchingSat = false;
         zoom = defaultZoom;
         activeTile = 3;
@@ -82,18 +82,19 @@ void createSearchSatScr()
     searchSatScreen = lv_obj_create(NULL);
 
     lv_obj_t *label = lv_label_create(searchSatScreen);
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_18, 0);
+    lv_obj_set_style_text_font(label, fontOptions, 0);
     lv_label_set_text(label, textSearch);
     lv_obj_set_align(label, LV_ALIGN_CENTER);
-    lv_obj_set_y(label, -100);
+    lv_obj_set_y(label, -100 * scale);
 
     lv_obj_t *spinner = lv_spinner_create(searchSatScreen);
-    lv_obj_set_size(spinner, 130, 130);
+    lv_obj_set_size(spinner, 130 * scale, 130 * scale);
     lv_spinner_set_anim_params(spinner, 2000, 200);
     lv_obj_center(spinner);
 
-    lv_obj_t *satImg = lv_img_create(searchSatScreen);
-    lv_img_set_src(satImg, satIconFile);
+    lv_obj_t *satImg = lv_image_create(searchSatScreen);
+    lv_image_set_src(satImg, satIconFile);
+    lv_image_set_scale(satImg, iconScale);
     lv_obj_set_align(satImg, LV_ALIGN_CENTER);
 
     // Button Bar
@@ -102,7 +103,7 @@ void createSearchSatScr()
     lv_obj_set_pos(buttonBar, 0, TFT_HEIGHT - 80 * scaleBut);
     lv_obj_set_flex_flow(buttonBar, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(buttonBar, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_clear_flag(buttonBar, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(buttonBar, LV_OBJ_FLAG_SCROLLABLE);
     static lv_style_t styleBar;
     lv_style_init(&styleBar);
     lv_style_set_bg_opa(&styleBar, LV_OPA_0);
@@ -112,19 +113,19 @@ void createSearchSatScr()
     lv_obj_t *imgBtn;
     
     // Settings Button
-    imgBtn = lv_img_create(buttonBar);
-    lv_img_set_src(imgBtn, confIconFile);
+    imgBtn = lv_image_create(buttonBar);
+    lv_image_set_src(imgBtn, confIconFile);
     lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
-    lv_img_set_zoom(imgBtn,buttonScale);
+    lv_image_set_scale(imgBtn,buttonScale);
     lv_obj_update_layout(imgBtn);
     lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
     lv_obj_add_event_cb(imgBtn, buttonEvent, LV_EVENT_PRESSED, (char*)"settings");
     
     // Skip Button
-    imgBtn = lv_img_create(buttonBar);
-    lv_img_set_src(imgBtn, skipIconFile);
+    imgBtn = lv_image_create(buttonBar);
+    lv_image_set_src(imgBtn, skipIconFile);
     lv_obj_add_flag(imgBtn, LV_OBJ_FLAG_CLICKABLE);
-    lv_img_set_zoom(imgBtn,buttonScale);
+    lv_image_set_scale(imgBtn,buttonScale);
     lv_obj_update_layout(imgBtn);
     lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
     lv_obj_add_event_cb(imgBtn, buttonEvent, LV_EVENT_PRESSED, (char*)"skip");

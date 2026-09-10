@@ -2,11 +2,12 @@
  * @file navigation.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief Navigation functions
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
 #include "navigation.hpp"
+#include "navContext.hpp"
 #include <limits>
 #include "esp_log.h"
 
@@ -90,12 +91,12 @@ int findClosestTrackPoint(float userLat, float userLon, const TrackVector& track
     // Hierarchical Global Search: scans the TrackSegment index if local search fails
     if (closestIdx == -1 || minDistSq > offTrackThresholdSq) 
     {
-        if (!trackIndex.empty())
+        if (!navCtx.trackIndex.empty())
         {
             minDistSq = std::numeric_limits<float>::max();
             closestIdx = -1;
             
-            for (const auto& seg : trackIndex)
+            for (const auto& seg : navCtx.trackIndex)
             {
                 if (userLat <= seg.maxLat && userLat >= seg.minLat &&
                     userLon <= seg.maxLon && userLon >= seg.minLon)
@@ -151,7 +152,7 @@ void handleOffTrackCondition(float distToTrack, NavState& state, int closestIdx,
     {
         if (lastIconShown != &outtrack)
         {
-            lv_img_set_src(turnImg, &outtrack);
+            lv_image_set_src(turnImg, &outtrack);
             lastIconShown = &outtrack;
         }
 
@@ -371,7 +372,7 @@ void updateNavigation(
     {
         if (lastIconShown != &finish)
         {
-            lv_img_set_src(turnImg, &finish);
+            lv_image_set_src(turnImg, &finish);
             lastIconShown = &finish;
         }
         state.isFinished = true;
@@ -381,7 +382,7 @@ void updateNavigation(
     {
         if (lastIconShown != &straight)
         {
-            lv_img_set_src(turnImg, &straight);
+            lv_image_set_src(turnImg, &straight);
             lastIconShown = &straight;
         }
         int roundedDist = ((int)distToEnd / 5) * 5;
@@ -435,7 +436,7 @@ void updateNavigation(
 
     if (currentIcon != lastIconShown)
     {
-        lv_img_set_src(turnImg, currentIcon);
+        lv_image_set_src(turnImg, currentIcon);
         lastIconShown = currentIcon;
     }
 

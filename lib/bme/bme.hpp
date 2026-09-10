@@ -2,7 +2,7 @@
  * @file bme.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  BME280 Sensor functions - Native ESP-IDF driver
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
@@ -12,6 +12,7 @@
 
 #define ENABLE_TEMP
 
+#include "sdkconfig.h"
 #include "i2c_espidf.hpp"
 #include "i2c_driver_base.hpp"
 #include <cstdint>
@@ -60,6 +61,9 @@ class BME280_Driver : public I2CDriverBase
     public:
         BME280_Driver();
         bool begin(uint8_t addr = BME_ADDRESS);
+        #ifdef TOUCH_CAPACITIVE
+            bool beginShared(int i2cPort, uint8_t addr = BME_ADDRESS);
+        #endif
         float readAltitude(float pressure);
         void readAll(float &temp, float &pres, float &humi);
 };

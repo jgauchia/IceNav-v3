@@ -2,7 +2,7 @@
  * @file gpxParser.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  GPX Parser class
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
@@ -20,23 +20,23 @@
 #include "globalGpxDef.h"
 #include "gpsMath.hpp"
 
-static const char* TAGGPX = "GPXParser";
+inline constexpr const char* TAGGPX = "GPXParser";
 
-static const char* gpxWaypointTag = "wpt";   /**< GPX waypoint tag. */
-static const char* gpxTrackTag    = "trk";   /**< GPX track tag. */
-static const char* gpxNameElem    = "name";  /**< GPX name element. */
-static const char* gpxLatElem     = "lat";   /**< GPX latitude attribute. */
-static const char* gpxLonElem     = "lon";   /**< GPX longitude attribute. */
-static const char* gpxEleElem     = "ele";   /**< GPX elevation element. */
-static const char* gpxTimeElem    = "time";  /**< GPX time element. */
-static const char* gpxDescElem    = "desc";  /**< GPX description element. */
-static const char* gpxSrcElem     = "src";   /**< GPX source element. */
-static const char* gpxSymElem     = "sym";   /**< GPX symbol element. */
-static const char* gpxTypeElem    = "type";  /**< GPX type element. */
-static const char* gpxSatElem     = "sat";   /**< GPX satellites element. */
-static const char* gpxHdopElem    = "hdop";  /**< GPX horizontal dilution of precision element. */
-static const char* gpxVdopElem    = "vdop";  /**< GPX vertical dilution of precision element. */
-static const char* gpxPdopElem    = "pdop";  /**< GPX position dilution of precision element. */
+inline constexpr const char* gpxWaypointTag = "wpt";   /**< GPX waypoint tag. */
+inline constexpr const char* gpxTrackTag    = "trk";   /**< GPX track tag. */
+inline constexpr const char* gpxNameElem    = "name";  /**< GPX name element. */
+inline constexpr const char* gpxLatElem     = "lat";   /**< GPX latitude attribute. */
+inline constexpr const char* gpxLonElem     = "lon";   /**< GPX longitude attribute. */
+inline constexpr const char* gpxEleElem     = "ele";   /**< GPX elevation element. */
+inline constexpr const char* gpxTimeElem    = "time";  /**< GPX time element. */
+inline constexpr const char* gpxDescElem    = "desc";  /**< GPX description element. */
+inline constexpr const char* gpxSrcElem     = "src";   /**< GPX source element. */
+inline constexpr const char* gpxSymElem     = "sym";   /**< GPX symbol element. */
+inline constexpr const char* gpxTypeElem    = "type";  /**< GPX type element. */
+inline constexpr const char* gpxSatElem     = "sat";   /**< GPX satellites element. */
+inline constexpr const char* gpxHdopElem    = "hdop";  /**< GPX horizontal dilution of precision element. */
+inline constexpr const char* gpxVdopElem    = "vdop";  /**< GPX vertical dilution of precision element. */
+inline constexpr const char* gpxPdopElem    = "pdop";  /**< GPX position dilution of precision element. */
 
 
 /**
@@ -64,6 +64,18 @@ class GPXParser
 
         std::string filePath;
 };
+
+/**
+* @brief Rebuilds the spatial segment index of a track vector into navCtx.trackIndex.
+*
+* @details Splits the track into fixed-size segments with padded bounding boxes
+*          for the hierarchical global search in findClosestTrackPoint. Must be
+*          called again whenever the point vector is rebuilt (approach route
+*          prepended, rejoin route merged), since every point index shifts.
+*
+* @param trackData Vector of track points to index.
+*/
+void buildTrackIndex(TrackVector& trackData);
 
 /**
 * @brief Edit a tag, attribute, or element in the GPX file.

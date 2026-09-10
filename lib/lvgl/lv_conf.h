@@ -69,7 +69,7 @@
 
 #if LV_USE_STDLIB_MALLOC == LV_STDLIB_BUILTIN
     /*Size of the memory available for `lv_malloc()` in bytes (>= 2kB)*/
-    #if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(ARDUINO_ESP32_S3)
+    #if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(ARDUINO_ESP32_S3) || defined(CONFIG_IDF_TARGET_ESP32P4)
         #define LV_MEM_SIZE (256 * 1024U)          /*[bytes] (PSRAM)*/
     #else
         #define LV_MEM_SIZE (48 * 1024U)           /*[bytes] (SRAM)*/
@@ -82,11 +82,11 @@
     #define LV_MEM_ADR 0     /*0: unused*/
     /*Instead of an address give a memory allocator that will be called to get a memory pool for LVGL. E.g. my_malloc*/
     #if LV_MEM_ADR == 0
-        #if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(ARDUINO_ESP32_S3)
+        #if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(ARDUINO_ESP32_S3) || defined(CONFIG_IDF_TARGET_ESP32P4)
             #define LV_MEM_POOL_INCLUDE <esp32-hal-psram.h>
-            #define LV_MEM_POOL_ALLOC ps_malloc  
+            #define LV_MEM_POOL_ALLOC ps_malloc
             #define LV_MEM_POOL_FREE free
-            #define LV_MEM_POOL_REALLOC ps_realloc  
+            #define LV_MEM_POOL_REALLOC ps_realloc
         #endif
     #endif
 #endif  /*LV_USE_STDLIB_MALLOC == LV_STDLIB_BUILTIN*/

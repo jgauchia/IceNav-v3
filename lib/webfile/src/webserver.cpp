@@ -2,11 +2,12 @@
  * @file webserver.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Web file server functions implementation
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
 #include "webserver.h"
+#include "fileServer.hpp"
 #include "webpage.h"
 #include <algorithm>
 #include <dirent.h>
@@ -127,7 +128,6 @@ static void cacheDirectoryContent(const std::string& dir)
                 entry.size = 0;
 
             fileCache.push_back(entry);
-            esp_task_wdt_reset();
         }
         closedir(dp);
     }
@@ -163,12 +163,12 @@ static bool getQueryParam(httpd_req_t *req, const char* param, char* value, size
 static void urlDecode(char* str)
 {
     char* dst = str;
-    char a;
-    char b;
     while (*str)
     {
-        if ((*str == '%') && ((a = str[1]) && (b = str[2])) && (isxdigit(a) && isxdigit(b)))
+        if ((*str == '%') && str[1] && str[2] && (isxdigit((unsigned char)str[1]) && isxdigit((unsigned char)str[2])))
         {
+            unsigned char a = (unsigned char)str[1];
+            unsigned char b = (unsigned char)str[2];
             if (a >= 'a')
                 a -= 'a' - 'A';
             if (a >= 'A')
@@ -181,7 +181,7 @@ static void urlDecode(char* str)
                 b -= ('A' - 10);
             else
                 b -= '0';
-            *dst++ = 16 * a + b;
+            *dst++ = (char)(16 * a + b);
             str += 3;
         }
         else if (*str == '+')
@@ -190,9 +190,7 @@ static void urlDecode(char* str)
             str++;
         }
         else
-        {
             *dst++ = *str++;
-        }
     }
     *dst = '\0';
 }
@@ -242,9 +240,7 @@ static std::string listFiles(bool ishtml, int page)
             returnText += "</tr>";
         }
         else
-        {
             returnText += "File: " + entry.name + " Size: " + humanReadableSize(entry.size) + "\n";
-        }
     }
 
     if (ishtml)
@@ -383,8 +379,6 @@ static bool createDirectories(const std::string& filepath)
         if (nextSlash == std::string::npos)
             break;
         lastSlash = nextSlash;
-
-        esp_task_wdt_reset();
     }
     return true;
 }
@@ -473,7 +467,6 @@ static esp_err_t listfiles_handler(httpd_req_t *req)
 
     if (updateList)
     {
-        esp_task_wdt_reset();
         cacheDirectoryContent(oldDir);
     }
 
@@ -662,9 +655,7 @@ static esp_err_t listfolder_handler(httpd_req_t *req)
             std::string entryPath = currentPath + "/" + std::string(ep->d_name);
 
             if (ep->d_type == DT_DIR)
-            {
                 dirStack.push(entryPath);
-            }
             else
             {
                 std::string relPath = entryPath.substr(prefixLen);
@@ -676,7 +667,6 @@ static esp_err_t listfolder_handler(httpd_req_t *req)
             }
         }
         closedir(dp);
-        esp_task_wdt_reset();
     }
 
     httpd_resp_set_type(req, "text/plain");
@@ -801,11 +791,21 @@ static uint8_t* findBytes(uint8_t* haystack, size_t haystackLen, const uint8_t* 
 }
 
 /**
+ * @brief RAII guard that pauses the GUI task while an operation that must
+ *        not race with LVGL rendering runs (e.g. screenshot or file upload).
+ */
+struct ScreenRefreshGuard
+{
+    ScreenRefreshGuard() { waitScreenRefresh = true; }
+    ~ScreenRefreshGuard() { waitScreenRefresh = false; }
+};
+
+/**
  * @brief File upload handler - supports multiple files in single request
  */
 static esp_err_t upload_handler(httpd_req_t *req)
 {
-    waitScreenRefresh = true;
+    ScreenRefreshGuard refreshGuard;
 
     // Get content type to parse boundary
     char contentType[256] = "";
@@ -814,7 +814,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
     char* boundaryPtr = strstr(contentType, "boundary=");
     if (!boundaryPtr)
     {
-        waitScreenRefresh = false;
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "No boundary found");
         return ESP_FAIL;
     }
@@ -833,7 +832,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
 
     if ((size_t)req->content_len > MAX_UPLOAD_SIZE)
     {
-        waitScreenRefresh = false;
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "File too large");
         return ESP_FAIL;
     }
@@ -842,7 +840,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
     uint8_t* buf = (uint8_t*)heap_caps_malloc(bufSize, MALLOC_CAP_8BIT);
     if (!buf)
     {
-        waitScreenRefresh = false;
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Memory allocation failed");
         return ESP_FAIL;
     }
@@ -912,7 +909,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
                     bufUsed = 0;
                 }
             }
-            esp_task_wdt_reset();
             continue;
         }
 
@@ -951,7 +947,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
             uint8_t* headerEnd = findBytes(buf, bufUsed, (const uint8_t*)"\r\n\r\n", 4);
             if (!headerEnd && remaining > 0)
             {
-                esp_task_wdt_reset();
                 continue;
             }
 
@@ -993,8 +988,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
             }
         }
 
-        esp_task_wdt_reset();
-
         if (remaining == 0 && !boundaryPos)
             break;
     }
@@ -1018,7 +1011,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
     }
 
     heap_caps_free(buf);
-    waitScreenRefresh = false;
 
     if (writeError)
     {
@@ -1141,4 +1133,36 @@ void stopWebServer()
         webServer = NULL;
         ESP_LOGI(WEB_TAG, "Web server stopped");
     }
+}
+
+/**
+ * @class FileServerHttpd
+ * @brief Layer-0 file server implementation over the IDF HTTP server.
+ */
+class FileServerHttpd : public IFileServer
+{
+public:
+    void start() override
+    {
+        configureWebServer();
+    }
+
+    void stop() override
+    {
+        stopWebServer();
+    }
+
+    void process() override
+    {
+        processWebServerTasks();
+    }
+};
+
+/**
+ * @brief Provides the HTTP file server implementation as the Layer-1 singleton.
+ */
+IFileServer &fileServer()
+{
+    static FileServerHttpd instance;
+    return instance;
 }

@@ -2,7 +2,7 @@
  * @file speedIcon.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Speed icon image descriptor
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
@@ -19,4 +19,4 @@
 #endif
 
 extern const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMAGE_SPEEDICON uint8_t speedIcon_map[];
-extern const lv_img_dsc_t speedIcon;
+extern const lv_image_dsc_t speedIcon;

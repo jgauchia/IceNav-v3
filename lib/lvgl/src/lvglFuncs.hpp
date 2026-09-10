@@ -2,7 +2,7 @@
  * @file lvglFuncs.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL custom functions
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
@@ -16,5 +16,5 @@ void objSelect(_lv_obj_t *obj);
 void objUnselect(_lv_obj_t *obj);
 void restartTimerCb(lv_timer_t *timer);
 void showRestartScr();
-void showMsg(const char* symbol, const char* message);
+void showMsg(const char* symbol, const char* message, bool refresh = true);
 void closeMsg();

@@ -2,7 +2,7 @@
  * @file navScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Navigation screen 
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
@@ -30,7 +30,7 @@ void navigationScr(_lv_obj_t *screen)
 
     nameNav = lv_label_create(screen);
     lv_obj_set_style_text_font(nameNav, fontLargeMedium, 0);
-    lv_label_set_long_mode(nameNav, LV_LABEL_LONG_SCROLL_CIRCULAR);
+    lv_label_set_long_mode(nameNav, LV_LABEL_LONG_MODE_SCROLL_CIRCULAR);
     lv_obj_set_width(nameNav, TFT_WIDTH - 10);
 
     lv_obj_t *labelLat = lv_label_create(screen);
@@ -57,10 +57,10 @@ void navigationScr(_lv_obj_t *screen)
     lv_obj_set_style_text_font(distNav, fontVeryLarge, 0);
     lv_label_set_text_fmt(distNav, "%d m.", 0);
 
-    arrowNav = lv_img_create(screen);
+    arrowNav = lv_image_create(screen);
     LV_IMG_DECLARE(navup);
-    lv_img_set_src(arrowNav, &navup);
-    lv_img_set_pivot(arrowNav, 50, 50);
+    lv_image_set_src(arrowNav, &navup);
+    lv_image_set_pivot(arrowNav, 50, 50);
 
 #ifdef TDECK_ESP32S3
     lv_obj_set_pos(nameNav, 10, 37);
@@ -80,7 +80,7 @@ void navigationScr(_lv_obj_t *screen)
     lv_obj_align(labelDist, LV_ALIGN_CENTER, 0, -50);
     lv_obj_align(distNav, LV_ALIGN_CENTER, 0, -5);
     lv_obj_align(arrowNav, LV_ALIGN_CENTER, 0, 100);
-    lv_img_set_zoom(arrowNav, iconScale);
+    lv_image_set_scale(arrowNav, iconScale);
 #endif
 
 }

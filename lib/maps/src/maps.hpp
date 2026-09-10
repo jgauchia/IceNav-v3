@@ -2,7 +2,7 @@
  * @file maps.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com) - Render Maps
  * @brief  Maps draw class
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
@@ -16,7 +16,7 @@
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
 #include "freertos/semphr.h"
-#include "tft.hpp"
+#include "mapCanvas.hpp"
 #include "gpsMath.hpp"
 #include "settings.hpp"
 #include "compass.hpp"
@@ -24,6 +24,11 @@
 #include "storage.hpp"
 #include "nav_reader.hpp"
 #include "PsramAllocator.hpp"
+
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+#include "driver/ppa.h"
+#include "esp_cache.h"
+#endif
 
 /**
  * @class Maps
@@ -68,8 +73,15 @@ private:
     tileBounds totalBounds;
     uint16_t wptPosX;
     uint16_t wptPosY;
-    TFT_eSprite mapTempSprite = TFT_eSprite(&tft);
-    TFT_eSprite mapSprite = TFT_eSprite(&tft);
+    MapCanvas mapTempSprite = MapCanvas(mapCanvasParent());
+    MapCanvas mapSprite = MapCanvas(mapCanvasParent());
+    MapCanvas pngStagingSprite = MapCanvas(mapCanvasParent());
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    uint8_t* mapTempBufs[2] = { nullptr, nullptr };
+    volatile bool srmInFlight = false;
+#endif
+    uint32_t pngStagedHash = 0;
+    bool pngStagingValid = false;
     float destLat = 0.0f;
     float destLon = 0.0f;
     bool hasWaypoint = false;
@@ -87,39 +99,37 @@ private:
     bool isCoordInBounds(float lat, float lon, tileBounds bound);
     ScreenCoord coord2ScreenPos(float lon, float lat, uint8_t zoomLevel, uint16_t tileSize);
     void coords2map(float lat, float lon, const tileBounds& bound, uint16_t *pixelX, uint16_t *pixelY);
-    void showNoMap(TFT_eSprite &map);
     void panMap(int8_t dx, int8_t dy);
     uint16_t darkenRGB565(const uint16_t color, const float amount = 0.4f);
-    void fillPolygonGeneral(TFT_eSprite &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset, uint16_t ringCount = 1, const uint16_t* ringEnds = nullptr);
+    void fillPolygonGeneral(MapCanvas &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset, uint16_t ringCount = 1, const uint16_t* ringEnds = nullptr);
 
-    float _mapTilt;
-    float _focalLength;
-    bool _scrolling = false;
-    bool _use3DCache = false;
+    float mapTilt;
+    float focalLength;
+    bool scrolling = false;
+    bool inertia = false;
+    bool use3DCache = false;
 
     bool isNavActive() const;
     void update3DCache();
     void apply3DPerspective(uint16_t heading);
     void preloadTiles(int8_t dirX, int8_t dirY);
-    bool renderNavViewport(float centerLat, float centerLon, uint8_t zoom, TFT_eSprite &map);
-    void renderNavTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, TFT_eSprite &map);
+    void preloadVectorTiles(int8_t dirX, int8_t dirY, uint8_t stepCount = 1);
+    bool renderVectorViewport(float centerLat, float centerLon, uint8_t zoom, MapCanvas &map);
+    void renderVectorTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map);
 
 public:
-#ifdef T4_S3
-    static const uint16_t tileWidth = 1024;
-    static const uint16_t tileHeight = 1024;
-    static const uint8_t tilesGrid = 4;
-#else
-    static const uint16_t tileWidth = 768;
-    static const uint16_t tileHeight = 768;
-    static const uint8_t tilesGrid = 3;
-#endif
+    uint16_t tileWidth;
+    uint16_t tileHeight;
+    uint8_t tilesGrid;
 
     void* mapBuffer;
     uint16_t mapScrHeight;
     uint16_t mapScrWidth;
     volatile bool redrawMap = true;
+    volatile bool mapComposePending = false;
+    int32_t mapClimbShift = 0;
     bool followGps = true;
+    float manualHeading = 0.0f;
     bool isMapFound = false;
     MapTile oldMapTile;
     MapTile currentMapTile;
@@ -131,6 +141,7 @@ public:
     ScreenCoord lastRenderedArrowPos;
     int16_t lastRenderedDisplayOffsetX;
     int16_t lastRenderedDisplayOffsetY;
+    float lastRenderedManualHeading = 0.0f;
     int16_t offsetX = 0;
     int16_t offsetY = 0;
     int16_t displayOffsetX = 0;
@@ -146,21 +157,29 @@ public:
     static const uint32_t MAP_EVENT_START = (1 << 0);
     static const uint32_t MAP_EVENT_DONE  = (1 << 1);
     static const uint32_t MAP_EVENT_ERROR = (1 << 2);
+    static const uint32_t MAP_EVENT_FREE  = (1 << 3);
 
     Maps();
     MapTile getMapTile(float lon, float lat, uint8_t zoomLevel, int8_t offsetX, int8_t offsetY);
-    void initMap(uint16_t mapHeight, uint16_t mapWidth);
+    void initMap(uint16_t mapWidth, uint16_t mapHeight);
     void deleteMapScrSprites();
     void createMapScrSprites();
     void generateMap(uint8_t zoom);
+    void requestGenerate(uint8_t zoom);
+    void composeMap();
     void displayMap();
     void setWaypoint(float wptLat, float wptLon);
+    bool getHasWaypoint() const { return hasWaypoint; }
     void updateMap();
     void centerOnGps(float lat, float lon);
     void scrollMap(int16_t dx, int16_t dy);
+    void commitScroll();
+    void setInertia(bool active) { inertia = active; }
     void resetScrollState();
 
 private:
+    void initResources();
+
     struct FeatureRef
     {
         uint8_t* ptr;
@@ -186,15 +205,27 @@ private:
         uint32_t tileHash;
         uint32_t lastAccess;
         bool isPinned;
+        uint8_t pinLeft;
     };
 
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    static const uint8_t NAV_DATA_CACHE_SIZE = 48;
+#else
     static const uint8_t NAV_DATA_CACHE_SIZE = 12;
-    std::vector<NavDataCache, PsramAllocator<NavDataCache>> navDataCache;
+#endif
+    std::vector<NavDataCache, PsramAllocator<NavDataCache>> vectorCache;
     uint32_t cacheCounter = 0;
+    uint32_t lastPrefetchHash = 0;
 
     static const uint16_t MAX_POLYGON_POINTS = 1024;
     static const uint32_t MAX_FEATURE_POOL_SIZE = 16384;
     static const uint16_t MAX_PLACED_LABELS = 512;
+
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    ppa_client_handle_t ppaFillClient = nullptr;
+    ppa_client_handle_t ppaBlendClient = nullptr;
+    ppa_client_handle_t ppaSrmClient = nullptr;
+#endif
 
     std::vector<int, PsramAllocator<int>> projBuf32X;
     std::vector<int, PsramAllocator<int>> projBuf32Y;
@@ -202,20 +233,24 @@ private:
     std::vector<FeatureRef, PsramAllocator<FeatureRef>> featurePool;
     std::vector<uint16_t, PsramAllocator<uint16_t>> layers[16];
     std::vector<uint16_t, PsramAllocator<uint16_t>> layersCasing[16];
+    std::vector<uint16_t, PsramAllocator<uint16_t>> layersText[16];
     std::vector<uint16_t, PsramAllocator<uint16_t>> ringEndsCache;
     std::vector<LabelRect, PsramAllocator<LabelRect>> placedLabelsCache;
 
-    void renderNavLineString(const FeatureRef& ref, TFT_eSprite& map, bool isCasing = false);
-    void renderNavPolygon(const FeatureRef& ref, TFT_eSprite& map);
-    void renderNavPoint(const FeatureRef& ref, TFT_eSprite& map);
-    void renderNavText(const FeatureRef& ref, TFT_eSprite& map, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels);
+    void renderVectorLine(const FeatureRef& ref, MapCanvas& map, bool isCasing = false);
+    void renderVectorPolygon(const FeatureRef& ref, MapCanvas& map);
+    void renderVectorPoint(const FeatureRef& ref, MapCanvas& map);
+    void renderVectorText(const FeatureRef& ref, MapCanvas& map, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels);
     void latLonToPixel(float lat, float lon, int16_t& px, int16_t& py);
-    void drawTrack(TFT_eSprite& map);
+    void drawTrack(MapCanvas& map);
+    void drawWaypoint(MapCanvas& map);
 
 public:
     void redrawTrack();
-    bool isRendering() const { return pendingTilesNotEmpty_; }
-    bool is3DActive() const { return _use3DCache; }
+    bool isRendering() const { return pendingTilesNotEmpty; }
+    bool isScrollDeferred() const { return vectorDeferred; }
+    bool is3DActive() const { return use3DCache; }
+    TaskHandle_t renderTaskHandle() const { return mapRenderTaskHandle; }
 
 private:
     enum TileType
@@ -233,25 +268,46 @@ private:
         TileType type;
     };
 
+    struct VectorStep
+    {
+        int8_t dirX;
+        int8_t dirY;
+        std::vector<PendingTile> tiles;
+    };
+
     std::vector<PendingTile> pendingTiles;
+    std::vector<VectorStep> vectorSteps;
     SemaphoreHandle_t mapMutex;
     TaskHandle_t mapRenderTaskHandle;
+    volatile bool mapGeneratePending = false;
+    volatile uint8_t mapGenerateZoom = 0;
     static void mapRenderTask(void* pvParameters);
-    void renderPngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, TFT_eSprite &map);
+    void renderPngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map);
+    void prefetchPngTile();
+    bool tryApplyStagedPng(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map);
     bool loadPngTileIntoSprite(int32_t tlX, int32_t tlY, int gx, int gy,
                                uint32_t centerTileIdxX, uint32_t centerTileIdxY,
                                uint8_t zoom, bool& centerFound);
     void enqueueTileGrid(uint32_t centerTileIdxX, uint32_t centerTileIdxY, TileType type);
-    uint8_t* navCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t zoom, size_t& outDataSize);
-    void navDecodeFeatures(const uint8_t* data, size_t dataSize, int16_t screenX, int16_t screenY, uint8_t zoom);
-    static void drawThickLine(TFT_eSprite& map, int16_t x0, int16_t y0,
+    void queueVectorStep(uint32_t centerTileIdxX, uint32_t centerTileIdxY,
+                         int8_t dirX, int8_t dirY);
+    void scrollVectorSprite(int16_t shiftX, int16_t shiftY);
+    uint8_t* vectorCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t zoom, size_t& outDataSize);
+    void prefetchNextTile();
+    void decodeVectorFeatures(const uint8_t* data, size_t dataSize, int16_t screenX, int16_t screenY, uint8_t zoom);
+    static void drawThickLine(MapCanvas& map, int16_t x0, int16_t y0,
                               int16_t x1, int16_t y1, uint8_t width, uint16_t color);
 
-    uint8_t navLastZoom_;
-    bool navNeedsRender_;
-    float navTlTileX_;
-    float navTlTileY_;
-    volatile bool pendingTilesNotEmpty_ = false;
+    uint8_t vectorZoom;
+    bool vectorNeedsRender;
+    bool vectorDeferred = false;
+    bool vectorPending = false;
+    bool vectorCapped = false;
+    int8_t vectorDirX = 0;
+    int8_t vectorDirY = 0;
+    float mapTlX;
+    float mapTlY;
+    volatile bool pendingTilesNotEmpty = false;
 
     struct Edge
     {
@@ -262,6 +318,6 @@ private:
         int nextActive;
     };
 
-    std::vector<int, PsramAllocator<int>> edgeBuckets;
-    std::vector<Edge, PsramAllocator<Edge>> edgePool;
+    std::vector<int> edgeBuckets;
+    std::vector<Edge> edgePool;
 };

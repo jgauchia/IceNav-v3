@@ -2,11 +2,14 @@
  * @file deviceSettingsScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Device Settings Screen
- * @version 0.2.9
+ * @version 0.3.0
  * @date 2026-06
  */
 
 #include "deviceSettingsScr.hpp"
+#include "logger.hpp"
+#include "loggerConfig.hpp"
+#include "display.hpp"
 
 lv_obj_t *deviceSettingsScreen; /**< Device Settings Screen. */
 
@@ -36,6 +39,12 @@ static void deviceSettingsEvent(lv_event_t *event)
         uint16_t idx = lv_dropdown_get_selected(obj);
         navSet.routeSpeed = ROUTE_SPEED_VALUES[idx];
         cfg.saveShort(PKEYS::KROUTE_SPEED, (int16_t)navSet.routeSpeed);
+    }
+    if (strcmp(option, "logprofile") == 0)
+    {
+        uint8_t idx = (uint8_t)lv_dropdown_get_selected(obj);
+        gpxLogger.setProfile(idx);
+        cfg.saveUInt(PKEYS::KLOG_PROFILE, (uint32_t)idx);
     }
     if (strcmp(option, "nmeadbg") == 0)
     {
@@ -67,7 +76,7 @@ static void brightnessEvent(lv_event_t *e)
 {
     lv_obj_t *obj =(lv_obj_t*) lv_event_get_target(e);
     defBright =  lv_slider_get_value(obj);
-    tft.setBrightness(defBright);
+    display().setBrightness(defBright);
 }
 
 /**
@@ -84,8 +93,8 @@ static void upgradeEvent(lv_event_t *event)
     else
     {
         lv_label_set_text_static(msgUprgdText, LV_SYMBOL_WARNING " Firmware found!");
-        lv_obj_clear_flag(btnMsgUpgrade,LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(contMeter,LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(btnMsgUpgrade,LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(contMeter,LV_OBJ_FLAG_HIDDEN);
     }
 }
 
@@ -100,14 +109,14 @@ static lv_obj_t *createBrightText(lv_obj_t *parent, const char *icon, const char
     lv_obj_t *label = NULL;
     if (icon) 
     {
-        img = lv_img_create(obj);
-        lv_img_set_src(img, icon);
+        img = lv_image_create(obj);
+        lv_image_set_src(img, icon);
     }
     if (txt) 
     {
         label = lv_label_create(obj);
         lv_label_set_text(label, txt);
-        lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR);
+        lv_label_set_long_mode(label, LV_LABEL_LONG_MODE_SCROLL_CIRCULAR);
         lv_obj_set_flex_grow(label, 1);
     }
     if (icon && txt)
@@ -160,9 +169,9 @@ void createDeviceSettingsScr()
     lv_obj_t *btn;
     lv_obj_t *dropdown;
     // GPS Speed
-    list = lv_list_add_btn(deviceSettingsOptions, NULL, "GPS\nSpeed");
+    list = lv_list_add_button(deviceSettingsOptions, NULL, "GPS\nSpeed");
     lv_obj_set_style_text_font(list, fontOptions, 0);
-    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_OUT_LEFT_BOTTOM);
     dropdown = lv_dropdown_create(list);
     lv_dropdown_set_options(dropdown, "4800\n9600\n19200\nAUTO");
@@ -173,9 +182,9 @@ void createDeviceSettingsScr()
     lv_obj_set_width(dropdown,TFT_WIDTH / 3);
     lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"speed");
     // GPS Update rate
-    list = lv_list_add_btn(deviceSettingsOptions, NULL, "GPS\nUpdate rate");
+    list = lv_list_add_button(deviceSettingsOptions, NULL, "GPS\nUpdate rate");
     lv_obj_set_style_text_font(list, fontOptions, 0);
-    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
     dropdown = lv_dropdown_create(list);
     lv_dropdown_set_options(dropdown, "1 Hz\n2 Hz\n4 Hz\n5 Hz\n10 Hz");
@@ -192,9 +201,9 @@ void createDeviceSettingsScr()
     lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
     lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"rate");
     // Routing Profile
-    list = lv_list_add_btn(deviceSettingsOptions, NULL, "Routing\nProfile");
+    list = lv_list_add_button(deviceSettingsOptions, NULL, "Routing\nProfile");
     lv_obj_set_style_text_font(list, fontOptions, 0);
-    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_OUT_LEFT_BOTTOM);
     dropdown = lv_dropdown_create(list);
     lv_dropdown_set_options(dropdown, "Car\nBike\nWalk");
@@ -211,21 +220,37 @@ void createDeviceSettingsScr()
     lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
     lv_obj_set_width(dropdown, TFT_WIDTH / 3);
     lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"routeprofile");
+    // Logger Profile
+    if (storage.getSdLoaded())
+    {
+        list = lv_list_add_button(deviceSettingsOptions, NULL, "Logger\nProfile");
+        lv_obj_set_style_text_font(list, fontOptions, 0);
+        lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_set_align(list, LV_ALIGN_OUT_LEFT_BOTTOM);
+        dropdown = lv_dropdown_create(list);
+        lv_dropdown_set_options(dropdown, "Walk\nBike\nCar");
+        lv_dropdown_set_selected(dropdown, gpxLogger.profileIndex());
+        item = lv_dropdown_get_list(dropdown);
+        lv_obj_set_style_bg_color(item, lv_color_hex(objectColor), LV_PART_SELECTED | LV_STATE_CHECKED);
+        lv_obj_align_to(dropdown, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
+        lv_obj_set_width(dropdown, TFT_WIDTH / 3);
+        lv_obj_add_event_cb(dropdown, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"logprofile");
+    }
     // NMEA Debug Tile
-    list = lv_list_add_btn(deviceSettingsOptions, NULL, "NMEA Debug\nTile");
+    list = lv_list_add_button(deviceSettingsOptions, NULL, "NMEA Debug\nTile");
     lv_obj_set_style_text_font(list, fontOptions, 0);
-    lv_obj_clear_flag(list, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
     lv_obj_t *nmeaDbgSwitch = lv_switch_create(list);
     if (nmeaDebugTileEnabled)
         lv_obj_add_state(nmeaDbgSwitch, LV_STATE_CHECKED);
     else
-        lv_obj_clear_state(nmeaDbgSwitch, LV_STATE_CHECKED);
+        lv_obj_remove_state(nmeaDbgSwitch, LV_STATE_CHECKED);
     lv_obj_align_to(nmeaDbgSwitch, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
     lv_obj_add_event_cb(nmeaDbgSwitch, deviceSettingsEvent, LV_EVENT_VALUE_CHANGED, (char*)"nmeadbg");
     // Upgrade button
-    list = lv_list_add_btn(deviceSettingsOptions, NULL, NULL);
-    btn = lv_btn_create(list);
+    list = lv_list_add_button(deviceSettingsOptions, NULL, NULL);
+    btn = lv_button_create(list);
     lv_obj_set_size(btn, TFT_WIDTH - 45, 40 * scale);
     label = lv_label_create(btn);
     lv_obj_set_style_text_font(label, fontLarge, 0);
@@ -235,7 +260,7 @@ void createDeviceSettingsScr()
     // Brightness Slider
     createBrightSlider(deviceSettingsOptions, LV_SYMBOL_SETTINGS, "Brightness", 5, 255, defBright, brightnessEvent, LV_EVENT_VALUE_CHANGED);
     // Back button
-    btn = lv_btn_create(deviceSettingsScreen);
+    btn = lv_button_create(deviceSettingsScreen);
     lv_obj_set_size(btn, TFT_WIDTH - 30, 40 * scale);
     label = lv_label_create(btn);
     lv_obj_set_style_text_font(label, fontLarge, 0);
