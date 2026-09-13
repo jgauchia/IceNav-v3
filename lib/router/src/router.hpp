@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Public router interface — load graph and compute A* route
  * @version 0.3.0
- * @date 2026-06
+ * @date 2026-09
  */
 
 #pragma once

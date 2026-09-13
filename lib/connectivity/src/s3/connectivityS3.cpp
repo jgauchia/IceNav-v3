@@ -2,7 +2,8 @@
  * @file connectivityS3.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief ESP32-S3 connectivity implementation (native WiFi + mDNS)
- * @date 2026-06
+ * @version 0.3.0
+ * @date 2026-09
  */
 
 #include "connectivity.hpp"
@@ -44,7 +45,8 @@ public:
 };
 
 /**
- * @brief Provides the S3 connectivity implementation as the Layer-1 singleton.
+ * @brief Provides the S3 connectivity implementation as the Layer-1 .
+ *
  */
 IConnectivity &connectivity()
 {

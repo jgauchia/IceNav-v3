@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com) and Antonio Vanegas @Hpsturn
  * @brief  LOVYANGFX TFT driver for Lilygo T-DECK board
  * @version 0.3.0
- * @date 2026-06
+ * @date 2026-09
  */
 
 #pragma once

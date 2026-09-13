@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Base class for I2C peripheral drivers
  * @version 0.3.0
- * @date 2026-06
+ * @date 2026-09
  */
 
 #pragma once

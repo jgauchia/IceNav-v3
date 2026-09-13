@@ -40,7 +40,7 @@ private:
 };
 
 /**
- * @brief Provides the P4 input implementation as the Layer-1 singleton.
+ * @brief Provides the P4 input implementation as the Layer-1 .
  */
 IInput &input()
 {

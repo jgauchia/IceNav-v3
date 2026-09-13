@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief ESP32-S3 power management implementation (esp_sleep + light/deep sleep)
  * @version 0.3.0
- * @date 2026-06
+ * @date 2026-09
  */
 
 #include "sdkconfig.h"
@@ -144,7 +144,7 @@ private:
 };
 
 /**
- * @brief Provides the S3 power implementation as the Layer-1 singleton.
+ * @brief Provides the S3 power implementation as the Layer-1 .
  */
 IPower &power()
 {

@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief ESP32-S3 sensors facade implementation (native ESP-IDF drivers)
  * @version 0.3.0
- * @date 2026-06
+ * @date 2026-09
  */
 
 #include "sdkconfig.h"
@@ -120,7 +120,7 @@ public:
 };
 
 /**
- * @brief Provides the S3 sensors facade as the Layer-1 singleton.
+ * @brief Provides the S3 sensors facade as the Layer-1 .
  */
 ISensors &sensors()
 {

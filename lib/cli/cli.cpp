@@ -3,7 +3,7 @@
  * @author @Hpsaturn
  * @brief  Network CLI and custom internal commands
  * @version 0.3.0
- * @date 2026-06
+ * @date 2026-09
  */
 
 #ifndef DISABLE_CLI
@@ -218,7 +218,7 @@ void wcli_reboot(char *args, Stream *response)
 /**
  * @brief Puts ESP device into deep sleep (shutdown).
  * 
- * CLI command: poweroff
+ * @details CLI command: poweroff
  */
 void wcli_poweroff(char *args, Stream *response)
 {
@@ -418,6 +418,7 @@ void wcli_outnmea(char *args, Stream *response)
 
 /**
  * @brief Cancels NMEA output (Ctrl+C handler).
+ *
  */
 void wcli_abort_handler() 
 {
@@ -462,6 +463,7 @@ void wcli_webfile(char *args, Stream *response)
 
 /**
  * @brief Initializes the CLI remote shell (e.g., Telnet).
+ *
  */
 void initRemoteShell()
 {
@@ -473,6 +475,7 @@ void initRemoteShell()
 
 /**
  * @brief Initializes the local CLI shell, adds core commands, and sets up the environment.
+ *
  */
 void initShell()
 {
@@ -496,6 +499,7 @@ void initShell()
 
 /**
  * @brief Initializes the WiFi CLI, including local and remote shells.
+ *
  */
 void initCLI() 
 {

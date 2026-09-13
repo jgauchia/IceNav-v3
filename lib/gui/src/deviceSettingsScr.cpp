@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Device Settings Screen
  * @version 0.3.0
- * @date 2026-06
+ * @date 2026-09
  */
 
 #include "deviceSettingsScr.hpp"
@@ -50,8 +50,6 @@ static void deviceSettingsEvent(lv_event_t *event)
     {
         nmeaDebugTileEnabled = lv_obj_has_state(obj, LV_STATE_CHECKED);
         cfg.saveBool(PKEYS::KNMEA_DEBUG, nmeaDebugTileEnabled);
-        // The main screen tiles are built once at boot; a restart is needed
-        // to add or remove the debug tile.
         needReboot = true;
     }
     if (strcmp(option, "back") == 0)

@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  GPS definition and functions
  * @version 0.3.0
- * @date 2026-06
+ * @date 2026-09
  */
 
 #include "gps.hpp"
@@ -77,6 +77,7 @@ static const char* TAG = "GPS";
 
 /**
  * @brief Default constructor for Gps class.
+ *
  */
 Gps::Gps()
 {
@@ -603,6 +604,7 @@ void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refr
 
 /**
  * @brief Calculate Sunrise and Sunset based on current GPS position and date.
+ *
  */
 void calculateSun()
 {

@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ROUTE.bin binary format structs (0.1° subcell grid)
  * @version 0.3.0
- * @date 2026-06
+ * @date 2026-09
  */
 
 #pragma once

@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LOVYANGFX TFT driver for ILI9341 SPI With XPT2046 Touch controller
  * @version 0.3.0
- * @date 2026-06
+ * @date 2026-09
  */
 
 #pragma once

@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Core Tasks implementation for GPS and CLI management
  * @version 0.3.0
- * @date 2026-06
+ * @date 2026-09
  * @details This file contains the implementation of FreeRTOS tasks for GPS data processing
  *          and CLI interface management. It handles thread-safe GPS data reading and
  *          command-line interface operations with proper mutex protection.

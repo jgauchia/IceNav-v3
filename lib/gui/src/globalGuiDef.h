@@ -1,8 +1,9 @@
 /**
  * @file globalGuiDef.h
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Global GUI Variables
  * @version 0.3.0
- * @date 2026-06
+ * @date 2026-09
  */
 
 #pragma once

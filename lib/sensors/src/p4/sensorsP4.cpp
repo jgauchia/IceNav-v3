@@ -136,7 +136,7 @@ public:
 };
 
 /**
- * @brief Provides the P4 sensors facade as the Layer-1 singleton.
+ * @brief Provides the P4 sensors facade as the Layer-1 .
  */
 ISensors &sensors()
 {

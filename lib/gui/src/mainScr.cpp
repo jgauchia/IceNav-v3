@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Main Screen
  * @version 0.3.0
- * @date 2026-06
+ * @date 2026-09
  */
 
 #include "mainScr.hpp"
@@ -270,6 +270,7 @@ static void async_map_update_cb(void * user_data)
 
 /**
  * @brief Thread-safe trigger for map redrawing from background tasks
+ *
  */
 void triggerMapRedraw()
 {
@@ -617,6 +618,7 @@ static void updateClimbMarker(int posX, int yTop)
 
 /**
  * @brief Observer callback for subject_climb_active — controls overlay visibility only.
+ *
  */
 static void climb_active_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
 {
@@ -730,6 +732,7 @@ static void climb_idx_observer_cb(lv_observer_t *observer, lv_subject_t *subject
 
 /**
  * @brief Async callback to delegate nav redrawing to UI thread (Core 1)
+ *
  */
 static void async_nav_update_cb(void * user_data)
 {

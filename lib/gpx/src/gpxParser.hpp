@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  GPX Parser class
  * @version 0.3.0
- * @date 2026-06
+ * @date 2026-09
  */
 
 #pragma once
@@ -42,6 +42,7 @@ inline constexpr const char* gpxPdopElem    = "pdop";  /**< GPX position dilutio
 /**
  * @class GPXParser
  * @brief GPX file parser and editor class.
+ *
  */
 class GPXParser
 {

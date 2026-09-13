@@ -1,9 +1,9 @@
 /**
  * @file axp2101.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief  AXP2101 PMIC battery monitor definition and functions (Waveshare P4-3.5)
+ * @brief  AXP2101 PMIC battery monitor definition and functions 
  * @version 0.3.0
- * @date 2026-07
+ * @date 2026-09
  */
 
 #include "axp2101.hpp"
@@ -29,7 +29,7 @@ void Axp2101::begin(int i2cPort)
 }
 
 /**
- * @brief Reads and computes the current battery charge as a percentage from the PMIC fuel gauge.
+ * @brief Reads and computes the current battery charge as a percentage from the PMIC 
  *
  * @details Also updates the last measured battery voltage from the VBAT ADC registers.
  *
@@ -64,9 +64,7 @@ float Axp2101::readBattery()
  * @brief Reads the real charging/power status from the PMIC.
  *
  * @details True if the PMIC reports the battery is actively charging, or if
- *          external power (VBUS) is present without a battery installed —
- *          the "battery is charging" bit never sets without a battery to
- *          charge, but the charging icon should still show while plugged in.
+ *          external power (VBUS) is present without a battery installed 
  *
  * @return true if the battery is charging, or VBUS is present with no battery.
  */
@@ -92,11 +90,7 @@ bool Axp2101::isCharging()
  * @brief Cuts all PMIC rails except RTCLDO (soft power-off).
  *
  * @details Writes REG10H bit0 ("Soft PWROFF", self-clearing). The PMIC then
- *          drops PWROK/ESP_EN and the ESP32-P4 loses power entirely — this
- *          call does not return on real hardware. Power-on afterwards is
- *          handled autonomously by the PMIC when PWRON (the physical K1
- *          button) is pressed, per the AXP2101's default POK power-on source
- *          (datasheet 6.5.4.2); no further register configuration is needed.
+ *          drops PWROK/ESP_EN and the ESP32-P4 loses power entirely
  */
 void Axp2101::softPowerOff()
 {

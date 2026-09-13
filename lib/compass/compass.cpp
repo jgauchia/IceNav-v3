@@ -1,8 +1,9 @@
 /**
  * @file compass.cpp
+ * @author Jordi Gauchía (jgauchia@jgauchia.com) 
  * @brief Compass definition and functions - Native ESP-IDF drivers
  * @version 0.3.0
- * @date 2026-06
+ * @date 2026-09
  */
 
 #include "compass.hpp"
@@ -562,6 +563,7 @@ float MPU9250_Driver::getMagZ_uT() { return magZ; }
 
 /**
  * @brief Compass class constructor with default filter and calibration values.
+ *
  */
 Compass::Compass()
         : declinationAngle(0.22f), // default ~12.6 deg (Barcelona) in radians
@@ -575,6 +577,7 @@ Compass::Compass()
 
 /**
  * @brief Initializes the compass/magnetometer sensor hardware and configuration.
+ *
  */
 void Compass::init()
 {

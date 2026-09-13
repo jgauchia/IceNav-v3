@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief ESP32-P4 power management implementation
  * @version 0.3.0
- * @date 2026-06
+ * @date 2026-09
  */
 
 #include "sdkconfig.h"
@@ -156,7 +156,7 @@ private:
 };
 
 /**
- * @brief Provides the P4 power implementation as the Layer-1 singleton.
+ * @brief Provides the P4 power implementation as the Layer-1 .
  */
 IPower &power()
 {

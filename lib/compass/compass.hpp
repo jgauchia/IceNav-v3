@@ -1,8 +1,9 @@
 /**
  * @file compass.hpp
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief Compass definition and functions - Native ESP-IDF drivers
  * @version 0.3.0
- * @date 2026-06
+ * @date 2026-09
  */
 
 #pragma once
@@ -85,6 +86,7 @@
 /**
  * @class QMC5883L_Driver
  * @brief Native ESP-IDF driver for QMC5883L magnetometer.
+ *
  */
 class QMC5883L_Driver : public I2CDriverBase
 {
@@ -106,6 +108,7 @@ private:
 /**
  * @class HMC5883L_Driver
  * @brief Native ESP-IDF driver for HMC5883L magnetometer.
+ *
  */
 class HMC5883L_Driver : public I2CDriverBase
 {
@@ -127,6 +130,7 @@ private:
 /**
  * @class MPU9250_Driver
  * @brief Native ESP-IDF driver for MPU9250 with AK8963 magnetometer.
+ *
  */
 class MPU9250_Driver
 {
@@ -168,6 +172,7 @@ private:
 /**
  * @class KalmanFilter
  * @brief Implements a simple 1D Kalman filter for angle estimation.
+ *
  */
 class KalmanFilter
 {
@@ -228,6 +233,7 @@ class KalmanFilter
 /**
  * @class Compass
  * @brief Provides high-level interface for compass (magnetometer) sensor management and heading calculation.
+ *
  */
 class Compass
 {

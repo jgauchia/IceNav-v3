@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Global GPX Variables
  * @version 0.3.0
- * @date 2026-06
+ * @date 2026-09
  */
 
 #pragma once
@@ -55,6 +55,7 @@ struct TrackSegment
 
 /**
  * @brief Track Vector Type using PSRAM Allocator
+ *
  */
 typedef std::vector<wayPoint, PsramAllocator<wayPoint>> TrackVector;
 
@@ -87,7 +88,7 @@ struct TurnPoint
 }; 
 
 /**
- * @Brief GPX header file format
+ * @brief GPX header file format
  *
  * @details Static string containing the standard GPX 1.0 file header, to be used when creating new GPX files.
  */

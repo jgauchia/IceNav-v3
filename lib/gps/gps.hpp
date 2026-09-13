@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  GPS definition and functions
  * @version 0.3.0
- * @date 2026-06
+ * @date 2026-09
  */
 
 #pragma once
@@ -51,6 +51,7 @@ void buildPcas03(char *out, size_t outSize, uint8_t rateIdx); /**< Builds a $PCA
 
 /**
  * @brief Satellite Constellation Canvas Definition
+ *
  */
 #if defined(EXTRA_LARGE_SCREEN)
   static const uint16_t canvasOffset = 25;
@@ -73,6 +74,7 @@ static const uint16_t canvasRadius = canvasCenter_X - canvasOffset;
 /**
  * @class Gps
  * @brief GPS management class using NeoGPS library.
+ *
  */
 class Gps
 {
@@ -89,6 +91,7 @@ class Gps
         /**
         * @struct GpsSnapshot
         * @brief Coherent copy of the position fields shared across cores.
+        *
         */
         struct GpsSnapshot
         {
@@ -109,6 +112,7 @@ class Gps
         /**
         * @struct GPSDATA
         * @brief Holds parsed GPS data for easy access.
+        *
         */
         struct GPSDATA
         {
@@ -131,6 +135,7 @@ class Gps
         /**
         * @struct SV
         * @brief Holds information about a tracked satellite.
+        *
         */
         struct SV
         {

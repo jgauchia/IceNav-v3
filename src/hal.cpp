@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Hardware Abstraction Layer initialization
  * @version 0.3.0
- * @date 2026-06
+ * @date 2026-09
  */
 
 #include <Arduino.h>

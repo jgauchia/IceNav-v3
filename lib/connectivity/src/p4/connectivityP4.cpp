@@ -3,7 +3,8 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief ESP32-P4 connectivity implementation (WiFi over ESP32-C6 co-processor
  *        via esp-hosted, SDIO + mDNS)
- * @date 2026-07
+ * @version 0.3.0
+ * @date 2026-09
  */
 
 #include "connectivity.hpp"
@@ -54,7 +55,8 @@ public:
 };
 
 /**
- * @brief Provides the P4 connectivity implementation as the Layer-1 singleton.
+ * @brief Provides the P4 connectivity implementation as the Layer-1 .
+ *
  */
 IConnectivity &connectivity()
 {

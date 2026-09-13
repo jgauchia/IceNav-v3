@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Battery monitor definition and functions
  * @version 0.3.0
- * @date 2026-06
+ * @date 2026-09
  */
 
 #include "battery.hpp"

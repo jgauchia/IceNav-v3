@@ -2,7 +2,8 @@
  * @file displayS3.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief ESP32-S3 display implementation (LovyanGFX)
- * @date 2026-06
+ * @version 0.3.0
+ * @date 2026-09
  */
 
 #include "sdkconfig.h"
@@ -117,7 +118,8 @@ private:
 };
 
 /**
- * @brief Provides the S3 display implementation as the Layer-1 singleton.
+ * @brief Provides the S3 display implementation as the Layer-1 .
+ *
  */
 IDisplay &display()
 {
@@ -127,6 +129,7 @@ IDisplay &display()
 
 /**
  * @brief Returns the global LovyanGFX device map canvases attach to.
+ *
  */
 LovyanGFX *mapCanvasParent()
 {

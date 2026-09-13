@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Web file server functions implementation
  * @version 0.3.0
- * @date 2026-06
+ * @date 2026-09
  */
 
 #include "webserver.h"
@@ -1159,7 +1159,7 @@ public:
 };
 
 /**
- * @brief Provides the HTTP file server implementation as the Layer-1 singleton.
+ * @brief Provides the HTTP file server implementation as the Layer-1 .
  */
 IFileServer &fileServer()
 {

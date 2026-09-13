@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ROUTE.bin paged graph loader with on-demand PSRAM cache and turn-restriction support
  * @version 0.3.0
- * @date 2026-06
+ * @date 2026-09
  */
 
 #include "graph_loader.hpp"
