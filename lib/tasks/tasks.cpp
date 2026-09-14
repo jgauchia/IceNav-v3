@@ -489,7 +489,7 @@ void sensorTask(void *pvParameters)
  */
 void initSensorTask()
 {
-    xTaskCreatePinnedToCore(sensorTask, "Sensor Task", 3072, NULL, 1, &sensorTaskHandle, 0);
+    xTaskCreatePinnedToCore(sensorTask, "Sensor Task", 4096, NULL, 1, &sensorTaskHandle, 0);
 }
 
 /**
@@ -530,7 +530,7 @@ void guiTask(void *pvParameters)
  */
 void initGuiTask()
 {
-    xTaskCreatePinnedToCore(guiTask, "GUI Task", 9728, NULL, 3, &guiTaskHandle, 1);
+    xTaskCreatePinnedToCore(guiTask, "GUI Task", 12288, NULL, 3, &guiTaskHandle, 1);
 }
 
 extern Maps mapView;

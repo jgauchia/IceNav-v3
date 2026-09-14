@@ -102,6 +102,7 @@ void Maps::initResources()
     ringEndsCache.reserve(MAX_POLYGON_POINTS);
     placedLabelsCache.reserve(MAX_PLACED_LABELS);
     vectorCache.reserve(NAV_DATA_CACHE_SIZE);
+    bufferFreeList.reserve(NAV_DATA_CACHE_SIZE);
     mapMutex = xSemaphoreCreateRecursiveMutex();
     mapEventGroup = xEventGroupCreate();
     xEventGroupSetBits(mapEventGroup, MAP_EVENT_FREE);
@@ -134,7 +135,7 @@ void Maps::initResources()
         ppa_client_register_event_callbacks(ppaSrmClient, &cbs);
     }
 #endif
-    xTaskCreatePinnedToCore(mapRenderTask, "MapRenderTask", 4096, this, 2, &mapRenderTaskHandle, 0);
+    xTaskCreatePinnedToCore(mapRenderTask, "MapRenderTask", 6144, this, 2, &mapRenderTaskHandle, 0);
 }
 
 /**
@@ -717,6 +718,10 @@ void Maps::mapRenderTask(void* pvParameters)
                             heap_caps_free(entry.data);
 
                         instance->vectorCache.clear();
+                        for (auto& freeBuf : instance->bufferFreeList)
+                            heap_caps_free(freeBuf.data);
+
+                        instance->bufferFreeList.clear();
                     }
 
                     instance->featurePool.clear();
@@ -3301,8 +3306,9 @@ bool Maps::renderVectorViewport(float centerLat, float centerLon, uint8_t zoom, 
  * @brief Looks up a vector tile in the LRU cache, loading it from storage on miss.
  *
  * @details On a cache hit, updates lastAccess and pins the entry. On a miss, opens
- *          the zoom-level pack, reads the tile into PSRAM, evicts the LRU unpinned
- *          entry if the cache is full, and inserts the new entry.
+ *          the zoom-level pack, reads the tile into PSRAM, reuses a released buffer
+ *          from bufferFreeList when one fits, evicts the LRU unpinned entry if the
+ *          cache is full, and inserts the new entry.
  *
  * @param tileX      Global X tile index.
  * @param tileY      Global Y tile index.
@@ -3313,21 +3319,15 @@ bool Maps::renderVectorViewport(float centerLat, float centerLon, uint8_t zoom, 
 uint8_t* Maps::vectorCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t zoom, size_t& outDataSize)
 {
     uint32_t tileHash = (uint32_t(zoom) << 28) | (uint32_t(tileX & 0x3FFF) << 14) | uint32_t(tileY & 0x3FFF);
-    int cacheIdx = -1;
     for (int i = 0; i < (int)vectorCache.size(); i++)
     {
         if (vectorCache[i].tileHash == tileHash)
         {
-            cacheIdx = i;
-            break;
+            vectorCache[i].lastAccess = ++cacheCounter;
+            vectorCache[i].isPinned = true;
+            outDataSize = vectorCache[i].size;
+            return vectorCache[i].data;
         }
-    }
-    if (cacheIdx >= 0)
-    {
-        vectorCache[cacheIdx].lastAccess = ++cacheCounter;
-        vectorCache[cacheIdx].isPinned = true;
-        outDataSize = vectorCache[cacheIdx].size;
-        return vectorCache[cacheIdx].data;
     }
 
     if (!NavReader::openPack(zoom))
@@ -3339,17 +3339,21 @@ uint8_t* Maps::vectorCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t z
     if (!NavReader::findTileInPack(tileX, tileY, offset, size))
         return nullptr;
 
-    uint8_t* data = static_cast<uint8_t*>(heap_caps_aligned_alloc(512, size, MALLOC_CAP_SPIRAM));
+    uint8_t* data = acquireCacheBuffer(size);
     if (!data)
     {
         for (int i = (int)vectorCache.size() - 1; i >= 0; i--)
         {
             if (!vectorCache[i].isPinned)
             {
-                heap_caps_free(vectorCache[i].data);
+                bufferFreeList.push_back({vectorCache[i].data, vectorCache[i].size});
                 vectorCache.erase(vectorCache.begin() + i);
             }
         }
+        data = acquireCacheBuffer(size);
+    }
+    if (!data)
+    {
         data = static_cast<uint8_t*>(heap_caps_aligned_alloc(512, size, MALLOC_CAP_SPIRAM));
         if (!data)
             return nullptr;
@@ -3357,7 +3361,7 @@ uint8_t* Maps::vectorCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t z
 
     if (storage.seekAndRead(NavReader::packFile, offset, data, size) != size)
     {
-        heap_caps_free(data);
+        bufferFreeList.push_back({data, size});
         return nullptr;
     }
 
@@ -3371,7 +3375,7 @@ uint8_t* Maps::vectorCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t z
         }
         if (lru != -1)
         {
-            heap_caps_free(vectorCache[lru].data);
+            bufferFreeList.push_back({vectorCache[lru].data, vectorCache[lru].size});
             vectorCache.erase(vectorCache.begin() + lru);
         }
     }
@@ -3379,6 +3383,20 @@ uint8_t* Maps::vectorCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t z
     vectorCache.push_back({data, size, tileHash, ++cacheCounter, true, 0});
     outDataSize = size;
     return data;
+}
+
+uint8_t* Maps::acquireCacheBuffer(size_t neededSize)
+{
+    for (int i = 0; i < (int)bufferFreeList.size(); i++)
+    {
+        if (bufferFreeList[i].capacity >= neededSize)
+        {
+            uint8_t* data = bufferFreeList[i].data;
+            bufferFreeList.erase(bufferFreeList.begin() + i);
+            return data;
+        }
+    }
+    return nullptr;
 }
 
 /**

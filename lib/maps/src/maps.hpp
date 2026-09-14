@@ -208,12 +208,19 @@ private:
         uint8_t pinLeft;
     };
 
+    struct NavFreeBuffer
+    {
+        uint8_t* data;
+        size_t capacity;
+    };
+
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
     static const uint8_t NAV_DATA_CACHE_SIZE = 48;
 #else
     static const uint8_t NAV_DATA_CACHE_SIZE = 12;
 #endif
     std::vector<NavDataCache, PsramAllocator<NavDataCache>> vectorCache;
+    std::vector<NavFreeBuffer, PsramAllocator<NavFreeBuffer>> bufferFreeList;
     uint32_t cacheCounter = 0;
     uint32_t lastPrefetchHash = 0;
 
@@ -293,6 +300,7 @@ private:
                          int8_t dirX, int8_t dirY);
     void scrollVectorSprite(int16_t shiftX, int16_t shiftY);
     uint8_t* vectorCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t zoom, size_t& outDataSize);
+    uint8_t* acquireCacheBuffer(size_t neededSize);
     void prefetchNextTile();
     void decodeVectorFeatures(const uint8_t* data, size_t dataSize, int16_t screenX, int16_t screenY, uint8_t zoom);
     static void drawThickLine(MapCanvas& map, int16_t x0, int16_t y0,
