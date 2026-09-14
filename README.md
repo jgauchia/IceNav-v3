@@ -338,6 +338,7 @@ clear:          clear shell
 info:           get device information
 klist:          list of user preferences. ('all' param show all)
 kset:           set an user extra preference
+mem:            memory snapshot (heap, LVGL, stacks)
 nmcli:          network manager CLI. Type nmcli help for more info
 outnmea:        toggle GPS NMEA output (or Ctrl+C to stop)
 poweroff:       perform a ESP32 deep sleep
