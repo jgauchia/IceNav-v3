@@ -7,7 +7,7 @@
  */
 
 #include "widgets.hpp"
-#include "lv_subjects.hpp"
+#include "lvglSubjects.hpp"
 #include "sunrise.h"
 #include "sunset.h"
 #include "navarrow.h"

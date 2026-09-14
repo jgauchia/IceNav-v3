@@ -18,7 +18,7 @@
 #include "esp_image_format.h"
 #include "display.hpp"
 #include "globalGuiDef.h"
-#include "lv_subjects.hpp"
+#include "../lvgl/src/lvglSubjects.hpp"
 #include <lgfx/utility/lgfx_miniz.h>
 
 extern Storage storage;

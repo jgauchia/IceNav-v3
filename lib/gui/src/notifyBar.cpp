@@ -8,7 +8,7 @@
 
 #include "notifyBar.hpp"
 #include "tasks.hpp"
-#include "lv_subjects.hpp"
+#include "lvglSubjects.hpp"
 
 lv_obj_t *mainScreen;         /**< Main screen */
 lv_obj_t *notifyBarIcons;     /**< Notification bar icons container object. */

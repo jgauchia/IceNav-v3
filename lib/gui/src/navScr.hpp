@@ -9,7 +9,7 @@
 #pragma once
 
 #include "globalGuiDef.h"
-#include "lv_subjects.hpp"
+#include "lvglSubjects.hpp"
 #include "../../images/src/navup.h"
 
 /**

@@ -6,7 +6,7 @@
  * @date 2026-09
  */
 #include "satInfoScr.hpp"
-#include "lv_subjects.hpp"
+#include "lvglSubjects.hpp"
 #include "mainScr.hpp"
 
 lv_obj_t *infoGrid;

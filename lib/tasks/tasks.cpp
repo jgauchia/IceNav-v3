@@ -11,7 +11,7 @@
 
 #include "tasks.hpp"
 #include "mainScr.hpp"
-#include "lv_subjects.hpp"
+#include "../lvgl/src/lvglSubjects.hpp"
 #include "logger.hpp"
 #include "router.hpp"
 #include "gpxParser.hpp"

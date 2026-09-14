@@ -1,5 +1,5 @@
 /**
- * @file lv_subjects.hpp
+ * @file lvglSubjects.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Observer Pattern - Subjects for telemetry data
  * @version 0.3.0

@@ -9,7 +9,7 @@
 #include "gps.hpp"
 #include "../../include/hal.hpp"
 #include "lvgl.h"
-#include "../gui/src/lv_subjects.hpp"
+#include "../lvgl/src/lvglSubjects.hpp"
 #include "widgets.hpp"
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>

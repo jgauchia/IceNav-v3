@@ -7,7 +7,7 @@
  */
 
 #include "splashScr.hpp"
-#include "lv_subjects.hpp"
+#include "lvglSubjects.hpp"
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
 #include "esp_system.h"

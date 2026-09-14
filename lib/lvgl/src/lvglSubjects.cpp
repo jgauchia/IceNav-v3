@@ -1,16 +1,16 @@
 /**
- * @file lv_subjects.cpp
+ * @file lvglSubjects.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Observer Pattern - Implementation of telemetry subjects
  * @version 0.3.0
  * @date 2026-09
  */
 
-#include "lv_subjects.hpp"
-#include "gps.hpp"
-#include "bme.hpp"
-#include "sensors.hpp"
-#include "settings.hpp"
+#include "lvglSubjects.hpp"
+#include "../../gps/gps.hpp"
+#include "../../bme/bme.hpp"
+#include "../../sensors/src/sensors.hpp"
+#include "../../settings/settings.hpp"
 #include <time.h>
 
 lv_subject_t subject_heading;

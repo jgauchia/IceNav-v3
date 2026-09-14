@@ -6,7 +6,7 @@
  * @date 2026-09
  */
 
-#include "../../gui/src/lv_subjects.hpp"
+#include "lvglSubjects.hpp"
 #include "lvglSetup.hpp"
 #include "../../../include/hal.hpp"
 #include "display.hpp"

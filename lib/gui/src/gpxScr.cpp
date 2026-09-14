@@ -7,7 +7,7 @@
  */
 
 #include "gpxScr.hpp"
-#include "lv_subjects.hpp"
+#include "lvglSubjects.hpp"
 #include "router.hpp"
 #include "navContext.hpp"
 #include "gps.hpp"

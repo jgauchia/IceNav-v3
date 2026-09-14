@@ -7,7 +7,7 @@
  */
 
 #include "nmeaDebugScr.hpp"
-#include "lv_subjects.hpp"
+#include "lvglSubjects.hpp"
 #include "tasks.hpp"
 #include "mainScr.hpp"
 #include <NMEAGPS.h>

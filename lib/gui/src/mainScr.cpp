@@ -8,7 +8,7 @@
 
 #include "mainScr.hpp"
 #include "tasks.hpp"
-#include "lv_subjects.hpp"
+#include "lvglSubjects.hpp"
 #include "navContext.hpp"
 #include "logger.hpp"
 

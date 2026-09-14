@@ -21,7 +21,7 @@
 #include "navContext.hpp"
 #include "maps.hpp"
 #include "diag.hpp"
-#include "lv_subjects.hpp"
+#include "lvglSubjects.hpp"
 #ifdef WAVESHARE_P4_35
     #include "axp2101.hpp"
     extern Axp2101 axp2101;
