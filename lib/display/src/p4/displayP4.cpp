@@ -79,22 +79,33 @@ public:
             int32_t w = area.x2 - area.x1 + 1;
             int32_t h = area.y2 - area.y1 + 1;
             
-            if (w == tft.height() && h == tft.width()) {
+            if (w == tft.height() && h == tft.width())
+            {
                 // Rotated 270 degrees (Logical is 800x480, physical is 480x800)
-                uint16_t* rotBuf = (uint16_t*)heap_caps_malloc(tft.width() * tft.height() * 2, MALLOC_CAP_SPIRAM);
-                if (rotBuf) {
-                    for (int y = 0; y < h; y++) {
-                        for (int x = 0; x < w; x++) {
-                            int dst_x = tft.width() - 1 - y;
-                            int dst_y = x;
-                            rotBuf[dst_x + dst_y * tft.width()] = pixels[x + y * w];
+                // Persistent buffer reused across frames avoids 768 KB PSRAM churn per flush.
+                uint32_t rotSize = (uint32_t)tft.width() * (uint32_t)tft.height() * 2;
+                if (rotBufSize != rotSize)
+                {
+                    if (rotBuf != nullptr)
+                        heap_caps_free(rotBuf);
+                    rotBuf = (uint16_t*)heap_caps_malloc(rotSize, MALLOC_CAP_SPIRAM);
+                    rotBufSize = (rotBuf != nullptr) ? rotSize : 0;
+                }
+                if (rotBuf != nullptr)
+                {
+                    for (int y = 0; y < h; y++)
+                    {
+                        for (int x = 0; x < w; x++)
+                        {
+                            int dstX = tft.width() - 1 - y;
+                            int dstY = x;
+                            rotBuf[dstX + dstY * tft.width()] = pixels[x + y * w];
                         }
                     }
                     esp_lcd_panel_draw_bitmap(static_cast<PANEL_TYPE *>(tft.getPanel())->panelHandle(), 0, 0, tft.width(), tft.height(), rotBuf);
                     tft.waitDisplay();
                     if (_captureBuffer != nullptr)
                         memcpy(_captureBuffer, rotBuf, _captureWidth * _captureHeight * sizeof(uint16_t));
-                    heap_caps_free(rotBuf);
                     return;
                 }
             }
@@ -151,6 +162,8 @@ private:
     uint16_t *_captureBuffer = nullptr;
     uint16_t _captureWidth = 0;
     uint16_t _captureHeight = 0;
+    uint16_t *rotBuf = nullptr;
+    uint32_t rotBufSize = 0;
 };
 
 /**
