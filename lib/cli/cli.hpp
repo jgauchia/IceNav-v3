@@ -2,8 +2,8 @@
  * @file cli.hpp
  * @author @Hpsaturn
  * @brief  Network CLI and custom internal commands
- * @version 0.2.9
- * @date 2026-06
+ * @version 0.3.0
+ * @date 2026-09
  */
 
 #pragma once

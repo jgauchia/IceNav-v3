@@ -1,15 +1,16 @@
 /**
- * @file lv_subjects.cpp
+ * @file lvglSubjects.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Observer Pattern - Implementation of telemetry subjects
- * @version 0.2.9
- * @date 2026-06
+ * @version 0.3.0
+ * @date 2026-09
  */
 
-#include "lv_subjects.hpp"
-#include "gps.hpp"
-#include "bme.hpp"
-#include "settings.hpp"
+#include "lvglSubjects.hpp"
+#include "../../gps/gps.hpp"
+#include "../../bme/bme.hpp"
+#include "../../sensors/src/sensors.hpp"
+#include "../../settings/settings.hpp"
 #include <time.h>
 
 lv_subject_t subject_heading;
@@ -99,15 +100,14 @@ void init_lv_subjects()
 
     #ifdef ENABLE_TEMP
     {
-        #ifdef BME280
-        float t = 0.0f;
-        float p = 0.0f;
-        float h = 0.0f;
-        bme.readAll(t, p, h);
-        lv_subject_init_int(&subject_temp, (int32_t)(t + tempOffset));
-        #else
-        lv_subject_init_int(&subject_temp, 0);
-        #endif
+        if (sensors().hasAmbient())
+        {
+            AmbientData ambient;
+            sensors().readAmbient(ambient);
+            lv_subject_init_int(&subject_temp, (int32_t)(ambient.temperature + tempOffset));
+        }
+        else
+            lv_subject_init_int(&subject_temp, 0);
     }
     #endif
 }
