@@ -58,28 +58,28 @@ static std::string listFiles(bool ishtml, int page);
 static bool deleteDirRecursive(const char *dirPath);
 static bool createDirectories(const std::string& filepath);
 static std::string processTemplate(const char* html);
-static esp_err_t root_handler(httpd_req_t *req);
-static esp_err_t status_handler(httpd_req_t *req);
-static esp_err_t listfiles_handler(httpd_req_t *req);
-static esp_err_t changedirectory_handler(httpd_req_t *req);
-static esp_err_t file_handler(httpd_req_t *req);
-static esp_err_t reboot_handler(httpd_req_t *req);
+static esp_err_t rootHandler(httpd_req_t *req);
+static esp_err_t statusHandler(httpd_req_t *req);
+static esp_err_t listFilesHandler(httpd_req_t *req);
+static esp_err_t changeDirectoryHandler(httpd_req_t *req);
+static esp_err_t fileHandler(httpd_req_t *req);
+static esp_err_t rebootHandler(httpd_req_t *req);
 static esp_err_t sendSpiffsImage(httpd_req_t *req, const char *imageFile);
 static esp_err_t sendSpiffsJS(httpd_req_t *req, const char *jsFile);
-static esp_err_t listfolder_handler(httpd_req_t *req);
+static esp_err_t listFolderHandler(httpd_req_t *req);
 static uint8_t* findBytes(uint8_t* haystack, size_t haystackLen, const uint8_t* needle, size_t needleLen);
-static esp_err_t upload_handler(httpd_req_t *req);
-static esp_err_t notfound_handler(httpd_req_t *req, httpd_err_code_t err);
+static esp_err_t uploadHandler(httpd_req_t *req);
+static esp_err_t notFoundHandler(httpd_req_t *req, httpd_err_code_t err);
 
 // Image handlers
-static esp_err_t logo_handler(httpd_req_t *req);
-static esp_err_t files_handler(httpd_req_t *req);
-static esp_err_t folder_handler(httpd_req_t *req);
-static esp_err_t down_handler(httpd_req_t *req);
-static esp_err_t up_handler(httpd_req_t *req);
-static esp_err_t del_handler(httpd_req_t *req);
-static esp_err_t reb_handler(httpd_req_t *req);
-static esp_err_t list_handler(httpd_req_t *req);
+static esp_err_t logoHandler(httpd_req_t *req);
+static esp_err_t filesHandler(httpd_req_t *req);
+static esp_err_t folderHandler(httpd_req_t *req);
+static esp_err_t downHandler(httpd_req_t *req);
+static esp_err_t upHandler(httpd_req_t *req);
+static esp_err_t delHandler(httpd_req_t *req);
+static esp_err_t rebHandler(httpd_req_t *req);
+static esp_err_t listHandler(httpd_req_t *req);
 
 // Public interface functions
 void setWebStatus(const char* message, bool refresh);
