@@ -50,7 +50,7 @@ namespace lgfx
                 if (result)
                 {
                     esp_lcd_dpi_panel_get_frame_buffer(_disp_panel_handle, 1, &(_config_detail.buffer));
-                    result = build_line_array();
+                    result = buildLineArray();
                 }
 
                 if (result)
@@ -87,7 +87,7 @@ namespace lgfx
                 return need_yield == pdTRUE;
             }
 
-            bool build_line_array(void)
+            bool buildLineArray(void)
             {
                 auto ptr = (uint8_t*)_config_detail.buffer;
                 if (ptr == nullptr)

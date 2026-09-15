@@ -54,6 +54,7 @@ The project has strict naming and formatting rules. Code that doesn't follow the
 
 - **Braces (Allman):** opening brace on its own line. Never use braces for single-line control flow.
 - **Variables:** one variable per line. Underscores in variable names (`my_var` or `var_`) are forbidden.
+- **Functions and methods:** new functions/methods use camelCase with word splitting (e.g., `changeDirectoryHandler`, `notFoundHandler`). snake_case is forbidden for new functions; legacy snake_case names are migrated per the roadmap rename plan.
 - **Comments:** English only, single line, and only when they add real value. Never state what the code does.
 - **Documentation:** Doxygen only in `.cpp` files, never in `.hpp`. Never bump the version field in Doxygen headers. No `@details` blocks.
 
