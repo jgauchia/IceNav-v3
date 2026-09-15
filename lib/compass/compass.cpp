@@ -808,7 +808,7 @@ void Compass::calibrate()
     };
     vTaskDelay(pdMS_TO_TICKS(1000));
 
-    unsigned long calTimeWas = millis_idf();
+    unsigned long calTimeWas = millisIDF();
 
     read(x, y, z);
 
@@ -828,7 +828,7 @@ void Compass::calibrate()
         if (y < minY)
             minY = y;
 
-        int secmillis = millis_idf() - calTimeWas;
+        int secmillis = millisIDF() - calTimeWas;
         int secs = (int)((COMPASS_CAL_TIME - secmillis + 1000) / 1000);
         compassCalSprite.setTextColor(TFT_WHITE, TFT_BLACK);
         compassCalSprite.setTextSize(3);

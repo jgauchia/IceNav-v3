@@ -45,7 +45,7 @@ Maps mapView;
 /**
  * @brief LVGL round callback for T4-S3
  */
-static void lv_rounder_cb(lv_event_t *event)
+static void lvglRounderCb(lv_event_t *event)
 {
     lv_area_t *area = (lv_area_t*)lv_event_get_param(event);
     
@@ -129,7 +129,7 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     }
     count = read;
 
-    unsigned long now = millis_idf();
+    unsigned long now = millisIDF();
     float dt_ms = (now > lastTime) ? (float)(now - lastTime) : 1.0f;
 
     if (count == 0)
@@ -159,7 +159,7 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 
             if (!isDrag)
             {
-                uint32_t touchReleaseTime = millis_idf();
+                uint32_t touchReleaseTime = millisIDF();
                 if (!firstTouchReleaseTime)
                 {
                     firstTouchReleaseTime = touchReleaseTime;
@@ -182,7 +182,7 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
             isDrag = false;
         }
 
-        if (firstTouchReleaseTime && millis_idf() - firstTouchReleaseTime > TOUCH_DOUBLE_TOUCH_INTERVAL)
+        if (firstTouchReleaseTime && millisIDF() - firstTouchReleaseTime > TOUCH_DOUBLE_TOUCH_INTERVAL)
         {
             if (numberTouchReleases == 2)
             {
@@ -479,7 +479,7 @@ void modifyTheme()
  *
  * @param arg Pointer to optional argument (unused).
  */
-void lv_tick_task(void *arg)
+void lvglTickTask(void *arg)
 {
     (void)arg;
     lv_tick_inc(LV_TICK_PERIOD_MS);
@@ -496,7 +496,7 @@ void initLVGL()
 {
     lvgl_mutex = xSemaphoreCreateMutex();
     lv_init();
-    init_lv_subjects();
+    initLvglSubjects();
     initSharedStyles();
 
     display_drv = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
@@ -504,7 +504,7 @@ void initLVGL()
     lv_display_set_flush_wait_cb(display_drv, displayFlushWait);
 
     #ifdef T4_S3
-        lv_display_add_event_cb(display_drv, lv_rounder_cb, LV_EVENT_INVALIDATE_AREA, display_drv);
+        lv_display_add_event_cb(display_drv, lvglRounderCb, LV_EVENT_INVALIDATE_AREA, display_drv);
     #endif
     
     size_t DRAW_BUF_SIZE = 0;
@@ -592,7 +592,7 @@ void initLVGL()
     createGpxListScreen();
 
     // Create and start a periodic timer interrupt to call lv_tick_inc 
-    const esp_timer_create_args_t periodic_timer_args = { .callback = &lv_tick_task, .name = "periodic_gui" };
+    const esp_timer_create_args_t periodic_timer_args = { .callback = &lvglTickTask, .name = "periodic_gui" };
     esp_timer_handle_t periodic_timer;
     ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
     ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer, LV_TICK_PERIOD_MS * 1000));
@@ -636,6 +636,6 @@ void loadMainScreen()
     /* Force notification to all observers even if values have not changed.
        lv_subject_set_int suppresses callbacks when the value is identical;
        widgets need to re-render their initial state after a screen transition. */
-    notify_all_subjects();
+    notifyAllSubjects();
     triggerMapRedraw();
 }

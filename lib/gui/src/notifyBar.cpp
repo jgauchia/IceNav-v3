@@ -139,7 +139,7 @@ static void fix_mode_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
 /**
  * @brief LED animation callback for GPS Fix indicator
  */
-static void led_anim_cb(void * var, int32_t v)
+static void ledAnimCb(void * var, int32_t v)
 {
     lv_led_set_brightness((lv_obj_t *)var, v);
 }
@@ -168,7 +168,7 @@ static void is_fixed_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
         lv_anim_t a;
         lv_anim_init(&a);
         lv_anim_set_var(&a, obj);
-        lv_anim_set_exec_cb(&a, led_anim_cb);
+        lv_anim_set_exec_cb(&a, ledAnimCb);
         lv_anim_set_values(&a, 10, 255);
         lv_anim_set_duration(&a, 500);
         lv_anim_set_reverse_duration(&a, 500);

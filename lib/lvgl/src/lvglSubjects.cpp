@@ -57,10 +57,8 @@ volatile bool canMoveWidget = false;
 
 /**
  * @brief Initialize all telemetry subjects
- * 
- * @details Initializes the subjects with default values for integers.
  */
-void init_lv_subjects()
+void initLvglSubjects()
 {
     lv_subject_init_int(&subject_heading, 0);
     lv_subject_init_int(&subject_compass_heading, 0);
@@ -114,10 +112,8 @@ void init_lv_subjects()
 
 /**
  * @brief Manually trigger all telemetry observers
- * 
- * @details Forces a refresh of all reactive UI components by notifying their subjects.
  */
-void notify_all_subjects()
+void notifyAllSubjects()
 {
     lv_subject_notify(&subject_heading);
     lv_subject_notify(&subject_compass_heading);

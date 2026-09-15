@@ -65,6 +65,6 @@ extern SemaphoreHandle_t lvgl_mutex;
  */
 extern volatile bool canMoveWidget;
 
-void init_lv_subjects();
+void initLvglSubjects();
 
-void notify_all_subjects();
+void notifyAllSubjects();

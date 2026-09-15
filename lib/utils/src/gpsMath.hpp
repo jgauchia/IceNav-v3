@@ -54,12 +54,7 @@ static inline __attribute__((always_inline)) float RAD2DEG(float rad)
 inline constexpr const char *degreeFormat = "%03d\xC2\xB0 %02d\' %.2f\" %c"; /**< Format string for degrees (DDD°MM'SS" + hemisphere) */
 inline constexpr const char *TAGMATH      = "MATH";
 
-/**
- * @brief Get system uptime in milliseconds using ESP-IDF timer.
- *
- * @return uint32_t Milliseconds since boot.
- */
-static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
+static inline uint32_t millisIDF() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 bool initTrigLUT();
 

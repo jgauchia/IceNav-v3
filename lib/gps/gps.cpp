@@ -516,9 +516,9 @@ void Gps::setLocalTime(NeoGPS::time_t gpsTime, const char* tz)
  */
 void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refresh)
 {
-    if (millis_idf() - lastSimulationTime > refresh)
+    if (millisIDF() - lastSimulationTime > refresh)
     {
-        lastSimulationTime = millis_idf();
+        lastSimulationTime = millisIDF();
 
         if (simulationIndex < (int)trackData.size() - 1)
         {

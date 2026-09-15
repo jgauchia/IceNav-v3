@@ -115,7 +115,7 @@ void splashScreen()
     setTime = false;
 
     #ifdef SPLASH_FULLSCREEN
-        millisActual = millis_idf();
+        millisActual = millisIDF();
 
         display().setBrightness(defBright);
 
@@ -158,7 +158,7 @@ void splashScreen()
         splashSprite.createSprite(display().width(), display().height());
 
         display().clear(0x0000);
-        millisActual = millis_idf();
+        millisActual = millisIDF();
         display().setBrightness(0);
 
         static uint16_t pngHeight = 0;
@@ -226,22 +226,22 @@ void splashScreen()
             display().setBrightness(fadeIn);
             if (fadeIn == 0)
                 splashSprite.pushSprite(0,0);
-            millisActual = millis_idf();
-            while (millis_idf() < millisActual + 15);
+            millisActual = millisIDF();
+            while (millisIDF() < millisActual + 15);
         }
 
-        while (millis_idf() < millisActual + 100);
+        while (millisIDF() < millisActual + 100);
 
         for (uint8_t fadeOut = maxBrightness; fadeOut > 0; fadeOut--)
         {
             display().setBrightness(fadeOut);
-            millisActual = millis_idf();
-            while (millis_idf() < millisActual + 15);
+            millisActual = millisIDF();
+            while (millisIDF() < millisActual + 15);
         }
 
         display().clear(0x0000);
 
-        while (millis_idf() < millisActual + 100);
+        while (millisIDF() < millisActual + 100);
 
         display().setBrightness(defBright);
 

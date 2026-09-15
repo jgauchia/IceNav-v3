@@ -47,7 +47,7 @@ static void alt_sat_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
 /**
  * @brief Async callback to redraw Satellite SNR and Sky charts
  */
-static void async_sats_update_cb(void * user_data)
+static void asyncSatsUpdateCb(void * user_data)
 {
     if (activeTile != SATTRACK)
         return;
@@ -63,7 +63,7 @@ static void sats_data_observer_cb(lv_observer_t *observer, lv_subject_t *subject
 {
     if (activeTile != SATTRACK)
         return;
-    lv_async_call(async_sats_update_cb, NULL);
+    lv_async_call(asyncSatsUpdateCb, NULL);
 }
 
 /**

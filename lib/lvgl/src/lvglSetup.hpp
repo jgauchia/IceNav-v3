@@ -47,8 +47,8 @@ void touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data);
 #endif
 void applyModifyTheme(lv_theme_t *th, lv_obj_t *obj);
 void modifyTheme();
-void lv_tick_task(void *arg);
+void lvglTickTask(void *arg);
 void initLVGL();
 void loadMainScreen();
-static void lv_rounder_cb(lv_event_t *event);
+static void lvglRounderCb(lv_event_t *event);
 

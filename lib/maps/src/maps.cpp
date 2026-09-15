@@ -17,7 +17,7 @@
 #include "navContext.hpp"
 
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
-static inline uint32_t rgb565_to_argb8888(uint16_t c)
+static inline uint32_t rgb565ToArgb8888(uint16_t c)
 {
     uint8_t r = ((c >> 11) & 0x1F) * 255 / 31;
     uint8_t g = ((c >> 5) & 0x3F) * 255 / 63;
@@ -742,7 +742,7 @@ void Maps::mapRenderTask(void* pvParameters)
                         if (((uint32_t)buf & 0x7F) == 0)
                         {
                             ppa_fill_oper_config_t cfg = {};
-                            cfg.fill_argb_color.val = rgb565_to_argb8888(TFT_WHITE);
+                            cfg.fill_argb_color.val = rgb565ToArgb8888(TFT_WHITE);
                             cfg.out.buffer = buf;
                             cfg.out.buffer_size = instance->tileWidth * instance->tileHeight * 2;
                             cfg.out.pic_w = instance->tileWidth;
@@ -953,7 +953,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     if (((uint32_t)buf & 0x7F) == 0)
                     {
                         ppa_fill_oper_config_t cfg = {};
-                        cfg.fill_argb_color.val = rgb565_to_argb8888(0xF7BE);
+                        cfg.fill_argb_color.val = rgb565ToArgb8888(0xF7BE);
                         cfg.out.buffer = buf;
                         cfg.out.buffer_size = instance->tileWidth * instance->tileHeight * 2;
                         cfg.out.pic_w = instance->tileWidth;
@@ -983,7 +983,7 @@ void Maps::mapRenderTask(void* pvParameters)
                 if (aggressiveLod)
                     instance->vectorCapped = true;
                 instance->mapTempSprite.startWrite();
-                uint32_t lastYield = millis_idf();
+                uint32_t lastYield = millisIDF();
                 uint32_t loopCounter = 0;
 
                 for (int i = 0; i < 16 && !aborted; i++)
@@ -1001,11 +1001,11 @@ void Maps::mapRenderTask(void* pvParameters)
                     {
                         if ((++loopCounter & 127) == 0)
                         {
-                            uint32_t now = millis_idf();
+                            uint32_t now = millisIDF();
                             if (now - lastYield > 40)
                             {
                                 if (yieldFeature()) { aborted = true; break; }
-                                lastYield = millis_idf();
+                                lastYield = millisIDF();
                             }
                         }
 
@@ -1032,11 +1032,11 @@ void Maps::mapRenderTask(void* pvParameters)
                     {
                         if ((++loopCounter & 127) == 0)
                         {
-                            uint32_t now = millis_idf();
+                            uint32_t now = millisIDF();
                             if (now - lastYield > 40)
                             {
                                 if (yieldFeature()) { aborted = true; break; }
-                                lastYield = millis_idf();
+                                lastYield = millisIDF();
                             }
                         }
                         instance->renderVectorLine(instance->featurePool[idx], instance->mapTempSprite, false);
@@ -1055,11 +1055,11 @@ void Maps::mapRenderTask(void* pvParameters)
                         {
                             if ((++loopCounter & 127) == 0)
                             {
-                                uint32_t now = millis_idf();
+                                uint32_t now = millisIDF();
                                 if (now - lastYield > 40)
                                 {
                                     if (yieldFeature()) { aborted = true; break; }
-                                    lastYield = millis_idf();
+                                    lastYield = millisIDF();
                                 }
                             }
                             instance->renderVectorText(instance->featurePool[idx], instance->mapTempSprite, instance->placedLabelsCache);
@@ -2117,7 +2117,7 @@ void Maps::scrollVectorSprite(int16_t shiftX, int16_t shiftY)
 
             // Clear the vacated border before the incoming band is painted on it.
             ppa_fill_oper_config_t fill = {};
-            fill.fill_argb_color.val = rgb565_to_argb8888(0xF7BE);
+            fill.fill_argb_color.val = rgb565ToArgb8888(0xF7BE);
             fill.out.buffer = dst;
             fill.out.buffer_size = (uint32_t)w * (uint32_t)h * 2;
             fill.out.pic_w = (uint32_t)w;

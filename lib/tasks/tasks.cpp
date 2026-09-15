@@ -593,7 +593,7 @@ void navTask(void *pvParameters)
     {
         // Close the reroute progress message once its minimum display time
         // has elapsed, even when the route calculation was very fast.
-        if (rerouteMsgOpen && (unsigned long)millis_idf() - rerouteMsgAt >= REROUTE_MSG_MIN_MS)
+        if (rerouteMsgOpen && (unsigned long)millisIDF() - rerouteMsgAt >= REROUTE_MSG_MIN_MS)
         {
             if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) == pdTRUE)
             {
@@ -633,7 +633,7 @@ void navTask(void *pvParameters)
             {
                 showMsg(LV_SYMBOL_REFRESH, " Calculating route...", false);
                 rerouteMsgOpen = true;
-                rerouteMsgAt   = (unsigned long)millis_idf();
+                rerouteMsgAt   = (unsigned long)millisIDF();
                 xSemaphoreGive(lvgl_mutex);
             }
 
@@ -770,7 +770,7 @@ void navTask(void *pvParameters)
             Gps::GpsSnapshot navSnap = gps.getSnapshot();
             if (navSnap.speed != 0 || navSet.simNavigation)
             {
-                unsigned long now = (unsigned long)millis_idf();
+                unsigned long now = (unsigned long)millisIDF();
                 if (now - lastNavUpdate > 100)
                 {
                     lastNavUpdate = now;

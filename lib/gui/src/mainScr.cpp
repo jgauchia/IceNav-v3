@@ -149,18 +149,8 @@ static volatile bool redrawPending = false;
 
 /**
  * @brief Async callback on the UI thread that requests map composition and displays it.
- *
- * @details On ESP32-S3 requests a tile generate and marks a composition as
- *          pending when the view changed (offset, heading, position, manual
- *          heading or redraw). Once the render task signals MAP_EVENT_DONE,
- *          invalidates the map image and forces a synchronous refresh,
- *          re-arming MAP_EVENT_FREE so the render task can compose the next
- *          frame. On ESP32-P4 composition stays on the GUI thread —
- *          displayMap() is called directly when the view changed or a rendered
- *          frame is ready (MAP_EVENT_DONE), and LVGL draws asynchronously
- *          (original flow, no handshake latency).
  */
-static void async_map_update_cb(void * user_data)
+static void asyncMapUpdateCb(void * user_data)
 {
     __atomic_store_n(&redrawPending, false, __ATOMIC_SEQ_CST);
 
@@ -276,7 +266,7 @@ void triggerMapRedraw()
 {
     if (__atomic_exchange_n(&redrawPending, true, __ATOMIC_SEQ_CST))
         return;
-    lv_async_call(async_map_update_cb, NULL);
+    lv_async_call(asyncMapUpdateCb, NULL);
 }
 
 /**
@@ -289,7 +279,7 @@ void triggerMapRedraw()
 void forceMapRedraw()
 {
     __atomic_store_n(&redrawPending, false, __ATOMIC_SEQ_CST);
-    lv_async_call(async_map_update_cb, NULL);
+    lv_async_call(asyncMapUpdateCb, NULL);
 }
 
 /**
@@ -734,7 +724,7 @@ static void climb_idx_observer_cb(lv_observer_t *observer, lv_subject_t *subject
  * @brief Async callback to delegate nav redrawing to UI thread (Core 1)
  *
  */
-static void async_nav_update_cb(void * user_data)
+static void asyncNavUpdateCb(void * user_data)
 {
     if (navTile != NULL)
         lv_obj_send_event(navTile, LV_EVENT_VALUE_CHANGED, NULL);
@@ -753,7 +743,7 @@ static void nav_data_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
 {
     if (activeTile != NAV)
         return;
-    lv_async_call(async_nav_update_cb, NULL);
+    lv_async_call(asyncNavUpdateCb, NULL);
 }
 
 /**
@@ -951,7 +941,7 @@ static void scrollMapEvent(lv_event_t *event)
                 lv_indev_get_point(indev, &p);
                 scrollState.last_x      = p.x;
                 scrollState.last_y      = p.y;
-                scrollState.last_time   = millis_idf();
+                scrollState.last_time   = millisIDF();
                 scrollState.dragStarted = false;
                 isScrollingMap = true;
                 mapView.velocityX = 0;
@@ -965,7 +955,7 @@ static void scrollMapEvent(lv_event_t *event)
             case LV_EVENT_PRESSING:
             {
                 lv_indev_get_point(indev, &p);
-                uint32_t current_time = millis_idf();
+                uint32_t current_time = millisIDF();
                 int dx = p.x - scrollState.last_x;
                 int dy = p.y - scrollState.last_y;
                 uint32_t dt = current_time - scrollState.last_time;

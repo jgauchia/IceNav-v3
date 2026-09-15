@@ -146,7 +146,7 @@ void GpxLogger::start()
     snprintf(trkName, sizeof(trkName), "<trk><name>%s</name>\n", trackName);
     storage.print(file, trkName);
 
-    startMs      = millis_idf();
+    startMs      = millisIDF();
     lastLogMs    = startMs;
     lastUpdateMs = startMs;
     loggerState        = LoggerState::RECORDING;
@@ -169,7 +169,7 @@ void GpxLogger::stop()
     if (xSemaphoreTake(mutex, pdMS_TO_TICKS(100)) != pdTRUE)
         return;
 
-    uint32_t now = millis_idf();
+    uint32_t now = millisIDF();
 
     loggerState = LoggerState::IDLE;
 
@@ -211,7 +211,7 @@ void GpxLogger::update(const LoggerGpsFix& gpsFix)
     if (mutex == nullptr || xSemaphoreTake(mutex, 0) != pdTRUE)
         return;
 
-    uint32_t now      = millis_idf();
+    uint32_t now      = millisIDF();
     float    lat      = gpsFix.lat;
     float    lon      = gpsFix.lon;
     int16_t  alt      = gpsFix.alt;
@@ -365,7 +365,7 @@ void GpxLogger::writeTrkpt(float lat, float lon, int16_t alt, float speedKmh, co
     lastLon = lon;
     lastAlt = (float)alt;
     hasLast = true;
-    lastLogMs = millis_idf();
+    lastLogMs = millisIDF();
 
     flushCnt++;
     if (flushCnt >= 10)
