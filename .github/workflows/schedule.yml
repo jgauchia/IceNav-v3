@@ -26,6 +26,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install pioarduino==6.1.19
           pio pkg install -g -t "platformio/tool-scons@4.40801.0"
+      - name: Pin pioarduino for penv (uv constraint)
+        run: |
+          echo "pioarduino==6.1.19" > pio-constraints.txt
+          echo "UV_CONSTRAINT=$(pwd)/pio-constraints.txt" >> "$GITHUB_ENV"
       - name: Testing ICENAV Custom Board
         run: |
           export ICENAV3_LON=13.404
