@@ -196,6 +196,7 @@ private:
         uint8_t x2;
         uint8_t y2;
         uint8_t priority;
+        bool ppaFilled;
     };
 
     struct NavDataCache
@@ -246,6 +247,9 @@ private:
 
     void renderVectorLine(const FeatureRef& ref, MapCanvas& map, bool isCasing = false);
     void renderVectorPolygon(const FeatureRef& ref, MapCanvas& map);
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    uint32_t ppaFillPrio0Tiles();
+#endif
     void renderVectorPoint(const FeatureRef& ref, MapCanvas& map);
     void renderVectorText(const FeatureRef& ref, MapCanvas& map, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels);
     void latLonToPixel(float lat, float lon, int16_t& px, int16_t& py);

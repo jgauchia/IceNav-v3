@@ -24,6 +24,14 @@ static inline uint32_t rgb565ToArgb8888(uint16_t c)
     uint8_t b = (c & 0x1F) * 255 / 31;
     return 0xFF000000 | (r << 16) | (g << 8) | b;
 }
+
+// The map sprite stores RGB565 with the two bytes swapped (see rawColor in the render
+// helpers), so a DMA fill must be expanded from that same swapped value to land byte
+// for byte like the CPU path does.
+static inline uint32_t spriteColorToArgb8888(uint16_t c)
+{
+    return rgb565ToArgb8888((uint16_t)((c >> 8) | (c << 8)));
+}
 #endif
 #include "../../images/src/waypoint.h"
 
@@ -857,6 +865,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     return shouldAbort;
                 };
 
+                uint32_t passTiles = 0;
                 bool aborted = false;
                 while (!instance->pendingTiles.empty())
                 {
@@ -867,6 +876,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     if (t.type == TILE_NAV)
                     {
                         instance->renderVectorTile(t.x, t.y, instance->zoomLevel, t.screenX, t.screenY, instance->mapTempSprite);
+                        passTiles++;
                         if (yieldTile()) { aborted = true; break; }
                     }
                     else if (t.type == TILE_PNG)
@@ -953,7 +963,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     if (((uint32_t)buf & 0x7F) == 0)
                     {
                         ppa_fill_oper_config_t cfg = {};
-                        cfg.fill_argb_color.val = rgb565ToArgb8888(0xF7BE);
+                        cfg.fill_argb_color.val = spriteColorToArgb8888(0xF7BE);
                         cfg.out.buffer = buf;
                         cfg.out.buffer_size = instance->tileWidth * instance->tileHeight * 2;
                         cfg.out.pic_w = instance->tileWidth;
@@ -982,6 +992,14 @@ void Maps::mapRenderTask(void* pvParameters)
                 aggressiveLod = vectorRender && stepBehindFinger;
                 if (aggressiveLod)
                     instance->vectorCapped = true;
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+                // Ground layer (priority 0) is a per-tile rectangle, but only a full grid pass
+                // can hand it to the PPA: such a pass repaints the whole sprite, so dropping its
+                // cache lines right after cannot discard band content that is still needed.
+                if (!aggressiveLod &&
+                    passTiles >= (uint32_t)instance->tilesGrid * (uint32_t)instance->tilesGrid)
+                    instance->ppaFillPrio0Tiles();
+#endif
                 instance->mapTempSprite.startWrite();
                 uint32_t lastYield = millisIDF();
                 uint32_t loopCounter = 0;
@@ -2094,30 +2112,21 @@ void Maps::scrollVectorSprite(int16_t shiftX, int16_t shiftY)
         srm.scale_y = 1.0f;
         srm.mode = PPA_TRANS_MODE_NON_BLOCKING;
         srm.user_data = (void*)&srmInFlight;
+        // Both DMA endpoints need their cache lines resolved first: the source has to be
+        // written back (the SRM reads PSRAM), and every stale line of the destination has
+        // to be dropped, not just the vacated band, or a later write-back of those lines
+        // lands on top of the freshly copied pixels. The destination is rewritten in full
+        // by this copy plus the band fill, so dropping all of it is safe.
+        esp_cache_msync(cur, (uint32_t)w * (uint32_t)h * 2,
+                        ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_TYPE_DATA);
+        esp_cache_msync(dst, (uint32_t)w * (uint32_t)h * 2,
+                        ESP_CACHE_MSYNC_FLAG_DIR_M2C | ESP_CACHE_MSYNC_FLAG_TYPE_DATA);
         srmInFlight = true;
         if (ppa_do_scale_rotate_mirror(ppaSrmClient, &srm) == ESP_OK)
         {
-            // Discard stale CPU-cached lines in the vacated band only (the SRM
-            // driver already invalidates its own output window) so neither the DMA
-            // fill nor the SRM output gets clobbered by old cached content being
-            // written back afterwards.
-            if (shiftX != 0)
-            {
-                const uint32_t bandX = (shiftX < 0) ? (uint32_t)(w - ts) : 0;
-                for (uint32_t y = 0; y < (uint32_t)h; y++)
-                    esp_cache_msync(dst + y * (uint32_t)w * 2 + bandX * 2, (uint32_t)ts * 2,
-                                    ESP_CACHE_MSYNC_FLAG_DIR_M2C | ESP_CACHE_MSYNC_FLAG_TYPE_DATA);
-            }
-            else
-            {
-                const uint32_t bandY = (shiftY < 0) ? (uint32_t)(h - ts) : 0;
-                esp_cache_msync(dst + bandY * (uint32_t)w * 2, (uint32_t)ts * (uint32_t)w * 2,
-                                ESP_CACHE_MSYNC_FLAG_DIR_M2C | ESP_CACHE_MSYNC_FLAG_TYPE_DATA);
-            }
-
             // Clear the vacated border before the incoming band is painted on it.
             ppa_fill_oper_config_t fill = {};
-            fill.fill_argb_color.val = rgb565ToArgb8888(0xF7BE);
+            fill.fill_argb_color.val = spriteColorToArgb8888(0xF7BE);
             fill.out.buffer = dst;
             fill.out.buffer_size = (uint32_t)w * (uint32_t)h * 2;
             fill.out.pic_w = (uint32_t)w;
@@ -3061,7 +3070,10 @@ void Maps::renderVectorPolygon(const FeatureRef& ref, MapCanvas& map)
 
     int* px = projBuf32X.data();
     int* py = projBuf32Y.data();
-    fillPolygonGeneral(map, px, py, actualPoints, ref.color, 0, 0, ringCount, ringEndsPtr);
+    // Whole-tile priority-0 rects are already painted by the PPA (P4); the casing
+    // outline below still runs on the CPU.
+    if (!ref.ppaFilled)
+        fillPolygonGeneral(map, px, py, actualPoints, ref.color, 0, 0, ringCount, ringEndsPtr);
     if (ref.casing && vectorZoom >= 16)
     {
         uint16_t outlineColor = darkenRGB565(ref.color, 0.35f);
@@ -3469,7 +3481,7 @@ void Maps::decodeVectorFeatures(const uint8_t* data, size_t dataSize, int16_t sc
             {
                 uint16_t poolIdx = (uint16_t)featurePool.size();
                 bool hasCasing = hasCasingHdr;
-                featurePool.push_back({(uint8_t*)payload, (NavGeomType)geomType, ps, cc, screenX, screenY, colorRgb565, (uint8_t)(wp & 0x7F), hasCasing, bx1, by1, bx2, by2, (uint8_t)(zp & 0x0F)});
+                featurePool.push_back({(uint8_t*)payload, (NavGeomType)geomType, ps, cc, screenX, screenY, colorRgb565, (uint8_t)(wp & 0x7F), hasCasing, bx1, by1, bx2, by2, (uint8_t)(zp & 0x0F), false});
                 uint8_t priority = zp & 0x0F;
                 if (priority < 16)
                 {
@@ -3485,6 +3497,124 @@ void Maps::decodeVectorFeatures(const uint8_t* data, size_t dataSize, int16_t sc
         p = payload + ps;
     }
 }
+
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+/**
+ * @brief Paints the priority-0 ground polygons that cover a whole tile with the PPA.
+ *
+ * @details Runs before the first CPU raster write of the pass. Only features whose decoded
+ *          bounding box covers the entire tile and that have no rings (holes) are candidates;
+ *          anything else stays in the scanline path. Filled features are marked so
+ *          renderVectorPolygon() skips their fill. When at least one tile is painted the
+ *          sprite cache is invalidated (M2C) so old cached lines are not written back over
+ *          the DMA output — the same pattern used by scrollVectorSprite().
+ *
+ * @return Number of tiles painted by DMA.
+ */
+uint32_t Maps::ppaFillPrio0Tiles()
+{
+    if (!ppaFillClient)
+        return 0;
+
+    uint8_t* buf = static_cast<uint8_t*>(mapTempSprite.getBuffer());
+    if (!buf)
+        return 0;
+
+    // tileWidth/tileHeight are the map sprite dimensions; the source tiles are
+    // mapTileSize square inside it.
+    const uint32_t spriteW = (uint32_t)tileWidth;
+    const uint32_t spriteH = (uint32_t)tileHeight;
+    const uint32_t tileSize = (uint32_t)mapTileSize;
+    uint32_t filled = 0;
+
+    for (uint16_t idx : layers[0])
+    {
+        FeatureRef& feat = featurePool[idx];
+        if (feat.ppaFilled || feat.geomType != NavGeomType::Polygon)
+            continue;
+        if (feat.coordCount < 3 || feat.coordCount > MAX_POLYGON_POINTS)
+            continue;
+        if (feat.coordCount * 2 > decodedCoords.capacity())
+            continue;
+        if (feat.tileOffsetX < 0 || feat.tileOffsetY < 0)
+            continue;
+        if ((uint32_t)feat.tileOffsetX + tileSize > spriteW || (uint32_t)feat.tileOffsetY + tileSize > spriteH)
+            continue;
+
+        int16_t* coords = decodedCoords.data();
+        uint8_t* p = feat.ptr;
+        int32_t curX = 0;
+        int32_t curY = 0;
+        for (uint16_t i = 0; i < feat.coordCount; i++)
+        {
+            curX += NavReader::decodeZigZag(NavReader::readVarInt(p));
+            curY += NavReader::decodeZigZag(NavReader::readVarInt(p));
+            coords[i * 2] = (int16_t)(feat.tileOffsetX + (curX >> 4));
+            coords[i * 2 + 1] = (int16_t)(feat.tileOffsetY + (curY >> 4));
+        }
+
+        int minPx = INT_MAX;
+        int maxPx = INT_MIN;
+        int minPy = INT_MAX;
+        int maxPy = INT_MIN;
+        for (uint16_t i = 0; i < feat.coordCount; i++)
+        {
+            const int cx = coords[i * 2];
+            const int cy = coords[i * 2 + 1];
+            if (cx < minPx)
+                minPx = cx;
+            if (cx > maxPx)
+                maxPx = cx;
+            if (cy < minPy)
+                minPy = cy;
+            if (cy > maxPy)
+                maxPy = cy;
+        }
+
+        // Only a ring whose bounding box covers the whole tile is replaceable by a
+        // rectangle fill; every other polygon keeps the scanline path.
+        const int tileX0 = (int)feat.tileOffsetX;
+        const int tileY0 = (int)feat.tileOffsetY;
+        if (minPx > tileX0 || minPy > tileY0 ||
+            maxPx < tileX0 + (int)tileSize - 1 || maxPy < tileY0 + (int)tileSize - 1)
+            continue;
+
+        // A single ring is the polygon itself, so a rectangle fill still matches the
+        // CPU result. Two or more rings mean holes, which a rectangle would paint over.
+        const size_t ringOffset = (size_t)(p - feat.ptr);
+        if (ringOffset + 2 <= feat.payloadSize)
+        {
+            const size_t ringBytesAvail = feat.payloadSize - ringOffset;
+            const uint16_t ringCount = (uint16_t)(p[0] | (p[1] << 8));
+            if (ringCount > 1 && (size_t)(2 + (size_t)ringCount * 2) <= ringBytesAvail)
+                continue;
+        }
+
+        ppa_fill_oper_config_t cfg = {};
+        cfg.fill_argb_color.val = spriteColorToArgb8888(feat.color);
+        cfg.out.buffer = buf;
+        cfg.out.buffer_size = spriteW * spriteH * 2;
+        cfg.out.pic_w = spriteW;
+        cfg.out.pic_h = spriteH;
+        cfg.out.block_offset_x = (uint32_t)feat.tileOffsetX;
+        cfg.out.block_offset_y = (uint32_t)feat.tileOffsetY;
+        cfg.out.fill_cm = PPA_FILL_COLOR_MODE_RGB565;
+        cfg.fill_block_w = tileSize;
+        cfg.fill_block_h = tileSize;
+        cfg.mode = PPA_TRANS_MODE_BLOCKING;
+        if (ppa_do_fill(ppaFillClient, &cfg) != ESP_OK)
+            continue;
+
+        feat.ppaFilled = true;
+        filled++;
+    }
+
+    if (filled > 0)
+        esp_cache_msync(buf, spriteW * spriteH * 2, ESP_CACHE_MSYNC_FLAG_DIR_M2C | ESP_CACHE_MSYNC_FLAG_TYPE_DATA);
+
+    return filled;
+}
+#endif
 
 /**
  * @brief Fetches and decodes a single vector tile from cache or storage.
