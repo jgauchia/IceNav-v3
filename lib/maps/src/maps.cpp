@@ -2903,7 +2903,9 @@ void Maps::renderVectorLine(const FeatureRef& ref, MapCanvas& map, bool isCasing
     }
     
     if (ref.coordCount * 2 > decodedCoords.capacity())
+    {
         return;
+    }
     int16_t* coords = decodedCoords.data();
     uint8_t* p = ref.ptr;
     int32_t curX = 0;
@@ -2984,7 +2986,9 @@ void Maps::renderVectorPolygon(const FeatureRef& ref, MapCanvas& map)
         return;
 
     if (ref.coordCount * 2 > decodedCoords.capacity())
+    {
         return;
+    }
     int16_t* coords = decodedCoords.data();
     uint8_t* p = ref.ptr;
     int32_t curX = 0;
@@ -3035,7 +3039,9 @@ void Maps::renderVectorPolygon(const FeatureRef& ref, MapCanvas& map)
     }
 
     if (ref.coordCount > projBuf32X.capacity())
+    {
         return;
+    }
     int minPx = INT_MAX;
     int maxPx = INT_MIN;
     int minPy = INT_MAX;
@@ -3345,6 +3351,23 @@ uint8_t* Maps::vectorCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t z
     if (!NavReader::openPack(zoom))
         return nullptr;
 
+    if (pendingTiles.size() + 1 >= (size_t)tilesGrid && NAV_DATA_CACHE_SIZE >= tilesGrid * tilesGrid)
+    {
+        if (tryLoadRowByRuns(tileX, tileY, zoom))
+        {
+            for (int i = 0; i < (int)vectorCache.size(); i++)
+            {
+                if (vectorCache[i].tileHash == tileHash)
+                {
+                    vectorCache[i].lastAccess = ++cacheCounter;
+                    vectorCache[i].isPinned = true;
+                    outDataSize = vectorCache[i].size;
+                    return vectorCache[i].data;
+                }
+            }
+        }
+    }
+
     uint32_t offset;
     uint32_t size;
 
@@ -3371,7 +3394,7 @@ uint8_t* Maps::vectorCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t z
             return nullptr;
     }
 
-    if (storage.seekAndRead(NavReader::packFile, offset, data, size) != size)
+    if (storage.seekAndReadDirect(NavReader::packFile, offset, data, size) != size)
     {
         bufferFreeList.push_back({data, size});
         return nullptr;
@@ -3395,6 +3418,170 @@ uint8_t* Maps::vectorCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t z
     vectorCache.push_back({data, size, tileHash, ++cacheCounter, true, 0});
     outDataSize = size;
     return data;
+}
+
+/**
+ * @brief Loads every missing tile of one viewport row with one read per run.
+ *
+ * Resolves the screen row that contains the requested tile, merges tiles that
+ * are contiguous on disk into runs, reads each run in a single call and stores
+ * each tile into the vector cache. Falls back to nothing on any guard failure:
+ * the caller then follows the plain per-tile path.
+ *
+ * @param tileX Global X tile index of the row anchor.
+ * @param tileY Global Y tile index of the row anchor.
+ * @param zoom  Current zoom level.
+ * @return True when the row was loaded from storage.
+ */
+bool Maps::tryLoadRowByRuns(uint32_t tileX, uint32_t tileY, uint8_t zoom)
+{
+    const int32_t tlX = (int32_t)mapTlX;
+    const int32_t tlY = (int32_t)mapTlY;
+    if (tlX < 0 || tlY < 0)
+    {
+        return false;
+    }
+    if ((int32_t)tileX < tlX || (int32_t)tileX >= tlX + (int32_t)tilesGrid)
+    {
+        return false;
+    }
+    if ((int32_t)tileY < tlY || (int32_t)tileY >= tlY + (int32_t)tilesGrid)
+    {
+        return false;
+    }
+
+    const uint32_t rowY = (uint32_t)tileY;
+    const uint32_t zoomShift = (uint32_t)zoom << 28;
+
+    struct CellSlot
+    {
+        uint32_t x;
+        uint32_t offset;
+        uint32_t size;
+    };
+    CellSlot cells[16];
+    int cnt = 0;
+    for (int c = 0; c < (int)tilesGrid; c++)
+    {
+        const uint32_t x = (uint32_t)(tlX + c);
+        const uint32_t cellHash = zoomShift | ((x & 0x3FFFu) << 14) | (rowY & 0x3FFFu);
+        bool cached = false;
+        for (int i = 0; i < (int)vectorCache.size(); i++)
+        {
+            if (vectorCache[i].tileHash == cellHash)
+            {
+                cached = true;
+                break;
+            }
+        }
+        if (cached)
+            continue;
+        uint32_t off;
+        uint32_t sz;
+        if (!NavReader::findTileInPack(x, rowY, off, sz))
+            continue;
+        if (sz == 0)
+            continue;
+        if (cnt < 16)
+        {
+            cells[cnt].x = x;
+            cells[cnt].offset = off;
+            cells[cnt].size = sz;
+            cnt++;
+        }
+    }
+
+    if (cnt == 0)
+    {
+        return false;
+    }
+
+    std::sort(cells, cells + cnt, [](const CellSlot& a, const CellSlot& b)
+    {
+        return a.offset < b.offset;
+    });
+
+    int idx = 0;
+    while (idx < cnt)
+    {
+        uint32_t runStart = cells[idx].offset;
+        uint32_t runEnd = runStart + cells[idx].size;
+        uint32_t totBytes = cells[idx].size;
+        int last = idx;
+        while (last + 1 < cnt && cells[last + 1].offset <= runEnd)
+        {
+            last++;
+            const uint32_t cellEnd = cells[last].offset + cells[last].size;
+            if (cellEnd > runEnd)
+                runEnd = cellEnd;
+            totBytes += cells[last].size;
+        }
+        const uint32_t runLen = runEnd - runStart;
+        if (runLen > totBytes * 2 + 65536)
+        {
+            return false;
+        }
+
+        uint8_t* runBuf = static_cast<uint8_t*>(heap_caps_malloc(runLen, MALLOC_CAP_SPIRAM));
+        if (!runBuf)
+        {
+            return false;
+        }
+
+        if (storage.seekAndReadDirect(NavReader::packFile, runStart, runBuf, runLen) != runLen)
+        {
+            heap_caps_free(runBuf);
+            return false;
+        }
+
+        for (int j = idx; j <= last; j++)
+        {
+            const size_t tileSize = cells[j].size;
+            uint8_t* tileBuf = acquireCacheBuffer(tileSize);
+            if (!tileBuf)
+            {
+                for (int i = (int)vectorCache.size() - 1; i >= 0; i--)
+                {
+                    if (!vectorCache[i].isPinned)
+                    {
+                        bufferFreeList.push_back({vectorCache[i].data, vectorCache[i].size});
+                        vectorCache.erase(vectorCache.begin() + i);
+                    }
+                }
+                tileBuf = acquireCacheBuffer(tileSize);
+            }
+            if (!tileBuf)
+            {
+                tileBuf = static_cast<uint8_t*>(heap_caps_aligned_alloc(512, tileSize, MALLOC_CAP_SPIRAM));
+                if (!tileBuf)
+                    continue;
+            }
+
+            memcpy(tileBuf, runBuf + (cells[j].offset - runStart), tileSize);
+
+            const uint32_t cellHash = zoomShift | ((cells[j].x & 0x3FFFu) << 14) | (rowY & 0x3FFFu);
+            if (vectorCache.size() >= NAV_DATA_CACHE_SIZE)
+            {
+                int lru = -1;
+                for (int i = 0; i < (int)vectorCache.size(); i++)
+                {
+                    if (!vectorCache[i].isPinned && (lru == -1 || vectorCache[i].lastAccess < vectorCache[lru].lastAccess))
+                        lru = i;
+                }
+                if (lru != -1)
+                {
+                    bufferFreeList.push_back({vectorCache[lru].data, vectorCache[lru].size});
+                    vectorCache.erase(vectorCache.begin() + lru);
+                }
+            }
+            vectorCache.push_back({tileBuf, tileSize, cellHash, ++cacheCounter, true, 0});
+        }
+
+        heap_caps_free(runBuf);
+        idx = last + 1;
+    }
+
+    return true;
 }
 
 uint8_t* Maps::acquireCacheBuffer(size_t neededSize)

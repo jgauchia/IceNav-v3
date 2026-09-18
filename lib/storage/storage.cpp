@@ -52,6 +52,30 @@ namespace
 		snprintf(buf, sizeof(buf), "%.2f %s", formatted_size, suffixes[order]);
 		return std::string(buf);
 	}
+
+	/**
+	 * @brief Reads exactly size bytes from a file descriptor.
+	 *
+	 * @details read() can return fewer bytes than requested, so it is retried until the
+	 * 			buffer is filled or the end of file is reached.
+	 *
+	 * @param fd   Open file descriptor
+	 * @param dst  Destination buffer
+	 * @param size Number of bytes to read
+	 * @return size_t Number of bytes actually read
+	 */
+	size_t readFullyFd(int fd, uint8_t *dst, size_t size)
+	{
+		size_t done = 0;
+		while (done < size)
+		{
+			ssize_t got = read(fd, dst + done, size - done);
+			if (got <= 0)
+				break;
+			done += (size_t)got;
+		}
+		return done;
+	}
 }
 
 /**
@@ -687,6 +711,144 @@ size_t Storage::seekAndRead(FILE *file, long offset, uint8_t *buffer, size_t siz
     }
     xSemaphoreGive(readMutex);
     return totalRead;
+}
+
+/**
+ * @brief Read from a file using the VFS descriptor directly.
+ *
+ * @details Bypasses the stdio FILE buffer so the whole request reaches FatFs in one call,
+ * 			allowing multi-sector disk reads. The data is always staged through the persistent
+ * 			internal DMA buffer so the destination may be any memory region.
+ *
+ * @param file   FILE* pointer to the open file
+ * @param buffer Pointer to the destination buffer
+ * @param size   Number of bytes to read
+ * @return size_t Number of bytes successfully read
+ */
+size_t Storage::readDirect(FILE* file, uint8_t* buffer, size_t size)
+{
+	if (!file || !buffer)
+		return 0;
+
+	size_t totalRead = 0;
+
+	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+	{
+		ESP_LOGW(TAG, "readDirect: mutex timeout (%u B)", (unsigned)size);
+		return 0;
+	}
+
+	const int fd = fileno(file);
+
+	if (!dmaBuffer)
+	{
+		xSemaphoreGive(readMutex);
+		return 0;
+	}
+
+	while (totalRead < size)
+	{
+		size_t toRead = (size - totalRead > DMA_BUF_SIZE) ? DMA_BUF_SIZE : (size - totalRead);
+		size_t r = readFullyFd(fd, dmaBuffer, toRead);
+		if (r == 0)
+			break;
+		memcpy(buffer + totalRead, dmaBuffer, r);
+		totalRead += r;
+	}
+
+	xSemaphoreGive(readMutex);
+	return totalRead;
+}
+
+/**
+ * @brief Read from a file using the VFS descriptor directly (char buffer).
+ *
+ * @param file   FILE* pointer to the open file
+ * @param buffer Pointer to the destination buffer
+ * @param size   Number of bytes to read
+ * @return size_t Number of bytes successfully read
+ */
+size_t Storage::readDirect(FILE* file, char* buffer, size_t size)
+{
+	return readDirect(file, reinterpret_cast<uint8_t*>(buffer), size);
+}
+
+/**
+ * @brief Set the file position using the VFS descriptor directly.
+ *
+ * @param file   FILE* pointer
+ * @param offset Offset in bytes
+ * @param whence Position from where offset is added (SEEK_SET, SEEK_CUR, SEEK_END)
+ * @return Result of lseek (resulting offset on success, -1 on error)
+ */
+int Storage::seekDirect(FILE* file, long offset, int whence)
+{
+	if (!file)
+		return -1;
+
+	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+		return -1;
+
+	int res = (int)lseek(fileno(file), offset, whence);
+	xSemaphoreGive(readMutex);
+	return res;
+}
+
+/**
+ * @brief Seek and read a file using the VFS descriptor directly.
+ *
+ * @details The read offset is aligned down to a sector so the bulk of the request reaches
+ * 			FatFs on a sector boundary and can be served with multi-sector disk reads. The data
+ * 			is always staged through the persistent internal DMA buffer.
+ *
+ * @param file   FILE* pointer to the open file
+ * @param offset Offset in bytes
+ * @param buffer Pointer to the destination buffer
+ * @param size   Number of bytes to read
+ * @return size_t Number of bytes successfully read
+ */
+size_t Storage::seekAndReadDirect(FILE* file, long offset, uint8_t* buffer, size_t size)
+{
+	if (!file || !buffer)
+		return 0;
+
+	size_t totalRead = 0;
+
+	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+	{
+		ESP_LOGW(TAG, "seekAndReadDirect: mutex timeout (off=%ld %u B)", offset, (unsigned)size);
+		return 0;
+	}
+
+	const int fd = fileno(file);
+
+	if (!dmaBuffer)
+	{
+		xSemaphoreGive(readMutex);
+		return 0;
+	}
+
+	long alignedOffset = offset - (offset % SD_SECTOR_SIZE);
+	size_t firstSkip = (size_t)(offset - alignedOffset);
+	lseek(fd, alignedOffset, SEEK_SET);
+
+	while (totalRead < size)
+	{
+		size_t want = size - totalRead + firstSkip;
+		size_t toRead = (want > DMA_BUF_SIZE) ? DMA_BUF_SIZE : want;
+		size_t r = readFullyFd(fd, dmaBuffer, toRead);
+		if (r <= firstSkip)
+			break;
+		size_t usable = r - firstSkip;
+		if (usable > size - totalRead)
+			usable = size - totalRead;
+		memcpy(buffer + totalRead, dmaBuffer + firstSkip, usable);
+		totalRead += usable;
+		firstSkip = 0;
+	}
+
+	xSemaphoreGive(readMutex);
+	return totalRead;
 }
 
 /**

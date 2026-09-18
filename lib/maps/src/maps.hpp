@@ -225,8 +225,8 @@ private:
     uint32_t cacheCounter = 0;
     uint32_t lastPrefetchHash = 0;
 
-    static const uint16_t MAX_POLYGON_POINTS = 1024;
-    static const uint32_t MAX_FEATURE_POOL_SIZE = 16384;
+    static const uint16_t MAX_POLYGON_POINTS = 8192;
+    static const uint32_t MAX_FEATURE_POOL_SIZE = 32768;
     static const uint16_t MAX_PLACED_LABELS = 512;
 
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
@@ -304,6 +304,7 @@ private:
                          int8_t dirX, int8_t dirY);
     void scrollVectorSprite(int16_t shiftX, int16_t shiftY);
     uint8_t* vectorCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t zoom, size_t& outDataSize);
+    bool tryLoadRowByRuns(uint32_t tileX, uint32_t tileY, uint8_t zoom);
     uint8_t* acquireCacheBuffer(size_t neededSize);
     void prefetchNextTile();
     void decodeVectorFeatures(const uint8_t* data, size_t dataSize, int16_t screenX, int16_t screenY, uint8_t zoom);

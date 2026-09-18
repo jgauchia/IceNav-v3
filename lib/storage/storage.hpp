@@ -73,9 +73,9 @@ class Storage
     public:
         Storage();
         esp_err_t initSD();
+        void deinitSD();
         esp_err_t initSPIFFS();
         SDCardInfo getSDCardInfo();
-        void deinitSD();
         bool getSdLoaded() const;
         FILE *open(const char *path, const char *mode);
         int close(FILE *file);
@@ -90,6 +90,10 @@ class Storage
         size_t write(FILE* file, const char* buffer, size_t size);
         int seek(FILE* file, long offset, int whence);
         size_t seekAndRead(FILE* file, long offset, uint8_t* buffer, size_t size);
+        size_t readDirect(FILE* file, uint8_t* buffer, size_t size);
+        size_t readDirect(FILE* file, char* buffer, size_t size);
+        int seekDirect(FILE* file, long offset, int whence);
+        size_t seekAndReadDirect(FILE* file, long offset, uint8_t* buffer, size_t size);
         int print(FILE* file, const char* str);
         int println(FILE* file, const char* str);
         size_t fileAvailable(FILE* file);

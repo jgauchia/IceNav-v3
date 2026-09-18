@@ -34,7 +34,7 @@ bool GraphLoader::load()
         return false;
 
     RouteFileHeader hdr;
-    if (storage.read(f, reinterpret_cast<uint8_t*>(&hdr), sizeof(hdr)) != sizeof(hdr))
+    if (storage.readDirect(f, reinterpret_cast<uint8_t*>(&hdr), sizeof(hdr)) != sizeof(hdr))
     {
         storage.close(f);
         return false;
@@ -48,7 +48,7 @@ bool GraphLoader::load()
 
     cellIndex.resize(hdr.cell_count);
     size_t indexBytes = hdr.cell_count * sizeof(CellIndexEntry);
-    if (storage.read(f, reinterpret_cast<uint8_t*>(cellIndex.data()), indexBytes) != indexBytes)
+    if (storage.readDirect(f, reinterpret_cast<uint8_t*>(cellIndex.data()), indexBytes) != indexBytes)
     {
         ESP_LOGE("GraphLoader", "Partial read of cell index (%u cells)", hdr.cell_count);
         storage.close(f);
@@ -88,7 +88,7 @@ bool GraphLoader::load()
         for (uint32_t i = 0; i < hdr.cell_count; ++i)
             total_data += cellIndex[i].node_count * sizeof(RouteNode)
                         + cellIndex[i].edge_count * sizeof(RouteEdge);
-        if (storage.seekAndRead(f, data_base_offset + total_data,
+        if (storage.seekAndReadDirect(f, data_base_offset + total_data,
                                 reinterpret_cast<uint8_t*>(turnRestrictions.data()),
                                 table_bytes) != table_bytes)
         {
@@ -251,11 +251,11 @@ GraphLoader::PageData* GraphLoader::fetchPage(uint32_t cell_idx) const
     uint32_t file_offset = data_base_offset + c.data_offset;
     bool ok = true;
     if (c.node_count > 0)
-        ok = storage.seekAndRead(file, file_offset,
+        ok = storage.seekAndReadDirect(file, file_offset,
                             reinterpret_cast<uint8_t*>(page.nodes.data()), node_bytes) && ok;
 
     if (c.edge_count > 0)
-        ok = storage.seekAndRead(file, file_offset + node_bytes,
+        ok = storage.seekAndReadDirect(file, file_offset + node_bytes,
                             reinterpret_cast<uint8_t*>(page.edges.data()), edge_bytes) && ok;
 
     auto res = pageCache.emplace(cell_idx, std::move(page));
@@ -314,7 +314,7 @@ bool GraphLoader::getNode(uint32_t gi, RouteNode& out_node) const
     const CellIndexEntry& cb = cellIndex[ci];
     uint32_t local = gi - cb.node_offset;
     uint32_t file_off = data_base_offset + cb.data_offset + local * sizeof(RouteNode);
-    return storage.seekAndRead(file, file_off,
+    return storage.seekAndReadDirect(file, file_off,
                                reinterpret_cast<uint8_t*>(&out_node),
                                sizeof(RouteNode)) == sizeof(RouteNode);
 }
@@ -463,7 +463,7 @@ bool GraphLoader::getEdgesForNode(uint32_t gi, RouteEdge* buf, uint32_t& count) 
     uint32_t edges_start = data_base_offset + cell.data_offset
                          + cell.node_count * sizeof(RouteNode)
                          + rel_e_start * sizeof(RouteEdge);
-    return storage.seekAndRead(file, edges_start,
+    return storage.seekAndReadDirect(file, edges_start,
                                reinterpret_cast<uint8_t*>(buf),
                                bytes) == bytes;
 }

@@ -191,6 +191,19 @@ On SD Card vectorized files should be stored, in these folders structure:
       [ 📁 NAVMAP ]
             |_______ 🗺️ Zzoom file.bin
 
+> [!TIP]
+> For optimal vectorized map performance, format the SD card with a **32 KB cluster size**.
+> This reduces the number of sectors read per access and can significantly improve
+> map rendering speed on both ESP32-S3 and ESP32-P4.
+>
+> ```bash
+> # Windows (32 KB is already the default for FAT32 cards up to 32 GB)
+> format /FS:FAT32 /A:32K X:
+>
+> # Linux
+> sudo mkfs.vfat -F 32 -s 64 -S 512 /dev/sdX1
+> ```
+
 ## SD A* Route File structure
 
 A* Route files for IceNav can be generated using the **route_generator** utility, which is available on GitHub at [jgauchia/Tile-Generator](https://github.com/jgauchia/Tile-Generator). This program allows you to generate the A* route files required for IceNav navigation. Please refer to the Tile-Generator repository for detailed instructions and usage examples on generating and preparing your own route files.
