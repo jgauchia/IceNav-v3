@@ -2,8 +2,8 @@
  * @file storage.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Storage definition and functions
- * @version 0.2.9
- * @date 2026-06
+ * @version 0.3.0
+ * @date 2026-09
  */
 
 #include "storage.hpp"
@@ -12,12 +12,18 @@
 #include "esp_log.h"
 #include "esp_vfs_fat.h"
 #include "driver/sdspi_host.h"
+#include "esp_memory_utils.h"
+#if CONFIG_IDF_TARGET_ESP32P4
+	#include "esp_littlefs.h"
+#else
+	#include "esp_spiffs.h"
+#endif
 #include <cmath>
 #include <cstdio>
 
 #define SD_OCR_SDHC_CAP (1 << 30) /**< SD card SDHC capacity flag */
 
-static const char *TAG = "Storage";
+static const char *TAG = "STORAGE";
 
 Storage storage;
 
@@ -46,12 +52,40 @@ namespace
 		snprintf(buf, sizeof(buf), "%.2f %s", formatted_size, suffixes[order]);
 		return std::string(buf);
 	}
+
+	/**
+	 * @brief Reads exactly size bytes from a file descriptor.
+	 *
+	 * @details read() can return fewer bytes than requested, so it is retried until the
+	 * 			buffer is filled or the end of file is reached.
+	 *
+	 * @param fd   Open file descriptor
+	 * @param dst  Destination buffer
+	 * @param size Number of bytes to read
+	 * @return size_t Number of bytes actually read
+	 */
+	size_t readFullyFd(int fd, uint8_t *dst, size_t size)
+	{
+		size_t done = 0;
+		while (done < size)
+		{
+			ssize_t got = read(fd, dst + done, size - done);
+			if (got <= 0)
+				break;
+			done += (size_t)got;
+		}
+		return done;
+	}
 }
 
 /**
  * @brief Storage Class constructor
  */
-Storage::Storage() : isSdLoaded(false), card(nullptr), dmaBuffer(nullptr), readMutex(nullptr) 
+Storage::Storage() : isSdLoaded(false), card(nullptr),
+    #if CONFIG_IDF_TARGET_ESP32P4
+        sdPwrCtrlHandle(nullptr),
+    #endif
+    dmaBuffer(nullptr), readMutex(nullptr)
 {
 }
 
@@ -82,7 +116,64 @@ esp_err_t Storage::initSD()
 		return ESP_ERR_NO_MEM;
 	}
 
-	#ifndef SPI_SHARED
+	#if CONFIG_IDF_TARGET_ESP32P4
+		esp_err_t ret;
+
+		sdmmc_host_t host = SDMMC_HOST_DEFAULT();
+		host.slot = SDMMC_HOST_SLOT_0;
+
+		// The SDMMC IO rail on this board is powered through the P4's on-chip
+		// LDO (channel 4, per the Waveshare BSP), not a rail that is always on.
+		sd_pwr_ctrl_ldo_config_t ldo_config = { .ldo_chan_id = 4 };
+		ret = sd_pwr_ctrl_new_on_chip_ldo(&ldo_config, &sdPwrCtrlHandle);
+		if (ret != ESP_OK)
+		{
+			ESP_LOGE(TAG, "Failed to create SD power control driver (%s)", esp_err_to_name(ret));
+			return ret;
+		}
+		host.pwr_ctrl_handle = sdPwrCtrlHandle;
+
+		// Slot 0 is wired through the fixed IOMUX pins (SD_CLK_SDIO/SD_CMD/SD_D0-D3
+		// in hal.hpp match them exactly), so they do not need to be set here.
+		sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
+		slot_config.width = 4;
+		slot_config.flags |= SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
+
+		esp_vfs_fat_mount_config_t mount_config = {
+			.format_if_mount_failed = false,
+			.max_files = 20,
+			.allocation_unit_size = 0
+		};
+
+		// SDMMC_FREQ_HIGHSPEED (40 MHz) is the real ceiling reachable through this
+		// driver's standard (non-UHS-I) negotiation path: sdmmc_enable_hs_mode_and_check
+		// caps card->max_freq_khz to it regardless of a higher host.max_freq_khz
+		// (sdmmc_sd.c). Actual UHS-I speeds (SDR50/DDR50/SDR104) need a 1.8V signal
+		// voltage switch + tuning, which this simple mount API does not perform.
+		host.max_freq_khz = SDMMC_FREQ_HIGHSPEED;
+
+		ESP_LOGI(TAG, "Initializing SD card (SDMMC)");
+
+		ret = esp_vfs_fat_sdmmc_mount("/sdcard", &host, &slot_config, &mount_config, &card);
+		if (ret != ESP_OK)
+		{
+			if (ret == ESP_FAIL)
+				ESP_LOGE(TAG, "Failed to mount filesystem.");
+			else
+				ESP_LOGE(TAG, "Failed to initialize the card (%s).", esp_err_to_name(ret));
+			sd_pwr_ctrl_del_on_chip_ldo(sdPwrCtrlHandle);
+			sdPwrCtrlHandle = nullptr;
+			isSdLoaded = false;
+			return ret;
+		}
+		else
+		{
+			ESP_LOGI(TAG, "SD card initialized successfully");
+			sdmmc_card_print_info(stdout, card);
+			isSdLoaded = true;
+			return ESP_OK;
+		}
+	#elif !defined(SPI_SHARED)
 		esp_err_t ret;
 
 		sdmmc_host_t host = SDSPI_HOST_DEFAULT();
@@ -168,13 +259,21 @@ void Storage::deinitSD()
 	if (!isSdLoaded)
 		return;
 
-	#ifndef SPI_SHARED
+	#if CONFIG_IDF_TARGET_ESP32P4 || !defined(SPI_SHARED)
 		if (card != nullptr)
 			esp_vfs_fat_sdcard_unmount("/sdcard", card);
 	#else
 		SD.end();
 	#endif
-	
+
+	#if CONFIG_IDF_TARGET_ESP32P4
+		if (sdPwrCtrlHandle != nullptr)
+		{
+			sd_pwr_ctrl_del_on_chip_ldo(sdPwrCtrlHandle);
+			sdPwrCtrlHandle = nullptr;
+		}
+	#endif
+
 	isSdLoaded = false;
 }
 
@@ -185,38 +284,73 @@ void Storage::deinitSD()
  */
 esp_err_t Storage::initSPIFFS()
 {
-	ESP_LOGI(TAG, "Initializing SPIFFS");
+	// The mount point stays "/spiffs" on every target so asset paths do not
+	// change. On the P4 the backend is LittleFS (SPIFFS images are not reliably
+	// recognized on this flash); the S3 boards keep SPIFFS.
+	#if CONFIG_IDF_TARGET_ESP32P4
+		ESP_LOGI(TAG, "Initializing LittleFS");
 
-	esp_vfs_spiffs_conf_t conf =
-	{
-		.base_path = "/spiffs",
-		.partition_label = NULL,
-		.max_files = 5,
-		.format_if_mount_failed = false
-	};
+		esp_vfs_littlefs_conf_t conf = {};
+		conf.base_path = "/spiffs";
+		conf.partition_label = "spiffs";
+		conf.format_if_mount_failed = false;
+		conf.dont_mount = false;
 
-	esp_err_t ret = esp_vfs_spiffs_register(&conf);
+		esp_err_t ret = esp_vfs_littlefs_register(&conf);
+		if (ret != ESP_OK)
+		{
+			if (ret == ESP_FAIL)
+				ESP_LOGE(TAG, "Failed to mount or format filesystem");
+			else if (ret == ESP_ERR_NOT_FOUND)
+				ESP_LOGE(TAG, "Failed to find LittleFS partition");
+			else
+				ESP_LOGE(TAG, "Failed to initialize LittleFS (%s)", esp_err_to_name(ret));
+			return ESP_FAIL;
+		}
 
-	if (ret != ESP_OK)
-	{
-		if (ret == ESP_FAIL)
-			ESP_LOGE(TAG, "Failed to mount or format filesystem");
-		else if (ret == ESP_ERR_NOT_FOUND)
-			ESP_LOGE(TAG, "Failed to find SPIFFS partition");
+		size_t total = 0;
+		size_t used = 0;
+		ret = esp_littlefs_info(conf.partition_label, &total, &used);
+		if (ret != ESP_OK)
+			ESP_LOGE(TAG, "Failed to get LittleFS partition information (%s)", esp_err_to_name(ret));
 		else
-			ESP_LOGE(TAG, "Failed to initialize SPIFFS (%s)", esp_err_to_name(ret));
-		return ESP_FAIL;
-	}
+			ESP_LOGI(TAG, "Partition size: total: %d used: %d", total, used);
 
-	size_t total = 0;
-	size_t used = 0;
-	ret = esp_spiffs_info(NULL, &total, &used);
-	if (ret != ESP_OK)
-		ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s)", esp_err_to_name(ret));
-	else
-		ESP_LOGI(TAG, "Partition size: total: %d used: %d", total, used);
+		return ESP_OK;
+	#else
+		ESP_LOGI(TAG, "Initializing SPIFFS");
 
-	return ESP_OK;
+		esp_vfs_spiffs_conf_t conf =
+		{
+			.base_path = "/spiffs",
+			.partition_label = NULL,
+			.max_files = 5,
+			.format_if_mount_failed = false
+		};
+
+		esp_err_t ret = esp_vfs_spiffs_register(&conf);
+
+		if (ret != ESP_OK)
+		{
+			if (ret == ESP_FAIL)
+				ESP_LOGE(TAG, "Failed to mount or format filesystem");
+			else if (ret == ESP_ERR_NOT_FOUND)
+				ESP_LOGE(TAG, "Failed to find SPIFFS partition");
+			else
+				ESP_LOGE(TAG, "Failed to initialize SPIFFS (%s)", esp_err_to_name(ret));
+			return ESP_FAIL;
+		}
+
+		size_t total = 0;
+		size_t used = 0;
+		ret = esp_spiffs_info(NULL, &total, &used);
+		if (ret != ESP_OK)
+			ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s)", esp_err_to_name(ret));
+		else
+			ESP_LOGI(TAG, "Partition size: total: %d used: %d", total, used);
+
+		return ESP_OK;
+	#endif
 }
 
 /**
@@ -235,7 +369,7 @@ SDCardInfo Storage::getSDCardInfo()
 			info.capacity = formatSize((uint64_t)(card->csd.capacity) * card->csd.sector_size);
 			info.sector_size = card->csd.sector_size;
 			info.read_block_len = card->csd.read_block_len;
-			info.card_type = (card->ocr && SD_OCR_SDHC_CAP) ? "SDHC/SDXC" : "SDSC";
+			info.card_type = (card->ocr & SD_OCR_SDHC_CAP) ? "SDHC/SDXC" : "SDSC";
 
 			FATFS *fs;
 			DWORD fre_clust;
@@ -365,12 +499,13 @@ size_t Storage::read(FILE *file, uint8_t *buffer, size_t size)
     size_t totalRead = 0;
 
     if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+    {
+        ESP_LOGW(TAG, "read: mutex timeout (%u B)", (unsigned)size);
         return 0;
+    }
 
     if (esp_ptr_internal(buffer))
-    {
         totalRead = fread(buffer, 1, size, file);
-    }
     else
     {
         if (!dmaBuffer)
@@ -543,29 +678,177 @@ size_t Storage::seekAndRead(FILE *file, long offset, uint8_t *buffer, size_t siz
         return 0;
     size_t totalRead = 0;
     if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+    {
+        ESP_LOGW(TAG, "seekAndRead: mutex timeout (off=%ld %u B)", offset, (unsigned)size);
         return 0;
-    fseek(file, offset, SEEK_SET);
+    }
     if (esp_ptr_internal(buffer))
     {
+        fseek(file, offset, SEEK_SET);
         totalRead = fread(buffer, 1, size, file);
     }
-    else
+    else if (dmaBuffer)
     {
-        if (dmaBuffer)
+        long alignedOffset = offset - (offset % SD_SECTOR_SIZE);
+        size_t prefix = (size_t)(offset - alignedOffset);
+        fseek(file, alignedOffset, SEEK_SET);
+
+        size_t firstSkip = prefix;
+        while (totalRead < size)
         {
-            while (totalRead < size)
-            {
-                size_t toRead = (size - totalRead > DMA_BUF_SIZE) ? DMA_BUF_SIZE : (size - totalRead);
-                size_t r = fread(dmaBuffer, 1, toRead, file);
-                if (r == 0)
-                    break;
-                memcpy(buffer + totalRead, dmaBuffer, r);
-                totalRead += r;
-            }
+            size_t want = size - totalRead + firstSkip;
+            size_t toRead = (want > DMA_BUF_SIZE) ? DMA_BUF_SIZE : want;
+            size_t r = fread(dmaBuffer, 1, toRead, file);
+            if (r <= firstSkip)
+                break;
+            size_t usable = r - firstSkip;
+            if (usable > size - totalRead)
+                usable = size - totalRead;
+            memcpy(buffer + totalRead, dmaBuffer + firstSkip, usable);
+            totalRead += usable;
+            firstSkip = 0;
         }
     }
     xSemaphoreGive(readMutex);
     return totalRead;
+}
+
+/**
+ * @brief Read from a file using the VFS descriptor directly.
+ *
+ * @details Bypasses the stdio FILE buffer so the whole request reaches FatFs in one call,
+ * 			allowing multi-sector disk reads. The data is always staged through the persistent
+ * 			internal DMA buffer so the destination may be any memory region.
+ *
+ * @param file   FILE* pointer to the open file
+ * @param buffer Pointer to the destination buffer
+ * @param size   Number of bytes to read
+ * @return size_t Number of bytes successfully read
+ */
+size_t Storage::readDirect(FILE* file, uint8_t* buffer, size_t size)
+{
+	if (!file || !buffer)
+		return 0;
+
+	size_t totalRead = 0;
+
+	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+	{
+		ESP_LOGW(TAG, "readDirect: mutex timeout (%u B)", (unsigned)size);
+		return 0;
+	}
+
+	const int fd = fileno(file);
+
+	if (!dmaBuffer)
+	{
+		xSemaphoreGive(readMutex);
+		return 0;
+	}
+
+	while (totalRead < size)
+	{
+		size_t toRead = (size - totalRead > DMA_BUF_SIZE) ? DMA_BUF_SIZE : (size - totalRead);
+		size_t r = readFullyFd(fd, dmaBuffer, toRead);
+		if (r == 0)
+			break;
+		memcpy(buffer + totalRead, dmaBuffer, r);
+		totalRead += r;
+	}
+
+	xSemaphoreGive(readMutex);
+	return totalRead;
+}
+
+/**
+ * @brief Read from a file using the VFS descriptor directly (char buffer).
+ *
+ * @param file   FILE* pointer to the open file
+ * @param buffer Pointer to the destination buffer
+ * @param size   Number of bytes to read
+ * @return size_t Number of bytes successfully read
+ */
+size_t Storage::readDirect(FILE* file, char* buffer, size_t size)
+{
+	return readDirect(file, reinterpret_cast<uint8_t*>(buffer), size);
+}
+
+/**
+ * @brief Set the file position using the VFS descriptor directly.
+ *
+ * @param file   FILE* pointer
+ * @param offset Offset in bytes
+ * @param whence Position from where offset is added (SEEK_SET, SEEK_CUR, SEEK_END)
+ * @return Result of lseek (resulting offset on success, -1 on error)
+ */
+int Storage::seekDirect(FILE* file, long offset, int whence)
+{
+	if (!file)
+		return -1;
+
+	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+		return -1;
+
+	int res = (int)lseek(fileno(file), offset, whence);
+	xSemaphoreGive(readMutex);
+	return res;
+}
+
+/**
+ * @brief Seek and read a file using the VFS descriptor directly.
+ *
+ * @details The read offset is aligned down to a sector so the bulk of the request reaches
+ * 			FatFs on a sector boundary and can be served with multi-sector disk reads. The data
+ * 			is always staged through the persistent internal DMA buffer.
+ *
+ * @param file   FILE* pointer to the open file
+ * @param offset Offset in bytes
+ * @param buffer Pointer to the destination buffer
+ * @param size   Number of bytes to read
+ * @return size_t Number of bytes successfully read
+ */
+size_t Storage::seekAndReadDirect(FILE* file, long offset, uint8_t* buffer, size_t size)
+{
+	if (!file || !buffer)
+		return 0;
+
+	size_t totalRead = 0;
+
+	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+	{
+		ESP_LOGW(TAG, "seekAndReadDirect: mutex timeout (off=%ld %u B)", offset, (unsigned)size);
+		return 0;
+	}
+
+	const int fd = fileno(file);
+
+	if (!dmaBuffer)
+	{
+		xSemaphoreGive(readMutex);
+		return 0;
+	}
+
+	long alignedOffset = offset - (offset % SD_SECTOR_SIZE);
+	size_t firstSkip = (size_t)(offset - alignedOffset);
+	lseek(fd, alignedOffset, SEEK_SET);
+
+	while (totalRead < size)
+	{
+		size_t want = size - totalRead + firstSkip;
+		size_t toRead = (want > DMA_BUF_SIZE) ? DMA_BUF_SIZE : want;
+		size_t r = readFullyFd(fd, dmaBuffer, toRead);
+		if (r <= firstSkip)
+			break;
+		size_t usable = r - firstSkip;
+		if (usable > size - totalRead)
+			usable = size - totalRead;
+		memcpy(buffer + totalRead, dmaBuffer + firstSkip, usable);
+		totalRead += usable;
+		firstSkip = 0;
+	}
+
+	xSemaphoreGive(readMutex);
+	return totalRead;
 }
 
 /**

@@ -2,8 +2,8 @@
  * @file satInfoScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Satellite info screen 
- * @version 0.2.9
- * @date 2026-06
+ * @version 0.3.0
+ * @date 2026-09
  */
 
 #pragma once
@@ -34,6 +34,7 @@
  *
  * @details Objects used in the satellite tracking tile 
  */
+extern lv_obj_t *infoGrid;           /**< Grid for DOP/ALT labels. */
 extern lv_obj_t *pdopLabel;          /**< Label for PDOP value. */
 extern lv_obj_t *hdopLabel;          /**< Label for HDOP value. */
 extern lv_obj_t *vdopLabel;          /**< Label for VDOP value. */

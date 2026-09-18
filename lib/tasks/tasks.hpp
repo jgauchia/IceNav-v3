@@ -2,8 +2,8 @@
  * @file tasks.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Core Tasks header definitions for GPS and CLI management
- * @version 0.2.9
- * @date 2026-06
+ * @version 0.3.0
+ * @date 2026-09
  * @details This header defines the interface for FreeRTOS tasks used for GPS data processing
  *          and CLI interface management. It provides function declarations and configuration
  *          constants for task management.
@@ -43,6 +43,7 @@ struct SensorData
 
 extern SensorData globalSensorData;
 extern SemaphoreHandle_t sensorMutex;
+extern xSemaphoreHandle gpsMutex;
 
 // NMEA debug stats — written by gpsTask, read by debug tile
 extern uint32_t nmeaDebugOk;
@@ -61,6 +62,11 @@ extern uint8_t nmeaRawHead;  /**< Index of the next slot to write (oldest line).
 
 extern TaskHandle_t gpsTaskHandle;
 extern TaskHandle_t guiTaskHandle;
+extern TaskHandle_t sensorTaskHandle;
+extern TaskHandle_t navTaskHandle;
+#ifndef DISABLE_CLI
+extern TaskHandle_t cliTaskHandle;
+#endif
 
 void gpsTask(void *pvParameters);
 
@@ -83,3 +89,6 @@ void initGuiTask();
 void navTask(void *pvParameters);
 
 void initNavTask();
+
+void suspendAllTasks();
+void resumeAllTasks();

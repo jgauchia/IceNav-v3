@@ -1,9 +1,9 @@
 /**
- * @file lv_subjects.hpp
+ * @file lvglSubjects.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Observer Pattern - Subjects for telemetry data
- * @version 0.2.9
- * @date 2026-06
+ * @version 0.3.0
+ * @date 2026-09
  */
 
 #pragma once
@@ -65,6 +65,6 @@ extern SemaphoreHandle_t lvgl_mutex;
  */
 extern volatile bool canMoveWidget;
 
-void init_lv_subjects();
+void initLvglSubjects();
 
-void notify_all_subjects();
+void notifyAllSubjects();

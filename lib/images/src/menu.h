@@ -2,8 +2,8 @@
  * @file menu.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Menu icon image descriptor
- * @version 0.2.9
- * @date 2026-06
+ * @version 0.3.0
+ * @date 2026-09
  */
 
 #pragma once
@@ -19,4 +19,4 @@
 #endif
 
 extern const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMAGE_MENU uint8_t menu_map[];
-extern const lv_img_dsc_t menu;
+extern const lv_image_dsc_t menu;

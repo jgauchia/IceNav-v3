@@ -2,8 +2,8 @@
  * @file gpxDetailScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - GPX Tag detail Screen
- * @version 0.2.9
- * @date 2026-06
+ * @version 0.3.0
+ * @date 2026-09
  */
 
 #pragma once
@@ -18,7 +18,6 @@ extern lv_obj_t *labelLat;         /**< Latitude label */
 extern lv_obj_t *labelLatValue;    /**< Latitude value label */
 extern lv_obj_t *labelLon;         /**< Longitude label */
 extern lv_obj_t *labelLonValue;    /**< Longitude value label */
-extern bool isScreenRotated;       /**< Flag to know if screen is rotated */
 
 void loadMainScreen();
 

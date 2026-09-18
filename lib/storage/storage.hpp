@@ -2,8 +2,8 @@
  * @file storage.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Storage definition and functions
- * @version 0.2.9
- * @date 2026-06
+ * @version 0.3.0
+ * @date 2026-09
  */
 
 #pragma once
@@ -13,6 +13,9 @@
 #include "driver/sdmmc_host.h"
 #include "driver/sdspi_host.h"
 #include "sdmmc_cmd.h"
+#if CONFIG_IDF_TARGET_ESP32P4
+    #include "sd_pwr_ctrl_by_on_chip_ldo.h"
+#endif
 #include "Stream.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
@@ -59,16 +62,20 @@ class Storage
     private:
         bool isSdLoaded;           /**< Indicates if the SD card is loaded */
         sdmmc_card_t *card;        /**< Pointer to the SD card descriptor */
+        #if CONFIG_IDF_TARGET_ESP32P4
+            sd_pwr_ctrl_handle_t sdPwrCtrlHandle; /**< On-chip LDO power control handle for the SDMMC IO rail */
+        #endif
         uint8_t *dmaBuffer;        /**< Persistent buffer for DMA-safe reads */
-        static constexpr size_t DMA_BUF_SIZE = 32768;
-        SemaphoreHandle_t readMutex; /**< Mutex to protect dmaBuffer */
+        static constexpr size_t DMA_BUF_SIZE = 65536;
+        static constexpr size_t SD_SECTOR_SIZE = 512;
+        SemaphoreHandle_t readMutex; /**< Mutex serializing all SD/FATFS access and protecting dmaBuffer */
 
     public:
         Storage();
         esp_err_t initSD();
+        void deinitSD();
         esp_err_t initSPIFFS();
         SDCardInfo getSDCardInfo();
-        void deinitSD();
         bool getSdLoaded() const;
         FILE *open(const char *path, const char *mode);
         int close(FILE *file);
@@ -83,6 +90,10 @@ class Storage
         size_t write(FILE* file, const char* buffer, size_t size);
         int seek(FILE* file, long offset, int whence);
         size_t seekAndRead(FILE* file, long offset, uint8_t* buffer, size_t size);
+        size_t readDirect(FILE* file, uint8_t* buffer, size_t size);
+        size_t readDirect(FILE* file, char* buffer, size_t size);
+        int seekDirect(FILE* file, long offset, int whence);
+        size_t seekAndReadDirect(FILE* file, long offset, uint8_t* buffer, size_t size);
         int print(FILE* file, const char* str);
         int println(FILE* file, const char* str);
         size_t fileAvailable(FILE* file);
@@ -100,7 +111,7 @@ extern Storage storage;
 class FileStream : public Stream
 {
     public:
-        FileStream(FILE *file) : file(file), fileSize_(-1) {}
+        FileStream(FILE *file) : file(file), fileSize(-1) {}
 
         /**
         * @brief Returns the number of bytes available to read from the file.
@@ -111,15 +122,15 @@ class FileStream : public Stream
         {
             if (!file)
                 return 0;
-            if (fileSize_ < 0)
+            if (fileSize < 0)
             {
                 long pos = ftell(file);
                 fseek(file, 0, SEEK_END);
-                fileSize_ = ftell(file);
+                fileSize = ftell(file);
                 fseek(file, pos, SEEK_SET);
             }
             long current_pos = ftell(file);
-            return (fileSize_ > current_pos) ? (int)(fileSize_ - current_pos) : 0;
+            return (fileSize > current_pos) ? (int)(fileSize - current_pos) : 0;
         }
 
         /**
@@ -203,5 +214,5 @@ class FileStream : public Stream
 
     private:
         FILE *file;       /**< Pointer to the wrapped C FILE object */
-        long fileSize_;   /**< Cached file size; -1 until first available() call */
+        long fileSize;   /**< Cached file size; -1 until first available() call */
 };
