@@ -367,9 +367,9 @@ void Maps::initMap(uint16_t mapWidth, uint16_t mapHeight)
     Maps::mapScrHeight = mapHeight;
     Maps::mapScrWidth = mapWidth;
     // focalLength was tuned for ICENAV_BOARD's viewport (320x480 panel, minus
-    // the 27px status bar). Scaling it by height keeps the ground X/Y aspect
+    // the status bar). Scaling it by height keeps the ground X/Y aspect
     // ratio consistent on screens with a different width/height ratio (4.3").
-    constexpr float referenceHeight = 480.0f - 27.0f;
+    constexpr float referenceHeight = 480.0f - statusBarHeight;
     Maps::focalLength = 300.0f * (static_cast<float>(mapHeight) / referenceHeight);
     Maps::mapTempSprite.createSprite(Maps::tileWidth, Maps::tileHeight);
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
@@ -404,8 +404,8 @@ void Maps::initMap(uint16_t mapWidth, uint16_t mapHeight)
         }
     }
 #endif
-    // LGFX scroll() fills the vacated band with the sprite base color (map background 0xF7BE).
-    Maps::mapTempSprite.setBaseColor(0xF7BE);
+    // LGFX scroll() fills the vacated band with the sprite base color (map background).
+    Maps::mapTempSprite.setBaseColor(mapBackgroundColor);
     Maps::mapTempSprite.loadFont("/spiffs/font/font.vlw");
     Maps::mapSprite.createSprite(mapWidth, mapHeight);
     Maps::mapBuffer = Maps::mapSprite.getBuffer();
@@ -963,7 +963,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     if (((uint32_t)buf & 0x7F) == 0)
                     {
                         ppa_fill_oper_config_t cfg = {};
-                        cfg.fill_argb_color.val = spriteColorToArgb8888(0xF7BE);
+                        cfg.fill_argb_color.val = spriteColorToArgb8888(mapBackgroundColor);
                         cfg.out.buffer = buf;
                         cfg.out.buffer_size = instance->tileWidth * instance->tileHeight * 2;
                         cfg.out.pic_w = instance->tileWidth;
@@ -979,10 +979,10 @@ void Maps::mapRenderTask(void* pvParameters)
                     }
                     else
                     {
-                        instance->mapTempSprite.fillSprite(0xF7BE);
+                        instance->mapTempSprite.fillSprite(mapBackgroundColor);
                     }
 #else
-                    instance->mapTempSprite.fillSprite(0xF7BE);
+                    instance->mapTempSprite.fillSprite(mapBackgroundColor);
 #endif
                 }
 
@@ -2126,7 +2126,7 @@ void Maps::scrollVectorSprite(int16_t shiftX, int16_t shiftY)
         {
             // Clear the vacated border before the incoming band is painted on it.
             ppa_fill_oper_config_t fill = {};
-            fill.fill_argb_color.val = spriteColorToArgb8888(0xF7BE);
+            fill.fill_argb_color.val = spriteColorToArgb8888(mapBackgroundColor);
             fill.out.buffer = dst;
             fill.out.buffer_size = (uint32_t)w * (uint32_t)h * 2;
             fill.out.pic_w = (uint32_t)w;

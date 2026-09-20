@@ -42,19 +42,6 @@ static float loggerDist(float lat1, float lon1, float lat2, float lon2)
     return R * 2.0f * atan2f(sqrtf(a), sqrtf(1.0f - a));
 }
 
-/**
- * @brief Trim leading spaces left by dtostrf().
- *
- * @param buf Buffer returned by dtostrf().
- * @return const char* Pointer past any leading space characters.
- */
-static inline const char* trimDtostrf(const char* buf)
-{
-    while (*buf == ' ')
-        buf++;
-    return buf;
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -285,16 +272,14 @@ void GpxLogger::update(const LoggerGpsFix& gpsFix)
  */
 void GpxLogger::writeTrkpt(float lat, float lon, int16_t alt, float speedKmh, const LoggerGpsFix& gpsFix)
 {
+    // snprintf replaces dtostrf(), which takes no destination size (a long value
+    // used to run past these buffers) and pads with leading spaces that then had
+    // to be trimmed back off. Same buffers, same output, bounded writes.
     char latBuf[14], lonBuf[14], altBuf[12], spdBuf[10];
-    dtostrf(lat,             10, 6, latBuf);
-    dtostrf(lon,             11, 6, lonBuf);
-    dtostrf((float)alt,       6, 1, altBuf);
-    dtostrf(speedKmh / 3.6f,  5, 2, spdBuf);
-
-    const char* latS = trimDtostrf(latBuf);
-    const char* lonS = trimDtostrf(lonBuf);
-    const char* altS = trimDtostrf(altBuf);
-    const char* spdS = trimDtostrf(spdBuf);
+    snprintf(latBuf, sizeof(latBuf), "%.6f", lat);
+    snprintf(lonBuf, sizeof(lonBuf), "%.6f", lon);
+    snprintf(altBuf, sizeof(altBuf), "%.1f", (float)alt);
+    snprintf(spdBuf, sizeof(spdBuf), "%.2f", speedKmh / 3.6f);
 
     char timeBuf[24];
     if (gpsFix.hasTime)
@@ -316,7 +301,7 @@ void GpxLogger::writeTrkpt(float lat, float lon, int16_t alt, float speedKmh, co
              "<trkpt lat=\"%s\" lon=\"%s\"><ele>%s</ele>"
              "<time>%s</time>"
              "<extensions><speed>%s</speed></extensions></trkpt>\n",
-             latS, lonS, altS, timeBuf, spdS);
+             latBuf, lonBuf, altBuf, timeBuf, spdBuf);
 
     storage.print(file, line);
 

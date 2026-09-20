@@ -28,7 +28,7 @@ extern Gps gps;
  *
  * @details user_data must be a string literal with the prefix ("PDOP", "HDOP" or "VDOP").
  */
-static void dop_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+static void dopObserverCb(lv_observer_t *observer, lv_subject_t *subject)
 {
     lv_obj_t *label = (lv_obj_t *)lv_observer_get_target(observer);
     const char *prefix = (const char *)lv_observer_get_user_data(observer);
@@ -38,7 +38,7 @@ static void dop_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
 /**
  * @brief Observer callback for Altitude label
  */
-static void alt_sat_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+static void altSatObserverCb(lv_observer_t *observer, lv_subject_t *subject)
 {
     lv_obj_t * label = (lv_obj_t *)lv_observer_get_target(observer);
     lv_label_set_text_fmt(label, "ALT: %4dm.", lv_subject_get_int(subject));
@@ -59,7 +59,7 @@ static void asyncSatsUpdateCb(void * user_data)
 /**
  * @brief Observer callback for complex satellite data changes
  */
-static void sats_data_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+static void satsDataObserverCb(lv_observer_t *observer, lv_subject_t *subject)
 {
     if (activeTile != SATTRACK)
         return;
@@ -379,11 +379,11 @@ void satelliteScr(_lv_obj_t *screen)
         lv_obj_set_style_text_font(labels[i], fontDefault, 0);
         lv_label_set_text_fmt(labels[i], texts[i], 0);
     }
-    lv_subject_add_observer_obj(&subject_pdop, dop_observer_cb, pdopLabel, (void *)"PDOP");
-    lv_subject_add_observer_obj(&subject_hdop, dop_observer_cb, hdopLabel, (void *)"HDOP");
-    lv_subject_add_observer_obj(&subject_vdop, dop_observer_cb, vdopLabel, (void *)"VDOP");
-    lv_subject_add_observer_obj(&subject_altitude, alt_sat_observer_cb, altLabel, NULL);
-    lv_subject_add_observer_obj(&subject_sats_data_trigger, sats_data_observer_cb, infoGrid, NULL);
+    lv_subject_add_observer_obj(&subject_pdop, dopObserverCb, pdopLabel, (void *)"PDOP");
+    lv_subject_add_observer_obj(&subject_hdop, dopObserverCb, hdopLabel, (void *)"HDOP");
+    lv_subject_add_observer_obj(&subject_vdop, dopObserverCb, vdopLabel, (void *)"VDOP");
+    lv_subject_add_observer_obj(&subject_altitude, altSatObserverCb, altLabel, NULL);
+    lv_subject_add_observer_obj(&subject_sats_data_trigger, satsDataObserverCb, infoGrid, NULL);
     lv_obj_set_height(infoGrid, 40 * scale);
 
 #ifdef TDECK_ESP32S3

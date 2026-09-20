@@ -85,7 +85,7 @@ Storage::Storage() : isSdLoaded(false), card(nullptr),
     #if CONFIG_IDF_TARGET_ESP32P4
         sdPwrCtrlHandle(nullptr),
     #endif
-    dmaBuffer(nullptr), readMutex(nullptr)
+    dmaBuffer(nullptr), sdMutex(nullptr)
 {
 }
 
@@ -108,11 +108,11 @@ esp_err_t Storage::initSD()
 		return ESP_ERR_NO_MEM;
 	}
 
-	if (!readMutex)
-		readMutex = xSemaphoreCreateMutex();
-	if (!readMutex)
+	if (!sdMutex)
+		sdMutex = xSemaphoreCreateMutex();
+	if (!sdMutex)
 	{
-		ESP_LOGE(TAG, "Failed to create read mutex");
+		ESP_LOGE(TAG, "Failed to create SD mutex");
 		return ESP_ERR_NO_MEM;
 	}
 
@@ -435,11 +435,11 @@ bool Storage::getSdLoaded() const
  */
 FILE *Storage::open(const char *path, const char *mode)
 {
-	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+	if (xSemaphoreTake(sdMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
 		return nullptr;
 
 	FILE *file = fopen(path, mode);
-	xSemaphoreGive(readMutex);
+	xSemaphoreGive(sdMutex);
 	return file;
 }
 
@@ -451,11 +451,11 @@ FILE *Storage::open(const char *path, const char *mode)
  */
 int Storage::close(FILE *file)
 {
-	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+	if (xSemaphoreTake(sdMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
 		return EOF;
 
 	int res = fclose(file);
-	xSemaphoreGive(readMutex);
+	xSemaphoreGive(sdMutex);
  	return res;
 }
 
@@ -468,11 +468,11 @@ int Storage::close(FILE *file)
 size_t Storage::size(const char *path)
 {
 	struct stat st;
-	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+	if (xSemaphoreTake(sdMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
 		return 0;
 
 	int res = stat(path, &st);
-	xSemaphoreGive(readMutex);
+	xSemaphoreGive(sdMutex);
 
 	if (res == 0)
 		return st.st_size; 
@@ -498,7 +498,7 @@ size_t Storage::read(FILE *file, uint8_t *buffer, size_t size)
 
     size_t totalRead = 0;
 
-    if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+    if (xSemaphoreTake(sdMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
     {
         ESP_LOGW(TAG, "read: mutex timeout (%u B)", (unsigned)size);
         return 0;
@@ -510,7 +510,8 @@ size_t Storage::read(FILE *file, uint8_t *buffer, size_t size)
     {
         if (!dmaBuffer)
         {
-            xSemaphoreGive(readMutex);
+            ESP_LOGW(TAG, "No DMA buffer: read of %u bytes skipped", (unsigned)size);
+            xSemaphoreGive(sdMutex);
             return 0;
         }
 
@@ -527,7 +528,7 @@ size_t Storage::read(FILE *file, uint8_t *buffer, size_t size)
         }
     }
 
-    xSemaphoreGive(readMutex);
+    xSemaphoreGive(sdMutex);
     return totalRead;
 }
 
@@ -557,11 +558,11 @@ size_t Storage::write(FILE *file, const uint8_t *buffer, size_t size)
 	if (!file)
 		return 0;
 
-	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+	if (xSemaphoreTake(sdMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
 		return 0;
 
 	size_t res = fwrite(buffer, 1, size, file);
-	xSemaphoreGive(readMutex);
+	xSemaphoreGive(sdMutex);
 	return res;
 }
 
@@ -578,11 +579,11 @@ size_t Storage::write(FILE *file, const char *buffer, size_t size)
 	if (!file)
 		return 0;
 
-	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+	if (xSemaphoreTake(sdMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
 		return 0;
 
 	size_t res = fwrite(buffer, 1, size, file);
-	xSemaphoreGive(readMutex);
+	xSemaphoreGive(sdMutex);
 	return res;
 }
 
@@ -595,11 +596,11 @@ size_t Storage::write(FILE *file, const char *buffer, size_t size)
 bool Storage::exists(const char *path)
 {
 	struct stat st;
-	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+	if (xSemaphoreTake(sdMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
 		return false;
 
 	int res = stat(path, &st);
-	xSemaphoreGive(readMutex);
+	xSemaphoreGive(sdMutex);
 	return res == 0;
 }
 
@@ -611,11 +612,11 @@ bool Storage::exists(const char *path)
  */
 bool Storage::mkdir(const char *path)
 {
-	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+	if (xSemaphoreTake(sdMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
 		return false;
 
 	int res = ::mkdir(path, 0777);
-	xSemaphoreGive(readMutex);
+	xSemaphoreGive(sdMutex);
 	return res == 0;
 }
 
@@ -627,11 +628,11 @@ bool Storage::mkdir(const char *path)
  */
 bool Storage::remove(const char *path)
 {
-	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+	if (xSemaphoreTake(sdMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
 		return false;
 
   	int res = ::remove(path);
-	xSemaphoreGive(readMutex);
+	xSemaphoreGive(sdMutex);
 	return res == 0;
 }
 
@@ -643,11 +644,11 @@ bool Storage::remove(const char *path)
  */
 bool Storage::rmdir(const char *path)
 {
-	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+	if (xSemaphoreTake(sdMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
 		return false;
 
 	int res = ::rmdir(path);
-	xSemaphoreGive(readMutex);
+	xSemaphoreGive(sdMutex);
 	return res == 0;
 }
 
@@ -664,11 +665,11 @@ int Storage::seek(FILE *file, long offset, int whence)
 	if (!file)
 		return -1;
 
-	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+	if (xSemaphoreTake(sdMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
 		return -1;
 
 	int res = fseek(file, offset, whence);
-	xSemaphoreGive(readMutex);
+	xSemaphoreGive(sdMutex);
 	return res;
 }
 
@@ -677,7 +678,7 @@ size_t Storage::seekAndRead(FILE *file, long offset, uint8_t *buffer, size_t siz
     if (!file || !buffer)
         return 0;
     size_t totalRead = 0;
-    if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+    if (xSemaphoreTake(sdMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
     {
         ESP_LOGW(TAG, "seekAndRead: mutex timeout (off=%ld %u B)", offset, (unsigned)size);
         return 0;
@@ -709,7 +710,7 @@ size_t Storage::seekAndRead(FILE *file, long offset, uint8_t *buffer, size_t siz
             firstSkip = 0;
         }
     }
-    xSemaphoreGive(readMutex);
+    xSemaphoreGive(sdMutex);
     return totalRead;
 }
 
@@ -732,7 +733,7 @@ size_t Storage::readDirect(FILE* file, uint8_t* buffer, size_t size)
 
 	size_t totalRead = 0;
 
-	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+	if (xSemaphoreTake(sdMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
 	{
 		ESP_LOGW(TAG, "readDirect: mutex timeout (%u B)", (unsigned)size);
 		return 0;
@@ -742,7 +743,8 @@ size_t Storage::readDirect(FILE* file, uint8_t* buffer, size_t size)
 
 	if (!dmaBuffer)
 	{
-		xSemaphoreGive(readMutex);
+		ESP_LOGW(TAG, "No DMA buffer: read of %u bytes skipped", (unsigned)size);
+		xSemaphoreGive(sdMutex);
 		return 0;
 	}
 
@@ -756,7 +758,7 @@ size_t Storage::readDirect(FILE* file, uint8_t* buffer, size_t size)
 		totalRead += r;
 	}
 
-	xSemaphoreGive(readMutex);
+	xSemaphoreGive(sdMutex);
 	return totalRead;
 }
 
@@ -786,11 +788,11 @@ int Storage::seekDirect(FILE* file, long offset, int whence)
 	if (!file)
 		return -1;
 
-	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+	if (xSemaphoreTake(sdMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
 		return -1;
 
 	int res = (int)lseek(fileno(file), offset, whence);
-	xSemaphoreGive(readMutex);
+	xSemaphoreGive(sdMutex);
 	return res;
 }
 
@@ -814,7 +816,7 @@ size_t Storage::seekAndReadDirect(FILE* file, long offset, uint8_t* buffer, size
 
 	size_t totalRead = 0;
 
-	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+	if (xSemaphoreTake(sdMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
 	{
 		ESP_LOGW(TAG, "seekAndReadDirect: mutex timeout (off=%ld %u B)", offset, (unsigned)size);
 		return 0;
@@ -824,7 +826,8 @@ size_t Storage::seekAndReadDirect(FILE* file, long offset, uint8_t* buffer, size
 
 	if (!dmaBuffer)
 	{
-		xSemaphoreGive(readMutex);
+		ESP_LOGW(TAG, "No DMA buffer: read of %u bytes skipped", (unsigned)size);
+		xSemaphoreGive(sdMutex);
 		return 0;
 	}
 
@@ -847,7 +850,7 @@ size_t Storage::seekAndReadDirect(FILE* file, long offset, uint8_t* buffer, size
 		firstSkip = 0;
 	}
 
-	xSemaphoreGive(readMutex);
+	xSemaphoreGive(sdMutex);
 	return totalRead;
 }
 
@@ -863,11 +866,11 @@ int Storage::print(FILE *file, const char *str)
 	if (!file)
 		return -1;
 
-	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+	if (xSemaphoreTake(sdMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
 		return -1;
 
 	int res = fprintf(file, "%s", str);
-	xSemaphoreGive(readMutex);
+	xSemaphoreGive(sdMutex);
 	return res;
 }
 
@@ -883,11 +886,11 @@ int Storage::println(FILE *file, const char *str)
 	if (!file)
 		return -1;
 
-	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+	if (xSemaphoreTake(sdMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
 		return -1;
 
 	int res = fprintf(file, "%s\n", str);
-	xSemaphoreGive(readMutex);
+	xSemaphoreGive(sdMutex);
 	return res;
 }
 
@@ -902,13 +905,13 @@ size_t Storage::fileAvailable(FILE *file)
 	if (!file)
 		return 0;
 
-	if (xSemaphoreTake(readMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
+	if (xSemaphoreTake(sdMutex, pdMS_TO_TICKS(1000)) != pdTRUE)
 		return 0;
 
 	long current_pos = ftell(file);
 	fseek(file, 0, SEEK_END);
 	long end_pos = ftell(file);
 	fseek(file, current_pos, SEEK_SET);
-	xSemaphoreGive(readMutex);
+	xSemaphoreGive(sdMutex);
 	return end_pos - current_pos;
 }

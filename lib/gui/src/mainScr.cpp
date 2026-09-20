@@ -303,7 +303,7 @@ static void toggle3DEvent(lv_event_t *event)
  * @param observer Pointer to the observer.
  * @param subject Pointer to the subject.
  */
-static void map_position_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+static void mapPositionObserverCb(lv_observer_t *observer, lv_subject_t *subject)
 {
     if (activeTile != MAP || summaryOverlay != nullptr || lv_subject_get_int(&subject_map_state) != MAP_MODE_FOLLOW)
         return;
@@ -320,7 +320,7 @@ static void map_position_observer_cb(lv_observer_t *observer, lv_subject_t *subj
  * @param observer Pointer to the observer.
  * @param subject Pointer to the subject.
  */
-static void map_offset_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+static void mapOffsetObserverCb(lv_observer_t *observer, lv_subject_t *subject)
 {
     if (activeTile != MAP)
         return;
@@ -338,7 +338,7 @@ static void map_offset_observer_cb(lv_observer_t *observer, lv_subject_t *subjec
  * @param observer Pointer to the observer.
  * @param subject Pointer to the subject.
  */
-static void map_heading_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+static void mapHeadingObserverCb(lv_observer_t *observer, lv_subject_t *subject)
 {
     if (activeTile != MAP || canMoveWidget || summaryOverlay != nullptr || lv_subject_get_int(&subject_map_state) != MAP_MODE_FOLLOW)
         return;
@@ -610,7 +610,7 @@ static void updateClimbMarker(int posX, int yTop)
  * @brief Observer callback for subject_climb_active — controls overlay visibility only.
  *
  */
-static void climb_active_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+static void climbActiveObserverCb(lv_observer_t *observer, lv_subject_t *subject)
 {
     if (climbOverlay == NULL)
         return;
@@ -634,7 +634,7 @@ static void climb_active_observer_cb(lv_observer_t *observer, lv_subject_t *subj
  *          anticipation window as updatePosition() so buildClimbProfile is invoked
  *          from the first frame the overlay appears, not only once inside the climb.
  */
-static void climb_idx_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+static void climbIdxObserverCb(lv_observer_t *observer, lv_subject_t *subject)
 {
     if (climbOverlay == NULL)
         return;
@@ -739,7 +739,7 @@ static void asyncNavUpdateCb(void * user_data)
  * @param observer Pointer to the observer.
  * @param subject Pointer to the subject.
  */
-static void nav_data_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+static void navDataObserverCb(lv_observer_t *observer, lv_subject_t *subject)
 {
     if (activeTile != NAV)
         return;
@@ -755,7 +755,7 @@ static void nav_data_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
  * @param observer Pointer to the observer.
  * @param subject Pointer to the subject.
  */
-static void map_3d_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+static void map3dObserverCb(lv_observer_t *observer, lv_subject_t *subject)
 {
     mapSet.map3D = (lv_subject_get_int(subject) != 0);
     if (toggle3DImg != NULL)
@@ -1184,9 +1184,8 @@ static void showLoggerSummary()
 
     if (s.totalDistM >= 1000.0f)
     {
-        dtostrf(s.totalDistM / 1000.0f, 5, 2, vbuf);
-        const char *p = vbuf; while (*p == ' ') p++;
-        char tmp[24]; snprintf(tmp, sizeof(tmp), "%s km", p);
+        snprintf(vbuf, sizeof(vbuf), "%.2f", s.totalDistM / 1000.0f);
+        char tmp[24]; snprintf(tmp, sizeof(tmp), "%s km", vbuf);
         addRow("Distance:", tmp);
     }
     else
@@ -1201,14 +1200,12 @@ static void showLoggerSummary()
     snprintf(vbuf, sizeof(vbuf), "%02u:%02u", s.movingTimeSec / 60, s.movingTimeSec % 60);
     addRow("Moving time:", vbuf);
 
-    { char tmp[24]; dtostrf(s.maxSpeedKmh, 4, 1, tmp);
-      const char *p = tmp; while (*p == ' ') p++;
-      snprintf(vbuf, sizeof(vbuf), "%s km/h", p); }
+    { char tmp[24]; snprintf(tmp, sizeof(tmp), "%.1f", s.maxSpeedKmh);
+      snprintf(vbuf, sizeof(vbuf), "%s km/h", tmp); }
     addRow("Max speed:", vbuf);
 
-    { char tmp[24]; dtostrf(s.avgSpeedKmh, 4, 1, tmp);
-      const char *p = tmp; while (*p == ' ') p++;
-      snprintf(vbuf, sizeof(vbuf), "%s km/h", p); }
+    { char tmp[24]; snprintf(tmp, sizeof(tmp), "%.1f", s.avgSpeedKmh);
+      snprintf(vbuf, sizeof(vbuf), "%s km/h", tmp); }
     addRow("Avg speed:", vbuf);
 
     snprintf(vbuf, sizeof(vbuf), "+%dm / -%dm", (int)s.gainPos, (int)s.gainNeg);
@@ -1331,13 +1328,13 @@ static void recTimerCb(lv_timer_t *t)
             uint32_t movSec = (movMs / 1000) % 60;
             const char *arrow = (grade > 0.5f) ? LV_SYMBOL_UP : (grade < -0.5f) ? LV_SYMBOL_DOWN : "";
             char gradeBuf[8];
-            dtostrf(grade < 0.0f ? -grade : grade, 4, 1, gradeBuf);
-            const char *g = gradeBuf; while (*g == ' ') g++;
+            snprintf(gradeBuf, sizeof(gradeBuf), "%.1f", grade < 0.0f ? -grade : grade);
+            const char *g = gradeBuf;
             char buf[80];
             if (dist >= 1000.0f)
             {
-                char dbuf[12]; dtostrf(dist / 1000.0f, 5, 1, dbuf);
-                const char *p = dbuf; while (*p == ' ') p++;
+                char dbuf[12]; snprintf(dbuf, sizeof(dbuf), "%.1f", dist / 1000.0f);
+                const char *p = dbuf;
                 snprintf(buf, sizeof(buf), LV_SYMBOL_GPS " %skm  %02lu:%02lu\n" LV_SYMBOL_UP " %ldm  %s%s%%",
                     p, (unsigned long)movMin, (unsigned long)movSec, (long)gain, arrow, g);
             }
@@ -1391,11 +1388,11 @@ void createMainScr()
     mapScaleWidget(mapTile);
     turnByTurnWidget(mapTile);
     climbWidget(mapTile);
-    lv_subject_add_observer_obj(&subject_climb_active, climb_active_observer_cb, climbOverlay, NULL);
-    lv_subject_add_observer_obj(&subject_climb_idx,    climb_idx_observer_cb,    climbOverlay, NULL);
-    lv_subject_add_observer_obj(&subject_heading, map_heading_observer_cb, mapTile, NULL);
-    lv_subject_add_observer_obj(&subject_lat, map_position_observer_cb, mapTile, NULL);
-    lv_subject_add_observer_obj(&subject_lon, map_position_observer_cb, mapTile, NULL);
+    lv_subject_add_observer_obj(&subject_climb_active, climbActiveObserverCb, climbOverlay, NULL);
+    lv_subject_add_observer_obj(&subject_climb_idx,    climbIdxObserverCb,    climbOverlay, NULL);
+    lv_subject_add_observer_obj(&subject_heading, mapHeadingObserverCb, mapTile, NULL);
+    lv_subject_add_observer_obj(&subject_lat, mapPositionObserverCb, mapTile, NULL);
+    lv_subject_add_observer_obj(&subject_lon, mapPositionObserverCb, mapTile, NULL);
     btnZoomOut = lv_image_create(mapTile);
     lv_image_set_src(btnZoomOut, zoomOutIconFile);
     lv_image_set_scale(btnZoomOut,buttonScale);
@@ -1423,17 +1420,17 @@ void createMainScr()
         lv_obj_remove_flag(btnZoomIn, LV_OBJ_FLAG_HIDDEN);
     }
     lv_obj_add_event_cb(mapTile, updateMap, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_subject_add_observer_obj(&subject_map_offset_x, map_offset_observer_cb, mapTile, NULL);
-    lv_subject_add_observer_obj(&subject_map_offset_y, map_offset_observer_cb, mapTile, NULL);
+    lv_subject_add_observer_obj(&subject_map_offset_x, mapOffsetObserverCb, mapTile, NULL);
+    lv_subject_add_observer_obj(&subject_map_offset_y, mapOffsetObserverCb, mapTile, NULL);
     DOUBLE_TOUCH_EVENT = lv_event_register_id();
     lv_obj_add_event_cb(mapTile, mapToolBarEvent, (lv_event_code_t)DOUBLE_TOUCH_EVENT, NULL);
     lv_obj_add_event_cb(mapTile, scrollMapEvent, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(btnZoomOut, zoomEvent, LV_EVENT_CLICKED, NULL);
     lv_obj_add_event_cb(btnZoomIn, zoomEvent, LV_EVENT_CLICKED, NULL);
     navigationScr(navTile);
-    lv_subject_add_observer_obj(&subject_lat, nav_data_observer_cb, navTile, NULL);
-    lv_subject_add_observer_obj(&subject_lon, nav_data_observer_cb, navTile, NULL);
-    lv_subject_add_observer_obj(&subject_heading, nav_data_observer_cb, navTile, NULL);
+    lv_subject_add_observer_obj(&subject_lat, navDataObserverCb, navTile, NULL);
+    lv_subject_add_observer_obj(&subject_lon, navDataObserverCb, navTile, NULL);
+    lv_subject_add_observer_obj(&subject_heading, navDataObserverCb, navTile, NULL);
     lv_obj_add_event_cb(navTile, updateNavEvent, LV_EVENT_VALUE_CHANGED, NULL);
     btnToggle3D = lv_obj_create(mapTile);
 #if defined(EXTRA_LARGE_SCREEN) || defined(T4_S3)
@@ -1455,7 +1452,7 @@ void createMainScr()
     lv_obj_add_flag(btnToggle3D, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_event_cb(btnToggle3D, toggle3DEvent, LV_EVENT_CLICKED, NULL);
     lv_subject_set_int(&subject_map_3d, mapSet.map3D ? 1 : 0);
-    lv_subject_add_observer_obj(&subject_map_3d, map_3d_observer_cb, mapTile, NULL);
+    lv_subject_add_observer_obj(&subject_map_3d, map3dObserverCb, mapTile, NULL);
     satelliteScr(satTrackTile);
     if (nmeaDebugTileEnabled)
         nmeaDebugScr(nmeaDebugTile);

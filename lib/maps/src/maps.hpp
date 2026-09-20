@@ -30,6 +30,15 @@
 #include "esp_cache.h"
 #endif
 
+/// Height of the status bar overlay at the top of the screen, in pixels. The map
+/// viewport is what remains of the panel, and the perspective focal length is
+/// normalised against that height.
+inline constexpr int16_t statusBarHeight = 27;
+
+/// Map background colour (RGB565): sprite base colour and the blank fills left at
+/// the canvas edges by scroll/PPA.
+inline constexpr uint16_t mapBackgroundColor = 0xF7BE;
+
 /**
  * @class Maps
  * @brief Class for handling map rendering and display
@@ -69,7 +78,7 @@ private:
         int16_t h;
     };
 
-    static const uint16_t mapTileSize = 256;
+    static constexpr uint16_t mapTileSize = 256;
     tileBounds totalBounds;
     uint16_t wptPosX;
     uint16_t wptPosY;

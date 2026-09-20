@@ -26,8 +26,8 @@
 #endif
 
 inline constexpr const char* statusLine1 = "Model:%s %dMhz";             /**< Format string for model and CPU frequency */
-inline constexpr const char* statusLine2 = "Free mem:%dK %d%%";          /**< Format string for free memory in KB and percentage */
-inline constexpr const char* statusLine3 = "PSRAM: %d - Used PSRAM: %d"; /**< Format string for PSRAM total and used */
+inline constexpr const char* statusLine2 = "Free mem:%uK %u%%";          /**< Format string for free memory in KB and percentage */
+inline constexpr const char* statusLine3 = "PSRAM: %u - Used PSRAM: %u"; /**< Format string for PSRAM total and used */
 inline constexpr const char* statusLine4 = "Firmware v.%s rev.%s";       /**< Format string for firmware version and revision */
 inline constexpr const char* statusLine5 = "ENV: %s";                    /**< Format string for environment information */
 

@@ -106,7 +106,7 @@ void setup()
         mpu.beginShared(I2C_PORT);
     #endif
     createGpxFolders();
-    mapView.initMap(tft.width(), tft.height() - 27);
+    mapView.initMap(tft.width(), tft.height() - statusBarHeight);
     loadPreferences();
     gps.init();
     initLVGL();

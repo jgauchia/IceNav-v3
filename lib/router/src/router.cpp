@@ -51,7 +51,7 @@ RouterResult Router::route(float src_lat, float src_lon,
 
     int64_t t_end = esp_timer_get_time();
     int64_t elapsed_us = t_end - t_start;
-    ESP_LOGE(TAG_ROUTER, "route (%.5f,%.5f)->(%.5f,%.5f): nodes %u->%u, %lld us (%lld ms), waypoints=%u",
+    ESP_LOGI(TAG_ROUTER, "route (%.5f,%.5f)->(%.5f,%.5f): nodes %u->%u, %lld us (%lld ms), waypoints=%u",
              src_lat, src_lon, dst_lat, dst_lon,
              src_node, dst_node,
              elapsed_us, elapsed_us / 1000,

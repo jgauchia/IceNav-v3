@@ -68,7 +68,7 @@ class Storage
         uint8_t *dmaBuffer;        /**< Persistent buffer for DMA-safe reads */
         static constexpr size_t DMA_BUF_SIZE = 65536;
         static constexpr size_t SD_SECTOR_SIZE = 512;
-        SemaphoreHandle_t readMutex; /**< Mutex serializing all SD/FATFS access and protecting dmaBuffer */
+        SemaphoreHandle_t sdMutex; /**< Mutex serializing all SD/FATFS access and protecting dmaBuffer */
 
     public:
         Storage();

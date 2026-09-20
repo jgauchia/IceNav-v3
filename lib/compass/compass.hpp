@@ -167,7 +167,7 @@ private:
     bool bringUp(uint8_t addr);
 };
 
-#define COMPASS_CAL_TIME 16000 /**< Compass calibration duration in milliseconds. */
+inline constexpr int COMPASS_CAL_TIME = 16000; /**< Compass calibration duration in milliseconds. */
 
 /**
  * @class KalmanFilter

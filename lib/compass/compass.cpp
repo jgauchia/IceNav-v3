@@ -834,13 +834,9 @@ void Compass::calibrate()
         compassCalSprite.setTextSize(3);
         compassCalSprite.setTextPadding(100);
 
-        char timeString[3] = "";
-        memset(&timeString[0], 0, sizeof(timeString));
-        sprintf(timeString, "%i", (COMPASS_CAL_TIME - secmillis) / 1000);
+        char timeString[12];
+        snprintf(timeString, sizeof(timeString), "%d", (COMPASS_CAL_TIME - secmillis) / 1000);
         compassCalSprite.drawString(timeString, (tft.width() >> 1), 280 * scale);
-
-        memset(&timeString[0], 0, sizeof(timeString));
-
 
         compassCalSprite.pushSprite(0,0);
 

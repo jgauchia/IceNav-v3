@@ -182,34 +182,31 @@ void splashScreen()
         splashSprite.drawCenterString("(c) OpenStreetMap", display().width() >> 1, display().height() - 110*margin);
         splashSprite.drawCenterString("(c) OpenStreetMap contributors", display().width() >> 1, display().height() - 100*margin);
 
-        char statusString[50] = "";
+        char statusString[64];
         splashSprite.setTextColor(TFT_YELLOW, TFT_BLACK);
 
-        memset(&statusString[0], 0, sizeof(statusString));
         rtc_cpu_freq_config_t freq_config;
         rtc_clk_cpu_freq_get_config(&freq_config);
-        sprintf(statusString, statusLine1, getChipModel(), (int)freq_config.freq_mhz);
+        snprintf(statusString, sizeof(statusString), statusLine1, getChipModel(), (int)freq_config.freq_mhz);
         splashSprite.drawString(statusString, 0, display().height() - 50*margin);
 
-        memset(&statusString[0], 0, sizeof(statusString));
-        size_t freeHeap = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
-        size_t totalHeap = heap_caps_get_total_size(MALLOC_CAP_INTERNAL);
-        sprintf(statusString, statusLine2, (freeHeap / 1024), (freeHeap * 100) / totalHeap);
+        const size_t freeHeap  = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+        const size_t totalHeap = heap_caps_get_total_size(MALLOC_CAP_INTERNAL);
+        snprintf(statusString, sizeof(statusString), statusLine2,
+                 (unsigned)(freeHeap / 1024), (unsigned)((freeHeap * 100) / totalHeap));
         splashSprite.drawString(statusString, 0, display().height() - 40*margin);
 
-        memset(&statusString[0], 0, sizeof(statusString));
-        sprintf(statusString, statusLine3, heap_caps_get_total_size(MALLOC_CAP_SPIRAM), heap_caps_get_total_size(MALLOC_CAP_SPIRAM) - heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+        const size_t psramTotal = heap_caps_get_total_size(MALLOC_CAP_SPIRAM);
+        const size_t psramUsed  = psramTotal - heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+        snprintf(statusString, sizeof(statusString), statusLine3, (unsigned)psramTotal, (unsigned)psramUsed);
         splashSprite.drawString(statusString, 0, display().height() - 30*margin);
 
-        memset(&statusString[0], 0, sizeof(statusString));
-        sprintf(statusString, statusLine4, String(VERSION), String(REVISION));
+        snprintf(statusString, sizeof(statusString), statusLine4, String(VERSION).c_str(), String(REVISION).c_str());
         splashSprite.drawString(statusString, 0, display().height() - 20*margin);
 
-        memset(&statusString[0], 0, sizeof(statusString));
-        sprintf(statusString, statusLine5, String(FLAVOR));
+        snprintf(statusString, sizeof(statusString), statusLine5, String(FLAVOR).c_str());
         splashSprite.drawString(statusString, 0, display().height() - 10*margin);
 
-        memset(&statusString[0], 0, sizeof(statusString));
         splashSprite.setTextColor(TFT_WHITE, TFT_BLACK);
         
         // Preload Map early so the background render task has time

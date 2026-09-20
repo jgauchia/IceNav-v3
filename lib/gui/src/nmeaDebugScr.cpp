@@ -51,7 +51,7 @@ static const char * msgName(uint8_t id)
     }
 }
 
-static void nmea_debug_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+static void nmeaDebugObserverCb(lv_observer_t *observer, lv_subject_t *subject)
 {
     if (activeTile != DEBUG_NMEA)
         return;
@@ -175,5 +175,5 @@ void nmeaDebugScr(_lv_obj_t *screen)
     lv_label_set_text(dbgRawLabel, "");
 
     lv_subject_add_observer_obj(&subject_nmea_debug_trigger,
-                                nmea_debug_observer_cb, cont, NULL);
+                                nmeaDebugObserverCb, cont, NULL);
 }

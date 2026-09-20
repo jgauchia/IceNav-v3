@@ -80,7 +80,7 @@ static void registerWidgetEvents(lv_obj_t *obj, const char *tag)
  * @param observer Pointer to the observer.
  * @param subject Pointer to the subject.
  */
-static void compass_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+static void compassObserverCb(lv_observer_t *observer, lv_subject_t *subject)
 {
     int32_t heading_val = lv_subject_get_int(subject);
     lv_label_set_text_fmt(compassHeading, "%5d\xC2\xB0", (int)heading_val);
@@ -95,7 +95,7 @@ static void compass_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
  * @param observer Pointer to the observer.
  * @param subject Pointer to the subject.
  */
-static void position_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+static void positionObserverCb(lv_observer_t *observer, lv_subject_t *subject)
 {
     lv_obj_t *label = (lv_obj_t *)lv_observer_get_target_obj(observer);
     int32_t val = lv_subject_get_int(subject);
@@ -215,11 +215,11 @@ void positionWidget(lv_obj_t *screen)
 
     latitude = lv_label_create(colCoords);
     lv_obj_set_style_text_font(latitude, fontMedium, 0);
-    lv_subject_add_observer_obj(&subject_lat, position_observer_cb, latitude, NULL);
+    lv_subject_add_observer_obj(&subject_lat, positionObserverCb, latitude, NULL);
 
     longitude = lv_label_create(colCoords);
     lv_obj_set_style_text_font(longitude, fontMedium, 0);
-    lv_subject_add_observer_obj(&subject_lon, position_observer_cb, longitude, NULL);
+    lv_subject_add_observer_obj(&subject_lon, positionObserverCb, longitude, NULL);
 
     lv_obj_set_width(obj, LV_SIZE_CONTENT);
     
@@ -260,7 +260,7 @@ void compassWidget(lv_obj_t *screen)
     lv_obj_set_style_text_font(compassHeading, fontVeryLarge, 0);
     lv_label_set_text_static(compassHeading, "---\xC2\xB0");
     
-    lv_subject_add_observer_obj(&subject_compass_heading, compass_observer_cb, obj, NULL);
+    lv_subject_add_observer_obj(&subject_compass_heading, compassObserverCb, obj, NULL);
     
     objUnselect(obj);
     registerWidgetEvents(obj, "Compass_");
@@ -480,7 +480,7 @@ void mapSpeedWidget(lv_obj_t *screen)
  * @param observer Pointer to the observer.
  * @param subject Pointer to the subject containing the heading.
  */
-static void mini_compass_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+static void miniCompassObserverCb(lv_observer_t *observer, lv_subject_t *subject)
 {
     lv_obj_t *img = (lv_obj_t *)lv_observer_get_target_obj(observer);
     if (img == NULL) 
@@ -511,7 +511,7 @@ void mapCompassWidget(lv_obj_t *screen)
     lv_image_set_scale(mapCompassImg, iconScale);
     lv_obj_set_align(mapCompassImg, LV_ALIGN_CENTER);
     lv_obj_add_flag(miniCompass, LV_OBJ_FLAG_HIDDEN);
-    lv_subject_add_observer_obj(&subject_heading, mini_compass_observer_cb, mapCompassImg, NULL);
+    lv_subject_add_observer_obj(&subject_heading, miniCompassObserverCb, mapCompassImg, NULL);
 }
 
 /**
