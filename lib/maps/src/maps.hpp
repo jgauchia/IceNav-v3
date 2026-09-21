@@ -80,8 +80,8 @@ private:
 
     static constexpr uint16_t mapTileSize = 256;
     tileBounds totalBounds;
-    uint16_t wptPosX;
-    uint16_t wptPosY;
+    uint16_t wptPosX = 0xFFFF;
+    uint16_t wptPosY = 0xFFFF;
     MapCanvas mapTempSprite = MapCanvas(mapCanvasParent());
     MapCanvas mapSprite = MapCanvas(mapCanvasParent());
     MapCanvas pngStagingSprite = MapCanvas(mapCanvasParent());
@@ -94,7 +94,7 @@ private:
     float destLat = 0.0f;
     float destLon = 0.0f;
     bool hasWaypoint = false;
-    uint8_t zoomLevel;
+    uint8_t zoomLevel = 0;
     ScreenCoord navArrowPosition;
 
     static uint16_t lon2posx(float f_lon, uint8_t zoom, uint16_t tileSize);
@@ -145,7 +145,7 @@ public:
     int16_t tileX = 0;
     int16_t tileY = 0;
     int16_t lastTileX = 0;
-    int16_t lastTileY;
+    int16_t lastTileY = 0;
     uint16_t lastRenderedHeading;
     ScreenCoord lastRenderedArrowPos;
     int16_t lastRenderedDisplayOffsetX;
