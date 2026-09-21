@@ -123,7 +123,6 @@ void splashScreen()
         void *splashBuffer = splashSprite.createSprite(display().width(), display().height());
         splashSprite.drawPngFile(logoFile, 0, 0);
         lv_canvas_set_buffer(splashCanvas, splashBuffer, display().width(), display().height(), LV_COLOR_FORMAT_RGB565_SWAPPED);
-        splashSprite.deleteSprite();
 
         lv_screen_load_anim(splashScr, LV_SCREEN_LOAD_ANIM_FADE_OUT, 2500, 0, false);
         for (int i = 0; i < 1000; i++)
@@ -151,6 +150,8 @@ void splashScreen()
             lv_obj_delete(splashScr);
             xSemaphoreGive(lvgl_mutex);
         }
+
+        splashSprite.deleteSprite();
     #else
         tftOff();
         

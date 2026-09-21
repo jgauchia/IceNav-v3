@@ -13,6 +13,9 @@
 #include "gps.hpp"
 #include "gpsMath.hpp"
 #include "display.hpp"
+#include <new>
+
+static const char *TAG = "GPXSCREEN";
 
 extern Maps mapView;
 extern Storage storage;
@@ -101,15 +104,25 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
                                          navCtx.trackData[0].lat, navCtx.trackData[0].lon);
             if (distToStart > 50.0f)
             {
-                TrackVector approachRoute;
-                RouterResult res = router.route(gpsSnap.latitude, gpsSnap.longitude,
-                                                navCtx.trackData[0].lat, navCtx.trackData[0].lon, approachRoute);
-                if (res == RouterResult::OK && !approachRoute.empty())
+                try
                 {
-                    gpxStartIdx = approachRoute.size() - 1;
-                    approachRoute.pop_back();
-                    approachRoute.insert(approachRoute.end(), navCtx.trackData.begin(), navCtx.trackData.end());
-                    navCtx.trackData = std::move(approachRoute);
+                    TrackVector approachRoute;
+                    RouterResult res = router.route(gpsSnap.latitude, gpsSnap.longitude,
+                                                    navCtx.trackData[0].lat, navCtx.trackData[0].lon, approachRoute);
+                    if (res == RouterResult::OK && !approachRoute.empty())
+                    {
+                        const size_t approachStartIdx = approachRoute.size() - 1;
+                        approachRoute.pop_back();
+                        approachRoute.insert(approachRoute.end(), navCtx.trackData.begin(), navCtx.trackData.end());
+                        navCtx.trackData = std::move(approachRoute);
+                        gpxStartIdx = approachStartIdx;
+                    }
+                    else
+                        ESP_LOGW(TAG, "No approach route (%d); starting at the first track point", (int)res);
+                }
+                catch (const std::bad_alloc&)
+                {
+                    ESP_LOGW(TAG, "Not enough PSRAM for the approach route; starting at the first track point");
                 }
             }
 
@@ -130,21 +143,29 @@ static void handleGpxLoad(GPXParser &gpx, const char *gpxName)
             }
         }
 
-        // Rebuild the segment index over the merged path: prepending the
-        // approach route shifted every GPX point index.
-        buildTrackIndex(navCtx.trackData);
-
-        // Sustained deviations during navigation rejoin the nearest point of
-        // the GPX track, which lives at trackGpxStart inside the merged path.
-        navCtx.trackGpxStart = (int)gpxStartIdx;
-        navCtx.trkNavActive.store(true);
-
-        if (mapSet.showClimb)
+        try
         {
-            TrackVector gpxOnly(navCtx.trackData.begin() + gpxStartIdx, navCtx.trackData.end());
-            navCtx.climbAnalyzer.analyze(gpxOnly, (int)gpxStartIdx);
+            buildTrackIndex(navCtx.trackData);
+
+            navCtx.trackGpxStart = (int)gpxStartIdx;
+            navCtx.trkNavActive.store(true);
+
+            if (mapSet.showClimb)
+            {
+                TrackVector gpxOnly(navCtx.trackData.begin() + gpxStartIdx, navCtx.trackData.end());
+                navCtx.climbAnalyzer.analyze(gpxOnly, (int)gpxStartIdx);
+            }
+            navCtx.turnPoints = gpx.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, navCtx.trackData);
         }
-        navCtx.turnPoints = gpx.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, navCtx.trackData);
+        catch (const std::bad_alloc&)
+        {
+            ESP_LOGE(TAG, "Not enough memory to index the track; track discarded");
+            navCtx.trackData.clear();
+            navCtx.trackIndex.clear();
+            navCtx.turnPoints.clear();
+            navCtx.climbAnalyzer.clear();
+            navCtx.trkNavActive.store(false);
+        }
         isTrackLoaded = !navCtx.trackData.empty();
         if (isTrackLoaded && mapSet.vectorMap)
             lv_obj_remove_flag(btnToggle3D, LV_OBJ_FLAG_HIDDEN);

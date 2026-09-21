@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <cmath>
 #include <climits>
+#include "esp_log.h"
 #include "PsramAllocator.hpp"
 #include "graph_loader.hpp"
 
@@ -21,6 +22,8 @@
 // within ~5% of optimal on real road networks. Not applied to the WALK profile:
 // its h already reaches the real walking speed, so inflating it overestimates and
 // the search terminates on a sub-optimal zig-zag route.
+static const char *TAG_ASTAR = "ASTAR";
+
 static constexpr float ASTAR_WEIGHT       = 1.5f;    /**< Heuristic inflation factor — trades optimality for speed. */
 static constexpr float METERS_PER_DEGREE  = 111319.0f; /**< Approximate metres per degree of latitude at the equator. */
 
@@ -238,12 +241,12 @@ TrackVector astarRoute(const GraphLoader& graph, uint32_t src_node, uint32_t dst
     // One flat PSRAM table holds g cost, parent and expanded flag for every
     // state (see StateTable). Contiguous storage: no per-element heap
     // allocation and one probe per lookup.
-    StateTable states(1u << 14);
+    StateTable states(1u << 11);
 
     using PqStorage = std::vector<AStarState, PsramAllocator<AStarState>>;
     using PQ = std::priority_queue<AStarState, PqStorage, std::greater<AStarState>>;
     PqStorage pq_storage;
-    pq_storage.reserve(30000);
+    pq_storage.reserve(2048);
     PQ pq(std::greater<AStarState>(), std::move(pq_storage));
 
     uint64_t src_key = stateKey(src_node, EDGE_NONE);
@@ -252,6 +255,9 @@ TrackVector astarRoute(const GraphLoader& graph, uint32_t src_node, uint32_t dst
              0u, src_node, EDGE_NONE});
 
     uint64_t dst_key = UINT64_MAX;
+    uint32_t expanded_states = 0;
+
+    static constexpr uint32_t MAX_EXPANDED_STATES = 150000;
 
     while (!pq.empty())
     {
@@ -268,6 +274,11 @@ TrackVector astarRoute(const GraphLoader& graph, uint32_t src_node, uint32_t dst
         if (states.expandedAt(slot))
             continue;
         states.markExpandedAt(slot);
+        if (++expanded_states > MAX_EXPANDED_STATES)
+        {
+            ESP_LOGW(TAG_ASTAR, "A* budget reached (%u states expanded); route abandoned", expanded_states);
+            break;
+        }
         if (u == dst_node)
         {
             dst_key = key;

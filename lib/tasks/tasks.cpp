@@ -15,6 +15,7 @@
 #include "logger.hpp"
 #include "router.hpp"
 #include "gpxParser.hpp"
+#include <new>
 #include "navContext.hpp"
 #include "connectivity.hpp"
 #include "sensors.hpp"
@@ -641,8 +642,17 @@ void navTask(void *pvParameters)
             TrackVector newRoute;
             RouterResult res = RouterResult::NO_PATH;
             if (navCtx.wptNavActive.load() || rejoinTrack)
-                res = router.route(gpsSnap.latitude, gpsSnap.longitude,
-                                   dstLat, dstLon, newRoute);
+            {
+                try
+                {
+                    res = router.route(gpsSnap.latitude, gpsSnap.longitude,
+                                       dstLat, dstLon, newRoute);
+                }
+                catch (const std::bad_alloc&)
+                {
+                    ESP_LOGW(TAG, "Not enough PSRAM for the route; keeping the current one");
+                }
+            }
 
             if (res == RouterResult::OK)
             {
@@ -662,11 +672,74 @@ void navTask(void *pvParameters)
                             navCtx.trackData[rejoinIdx].lat == dstLat &&
                             navCtx.trackData[rejoinIdx].lon == dstLon)
                         {
-                            if (!newRoute.empty())
-                                newRoute.pop_back();
-                            newRoute.insert(newRoute.end(),
-                                            navCtx.trackData.begin() + rejoinIdx,
-                                            navCtx.trackData.end());
+                            try
+                            {
+                                if (!newRoute.empty())
+                                    newRoute.pop_back();
+                                newRoute.insert(newRoute.end(),
+                                                navCtx.trackData.begin() + rejoinIdx,
+                                                navCtx.trackData.end());
+                                navCtx.trackData = std::move(newRoute);
+
+                                if (!navCtx.trackData.empty())
+                                {
+                                    navCtx.trackData[0].accumDist = 0.0f;
+                                    for (size_t i = 1; i < navCtx.trackData.size(); ++i)
+                                    {
+                                        float d = calcDist(navCtx.trackData[i-1].lat, navCtx.trackData[i-1].lon,
+                                                           navCtx.trackData[i].lat,   navCtx.trackData[i].lon);
+                                        navCtx.trackData[i].accumDist = navCtx.trackData[i-1].accumDist + d;
+                                    }
+                                }
+
+                                navCtx.trackGpxStart = approachLen;
+                                buildTrackIndex(navCtx.trackData);
+
+                                GPXParser gpxTmp;
+                                navCtx.turnPoints = gpxTmp.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, navCtx.trackData);
+
+                                navCtx.climbAnalyzer.clear();
+                                if (mapSet.showClimb && navCtx.trackGpxStart < (int)navCtx.trackData.size())
+                                {
+                                    TrackVector gpxOnly(navCtx.trackData.begin() + navCtx.trackGpxStart,
+                                                        navCtx.trackData.end());
+                                    navCtx.climbAnalyzer.analyze(gpxOnly, navCtx.trackGpxStart);
+                                }
+
+                                navCtx.navState = NavState{};
+                                gps.resetSimulation();
+                                resetNavigationUI();
+                                isTrackLoaded = !navCtx.trackData.empty();
+                            }
+                            catch (const std::bad_alloc&)
+                            {
+                                ESP_LOGW(TAG, "Not enough memory to rejoin the track; navigation aids cleared");
+                                navCtx.trackIndex.clear();
+                                navCtx.turnPoints.clear();
+                                navCtx.climbAnalyzer.clear();
+                            }
+                        }
+                        xSemaphoreGive(navCtx.routeMutex);
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        isTrackLoaded = false;
+                        navCtx.trackData.clear();
+                        navCtx.trackData.shrink_to_fit();
+                        navCtx.trackIndex.clear();
+                    }
+                    catch (const std::bad_alloc&)
+                    {
+                        ESP_LOGW(TAG, "Not enough memory while releasing the previous route");
+                    }
+
+                    if (xSemaphoreTake(navCtx.routeMutex, pdMS_TO_TICKS(500)) == pdTRUE)
+                    {
+                        try
+                        {
                             navCtx.trackData = std::move(newRoute);
 
                             if (!navCtx.trackData.empty())
@@ -680,56 +753,19 @@ void navTask(void *pvParameters)
                                 }
                             }
 
-                            navCtx.trackGpxStart = approachLen;
-                            buildTrackIndex(navCtx.trackData);
-
                             GPXParser gpxTmp;
-                            navCtx.turnPoints = gpxTmp.getTurnPointsSlidingWindow(18.0f, 10, 70.0f, 5, navCtx.trackData);
-
-                            navCtx.climbAnalyzer.clear();
-                            if (mapSet.showClimb && navCtx.trackGpxStart < (int)navCtx.trackData.size())
-                            {
-                                TrackVector gpxOnly(navCtx.trackData.begin() + navCtx.trackGpxStart,
-                                                    navCtx.trackData.end());
-                                navCtx.climbAnalyzer.analyze(gpxOnly, navCtx.trackGpxStart);
-                            }
-
-                            navCtx.navState = NavState{};
+                            navCtx.turnPoints = gpxTmp.getTurnPointsSlidingWindow(10.0f, 5, 45.0f, 3, navCtx.trackData);
+                            navCtx.navState   = NavState{};
                             gps.resetSimulation();
                             resetNavigationUI();
                             isTrackLoaded = !navCtx.trackData.empty();
                         }
-                        xSemaphoreGive(navCtx.routeMutex);
-                    }
-                }
-                else
-                {
-                    isTrackLoaded = false;
-                    navCtx.trackData.clear();
-                    navCtx.trackData.shrink_to_fit();
-                    navCtx.trackIndex.clear();
-
-                    if (xSemaphoreTake(navCtx.routeMutex, pdMS_TO_TICKS(500)) == pdTRUE)
-                    {
-                        navCtx.trackData = std::move(newRoute);
-
-                        if (!navCtx.trackData.empty())
+                        catch (const std::bad_alloc&)
                         {
-                            navCtx.trackData[0].accumDist = 0.0f;
-                            for (size_t i = 1; i < navCtx.trackData.size(); ++i)
-                            {
-                                float d = calcDist(navCtx.trackData[i-1].lat, navCtx.trackData[i-1].lon,
-                                                   navCtx.trackData[i].lat,   navCtx.trackData[i].lon);
-                                navCtx.trackData[i].accumDist = navCtx.trackData[i-1].accumDist + d;
-                            }
+                            ESP_LOGW(TAG, "Not enough memory for the new route; navigation aids cleared");
+                            navCtx.trackIndex.clear();
+                            navCtx.turnPoints.clear();
                         }
-
-                        GPXParser gpxTmp;
-                        navCtx.turnPoints = gpxTmp.getTurnPointsSlidingWindow(10.0f, 5, 45.0f, 3, navCtx.trackData);
-                        navCtx.navState   = NavState{};
-                        gps.resetSimulation();
-                        resetNavigationUI();
-                        isTrackLoaded = !navCtx.trackData.empty();
                         xSemaphoreGive(navCtx.routeMutex);
                     }
                 }

@@ -351,11 +351,12 @@ bool GraphLoader::getNodeCoords(uint32_t gi, float& lat, float& lon) const
  *
  * @param lat Latitude in degrees
  * @param lon Longitude in degrees
- * @return Global node index of the nearest node
+ * @return Global node index of the nearest node, or NODE_NONE when no cached
+ *         page is close enough to the coordinates
  */
 uint32_t GraphLoader::nearestNode(float lat, float lon) const
 {
-    uint32_t best_i  = 0;
+    uint32_t best_i  = NODE_NONE;
     float    best_d  = 1e30f;
     float    cos_lat = cosf(lat * 3.14159265f / 180.f);
 

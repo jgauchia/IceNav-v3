@@ -64,6 +64,9 @@ class GPXParser
         std::vector<TurnPoint> getTurnPointsSlidingWindow(float thresholdDeg, float minDist, float sharpTurnDeg,int windowSize, const TrackVector& trackData);
 
         std::string filePath;
+
+    private:
+        bool loadTrackImpl(TrackVector& trackData);
 };
 
 /**

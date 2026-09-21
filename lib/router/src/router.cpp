@@ -47,6 +47,16 @@ RouterResult Router::route(float src_lat, float src_lon,
     uint32_t src_node = loader.nearestNode(src_lat, src_lon);
     uint32_t dst_node = loader.nearestNode(dst_lat, dst_lon);
 
+    ESP_LOGI(TAG_ROUTER, "route (%.5f,%.5f)->(%.5f,%.5f): nodes %u->%u",
+             src_lat, src_lon, dst_lat, dst_lon, src_node, dst_node);
+
+    if (src_node == NODE_NONE || dst_node == NODE_NONE)
+    {
+        ESP_LOGW(TAG_ROUTER, "No cached node near origin (%d) or destination (%d); route skipped",
+                 (src_node != NODE_NONE), (dst_node != NODE_NONE));
+        return RouterResult::NO_PATH;
+    }
+
     out_track = astarRoute(loader, src_node, dst_node, (float)navSet.routeSpeed);
 
     int64_t t_end = esp_timer_get_time();

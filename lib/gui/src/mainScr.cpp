@@ -259,14 +259,47 @@ static void asyncMapUpdateCb(void * user_data)
 }
 
 /**
+ * @brief Queue this module's async map callback without racing lv_timer_handler
+ *
+ * @details lv_async_call() allocates from the LVGL pool and inserts a node in the
+ *          LVGL timer list without taking any lock, so it must not run while the
+ *          GUI task is inside lv_timer_handler(). The LVGL mutex is taken only
+ *          when the current task does not hold it already, which is the case for
+ *          callbacks that run inside the GUI task; that keeps timer callbacks from
+ *          self-deadlocking on a non recursive mutex.
+ *
+ * @param cb Async callback to schedule.
+ * @return true if the callback was queued.
+ */
+static bool queueMapUpdateAsync(lv_async_cb_t cb)
+{
+    if (lvgl_mutex == NULL)
+        return lv_async_call(cb, NULL) == LV_RESULT_OK;
+
+    if (xSemaphoreGetMutexHolder(lvgl_mutex) == xTaskGetCurrentTaskHandle())
+        return lv_async_call(cb, NULL) == LV_RESULT_OK;
+
+    if (xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) != pdTRUE)
+        return false;
+
+    const bool queued = (lv_async_call(cb, NULL) == LV_RESULT_OK);
+    xSemaphoreGive(lvgl_mutex);
+    return queued;
+}
+
+/**
  * @brief Thread-safe trigger for map redrawing from background tasks
  *
+ * @details Coalesces pending requests and queues the async callback. If the LVGL
+ *          mutex cannot be taken the guard is released so the next trigger retries.
  */
 void triggerMapRedraw()
 {
     if (__atomic_exchange_n(&redrawPending, true, __ATOMIC_SEQ_CST))
         return;
-    lv_async_call(asyncMapUpdateCb, NULL);
+
+    if (!queueMapUpdateAsync(asyncMapUpdateCb))
+        __atomic_store_n(&redrawPending, false, __ATOMIC_SEQ_CST);
 }
 
 /**
@@ -279,7 +312,7 @@ void triggerMapRedraw()
 void forceMapRedraw()
 {
     __atomic_store_n(&redrawPending, false, __ATOMIC_SEQ_CST);
-    lv_async_call(asyncMapUpdateCb, NULL);
+    queueMapUpdateAsync(asyncMapUpdateCb);
 }
 
 /**

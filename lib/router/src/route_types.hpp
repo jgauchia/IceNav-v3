@@ -11,6 +11,8 @@
 
 static constexpr char ROUTE_MAGIC[4] = {'R','O','U','T'};
 
+static constexpr uint32_t NODE_NONE = UINT32_MAX;
+
 // Returns the ROUTE.bin path for the given max-speed preference (km/h).
 // Must match the subdirectory layout produced by route_generator: CAR / BIKE / WALK.
 static inline const char* routeBinPath(uint16_t routeSpeed)

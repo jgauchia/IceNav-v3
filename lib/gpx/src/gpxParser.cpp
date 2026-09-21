@@ -11,6 +11,7 @@
 #include <freertos/task.h>
 #include "gpsMath.hpp"
 #include "navContext.hpp"
+#include <new>
 
 /**
  * @brief Helper function to format float values
@@ -322,13 +323,31 @@ void buildTrackIndex(TrackVector& trackData)
 */
 bool GPXParser::loadTrack(TrackVector& trackData)
 {
+    try
+    {
+        return loadTrackImpl(trackData);
+    }
+    catch (const std::bad_alloc&)
+    {
+        ESP_LOGE(TAGGPX, "Not enough memory to load this track; load aborted");
+        trackData.clear();
+        return false;
+    }
+}
+
+bool GPXParser::loadTrackImpl(TrackVector& trackData)
+{
     FILE* file = fopen(filePath.c_str(), "r");
     if (!file)
         return false;
     fseek(file, 0, SEEK_END);
     long fileSize = ftell(file);
     rewind(file);
-    size_t estimatedPoints = fileSize / 50;
+
+    static constexpr size_t MAX_RESERVED_POINTS = 16384;
+    size_t estimatedPoints = (fileSize > 0) ? ((size_t)fileSize / 200 + 64) : 64;
+    if (estimatedPoints > MAX_RESERVED_POINTS)
+        estimatedPoints = MAX_RESERVED_POINTS;
     trackData.reserve(estimatedPoints);
     char line[256];
     while (fgets(line, sizeof(line), file))
