@@ -76,8 +76,13 @@ std::map<std::string, std::vector<std::string>> GPXParser::getTagElementList(con
 
                     while (fgets(line, sizeof(line), file))
                     {
-                        if (strstr(line, startTag.c_str()))
-                            inTargetTag = true;
+                        const char* hit = strstr(line, startTag.c_str());
+                        if (hit)
+                        {
+                            char next = hit[startTag.length()];
+                            if (next == '>' || next == ' ' || next == '\t' || next == '\r' || next == '\n')
+                                inTargetTag = true;
+                        }
 
                         if (inTargetTag)
                         {

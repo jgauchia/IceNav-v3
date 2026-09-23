@@ -249,14 +249,23 @@ GraphLoader::PageData* GraphLoader::fetchPage(uint32_t cell_idx) const
     }
 
     uint32_t file_offset = data_base_offset + c.data_offset;
-    bool ok = true;
+    size_t nodeRead = 0;
+    size_t edgeRead = 0;
     if (c.node_count > 0)
-        ok = storage.seekAndReadDirect(file, file_offset,
-                            reinterpret_cast<uint8_t*>(page.nodes.data()), node_bytes) && ok;
+        nodeRead = storage.seekAndReadDirect(file, file_offset,
+                            reinterpret_cast<uint8_t*>(page.nodes.data()), node_bytes);
 
     if (c.edge_count > 0)
-        ok = storage.seekAndReadDirect(file, file_offset + node_bytes,
-                            reinterpret_cast<uint8_t*>(page.edges.data()), edge_bytes) && ok;
+        edgeRead = storage.seekAndReadDirect(file, file_offset + node_bytes,
+                            reinterpret_cast<uint8_t*>(page.edges.data()), edge_bytes);
+
+    if (nodeRead != node_bytes || edgeRead != edge_bytes)
+    {
+        ESP_LOGE("GraphLoader", "Partial read of cell %u (nodes %u/%u, edges %u/%u)",
+                 (unsigned)cell_idx, (unsigned)nodeRead, (unsigned)node_bytes,
+                 (unsigned)edgeRead, (unsigned)edge_bytes);
+        return nullptr;
+    }
 
     auto res = pageCache.emplace(cell_idx, std::move(page));
     if (!res.second)
@@ -433,7 +442,13 @@ bool GraphLoader::getEdgesForNode(uint32_t gi, RouteEdge* buf, uint32_t& count) 
             rel_e_end = cell.edge_count;
 
         count = rel_e_end - rel_e_start;
-        if (count > MAX_EDGES_PER_NODE_GL) { count = 0; return true; }
+        if (count > MAX_EDGES_PER_NODE_GL)
+        {
+            ESP_LOGE("GraphLoader", "Truncated edge list for node %u (%u > %u)",
+                     (unsigned)gi, (unsigned)count, (unsigned)MAX_EDGES_PER_NODE_GL);
+            count = 0;
+            return true;
+        }
 
         memcpy(buf, &page->edges[rel_e_start], count * sizeof(RouteEdge));
         return true;
@@ -457,7 +472,13 @@ bool GraphLoader::getEdgesForNode(uint32_t gi, RouteEdge* buf, uint32_t& count) 
         rel_e_end = cell.edge_count;
 
     count = rel_e_end - rel_e_start;
-    if (count > MAX_EDGES_PER_NODE_GL) { count = 0; return true; }
+    if (count > MAX_EDGES_PER_NODE_GL)
+    {
+        ESP_LOGE("GraphLoader", "Truncated edge list for node %u (%u > %u)",
+                 (unsigned)gi, (unsigned)count, (unsigned)MAX_EDGES_PER_NODE_GL);
+        count = 0;
+        return true;
+    }
 
     // Edge block starts after the node block within this cell's data_offset.
     size_t bytes = count * sizeof(RouteEdge);

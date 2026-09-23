@@ -2924,13 +2924,25 @@ void Maps::renderVectorLine(const FeatureRef& ref, MapCanvas& map, bool isCasing
     int16_t tOffX = ref.tileOffsetX;
     int16_t tOffY = ref.tileOffsetY;
     
+    const uint8_t* coordEnd = ref.ptr + ref.payloadSize;
+    bool coordsOk = true;
     for (uint16_t i = 0; i < ref.coordCount; i++)
     {
-        curX += NavReader::decodeZigZag(NavReader::readVarInt(p));
-        curY += NavReader::decodeZigZag(NavReader::readVarInt(p));
+        int32_t dX;
+        int32_t dY;
+        if (!NavReader::readVarInt(p, coordEnd, dX) || !NavReader::readVarInt(p, coordEnd, dY))
+        {
+            coordsOk = false;
+            break;
+        }
+        curX += NavReader::decodeZigZag(dX);
+        curY += NavReader::decodeZigZag(dY);
         coords[i * 2] = tOffX + (curX >> 4);
         coords[i * 2 + 1] = tOffY + (curY >> 4);
     }
+
+    if (!coordsOk)
+        return;
 
     uint16_t color;
     if (isCasing)
@@ -3005,13 +3017,25 @@ void Maps::renderVectorPolygon(const FeatureRef& ref, MapCanvas& map)
     int32_t curX = 0;
     int32_t curY = 0;
     
+    const uint8_t* coordEnd = ref.ptr + ref.payloadSize;
+    bool coordsOk = true;
     for (uint16_t i = 0; i < ref.coordCount; i++)
     {
-        curX += NavReader::decodeZigZag(NavReader::readVarInt(p));
-        curY += NavReader::decodeZigZag(NavReader::readVarInt(p));
+        int32_t dX;
+        int32_t dY;
+        if (!NavReader::readVarInt(p, coordEnd, dX) || !NavReader::readVarInt(p, coordEnd, dY))
+        {
+            coordsOk = false;
+            break;
+        }
+        curX += NavReader::decodeZigZag(dX);
+        curY += NavReader::decodeZigZag(dY);
         coords[i * 2] = ref.tileOffsetX + (curX >> 4);
         coords[i * 2 + 1] = ref.tileOffsetY + (curY >> 4);
     }
+
+    if (!coordsOk)
+        return;
 
     uint8_t* p_rings = p;
     uint16_t ringCount = 0;
@@ -3149,8 +3173,13 @@ void Maps::renderVectorPoint(const FeatureRef& ref, MapCanvas& map)
     if (ref.coordCount == 0)
         return;
     uint8_t* p = ref.ptr;
-    int32_t x = NavReader::decodeZigZag(NavReader::readVarInt(p));
-    int32_t y = NavReader::decodeZigZag(NavReader::readVarInt(p));
+    const uint8_t* coordEnd = ref.ptr + ref.payloadSize;
+    int32_t dX;
+    int32_t dY;
+    if (!NavReader::readVarInt(p, coordEnd, dX) || !NavReader::readVarInt(p, coordEnd, dY))
+        return;
+    int32_t x = NavReader::decodeZigZag(dX);
+    int32_t y = NavReader::decodeZigZag(dY);
     int16_t px = ref.tileOffsetX + (x >> 4);
     int16_t py = ref.tileOffsetY + (y >> 4);
 
@@ -3642,8 +3671,12 @@ void Maps::decodeVectorFeatures(const uint8_t* data, size_t dataSize, int16_t sc
         uint8_t by2 = p[NAV_FEAT_BY2_OFF];
 
         const uint8_t* hp = p + NAV_FEAT_HDR_FIXED_SIZE;
-        uint16_t cc = (uint16_t)NavReader::readVarIntU(hp);
-        uint16_t ps = (uint16_t)NavReader::readVarIntU(hp);
+        uint32_t ccVar = 0;
+        uint32_t psVar = 0;
+        if (!NavReader::readVarIntU(hp, end, ccVar) || !NavReader::readVarIntU(hp, end, psVar))
+            break;
+        uint16_t cc = (uint16_t)ccVar;
+        uint16_t ps = (uint16_t)psVar;
         const uint8_t* payload = hp;
         if (payload + ps > end)
             break;
@@ -3741,15 +3774,27 @@ uint32_t Maps::ppaFillPrio0Tiles()
 
         int16_t* coords = decodedCoords.data();
         uint8_t* p = feat.ptr;
+        const uint8_t* coordEnd = feat.ptr + feat.payloadSize;
         int32_t curX = 0;
         int32_t curY = 0;
+        bool coordsOk = true;
         for (uint16_t i = 0; i < feat.coordCount; i++)
         {
-            curX += NavReader::decodeZigZag(NavReader::readVarInt(p));
-            curY += NavReader::decodeZigZag(NavReader::readVarInt(p));
+            int32_t dX;
+            int32_t dY;
+            if (!NavReader::readVarInt(p, coordEnd, dX) || !NavReader::readVarInt(p, coordEnd, dY))
+            {
+                coordsOk = false;
+                break;
+            }
+            curX += NavReader::decodeZigZag(dX);
+            curY += NavReader::decodeZigZag(dY);
             coords[i * 2] = (int16_t)(feat.tileOffsetX + (curX >> 4));
             coords[i * 2 + 1] = (int16_t)(feat.tileOffsetY + (curY >> 4));
         }
+
+        if (!coordsOk)
+            continue;
 
         int minPx = INT_MAX;
         int maxPx = INT_MIN;

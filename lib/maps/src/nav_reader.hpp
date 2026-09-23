@@ -64,34 +64,44 @@ public:
         return index < paletteCount ? colorPalette[index] : 0xFFFF;
     }
 
-    static inline uint32_t readVarIntU(const uint8_t*& p)
+    static inline bool readVarIntU(const uint8_t*& p, const uint8_t* end, uint32_t& out)
     {
         uint32_t result = 0;
         int shift = 0;
-        while (true)
+        for (int i = 0; i < 5; i++)
         {
+            if (p >= end)
+                return false;
             uint8_t byte = *p++;
             result |= (uint32_t)(byte & 0x7F) << shift;
             if ((byte & 0x80) == 0)
-                break;
+            {
+                out = result;
+                return true;
+            }
             shift += 7;
         }
-        return result;
+        return false;
     }
 
-    static inline int32_t readVarInt(uint8_t*& p)
+    static inline bool readVarInt(uint8_t*& p, const uint8_t* end, int32_t& out)
     {
-        int32_t result = 0;
+        uint32_t result = 0;
         int shift = 0;
-        while (true)
+        for (int i = 0; i < 5; i++)
         {
+            if (p >= end)
+                return false;
             uint8_t byte = *p++;
-            result |= (byte & 0x7F) << shift;
+            result |= (uint32_t)(byte & 0x7F) << shift;
             if ((byte & 0x80) == 0)
-                break;
+            {
+                out = (int32_t)result;
+                return true;
+            }
             shift += 7;
         }
-        return result;
+        return false;
     }
 
     static inline int32_t decodeZigZag(int32_t n)
