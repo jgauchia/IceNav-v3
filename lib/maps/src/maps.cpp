@@ -391,19 +391,6 @@ void Maps::initMap(uint16_t mapWidth, uint16_t mapHeight)
         }
     }
 #endif
-    Maps::pngStagingSprite.createSprite(256, 256);
-#if defined(CONFIG_IDF_TARGET_ESP32P4)
-    {
-        uint8_t* buf = static_cast<uint8_t*>(Maps::pngStagingSprite.getBuffer());
-        if (buf && ((uint32_t)buf & 0x7F) != 0)
-        {
-            size_t bufSize = 256 * 256 * 2;
-            uint8_t* alignedBuf = static_cast<uint8_t*>(heap_caps_aligned_alloc(128, bufSize, MALLOC_CAP_SPIRAM));
-            if (alignedBuf)
-                Maps::pngStagingSprite.setBuffer(alignedBuf, 256, 256);
-        }
-    }
-#endif
     // LGFX scroll() fills the vacated band with the sprite base color (map background).
     Maps::mapTempSprite.setBaseColor(mapBackgroundColor);
     Maps::mapTempSprite.loadFont("/spiffs/font/font.vlw");
@@ -1319,6 +1306,30 @@ void Maps::prefetchNextTile()
 }
 
 /**
+ * @brief Creates the PNG staging sprite on its first use.
+ *
+ * @return true when the staging buffer is available.
+ */
+bool Maps::ensurePngStagingSprite()
+{
+    if (Maps::pngStagingSprite.getBuffer() != nullptr)
+        return true;
+
+    Maps::pngStagingSprite.createSprite(mapTileSize, mapTileSize);
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    uint8_t* buf = static_cast<uint8_t*>(Maps::pngStagingSprite.getBuffer());
+    if (buf && ((uint32_t)buf & 0x7F) != 0)
+    {
+        const size_t bufSize = mapTileSize * mapTileSize * 2;
+        uint8_t* alignedBuf = static_cast<uint8_t*>(heap_caps_aligned_alloc(128, bufSize, MALLOC_CAP_SPIRAM));
+        if (alignedBuf)
+            Maps::pngStagingSprite.setBuffer(alignedBuf, mapTileSize, mapTileSize);
+    }
+#endif
+    return Maps::pngStagingSprite.getBuffer() != nullptr;
+}
+
+/**
  * @brief Predictively decodes the next PNG tile into the staging sprite.
  *
  * @details Runs only when the render queue is empty. Stages the leading edge tile of
@@ -1330,7 +1341,7 @@ void Maps::prefetchPngTile()
 {
     if (mapSet.vectorMap)
         return;
-    if (pngStagingSprite.getBuffer() == nullptr)
+    if (!ensurePngStagingSprite())
         return;
 
     float dirTileX = 0.0f;

@@ -304,6 +304,7 @@ private:
     volatile uint8_t mapGenerateZoom = 0;
     static void mapRenderTask(void* pvParameters);
     void renderPngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map);
+    bool ensurePngStagingSprite();
     void prefetchPngTile();
     bool tryApplyStagedPng(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map);
     bool loadPngTileIntoSprite(int32_t tlX, int32_t tlY, int gx, int gy,

@@ -106,8 +106,8 @@ void setup()
         mpu.beginShared(I2C_PORT);
     #endif
     createGpxFolders();
-    mapView.initMap(tft.width(), tft.height() - statusBarHeight);
     loadPreferences();
+    mapView.initMap(tft.width(), tft.height() - statusBarHeight);
     gps.init();
     initLVGL();
     #if CONFIG_IDF_TARGET_ESP32P4
