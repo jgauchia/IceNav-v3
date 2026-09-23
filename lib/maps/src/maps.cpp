@@ -96,7 +96,7 @@ void Maps::initResources()
     projBuf32X.reserve(MAX_POLYGON_POINTS);
     projBuf32Y.reserve(MAX_POLYGON_POINTS);
     decodedCoords.reserve(MAX_POLYGON_POINTS * 2);
-    edgePool.reserve(MAX_POLYGON_POINTS);
+    edgePool.reserve(EDGE_POOL_RESERVE);
     edgeBuckets.resize(tileHeight, -1);
     featurePool.reserve(MAX_FEATURE_POOL_SIZE);
 

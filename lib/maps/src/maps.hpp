@@ -237,6 +237,7 @@ private:
     static const uint16_t MAX_POLYGON_POINTS = 8192;
     static const uint32_t MAX_FEATURE_POOL_SIZE = 32768;
     static const uint16_t MAX_PLACED_LABELS = 512;
+    static const uint16_t EDGE_POOL_RESERVE = 512;
 
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
     ppa_client_handle_t ppaFillClient = nullptr;
@@ -340,6 +341,6 @@ private:
         int nextActive;
     };
 
-    std::vector<int> edgeBuckets;
-    std::vector<Edge> edgePool;
+    std::vector<int, InternalFirstAllocator<int>> edgeBuckets;
+    std::vector<Edge, InternalFirstAllocator<Edge>> edgePool;
 };
