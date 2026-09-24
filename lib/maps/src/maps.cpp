@@ -425,18 +425,21 @@ void Maps::createMapScrSprites()
  */
 void Maps::drawTrack(MapCanvas& map)
 {
+    if (navCtx.trackData.size() < 2)
+        return;
+    int16_t x1;
+    int16_t y1;
+    latLonToPixel(navCtx.trackData[0].lat, navCtx.trackData[0].lon, x1, y1);
     for (size_t i = 1; i < navCtx.trackData.size(); ++i)
     {
-        const auto &p1 = navCtx.trackData[i - 1];
         const auto &p2 = navCtx.trackData[i];
-        int16_t x1;
-        int16_t y1;
         int16_t x2;
         int16_t y2;
-        latLonToPixel(p1.lat, p1.lon, x1, y1);
         latLonToPixel(p2.lat, p2.lon, x2, y2);
         if ((x1 >= 0 && x1 < tileWidth && y1 >= 0 && y1 < tileHeight) || (x2 >= 0 && x2 < tileWidth && y2 >= 0 && y2 < tileHeight))
             map.drawWideLine(x1, y1, x2, y2, 3, 0x6298);
+        x1 = x2;
+        y1 = y2;
     }
 }
 
