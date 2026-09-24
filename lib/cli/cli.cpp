@@ -16,6 +16,11 @@
 #include "esp_flash.h"
 #include "esp_ota_ops.h"
 #include "esp_image_format.h"
+#if CONFIG_IDF_TARGET_ESP32P4
+    #include "esp_littlefs.h"
+#else
+    #include "esp_spiffs.h"
+#endif
 #include "display.hpp"
 #include "globalGuiDef.h"
 #include "../lvgl/src/lvglSubjects.hpp"
@@ -226,25 +231,29 @@ void wcli_poweroff(char *args, Stream *response)
 }
 
 /**
- * @brief Displays device information such as memory, SPIFFS, PSRAM, flash, and GPS parameters.
+ * @brief Displays device information such as memory, filesystem, PSRAM, flash, and GPS parameters.
  * 
  * @details CLI command: info
  */
 void wcli_info(char *args, Stream *response)
 {
     setlocale(LC_NUMERIC, "");
-    size_t totalSPIFFS;
-    size_t usedSPIFFS;
-    size_t freeSPIFFS = 0;
-    esp_spiffs_info(NULL, &totalSPIFFS, &usedSPIFFS);
-    freeSPIFFS = totalSPIFFS - usedSPIFFS;
+    size_t totalFS;
+    size_t usedFS;
+    size_t freeFS = 0;
+    #if CONFIG_IDF_TARGET_ESP32P4
+        esp_littlefs_info("spiffs", &totalFS, &usedFS);
+    #else
+        esp_spiffs_info(NULL, &totalFS, &usedFS);
+    #endif
+    freeFS = totalFS - usedFS;
 
     response->println();
     wcli.status(response);
     response->printf("Total Memory\t: %3.0iKb\r\n",heap_caps_get_total_size(MALLOC_CAP_8BIT)/1000);
-    response->printf("SPIFFS total\t: %u bytes\r\n", totalSPIFFS);
-    response->printf("SPIFFS used\t: %u bytes\r\n", usedSPIFFS);
-    response->printf("SPIFFS free\t: %u bytes\r\n", freeSPIFFS);
+    response->printf("FS total\t: %u bytes\r\n", totalFS);
+    response->printf("FS used\t\t: %u bytes\r\n", usedFS);
+    response->printf("FS free\t\t: %u bytes\r\n", freeFS);
     size_t psramTotal = heap_caps_get_total_size(MALLOC_CAP_SPIRAM);
     if (psramTotal > 0)
     {
