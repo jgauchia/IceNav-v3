@@ -215,6 +215,15 @@ void gpsTask(void *pvParameters)
                         // constellation at the full rate with unchanged data.
                         if (GPS.sat_count > 0)
                             satDataUpdated = true;
+
+                        if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
+                        {
+                            if (satDataUpdated)
+                                lv_subject_set_int(&subject_sats_data_trigger, lv_subject_get_int(&subject_sats_data_trigger) + 1);
+                            if (activeTile == DEBUG_NMEA)
+                                lv_subject_set_int(&subject_nmea_debug_trigger, lv_subject_get_int(&subject_nmea_debug_trigger) + 1);
+                            xSemaphoreGive(lvgl_mutex);
+                        }
                     }
                 }
             }
@@ -237,14 +246,6 @@ void gpsTask(void *pvParameters)
             lv_subject_set_int(&subject_is_fixed, isGpsFixed ? 1 : 0);
             if (!mapSet.mapRotationComp)
                 lv_subject_set_int(&subject_heading, (int32_t)gps.gpsData.heading);
-            xSemaphoreGive(lvgl_mutex);
-        }
-
-        if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
-        {
-            if (satDataUpdated)
-                lv_subject_set_int(&subject_sats_data_trigger, lv_subject_get_int(&subject_sats_data_trigger) + 1);
-            lv_subject_set_int(&subject_nmea_debug_trigger, lv_subject_get_int(&subject_nmea_debug_trigger) + 1);
             xSemaphoreGive(lvgl_mutex);
         }
 
