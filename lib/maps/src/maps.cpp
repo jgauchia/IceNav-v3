@@ -11,6 +11,7 @@
 #include "esp_heap_caps.h"
 #include <cmath>
 #include <climits>
+#include <cstdio>
 #include <cstdint>
 #include "tasks.hpp"
 #include "mainScr.hpp"
@@ -393,13 +394,50 @@ void Maps::initMap(uint16_t mapWidth, uint16_t mapHeight)
 #endif
     // LGFX scroll() fills the vacated band with the sprite base color (map background).
     Maps::mapTempSprite.setBaseColor(mapBackgroundColor);
-    Maps::mapTempSprite.loadFont("/spiffs/font/font.vlw");
     Maps::mapSprite.createSprite(mapWidth, mapHeight);
     Maps::mapBuffer = Maps::mapSprite.getBuffer();
     Maps::oldMapTile = {};
     Maps::currentMapTile = {};
     Maps::navArrowPosition = {0, 0};
     Maps::totalBounds = {90.0f, -90.0f, 180.0f, -180.0f};
+}
+
+/**
+ * @brief Load the VLW map font once into PSRAM to avoid per-glyph file access
+ */
+void Maps::loadMapFont()
+{
+    if (Maps::fontData)
+    {
+        return;
+    }
+    FILE* fontFile = std::fopen("/spiffs/font/font.vlw", "rb");
+    if (!fontFile)
+    {
+        return;
+    }
+    std::fseek(fontFile, 0, SEEK_END);
+    long fileSize = std::ftell(fontFile);
+    std::fseek(fontFile, 0, SEEK_SET);
+    uint8_t* buffer = nullptr;
+    if (fileSize > 0)
+    {
+        buffer = static_cast<uint8_t*>(heap_caps_malloc(static_cast<size_t>(fileSize), MALLOC_CAP_SPIRAM));
+    }
+    if (!buffer)
+    {
+        std::fclose(fontFile);
+        return;
+    }
+    size_t readBytes = std::fread(buffer, 1, static_cast<size_t>(fileSize), fontFile);
+    std::fclose(fontFile);
+    if (readBytes != static_cast<size_t>(fileSize))
+    {
+        heap_caps_free(buffer);
+        return;
+    }
+    Maps::fontData = buffer;
+    Maps::mapTempSprite.loadFont(Maps::fontData);
 }
 
 /**
@@ -1057,6 +1095,7 @@ void Maps::mapRenderTask(void* pvParameters)
 
                 if (!aggressiveLod)
                 {
+                    instance->loadMapFont();   // lazy: only when the vector text pass will run
                     for (int i = 0; i < 16 && !aborted; i++)
                     {
                         for (uint16_t idx : instance->layersText[i])

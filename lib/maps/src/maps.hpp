@@ -89,6 +89,7 @@ private:
     uint8_t* mapTempBufs[2] = { nullptr, nullptr };
     volatile bool srmInFlight = false;
 #endif
+    uint8_t* fontData = nullptr;
     uint32_t pngStagedHash = 0;
     bool pngStagingValid = false;
     float destLat = 0.0f;
@@ -188,6 +189,7 @@ public:
 
 private:
     void initResources();
+    void loadMapFont();
 
     struct FeatureRef
     {
