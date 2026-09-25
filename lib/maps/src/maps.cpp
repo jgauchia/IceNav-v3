@@ -8,6 +8,7 @@
 
 #include "maps.hpp"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "esp_heap_caps.h"
 #include <cmath>
 #include <climits>
@@ -42,6 +43,30 @@ static inline uint32_t spriteColorToArgb8888(uint16_t c)
 extern Gps gps;
 extern Storage storage;
 static const char* TAG = "MAPS";
+
+static uint32_t passCounter = 0;
+static uint32_t polyUs = 0;
+static uint32_t fillUs = 0;
+static uint32_t lineUs = 0;
+static uint32_t pointUs = 0;
+static uint32_t textUs = 0;
+static uint32_t trackUs = 0;
+static uint32_t polyCount = 0;
+static uint32_t lineCount = 0;
+static uint32_t totalUs = 0;
+
+static inline void resetPassCounters()
+{
+    totalUs = 0;
+    polyUs = 0;
+    fillUs = 0;
+    lineUs = 0;
+    pointUs = 0;
+    textUs = 0;
+    trackUs = 0;
+    polyCount = 0;
+    lineCount = 0;
+}
 static const uint16_t PREFETCH_MIN_SPEED_KMH = 5;
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
 static const uint8_t PREFETCH_PIN_FRAMES = 4;
@@ -741,6 +766,8 @@ void Maps::mapRenderTask(void* pvParameters)
                     continue;
                 }
 
+                const int64_t passStartUs = esp_timer_get_time();
+
                 if (fullReset)
                 {
                     instance->vectorPending = false;
@@ -922,6 +949,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     while (instance->srmInFlight)
                         vTaskDelay(1);
 #endif
+                    resetPassCounters();
                     xSemaphoreGiveRecursive(instance->mapMutex);
                     continue;
                 }
@@ -1058,15 +1086,23 @@ void Maps::mapRenderTask(void* pvParameters)
                         const auto& feat = instance->featurePool[idx];
                         if (feat.geomType == NavGeomType::Polygon)
                         {
+                            const int64_t markUs = esp_timer_get_time();
                             instance->renderVectorPolygon(feat, instance->mapTempSprite);
+                            polyUs += (uint32_t)(esp_timer_get_time() - markUs);
+                            polyCount++;
                         }
                         else if (feat.geomType == NavGeomType::Point)
                         {
+                            const int64_t markUs = esp_timer_get_time();
                             instance->renderVectorPoint(feat, instance->mapTempSprite);
+                            pointUs += (uint32_t)(esp_timer_get_time() - markUs);
                         }
                         else if (feat.geomType == NavGeomType::LineString)
                         {
+                            const int64_t markUs = esp_timer_get_time();
                             instance->renderVectorLine(feat, instance->mapTempSprite, feat.casing);
+                            lineUs += (uint32_t)(esp_timer_get_time() - markUs);
+                            lineCount++;
                         }
                     }
 
@@ -1085,7 +1121,10 @@ void Maps::mapRenderTask(void* pvParameters)
                                 lastYield = millisIDF();
                             }
                         }
+                        const int64_t markUs = esp_timer_get_time();
                         instance->renderVectorLine(instance->featurePool[idx], instance->mapTempSprite, false);
+                        lineUs += (uint32_t)(esp_timer_get_time() - markUs);
+                        lineCount++;
                     }
 
                     if (aborted)
@@ -1109,7 +1148,9 @@ void Maps::mapRenderTask(void* pvParameters)
                                     lastYield = millisIDF();
                                 }
                             }
+                            const int64_t markUs = esp_timer_get_time();
                             instance->renderVectorText(instance->featurePool[idx], instance->mapTempSprite, instance->placedLabelsCache);
+                            textUs += (uint32_t)(esp_timer_get_time() - markUs);
                         }
                     }
                 }
@@ -1117,6 +1158,7 @@ void Maps::mapRenderTask(void* pvParameters)
                 if (aborted)
                 {
                     aggressiveLod = false;
+                    resetPassCounters();
                     if (xSemaphoreGetMutexHolder(instance->mapMutex) == xTaskGetCurrentTaskHandle())
                         xSemaphoreGiveRecursive(instance->mapMutex);
 
@@ -1155,8 +1197,10 @@ void Maps::mapRenderTask(void* pvParameters)
                 instance->lastTileX = instance->tileX;
                 instance->lastTileY = instance->tileY;
 
+                const int64_t trackMarkUs = esp_timer_get_time();
                 instance->drawTrack(instance->mapTempSprite);
                 instance->drawWaypoint(instance->mapTempSprite);
+                trackUs += (uint32_t)(esp_timer_get_time() - trackMarkUs);
                 instance->redrawMap = true;
 
                 bool frameReady = true;
@@ -1184,7 +1228,29 @@ void Maps::mapRenderTask(void* pvParameters)
                     xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
                     xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
                 }
+                const int64_t passEndUs = esp_timer_get_time();
+                totalUs += (uint32_t)(passEndUs - passStartUs);
+                const bool viewportComplete = !sequencePending;
+                if (viewportComplete)
+                    passCounter++;
                 xSemaphoreGiveRecursive(instance->mapMutex);
+                if (viewportComplete)
+                {
+                    ESP_LOGI(TAG,
+                             "PASS z%u #%u | %.1fms | poly %.1fms (fill %.1fms) | line %.1fms | point %.1fms | text %.1fms | trk %.1fms | %up %ul",
+                             (unsigned)instance->zoomLevel,
+                             (unsigned)passCounter,
+                             totalUs / 1000.0,
+                             polyUs / 1000.0,
+                             fillUs / 1000.0,
+                             lineUs / 1000.0,
+                             pointUs / 1000.0,
+                             textUs / 1000.0,
+                             trackUs / 1000.0,
+                             (unsigned)polyCount,
+                             (unsigned)lineCount);
+                    resetPassCounters();
+                }
                 triggerMapRedraw();
             }
         }
@@ -3156,7 +3222,11 @@ void Maps::renderVectorPolygon(const FeatureRef& ref, MapCanvas& map)
     // Whole-tile priority-0 rects are already painted by the PPA (P4); the casing
     // outline below still runs on the CPU.
     if (!ref.ppaFilled)
+    {
+        const int64_t fillMarkUs = esp_timer_get_time();
         fillPolygonGeneral(map, px, py, actualPoints, ref.color, 0, 0, ringCount, ringEndsPtr);
+        fillUs += (uint32_t)(esp_timer_get_time() - fillMarkUs);
+    }
     if (ref.casing && vectorZoom >= 16)
     {
         uint16_t outlineColor = darkenRGB565(ref.color, 0.35f);
