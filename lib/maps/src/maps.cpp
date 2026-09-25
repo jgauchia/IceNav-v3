@@ -54,6 +54,13 @@ static uint32_t trackUs = 0;
 static uint32_t polyCount = 0;
 static uint32_t lineCount = 0;
 static uint32_t totalUs = 0;
+static uint32_t decUs = 0;
+static uint32_t scrUs = 0;
+static uint32_t bkgUs = 0;
+static uint32_t wrUs = 0;
+static uint32_t rstUs = 0;
+static uint32_t yldUs = 0;
+static uint32_t srmUs = 0;
 
 static inline void resetPassCounters()
 {
@@ -66,6 +73,13 @@ static inline void resetPassCounters()
     trackUs = 0;
     polyCount = 0;
     lineCount = 0;
+    decUs = 0;
+    scrUs = 0;
+    bkgUs = 0;
+    wrUs = 0;
+    rstUs = 0;
+    yldUs = 0;
+    srmUs = 0;
 }
 static const uint16_t PREFETCH_MIN_SPEED_KMH = 5;
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
@@ -768,6 +782,7 @@ void Maps::mapRenderTask(void* pvParameters)
 
                 const int64_t passStartUs = esp_timer_get_time();
 
+                const int64_t resetMarkUs = esp_timer_get_time();
                 if (fullReset)
                 {
                     instance->vectorPending = false;
@@ -828,12 +843,15 @@ void Maps::mapRenderTask(void* pvParameters)
 #endif
                     }
                 }
+                rstUs += (uint32_t)(esp_timer_get_time() - resetMarkUs);
 
                 if (vectorRender)
                 {
                     const int16_t shiftX = -instance->vectorDirX * mapTileSize;
                     const int16_t shiftY = -instance->vectorDirY * mapTileSize;
+                    const int64_t scrollMarkUs = esp_timer_get_time();
                     instance->scrollVectorSprite(shiftX, shiftY);
+                    scrUs += (uint32_t)(esp_timer_get_time() - scrollMarkUs);
                     for (auto& label : instance->placedLabelsCache)
                     {
                         label.x += shiftX;
@@ -877,9 +895,11 @@ void Maps::mapRenderTask(void* pvParameters)
                             return false;
                         stepBehindFinger = true;
                     }
+                    const int64_t yieldMarkUs = esp_timer_get_time();
                     xSemaphoreGiveRecursive(instance->mapMutex);
                     vTaskDelay(1);
                     bool shouldAbort = xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE;
+                    yldUs += (uint32_t)(esp_timer_get_time() - yieldMarkUs);
                     if (!shouldAbort)
                     {
                         if (vectorRender)
@@ -930,13 +950,17 @@ void Maps::mapRenderTask(void* pvParameters)
                         instance->pendingTilesNotEmpty = false;
                     if (t.type == TILE_NAV)
                     {
+                        const int64_t tileMarkUs = esp_timer_get_time();
                         instance->renderVectorTile(t.x, t.y, instance->zoomLevel, t.screenX, t.screenY, instance->mapTempSprite);
+                        decUs += (uint32_t)(esp_timer_get_time() - tileMarkUs);
                         passTiles++;
                         if (yieldTile()) { aborted = true; break; }
                     }
                     else if (t.type == TILE_PNG)
                     {
+                        const int64_t tileMarkUs = esp_timer_get_time();
                         instance->renderPngTile(t.x, t.y, instance->zoomLevel, t.screenX, t.screenY, instance->mapTempSprite);
+                        decUs += (uint32_t)(esp_timer_get_time() - tileMarkUs);
                         if (yieldTile()) { aborted = true; break; }
                     }
                 }
@@ -958,8 +982,10 @@ void Maps::mapRenderTask(void* pvParameters)
                 // The SRM copy runs during the band decode above; wait for it to
                 // finish before painting over the copied region (track/waypoint
                 // draw into it too). Normally already done (decode > copy time).
+                const int64_t srmMarkUs = esp_timer_get_time();
                 while (instance->srmInFlight)
                     vTaskDelay(1);
+                srmUs += (uint32_t)(esp_timer_get_time() - srmMarkUs);
 #endif
 
                 if (!mapSet.vectorMap)
@@ -1014,6 +1040,7 @@ void Maps::mapRenderTask(void* pvParameters)
 
                 if (!vectorRender && instance->mapTempSprite.getBuffer())
                 {
+                    const int64_t bkgMarkUs = esp_timer_get_time();
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
                     uint8_t* buf = static_cast<uint8_t*>(instance->mapTempSprite.getBuffer());
                     if (((uint32_t)buf & 0x7F) == 0)
@@ -1040,6 +1067,7 @@ void Maps::mapRenderTask(void* pvParameters)
 #else
                     instance->mapTempSprite.fillSprite(mapBackgroundColor);
 #endif
+                    bkgUs += (uint32_t)(esp_timer_get_time() - bkgMarkUs);
                 }
 
                 instance->update3DCache();
@@ -1054,8 +1082,13 @@ void Maps::mapRenderTask(void* pvParameters)
                 // cache lines right after cannot discard band content that is still needed.
                 if (!aggressiveLod &&
                     passTiles >= (uint32_t)instance->tilesGrid * (uint32_t)instance->tilesGrid)
+                {
+                    const int64_t prio0MarkUs = esp_timer_get_time();
                     instance->ppaFillPrio0Tiles();
+                    bkgUs += (uint32_t)(esp_timer_get_time() - prio0MarkUs);
+                }
 #endif
+                const int64_t writeMarkUs = esp_timer_get_time();
                 instance->mapTempSprite.startWrite();
                 uint32_t lastYield = millisIDF();
                 uint32_t loopCounter = 0;
@@ -1166,6 +1199,7 @@ void Maps::mapRenderTask(void* pvParameters)
                 }
 
                 instance->mapTempSprite.endWrite();
+                wrUs += (uint32_t)(esp_timer_get_time() - writeMarkUs);
                 aggressiveLod = false;
                 const bool sequencePending = vectorRender && !instance->vectorSteps.empty();
                 if (vectorRender)
@@ -1237,10 +1271,17 @@ void Maps::mapRenderTask(void* pvParameters)
                 if (viewportComplete)
                 {
                     ESP_LOGI(TAG,
-                             "PASS z%u #%u | %.1fms | poly %.1fms (fill %.1fms) | line %.1fms | point %.1fms | text %.1fms | trk %.1fms | %up %ul",
+                             "PASS z%u #%u | %.1fms | rst %.1fms | dec %.1fms | yld %.1fms | scr %.1fms | bkg %.1fms | srm %.1fms | wr %.1fms | poly %.1fms (fill %.1fms) | line %.1fms | point %.1fms | text %.1fms | trk %.1fms | %up %ul",
                              (unsigned)instance->zoomLevel,
                              (unsigned)passCounter,
                              totalUs / 1000.0,
+                             rstUs / 1000.0,
+                             decUs / 1000.0,
+                             yldUs / 1000.0,
+                             scrUs / 1000.0,
+                             bkgUs / 1000.0,
+                             srmUs / 1000.0,
+                             wrUs / 1000.0,
                              polyUs / 1000.0,
                              fillUs / 1000.0,
                              lineUs / 1000.0,
