@@ -265,6 +265,7 @@ private:
     void renderVectorPoint(const FeatureRef& ref, MapCanvas& map);
     void renderVectorText(const FeatureRef& ref, MapCanvas& map, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels);
     void latLonToPixel(float lat, float lon, int16_t& px, int16_t& py);
+    bool trackViewBounds(tileBounds& bounds);
     void drawTrack(MapCanvas& map);
     void drawWaypoint(MapCanvas& map);
 

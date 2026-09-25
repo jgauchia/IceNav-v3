@@ -496,7 +496,41 @@ void Maps::createMapScrSprites()
 }
 
 /**
+ * @brief Latitude and longitude bounds of the grid the current pass renders into.
+ *
+ * @details Built from the tile bounds of the two opposite grid corners, the same way the
+ *          non-vector path derives its overall bounds. Kept in geographic space on purpose: the
+ *          pixel space of latLonToPixel() is an int16_t, so a point far from the grid origin wraps
+ *          and cannot be used to reject work.
+ *
+ * @param[out] bounds Geographic bounds of the grid.
+ * @return True when the bounds are usable, false when the grid is not set up yet.
+ */
+bool Maps::trackViewBounds(tileBounds& bounds)
+{
+    if (tilesGrid < 1)
+        return false;
+    const tileBounds firstBounds = getTileBounds((uint32_t)mapTlX, (uint32_t)mapTlY, vectorZoom);
+    const tileBounds lastBounds = getTileBounds((uint32_t)(mapTlX + tilesGrid - 1),
+                                                (uint32_t)(mapTlY + tilesGrid - 1),
+                                                vectorZoom);
+    bounds.lat_min = fminf(firstBounds.lat_min, lastBounds.lat_min);
+    bounds.lat_max = fmaxf(firstBounds.lat_max, lastBounds.lat_max);
+    bounds.lon_min = fminf(firstBounds.lon_min, lastBounds.lon_min);
+    bounds.lon_max = fmaxf(firstBounds.lon_max, lastBounds.lon_max);
+    return bounds.lat_min <= bounds.lat_max && bounds.lon_min <= bounds.lon_max;
+}
+
+/**
  * @brief Draw current track on map
+ *
+ * @details Walks the spatial index and skips the segments whose geographic bounds fall outside
+ *          the grid, so only the points that can reach the sprite are projected. The comparison
+ *          is done in geographic space because the pixel space of latLonToPixel() is an int16_t
+ *          that wraps for points far from the grid origin. Which segments survive is the same set
+ *          the per-point test would have accepted, and that test is unchanged, so what gets drawn
+ *          is identical to drawing the whole track. Falls back to a single span covering the whole
+ *          track when no index or no grid bounds are available.
  *
  * @param map Target sprite.
  */
@@ -504,19 +538,48 @@ void Maps::drawTrack(MapCanvas& map)
 {
     if (navCtx.trackData.size() < 2)
         return;
-    int16_t x1;
-    int16_t y1;
-    latLonToPixel(navCtx.trackData[0].lat, navCtx.trackData[0].lon, x1, y1);
-    for (size_t i = 1; i < navCtx.trackData.size(); ++i)
+
+    tileBounds viewBounds;
+    const bool haveBounds = trackViewBounds(viewBounds);
+
+    const int lastIdx = (int)navCtx.trackData.size() - 1;
+    TrackSegment wholeTrack;
+    const TrackSegment* segments = navCtx.trackIndex.data();
+    size_t segmentCount = navCtx.trackIndex.size();
+    if (segmentCount == 0)
     {
-        const auto &p2 = navCtx.trackData[i];
-        int16_t x2;
-        int16_t y2;
-        latLonToPixel(p2.lat, p2.lon, x2, y2);
-        if ((x1 >= 0 && x1 < tileWidth && y1 >= 0 && y1 < tileHeight) || (x2 >= 0 && x2 < tileWidth && y2 >= 0 && y2 < tileHeight))
-            map.drawWideLine(x1, y1, x2, y2, 3, 0x6298);
-        x1 = x2;
-        y1 = y2;
+        wholeTrack.startIdx = 0;
+        wholeTrack.endIdx = lastIdx;
+        segments = &wholeTrack;
+        segmentCount = 1;
+    }
+
+    for (size_t s = 0; s < segmentCount; s++)
+    {
+        const TrackSegment& seg = segments[s];
+        if (seg.endIdx < 1)
+            continue;
+        if (haveBounds && segmentCount > 1 &&
+            (seg.maxLat < viewBounds.lat_min || seg.minLat > viewBounds.lat_max ||
+             seg.maxLon < viewBounds.lon_min || seg.minLon > viewBounds.lon_max))
+            continue;
+
+        const int firstIdx = seg.startIdx > 0 ? seg.startIdx - 1 : 0;
+        int16_t prevX;
+        int16_t prevY;
+        latLonToPixel(navCtx.trackData[firstIdx].lat, navCtx.trackData[firstIdx].lon, prevX, prevY);
+        const int endIdx = seg.endIdx < lastIdx ? seg.endIdx : lastIdx;
+        for (int i = firstIdx + 1; i <= endIdx; i++)
+        {
+            int16_t curX;
+            int16_t curY;
+            latLonToPixel(navCtx.trackData[i].lat, navCtx.trackData[i].lon, curX, curY);
+            if ((prevX >= 0 && prevX < tileWidth && prevY >= 0 && prevY < tileHeight) ||
+                (curX >= 0 && curX < tileWidth && curY >= 0 && curY < tileHeight))
+                map.drawWideLine(prevX, prevY, curX, curY, 3, 0x6298);
+            prevX = curX;
+            prevY = curY;
+        }
     }
 }
 
