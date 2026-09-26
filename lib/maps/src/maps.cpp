@@ -61,6 +61,9 @@ static uint32_t wrUs = 0;
 static uint32_t rstUs = 0;
 static uint32_t yldUs = 0;
 static uint32_t srmUs = 0;
+static uint32_t atomicMaxUs = 0;
+static uint32_t yldCount = 0;
+static int64_t atomicMarkUs = 0;
 
 static inline void resetPassCounters()
 {
@@ -80,6 +83,8 @@ static inline void resetPassCounters()
     rstUs = 0;
     yldUs = 0;
     srmUs = 0;
+    atomicMaxUs = 0;
+    yldCount = 0;
 }
 static const uint16_t PREFETCH_MIN_SPEED_KMH = 5;
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
@@ -859,6 +864,7 @@ void Maps::mapRenderTask(void* pvParameters)
                 }
 
                 const int64_t passStartUs = esp_timer_get_time();
+                atomicMarkUs = passStartUs;
 
                 const int64_t resetMarkUs = esp_timer_get_time();
                 if (fullReset)
@@ -953,6 +959,21 @@ void Maps::mapRenderTask(void* pvParameters)
                     }
                 }
 
+                /** Cierra el tramo de tenencia del mutex en curso y memoriza el más largo de la pasada.
+                 *  El tramo atómico es el techo de latencia de entrada: el render task no suelta
+                 *  mapMutex hasta la siguiente cesión, y scrollMap solo la pide con 10 ms de timeout,
+                 *  así que el scroll se queda pendiente durante ese tramo entero.
+                 *  Se llama en cada cesión del mutex y al final de la pasada (para el tramo de cola). */
+                auto closeAtomicHold = [&]()
+                {
+                    const int64_t nowUs = esp_timer_get_time();
+                    const uint32_t holdUs = (uint32_t)(nowUs - atomicMarkUs);
+                    if (holdUs > atomicMaxUs)
+                        atomicMaxUs = holdUs;
+                    atomicMarkUs = nowUs;
+                    yldCount++;
+                };
+
                 // Yields mutex briefly so other tasks can run between tile renders.
                 // Returns true if rendering should abort (mutex lost or new viewport pending).
                 // During incremental vector render the mutex is only released between border tiles
@@ -974,6 +995,7 @@ void Maps::mapRenderTask(void* pvParameters)
                         stepBehindFinger = true;
                     }
                     const int64_t yieldMarkUs = esp_timer_get_time();
+                    closeAtomicHold();
                     xSemaphoreGiveRecursive(instance->mapMutex);
                     vTaskDelay(1);
                     bool shouldAbort = xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE;
@@ -998,6 +1020,7 @@ void Maps::mapRenderTask(void* pvParameters)
                 auto yieldFeature = [&]() -> bool
                 {
                     instance->mapTempSprite.endWrite();
+                    closeAtomicHold();
                     xSemaphoreGiveRecursive(instance->mapMutex);
                     vTaskDelay(pdMS_TO_TICKS(2));
                     bool shouldAbort = xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE;
@@ -1111,6 +1134,7 @@ void Maps::mapRenderTask(void* pvParameters)
 #endif
                     xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
                     xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
+                    closeAtomicHold();
                     xSemaphoreGiveRecursive(instance->mapMutex);
                     triggerMapRedraw();
                     continue;
@@ -1341,6 +1365,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
                 }
                 const int64_t passEndUs = esp_timer_get_time();
+                closeAtomicHold();
                 totalUs += (uint32_t)(passEndUs - passStartUs);
                 const bool viewportComplete = !sequencePending;
                 if (viewportComplete)
@@ -1349,13 +1374,15 @@ void Maps::mapRenderTask(void* pvParameters)
                 if (viewportComplete)
                 {
                     ESP_LOGI(TAG,
-                             "PASS z%u #%u | %.1fms | rst %.1fms | dec %.1fms | yld %.1fms | scr %.1fms | bkg %.1fms | srm %.1fms | wr %.1fms | poly %.1fms (fill %.1fms) | line %.1fms | point %.1fms | text %.1fms | trk %.1fms | %up %ul",
+                             "PASS z%u #%u | %.1fms | rst %.1fms | dec %.1fms | yld %.1fms | atc %.1fms x%u | scr %.1fms | bkg %.1fms | srm %.1fms | wr %.1fms | poly %.1fms (fill %.1fms) | line %.1fms | point %.1fms | text %.1fms | trk %.1fms | %up %ul",
                              (unsigned)instance->zoomLevel,
                              (unsigned)passCounter,
                              totalUs / 1000.0,
                              rstUs / 1000.0,
                              decUs / 1000.0,
                              yldUs / 1000.0,
+                             atomicMaxUs / 1000.0,
+                             (unsigned)yldCount,
                              scrUs / 1000.0,
                              bkgUs / 1000.0,
                              srmUs / 1000.0,
