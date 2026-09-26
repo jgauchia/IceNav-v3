@@ -1916,6 +1916,7 @@ void Maps::apply3DPerspective(uint16_t heading)
     if (!src || !dst)
         return;
 
+    const int64_t p3dMarkUs = esp_timer_get_time();
     const int srcW = (int)(mapTempSprite.bufferLength() / (tileHeight * 2));
     const int srcH = (int)tileHeight;
     const int dstW = (int)mapScrWidth;
@@ -1998,6 +1999,8 @@ void Maps::apply3DPerspective(uint16_t heading)
             syFix += dsyFix;
         }
     }
+
+    ESP_LOGI(TAG, "P3D %.1fms", (esp_timer_get_time() - p3dMarkUs) / 1000.0);
 }
 
 /**
