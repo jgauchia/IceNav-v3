@@ -1,12 +1,14 @@
 /**
  * @file nav_reader.hpp
  * @brief NAV tile reader for ESP32 - IceNav Navigation Tiles
- * @version 0.2.9
- * @date 2026-06
+ * @version 0.3.0
+ * @date 2026-09
  *
- * NPK2 pack: MapHeader (23B) + flat 2D index + global RGB565 color palette + tile data.
- * Each tile has a 6-byte header; features use an 8-byte fixed header (1-byte palette
- * color index) followed by varint coord_count and payload_size.
+ * NPK2 pack: MapHeader (23B) + sparse index (u32 count, coverage bitmap, popcount rank
+ * table, compact 8B entries) + global RGB565 color palette + tile data. Coverage bitmap
+ * has one bit per grid cell; a rank table (u32 per 64 bitmap bytes = 512 cells) gives the
+ * compact-entry position in O(1). Each tile has a 6-byte header; features use an 8-byte
+ * fixed header (1-byte palette color index) followed by varint coord_count and payload_size.
  */
 
 #pragma once
@@ -18,6 +20,9 @@
 #include "PsramAllocator.hpp"
 
 static constexpr uint8_t NAV_PACK_HDR_SIZE           = 23;
+
+static constexpr uint8_t NAV_SPARSE_COUNT_SIZE       = 4;
+static constexpr uint8_t NAV_RANK_STRIDE_BYTES       = 64;
 
 static constexpr uint8_t NAV_TILE_HDR_FEAT_COUNT_OFF = 4;
 static constexpr uint8_t NAV_TILE_HDR_SIZE           = 6;
@@ -54,41 +59,49 @@ public:
         uint32_t size;
     };
 
-    static constexpr uint32_t NAV_INDEX_BAND_BYTES = 512u * 1024u;
-
     static inline uint16_t paletteColor(uint8_t index)
     {
         return index < paletteCount ? colorPalette[index] : 0xFFFF;
     }
 
-    static inline uint32_t readVarIntU(const uint8_t*& p)
+    static inline bool readVarIntU(const uint8_t*& p, const uint8_t* end, uint32_t& out)
     {
         uint32_t result = 0;
         int shift = 0;
-        while (true)
+        for (int i = 0; i < 5; i++)
         {
+            if (p >= end)
+                return false;
             uint8_t byte = *p++;
             result |= (uint32_t)(byte & 0x7F) << shift;
             if ((byte & 0x80) == 0)
-                break;
+            {
+                out = result;
+                return true;
+            }
             shift += 7;
         }
-        return result;
+        return false;
     }
 
-    static inline int32_t readVarInt(uint8_t*& p)
+    static inline bool readVarInt(uint8_t*& p, const uint8_t* end, int32_t& out)
     {
-        int32_t result = 0;
+        uint32_t result = 0;
         int shift = 0;
-        while (true)
+        for (int i = 0; i < 5; i++)
         {
+            if (p >= end)
+                return false;
             uint8_t byte = *p++;
-            result |= (byte & 0x7F) << shift;
+            result |= (uint32_t)(byte & 0x7F) << shift;
             if ((byte & 0x80) == 0)
-                break;
+            {
+                out = (int32_t)result;
+                return true;
+            }
             shift += 7;
         }
-        return result;
+        return false;
     }
 
     static inline int32_t decodeZigZag(int32_t n)
@@ -97,18 +110,17 @@ public:
     }
 
 private:
-    static bool loadBand(uint32_t yOff);
-    static void freeBand();
-
     static uint8_t  currentZoom;
     static uint32_t tilesWide;
     static uint32_t tilesHigh;
     static uint32_t minX;
     static uint32_t minY;
 
-    static IndexEntry* bandBuffer;
-    static uint32_t    bandStartRow;
-    static uint32_t    bandRows;
+    static uint32_t indexBase;
+    static uint32_t rankBase;
+    static uint32_t entriesBase;
+    static uint32_t bitmapBytes;
+    static uint32_t indexCount;
 
     static uint16_t* colorPalette;
     static uint16_t  paletteCount;

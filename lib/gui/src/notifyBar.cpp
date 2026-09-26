@@ -2,28 +2,29 @@
  * @file notifyBar.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief LVGL - Notify Bar Screen
- * @version 0.2.9
- * @date 2026-06
+ * @version 0.3.0
+ * @date 2026-09
  */
 
 #include "notifyBar.hpp"
 #include "tasks.hpp"
-#include "lv_subjects.hpp"
+#include "lvglSubjects.hpp"
 
 lv_obj_t *mainScreen;         /**< Main screen */
 lv_obj_t *notifyBarIcons;     /**< Notification bar icons container object. */
 lv_obj_t *notifyBarHour;      /**< Notification bar hour display object. */
+lv_obj_t *gpsTime;            /**< Time display object. */
+lv_obj_t *gpsCount;           /**< Satellite count object. */
+lv_obj_t *gpsFix;             /**< Satellite fix status object. */
+lv_obj_t *gpsFixMode;         /**< Satellite fix mode object. */
+lv_obj_t *battIcon;           /**< Battery level icon object. */
+lv_obj_t *sdCard;             /**< SD card icon object. */
+lv_obj_t *temp;               /**< Temperature display object. */
+lv_obj_t *wifi;               /**< WiFi status object. */
 
 extern Storage storage;
 extern Battery battery;
 extern Gps gps;
-
-static constexpr int32_t BATT_CHARGING_MAX = 500; /**< Level above which battery is considered charging. */
-static constexpr int32_t BATT_FULL         = 110; /**< Level threshold for full battery icon. */
-static constexpr int32_t BATT_HIGH         =  80; /**< Level threshold for high battery icon. */
-static constexpr int32_t BATT_MED          =  60; /**< Level threshold for medium battery icon. */
-static constexpr int32_t BATT_LOW          =  40; /**< Level threshold for low battery icon. */
-static constexpr int32_t BATT_CRITICAL     =  20; /**< Level threshold for critical (empty) battery icon. */
 
 /**
  * @brief Observer callback for battery icon updates
@@ -33,12 +34,12 @@ static constexpr int32_t BATT_CRITICAL     =  20; /**< Level threshold for criti
  * @param observer Pointer to the observer.
  * @param subject Pointer to the subject.
  */
-static void battery_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+static void batteryObserverCb(lv_observer_t *observer, lv_subject_t *subject)
 {
     int32_t level = lv_subject_get_int(subject);
     lv_obj_t *obj = (lv_obj_t *)lv_observer_get_target_obj(observer);
 
-    if (level <= BATT_CHARGING_MAX && level > BATT_FULL)
+    if (level > BATT_FULL)
         lv_label_set_text_static(obj, "  " LV_SYMBOL_CHARGE);
     else if (level <= BATT_FULL && level > BATT_HIGH)
         lv_label_set_text_static(obj, LV_SYMBOL_BATTERY_FULL);
@@ -60,7 +61,7 @@ static void battery_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
  * @param observer Pointer to the observer.
  * @param subject Pointer to the subject containing unix timestamp.
  */
-static void time_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+static void timeObserverCb(lv_observer_t *observer, lv_subject_t *subject)
 {
     lv_obj_t *obj = (lv_obj_t *)lv_observer_get_target_obj(observer);
     if (obj == NULL)
@@ -81,7 +82,7 @@ static void time_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
  * @param observer Pointer to the observer.
  * @param subject Pointer to the subject containing satellites count.
  */
-static void sats_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+static void satsObserverCb(lv_observer_t *observer, lv_subject_t *subject)
 {
     lv_obj_t *obj = (lv_obj_t *)lv_observer_get_target_obj(observer);
     if (obj == NULL)
@@ -99,7 +100,7 @@ static void sats_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
  * @param observer Pointer to the observer.
  * @param subject Pointer to the subject containing fix mode.
  */
-static void fix_mode_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+static void fixModeObserverCb(lv_observer_t *observer, lv_subject_t *subject)
 {
     lv_obj_t *obj = (lv_obj_t *)lv_observer_get_target_obj(observer);
     if (obj == NULL)
@@ -138,7 +139,7 @@ static void fix_mode_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
 /**
  * @brief LED animation callback for GPS Fix indicator
  */
-static void led_anim_cb(void * var, int32_t v)
+static void ledAnimCb(void * var, int32_t v)
 {
     lv_led_set_brightness((lv_obj_t *)var, v);
 }
@@ -151,7 +152,7 @@ static void led_anim_cb(void * var, int32_t v)
  * @param observer Pointer to the observer.
  * @param subject Pointer to the subject containing boolean fix state.
  */
-static void is_fixed_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+static void isFixedObserverCb(lv_observer_t *observer, lv_subject_t *subject)
 {
     lv_obj_t *obj = (lv_obj_t *)lv_observer_get_target_obj(observer);
     if (obj == NULL)
@@ -167,17 +168,15 @@ static void is_fixed_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
         lv_anim_t a;
         lv_anim_init(&a);
         lv_anim_set_var(&a, obj);
-        lv_anim_set_exec_cb(&a, led_anim_cb);
+        lv_anim_set_exec_cb(&a, ledAnimCb);
         lv_anim_set_values(&a, 10, 255);
-        lv_anim_set_time(&a, 500);
-        lv_anim_set_playback_time(&a, 500);
+        lv_anim_set_duration(&a, 500);
+        lv_anim_set_reverse_duration(&a, 500);
         lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
         lv_anim_start(&a);
     }
     else
-    {
         lv_led_set_brightness(obj, 0);
-    }
 }
 
 #ifdef ENABLE_TEMP
@@ -189,7 +188,7 @@ static void is_fixed_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
  * @param observer Pointer to the observer.
  * @param subject Pointer to the subject containing temperature.
  */
-static void temp_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+static void tempObserverCb(lv_observer_t *observer, lv_subject_t *subject)
 {
     lv_obj_t *obj = (lv_obj_t *)lv_observer_get_target_obj(observer);
     if (obj == NULL)
@@ -208,7 +207,7 @@ static void temp_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
  * @param observer Pointer to the observer.
  * @param subject Pointer to the subject containing boolean WiFi state.
  */
-static void wifi_observer_cb(lv_observer_t *observer, lv_subject_t *subject)
+static void wifiObserverCb(lv_observer_t *observer, lv_subject_t *subject)
 {
     lv_obj_t *obj = (lv_obj_t *)lv_observer_get_target_obj(observer);
     if (obj == NULL)
@@ -234,14 +233,14 @@ void createNotifyBar()
     lv_obj_set_pos(notifyBarIcons, (TFT_WIDTH / 3) + 1, 0);
     lv_obj_set_flex_flow(notifyBarIcons, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(notifyBarIcons, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_clear_flag(notifyBarIcons, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(notifyBarIcons, LV_OBJ_FLAG_SCROLLABLE);
 
     notifyBarHour = lv_obj_create(mainScreen);
     lv_obj_set_size(notifyBarHour, TFT_WIDTH / 3 , 24);
     lv_obj_set_pos(notifyBarHour, 0, 0);
     lv_obj_set_flex_flow(notifyBarHour, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(notifyBarHour, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_clear_flag(notifyBarHour, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(notifyBarHour, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_add_style(notifyBarIcons, &styleTransparent, LV_PART_MAIN);
     lv_obj_add_style(notifyBarHour, &styleTransparent, LV_PART_MAIN);
@@ -251,16 +250,16 @@ void createNotifyBar()
     gpsTime = lv_label_create(notifyBarHour);
     lv_obj_set_style_text_font(gpsTime, fontLarge, 0);
     lv_label_set_text_fmt(gpsTime, timeFormat, 0, 0, 0);
-    lv_subject_add_observer_obj(&subject_time, time_observer_cb, gpsTime, NULL);
+    lv_subject_add_observer_obj(&subject_time, timeObserverCb, gpsTime, NULL);
     
     wifi = lv_label_create(notifyBarIcons);
     lv_label_set_text_static(wifi, " ");
-    lv_subject_add_observer_obj(&subject_wifi, wifi_observer_cb, wifi, NULL);
+    lv_subject_add_observer_obj(&subject_wifi, wifiObserverCb, wifi, NULL);
 
     #ifdef ENABLE_TEMP
         temp = lv_label_create(notifyBarIcons);
         lv_label_set_text_static(temp, "--\xC2\xB0");
-        lv_subject_add_observer_obj(&subject_temp, temp_observer_cb, temp, NULL);
+        lv_subject_add_observer_obj(&subject_temp, tempObserverCb, temp, NULL);
     #endif
     
     if (storage.getSdLoaded())
@@ -271,20 +270,20 @@ void createNotifyBar()
 
     gpsCount = lv_label_create(notifyBarIcons);
     lv_label_set_text_fmt(gpsCount, LV_SYMBOL_GPS "%2d", 0);
-    lv_subject_add_observer_obj(&subject_sats, sats_observer_cb, gpsCount, NULL);
+    lv_subject_add_observer_obj(&subject_sats, satsObserverCb, gpsCount, NULL);
     
     gpsFix = lv_led_create(notifyBarIcons);
     lv_led_set_color(gpsFix, lv_palette_main(LV_PALETTE_RED));
     lv_obj_set_size(gpsFix, 7, 7);
     lv_led_off(gpsFix);
-    lv_subject_add_observer_obj(&subject_is_fixed, is_fixed_observer_cb, gpsFix, NULL);
+    lv_subject_add_observer_obj(&subject_is_fixed, isFixedObserverCb, gpsFix, NULL);
     
     gpsFixMode = lv_label_create(notifyBarIcons);
     lv_obj_set_style_text_font(gpsFixMode, fontSmall, 0);
     lv_label_set_text_static(gpsFixMode, "----");
-    lv_subject_add_observer_obj(&subject_fix_mode, fix_mode_observer_cb, gpsFixMode, NULL);
+    lv_subject_add_observer_obj(&subject_fix_mode, fixModeObserverCb, gpsFixMode, NULL);
     
     battIcon = lv_label_create(notifyBarIcons);
     lv_label_set_text_static(battIcon, LV_SYMBOL_BATTERY_EMPTY);
-    lv_subject_add_observer_obj(&subject_battery, battery_observer_cb, battIcon, NULL);
+    lv_subject_add_observer_obj(&subject_battery, batteryObserverCb, battIcon, NULL);
 }

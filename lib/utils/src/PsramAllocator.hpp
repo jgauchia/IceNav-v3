@@ -2,8 +2,8 @@
  * @file PsramAllocator.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief Memory allocators for PSRAM and Internal SRAM
- * @version 0.2.9
- * @date 2026-06
+ * @version 0.3.0
+ * @date 2026-09
  */
 
 #pragma once
@@ -84,6 +84,47 @@ bool operator==(const InternalRamAllocator<T>&, const InternalRamAllocator<U>&)
 
 template <class T, class U>
 bool operator!=(const InternalRamAllocator<T>&, const InternalRamAllocator<U>&)
+{
+    return false;
+}
+
+/**
+ * @brief Allocator that prefers Internal SRAM and falls back to PSRAM
+ */
+template <class T>
+struct InternalFirstAllocator
+{
+    typedef T value_type;
+
+    InternalFirstAllocator() = default;
+
+    template <class U>
+    InternalFirstAllocator(const InternalFirstAllocator<U>&) {}
+
+    T* allocate(std::size_t n)
+    {
+        void* ptr = heap_caps_malloc(n * sizeof(T), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+        if (ptr == nullptr)
+            ptr = heap_caps_malloc(n * sizeof(T), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+        if (ptr == nullptr)
+            throw std::bad_alloc();
+        return static_cast<T*>(ptr);
+    }
+
+    void deallocate(T* p, std::size_t)
+    {
+        heap_caps_free(p);
+    }
+};
+
+template <class T, class U>
+bool operator==(const InternalFirstAllocator<T>&, const InternalFirstAllocator<U>&)
+{
+    return true;
+}
+
+template <class T, class U>
+bool operator!=(const InternalFirstAllocator<T>&, const InternalFirstAllocator<U>&)
 {
     return false;
 }

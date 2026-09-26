@@ -2,8 +2,8 @@
  * @file globalGpxDef.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Global GPX Variables
- * @version 0.2.9
- * @date 2026-06
+ * @version 0.3.0
+ * @date 2026-09
  */
 
 #pragma once
@@ -12,9 +12,9 @@
 #include <vector>
 #include "PsramAllocator.hpp"
 
-static const char* wptFile = "/sdcard/WPT/waypoint.gpx"; /**< Path to the waypoint GPX file on the SD card. */
-static const char* wptFolder = "/sdcard/WPT";            /**< Path to the waypoint folder on the SD card. */
-static const char* trkFolder = "/sdcard/TRK";            /**< Path to the track folder on the SD card. */
+inline constexpr const char* wptFile   = "/sdcard/WPT/waypoint.gpx"; /**< Path to the waypoint GPX file on the SD card. */
+inline constexpr const char* wptFolder = "/sdcard/WPT";               /**< Path to the waypoint folder on the SD card. */
+inline constexpr const char* trkFolder = "/sdcard/TRK";               /**< Path to the track folder on the SD card. */
 
 /**
  * @brief Waypoint Structure
@@ -55,6 +55,7 @@ struct TrackSegment
 
 /**
  * @brief Track Vector Type using PSRAM Allocator
+ *
  */
 typedef std::vector<wayPoint, PsramAllocator<wayPoint>> TrackVector;
 
@@ -73,7 +74,6 @@ enum gpxAction_t
 };
 
 extern uint8_t gpxAction;                          /**< Indicates the current GPX waypoint action to be performed. */
-extern std::vector<TrackSegment> trackIndex;       /**< Spatial index of track segments for O(log n) search. */
 
 /**
  * @brief Track turn points structure
@@ -88,15 +88,15 @@ struct TurnPoint
 }; 
 
 /**
- * @Brief GPX header file format
+ * @brief GPX header file format
  *
  * @details Static string containing the standard GPX 1.0 file header, to be used when creating new GPX files.
  */
-static const char* gpxHeader = { "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+inline constexpr const char* gpxHeader = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
                       "<gpx\n"
                       " version=\"1.0\"\n"
                       " creator=\"IceNav\"\n"
                       " xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
                       " xmlns=\"http://www.topografix.com/GPX/1/0\"\n"
                       " xsi:schemaLocation=\"http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd\">\n"
-                      "</gpx>" };
+                      "</gpx>";

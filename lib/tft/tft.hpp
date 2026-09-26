@@ -2,8 +2,8 @@
  * @file tft.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief TFT definition and functions
- * @version 0.2.9
- * @date 2026-06
+ * @version 0.3.0
+ * @date 2026-09
  */
 
 #pragma once
@@ -20,7 +20,7 @@
 #include <LGFX_TFT_eSPI.hpp>
 
 extern TFT_eSPI tft;                                      /**< TFT display object */
-static const char* calibrationFile = "/spiffs/TouchCal"; /**< Touch calibration file path */
+inline constexpr const char* calibrationFile = "/spiffs/TouchCal"; /**< Touch calibration file path */
 extern bool repeatCalib;                                 /**< Flag to repeat touch calibration */
 
 extern uint16_t TFT_WIDTH;                               /**< TFT display width in pixels */

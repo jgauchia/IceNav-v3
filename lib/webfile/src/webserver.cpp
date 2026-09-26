@@ -2,11 +2,12 @@
  * @file webserver.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Web file server functions implementation
- * @version 0.2.9
- * @date 2026-06
+ * @version 0.3.0
+ * @date 2026-09
  */
 
 #include "webserver.h"
+#include "fileServer.hpp"
 #include "webpage.h"
 #include <algorithm>
 #include <dirent.h>
@@ -127,7 +128,6 @@ static void cacheDirectoryContent(const std::string& dir)
                 entry.size = 0;
 
             fileCache.push_back(entry);
-            esp_task_wdt_reset();
         }
         closedir(dp);
     }
@@ -163,12 +163,12 @@ static bool getQueryParam(httpd_req_t *req, const char* param, char* value, size
 static void urlDecode(char* str)
 {
     char* dst = str;
-    char a;
-    char b;
     while (*str)
     {
-        if ((*str == '%') && ((a = str[1]) && (b = str[2])) && (isxdigit(a) && isxdigit(b)))
+        if ((*str == '%') && str[1] && str[2] && (isxdigit((unsigned char)str[1]) && isxdigit((unsigned char)str[2])))
         {
+            unsigned char a = (unsigned char)str[1];
+            unsigned char b = (unsigned char)str[2];
             if (a >= 'a')
                 a -= 'a' - 'A';
             if (a >= 'A')
@@ -181,7 +181,7 @@ static void urlDecode(char* str)
                 b -= ('A' - 10);
             else
                 b -= '0';
-            *dst++ = 16 * a + b;
+            *dst++ = (char)(16 * a + b);
             str += 3;
         }
         else if (*str == '+')
@@ -190,9 +190,7 @@ static void urlDecode(char* str)
             str++;
         }
         else
-        {
             *dst++ = *str++;
-        }
     }
     *dst = '\0';
 }
@@ -242,9 +240,7 @@ static std::string listFiles(bool ishtml, int page)
             returnText += "</tr>";
         }
         else
-        {
             returnText += "File: " + entry.name + " Size: " + humanReadableSize(entry.size) + "\n";
-        }
     }
 
     if (ishtml)
@@ -383,8 +379,6 @@ static bool createDirectories(const std::string& filepath)
         if (nextSlash == std::string::npos)
             break;
         lastSlash = nextSlash;
-
-        esp_task_wdt_reset();
     }
     return true;
 }
@@ -423,7 +417,7 @@ static std::string processTemplate(const char* html)
 /**
  * @brief Root handler - serves main page
  */
-static esp_err_t root_handler(httpd_req_t *req)
+static esp_err_t rootHandler(httpd_req_t *req)
 {
     std::string html = processTemplate(index_html);
     httpd_resp_set_type(req, "text/html");
@@ -434,7 +428,7 @@ static esp_err_t root_handler(httpd_req_t *req)
 /**
  * @brief Status polling handler (replaces SSE)
  */
-static esp_err_t status_handler(httpd_req_t *req)
+static esp_err_t statusHandler(httpd_req_t *req)
 {
     httpd_resp_set_type(req, "application/json");
 
@@ -465,7 +459,7 @@ static esp_err_t status_handler(httpd_req_t *req)
 /**
  * @brief List files handler
  */
-static esp_err_t listfiles_handler(httpd_req_t *req)
+static esp_err_t listFilesHandler(httpd_req_t *req)
 {
     char pageStr[8] = "0";
     getQueryParam(req, "page", pageStr, sizeof(pageStr));
@@ -473,7 +467,6 @@ static esp_err_t listfiles_handler(httpd_req_t *req)
 
     if (updateList)
     {
-        esp_task_wdt_reset();
         cacheDirectoryContent(oldDir);
     }
 
@@ -486,7 +479,7 @@ static esp_err_t listfiles_handler(httpd_req_t *req)
 /**
  * @brief Change directory handler
  */
-static esp_err_t changedirectory_handler(httpd_req_t *req)
+static esp_err_t changeDirectoryHandler(httpd_req_t *req)
 {
     char dirParam[128] = "";
     if (!getQueryParam(req, "dir", dirParam, sizeof(dirParam)))
@@ -534,7 +527,7 @@ static esp_err_t changedirectory_handler(httpd_req_t *req)
 /**
  * @brief File operations handler (download, delete)
  */
-static esp_err_t file_handler(httpd_req_t *req)
+static esp_err_t fileHandler(httpd_req_t *req)
 {
     char fileName[128] = "";
     char fileAction[16] = "";
@@ -626,7 +619,7 @@ static esp_err_t file_handler(httpd_req_t *req)
 /**
  * @brief List all files in a folder recursively, one path per line
  */
-static esp_err_t listfolder_handler(httpd_req_t *req)
+static esp_err_t listFolderHandler(httpd_req_t *req)
 {
     char folderParam[128] = "";
     if (!getQueryParam(req, "path", folderParam, sizeof(folderParam)))
@@ -662,9 +655,7 @@ static esp_err_t listfolder_handler(httpd_req_t *req)
             std::string entryPath = currentPath + "/" + std::string(ep->d_name);
 
             if (ep->d_type == DT_DIR)
-            {
                 dirStack.push(entryPath);
-            }
             else
             {
                 std::string relPath = entryPath.substr(prefixLen);
@@ -676,7 +667,6 @@ static esp_err_t listfolder_handler(httpd_req_t *req)
             }
         }
         closedir(dp);
-        esp_task_wdt_reset();
     }
 
     httpd_resp_set_type(req, "text/plain");
@@ -687,7 +677,7 @@ static esp_err_t listfolder_handler(httpd_req_t *req)
 /**
  * @brief Reboot handler
  */
-static esp_err_t reboot_handler(httpd_req_t *req)
+static esp_err_t rebootHandler(httpd_req_t *req)
 {
     httpd_resp_set_type(req, "text/html");
     httpd_resp_send(req, reboot_html, strlen(reboot_html));
@@ -775,15 +765,15 @@ static esp_err_t sendSpiffsJS(httpd_req_t *req, const char *jsFile)
 }
 
 // Image handlers
-static esp_err_t logo_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/gfx/LOGO_LARGE.png"); }
-static esp_err_t files_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/gfx/file.png"); }
-static esp_err_t folder_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/gfx/folder.png"); }
-static esp_err_t down_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/gfx/download.png"); }
-static esp_err_t up_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/gfx/upload.png"); }
-static esp_err_t del_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/gfx/delete.png"); }
-static esp_err_t reb_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/gfx/reboot.png"); }
-static esp_err_t list_handler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/gfx/list.png"); }
-static esp_err_t jszip_handler(httpd_req_t *req) { return sendSpiffsJS(req, "/spiffs/utils/jszip.min.js"); }
+static esp_err_t logoHandler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/gfx/LOGO_LARGE.png"); }
+static esp_err_t filesHandler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/gfx/file.png"); }
+static esp_err_t folderHandler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/gfx/folder.png"); }
+static esp_err_t downHandler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/gfx/download.png"); }
+static esp_err_t upHandler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/gfx/upload.png"); }
+static esp_err_t delHandler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/gfx/delete.png"); }
+static esp_err_t rebHandler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/gfx/reboot.png"); }
+static esp_err_t listHandler(httpd_req_t *req) { return sendSpiffsImage(req, "/spiffs/gfx/list.png"); }
+static esp_err_t jszipHandler(httpd_req_t *req) { return sendSpiffsJS(req, "/spiffs/utils/jszip.min.js"); }
 
 /**
  * @brief Find byte sequence in buffer (like memmem but portable)
@@ -801,11 +791,21 @@ static uint8_t* findBytes(uint8_t* haystack, size_t haystackLen, const uint8_t* 
 }
 
 /**
+ * @brief RAII guard that pauses the GUI task while an operation that must
+ *        not race with LVGL rendering runs (e.g. screenshot or file upload).
+ */
+struct ScreenRefreshGuard
+{
+    ScreenRefreshGuard() { waitScreenRefresh = true; }
+    ~ScreenRefreshGuard() { waitScreenRefresh = false; }
+};
+
+/**
  * @brief File upload handler - supports multiple files in single request
  */
-static esp_err_t upload_handler(httpd_req_t *req)
+static esp_err_t uploadHandler(httpd_req_t *req)
 {
-    waitScreenRefresh = true;
+    ScreenRefreshGuard refreshGuard;
 
     // Get content type to parse boundary
     char contentType[256] = "";
@@ -814,7 +814,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
     char* boundaryPtr = strstr(contentType, "boundary=");
     if (!boundaryPtr)
     {
-        waitScreenRefresh = false;
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "No boundary found");
         return ESP_FAIL;
     }
@@ -833,7 +832,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
 
     if ((size_t)req->content_len > MAX_UPLOAD_SIZE)
     {
-        waitScreenRefresh = false;
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "File too large");
         return ESP_FAIL;
     }
@@ -842,7 +840,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
     uint8_t* buf = (uint8_t*)heap_caps_malloc(bufSize, MALLOC_CAP_8BIT);
     if (!buf)
     {
-        waitScreenRefresh = false;
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Memory allocation failed");
         return ESP_FAIL;
     }
@@ -912,7 +909,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
                     bufUsed = 0;
                 }
             }
-            esp_task_wdt_reset();
             continue;
         }
 
@@ -951,7 +947,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
             uint8_t* headerEnd = findBytes(buf, bufUsed, (const uint8_t*)"\r\n\r\n", 4);
             if (!headerEnd && remaining > 0)
             {
-                esp_task_wdt_reset();
                 continue;
             }
 
@@ -993,8 +988,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
             }
         }
 
-        esp_task_wdt_reset();
-
         if (remaining == 0 && !boundaryPos)
             break;
     }
@@ -1018,7 +1011,6 @@ static esp_err_t upload_handler(httpd_req_t *req)
     }
 
     heap_caps_free(buf);
-    waitScreenRefresh = false;
 
     if (writeError)
     {
@@ -1036,7 +1028,7 @@ static esp_err_t upload_handler(httpd_req_t *req)
 /**
  * @brief 404 handler
  */
-static esp_err_t notfound_handler(httpd_req_t *req, httpd_err_code_t err)
+static esp_err_t notFoundHandler(httpd_req_t *req, httpd_err_code_t err)
 {
     httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Not found");
     return ESP_FAIL;
@@ -1088,24 +1080,24 @@ void configureWebServer()
     oldDir = "";
 
     // Register URI handlers
-    httpd_uri_t uri_root = { .uri = "/", .method = HTTP_GET, .handler = root_handler };
-    httpd_uri_t uri_status = { .uri = "/status", .method = HTTP_GET, .handler = status_handler };
-    httpd_uri_t uri_listfiles = { .uri = "/listfiles", .method = HTTP_GET, .handler = listfiles_handler };
-    httpd_uri_t uri_changedirectory = { .uri = "/changedirectory", .method = HTTP_GET, .handler = changedirectory_handler };
-    httpd_uri_t uri_file = { .uri = "/file", .method = HTTP_GET, .handler = file_handler };
-    httpd_uri_t uri_listfolder = { .uri = "/listfolder", .method = HTTP_GET, .handler = listfolder_handler };
-    httpd_uri_t uri_reboot = { .uri = "/reboot", .method = HTTP_GET, .handler = reboot_handler };
-    httpd_uri_t uri_upload = { .uri = "/", .method = HTTP_POST, .handler = upload_handler };
+    httpd_uri_t uri_root = { .uri = "/", .method = HTTP_GET, .handler = rootHandler };
+    httpd_uri_t uri_status = { .uri = "/status", .method = HTTP_GET, .handler = statusHandler };
+    httpd_uri_t uri_listfiles = { .uri = "/listfiles", .method = HTTP_GET, .handler = listFilesHandler };
+    httpd_uri_t uri_changedirectory = { .uri = "/changedirectory", .method = HTTP_GET, .handler = changeDirectoryHandler };
+    httpd_uri_t uri_file = { .uri = "/file", .method = HTTP_GET, .handler = fileHandler };
+    httpd_uri_t uri_listfolder = { .uri = "/listfolder", .method = HTTP_GET, .handler = listFolderHandler };
+    httpd_uri_t uri_reboot = { .uri = "/reboot", .method = HTTP_GET, .handler = rebootHandler };
+    httpd_uri_t uri_upload = { .uri = "/", .method = HTTP_POST, .handler = uploadHandler };
 
-    httpd_uri_t uri_logo = { .uri = "/logo", .method = HTTP_GET, .handler = logo_handler };
-    httpd_uri_t uri_files = { .uri = "/files", .method = HTTP_GET, .handler = files_handler };
-    httpd_uri_t uri_folder = { .uri = "/folder", .method = HTTP_GET, .handler = folder_handler };
-    httpd_uri_t uri_down = { .uri = "/down", .method = HTTP_GET, .handler = down_handler };
-    httpd_uri_t uri_up = { .uri = "/up", .method = HTTP_GET, .handler = up_handler };
-    httpd_uri_t uri_del = { .uri = "/del", .method = HTTP_GET, .handler = del_handler };
-    httpd_uri_t uri_reb = { .uri = "/reb", .method = HTTP_GET, .handler = reb_handler };
-    httpd_uri_t uri_list = { .uri = "/list", .method = HTTP_GET, .handler = list_handler };
-    httpd_uri_t uri_jszip = { .uri = "/jszip", .method = HTTP_GET, .handler = jszip_handler };
+    httpd_uri_t uri_logo = { .uri = "/logo", .method = HTTP_GET, .handler = logoHandler };
+    httpd_uri_t uri_files = { .uri = "/files", .method = HTTP_GET, .handler = filesHandler };
+    httpd_uri_t uri_folder = { .uri = "/folder", .method = HTTP_GET, .handler = folderHandler };
+    httpd_uri_t uri_down = { .uri = "/down", .method = HTTP_GET, .handler = downHandler };
+    httpd_uri_t uri_up = { .uri = "/up", .method = HTTP_GET, .handler = upHandler };
+    httpd_uri_t uri_del = { .uri = "/del", .method = HTTP_GET, .handler = delHandler };
+    httpd_uri_t uri_reb = { .uri = "/reb", .method = HTTP_GET, .handler = rebHandler };
+    httpd_uri_t uri_list = { .uri = "/list", .method = HTTP_GET, .handler = listHandler };
+    httpd_uri_t uri_jszip = { .uri = "/jszip", .method = HTTP_GET, .handler = jszipHandler };
 
     httpd_register_uri_handler(webServer, &uri_root);
     httpd_register_uri_handler(webServer, &uri_status);
@@ -1125,7 +1117,7 @@ void configureWebServer()
     httpd_register_uri_handler(webServer, &uri_list);
     httpd_register_uri_handler(webServer, &uri_jszip);
 
-    httpd_register_err_handler(webServer, HTTPD_404_NOT_FOUND, notfound_handler);
+    httpd_register_err_handler(webServer, HTTPD_404_NOT_FOUND, notFoundHandler);
 
     ESP_LOGI(WEB_TAG, "Web server started");
 }
@@ -1141,4 +1133,36 @@ void stopWebServer()
         webServer = NULL;
         ESP_LOGI(WEB_TAG, "Web server stopped");
     }
+}
+
+/**
+ * @class FileServerHttpd
+ * @brief Layer-0 file server implementation over the IDF HTTP server.
+ */
+class FileServerHttpd : public IFileServer
+{
+public:
+    void start() override
+    {
+        configureWebServer();
+    }
+
+    void stop() override
+    {
+        stopWebServer();
+    }
+
+    void process() override
+    {
+        processWebServerTasks();
+    }
+};
+
+/**
+ * @brief Provides the HTTP file server implementation as the Layer-1 .
+ */
+IFileServer &fileServer()
+{
+    static FileServerHttpd instance;
+    return instance;
 }

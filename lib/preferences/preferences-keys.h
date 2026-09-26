@@ -40,4 +40,5 @@
   X(KKALM_R, "kalmanR", FLOAT)           \
   X(KROUTE_SPEED, "routeSpeed", SHORT)   \
   X(KNMEA_DEBUG, "nmeaDbgTile", BOOL)    \
+  X(KLOG_PROFILE, "logProfile", UINT)   \
   X(KCOUNT, "KCOUNT", UNKNOWN)

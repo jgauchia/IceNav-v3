@@ -2,8 +2,8 @@
  * @file gpxFiles.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Create GPX files and folder struct
- * @version 0.2.9
- * @date 2026-06
+ * @version 0.3.0
+ * @date 2026-09
  */
 
 #include "gpxFiles.hpp"
@@ -13,7 +13,7 @@ wayPoint addWpt;  /**< Temporary waypoint structure used when adding a new waypo
 wayPoint loadWpt; /**< Temporary waypoint structure used when loading a waypoint. */
 extern Storage storage;
 
-static const char* TAG = "GPX file struct";
+static const char* TAG = "GPXFILES";
 
 /**
  * @brief Create a folder on storage if it does not already exist.

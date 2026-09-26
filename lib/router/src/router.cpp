@@ -2,8 +2,8 @@
  * @file router.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Router implementation — combines GraphLoader and A*
- * @version 0.2.9
- * @date 2026-06
+ * @version 0.3.0
+ * @date 2026-09
  */
 
 #include "router.hpp"
@@ -35,23 +35,33 @@ RouterResult Router::route(float src_lat, float src_lon,
 {
     int64_t t_start = esp_timer_get_time();
 
-    if (!loader_.isLoaded())
+    if (!loader.isLoaded())
     {
-        if (!loader_.load())
+        if (!loader.load())
             return RouterResult::LOAD_ERROR;
     }
 
-    loader_.preloadPoint(src_lat, src_lon);
-    loader_.preloadPoint(dst_lat, dst_lon);
+    loader.preloadPoint(src_lat, src_lon);
+    loader.preloadPoint(dst_lat, dst_lon);
 
-    uint32_t src_node = loader_.nearestNode(src_lat, src_lon);
-    uint32_t dst_node = loader_.nearestNode(dst_lat, dst_lon);
+    uint32_t src_node = loader.nearestNode(src_lat, src_lon);
+    uint32_t dst_node = loader.nearestNode(dst_lat, dst_lon);
 
-    out_track = astarRoute(loader_, src_node, dst_node, (float)navSet.routeSpeed);
+    ESP_LOGI(TAG_ROUTER, "route (%.5f,%.5f)->(%.5f,%.5f): nodes %u->%u",
+             src_lat, src_lon, dst_lat, dst_lon, src_node, dst_node);
+
+    if (src_node == NODE_NONE || dst_node == NODE_NONE)
+    {
+        ESP_LOGW(TAG_ROUTER, "No cached node near origin (%d) or destination (%d); route skipped",
+                 (src_node != NODE_NONE), (dst_node != NODE_NONE));
+        return RouterResult::NO_PATH;
+    }
+
+    out_track = astarRoute(loader, src_node, dst_node, (float)navSet.routeSpeed);
 
     int64_t t_end = esp_timer_get_time();
     int64_t elapsed_us = t_end - t_start;
-    ESP_LOGE(TAG_ROUTER, "route (%.5f,%.5f)->(%.5f,%.5f): nodes %u->%u, %lld us (%lld ms), waypoints=%u",
+    ESP_LOGI(TAG_ROUTER, "route (%.5f,%.5f)->(%.5f,%.5f): nodes %u->%u, %lld us (%lld ms), waypoints=%u",
              src_lat, src_lon, dst_lat, dst_lon,
              src_node, dst_node,
              elapsed_us, elapsed_us / 1000,
@@ -61,12 +71,4 @@ RouterResult Router::route(float src_lat, float src_lon,
         return RouterResult::NO_PATH;
 
     return RouterResult::OK;
-}
-
-/**
- * @brief Unload the graph from PSRAM and reset loader state.
- */
-void Router::unload()
-{
-    loader_.unload();
 }
