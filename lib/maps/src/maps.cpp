@@ -64,6 +64,11 @@ static uint32_t srmUs = 0;
 static uint32_t atomicMaxUs = 0;
 static uint32_t yldCount = 0;
 static int64_t atomicMarkUs = 0;
+static uint32_t fillPx = 0;
+static uint32_t linePx = 0;
+static uint32_t trkPx = 0;
+static uint32_t ppaUs = 0;
+static uint32_t polyDecUs = 0;
 
 static inline void resetPassCounters()
 {
@@ -85,6 +90,11 @@ static inline void resetPassCounters()
     srmUs = 0;
     atomicMaxUs = 0;
     yldCount = 0;
+    fillPx = 0;
+    linePx = 0;
+    trkPx = 0;
+    ppaUs = 0;
+    polyDecUs = 0;
 }
 static const uint16_t PREFETCH_MIN_SPEED_KMH = 5;
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
@@ -569,6 +579,7 @@ void Maps::drawTrack(MapCanvas& map)
         segmentCount = 1;
     }
 
+    const uint32_t linePxStart = linePx;
     for (size_t s = 0; s < segmentCount; s++)
     {
         const TrackSegment& seg = segments[s];
@@ -601,6 +612,7 @@ void Maps::drawTrack(MapCanvas& map)
             prevY = curY;
         }
     }
+    trkPx += linePx - linePxStart;
 }
 
 /**
@@ -1187,7 +1199,9 @@ void Maps::mapRenderTask(void* pvParameters)
                 {
                     const int64_t prio0MarkUs = esp_timer_get_time();
                     instance->ppaFillPrio0Tiles();
-                    bkgUs += (uint32_t)(esp_timer_get_time() - prio0MarkUs);
+                    const uint32_t prio0Us = (uint32_t)(esp_timer_get_time() - prio0MarkUs);
+                    bkgUs += prio0Us;
+                    ppaUs += prio0Us;
                 }
 #endif
                 const int64_t writeMarkUs = esp_timer_get_time();
@@ -1374,7 +1388,7 @@ void Maps::mapRenderTask(void* pvParameters)
                 if (viewportComplete)
                 {
                     ESP_LOGI(TAG,
-                             "PASS z%u #%u | %.1fms | rst %.1fms | dec %.1fms | yld %.1fms | atc %.1fms x%u | scr %.1fms | bkg %.1fms | srm %.1fms | wr %.1fms | poly %.1fms (fill %.1fms) | line %.1fms | point %.1fms | text %.1fms | trk %.1fms | %up %ul",
+                             "PASS z%u #%u | %.1fms | rst %.1fms | dec %.1fms | yld %.1fms | atc %.1fms x%u | scr %.1fms | bkg %.1fms | srm %.1fms | wr %.1fms | poly %.1fms (fill %.1fms) | line %.1fms | point %.1fms | text %.1fms | trk %.1fms | ppa %.1fms | polydec %.1fms | fillPx %u | linePx %u | trkPx %u | %up %ul",
                              (unsigned)instance->zoomLevel,
                              (unsigned)passCounter,
                              totalUs / 1000.0,
@@ -1393,6 +1407,11 @@ void Maps::mapRenderTask(void* pvParameters)
                              pointUs / 1000.0,
                              textUs / 1000.0,
                              trackUs / 1000.0,
+                             ppaUs / 1000.0,
+                             polyDecUs / 1000.0,
+                             (unsigned)fillPx,
+                             (unsigned)linePx,
+                             (unsigned)trkPx,
                              (unsigned)polyCount,
                              (unsigned)lineCount);
                     resetPassCounters();
@@ -2855,6 +2874,7 @@ void Maps::fillPolygonGeneral(MapCanvas &map, const int *px, const int *py, cons
                 xEnd = (int)tileWidth;
             if (xEnd > xStart)
             {
+                fillPx += (uint32_t)(xEnd - xStart);
                 if (buf && yy >= 0 && yy < (int)tileHeight)
                 {
                     uint16_t* row = buf + (uint32_t)yy * stride + xStart;
@@ -2971,6 +2991,7 @@ static void drawLineRaw(uint16_t* buf, uint32_t stride, int16_t x0, int16_t y0,
         int dx = abs(x1 - x0);
         int dy = -abs(y1 - y0);
         int err = dx + dy;
+        linePx += (uint32_t)(std::max(abs(x1 - x0), abs(y1 - y0)) + 1);
         uint16_t* row = buf + (uint32_t)y0 * stride + x0;
         int rowStep = sy * (int)stride;
         while (true)
@@ -3048,6 +3069,7 @@ static void drawLineRaw(uint16_t* buf, uint32_t stride, int16_t x0, int16_t y0,
     dx = abs(xe - xs);
     dy = -abs(ye - ys);
     int err = dx + dy;
+    linePx += (uint32_t)(std::max(abs(xe - xs), abs(ye - ys)) + 1);
     while (true)
     {
         buf[(uint32_t)ys * stride + xs] = rawColor;
@@ -3125,6 +3147,7 @@ static void drawThickLineRaw(uint16_t* buf, uint32_t stride, int16_t x0, int16_t
         int16_t cy1 = (yb < h - 1) ? yb : (h - 1);
         if (cx0 > cx1 || cy0 > cy1)
             return;
+        linePx += (uint32_t)(cx1 - cx0 + 1) * (uint32_t)(cy1 - cy0 + 1);
         for (int16_t yy = cy0; yy <= cy1; yy++)
         {
             uint16_t* p = buf + (uint32_t)yy * stride + cx0;
@@ -3269,6 +3292,7 @@ void Maps::renderVectorPolygon(const FeatureRef& ref, MapCanvas& map)
     {
         return;
     }
+    const int64_t polyDecMarkUs = esp_timer_get_time();
     int16_t* coords = decodedCoords.data();
     uint8_t* p = ref.ptr;
     int32_t curX = 0;
@@ -3363,6 +3387,7 @@ void Maps::renderVectorPolygon(const FeatureRef& ref, MapCanvas& map)
         lastY = curY;
         actualPoints++;
     }
+    polyDecUs += (uint32_t)(esp_timer_get_time() - polyDecMarkUs);
     if (maxPx < 0 || minPx >= (int)tileWidth || maxPy < 0 || minPy >= (int)tileHeight)
         return;
 
