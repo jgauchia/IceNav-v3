@@ -521,6 +521,10 @@ bool Maps::trackViewBounds(tileBounds& bounds)
     return bounds.lat_min <= bounds.lat_max && bounds.lon_min <= bounds.lon_max;
 }
 
+static void drawThickLineRaw(uint16_t* buf, uint32_t stride, int16_t x0, int16_t y0,
+                             int16_t x1, int16_t y1, uint8_t width, uint16_t rawColor,
+                             int16_t w, int16_t h);
+
 /**
  * @brief Draw current track on map
  *
@@ -541,6 +545,12 @@ void Maps::drawTrack(MapCanvas& map)
 
     tileBounds viewBounds;
     const bool haveBounds = trackViewBounds(viewBounds);
+
+    uint16_t* const trackBuf = static_cast<uint16_t*>(map.getBuffer());
+    const uint32_t trackStride = trackBuf ? (uint32_t)(map.bufferLength() / (tileHeight * 2)) : 0;
+    const uint16_t trackColor = (uint16_t)((0x6298u >> 8) | (0x6298u << 8));
+    const int16_t trackW = (int16_t)tileWidth;
+    const int16_t trackH = (int16_t)tileHeight;
 
     const int lastIdx = (int)navCtx.trackData.size() - 1;
     TrackSegment wholeTrack;
@@ -576,7 +586,12 @@ void Maps::drawTrack(MapCanvas& map)
             latLonToPixel(navCtx.trackData[i].lat, navCtx.trackData[i].lon, curX, curY);
             if ((prevX >= 0 && prevX < tileWidth && prevY >= 0 && prevY < tileHeight) ||
                 (curX >= 0 && curX < tileWidth && curY >= 0 && curY < tileHeight))
-                map.drawWideLine(prevX, prevY, curX, curY, 3, 0x6298);
+            {
+                if (trackBuf)
+                    drawThickLineRaw(trackBuf, trackStride, prevX, prevY, curX, curY, 7, trackColor, trackW, trackH);
+                else
+                    map.drawWideLine(prevX, prevY, curX, curY, 7, 0x6298);
+            }
             prevX = curX;
             prevY = curY;
         }
