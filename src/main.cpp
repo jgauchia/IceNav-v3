@@ -148,8 +148,7 @@ void setup()
     }
     else
     {
-        lv_timer_resume(searchTimer);
-        lv_screen_load(searchSatScreen);
+        resumeSatSearch();
     }
     vTaskResume(guiTaskHandle);
     forceMapRedraw();

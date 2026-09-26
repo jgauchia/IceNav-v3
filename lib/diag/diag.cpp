@@ -14,6 +14,7 @@
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include "freertos/task.h"
 #include <lvgl.h>
 #include "storage.hpp"
@@ -28,6 +29,7 @@ static constexpr size_t DIAG_LOG_MAX_SIZE = 64 * 1024;
 extern TaskHandle_t guiTaskHandle;
 extern TaskHandle_t gpsTaskHandle;
 extern TaskHandle_t navTaskHandle;
+extern SemaphoreHandle_t lvgl_mutex;
 extern TaskHandle_t sensorTaskHandle;
 extern TaskHandle_t cliTaskHandle;
 
@@ -219,6 +221,34 @@ static constexpr size_t MEM_SNAPSHOT_SIZE = 512;
 static char memSnapshot[MEM_SNAPSHOT_SIZE];
 
 /**
+ * @brief Count the live LVGL timers
+ *
+ * @details Walks the LVGL timer list, which guiTask mutates inside lv_timer_handler, so the list is
+ *          only read while lvgl_mutex is held. The holder check keeps the walk safe when the caller
+ *          already runs in the GUI task. Returns -1 instead of a wrong count when the list cannot be
+ *          read safely, so an unavailable reading is never mistaken for an empty list.
+ *
+ * @return Number of live timers, or -1 if the list could not be read safely.
+ */
+static int32_t lvglTimerCount()
+{
+    if (lvgl_mutex == NULL)
+        return -1;
+
+    const bool alreadyHeld = xSemaphoreGetMutexHolder(lvgl_mutex) == xTaskGetCurrentTaskHandle();
+    if (!alreadyHeld && xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) != pdTRUE)
+        return -1;
+
+    int32_t count = 0;
+    for (lv_timer_t *timer = lv_timer_get_next(NULL); timer != NULL; timer = lv_timer_get_next(timer))
+        count++;
+
+    if (!alreadyHeld)
+        xSemaphoreGive(lvgl_mutex);
+    return count;
+}
+
+/**
  * @brief Build a memory snapshot: heap internal/PSRAM, LVGL pool and task stacks
  *
  * @return Pointer to a static buffer with the formatted snapshot
@@ -249,9 +279,9 @@ const char *diagSnapshotMemory()
         lv_mem_monitor_t mon;
         lv_mem_monitor(&mon);
         off += snprintf(memSnapshot + off, MEM_SNAPSHOT_SIZE - off,
-                        "LVGL mem: used %u of %u, frag %u%%\n",
+                        "LVGL mem: used %u of %u, frag %u%%, timers %d\n",
                         (unsigned)(mon.total_size - mon.free_size), (unsigned)mon.total_size,
-                        mon.frag_pct);
+                        mon.frag_pct, (int)lvglTimerCount());
     }
     else
     {

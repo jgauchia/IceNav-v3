@@ -25,11 +25,7 @@ bool needReboot = false; /**< Flag to indicate if a system reboot is required */
 static void back(lv_event_t *event)
 {
     if (isSearchingSat)
-    {
-        searchTimer = lv_timer_create(searchGPS, 100, NULL);
-        lv_timer_ready(searchTimer);
-        lv_screen_load(searchSatScreen);
-    }
+        resumeSatSearch();
     else
         loadMainScreen();
 }

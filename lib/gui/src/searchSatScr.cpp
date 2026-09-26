@@ -12,7 +12,7 @@
 static bool skipSearch = false;               /**< Flag to indicate if satellite search should be skipped */
 bool isSearchingSat = true;                   /**< Flag to indicate if satellite search is in progress */
 extern uint8_t activeTile;                    /**< Index of the currently active tile */
-lv_timer_t *searchTimer;                      /**< Timer for satellite search process */
+static lv_timer_t *searchTimer = NULL;        /**< Timer for satellite search process */
 
 /**
  * @brief Button events
@@ -30,13 +30,31 @@ void buttonEvent(lv_event_t *event)
         lv_screen_load(settingsScreen);
 }
 /**
+ * @brief Delete the satellite search timer
+ *
+ * @details Deletes the given timer and clears the module handle when both point to the same timer, so
+ *          no later caller can resume or delete a freed timer. Safe to call with NULL because the LVGL
+ *          timer API is built with LV_USE_ASSERT_NULL disabled.
+ *
+ * @param timer LVGL timer pointer to delete.
+ */
+static void deleteSearchTimer(lv_timer_t *timer)
+{
+    if (timer == NULL)
+        return;
+    lv_timer_delete(timer);
+    if (searchTimer == timer)
+        searchTimer = NULL;
+}
+
+/**
  * @brief Search valid GPS signal
  *
  * @details Checks for a valid GPS fix or a skip command.
  *
- * @param searchTimer LVGL timer pointer associated with the satellite search.
+ * @param timer LVGL timer pointer associated with the satellite search.
  */
-void searchGPS(lv_timer_t *searchTimer)
+void searchGPS(lv_timer_t *timer)
 {
     static uint8_t fixConfirmCount = 0;  // Confirm fix is stable
 
@@ -47,7 +65,7 @@ void searchGPS(lv_timer_t *searchTimer)
         if (fixConfirmCount >= 5)
         {
             fixConfirmCount = 0;
-            lv_timer_delete(searchTimer);
+            deleteSearchTimer(timer);
             isSearchingSat = false;
             loadMainScreen();
         }
@@ -60,7 +78,7 @@ void searchGPS(lv_timer_t *searchTimer)
     {
         skipSearch = false;  // Reset flag
         fixConfirmCount = 0;
-        lv_timer_delete(searchTimer);
+        deleteSearchTimer(timer);
         isSearchingSat = false;
         zoom = defaultZoom;
         activeTile = 3;
@@ -76,9 +94,6 @@ void searchGPS(lv_timer_t *searchTimer)
  */
 void createSearchSatScr()
 {
-    searchTimer = lv_timer_create(searchGPS, 100, NULL);
-    lv_timer_pause(searchTimer);
-
     searchSatScreen = lv_obj_create(NULL);
 
     lv_obj_t *label = lv_label_create(searchSatScreen);
@@ -129,4 +144,23 @@ void createSearchSatScr()
     lv_obj_update_layout(imgBtn);
     lv_obj_set_style_size(imgBtn,48 * scaleBut, 48 * scaleBut, 0);
     lv_obj_add_event_cb(imgBtn, buttonEvent, LV_EVENT_PRESSED, (char*)"skip");
+}
+
+/**
+ * @brief Bring the satellite search screen on screen
+ *
+ * @details Single entry point that owns the search timer: creates it the first time, resumes the live
+ *          one on every later call, and loads the search screen. Returning from settings reuses the
+ *          running timer instead of creating a second one on top of it.
+ */
+void resumeSatSearch()
+{
+    if (searchTimer == NULL)
+    {
+        searchTimer = lv_timer_create(searchGPS, 100, NULL);
+        lv_timer_pause(searchTimer);
+    }
+    lv_timer_resume(searchTimer);
+    lv_timer_ready(searchTimer);
+    lv_screen_load(searchSatScreen);
 }
