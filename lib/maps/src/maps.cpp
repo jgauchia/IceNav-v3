@@ -102,6 +102,9 @@ static const uint8_t PREFETCH_PIN_FRAMES = 4;
 static const uint8_t PREFETCH_MAX_LOAD_PER_PASS = 4;
 #endif
 static const float PREFETCH_MIN_DRAG_VELOCITY = 0.5f;
+#if defined(EXTRA_LARGE_SCREEN)
+static const float INERTIA_LOD_MIN_VELOCITY = 0.5f;
+#endif
 
 static bool aggressiveLod = false;
 
@@ -1187,7 +1190,14 @@ void Maps::mapRenderTask(void* pvParameters)
                 instance->update3DCache();
                 if (!vectorRender)
                     instance->placedLabelsCache.clear();
+#if defined(EXTRA_LARGE_SCREEN)
+                const bool inertiaGlide = instance->inertia &&
+                                          (fabsf(instance->velocityX) > INERTIA_LOD_MIN_VELOCITY ||
+                                           fabsf(instance->velocityY) > INERTIA_LOD_MIN_VELOCITY);
+                aggressiveLod = vectorRender && (stepBehindFinger || inertiaGlide);
+#else
                 aggressiveLod = vectorRender && stepBehindFinger;
+#endif
                 if (aggressiveLod)
                     instance->vectorCapped = true;
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
@@ -1802,6 +1812,70 @@ void Maps::composeMap()
 
     mapCanvasParent()->endWrite();
 }
+#if defined(CONFIG_IDF_TARGET_ESP32P4) && defined(EXTRA_LARGE_SCREEN)
+
+/**
+ * @brief Copies the visible map window into the panel canvas with a staged row copy.
+ *
+ * @details The sprite to sprite blit leaves the fast memcpy path whenever the
+ *          destination buffer comes from PSRAM and falls back to a per-pixel
+ *          conversion loop, which costs about 57 ns per pixel on every board
+ *          (22 ms for the 800x480 window) and does not fit the GUI budget. This
+ *          copies the cropped window row by row through a small internal RAM
+ *          staging buffer, the same pattern LovyanGFX uses for PSRAM surfaces,
+ *          so each row is a plain memcpy and the stored byte order is kept as
+ *          is. Pixels outside the rasterized grid are left untouched, matching
+ *          the clipping of the blit it replaces.
+ *
+ * @param viewOffsetX Horizontal display offset inside the grid.
+ * @param viewOffsetY Vertical display offset inside the grid.
+ * @return true when the window was copied.
+ */
+bool Maps::composeCropStaged(int16_t viewOffsetX, int16_t viewOffsetY)
+{
+    uint8_t* src = static_cast<uint8_t*>(mapTempSprite.getBuffer());
+    uint8_t* dst = static_cast<uint8_t*>(mapSprite.getBuffer());
+    if (src == nullptr || dst == nullptr)
+        return false;
+
+    const int32_t gridW = (int32_t)tileWidth;
+    const int32_t gridH = (int32_t)tileHeight;
+    const int32_t scrW = (int32_t)mapScrWidth;
+    const int32_t scrH = (int32_t)mapScrHeight;
+    const int32_t srcX = (gridW - scrW) / 2 + viewOffsetX;
+    const int32_t srcY = (gridH - scrH) / 2 + viewOffsetY;
+
+    const int32_t firstCol = (srcX < 0) ? -srcX : 0;
+    const int32_t lastCol = (srcX + scrW > gridW) ? (gridW - srcX) : scrW;
+    const int32_t firstRow = (srcY < 0) ? -srcY : 0;
+    const int32_t lastRow = (srcY + scrH > gridH) ? (gridH - srcY) : scrH;
+    if (firstCol >= lastCol || firstRow >= lastRow)
+        return false;
+
+    const size_t rowBytes = (size_t)(lastCol - firstCol) * 2;
+    static uint8_t* stage = nullptr;
+    static size_t stageSize = 0;
+    if (rowBytes > stageSize)
+    {
+        if (stage != nullptr)
+            heap_caps_free(stage);
+        stage = static_cast<uint8_t*>(heap_caps_malloc(rowBytes, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
+        stageSize = (stage != nullptr) ? rowBytes : 0;
+    }
+    if (stage == nullptr)
+        return false;
+
+    for (int32_t row = firstRow; row < lastRow; row++)
+    {
+        const uint8_t* srcRow = src + ((size_t)(srcY + row) * (size_t)gridW + (size_t)(srcX + firstCol)) * 2;
+        uint8_t* dstRow = dst + ((size_t)row * (size_t)scrW + (size_t)firstCol) * 2;
+        memcpy(stage, srcRow, rowBytes);
+        memcpy(dstRow, stage, rowBytes);
+    }
+
+    return true;
+}
+#endif
 
 /**
  * @brief Draws the initial placeholder frame until the map is found.
@@ -1901,9 +1975,18 @@ void Maps::displayMap()
         }
         else
         {
+#if defined(EXTRA_LARGE_SCREEN)
+            if (!composeCropStaged(displayOffsetX, displayOffsetY))
+            {
+                int16_t cropX = (tileWidth  - mapScrWidth)  / 2 + displayOffsetX;
+                int16_t cropY = (tileHeight - mapScrHeight) / 2 + displayOffsetY;
+                mapTempSprite.pushSprite(&mapSprite, -cropX, -cropY);
+            }
+#else
             int16_t cropX = (tileWidth  - mapScrWidth)  / 2 + displayOffsetX;
             int16_t cropY = (tileHeight - mapScrHeight) / 2 + displayOffsetY;
             mapTempSprite.pushSprite(&mapSprite, -cropX, -cropY);
+#endif
         }
     }
 
@@ -2141,10 +2224,15 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
     pendingDy += dy;
     scrolling = true;
 
+#if defined(EXTRA_LARGE_SCREEN)
+    if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(200)) != pdTRUE)
+        return;
+#else
     if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(10)) != pdTRUE)
     {
         return;
     }
+#endif
 
     dx = pendingDx;
     dy = pendingDy;

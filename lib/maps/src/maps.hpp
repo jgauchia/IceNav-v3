@@ -268,6 +268,9 @@ private:
     bool trackViewBounds(tileBounds& bounds);
     void drawTrack(MapCanvas& map);
     void drawWaypoint(MapCanvas& map);
+#if defined(CONFIG_IDF_TARGET_ESP32P4) && defined(EXTRA_LARGE_SCREEN)
+    bool composeCropStaged(int16_t viewOffsetX, int16_t viewOffsetY);
+#endif
 
 public:
     void redrawTrack();

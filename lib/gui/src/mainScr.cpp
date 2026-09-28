@@ -11,6 +11,9 @@
 #include "lvglSubjects.hpp"
 #include "navContext.hpp"
 #include "logger.hpp"
+#if defined(EXTRA_LARGE_SCREEN)
+#include "esp_timer.h"
+#endif
 
 #define MAP_MODE_FOLLOW 0
 #define MAP_MODE_MANUAL 1
@@ -72,6 +75,10 @@ static constexpr float MAP_INERTIA_FRICTION   = 0.85f; /**< Velocity damping fac
 static constexpr float MAP_INERTIA_VEL_THRESH = 0.1f;  /**< Velocity below which inertia scroll is stopped. */
 static constexpr float MAP_HEADING_THRESHOLD  = 2.0f;  /**< Minimum heading change (degrees) that triggers a map redraw. */
 static constexpr float MAP_VELOCITY_WEIGHT    = 0.7f;  /**< EMA weight for velocity estimation during drag. */
+#if defined(EXTRA_LARGE_SCREEN)
+static constexpr float MAP_INERTIA_PERIOD_MIN_MS = 10.0f; /**< Lower clamp for the measured inertia tick period. */
+static constexpr float MAP_INERTIA_PERIOD_MAX_MS = 40.0f; /**< Upper clamp for the measured inertia tick period. */
+#endif
 
 /**
  * @brief Update compass screen event
@@ -919,7 +926,29 @@ static void mapToolBarEvent(lv_event_t *event)
  */
 static void map_inertia_timer_cb(lv_timer_t * t)
 {
+#if defined(EXTRA_LARGE_SCREEN)
+    static uint32_t inertiaTickCount = 0;
+    static int64_t inertiaLastTickUs = 0;
+
+    float dt = 20.0f;
+    const int64_t tickNowUs = esp_timer_get_time();
+    if (inertiaTickCount > 0)
+    {
+        const uint32_t periodUs = (uint32_t)(tickNowUs - inertiaLastTickUs);
+        if (periodUs > 0)
+        {
+            dt = (float)periodUs / 1000.0f;
+            if (dt < MAP_INERTIA_PERIOD_MIN_MS)
+                dt = MAP_INERTIA_PERIOD_MIN_MS;
+            if (dt > MAP_INERTIA_PERIOD_MAX_MS)
+                dt = MAP_INERTIA_PERIOD_MAX_MS;
+        }
+    }
+    inertiaLastTickUs = tickNowUs;
+    inertiaTickCount++;
+#else
     float dt = 20.0f; // Fixed period defined in createMainScr()
+#endif
     if (mapView.velocityX != 0 || mapView.velocityY != 0)
     {
         float dx = mapView.velocityX * dt;
@@ -941,6 +970,9 @@ static void map_inertia_timer_cb(lv_timer_t * t)
     }
     else
     {
+#if defined(EXTRA_LARGE_SCREEN)
+        inertiaTickCount = 0;
+#endif
         lv_timer_pause(t);
         mapView.setInertia(false);
         mapView.commitScroll();
