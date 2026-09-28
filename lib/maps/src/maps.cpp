@@ -69,6 +69,40 @@ static uint32_t linePx = 0;
 static uint32_t trkPx = 0;
 static uint32_t ppaUs = 0;
 static uint32_t polyDecUs = 0;
+static uint32_t rstFreeUs = 0;
+static uint32_t rstOpenUs = 0;
+static uint32_t decLoadUs = 0;
+static uint32_t decDecUs = 0;
+static uint32_t decLoadMaxUs = 0;
+static uint32_t yldDelayUs = 0;
+static uint32_t yldWaitUs = 0;
+static uint32_t yldContend = 0;
+static char yldRival[16] = "none";
+static const int64_t YLD_CONTENTION_US = 3000;
+
+enum class HoldPhase : uint8_t
+{
+    Rst = 0,
+    Scr,
+    Lbl,
+    Tile,
+    Srm,
+    Bkg,
+    Paint,
+    Trk,
+    Tail,
+    Count
+};
+
+static const char* const holdPhaseName[static_cast<uint8_t>(HoldPhase::Count)] =
+{
+    "rst", "scr", "lbl", "tile", "srm", "bkg", "paint", "trk", "tail"
+};
+static uint32_t holdMaxUs = 0;
+static int64_t holdPhaseStartUs = 0;
+static uint32_t holdUsByPhase[static_cast<uint8_t>(HoldPhase::Count)] = {};
+static uint8_t holdPhase = static_cast<uint8_t>(HoldPhase::Rst);
+static uint8_t holdMaxPhase = static_cast<uint8_t>(HoldPhase::Rst);
 
 static inline void resetPassCounters()
 {
@@ -95,6 +129,19 @@ static inline void resetPassCounters()
     trkPx = 0;
     ppaUs = 0;
     polyDecUs = 0;
+    rstFreeUs = 0;
+    rstOpenUs = 0;
+    decLoadUs = 0;
+    decDecUs = 0;
+    decLoadMaxUs = 0;
+    yldDelayUs = 0;
+    yldWaitUs = 0;
+    yldContend = 0;
+    snprintf(yldRival, sizeof(yldRival), "none");
+    holdMaxUs = 0;
+    holdMaxPhase = static_cast<uint8_t>(HoldPhase::Rst);
+    for (uint8_t i = 0; i < static_cast<uint8_t>(HoldPhase::Count); i++)
+        holdUsByPhase[i] = 0;
 }
 static const uint16_t PREFETCH_MIN_SPEED_KMH = 5;
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
@@ -880,6 +927,29 @@ void Maps::mapRenderTask(void* pvParameters)
 
                 const int64_t passStartUs = esp_timer_get_time();
                 atomicMarkUs = passStartUs;
+                holdPhaseStartUs = passStartUs;
+                holdPhase = static_cast<uint8_t>(HoldPhase::Rst);
+
+                /** Imputa a su fase el tiempo retenido desde el ultimo corte y reabre el
+                 *  tramo en el instante dado. El maximo asi seguido es el de un tramo de fase,
+                 *  no el de un tramo de cesion: sigue siendo valido en las pasadas que nunca ceden. */
+                auto flushHold = [&](int64_t nowUs)
+                {
+                    const uint32_t spanUs = (uint32_t)(nowUs - holdPhaseStartUs);
+                    holdUsByPhase[holdPhase] += spanUs;
+                    if (spanUs > holdMaxUs)
+                    {
+                        holdMaxUs = spanUs;
+                        holdMaxPhase = holdPhase;
+                    }
+                    holdPhaseStartUs = nowUs;
+                };
+
+                auto setHoldPhase = [&](HoldPhase phase)
+                {
+                    flushHold(esp_timer_get_time());
+                    holdPhase = static_cast<uint8_t>(phase);
+                };
 
                 const int64_t resetMarkUs = esp_timer_get_time();
                 if (fullReset)
@@ -891,6 +961,7 @@ void Maps::mapRenderTask(void* pvParameters)
 
                     if (zoomChanged)
                     {
+                        const int64_t freeMarkUs = esp_timer_get_time();
                         for (auto& entry : instance->vectorCache)
                             heap_caps_free(entry.data);
 
@@ -899,6 +970,7 @@ void Maps::mapRenderTask(void* pvParameters)
                             heap_caps_free(freeBuf.data);
 
                         instance->bufferFreeList.clear();
+                        rstFreeUs += (uint32_t)(esp_timer_get_time() - freeMarkUs);
                     }
 
                     instance->featurePool.clear();
@@ -911,7 +983,11 @@ void Maps::mapRenderTask(void* pvParameters)
                     }
 
                     if (mapSet.vectorMap)
+                    {
+                        const int64_t openMarkUs = esp_timer_get_time();
                         NavReader::openPack(instance->zoomLevel);
+                        rstOpenUs += (uint32_t)(esp_timer_get_time() - openMarkUs);
+                    }
                     else if (instance->mapTempSprite.getBuffer())
                     {
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
@@ -948,9 +1024,11 @@ void Maps::mapRenderTask(void* pvParameters)
                 {
                     const int16_t shiftX = -instance->vectorDirX * mapTileSize;
                     const int16_t shiftY = -instance->vectorDirY * mapTileSize;
+                    setHoldPhase(HoldPhase::Scr);
                     const int64_t scrollMarkUs = esp_timer_get_time();
                     instance->scrollVectorSprite(shiftX, shiftY);
                     scrUs += (uint32_t)(esp_timer_get_time() - scrollMarkUs);
+                    setHoldPhase(HoldPhase::Lbl);
                     for (auto& label : instance->placedLabelsCache)
                     {
                         label.x += shiftX;
@@ -976,13 +1054,17 @@ void Maps::mapRenderTask(void* pvParameters)
 
                 /** Cierra el tramo de tenencia del mutex en curso y memoriza el más largo de la pasada.
                  *  El tramo atómico es el techo de latencia de entrada: el render task no suelta
-                 *  mapMutex hasta la siguiente cesión, y scrollMap solo la pide con 10 ms de timeout,
-                 *  así que el scroll se queda pendiente durante ese tramo entero.
-                 *  Se llama en cada cesión del mutex y al final de la pasada (para el tramo de cola). */
+                 *  mapMutex hasta la siguiente cesión, y scrollMap solo la pide con timeout (10 ms,
+                 *  200 ms en EXTRA_LARGE_SCREEN), así que el scroll se queda pendiente durante
+                 *  ese tramo entero.
+                 *  Se llama en cada cesión del mutex y al final de la pasada (para el tramo de cola).
+                 *  Reparte el tiempo retenido por fases; el tramo de cesion mas largo lo sigue
+                 *  midiendo atomicMaxUs, y holdMax@ del log es el tramo de fase mas largo. */
                 auto closeAtomicHold = [&]()
                 {
                     const int64_t nowUs = esp_timer_get_time();
                     const uint32_t holdUs = (uint32_t)(nowUs - atomicMarkUs);
+                    flushHold(nowUs);
                     if (holdUs > atomicMaxUs)
                         atomicMaxUs = holdUs;
                     atomicMarkUs = nowUs;
@@ -1013,8 +1095,21 @@ void Maps::mapRenderTask(void* pvParameters)
                     closeAtomicHold();
                     xSemaphoreGiveRecursive(instance->mapMutex);
                     vTaskDelay(1);
+                    const int64_t retakeMarkUs = esp_timer_get_time();
+                    const TaskHandle_t rivalHandle = xSemaphoreGetMutexHolder(instance->mapMutex);
                     bool shouldAbort = xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE;
-                    yldUs += (uint32_t)(esp_timer_get_time() - yieldMarkUs);
+                    const int64_t retakeEndUs = esp_timer_get_time();
+                    const uint32_t waitUs = (uint32_t)(retakeEndUs - retakeMarkUs);
+                    yldDelayUs += (uint32_t)(retakeMarkUs - yieldMarkUs);
+                    yldWaitUs += waitUs;
+                    yldUs += (uint32_t)(retakeEndUs - yieldMarkUs);
+                    if (waitUs > (uint32_t)YLD_CONTENTION_US)
+                    {
+                        yldContend++;
+                        snprintf(yldRival, sizeof(yldRival), "%s",
+                                 rivalHandle != nullptr ? pcTaskGetName(rivalHandle) : "late");
+                    }
+                    holdPhaseStartUs = retakeEndUs;
                     if (!shouldAbort)
                     {
                         if (vectorRender)
@@ -1036,9 +1131,16 @@ void Maps::mapRenderTask(void* pvParameters)
                 {
                     instance->mapTempSprite.endWrite();
                     closeAtomicHold();
+                    const int64_t featureYieldMarkUs = esp_timer_get_time();
                     xSemaphoreGiveRecursive(instance->mapMutex);
                     vTaskDelay(pdMS_TO_TICKS(2));
+                    const int64_t featureRetakeMarkUs = esp_timer_get_time();
                     bool shouldAbort = xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(100)) != pdTRUE;
+                    const int64_t featureRetakeEndUs = esp_timer_get_time();
+                    yldDelayUs += (uint32_t)(featureRetakeMarkUs - featureYieldMarkUs);
+                    yldWaitUs += (uint32_t)(featureRetakeEndUs - featureRetakeMarkUs);
+                    yldUs += (uint32_t)(featureRetakeEndUs - featureYieldMarkUs);
+                    holdPhaseStartUs = featureRetakeEndUs;
                     if (!shouldAbort)
                     {
                         if (vectorRender)
@@ -1058,6 +1160,7 @@ void Maps::mapRenderTask(void* pvParameters)
 
                 uint32_t passTiles = 0;
                 bool aborted = false;
+                setHoldPhase(HoldPhase::Tile);
                 while (!instance->pendingTiles.empty())
                 {
                     PendingTile t = instance->pendingTiles.back();
@@ -1098,6 +1201,7 @@ void Maps::mapRenderTask(void* pvParameters)
                 // The SRM copy runs during the band decode above; wait for it to
                 // finish before painting over the copied region (track/waypoint
                 // draw into it too). Normally already done (decode > copy time).
+                setHoldPhase(HoldPhase::Srm);
                 const int64_t srmMarkUs = esp_timer_get_time();
                 while (instance->srmInFlight)
                     vTaskDelay(1);
@@ -1133,6 +1237,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     instance->lastTileX = instance->tileX;
                     instance->lastTileY = instance->tileY;
 
+                    setHoldPhase(HoldPhase::Trk);
                     instance->drawTrack(instance->mapTempSprite);
                     instance->drawWaypoint(instance->mapTempSprite);
                     instance->redrawMap = true;
@@ -1157,6 +1262,7 @@ void Maps::mapRenderTask(void* pvParameters)
 
                 if (!vectorRender && instance->mapTempSprite.getBuffer())
                 {
+                    setHoldPhase(HoldPhase::Bkg);
                     const int64_t bkgMarkUs = esp_timer_get_time();
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
                     uint8_t* buf = static_cast<uint8_t*>(instance->mapTempSprite.getBuffer());
@@ -1214,6 +1320,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     ppaUs += prio0Us;
                 }
 #endif
+                setHoldPhase(HoldPhase::Paint);
                 const int64_t writeMarkUs = esp_timer_get_time();
                 instance->mapTempSprite.startWrite();
                 uint32_t lastYield = millisIDF();
@@ -1357,6 +1464,7 @@ void Maps::mapRenderTask(void* pvParameters)
                 instance->lastTileX = instance->tileX;
                 instance->lastTileY = instance->tileY;
 
+                setHoldPhase(HoldPhase::Trk);
                 const int64_t trackMarkUs = esp_timer_get_time();
                 instance->drawTrack(instance->mapTempSprite);
                 instance->drawWaypoint(instance->mapTempSprite);
@@ -1388,6 +1496,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
                     xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
                 }
+                setHoldPhase(HoldPhase::Tail);
                 const int64_t passEndUs = esp_timer_get_time();
                 closeAtomicHold();
                 totalUs += (uint32_t)(passEndUs - passStartUs);
@@ -1397,6 +1506,8 @@ void Maps::mapRenderTask(void* pvParameters)
                 xSemaphoreGiveRecursive(instance->mapMutex);
                 if (viewportComplete)
                 {
+                    const uint32_t measuredUs = rstUs + scrUs + decUs + bkgUs + srmUs + wrUs + trackUs + yldUs;
+                    const uint32_t restUs = totalUs > measuredUs ? totalUs - measuredUs : 0;
                     ESP_LOGI(TAG,
                              "PASS z%u #%u | %.1fms | rst %.1fms | dec %.1fms | yld %.1fms | atc %.1fms x%u | scr %.1fms | bkg %.1fms | srm %.1fms | wr %.1fms | poly %.1fms (fill %.1fms) | line %.1fms | point %.1fms | text %.1fms | trk %.1fms | ppa %.1fms | polydec %.1fms | fillPx %u | linePx %u | trkPx %u | %up %ul",
                              (unsigned)instance->zoomLevel,
@@ -1424,6 +1535,31 @@ void Maps::mapRenderTask(void* pvParameters)
                              (unsigned)trkPx,
                              (unsigned)polyCount,
                              (unsigned)lineCount);
+                    ESP_LOGI(TAG,
+                             "PASSDETAIL z%u #%u | rest %.1fms | rst[free %.1fms open %.1fms] | dec[load %.1fms max %.1fms decode %.1fms] | yld[delay %.1fms wait %.1fms contend %u rival %s] | holdmax@%s %.1fms | hold rst %.1f scr %.1f lbl %.1f tile %.1f srm %.1f bkg %.1f paint %.1f trk %.1f tail %.1f",
+                             (unsigned)instance->zoomLevel,
+                             (unsigned)passCounter,
+                             restUs / 1000.0,
+                             rstFreeUs / 1000.0,
+                             rstOpenUs / 1000.0,
+                             decLoadUs / 1000.0,
+                             decLoadMaxUs / 1000.0,
+                             decDecUs / 1000.0,
+                             yldDelayUs / 1000.0,
+                             yldWaitUs / 1000.0,
+                             (unsigned)yldContend,
+                             yldRival,
+                             holdPhaseName[holdMaxPhase],
+                             holdMaxUs / 1000.0,
+                             holdUsByPhase[static_cast<uint8_t>(HoldPhase::Rst)] / 1000.0,
+                             holdUsByPhase[static_cast<uint8_t>(HoldPhase::Scr)] / 1000.0,
+                             holdUsByPhase[static_cast<uint8_t>(HoldPhase::Lbl)] / 1000.0,
+                             holdUsByPhase[static_cast<uint8_t>(HoldPhase::Tile)] / 1000.0,
+                             holdUsByPhase[static_cast<uint8_t>(HoldPhase::Srm)] / 1000.0,
+                             holdUsByPhase[static_cast<uint8_t>(HoldPhase::Bkg)] / 1000.0,
+                             holdUsByPhase[static_cast<uint8_t>(HoldPhase::Paint)] / 1000.0,
+                             holdUsByPhase[static_cast<uint8_t>(HoldPhase::Trk)] / 1000.0,
+                             holdUsByPhase[static_cast<uint8_t>(HoldPhase::Tail)] / 1000.0);
                     resetPassCounters();
                 }
                 triggerMapRedraw();
@@ -4246,8 +4382,15 @@ uint32_t Maps::ppaFillPrio0Tiles()
 void Maps::renderVectorTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map)
 {
     size_t dataSize = 0;
+    const int64_t loadMarkUs = esp_timer_get_time();
     uint8_t* data = vectorCacheLookupOrLoad(tileX, tileY, zoom, dataSize);
+    const uint32_t loadUs = (uint32_t)(esp_timer_get_time() - loadMarkUs);
+    decLoadUs += loadUs;
+    if (loadUs > decLoadMaxUs)
+        decLoadMaxUs = loadUs;
     if (!data || dataSize < NAV_TILE_HDR_SIZE)
         return;
+    const int64_t decodeMarkUs = esp_timer_get_time();
     decodeVectorFeatures(data, dataSize, screenX, screenY, zoom);
+    decDecUs += (uint32_t)(esp_timer_get_time() - decodeMarkUs);
 }
