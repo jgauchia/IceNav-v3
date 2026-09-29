@@ -147,6 +147,7 @@ static const uint16_t PREFETCH_MIN_SPEED_KMH = 5;
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
 static const uint8_t PREFETCH_PIN_FRAMES = 4;
 static const uint8_t PREFETCH_MAX_LOAD_PER_PASS = 4;
+static const float PREFETCH_DIR_AXIS_RATIO = 2.41421f;
 #endif
 static const float PREFETCH_MIN_DRAG_VELOCITY = 0.5f;
 #if defined(EXTRA_LARGE_SCREEN)
@@ -1576,12 +1577,15 @@ void Maps::mapRenderTask(void* pvParameters)
 /**
  * @brief Predictively preloads vector tiles while the render task is idle.
  *
- * @details Runs only when the pending queue is empty (no active render). On ESP32-P4
- *          it loads the leading border of the next grid (Chebyshev radius
- *          tilesGrid/2 + 1), ordered by dot product with the movement direction (GPS
- *          heading while following, drag velocity otherwise), so a tile crossing or a
- *          90 degree turn does not stall on an SD read. Loaded tiles stay pinned for
- *          PREFETCH_PIN_FRAMES render cycles. On the other targets the single-tile
+ * @details Runs only when the pending queue is empty (no active render). On ESP32-P4 it
+ *          returns before taking the mutex while the zoom, the centre tile and the 45 degree
+ *          direction sector stay the same as the last completed ring, so the idle loop does
+ *          not rebuild a ring that is already the right one; a ring whose loads failed is not
+ *          retried until that key changes. Otherwise it loads the leading border of the next
+ *          grid (Chebyshev radius tilesGrid/2 + 1), ordered by dot product with the movement
+ *          direction (GPS heading while following, drag velocity otherwise), so a tile
+ *          crossing or a 90 degree turn does not stall on an SD read. Loaded tiles stay
+ *          pinned for PREFETCH_PIN_FRAMES render cycles. On the other targets the single-tile
  *          heading prefetch is kept unchanged.
  */
 void Maps::prefetchNextTile()
@@ -1615,6 +1619,25 @@ void Maps::prefetchNextTile()
         centerTileX = currentMapTile.tilex;
         centerTileY = currentMapTile.tiley;
     }
+
+    uint8_t dirSector = 0;
+    const float absDirX = fabsf(dirTileX);
+    const float absDirY = fabsf(dirTileY);
+    if (absDirY >= absDirX * PREFETCH_DIR_AXIS_RATIO)
+        dirSector = (dirTileY < 0.0f) ? 0 : 4;
+    else if (absDirX >= absDirY * PREFETCH_DIR_AXIS_RATIO)
+        dirSector = (dirTileX < 0.0f) ? 6 : 2;
+    else if (dirTileX < 0.0f)
+        dirSector = (dirTileY < 0.0f) ? 7 : 5;
+    else
+        dirSector = (dirTileY < 0.0f) ? 1 : 3;
+
+    if (prefetchRingValid
+        && lastPrefetchRingKey.zoom == (uint32_t)zoomLevel
+        && lastPrefetchRingKey.tileX == centerTileX
+        && lastPrefetchRingKey.tileY == centerTileY
+        && lastPrefetchRingKey.dirSector == dirSector)
+        return;
 
     if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(100)) != pdTRUE)
         return;
@@ -1680,6 +1703,12 @@ void Maps::prefetchNextTile()
         }
         loadedInPass++;
     }
+
+    lastPrefetchRingKey.zoom = (uint32_t)zoomLevel;
+    lastPrefetchRingKey.tileX = centerTileX;
+    lastPrefetchRingKey.tileY = centerTileY;
+    lastPrefetchRingKey.dirSector = dirSector;
+    prefetchRingValid = true;
 
     xSemaphoreGiveRecursive(mapMutex);
 #else

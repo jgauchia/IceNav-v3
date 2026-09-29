@@ -236,6 +236,18 @@ private:
     uint32_t cacheCounter = 0;
     uint32_t lastPrefetchHash = 0;
 
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    struct PrefetchRingKey
+    {
+        uint32_t zoom;
+        uint32_t tileX;
+        uint32_t tileY;
+        uint8_t dirSector;
+    };
+    bool prefetchRingValid = false;
+    PrefetchRingKey lastPrefetchRingKey = {0, 0, 0, 0};
+#endif
+
     static const uint16_t MAX_POLYGON_POINTS = 8192;
     static const uint32_t MAX_FEATURE_POOL_SIZE = 32768;
     static const uint16_t MAX_PLACED_LABELS = 512;
