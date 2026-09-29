@@ -2559,7 +2559,8 @@ void Maps::commitScroll()
     if (!vectorDeferred)
         return;
 
-    if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(10)) != pdTRUE)
+    // The render task holds mapMutex for a whole band, so 10 ms drops the deferred re-render.
+    if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(200)) != pdTRUE)
         return;
 
     if (vectorPending || !vectorSteps.empty())
