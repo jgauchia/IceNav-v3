@@ -14,6 +14,7 @@
 #include <climits>
 #include <cstdio>
 #include <cstdint>
+#include <utility>
 #include "tasks.hpp"
 #include "mainScr.hpp"
 #include "navContext.hpp"
@@ -67,6 +68,7 @@ static int64_t atomicMarkUs = 0;
 static uint32_t fillPx = 0;
 static uint32_t linePx = 0;
 static uint32_t trkPx = 0;
+static uint32_t ppaTiles = 0;
 static uint32_t ppaUs = 0;
 static uint32_t polyDecUs = 0;
 static uint32_t rstFreeUs = 0;
@@ -127,6 +129,7 @@ static inline void resetPassCounters()
     fillPx = 0;
     linePx = 0;
     trkPx = 0;
+    ppaTiles = 0;
     ppaUs = 0;
     polyDecUs = 0;
     rstFreeUs = 0;
@@ -483,6 +486,7 @@ void Maps::initMap(uint16_t mapWidth, uint16_t mapHeight)
     // ratio consistent on screens with a different width/height ratio (4.3").
     constexpr float referenceHeight = 480.0f - statusBarHeight;
     Maps::focalLength = 300.0f * (static_cast<float>(mapHeight) / referenceHeight);
+    Maps::tiltCos = cosf(Maps::mapTilt * (static_cast<float>(M_PI) / 180.0f));
     Maps::mapTempSprite.createSprite(Maps::tileWidth, Maps::tileHeight);
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
     {
@@ -669,7 +673,9 @@ void Maps::drawTrack(MapCanvas& map)
             prevY = curY;
         }
     }
-    trkPx += linePx - linePxStart;
+    const uint32_t trackPxDelta = linePx - linePxStart;
+    trkPx += trackPxDelta;
+    linePx -= trackPxDelta;
 }
 
 /**
@@ -763,6 +769,10 @@ bool Maps::loadPngTileIntoSprite(int32_t tlX, int32_t tlY, int gx, int gy,
  */
 void Maps::generateMap(uint8_t zoom)
 {
+    // Pan updates the tile indices only; the geographic center is derived here.
+    Maps::currentMapTile.lon = Maps::tilex2lon(Maps::currentMapTile.tilex, Maps::currentMapTile.zoom);
+    Maps::currentMapTile.lat = Maps::tiley2lat(Maps::currentMapTile.tiley, Maps::currentMapTile.zoom);
+
     if (zoom != Maps::zoomLevel)
     {
         Maps::zoomLevel = zoom;
@@ -801,10 +811,13 @@ void Maps::generateMap(uint8_t zoom)
         if (pendingTiles.size() > (tilesGrid * tilesGrid))
             return;
 
-        Maps::isMapFound = renderVectorViewport(baseLat, baseLon, zoom, Maps::mapTempSprite);
-        vectorZoom = zoom;
-        vectorNeedsRender = false;
-        latLonToPixel(destLat, destLon, (int16_t&)wptPosX, (int16_t&)wptPosY);
+        if (renderVectorViewport(baseLat, baseLon, zoom, Maps::mapTempSprite))
+        {
+            Maps::isMapFound = true;
+            vectorZoom = zoom;
+            vectorNeedsRender = false;
+            latLonToPixel(destLat, destLon, (int16_t&)wptPosX, (int16_t&)wptPosY);
+        }
         Maps::redrawMap = true;
         return;
     }
@@ -1321,7 +1334,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     passTiles >= (uint32_t)instance->tilesGrid * (uint32_t)instance->tilesGrid)
                 {
                     const int64_t prio0MarkUs = esp_timer_get_time();
-                    instance->ppaFillPrio0Tiles();
+                    ppaTiles += instance->ppaFillPrio0Tiles();
                     const uint32_t prio0Us = (uint32_t)(esp_timer_get_time() - prio0MarkUs);
                     bkgUs += prio0Us;
                     ppaUs += prio0Us;
@@ -1516,7 +1529,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     const uint32_t measuredUs = rstUs + scrUs + decUs + bkgUs + srmUs + wrUs + trackUs + yldUs;
                     const uint32_t restUs = totalUs > measuredUs ? totalUs - measuredUs : 0;
                     ESP_LOGI(TAG,
-                             "PASS z%u #%u | %.1fms | rst %.1fms | dec %.1fms | yld %.1fms | atc %.1fms x%u | scr %.1fms | bkg %.1fms | srm %.1fms | wr %.1fms | poly %.1fms (fill %.1fms) | line %.1fms | point %.1fms | text %.1fms | trk %.1fms | ppa %.1fms | polydec %.1fms | fillPx %u | linePx %u | trkPx %u | %up %ul",
+                             "PASS z%u #%u | %.1fms | rst %.1fms | dec %.1fms | yld %.1fms | atc %.1fms x%u | scr %.1fms | bkg %.1fms | srm %.1fms | wr %.1fms | poly %.1fms (fill %.1fms) | line %.1fms | point %.1fms | text %.1fms | trk %.1fms | ppa %.1fms | polydec %.1fms | fillPx %u | linePx %u | trkPx %u | ppaTiles %u | %up %ul",
                              (unsigned)instance->zoomLevel,
                              (unsigned)passCounter,
                              totalUs / 1000.0,
@@ -1540,6 +1553,7 @@ void Maps::mapRenderTask(void* pvParameters)
                              (unsigned)fillPx,
                              (unsigned)linePx,
                              (unsigned)trkPx,
+                             (unsigned)ppaTiles,
                              (unsigned)polyCount,
                              (unsigned)lineCount);
                     ESP_LOGI(TAG,
@@ -2238,9 +2252,6 @@ void Maps::apply3DPerspective(uint16_t heading)
 
     // Perspective parameters: horizon at top quarter of screen
     const int horizonScreenY = dstH / 5;
-    const float tiltRad = mapTilt * (static_cast<float>(M_PI) / 180.0f);
-    const float cosTilt = lutInit ? cosLUT(tiltRad) : cosf(tiltRad);
-    const float invCosTilt = 1.0f / cosTilt;
 
     // Sky color: soft blue ~#A8C8E8 (byte-swapped for direct buffer write)
     const uint16_t skyColor = 0x5DAE;
@@ -2262,8 +2273,7 @@ void Maps::apply3DPerspective(uint16_t heading)
         // t=0 at horizon, t=1 at GPS screen position
         float t = static_cast<float>(y - horizonScreenY) * invSpan;
 
-        float scale = t * invCosTilt;
-        float invScale = 1.0f / scale;
+        const float invScale = tiltCos / t;
 
         // Positive srcRelY = ahead (up in heading-up view = forward direction)
         float srcRelY = (focalLength * invScale) * (1.0f - t) / t;
@@ -2327,8 +2337,6 @@ void Maps::panMap(int8_t dx, int8_t dy)
 {
     Maps::currentMapTile.tilex += dx;
     Maps::currentMapTile.tiley += dy;
-    Maps::currentMapTile.lon = Maps::tilex2lon(Maps::currentMapTile.tilex, Maps::currentMapTile.zoom);
-    Maps::currentMapTile.lat = Maps::tiley2lat(Maps::currentMapTile.tiley, Maps::currentMapTile.zoom);
 }
 
 /**
@@ -2718,6 +2726,7 @@ void Maps::queueVectorStep(uint32_t centerTileIdxX, uint32_t centerTileIdxY,
     VectorStep step;
     step.dirX = dirX;
     step.dirY = dirY;
+    step.tiles.reserve(tilesGrid);
 
     if (dirX != 0)
     {
@@ -2736,7 +2745,7 @@ void Maps::queueVectorStep(uint32_t centerTileIdxX, uint32_t centerTileIdxY,
                                   (int16_t)(gx * tileSize), (int16_t)(gy * tileSize), TILE_NAV});
     }
 
-    vectorSteps.push_back(step);
+    vectorSteps.push_back(std::move(step));
 }
 
 /**
@@ -3890,19 +3899,19 @@ bool Maps::renderVectorViewport(float centerLat, float centerLon, uint8_t zoom, 
     const uint32_t centerTileIdxX = lon2tilex(centerLon, zoom);
     const uint32_t centerTileIdxY = lat2tiley(centerLat, zoom);
     const int8_t gridOffset = tilesGrid / 2;
+    if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(200)) != pdTRUE)
+        return false;
+
     mapTlX = (float)(centerTileIdxX - gridOffset);
     mapTlY = (float)(centerTileIdxY - gridOffset);
     vectorPending = false;
     vectorSteps.clear();
     vectorZoom = zoom;
-    if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
-    {
-        redrawMap = true;
-        pendingTiles.clear();
-        pendingTilesNotEmpty = false;
-        enqueueTileGrid(centerTileIdxX, centerTileIdxY, TILE_NAV);
-        xSemaphoreGiveRecursive(mapMutex);
-    }
+    redrawMap = true;
+    pendingTiles.clear();
+    pendingTilesNotEmpty = false;
+    enqueueTileGrid(centerTileIdxX, centerTileIdxY, TILE_NAV);
+    xSemaphoreGiveRecursive(mapMutex);
     return true;
 }
 
@@ -4087,6 +4096,8 @@ bool Maps::tryLoadRowByRuns(uint32_t tileX, uint32_t tileY, uint8_t zoom)
         return a.offset < b.offset;
     });
 
+    static uint8_t* runBuf = nullptr;
+    static uint32_t runBufSize = 0;
     int idx = 0;
     while (idx < cnt)
     {
@@ -4108,17 +4119,20 @@ bool Maps::tryLoadRowByRuns(uint32_t tileX, uint32_t tileY, uint8_t zoom)
             return false;
         }
 
-        uint8_t* runBuf = static_cast<uint8_t*>(heap_caps_malloc(runLen, MALLOC_CAP_SPIRAM));
-        if (!runBuf)
+        if (runLen > runBufSize)
         {
-            return false;
+            heap_caps_free(runBuf);
+            runBuf = static_cast<uint8_t*>(heap_caps_malloc(runLen, MALLOC_CAP_SPIRAM));
+            if (!runBuf)
+            {
+                runBufSize = 0;
+                return false;
+            }
+            runBufSize = runLen;
         }
 
         if (storage.seekAndReadDirect(NavReader::packFile, runStart, runBuf, runLen) != runLen)
-        {
-            heap_caps_free(runBuf);
             return false;
-        }
 
         for (int j = idx; j <= last; j++)
         {
@@ -4163,7 +4177,6 @@ bool Maps::tryLoadRowByRuns(uint32_t tileX, uint32_t tileY, uint8_t zoom)
             vectorCache.push_back({tileBuf, tileSize, cellHash, ++cacheCounter, true, 0});
         }
 
-        heap_caps_free(runBuf);
         idx = last + 1;
     }
 

@@ -114,6 +114,7 @@ private:
     void fillPolygonGeneral(MapCanvas &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset, uint16_t ringCount = 1, const uint16_t* ringEnds = nullptr);
 
     float mapTilt;
+    float tiltCos;
     float focalLength;
     bool scrolling = false;
     bool inertia = false;
