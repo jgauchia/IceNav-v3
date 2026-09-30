@@ -157,17 +157,23 @@ static const float INERTIA_LOD_MIN_VELOCITY = 0.5f;
 static bool aggressiveLod = false;
 
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
+// Render task that issued the SRM; the ISR wakes it instead of letting it poll.
+static TaskHandle_t srmWaiterHandle = nullptr;
+
 /**
  * @brief PPA SRM completion callback (ISR context).
  *
- * @details Clears the in-flight flag pointed to by user_data so the render task
- *          knows the DMA copy has finished. Returns false (no yield needed).
+ *        Clears the in-flight flag so the render task knows the copy has finished,
+ *        and wakes that task so it stops polling for it.
  */
 static bool ppaSrmDoneCb(ppa_client_handle_t, ppa_event_data_t*, void* user_data)
 {
     if (user_data)
         *(volatile bool*)user_data = false;
-    return false;
+    BaseType_t woken = pdFALSE;
+    if (srmWaiterHandle)
+        vTaskNotifyGiveFromISR(srmWaiterHandle, &woken);
+    return woken == pdTRUE;
 }
 #endif
 
@@ -1191,7 +1197,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     // The active buffer was already swapped; never let displayMap
                     // read it while the DMA copy is still writing it.
                     while (instance->srmInFlight)
-                        vTaskDelay(1);
+                        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(100));
 #endif
                     resetPassCounters();
                     xSemaphoreGiveRecursive(instance->mapMutex);
@@ -1205,7 +1211,7 @@ void Maps::mapRenderTask(void* pvParameters)
                 setHoldPhase(HoldPhase::Srm);
                 const int64_t srmMarkUs = esp_timer_get_time();
                 while (instance->srmInFlight)
-                    vTaskDelay(1);
+                    ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(100));
                 srmUs += (uint32_t)(esp_timer_get_time() - srmMarkUs);
 #endif
 
@@ -2610,7 +2616,7 @@ void Maps::scrollVectorSprite(int16_t shiftX, int16_t shiftY)
     {
         // Never touch the inactive buffer while a previous copy is still running.
         while (srmInFlight)
-            vTaskDelay(1);
+            ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(100));
 
         const int16_t w = (int16_t)tileWidth;
         const int16_t h = (int16_t)tileHeight;
@@ -2653,15 +2659,16 @@ void Maps::scrollVectorSprite(int16_t shiftX, int16_t shiftY)
         srm.scale_y = 1.0f;
         srm.mode = PPA_TRANS_MODE_NON_BLOCKING;
         srm.user_data = (void*)&srmInFlight;
-        // Both DMA endpoints need their cache lines resolved first: the source has to be
-        // written back (the SRM reads PSRAM), and every stale line of the destination has
-        // to be dropped, not just the vacated band, or a later write-back of those lines
-        // lands on top of the freshly copied pixels. The destination is rewritten in full
-        // by this copy plus the band fill, so dropping all of it is safe.
-        esp_cache_msync(cur, (uint32_t)w * (uint32_t)h * 2,
+        // Both DMA endpoints need their cache lines resolved first: the source rows the SRM
+        // reads have to be written back, and every stale line of the destination has to be
+        // dropped, not just the vacated band, or a later write-back of those lines lands on
+        // top of the freshly copied pixels. The destination is rewritten in full by this
+        // copy plus the band fill, so dropping all of it is safe.
+        esp_cache_msync(cur + (size_t)srcY * (size_t)w * 2, (size_t)copyH * (size_t)w * 2,
                         ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_TYPE_DATA);
         esp_cache_msync(dst, (uint32_t)w * (uint32_t)h * 2,
                         ESP_CACHE_MSYNC_FLAG_DIR_M2C | ESP_CACHE_MSYNC_FLAG_TYPE_DATA);
+        srmWaiterHandle = xTaskGetCurrentTaskHandle();
         srmInFlight = true;
         if (ppa_do_scale_rotate_mirror(ppaSrmClient, &srm) == ESP_OK)
         {
@@ -2679,8 +2686,7 @@ void Maps::scrollVectorSprite(int16_t shiftX, int16_t shiftY)
             fill.fill_block_h = (shiftY != 0) ? (uint32_t)ts : (uint32_t)h;
             fill.mode = PPA_TRANS_MODE_BLOCKING;
             ppa_do_fill(ppaFillClient, &fill);
-            esp_cache_msync(dst, (uint32_t)w * (uint32_t)h * 2,
-                            ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_TYPE_DATA);
+            // The fill is a DMA write too, so the destination holds no dirty CPU line to flush.
 
             mapTempSprite.setBuffer(dst, w, h);
             return;
