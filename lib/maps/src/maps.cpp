@@ -2384,8 +2384,8 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
     if (manualHeading != 0.0f)
     {
         float rad = manualHeading * (float)M_PI / 180.0f;
-        float c = cosf(rad);
-        float s = sinf(rad);
+        float c = lutInit ? cosLUT(rad) : cosf(rad);
+        float s = lutInit ? sinLUT(rad) : sinf(rad);
         float dxR = (float)dx * c - (float)dy * s;
         float dyR = (float)dx * s + (float)dy * c;
         dx = (int16_t)dxR;
