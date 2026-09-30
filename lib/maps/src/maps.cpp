@@ -3231,10 +3231,87 @@ void Maps::drawThickLine(MapCanvas& map, int16_t x0, int16_t y0,
 }
 
 /**
+ * @brief Clips a segment to a rectangle with a parametric (Cohen-Sutherland) test.
+ *
+ * @param x0   Segment start X.
+ * @param y0   Segment start Y.
+ * @param x1   Segment end X.
+ * @param y1   Segment end Y.
+ * @param xMin Rectangle left.
+ * @param yMin Rectangle top.
+ * @param xMax Rectangle right.
+ * @param yMax Rectangle bottom.
+ * @param cx0  Clipped start X.
+ * @param cy0  Clipped start Y.
+ * @param cx1  Clipped end X.
+ * @param cy1  Clipped end Y.
+ * @return True when the segment meets the rectangle, false when it misses it.
+ */
+static bool clipSegmentRaw(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
+                           int xMin, int yMin, int xMax, int yMax,
+                           int& cx0, int& cy0, int& cx1, int& cy1)
+{
+    int dx = x1 - x0;
+    int dy = y1 - y0;
+    int u1 = 0;
+    int u2 = 1 << 16;
+    int p0 = -dx;
+    int p1 = dx;
+    int p2 = -dy;
+    int p3 = dy;
+    int q0 = x0 - xMin;
+    int q1 = xMax - x0;
+    int q2 = y0 - yMin;
+    int q3 = yMax - y0;
+
+    for (int i = 0; i < 4; i++)
+    {
+        int pi;
+        int qi;
+        switch (i)
+        {
+            case 0: pi = p0; qi = q0; break;
+            case 1: pi = p1; qi = q1; break;
+            case 2: pi = p2; qi = q2; break;
+            default: pi = p3; qi = q3; break;
+        }
+        if (pi == 0)
+        {
+            if (qi < 0)
+                return false;
+        }
+        else
+        {
+            int32_t r = ((int32_t)qi << 16) / pi;
+            if (pi < 0)
+            {
+                if (r > u2)
+                    return false;
+                if (r > u1)
+                    u1 = r;
+            }
+            else
+            {
+                if (r < u1)
+                    return false;
+                if (r < u2)
+                    u2 = r;
+            }
+        }
+    }
+
+    cx0 = x0 + (int)(((int32_t)dx * u1 + 32768) >> 16);
+    cy0 = y0 + (int)(((int32_t)dy * u1 + 32768) >> 16);
+    cx1 = x0 + (int)(((int32_t)dx * u2 + 32768) >> 16);
+    cy1 = y0 + (int)(((int32_t)dy * u2 + 32768) >> 16);
+    return true;
+}
+
+/**
  * @brief Rasterizes a clipped line directly into the sprite framebuffer.
  *
  * @details Bresenham line clipped to the sprite bounds with a parametric
- *          (Liang-Barsky) clip, writing RGB565 pixels straight into PSRAM the
+ *          (Cohen-Sutherland) clip, writing RGB565 pixels straight into PSRAM the
  *          same way the polygon scanline does, avoiding the per-segment LGFX
  *          draw call overhead.
  *
@@ -3285,58 +3362,17 @@ static void drawLineRaw(uint16_t* buf, uint32_t stride, int16_t x0, int16_t y0,
         return;
     }
 
-    // Cohen-Sutherland clipping with integer-only math (no float)
-    int dx = x1 - x0;
-    int dy = y1 - y0;
-    int u1 = 0;
-    int u2 = 1 << 16;
-    int p0 = -dx, p1 = dx, p2 = -dy, p3 = dy;
-    int q0 = x0, q1 = w - 1 - x0, q2 = y0, q3 = h - 1 - y0;
-
-    for (int i = 0; i < 4; i++)
-    {
-        int pi, qi;
-        switch (i)
-        {
-            case 0: pi = p0; qi = q0; break;
-            case 1: pi = p1; qi = q1; break;
-            case 2: pi = p2; qi = q2; break;
-            default: pi = p3; qi = q3; break;
-        }
-        if (pi == 0)
-        {
-            if (qi < 0)
-                return;
-        }
-        else
-        {
-            int32_t r = ((int32_t)qi << 16) / pi;
-            if (pi < 0)
-            {
-                if (r > u2)
-                    return;
-                if (r > u1)
-                    u1 = r;
-            }
-            else
-            {
-                if (r < u1)
-                    return;
-                if (r < u2)
-                    u2 = r;
-            }
-        }
-    }
-
-    int xs = x0 + (int)(((int32_t)dx * u1 + 32768) >> 16);
-    int ys = y0 + (int)(((int32_t)dy * u1 + 32768) >> 16);
-    int xe = x0 + (int)(((int32_t)dx * u2 + 32768) >> 16);
-    int ye = y0 + (int)(((int32_t)dy * u2 + 32768) >> 16);
+    int xs;
+    int ys;
+    int xe;
+    int ye;
+    if (!clipSegmentRaw(x0, y0, x1, y1, 0, 0, w - 1, h - 1, xs, ys, xe, ye))
+        return;
 
     int sx = (xs < xe) ? 1 : -1;
     int sy = (ys < ye) ? 1 : -1;
-    dx = abs(xe - xs);
-    dy = -abs(ye - ys);
+    int dx = abs(xe - xs);
+    int dy = -abs(ye - ys);
     int err = dx + dy;
     linePx += (uint32_t)(std::max(abs(xe - xs), abs(ye - ys)) + 1);
     while (true)
@@ -3359,10 +3395,63 @@ static void drawLineRaw(uint16_t* buf, uint32_t stride, int16_t x0, int16_t y0,
 }
 
 /**
- * @brief Draws a thick line directly into the framebuffer.
+ * @brief Walks an already clipped segment displaced on one axis, writing the pixels inside the sprite.
  *
- * @details Same offset-parallels approach as drawThickLine(), but rasterized
- *          straight into PSRAM via drawLineRaw() instead of the LGFX API.
+ * @param buf       Framebuffer pointer (uint16_t elements).
+ * @param stride    Framebuffer stride in uint16_t elements.
+ * @param ax        Clipped start X.
+ * @param ay        Clipped start Y.
+ * @param bx        Clipped end X.
+ * @param by        Clipped end Y.
+ * @param offset    Displacement in pixels along the chosen axis.
+ * @param offsetIsY True to displace Y, false to displace X.
+ * @param rawColor  Color as stored in the framebuffer (byte-swapped RGB565).
+ * @param w         Sprite width.
+ * @param h         Sprite height.
+ */
+static void drawOffsetWalkRaw(uint16_t* buf, uint32_t stride, int ax, int ay, int bx, int by,
+                              int offset, bool offsetIsY, uint16_t rawColor, int16_t w, int16_t h)
+{
+    int sx = (ax < bx) ? 1 : -1;
+    int sy = (ay < by) ? 1 : -1;
+    int dx = abs(bx - ax);
+    int dy = -abs(by - ay);
+    int err = dx + dy;
+    const uint32_t steps = (uint32_t)(std::max(abs(bx - ax), abs(by - ay)) + 1);
+    uint32_t dropped = 0;
+    while (true)
+    {
+        // only the displaced axis can leave the sprite, the other keeps the clipped segment's own range
+        const int px = offsetIsY ? ax : ax + offset;
+        const int py = offsetIsY ? ay + offset : ay;
+        const bool inside = offsetIsY ? ((uint32_t)py < (uint32_t)h) : ((uint32_t)px < (uint32_t)w);
+        if (inside)
+        {
+            buf[(uint32_t)py * stride + (uint32_t)px] = rawColor;
+        }
+        else
+        {
+            dropped++;
+        }
+        if (ax == bx && ay == by)
+            break;
+        int e2 = 2 * err;
+        if (e2 >= dy)
+        {
+            err += dy;
+            ax += sx;
+        }
+        if (e2 <= dx)
+        {
+            err += dx;
+            ay += sy;
+        }
+    }
+    linePx += steps - dropped;
+}
+
+/**
+ * @brief Draws a thick line directly into the framebuffer, clipping once per segment.
  *
  * @param buf      Framebuffer pointer (uint16_t elements).
  * @param stride   Framebuffer stride in uint16_t elements.
@@ -3426,16 +3515,25 @@ static void drawThickLineRaw(uint16_t* buf, uint32_t stride, int16_t x0, int16_t
         return;
     }
 
-    if (abs(dx) >= abs(dy))
+    // the stroke is the union of the parallels, so the centre is clipped against the box grown by half on the displaced axis
+    const bool offsetIsY = abs(dx) >= abs(dy);
+    const int xMin = 0;
+    const int yMin = offsetIsY ? -half : 0;
+    const int xMax = offsetIsY ? (w - 1) : (w - 1 + half);
+    const int yMax = offsetIsY ? (h - 1 + half) : (h - 1);
+    int ax = x0;
+    int ay = y0;
+    int bx = x1;
+    int by = y1;
+    const bool centreInside = x0 >= xMin && x0 <= xMax && x1 >= xMin && x1 <= xMax &&
+                              y0 >= yMin && y0 <= yMax && y1 >= yMin && y1 <= yMax;
+    if (!centreInside)
     {
-        for (int8_t i = -half; i <= half; i++)
-            drawLineRaw(buf, stride, x0, y0 + i, x1, y1 + i, rawColor, w, h);
+        if (!clipSegmentRaw(x0, y0, x1, y1, xMin, yMin, xMax, yMax, ax, ay, bx, by))
+            return;
     }
-    else
-    {
-        for (int8_t i = -half; i <= half; i++)
-            drawLineRaw(buf, stride, x0 + i, y0, x1 + i, y1, rawColor, w, h);
-    }
+    for (int8_t i = -half; i <= half; i++)
+        drawOffsetWalkRaw(buf, stride, ax, ay, bx, by, i, offsetIsY, rawColor, w, h);
 }
 
 /**
