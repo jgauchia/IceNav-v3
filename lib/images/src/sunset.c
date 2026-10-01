@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Sunset icon image array
  * @version 0.3.0
- * @date 2026-09
+ * @date 2026-10
  */
 
 #include "lvgl.h"

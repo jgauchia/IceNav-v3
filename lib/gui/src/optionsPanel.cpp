@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Options Panel
  * @version 0.3.0
- * @date 2026-09
+ * @date 2026-10
  */
 
 #include "optionsPanel.hpp"

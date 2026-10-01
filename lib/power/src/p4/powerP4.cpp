@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief ESP32-P4 power management implementation
  * @version 0.3.0
- * @date 2026-09
+ * @date 2026-10
  */
 
 #include "sdkconfig.h"

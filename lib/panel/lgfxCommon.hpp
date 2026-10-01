@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Common LOVYANGFX device class built from per-board configuration macros
  * @version 0.3.0
- * @date 2026-07
+ * @date 2026-10
  */
 
 #pragma once

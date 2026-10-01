@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LOVYANGFX TFT driver for Waveshare ESP32-P4-Touch-LCD-4.3 (ST7701 MIPI-DSI + GT911)
  * @version 0.3.0
- * @date 2026-07
+ * @date 2026-10
  */
 
 #pragma once

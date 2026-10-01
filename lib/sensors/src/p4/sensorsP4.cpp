@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief ESP32-P4 sensors facade implementation
  * @version 0.3.0
- * @date 2026-07
+ * @date 2026-10
  */
 
 #include "sdkconfig.h"

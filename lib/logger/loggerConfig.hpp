@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  GPX Logger activity profiles configuration
  * @version 0.3.0
- * @date 2026-09
+ * @date 2026-10
  */
 
 #pragma once

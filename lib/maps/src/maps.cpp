@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com) - Render Maps
  * @brief  Maps draw class
  * @version 0.3.0
- * @date 2026-09
+ * @date 2026-10
  */
 
 #include "maps.hpp"

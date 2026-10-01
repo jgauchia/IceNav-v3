@@ -4,7 +4,7 @@
  * @brief ESP32-P4 connectivity implementation (WiFi over ESP32-C6 co-processor
  *        via esp-hosted, SDIO + mDNS)
  * @version 0.3.0
- * @date 2026-09
+ * @date 2026-10
  */
 
 #include "connectivity.hpp"

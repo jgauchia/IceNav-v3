@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Web file server page
  * @version 0.3.0
- * @date 2026-09
+ * @date 2026-10
  */
 
 const char index_html[] = R"rawliteral(

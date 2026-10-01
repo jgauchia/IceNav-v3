@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief Memory allocators for PSRAM and Internal SRAM
  * @version 0.3.0
- * @date 2026-09
+ * @date 2026-10
  */
 
 #pragma once
