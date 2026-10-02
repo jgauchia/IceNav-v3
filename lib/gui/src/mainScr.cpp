@@ -29,7 +29,7 @@ bool canScrollMap = false;
 uint8_t activeTile = 0;
 uint8_t gpxAction = WPT_NONE;
 
-lv_timer_t *map_inertia_timer = NULL;
+lv_timer_t *mapInertiaTimer = NULL;
 
 extern uint32_t DOUBLE_TOUCH_EVENT;
 #ifdef ENABLE_COMPASS
@@ -1013,8 +1013,8 @@ static void scrollMapEvent(lv_event_t *event)
                 mapView.velocityY = 0;
                 mapView.setInertia(false);
                 lv_subject_set_int(&subject_map_state, MAP_MODE_MANUAL);
-                if (map_inertia_timer != NULL)
-                    lv_timer_pause(map_inertia_timer);
+                if (mapInertiaTimer != NULL)
+                    lv_timer_pause(mapInertiaTimer);
                 break;
 
             case LV_EVENT_PRESSING:
@@ -1057,8 +1057,8 @@ static void scrollMapEvent(lv_event_t *event)
                 {
                     lv_subject_set_int(&subject_map_state, MAP_MODE_INERTIA);
                     mapView.setInertia(true);
-                    if (map_inertia_timer != NULL)
-                        lv_timer_resume(map_inertia_timer);
+                    if (mapInertiaTimer != NULL)
+                        lv_timer_resume(mapInertiaTimer);
                 }
                 else
                 {
@@ -1522,8 +1522,8 @@ void createMainScr()
     if (nmeaDebugTileEnabled)
         nmeaDebugScr(nmeaDebugTile);
     // timer is permanent — mainScreen is never destroyed
-    map_inertia_timer = lv_timer_create(mapInertiaTimerCb, 20, NULL);
-    lv_timer_pause(map_inertia_timer);
+    mapInertiaTimer = lv_timer_create(mapInertiaTimerCb, 20, NULL);
+    lv_timer_pause(mapInertiaTimer);
 
     // ── GPX Logger REC button ─────────────────────────────────────────────
     if (storage.getSdLoaded())
