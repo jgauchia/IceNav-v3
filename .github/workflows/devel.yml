@@ -1,4 +1,4 @@
-name: PlatformIO
+name: PlatformIO (devel)
 
 on:
   pull_request:

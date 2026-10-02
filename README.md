@@ -1,5 +1,5 @@
 ![Static Badge](https://img.shields.io/badge/PlatformIO-PlatformIO?logo=platformio&labelColor=auto&color=white)
-[![PlatformIO](https://github.com/jgauchia/IceNav-v3/workflows/PlatformIO/badge.svg)](https://github.com/jgauchia/IceNav-v3/actions/) ![ViewCount](https://views.whatilearened.today/views/github/jgauchia/IceNav-v3.svg)
+[![PlatformIO (master)](https://github.com/jgauchia/IceNav-v3/actions/workflows/platformio.yml/badge.svg)](https://github.com/jgauchia/IceNav-v3/actions/workflows/platformio.yml) [![PlatformIO (devel)](https://github.com/jgauchia/IceNav-v3/actions/workflows/devel.yml/badge.svg)](https://github.com/jgauchia/IceNav-v3/actions/workflows/devel.yml) ![ViewCount](https://views.whatilearened.today/views/github/jgauchia/IceNav-v3.svg)
 
 <div align="center">
 <img src="images/icenav_logo.png" alt="IceNav logo">
