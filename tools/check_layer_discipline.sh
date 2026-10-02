@@ -2,7 +2,6 @@
 #
 # Checks that Layer 2/3 code (lib/gui, lib/router, lib/gpx, lib/utils, lib/maps)
 # does not include Layer 0 headers (hal.hpp, tft.hpp/LovyanGFX.hpp, WiFi.h/ESPmDNS.h,
-# Arduino.h). See ROADMAP/FASE_01_ARQUITECTURA_MULTIPLATAFORMA.md, "Regla de disciplina".
 #
 # esp_timer.h and esp_heap_caps.h are accepted exceptions (millis_idf / PSRAM allocators).
 # lib/gui/src/globalGuiDef.h is a documented exception for tft.hpp (climbState.sprite /
