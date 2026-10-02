@@ -1,12 +1,12 @@
 /**
- * @file nav_reader.cpp
+ * @file vectMapReader.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Binary NAV file reader and tile container manager
  * @version 0.3.0
  * @date 2026-10
  */
 
-#include "nav_reader.hpp"
+#include "vectMapReader.hpp"
 #include <cstring>
 #include "esp_log.h"
 #include "esp_heap_caps.h"

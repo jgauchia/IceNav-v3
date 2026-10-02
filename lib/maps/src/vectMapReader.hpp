@@ -1,5 +1,5 @@
 /**
- * @file nav_reader.hpp
+ * @file vectMapReader.hpp
  * @brief NAV tile reader for ESP32 - IceNav Navigation Tiles
  * @version 0.3.0
  * @date 2026-10

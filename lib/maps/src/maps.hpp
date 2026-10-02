@@ -22,7 +22,7 @@
 #include "compass.hpp"
 #include "mapVars.h"
 #include "storage.hpp"
-#include "nav_reader.hpp"
+#include "vectMapReader.hpp"
 #include "PsramAllocator.hpp"
 
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
