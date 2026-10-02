@@ -1,9 +1,18 @@
 ![Static Badge](https://img.shields.io/badge/PlatformIO-PlatformIO?logo=platformio&labelColor=auto&color=white)
 [![PlatformIO](https://github.com/jgauchia/IceNav-v3/workflows/PlatformIO/badge.svg)](https://github.com/jgauchia/IceNav-v3/actions/) ![ViewCount](https://views.whatilearened.today/views/github/jgauchia/IceNav-v3.svg)
 
-![icenav_logo](images/icenav_logo.png)
+<table>
+<tr>
+<td align="center">
+<img src="images/icenav_logo.png" alt="IceNav logo">
+<h3>ESP32 Based GPS Navigator (LVGL - LovyanGFX).</h3>
+<img src="images/concept_design.jpg" alt="IceNav concept design" width="342">
+<br>
+<em>Conceptual design — not final hardware.</em>
+</td>
+</tr>
+</table>
 
-ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 * Note: Under development (experimental features under devel branch)
 * There is the possibility to use two types of maps: Rendered Maps or Tiles (large files), and Vector Maps (small files).
 * Recommended to use an ESP32-S3 or ESP32-P4 with PSRAM and a screen with a parallel bus for optimal performance, although SPI screens also yield good results.
