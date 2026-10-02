@@ -4,4 +4,25 @@ assets
 tile_viewer.py
 .clangd
 compile_commands.json
+compile-distributed.sh
 
+# pioarduino custom_sdkconfig: generated sdkconfig + CMake artifacts (regenerated on each libs recompile).
+sdkconfig.*
+CMakeLists.txt
+dependencies.lock
+.dummy/
+managed_components/
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+graft/
+.ignore
+
+# Agent tooling: local only. The project rules live in icenav-roadmap, never here.
+.claude
+.mcp.json
+AGENTS.md
+opencode.json
+
+# Test tracks dropped at the repo root. Scoped on purpose: the .gpx under
+# "SD Card File Structure/" belongs to the device and is versioned.
+/*.gpx

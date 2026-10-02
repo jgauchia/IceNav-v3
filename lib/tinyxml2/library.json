@@ -1,0 +1,9 @@
+{
+  "name": "tinyxml2",
+  "version": "11.0.0",
+  "description": "TinyXML2 XML parser (vendored: only tinyxml2.cpp/.h, tests and contrib excluded)",
+  "license": "Zlib",
+  "build": {
+    "srcDir": "src"
+  }
+}

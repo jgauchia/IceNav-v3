@@ -1,24 +1,24 @@
 ![Static Badge](https://img.shields.io/badge/PlatformIO-PlatformIO?logo=platformio&labelColor=auto&color=white)
-[![PlatformIO](https://github.com/jgauchia/IceNav-v3/workflows/PlatformIO/badge.svg)](https://github.com/jgauchia/IceNav-v3/actions/) ![ViewCount](https://views.whatilearened.today/views/github/jgauchia/IceNav-v3.svg)
+[![master](https://img.shields.io/github/actions/workflow/status/jgauchia/IceNav-v3/platformio.yml?label=master)](https://github.com/jgauchia/IceNav-v3/actions/workflows/platformio.yml) [![devel](https://img.shields.io/github/actions/workflow/status/jgauchia/IceNav-v3/devel.yml?label=devel)](https://github.com/jgauchia/IceNav-v3/actions/workflows/devel.yml) ![ViewCount](https://views.whatilearened.today/views/github/jgauchia/IceNav-v3.svg)
 
-![icenav_logo](images/icenav_logo.png)
+<div align="center">
+<img src="images/icenav_logo.png" alt="IceNav logo">
+<h3>ESP32 Based GPS Navigator (LVGL - LovyanGFX).</h3>
+<img src="images/concept_design.jpg" alt="IceNav concept design" width="342">
+<br>
+<em>Conceptual design — not final hardware.<br></em>
+<br>
+</div>
 
-ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 * Note: Under development (experimental features under devel branch)
 * There is the possibility to use two types of maps: Rendered Maps or Tiles (large files), and Vector Maps (small files).
-* Recommended to use an ESP32-S3 with PSRAM and a screen with a parallel bus for optimal performance, although SPI screens also yield good results.
+* Recommended to use an ESP32-S3 or ESP32-P4 with PSRAM and a screen with a parallel bus for optimal performance, although SPI screens also yield good results.
 
-<table>
-  <tr>
-    <td>
-      Don't forget to star ⭐️ this repository
-    </td>
-   <a href="https://www.buymeacoffee.com/jgauchia" target="_blank" title="buymeacoffee"><img src="https://iili.io/JIYMmUN.gif"  alt="buymeacoffee-animated-badge" style="width: 160px;"></a>
-  </tr>
-</table>
-
-> [!CAUTION]
-> Do not use in production (Experimental features).
+<div align="center">
+  Don't forget to star ⭐️ this repository
+  <br>
+  <a href="https://www.buymeacoffee.com/jgauchia" target="_blank" title="buymeacoffee"><img src="https://iili.io/JIYMmUN.gif" alt="buymeacoffee-animated-badge" width="160"></a>
+</div>
 
 ## Screenshots
 
@@ -29,7 +29,7 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
   
 |<img src="images/dev/splash.png">|<img src="images/dev/searchsat.jpg">|<img src="images/dev/compass.png">|<img src="images/dev/options.png">|<img src="images/dev/wptopt.png">|
 |:-:|:-:|:-:|:-:|:-:|
-| Splash Screen | Search Satellite | Compass | Main Options | Waypoint/Track Options |
+| Splash Screen | Search Satellite | Compass[^5] | Main Options | Waypoint/Track Options |
 
 |<img src="images/dev/rendermap.png">|<img src="images/dev/vectormap.png">|<img src="images/dev/navscreen.png">|<img src="images/dev/navscreen2.png">|<img src="images/dev/satelliteinfo.png">|
 |:-:|:-:|:-:|:-:|:-:|
@@ -39,9 +39,13 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 |:-:|:-:|:-:|:-:|:-:|
 | NMEA Debug | Add Waypoint | Waypoint List | Track List | 3D Map view |
 
-|<img src="images/dev/climb.png">|<img src="images/dev/settings.png">|<img src="images/dev/compasscal.jpg">|<img src="images/dev/touchcal.jpg">|<img src="images/dev/mapsettings.png">|
-|:-:|:-:|:-:|:-:|:-:|
-| Climb Analyzer | Settings | Compass Calibration | Touch Calibration | Map Settings |
+|<img src="images/dev/gpslogger1.png">|<img src="images/dev/gpslogger2.png">|<img src="images/dev/climb.png">|
+|:-:|:-:|:-:|
+| GPS Logger | GPS Logger | Climb Analyzer |
+
+|<img src="images/dev/settings.png">|<img src="images/dev/compasscal.jpg">|<img src="images/dev/touchcal.jpg">|<img src="images/dev/mapsettings.png">|
+|:-:|:-:|:-:|:-:|
+| Settings | Compass Calibration | Touch Calibration | Map Settings |
 
 |<img src="images/dev/devicesettings.png">|<img src="images/dev/sensorinfo.png">|
 |:-:|:-:|
@@ -69,7 +73,7 @@ ESP32 Based GPS Navigator (LVGL - LovyanGFX).
 
 Currently, IceNav works with the following hardware setups and specs
 
-**Highly recommended an ESP32S3 with PSRAM and 320x480 Screen** 
+**Highly recommended an ESP32S3 or ESP32P4 with PSRAM and 320x480 Screen** 
  
 > [!IMPORTANT]
 > Please review the platformio.ini file to choose the appropriate environment as well as the different build flags for your correct setup.
@@ -77,24 +81,38 @@ Currently, IceNav works with the following hardware setups and specs
 
 ### Boards
 
-|                        | FLASH | PSRAM | Environment                  | Full Support |
+|                        | FLASH | PSRAM | Environment [^2]             | Full Support |
 |:-----------------------|:-----:|:-----:|:-----------------------------|--------------|
 | ICENAV (Custom ESP32S3) |  16M  |  8M   | ``` [env:ICENAV_BOARD] ```   |    ✔️ YES      |
 | ESP32S3                |  16M  |  8M   | ``` [env:ESP32S3_N16R8] ```  |    ✔️ YES      |
-| [ELECROW ESP32 Terminal](https://www.elecrow.com/esp-terminal-with-esp32-3-5-inch-parallel-480x320-tft-capacitive-touch-display-rgb-by-chip-ili9488.html) |  16M  |  8M   | ``` [env:ELECROW_ESP32] ```  | ✔️ YES [^1] [^2]|
+| [ELECROW ESP32 Terminal](https://www.elecrow.com/esp-terminal-with-esp32-3-5-inch-parallel-480x320-tft-capacitive-touch-display-rgb-by-chip-ili9488.html) |  16M  |  8M   | ``` [env:ELECROW_ESP32] ```  | ✔️ YES [^1] |
 | [MAKERFABS ESP32S3](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) |  16M  |  2M   | ``` [env:MAKERF_ESP32S3] ``` |  🚧 TESTING    |
 | [LILYGO T-DECK](https://www.lilygo.cc/products/t-deck) |  16M  |  8M   | ``` [env:TDECK_ESP32S3] ``` |  ✔️ YES    |
 | [LILYGO T-DECK PLUS](https://lilygo.cc/en-us/products/t-deck-plus-1) | 16M | 8M | ``` [env:TDECK_ESP32S3] ``` |  🚧 TESTING    |
-| [LILYGO T4-S3](https://lilygo.cc/products/t4-s3) | 16M | 8M | ``` [env:T4_S3] ``` | 🚧 TESTING    |
+| [LILYGO T4-S3](https://lilygo.cc/products/t4-s3) | 16M | 8M | ``` [env:T4_S3] ``` | ✔️ YES    |
+| [WAVESHARE ESP32-P4-WIFI6 3.5inch Smart Vision ](https://www.waveshare.com/product/esp32-related/esp32-p4-wifi6-touch-lcd-3.5.htm) | 16M | 32M | ``` [env:WAVESHARE_P4_35] ``` | ✔️ YES    |
+| [WAVESHARE ESP32-P4-WIFI6 4.3inch Development Board](https://www.waveshare.com/product/esp32-related/displays/lcd-mipi/esp32-p4-wifi6-touch-lcd-4.3.htm) | 32M | 32M | ``` [env:WAVESHARE_P4_43] ``` | ✔️ YES   |
 
-If the board has a BOOT button (GPIO0) it is possible to use power saving functions.
-To do this, simply include the following Build Flag in the required env in platformio.ini
+
+> [!IMPORTANT]
+> Known Issue: ESP32-P4 + ESP32-C6 — Reboots with SD + WiFi 
+>On boards that pair an ESP32-P4 with an ESP32-C6 co-processor (e.g. WAVESHARE_P4_43), enabling WiFi while an SD card is mounted via SDMMC can cause intermittent crashes or reboots. The backtrace typically shows `sdio_read` → `xRingbufferCreateStatic`.
+>**Root cause:** The SDMMC peripheral is shared between the SD card slot and the C6 SDIO link. The ESP-Hosted MCU firmware does not properly serialise concurrent access, leading to a corrupted ring buffer allocation and a system panic.
+>This is a known ESP-Hosted firmware bug, tracked upstream at https://github.com/espressif/esp-hosted-mcu/issues/144 and #184. Espressif has acknowledged it; a fix is expected in a future release.
+>**Workaround:** Disable WiFi via CLI Settings 
+
+
+If the board has a BOOT button it is possible to use power saving functions.
+To do this, simply include the following Build Flags in the required env in platformio.ini
 
 ```-DPOWER_SAVE``` <br>
+```-DINVERT_BOOT_PIN``` (if the button signal is inverted, e.g. Waveshare P4 boards) <br>
 
 > [!IMPORTANT]
 > Currently, this project can run on any board with an ESP32S3 and at least a 320x480 TFT screen. The idea is to support all existing boards on the market that I can get to work, so if you don't want to use the specific IceNav board, please feel free to create an issue, and I will look into providing support.
 > Any help or contribution is always welcome
+
+
 
 ### Screens
 
@@ -115,10 +133,9 @@ To do this, simply include the following Build Flag in the required env in platf
 
 |             | Type          | Build Flags [^3]                   | 
 |:------------|:--------------|:-----------------------------------|
-|             | 🔋 Batt. Monitor | ```-DADC1``` or ```-DADC2``` <br> ```-DBATT_PIN=ADCn_CHANNEL_x``` |  
+|             | 🔋 Batt. Monitor | ```-DBATT_ADC_UNIT=n``` (1 or 2) <br> ```-DBATT_ADC_CHANNEL=x``` <br> ```-DBATT_DIVIDER_R1=n``` (default 100000) <br> ```-DBATT_DIVIDER_R2=n``` (default 100000) |  
 | AT6558D     | 🛰️ GPS        | ```-DAT6558D_GPS```                |
-| HMC5883L    | 🧭 Compass    | ```-DHMC5883L```                   |
-| QMC5883     | 🧭 Compass    | ```-DQMC5883```                    |
+| HMC5883L / QMC5883 | 🧭 Compass (auto-detected) | ```-DCOMPASS_AUTO```        |
 | MPU9250     | 🧭 IMU (Compass) | ```-DIMU_MPU9250```                | 
 | BME280      | 🌡️ Temp <br> ☁️ Pres <br> 💧 Hum | ```-DBME280```                     |
 | MPU6050     | 📳 IMU | ```-DMPU6050```                     |
@@ -128,6 +145,7 @@ To do this, simply include the following Build Flag in the required env in platf
 [^2]: See **hal.hpp** for pinouts configuration
 [^3]: **platformio.ini** file under the build_flags section
 [^4]: If Touch SPI is wired to the same SPI of ILI9488 ensure that TFT MISO line has 3-STATE for screenshots (read GRAM) or leave out 
+[^5]: Widgets are draggable
 
 Other setups like another sensors types, etc... not listed in the specs, now **They are not included**
 
@@ -146,51 +164,14 @@ When using an IMU for tilt-compensated heading (`-DMPU6050` or `-DIMU_MPU9250`),
 The correct value for each axis depends on how the IMU is physically mounted. If tilting the device causes the heading to drift instead of remaining stable, invert the sign of the affected axis.
 
 These flags can be set either in the board definition JSON (`boards/*.json`) under `extra_flags`, or in `platformio.ini` under `build_flags` for the target environment.
-</details>
 
 ## Wiring
 
 See **hal.hpp** for pinouts configuration
 
-## SD Renderized Map Tile File structure
+## SD Card File Structure
 
-Using [Maperitive](http://maperitive.net/) select your zone and generate your tiles. For that enter to `MAP-> Set Geometry bounds` draw or expand the square of your zone and run the command `generate-tiles minzoom=6 maxzoom=17`, It could takes long time, maybe 1 hour or more depending your area.
-
-![Maperitive zone selection](images/maperitive_zone_selection.jpg)
-
-After that, copy the contents of directory `Tiles` into your SD in a directory called `MAP`.
-
-On SD Card map tiles (256x256 PNG Format) should be stored, in these folders structure:
-
-      [ 📁 MAP ]
-         |________ [ 📁 zoom folder (number) ]
-                              |__________________ [ 📁 tile X folder (number) ]
-                                                             |_______________________ 🗺️ tile Y file.png
-
-## SD Vectorized Map File structure 
-
-Vectorized maps for IceNav can be generated using the **nav_generator** utility, which is available on GitHub at [jgauchia/Tile-Generator](https://github.com/jgauchia/Tile-Generator). This program allows you to convert map data into the required vector tile format compatible with IceNav. Please refer to the Tile-Generator repository for detailed instructions and usage examples on generating and preparing your own vector map files.
-
-On SD Card vectorized files should be stored, in these folders structure:
-
-      [ 📁 NAVMAP ]
-            |_______ 🗺️ Zzoom file.bin
-
-## SD A* Route File structure
-
-A* Route files for IceNav can be generated using the **route_generator** utility, which is available on GitHub at [jgauchia/Tile-Generator](https://github.com/jgauchia/Tile-Generator). This program allows you to generate the A* route files required for IceNav navigation. Please refer to the Tile-Generator repository for detailed instructions and usage examples on generating and preparing your own route files.
-
-On SD Card route files should be stored, in these folders structure:
-
-      [ 📁 ROUTE ]
-            |_______ [ 📁 CAR ] 
-            |             |_______ 🔀 ROUTE.bin
-            |
-            |_______ [ 📁 BIKE ] 
-            |             |_______ 🔀 ROUTE.bin
-            |
-            |_______ [ 📁 WALK ] 
-                          |_______ 🔀 ROUTE.bin                                                    
+IceNav reads every map, route, track and waypoint from the SD card. The [SD Card File Structure](docs/sd-card-file-structure.md) document describes the folder layout of each data type — rendered tiles, vectorized maps, A* routes, GPX tracks and waypoints — and how to generate the map and route files.
 
 ## Mass Copy Script for Map Tiles
 
@@ -203,7 +184,7 @@ For efficient transfer of millions of map tiles to SD cards or external storage 
 - ✅ **Built-in integrity verification** - Sample file verification
 - ✅ **Performance metrics** - Speed and time statistics
 
-For detailed instructions on how to use the mass copy script, please refer to the [Mass Copy Tools Documentation](tools/mass_copy/README.md).
+For detailed instructions on how to use the mass copy script, please refer to the [Mass Copy Tools Documentation](docs/mass-copy.md).
 
 Download link: [tools/mass_copy/rsync_copy.sh](tools/mass_copy/rsync_copy.sh)
 
@@ -263,6 +244,29 @@ Download link: [tools/mass_copy/rsync_copy.sh](tools/mass_copy/rsync_copy.sh)
 > pio run --target upload
 > ```
 
+## Crash diagnostics
+
+On every boot IceNav logs the reset reason (power-on, panic, watchdog, brownout...) to the serial monitor and appends it to `DIAG.log` in the SD card root, along with the firmware version.
+
+If the previous session ended in a crash, the ESP32 automatically stores a core dump in a dedicated flash partition. On the next boot with an SD card present, IceNav:
+
+- Appends a crash summary to `DIAG.log` (faulting task, program counter, exception cause and backtrace).
+- Copies the full core dump to `COREDUMP.elf` in the SD card root.
+- Erases the flash partition, ready for the next crash.
+
+To get a full decoded report (source file and line for each backtrace frame), analyze `COREDUMP.elf` on your PC with the `espcoredump.py` tool included with ESP-IDF/PlatformIO, using the ELF of the same firmware build (`.pio/build/<environment>/firmware.elf`):
+
+```bash
+espcoredump.py info_corefile -c COREDUMP.elf -t elf .pio/build/ICENAV_BOARD/firmware.elf
+```
+
+> [!TIP]
+> If there is no SD card inserted, the core dump is kept in flash (the serial monitor shows `coredump stored` at boot) and will be recovered on the first boot with an SD card. Alternatively it can be extracted over USB without SD card:
+>
+> ```bash
+> espcoredump.py --port /dev/ttyACM0 info_corefile .pio/build/ICENAV_BOARD/firmware.elf
+> ```
+
 ## CLI
 
 IceNav has a basic CLI accessible via Serial and optionally via Telnet if enabled (port 11000). When you access the CLI and type `help`, you should see the following commands:
@@ -272,6 +276,7 @@ clear:          clear shell
 info:           get device information
 klist:          list of user preferences. ('all' param show all)
 kset:           set an user extra preference
+mem:            memory snapshot (heap, LVGL, stacks)
 nmcli:          network manager CLI. Type nmcli help for more info
 outnmea:        toggle GPS NMEA output (or Ctrl+C to stop)
 poweroff:       perform a ESP32 deep sleep
@@ -281,68 +286,7 @@ webfile:        enable/disable Web file server
 wipe:           wipe preferences to factory default
 ```
 
-Some extra details:
-
-**klist**: List user custom settings (example of custom settings):
-
-```
-    KEYNAME     DEFINED         VALUE          
-    =======     =======         ===== 
-    defZoom     custom          17             Default zoom
-    vectMap     custom          false          Vectorized map
-   mapSpeed     custom          true           Show speed meter in map
-   mapScale     custom          true           Show scale meter in map
-    mapComp     custom          true           Show compass in map
- mapCompRot     custom          true           Rotate map with the compass
-  showClimb     custom          true           Show Climb analyzer when following track 
-      map3D     custom          true           Show Pseudo 3D view when navigating track or waypoint
-     simNav     custom          false          Indicates whether navigation simulation mode is enabled or disabled
-      gpsTX     custom          43             GPS Tx gpio
-      gpsRX     custom          44             GPS Rx gpio
-     defLAT     custom          52.5200        Default latitude
-     defLON     custom          13.4049        Default longitude
-  defBright     custom          255            Default screen bright (0-255)
-   VmaxBatt     custom          4.19999981     Battery max. voltage
-   VminBatt     custom          3.59999990     Battery min. voltage
-   tempOffs     custom          0              Temperature offset (-/+)
-      defTZ     custom          Europe/Madrid  TZ identifier (see /utils/src/timezone.c default UTC)
-  defDecAng     custom          0.22000000     Default declination angle
-  kalmanFil     custom          true           Enable compass Kalman Filter
-    kalmanQ     custom          0.00500000     Def. Kalman Filter const. Process noise covariance (0-1)
-    kalmanR     custom          0.60000000     Def. Kalman Filter const. Measurement noise covariance (0-1)
- routeSpeed     custom          130            Max speed (km/h) for A* heuristic: 130=car, 25=bike, 5=walk. Selects ROUTE/CAR|BIKE|WALK/ROUTE.bin on SD card.
-nmeaDbgTile     custom          false          Show the NMEA debug tile 
-
-
-```          
-
-**kset KEYNAME**: Set user custom settings:
-
-In order to simplify the configuration of the device (minimum and maximum battery level, default position, etc...) via CLI it is possible to specify default values ​​for the configuration.
-This has been done in order to speed up the device configuration process without having to invest "time" in modifying and creating extra configuration screens in the GUI (LVGL).
-
-Available user parameters can be obtained using the **klist** command with a CLI connection (either via USB connection or TELNET connection)
-
-
-**nmcli**: IceNav use a `wcli` network manager library. For more details of this command and its sub commands please refer to [here](https://github.com/hpsaturn/esp32-wifi-cli?tab=readme-ov-file#readme)
-
-**outnmea**: this command toggle the GPS output to the serial console. With that it will be compatible with external GPS software like `PyGPSClient` and others. To stop these messages in your console, just only repeat the same command or perform a `CTRL+C`.
-
-**scshot**: This utility can save a PNG screenshot to the root of your SD, with the name: `screenshot.png`. 
-
-This screenshot command can send the screenshot over WiFi using the following syntax (replace IP with your PC IP):
-
-```bash
-scshot 192.168.1.10 8123
-```
-
-Ensure your PC has the specified port open and firewall access enabled to receive the screenshot via the `netcat` command, like this:
-
-```bash
-nc -l -p 8123 > screenshot.png
-```
-
-Additionally, you can download the screenshot with webfile server.
+For more details about these commands, see [CLI documentation](docs/cli.md).
 
 ## Web File Server 
 
@@ -353,26 +297,22 @@ The Web File Server will start automatically if default automatic network connec
 
 To access the Web File Server, simply use any browser and go to the following address: http://icenav.local
 
-## TO DO
+**Known issue (ESP32-P4 boards):** uploading files crashes the device
+(`assert failed: sdio_rx_get_buffer`). This is a known upstream bug in the ESP-Hosted SDIO
+driver used for WiFi on the C6 co-processor
+([espressif/esp-hosted-mcu#144](https://github.com/espressif/esp-hosted-mcu/issues/144),
+[#184](https://github.com/espressif/esp-hosted-mcu/issues/184)), not fixable from this project.
+Two triggers confirmed: uploading a file larger than ~100KB, and uploading any file (even a
+few hundred bytes) into a new folder that has to be created on the SD card. Uploading into an
+existing folder works fine for small files. Downloading files is not affected. Track the
+upstream issues for a fix.
 
-- [X] LVGL 9 Integration
-- [X] Support other resolutions and TFT models
-- [X] Support for ready-made boards 
-- [X] Wifi CLI Manager
-- [X] LVGL Optimization 
-- [X] GPX Integration
-- [ ] Multiple IMU's and Compass module implementation
-- [X] Power saving
-- [X] Vector maps
-- [X] Google Maps navigation style (turn by turn)
-- [X] Optimize code
-- [X] Fix bugs!
-- [X] Web file server
-      
+   
 
 ## Special thanks to....
 * [@hpsaturn](https://github.com/hpsaturn) Thanks to him and his knowledge, this project is no longer sitting in a drawer :smirk:.
 * [@Xinyuan-LilyGO](https://github.com/Xinyuan-LilyGO) for provide me hardware to test it.
+* [@waveshareteam](https://github.com/waveshareteam) for provide me latest ESP32P4 hardware to test it.
 * [@Elecrow-RD](https://github.com/Elecrow-RD)  For your interest in my project and for providing me with hardware to test it.
 * [@pcbway](https://github.com/pcbway) for bringing a first prototype of the IceNav PCB to reality :muscle:
 * [@lovyan03](https://github.com/lovyan03/LovyanGFX) for his library; I still have a lot to learn from it.
