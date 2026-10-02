@@ -14,23 +14,23 @@
 #include "mapVars.h"
 
 extern Storage storage;
-static const char* TAG = "NAVREADER";
+static const char* TAG = "VECTMAPREADER";
 
-FILE*    NavReader::packFile    = nullptr;
-uint8_t  NavReader::currentZoom = 0;
-uint32_t NavReader::tilesWide   = 0;
-uint32_t NavReader::tilesHigh   = 0;
-uint32_t NavReader::minX        = 0;
-uint32_t NavReader::minY        = 0;
+FILE*    VectMapReader::packFile    = nullptr;
+uint8_t  VectMapReader::currentZoom = 0;
+uint32_t VectMapReader::tilesWide   = 0;
+uint32_t VectMapReader::tilesHigh   = 0;
+uint32_t VectMapReader::minX        = 0;
+uint32_t VectMapReader::minY        = 0;
 
-uint32_t NavReader::indexBase    = 0;
-uint32_t NavReader::rankBase     = 0;
-uint32_t NavReader::entriesBase  = 0;
-uint32_t NavReader::bitmapBytes  = 0;
-uint32_t NavReader::indexCount   = 0;
+uint32_t VectMapReader::indexBase    = 0;
+uint32_t VectMapReader::rankBase     = 0;
+uint32_t VectMapReader::entriesBase  = 0;
+uint32_t VectMapReader::bitmapBytes  = 0;
+uint32_t VectMapReader::indexCount   = 0;
 
-uint16_t* NavReader::colorPalette = nullptr;
-uint16_t  NavReader::paletteCount = 0;
+uint16_t* VectMapReader::colorPalette = nullptr;
+uint16_t  VectMapReader::paletteCount = 0;
 
 // RAM index cache: keeps sparse-index lookups (bitmap block + rank + entry)
 // off the SD card across viewport rows. Falls back to plain per-read lookups
@@ -41,7 +41,7 @@ static uint8_t*   idxBlkMem   = nullptr;
 static uint32_t*  idxBlkTag   = nullptr;
 static uint32_t*  idxRankMem  = nullptr;
 static uint32_t*  idxRankTag  = nullptr;
-static NavReader::IndexEntry* idxEntryMem = nullptr;
+static VectMapReader::IndexEntry* idxEntryMem = nullptr;
 static uint64_t*  idxEntryTag = nullptr;
 static uint8_t   idxBlkFresh   = 0;
 static uint8_t   idxRankFresh  = 0;
@@ -94,7 +94,7 @@ static void allocateIndexCache()
     idxBlkTag   = static_cast<uint32_t*>(allocIndexCacheRam(IDX_CACHE_BLKS * sizeof(uint32_t)));
     idxRankMem  = static_cast<uint32_t*>(allocIndexCacheRam(IDX_CACHE_BLKS * sizeof(uint32_t)));
     idxRankTag  = static_cast<uint32_t*>(allocIndexCacheRam(IDX_CACHE_BLKS * sizeof(uint32_t)));
-    idxEntryMem = static_cast<NavReader::IndexEntry*>(allocIndexCacheRam(IDX_CACHE_ENTRIES * sizeof(NavReader::IndexEntry)));
+    idxEntryMem = static_cast<VectMapReader::IndexEntry*>(allocIndexCacheRam(IDX_CACHE_ENTRIES * sizeof(VectMapReader::IndexEntry)));
     idxEntryTag = static_cast<uint64_t*>(allocIndexCacheRam(IDX_CACHE_ENTRIES * sizeof(uint64_t)));
     if (!idxBlkMem || !idxBlkTag || !idxRankMem || !idxRankTag || !idxEntryMem || !idxEntryTag)
     {
@@ -118,7 +118,7 @@ static void allocateIndexCache()
  * @param zoom Zoom level.
  * @return True if successful.
  */
-bool NavReader::openPack(uint8_t zoom)
+bool VectMapReader::openPack(uint8_t zoom)
 {
     if (packFile && currentZoom == zoom)
         return true;
@@ -207,7 +207,7 @@ bool NavReader::openPack(uint8_t zoom)
 /**
  * @brief Close the currently open packed container.
  */
-void NavReader::closePack()
+void VectMapReader::closePack()
 {
     if (packFile)
     {
@@ -250,7 +250,7 @@ void NavReader::closePack()
  * @param size   Output: byte size of tile data.
  * @return True if tile exists and is non-empty.
  */
-bool NavReader::findTileInPack(uint32_t tileX, uint32_t tileY, uint32_t& offset, uint32_t& size)
+bool VectMapReader::findTileInPack(uint32_t tileX, uint32_t tileY, uint32_t& offset, uint32_t& size)
 {
     if (!packFile || tilesWide == 0 || tilesHigh == 0 || bitmapBytes == 0)
         return false;
@@ -272,6 +272,7 @@ bool NavReader::findTileInPack(uint32_t tileX, uint32_t tileY, uint32_t& offset,
     uint8_t blockTmp[NAV_RANK_STRIDE_BYTES];
     uint8_t* block = blockTmp;
     bool blkLoaded = false;
+    uint8_t blkSlot = IDX_CACHE_BLKS;
     uint32_t blockLen = NAV_RANK_STRIDE_BYTES;
     if (blockLen > bitmapBytes - blockStart)
         blockLen = bitmapBytes - blockStart;
@@ -290,10 +291,9 @@ bool NavReader::findTileInPack(uint32_t tileX, uint32_t tileY, uint32_t& offset,
         }
         if (!blkHit)
         {
-            const uint8_t slot = idxBlkFresh;
+            blkSlot = idxBlkFresh;
             idxBlkFresh = (idxBlkFresh + 1) % IDX_CACHE_BLKS;
-            block = idxBlkMem + slot * NAV_RANK_STRIDE_BYTES;
-            idxBlkTag[slot] = blockIdx;
+            block = idxBlkMem + blkSlot * NAV_RANK_STRIDE_BYTES;
         }
     }
 
@@ -302,6 +302,8 @@ bool NavReader::findTileInPack(uint32_t tileX, uint32_t tileY, uint32_t& offset,
         const bool ok = storage.seekAndReadDirect(packFile, indexBase + blockStart, block, blockLen) == blockLen;
         if (!ok)
             return false;
+        if (blkSlot < IDX_CACHE_BLKS)
+            idxBlkTag[blkSlot] = blockIdx;
     }
 
     if (!(block[bitByte - blockStart] & (uint8_t)(1u << (flat & 7))))
@@ -323,10 +325,10 @@ bool NavReader::findTileInPack(uint32_t tileX, uint32_t tileY, uint32_t& offset,
         {
             const uint8_t slot = idxRankFresh;
             idxRankFresh = (idxRankFresh + 1) % IDX_CACHE_BLKS;
-            idxRankTag[slot] = blockIdx;
             const bool ok = storage.seekAndReadDirect(packFile, rankBase + blockIdx * sizeof(uint32_t), (uint8_t*)&idxRankMem[slot], sizeof(uint32_t)) == sizeof(uint32_t);
             if (!ok)
                 return false;
+            idxRankTag[slot] = blockIdx;
             rank = idxRankMem[slot];
         }
     }

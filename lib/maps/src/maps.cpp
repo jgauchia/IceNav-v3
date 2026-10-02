@@ -560,7 +560,7 @@ void Maps::loadMapFont()
  */
 void Maps::deleteMapScrSprites()
 {
-    NavReader::closePack();
+    VectMapReader::closePack();
 }
 
 /**
@@ -1005,7 +1005,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     if (mapSet.vectorMap)
                     {
                         const int64_t openMarkUs = esp_timer_get_time();
-                        NavReader::openPack(instance->zoomLevel);
+                        VectMapReader::openPack(instance->zoomLevel);
                         rstOpenUs += (uint32_t)(esp_timer_get_time() - openMarkUs);
                     }
                     else if (instance->mapTempSprite.getBuffer())
@@ -3577,13 +3577,13 @@ void Maps::renderVectorLine(const FeatureRef& ref, MapCanvas& map, bool isCasing
     {
         int32_t dX;
         int32_t dY;
-        if (!NavReader::readVarInt(p, coordEnd, dX) || !NavReader::readVarInt(p, coordEnd, dY))
+        if (!VectMapReader::readVarInt(p, coordEnd, dX) || !VectMapReader::readVarInt(p, coordEnd, dY))
         {
             coordsOk = false;
             break;
         }
-        curX += NavReader::decodeZigZag(dX);
-        curY += NavReader::decodeZigZag(dY);
+        curX += VectMapReader::decodeZigZag(dX);
+        curY += VectMapReader::decodeZigZag(dY);
         coords[i * 2] = tOffX + (curX >> 4);
         coords[i * 2 + 1] = tOffY + (curY >> 4);
     }
@@ -3671,13 +3671,13 @@ void Maps::renderVectorPolygon(const FeatureRef& ref, MapCanvas& map)
     {
         int32_t dX;
         int32_t dY;
-        if (!NavReader::readVarInt(p, coordEnd, dX) || !NavReader::readVarInt(p, coordEnd, dY))
+        if (!VectMapReader::readVarInt(p, coordEnd, dX) || !VectMapReader::readVarInt(p, coordEnd, dY))
         {
             coordsOk = false;
             break;
         }
-        curX += NavReader::decodeZigZag(dX);
-        curY += NavReader::decodeZigZag(dY);
+        curX += VectMapReader::decodeZigZag(dX);
+        curY += VectMapReader::decodeZigZag(dY);
         coords[i * 2] = ref.tileOffsetX + (curX >> 4);
         coords[i * 2 + 1] = ref.tileOffsetY + (curY >> 4);
     }
@@ -3829,10 +3829,10 @@ void Maps::renderVectorPoint(const FeatureRef& ref, MapCanvas& map)
     const uint8_t* coordEnd = ref.ptr + ref.payloadSize;
     int32_t dX;
     int32_t dY;
-    if (!NavReader::readVarInt(p, coordEnd, dX) || !NavReader::readVarInt(p, coordEnd, dY))
+    if (!VectMapReader::readVarInt(p, coordEnd, dX) || !VectMapReader::readVarInt(p, coordEnd, dY))
         return;
-    int32_t x = NavReader::decodeZigZag(dX);
-    int32_t y = NavReader::decodeZigZag(dY);
+    int32_t x = VectMapReader::decodeZigZag(dX);
+    int32_t y = VectMapReader::decodeZigZag(dY);
     int16_t px = ref.tileOffsetX + (x >> 4);
     int16_t py = ref.tileOffsetY + (y >> 4);
 
@@ -4041,7 +4041,7 @@ uint8_t* Maps::vectorCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t z
         }
     }
 
-    if (!NavReader::openPack(zoom))
+    if (!VectMapReader::openPack(zoom))
         return nullptr;
 
     if (pendingTiles.size() + 1 >= (size_t)tilesGrid && NAV_DATA_CACHE_SIZE >= tilesGrid * tilesGrid)
@@ -4064,7 +4064,7 @@ uint8_t* Maps::vectorCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t z
     uint32_t offset;
     uint32_t size;
 
-    if (!NavReader::findTileInPack(tileX, tileY, offset, size))
+    if (!VectMapReader::findTileInPack(tileX, tileY, offset, size))
         return nullptr;
 
     uint8_t* data = acquireCacheBuffer(size);
@@ -4087,7 +4087,7 @@ uint8_t* Maps::vectorCacheLookupOrLoad(uint32_t tileX, uint32_t tileY, uint8_t z
             return nullptr;
     }
 
-    if (storage.seekAndReadDirect(NavReader::packFile, offset, data, size) != size)
+    if (storage.seekAndReadDirect(VectMapReader::packFile, offset, data, size) != size)
     {
         bufferFreeList.push_back({data, size});
         return nullptr;
@@ -4171,7 +4171,7 @@ bool Maps::tryLoadRowByRuns(uint32_t tileX, uint32_t tileY, uint8_t zoom)
             continue;
         uint32_t off;
         uint32_t sz;
-        if (!NavReader::findTileInPack(x, rowY, off, sz))
+        if (!VectMapReader::findTileInPack(x, rowY, off, sz))
             continue;
         if (sz == 0)
             continue;
@@ -4229,7 +4229,7 @@ bool Maps::tryLoadRowByRuns(uint32_t tileX, uint32_t tileY, uint8_t zoom)
             runBufSize = runLen;
         }
 
-        if (storage.seekAndReadDirect(NavReader::packFile, runStart, runBuf, runLen) != runLen)
+        if (storage.seekAndReadDirect(VectMapReader::packFile, runStart, runBuf, runLen) != runLen)
             return false;
 
         for (int j = idx; j <= last; j++)
@@ -4330,14 +4330,14 @@ void Maps::decodeVectorFeatures(const uint8_t* data, size_t dataSize, int16_t sc
         const uint8_t* hp = p + NAV_FEAT_HDR_FIXED_SIZE;
         uint32_t ccVar = 0;
         uint32_t psVar = 0;
-        if (!NavReader::readVarIntU(hp, end, ccVar) || !NavReader::readVarIntU(hp, end, psVar))
+        if (!VectMapReader::readVarIntU(hp, end, ccVar) || !VectMapReader::readVarIntU(hp, end, psVar))
             break;
         uint16_t cc = (uint16_t)ccVar;
         uint16_t ps = (uint16_t)psVar;
         const uint8_t* payload = hp;
         if (payload + ps > end)
             break;
-        uint16_t colorRgb565 = NavReader::paletteColor(colorIdx);
+        uint16_t colorRgb565 = VectMapReader::paletteColor(colorIdx);
 
         if ((zp >> 4) <= zoom)
         {
@@ -4439,13 +4439,13 @@ uint32_t Maps::ppaFillPrio0Tiles()
         {
             int32_t dX;
             int32_t dY;
-            if (!NavReader::readVarInt(p, coordEnd, dX) || !NavReader::readVarInt(p, coordEnd, dY))
+            if (!VectMapReader::readVarInt(p, coordEnd, dX) || !VectMapReader::readVarInt(p, coordEnd, dY))
             {
                 coordsOk = false;
                 break;
             }
-            curX += NavReader::decodeZigZag(dX);
-            curY += NavReader::decodeZigZag(dY);
+            curX += VectMapReader::decodeZigZag(dX);
+            curY += VectMapReader::decodeZigZag(dY);
             coords[i * 2] = (int16_t)(feat.tileOffsetX + (curX >> 4));
             coords[i * 2 + 1] = (int16_t)(feat.tileOffsetY + (curY >> 4));
         }

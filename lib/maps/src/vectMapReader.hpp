@@ -1,6 +1,7 @@
 /**
  * @file vectMapReader.hpp
- * @brief NAV tile reader for ESP32 - IceNav Navigation Tiles
+ * @author Jordi Gauchía (jgauchia@jgauchia.com)
+ * @brief  NAV tile reader for ESP32 - IceNav Navigation Tiles
  * @version 0.3.0
  * @date 2026-10
  *
@@ -15,9 +16,6 @@
 
 #include <cstdint>
 #include <cstdio>
-#include <vector>
-#include "esp_heap_caps.h"
-#include "PsramAllocator.hpp"
 
 static constexpr uint8_t NAV_PACK_HDR_SIZE           = 23;
 
@@ -45,7 +43,7 @@ enum class NavGeomType : uint8_t
     Text = 4
 };
 
-class NavReader
+class VectMapReader
 {
 public:
     static FILE* packFile;
