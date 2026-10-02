@@ -190,7 +190,7 @@ For efficient transfer of millions of map tiles to SD cards or external storage 
 - ✅ **Built-in integrity verification** - Sample file verification
 - ✅ **Performance metrics** - Speed and time statistics
 
-For detailed instructions on how to use the mass copy script, please refer to the [Mass Copy Tools Documentation](tools/mass_copy/README.md).
+For detailed instructions on how to use the mass copy script, please refer to the [Mass Copy Tools Documentation](docs/mass-copy.md).
 
 Download link: [tools/mass_copy/rsync_copy.sh](tools/mass_copy/rsync_copy.sh)
 

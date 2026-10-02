@@ -13,9 +13,11 @@ A high-performance bash script optimized for copying millions of small map tiles
 
 ## Usage
 
+The script lives in `tools/mass_copy/`; the examples below are meant to be run from the repository root.
+
 ### Basic Syntax
 ```bash
-./rsync_copy.sh [SOURCE] [DESTINATION_MOUNT] [DEVICE] [MODE]
+./tools/mass_copy/rsync_copy.sh [SOURCE] [DESTINATION_MOUNT] [DEVICE] [MODE]
 ```
 
 - **SOURCE**: Directory containing map tiles (e.g., `./NAVMAP`).
@@ -26,26 +28,26 @@ A high-performance bash script optimized for copying millions of small map tiles
 ### Examples
 ```bash
 # Quick development sync (updates only)
-./rsync_copy.sh ./NAVMAP /mnt/sd /dev/sdc1
+./tools/mass_copy/rsync_copy.sh ./NAVMAP /mnt/sd /dev/sdc1
 
 # Production deployment (wipes destination, zero fragmentation)
-./rsync_copy.sh ./NAVMAP /mnt/sd /dev/sdc1 full
+./tools/mass_copy/rsync_copy.sh ./NAVMAP /mnt/sd /dev/sdc1 full
 ```
 
 ---
 
 ## SD Card Optimization (Recommended)
 
-For optimal performance with IceNav, format your SD card with **8KB cluster size**. This significantly reduces space waste and improves read latency for small tile files.
+For optimal performance with IceNav, format your SD card with **32 KB cluster size**. This reduces the number of sectors read per access and improves map rendering speed on the device.
 
 ### Formatting (Linux)
 ```bash
 # 1. Unmount if mounted
 sudo umount /dev/sdX1
 
-# 2. Format with FAT32 and 8KB cluster
-sudo mkfs.vfat -F 32 -s 16 -n "ICENAV" /dev/sdX1
-# -s 16 = 16 sectors × 512 bytes = 8KB cluster
+# 2. Format with FAT32 and 32 KB cluster
+sudo mkfs.vfat -F 32 -s 64 -n "ICENAV" /dev/sdX1
+# -s 64 = 64 sectors × 512 bytes = 32 KB cluster
 
 # 3. Verify
 sudo fsck.fat -v /dev/sdX1 | grep "bytes per cluster"
@@ -66,7 +68,7 @@ sudo fsck.fat -v /dev/sdX1 | grep "bytes per cluster"
 
 1. Make the script executable:
    ```bash
-   chmod +x rsync_copy.sh
+   chmod +x tools/mass_copy/rsync_copy.sh
    ```
 2. Ensure `rsync` is installed:
    ```bash
