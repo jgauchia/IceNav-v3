@@ -60,7 +60,7 @@ namespace lgfx
                     if (_refresh_done_sem)
                     {
                         esp_lcd_dpi_panel_event_callbacks_t callbacks = {};
-                        callbacks.on_refresh_done = on_refresh_done;
+                        callbacks.on_refresh_done = onRefreshDone;
                         esp_lcd_dpi_panel_register_event_callbacks(_disp_panel_handle, &callbacks, this);
                     }
                 }
@@ -79,7 +79,7 @@ namespace lgfx
         protected:
             SemaphoreHandle_t _refresh_done_sem = nullptr;
 
-            static bool IRAM_ATTR on_refresh_done(esp_lcd_panel_handle_t panel, esp_lcd_dpi_panel_event_data_t *edata, void *user_ctx)
+            static bool IRAM_ATTR onRefreshDone(esp_lcd_panel_handle_t panel, esp_lcd_dpi_panel_event_data_t *edata, void *user_ctx)
             {
                 auto self = static_cast<Panel_ST7701_DSI*>(user_ctx);
                 BaseType_t need_yield = pdFALSE;

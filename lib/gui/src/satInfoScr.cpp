@@ -178,9 +178,9 @@ void closeConstSatEvent(lv_event_t *event)
  * @details Handles direct drawing of the satellite constellation and satellite positions
  *          on the widget layer.
  *
- * @param event LVGL event pointer.
+ * @param e LVGL event pointer.
  */
-static void sat_radar_draw_cb(lv_event_t * e)
+static void satRadarDrawCb(lv_event_t * e)
 {
     lv_layer_t * layer = lv_event_get_layer(e);
     lv_obj_t * obj = (lv_obj_t *)lv_event_get_target(e);
@@ -296,7 +296,7 @@ void createSatRadar(_lv_obj_t *screen)
     lv_obj_set_style_bg_color(satRadar, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(satRadar, LV_OPA_100, 0);
     lv_obj_set_style_border_width(satRadar, 0, 0);
-    lv_obj_add_event_cb(satRadar, sat_radar_draw_cb, LV_EVENT_DRAW_MAIN, NULL);
+    lv_obj_add_event_cb(satRadar, satRadarDrawCb, LV_EVENT_DRAW_MAIN, NULL);
 }
 /**
  * @brief Satellite info screen

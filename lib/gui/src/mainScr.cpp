@@ -924,7 +924,7 @@ static void mapToolBarEvent(lv_event_t *event)
  * @details Calculates the inertia movement based on velocity and applies friction.
  *          Updates the map position and triggers redrawing.
  */
-static void map_inertia_timer_cb(lv_timer_t * t)
+static void mapInertiaTimerCb(lv_timer_t * t)
 {
 #if defined(EXTRA_LARGE_SCREEN)
     static uint32_t inertiaTickCount = 0;
@@ -1522,7 +1522,7 @@ void createMainScr()
     if (nmeaDebugTileEnabled)
         nmeaDebugScr(nmeaDebugTile);
     // timer is permanent — mainScreen is never destroyed
-    map_inertia_timer = lv_timer_create(map_inertia_timer_cb, 20, NULL);
+    map_inertia_timer = lv_timer_create(mapInertiaTimerCb, 20, NULL);
     lv_timer_pause(map_inertia_timer);
 
     // ── GPX Logger REC button ─────────────────────────────────────────────
