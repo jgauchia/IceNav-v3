@@ -1,6 +1,11 @@
 name: PlatformIO (devel)
 
 on:
+  push:
+    branches:
+      - devel
+    paths-ignore:
+      - '**/README.md'
   pull_request:
     branches:
       - devel
