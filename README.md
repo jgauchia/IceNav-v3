@@ -6,7 +6,8 @@
 <h3>ESP32 Based GPS Navigator (LVGL - LovyanGFX).</h3>
 <img src="images/concept_design.jpg" alt="IceNav concept design" width="342">
 <br>
-<em>Conceptual design — not final hardware.</em>
+<em>Conceptual design — not final hardware.<br></em>
+<br>
 </div>
 
 * Note: Under development (experimental features under devel branch)
