@@ -14,7 +14,7 @@
 #include <climits>
 #include "esp_log.h"
 #include "PsramAllocator.hpp"
-#include "graph_loader.hpp"
+#include "routeReader.hpp"
 
 // Weight > 1 makes the heuristic inadmissible but drastically reduces node expansions.
 // In urban graphs (actual speed ~40 km/h vs assumed 130 km/h), the unweighted h
@@ -199,7 +199,7 @@ private:
  * @return Estimated cost in tenths of second, scaled by ASTAR_WEIGHT
  */
 static uint32_t heuristic(uint32_t node, float dst_lat, float dst_lon, float cos_dst_lat,
-                          const GraphLoader& graph, float maxSpeedMs)
+                          const RouteReader& graph, float maxSpeedMs)
 {
     float alat, alon;
     if (!graph.getNodeCoords(node, alat, alon))
@@ -220,13 +220,13 @@ static uint32_t heuristic(uint32_t node, float dst_lat, float dst_lon, float cos
  * the fixed TURN_PENALTY_TENTHS when the angle between the incoming and outgoing
  * edges exceeds 45 degrees (checked via dot < cos(45 deg), no acosf).
  *
- * @param graph        Loaded graph (GraphLoader::load() must have succeeded)
+ * @param graph        Loaded graph (RouteReader::load() must have succeeded)
  * @param src_node     Global index of the source node
  * @param dst_node     Global index of the destination node
  * @param maxSpeedKmh  Maximum speed in km/h for the active profile
  * @return TrackVector with route waypoints, or empty if no path found
  */
-TrackVector astarRoute(const GraphLoader& graph, uint32_t src_node, uint32_t dst_node, float maxSpeedKmh)
+TrackVector astarRoute(const RouteReader& graph, uint32_t src_node, uint32_t dst_node, float maxSpeedKmh)
 {
     float maxSpeedMs = maxSpeedKmh / 3.6f;
     const uint32_t INF = UINT32_MAX;
@@ -285,7 +285,7 @@ TrackVector astarRoute(const GraphLoader& graph, uint32_t src_node, uint32_t dst
             break;
         }
 
-        RouteEdge edge_buf[MAX_EDGES_PER_NODE_GL];
+        RouteEdge edge_buf[MAX_EDGES_PER_NODE];
         uint32_t edge_count = 0;
         if (!graph.getEdgesForNode(u, edge_buf, edge_count))
             continue;

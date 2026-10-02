@@ -1,12 +1,12 @@
 /**
- * @file graph_loader.cpp
+ * @file routeReader.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief  ROUTE.bin paged graph loader with on-demand PSRAM cache and turn-restriction support
+ * @brief  ROUTE.bin paged route reader with on-demand PSRAM cache and turn-restriction support
  * @version 0.3.0
  * @date 2026-10
  */
 
-#include "graph_loader.hpp"
+#include "routeReader.hpp"
 #include "storage.hpp"
 #include "esp_log.h"
 #include "settings.hpp"
@@ -25,7 +25,7 @@ extern Storage storage;
  *
  * @return true on success, false if file missing or format error
  */
-bool GraphLoader::load()
+bool RouteReader::load()
 {
     unload();
 
@@ -50,7 +50,7 @@ bool GraphLoader::load()
     size_t indexBytes = hdr.cell_count * sizeof(CellIndexEntry);
     if (storage.readDirect(f, reinterpret_cast<uint8_t*>(cellIndex.data()), indexBytes) != indexBytes)
     {
-        ESP_LOGE("GraphLoader", "Partial read of cell index (%u cells)", hdr.cell_count);
+        ESP_LOGE("ROUTEREADER", "Partial read of cell index (%u cells)", hdr.cell_count);
         storage.close(f);
         return false;
     }
@@ -92,7 +92,7 @@ bool GraphLoader::load()
                                 reinterpret_cast<uint8_t*>(turnRestrictions.data()),
                                 table_bytes) != table_bytes)
         {
-            ESP_LOGE("GraphLoader", "Partial read of turn restriction table");
+            ESP_LOGE("ROUTEREADER", "Partial read of turn restriction table");
             turnRestrictions.clear();
         }
     }
@@ -112,7 +112,7 @@ bool GraphLoader::load()
 /**
  * @brief Absolute global edge index for a cell-local edge offset.
  */
-uint32_t GraphLoader::edgeGlobalOffset(uint32_t cell_idx, uint32_t rel_edge) const
+uint32_t RouteReader::edgeGlobalOffset(uint32_t cell_idx, uint32_t rel_edge) const
 {
     if (cell_idx >= (uint32_t)cellEdgeBase.size())
         return UINT32_MAX;
@@ -124,7 +124,7 @@ uint32_t GraphLoader::edgeGlobalOffset(uint32_t cell_idx, uint32_t rel_edge) con
  *
  * Resolves the owning cell of global node gi, then adds the local edge offset.
  */
-uint32_t GraphLoader::edgeGlobalForNode(uint32_t gi, uint32_t rel_edge) const
+uint32_t RouteReader::edgeGlobalForNode(uint32_t gi, uint32_t rel_edge) const
 {
     uint32_t ci = cellForNode(gi);
     if (ci == UINT32_MAX)
@@ -138,7 +138,7 @@ uint32_t GraphLoader::edgeGlobalForNode(uint32_t gi, uint32_t rel_edge) const
  * The table is sorted by via_node at load time; only the small range of entries
  * sharing via_node is scanned (typically 1-2 entries per intersection).
  */
-bool GraphLoader::isTurnForbidden(uint32_t via_node, uint32_t in_edge, uint32_t out_edge) const
+bool RouteReader::isTurnForbidden(uint32_t via_node, uint32_t in_edge, uint32_t out_edge) const
 {
     auto it = std::lower_bound(turnRestrictions.begin(), turnRestrictions.end(), via_node,
                                [](const TurnRestriction& tr, uint32_t v)
@@ -156,7 +156,7 @@ bool GraphLoader::isTurnForbidden(uint32_t via_node, uint32_t in_edge, uint32_t 
  *
  * Uses binary search on node_offset (cellIndex is sorted ascending by it).
  */
-uint32_t GraphLoader::cellForNode(uint32_t gi) const
+uint32_t RouteReader::cellForNode(uint32_t gi) const
 {
     if (cellIndex.empty())
         return UINT32_MAX;
@@ -180,7 +180,7 @@ uint32_t GraphLoader::cellForNode(uint32_t gi) const
 /**
  * @brief Evict the page with the lowest LRU stamp from pageCache.
  */
-void GraphLoader::evictLRU() const
+void RouteReader::evictLRU() const
 {
     if (pageCache.empty())
         return;
@@ -208,7 +208,7 @@ void GraphLoader::evictLRU() const
  * @param cell_idx Index into cellIndex
  * @return Pointer to the loaded PageData, or nullptr on failure
  */
-GraphLoader::PageData* GraphLoader::fetchPage(uint32_t cell_idx) const
+RouteReader::PageData* RouteReader::fetchPage(uint32_t cell_idx) const
 {
     auto it = pageCache.find(cell_idx);
     if (it != pageCache.end())
@@ -261,7 +261,7 @@ GraphLoader::PageData* GraphLoader::fetchPage(uint32_t cell_idx) const
 
     if (nodeRead != node_bytes || edgeRead != edge_bytes)
     {
-        ESP_LOGE("GraphLoader", "Partial read of cell %u (nodes %u/%u, edges %u/%u)",
+        ESP_LOGE("ROUTEREADER", "Partial read of cell %u (nodes %u/%u, edges %u/%u)",
                  (unsigned)cell_idx, (unsigned)nodeRead, (unsigned)node_bytes,
                  (unsigned)edgeRead, (unsigned)edge_bytes);
         return nullptr;
@@ -281,7 +281,7 @@ GraphLoader::PageData* GraphLoader::fetchPage(uint32_t cell_idx) const
  * @param lat Latitude in degrees
  * @param lon Longitude in degrees
  */
-void GraphLoader::preloadPoint(float lat, float lon) const
+void RouteReader::preloadPoint(float lat, float lon) const
 {
     int32_t lat_e4 = (int32_t)(floorf(lat * 10000.f / 500.f) * 500.f);
     int32_t lon_e4 = (int32_t)(floorf(lon * 10000.f / 500.f) * 500.f);
@@ -303,7 +303,7 @@ void GraphLoader::preloadPoint(float lat, float lon) const
  * @param out_node Output node
  * @return true if successful
  */
-bool GraphLoader::getNode(uint32_t gi, RouteNode& out_node) const
+bool RouteReader::getNode(uint32_t gi, RouteNode& out_node) const
 {
     uint32_t ci = cellForNode(gi);
     if (ci == UINT32_MAX)
@@ -336,7 +336,7 @@ bool GraphLoader::getNode(uint32_t gi, RouteNode& out_node) const
  * @param lon   Output longitude in degrees
  * @return true if successful
  */
-bool GraphLoader::getNodeCoords(uint32_t gi, float& lat, float& lon) const
+bool RouteReader::getNodeCoords(uint32_t gi, float& lat, float& lon) const
 {
     uint32_t ci = cellForNode(gi);
     if (ci == UINT32_MAX)
@@ -363,7 +363,7 @@ bool GraphLoader::getNodeCoords(uint32_t gi, float& lat, float& lon) const
  * @return Global node index of the nearest node, or NODE_NONE when no cached
  *         page is close enough to the coordinates
  */
-uint32_t GraphLoader::nearestNode(float lat, float lon) const
+uint32_t RouteReader::nearestNode(float lat, float lon) const
 {
     uint32_t best_i  = NODE_NONE;
     float    best_d  = 1e30f;
@@ -416,11 +416,11 @@ uint32_t GraphLoader::nearestNode(float lat, float lon) const
  * @brief Read all edges for a node — from page cache if available, otherwise from SD.
  *
  * @param gi    Global node index
- * @param buf   Caller-supplied buffer (must fit MAX_EDGES_PER_NODE_GL entries)
+ * @param buf   Caller-supplied buffer (must fit MAX_EDGES_PER_NODE entries)
  * @param count Output: number of edges read
  * @return true on success (count may be 0 for leaf nodes)
  */
-bool GraphLoader::getEdgesForNode(uint32_t gi, RouteEdge* buf, uint32_t& count) const
+bool RouteReader::getEdgesForNode(uint32_t gi, RouteEdge* buf, uint32_t& count) const
 {
     uint32_t ci = cellForNode(gi);
     if (ci == UINT32_MAX) { count = 0; return true; }
@@ -442,10 +442,10 @@ bool GraphLoader::getEdgesForNode(uint32_t gi, RouteEdge* buf, uint32_t& count) 
             rel_e_end = cell.edge_count;
 
         count = rel_e_end - rel_e_start;
-        if (count > MAX_EDGES_PER_NODE_GL)
+        if (count > MAX_EDGES_PER_NODE)
         {
-            ESP_LOGE("GraphLoader", "Truncated edge list for node %u (%u > %u)",
-                     (unsigned)gi, (unsigned)count, (unsigned)MAX_EDGES_PER_NODE_GL);
+            ESP_LOGE("ROUTEREADER", "Truncated edge list for node %u (%u > %u)",
+                     (unsigned)gi, (unsigned)count, (unsigned)MAX_EDGES_PER_NODE);
             count = 0;
             return true;
         }
@@ -472,10 +472,10 @@ bool GraphLoader::getEdgesForNode(uint32_t gi, RouteEdge* buf, uint32_t& count) 
         rel_e_end = cell.edge_count;
 
     count = rel_e_end - rel_e_start;
-    if (count > MAX_EDGES_PER_NODE_GL)
+    if (count > MAX_EDGES_PER_NODE)
     {
-        ESP_LOGE("GraphLoader", "Truncated edge list for node %u (%u > %u)",
-                 (unsigned)gi, (unsigned)count, (unsigned)MAX_EDGES_PER_NODE_GL);
+        ESP_LOGE("ROUTEREADER", "Truncated edge list for node %u (%u > %u)",
+                 (unsigned)gi, (unsigned)count, (unsigned)MAX_EDGES_PER_NODE);
         count = 0;
         return true;
     }
@@ -493,7 +493,7 @@ bool GraphLoader::getEdgesForNode(uint32_t gi, RouteEdge* buf, uint32_t& count) 
 /**
  * @brief Unload all graph data, close FILE*, and free PSRAM page cache.
  */
-void GraphLoader::unload()
+void RouteReader::unload()
 {
     if (file) { storage.close(file); file = nullptr; }
     cellIndex.clear();

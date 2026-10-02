@@ -7,7 +7,7 @@
  */
 
 #pragma once
-#include "graph_loader.hpp"
+#include "routeReader.hpp"
 #include "globalGpxDef.h"
 
-TrackVector astarRoute(const GraphLoader& graph, uint32_t src_node, uint32_t dst_node, float maxSpeedKmh = 130.0f);
+TrackVector astarRoute(const RouteReader& graph, uint32_t src_node, uint32_t dst_node, float maxSpeedKmh = 130.0f);

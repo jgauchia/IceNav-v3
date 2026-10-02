@@ -1,7 +1,7 @@
 /**
- * @file graph_loader.hpp
+ * @file routeReader.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @brief  ROUTE.bin paged graph loader with on-demand PSRAM cache
+ * @brief  ROUTE.bin paged route reader with on-demand PSRAM cache
  * @version 0.3.0
  * @date 2026-10
  */
@@ -14,14 +14,14 @@
 #include "route_types.hpp"
 #include "PsramAllocator.hpp"
 
-static constexpr uint32_t MAX_EDGES_PER_NODE_GL = 64;
+static constexpr uint32_t MAX_EDGES_PER_NODE = 64;
 
 // Maximum number of pages (subcells) to keep in PSRAM cache simultaneously.
 // Each page holds nodes + edges for one 0.1°×0.1° cell.
 // At ~1 MB free PSRAM and ~10-20 KB/page average, 48 pages ≈ 500–960 KB.
 static constexpr uint32_t PAGE_CACHE_MAX = 48;
 
-class GraphLoader
+class RouteReader
 {
 public:
     bool     load();

@@ -7,7 +7,7 @@
  */
 
 #pragma once
-#include "graph_loader.hpp"
+#include "routeReader.hpp"
 #include "astar.hpp"
 #include "globalGpxDef.h"
 
@@ -26,7 +26,7 @@ public:
                        TrackVector& out_track);
 
 private:
-    GraphLoader loader;
+    RouteReader loader;
 };
 
 extern Router router;
