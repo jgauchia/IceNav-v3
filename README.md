@@ -161,7 +161,6 @@ When using an IMU for tilt-compensated heading (`-DMPU6050` or `-DIMU_MPU9250`),
 The correct value for each axis depends on how the IMU is physically mounted. If tilting the device causes the heading to drift instead of remaining stable, invert the sign of the affected axis.
 
 These flags can be set either in the board definition JSON (`boards/*.json`) under `extra_flags`, or in `platformio.ini` under `build_flags` for the target environment.
-</details>
 
 ## Wiring
 
@@ -189,7 +188,7 @@ Vectorized maps for IceNav can be generated using the **nav_generator** utility,
 On SD Card vectorized files should be stored, in these folders structure:
 
       [ 📁 NAVMAP ]
-            |_______ 🗺️ Zzoom file.bin
+            |_______ 🗺️ Z<zoom>.nav
 
 > [!TIP]
 > For optimal vectorized map performance, format the SD card with a **32 KB cluster size**.
@@ -385,7 +384,7 @@ Some extra details:
    VmaxBatt     custom          4.19999981     Battery max. voltage
    VminBatt     custom          3.59999990     Battery min. voltage
    tempOffs     custom          0              Temperature offset (-/+)
-      defTZ     custom          Europe/Madrid  TZ identifier (see /utils/src/timezone.c default UTC)
+      defTZ     custom          Europe/Madrid  TZ identifier (see lib/utils/src/timezone.c default UTC)
   defDecAng     custom          0.22000000     Default declination angle
   kalmanFil     custom          true           Enable compass Kalman Filter
     kalmanQ     custom          0.00500000     Def. Kalman Filter const. Process noise covariance (0-1)
