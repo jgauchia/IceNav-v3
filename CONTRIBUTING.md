@@ -30,16 +30,14 @@ IceNav-v3 uses [PlatformIO](https://platformio.org/) as its build system.
    pio run --target uploadfs
    ```
 
-Physical hardware isn't required to verify the project builds: CI (GitHub Actions / PlatformIO) validates the build on every pull request.
-
 ## How to add support for a new board
 
 This is one of the most common types of contribution to the project. General steps:
 
-1. Create a definition file in `boards/` with the board's specs (flash, PSRAM, pinout).
+1. Create a definition file in `boards/` with the board's specs (flash, PSRAM).
 2. Add a new `[env:BOARD_NAME]` environment in `platformio.ini` with the corresponding build flags.
 3. Adjust GPS, screen, and sensor pinout in `hal.hpp`.
-4. Select the correct screen build flag based on the driver (see the supported drivers table in the README: `ILI9488`, `ILI9341`, with SPI/8-bit/16-bit and XPT2046/FT5x06 touch variants).
+4. Select the correct screen build flag (see the supported drivers table in the README: `-DILI9488_XPT2046_SPI`, `-DILI9488_FT5x06_SPI`, `-DILI9488_NOTOUCH_8B`, `-DILI9488_FT5x06_16B`, `-DILI9341_XPT2046_SPI`, `-DILI9341_NOTOUCH_SPI`).
 5. If the board shares an SPI bus between screen and SD, add `-DSPI_SHARED`.
 6. If it has an accessible BOOT button (GPIO0), you can enable `-DPOWER_SAVE`.
 7. Test on real hardware before submitting the PR: screen, touch, GPS, and at least one sensor if the board includes one.
@@ -54,9 +52,9 @@ The project has strict naming and formatting rules. Code that doesn't follow the
 
 - **Braces (Allman):** opening brace on its own line. Never use braces for single-line control flow.
 - **Variables:** one variable per line. Underscores in variable names (`my_var` or `var_`) are forbidden.
-- **Functions and methods:** new functions/methods use camelCase with word splitting (e.g., `changeDirectoryHandler`, `notFoundHandler`). snake_case is forbidden for new functions; legacy snake_case names are migrated per the roadmap rename plan.
+- **Functions and methods:** new functions/methods use camelCase with word splitting (e.g., `changeDirectoryHandler`, `notFoundHandler`). snake_case is forbidden for new functions.
 - **Comments:** English only, single line, and only when they add real value. Never state what the code does.
-- **Documentation:** Doxygen only in `.cpp` files, never in `.hpp`. Never bump the version field in Doxygen headers. No `@details` blocks.
+- **Documentation:** Doxygen blocks for functions, classes and other symbols go in `.cpp` files only, never in `.hpp`. The Doxygen file header (`@file`, `@author`, `@brief`, `@version`, `@date`) is kept in both `.cpp` and `.hpp`. Never bump the version field in Doxygen headers. No `@details` blocks.
 
 ### Folder layout
 
@@ -112,8 +110,6 @@ Always include:
 - For memory-related issues, also include the output of the `mem` CLI command (boot profile is stored in `DIAG.log`)
 
 ## Areas where help is welcome
-
-Check the "TO DO" section of the README for current pending tasks, for example:
 
 - Support for multiple IMUs and compass modules
 - Vector map improvements and optimization
