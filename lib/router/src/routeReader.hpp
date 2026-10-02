@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <vector>
 #include <unordered_map>
-#include "route_types.hpp"
+#include "routeBinFormat.hpp"
 #include "PsramAllocator.hpp"
 
 static constexpr uint32_t MAX_EDGES_PER_NODE = 64;

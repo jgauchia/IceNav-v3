@@ -1,5 +1,5 @@
 /**
- * @file route_types.hpp
+ * @file routeBinFormat.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ROUTE.bin binary format structs (0.1° subcell grid)
  * @version 0.3.0
