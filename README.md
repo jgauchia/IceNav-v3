@@ -193,6 +193,17 @@ Download link: [tools/mass_copy/rsync_copy.sh](tools/mass_copy/rsync_copy.sh)
 
 > [!IMPORTANT]
 >Please install first [PlatformIO](http://platformio.org/) open source ecosystem for IoT development compatible with **Arduino** IDE and its command line tools (Windows, MacOs and Linux). Also, you may need to install [git](http://git-scm.com/) in your system.
+>
+>The platform and the PlatformIO core install their own SCons into the same package directory, so both must ask for the same one. Use **PlatformIO 6.2.0 or newer**, or **pioarduino 6.2.0** (`pip install pioarduino==6.2.0`). Any other combination installs the wrong SCons, the platform deletes it and the build fails at the link step:
+>
+> | platform (`platformio.ini`) | tool-scons | PlatformIO | pioarduino |
+> |---|---|---|---|
+> | `55.03.312-1` or newer | `4.41101.0` | 6.2.0 or newer | 6.2.0 |
+> | up to `55.03.311` | `4.40801.0` | 6.1.x | 6.1.19 |
+>
+> The pinned platform declares `PlatformIO >= 6.2.0`, so an older core is rejected while PlatformIO installs it, before any compilation starts.
+>
+> On a mismatch `prebuild.py` stops the build before compiling and prints both versions. To migrate from the second row to the first one, remove both packages from the virtualenv and install `pioarduino==6.2.0` again: `pip uninstall -y platformio pioarduino && pip install pioarduino==6.2.0`. The core installs the matching SCons by itself on the next build.
 > 
 >For ICENAV board run:
 > 
