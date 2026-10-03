@@ -2,7 +2,7 @@
  * @file settings.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Settings functions
- * @version 0.3.0
+ * @version 0.3.1
  * @date 2026-10
  */
 

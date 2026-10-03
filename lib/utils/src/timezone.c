@@ -2,7 +2,7 @@
  * @file timezone.c
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  POSIX timezone (TZ)
- * @version 0.3.0
+ * @version 0.3.1
  * @date 2026-10
  */
 

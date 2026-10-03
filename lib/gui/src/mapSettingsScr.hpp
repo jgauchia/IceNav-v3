@@ -2,7 +2,7 @@
  * @file mapSettingsScr.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Map Settings screen
- * @version 0.3.0
+ * @version 0.3.1
  * @date 2026-10
  */
 

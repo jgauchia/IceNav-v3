@@ -2,7 +2,7 @@
  * @file diag.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Boot diagnostics: reset reason logging and crash coredump recovery
- * @version 0.3.0
+ * @version 0.3.1
  * @date 2026-10
  */
 
