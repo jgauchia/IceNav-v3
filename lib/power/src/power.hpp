@@ -2,7 +2,7 @@
  * @file power.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief Layer-1 power management interface
- * @version 0.3.0
+ * @version 0.3.1
  * @date 2026-10
  */
 

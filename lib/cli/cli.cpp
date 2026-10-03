@@ -2,7 +2,7 @@
  * @file cli.cpp
  * @author @Hpsaturn
  * @brief  Network CLI and custom internal commands
- * @version 0.3.0
+ * @version 0.3.1
  * @date 2026-10
  */
 
@@ -16,11 +16,7 @@
 #include "esp_flash.h"
 #include "esp_ota_ops.h"
 #include "esp_image_format.h"
-#if CONFIG_IDF_TARGET_ESP32P4
-    #include "esp_littlefs.h"
-#else
-    #include "esp_spiffs.h"
-#endif
+#include "esp_littlefs.h"
 #include "display.hpp"
 #include "globalGuiDef.h"
 #include "../lvgl/src/lvglSubjects.hpp"
@@ -241,11 +237,7 @@ void wcli_info(char *args, Stream *response)
     size_t totalFS;
     size_t usedFS;
     size_t freeFS = 0;
-    #if CONFIG_IDF_TARGET_ESP32P4
-        esp_littlefs_info("spiffs", &totalFS, &usedFS);
-    #else
-        esp_spiffs_info(NULL, &totalFS, &usedFS);
-    #endif
+    esp_littlefs_info("spiffs", &totalFS, &usedFS);
     freeFS = totalFS - usedFS;
 
     response->println();

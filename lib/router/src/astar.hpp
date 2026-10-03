@@ -2,7 +2,7 @@
  * @file astar.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  A* routing algorithm with Haversine heuristic
- * @version 0.3.0
+ * @version 0.3.1
  * @date 2026-10
  */
 

@@ -2,7 +2,7 @@
  * @file climbAnalyzer.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Climb profile analysis from loaded GPX track
- * @version 0.3.0
+ * @version 0.3.1
  * @date 2026-10
  */
 
