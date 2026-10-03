@@ -2,7 +2,7 @@
  * @file speedIcon.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Speed icon image descriptor
- * @version 0.3.0
+ * @version 0.3.1
  * @date 2026-10
  */
 

@@ -2,13 +2,13 @@
  * @file storage.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Storage definition and functions
- * @version 0.3.0
+ * @version 0.3.1
  * @date 2026-10
  */
 
 #pragma once
 
-#include "esp_spiffs.h"
+#include "esp_littlefs.h"
 #include "esp_err.h"
 #include "driver/sdmmc_host.h"
 #include "driver/sdspi_host.h"
@@ -52,9 +52,9 @@ struct SDCardInfo
 
 /**
  * @class Storage
- * @brief Storage class for SD and SPIFFS operations
+ * @brief Storage class for SD and LittleFS operations
  *
- * @details Provides an abstraction for file and directory operations on SD cards and SPIFFS,
+ * @details Provides an abstraction for file and directory operations on SD cards and LittleFS,
  * 			including initialization, basic file I/O, and SD card information retrieval.
  */
 class Storage

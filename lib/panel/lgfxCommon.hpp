@@ -2,7 +2,7 @@
  * @file lgfxCommon.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Common LOVYANGFX device class built from per-board configuration macros
- * @version 0.3.0
+ * @version 0.3.1
  * @date 2026-10
  */
 

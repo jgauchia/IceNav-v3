@@ -2,7 +2,7 @@
  * @file imu.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  IMU definition and functions - Native ESP-IDF driver
- * @version 0.3.0
+ * @version 0.3.1
  * @date 2026-10
  */
 

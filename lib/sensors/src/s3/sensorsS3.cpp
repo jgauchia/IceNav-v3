@@ -2,7 +2,7 @@
  * @file sensorsS3.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief ESP32-S3 sensors facade implementation (native ESP-IDF drivers)
- * @version 0.3.0
+ * @version 0.3.1
  * @date 2026-10
  */
 
