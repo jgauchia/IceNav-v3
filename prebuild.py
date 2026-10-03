@@ -2,10 +2,13 @@
 # Author: @hpsaturn
 # pre-build script, setting up build environment
 
+import json
 import os.path
 from platformio import util
 import shutil
-from SCons.Script import DefaultEnvironment
+from SCons.Script import DefaultEnvironment, Exit
+from platformio.dependencies import get_core_dependencies
+from platformio.project.config import ProjectConfig
 
 try:
     import configparser
@@ -25,6 +28,59 @@ version = config.get("common", "version")
 
 dfl_lat = os.environ.get('ICENAV3_LAT')
 dfl_lon = os.environ.get('ICENAV3_LON')
+
+def readJson(path):
+    try:
+        with open(path) as handle:
+            return json.load(handle)
+    except (IOError, OSError, ValueError):
+        return None
+
+def coreDir():
+    return ProjectConfig.get_instance().get("platformio", "core_dir")
+
+# The platform and the core own the same tool-scons directory, so only one of the two versions
+# can stay installed. On a mismatch the platform deletes that directory and the link then dies
+# with "No module named 'SCons.Tool.FortranCommon'", see issue #390.
+def requiredToolScons():
+    platform = config.get("common", "platform")
+    if "/download/" not in platform:
+        return None
+    tag = platform.rsplit("/download/", 1)[-1].split("/")[0]
+    base = tag.split("-")[0]
+    platformsDir = os.path.join(coreDir(), "platforms")
+    try:
+        candidates = sorted(os.listdir(platformsDir))
+    except OSError:
+        return None
+    for candidate in candidates:
+        manifest = readJson(os.path.join(platformsDir, candidate, "platform.json"))
+        if not manifest:
+            continue
+        # a release tag may carry a rebuild suffix the manifest does not, 55.03.312-1 vs 55.03.312
+        version = str(manifest.get("version", ""))
+        if version in (tag, base) or version.startswith(base + "+"):
+            return manifest.get("packages", {}).get("tool-scons", {}).get("package-version")
+    return None
+
+def installedToolScons():
+    manifest = readJson(os.path.join(coreDir(), "packages", "tool-scons", "package.json"))
+    return manifest.get("version") if manifest else None
+
+required = requiredToolScons()
+installed = installedToolScons()
+if required and installed and required != installed:
+    print("ERROR: PlatformIO toolchain mismatch, this build cannot be trusted.")
+    print("  platform " + config.get("common", "platform") + " requires tool-scons " + required)
+    print("  installed tool-scons: " + installed)
+    print("  core asks for: " + str(get_core_dependencies().get("tool-scons")))
+    print("  The platform deletes its SCons on a mismatch and the link then fails with")
+    print("  \"No module named 'SCons.Tool.FortranCommon'\".")
+    # Pairs below must follow the platform pin and the tool-scons pin of the CI workflows.
+    print("  Working combinations:")
+    print("    platform <= 55.03.311 with tool-scons 4.40801.0 (PlatformIO 6.1.x, pioarduino 6.1.19)")
+    print("    platform >= 55.03.312 with tool-scons 4.41101.0 (PlatformIO 6.2.0+, pioarduino 6.2.0)")
+    Exit(1)
 
 # print ("environment:")
 # print (env.Dump())

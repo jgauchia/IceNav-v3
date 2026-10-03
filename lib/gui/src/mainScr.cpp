@@ -2,7 +2,7 @@
  * @file mainScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Main Screen
- * @version 0.3.0
+ * @version 0.3.1
  * @date 2026-10
  */
 

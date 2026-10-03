@@ -2,7 +2,7 @@
  * @file axp2101.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  AXP2101 PMIC battery monitor definition and functions 
- * @version 0.3.0
+ * @version 0.3.1
  * @date 2026-10
  */
 
