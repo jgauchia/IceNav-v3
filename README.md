@@ -224,7 +224,34 @@ Download link: [tools/mass_copy/rsync_copy.sh](tools/mass_copy/rsync_copy.sh)
 > [!TIP]
 > Optional, for map debugging with specific coordinates, or when you are in indoors, you are able to set the defaults coordinates, on two ways:
 
-> **Using the CLI**
+### Via Docker
+
+First, build the Docker image for your system, using the following command line:
+
+```bash
+docker build --build-arg DOCKER_USER=$USER --build-arg DOCKER_USERID=$UID -t pioarduino_icenav:master .
+```
+
+(don't forget the last point in the line)
+
+This will build a basic compiler image with all PlatformIO (Pioarduino) stuff. You need perform this step, just **only one time**.
+
+Then, for build the project or default firmware, you only needs to run the next command, each time that you need, for instance:
+
+```bash
+./docker_build run -e TDECK_ESP32S3
+```
+
+For build and upload to your device you should specific the port, for instance:
+
+```bash
+PORT=/dev/ttyACM0 ./docker_build run -e TDECK_ESP32S3 --target upload
+```
+
+if you have issues with the upload port, please edit `docker_build` and change the PORT variable.
+
+## Using the builtin CLI
+
 >
 > Using the next commands to set your default coordinates, for instance:
 >
