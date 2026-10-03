@@ -2,7 +2,7 @@
  * @file displayS3.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief ESP32-S3 display implementation (LovyanGFX)
- * @version 0.3.1
+ * @version 0.3.2
  * @date 2026-10
  */
 

@@ -2,7 +2,7 @@
  * @file powerP4.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief ESP32-P4 power management implementation
- * @version 0.3.1
+ * @version 0.3.2
  * @date 2026-10
  */
 

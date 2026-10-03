@@ -2,7 +2,7 @@
  * @file gpsMath.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Math and various functions
- * @version 0.3.1
+ * @version 0.3.2
  * @date 2026-10
  */
 

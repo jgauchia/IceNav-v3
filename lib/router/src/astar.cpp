@@ -2,7 +2,7 @@
  * @file astar.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  A* routing algorithm implementation with turn restrictions.
- * @version 0.3.1
+ * @version 0.3.2
  * @date 2026-10
  */
 
