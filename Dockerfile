@@ -10,14 +10,8 @@ LABEL app.name="${APP}" \
 
 RUN apt-get update && apt-get install -y \
     git \
-    pkg-config \
     python-is-python3 \
-    python3-pil \
     python3-pip \
-    python3-pytest \
-    python3-venv \
-    python3-requests \
-    unzip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace
