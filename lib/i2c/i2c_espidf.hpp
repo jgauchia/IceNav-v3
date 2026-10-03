@@ -1,7 +1,7 @@
 /**
  * @file i2c_espidf.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
- * @version 0.3.1
+ * @version 0.3.2
  * @date 2026-10
  */
 

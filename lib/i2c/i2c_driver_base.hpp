@@ -2,7 +2,7 @@
  * @file i2c_driver_base.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Base class for I2C peripheral drivers
- * @version 0.3.1
+ * @version 0.3.2
  * @date 2026-10
  */
 

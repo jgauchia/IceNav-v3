@@ -2,7 +2,7 @@
  * @file vectMapReader.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  NAV tile reader for ESP32 - IceNav Navigation Tiles
- * @version 0.3.1
+ * @version 0.3.2
  * @date 2026-10
  *
  * NPK2 pack: MapHeader (23B) + sparse index (u32 count, coverage bitmap, popcount rank

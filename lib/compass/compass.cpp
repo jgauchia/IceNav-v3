@@ -2,7 +2,7 @@
  * @file compass.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com) 
  * @brief Compass definition and functions - Native ESP-IDF drivers
- * @version 0.3.1
+ * @version 0.3.2
  * @date 2026-10
  */
 

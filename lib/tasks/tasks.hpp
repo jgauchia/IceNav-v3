@@ -2,7 +2,7 @@
  * @file tasks.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Core Tasks header definitions for GPS and CLI management
- * @version 0.3.1
+ * @version 0.3.2
  * @date 2026-10
  * @details This header defines the interface for FreeRTOS tasks used for GPS data processing
  *          and CLI interface management. It provides function declarations and configuration

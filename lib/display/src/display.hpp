@@ -2,7 +2,7 @@
  * @file display.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief Layer-1 display interface
- * @version 0.3.1
+ * @version 0.3.2
  * @date 2026-10
  */
 
