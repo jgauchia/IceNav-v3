@@ -2,7 +2,7 @@
  * @file vectMapReader.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Binary NAV file reader and tile container manager
- * @version 0.3.1
+ * @version 0.3.2
  * @date 2026-10
  */
 

@@ -2,7 +2,7 @@
  * @file webpage.h
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Web file server page
- * @version 0.3.1
+ * @version 0.3.2
  * @date 2026-10
  */
 

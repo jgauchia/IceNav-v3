@@ -2,7 +2,7 @@
  * @file fileServer.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief Layer-1 file server interface
- * @version 0.3.1
+ * @version 0.3.2
  * @date 2026-10
  */
 

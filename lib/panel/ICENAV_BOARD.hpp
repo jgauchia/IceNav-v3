@@ -2,7 +2,7 @@
  * @file ICENAV_BOARD.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LOVYANGFX TFT driver for IceNaV board
- * @version 0.3.1
+ * @version 0.3.2
  * @date 2026-10
  */
 

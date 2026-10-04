@@ -2,7 +2,7 @@
  * @file ILI9488_FT5x06_SPI.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LOVYANGFX TFT driver for ILI9488 SPI With FT5x06 Touch controller
- * @version 0.3.1
+ * @version 0.3.2
  * @date 2026-10
  */
 

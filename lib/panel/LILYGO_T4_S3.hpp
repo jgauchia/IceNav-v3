@@ -2,7 +2,7 @@
  * @file LILYGO_T4_S3.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LOVYANGFX TFT driver for LilyGo T4-S3
- * @version 0.3.1
+ * @version 0.3.2
  * @date 2026-10
  */
 

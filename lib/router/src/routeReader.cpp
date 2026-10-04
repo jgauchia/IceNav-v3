@@ -2,7 +2,7 @@
  * @file routeReader.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ROUTE.bin paged route reader with on-demand PSRAM cache and turn-restriction support
- * @version 0.3.1
+ * @version 0.3.2
  * @date 2026-10
  */
 

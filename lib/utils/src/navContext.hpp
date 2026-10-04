@@ -2,7 +2,7 @@
  * @file navContext.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Shared navigation state aggregate
- * @version 0.3.1
+ * @version 0.3.2
  * @date 2026-10
  */
 

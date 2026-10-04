@@ -2,7 +2,7 @@
  * @file WAVESHARE_P4_35.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LOVYANGFX TFT driver for Waveshare ESP32-P4-Touch-LCD-3.5 (ST7796 SPI + FT6336)
- * @version 0.3.1
+ * @version 0.3.2
  * @date 2026-10
  */
 
