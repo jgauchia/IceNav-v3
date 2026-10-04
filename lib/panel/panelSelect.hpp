@@ -34,6 +34,8 @@
     #include "LILYGO_T4_S3.hpp"
 #elif defined(MAKERF_ESP32S3)
     #include "MAKERF_ESP32S3.hpp"
+#elif defined(MAKERF_MA028IPST)
+    #include "MAKERF_MA028IPST.hpp"
 #elif defined(ELECROW_ESP32)
     #include "ELECROW_ESP32.hpp"
 #elif defined(WAVESHARE_P4_35)
