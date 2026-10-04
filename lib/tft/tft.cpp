@@ -114,13 +114,28 @@ void touchCalibrate()
  */
 void initTFT()
 {
+    #ifdef MAKERF_MA028IPST
+        // GPIO1 is LCD_RESET on the schematic and is shared with GT911 RST.
+        // Address 0x5D is latched only if INT is low on the RST rising edge.
+        // Do this before tft.init() and leave LGFX pin_rst = -1 so the LCD is
+        // not reset again after the panel is programmed.
+        pinMode(TCH_I2C_INT, OUTPUT);
+        digitalWrite(TCH_I2C_INT, LOW);
+        pinMode(TCH_I2C_RST, OUTPUT);
+        digitalWrite(TCH_I2C_RST, LOW);
+        delay(20);
+        digitalWrite(TCH_I2C_RST, HIGH);
+        delay(80);
+        pinMode(TCH_I2C_INT, INPUT);
+    #endif
+
     tft.init();
 
     #ifdef T4_S3
     //   tft.enableFrameBuffer(false);
     #endif
 
-    #ifdef TDECK_ESP32S3
+    #if defined(TDECK_ESP32S3) || defined(MAKERF_MA028IPST)
         tft.setRotation(1);
     #endif
 

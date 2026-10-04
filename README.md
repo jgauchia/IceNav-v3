@@ -87,6 +87,7 @@ Currently, IceNav works with the following hardware setups and specs
 | ESP32S3                |  16M  |  8M   | ``` [env:ESP32S3_N16R8] ```  |    ✔️ YES      |
 | [ELECROW ESP32 Terminal](https://www.elecrow.com/esp-terminal-with-esp32-3-5-inch-parallel-480x320-tft-capacitive-touch-display-rgb-by-chip-ili9488.html) |  16M  |  8M   | ``` [env:ELECROW_ESP32] ```  | ✔️ YES [^1] |
 | [MAKERFABS ESP32S3](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-ili9488.html) |  16M  |  2M   | ``` [env:MAKERF_ESP32S3] ``` |  🚧 TESTING    |
+| [MAKERFABS MA028IPST](https://www.makerfabs.com/matouch-esp32-s3-parallel-ips-with-touch-2-8.html) |  16M  |  8M   | ``` [env:MAKERF_MA028IPST] ``` |  🚧 TESTING    |
 | [LILYGO T-DECK](https://www.lilygo.cc/products/t-deck) |  16M  |  8M   | ``` [env:TDECK_ESP32S3] ``` |  ✔️ YES    |
 | [LILYGO T-DECK PLUS](https://lilygo.cc/en-us/products/t-deck-plus-1) | 16M | 8M | ``` [env:TDECK_ESP32S3] ``` |  🚧 TESTING    |
 | [LILYGO T4-S3](https://lilygo.cc/products/t4-s3) | 16M | 8M | ``` [env:T4_S3] ``` | ✔️ YES    |
@@ -204,6 +205,12 @@ Download link: [tools/mass_copy/rsync_copy.sh](tools/mass_copy/rsync_copy.sh)
 > 
 >```bash
 >pio run -e MAKERF_ESP32S3 --target upload
+>```
+>
+>For Makerfabs MA028IPST (flash via the USB-UART / CH340 port):
+>
+>```bash
+>pio run -e MAKERF_MA028IPST --target upload
 >```
 >
 > For Other boards:
