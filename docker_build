@@ -1,5 +1,5 @@
 #!/bin/sh
-IMAGE=pioarduino_icenav:master
+IMAGE=platformio-core:master
 
 if [ "${PORT}" = "" ]; then
   exec docker run --rm -i --user="$(id -u):$(id -g)" -v "$PWD":/workspace "$IMAGE" "$@"

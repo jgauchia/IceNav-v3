@@ -1,8 +1,7 @@
 FROM ubuntu:22.04 AS unpacker
 
-ENV APP_VERSION="6.1.19" \
-    APP="platformio-core" \
-    UV_CONSTRAINT="/workspace/pio-constraints.txt"
+ENV APP_VERSION="6.2.0" \
+    APP="platformio-core"
 
 LABEL app.name="${APP}" \
       app.version="${APP_VERSION}" \
@@ -12,14 +11,13 @@ RUN apt-get update && apt-get install -y \
     git \
     python-is-python3 \
     python3-pip \
+    python3.10-venv \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace
 
 RUN python -m pip install --upgrade pip && \
-    pip install pioarduino==${APP_VERSION} && \
-    pio pkg install -g -t "platformio/tool-scons@4.40801.0" && \
-    echo "pioarduino==${APP_VERSION}" > /workspace/pio-constraints.txt && \
+    pip install -U platformio==${APP_VERSION} && \
     mkdir -p /workspace && \
     mkdir -p /.platformio && \
     chmod a+rwx /.platformio && \

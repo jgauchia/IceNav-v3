@@ -229,7 +229,7 @@ Download link: [tools/mass_copy/rsync_copy.sh](tools/mass_copy/rsync_copy.sh)
 First, build the Docker image for your system, using the following command line:
 
 ```bash
-docker build --build-arg DOCKER_USER=$USER --build-arg DOCKER_USERID=$UID -t pioarduino_icenav:master .
+docker build --build-arg DOCKER_USER=$USER --build-arg DOCKER_USERID=$UID -t platformio-core:master .
 ```
 
 (don't forget the last point in the line)
@@ -247,8 +247,6 @@ For build and upload to your device you should specific the port, for instance:
 ```bash
 PORT=/dev/ttyACM0 ./docker_build run -e TDECK_ESP32S3 --target upload
 ```
-
-if you have issues with the upload port, please edit `docker_build` and change the PORT variable.
 
 ## Using the builtin CLI
 
