@@ -2,7 +2,7 @@
  * @file maps.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com) - Render Maps
  * @brief  Maps draw class
- * @version 0.3.2
+ * @version 0.3.3
  * @date 2026-10
  */
 

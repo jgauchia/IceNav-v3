@@ -2,7 +2,7 @@
  * @file Panel_ST7701_DSI.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LovyanGFX ST7701 panel driver over MIPI-DSI for ESP32-P4 (Waveshare 4.3")
- * @version 0.3.2
+ * @version 0.3.3
  * @date 2026-10
  */
 

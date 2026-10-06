@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief ESP32-P4 connectivity implementation (WiFi over ESP32-C6 co-processor
  *        via esp-hosted, SDIO + mDNS)
- * @version 0.3.2
+ * @version 0.3.3
  * @date 2026-10
  */
 

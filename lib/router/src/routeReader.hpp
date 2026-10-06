@@ -2,7 +2,7 @@
  * @file routeReader.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  ROUTE.bin paged route reader with on-demand PSRAM cache
- * @version 0.3.2
+ * @version 0.3.3
  * @date 2026-10
  */
 

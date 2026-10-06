@@ -2,7 +2,7 @@
  * @file menu.c
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - Menu icon image descriptor
- * @version 0.3.2
+ * @version 0.3.3
  * @date 2026-10
  */
 
