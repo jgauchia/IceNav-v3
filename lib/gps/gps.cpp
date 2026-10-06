@@ -2,7 +2,7 @@
  * @file gps.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  GPS definition and functions
- * @version 0.3.2
+ * @version 0.3.3
  * @date 2026-10
  */
 

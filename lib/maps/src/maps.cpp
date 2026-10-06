@@ -2,7 +2,7 @@
  * @file maps.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com) - Render Maps
  * @brief  Maps draw class
- * @version 0.3.2
+ * @version 0.3.3
  * @date 2026-10
  */
 
@@ -1941,8 +1941,7 @@ void Maps::renderPngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
  */
 void Maps::composeMap()
 {
-    mapCanvasParent()->startWrite();
-
+    // Sprite-to-sprite composition: no panel transaction, the GUI owns the panel bus.
     if (Maps::followGps)
     {
         const Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
@@ -1994,8 +1993,6 @@ void Maps::composeMap()
             mapTempSprite.pushSprite(&mapSprite, -cropX, -cropY);
         }
     }
-
-    mapCanvasParent()->endWrite();
 }
 #if defined(CONFIG_IDF_TARGET_ESP32P4) && defined(EXTRA_LARGE_SCREEN)
 

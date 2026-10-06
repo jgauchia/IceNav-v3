@@ -2,7 +2,7 @@
  * @file router.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Router implementation — combines RouteReader and A*
- * @version 0.3.2
+ * @version 0.3.3
  * @date 2026-10
  */
 

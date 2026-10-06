@@ -2,7 +2,7 @@
  * @file bme.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  BME280 Sensor functions - Native ESP-IDF driver
- * @version 0.3.2
+ * @version 0.3.3
  * @date 2026-10
  */
 

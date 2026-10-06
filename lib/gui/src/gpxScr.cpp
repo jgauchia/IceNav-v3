@@ -2,7 +2,7 @@
  * @file gpxScr.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL - GPX list screen
- * @version 0.3.2
+ * @version 0.3.3
  * @date 2026-10
  */
 

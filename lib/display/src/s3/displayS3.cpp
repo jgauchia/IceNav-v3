@@ -2,7 +2,7 @@
  * @file displayS3.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief ESP32-S3 display implementation (LovyanGFX)
- * @version 0.3.2
+ * @version 0.3.3
  * @date 2026-10
  */
 
@@ -87,8 +87,18 @@ public:
             tft.pushPixelsDMA(pixels, w * h, true);
         #else
             tft.setSwapBytes(true);
-            tft.setAddrWindow(area.x1, area.y1, w, h);
-            tft.pushImageDMA(area.x1, area.y1, w, h, pixels);
+            #ifdef SPI_SHARED
+                // Panel and SD share the bus: hold the transaction open until the transfer
+                // ends, or the SD driver can retake the bus while the DMA tail is in flight.
+                tft.startWrite();
+                tft.setAddrWindow(area.x1, area.y1, w, h);
+                tft.pushImageDMA(area.x1, area.y1, w, h, pixels);
+                tft.waitDMA();
+                tft.endWrite();
+            #else
+                tft.setAddrWindow(area.x1, area.y1, w, h);
+                tft.pushImageDMA(area.x1, area.y1, w, h, pixels);
+            #endif
             tft.setSwapBytes(false);
         #endif
     }

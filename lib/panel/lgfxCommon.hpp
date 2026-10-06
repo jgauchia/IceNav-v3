@@ -2,7 +2,7 @@
  * @file lgfxCommon.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Common LOVYANGFX device class built from per-board configuration macros
- * @version 0.3.2
+ * @version 0.3.3
  * @date 2026-10
  */
 
@@ -138,7 +138,12 @@ class LGFX : public lgfx::LGFX_Device
                 cfg.freq_write = PANEL_FREQ_WRITE;
                 cfg.freq_read = PANEL_FREQ_READ;
                 cfg.spi_3wire = false;
-                cfg.use_lock = false;
+                #ifdef SPI_SHARED
+                    // Panel and SD share the Arduino bus: take the lock the SD driver holds per transfer.
+                    cfg.use_lock = true;
+                #else
+                    cfg.use_lock = false;
+                #endif
                 cfg.dma_channel = SPI_DMA_CH_AUTO;
                 cfg.pin_sclk = PANEL_PIN_SCLK;
                 cfg.pin_mosi = PANEL_PIN_MOSI;

@@ -2,7 +2,7 @@
  * @file MAKERF_ESP32S3.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LOVYANGFX TFT driver MakerFabs 16 Bits parallel  With FT5x06 Touch controller
- * @version 0.3.2
+ * @version 0.3.3
  * @date 2026-10
  */
 
