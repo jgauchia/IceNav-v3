@@ -248,6 +248,8 @@ For build and upload to your device you should specific the port, for instance:
 PORT=/dev/ttyACM0 ./docker_build run -e TDECK_ESP32S3 --target upload
 ```
 
+After build and upload. If you want, you can remove the hidden directories `.platformio` and `.cache` for free space in your disk.
+
 ## Using the builtin CLI
 
 >
