@@ -1,0 +1,9 @@
+#!/bin/sh
+IMAGE=platformio-core:master
+
+if [ "${PORT}" = "" ]; then
+  exec docker run --rm -i --user="$(id -u):$(id -g)" -v "$PWD":/workspace "$IMAGE" "$@"
+else
+  exec docker run --rm -i --user="$(id -u):$(id -g)" -v "$PWD":/workspace --device="$PORT" "$IMAGE" "$@"
+fi
+
