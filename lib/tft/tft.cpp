@@ -135,8 +135,11 @@ void initTFT()
     //   tft.enableFrameBuffer(false);
     #endif
 
-    #if defined(TDECK_ESP32S3) || defined(MAKERF_MA028IPST)
+    #if defined(TDECK_ESP32S3)
         tft.setRotation(1);
+    #elif defined(MAKERF_MA028IPST)
+        // Portrait: native 240×320, so the shorter edge is the x axis.
+        tft.setRotation(0);
     #endif
 
     TFT_HEIGHT = tft.height();
