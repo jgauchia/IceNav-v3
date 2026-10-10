@@ -110,6 +110,8 @@ private:
     ScreenCoord coord2ScreenPos(float lon, float lat, uint8_t zoomLevel, uint16_t tileSize);
     void coords2map(float lat, float lon, const tileBounds& bound, uint16_t *pixelX, uint16_t *pixelY);
     void panMap(int8_t dx, int8_t dy);
+    void viewCenterLatLon(float& lat, float& lon) const;
+    void anchorOffsetAt(float lat, float lon);
     uint16_t darkenRGB565(const uint16_t color, const float amount = 0.4f);
     void fillPolygonGeneral(MapCanvas &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset, uint16_t ringCount = 1, const uint16_t* ringEnds = nullptr);
 
