@@ -22,6 +22,8 @@ extern Gps gps;
 static lv_obj_t *dbgOkLabel;
 static lv_obj_t *dbgErrLabel;
 static lv_obj_t *dbgCycleLabel;
+static lv_obj_t *dbgLoopsLabel;
+static lv_obj_t *dbgOverrunLabel;
 static lv_obj_t *dbgLastMsgLabel;
 static lv_obj_t *dbgRateLabel;
 static lv_obj_t *dbgFixLabel;
@@ -57,18 +59,24 @@ static void nmeaDebugObserverCb(lv_observer_t *observer, lv_subject_t *subject)
         return;
 
     uint32_t ok, err, cycles;
+    uint32_t loops;
+    uint32_t overruns;
     uint8_t  lastMsg;
 
     portENTER_CRITICAL(&nmeaDebugMux);
-    ok      = nmeaDebugOk;
-    err     = nmeaDebugErr;
-    cycles  = nmeaDebugCycles;
-    lastMsg = nmeaLastMsg;
+    ok       = nmeaDebugOk;
+    err      = nmeaDebugErr;
+    cycles   = nmeaDebugCycles;
+    loops    = nmeaDebugLoops;
+    overruns = nmeaDebugOverruns;
+    lastMsg  = nmeaLastMsg;
     portEXIT_CRITICAL(&nmeaDebugMux);
 
-    lv_label_set_text_fmt(dbgOkLabel,    "Parsed OK : %lu", ok);
+    lv_label_set_text_fmt(dbgOkLabel,    "Sentences : %lu", ok);
     lv_label_set_text_fmt(dbgErrLabel,   "CRC Errors: %lu", err);
     lv_label_set_text_fmt(dbgCycleLabel, "Fix cycles: %lu", cycles);
+    lv_label_set_text_fmt(dbgLoopsLabel,   "Loops     : %lu", loops);
+    lv_label_set_text_fmt(dbgOverrunLabel, "Overrun   : %lu", overruns);
     lv_label_set_text_fmt(dbgLastMsgLabel,"Last msg  : $%s", msgName(lastMsg));
     lv_label_set_text_fmt(dbgFixLabel,   "Fix status: %d",  (int)fix.status);
     lv_label_set_text_fmt(dbgSatsLabel,  "Sats used : %u",  fix.satellites);
@@ -156,9 +164,11 @@ void nmeaDebugScr(_lv_obj_t *screen)
         lv_label_set_text(label, init);
     };
 
-    makeLabel(dbgOkLabel,      "Parsed OK : --");
+    makeLabel(dbgOkLabel,      "Sentences : --");
     makeLabel(dbgErrLabel,     "CRC Errors: --");
     makeLabel(dbgCycleLabel,   "Fix cycles: --");
+    makeLabel(dbgLoopsLabel,   "Loops     : --");
+    makeLabel(dbgOverrunLabel, "Overrun   : --");
     makeLabel(dbgLastMsgLabel, "Last msg  : --");
     makeLabel(dbgRateLabel,    "Sent/s: --  Fix/s: --");
     makeLabel(dbgFixLabel,     "Fix status: --");

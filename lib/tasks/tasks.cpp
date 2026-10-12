@@ -71,10 +71,12 @@ extern Gps gps;
 SensorData globalSensorData = {};
 
 // Debug NMEA stats — written by gpsTask, read by GUI
-uint32_t nmeaDebugOk     = 0;
-uint32_t nmeaDebugErr    = 0;
-uint32_t nmeaDebugCycles = 0;
-uint8_t  nmeaLastMsg     = 0;   // last GPS.nmeaMessage seen per cycle
+uint32_t nmeaDebugOk        = 0;
+uint32_t nmeaDebugErr       = 0;
+uint32_t nmeaDebugCycles    = 0;
+uint32_t nmeaDebugLoops     = 0;
+uint32_t nmeaDebugOverruns  = 0;
+uint8_t  nmeaLastMsg        = 0;   // NMEA type of the last sentence parsed
 portMUX_TYPE nmeaDebugMux = portMUX_INITIALIZER_UNLOCKED;
 
 // Raw NMEA sentence ring buffer — written by gpsTask, read by debug tile
@@ -84,6 +86,7 @@ uint8_t nmeaRawHead = 0;
 static constexpr TickType_t MUTEX_TIMEOUT_GPS  = pdMS_TO_TICKS(15);
 static constexpr TickType_t MUTEX_TIMEOUT_SLOW = pdMS_TO_TICKS(10);
 static constexpr uint32_t   REROUTE_MSG_MIN_MS = 2000u; /**< Minimum display time of the reroute progress message (ms) */
+static constexpr uint32_t   NMEA_DEBUG_TRIGGER_MS = 200u; /**< Refresh period of the NMEA debug tile (ms) */
 
 static const char* TAG = "TASK";
 
@@ -117,6 +120,7 @@ void gpsTask(void *pvParameters)
     // bytes are handled per read() call, not how many can be processed per cycle;
     // any larger backlog (driver RX buffer is 2048 B) is consumed in later passes.
     uint8_t readBuf[128];
+    uint32_t lastDbgTriggerMs = 0;
     while (1)
     {
         bool satDataUpdated = false;
@@ -175,7 +179,22 @@ void gpsTask(void *pvParameters)
                     // sentence, but a fix is only buffered once the interval
                     // closes (LAST_SENTENCE_IN_INTERVAL). Read only when one is
                     // actually available, exactly like GPS.available() does.
-                    if (GPS.handle((uint8_t)c) == NMEAGPS::DECODE_COMPLETED && GPS.available())
+                    bool sentenceComplete = (GPS.handle((uint8_t)c) == NMEAGPS::DECODE_COMPLETED);
+
+                    /* nmeaMessage is valid only at this instant: NeoGPS calls
+                       reset() in sentenceOk(), which only returns the state
+                       machine to NMEA_IDLE, and the CR/LF that end the sentence
+                       are then rejected there, clearing nmeaMessage to
+                       NMEA_UNKNOWN. Sampling it once per cycle from outside the
+                       parse loop therefore reports a bogus UNKNOWN. */
+                    if (sentenceComplete)
+                    {
+                        portENTER_CRITICAL(&nmeaDebugMux);
+                        nmeaLastMsg = (uint8_t)GPS.nmeaMessage;
+                        portEXIT_CRITICAL(&nmeaDebugMux);
+                    }
+
+                    if (sentenceComplete && GPS.available())
                     {
                         fix = GPS.read();
 
@@ -203,9 +222,6 @@ void gpsTask(void *pvParameters)
                         }
 
                         portENTER_CRITICAL(&nmeaDebugMux);
-                        nmeaDebugOk    = GPS.statistics.ok;
-                        nmeaDebugErr   = GPS.statistics.errors;
-                        nmeaLastMsg    = (uint8_t)GPS.nmeaMessage;
                         nmeaDebugCycles++;
                         portEXIT_CRITICAL(&nmeaDebugMux);
 
@@ -220,12 +236,36 @@ void gpsTask(void *pvParameters)
                         {
                             if (satDataUpdated)
                                 lv_subject_set_int(&subject_sats_data_trigger, lv_subject_get_int(&subject_sats_data_trigger) + 1);
-                            if (activeTile == DEBUG_NMEA)
-                                lv_subject_set_int(&subject_nmea_debug_trigger, lv_subject_get_int(&subject_nmea_debug_trigger) + 1);
                             xSemaphoreGive(lvgl_mutex);
                         }
                     }
                 }
+            }
+        }
+
+        /* Sampled every cycle, not only when a fix is produced: the point of the
+           counters is to keep reporting while the fix interval is not closing.
+           Reading the overrun flag also clears it, as NeoGPS requires. */
+        portENTER_CRITICAL(&nmeaDebugMux);
+        nmeaDebugOk      = GPS.statistics.ok;
+        nmeaDebugErr     = GPS.statistics.errors;
+        nmeaDebugLoops++;
+        if (GPS.overrun())
+        {
+            nmeaDebugOverruns++;
+            GPS.overrun(false);
+        }
+        portEXIT_CRITICAL(&nmeaDebugMux);
+
+        /* The tile refresh cannot hang off the fix path either, or it freezes
+           exactly when it is needed. */
+        if (activeTile == DEBUG_NMEA && ((uint32_t)millisIDF() - lastDbgTriggerMs) >= NMEA_DEBUG_TRIGGER_MS)
+        {
+            lastDbgTriggerMs = (uint32_t)millisIDF();
+            if (lvgl_mutex != NULL && xSemaphoreTake(lvgl_mutex, 0) == pdTRUE)
+            {
+                lv_subject_set_int(&subject_nmea_debug_trigger, lv_subject_get_int(&subject_nmea_debug_trigger) + 1);
+                xSemaphoreGive(lvgl_mutex);
             }
         }
 

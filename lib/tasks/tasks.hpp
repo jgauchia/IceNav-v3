@@ -49,6 +49,8 @@ extern xSemaphoreHandle gpsMutex;
 extern uint32_t nmeaDebugOk;
 extern uint32_t nmeaDebugErr;
 extern uint32_t nmeaDebugCycles;
+extern uint32_t nmeaDebugLoops;
+extern uint32_t nmeaDebugOverruns;
 extern uint8_t  nmeaLastMsg;
 extern portMUX_TYPE nmeaDebugMux;
 
