@@ -763,23 +763,138 @@ bool Maps::loadPngTileIntoSprite(int32_t tlX, int32_t tlY, int gx, int gy,
 }
 
 /**
+ * @brief Geographic point currently at the screen center.
+ *
+ * @details Pan stores the center tile index plus a pixel offset. The viewed point is that
+ *          tile origin shifted by the offset that places the screen center, not the tile corner.
+ *
+ * @param lat Output latitude in degrees.
+ * @param lon Output longitude in degrees.
+ */
+void Maps::viewCenterLatLon(float& lat, float& lon) const
+{
+    const int32_t gridOffset = (int32_t)(tilesGrid / 2);
+    const int32_t relX = (int32_t)tileWidth / 2 - gridOffset * (int32_t)mapTileSize + (int32_t)offsetX;
+    const int32_t relY = (int32_t)tileHeight / 2 - gridOffset * (int32_t)mapTileSize + (int32_t)offsetY;
+    const double scale = (double)mapTileSize * (double)(1u << zoomLevel);
+    double worldX = (double)currentMapTile.tilex * (double)mapTileSize + (double)relX;
+    double worldY = (double)currentMapTile.tiley * (double)mapTileSize + (double)relY;
+    if (worldX < 0.0)
+        worldX = 0.0;
+    if (worldY < 0.0)
+        worldY = 0.0;
+    if (worldX > scale - 1.0)
+        worldX = scale - 1.0;
+    if (worldY > scale - 1.0)
+        worldY = scale - 1.0;
+
+    lon = (float)(worldX / scale * 360.0 - 180.0);
+    const double tileYf = worldY / (double)mapTileSize;
+    const double n = M_PI * (1.0 - 2.0 * tileYf / (double)(1u << zoomLevel));
+    lat = (float)(180.0 / M_PI * atan(sinh(n)));
+}
+
+/**
+ * @brief Keep a geographic point on the screen center after a zoom change.
+ *
+ * @details Chooses the center tile that contains the point and the pixel offset that puts
+ *          it on the screen center. One tile step pulls an offset that would crop outside
+ *          the sprite back into the scroll margin. lat/lon are then the northwest corner of
+ *          that tile so later grid rebuilds keep the same center index.
+ *
+ * @param lat Latitude that must stay at the screen center.
+ * @param lon Longitude that must stay at the screen center.
+ */
+void Maps::anchorOffsetAt(float lat, float lon)
+{
+    const int32_t gridOffset = (int32_t)(tilesGrid / 2);
+    const int32_t centerInTileX = (int32_t)tileWidth / 2 - gridOffset * (int32_t)mapTileSize;
+    const int32_t centerInTileY = (int32_t)tileHeight / 2 - gridOffset * (int32_t)mapTileSize;
+    int32_t tileX = (int32_t)currentMapTile.tilex;
+    int32_t tileY = (int32_t)currentMapTile.tiley;
+    int32_t offX = (int32_t)lon2posx(lon, zoomLevel, mapTileSize) - centerInTileX;
+    int32_t offY = (int32_t)lat2posy(lat, zoomLevel, mapTileSize) - centerInTileY;
+    const int32_t limitX = ((int32_t)tileWidth - (int32_t)mapScrWidth) / 2;
+    const int32_t limitY = ((int32_t)tileHeight - (int32_t)mapScrHeight) / 2;
+    const int32_t maxTile = (int32_t)(1u << zoomLevel) - 1;
+
+    if (offX > limitX && tileX < maxTile)
+    {
+        tileX++;
+        offX -= (int32_t)mapTileSize;
+    }
+    else if (offX < -limitX && tileX > 0)
+    {
+        tileX--;
+        offX += (int32_t)mapTileSize;
+    }
+    if (offY > limitY && tileY < maxTile)
+    {
+        tileY++;
+        offY -= (int32_t)mapTileSize;
+    }
+    else if (offY < -limitY && tileY > 0)
+    {
+        tileY--;
+        offY += (int32_t)mapTileSize;
+    }
+
+    if (offX > limitX)
+        offX = limitX;
+    if (offX < -limitX)
+        offX = -limitX;
+    if (offY > limitY)
+        offY = limitY;
+    if (offY < -limitY)
+        offY = -limitY;
+
+    currentMapTile.tilex = (uint32_t)tileX;
+    currentMapTile.tiley = (uint32_t)tileY;
+    currentMapTile.lon = tilex2lon(currentMapTile.tilex, zoomLevel);
+    currentMapTile.lat = tiley2lat(currentMapTile.tiley, zoomLevel);
+    offsetX = displayOffsetX = (int16_t)offX;
+    offsetY = displayOffsetY = (int16_t)offY;
+}
+
+/**
  * @brief Generate the map grid
  *
  * @param zoom Zoom level
  */
 void Maps::generateMap(uint8_t zoom)
 {
-    // Pan updates the tile indices only; the geographic center is derived here.
-    Maps::currentMapTile.lon = Maps::tilex2lon(Maps::currentMapTile.tilex, Maps::currentMapTile.zoom);
-    Maps::currentMapTile.lat = Maps::tiley2lat(Maps::currentMapTile.tiley, Maps::currentMapTile.zoom);
+    const bool zoomLevelChanged = zoom != Maps::zoomLevel;
 
-    if (zoom != Maps::zoomLevel)
+    if (zoomLevelChanged && !Maps::followGps)
     {
+        // Rebuild around the point on screen. The tile corner plus a cleared offset
+        // lands somewhere else inside the previous tile, which is the zoom-button jump.
+        float viewLat = 0.0f;
+        float viewLon = 0.0f;
+        viewCenterLatLon(viewLat, viewLon);
         Maps::zoomLevel = zoom;
         Maps::currentMapTile.zoom = zoom;
-        Maps::currentMapTile.tilex = Maps::lon2tilex(Maps::currentMapTile.lon, zoom);
-        Maps::currentMapTile.tiley = Maps::lat2tiley(Maps::currentMapTile.lat, zoom);
+        Maps::currentMapTile.lat = viewLat;
+        Maps::currentMapTile.lon = viewLon;
+        Maps::currentMapTile.tilex = Maps::lon2tilex(viewLon, zoom);
+        Maps::currentMapTile.tiley = Maps::lat2tiley(viewLat, zoom);
         resetScrollState();
+        anchorOffsetAt(viewLat, viewLon);
+    }
+    else
+    {
+        // Pan updates the tile indices only; the geographic center is derived here.
+        Maps::currentMapTile.lon = Maps::tilex2lon(Maps::currentMapTile.tilex, Maps::currentMapTile.zoom);
+        Maps::currentMapTile.lat = Maps::tiley2lat(Maps::currentMapTile.tiley, Maps::currentMapTile.zoom);
+
+        if (zoomLevelChanged)
+        {
+            Maps::zoomLevel = zoom;
+            Maps::currentMapTile.zoom = zoom;
+            Maps::currentMapTile.tilex = Maps::lon2tilex(Maps::currentMapTile.lon, zoom);
+            Maps::currentMapTile.tiley = Maps::lat2tiley(Maps::currentMapTile.lat, zoom);
+            resetScrollState();
+        }
     }
 
     const Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
@@ -801,7 +916,9 @@ void Maps::generateMap(uint8_t zoom)
 
         if (vectorDeferred && !zoomChanged && !vectorNeedsRender)
             return;
-        if (vectorPending)
+        // A zoom change has to replace the grid. An in-flight border render is for the
+        // previous level, so let the viewport rebuild below discard it.
+        if (vectorPending && !zoomChanged)
             return;
 
         if (!zoomChanged && !tileChanged && !vectorNeedsRender &&
