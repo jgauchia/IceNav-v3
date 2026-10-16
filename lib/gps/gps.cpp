@@ -268,13 +268,14 @@ void Gps::getGPSData()
             calculateSun();
             lastSunDay = fix.dateTime.date;
             setTime = true;
-            lv_subject_set_int(&subject_sunrise, lv_subject_get_int(&subject_sunrise) + 1);
+            // timeout 0: gpsTask (core 0) never waits on the GUI task (core 1).
+            lvglSetSubjectInt(&subject_sunrise, lv_subject_get_int(&subject_sunrise) + 1, 0);
         }
         else if (fix.dateTime.date != lastSunDay)
         {
             calculateSun();
             lastSunDay = fix.dateTime.date;
-            lv_subject_set_int(&subject_sunrise, lv_subject_get_int(&subject_sunrise) + 1);
+            lvglSetSubjectInt(&subject_sunrise, lv_subject_get_int(&subject_sunrise) + 1, 0);
         }
     }
 

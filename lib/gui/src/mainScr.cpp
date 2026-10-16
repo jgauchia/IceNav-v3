@@ -266,35 +266,6 @@ static void asyncMapUpdateCb(void * user_data)
 }
 
 /**
- * @brief Queue this module's async map callback without racing lv_timer_handler
- *
- * @details lv_async_call() allocates from the LVGL pool and inserts a node in the
- *          LVGL timer list without taking any lock, so it must not run while the
- *          GUI task is inside lv_timer_handler(). The LVGL mutex is taken only
- *          when the current task does not hold it already, which is the case for
- *          callbacks that run inside the GUI task; that keeps timer callbacks from
- *          self-deadlocking on a non recursive mutex.
- *
- * @param cb Async callback to schedule.
- * @return true if the callback was queued.
- */
-static bool queueMapUpdateAsync(lv_async_cb_t cb)
-{
-    if (lvgl_mutex == NULL)
-        return lv_async_call(cb, NULL) == LV_RESULT_OK;
-
-    if (xSemaphoreGetMutexHolder(lvgl_mutex) == xTaskGetCurrentTaskHandle())
-        return lv_async_call(cb, NULL) == LV_RESULT_OK;
-
-    if (xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(100)) != pdTRUE)
-        return false;
-
-    const bool queued = (lv_async_call(cb, NULL) == LV_RESULT_OK);
-    xSemaphoreGive(lvgl_mutex);
-    return queued;
-}
-
-/**
  * @brief Thread-safe trigger for map redrawing from background tasks
  *
  * @details Coalesces pending requests and queues the async callback. If the LVGL
@@ -305,7 +276,7 @@ void triggerMapRedraw()
     if (__atomic_exchange_n(&redrawPending, true, __ATOMIC_SEQ_CST))
         return;
 
-    if (!queueMapUpdateAsync(asyncMapUpdateCb))
+    if (!lvglAsyncCall(asyncMapUpdateCb))
         __atomic_store_n(&redrawPending, false, __ATOMIC_SEQ_CST);
 }
 
@@ -319,7 +290,7 @@ void triggerMapRedraw()
 void forceMapRedraw()
 {
     __atomic_store_n(&redrawPending, false, __ATOMIC_SEQ_CST);
-    queueMapUpdateAsync(asyncMapUpdateCb);
+    lvglAsyncCall(asyncMapUpdateCb);
 }
 
 /**
@@ -783,7 +754,7 @@ static void navDataObserverCb(lv_observer_t *observer, lv_subject_t *subject)
 {
     if (activeTile != NAV)
         return;
-    lv_async_call(asyncNavUpdateCb, NULL);
+    lvglAsyncCall(asyncNavUpdateCb);
 }
 
 /**
@@ -1309,6 +1280,30 @@ static void showLoggerSummary()
 }
 
 /**
+ * @brief Flag set while a stop-recording request is queued.
+ */
+static bool stopRecordingPending = false;
+
+/**
+ * @brief Apply a queued stop-recording request outside the CLICKED event send.
+ *
+ * @details Stopping the logger writes the GPX file and builds the summary overlay, which
+ *          creates and deletes LVGL objects. Running that inside the button's event dispatch
+ *          keeps an event node on the global event chain while file I/O and object churn happen,
+ *          so the work is deferred to an async callback and the CLICKED handler stays short.
+ */
+static void applyStopRecordingCb(void *)
+{
+    stopRecordingPending = false;
+
+    if (gpxLogger.state() == LoggerState::IDLE)
+        return;
+
+    gpxLogger.stop();
+    showLoggerSummary();
+}
+
+/**
  * @brief Handle REC button click: toggle recording and update UI labels.
  *
  * @param e LVGL event (LV_EVENT_CLICKED).
@@ -1330,11 +1325,16 @@ static void recBtnEvent(lv_event_t *e)
     }
     else
     {
-        gpxLogger.stop();
         lv_obj_remove_flag(circleRec, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(lblRec, LV_OBJ_FLAG_HIDDEN);
         lv_obj_set_style_bg_color(btnRec, lv_color_make(50, 50, 50), 0);
-        showLoggerSummary();
+
+        if (!stopRecordingPending)
+        {
+            stopRecordingPending = true;
+            if (!lvglAsyncCall(applyStopRecordingCb))
+                stopRecordingPending = false;
+        }
     }
 }
 

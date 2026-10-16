@@ -372,15 +372,57 @@ void IRAM_ATTR gpioRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 }
 
 /**
+ * @brief Power action requested by the GPIO handlers
+ */
+static volatile int pendingPowerAction = 0; /**< 0 = none, 1 = shutdown, 2 = suspend */
+
+/**
+ * @brief Runs the deferred power sequence once the warning message is on screen.
+ *
+ * @details The GPIO handlers run inside the LVGL event dispatch: waiting there keeps an event
+ *          node on the global event chain for the whole delay. The wait is moved to this timer
+ *          callback, which runs between events, so the chain is already unwound.
+ *
+ * @param timer One-shot timer that fired.
+ */
+static void powerActionTimerCb(lv_timer_t *timer)
+{
+    lv_timer_delete(timer);
+
+    const int action = pendingPowerAction;
+    pendingPowerAction = 0;
+
+    if (action == 1)
+        power().shutdown();
+    else if (action == 2)
+        power().suspend();
+}
+
+/**
+ * @brief Show the warning and queue the power sequence outside the event callback.
+ *
+ * @param message Warning text.
+ * @param action  1 = shutdown, 2 = suspend.
+ */
+static void queuePowerAction(const char *message, int action)
+{
+    if (pendingPowerAction != 0)
+        return;
+
+    pendingPowerAction = action;
+    // refresh = false: rendering inside the event callback would nest a refresh.
+    showMsg(LV_SYMBOL_WARNING, message, false);
+    lv_timer_create(powerActionTimerCb, 2000, nullptr);
+}
+
+/**
  * @brief Handles LVGL GPIO long press event for shutdown message and device power-off.
  *
  * @param event Pointer to the LVGL event structure.
  */
 void gpioLongEvent(lv_event_t *event)
 {
-    showMsg(LV_SYMBOL_WARNING, " This device will shutdown shortly");
-    vTaskDelay(2000);
-    power().shutdown();
+    queuePowerAction(" This device will shutdown shortly", 1);
 }
 
 /**
@@ -390,9 +432,7 @@ void gpioLongEvent(lv_event_t *event)
  */
 void gpioClickEvent(lv_event_t *event)
 {
-    showMsg(LV_SYMBOL_WARNING, " This device will sleep shortly");
-    vTaskDelay(2000);
-    power().suspend();
+    queuePowerAction(" This device will sleep shortly", 2);
 }
 
 /**

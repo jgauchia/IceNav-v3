@@ -8,6 +8,7 @@
 
 #include "climbAnalyzer.hpp"
 #include "navigation.hpp"
+#include "lvglSubjects.hpp"
 #include "lvgl.h"
 
 const int triMask[TRI_ROWS] = { 9, 7, 5, 3, 1 };
@@ -273,7 +274,7 @@ void ClimbAnalyzer::updatePosition(float lat, float lon, bool simMode, int simIn
         activeSegIdx = -1;
         lastTrackIdx      = -1;
         prevSegIdx   = -1;
-        lv_subject_set_int(&subject_climb_active, 0);
+        lvglSetSubjectInt(&subject_climb_active, 0);
         return;
     }
 
@@ -290,22 +291,22 @@ void ClimbAnalyzer::updatePosition(float lat, float lon, bool simMode, int simIn
     if (activeSegIdx != prevSegIdx)
     {
         prevSegIdx = activeSegIdx;
-        lv_subject_set_int(&subject_climb_seg,        activeSegIdx + 1);
-        lv_subject_set_int(&subject_climb_total,      (int32_t)segs.size());
-        lv_subject_set_int(&subject_climb_cat,        climbCategory(activeSeg->totalDist, activeSeg->avgGrade));
-        lv_subject_set_int(&subject_climb_avg_grade,  (int32_t)(activeSeg->avgGrade * 10.0f));
-        lv_subject_set_int(&subject_climb_total_dist, (int32_t)activeSeg->totalDist);
-        lv_subject_set_int(&subject_climb_total_gain, (int32_t)activeSeg->totalGain);
+        lvglSetSubjectInt(&subject_climb_seg,        activeSegIdx + 1);
+        lvglSetSubjectInt(&subject_climb_total,      (int32_t)segs.size());
+        lvglSetSubjectInt(&subject_climb_cat,        climbCategory(activeSeg->totalDist, activeSeg->avgGrade));
+        lvglSetSubjectInt(&subject_climb_avg_grade,  (int32_t)(activeSeg->avgGrade * 10.0f));
+        lvglSetSubjectInt(&subject_climb_total_dist, (int32_t)activeSeg->totalDist);
+        lvglSetSubjectInt(&subject_climb_total_gain, (int32_t)activeSeg->totalGain);
     }
     int32_t approaching = (curDist < segStartDist) ? 1 : 0;
-    lv_subject_set_int(&subject_climb_approaching, approaching);
+    lvglSetSubjectInt(&subject_climb_approaching, approaching);
 
     lastTrackIdx = idx;
-    lv_subject_set_int(&subject_climb_dist,  (int32_t)distRem);
-    lv_subject_set_int(&subject_climb_gain,  (int32_t)gainRem);
-    lv_subject_set_int(&subject_climb_grade, (int32_t)(grade * 10.0f));
+    lvglSetSubjectInt(&subject_climb_dist,  (int32_t)distRem);
+    lvglSetSubjectInt(&subject_climb_gain,  (int32_t)gainRem);
+    lvglSetSubjectInt(&subject_climb_grade, (int32_t)(grade * 10.0f));
     if (lv_subject_get_int(&subject_climb_active) != 1)
-        lv_subject_set_int(&subject_climb_active, 1);
+        lvglSetSubjectInt(&subject_climb_active, 1);
     if (lv_subject_get_int(&subject_climb_idx) != (int32_t)idx)
-        lv_subject_set_int(&subject_climb_idx, (int32_t)idx);
+        lvglSetSubjectInt(&subject_climb_idx, (int32_t)idx);
 }

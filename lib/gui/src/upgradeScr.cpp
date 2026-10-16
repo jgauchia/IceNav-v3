@@ -8,6 +8,7 @@
 
  #include "upgradeScr.hpp"
  #include "display.hpp"
+ #include "lvglFuncs.hpp"
 
  lv_obj_t *msgUpgrade;
  lv_obj_t *msgUprgdText;
@@ -24,14 +25,26 @@ void msgBackEvent(lv_event_t *event)
 }
 
 /**
+ * @brief Runs the flash write outside the button's event dispatch.
+ *
+ * @details The upgrade writes the whole firmware image to flash, which takes seconds; doing it
+ *          inside the CLICKED event keeps an event node on the global event chain for the whole
+ *          operation, so it is deferred to an async callback.
+ */
+static void upgradeStartCb(void *)
+{
+    onUpgrdStart();
+    onUpgrdEnd();
+}
+
+/**
  * @brief Upgrade Message Event
  */
 void msgUpgrdEvent(lv_event_t *event)
 {
     lv_obj_add_flag(btnMsgBack,LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(btnMsgUpgrade, LV_OBJ_FLAG_HIDDEN);
-    onUpgrdStart();
-    onUpgrdEnd();
+    lvglAsyncCall(upgradeStartCb);
 }
 
 /**

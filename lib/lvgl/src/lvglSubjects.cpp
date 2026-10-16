@@ -7,6 +7,7 @@
  */
 
 #include "lvglSubjects.hpp"
+#include "freertos/task.h"
 #include "../../gps/gps.hpp"
 #include "../../bme/bme.hpp"
 #include "../../sensors/src/sensors.hpp"
@@ -54,6 +55,42 @@ lv_subject_t subject_temp;
 #endif
 
 volatile bool canMoveWidget = false;
+
+/**
+ * @brief Set an integer subject serialising the observer callbacks with lvgl_mutex.
+ *
+ * @details GPS and navigation tasks publish telemetry by setting subjects, and the observers
+ *          they trigger run inside the publisher, not in the GUI task. Those observers write to
+ *          LVGL objects, so without the mutex they race with lv_timer_handler on the other core.
+ *          When the mutex cannot be taken the update is dropped instead of blocking the sensor
+ *          task: the next cycle refreshes the same value.
+ *
+ * @param subject    Subject to update.
+ * @param value      New integer value.
+ * @param timeout_ms Wait budget for lvgl_mutex; 0 skips the update instead of waiting.
+ * @return true when the value was applied, false when it was dropped.
+ */
+bool lvglSetSubjectInt(lv_subject_t *subject, int32_t value, uint32_t timeout_ms)
+{
+    if (lvgl_mutex == nullptr)
+    {
+        lv_subject_set_int(subject, value);
+        return true;
+    }
+
+    if (xSemaphoreGetMutexHolder(lvgl_mutex) == xTaskGetCurrentTaskHandle())
+    {
+        lv_subject_set_int(subject, value);
+        return true;
+    }
+
+    if (xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(timeout_ms)) != pdTRUE)
+        return false;
+
+    lv_subject_set_int(subject, value);
+    xSemaphoreGive(lvgl_mutex);
+    return true;
+}
 
 /**
  * @brief Initialize all telemetry subjects

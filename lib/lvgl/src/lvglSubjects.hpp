@@ -61,6 +61,31 @@ extern lv_subject_t subject_temp;
 extern SemaphoreHandle_t lvgl_mutex;
 
 /**
+ * @brief Default wait budget for lvglSetSubjectInt()
+ */
+static constexpr uint32_t LVGL_SUBJECT_SET_TIMEOUT_MS = 100;
+
+/**
+ * @brief Set an integer subject serialising the observer callbacks with lvgl_mutex.
+ *
+ * @details lv_subject_set_int() runs the registered observers synchronously in the calling
+ *          task, and those observers touch LVGL objects (labels, flags, canvases) that the GUI
+ *          task may be rendering at the same time. Use this helper instead of
+ *          lv_subject_set_int() from any task other than the GUI task; when the caller already
+ *          holds lvgl_mutex the value is applied directly, so it never self-deadlocks on the
+ *          non-recursive mutex.
+ *
+ * @param subject    Subject to update.
+ * @param value      New integer value.
+ * @param timeout_ms Wait budget for lvgl_mutex; pass 0 from tasks that must never wait on the
+ *                   GUI task, so the update is skipped instead of stalling the sensor loop.
+ * @return true when the value was applied; false when lvgl_mutex could not be taken and the
+ *         update was dropped.
+ */
+bool lvglSetSubjectInt(lv_subject_t *subject, int32_t value,
+                       uint32_t timeout_ms = LVGL_SUBJECT_SET_TIMEOUT_MS);
+
+/**
  * @brief Flag to indicate if a widget is currently being dragged/moved
  */
 extern volatile bool canMoveWidget;

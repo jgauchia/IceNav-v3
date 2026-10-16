@@ -304,3 +304,28 @@ const char *diagSnapshotMemory()
              "--- mem snapshot uptime %lld s ---\n", (long long)uptime);
     return memSnapshot;
 }
+
+/**
+ * @brief Append a memory snapshot to DIAG.log with a label.
+ *
+ * @details The snapshot written by diagBootReport() runs before any task exists, so its stack
+ *          watermarks are all -1. This one is called once the tasks are running, which makes the
+ *          watermarks and the LVGL timer count real readings.
+ *
+ * @param tag Label written before the snapshot.
+ */
+void diagLogSnapshot(const char *tag)
+{
+    if (!storage.getSdLoaded())
+        return;
+
+    FILE *log = storage.open(DIAG_LOG_PATH, "a");
+    if (!log)
+        return;
+
+    char line[64];
+    snprintf(line, sizeof(line), "--- %s ---", tag);
+    storage.println(log, line);
+    storage.println(log, diagSnapshotMemory());
+    storage.close(log);
+}

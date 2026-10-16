@@ -7,7 +7,11 @@
  */
 
 #include "lvglFuncs.hpp"
+#include "lvglSubjects.hpp"
 #include "esp_system.h"
+
+/**< Wait budget to enter the LVGL timer list from another task. */
+static constexpr uint32_t ASYNC_CALL_TIMEOUT_MS = 100;
 
 lv_obj_t *msgDialog = nullptr;     /**< Message dialog object. */
 
@@ -120,6 +124,32 @@ void showMsg(const char* symbol, const char* message, bool refresh)
     lv_obj_invalidate(msgDialog);
     if (refresh)
         lv_refr_now(display_drv);
+}
+
+/**
+ * @brief Queue an LVGL async callback without racing lv_timer_handler
+ *
+ * @details Same guard the map redraw path uses: the async node is only linked into the LVGL
+ *          timer list while lvgl_mutex is held, unless the caller is the GUI task (or is already
+ *          inside a guarded section), where the direct call is correct.
+ *
+ * @param cb Async callback to schedule.
+ * @return true when the callback was queued, false when it was dropped.
+ */
+bool lvglAsyncCall(lv_async_cb_t cb)
+{
+    if (lvgl_mutex == nullptr)
+        return lv_async_call(cb, NULL) == LV_RESULT_OK;
+
+    if (xSemaphoreGetMutexHolder(lvgl_mutex) == xTaskGetCurrentTaskHandle())
+        return lv_async_call(cb, NULL) == LV_RESULT_OK;
+
+    if (xSemaphoreTake(lvgl_mutex, pdMS_TO_TICKS(ASYNC_CALL_TIMEOUT_MS)) != pdTRUE)
+        return false;
+
+    const bool queued = (lv_async_call(cb, NULL) == LV_RESULT_OK);
+    xSemaphoreGive(lvgl_mutex);
+    return queued;
 }
 
 /**

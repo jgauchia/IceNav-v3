@@ -136,6 +136,9 @@ void setup()
         initCLI();
         initCLITask();
     #endif
+    // Every task exists now, so the DIAG.log stack watermarks are real readings
+    // instead of the -1 the boot snapshot reports for tasks that are not created yet.
+    diagLogSnapshot("mem snapshot after task init");
     connectivity().begin();
     if (connectivity().isConnected() && enableWeb)
         fileServer().start();
