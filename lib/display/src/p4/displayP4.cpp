@@ -20,6 +20,7 @@
 #ifdef PANEL_BUS_DSI
     #include <esp_lcd_panel_ops.h>
     #include "esp_heap_caps.h"
+    static const char *TAG = "DISPLAY";
 #endif
 
 /**
@@ -62,12 +63,23 @@ public:
 
     void sleepOn(uint8_t brightness) override
     {
+        #ifdef PANEL_BUS_DSI
+            // ESP_LOGE is compiled out by CORE_DEBUG_LEVEL=0, ESP_LOG_LEVEL is runtime filtered.
+            if (!static_cast<PANEL_TYPE *>(tft.getPanel())->resumeDpi())
+                ESP_LOG_LEVEL(ESP_LOG_ERROR, TAG, "DSI panel resume failed");
+        #endif
         tftOn(brightness);
     }
 
     void sleepOff() override
     {
         tftOff();
+        #ifdef PANEL_BUS_DSI
+            // Deleting the panel frees the framebuffers, so the last flush must be complete.
+            tft.waitDisplay();
+            // The bridge fetches the framebuffer all the time, so light sleep needs it released.
+            static_cast<PANEL_TYPE *>(tft.getPanel())->suspendDpi();
+        #endif
     }
 
     void flush(const DisplayArea &area, uint16_t *pixels) override
