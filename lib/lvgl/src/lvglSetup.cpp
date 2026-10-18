@@ -33,7 +33,7 @@ lv_obj_t *searchSatScreen; /**< Search Satellite Screen object. */
 lv_obj_t *splashScr;       /**< Splash Screen object. */
 lv_style_t styleThemeBkg;  /**< Main background style object. */
 lv_style_t styleObjectBkg; /**< Object background style. */
-lv_style_t styleObjectSel; /**< Object selected style. */
+lv_style_t styleAccent;    /**< Accent color style for checked states. */
 
 lv_group_t *scrGroup;   /**< LVGL group for screen. */
 lv_group_t *keyGroup;   /**< LVGL group for GPIO keys. */
@@ -469,12 +469,8 @@ void applyModifyTheme(lv_theme_t *th, lv_obj_t *obj)
         if (lv_obj_check_type(obj, &lv_switch_class))
         {
             lv_obj_add_style(obj, &styleObjectBkg, 0);
-            lv_obj_add_style(obj, &styleObjectBkg, LV_PART_INDICATOR | LV_STATE_CHECKED);
-        }
-        if (lv_obj_check_type(obj, &lv_checkbox_class))
-        {
-            lv_obj_add_style(obj, &styleThemeBkg, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_add_style(obj, &styleObjectBkg, LV_PART_INDICATOR | LV_STATE_CHECKED);
+            lv_obj_add_style(obj, &styleAccent, LV_PART_MAIN | LV_STATE_CHECKED);
+            lv_obj_add_style(obj, &styleAccent, LV_PART_INDICATOR | LV_STATE_CHECKED);
         }
     }
 }
@@ -482,7 +478,7 @@ void applyModifyTheme(lv_theme_t *th, lv_obj_t *obj)
 /**
  * @brief Apply Custom Dark theme styles to the given object.
  *
- * @details Assigns custom styles to various LVGL objects (button, switch, checkbox, etc.)
+ * @details Assigns custom styles to various LVGL objects (button, switch, etc.)
  *
  * @param th  Pointer to the LVGL theme (unused).
  * @param obj Pointer to the LVGL object to style.
@@ -496,8 +492,9 @@ void modifyTheme()
     lv_style_init(&styleObjectBkg);
     lv_style_set_bg_color(&styleObjectBkg, lv_color_hex(objectColor));
     lv_style_set_border_color(&styleObjectBkg, lv_color_hex(objectColor));
-    lv_style_init(&styleObjectSel);
-    lv_style_set_bg_color(&styleObjectSel, lv_color_hex(0x757575));
+    lv_style_init(&styleAccent);
+    lv_style_set_bg_color(&styleAccent, lv_color_hex(accentColor));
+    lv_style_set_border_color(&styleAccent, lv_color_hex(accentColor));
     
     /*Initialize the new theme from the current theme*/
     lv_theme_t *th_act = lv_display_get_theme(NULL);
