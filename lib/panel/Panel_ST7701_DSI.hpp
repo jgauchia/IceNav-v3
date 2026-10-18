@@ -9,6 +9,7 @@
 #pragma once
 
 #include <lgfx/v1/platforms/esp32p4/Panel_DSI.hpp>
+#include <esp_lcd_panel_ops.h>
 #include <cstring>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
@@ -28,15 +29,45 @@ namespace lgfx
                 if (_lines_buffer != nullptr)
                     return false;
 
-                auto bus = getBusDSI();
-                if (bus == nullptr)
-                    return false;
-                if (!bus->init())
+                if (getBusDSI() == nullptr)
                     return false;
 
                 if (_light)
                     _light->init(0);
 
+                return resumeDpi(use_reset);
+            }
+
+            bool suspendDpi()
+            {
+                if (_disp_panel_handle == nullptr)
+                    return false;
+                if (esp_lcd_panel_del(_disp_panel_handle) != ESP_OK)
+                    return false;
+                _disp_panel_handle = nullptr;
+                if (_lines_buffer != nullptr)
+                {
+                    heap_free(_lines_buffer);
+                    _lines_buffer = nullptr;
+                }
+                _config_detail.buffer = nullptr;
+                // Light sleep drops the D-PHY PLL and the LDO rail powering it, so the
+                // bus itself has to be rebuilt on resume, not just the DPI panel.
+                auto bus = getBusDSI();
+                if (bus != nullptr)
+                    bus->release();
+                return true;
+            }
+
+            bool resumeDpi(bool use_reset = true)
+            {
+                if (_disp_panel_handle != nullptr)
+                    return true;
+                auto bus = getBusDSI();
+                if (bus == nullptr)
+                    return false;
+                if (!bus->init())
+                    return false;
                 if (use_reset && _cfg.pin_rst >= 0)
                 {
                     init_rst();
@@ -45,27 +76,21 @@ namespace lgfx
                     rst_control(true);
                     lgfx::delay(10);
                 }
-
-                bool result = init_dpi(bus) && init_panel();
-                if (result)
-                {
-                    esp_lcd_dpi_panel_get_frame_buffer(_disp_panel_handle, 1, &(_config_detail.buffer));
-                    result = buildLineArray();
-                }
-
-                if (result)
-                {
-                    if (!_refresh_done_sem)
-                        _refresh_done_sem = xSemaphoreCreateBinary();
-                    if (_refresh_done_sem)
-                    {
-                        esp_lcd_dpi_panel_event_callbacks_t callbacks = {};
-                        callbacks.on_refresh_done = onRefreshDone;
-                        esp_lcd_dpi_panel_register_event_callbacks(_disp_panel_handle, &callbacks, this);
-                    }
-                }
-
-                return result;
+                if (!init_dpi(bus) || !init_panel())
+                    return false;
+                esp_lcd_dpi_panel_get_frame_buffer(_disp_panel_handle, 1, &(_config_detail.buffer));
+                if (!buildLineArray())
+                    return false;
+                if (_refresh_done_sem == nullptr)
+                    _refresh_done_sem = xSemaphoreCreateBinary();
+                if (_refresh_done_sem == nullptr)
+                    return false;
+                // Drop a pending give from before the suspend so the first wait is honest.
+                xSemaphoreTake(_refresh_done_sem, 0);
+                esp_lcd_dpi_panel_event_callbacks_t callbacks = {};
+                // IDF 5.5 no longer reads on_refresh_done, it is the frame buffer callback that fires.
+                callbacks.on_frame_buf_complete = onFrameDone;
+                return esp_lcd_dpi_panel_register_event_callbacks(_disp_panel_handle, &callbacks, this) == ESP_OK;
             }
 
             void waitDisplay(void) override
@@ -79,7 +104,7 @@ namespace lgfx
         protected:
             SemaphoreHandle_t _refresh_done_sem = nullptr;
 
-            static bool IRAM_ATTR onRefreshDone(esp_lcd_panel_handle_t panel, esp_lcd_dpi_panel_event_data_t *edata, void *user_ctx)
+            static bool IRAM_ATTR onFrameDone(esp_lcd_panel_handle_t panel, esp_lcd_dpi_panel_event_data_t *edata, void *user_ctx)
             {
                 auto self = static_cast<Panel_ST7701_DSI*>(user_ctx);
                 BaseType_t need_yield = pdFALSE;
