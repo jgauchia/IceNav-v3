@@ -92,6 +92,102 @@ void displayFlushWait(lv_display_t *disp)
     display().waitFlushDone();
 }
 
+#ifdef PANEL_BUS_DSI
+/**
+ * @brief Binds the LVGL draw buffers to the two DSI panel frame buffers (zero-copy).
+ *
+ * @details LVGL always paints into the frame buffer that the DSI bridge is not
+ *          scanning; the flush callback hands that same buffer back to the
+ *          driver, which swaps the scan-out at the next frame boundary.
+ *
+ * @return true if the panel frame buffers were bound.
+ */
+static bool bindPanelFramebuffers()
+{
+    auto panel = static_cast<PANEL_TYPE *>(tft.getPanel());
+    void *fb0 = nullptr;
+    void *fb1 = nullptr;
+    if (panel == nullptr || !panel->getFrameBuffers(&fb0, &fb1))
+        return false;
+    if (((uintptr_t)fb0 & (LV_DRAW_BUF_ALIGN - 1)) != 0 ||
+        ((uintptr_t)fb1 & (LV_DRAW_BUF_ALIGN - 1)) != 0)
+    {
+        ESP_LOGW(TAG, "DSI: frame buffers are not %d-byte aligned", LV_DRAW_BUF_ALIGN);
+        return false;
+    }
+    const uint32_t size = (uint32_t)TFT_WIDTH * TFT_HEIGHT * lv_color_format_get_size(LV_COLOR_FORMAT_NATIVE);
+    if (panel->lastPresentedIndex() == 0)
+        lv_display_set_buffers(display_drv, fb1, fb0, size, LV_DISPLAY_RENDER_MODE_FULL);
+    else
+        lv_display_set_buffers(display_drv, fb0, fb1, size, LV_DISPLAY_RENDER_MODE_FULL);
+    return true;
+}
+
+/**
+ * @brief Binds the LVGL draw buffers to dedicated PSRAM buffers (rotated mode).
+ *
+ * @details The rotated flush re-projects the frame through a scratch buffer, so
+ *          drawing straight into a panel frame buffer would tear. The buffers
+ *          are allocated on first use and kept for the rest of the session.
+ *
+ * @return true if the rotated buffers were bound.
+ */
+static bool bindRotatedBuffers()
+{
+    static lv_color_t *rotatedBuf1 = nullptr;
+    static lv_color_t *rotatedBuf2 = nullptr;
+    const uint32_t size = (uint32_t)TFT_WIDTH * TFT_HEIGHT * lv_color_format_get_size(LV_COLOR_FORMAT_NATIVE);
+    if (rotatedBuf1 == nullptr)
+        rotatedBuf1 = (lv_color_t *)heap_caps_aligned_alloc(64, size, MALLOC_CAP_SPIRAM);
+    if (rotatedBuf2 == nullptr)
+        rotatedBuf2 = (lv_color_t *)heap_caps_aligned_alloc(64, size, MALLOC_CAP_SPIRAM);
+    if (rotatedBuf1 == nullptr || rotatedBuf2 == nullptr)
+    {
+        ESP_LOGE(TAG, "DSI: no PSRAM left for rotated draw buffers");
+        return false;
+    }
+    lv_display_set_buffers(display_drv, rotatedBuf1, rotatedBuf2, size, LV_DISPLAY_RENDER_MODE_FULL);
+    return true;
+}
+
+static void bindBuffersForRotation(lv_display_rotation_t rotation)
+{
+    if (rotation == LV_DISPLAY_ROTATION_0)
+        bindPanelFramebuffers();
+    else
+        bindRotatedBuffers();
+}
+#endif
+
+/**
+ * @brief Sets the display rotation and re-binds the LVGL draw buffers.
+ *
+ * @details Rotated mode needs dedicated PSRAM draw buffers; every other mode
+ *          paints straight into the DSI panel frame buffers.
+ *
+ * @param rotation New display rotation.
+ */
+void lvglSetDisplayRotation(lv_display_rotation_t rotation)
+{
+#ifdef PANEL_BUS_DSI
+    bindBuffersForRotation(rotation);
+#endif
+    lv_display_set_rotation(display_drv, rotation);
+}
+
+/**
+ * @brief Re-binds the LVGL draw buffers without changing the rotation.
+ *
+ * @details The DSI panel frees and recreates its frame buffers on every sleep
+ *          cycle, so the binding has to be refreshed after resume.
+ */
+void lvglRestoreDrawBuffers()
+{
+#ifdef PANEL_BUS_DSI
+    bindBuffersForRotation(lv_display_get_rotation(display_drv));
+#endif
+}
+
 /**
  * @brief Reads and processes LVGL touch input, handling gestures and events.
  *
@@ -525,10 +621,22 @@ void initLVGL()
                 DRAW_BUF_SIZE = (TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t) / 8);
         #endif
 
-        ESP_LOGV(TAG, "LVGL: allocating %u bytes PSRAM for draw buffers", DRAW_BUF_SIZE * 2);
-        drawBuf1 = (lv_color_t *)heap_caps_aligned_alloc(64, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
-        drawBuf2 = (lv_color_t *)heap_caps_aligned_alloc(64, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
-        lv_display_set_buffers(display_drv, drawBuf1, drawBuf2, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
+        #ifdef PANEL_BUS_DSI
+            // Zero-copy: LVGL paints straight into the DSI panel frame buffers,
+            // saving the two PSRAM draw buffers and the per-frame driver copy.
+            if (!bindPanelFramebuffers())
+            {
+                ESP_LOGW(TAG, "DSI: frame buffers unavailable, falling back to PSRAM draw buffers");
+                drawBuf1 = (lv_color_t *)heap_caps_aligned_alloc(64, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
+                drawBuf2 = (lv_color_t *)heap_caps_aligned_alloc(64, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
+                lv_display_set_buffers(display_drv, drawBuf1, drawBuf2, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
+            }
+        #else
+            ESP_LOGV(TAG, "LVGL: allocating %u bytes PSRAM for draw buffers", DRAW_BUF_SIZE * 2);
+            drawBuf1 = (lv_color_t *)heap_caps_aligned_alloc(64, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
+            drawBuf2 = (lv_color_t *)heap_caps_aligned_alloc(64, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
+            lv_display_set_buffers(display_drv, drawBuf1, drawBuf2, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
+        #endif
     #else
         DRAW_BUF_SIZE = (TFT_WIDTH * TFT_HEIGHT / 10) * sizeof(lv_color_t);
         ESP_LOGV(TAG, "LVGL: allocating %u bytes SRAM for draw buffer", DRAW_BUF_SIZE);
@@ -607,7 +715,7 @@ void loadMainScreen()
 #ifndef PANEL_BUS_DSI
         display().setRotation(0);
 #endif
-        lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
+        lvglSetDisplayRotation(LV_DISPLAY_ROTATION_0);
     }
     isMainScreen = true;
     isScrolled = true;
@@ -619,7 +727,7 @@ void loadMainScreen()
 #ifndef PANEL_BUS_DSI
         display().setRotation(0);
 #endif
-        lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
+        lvglSetDisplayRotation(LV_DISPLAY_ROTATION_0);
     }
 
     lv_obj_remove_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
