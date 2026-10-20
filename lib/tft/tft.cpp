@@ -125,7 +125,9 @@ void initTFT()
         digitalWrite(TCH_I2C_RST, LOW);
         delay(20);
         digitalWrite(TCH_I2C_RST, HIGH);
-        delay(80);
+        // ST7789V needs >=120 ms after RESX rises before the first command.
+        // LGFX pin_rst is -1, so no second reset adds margin here.
+        delay(150);
         pinMode(TCH_I2C_INT, INPUT);
     #endif
 

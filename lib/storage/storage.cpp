@@ -116,7 +116,6 @@ esp_err_t Storage::initSD()
 		esp_err_t ret;
 
 		sdmmc_host_t host = SDMMC_HOST_DEFAULT();
-		host.flags = SDMMC_HOST_FLAG_1BIT;
 		host.max_freq_khz = SDMMC_FREQ_DEFAULT;
 
 		sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
@@ -295,7 +294,12 @@ void Storage::deinitSD()
 
 	#if defined(SDMMC_1BIT) || CONFIG_IDF_TARGET_ESP32P4 || !defined(SPI_SHARED)
 		if (card != nullptr)
-			esp_vfs_fat_sdcard_unmount("/sdcard", card);
+		{
+			esp_err_t err = esp_vfs_fat_sdcard_unmount("/sdcard", card);
+			if (err != ESP_OK)
+				ESP_LOGE(TAG, "Failed to unmount the SD card (%s).", esp_err_to_name(err));
+			card = nullptr;
+		}
 	#else
 		SD.end();
 	#endif
