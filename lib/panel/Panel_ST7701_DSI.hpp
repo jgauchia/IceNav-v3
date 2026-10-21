@@ -51,6 +51,8 @@ namespace lgfx
                     _lines_buffer = nullptr;
                 }
                 _config_detail.buffer = nullptr;
+                _fbs[0] = nullptr;
+                _fbs[1] = nullptr;
                 // Light sleep drops the D-PHY PLL and the LDO rail powering it, so the
                 // bus itself has to be rebuilt on resume, not just the DPI panel.
                 auto bus = getBusDSI();
@@ -78,7 +80,11 @@ namespace lgfx
                 }
                 if (!init_dpi(bus) || !init_panel())
                     return false;
-                esp_lcd_dpi_panel_get_frame_buffer(_disp_panel_handle, 1, &(_config_detail.buffer));
+                esp_lcd_dpi_panel_get_frame_buffer(_disp_panel_handle, 2, &_fbs[0], &_fbs[1]);
+                _config_detail.buffer = _fbs[0];
+                // The driver restarts scanning fb0 on resume, so the present
+                // tracker restarts from 0 as well.
+                _last_presented = 0;
                 if (!buildLineArray())
                     return false;
                 if (_refresh_done_sem == nullptr)
@@ -101,8 +107,45 @@ namespace lgfx
 
             esp_lcd_panel_handle_t panelHandle(void) const { return _disp_panel_handle; }
 
+            bool getFrameBuffers(void **fb0, void **fb1) const
+            {
+                if (_fbs[0] == nullptr || _fbs[1] == nullptr)
+                    return false;
+                *fb0 = _fbs[0];
+                *fb1 = _fbs[1];
+                return true;
+            }
+
+            // Records which frame buffer the DSI bridge will scan after a
+            // zero-copy present (the driver copies never change its index).
+            bool notePresented(const void *buffer)
+            {
+                if (buffer == _fbs[0])
+                {
+                    _last_presented = 0;
+                    return true;
+                }
+                if (buffer == _fbs[1])
+                {
+                    _last_presented = 1;
+                    return true;
+                }
+                return false;
+            }
+
+            void waitPresentedSwap()
+            {
+                // Drop a boundary stamped before the present so the wait below lands on the swap.
+                xSemaphoreTake(_refresh_done_sem, 0);
+                xSemaphoreTake(_refresh_done_sem, pdMS_TO_TICKS(100));
+            }
+
+            uint8_t lastPresentedIndex() const { return _last_presented; }
+
         protected:
             SemaphoreHandle_t _refresh_done_sem = nullptr;
+            void *_fbs[2] = {nullptr, nullptr};
+            uint8_t _last_presented = 0;
 
             static bool IRAM_ATTR onFrameDone(esp_lcd_panel_handle_t panel, esp_lcd_dpi_panel_event_data_t *edata, void *user_ctx)
             {

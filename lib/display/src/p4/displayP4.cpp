@@ -124,6 +124,9 @@ public:
             if (_captureBuffer != nullptr)
                 captureArea(area, pixels);
             esp_lcd_panel_draw_bitmap(static_cast<PANEL_TYPE *>(tft.getPanel())->panelHandle(), 0, 0, tft.width(), tft.height(), pixels);
+            auto panel = static_cast<PANEL_TYPE *>(tft.getPanel());
+            if (panel->notePresented(pixels))
+                panel->waitPresentedSwap();
         #else
             uint32_t w = area.x2 - area.x1 + 1;
             uint32_t h = area.y2 - area.y1 + 1;
