@@ -17,6 +17,7 @@
 #include <freertos/task.h>
 #include <esp_sleep.h>
 #include "tft.hpp"
+#include "display.hpp"
 #include "storage.hpp"
 #include "../../../../include/hal.hpp"
 #include "lvgl.h"
@@ -65,15 +66,25 @@ public:
         int brightness = tft.getBrightness();
         closeMsg();
         lv_refr_now(display_drv);
-        tftOff();
 
         suspendAllTasks();
 
+        display().sleepOff();
+
         powerLightSleep();
 
-        resumeAllTasks();
+        // The resumed panel scans a blank framebuffer, and the copy that repaints it
+        // lands mid-frame, so the backlight stays off until two identical frames hide it.
+        display().sleepOn(0);
+        // The resumed panel created fresh frame buffers; re-bind them before the repaints.
+        lvglRestoreDrawBuffers();
+        lv_obj_invalidate(lv_screen_active());
+        lv_refr_now(display_drv);
+        lv_obj_invalidate(lv_screen_active());
+        lv_refr_now(display_drv);
+        display().setBrightness(brightness);
 
-        tftOn(brightness);
+        resumeAllTasks();
         // Wait for button release after wake (getBootPin returns 0 = pressed)
         while (getBootPin() == 0)
             vTaskDelay(pdMS_TO_TICKS(5));

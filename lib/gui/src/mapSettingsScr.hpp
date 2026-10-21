@@ -10,6 +10,7 @@
 
 #include "globalGuiDef.h"
 #include "lvglFuncs.hpp"
+#include "lvglSetup.hpp"
 #include "settings.hpp"
 #include "maps.hpp"
 
@@ -21,13 +22,12 @@ static lv_obj_t *btnBack;              /**< Back button object in map settings. 
 static lv_obj_t *zoomBtnUp;            /**< Zoom level increment button object. */
 static lv_obj_t *zoomBtnDown;          /**< Zoom level decrement button object. */
 static lv_obj_t *list;                 /**< List object for settings options. */
-static lv_obj_t *checkCompass;         /**< Checkbox for enabling compass display. */
-static lv_obj_t *checkCompassRot;      /**< Checkbox for enabling compass rotation. */
-static lv_obj_t *checkSpeed;           /**< Checkbox for displaying speed on the map. */
-static lv_obj_t *checkScale;           /**< Checkbox for displaying map scale. */
-static lv_obj_t *checkFullScreen;      /**< Checkbox for enabling fullscreen map display. */
-static lv_obj_t *checkClimb;           /**< Checkbox for displaying Climb Analyzer */
-static lv_obj_t *check3DMap;           /**< Checkbox for enabling 3D perspective view (vector only) */
+static lv_obj_t *checkCompass;         /**< Switch for enabling compass display. */
+static lv_obj_t *checkCompassRot;      /**< Switch for enabling compass rotation. */
+static lv_obj_t *checkSpeed;           /**< Switch for displaying speed on the map. */
+static lv_obj_t *checkScale;           /**< Switch for displaying map scale. */
+static lv_obj_t *checkClimb;           /**< Switch for displaying Climb Analyzer */
+static lv_obj_t *check3DMap;           /**< Switch for enabling 3D perspective view (vector only) */
 static lv_obj_t *list3DMap;            /**< List row container for the 3D Map option */
 
 
