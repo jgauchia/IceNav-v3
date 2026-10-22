@@ -21,7 +21,7 @@
         ]
       ],
       "mcu": "esp32s3",
-      "variant": "makerfab_ma028ipst"
+      "variant": "esp32s3"
     },
     "connectivity": [
       "wifi",
