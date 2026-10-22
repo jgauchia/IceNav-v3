@@ -112,7 +112,44 @@ esp_err_t Storage::initSD()
 		return ESP_ERR_NO_MEM;
 	}
 
-	#if CONFIG_IDF_TARGET_ESP32P4
+	#ifdef SDMMC_1BIT
+		esp_err_t ret;
+
+		sdmmc_host_t host = SDMMC_HOST_DEFAULT();
+		host.max_freq_khz = SDMMC_FREQ_DEFAULT;
+
+		sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
+		slot_config.width = 1;
+		slot_config.clk = (gpio_num_t)SD_CLK;
+		slot_config.cmd = (gpio_num_t)SD_CMD;
+		slot_config.d0 = (gpio_num_t)SD_D0;
+		#ifdef SDMMC_SLOT_FLAG_INTERNAL_PULLUP
+			slot_config.flags |= SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
+		#endif
+
+		ESP_LOGI(TAG, "Initializing SD card (SDMMC 1-bit)");
+
+		esp_vfs_fat_mount_config_t mount_config = {
+			.format_if_mount_failed = false,
+			.max_files = 20,
+			.allocation_unit_size = 0
+		};
+
+		ret = esp_vfs_fat_sdmmc_mount("/sdcard", &host, &slot_config, &mount_config, &card);
+		if (ret != ESP_OK)
+		{
+			if (ret == ESP_FAIL)
+				ESP_LOGE(TAG, "Failed to mount filesystem.");
+			else
+				ESP_LOGE(TAG, "Failed to initialize the card (%s).", esp_err_to_name(ret));
+			return ret;
+		}
+
+		ESP_LOGI(TAG, "SD card initialized successfully");
+		sdmmc_card_print_info(stdout, card);
+		isSdLoaded = true;
+		return ESP_OK;
+	#elif CONFIG_IDF_TARGET_ESP32P4
 		esp_err_t ret;
 
 		sdmmc_host_t host = SDMMC_HOST_DEFAULT();
@@ -255,9 +292,14 @@ void Storage::deinitSD()
 	if (!isSdLoaded)
 		return;
 
-	#if CONFIG_IDF_TARGET_ESP32P4 || !defined(SPI_SHARED)
+	#if defined(SDMMC_1BIT) || CONFIG_IDF_TARGET_ESP32P4 || !defined(SPI_SHARED)
 		if (card != nullptr)
-			esp_vfs_fat_sdcard_unmount("/sdcard", card);
+		{
+			esp_err_t err = esp_vfs_fat_sdcard_unmount("/sdcard", card);
+			if (err != ESP_OK)
+				ESP_LOGE(TAG, "Failed to unmount the SD card (%s).", esp_err_to_name(err));
+			card = nullptr;
+		}
 	#else
 		SD.end();
 	#endif
