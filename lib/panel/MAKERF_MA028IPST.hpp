@@ -2,7 +2,7 @@
  * @file MAKERF_MA028IPST.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LOVYANGFX TFT driver for Makerfabs MaTouch ESP32-S3 Parallel 2.8" ST7789V with GT911
- * @version 0.3.2
+ * @version 0.3.3
  * @date 2026-10
  */
 
