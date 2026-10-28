@@ -6,11 +6,6 @@ on:
       - master
     paths-ignore:
       - '**/README.md'
-  pull_request:
-    branches:
-      - master
-    paths-ignore:
-      - '**/README.md'
 
 jobs:
   layer-discipline:
@@ -47,8 +42,13 @@ jobs:
           python-version: '3.10'
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install pioarduino==6.2.0  
+          # pioarduino 6.2.0.post1 (2026-10-26) reports "6.2.0-post.1", which the platform's
+          # semver check reads as a prerelease of 6.2.0 and rejects with IncompatiblePlatform.
+          # Pin 6.2.0 in the penv: that is the interpreter running pio, and the platform
+          # installs its own dependencies there.
+          python -m venv $HOME/.platformio/penv
+          $HOME/.platformio/penv/bin/python -m pip install pioarduino==6.2.0
+          echo "$HOME/.platformio/penv/bin" >> "$GITHUB_PATH"
       - name: Testing ${{ matrix.env }}
         run: |
           export ICENAV3_LON=13.404

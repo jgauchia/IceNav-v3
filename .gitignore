@@ -15,14 +15,14 @@ managed_components/
 
 # graft's local graph cache — regenerable, not committed (run `graft build`).
 graft/
+# Root strays if graft is invoked with the repo as its --dir — same cache, regenerable.
+/.cache/
+/.graph/
+/INDEX.md
 .ignore
-
-# Agent tooling: local only. The project rules live in icenav-roadmap, never here.
-.claude
-.mcp.json
-AGENTS.md
-opencode.json
 
 # Test tracks dropped at the repo root. Scoped on purpose: the .gpx under
 # "SD Card File Structure/" belongs to the device and is versioned.
 /*.gpx
+.mcp.json
+opencode.json
