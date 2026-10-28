@@ -75,6 +75,9 @@
         #define PANEL_PIN_RST TFT_SPI_RST
     #endif
 #endif
+#ifndef PANEL_PIN_CS
+    #define PANEL_PIN_CS -1
+#endif
 
 #if defined(TOUCH_XPT2046)
     #ifndef TOUCH_FREQ
@@ -195,11 +198,7 @@ class LGFX : public lgfx::LGFX_Device
 
             {
                 auto cfg = panelInstance.config();
-                #if defined(PANEL_BUS_SPI)
-                    cfg.pin_cs = PANEL_PIN_CS;
-                #else
-                    cfg.pin_cs = -1;
-                #endif
+                cfg.pin_cs = PANEL_PIN_CS;
                 cfg.pin_rst = PANEL_PIN_RST;
                 cfg.pin_busy = -1;
                 cfg.panel_width = PANEL_WIDTH;
