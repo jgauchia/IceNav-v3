@@ -167,6 +167,57 @@
 #endif
 
 /**
+ * @brief MAKERFABS MaTouch ESP32-S3 Parallel 2.8" (MA028IPST) pin definition
+ *
+ * @details GPS is wired to the Mabee GPIO header. Native USB (GPIO19/20) is left
+ *          unused so Serial2 can own those pins; flash via the USB-UART (CH340) port.
+ *          Mabee I2C / GT911 (schematic): SDA=GPIO39, SCL=GPIO38.
+ */
+#ifdef MAKERF_MA028IPST
+    #define I2C_SDA_PIN   GPIO_NUM_39
+    #define I2C_SCL_PIN   GPIO_NUM_38
+
+    static constexpr uint8_t GPS_TX_DEFAULT = GPIO_NUM_19;  // GPS RX -> MCU TX
+    static constexpr uint8_t GPS_RX_DEFAULT = GPIO_NUM_20;  // GPS TX -> MCU RX
+
+    static constexpr uint8_t BOARD_BOOT_PIN = GPIO_NUM_0;
+
+    static constexpr uint8_t TFT_WR  = GPIO_NUM_18;
+    static constexpr uint8_t TFT_RD  = GPIO_NUM_48;
+    static constexpr uint8_t TFT_RS  = GPIO_NUM_17;
+    static constexpr uint8_t TFT_CS  = GPIO_NUM_46;
+    static constexpr int     TFT_RST = -1;
+    static constexpr uint8_t TFT_BL  = GPIO_NUM_45;
+
+    static constexpr uint8_t TFT_D0  = GPIO_NUM_47;
+    static constexpr uint8_t TFT_D1  = GPIO_NUM_21;
+    static constexpr uint8_t TFT_D2  = GPIO_NUM_14;
+    static constexpr uint8_t TFT_D3  = GPIO_NUM_13;
+    static constexpr uint8_t TFT_D4  = GPIO_NUM_12;
+    static constexpr uint8_t TFT_D5  = GPIO_NUM_11;
+    static constexpr uint8_t TFT_D6  = GPIO_NUM_10;
+    static constexpr uint8_t TFT_D7  = GPIO_NUM_9;
+    static constexpr uint8_t TFT_D8  = GPIO_NUM_3;
+    static constexpr uint8_t TFT_D9  = GPIO_NUM_8;
+    static constexpr uint8_t TFT_D10 = GPIO_NUM_16;
+    static constexpr uint8_t TFT_D11 = GPIO_NUM_15;
+    static constexpr uint8_t TFT_D12 = GPIO_NUM_7;
+    static constexpr uint8_t TFT_D13 = GPIO_NUM_6;
+    static constexpr uint8_t TFT_D14 = GPIO_NUM_5;
+    static constexpr uint8_t TFT_D15 = GPIO_NUM_4;
+
+    static constexpr uint8_t TCH_I2C_PORT = 0;
+    static constexpr uint8_t TCH_I2C_SDA  = GPIO_NUM_39;
+    static constexpr uint8_t TCH_I2C_SCL  = GPIO_NUM_38;
+    static constexpr uint8_t TCH_I2C_INT  = GPIO_NUM_40;
+    static constexpr uint8_t TCH_I2C_RST  = GPIO_NUM_1;  // schematic: IO1/LCD_RESET, shared with GT911 RST
+
+    static constexpr uint8_t SD_CLK = GPIO_NUM_42;
+    static constexpr uint8_t SD_CMD = GPIO_NUM_2;
+    static constexpr uint8_t SD_D0  = GPIO_NUM_41;
+#endif
+
+/**
  * @brief ESP32S3_N16R8 BOARD pin definition
  *
  */

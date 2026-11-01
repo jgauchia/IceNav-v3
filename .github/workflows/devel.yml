@@ -31,6 +31,7 @@ jobs:
           - TDECK_ESP32S3
           - T4_S3
           - ELECROW_ESP32
+          - MAKERF_MA028IPST
           - WAVESHARE_P4_35
           - WAVESHARE_P4_43
     steps:
