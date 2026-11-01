@@ -69,6 +69,15 @@ static inline __attribute__((always_inline)) float sinLUT(float rad)
     if (!sinLut)
         return sinf(rad);
 
+    // sin is odd: look up |rad| so small negative angles are not
+    // rounded to the float grid near 2*PI by the wrap below
+    float sign = 1.0f;
+    if (rad < 0.0f)
+    {
+        rad = -rad;
+        sign = -1.0f;
+    }
+
     rad -= TWO_PI * floorf(rad / TWO_PI);
     if (rad < 0.0f)
         rad += TWO_PI;
@@ -83,7 +92,7 @@ static inline __attribute__((always_inline)) float sinLUT(float rad)
 
     float result = sinLut[idx_low] * (1.0f - frac) + sinLut[idx_high] * frac;
 
-    return result;
+    return sign * result;
 }
 
 /**
@@ -96,6 +105,9 @@ static inline __attribute__((always_inline)) float cosLUT(float rad)
 {
 	if (!cosLut)
 		return cosf(rad);
+
+	// cos is even: same reason as in sinLUT()
+	rad = fabsf(rad);
 
 	// Normalize angle to [0, TWO_PI)
 	rad -= TWO_PI * floorf(rad / TWO_PI);

@@ -67,7 +67,7 @@ static void mapSettingsEvents(lv_event_t *event)
 
     if (obj == mapType)
     {
-        mapSet.vectorMap = lv_obj_has_state(obj, LV_STATE_CHECKED);
+        mapSet.vectorMap = lv_dropdown_get_selected(obj) == 1;
         minZoom = 6;
         maxZoom = 17;
         lv_spinbox_set_range(zoomLevel, minZoom, maxZoom);
@@ -79,7 +79,7 @@ static void mapSettingsEvents(lv_event_t *event)
 
     if (obj == mapSwitch)
     {
-        mapSet.mapRotationComp = lv_obj_has_state(obj, LV_STATE_CHECKED);
+        mapSet.mapRotationComp = lv_dropdown_get_selected(obj) == 1;
         cfg.saveBool(PKEYS::KMAP_ROT_MODE, mapSet.mapRotationComp);
     }
 
@@ -156,34 +156,46 @@ void createMapSettingsScr()
     lv_obj_set_size(mapSettingsOptions, TFT_WIDTH, TFT_HEIGHT - 60);
     lv_obj_t *label;
     // Map Type
-    list = lv_list_add_button(mapSettingsOptions, NULL, "Map Type\nRENDER/VECTOR");
+    list = lv_list_add_button(mapSettingsOptions, NULL, "Map Type");
     lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
     lv_obj_set_style_text_font(list, fontOptions, 0);
-    mapType = lv_switch_create(list);
-    label = lv_label_create(mapType);
-    lv_label_set_text_static(label, "V   R");
-    lv_obj_center(label);
-    if (mapSet.vectorMap)
-        lv_obj_add_state(mapType, LV_STATE_CHECKED);
-    else
-        lv_obj_remove_state(mapType, LV_STATE_CHECKED);
+    mapType = lv_dropdown_create(list);
+    lv_dropdown_set_options(mapType, "PNG\nVECTOR");
+    lv_dropdown_set_selected(mapType, mapSet.vectorMap ? 1 : 0);
+    lv_obj_t *item = lv_dropdown_get_list(mapType);
+    lv_obj_set_style_bg_color(item, lv_color_hex(objectColor), LV_PART_SELECTED | LV_STATE_CHECKED);
     lv_obj_align_to(mapType, list, LV_ALIGN_RIGHT_MID, 0, 0);
+#if defined(LARGE_SCREEN) && !defined(EXTRA_LARGE_SCREEN) && !defined(T4_S3)
+    lv_obj_set_width(mapType, TFT_WIDTH * 2 / 5);
+    lv_obj_set_style_text_font(mapType, fontMedium, 0);
+    lv_obj_set_style_text_font(item, fontMedium, 0);
+#else
+    lv_obj_set_width(mapType, TFT_WIDTH / 3);
+#endif
     lv_obj_add_event_cb(mapType, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
     // Map Rotation
-    list = lv_list_add_button(mapSettingsOptions, NULL, "Map Rotation Mode\nHEADING/COMPASS");
+#if defined(LARGE_SCREEN) && !defined(EXTRA_LARGE_SCREEN) && !defined(T4_S3)
+    list = lv_list_add_button(mapSettingsOptions, NULL, "Map Rotation\nMode");
+#else
+    list = lv_list_add_button(mapSettingsOptions, NULL, "Map Rotation Mode");
+#endif
     lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
     lv_obj_set_style_text_font(list, fontOptions, 0);
-    mapSwitch = lv_switch_create(list);
-    label = lv_label_create(mapSwitch);
-    lv_label_set_text_static(label, "C   H");
-    lv_obj_center(label);
-    if (mapSet.mapRotationComp)
-        lv_obj_add_state(mapSwitch, LV_STATE_CHECKED);
-    else
-        lv_obj_remove_state(mapSwitch, LV_STATE_CHECKED);
+    mapSwitch = lv_dropdown_create(list);
+    lv_dropdown_set_options(mapSwitch, "HEADING\nCOMPASS");
+    lv_dropdown_set_selected(mapSwitch, mapSet.mapRotationComp ? 1 : 0);
+    item = lv_dropdown_get_list(mapSwitch);
+    lv_obj_set_style_bg_color(item, lv_color_hex(objectColor), LV_PART_SELECTED | LV_STATE_CHECKED);
     lv_obj_align_to(mapSwitch, list, LV_ALIGN_RIGHT_MID, 0, 0);
+#if defined(LARGE_SCREEN) && !defined(EXTRA_LARGE_SCREEN) && !defined(T4_S3)
+    lv_obj_set_width(mapSwitch, TFT_WIDTH * 2 / 5);
+    lv_obj_set_style_text_font(mapSwitch, fontMedium, 0);
+    lv_obj_set_style_text_font(item, fontMedium, 0);
+#else
+    lv_obj_set_width(mapSwitch, TFT_WIDTH / 3);
+#endif
     lv_obj_add_event_cb(mapSwitch, mapSettingsEvents, LV_EVENT_VALUE_CHANGED, NULL);
     // Default zoom level
     list = lv_list_add_button(mapSettingsOptions, NULL, "Default\nZoom Level");
@@ -214,9 +226,8 @@ void createMapSettingsScr()
     lv_obj_set_style_text_font(list, fontOptions, 0);
     lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
-    checkCompass = lv_checkbox_create(list);
-    lv_obj_align_to(checkCompass, list, LV_ALIGN_RIGHT_MID, 0, 0);
-    lv_checkbox_set_text(checkCompass, " ");
+    checkCompass = lv_switch_create(list);
+    lv_obj_align_to(checkCompass, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
     if (mapSet.showMapCompass)
         lv_obj_add_state(checkCompass, LV_STATE_CHECKED);
     else
@@ -227,9 +238,8 @@ void createMapSettingsScr()
     lv_obj_set_style_text_font(list, fontOptions, 0);
     lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
-    checkCompassRot = lv_checkbox_create(list);
-    lv_obj_align_to(checkCompassRot, list, LV_ALIGN_RIGHT_MID, 0, 0);
-    lv_checkbox_set_text(checkCompassRot, " ");
+    checkCompassRot = lv_switch_create(list);
+    lv_obj_align_to(checkCompassRot, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
     if (mapSet.compassRotation)
         lv_obj_add_state(checkCompassRot, LV_STATE_CHECKED);
     else
@@ -240,9 +250,8 @@ void createMapSettingsScr()
     lv_obj_set_style_text_font(list, fontOptions, 0);
     lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
-    checkSpeed = lv_checkbox_create(list);
-    lv_obj_align_to(checkSpeed, list, LV_ALIGN_RIGHT_MID, 0, 0);
-    lv_checkbox_set_text(checkSpeed, " ");
+    checkSpeed = lv_switch_create(list);
+    lv_obj_align_to(checkSpeed, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
     if (mapSet.showMapSpeed)
         lv_obj_add_state(checkSpeed, LV_STATE_CHECKED);
     else
@@ -253,9 +262,8 @@ void createMapSettingsScr()
     lv_obj_set_style_text_font(list, fontOptions, 0);
     lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
-    checkScale = lv_checkbox_create(list);
-    lv_obj_align_to(checkScale, list, LV_ALIGN_RIGHT_MID, 0, 0);
-    lv_checkbox_set_text(checkScale, " ");
+    checkScale = lv_switch_create(list);
+    lv_obj_align_to(checkScale, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
     if (mapSet.showMapScale)
         lv_obj_add_state(checkScale, LV_STATE_CHECKED);
     else
@@ -266,9 +274,8 @@ void createMapSettingsScr()
     lv_obj_set_style_text_font(list, fontOptions, 0);
     lv_obj_remove_flag(list, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
-    checkClimb = lv_checkbox_create(list);
-    lv_obj_align_to(checkClimb, list, LV_ALIGN_RIGHT_MID, 0, 0);
-    lv_checkbox_set_text(checkClimb, " ");
+    checkClimb = lv_switch_create(list);
+    lv_obj_align_to(checkClimb, list, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
     if (mapSet.showClimb)
         lv_obj_add_state(checkClimb, LV_STATE_CHECKED);
     else
@@ -279,9 +286,8 @@ void createMapSettingsScr()
     lv_obj_set_style_text_font(list3DMap, fontOptions, 0);
     lv_obj_remove_flag(list3DMap, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_align(list3DMap, LV_ALIGN_LEFT_MID);
-    check3DMap = lv_checkbox_create(list3DMap);
-    lv_obj_align_to(check3DMap, list3DMap, LV_ALIGN_RIGHT_MID, 0, 0);
-    lv_checkbox_set_text(check3DMap, " ");
+    check3DMap = lv_switch_create(list3DMap);
+    lv_obj_align_to(check3DMap, list3DMap, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
     if (mapSet.map3D)
         lv_obj_add_state(check3DMap, LV_STATE_CHECKED);
     else

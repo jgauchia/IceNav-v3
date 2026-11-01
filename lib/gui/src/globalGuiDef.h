@@ -16,6 +16,9 @@
 
 extern lv_display_t *display_drv; /**< LVGL Display Driver */
 
+void lvglSetDisplayRotation(lv_display_rotation_t rotation);
+void lvglRestoreDrawBuffers();
+
 /**
  * @brief Screens definitions
  *

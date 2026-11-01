@@ -30,6 +30,7 @@
 
 inline constexpr uint32_t objectColor = 0x303030;
  /**< Default display driver color definition. */
+inline constexpr uint32_t accentColor = 0x2196F3;
 
 void displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map);
 void displayFlushWait(lv_display_t *disp);
