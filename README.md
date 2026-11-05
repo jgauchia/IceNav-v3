@@ -139,6 +139,7 @@ To do this, simply include the following Build Flags in the required env in plat
 | HMC5883L / QMC5883 | 🧭 Compass (auto-detected) | ```-DCOMPASS_AUTO```        |
 | MPU9250     | 🧭 IMU (Compass) | ```-DIMU_MPU9250```                | 
 | BME280      | 🌡️ Temp <br> ☁️ Pres <br> 💧 Hum | ```-DBME280```                     |
+| DPS310      | 🌡️ Temp <br> ☁️ Pres             | ```-DDPS310```                     |
 | MPU6050     | 📳 IMU | ```-DMPU6050```                     |
 
 

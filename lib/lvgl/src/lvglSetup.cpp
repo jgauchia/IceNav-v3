@@ -689,7 +689,7 @@ void initLVGL()
     createMainScr();
     createNotifyBar();
     createSettingsScr();
-    #if defined(BATT_ADC_UNIT) || defined(WAVESHARE_P4_35) || defined(BME280) || defined(ENABLE_IMU) || defined(ENABLE_COMPASS)
+    #if defined(BATT_ADC_UNIT) || defined(WAVESHARE_P4_35) || defined(BME280) || defined(DPS310) || defined(ENABLE_IMU) || defined(ENABLE_COMPASS)
     createSensorScr();
     #endif
     createMapSettingsScr();
