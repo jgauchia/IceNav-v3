@@ -88,6 +88,8 @@ public:
 private:
     void     writeTrkpt(float lat, float lon, int16_t alt, float speedKmh, const LoggerGpsFix& fix);
     uint32_t adaptiveInterval(float speedKmh) const;
+    void     bufferWrite(const char* str);
+    void     flushBuffer();
 
     volatile LoggerState loggerState         = LoggerState::IDLE;
     FILE*                file          = nullptr;
@@ -99,7 +101,16 @@ private:
     uint32_t lastUpdateMs   = 0;
     uint32_t pauseStartMs   = 0;
     uint32_t movingMs       = 0;
-    uint32_t flushCnt       = 0;
+
+    // RAM write-back buffer: trackpoint XML accumulates here and is committed
+    // to the SD card every FLUSH_INTERVAL_MS (or earlier if the buffer fills),
+    // followed by fsync() so the FAT directory entry is durable. On a crash,
+    // at most FLUSH_INTERVAL_MS of track is lost instead of the whole file.
+    static constexpr size_t   TRK_BUF_SIZE      = 8192;
+    static constexpr uint32_t FLUSH_INTERVAL_MS = 30000;
+    char                     trkBuf[TRK_BUF_SIZE] = {};
+    size_t                   trkBufLen            = 0;
+    uint32_t                 lastFlushMs          = 0;
 
     float lastLat      = 0.0f;
     float lastLon      = 0.0f;
