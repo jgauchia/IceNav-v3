@@ -66,6 +66,11 @@ static uint32_t atomicMaxUs = 0;
 static uint32_t yldCount = 0;
 static int64_t atomicMarkUs = 0;
 static uint32_t fillPx = 0;
+static uint32_t fillPxByLayer[16] = {};
+static uint32_t fillUsByLayer[16] = {};
+static uint32_t polyUsByLayer[16] = {};
+static uint32_t polyCntByLayer[16] = {};
+static bool passAggressive = false;
 static uint32_t linePx = 0;
 static uint32_t trkPx = 0;
 static uint32_t ppaTiles = 0;
@@ -127,6 +132,14 @@ static inline void resetPassCounters()
     atomicMaxUs = 0;
     yldCount = 0;
     fillPx = 0;
+    for (uint8_t i = 0; i < 16; i++)
+    {
+        fillPxByLayer[i] = 0;
+        fillUsByLayer[i] = 0;
+        polyUsByLayer[i] = 0;
+        polyCntByLayer[i] = 0;
+    }
+    passAggressive = false;
     linePx = 0;
     trkPx = 0;
     ppaTiles = 0;
@@ -1295,7 +1308,6 @@ void Maps::mapRenderTask(void* pvParameters)
                     return shouldAbort;
                 };
 
-                uint32_t passTiles = 0;
                 bool aborted = false;
                 setHoldPhase(HoldPhase::Tile);
                 while (!instance->pendingTiles.empty())
@@ -1309,7 +1321,6 @@ void Maps::mapRenderTask(void* pvParameters)
                         const int64_t tileMarkUs = esp_timer_get_time();
                         instance->renderVectorTile(t.x, t.y, instance->zoomLevel, t.screenX, t.screenY, instance->mapTempSprite);
                         decUs += (uint32_t)(esp_timer_get_time() - tileMarkUs);
-                        passTiles++;
                         if (yieldTile()) { aborted = true; break; }
                     }
                     else if (t.type == TILE_PNG)
@@ -1441,14 +1452,11 @@ void Maps::mapRenderTask(void* pvParameters)
 #else
                 aggressiveLod = vectorRender && stepBehindFinger;
 #endif
+                passAggressive = aggressiveLod;
                 if (aggressiveLod)
                     instance->vectorCapped = true;
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
-                // Ground layer (priority 0) is a per-tile rectangle, but only a full grid pass
-                // can hand it to the PPA: such a pass repaints the whole sprite, so dropping its
-                // cache lines right after cannot discard band content that is still needed.
-                if (!aggressiveLod &&
-                    passTiles >= (uint32_t)instance->tilesGrid * (uint32_t)instance->tilesGrid)
+                if (!aggressiveLod)
                 {
                     const int64_t prio0MarkUs = esp_timer_get_time();
                     ppaTiles += instance->ppaFillPrio0Tiles();
@@ -1489,9 +1497,16 @@ void Maps::mapRenderTask(void* pvParameters)
                         const auto& feat = instance->featurePool[idx];
                         if (feat.geomType == NavGeomType::Polygon)
                         {
+                            const uint32_t fillPxBefore = fillPx;
+                            const uint32_t fillUsBefore = fillUs;
                             const int64_t markUs = esp_timer_get_time();
                             instance->renderVectorPolygon(feat, instance->mapTempSprite);
-                            polyUs += (uint32_t)(esp_timer_get_time() - markUs);
+                            const uint32_t polyDeltaUs = (uint32_t)(esp_timer_get_time() - markUs);
+                            polyUs += polyDeltaUs;
+                            polyUsByLayer[i] += polyDeltaUs;
+                            fillPxByLayer[i] += fillPx - fillPxBefore;
+                            fillUsByLayer[i] += fillUs - fillUsBefore;
+                            polyCntByLayer[i]++;
                             polyCount++;
                         }
                         else if (feat.geomType == NavGeomType::Point)
@@ -1698,6 +1713,27 @@ void Maps::mapRenderTask(void* pvParameters)
                              holdUsByPhase[static_cast<uint8_t>(HoldPhase::Paint)] / 1000.0,
                              holdUsByPhase[static_cast<uint8_t>(HoldPhase::Trk)] / 1000.0,
                              holdUsByPhase[static_cast<uint8_t>(HoldPhase::Tail)] / 1000.0);
+                    {
+                        static char layerLine[448];
+                        int off = snprintf(layerLine, sizeof(layerLine), "[LAYER] z%u #%u lod%u px/poly/fill/n",
+                                           (unsigned)instance->zoomLevel, (unsigned)passCounter,
+                                           (unsigned)passAggressive);
+                        for (uint8_t l = 0; l < 16; l++)
+                        {
+                            if (polyCntByLayer[l] == 0)
+                                continue;
+                            int n = snprintf(layerLine + off, sizeof(layerLine) - off,
+                                             " | L%u %luk %.1f %.1f %u",
+                                             (unsigned)l, (unsigned long)(fillPxByLayer[l] / 1000),
+                                             polyUsByLayer[l] / 1000.0, fillUsByLayer[l] / 1000.0,
+                                             (unsigned)polyCntByLayer[l]);
+                            if (n > 0 && off + n < (int)sizeof(layerLine))
+                                off += n;
+                            else
+                                break;
+                        }
+                        ESP_LOGI(TAG, "%s", layerLine);
+                    }
                     resetPassCounters();
                 }
                 triggerMapRedraw();
@@ -4507,9 +4543,8 @@ void Maps::decodeVectorFeatures(const uint8_t* data, size_t dataSize, int16_t sc
  * @details Runs before the first CPU raster write of the pass. Only features whose decoded
  *          bounding box covers the entire tile and that have no rings (holes) are candidates;
  *          anything else stays in the scanline path. Filled features are marked so
- *          renderVectorPolygon() skips their fill. When at least one tile is painted the
- *          sprite cache is invalidated (M2C) so old cached lines are not written back over
- *          the DMA output — the same pattern used by scrollVectorSprite().
+ *          renderVectorPolygon() skips their fill. Each tile's cache lines are invalidated
+ *          (M2C) before its DMA write, so the rest of the sprite keeps its contents.
  *
  * @return Number of tiles painted by DMA.
  */
@@ -4604,6 +4639,9 @@ uint32_t Maps::ppaFillPrio0Tiles()
                 continue;
         }
 
+        esp_cache_msync(buf + ((size_t)feat.tileOffsetY * spriteW + feat.tileOffsetX) * 2,
+                        (size_t)tileSize * tileSize * 2,
+                        ESP_CACHE_MSYNC_FLAG_DIR_M2C | ESP_CACHE_MSYNC_FLAG_TYPE_DATA);
         ppa_fill_oper_config_t cfg = {};
         cfg.fill_argb_color.val = spriteColorToArgb8888(feat.color);
         cfg.out.buffer = buf;
@@ -4622,9 +4660,6 @@ uint32_t Maps::ppaFillPrio0Tiles()
         feat.ppaFilled = true;
         filled++;
     }
-
-    if (filled > 0)
-        esp_cache_msync(buf, spriteW * spriteH * 2, ESP_CACHE_MSYNC_FLAG_DIR_M2C | ESP_CACHE_MSYNC_FLAG_TYPE_DATA);
 
     return filled;
 }
