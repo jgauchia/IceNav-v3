@@ -24,6 +24,11 @@
     extern BME280_Driver bme;
 #endif
 
+#ifdef DPS310
+    #include "dps310.hpp"
+    extern DPS310_Driver dps310;
+#endif
+
 extern Battery battery;
 
 /**
@@ -49,8 +54,10 @@ public:
 
     bool hasAmbient() const override
     {
-        #ifdef BME280
+        #if defined(BME280)
             return true;
+        #elif defined(DPS310)
+            return dps310.isDetected();
         #else
             return false;
         #endif
@@ -76,7 +83,7 @@ public:
 
     bool readAmbient(AmbientData &data) override
     {
-        #ifdef BME280
+        #if defined(BME280)
             float t = 0.0f;
             float p = 0.0f;
             float h = 0.0f;
@@ -85,6 +92,34 @@ public:
             data.pressure    = p;
             data.humidity    = h;
             data.altitude    = bme.readAltitude(p);
+            return true;
+        #elif defined(DPS310)
+            float t = 0.0f;
+            float p = 0.0f;
+            float h = 0.0f;
+            if (!dps310.isDetected())
+            {
+                data.temperature = 0.0f;
+                data.pressure    = 0.0f;
+                data.humidity    = 0.0f;
+                data.altitude    = 0.0f;
+                return false;
+            }
+            dps310.readAll(t, p, h);
+            // Sanity check: reject grossly out-of-range readings so a bus
+            // glitch can't publish nonsense (plausible range 100..1200 hPa)
+            if (p < 10000.0f || p > 120000.0f)
+            {
+                data.temperature = 0.0f;
+                data.pressure    = 0.0f;
+                data.humidity    = 0.0f;
+                data.altitude    = 0.0f;
+                return false;
+            }
+            data.temperature = t;
+            data.pressure    = p;
+            data.humidity    = h;
+            data.altitude    = dps310.readAltitude(p);
             return true;
         #else
             data.temperature = 0.0f;

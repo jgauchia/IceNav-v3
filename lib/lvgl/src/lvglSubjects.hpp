@@ -51,6 +51,16 @@ extern lv_subject_t subject_climb_approaching; // 0=inside climb, 1=approaching 
 extern lv_subject_t subject_map_3d;            // 0=2D view, 1=pseudo-3D view
 extern lv_subject_t subject_nmea_debug_trigger; // increments each GPS cycle (debug tile)
 
+// Ambient temperature subject. ENABLE_TEMP is normally defined by bme.hpp or
+// dps310.hpp when the corresponding driver is compiled in, but those defines
+// are only reached through tasks.hpp: a translation unit that had already
+// included this header (via mainScr.hpp → navScr.hpp) before tasks.hpp saw
+// subject_temp omitted, and pragma-once made later re-inclusion a no-op.
+// Derive the macro from the actual build flags here so the declaration is
+// stable regardless of include order.
+#if (defined(BME280) || defined(DPS310)) && !defined(ENABLE_TEMP)
+#define ENABLE_TEMP
+#endif
 #ifdef ENABLE_TEMP
 extern lv_subject_t subject_temp;
 #endif
