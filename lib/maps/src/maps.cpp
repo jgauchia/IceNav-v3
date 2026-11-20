@@ -3920,7 +3920,7 @@ void Maps::renderVectorPolygon(const FeatureRef& ref, MapCanvas& map)
     }
     if (ref.casing && vectorZoom >= 16)
     {
-        uint16_t outlineColor = darkenRGB565(ref.color, 0.35f);
+        uint16_t outlineColor = darkenRGB565(ref.color, 0.18f);
         uint16_t rawOutline = (outlineColor >> 8) | (outlineColor << 8);
         uint16_t* buf = static_cast<uint16_t*>(map.getBuffer());
         uint32_t stride = buf ? (map.bufferLength() / (tileHeight * 2)) : 0;
