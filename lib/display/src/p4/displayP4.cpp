@@ -85,8 +85,8 @@ public:
     void flush(const DisplayArea &area, uint16_t *pixels) override
     {
         #ifdef PANEL_BUS_DSI
-            // LVGL render mode FULL guarantees one flush per frame with the
-            // full-screen draw buffer — no shadow copy needed.
+            // LVGL renders into the non-scanning DPI framebuffer and presents
+            // it at a frame boundary, avoiding a full-frame PSRAM copy.
             // area reflects the logical (post-rotation) dimensions.
             int32_t w = area.x2 - area.x1 + 1;
             int32_t h = area.y2 - area.y1 + 1;

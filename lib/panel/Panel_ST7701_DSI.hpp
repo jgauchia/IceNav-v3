@@ -80,10 +80,9 @@ namespace lgfx
                 }
                 if (!init_dpi(bus) || !init_panel())
                     return false;
-                esp_lcd_dpi_panel_get_frame_buffer(_disp_panel_handle, 2, &_fbs[0], &_fbs[1]);
+                if (esp_lcd_dpi_panel_get_frame_buffer(_disp_panel_handle, 2, &_fbs[0], &_fbs[1]) != ESP_OK || _fbs[0] == nullptr || _fbs[1] == nullptr)
+                    return false;
                 _config_detail.buffer = _fbs[0];
-                // The driver restarts scanning fb0 on resume, so the present
-                // tracker restarts from 0 as well.
                 _last_presented = 0;
                 if (!buildLineArray())
                     return false;
@@ -116,26 +115,19 @@ namespace lgfx
                 return true;
             }
 
-            // Records which frame buffer the DSI bridge will scan after a
-            // zero-copy present (the driver copies never change its index).
             bool notePresented(const void *buffer)
             {
                 if (buffer == _fbs[0])
-                {
                     _last_presented = 0;
-                    return true;
-                }
-                if (buffer == _fbs[1])
-                {
+                else if (buffer == _fbs[1])
                     _last_presented = 1;
-                    return true;
-                }
-                return false;
+                else
+                    return false;
+                return true;
             }
 
             void waitPresentedSwap()
             {
-                // Drop a boundary stamped before the present so the wait below lands on the swap.
                 xSemaphoreTake(_refresh_done_sem, 0);
                 xSemaphoreTake(_refresh_done_sem, pdMS_TO_TICKS(100));
             }
@@ -146,6 +138,41 @@ namespace lgfx
             SemaphoreHandle_t _refresh_done_sem = nullptr;
             void *_fbs[2] = {nullptr, nullptr};
             uint8_t _last_presented = 0;
+
+            // LovyanGFX 1.3.0 hard-codes one DPI framebuffer in Panel_DSI.
+            // Shadow its protected initializer here to run the same setup with
+            // two buffers, which lets LVGL render directly into the back buffer.
+            bool init_dpi(Bus_DSI *bus)
+            {
+                esp_lcd_dpi_panel_config_t dpi_config = {};
+                dpi_config.virtual_channel = 0;
+                dpi_config.dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT;
+                dpi_config.dpi_clock_freq_mhz = _config_detail.dpi_freq_mhz;
+#if defined(ESP_IDF_VERSION_VAL) && (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0))
+                dpi_config.in_color_format = LCD_COLOR_FMT_RGB565;
+                dpi_config.out_color_format = LCD_COLOR_FMT_RGB565;
+#else
+                dpi_config.pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565;
+#endif
+                dpi_config.num_fbs = 2;
+                dpi_config.video_timing.h_size = _cfg.panel_width;
+                dpi_config.video_timing.v_size = _cfg.panel_height;
+                dpi_config.video_timing.hsync_back_porch = _config_detail.hsync_back_porch;
+                dpi_config.video_timing.hsync_pulse_width = _config_detail.hsync_pulse_width;
+                dpi_config.video_timing.hsync_front_porch = _config_detail.hsync_front_porch;
+                dpi_config.video_timing.vsync_back_porch = _config_detail.vsync_back_porch;
+                dpi_config.video_timing.vsync_pulse_width = _config_detail.vsync_pulse_width;
+                dpi_config.video_timing.vsync_front_porch = _config_detail.vsync_front_porch;
+#if !defined(ESP_IDF_VERSION_VAL) || (ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(6, 0, 0))
+                dpi_config.flags.use_dma2d = true;
+#endif
+                auto ret = esp_lcd_new_panel_dpi(bus->getMipiDsiBus(), &dpi_config, &_disp_panel_handle);
+#if defined(ESP_IDF_VERSION_VAL) && (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0))
+                if (ret == ESP_OK)
+                    (void)esp_lcd_dpi_panel_enable_dma2d(_disp_panel_handle);
+#endif
+                return ret == ESP_OK;
+            }
 
             static bool IRAM_ATTR onFrameDone(esp_lcd_panel_handle_t panel, esp_lcd_dpi_panel_event_data_t *edata, void *user_ctx)
             {
