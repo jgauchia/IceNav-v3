@@ -20,9 +20,11 @@ static lv_obj_t *lblBattVolt = NULL;
 static lv_obj_t *battBar     = NULL;
 #endif
 
-#ifdef BME280
+#if defined(BME280) || defined(DPS310)
 static lv_obj_t *lblBmeTemp     = NULL;
+        #ifdef BME280
 static lv_obj_t *lblBmeHumi     = NULL;
+        #endif
 static lv_obj_t *lblBmePres     = NULL;
 static lv_obj_t *lblBmeAlt      = NULL;
 #endif
@@ -202,20 +204,22 @@ static void sensorUpdateCb(lv_timer_t *timer)
     }
     #endif
 
-    #ifdef BME280
+    #if defined(BME280) || defined(DPS310)
     {
         static char tBuf[16];
         static char hBuf[16];
         static char pBuf[16];
         static char aBuf[16];
         snprintf(tBuf, sizeof(tBuf), "%.1f °C",  snap.temperature);
-        snprintf(hBuf, sizeof(hBuf), "%.1f %%",  snap.humidity);
         snprintf(pBuf, sizeof(pBuf), "%.0f hPa", snap.pressure / 100.0f);
         snprintf(aBuf, sizeof(aBuf), "%d m",      (int)snap.altitude);
         lv_label_set_text(lblBmeTemp, tBuf);
-        lv_label_set_text(lblBmeHumi, hBuf);
         lv_label_set_text(lblBmePres, pBuf);
         lv_label_set_text(lblBmeAlt,  aBuf);
+        #ifdef BME280
+        snprintf(hBuf, sizeof(hBuf), "%.1f %%",  snap.humidity);
+        lv_label_set_text(lblBmeHumi, hBuf);
+        #endif
     }
     #endif
 
@@ -342,11 +346,13 @@ void createSensorScr()
     }
     #endif
 
-    #ifdef BME280
+    #if defined(BME280) || defined(DPS310)
     {
         lv_obj_t *card = createCard(scroll, "Environment");
         lblBmeTemp = createRow(card, "Temp");
+        #ifdef BME280
         lblBmeHumi = createRow(card, "Humidity");
+        #endif
         lblBmePres = createRow(card, "Pressure");
         lblBmeAlt  = createRow(card, "Altitude");
     }
