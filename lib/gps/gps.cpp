@@ -118,7 +118,8 @@ void buildPcas03(char *out, size_t outSize, uint8_t rateIdx)
  *
  * @details Initializes the GPS port with the appropriate baud rate and buffer size.
  * 			If a specific baud rate is not set (gpsBaud != 3), it uses the predefined baud rate array.
- *			Otherwise, it attempts to auto-detect the baud rate.
+ *			Otherwise, it probes the supported rates and opens the first one that delivers
+ *			valid NMEA, so a silent module at boot never leaves the port closed.
  */
 void Gps::init()
 {
@@ -136,12 +137,7 @@ void Gps::init()
     if (gpsBaud != 3)
         gpsPort.begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
     else
-    {
-        gpsBaudDetected = autoBaud();
-
-        if (gpsBaudDetected != 0)
-            gpsPort.begin(gpsBaudDetected, SERIAL_8N1, GPS_RX, GPS_TX);
-    }
+        openAutoBaud();
 
     #ifdef AT6558D_GPS
         // FACTORY RESET
@@ -451,6 +447,108 @@ long Gps::autoBaud()
         baud = 0;
 
     return baud;
+}
+
+/**
+ * @brief Reopen the GPS port at a fixed baud rate.
+ *
+ * @details Resets the port and opens it again with the full receive buffer at the
+ * 			requested rate.
+ *
+ * @param baud Baud rate to open the port with.
+ */
+void Gps::openPort(unsigned long baud)
+{
+    gpsPort.end();
+    vTaskDelay(pdMS_TO_TICKS(100));
+    gpsPort.setRxBufferSize(2048);
+    gpsPort.begin(baud, SERIAL_8N1, GPS_RX, GPS_TX);
+}
+
+/**
+ * @brief Wait for a complete NMEA sentence on the open port.
+ *
+ * @details Drains whatever arrives and succeeds only on a well-formed line: a '$',
+ * 			at least eight printable characters, and a carriage return or line feed.
+ * 			At a wrong baud rate the bytes are random, where that shape is far too
+ * 			unlikely to appear, so it reliably tells a good rate from a bad one. The
+ * 			window must span more than one burst: at 1 Hz the module talks for ~250 ms
+ * 			and then stays quiet until the next second.
+ *
+ * @param timeoutMs Time to wait for the sentence, in milliseconds.
+ * @return true if a complete sentence arrived within the timeout.
+ */
+bool Gps::receivesNmea(uint16_t timeoutMs)
+{
+    int64_t deadline = esp_timer_get_time() + (int64_t)timeoutMs * 1000;
+    uint8_t sentenceLen = 0;
+
+    while (esp_timer_get_time() < deadline)
+    {
+        while (gpsPort.available())
+        {
+            char c = (char)gpsPort.read();
+            if (c == '$')
+                sentenceLen = 1;
+            else if (sentenceLen == 0)
+                continue;
+            else if (c >= 0x20 && c <= 0x7E)
+                sentenceLen++;
+            else if ((c == '\r' || c == '\n') && sentenceLen > 8)
+                return true;
+            else
+                sentenceLen = 0;
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+    return false;
+}
+
+/**
+ * @brief Open the GPS port at the first baud rate that delivers valid NMEA.
+ *
+ * @details Probes every rate in GPS_BAUD[] until one delivers a complete NMEA
+ * 			sentence. The pulse measurement from autoBaud() is kept only as a first
+ * 			candidate, and only when it matches a supported rate: it often lands on a
+ * 			rate this module cannot use. The port is always left open: if no rate is
+ * 			confirmed it stays at the last candidate, so the NMEA dump shows the
+ * 			mismatch instead of going silent.
+ *
+ * @return Baud rate confirmed by a valid sentence, or 0 if none responded.
+ */
+long Gps::openAutoBaud()
+{
+    long measured = autoBaud();
+    long hint = 0;
+
+    for (uint8_t i = 0; GPS_BAUD[i] != 0; i++)
+        if (GPS_BAUD[i] == (unsigned long)measured)
+            hint = measured;
+
+    if (hint != 0)
+    {
+        openPort(hint);
+        if (receivesNmea(GPS_PROBE_MS))
+        {
+            gpsBaudDetected = hint;
+            return hint;
+        }
+    }
+
+    for (uint8_t i = 0; GPS_BAUD[i] != 0; i++)
+    {
+        if (GPS_BAUD[i] == (unsigned long)hint)
+            continue;
+        openPort(GPS_BAUD[i]);
+        if (receivesNmea(GPS_PROBE_MS))
+        {
+            gpsBaudDetected = GPS_BAUD[i];
+            return GPS_BAUD[i];
+        }
+    }
+
+    gpsBaudDetected = 0;
+    return 0;
 }
 
 /**
