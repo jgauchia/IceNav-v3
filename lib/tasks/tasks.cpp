@@ -19,6 +19,7 @@
 #include "navContext.hpp"
 #include "connectivity.hpp"
 #include "sensors.hpp"
+#include <algorithm>
 #ifdef ENABLE_IMU
     #include "imu.hpp"
 #endif
@@ -389,7 +390,9 @@ void sensorTask(void *pvParameters)
                     globalSensorData.temperature = ambient.temperature;
                     globalSensorData.pressure    = ambient.pressure;
                     globalSensorData.humidity    = ambient.humidity;
-                    globalSensorData.altitude    = (int16_t)ambient.altitude;
+                    // Clamp before the int16_t cast: a bad reading (e.g. zero
+                    // pressure → +44330 m altitude) would otherwise wrap around
+                    globalSensorData.altitude    = (int16_t)std::clamp(ambient.altitude, -32000.0f, 32000.0f);
                     xSemaphoreGive(sensorMutex);
                 }
             }

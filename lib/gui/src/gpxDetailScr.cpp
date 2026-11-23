@@ -87,13 +87,13 @@ static void gpxDetailScreenEvent(lv_event_t *event)
 #ifdef PANEL_BUS_DSI
         if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_90)
         {
-            lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
+            lvglSetDisplayRotation(LV_DISPLAY_ROTATION_0);
         }
 #else
         if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_270)
         {
             display().setRotation(0);
-            lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
+            lvglSetDisplayRotation(LV_DISPLAY_ROTATION_0);
         }
 #endif
         createWptFile();
@@ -132,13 +132,13 @@ static void gpxDetailScreenEvent(lv_event_t *event)
 #ifdef PANEL_BUS_DSI
         if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_90)
         {
-            lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
+            lvglSetDisplayRotation(LV_DISPLAY_ROTATION_0);
         }
 #else
         if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_270)
         {
             display().setRotation(0);
-            lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
+            lvglSetDisplayRotation(LV_DISPLAY_ROTATION_0);
         }
 #endif
         isMainScreen = true;
@@ -161,11 +161,11 @@ static void rotateScreen(lv_event_t *event)
     ESP_LOGV(TAG, "%d", !isRotated);
     if (!isRotated)
     {
-        lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_90);
+        lvglSetDisplayRotation(LV_DISPLAY_ROTATION_90);
     }
     else
     {
-        lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
+        lvglSetDisplayRotation(LV_DISPLAY_ROTATION_0);
     }
     lv_obj_set_width(gpxTagValue, lv_display_get_horizontal_resolution(display_drv) - 10);
     lv_obj_set_size(gpxDetailScreen, lv_display_get_horizontal_resolution(display_drv), lv_display_get_vertical_resolution(display_drv));
@@ -176,12 +176,12 @@ static void rotateScreen(lv_event_t *event)
     if (isScreenRotated)
     {
         display().setRotation(1);
-        lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_270);
+        lvglSetDisplayRotation(LV_DISPLAY_ROTATION_270);
     }
     else
     {
         display().setRotation(0);
-        lv_display_set_rotation(display_drv, LV_DISPLAY_ROTATION_0);
+        lvglSetDisplayRotation(LV_DISPLAY_ROTATION_0);
     }
     lv_obj_set_width(gpxTagValue, display().width() - 10);
     lv_refr_now(display_drv);

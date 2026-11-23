@@ -20,6 +20,7 @@
 #ifdef PANEL_BUS_DSI
     #include <esp_lcd_panel_ops.h>
     #include "esp_heap_caps.h"
+    static const char *TAG = "DISPLAY";
 #endif
 
 /**
@@ -62,19 +63,30 @@ public:
 
     void sleepOn(uint8_t brightness) override
     {
+        #ifdef PANEL_BUS_DSI
+            // ESP_LOGE is compiled out by CORE_DEBUG_LEVEL=0, ESP_LOG_LEVEL is runtime filtered.
+            if (!static_cast<PANEL_TYPE *>(tft.getPanel())->resumeDpi())
+                ESP_LOG_LEVEL(ESP_LOG_ERROR, TAG, "DSI panel resume failed");
+        #endif
         tftOn(brightness);
     }
 
     void sleepOff() override
     {
         tftOff();
+        #ifdef PANEL_BUS_DSI
+            // Deleting the panel frees the framebuffers, so the last flush must be complete.
+            tft.waitDisplay();
+            // The bridge fetches the framebuffer all the time, so light sleep needs it released.
+            static_cast<PANEL_TYPE *>(tft.getPanel())->suspendDpi();
+        #endif
     }
 
     void flush(const DisplayArea &area, uint16_t *pixels) override
     {
         #ifdef PANEL_BUS_DSI
-            // LVGL render mode FULL guarantees one flush per frame with the
-            // full-screen draw buffer — no shadow copy needed.
+            // LVGL renders into the non-scanning DPI framebuffer and presents
+            // it at a frame boundary, avoiding a full-frame PSRAM copy.
             // area reflects the logical (post-rotation) dimensions.
             int32_t w = area.x2 - area.x1 + 1;
             int32_t h = area.y2 - area.y1 + 1;
@@ -112,6 +124,9 @@ public:
             if (_captureBuffer != nullptr)
                 captureArea(area, pixels);
             esp_lcd_panel_draw_bitmap(static_cast<PANEL_TYPE *>(tft.getPanel())->panelHandle(), 0, 0, tft.width(), tft.height(), pixels);
+            auto panel = static_cast<PANEL_TYPE *>(tft.getPanel());
+            if (panel->notePresented(pixels))
+                panel->waitPresentedSwap();
         #else
             uint32_t w = area.x2 - area.x1 + 1;
             uint32_t h = area.y2 - area.y1 + 1;

@@ -66,6 +66,11 @@ static uint32_t atomicMaxUs = 0;
 static uint32_t yldCount = 0;
 static int64_t atomicMarkUs = 0;
 static uint32_t fillPx = 0;
+static uint32_t fillPxByLayer[16] = {};
+static uint32_t fillUsByLayer[16] = {};
+static uint32_t polyUsByLayer[16] = {};
+static uint32_t polyCntByLayer[16] = {};
+static bool passAggressive = false;
 static uint32_t linePx = 0;
 static uint32_t trkPx = 0;
 static uint32_t ppaTiles = 0;
@@ -127,6 +132,14 @@ static inline void resetPassCounters()
     atomicMaxUs = 0;
     yldCount = 0;
     fillPx = 0;
+    for (uint8_t i = 0; i < 16; i++)
+    {
+        fillPxByLayer[i] = 0;
+        fillUsByLayer[i] = 0;
+        polyUsByLayer[i] = 0;
+        polyCntByLayer[i] = 0;
+    }
+    passAggressive = false;
     linePx = 0;
     trkPx = 0;
     ppaTiles = 0;
@@ -763,23 +776,138 @@ bool Maps::loadPngTileIntoSprite(int32_t tlX, int32_t tlY, int gx, int gy,
 }
 
 /**
+ * @brief Geographic point currently at the screen center.
+ *
+ * @details Pan stores the center tile index plus a pixel offset. The viewed point is that
+ *          tile origin shifted by the offset that places the screen center, not the tile corner.
+ *
+ * @param lat Output latitude in degrees.
+ * @param lon Output longitude in degrees.
+ */
+void Maps::viewCenterLatLon(float& lat, float& lon) const
+{
+    const int32_t gridOffset = (int32_t)(tilesGrid / 2);
+    const int32_t relX = (int32_t)tileWidth / 2 - gridOffset * (int32_t)mapTileSize + (int32_t)offsetX;
+    const int32_t relY = (int32_t)tileHeight / 2 - gridOffset * (int32_t)mapTileSize + (int32_t)offsetY;
+    const double scale = (double)mapTileSize * (double)(1u << zoomLevel);
+    double worldX = (double)currentMapTile.tilex * (double)mapTileSize + (double)relX;
+    double worldY = (double)currentMapTile.tiley * (double)mapTileSize + (double)relY;
+    if (worldX < 0.0)
+        worldX = 0.0;
+    if (worldY < 0.0)
+        worldY = 0.0;
+    if (worldX > scale - 1.0)
+        worldX = scale - 1.0;
+    if (worldY > scale - 1.0)
+        worldY = scale - 1.0;
+
+    lon = (float)(worldX / scale * 360.0 - 180.0);
+    const double tileYf = worldY / (double)mapTileSize;
+    const double n = M_PI * (1.0 - 2.0 * tileYf / (double)(1u << zoomLevel));
+    lat = (float)(180.0 / M_PI * atan(sinh(n)));
+}
+
+/**
+ * @brief Keep a geographic point on the screen center after a zoom change.
+ *
+ * @details Chooses the center tile that contains the point and the pixel offset that puts
+ *          it on the screen center. One tile step pulls an offset that would crop outside
+ *          the sprite back into the scroll margin. lat/lon are then the northwest corner of
+ *          that tile so later grid rebuilds keep the same center index.
+ *
+ * @param lat Latitude that must stay at the screen center.
+ * @param lon Longitude that must stay at the screen center.
+ */
+void Maps::anchorOffsetAt(float lat, float lon)
+{
+    const int32_t gridOffset = (int32_t)(tilesGrid / 2);
+    const int32_t centerInTileX = (int32_t)tileWidth / 2 - gridOffset * (int32_t)mapTileSize;
+    const int32_t centerInTileY = (int32_t)tileHeight / 2 - gridOffset * (int32_t)mapTileSize;
+    int32_t tileX = (int32_t)currentMapTile.tilex;
+    int32_t tileY = (int32_t)currentMapTile.tiley;
+    int32_t offX = (int32_t)lon2posx(lon, zoomLevel, mapTileSize) - centerInTileX;
+    int32_t offY = (int32_t)lat2posy(lat, zoomLevel, mapTileSize) - centerInTileY;
+    const int32_t limitX = ((int32_t)tileWidth - (int32_t)mapScrWidth) / 2;
+    const int32_t limitY = ((int32_t)tileHeight - (int32_t)mapScrHeight) / 2;
+    const int32_t maxTile = (int32_t)(1u << zoomLevel) - 1;
+
+    if (offX > limitX && tileX < maxTile)
+    {
+        tileX++;
+        offX -= (int32_t)mapTileSize;
+    }
+    else if (offX < -limitX && tileX > 0)
+    {
+        tileX--;
+        offX += (int32_t)mapTileSize;
+    }
+    if (offY > limitY && tileY < maxTile)
+    {
+        tileY++;
+        offY -= (int32_t)mapTileSize;
+    }
+    else if (offY < -limitY && tileY > 0)
+    {
+        tileY--;
+        offY += (int32_t)mapTileSize;
+    }
+
+    if (offX > limitX)
+        offX = limitX;
+    if (offX < -limitX)
+        offX = -limitX;
+    if (offY > limitY)
+        offY = limitY;
+    if (offY < -limitY)
+        offY = -limitY;
+
+    currentMapTile.tilex = (uint32_t)tileX;
+    currentMapTile.tiley = (uint32_t)tileY;
+    currentMapTile.lon = tilex2lon(currentMapTile.tilex, zoomLevel);
+    currentMapTile.lat = tiley2lat(currentMapTile.tiley, zoomLevel);
+    offsetX = displayOffsetX = (int16_t)offX;
+    offsetY = displayOffsetY = (int16_t)offY;
+}
+
+/**
  * @brief Generate the map grid
  *
  * @param zoom Zoom level
  */
 void Maps::generateMap(uint8_t zoom)
 {
-    // Pan updates the tile indices only; the geographic center is derived here.
-    Maps::currentMapTile.lon = Maps::tilex2lon(Maps::currentMapTile.tilex, Maps::currentMapTile.zoom);
-    Maps::currentMapTile.lat = Maps::tiley2lat(Maps::currentMapTile.tiley, Maps::currentMapTile.zoom);
+    const bool zoomLevelChanged = zoom != Maps::zoomLevel;
 
-    if (zoom != Maps::zoomLevel)
+    if (zoomLevelChanged && !Maps::followGps)
     {
+        // Rebuild around the point on screen. The tile corner plus a cleared offset
+        // lands somewhere else inside the previous tile, which is the zoom-button jump.
+        float viewLat = 0.0f;
+        float viewLon = 0.0f;
+        viewCenterLatLon(viewLat, viewLon);
         Maps::zoomLevel = zoom;
         Maps::currentMapTile.zoom = zoom;
-        Maps::currentMapTile.tilex = Maps::lon2tilex(Maps::currentMapTile.lon, zoom);
-        Maps::currentMapTile.tiley = Maps::lat2tiley(Maps::currentMapTile.lat, zoom);
+        Maps::currentMapTile.lat = viewLat;
+        Maps::currentMapTile.lon = viewLon;
+        Maps::currentMapTile.tilex = Maps::lon2tilex(viewLon, zoom);
+        Maps::currentMapTile.tiley = Maps::lat2tiley(viewLat, zoom);
         resetScrollState();
+        anchorOffsetAt(viewLat, viewLon);
+    }
+    else
+    {
+        // Pan updates the tile indices only; the geographic center is derived here.
+        Maps::currentMapTile.lon = Maps::tilex2lon(Maps::currentMapTile.tilex, Maps::currentMapTile.zoom);
+        Maps::currentMapTile.lat = Maps::tiley2lat(Maps::currentMapTile.tiley, Maps::currentMapTile.zoom);
+
+        if (zoomLevelChanged)
+        {
+            Maps::zoomLevel = zoom;
+            Maps::currentMapTile.zoom = zoom;
+            Maps::currentMapTile.tilex = Maps::lon2tilex(Maps::currentMapTile.lon, zoom);
+            Maps::currentMapTile.tiley = Maps::lat2tiley(Maps::currentMapTile.lat, zoom);
+            resetScrollState();
+        }
     }
 
     const Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
@@ -801,7 +929,9 @@ void Maps::generateMap(uint8_t zoom)
 
         if (vectorDeferred && !zoomChanged && !vectorNeedsRender)
             return;
-        if (vectorPending)
+        // A zoom change has to replace the grid. An in-flight border render is for the
+        // previous level, so let the viewport rebuild below discard it.
+        if (vectorPending && !zoomChanged)
             return;
 
         if (!zoomChanged && !tileChanged && !vectorNeedsRender &&
@@ -1178,7 +1308,6 @@ void Maps::mapRenderTask(void* pvParameters)
                     return shouldAbort;
                 };
 
-                uint32_t passTiles = 0;
                 bool aborted = false;
                 setHoldPhase(HoldPhase::Tile);
                 while (!instance->pendingTiles.empty())
@@ -1192,7 +1321,6 @@ void Maps::mapRenderTask(void* pvParameters)
                         const int64_t tileMarkUs = esp_timer_get_time();
                         instance->renderVectorTile(t.x, t.y, instance->zoomLevel, t.screenX, t.screenY, instance->mapTempSprite);
                         decUs += (uint32_t)(esp_timer_get_time() - tileMarkUs);
-                        passTiles++;
                         if (yieldTile()) { aborted = true; break; }
                     }
                     else if (t.type == TILE_PNG)
@@ -1324,14 +1452,11 @@ void Maps::mapRenderTask(void* pvParameters)
 #else
                 aggressiveLod = vectorRender && stepBehindFinger;
 #endif
+                passAggressive = aggressiveLod;
                 if (aggressiveLod)
                     instance->vectorCapped = true;
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
-                // Ground layer (priority 0) is a per-tile rectangle, but only a full grid pass
-                // can hand it to the PPA: such a pass repaints the whole sprite, so dropping its
-                // cache lines right after cannot discard band content that is still needed.
-                if (!aggressiveLod &&
-                    passTiles >= (uint32_t)instance->tilesGrid * (uint32_t)instance->tilesGrid)
+                if (!aggressiveLod)
                 {
                     const int64_t prio0MarkUs = esp_timer_get_time();
                     ppaTiles += instance->ppaFillPrio0Tiles();
@@ -1372,9 +1497,16 @@ void Maps::mapRenderTask(void* pvParameters)
                         const auto& feat = instance->featurePool[idx];
                         if (feat.geomType == NavGeomType::Polygon)
                         {
+                            const uint32_t fillPxBefore = fillPx;
+                            const uint32_t fillUsBefore = fillUs;
                             const int64_t markUs = esp_timer_get_time();
                             instance->renderVectorPolygon(feat, instance->mapTempSprite);
-                            polyUs += (uint32_t)(esp_timer_get_time() - markUs);
+                            const uint32_t polyDeltaUs = (uint32_t)(esp_timer_get_time() - markUs);
+                            polyUs += polyDeltaUs;
+                            polyUsByLayer[i] += polyDeltaUs;
+                            fillPxByLayer[i] += fillPx - fillPxBefore;
+                            fillUsByLayer[i] += fillUs - fillUsBefore;
+                            polyCntByLayer[i]++;
                             polyCount++;
                         }
                         else if (feat.geomType == NavGeomType::Point)
@@ -1581,6 +1713,27 @@ void Maps::mapRenderTask(void* pvParameters)
                              holdUsByPhase[static_cast<uint8_t>(HoldPhase::Paint)] / 1000.0,
                              holdUsByPhase[static_cast<uint8_t>(HoldPhase::Trk)] / 1000.0,
                              holdUsByPhase[static_cast<uint8_t>(HoldPhase::Tail)] / 1000.0);
+                    {
+                        static char layerLine[448];
+                        int off = snprintf(layerLine, sizeof(layerLine), "[LAYER] z%u #%u lod%u px/poly/fill/n",
+                                           (unsigned)instance->zoomLevel, (unsigned)passCounter,
+                                           (unsigned)passAggressive);
+                        for (uint8_t l = 0; l < 16; l++)
+                        {
+                            if (polyCntByLayer[l] == 0)
+                                continue;
+                            int n = snprintf(layerLine + off, sizeof(layerLine) - off,
+                                             " | L%u %luk %.1f %.1f %u",
+                                             (unsigned)l, (unsigned long)(fillPxByLayer[l] / 1000),
+                                             polyUsByLayer[l] / 1000.0, fillUsByLayer[l] / 1000.0,
+                                             (unsigned)polyCntByLayer[l]);
+                            if (n > 0 && off + n < (int)sizeof(layerLine))
+                                off += n;
+                            else
+                                break;
+                        }
+                        ESP_LOGI(TAG, "%s", layerLine);
+                    }
                     resetPassCounters();
                 }
                 triggerMapRedraw();
@@ -3767,7 +3920,7 @@ void Maps::renderVectorPolygon(const FeatureRef& ref, MapCanvas& map)
     }
     if (ref.casing && vectorZoom >= 16)
     {
-        uint16_t outlineColor = darkenRGB565(ref.color, 0.35f);
+        uint16_t outlineColor = darkenRGB565(ref.color, 0.18f);
         uint16_t rawOutline = (outlineColor >> 8) | (outlineColor << 8);
         uint16_t* buf = static_cast<uint16_t*>(map.getBuffer());
         uint32_t stride = buf ? (map.bufferLength() / (tileHeight * 2)) : 0;
@@ -4390,9 +4543,8 @@ void Maps::decodeVectorFeatures(const uint8_t* data, size_t dataSize, int16_t sc
  * @details Runs before the first CPU raster write of the pass. Only features whose decoded
  *          bounding box covers the entire tile and that have no rings (holes) are candidates;
  *          anything else stays in the scanline path. Filled features are marked so
- *          renderVectorPolygon() skips their fill. When at least one tile is painted the
- *          sprite cache is invalidated (M2C) so old cached lines are not written back over
- *          the DMA output — the same pattern used by scrollVectorSprite().
+ *          renderVectorPolygon() skips their fill. Each tile's cache lines are invalidated
+ *          (M2C) before its DMA write, so the rest of the sprite keeps its contents.
  *
  * @return Number of tiles painted by DMA.
  */
@@ -4487,6 +4639,9 @@ uint32_t Maps::ppaFillPrio0Tiles()
                 continue;
         }
 
+        esp_cache_msync(buf + ((size_t)feat.tileOffsetY * spriteW + feat.tileOffsetX) * 2,
+                        (size_t)tileSize * tileSize * 2,
+                        ESP_CACHE_MSYNC_FLAG_DIR_M2C | ESP_CACHE_MSYNC_FLAG_TYPE_DATA);
         ppa_fill_oper_config_t cfg = {};
         cfg.fill_argb_color.val = spriteColorToArgb8888(feat.color);
         cfg.out.buffer = buf;
@@ -4505,9 +4660,6 @@ uint32_t Maps::ppaFillPrio0Tiles()
         feat.ppaFilled = true;
         filled++;
     }
-
-    if (filled > 0)
-        esp_cache_msync(buf, spriteW * spriteH * 2, ESP_CACHE_MSYNC_FLAG_DIR_M2C | ESP_CACHE_MSYNC_FLAG_TYPE_DATA);
 
     return filled;
 }

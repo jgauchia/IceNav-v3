@@ -114,14 +114,34 @@ void touchCalibrate()
  */
 void initTFT()
 {
+    #ifdef MAKERF_MA028IPST
+        // GPIO1 is LCD_RESET on the schematic and is shared with GT911 RST.
+        // Address 0x5D is latched only if INT is low on the RST rising edge.
+        // Do this before tft.init() and leave LGFX pin_rst = -1 so the LCD is
+        // not reset again after the panel is programmed.
+        pinMode(TCH_I2C_INT, OUTPUT);
+        digitalWrite(TCH_I2C_INT, LOW);
+        pinMode(TCH_I2C_RST, OUTPUT);
+        digitalWrite(TCH_I2C_RST, LOW);
+        delay(20);
+        digitalWrite(TCH_I2C_RST, HIGH);
+        // ST7789V needs >=120 ms after RESX rises before the first command.
+        // LGFX pin_rst is -1, so no second reset adds margin here.
+        delay(150);
+        pinMode(TCH_I2C_INT, INPUT);
+    #endif
+
     tft.init();
 
     #ifdef T4_S3
     //   tft.enableFrameBuffer(false);
     #endif
 
-    #ifdef TDECK_ESP32S3
+    #if defined(TDECK_ESP32S3)
         tft.setRotation(1);
+    #elif defined(MAKERF_MA028IPST)
+        // Portrait: native 240×320, so the shorter edge is the x axis.
+        tft.setRotation(0);
     #endif
 
     TFT_HEIGHT = tft.height();

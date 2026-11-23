@@ -21,6 +21,9 @@
 #ifdef BME280
     #include "bme.hpp"
 #endif
+#ifdef DPS310
+    #include "dps310.hpp"
+#endif
 #ifdef ENABLE_IMU
     #include "imu.hpp"
 #endif
@@ -63,6 +66,9 @@ void initHAL()
         i2c.begin(I2C_SDA_PIN, I2C_SCL_PIN);
         #ifdef BME280
             initBME();
+        #endif
+        #ifdef DPS310
+            initDPS310();
         #endif
         #ifdef IMU_MPU9250
             compass.init();

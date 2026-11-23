@@ -30,6 +30,10 @@
     #include "bme.hpp"
     extern BME280_Driver bme;
 #endif
+#ifdef DPS310
+    #include "dps310.hpp"
+    extern DPS310_Driver dps310;
+#endif
 #if defined(COMPASS_AUTO) || defined(IMU_MPU9250)
     #include "compass.hpp"
     extern Compass compass;
@@ -91,6 +95,11 @@ void setup()
         // BME280 shares the same LovyanGFX-owned I2C bus as the touch
         // controller (and, on WAVESHARE_P4_35, the AXP2101 PMIC).
         bme.beginShared(I2C_PORT);
+    #endif
+    #if defined(DPS310) && defined(TOUCH_CAPACITIVE)
+        // DPS310 shares the same LovyanGFX-owned I2C bus as the touch
+        // controller; same pattern as the BME280 above.
+        dps310.beginShared(I2C_PORT);
     #endif
     #if defined(COMPASS_AUTO) && defined(TOUCH_CAPACITIVE)
         // Compass shares the same LovyanGFX-owned I2C bus; chip (QMC5883L

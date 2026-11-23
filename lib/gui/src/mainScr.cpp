@@ -992,6 +992,9 @@ static void mapInertiaTimerCb(lv_timer_t * t)
 static void scrollMapEvent(lv_event_t *event)
 {
     extern volatile bool twoFingerGesture;
+    lv_obj_t *target = (lv_obj_t *)lv_event_get_target(event);
+    if (target == btnZoomIn || target == btnZoomOut)
+        return;
     if (canScrollMap)
     {
         lv_event_code_t code = lv_event_get_code(event);
@@ -1083,12 +1086,18 @@ static void scrollMapEvent(lv_event_t *event)
  */
 static void zoomEvent(lv_event_t *event)
 {
+    lv_event_stop_bubbling(event);
     lv_obj_t *obj = (lv_obj_t *)lv_event_get_current_target(event);
     if ( obj == btnZoomIn && ( zoom >= minZoom && zoom < maxZoom ) )
         zoom++;
     else if ( obj == btnZoomOut && ( zoom <= maxZoom && zoom > minZoom ) )
         zoom--;
-    
+
+    mapView.velocityX = 0;
+    mapView.velocityY = 0;
+    mapView.setInertia(false);
+    if (mapInertiaTimer != NULL)
+        lv_timer_pause(mapInertiaTimer);
     mapView.updateMap();
     lv_subject_set_int(&subject_map_offset_x, mapView.offsetX);
     lv_subject_set_int(&subject_map_offset_y, mapView.offsetY);
@@ -1463,11 +1472,13 @@ void createMainScr()
     lv_image_set_scale(btnZoomOut,buttonScale);
     lv_obj_update_layout(btnZoomOut);
     lv_obj_set_size(btnZoomOut,  48 * scaleBut, 48 * scaleBut);
+    lv_obj_remove_flag(btnZoomOut, LV_OBJ_FLAG_SCROLLABLE);
     btnZoomIn = lv_image_create(mapTile);
     lv_image_set_src(btnZoomIn, zoomInIconFile);
     lv_image_set_scale(btnZoomIn,buttonScale);
     lv_obj_update_layout(btnZoomIn);
     lv_obj_set_size(btnZoomIn,  48 * scaleBut, 48 * scaleBut);
+    lv_obj_remove_flag(btnZoomIn, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_pos(btnZoomOut, 10, mapView.mapScrHeight - toolBarOffset);
     lv_obj_set_pos(btnZoomIn, 10, mapView.mapScrHeight - (toolBarOffset + toolBarSpace));
     if (!showMapToolBar)
