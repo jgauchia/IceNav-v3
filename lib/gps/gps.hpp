@@ -43,6 +43,7 @@ class Gps;
 extern Gps gps; /**< Global GPS instance */
 
 inline constexpr unsigned long GPS_BAUD[]    = {4800, 9600, 19200, 0}; /**< Supported GPS baud rates. */
+inline constexpr uint16_t GPS_PROBE_MS       = 1100; /**< Time (ms) each candidate baud gets to deliver a valid NMEA sentence. */
 inline constexpr const char *GPS_BAUD_PCAS[] = {"$PCAS01,0*1C\r\n", "$PCAS01,1*1D\r\n", "$PCAS01,2*1E\r\n"}; /**< NMEA command strings to set baud rate for PCAS modules. */
 inline constexpr const char *GPS_RATE_PCAS[] = {"$PCAS02,1000*2E\r\n", "$PCAS02,500*1A\r\n", "$PCAS02,250*18\r\n", "$PCAS02,200*1D\r\n", "$PCAS02,100*1E\r\n"}; /**< NMEA command strings to set update rate for PCAS modules. */
 inline constexpr uint8_t GPS_RATE_HZ[]       = {1, 2, 4, 5, 10}; /**< Update rate in Hz per GPS_RATE_PCAS index. */
@@ -106,6 +107,7 @@ class Gps
 
         long detectRate(int rxPin);
         long autoBaud();
+        long openAutoBaud();
         int  getSimulationIndex() const { return simulationIndex; }
         void resetSimulation() { simulationIndex = 0; segmentProgress = 0.0f; lastSimulationTime = 0; smoothedLat = 0.0f; smoothedLon = 0.0f; }
 
@@ -152,6 +154,8 @@ class Gps
     private:
         GpsSnapshot snapshot = {};                              /**< Atomically published copy of {lat,lon,heading,speed} */
         portMUX_TYPE snapshotMux = portMUX_INITIALIZER_UNLOCKED; /**< Spinlock guarding the snapshot, safe across cores */
+        void openPort(unsigned long baud);             /**< Reopens the GPS port at a fixed baud rate */
+        bool receivesNmea(uint16_t timeoutMs);         /**< Waits for a complete NMEA sentence on the open port */
 
         /**
         * @brief Variables for "fake" GPS signal from loaded track (simulation)
