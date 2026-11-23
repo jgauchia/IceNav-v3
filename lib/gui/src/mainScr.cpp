@@ -66,6 +66,7 @@ static lv_obj_t  *circleRec      = nullptr;
 static lv_obj_t  *recHud         = nullptr;
 static lv_timer_t *recTimer      = nullptr;
 static lv_obj_t  *summaryOverlay = nullptr;
+static lv_obj_t  *confirmStopOverlay = nullptr;
 static bool       recBlinkOn     = false;
 lv_obj_t *mapImage;
 static lv_image_dsc_t map_img_dsc;
@@ -1309,6 +1310,87 @@ static void showLoggerSummary()
 }
 
 /**
+ * @brief Clear the confirm-stop overlay pointer once LVGL has destroyed it.
+ *
+ * @param e LVGL event (LV_EVENT_DELETE).
+ */
+static void confirmStopDeleteEvent(lv_event_t *e)
+{
+    confirmStopOverlay = nullptr;
+}
+
+/**
+ * @brief User confirmed stopping the track: stop the logger and show summary.
+ *
+ * @param e LVGL event (LV_EVENT_CLICKED).
+ */
+static void confirmStopConfirmEvent(lv_event_t *e)
+{
+    if (confirmStopOverlay == nullptr || !lv_obj_is_valid(confirmStopOverlay))
+        return;
+
+    lv_obj_add_flag(confirmStopOverlay, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_delete_async(confirmStopOverlay);
+
+    gpxLogger.stop();
+    lv_obj_remove_flag(circleRec, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(lblRec, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_style_bg_color(btnRec, lv_color_make(50, 50, 50), 0);
+    showLoggerSummary();
+}
+
+/**
+ * @brief User cancelled stopping the track: just dismiss the dialog.
+ *
+ * @param e LVGL event (LV_EVENT_CLICKED).
+ */
+static void confirmStopCancelEvent(lv_event_t *e)
+{
+    if (confirmStopOverlay == nullptr || !lv_obj_is_valid(confirmStopOverlay))
+        return;
+
+    lv_obj_add_flag(confirmStopOverlay, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_delete_async(confirmStopOverlay);
+}
+
+/**
+ * @brief Show a confirmation pop-up before stopping a GPX track.
+ *
+ * @details Presents Confirm and Cancel buttons. Confirm stops the logger and
+ *          shows the post-recording summary; Cancel keeps recording.
+ *          Must be called while lvgl_mutex is held.
+ */
+static void showConfirmStopDialog()
+{
+    if (confirmStopOverlay != nullptr)
+        return;
+
+    confirmStopOverlay = lv_obj_create(lv_screen_active());
+    lv_obj_set_size(confirmStopOverlay, TFT_WIDTH, TFT_HEIGHT);
+    lv_obj_set_pos(confirmStopOverlay, 0, 0);
+    lv_obj_add_flag(confirmStopOverlay, LV_OBJ_FLAG_FLOATING);
+    lv_obj_set_style_bg_color(confirmStopOverlay, lv_color_black(), 0);
+    lv_obj_set_style_bg_opa(confirmStopOverlay, LV_OPA_70, 0);
+    lv_obj_set_style_border_width(confirmStopOverlay, 0, 0);
+    lv_obj_remove_flag(confirmStopOverlay, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_event_cb(confirmStopOverlay, confirmStopDeleteEvent, LV_EVENT_DELETE, nullptr);
+
+    lv_obj_t *msgBox = lv_msgbox_create(confirmStopOverlay);
+    lv_msgbox_add_title(msgBox, "Stop track?");
+    lv_obj_t *content = lv_msgbox_get_content(msgBox);
+    lv_obj_t *lbl = lv_label_create(content);
+    lv_label_set_text_static(lbl, "Are you sure you want to stop the current track?");
+    lv_obj_set_width(msgBox, TFT_WIDTH - 25);
+    lv_obj_center(msgBox);
+
+    lv_obj_t *btnCancel = lv_msgbox_add_footer_button(msgBox, "Cancel");
+    lv_obj_add_event_cb(btnCancel, confirmStopCancelEvent, LV_EVENT_CLICKED, NULL);
+
+    lv_obj_t *btnConfirm = lv_msgbox_add_footer_button(msgBox, "Confirm");
+    lv_obj_add_event_cb(btnConfirm, confirmStopConfirmEvent, LV_EVENT_CLICKED, NULL);
+}
+
+/**
  * @brief Handle REC button click: toggle recording and update UI labels.
  *
  * @param e LVGL event (LV_EVENT_CLICKED).
@@ -1330,11 +1412,7 @@ static void recBtnEvent(lv_event_t *e)
     }
     else
     {
-        gpxLogger.stop();
-        lv_obj_remove_flag(circleRec, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(lblRec, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_set_style_bg_color(btnRec, lv_color_make(50, 50, 50), 0);
-        showLoggerSummary();
+        showConfirmStopDialog();
     }
 }
 

@@ -14,6 +14,7 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include <unistd.h>
 #include <stdlib_noniso.h>
 #include "gpsMath.hpp"
 
@@ -40,6 +41,51 @@ static float loggerDist(float lat1, float lon1, float lat2, float lon2)
     float a = sinf(dlat / 2) * sinf(dlat / 2) +
               cosf(lat1 * D) * cosf(lat2 * D) * sinf(dlon / 2) * sinf(dlon / 2);
     return R * 2.0f * atan2f(sqrtf(a), sqrtf(1.0f - a));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * @brief Append a GPX fragment to the RAM write-back buffer.
+ *
+ * @details Must be called while mutex is held. If the fragment does not fit,
+ *          the buffer is committed to the SD card first (flushBuffer()).
+ *          Keeps SD writes large and infrequent instead of one fprintf per fix.
+ *
+ * @param str NUL-terminated GPX XML fragment (must be shorter than TRK_BUF_SIZE).
+ */
+void GpxLogger::bufferWrite(const char* str)
+{
+    size_t len = strlen(str);
+    if (len >= TRK_BUF_SIZE)
+        return;
+
+    if (trkBufLen + len > TRK_BUF_SIZE)
+        flushBuffer();
+
+    memcpy(trkBuf + trkBufLen, str, len);
+    trkBufLen += len;
+}
+
+/**
+ * @brief Commit the RAM write-back buffer to the SD card and make it durable.
+ *
+ * @details Must be called while mutex is held. One fwrite moves the buffer into
+ *          FatFS, fflush() drains the stdio layer, and fsync(fileno()) issues
+ *          f_sync on the FAT volume: without it, the directory entry (with the
+ *          file size) stays 0 on the card until fclose, so a crash leaves an
+ *          "empty" GPX even though sectors were written.
+ */
+void GpxLogger::flushBuffer()
+{
+    if (file != nullptr && trkBufLen > 0)
+    {
+        storage.write(file, trkBuf, trkBufLen);
+        fflush(file);
+        fsync(fileno(file));
+    }
+    trkBufLen   = 0;
+    lastFlushMs = millisIDF();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -85,7 +131,8 @@ void GpxLogger::start()
     lastGrade     = 0.0f;
     gradeAccDist  = 0.0f;
     gradeAccAlt   = 0.0f;
-    flushCnt      = 0;
+    trkBufLen     = 0;
+    lastFlushMs   = 0;
     pauseStartMs  = 0;
     movingMs      = 0;
     speedAccum    = 0.0f;
@@ -133,9 +180,15 @@ void GpxLogger::start()
     snprintf(trkName, sizeof(trkName), "<trk><name>%s</name>\n", trackName);
     storage.print(file, trkName);
 
+    // Make the GPX header durable right away so even a crash within the first
+    // flush interval leaves a valid (though trackpoint-less) GPX skeleton.
+    fflush(file);
+    fsync(fileno(file));
+
     startMs      = millisIDF();
     lastLogMs    = startMs;
     lastUpdateMs = startMs;
+    lastFlushMs  = startMs;
     loggerState        = LoggerState::RECORDING;
 
     xSemaphoreGive(mutex);
@@ -162,9 +215,11 @@ void GpxLogger::stop()
 
     if (file != nullptr)
     {
+        flushBuffer(); // commit any buffered trackpoints before the closing tags
         if (segOpen)
-            storage.print(file, "</trkseg>\n");
-        storage.print(file, "</trk>\n</gpx>\n");
+            bufferWrite("</trkseg>\n");
+        bufferWrite("</trk>\n</gpx>\n");
+        flushBuffer(); // durable final write (includes FAT dir-entry size update)
         storage.close(file);
         file = nullptr;
     }
@@ -192,6 +247,16 @@ void GpxLogger::update(const LoggerGpsFix& gpsFix)
     if (loggerState == LoggerState::IDLE)
         return;
 
+    // Durability flush every FLUSH_INTERVAL_MS even when paused or between
+    // valid fixes: trkBufLen is read without the mutex, but it is only used
+    // as a cheap liveness hint and is re-read under the mutex in flushBuffer().
+    if (trkBufLen > 0 && (millisIDF() - lastFlushMs) >= FLUSH_INTERVAL_MS &&
+        mutex != nullptr && xSemaphoreTake(mutex, 0) == pdTRUE)
+    {
+        flushBuffer();
+        xSemaphoreGive(mutex);
+    }
+
     if (!gpsFix.valid)
         return;
 
@@ -216,10 +281,13 @@ void GpxLogger::update(const LoggerGpsFix& gpsFix)
             {
                 if (segOpen)
                 {
-                    storage.print(file, "</trkseg>\n");
+                    bufferWrite("</trkseg>\n");
                     segOpen = false;
                 }
                 loggerState = LoggerState::AUTO_PAUSE;
+                // Segment just closed — commit it straight away so a long pause
+                // does not leave the closing tag undurable for up to 30 s.
+                flushBuffer();
                 xSemaphoreGive(mutex);
                 return;
             }
@@ -239,7 +307,7 @@ void GpxLogger::update(const LoggerGpsFix& gpsFix)
             {
                 if (!segOpen)
                 {
-                    storage.print(file, "<trkseg>\n");
+                    bufferWrite("<trkseg>\n");
                     segOpen = true;
                 }
                 writeTrkpt(lat, lon, alt, speedKmh, gpsFix);
@@ -303,7 +371,7 @@ void GpxLogger::writeTrkpt(float lat, float lon, int16_t alt, float speedKmh, co
              "<extensions><speed>%s</speed></extensions></trkpt>\n",
              latBuf, lonBuf, altBuf, timeBuf, spdBuf);
 
-    storage.print(file, line);
+    bufferWrite(line);
 
     // Update stats
     if (hasLast)
@@ -352,12 +420,10 @@ void GpxLogger::writeTrkpt(float lat, float lon, int16_t alt, float speedKmh, co
     hasLast = true;
     lastLogMs = millisIDF();
 
-    flushCnt++;
-    if (flushCnt >= 10)
-    {
-        fflush(file);
-        flushCnt = 0;
-    }
+    // Force-flush if the buffer is nearly full so a burst of fast fixes can
+    // never overflow the 30 s durability window.
+    if (trkBufLen >= TRK_BUF_SIZE - 256)
+        flushBuffer();
 }
 
 /**
