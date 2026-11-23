@@ -2,40 +2,42 @@
  * @file lvglSetup.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  LVGL Screen implementation
- * @version 0.2.9
- * @date 2026-06
+ * @version 0.3.3
+ * @date 2026-10
  */
 
-#include "../../gui/src/lv_subjects.hpp"
+#include "lvglSubjects.hpp"
 #include "lvglSetup.hpp"
 #include "../../../include/hal.hpp"
+#include "display.hpp"
+#include "power.hpp"
+#include "input.hpp"
 #include "i2c_espidf.hpp"
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
+#include "gpsMath.hpp"
+
+static const char *TAG = "LVGL";
+
+extern void triggerMapRedraw();
+
+volatile bool twoFingerGesture = false; /**< True while two touch points are reported; suppresses single-finger scroll during pinch/rotate. */
 
 SemaphoreHandle_t lvgl_mutex = NULL;
 
-/**
- * @brief Get system uptime in milliseconds using ESP-IDF timer.
- *
- * @return uint32_t Milliseconds since boot.
- */
-static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
-
-lv_display_t *display; /**< LVGL display driver */
+lv_display_t *display_drv; /**< LVGL display driver */
 
 lv_obj_t *searchSatScreen; /**< Search Satellite Screen object. */
 lv_obj_t *splashScr;       /**< Splash Screen object. */
 lv_style_t styleThemeBkg;  /**< Main background style object. */
 lv_style_t styleObjectBkg; /**< Object background style. */
-lv_style_t styleObjectSel; /**< Object selected style. */
+lv_style_t styleAccent;    /**< Accent color style for checked states. */
 
 lv_group_t *scrGroup;   /**< LVGL group for screen. */
 lv_group_t *keyGroup;   /**< LVGL group for GPIO keys. */
 
-Power power;
 uint32_t DOUBLE_TOUCH_EVENT; /**< Event identifier for double touch gesture. */
 
 Maps mapView;
@@ -43,7 +45,7 @@ Maps mapView;
 /**
  * @brief LVGL round callback for T4-S3
  */
-static void lv_rounder_cb(lv_event_t *event)
+static void lvglRounderCb(lv_event_t *event)
 {
     lv_area_t *area = (lv_area_t*)lv_event_get_param(event);
     
@@ -69,19 +71,103 @@ static void lv_rounder_cb(lv_event_t *event)
  * @param px_map Pointer to the pixel data to be displayed.
  */
 void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
-{ 
-    uint32_t w = (area->x2 - area->x1 + 1);
-    uint32_t h = (area->y2 - area->y1 + 1);
-    #ifdef T4_S3
-        tft.setAddrWindow(area->x1, area->y1, w , h);
-        tft.pushPixelsDMA((uint16_t*)px_map, w * h,true);
-    #else
-        tft.setSwapBytes(true);
-        tft.setAddrWindow(area->x1, area->y1, w, h);
-        tft.pushImageDMA(area->x1, area->y1, w, h, reinterpret_cast<uint16_t*>(px_map));
-        tft.setSwapBytes(false);
-    #endif
+{
+    DisplayArea flushArea = { area->x1, area->y1, area->x2, area->y2 };
+    display().flush(flushArea, reinterpret_cast<uint16_t*>(px_map));
     lv_display_flush_ready(disp);
+}
+
+/**
+ * @brief LVGL flush wait callback.
+ *
+ * @details Blocks until the in-flight DMA transfer started by displayFlush has
+ *          finished, before LVGL reuses a draw buffer. Overlaps rasterisation
+ *          of the next frame with the previous DMA transfer.
+ *
+ * @param disp Pointer to the LVGL display driver.
+ */
+void displayFlushWait(lv_display_t *disp)
+{
+    LV_UNUSED(disp);
+    display().waitFlushDone();
+}
+
+#ifdef PANEL_BUS_DSI
+/**
+ * @brief Binds LVGL directly to the two DSI panel framebuffers.
+ *
+ * @details LVGL renders into the framebuffer not currently being scanned;
+ *          the completed frame is presented at the next DSI frame boundary.
+ *
+ * @return true if both panel framebuffers were bound.
+ */
+static bool bindDsiPanelBuffers()
+{
+    auto panel = static_cast<PANEL_TYPE *>(tft.getPanel());
+    void *fb0 = nullptr;
+    void *fb1 = nullptr;
+    if (panel == nullptr || !panel->getFrameBuffers(&fb0, &fb1))
+        return false;
+    if (((uintptr_t)fb0 & (LV_DRAW_BUF_ALIGN - 1)) != 0 ||
+        ((uintptr_t)fb1 & (LV_DRAW_BUF_ALIGN - 1)) != 0)
+    {
+        ESP_LOGE(TAG, "DSI: panel framebuffers are not %d-byte aligned", LV_DRAW_BUF_ALIGN);
+        return false;
+    }
+    const uint32_t size = (uint32_t)TFT_WIDTH * TFT_HEIGHT * lv_color_format_get_size(LV_COLOR_FORMAT_NATIVE);
+    if (panel->lastPresentedIndex() == 0)
+        lv_display_set_buffers(display_drv, (lv_color_t *)fb1, (lv_color_t *)fb0, size, LV_DISPLAY_RENDER_MODE_FULL);
+    else
+        lv_display_set_buffers(display_drv, (lv_color_t *)fb0, (lv_color_t *)fb1, size, LV_DISPLAY_RENDER_MODE_FULL);
+    return true;
+}
+
+static void bindBuffersForRotation(lv_display_rotation_t rotation)
+{
+    if (rotation == LV_DISPLAY_ROTATION_0)
+        bindDsiPanelBuffers();
+    else
+    {
+        static lv_color_t *rotatedBuf1 = nullptr;
+        static lv_color_t *rotatedBuf2 = nullptr;
+        const uint32_t size = (uint32_t)TFT_WIDTH * TFT_HEIGHT * lv_color_format_get_size(LV_COLOR_FORMAT_NATIVE);
+        if (rotatedBuf1 == nullptr)
+            rotatedBuf1 = (lv_color_t *)heap_caps_aligned_alloc(64, size, MALLOC_CAP_SPIRAM);
+        if (rotatedBuf2 == nullptr)
+            rotatedBuf2 = (lv_color_t *)heap_caps_aligned_alloc(64, size, MALLOC_CAP_SPIRAM);
+        if (rotatedBuf1 != nullptr && rotatedBuf2 != nullptr)
+            lv_display_set_buffers(display_drv, rotatedBuf1, rotatedBuf2, size, LV_DISPLAY_RENDER_MODE_FULL);
+    }
+}
+#endif
+
+/**
+ * @brief Sets the display rotation and re-binds the LVGL draw buffers.
+ *
+ * @details Normal orientation uses the panel framebuffers directly; LVGL uses
+ *          PSRAM buffers for rotated output, which needs a physical re-projection.
+ *
+ * @param rotation New display rotation.
+ */
+void lvglSetDisplayRotation(lv_display_rotation_t rotation)
+{
+#ifdef PANEL_BUS_DSI
+    bindBuffersForRotation(rotation);
+#endif
+    lv_display_set_rotation(display_drv, rotation);
+}
+
+/**
+ * @brief Re-binds the LVGL draw buffers without changing the rotation.
+ *
+ * @details The DSI panel frees and recreates its frame buffers on every sleep
+ *          cycle, so the binding has to be refreshed after resume.
+ */
+void lvglRestoreDrawBuffers()
+{
+#ifdef PANEL_BUS_DSI
+    bindBuffersForRotation(lv_display_get_rotation(display_drv));
+#endif
 }
 
 /**
@@ -92,11 +178,13 @@ void IRAM_ATTR displayFlush(lv_display_t *disp, const lv_area_t *area, uint8_t *
  */
 void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 {
-    lgfx::touch_point_t touchRaw[TOUCH_MAX_POINTS];
-    static lgfx::touch_point_t touchPrev[TOUCH_MAX_POINTS];
+    TouchPoint touchRaw[TOUCH_MAX_POINTS];
+    static TouchPoint touchPrev[TOUCH_MAX_POINTS];
     static bool prevValid = false;
     static bool pinchActive = false;
-    static int lastZoomDir = ZOOM_NONE;    
+    static int lastZoomDir = ZOOM_NONE;
+    static bool rotationLocked = false;
+    static bool zoomLocked = false;
     static unsigned long lastTime = 0;
     
     // Variables for drag detection
@@ -108,25 +196,18 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     static lv_indev_state_t lastTouchState = LV_INDEV_STATE_RELEASED;
     static lv_point_t lastTouchPoint = {0, 0};
 
-    #ifdef ICENAV_BOARD
-        // Protect I2C bus access for FT5x06 on shared bus.
-        // If bus is busy, hold the last reported state to avoid glitching the long-press timer.
-        if (i2c.lock(0))
-        {
-            count = tft.getTouch(touchRaw, TOUCH_MAX_POINTS);
-            i2c.unlock();
-        }
-        else
-        {
-            data->state = lastTouchState;
-            data->point = lastTouchPoint;
-            return;
-        }
-    #else
-        count = tft.getTouch(touchRaw, TOUCH_MAX_POINTS);
-    #endif
+    // If the controller could not be read (e.g. shared bus busy), hold the last
+    // reported state to avoid glitching the long-press timer.
+    int read = input().readTouch(touchRaw, TOUCH_MAX_POINTS);
+    if (read < 0)
+    {
+        data->state = lastTouchState;
+        data->point = lastTouchPoint;
+        return;
+    }
+    count = read;
 
-    unsigned long now = millis_idf();
+    unsigned long now = millisIDF();
     float dt_ms = (now > lastTime) ? (float)(now - lastTime) : 1.0f;
 
     if (count == 0)
@@ -145,6 +226,9 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
         pinchActive = false;
         prevValid = false;
         lastZoomDir = ZOOM_NONE;
+        rotationLocked = false;
+        zoomLocked = false;
+        twoFingerGesture = false;
         lastTime = now;
 
         if (countTouchReleases)
@@ -153,7 +237,7 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
 
             if (!isDrag)
             {
-                uint32_t touchReleaseTime = millis_idf();
+                uint32_t touchReleaseTime = millisIDF();
                 if (!firstTouchReleaseTime)
                 {
                     firstTouchReleaseTime = touchReleaseTime;
@@ -176,7 +260,7 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
             isDrag = false;
         }
 
-        if (firstTouchReleaseTime && millis_idf() - firstTouchReleaseTime > TOUCH_DOUBLE_TOUCH_INTERVAL)
+        if (firstTouchReleaseTime && millisIDF() - firstTouchReleaseTime > TOUCH_DOUBLE_TOUCH_INTERVAL)
         {
             if (numberTouchReleases == 2)
             {
@@ -193,16 +277,29 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     {
         if (count == 1)
         {
-            if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_0)
+#ifdef PANEL_BUS_DSI
+            if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_90)
+            {
+                data->point.x = (TFT_WIDTH - 1) - touchRaw[count-1].x;
+                data->point.y = (TFT_HEIGHT - 1) - touchRaw[count-1].y;
+            }
+            else
             {
                 data->point.x = touchRaw[count-1].x;
                 data->point.y = touchRaw[count-1].y;
             }
-            else if (lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_270)
+#else
+            if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_0)
+            {
+                data->point.x = touchRaw[count-1].x;
+                data->point.y = touchRaw[count-1].y;
+            }
+            else if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_270)
             {
                 data->point.x = TFT_WIDTH - touchRaw[count-1].y;
                 data->point.y = touchRaw[count-1].x;
             }
+#endif
 
             if (startX == -1)
             {
@@ -220,6 +317,8 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
             pinchActive = false;
             prevValid = false;
             lastZoomDir = ZOOM_NONE;
+            rotationLocked = false;
+            zoomLocked = false;
             lastTime = now;
             data->state = LV_INDEV_STATE_PRESSED;
             lastTouchState = LV_INDEV_STATE_PRESSED;
@@ -227,17 +326,61 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
         }
         else if (count == 2)
         {
-            if (prevValid)
+            countTouchReleases = false;
+            numberTouchReleases = 0;
+            firstTouchReleaseTime = 0;
+            lastTouchReleaseTime = 0;
+            twoFingerGesture = true;
+
+            TouchPoint touchMapped[2];
+#ifdef PANEL_BUS_DSI
+            for (int i = 0; i < 2; i++)
             {
-                zoom_dir zoomDir = pinchZoom(touchPrev, touchRaw, dt_ms);
-                if (zoomDir != ZOOM_NONE && showMapToolBar)
+                if (lv_display_get_rotation(display_drv) == LV_DISPLAY_ROTATION_90)
                 {
-                    pinchActive = true;
-                    lastZoomDir = zoomDir;
+                    touchMapped[i].x = touchRaw[i].y;
+                    touchMapped[i].y = (TFT_WIDTH - 1) - touchRaw[i].x;
+                }
+                else
+                {
+                    touchMapped[i].x = touchRaw[i].x;
+                    touchMapped[i].y = touchRaw[i].y;
                 }
             }
-            touchPrev[0] = touchRaw[0];
-            touchPrev[1] = touchRaw[1];
+#else
+            touchMapped[0] = touchRaw[0];
+            touchMapped[1] = touchRaw[1];
+#endif
+
+            if (prevValid)
+            {
+                if (showMapToolBar && !zoomLocked)
+                {
+                    float rotDelta = pinchRotate(touchPrev, touchMapped);
+                    if (rotDelta != 0.0f)
+                    {
+                        rotationLocked = true;
+                        mapView.followGps = false;
+                        mapView.manualHeading -= rotDelta;
+                        if (mapView.manualHeading >= 360.0f) mapView.manualHeading -= 360.0f;
+                        if (mapView.manualHeading <    0.0f) mapView.manualHeading += 360.0f;
+                        mapView.redrawMap = true;
+                        triggerMapRedraw();
+                    }
+                }
+                if (!rotationLocked)
+                {
+                    zoom_dir zoomDir = pinchZoom(touchPrev, touchMapped, dt_ms);
+                    if (zoomDir != ZOOM_NONE && showMapToolBar)
+                    {
+                        zoomLocked = true;
+                        pinchActive = true;
+                        lastZoomDir = zoomDir;
+                    }
+                }
+            }
+            touchPrev[0] = touchMapped[0];
+            touchPrev[1] = touchMapped[1];
             prevValid = true;
             lastTime = now;
         }
@@ -315,7 +458,7 @@ void gpioLongEvent(lv_event_t *event)
 {
     showMsg(LV_SYMBOL_WARNING, " This device will shutdown shortly");
     vTaskDelay(2000);
-    power.deviceShutdown();
+    power().shutdown();
 }
 
 /**
@@ -327,17 +470,21 @@ void gpioClickEvent(lv_event_t *event)
 {
     showMsg(LV_SYMBOL_WARNING, " This device will sleep shortly");
     vTaskDelay(2000);
-    power.deviceSuspend();
+    power().suspend();
 }
 
 /**
  * @brief Reads the state of the GPIO button pin.
  *
- * @return The current state of the GPIO button pin.
+ * @return The current state of the GPIO button pin (0 = pressed).
  */
 uint8_t gpioGetBut()
 {
-    return gpio_get_level((gpio_num_t)BOARD_BOOT_PIN);
+    #ifdef INVERT_BOOT_PIN
+        return !gpio_get_level((gpio_num_t)BOARD_BOOT_PIN);
+    #else
+        return gpio_get_level((gpio_num_t)BOARD_BOOT_PIN);
+    #endif
 }
 
 #endif
@@ -360,12 +507,8 @@ void applyModifyTheme(lv_theme_t *th, lv_obj_t *obj)
         if (lv_obj_check_type(obj, &lv_switch_class))
         {
             lv_obj_add_style(obj, &styleObjectBkg, 0);
-            lv_obj_add_style(obj, &styleObjectBkg, LV_PART_INDICATOR | LV_STATE_CHECKED);
-        }
-        if (lv_obj_check_type(obj, &lv_checkbox_class))
-        {
-            lv_obj_add_style(obj, &styleThemeBkg, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-            lv_obj_add_style(obj, &styleObjectBkg, LV_PART_INDICATOR | LV_STATE_CHECKED);
+            lv_obj_add_style(obj, &styleAccent, LV_PART_MAIN | LV_STATE_CHECKED);
+            lv_obj_add_style(obj, &styleAccent, LV_PART_INDICATOR | LV_STATE_CHECKED);
         }
     }
 }
@@ -373,7 +516,7 @@ void applyModifyTheme(lv_theme_t *th, lv_obj_t *obj)
 /**
  * @brief Apply Custom Dark theme styles to the given object.
  *
- * @details Assigns custom styles to various LVGL objects (button, switch, checkbox, etc.)
+ * @details Assigns custom styles to various LVGL objects (button, switch, etc.)
  *
  * @param th  Pointer to the LVGL theme (unused).
  * @param obj Pointer to the LVGL object to style.
@@ -387,20 +530,23 @@ void modifyTheme()
     lv_style_init(&styleObjectBkg);
     lv_style_set_bg_color(&styleObjectBkg, lv_color_hex(objectColor));
     lv_style_set_border_color(&styleObjectBkg, lv_color_hex(objectColor));
-    lv_style_init(&styleObjectSel);
-    lv_style_set_bg_color(&styleObjectSel, lv_color_hex(0x757575));
+    lv_style_init(&styleAccent);
+    lv_style_set_bg_color(&styleAccent, lv_color_hex(accentColor));
+    lv_style_set_border_color(&styleAccent, lv_color_hex(accentColor));
     
     /*Initialize the new theme from the current theme*/
-    lv_theme_t *th_act = lv_disp_get_theme(NULL);
-    static lv_theme_t th_new;
-    th_new = *th_act;
-    
-    /*Set the parent theme and the style apply callback for the new theme*/
-    lv_theme_set_parent(&th_new, th_act);
-    lv_theme_set_apply_cb(&th_new, applyModifyTheme);
-    
+    lv_theme_t *th_act = lv_display_get_theme(NULL);
+    static lv_theme_t *th_new = nullptr;
+    if (th_new == nullptr)
+    {
+        th_new = lv_theme_create();
+        lv_theme_copy(th_new, th_act);
+        lv_theme_set_parent(th_new, th_act);
+        lv_theme_set_apply_cb(th_new, applyModifyTheme);
+    }
+
     /*Assign the new theme to the current display*/
-    lv_disp_set_theme(NULL, &th_new);
+    lv_display_set_theme(NULL, th_new);
 }
 
 /**
@@ -408,7 +554,7 @@ void modifyTheme()
  *
  * @param arg Pointer to optional argument (unused).
  */
-void lv_tick_task(void *arg)
+void lvglTickTask(void *arg)
 {
     (void)arg;
     lv_tick_inc(LV_TICK_PERIOD_MS);
@@ -425,27 +571,29 @@ void initLVGL()
 {
     lvgl_mutex = xSemaphoreCreateMutex();
     lv_init();
-    init_lv_subjects();
+    initLvglSubjects();
     initSharedStyles();
 
-    display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
-    lv_display_set_flush_cb(display, displayFlush);
-    lv_display_set_flush_wait_cb(display, NULL);
+    display_drv = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
+    lv_display_set_flush_cb(display_drv, displayFlush);
+    lv_display_set_flush_wait_cb(display_drv, displayFlushWait);
 
     #ifdef T4_S3
-        lv_display_add_event_cb(display, lv_rounder_cb, LV_EVENT_INVALIDATE_AREA, display);
+        lv_display_add_event_cb(display_drv, lvglRounderCb, LV_EVENT_INVALIDATE_AREA, display_drv);
     #endif
     
     size_t DRAW_BUF_SIZE = 0;
     lv_color_t *drawBuf1 = nullptr;
     lv_color_t *drawBuf2 = nullptr;
-    
+
     #if defined(BOARD_HAS_PSRAM) || defined(CONFIG_SPIRAM_SUPPORT)
         assert(heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
 
         #ifdef T4_S3
             // T4_S3: Use half screen buffer to save PSRAM for the 1024x1024 map canvas
             DRAW_BUF_SIZE = (TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t) / 2);
+        #elif defined(PANEL_BUS_DSI)
+            DRAW_BUF_SIZE = TFT_WIDTH * TFT_HEIGHT * lv_color_format_get_size(LV_COLOR_FORMAT_NATIVE);
         #else
             if (heap_caps_get_total_size(MALLOC_CAP_SPIRAM) >= 4000000)
                 // >4Mb PSRAM
@@ -455,17 +603,27 @@ void initLVGL()
                 DRAW_BUF_SIZE = (TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t) / 8);
         #endif
 
-        log_v("LVGL: allocating %u bytes PSRAM for draw buffers", DRAW_BUF_SIZE * 2);
-        drawBuf1 = (lv_color_t *)heap_caps_aligned_alloc(64, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
-        drawBuf2 = (lv_color_t *)heap_caps_aligned_alloc(64, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
-        lv_display_set_buffers(display, drawBuf1, drawBuf2, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
+        #ifdef PANEL_BUS_DSI
+            if (!bindDsiPanelBuffers())
+                ESP_LOGE(TAG, "DSI: failed to bind the two panel framebuffers");
+        #else
+            ESP_LOGV(TAG, "LVGL: allocating %u bytes PSRAM for draw buffers", DRAW_BUF_SIZE * 2);
+            drawBuf1 = (lv_color_t *)heap_caps_aligned_alloc(64, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
+            drawBuf2 = (lv_color_t *)heap_caps_aligned_alloc(64, DRAW_BUF_SIZE, MALLOC_CAP_SPIRAM);
+            lv_display_set_buffers(display_drv, drawBuf1, drawBuf2, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
+        #endif
     #else
         DRAW_BUF_SIZE = (TFT_WIDTH * TFT_HEIGHT / 10) * sizeof(lv_color_t);
-        log_v("LVGL: allocating %u bytes SRAM for draw buffer", DRAW_BUF_SIZE);
+        ESP_LOGV(TAG, "LVGL: allocating %u bytes SRAM for draw buffer", DRAW_BUF_SIZE);
         drawBuf1 = (lv_color_t *)heap_caps_malloc(DRAW_BUF_SIZE, MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA);
-        lv_display_set_buffers(display, drawBuf1, NULL, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
+        lv_display_set_buffers(display_drv, drawBuf1, NULL, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
     #endif
-    
+
+    // DSI presentation uses full frames for direct double-buffer page flips.
+    #ifdef PANEL_BUS_DSI
+        lv_display_set_render_mode(display_drv, LV_DISPLAY_RENDER_MODE_FULL);
+    #endif
+
     #ifdef TOUCH_INPUT
         lv_indev_t *indev_drv = lv_indev_create();
         lv_indev_set_type(indev_drv, LV_INDEV_TYPE_POINTER);
@@ -489,7 +647,7 @@ void initLVGL()
         lv_indev_set_long_press_time(indev_gpio, longPressTime);
 
         keyGroup = lv_group_create();
-        lv_group_add_obj(keyGroup,lv_scr_act());
+        lv_group_add_obj(keyGroup,lv_screen_active());
         lv_indev_set_group(indev_gpio, keyGroup);
 
         lv_indev_add_event_cb(indev_gpio, gpioLongEvent, LV_EVENT_LONG_PRESSED, NULL);
@@ -498,14 +656,14 @@ void initLVGL()
 
     modifyTheme();    
     //  Create Screens
-    #ifdef ICENAV_BOARD
+    #ifdef SPLASH_FULLSCREEN
         createLVGLSplashScreen();
     #endif
     createSearchSatScr();
     createMainScr();
     createNotifyBar();
     createSettingsScr();
-    #if defined(BATT_PIN) || defined(BME280) || defined(ENABLE_IMU) || defined(ENABLE_COMPASS)
+    #if defined(BATT_ADC_UNIT) || defined(WAVESHARE_P4_35) || defined(BME280) || defined(DPS310) || defined(ENABLE_IMU) || defined(ENABLE_COMPASS)
     createSensorScr();
     #endif
     createMapSettingsScr();
@@ -515,7 +673,7 @@ void initLVGL()
     createGpxListScreen();
 
     // Create and start a periodic timer interrupt to call lv_tick_inc 
-    const esp_timer_create_args_t periodic_timer_args = { .callback = &lv_tick_task, .name = "periodic_gui" };
+    const esp_timer_create_args_t periodic_timer_args = { .callback = &lvglTickTask, .name = "periodic_gui" };
     esp_timer_handle_t periodic_timer;
     ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
     ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer, LV_TICK_PERIOD_MS * 1000));
@@ -526,15 +684,31 @@ void initLVGL()
  */
 void loadMainScreen()
 {
+    if (lv_display_get_rotation(display_drv) != LV_DISPLAY_ROTATION_0)
+    {
+#ifndef PANEL_BUS_DSI
+        display().setRotation(0);
+#endif
+        lvglSetDisplayRotation(LV_DISPLAY_ROTATION_0);
+    }
     isMainScreen = true;
     isScrolled = true;
     isSearchingSat = false;
     gpxAction = WPT_NONE;
-    lv_obj_clear_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
+
+    if (lv_display_get_rotation(display_drv) != LV_DISPLAY_ROTATION_0)
+    {
+#ifndef PANEL_BUS_DSI
+        display().setRotation(0);
+#endif
+        lvglSetDisplayRotation(LV_DISPLAY_ROTATION_0);
+    }
+
+    lv_obj_remove_flag(menuBtn,LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(optionsScrim, LV_OBJ_FLAG_HIDDEN);
     lv_obj_set_y(optionsPanel, TFT_HEIGHT);
     if (mapView.isMapFound)
-        lv_obj_clear_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
     else
         lv_obj_add_flag(navArrow, LV_OBJ_FLAG_HIDDEN);
 
@@ -543,6 +717,6 @@ void loadMainScreen()
     /* Force notification to all observers even if values have not changed.
        lv_subject_set_int suppresses callbacks when the value is identical;
        widgets need to re-render their initial state after a screen transition. */
-    notify_all_subjects();
+    notifyAllSubjects();
     triggerMapRedraw();
 }

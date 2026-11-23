@@ -2,8 +2,8 @@
  * @file panelSelect.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief Panel model select
- * @version 0.2.9
- * @date 2026-06
+ * @version 0.3.3
+ * @date 2026-10
  */
 
 #pragma once
@@ -34,8 +34,14 @@
     #include "LILYGO_T4_S3.hpp"
 #elif defined(MAKERF_ESP32S3)
     #include "MAKERF_ESP32S3.hpp"
+#elif defined(MAKERF_MA028IPST)
+    #include "MAKERF_MA028IPST.hpp"
 #elif defined(ELECROW_ESP32)
     #include "ELECROW_ESP32.hpp"
+#elif defined(WAVESHARE_P4_35)
+    #include "WAVESHARE_P4_35.hpp"
+#elif defined(WAVESHARE_P4_43)
+    #include "WAVESHARE_P4_43.hpp"
 #else
     #error "No Panel defined!"
 #endif

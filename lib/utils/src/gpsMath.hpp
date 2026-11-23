@@ -2,14 +2,15 @@
  * @file gpsMath.hpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Math and various functions
- * @version 0.2.9
- * @date 2026-06
+ * @version 0.3.3
+ * @date 2026-10
  */
 
 #pragma once
 
 #include <stdint.h>
 #include <cmath>
+#include "esp_timer.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846f
@@ -50,8 +51,10 @@ static inline __attribute__((always_inline)) float RAD2DEG(float rad)
     return rad * (180.0f / M_PI);
 }
 
-static const char *degreeFormat = "%03d\xC2\xB0 %02d\' %.2f\" %c"; /**< Format string for degrees (DDD°MM'SS" + hemisphere) */
-static const char* TAGMATH = "MATH";
+inline constexpr const char *degreeFormat = "%03d\xC2\xB0 %02d\' %.2f\" %c"; /**< Format string for degrees (DDD°MM'SS" + hemisphere) */
+inline constexpr const char *TAGMATH      = "MATH";
+
+static inline uint32_t millisIDF() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 bool initTrigLUT();
 
@@ -66,19 +69,30 @@ static inline __attribute__((always_inline)) float sinLUT(float rad)
     if (!sinLut)
         return sinf(rad);
 
+    // sin is odd: look up |rad| so small negative angles are not
+    // rounded to the float grid near 2*PI by the wrap below
+    float sign = 1.0f;
+    if (rad < 0.0f)
+    {
+        rad = -rad;
+        sign = -1.0f;
+    }
+
     rad -= TWO_PI * floorf(rad / TWO_PI);
     if (rad < 0.0f)
         rad += TWO_PI;
 
     float index = rad / LUT_RES;
     int idx_low = (int)index;
+    if (idx_low >= LUT_SIZE)
+        idx_low = LUT_SIZE - 1;
     int idx_high = (idx_low + 1) % LUT_SIZE;
 
     float frac = index - idx_low;
 
     float result = sinLut[idx_low] * (1.0f - frac) + sinLut[idx_high] * frac;
 
-    return result;
+    return sign * result;
 }
 
 /**
@@ -92,6 +106,9 @@ static inline __attribute__((always_inline)) float cosLUT(float rad)
 	if (!cosLut)
 		return cosf(rad);
 
+	// cos is even: same reason as in sinLUT()
+	rad = fabsf(rad);
+
 	// Normalize angle to [0, TWO_PI)
 	rad -= TWO_PI * floorf(rad / TWO_PI);
 	if (rad < 0.0f)
@@ -99,6 +116,8 @@ static inline __attribute__((always_inline)) float cosLUT(float rad)
 
 	float index = rad / (float)LUT_RES;
 	int idx_low = (int)index;
+	if (idx_low >= LUT_SIZE)
+		idx_low = LUT_SIZE - 1;
 	int idx_high = (idx_low + 1) % LUT_SIZE;
 
 	float frac = index - idx_low;

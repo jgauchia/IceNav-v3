@@ -2,13 +2,16 @@
  * @file tft.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief TFT definition and functions
- * @version 0.2.9
- * @date 2026-06
+ * @version 0.3.3
+ * @date 2026-10
  */
 
 #include "tft.hpp"
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <esp_log.h>
+
+static const char *TAG = "TFT";
 
 TFT_eSPI tft = TFT_eSPI();
 bool repeatCalib = false;
@@ -58,7 +61,7 @@ void touchCalibrate()
             }
     }
     else
-        log_e("Touch calibration doesn't exists");
+        ESP_LOGE(TAG, "Touch calibration doesn't exists");
 
     if (calDataOK && !repeatCalib)
         tft.setTouchCalibrate(calData);
@@ -91,12 +94,12 @@ void touchCalibrate()
         FILE* f = storage.open(calibrationFile, "w");
         if (f)
         {
-            log_v("Calibration saved");
+            ESP_LOGV(TAG, "Calibration saved");
             fwrite((const unsigned char *)calData, sizeof(unsigned char), 16 ,f);
             storage.close(f);
         }
         else
-            log_e("Calibration not saved!");
+            ESP_LOGE(TAG, "Calibration not saved!");
 
         uint16_t touchX;
         uint16_t touchY;
@@ -111,14 +114,34 @@ void touchCalibrate()
  */
 void initTFT()
 {
+    #ifdef MAKERF_MA028IPST
+        // GPIO1 is LCD_RESET on the schematic and is shared with GT911 RST.
+        // Address 0x5D is latched only if INT is low on the RST rising edge.
+        // Do this before tft.init() and leave LGFX pin_rst = -1 so the LCD is
+        // not reset again after the panel is programmed.
+        pinMode(TCH_I2C_INT, OUTPUT);
+        digitalWrite(TCH_I2C_INT, LOW);
+        pinMode(TCH_I2C_RST, OUTPUT);
+        digitalWrite(TCH_I2C_RST, LOW);
+        delay(20);
+        digitalWrite(TCH_I2C_RST, HIGH);
+        // ST7789V needs >=120 ms after RESX rises before the first command.
+        // LGFX pin_rst is -1, so no second reset adds margin here.
+        delay(150);
+        pinMode(TCH_I2C_INT, INPUT);
+    #endif
+
     tft.init();
 
     #ifdef T4_S3
     //   tft.enableFrameBuffer(false);
     #endif
 
-    #ifdef TDECK_ESP32S3
+    #if defined(TDECK_ESP32S3)
         tft.setRotation(1);
+    #elif defined(MAKERF_MA028IPST)
+        // Portrait: native 240×320, so the shorter edge is the x axis.
+        tft.setRotation(0);
     #endif
 
     TFT_HEIGHT = tft.height();
@@ -127,7 +150,9 @@ void initTFT()
     tft.initDMA();
     tft.fillScreen(TFT_BLACK);
 
-    #ifdef TOUCH_INPUT
+    // Capacitive touch controllers report already-calibrated coordinates,
+    // so the resistive calibration flow only applies to XPT2046.
+    #if defined(TOUCH_INPUT) && defined(TOUCH_RESISTIVE)
         touchCalibrate();
     #endif
 }

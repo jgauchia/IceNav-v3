@@ -2,14 +2,14 @@
  * @file gps.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  GPS definition and functions
- * @version 0.2.9
- * @date 2026-06
+ * @version 0.3.3
+ * @date 2026-10
  */
 
 #include "gps.hpp"
 #include "../../include/hal.hpp"
 #include "lvgl.h"
-#include "../gui/src/lv_subjects.hpp"
+#include "../lvgl/src/lvglSubjects.hpp"
 #include "widgets.hpp"
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -17,16 +17,11 @@
 #include "driver/gpio.h"
 #include <SolarCalculator.h>
 #include <time.h>
+#include "gpsMath.hpp"
+#include <cmath>
 
 extern RTC_DATA_ATTR time_t rtcSavedTime;
 extern RTC_DATA_ATTR bool   rtcTimeValid;
-
-/**
- * @brief Get system uptime in milliseconds using ESP-IDF timer.
- *
- * @return uint32_t Milliseconds since boot.
- */
-static inline uint32_t millis_idf() { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 /**
  * @brief Measure pulse width on a GPIO pin (ESP-IDF native)
@@ -82,6 +77,7 @@ static const char* TAG = "GPS";
 
 /**
  * @brief Default constructor for Gps class.
+ *
  */
 Gps::Gps()
 {
@@ -121,8 +117,9 @@ void buildPcas03(char *out, size_t outSize, uint8_t rateIdx)
  * @brief Init GPS and custom NMEA parsing.
  *
  * @details Initializes the GPS port with the appropriate baud rate and buffer size.
- * 			If a specific baud rate is not set (gpsBaud != 4), it uses the predefined baud rate array.
- *			Otherwise, it attempts to auto-detect the baud rate.
+ * 			If a specific baud rate is not set (gpsBaud != GPS_BAUD_AUTO), it uses the predefined baud rate array.
+ *			Otherwise, it probes the supported rates and opens the first one that delivers
+ *			valid NMEA, so a silent module at boot never leaves the port closed.
  */
 void Gps::init()
 {
@@ -137,15 +134,10 @@ void Gps::init()
 
     gpsPort.setRxBufferSize(2048);
 
-    if (gpsBaud != 4)
+    if (gpsBaud != GPS_BAUD_AUTO)
         gpsPort.begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
     else
-    {
-        gpsBaudDetected = autoBaud();
-
-        if (gpsBaudDetected != 0)
-            gpsPort.begin(gpsBaudDetected, SERIAL_8N1, GPS_RX, GPS_TX);
-    }
+        openAutoBaud();
 
     #ifdef AT6558D_GPS
         // FACTORY RESET
@@ -266,7 +258,7 @@ void Gps::getGPSData()
         static uint8_t lastSunDay = 0xFF;
         if (!setTime)
         {
-            log_v("Get date, time, Sunrise and Sunset");
+            ESP_LOGV(TAG, "Get date, time, Sunrise and Sunset");
             String TZ = cfg.isKey(CONFKEYS::KDEF_TZ) ? cfg.getString(CONFKEYS::KDEF_TZ, "") : "UTC";
             setLocalTime(fix.dateTime, getPosixTZ(TZ.c_str()));
             calculateSun();
@@ -338,6 +330,44 @@ void Gps::getGPSData()
         }
     }
 
+    publishSnapshot();
+}
+
+/**
+ * @brief Publish a coherent snapshot of the shared position fields.
+ *
+ * @details Copies {latitude, longitude, heading, speed} from gpsData into the
+ *          snapshot under a spinlock so cross-core consumers never observe a
+ *          half-written pair (e.g. new latitude with stale longitude). Called by
+ *          the producers (real fix in getGPSData, simulation in simFakeGPS) right
+ *          after they finish updating gpsData.
+ */
+void Gps::publishSnapshot()
+{
+    taskENTER_CRITICAL(&snapshotMux);
+    snapshot.latitude  = gpsData.latitude;
+    snapshot.longitude = gpsData.longitude;
+    snapshot.heading   = gpsData.heading;
+    snapshot.speed     = gpsData.speed;
+    taskEXIT_CRITICAL(&snapshotMux);
+}
+
+/**
+ * @brief Read a coherent snapshot of the shared position fields.
+ *
+ * @details Returns an atomic copy of {latitude, longitude, heading, speed} taken
+ *          under the spinlock. Consumers on any core work on the returned local
+ *          copy instead of reading gpsData directly.
+ *
+ * @return Coherent copy of the current position fields.
+ */
+Gps::GpsSnapshot Gps::getSnapshot()
+{
+    GpsSnapshot copy;
+    taskENTER_CRITICAL(&snapshotMux);
+    copy = snapshot;
+    taskEXIT_CRITICAL(&snapshotMux);
+    return copy;
 }
 
 /**
@@ -420,6 +450,108 @@ long Gps::autoBaud()
 }
 
 /**
+ * @brief Reopen the GPS port at a fixed baud rate.
+ *
+ * @details Resets the port and opens it again with the full receive buffer at the
+ * 			requested rate.
+ *
+ * @param baud Baud rate to open the port with.
+ */
+void Gps::openPort(unsigned long baud)
+{
+    gpsPort.end();
+    vTaskDelay(pdMS_TO_TICKS(100));
+    gpsPort.setRxBufferSize(2048);
+    gpsPort.begin(baud, SERIAL_8N1, GPS_RX, GPS_TX);
+}
+
+/**
+ * @brief Wait for a complete NMEA sentence on the open port.
+ *
+ * @details Drains whatever arrives and succeeds only on a well-formed line: a '$',
+ * 			at least eight printable characters, and a carriage return or line feed.
+ * 			At a wrong baud rate the bytes are random, where that shape is far too
+ * 			unlikely to appear, so it reliably tells a good rate from a bad one. The
+ * 			window must span more than one burst: at 1 Hz the module talks for ~250 ms
+ * 			and then stays quiet until the next second.
+ *
+ * @param timeoutMs Time to wait for the sentence, in milliseconds.
+ * @return true if a complete sentence arrived within the timeout.
+ */
+bool Gps::receivesNmea(uint16_t timeoutMs)
+{
+    int64_t deadline = esp_timer_get_time() + (int64_t)timeoutMs * 1000;
+    uint8_t sentenceLen = 0;
+
+    while (esp_timer_get_time() < deadline)
+    {
+        while (gpsPort.available())
+        {
+            char c = (char)gpsPort.read();
+            if (c == '$')
+                sentenceLen = 1;
+            else if (sentenceLen == 0)
+                continue;
+            else if (c >= 0x20 && c <= 0x7E)
+                sentenceLen++;
+            else if ((c == '\r' || c == '\n') && sentenceLen > 8)
+                return true;
+            else
+                sentenceLen = 0;
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+    return false;
+}
+
+/**
+ * @brief Open the GPS port at the first baud rate that delivers valid NMEA.
+ *
+ * @details Probes every rate in GPS_BAUD[] until one delivers a complete NMEA
+ * 			sentence. The pulse measurement from autoBaud() is kept only as a first
+ * 			candidate, and only when it matches a supported rate: it often lands on a
+ * 			rate this module cannot use. The port is always left open: if no rate is
+ * 			confirmed it stays at the last candidate, so the NMEA dump shows the
+ * 			mismatch instead of going silent.
+ *
+ * @return Baud rate confirmed by a valid sentence, or 0 if none responded.
+ */
+long Gps::openAutoBaud()
+{
+    long measured = autoBaud();
+    long hint = 0;
+
+    for (uint8_t i = 0; GPS_BAUD[i] != 0; i++)
+        if (GPS_BAUD[i] == (unsigned long)measured)
+            hint = measured;
+
+    if (hint != 0)
+    {
+        openPort(hint);
+        if (receivesNmea(GPS_PROBE_MS))
+        {
+            gpsBaudDetected = hint;
+            return hint;
+        }
+    }
+
+    for (uint8_t i = 0; GPS_BAUD[i] != 0; i++)
+    {
+        if (GPS_BAUD[i] == (unsigned long)hint)
+            continue;
+        openPort(GPS_BAUD[i]);
+        if (receivesNmea(GPS_PROBE_MS))
+        {
+            gpsBaudDetected = GPS_BAUD[i];
+            return GPS_BAUD[i];
+        }
+    }
+
+    gpsBaudDetected = 0;
+    return 0;
+}
+
+/**
  * @brief Set system local time from GPS time and timezone.
  *
  * @details Converts the provided GPS time to a struct tm, sets the system time, applies the timezone,
@@ -471,9 +603,10 @@ void Gps::setLocalTime(NeoGPS::time_t gpsTime, const char* tz)
 /**
  * @brief Simulates a GPS signal over a preloaded track.
  *
- * @details Advances through the provided track data, simulating GPS coordinates and heading.
- *          Applies random offset noise and smoothing to emulate realistic GPS signal behavior.
- *          Updates the simulated GPS data every second if the step distance is above a threshold.
+ * @details Moves a virtual position along the track by interpolating within the current segment,
+ *          advancing the covered distance per refresh according to the requested speed. Heading
+ *          follows the current segment direction. Track gaps (segment cuts) are stepped over
+ *          without being traversed, so density of trackpoints does not affect smoothness.
  *
  * @param trackData Vector of wayPoints representing the preloaded GPX track.
  * @param speed Simulated speed in km/h to assign to the GPS data.
@@ -481,131 +614,80 @@ void Gps::setLocalTime(NeoGPS::time_t gpsTime, const char* tz)
  */
 void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refresh)
 {
-    if (millis_idf() - lastSimulationTime > refresh)
+    if (millisIDF() - lastSimulationTime > refresh)
     {
-        lastSimulationTime = millis_idf();
+        lastSimulationTime = millisIDF();
 
         if (simulationIndex < (int)trackData.size() - 1)
         {
-            if (simulationIndex == 0)
+            const float maxSegmentDist = SIM_MAX_SEGMENT_DIST; // Track gap above this is a cut, not travelled
+
+            // Distance to advance this refresh: speed (km/h) over the elapsed refresh window
+            float stepDist = (speed * 1000.0f / 3600.0f) * (refresh / 1000.0f);
+            segmentProgress += stepDist;
+
+            // Walk forward over segments consuming the covered distance, interpolating inside
+            while (simulationIndex < (int)trackData.size() - 1)
             {
-                  // --- First point: initialize simulation state ---
-                smoothedLat = trackData[0].lat;
-                smoothedLon = trackData[0].lon;
-                lastSimLat = smoothedLat;
-                lastSimLon = smoothedLon;
-                filteredHeading = 0.0f;
-                accumulatedDist = 0.0f;  // Reset accumulated distance for new track
+                int nextIndex = simulationIndex + 1;
+                float segLen = calcDist(trackData[simulationIndex].lat, trackData[simulationIndex].lon,
+                                        trackData[nextIndex].lat, trackData[nextIndex].lon);
 
-                gpsData.latitude = smoothedLat;
-                gpsData.longitude = smoothedLon;
-                gpsData.heading = filteredHeading;
-                gpsData.speed = speed;
-            }
-            else
-            {
-                float rawLat = trackData[simulationIndex].lat;
-                float rawLon = trackData[simulationIndex].lon;
-
-                // Calculate expected distance based on speed and time
-                float expectedDist = (speed * 1000.0f) / 3600.0f;  // Convert km/h to m/s
-                
-                // Advance through track points until we've covered the expected distance
-                int currentIndex = simulationIndex;
-                const float maxSegmentDist = 5000.0f; // Allow long segments (e.g. 5km)
-                
-                // Add expected distance to accumulated distance
-                accumulatedDist += expectedDist;
-                
-                // Limit to prevent infinite loops (end of track only)
-                while (currentIndex < (int)trackData.size() - 1) 
-                { 
-                    int nextIndex = currentIndex + 1;
-                    float segmentDist = calcDist(trackData[currentIndex].lat, trackData[currentIndex].lon,
-                                                trackData[nextIndex].lat, trackData[nextIndex].lon);
-                    
-                    // Skip duplicate points
-                    if (segmentDist < 0.1f) 
-                    {
-                        currentIndex = nextIndex;
-                        continue;
-                    }
-
-                    // Skip unrealistic jumps
-                    if (segmentDist > maxSegmentDist)
-                    {
-                        currentIndex = nextIndex;
-                        continue;
-                    }
-                    
-                    // Check if we can advance to this point
-                    if (segmentDist <= accumulatedDist) 
-                    {
-                        accumulatedDist -= segmentDist;
-                        currentIndex = nextIndex;
-                    } 
-                    else
-                        break; // Not enough accumulated distance
-                }
-                
-                // Update simulation index to the final point
-                simulationIndex = currentIndex;
-                
-                // Update position to the final point
-                rawLat = trackData[simulationIndex].lat;
-                rawLon = trackData[simulationIndex].lon;
-
-                // --- Apply smoothing BEFORE adding noise ---
-                smoothedLat = posAlpha * rawLat + (1.0f - posAlpha) * smoothedLat;
-                smoothedLon = posAlpha * rawLon + (1.0f - posAlpha) * smoothedLon;
-
-                // --- Small noise to simulate GPS jitter ---
-                float latOffset = random(-3, 3) / 100000.0f;  // Reduced noise for simulation
-                float lonOffset = random(-3, 3) / 100000.0f;
-
-                float noisyLat = smoothedLat + latOffset;
-                float noisyLon = smoothedLon + lonOffset;
-
-                // --- Realistic heading based on track direction ---
-                // Look ahead based on speed (faster = further lookahead)
-                int lookAhead = min(max(3, speed / 20), (int)trackData.size() - simulationIndex - 1);
-                int targetIdx = simulationIndex + lookAhead;
-                
-                if (targetIdx < (int)trackData.size()) 
+                // Coincident points: collapse with no travel
+                if (segLen < 0.1f)
                 {
-                    // Calculate heading towards future track point
-                    float targetHeading = calcCourse(smoothedLat, smoothedLon,
-                                                    trackData[targetIdx].lat,
-                                                    trackData[targetIdx].lon);
-                    
-                    if (simulationIndex > 1) 
-                    {
-                        // Smooth transition to target heading (faster adaptation for higher speeds)
-                        float headingDiff = calcAngleDiff(targetHeading, filteredHeading);
-                        float adaptationRate = min(0.3f, 0.1f + (speed / 200.0f)); // 0.1-0.3 based on speed
-                        filteredHeading += adaptationRate * headingDiff;
-                    } 
-                    else 
-                        // Initialize with target heading
-                        filteredHeading = targetHeading;
-                    
-                    // Normalize final heading
-                    if (filteredHeading < 0.0f) 
-                        filteredHeading += 360.0f;
-                    if (filteredHeading >= 360.0f) 
-                        filteredHeading -= 360.0f;
+                    simulationIndex = nextIndex;
+                    continue;
                 }
 
-                // --- Final output ---
-                gpsData.latitude = noisyLat;
-                gpsData.longitude = noisyLon;
-                gpsData.heading = filteredHeading;
-                gpsData.speed = speed;
+                // Track cut (segment gap): jump to next point without traversing the gap
+                if (segLen > maxSegmentDist)
+                {
+                    simulationIndex = nextIndex;
+                    segmentProgress = 0.0f;
+                    continue;
+                }
 
-                lastSimLat = rawLat;
-                lastSimLon = rawLon;
+                // Still inside the current segment: interpolate and stop
+                if (segmentProgress < segLen)
+                    break;
+
+                // Segment fully covered: move on, keep the remainder for the next one
+                segmentProgress -= segLen;
+                simulationIndex = nextIndex;
             }
-            simulationIndex++;
+
+            // --- Interpolated position along the current segment ---
+            int nextIndex = min(simulationIndex + 1, (int)trackData.size() - 1);
+            float segLen = calcDist(trackData[simulationIndex].lat, trackData[simulationIndex].lon,
+                                    trackData[nextIndex].lat, trackData[nextIndex].lon);
+            float t = (segLen > 0.1f) ? (segmentProgress / segLen) : 0.0f;
+            if (t > 1.0f) t = 1.0f;
+
+            smoothedLat = trackData[simulationIndex].lat +
+                          t * (trackData[nextIndex].lat - trackData[simulationIndex].lat);
+            smoothedLon = trackData[simulationIndex].lon +
+                          t * (trackData[nextIndex].lon - trackData[simulationIndex].lon);
+
+            // --- Heading follows the current segment direction (smoothed) ---
+            if (nextIndex != simulationIndex)
+            {
+                float targetHeading = calcCourse(trackData[simulationIndex].lat, trackData[simulationIndex].lon,
+                                                 trackData[nextIndex].lat, trackData[nextIndex].lon);
+                float headingDiff = calcAngleDiff(targetHeading, filteredHeading);
+                filteredHeading += headAlpha * headingDiff;
+
+                if (filteredHeading < 0.0f)
+                    filteredHeading += 360.0f;
+                if (filteredHeading >= 360.0f)
+                    filteredHeading -= 360.0f;
+            }
+
+            // --- Final output ---
+            gpsData.latitude = smoothedLat;
+            gpsData.longitude = smoothedLon;
+            gpsData.heading = filteredHeading;
+            gpsData.speed = speed;
         }
         else
         {
@@ -613,11 +695,14 @@ void Gps::simFakeGPS(const TrackVector& trackData, uint16_t speed, uint16_t refr
             gpsData.longitude = trackData.back().lon;
             gpsData.speed     = 0;
         }
+
+        publishSnapshot();
     }
 }
 
 /**
  * @brief Calculate Sunrise and Sunset based on current GPS position and date.
+ *
  */
 void calculateSun()
 {
@@ -636,6 +721,6 @@ void calculateSun()
     hours = (int)sunset + gps.gpsData.UTC;
     minutes = (int)round(((sunset + gps.gpsData.UTC) - hours) * 60);
     snprintf(gps.gpsData.sunsetHour, 6, "%02d:%02d", hours, minutes);
-    log_i("Sunrise: %s", gps.gpsData.sunriseHour);
-    log_i("Sunset: %s", gps.gpsData.sunsetHour);
+    ESP_LOGI(TAG, "Sunrise: %s", gps.gpsData.sunriseHour);
+    ESP_LOGI(TAG, "Sunset: %s", gps.gpsData.sunsetHour);
 }

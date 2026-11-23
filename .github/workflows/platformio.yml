@@ -1,17 +1,34 @@
-name: PlatformIO
+name: PlatformIO (master)
 
 on:
-  pull_request:
+  push:
     branches:
       - master
     paths-ignore:
       - '**/README.md'
 
 jobs:
+  layer-discipline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Layer 2/3 do not include Layer 0 headers
+        run: ./tools/check_layer_discipline.sh
+
   build:
+    name: Testing ${{ matrix.env }}
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 1
+      fail-fast: false
+      matrix:
+        env:
+          - ICENAV_BOARD
+          - TDECK_ESP32S3
+          - T4_S3
+          - ELECROW_ESP32
+          - MAKERF_MA028IPST
+          - WAVESHARE_P4_35
+          - WAVESHARE_P4_43
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v3
@@ -19,25 +36,22 @@ jobs:
           path: |
             ~/.cache/pip
             ~/.platformio/.cache
-          key: ${{ runner.os }}-pio
+          key: ${{ runner.os }}-pio-6.2.0
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -U platformio
-          pio pkg update 
-      - name: Testing ICENAV Custom Board
+          # pioarduino 6.2.0.post1 (2026-10-26) reports "6.2.0-post.1", which the platform's
+          # semver check reads as a prerelease of 6.2.0 and rejects with IncompatiblePlatform.
+          # Pin 6.2.0 in the penv: that is the interpreter running pio, and the platform
+          # installs its own dependencies there.
+          python -m venv $HOME/.platformio/penv
+          $HOME/.platformio/penv/bin/python -m pip install pioarduino==6.2.0
+          echo "$HOME/.platformio/penv/bin" >> "$GITHUB_PATH"
+      - name: Testing ${{ matrix.env }}
         run: |
           export ICENAV3_LON=13.404
           export ICENAV3_LAT=52.520
-          pio run
-      - name: Testing ESP32S3 T-Deck Board
-        run: |
-          export ICENAV3_LON=13.404
-          export ICENAV3_LAT=52.520
-          pio run -e TDECK_ESP32S3
- 
-
+          pio run -e ${{ matrix.env }}

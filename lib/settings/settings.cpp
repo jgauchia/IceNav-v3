@@ -2,15 +2,16 @@
  * @file settings.cpp
  * @author Jordi Gauchía (jgauchia@jgauchia.com)
  * @brief  Settings functions
- * @version 0.2.9
- * @date 2026-06
+ * @version 0.3.3
+ * @date 2026-10
  */
 
 #include "settings.hpp"
+#include "logger.hpp"
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-static const char* TAG = "Settings";
+static const char* TAG = "SETTINGS";
 
 MAP mapSet;
 NAVIGATION navSet;
@@ -23,7 +24,9 @@ uint8_t maxZoom = 0;         /**< Maximum Zoom Level */
 uint8_t defZoom = 15;        /**< Default Zoom Level for rendered map */
 uint8_t zoom = 0;            /**< Current Zoom Level */
 
-#ifdef LARGE_SCREEN
+#ifdef EXTRA_LARGE_SCREEN
+    static const float scale = 1.5f;   /**< Scale factor for extra large screens */
+#elif defined(LARGE_SCREEN)
     static const float scale = 1.0f;   /**< Scale factor for large screens */
 #else
     static const float scale = 0.75f;  /**< Scale factor for small screens */
@@ -85,18 +88,26 @@ void loadPreferences()
     mapSet.map3D = cfg.getBool(PKEYS::KMAP_3D, false);
     navSet.simNavigation = cfg.getBool(PKEYS::KSIM_NAV, false);
     navSet.routeSpeed = cfg.getShort(PKEYS::KROUTE_SPEED, 130);
-    gpsBaud = cfg.getShort(PKEYS::KGPS_SPEED, 4);
+    gpsBaud = cfg.getShort(PKEYS::KGPS_SPEED, GPS_BAUD_AUTO);
+    // Move a stored AUTO from index 3 to 4 once, then stamp the schema
+    if (cfg.getShort(PKEYS::KCFG_VER, 0) < 1)
+    {
+        if (gpsBaud == GPS_BAUD_AUTO_LEGACY)
+            gpsBaud = GPS_BAUD_AUTO;
+        cfg.saveShort(PKEYS::KGPS_SPEED, gpsBaud);
+        cfg.saveShort(PKEYS::KCFG_VER, 1);
+    }
     gpsUpdate = cfg.getShort(PKEYS::KGPS_RATE, 3);
     compassPosX = cfg.getInt(PKEYS::KCOMP_X, (TFT_WIDTH / 2) - (100 * scale));
-    compassPosY = cfg.getInt(PKEYS::KCOMP_Y, 80);
+    compassPosY = cfg.getInt(PKEYS::KCOMP_Y, 80 * scale);
     coordPosX = cfg.getInt(PKEYS::KCOORD_X, (TFT_WIDTH / 2) - (90 * scale));
-    coordPosY = cfg.getInt(PKEYS::KCOORD_Y, 30);
+    coordPosY = cfg.getInt(PKEYS::KCOORD_Y, 30 * scale);
     altitudePosX = cfg.getInt(PKEYS::KALTITUDE_X, 8);
-    altitudePosY = cfg.getInt(PKEYS::KALTITUDE_Y, TFT_HEIGHT - 170);
+    altitudePosY = cfg.getInt(PKEYS::KALTITUDE_Y, TFT_HEIGHT - (170 * scale));
     speedPosX = cfg.getInt(PKEYS::KSPEED_X, 1);
-    speedPosY = cfg.getInt(PKEYS::KSPEED_Y, TFT_HEIGHT - 130);
+    speedPosY = cfg.getInt(PKEYS::KSPEED_Y, TFT_HEIGHT - (130 * scale));
     sunPosX = cfg.getInt(PKEYS::KSUN_X, 170);
-    sunPosY = cfg.getInt(PKEYS::KSUN_Y, TFT_HEIGHT - 170);
+    sunPosY = cfg.getInt(PKEYS::KSUN_Y, TFT_HEIGHT - (170 * scale));
     defBright = cfg.getUInt(PKEYS::KDEF_BRIGT, 254);
     minZoom = 6;
     maxZoom = 17;
@@ -107,6 +118,7 @@ void loadPreferences()
     enableWeb = cfg.getBool(PKEYS::KWEB_FILE, enableWeb);
     tempOffset = cfg.getInt(PKEYS::KTEMP_OFFS, 0);
     nmeaDebugTileEnabled = cfg.getBool(PKEYS::KNMEA_DEBUG, false);
+    gpxLogger.setProfile((uint8_t)cfg.getUInt(PKEYS::KLOG_PROFILE, 0));
 
     // Default Widgets positions
     #ifdef TDECK_ESP32S3
@@ -123,33 +135,31 @@ void loadPreferences()
     #endif
 
     battery.setBatteryLevels(cfg.getFloat(PKEYS::KVMAX_BATT, 4.2f), cfg.getFloat(PKEYS::KVMIN_BATT, 3.6f));
-    printSettings();
+    // printSettings();
 }
 
 /**
  * @brief Save GPS baud rate setting
  *
  * @details Saves the GPS baud rate to persistent storage and configures the GPS port
- * 			accordingly. If not using auto baud detection, sends configuration commands
- * 			to the GPS module (AT6558D), resets the port, and sets the new baud rate.
- * 			If using auto baud detection (gpsBaud == 4), attempts to detect baud rate
- * 			automatically and reconfigures the port.
+ * 			accordingly. If not using auto baud detection, switches the GPS module
+ * 			(AT6558D) to the new baud rate, reopens the port at that rate, and only then
+ * 			persists the module configuration.
+ * 			If using auto baud detection (gpsBaud == GPS_BAUD_AUTO), the running port is left
+ * 			alone: it already runs at the module rate, and the sweep happens on the next boot.
  *
  * @param gpsBaud Baud rate index to save and configure
  */
 void saveGPSBaud(uint16_t gpsBaud)
 {
     cfg.saveShort(PKEYS::KGPS_SPEED, gpsBaud);
-    if (gpsBaud != 4)
+    if (gpsBaud != GPS_BAUD_AUTO)
     {
         #ifdef AT6558D_GPS
             gpsPort.flush();
             gpsPort.println(GPS_BAUD_PCAS[gpsBaud]);
             gpsPort.flush();
             vTaskDelay(pdMS_TO_TICKS(200));
-            gpsPort.println("$PCAS00*01\r\n");
-            gpsPort.flush();
-            vTaskDelay(pdMS_TO_TICKS(1000));
         #endif
         gpsPort.flush();
         gpsPort.end();
@@ -157,21 +167,17 @@ void saveGPSBaud(uint16_t gpsBaud)
         gpsPort.setRxBufferSize(2048);
         gpsPort.begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
         vTaskDelay(pdMS_TO_TICKS(1000));
-    }
-    else
-    {
-        gpsBaudDetected = gps.autoBaud();
-
-        if (gpsBaudDetected != 0)
-        {
+        #ifdef AT6558D_GPS
+            // The module drops the save command until the port runs at the new rate
+            gpsPort.println("$PCAS00*01\r\n");
             gpsPort.flush();
-            gpsPort.end();
-            vTaskDelay(pdMS_TO_TICKS(500));
-            gpsPort.setRxBufferSize(2048);
-            gpsPort.begin(gpsBaudDetected, SERIAL_8N1, GPS_RX, GPS_TX);
-            vTaskDelay(pdMS_TO_TICKS(500));
-        }
-  }
+            vTaskDelay(pdMS_TO_TICKS(1000));
+            while (gpsPort.available())
+                gpsPort.read();
+        #endif
+    }
+    // AUTO: nothing to reconfigure here. The open port already matches the module
+    // and the GPS task is reading it, so the rate is detected at the next boot.
 }
 
 /**
