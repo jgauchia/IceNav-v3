@@ -73,15 +73,16 @@ public:
 
         powerLightSleep();
 
-        // The resumed panel scans a blank framebuffer, and the copy that repaints it
-        // lands mid-frame, so the backlight stays off until two identical frames hide it.
         display().sleepOn(0);
         // The resumed panel created fresh frame buffers; re-bind them before the repaints.
         lvglRestoreDrawBuffers();
-        lv_obj_invalidate(lv_screen_active());
-        lv_refr_now(display_drv);
-        lv_obj_invalidate(lv_screen_active());
-        lv_refr_now(display_drv);
+        #ifdef PANEL_BUS_DSI
+            // The bridge alternates the two panel framebuffers, so both need the frame.
+            lv_obj_invalidate(lv_screen_active());
+            lv_refr_now(display_drv);
+            lv_obj_invalidate(lv_screen_active());
+            lv_refr_now(display_drv);
+        #endif
         display().setBrightness(brightness);
 
         resumeAllTasks();
