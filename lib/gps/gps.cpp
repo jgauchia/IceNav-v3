@@ -117,7 +117,7 @@ void buildPcas03(char *out, size_t outSize, uint8_t rateIdx)
  * @brief Init GPS and custom NMEA parsing.
  *
  * @details Initializes the GPS port with the appropriate baud rate and buffer size.
- * 			If a specific baud rate is not set (gpsBaud != 3), it uses the predefined baud rate array.
+ * 			If a specific baud rate is not set (gpsBaud != GPS_BAUD_AUTO), it uses the predefined baud rate array.
  *			Otherwise, it probes the supported rates and opens the first one that delivers
  *			valid NMEA, so a silent module at boot never leaves the port closed.
  */
@@ -134,7 +134,7 @@ void Gps::init()
 
     gpsPort.setRxBufferSize(2048);
 
-    if (gpsBaud != 3)
+    if (gpsBaud != GPS_BAUD_AUTO)
         gpsPort.begin(GPS_BAUD[gpsBaud], SERIAL_8N1, GPS_RX, GPS_TX);
     else
         openAutoBaud();

@@ -41,4 +41,5 @@
   X(KROUTE_SPEED, "routeSpeed", SHORT)   \
   X(KNMEA_DEBUG, "nmeaDbgTile", BOOL)    \
   X(KLOG_PROFILE, "logProfile", UINT)   \
+  X(KCFG_VER, "cfgVer", SHORT)           \
   X(KCOUNT, "KCOUNT", UNKNOWN)

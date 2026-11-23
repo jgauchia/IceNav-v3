@@ -88,7 +88,15 @@ void loadPreferences()
     mapSet.map3D = cfg.getBool(PKEYS::KMAP_3D, false);
     navSet.simNavigation = cfg.getBool(PKEYS::KSIM_NAV, false);
     navSet.routeSpeed = cfg.getShort(PKEYS::KROUTE_SPEED, 130);
-    gpsBaud = cfg.getShort(PKEYS::KGPS_SPEED, 3);
+    gpsBaud = cfg.getShort(PKEYS::KGPS_SPEED, GPS_BAUD_AUTO);
+    // Move a stored AUTO from index 3 to 4 once, then stamp the schema
+    if (cfg.getShort(PKEYS::KCFG_VER, 0) < 1)
+    {
+        if (gpsBaud == GPS_BAUD_AUTO_LEGACY)
+            gpsBaud = GPS_BAUD_AUTO;
+        cfg.saveShort(PKEYS::KGPS_SPEED, gpsBaud);
+        cfg.saveShort(PKEYS::KCFG_VER, 1);
+    }
     gpsUpdate = cfg.getShort(PKEYS::KGPS_RATE, 3);
     compassPosX = cfg.getInt(PKEYS::KCOMP_X, (TFT_WIDTH / 2) - (100 * scale));
     compassPosY = cfg.getInt(PKEYS::KCOMP_Y, 80 * scale);
@@ -137,15 +145,15 @@ void loadPreferences()
  * 			accordingly. If not using auto baud detection, switches the GPS module
  * 			(AT6558D) to the new baud rate, reopens the port at that rate, and only then
  * 			persists the module configuration.
- * 			If using auto baud detection (gpsBaud == 3), the running port is left alone:
- * 			it already runs at the module rate, and the sweep happens on the next boot.
+ * 			If using auto baud detection (gpsBaud == GPS_BAUD_AUTO), the running port is left
+ * 			alone: it already runs at the module rate, and the sweep happens on the next boot.
  *
  * @param gpsBaud Baud rate index to save and configure
  */
 void saveGPSBaud(uint16_t gpsBaud)
 {
     cfg.saveShort(PKEYS::KGPS_SPEED, gpsBaud);
-    if (gpsBaud != 3)
+    if (gpsBaud != GPS_BAUD_AUTO)
     {
         #ifdef AT6558D_GPS
             gpsPort.flush();

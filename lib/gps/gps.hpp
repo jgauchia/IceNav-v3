@@ -42,9 +42,11 @@ extern bool nmea_output_enable;  /**< Enables or disables NMEA output. */
 class Gps;
 extern Gps gps; /**< Global GPS instance */
 
-inline constexpr unsigned long GPS_BAUD[]    = {4800, 9600, 19200, 0}; /**< Supported GPS baud rates. */
+inline constexpr unsigned long GPS_BAUD[]    = {4800, 9600, 19200, 38400, 0}; /**< Supported GPS baud rates. */
+inline constexpr uint8_t GPS_BAUD_AUTO        = sizeof(GPS_BAUD) / sizeof(GPS_BAUD[0]) - 1; /**< Auto-detect entry: the array sentinel. */
+inline constexpr uint8_t GPS_BAUD_AUTO_LEGACY = 3; /**< AUTO index before 38400 entered the list. */
 inline constexpr uint16_t GPS_PROBE_MS       = 1100; /**< Time (ms) each candidate baud gets to deliver a valid NMEA sentence. */
-inline constexpr const char *GPS_BAUD_PCAS[] = {"$PCAS01,0*1C\r\n", "$PCAS01,1*1D\r\n", "$PCAS01,2*1E\r\n"}; /**< NMEA command strings to set baud rate for PCAS modules. */
+inline constexpr const char *GPS_BAUD_PCAS[] = {"$PCAS01,0*1C\r\n", "$PCAS01,1*1D\r\n", "$PCAS01,2*1E\r\n", "$PCAS01,3*1F\r\n"}; /**< NMEA command strings to set baud rate for PCAS modules. */
 inline constexpr const char *GPS_RATE_PCAS[] = {"$PCAS02,1000*2E\r\n", "$PCAS02,500*1A\r\n", "$PCAS02,250*18\r\n", "$PCAS02,200*1D\r\n", "$PCAS02,100*1E\r\n"}; /**< NMEA command strings to set update rate for PCAS modules. */
 inline constexpr uint8_t GPS_RATE_HZ[]       = {1, 2, 4, 5, 10}; /**< Update rate in Hz per GPS_RATE_PCAS index. */
 
