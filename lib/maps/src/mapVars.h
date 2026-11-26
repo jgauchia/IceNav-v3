@@ -10,6 +10,7 @@
 
 inline constexpr const char *mapRenderFolder = "/sdcard/MAP/%u/%u/%u.png"; /**< Render Maps file folder */
 inline constexpr const char *mapVectorFolder = "/sdcard/NAVMAP/Z%u.nav";  /**< Vector Maps file folder */
+inline constexpr const char *pmtilesFolder   = "/sdcard/PMTILES/Z%u.pmtiles"; /**< Optional PMTiles base map folder */
 inline constexpr const char *noMapFile       = "/spiffs/gfx/NOMAP.png";   /**< No map image file */
 inline constexpr const char *map_scale[]     = {"5000 Km", "2500 Km", "1500 Km",
                                                  "700 Km", "350 Km", "150 Km",

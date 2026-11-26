@@ -3,10 +3,11 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com) - Render Maps
  * @brief  Maps draw class
  * @version 0.3.3
- * @date 2026-10
+ * @date 2026-11
  */
 
 #include "maps.hpp"
+#include "pmtilesReader.hpp"
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "esp_heap_caps.h"
@@ -58,6 +59,12 @@ static uint32_t totalUs = 0;
 static uint32_t decUs = 0;
 static uint32_t scrUs = 0;
 static uint32_t bkgUs = 0;
+
+// What the sprite is cleared with and what scroll leaves in the vacated band.
+// Paper on every backend: the native packs and the PMTiles basemap both carry
+// the sea as a polygon, so the background only shows where there is no data.
+static uint16_t mapFillColor = mapBackgroundColor;
+
 static uint32_t wrUs = 0;
 static uint32_t rstUs = 0;
 static uint32_t yldUs = 0;
@@ -111,6 +118,9 @@ static uint32_t holdUsByPhase[static_cast<uint8_t>(HoldPhase::Count)] = {};
 static uint8_t holdPhase = static_cast<uint8_t>(HoldPhase::Rst);
 static uint8_t holdMaxPhase = static_cast<uint8_t>(HoldPhase::Rst);
 
+/// Sliver polygons named in the log this pass, capped so one pass cannot flood it.
+static uint8_t mvtSliverLogs = 0;
+
 static inline void resetPassCounters()
 {
     totalUs = 0;
@@ -158,6 +168,7 @@ static inline void resetPassCounters()
     holdMaxPhase = static_cast<uint8_t>(HoldPhase::Rst);
     for (uint8_t i = 0; i < static_cast<uint8_t>(HoldPhase::Count); i++)
         holdUsByPhase[i] = 0;
+    mvtSliverLogs = 0;
 }
 static const uint16_t PREFETCH_MIN_SPEED_KMH = 5;
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
@@ -224,6 +235,11 @@ void Maps::initResources()
     projBuf32X.reserve(MAX_POLYGON_POINTS);
     projBuf32Y.reserve(MAX_POLYGON_POINTS);
     decodedCoords.reserve(MAX_POLYGON_POINTS * 2);
+    // The edge pool holds internal RAM for as long as the firmware runs, and this
+    // allocator takes it from the internal heap first: reserving the renderer's
+    // point ceiling here took 160 KB of it at boot even for the raster maps, which
+    // left `heap_alloc_dma` inside the PNG decoder without a block and crashed it.
+    // The fill grows the pool to the ring it is about to fill instead.
     edgePool.reserve(EDGE_POOL_RESERVE);
     edgeBuckets.resize(tileHeight, -1);
     featurePool.reserve(MAX_FEATURE_POOL_SIZE);
@@ -517,8 +533,16 @@ void Maps::initMap(uint16_t mapWidth, uint16_t mapHeight)
             if (Maps::mapTempBufs[1] && Maps::mapTempBufs[1] != bufB)
                 heap_caps_free(Maps::mapTempBufs[1]);
             Maps::mapTempBufs[1] = bufB;
+            if (bufB)
+            {
+                Maps::mapTempSprite.setBuffer(bufB, Maps::tileWidth, Maps::tileHeight);
+                Maps::mapTempSprite.fillSprite(mapBackgroundColor);
+                Maps::mapTempSprite.setBuffer(bufA, Maps::tileWidth, Maps::tileHeight);
+            }
+            Maps::mapTempSprite.fillSprite(mapBackgroundColor);
         }
     }
+    Maps::mapDisplayBuf = static_cast<uint8_t*>(Maps::mapTempSprite.getBuffer());
 #endif
     // LGFX scroll() fills the vacated band with the sprite base color (map background).
     Maps::mapTempSprite.setBaseColor(mapBackgroundColor);
@@ -941,7 +965,7 @@ void Maps::generateMap(uint8_t zoom)
         if (pendingTiles.size() > (tilesGrid * tilesGrid))
             return;
 
-        if (renderVectorViewport(baseLat, baseLon, zoom, Maps::mapTempSprite))
+        if (renderVectorViewport(baseLat, baseLon, zoom))
         {
             Maps::isMapFound = true;
             vectorZoom = zoom;
@@ -1044,6 +1068,7 @@ void Maps::mapRenderTask(void* pvParameters)
                 bool zoomChanged = (instance->zoomLevel != lastZoom);
                 bool fullReset = zoomChanged || (instance->pendingTiles.size() >= (size_t)(instance->tilesGrid * instance->tilesGrid));
                 bool vectorRender = mapSet.vectorMap && instance->vectorPending && !fullReset;
+                instance->gridRebuildInFlight = mapSet.vectorMap && !vectorRender && !instance->pendingTiles.empty();
                 lastZoom = instance->zoomLevel;
 
                 // A generate request can early-return inside generateMap (no zoom,
@@ -1108,6 +1133,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     instance->vectorCapped = false;
                     xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_DONE | MAP_EVENT_ERROR);
                     xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_START);
+                    instance->vectorBandShifted = false;
 
                     if (zoomChanged)
                     {
@@ -1125,6 +1151,7 @@ void Maps::mapRenderTask(void* pvParameters)
 
                     instance->featurePool.clear();
                     instance->decodedCoords.clear();
+                    instance->resetMvtArena();
                     for (int i = 0; i < 16; i++)
                     {
                         instance->layers[i].clear();
@@ -1135,11 +1162,47 @@ void Maps::mapRenderTask(void* pvParameters)
                     if (mapSet.vectorMap)
                     {
                         const int64_t openMarkUs = esp_timer_get_time();
-                        VectMapReader::openPack(instance->zoomLevel);
+                        instance->mvtBackend = false;
+                        mapFillColor = mapBackgroundColor;
+                        instance->mapTempSprite.setBaseColor(mapFillColor);
+                        // The open sea is a `water/ocean` polygon in the tiles of every zoom and
+                        // covers the whole water of its tile, so no background stands in for it:
+                        // paper everywhere keeps a hole in the archive reading as "no data"
+                        // instead of as open water.
+
+                        if (mapSet.pmtilesMap)
+                        {
+                            if (PmtilesReader::openPack(instance->zoomLevel))
+                            {
+                                instance->mvtBackend = true;
+                                instance->ensureMvtBuffers();
+                                VectMapReader::closePack();
+                            }
+                            else
+                            {
+                                ESP_LOGW(TAG, "PMTiles z%u not opened (%s), falling back to the native pack",
+                                         (unsigned)instance->zoomLevel, PmtilesReader::lastError());
+                                VectMapReader::openPack(instance->zoomLevel);
+                            }
+                        }
+                        else
+                        {
+                            VectMapReader::openPack(instance->zoomLevel);
+                            if (VectMapReader::packFile != nullptr)
+                                PmtilesReader::closePack();
+                            else if (PmtilesReader::openPack(instance->zoomLevel))
+                            {
+                                instance->mvtBackend = true;
+                                instance->ensureMvtBuffers();
+                            }
+                        }
                         rstOpenUs += (uint32_t)(esp_timer_get_time() - openMarkUs);
                     }
                     else if (instance->mapTempSprite.getBuffer())
                     {
+                        // Raster packs paint their own sea, so the background stays paper.
+                        mapFillColor = mapBackgroundColor;
+                        instance->mapTempSprite.setBaseColor(mapFillColor);
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
                         uint8_t* buf = static_cast<uint8_t*>(instance->mapTempSprite.getBuffer());
                         if (((uint32_t)buf & 0x7F) == 0)
@@ -1170,35 +1233,52 @@ void Maps::mapRenderTask(void* pvParameters)
                 }
                 rstUs += (uint32_t)(esp_timer_get_time() - resetMarkUs);
 
+                int8_t passDirX = 0;
+                int8_t passDirY = 0;
                 if (vectorRender)
                 {
-                    const int16_t shiftX = -instance->vectorDirX * mapTileSize;
-                    const int16_t shiftY = -instance->vectorDirY * mapTileSize;
-                    setHoldPhase(HoldPhase::Scr);
-                    const int64_t scrollMarkUs = esp_timer_get_time();
-                    instance->scrollVectorSprite(shiftX, shiftY);
-                    scrUs += (uint32_t)(esp_timer_get_time() - scrollMarkUs);
-                    setHoldPhase(HoldPhase::Lbl);
-                    for (auto& label : instance->placedLabelsCache)
+                    passDirX = instance->vectorDirX;
+                    passDirY = instance->vectorDirY;
+#if defined(CONFIG_IDF_TARGET_ESP32P4) && defined(EXTRA_LARGE_SCREEN)
+                    if (instance->mapDisplayBuf != nullptr &&
+                        instance->mapTempSprite.getBuffer() != instance->mapDisplayBuf)
                     {
-                        label.x += shiftX;
-                        label.y += shiftY;
+                        instance->mapTempSprite.setBuffer(instance->mapDisplayBuf, instance->tileWidth, instance->tileHeight);
+                        instance->mapTempSprite.setBaseColor(mapFillColor);
                     }
-                    instance->placedLabelsCache.erase(std::remove_if(instance->placedLabelsCache.begin(), instance->placedLabelsCache.end(),
-                                                                      [instance](const LabelRect& label)
-                                                                      {
-                                                                          return label.x + label.w < 0 || label.y + label.h < 0 ||
-                                                                                 label.x >= (int16_t)instance->tileWidth ||
-                                                                                 label.y >= (int16_t)instance->tileHeight;
-                                                                      }),
-                                                       instance->placedLabelsCache.end());
-                    instance->featurePool.clear();
-                    instance->decodedCoords.clear();
-                    for (int i = 0; i < 16; i++)
+#endif
+                    if (!instance->vectorBandShifted)
                     {
-                        instance->layers[i].clear();
-                        instance->layersCasing[i].clear();
-                        instance->layersText[i].clear();
+                        instance->vectorBandShifted = true;
+                        const int16_t shiftX = -instance->vectorDirX * mapTileSize;
+                        const int16_t shiftY = -instance->vectorDirY * mapTileSize;
+                        setHoldPhase(HoldPhase::Scr);
+                        const int64_t scrollMarkUs = esp_timer_get_time();
+                        instance->scrollVectorSprite(shiftX, shiftY);
+                        scrUs += (uint32_t)(esp_timer_get_time() - scrollMarkUs);
+                        setHoldPhase(HoldPhase::Lbl);
+                        for (auto& label : instance->placedLabelsCache)
+                        {
+                            label.x += shiftX;
+                            label.y += shiftY;
+                        }
+                        instance->placedLabelsCache.erase(std::remove_if(instance->placedLabelsCache.begin(), instance->placedLabelsCache.end(),
+                                                                          [instance](const LabelRect& label)
+                                                                          {
+                                                                              return label.x + label.w < 0 || label.y + label.h < 0 ||
+                                                                                     label.x >= (int16_t)instance->tileWidth ||
+                                                                                     label.y >= (int16_t)instance->tileHeight;
+                                                                          }),
+                                                           instance->placedLabelsCache.end());
+                        instance->featurePool.clear();
+                        instance->decodedCoords.clear();
+                        instance->resetMvtArena();
+                        for (int i = 0; i < 16; i++)
+                        {
+                            instance->layers[i].clear();
+                            instance->layersCasing[i].clear();
+                            instance->layersText[i].clear();
+                        }
                     }
                 }
 
@@ -1310,6 +1390,11 @@ void Maps::mapRenderTask(void* pvParameters)
 
                 bool aborted = false;
                 setHoldPhase(HoldPhase::Tile);
+                // A pass that yields mid-paint leaves the clip of its last feature set, and the
+                // paper of a tile missing from the archive is drawn with fillRect, which obeys
+                // it: the fill would land in that feature's window and leave the band blue.
+                if (instance->mvtBackend)
+                    instance->mapTempSprite.clearClipRect();
                 while (!instance->pendingTiles.empty())
                 {
                     PendingTile t = instance->pendingTiles.back();
@@ -1355,6 +1440,56 @@ void Maps::mapRenderTask(void* pvParameters)
                     ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(100));
                 srmUs += (uint32_t)(esp_timer_get_time() - srmMarkUs);
 #endif
+
+#if defined(CONFIG_IDF_TARGET_ESP32P4) && defined(EXTRA_LARGE_SCREEN)
+                if (mapSet.vectorMap && !vectorRender && instance->mapTempSprite.getBuffer() &&
+                    !instance->use3DCache && !instance->followGps &&
+                    instance->manualHeading == 0.0f &&
+                    instance->mapTempBufs[0] != nullptr && instance->mapTempBufs[1] != nullptr)
+                {
+                    uint8_t* cur = static_cast<uint8_t*>(instance->mapTempSprite.getBuffer());
+                    uint8_t* other = (instance->mapDisplayBuf == instance->mapTempBufs[0]) ?
+                                     instance->mapTempBufs[1] : instance->mapTempBufs[0];
+                    if (other != cur)
+                    {
+                        instance->mapTempSprite.setBuffer(other, instance->tileWidth, instance->tileHeight);
+                        instance->mapTempSprite.setBaseColor(mapFillColor);
+                    }
+                }
+#endif
+
+                if (mapSet.vectorMap && !vectorRender && instance->mapTempSprite.getBuffer())
+                {
+                    setHoldPhase(HoldPhase::Bkg);
+                    const int64_t bkgMarkUs = esp_timer_get_time();
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+                    uint8_t* buf = static_cast<uint8_t*>(instance->mapTempSprite.getBuffer());
+                    if (((uint32_t)buf & 0x7F) == 0)
+                    {
+                        ppa_fill_oper_config_t cfg = {};
+                        cfg.fill_argb_color.val = spriteColorToArgb8888(mapFillColor);
+                        cfg.out.buffer = buf;
+                        cfg.out.buffer_size = instance->tileWidth * instance->tileHeight * 2;
+                        cfg.out.pic_w = instance->tileWidth;
+                        cfg.out.pic_h = instance->tileHeight;
+                        cfg.out.block_offset_x = 0;
+                        cfg.out.block_offset_y = 0;
+                        cfg.out.fill_cm = PPA_FILL_COLOR_MODE_RGB565;
+                        cfg.fill_block_w = instance->tileWidth;
+                        cfg.fill_block_h = instance->tileHeight;
+                        cfg.mode = PPA_TRANS_MODE_BLOCKING;
+                        ppa_do_fill(instance->ppaFillClient, &cfg);
+                        esp_cache_msync(buf, instance->tileWidth * instance->tileHeight * 2, ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_TYPE_DATA);
+                    }
+                    else
+                    {
+                        instance->mapTempSprite.fillSprite(mapFillColor);
+                    }
+#else
+                    instance->mapTempSprite.fillSprite(mapFillColor);
+#endif
+                    bkgUs += (uint32_t)(esp_timer_get_time() - bkgMarkUs);
+                }
 
                 if (!mapSet.vectorMap)
                 {
@@ -1408,39 +1543,6 @@ void Maps::mapRenderTask(void* pvParameters)
                     continue;
                 }
 
-                if (!vectorRender && instance->mapTempSprite.getBuffer())
-                {
-                    setHoldPhase(HoldPhase::Bkg);
-                    const int64_t bkgMarkUs = esp_timer_get_time();
-#if defined(CONFIG_IDF_TARGET_ESP32P4)
-                    uint8_t* buf = static_cast<uint8_t*>(instance->mapTempSprite.getBuffer());
-                    if (((uint32_t)buf & 0x7F) == 0)
-                    {
-                        ppa_fill_oper_config_t cfg = {};
-                        cfg.fill_argb_color.val = spriteColorToArgb8888(mapBackgroundColor);
-                        cfg.out.buffer = buf;
-                        cfg.out.buffer_size = instance->tileWidth * instance->tileHeight * 2;
-                        cfg.out.pic_w = instance->tileWidth;
-                        cfg.out.pic_h = instance->tileHeight;
-                        cfg.out.block_offset_x = 0;
-                        cfg.out.block_offset_y = 0;
-                        cfg.out.fill_cm = PPA_FILL_COLOR_MODE_RGB565;
-                        cfg.fill_block_w = instance->tileWidth;
-                        cfg.fill_block_h = instance->tileHeight;
-                        cfg.mode = PPA_TRANS_MODE_BLOCKING;
-                        ppa_do_fill(instance->ppaFillClient, &cfg);
-                        esp_cache_msync(buf, instance->tileWidth * instance->tileHeight * 2, ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_TYPE_DATA);
-                    }
-                    else
-                    {
-                        instance->mapTempSprite.fillSprite(mapBackgroundColor);
-                    }
-#else
-                    instance->mapTempSprite.fillSprite(mapBackgroundColor);
-#endif
-                    bkgUs += (uint32_t)(esp_timer_get_time() - bkgMarkUs);
-                }
-
                 instance->update3DCache();
                 if (!vectorRender)
                     instance->placedLabelsCache.clear();
@@ -1471,6 +1573,20 @@ void Maps::mapRenderTask(void* pvParameters)
                 uint32_t lastYield = millisIDF();
                 uint32_t loopCounter = 0;
 
+                // MVT tiles carry a buffer of geometry past their own edge, so an
+                // incremental pass would let the new column paint over the neighbour.
+                // Clipping each feature to its tile keeps the seam intact.
+                int16_t clipTileX = -32768;
+                int16_t clipTileY = -32768;
+                auto applyMvtClip = [&](const FeatureRef& feat) {
+                    if (!instance->mvtBackend)
+                        return;
+                    if (feat.tileOffsetX == clipTileX && feat.tileOffsetY == clipTileY)
+                        return;
+                    clipTileX = feat.tileOffsetX;
+                    clipTileY = feat.tileOffsetY;
+                    instance->mapTempSprite.setClipRect(clipTileX, clipTileY, mapTileSize, mapTileSize);
+                };
                 for (int i = 0; i < 16 && !aborted; i++)
                 {
                     // While falling behind the finger, skip low-priority fill layers
@@ -1495,6 +1611,7 @@ void Maps::mapRenderTask(void* pvParameters)
                         }
 
                         const auto& feat = instance->featurePool[idx];
+                        applyMvtClip(feat);
                         if (feat.geomType == NavGeomType::Polygon)
                         {
                             const uint32_t fillPxBefore = fillPx;
@@ -1539,8 +1656,10 @@ void Maps::mapRenderTask(void* pvParameters)
                                 lastYield = millisIDF();
                             }
                         }
+                        const auto& casingFeat = instance->featurePool[idx];
+                        applyMvtClip(casingFeat);
                         const int64_t markUs = esp_timer_get_time();
-                        instance->renderVectorLine(instance->featurePool[idx], instance->mapTempSprite, false);
+                        instance->renderVectorLine(casingFeat, instance->mapTempSprite, false);
                         lineUs += (uint32_t)(esp_timer_get_time() - markUs);
                         lineCount++;
                     }
@@ -1549,6 +1668,9 @@ void Maps::mapRenderTask(void* pvParameters)
                         break;
 
                 }
+
+                if (instance->mvtBackend)
+                    instance->mapTempSprite.clearClipRect();
 
                 if (!aggressiveLod)
                 {
@@ -1575,6 +1697,15 @@ void Maps::mapRenderTask(void* pvParameters)
 
                 if (aborted)
                 {
+#if defined(CONFIG_IDF_TARGET_ESP32P4) && defined(EXTRA_LARGE_SCREEN)
+                    instance->mapTempSprite.endWrite();
+                    if (instance->mapDisplayBuf != nullptr &&
+                        instance->mapTempSprite.getBuffer() != instance->mapDisplayBuf)
+                    {
+                        instance->mapTempSprite.setBuffer(instance->mapDisplayBuf, instance->tileWidth, instance->tileHeight);
+                        instance->mapTempSprite.setBaseColor(mapFillColor);
+                    }
+#endif
                     aggressiveLod = false;
                     resetPassCounters();
                     if (xSemaphoreGetMutexHolder(instance->mapMutex) == xTaskGetCurrentTaskHandle())
@@ -1586,6 +1717,8 @@ void Maps::mapRenderTask(void* pvParameters)
                 instance->mapTempSprite.endWrite();
                 wrUs += (uint32_t)(esp_timer_get_time() - writeMarkUs);
                 aggressiveLod = false;
+                if (vectorRender)
+                    instance->vectorBandShifted = false;
                 const bool sequencePending = vectorRender && !instance->vectorSteps.empty();
                 if (vectorRender)
                 {
@@ -1611,16 +1744,48 @@ void Maps::mapRenderTask(void* pvParameters)
                         entry.isPinned = false;
                 }
 
-                instance->displayOffsetX = instance->offsetX;
-                instance->displayOffsetY = instance->offsetY;
-                instance->lastTileX = instance->tileX;
-                instance->lastTileY = instance->tileY;
+                // One pass moves the sprite one tile, not every crossing the finger made while
+                // the band was decoding: publishing tileX here made the frame jump a tile per
+                // pass, or several when the crossings had piled up.
+                if (vectorRender && (passDirX != 0 || passDirY != 0))
+                {
+                    instance->lastTileX += passDirX;
+                    instance->lastTileY += passDirY;
+                    const int32_t slackX = ((int32_t)instance->tileWidth - (int32_t)instance->mapScrWidth) / 2;
+                    const int32_t slackY = ((int32_t)instance->tileHeight - (int32_t)instance->mapScrHeight) / 2;
+                    int32_t offX = (int32_t)instance->offsetX + ((int32_t)instance->tileX - (int32_t)instance->lastTileX) * (int32_t)instance->mapTileSize;
+                    int32_t offY = (int32_t)instance->offsetY + ((int32_t)instance->tileY - (int32_t)instance->lastTileY) * (int32_t)instance->mapTileSize;
+                    if (offX > slackX)
+                        offX = slackX;
+                    else if (offX < -slackX)
+                        offX = -slackX;
+                    if (offY > slackY)
+                        offY = slackY;
+                    else if (offY < -slackY)
+                        offY = -slackY;
+                    instance->displayOffsetX = (int16_t)offX;
+                    instance->displayOffsetY = (int16_t)offY;
+                }
+                else
+                {
+                    instance->displayOffsetX = instance->offsetX;
+                    instance->displayOffsetY = instance->offsetY;
+                    instance->lastTileX = instance->tileX;
+                    instance->lastTileY = instance->tileY;
+                }
 
                 setHoldPhase(HoldPhase::Trk);
                 const int64_t trackMarkUs = esp_timer_get_time();
                 instance->drawTrack(instance->mapTempSprite);
                 instance->drawWaypoint(instance->mapTempSprite);
                 trackUs += (uint32_t)(esp_timer_get_time() - trackMarkUs);
+#if defined(CONFIG_IDF_TARGET_ESP32P4) && defined(EXTRA_LARGE_SCREEN)
+                if (mapSet.vectorMap &&
+                    !instance->use3DCache && !instance->followGps &&
+                    instance->manualHeading == 0.0f &&
+                    instance->mapTempSprite.getBuffer() != instance->mapDisplayBuf)
+                    instance->mapDisplayBuf = static_cast<uint8_t*>(instance->mapTempSprite.getBuffer());
+#endif
                 instance->redrawMap = true;
 
                 bool frameReady = true;
@@ -1649,10 +1814,20 @@ void Maps::mapRenderTask(void* pvParameters)
                     xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
                 }
                 setHoldPhase(HoldPhase::Tail);
+                const bool viewportComplete = !sequencePending;
+                if (viewportComplete)
+                {
+                    // Freed even when the backend did not open: leaving the arena
+                    // taken after a failed open is what made every later pass fail
+                    // for the same lack of memory.
+                    if (instance->mvtBackend)
+                        instance->releaseMvtBuffers();
+                    else
+                        instance->releaseMvtMemory();
+                }
                 const int64_t passEndUs = esp_timer_get_time();
                 closeAtomicHold();
                 totalUs += (uint32_t)(passEndUs - passStartUs);
-                const bool viewportComplete = !sequencePending;
                 if (viewportComplete)
                     passCounter++;
                 xSemaphoreGiveRecursive(instance->mapMutex);
@@ -2168,7 +2343,8 @@ void Maps::composeMap()
  */
 bool Maps::composeCropStaged(int16_t viewOffsetX, int16_t viewOffsetY)
 {
-    uint8_t* src = static_cast<uint8_t*>(mapTempSprite.getBuffer());
+    uint8_t* src = (mapSet.vectorMap && mapDisplayBuf != nullptr) ? mapDisplayBuf :
+                   static_cast<uint8_t*>(mapTempSprite.getBuffer());
     uint8_t* dst = static_cast<uint8_t*>(mapSprite.getBuffer());
     if (src == nullptr || dst == nullptr)
         return false;
@@ -2528,6 +2704,7 @@ void Maps::resetScrollState()
     velocityY = 0;
     vectorDeferred = false;
     vectorPending = false;
+    vectorBandShifted = false;
     vectorSteps.clear();
 }
 
@@ -2580,8 +2757,21 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
         if (abs(Maps::offsetY) > threshold / 2)
             factorY = 1.0f - (float)abs(Maps::offsetY) / (float)tileHeight;
 
-        Maps::offsetX += (int16_t)((float)dx * factorX);
-        Maps::offsetY += (int16_t)((float)dy * factorY);
+        int32_t stepX = (int32_t)((float)dx * factorX);
+        int32_t stepY = (int32_t)((float)dy * factorY);
+        if (gridRebuildInFlight)
+        {
+            const int32_t slackX = ((int32_t)tileWidth - (int32_t)mapScrWidth) / 2;
+            const int32_t slackY = ((int32_t)tileHeight - (int32_t)mapScrHeight) / 2;
+            const int32_t virtX = (int32_t)offsetX + ((int32_t)tileX - (int32_t)lastTileX) * (int32_t)mapTileSize;
+            const int32_t virtY = (int32_t)offsetY + ((int32_t)tileY - (int32_t)lastTileY) * (int32_t)mapTileSize;
+            if (virtX + stepX > slackX || virtX + stepX < -slackX)
+                stepX = 0;
+            if (virtY + stepY > slackY || virtY + stepY < -slackY)
+                stepY = 0;
+        }
+        Maps::offsetX += (int16_t)stepX;
+        Maps::offsetY += (int16_t)stepY;
         Maps::followGps = false;
     }
 
@@ -2604,6 +2794,8 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
         const int16_t threshold = 128;
     #endif
     const int16_t tileSize = Maps::mapTileSize;
+    const int16_t entryTileX = tileX;
+    const int16_t entryTileY = tileY;
 
     while (Maps::offsetX <= -threshold)
     {
@@ -2633,8 +2825,8 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
 
     if (scrollUpdated)
     {
-        const int8_t deltaTileX = tileX - lastTileX;
-        const int8_t deltaTileY = tileY - lastTileY;
+        const int8_t deltaTileX = (int8_t)(tileX - entryTileX);
+        const int8_t deltaTileY = (int8_t)(tileY - entryTileY);
         Maps::panMap(deltaTileX, deltaTileY);
 
         if (!mapSet.vectorMap)
@@ -2670,9 +2862,6 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
                 const int16_t deferredY = offsetY + (tileY - lastTileY) * mapTileSize;
                 const bool exceedsMargin = abs(deferredX) > marginX || abs(deferredY) > marginY;
 
-                // During inertia the re-render is postponed even past the grid margin (the stale
-                // edge is tolerated until the flick stops) so the grid is not re-rasterized on every
-                // crossing. A finger drag is slow enough to re-render when the margin is exceeded.
                 if (scrolling && (inertia || !exceedsMargin))
                     vectorDeferred = true;
                 else
@@ -2701,9 +2890,23 @@ void Maps::scrollMap(int16_t dx, int16_t dy)
     else
     {
         // When rendering is pending (after a swap) or deferred, we stay at the virtual relative
-        // position to avoid jumping until the new grid is complete.
-        displayOffsetX = offsetX + (tileX - lastTileX) * mapTileSize;
-        displayOffsetY = offsetY + (tileY - lastTileY) * mapTileSize;
+        // position to avoid jumping until the new grid is complete. The sprite only has the
+        // slack of the grid around the screen, so a deferred gesture stops there instead of
+        // sliding the window off the map and leaving the border unpainted.
+        const int32_t slackX = (int32_t)((tileWidth - mapScrWidth) / 2);
+        const int32_t slackY = (int32_t)((tileHeight - mapScrHeight) / 2);
+        int32_t offX = (int32_t)offsetX + (int32_t)(tileX - lastTileX) * mapTileSize;
+        int32_t offY = (int32_t)offsetY + (int32_t)(tileY - lastTileY) * mapTileSize;
+        if (offX > slackX)
+            offX = slackX;
+        else if (offX < -slackX)
+            offX = -slackX;
+        if (offY > slackY)
+            offY = slackY;
+        else if (offY < -slackY)
+            offY = -slackY;
+        displayOffsetX = (int16_t)offX;
+        displayOffsetY = (int16_t)offY;
     }
 
     xSemaphoreGiveRecursive(mapMutex);
@@ -2832,7 +3035,7 @@ void Maps::scrollVectorSprite(int16_t shiftX, int16_t shiftY)
         {
             // Clear the vacated border before the incoming band is painted on it.
             ppa_fill_oper_config_t fill = {};
-            fill.fill_argb_color.val = spriteColorToArgb8888(mapBackgroundColor);
+            fill.fill_argb_color.val = spriteColorToArgb8888(mapFillColor);
             fill.out.buffer = dst;
             fill.out.buffer_size = (uint32_t)w * (uint32_t)h * 2;
             fill.out.pic_w = (uint32_t)w;
@@ -2847,6 +3050,12 @@ void Maps::scrollVectorSprite(int16_t shiftX, int16_t shiftY)
             // The fill is a DMA write too, so the destination holds no dirty CPU line to flush.
 
             mapTempSprite.setBuffer(dst, w, h);
+#if defined(EXTRA_LARGE_SCREEN)
+            if (!mapSet.vectorMap || use3DCache || followGps || manualHeading != 0.0f)
+                mapDisplayBuf = dst;
+#else
+            mapDisplayBuf = dst;
+#endif
             return;
         }
         srmInFlight = false;
@@ -3107,8 +3316,12 @@ uint16_t Maps::darkenRGB565(const uint16_t color, const float amount)
  * @param yOffset    Vertical translation applied to the final drawing coordinates.
  * @param ringCount  The number of independent rings (use 0 or 1 for simple polygons).
  * @param ringEnds   Array containing the end indices for each ring in the px/py arrays. 
+ * @param clipX0     Left edge the fill may not cross, in canvas pixels.
+ * @param clipX1     Right edge the fill may not cross, in canvas pixels.
+ * @param clipY0     Top edge the fill may not cross, in canvas pixels.
+ * @param clipY1     Bottom edge the fill may not cross, in canvas pixels.
  */
-void Maps::fillPolygonGeneral(MapCanvas &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset, uint16_t ringCount, const uint16_t* ringEnds)
+void Maps::fillPolygonGeneral(MapCanvas &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset, uint16_t ringCount, const uint16_t* ringEnds, const int clipX0, const int clipX1, const int clipY0, const int clipY1)
 {
     if (numPoints < 3)
         return;
@@ -3135,6 +3348,12 @@ void Maps::fillPolygonGeneral(MapCanvas &map, const int *px, const int *py, cons
         return;
 
     edgePool.clear();
+    // One edge per point at most: growing to the ring up front is a single
+    // allocation, where letting push_back do it would reallocate (and throw) in
+    // the middle of the edge loop. After clear() the capacity is the peak of the
+    // previous pass, so this only pays for a bigger ring than ever seen.
+    if (edgePool.capacity() < (size_t)numPoints)
+        edgePool.reserve(numPoints);
     int clampedMaxY = std::min(maxY, (int)tileHeight - 1);
     int bucketCount = clampedMaxY - minY + 1;
     if ((int)edgeBuckets.size() < bucketCount)
@@ -3225,8 +3444,12 @@ void Maps::fillPolygonGeneral(MapCanvas &map, const int *px, const int *py, cons
             pCurrIdx = &(edgePool[*pCurrIdx].nextActive);
         }
     };
-    int startY = std::max(minY, -yOffset);
-    int endY = std::min(maxY, (int)tileHeight - 1 - yOffset);
+    int startY = std::max(std::max(minY, -yOffset), clipY0 - yOffset);
+    int endY = std::min(std::min(maxY, (int)tileHeight - 1 - yOffset), clipY1 - 1 - yOffset);
+    // The clip rectangle can sit entirely beyond the shape, and the buckets only
+    // exist up to the last row the sprite holds.
+    if (startY > endY)
+        return;
     bool inverted = false;
 
     if (startY > minY)
@@ -3287,6 +3510,12 @@ void Maps::fillPolygonGeneral(MapCanvas &map, const int *px, const int *py, cons
             int right = edgePool[left].nextActive;
             int xStart = (edgePool[left].xVal >> 16) + xOffset;
             int xEnd = (edgePool[right].xVal >> 16) + xOffset;
+            // A MVT tile carries geometry past its own edge, so the fill stops at the
+            // tile it came from: the neighbour brings its own copy of every shape it owns.
+            if (xStart < clipX0)
+                xStart = clipX0;
+            if (xEnd > clipX1)
+                xEnd = clipX1;
             if (xStart < 0)
                 xStart = 0;
             if (xEnd > (int)tileWidth)
@@ -3908,6 +4137,16 @@ void Maps::renderVectorPolygon(const FeatureRef& ref, MapCanvas& map)
     if (maxPx < 0 || minPx >= (int)tileWidth || maxPy < 0 || minPy >= (int)tileHeight)
         return;
 
+    // A shape a few pixels wide and taller than a tile is what leaves the pale stripe
+    // on the map. Naming the colour and the layer tells which rule paints it.
+    if (mvtBackend && (maxPx - minPx) <= 8 && (maxPy - minPy) >= 200 && mvtSliverLogs < 6)
+    {
+        mvtSliverLogs++;
+        ESP_LOGW(TAG, "sliver poly %d..%d x %d..%d colour %04X pts %u rings %u priority %u",
+                 minPx, maxPx, minPy, maxPy, ref.color, (unsigned)actualPoints,
+                 (unsigned)ringCount, (unsigned)ref.priority);
+    }
+
     int* px = projBuf32X.data();
     int* py = projBuf32Y.data();
     // Whole-tile priority-0 rects are already painted by the PPA (P4); the casing
@@ -3915,7 +4154,12 @@ void Maps::renderVectorPolygon(const FeatureRef& ref, MapCanvas& map)
     if (!ref.ppaFilled)
     {
         const int64_t fillMarkUs = esp_timer_get_time();
-        fillPolygonGeneral(map, px, py, actualPoints, ref.color, 0, 0, ringCount, ringEndsPtr);
+        if (mvtBackend)
+            fillPolygonGeneral(map, px, py, actualPoints, ref.color, 0, 0, ringCount, ringEndsPtr,
+                               ref.tileOffsetX, ref.tileOffsetX + mapTileSize,
+                               ref.tileOffsetY, ref.tileOffsetY + mapTileSize);
+        else
+            fillPolygonGeneral(map, px, py, actualPoints, ref.color, 0, 0, ringCount, ringEndsPtr);
         fillUs += (uint32_t)(esp_timer_get_time() - fillMarkUs);
     }
     if (ref.casing && vectorZoom >= 16)
@@ -4133,16 +4377,14 @@ void Maps::enqueueTileGrid(uint32_t centerTileIdxX, uint32_t centerTileIdxY, Til
 /**
  * @brief Initializes and queues the vector viewport for rendering.
  *
- * @details Updates the viewport anchor and queues the complete vector tile grid. The map argument
- *          remains in the signature for API compatibility and is not used directly here.
+ * @details Updates the viewport anchor and queues the complete vector tile grid.
  *
  * @param centerLat Latitude of the viewport center.
  * @param centerLon Longitude of the viewport center.
  * @param zoom Target zoom level.
- * @param map Map sprite kept for API compatibility.
  * @return true after the viewport state has been prepared.
  */
-bool Maps::renderVectorViewport(float centerLat, float centerLon, uint8_t zoom, MapCanvas& map)
+bool Maps::renderVectorViewport(float centerLat, float centerLon, uint8_t zoom)
 {
     const uint32_t centerTileIdxX = lon2tilex(centerLon, zoom);
     const uint32_t centerTileIdxY = lat2tiley(centerLat, zoom);
@@ -4673,10 +4915,36 @@ uint32_t Maps::ppaFillPrio0Tiles()
  * @param zoom    The current map zoom level.
  * @param screenX The horizontal pixel offset on the target sprite.
  * @param screenY The vertical pixel offset on the target sprite.
- * @param map     The target sprite (unused, kept for API compatibility).
+ * @param map     The target sprite.
  */
 void Maps::renderVectorTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map)
 {
+    if (mvtBackend)
+    {
+        size_t mvtSize = 0;
+        const int64_t mvtLoadMarkUs = esp_timer_get_time();
+        uint8_t* mvtData = loadMvtTile(tileX, tileY, zoom, mvtSize);
+        const uint32_t mvtLoadUs = (uint32_t)(esp_timer_get_time() - mvtLoadMarkUs);
+        decLoadUs += mvtLoadUs;
+        if (mvtLoadUs > decLoadMaxUs)
+            decLoadMaxUs = mvtLoadUs;
+        if (!mvtData)
+        {
+            // Nothing to draw: the archive ends here. The background is the sea
+            // colour, so a gap left as it is would read as open water even over
+            // land; paper says instead that there is no data. The clip is clear
+            // here, it is set per feature in the paint pass that follows.
+            map.fillRect(screenX, screenY, mapTileSize, mapTileSize, mapBackgroundColor);
+            ESP_LOGW(TAG, "MVT tile %u/%u/%u at %d,%d not drawn: %s", (unsigned)zoom, (unsigned)tileX,
+                     (unsigned)tileY, screenX, screenY, PmtilesReader::lastError());
+            return;
+        }
+        const int64_t mvtDecodeMarkUs = esp_timer_get_time();
+        decodeVectorFeaturesMvt(mvtData, mvtSize, screenX, screenY, zoom);
+        decDecUs += (uint32_t)(esp_timer_get_time() - mvtDecodeMarkUs);
+        return;
+    }
+
     size_t dataSize = 0;
     const int64_t loadMarkUs = esp_timer_get_time();
     uint8_t* data = vectorCacheLookupOrLoad(tileX, tileY, zoom, dataSize);

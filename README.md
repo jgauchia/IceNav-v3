@@ -321,6 +321,8 @@ webfile:        enable/disable Web file server
 wipe:           wipe preferences to factory default
 ```
 
+The map backend is a user preference, not a command. `kset vectMap on` enables the vector maps and `kset pmtiles on` makes them read `/sdcard/PMTILES/Z{zoom}.pmtiles` instead of the `NAVMAP/Z{zoom}.nav` packs; with `pmtiles` off, or with `vectMap` off, the previous behaviour stays. Both are applied on the next reboot.
+
 For more details about these commands, see [CLI documentation](docs/cli.md).
 
 ## Web File Server 

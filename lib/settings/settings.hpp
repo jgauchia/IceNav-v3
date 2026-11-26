@@ -71,6 +71,7 @@ struct MAP
     bool mapRotationComp;   /**< Rotate map with compass heading */
     bool showMapSpeed;      /**< Show speed in map screen */
     bool vectorMap;         /**< Map type: true for vector, false for rendered */
+    bool pmtilesMap;        /**< Vector backend: true for PMTiles, false for native packs */
     bool showMapScale;      /**< Show map scale on screen */
     bool showClimb;         /**< Show Climb analyzer */
     bool map3D;             /**< Enable pseudo-3D perspective view */

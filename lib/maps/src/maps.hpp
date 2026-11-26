@@ -3,7 +3,7 @@
  * @author Jordi Gauchía (jgauchia@jgauchia.com) - Render Maps
  * @brief  Maps draw class
  * @version 0.3.3
- * @date 2026-10
+ * @date 2026-11
  */
 
 #pragma once
@@ -87,6 +87,10 @@ private:
     MapCanvas pngStagingSprite = MapCanvas(mapCanvasParent());
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
     uint8_t* mapTempBufs[2] = { nullptr, nullptr };
+    /// Buffer of the last complete grid frame. The composition reads this one, so a
+    /// grid that is being rebuilt in the other buffer never reaches the panel while
+    /// it is half painted.
+    uint8_t* mapDisplayBuf = nullptr;
     volatile bool srmInFlight = false;
 #endif
     uint8_t* fontData = nullptr;
@@ -113,7 +117,7 @@ private:
     void viewCenterLatLon(float& lat, float& lon) const;
     void anchorOffsetAt(float lat, float lon);
     uint16_t darkenRGB565(const uint16_t color, const float amount = 0.4f);
-    void fillPolygonGeneral(MapCanvas &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset, uint16_t ringCount = 1, const uint16_t* ringEnds = nullptr);
+    void fillPolygonGeneral(MapCanvas &map, const int *px, const int *py, const int numPoints, const uint16_t color, const int xOffset, const int yOffset, uint16_t ringCount = 1, const uint16_t* ringEnds = nullptr, const int clipX0 = 0, const int clipX1 = 0x7FFF, const int clipY0 = 0, const int clipY1 = 0x7FFF);
 
     float mapTilt;
     float tiltCos;
@@ -127,8 +131,15 @@ private:
     void apply3DPerspective(uint16_t heading);
     void preloadTiles(int8_t dirX, int8_t dirY);
     void preloadVectorTiles(int8_t dirX, int8_t dirY, uint8_t stepCount = 1);
-    bool renderVectorViewport(float centerLat, float centerLon, uint8_t zoom, MapCanvas &map);
+    bool renderVectorViewport(float centerLat, float centerLon, uint8_t zoom);
     void renderVectorTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map);
+    uint8_t* loadMvtTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, size_t& outSize);
+    bool ensureMvtBuffers();
+    void releaseMvtBuffers();
+    void releaseMvtMemory();
+    bool takeMvtArenaBlock();
+    void resetMvtArena();
+    void decodeVectorFeaturesMvt(const uint8_t* data, size_t dataSize, int16_t screenX, int16_t screenY, uint8_t zoom);
 
 public:
     uint16_t tileWidth;
@@ -255,6 +266,7 @@ private:
     static const uint32_t MAX_FEATURE_POOL_SIZE = 32768;
     static const uint16_t MAX_PLACED_LABELS = 512;
     static const uint16_t EDGE_POOL_RESERVE = 512;
+    static const uint8_t MVT_ARENA_BLOCK_COUNT = 6;
 
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
     ppa_client_handle_t ppaFillClient = nullptr;
@@ -348,11 +360,22 @@ private:
     bool vectorDeferred = false;
     bool vectorPending = false;
     bool vectorCapped = false;
+    bool mvtBackend = false;
+    uint8_t* mvtBlocks[MVT_ARENA_BLOCK_COUNT] = { nullptr };
+    uint8_t mvtBlockCount = 0;
+    uint8_t mvtBlockIndex = 0;
+    uint8_t* mvtArena = nullptr;
+    size_t mvtArenaSize = 0;
+    size_t mvtArenaUsed = 0;
+    uint8_t* mvtTileBuffer = nullptr;
+    size_t mvtTileBufferSize = 0;
     int8_t vectorDirX = 0;
     int8_t vectorDirY = 0;
     float mapTlX;
     float mapTlY;
     volatile bool pendingTilesNotEmpty = false;
+    volatile bool gridRebuildInFlight = false;
+    bool vectorBandShifted = false;
 
     struct Edge
     {

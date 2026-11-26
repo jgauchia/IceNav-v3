@@ -24,6 +24,7 @@
   X(KMAP_COMP_ROT, "mapCompRot", BOOL)   \
   X(KMAP_CLIMB, "showClimb", BOOL)       \
   X(KMAP_3D, "map3D", BOOL)             \
+  X(KMAP_PMTILES, "pmtiles", BOOL)       \
   X(KSIM_NAV, "simNav", BOOL)            \
   X(KGPS_TX, "gpsTX", UINT)              \
   X(KGPS_RX, "gpsRX", UINT)              \

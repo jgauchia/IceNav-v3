@@ -83,6 +83,7 @@ void loadPreferences()
     mapSet.compassRotation = cfg.getBool(PKEYS::KMAP_COMP_ROT, true);
     mapSet.showMapSpeed = cfg.getBool(PKEYS::KMAP_SPEED, true);
     mapSet.vectorMap = cfg.getBool(PKEYS::KMAP_VECTOR, false);
+    mapSet.pmtilesMap = cfg.getBool(PKEYS::KMAP_PMTILES, false);
     mapSet.showMapScale = cfg.getBool(PKEYS::KMAP_SCALE, true);
     mapSet.showClimb = cfg.getBool(PKEYS::KMAP_CLIMB, false);
     mapSet.map3D = cfg.getBool(PKEYS::KMAP_3D, false);

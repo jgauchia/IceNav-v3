@@ -33,6 +33,7 @@ static void mapSettingsEvents(lv_event_t *event)
         if (needReboot)
         {
             cfg.saveBool(PKEYS::KMAP_VECTOR, mapSet.vectorMap);
+            cfg.saveBool(PKEYS::KMAP_PMTILES, mapSet.pmtilesMap);
             cfg.saveUInt(PKEYS::KDEF_ZOOM, defaultZoom);
             lv_obj_delete(mapSettingsScreen);
             showRestartScr();
@@ -67,7 +68,11 @@ static void mapSettingsEvents(lv_event_t *event)
 
     if (obj == mapType)
     {
-        mapSet.vectorMap = lv_dropdown_get_selected(obj) == 1;
+        const uint32_t mapKind = lv_dropdown_get_selected(obj);
+        mapSet.vectorMap = mapKind != 0;
+        mapSet.pmtilesMap = mapKind == 2;
+        cfg.saveBool(PKEYS::KMAP_VECTOR, mapSet.vectorMap);
+        cfg.saveBool(PKEYS::KMAP_PMTILES, mapSet.pmtilesMap);
         minZoom = 6;
         maxZoom = 17;
         lv_spinbox_set_range(zoomLevel, minZoom, maxZoom);
@@ -134,6 +139,7 @@ static void mapSettingsEvents(lv_event_t *event)
         mapView.updateMap();
     }
 
+
     if (obj == mapType)
     {
         if (mapSet.vectorMap)
@@ -161,8 +167,8 @@ void createMapSettingsScr()
     lv_obj_set_align(list, LV_ALIGN_LEFT_MID);
     lv_obj_set_style_text_font(list, fontOptions, 0);
     mapType = lv_dropdown_create(list);
-    lv_dropdown_set_options(mapType, "PNG\nVECTOR");
-    lv_dropdown_set_selected(mapType, mapSet.vectorMap ? 1 : 0);
+    lv_dropdown_set_options(mapType, "PNG\nVECTOR\nPMTILES");
+    lv_dropdown_set_selected(mapType, mapSet.vectorMap ? (mapSet.pmtilesMap ? 2 : 1) : 0);
     lv_obj_t *item = lv_dropdown_get_list(mapType);
     lv_obj_set_style_bg_color(item, lv_color_hex(objectColor), LV_PART_SELECTED | LV_STATE_CHECKED);
     lv_obj_align_to(mapType, list, LV_ALIGN_RIGHT_MID, 0, 0);
