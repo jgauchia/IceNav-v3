@@ -804,95 +804,12 @@ void Maps::decodeVectorFeaturesMvt(const uint8_t* data, size_t dataSize, int16_t
                             const NavGeomType navType = (geomType == 3) ? NavGeomType::Polygon : NavGeomType::LineString;
                             const bool isPolygon = (navType == NavGeomType::Polygon);
                             bool featureTruncated = false;
+                            bool ringSkipped = false;
+                            bool emittedAny = false;
 
                             mvtPointsX.clear();
                             mvtPointsY.clear();
                             mvtRingEnds.clear();
-
-                            int32_t cursorX = 0;
-                            int32_t cursorY = 0;
-                            const uint8_t* geom = geometry;
-                            const uint8_t* geomEnd = geometry + geometryLength;
-                            bool geometryOk = true;
-                            while (geom < geomEnd)
-                            {
-                                uint64_t command = 0;
-                                if (!readVarint(geom, geomEnd, command))
-                                {
-                                    geometryOk = false;
-                                    break;
-                                }
-                                const uint32_t commandId = (uint32_t)(command & 0x07);
-                                const uint32_t commandCount = (uint32_t)(command >> 3);
-                                if (commandId == 7)
-                                {
-                                    if (isPolygon && !mvtPointsX.empty() &&
-                                        (mvtRingEnds.empty() || mvtRingEnds.back() != (uint16_t)mvtPointsX.size()))
-                                        mvtRingEnds.push_back((uint16_t)mvtPointsX.size());
-                                    continue;
-                                }
-                                if (commandId != 1 && commandId != 2)
-                                {
-                                    geometryOk = false;
-                                    break;
-                                }
-                                // A second MoveTo opens the next part of a multi-part
-                                // line: the border arrives split into parts, so each one
-                                // is recorded and decoded as its own feature. Ending the
-                                // feature here kept only the first part, which at z6 and
-                                // z7 is a handful of pixels of a border that is 12 parts.
-                                if (!isPolygon && commandId == 1 && !mvtPointsX.empty())
-                                    mvtRingEnds.push_back((uint16_t)mvtPointsX.size());
-                                for (uint32_t i = 0; i < commandCount; i++)
-                                {
-                                    uint64_t deltaX = 0;
-                                    uint64_t deltaY = 0;
-                                    if (!readVarint(geom, geomEnd, deltaX) || !readVarint(geom, geomEnd, deltaY))
-                                    {
-                                        geometryOk = false;
-                                        break;
-                                    }
-                                    cursorX += decodeZigZag((int32_t)deltaX);
-                                    cursorY += decodeZigZag((int32_t)deltaY);
-                                    const int32_t scaledX = (int32_t)((int64_t)cursorX * 4096 / (int64_t)extent);
-                                    const int32_t scaledY = (int32_t)((int64_t)cursorY * 4096 / (int64_t)extent);
-                                    // A vertex that lands on the pixel of the previous one
-                                    // draws nothing at 256 px, and the tile comes with far
-                                    // more vertices than pixels: dropping it here keeps a
-                                    // dense ring whole instead of truncating its tail.
-                                    if (!mvtPointsX.empty() &&
-                                        (int32_t)(mvtPointsX.back() >> 4) == (int32_t)(scaledX >> 4) &&
-                                        (int32_t)(mvtPointsY.back() >> 4) == (int32_t)(scaledY >> 4))
-                                        continue;
-                                    if (mvtPointsX.size() >= MVT_MAX_POINTS)
-                                    {
-                                        // Out of budget mid ring: the feature ends here,
-                                        // with the ring closed where it stops. Keeping the
-                                        // remaining vertices without their predecessors
-                                        // filled a shape that was not the polygon.
-                                        featureTruncated = true;
-                                        break;
-                                    }
-                                    mvtPointsX.push_back(scaledX);
-                                    mvtPointsY.push_back(scaledY);
-                                }
-                                if (!geometryOk || featureTruncated)
-                                    break;
-                            }
-
-                            const uint16_t coordCount = (uint16_t)mvtPointsX.size();
-                            const bool tooFew = isPolygon ? (coordCount < 3) : (coordCount < 2);
-                            if (!geometryOk || tooFew)
-                            {
-                                geomDropped++;
-                                featureCursor += length2;
-                                continue;
-                            }
-                            if (featureTruncated)
-                                truncatedCount++;
-
-                            if (mvtRingEnds.empty() || mvtRingEnds.back() != coordCount)
-                                mvtRingEnds.push_back(coordCount);
 
                             // Writes one feature from a slice of the decoded points.
                             // A polygon comes with its ring table; a line comes with none
@@ -993,26 +910,204 @@ void Maps::decodeVectorFeaturesMvt(const uint8_t* data, size_t dataSize, int16_t
                                 return true;
                             };
 
+                            // A buildings tile arrives as one multipolygon of a thousand
+                            // rings, so the budget closes a slice instead of ending the
+                            // feature: every ring past the cap used to be dropped.
+                            auto flushSlice = [&]() -> bool
+                            {
+                                const uint16_t sliceCount = (uint16_t)mvtPointsX.size();
+                                if (sliceCount < 3)
+                                {
+                                    mvtPointsX.clear();
+                                    mvtPointsY.clear();
+                                    mvtRingEnds.clear();
+                                    return true;
+                                }
+                                if (mvtRingEnds.empty() || mvtRingEnds.back() != sliceCount)
+                                    mvtRingEnds.push_back(sliceCount);
+                                if (!emitSlice(0, sliceCount, (uint16_t)mvtRingEnds.size()))
+                                    return false;
+                                emittedAny = true;
+                                mvtPointsX.clear();
+                                mvtPointsY.clear();
+                                mvtRingEnds.clear();
+                                return true;
+                            };
+
+                            // MVT winds exterior rings clockwise, which is a positive
+                            // area with y down; holes wind the other way.
+                            auto ringIsExterior = [&](uint16_t firstPoint) -> bool
+                            {
+                                const uint16_t ringEnd = (uint16_t)mvtPointsX.size();
+                                int64_t twiceArea = 0;
+                                for (uint16_t i = firstPoint; i < ringEnd; i++)
+                                {
+                                    const uint16_t next = (i + 1 == ringEnd) ? firstPoint : (uint16_t)(i + 1);
+                                    twiceArea += (int64_t)mvtPointsX[i] * mvtPointsY[next] -
+                                                 (int64_t)mvtPointsX[next] * mvtPointsY[i];
+                                }
+                                return twiceArea > 0;
+                            };
+
+                            // Sends the rings before this one and keeps it as the start
+                            // of the next slice, so a hole never leaves its exterior.
+                            auto splitBeforeRing = [&](uint16_t firstPoint) -> bool
+                            {
+                                uint16_t ringCount = 0;
+                                while (ringCount < (uint16_t)mvtRingEnds.size() && mvtRingEnds[ringCount] <= firstPoint)
+                                    ringCount++;
+                                if (ringCount == 0)
+                                    return true;
+                                if (!emitSlice(0, firstPoint, ringCount))
+                                    return false;
+                                emittedAny = true;
+                                const uint16_t moved = (uint16_t)(mvtPointsX.size() - firstPoint);
+                                for (uint16_t i = 0; i < moved; i++)
+                                {
+                                    mvtPointsX[i] = mvtPointsX[firstPoint + i];
+                                    mvtPointsY[i] = mvtPointsY[firstPoint + i];
+                                }
+                                mvtPointsX.resize(moved);
+                                mvtPointsY.resize(moved);
+                                mvtRingEnds.assign(1, moved);
+                                return true;
+                            };
+
+                            int32_t cursorX = 0;
+                            int32_t cursorY = 0;
+                            uint16_t ringStart = 0;
+                            const uint8_t* geom = geometry;
+                            const uint8_t* geomEnd = geometry + geometryLength;
+                            bool geometryOk = true;
                             bool sliceOk = true;
+                            while (geom < geomEnd)
+                            {
+                                uint64_t command = 0;
+                                if (!readVarint(geom, geomEnd, command))
+                                {
+                                    geometryOk = false;
+                                    break;
+                                }
+                                const uint32_t commandId = (uint32_t)(command & 0x07);
+                                const uint32_t commandCount = (uint32_t)(command >> 3);
+                                if (commandId == 7)
+                                {
+                                    if (isPolygon && !mvtPointsX.empty() &&
+                                        (mvtRingEnds.empty() || mvtRingEnds.back() != (uint16_t)mvtPointsX.size()))
+                                        mvtRingEnds.push_back((uint16_t)mvtPointsX.size());
+                                    if (isPolygon && ringStart >= MVT_MAX_POINTS / 2 && ringIsExterior(ringStart))
+                                    {
+                                        sliceOk = splitBeforeRing(ringStart);
+                                        if (!sliceOk)
+                                            break;
+                                        ringStart = 0;
+                                    }
+                                    else
+                                        ringStart = (uint16_t)mvtPointsX.size();
+                                    ringSkipped = false;
+                                    continue;
+                                }
+                                if (commandId != 1 && commandId != 2)
+                                {
+                                    geometryOk = false;
+                                    break;
+                                }
+                                // A second MoveTo opens the next part of a multi-part
+                                // line: the border arrives split into parts, so each one
+                                // is recorded and decoded as its own feature. Ending the
+                                // feature here kept only the first part, which at z6 and
+                                // z7 is a handful of pixels of a border that is 12 parts.
+                                if (commandId == 1)
+                                {
+                                    ringSkipped = false;
+                                    if (!isPolygon && !mvtPointsX.empty())
+                                        mvtRingEnds.push_back((uint16_t)mvtPointsX.size());
+                                }
+                                for (uint32_t i = 0; i < commandCount; i++)
+                                {
+                                    uint64_t deltaX = 0;
+                                    uint64_t deltaY = 0;
+                                    if (!readVarint(geom, geomEnd, deltaX) || !readVarint(geom, geomEnd, deltaY))
+                                    {
+                                        geometryOk = false;
+                                        break;
+                                    }
+                                    cursorX += decodeZigZag((int32_t)deltaX);
+                                    cursorY += decodeZigZag((int32_t)deltaY);
+                                    const int32_t scaledX = (int32_t)((int64_t)cursorX * 4096 / (int64_t)extent);
+                                    const int32_t scaledY = (int32_t)((int64_t)cursorY * 4096 / (int64_t)extent);
+                                    if (ringSkipped)
+                                        continue;
+                                    // A vertex that lands on the pixel of the previous one
+                                    // draws nothing at 256 px, and the tile comes with far
+                                    // more vertices than pixels: dropping it here keeps a
+                                    // dense ring whole instead of truncating its tail.
+                                    if (!mvtPointsX.empty() &&
+                                        (int32_t)(mvtPointsX.back() >> 4) == (int32_t)(scaledX >> 4) &&
+                                        (int32_t)(mvtPointsY.back() >> 4) == (int32_t)(scaledY >> 4))
+                                        continue;
+                                    if (mvtPointsX.size() >= MVT_MAX_POINTS)
+                                    {
+                                        // One ring over the budget is closed where it
+                                        // stops; the rings behind it still get emitted.
+                                        featureTruncated = true;
+                                        ringSkipped = true;
+                                        continue;
+                                    }
+                                    mvtPointsX.push_back(scaledX);
+                                    mvtPointsY.push_back(scaledY);
+                                }
+                                if (!geometryOk)
+                                    break;
+                            }
+
+                            if (!geometryOk)
+                            {
+                                geomDropped++;
+                                featureCursor += length2;
+                                continue;
+                            }
+
                             if (isPolygon)
                             {
-                                // One feature carries every ring: the holes belong to it.
-                                sliceOk = emitSlice(0, coordCount, (uint16_t)mvtRingEnds.size());
-                            }
-                            else
-                            {
-                                // One feature per part: a border that arrives split into
-                                // twelve parts is a line drawn in twelve strokes, not the
-                                // first of them and nothing else.
-                                uint16_t sliceStart = 0;
-                                for (uint16_t r = 0; r < (uint16_t)mvtRingEnds.size() && sliceOk; r++)
+                                sliceOk = flushSlice();
+                                if (!sliceOk)
                                 {
-                                    const uint16_t sliceEnd = mvtRingEnds[r];
-                                    const uint16_t sliceCount = (uint16_t)(sliceEnd - sliceStart);
-                                    if (sliceCount >= 2)
-                                        sliceOk = emitSlice(sliceStart, sliceCount, 0);
-                                    sliceStart = sliceEnd;
+                                    arenaExhausted = true;
+                                    featureCursor += length2;
+                                    continue;
                                 }
+                                if (featureTruncated)
+                                    truncatedCount++;
+                                if (!emittedAny)
+                                    geomDropped++;
+                                featureCursor += length2;
+                                continue;
+                            }
+
+                            const uint16_t coordCount = (uint16_t)mvtPointsX.size();
+                            if (coordCount < 2)
+                            {
+                                geomDropped++;
+                                featureCursor += length2;
+                                continue;
+                            }
+                            if (featureTruncated)
+                                truncatedCount++;
+                            if (mvtRingEnds.empty() || mvtRingEnds.back() != coordCount)
+                                mvtRingEnds.push_back(coordCount);
+
+                            // One feature per part: a border that arrives split into
+                            // twelve parts is a line drawn in twelve strokes, not the
+                            // first of them and nothing else.
+                            uint16_t sliceStart = 0;
+                            for (uint16_t r = 0; r < (uint16_t)mvtRingEnds.size() && sliceOk; r++)
+                            {
+                                const uint16_t sliceEnd = mvtRingEnds[r];
+                                const uint16_t sliceCount = (uint16_t)(sliceEnd - sliceStart);
+                                if (sliceCount >= 2)
+                                    sliceOk = emitSlice(sliceStart, sliceCount, 0);
+                                sliceStart = sliceEnd;
                             }
                             if (!sliceOk)
                             {
