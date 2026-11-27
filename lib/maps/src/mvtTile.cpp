@@ -676,12 +676,18 @@ void Maps::decodeVectorFeaturesMvt(const uint8_t* data, size_t dataSize, int16_t
                                     // be read before the string-only path below drops it. It lets a
                                     // capital show at z6 without labelling every village, and it never
                                     // pulls a label later than the class rule does.
-                                    if (valueWire == 0 && valueField == 5 &&
+                                    if (valueWire == 0 && valueField >= 4 && valueField <= 6 &&
                                         nameLength == 8 && strncmp(name, "min_zoom", 8) == 0)
                                     {
                                         uint64_t placeMinZoom = 0;
-                                        if (readVarint(stringCursor, valueEnd, placeMinZoom) && placeMinZoom < 32)
-                                            textMinZoom = (uint8_t)placeMinZoom;
+                                        // The basemap packs it as sint_value, so it arrives zigzagged.
+                                        if (readVarint(stringCursor, valueEnd, placeMinZoom))
+                                        {
+                                            if (valueField == 6)
+                                                placeMinZoom = (placeMinZoom >> 1) ^ (uint64_t)(-(int64_t)(placeMinZoom & 1));
+                                            if (placeMinZoom < 32)
+                                                textMinZoom = (uint8_t)placeMinZoom;
+                                        }
                                         continue;
                                     }
                                     if (valueField != 1 || valueWire != 2)
