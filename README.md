@@ -11,7 +11,7 @@
 </div>
 
 * Note: Under development (experimental features under devel branch)
-* There is the possibility to use two types of maps: Rendered Maps or Tiles (large files), and Vector Maps (small files).
+* There is the possibility to use three types of maps: Rendered Maps or Tiles (large files), Vector Maps (small files) and PMTiles basemaps (one archive per zoom level).
 * Recommended to use an ESP32-S3 or ESP32-P4 with PSRAM and a screen with a parallel bus for optimal performance, although SPI screens also yield good results.
 
 <div align="center">
@@ -173,7 +173,27 @@ See **hal.hpp** for pinouts configuration
 
 ## SD Card File Structure
 
-IceNav reads every map, route, track and waypoint from the SD card. The [SD Card File Structure](docs/sd-card-file-structure.md) document describes the folder layout of each data type — rendered tiles, vectorized maps, A* routes, GPX tracks and waypoints — and how to generate the map and route files.
+IceNav reads every map, route, track and waypoint from the SD card. The [SD Card File Structure](docs/sd-card-file-structure.md) document describes the folder layout of each data type — rendered tiles, vectorized maps, PMTiles basemaps, A* routes, GPX tracks and waypoints — and how to generate the map and route files.
+
+## PMTiles Extracts
+
+IceNav can also read [PMTiles](https://docs.protomaps.com/pmtiles/) archives of [Protomaps](https://protomaps.com/) basemaps, one archive per zoom level, with no conversion on a computer. The [tools/pmtiles-extract.py](tools/pmtiles-extract.py) script builds them: it computes the tile block around your area with the same grid the map uses, so the extract always covers the screen plus a ring of pan room, and calls the [go-pmtiles](https://github.com/protomaps/go-pmtiles) CLI once per zoom level.
+
+```bash
+# once: the extracting CLI, from the Go toolchain or the release binaries
+go install github.com/protomaps/go-pmtiles/pmtiles@latest
+mv ~/go/bin/pmtiles ~/bin/
+
+# dry run: prints the grid, the source of the day and one command per zoom
+python3 tools/pmtiles-extract.py --bbox=0.15,40.52,3.34,42.87 --screen=800
+
+# extract zooms 6 to 15 into ./pmtiles
+python3 tools/pmtiles-extract.py --pmtiles ~/bin/pmtiles --outdir pmtiles --run
+```
+
+`--bbox` is `min_lon,min_lat,max_lon,max_lat` and `--screen` the largest screen dimension, which decides the grid (3×3 on a 320×480 S3, 5×5 on the 1024 px P4); `--zooms` takes `6-15` or `6,7,9-11`, `--center` moves the tile the map boots at, and without `--run` nothing is downloaded. The source is the daily build `build.protomaps.com/YYYYMMDD.pmtiles` with the previous two days as fallback, and `--date`, `--src` or the `PMTILES` environment variable pin one day, a mirror or a local file. The basemap builds stop at zoom 15.
+
+Copy the contents of the output folder to the SD card as `PMTILES` and choose **PMTILES** in the map type dropdown of **Settings → Map**, or set `kset vectMap on` and `kset pmtiles on` from the CLI; both take effect on the next reboot. Reference size for a region the size of Catalonia, zooms 6 to 15: 411.2 MB, the largest archive 192.3 MB.
 
 ## Mass Copy Script for Map Tiles
 

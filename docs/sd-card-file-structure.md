@@ -41,6 +41,19 @@ On SD Card vectorized files should be stored, in these folders structure:
 > sudo mkfs.vfat -F 32 -s 64 -S 512 /dev/sdX1
 > ```
 
+## SD PMTiles Map File structure
+
+IceNav can also read [PMTiles](https://docs.protomaps.com/pmtiles/) archives of [Protomaps](https://protomaps.com/) basemaps straight from the card, with no conversion on a computer. One archive per zoom level, named like the native pack, so the firmware opens the one that matches the map zoom:
+
+      [ 📁 PMTILES ]
+            |_______ 🗺️ Z<zoom>.pmtiles
+            |_______ ...
+
+The extracts are generated with the [tools/pmtiles-extract.py](../tools/pmtiles-extract.py) script, which needs the [go-pmtiles](https://github.com/protomaps/go-pmtiles) CLI and downloads only the tiles around your area; the [PMTiles Extracts](../README.md#pmtiles-extracts) section of the README covers its options. On the device, choose **PMTILES** in the map type dropdown of **Settings → Map**, or set `kset vectMap on` and `kset pmtiles on` from the CLI; both take effect on the next reboot. The archives go up to **zoom 15**: the basemap builds end there, so z16 and z17 have no PMTiles file.
+
+> [!NOTE]
+> The same **32 KB cluster size** tip of the vectorized maps applies here: one archive is read in many small seeks, and the cluster size is what decides how many sectors each one costs.
+
 ## SD A* Route File structure
 
 A* Route files for IceNav can be generated using the **route_generator** utility, which is available on GitHub at [jgauchia/Tile-Generator](https://github.com/jgauchia/Tile-Generator). This program allows you to generate the A* route files required for IceNav navigation. Please refer to the Tile-Generator repository for detailed instructions and usage examples on generating and preparing your own route files.
