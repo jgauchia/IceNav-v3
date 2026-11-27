@@ -1400,7 +1400,11 @@ void Maps::mapRenderTask(void* pvParameters)
                     PendingTile t = instance->pendingTiles.back();
                     instance->pendingTiles.pop_back();
                     if (instance->pendingTiles.empty() && instance->vectorSteps.empty())
+                    {
                         instance->pendingTilesNotEmpty = false;
+                        // Nothing is left to rebuild, so the next drag may leave the margin.
+                        instance->gridRebuildInFlight = false;
+                    }
                     if (t.type == TILE_NAV)
                     {
                         const int64_t tileMarkUs = esp_timer_get_time();
