@@ -347,6 +347,8 @@ bool Maps::ensureMvtBuffers()
 
 /**
  * @brief Take the next arena block, allocating it on first use.
+ *
+ * @return True when a block was taken; false when all blocks are already in use.
  */
 bool Maps::takeMvtArenaBlock()
 {

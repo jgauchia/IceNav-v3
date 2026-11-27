@@ -2214,6 +2214,9 @@ void Maps::prefetchPngTile()
  * @details Consumes the staging buffer so the next crossing re-stages. Returns false
  *          when there is no valid staged tile for this position; the caller then falls
  *          back to a synchronous PNG decode.
+ *
+ * @return True when the staged tile matched and was blitted; false when the caller has
+ *         to decode.
  */
 bool Maps::tryApplyStagedPng(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map)
 {
@@ -2522,6 +2525,8 @@ void Maps::setWaypoint(float wptLat, float wptLon)
 
 /**
  * @brief Returns true when there is an active navigation target (track or waypoint).
+ *
+ * @return True when a track is loaded or a waypoint is set.
  */
 bool Maps::isNavActive() const
 {

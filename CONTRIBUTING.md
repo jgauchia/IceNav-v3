@@ -54,7 +54,7 @@ The project has strict naming and formatting rules. Code that doesn't follow the
 - **Variables:** one variable per line. Underscores in variable names (`my_var` or `var_`) are forbidden.
 - **Functions and methods:** new functions/methods use camelCase with word splitting (e.g., `changeDirectoryHandler`, `notFoundHandler`). snake_case is forbidden for new functions.
 - **Comments:** English only, single line, and only when they add real value. Never state what the code does.
-- **Documentation:** Doxygen blocks for functions, classes and other symbols go in `.cpp` files only, never in `.hpp`. The Doxygen file header (`@file`, `@author`, `@brief`, `@version`, `@date`) is kept in both `.cpp` and `.hpp`. Never bump the version field in Doxygen headers. No `@details` blocks.
+- **Documentation:** Doxygen blocks for functions, classes and other symbols go in `.cpp` files only, never in `.hpp`. The Doxygen file header (`@file`, `@author`, `@brief`, `@version`, `@date`) is kept in both `.cpp` and `.hpp`. Never bump the version field in Doxygen headers.
 
 ### Folder layout
 
