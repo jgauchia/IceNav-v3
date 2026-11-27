@@ -263,7 +263,9 @@ private:
 #endif
 
     static const uint16_t MAX_POLYGON_POINTS = 8192;
-    static const uint32_t MAX_FEATURE_POOL_SIZE = 32768;
+    // A 5x5 grid at z12 over Barcelona carries ~37k features: at 32k the last tiles
+    // decoded lost every feature, which painted the top row of the grid as paper.
+    static const uint32_t MAX_FEATURE_POOL_SIZE = 49152;
     static const uint16_t MAX_PLACED_LABELS = 512;
     static const uint16_t EDGE_POOL_RESERVE = 512;
     static const uint8_t MVT_ARENA_BLOCK_COUNT = 6;
