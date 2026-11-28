@@ -84,7 +84,9 @@ private:
     uint16_t wptPosY = 0xFFFF;
     MapCanvas mapTempSprite = MapCanvas(mapCanvasParent());
     MapCanvas mapSprite = MapCanvas(mapCanvasParent());
-    MapCanvas pngStagingSprite = MapCanvas(mapCanvasParent());
+    /// Decode target for a PNG tile, rebound to the pool slot it fills. Owns no memory:
+    /// the pool is the only copy of a decoded tile, so a decode is a read into its own slot.
+    MapCanvas pngDecodeSprite = MapCanvas(mapCanvasParent());
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
     uint8_t* mapTempBufs[2] = { nullptr, nullptr };
     /// Buffer of the last complete grid frame. The composition reads this one, so a
@@ -94,8 +96,6 @@ private:
     volatile bool srmInFlight = false;
 #endif
     uint8_t* fontData = nullptr;
-    uint32_t pngStagedHash = 0;
-    bool pngStagingValid = false;
     float destLat = 0.0f;
     float destLon = 0.0f;
     bool hasWaypoint = false;
@@ -295,8 +295,29 @@ private:
     void renderVectorText(const FeatureRef& ref, MapCanvas& map, std::vector<LabelRect, PsramAllocator<LabelRect>>& placedLabels);
     void latLonToPixel(float lat, float lon, int16_t& px, int16_t& py);
     bool trackViewBounds(tileBounds& bounds);
-    void drawTrack(MapCanvas& map);
-    void drawWaypoint(MapCanvas& map);
+
+    /**
+     * @brief Grid-canvas to destination mapping used when painting the PNG viewport.
+     *
+     * @details Either a plain translation (crop) or the rotation around the pivot, so the
+     *          track, the waypoint and the tiles land on the same pixels. Built once per frame
+     *          by pngBuildView() and read by the paint and by the prefetch, which have to
+     *          agree on which tiles reach the window.
+     */
+    struct ViewXform
+    {
+        int16_t offX = 0;   ///< Translation applied when rotate is false.
+        int16_t offY = 0;
+        bool rotate = false;
+        float cosA = 1.0f;
+        float sinA = 0.0f;
+        float pivX = 0.0f;  ///< Grid-canvas pivot, in canvas pixels.
+        float pivY = 0.0f;
+    };
+
+    void viewPoint(const ViewXform* view, int16_t cx, int16_t cy, int16_t& vx, int16_t& vy) const;
+    void drawTrack(MapCanvas& map, const ViewXform* view);
+    void drawWaypoint(MapCanvas& map, const ViewXform* view);
 #if defined(CONFIG_IDF_TARGET_ESP32P4) && defined(EXTRA_LARGE_SCREEN)
     bool composeCropStaged(int16_t viewOffsetX, int16_t viewOffsetY);
 #endif
@@ -338,13 +359,19 @@ private:
     volatile bool mapGeneratePending = false;
     volatile uint8_t mapGenerateZoom = 0;
     static void mapRenderTask(void* pvParameters);
-    void renderPngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map);
-    bool ensurePngStagingSprite();
     void prefetchPngTile();
-    bool tryApplyStagedPng(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map);
-    bool loadPngTileIntoSprite(int32_t tlX, int32_t tlY, int gx, int gy,
-                               uint32_t centerTileIdxX, uint32_t centerTileIdxY,
-                               uint8_t zoom, bool& centerFound);
+    bool ensurePngPool();
+    int8_t pngPoolSlot(uint32_t tileX, uint32_t tileY, uint8_t zoom, bool decode);
+    bool pngTileInWindow(int gx, int gy, int16_t slack = -1) const;
+    bool pngTileOverlaps(int gx, int gy, int16_t marginX, int16_t marginY) const;
+    bool stagePngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom);
+    void composePngViewport();
+    void composePngRotated(const ViewXform& view);
+    bool pngBuildView(ViewXform& view);
+    bool pngTileReachesRotated(const ViewXform& view, int gx, int gy) const;
+    bool prefetchRotatedTile(const ViewXform& view);
+    uint8_t pngPoolNeededSlots(bool wholeTurn = true) const;
+    void createMapCanvas();
     void enqueueTileGrid(uint32_t centerTileIdxX, uint32_t centerTileIdxY, TileType type);
     void queueVectorStep(uint32_t centerTileIdxX, uint32_t centerTileIdxY,
                          int8_t dirX, int8_t dirY);

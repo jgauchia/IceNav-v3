@@ -15,6 +15,7 @@
 #include <climits>
 #include <cstdio>
 #include <cstdint>
+#include <cstring>
 #include <utility>
 #include "tasks.hpp"
 #include "mainScr.hpp"
@@ -59,6 +60,7 @@ static uint32_t totalUs = 0;
 static uint32_t decUs = 0;
 static uint32_t scrUs = 0;
 static uint32_t bkgUs = 0;
+static uint32_t tilesRendered = 0;
 
 // What the sprite is cleared with and what scroll leaves in the vacated band.
 // Paper on every backend: the native packs and the PMTiles basemap both carry
@@ -121,6 +123,20 @@ static uint8_t holdMaxPhase = static_cast<uint8_t>(HoldPhase::Rst);
 /// Sliver polygons named in the log this pass, capped so one pass cannot flood it.
 static uint8_t mvtSliverLogs = 0;
 
+/// Decoded PNG tiles kept in PSRAM, one slot per grid position, so a tile that comes
+/// back (panning backwards, rebuilding the grid, returning to a zoom) is blitted
+/// instead of decoded from the SD again. Keyed by zoom and tile index, evicted by
+/// least recent use.
+static uint8_t* pngPoolBuf = nullptr;
+static uint8_t pngPoolSlots = 0;
+static constexpr uint8_t PNG_POOL_MAX_SLOTS = 25;
+static uint32_t pngPoolKey[PNG_POOL_MAX_SLOTS] = {};
+static uint32_t pngPoolUse[PNG_POOL_MAX_SLOTS] = {};
+/// A slot whose key the archive has no tile for. The hole is cached as well, so a
+/// missing tile is not read from the SD once per pass.
+static bool pngPoolMissing[PNG_POOL_MAX_SLOTS] = {};
+static uint32_t pngPoolClock = 0;
+
 static inline void resetPassCounters()
 {
     totalUs = 0;
@@ -135,6 +151,7 @@ static inline void resetPassCounters()
     decUs = 0;
     scrUs = 0;
     bkgUs = 0;
+    tilesRendered = 0;
     wrUs = 0;
     rstUs = 0;
     yldUs = 0;
@@ -170,6 +187,7 @@ static inline void resetPassCounters()
         holdUsByPhase[i] = 0;
     mvtSliverLogs = 0;
 }
+
 static const uint16_t PREFETCH_MIN_SPEED_KMH = 5;
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
 static const uint8_t PREFETCH_PIN_FRAMES = 4;
@@ -489,6 +507,50 @@ void Maps::coords2map(float lat, float lon, const tileBounds& bound, uint16_t *p
 }
 
 /**
+ * @brief Allocates the grid canvas the vector backends render into.
+ *
+ * @details On ESP32-P4 the two aligned PSRAM buffers exist so the incremental scroll can
+ *          be done as an out-of-place PPA SRM copy followed by a buffer swap (see
+ *          scrollVectorSprite). The raster backend does not create it: it composes the
+ *          viewport from its 256x256 tile pool instead, which is where the PSRAM saving
+ *          comes from.
+ */
+void Maps::createMapCanvas()
+{
+    if (Maps::mapTempSprite.getBuffer() != nullptr)
+        return;
+
+    Maps::mapTempSprite.createSprite(Maps::tileWidth, Maps::tileHeight);
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    {
+        const size_t bufSize = Maps::tileWidth * Maps::tileHeight * 2;
+        uint8_t* bufA = static_cast<uint8_t*>(heap_caps_aligned_alloc(128, bufSize, MALLOC_CAP_SPIRAM));
+        if (bufA)
+        {
+            Maps::mapTempSprite.setBuffer(bufA, Maps::tileWidth, Maps::tileHeight);
+            if (Maps::mapTempBufs[0] && Maps::mapTempBufs[0] != bufA)
+                heap_caps_free(Maps::mapTempBufs[0]);
+            Maps::mapTempBufs[0] = bufA;
+            uint8_t* bufB = static_cast<uint8_t*>(heap_caps_aligned_alloc(128, bufSize, MALLOC_CAP_SPIRAM));
+            if (Maps::mapTempBufs[1] && Maps::mapTempBufs[1] != bufB)
+                heap_caps_free(Maps::mapTempBufs[1]);
+            Maps::mapTempBufs[1] = bufB;
+            if (bufB)
+            {
+                Maps::mapTempSprite.setBuffer(bufB, Maps::tileWidth, Maps::tileHeight);
+                Maps::mapTempSprite.fillSprite(mapBackgroundColor);
+                Maps::mapTempSprite.setBuffer(bufA, Maps::tileWidth, Maps::tileHeight);
+            }
+            Maps::mapTempSprite.fillSprite(mapBackgroundColor);
+        }
+    }
+    Maps::mapDisplayBuf = static_cast<uint8_t*>(Maps::mapTempSprite.getBuffer());
+#endif
+    // LGFX scroll() fills the vacated band with the sprite base color (map background).
+    Maps::mapTempSprite.setBaseColor(mapBackgroundColor);
+}
+
+/**
  * @brief Initialize map sprites and variables
  * 
  * @param mapWidth Map width
@@ -516,36 +578,10 @@ void Maps::initMap(uint16_t mapWidth, uint16_t mapHeight)
     constexpr float referenceHeight = 480.0f - statusBarHeight;
     Maps::focalLength = 300.0f * (static_cast<float>(mapHeight) / referenceHeight);
     Maps::tiltCos = cosf(Maps::mapTilt * (static_cast<float>(M_PI) / 180.0f));
-    Maps::mapTempSprite.createSprite(Maps::tileWidth, Maps::tileHeight);
-#if defined(CONFIG_IDF_TARGET_ESP32P4)
-    {
-        // Two aligned PSRAM buffers so the incremental scroll can be done as an
-        // out-of-place PPA SRM copy followed by a buffer swap (see scrollVectorSprite).
-        const size_t bufSize = Maps::tileWidth * Maps::tileHeight * 2;
-        uint8_t* bufA = static_cast<uint8_t*>(heap_caps_aligned_alloc(128, bufSize, MALLOC_CAP_SPIRAM));
-        if (bufA)
-        {
-            Maps::mapTempSprite.setBuffer(bufA, Maps::tileWidth, Maps::tileHeight);
-            if (Maps::mapTempBufs[0] && Maps::mapTempBufs[0] != bufA)
-                heap_caps_free(Maps::mapTempBufs[0]);
-            Maps::mapTempBufs[0] = bufA;
-            uint8_t* bufB = static_cast<uint8_t*>(heap_caps_aligned_alloc(128, bufSize, MALLOC_CAP_SPIRAM));
-            if (Maps::mapTempBufs[1] && Maps::mapTempBufs[1] != bufB)
-                heap_caps_free(Maps::mapTempBufs[1]);
-            Maps::mapTempBufs[1] = bufB;
-            if (bufB)
-            {
-                Maps::mapTempSprite.setBuffer(bufB, Maps::tileWidth, Maps::tileHeight);
-                Maps::mapTempSprite.fillSprite(mapBackgroundColor);
-                Maps::mapTempSprite.setBuffer(bufA, Maps::tileWidth, Maps::tileHeight);
-            }
-            Maps::mapTempSprite.fillSprite(mapBackgroundColor);
-        }
-    }
-    Maps::mapDisplayBuf = static_cast<uint8_t*>(Maps::mapTempSprite.getBuffer());
-#endif
-    // LGFX scroll() fills the vacated band with the sprite base color (map background).
-    Maps::mapTempSprite.setBaseColor(mapBackgroundColor);
+    // The grid canvas only exists for the backends that render into it; the raster
+    // backend composes the viewport from its tile pool.
+    if (mapSet.vectorMap)
+        Maps::createMapCanvas();
     Maps::mapSprite.createSprite(mapWidth, mapHeight);
     Maps::mapBuffer = Maps::mapSprite.getBuffer();
     Maps::oldMapTile = {};
@@ -639,6 +675,40 @@ static void drawThickLineRaw(uint16_t* buf, uint32_t stride, int16_t x0, int16_t
                              int16_t w, int16_t h);
 
 /**
+ * @brief Maps a grid-canvas pixel to the destination the composition paints into.
+ *
+ * @details A plain shift for the cropped view, the affine the canvas rotation used to
+ *          apply for the rotated one, so tiles, track and waypoint stay registered.
+ *
+ * @param view Transform to apply, or nullptr to leave the point untouched.
+ * @param cx Grid-canvas X.
+ * @param cy Grid-canvas Y.
+ * @param[out] vx Destination X.
+ * @param[out] vy Destination Y.
+ */
+void Maps::viewPoint(const ViewXform* view, int16_t cx, int16_t cy, int16_t& vx, int16_t& vy) const
+{
+    if (view == nullptr)
+    {
+        vx = cx;
+        vy = cy;
+        return;
+    }
+    if (view->rotate)
+    {
+        const float dx = (float)cx - view->pivX;
+        const float dy = (float)cy - view->pivY;
+        vx = (int16_t)lroundf((float)mapScrWidth * 0.5f + view->cosA * dx - view->sinA * dy);
+        vy = (int16_t)lroundf((float)mapScrHeight * 0.5f + view->sinA * dx + view->cosA * dy);
+    }
+    else
+    {
+        vx = (int16_t)(cx + view->offX);
+        vy = (int16_t)(cy + view->offY);
+    }
+}
+
+/**
  * @brief Draw current track on map
  *
  * @details Walks the spatial index and skips the segments whose geographic bounds fall outside
@@ -650,8 +720,9 @@ static void drawThickLineRaw(uint16_t* buf, uint32_t stride, int16_t x0, int16_t
  *          track when no index or no grid bounds are available.
  *
  * @param map Target sprite.
+ * @param view Grid-canvas to destination mapping, or nullptr to draw unshifted.
  */
-void Maps::drawTrack(MapCanvas& map)
+void Maps::drawTrack(MapCanvas& map, const ViewXform* view)
 {
     if (navCtx.trackData.size() < 2)
         return;
@@ -660,10 +731,16 @@ void Maps::drawTrack(MapCanvas& map)
     const bool haveBounds = trackViewBounds(viewBounds);
 
     uint16_t* const trackBuf = static_cast<uint16_t*>(map.getBuffer());
-    const uint32_t trackStride = trackBuf ? (uint32_t)(map.bufferLength() / (tileHeight * 2)) : 0;
+    const int16_t viewW = (int16_t)map.width();
+    const int16_t viewH = (int16_t)map.height();
+    // The rotated composition stores into bitmap-like lines that are no longer axis
+    // aligned, so it draws through the API instead of the raw row buffer.
+    const bool rawPath = (trackBuf != nullptr && (view == nullptr || !view->rotate));
+    const uint32_t trackStride = (trackBuf && viewH > 0)
+                                     ? (uint32_t)(map.bufferLength() / ((size_t)viewH * 2)) : 0;
     const uint16_t trackColor = (uint16_t)((0x6298u >> 8) | (0x6298u << 8));
-    const int16_t trackW = (int16_t)tileWidth;
-    const int16_t trackH = (int16_t)tileHeight;
+    const int16_t trackW = viewW;
+    const int16_t trackH = viewH;
 
     const int lastIdx = (int)navCtx.trackData.size() - 1;
     TrackSegment wholeTrack;
@@ -698,13 +775,19 @@ void Maps::drawTrack(MapCanvas& map)
             int16_t curX;
             int16_t curY;
             latLonToPixel(navCtx.trackData[i].lat, navCtx.trackData[i].lon, curX, curY);
-            if ((prevX >= 0 && prevX < tileWidth && prevY >= 0 && prevY < tileHeight) ||
-                (curX >= 0 && curX < tileWidth && curY >= 0 && curY < tileHeight))
+            int16_t x0 = 0;
+            int16_t y0 = 0;
+            int16_t x1 = 0;
+            int16_t y1 = 0;
+            viewPoint(view, prevX, prevY, x0, y0);
+            viewPoint(view, curX, curY, x1, y1);
+            if ((x0 >= 0 && x0 < trackW && y0 >= 0 && y0 < trackH) ||
+                (x1 >= 0 && x1 < trackW && y1 >= 0 && y1 < trackH))
             {
-                if (trackBuf)
-                    drawThickLineRaw(trackBuf, trackStride, prevX, prevY, curX, curY, 7, trackColor, trackW, trackH);
+                if (rawPath)
+                    drawThickLineRaw(trackBuf, trackStride, x0, y0, x1, y1, 7, trackColor, trackW, trackH);
                 else
-                    map.drawWideLine(prevX, prevY, curX, curY, 7, 0x6298);
+                    map.drawWideLine(x0, y0, x1, y1, 7, 0x6298);
             }
             prevX = curX;
             prevY = curY;
@@ -718,19 +801,23 @@ void Maps::drawTrack(MapCanvas& map)
 /**
  * @brief Draw the waypoint marker onto the grid sprite.
  *
- * @details Stamps the marker in grid space (same coordinate frame as drawTrack) so it travels
- *          with the grid during scroll and rotation, instead of being re-stamped every frame in
- *          displayMap(). Drawn only when a waypoint is set and its grid position is in range.
+ * @details Stamps the marker in grid space (same coordinate frame as drawTrack) and maps it
+ *          with the same transform, so it travels with the grid during scroll and rotation.
+ *          Drawn only when a waypoint is set and its grid position is in range.
  *
  * @param map Target sprite.
+ * @param view Grid-canvas to destination mapping, or nullptr to draw unshifted.
  */
-void Maps::drawWaypoint(MapCanvas& map)
+void Maps::drawWaypoint(MapCanvas& map, const ViewXform* view)
 {
     if (!hasWaypoint)
         return;
     if (wptPosX >= tileWidth || wptPosY >= tileHeight)
         return;
-    map.pushImage(wptPosX - 8, wptPosY - 8, 16, 16, (uint16_t *)waypoint, TFT_BLACK);
+    int16_t vx = 0;
+    int16_t vy = 0;
+    viewPoint(view, (int16_t)wptPosX, (int16_t)wptPosY, vx, vy);
+    map.pushImage(vx - 8, vy - 8, 16, 16, (uint16_t *)waypoint, TFT_BLACK);
 }
 
 /**
@@ -739,64 +826,6 @@ void Maps::drawWaypoint(MapCanvas& map)
 void Maps::redrawTrack()
 {
     vectorNeedsRender = true;
-}
-
-/**
- * @brief Loads a single PNG tile into the map sprite and updates totalBounds.
- *
- * @param tlX Top-left tile X index of the grid.
- * @param tlY Top-left tile Y index of the grid.
- * @param gx Grid column offset (0-based).
- * @param gy Grid row offset (0-based).
- * @param centerTileIdxX Expected center tile X index.
- * @param centerTileIdxY Expected center tile Y index.
- * @param zoom Current zoom level.
- * @param centerFound Set to true if this tile is the center tile.
- * @return True if the PNG was loaded successfully.
- */
-bool Maps::loadPngTileIntoSprite(int32_t tlX, int32_t tlY, int gx, int gy,
-                                  uint32_t centerTileIdxX, uint32_t centerTileIdxY,
-                                  uint8_t zoom, bool& centerFound)
-{
-    uint32_t tx = (uint32_t)(tlX + gx);
-    uint32_t ty = (uint32_t)(tlY + gy);
-    int16_t sx = (int16_t)(gx * mapTileSize);
-    int16_t sy = (int16_t)(gy * mapTileSize);
-    if (tryApplyStagedPng(tx, ty, zoom, sx, sy, mapTempSprite))
-    {
-        if (tx == centerTileIdxX && ty == centerTileIdxY)
-            centerFound = true;
-        const tileBounds currentBounds = getTileBounds(tx, ty, zoom);
-        if (currentBounds.lat_min < totalBounds.lat_min)
-            totalBounds.lat_min = currentBounds.lat_min;
-        if (currentBounds.lat_max > totalBounds.lat_max)
-            totalBounds.lat_max = currentBounds.lat_max;
-        if (currentBounds.lon_min < totalBounds.lon_min)
-            totalBounds.lon_min = currentBounds.lon_min;
-        if (currentBounds.lon_max > totalBounds.lon_max)
-            totalBounds.lon_max = currentBounds.lon_max;
-        return true;
-    }
-    char tilePath[128];
-    snprintf(tilePath, sizeof(tilePath), mapRenderFolder, zoom, tx, ty);
-    if (mapTempSprite.drawPngFile(tilePath, sx, sy))
-    {
-        if (tx == centerTileIdxX && ty == centerTileIdxY)
-            centerFound = true;
-        const tileBounds currentBounds = getTileBounds(tx, ty, zoom);
-        if (currentBounds.lat_min < totalBounds.lat_min)
-            totalBounds.lat_min = currentBounds.lat_min;
-        if (currentBounds.lat_max > totalBounds.lat_max)
-            totalBounds.lat_max = currentBounds.lat_max;
-        if (currentBounds.lon_min < totalBounds.lon_min)
-            totalBounds.lon_min = currentBounds.lon_min;
-        if (currentBounds.lon_max > totalBounds.lon_max)
-            totalBounds.lon_max = currentBounds.lon_max;
-        return true;
-    }
-    mapTempSprite.fillRect(sx, sy, mapTileSize, mapTileSize, TFT_BLACK);
-    mapTempSprite.drawPngFile(noMapFile, sx + mapTileSize / 2 - 50, sy + mapTileSize / 2 - 50);
-    return false;
 }
 
 /**
@@ -1041,7 +1070,9 @@ void Maps::mapRenderTask(void* pvParameters)
         {
             if (xSemaphoreTakeRecursive(instance->mapMutex, pdMS_TO_TICKS(200)) == pdTRUE)
             {
-                if (instance->mapTempSprite.getBuffer() == nullptr)
+                // The raster backend no longer needs the grid canvas: it decodes into the
+                // tile pool and the composition paints the viewport from there.
+                if (instance->mapTempSprite.getBuffer() == nullptr && mapSet.vectorMap)
                 {
                     xSemaphoreGiveRecursive(instance->mapMutex);
                     vTaskDelay(pdMS_TO_TICKS(100));
@@ -1399,6 +1430,8 @@ void Maps::mapRenderTask(void* pvParameters)
                 {
                     PendingTile t = instance->pendingTiles.back();
                     instance->pendingTiles.pop_back();
+                    // Every tile taken off the queue counts, drawn from cache or from storage.
+                    tilesRendered++;
                     if (instance->pendingTiles.empty() && instance->vectorSteps.empty())
                     {
                         instance->pendingTilesNotEmpty = false;
@@ -1415,7 +1448,7 @@ void Maps::mapRenderTask(void* pvParameters)
                     else if (t.type == TILE_PNG)
                     {
                         const int64_t tileMarkUs = esp_timer_get_time();
-                        instance->renderPngTile(t.x, t.y, instance->zoomLevel, t.screenX, t.screenY, instance->mapTempSprite);
+                        instance->stagePngTile(t.x, t.y, instance->zoomLevel);
                         decUs += (uint32_t)(esp_timer_get_time() - tileMarkUs);
                         if (yieldTile()) { aborted = true; break; }
                     }
@@ -1524,9 +1557,8 @@ void Maps::mapRenderTask(void* pvParameters)
                     instance->lastTileX = instance->tileX;
                     instance->lastTileY = instance->tileY;
 
-                    setHoldPhase(HoldPhase::Trk);
-                    instance->drawTrack(instance->mapTempSprite);
-                    instance->drawWaypoint(instance->mapTempSprite);
+                    // The track and the waypoint are painted by composePngViewport(), on top
+                    // of the tiles, so there is no grid canvas to draw them into here.
                     instance->redrawMap = true;
 #if !defined(CONFIG_IDF_TARGET_ESP32P4)
                     if (instance->mapComposePending)
@@ -1542,6 +1574,12 @@ void Maps::mapRenderTask(void* pvParameters)
                     xEventGroupSetBits(instance->mapEventGroup, MAP_EVENT_DONE);
                     xEventGroupClearBits(instance->mapEventGroup, MAP_EVENT_START);
                     closeAtomicHold();
+                    // Raster passes end here, never in the vector tail below. The raster backend
+                    // is silent: its figures were only needed while the tile pool was being
+                    // measured, and a pass of this branch is a cold start or a zoom change, not
+                    // something to look at while using the map.
+                    passCounter++;
+                    resetPassCounters();
                     xSemaphoreGiveRecursive(instance->mapMutex);
                     triggerMapRedraw();
                     continue;
@@ -1780,8 +1818,8 @@ void Maps::mapRenderTask(void* pvParameters)
 
                 setHoldPhase(HoldPhase::Trk);
                 const int64_t trackMarkUs = esp_timer_get_time();
-                instance->drawTrack(instance->mapTempSprite);
-                instance->drawWaypoint(instance->mapTempSprite);
+                instance->drawTrack(instance->mapTempSprite, nullptr);
+                instance->drawWaypoint(instance->mapTempSprite, nullptr);
                 trackUs += (uint32_t)(esp_timer_get_time() - trackMarkUs);
 #if defined(CONFIG_IDF_TARGET_ESP32P4) && defined(EXTRA_LARGE_SCREEN)
                 if (mapSet.vectorMap &&
@@ -1834,13 +1872,14 @@ void Maps::mapRenderTask(void* pvParameters)
                 totalUs += (uint32_t)(passEndUs - passStartUs);
                 if (viewportComplete)
                     passCounter++;
+                const uint32_t passTiles = viewportComplete ? tilesRendered : 0;
                 xSemaphoreGiveRecursive(instance->mapMutex);
                 if (viewportComplete)
                 {
                     const uint32_t measuredUs = rstUs + scrUs + decUs + bkgUs + srmUs + wrUs + trackUs + yldUs;
                     const uint32_t restUs = totalUs > measuredUs ? totalUs - measuredUs : 0;
                     ESP_LOGI(TAG,
-                             "PASS z%u #%u | %.1fms | rst %.1fms | dec %.1fms | yld %.1fms | atc %.1fms x%u | scr %.1fms | bkg %.1fms | srm %.1fms | wr %.1fms | poly %.1fms (fill %.1fms) | line %.1fms | point %.1fms | text %.1fms | trk %.1fms | ppa %.1fms | polydec %.1fms | fillPx %u | linePx %u | trkPx %u | ppaTiles %u | %up %ul",
+                             "PASS z%u #%u | %.1fms | rst %.1fms | dec %.1fms | yld %.1fms | atc %.1fms x%u | scr %.1fms | bkg %.1fms | srm %.1fms | wr %.1fms | poly %.1fms (fill %.1fms) | line %.1fms | point %.1fms | text %.1fms | trk %.1fms | tiles %u | ppa %.1fms | polydec %.1fms | fillPx %u | linePx %u | trkPx %u | ppaTiles %u | %up %ul",
                              (unsigned)instance->zoomLevel,
                              (unsigned)passCounter,
                              totalUs / 1000.0,
@@ -1859,6 +1898,7 @@ void Maps::mapRenderTask(void* pvParameters)
                              pointUs / 1000.0,
                              textUs / 1000.0,
                              trackUs / 1000.0,
+                             (unsigned)passTiles,
                              ppaUs / 1000.0,
                              polyDecUs / 1000.0,
                              (unsigned)fillPx,
@@ -2106,42 +2146,646 @@ void Maps::prefetchNextTile()
 }
 
 /**
- * @brief Creates the PNG staging sprite on its first use.
+ * @brief Number of decoded tiles the window can need at the same time.
  *
- * @return true when the staging buffer is available.
+ * @details The grid is the wrong measure. On the P4-4.3 it holds 25 tiles and the window
+ *          reaches 15 straight, but a rotation reads a diagonal band: 17 tiles with the
+ *          window at 54 degrees, and 21 different ones over a full turn, because each
+ *          corner of the grid comes under the band in turn. Sizing on the peak left the
+ *          pool one slot short of a turn, so every sweep evicted a tile it was about to
+ *          need and decoded it again inside the frame, at ~32 ms each: that is what a
+ *          gesture spent beyond the sampling. The diagonal of the window is what has to
+ *          stay resident, and the band sits beside it for the length of a pan step, four
+ *          slots being the whole reference row on a 5x5 grid and two thirds of a 3x3 one.
+ *          The result is capped by the grid, so a small panel does not pay for tiles it
+ *          cannot hold.
+ *
+ * @param wholeTurn True to hold the tiles of a full rotation, false for the straight
+ *                  working set alone, which is the fallback when the larger pool does not
+ *                  fit in PSRAM.
+ * @return Slots to allocate, never zero.
  */
-bool Maps::ensurePngStagingSprite()
+uint8_t Maps::pngPoolNeededSlots(bool wholeTurn) const
 {
-    if (Maps::pngStagingSprite.getBuffer() != nullptr)
-        return true;
-
-    Maps::pngStagingSprite.createSprite(mapTileSize, mapTileSize);
-#if defined(CONFIG_IDF_TARGET_ESP32P4)
-    uint8_t* buf = static_cast<uint8_t*>(Maps::pngStagingSprite.getBuffer());
-    if (buf && ((uint32_t)buf & 0x7F) != 0)
-    {
-        const size_t bufSize = mapTileSize * mapTileSize * 2;
-        uint8_t* alignedBuf = static_cast<uint8_t*>(heap_caps_aligned_alloc(128, bufSize, MALLOC_CAP_SPIRAM));
-        if (alignedBuf)
-            Maps::pngStagingSprite.setBuffer(alignedBuf, mapTileSize, mapTileSize);
-    }
-#endif
-    return Maps::pngStagingSprite.getBuffer() != nullptr;
+    const uint32_t tile = mapTileSize;
+    const uint32_t scrW = mapScrWidth;
+    const uint32_t scrH = mapScrHeight;
+    const uint32_t straight = ((scrW + tile - 1) / tile + 1) * ((scrH + tile - 1) / tile + 1);
+    const uint32_t diag = (uint32_t)ceilf(sqrtf((float)(scrW * scrW + scrH * scrH)));
+    const uint32_t turned = ((diag + tile - 1) / tile + 1) * ((diag + tile - 1) / tile + 1);
+    const uint32_t band = 4;
+    uint32_t slots = straight + band;
+    if (wholeTurn && turned + band > slots)
+        slots = turned + band;
+    const uint32_t gridSlots = (uint32_t)tilesGrid * tilesGrid;
+    if (slots > gridSlots)
+        slots = gridSlots;
+    if (slots > PNG_POOL_MAX_SLOTS)
+        slots = PNG_POOL_MAX_SLOTS;
+    return (uint8_t)slots;
 }
 
 /**
- * @brief Predictively decodes the next PNG tile into the staging sprite.
+ * @brief Allocates the decoded-tile pool on its first use.
  *
- * @details Runs only when the render queue is empty. Stages the leading edge tile of
- *          the next grid (Chebyshev radius tilesGrid/2 + 1) in the movement direction
- *          (GPS heading while following, drag velocity otherwise) so the next scroll
- *          crossing can blit it instead of decoding from SD.
+ * @details As many slots as the window can need at once (see pngPoolNeededSlots), each one
+ *          holding a decoded tile, so any tile requested again is served from PSRAM. The
+ *          whole pool is one aligned block because the PPA path needs 128-byte aligned tile
+ *          buffers. A pool that does not fit in PSRAM is retried at the straight working
+ *          set, and only if that fails too the pool stays disabled and every tile decodes
+ *          as before.
+ *
+ * @return True when the pool is usable.
+ */
+bool Maps::ensurePngPool()
+{
+    if (pngPoolBuf != nullptr)
+        return true;
+
+    // Already capped by pngPoolNeededSlots(); zero only when initMap() has not run.
+    uint8_t slots = pngPoolNeededSlots();
+    if (slots == 0)
+        return false;
+
+    const size_t tileBytes = (size_t)mapTileSize * mapTileSize * 2;
+    uint8_t* mem = static_cast<uint8_t*>(heap_caps_aligned_alloc(128, tileBytes * slots, MALLOC_CAP_SPIRAM));
+    if (mem == nullptr)
+    {
+        // Holding a whole turn is the comfortable size, not the required one: where it does
+        // not fit, the straight working set keeps the pool rather than losing it, which is
+        // the difference between one decode per gesture and one per tile painted.
+        const uint8_t fallback = pngPoolNeededSlots(false);
+        if (fallback < slots)
+        {
+            slots = fallback;
+            mem = static_cast<uint8_t*>(heap_caps_aligned_alloc(128, tileBytes * slots, MALLOC_CAP_SPIRAM));
+        }
+    }
+    if (mem == nullptr)
+        return false;
+
+    pngPoolBuf = mem;
+    pngPoolSlots = slots;
+    memset(pngPoolKey, 0, sizeof(pngPoolKey));
+    memset(pngPoolUse, 0, sizeof(pngPoolUse));
+    memset(pngPoolMissing, 0, sizeof(pngPoolMissing));
+    pngPoolClock = 0;
+    return true;
+}
+
+/**
+ * @brief Decoded-tile pool lookup, decoding the tile on a miss when asked to.
+ *
+ * @details The caller holds the map mutex (render task or scroll path), which is what
+ *          serializes the pool. A tile the archive does not have is cached too, with its
+ *          slot flagged as missing, so a hole in the coverage costs one SD read and then
+ *          paints as "no map" without touching the card again.
+ *
+ * @param tileX Tile column.
+ * @param tileY Tile row.
+ * @param zoom Zoom level of the tile.
+ * @param decode True to decode and store the tile on a miss, false to only look it up.
+ * @return Slot index, the missing flag for that slot, or -1 when the pool is unusable.
+ */
+int8_t Maps::pngPoolSlot(uint32_t tileX, uint32_t tileY, uint8_t zoom, bool decode)
+{
+    if (!ensurePngPool())
+        return -1;
+
+    const uint32_t key = (uint32_t(zoom) << 28) | (uint32_t(tileX & 0x3FFF) << 14) | uint32_t(tileY & 0x3FFF);
+
+    for (uint8_t i = 0; i < pngPoolSlots; i++)
+    {
+        if (pngPoolKey[i] != key)
+            continue;
+        pngPoolUse[i] = ++pngPoolClock;
+        return (int8_t)i;
+    }
+
+    if (!decode)
+        return -1;
+
+    uint8_t slot = pngPoolSlots;
+    for (uint8_t i = 0; i < pngPoolSlots; i++)
+    {
+        if (pngPoolKey[i] == 0)
+        {
+            slot = i;
+            break;
+        }
+    }
+    if (slot == pngPoolSlots)
+    {
+        slot = 0;
+        uint32_t oldest = pngPoolUse[0];
+        for (uint8_t i = 1; i < pngPoolSlots; i++)
+        {
+            if (pngPoolUse[i] < oldest)
+            {
+                oldest = pngPoolUse[i];
+                slot = i;
+            }
+        }
+    }
+
+    pngPoolKey[slot] = key;
+    pngPoolUse[slot] = ++pngPoolClock;
+
+    char tilePath[128];
+    snprintf(tilePath, sizeof(tilePath), mapRenderFolder, zoom, tileX, tileY);
+    // The decode lands in the slot the composition reads: the sprite is only bound to the
+    // pool memory before decoding, so there is no staging copy and no second 128 KB block.
+    // Slots are 128 KB apart inside one 128-byte aligned block, which is the alignment the
+    // rotated blit and the PPA path need.
+    const size_t tileBytes = (size_t)mapTileSize * mapTileSize * 2;
+    pngDecodeSprite.setBuffer(pngPoolBuf + tileBytes * (size_t)slot, mapTileSize, mapTileSize, 16);
+    if (!pngDecodeSprite.drawPngFile(static_cast<const char*>(tilePath), 0, 0))
+    {
+        pngPoolMissing[slot] = true;
+        return (int8_t)slot;
+    }
+
+    pngPoolMissing[slot] = false;
+    return (int8_t)slot;
+}
+
+/**
+ * @brief Tells whether a grid tile can reach the viewport and is worth decoding.
+ *
+ * @details One criterion for the cold grid, the pan band and the composition, so none of
+ *          them prepares a tile the others consider irrelevant. The viewport is 480x773 on
+ *          a 5x5 grid of 256 px tiles, so two of the five columns never reach the window:
+ *          they used to be decoded on every pan and thrown away on the next one.
+ *          Deliberately conservative, with half a tile of slack, so a scroll offset that
+ *          changed between the prefetch and the paint cannot cull a tile that ends up
+ *          visible. A rotated view reaches tiles outside this rectangle; those are prepared
+ *          by prefetchRotatedTile() and, if one is still missing, decoded by the composition
+ *          on the frame it is first needed, so the rectangle is a preference and not a
+ *          guarantee.
+ *
+ * @param gx    Grid column, 0 at the left edge of the grid.
+ * @param gy    Grid row, 0 at the top edge of the grid.
+ * @param slack Pixels the tile may fall short of the window and still count; negative for
+ *              the half tile the prefetch uses. Zero asks for a strict overlap, and the
+ *              pan band goes through pngTileOverlaps() instead to keep one margin per axis.
+ * @return True when the tile, plus slack, overlaps the window.
+ */
+bool Maps::pngTileInWindow(int gx, int gy, int16_t slack) const
+{
+    const int16_t margin = (slack < 0) ? (int16_t)(mapTileSize / 2) : slack;
+    return pngTileOverlaps(gx, gy, margin, margin);
+}
+
+/**
+ * @brief Geometry of the window test, with one margin per axis.
+ *
+ * @details The band pans along a single axis, so the slack that admits the incoming row
+ *          is only owed on that axis. Giving it to both widened the accepted rectangle to
+ *          992 px on the 480 px viewport, which on a 5x5 grid admitted the whole incoming
+ *          row: five decodes at ~31 ms each on every step, when only three columns can
+ *          reach the window.
+ *
+ * @param gx      Grid column, 0 at the left edge of the grid.
+ * @param gy      Grid row, 0 at the top edge of the grid.
+ * @param marginX Pixels the tile may fall short of the window horizontally.
+ * @param marginY Pixels the tile may fall short of the window vertically.
+ * @return True when the tile, plus the margins, overlaps the window.
+ */
+bool Maps::pngTileOverlaps(int gx, int gy, int16_t marginX, int16_t marginY) const
+{
+    const int16_t dx = (int16_t)(gx * mapTileSize - (tileWidth - mapScrWidth) / 2 - offsetX);
+    const int16_t dy = (int16_t)(gy * mapTileSize - (tileHeight - mapScrHeight) / 2 - offsetY);
+    return dx + mapTileSize + marginX > 0 && dx - marginX < mapScrWidth &&
+           dy + mapTileSize + marginY > 0 && dy - marginY < mapScrHeight;
+}
+
+/**
+ * @brief Makes sure a tile is decoded in the pool, without painting anything.
+ *
+ * @return True when the tile is resident and the archive has it.
+ */
+bool Maps::stagePngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom)
+{
+    const int8_t slot = pngPoolSlot(tileX, tileY, zoom, true);
+    return slot >= 0 && !pngPoolMissing[slot];
+}
+
+/**
+ * @brief Builds the grid-to-window mapping the PNG composition paints with.
+ *
+ * @details One builder for the paint and for the prefetch: if they disagree on which tiles
+ *          reach the window, one prepares a set the other never reads. Follow mode pivots on
+ *          the GPS position, so the arrow stays on the same pixel; manual heading pivots on
+ *          the centre of the grid; with neither, the mapping is a plain translation.
+ *
+ * @param view Mapping to fill: either the translation, or the pivot and the rotation.
+ * @return True when the view is rotated.
+ */
+bool Maps::pngBuildView(ViewXform& view)
+{
+    const int8_t gridOffset = (int8_t)(tilesGrid / 2);
+    const int32_t gridW = (int32_t)tileWidth;
+    const int32_t gridH = (int32_t)tileHeight;
+    const int32_t scrW = (int32_t)mapScrWidth;
+    const int32_t scrH = (int32_t)mapScrHeight;
+    float angleDeg = 0.0f;
+
+    if (followGps)
+    {
+        const Gps::GpsSnapshot gpsSnap = gps.getSnapshot();
+        uint16_t mapHeading = 0;
+        #ifdef ENABLE_COMPASS
+        {
+            int sensorHeading = 0;
+            if (sensorMutex != NULL && xSemaphoreTake(sensorMutex, pdMS_TO_TICKS(5)) == pdTRUE)
+            {
+                sensorHeading = globalSensorData.heading;
+                xSemaphoreGive(sensorMutex);
+            }
+            mapHeading = mapSet.mapRotationComp ? (uint16_t)sensorHeading : gpsSnap.heading;
+        }
+        #else
+            mapHeading = gpsSnap.heading;
+        #endif
+        navArrowPosition = coord2ScreenPos(gpsSnap.longitude, gpsSnap.latitude, zoomLevel, mapTileSize);
+        view.pivX = (float)(gridOffset * mapTileSize + navArrowPosition.posX);
+        view.pivY = (float)(gridOffset * mapTileSize + navArrowPosition.posY);
+        angleDeg = 360.0f - mapHeading;
+    }
+    else if (manualHeading != 0.0f)
+    {
+        view.pivX = (float)(gridW / 2 + displayOffsetX);
+        view.pivY = (float)(gridH / 2 + displayOffsetY);
+        angleDeg = 360.0f - manualHeading;
+    }
+    else
+    {
+        view.offX = (int16_t)(-((gridW - scrW) / 2 + displayOffsetX));
+        view.offY = (int16_t)(-((gridH - scrH) / 2 + displayOffsetY));
+    }
+
+    if (angleDeg != 0.0f)
+    {
+        view.rotate = true;
+        const float rad = angleDeg * (float)M_PI / 180.0f;
+        view.cosA = cosf(rad);
+        view.sinA = sinf(rad);
+    }
+    return view.rotate;
+}
+
+/**
+ * @brief Tells whether a grid tile falls under a rotated viewport.
+ *
+ * @details Projects the four corners of the tile through the same rotation the paint uses
+ *          and keeps the tile when its bounding box touches the window. Conservative, like
+ *          the rectangle test: a tile that only grazes the window is still prepared rather
+ *          than discovered by the paint, inside the frame, at the price of a decode.
+ *
+ * @param view Rotation to project with.
+ * @param gx   Grid column, 0 at the left edge of the grid.
+ * @param gy   Grid row, 0 at the top edge of the grid.
+ * @return True when the tile can reach the window.
+ */
+bool Maps::pngTileReachesRotated(const ViewXform& view, int gx, int gy) const
+{
+    int16_t minX = 0;
+    int16_t maxX = 0;
+    int16_t minY = 0;
+    int16_t maxY = 0;
+    for (int corner = 0; corner < 4; corner++)
+    {
+        const int16_t cx = (int16_t)(gx * mapTileSize + ((corner & 1) ? mapTileSize : 0));
+        const int16_t cy = (int16_t)(gy * mapTileSize + ((corner & 2) ? mapTileSize : 0));
+        int16_t vx = 0;
+        int16_t vy = 0;
+        viewPoint(&view, cx, cy, vx, vy);
+        if (corner == 0)
+        {
+            minX = maxX = vx;
+            minY = maxY = vy;
+        }
+        else
+        {
+            minX = std::min(minX, vx);
+            maxX = std::max(maxX, vx);
+            minY = std::min(minY, vy);
+            maxY = std::max(maxY, vy);
+        }
+    }
+    return !(maxX < 0 || minX >= (int16_t)mapScrWidth || maxY < 0 || minY >= (int16_t)mapScrHeight);
+}
+
+/**
+ * @brief Paints the PNG viewport from the decoded-tile pool.
+ *
+ * @details Replaces the grid canvas for the raster backend: the viewport buffer is painted
+ *          from the decoded tiles, by a row copy per tile when the view is straight and by
+ *          one inverse-mapped pass over the window when it is rotated. Runs wherever the
+ *          composition already ran (GUI thread on ESP32-P4, render task on ESP32-S3), under
+ *          the map mutex, and draws the track and the waypoint on top with the same mapping
+ *          so they land on the same pixels as before.
+ */
+void Maps::composePngViewport()
+{
+    const int16_t scrW = (int16_t)mapScrWidth;
+    const int16_t scrH = (int16_t)mapScrHeight;
+
+    // The same mapping the prefetch builds, so both agree on which tiles reach the window.
+    ViewXform view;
+    pngBuildView(view);
+
+    // Two paths, and the straight one is the cheap one: rows of a tile are contiguous in the
+    // pool, so the crop is a memcpy per row. The rotated view cannot copy a row, so it is a
+    // single inverse-mapped pass over the window instead of one affine per tile, and it paints
+    // its own paper: the corners the rotation leaves outside the grid, and the gaps a missing
+    // tile would show, are white either way, and filling the window first only cost a 742 KB
+    // sweep through the cache ahead of the sampling.
+    if (view.rotate)
+        composePngRotated(view);
+    else
+    {
+        mapSprite.fillSprite(TFT_WHITE);
+        uint16_t* const dst = static_cast<uint16_t*>(mapSprite.getBuffer());
+        const size_t tileBytes = (size_t)mapTileSize * mapTileSize * 2;
+        const int32_t tlX = (int32_t)mapTlX;
+        const int32_t tlY = (int32_t)mapTlY;
+
+        // Only the tiles that reach the window are looked up, which is what keeps the pool
+        // holding the working set: the least recently used slots are the tiles off screen, so
+        // the incoming band of a pan evicts those and never one that is being painted.
+        // A visible tile that no prefetch left resident is decoded here, on the spot: the pool
+        // is the only copy there is, so a miss cannot be left as a white hole the way a culled
+        // band would. Its cost lands in cmp, not in the PASS prefetch figures.
+        for (int gy = 0; gy < tilesGrid; gy++)
+        {
+            for (int gx = 0; gx < tilesGrid; gx++)
+            {
+                const int16_t dx = (int16_t)(gx * mapTileSize + view.offX);
+                const int16_t dy = (int16_t)(gy * mapTileSize + view.offY);
+                if (dx >= scrW || dy >= scrH || dx <= -mapTileSize || dy <= -mapTileSize)
+                    continue;
+
+                const int8_t slot = pngPoolSlot((uint32_t)(tlX + gx), (uint32_t)(tlY + gy), zoomLevel, true);
+                if (slot < 0)
+                    continue;
+
+                if (pngPoolMissing[slot])
+                {
+                    mapSprite.fillRect(dx, dy, mapTileSize, mapTileSize, TFT_BLACK);
+                    mapSprite.drawPngFile(noMapFile, dx + mapTileSize / 2 - 50,
+                                          dy + mapTileSize / 2 - 50);
+                    continue;
+                }
+
+                if (dst == nullptr)
+                    continue;
+                const uint16_t* src = reinterpret_cast<const uint16_t*>(pngPoolBuf + tileBytes * (size_t)slot);
+                // Row copy of the visible part: the fast path the canvas crop used, with the
+                // tile overdraw trimmed at the window edges so the cost tracks the window.
+                int16_t x0 = (dx < 0) ? (int16_t)-dx : 0;
+                int16_t y0 = (dy < 0) ? (int16_t)-dy : 0;
+                int16_t w = (int16_t)mapTileSize - x0;
+                if (dx + x0 + w > scrW)
+                    w = (int16_t)(scrW - (dx + x0));
+                int16_t h = (int16_t)mapTileSize - y0;
+                if (dy + y0 + h > scrH)
+                    h = (int16_t)(scrH - (dy + y0));
+                if (w <= 0 || h <= 0)
+                    continue;
+                for (int16_t row = 0; row < h; row++)
+                    memcpy(dst + (size_t)(dy + y0 + row) * (size_t)scrW + (dx + x0),
+                           src + (size_t)(y0 + row) * (size_t)mapTileSize + x0,
+                           (size_t)w * 2);
+            }
+        }
+    }
+
+    drawTrack(mapSprite, &view);
+    drawWaypoint(mapSprite, &view);
+}
+
+/**
+ * @brief Steps along a fixed-point axis before it leaves the 256 px cell it is in.
+ *
+ * @details The sampling advances each axis by a constant in 1/65536 of a pixel, so the
+ *          distance to the next tile boundary is arithmetic and not a comparison per sample.
+ *          That is what lets the inner loop run without looking up the tile on every pixel.
+ *
+ * @param posQ Axis position in 1/65536 px.
+ * @param stepQ Axis step in 1/65536 px.
+ * @param cellQ Cell size in 1/65536 px, a power of two in pixels.
+ * @return Steps until the boundary, INT32_MAX when the axis does not move.
+ */
+static inline int32_t pngRunToBoundary(int32_t posQ, int32_t stepQ, int32_t cellQ)
+{
+    const int32_t frac = posQ & (cellQ - 1);
+    if (stepQ > 0)
+        return (cellQ - frac + stepQ - 1) / stepQ;
+    if (stepQ < 0)
+        return frac / (-stepQ) + 1;
+    return INT32_MAX;
+}
+
+/**
+ * @brief Paints the rotated viewport, sampling the tile pool once per destination pixel.
+ *
+ * @details Replaces the affine LovyanGFX applied per tile. Rendered in place, a rotated
+ *          grid cost fifteen `pushImageRotateZoom()` calls per frame, each with its own
+ *          matrix, eight integer divisions per destination row and a per-pixel copy through
+ *          a function pointer into a PSRAM sprite; the same pixels are cheaper to visit
+ *          once. Here every destination pixel is mapped back to grid coordinates with a
+ *          fixed-point step, and the tile that owns it is read straight from the pool, with
+ *          nearest neighbour, which is what the affine did by truncating the source
+ *          coordinates. What the grid does not cover is painted in the same pass, so the
+ *          caller does not clear the viewport first.
+ *
+ * @param view Rotation the caller built: pivot and the cosine and sine of the angle.
+ */
+void Maps::composePngRotated(const ViewXform& view)
+{
+    const int16_t scrW = (int16_t)mapScrWidth;
+    const int16_t scrH = (int16_t)mapScrHeight;
+    const int16_t halfW = (int16_t)(scrW / 2);
+    const int16_t halfH = (int16_t)(scrH / 2);
+    const int32_t gridW = (int32_t)tileWidth;
+    const int32_t gridH = (int32_t)tileHeight;
+    const size_t tileBytes = (size_t)mapTileSize * mapTileSize * 2;
+    const int32_t tlX = (int32_t)mapTlX;
+    const int32_t tlY = (int32_t)mapTlY;
+
+    uint16_t* const dst = static_cast<uint16_t*>(mapSprite.getBuffer());
+    if (dst == nullptr)
+        return;
+
+    // One entry per grid cell, filled once: the walk below would otherwise repeat the pool
+    // lookup on every pixel. initMap sizes the grid to the largest panel side, which is 5x5
+    // on the boards this runs on; the array is 6x6 so a larger panel cannot overrun it.
+    const uint16_t* cell[36] = {};
+
+    for (int gy = 0; gy < tilesGrid; gy++)
+    {
+        for (int gx = 0; gx < tilesGrid; gx++)
+        {
+            // A tile with no pixel under the window is neither decoded nor read.
+            if (!pngTileReachesRotated(view, gx, gy))
+                continue;
+
+            const int8_t slot = pngPoolSlot((uint32_t)(tlX + gx), (uint32_t)(tlY + gy), zoomLevel, true);
+            if (slot < 0 || pngPoolMissing[slot])
+                continue;
+            cell[gy * tilesGrid + gx] = reinterpret_cast<const uint16_t*>(pngPoolBuf + tileBytes * (size_t)slot);
+        }
+    }
+
+    // Screen to grid is the transpose of the rotation viewPoint() applies, so along a row the
+    // grid coordinate steps by the cosine in x and by minus the sine in y, both constant. The
+    // step is kept in 1/65536 of a pixel so the whole row is integer additions.
+    const int32_t cosQ = (int32_t)lroundf(view.cosA * 65536.0f);
+    const int32_t sinQ = (int32_t)lroundf(view.sinA * 65536.0f);
+    const int32_t pivotQx = (int32_t)lroundf(view.pivX * 65536.0f);
+    const int32_t pivotQy = (int32_t)lroundf(view.pivY * 65536.0f);
+    // Pixel centres: a destination pixel is sampled at its middle, so the rotation is
+    // symmetric around the centre of the window.
+    const int32_t centreQx = (cosQ + sinQ) / 2;
+    const int32_t centreQy = (cosQ - sinQ) / 2;
+
+    // Paper for whatever the grid does not cover: the rotated window reaches past the corners,
+    // and a missing tile has nothing to sample. Written here instead of filling the whole
+    // window first, which streamed 742 KB through the cache before sampling it.
+    const uint16_t paper = (uint16_t)TFT_WHITE;
+
+    for (int16_t y = 0; y < scrH; y++)
+    {
+        const int32_t sy = (int32_t)y - halfH;
+        int32_t gx = pivotQx - cosQ * halfW + centreQx + sinQ * sy;
+        int32_t gy = pivotQy + sinQ * halfW + centreQy + cosQ * sy;
+        uint16_t* const row = dst + (size_t)y * (size_t)scrW;
+        int16_t x = 0;
+
+        while (x < scrW)
+        {
+            const int32_t px = gx >> 16;
+            const int32_t py = gy >> 16;
+            if (px < 0 || px >= gridW || py < 0 || py >= gridH)
+            {
+                row[x++] = paper;
+                gx += cosQ;
+                gy -= sinQ;
+                continue;
+            }
+
+            const uint16_t* const tile = cell[(py >> 8) * tilesGrid + (px >> 8)];
+            if (tile == nullptr)
+            {
+                row[x++] = paper;
+                gx += cosQ;
+                gy -= sinQ;
+                continue;
+            }
+
+            // Inside one tile the sample index is a mask and two shifts, so the run lasts until
+            // the source crosses a 256 px boundary in either axis: computed, not tested.
+            int32_t run = scrW - x;
+            const int32_t runX = pngRunToBoundary(gx, cosQ, 256 << 16);
+            const int32_t runY = pngRunToBoundary(gy, -sinQ, 256 << 16);
+            if (runX < run)
+                run = runX;
+            if (runY < run)
+                run = runY;
+            if (run <= 0)
+                run = 1;
+
+            for (int32_t i = 0; i < run; i++)
+            {
+                row[x] = tile[(((uint32_t)(gy >> 16) & 255u) << 8) | ((uint32_t)(gx >> 16) & 255u)];
+                x++;
+                gx += cosQ;
+                gy -= sinQ;
+            }
+        }
+    }
+}
+
+/**
+ * @brief Decodes the nearest missing tile under a rotated viewport, off the paint.
+ *
+ * @details The axis band follows the grid, but a rotated window reads tiles no axis band
+ *          ever enters: the footprint is the window turned around the pivot. Those tiles used
+ *          to be decoded by the composition, inside the frame, one decode each, which is
+ *          most of what "the rotation is slow" was. One tile per idle call, nearest to the
+ *          pivot first, so a heading that moves two degrees at a time is always ahead of the
+ *          paint and the window never waits.
+ *
+ * @param view Rotation the paint is using.
+ * @return True when a tile was queued for decode.
+ */
+bool Maps::prefetchRotatedTile(const ViewXform& view)
+{
+    if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(20)) != pdTRUE)
+        return false;
+
+    const int32_t tlX = (int32_t)mapTlX;
+    const int32_t tlY = (int32_t)mapTlY;
+    int bestGx = -1;
+    int bestGy = -1;
+    int32_t bestDist = INT32_MAX;
+
+    for (int gy = 0; gy < tilesGrid; gy++)
+    {
+        for (int gx = 0; gx < tilesGrid; gx++)
+        {
+            const uint32_t tileX = (uint32_t)(tlX + gx);
+            const uint32_t tileY = (uint32_t)(tlY + gy);
+            if (!pngTileReachesRotated(view, gx, gy))
+                continue;
+            if (pngPoolSlot(tileX, tileY, zoomLevel, false) >= 0)
+                continue;
+            const float centreX = (float)(gx * mapTileSize + mapTileSize / 2);
+            const float centreY = (float)(gy * mapTileSize + mapTileSize / 2);
+            const float dx = centreX - view.pivX;
+            const float dy = centreY - view.pivY;
+            const int32_t dist = (int32_t)(dx * dx + dy * dy);
+            if (dist < bestDist)
+            {
+                bestDist = dist;
+                bestGx = gx;
+                bestGy = gy;
+            }
+        }
+    }
+
+    const bool staged = (bestGx >= 0) &&
+                        stagePngTile((uint32_t)(tlX + bestGx), (uint32_t)(tlY + bestGy), zoomLevel);
+
+    xSemaphoreGiveRecursive(mapMutex);
+    return staged;
+}
+
+/**
+ * @brief Predictively decodes the next PNG tile into the pool.
+ *
+ * @details Runs only when the render queue is empty. With a rotated view it prepares the
+ *          nearest tile of the footprint the rotation reads; straight, it decodes the
+ *          leading edge tile of the next grid (Chebyshev radius tilesGrid/2 + 1) in the
+ *          movement direction (GPS heading while following, drag velocity otherwise), so
+ *          the next scroll crossing paints it from PSRAM instead of decoding it from SD.
  */
 void Maps::prefetchPngTile()
 {
     if (mapSet.vectorMap)
         return;
-    if (!ensurePngStagingSprite())
+    // Nothing to prepare while there is no map on screen or a grid is still being built: at
+    // boot the pivot and the tile range are still zero, and the probes only fill the pool with
+    // tiles that do not exist, each one evicting a slot the cold pass is about to need.
+    if (!isMapFound || pendingTilesNotEmpty)
+        return;
+
+    // Under rotation the footprint comes first: it is what the paint reads. When nothing is
+    // missing there, the axis band below still has work to do for the next crossing.
+    ViewXform view;
+    const bool rotated = pngBuildView(view);
+    if (rotated && prefetchRotatedTile(view))
         return;
 
     float dirTileX = 0.0f;
@@ -2182,86 +2826,15 @@ void Maps::prefetchPngTile()
     const uint32_t targetX = (uint32_t)std::min<int64_t>(std::max<int64_t>(txi, 0), maxIdx);
     const uint32_t targetY = (uint32_t)std::min<int64_t>(std::max<int64_t>(tyi, 0), maxIdx);
 
-    const uint32_t targetHash = (uint32_t(zoomLevel) << 28) | (uint32_t(targetX & 0x3FFF) << 14) | uint32_t(targetY & 0x3FFF);
-    if (pngStagingValid && pngStagedHash == targetHash)
-        return;
-
     if (xSemaphoreTakeRecursive(mapMutex, pdMS_TO_TICKS(100)) != pdTRUE)
         return;
 
-    if (pngStagingValid && pngStagedHash == targetHash)
-    {
-        xSemaphoreGiveRecursive(mapMutex);
-        return;
-    }
-
-    pngStagingValid = false;
-    pngStagedHash = 0;
-
-    char tilePath[128];
-    snprintf(tilePath, sizeof(tilePath), mapRenderFolder, zoomLevel, targetX, targetY);
-
-    int16_t stageX = 0;
-    int16_t stageY = 0;
-    if (pngStagingSprite.drawPngFile(tilePath, stageX, stageY))
-    {
-        pngStagedHash = targetHash;
-        pngStagingValid = true;
-    }
+    // Decoding into the pool is the prefetch now: the crossing itself only has to paint
+    // the tile the pool already holds instead of reading it from the SD.
+    if (pngPoolSlot(targetX, targetY, zoomLevel, false) < 0)
+        stagePngTile(targetX, targetY, zoomLevel);
 
     xSemaphoreGiveRecursive(mapMutex);
-}
-
-/**
- * @brief Blits the staged PNG tile if it matches the requested tile hash.
- *
- * @details Consumes the staging buffer so the next crossing re-stages. Returns false
- *          when there is no valid staged tile for this position; the caller then falls
- *          back to a synchronous PNG decode.
- *
- * @return True when the staged tile matched and was blitted; false when the caller has
- *         to decode.
- */
-bool Maps::tryApplyStagedPng(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map)
-{
-    if (!pngStagingValid)
-    {
-        return false;
-    }
-
-    const uint32_t hash = (uint32_t(zoom) << 28) | (uint32_t(tileX & 0x3FFF) << 14) | uint32_t(tileY & 0x3FFF);
-    if (hash != pngStagedHash)
-    {
-        return false;
-    }
-
-    map.pushImage(screenX, screenY, mapTileSize, mapTileSize, static_cast<uint16_t*>(pngStagingSprite.getBuffer()));
-    pngStagingValid = false;
-    pngStagedHash = 0;
-    return true;
-}
-
-/**
- * @brief Render a single PNG tile
- * 
- * @param tileX X Tile
- * @param tileY Y Tile
- * @param zoom Zoom level
- * @param screenX X PNG position on sprite
- * @param screenY Y PNG position on sprite
- * @param map Map sprite
- */
-void Maps::renderPngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t screenX, int16_t screenY, MapCanvas &map)
-{
-    if (tryApplyStagedPng(tileX, tileY, zoom, screenX, screenY, map))
-        return;
-    char tilePath[128];
-    snprintf(tilePath, sizeof(tilePath), mapRenderFolder, zoom, tileX, tileY);
-    if (!map.drawPngFile(tilePath, screenX, screenY))
-    {
-        map.fillRect(screenX, screenY, mapTileSize, mapTileSize, TFT_BLACK);
-        map.drawPngFile(noMapFile, screenX + mapTileSize / 2 - 50, screenY + mapTileSize / 2 - 50);
-    }
 }
 
 /**
@@ -2276,6 +2849,13 @@ void Maps::renderPngTile(uint32_t tileX, uint32_t tileY, uint8_t zoom, int16_t s
  */
 void Maps::composeMap()
 {
+    if (!mapSet.vectorMap)
+    {
+        // Raster backend: the viewport is painted from the tile pool, no canvas involved.
+        composePngViewport();
+        return;
+    }
+
     // Sprite-to-sprite composition: no panel transaction, the GUI owns the panel bus.
     if (Maps::followGps)
     {
@@ -2403,13 +2983,18 @@ bool Maps::composeCropStaged(int16_t viewOffsetX, int16_t viewOffsetY)
  *          composeMap() and displayMap() is a no-op. On ESP32-P4 the compose
  *          stays on the GUI thread to avoid the handshake latency: this method
  *          applies the full rotation / perspective / crop transform under the
- *          map mutex, with hysteresis when nothing changed.
+ *          map mutex, with hysteresis when nothing changed. The raster backend
+ *          hands the frame to composePngViewport(), which paints the tiles and
+ *          the track straight into the viewport buffer (no grid canvas).
  */
 void Maps::displayMap()
 {
     if (!Maps::isMapFound)
     {
-        Maps::mapTempSprite.pushSprite(&mapSprite, 0, 0);
+        if (Maps::mapTempSprite.getBuffer() != nullptr)
+            Maps::mapTempSprite.pushSprite(&mapSprite, 0, 0);
+        else
+            Maps::mapSprite.fillSprite(TFT_WHITE);
         return;
     }
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
@@ -2417,6 +3002,15 @@ void Maps::displayMap()
         return;
 
     mapCanvasParent()->startWrite();
+
+    if (!mapSet.vectorMap)
+    {
+        composePngViewport();
+        Maps::redrawMap = false;
+        mapCanvasParent()->endWrite();
+        xSemaphoreGiveRecursive(mapMutex);
+        return;
+    }
 
     if (Maps::followGps)
     {
@@ -3181,17 +3775,18 @@ void Maps::preloadVectorTiles(int8_t dirX, int8_t dirY, uint8_t stepCount)
 /**
  * @brief Incrementally scroll the PNG grid by one tile row or column.
  *
- * @details Shifts the already rendered sprite one tile in the pan direction and loads only the
- *          incoming edge tiles from SD instead of re-reading the whole grid. Advances the grid
- *          anchor (mapTlX/mapTlY, oldMapTile) to the new top-left, recomputes totalBounds
- *          from the grid corners, repositions the waypoint and redraws the track.
+ * @details Decodes only the incoming edge tiles into the pool instead of re-reading the
+ *          whole grid: the viewport is composed from the pool on every frame, so the tiles
+ *          already resident cost nothing. Advances the grid anchor (mapTlX/mapTlY,
+ *          oldMapTile) to the new top-left, recomputes totalBounds from the grid corners
+ *          and repositions the waypoint; the track and the marker are painted by the
+ *          composition, on top of the tiles.
  *
  * @param dirX X pan direction (-1, 0, +1).
  * @param dirY Y pan direction (-1, 0, +1).
  */
 void Maps::preloadTiles(int8_t dirX, int8_t dirY)
 {
-    const int16_t tileSize = mapTileSize;
     const int8_t gridOffset = tilesGrid / 2;
 
     const uint32_t centerTileIdxX = Maps::currentMapTile.tilex;
@@ -3199,31 +3794,39 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
     const int32_t tlX = (int32_t)centerTileIdxX - gridOffset;
     const int32_t tlY = (int32_t)centerTileIdxY - gridOffset;
 
-    if (dirX != 0)
-        mapTempSprite.scroll(-dirX * tileSize, 0);
-    else if (dirY != 0)
-        mapTempSprite.scroll(0, -dirY * tileSize);
-
     mapTlX = (float)tlX;
     mapTlY = (float)tlY;
     Maps::oldMapTile.tilex = centerTileIdxX;
     Maps::oldMapTile.tiley = centerTileIdxY;
     Maps::oldMapTile.zoom  = Maps::zoomLevel;
 
-    bool centerFound = false;
+    // One tile of slack along the axis being panned, so the row or column that is entering
+    // is admitted before it can be seen, and half a tile across it, where the pan does not
+    // move: that margin already covers a sub-tile drift, and a whole tile there stretched
+    // the test past the viewport and decoded the end of the row on every step.
+    const int16_t panSlack = (int16_t)mapTileSize;
+    const int16_t crossSlack = (int16_t)(mapTileSize / 2);
+
     if (dirX != 0)
     {
         const int gx = (dirX > 0) ? (tilesGrid - 1) : 0;
         for (int gy = 0; gy < tilesGrid; gy++)
-            loadPngTileIntoSprite(tlX, tlY, gx, gy, centerTileIdxX, centerTileIdxY, Maps::zoomLevel, centerFound);
+        {
+            if (!pngTileOverlaps(gx, gy, panSlack, crossSlack))
+                continue;
+            stagePngTile((uint32_t)(tlX + gx), (uint32_t)(tlY + gy), Maps::zoomLevel);
+        }
     }
     else if (dirY != 0)
     {
         const int gy = (dirY > 0) ? (tilesGrid - 1) : 0;
         for (int gx = 0; gx < tilesGrid; gx++)
-            loadPngTileIntoSprite(tlX, tlY, gx, gy, centerTileIdxX, centerTileIdxY, Maps::zoomLevel, centerFound);
+        {
+            if (!pngTileOverlaps(gx, gy, crossSlack, panSlack))
+                continue;
+            stagePngTile((uint32_t)(tlX + gx), (uint32_t)(tlY + gy), Maps::zoomLevel);
+        }
     }
-    (void)centerFound;
 
     Maps::totalBounds = getTileBounds((uint32_t)tlX, (uint32_t)tlY, Maps::zoomLevel);
     const tileBounds brBounds = getTileBounds((uint32_t)(tlX + tilesGrid - 1), (uint32_t)(tlY + tilesGrid - 1), Maps::zoomLevel);
@@ -3244,8 +3847,6 @@ void Maps::preloadTiles(int8_t dirX, int8_t dirY)
         Maps::wptPosY = -1;
     }
 
-    drawTrack(mapTempSprite);
-    drawWaypoint(mapTempSprite);
     redrawMap = true;
     xEventGroupSetBits(mapEventGroup, MAP_EVENT_DONE);
 }
@@ -4361,24 +4962,27 @@ void Maps::renderVectorText(const FeatureRef& ref, MapCanvas& map, std::vector<L
 void Maps::enqueueTileGrid(uint32_t centerTileIdxX, uint32_t centerTileIdxY, TileType type)
 {
     const int8_t gridOffset = tilesGrid / 2;
+    // A PNG tile is only queued when the window can reach it, so the cold pass stops
+    // decoding the columns that never make it on screen. Safe because the composition
+    // decodes any visible tile the queue skipped, instead of leaving a hole.
+    auto queueTile = [&](int gx, int gy)
+    {
+        if (type == TILE_PNG && !pngTileInWindow(gx, gy))
+            return;
+        pendingTiles.push_back({(uint32_t)(centerTileIdxX - gridOffset + gx),
+                                (uint32_t)(centerTileIdxY - gridOffset + gy),
+                                (int16_t)(gx * 256), (int16_t)(gy * 256), type});
+    };
     if (tilesGrid == 3)
     {
         for (int i = 0; i < 9; i++)
-        {
-            int dx = NAV_SPIRAL_ORDER[i][0];
-            int dy = NAV_SPIRAL_ORDER[i][1];
-            pendingTiles.push_back({(uint32_t)(centerTileIdxX - gridOffset + dx),
-                                    (uint32_t)(centerTileIdxY - gridOffset + dy),
-                                    (int16_t)(dx * 256), (int16_t)(dy * 256), type});
-        }
+            queueTile(NAV_SPIRAL_ORDER[i][0], NAV_SPIRAL_ORDER[i][1]);
     }
     else
     {
         for (int dy = 0; dy < tilesGrid; dy++)
             for (int dx = 0; dx < tilesGrid; dx++)
-                pendingTiles.push_back({(uint32_t)(centerTileIdxX - gridOffset + dx),
-                                        (uint32_t)(centerTileIdxY - gridOffset + dy),
-                                        (int16_t)(dx * 256), (int16_t)(dy * 256), type});
+                queueTile(dx, dy);
     }
     pendingTilesNotEmpty = true;
 }

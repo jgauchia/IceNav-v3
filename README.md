@@ -193,7 +193,7 @@ python3 tools/pmtiles-extract.py --pmtiles ~/bin/pmtiles --outdir pmtiles --run
 
 `--bbox` is `min_lon,min_lat,max_lon,max_lat` and `--screen` the largest screen dimension, which decides the grid (3×3 on a 320×480 S3, 5×5 on the 1024 px P4); `--zooms` takes `6-15` or `6,7,9-11`, `--center` moves the tile the map boots at, and without `--run` nothing is downloaded. The source is the daily build `build.protomaps.com/YYYYMMDD.pmtiles` with the previous two days as fallback, and `--date`, `--src` or the `PMTILES` environment variable pin one day, a mirror or a local file. The basemap builds stop at zoom 15.
 
-Copy the contents of the output folder to the SD card as `PMTILES` and choose **PMTILES** in the map type dropdown of **Settings → Map**, or set `kset vectMap on` and `kset pmtiles on` from the CLI; both take effect on the next reboot. Reference size for a region the size of Catalonia, zooms 6 to 15: 411.2 MB, the largest archive 192.3 MB.
+Copy the contents of the output folder to the SD card as `PMTILES` and choose **PMTILES** in the map type dropdown of **Settings → Map**, or set `kset vectMap on` and `kset pmtiles on` from the CLI; both take effect on the next reboot. Decoding needs at least **8 MB of PSRAM**: the feature arena and the tile scratch of the densest zooms do not fit in less. Reference size for a region the size of Catalonia, zooms 6 to 15: 411.2 MB, the largest archive 192.3 MB.
 
 ## Mass Copy Script for Map Tiles
 

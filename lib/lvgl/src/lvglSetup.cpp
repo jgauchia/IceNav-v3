@@ -21,6 +21,17 @@
 
 static const char *TAG = "LVGL";
 
+/**
+ * @brief Heading change that earns a repaint during a two-finger rotation.
+ *
+ * @details A rotated frame is composed per pixel and costs tens of milliseconds on both
+ *          boards, while the touch is read every few milliseconds: asking for a repaint on
+ *          every read queues frames faster than they can be painted and the gesture stretches
+ *          instead of turning. The angle keeps accumulating on every read, so the view still
+ *          tracks the fingers; only the repaint waits until the turn is worth one.
+ */
+static constexpr float ROTATE_REDRAW_DEGREES = 2.0f;
+
 extern void triggerMapRedraw();
 
 volatile bool twoFingerGesture = false; /**< True while two touch points are reported; suppresses single-finger scroll during pinch/rotate. */
@@ -190,6 +201,7 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
     // Variables for drag detection
     static int16_t startX = -1, startY = -1;
     static bool isDrag = false;
+    static float lastRotRedrawHeading = 0.0f;
     const int DRAG_THRESHOLD = 30; // Increased threshold to 30px
 
     int count = 0;
@@ -226,6 +238,14 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
         pinchActive = false;
         prevValid = false;
         lastZoomDir = ZOOM_NONE;
+        if (twoFingerGesture && mapView.manualHeading != lastRotRedrawHeading)
+        {
+            // Whatever the threshold swallowed during the gesture lands in the last frame, so
+            // the map settles on the angle the fingers left it at.
+            lastRotRedrawHeading = mapView.manualHeading;
+            mapView.redrawMap = true;
+            triggerMapRedraw();
+        }
         rotationLocked = false;
         zoomLocked = false;
         twoFingerGesture = false;
@@ -364,8 +384,17 @@ void IRAM_ATTR touchRead(lv_indev_t *indev_driver, lv_indev_data_t *data)
                         mapView.manualHeading -= rotDelta;
                         if (mapView.manualHeading >= 360.0f) mapView.manualHeading -= 360.0f;
                         if (mapView.manualHeading <    0.0f) mapView.manualHeading += 360.0f;
-                        mapView.redrawMap = true;
-                        triggerMapRedraw();
+                        float turned = mapView.manualHeading - lastRotRedrawHeading;
+                        if (turned < 0.0f)
+                            turned = -turned;
+                        if (turned > 180.0f)
+                            turned = 360.0f - turned;
+                        if (turned >= ROTATE_REDRAW_DEGREES)
+                        {
+                            lastRotRedrawHeading = mapView.manualHeading;
+                            mapView.redrawMap = true;
+                            triggerMapRedraw();
+                        }
                     }
                 }
                 if (!rotationLocked)
